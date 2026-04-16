@@ -50,14 +50,23 @@ class M68kDiagList(ctypes.Structure):
     ]
 
 
-class M68kDiagSink(ctypes.Structure):
-    _fields_ = [("list", ctypes.POINTER(M68kDiagList))]
-
-
 class M68kDisasmTextResult(ctypes.Structure):
     _fields_ = [
         ("byte_count", ctypes.c_size_t),
         ("text", ctypes.c_char * 256),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
+class M68kDisasmInfoResult(ctypes.Structure):
+    _fields_ = [
+        ("byte_count", ctypes.c_size_t),
+        ("form_index", ctypes.c_uint16),
+        ("mnemonic_id", ctypes.c_uint8),
+        ("target_cpu", ctypes.c_uint8),
+        ("mnemonic", ctypes.c_char * 32),
+        ("size_suffix", ctypes.c_char),
+        ("operand_count", ctypes.c_size_t),
         ("diagnostics", M68kDiagList),
     ]
 
@@ -120,81 +129,12 @@ def _disasm_library():
         ctypes.c_uint8,
     ]
     library.m68k_disassemble_one_text_for_cpu.restype = M68kDisasmTextResult
-    return library
-
-
-@lru_cache(maxsize=1)
-def _ir_library():
-    require_built_tools()
-    library = ctypes.CDLL(str(prepare_test_dll(DISASM_DLL_PATH)))
-
-    class M68kAsmOperandValue(ctypes.Structure):
-        _fields_ = [
-            ("kind", ctypes.c_uint8),
-            ("reg", ctypes.c_uint8),
-            ("pair_reg", ctypes.c_uint8),
-            ("reg_is_address", ctypes.c_uint8),
-            ("pair_reg_is_address", ctypes.c_uint8),
-            ("bf_offset_is_register", ctypes.c_uint8),
-            ("bf_offset", ctypes.c_uint8),
-            ("bf_width_is_register", ctypes.c_uint8),
-            ("bf_width", ctypes.c_uint8),
-            ("ea_mode", ctypes.c_uint8),
-            ("ea_reg", ctypes.c_uint8),
-            ("value", ctypes.c_uint32),
-            ("index_is_address", ctypes.c_uint8),
-            ("index_reg", ctypes.c_uint8),
-            ("index_long", ctypes.c_uint8),
-            ("scale", ctypes.c_uint8),
-            ("full_ext_base_suppress", ctypes.c_uint8),
-            ("full_ext_index_suppress", ctypes.c_uint8),
-            ("full_ext_base_disp_size", ctypes.c_uint8),
-            ("full_ext_outer_disp_size", ctypes.c_uint8),
-            ("full_ext_iis", ctypes.c_uint8),
-            ("full_ext_base_disp_value", ctypes.c_uint32),
-            ("full_ext_outer_disp_value", ctypes.c_uint32),
-        ]
-
-    class M68kSymbolRefIR(ctypes.Structure):
-        _fields_ = [
-            ("kind", ctypes.c_uint8),
-            ("has_name", ctypes.c_uint8),
-            ("name_is_generated", ctypes.c_uint8),
-            ("symbol_index", ctypes.c_size_t),
-            ("section_index", ctypes.c_size_t),
-            ("has_symbol", ctypes.c_int),
-            ("has_section", ctypes.c_int),
-            ("addend", ctypes.c_int32),
-            ("name", ctypes.c_char * 64),
-        ]
-
-    class M68kOperandIR(ctypes.Structure):
-        _fields_ = [
-            ("kind", ctypes.c_uint8),
-            ("value", M68kAsmOperandValue),
-            ("symbol_ref", M68kSymbolRefIR),
-        ]
-
-    class M68kInstructionIR(ctypes.Structure):
-        _fields_ = [
-            ("form_index", ctypes.c_uint16),
-            ("mnemonic_id", ctypes.c_uint8),
-            ("target_cpu", ctypes.c_uint8),
-            ("mnemonic", ctypes.c_char * 32),
-            ("size_suffix", ctypes.c_char),
-            ("operand_count", ctypes.c_size_t),
-            ("operands", M68kOperandIR * 4),
-            ("byte_count", ctypes.c_size_t),
-        ]
-
-    library._M68kInstructionIR = M68kInstructionIR
-    library.m68k_ir_decode_one.argtypes = [
+    library.m68k_disassemble_one_info_for_cpu.argtypes = [
         ctypes.POINTER(ctypes.c_ubyte),
         ctypes.c_size_t,
         ctypes.c_uint8,
-        M68kDiagSink,
     ]
-    library.m68k_ir_decode_one.restype = M68kInstructionIR
+    library.m68k_disassemble_one_info_for_cpu.restype = M68kDisasmInfoResult
     return library
 
 
@@ -230,19 +170,17 @@ def _disassemble_for_cpu(data: bytes, cpu_name: str) -> tuple[str, int]:
     return result.text.decode("utf-8"), int(result.byte_count)
 
 
-def _ir_decode_for_cpu(data: bytes, cpu_name: str):
-    library = _ir_library()
+def _disassemble_info_for_cpu(data: bytes, cpu_name: str) -> M68kDisasmInfoResult:
+    library = _disasm_library()
     buffer = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
-    diagnostics = M68kDiagList()
-    instruction = library.m68k_ir_decode_one(
+    result = library.m68k_disassemble_one_info_for_cpu(
         buffer,
         len(data),
         CPU_CODES[cpu_name],
-        M68kDiagSink(ctypes.pointer(diagnostics)),
     )
-    if _diag_has_errors(diagnostics) or instruction.byte_count == 0:
-        raise AssertionError(_diag_message(diagnostics))
-    return instruction
+    if _diag_has_errors(result.diagnostics) or result.byte_count == 0:
+        raise AssertionError(_diag_message(result.diagnostics))
+    return result
 
 
 @lru_cache(maxsize=None)
@@ -400,6 +338,13 @@ class C99DisassemblerCorpusTests(unittest.TestCase):
         self.assertEqual(byte_count, len(original))
         self.assertEqual(rendered, "pvalid val,$1234.w")
         self.assertEqual(_assemble_line_bytes(rendered, "68030"), original)
+
+    def test_disassemble_info_sets_mnemonic_id_for_disassembler_only_form(self) -> None:
+        original = bytes.fromhex("f050000f")
+        result = _disassemble_info_for_cpu(original, "68030")
+        self.assertEqual(result.byte_count, len(original))
+        self.assertNotEqual(result.mnemonic_id, 0)
+        self.assertEqual(bytes(result.mnemonic).split(b"\0", 1)[0].decode("ascii"), "pscc")
 
     def test_signed_displacement_families_render_signed(self) -> None:
         samples = (

@@ -312,11 +312,9 @@ def check_file(path: Path, line_length: int) -> list[str]:
 
 
 def _iter_default_paths() -> list[Path]:
-    excluded = {"m68k_asm_tables.c", "m68k_asm_tables.h"}
     return [
         path
         for path in sorted((ROOT / "src").glob("*.c")) + sorted((ROOT / "src").glob("*.h"))
-        if path.name not in excluded
     ]
 
 

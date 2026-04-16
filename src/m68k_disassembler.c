@@ -1,6 +1,6 @@
 /* Static disassembler runtime over generated KB-derived tables. */
 #include "m68k_disassembler.h"
-#include "m68k_asm_tables.h"
+#include "m68k_asm_metadata.h"
 #include "m68k_parse_util.h"
 #include "platform_common.h"
 
@@ -12,7 +12,7 @@ typedef struct {
   uint16_t count;
 } M68kDisasmBucket;
 
-#include "m68k_disassembler_tables.inc"
+#include "generated/m68k_disassembler_tables.generated.h"
 
 static uint16_t extract_bits16(uint16_t value, uint8_t bit_hi, uint8_t bit_lo) {
   uint16_t width = (uint16_t)(bit_hi - bit_lo + 1U);
@@ -143,6 +143,7 @@ static M68kDisasmResult make_result(size_t byte_count, const char *text, const M
   result.byte_count = byte_count;
   result.form_index = canonical_form != NULL ? canonical_form->form_index : 0xFFFFu;
   result.target_cpu = target_cpu;
+  result.mnemonic_id = disasm_form_mnemonic_id(form);
   if (canonical_form != NULL && canonical_form->mnemonic != NULL)
     snprintf(result.mnemonic, sizeof(result.mnemonic), "%s", canonical_form->mnemonic);
   else if (form != NULL && form->mnemonic != NULL)

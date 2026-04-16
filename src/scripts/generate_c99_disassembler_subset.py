@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT / "src"
+GENERATED_DIR = SRC_DIR / "generated"
 SUBSET_GENERATOR_PATH = SRC_DIR / "scripts" / "generate_c99_assembler_subset.py"
 KB_PATH = ROOT / "knowledge" / "m68k_instructions.json"
 STYLE_LINE_LENGTH = 140
@@ -219,7 +220,7 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
             "    { "
             f"\"{form.mnemonic.lower()}\", "
             f"\"{form.syntax}\", "
-            "0u, "
+            f"M68K_ASM_MNEMONIC_{form.mnemonic}, "
             f"{canonical_form_index}u, "
             f"{len(form.operand_kinds)}u,"
         )
@@ -294,7 +295,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object], subset) -> 
         *(control_register_rows or ["    0u,"]),
         "};",
         "",
-        f"static const M68kAsmFormDef g_m68k_disasm_forms[{len(form_rows)}] = {{",
+        f"static const M68kAsmFormDef g_m68k_disasm_forms[{len(forms)}] = {{",
         *form_rows,
         "};",
         "",
@@ -319,14 +320,14 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object], subset) -> 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate metadata-driven C disassembler subset.")
-    parser.add_argument("--output-dir", type=Path, default=SRC_DIR)
+    parser.add_argument("--output-dir", type=Path, default=GENERATED_DIR)
     args = parser.parse_args()
     subset = _load_subset_module()
     forms = _load_forms()
     kb = _load_kb()
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "m68k_disassembler_tables.inc").write_text(
+    (output_dir / "m68k_disassembler_tables.generated.h").write_text(
         _emit_tables_include(forms, kb, subset),
         encoding="ascii",
     )

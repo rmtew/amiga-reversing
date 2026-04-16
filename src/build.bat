@@ -25,7 +25,7 @@ set LDFLAGS=/nologo
 if not exist %OUTDIR% mkdir %OUTDIR%
 
 cl %CFLAGS% /c /Fo%OUTDIR%\ ^
-    src\m68k_asm_tables.c ^
+    src\generated\m68k_asm_tables.c ^
     src\m68k_assembler.c ^
     src\m68k_assembler_api.c ^
     src\m68k_source_ir_api.c ^

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -33,7 +34,7 @@ class GenerateC99DisassemblerSubsetTests(unittest.TestCase):
             cls._generator._load_kb(),
             cls._generator._load_subset_module(),
         )
-        (cls._outdir / "m68k_disassembler_tables.inc").write_text(cls._tables, encoding="ascii")
+        (cls._outdir / "m68k_disassembler_tables.generated.h").write_text(cls._tables, encoding="ascii")
         cls._checker = _load_module(STYLE_CHECKER, "src_test_generate_c99_disassembler_style_checker")
 
     @classmethod
@@ -52,9 +53,20 @@ class GenerateC99DisassemblerSubsetTests(unittest.TestCase):
         self.assertIn('"cpbcc"', self._tables)
         self.assertIn('"cpdbcc"', self._tables)
         self.assertIn('"cptrapcc"', self._tables)
+        self.assertIn('"pscc", "PScc <ea>", M68K_ASM_MNEMONIC_PSCC, 65535u', self._tables)
+        self.assertNotIn('"pscc", "PScc <ea>", 0u, 65535u', self._tables)
+
+    def test_form_count_matches_initializers(self) -> None:
+        match = re.search(r"static const M68kAsmFormDef g_m68k_disasm_forms\[(\d+)\]", self._tables)
+        self.assertIsNotNone(match)
+        assert match is not None
+        initializers = re.findall(r'^    \{ "[^"]+", "[^"]+",', self._tables, flags=re.MULTILINE)
+        self.assertEqual(int(match.group(1)), len(initializers))
 
     def test_generated_tables_pass_style_checker(self) -> None:
-        issues = self._checker.check_file(self._outdir / "m68k_disassembler_tables.inc", self._checker.DEFAULT_LINE_LENGTH)
+        issues = self._checker.check_file(
+            self._outdir / "m68k_disassembler_tables.generated.h", self._checker.DEFAULT_LINE_LENGTH
+        )
         self.assertEqual(issues, [])
 
 

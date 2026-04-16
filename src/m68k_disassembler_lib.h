@@ -21,6 +21,17 @@ typedef struct M68kDisasmTextResult {
   M68kDiagList diagnostics;
 } M68kDisasmTextResult;
 
+typedef struct M68kDisasmInfoResult {
+  size_t byte_count;
+  uint16_t form_index;
+  uint8_t mnemonic_id;
+  uint8_t target_cpu;
+  char mnemonic[32];
+  char size_suffix;
+  size_t operand_count;
+  M68kDiagList diagnostics;
+} M68kDisasmInfoResult;
+
 typedef struct M68kSimConcreteRunResult {
   M68kDiagList diagnostics;
 } M68kSimConcreteRunResult;
@@ -32,6 +43,8 @@ typedef struct M68kSimAbstractRunResult {
 
 M68K_DISASM_EXPORT M68kDisasmTextResult m68k_disassemble_one_text(const uint8_t *data, size_t size);
 M68K_DISASM_EXPORT M68kDisasmTextResult m68k_disassemble_one_text_for_cpu(const uint8_t *data, size_t size,
+  uint8_t target_cpu);
+M68K_DISASM_EXPORT M68kDisasmInfoResult m68k_disassemble_one_info_for_cpu(const uint8_t *data, size_t size,
   uint8_t target_cpu);
 M68K_DISASM_EXPORT M68kSimConcreteRunResult m68k_simulate_one_concrete_for_cpu(const uint8_t *data, size_t size,
   uint8_t target_cpu, uint8_t *memory, size_t memory_size, M68kSimConcreteState *io_state);

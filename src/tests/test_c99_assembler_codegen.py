@@ -357,7 +357,7 @@ def _forms_by_key():
 @lru_cache(maxsize=1)
 def _generate_files():
     module = _generator_module()
-    return module.generate_files(SRC_DIR, module.KB_PATH)
+    return module.generate_files(SRC_DIR / "generated", module.KB_PATH)
 
 
 def _form_supports_cpu(form, cpu_name: str) -> bool:
@@ -368,12 +368,13 @@ class C99AssemblerCodegenTests(unittest.TestCase):
     def test_generated_files_match_checked_in_src(self) -> None:
         generated = _generate_files()
         for name, expected in generated.items():
-            actual = (SRC_DIR / name).read_text(encoding="ascii")
+            actual = (SRC_DIR / "generated" / name).read_text(encoding="ascii")
             assert actual == expected
 
     def test_generated_tables_expose_generic_assembly_api(self) -> None:
         generated = _generate_files()
-        _assert_contains_all(generated["m68k_asm_tables.h"], EXPECTED_HEADER_SNIPPETS)
+        metadata_header = (SRC_DIR / "m68k_asm_metadata.h").read_text(encoding="ascii")
+        _assert_contains_all(generated["m68k_asm_tables.h"] + metadata_header, EXPECTED_HEADER_SNIPPETS)
 
     def test_subset_manifest_contract(self) -> None:
         module = _generator_module()

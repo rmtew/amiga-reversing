@@ -15,7 +15,7 @@ static void sim_diag_error(M68kDiagSink diagnostics, const char *message) {
   m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SIMULATION_FAILED, message);
 }
 
-#include "m68k_simulator_tables.inc"
+#include "generated/m68k_simulator_tables.generated.h"
 
 static int sim_add_access(M68kSimStepResult *result, uint8_t kind, uint8_t width,
     size_t section_index, uint32_t offset);

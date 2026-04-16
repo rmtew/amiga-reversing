@@ -1,7 +1,7 @@
 #ifndef M68K_IR_H
 #define M68K_IR_H
 
-#include "m68k_asm_tables.h"
+#include "m68k_asm_metadata.h"
 #include "m68k_object.h"
 #include "util_arena.h"
 

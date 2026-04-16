@@ -25,7 +25,8 @@ class StaticM68kRuntimeTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls._assembler_source = (ROOT / "src" / "m68k_assembler.c").read_text(encoding="ascii")
         cls._assembler_header = (ROOT / "src" / "m68k_assembler.h").read_text(encoding="ascii")
-        cls._tables_header = (ROOT / "src" / "m68k_asm_tables.h").read_text(encoding="ascii")
+        cls._tables_header = (ROOT / "src" / "generated" / "m68k_asm_tables.h").read_text(encoding="ascii")
+        cls._metadata_header = (ROOT / "src" / "m68k_asm_metadata.h").read_text(encoding="ascii")
         cls._disassembler_source = (ROOT / "src" / "m68k_disassembler.c").read_text(encoding="ascii")
         cls._disassembler_header = (ROOT / "src" / "m68k_disassembler.h").read_text(encoding="ascii")
         cls._simulator_source = (ROOT / "src" / "m68k_simulator.c").read_text(encoding="ascii")
@@ -43,7 +44,7 @@ class StaticM68kRuntimeTests(unittest.TestCase):
         self.assertIn("M68K_ASM_CONTROL_REGISTER_USP", self._tables_header)
         self.assertIn("m68k_asm_mnemonic_id_from_name", self._assembler_source)
         self.assertIn("g_m68k_asm_mnemonic_lookup", self._assembler_source)
-        self.assertIn("g_m68k_asm_routed_immediate_mnemonic_ids", self._tables_header)
+        self.assertIn("g_m68k_asm_routed_immediate_mnemonic_ids", self._metadata_header)
         self.assertIn("m68k_asm_find_control_register_name_index", self._assembler_source)
         self.assertIn("&g_m68k_asm_control_registers[id]", self._assembler_source)
         self.assertIn("m68k_asm_mnemonic_name", self._assembler_header)
@@ -67,6 +68,7 @@ class StaticM68kRuntimeTests(unittest.TestCase):
         for path in (
             ROOT / "src" / "m68k_assembler.c",
             ROOT / "src" / "m68k_assembler.h",
+            ROOT / "src" / "m68k_asm_metadata.h",
             ROOT / "src" / "m68k_disassembler.c",
             ROOT / "src" / "m68k_disassembler.h",
             ROOT / "src" / "m68k_simulator.c",

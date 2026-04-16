@@ -3,7 +3,7 @@
   "build": {
     "ok": true,
     "returncode": 0,
-    "seconds": 4.514
+    "seconds": 5.107
   },
   "corpus": {
     "by_cpu": {
@@ -32,7 +32,7 @@
         "mnemonics": 122
       }
     },
-    "seconds": 3.383,
+    "seconds": 3.305,
     "total_cpu_qualified_cases": 50846,
     "unique_case_ids": 10933
   },
@@ -45,8 +45,8 @@
         "name": "src.tests.test_c_style",
         "no_tests_ran": false,
         "ok": true,
-        "output": "...................\n----------------------------------------------------------------------\nRan 19 tests in 0.538s\n\nOK\n",
-        "seconds": 0.663,
+        "output": "...................\n----------------------------------------------------------------------\nRan 19 tests in 0.667s\n\nOK\n",
+        "seconds": 0.874,
         "skipped": 0,
         "tests_run": 19,
         "unexpected_successes": 0
@@ -58,8 +58,8 @@
         "name": "src.tests.test_c99_assembler_codegen",
         "no_tests_ran": false,
         "ok": true,
-        "output": ".............\n----------------------------------------------------------------------\nRan 13 tests in 0.151s\n\nOK\n",
-        "seconds": 0.281,
+        "output": ".............\n----------------------------------------------------------------------\nRan 13 tests in 2.250s\n\nOK\n",
+        "seconds": 2.482,
         "skipped": 0,
         "tests_run": 13,
         "unexpected_successes": 0
@@ -71,8 +71,8 @@
         "name": "src.tests.test_generate_c99_assembler_subset",
         "no_tests_ran": false,
         "ok": true,
-        "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 0.161s\n\nOK\n",
-        "seconds": 0.288,
+        "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 1.873s\n\nOK\n",
+        "seconds": 2.037,
         "skipped": 0,
         "tests_run": 3,
         "unexpected_successes": 0
@@ -84,10 +84,10 @@
         "name": "src.tests.test_generate_c99_disassembler_subset",
         "no_tests_ran": false,
         "ok": true,
-        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 1.961s\n\nOK\n",
-        "seconds": 2.087,
+        "output": ".....\n----------------------------------------------------------------------\nRan 5 tests in 2.027s\n\nOK\n",
+        "seconds": 2.182,
         "skipped": 0,
-        "tests_run": 4,
+        "tests_run": 5,
         "unexpected_successes": 0
       },
       {
@@ -97,8 +97,8 @@
         "name": "src.tests.test_generate_c99_simulator_subset",
         "no_tests_ran": false,
         "ok": true,
-        "output": ".........\n----------------------------------------------------------------------\nRan 9 tests in 0.333s\n\nOK\n",
-        "seconds": 0.462,
+        "output": ".........\n----------------------------------------------------------------------\nRan 9 tests in 0.362s\n\nOK\n",
+        "seconds": 0.513,
         "skipped": 0,
         "tests_run": 9,
         "unexpected_successes": 0
@@ -110,8 +110,8 @@
         "name": "src.tests.test_platform_format_codegen",
         "no_tests_ran": false,
         "ok": true,
-        "output": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.339s\n\nOK\n",
-        "seconds": 0.472,
+        "output": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.412s\n\nOK\n",
+        "seconds": 0.571,
         "skipped": 0,
         "tests_run": 6,
         "unexpected_successes": 0
@@ -123,8 +123,8 @@
         "name": "src.tests.test_static_m68k_runtime",
         "no_tests_ran": false,
         "ok": true,
-        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.106s\n\nOK\n",
-        "seconds": 0.228,
+        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.130s\n\nOK\n",
+        "seconds": 0.29,
         "skipped": 0,
         "tests_run": 4,
         "unexpected_successes": 0
@@ -134,58 +134,58 @@
     "expected_failures": 0,
     "failures": 0,
     "ok": true,
-    "seconds": 4.481,
+    "seconds": 8.949,
     "skipped": 0,
-    "tests_run": 58,
+    "tests_run": 59,
     "timings": {
       "runs": [
         {
           "name": "src.tests.test_c_style",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.663,
+          "seconds": 0.874,
           "tests_run": 19
         },
         {
           "name": "src.tests.test_c99_assembler_codegen",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.281,
+          "seconds": 2.482,
           "tests_run": 13
         },
         {
           "name": "src.tests.test_generate_c99_assembler_subset",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.288,
+          "seconds": 2.037,
           "tests_run": 3
         },
         {
           "name": "src.tests.test_generate_c99_disassembler_subset",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 2.087,
-          "tests_run": 4
+          "seconds": 2.182,
+          "tests_run": 5
         },
         {
           "name": "src.tests.test_generate_c99_simulator_subset",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.462,
+          "seconds": 0.513,
           "tests_run": 9
         },
         {
           "name": "src.tests.test_platform_format_codegen",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.472,
+          "seconds": 0.571,
           "tests_run": 6
         },
         {
           "name": "src.tests.test_static_m68k_runtime",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.228,
+          "seconds": 0.29,
           "tests_run": 4
         }
       ]
@@ -201,8 +201,8 @@
         "name": "src.tests_integration.test_c99_assembler_corpus_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": ".........\n----------------------------------------------------------------------\nRan 9 tests in 0.796s\n\nOK\n",
-        "seconds": 0.946,
+        "output": ".........\n----------------------------------------------------------------------\nRan 9 tests in 0.902s\n\nOK\n",
+        "seconds": 1.093,
         "skipped": 0,
         "tests_run": 9,
         "unexpected_successes": 0
@@ -214,10 +214,10 @@
         "name": "src.tests_integration.test_c99_disassembler_corpus_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": ".............\n----------------------------------------------------------------------\nRan 13 tests in 4.001s\n\nOK\n",
-        "seconds": 4.693,
+        "output": "..............\n----------------------------------------------------------------------\nRan 14 tests in 4.178s\n\nOK\n",
+        "seconds": 4.728,
         "skipped": 0,
-        "tests_run": 13,
+        "tests_run": 14,
         "unexpected_successes": 0
       },
       {
@@ -227,8 +227,8 @@
         "name": "src.tests.test_ir_policy_dll",
         "no_tests_ran": false,
         "ok": true,
-        "output": "........\n----------------------------------------------------------------------\nRan 8 tests in 0.194s\n\nOK\n",
-        "seconds": 0.361,
+        "output": "........\n----------------------------------------------------------------------\nRan 8 tests in 0.214s\n\nOK\n",
+        "seconds": 0.409,
         "skipped": 0,
         "tests_run": 8,
         "unexpected_successes": 0
@@ -240,8 +240,8 @@
         "name": "src.tests.test_m68k_simulator_analysis",
         "no_tests_ran": false,
         "ok": true,
-        "output": "........................................\n----------------------------------------------------------------------\nRan 40 tests in 3.380s\n\nOK\n",
-        "seconds": 3.535,
+        "output": "........................................\n----------------------------------------------------------------------\nRan 40 tests in 3.382s\n\nOK\n",
+        "seconds": 3.559,
         "skipped": 0,
         "tests_run": 40,
         "unexpected_successes": 0
@@ -253,8 +253,8 @@
         "name": "src.tests_integration.test_m68k_simulator_oracle_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": ".......\n----------------------------------------------------------------------\nRan 7 tests in 1.315s\n\nOK\n",
-        "seconds": 1.47,
+        "output": ".......\n----------------------------------------------------------------------\nRan 7 tests in 1.573s\n\nOK\n",
+        "seconds": 1.751,
         "skipped": 0,
         "tests_run": 7,
         "unexpected_successes": 0
@@ -266,8 +266,8 @@
         "name": "src.tests_integration.test_platform_backends_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 3.241s\n\nOK\n",
-        "seconds": 3.406,
+        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 3.912s\n\nOK\n",
+        "seconds": 4.115,
         "skipped": 0,
         "tests_run": 4,
         "unexpected_successes": 0
@@ -279,8 +279,8 @@
         "name": "src.tests.test_platform_backends",
         "no_tests_ran": false,
         "ok": true,
-        "output": "...............\n----------------------------------------------------------------------\nRan 15 tests in 1.612s\n\nOK\n",
-        "seconds": 1.776,
+        "output": "...............\n----------------------------------------------------------------------\nRan 15 tests in 1.961s\n\nOK\n",
+        "seconds": 2.155,
         "skipped": 0,
         "tests_run": 15,
         "unexpected_successes": 0
@@ -292,8 +292,8 @@
         "name": "src.tests.test_platform_disk_cli",
         "no_tests_ran": false,
         "ok": true,
-        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.141s\n\nOK\n",
-        "seconds": 0.287,
+        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.786s\n\nOK\n",
+        "seconds": 0.966,
         "skipped": 0,
         "tests_run": 4,
         "unexpected_successes": 0
@@ -305,8 +305,8 @@
         "name": "src.tests.test_platform_file_cli",
         "no_tests_ran": false,
         "ok": true,
-        "output": ".........................................................................\n----------------------------------------------------------------------\nRan 73 tests in 29.453s\n\nOK\n",
-        "seconds": 29.606,
+        "output": ".........................................................................\n----------------------------------------------------------------------\nRan 73 tests in 32.229s\n\nOK\n",
+        "seconds": 32.42,
         "skipped": 0,
         "tests_run": 73,
         "unexpected_successes": 0
@@ -318,8 +318,8 @@
         "name": "src.tests.test_platform_file_manifest",
         "no_tests_ran": false,
         "ok": true,
-        "output": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.220s\n\nOK\n",
-        "seconds": 0.381,
+        "output": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.239s\n\nOK\n",
+        "seconds": 0.46,
         "skipped": 0,
         "tests_run": 6,
         "unexpected_successes": 0
@@ -331,8 +331,8 @@
         "name": "src.tests_integration.test_platform_manifest_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 0.526s\n\nOK\n",
-        "seconds": 0.685,
+        "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 0.696s\n\nOK\n",
+        "seconds": 0.971,
         "skipped": 0,
         "tests_run": 3,
         "unexpected_successes": 0
@@ -344,8 +344,8 @@
         "name": "src.tests_integration.test_vasm_mmu_oracle_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 0.507s\n\nOK\n",
-        "seconds": 0.635,
+        "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 0.636s\n\nOK\n",
+        "seconds": 0.842,
         "skipped": 0,
         "tests_run": 3,
         "unexpected_successes": 0
@@ -355,93 +355,93 @@
     "expected_failures": 0,
     "failures": 0,
     "ok": true,
-    "seconds": 47.781,
+    "seconds": 53.469,
     "skipped": 0,
-    "tests_run": 185,
+    "tests_run": 186,
     "timings": {
       "runs": [
         {
           "name": "src.tests_integration.test_c99_assembler_corpus_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.946,
+          "seconds": 1.093,
           "tests_run": 9
         },
         {
           "name": "src.tests_integration.test_c99_disassembler_corpus_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 4.693,
-          "tests_run": 13
+          "seconds": 4.728,
+          "tests_run": 14
         },
         {
           "name": "src.tests.test_ir_policy_dll",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.361,
+          "seconds": 0.409,
           "tests_run": 8
         },
         {
           "name": "src.tests.test_m68k_simulator_analysis",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 3.535,
+          "seconds": 3.559,
           "tests_run": 40
         },
         {
           "name": "src.tests_integration.test_m68k_simulator_oracle_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 1.47,
+          "seconds": 1.751,
           "tests_run": 7
         },
         {
           "name": "src.tests_integration.test_platform_backends_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 3.406,
+          "seconds": 4.115,
           "tests_run": 4
         },
         {
           "name": "src.tests.test_platform_backends",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 1.776,
+          "seconds": 2.155,
           "tests_run": 15
         },
         {
           "name": "src.tests.test_platform_disk_cli",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.287,
+          "seconds": 0.966,
           "tests_run": 4
         },
         {
           "name": "src.tests.test_platform_file_cli",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 29.606,
+          "seconds": 32.42,
           "tests_run": 73
         },
         {
           "name": "src.tests.test_platform_file_manifest",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.381,
+          "seconds": 0.46,
           "tests_run": 6
         },
         {
           "name": "src.tests_integration.test_platform_manifest_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.685,
+          "seconds": 0.971,
           "tests_run": 3
         },
         {
           "name": "src.tests_integration.test_vasm_mmu_oracle_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.635,
+          "seconds": 0.842,
           "tests_run": 3
         }
       ]
@@ -449,8 +449,8 @@
     "unexpected_successes": 0
   },
   "status": "ok",
-  "timestamp": "2026-04-16T19:03:32+1200",
-  "total_seconds": 63.437,
+  "timestamp": "2026-04-17T08:20:09+1200",
+  "total_seconds": 79.226,
   "unit": {
     "_runs": [
       {
@@ -461,7 +461,7 @@
         "no_tests_ran": false,
         "ok": true,
         "output": "m68k_parse_util\n  ok  sign_extend32\n  ok  popcount16\n  ok  parse_number_u32\n  ok  parse_cpu_name\n  ok  parse_mnemonic_token\n  ok  parse_special_register_token\n  ok  parse_cache_selector_token\n  ok  parse_source_directive_token\n  ok  parse_data_directive_token\n  ok  parse_offset_directive_token\n  ok  normalize_pc_current_expr\nm68k_parse_util: all 11 passed\nm68k_instruction_spec\n  ok  direct_register_detection\n  ok  decoded_ea_shape_and_target_kind\n  ok  decoded_ea_target_resolution\n  ok  instruction_spec_mnemonic_resolution\nm68k_instruction_spec: all 4 passed\nm68k_ir\n  ok  render_policy_defaults\n  ok  parse_syntax_mode_name\n  ok  analysis_defaults_and_inits\n  ok  instruction_mnemonic_helpers_use_id\n  ok  section_append_statement_copies_data\n  ok  section_analysis_label_dedupes\n  ok  source_analysis_append_section_copies_recovered_dispatches\n  ok  source_analysis_append_section_rehydrates_legacy_platform_name_refs\n  ok  source_analysis_append_section_copies_ref_only_platform_names\n  ok  section_many_interleaved_labels_and_data\n  ok  section_many_interleaved_labels_and_expr_data\n  ok  arena_mark_rewind_reuses_same_block_range\n  ok  arena_rewind_discards_later_blocks\n  ok  arena_reset_poisons_head_block_range\nm68k_ir: all 14 passed\nm68k_diagnostics\n  ok  zero_initialized_list_is_empty\n  ok  nil_sink_discards_diagnostics\n  ok  records_multiple_diagnostics\nm68k_diagnostics: all 3 passed\n",
-        "seconds": 0.304,
+        "seconds": 1.089,
         "skipped": 0,
         "tests_run": 0,
         "unexpected_successes": 0
@@ -473,8 +473,8 @@
         "name": "src.tests.test_c99_assembler_codegen",
         "no_tests_ran": false,
         "ok": true,
-        "output": "............\n----------------------------------------------------------------------\nRan 12 tests in 0.129s\n\nOK\n",
-        "seconds": 0.287,
+        "output": "............\n----------------------------------------------------------------------\nRan 12 tests in 1.979s\n\nOK\n",
+        "seconds": 2.155,
         "skipped": 0,
         "tests_run": 12,
         "unexpected_successes": 0
@@ -486,8 +486,8 @@
         "name": "src.tests.test_c99_assembler_corpus",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 0.083s\n\nOK\n",
-        "seconds": 0.229,
+        "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 0.096s\n\nOK\n",
+        "seconds": 0.267,
         "skipped": 0,
         "tests_run": 2,
         "unexpected_successes": 0
@@ -499,10 +499,10 @@
         "name": "src.tests.test_c99_disassembler_corpus",
         "no_tests_ran": false,
         "ok": true,
-        "output": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.120s\n\nOK\n",
-        "seconds": 0.257,
+        "output": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.129s\n\nOK\n",
+        "seconds": 0.296,
         "skipped": 0,
-        "tests_run": 5,
+        "tests_run": 6,
         "unexpected_successes": 0
       },
       {
@@ -512,8 +512,8 @@
         "name": "src.tests.test_c_style",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..................\n----------------------------------------------------------------------\nRan 18 tests in 0.046s\n\nOK\n",
-        "seconds": 0.178,
+        "output": "..................\n----------------------------------------------------------------------\nRan 18 tests in 0.088s\n\nOK\n",
+        "seconds": 0.254,
         "skipped": 0,
         "tests_run": 18,
         "unexpected_successes": 0
@@ -525,8 +525,8 @@
         "name": "src.tests.test_generate_c99_assembler_subset",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 0.114s\n\nOK\n",
-        "seconds": 0.239,
+        "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 1.747s\n\nOK\n",
+        "seconds": 1.914,
         "skipped": 0,
         "tests_run": 2,
         "unexpected_successes": 0
@@ -538,8 +538,8 @@
         "name": "src.tests.test_generate_c99_simulator_subset",
         "no_tests_ran": false,
         "ok": true,
-        "output": "........\n----------------------------------------------------------------------\nRan 8 tests in 0.132s\n\nOK\n",
-        "seconds": 0.26,
+        "output": "........\n----------------------------------------------------------------------\nRan 8 tests in 0.180s\n\nOK\n",
+        "seconds": 0.368,
         "skipped": 0,
         "tests_run": 8,
         "unexpected_successes": 0
@@ -551,8 +551,8 @@
         "name": "src.tests.test_m68k_simulator_abstract",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.277s\n\nOK\n",
-        "seconds": 0.414,
+        "output": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.322s\n\nOK\n",
+        "seconds": 0.536,
         "skipped": 0,
         "tests_run": 10,
         "unexpected_successes": 0
@@ -564,8 +564,8 @@
         "name": "src.tests.test_m68k_simulator_oracle",
         "no_tests_ran": false,
         "ok": true,
-        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.382s\n\nOK\n",
-        "seconds": 0.551,
+        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.452s\n\nOK\n",
+        "seconds": 0.665,
         "skipped": 0,
         "tests_run": 4,
         "unexpected_successes": 0
@@ -577,8 +577,8 @@
         "name": "src.tests.test_platform_amiga_disk",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.070s\n\nOK\n",
-        "seconds": 0.212,
+        "output": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.098s\n\nOK\n",
+        "seconds": 0.268,
         "skipped": 0,
         "tests_run": 10,
         "unexpected_successes": 0
@@ -590,8 +590,8 @@
         "name": "src.tests.test_platform_atari_st_disk",
         "no_tests_ran": false,
         "ok": true,
-        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.039s\n\nOK\n",
-        "seconds": 0.171,
+        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.068s\n\nOK\n",
+        "seconds": 0.266,
         "skipped": 0,
         "tests_run": 4,
         "unexpected_successes": 0
@@ -603,8 +603,8 @@
         "name": "src.tests.test_platform_disk_lib",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 0.044s\n\nOK\n",
-        "seconds": 0.176,
+        "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 0.064s\n\nOK\n",
+        "seconds": 0.318,
         "skipped": 0,
         "tests_run": 2,
         "unexpected_successes": 0
@@ -614,93 +614,93 @@
     "expected_failures": 0,
     "failures": 0,
     "ok": true,
-    "seconds": 3.278,
+    "seconds": 8.396,
     "skipped": 0,
-    "tests_run": 77,
+    "tests_run": 78,
     "timings": {
       "runs": [
         {
           "name": "native_c",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.304,
+          "seconds": 1.089,
           "tests_run": 0
         },
         {
           "name": "src.tests.test_c99_assembler_codegen",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.287,
+          "seconds": 2.155,
           "tests_run": 12
         },
         {
           "name": "src.tests.test_c99_assembler_corpus",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.229,
+          "seconds": 0.267,
           "tests_run": 2
         },
         {
           "name": "src.tests.test_c99_disassembler_corpus",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.257,
-          "tests_run": 5
+          "seconds": 0.296,
+          "tests_run": 6
         },
         {
           "name": "src.tests.test_c_style",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.178,
+          "seconds": 0.254,
           "tests_run": 18
         },
         {
           "name": "src.tests.test_generate_c99_assembler_subset",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.239,
+          "seconds": 1.914,
           "tests_run": 2
         },
         {
           "name": "src.tests.test_generate_c99_simulator_subset",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.26,
+          "seconds": 0.368,
           "tests_run": 8
         },
         {
           "name": "src.tests.test_m68k_simulator_abstract",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.414,
+          "seconds": 0.536,
           "tests_run": 10
         },
         {
           "name": "src.tests.test_m68k_simulator_oracle",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.551,
+          "seconds": 0.665,
           "tests_run": 4
         },
         {
           "name": "src.tests.test_platform_amiga_disk",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.212,
+          "seconds": 0.268,
           "tests_run": 10
         },
         {
           "name": "src.tests.test_platform_atari_st_disk",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.171,
+          "seconds": 0.266,
           "tests_run": 4
         },
         {
           "name": "src.tests.test_platform_disk_lib",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.176,
+          "seconds": 0.318,
           "tests_run": 2
         }
       ]

@@ -90,12 +90,14 @@ Corpus output:
 
 C subset output:
 
-- `src/m68k_asm_tables.h`
-- `src/m68k_asm_tables.c`
-- `src/m68k_disassembler_tables.inc`
+- `src/generated/m68k_asm_tables.h`
+- `src/generated/m68k_asm_tables.c`
+- `src/generated/m68k_disassembler_tables.generated.h`
+- `src/generated/m68k_simulator_tables.generated.h`
 
 Static runtime:
 
+- `src/m68k_asm_metadata.h`
 - `src/m68k_assembler.h`
 - `src/m68k_assembler.c`
 - `src/m68k_disassembler.h`

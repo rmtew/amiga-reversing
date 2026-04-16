@@ -35,6 +35,7 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
             raise AssertionError(str(exc))
         cls._tables_c = (cls._outdir / "m68k_asm_tables.c").read_text(encoding="ascii")
         cls._tables_h = (cls._outdir / "m68k_asm_tables.h").read_text(encoding="ascii")
+        cls._metadata_h = (ROOT / "src" / "m68k_asm_metadata.h").read_text(encoding="ascii")
         cls._checker = _load_module(STYLE_CHECKER, "src_test_generate_c99_assembler_style_checker")
 
     @classmethod
@@ -47,26 +48,28 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
             self._tables_c,
         )
         self.assertIn(
-            "const M68kAsmFormDef *m68k_asm_find_form_for_operands(const char *mnemonic, const M68kAsmOperandValue *operands, size_t operand_count,\n",
-            self._tables_h,
+            "const M68kAsmFormDef *m68k_asm_find_form_for_operands(const char *mnemonic,\n",
+            self._metadata_h,
         )
-        self.assertNotIn("const M68kAsmFormDef *m68k_asm_find_form_for_operands(\n", self._tables_h)
+        self.assertNotIn("m68k_asm_find_form_for_operands", self._tables_h)
 
     def test_generates_table_api(self) -> None:
-        self.assertIn("typedef struct {", self._tables_h)
+        self.assertNotIn("typedef struct {", self._tables_h)
         self.assertIn("    M68K_ASM_MNEMONIC_NONE = 0,\n", self._tables_h)
         self.assertIn("    M68K_ASM_CONTROL_REGISTER_NONE = 255,\n", self._tables_h)
         self.assertIn("    M68K_ASM_CONTROL_REGISTER_USP = 24,\n", self._tables_h)
         self.assertIn("    M68K_ASM_CONTROL_REGISTER_VBR = 26,\n", self._tables_h)
-        self.assertIn("    uint8_t mnemonic_id;\n", self._tables_h)
-        self.assertIn("    uint16_t form_index;\n", self._tables_h)
+        self.assertIn("    M68K_ASM_FORM_COUNT =", self._tables_h)
+        self.assertIn("    M68K_ASM_PATCH_COUNT =", self._tables_h)
+        self.assertIn("  uint8_t mnemonic_id;\n", self._metadata_h)
+        self.assertIn("  uint16_t form_index;\n", self._metadata_h)
         self.assertIn(
             "extern const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT];\n",
-            self._tables_h,
+            self._metadata_h,
         )
         self.assertIn(
             "extern const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[];\n",
-            self._tables_h,
+            self._metadata_h,
         )
         self.assertIn(
             'const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT] = {\n    "",\n',
@@ -76,21 +79,23 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
             'const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[',
             self._tables_c,
         )
+        self.assertIn("    M68K_ASM_MNEMONIC_PSCC =", self._tables_h)
+        self.assertIn('    { "pscc", M68K_ASM_MNEMONIC_PSCC },', self._tables_c)
         self.assertIn(
-            "int m68k_asm_assemble_instruction(const M68kAsmInstructionSpec *spec, uint8_t *out_bytes, size_t max_bytes, size_t *out_byte_count);\n",
-            self._tables_h,
+            "int m68k_asm_assemble_instruction(const M68kAsmInstructionSpec *spec, uint8_t *out_bytes,\n",
+            self._metadata_h,
         )
         self.assertIn(
             "const M68kAsmFormDef *m68k_asm_find_form_id(uint8_t mnemonic_id, size_t operand_count);\n",
-            self._tables_h,
+            self._metadata_h,
         )
         self.assertIn(
-            "const M68kAsmFormDef *m68k_asm_find_form_for_operands(const char *mnemonic, const M68kAsmOperandValue *operands, size_t operand_count,\n",
-            self._tables_h,
+            "const M68kAsmFormDef *m68k_asm_find_form_for_operands(const char *mnemonic,\n",
+            self._metadata_h,
         )
         self.assertIn(
-            "const M68kAsmFormDef *m68k_asm_find_form_for_operands_id(uint8_t mnemonic_id, const M68kAsmOperandValue *operands, size_t operand_count,\n",
-            self._tables_h,
+            "const M68kAsmFormDef *m68k_asm_find_form_for_operands_id(uint8_t mnemonic_id,\n",
+            self._metadata_h,
         )
 
     def test_generated_files_pass_style_checker(self) -> None:

@@ -2,7 +2,7 @@
 #ifndef M68K_ASSEMBLER_H
 #define M68K_ASSEMBLER_H
 
-#include "m68k_asm_tables.h"
+#include "m68k_asm_metadata.h"
 
 uint8_t m68k_asm_mnemonic_id_from_name(const char *mnemonic);
 const char *m68k_asm_mnemonic_name(uint8_t mnemonic_id);

@@ -8,9 +8,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT / "src"
+GENERATED_DIR = SRC_DIR / "generated"
 KB_PATH = ROOT / "knowledge" / "m68k_instructions.json"
 SUBSET_GENERATOR_PATH = SRC_DIR / "scripts" / "generate_c99_assembler_subset.py"
-OUT_PATH = SRC_DIR / "m68k_simulator_tables.inc"
+OUT_PATH = GENERATED_DIR / "m68k_simulator_tables.generated.h"
 
 FLOW_ENUM = {
     "none": "M68K_SIM_FLOW_NONE",
@@ -1120,6 +1121,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Generate KB-driven simulator metadata for the C subset.")
     parser.add_argument("--output", type=Path, default=OUT_PATH)
     args = parser.parse_args()
+    args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(_emit_tables_include(_load_forms(), _load_kb()), encoding="ascii")
     return 0
 

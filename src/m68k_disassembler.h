@@ -4,7 +4,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "m68k_asm_tables.h"
+#include "m68k_asm_metadata.h"
 #include "m68k_diagnostics.h"
 
 typedef struct {
