@@ -11,7 +11,7 @@ SRC_DIR = ROOT / "src"
 GENERATED_DIR = SRC_DIR / "generated"
 KB_PATH = ROOT / "knowledge" / "m68k_instructions.json"
 SUBSET_GENERATOR_PATH = SRC_DIR / "scripts" / "generate_c99_assembler_subset.py"
-OUT_PATH = GENERATED_DIR / "m68k_simulator_tables.generated.h"
+OUT_PATH = GENERATED_DIR / "m68k_simulator_tables.h"
 
 FLOW_ENUM = {
     "none": "M68K_SIM_FLOW_NONE",
@@ -534,14 +534,14 @@ def _specialized_ea_field(operand: dict[str, object], form: object, operand_inde
     return mapper(form_kind)
 
 
-def _validate_ea_metadata(mnemonic: str, form_index: int, operand_index: int, expected_kind: str,
+def _validate_ea_metadata(mnemonic: str, asm_form_index: int, operand_index: int, expected_kind: str,
                           ea_formula: object, ea_update: object, ea_index_ext_format: object,
                           ea_index_reg_class: object, ea_index_width_source: object,
                           ea_index_scale_source: object, ea_index_sign_source: object,
                           ea_displacement_source: object, ea_shape: object,
                           ea_base_kind: object, ea_uses_displacement: bool,
                           ea_uses_index: bool) -> None:
-    label = f"{mnemonic} form {form_index} operand {operand_index}"
+    label = f"{mnemonic} form {asm_form_index} operand {operand_index}"
     indexed_formulas = {"an_plus_disp_plus_index", "pc_plus_disp_plus_index"}
     displacement_formulas = {"an_plus_disp", "an_plus_disp_plus_index", "pc_plus_disp", "pc_plus_disp_plus_index"}
     if ea_update == "postincrement":
@@ -590,7 +590,7 @@ def _operand_index_by_role(execution: dict[str, object] | None, role: str) -> in
 
 
 def _execution_for_form(entry: dict[str, object], mnemonic: str, kb_mnemonic: str,
-                        form_index: int | None = None) -> dict[str, object] | None:
+                        asm_form_index: int | None = None) -> dict[str, object] | None:
     execution = entry.get("execution")
     if execution is None:
         return None
@@ -598,7 +598,7 @@ def _execution_for_form(entry: dict[str, object], mnemonic: str, kb_mnemonic: st
         raise AssertionError(f"Missing execution metadata for {mnemonic} (kb={kb_mnemonic})")
     overrides = execution.get("form_overrides")
     if isinstance(overrides, dict):
-        override = overrides.get(str(form_index)) if form_index is not None else None
+        override = overrides.get(str(asm_form_index)) if asm_form_index is not None else None
     else:
         override = None
     if not isinstance(override, dict):
@@ -704,8 +704,8 @@ def _require_execution_for_forms(forms: list[object], kb: dict[str, object]) -> 
     if not missing:
         return
     preview = ", ".join(
-        f"{mnemonic}/{kb_mnemonic}#{form_index}"
-        for mnemonic, kb_mnemonic, form_index in missing[:12]
+        f"{mnemonic}/{kb_mnemonic}#{asm_form_index}"
+        for mnemonic, kb_mnemonic, asm_form_index in missing[:12]
     )
     if len(missing) > 12:
         preview += ", ..."

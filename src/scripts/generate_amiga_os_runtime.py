@@ -81,7 +81,8 @@ def build_name_domain_meta(name_domains: list[tuple[int, str, list[str]]], prefi
             "enum_type": f"{prefix.title().replace('_', '')}{pascal_case(label)}Id",
             "enum_prefix": enum_prefix,
             "enum_values": enum_values,
-            "id_map": {value: index for index, value in enumerate(values, start=1)},
+            "id_map": {value: index for index, value in enumerate(values)},
+            "none_id": len(values),
         })
     return items
 
@@ -94,9 +95,9 @@ def find_name_domain_meta(name_domain_meta: list[dict], label: str) -> dict:
 
 
 def name_id_literal(name_domain_meta: list[dict], label: str, value: str | None) -> str:
-    if value is None:
-        return "0u"
     meta = find_name_domain_meta(name_domain_meta, label)
+    if value is None:
+        return f"{meta['enum_prefix']}_NONE"
     return meta["enum_values"][value]
 
 
@@ -765,10 +766,10 @@ def write_header(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
     for item in name_domain_meta:
         lines.extend([
             f"typedef enum {item['enum_type']} {{",
-            f"  {item['enum_prefix']}_NONE = 0,",
         ])
         for value in item["values"]:
             lines.append(f"  {item['enum_values'][value]} = {item['id_map'][value]},")
+        lines.append(f"  {item['enum_prefix']}_NONE = {item['none_id']},")
         lines.extend([f"}} {item['enum_type']};", ""])
     lines.extend([
         "typedef struct AmigaOsCallInputInfo {",
@@ -848,10 +849,12 @@ def write_header(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
         "",
         "uint16_t amiga_os_name_id(uint8_t domain_kind, const char *name);",
         "const char *amiga_os_name(uint8_t domain_kind, uint16_t id);",
-        "const char *amiga_os_register_name(uint8_t reg_kind, uint8_t reg_index);",
-        "const char *amiga_os_find_library_base_name_by_id(uint16_t library_id);",
-        "const char *amiga_os_find_library_base_name(const char *library_name);",
-        "const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_base_id(uint16_t base_id, int16_t lvo);",
+            "const char *amiga_os_register_name(uint8_t reg_kind, uint8_t reg_index);",
+            "const char *amiga_os_find_library_base_name_by_id(uint16_t library_id);",
+            "const char *amiga_os_find_library_base_name(const char *library_name);",
+            "const char *amiga_os_find_library_name_by_base_id(uint16_t base_id);",
+            "const char *amiga_os_find_library_name_by_base_name(const char *base_name);",
+            "const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_base_id(uint16_t base_id, int16_t lvo);",
         "const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector(const char *base_name, int16_t lvo);",
         "const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_symbol_id(uint16_t lvo_symbol_id);",
         "const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_symbol_name(const char *lvo_symbol_name);",
@@ -917,6 +920,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
     lines = [
         "/* Generated Amiga OS runtime metadata. Do not edit directly. */",
         '#include "generated/amiga_os_runtime.h"',
+        '#include "platform_name_table.h"',
         "",
         "#include <string.h>",
         "",
@@ -939,33 +943,20 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
     for _, label, values in name_domains:
         lines.extend([
             f"static const char *const g_amiga_os_{label}_names[] = {{",
-            "  NULL,",
         ])
         for value in values:
             lines.append(f'  "{c_string(value)}",')
+        lines.append("  NULL,")
         lines.extend(["};", ""])
     lines.extend([
-        "static uint16_t amiga_os_name_id_from_table(const char *const *names, size_t count, const char *name) {",
-        "  size_t index;",
-        "  if (names == NULL || name == NULL || name[0] == '\\0') return 0U;",
-        "  for (index = 1U; index < count; ++index) {",
-        "    if (strcmp(names[index], name) == 0) return (uint16_t)index;",
-        "  }",
-        "  return 0U;",
-        "}",
-        "",
-        "static const char *amiga_os_name_from_table(const char *const *names, size_t count, uint16_t id) {",
-        "  if (names == NULL || id == 0U || (size_t)id >= count) return NULL;",
-        "  return names[id];",
-        "}",
-        "",
         "uint16_t amiga_os_name_id(uint8_t domain_kind, const char *name) {",
         "  switch (domain_kind) {",
     ])
     for domain_kind, label, _ in name_domains:
+        count_expr = f"(sizeof(g_amiga_os_{label}_names) / sizeof(g_amiga_os_{label}_names[0]))"
         lines.append(
-            f"  case {domain_kind}u: return amiga_os_name_id_from_table(g_amiga_os_{label}_names, "
-            f"sizeof(g_amiga_os_{label}_names) / sizeof(g_amiga_os_{label}_names[0]), name);")
+            f"  case {domain_kind}u: return platform_name_id_from_table(g_amiga_os_{label}_names, "
+            f"{count_expr}, name);")
     lines.extend([
         "  default: return 0U;",
         "  }",
@@ -975,9 +966,9 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
         "  switch (domain_kind) {",
     ])
     for domain_kind, label, _ in name_domains:
+        count_expr = f"(sizeof(g_amiga_os_{label}_names) / sizeof(g_amiga_os_{label}_names[0]))"
         lines.append(
-            f"  case {domain_kind}u: return amiga_os_name_from_table(g_amiga_os_{label}_names, "
-            f"sizeof(g_amiga_os_{label}_names) / sizeof(g_amiga_os_{label}_names[0]), id);")
+            f"  case {domain_kind}u: return g_amiga_os_{label}_names[(size_t)id < {count_expr} ? (size_t)id : {count_expr} - 1U];")
     lines.extend([
         "  default: return NULL;",
         "  }",
@@ -1213,7 +1204,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "",
             "const char *amiga_os_find_library_base_name_by_id(uint16_t library_id) {",
             "  size_t index;",
-            "  if (library_id == 0U) return NULL;",
+            "  if (amiga_os_name(%du, library_id) == NULL) return NULL;" % NAME_DOMAIN_LIBRARY,
             "  for (index = 0U; index < AMIGA_OS_LIBRARY_VECTOR_COUNT; ++index) {",
             "    const AmigaOsLibraryVectorInfo *entry = &g_amiga_os_library_vectors[index];",
             "    if (entry->library_id == library_id) return amiga_os_name(%du, entry->base_id);" % NAME_DOMAIN_BASE,
@@ -1225,10 +1216,24 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "  return amiga_os_find_library_base_name_by_id(amiga_os_name_id(%du, library_name));" % NAME_DOMAIN_LIBRARY,
             "}",
             "",
+            "const char *amiga_os_find_library_name_by_base_id(uint16_t base_id) {",
+            "  size_t index;",
+            "  if (amiga_os_name(%du, base_id) == NULL) return NULL;" % NAME_DOMAIN_BASE,
+            "  for (index = 0U; index < AMIGA_OS_LIBRARY_VECTOR_COUNT; ++index) {",
+            "    const AmigaOsLibraryVectorInfo *entry = &g_amiga_os_library_vectors[index];",
+            "    if (entry->base_id == base_id) return amiga_os_name(%du, entry->library_id);" % NAME_DOMAIN_LIBRARY,
+            "  }",
+            "  return NULL;",
+            "}",
+            "",
+            "const char *amiga_os_find_library_name_by_base_name(const char *base_name) {",
+            "  return amiga_os_find_library_name_by_base_id(amiga_os_name_id(%du, base_name));" % NAME_DOMAIN_BASE,
+            "}",
+            "",
             "const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_base_id(uint16_t base_id, int16_t lvo) {",
             "  size_t low = 0U;",
             "  size_t high = AMIGA_OS_LIBRARY_VECTOR_COUNT;",
-            "  if (base_id == 0U) return NULL;",
+            "  if (amiga_os_name(%du, base_id) == NULL) return NULL;" % NAME_DOMAIN_BASE,
             "  while (low < high) {",
             "    size_t mid = low + ((high - low) / 2U);",
             "    const AmigaOsLibraryVectorInfo *entry = &g_amiga_os_library_vectors[mid];",
@@ -1249,7 +1254,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "",
             "const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_symbol_id(uint16_t lvo_symbol_id) {",
             "  size_t index;",
-            "  if (lvo_symbol_id == 0U) return NULL;",
+            "  if (amiga_os_name(%du, lvo_symbol_id) == NULL) return NULL;" % NAME_DOMAIN_SYMBOL,
             "  for (index = 0U; index < AMIGA_OS_LIBRARY_VECTOR_COUNT; ++index) {",
             "    const AmigaOsLibraryVectorInfo *entry = &g_amiga_os_library_vectors[index];",
             "    if (entry->lvo_symbol_id == lvo_symbol_id) return entry;",
@@ -1271,7 +1276,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "const AmigaOsStructFieldInfo *amiga_os_find_struct_field_by_struct_id(uint16_t struct_id, int16_t offset) {",
             "  size_t low = 0U;",
             "  size_t high = AMIGA_OS_STRUCT_FIELD_COUNT;",
-            "  if (struct_id == 0U) return NULL;",
+            "  if (amiga_os_name(%du, struct_id) == NULL) return NULL;" % NAME_DOMAIN_STRUCT,
             "  while (low < high) {",
             "    size_t mid = low + ((high - low) / 2U);",
             "    const AmigaOsStructFieldInfo *entry = &g_amiga_os_struct_fields[mid];",
@@ -1293,7 +1298,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "",
             "const AmigaOsStructFieldInfo *amiga_os_find_struct_field_by_field_id(uint16_t field_id) {",
             "  size_t index;",
-            "  if (field_id == 0U) return NULL;",
+            "  if (amiga_os_name(%du, field_id) == NULL) return NULL;" % NAME_DOMAIN_FIELD,
             "  for (index = 0U; index < AMIGA_OS_STRUCT_FIELD_COUNT; ++index) {",
             "    const AmigaOsStructFieldInfo *entry = &g_amiga_os_struct_fields[index];",
             "    if (entry->field_id == field_id) return entry;",
@@ -1328,7 +1333,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "",
             "uint16_t amiga_os_find_api_input_value_domain_id(uint16_t library_id, uint16_t function_id, uint16_t input_id) {",
             "  size_t index;",
-            "  if (library_id == 0U || function_id == 0U || input_id == 0U) return 0U;",
+            "  if (amiga_os_name(%du, library_id) == NULL || amiga_os_name(%du, function_id) == NULL || amiga_os_name(%du, input_id) == NULL) return AMIGA_OS_VALUE_DOMAIN_ID_NONE;" % (NAME_DOMAIN_LIBRARY, NAME_DOMAIN_FUNCTION, NAME_DOMAIN_SYMBOL),
             "  for (index = 0U; index < AMIGA_OS_API_INPUT_VALUE_DOMAIN_COUNT; ++index) {",
             "    const AmigaOsApiInputValueDomainInfo *entry = &g_amiga_os_api_input_value_domains[index];",
             "    if (entry->library_id != library_id) continue;",
@@ -1336,7 +1341,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "    if (entry->input_id != input_id) continue;",
             "    return entry->domain_id;",
             "  }",
-            "  return 0U;",
+            "  return AMIGA_OS_VALUE_DOMAIN_ID_NONE;",
             "}",
             "",
             "const char *amiga_os_find_api_input_value_domain(const char *library_name, const char *function_name, const char *input_name) {",
@@ -1349,17 +1354,17 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "",
             "uint16_t amiga_os_find_struct_field_value_domain_id(uint16_t struct_id, uint16_t field_id, uint16_t context_id) {",
             "  size_t index;",
-            "  uint16_t fallback = 0U;",
-            "  if (struct_id == 0U || field_id == 0U) return 0U;",
+            "  uint16_t fallback = AMIGA_OS_VALUE_DOMAIN_ID_NONE;",
+            "  if (amiga_os_name(%du, struct_id) == NULL || amiga_os_name(%du, field_id) == NULL) return AMIGA_OS_VALUE_DOMAIN_ID_NONE;" % (NAME_DOMAIN_STRUCT, NAME_DOMAIN_FIELD),
             "  for (index = 0U; index < AMIGA_OS_STRUCT_FIELD_VALUE_DOMAIN_COUNT; ++index) {",
             "    const AmigaOsStructFieldValueDomainInfo *entry = &g_amiga_os_struct_field_value_domains[index];",
             "    if (entry->struct_id != struct_id) continue;",
             "    if (entry->field_id != field_id) continue;",
-            "    if (entry->context_id == 0U) {",
+            "    if (amiga_os_name(%du, entry->context_id) == NULL) {" % NAME_DOMAIN_SYMBOL,
             "      fallback = entry->domain_id;",
             "      continue;",
             "    }",
-            "    if (context_id != 0U && entry->context_id == context_id) return entry->domain_id;",
+            "    if (amiga_os_name(%du, context_id) != NULL && entry->context_id == context_id) return entry->domain_id;" % NAME_DOMAIN_SYMBOL,
             "  }",
             "  return fallback;",
             "}",
@@ -1374,7 +1379,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "",
             "int amiga_os_find_constant_value_by_id(uint16_t symbol_id, int32_t *out_value) {",
             "  size_t index;",
-            "  if (symbol_id == 0U || out_value == NULL) return 0;",
+            "  if (amiga_os_name(%du, symbol_id) == NULL || out_value == NULL) return 0;" % NAME_DOMAIN_SYMBOL,
             "  for (index = 0U; index < sizeof(g_amiga_os_constants) / sizeof(g_amiga_os_constants[0]); ++index) {",
             "    const AmigaOsConstantInfo *entry = &g_amiga_os_constants[index];",
             "    if (entry->symbol_id == symbol_id) {",
@@ -1494,12 +1499,12 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "",
             "uint16_t amiga_os_find_symbol_include_id(uint16_t symbol_id) {",
             "  size_t index;",
-            "  if (symbol_id == 0U) return 0U;",
+            "  if (amiga_os_name(%du, symbol_id) == NULL) return AMIGA_OS_INCLUDE_ID_NONE;" % NAME_DOMAIN_SYMBOL,
             "  for (index = 0U; index < AMIGA_OS_SYMBOL_INCLUDE_COUNT; ++index) {",
             "    const AmigaOsSymbolIncludeInfo *entry = &g_amiga_os_symbol_includes[index];",
             "    if (entry->symbol_id == symbol_id) return entry->include_id;",
             "  }",
-            "  return 0U;",
+            "  return AMIGA_OS_INCLUDE_ID_NONE;",
             "}",
             "",
             "const char *amiga_os_find_symbol_include(const char *symbol_name) {",

@@ -229,8 +229,7 @@ int m68k_corpus_parse_instruction_spec(char *text, InstructionSpec *out_spec) {
   size_t count = m68k_split_delimited_in_place(text, '^', parts, sizeof(parts) / sizeof(parts[0]));
   if (count != 5) return 0;
   memset(out_spec, 0, sizeof(*out_spec));
-  out_spec->form_index = M68K_IR_INVALID_FORM_INDEX;
-  strcpy(out_spec->mnemonic, parts[0]);
+  out_spec->asm_form_index = M68K_ASM_FORM_NONE;
   out_spec->mnemonic_id = m68k_asm_mnemonic_id_from_name(parts[0]);
   out_spec->size_suffix = (strcmp(parts[1], "-") == 0 || parts[1][0] == '\0') ? '\0' : (char)tolower((unsigned char)parts[1][0]);
   out_spec->target_cpu = M68K_ASM_CPU_ANY;

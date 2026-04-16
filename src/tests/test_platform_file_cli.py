@@ -607,22 +607,22 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertIn("jsr _LVOGetSysTime(a6)", text)
         self.assertIn("jsr _LVOSubTime(a6)", text)
         self.assertEqual(text.count("jsr _LVOSetSignal(a6)"), 2)
-        self.assertIn("movea.l app_IO_10B8+IO_DEVICE(a6),a0", text)
+        self.assertIn("movea.l app_timer_device_iorequest+IO_DEVICE(a6),a0", text)
         self.assertIn("cmpi.w #36,LIB_VERSION(a0)", text)
         self.assertIn("jsr (a1) ; KNOWN: callback field +4 from app_slot_01A2", text)
         self.assertIn("jsr (a0) ; KNOWN: callback field +4 from app_slot_01A2", text)
-        self.assertIn("movea.l app_IO_10B8+IO_DEVICE(a6),a6", text)
+        self.assertIn("movea.l app_timer_device_iorequest+IO_DEVICE(a6),a6", text)
         self.assertIn("movea.l app_DOSBase(a6),a1", text)
         self.assertIn("movea.l app_DOSBase(a6),a6", text)
-        self.assertIn("lea.l app_IO_10B8+IOSTD_SIZE(a6),a1", text)
-        self.assertIn("app_FileHandle_0CDA EQU 3290", text)
-        self.assertIn("app_FileHandle_0956 EQU 2390", text)
-        self.assertIn("move.l d0,app_FileHandle_0CDA+fh_Link(a6)", text)
-        self.assertIn("move.l d0,app_FileHandle_0956+fh_Link(a6)", text)
-        self.assertIn("move.l app_FileHandle_0CDA+fh_Link(a6),d1", text)
-        self.assertIn("app_FileInfoBlock EQU 3298", text)
+        self.assertIn("lea.l app_timer_device_iorequest+IOSTD_SIZE(a6),a1", text)
+        self.assertIn("app_file_0CDA EQU 3290", text)
+        self.assertIn("app_file_0956 EQU 2390", text)
+        self.assertIn("move.l d0,app_file_0CDA+fh_Link(a6)", text)
+        self.assertIn("move.l d0,app_file_0956+fh_Link(a6)", text)
+        self.assertIn("move.l app_file_0CDA+fh_Link(a6),d1", text)
+        self.assertIn("app_fileinfoblock EQU 3298", text)
         self.assertIn("move.l fib_Size(a0),d1", text)
-        self.assertIn("app_TIMEVAL_10B0 EQU 4272", text)
+        self.assertIn("app_dest_10B0 EQU 4272", text)
         self.assertIn('INCLUDE "devices/timer.i"', text)
         self.assertIn('INCLUDE "devices/timer_lib.i"', text)
         self.assertIn('INCLUDE "dos/dos.i"', text)
@@ -630,8 +630,8 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertIn('INCLUDE "exec/exec_lib.i"', text)
         self.assertIn('INCLUDE "exec/io.i"', text)
         self.assertIn('INCLUDE "exec/libraries.i"', text)
-        self.assertIn("move.l app_TIMEVAL_10B0+TV_SECS(a6),d1", text)
-        self.assertIn("move.l app_TIMEVAL_10B0+TV_MICRO(a6),d1", text)
+        self.assertIn("move.l app_dest_10B0+TV_SECS(a6),d1", text)
+        self.assertIn("move.l app_dest_10B0+TV_MICRO(a6),d1", text)
         self.assertIn("app_slot_01A2 EQU 418", text)
         self.assertIn("moveq.l #_LVOOutput,d0", text)
         self.assertIn("moveq.l #_LVOWrite,d0", text)
@@ -753,7 +753,7 @@ dev_name:
             self.assertEqual(assemble.returncode, 0, assemble.stderr)
             text = self._disassemble_real_path("amiga-hunk", output_path)
         self.assertIn("jsr _LVOOpenDevice(a6)", text)
-        self.assertIn("lea.l app_IO(a6),a1", text)
+        self.assertIn("lea.l app_timer_device_iorequest(a6),a1", text)
         self.assertIn("movea.l IO_DEVICE(a1),a0", text)
 
     def test_disassemble_amiga_open_device_flow_symbols_second_typed_io_field(self) -> None:
@@ -833,11 +833,11 @@ dos_name:
             text = self._disassemble_real_path("amiga-hunk", output_path)
         self.assertIn("move.l #$FFFFFEF8,d0", text)
         self.assertIn("; KNOWN: DOSBase _LVOAbortPkt fallback via local wrapper", text)
-        self.assertIn("app_MP EQU 4284", text)
-        self.assertIn("app_DosPacket EQU 4320", text)
-        self.assertIn("movea.l app_MP(a6),a1", text)
+        self.assertIn("app_port EQU 4284", text)
+        self.assertIn("app_pkt EQU 4320", text)
+        self.assertIn("movea.l app_port(a6),a1", text)
         self.assertIn("movea.l MP_SIGTASK(a1),a0", text)
-        self.assertIn("movea.l app_DosPacket+dp_Link(a6),a2", text)
+        self.assertIn("movea.l app_pkt+dp_Link(a6),a2", text)
         self.assertIn("move.l dp_Port(a2),d1", text)
 
     def test_generated_amiga_runtime_infers_missing_hook_struct_from_input_type(self) -> None:
@@ -846,14 +846,14 @@ dos_name:
             text,
             re.compile(
                 r"\{\s*2u,\s*1u,\s*AMIGA_OS_SYMBOL_ID_HANDLER,\s*AMIGA_OS_TYPE_ID_STRUCT_HOOK,\s*"
-                r"AMIGA_OS_STRUCT_ID_HOOK,\s*AMIGA_OS_SEMANTIC_KIND_ID_HOOK_PTR,\s*0u\s*\}"
+                r"AMIGA_OS_STRUCT_ID_HOOK,\s*AMIGA_OS_SEMANTIC_KIND_ID_HOOK_PTR,\s*AMIGA_OS_VALUE_DOMAIN_ID_NONE\s*\}"
             ),
         )
         self.assertRegex(
             text,
             re.compile(
                 r"\{\s*2u,\s*0u,\s*AMIGA_OS_SYMBOL_ID_IFF,\s*AMIGA_OS_TYPE_ID_STRUCT_IFFHANDLE,\s*"
-                r"AMIGA_OS_STRUCT_ID_IFFHANDLE,\s*0u,\s*0u\s*\}"
+                r"AMIGA_OS_STRUCT_ID_IFFHANDLE,\s*AMIGA_OS_SEMANTIC_KIND_ID_NONE,\s*AMIGA_OS_VALUE_DOMAIN_ID_NONE\s*\}"
             ),
         )
 
@@ -862,28 +862,28 @@ dos_name:
         self.assertRegex(
             text,
             re.compile(
-                r"\{\s*2u,\s*2u,\s*AMIGA_OS_SYMBOL_ID_INITPC,\s*AMIGA_OS_TYPE_ID_APTR,\s*0u,\s*"
-                r"AMIGA_OS_SEMANTIC_KIND_ID_CODE_PTR,\s*0u\s*\}"
+                r"\{\s*2u,\s*2u,\s*AMIGA_OS_SYMBOL_ID_INITPC,\s*AMIGA_OS_TYPE_ID_APTR,\s*AMIGA_OS_STRUCT_ID_NONE,\s*"
+                r"AMIGA_OS_SEMANTIC_KIND_ID_CODE_PTR,\s*AMIGA_OS_VALUE_DOMAIN_ID_NONE\s*\}"
             ),
         )
         self.assertRegex(
             text,
             re.compile(
-                r"\{\s*2u,\s*3u,\s*AMIGA_OS_SYMBOL_ID_FINALPC,\s*AMIGA_OS_TYPE_ID_APTR,\s*0u,\s*"
-                r"AMIGA_OS_SEMANTIC_KIND_ID_CODE_PTR,\s*0u\s*\}"
+                r"\{\s*2u,\s*3u,\s*AMIGA_OS_SYMBOL_ID_FINALPC,\s*AMIGA_OS_TYPE_ID_APTR,\s*AMIGA_OS_STRUCT_ID_NONE,\s*"
+                r"AMIGA_OS_SEMANTIC_KIND_ID_CODE_PTR,\s*AMIGA_OS_VALUE_DOMAIN_ID_NONE\s*\}"
             ),
         )
         self.assertRegex(
             text,
             re.compile(
-                r"\{\s*1u,\s*2u,\s*AMIGA_OS_SYMBOL_ID_ACCESSMODE,\s*AMIGA_OS_TYPE_ID_LONG_3,\s*0u,\s*0u,\s*"
+                r"\{\s*1u,\s*2u,\s*AMIGA_OS_SYMBOL_ID_ACCESSMODE,\s*AMIGA_OS_TYPE_ID_LONG_3,\s*AMIGA_OS_STRUCT_ID_NONE,\s*AMIGA_OS_SEMANTIC_KIND_ID_NONE,\s*"
                 r"AMIGA_OS_VALUE_DOMAIN_ID_DOS_OPEN_ACCESS_MODE\s*\}"
             ),
         )
         self.assertRegex(
             text,
             re.compile(
-                r"\{\s*1u,\s*1u,\s*AMIGA_OS_SYMBOL_ID_ATTRIBUTES,\s*AMIGA_OS_TYPE_ID_ULONG,\s*0u,\s*0u,\s*"
+                r"\{\s*1u,\s*1u,\s*AMIGA_OS_SYMBOL_ID_ATTRIBUTES,\s*AMIGA_OS_TYPE_ID_ULONG,\s*AMIGA_OS_STRUCT_ID_NONE,\s*AMIGA_OS_SEMANTIC_KIND_ID_NONE,\s*"
                 r"AMIGA_OS_VALUE_DOMAIN_ID_EXEC_ALLOCMEM_ATTRIBUTES\s*\}"
             ),
         )
@@ -1306,7 +1306,7 @@ start:
             assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
             self.assertEqual(assemble.returncode, 0, assemble.stderr)
             text = self._disassemble_real_path("amiga-hunk", output_path)
-        self.assertIn("movea.l app_IO(a6),a1", text)
+        self.assertIn("movea.l app_iorequest(a6),a1", text)
         self.assertIn("move.w #CMD_READ,IO_COMMAND(a1)", text)
         self.assertIn("move.b #IOF_QUICK,IO_FLAGS(a1)", text)
 
@@ -1404,8 +1404,8 @@ start:
             self.assertEqual(assemble.returncode, 0, assemble.stderr)
             text = self._disassemble_real_path("amiga-hunk", output_path)
         self.assertIn("jsr _LVOFindPort(a6)", text)
-        self.assertIn("move.l d0,app_MP(a6)", text)
-        self.assertIn("movea.l app_MP(a6),a1", text)
+        self.assertIn("move.l d0,app_port(a6)", text)
+        self.assertIn("movea.l app_port(a6),a1", text)
         self.assertIn("movea.l MP_SIGTASK(a1),a0", text)
 
     def test_disassemble_amiga_findport_d0_via_d2_to_typed_mp_slot_field(self) -> None:
@@ -1431,8 +1431,8 @@ start:
             self.assertEqual(assemble.returncode, 0, assemble.stderr)
             text = self._disassemble_real_path("amiga-hunk", output_path)
         self.assertIn("move.l d0,d2", text)
-        self.assertIn("move.l d2,app_MP(a6)", text)
-        self.assertIn("movea.l app_MP(a6),a1", text)
+        self.assertIn("move.l d2,app_port(a6)", text)
+        self.assertIn("movea.l app_port(a6),a1", text)
         self.assertIn("movea.l MP_SIGTASK(a1),a0", text)
 
     def test_disassemble_amiga_findport_d0_to_multiple_typed_mp_slots(self) -> None:
@@ -1458,11 +1458,11 @@ start:
             assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
             self.assertEqual(assemble.returncode, 0, assemble.stderr)
             text = self._disassemble_real_path("amiga-hunk", output_path)
-        self.assertIn("app_MP_10BC EQU 4284", text)
-        self.assertIn("app_MP_10C0 EQU 4288", text)
-        self.assertIn("move.l d0,app_MP_10BC(a6)", text)
-        self.assertIn("move.l d0,app_MP_10C0(a6)", text)
-        self.assertIn("movea.l app_MP_10C0(a6),a1", text)
+        self.assertIn("app_port_10BC EQU 4284", text)
+        self.assertIn("app_port_10C0 EQU 4288", text)
+        self.assertIn("move.l d0,app_port_10BC(a6)", text)
+        self.assertIn("move.l d0,app_port_10C0(a6)", text)
+        self.assertIn("movea.l app_port_10C0(a6),a1", text)
         self.assertIn("movea.l MP_SIGTASK(a1),a0", text)
 
     def test_disassemble_amiga_movem_stack_restore_preserves_typed_mp_field(self) -> None:
@@ -1559,7 +1559,7 @@ dos_name:
             self.assertEqual(assemble.returncode, 0, assemble.stderr)
             text = self._disassemble_real_path("amiga-hunk", output_path)
         self.assertIn("move.l d0,app_DOSBase(a6)", text)
-        self.assertIn("lea.l app_FileInfoBlock+fib_DiskKey(a6),a0", text)
+        self.assertIn("lea.l app_fileinfoblock+fib_DiskKey(a6),a0", text)
         self.assertIn("move.l a0,d2", text)
         self.assertIn("moveq.l #_LVOExamine,d0", text)
         self.assertIn("; KNOWN: DOSBase _LVOExamine fallback via local wrapper", text)
@@ -1606,7 +1606,7 @@ dos_name:
             self.assertEqual(assemble.returncode, 0, assemble.stderr)
             text = self._disassemble_real_path("amiga-hunk", output_path)
         self.assertIn("move.l d0,app_DOSBase(a6)", text)
-        self.assertIn("lea.l app_FileInfoBlock+fib_DiskKey(a6),a0", text)
+        self.assertIn("lea.l app_fileinfoblock+fib_DiskKey(a6),a0", text)
         self.assertIn("movea.l a0,a1", text)
         self.assertIn("move.l a1,d2", text)
         self.assertIn("; KNOWN: DOSBase _LVOExamine fallback via local wrapper", text)
@@ -1654,9 +1654,9 @@ dos_name:
         self.assertIn("moveq.l #_LVOOutput,d0", text)
         self.assertIn("; KNOWN: DOSBase _LVOOutput fallback via local wrapper", text)
         self.assertIn("move.l d0,d2", text)
-        self.assertIn("app_FileHandle EQU 4284", text)
-        self.assertIn("move.l d2,app_FileHandle+fh_Link(a6)", text)
-        self.assertIn("move.l app_FileHandle+fh_Link(a6),d1", text)
+        self.assertIn("app_file EQU 4284", text)
+        self.assertIn("move.l d2,app_file+fh_Link(a6)", text)
+        self.assertIn("move.l app_file+fh_Link(a6),d1", text)
 
     def test_disassemble_amiga_dos_wrapper_direct_long_immediate_selector(self) -> None:
         source = """\
@@ -1763,9 +1763,9 @@ name_buf:
             self.assertEqual(assemble.returncode, 0, assemble.stderr)
             text = self._disassemble_real_path("amiga-hunk", output_path)
         self.assertIn("; KNOWN: DOSBase _LVOOpen fallback via local wrapper", text)
-        self.assertIn("app_FileHandle EQU 4284", text)
-        self.assertIn("move.l d2,app_FileHandle+fh_Link(a6)", text)
-        self.assertIn("move.l app_FileHandle+fh_Link(a6),d1", text)
+        self.assertIn("app_file EQU 4284", text)
+        self.assertIn("move.l d2,app_file+fh_Link(a6)", text)
+        self.assertIn("move.l app_file+fh_Link(a6),d1", text)
 
     def test_disassemble_amiga_local_success_helper_chain_types_direct_mp_field_use(self) -> None:
         source = """\
@@ -1834,8 +1834,8 @@ helper_hook_fail:
             self.assertEqual(assemble.returncode, 0, assemble.stderr)
             text = self._disassemble_real_path("amiga-hunk", output_path)
         self.assertIn("movea.l d2,a1", text)
-        self.assertIn("move.l a1,app_IO(a6)", text)
-        self.assertIn("movea.l app_IO(a6),a2", text)
+        self.assertIn("move.l a1,app_ioreq(a6)", text)
+        self.assertIn("movea.l app_ioreq(a6),a2", text)
         self.assertIn("movea.l IO_DEVICE(a2),a3", text)
 
     def test_disassemble_amiga_nested_typed_field_propagation_mp_to_lh(self) -> None:
@@ -1861,7 +1861,7 @@ start:
             self.assertEqual(assemble.returncode, 0, assemble.stderr)
             text = self._disassemble_real_path("amiga-hunk", output_path)
         self.assertIn("jsr _LVOFindPort(a6)", text)
-        self.assertIn("movea.l app_MP(a6),a1", text)
+        self.assertIn("movea.l app_port(a6),a1", text)
         self.assertIn("movea.l MP_MSGLIST(a1),a2", text)
         self.assertIn("movea.l LH_HEAD(a2),a3", text)
 

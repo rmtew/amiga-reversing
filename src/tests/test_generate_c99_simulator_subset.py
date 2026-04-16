@@ -34,7 +34,7 @@ class GenerateC99SimulatorSubsetTests(unittest.TestCase):
             cls._generator._load_forms(),
             cls._generator._load_kb(),
         )
-        (cls._outdir / "m68k_simulator_tables.generated.h").write_text(cls._tables, encoding="ascii")
+        (cls._outdir / "m68k_simulator_tables.h").write_text(cls._tables, encoding="ascii")
         cls._checker = _load_module(STYLE_CHECKER, "src_test_generate_c99_simulator_style_checker")
 
     @classmethod
@@ -276,7 +276,7 @@ class GenerateC99SimulatorSubsetTests(unittest.TestCase):
         self.assertEqual(unexpected, [])
 
     def test_generated_tables_pass_style_checker(self) -> None:
-        issues = self._checker.check_file(self._outdir / "m68k_simulator_tables.generated.h", self._checker.DEFAULT_LINE_LENGTH)
+        issues = self._checker.check_file(self._outdir / "m68k_simulator_tables.h", self._checker.DEFAULT_LINE_LENGTH)
         self.assertEqual(issues, [])
 
     def test_generates_exception_tables(self) -> None:

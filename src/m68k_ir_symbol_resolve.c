@@ -38,7 +38,7 @@ M68kIrSymbolApplyResult m68k_ir_apply_symbol_refs(const M68kIrResolveContext *co
     if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 7 &&
         (operand->ea_reg == 2 || operand->ea_reg == 3)) {
       operand->value = (uint32_t)(symbol_value - (instruction_offset +
-        m68k_asm_operand_relative_base_offset(form, &result.instruction.operands[0].value,
+        m68k_asm_operand_relative_base_offset(form->asm_form_index, &result.instruction.operands[0].value,
           result.instruction.operand_count, result.instruction.size_suffix, operand_index, 0)));
     } else if (operand->kind == M68K_ASM_OPERAND_LABEL) {
       operand->value = (uint32_t)(symbol_value - (instruction_offset + 2U));

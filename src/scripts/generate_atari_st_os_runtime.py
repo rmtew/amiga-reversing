@@ -94,16 +94,17 @@ def build_name_domain_meta(name_domains: list[tuple[int, str, list[str]]], prefi
             "enum_type": f"{prefix.title().replace('_', '')}{pascal_case(label)}Id",
             "enum_prefix": enum_prefix,
             "enum_values": enum_values,
-            "id_map": {value: index for index, value in enumerate(values, start=1)},
+            "id_map": {value: index for index, value in enumerate(values)},
+            "none_id": len(values),
         })
     return items
 
 
 def name_id_literal(name_domain_meta: list[dict], label: str, value: str | None) -> str:
-    if value is None:
-        return "0u"
     for item in name_domain_meta:
         if item["label"] == label:
+            if value is None:
+                return f"{item['enum_prefix']}_NONE"
             return item["enum_values"][value]
     raise KeyError(label)
 
@@ -293,10 +294,10 @@ def write_header(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
     for item in name_domain_meta:
         lines.extend([
             f"typedef enum {item['enum_type']} {{",
-            f"  {item['enum_prefix']}_NONE = 0,",
         ])
         for value in item["values"]:
             lines.append(f"  {item['enum_values'][value]} = {item['id_map'][value]},")
+        lines.append(f"  {item['enum_prefix']}_NONE = {item['none_id']},")
         lines.extend([f"}} {item['enum_type']};", ""])
     lines.extend([
         "typedef struct AtariStOsCallInfo {",
@@ -340,40 +341,26 @@ def write_source(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
     lines = [
         "/* Generated Atari ST OS runtime metadata from EmuTOS headers. Do not edit directly. */",
         '#include "generated/atari_st_os_runtime.h"',
-        "",
-        "#include <string.h>",
+        '#include "platform_name_table.h"',
         "",
     ]
     for _, label, values in name_domains:
         lines.extend([
             f"static const char *const g_atari_st_os_{label}_names[] = {{",
-            "  NULL,",
         ])
         for value in values:
             lines.append(f'  "{c_string(value)}",')
+        lines.append("  NULL,")
         lines.extend(["};", ""])
     lines.extend([
-        "static uint16_t atari_st_os_name_id_from_table(const char *const *names, size_t count, const char *name) {",
-        "  size_t index;",
-        "  if (names == NULL || name == NULL || name[0] == '\\0') return 0U;",
-        "  for (index = 1U; index < count; ++index) {",
-        "    if (strcmp(names[index], name) == 0) return (uint16_t)index;",
-        "  }",
-        "  return 0U;",
-        "}",
-        "",
-        "static const char *atari_st_os_name_from_table(const char *const *names, size_t count, uint16_t id) {",
-        "  if (names == NULL || id == 0U || (size_t)id >= count) return NULL;",
-        "  return names[id];",
-        "}",
-        "",
         "uint16_t atari_st_os_name_id(uint8_t domain_kind, const char *name) {",
         "  switch (domain_kind) {",
     ])
     for domain_kind, label, _ in name_domains:
+        count_expr = f"(sizeof(g_atari_st_os_{label}_names) / sizeof(g_atari_st_os_{label}_names[0]))"
         lines.append(
-            f"  case {domain_kind}u: return atari_st_os_name_id_from_table(g_atari_st_os_{label}_names, "
-            f"sizeof(g_atari_st_os_{label}_names) / sizeof(g_atari_st_os_{label}_names[0]), name);")
+            f"  case {domain_kind}u: return platform_name_id_from_table(g_atari_st_os_{label}_names, "
+            f"{count_expr}, name);")
     lines.extend([
         "  default: return 0U;",
         "  }",
@@ -383,9 +370,9 @@ def write_source(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
         "  switch (domain_kind) {",
     ])
     for domain_kind, label, _ in name_domains:
+        count_expr = f"(sizeof(g_atari_st_os_{label}_names) / sizeof(g_atari_st_os_{label}_names[0]))"
         lines.append(
-            f"  case {domain_kind}u: return atari_st_os_name_from_table(g_atari_st_os_{label}_names, "
-            f"sizeof(g_atari_st_os_{label}_names) / sizeof(g_atari_st_os_{label}_names[0]), id);")
+            f"  case {domain_kind}u: return g_atari_st_os_{label}_names[(size_t)id < {count_expr} ? (size_t)id : {count_expr} - 1U];")
     lines.extend([
         "  default: return NULL;",
         "  }",
@@ -437,7 +424,7 @@ def write_source(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
             "",
             "const AtariStOsCallInfo *atari_st_os_find_call_by_symbol_id(uint16_t symbol_id) {",
             "  size_t index;",
-            "  if (symbol_id == 0U) return NULL;",
+            f"  if (atari_st_os_name({NAME_DOMAIN_SYMBOL}u, symbol_id) == NULL) return NULL;",
             "  for (index = 0U; index < ATARI_ST_OS_CALL_COUNT; ++index) {",
             "    const AtariStOsCallInfo *entry = &g_atari_st_os_calls[index];",
             "    if (entry->symbol_id == symbol_id) return entry;",
@@ -451,7 +438,7 @@ def write_source(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
             "",
             "uint16_t atari_st_os_find_symbol_include_id(uint16_t symbol_id) {",
             "  const AtariStOsCallInfo *entry = atari_st_os_find_call_by_symbol_id(symbol_id);",
-            "  return entry != NULL ? entry->include_id : 0U;",
+            "  return entry != NULL ? entry->include_id : ATARI_ST_OS_INCLUDE_ID_NONE;",
             "}",
             "",
             "const char *atari_st_os_find_symbol_include(const char *symbol_name) {",

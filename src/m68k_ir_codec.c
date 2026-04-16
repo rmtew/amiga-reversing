@@ -10,31 +10,6 @@
 #include <string.h>
 
 
-static int operand_matches_form_kind(const M68kOperandIR *operand, uint8_t form_kind) {
-  if (operand == NULL) return 0;
-  switch (form_kind) {
-  case M68K_ASM_OPERAND_IND:
-    return operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 2U;
-  case M68K_ASM_OPERAND_POSTINC:
-    return operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 3U;
-  case M68K_ASM_OPERAND_ABSL:
-    return operand->kind == M68K_ASM_OPERAND_EA &&
-      operand->value.ea_mode == 7U && operand->value.ea_reg == 1U;
-  case M68K_ASM_OPERAND_EA:
-    return operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_IND ||
-      operand->kind == M68K_ASM_OPERAND_POSTINC || operand->kind == M68K_ASM_OPERAND_ABSL;
-  default:
-    return operand->kind == form_kind;
-  }
-}
-
-static const M68kAsmFormDef *instruction_form(const M68kInstructionIR *instruction) {
-  if (instruction == NULL) return NULL;
-  if (instruction->form_index == M68K_IR_INVALID_FORM_INDEX) return NULL;
-  if ((size_t)instruction->form_index < m68k_asm_form_count()) return &g_m68k_asm_forms[instruction->form_index];
-  return NULL;
-}
-
 static int mnemonic_id_is_bit_test_family(uint8_t mnemonic_id) {
   switch (mnemonic_id) {
   case M68K_ASM_MNEMONIC_BCHG:
@@ -274,8 +249,9 @@ static int append_cache_selector_text(char *out_text, size_t out_text_size, size
 static const char *control_register_name_from_value(const M68kInstructionIR *instruction, uint32_t value,
     uint8_t reg_index) {
   size_t index;
-  const M68kAsmFormDef *form = instruction_form(instruction);
-  if (form != NULL && form->control_register_count != 0U) {
+  const M68kAsmFormDef *form;
+  form = &g_m68k_asm_forms[instruction->asm_form_index];
+  if (form->control_register_count != 0U) {
     for (index = 0; index < form->control_register_count; ++index) {
       const M68kAsmControlRegisterDef *entry = &g_m68k_asm_control_registers
         [g_m68k_asm_form_control_register_ids[form->control_register_start + index]];
@@ -325,7 +301,7 @@ static int append_reglist_text(char *out_text, size_t out_text_size, size_t *ino
 }
 
 static int instruction_uses_movem_predecrement_mask(const M68kInstructionIR *instruction, const M68kAsmFormDef *form) {
-  if (instruction == NULL || form == NULL) return 0;
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 0;
   if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEM) return 0;
   if (instruction->operand_count != 2U) return 0;
   if (instruction->operands[0].kind != M68K_ASM_OPERAND_REGLIST) return 0;
@@ -540,7 +516,7 @@ static int operand_has_renderable_symbol_name(const M68kOperandIR *operand, cons
 
 static int instruction_uses_short_branch_suffix(const M68kInstructionIR *instruction) {
   uint8_t mnemonic_id;
-  if (instruction == NULL || instruction->size_suffix != 'b' || instruction->operand_count == 0U) return 0;
+  if (instruction->size_suffix != 'b' || instruction->operand_count == 0U) return 0;
   mnemonic_id = instruction->mnemonic_id;
   if (!mnemonic_id_is_branch_family(mnemonic_id)) return 0;
   return instruction->operand_count == 1U;
@@ -548,7 +524,6 @@ static int instruction_uses_short_branch_suffix(const M68kInstructionIR *instruc
 
 static int instruction_requires_explicit_size_suffix( const M68kInstructionIR *instruction) {
   uint8_t mnemonic_id;
-  if (instruction == NULL) return 0;
   mnemonic_id = instruction->mnemonic_id;
   if (mnemonic_id_requires_long_size_suffix(mnemonic_id) && instruction->size_suffix == 'l') return 1;
   if (mnemonic_id_is_ext_family(mnemonic_id) && instruction->size_suffix != '\0') return 1;
@@ -563,7 +538,6 @@ static int instruction_requires_explicit_size_suffix( const M68kInstructionIR *i
 
 static char instruction_render_size_suffix(const M68kInstructionIR *instruction, const M68kAsmFormDef *form) {
   uint8_t mnemonic_id;
-  if (instruction == NULL) return '\0';
   mnemonic_id = instruction->mnemonic_id;
   if (mnemonic_id_is_bit_test_family(mnemonic_id)) {
     if (instruction->operand_count != 2U) return instruction->size_suffix;
@@ -588,8 +562,7 @@ static char instruction_operand_size_suffix(const M68kInstructionIR *instruction
   M68kAsmOperandValue operands[4];
   size_t operand_index;
   char size_suffix;
-  if (instruction == NULL) return '\0';
-  if (form != NULL) {
+  if (form->mnemonic_id != M68K_ASM_MNEMONIC_NONE) {
     for (operand_index = 0; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
       operands[operand_index] = instruction->operands[operand_index].value;
     }
@@ -603,10 +576,9 @@ static int instruction_should_render_size_suffix(const M68kInstructionIR *instru
   M68kAsmOperandValue operands[4];
   size_t operand_index;
   uint8_t mask;
-  if (instruction == NULL) return 0;
   if (instruction_render_size_suffix(instruction, form) == '\0') return 0;
   if (instruction_requires_explicit_size_suffix(instruction)) return 1;
-  if (form == NULL) return 1;
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 1;
   for (operand_index = 0; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     operands[operand_index] = instruction->operands[operand_index].value;
   }
@@ -630,8 +602,7 @@ M68kInstructionIR m68k_ir_decode_one(const uint8_t *data, size_t size, uint8_t t
   instruction.byte_count = result.byte_count;
   instruction.size_suffix = result.size_suffix;
   instruction.operand_count = result.operand_count;
-  instruction.form_index = result.form_index;
-  snprintf(instruction.mnemonic, sizeof(instruction.mnemonic), "%s", result.mnemonic);
+  instruction.asm_form_index = result.asm_form_index;
   for (operand_index = 0; operand_index < result.operand_count && operand_index < 4U; ++operand_index) {
     instruction.operands[operand_index].kind = result.operand_kinds[operand_index];
     instruction.operands[operand_index].value = result.operands[operand_index];
@@ -650,7 +621,7 @@ M68kInstructionIR m68k_ir_decode_one(const uint8_t *data, size_t size, uint8_t t
 M68kIrEncodeResult m68k_ir_encode_one(const M68kInstructionIR *instruction, uint8_t *out_bytes, size_t max_bytes,
     M68kDiagSink diagnostics) {
   M68kIrEncodeResult result;
-  const M68kAsmFormDef *form = instruction_form(instruction);
+  const M68kAsmFormDef *form;
   M68kAsmInstructionSpec spec;
   M68kAsmOperandValue operands[4];
   char chosen_size;
@@ -658,23 +629,26 @@ M68kIrEncodeResult m68k_ir_encode_one(const M68kInstructionIR *instruction, uint
   size_t operand_index;
   size_t byte_count = 0U;
   memset(&result, 0, sizeof(result));
-  if (instruction == NULL || out_bytes == NULL) {
+  if (out_bytes == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT, "bad arguments");
     return result;
   }
+  form = &g_m68k_asm_forms[instruction->asm_form_index];
   for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
-    operands[operand_index] = instruction->operands[operand_index].value;
+    m68k_instruction_operand_to_asm_value(&instruction->operands[operand_index], &operands[operand_index]);
   }
-  if (form == NULL) {
-    form = m68k_asm_find_form_for_operands_id(instruction->mnemonic_id, operands,
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) {
+    uint16_t asm_form_index = m68k_asm_form_index_for_operands_id(instruction->mnemonic_id, operands,
         instruction->operand_count, instruction->size_suffix, instruction->target_cpu);
+    form = &g_m68k_asm_forms[asm_form_index];
   }
-  if (form == NULL) {
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED, "unable to find form");
     return result;
   }
   for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
-    if (!operand_matches_form_kind(&instruction->operands[operand_index], form->operand_kinds[operand_index])) {
+    if (!m68k_instruction_operand_matches_form_kind(&instruction->operands[operand_index],
+        form->operand_kinds[operand_index])) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED, "operand kind mismatch");
       return result;
     }
@@ -688,14 +662,13 @@ M68kIrEncodeResult m68k_ir_encode_one(const M68kInstructionIR *instruction, uint
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED, "patch overflow");
     return result;
   }
-  if (m68k_asm_build_patch_values(form, chosen_size, operands, instruction->operand_count, patch_values,
+  if (m68k_asm_build_patch_values(form->asm_form_index, chosen_size, operands, instruction->operand_count, patch_values,
       sizeof(patch_values) / sizeof(patch_values[0])) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
       "unable to build patch values");
     return result;
   }
   memset(&spec, 0, sizeof(spec));
-  spec.mnemonic = form->mnemonic;
   spec.mnemonic_id = form->mnemonic_id;
   spec.size_suffix = chosen_size;
   spec.target_cpu = instruction->target_cpu;
@@ -720,15 +693,12 @@ static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionI
   uint8_t syntax_mode;
   size_t used = 0;
   size_t operand_index;
-  const M68kAsmFormDef *form = instruction_form(instruction);
+  const M68kAsmFormDef *form;
   memset(&result, 0, sizeof(result));
   char operand_size_suffix;
   syntax_mode = (policy != NULL) ? policy->syntax.syntax_mode : M68K_IR_SYNTAX_CANONICAL;
   (void)syntax_mode;
-  if (instruction == NULL) {
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT, "bad arguments");
-    return result;
-  }
+  form = &g_m68k_asm_forms[instruction->asm_form_index];
   if (append_text(out_text, out_text_size, &used, m68k_ir_instruction_mnemonic_name(instruction)) != 0)
     goto overflow;
   if (instruction_should_render_size_suffix(instruction, form)) {

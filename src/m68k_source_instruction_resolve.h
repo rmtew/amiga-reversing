@@ -26,7 +26,6 @@ typedef struct M68kSourceAbsFixupList {
 
 typedef struct M68kSourceResolvedInstruction {
     uint8_t ok;
-    const M68kAsmFormDef *form;
     M68kInstructionIR instruction;
     M68kSourceAbsFixupList abs_fixups;
 } M68kSourceResolvedInstruction;

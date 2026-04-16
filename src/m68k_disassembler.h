@@ -9,7 +9,8 @@
 
 typedef struct {
   size_t byte_count;
-  uint16_t form_index;
+  uint16_t asm_form_index;
+  uint16_t disasm_form_index;
   uint8_t mnemonic_id;
   uint8_t target_cpu;
   char mnemonic[32];

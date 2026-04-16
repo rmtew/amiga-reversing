@@ -41,7 +41,7 @@
     "symbol_ref_count": 2680,
     "symbol_ref_pc_relative_count": 0,
     "symbol_ref_section_relative_count": 0,
-    "text_bytes": 308875,
+    "text_bytes": 308776,
     "vasm_normalized_count": 0
   },
   "sections": [
@@ -60,9 +60,9 @@
     }
   ],
   "timing": {
-    "analysis_seconds": 11.179,
-    "ir_build_seconds": 23.782,
-    "render_seconds": 0.083,
-    "total_seconds": 35.144
+    "analysis_seconds": 2.861,
+    "ir_build_seconds": 3.801,
+    "render_seconds": 0.081,
+    "total_seconds": 6.872
   }
 }

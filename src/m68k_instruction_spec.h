@@ -12,11 +12,10 @@
 #define M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME 64
 
 typedef struct {
-  char mnemonic[32];
   uint8_t mnemonic_id;
   char size_suffix;
   uint8_t target_cpu;
-  uint16_t form_index;
+  uint16_t asm_form_index;
   size_t operand_count;
   uint16_t patch_values[M68K_INSTRUCTION_SPEC_MAX_PATCH_VALUES];
   size_t patch_value_count;
@@ -38,5 +37,7 @@ uint8_t m68k_instruction_decoded_ea_target_kind(const M68kOperandIR *operand, ui
 int m68k_instruction_decoded_ea_target(const M68kOperandIR *operand, uint8_t ea_shape, uint32_t pc_base,
     uint32_t section_size, int include_pc_index, uint32_t *out_target);
 int m68k_instruction_operand_direct_register(const M68kOperandIR *operand, uint8_t *is_address, uint8_t *reg);
+int m68k_instruction_operand_matches_form_kind(const M68kOperandIR *operand, uint8_t form_kind);
+void m68k_instruction_operand_to_asm_value(const M68kOperandIR *operand, M68kAsmOperandValue *out_value);
 
 #endif

@@ -181,21 +181,21 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (effect_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
       if (effect->kind == M68K_PLATFORM_EFFECT_SET_BASE_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT) {
-        base_name = m68k_platform_name_ref_name_or_text(&effect->payload.named_base.base_ref,
+        base_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.named_base.base_ref,
           effect->payload.named_base.base_name);
       } else if (effect->kind == M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG) {
-        symbol_name = m68k_platform_name_ref_name_or_text(&effect->payload.code_ptr.field_symbol_ref,
+        symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.field_symbol_ref,
           effect->payload.code_ptr.field_symbol_name);
-        type_name = m68k_platform_name_ref_name_or_text(&effect->payload.code_ptr.owner_type_ref,
+        type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.owner_type_ref,
           effect->payload.code_ptr.owner_type_name);
-        semantic_kind = m68k_platform_name_ref_name_or_text(&effect->payload.code_ptr.semantic_kind_ref,
+        semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.semantic_kind_ref,
           effect->payload.code_ptr.semantic_kind);
       } else if (effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT) {
-        type_name = m68k_platform_name_ref_name_or_text(&effect->payload.typed.type_ref,
+        type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
           effect->payload.typed.type_name);
-        semantic_kind = m68k_platform_name_ref_name_or_text(&effect->payload.typed.semantic_kind_ref,
+        semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.semantic_kind_ref,
           effect->payload.typed.semantic_kind);
-        value_domain_name = m68k_platform_name_ref_name_or_text(&effect->payload.typed.value_domain_ref,
+        value_domain_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.value_domain_ref,
           effect->payload.typed.value_domain_name);
         has_constant_value = effect->payload.typed.has_constant_value;
         constant_value = effect->payload.typed.constant_value;
@@ -242,19 +242,19 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
             (unsigned)call->offset, (unsigned)call->kind) != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder,
-            m68k_platform_name_ref_name_or_text(&call->symbol_ref, call->symbol_name)) != 0)
+            m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name)) != 0)
         goto oom;
       if (json_builder_appendf(&builder,
             ",\"note_kind\":%u,\"note_base_name\":",
             (unsigned)call->note_kind) != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder,
-            m68k_platform_name_ref_name_or_text(&call->note_base_ref, call->note_base_name)) != 0)
+            m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name)) != 0)
         goto oom;
       if (json_builder_append(&builder, ",\"note_symbol_name\":") != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder,
-            m68k_platform_name_ref_name_or_text(&call->note_symbol_ref, call->note_symbol_name)) != 0)
+            m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name)) != 0)
         goto oom;
       if (json_builder_appendf(&builder,
             ",\"note_reg\":%u,\"note_disp\":%d,\"note_field_disp\":%d,\"note_stack_cleanup_known\":%u,"

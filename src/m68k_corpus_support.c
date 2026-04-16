@@ -27,7 +27,7 @@ static size_t parse_hex_bytes(const char *text, unsigned char *out_bytes) {
 }
 
 static int parse_case_line(char *line, M68kCorpusCase *out_case, uint8_t target_cpu,
-  M68kCorpusParseInstructionSpecFn parse_instruction_spec_fn) {
+    M68kCorpusParseInstructionSpecFn parse_instruction_spec_fn) {
   char *parts[3 + M68K_CORPUS_MAX_CASE_INSTRUCTIONS];
   size_t count = m68k_split_delimited_in_place(line, '|', parts, sizeof(parts) / sizeof(parts[0]));
   if (count < 3 || parse_instruction_spec_fn == NULL) return 0;
@@ -56,7 +56,7 @@ static size_t assemble_case_bytes(const M68kCorpusCase *corpus_case, unsigned ch
 }
 
 int m68k_corpus_verify_binary(const char *manifest_path, const char *binary_path, uint8_t target_cpu,
-  M68kCorpusParseInstructionSpecFn parse_instruction_spec_fn) {
+    M68kCorpusParseInstructionSpecFn parse_instruction_spec_fn) {
   FILE *manifest = fopen(manifest_path, "r");
   FILE *binary = fopen(binary_path, "rb");
   char line[1024];

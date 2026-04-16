@@ -8,15 +8,15 @@
     INCLUDE "devices/timer_lib.i"
     INCLUDE "dos/dos.i"
 
-app_IO_10B8 EQU 4280
-app_FileHandle_0186 EQU 390
+app_timer_device_iorequest EQU 4280
+app_file_0186 EQU 390
 app_slot_01A2 EQU 418
-app_FileHandle_0CDA EQU 3290
-app_FileHandle_0956 EQU 2390
-app_TIMEVAL_10B0 EQU 4272
-app_TIMEVAL_10A8 EQU 4264
+app_file_0CDA EQU 3290
+app_file_0956 EQU 2390
+app_dest_10B0 EQU 4272
+app_dest_10A8 EQU 4264
 app_DOSBase EQU 3286
-app_FileInfoBlock EQU 3298
+app_fileinfoblock EQU 3298
 
     SECTION section,code
 loc_0000:
@@ -59,7 +59,7 @@ loc_007C:
     bsr.w sub_6E42
 loc_0094:
     clr.b $06C8(a6)
-    lea.l app_IO_10B8+IO_DATA(a6),a3
+    lea.l app_timer_device_iorequest+IO_DATA(a6),a3
     bsr.w sub_4668
 loc_00A0:
     lea.l $0832(a6),a3
@@ -435,7 +435,7 @@ loc_043C:
     jsr sub_8E7A.l
 loc_0444:
     moveq.l #0,d1
-    move.w app_FileHandle_0186+fh_Buf(a6),d1
+    move.w app_file_0186+fh_Buf(a6),d1
     beq.s loc_046E
 loc_044C:
     jsr sub_8F04.l
@@ -454,12 +454,12 @@ loc_046E:
 loc_0474:
     jsr sub_ABC0.l
 loc_047A:
-    move.l app_FileHandle_0186+fh_Interactive(a6),d3
+    move.l app_file_0186+fh_Interactive(a6),d3
     beq.s loc_048A
 loc_0480:
     jsr sub_AFF2.l
 loc_0486:
-    clr.l app_FileHandle_0186+fh_Interactive(a6)
+    clr.l app_file_0186+fh_Interactive(a6)
 loc_048A:
     jsr sub_90F2.l
 loc_0490:
@@ -472,7 +472,7 @@ loc_0496:
     move.l d0,$023C(a6)
     move.l d0,$015A(a6)
     move.l d0,$0162(a6)
-    move.l d0,app_FileHandle_0186+fh_Type(a6)
+    move.l d0,app_file_0186+fh_Type(a6)
     move.w d0,$087E(a6)
     move.w d0,$0880(a6)
     move.l d0,$0882(a6)
@@ -3949,7 +3949,7 @@ loc_3D62:
 loc_3D66:
     bra.s loc_3D5E
 loc_3D68:
-    lea.l app_IO_10B8+IO_DATA(a6),a3
+    lea.l app_timer_device_iorequest+IO_DATA(a6),a3
     sf.b $012B(a6)
     bra.s loc_3D56
 loc_3D72:
@@ -4002,7 +4002,7 @@ loc_3DBC:
     beq.w loc_3DD2
 loc_3DC4:
     st.b $0100(a6)
-    move.l app_FileHandle_0CDA+fh_Link(a6),app_FileHandle_0956+fh_Link(a6)
+    move.l app_file_0CDA+fh_Link(a6),app_file_0956+fh_Link(a6)
     st.b $0954(a6)
 loc_3DD2:
     move.b (a4),d1
@@ -4559,7 +4559,7 @@ loc_42D4:
     bra.s loc_4330
 loc_42E8:
     move.b $0840(a6),-(a7)
-    lea.l app_IO_10B8+IO_DATA(a6),a3
+    lea.l app_timer_device_iorequest+IO_DATA(a6),a3
     sf.b $012B(a6)
     bra.s loc_4302
 loc_42F6:
@@ -4828,7 +4828,7 @@ loc_44E0:
 loc_44E4:
     movea.l $0142(a6),a1
     movea.l $013E(a6),a0
-    clr.l app_FileHandle_0186+fh_Pos(a6)
+    clr.l app_file_0186+fh_Pos(a6)
     tst.b $0238(a6)
     bne.s loc_44FA
 loc_44F6:
@@ -7359,7 +7359,7 @@ loc_784E:
     btst #16,d3
     beq.s loc_785A
 loc_7854:
-    move.l a4,app_FileHandle_0186+fh_Pos(a6)
+    move.l a4,app_file_0186+fh_Pos(a6)
     bra.s loc_7870
 loc_785A:
     btst #17,d3
@@ -7492,7 +7492,7 @@ sub_7952:
     sf.b $011C(a6)
     move.b d3,$0108(a6)
     lea.l $03E8(a6),a0
-    clr.l app_FileHandle_0186+fh_Pos(a6)
+    clr.l app_file_0186+fh_Pos(a6)
     bset #16,d3
     btst.b #1,$021D(a6)
     beq.s loc_7976
@@ -7928,7 +7928,7 @@ loc_880E:
 loc_881C:
     ext.w d0
     add.w d0,$0194(a6)
-    addq.w #1,app_FileHandle_0186+fh_Buf(a6)
+    addq.w #1,app_file_0186+fh_Buf(a6)
 loc_8826:
     move.w (a7),d0
     subi.w #12,d0
@@ -8853,8 +8853,8 @@ loc_9104:
 sub_9106:
     sf.b $0954(a6)
     sf.b $0955(a6)
-    clr.l app_FileHandle_0956+fh_Link(a6)
-    lea.l app_FileHandle_0956+fh_Interactive(a6),a0
+    clr.l app_file_0956+fh_Link(a6)
+    lea.l app_file_0956+fh_Interactive(a6),a0
     lea.l $0B5A(a6),a1
     move.l a0,(a1)
     move.l a1,$0B5E(a6)
@@ -8873,7 +8873,7 @@ loc_9154:
     clr.b (a3)
     rts
 sub_9158:
-    tst.l app_FileHandle_0956+fh_Link(a6)
+    tst.l app_file_0956+fh_Link(a6)
     beq.s loc_9168
 loc_915E:
     bsr.w loc_AB56
@@ -8884,11 +8884,11 @@ loc_9166:
 loc_9168:
     rts
 sub_916A:
-    tst.l app_FileHandle_0956+fh_Link(a6)
+    tst.l app_file_0956+fh_Link(a6)
     beq.s loc_9168
 loc_9170:
-    move.l app_FileHandle_0956+fh_Link(a6),d3
-    clr.l app_FileHandle_0956+fh_Link(a6)
+    move.l app_file_0956+fh_Link(a6),d3
+    clr.l app_file_0956+fh_Link(a6)
     bra.w loc_A900
 loc_917C:
     movea.l $0B5A(a6),a0
@@ -8911,13 +8911,13 @@ loc_9198:
     bra.w loc_846E
 sub_919E:
     move.l d3,-(a7)
-    move.l app_FileHandle_0956+fh_Link(a6),d3
-    lea.l app_FileHandle_0956+fh_Interactive(a6),a0
+    move.l app_file_0956+fh_Link(a6),d3
+    lea.l app_file_0956+fh_Interactive(a6),a0
     move.l $0B5A(a6),d1
     sub.l a0,d1
     beq.s loc_91BC
 loc_91B0:
-    lea.l app_FileHandle_0956+fh_Interactive(a6),a1
+    lea.l app_file_0956+fh_Interactive(a6),a1
     move.l a1,$0B5A(a6)
     bsr.w sub_A8EC
 loc_91BC:
@@ -9291,7 +9291,7 @@ sub_9682:
     cmpi.w #3,$021C(a6)
     beq.s loc_9690
 loc_968A:
-    tst.l app_FileHandle_0186+fh_End(a6)
+    tst.l app_file_0186+fh_End(a6)
     bne.s loc_969E
 loc_9690:
     btst.b #2,$021D(a6)
@@ -9400,7 +9400,7 @@ loc_979E:
     moveq.l #40,d0
     jmp loc_846E.l
 sub_97A6:
-    tst.l app_FileHandle_0186+fh_Link(a6)
+    tst.l app_file_0186+fh_Link(a6)
     bne.s loc_97C2
 loc_97AC:
     movem.l d1-d2/a0-a2,-(a7)
@@ -9409,7 +9409,7 @@ loc_97AC:
 loc_97B8:
     bne.s loc_979E
 loc_97BA:
-    move.l d2,app_FileHandle_0186+fh_Link(a6)
+    move.l d2,app_file_0186+fh_Link(a6)
     movem.l (a7)+,d1-d2/a0-a2
 loc_97C2:
     rts
@@ -9529,12 +9529,12 @@ loc_98A8:
 loc_98AC:
     rts
 loc_98AE:
-    move.l app_FileHandle_0186+fh_Link(a6),d2
+    move.l app_file_0186+fh_Link(a6),d2
     beq.s loc_98BC
 loc_98B4:
     bsr.w loc_AFB8
 loc_98B8:
-    clr.l app_FileHandle_0186+fh_Link(a6)
+    clr.l app_file_0186+fh_Link(a6)
 loc_98BC:
     rts
     DC.B    $2f,$02
@@ -9702,10 +9702,10 @@ loc_9ABC:
     clr.l $001C(a0)
     clr.l $0018(a0)
     move.l #$3E9,$0010(a0)
-    tst.l app_FileHandle_0186+fh_Pos(a6)
+    tst.l app_file_0186+fh_Pos(a6)
     beq.s loc_9AFE
 loc_9AE2:
-    movea.l app_FileHandle_0186+fh_Pos(a6),a1
+    movea.l app_file_0186+fh_Pos(a6),a1
     lea.l dat_9B6A(pc),a2
     bsr.w sub_99D0
 loc_9AEE:
@@ -9790,7 +9790,7 @@ dat_9BA2:
     DC.B    $03,$ea
 loc_9BC6:
     move.l a4,-(a7)
-    movea.l app_FileHandle_0186+fh_End(a6),a4
+    movea.l app_file_0186+fh_End(a6),a4
     lea.l $01A6(a6),a3
 loc_9BD0:
     tst.l (a3)
@@ -9808,7 +9808,7 @@ loc_9BE4:
     addq.l #4,d1
 loc_9BEA:
     move.l d1,$0014(a3)
-    tst.l app_FileHandle_0186+fh_End(a6)
+    tst.l app_file_0186+fh_End(a6)
     beq.s loc_9C02
 loc_9BF4:
     move.w $0010(a3),d0
@@ -9847,7 +9847,7 @@ loc_9C38:
     cmpi.w #1003,$0012(a1)
     rts
 loc_9C44:
-    movea.l app_FileHandle_0186+fh_Funcs(a6),a4
+    movea.l app_file_0186+fh_Funcs(a6),a4
     tst.b $0104(a6)
     beq.s loc_9C9E
 loc_9C4E:
@@ -9987,7 +9987,7 @@ sub_9DA2:
     addq.l #1,d0
     rts
 loc_9DA6:
-    tst.l app_FileHandle_0186+fh_End(a6)
+    tst.l app_file_0186+fh_End(a6)
     bne.w loc_9C44
 loc_9DAE:
     bsr.w sub_97A6
@@ -10885,13 +10885,13 @@ dat_A764:
     DC.L    $00000000,$00000000,$00000000,$00000000,$00000000,$00000001,$00000000,$00000000
 loc_A864:
     move.l d3,-(a7)
-    move.l app_FileHandle_0CDA+fh_Link(a6),d1
+    move.l app_file_0CDA+fh_Link(a6),d1
     bne.s loc_A878
 loc_A86C:
     moveq.l #_LVOOutput,d0
     bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOOutput fallback via local wrapper
 loc_A872:
-    move.l d0,app_FileHandle_0CDA+fh_Link(a6)
+    move.l d0,app_file_0CDA+fh_Link(a6)
     move.l d0,d1
 loc_A878:
     lea.l $0DF6(a6),a0
@@ -10959,7 +10959,7 @@ loc_A8FC:
     cmp.l (a7)+,d1
     rts
 loc_A900:
-    cmp.l app_FileHandle_0CDA+fh_Link(a6),d3
+    cmp.l app_file_0CDA+fh_Link(a6),d3
     beq.s loc_A90E
 loc_A906:
     move.l d3,d1
@@ -10984,7 +10984,7 @@ loc_A930:
     movea.l d0,a6
     addq.l #2,a6
     clr.l app_slot_01A2(a6)
-    clr.l app_FileHandle_0CDA+fh_Link(a6)
+    clr.l app_file_0CDA+fh_Link(a6)
     lea.l dat_B0A0(pc),a1
     moveq.l #0,d0
     move.l a6,-(a7)
@@ -11019,9 +11019,9 @@ loc_A990:
     bne.s loc_A9B8
 loc_A9AA:
     lea.l $0012(a0),a0
-    move.l a0,app_FileHandle_0186+fh_End(a6)
+    move.l a0,app_file_0186+fh_End(a6)
     addq.w #4,a0
-    move.l a0,app_FileHandle_0186+fh_Funcs(a6)
+    move.l a0,app_file_0186+fh_Funcs(a6)
 loc_A9B8:
     moveq.l #0,d0
     rts
@@ -11070,7 +11070,7 @@ loc_AA1A:
     sf.b $0100(a6)
     lea.l dat_AAA0(pc),a0
     moveq.l #0,d0
-    lea.l app_TIMEVAL_10B0+TV_SIZE(a6),a1
+    lea.l app_dest_10B0+TV_SIZE(a6),a1
     moveq.l #0,d0
     move.l a6,-(a7)
     movea.l $0004.w,a6
@@ -11080,13 +11080,13 @@ loc_AA4C:
     tst.b d0
     bne.s loc_AA70
 loc_AA52:
-    movea.l app_IO_10B8+IO_DEVICE(a6),a0
+    movea.l app_timer_device_iorequest+IO_DEVICE(a6),a0
     cmpi.w #36,LIB_VERSION(a0)
     bcs.w loc_AA70
 loc_AA60:
-    lea.l app_TIMEVAL_10A8+TV_SECS(a6),a0
+    lea.l app_dest_10A8+TV_SECS(a6),a0
     pea.l (a6)
-    movea.l app_IO_10B8+IO_DEVICE(a6),a6
+    movea.l app_timer_device_iorequest+IO_DEVICE(a6),a6
     jsr _LVOGetSysTime(a6)
 loc_AA6E:
     movea.l (a7)+,a6
@@ -11161,7 +11161,7 @@ loc_AB3E:
     tst.l d0
     beq.w loc_AB4A
 loc_AB46:
-    move.l d0,app_FileHandle_0956+fh_Link(a6)
+    move.l d0,app_file_0956+fh_Link(a6)
 loc_AB4A:
     eori #4,ccr
     rts
@@ -11175,8 +11175,8 @@ loc_AB5C:
     moveq.l #10,d1
     bsr.w loc_917C
 loc_AB62:
-    move.l app_FileHandle_0956+fh_Link(a6),d1
-    cmp.l app_FileHandle_0CDA+fh_Link(a6),d1
+    move.l app_file_0956+fh_Link(a6),d1
+    cmp.l app_file_0CDA+fh_Link(a6),d1
     beq.s loc_AB7A
 loc_AB6C:
     cmpi.w #10752,$078E(a6)
@@ -11221,30 +11221,30 @@ loc_ABCE:
     lea.l dat_AC70(pc),a0
     bsr.w loc_9292
 loc_ABD6:
-    tst.b app_IO_10B8+IO_ERROR(a6)
+    tst.b app_timer_device_iorequest+IO_ERROR(a6)
     bne.w loc_AC68
 loc_ABDE:
-    movea.l app_IO_10B8+IO_DEVICE(a6),a0
+    movea.l app_timer_device_iorequest+IO_DEVICE(a6),a0
     cmpi.w #36,LIB_VERSION(a0)
     bcs.w loc_AC58
 loc_ABEC:
-    lea.l app_TIMEVAL_10B0+TV_SECS(a6),a0
+    lea.l app_dest_10B0+TV_SECS(a6),a0
     pea.l (a6)
-    movea.l app_IO_10B8+IO_DEVICE(a6),a6
+    movea.l app_timer_device_iorequest+IO_DEVICE(a6),a6
     jsr _LVOGetSysTime(a6)
 loc_ABFA:
     movea.l (a7)+,a6
-    lea.l app_TIMEVAL_10B0+TV_SECS(a6),a0
-    lea.l app_TIMEVAL_10A8+TV_SECS(a6),a1
+    lea.l app_dest_10B0+TV_SECS(a6),a0
+    lea.l app_dest_10A8+TV_SECS(a6),a1
     pea.l (a6)
-    movea.l app_IO_10B8+IO_DEVICE(a6),a6
+    movea.l app_timer_device_iorequest+IO_DEVICE(a6),a6
     jsr _LVOSubTime(a6)
 loc_AC0E:
     movea.l (a7)+,a6
     lea.l dat_AC7C(pc),a0
     bsr.w loc_9292
 loc_AC18:
-    move.l app_TIMEVAL_10B0+TV_SECS(a6),d1
+    move.l app_dest_10B0+TV_SECS(a6),d1
     bsr.w sub_8F04
 loc_AC20:
     moveq.l #46,d1
@@ -11257,7 +11257,7 @@ loc_AC26:
     move.w d0,-(a7)
     lea.l $0006(a7),a3
     lea.l dat_AC6C(pc),a2
-    move.l app_TIMEVAL_10B0+TV_MICRO(a6),d1
+    move.l app_dest_10B0+TV_MICRO(a6),d1
     bsr.w loc_8F08
 loc_AC44:
     lea.l -$0006(a3),a0
@@ -11267,7 +11267,7 @@ loc_AC4C:
     lea.l dat_AC84(pc),a0
     bsr.w loc_9292
 loc_AC58:
-    lea.l app_TIMEVAL_10B0+TV_SIZE(a6),a1
+    lea.l app_dest_10B0+TV_SIZE(a6),a1
     move.l a6,-(a7)
     movea.l $0004.w,a6
     jsr _LVOCloseDevice(a6)
@@ -11295,13 +11295,13 @@ loc_ACAE:
     lea.l dat_AC8D(pc),a0
     move.l a0,d2
     moveq.l #21,d3
-    move.l app_FileHandle_0CDA+fh_Link(a6),d1
+    move.l app_file_0CDA+fh_Link(a6),d1
     moveq.l #_LVOWrite,d0
     bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOWrite fallback via local wrapper
 loc_ACC0:
     bsr.s sub_ACF4 ; KNOWN: DOSBase _LVOWrite fallback via local wrapper
 loc_ACC2:
-    movea.l app_FileHandle_0CDA+fh_Interactive(a6),a7
+    movea.l app_file_0CDA+fh_Interactive(a6),a7
     movea.l app_DOSBase(a6),a1
     move.l a6,-(a7)
     movea.l $0004.w,a6
@@ -11571,13 +11571,13 @@ loc_AEFE:
     tst.b $010A(a6)
     beq.s loc_AF28
 loc_AF04:
-    lea.l app_IO_10B8+IOSTD_SIZE(a6),a2
+    lea.l app_timer_device_iorequest+IOSTD_SIZE(a6),a2
     move.l a0,-(a7)
 loc_AF0A:
     move.b (a0)+,(a2)+
     bne.s loc_AF0A
 loc_AF0E:
-    lea.l app_IO_10B8+IOSTD_SIZE(a6),a0
+    lea.l app_timer_device_iorequest+IOSTD_SIZE(a6),a0
     lea.l dat_9656(pc),a2
     bsr.w sub_45CE
 loc_AF1A:
@@ -11619,7 +11619,7 @@ loc_AF5C:
     beq.w loc_AF8A
 loc_AF62:
     move.l d0,d1
-    lea.l app_FileInfoBlock+fib_DiskKey(a6),a0
+    lea.l app_fileinfoblock+fib_DiskKey(a6),a0
     move.l a0,d2
     move.l d2,d0
     andi.b #3,d0
@@ -11641,7 +11641,7 @@ loc_AF8A:
     movem.l (a7)+,d4
     beq.s loc_AFAC
 loc_AF90:
-    lea.l app_FileInfoBlock+fib_DiskKey(a6),a0
+    lea.l app_fileinfoblock+fib_DiskKey(a6),a0
     move.l a0,d0
     move.l d0,d2
     andi.b #3,d2
@@ -11726,7 +11726,7 @@ sub_B024:
 loc_B028:
     movem.l d1-d3,-(a7)
     move.l d1,d3
-    move.l app_FileHandle_0186+fh_Link(a6),d1
+    move.l app_file_0186+fh_Link(a6),d1
     move.l a0,d2
     moveq.l #_LVOWrite,d0
     bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOWrite fallback via local wrapper
@@ -11738,7 +11738,7 @@ loc_B040:
 sub_B042:
     move.l d3,-(a7)
     moveq.l #OFFSET_BEGINNING,d3
-    move.l app_FileHandle_0186+fh_Link(a6),d1
+    move.l app_file_0186+fh_Link(a6),d1
     moveq.l #_LVOSeek,d0
     bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOSeek fallback via local wrapper
 loc_B050:
@@ -11746,7 +11746,7 @@ loc_B050:
     rts
 sub_B054:
     move.l d3,-(a7)
-    move.l app_FileHandle_0186+fh_Link(a6),d1
+    move.l app_file_0186+fh_Link(a6),d1
     moveq.l #0,d2
     moveq.l #OFFSET_CURRENT,d3
     moveq.l #_LVOSeek,d0
@@ -12474,11 +12474,11 @@ loc_F8FA:
     move.l a0,$024C(a6)
 loc_F902:
     move.l a1,$01AA(a6)
-    tst.l app_FileHandle_0186+fh_Pos(a6)
+    tst.l app_file_0186+fh_Pos(a6)
     beq.s loc_F92A
 loc_F90C:
     movem.l a1/a4,-(a7)
-    movea.l app_FileHandle_0186+fh_Pos(a6),a4
+    movea.l app_file_0186+fh_Pos(a6),a4
     move.b (a4)+,d1
     jsr sub_16CC.l
 loc_F91C:
@@ -12876,18 +12876,18 @@ sub_FCD6:
     move.l d4,d3
     bra.s loc_FD10
 sub_FCDA:
-    movea.l app_IO_10B8+IO_DATA(a6),a0
+    movea.l app_timer_device_iorequest+IO_DATA(a6),a0
 loc_FCDE:
     tst.b (a0)
     beq.s loc_FD02
 loc_FCE2:
-    lea.l app_IO_10B8+IOSTD_SIZE(a6),a1
+    lea.l app_timer_device_iorequest+IOSTD_SIZE(a6),a1
 loc_FCE6:
     move.b (a0)+,(a1)+
     bne.s loc_FCE6
 loc_FCEA:
     move.l a0,-(a7)
-    lea.l app_IO_10B8+IOSTD_SIZE(a6),a0
+    lea.l app_timer_device_iorequest+IOSTD_SIZE(a6),a0
     lea.l dat_9656(pc),a2
     jsr sub_45DC.l
 loc_FCFA:

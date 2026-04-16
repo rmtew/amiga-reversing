@@ -85,10 +85,10 @@ static int estimate_instruction_size(const InstructionSpec *instruction, size_t 
 static int resolve_instruction_labels(InstructionSpec *instruction, size_t instruction_offset,
     const LabelDef *labels, size_t label_count) {
     size_t operand_index;
-    const M68kAsmFormDef *form = m68k_asm_find_form_for_operands_id(
-        instruction->mnemonic_id, instruction->operands, instruction->operand_count,
-        instruction->size_suffix, instruction->target_cpu);
-    if (form == NULL) return 0;
+    uint16_t asm_form_index = m68k_asm_form_index_for_operands_id(instruction->mnemonic_id,
+        instruction->operands, instruction->operand_count, instruction->size_suffix, instruction->target_cpu);
+    const M68kAsmFormDef *form = &g_m68k_asm_forms[asm_form_index];
+    if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 0;
     for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
         int found = 0;
         size_t target_offset;
@@ -99,13 +99,13 @@ static int resolve_instruction_labels(InstructionSpec *instruction, size_t instr
         if (operand->kind == M68K_ASM_OPERAND_EA &&
             ((operand->ea_mode == 7 && operand->ea_reg == 2) || (operand->ea_mode == 7 && operand->ea_reg == 3))) {
             operand->value = (uint32_t)(target_offset - (instruction_offset +
-                m68k_asm_operand_relative_base_offset(form, instruction->operands,
+                m68k_asm_operand_relative_base_offset(asm_form_index, instruction->operands,
                     instruction->operand_count, instruction->size_suffix, operand_index, 0)));
         } else {
             operand->value = (uint32_t)(target_offset - (instruction_offset + 2U));
         }
     }
-    if (m68k_asm_build_patch_values(form, instruction->size_suffix, instruction->operands,
+    if (m68k_asm_build_patch_values(asm_form_index, instruction->size_suffix, instruction->operands,
         instruction->operand_count, instruction->patch_values, M68K_INSTRUCTION_SPEC_MAX_PATCH_VALUES) != 0) {
         return 0;
     }

@@ -87,10 +87,9 @@ static uint8_t effective_analysis_max_cpu(const M68kAnalysisPolicy *policy) {
 static uint8_t instruction_required_cpu(const M68kInstructionIR *instruction) {
   const M68kAsmFormDef *form;
   uint8_t cpu;
-  if (instruction == NULL) return M68K_ASM_CPU_68000;
   if (instruction->target_cpu <= M68K_ASM_CPU_68060) return instruction->target_cpu;
-  if ((size_t)instruction->form_index >= m68k_asm_form_count()) return instruction->target_cpu;
-  form = &g_m68k_asm_forms[instruction->form_index];
+  form = &g_m68k_asm_forms[instruction->asm_form_index];
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return instruction->target_cpu;
   for (cpu = M68K_ASM_CPU_68000; cpu <= M68K_ASM_CPU_68060; ++cpu) {
     if ((form->cpu_mask & (1u << cpu)) != 0u) return cpu;
   }
@@ -144,41 +143,45 @@ static int add_cpu_violation(M68kSectionAnalysisIR *section_analysis, uint32_t o
   if (!format_cpu_violation_comment(message, sizeof(message), instruction, policy)) return 0;
   return m68k_ir_section_analysis_add_violation(section_analysis, offset, M68K_VIOLATION_CPU_POLICY, message);
 }
-static const M68kAsmFormDef *instruction_assembler_form_local(const M68kInstructionIR *instruction,
-    M68kInstructionIR *out_parsed_instruction) {
+static uint16_t instruction_assembler_form_index_local(const M68kInstructionIR *instruction,
+    M68kInstructionIR *out_layout_instruction) {
   const M68kAsmFormDef *form;
-  M68kRenderPolicy policy;
-  M68kDiagList diagnostics;
-  M68kIrRenderResult rendered;
+  M68kAsmOperandValue operands[4];
+  uint16_t asm_form_index;
   uint8_t mnemonic_id;
-  if (out_parsed_instruction != NULL) m68k_ir_instruction_init(out_parsed_instruction);
-  if (instruction == NULL) return NULL;
+  size_t operand_index;
+  if (out_layout_instruction != NULL) *out_layout_instruction = *instruction;
   mnemonic_id = instruction->mnemonic_id;
-  if (instruction->form_index != M68K_IR_INVALID_FORM_INDEX &&
-      (size_t)instruction->form_index < m68k_asm_form_count()) {
-    form = &g_m68k_asm_forms[instruction->form_index];
-    if (form->mnemonic_id == mnemonic_id) return form;
+  form = &g_m68k_asm_forms[instruction->asm_form_index];
+  if (form->mnemonic_id != M68K_ASM_MNEMONIC_NONE && form->mnemonic_id == mnemonic_id &&
+      form->operand_count == instruction->operand_count) {
+    for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
+      if (!m68k_instruction_operand_matches_form_kind(&instruction->operands[operand_index],
+          form->operand_kinds[operand_index])) break;
+    }
+    if (operand_index == instruction->operand_count) return instruction->asm_form_index;
   }
-  if (out_parsed_instruction == NULL) return NULL;
-  m68k_render_policy_init_default(&policy);
-  m68k_diag_list_reset(&diagnostics);
-  rendered = m68k_ir_render_one_with_policy(instruction, &policy, m68k_diag_sink(&diagnostics));
-  if (m68k_diag_has_errors(&diagnostics)) return NULL;
-  m68k_diag_list_reset(&diagnostics);
-  *out_parsed_instruction = m68k_plain_parse_instruction_to_ir(rendered.text, instruction->target_cpu,
-    m68k_diag_sink(&diagnostics));
-  if (m68k_diag_has_errors(&diagnostics)) return NULL;
-  if (out_parsed_instruction->form_index == M68K_IR_INVALID_FORM_INDEX) return NULL;
-  if ((size_t)out_parsed_instruction->form_index >= m68k_asm_form_count()) return NULL;
-  return &g_m68k_asm_forms[out_parsed_instruction->form_index];
+  for (operand_index = 0; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    m68k_instruction_operand_to_asm_value(&instruction->operands[operand_index], &operands[operand_index]);
+  }
+  asm_form_index = m68k_asm_form_index_for_operands_id(mnemonic_id, operands, instruction->operand_count,
+    instruction->size_suffix, instruction->target_cpu);
+  form = &g_m68k_asm_forms[asm_form_index];
+  if (out_layout_instruction != NULL) {
+    out_layout_instruction->asm_form_index = asm_form_index;
+    out_layout_instruction->mnemonic_id = form->mnemonic_id;
+    for (operand_index = 0; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+      out_layout_instruction->operands[operand_index].value = operands[operand_index];
+      out_layout_instruction->operands[operand_index].kind = operands[operand_index].kind;
+    }
+  }
+  return asm_form_index;
 }
 
 static char instruction_effective_size_suffix_local(const M68kInstructionIR *instruction, const M68kAsmFormDef *form) {
   M68kAsmOperandValue operands[4];
   size_t operand_index;
   char size_suffix;
-  if (instruction == NULL) return '\0';
-  if (form == NULL) return instruction->size_suffix;
   for (operand_index = 0; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index)
     operands[operand_index] = instruction->operands[operand_index].value;
   size_suffix = m68k_asm_choose_size_suffix(form, operands, instruction->operand_count, instruction->size_suffix);
@@ -212,15 +215,15 @@ typedef struct ByteImmediateExtensionSite {
 
 static size_t collect_byte_immediate_extension_sites(const M68kInstructionIR *instruction,
     ByteImmediateExtensionSite *out_sites, size_t max_sites) {
-  M68kInstructionIR parsed_instruction;
-  const M68kInstructionIR *layout_instruction = instruction;
-  const M68kAsmFormDef *form = instruction_assembler_form_local(instruction, &parsed_instruction);
+  M68kInstructionIR layout_instruction_storage;
+  uint16_t asm_form_index = instruction_assembler_form_index_local(instruction, &layout_instruction_storage);
+  const M68kInstructionIR *layout_instruction = &layout_instruction_storage;
+  const M68kAsmFormDef *form = &g_m68k_asm_forms[asm_form_index];
   char size_suffix;
   size_t site_count = 0U;
   size_t word_index;
   size_t extension_index;
-  if (form == NULL) return 0U;
-  if (parsed_instruction.form_index != M68K_IR_INVALID_FORM_INDEX) layout_instruction = &parsed_instruction;
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 0U;
   size_suffix = instruction_effective_size_suffix_local(layout_instruction, form);
   if (size_suffix != 'b') return 0U;
   word_index = 1U + form->bound_word_count;
@@ -245,7 +248,7 @@ static size_t collect_byte_immediate_extension_sites(const M68kInstructionIR *in
       }
       break;
     case M68K_ASM_EXTENSION_EA_INDEX:
-      word_index += m68k_asm_operand_extension_word_count(form, operand, size_suffix);
+      word_index += m68k_asm_operand_extension_word_count(asm_form_index, operand, size_suffix);
       break;
     case M68K_ASM_EXTENSION_LABEL_DISP16_IF_ZERO:
     case M68K_ASM_EXTENSION_LABEL_DISP16_ALWAYS:
@@ -264,13 +267,13 @@ static int instruction_requires_exact_byte_immediate_preservation(const M68kInst
   ByteImmediateExtensionSite sites[4];
   size_t site_count;
   size_t site_index;
-  M68kInstructionIR parsed_instruction;
+  M68kInstructionIR layout_instruction_storage;
   const M68kInstructionIR *layout_instruction = instruction;
-  if (instruction == NULL || raw_bytes == NULL || raw_size == 0U) return 0;
-  m68k_ir_instruction_init(&parsed_instruction);
-  if (instruction_assembler_form_local(instruction, &parsed_instruction) != NULL &&
-      parsed_instruction.form_index != M68K_IR_INVALID_FORM_INDEX)
-    layout_instruction = &parsed_instruction;
+  uint16_t asm_form_index;
+  if (raw_bytes == NULL || raw_size == 0U) return 0;
+  asm_form_index = instruction_assembler_form_index_local(instruction, &layout_instruction_storage);
+  if (g_m68k_asm_forms[asm_form_index].mnemonic_id != M68K_ASM_MNEMONIC_NONE)
+    layout_instruction = &layout_instruction_storage;
   site_count = collect_byte_immediate_extension_sites(layout_instruction, sites, sizeof(sites) / sizeof(sites[0]));
   if (site_count == 0U) return 0;
   for (site_index = 0; site_index < site_count; ++site_index) {
@@ -294,7 +297,7 @@ static int apply_exact_byte_immediate_render_values(M68kInstructionIR *instructi
   ByteImmediateExtensionSite sites[4];
   size_t site_count;
   size_t site_index;
-  if (instruction == NULL || raw_bytes == NULL || raw_size == 0U) return 0;
+  if (raw_bytes == NULL || raw_size == 0U) return 0;
   if (!instruction_requires_exact_byte_immediate_preservation(instruction, raw_bytes, raw_size)) return 0;
   site_count = collect_byte_immediate_extension_sites(instruction, sites, sizeof(sites) / sizeof(sites[0]));
   for (site_index = 0; site_index < site_count; ++site_index) {
@@ -314,7 +317,7 @@ static void append_vasm_normalized_byte_immediate_note(char *buf, size_t buf_siz
     const uint8_t *raw_bytes, size_t raw_size) {
   ByteImmediateExtensionSite sites[4];
   size_t site_count;
-  if (buf == NULL || buf_size == 0U || instruction == NULL || raw_bytes == NULL || raw_size == 0U) return;
+  if (buf == NULL || buf_size == 0U || raw_bytes == NULL || raw_size == 0U) return;
   if (!instruction_requires_exact_byte_immediate_preservation(instruction, raw_bytes, raw_size)) return;
   site_count = collect_byte_immediate_extension_sites(instruction, sites, sizeof(sites) / sizeof(sites[0]));
   if (site_count == 0U) return;
@@ -328,13 +331,13 @@ static int instruction_roundtrips_exact_bytes(const M68kInstructionIR *instructi
   uint8_t encoded[32];
   M68kDiagList diagnostics;
   M68kIrEncodeResult encoded_result;
-  M68kInstructionIR parsed_instruction;
+  M68kInstructionIR layout_instruction_storage;
   const M68kInstructionIR *layout_instruction = instruction;
-  if (instruction == NULL || raw_bytes == NULL || raw_size == 0U) return 0;
-  m68k_ir_instruction_init(&parsed_instruction);
-  if (instruction_assembler_form_local(instruction, &parsed_instruction) != NULL &&
-      parsed_instruction.form_index != M68K_IR_INVALID_FORM_INDEX) {
-    layout_instruction = &parsed_instruction;
+  uint16_t asm_form_index;
+  if (raw_bytes == NULL || raw_size == 0U) return 0;
+  asm_form_index = instruction_assembler_form_index_local(instruction, &layout_instruction_storage);
+  if (g_m68k_asm_forms[asm_form_index].mnemonic_id != M68K_ASM_MNEMONIC_NONE) {
+    layout_instruction = &layout_instruction_storage;
   }
   m68k_diag_list_reset(&diagnostics);
   encoded_result = m68k_ir_encode_one(layout_instruction, encoded, sizeof(encoded), m68k_diag_sink(&diagnostics));
@@ -344,7 +347,6 @@ static int instruction_roundtrips_exact_bytes(const M68kInstructionIR *instructi
 
 static int instruction_has_symbolic_operands(const M68kInstructionIR *instruction) {
   size_t operand_index;
-  if (instruction == NULL) return 0;
   for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
     const M68kSymbolRefIR *symbol_ref = &instruction->operands[operand_index].symbol_ref;
     if (symbol_ref->kind != M68K_IR_SYMBOL_REF_NONE) return 1;
@@ -510,7 +512,7 @@ const M68kSimFormMetadata *instruction_sim_metadata(const M68kInstructionIR *ins
 int instruction_branch_target(const M68kInstructionIR *instruction, uint32_t offset, uint32_t *out_target) {
   size_t operand_index;
   uint32_t base_offset;
-  if (instruction == NULL || out_target == NULL) return 0;
+  if (out_target == NULL) return 0;
   base_offset = offset + 2U;
   for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
     const M68kOperandIR *operand = &instruction->operands[operand_index];
@@ -524,9 +526,8 @@ int instruction_branch_target(const M68kInstructionIR *instruction, uint32_t off
 
 static int instruction_branch_target_from_bytes(const M68kInstructionIR *instruction, const uint8_t *data, size_t size,
     uint32_t offset, uint32_t *out_target) {
-  if (instruction == NULL || data == NULL || out_target == NULL) return 0;
-  if (instruction->byte_count == 2U && size >= 2U &&
-      mnemonic_id_is_branch_family(instruction->mnemonic_id)) {
+  if (data == NULL || out_target == NULL) return 0;
+  if (instruction->byte_count == 2U && size >= 2U && mnemonic_id_is_branch_family(instruction->mnemonic_id)) {
     *out_target = offset + 2U + (uint32_t)((int32_t)(int8_t)data[1]);
     return 1;
   }
@@ -537,7 +538,7 @@ static int instruction_branch_target_from_bytes(const M68kInstructionIR *instruc
 static uint8_t instruction_effective_ea_shape(const M68kSimFormMetadata *metadata, const M68kInstructionIR *instruction,
     uint8_t operand_index) {
   const M68kOperandIR *operand;
-  if (metadata == NULL || instruction == NULL || operand_index >= instruction->operand_count) return M68K_SIM_EA_SHAPE_NONE;
+  if (metadata == NULL || operand_index >= instruction->operand_count) return M68K_SIM_EA_SHAPE_NONE;
   if (metadata->operand_ea_address_shapes[operand_index] != M68K_SIM_EA_SHAPE_NONE)
     return metadata->operand_ea_address_shapes[operand_index];
   if (metadata->operand_ea_address_formulas[operand_index] != M68K_SIM_EA_FORMULA_DECODED_EA) return M68K_SIM_EA_SHAPE_NONE;
@@ -549,7 +550,7 @@ static int instruction_metadata_operand_target(const M68kInstructionIR *instruct
     uint8_t operand_index, uint32_t offset, uint32_t section_size, uint32_t *out_target) {
   const M68kOperandIR *operand;
   uint8_t pc_bias;
-  if (instruction == NULL || metadata == NULL || out_target == NULL || operand_index >= instruction->operand_count) return 0;
+  if (metadata == NULL || out_target == NULL || operand_index >= instruction->operand_count) return 0;
   operand = &instruction->operands[operand_index];
   if (operand->kind == M68K_ASM_OPERAND_LABEL) {
     return instruction_branch_target(instruction, offset, out_target) && *out_target < section_size;
@@ -582,7 +583,7 @@ int instruction_render_operand_target(const M68kInstructionIR *instruction, cons
   const M68kOperandIR *operand;
   uint8_t formula;
   uint8_t pc_bias;
-  if (instruction == NULL || metadata == NULL || out_target == NULL || operand_index >= instruction->operand_count) return 0;
+  if (metadata == NULL || out_target == NULL || operand_index >= instruction->operand_count) return 0;
   operand = &instruction->operands[operand_index];
   formula = metadata->operand_ea_address_formulas[operand_index];
   if (formula == M68K_SIM_EA_FORMULA_PC_PLUS_DISP &&
@@ -612,7 +613,7 @@ int instruction_render_operand_target(const M68kInstructionIR *instruction, cons
 static int instruction_operand_is_render_pc_relative(const M68kInstructionIR *instruction,
     const M68kSimFormMetadata *metadata, uint8_t operand_index) {
   uint8_t formula;
-  if (instruction == NULL || metadata == NULL || operand_index >= instruction->operand_count) return 0;
+  if (metadata == NULL || operand_index >= instruction->operand_count) return 0;
   formula = metadata->operand_ea_address_formulas[operand_index];
   if (formula == M68K_SIM_EA_FORMULA_PC_PLUS_DISP || formula == M68K_SIM_EA_FORMULA_PC_PLUS_DISP_PLUS_INDEX)
     return 1;
@@ -625,7 +626,7 @@ static int instruction_pc_relative_ea_target(const M68kInstructionIR *instructio
     uint8_t operand_index, uint32_t offset, uint32_t section_size, uint32_t *out_target) {
   const M68kOperandIR *operand;
   uint8_t pc_bias;
-  if (instruction == NULL || metadata == NULL || out_target == NULL || operand_index >= instruction->operand_count) return 0;
+  if (metadata == NULL || out_target == NULL || operand_index >= instruction->operand_count) return 0;
   operand = &instruction->operands[operand_index];
   if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 7U ||
       (operand->value.ea_reg != 2U && operand->value.ea_reg != 3U)) {
@@ -642,7 +643,7 @@ static int instruction_transfer_target(const M68kInstructionIR *instruction, con
     uint32_t offset, uint32_t section_size, uint32_t *out_target) {
   const M68kSimFormMetadata *metadata;
   uint8_t operand_index;
-  if (instruction == NULL || out_target == NULL) return 0;
+  if (out_target == NULL) return 0;
   if (instruction_branch_target_from_bytes(instruction, data, size, offset, out_target)) {
     if (*out_target < section_size) return 1;
     return 0;
@@ -654,23 +655,23 @@ static int instruction_transfer_target(const M68kInstructionIR *instruction, con
 }
 
 static int instruction_is_unconditional_transfer(const M68kInstructionIR *instruction) {
-  const M68kSimFormMetadata *metadata = instruction_sim_metadata(instruction);
-  if (instruction == NULL) return 0;
+  const M68kSimFormMetadata *metadata;
+  metadata = instruction_sim_metadata(instruction);
   if (metadata == NULL) return 0;
   return (metadata->flow_kind == M68K_SIM_FLOW_JUMP) ||
     (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U);
 }
 
 int instruction_is_call_transfer(const M68kInstructionIR *instruction) {
-  const M68kSimFormMetadata *metadata = instruction_sim_metadata(instruction);
-  if (instruction == NULL) return 0;
+  const M68kSimFormMetadata *metadata;
+  metadata = instruction_sim_metadata(instruction);
   if (metadata == NULL) return 0;
   return metadata->flow_kind == M68K_SIM_FLOW_CALL;
 }
 
 int instruction_stops_fallthrough(const M68kInstructionIR *instruction) {
-  const M68kSimFormMetadata *metadata = instruction_sim_metadata(instruction);
-  if (instruction == NULL) return 0;
+  const M68kSimFormMetadata *metadata;
+  metadata = instruction_sim_metadata(instruction);
   if (metadata == NULL) return 0;
   return metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
     metadata->flow_kind == M68K_SIM_FLOW_RETURN ||
@@ -678,18 +679,19 @@ int instruction_stops_fallthrough(const M68kInstructionIR *instruction) {
 }
 
 static int is_conditional_transfer(const M68kInstructionIR *instruction) {
-  const M68kSimFormMetadata *metadata = instruction_sim_metadata(instruction);
-  if (instruction == NULL) return 0;
+  const M68kSimFormMetadata *metadata;
+  metadata = instruction_sim_metadata(instruction);
   if (metadata == NULL) return 0;
   return metadata->flow_conditional != 0U &&
     (metadata->flow_kind == M68K_SIM_FLOW_BRANCH || metadata->flow_kind == M68K_SIM_FLOW_JUMP);
 }
 
 int instruction_target_operand_local(const M68kInstructionIR *instruction, const M68kOperandIR **out_operand) {
-  const M68kSimFormMetadata *metadata = instruction_sim_metadata(instruction);
+  const M68kSimFormMetadata *metadata;
   uint8_t operand_index;
   if (out_operand != NULL) *out_operand = NULL;
-  if (instruction == NULL || metadata == NULL) return 0;
+  metadata = instruction_sim_metadata(instruction);
+  if (metadata == NULL) return 0;
   operand_index = metadata->target_operand_index;
   if (operand_index == 0xFFU || operand_index >= instruction->operand_count) return 0;
   if (out_operand != NULL) *out_operand = &instruction->operands[operand_index];
@@ -739,10 +741,6 @@ static int operand_is_address_reg_direct(const M68kOperandIR *operand, uint8_t r
     operand->value.ea_mode == 1U && operand->value.ea_reg == reg;
 }
 
-static int instruction_has_mnemonic_id_local(const M68kInstructionIR *instruction, uint8_t mnemonic_id) {
-  return instruction != NULL && instruction->mnemonic_id == mnemonic_id;
-}
-
 static int instruction_is_compare_or_test_like_local(uint8_t mnemonic_id) {
   switch (mnemonic_id) {
   case M68K_ASM_MNEMONIC_CMP:
@@ -779,7 +777,7 @@ int instruction_is_address_move(const M68kInstructionIR *instruction, uint8_t *o
   uint8_t mnemonic_id;
   if (out_dest_reg != NULL) *out_dest_reg = 0U;
   if (out_source != NULL) *out_source = NULL;
-  if (instruction == NULL || instruction->operand_count != 2U) return 0;
+  if (instruction->operand_count != 2U) return 0;
   mnemonic_id = instruction->mnemonic_id;
   if (mnemonic_id != M68K_ASM_MNEMONIC_MOVEA && mnemonic_id != M68K_ASM_MNEMONIC_MOVE) return 0;
   for (dest_reg = 0U; dest_reg < 8U; ++dest_reg) {
@@ -797,8 +795,8 @@ int instruction_is_data_move(const M68kInstructionIR *instruction, uint8_t *out_
   uint8_t dest_reg;
   if (out_dest_reg != NULL) *out_dest_reg = 0U;
   if (out_source != NULL) *out_source = NULL;
-  if (instruction == NULL || instruction->operand_count != 2U) return 0;
-  if (!instruction_has_mnemonic_id_local(instruction, M68K_ASM_MNEMONIC_MOVE)) return 0;
+  if (instruction->operand_count != 2U) return 0;
+  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE) return 0;
   for (dest_reg = 0U; dest_reg < 8U; ++dest_reg) {
     if (operand_is_data_reg_direct(&instruction->operands[1], dest_reg)) {
       if (out_dest_reg != NULL) *out_dest_reg = dest_reg;
@@ -817,7 +815,7 @@ int instruction_is_register_to_app_slot_store(const M68kInstructionIR *instructi
   if (out_source_kind != NULL) *out_source_kind = 0U;
   if (out_source_reg != NULL) *out_source_reg = 0U;
   if (out_displacement != NULL) *out_displacement = 0;
-  if (instruction == NULL || instruction->operand_count != 2U) return 0;
+  if (instruction->operand_count != 2U) return 0;
   mnemonic_id = instruction->mnemonic_id;
   if (mnemonic_id != M68K_ASM_MNEMONIC_MOVE && mnemonic_id != M68K_ASM_MNEMONIC_MOVEA) return 0;
   src = &instruction->operands[0];
@@ -846,7 +844,7 @@ int instruction_is_app_slot_load(const M68kInstructionIR *instruction, uint8_t *
   if (out_dest_kind != NULL) *out_dest_kind = 0U;
   if (out_dest_reg != NULL) *out_dest_reg = 0U;
   if (out_displacement != NULL) *out_displacement = 0;
-  if (instruction == NULL || instruction->operand_count != 2U) return 0;
+  if (instruction->operand_count != 2U) return 0;
   mnemonic_id = instruction->mnemonic_id;
   if (mnemonic_id != M68K_ASM_MNEMONIC_MOVE && mnemonic_id != M68K_ASM_MNEMONIC_MOVEA) return 0;
   src = &instruction->operands[0];
@@ -871,8 +869,8 @@ PlatformRegisterMatch instruction_push_address_reg_to_stack(const M68kInstructio
   PlatformRegisterMatch result = {0};
   uint8_t is_address = 0U;
   uint8_t reg = 0U;
-  if (instruction == NULL || instruction->operand_count != 2U) return result;
-  if (!instruction_has_mnemonic_id_local(instruction, M68K_ASM_MNEMONIC_MOVE)) return result;
+  if (instruction->operand_count != 2U) return result;
+  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE) return result;
   if (!sim_operand_direct_register_local(&instruction->operands[0], &is_address, &reg) || is_address == 0U)
     return result;
   if (instruction->operands[1].kind == M68K_ASM_OPERAND_PREDEC) {
@@ -891,7 +889,7 @@ PlatformRegisterMatch instruction_pop_address_reg_from_stack(const M68kInstructi
   PlatformRegisterMatch result = {0};
   const M68kOperandIR *source;
   uint8_t dest_reg;
-  if (instruction == NULL || instruction->operand_count != 2U) return result;
+  if (instruction->operand_count != 2U) return result;
   if (!instruction_is_address_move(instruction, &dest_reg, &source) || source == NULL) return result;
   if (source->kind == M68K_ASM_OPERAND_POSTINC && source->value.ea_reg == 7U) {
     result.ok = 1U;
@@ -909,8 +907,8 @@ PlatformRegisterMatch instruction_pop_address_reg_from_stack(const M68kInstructi
 
 PlatformAddressExgInfo instruction_address_exg(const M68kInstructionIR *instruction) {
   PlatformAddressExgInfo result = {0};
-  if (instruction == NULL || instruction->operand_count != 2U) return result;
-  if (!instruction_has_mnemonic_id_local(instruction, M68K_ASM_MNEMONIC_EXG)) return result;
+  if (instruction->operand_count != 2U) return result;
+  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_EXG) return result;
   if (instruction->operands[0].kind != M68K_ASM_OPERAND_AN || instruction->operands[1].kind != M68K_ASM_OPERAND_AN)
     return result;
   result.ok = 1U;
@@ -1016,9 +1014,9 @@ void load_recovered_platform_call_info(const M68kRecoveredPlatformCallIR *recove
   const char *note_symbol_name;
   if (recovered == NULL || out_info == NULL) return;
   platform_resolved_indirect_info_init(out_info);
-  symbol_name = m68k_platform_name_ref_name_or_text(&recovered->symbol_ref, recovered->symbol_name);
-  note_base_name = m68k_platform_name_ref_name_or_text(&recovered->note_base_ref, recovered->note_base_name);
-  note_symbol_name = m68k_platform_name_ref_name_or_text(&recovered->note_symbol_ref, recovered->note_symbol_name);
+  symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&recovered->symbol_ref, recovered->symbol_name);
+  note_base_name = m68k_platform_name_ref_resolve_text_or_fallback(&recovered->note_base_ref, recovered->note_base_name);
+  note_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&recovered->note_symbol_ref, recovered->note_symbol_name);
   out_info->kind = recovered->kind;
   out_info->has_symbol_name = symbol_name != NULL ? 1U : 0U;
   out_info->note_kind = recovered->note_kind;
@@ -1101,7 +1099,6 @@ static int instruction_control_transfer_target( const M68kInstructionIR *instruc
     uint32_t offset, uint32_t section_size, uint32_t *out_target) {
   const M68kSimFormMetadata *metadata;
   uint8_t operand_index;
-  if (instruction == NULL) return 0;
   if (!instruction_is_call_transfer(instruction) && !instruction_is_unconditional_transfer(instruction) &&
       !is_conditional_transfer(instruction)) {
     return 0;
@@ -1841,7 +1838,7 @@ static void update_findings_for_cached_instruction(const M68kInstructionIR *inst
     const M68kAnalysisPolicy *analysis_policy, M68kAnalysisFindings *findings) {
   uint8_t required_cpu;
   uint8_t max_cpu;
-  if (instruction == NULL || findings == NULL) return;
+  if (findings == NULL) return;
   required_cpu = instruction_required_cpu(instruction);
   update_required_cpu(findings, required_cpu);
   max_cpu = effective_analysis_max_cpu(analysis_policy);
@@ -2323,7 +2320,7 @@ static void recent_instruction_window_reset(RecentInstructionWindow *window) {
 static void recent_instruction_window_push(RecentInstructionWindow *window, const M68kInstructionIR *instruction,
     uint32_t instruction_offset) {
   size_t index;
-  if (window == NULL || instruction == NULL) return;
+  if (window == NULL) return;
   for (index = RECENT_INSTRUCTION_WINDOW_SIZE - 1U; index > 0U; --index) {
     window->instructions[index] = window->instructions[index - 1U];
     window->instruction_offsets[index] = window->instruction_offsets[index - 1U];
@@ -2483,7 +2480,6 @@ static int instruction_target_operand_is_brief_indexed_pc(const M68kInstructionI
   uint8_t index_long;
   uint8_t index_scale;
   int32_t disp;
-  if (instruction == NULL) return 0;
   metadata = instruction_sim_metadata(instruction);
   if (metadata == NULL || metadata->target_operand_index >= instruction->operand_count) return 0;
   return operand_is_brief_indexed_pc(&instruction->operands[metadata->target_operand_index], &index_is_address,
@@ -2518,7 +2514,7 @@ int operand_is_indirect_or_disp_an(const M68kOperandIR *operand, uint8_t *out_re
 
 static int instruction_is_add_word_self(const M68kInstructionIR *instruction, uint8_t reg) {
   uint8_t src_is_address, dst_is_address, src_reg, dst_reg;
-  if (instruction == NULL || instruction->mnemonic_id != M68K_ASM_MNEMONIC_ADD ||
+  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_ADD ||
       instruction->size_suffix != 'w' ||
       instruction->operand_count != 2U) {
     return 0;
@@ -2534,7 +2530,7 @@ static int instruction_is_adda_word_indirect_self(const M68kInstructionIR *instr
   uint8_t dst_is_address;
   uint8_t dst_reg;
   uint8_t src_reg;
-  if (instruction == NULL || instruction->mnemonic_id != M68K_ASM_MNEMONIC_ADDA ||
+  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_ADDA ||
       instruction->size_suffix != 'w' ||
       instruction->operand_count != 2U) {
     return 0;
@@ -2560,7 +2556,7 @@ static int instruction_matches_offset_table_load(const M68kInstructionIR *instru
   uint8_t dest_is_address, dest_reg;
   uint8_t source_base_reg, source_index_is_address, source_index_reg;
   int32_t source_disp;
-  if (instruction == NULL || out_table_base_offset == NULL ||
+  if (out_table_base_offset == NULL ||
       instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE ||
       instruction->size_suffix != 'w' || instruction->operand_count != 2U) {
     return 0;
@@ -2585,7 +2581,7 @@ static int instruction_matches_pc_relative_lea(const M68kInstructionIR *instruct
   uint8_t dest_reg;
   uint32_t target;
   (void)presentation;
-  if (instruction == NULL || section == NULL || out_target == NULL ||
+  if (section == NULL || out_target == NULL ||
       instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA ||
       instruction->operand_count != 2U) {
     return 0;
@@ -2615,7 +2611,7 @@ static int instruction_matches_pc_indexed_lea(const M68kInstructionIR *instructi
   uint8_t pc_bias;
   uint32_t target;
   (void)presentation;
-  if (instruction == NULL || section == NULL || out_target == NULL ||
+  if (section == NULL || out_target == NULL ||
       instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA ||
       instruction->operand_count != 2U) {
     return 0;
@@ -2648,7 +2644,7 @@ static int instruction_pc_relative_lea_target(const M68kInstructionIR *instructi
   uint8_t dest_is_address;
   uint8_t dest_reg;
   uint32_t target;
-  if (instruction == NULL || section == NULL || out_dest_reg == NULL || out_target == NULL ||
+  if (section == NULL || out_dest_reg == NULL || out_target == NULL ||
       instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA || instruction->operand_count != 2U) {
     return 0;
   }
@@ -2674,7 +2670,7 @@ static int brief_indexed_pc_base_target(const M68kInstructionIR *instruction, ui
   uint8_t pc_bias;
   int32_t disp;
   int64_t target;
-  if (instruction == NULL || out_target == NULL || operand_index >= instruction->operand_count) return 0;
+  if (out_target == NULL || operand_index >= instruction->operand_count) return 0;
   metadata = instruction_sim_metadata(instruction);
   if (metadata == NULL) return 0;
   if (!operand_is_brief_indexed_pc(&instruction->operands[operand_index], &index_is_address, &index_reg, &index_long,
@@ -2697,7 +2693,7 @@ static int instruction_matches_pc_relative_word_table_load(const M68kInstruction
   uint8_t index_is_address, index_reg, index_long, index_scale;
   int32_t disp;
   uint32_t base_target;
-  if (instruction == NULL || section == NULL || out_base_target == NULL ||
+  if (section == NULL || out_base_target == NULL ||
       instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE || instruction->size_suffix != 'w' ||
       instruction->operand_count != 2U) {
     return 0;
@@ -2720,7 +2716,6 @@ int instruction_writes_data_reg_approx(const M68kInstructionIR *instruction, uin
   uint8_t dest_is_address;
   uint8_t dest_reg;
   uint8_t mnemonic_id;
-  if (instruction == NULL) return 0;
   if (instruction->operand_count == 0U) return 0;
   if (!sim_operand_direct_register_local(&instruction->operands[instruction->operand_count - 1U], &dest_is_address, &dest_reg) ||
       dest_is_address != 0U || dest_reg != reg) {
@@ -2738,7 +2733,7 @@ static int find_recent_pc_relative_word_dispatch_seed(const M68kInstructionIR *i
   int32_t target_disp;
   uint32_t base_target;
   size_t index;
-  if (instruction == NULL || section == NULL || recent_window == NULL || out_base_target == NULL) return 0;
+  if (section == NULL || recent_window == NULL || out_base_target == NULL) return 0;
   metadata = instruction_sim_metadata(instruction);
   if (metadata == NULL || metadata->target_operand_index >= instruction->operand_count) return 0;
   if (!operand_is_brief_indexed_pc(&instruction->operands[metadata->target_operand_index], &index_is_address, &index_reg,
@@ -2771,7 +2766,6 @@ static void annotate_platform_symbol_refs(const SectionAnalysisContext *ctx, con
   size_t operand_index;
   uint8_t mnemonic_id;
   platform_resolved_indirect_info_init(&info);
-  if (instruction == NULL) return;
   mnemonic_id = instruction->mnemonic_id;
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     int16_t displacement;
@@ -2831,7 +2825,7 @@ static int recover_string_dispatch_targets_from_decoder_call(const SectionAnalys
   uint8_t end_reg = 0xFFu;
   uint32_t cursor;
   size_t step_count = 0U;
-  if (section == NULL || section_analysis == NULL || instruction == NULL || recent_window == NULL) return 0;
+  if (section == NULL || section_analysis == NULL || recent_window == NULL) return 0;
   if (instruction->operand_count == 0U || !operand_is_indirect_an(&instruction->operands[0], &target_reg))
     return 0;
   if (!find_recent_string_dispatch_decoder_call(ctx, recent_window, target_reg, &decoder_entry))
@@ -3088,7 +3082,6 @@ int instruction_writes_address_reg_approx(const M68kInstructionIR *instruction, 
   uint8_t dest_is_address;
   uint8_t dest_reg;
   uint8_t mnemonic_id;
-  if (instruction == NULL) return 0;
   if (instruction->operand_count == 0U) return 0;
   if (!sim_operand_direct_register_local(&instruction->operands[instruction->operand_count - 1U], &dest_is_address, &dest_reg) ||
       dest_is_address == 0U || dest_reg != reg) {
@@ -3252,7 +3245,7 @@ static int recover_entry_relative_word_dispatch_seed(const SectionDiscoveryMap *
   uint8_t base_reg, index_is_address, index_reg, index_long, index_scale;
   uint32_t table_base;
   uint32_t max_scan;
-  if (section == NULL || discovery == NULL || instruction == NULL || prev_instruction == NULL ||
+  if (section == NULL || discovery == NULL || prev_instruction == NULL ||
       prev_prev_instruction == NULL || out_seed == NULL) {
     return 0;
   }
@@ -3292,7 +3285,7 @@ static int recover_brief_word_offset_dispatch_seed(const M68kInstructionIR *inst
   uint32_t base_target;
   uint32_t table_base;
   int32_t target_disp;
-  if (section == NULL || instruction == NULL || prev_instruction == NULL || prev_prev_instruction == NULL ||
+  if (section == NULL || prev_instruction == NULL || prev_prev_instruction == NULL ||
       prev_prev_prev_instruction == NULL || out_seed == NULL) {
     return 0;
   }
@@ -3465,7 +3458,7 @@ static int recover_pc_index_inline_dispatch_targets(const SectionDiscoveryMap *d
   int32_t target_disp;
   uint32_t table_base, max_scan;
   DispatchScanState scan_state;
-  if (section == NULL || discovery == NULL || instruction == NULL || ctx == NULL || ctx->analysis_policy == NULL ||
+  if (section == NULL || discovery == NULL || ctx == NULL || ctx->analysis_policy == NULL ||
       out_targets == NULL) return 0;
   metadata = instruction_sim_metadata(instruction);
   if (metadata == NULL || metadata->target_operand_index >= instruction->operand_count) return 0;
@@ -3505,7 +3498,7 @@ static int collect_pc_index_inline_dispatch_table(const SectionDiscoveryMap *dis
   uint32_t entry_offsets[WORD_DISPATCH_MAX_SLOTS];
   uint32_t targets[WORD_DISPATCH_MAX_SLOTS];
   size_t entry_count = 0U;
-  if (section == NULL || discovery == NULL || instruction == NULL || out_analysis == NULL) return 0;
+  if (section == NULL || discovery == NULL || out_analysis == NULL) return 0;
   metadata = instruction_sim_metadata(instruction);
   if (metadata == NULL || metadata->target_operand_index >= instruction->operand_count) return 0;
   target_operand = &instruction->operands[metadata->target_operand_index];
@@ -3553,7 +3546,7 @@ static int recover_pc_relative_word_dispatch_targets(const SectionDiscoveryMap *
   AnalysisDispatchTargetAcceptContext target_ctx;
   AnalysisWordOffsetAcceptContext accept_ctx;
   RecoveredWordDispatchScanConfig scan_config;
-  if (ctx == NULL || ctx->section == NULL || discovery == NULL || instruction == NULL || recent_window == NULL ||
+  if (ctx == NULL || ctx->section == NULL || discovery == NULL || recent_window == NULL ||
       out_targets == NULL) {
     return 0;
   }
@@ -3807,7 +3800,7 @@ static int add_recovered_string_dispatch_target_labels(M68kSectionAnalysisIR *se
 int instruction_direct_target_local(const SectionAnalysisContext *ctx, const M68kInstructionIR *instruction,
     uint32_t instruction_offset, uint32_t *out_target) {
   const M68kSection *section = ctx != NULL ? ctx->section : NULL;
-  if (section == NULL || instruction == NULL || out_target == NULL || instruction_offset >= section->data_size) return 0;
+  if (section == NULL || out_target == NULL || instruction_offset >= section->data_size) return 0;
   return instruction_control_transfer_target(instruction, section->data + instruction_offset,
     section->data_size - instruction_offset, instruction_offset, (uint32_t)section->data_size, out_target);
 }
@@ -3819,7 +3812,7 @@ static int instruction_matches_indexed_an_lea(const M68kInstructionIR *instructi
   uint8_t index_is_address;
   uint8_t index_reg;
   int32_t disp;
-  if (instruction == NULL || instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA ||
+  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA ||
       instruction->operand_count != 2U) {
     return 0;
   }
@@ -4812,17 +4805,17 @@ static int annotate_immediate_fixup_label(const M68kObject *object, size_t secti
     M68kInstructionIR *instruction, size_t operand_index, M68kSectionAnalysisIR *section_analysis,
     uint8_t *generated_label_flags, size_t generated_label_count, GeneratedLabelKind *label_kinds,
     size_t label_kind_count, const M68kPresentationPolicy *presentation) {
-  M68kInstructionIR parsed_instruction;
-  const M68kInstructionIR *layout_instruction = instruction;
-  const M68kAsmFormDef *form = instruction_assembler_form_local(instruction, &parsed_instruction);
+  M68kInstructionIR layout_instruction_storage;
+  uint16_t asm_form_index = instruction_assembler_form_index_local(instruction, &layout_instruction_storage);
+  const M68kInstructionIR *layout_instruction = &layout_instruction_storage;
+  const M68kAsmFormDef *form = &g_m68k_asm_forms[asm_form_index];
   const M68kSection *section;
   char size_suffix;
   size_t word_index;
   size_t extension_index;
-  if (object == NULL || instruction == NULL || section_analysis == NULL || operand_index >= instruction->operand_count)
+  if (object == NULL || section_analysis == NULL || operand_index >= instruction->operand_count)
     return 0;
-  if (form == NULL) return 0;
-  if (parsed_instruction.form_index != M68K_IR_INVALID_FORM_INDEX) layout_instruction = &parsed_instruction;
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 0;
   if (section_index >= object->section_count) return 0;
   section = &object->sections[section_index];
   size_suffix = instruction_effective_size_suffix_local(layout_instruction, form);
@@ -4839,7 +4832,7 @@ static int annotate_immediate_fixup_label(const M68kObject *object, size_t secti
       break;
     case M68K_ASM_EXTENSION_EA_IMMEDIATE:
       if (operand_uses_immediate_extension_local(operand)) {
-        size_t extension_words = m68k_asm_operand_extension_word_count(form, operand, size_suffix);
+        size_t extension_words = m68k_asm_operand_extension_word_count(asm_form_index, operand, size_suffix);
         if (extension->operand_index == operand_index && extension_words >= 2U) {
           const M68kFixup *fixup = find_section_fixup_at_offset(object, section_index,
             instruction_offset + (uint32_t)(word_index * 2U), M68K_FIXUP_WIDTH_32);
@@ -4859,7 +4852,7 @@ static int annotate_immediate_fixup_label(const M68kObject *object, size_t secti
       }
       break;
     case M68K_ASM_EXTENSION_EA_INDEX:
-      word_index += m68k_asm_operand_extension_word_count(form, operand, size_suffix);
+      word_index += m68k_asm_operand_extension_word_count(asm_form_index, operand, size_suffix);
       break;
     case M68K_ASM_EXTENSION_LABEL_DISP16_IF_ZERO:
     case M68K_ASM_EXTENSION_LABEL_DISP16_ALWAYS:
@@ -5161,7 +5154,7 @@ static void annotate_instruction_labels(const M68kObject *object, size_t section
   const M68kSimFormMetadata *metadata;
   size_t operand_index;
   uint32_t label_base;
-  if (instruction == NULL || section_analysis == NULL) return;
+  if (section_analysis == NULL) return;
   metadata = instruction_sim_metadata(instruction);
   label_base = offset + 2U;
   for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
@@ -5318,7 +5311,7 @@ static void stabilize_direct_control_labels(const M68kSection *section, M68kInst
     const M68kPresentationPolicy *presentation) {
   const M68kSimFormMetadata *metadata;
   size_t operand_index;
-  if (section == NULL || instruction == NULL || section_analysis == NULL) return;
+  if (section == NULL || section_analysis == NULL) return;
   if (!instruction_is_call_transfer(instruction) &&
       !instruction_is_unconditional_transfer(instruction) &&
       !is_conditional_transfer(instruction)) {
@@ -5416,7 +5409,7 @@ static void append_unstable_direct_control_violation_comment(const M68kSection *
   size_t operand_index;
   uint32_t target;
   char message[160];
-  if (section == NULL || instruction == NULL || buf == NULL || buf_size == 0U) return;
+  if (section == NULL || buf == NULL || buf_size == 0U) return;
   if (!instruction_is_call_transfer(instruction) &&
       !instruction_is_unconditional_transfer(instruction) &&
       !is_conditional_transfer(instruction)) {
@@ -5550,3 +5543,4 @@ int build_section_ir(const M68kObject *object, const M68kSection *section,
 cleanup:
   return result;
 }
+

@@ -1,8 +1,8 @@
 #include "m68k_disassembler.h"
 #include "m68k_disassembler_lib.h"
+#include "m68k_assembler.h"
 #include "m68k_ir.h"
 #include "m68k_ir_codec.h"
-#include "m68k_asm_metadata.h"
 #include "m68k_simulator.h"
 
 #include <stdio.h>
@@ -34,17 +34,17 @@ M68kDisasmTextResult m68k_disassemble_one_text_for_cpu(const uint8_t *data, size
 
 M68kDisasmInfoResult m68k_disassemble_one_info_for_cpu(const uint8_t *data, size_t size, uint8_t target_cpu) {
   M68kDisasmInfoResult result;
-  M68kInstructionIR instruction;
+  M68kDisasmResult disasm;
   memset(&result, 0, sizeof(result));
-  instruction = m68k_ir_decode_one(data, size, target_cpu, m68k_diag_sink(&result.diagnostics));
-  if (m68k_diag_has_errors(&result.diagnostics) || instruction.byte_count == 0U) return result;
-  result.byte_count = instruction.byte_count;
-  result.form_index = instruction.form_index;
-  result.mnemonic_id = instruction.mnemonic_id;
-  result.target_cpu = instruction.target_cpu;
-  snprintf(result.mnemonic, sizeof(result.mnemonic), "%s", instruction.mnemonic);
-  result.size_suffix = instruction.size_suffix;
-  result.operand_count = instruction.operand_count;
+  disasm = m68k_disassemble_one_for_cpu(data, size, target_cpu, m68k_diag_sink(&result.diagnostics));
+  if (m68k_diag_has_errors(&result.diagnostics) || disasm.byte_count == 0U) return result;
+  result.byte_count = disasm.byte_count;
+  result.asm_form_index = disasm.asm_form_index;
+  result.mnemonic_id = disasm.mnemonic_id;
+  result.target_cpu = disasm.target_cpu;
+  snprintf(result.mnemonic, sizeof(result.mnemonic), "%s", disasm.mnemonic);
+  result.size_suffix = disasm.size_suffix;
+  result.operand_count = disasm.operand_count;
   return result;
 }
 

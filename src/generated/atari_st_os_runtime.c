@@ -1,17 +1,15 @@
 /* Generated Atari ST OS runtime metadata from EmuTOS headers. Do not edit directly. */
 #include "generated/atari_st_os_runtime.h"
-
-#include <string.h>
+#include "platform_name_table.h"
 
 static const char *const g_atari_st_os_family_names[] = {
-  NULL,
   "BIOS",
   "GEMDOS",
   "XBIOS",
+  NULL,
 };
 
 static const char *const g_atari_st_os_function_names[] = {
-  NULL,
   "Bconin",
   "Bconout",
   "Bconstat",
@@ -126,10 +124,10 @@ static const char *const g_atari_st_os_function_names[] = {
   "VsetRGB",
   "Vsync",
   "Xbtimer",
+  NULL,
 };
 
 static const char *const g_atari_st_os_symbol_names[] = {
-  NULL,
   "GEMDOS_Seedfill",
   "GEMDOS_Srealloc",
   "bconin",
@@ -244,55 +242,42 @@ static const char *const g_atari_st_os_symbol_names[] = {
   "vsetscreen",
   "vsync",
   "xbtimer",
+  NULL,
 };
 
 static const char *const g_atari_st_os_include_names[] = {
-  NULL,
   "BIOS.I",
   "GEMDOS.I",
   "XBIOS.I",
+  NULL,
 };
 
 static const char *const g_atari_st_os_header_names[] = {
-  NULL,
   "bdosbind.h",
   "biosbind.h",
   "status.txt",
   "xbiosbind.h",
+  NULL,
 };
-
-static uint16_t atari_st_os_name_id_from_table(const char *const *names, size_t count, const char *name) {
-  size_t index;
-  if (names == NULL || name == NULL || name[0] == '\0') return 0U;
-  for (index = 1U; index < count; ++index) {
-    if (strcmp(names[index], name) == 0) return (uint16_t)index;
-  }
-  return 0U;
-}
-
-static const char *atari_st_os_name_from_table(const char *const *names, size_t count, uint16_t id) {
-  if (names == NULL || id == 0U || (size_t)id >= count) return NULL;
-  return names[id];
-}
 
 uint16_t atari_st_os_name_id(uint8_t domain_kind, const char *name) {
   switch (domain_kind) {
-  case 11u: return atari_st_os_name_id_from_table(g_atari_st_os_family_names, sizeof(g_atari_st_os_family_names) / sizeof(g_atari_st_os_family_names[0]), name);
-  case 3u: return atari_st_os_name_id_from_table(g_atari_st_os_function_names, sizeof(g_atari_st_os_function_names) / sizeof(g_atari_st_os_function_names[0]), name);
-  case 4u: return atari_st_os_name_id_from_table(g_atari_st_os_symbol_names, sizeof(g_atari_st_os_symbol_names) / sizeof(g_atari_st_os_symbol_names[0]), name);
-  case 5u: return atari_st_os_name_id_from_table(g_atari_st_os_include_names, sizeof(g_atari_st_os_include_names) / sizeof(g_atari_st_os_include_names[0]), name);
-  case 12u: return atari_st_os_name_id_from_table(g_atari_st_os_header_names, sizeof(g_atari_st_os_header_names) / sizeof(g_atari_st_os_header_names[0]), name);
+  case 11u: return platform_name_id_from_table(g_atari_st_os_family_names, (sizeof(g_atari_st_os_family_names) / sizeof(g_atari_st_os_family_names[0])), name);
+  case 3u: return platform_name_id_from_table(g_atari_st_os_function_names, (sizeof(g_atari_st_os_function_names) / sizeof(g_atari_st_os_function_names[0])), name);
+  case 4u: return platform_name_id_from_table(g_atari_st_os_symbol_names, (sizeof(g_atari_st_os_symbol_names) / sizeof(g_atari_st_os_symbol_names[0])), name);
+  case 5u: return platform_name_id_from_table(g_atari_st_os_include_names, (sizeof(g_atari_st_os_include_names) / sizeof(g_atari_st_os_include_names[0])), name);
+  case 12u: return platform_name_id_from_table(g_atari_st_os_header_names, (sizeof(g_atari_st_os_header_names) / sizeof(g_atari_st_os_header_names[0])), name);
   default: return 0U;
   }
 }
 
 const char *atari_st_os_name(uint8_t domain_kind, uint16_t id) {
   switch (domain_kind) {
-  case 11u: return atari_st_os_name_from_table(g_atari_st_os_family_names, sizeof(g_atari_st_os_family_names) / sizeof(g_atari_st_os_family_names[0]), id);
-  case 3u: return atari_st_os_name_from_table(g_atari_st_os_function_names, sizeof(g_atari_st_os_function_names) / sizeof(g_atari_st_os_function_names[0]), id);
-  case 4u: return atari_st_os_name_from_table(g_atari_st_os_symbol_names, sizeof(g_atari_st_os_symbol_names) / sizeof(g_atari_st_os_symbol_names[0]), id);
-  case 5u: return atari_st_os_name_from_table(g_atari_st_os_include_names, sizeof(g_atari_st_os_include_names) / sizeof(g_atari_st_os_include_names[0]), id);
-  case 12u: return atari_st_os_name_from_table(g_atari_st_os_header_names, sizeof(g_atari_st_os_header_names) / sizeof(g_atari_st_os_header_names[0]), id);
+  case 11u: return g_atari_st_os_family_names[(size_t)id < (sizeof(g_atari_st_os_family_names) / sizeof(g_atari_st_os_family_names[0])) ? (size_t)id : (sizeof(g_atari_st_os_family_names) / sizeof(g_atari_st_os_family_names[0])) - 1U];
+  case 3u: return g_atari_st_os_function_names[(size_t)id < (sizeof(g_atari_st_os_function_names) / sizeof(g_atari_st_os_function_names[0])) ? (size_t)id : (sizeof(g_atari_st_os_function_names) / sizeof(g_atari_st_os_function_names[0])) - 1U];
+  case 4u: return g_atari_st_os_symbol_names[(size_t)id < (sizeof(g_atari_st_os_symbol_names) / sizeof(g_atari_st_os_symbol_names[0])) ? (size_t)id : (sizeof(g_atari_st_os_symbol_names) / sizeof(g_atari_st_os_symbol_names[0])) - 1U];
+  case 5u: return g_atari_st_os_include_names[(size_t)id < (sizeof(g_atari_st_os_include_names) / sizeof(g_atari_st_os_include_names[0])) ? (size_t)id : (sizeof(g_atari_st_os_include_names) / sizeof(g_atari_st_os_include_names[0])) - 1U];
+  case 12u: return g_atari_st_os_header_names[(size_t)id < (sizeof(g_atari_st_os_header_names) / sizeof(g_atari_st_os_header_names[0])) ? (size_t)id : (sizeof(g_atari_st_os_header_names) / sizeof(g_atari_st_os_header_names[0])) - 1U];
   default: return NULL;
   }
 }
@@ -311,13 +296,13 @@ static const AtariStOsCallInfo g_atari_st_os_calls[] = {
   { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 10u, ATARI_ST_OS_FUNCTION_ID_CCONRS, ATARI_ST_OS_SYMBOL_ID_C_CONRS, ATARI_ST_OS_HEADER_ID_STATUS_TXT, ATARI_ST_OS_INCLUDE_ID_GEMDOS_I, 0u, 0u, 0u, ATARI_ST_OS_RETURN_LONG },
   { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 11u, ATARI_ST_OS_FUNCTION_ID_CCONIS, ATARI_ST_OS_SYMBOL_ID_C_CONIS, ATARI_ST_OS_HEADER_ID_BDOSBIND_H, ATARI_ST_OS_INCLUDE_ID_GEMDOS_I, 1u, 2u, 0u, ATARI_ST_OS_RETURN_LONG },
   { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 14u, ATARI_ST_OS_FUNCTION_ID_DSETDRV, ATARI_ST_OS_SYMBOL_ID_D_SETDRV, ATARI_ST_OS_HEADER_ID_BDOSBIND_H, ATARI_ST_OS_INCLUDE_ID_GEMDOS_I, 0u, 0u, 1u, ATARI_ST_OS_RETURN_LONG },
-  { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 15u, ATARI_ST_OS_FUNCTION_ID_SEEDFILL, ATARI_ST_OS_SYMBOL_ID_GEMDOS_SEEDFILL, ATARI_ST_OS_HEADER_ID_STATUS_TXT, 0u, 0u, 0u, 0u, ATARI_ST_OS_RETURN_LONG },
+  { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 15u, ATARI_ST_OS_FUNCTION_ID_SEEDFILL, ATARI_ST_OS_SYMBOL_ID_GEMDOS_SEEDFILL, ATARI_ST_OS_HEADER_ID_STATUS_TXT, ATARI_ST_OS_INCLUDE_ID_NONE, 0u, 0u, 0u, ATARI_ST_OS_RETURN_LONG },
   { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 16u, ATARI_ST_OS_FUNCTION_ID_CCONOS, ATARI_ST_OS_SYMBOL_ID_C_CONOS, ATARI_ST_OS_HEADER_ID_STATUS_TXT, ATARI_ST_OS_INCLUDE_ID_GEMDOS_I, 0u, 0u, 0u, ATARI_ST_OS_RETURN_LONG },
   { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 17u, ATARI_ST_OS_FUNCTION_ID_CPRNOS, ATARI_ST_OS_SYMBOL_ID_C_PRNOS, ATARI_ST_OS_HEADER_ID_STATUS_TXT, ATARI_ST_OS_INCLUDE_ID_GEMDOS_I, 0u, 0u, 0u, ATARI_ST_OS_RETURN_LONG },
   { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 18u, ATARI_ST_OS_FUNCTION_ID_CAUXIS, ATARI_ST_OS_SYMBOL_ID_C_AUXIS, ATARI_ST_OS_HEADER_ID_STATUS_TXT, ATARI_ST_OS_INCLUDE_ID_GEMDOS_I, 0u, 0u, 0u, ATARI_ST_OS_RETURN_LONG },
   { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 19u, ATARI_ST_OS_FUNCTION_ID_CAUXOS, ATARI_ST_OS_SYMBOL_ID_C_AUXOS, ATARI_ST_OS_HEADER_ID_STATUS_TXT, ATARI_ST_OS_INCLUDE_ID_GEMDOS_I, 0u, 0u, 0u, ATARI_ST_OS_RETURN_LONG },
   { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 20u, ATARI_ST_OS_FUNCTION_ID_MADDALT, ATARI_ST_OS_SYMBOL_ID_M_ADDALT, ATARI_ST_OS_HEADER_ID_STATUS_TXT, ATARI_ST_OS_INCLUDE_ID_GEMDOS_I, 0u, 0u, 0u, ATARI_ST_OS_RETURN_LONG },
-  { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 21u, ATARI_ST_OS_FUNCTION_ID_SREALLOC, ATARI_ST_OS_SYMBOL_ID_GEMDOS_SREALLOC, ATARI_ST_OS_HEADER_ID_BDOSBIND_H, 0u, 0u, 0u, 1u, ATARI_ST_OS_RETURN_LONG },
+  { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 21u, ATARI_ST_OS_FUNCTION_ID_SREALLOC, ATARI_ST_OS_SYMBOL_ID_GEMDOS_SREALLOC, ATARI_ST_OS_HEADER_ID_BDOSBIND_H, ATARI_ST_OS_INCLUDE_ID_NONE, 0u, 0u, 1u, ATARI_ST_OS_RETURN_LONG },
   { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 25u, ATARI_ST_OS_FUNCTION_ID_DGETDRV, ATARI_ST_OS_SYMBOL_ID_D_GETDRV, ATARI_ST_OS_HEADER_ID_BDOSBIND_H, ATARI_ST_OS_INCLUDE_ID_GEMDOS_I, 1u, 2u, 0u, ATARI_ST_OS_RETURN_LONG },
   { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 26u, ATARI_ST_OS_FUNCTION_ID_FSETDTA, ATARI_ST_OS_SYMBOL_ID_F_SETDTA, ATARI_ST_OS_HEADER_ID_BDOSBIND_H, ATARI_ST_OS_INCLUDE_ID_GEMDOS_I, 0u, 0u, 1u, ATARI_ST_OS_RETURN_LONG },
   { ATARI_ST_OS_FAMILY_ID_GEMDOS, 1u, 32u, ATARI_ST_OS_FUNCTION_ID_SUPER, ATARI_ST_OS_SYMBOL_ID_SUPER, ATARI_ST_OS_HEADER_ID_STATUS_TXT, ATARI_ST_OS_INCLUDE_ID_GEMDOS_I, 0u, 0u, 0u, ATARI_ST_OS_RETURN_LONG },
@@ -434,7 +419,7 @@ const AtariStOsCallInfo *atari_st_os_find_call(uint8_t trap_vector, uint16_t opc
 
 const AtariStOsCallInfo *atari_st_os_find_call_by_symbol_id(uint16_t symbol_id) {
   size_t index;
-  if (symbol_id == 0U) return NULL;
+  if (atari_st_os_name(4u, symbol_id) == NULL) return NULL;
   for (index = 0U; index < ATARI_ST_OS_CALL_COUNT; ++index) {
     const AtariStOsCallInfo *entry = &g_atari_st_os_calls[index];
     if (entry->symbol_id == symbol_id) return entry;
@@ -448,7 +433,7 @@ const AtariStOsCallInfo *atari_st_os_find_call_by_symbol_name(const char *symbol
 
 uint16_t atari_st_os_find_symbol_include_id(uint16_t symbol_id) {
   const AtariStOsCallInfo *entry = atari_st_os_find_call_by_symbol_id(symbol_id);
-  return entry != NULL ? entry->include_id : 0U;
+  return entry != NULL ? entry->include_id : ATARI_ST_OS_INCLUDE_ID_NONE;
 }
 
 const char *atari_st_os_find_symbol_include(const char *symbol_name) {

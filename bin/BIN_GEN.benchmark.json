@@ -73,9 +73,9 @@
     }
   ],
   "timing": {
-    "analysis_seconds": 4.988,
-    "ir_build_seconds": 1.081,
-    "render_seconds": 0.069,
-    "total_seconds": 6.259
+    "analysis_seconds": 1.762,
+    "ir_build_seconds": 0.643,
+    "render_seconds": 0.064,
+    "total_seconds": 2.604
   }
 }

@@ -74,7 +74,6 @@ typedef struct {
 } M68kAsmOperandValue;
 
 typedef struct {
-  const char *mnemonic;
   uint8_t mnemonic_id;
   char size_suffix;
   uint8_t target_cpu;
@@ -88,7 +87,7 @@ typedef struct {
   const char *mnemonic;
   const char *syntax;
   uint8_t mnemonic_id;
-  uint16_t form_index;
+  uint16_t asm_form_index;
   uint8_t operand_count;
   uint8_t operand_kinds[4];
   uint8_t size_mask;
@@ -125,7 +124,7 @@ typedef struct {
   uint8_t mnemonic_id;
 } M68kAsmMnemonicLookupEntry;
 
-extern const M68kAsmFormDef g_m68k_asm_forms[M68K_ASM_FORM_COUNT];
+extern const M68kAsmFormDef g_m68k_asm_forms[M68K_ASM_FORM_SLOT_COUNT];
 extern const M68kAsmFieldPatch g_m68k_asm_patches[M68K_ASM_PATCH_COUNT];
 extern const M68kAsmExtensionDef g_m68k_asm_extensions[M68K_ASM_EXTENSION_DEF_COUNT];
 extern const M68kAsmControlRegisterDef g_m68k_asm_control_registers[];
@@ -134,22 +133,16 @@ extern const M68kAsmEaTextFormDef g_m68k_asm_ea_text_forms[M68K_ASM_EA_TEXT_FORM
 extern const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT];
 extern const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[];
 extern const size_t g_m68k_asm_mnemonic_lookup_count;
-extern const char *const g_m68k_asm_routed_immediate_mnemonics[];
-extern const uint8_t g_m68k_asm_routed_immediate_mnemonic_ids[];
-extern const size_t g_m68k_asm_routed_immediate_mnemonic_count;
 extern const size_t g_m68k_asm_control_register_count;
 extern const size_t g_m68k_asm_ea_text_form_count;
 extern const char *const g_m68k_asm_movem_mask_normal[16];
 extern const char *const g_m68k_asm_movem_mask_predecrement[16];
 
 size_t m68k_asm_form_count(void);
-size_t m68k_asm_routed_immediate_count(void);
 const M68kAsmControlRegisterDef *m68k_asm_find_control_register(const char *name, uint8_t target_cpu);
 const M68kAsmEaTextFormDef *m68k_asm_find_ea_text_form(uint8_t syntax_family, char size_suffix,
   char register_prefix, uint8_t target_cpu);
-int m68k_asm_has_routed_immediate(const char *mnemonic);
-const M68kAsmFormDef *m68k_asm_find_form(const char *mnemonic, size_t operand_count);
-const M68kAsmFormDef *m68k_asm_find_form_id(uint8_t mnemonic_id, size_t operand_count);
+uint16_t m68k_asm_form_index_for_id(uint8_t mnemonic_id, size_t operand_count);
 uint8_t m68k_asm_form_effective_size_mask(const M68kAsmFormDef *form);
 uint8_t m68k_asm_form_effective_size_mask_for_operands(const M68kAsmFormDef *form,
   const M68kAsmOperandValue *operands, size_t operand_count);
@@ -157,24 +150,20 @@ int m68k_asm_form_supports_size_suffix(const M68kAsmFormDef *form, char size_suf
 int m68k_asm_form_supports_cpu(const M68kAsmFormDef *form, uint8_t target_cpu);
 char m68k_asm_choose_size_suffix(const M68kAsmFormDef *form, const M68kAsmOperandValue *operands,
   size_t operand_count, char explicit_suffix);
-const M68kAsmFormDef *m68k_asm_find_form_for_operands(const char *mnemonic,
+uint16_t m68k_asm_form_index_for_operands_id(uint8_t mnemonic_id,
   const M68kAsmOperandValue *operands, size_t operand_count, char size_suffix, uint8_t target_cpu);
-const M68kAsmFormDef *m68k_asm_find_form_for_operands_id(uint8_t mnemonic_id,
-  const M68kAsmOperandValue *operands, size_t operand_count, char size_suffix, uint8_t target_cpu);
-size_t m68k_asm_operand_extension_word_count(const M68kAsmFormDef *form, const M68kAsmOperandValue *operand,
+size_t m68k_asm_operand_extension_word_count(uint16_t asm_form_index, const M68kAsmOperandValue *operand,
   char size_suffix);
-int m68k_asm_encode_opword(const M68kAsmFormDef *form, const uint16_t *field_values,
+int m68k_asm_encode_opword(uint16_t asm_form_index, const uint16_t *field_values,
   size_t field_value_count, uint16_t *out_opword);
-int m68k_asm_emit_extensions(const M68kAsmFormDef *form, const uint16_t *field_values,
+int m68k_asm_emit_extensions(uint16_t asm_form_index, const uint16_t *field_values,
   size_t field_value_count, const M68kAsmOperandValue *operands, size_t operand_count, uint16_t *out_words,
   size_t max_words, size_t *out_word_count);
-int m68k_asm_build_patch_values(const M68kAsmFormDef *form, char size_suffix,
+int m68k_asm_build_patch_values(uint16_t asm_form_index, char size_suffix,
   const M68kAsmOperandValue *operands, size_t operand_count, uint16_t *out_field_values,
   size_t max_field_values);
 int m68k_asm_assemble_instruction(const M68kAsmInstructionSpec *spec, uint8_t *out_bytes,
   size_t max_bytes, size_t *out_byte_count);
 uint16_t m68k_asm_encode_full_ext_word(const M68kAsmOperandValue *operand);
-uint16_t m68k_asm_branch_signal_value(const M68kAsmFormDef *form, char size_suffix);
-size_t m68k_asm_branch_extension_bytes(const M68kAsmFormDef *form, char size_suffix);
 
 #endif

@@ -7,7 +7,6 @@
 const char *m68k_instruction_spec_mnemonic_name(const InstructionSpec *instruction) {
   if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_NONE)
     return m68k_asm_mnemonic_name(instruction->mnemonic_id);
-  if (instruction->mnemonic[0] != '\0') return instruction->mnemonic;
   return m68k_asm_mnemonic_name(M68K_ASM_MNEMONIC_NONE);
 }
 
@@ -16,7 +15,6 @@ size_t m68k_instruction_spec_assemble_bytes(const InstructionSpec *instruction, 
   M68kAsmInstructionSpec spec;
   size_t byte_count = 0;
   memset(&spec, 0, sizeof(spec));
-  spec.mnemonic = m68k_instruction_spec_mnemonic_name(instruction);
   spec.mnemonic_id = instruction->mnemonic_id;
   spec.size_suffix = instruction->size_suffix;
   spec.target_cpu = instruction->target_cpu;
@@ -29,7 +27,7 @@ size_t m68k_instruction_spec_assemble_bytes(const InstructionSpec *instruction, 
 }
 
 int m68k_instruction_spec_uses_movem_predecrement_mask(const InstructionSpec *instruction) {
-  if (instruction == NULL || instruction->operand_count != 2U) return 0;
+  if (instruction->operand_count != 2U) return 0;
   if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEM) return 0;
   if (instruction->operands[0].kind != M68K_ASM_OPERAND_REGLIST) return 0;
   if (instruction->operands[1].kind != M68K_ASM_OPERAND_EA) return 0;
@@ -118,24 +116,74 @@ int m68k_instruction_operand_direct_register(const M68kOperandIR *operand, uint8
   return 0;
 }
 
+int m68k_instruction_operand_matches_form_kind(const M68kOperandIR *operand, uint8_t form_kind) {
+  if (operand == NULL) return 0;
+  switch (form_kind) {
+  case M68K_ASM_OPERAND_IND:
+    return operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 2U;
+  case M68K_ASM_OPERAND_POSTINC:
+    return operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 3U;
+  case M68K_ASM_OPERAND_PREDEC:
+    return operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 4U;
+  case M68K_ASM_OPERAND_ABSL:
+    return operand->kind == M68K_ASM_OPERAND_EA &&
+      operand->value.ea_mode == 7U && operand->value.ea_reg == 1U;
+  case M68K_ASM_OPERAND_EA:
+    return operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_IND ||
+      operand->kind == M68K_ASM_OPERAND_POSTINC || operand->kind == M68K_ASM_OPERAND_PREDEC ||
+      operand->kind == M68K_ASM_OPERAND_ABSL;
+  default:
+    return operand->kind == form_kind;
+  }
+}
+
+void m68k_instruction_operand_to_asm_value(const M68kOperandIR *operand, M68kAsmOperandValue *out_value) {
+  if (out_value == NULL) return;
+  memset(out_value, 0, sizeof(*out_value));
+  if (operand == NULL) return;
+  *out_value = operand->value;
+  out_value->kind = operand->kind;
+  switch (operand->kind) {
+  case M68K_ASM_OPERAND_IND:
+    out_value->kind = M68K_ASM_OPERAND_EA;
+    out_value->ea_mode = 2U;
+    break;
+  case M68K_ASM_OPERAND_POSTINC:
+    out_value->kind = M68K_ASM_OPERAND_EA;
+    out_value->ea_mode = 3U;
+    break;
+  case M68K_ASM_OPERAND_PREDEC:
+    out_value->kind = M68K_ASM_OPERAND_EA;
+    out_value->ea_mode = 4U;
+    out_value->ea_reg = operand->value.reg;
+    break;
+  case M68K_ASM_OPERAND_ABSL:
+    out_value->kind = M68K_ASM_OPERAND_EA;
+    out_value->ea_mode = 7U;
+    out_value->ea_reg = 1U;
+    break;
+  default:
+    break;
+  }
+}
+
 void m68k_instruction_spec_to_ir(const InstructionSpec *spec, M68kInstructionIR *out_instruction) {
   const M68kAsmFormDef *form;
   unsigned char bytes[64];
   size_t operand_index;
   m68k_ir_instruction_init(out_instruction);
-  snprintf(out_instruction->mnemonic, sizeof(out_instruction->mnemonic), "%s", m68k_instruction_spec_mnemonic_name(spec));
   out_instruction->mnemonic_id = spec->mnemonic_id;
   out_instruction->size_suffix = spec->size_suffix;
   out_instruction->target_cpu = spec->target_cpu;
   out_instruction->operand_count = spec->operand_count;
-  form = NULL;
-  if (spec->form_index != M68K_IR_INVALID_FORM_INDEX && (size_t)spec->form_index < m68k_asm_form_count())
-    form = &g_m68k_asm_forms[spec->form_index];
-  if (form == NULL)
-    form = m68k_asm_find_form_for_operands_id(out_instruction->mnemonic_id, spec->operands, spec->operand_count,
-      spec->size_suffix, spec->target_cpu);
-  if (form != NULL) {
-    out_instruction->form_index = (uint16_t)(form - g_m68k_asm_forms);
+  form = &g_m68k_asm_forms[spec->asm_form_index];
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) {
+    uint16_t asm_form_index = m68k_asm_form_index_for_operands_id(out_instruction->mnemonic_id, spec->operands,
+      spec->operand_count, spec->size_suffix, spec->target_cpu);
+    form = &g_m68k_asm_forms[asm_form_index];
+  }
+  if (form->mnemonic_id != M68K_ASM_MNEMONIC_NONE) {
+    out_instruction->asm_form_index = form->asm_form_index;
     out_instruction->mnemonic_id = form->mnemonic_id;
   }
   out_instruction->byte_count = m68k_instruction_spec_assemble_bytes(spec, bytes, sizeof(bytes));
@@ -167,10 +215,9 @@ void m68k_instruction_ir_to_spec(const M68kInstructionIR *instruction, Instructi
   size_t operand_index;
   memset(out_spec, 0, sizeof(*out_spec));
   out_spec->mnemonic_id = instruction->mnemonic_id;
-  snprintf(out_spec->mnemonic, sizeof(out_spec->mnemonic), "%s", m68k_ir_instruction_mnemonic_name(instruction));
   out_spec->size_suffix = instruction->size_suffix;
   out_spec->target_cpu = instruction->target_cpu;
-  out_spec->form_index = instruction->form_index;
+  out_spec->asm_form_index = instruction->asm_form_index;
   out_spec->operand_count = instruction->operand_count;
   for (operand_index = 0; operand_index < instruction->operand_count &&
       operand_index < M68K_INSTRUCTION_SPEC_MAX_OPERANDS; ++operand_index) {

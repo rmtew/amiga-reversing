@@ -403,7 +403,7 @@ typedef struct M68kSimExceptionFrameRule {
 
 typedef struct M68kSimFormLookup {
   uint8_t mnemonic_id;
-  uint16_t form_index;
+  uint16_t asm_form_index;
   uint8_t reserved[2];
   M68kSimFormMetadata metadata;
 } M68kSimFormLookup;

@@ -15,7 +15,7 @@ static void sim_diag_error(M68kDiagSink diagnostics, const char *message) {
   m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SIMULATION_FAILED, message);
 }
 
-#include "generated/m68k_simulator_tables.generated.h"
+#include "generated/m68k_simulator_tables.h"
 
 static int sim_add_access(M68kSimStepResult *result, uint8_t kind, uint8_t width,
     size_t section_index, uint32_t offset);
@@ -552,7 +552,6 @@ const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructi
   size_t index;
   const M68kSimFormMetadata *shape_match = NULL;
   uint8_t mnemonic_id;
-  if (instruction == NULL) return NULL;
   mnemonic_id = instruction->mnemonic_id;
   if (mnemonic_id == M68K_ASM_MNEMONIC_NONE) return NULL;
   for (index = 0; index < sizeof(g_m68k_sim_form_lookup) / sizeof(g_m68k_sim_form_lookup[0]); ++index) {
@@ -570,7 +569,7 @@ const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructi
       }
     }
     if (!shape_matches) continue;
-    if (instruction->form_index != M68K_IR_INVALID_FORM_INDEX && entry->form_index == instruction->form_index)
+    if (entry->asm_form_index == instruction->asm_form_index)
       return &entry->metadata;
     if (shape_match != NULL) return NULL;
     shape_match = &entry->metadata;
@@ -612,7 +611,6 @@ static uint32_t sim_mask_for_width(uint8_t width) {
 }
 
 static uint8_t sim_operand_width_from_instruction(const M68kInstructionIR *instruction) {
-  if (instruction == NULL) return 4U;
   if (instruction->size_suffix == 'b' || instruction->size_suffix == 'B') return 1U;
   if (instruction->size_suffix == 'w' || instruction->size_suffix == 'W') return 2U;
   return 4U;
@@ -648,7 +646,7 @@ static int sim_apply_unary(uint8_t op, const M68kInstructionIR *instruction, con
   uint8_t width;
   uint32_t mask;
   uint32_t value;
-  if (instruction == NULL || metadata == NULL || input == NULL || out_value == NULL) return 0;
+  if (metadata == NULL || input == NULL || out_value == NULL) return 0;
   if (input->kind != M68K_SIM_VALUE_CONSTANT) return 0;
   width = sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index);
   mask = sim_mask_for_width(width);
@@ -695,7 +693,7 @@ static int sim_apply_shift_rotate(uint8_t op, const M68kInstructionIR *instructi
   uint32_t initial_extend = extend;
   uint16_t next_sr;
   uint8_t provenance;
-  if (instruction == NULL || metadata == NULL || input == NULL || out_value == NULL) return 0;
+  if (metadata == NULL || input == NULL || out_value == NULL) return 0;
   if (input->kind != M68K_SIM_VALUE_CONSTANT) return 0;
   provenance = sim_result_provenance(input->provenance, count_value != NULL ? count_value->provenance : M68K_SIM_PROV_NONE,
     input->provenance != M68K_SIM_PROV_NONE ? input->provenance : M68K_SIM_PROV_REGISTER_COPY);
@@ -926,7 +924,7 @@ static int sim_write_operand_by_metadata(const M68kSection *section, const M68kI
   uint8_t access_kind;
   uint8_t width;
   M68kSimValue address;
-  if (section == NULL || instruction == NULL || result == NULL || metadata == NULL || operand == NULL ||
+  if (section == NULL || result == NULL || metadata == NULL || operand == NULL ||
       state == NULL || value == NULL || operand_index >= 4U) return 0;
   access_kind = metadata->operand_access_kinds[operand_index];
   width = sim_effective_operand_width(instruction, metadata, operand_index);
@@ -1029,7 +1027,8 @@ static int sim_compute_ea_address(const M68kSection *section, const M68kInstruct
     const M68kSimCpuState *state, size_t section_index, M68kSimValue *out_value) {
   M68kSimValue base;
   M68kSimValue index_value;
-  if (section == NULL || instruction == NULL || operand == NULL || state == NULL || out_value == NULL) return 0;
+  (void)instruction;
+  if (section == NULL || operand == NULL || state == NULL || out_value == NULL) return 0;
   if (operand->kind != M68K_ASM_OPERAND_EA && operand->kind != M68K_ASM_OPERAND_BF_EA &&
       operand->kind != M68K_ASM_OPERAND_IND &&
       operand->kind != M68K_ASM_OPERAND_POSTINC && operand->kind != M68K_ASM_OPERAND_ABSL) {
@@ -1244,7 +1243,7 @@ static int sim_read_memory_value(const M68kObject *object, size_t section_index,
     uint8_t width, M68kSimValue *out_value) {
   M68kSimValue address;
   M68kSimValue base;
-  if (section == NULL || instruction == NULL || operand == NULL || state == NULL || out_value == NULL) return 0;
+  if (section == NULL || operand == NULL || state == NULL || out_value == NULL) return 0;
   if (sim_operand_is_immediate_ea(operand)) {
     *out_value = sim_value_constant(operand->value.value, M68K_SIM_PROV_IMMEDIATE);
     return 1;
@@ -1367,7 +1366,7 @@ static int sim_apply_add_sub(uint8_t is_sub, const M68kSimValue *lhs, const M68k
 static void sim_clobber_operand_by_metadata(const M68kSection *section, const M68kInstructionIR *instruction,
     uint32_t offset, size_t section_index, M68kSimStepResult *result, const M68kSimFormMetadata *metadata,
     uint8_t operand_index, const M68kOperandIR *operand, M68kSimCpuState *state) {
-  if (section == NULL || instruction == NULL || result == NULL || metadata == NULL || operand == NULL || state == NULL)
+  if (section == NULL || result == NULL || metadata == NULL || operand == NULL || state == NULL)
     return;
   sim_write_operand_by_metadata(section, instruction, offset, section_index, result, metadata, operand_index, operand, state,
     &g_m68k_sim_unknown_value);
@@ -1587,7 +1586,7 @@ static void sim_mark_condition_codes_defined(M68kSimStepResult *result) {
 static int sim_move_updates_condition_codes(const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata) {
   uint8_t is_address = 0U;
   uint8_t reg = 0U;
-  if (instruction == NULL || metadata == NULL || metadata->dest_operand_index >= instruction->operand_count) return 0;
+  if (metadata == NULL || metadata->dest_operand_index >= instruction->operand_count) return 0;
   if (sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index,
         &instruction->operands[metadata->dest_operand_index], &is_address, &reg) && is_address) {
     return 0;
@@ -1859,7 +1858,7 @@ static int sim_apply_predecrement_operand(const M68kInstructionIR *instruction, 
   uint8_t ea_shape;
   uint8_t width;
   M68kSimValue delta;
-  if (instruction == NULL || metadata == NULL || operand == NULL || state == NULL || out_address == NULL ||
+  if (metadata == NULL || operand == NULL || state == NULL || out_address == NULL ||
       operand_index >= 4U) return 0;
   if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_PREDECREMENT) return 0;
   ea_shape = sim_effective_ea_shape(metadata->operand_ea_address_shapes[operand_index], operand);
@@ -1878,7 +1877,7 @@ static int sim_concrete_apply_predecrement_operand(const M68kInstructionIR *inst
   uint8_t ea_shape;
   uint8_t width;
   uint32_t delta;
-  if (instruction == NULL || metadata == NULL || operand == NULL || state == NULL || out_address == NULL ||
+  if (metadata == NULL || operand == NULL || state == NULL || out_address == NULL ||
       operand_index >= 4U) return 0;
   if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_PREDECREMENT) return 0;
   ea_shape = sim_effective_ea_shape(metadata->operand_ea_address_shapes[operand_index], operand);
@@ -1904,14 +1903,14 @@ static int sim_operand_is_immediate_value(const M68kOperandIR *operand, uint32_t
 }
 
 static int sim_link_displacement(const M68kInstructionIR *instruction, const M68kSimValue *value, int32_t *out_delta) {
-  if (instruction == NULL || value == NULL || out_delta == NULL || value->kind != M68K_SIM_VALUE_CONSTANT) return 0;
+  if (value == NULL || out_delta == NULL || value->kind != M68K_SIM_VALUE_CONSTANT) return 0;
   if (instruction->byte_count <= 4U) *out_delta = (int32_t)(int16_t)(value->value & 0xFFFFU);
   else *out_delta = (int32_t)value->value;
   return 1;
 }
 
 static int sim_link_displacement_concrete(const M68kInstructionIR *instruction, uint32_t raw_value, int32_t *out_delta) {
-  if (instruction == NULL || out_delta == NULL) return 0;
+  if (out_delta == NULL) return 0;
   if (instruction->byte_count <= 4U) *out_delta = (int32_t)(int16_t)(raw_value & 0xFFFFU);
   else *out_delta = (int32_t)raw_value;
   return 1;
@@ -2016,7 +2015,7 @@ static int sim_apply_concrete_ea_register_update(const M68kInstructionIR *instru
   uint8_t ea_shape;
   uint8_t width;
   uint32_t delta;
-  if (instruction == NULL || metadata == NULL || operand == NULL || state == NULL || operand_index >= 4U) return 0;
+  if (metadata == NULL || operand == NULL || state == NULL || operand_index >= 4U) return 0;
   if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_POSTINCREMENT) return 1;
   ea_shape = sim_effective_ea_shape(metadata->operand_ea_address_shapes[operand_index], operand);
   if (!sim_ea_address_register(ea_shape, operand, &address_reg)) return 0;
@@ -2570,7 +2569,7 @@ static int sim_known_control_register_index(uint8_t control_register_id, uint8_t
 }
 
 static int sim_is_explicit_concrete_noop(const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata) {
-  if (instruction == NULL || metadata == NULL) return 0;
+  if (metadata == NULL) return 0;
   return metadata->operation_type == M68K_SIM_OP_NONE &&
     metadata->flow_kind == M68K_SIM_FLOW_SEQUENTIAL &&
     !sim_metadata_has_accesses(metadata) &&
@@ -2648,7 +2647,7 @@ static int sim_concrete_return_from_metadata(const M68kInstructionIR *instructio
   uint32_t stack_pointer, restored_pc, next_sp;
   int restore_user_mode;
   const M68kSimExceptionFrameDef *frame_def = NULL;
-  if (instruction == NULL || metadata == NULL || memory == NULL || io_state == NULL) {
+  if (metadata == NULL || memory == NULL || io_state == NULL) {
     sim_diag_error(diagnostics, "bad arguments");
     return -1;
   }
@@ -2745,7 +2744,7 @@ static int sim_concrete_enter_exception(const M68kInstructionIR *instruction, co
   uint32_t current_pc, saved_pc, vector_base = 0U, vector_address, handler_pc, stack_pointer;
   uint16_t saved_sr, next_sr;
   int user_mode;
-  if (instruction == NULL || metadata == NULL || memory == NULL || io_state == NULL) {
+  if (metadata == NULL || memory == NULL || io_state == NULL) {
     sim_diag_error(diagnostics, "bad arguments");
     return 0;
   }
@@ -2832,7 +2831,7 @@ static int sim_concrete_enter_exception(const M68kInstructionIR *instruction, co
 
 static int sim_set_unsupported_concrete_operation_error(const M68kInstructionIR *instruction,
     const M68kSimFormMetadata *metadata, M68kDiagSink diagnostics) {
-  if (instruction == NULL || metadata == NULL) return 0;
+  if (metadata == NULL) return 0;
   if (metadata->flow_kind == M68K_SIM_FLOW_TRAP) {
     sim_set_unsupported_concrete_exception_error(diagnostics);
     return 1;
@@ -2863,7 +2862,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
   uint8_t rhs_is_address;
   uint8_t rhs_reg;
   uint8_t aux_operand_index;
-  if (instruction == NULL || state == NULL || out_result == NULL) return -1;
+  if (state == NULL || out_result == NULL) return -1;
   memset(out_result, 0, sizeof(*out_result));
   out_result->next_state = *state;
   out_result->next_state.pc = offset + (uint32_t)instruction->byte_count;
@@ -3842,7 +3841,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
   uint32_t immediate_value = 0U, resolved_value = 0U, resolved_address = 0U, current_address = 0U;
   uint8_t is_address, lhs_is_address, lhs_reg, rhs_is_address, rhs_reg;
   uint8_t aux_operand_index;
-  if (instruction == NULL || io_state == NULL) {
+  if (io_state == NULL) {
     sim_diag_error(diagnostics, "bad arguments");
     return -1;
   }

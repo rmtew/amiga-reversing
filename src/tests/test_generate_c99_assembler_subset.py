@@ -47,11 +47,7 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
             "    { \"pack\", \"PACK -(Ax),-(Ay),# <adjustment>\", M68K_ASM_MNEMONIC_PACK,",
             self._tables_c,
         )
-        self.assertIn(
-            "const M68kAsmFormDef *m68k_asm_find_form_for_operands(const char *mnemonic,\n",
-            self._metadata_h,
-        )
-        self.assertNotIn("m68k_asm_find_form_for_operands", self._tables_h)
+        self.assertNotIn("m68k_asm_form_for_operands(", self._tables_h)
 
     def test_generates_table_api(self) -> None:
         self.assertNotIn("typedef struct {", self._tables_h)
@@ -62,7 +58,7 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
         self.assertIn("    M68K_ASM_FORM_COUNT =", self._tables_h)
         self.assertIn("    M68K_ASM_PATCH_COUNT =", self._tables_h)
         self.assertIn("  uint8_t mnemonic_id;\n", self._metadata_h)
-        self.assertIn("  uint16_t form_index;\n", self._metadata_h)
+        self.assertIn("  uint16_t asm_form_index;\n", self._metadata_h)
         self.assertIn(
             "extern const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT];\n",
             self._metadata_h,
@@ -86,15 +82,11 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
             self._metadata_h,
         )
         self.assertIn(
-            "const M68kAsmFormDef *m68k_asm_find_form_id(uint8_t mnemonic_id, size_t operand_count);\n",
+            "uint16_t m68k_asm_form_index_for_id(uint8_t mnemonic_id, size_t operand_count);\n",
             self._metadata_h,
         )
         self.assertIn(
-            "const M68kAsmFormDef *m68k_asm_find_form_for_operands(const char *mnemonic,\n",
-            self._metadata_h,
-        )
-        self.assertIn(
-            "const M68kAsmFormDef *m68k_asm_find_form_for_operands_id(uint8_t mnemonic_id,\n",
+            "uint16_t m68k_asm_form_index_for_operands_id(uint8_t mnemonic_id,\n",
             self._metadata_h,
         )
 

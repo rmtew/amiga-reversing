@@ -46,7 +46,7 @@ static int test_analysis_defaults_and_inits(void) {
   M68K_C_ASSERT_INT(M68K_ASM_CPU_68060, policy.max_cpu);
   M68K_C_ASSERT_INT(M68K_ASM_CPU_68000, findings.required_cpu);
   M68K_C_ASSERT_INT(0, findings.cpu_violation_count);
-  M68K_C_ASSERT_U32(M68K_IR_INVALID_FORM_INDEX, instruction.form_index);
+  M68K_C_ASSERT_U32(M68K_ASM_FORM_NONE, instruction.asm_form_index);
   M68K_C_ASSERT_INT(0, symbol_ref.kind);
   M68K_C_ASSERT_INT(0, symbol_ref.has_name);
   return 0;
@@ -58,12 +58,11 @@ static int test_instruction_mnemonic_helpers_use_id(void) {
   m68k_ir_instruction_init(&instruction);
   M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_NONE, instruction.mnemonic_id);
   M68K_C_ASSERT_STR("", m68k_ir_instruction_mnemonic_name(&instruction));
-
   instruction.mnemonic_id = M68K_ASM_MNEMONIC_NOP;
   M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_NOP, instruction.mnemonic_id);
   M68K_C_ASSERT_STR("nop", m68k_ir_instruction_mnemonic_name(&instruction));
 
-  instruction.form_index = 0U;
+  instruction.asm_form_index = 0U;
   M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_NOP, instruction.mnemonic_id);
   M68K_C_ASSERT_STR("nop", m68k_ir_instruction_mnemonic_name(&instruction));
   return 0;
@@ -171,13 +170,15 @@ static int test_source_analysis_append_section_rehydrates_legacy_platform_name_r
     NULL, NULL, "IO", NULL, NULL, 0U, 0));
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_local_call_summary(&section,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x80u, M68K_PLATFORM_EFFECT_SET_TYPED_REG, 1U, 0U, 1U, 0U,
-    0U, 0, NULL, "IO", NULL, NULL, 0U, 0));
+    0U, 0, "DOSBase", "_LVOOpen", "IO", NULL, NULL, 0U, 0));
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_call(&section,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0xA0u, 1U, "_LVOOpen", M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL,
     "DOSBase", NULL, 0U, 0, 0, 0U, 0U, 0U, "1.3", "36"));
 
   section.recovered_platform_base_slots[0].base_name = "DOSBase";
   section.recovered_platform_effects[0].payload.typed.type_name = "IO";
+  section.recovered_local_call_summaries[0].payload.typed.context_name = "DOSBase";
+  section.recovered_local_call_summaries[0].payload.typed.symbol_name = "_LVOOpen";
   section.recovered_local_call_summaries[0].payload.typed.type_name = "IO";
   section.recovered_platform_calls[0].symbol_name = "_LVOOpen";
   section.recovered_platform_calls[0].note_base_name = "DOSBase";
@@ -190,6 +191,10 @@ static int test_source_analysis_append_section_rehydrates_legacy_platform_name_r
     sizeof(section.recovered_platform_effects[0].payload.typed.value_domain_ref));
   memset(&section.recovered_local_call_summaries[0].payload.typed.type_ref, 0,
     sizeof(section.recovered_local_call_summaries[0].payload.typed.type_ref));
+  memset(&section.recovered_local_call_summaries[0].payload.typed.context_ref, 0,
+    sizeof(section.recovered_local_call_summaries[0].payload.typed.context_ref));
+  memset(&section.recovered_local_call_summaries[0].payload.typed.symbol_ref, 0,
+    sizeof(section.recovered_local_call_summaries[0].payload.typed.symbol_ref));
   memset(&section.recovered_local_call_summaries[0].payload.typed.semantic_kind_ref, 0,
     sizeof(section.recovered_local_call_summaries[0].payload.typed.semantic_kind_ref));
   memset(&section.recovered_local_call_summaries[0].payload.typed.value_domain_ref, 0,
@@ -209,6 +214,12 @@ static int test_source_analysis_append_section_rehydrates_legacy_platform_name_r
   M68K_C_ASSERT_INT(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     source.sections[0].recovered_local_call_summaries[0].payload.typed.type_ref.platform_kind);
   M68K_C_ASSERT(source.sections[0].recovered_local_call_summaries[0].payload.typed.type_ref.id != 0U);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    source.sections[0].recovered_local_call_summaries[0].payload.typed.context_ref.platform_kind);
+  M68K_C_ASSERT(source.sections[0].recovered_local_call_summaries[0].payload.typed.context_ref.id != 0U);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    source.sections[0].recovered_local_call_summaries[0].payload.typed.symbol_ref.platform_kind);
+  M68K_C_ASSERT(source.sections[0].recovered_local_call_summaries[0].payload.typed.symbol_ref.id != 0U);
   M68K_C_ASSERT_INT(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     source.sections[0].recovered_platform_calls[0].symbol_ref.platform_kind);
   M68K_C_ASSERT(source.sections[0].recovered_platform_calls[0].symbol_ref.id != 0U);
@@ -234,43 +245,59 @@ static int test_source_analysis_append_section_copies_ref_only_platform_names(vo
     NULL, NULL, "IO", NULL, NULL, 0U, 0));
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_local_call_summary(&section,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x80u, M68K_PLATFORM_EFFECT_SET_TYPED_REG, 1U, 0U, 1U, 0U,
-    0U, 0, NULL, "IO", NULL, NULL, 0U, 0));
+    0U, 0, "DOSBase", "_LVOOpen", "IO", NULL, NULL, 0U, 0));
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_call(&section,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0xA0u, 1U, "_LVOOpen", M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL,
     "DOSBase", NULL, 0U, 0, 0, 0U, 0U, 0U, "1.3", "36"));
 
   M68K_C_ASSERT(section.recovered_platform_base_slots[0].base_name == NULL);
   M68K_C_ASSERT(section.recovered_platform_effects[0].payload.typed.type_name == NULL);
+  M68K_C_ASSERT(section.recovered_local_call_summaries[0].payload.typed.context_name == NULL);
+  M68K_C_ASSERT(section.recovered_local_call_summaries[0].payload.typed.symbol_name == NULL);
   M68K_C_ASSERT(section.recovered_local_call_summaries[0].payload.typed.type_name == NULL);
   M68K_C_ASSERT(section.recovered_platform_calls[0].symbol_name == NULL);
   M68K_C_ASSERT(section.recovered_platform_calls[0].note_base_name == NULL);
   M68K_C_ASSERT_STR("DOSBase",
-    m68k_platform_name_ref_name_or_text(&section.recovered_platform_base_slots[0].base_ref,
+    m68k_platform_name_ref_resolve_text_or_fallback(&section.recovered_platform_base_slots[0].base_ref,
       section.recovered_platform_base_slots[0].base_name));
   M68K_C_ASSERT_STR("IO",
-    m68k_platform_name_ref_name_or_text(&section.recovered_platform_effects[0].payload.typed.type_ref,
+    m68k_platform_name_ref_resolve_text_or_fallback(&section.recovered_platform_effects[0].payload.typed.type_ref,
       section.recovered_platform_effects[0].payload.typed.type_name));
+  M68K_C_ASSERT_STR("DOSBase",
+    m68k_platform_name_ref_resolve_text_or_fallback(&section.recovered_local_call_summaries[0].payload.typed.context_ref,
+      section.recovered_local_call_summaries[0].payload.typed.context_name));
   M68K_C_ASSERT_STR("_LVOOpen",
-    m68k_platform_name_ref_name_or_text(&section.recovered_platform_calls[0].symbol_ref,
+    m68k_platform_name_ref_resolve_text_or_fallback(&section.recovered_local_call_summaries[0].payload.typed.symbol_ref,
+      section.recovered_local_call_summaries[0].payload.typed.symbol_name));
+  M68K_C_ASSERT_STR("_LVOOpen",
+    m68k_platform_name_ref_resolve_text_or_fallback(&section.recovered_platform_calls[0].symbol_ref,
       section.recovered_platform_calls[0].symbol_name));
 
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source, &section));
   M68K_C_ASSERT(source.sections[0].recovered_platform_base_slots[0].base_name == NULL);
   M68K_C_ASSERT(source.sections[0].recovered_platform_effects[0].payload.typed.type_name == NULL);
+  M68K_C_ASSERT(source.sections[0].recovered_local_call_summaries[0].payload.typed.context_name == NULL);
+  M68K_C_ASSERT(source.sections[0].recovered_local_call_summaries[0].payload.typed.symbol_name == NULL);
   M68K_C_ASSERT(source.sections[0].recovered_local_call_summaries[0].payload.typed.type_name == NULL);
   M68K_C_ASSERT(source.sections[0].recovered_platform_calls[0].symbol_name == NULL);
   M68K_C_ASSERT(source.sections[0].recovered_platform_calls[0].note_base_name == NULL);
   M68K_C_ASSERT_STR("DOSBase",
-    m68k_platform_name_ref_name_or_text(&source.sections[0].recovered_platform_base_slots[0].base_ref,
+    m68k_platform_name_ref_resolve_text_or_fallback(&source.sections[0].recovered_platform_base_slots[0].base_ref,
       source.sections[0].recovered_platform_base_slots[0].base_name));
   M68K_C_ASSERT_STR("IO",
-    m68k_platform_name_ref_name_or_text(&source.sections[0].recovered_platform_effects[0].payload.typed.type_ref,
+    m68k_platform_name_ref_resolve_text_or_fallback(&source.sections[0].recovered_platform_effects[0].payload.typed.type_ref,
       source.sections[0].recovered_platform_effects[0].payload.typed.type_name));
+  M68K_C_ASSERT_STR("DOSBase",
+    m68k_platform_name_ref_resolve_text_or_fallback(&source.sections[0].recovered_local_call_summaries[0].payload.typed.context_ref,
+      source.sections[0].recovered_local_call_summaries[0].payload.typed.context_name));
   M68K_C_ASSERT_STR("_LVOOpen",
-    m68k_platform_name_ref_name_or_text(&source.sections[0].recovered_platform_calls[0].symbol_ref,
+    m68k_platform_name_ref_resolve_text_or_fallback(&source.sections[0].recovered_local_call_summaries[0].payload.typed.symbol_ref,
+      source.sections[0].recovered_local_call_summaries[0].payload.typed.symbol_name));
+  M68K_C_ASSERT_STR("_LVOOpen",
+    m68k_platform_name_ref_resolve_text_or_fallback(&source.sections[0].recovered_platform_calls[0].symbol_ref,
       source.sections[0].recovered_platform_calls[0].symbol_name));
   M68K_C_ASSERT_STR("DOSBase",
-    m68k_platform_name_ref_name_or_text(&source.sections[0].recovered_platform_calls[0].note_base_ref,
+    m68k_platform_name_ref_resolve_text_or_fallback(&source.sections[0].recovered_platform_calls[0].note_base_ref,
       source.sections[0].recovered_platform_calls[0].note_base_name));
 
   m68k_ir_source_analysis_destroy(&source);
@@ -431,3 +458,4 @@ int m68k_c_ir_tests(void) {
   };
   return m68k_c_test_run_suite("m68k_ir", cases, sizeof(cases) / sizeof(cases[0]));
 }
+

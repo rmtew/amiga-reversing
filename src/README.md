@@ -92,8 +92,8 @@ C subset output:
 
 - `src/generated/m68k_asm_tables.h`
 - `src/generated/m68k_asm_tables.c`
-- `src/generated/m68k_disassembler_tables.generated.h`
-- `src/generated/m68k_simulator_tables.generated.h`
+- `src/generated/m68k_disassembler_tables.h`
+- `src/generated/m68k_simulator_tables.h`
 
 Static runtime:
 

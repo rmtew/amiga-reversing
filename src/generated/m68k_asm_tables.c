@@ -1554,7 +1554,7 @@ const uint16_t g_m68k_asm_form_control_register_ids[17] = {
     25u,
 };
 
-const M68kAsmFormDef g_m68k_asm_forms[282] = {
+const M68kAsmFormDef g_m68k_asm_forms[M68K_ASM_FORM_SLOT_COUNT] = {
     { "asl", "ASL Dx,Dy", M68K_ASM_MNEMONIC_ASL, 0, 2,
         { M68K_ASM_OPERAND_DN, M68K_ASM_OPERAND_DN, M68K_ASM_OPERAND_NONE, M68K_ASM_OPERAND_NONE }, 7, 7, 0, 0, 0x3Fu, 0, 0, 0xE120, 0xF138,
         0, 3, 0, 0, 0, { 0x0000, 0x0000 }, { 0x0000, 0x0000 }, 0, 1, 2, 255, 255, 255, 0, 0, 0, 0, 0 },
@@ -2401,6 +2401,10 @@ const M68kAsmFormDef g_m68k_asm_forms[282] = {
     { "trap", "TRAP # <vector>", M68K_ASM_MNEMONIC_TRAP, 281, 1,
         { M68K_ASM_OPERAND_IMM, M68K_ASM_OPERAND_NONE, M68K_ASM_OPERAND_NONE, M68K_ASM_OPERAND_NONE }, 0, 0, 0, 0, 0x3Fu, 17, 0, 0x4E40,
         0xFFF0, 591, 1, 0, 530, 0, { 0x0000, 0x0000 }, { 0x0000, 0x0000 }, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0 },
+    { "", "", M68K_ASM_MNEMONIC_NONE, M68K_ASM_FORM_NONE, 0,
+        { M68K_ASM_OPERAND_NONE, M68K_ASM_OPERAND_NONE, M68K_ASM_OPERAND_NONE, M68K_ASM_OPERAND_NONE }, 0, 0, 0, 0, 0x00u, 0, 0, 0x0000,
+        0x0000, 0, 0, 0, 0, 0, { 0x0000, 0x0000 }, { 0x0000, 0x0000 }, M68K_ASM_FIELD_VALUE_UNSET, M68K_ASM_FIELD_VALUE_UNSET,
+        M68K_ASM_FIELD_VALUE_UNSET, M68K_ASM_FIELD_VALUE_UNSET, M68K_ASM_FIELD_VALUE_UNSET, M68K_ASM_FIELD_VALUE_UNSET, 0, 0, 0, 0, 0 },
 };
 
 const M68kAsmEaTextFormDef g_m68k_asm_ea_text_forms[12] = {
@@ -2456,25 +2460,6 @@ const char *const g_m68k_asm_movem_mask_predecrement[16] = {
     "d0",
 };
 
-const char *const g_m68k_asm_routed_immediate_mnemonics[6] = {
-    "add",
-    "and",
-    "cmp",
-    "eor",
-    "or",
-    "sub",
-};
-
-const uint8_t g_m68k_asm_routed_immediate_mnemonic_ids[6] = {
-    M68K_ASM_MNEMONIC_ADD,
-    M68K_ASM_MNEMONIC_AND,
-    M68K_ASM_MNEMONIC_CMP,
-    M68K_ASM_MNEMONIC_EOR,
-    M68K_ASM_MNEMONIC_OR,
-    M68K_ASM_MNEMONIC_SUB,
-};
-
 const size_t g_m68k_asm_mnemonic_lookup_count = 184;
-const size_t g_m68k_asm_routed_immediate_mnemonic_count = 6;
 const size_t g_m68k_asm_control_register_count = 27;
 const size_t g_m68k_asm_ea_text_form_count = 12;

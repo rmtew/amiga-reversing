@@ -179,7 +179,6 @@ EXPECTED_HEADER_SNIPPETS = (
     "full_ext_base_suppress",
     "m68k_asm_build_patch_values",
     "m68k_asm_assemble_instruction",
-    "m68k_asm_has_routed_immediate",
     "M68kAsmEaTextFormDef",
     "m68k_asm_find_ea_text_form",
     "m68k_asm_form_supports_size_suffix",
@@ -187,9 +186,8 @@ EXPECTED_HEADER_SNIPPETS = (
     "target_cpu",
     "m68k_asm_form_effective_size_mask",
     "m68k_asm_choose_size_suffix",
-    "m68k_asm_find_form_id",
-    "m68k_asm_find_form_for_operands",
-    "m68k_asm_find_form_for_operands_id",
+    "m68k_asm_form_index_for_id",
+    "m68k_asm_form_index_for_operands_id",
     "m68k_asm_operand_extension_word_count",
     "g_m68k_asm_ea_text_forms",
     "base_token",
@@ -198,7 +196,6 @@ EXPECTED_HEADER_SNIPPETS = (
     "suffix_token",
     "value_kind",
     "index_required",
-    "g_m68k_asm_routed_immediate_mnemonics",
     "m68k_asm_encode_full_ext_word",
 )
 

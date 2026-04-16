@@ -17,10 +17,10 @@ typedef struct M68kSourceResolveRewriteContext {
 
 int m68k_try_rewrite_local_call_to_branch(const M68kSourceResolveRewriteContext *context,
     size_t stmt_section_index, char requested_size_suffix, InstructionSpec *instruction,
-    const M68kAsmFormDef **out_form, uint32_t instruction_offset, M68kDiagSink diagnostics);
+    uint16_t *io_asm_form_index, uint32_t instruction_offset, M68kDiagSink diagnostics);
 
 void m68k_try_rewrite_local_ea_symbols_to_pc_relative(const M68kSourceResolveRewriteContext *context,
     size_t stmt_section_index, char requested_size_suffix, InstructionSpec *instruction,
-    const M68kAsmFormDef **out_form, uint32_t instruction_offset, M68kDiagSink diagnostics);
+    uint16_t *io_asm_form_index, uint32_t instruction_offset, M68kDiagSink diagnostics);
 
 #endif

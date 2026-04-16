@@ -68,6 +68,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_symbolic_parse.c ^
     src\m68k_source_text_util.c ^
     src\platform_common.c ^
+    src\platform_name_table.c ^
     src\platform_binary_io.c ^
     src\platform_disk_cli.c ^
     src\platform_disk_lib.c ^
@@ -129,6 +130,7 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\platform_name_table.obj ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
     %OUTDIR%\m68k_simulator.obj ^
@@ -160,7 +162,8 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\m68k_object.obj ^
     %OUTDIR%\amiga_os_runtime.obj ^
     %OUTDIR%\atari_st_os_runtime.obj ^
-    %OUTDIR%\platform_common.obj || exit /b %errorlevel%
+    %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\platform_name_table.obj || exit /b %errorlevel%
 
 link %LDFLAGS% /DLL /OUT:%ASM_DLL% /EXPORT:m68k_source_ir_parse_file /EXPORT:m68k_source_ir_render_with_policy /EXPORT:m68k_source_ir_free /EXPORT:m68k_free_text ^
     %OUTDIR%\m68k_asm_tables.obj ^
@@ -195,6 +198,7 @@ link %LDFLAGS% /DLL /OUT:%ASM_DLL% /EXPORT:m68k_source_ir_parse_file /EXPORT:m68
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\platform_name_table.obj ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
     %OUTDIR%\m68k_simulator.obj ^
@@ -223,7 +227,8 @@ link %LDFLAGS% /DLL /OUT:%DISASM_DLL% ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\amiga_os_runtime.obj ^
     %OUTDIR%\atari_st_os_runtime.obj ^
-    %OUTDIR%\platform_common.obj || exit /b %errorlevel%
+    %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\platform_name_table.obj || exit /b %errorlevel%
 
 link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\platform_disk_cli.obj ^
@@ -287,6 +292,7 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\platform_name_table.obj ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
@@ -339,6 +345,7 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% /EXPORT:platform_file_analyze_path_json ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\platform_name_table.obj ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^

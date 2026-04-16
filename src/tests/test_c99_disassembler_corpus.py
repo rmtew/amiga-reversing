@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ASM_DLL_PATH = ROOT / "src" / "build" / "m68k_assembler_lib.dll"
 DISASM_DLL_PATH = ROOT / "src" / "build" / "m68k_disassembler_lib.dll"
 CORPUS_GENERATOR_PATH = ROOT / "src" / "scripts" / "generate_c99_assembler_corpus.py"
+ASM_TABLES_HEADER_PATH = ROOT / "src" / "generated" / "m68k_asm_tables.h"
 
 CPU_CODES = {
     "68000": 0,
@@ -25,7 +26,6 @@ CPU_CODES = {
     "68040": 4,
     "68060": 5,
 }
-
 CPU_NAMES = ("68000", "68010", "68020", "68030", "68040", "68060")
 TARGET_LABEL_RE = re.compile(r"\btarget\b")
 UNSUPPORTED_MMU_ROUND_TRIP_MNEMONICS = unsupported_mmu_round_trip_mnemonics_upper()
@@ -61,7 +61,7 @@ class M68kDisasmTextResult(ctypes.Structure):
 class M68kDisasmInfoResult(ctypes.Structure):
     _fields_ = [
         ("byte_count", ctypes.c_size_t),
-        ("form_index", ctypes.c_uint16),
+        ("asm_form_index", ctypes.c_uint16),
         ("mnemonic_id", ctypes.c_uint8),
         ("target_cpu", ctypes.c_uint8),
         ("mnemonic", ctypes.c_char * 32),
@@ -102,6 +102,14 @@ def _load_module(path: Path, name: str):
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+@lru_cache(maxsize=1)
+def _asm_form_none() -> int:
+    text = ASM_TABLES_HEADER_PATH.read_text()
+    match = re.search(r"M68K_ASM_FORM_COUNT\s*=\s*(\d+)", text)
+    assert match is not None
+    return int(match.group(1))
 
 
 @lru_cache(maxsize=1)
@@ -217,7 +225,15 @@ def _round_trip_case(case, cpu_name: str) -> None:
     if str(case.mnemonic).upper() in UNSUPPORTED_MMU_ROUND_TRIP_MNEMONICS:
         raise unittest.SkipTest(f"unsupported MMU round-trip mnemonic: {case.mnemonic}")
     original = _case_original_bytes(case)
+    info = _disassemble_info_for_cpu(original, cpu_name)
     rendered, byte_count = _disassemble_for_cpu(original, cpu_name)
+    info_mnemonic = bytes(info.mnemonic).split(b"\0", 1)[0].decode("ascii")
+    if info.byte_count != byte_count:
+        raise AssertionError(f"{case.case_id}: info byte_count {info.byte_count} != text byte_count {byte_count}")
+    if info.mnemonic_id == 0:
+        raise AssertionError(f"{case.case_id}: decoded mnemonic_id is NONE for {rendered}")
+    if not info_mnemonic:
+        raise AssertionError(f"{case.case_id}: decoded mnemonic text is empty")
     if TARGET_LABEL_RE.search(rendered):
         trailing_lines = "\n".join(case.asm_lines[1:])
         rebuilt_source = rendered if not trailing_lines else rendered + "\n" + trailing_lines
@@ -343,6 +359,7 @@ class C99DisassemblerCorpusTests(unittest.TestCase):
         original = bytes.fromhex("f050000f")
         result = _disassemble_info_for_cpu(original, "68030")
         self.assertEqual(result.byte_count, len(original))
+        self.assertEqual(result.asm_form_index, _asm_form_none())
         self.assertNotEqual(result.mnemonic_id, 0)
         self.assertEqual(bytes(result.mnemonic).split(b"\0", 1)[0].decode("ascii"), "pscc")
 

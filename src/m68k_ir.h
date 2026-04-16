@@ -8,8 +8,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define M68K_IR_INVALID_FORM_INDEX ((uint16_t)0xFFFFu)
-
 typedef enum M68kIrSyntaxMode {
   M68K_IR_SYNTAX_CANONICAL = 0,
   M68K_IR_SYNTAX_GENAM = 1,
@@ -116,15 +114,16 @@ typedef struct M68kOperandIR {
 } M68kOperandIR;
 
 typedef struct M68kInstructionIR {
-  uint16_t form_index;
+  uint16_t asm_form_index;
   uint8_t mnemonic_id;
   uint8_t target_cpu;
-  char mnemonic[32];
   char size_suffix;
   size_t operand_count;
   M68kOperandIR operands[4];
   size_t byte_count;
 } M68kInstructionIR;
+
+extern const M68kInstructionIR g_m68k_ir_instruction_none;
 
 typedef enum M68kDataItemKind {
   M68K_DATA_ITEM_BYTES = 1,
@@ -284,9 +283,13 @@ typedef struct M68kPlatformNamedBaseEffectPayloadIR {
 } M68kPlatformNamedBaseEffectPayloadIR;
 
 typedef struct M68kPlatformTypedEffectPayloadIR {
+  char *symbol_name;
+  char *context_name;
   char *type_name;
   char *semantic_kind;
   char *value_domain_name;
+  M68kPlatformNameRef symbol_ref;
+  M68kPlatformNameRef context_ref;
   M68kPlatformNameRef type_ref;
   M68kPlatformNameRef semantic_kind_ref;
   M68kPlatformNameRef value_domain_ref;
@@ -433,8 +436,8 @@ void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy);
 void m68k_analysis_findings_init(M68kAnalysisFindings *findings);
 void m68k_platform_name_ref_init(M68kPlatformNameRef *ref);
 int m68k_platform_name_ref_is_set(const M68kPlatformNameRef *ref);
-const char *m68k_platform_name_ref_name(const M68kPlatformNameRef *ref);
-const char *m68k_platform_name_ref_name_or_text(const M68kPlatformNameRef *ref, const char *text);
+const char *m68k_platform_name_ref_resolve_text(const M68kPlatformNameRef *ref);
+const char *m68k_platform_name_ref_resolve_text_or_fallback(const M68kPlatformNameRef *ref, const char *text);
 void m68k_ir_instruction_init(M68kInstructionIR *instruction);
 const char *m68k_ir_instruction_mnemonic_name(const M68kInstructionIR *instruction);
 void m68k_ir_data_item_init(M68kDataItemIR *item);
@@ -477,8 +480,8 @@ int m68k_ir_section_analysis_append_recovered_platform_effect(M68kSectionAnalysi
 int m68k_ir_section_analysis_append_recovered_local_call_summary(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t target_offset, uint8_t effect_kind, uint8_t reg_kind, uint8_t reg_index,
     uint8_t success_reg_kind, uint8_t success_reg_index, uint8_t success_value_known, int32_t success_reg_value,
-    const char *base_name, const char *type_name, const char *semantic_kind, const char *value_domain_name,
-    uint8_t has_constant_value, int32_t constant_value);
+    const char *base_name, const char *symbol_name, const char *type_name, const char *semantic_kind,
+    const char *value_domain_name, uint8_t has_constant_value, int32_t constant_value);
 int m68k_ir_section_analysis_append_recovered_platform_call(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t offset, uint8_t kind, const char *symbol_name, uint8_t note_kind, const char *note_base_name,
     const char *note_symbol_name, uint8_t note_reg, int16_t note_disp, int16_t note_field_disp,
