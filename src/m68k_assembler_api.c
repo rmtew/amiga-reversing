@@ -11,11 +11,13 @@
 #include "platform_common.h"
 
 #include <stdio.h>
+#include <string.h>
 
 
-static int simple_source_lookup_symbol(const char *name, uint32_t *out_value, int require_constant, void *user_data) {
-  (void)name; (void)out_value; (void)require_constant; (void)user_data;
-  return 0;
+static M68kSourceLookupResult simple_source_lookup_symbol(const char *name, int require_constant, void *user_data) {
+  M68kSourceLookupResult result = {0};
+  (void)name; (void)require_constant; (void)user_data;
+  return result;
 }
 
 static int simple_source_is_symbol_name(const char *text, void *user_data) {
@@ -37,46 +39,46 @@ static int simple_source_parse_instruction_callback(const char *line_text, Instr
   return m68k_plain_parse_instruction_to_spec(line_text, target_cpu, out_instruction);
 }
 
-static int assemble_line_text_for_cpu(const char *line_text, uint8_t target_cpu, uint8_t *out_bytes, size_t max_bytes,
-    size_t *out_byte_count, char *out_error, size_t out_error_size) {
+static M68kAssembleResult assemble_line_text_for_cpu(const char *line_text, uint8_t target_cpu, uint8_t *out_bytes,
+    size_t max_bytes) {
+  M68kAssembleResult result;
   M68kInstructionIR instruction;
-  size_t byte_count = 0;
-  m68k_ir_instruction_init(&instruction);
-  if (m68k_plain_parse_instruction_to_ir(line_text, target_cpu, &instruction, out_error, out_error_size) != 0) {
-    if (out_byte_count != NULL) *out_byte_count = 0U;
-    return -1;
-  }
-  if (m68k_ir_encode_one(&instruction, out_bytes, max_bytes, &byte_count, out_error, out_error_size) != 0) {
-    if (out_byte_count != NULL) *out_byte_count = 0U;
-    return -1;
-  }
-  m68k_platform_set_error(out_error, out_error_size, "");
-  if (out_byte_count != NULL) *out_byte_count = byte_count;
-  return 0;
+  M68kIrEncodeResult encoded;
+  memset(&result, 0, sizeof(result));
+  instruction = m68k_plain_parse_instruction_to_ir(line_text, target_cpu, m68k_diag_sink(&result.diagnostics));
+  if (m68k_diag_has_errors(&result.diagnostics)) return result;
+  encoded = m68k_ir_encode_one(&instruction, out_bytes, max_bytes, m68k_diag_sink(&result.diagnostics));
+  result.byte_count = encoded.byte_count;
+  return result;
 }
 
-static int assemble_source_text_for_cpu(const char *source_text, uint8_t target_cpu, uint8_t *out_bytes,
-    size_t max_bytes, size_t *out_byte_count, char *out_error, size_t out_error_size) {
-  return m68k_simple_source_assemble_text(source_text, target_cpu, out_bytes, max_bytes, out_byte_count, out_error,
-    out_error_size, simple_source_parse_instruction_callback);
+static M68kAssembleResult assemble_source_text_for_cpu(const char *source_text, uint8_t target_cpu,
+    uint8_t *out_bytes, size_t max_bytes) {
+  M68kAssembleResult result;
+  M68kSimpleSourceAssembleResult assembled;
+  memset(&result, 0, sizeof(result));
+  assembled = m68k_simple_source_assemble_text(source_text, target_cpu, out_bytes, max_bytes,
+    m68k_diag_sink(&result.diagnostics), simple_source_parse_instruction_callback);
+  result.byte_count = assembled.byte_count;
+  return result;
 }
 
-int m68k_assemble(const char *text, const M68kAsmOptions *options, uint8_t *out_bytes, size_t max_bytes,
-    size_t *out_byte_count, char *out_error, size_t out_error_size) {
+M68kAssembleResult m68k_assemble(const char *text, const M68kAsmOptions *options, uint8_t *out_bytes,
+    size_t max_bytes) {
+  M68kAssembleResult result;
+  memset(&result, 0, sizeof(result));
   if (options == NULL) {
-    m68k_platform_set_error(out_error, out_error_size, "assembler options are null");
-    if (out_byte_count != NULL) *out_byte_count = 0U;
-    return -1;
+    m68k_diag_add(m68k_diag_sink(&result.diagnostics), M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT,
+      "assembler options are null");
+    return result;
   }
   if (options->input_mode == M68K_ASM_INPUT_LINE)
-    return assemble_line_text_for_cpu(text, options->target_cpu, out_bytes, max_bytes, out_byte_count, out_error,
-      out_error_size);
+    return assemble_line_text_for_cpu(text, options->target_cpu, out_bytes, max_bytes);
   if (options->input_mode == M68K_ASM_INPUT_SOURCE)
-    return assemble_source_text_for_cpu(text, options->target_cpu, out_bytes, max_bytes, out_byte_count, out_error,
-      out_error_size);
-  m68k_platform_set_error(out_error, out_error_size, "unknown assembler input mode");
-  if (out_byte_count != NULL) *out_byte_count = 0U;
-  return -1;
+    return assemble_source_text_for_cpu(text, options->target_cpu, out_bytes, max_bytes);
+  m68k_diag_add(m68k_diag_sink(&result.diagnostics), M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT,
+    "unknown assembler input mode");
+  return result;
 }
 
 

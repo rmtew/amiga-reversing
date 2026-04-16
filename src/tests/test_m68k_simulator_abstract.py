@@ -19,6 +19,41 @@ CPU_BITS = {"68000": 0, "68010": 1, "68020": 2, "68030": 3, "68040": 4}
 M68K_SIM_VALUE_UNKNOWN = 0
 M68K_SIM_VALUE_CONSTANT = 1
 M68K_SIM_VALUE_SECTION_PTR = 2
+M68K_DIAG_SEVERITY_ERROR = 3
+M68K_DIAG_MESSAGE_SIZE = 160
+M68K_DIAG_LIST_CAPACITY = 8
+
+
+class M68kDiag(ctypes.Structure):
+    _fields_ = [
+        ("severity", ctypes.c_uint32),
+        ("code", ctypes.c_uint32),
+        ("message", ctypes.c_char * M68K_DIAG_MESSAGE_SIZE),
+    ]
+
+
+class M68kDiagList(ctypes.Structure):
+    _fields_ = [
+        ("count", ctypes.c_size_t),
+        ("dropped_count", ctypes.c_size_t),
+        ("items", M68kDiag * M68K_DIAG_LIST_CAPACITY),
+    ]
+
+
+def _diag_message(diagnostics: M68kDiagList) -> str:
+    for index in range(diagnostics.count):
+        if diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR:
+            return diagnostics.items[index].message.decode("utf-8")
+    if diagnostics.count:
+        return diagnostics.items[0].message.decode("utf-8")
+    return ""
+
+
+def _diag_has_errors(diagnostics: M68kDiagList) -> bool:
+    return any(
+        diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR
+        for index in range(diagnostics.count)
+    )
 
 
 class M68kSimTargetSet(ctypes.Structure):
@@ -87,6 +122,13 @@ class M68kSimStepResult(ctypes.Structure):
     ]
 
 
+class M68kSimAbstractRunResult(ctypes.Structure):
+    _fields_ = [
+        ("step", M68kSimStepResult),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
 @lru_cache(maxsize=1)
 def _disasm_library():
     require_built_tools()
@@ -96,11 +138,8 @@ def _disasm_library():
         ctypes.c_size_t,
         ctypes.c_uint8,
         ctypes.POINTER(M68kSimCpuState),
-        ctypes.POINTER(M68kSimStepResult),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    library.m68k_simulate_one_abstract_for_cpu.restype = ctypes.c_int
+    library.m68k_simulate_one_abstract_for_cpu.restype = M68kSimAbstractRunResult
     return library
 
 
@@ -136,13 +175,11 @@ def _section_ptr(offset: int) -> M68kSimValue:
 class M68kSimulatorAbstractTests(unittest.TestCase):
     def _simulate_bytes(self, code: bytes, state: M68kSimCpuState, cpu: str = "68000") -> M68kSimStepResult:
         buf = (ctypes.c_uint8 * len(code)).from_buffer_copy(code)
-        error = ctypes.create_string_buffer(256)
-        result = M68kSimStepResult()
-        rc = _disasm_library().m68k_simulate_one_abstract_for_cpu(
-            buf, len(code), CPU_BITS[cpu], ctypes.byref(state), ctypes.byref(result), error, len(error)
+        result = _disasm_library().m68k_simulate_one_abstract_for_cpu(
+            buf, len(code), CPU_BITS[cpu], ctypes.byref(state)
         )
-        self.assertEqual(rc, 0, error.value.decode("utf-8"))
-        return result
+        self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
+        return result.step
 
     def _simulate(self, asm_text: str, state: M68kSimCpuState) -> M68kSimStepResult:
         code = _assemble_line_hex("68000", asm_text)

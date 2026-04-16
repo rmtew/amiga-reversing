@@ -4,11 +4,20 @@
 #include <stdio.h>
 #include <string.h>
 
+const char *m68k_instruction_spec_mnemonic_name(const InstructionSpec *instruction) {
+  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_NONE)
+    return m68k_asm_mnemonic_name(instruction->mnemonic_id);
+  if (instruction->mnemonic[0] != '\0') return instruction->mnemonic;
+  return m68k_asm_mnemonic_name(M68K_ASM_MNEMONIC_NONE);
+}
+
 size_t m68k_instruction_spec_assemble_bytes(const InstructionSpec *instruction, unsigned char *out_bytes,
     size_t max_bytes) {
   M68kAsmInstructionSpec spec;
   size_t byte_count = 0;
-  spec.mnemonic = instruction->mnemonic;
+  memset(&spec, 0, sizeof(spec));
+  spec.mnemonic = m68k_instruction_spec_mnemonic_name(instruction);
+  spec.mnemonic_id = instruction->mnemonic_id;
   spec.size_suffix = instruction->size_suffix;
   spec.target_cpu = instruction->target_cpu;
   spec.operand_count = instruction->operand_count;
@@ -21,7 +30,7 @@ size_t m68k_instruction_spec_assemble_bytes(const InstructionSpec *instruction, 
 
 int m68k_instruction_spec_uses_movem_predecrement_mask(const InstructionSpec *instruction) {
   if (instruction == NULL || instruction->operand_count != 2U) return 0;
-  if (_stricmp(instruction->mnemonic, "movem") != 0) return 0;
+  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEM) return 0;
   if (instruction->operands[0].kind != M68K_ASM_OPERAND_REGLIST) return 0;
   if (instruction->operands[1].kind != M68K_ASM_OPERAND_EA) return 0;
   return instruction->operands[1].ea_mode == 4U;
@@ -114,7 +123,8 @@ void m68k_instruction_spec_to_ir(const InstructionSpec *spec, M68kInstructionIR 
   unsigned char bytes[64];
   size_t operand_index;
   m68k_ir_instruction_init(out_instruction);
-  snprintf(out_instruction->mnemonic, sizeof(out_instruction->mnemonic), "%s", spec->mnemonic);
+  snprintf(out_instruction->mnemonic, sizeof(out_instruction->mnemonic), "%s", m68k_instruction_spec_mnemonic_name(spec));
+  out_instruction->mnemonic_id = spec->mnemonic_id;
   out_instruction->size_suffix = spec->size_suffix;
   out_instruction->target_cpu = spec->target_cpu;
   out_instruction->operand_count = spec->operand_count;
@@ -122,8 +132,8 @@ void m68k_instruction_spec_to_ir(const InstructionSpec *spec, M68kInstructionIR 
   if (spec->form_index != M68K_IR_INVALID_FORM_INDEX && (size_t)spec->form_index < m68k_asm_form_count())
     form = &g_m68k_asm_forms[spec->form_index];
   if (form == NULL)
-    form = m68k_asm_find_form_for_operands(spec->mnemonic, spec->operands, spec->operand_count, spec->size_suffix,
-      spec->target_cpu);
+    form = m68k_asm_find_form_for_operands_id(out_instruction->mnemonic_id, spec->operands, spec->operand_count,
+      spec->size_suffix, spec->target_cpu);
   if (form != NULL) {
     out_instruction->form_index = (uint16_t)(form - g_m68k_asm_forms);
     out_instruction->mnemonic_id = form->mnemonic_id;
@@ -156,7 +166,8 @@ void m68k_instruction_spec_to_ir(const InstructionSpec *spec, M68kInstructionIR 
 void m68k_instruction_ir_to_spec(const M68kInstructionIR *instruction, InstructionSpec *out_spec) {
   size_t operand_index;
   memset(out_spec, 0, sizeof(*out_spec));
-  snprintf(out_spec->mnemonic, sizeof(out_spec->mnemonic), "%s", instruction->mnemonic);
+  out_spec->mnemonic_id = instruction->mnemonic_id;
+  snprintf(out_spec->mnemonic, sizeof(out_spec->mnemonic), "%s", m68k_ir_instruction_mnemonic_name(instruction));
   out_spec->size_suffix = instruction->size_suffix;
   out_spec->target_cpu = instruction->target_cpu;
   out_spec->form_index = instruction->form_index;

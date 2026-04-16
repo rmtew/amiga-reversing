@@ -3,6 +3,26 @@
 
 #include <string.h>
 
+static unsigned char m68k_ascii_tolower_local(unsigned char ch) {
+  if (ch >= 'A' && ch <= 'Z') return (unsigned char)(ch - 'A' + 'a');
+  return ch;
+}
+
+static int m68k_ascii_icompare_local(const char *left, const char *right) {
+  size_t index = 0U;
+  unsigned char left_ch;
+  unsigned char right_ch;
+  if (left == NULL) left = "";
+  if (right == NULL) right = "";
+  for (;;) {
+    left_ch = m68k_ascii_tolower_local((unsigned char)left[index]);
+    right_ch = m68k_ascii_tolower_local((unsigned char)right[index]);
+    if (left_ch != right_ch || left_ch == '\0' || right_ch == '\0') break;
+    ++index;
+  }
+  return (int)left_ch - (int)right_ch;
+}
+
 static size_t m68k_asm_form_size_bytes(const M68kAsmFormDef *form, const uint16_t *field_values,
     size_t field_value_count) {
   size_t patch_index;
@@ -52,21 +72,56 @@ size_t m68k_asm_form_count(void) {
   return sizeof(g_m68k_asm_forms) / sizeof(g_m68k_asm_forms[0]);
 }
 
+uint8_t m68k_asm_mnemonic_id_from_name(const char *mnemonic) {
+  size_t low = 0U;
+  size_t high = g_m68k_asm_mnemonic_lookup_count;
+  if (mnemonic == NULL || mnemonic[0] == '\0') return M68K_ASM_MNEMONIC_NONE;
+  while (low < high) {
+    size_t mid = low + ((high - low) / 2U);
+    int compare = m68k_ascii_icompare_local(mnemonic, g_m68k_asm_mnemonic_lookup[mid].name);
+    if (compare == 0) return g_m68k_asm_mnemonic_lookup[mid].mnemonic_id;
+    if (compare < 0) high = mid;
+    else low = mid + 1U;
+  }
+  return M68K_ASM_MNEMONIC_NONE;
+}
+
+const char *m68k_asm_mnemonic_name(uint8_t mnemonic_id) {
+  if (mnemonic_id >= M68K_ASM_MNEMONIC_COUNT) mnemonic_id = M68K_ASM_MNEMONIC_NONE;
+  return g_m68k_asm_mnemonic_names[mnemonic_id];
+}
+
 const char *m68k_asm_resolve_register_alias(const char *name) {
   if (name == NULL) return NULL;
-  if (_stricmp(name, "sp") == 0) return "a7";
+  if (m68k_ascii_icompare_local(name, "sp") == 0) return "a7";
   return name;
 }
 
-const M68kAsmControlRegisterDef *m68k_asm_find_control_register(const char *name, uint8_t target_cpu) {
+static size_t m68k_asm_find_control_register_name_index(const char *name) {
   size_t index;
-  if (name == NULL) return NULL;
-  for (index = 0; index < g_m68k_asm_control_register_count; ++index) {
+  if (name == NULL || name[0] == '\0') return SIZE_MAX;
+  for (index = 0U; index < g_m68k_asm_control_register_count; ++index) {
+    if (m68k_ascii_icompare_local(name, g_m68k_asm_control_registers[index].name) == 0) return index;
+  }
+  return SIZE_MAX;
+}
+
+const M68kAsmControlRegisterDef *m68k_asm_find_control_register(const char *name, uint8_t target_cpu) {
+  size_t index = m68k_asm_find_control_register_name_index(name);
+  if (index == SIZE_MAX) return NULL;
+  for (; index < g_m68k_asm_control_register_count; ++index) {
     const M68kAsmControlRegisterDef *entry = &g_m68k_asm_control_registers[index];
+    if (m68k_ascii_icompare_local(entry->name, name) != 0) break;
     if (target_cpu != M68K_ASM_CPU_ANY && (entry->cpu_mask & (1u << target_cpu)) == 0u) continue;
-    if (_stricmp(entry->name, name) == 0) return entry;
+    return entry;
   }
   return NULL;
+}
+
+const M68kAsmControlRegisterDef *m68k_asm_find_control_register_by_id(uint8_t id) {
+  return (id == M68K_ASM_CONTROL_REGISTER_NONE || id >= g_m68k_asm_control_register_count)
+    ? NULL
+    : &g_m68k_asm_control_registers[id];
 }
 
 static int m68k_asm_form_allows_control_register(const M68kAsmFormDef *form, const M68kAsmOperandValue *operand) {
@@ -98,19 +153,28 @@ size_t m68k_asm_routed_immediate_count(void) {
 }
 
 int m68k_asm_has_routed_immediate(const char *mnemonic) {
+  uint8_t mnemonic_id;
   size_t index;
   if (mnemonic == NULL) return 0;
+  mnemonic_id = m68k_asm_mnemonic_id_from_name(mnemonic);
+  if (mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 0;
   for (index = 0; index < m68k_asm_routed_immediate_count(); ++index) {
-    if (strcmp(g_m68k_asm_routed_immediate_mnemonics[index], mnemonic) == 0) return 1;
+    if (g_m68k_asm_routed_immediate_mnemonic_ids[index] == mnemonic_id) return 1;
   }
   return 0;
 }
 
 const M68kAsmFormDef *m68k_asm_find_form(const char *mnemonic, size_t operand_count) {
+  return m68k_asm_find_form_id(m68k_asm_mnemonic_id_from_name(mnemonic), operand_count);
+}
+
+const M68kAsmFormDef *m68k_asm_find_form_id(uint8_t mnemonic_id, size_t operand_count) {
   size_t index;
+  if (mnemonic_id == M68K_ASM_MNEMONIC_NONE) return NULL;
   for (index = 0; index < m68k_asm_form_count(); ++index) {
     const M68kAsmFormDef *form = &g_m68k_asm_forms[index];
-    if (form->operand_count == operand_count && strcmp(form->mnemonic, mnemonic) == 0) return form;
+    if (form->operand_count != operand_count) continue;
+    if (form->mnemonic_id == mnemonic_id) return form;
   }
   return NULL;
 }
@@ -294,11 +358,19 @@ char m68k_asm_choose_size_suffix(const M68kAsmFormDef *form, const M68kAsmOperan
 
 const M68kAsmFormDef *m68k_asm_find_form_for_operands(const char *mnemonic, const M68kAsmOperandValue *operands,
     size_t operand_count, char size_suffix, uint8_t target_cpu) {
+  return m68k_asm_find_form_for_operands_id(m68k_asm_mnemonic_id_from_name(mnemonic), operands, operand_count,
+    size_suffix, target_cpu);
+}
+
+const M68kAsmFormDef *m68k_asm_find_form_for_operands_id(uint8_t mnemonic_id, const M68kAsmOperandValue *operands,
+    size_t operand_count, char size_suffix, uint8_t target_cpu) {
   size_t index;
+  if (mnemonic_id == M68K_ASM_MNEMONIC_NONE) return NULL;
   for (index = 0; index < m68k_asm_form_count(); ++index) {
     const M68kAsmFormDef *form = &g_m68k_asm_forms[index];
     size_t operand_index;
-    if (form->operand_count != operand_count || strcmp(form->mnemonic, mnemonic) != 0) continue;
+    if (form->operand_count != operand_count) continue;
+    if (form->mnemonic_id != mnemonic_id) continue;
     if (!m68k_asm_form_supports_cpu(form, target_cpu)) continue;
     for (operand_index = 0; operand_index < operand_count; ++operand_index) {
       if (!m68k_asm_operand_supports_cpu(&operands[operand_index], target_cpu)) break;
@@ -640,13 +712,15 @@ int m68k_asm_build_patch_values(const M68kAsmFormDef *form, char size_suffix, co
 int m68k_asm_assemble_instruction(const M68kAsmInstructionSpec *spec, uint8_t *out_bytes, size_t max_bytes,
     size_t *out_byte_count) {
   const M68kAsmFormDef *form;
+  uint8_t mnemonic_id;
   uint16_t opword = 0;
   uint16_t ext_words[8];
   size_t ext_word_count = 0;
   size_t byte_count = 0;
   size_t index;
   if (spec == NULL || out_byte_count == NULL) return -1;
-  form = m68k_asm_find_form_for_operands(spec->mnemonic, spec->operands, spec->operand_count, spec->size_suffix,
+  mnemonic_id = spec->mnemonic_id;
+  form = m68k_asm_find_form_for_operands_id(mnemonic_id, spec->operands, spec->operand_count, spec->size_suffix,
     spec->target_cpu);
   if (form == NULL) return -2;
   if (m68k_asm_encode_opword(form, spec->patch_values, spec->patch_value_count, &opword) != 0) return -3;

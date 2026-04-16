@@ -1,5 +1,4 @@
 #include "platform_atari_st_disk.h"
-#include "platform_common.h"
 #include "generated/atari_st_disk_file_runtime.h"
 
 #include <ctype.h>
@@ -8,6 +7,10 @@
 #include <string.h>
 
 #define ATARI_ST_DISK_ANALYSIS_ARENA_SIZE 16384U
+
+static void disk_diag_error(M68kDiagSink diagnostics, const char *message) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_DISK_FAILED, message);
+}
 
 static int analysis_join_path(AtariStDiskAnalysis *analysis, const char *base, const char *name, char **out_path) {
     size_t base_len;
@@ -228,7 +231,7 @@ static int format_entry_name(const unsigned char *entry_data, char *out_name, si
 }
 
 static int parse_directory_entries(const DiskContext *ctx, AtariStDiskAnalysis *analysis, const unsigned char *dir_data,
-    size_t dir_size, const char *base_path, char *error_buf, size_t error_buf_size) {
+    size_t dir_size, const char *base_path, M68kDiagSink diagnostics) {
     size_t entry_size = 32U;
     size_t offset;
     for (offset = 0; offset + entry_size <= dir_size; offset += entry_size) {
@@ -245,7 +248,7 @@ static int parse_directory_entries(const DiskContext *ctx, AtariStDiskAnalysis *
         if (format_entry_name(entry_data, name, sizeof(name)) != 0) continue;
         if ((attributes & ATARI_ST_DISK_FILE_DIR_ATTR_DIRECTORY) != 0U && (!strcmp(name, ".") || !strcmp(name, ".."))) continue;
         if (analysis_join_path(analysis, base_path, name, &path) != 0) {
-            m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+            disk_diag_error(diagnostics, "Out of memory");
             return -1;
         }
         memset(&entry, 0, sizeof(entry));
@@ -266,22 +269,22 @@ entry.first_cluster = read_u16le( entry_data, ATARI_ST_DISK_FILE_DIRECTORY_ENTRY
             && entry.first_cluster >= 2U) {
             int walk_full_chain = (entry.kind == ATARI_ST_DISK_ENTRY_DIRECTORY);
             if (build_cluster_extents(ctx, entry.first_cluster, entry.file_size, walk_full_chain, &entry) != 0) {
-                m68k_platform_set_error(error_buf, error_buf_size, "Invalid FAT12 cluster chain");
+                disk_diag_error(diagnostics, "Invalid FAT12 cluster chain");
                 return -1;
             }
         }
         if (add_entry(analysis, &entry) != 0) {
-            m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+            disk_diag_error(diagnostics, "Out of memory");
             return -1;
         }
         if (entry.kind == ATARI_ST_DISK_ENTRY_DIRECTORY && entry.first_cluster >= 2U) {
             unsigned char *subdir_data = NULL;
             size_t subdir_size = 0;
             if (build_directory_buffer(ctx, entry.first_cluster, &subdir_data, &subdir_size) != 0) {
-                m68k_platform_set_error(error_buf, error_buf_size, "Invalid FAT12 directory chain");
+                disk_diag_error(diagnostics, "Invalid FAT12 directory chain");
                 return -1;
             }
-            if (parse_directory_entries(ctx, analysis, subdir_data, subdir_size, entry.path, error_buf, error_buf_size) != 0) {
+            if (parse_directory_entries(ctx, analysis, subdir_data, subdir_size, entry.path, diagnostics) != 0) {
                 free(subdir_data);
                 return -1;
             }
@@ -305,27 +308,27 @@ void atari_st_disk_analysis_destroy(AtariStDiskAnalysis *analysis) {
 }
 
 int atari_st_disk_analyze_buffer(const unsigned char *data, size_t size, AtariStDiskAnalysis *out_analysis,
-    char *error_buf, size_t error_buf_size) {
+    M68kDiagSink diagnostics) {
     DiskContext ctx;
     size_t root_dir_sectors;
     size_t total_size;
 
     if (out_analysis == NULL) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Missing Atari ST disk analysis output");
+        disk_diag_error(diagnostics, "Missing Atari ST disk analysis output");
         return -1;
     }
     if (atari_st_disk_analysis_create(out_analysis) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+        disk_diag_error(diagnostics, "Out of memory");
         return -1;
     }
     memset(&ctx, 0, sizeof(ctx));
 
     if (data == NULL && size != 0U) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Missing Atari ST disk image data");
+        disk_diag_error(diagnostics, "Missing Atari ST disk image data");
         return -1;
     }
     if (size < 512U) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Truncated Atari ST disk image");
+        disk_diag_error(diagnostics, "Truncated Atari ST disk image");
         return -1;
     }
 
@@ -346,7 +349,7 @@ int atari_st_disk_analyze_buffer(const unsigned char *data, size_t size, AtariSt
         || ctx.sectors_per_cluster == 0U
         || ctx.fat_count == 0U
         || ctx.sectors_per_fat == 0U) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Invalid Atari ST BPB");
+        disk_diag_error(diagnostics, "Invalid Atari ST BPB");
         return -1;
     }
 
@@ -362,13 +365,13 @@ int atari_st_disk_analyze_buffer(const unsigned char *data, size_t size, AtariSt
 
     if (ctx.total_sectors == 0U || total_size > ctx.size || ctx.root_dir_offset + ctx.root_dir_size_bytes > ctx.size
         || ctx.data_region_offset > ctx.size) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Invalid Atari ST disk layout");
+        disk_diag_error(diagnostics, "Invalid Atari ST disk layout");
         return -1;
     }
 
     if (ctx.cluster_size_bytes == 0U
         || (ctx.logical_size - ctx.data_region_offset) / ctx.cluster_size_bytes + 1U > 0xFFFFU) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Unsupported Atari ST cluster geometry");
+        disk_diag_error(diagnostics, "Unsupported Atari ST cluster geometry");
         return -1;
     }
     ctx.max_cluster_index = (uint16_t)(1U + (ctx.logical_size - ctx.data_region_offset) / ctx.cluster_size_bytes);
@@ -385,15 +388,14 @@ int atari_st_disk_analyze_buffer(const unsigned char *data, size_t size, AtariSt
     out_analysis->side_count = ctx.side_count;
 
     if (parse_directory_entries(&ctx, out_analysis, data + ctx.root_dir_offset, ctx.root_dir_size_bytes,
-            "", error_buf, error_buf_size) != 0) {
+            "", diagnostics) != 0) {
         atari_st_disk_analysis_destroy(out_analysis);
         return -1;
     }
     return 0;
 }
 
-int atari_st_disk_analyze_image(const char *path, AtariStDiskAnalysis *out_analysis, char *error_buf,
-    size_t error_buf_size) {
+int atari_st_disk_analyze_image(const char *path, AtariStDiskAnalysis *out_analysis, M68kDiagSink diagnostics) {
     FILE *fp = NULL;
     int64_t file_size_signed = 0;
     unsigned char *buffer = NULL;
@@ -402,39 +404,39 @@ int atari_st_disk_analyze_image(const char *path, AtariStDiskAnalysis *out_analy
 
     fp = fopen(path, "rb");
     if (fp == NULL) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not open Atari ST disk image");
+        disk_diag_error(diagnostics, "Could not open Atari ST disk image");
         return -1;
     }
     if (fseek(fp, 0, SEEK_END) != 0) {
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not size Atari ST disk image");
+        disk_diag_error(diagnostics, "Could not size Atari ST disk image");
         return -1;
     }
     file_size_signed = (int64_t)ftell(fp);
     if (file_size_signed < 0) {
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not size Atari ST disk image");
+        disk_diag_error(diagnostics, "Could not size Atari ST disk image");
         return -1;
     }
     if (fseek(fp, 0, SEEK_SET) != 0) {
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not rewind Atari ST disk image");
+        disk_diag_error(diagnostics, "Could not rewind Atari ST disk image");
         return -1;
     }
     buffer = (unsigned char *)malloc((size_t)file_size_signed == 0U ? 1U : (size_t)file_size_signed);
     if (buffer == NULL) {
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+        disk_diag_error(diagnostics, "Out of memory");
         return -1;
     }
     read_size = fread(buffer, 1, (size_t)file_size_signed, fp);
     fclose(fp);
     if (read_size != (size_t)file_size_signed) {
         free(buffer);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not read Atari ST disk image");
+        disk_diag_error(diagnostics, "Could not read Atari ST disk image");
         return -1;
     }
-    result = atari_st_disk_analyze_buffer(buffer, (size_t)file_size_signed, out_analysis, error_buf, error_buf_size);
+    result = atari_st_disk_analyze_buffer(buffer, (size_t)file_size_signed, out_analysis, diagnostics);
     free(buffer);
     return result;
 }

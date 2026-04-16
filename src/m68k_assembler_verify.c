@@ -3,41 +3,36 @@
 #include "m68k_corpus_spec.h"
 #include "m68k_corpus_support.h"
 
-#include "platform_common.h"
+#include <string.h>
 
-#include <stdio.h>
-
-
-int m68k_verify_manifest(const char *manifest_path, const M68kAsmVerifyOptions *options, char *out_error,
-    size_t out_error_size) {
-  int result = 0;
+M68kVerifyResult m68k_verify_manifest(const char *manifest_path, const M68kAsmVerifyOptions *options) {
+  M68kVerifyResult result;
+  memset(&result, 0, sizeof(result));
   if (options == NULL) {
-    m68k_platform_set_error(out_error, out_error_size, "verify options are null");
-    return -1;
+    m68k_diag_add(m68k_diag_sink(&result.diagnostics), M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT,
+      "verify options are null");
+    return result;
   }
-  result = m68k_corpus_verify_manifest(manifest_path, options->target_cpu, m68k_corpus_parse_instruction_spec);
-  if (result != 0) {
-    m68k_platform_set_error(out_error, out_error_size, "verify manifest failed");
-    return -1;
+  if (m68k_corpus_verify_manifest(manifest_path, options->target_cpu, m68k_corpus_parse_instruction_spec) != 0) {
+    m68k_diag_add(m68k_diag_sink(&result.diagnostics), M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+      "verify manifest failed");
   }
-  m68k_platform_set_error(out_error, out_error_size, "");
-  return 0;
+  return result;
 }
 
-int m68k_verify_corpus(const char *manifest_path, const char *binary_path, const M68kAsmVerifyOptions *options, char *out_error,
-    size_t out_error_size) {
-  int result = 0;
+M68kVerifyResult m68k_verify_corpus(const char *manifest_path, const char *binary_path,
+    const M68kAsmVerifyOptions *options) {
+  M68kVerifyResult result;
+  memset(&result, 0, sizeof(result));
   if (options == NULL) {
-    m68k_platform_set_error(out_error, out_error_size, "verify options are null");
-    return -1;
+    m68k_diag_add(m68k_diag_sink(&result.diagnostics), M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT,
+      "verify options are null");
+    return result;
   }
-  result = m68k_corpus_verify_binary(manifest_path, binary_path, options->target_cpu, m68k_corpus_parse_instruction_spec);
-  if (result != 0) {
-    m68k_platform_set_error(out_error, out_error_size, "verify corpus failed");
-    return -1;
+  if (m68k_corpus_verify_binary(manifest_path, binary_path, options->target_cpu,
+      m68k_corpus_parse_instruction_spec) != 0) {
+    m68k_diag_add(m68k_diag_sink(&result.diagnostics), M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+      "verify corpus failed");
   }
-  m68k_platform_set_error(out_error, out_error_size, "");
-  return 0;
+  return result;
 }
-
-

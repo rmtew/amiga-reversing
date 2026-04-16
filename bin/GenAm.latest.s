@@ -1,5 +1,7 @@
     INCLUDE "exec/io.i"
+    INCLUDE "dos/dosextens.i"
     INCLUDE "dos/dos_lib.i"
+    INCLUDE "exec/memory.i"
     INCLUDE "exec/exec_lib.i"
     INCLUDE "devices/timer.i"
     INCLUDE "exec/libraries.i"
@@ -7,10 +9,10 @@
     INCLUDE "dos/dos.i"
 
 app_IO_10B8 EQU 4280
+app_FileHandle_0186 EQU 390
 app_slot_01A2 EQU 418
 app_FileHandle_0CDA EQU 3290
 app_FileHandle_0956 EQU 2390
-app_FileHandle_0186 EQU 390
 app_TIMEVAL_10B0 EQU 4272
 app_TIMEVAL_10A8 EQU 4264
 app_DOSBase EQU 3286
@@ -433,7 +435,7 @@ loc_043C:
     jsr sub_8E7A.l
 loc_0444:
     moveq.l #0,d1
-    move.w $0192(a6),d1
+    move.w app_FileHandle_0186+fh_Buf(a6),d1
     beq.s loc_046E
 loc_044C:
     jsr sub_8F04.l
@@ -452,12 +454,12 @@ loc_046E:
 loc_0474:
     jsr sub_ABC0.l
 loc_047A:
-    move.l $018A(a6),d3
+    move.l app_FileHandle_0186+fh_Interactive(a6),d3
     beq.s loc_048A
 loc_0480:
     jsr sub_AFF2.l
 loc_0486:
-    clr.l $018A(a6)
+    clr.l app_FileHandle_0186+fh_Interactive(a6)
 loc_048A:
     jsr sub_90F2.l
 loc_0490:
@@ -470,7 +472,7 @@ loc_0496:
     move.l d0,$023C(a6)
     move.l d0,$015A(a6)
     move.l d0,$0162(a6)
-    move.l d0,$018E(a6)
+    move.l d0,app_FileHandle_0186+fh_Type(a6)
     move.w d0,$087E(a6)
     move.w d0,$0880(a6)
     move.l d0,$0882(a6)
@@ -1882,7 +1884,7 @@ loc_11CA:
 loc_11D0:
     add.l d7,d7
 loc_11D2:
-    dbcs d6,loc_11D0
+    dbcs.w d6,loc_11D0
 loc_11D6:
     roxr.l #1,d7
     subi.w #31,d6
@@ -2463,7 +2465,6 @@ loc_1738:
     move.b d5,d2
     lsr.b #3,d2
     btst d2,d0
-loc_173E:
     beq.s loc_1742
 loc_1740:
     rts
@@ -2577,7 +2578,7 @@ loc_1806:
 loc_180E:
     subi.b #48,d2
     cmp.b #$8,d2
-    scc d0
+    scc.b d0
     bra.s loc_17CA
 loc_181A:
     lea.l $046E(a6),a0
@@ -4001,7 +4002,7 @@ loc_3DBC:
     beq.w loc_3DD2
 loc_3DC4:
     st.b $0100(a6)
-    move.l app_FileHandle_0CDA(a6),app_FileHandle_0956(a6)
+    move.l app_FileHandle_0CDA+fh_Link(a6),app_FileHandle_0956+fh_Link(a6)
     st.b $0954(a6)
 loc_3DD2:
     move.b (a4),d1
@@ -4827,7 +4828,7 @@ loc_44E0:
 loc_44E4:
     movea.l $0142(a6),a1
     movea.l $013E(a6),a0
-    clr.l $0196(a6)
+    clr.l app_FileHandle_0186+fh_Pos(a6)
     tst.b $0238(a6)
     bne.s loc_44FA
 loc_44F6:
@@ -4841,7 +4842,6 @@ loc_4502:
 sub_4504:
     lea.l $010E(a6),a1
     ext.w d1
-loc_450A:
     move.b $7E(a6,d1.w),d1
     cmp.b #$57,d1
     bne.s loc_451A
@@ -6917,7 +6917,6 @@ sub_73A2:
     beq.s loc_73CA
 loc_73B6:
     subq.w #1,$014E(a6)
-loc_73BA:
     addq.l #1,$014A(a6)
     tst.b $0101(a6)
     beq.s loc_73CA
@@ -6966,7 +6965,6 @@ loc_741A:
     ext.l d2
     add.l d2,$014A(a6)
     clr.l $0890(a6)
-loc_742A:
     lea.l dat_9884(pc),a0
     move.l a0,$017A(a6)
     moveq.l #10,d1
@@ -7361,7 +7359,7 @@ loc_784E:
     btst #16,d3
     beq.s loc_785A
 loc_7854:
-    move.l a4,$0196(a6)
+    move.l a4,app_FileHandle_0186+fh_Pos(a6)
     bra.s loc_7870
 loc_785A:
     btst #17,d3
@@ -7494,7 +7492,7 @@ sub_7952:
     sf.b $011C(a6)
     move.b d3,$0108(a6)
     lea.l $03E8(a6),a0
-    clr.l $0196(a6)
+    clr.l app_FileHandle_0186+fh_Pos(a6)
     bset #16,d3
     btst.b #1,$021D(a6)
     beq.s loc_7976
@@ -7930,7 +7928,7 @@ loc_880E:
 loc_881C:
     ext.w d0
     add.w d0,$0194(a6)
-    addq.w #1,$0192(a6)
+    addq.w #1,app_FileHandle_0186+fh_Buf(a6)
 loc_8826:
     move.w (a7),d0
     subi.w #12,d0
@@ -8855,8 +8853,8 @@ loc_9104:
 sub_9106:
     sf.b $0954(a6)
     sf.b $0955(a6)
-    clr.l app_FileHandle_0956(a6)
-    lea.l $095A(a6),a0
+    clr.l app_FileHandle_0956+fh_Link(a6)
+    lea.l app_FileHandle_0956+fh_Interactive(a6),a0
     lea.l $0B5A(a6),a1
     move.l a0,(a1)
     move.l a1,$0B5E(a6)
@@ -8875,7 +8873,7 @@ loc_9154:
     clr.b (a3)
     rts
 sub_9158:
-    tst.l app_FileHandle_0956(a6)
+    tst.l app_FileHandle_0956+fh_Link(a6)
     beq.s loc_9168
 loc_915E:
     bsr.w loc_AB56
@@ -8886,11 +8884,11 @@ loc_9166:
 loc_9168:
     rts
 sub_916A:
-    tst.l app_FileHandle_0956(a6)
+    tst.l app_FileHandle_0956+fh_Link(a6)
     beq.s loc_9168
 loc_9170:
-    move.l app_FileHandle_0956(a6),d3
-    clr.l app_FileHandle_0956(a6)
+    move.l app_FileHandle_0956+fh_Link(a6),d3
+    clr.l app_FileHandle_0956+fh_Link(a6)
     bra.w loc_A900
 loc_917C:
     movea.l $0B5A(a6),a0
@@ -8913,13 +8911,13 @@ loc_9198:
     bra.w loc_846E
 sub_919E:
     move.l d3,-(a7)
-    move.l app_FileHandle_0956(a6),d3
-    lea.l $095A(a6),a0
+    move.l app_FileHandle_0956+fh_Link(a6),d3
+    lea.l app_FileHandle_0956+fh_Interactive(a6),a0
     move.l $0B5A(a6),d1
     sub.l a0,d1
     beq.s loc_91BC
 loc_91B0:
-    lea.l $095A(a6),a1
+    lea.l app_FileHandle_0956+fh_Interactive(a6),a1
     move.l a1,$0B5A(a6)
     bsr.w sub_A8EC
 loc_91BC:
@@ -9293,7 +9291,7 @@ sub_9682:
     cmpi.w #3,$021C(a6)
     beq.s loc_9690
 loc_968A:
-    tst.l $019A(a6)
+    tst.l app_FileHandle_0186+fh_End(a6)
     bne.s loc_969E
 loc_9690:
     btst.b #2,$021D(a6)
@@ -9402,7 +9400,7 @@ loc_979E:
     moveq.l #40,d0
     jmp loc_846E.l
 sub_97A6:
-    tst.l app_FileHandle_0186(a6)
+    tst.l app_FileHandle_0186+fh_Link(a6)
     bne.s loc_97C2
 loc_97AC:
     movem.l d1-d2/a0-a2,-(a7)
@@ -9411,7 +9409,7 @@ loc_97AC:
 loc_97B8:
     bne.s loc_979E
 loc_97BA:
-    move.l d2,app_FileHandle_0186(a6)
+    move.l d2,app_FileHandle_0186+fh_Link(a6)
     movem.l (a7)+,d1-d2/a0-a2
 loc_97C2:
     rts
@@ -9531,12 +9529,12 @@ loc_98A8:
 loc_98AC:
     rts
 loc_98AE:
-    move.l app_FileHandle_0186(a6),d2
+    move.l app_FileHandle_0186+fh_Link(a6),d2
     beq.s loc_98BC
 loc_98B4:
     bsr.w loc_AFB8
 loc_98B8:
-    clr.l app_FileHandle_0186(a6)
+    clr.l app_FileHandle_0186+fh_Link(a6)
 loc_98BC:
     rts
     DC.B    $2f,$02
@@ -9704,10 +9702,10 @@ loc_9ABC:
     clr.l $001C(a0)
     clr.l $0018(a0)
     move.l #$3E9,$0010(a0)
-    tst.l $0196(a6)
+    tst.l app_FileHandle_0186+fh_Pos(a6)
     beq.s loc_9AFE
 loc_9AE2:
-    movea.l $0196(a6),a1
+    movea.l app_FileHandle_0186+fh_Pos(a6),a1
     lea.l dat_9B6A(pc),a2
     bsr.w sub_99D0
 loc_9AEE:
@@ -9792,7 +9790,7 @@ dat_9BA2:
     DC.B    $03,$ea
 loc_9BC6:
     move.l a4,-(a7)
-    movea.l $019A(a6),a4
+    movea.l app_FileHandle_0186+fh_End(a6),a4
     lea.l $01A6(a6),a3
 loc_9BD0:
     tst.l (a3)
@@ -9810,7 +9808,7 @@ loc_9BE4:
     addq.l #4,d1
 loc_9BEA:
     move.l d1,$0014(a3)
-    tst.l $019A(a6)
+    tst.l app_FileHandle_0186+fh_End(a6)
     beq.s loc_9C02
 loc_9BF4:
     move.w $0010(a3),d0
@@ -9849,7 +9847,7 @@ loc_9C38:
     cmpi.w #1003,$0012(a1)
     rts
 loc_9C44:
-    movea.l $019E(a6),a4
+    movea.l app_FileHandle_0186+fh_Funcs(a6),a4
     tst.b $0104(a6)
     beq.s loc_9C9E
 loc_9C4E:
@@ -9989,7 +9987,7 @@ sub_9DA2:
     addq.l #1,d0
     rts
 loc_9DA6:
-    tst.l $019A(a6)
+    tst.l app_FileHandle_0186+fh_End(a6)
     bne.w loc_9C44
 loc_9DAE:
     bsr.w sub_97A6
@@ -10887,13 +10885,13 @@ dat_A764:
     DC.L    $00000000,$00000000,$00000000,$00000000,$00000000,$00000001,$00000000,$00000000
 loc_A864:
     move.l d3,-(a7)
-    move.l app_FileHandle_0CDA(a6),d1
+    move.l app_FileHandle_0CDA+fh_Link(a6),d1
     bne.s loc_A878
 loc_A86C:
     moveq.l #_LVOOutput,d0
     bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOOutput fallback via local wrapper
 loc_A872:
-    move.l d0,app_FileHandle_0CDA(a6)
+    move.l d0,app_FileHandle_0CDA+fh_Link(a6)
     move.l d0,d1
 loc_A878:
     lea.l $0DF6(a6),a0
@@ -10961,7 +10959,7 @@ loc_A8FC:
     cmp.l (a7)+,d1
     rts
 loc_A900:
-    cmp.l app_FileHandle_0CDA(a6),d3
+    cmp.l app_FileHandle_0CDA+fh_Link(a6),d3
     beq.s loc_A90E
 loc_A906:
     move.l d3,d1
@@ -10973,7 +10971,7 @@ sub_A910:
     movea.l (a7)+,a3
     clr.b -$1(a0,d0.l)
     movea.l a0,a4
-    moveq.l #1,d1
+    moveq.l #MEMF_PUBLIC,d1
     move.l #$1140,d0
     movea.l $0004.w,a6
     jsr _LVOAllocMem(a6)
@@ -10986,7 +10984,7 @@ loc_A930:
     movea.l d0,a6
     addq.l #2,a6
     clr.l app_slot_01A2(a6)
-    clr.l app_FileHandle_0CDA(a6)
+    clr.l app_FileHandle_0CDA+fh_Link(a6)
     lea.l dat_B0A0(pc),a1
     moveq.l #0,d0
     move.l a6,-(a7)
@@ -11021,9 +11019,9 @@ loc_A990:
     bne.s loc_A9B8
 loc_A9AA:
     lea.l $0012(a0),a0
-    move.l a0,$019A(a6)
+    move.l a0,app_FileHandle_0186+fh_End(a6)
     addq.w #4,a0
-    move.l a0,$019E(a6)
+    move.l a0,app_FileHandle_0186+fh_Funcs(a6)
 loc_A9B8:
     moveq.l #0,d0
     rts
@@ -11153,7 +11151,7 @@ sub_AB2A:
     rts
 loc_AB2C:
     move.l a0,d1
-    move.l #$3EE,d2
+    move.l #MODE_NEWFILE,d2
     move.l d3,-(a7)
     moveq.l #0,d3
     moveq.l #_LVOOpen,d0
@@ -11163,9 +11161,9 @@ loc_AB3E:
     tst.l d0
     beq.w loc_AB4A
 loc_AB46:
-    move.l d0,app_FileHandle_0956(a6)
+    move.l d0,app_FileHandle_0956+fh_Link(a6)
 loc_AB4A:
-    eori.b #4,ccr
+    eori #4,ccr
     rts
 sub_AB50:
     tst.b $0955(a6)
@@ -11177,8 +11175,8 @@ loc_AB5C:
     moveq.l #10,d1
     bsr.w loc_917C
 loc_AB62:
-    move.l app_FileHandle_0956(a6),d1
-    cmp.l app_FileHandle_0CDA(a6),d1
+    move.l app_FileHandle_0956+fh_Link(a6),d1
+    cmp.l app_FileHandle_0CDA+fh_Link(a6),d1
     beq.s loc_AB7A
 loc_AB6C:
     cmpi.w #10752,$078E(a6)
@@ -11204,7 +11202,7 @@ loc_AB98:
     beq.s loc_ABBA
     ori.b #127,$0115(a6)
     moveq.l #0,d0
-    move.l #$1000,d1
+    move.l #SIGBREAKF_CTRL_C,d1
     move.l a6,-(a7)
     movea.l $0004.w,a6
     jsr _LVOSetSignal(a6)
@@ -11297,13 +11295,13 @@ loc_ACAE:
     lea.l dat_AC8D(pc),a0
     move.l a0,d2
     moveq.l #21,d3
-    move.l app_FileHandle_0CDA(a6),d1
+    move.l app_FileHandle_0CDA+fh_Link(a6),d1
     moveq.l #_LVOWrite,d0
     bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOWrite fallback via local wrapper
 loc_ACC0:
     bsr.s sub_ACF4 ; KNOWN: DOSBase _LVOWrite fallback via local wrapper
 loc_ACC2:
-    movea.l $0CDE(a6),a7
+    movea.l app_FileHandle_0CDA+fh_Interactive(a6),a7
     movea.l app_DOSBase(a6),a1
     move.l a6,-(a7)
     movea.l $0004.w,a6
@@ -11468,7 +11466,7 @@ sub_AE42:
     addq.l #4,d1
     move.l d1,-(a7)
     move.l d1,d0
-    moveq.l #1,d1
+    moveq.l #MEMF_PUBLIC,d1
     move.l a6,-(a7)
     movea.l $0004.w,a6
     jsr _LVOAllocMem(a6)
@@ -11505,7 +11503,7 @@ loc_AE8E:
     movea.l (a7)+,a1
     move.b #$B,(a1)
     tst.l d4
-    eori.b #4,ccr
+    eori #4,ccr
     rts
 sub_AE9C:
     movem.l d1/a0,-(a7)
@@ -11594,7 +11592,7 @@ loc_AF24:
 loc_AF28:
     move.l a0,-(a7)
     move.l a0,d1
-    move.l #$3ED,d2
+    move.l #MODE_OLDFILE,d2
     moveq.l #_LVOOpen,d0
     bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOOpen fallback via local wrapper
 loc_AF38:
@@ -11613,7 +11611,7 @@ loc_AF4E:
     rts
 loc_AF52:
     move.l d4,-(a7)
-    moveq.l #-2,d2
+    moveq.l #ACCESS_READ,d2
     moveq.l #_LVOLock,d0
     bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOLock fallback via local wrapper
 loc_AF5C:
@@ -11692,7 +11690,7 @@ loc_AFE4:
     move.l d1,d2
     move.l d4,d3
     movem.l (a7)+,d4
-    eori.b #4,ccr
+    eori #4,ccr
     rts
 sub_AFF2:
     move.l d3,d2
@@ -11706,7 +11704,7 @@ loc_B000:
     rts
 sub_B002:
     move.l a0,d1
-    move.l #$3EE,d2
+    move.l #MODE_NEWFILE,d2
     move.l d3,-(a7)
     moveq.l #-1,d3
     moveq.l #_LVOOpen,d0
@@ -11728,7 +11726,7 @@ sub_B024:
 loc_B028:
     movem.l d1-d3,-(a7)
     move.l d1,d3
-    move.l app_FileHandle_0186(a6),d1
+    move.l app_FileHandle_0186+fh_Link(a6),d1
     move.l a0,d2
     moveq.l #_LVOWrite,d0
     bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOWrite fallback via local wrapper
@@ -11739,8 +11737,8 @@ loc_B040:
     rts
 sub_B042:
     move.l d3,-(a7)
-    moveq.l #-1,d3
-    move.l app_FileHandle_0186(a6),d1
+    moveq.l #OFFSET_BEGINNING,d3
+    move.l app_FileHandle_0186+fh_Link(a6),d1
     moveq.l #_LVOSeek,d0
     bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOSeek fallback via local wrapper
 loc_B050:
@@ -11748,9 +11746,9 @@ loc_B050:
     rts
 sub_B054:
     move.l d3,-(a7)
-    move.l app_FileHandle_0186(a6),d1
+    move.l app_FileHandle_0186+fh_Link(a6),d1
     moveq.l #0,d2
-    moveq.l #0,d3
+    moveq.l #OFFSET_CURRENT,d3
     moveq.l #_LVOSeek,d0
     bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOSeek fallback via local wrapper
 loc_B064:
@@ -11761,7 +11759,7 @@ sub_B068:
     bne.s loc_B09A
 loc_B06E:
     movem.l d1-d2/a0-a2,-(a7)
-    move.l #$20001,d1
+    move.l #MEMF_LARGEST|MEMF_PUBLIC,d1
     move.l a6,-(a7)
     movea.l $0004.w,a6
     jsr _LVOAvailMem(a6)
@@ -12476,11 +12474,11 @@ loc_F8FA:
     move.l a0,$024C(a6)
 loc_F902:
     move.l a1,$01AA(a6)
-    tst.l $0196(a6)
+    tst.l app_FileHandle_0186+fh_Pos(a6)
     beq.s loc_F92A
 loc_F90C:
     movem.l a1/a4,-(a7)
-    movea.l $0196(a6),a4
+    movea.l app_FileHandle_0186+fh_Pos(a6),a4
     move.b (a4)+,d1
     jsr sub_16CC.l
 loc_F91C:
@@ -12531,7 +12529,7 @@ loc_F980:
 loc_F982:
     movea.l $01AA(a6),a1
     btst.b #1,$0010(a1)
-    eori.b #4,ccr
+    eori #4,ccr
     rts
 loc_F992:
     bsr.w sub_97A6

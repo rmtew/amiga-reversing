@@ -1,22 +1,7 @@
 #include "platform_common.h"
 
-#include <stdarg.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-void m68k_platform_set_error(char *error_buf, size_t error_buf_size, const char *message) {
-  if (error_buf != NULL && error_buf_size != 0U) snprintf(error_buf, error_buf_size, "%s", message);
-}
-
-void m68k_platform_set_errorf(char *error_buf, size_t error_buf_size, const char *fmt, ...) {
-  if (error_buf != NULL && error_buf_size != 0U) {
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(error_buf, error_buf_size, fmt, args);
-    va_end(args);
-  }
-}
 
 char *m68k_platform_dup_string(const char *text) {
   if (text == NULL) return NULL;

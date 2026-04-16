@@ -1,5 +1,4 @@
 #include "platform_amiga_disk.h"
-#include "platform_common.h"
 #include "generated/amiga_disk_file_runtime.h"
 
 #include <stdio.h>
@@ -7,6 +6,10 @@
 #include <string.h>
 
 #define AMIGA_DISK_ANALYSIS_ARENA_SIZE 16384U
+
+static void disk_diag_error(M68kDiagSink diagnostics, const char *message) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_DISK_FAILED, message);
+}
 
 static int analysis_join_path(AmigaDiskAnalysis *analysis, const char *base, const char *name, char **out_path) {
     size_t base_len;
@@ -303,12 +306,12 @@ static int build_file_extents(const DiskContext *ctx, const unsigned char *heade
 }
 
 static int parse_directory_block(const DiskContext *ctx, AmigaDiskAnalysis *analysis, uint32_t dir_block_index,
-    const char *base_path, char *error_buf, size_t error_buf_size) {
+    const char *base_path, M68kDiagSink diagnostics) {
     const unsigned char *dir_block;
     size_t block_base = 0;
     uint32_t i;
     if (block_offset(ctx, dir_block_index, &block_base) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Invalid AmigaDOS directory block");
+        disk_diag_error(diagnostics, "Invalid AmigaDOS directory block");
         return -1;
     }
     dir_block = ctx->data + block_base;
@@ -324,7 +327,7 @@ static int parse_directory_block(const DiskContext *ctx, AmigaDiskAnalysis *anal
             AmigaDiskEntry entry;
             char *path = NULL;
             if (block_offset(ctx, entry_block_index, &entry_base) != 0) {
-                m68k_platform_set_error(error_buf, error_buf_size, "Invalid AmigaDOS file header block");
+                disk_diag_error(diagnostics, "Invalid AmigaDOS file header block");
                 return -1;
             }
             entry_block = ctx->data + entry_base;
@@ -332,11 +335,11 @@ static int parse_directory_block(const DiskContext *ctx, AmigaDiskAnalysis *anal
             next_chain = read_u32be(entry_block, AMIGA_DISK_FILE_CONSTRAINTS_FILE_HEADER_HASH_CHAIN_OFFSET);
             if (read_bcpl_name(entry_block, AMIGA_DISK_FILE_CONSTRAINTS_FILE_HEADER_NAME_LEN_OFFSET,
                     AMIGA_DISK_FILE_CONSTRAINTS_FILE_HEADER_NAME_MAX_LENGTH, name, sizeof(name)) != 0) {
-                m68k_platform_set_error(error_buf, error_buf_size, "Invalid AmigaDOS entry name");
+                disk_diag_error(diagnostics, "Invalid AmigaDOS entry name");
                 return -1;
             }
             if (analysis_join_path(analysis, base_path, name, &path) != 0) {
-                m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+                disk_diag_error(diagnostics, "Out of memory");
                 return -1;
             }
             memset(&entry, 0, sizeof(entry));
@@ -357,23 +360,23 @@ static int parse_directory_block(const DiskContext *ctx, AmigaDiskAnalysis *anal
                 entry_block_index = next_chain;
                 steps += 1U;
                 if (steps > ctx->total_blocks) {
-                    m68k_platform_set_error(error_buf, error_buf_size, "Invalid AmigaDOS hash chain");
+                    disk_diag_error(diagnostics, "Invalid AmigaDOS hash chain");
                     return -1;
                 }
                 continue;
             }
             if (add_entry(analysis, &entry) != 0) {
-                m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+                disk_diag_error(diagnostics, "Out of memory");
                 return -1;
             }
             if (entry.kind == AMIGA_DISK_ENTRY_DIRECTORY
-                && parse_directory_block(ctx, analysis, entry_block_index, entry.path, error_buf, error_buf_size) != 0) {
+                && parse_directory_block(ctx, analysis, entry_block_index, entry.path, diagnostics) != 0) {
                 return -1;
             }
             entry_block_index = next_chain;
             steps += 1U;
             if (steps > ctx->total_blocks) {
-                m68k_platform_set_error(error_buf, error_buf_size, "Invalid AmigaDOS hash chain");
+                disk_diag_error(diagnostics, "Invalid AmigaDOS hash chain");
                 return -1;
             }
         }
@@ -394,8 +397,7 @@ void amiga_disk_analysis_destroy(AmigaDiskAnalysis *analysis) {
     memset(analysis, 0, sizeof(*analysis));
 }
 
-int amiga_disk_analyze_buffer(const unsigned char *data, size_t size, AmigaDiskAnalysis *out_analysis, char *error_buf,
-    size_t error_buf_size) {
+int amiga_disk_analyze_buffer(const unsigned char *data, size_t size, AmigaDiskAnalysis *out_analysis, M68kDiagSink diagnostics) {
     DiskContext ctx;
     size_t root_offset = 0;
     const unsigned char *root_block;
@@ -403,17 +405,17 @@ int amiga_disk_analyze_buffer(const unsigned char *data, size_t size, AmigaDiskA
     AmigaDiskEntry volume_entry;
 
     if (out_analysis == NULL) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Missing Amiga disk analysis output");
+        disk_diag_error(diagnostics, "Missing Amiga disk analysis output");
         return -1;
     }
     if (amiga_disk_analysis_create(out_analysis) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+        disk_diag_error(diagnostics, "Out of memory");
         return -1;
     }
     memset(&ctx, 0, sizeof(ctx));
 
     if (data == NULL && size != 0U) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Missing Amiga disk image data");
+        disk_diag_error(diagnostics, "Missing Amiga disk image data");
         return -1;
     }
 
@@ -421,12 +423,12 @@ int amiga_disk_analyze_buffer(const unsigned char *data, size_t size, AmigaDiskA
     ctx.size = size;
     ctx.block_size = AMIGA_DISK_FILE_CONSTRAINTS_BYTES_PER_SECTOR;
     if (ctx.block_size == 0U || ctx.size % ctx.block_size != 0U) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Invalid Amiga disk image size");
+        disk_diag_error(diagnostics, "Invalid Amiga disk image size");
         return -1;
     }
     ctx.total_blocks = (uint32_t)(ctx.size / ctx.block_size);
     if (ctx.total_blocks < AMIGA_DISK_FILE_CONSTRAINTS_BOOT_BLOCK_SECTORS) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Truncated Amiga disk image");
+        disk_diag_error(diagnostics, "Truncated Amiga disk image");
         return -1;
     }
 
@@ -478,19 +480,18 @@ int amiga_disk_analyze_buffer(const unsigned char *data, size_t size, AmigaDiskA
     volume_entry.path = arena_strdup(out_analysis->arena, volume_name);
     if (volume_entry.path == NULL || add_entry(out_analysis, &volume_entry) != 0) {
         amiga_disk_analysis_destroy(out_analysis);
-        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+        disk_diag_error(diagnostics, "Out of memory");
         return -1;
     }
 
-    if (parse_directory_block(&ctx, out_analysis, ctx.root_block, "", error_buf, error_buf_size) != 0) {
+    if (parse_directory_block(&ctx, out_analysis, ctx.root_block, "", diagnostics) != 0) {
         amiga_disk_analysis_destroy(out_analysis);
         return -1;
     }
     return 0;
 }
 
-int amiga_disk_analyze_image(const char *path, AmigaDiskAnalysis *out_analysis, char *error_buf,
-    size_t error_buf_size) {
+int amiga_disk_analyze_image(const char *path, AmigaDiskAnalysis *out_analysis, M68kDiagSink diagnostics) {
     FILE *fp = NULL;
     int64_t file_size_signed = 0;
     unsigned char *buffer = NULL;
@@ -499,39 +500,39 @@ int amiga_disk_analyze_image(const char *path, AmigaDiskAnalysis *out_analysis, 
 
     fp = fopen(path, "rb");
     if (fp == NULL) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not open Amiga disk image");
+        disk_diag_error(diagnostics, "Could not open Amiga disk image");
         return -1;
     }
     if (fseek(fp, 0, SEEK_END) != 0) {
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not size Amiga disk image");
+        disk_diag_error(diagnostics, "Could not size Amiga disk image");
         return -1;
     }
     file_size_signed = (int64_t)ftell(fp);
     if (file_size_signed < 0) {
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not size Amiga disk image");
+        disk_diag_error(diagnostics, "Could not size Amiga disk image");
         return -1;
     }
     if (fseek(fp, 0, SEEK_SET) != 0) {
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not rewind Amiga disk image");
+        disk_diag_error(diagnostics, "Could not rewind Amiga disk image");
         return -1;
     }
     buffer = (unsigned char *)malloc((size_t)file_size_signed == 0U ? 1U : (size_t)file_size_signed);
     if (buffer == NULL) {
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+        disk_diag_error(diagnostics, "Out of memory");
         return -1;
     }
     read_size = fread(buffer, 1, (size_t)file_size_signed, fp);
     fclose(fp);
     if (read_size != (size_t)file_size_signed) {
         free(buffer);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not read Amiga disk image");
+        disk_diag_error(diagnostics, "Could not read Amiga disk image");
         return -1;
     }
-    result = amiga_disk_analyze_buffer(buffer, (size_t)file_size_signed, out_analysis, error_buf, error_buf_size);
+    result = amiga_disk_analyze_buffer(buffer, (size_t)file_size_signed, out_analysis, diagnostics);
     free(buffer);
     return result;
 }

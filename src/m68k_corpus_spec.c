@@ -1,4 +1,5 @@
 #include "m68k_corpus_spec.h"
+#include "m68k_parse_util.h"
 #include "m68k_source_text_util.h"
 
 #include <ctype.h>
@@ -29,6 +30,7 @@ static int parse_operand_spec(const char *text, M68kAsmOperandValue *out_operand
   unsigned value0 = 0, value1 = 0, value2 = 0, value3 = 0, value4 = 0, value5 = 0;
   unsigned value6 = 0, value7 = 0, value8 = 0, value9 = 0, value10 = 0, value11 = 0;
   unsigned value12 = 0, value13 = 0, value14 = 0, value15 = 0, value16 = 0, value17 = 0;
+  uint8_t special_register_kind;
   memset(out_operand, 0, sizeof(*out_operand));
   if (strcmp(text, "-") == 0) {
     out_operand->kind = M68K_ASM_OPERAND_NONE;
@@ -88,8 +90,9 @@ static int parse_operand_spec(const char *text, M68kAsmOperandValue *out_operand
     out_operand->pair_reg = (uint8_t)value3;
     return 1;
   }
-  if (strcmp(text, "ccr") == 0) {
-    out_operand->kind = M68K_ASM_OPERAND_CCR;
+  special_register_kind = m68k_parse_special_register_token(text);
+  if (special_register_kind != M68K_ASM_OPERAND_NONE) {
+    out_operand->kind = special_register_kind;
     return 1;
   }
   if (sscanf(text, "ctrlreg:%u:%x", &value0, &value1) == 2) {
@@ -197,14 +200,6 @@ static int parse_operand_spec(const char *text, M68kAsmOperandValue *out_operand
     out_operand->ea_reg = (uint8_t)value1;
     return 1;
   }
-  if (strcmp(text, "sr") == 0) {
-    out_operand->kind = M68K_ASM_OPERAND_SR;
-    return 1;
-  }
-  if (strcmp(text, "usp") == 0) {
-    out_operand->kind = M68K_ASM_OPERAND_USP;
-    return 1;
-  }
   return 0;
 }
 
@@ -233,7 +228,10 @@ int m68k_corpus_parse_instruction_spec(char *text, InstructionSpec *out_spec) {
   char *parts[5];
   size_t count = m68k_split_delimited_in_place(text, '^', parts, sizeof(parts) / sizeof(parts[0]));
   if (count != 5) return 0;
+  memset(out_spec, 0, sizeof(*out_spec));
+  out_spec->form_index = M68K_IR_INVALID_FORM_INDEX;
   strcpy(out_spec->mnemonic, parts[0]);
+  out_spec->mnemonic_id = m68k_asm_mnemonic_id_from_name(parts[0]);
   out_spec->size_suffix = (strcmp(parts[1], "-") == 0 || parts[1][0] == '\0') ? '\0' : (char)tolower((unsigned char)parts[1][0]);
   out_spec->target_cpu = M68K_ASM_CPU_ANY;
   out_spec->operand_count = (size_t)strtoul(parts[2], NULL, 10);

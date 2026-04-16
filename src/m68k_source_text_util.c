@@ -148,13 +148,16 @@ void m68k_normalize_zero_base_displacement_in_place(char *text) {
 
 int m68k_is_elided_lea_noop(const char *line_text) {
   char line[256];
+  char size_suffix = '\0';
   char src_token[4];
   char *space = NULL;
   char *operand_text = NULL;
   char *operands[4] = {NULL, NULL, NULL, NULL};
   size_t operand_count = 0;
-  uint8_t src_reg = 0;
-  uint8_t dst_reg = 0;
+  M68kParseRegisterResult src_reg;
+  M68kParseRegisterResult dst_reg;
+  M68kParseMnemonicResult mnemonic_result;
+  uint8_t mnemonic_id = M68K_ASM_MNEMONIC_NONE;
   snprintf(line, sizeof(line), "%s", line_text);
   m68k_strip_comment_in_place(line);
   strcpy(line, m68k_trim_in_place(line));
@@ -164,31 +167,42 @@ int m68k_is_elided_lea_noop(const char *line_text) {
   if (space == NULL) return 0;
   *space = '\0';
   operand_text = m68k_trim_in_place(space + 1);
-  if (_stricmp(line, "lea") != 0 || *operand_text == '\0') return 0;
+  mnemonic_result = m68k_parse_mnemonic_token(line);
+  mnemonic_id = mnemonic_result.mnemonic_id;
+  size_suffix = mnemonic_result.size_suffix;
+  if (mnemonic_id != M68K_ASM_MNEMONIC_LEA || size_suffix != '\0' || *operand_text == '\0') return 0;
   if (!m68k_split_operands_in_place(operand_text, operands, 4U, &operand_count)
     || operand_count != 2U) {
     return 0;
   }
-  if (!m68k_parse_register_token(m68k_trim_in_place(operands[1]), 'a',
-                   &dst_reg)) {
-    return 0;
-  }
+  dst_reg = m68k_parse_register_token(m68k_trim_in_place(operands[1]), 'a');
+  if (!dst_reg.ok) return 0;
   if (operands[0][0] != '(' || operands[0][3] != ')' || operands[0][4] != '\0')
     return 0;
   src_token[0] = operands[0][1];
   src_token[1] = operands[0][2];
   src_token[2] = '\0';
-  if (!m68k_parse_register_token(src_token, 'a', &src_reg)) return 0;
-  return src_reg == dst_reg;
+  src_reg = m68k_parse_register_token(src_token, 'a');
+  if (!src_reg.ok) return 0;
+  return src_reg.reg == dst_reg.reg;
+}
+
+static int source_text_is_zero_immediate_local(const char *text) {
+  return m68k_ascii_equal_ci(text, "#0") ||
+    m68k_ascii_equal_ci(text, "#$0") ||
+    m68k_ascii_equal_ci(text, "#$0000") ||
+    m68k_ascii_equal_ci(text, "#$00000000");
 }
 
 int m68k_rewrite_cmp_zero_to_tst(const char *line_text, char *out_text, size_t out_text_size) {
   char line[256];
-  char mnemonic[32];
+  char size_suffix = '\0';
   char *space = NULL;
   char *operand_text = NULL;
   char *operands[4] = {NULL, NULL, NULL, NULL};
   size_t operand_count = 0;
+  M68kParseMnemonicResult mnemonic_result;
+  uint8_t mnemonic_id = M68K_ASM_MNEMONIC_NONE;
   snprintf(line, sizeof(line), "%s", line_text);
   m68k_strip_comment_in_place(line);
   strcpy(line, m68k_trim_in_place(line));
@@ -198,23 +212,14 @@ int m68k_rewrite_cmp_zero_to_tst(const char *line_text, char *out_text, size_t o
   *space = '\0';
   operand_text = m68k_trim_in_place(space + 1);
   if (*operand_text == '\0') return 0;
-  snprintf(mnemonic, sizeof(mnemonic), "%s", line);
-  if (_stricmp(mnemonic, "cmp.b") != 0 && _stricmp(mnemonic, "cmp.w") != 0 &&
-    _stricmp(mnemonic, "cmp.l") != 0) {
-    return 0;
-  }
-  if (!m68k_split_operands_in_place(operand_text, operands, 4U, &operand_count)
-    || operand_count != 2U) {
-    return 0;
-  }
-  if (_stricmp(m68k_trim_in_place(operands[0]), "#0") != 0 &&
-    _stricmp(m68k_trim_in_place(operands[0]), "#$0") != 0 &&
-    _stricmp(m68k_trim_in_place(operands[0]), "#$0000") != 0 &&
-    _stricmp(m68k_trim_in_place(operands[0]), "#$00000000") != 0) {
-    return 0;
-  }
-  snprintf(out_text, out_text_size, "tst%s %s", mnemonic + 3,
-       m68k_trim_in_place(operands[1]));
+  mnemonic_result = m68k_parse_mnemonic_token(line);
+  mnemonic_id = mnemonic_result.mnemonic_id;
+  size_suffix = mnemonic_result.size_suffix;
+  if (mnemonic_id != M68K_ASM_MNEMONIC_CMP) return 0;
+  if (size_suffix != 'b' && size_suffix != 'w' && size_suffix != 'l') return 0;
+  if (!m68k_split_operands_in_place(operand_text, operands, 4U, &operand_count) || operand_count != 2U) return 0;
+  if (!source_text_is_zero_immediate_local(m68k_trim_in_place(operands[0]))) return 0;
+  snprintf(out_text, out_text_size, "tst.%c %s", size_suffix, m68k_trim_in_place(operands[1]));
   return 1;
 }
 
@@ -233,15 +238,15 @@ char m68k_requested_size_suffix_from_text(const char *line_text) {
 }
 
 int m68k_parse_section_kind(const char *text, M68kSectionKind *out_kind) {
-  if (_stricmp(text, "code") == 0) {
+  if (m68k_ascii_equal_ci(text, "code")) {
     *out_kind = M68K_SECTION_CODE;
     return 1;
   }
-  if (_stricmp(text, "data") == 0) {
+  if (m68k_ascii_equal_ci(text, "data")) {
     *out_kind = M68K_SECTION_DATA;
     return 1;
   }
-  if (_stricmp(text, "bss") == 0) {
+  if (m68k_ascii_equal_ci(text, "bss")) {
     *out_kind = M68K_SECTION_BSS;
     return 1;
   }

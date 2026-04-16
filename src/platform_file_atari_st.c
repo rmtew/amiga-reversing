@@ -2,6 +2,37 @@
 
 static int atari_st_find_previous_instruction_ending_at(const SectionAnalysisContext *ctx, uint32_t offset,
     uint32_t *out_prev_offset, SectionDecodeResult *out_prev_decode);
+static int atari_st_instruction_has_mnemonic(const M68kInstructionIR *instruction, uint8_t mnemonic_id);
+static int atari_st_mnemonic_is_stack_add_family(uint8_t mnemonic_id);
+static int atari_st_mnemonic_is_stack_sub_family(uint8_t mnemonic_id);
+
+static int atari_st_instruction_has_mnemonic(const M68kInstructionIR *instruction, uint8_t mnemonic_id) {
+  return instruction != NULL && instruction->mnemonic_id == mnemonic_id;
+}
+
+static int atari_st_mnemonic_is_stack_add_family(uint8_t mnemonic_id) {
+  switch (mnemonic_id) {
+  case M68K_ASM_MNEMONIC_ADDQ:
+  case M68K_ASM_MNEMONIC_ADD:
+  case M68K_ASM_MNEMONIC_ADDI:
+  case M68K_ASM_MNEMONIC_ADDA:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+static int atari_st_mnemonic_is_stack_sub_family(uint8_t mnemonic_id) {
+  switch (mnemonic_id) {
+  case M68K_ASM_MNEMONIC_SUBQ:
+  case M68K_ASM_MNEMONIC_SUB:
+  case M68K_ASM_MNEMONIC_SUBI:
+  case M68K_ASM_MNEMONIC_SUBA:
+    return 1;
+  default:
+    return 0;
+  }
+}
 
 static const AtariStOsCallInfo *resolve_atari_st_trap_call_after_stack_seed(const SectionAnalysisContext *ctx,
     uint32_t next_offset, uint16_t opcode) {
@@ -9,14 +40,14 @@ static const AtariStOsCallInfo *resolve_atari_st_trap_call_after_stack_seed(cons
   const M68kInstructionIR *trap_instruction;
   if (!section_analysis_context_probe_decode(ctx, next_offset, &next_decode)) return NULL;
   trap_instruction = &next_decode.instruction;
-  if (!instruction_mnemonic_is(trap_instruction, "trap")) return NULL;
+  if (!atari_st_instruction_has_mnemonic(trap_instruction, M68K_ASM_MNEMONIC_TRAP)) return NULL;
   if (trap_instruction->operand_count != 1U) return NULL;
   return atari_st_os_find_call((uint8_t)(trap_instruction->operands[0].value.value & 0xFFU), opcode);
 }
 
 static int atari_st_instruction_trap_vector(const M68kInstructionIR *instruction, uint8_t *out_vector) {
   if (out_vector != NULL) *out_vector = 0U;
-  if (instruction == NULL || !instruction_mnemonic_is(instruction, "trap")) return 0;
+  if (!atari_st_instruction_has_mnemonic(instruction, M68K_ASM_MNEMONIC_TRAP)) return 0;
   if (instruction->operand_count != 1U) return 0;
   if (out_vector != NULL) *out_vector = (uint8_t)(instruction->operands[0].value.value & 0xFFU);
   return 1;
@@ -27,12 +58,12 @@ static int atari_st_instruction_stack_adjust_delta(const M68kInstructionIR *inst
   const M68kOperandIR *dst;
   int16_t disp16;
   uint8_t base_reg;
+  uint8_t mnemonic_id;
   int32_t value;
   if (out_delta != NULL) *out_delta = 0;
   if (instruction == NULL || out_delta == NULL) return 0;
-  if ((instruction_mnemonic_is(instruction, "addq") || instruction_mnemonic_is(instruction, "add") ||
-       instruction_mnemonic_is(instruction, "addi") || instruction_mnemonic_is(instruction, "adda")) &&
-      instruction->operand_count == 2U) {
+  mnemonic_id = instruction->mnemonic_id;
+  if (atari_st_mnemonic_is_stack_add_family(mnemonic_id) && instruction->operand_count == 2U) {
     src = &instruction->operands[0];
     dst = &instruction->operands[1];
     if (!(dst->kind == M68K_ASM_OPERAND_AN && dst->value.reg == 7U) &&
@@ -41,16 +72,14 @@ static int atari_st_instruction_stack_adjust_delta(const M68kInstructionIR *inst
         (src->kind != M68K_ASM_OPERAND_EA || src->value.ea_mode != 7U || src->value.ea_reg != 4U)) {
       return 0;
     }
-    value = (instruction_mnemonic_is(instruction, "addq") != 0)
+    value = (mnemonic_id == M68K_ASM_MNEMONIC_ADDQ)
       ? (int32_t)m68k_sign_extend32(src->value.value, 3U)
       : (int32_t)m68k_sign_extend32(src->value.value,
           instruction->size_suffix == 'w' ? 16U : 32U);
     *out_delta = value;
     return 1;
   }
-  if ((instruction_mnemonic_is(instruction, "subq") || instruction_mnemonic_is(instruction, "sub") ||
-       instruction_mnemonic_is(instruction, "subi") || instruction_mnemonic_is(instruction, "suba")) &&
-      instruction->operand_count == 2U) {
+  if (atari_st_mnemonic_is_stack_sub_family(mnemonic_id) && instruction->operand_count == 2U) {
     src = &instruction->operands[0];
     dst = &instruction->operands[1];
     if (!(dst->kind == M68K_ASM_OPERAND_AN && dst->value.reg == 7U) &&
@@ -59,14 +88,14 @@ static int atari_st_instruction_stack_adjust_delta(const M68kInstructionIR *inst
         (src->kind != M68K_ASM_OPERAND_EA || src->value.ea_mode != 7U || src->value.ea_reg != 4U)) {
       return 0;
     }
-    value = (instruction_mnemonic_is(instruction, "subq") != 0)
+    value = (mnemonic_id == M68K_ASM_MNEMONIC_SUBQ)
       ? (int32_t)m68k_sign_extend32(src->value.value, 3U)
       : (int32_t)m68k_sign_extend32(src->value.value,
           instruction->size_suffix == 'w' ? 16U : 32U);
     *out_delta = -value;
     return 1;
   }
-  if (instruction_mnemonic_is(instruction, "lea") && instruction->operand_count == 2U) {
+  if (mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction->operand_count == 2U) {
     src = &instruction->operands[0];
     dst = &instruction->operands[1];
     if (!(dst->kind == M68K_ASM_OPERAND_AN && dst->value.reg == 7U) &&
@@ -83,6 +112,7 @@ static int atari_st_extract_stack_word_write(const M68kInstructionIR *instructio
     uint16_t *out_value, uint32_t *out_write_disp, uint32_t *out_write_size, uint8_t *out_consumes_depth) {
   const M68kOperandIR *src;
   const M68kOperandIR *dst;
+  uint8_t mnemonic_id;
   if (out_has_value != NULL) *out_has_value = 0U;
   if (out_value != NULL) *out_value = 0U;
   if (out_write_disp != NULL) *out_write_disp = 0U;
@@ -90,16 +120,17 @@ static int atari_st_extract_stack_word_write(const M68kInstructionIR *instructio
   if (out_consumes_depth != NULL) *out_consumes_depth = 0U;
   if (instruction == NULL) return 0;
   if (instruction->operand_count != 2U) return 0;
+  mnemonic_id = instruction->mnemonic_id;
   src = &instruction->operands[0];
   dst = &instruction->operands[1];
-  if ((instruction_mnemonic_is(instruction, "move") || instruction_mnemonic_is(instruction, "clr")) &&
+  if ((mnemonic_id == M68K_ASM_MNEMONIC_MOVE || mnemonic_id == M68K_ASM_MNEMONIC_CLR) &&
       instruction->size_suffix == 'w') {
     if ((dst->kind == M68K_ASM_OPERAND_PREDEC && dst->value.reg == 7U) ||
         (dst->kind == M68K_ASM_OPERAND_EA && dst->value.ea_mode == 4U && dst->value.ea_reg == 7U)) {
       if (out_write_disp != NULL) *out_write_disp = 0U;
       if (out_write_size != NULL) *out_write_size = 2U;
       if (out_consumes_depth != NULL) *out_consumes_depth = 1U;
-      if (instruction_mnemonic_is(instruction, "clr")) {
+      if (mnemonic_id == M68K_ASM_MNEMONIC_CLR) {
         if (out_has_value != NULL) *out_has_value = 1U;
         if (out_value != NULL) *out_value = 0U;
         return 1;
@@ -116,7 +147,7 @@ static int atari_st_extract_stack_word_write(const M68kInstructionIR *instructio
       if (out_write_disp != NULL) *out_write_disp = 0U;
       if (out_write_size != NULL) *out_write_size = 2U;
       if (out_consumes_depth != NULL) *out_consumes_depth = 0U;
-      if (instruction_mnemonic_is(instruction, "clr")) {
+      if (mnemonic_id == M68K_ASM_MNEMONIC_CLR) {
         if (out_has_value != NULL) *out_has_value = 1U;
         if (out_value != NULL) *out_value = 0U;
         return 1;
@@ -190,7 +221,7 @@ static const AtariStOsCallInfo *resolve_atari_st_trap_seed_call(const SectionAna
   uint32_t next_offset;
   uint16_t opcode;
   if (ctx == NULL || instruction == NULL || section == NULL) return NULL;
-  if (!instruction_mnemonic_is(instruction, "move")) return NULL;
+  if (!atari_st_instruction_has_mnemonic(instruction, M68K_ASM_MNEMONIC_MOVE)) return NULL;
   if (instruction->operand_count != 2U) return NULL;
   opcode_operand = &instruction->operands[0];
   dst_operand = &instruction->operands[1];
@@ -231,18 +262,18 @@ static int atari_st_find_previous_instruction_ending_at(const SectionAnalysisCon
 static int atari_st_instruction_is_stack_cleanup_candidate(const M68kInstructionIR *instruction, uint16_t cleanup_bytes) {
   const M68kOperandIR *src;
   const M68kOperandIR *dst;
+  uint8_t mnemonic_id;
   int32_t disp;
   if (instruction == NULL) return 0;
   if (cleanup_bytes == 0U) return 0;
-  if ((instruction_mnemonic_is(instruction, "addq") || instruction_mnemonic_is(instruction, "add") ||
-       instruction_mnemonic_is(instruction, "addi") || instruction_mnemonic_is(instruction, "adda")) &&
-      instruction->operand_count == 2U) {
+  mnemonic_id = instruction->mnemonic_id;
+  if (atari_st_mnemonic_is_stack_add_family(mnemonic_id) && instruction->operand_count == 2U) {
     dst = &instruction->operands[1];
     return (dst->kind == M68K_ASM_OPERAND_AN && dst->value.reg == 7U) ||
       (dst->kind == M68K_ASM_OPERAND_EA && dst->value.ea_mode == 1U && dst->value.ea_reg == 7U) ||
       (dst->kind == M68K_ASM_OPERAND_POSTINC && dst->value.reg == 7U);
   }
-  if (instruction_mnemonic_is(instruction, "lea") && instruction->operand_count == 2U) {
+  if (mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction->operand_count == 2U) {
     src = &instruction->operands[0];
     dst = &instruction->operands[1];
     {
@@ -258,15 +289,13 @@ static int atari_st_instruction_is_stack_cleanup_candidate(const M68kInstruction
   return 0;
 }
 
-int platform_atari_st_resolve_indirect_control(const SectionAnalysisContext *ctx,
-    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
-    PlatformResolvedIndirectInfo *out_info) {
+PlatformResolvedIndirectInfo platform_atari_st_resolve_indirect_control(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction) {
   (void)ctx;
   (void)section_analysis;
   (void)offset;
   (void)instruction;
-  if (out_info != NULL) memset(out_info, 0, sizeof(*out_info));
-  return PLATFORM_RESOLVED_INDIRECT_NONE;
+  return platform_resolved_indirect_info_none();
 }
 
 int platform_atari_st_collect_recovered_platform_facts(const SectionAnalysisContext *ctx,
@@ -285,13 +314,16 @@ int platform_atari_st_collect_recovered_platform_facts(const SectionAnalysisCont
     const AtariStOsCallInfo *call_info;
     uint32_t cleanup_offset = UINT32_MAX;
     if (!section_analysis_context_probe_decode(ctx, offset, &decode)) continue;
-    if (!instruction_mnemonic_is(&decode.instruction, "trap")) continue;
+    if (!atari_st_instruction_has_mnemonic(&decode.instruction, M68K_ASM_MNEMONIC_TRAP)) continue;
     call_info = resolve_atari_st_trap_call_from_stack(ctx, section_analysis, offset);
     if (call_info == NULL) continue;
-    if (m68k_ir_section_analysis_append_recovered_platform_call(section_analysis,
+    if (m68k_ir_section_analysis_append_recovered_platform_call(section_analysis, M68K_PLATFORM_BACKEND_ATARI_ST,
           offset, 0U, NULL, M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL,
-          call_info->family_name, call_info->symbol_name, 0U, INT16_MIN, INT16_MIN,
-          call_info->stack_cleanup_known, call_info->stack_cleanup_bytes, call_info->return_kind) != 0) {
+          atari_st_os_name(M68K_PLATFORM_NAME_FAMILY, call_info->family_id),
+          atari_st_os_name(M68K_PLATFORM_NAME_SYMBOL, call_info->symbol_id),
+          0U, INT16_MIN, INT16_MIN,
+          call_info->stack_cleanup_known, call_info->stack_cleanup_bytes, call_info->return_kind,
+          NULL, NULL) != 0) {
       return -1;
     }
     if (!call_info->stack_cleanup_known) continue;
@@ -302,42 +334,45 @@ int platform_atari_st_collect_recovered_platform_facts(const SectionAnalysisCont
           call_info->stack_cleanup_bytes)) {
       continue;
     }
-    if (m68k_ir_section_analysis_append_recovered_platform_call(section_analysis,
+    if (m68k_ir_section_analysis_append_recovered_platform_call(section_analysis, M68K_PLATFORM_BACKEND_ATARI_ST,
           cleanup_offset, 1U, NULL, M68K_PLATFORM_CALL_NOTE_STACK_CLEANUP,
-          call_info->family_name, call_info->symbol_name, 0U, INT16_MIN, INT16_MIN,
-          call_info->stack_cleanup_known, call_info->stack_cleanup_bytes, call_info->return_kind) != 0) {
+          atari_st_os_name(M68K_PLATFORM_NAME_FAMILY, call_info->family_id),
+          atari_st_os_name(M68K_PLATFORM_NAME_SYMBOL, call_info->symbol_id),
+          0U, INT16_MIN, INT16_MIN,
+          call_info->stack_cleanup_known, call_info->stack_cleanup_bytes, call_info->return_kind,
+          NULL, NULL) != 0) {
       return -1;
     }
   }
   return 0;
 }
 
-int platform_atari_st_resolve_additional_indirect_note(const SectionAnalysisContext *ctx,
-    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
-    PlatformResolvedIndirectInfo *out_info) {
+PlatformResolvedIndirectInfo platform_atari_st_resolve_additional_indirect_note(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction) {
+  PlatformResolvedIndirectInfo info;
   const M68kRecoveredPlatformCallIR *recovered;
   SectionDecodeResult prev_decode;
   uint32_t prev_offset = UINT32_MAX;
-  if (out_info != NULL) memset(out_info, 0, sizeof(*out_info));
-  if (ctx == NULL || section_analysis == NULL || instruction == NULL) return 0;
+  info = platform_resolved_indirect_info_none();
+  if (ctx == NULL || section_analysis == NULL || instruction == NULL) return info;
   if (section_analysis_context_object(ctx) == NULL ||
       section_analysis_context_object(ctx)->platform_backend_kind != M68K_PLATFORM_BACKEND_ATARI_ST) {
-    return 0;
+    return info;
   }
-  if (section_analysis_context_object(ctx)->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE) return 0;
-  if (instruction_mnemonic_is(instruction, "trap")) {
+  if (section_analysis_context_object(ctx)->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE) return info;
+  if (atari_st_instruction_has_mnemonic(instruction, M68K_ASM_MNEMONIC_TRAP)) {
     recovered = find_any_recovered_platform_call(section_analysis, offset);
     if (recovered == NULL || recovered->kind != 0U ||
         recovered->note_kind != M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL) {
-      return 0;
+      return info;
     }
-    load_recovered_platform_call_info(recovered, out_info);
-    return 1;
+    load_recovered_platform_call_info(recovered, &info);
+    return info;
   }
   (void)prev_decode;
   (void)prev_offset;
   (void)recovered;
-  return 0;
+  return info;
 }
 
 int platform_atari_st_annotate_instruction_symbol_refs(const SectionAnalysisContext *ctx,
@@ -354,18 +389,23 @@ int platform_atari_st_annotate_instruction_symbol_refs(const SectionAnalysisCont
   call_info = resolve_atari_st_trap_seed_call(ctx, offset, instruction, &trap_offset);
   if (call_info == NULL) return 0;
   recovered = find_any_recovered_platform_call(section_analysis, trap_offset);
-  if (recovered == NULL || recovered->note_kind != M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL ||
-      recovered->note_symbol_name == NULL || recovered->note_symbol_name[0] == '\0') {
-    return 0;
+  {
+    const char *note_symbol_name = recovered != NULL
+      ? m68k_platform_name_ref_name_or_text(&recovered->note_symbol_ref, recovered->note_symbol_name)
+      : NULL;
+    if (recovered == NULL || recovered->note_kind != M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL ||
+        note_symbol_name == NULL || note_symbol_name[0] == '\0') {
+      return 0;
+    }
+    instruction->operands[0].symbol_ref.has_name = 1U;
+    instruction->operands[0].symbol_ref.name_is_generated = 0U;
+    instruction->operands[0].symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_ATARI_ST;
+    instruction->operands[0].symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
+    instruction->operands[0].symbol_ref.addend = 0;
+    snprintf(instruction->operands[0].symbol_ref.name, sizeof(instruction->operands[0].symbol_ref.name), "%s",
+      note_symbol_name);
+    return 1;
   }
-  instruction->operands[0].symbol_ref.has_name = 1U;
-  instruction->operands[0].symbol_ref.name_is_generated = 0U;
-  instruction->operands[0].symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_ATARI_ST;
-  instruction->operands[0].symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
-  instruction->operands[0].symbol_ref.addend = 0;
-  snprintf(instruction->operands[0].symbol_ref.name, sizeof(instruction->operands[0].symbol_ref.name), "%s",
-    recovered->note_symbol_name);
-  return 1;
 }
 
 int platform_atari_st_resolve_app_base_slot_symbol_ref(const SectionAnalysisContext *ctx,

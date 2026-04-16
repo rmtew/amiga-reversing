@@ -3,6 +3,7 @@
 
 #include "m68k_ir.h"
 #include "m68k_source_data.h"
+#include "m68k_source_lookup.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -79,16 +80,22 @@ typedef struct AsmSourceFile {
     uint32_t atari_st_program_flags;
 } AsmSourceFile;
 
-int m68k_source_model_find_symbol_index(const AsmSourceFile *source, const char *name, size_t *out_index);
-int m68k_source_model_lookup_symbol(const char *name, uint32_t *out_value, size_t *out_section_index, int *out_defined,
-    void *user_data);
-int m68k_source_model_expr_lookup_symbol(const char *name, int *out_defined, int *out_is_constant, uint32_t *out_value,
-    size_t *out_symbol_id, size_t *out_section_index, void *user_data);
-int m68k_source_model_append_section(AsmSourceFile *source, const char *name, M68kSectionKind kind, size_t *out_index);
-int m68k_source_model_ensure_symbol(AsmSourceFile *source, const char *name, AsmSourceSymbolKind kind, size_t *out_index);
+typedef struct M68kSourceModelIndexResult {
+    uint8_t ok;
+    size_t index;
+} M68kSourceModelIndexResult;
+
+M68kSourceModelIndexResult m68k_source_model_find_symbol_index(const AsmSourceFile *source, const char *name);
+M68kSourceLookupResult m68k_source_model_lookup_symbol(const char *name, void *user_data);
+M68kSourceLookupResult m68k_source_model_expr_lookup_symbol(const char *name, void *user_data);
+M68kSourceModelIndexResult m68k_source_model_append_section(AsmSourceFile *source, const char *name,
+    M68kSectionKind kind);
+M68kSourceModelIndexResult m68k_source_model_ensure_symbol(AsmSourceFile *source, const char *name,
+    AsmSourceSymbolKind kind);
 int m68k_source_model_set_constant(AsmSourceFile *source, const char *name, uint32_t value, int allow_redefine);
 int m68k_source_model_set_label_value(AsmSourceFile *source, const char *name, size_t section_index, uint32_t value);
-int m68k_source_model_append_statement(AsmSourceFile *source, AsmSourceStmtKind kind, size_t line_number, AsmSourceStmt **out_stmt);
+M68kSourceModelIndexResult m68k_source_model_append_statement(AsmSourceFile *source, AsmSourceStmtKind kind,
+    size_t line_number);
 int m68k_source_model_append_data_item(AsmSourceDataStmt *data_stmt, const AsmDataItem *item);
 void m68k_source_model_free(AsmSourceFile *source);
 

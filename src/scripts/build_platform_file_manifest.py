@@ -19,6 +19,48 @@ DEFAULT_INPUT = ROOT / "corpus" / "platform_disk_manifest.jsonl"
 DEFAULT_OUTPUT = ROOT / "corpus" / "platform_file_manifest.jsonl"
 FILE_DLL = ROOT / "src" / "build" / "platform_file_lib.dll"
 AMIGA_HUNK_RUNTIME_JSON = ROOT / "src" / "generated" / "amiga_hunk_file_runtime.json"
+M68K_DIAG_SEVERITY_ERROR = 3
+M68K_DIAG_MESSAGE_SIZE = 160
+M68K_DIAG_LIST_CAPACITY = 8
+
+
+class M68kDiag(ctypes.Structure):
+    _fields_ = [
+        ("severity", ctypes.c_uint32),
+        ("code", ctypes.c_uint32),
+        ("message", ctypes.c_char * M68K_DIAG_MESSAGE_SIZE),
+    ]
+
+
+class M68kDiagList(ctypes.Structure):
+    _fields_ = [
+        ("count", ctypes.c_size_t),
+        ("dropped_count", ctypes.c_size_t),
+        ("items", M68kDiag * M68K_DIAG_LIST_CAPACITY),
+    ]
+
+
+class PlatformFileTextResult(ctypes.Structure):
+    _fields_ = [
+        ("text", ctypes.c_void_p),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
+def _diag_message(diagnostics: M68kDiagList) -> str:
+    for index in range(diagnostics.count):
+        if diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR:
+            return diagnostics.items[index].message.decode("utf-8")
+    if diagnostics.count:
+        return diagnostics.items[0].message.decode("utf-8")
+    return ""
+
+
+def _diag_has_errors(diagnostics: M68kDiagList) -> bool:
+    return any(
+        diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR
+        for index in range(diagnostics.count)
+    )
 
 
 def _ensure_tools_built() -> None:
@@ -137,25 +179,20 @@ def _inspect_amiga_text(file_bytes: bytes) -> dict[str, Any]:
 def _inspect_file(platform_name: str, suffix: str, file_bytes: bytes) -> dict[str, Any]:
     del suffix
     library = _platform_file_library()
-    json_ptr = ctypes.c_void_p()
-    error_buf = ctypes.create_string_buffer(512)
     data_array = (ctypes.c_ubyte * len(file_bytes)).from_buffer_copy(file_bytes if file_bytes else b"\0")
     result = library.platform_file_inspect_buffer_json(
         platform_name.encode("utf-8"),
         data_array,
         len(file_bytes),
-        ctypes.byref(json_ptr),
-        error_buf,
-        len(error_buf),
     )
-    if result != 0:
-        raise RuntimeError(error_buf.value.decode("utf-8"))
+    if _diag_has_errors(result.diagnostics):
+        raise RuntimeError(_diag_message(result.diagnostics))
     try:
-        payload = json.loads(ctypes.string_at(json_ptr).decode("utf-8"))
+        payload = json.loads(ctypes.string_at(result.text).decode("utf-8"))
         assert isinstance(payload, dict)
         return payload
     finally:
-        library.platform_file_free_text(json_ptr)
+        library.platform_file_free_text(result.text)
 
 
 @lru_cache(maxsize=1)
@@ -168,11 +205,8 @@ def _platform_file_library() -> Any:
         ctypes.c_char_p,
         ctypes.POINTER(ctypes.c_ubyte),
         ctypes.c_size_t,
-        ctypes.POINTER(ctypes.c_void_p),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    library.platform_file_inspect_buffer_json.restype = ctypes.c_int
+    library.platform_file_inspect_buffer_json.restype = PlatformFileTextResult
     library.platform_file_free_text.argtypes = [ctypes.c_void_p]
     library.platform_file_free_text.restype = None
     return library

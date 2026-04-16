@@ -11,6 +11,10 @@
 
 typedef M68kBinaryReader Reader;
 
+static void platform_file_diag_error(M68kDiagSink diagnostics, const char *message) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, message);
+}
+
 typedef struct AtariStPrgPlatformData {
     uint32_t symbol_table_type;
     uint32_t program_flags;
@@ -59,18 +63,19 @@ static M68kSectionKind map_section_kind(AtariStPrgFileSectionKind section_kind) 
     }
 }
 
-static int add_named_section(M68kObject *object, const char *name, AtariStPrgFileRecordKind record_kind, uint32_t size,
-    const unsigned char *data, uint32_t data_size, size_t *out_index) {
+static M68kObjectAddResult add_named_section(M68kObject *object, const char *name,
+    AtariStPrgFileRecordKind record_kind, uint32_t size, const unsigned char *data, uint32_t data_size) {
+    M68kObjectAddResult result = {0};
     M68kSection section;
     const AtariStPrgFileRecordInfo *info = find_record_info(record_kind);
-    if (info == NULL) return -1;
+    if (info == NULL) return result;
     memset(&section, 0, sizeof(section));
     section.name = (char *)name;
     section.kind = map_section_kind(info->section_kind);
     section.size = size;
     section.data = (uint8_t *)data;
     section.data_size = data_size;
-    return m68k_object_add_section(object, &section, out_index);
+    return m68k_object_add_section(object, &section);
 }
 
 static int add_reloc_fixup(M68kObject *object, uint32_t image_offset, uint32_t text_size, uint32_t data_size,
@@ -120,21 +125,21 @@ static int add_reloc_fixup(M68kObject *object, uint32_t image_offset, uint32_t t
             fixup.addend = (int32_t)(target_image_offset - text_size);
         }
     }
-    return m68k_object_add_fixup(object, &fixup, NULL);
+    return m68k_object_add_fixup(object, &fixup).ok ? 0 : -1;
 }
 
 static int parse_relocation_stream(Reader *reader, M68kObject *out_object, uint32_t text_size, uint32_t data_size,
-    size_t text_index, size_t data_index, char *error_buf, size_t error_buf_size) {
+    size_t text_index, size_t data_index, M68kDiagSink diagnostics) {
     uint32_t offset = 0;
     unsigned char delta = 0;
     const AtariStPrgFileRelocationKind *reloc_kind =
         find_relocation_kind(ATARI_ST_PRG_FILE_META_RECORD_KIND_RELOCATION_STREAM);
     if (reloc_kind == NULL) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Missing Atari relocation metadata");
+        platform_file_diag_error(diagnostics, "Missing Atari relocation metadata");
         return -1;
     }
     if (m68k_reader_read_u32be(reader, &offset) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Truncated Atari relocation stream");
+        platform_file_diag_error(diagnostics, "Truncated Atari relocation stream");
         return -1;
     }
     if (offset == 0U) {
@@ -142,13 +147,13 @@ static int parse_relocation_stream(Reader *reader, M68kObject *out_object, uint3
         return 0;
     }
     if (add_reloc_fixup(out_object, offset, text_size, data_size, reloc_kind, text_index, data_index) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Invalid Atari relocation offset");
+        platform_file_diag_error(diagnostics, "Invalid Atari relocation offset");
         return -1;
     }
     for (;;) {
         if (m68k_reader_read_u8(reader, &delta) != 0) {
             if (atari_allow_eof_terminated_relocation_stream()) return 0;
-            m68k_platform_set_error(error_buf, error_buf_size, "Truncated Atari relocation stream");
+            platform_file_diag_error(diagnostics, "Truncated Atari relocation stream");
             return -1;
         }
         if (delta == 0U) return 0;
@@ -158,7 +163,7 @@ static int parse_relocation_stream(Reader *reader, M68kObject *out_object, uint3
         }
         offset += (uint32_t)delta;
         if (add_reloc_fixup(out_object, offset, text_size, data_size, reloc_kind, text_index, data_index) != 0) {
-            m68k_platform_set_error(error_buf, error_buf_size, "Invalid Atari relocation offset");
+            platform_file_diag_error(diagnostics, "Invalid Atari relocation offset");
             return -1;
         }
     }
@@ -232,7 +237,7 @@ static int compare_u32(const void *lhs, const void *rhs) {
 }
 
 static int write_relocation_stream(Writer *writer, const M68kObject *object, size_t text_index, uint32_t text_size,
-    size_t data_index, uint32_t data_size, char *error_buf, size_t error_buf_size) {
+    size_t data_index, uint32_t data_size, M68kDiagSink diagnostics) {
     uint32_t *offsets = NULL;
     size_t offset_count = 0;
     size_t i;
@@ -244,7 +249,7 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
         if (validate_writable_fixup(fixup, text_index, text_size, data_index, data_size, &image_offset) != 0) {
             if (atari_fixup_is_ignorable_local_encoding(fixup)) continue;
             free(offsets);
-            snprintf(error_buf, error_buf_size,
+            m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
                 "Atari ST writer supports only TEXT/DATA absolute 32-bit fixups (section=%" PRIuPTR
                 " offset=%" PRIu32 " kind=%u width=%u has_target=%d has_symbol=%d)",
                 fixup->section_index, fixup->offset, (unsigned int)fixup->kind, (unsigned int)fixup->width,
@@ -253,7 +258,7 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
         }
         offsets = (uint32_t *)realloc(offsets, (offset_count + 1U) * sizeof(*offsets));
         if (offsets == NULL) {
-            m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+            platform_file_diag_error(diagnostics, "Out of memory");
             return -1;
         }
         offsets[offset_count++] = image_offset;
@@ -279,7 +284,7 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
         }
         if (delta == 0U) {
             free(offsets);
-            m68k_platform_set_error(error_buf, error_buf_size, "Atari ST writer does not support duplicate relocation offsets");
+            platform_file_diag_error(diagnostics, "Atari ST writer does not support duplicate relocation offsets");
             return -1;
         }
         if (m68k_writer_u8(writer, (unsigned char)delta) != 0) {
@@ -292,8 +297,7 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
     return m68k_writer_u8(writer, 0U);
 }
 
-static int atari_st_read_buffer(const unsigned char *data, size_t size, M68kObject *out_object, char *error_buf,
-    size_t error_buf_size) {
+static int atari_st_read_buffer(const unsigned char *data, size_t size, M68kObject *out_object, M68kDiagSink diagnostics) {
     Reader reader;
     uint16_t magic = 0, relocation_flag = 0;
     uint32_t text_size = 0, data_size = 0, bss_size = 0;
@@ -301,6 +305,7 @@ static int atari_st_read_buffer(const unsigned char *data, size_t size, M68kObje
     size_t text_index = 0;
     size_t data_index = 0;
     M68kSection section;
+    M68kObjectAddResult section_result;
     AtariStPrgPlatformData *platform_data = NULL;
 
     if (out_object != NULL) out_object->platform_backend_kind = M68K_PLATFORM_BACKEND_ATARI_ST;
@@ -309,7 +314,7 @@ static int atari_st_read_buffer(const unsigned char *data, size_t size, M68kObje
     reader.pos = 0U;
 
     if (m68k_reader_read_u16be(&reader, &magic) != 0 || magic != ATARI_ST_PRG_FILE_MAGIC_PRG) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Invalid Atari ST PRG header");
+        platform_file_diag_error(diagnostics, "Invalid Atari ST PRG header");
         return -1;
     }
     if (m68k_reader_read_u32be(&reader, &text_size) != 0
@@ -319,12 +324,12 @@ static int atari_st_read_buffer(const unsigned char *data, size_t size, M68kObje
         || m68k_reader_read_u32be(&reader, &symbol_table_type) != 0
         || m68k_reader_read_u32be(&reader, &program_flags) != 0
         || m68k_reader_read_u16be(&reader, &relocation_flag) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Truncated Atari ST PRG header");
+        platform_file_diag_error(diagnostics, "Truncated Atari ST PRG header");
         return -1;
     }
     platform_data = (AtariStPrgPlatformData *)m68k_object_alloc(out_object, sizeof(*platform_data));
     if (platform_data == NULL) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+        platform_file_diag_error(diagnostics, "Out of memory");
         return -1;
     }
     memset(platform_data, 0, sizeof(*platform_data));
@@ -333,22 +338,26 @@ static int atari_st_read_buffer(const unsigned char *data, size_t size, M68kObje
     platform_data->relocation_flag = relocation_flag;
     out_object->platform_data = platform_data;
     if (reader.pos + text_size + data_size + symbol_table_size > reader.size) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Truncated Atari ST PRG sections");
+        platform_file_diag_error(diagnostics, "Truncated Atari ST PRG sections");
         return -1;
     }
 
     out_object->platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
-    if (add_named_section(out_object, "TEXT", ATARI_ST_PRG_FILE_META_RECORD_KIND_TEXT, text_size,
-            data + reader.pos, text_size, &text_index) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not add TEXT section");
+    section_result = add_named_section(out_object, "TEXT", ATARI_ST_PRG_FILE_META_RECORD_KIND_TEXT, text_size,
+            data + reader.pos, text_size);
+    if (!section_result.ok) {
+        platform_file_diag_error(diagnostics, "Could not add TEXT section");
         return -1;
     }
+    text_index = section_result.index;
     reader.pos += text_size;
-    if (add_named_section(out_object, "DATA", ATARI_ST_PRG_FILE_META_RECORD_KIND_DATA, data_size,
-            data + reader.pos, data_size, &data_index) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not add DATA section");
+    section_result = add_named_section(out_object, "DATA", ATARI_ST_PRG_FILE_META_RECORD_KIND_DATA, data_size,
+            data + reader.pos, data_size);
+    if (!section_result.ok) {
+        platform_file_diag_error(diagnostics, "Could not add DATA section");
         return -1;
     }
+    data_index = section_result.index;
     reader.pos += data_size;
 
     if (bss_size != 0U) {
@@ -356,8 +365,8 @@ static int atari_st_read_buffer(const unsigned char *data, size_t size, M68kObje
         section.name = "BSS";
         section.kind = M68K_SECTION_BSS;
         section.size = bss_size;
-        if (m68k_object_add_section(out_object, &section, NULL) != 0) {
-            m68k_platform_set_error(error_buf, error_buf_size, "Could not add BSS section");
+        if (!m68k_object_add_section(out_object, &section).ok) {
+            platform_file_diag_error(diagnostics, "Could not add BSS section");
             return -1;
         }
     }
@@ -365,28 +374,28 @@ static int atari_st_read_buffer(const unsigned char *data, size_t size, M68kObje
     if (symbol_table_size != 0U) {
         platform_data->symbol_table_data = (uint8_t *)m68k_object_alloc(out_object, symbol_table_size);
         if (platform_data->symbol_table_data == NULL) {
-            m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+            platform_file_diag_error(diagnostics, "Out of memory");
             return -1;
         }
         platform_data->symbol_table_size = symbol_table_size;
         if (m68k_reader_read_bytes(&reader, platform_data->symbol_table_data, symbol_table_size) != 0) {
-            m68k_platform_set_error(error_buf, error_buf_size, "Truncated Atari ST symbol table");
+            platform_file_diag_error(diagnostics, "Truncated Atari ST symbol table");
             return -1;
         }
     }
     if (reader.pos < reader.size || (!atari_relocation_flag_is_informational() && relocation_flag == 0u)) {
         if (parse_relocation_stream(&reader, out_object, text_size, data_size, text_index, data_index,
-                error_buf, error_buf_size) != 0) return -1;
+                diagnostics) != 0) return -1;
     }
     if (reader.pos != reader.size && !m68k_reader_remaining_is_all_zero(&reader)) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Unexpected trailing Atari ST data");
+        platform_file_diag_error(diagnostics, "Unexpected trailing Atari ST data");
         return -1;
     }
 
     return 0;
 }
 
-static int atari_st_read_file(const char *path, M68kObject *out_object, char *error_buf, size_t error_buf_size) {
+static int atari_st_read_file(const char *path, M68kObject *out_object, M68kDiagSink diagnostics) {
     FILE *fp = NULL;
     int64_t file_size_signed;
     size_t file_size;
@@ -395,40 +404,40 @@ static int atari_st_read_file(const char *path, M68kObject *out_object, char *er
 
     fp = fopen(path, "rb");
     if (fp == NULL) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not open Atari ST file");
+        platform_file_diag_error(diagnostics, "Could not open Atari ST file");
         return -1;
     }
     if (fseek(fp, 0, SEEK_END) != 0) {
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not size Atari ST file");
+        platform_file_diag_error(diagnostics, "Could not size Atari ST file");
         return -1;
     }
     file_size_signed = (int64_t)ftell(fp);
     if (file_size_signed < 0) {
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not size Atari ST file");
+        platform_file_diag_error(diagnostics, "Could not size Atari ST file");
         return -1;
     }
     file_size = (size_t)file_size_signed;
     if (fseek(fp, 0, SEEK_SET) != 0) {
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not rewind Atari ST file");
+        platform_file_diag_error(diagnostics, "Could not rewind Atari ST file");
         return -1;
     }
     buffer = (unsigned char *)malloc(file_size == 0U ? 1U : file_size);
     if (buffer == NULL) {
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+        platform_file_diag_error(diagnostics, "Out of memory");
         return -1;
     }
     if (file_size != 0U && fread(buffer, 1, file_size, fp) != file_size) {
         free(buffer);
         fclose(fp);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not read Atari ST file");
+        platform_file_diag_error(diagnostics, "Could not read Atari ST file");
         return -1;
     }
     fclose(fp);
-    result = atari_st_read_buffer(buffer, file_size, out_object, error_buf, error_buf_size);
+    result = atari_st_read_buffer(buffer, file_size, out_object, diagnostics);
     free(buffer);
     return result;
 }
@@ -464,7 +473,7 @@ int m68k_atari_st_get_program_flags(const M68kObject *object, uint32_t *out_prog
     return 0;
 }
 
-static int atari_st_write_file(const char *path, const M68kObject *object, char *error_buf, size_t error_buf_size) {
+static int atari_st_write_file(const char *path, const M68kObject *object, M68kDiagSink diagnostics) {
     const AtariStPrgPlatformData *platform_data = (const AtariStPrgPlatformData *)object->platform_data;
     const M68kSection *text_section;
     const M68kSection *data_section;
@@ -479,26 +488,26 @@ static int atari_st_write_file(const char *path, const M68kObject *object, char 
     uint32_t program_flags = 0;
     uint16_t relocation_flag = 0;
     if (object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Atari ST writer requires executable object");
+        platform_file_diag_error(diagnostics, "Atari ST writer requires executable object");
         return -1;
     }
     text_section = find_first_section(object, M68K_SECTION_CODE, &text_index);
     data_section = find_first_section(object, M68K_SECTION_DATA, &data_index);
     bss_section = find_first_section(object, M68K_SECTION_BSS, &bss_index);
     if (text_section == NULL || data_section == NULL) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Atari ST writer requires one TEXT and one DATA section");
+        platform_file_diag_error(diagnostics, "Atari ST writer requires one TEXT and one DATA section");
         return -1;
     }
     if (count_sections(object, M68K_SECTION_CODE) != 1U || count_sections(object, M68K_SECTION_DATA) != 1U) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Atari ST writer requires a single TEXT and single DATA section");
+        platform_file_diag_error(diagnostics, "Atari ST writer requires a single TEXT and single DATA section");
         return -1;
     }
     if (m68k_writer_create(&writer) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+        platform_file_diag_error(diagnostics, "Out of memory");
         return -1;
     }
     if (text_section->size != text_section->data_size || data_section->size != data_section->data_size) {
-        m68k_platform_set_error(error_buf, error_buf_size, "Atari ST writer requires TEXT/DATA sections without extra allocation");
+        platform_file_diag_error(diagnostics, "Atari ST writer requires TEXT/DATA sections without extra allocation");
         return -1;
     }
     if (platform_data != NULL) {
@@ -519,32 +528,32 @@ static int atari_st_write_file(const char *path, const M68kObject *object, char 
         || ((platform_data != NULL) && platform_data->symbol_table_size != 0U
             && m68k_writer_bytes(&writer, platform_data->symbol_table_data, platform_data->symbol_table_size) != 0)) {
         m68k_writer_destroy(&writer);
-        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+        platform_file_diag_error(diagnostics, "Out of memory");
         return -1;
     }
     if (write_relocation_stream(&writer, object, text_index, text_section->data_size, data_index, data_section->data_size,
-            error_buf, error_buf_size) != 0) {
+            diagnostics) != 0) {
         m68k_writer_destroy(&writer);
         return -1;
     }
     fp = fopen(path, "wb");
     if (fp == NULL) {
         m68k_writer_destroy(&writer);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not open Atari ST output file");
+        platform_file_diag_error(diagnostics, "Could not open Atari ST output file");
         return -1;
     }
     writer_data = m68k_writer_build(&writer);
     if (writer.size != 0U && writer_data == NULL) {
         fclose(fp);
         m68k_writer_destroy(&writer);
-        m68k_platform_set_error(error_buf, error_buf_size, "Out of memory");
+        platform_file_diag_error(diagnostics, "Out of memory");
         return -1;
     }
     if (fwrite(writer_data, 1, writer.size, fp) != writer.size) {
         fclose(fp);
         free(writer_data);
         m68k_writer_destroy(&writer);
-        m68k_platform_set_error(error_buf, error_buf_size, "Could not write Atari ST output file");
+        platform_file_diag_error(diagnostics, "Could not write Atari ST output file");
         return -1;
     }
     fclose(fp);

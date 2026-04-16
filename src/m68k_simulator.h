@@ -1,6 +1,7 @@
 #ifndef M68K_SIMULATOR_H
 #define M68K_SIMULATOR_H
 
+#include "m68k_diagnostics.h"
 #include "m68k_ir.h"
 #include "m68k_object.h"
 
@@ -401,9 +402,9 @@ typedef struct M68kSimExceptionFrameRule {
 } M68kSimExceptionFrameRule;
 
 typedef struct M68kSimFormLookup {
-  const char *mnemonic;
-  uint8_t form_index;
-  uint8_t reserved[3];
+  uint8_t mnemonic_id;
+  uint16_t form_index;
+  uint8_t reserved[2];
   M68kSimFormMetadata metadata;
 } M68kSimFormLookup;
 
@@ -495,6 +496,6 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
   const M68kSimMemoryState *memory_state, M68kSimStepResult *out_result);
 int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t target_cpu,
   const uint8_t *code, size_t code_size, uint8_t *memory, size_t memory_size, M68kSimConcreteState *io_state,
-  char *out_error, size_t out_error_size);
+  M68kDiagSink diagnostics);
 
 #endif

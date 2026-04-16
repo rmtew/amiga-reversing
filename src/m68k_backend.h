@@ -3,13 +3,14 @@
 
 #include <stddef.h>
 
+#include "m68k_diagnostics.h"
 #include "m68k_object.h"
 
 typedef struct M68kBackend {
   const char *name;
-  int (*read_file)(const char *path, M68kObject *out_object, char *error_buf, size_t error_buf_size);
-  int (*read_buffer)(const unsigned char *data, size_t size, M68kObject *out_object, char *error_buf, size_t error_buf_size);
-  int (*write_file)(const char *path, const M68kObject *object, char *error_buf, size_t error_buf_size);
+  int (*read_file)(const char *path, M68kObject *out_object, M68kDiagSink diagnostics);
+  int (*read_buffer)(const unsigned char *data, size_t size, M68kObject *out_object, M68kDiagSink diagnostics);
+  int (*write_file)(const char *path, const M68kObject *object, M68kDiagSink diagnostics);
 } M68kBackend;
 
 extern const M68kBackend M68K_BACKEND_AMIGA_HUNK;

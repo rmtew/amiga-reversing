@@ -42,28 +42,30 @@ void *m68k_object_memdup(M68kObject *object, const void *data, size_t size) {
   return arena_memdup(object->arena, data, size);
 }
 
-int m68k_object_add_section(M68kObject *object, const M68kSection *section, size_t *out_index) {
+M68kObjectAddResult m68k_object_add_section(M68kObject *object, const M68kSection *section) {
+  M68kObjectAddResult result = {0};
   M68kSection copy;
   const char *name = section->name != NULL ? section->name : "";
   object->sections = (M68kSection *)grow_array(object, object->sections, sizeof(*object->sections),
     &object->section_capacity, object->section_count);
-  if (object->sections == NULL) return -1;
+  if (object->sections == NULL) return result;
   memset(&copy, 0, sizeof(copy));
   copy = *section;
   copy.name = (char *)m68k_object_memdup(object, name, strlen(name) + 1U);
-  if (copy.name == NULL && section->name != NULL) return -1;
+  if (copy.name == NULL && section->name != NULL) return result;
   if (section->data_size != 0U && section->data != NULL) {
     copy.data = (uint8_t *)m68k_object_memdup(object, section->data, section->data_size);
-    if (copy.data == NULL) return -1;
+    if (copy.data == NULL) return result;
   }
   if (section->debug_size != 0U && section->debug_data != NULL) {
     copy.debug_data = (uint8_t *)m68k_object_memdup(object, section->debug_data, section->debug_size);
-    if (copy.debug_data == NULL) return -1;
+    if (copy.debug_data == NULL) return result;
   }
   object->sections[object->section_count] = copy;
-  if (out_index != NULL) *out_index = object->section_count;
+  result.ok = 1U;
+  result.index = object->section_count;
   object->section_count += 1;
-  return 0;
+  return result;
 }
 
 int m68k_object_set_section_data(M68kObject *object, size_t section_index, const uint8_t *data, uint32_t data_size) {
@@ -91,26 +93,30 @@ int m68k_object_set_section_debug_data(M68kObject *object, size_t section_index,
   return 0;
 }
 
-int m68k_object_add_symbol(M68kObject *object, const M68kSymbol *symbol, size_t *out_index) {
+M68kObjectAddResult m68k_object_add_symbol(M68kObject *object, const M68kSymbol *symbol) {
+  M68kObjectAddResult result = {0};
   M68kSymbol copy = *symbol;
   const char *name = symbol->name != NULL ? symbol->name : "";
   object->symbols = (M68kSymbol *)grow_array(object, object->symbols, sizeof(*object->symbols), &object->symbol_capacity,
     object->symbol_count);
-  if (object->symbols == NULL) return -1;
+  if (object->symbols == NULL) return result;
   copy.name = (char *)m68k_object_memdup(object, name, strlen(name) + 1U);
-  if (copy.name == NULL && symbol->name != NULL) return -1;
+  if (copy.name == NULL && symbol->name != NULL) return result;
   object->symbols[object->symbol_count] = copy;
-  if (out_index != NULL) *out_index = object->symbol_count;
+  result.ok = 1U;
+  result.index = object->symbol_count;
   object->symbol_count += 1;
-  return 0;
+  return result;
 }
 
-int m68k_object_add_fixup(M68kObject *object, const M68kFixup *fixup, size_t *out_index) {
+M68kObjectAddResult m68k_object_add_fixup(M68kObject *object, const M68kFixup *fixup) {
+  M68kObjectAddResult result = {0};
   object->fixups = (M68kFixup *)grow_array(object, object->fixups, sizeof(*object->fixups), &object->fixup_capacity,
     object->fixup_count);
-  if (object->fixups == NULL) return -1;
+  if (object->fixups == NULL) return result;
   object->fixups[object->fixup_count] = *fixup;
-  if (out_index != NULL) *out_index = object->fixup_count;
+  result.ok = 1U;
+  result.index = object->fixup_count;
   object->fixup_count += 1;
-  return 0;
+  return result;
 }

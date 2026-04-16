@@ -88,7 +88,7 @@ def _instruction_has_oracle_cpu(item: dict[str, object], form_source: dict[str, 
 
 def _raw_form_for_generated_form(kb: dict[str, object], item: dict[str, object], form: object) -> dict[str, object] | None:
     forms = _item_forms(kb, item)
-    form_index = int(getattr(form, "form_index"))
+    form_index = int(getattr(form, "local_form_index", getattr(form, "form_index")))
     if 0 <= form_index < len(forms):
         return forms[form_index]
     return None

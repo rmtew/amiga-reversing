@@ -12,6 +12,19 @@ SOURCE_PATH = OUTPUT_DIR / "atari_st_os_runtime.c"
 ATARI_ST_INCLUDE_DIR = ROOT / "ext" / "atarist_includes" / "devpac_3_10" / "include"
 ATARI_ST_INCLUDE_SOURCE_DIR = ATARI_ST_INCLUDE_DIR
 
+NAME_DOMAIN_LIBRARY = 1
+NAME_DOMAIN_BASE = 2
+NAME_DOMAIN_FUNCTION = 3
+NAME_DOMAIN_SYMBOL = 4
+NAME_DOMAIN_INCLUDE = 5
+NAME_DOMAIN_TYPE = 6
+NAME_DOMAIN_STRUCT = 7
+NAME_DOMAIN_FIELD = 8
+NAME_DOMAIN_SEMANTIC_KIND = 9
+NAME_DOMAIN_VALUE_DOMAIN = 10
+NAME_DOMAIN_FAMILY = 11
+NAME_DOMAIN_HEADER = 12
+
 SOURCES = [
     (
         "GEMDOS",
@@ -44,6 +57,55 @@ STATUS_GEMDOS_ROW = re.compile(r"^\s*[TtX>]\s+0x([0-9A-Fa-f]+)\s+([A-Za-z_][A-Za
 
 def c_string(text: str) -> str:
     return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def pascal_case(text: str) -> str:
+    return "".join(part.capitalize() for part in text.split("_"))
+
+
+def enum_token(text: str) -> str:
+    token = re.sub(r"[^A-Za-z0-9]+", "_", text).strip("_").upper()
+    if not token:
+        token = "VALUE"
+    if token[0].isdigit():
+        token = f"_{token}"
+    return token
+
+
+def build_name_domain_meta(name_domains: list[tuple[int, str, list[str]]], prefix: str) -> list[dict]:
+    items: list[dict] = []
+    for domain_kind, label, values in name_domains:
+        enum_prefix = f"{prefix}_{label.upper()}_ID"
+        enum_values: dict[str, str] = {}
+        used: set[str] = set()
+        for value in values:
+            base_name = f"{enum_prefix}_{enum_token(value)}"
+            name = base_name
+            suffix = 2
+            while name in used:
+                name = f"{base_name}_{suffix}"
+                suffix += 1
+            used.add(name)
+            enum_values[value] = name
+        items.append({
+            "kind": domain_kind,
+            "label": label,
+            "values": values,
+            "enum_type": f"{prefix.title().replace('_', '')}{pascal_case(label)}Id",
+            "enum_prefix": enum_prefix,
+            "enum_values": enum_values,
+            "id_map": {value: index for index, value in enumerate(values, start=1)},
+        })
+    return items
+
+
+def name_id_literal(name_domain_meta: list[dict], label: str, value: str | None) -> str:
+    if value is None:
+        return "0u"
+    for item in name_domain_meta:
+        if item["label"] == label:
+            return item["enum_values"][value]
+    raise KeyError(label)
 
 
 def family_include_path(family_name: str) -> str:
@@ -175,7 +237,37 @@ def parse_rows() -> list[tuple[str, int, int, str, str, str, int, int, int]]:
     return rows
 
 
+def build_name_domains(rows: list[tuple[str, int, int, str, str, str, int, int, int]]) -> list[tuple[int, str, list[str]]]:
+    original_symbol_maps = {
+        "GEMDOS": dict((opcode, symbol_name) for symbol_name, opcode in parse_original_include_entries("GEMDOS")),
+        "BIOS": dict((opcode, symbol_name) for symbol_name, opcode in parse_original_include_entries("BIOS")),
+        "XBIOS": dict((opcode, symbol_name) for symbol_name, opcode in parse_original_include_entries("XBIOS")),
+    }
+    family_names: set[str] = set()
+    function_names: set[str] = set()
+    symbol_names: set[str] = set()
+    include_paths: set[str] = set()
+    header_names: set[str] = set()
+    for family_name, _, opcode, function_name, source_header, _, _, _, _ in rows:
+        original_symbol = original_symbol_maps.get(family_name, {}).get(opcode)
+        family_names.add(family_name)
+        function_names.add(function_name)
+        symbol_names.add(original_symbol if original_symbol is not None else f"{family_name}_{function_name}")
+        header_names.add(source_header)
+        if original_symbol is not None:
+            include_paths.add(family_include_path(family_name))
+    return [
+        (NAME_DOMAIN_FAMILY, "family", sorted(family_names)),
+        (NAME_DOMAIN_FUNCTION, "function", sorted(function_names)),
+        (NAME_DOMAIN_SYMBOL, "symbol", sorted(symbol_names)),
+        (NAME_DOMAIN_INCLUDE, "include", sorted(include_paths)),
+        (NAME_DOMAIN_HEADER, "header", sorted(header_names)),
+    ]
+
+
 def write_header(rows: list[tuple[str, int, int, str, str, str, int, int, int]]) -> None:
+    name_domains = build_name_domains(rows)
+    name_domain_meta = build_name_domain_meta(name_domains, "ATARI_ST_OS")
     lines = [
         "/* Generated Atari ST OS runtime metadata from EmuTOS headers.",
         " * Sources:",
@@ -197,14 +289,24 @@ def write_header(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
         "  ATARI_ST_OS_RETURN_LONG = 2",
         "} AtariStOsReturnKind;",
         "",
+    ]
+    for item in name_domain_meta:
+        lines.extend([
+            f"typedef enum {item['enum_type']} {{",
+            f"  {item['enum_prefix']}_NONE = 0,",
+        ])
+        for value in item["values"]:
+            lines.append(f"  {item['enum_values'][value]} = {item['id_map'][value]},")
+        lines.extend([f"}} {item['enum_type']};", ""])
+    lines.extend([
         "typedef struct AtariStOsCallInfo {",
-        "  const char *family_name;",
+        "  uint16_t family_id;",
         "  uint8_t trap_vector;",
         "  uint16_t opcode;",
-        "  const char *function_name;",
-        "  const char *symbol_name;",
-        "  const char *source_header;",
-        "  const char *include_path;",
+        "  uint16_t function_id;",
+        "  uint16_t symbol_id;",
+        "  uint16_t source_header_id;",
+        "  uint16_t include_id;",
         "  uint8_t stack_cleanup_known;",
         "  uint16_t stack_cleanup_bytes;",
         "  uint8_t arg_count;",
@@ -213,13 +315,17 @@ def write_header(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
         "",
         f"#define ATARI_ST_OS_CALL_COUNT {len(rows)}u",
         "",
+        "uint16_t atari_st_os_name_id(uint8_t domain_kind, const char *name);",
+        "const char *atari_st_os_name(uint8_t domain_kind, uint16_t id);",
+        "const AtariStOsCallInfo *atari_st_os_find_call_by_symbol_id(uint16_t symbol_id);",
         "const AtariStOsCallInfo *atari_st_os_find_call(uint8_t trap_vector, uint16_t opcode);",
         "const AtariStOsCallInfo *atari_st_os_find_call_by_symbol_name(const char *symbol_name);",
+        "uint16_t atari_st_os_find_symbol_include_id(uint16_t symbol_id);",
         "const char *atari_st_os_find_symbol_include(const char *symbol_name);",
         "",
         "#endif",
         "",
-    ]
+    ])
     HEADER_PATH.write_text("\n".join(lines), encoding="ascii")
 
 
@@ -229,28 +335,78 @@ def write_source(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
         "BIOS": dict((opcode, symbol_name) for symbol_name, opcode in parse_original_include_entries("BIOS")),
         "XBIOS": dict((opcode, symbol_name) for symbol_name, opcode in parse_original_include_entries("XBIOS")),
     }
+    name_domains = build_name_domains(rows)
+    name_domain_meta = build_name_domain_meta(name_domains, "ATARI_ST_OS")
     lines = [
         "/* Generated Atari ST OS runtime metadata from EmuTOS headers. Do not edit directly. */",
         '#include "generated/atari_st_os_runtime.h"',
         "",
         "#include <string.h>",
         "",
-        "static const AtariStOsCallInfo g_atari_st_os_calls[] = {",
     ]
+    for _, label, values in name_domains:
+        lines.extend([
+            f"static const char *const g_atari_st_os_{label}_names[] = {{",
+            "  NULL,",
+        ])
+        for value in values:
+            lines.append(f'  "{c_string(value)}",')
+        lines.extend(["};", ""])
+    lines.extend([
+        "static uint16_t atari_st_os_name_id_from_table(const char *const *names, size_t count, const char *name) {",
+        "  size_t index;",
+        "  if (names == NULL || name == NULL || name[0] == '\\0') return 0U;",
+        "  for (index = 1U; index < count; ++index) {",
+        "    if (strcmp(names[index], name) == 0) return (uint16_t)index;",
+        "  }",
+        "  return 0U;",
+        "}",
+        "",
+        "static const char *atari_st_os_name_from_table(const char *const *names, size_t count, uint16_t id) {",
+        "  if (names == NULL || id == 0U || (size_t)id >= count) return NULL;",
+        "  return names[id];",
+        "}",
+        "",
+        "uint16_t atari_st_os_name_id(uint8_t domain_kind, const char *name) {",
+        "  switch (domain_kind) {",
+    ])
+    for domain_kind, label, _ in name_domains:
+        lines.append(
+            f"  case {domain_kind}u: return atari_st_os_name_id_from_table(g_atari_st_os_{label}_names, "
+            f"sizeof(g_atari_st_os_{label}_names) / sizeof(g_atari_st_os_{label}_names[0]), name);")
+    lines.extend([
+        "  default: return 0U;",
+        "  }",
+        "}",
+        "",
+        "const char *atari_st_os_name(uint8_t domain_kind, uint16_t id) {",
+        "  switch (domain_kind) {",
+    ])
+    for domain_kind, label, _ in name_domains:
+        lines.append(
+            f"  case {domain_kind}u: return atari_st_os_name_from_table(g_atari_st_os_{label}_names, "
+            f"sizeof(g_atari_st_os_{label}_names) / sizeof(g_atari_st_os_{label}_names[0]), id);")
+    lines.extend([
+        "  default: return NULL;",
+        "  }",
+        "}",
+        "",
+        "static const AtariStOsCallInfo g_atari_st_os_calls[] = {",
+    ])
     for family_name, trap_vector, opcode, function_name, source_header, return_kind, cleanup_known, cleanup_bytes, arg_count in rows:
         original_symbol = original_symbol_maps.get(family_name, {}).get(opcode)
         symbol_name = original_symbol if original_symbol is not None else f"{family_name}_{function_name}"
         include_path = family_include_path(family_name) if original_symbol is not None else None
         lines.append(
-            '  { "%s", %du, %du, "%s", "%s", "%s", %s, %du, %du, %du, %s },'
+            "  { %s, %du, %du, %s, %s, %s, %s, %du, %du, %du, %s },"
             % (
-                c_string(family_name),
+                name_id_literal(name_domain_meta, "family", family_name),
                 trap_vector,
                 opcode,
-                c_string(function_name),
-                c_string(symbol_name),
-                c_string(source_header),
-                "NULL" if include_path is None else f'"{c_string(include_path)}"',
+                name_id_literal(name_domain_meta, "function", function_name),
+                name_id_literal(name_domain_meta, "symbol", symbol_name),
+                name_id_literal(name_domain_meta, "header", source_header),
+                name_id_literal(name_domain_meta, "include", include_path),
                 cleanup_known,
                 cleanup_bytes,
                 arg_count,
@@ -279,19 +435,28 @@ def write_source(rows: list[tuple[str, int, int, str, str, str, int, int, int]])
             "  return NULL;",
             "}",
             "",
-            "const AtariStOsCallInfo *atari_st_os_find_call_by_symbol_name(const char *symbol_name) {",
+            "const AtariStOsCallInfo *atari_st_os_find_call_by_symbol_id(uint16_t symbol_id) {",
             "  size_t index;",
-            "  if (symbol_name == NULL || symbol_name[0] == '\\0') return NULL;",
+            "  if (symbol_id == 0U) return NULL;",
             "  for (index = 0U; index < ATARI_ST_OS_CALL_COUNT; ++index) {",
             "    const AtariStOsCallInfo *entry = &g_atari_st_os_calls[index];",
-            "    if (strcmp(symbol_name, entry->symbol_name) == 0) return entry;",
+            "    if (entry->symbol_id == symbol_id) return entry;",
             "  }",
             "  return NULL;",
             "}",
             "",
+            "const AtariStOsCallInfo *atari_st_os_find_call_by_symbol_name(const char *symbol_name) {",
+            f"  return atari_st_os_find_call_by_symbol_id(atari_st_os_name_id({NAME_DOMAIN_SYMBOL}u, symbol_name));",
+            "}",
+            "",
+            "uint16_t atari_st_os_find_symbol_include_id(uint16_t symbol_id) {",
+            "  const AtariStOsCallInfo *entry = atari_st_os_find_call_by_symbol_id(symbol_id);",
+            "  return entry != NULL ? entry->include_id : 0U;",
+            "}",
+            "",
             "const char *atari_st_os_find_symbol_include(const char *symbol_name) {",
-            "  const AtariStOsCallInfo *entry = atari_st_os_find_call_by_symbol_name(symbol_name);",
-            "  return (entry != NULL && entry->include_path != NULL && entry->include_path[0] != '\\0') ? entry->include_path : NULL;",
+            f"  uint16_t include_id = atari_st_os_find_symbol_include_id(atari_st_os_name_id({NAME_DOMAIN_SYMBOL}u, symbol_name));",
+            f"  return atari_st_os_name({NAME_DOMAIN_INCLUDE}u, include_id);",
             "}",
             "",
         ]

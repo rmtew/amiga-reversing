@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib.util
 import os
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -11,7 +10,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "src" / "scripts" / "generate_c99_assembler_subset.py"
 STYLE_CHECKER = ROOT / "src" / "scripts" / "check_c_style.py"
-PYTHON = ROOT / ".venv" / "Scripts" / "python.exe"
 
 
 def _load_module(path: Path, name: str):
@@ -29,16 +27,12 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls._tmp = tempfile.TemporaryDirectory()
         cls._outdir = Path(cls._tmp.name)
-        result = subprocess.run(
-            [str(PYTHON), str(SCRIPT), "--output-dir", str(cls._outdir)],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode != 0:
+        generator = _load_module(SCRIPT, "src_test_generate_c99_assembler_subset_generator")
+        try:
+            generator.generate_files(cls._outdir)
+        except Exception as exc:
             cls._tmp.cleanup()
-            raise AssertionError(result.stdout + result.stderr)
+            raise AssertionError(str(exc))
         cls._tables_c = (cls._outdir / "m68k_asm_tables.c").read_text(encoding="ascii")
         cls._tables_h = (cls._outdir / "m68k_asm_tables.h").read_text(encoding="ascii")
         cls._checker = _load_module(STYLE_CHECKER, "src_test_generate_c99_assembler_style_checker")
@@ -49,7 +43,7 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
 
     def test_generates_dense_multiline_table_wrapping(self) -> None:
         self.assertIn(
-            "    { \"pack\", \"PACK -(Ax),-(Ay),# <adjustment>\", M68K_ASM_MNEMONIC_PACK, 0, 3,\n",
+            "    { \"pack\", \"PACK -(Ax),-(Ay),# <adjustment>\", M68K_ASM_MNEMONIC_PACK,",
             self._tables_c,
         )
         self.assertIn(
@@ -60,12 +54,42 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
 
     def test_generates_table_api(self) -> None:
         self.assertIn("typedef struct {", self._tables_h)
+        self.assertIn("    M68K_ASM_MNEMONIC_NONE = 0,\n", self._tables_h)
+        self.assertIn("    M68K_ASM_CONTROL_REGISTER_NONE = 255,\n", self._tables_h)
+        self.assertIn("    M68K_ASM_CONTROL_REGISTER_USP = 24,\n", self._tables_h)
+        self.assertIn("    M68K_ASM_CONTROL_REGISTER_VBR = 26,\n", self._tables_h)
+        self.assertIn("    uint8_t mnemonic_id;\n", self._tables_h)
+        self.assertIn("    uint16_t form_index;\n", self._tables_h)
+        self.assertIn(
+            "extern const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT];\n",
+            self._tables_h,
+        )
+        self.assertIn(
+            "extern const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[];\n",
+            self._tables_h,
+        )
+        self.assertIn(
+            'const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT] = {\n    "",\n',
+            self._tables_c,
+        )
+        self.assertIn(
+            'const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[',
+            self._tables_c,
+        )
         self.assertIn(
             "int m68k_asm_assemble_instruction(const M68kAsmInstructionSpec *spec, uint8_t *out_bytes, size_t max_bytes, size_t *out_byte_count);\n",
             self._tables_h,
         )
         self.assertIn(
+            "const M68kAsmFormDef *m68k_asm_find_form_id(uint8_t mnemonic_id, size_t operand_count);\n",
+            self._tables_h,
+        )
+        self.assertIn(
             "const M68kAsmFormDef *m68k_asm_find_form_for_operands(const char *mnemonic, const M68kAsmOperandValue *operands, size_t operand_count,\n",
+            self._tables_h,
+        )
+        self.assertIn(
+            "const M68kAsmFormDef *m68k_asm_find_form_for_operands_id(uint8_t mnemonic_id, const M68kAsmOperandValue *operands, size_t operand_count,\n",
             self._tables_h,
         )
 

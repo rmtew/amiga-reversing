@@ -61,7 +61,7 @@ static const M68kSimExceptionFrameRule g_m68k_sim_exception_frame_rules[] = {
 
 static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
     {
-      "ASL", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ASL, 0u, { 0u, 0u },
       {
       M68K_SIM_OP_SHIFT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -93,7 +93,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ASR", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ASR, 1u, { 0u, 0u },
       {
       M68K_SIM_OP_SHIFT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -125,7 +125,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ASL", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ASL, 2u, { 0u, 0u },
       {
       M68K_SIM_OP_SHIFT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -157,7 +157,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ASR", 3u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ASR, 3u, { 0u, 0u },
       {
       M68K_SIM_OP_SHIFT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -189,7 +189,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ASL", 4u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ASL, 4u, { 0u, 0u },
       {
       M68K_SIM_OP_SHIFT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -221,7 +221,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ASR", 5u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ASR, 5u, { 0u, 0u },
       {
       M68K_SIM_OP_SHIFT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -253,7 +253,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "LSL", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_LSL, 6u, { 0u, 0u },
       {
       M68K_SIM_OP_SHIFT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -285,7 +285,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "LSR", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_LSR, 7u, { 0u, 0u },
       {
       M68K_SIM_OP_SHIFT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -317,7 +317,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "LSL", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_LSL, 8u, { 0u, 0u },
       {
       M68K_SIM_OP_SHIFT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -349,7 +349,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "LSR", 3u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_LSR, 9u, { 0u, 0u },
       {
       M68K_SIM_OP_SHIFT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -381,7 +381,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "LSL", 4u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_LSL, 10u, { 0u, 0u },
       {
       M68K_SIM_OP_SHIFT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -413,7 +413,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "LSR", 5u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_LSR, 11u, { 0u, 0u },
       {
       M68K_SIM_OP_SHIFT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -445,7 +445,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BCHG", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BCHG, 12u, { 0u, 0u },
       {
       M68K_SIM_OP_BIT_CHANGE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -477,7 +477,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BCHG", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BCHG, 13u, { 0u, 0u },
       {
       M68K_SIM_OP_BIT_CHANGE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -509,7 +509,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BCLR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BCLR, 14u, { 0u, 0u },
       {
       M68K_SIM_OP_BIT_CLEAR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -541,7 +541,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BCLR", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BCLR, 15u, { 0u, 0u },
       {
       M68K_SIM_OP_BIT_CLEAR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -573,7 +573,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BSET", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BSET, 16u, { 0u, 0u },
       {
       M68K_SIM_OP_BIT_SET, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -605,7 +605,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BSET", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BSET, 17u, { 0u, 0u },
       {
       M68K_SIM_OP_BIT_SET, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -637,7 +637,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BTST", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BTST, 18u, { 0u, 0u },
       {
       M68K_SIM_OP_BIT_TEST, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -669,7 +669,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BTST", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BTST, 19u, { 0u, 0u },
       {
       M68K_SIM_OP_BIT_TEST, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -701,7 +701,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BFCHG", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BFCHG, 20u, { 0u, 0u },
       {
       M68K_SIM_OP_BITFIELD_CHANGE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -733,7 +733,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BFCLR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BFCLR, 21u, { 0u, 0u },
       {
       M68K_SIM_OP_BITFIELD_CLEAR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -765,7 +765,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BFEXTS", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BFEXTS, 22u, { 0u, 0u },
       {
       M68K_SIM_OP_BITFIELD_EXTRACT_SIGNED, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -797,7 +797,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BFEXTU", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BFEXTU, 23u, { 0u, 0u },
       {
       M68K_SIM_OP_BITFIELD_EXTRACT_UNSIGNED, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -829,7 +829,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BFFFO", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BFFFO, 24u, { 0u, 0u },
       {
       M68K_SIM_OP_BITFIELD_FIND_FIRST_ONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -861,7 +861,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BFINS", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BFINS, 25u, { 0u, 0u },
       {
       M68K_SIM_OP_BITFIELD_INSERT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -893,7 +893,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BFSET", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BFSET, 26u, { 0u, 0u },
       {
       M68K_SIM_OP_BITFIELD_SET, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -925,7 +925,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BFTST", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BFTST, 27u, { 0u, 0u },
       {
       M68K_SIM_OP_BITFIELD_TEST, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -957,7 +957,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ABCD", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ABCD, 28u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -989,7 +989,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ABCD", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ABCD, 29u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1021,7 +1021,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ADD", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ADD, 30u, { 0u, 0u },
       {
       M68K_SIM_OP_ADD, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1053,7 +1053,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ADD", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ADD, 31u, { 0u, 0u },
       {
       M68K_SIM_OP_ADD, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1085,7 +1085,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ADDX", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ADDX, 32u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1117,7 +1117,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ADDX", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ADDX, 33u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1149,7 +1149,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ADDI", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ADDI, 34u, { 0u, 0u },
       {
       M68K_SIM_OP_ADD, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1181,7 +1181,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ADDA", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ADDA, 35u, { 0u, 0u },
       {
       M68K_SIM_OP_ADD, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1213,7 +1213,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ADDQ", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ADDQ, 36u, { 0u, 0u },
       {
       M68K_SIM_OP_ADD, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1245,7 +1245,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "AND", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_AND, 37u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_AND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1277,7 +1277,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "AND", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_AND, 38u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_AND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1309,7 +1309,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ANDI", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ANDI, 39u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_AND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1341,7 +1341,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ANDI to CCR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ANDI, 40u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_AND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1373,7 +1373,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ANDI to SR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ANDI, 41u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_AND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1405,7 +1405,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CAS CAS2", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CAS, 42u, { 0u, 0u },
       {
       M68K_SIM_OP_COMPARE_SWAP, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE },
@@ -1437,7 +1437,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CAS CAS2", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CAS2, 43u, { 0u, 0u },
       {
       M68K_SIM_OP_COMPARE_SWAP, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE },
@@ -1469,7 +1469,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CHK", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CHK, 44u, { 0u, 0u },
       {
       M68K_SIM_OP_BOUNDS_CHECK, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1501,7 +1501,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CHK2", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CHK2, 45u, { 0u, 0u },
       {
       M68K_SIM_OP_BOUNDS_CHECK, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1533,7 +1533,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CMP", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CMP, 46u, { 0u, 0u },
       {
       M68K_SIM_OP_COMPARE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1565,7 +1565,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CMPA", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CMPA, 47u, { 0u, 0u },
       {
       M68K_SIM_OP_COMPARE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1597,7 +1597,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CMPI", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CMPI, 48u, { 0u, 0u },
       {
       M68K_SIM_OP_COMPARE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1629,7 +1629,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CMP2", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CMP2, 49u, { 0u, 0u },
       {
       M68K_SIM_OP_BOUNDS_CHECK, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1661,7 +1661,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CMPM", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CMPM, 50u, { 0u, 0u },
       {
       M68K_SIM_OP_COMPARE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1693,7 +1693,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DIVS", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DIVS, 51u, { 0u, 0u },
       {
       M68K_SIM_OP_DIVIDE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1725,7 +1725,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DIVU", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DIVU, 52u, { 0u, 0u },
       {
       M68K_SIM_OP_DIVIDE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1757,7 +1757,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "EOR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_EOR, 53u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_XOR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1789,7 +1789,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "EORI", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_EORI, 54u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_XOR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1821,7 +1821,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "EORI to CCR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_EORI, 55u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_XOR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1853,7 +1853,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "EORI to SR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_EORI, 56u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_XOR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1885,7 +1885,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ROL", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ROL, 57u, { 0u, 0u },
       {
       M68K_SIM_OP_ROTATE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1917,7 +1917,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ROR", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ROR, 58u, { 0u, 0u },
       {
       M68K_SIM_OP_ROTATE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1949,7 +1949,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ROL", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ROL, 59u, { 0u, 0u },
       {
       M68K_SIM_OP_ROTATE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -1981,7 +1981,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ROR", 3u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ROR, 60u, { 0u, 0u },
       {
       M68K_SIM_OP_ROTATE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2013,7 +2013,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ROL", 4u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ROL, 61u, { 0u, 0u },
       {
       M68K_SIM_OP_ROTATE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2045,7 +2045,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ROR", 5u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ROR, 62u, { 0u, 0u },
       {
       M68K_SIM_OP_ROTATE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2077,7 +2077,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ROXL", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ROXL, 63u, { 0u, 0u },
       {
       M68K_SIM_OP_ROTATE_EXTEND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2109,7 +2109,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ROXR", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ROXR, 64u, { 0u, 0u },
       {
       M68K_SIM_OP_ROTATE_EXTEND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2141,7 +2141,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ROXL", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ROXL, 65u, { 0u, 0u },
       {
       M68K_SIM_OP_ROTATE_EXTEND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2173,7 +2173,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ROXR", 3u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ROXR, 66u, { 0u, 0u },
       {
       M68K_SIM_OP_ROTATE_EXTEND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2205,7 +2205,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ROXL", 4u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ROXL, 67u, { 0u, 0u },
       {
       M68K_SIM_OP_ROTATE_EXTEND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2237,7 +2237,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ROXR", 5u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ROXR, 68u, { 0u, 0u },
       {
       M68K_SIM_OP_ROTATE_EXTEND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2269,7 +2269,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "NEG", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_NEG, 69u, { 0u, 0u },
       {
       M68K_SIM_OP_NEGATE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2301,7 +2301,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "NEGX", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_NEGX, 70u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2333,7 +2333,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "NOT", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_NOT, 71u, { 0u, 0u },
       {
       M68K_SIM_OP_NOT, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2365,7 +2365,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "OR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_OR, 72u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_OR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2397,7 +2397,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "OR", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_OR, 73u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_OR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2429,7 +2429,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ORI", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ORI, 74u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_OR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2461,7 +2461,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ORI to CCR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ORI, 75u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_OR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2493,7 +2493,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ORI to SR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ORI, 76u, { 0u, 0u },
       {
       M68K_SIM_OP_LOGIC_OR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2525,7 +2525,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SBCD", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SBCD, 77u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2557,7 +2557,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SBCD", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SBCD, 78u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2589,7 +2589,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SUB", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SUB, 79u, { 0u, 0u },
       {
       M68K_SIM_OP_SUB, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2621,7 +2621,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SUB", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SUB, 80u, { 0u, 0u },
       {
       M68K_SIM_OP_SUB, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2653,7 +2653,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SUBX", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SUBX, 81u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2685,7 +2685,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SUBX", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SUBX, 82u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2717,7 +2717,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SUBA", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SUBA, 83u, { 0u, 0u },
       {
       M68K_SIM_OP_SUB, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2749,7 +2749,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SUBI", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SUBI, 84u, { 0u, 0u },
       {
       M68K_SIM_OP_SUB, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2781,7 +2781,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SUBQ", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SUBQ, 85u, { 0u, 0u },
       {
       M68K_SIM_OP_SUB, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2813,7 +2813,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TST", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TST, 86u, { 0u, 0u },
       {
       M68K_SIM_OP_TEST, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2845,7 +2845,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BHI", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BHI, 87u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2877,7 +2877,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BLS", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BLS, 88u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2909,7 +2909,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BCC", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BCC, 89u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2941,7 +2941,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BCS", 3u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BCS, 90u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -2973,7 +2973,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BNE", 4u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BNE, 91u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3005,7 +3005,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BEQ", 5u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BEQ, 92u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3037,7 +3037,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BVC", 6u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BVC, 93u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3069,7 +3069,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BVS", 7u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BVS, 94u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3101,7 +3101,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BPL", 8u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BPL, 95u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3133,7 +3133,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BMI", 9u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BMI, 96u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3165,7 +3165,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BGE", 10u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BGE, 97u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3197,7 +3197,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BLT", 11u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BLT, 98u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3229,7 +3229,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BGT", 12u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BGT, 99u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3261,7 +3261,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BLE", 13u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BLE, 100u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3293,7 +3293,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BRA", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BRA, 101u, { 0u, 0u },
       {
       M68K_SIM_OP_ADD, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 0u, 1u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3325,7 +3325,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BSR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BSR, 102u, { 0u, 0u },
       {
       M68K_SIM_OP_SUB, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_CALL, 0u, 1u,
       { M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3357,7 +3357,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBT", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBT, 103u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3389,7 +3389,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBF", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBF, 104u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3421,7 +3421,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBHI", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBHI, 105u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3453,7 +3453,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBLS", 3u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBLS, 106u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3485,7 +3485,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBCC", 4u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBCC, 107u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3517,7 +3517,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBCS", 5u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBCS, 108u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3549,7 +3549,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBNE", 6u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBNE, 109u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3581,7 +3581,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBEQ", 7u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBEQ, 110u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3613,7 +3613,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBVC", 8u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBVC, 111u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3645,7 +3645,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBVS", 9u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBVS, 112u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3677,7 +3677,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBPL", 10u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBPL, 113u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3709,7 +3709,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBMI", 11u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBMI, 114u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3741,7 +3741,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBGE", 12u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBGE, 115u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3773,7 +3773,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBLT", 13u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBLT, 116u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3805,7 +3805,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBGT", 14u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBGT, 117u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3837,7 +3837,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "DBLE", 15u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_DBLE, 118u, { 0u, 0u },
       {
       M68K_SIM_OP_DBCC, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_BRANCH, 1u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_BRANCH_TARGET, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3869,7 +3869,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "RTS", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_RTS, 119u, { 0u, 0u },
       {
       M68K_SIM_OP_ADD, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_RETURN, 0u, 1u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3901,7 +3901,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ST", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ST, 120u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3933,7 +3933,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SF", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SF, 121u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3965,7 +3965,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SHI", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SHI, 122u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -3997,7 +3997,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SLS", 3u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SLS, 123u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4029,7 +4029,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SCC", 4u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SCC, 124u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4061,7 +4061,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SCS", 5u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SCS, 125u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4093,7 +4093,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SNE", 6u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SNE, 126u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4125,7 +4125,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SEQ", 7u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SEQ, 127u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4157,7 +4157,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SVC", 8u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SVC, 128u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4189,7 +4189,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SVS", 9u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SVS, 129u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4221,7 +4221,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SPL", 10u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SPL, 130u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4253,7 +4253,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SMI", 11u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SMI, 131u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4285,7 +4285,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SGE", 12u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SGE, 132u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4317,7 +4317,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SLT", 13u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SLT, 133u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4349,7 +4349,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SGT", 14u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SGT, 134u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4381,7 +4381,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SLE", 15u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SLE, 135u, { 0u, 0u },
       {
       M68K_SIM_OP_SET_COND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4413,7 +4413,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "EXG", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_EXG, 136u, { 0u, 0u },
       {
       M68K_SIM_OP_SWAP, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4445,7 +4445,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "EXG", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_EXG, 137u, { 0u, 0u },
       {
       M68K_SIM_OP_SWAP, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4477,7 +4477,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "EXG", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_EXG, 138u, { 0u, 0u },
       {
       M68K_SIM_OP_SWAP, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4509,7 +4509,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "EXT", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_EXT, 139u, { 0u, 0u },
       {
       M68K_SIM_OP_SIGN_EXTEND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4541,7 +4541,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "EXT", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_EXT, 140u, { 0u, 0u },
       {
       M68K_SIM_OP_SIGN_EXTEND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4573,7 +4573,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "EXTB", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_EXTB, 141u, { 0u, 0u },
       {
       M68K_SIM_OP_SIGN_EXTEND, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4605,7 +4605,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "JMP", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_JMP, 142u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_JUMP, 0u, 1u,
       { M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4637,7 +4637,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "JSR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_JSR, 143u, { 0u, 0u },
       {
       M68K_SIM_OP_SUB, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_CALL, 0u, 1u,
       { M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4669,7 +4669,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "LEA", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_LEA, 144u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_LOAD_EFFECTIVE_ADDRESS, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4701,7 +4701,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "LINK", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_LINK, 145u, { 0u, 0u },
       {
       M68K_SIM_OP_LINK, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4733,7 +4733,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "LINK", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_LINK, 146u, { 0u, 0u },
       {
       M68K_SIM_OP_LINK, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4765,7 +4765,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVE", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVE, 147u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4797,7 +4797,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVEA", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVEA, 148u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4829,7 +4829,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVE16", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVE16, 149u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4861,7 +4861,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVE16", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVE16, 150u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4893,7 +4893,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVE16", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVE16, 151u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4925,7 +4925,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVE16", 3u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVE16, 152u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4957,7 +4957,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVE16", 4u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVE16, 153u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -4989,7 +4989,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVEM", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVEM, 154u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE_MULTIPLE, M68K_SIM_CLASS_MULTI_REGISTER_TRANSFER, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_LIST_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5021,7 +5021,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVEM", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVEM, 155u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE_MULTIPLE, M68K_SIM_CLASS_MULTI_REGISTER_TRANSFER, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_LIST_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5053,7 +5053,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVEC", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVEC, 156u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5085,7 +5085,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVEC", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVEC, 157u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5117,7 +5117,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVEP", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVEP, 158u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE_PERIPHERAL, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5149,7 +5149,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVEP", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVEP, 159u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE_PERIPHERAL, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5181,7 +5181,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVEQ", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVEQ, 160u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5213,7 +5213,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MULS", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MULS, 161u, { 0u, 0u },
       {
       M68K_SIM_OP_MULTIPLY, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5245,7 +5245,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MULU", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MULU, 162u, { 0u, 0u },
       {
       M68K_SIM_OP_MULTIPLY, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5277,7 +5277,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVE from CCR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVE, 163u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5309,7 +5309,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVE from SR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVE, 164u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5341,7 +5341,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVE to CCR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVE, 165u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5373,7 +5373,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVE to SR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVE, 166u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5405,7 +5405,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVE USP", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVE, 167u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5437,7 +5437,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVE USP", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVE, 168u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5469,7 +5469,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVES", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVES, 169u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5501,7 +5501,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "MOVES", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_MOVES, 170u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5533,7 +5533,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PACK", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PACK, 171u, { 0u, 0u },
       {
       M68K_SIM_OP_PACK, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE },
@@ -5565,7 +5565,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PACK", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PACK, 172u, { 0u, 0u },
       {
       M68K_SIM_OP_PACK, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE },
@@ -5597,7 +5597,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PEA", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PEA, 173u, { 0u, 0u },
       {
       M68K_SIM_OP_PUSH_EA, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5629,7 +5629,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "UNLK", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_UNLK, 174u, { 0u, 0u },
       {
       M68K_SIM_OP_UNLK, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5661,7 +5661,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "UNPK", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_UNPK, 175u, { 0u, 0u },
       {
       M68K_SIM_OP_UNPACK, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE },
@@ -5693,7 +5693,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "UNPK", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_UNPK, 176u, { 0u, 0u },
       {
       M68K_SIM_OP_UNPACK, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE },
@@ -5725,7 +5725,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "SWAP", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_SWAP, 177u, { 0u, 0u },
       {
       M68K_SIM_OP_SWAP_WORDS, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5757,7 +5757,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CLR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CLR, 178u, { 0u, 0u },
       {
       M68K_SIM_OP_CLEAR, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5789,7 +5789,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "NBCD", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_NBCD, 179u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5821,7 +5821,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TAS", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TAS, 180u, { 0u, 0u },
       {
       M68K_SIM_OP_TEST_AND_SET, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5853,7 +5853,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "BKPT", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_BKPT, 181u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 0u, 0u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5885,7 +5885,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CALLM", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CALLM, 182u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_CALL, 0u, 0u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5917,7 +5917,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CINVL", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CINVL, 183u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5949,7 +5949,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CINVP", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CINVP, 184u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -5981,7 +5981,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CINVA", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CINVA, 185u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6013,7 +6013,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CPUSHL", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CPUSHL, 186u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6045,7 +6045,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CPUSHP", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CPUSHP, 187u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6077,7 +6077,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "CPUSHA", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_CPUSHA, 188u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6109,7 +6109,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "FRESTORE", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_FRESTORE, 189u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6141,7 +6141,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "FSAVE", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_FSAVE, 190u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6173,7 +6173,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "ILLEGAL", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_ILLEGAL, 191u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 0u, 1u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6205,7 +6205,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "NOP", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_NOP, 192u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6237,7 +6237,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PFLUSHA", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PFLUSHA, 193u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6269,7 +6269,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PFLUSH", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PFLUSH, 194u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6301,7 +6301,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PFLUSH", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PFLUSH, 195u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE },
@@ -6333,7 +6333,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PFLUSHA", 3u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PFLUSHA, 196u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6365,7 +6365,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PFLUSH", 4u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PFLUSH, 197u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6397,7 +6397,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PFLUSHA", 5u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PFLUSHA, 198u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6429,7 +6429,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PFLUSH", 6u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PFLUSH, 199u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6461,7 +6461,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PFLUSH PFLUSHA", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PFLUSHA, 200u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6493,7 +6493,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PFLUSH PFLUSHA", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PFLUSH, 201u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6525,7 +6525,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PFLUSH PFLUSHA", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PFLUSH, 202u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE },
@@ -6557,7 +6557,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PFLUSHR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PFLUSHR, 203u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6589,7 +6589,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PLOADR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PLOADR, 204u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6621,7 +6621,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PLOADW", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PLOADW, 205u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6653,7 +6653,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PMOVE", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PMOVE, 206u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6685,7 +6685,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PMOVE", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PMOVE, 207u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6717,7 +6717,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PMOVE", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PMOVE, 208u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6749,7 +6749,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PMOVE", 3u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PMOVE, 209u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6781,7 +6781,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PMOVE", 4u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PMOVE, 210u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6813,7 +6813,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PMOVE", 5u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PMOVE, 211u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6845,7 +6845,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PRESTORE", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PRESTORE, 212u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6877,7 +6877,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PSAVE", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PSAVE, 213u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -6909,7 +6909,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PTESTR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PTESTR, 214u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE },
@@ -6941,7 +6941,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PTESTW", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PTESTW, 215u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE },
@@ -6973,7 +6973,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PTESTR", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PTESTR, 216u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE },
@@ -7005,7 +7005,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PTESTW", 3u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PTESTW, 217u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE },
@@ -7037,7 +7037,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PTESTR", 4u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PTESTR, 218u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE },
@@ -7069,7 +7069,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PTESTW", 5u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PTESTW, 219u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE },
@@ -7101,7 +7101,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PTESTR", 6u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PTESTR, 220u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7133,7 +7133,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PTESTW", 7u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PTESTW, 221u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7165,7 +7165,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PTESTR", 8u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PTESTR, 222u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE },
@@ -7197,7 +7197,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PTESTW", 9u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PTESTW, 223u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_COMPUTE_ADDRESS, M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_REGISTER_WRITE },
@@ -7229,7 +7229,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PVALID", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PVALID, 224u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7261,7 +7261,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "PVALID", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_PVALID, 225u, { 0u, 0u },
       {
       M68K_SIM_OP_MOVE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 1u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_MEMORY_WRITE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7293,7 +7293,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "RESET", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_RESET, 226u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7325,7 +7325,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "RTM", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_RTM, 227u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_SEQUENTIAL, 0u, 0u,
       { M68K_SIM_ACCESS_REGISTER_READ, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7357,7 +7357,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "RTD", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_RTD, 228u, { 0u, 0u },
       {
       M68K_SIM_OP_ADD, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_RETURN, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7389,7 +7389,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "STOP", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_STOP, 229u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 0u, 0u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7421,7 +7421,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "RTE", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_RTE, 230u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_RETURN, 0u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7453,7 +7453,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "RTR", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_RTR, 231u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_RETURN, 0u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7485,7 +7485,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPT", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPT, 232u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7517,7 +7517,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPF", 1u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPF, 233u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7549,7 +7549,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPHI", 2u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPHI, 234u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7581,7 +7581,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPLS", 3u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPLS, 235u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7613,7 +7613,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPCC", 4u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPCC, 236u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7645,7 +7645,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPCS", 5u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPCS, 237u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7677,7 +7677,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPNE", 6u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPNE, 238u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7709,7 +7709,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPEQ", 7u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPEQ, 239u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7741,7 +7741,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPVC", 8u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPVC, 240u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7773,7 +7773,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPVS", 9u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPVS, 241u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7805,7 +7805,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPPL", 10u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPPL, 242u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7837,7 +7837,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPMI", 11u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPMI, 243u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7869,7 +7869,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPGE", 12u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPGE, 244u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7901,7 +7901,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPLT", 13u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPLT, 245u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7933,7 +7933,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPGT", 14u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPGT, 246u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7965,7 +7965,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPLE", 15u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPLE, 247u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -7997,7 +7997,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPT", 16u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPT, 248u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8029,7 +8029,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPF", 17u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPF, 249u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8061,7 +8061,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPHI", 18u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPHI, 250u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8093,7 +8093,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPLS", 19u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPLS, 251u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8125,7 +8125,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPCC", 20u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPCC, 252u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8157,7 +8157,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPCS", 21u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPCS, 253u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8189,7 +8189,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPNE", 22u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPNE, 254u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8221,7 +8221,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPEQ", 23u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPEQ, 255u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8253,7 +8253,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPVC", 24u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPVC, 256u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8285,7 +8285,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPVS", 25u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPVS, 257u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8317,7 +8317,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPPL", 26u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPPL, 258u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8349,7 +8349,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPMI", 27u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPMI, 259u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8381,7 +8381,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPGE", 28u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPGE, 260u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8413,7 +8413,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPLT", 29u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPLT, 261u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8445,7 +8445,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPGT", 30u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPGT, 262u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8477,7 +8477,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPLE", 31u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPLE, 263u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8509,7 +8509,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPT", 32u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPT, 264u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8541,7 +8541,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPF", 33u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPF, 265u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8573,7 +8573,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPHI", 34u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPHI, 266u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8605,7 +8605,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPLS", 35u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPLS, 267u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8637,7 +8637,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPCC", 36u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPCC, 268u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8669,7 +8669,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPCS", 37u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPCS, 269u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8701,7 +8701,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPNE", 38u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPNE, 270u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8733,7 +8733,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPEQ", 39u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPEQ, 271u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8765,7 +8765,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPVC", 40u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPVC, 272u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8797,7 +8797,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPVS", 41u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPVS, 273u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8829,7 +8829,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPPL", 42u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPPL, 274u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8861,7 +8861,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPMI", 43u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPMI, 275u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8893,7 +8893,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPGE", 44u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPGE, 276u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8925,7 +8925,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPLT", 45u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPLT, 277u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8957,7 +8957,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPGT", 46u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPGT, 278u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -8989,7 +8989,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPLE", 47u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPLE, 279u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -9021,7 +9021,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAPV", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAPV, 280u, { 0u, 0u },
       {
       M68K_SIM_OP_TRAPV, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 1u, 0u,
       { M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },
@@ -9053,7 +9053,7 @@ static const M68kSimFormLookup g_m68k_sim_form_lookup[282] = {
       }
     },
     {
-      "TRAP", 0u, { 0u, 0u, 0u },
+      M68K_ASM_MNEMONIC_TRAP, 281u, { 0u, 0u },
       {
       M68K_SIM_OP_NONE, M68K_SIM_CLASS_NONE, M68K_SIM_FLOW_TRAP, 0u, 1u,
       { M68K_SIM_ACCESS_IMMEDIATE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE, M68K_SIM_ACCESS_NONE },

@@ -85,8 +85,9 @@ static int estimate_instruction_size(const InstructionSpec *instruction, size_t 
 static int resolve_instruction_labels(InstructionSpec *instruction, size_t instruction_offset,
     const LabelDef *labels, size_t label_count) {
     size_t operand_index;
-    const M68kAsmFormDef *form = m68k_asm_find_form_for_operands(instruction->mnemonic,
-        instruction->operands, instruction->operand_count, instruction->size_suffix, instruction->target_cpu);
+    const M68kAsmFormDef *form = m68k_asm_find_form_for_operands_id(
+        instruction->mnemonic_id, instruction->operands, instruction->operand_count,
+        instruction->size_suffix, instruction->target_cpu);
     if (form == NULL) return 0;
     for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
         int found = 0;
@@ -112,19 +113,22 @@ static int resolve_instruction_labels(InstructionSpec *instruction, size_t instr
     return 1;
 }
 
-static int assemble_source_lines_to_bytes(const SourceLine *lines, size_t line_count, uint8_t *out_bytes, size_t max_bytes,
-    size_t *out_byte_count, char *out_error, size_t out_error_size) {
+static M68kSimpleSourceAssembleResult assemble_source_lines_to_bytes(const SourceLine *lines, size_t line_count,
+    uint8_t *out_bytes, size_t max_bytes, M68kDiagSink diagnostics) {
+    M68kSimpleSourceAssembleResult result;
     LabelDef labels[MAX_LABELS];
     size_t label_count = 0;
     size_t offset = 0;
     size_t output_offset = 0;
     size_t index;
+    memset(&result, 0, sizeof(result));
     for (index = 0; index < line_count; ++index) {
         size_t instruction_size = 0;
         if (lines[index].has_label) {
             if (label_count >= MAX_LABELS) {
-                m68k_platform_set_error(out_error, out_error_size, "too many labels");
-                return -1;
+                m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+                    "too many labels");
+                return result;
             }
             strcpy(labels[label_count].name, lines[index].label_name);
             labels[label_count].offset = offset;
@@ -132,8 +136,9 @@ static int assemble_source_lines_to_bytes(const SourceLine *lines, size_t line_c
         }
         if (!lines[index].has_instruction) continue;
         if (!estimate_instruction_size(&lines[index].instruction, &instruction_size)) {
-            m68k_platform_set_error(out_error, out_error_size, "unable to size instruction");
-            return -1;
+            m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+                "unable to size instruction");
+            return result;
         }
         offset += instruction_size;
     }
@@ -143,20 +148,21 @@ static int assemble_source_lines_to_bytes(const SourceLine *lines, size_t line_c
         SourceLine line = lines[index];
         if (!line.has_instruction) continue;
         if (!resolve_instruction_labels(&line.instruction, line.offset, labels, label_count)) {
-            m68k_platform_set_error(out_error, out_error_size, "unable to resolve labels");
-            return -1;
+            m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+                "unable to resolve labels");
+            return result;
         }
         size = m68k_instruction_spec_assemble_bytes(&line.instruction, bytes, MAX_CASE_BYTES);
         if (output_offset + size > max_bytes) {
-            m68k_platform_set_error(out_error, out_error_size, "output buffer too small");
-            return -1;
+            m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+                "output buffer too small");
+            return result;
         }
         memcpy(out_bytes + output_offset, bytes, size);
         output_offset += size;
     }
-    m68k_platform_set_error(out_error, out_error_size, "");
-    if (out_byte_count != NULL) *out_byte_count = output_offset;
-    return 0;
+    result.byte_count = output_offset;
+    return result;
 }
 
 int m68k_simple_source_assemble_file_to_binary(const char *input_path, const char *output_path, uint8_t target_cpu,
@@ -237,24 +243,26 @@ int m68k_simple_source_assemble_file_to_binary(const char *input_path, const cha
     return 0;
 }
 
-int m68k_simple_source_assemble_text(const char *source_text, uint8_t target_cpu, uint8_t *out_bytes, size_t max_bytes,
-    size_t *out_byte_count, char *out_error, size_t out_error_size, M68kSimpleSourceParseInstructionFn parse_instruction_fn) {
+M68kSimpleSourceAssembleResult m68k_simple_source_assemble_text(const char *source_text, uint8_t target_cpu,
+    uint8_t *out_bytes, size_t max_bytes, M68kDiagSink diagnostics,
+    M68kSimpleSourceParseInstructionFn parse_instruction_fn) {
     SourceLine lines[MAX_SOURCE_LINES];
+    M68kSimpleSourceAssembleResult result;
     char buffer[8192];
     char *line_start = buffer;
     char *cursor = buffer;
     size_t line_count = 0;
     size_t offset = 0;
     int parse_result = 0;
+    memset(&result, 0, sizeof(result));
     if (source_text == NULL || parse_instruction_fn == NULL) {
-        m68k_platform_set_error(out_error, out_error_size, "source text is null");
-        if (out_byte_count != NULL) *out_byte_count = 0U;
-        return -1;
+        m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT, "source text is null");
+        return result;
     }
     if (strlen(source_text) >= sizeof(buffer)) {
-        m68k_platform_set_error(out_error, out_error_size, "source text too large");
-        if (out_byte_count != NULL) *out_byte_count = 0U;
-        return -1;
+        m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+            "source text too large");
+        return result;
     }
     strcpy(buffer, source_text);
     while (1) {
@@ -264,24 +272,24 @@ int m68k_simple_source_assemble_text(const char *source_text, uint8_t target_cpu
             char saved = *cursor;
             *cursor = '\0';
             if (line_count >= MAX_SOURCE_LINES) {
-                m68k_platform_set_error(out_error, out_error_size, "too many source lines");
-                if (out_byte_count != NULL) *out_byte_count = 0U;
-                return -1;
+                m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+                    "too many source lines");
+                return result;
             }
             parse_result = parse_source_line(line_start, &lines[line_count], target_cpu, parse_instruction_fn);
             if (parse_result < 0) {
-                m68k_platform_set_error(out_error, out_error_size, "unable to parse source line");
-                if (out_byte_count != NULL) *out_byte_count = 0U;
-                return -1;
+                m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_DECODE_FAILED,
+                    "unable to parse source line");
+                return result;
             }
             if (parse_result > 0) {
                 lines[line_count].offset = offset;
                 if (lines[line_count].has_instruction) {
                     size_t instruction_size = 0;
                     if (!estimate_instruction_size(&lines[line_count].instruction, &instruction_size)) {
-                        m68k_platform_set_error(out_error, out_error_size, "unable to size instruction");
-                        if (out_byte_count != NULL) *out_byte_count = 0U;
-                        return -1;
+                        m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+                            "unable to size instruction");
+                        return result;
                     }
                     offset += instruction_size;
                 }
@@ -292,7 +300,7 @@ int m68k_simple_source_assemble_text(const char *source_text, uint8_t target_cpu
         }
         ++cursor;
     }
-    return assemble_source_lines_to_bytes(lines, line_count, out_bytes, max_bytes, out_byte_count, out_error, out_error_size);
+    return assemble_source_lines_to_bytes(lines, line_count, out_bytes, max_bytes, diagnostics);
 }
 
 

@@ -13,6 +13,7 @@
 
 typedef struct {
   char mnemonic[32];
+  uint8_t mnemonic_id;
   char size_suffix;
   uint8_t target_cpu;
   uint16_t form_index;
@@ -24,6 +25,7 @@ typedef struct {
   int32_t operand_label_addends[M68K_INSTRUCTION_SPEC_MAX_OPERANDS];
 } InstructionSpec;
 
+const char *m68k_instruction_spec_mnemonic_name(const InstructionSpec *instruction);
 size_t m68k_instruction_spec_assemble_bytes(const InstructionSpec *instruction, unsigned char *out_bytes, size_t max_bytes);
 int m68k_instruction_spec_uses_movem_predecrement_mask(const InstructionSpec *instruction);
 uint16_t m68k_reverse_reglist_mask(uint16_t mask);

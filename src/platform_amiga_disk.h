@@ -1,6 +1,7 @@
 #ifndef PLATFORM_AMIGA_DISK_H
 #define PLATFORM_AMIGA_DISK_H
 
+#include "m68k_diagnostics.h"
 #include "util_arena.h"
 
 #include <stddef.h>
@@ -59,8 +60,8 @@ struct AmigaDiskAnalysis {
 const char *amiga_disk_format_kind_name(AmigaDiskFormatKind kind);
 int amiga_disk_analysis_create(AmigaDiskAnalysis *analysis);
 void amiga_disk_analysis_destroy(AmigaDiskAnalysis *analysis);
-int amiga_disk_analyze_image(const char *path, AmigaDiskAnalysis *out_analysis, char *error_buf, size_t error_buf_size);
-int amiga_disk_analyze_buffer(const unsigned char *data, size_t size, AmigaDiskAnalysis *out_analysis, char *error_buf,
-    size_t error_buf_size);
+int amiga_disk_analyze_image(const char *path, AmigaDiskAnalysis *out_analysis, M68kDiagSink diagnostics);
+int amiga_disk_analyze_buffer(const unsigned char *data, size_t size, AmigaDiskAnalysis *out_analysis,
+    M68kDiagSink diagnostics);
 
 #endif

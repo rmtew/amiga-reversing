@@ -1,6 +1,7 @@
 #ifndef PLATFORM_ATARI_ST_DISK_H
 #define PLATFORM_ATARI_ST_DISK_H
 
+#include "m68k_diagnostics.h"
 #include "util_arena.h"
 
 #include <stddef.h>
@@ -52,9 +53,8 @@ struct AtariStDiskAnalysis {
 
 int atari_st_disk_analysis_create(AtariStDiskAnalysis *analysis);
 void atari_st_disk_analysis_destroy(AtariStDiskAnalysis *analysis);
-int atari_st_disk_analyze_image(const char *path, AtariStDiskAnalysis *out_analysis, char *error_buf,
-    size_t error_buf_size);
+int atari_st_disk_analyze_image(const char *path, AtariStDiskAnalysis *out_analysis, M68kDiagSink diagnostics);
 int atari_st_disk_analyze_buffer(const unsigned char *data, size_t size, AtariStDiskAnalysis *out_analysis,
-    char *error_buf, size_t error_buf_size);
+    M68kDiagSink diagnostics);
 
 #endif

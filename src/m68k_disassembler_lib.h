@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "m68k_diagnostics.h"
 #include "m68k_simulator.h"
 
 #ifdef _WIN32
@@ -12,13 +13,29 @@
 #define M68K_DISASM_EXPORT
 #endif
 
-M68K_DISASM_EXPORT int m68k_disassemble_one_text(const uint8_t *data, size_t size, char *out_text, size_t out_text_size,
-  size_t *out_byte_count, char *out_error, size_t out_error_size);
-M68K_DISASM_EXPORT int m68k_disassemble_one_text_for_cpu(const uint8_t *data, size_t size, uint8_t target_cpu, char *out_text,
-  size_t out_text_size, size_t *out_byte_count, char *out_error, size_t out_error_size);
-M68K_DISASM_EXPORT int m68k_simulate_one_concrete_for_cpu(const uint8_t *data, size_t size, uint8_t target_cpu,
-  uint8_t *memory, size_t memory_size, M68kSimConcreteState *io_state, char *out_error, size_t out_error_size);
-M68K_DISASM_EXPORT int m68k_simulate_one_abstract_for_cpu(const uint8_t *data, size_t size, uint8_t target_cpu,
-  const M68kSimCpuState *state, M68kSimStepResult *out_result, char *out_error, size_t out_error_size);
+#define M68K_DISASM_TEXT_SIZE 256U
+
+typedef struct M68kDisasmTextResult {
+  size_t byte_count;
+  char text[M68K_DISASM_TEXT_SIZE];
+  M68kDiagList diagnostics;
+} M68kDisasmTextResult;
+
+typedef struct M68kSimConcreteRunResult {
+  M68kDiagList diagnostics;
+} M68kSimConcreteRunResult;
+
+typedef struct M68kSimAbstractRunResult {
+  M68kSimStepResult step;
+  M68kDiagList diagnostics;
+} M68kSimAbstractRunResult;
+
+M68K_DISASM_EXPORT M68kDisasmTextResult m68k_disassemble_one_text(const uint8_t *data, size_t size);
+M68K_DISASM_EXPORT M68kDisasmTextResult m68k_disassemble_one_text_for_cpu(const uint8_t *data, size_t size,
+  uint8_t target_cpu);
+M68K_DISASM_EXPORT M68kSimConcreteRunResult m68k_simulate_one_concrete_for_cpu(const uint8_t *data, size_t size,
+  uint8_t target_cpu, uint8_t *memory, size_t memory_size, M68kSimConcreteState *io_state);
+M68K_DISASM_EXPORT M68kSimAbstractRunResult m68k_simulate_one_abstract_for_cpu(const uint8_t *data, size_t size,
+  uint8_t target_cpu, const M68kSimCpuState *state);
 
 #endif

@@ -1,12 +1,16 @@
 #include "json_builder.h"
 #include "platform_amiga_disk.h"
 #include "platform_atari_st_disk.h"
-#include "platform_common.h"
 #include "platform_disk_lib.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+static void platform_disk_add_error(M68kDiagList *diagnostics, const char *message) {
+    if (message == NULL || message[0] == '\0') message = "platform disk operation failed";
+    m68k_diag_add(m68k_diag_sink(diagnostics), M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_DISK_FAILED, message);
+}
 
 static int inspect_amiga_disk_json(const AmigaDiskAnalysis *analysis, char **out_json) {
     JsonBuilder builder = {0};
@@ -96,17 +100,15 @@ fail:
 }
 
 static int amiga_disk_inspect(const char *path, const unsigned char *data, size_t size,
-    char **out_json, char *error_buf, size_t error_buf_size) {
+    char **out_json, M68kDiagSink diagnostics) {
     AmigaDiskAnalysis analysis;
-    char error[256];
-    if ((path != NULL ? amiga_disk_analyze_image(path, &analysis, error, sizeof(error))
-                      : amiga_disk_analyze_buffer(data, size, &analysis, error, sizeof(error))) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, error);
+    if ((path != NULL ? amiga_disk_analyze_image(path, &analysis, diagnostics)
+                      : amiga_disk_analyze_buffer(data, size, &analysis, diagnostics)) != 0) {
         amiga_disk_analysis_destroy(&analysis);
         return -1;
     }
     if (inspect_amiga_disk_json(&analysis, out_json) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, "failed building inspect json");
+        platform_disk_add_error(diagnostics.list, "failed building inspect json");
         amiga_disk_analysis_destroy(&analysis);
         return -1;
     }
@@ -115,17 +117,15 @@ static int amiga_disk_inspect(const char *path, const unsigned char *data, size_
 }
 
 static int atari_st_disk_inspect(const char *path, const unsigned char *data, size_t size,
-    char **out_json, char *error_buf, size_t error_buf_size) {
+    char **out_json, M68kDiagSink diagnostics) {
     AtariStDiskAnalysis analysis;
-    char error[256];
-    if ((path != NULL ? atari_st_disk_analyze_image(path, &analysis, error, sizeof(error))
-                      : atari_st_disk_analyze_buffer(data, size, &analysis, error, sizeof(error))) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, error);
+    if ((path != NULL ? atari_st_disk_analyze_image(path, &analysis, diagnostics)
+                      : atari_st_disk_analyze_buffer(data, size, &analysis, diagnostics)) != 0) {
         atari_st_disk_analysis_destroy(&analysis);
         return -1;
     }
     if (inspect_atari_st_disk_json(&analysis, out_json) != 0) {
-        m68k_platform_set_error(error_buf, error_buf_size, "failed building inspect json");
+        platform_disk_add_error(diagnostics.list, "failed building inspect json");
         atari_st_disk_analysis_destroy(&analysis);
         return -1;
     }
@@ -134,23 +134,28 @@ static int atari_st_disk_inspect(const char *path, const unsigned char *data, si
 }
 
 static int disk_inspect(const char *platform_name, const char *path, const unsigned char *data, size_t size,
-    char **out_json, char *error_buf, size_t error_buf_size) {
+    char **out_json, M68kDiagSink diagnostics) {
     if (_stricmp(platform_name, "amiga-disk") == 0 || _stricmp(platform_name, "amiga") == 0)
-        return amiga_disk_inspect(path, data, size, out_json, error_buf, error_buf_size);
+        return amiga_disk_inspect(path, data, size, out_json, diagnostics);
     if (_stricmp(platform_name, "atari-st-disk") == 0 || _stricmp(platform_name, "atari-st") == 0)
-        return atari_st_disk_inspect(path, data, size, out_json, error_buf, error_buf_size);
-    m68k_platform_set_error(error_buf, error_buf_size, "unknown disk platform");
+        return atari_st_disk_inspect(path, data, size, out_json, diagnostics);
+    platform_disk_add_error(diagnostics.list, "unknown disk platform");
     return -1;
 }
 
-PLATFORM_DISK_API int platform_disk_inspect_path_json(const char *platform_name, const char *path, char **out_json,
-    char *error_buf, size_t error_buf_size) {
-    return disk_inspect(platform_name, path, NULL, 0, out_json, error_buf, error_buf_size);
+PLATFORM_DISK_API PlatformDiskTextResult platform_disk_inspect_path_json(const char *platform_name, const char *path) {
+    PlatformDiskTextResult result;
+    memset(&result, 0, sizeof(result));
+    disk_inspect(platform_name, path, NULL, 0, &result.text, m68k_diag_sink(&result.diagnostics));
+    return result;
 }
 
-PLATFORM_DISK_API int platform_disk_inspect_buffer_json(const char *platform_name, const unsigned char *data,
-    size_t size, char **out_json, char *error_buf, size_t error_buf_size) {
-    return disk_inspect(platform_name, NULL, data, size, out_json, error_buf, error_buf_size);
+PLATFORM_DISK_API PlatformDiskTextResult platform_disk_inspect_buffer_json(const char *platform_name,
+    const unsigned char *data, size_t size) {
+    PlatformDiskTextResult result;
+    memset(&result, 0, sizeof(result));
+    disk_inspect(platform_name, NULL, data, size, &result.text, m68k_diag_sink(&result.diagnostics));
+    return result;
 }
 
 PLATFORM_DISK_API void platform_disk_free_json(char *json) {

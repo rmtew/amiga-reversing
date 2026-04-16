@@ -351,6 +351,10 @@ def _load_kb() -> dict[str, object]:
     return data
 
 
+def _local_form_index(form: object) -> int:
+    return int(getattr(form, "local_form_index", getattr(form, "form_index")))
+
+
 def _eval_condition_expr(expr: str, n: int, z: int, v: int, c: int) -> bool:
     py_expr = expr.replace("!", " not ").replace("&", " and ").replace("|", " or ")
     return bool(eval(py_expr, {"__builtins__": {}}, {"N": bool(n), "Z": bool(z), "V": bool(v), "C": bool(c), "true": True, "false": False}))
@@ -688,9 +692,9 @@ def _collect_missing_execution_forms(forms: list[object], kb: dict[str, object])
         kb_mnemonic = str(form.kb_mnemonic)
         entry = by_mnemonic.get(kb_mnemonic, by_mnemonic.get(mnemonic))
         assert entry is not None
-        execution = _execution_for_form(entry, mnemonic, kb_mnemonic, int(form.form_index))
+        execution = _execution_for_form(entry, mnemonic, kb_mnemonic, _local_form_index(form))
         if execution is None:
-            missing.append((mnemonic, kb_mnemonic, int(form.form_index)))
+            missing.append((mnemonic, kb_mnemonic, _local_form_index(form)))
     return missing
 
 
@@ -728,7 +732,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
         kb_mnemonic = str(form.kb_mnemonic)
         entry = by_mnemonic.get(kb_mnemonic, by_mnemonic.get(mnemonic))
         assert entry is not None
-        execution = _execution_for_form(entry, mnemonic, kb_mnemonic, int(form.form_index))
+        execution = _execution_for_form(entry, mnemonic, kb_mnemonic, _local_form_index(form))
         if execution is None:
             continue
         execution = _specialize_shift_execution(entry, execution, form)
@@ -951,7 +955,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
                 operand_widths[operand_index] = "0u"
             _validate_ea_metadata(
                 mnemonic,
-                int(form.form_index),
+                _local_form_index(form),
                 operand_index,
                 expected_kind,
                 ea_formula,
@@ -978,9 +982,10 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
                 "},"
             )
         row_mnemonic = kb_mnemonic if (" " in kb_mnemonic and "," not in kb_mnemonic) else str(form.mnemonic)
+        mnemonic_enum = f"M68K_ASM_MNEMONIC_{str(form.mnemonic)}"
         form_rows.extend([
             "    {",
-            f"      \"{row_mnemonic}\", {form.form_index}u, {{ 0u, 0u, 0u }},",
+            f"      {mnemonic_enum}, {form.form_index}u, {{ 0u, 0u }},",
             "      {",
             "      "
             f"{OP_TYPE_ENUM.get(execution.get('semantic_op') if isinstance(execution, dict) else None, 'M68K_SIM_OP_NONE')}, "

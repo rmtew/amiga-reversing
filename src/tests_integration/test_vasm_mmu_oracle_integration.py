@@ -30,7 +30,7 @@ class VasmMmuOracleIntegrationTests(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_oracle_backed_mmu_support_boundary_is_explicit(self) -> None:
-        self.assertEqual(list(unsupported_mmu_oracle_mnemonics()), ["PBcc", "PDBcc", "PMOVE", "PScc", "PTRAPcc", "PVALID"])
+        self.assertEqual(list(unsupported_mmu_oracle_mnemonics()), ["PBcc", "PDBcc", "PMOVE", "PScc", "PTRAPcc"])
 
     def test_unprobed_coprocessor_families_remain_explicitly_unprobed(self) -> None:
         matrix = load_mmu_oracle_matrix()

@@ -21,6 +21,56 @@ FILE_DLL = BUILD_DIR / "platform_file_lib.dll"
 HARNESS_EXE = BUILD_DIR / "platform_backend_harness.exe"
 HARNESS_SOURCE = BUILD_DIR / "platform_backend_harness.c"
 HARNESS_COMPILE = BUILD_DIR / "platform_backend_harness_compile.bat"
+M68K_DIAG_SEVERITY_ERROR = 3
+M68K_DIAG_MESSAGE_SIZE = 160
+M68K_DIAG_LIST_CAPACITY = 8
+
+
+class M68kDiag(ctypes.Structure):
+    _fields_ = [
+        ("severity", ctypes.c_uint32),
+        ("code", ctypes.c_uint32),
+        ("message", ctypes.c_char * M68K_DIAG_MESSAGE_SIZE),
+    ]
+
+
+class M68kDiagList(ctypes.Structure):
+    _fields_ = [
+        ("count", ctypes.c_size_t),
+        ("dropped_count", ctypes.c_size_t),
+        ("items", M68kDiag * M68K_DIAG_LIST_CAPACITY),
+    ]
+
+
+class PlatformFileTextResult(ctypes.Structure):
+    _fields_ = [
+        ("text", ctypes.c_void_p),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
+class PlatformFileBufferResult(ctypes.Structure):
+    _fields_ = [
+        ("data", ctypes.c_void_p),
+        ("size", ctypes.c_size_t),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
+def _diag_message(diagnostics: M68kDiagList) -> str:
+    for index in range(diagnostics.count):
+        if diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR:
+            return diagnostics.items[index].message.decode("utf-8")
+    if diagnostics.count:
+        return diagnostics.items[0].message.decode("utf-8")
+    return ""
+
+
+def _diag_has_errors(diagnostics: M68kDiagList) -> bool:
+    return any(
+        diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR
+        for index in range(diagnostics.count)
+    )
 
 
 def u32(value: int) -> bytes:
@@ -318,21 +368,14 @@ class PlatformBackendTestCaseMixin:
             ctypes.c_char_p,
             ctypes.POINTER(ctypes.c_ubyte),
             ctypes.c_size_t,
-            ctypes.POINTER(ctypes.c_void_p),
-            ctypes.c_char_p,
-            ctypes.c_size_t,
         ]
-        cls.library.platform_file_inspect_buffer_json.restype = ctypes.c_int
+        cls.library.platform_file_inspect_buffer_json.restype = PlatformFileTextResult
         cls.library.platform_file_roundtrip_buffer.argtypes = [
             ctypes.c_char_p,
             ctypes.POINTER(ctypes.c_ubyte),
             ctypes.c_size_t,
-            ctypes.POINTER(ctypes.c_void_p),
-            ctypes.POINTER(ctypes.c_size_t),
-            ctypes.c_char_p,
-            ctypes.c_size_t,
         ]
-        cls.library.platform_file_roundtrip_buffer.restype = ctypes.c_int
+        cls.library.platform_file_roundtrip_buffer.restype = PlatformFileBufferResult
         cls.library.platform_file_free_text.argtypes = [ctypes.c_void_p]
         cls.library.platform_file_free_text.restype = None
         cls.library.platform_file_free_buffer.argtypes = [ctypes.c_void_p]
@@ -353,42 +396,30 @@ class PlatformBackendTestCaseMixin:
         )
 
     def inspect_buffer(self, backend_name: str, data: bytes) -> dict[str, object]:
-        json_ptr = ctypes.c_void_p()
-        error_buf = ctypes.create_string_buffer(256)
         data_array = (ctypes.c_ubyte * len(data)).from_buffer_copy(data if data else b"\0")
         result = self.library.platform_file_inspect_buffer_json(
             backend_name.encode("utf-8"),
             data_array,
             len(data),
-            ctypes.byref(json_ptr),
-            error_buf,
-            len(error_buf),
         )
-        self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
+        self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
         try:
-            return json.loads(ctypes.string_at(json_ptr).decode("utf-8"))
+            return json.loads(ctypes.string_at(result.text).decode("utf-8"))
         finally:
-            self.library.platform_file_free_text(json_ptr)
+            self.library.platform_file_free_text(result.text)
 
     def roundtrip_buffer(self, backend_name: str, data: bytes) -> bytes:
-        out_ptr = ctypes.c_void_p()
-        out_size = ctypes.c_size_t()
-        error_buf = ctypes.create_string_buffer(256)
         data_array = (ctypes.c_ubyte * len(data)).from_buffer_copy(data if data else b"\0")
         result = self.library.platform_file_roundtrip_buffer(
             backend_name.encode("utf-8"),
             data_array,
             len(data),
-            ctypes.byref(out_ptr),
-            ctypes.byref(out_size),
-            error_buf,
-            len(error_buf),
         )
-        self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
+        self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
         try:
-            return ctypes.string_at(out_ptr, out_size.value)
+            return ctypes.string_at(result.data, result.size)
         finally:
-            self.library.platform_file_free_buffer(out_ptr)
+            self.library.platform_file_free_buffer(result.data)
 
 
 def _platform_backend_harness_source_text() -> str:

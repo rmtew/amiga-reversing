@@ -1,16 +1,16 @@
 {
   "analysis": {
-    "block_count": 3176,
+    "block_count": 3175,
     "certain_code_bytes": 22612,
     "certain_code_ratio": 0.348306,
     "cpu_violation_count": 0,
-    "edge_count": 5251,
+    "edge_count": 5250,
     "generated_label_count": 1394,
-    "label_count": 2027,
+    "label_count": 2018,
     "recovered_inline_dispatch_count": 1,
     "recovered_platform_base_slot_count": 2,
     "recovered_platform_call_count": 65,
-    "recovered_platform_effect_count": 24,
+    "recovered_platform_effect_count": 33,
     "recovered_string_dispatch_count": 2,
     "recovered_word_dispatch_count": 3,
     "required_cpu": 0,
@@ -31,38 +31,38 @@
     "align_statement_count": 0,
     "data_bytes": 41682,
     "data_statement_count": 908,
-    "generated_label_statement_count": 3318,
+    "generated_label_statement_count": 3314,
     "instruction_byte_ratio": 0.357948,
     "instruction_bytes": 23238,
     "instruction_statement_count": 7695,
-    "label_statement_count": 3318,
-    "statement_count": 11921,
+    "label_statement_count": 3314,
+    "statement_count": 11917,
     "symbol_ref_abs_count": 0,
-    "symbol_ref_count": 2647,
+    "symbol_ref_count": 2680,
     "symbol_ref_pc_relative_count": 0,
     "symbol_ref_section_relative_count": 0,
-    "text_bytes": 308032,
+    "text_bytes": 308875,
     "vasm_normalized_count": 0
   },
   "sections": [
     {
-      "block_count": 3176,
+      "block_count": 3175,
       "certain_code_bytes": 22612,
-      "edge_count": 5251,
+      "edge_count": 5250,
       "emitted_data_count": 908,
       "emitted_instruction_count": 7695,
-      "emitted_label_count": 3318,
+      "emitted_label_count": 3314,
       "kind": "code",
-      "label_count": 2027,
+      "label_count": 2018,
       "name": "section",
       "size": 64920,
       "violation_count": 7
     }
   ],
   "timing": {
-    "analysis_seconds": 10.397,
-    "ir_build_with_analysis_seconds": 19.902,
-    "render_seconds": 0.08,
-    "total_seconds": 30.38
+    "analysis_seconds": 11.179,
+    "ir_build_seconds": 23.782,
+    "render_seconds": 0.083,
+    "total_seconds": 35.144
   }
 }

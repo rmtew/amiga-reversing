@@ -51,5 +51,6 @@ int m68k_c_test_fail_str(const char *file, int line, const char *expected, const
 int m68k_c_parse_util_tests(void);
 int m68k_c_instruction_spec_tests(void);
 int m68k_c_ir_tests(void);
+int m68k_c_diagnostics_tests(void);
 
 #endif

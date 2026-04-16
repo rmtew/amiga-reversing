@@ -11,23 +11,108 @@ static int test_sign_extend32(void) {
   return 0;
 }
 
+static int test_popcount16(void) {
+  M68K_C_ASSERT_INT(0, (int)m68k_popcount16(0x0000u));
+  M68K_C_ASSERT_INT(1, (int)m68k_popcount16(0x8000u));
+  M68K_C_ASSERT_INT(8, (int)m68k_popcount16(0xF0F0u));
+  M68K_C_ASSERT_INT(16, (int)m68k_popcount16(0xFFFFu));
+  return 0;
+}
+
 static int test_parse_number_u32(void) {
-  uint32_t value = 0;
-  M68K_C_ASSERT(m68k_parse_number_u32("$FF", &value));
-  M68K_C_ASSERT_U32(0x000000FFu, value);
-  M68K_C_ASSERT(m68k_parse_number_u32("-8", &value));
-  M68K_C_ASSERT_U32(0xFFFFFFF8u, value);
-  M68K_C_ASSERT(!m68k_parse_number_u32("", &value));
+  M68kParseU32Result result = m68k_parse_number_u32("$FF");
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_U32(0x000000FFu, result.value);
+  result = m68k_parse_number_u32("-8");
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_U32(0xFFFFFFF8u, result.value);
+  result = m68k_parse_number_u32("");
+  M68K_C_ASSERT(!result.ok);
   return 0;
 }
 
 static int test_parse_cpu_name(void) {
-  uint8_t cpu = 0xFFu;
-  M68K_C_ASSERT(m68k_parse_cpu_name("68020", &cpu));
-  M68K_C_ASSERT_INT(M68K_ASM_CPU_68020, cpu);
-  M68K_C_ASSERT(m68k_parse_cpu_name("68060", &cpu));
-  M68K_C_ASSERT_INT(M68K_ASM_CPU_68060, cpu);
-  M68K_C_ASSERT(!m68k_parse_cpu_name("68008", &cpu));
+  M68kParseCpuResult result = m68k_parse_cpu_name("68020");
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_INT(M68K_ASM_CPU_68020, result.cpu);
+  result = m68k_parse_cpu_name("68060");
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_INT(M68K_ASM_CPU_68060, result.cpu);
+  result = m68k_parse_cpu_name("68008");
+  M68K_C_ASSERT(!result.ok);
+  return 0;
+}
+
+static int test_parse_mnemonic_token(void) {
+  M68kParseMnemonicResult result = m68k_parse_mnemonic_token("movea.l");
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_MOVEA, result.mnemonic_id);
+  M68K_C_ASSERT_INT('l', result.size_suffix);
+  result = m68k_parse_mnemonic_token("BRA.S");
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_BRA, result.mnemonic_id);
+  M68K_C_ASSERT_INT('b', result.size_suffix);
+  result = m68k_parse_mnemonic_token("dbne");
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_DBNE, result.mnemonic_id);
+  M68K_C_ASSERT_INT('\0', result.size_suffix);
+  result = m68k_parse_mnemonic_token("move.l.extra");
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_NONE, result.mnemonic_id);
+  return 0;
+}
+
+static int test_parse_special_register_token(void) {
+  M68K_C_ASSERT_INT(M68K_ASM_OPERAND_CCR, m68k_parse_special_register_token("CCR"));
+  M68K_C_ASSERT_INT(M68K_ASM_OPERAND_SR, m68k_parse_special_register_token("sr"));
+  M68K_C_ASSERT_INT(M68K_ASM_OPERAND_USP, m68k_parse_special_register_token("Usp"));
+  M68K_C_ASSERT_INT(M68K_ASM_OPERAND_NONE, m68k_parse_special_register_token("d0"));
+  return 0;
+}
+
+static int test_parse_cache_selector_token(void) {
+  M68kParseU32Result result = m68k_parse_cache_selector_token("dc");
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_U32(1u, result.value);
+  result = m68k_parse_cache_selector_token("BC");
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_U32(3u, result.value);
+  result = m68k_parse_cache_selector_token("xx");
+  M68K_C_ASSERT(!result.ok);
+  return 0;
+}
+
+static int test_parse_source_directive_token(void) {
+  M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_INCLUDE, m68k_parse_source_directive_token("include"));
+  M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_SECTION, m68k_parse_source_directive_token("SECTION"));
+  M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_DCB_W, m68k_parse_source_directive_token("dcb.w"));
+  M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_ALIGNLONG, m68k_parse_source_directive_token("AlignLong"));
+  M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_NONE, m68k_parse_source_directive_token("move"));
+  return 0;
+}
+
+static int test_parse_data_directive_token(void) {
+  M68kParseDataDirectiveResult result = m68k_parse_data_directive_token(M68K_SOURCE_DIRECTIVE_DC_W);
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_INT(2, result.width_bytes);
+  M68K_C_ASSERT_INT(0, result.is_repeat);
+  result = m68k_parse_data_directive_token(M68K_SOURCE_DIRECTIVE_DCB_L);
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_INT(4, result.width_bytes);
+  M68K_C_ASSERT_INT(1, result.is_repeat);
+  result = m68k_parse_data_directive_token(M68K_SOURCE_DIRECTIVE_INCLUDE);
+  M68K_C_ASSERT(!result.ok);
+  return 0;
+}
+
+static int test_parse_offset_directive_token(void) {
+  M68kParseOffsetDirectiveResult result = m68k_parse_offset_directive_token(M68K_SOURCE_DIRECTIVE_BYTE);
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_U32(1u, result.delta);
+  result = m68k_parse_offset_directive_token(M68K_SOURCE_DIRECTIVE_APTR);
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_U32(4u, result.delta);
+  result = m68k_parse_offset_directive_token(M68K_SOURCE_DIRECTIVE_DOUBLE);
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_U32(8u, result.delta);
+  result = m68k_parse_offset_directive_token(M68K_SOURCE_DIRECTIVE_LIBENT);
+  M68K_C_ASSERT(!result.ok);
   return 0;
 }
 
@@ -48,8 +133,15 @@ static int test_normalize_pc_current_expr(void) {
 int m68k_c_parse_util_tests(void) {
   static const M68kCTestCase cases[] = {
     {"sign_extend32", test_sign_extend32},
+    {"popcount16", test_popcount16},
     {"parse_number_u32", test_parse_number_u32},
     {"parse_cpu_name", test_parse_cpu_name},
+    {"parse_mnemonic_token", test_parse_mnemonic_token},
+    {"parse_special_register_token", test_parse_special_register_token},
+    {"parse_cache_selector_token", test_parse_cache_selector_token},
+    {"parse_source_directive_token", test_parse_source_directive_token},
+    {"parse_data_directive_token", test_parse_data_directive_token},
+    {"parse_offset_directive_token", test_parse_offset_directive_token},
     {"normalize_pc_current_expr", test_normalize_pc_current_expr},
   };
   return m68k_c_test_run_suite("m68k_parse_util", cases, sizeof(cases) / sizeof(cases[0]));

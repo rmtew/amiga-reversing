@@ -35,6 +35,159 @@ static const M68kAsmFormDef *instruction_form(const M68kInstructionIR *instructi
   return NULL;
 }
 
+static int mnemonic_id_is_bit_test_family(uint8_t mnemonic_id) {
+  switch (mnemonic_id) {
+  case M68K_ASM_MNEMONIC_BCHG:
+  case M68K_ASM_MNEMONIC_BCLR:
+  case M68K_ASM_MNEMONIC_BSET:
+  case M68K_ASM_MNEMONIC_BTST:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+static int mnemonic_id_is_branch_family(uint8_t mnemonic_id) {
+  switch (mnemonic_id) {
+  case M68K_ASM_MNEMONIC_BHI:
+  case M68K_ASM_MNEMONIC_BLS:
+  case M68K_ASM_MNEMONIC_BCC:
+  case M68K_ASM_MNEMONIC_BCS:
+  case M68K_ASM_MNEMONIC_BNE:
+  case M68K_ASM_MNEMONIC_BEQ:
+  case M68K_ASM_MNEMONIC_BVC:
+  case M68K_ASM_MNEMONIC_BVS:
+  case M68K_ASM_MNEMONIC_BPL:
+  case M68K_ASM_MNEMONIC_BMI:
+  case M68K_ASM_MNEMONIC_BGE:
+  case M68K_ASM_MNEMONIC_BLT:
+  case M68K_ASM_MNEMONIC_BGT:
+  case M68K_ASM_MNEMONIC_BLE:
+  case M68K_ASM_MNEMONIC_BRA:
+  case M68K_ASM_MNEMONIC_BSR:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+static int mnemonic_id_is_dbcc_family(uint8_t mnemonic_id) {
+  switch (mnemonic_id) {
+  case M68K_ASM_MNEMONIC_DBT:
+  case M68K_ASM_MNEMONIC_DBF:
+  case M68K_ASM_MNEMONIC_DBHI:
+  case M68K_ASM_MNEMONIC_DBLS:
+  case M68K_ASM_MNEMONIC_DBCC:
+  case M68K_ASM_MNEMONIC_DBCS:
+  case M68K_ASM_MNEMONIC_DBNE:
+  case M68K_ASM_MNEMONIC_DBEQ:
+  case M68K_ASM_MNEMONIC_DBVC:
+  case M68K_ASM_MNEMONIC_DBVS:
+  case M68K_ASM_MNEMONIC_DBPL:
+  case M68K_ASM_MNEMONIC_DBMI:
+  case M68K_ASM_MNEMONIC_DBGE:
+  case M68K_ASM_MNEMONIC_DBLT:
+  case M68K_ASM_MNEMONIC_DBGT:
+  case M68K_ASM_MNEMONIC_DBLE:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+static int mnemonic_id_is_scc_family(uint8_t mnemonic_id) {
+  switch (mnemonic_id) {
+  case M68K_ASM_MNEMONIC_ST:
+  case M68K_ASM_MNEMONIC_SF:
+  case M68K_ASM_MNEMONIC_SHI:
+  case M68K_ASM_MNEMONIC_SLS:
+  case M68K_ASM_MNEMONIC_SCC:
+  case M68K_ASM_MNEMONIC_SCS:
+  case M68K_ASM_MNEMONIC_SNE:
+  case M68K_ASM_MNEMONIC_SEQ:
+  case M68K_ASM_MNEMONIC_SVC:
+  case M68K_ASM_MNEMONIC_SVS:
+  case M68K_ASM_MNEMONIC_SPL:
+  case M68K_ASM_MNEMONIC_SMI:
+  case M68K_ASM_MNEMONIC_SGE:
+  case M68K_ASM_MNEMONIC_SLT:
+  case M68K_ASM_MNEMONIC_SGT:
+  case M68K_ASM_MNEMONIC_SLE:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+static int mnemonic_id_is_trap_family(uint8_t mnemonic_id) {
+  switch (mnemonic_id) {
+  case M68K_ASM_MNEMONIC_TRAPT:
+  case M68K_ASM_MNEMONIC_TRAPF:
+  case M68K_ASM_MNEMONIC_TRAPHI:
+  case M68K_ASM_MNEMONIC_TRAPLS:
+  case M68K_ASM_MNEMONIC_TRAPCC:
+  case M68K_ASM_MNEMONIC_TRAPCS:
+  case M68K_ASM_MNEMONIC_TRAPNE:
+  case M68K_ASM_MNEMONIC_TRAPEQ:
+  case M68K_ASM_MNEMONIC_TRAPVC:
+  case M68K_ASM_MNEMONIC_TRAPVS:
+  case M68K_ASM_MNEMONIC_TRAPPL:
+  case M68K_ASM_MNEMONIC_TRAPMI:
+  case M68K_ASM_MNEMONIC_TRAPGE:
+  case M68K_ASM_MNEMONIC_TRAPLT:
+  case M68K_ASM_MNEMONIC_TRAPGT:
+  case M68K_ASM_MNEMONIC_TRAPLE:
+  case M68K_ASM_MNEMONIC_TRAPV:
+  case M68K_ASM_MNEMONIC_TRAP:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+static int mnemonic_id_is_mul_div_word_default(uint8_t mnemonic_id) {
+  switch (mnemonic_id) {
+  case M68K_ASM_MNEMONIC_MULU:
+  case M68K_ASM_MNEMONIC_MULS:
+  case M68K_ASM_MNEMONIC_DIVU:
+  case M68K_ASM_MNEMONIC_DIVS:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+static int mnemonic_id_requires_long_size_suffix(uint8_t mnemonic_id) {
+  switch (mnemonic_id) {
+  case M68K_ASM_MNEMONIC_LEA:
+  case M68K_ASM_MNEMONIC_LINK:
+  case M68K_ASM_MNEMONIC_MOVEQ:
+  case M68K_ASM_MNEMONIC_PEA:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+static int mnemonic_id_is_ext_family(uint8_t mnemonic_id) {
+  switch (mnemonic_id) {
+  case M68K_ASM_MNEMONIC_EXT:
+  case M68K_ASM_MNEMONIC_EXTB:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+static int mnemonic_id_requires_word_size_suffix(uint8_t mnemonic_id) {
+  switch (mnemonic_id) {
+  case M68K_ASM_MNEMONIC_SWAP:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
 static int append_format(char *out_text, size_t out_text_size, size_t *inout_used, const char *format, ...) {
   int written;
   va_list args;
@@ -173,7 +326,8 @@ static int append_reglist_text(char *out_text, size_t out_text_size, size_t *ino
 
 static int instruction_uses_movem_predecrement_mask(const M68kInstructionIR *instruction, const M68kAsmFormDef *form) {
   if (instruction == NULL || form == NULL) return 0;
-  if (_stricmp(form->mnemonic, "movem") != 0 || instruction->operand_count != 2U) return 0;
+  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEM) return 0;
+  if (instruction->operand_count != 2U) return 0;
   if (instruction->operands[0].kind != M68K_ASM_OPERAND_REGLIST) return 0;
   if (instruction->operands[1].kind != M68K_ASM_OPERAND_EA) return 0;
   return instruction->operands[1].value.ea_mode == 4U;
@@ -385,38 +539,34 @@ static int operand_has_renderable_symbol_name(const M68kOperandIR *operand, cons
 }
 
 static int instruction_uses_short_branch_suffix(const M68kInstructionIR *instruction) {
+  uint8_t mnemonic_id;
   if (instruction == NULL || instruction->size_suffix != 'b' || instruction->operand_count == 0U) return 0;
-  if (_strnicmp(instruction->mnemonic, "b", 1) != 0) return 0;
-  if (_stricmp(instruction->mnemonic, "bchg") == 0 || _stricmp(instruction->mnemonic, "bclr") == 0 ||
-      _stricmp(instruction->mnemonic, "bset") == 0 || _stricmp(instruction->mnemonic, "btst") == 0 ||
-      _strnicmp(instruction->mnemonic, "bf", 2) == 0) {
-    return 0;
-  }
+  mnemonic_id = instruction->mnemonic_id;
+  if (!mnemonic_id_is_branch_family(mnemonic_id)) return 0;
   return instruction->operand_count == 1U;
 }
 
 static int instruction_requires_explicit_size_suffix( const M68kInstructionIR *instruction) {
+  uint8_t mnemonic_id;
   if (instruction == NULL) return 0;
-  if (_strnicmp(instruction->mnemonic, "b", 1) == 0 && _stricmp(instruction->mnemonic, "bchg") != 0 &&
-        _stricmp(instruction->mnemonic, "bclr") != 0 && _stricmp(instruction->mnemonic, "bset") != 0 &&
-        _stricmp(instruction->mnemonic, "btst") != 0 && instruction->operand_count == 1U) {
-    return 1;
-  }
-  if (_stricmp(instruction->mnemonic, "bchg") == 0 || _stricmp(instruction->mnemonic, "bclr") == 0 ||
-      _stricmp(instruction->mnemonic, "bset") == 0 || _stricmp(instruction->mnemonic, "btst") == 0 ||
-      _stricmp(instruction->mnemonic, "mulu") == 0 || _stricmp(instruction->mnemonic, "muls") == 0 ||
-      _stricmp(instruction->mnemonic, "divu") == 0 || _stricmp(instruction->mnemonic, "divs") == 0) {
-    return 1;
-  }
-  if (_strnicmp(instruction->mnemonic, "trap", 4) == 0 && instruction->operand_count != 0U) return 1;
+  mnemonic_id = instruction->mnemonic_id;
+  if (mnemonic_id_requires_long_size_suffix(mnemonic_id) && instruction->size_suffix == 'l') return 1;
+  if (mnemonic_id_is_ext_family(mnemonic_id) && instruction->size_suffix != '\0') return 1;
+  if (mnemonic_id_requires_word_size_suffix(mnemonic_id) && instruction->size_suffix == 'w') return 1;
+  if (mnemonic_id_is_scc_family(mnemonic_id) && instruction->size_suffix == 'b') return 1;
+  if (mnemonic_id_is_dbcc_family(mnemonic_id) && instruction->size_suffix == 'w') return 1;
+  if (mnemonic_id_is_branch_family(mnemonic_id) && instruction->operand_count == 1U) return 1;
+  if (mnemonic_id_is_bit_test_family(mnemonic_id) || mnemonic_id_is_mul_div_word_default(mnemonic_id)) return 1;
+  if (mnemonic_id_is_trap_family(mnemonic_id) && instruction->operand_count != 0U) return 1;
   return 0;
 }
 
 static char instruction_render_size_suffix(const M68kInstructionIR *instruction, const M68kAsmFormDef *form) {
+  uint8_t mnemonic_id;
   if (instruction == NULL) return '\0';
-  if ((_stricmp(instruction->mnemonic, "bchg") == 0 || _stricmp(instruction->mnemonic, "bclr") == 0 ||
-      _stricmp(instruction->mnemonic, "bset") == 0 || _stricmp(instruction->mnemonic, "btst") == 0) &&
-      instruction->operand_count == 2U) {
+  mnemonic_id = instruction->mnemonic_id;
+  if (mnemonic_id_is_bit_test_family(mnemonic_id)) {
+    if (instruction->operand_count != 2U) return instruction->size_suffix;
     const M68kOperandIR *target = &instruction->operands[1];
     int target_is_memory = 0;
     if (target->kind == M68K_ASM_OPERAND_EA) {
@@ -429,12 +579,7 @@ static char instruction_render_size_suffix(const M68kInstructionIR *instruction,
     return '\0';
   }
   if (instruction->size_suffix != '\0') return instruction->size_suffix;
-  if (_stricmp(instruction->mnemonic, "mulu") == 0 ||
-      _stricmp(instruction->mnemonic, "muls") == 0 ||
-      _stricmp(instruction->mnemonic, "divu") == 0 ||
-      _stricmp(instruction->mnemonic, "divs") == 0) {
-    return 'w';
-  }
+  if (mnemonic_id_is_mul_div_word_default(mnemonic_id)) return 'w';
   (void)form;
   return '\0';
 }
@@ -471,31 +616,26 @@ static int instruction_should_render_size_suffix(const M68kInstructionIR *instru
   return 1;
 }
 
-int m68k_ir_decode_one(const uint8_t *data, size_t size, uint8_t target_cpu, M68kInstructionIR *out_instruction,
-      char *out_error, size_t out_error_size) {
+M68kInstructionIR m68k_ir_decode_one(const uint8_t *data, size_t size, uint8_t target_cpu,
+      M68kDiagSink diagnostics) {
   M68kAsmOperandValue match_operands[4];
   M68kDisasmResult result;
+  M68kInstructionIR instruction;
   size_t operand_index;
-  if (out_instruction == NULL) {
-    m68k_platform_set_error(out_error, out_error_size, "null output");
-    return -1;
-  }
-  m68k_ir_instruction_init(out_instruction);
-  if (m68k_disassemble_one_for_cpu(data, size, target_cpu, &result) != 0) {
-    m68k_platform_set_error(out_error, out_error_size, result.error);
-    return -1;
-  }
-  out_instruction->mnemonic_id = result.mnemonic_id;
-  out_instruction->target_cpu = result.target_cpu;
-  out_instruction->byte_count = result.byte_count;
-  out_instruction->size_suffix = result.size_suffix;
-  out_instruction->operand_count = result.operand_count;
-  out_instruction->form_index = result.form_index;
-  snprintf(out_instruction->mnemonic, sizeof(out_instruction->mnemonic), "%s", result.mnemonic);
+  m68k_ir_instruction_init(&instruction);
+  result = m68k_disassemble_one_for_cpu(data, size, target_cpu, diagnostics);
+  if (result.byte_count == 0U) return instruction;
+  instruction.mnemonic_id = result.mnemonic_id;
+  instruction.target_cpu = result.target_cpu;
+  instruction.byte_count = result.byte_count;
+  instruction.size_suffix = result.size_suffix;
+  instruction.operand_count = result.operand_count;
+  instruction.form_index = result.form_index;
+  snprintf(instruction.mnemonic, sizeof(instruction.mnemonic), "%s", result.mnemonic);
   for (operand_index = 0; operand_index < result.operand_count && operand_index < 4U; ++operand_index) {
-    out_instruction->operands[operand_index].kind = result.operand_kinds[operand_index];
-    out_instruction->operands[operand_index].value = result.operands[operand_index];
-    m68k_ir_symbol_ref_init(&out_instruction->operands[operand_index].symbol_ref);
+    instruction.operands[operand_index].kind = result.operand_kinds[operand_index];
+    instruction.operands[operand_index].value = result.operands[operand_index];
+    m68k_ir_symbol_ref_init(&instruction.operands[operand_index].symbol_ref);
     match_operands[operand_index] = result.operands[operand_index];
     match_operands[operand_index].kind = result.operand_kinds[operand_index];
     if (match_operands[operand_index].kind == M68K_ASM_OPERAND_IND ||
@@ -504,41 +644,39 @@ int m68k_ir_decode_one(const uint8_t *data, size_t size, uint8_t target_cpu, M68
       match_operands[operand_index].kind = M68K_ASM_OPERAND_EA;
     }
   }
-    m68k_platform_set_error(out_error, out_error_size, "");
-    return 0;
-  }
+  return instruction;
+}
 
-int m68k_ir_encode_one(const M68kInstructionIR *instruction, uint8_t *out_bytes, size_t max_bytes,
-    size_t *out_byte_count, char *out_error, size_t out_error_size) {
+M68kIrEncodeResult m68k_ir_encode_one(const M68kInstructionIR *instruction, uint8_t *out_bytes, size_t max_bytes,
+    M68kDiagSink diagnostics) {
+  M68kIrEncodeResult result;
   const M68kAsmFormDef *form = instruction_form(instruction);
   M68kAsmInstructionSpec spec;
   M68kAsmOperandValue operands[4];
   char chosen_size;
   uint16_t patch_values[32];
   size_t operand_index;
-  if (instruction == NULL || out_bytes == NULL || out_byte_count == NULL) {
-    m68k_platform_set_error(out_error, out_error_size, "bad arguments");
-    if (out_byte_count != NULL)
-      *out_byte_count = 0U;
-    return -1;
+  size_t byte_count = 0U;
+  memset(&result, 0, sizeof(result));
+  if (instruction == NULL || out_bytes == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT, "bad arguments");
+    return result;
   }
   for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
     operands[operand_index] = instruction->operands[operand_index].value;
   }
   if (form == NULL) {
-    form = m68k_asm_find_form_for_operands( instruction->mnemonic, operands, instruction->operand_count,
-        instruction->size_suffix, instruction->target_cpu);
+    form = m68k_asm_find_form_for_operands_id(instruction->mnemonic_id, operands,
+        instruction->operand_count, instruction->size_suffix, instruction->target_cpu);
   }
   if (form == NULL) {
-    m68k_platform_set_error(out_error, out_error_size, "unable to find form");
-    *out_byte_count = 0U;
-    return -1;
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED, "unable to find form");
+    return result;
   }
   for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
     if (!operand_matches_form_kind(&instruction->operands[operand_index], form->operand_kinds[operand_index])) {
-      m68k_platform_set_error(out_error, out_error_size, "operand kind mismatch");
-      *out_byte_count = 0U;
-      return -1;
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED, "operand kind mismatch");
+      return result;
     }
   }
   if (instruction_uses_movem_predecrement_mask(instruction, form)) {
@@ -547,49 +685,51 @@ int m68k_ir_encode_one(const M68kInstructionIR *instruction, uint8_t *out_bytes,
   chosen_size = m68k_asm_choose_size_suffix(form, operands, instruction->operand_count, instruction->size_suffix);
   if (chosen_size == '\0') chosen_size = instruction->size_suffix;
   if (form->patch_count > (sizeof(patch_values) / sizeof(patch_values[0]))) {
-    m68k_platform_set_error(out_error, out_error_size, "patch overflow");
-    *out_byte_count = 0U;
-    return -1;
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED, "patch overflow");
+    return result;
   }
   if (m68k_asm_build_patch_values(form, chosen_size, operands, instruction->operand_count, patch_values,
       sizeof(patch_values) / sizeof(patch_values[0])) != 0) {
-    m68k_platform_set_error(out_error, out_error_size, "unable to build patch values");
-    *out_byte_count = 0U;
-    return -1;
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+      "unable to build patch values");
+    return result;
   }
   memset(&spec, 0, sizeof(spec));
   spec.mnemonic = form->mnemonic;
+  spec.mnemonic_id = form->mnemonic_id;
   spec.size_suffix = chosen_size;
   spec.target_cpu = instruction->target_cpu;
   spec.operand_count = instruction->operand_count;
   spec.patch_values = patch_values;
   spec.patch_value_count = form->patch_count;
   spec.operands = operands;
-  if (m68k_asm_assemble_instruction(&spec, out_bytes, max_bytes, out_byte_count) != 0) {
-    m68k_platform_set_error(out_error, out_error_size, "unable to encode instruction");
-    *out_byte_count = 0U;
-    return -1;
+  if (m68k_asm_assemble_instruction(&spec, out_bytes, max_bytes, &byte_count) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+      "unable to encode instruction");
+    return result;
   }
-  m68k_platform_set_error(out_error, out_error_size, "");
-  return 0;
+  result.byte_count = byte_count;
+  return result;
 }
 
-static int render_one_with_policy_internal(const M68kInstructionIR *instruction, uint32_t offset,
-    int render_unresolved_current_relative, const M68kRenderPolicy *policy, char *out_text, size_t out_text_size,
-    char *out_error, size_t out_error_size) {
+static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionIR *instruction, uint32_t offset,
+    int render_unresolved_current_relative, const M68kRenderPolicy *policy, M68kDiagSink diagnostics) {
+  M68kIrRenderResult result;
+  char *out_text = result.text;
+  size_t out_text_size = sizeof(result.text);
   uint8_t syntax_mode;
   size_t used = 0;
   size_t operand_index;
   const M68kAsmFormDef *form = instruction_form(instruction);
+  memset(&result, 0, sizeof(result));
   char operand_size_suffix;
   syntax_mode = (policy != NULL) ? policy->syntax.syntax_mode : M68K_IR_SYNTAX_CANONICAL;
   (void)syntax_mode;
-  if (instruction == NULL || out_text == NULL || out_text_size == 0U) {
-    m68k_platform_set_error(out_error, out_error_size, "bad arguments");
-    return -1;
+  if (instruction == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT, "bad arguments");
+    return result;
   }
-  out_text[0] = '\0';
-  if (append_text(out_text, out_text_size, &used, instruction->mnemonic) != 0)
+  if (append_text(out_text, out_text_size, &used, m68k_ir_instruction_mnemonic_name(instruction)) != 0)
     goto overflow;
   if (instruction_should_render_size_suffix(instruction, form)) {
     char rendered_size = instruction_render_size_suffix(instruction, form);
@@ -639,7 +779,7 @@ static int render_one_with_policy_internal(const M68kInstructionIR *instruction,
       if (operand_has_renderable_symbol_name(operand, policy)) {
         if (append_symbolic_ea_text(out_text, out_text_size, &used, operand) != 0)
           goto overflow;
-      } else if (instruction != NULL && _stricmp(instruction->mnemonic, "moveq") == 0) {
+      } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ) {
         if (append_format(out_text, out_text_size, &used, "#%d",
               (int32_t)m68k_sign_extend32(operand->value.value, 8U)) != 0)
           goto overflow;
@@ -729,28 +869,28 @@ static int render_one_with_policy_internal(const M68kInstructionIR *instruction,
         goto overflow;
       break;
     default:
-      m68k_platform_set_error(out_error, out_error_size, "unsupported operand render");
-      return -1;
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "unsupported operand render");
+      result.text[0] = '\0';
+      return result;
     }
   }
-  m68k_platform_set_error(out_error, out_error_size, "");
-  return 0;
+  return result;
 
 overflow:
-  m68k_platform_set_error(out_error, out_error_size, "render overflow");
-  return -1;
+  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED, "render overflow");
+  result.text[0] = '\0';
+  return result;
 }
 
-int m68k_ir_render_one_at_with_policy(const M68kInstructionIR *instruction, uint32_t offset,
-    const M68kRenderPolicy *policy, char *out_text, size_t out_text_size, char *out_error, size_t out_error_size) {
-  return render_one_with_policy_internal(instruction, offset, 1, policy, out_text, out_text_size, out_error,
-    out_error_size);
+M68kIrRenderResult m68k_ir_render_one_at_with_policy(const M68kInstructionIR *instruction, uint32_t offset,
+    const M68kRenderPolicy *policy, M68kDiagSink diagnostics) {
+  return render_one_with_policy_internal(instruction, offset, 1, policy, diagnostics);
 }
 
-int m68k_ir_render_one_with_policy(const M68kInstructionIR *instruction, const M68kRenderPolicy *policy, char *out_text,
-    size_t out_text_size, char *out_error, size_t out_error_size) {
-  return render_one_with_policy_internal(instruction, 0U, 0, policy, out_text, out_text_size, out_error,
-    out_error_size);
+M68kIrRenderResult m68k_ir_render_one_with_policy(const M68kInstructionIR *instruction,
+    const M68kRenderPolicy *policy, M68kDiagSink diagnostics) {
+  return render_one_with_policy_internal(instruction, 0U, 0, policy, diagnostics);
 }
 
 

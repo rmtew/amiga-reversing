@@ -19,6 +19,48 @@ ROOT = Path(__file__).resolve().parents[2]
 RESOURCES = ROOT / "resources"
 DEFAULT_OUTPUT = ROOT / "corpus" / "platform_disk_manifest.jsonl"
 DISK_DLL = ROOT / "src" / "build" / "platform_disk_lib.dll"
+M68K_DIAG_SEVERITY_ERROR = 3
+M68K_DIAG_MESSAGE_SIZE = 160
+M68K_DIAG_LIST_CAPACITY = 8
+
+
+class M68kDiag(ctypes.Structure):
+    _fields_ = [
+        ("severity", ctypes.c_uint32),
+        ("code", ctypes.c_uint32),
+        ("message", ctypes.c_char * M68K_DIAG_MESSAGE_SIZE),
+    ]
+
+
+class M68kDiagList(ctypes.Structure):
+    _fields_ = [
+        ("count", ctypes.c_size_t),
+        ("dropped_count", ctypes.c_size_t),
+        ("items", M68kDiag * M68K_DIAG_LIST_CAPACITY),
+    ]
+
+
+class PlatformDiskTextResult(ctypes.Structure):
+    _fields_ = [
+        ("text", ctypes.c_void_p),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
+def _diag_message(diagnostics: M68kDiagList) -> str:
+    for index in range(diagnostics.count):
+        if diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR:
+            return diagnostics.items[index].message.decode("utf-8")
+    if diagnostics.count:
+        return diagnostics.items[0].message.decode("utf-8")
+    return ""
+
+
+def _diag_has_errors(diagnostics: M68kDiagList) -> bool:
+    return any(
+        diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR
+        for index in range(diagnostics.count)
+    )
 
 
 def _ensure_cli_built() -> None:
@@ -54,11 +96,8 @@ def _platform_disk_library() -> Any:
         ctypes.c_char_p,
         ctypes.POINTER(ctypes.c_ubyte),
         ctypes.c_size_t,
-        ctypes.POINTER(ctypes.c_void_p),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    library.platform_disk_inspect_buffer_json.restype = ctypes.c_int
+    library.platform_disk_inspect_buffer_json.restype = PlatformDiskTextResult
     library.platform_disk_free_json.argtypes = [ctypes.c_void_p]
     library.platform_disk_free_json.restype = None
     return library
@@ -66,25 +105,20 @@ def _platform_disk_library() -> Any:
 
 def _run_inspect(platform_name: str, image_name: str, image_bytes: bytes) -> dict[str, Any]:
     library = _platform_disk_library()
-    json_ptr = ctypes.c_void_p()
-    error_buf = ctypes.create_string_buffer(512)
     data_array = (ctypes.c_ubyte * len(image_bytes)).from_buffer_copy(image_bytes if image_bytes else b"\0")
     result = library.platform_disk_inspect_buffer_json(
         platform_name.encode("utf-8"),
         data_array,
         len(image_bytes),
-        ctypes.byref(json_ptr),
-        error_buf,
-        len(error_buf),
     )
-    if result != 0:
-        raise RuntimeError(f"{image_name}: {error_buf.value.decode('utf-8')}")
+    if _diag_has_errors(result.diagnostics):
+        raise RuntimeError(f"{image_name}: {_diag_message(result.diagnostics)}")
     try:
-        payload = json.loads(ctypes.string_at(json_ptr).decode("utf-8"))
+        payload = json.loads(ctypes.string_at(result.text).decode("utf-8"))
         assert isinstance(payload, dict)
         return payload
     finally:
-        library.platform_disk_free_json(json_ptr)
+        library.platform_disk_free_json(result.text)
 
 
 def _iter_atari_sources() -> list[dict[str, Any]]:

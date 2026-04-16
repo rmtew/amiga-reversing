@@ -1,4 +1,5 @@
 #include "m68k_source_data.h"
+#include "m68k_parse_util.h"
 #include "m68k_source_text_util.h"
 
 #include <stdio.h>
@@ -28,7 +29,9 @@ int m68k_source_parse_data_statement(const char *directive, char *rest, AsmSourc
   char *items[64];
   size_t count = 0;
   size_t index;
-  out_data->width_bytes = (_stricmp(directive, "DC.B") == 0) ? 1U : (_stricmp(directive, "DC.W") == 0) ? 2U : 4U;
+  M68kParseDataDirectiveResult data_directive = m68k_parse_data_directive_token(m68k_parse_source_directive_token(directive));
+  if (!data_directive.ok || data_directive.is_repeat != 0U) return 0;
+  out_data->width_bytes = data_directive.width_bytes;
   snprintf(buffer, sizeof(buffer), "%s", rest);
   if (!m68k_split_operands_in_place(buffer, items, 64U, &count)) return 0;
   for (index = 0; index < count; ++index) {
@@ -47,11 +50,16 @@ int m68k_source_parse_dcb_statement(const char *directive, char *rest, AsmSource
   uint32_t repeat_count = 0;
   uint32_t index = 0;
   AsmDataItem item;
-  out_data->width_bytes = (_stricmp(directive, "DCB.B") == 0) ? 1U : (_stricmp(directive, "DCB.W") == 0) ? 2U : 4U;
+  M68kSourceConstantResult repeat_result;
+  M68kParseDataDirectiveResult data_directive = m68k_parse_data_directive_token(m68k_parse_source_directive_token(directive));
+  if (!data_directive.ok || data_directive.is_repeat == 0U) return 0;
+  out_data->width_bytes = data_directive.width_bytes;
   snprintf(buffer, sizeof(buffer), "%s", rest);
   count = m68k_split_delimited_in_place(buffer, ',', parts, sizeof(parts) / sizeof(parts[0]));
   if (count != 2U) return 0;
-  if (!context->parse_constant(m68k_trim_in_place(parts[0]), &repeat_count, context->user_data)) return 0;
+  repeat_result = context->parse_constant(m68k_trim_in_place(parts[0]), context->user_data);
+  if (!repeat_result.ok) return 0;
+  repeat_count = repeat_result.value;
   if (!parse_data_item_text_local(m68k_trim_in_place(parts[1]), &item)) return 0;
   for (index = 0; index < repeat_count; ++index) {
     AsmDataItem copy = item;

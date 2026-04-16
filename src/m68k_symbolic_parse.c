@@ -11,32 +11,65 @@
 #include <string.h>
 
 static int is_register_like_symbol(const char *text, uint8_t target_cpu) {
-  uint8_t reg = 0;
-  uint8_t control_id = 0;
-  uint32_t control_value = 0;
-  return m68k_parse_register_token(text, 'd', &reg) || m68k_parse_register_token(text, 'a', &reg) ||
-    _stricmp(text, "sp") == 0 || _stricmp(text, "pc") == 0 ||
-    m68k_parse_control_register_token(text, target_cpu, &control_id, &control_value);
+  M68kParseRegisterResult data_reg = m68k_parse_register_token(text, 'd');
+  M68kParseRegisterResult address_reg = m68k_parse_register_token(text, 'a');
+  M68kParseControlRegisterResult control_reg = m68k_parse_control_register_token(text, target_cpu);
+  return data_reg.ok || address_reg.ok ||
+    m68k_ascii_equal_ci(text, "sp") || m68k_ascii_equal_ci(text, "pc") ||
+    control_reg.ok;
 }
 
 static int mnemonic_uses_relative_label_operand(const char *mnemonic) {
-  static const char *const LABEL_MNEMONICS[] = {
-      "bra",  "bsr",  "bhi",  "bls",  "bcc",  "bcs",  "bne",  "beq",
-      "bvc",  "bvs",  "bpl",  "bmi",  "bge",  "blt",  "bgt",  "ble",
-      "dbt",  "dbf",  "dbhi", "dbls", "dbcc", "dbcs", "dbne", "dbeq",
-      "dbvc", "dbvs", "dbpl", "dbmi", "dbge", "dblt", "dbgt", "dble"};
-  size_t index;
-  for (index = 0; index < sizeof(LABEL_MNEMONICS) / sizeof(LABEL_MNEMONICS[0]); ++index) {
-    if (_stricmp(mnemonic, LABEL_MNEMONICS[index]) == 0)
-      return 1;
+  uint8_t mnemonic_id = m68k_parse_mnemonic_token(mnemonic).mnemonic_id;
+  switch (mnemonic_id) {
+  case M68K_ASM_MNEMONIC_BRA:
+  case M68K_ASM_MNEMONIC_BSR:
+  case M68K_ASM_MNEMONIC_BHI:
+  case M68K_ASM_MNEMONIC_BLS:
+  case M68K_ASM_MNEMONIC_BCC:
+  case M68K_ASM_MNEMONIC_BCS:
+  case M68K_ASM_MNEMONIC_BNE:
+  case M68K_ASM_MNEMONIC_BEQ:
+  case M68K_ASM_MNEMONIC_BVC:
+  case M68K_ASM_MNEMONIC_BVS:
+  case M68K_ASM_MNEMONIC_BPL:
+  case M68K_ASM_MNEMONIC_BMI:
+  case M68K_ASM_MNEMONIC_BGE:
+  case M68K_ASM_MNEMONIC_BLT:
+  case M68K_ASM_MNEMONIC_BGT:
+  case M68K_ASM_MNEMONIC_BLE:
+  case M68K_ASM_MNEMONIC_DBT:
+  case M68K_ASM_MNEMONIC_DBF:
+  case M68K_ASM_MNEMONIC_DBHI:
+  case M68K_ASM_MNEMONIC_DBLS:
+  case M68K_ASM_MNEMONIC_DBCC:
+  case M68K_ASM_MNEMONIC_DBCS:
+  case M68K_ASM_MNEMONIC_DBNE:
+  case M68K_ASM_MNEMONIC_DBEQ:
+  case M68K_ASM_MNEMONIC_DBVC:
+  case M68K_ASM_MNEMONIC_DBVS:
+  case M68K_ASM_MNEMONIC_DBPL:
+  case M68K_ASM_MNEMONIC_DBMI:
+  case M68K_ASM_MNEMONIC_DBGE:
+  case M68K_ASM_MNEMONIC_DBLT:
+  case M68K_ASM_MNEMONIC_DBGT:
+  case M68K_ASM_MNEMONIC_DBLE:
+    return 1;
+  default:
+    return 0;
   }
-  return 0;
 }
 
-static int lookup_constant_symbol_for_expression(const char *name, uint32_t *out_value, void *user_data) {
+static M68kSourceConstantResult lookup_constant_symbol_for_expression(const char *name, void *user_data) {
+  M68kSourceConstantResult result = {0};
   const M68kSymbolicParseContext *context = (const M68kSymbolicParseContext *)user_data;
-  if (context == NULL || context->lookup_symbol == NULL) return 0;
-  return context->lookup_symbol(name, out_value, 1, context->user_data);
+  M68kSourceLookupResult lookup_result;
+  if (context == NULL || context->lookup_symbol == NULL) return result;
+  lookup_result = context->lookup_symbol(name, 1, context->user_data);
+  if (!lookup_result.ok || !lookup_result.defined) return result;
+  result.ok = 1U;
+  result.value = lookup_result.value;
+  return result;
 }
 
 static void mark_ir_symbol_ref_kind(M68kOperandIR *operand) {
@@ -94,7 +127,7 @@ static int rewrite_pc_relative_symbol_operand( const M68kSymbolicParseContext *c
     return 0;
   paren = strchr(operand, '(');
   if (paren == NULL || paren == operand) return 0;
-  if (_strnicmp(paren, "(pc", 3) != 0) return 0;
+  if (!m68k_ascii_prefix_equal_ci(paren, "(pc")) return 0;
   prefix_len = (size_t)(paren - operand);
   if (prefix_len == 0U || prefix_len >= sizeof(prefix)) return 0;
   snprintf(prefix, sizeof(prefix), "%.*s", (int)prefix_len, operand);
@@ -104,22 +137,21 @@ static int rewrite_pc_relative_symbol_operand( const M68kSymbolicParseContext *c
 }
 
 static int rewrite_base_relative_symbol_operand(const M68kSymbolicParseContext *context, const char *operand,
-    char *out_rewritten, size_t out_rewritten_size, char *out_symbolic_name, size_t out_symbolic_name_size) {
+  char *out_rewritten, size_t out_rewritten_size, char *out_symbolic_name, size_t out_symbolic_name_size) {
   const char *paren = NULL;
-  uint32_t symbol_value = 0;
+  M68kSourceConstantResult symbol_value;
   size_t prefix_len;
   char prefix[M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
   if (context == NULL || operand == NULL || out_rewritten == NULL || out_symbolic_name == NULL) return 0;
   paren = strchr(operand, '(');
   if (paren == NULL || paren == operand) return 0;
-  if (_strnicmp(paren, "(a", 2) != 0) return 0;
+  if (!m68k_ascii_prefix_equal_ci(paren, "(a")) return 0;
   prefix_len = (size_t)(paren - operand);
   if (prefix_len == 0U || prefix_len >= sizeof(prefix)) return 0;
   snprintf(prefix, sizeof(prefix), "%.*s", (int)prefix_len, operand);
-  if (context->lookup_symbol != NULL &&
-      m68k_source_parse_constant_expression(prefix, lookup_constant_symbol_for_expression,
-        (void *)context, &symbol_value)) {
-    snprintf(out_rewritten, out_rewritten_size, "%d%s", (int32_t)symbol_value, paren);
+  symbol_value = m68k_source_parse_constant_expression(prefix, lookup_constant_symbol_for_expression, (void *)context);
+  if (context->lookup_symbol != NULL && symbol_value.ok) {
+    snprintf(out_rewritten, out_rewritten_size, "%d%s", (int32_t)symbol_value.value, paren);
     out_symbolic_name[0] = '\0';
     return 1;
   }
@@ -133,18 +165,18 @@ static int rewrite_base_relative_symbol_operand(const M68kSymbolicParseContext *
 static int rewrite_absolute_constant_operand(const M68kSymbolicParseContext *context, const char *operand,
     char *out_rewritten, size_t out_rewritten_size) {
   const char *suffix = strrchr(operand, '.');
-  uint32_t value = 0;
+  M68kSourceConstantResult value;
   char expr[128];
   size_t expr_len;
   if (context == NULL || operand == NULL || out_rewritten == NULL) return 0;
   if (strchr(operand, '(') != NULL || strchr(operand, ',') != NULL) return 0;
-  if (suffix == NULL || (_stricmp(suffix, ".w") != 0 && _stricmp(suffix, ".l") != 0)) return 0;
+  if (suffix == NULL || (!m68k_ascii_equal_ci(suffix, ".w") && !m68k_ascii_equal_ci(suffix, ".l"))) return 0;
   expr_len = (size_t)(suffix - operand);
   if (expr_len == 0U || expr_len >= sizeof(expr)) return 0;
   snprintf(expr, sizeof(expr), "%.*s", (int)expr_len, operand);
-  if (!m68k_source_parse_constant_expression(expr, lookup_constant_symbol_for_expression, (void *)context, &value))
-    return 0;
-  snprintf(out_rewritten, out_rewritten_size, "$%x%s", value, suffix);
+  value = m68k_source_parse_constant_expression(expr, lookup_constant_symbol_for_expression, (void *)context);
+  if (!value.ok) return 0;
+  snprintf(out_rewritten, out_rewritten_size, "$%x%s", value.value, suffix);
   return 1;
 }
 
@@ -155,7 +187,7 @@ static int rewrite_absolute_symbol_operand(const M68kSymbolicParseContext *conte
   size_t symbol_len;
   if (context == NULL || operand == NULL || out_rewritten == NULL || out_symbolic_name == NULL) return 0;
   if (strchr(operand, '(') != NULL || strchr(operand, ',') != NULL || operand[0] == '#') return 0;
-  if (suffix == NULL || (_stricmp(suffix, ".w") != 0 && _stricmp(suffix, ".l") != 0)) return 0;
+  if (suffix == NULL || (!m68k_ascii_equal_ci(suffix, ".w") && !m68k_ascii_equal_ci(suffix, ".l"))) return 0;
   symbol_len = (size_t)(suffix - operand);
   if (symbol_len == 0U || symbol_len >= sizeof(symbol)) return 0;
   snprintf(symbol, sizeof(symbol), "%.*s", (int)symbol_len, operand);
@@ -238,11 +270,11 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
     symbolic_names[operand_index][0] = '\0';
     symbolic_addends[operand_index] = 0;
     if (operand[0] == '#') {
-      uint32_t immediate_value = 0;
-      if (m68k_source_parse_constant_expression(operand + 1, lookup_constant_symbol_for_expression,
-          (void *)context, &immediate_value)) {
+      M68kSourceConstantResult immediate_value = m68k_source_parse_constant_expression(operand + 1,
+        lookup_constant_symbol_for_expression, (void *)context);
+      if (immediate_value.ok) {
         snprintf(rewritten_operands[operand_index], sizeof(rewritten_operands[operand_index]), "#%d",
-          (int32_t)immediate_value);
+          (int32_t)immediate_value.value);
       } else if (context->is_symbol_name != NULL && context->is_symbol_name(operand + 1, context->user_data)) {
         snprintf(rewritten_operands[operand_index], sizeof(rewritten_operands[operand_index]), "#0");
         snprintf(symbolic_names[operand_index], sizeof(symbolic_names[operand_index]), "%s", operand + 1);
@@ -258,7 +290,7 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
         sizeof(rewritten_operands[operand_index]))) {
     } else if (context->is_symbol_name != NULL && context->is_symbol_name(operand, context->user_data) &&
         !is_register_like_symbol(operand, context->target_cpu) &&
-        !context->lookup_symbol(operand, NULL, 1, context->user_data)) {
+        !context->lookup_symbol(operand, 1, context->user_data).ok) {
       snprintf(rewritten_operands[operand_index], sizeof(rewritten_operands[operand_index]), "%s",
                mnemonic_uses_relative_label_operand(mnemonic_text) ? "2" : "$0.l");
       snprintf(symbolic_names[operand_index], sizeof(symbolic_names[operand_index]), "%s", operand);

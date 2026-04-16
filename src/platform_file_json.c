@@ -22,6 +22,12 @@ static int json_builder_append_hex_bytes(JsonBuilder *builder, const unsigned ch
   return 0;
 }
 
+static int json_builder_append_nullable_string(JsonBuilder *builder, const char *text) {
+  if (builder == NULL) return -1;
+  if (text == NULL) return json_builder_append(&builder[0], "null");
+  return json_builder_append_json_string(builder, text);
+}
+
 int inspect_object_json(const M68kBackend *backend, const M68kObject *object, char **out_json) {
   JsonBuilder builder = {0};
   size_t i;
@@ -95,8 +101,7 @@ fail:
   return -1;
 }
 
-int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, char *error_buf,
-    size_t error_buf_size) {
+int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
   size_t section_index;
   if (json_builder_create(&builder) != 0)
@@ -114,6 +119,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     size_t block_index;
     size_t edge_index;
     size_t violation_index;
+    size_t effect_index;
+    size_t call_index;
     if (section_index != 0U && json_builder_append(&builder, ",") != 0)
       goto oom;
     if (json_builder_appendf(&builder,
@@ -162,12 +169,114 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
+    if (json_builder_appendf(&builder, "],\"recovered_platform_effect_count\":%u,\"recovered_platform_effects\":[",
+          (unsigned)section->recovered_platform_effect_count) != 0)
+      goto oom;
+    for (effect_index = 0; effect_index < section->recovered_platform_effect_count; ++effect_index) {
+      const M68kRecoveredPlatformEffectIR *effect = &section->recovered_platform_effects[effect_index];
+      const char *base_name = NULL, *symbol_name = NULL, *type_name = NULL;
+      const char *semantic_kind = NULL, *value_domain_name = NULL;
+      uint8_t has_constant_value = 0U;
+      int32_t constant_value = 0;
+      if (effect_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (effect->kind == M68K_PLATFORM_EFFECT_SET_BASE_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT) {
+        base_name = m68k_platform_name_ref_name_or_text(&effect->payload.named_base.base_ref,
+          effect->payload.named_base.base_name);
+      } else if (effect->kind == M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG) {
+        symbol_name = m68k_platform_name_ref_name_or_text(&effect->payload.code_ptr.field_symbol_ref,
+          effect->payload.code_ptr.field_symbol_name);
+        type_name = m68k_platform_name_ref_name_or_text(&effect->payload.code_ptr.owner_type_ref,
+          effect->payload.code_ptr.owner_type_name);
+        semantic_kind = m68k_platform_name_ref_name_or_text(&effect->payload.code_ptr.semantic_kind_ref,
+          effect->payload.code_ptr.semantic_kind);
+      } else if (effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT) {
+        type_name = m68k_platform_name_ref_name_or_text(&effect->payload.typed.type_ref,
+          effect->payload.typed.type_name);
+        semantic_kind = m68k_platform_name_ref_name_or_text(&effect->payload.typed.semantic_kind_ref,
+          effect->payload.typed.semantic_kind);
+        value_domain_name = m68k_platform_name_ref_name_or_text(&effect->payload.typed.value_domain_ref,
+          effect->payload.typed.value_domain_name);
+        has_constant_value = effect->payload.typed.has_constant_value;
+        constant_value = effect->payload.typed.constant_value;
+      }
+      if (json_builder_appendf(&builder,
+            "{\"offset\":%u,\"kind\":%u,\"reg_kind\":%u,\"reg_index\":%u,\"displacement\":%d,\"field_disp\":%d,"
+            "\"base_name\":",
+            (unsigned)effect->offset, (unsigned)effect->kind, (unsigned)effect->reg_kind,
+            (unsigned)effect->reg_index, (int)effect->displacement, (int)effect->field_disp) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, base_name) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"symbol_name\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, symbol_name) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"type_name\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, type_name) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"semantic_kind\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, semantic_kind) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"value_domain_name\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, value_domain_name) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"has_constant_value\":%u,\"constant_value\":%d",
+            (unsigned)has_constant_value, (int)constant_value) != 0)
+        goto oom;
+      if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"recovered_platform_call_count\":%u,\"recovered_platform_calls\":[",
+          (unsigned)section->recovered_platform_call_count) != 0)
+      goto oom;
+    for (call_index = 0; call_index < section->recovered_platform_call_count; ++call_index) {
+      const M68kRecoveredPlatformCallIR *call = &section->recovered_platform_calls[call_index];
+      if (call_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+            "{\"offset\":%u,\"kind\":%u,\"symbol_name\":",
+            (unsigned)call->offset, (unsigned)call->kind) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+            m68k_platform_name_ref_name_or_text(&call->symbol_ref, call->symbol_name)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+            ",\"note_kind\":%u,\"note_base_name\":",
+            (unsigned)call->note_kind) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+            m68k_platform_name_ref_name_or_text(&call->note_base_ref, call->note_base_name)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"note_symbol_name\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+            m68k_platform_name_ref_name_or_text(&call->note_symbol_ref, call->note_symbol_name)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+            ",\"note_reg\":%u,\"note_disp\":%d,\"note_field_disp\":%d,\"note_stack_cleanup_known\":%u,"
+            "\"note_stack_cleanup_bytes\":%u,\"note_return_kind\":%u,\"available_since\":",
+            (unsigned)call->note_reg, (int)call->note_disp, (int)call->note_field_disp,
+            (unsigned)call->note_stack_cleanup_known, (unsigned)call->note_stack_cleanup_bytes,
+            (unsigned)call->note_return_kind) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, call->available_since) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"fd_version\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, call->fd_version) != 0)
+        goto oom;
+      if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
     if (json_builder_append(&builder, "]}") != 0)
       goto oom;
   }
   if (json_builder_append(&builder, "]}") != 0)
     goto oom;
-  if (error_buf != NULL && error_buf_size != 0U) error_buf[0] = '\0';
   *out_json = json_builder_build(&builder);
   if (*out_json == NULL) goto oom;
   json_builder_destroy(&builder);
@@ -175,6 +284,6 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
 
 oom:
   json_builder_destroy(&builder);
-  m68k_platform_set_error(error_buf, error_buf_size, "out of memory");
+  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
   return -1;
 }

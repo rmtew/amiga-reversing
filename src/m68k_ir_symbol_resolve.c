@@ -1,55 +1,57 @@
 #include "m68k_ir_symbol_resolve.h"
 
 #include "m68k_assembler.h"
-#include "platform_common.h"
 
 #include <stdio.h>
+#include <string.h>
 
-int m68k_ir_apply_symbol_refs(const M68kIrResolveContext *context, M68kInstructionIR *instruction,
-    const M68kAsmFormDef *form, uint32_t instruction_offset, size_t line_number, int allow_undefined,
-    int *out_abs_fixup_operands, size_t *out_abs_fixup_count, char *out_error, size_t out_error_size) {
+M68kIrSymbolApplyResult m68k_ir_apply_symbol_refs(const M68kIrResolveContext *context,
+    M68kInstructionIR instruction, const M68kAsmFormDef *form, uint32_t instruction_offset, size_t line_number,
+    int allow_undefined, M68kDiagSink diagnostics) {
+  M68kIrSymbolApplyResult result;
   size_t operand_index;
-  *out_abs_fixup_count = 0U;
-  for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
-    const char *label_name = instruction->operands[operand_index].symbol_ref.has_name
-      ? instruction->operands[operand_index].symbol_ref.name : "";
-    M68kAsmOperandValue *operand = &instruction->operands[operand_index].value;
-    uint32_t symbol_value = 0;
-    size_t symbol_section_index = (size_t)-1;
-    int symbol_defined = 0;
+  memset(&result, 0, sizeof(result));
+  result.instruction = instruction;
+  for (operand_index = 0; operand_index < result.instruction.operand_count; ++operand_index) {
+    const char *label_name = result.instruction.operands[operand_index].symbol_ref.has_name
+      ? result.instruction.operands[operand_index].symbol_ref.name : "";
+    M68kAsmOperandValue *operand = &result.instruction.operands[operand_index].value;
+    M68kSourceLookupResult symbol;
+    uint32_t symbol_value;
     if (label_name[0] == '\0') continue;
-    if (!context->lookup_symbol(label_name, &symbol_value, &symbol_section_index, &symbol_defined, context->user_data)) {
-      m68k_platform_set_errorf(out_error, out_error_size, "undefined label at line %u: %s", (unsigned)line_number,
-        label_name);
-      return 0;
+    symbol = context->lookup_symbol(label_name, context->user_data);
+    if (!symbol.ok) {
+      m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SOURCE_FAILED,
+        "undefined label at line %u: %s", (unsigned)line_number, label_name);
+      return result;
     }
-    if (!symbol_defined) {
+    if (!symbol.defined) {
       if (!allow_undefined) {
-        m68k_platform_set_errorf(out_error, out_error_size, "undefined label at line %u: %s", (unsigned)line_number,
-          label_name);
-        return 0;
+        m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SOURCE_FAILED,
+          "undefined label at line %u: %s", (unsigned)line_number, label_name);
+        return result;
       }
       symbol_value = 0;
-    }
-    symbol_value = (uint32_t)((int32_t)symbol_value + instruction->operands[operand_index].symbol_ref.addend);
+    } else symbol_value = symbol.value;
+    symbol_value = (uint32_t)((int32_t)symbol_value +
+      result.instruction.operands[operand_index].symbol_ref.addend);
     if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 7 &&
         (operand->ea_reg == 2 || operand->ea_reg == 3)) {
       operand->value = (uint32_t)(symbol_value - (instruction_offset +
-        m68k_asm_operand_relative_base_offset(form, &instruction->operands[0].value,
-          instruction->operand_count, instruction->size_suffix, operand_index, 0)));
+        m68k_asm_operand_relative_base_offset(form, &result.instruction.operands[0].value,
+          result.instruction.operand_count, result.instruction.size_suffix, operand_index, 0)));
     } else if (operand->kind == M68K_ASM_OPERAND_LABEL) {
       operand->value = (uint32_t)(symbol_value - (instruction_offset + 2U));
     } else {
       operand->value = symbol_value;
-      out_abs_fixup_operands[*out_abs_fixup_count] = (int)operand_index;
-      *out_abs_fixup_count += 1U;
     }
-    if (symbol_defined) {
-      instruction->operands[operand_index].symbol_ref.has_section = 1;
-      instruction->operands[operand_index].symbol_ref.section_index = symbol_section_index;
+    if (symbol.defined) {
+      result.instruction.operands[operand_index].symbol_ref.has_section = 1;
+      result.instruction.operands[operand_index].symbol_ref.section_index = symbol.section_index;
     }
   }
-  return 1;
+  result.ok = 1;
+  return result;
 }
 
 

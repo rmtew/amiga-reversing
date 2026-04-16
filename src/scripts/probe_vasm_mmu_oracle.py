@@ -19,6 +19,56 @@ CPU_CODES = {
     "68040": 4,
     "68060": 5,
 }
+M68K_DIAG_SEVERITY_ERROR = 3
+M68K_DIAG_MESSAGE_SIZE = 160
+M68K_DIAG_LIST_CAPACITY = 8
+
+
+class M68kDiag(ctypes.Structure):
+    _fields_ = [
+        ("severity", ctypes.c_uint32),
+        ("code", ctypes.c_uint32),
+        ("message", ctypes.c_char * M68K_DIAG_MESSAGE_SIZE),
+    ]
+
+
+class M68kDiagList(ctypes.Structure):
+    _fields_ = [
+        ("count", ctypes.c_size_t),
+        ("dropped_count", ctypes.c_size_t),
+        ("items", M68kDiag * M68K_DIAG_LIST_CAPACITY),
+    ]
+
+
+class M68kDisasmTextResult(ctypes.Structure):
+    _fields_ = [
+        ("byte_count", ctypes.c_size_t),
+        ("text", ctypes.c_char * 256),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
+class M68kAssembleResult(ctypes.Structure):
+    _fields_ = [
+        ("byte_count", ctypes.c_size_t),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
+def _diag_message(diagnostics: M68kDiagList) -> str:
+    for index in range(diagnostics.count):
+        if diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR:
+            return diagnostics.items[index].message.decode("utf-8")
+    if diagnostics.count:
+        return diagnostics.items[0].message.decode("utf-8")
+    return ""
+
+
+def _diag_has_errors(diagnostics: M68kDiagList) -> bool:
+    return any(
+        diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR
+        for index in range(diagnostics.count)
+    )
 
 REMAINING_MNEMONICS = {
     "PBcc",
@@ -112,11 +162,8 @@ def _assembler_lib():
         ctypes.POINTER(M68kAsmOptions),
         ctypes.POINTER(ctypes.c_ubyte),
         ctypes.c_size_t,
-        ctypes.POINTER(ctypes.c_size_t),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    lib.m68k_assemble.restype = ctypes.c_int
+    lib.m68k_assemble.restype = M68kAssembleResult
     return lib
 
 
@@ -126,13 +173,8 @@ def _disassembler_lib():
         ctypes.POINTER(ctypes.c_ubyte),
         ctypes.c_size_t,
         ctypes.c_uint8,
-        ctypes.c_char_p,
-        ctypes.c_size_t,
-        ctypes.POINTER(ctypes.c_size_t),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    lib.m68k_disassemble_one_text_for_cpu.restype = ctypes.c_int
+    lib.m68k_disassemble_one_text_for_cpu.restype = M68kDisasmTextResult
     return lib
 
 
@@ -159,41 +201,28 @@ def _probe_vasm(cpu_name: str, asm_text: str) -> dict[str, object]:
 def _probe_ours_assemble(lib, cpu_name: str, asm_text: str) -> dict[str, object]:
     options = lib._m68k_asm_options_type(CPU_CODES[cpu_name], 1 if "\n" in asm_text else 0)
     out_buf = (ctypes.c_ubyte * 256)()
-    error_buf = ctypes.create_string_buffer(256)
-    byte_count = ctypes.c_size_t()
     result = lib.m68k_assemble(
         asm_text.encode("ascii"),
         ctypes.byref(options),
         out_buf,
         len(out_buf),
-        ctypes.byref(byte_count),
-        error_buf,
-        len(error_buf),
     )
-    if result != 0:
-        return {"accepted": False, "error": error_buf.value.decode("utf-8")}
-    return {"accepted": True, "bytes_hex": bytes(out_buf[:byte_count.value]).hex()}
+    if _diag_has_errors(result.diagnostics):
+        return {"accepted": False, "error": _diag_message(result.diagnostics)}
+    return {"accepted": True, "bytes_hex": bytes(out_buf[:result.byte_count]).hex()}
 
 
 def _probe_ours_disassemble(lib, cpu_name: str, bytes_hex: str) -> dict[str, object]:
     data = bytes.fromhex(bytes_hex)
     buffer = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
-    text_buf = ctypes.create_string_buffer(256)
-    error_buf = ctypes.create_string_buffer(256)
-    byte_count = ctypes.c_size_t()
     result = lib.m68k_disassemble_one_text_for_cpu(
         buffer,
         len(data),
         CPU_CODES[cpu_name],
-        text_buf,
-        len(text_buf),
-        ctypes.byref(byte_count),
-        error_buf,
-        len(error_buf),
     )
-    if result != 0:
-        return {"accepted": False, "error": error_buf.value.decode("utf-8")}
-    return {"accepted": True, "text": text_buf.value.decode("utf-8"), "byte_count": int(byte_count.value)}
+    if _diag_has_errors(result.diagnostics):
+        return {"accepted": False, "error": _diag_message(result.diagnostics)}
+    return {"accepted": True, "text": result.text.decode("utf-8"), "byte_count": int(result.byte_count)}
 
 
 def _probe_ours_reassemble_disassembly(

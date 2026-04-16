@@ -1,12 +1,12 @@
 {
   "analysis": {
-    "block_count": 2634,
-    "certain_code_bytes": 19722,
-    "certain_code_ratio": 0.284302,
+    "block_count": 2883,
+    "certain_code_bytes": 21100,
+    "certain_code_ratio": 0.304166,
     "cpu_violation_count": 0,
-    "edge_count": 4317,
-    "generated_label_count": 1223,
-    "label_count": 1721,
+    "edge_count": 4751,
+    "generated_label_count": 1302,
+    "label_count": 1873,
     "recovered_inline_dispatch_count": 1,
     "recovered_platform_base_slot_count": 0,
     "recovered_platform_call_count": 31,
@@ -29,31 +29,31 @@
   "platform": "atari-st",
   "render": {
     "align_statement_count": 0,
-    "data_bytes": 49124,
-    "data_statement_count": 1115,
-    "generated_label_statement_count": 2793,
-    "instruction_byte_ratio": 0.291855,
-    "instruction_bytes": 20246,
-    "instruction_statement_count": 6635,
-    "label_statement_count": 2793,
-    "statement_count": 10543,
+    "data_bytes": 47682,
+    "data_statement_count": 1146,
+    "generated_label_statement_count": 3043,
+    "instruction_byte_ratio": 0.312642,
+    "instruction_bytes": 21688,
+    "instruction_statement_count": 7155,
+    "label_statement_count": 3043,
+    "statement_count": 11344,
     "symbol_ref_abs_count": 0,
-    "symbol_ref_count": 2141,
+    "symbol_ref_count": 2328,
     "symbol_ref_pc_relative_count": 0,
     "symbol_ref_section_relative_count": 0,
-    "text_bytes": 304124,
+    "text_bytes": 312766,
     "vasm_normalized_count": 0
   },
   "sections": [
     {
-      "block_count": 2634,
-      "certain_code_bytes": 19722,
-      "edge_count": 4317,
-      "emitted_data_count": 1115,
-      "emitted_instruction_count": 6635,
-      "emitted_label_count": 2793,
+      "block_count": 2883,
+      "certain_code_bytes": 21100,
+      "edge_count": 4751,
+      "emitted_data_count": 1146,
+      "emitted_instruction_count": 7155,
+      "emitted_label_count": 3043,
       "kind": "code",
-      "label_count": 1721,
+      "label_count": 1873,
       "name": "TEXT",
       "size": 69370,
       "violation_count": 12
@@ -73,9 +73,9 @@
     }
   ],
   "timing": {
-    "analysis_seconds": 4.523,
-    "ir_build_with_analysis_seconds": 5.672,
-    "render_seconds": 0.049,
-    "total_seconds": 10.244
+    "analysis_seconds": 4.988,
+    "ir_build_seconds": 1.081,
+    "render_seconds": 0.069,
+    "total_seconds": 6.259
   }
 }

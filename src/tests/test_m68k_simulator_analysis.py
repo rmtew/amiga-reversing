@@ -20,6 +20,55 @@ ASM_DLL = BUILD_DIR / "m68k_assembler_lib.dll"
 FILE_DLL = BUILD_DIR / "platform_file_lib.dll"
 ASM_EXE = BUILD_DIR / "m68k_assembler_app.exe"
 AMIGA_INCLUDE_DIR = ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"
+M68K_DIAG_SEVERITY_ERROR = 3
+M68K_DIAG_MESSAGE_SIZE = 160
+M68K_DIAG_LIST_CAPACITY = 8
+
+
+class M68kDiag(ctypes.Structure):
+    _fields_ = [
+        ("severity", ctypes.c_uint32),
+        ("code", ctypes.c_uint32),
+        ("message", ctypes.c_char * M68K_DIAG_MESSAGE_SIZE),
+    ]
+
+
+class M68kDiagList(ctypes.Structure):
+    _fields_ = [
+        ("count", ctypes.c_size_t),
+        ("dropped_count", ctypes.c_size_t),
+        ("items", M68kDiag * M68K_DIAG_LIST_CAPACITY),
+    ]
+
+
+class M68kAssembleResult(ctypes.Structure):
+    _fields_ = [
+        ("byte_count", ctypes.c_size_t),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
+class PlatformFileTextResult(ctypes.Structure):
+    _fields_ = [
+        ("text", ctypes.c_void_p),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
+def _diag_message(diagnostics: M68kDiagList) -> str:
+    for index in range(diagnostics.count):
+        if diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR:
+            return diagnostics.items[index].message.decode("utf-8")
+    if diagnostics.count:
+        return diagnostics.items[0].message.decode("utf-8")
+    return ""
+
+
+def _diag_has_errors(diagnostics: M68kDiagList) -> bool:
+    return any(
+        diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR
+        for index in range(diagnostics.count)
+    )
 
 
 def u32(value: int) -> bytes:
@@ -40,11 +89,8 @@ def _assembler_library():
         ctypes.POINTER(M68kAsmOptions),
         ctypes.POINTER(ctypes.c_ubyte),
         ctypes.c_size_t,
-        ctypes.POINTER(ctypes.c_size_t),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    library.m68k_assemble.restype = ctypes.c_int
+    library.m68k_assemble.restype = M68kAssembleResult
     return library
 
 
@@ -62,12 +108,9 @@ def _platform_file_library():
         ctypes.POINTER(ctypes.c_ubyte),
         ctypes.c_size_t,
         ctypes.POINTER(M68kAnalysisPolicy),
-        ctypes.POINTER(ctypes.c_char_p),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    library.platform_file_analyze_buffer_json.restype = ctypes.c_int
-    library.platform_file_free_text.argtypes = [ctypes.c_char_p]
+    library.platform_file_analyze_buffer_json.restype = PlatformFileTextResult
+    library.platform_file_free_text.argtypes = [ctypes.c_void_p]
     library.platform_file_free_text.restype = None
     return library
 
@@ -77,20 +120,15 @@ def _assemble_line_hex(cpu: str, text: str) -> bytes:
     library = _assembler_library()
     options = library._m68k_asm_options_type(cpu_codes[cpu], 0)
     out_buf = (ctypes.c_ubyte * 64)()
-    error_buf = ctypes.create_string_buffer(256)
-    byte_count = ctypes.c_size_t()
     result = library.m68k_assemble(
         text.encode("ascii"),
         ctypes.byref(options),
         out_buf,
         len(out_buf),
-        ctypes.byref(byte_count),
-        error_buf,
-        len(error_buf),
     )
-    if result != 0:
-        raise AssertionError(error_buf.value.decode("utf-8"))
-    return bytes(out_buf[:byte_count.value])
+    if _diag_has_errors(result.diagnostics):
+        raise AssertionError(_diag_message(result.diagnostics))
+    return bytes(out_buf[:result.byte_count])
 
 
 def _assemble_platform_hunk_source(source: str, cpu: str = "68000") -> bytes:
@@ -156,22 +194,17 @@ class M68kSimulatorAnalysisTests(unittest.TestCase):
     def _analyze_bytes(self, payload: bytes) -> dict[str, object]:
         library = _platform_file_library()
         data = (ctypes.c_ubyte * len(payload)).from_buffer_copy(payload)
-        out_json = ctypes.c_char_p()
-        error_buf = ctypes.create_string_buffer(256)
         result = library.platform_file_analyze_buffer_json(
             b"amiga-hunk",
             data,
             len(payload),
             None,
-            ctypes.byref(out_json),
-            error_buf,
-            len(error_buf),
         )
-        self.assertEqual(result, 0, error_buf.value.decode("utf-8"))
+        self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
         try:
-            return json.loads(ctypes.string_at(out_json).decode("utf-8"))
+            return json.loads(ctypes.string_at(result.text).decode("utf-8"))
         finally:
-            library.platform_file_free_text(out_json)
+            library.platform_file_free_text(result.text)
 
     def _analyze_file(self, path: Path) -> dict[str, object]:
         return analyze_real_file("amiga-hunk", str(path))

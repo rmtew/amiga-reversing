@@ -1,6 +1,7 @@
 #ifndef M68K_ASSEMBLER_LIB_H
 #define M68K_ASSEMBLER_LIB_H
 
+#include "m68k_diagnostics.h"
 #include "m68k_ir.h"
 
 #include <stddef.h>
@@ -26,16 +27,35 @@ typedef struct M68kAsmVerifyOptions {
     uint8_t target_cpu;
 } M68kAsmVerifyOptions;
 
-M68K_ASM_EXPORT int m68k_assemble(const char *text, const M68kAsmOptions *options, uint8_t *out_bytes, size_t max_bytes,
-    size_t *out_byte_count, char *out_error, size_t out_error_size);
-M68K_ASM_EXPORT int m68k_verify_manifest(const char *manifest_path, const M68kAsmVerifyOptions *options, char *out_error,
-    size_t out_error_size);
-M68K_ASM_EXPORT int m68k_verify_corpus(const char *manifest_path, const char *binary_path, const M68kAsmVerifyOptions *options,
-    char *out_error, size_t out_error_size);
-M68K_ASM_EXPORT int m68k_source_ir_parse_file(const char *path, const char *include_dir, uint8_t target_cpu,
-    int enable_vasm_compat_rewrites, M68kSourceFileIR *out_source_file, char *out_error, size_t out_error_size);
-M68K_ASM_EXPORT int m68k_source_ir_render_with_policy(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,
-    char **out_text, char *out_error, size_t out_error_size);
+typedef struct M68kAssembleResult {
+  size_t byte_count;
+  M68kDiagList diagnostics;
+} M68kAssembleResult;
+
+typedef struct M68kVerifyResult {
+  M68kDiagList diagnostics;
+} M68kVerifyResult;
+
+typedef struct M68kSourceIrParseResult {
+  M68kSourceFileIR source_file;
+  M68kDiagList diagnostics;
+} M68kSourceIrParseResult;
+
+typedef struct M68kSourceIrRenderResult {
+  char *text;
+  M68kDiagList diagnostics;
+} M68kSourceIrRenderResult;
+
+M68K_ASM_EXPORT M68kAssembleResult m68k_assemble(const char *text, const M68kAsmOptions *options,
+    uint8_t *out_bytes, size_t max_bytes);
+M68K_ASM_EXPORT M68kVerifyResult m68k_verify_manifest(const char *manifest_path,
+    const M68kAsmVerifyOptions *options);
+M68K_ASM_EXPORT M68kVerifyResult m68k_verify_corpus(const char *manifest_path, const char *binary_path,
+    const M68kAsmVerifyOptions *options);
+M68K_ASM_EXPORT M68kSourceIrParseResult m68k_source_ir_parse_file(const char *path, const char *include_dir,
+    uint8_t target_cpu, int enable_vasm_compat_rewrites);
+M68K_ASM_EXPORT M68kSourceIrRenderResult m68k_source_ir_render_with_policy(const M68kSourceFileIR *source_file,
+    const M68kRenderPolicy *policy);
 M68K_ASM_EXPORT void m68k_source_ir_free(M68kSourceFileIR *source_file);
 M68K_ASM_EXPORT void m68k_free_text(char *text);
 

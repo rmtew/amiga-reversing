@@ -22,6 +22,9 @@ ASM_EXE = BUILD_DIR / "m68k_assembler_app.exe"
 DISASM_DLL = BUILD_DIR / "m68k_disassembler_lib.dll"
 CPU_BITS = {"68000": 0, "68010": 1, "68020": 2, "68030": 3, "68040": 4}
 ASM_TABLES_C = ROOT / "src" / "m68k_asm_tables.c"
+M68K_DIAG_SEVERITY_ERROR = 3
+M68K_DIAG_MESSAGE_SIZE = 160
+M68K_DIAG_LIST_CAPACITY = 8
 CONTROL_REGISTER_LINES = ASM_TABLES_C.read_text(encoding="utf-8").splitlines()
 CONTROL_REGISTER_RE = re.compile(r'\{\s*"([^"]+)",\s*(\d+)u,\s*0x([0-9A-Fa-f]+),')
 GLOBAL_CONTROL_REGISTER_SLOTS = {
@@ -33,6 +36,42 @@ SUPPORTED_MACHINE68K_CONTROL_REGS = ["CAAR", "CACR", "DFC", "ISP", "MSP", "SFC",
 SUPPORTED_MACHINE68K_CONTROL_SLOTS = {
     name: GLOBAL_CONTROL_REGISTER_SLOTS[name] for name in SUPPORTED_MACHINE68K_CONTROL_REGS
 }
+
+
+class M68kDiag(ctypes.Structure):
+    _fields_ = [
+        ("severity", ctypes.c_uint32),
+        ("code", ctypes.c_uint32),
+        ("message", ctypes.c_char * M68K_DIAG_MESSAGE_SIZE),
+    ]
+
+
+class M68kDiagList(ctypes.Structure):
+    _fields_ = [
+        ("count", ctypes.c_size_t),
+        ("dropped_count", ctypes.c_size_t),
+        ("items", M68kDiag * M68K_DIAG_LIST_CAPACITY),
+    ]
+
+
+class M68kSimConcreteRunResult(ctypes.Structure):
+    _fields_ = [("diagnostics", M68kDiagList)]
+
+
+def _diag_message(diagnostics: M68kDiagList) -> str:
+    for index in range(diagnostics.count):
+        if diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR:
+            return diagnostics.items[index].message.decode("utf-8")
+    if diagnostics.count:
+        return diagnostics.items[0].message.decode("utf-8")
+    return ""
+
+
+def _diag_has_errors(diagnostics: M68kDiagList) -> bool:
+    return any(
+        diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR
+        for index in range(diagnostics.count)
+    )
 
 
 @dataclass(frozen=True)
@@ -96,10 +135,8 @@ def _disasm_library():
         ctypes.POINTER(ctypes.c_uint8),
         ctypes.c_size_t,
         ctypes.POINTER(M68kSimConcreteState),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    library.m68k_simulate_one_concrete_for_cpu.restype = ctypes.c_int
+    library.m68k_simulate_one_concrete_for_cpu.restype = M68kSimConcreteRunResult
     return library
 
 
@@ -311,11 +348,10 @@ class M68kSimulatorOracleTests(unittest.TestCase):
         ctypes.memmove(ctypes.byref(state), ctypes.byref(setup), ctypes.sizeof(state))
         buf = (ctypes.c_uint8 * len(code)).from_buffer_copy(code)
         mem = (ctypes.c_uint8 * len(memory)).from_buffer_copy(memory)
-        error = ctypes.create_string_buffer(256)
         result = _disasm_library().m68k_simulate_one_concrete_for_cpu(
-            buf, len(code), CPU_BITS[cpu], mem, len(memory), ctypes.byref(state), error, len(error)
+            buf, len(code), CPU_BITS[cpu], mem, len(memory), ctypes.byref(state)
         )
-        self.assertEqual(result, 0, error.value.decode("utf-8"))
+        self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
         oracle_setup = M68kSimConcreteState()
         ctypes.memmove(ctypes.byref(oracle_setup), ctypes.byref(setup), ctypes.sizeof(oracle_setup))
         oracle_d, oracle_a, oracle_c, oracle_pc, oracle_sr, oracle_memory, invalid_lines = _run_machine68k_one(
@@ -347,11 +383,10 @@ class M68kSimulatorOracleTests(unittest.TestCase):
             ctypes.memmove(ctypes.byref(state), ctypes.byref(setup), ctypes.sizeof(state))
         buf = (ctypes.c_uint8 * len(code)).from_buffer_copy(code)
         mem = (ctypes.c_uint8 * len(memory)).from_buffer_copy(memory)
-        error = ctypes.create_string_buffer(256)
         result = _disasm_library().m68k_simulate_one_concrete_for_cpu(
-            buf, len(code), CPU_BITS[cpu], mem, len(memory), ctypes.byref(state), error, len(error)
+            buf, len(code), CPU_BITS[cpu], mem, len(memory), ctypes.byref(state)
         )
-        self.assertEqual(result, 0, error.value.decode("utf-8"))
+        self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
         oracle_setup = M68kSimConcreteState()
         if setup is not None:
             ctypes.memmove(ctypes.byref(oracle_setup), ctypes.byref(setup), ctypes.sizeof(oracle_setup))
@@ -469,12 +504,11 @@ class M68kSimulatorOracleTests(unittest.TestCase):
                 state = M68kSimConcreteState()
                 buf = (ctypes.c_uint8 * len(code)).from_buffer_copy(code)
                 mem = (ctypes.c_uint8 * len(memory)).from_buffer_copy(memory)
-                error = ctypes.create_string_buffer(256)
                 result = _disasm_library().m68k_simulate_one_concrete_for_cpu(
-                    buf, len(code), CPU_BITS[cpu], mem, len(memory), ctypes.byref(state), error, len(error)
+                    buf, len(code), CPU_BITS[cpu], mem, len(memory), ctypes.byref(state)
                 )
-                self.assertEqual(result, -1)
-                self.assertIn(expected_error, error.value.decode("utf-8"))
+                self.assertTrue(_diag_has_errors(result.diagnostics))
+                self.assertIn(expected_error, _diag_message(result.diagnostics))
 
     def test_concrete_pack_unpk_dn_forms_are_directly_covered(self) -> None:
         cases = [
@@ -489,11 +523,10 @@ class M68kSimulatorOracleTests(unittest.TestCase):
                 state.d[1] = dest_before
                 buf = (ctypes.c_uint8 * len(code)).from_buffer_copy(code)
                 mem = (ctypes.c_uint8 * len(code)).from_buffer_copy(code)
-                error = ctypes.create_string_buffer(256)
                 result = _disasm_library().m68k_simulate_one_concrete_for_cpu(
-                    buf, len(code), CPU_BITS["68020"], mem, len(code), ctypes.byref(state), error, len(error)
+                    buf, len(code), CPU_BITS["68020"], mem, len(code), ctypes.byref(state)
                 )
-                self.assertEqual(result, 0, error.value.decode("utf-8"))
+                self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
                 self.assertEqual(state.d[0], source_value)
                 self.assertEqual(state.d[1], dest_after)
                 self.assertEqual(state.pc, len(code))

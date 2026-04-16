@@ -162,11 +162,20 @@ def _wrapped_lines(values: list[int]) -> list[str]:
     return lines
 
 
+def _canonical_form_index_map(subset) -> dict[tuple[str, int, str, str], int]:
+    canonical_forms = subset._load_forms(KB_PATH, supported_mnemonics=subset.SUPPORTED_MNEMONICS)
+    return {
+        (str(form.kb_mnemonic), int(form.local_form_index), str(form.syntax), str(form.mnemonic)): int(form.form_index)
+        for form in canonical_forms
+    }
+
+
 def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list[str], list[str], list[str]]:
     patch_rows: list[str] = []
     extension_rows: list[str] = []
     form_rows: list[str] = []
     control_register_rows: list[str] = []
+    canonical_form_indexes = _canonical_form_index_map(subset)
     patch_index = 0
     extension_index = 0
     control_register_index = 0
@@ -180,6 +189,10 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
         "disp16_always": "M68K_ASM_EXTENSION_DISP16_ALWAYS",
     }
     for form in forms:
+        canonical_form_index = canonical_form_indexes.get(
+            (str(form.kb_mnemonic), int(form.local_form_index), str(form.syntax), str(form.mnemonic)),
+            0xFFFF,
+        )
         extension_defs = subset._extension_defs(form)
         for patch in form.patches:
             patch_rows.append(
@@ -207,7 +220,7 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
             f"\"{form.mnemonic.lower()}\", "
             f"\"{form.syntax}\", "
             "0u, "
-            f"{form.form_index}u, "
+            f"{canonical_form_index}u, "
             f"{len(form.operand_kinds)}u,"
         )
         line2 = (

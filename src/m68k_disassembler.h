@@ -5,9 +5,9 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "m68k_asm_tables.h"
+#include "m68k_diagnostics.h"
 
 typedef struct {
-  int ok;
   size_t byte_count;
   uint16_t form_index;
   uint8_t mnemonic_id;
@@ -18,10 +18,10 @@ typedef struct {
   uint8_t operand_kinds[4];
   M68kAsmOperandValue operands[4];
   char text[128];
-  char error[128];
 } M68kDisasmResult;
 
-int m68k_disassemble_one(const uint8_t *data, size_t size, M68kDisasmResult *out);
-int m68k_disassemble_one_for_cpu(const uint8_t *data, size_t size, uint8_t target_cpu, M68kDisasmResult *out);
+M68kDisasmResult m68k_disassemble_one(const uint8_t *data, size_t size, M68kDiagSink diagnostics);
+M68kDisasmResult m68k_disassemble_one_for_cpu(const uint8_t *data, size_t size, uint8_t target_cpu,
+  M68kDiagSink diagnostics);
 
 #endif

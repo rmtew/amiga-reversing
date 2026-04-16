@@ -41,6 +41,52 @@ CPU_CASE_JSONS = {
     "68040": GENERATED_DIR / "all_cases_68040.json",
     "68060": GENERATED_DIR / "all_cases_68060.json",
 }
+M68K_DIAG_SEVERITY_ERROR = 3
+M68K_DIAG_MESSAGE_SIZE = 160
+M68K_DIAG_LIST_CAPACITY = 8
+
+
+class M68kDiag(ctypes.Structure):
+    _fields_ = [
+        ("severity", ctypes.c_uint32),
+        ("code", ctypes.c_uint32),
+        ("message", ctypes.c_char * M68K_DIAG_MESSAGE_SIZE),
+    ]
+
+
+class M68kDiagList(ctypes.Structure):
+    _fields_ = [
+        ("count", ctypes.c_size_t),
+        ("dropped_count", ctypes.c_size_t),
+        ("items", M68kDiag * M68K_DIAG_LIST_CAPACITY),
+    ]
+
+
+class M68kAssembleResult(ctypes.Structure):
+    _fields_ = [
+        ("byte_count", ctypes.c_size_t),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
+class M68kVerifyResult(ctypes.Structure):
+    _fields_ = [("diagnostics", M68kDiagList)]
+
+
+def _diag_message(diagnostics: M68kDiagList) -> str:
+    for index in range(diagnostics.count):
+        if diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR:
+            return diagnostics.items[index].message.decode("utf-8")
+    if diagnostics.count:
+        return diagnostics.items[0].message.decode("utf-8")
+    return ""
+
+
+def _diag_has_errors(diagnostics: M68kDiagList) -> bool:
+    return any(
+        diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR
+        for index in range(diagnostics.count)
+    )
 
 
 def _load_module(path: Path, name: str):
@@ -93,26 +139,19 @@ def _assembler_library():
         ctypes.POINTER(M68kAsmOptions),
         ctypes.POINTER(ctypes.c_ubyte),
         ctypes.c_size_t,
-        ctypes.POINTER(ctypes.c_size_t),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    library.m68k_assemble.restype = ctypes.c_int
+    library.m68k_assemble.restype = M68kAssembleResult
     library.m68k_verify_manifest.argtypes = [
         ctypes.c_char_p,
         ctypes.POINTER(M68kAsmVerifyOptions),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    library.m68k_verify_manifest.restype = ctypes.c_int
+    library.m68k_verify_manifest.restype = M68kVerifyResult
     library.m68k_verify_corpus.argtypes = [
         ctypes.c_char_p,
         ctypes.c_char_p,
         ctypes.POINTER(M68kAsmVerifyOptions),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    library.m68k_verify_corpus.restype = ctypes.c_int
+    library.m68k_verify_corpus.restype = M68kVerifyResult
     return library
 
 
@@ -126,46 +165,39 @@ def _cli_path() -> Path:
 def _verify_manifest(manifest_path: Path, cpu_name: str) -> tuple[int, str]:
     library = _assembler_library()
     options = library._m68k_asm_verify_options_type(CPU_CODES[cpu_name])
-    error_buf = ctypes.create_string_buffer(256)
     result = library.m68k_verify_manifest(
         str(manifest_path).encode("utf-8"),
         ctypes.byref(options),
-        error_buf,
-        len(error_buf),
     )
-    return result, error_buf.value.decode("utf-8")
+    return (1 if _diag_has_errors(result.diagnostics) else 0), _diag_message(result.diagnostics)
 
 
 def _verify_corpus(manifest_path: Path, binary_path: Path, cpu_name: str) -> tuple[int, str]:
     library = _assembler_library()
     options = library._m68k_asm_verify_options_type(CPU_CODES[cpu_name])
-    error_buf = ctypes.create_string_buffer(256)
     result = library.m68k_verify_corpus(
         str(manifest_path).encode("utf-8"),
         str(binary_path).encode("utf-8"),
         ctypes.byref(options),
-        error_buf,
-        len(error_buf),
     )
-    return result, error_buf.value.decode("utf-8")
+    return (1 if _diag_has_errors(result.diagnostics) else 0), _diag_message(result.diagnostics)
 
 
 def _assemble_line(asm_text: str, cpu_name: str = "68000") -> tuple[int, bytes, str]:
     library = _assembler_library()
     options = library._m68k_asm_options_type(CPU_CODES[cpu_name], 0)
     out_buf = (ctypes.c_ubyte * 64)()
-    error_buf = ctypes.create_string_buffer(256)
-    byte_count = ctypes.c_size_t()
     result = library.m68k_assemble(
         asm_text.encode("ascii"),
         ctypes.byref(options),
         out_buf,
         len(out_buf),
-        ctypes.byref(byte_count),
-        error_buf,
-        len(error_buf),
     )
-    return result, bytes(out_buf[:byte_count.value]), error_buf.value.decode("utf-8")
+    return (
+        1 if _diag_has_errors(result.diagnostics) else 0,
+        bytes(out_buf[:result.byte_count]),
+        _diag_message(result.diagnostics),
+    )
 
 
 def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:

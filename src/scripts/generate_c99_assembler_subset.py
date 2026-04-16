@@ -159,6 +159,7 @@ class PatchDef:
 class FormDef:
     mnemonic: str
     kb_mnemonic: str
+    local_form_index: int
     form_index: int
     syntax: str
     sampling_operand_kinds: tuple[str, ...]
@@ -893,7 +894,8 @@ def _load_forms(kb_path: Path, supported_mnemonics: tuple[str, ...] | None = Non
                     FormDef(
                         mnemonic=_asm_mnemonic_from_syntax(str(form_source["syntax"])),
                         kb_mnemonic=mnemonic,
-                        form_index=form_index,
+                        local_form_index=form_index,
+                        form_index=len(forms),
                         syntax=form_source["syntax"],
                         sampling_operand_kinds=sampling_operand_kinds,
                         operand_kinds=operand_kinds,
@@ -1022,7 +1024,18 @@ def _render_header(forms: list[FormDef], kb: dict[str, object]) -> str:
     mnemonic_list = list(dict.fromkeys(form.mnemonic for form in forms))
     mnemonic_ids = "\n".join(
         f"    M68K_ASM_MNEMONIC_{mnemonic} = {index},"
-        for index, mnemonic in enumerate(mnemonic_list)
+        for index, mnemonic in enumerate(mnemonic_list, start=1)
+    )
+    control_registers = _load_control_registers(kb)
+    control_register_name_counts: dict[str, int] = {}
+    for entry in control_registers:
+        abbrev = str(entry["abbrev"]).upper()
+        control_register_name_counts[abbrev] = control_register_name_counts.get(abbrev, 0) + 1
+    control_register_ids = "\n".join(
+        f"    M68K_ASM_CONTROL_REGISTER_{str(entry['abbrev']).upper()}"
+        f"{'_' + str(int(entry['id'])) if control_register_name_counts[str(entry['abbrev']).upper()] > 1 else ''} = "
+        f"{int(entry['id'])},"
+        for entry in control_registers
     )
     brief_fields = _load_brief_ext_fields(kb)
     full_fields = _load_full_ext_fields(kb)
@@ -1041,9 +1054,15 @@ def _render_header(forms: list[FormDef], kb: dict[str, object]) -> str:
 #include <stdint.h>
 
 typedef enum {{
+    M68K_ASM_MNEMONIC_NONE = 0,
 {mnemonic_ids}
-    M68K_ASM_MNEMONIC_COUNT = {len(mnemonic_list)}
+    M68K_ASM_MNEMONIC_COUNT = {len(mnemonic_list) + 1}
 }} M68kAsmMnemonicId;
+
+typedef enum {{
+    M68K_ASM_CONTROL_REGISTER_NONE = 255,
+{control_register_ids}
+}} M68kAsmControlRegisterId;
 
 typedef enum {{
     M68K_ASM_CPU_68000 = 0,
@@ -1250,6 +1269,7 @@ typedef struct {{
 
 typedef struct {{
     const char *mnemonic;
+    uint8_t mnemonic_id;
     char size_suffix;
     uint8_t target_cpu;
     size_t operand_count;
@@ -1262,7 +1282,7 @@ typedef struct {{
     const char *mnemonic;
     const char *syntax;
     uint8_t mnemonic_id;
-    uint8_t form_index;
+    uint16_t form_index;
     uint8_t operand_count;
     uint8_t operand_kinds[{MAX_FORM_OPERANDS}];
     uint8_t size_mask;
@@ -1294,13 +1314,22 @@ typedef struct {{
     uint8_t has_bound_word_extension;
 }} M68kAsmFormDef;
 
+typedef struct {{
+    const char *name;
+    uint8_t mnemonic_id;
+}} M68kAsmMnemonicLookupEntry;
+
 extern const M68kAsmFormDef g_m68k_asm_forms[{len(forms)}];
 extern const M68kAsmFieldPatch g_m68k_asm_patches[{sum(len(form.patches) for form in forms)}];
 extern const M68kAsmExtensionDef g_m68k_asm_extensions[{sum(len(_extension_defs(form)) for form in forms)}];
 extern const M68kAsmControlRegisterDef g_m68k_asm_control_registers[];
 extern const uint16_t g_m68k_asm_form_control_register_ids[];
 extern const M68kAsmEaTextFormDef g_m68k_asm_ea_text_forms[{len(ea_text_forms)}];
+extern const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT];
+extern const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[];
+extern const size_t g_m68k_asm_mnemonic_lookup_count;
 extern const char *const g_m68k_asm_routed_immediate_mnemonics[];
+extern const uint8_t g_m68k_asm_routed_immediate_mnemonic_ids[];
 extern const size_t g_m68k_asm_routed_immediate_mnemonic_count;
 extern const size_t g_m68k_asm_control_register_count;
 extern const size_t g_m68k_asm_ea_text_form_count;
@@ -1313,6 +1342,7 @@ const M68kAsmControlRegisterDef *m68k_asm_find_control_register(const char *name
 const M68kAsmEaTextFormDef *m68k_asm_find_ea_text_form(uint8_t syntax_family, char size_suffix, char register_prefix, uint8_t target_cpu);
 int m68k_asm_has_routed_immediate(const char *mnemonic);
 const M68kAsmFormDef *m68k_asm_find_form(const char *mnemonic, size_t operand_count);
+const M68kAsmFormDef *m68k_asm_find_form_id(uint8_t mnemonic_id, size_t operand_count);
 uint8_t m68k_asm_form_effective_size_mask(const M68kAsmFormDef *form);
 uint8_t m68k_asm_form_effective_size_mask_for_operands(
     const M68kAsmFormDef *form,
@@ -1329,6 +1359,13 @@ char m68k_asm_choose_size_suffix(
 );
 const M68kAsmFormDef *m68k_asm_find_form_for_operands(
     const char *mnemonic,
+    const M68kAsmOperandValue *operands,
+    size_t operand_count,
+    char size_suffix,
+    uint8_t target_cpu
+);
+const M68kAsmFormDef *m68k_asm_find_form_for_operands_id(
+    uint8_t mnemonic_id,
     const M68kAsmOperandValue *operands,
     size_t operand_count,
     char size_suffix,
@@ -1378,6 +1415,16 @@ size_t m68k_asm_branch_extension_bytes(const M68kAsmFormDef *form, char size_suf
 
 
 def _render_tables(forms: list[FormDef], kb: dict[str, object]) -> str:
+    mnemonic_list = list(dict.fromkeys(form.mnemonic for form in forms))
+    mnemonic_name_rows = ['    "",'] + [f'    "{mnemonic.lower()}",' for mnemonic in mnemonic_list]
+    sorted_mnemonics = sorted(mnemonic_list, key=str.lower)
+    mnemonic_lookup_rows = [
+        f'    {{ "{mnemonic.lower()}", M68K_ASM_MNEMONIC_{mnemonic} }},'
+        for mnemonic in sorted_mnemonics
+    ]
+    mnemonic_lookup_array_len = max(1, len(mnemonic_lookup_rows))
+    if not mnemonic_lookup_rows:
+        mnemonic_lookup_rows = ['    { NULL, M68K_ASM_MNEMONIC_NONE },']
     control_registers = _load_control_registers(kb)
     ea_text_forms = _load_ea_text_forms(kb)
     movem_masks = _kb_meta(kb, "movem_reg_masks")
@@ -1389,9 +1436,16 @@ def _render_tables(forms: list[FormDef], kb: dict[str, object]) -> str:
         f'    "{mnemonic.lower()}",'
         for mnemonic in routed_immediate_mnemonics
     ]
+    routed_immediate_id_rows = [
+        f"    M68K_ASM_MNEMONIC_{mnemonic},"
+        for mnemonic in routed_immediate_mnemonics
+    ]
     routed_immediate_array_len = max(1, len(routed_immediate_rows))
     if not routed_immediate_rows:
         routed_immediate_rows = ["    NULL,"]
+    routed_immediate_id_array_len = max(1, len(routed_immediate_id_rows))
+    if not routed_immediate_id_rows:
+        routed_immediate_id_rows = ["    M68K_ASM_MNEMONIC_NONE,"]
     patch_rows: list[str] = []
     extension_rows: list[str] = []
     form_rows: list[str] = []
@@ -1510,6 +1564,14 @@ def _render_tables(forms: list[FormDef], kb: dict[str, object]) -> str:
     return f"""/* Auto-generated by src/scripts/generate_c99_assembler_subset.py. */
 #include "m68k_asm_tables.h"
 
+const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT] = {{
+{chr(10).join(mnemonic_name_rows)}
+}};
+
+const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[{mnemonic_lookup_array_len}] = {{
+{chr(10).join(mnemonic_lookup_rows)}
+}};
+
 const M68kAsmFieldPatch g_m68k_asm_patches[{len(patch_rows)}] = {{
 {chr(10).join(patch_rows)}
 }};
@@ -1546,6 +1608,11 @@ const char *const g_m68k_asm_routed_immediate_mnemonics[{routed_immediate_array_
 {chr(10).join(routed_immediate_rows)}
 }};
 
+const uint8_t g_m68k_asm_routed_immediate_mnemonic_ids[{routed_immediate_id_array_len}] = {{
+{chr(10).join(routed_immediate_id_rows)}
+}};
+
+const size_t g_m68k_asm_mnemonic_lookup_count = {len(sorted_mnemonics)};
 const size_t g_m68k_asm_routed_immediate_mnemonic_count = {len(routed_immediate_mnemonics)};
 const size_t g_m68k_asm_control_register_count = {len(control_register_rows)};
 const size_t g_m68k_asm_ea_text_form_count = {len(ea_text_rows)};

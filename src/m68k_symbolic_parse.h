@@ -3,11 +3,12 @@
 
 #include "m68k_instruction_spec.h"
 #include "m68k_ir.h"
+#include "m68k_source_lookup.h"
 
 #include <stddef.h>
 #include <stdint.h>
 
-typedef int (*M68kSymbolicLookupFn)(const char *name, uint32_t *out_value, int require_constant, void *user_data);
+typedef M68kSourceLookupResult (*M68kSymbolicLookupFn)(const char *name, int require_constant, void *user_data);
 typedef int (*M68kSymbolicIsNameFn)(const char *text, void *user_data);
 
 typedef struct {

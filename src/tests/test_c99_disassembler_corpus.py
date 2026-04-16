@@ -29,6 +29,60 @@ CPU_CODES = {
 CPU_NAMES = ("68000", "68010", "68020", "68030", "68040", "68060")
 TARGET_LABEL_RE = re.compile(r"\btarget\b")
 UNSUPPORTED_MMU_ROUND_TRIP_MNEMONICS = unsupported_mmu_round_trip_mnemonics_upper()
+M68K_DIAG_SEVERITY_ERROR = 3
+M68K_DIAG_MESSAGE_SIZE = 160
+M68K_DIAG_LIST_CAPACITY = 8
+
+
+class M68kDiag(ctypes.Structure):
+    _fields_ = [
+        ("severity", ctypes.c_uint32),
+        ("code", ctypes.c_uint32),
+        ("message", ctypes.c_char * M68K_DIAG_MESSAGE_SIZE),
+    ]
+
+
+class M68kDiagList(ctypes.Structure):
+    _fields_ = [
+        ("count", ctypes.c_size_t),
+        ("dropped_count", ctypes.c_size_t),
+        ("items", M68kDiag * M68K_DIAG_LIST_CAPACITY),
+    ]
+
+
+class M68kDiagSink(ctypes.Structure):
+    _fields_ = [("list", ctypes.POINTER(M68kDiagList))]
+
+
+class M68kDisasmTextResult(ctypes.Structure):
+    _fields_ = [
+        ("byte_count", ctypes.c_size_t),
+        ("text", ctypes.c_char * 256),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
+class M68kAssembleResult(ctypes.Structure):
+    _fields_ = [
+        ("byte_count", ctypes.c_size_t),
+        ("diagnostics", M68kDiagList),
+    ]
+
+
+def _diag_message(diagnostics: M68kDiagList) -> str:
+    for index in range(diagnostics.count):
+        if diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR:
+            return diagnostics.items[index].message.decode("utf-8")
+    if diagnostics.count:
+        return diagnostics.items[0].message.decode("utf-8")
+    return ""
+
+
+def _diag_has_errors(diagnostics: M68kDiagList) -> bool:
+    return any(
+        diagnostics.items[index].severity == M68K_DIAG_SEVERITY_ERROR
+        for index in range(diagnostics.count)
+    )
 
 
 def _load_module(path: Path, name: str):
@@ -64,13 +118,8 @@ def _disasm_library():
         ctypes.POINTER(ctypes.c_ubyte),
         ctypes.c_size_t,
         ctypes.c_uint8,
-        ctypes.c_char_p,
-        ctypes.c_size_t,
-        ctypes.POINTER(ctypes.c_size_t),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    library.m68k_disassemble_one_text_for_cpu.restype = ctypes.c_int
+    library.m68k_disassemble_one_text_for_cpu.restype = M68kDisasmTextResult
     return library
 
 
@@ -143,11 +192,9 @@ def _ir_library():
         ctypes.POINTER(ctypes.c_ubyte),
         ctypes.c_size_t,
         ctypes.c_uint8,
-        ctypes.POINTER(M68kInstructionIR),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
+        M68kDiagSink,
     ]
-    library.m68k_ir_decode_one.restype = ctypes.c_int
+    library.m68k_ir_decode_one.restype = M68kInstructionIR
     return library
 
 
@@ -165,50 +212,36 @@ def _assembler_library():
         ctypes.POINTER(M68kAsmOptions),
         ctypes.POINTER(ctypes.c_ubyte),
         ctypes.c_size_t,
-        ctypes.POINTER(ctypes.c_size_t),
-        ctypes.c_char_p,
-        ctypes.c_size_t,
     ]
-    library.m68k_assemble.restype = ctypes.c_int
+    library.m68k_assemble.restype = M68kAssembleResult
     return library
 
 
 def _disassemble_for_cpu(data: bytes, cpu_name: str) -> tuple[str, int]:
     library = _disasm_library()
     buffer = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
-    text_buf = ctypes.create_string_buffer(512)
-    error_buf = ctypes.create_string_buffer(256)
-    byte_count = ctypes.c_size_t()
     result = library.m68k_disassemble_one_text_for_cpu(
         buffer,
         len(data),
         CPU_CODES[cpu_name],
-        text_buf,
-        len(text_buf),
-        ctypes.byref(byte_count),
-        error_buf,
-        len(error_buf),
     )
-    if result != 0:
-        raise AssertionError(error_buf.value.decode("utf-8"))
-    return text_buf.value.decode("utf-8"), int(byte_count.value)
+    if _diag_has_errors(result.diagnostics):
+        raise AssertionError(_diag_message(result.diagnostics))
+    return result.text.decode("utf-8"), int(result.byte_count)
 
 
 def _ir_decode_for_cpu(data: bytes, cpu_name: str):
     library = _ir_library()
     buffer = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
-    error_buf = ctypes.create_string_buffer(256)
-    instruction = library._M68kInstructionIR()
-    result = library.m68k_ir_decode_one(
+    diagnostics = M68kDiagList()
+    instruction = library.m68k_ir_decode_one(
         buffer,
         len(data),
         CPU_CODES[cpu_name],
-        ctypes.byref(instruction),
-        error_buf,
-        len(error_buf),
+        M68kDiagSink(ctypes.pointer(diagnostics)),
     )
-    if result != 0:
-        raise AssertionError(error_buf.value.decode("utf-8"))
+    if _diag_has_errors(diagnostics) or instruction.byte_count == 0:
+        raise AssertionError(_diag_message(diagnostics))
     return instruction
 
 
@@ -217,20 +250,15 @@ def _assemble_text(text: str, cpu_name: str, input_mode: int) -> bytes:
     library = _assembler_library()
     options = library._m68k_asm_options_type(CPU_CODES[cpu_name], input_mode)
     out_buf = (ctypes.c_ubyte * 512)()
-    error_buf = ctypes.create_string_buffer(256)
-    byte_count = ctypes.c_size_t()
     result = library.m68k_assemble(
         text.encode("ascii"),
         ctypes.byref(options),
         out_buf,
         len(out_buf),
-        ctypes.byref(byte_count),
-        error_buf,
-        len(error_buf),
     )
-    if result != 0:
-        raise AssertionError(error_buf.value.decode("utf-8"))
-    return bytes(out_buf[:byte_count.value])
+    if _diag_has_errors(result.diagnostics):
+        raise AssertionError(_diag_message(result.diagnostics))
+    return bytes(out_buf[:result.byte_count])
 
 
 def _assemble_line_bytes(text: str, cpu_name: str) -> bytes:
@@ -358,6 +386,20 @@ class C99DisassemblerCorpusTests(unittest.TestCase):
                 rendered, byte_count = _disassemble_for_cpu(original, cpu_name)
                 self.assertEqual(byte_count, len(original))
                 self.assertEqual(rendered, asm_text)
+
+    def test_link_long_round_trip_keeps_long_suffix(self) -> None:
+        original = bytes.fromhex("480800008000")
+        rendered, byte_count = _disassemble_for_cpu(original, "68010")
+        self.assertEqual(byte_count, len(original))
+        self.assertEqual(rendered, "link.l a0,#32768")
+        self.assertEqual(_assemble_line_bytes(rendered, "68010"), original)
+
+    def test_pvalid_absolute_word_prefers_full_length_match(self) -> None:
+        original = bytes.fromhex("f03828001234")
+        rendered, byte_count = _disassemble_for_cpu(original, "68030")
+        self.assertEqual(byte_count, len(original))
+        self.assertEqual(rendered, "pvalid val,$1234.w")
+        self.assertEqual(_assemble_line_bytes(rendered, "68030"), original)
 
     def test_signed_displacement_families_render_signed(self) -> None:
         samples = (

@@ -9,26 +9,31 @@
 int main(int argc, char **argv) {
   uint8_t target_cpu = M68K_ASM_CPU_68000;
   M68kRenderPolicy render_policy;
-  char parse_error[64];
+  M68kDiagList parse_diagnostics;
+  M68kParseCpuResult cpu_result;
   int argi;
   if (argc == 3 && strcmp(argv[1], "verify-manifest") == 0) {
     return m68k_corpus_verify_manifest(argv[2], M68K_ASM_CPU_68000, m68k_corpus_parse_instruction_spec);
   }
   if (argc == 5 && strcmp(argv[1], "verify-manifest") == 0 && strcmp(argv[2], "--cpu") == 0) {
-    if (!m68k_parse_cpu_name(argv[3], &target_cpu)) {
+    cpu_result = m68k_parse_cpu_name(argv[3]);
+    if (!cpu_result.ok) {
       fprintf(stderr, "unknown cpu: %s\n", argv[3]);
       return 2;
     }
+    target_cpu = cpu_result.cpu;
     return m68k_corpus_verify_manifest(argv[4], target_cpu, m68k_corpus_parse_instruction_spec);
   }
   if (argc == 4 && strcmp(argv[1], "verify") == 0) {
     return m68k_corpus_verify_binary(argv[2], argv[3], M68K_ASM_CPU_68000, m68k_corpus_parse_instruction_spec);
   }
   if (argc == 6 && strcmp(argv[1], "verify") == 0 && strcmp(argv[2], "--cpu") == 0) {
-    if (!m68k_parse_cpu_name(argv[3], &target_cpu)) {
+    cpu_result = m68k_parse_cpu_name(argv[3]);
+    if (!cpu_result.ok) {
       fprintf(stderr, "unknown cpu: %s\n", argv[3]);
       return 2;
     }
+    target_cpu = cpu_result.cpu;
     return m68k_corpus_verify_binary(argv[4], argv[5], target_cpu, m68k_corpus_parse_instruction_spec);
   }
   if (argc == 4 && strcmp(argv[1], "assemble-case") == 0) {
@@ -36,10 +41,12 @@ int main(int argc, char **argv) {
       m68k_corpus_parse_instruction_spec);
   }
   if (argc == 6 && strcmp(argv[1], "assemble-case") == 0 && strcmp(argv[2], "--cpu") == 0) {
-    if (!m68k_parse_cpu_name(argv[3], &target_cpu)) {
+    cpu_result = m68k_parse_cpu_name(argv[3]);
+    if (!cpu_result.ok) {
       fprintf(stderr, "unknown cpu: %s\n", argv[3]);
       return 2;
     }
+    target_cpu = cpu_result.cpu;
     return m68k_corpus_assemble_case_to_stdout(argv[4], argv[5], target_cpu, m68k_corpus_parse_instruction_spec);
   }
   if (argc == 4 && strcmp(argv[1], "assemble-manifest") == 0) {
@@ -47,28 +54,34 @@ int main(int argc, char **argv) {
       m68k_corpus_parse_instruction_spec);
   }
   if (argc == 6 && strcmp(argv[1], "assemble-manifest") == 0 && strcmp(argv[2], "--cpu") == 0) {
-    if (!m68k_parse_cpu_name(argv[3], &target_cpu)) {
+    cpu_result = m68k_parse_cpu_name(argv[3]);
+    if (!cpu_result.ok) {
       fprintf(stderr, "unknown cpu: %s\n", argv[3]);
       return 2;
     }
+    target_cpu = cpu_result.cpu;
     return m68k_corpus_assemble_manifest_to_file(argv[4], argv[5], target_cpu, m68k_corpus_parse_instruction_spec);
   }
   if (argc == 3 && strcmp(argv[1], "assemble-line") == 0)
     return m68k_assemble_line_to_stdout(argv[2], target_cpu);
   if (argc == 5 && strcmp(argv[1], "assemble-line") == 0 && strcmp(argv[2], "--cpu") == 0) {
-    if (!m68k_parse_cpu_name(argv[3], &target_cpu)) {
+    cpu_result = m68k_parse_cpu_name(argv[3]);
+    if (!cpu_result.ok) {
       fprintf(stderr, "unknown cpu: %s\n", argv[3]);
       return 2;
     }
+    target_cpu = cpu_result.cpu;
     return m68k_assemble_line_to_stdout(argv[4], target_cpu);
   }
   if (argc == 4 && strcmp(argv[1], "assemble-file") == 0)
     return m68k_assemble_file_to_binary(argv[2], argv[3], target_cpu);
   if (argc == 6 && strcmp(argv[1], "assemble-file") == 0 && strcmp(argv[2], "--cpu") == 0) {
-    if (!m68k_parse_cpu_name(argv[3], &target_cpu)) {
+    cpu_result = m68k_parse_cpu_name(argv[3]);
+    if (!cpu_result.ok) {
       fprintf(stderr, "unknown cpu: %s\n", argv[3]);
       return 2;
     }
+    target_cpu = cpu_result.cpu;
     return m68k_assemble_file_to_binary(argv[4], argv[5], target_cpu);
   }
   if (argc == 8 && strcmp(argv[1], "assemble-platform-file") == 0 && strcmp(argv[2], "--backend") == 0 &&
@@ -77,10 +90,12 @@ int main(int argc, char **argv) {
   }
   if (argc == 10 && strcmp(argv[1], "assemble-platform-file") == 0 && strcmp(argv[2], "--cpu") == 0 &&
       strcmp(argv[4], "--backend") == 0 && strcmp(argv[6], "--include-dir") == 0) {
-    if (!m68k_parse_cpu_name(argv[3], &target_cpu)) {
+    cpu_result = m68k_parse_cpu_name(argv[3]);
+    if (!cpu_result.ok) {
       fprintf(stderr, "unknown cpu: %s\n", argv[3]);
       return 2;
     }
+    target_cpu = cpu_result.cpu;
     return m68k_assemble_platform_file_to_output(argv[5], argv[7], argv[8], argv[9], target_cpu, 0);
   }
   if (argc == 10 && strcmp(argv[1], "assemble-platform-file") == 0 && strcmp(argv[2], "--syntax-compat") == 0 &&
@@ -90,10 +105,12 @@ int main(int argc, char **argv) {
   if (argc == 12 && strcmp(argv[1], "assemble-platform-file") == 0 && strcmp(argv[2], "--cpu") == 0 &&
       strcmp(argv[4], "--syntax-compat") == 0 && strcmp(argv[5], "vasm") == 0 && strcmp(argv[6], "--backend") == 0 &&
       strcmp(argv[8], "--include-dir") == 0) {
-    if (!m68k_parse_cpu_name(argv[3], &target_cpu)) {
+    cpu_result = m68k_parse_cpu_name(argv[3]);
+    if (!cpu_result.ok) {
       fprintf(stderr, "unknown cpu: %s\n", argv[3]);
       return 2;
     }
+    target_cpu = cpu_result.cpu;
     return m68k_assemble_platform_file_to_output(argv[7], argv[9], argv[10], argv[11], target_cpu, 1);
   }
   if (argc >= 5 && strcmp(argv[1], "render-source-file") == 0) {
@@ -103,10 +120,12 @@ int main(int argc, char **argv) {
     m68k_render_policy_init_for_syntax(&render_policy, M68K_IR_SYNTAX_CANONICAL);
     for (argi = 2; argi < argc; ++argi) {
       if (strcmp(argv[argi], "--cpu") == 0) {
-        if (argi + 1 >= argc || !m68k_parse_cpu_name(argv[argi + 1], &target_cpu)) {
+        cpu_result = (argi + 1 < argc) ? m68k_parse_cpu_name(argv[argi + 1]) : (M68kParseCpuResult){0};
+        if (!cpu_result.ok) {
           fprintf(stderr, "unknown cpu: %s\n", (argi + 1 < argc) ? argv[argi + 1] : "");
           return 2;
         }
+        target_cpu = cpu_result.cpu;
         ++argi;
         continue;
       }
@@ -128,10 +147,12 @@ int main(int argc, char **argv) {
         continue;
       }
       {
-        int parse_result = m68k_parse_render_policy_option(argc, argv, &argi, &render_policy, parse_error,
-          sizeof(parse_error));
+        int parse_result;
+        m68k_diag_list_reset(&parse_diagnostics);
+        parse_result = m68k_parse_render_policy_option(argc, argv, &argi, &render_policy,
+          m68k_diag_sink(&parse_diagnostics));
         if (parse_result < 0) {
-          fprintf(stderr, "%s\n", parse_error);
+          fprintf(stderr, "%s\n", m68k_diag_first_message(&parse_diagnostics));
           return 2;
         }
         if (parse_result > 0) continue;
@@ -176,6 +197,7 @@ int main(int argc, char **argv) {
   fprintf(stderr, "   or: %s render-source-file [--cpu <68000|68010|68020|68030|68040|68060>] [--syntax "
     "canonical|genam|vasm]\n", argv[0]);
   fprintf(stderr, "          [--syntax-compat vasm] [--no-strings] [--no-longs] [--no-generated-names]\n");
+  fprintf(stderr, "          [--min-os-version <1.3|2.0|3.1|3.5>]\n");
   fprintf(stderr, "          [--code-label-prefix p] [--call-label-prefix p] [--data-label-prefix p] --include-dir "
     "<dir> <input.s>\n");
   return 2;

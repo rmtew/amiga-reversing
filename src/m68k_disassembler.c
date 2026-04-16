@@ -38,6 +38,18 @@ static unsigned size_variant_count(uint8_t mask) {
   return count;
 }
 
+static uint8_t disasm_form_mnemonic_id(const M68kAsmFormDef *form) {
+  if (form != NULL && form->form_index != 0xFFFFu && (size_t)form->form_index < m68k_asm_form_count())
+    return g_m68k_asm_forms[form->form_index].mnemonic_id;
+  if (form == NULL) return M68K_ASM_MNEMONIC_NONE;
+  return form->mnemonic_id;
+}
+
+static int disasm_requires_explicit_size_suffix(const M68kAsmFormDef *form, char size_suffix) {
+  if (form == NULL || size_suffix == '\0') return 0;
+  return disasm_form_mnemonic_id(form) == M68K_ASM_MNEMONIC_LINK && size_suffix == 'l';
+}
+
 static char choose_size_suffix(const M68kAsmFormDef *form, const M68kAsmOperandValue *operands, size_t operand_count,
     char explicit_suffix) {
   size_t patch_index;
@@ -120,29 +132,40 @@ static int m68k_disasm_match_form(const M68kAsmFormDef *form, const uint8_t *dat
   return 1;
 }
 
-static int set_result(M68kDisasmResult *out, int ok, size_t byte_count, const char *text, const char *error,
-    const M68kAsmFormDef *form, uint16_t form_index, const M68kAsmOperandValue *operands, char size_suffix,
-    uint8_t target_cpu) {
-  if (out == NULL) return -1;
-  memset(out, 0, sizeof(*out));
-  out->ok = ok;
-  out->byte_count = byte_count;
-  out->form_index = form != NULL ? form->form_index : form_index;
-  out->target_cpu = target_cpu;
-  if (form != NULL && form->mnemonic != NULL) snprintf(out->mnemonic, sizeof(out->mnemonic), "%s", form->mnemonic);
-  out->size_suffix = size_suffix;
-  if (form != NULL) {
+static M68kDisasmResult make_result(size_t byte_count, const char *text, const M68kAsmFormDef *form,
+    uint16_t form_index, const M68kAsmOperandValue *operands, char size_suffix, uint8_t target_cpu) {
+  M68kDisasmResult result;
+  const M68kAsmFormDef *canonical_form = NULL;
+  memset(&result, 0, sizeof(result));
+  (void)form_index;
+  if (form != NULL && form->form_index != 0xFFFFu && (size_t)form->form_index < m68k_asm_form_count())
+    canonical_form = &g_m68k_asm_forms[form->form_index];
+  result.byte_count = byte_count;
+  result.form_index = canonical_form != NULL ? canonical_form->form_index : 0xFFFFu;
+  result.target_cpu = target_cpu;
+  if (canonical_form != NULL && canonical_form->mnemonic != NULL)
+    snprintf(result.mnemonic, sizeof(result.mnemonic), "%s", canonical_form->mnemonic);
+  else if (form != NULL && form->mnemonic != NULL)
+    snprintf(result.mnemonic, sizeof(result.mnemonic), "%s", form->mnemonic);
+  result.size_suffix = size_suffix;
+  if (canonical_form != NULL) {
     size_t operand_index;
-    out->mnemonic_id = form->mnemonic_id;
-    out->operand_count = form->operand_count;
+    result.mnemonic_id = canonical_form->mnemonic_id;
+    result.operand_count = canonical_form->operand_count;
+    for (operand_index = 0; operand_index < canonical_form->operand_count && operand_index < 4U; ++operand_index) {
+      result.operand_kinds[operand_index] = canonical_form->operand_kinds[operand_index];
+      if (operands != NULL) result.operands[operand_index] = operands[operand_index];
+    }
+  } else if (form != NULL) {
+    size_t operand_index;
+    result.operand_count = form->operand_count;
     for (operand_index = 0; operand_index < form->operand_count && operand_index < 4U; ++operand_index) {
-      out->operand_kinds[operand_index] = form->operand_kinds[operand_index];
-      if (operands != NULL) out->operands[operand_index] = operands[operand_index];
+      result.operand_kinds[operand_index] = form->operand_kinds[operand_index];
+      if (operands != NULL) result.operands[operand_index] = operands[operand_index];
     }
   }
-  if (text != NULL) snprintf(out->text, sizeof(out->text), "%s", text);
-  if (error != NULL) snprintf(out->error, sizeof(out->error), "%s", error);
-  return ok ? 0 : -1;
+  if (text != NULL) snprintf(result.text, sizeof(result.text), "%s", text);
+  return result;
 }
 
 static int extract_patch_values(const M68kAsmFormDef *form, const uint8_t *data, uint16_t *field_values) {
@@ -510,7 +533,29 @@ static int decode_operands(const M68kAsmFormDef *form, const uint16_t *field_val
     }
   }
   if (decode_extensions(form, data, size, operands, size_suffix, out_byte_count) != 0) return -1;
-  if (strcmp(form->mnemonic, "movem") == 0 && form->operand_count >= 2U &&
+  for (operand_index = 0; operand_index < form->operand_count; ++operand_index) {
+    M68kAsmOperandValue *operand = &operands[operand_index];
+    if (operand->kind == M68K_ASM_OPERAND_CTRL_REG) {
+      size_t control_index;
+      operand->reg = M68K_ASM_CONTROL_REGISTER_NONE;
+      for (control_index = 0; control_index < form->control_register_count; ++control_index) {
+        uint16_t control_id = g_m68k_disasm_form_control_register_ids[form->control_register_start + control_index];
+        const M68kAsmControlRegisterDef *entry = &g_m68k_asm_control_registers[control_id];
+        if (entry->value != operand->value) continue;
+        operand->reg = (uint8_t)entry->id;
+        break;
+      }
+      if (operand->reg == M68K_ASM_CONTROL_REGISTER_NONE) {
+        for (control_index = 0; control_index < g_m68k_asm_control_register_count; ++control_index) {
+          const M68kAsmControlRegisterDef *entry = &g_m68k_asm_control_registers[control_index];
+          if (entry->value != operand->value) continue;
+          operand->reg = (uint8_t)entry->id;
+          break;
+        }
+      }
+    }
+  }
+  if (disasm_form_mnemonic_id(form) == M68K_ASM_MNEMONIC_MOVEM && form->operand_count >= 2U &&
     operands[0].kind == M68K_ASM_OPERAND_REGLIST && ((m68k_read_u16be(data) >> 3U) & 0x7U) == 4U) {
     uint16_t mask = (uint16_t)operands[0].value;
     uint16_t reversed = 0U;
@@ -581,7 +626,7 @@ static int format_immediate(const M68kAsmFormDef *form, const M68kAsmOperandValu
   if (form == NULL || operand == NULL || out == NULL || out_size == 0U) return -1;
   value = operand->value;
   if (value == 0U && g_m68k_disasm_inline_zero_means_eight[form - g_m68k_disasm_forms] != 0U) value = 8U;
-  if (strcmp(form->mnemonic, "moveq") == 0) return snprintf(out, out_size, "#%d",
+  if (disasm_form_mnemonic_id(form) == M68K_ASM_MNEMONIC_MOVEQ) return snprintf(out, out_size, "#%d",
     (int32_t)m68k_sign_extend32(value, 8U)) >= 0 ? 0 : -1;
   if (strstr(form->syntax, "<displacement>") != NULL) return snprintf(out, out_size, "#%d",
     (int32_t)m68k_sign_extend32(value, 16U)) >= 0 ? 0 : -1;
@@ -790,7 +835,8 @@ static int render_instruction(const M68kAsmFormDef *form, const M68kAsmOperandVa
   display_suffix = choose_size_suffix(form, operands, operand_count, size_suffix);
   if (m68k_appendf(out, out_size, "%s", mnemonic) != 0) return -1;
   if (display_suffix != '\0' &&
-    (syntax_has_explicit_size(form->syntax) || size_variant_count(effective_mask) > 1U || display_suffix != size_suffix)) {
+    (syntax_has_explicit_size(form->syntax) || size_variant_count(effective_mask) > 1U || display_suffix != size_suffix ||
+      disasm_requires_explicit_size_suffix(form, display_suffix))) {
     if (m68k_appendf(out, out_size, ".%c", display_suffix) != 0) return -1;
   }
   if (operand_count == 0U) return 0;
@@ -804,11 +850,31 @@ static int render_instruction(const M68kAsmFormDef *form, const M68kAsmOperandVa
   return 0;
 }
 
-static int m68k_disassemble_one_impl(const uint8_t *data, size_t size, uint8_t target_cpu, M68kDisasmResult *out) {
+static unsigned disasm_form_specificity(const M68kAsmFormDef *form) {
+  unsigned score;
+  uint8_t word_index;
+  if (form == NULL) return 0U;
+  score = m68k_popcount16(form->opword_mask);
+  for (word_index = 0; word_index < form->bound_word_count &&
+      word_index < (sizeof(form->bound_word_masks) / sizeof(form->bound_word_masks[0])); ++word_index) {
+    score += m68k_popcount16(form->bound_word_masks[word_index]);
+  }
+  return score;
+}
+
+static M68kDisasmResult m68k_disassemble_one_impl(const uint8_t *data, size_t size, uint8_t target_cpu,
+    M68kDiagSink diagnostics) {
   uint16_t bucket_index;
   size_t candidate_index;
-  if (data == NULL || size == 0U) return set_result(out, 0, 0U, NULL, "empty input", NULL, 0U, NULL, '\0', target_cpu);
-  if (size < 2U) return set_result(out, 0, 0U, NULL, "empty input", NULL, 0U, NULL, '\0', target_cpu);
+  M68kDisasmResult best_result;
+  unsigned best_specificity = 0U;
+  int have_match = 0;
+  memset(&best_result, 0, sizeof(best_result));
+  if (data == NULL || size < 2U) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_DECODE_FAILED, "empty input");
+    best_result.target_cpu = target_cpu;
+    return best_result;
+  }
   bucket_index = (uint16_t)(m68k_read_u16be(data) >> 4);
   for (candidate_index = 0; candidate_index < g_m68k_disasm_buckets[bucket_index].count; ++candidate_index) {
     uint16_t form_index = g_m68k_disasm_bucket_candidates[g_m68k_disasm_buckets[bucket_index].start + candidate_index];
@@ -818,6 +884,7 @@ static int m68k_disassemble_one_impl(const uint8_t *data, size_t size, uint8_t t
     uint16_t field_values[32];
     size_t byte_count = 0U;
     char size_suffix;
+    unsigned specificity;
     if (target_cpu != M68K_ASM_CPU_ANY && (form->cpu_mask & (1u << target_cpu)) == 0u) continue;
     if (!m68k_disasm_match_form(form, data, size)) continue;
     if (form->patch_count > (sizeof(field_values) / sizeof(field_values[0]))) continue;
@@ -826,16 +893,25 @@ static int m68k_disassemble_one_impl(const uint8_t *data, size_t size, uint8_t t
     size_suffix = resolve_size_suffix(form, field_values);
     if (decode_operands(form, field_values, size_suffix, data, size, operands, &byte_count) != 0) continue;
     if (render_instruction(form, operands, form->operand_count, size_suffix, rendered_text, sizeof(rendered_text)) != 0) continue;
-    return set_result(out, 1, byte_count, rendered_text, NULL, form, form_index, operands, size_suffix, target_cpu);
+    specificity = disasm_form_specificity(form);
+    if (!have_match || specificity > best_specificity) {
+      best_result = make_result(byte_count, rendered_text, form, form_index, operands, size_suffix, target_cpu);
+      have_match = 1;
+      best_specificity = specificity;
+    }
   }
-  return set_result(out, 0, 0U, NULL, "unknown instruction bytes", NULL, 0U, NULL, '\0', target_cpu);
+  if (have_match) return best_result;
+  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_DECODE_FAILED, "unknown instruction bytes");
+  best_result.target_cpu = target_cpu;
+  return best_result;
 }
 
-int m68k_disassemble_one(const uint8_t *data, size_t size, M68kDisasmResult *out) {
-  return m68k_disassemble_one_impl(data, size, M68K_ASM_CPU_68000, out);
+M68kDisasmResult m68k_disassemble_one(const uint8_t *data, size_t size, M68kDiagSink diagnostics) {
+  return m68k_disassemble_one_impl(data, size, M68K_ASM_CPU_68000, diagnostics);
 }
 
-int m68k_disassemble_one_for_cpu(const uint8_t *data, size_t size, uint8_t target_cpu, M68kDisasmResult *out) {
-  return m68k_disassemble_one_impl(data, size, target_cpu, out);
+M68kDisasmResult m68k_disassemble_one_for_cpu(const uint8_t *data, size_t size, uint8_t target_cpu,
+    M68kDiagSink diagnostics) {
+  return m68k_disassemble_one_impl(data, size, target_cpu, diagnostics);
 }
 

@@ -1,6 +1,8 @@
 #ifndef M68K_SOURCE_DATA_H
 #define M68K_SOURCE_DATA_H
 
+#include "m68k_source_lookup.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -23,7 +25,7 @@ typedef struct AsmSourceDataStmt {
     size_t item_capacity;
 } AsmSourceDataStmt;
 
-typedef int (*M68kSourceDataParseConstantFn)(const char *text, uint32_t *out_value, void *user_data);
+typedef M68kSourceConstantResult (*M68kSourceDataParseConstantFn)(const char *text, void *user_data);
 typedef int (*M68kSourceDataAppendItemFn)(AsmSourceDataStmt *data_stmt, const AsmDataItem *item, void *user_data);
 
 typedef struct M68kSourceDataParseContext {

@@ -5,5 +5,6 @@ int main(void) {
   failures += m68k_c_parse_util_tests();
   failures += m68k_c_instruction_spec_tests();
   failures += m68k_c_ir_tests();
+  failures += m68k_c_diagnostics_tests();
   return failures == 0 ? 0 : 1;
 }

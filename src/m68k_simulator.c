@@ -10,6 +10,11 @@ static const M68kSimValue g_m68k_sim_unknown_value = {
   M68K_SIM_VALUE_UNKNOWN, 0U, M68K_SIM_PROV_NONE, 0U, 0U, 0U, 0U, 0U, {0U, {0U}}
 };
 
+static void sim_diag_error(M68kDiagSink diagnostics, const char *message) {
+  if (message == NULL || message[0] == '\0') return;
+  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SIMULATION_FAILED, message);
+}
+
 #include "m68k_simulator_tables.inc"
 
 static int sim_add_access(M68kSimStepResult *result, uint8_t kind, uint8_t width,
@@ -22,7 +27,6 @@ static int sim_compute_ea_address(const M68kSection *section, const M68kInstruct
     uint8_t address_literal_width_bytes, uint8_t index_extension_format, uint8_t index_register_class,
     uint8_t index_value_width_source, uint8_t index_scale_source, uint8_t index_sign_source,
     const M68kSimCpuState *state, size_t section_index, M68kSimValue *out_value);
-static int sim_mnemonic_matches(const char *entry_mnemonic, const char *instruction_mnemonic);
 static void sim_merge_target_set(M68kSimTargetSet *dst, const M68kSimTargetSet *src);
 static int sim_read_same_section_memory_value(const M68kObject *object, size_t section_index, const M68kSection *section,
     const M68kSimMemoryState *memory_state, uint32_t address, M68kSimValue *out_value);
@@ -43,17 +47,16 @@ static int sim_bit_index_from_value(const M68kSimValue *value, uint8_t width, ui
 static int sim_concrete_apply_predecrement_operand(const M68kInstructionIR *instruction,
     const M68kSimFormMetadata *metadata, uint8_t operand_index, const M68kOperandIR *operand,
     M68kSimConcreteState *state, uint32_t *out_address);
-static int sim_named_control_register_index(const char *name, uint8_t *out_index);
+static int sim_known_control_register_index(uint8_t control_register_id, uint8_t *out_index);
 static int sim_exception_frame_kind_for(uint8_t target_cpu, uint8_t vector, uint8_t *out_frame_kind);
 static int sim_exception_frame_def_for_kind(uint8_t frame_kind, const M68kSimExceptionFrameDef **out_def);
 static int sim_exception_frame_def_for_format_code(uint8_t format_code, const M68kSimExceptionFrameDef **out_def);
 static int sim_concrete_enter_exception(const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata,
     const uint16_t *saved_sr_override, uint8_t target_cpu, uint8_t *memory, size_t memory_size,
-    M68kSimConcreteState *io_state,
-    char *out_error, size_t out_error_size);
+    M68kSimConcreteState *io_state, M68kDiagSink diagnostics);
 static int sim_concrete_return_from_metadata(const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata,
     uint8_t target_cpu, uint8_t *memory, size_t memory_size, M68kSimConcreteState *io_state,
-    char *out_error, size_t out_error_size);
+    M68kDiagSink diagnostics);
 
 void m68k_sim_target_set_init(M68kSimTargetSet *set) {
   if (set == NULL) return;
@@ -433,29 +436,7 @@ int m68k_sim_memory_state_seed_same_section_fixups(const M68kObject *object, siz
   return 1;
 }
 
-static int sim_mnemonic_matches(const char *entry_mnemonic, const char *instruction_mnemonic) {
-  const char *token;
-  if (entry_mnemonic == NULL || instruction_mnemonic == NULL) return 0;
-  if (_stricmp(entry_mnemonic, instruction_mnemonic) == 0) return 1;
-  token = entry_mnemonic;
-  while (*token != '\0') {
-    size_t token_length = strcspn(token, " ");
-    if (token_length == strlen(instruction_mnemonic) &&
-        _strnicmp(token, instruction_mnemonic, token_length) == 0) {
-      return 1;
-    }
-    token += token_length;
-    while (*token == ' ') ++token;
-  }
-  return 0;
-}
-
 static int sim_register_is_direct(const M68kOperandIR *operand, uint8_t *is_address, uint8_t *reg);
-
-static int sim_mnemonic_equals(const char *entry_mnemonic, const char *instruction_mnemonic) {
-  if (entry_mnemonic == NULL || instruction_mnemonic == NULL) return 0;
-  return _stricmp(entry_mnemonic, instruction_mnemonic) == 0;
-}
 
 static uint8_t sim_infer_ea_shape(const M68kOperandIR *operand) {
   if (operand == NULL) return M68K_SIM_EA_SHAPE_NONE;
@@ -570,12 +551,15 @@ static uint8_t sim_find_operand_index_by_access(const M68kSimFormMetadata *metad
 const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructionIR *instruction) {
   size_t index;
   const M68kSimFormMetadata *shape_match = NULL;
+  uint8_t mnemonic_id;
   if (instruction == NULL) return NULL;
+  mnemonic_id = instruction->mnemonic_id;
+  if (mnemonic_id == M68K_ASM_MNEMONIC_NONE) return NULL;
   for (index = 0; index < sizeof(g_m68k_sim_form_lookup) / sizeof(g_m68k_sim_form_lookup[0]); ++index) {
     const M68kSimFormLookup *entry = &g_m68k_sim_form_lookup[index];
     size_t operand_index;
     int shape_matches = 1;
-    if (!sim_mnemonic_matches(entry->mnemonic, instruction->mnemonic)) continue;
+    if (entry->mnemonic_id != mnemonic_id) continue;
     if (instruction->operand_count > 4U) continue;
     if (sim_metadata_operand_count(&entry->metadata) != instruction->operand_count) continue;
     for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
@@ -586,11 +570,8 @@ const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructi
       }
     }
     if (!shape_matches) continue;
-      if (instruction->form_index != M68K_IR_INVALID_FORM_INDEX &&
-          sim_mnemonic_matches(entry->mnemonic, instruction->mnemonic) &&
-          entry->form_index == instruction->form_index) {
-        return &entry->metadata;
-      }
+    if (instruction->form_index != M68K_IR_INVALID_FORM_INDEX && entry->form_index == instruction->form_index)
+      return &entry->metadata;
     if (shape_match != NULL) return NULL;
     shape_match = &entry->metadata;
   }
@@ -805,33 +786,17 @@ static int sim_apply_shift_rotate(uint8_t op, const M68kInstructionIR *instructi
 }
 
 static int sim_usp_control_register_index(uint8_t *out_index) {
-  size_t index;
-  if (out_index == NULL) return 0;
-  for (index = 0; index < g_m68k_asm_control_register_count && index < M68K_SIM_CONTROL_REGISTER_LIMIT; ++index) {
-    if (_stricmp(g_m68k_asm_control_registers[index].name, "usp") == 0) {
-      *out_index = (uint8_t)index;
-      return 1;
-    }
-  }
-  return 0;
+  return sim_known_control_register_index(M68K_ASM_CONTROL_REGISTER_USP, out_index);
 }
 
 static int sim_control_register_index(const M68kOperandIR *operand, uint8_t *out_index) {
-  size_t index;
+  const M68kAsmControlRegisterDef *entry;
   if (operand == NULL || out_index == NULL || operand->kind != M68K_ASM_OPERAND_CTRL_REG) return 0;
-  if (operand->value.reg < g_m68k_asm_control_register_count &&
-      operand->value.reg < M68K_SIM_CONTROL_REGISTER_LIMIT &&
-      g_m68k_asm_control_registers[operand->value.reg].value == operand->value.value) {
-    *out_index = operand->value.reg;
-    return 1;
-  }
-  for (index = 0; index < g_m68k_asm_control_register_count && index < M68K_SIM_CONTROL_REGISTER_LIMIT; ++index) {
-    if (g_m68k_asm_control_registers[index].value == operand->value.value) {
-      *out_index = (uint8_t)index;
-      return 1;
-    }
-  }
-  return 0;
+  entry = m68k_asm_find_control_register_by_id(operand->value.reg);
+  if (entry == NULL || entry->value != operand->value.value ||
+      operand->value.reg >= M68K_SIM_CONTROL_REGISTER_LIMIT) return 0;
+  *out_index = operand->value.reg;
+  return 1;
 }
 
 static int sim_control_register_value(const M68kSimCpuState *state, uint8_t reg, M68kSimValue *out_value) {
@@ -2597,16 +2562,11 @@ static int sim_metadata_has_accesses(const M68kSimFormMetadata *metadata) {
   return 0;
 }
 
-static int sim_named_control_register_index(const char *name, uint8_t *out_index) {
-  size_t index;
-  if (name == NULL || out_index == NULL) return 0;
-  for (index = 0; index < g_m68k_asm_control_register_count && index < M68K_SIM_CONTROL_REGISTER_LIMIT; ++index) {
-    if (_stricmp(g_m68k_asm_control_registers[index].name, name) == 0) {
-      *out_index = (uint8_t)index;
-      return 1;
-    }
-  }
-  return 0;
+static int sim_known_control_register_index(uint8_t control_register_id, uint8_t *out_index) {
+  if (out_index == NULL || control_register_id >= M68K_SIM_CONTROL_REGISTER_LIMIT) return 0;
+  if (m68k_asm_find_control_register_by_id(control_register_id) == NULL) return 0;
+  *out_index = control_register_id;
+  return 1;
 }
 
 static int sim_is_explicit_concrete_noop(const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata) {
@@ -2614,11 +2574,11 @@ static int sim_is_explicit_concrete_noop(const M68kInstructionIR *instruction, c
   return metadata->operation_type == M68K_SIM_OP_NONE &&
     metadata->flow_kind == M68K_SIM_FLOW_SEQUENTIAL &&
     !sim_metadata_has_accesses(metadata) &&
-    _stricmp(instruction->mnemonic, "nop") == 0;
+    instruction->mnemonic_id == M68K_ASM_MNEMONIC_NOP;
 }
 
-static void sim_set_unsupported_concrete_exception_error(char *out_error, size_t out_error_size) {
-  m68k_platform_set_error(out_error, out_error_size, "unsupported concrete exception/trap");
+static void sim_set_unsupported_concrete_exception_error(M68kDiagSink diagnostics) {
+  sim_diag_error(diagnostics, "unsupported concrete exception/trap");
 }
 
 static int sim_exception_frame_kind_for(uint8_t target_cpu, uint8_t vector, uint8_t *out_frame_kind) {
@@ -2682,25 +2642,25 @@ static int sim_concrete_push_frame_long(uint8_t *memory, size_t memory_size, uin
 
 static int sim_concrete_return_from_metadata(const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata,
     uint8_t target_cpu, uint8_t *memory, size_t memory_size, M68kSimConcreteState *io_state,
-    char *out_error, size_t out_error_size) {
+    M68kDiagSink diagnostics) {
   uint8_t usp_reg, isp_reg;
   uint16_t restored_sr, frame_word = 0U;
   uint32_t stack_pointer, restored_pc, next_sp;
   int restore_user_mode;
   const M68kSimExceptionFrameDef *frame_def = NULL;
   if (instruction == NULL || metadata == NULL || memory == NULL || io_state == NULL) {
-    m68k_platform_set_error(out_error, out_error_size, "bad arguments");
+    sim_diag_error(diagnostics, "bad arguments");
     return -1;
   }
   if (metadata->exception_trigger == M68K_SIM_EXCEPTION_TRIGGER_IF_USER_MODE &&
       (io_state->sr & 0x2000U) == 0U) {
     return sim_concrete_enter_exception(instruction, metadata, NULL, target_cpu, memory, memory_size, io_state,
-      out_error, out_error_size) ? 0 : -1;
+      diagnostics) ? 0 : -1;
   }
   stack_pointer = io_state->a[7];
   if (metadata->return_restore_kind == M68K_SIM_RETURN_RESTORE_PC_ONLY) {
     if (stack_pointer + 4U > memory_size) {
-      m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+      sim_diag_error(diagnostics, "stack out of range");
       return -1;
     }
     restored_pc = m68k_read_u32be(memory + stack_pointer);
@@ -2709,7 +2669,7 @@ static int sim_concrete_return_from_metadata(const M68kInstructionIR *instructio
       uint32_t raw_adjust;
       int32_t signed_adjust;
       if (!sim_operand_is_immediate_value(&instruction->operands[metadata->return_stack_adjust_operand_index], &raw_adjust)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete return adjustment");
+        sim_diag_error(diagnostics, "unsupported concrete return adjustment");
         return -1;
       }
       signed_adjust = (int32_t)(int16_t)(raw_adjust & 0xFFFFU);
@@ -2717,12 +2677,11 @@ static int sim_concrete_return_from_metadata(const M68kInstructionIR *instructio
     }
     io_state->pc = restored_pc;
     io_state->a[7] = next_sp;
-    m68k_platform_set_error(out_error, out_error_size, "");
     return 0;
   }
   if (metadata->return_restore_kind == M68K_SIM_RETURN_RESTORE_CCR_THEN_PC) {
     if (stack_pointer + 6U > memory_size) {
-      m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+      sim_diag_error(diagnostics, "stack out of range");
       return -1;
     }
     restored_sr = (uint16_t)((io_state->sr & 0xFF00U) | m68k_read_u16be(memory + stack_pointer));
@@ -2730,36 +2689,35 @@ static int sim_concrete_return_from_metadata(const M68kInstructionIR *instructio
     io_state->sr = restored_sr;
     io_state->pc = restored_pc;
     io_state->a[7] = stack_pointer + 6U;
-    m68k_platform_set_error(out_error, out_error_size, "");
     return 0;
   }
   if (metadata->return_restore_kind != M68K_SIM_RETURN_RESTORE_EXCEPTION_FRAME) {
-    m68k_platform_set_error(out_error, out_error_size, "unsupported concrete return restore");
+    sim_diag_error(diagnostics, "unsupported concrete return restore");
     return -1;
   }
   if (target_cpu == M68K_ASM_CPU_68000) {
     if (!sim_exception_frame_def_for_kind(M68K_SIM_EXCEPTION_FRAME_MC68000_GROUP_1_2, &frame_def)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete exception/trap: frame format");
+      sim_diag_error(diagnostics, "unsupported concrete exception/trap: frame format");
       return -1;
     }
   } else {
     if (stack_pointer + 8U > memory_size) {
-      m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+      sim_diag_error(diagnostics, "stack out of range");
       return -1;
     }
     frame_word = m68k_read_u16be(memory + stack_pointer + 6U);
     if (((frame_word >> 12) & 0x0FU) == 0U) {
       if (!sim_exception_frame_def_for_kind(M68K_SIM_EXCEPTION_FRAME_FORMAT_0, &frame_def)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete exception/trap: frame format");
+        sim_diag_error(diagnostics, "unsupported concrete exception/trap: frame format");
         return -1;
       }
     } else if (!sim_exception_frame_def_for_format_code((uint8_t)((frame_word >> 12) & 0x0FU), &frame_def)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete exception/trap: frame format");
+      sim_diag_error(diagnostics, "unsupported concrete exception/trap: frame format");
       return -1;
     }
   }
   if (frame_def == NULL || stack_pointer + frame_def->frame_size_bytes > memory_size) {
-    m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+    sim_diag_error(diagnostics, "stack out of range");
     return -1;
   }
   restored_sr = m68k_read_u16be(memory + stack_pointer);
@@ -2767,29 +2725,28 @@ static int sim_concrete_return_from_metadata(const M68kInstructionIR *instructio
   next_sp = stack_pointer + frame_def->frame_size_bytes;
   restore_user_mode = (restored_sr & 0x2000U) == 0U;
   if (restore_user_mode) {
-    if (sim_named_control_register_index("isp", &isp_reg)) io_state->c[isp_reg] = next_sp;
+    if (sim_known_control_register_index(M68K_ASM_CONTROL_REGISTER_ISP, &isp_reg)) io_state->c[isp_reg] = next_sp;
     if (sim_usp_control_register_index(&usp_reg)) io_state->a[7] = io_state->c[usp_reg];
     else io_state->a[7] = next_sp;
   } else {
     io_state->a[7] = next_sp;
-    if (sim_named_control_register_index("isp", &isp_reg)) io_state->c[isp_reg] = next_sp;
+    if (sim_known_control_register_index(M68K_ASM_CONTROL_REGISTER_ISP, &isp_reg)) io_state->c[isp_reg] = next_sp;
   }
   io_state->sr = restored_sr;
   io_state->pc = restored_pc;
-  m68k_platform_set_error(out_error, out_error_size, "");
   return 0;
 }
 
 static int sim_concrete_enter_exception(const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata,
     const uint16_t *saved_sr_override, uint8_t target_cpu, uint8_t *memory, size_t memory_size,
     M68kSimConcreteState *io_state,
-    char *out_error, size_t out_error_size) {
+    M68kDiagSink diagnostics) {
   uint8_t vector, frame_kind, usp_reg, isp_reg, vbr_reg;
   uint32_t current_pc, saved_pc, vector_base = 0U, vector_address, handler_pc, stack_pointer;
   uint16_t saved_sr, next_sr;
   int user_mode;
   if (instruction == NULL || metadata == NULL || memory == NULL || io_state == NULL) {
-    m68k_platform_set_error(out_error, out_error_size, "bad arguments");
+    sim_diag_error(diagnostics, "bad arguments");
     return 0;
   }
   if (metadata->exception_vector_source == M68K_SIM_EXCEPTION_VECTOR_FIXED) {
@@ -2797,20 +2754,20 @@ static int sim_concrete_enter_exception(const M68kInstructionIR *instruction, co
   } else if (metadata->exception_vector_source == M68K_SIM_EXCEPTION_VECTOR_TRAP_IMMEDIATE) {
     if (instruction->operand_count == 0U ||
         !sim_operand_is_immediate_value(&instruction->operands[0], &handler_pc)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete exception/trap: trap vector");
+      sim_diag_error(diagnostics, "unsupported concrete exception/trap: trap vector");
       return 0;
     }
     vector = (uint8_t)(32U + (handler_pc & 0x0FU));
   } else {
-    m68k_platform_set_error(out_error, out_error_size, "unsupported concrete exception/trap: vector source");
+    sim_diag_error(diagnostics, "unsupported concrete exception/trap: vector source");
     return 0;
   }
   if (!sim_exception_frame_kind_for(target_cpu, vector, &frame_kind)) {
-    m68k_platform_set_error(out_error, out_error_size, "unsupported concrete exception/trap: frame kind");
+    sim_diag_error(diagnostics, "unsupported concrete exception/trap: frame kind");
     return 0;
   }
   if (target_cpu >= M68K_ASM_CPU_68020 && (io_state->sr & 0x1000U) != 0U) {
-    m68k_platform_set_error(out_error, out_error_size, "unsupported concrete exception/trap: trace mode");
+    sim_diag_error(diagnostics, "unsupported concrete exception/trap: trace mode");
     return 0;
   }
   current_pc = io_state->pc;
@@ -2822,17 +2779,19 @@ static int sim_concrete_enter_exception(const M68kInstructionIR *instruction, co
   stack_pointer = io_state->a[7];
   if (user_mode) {
     if (sim_usp_control_register_index(&usp_reg)) io_state->c[usp_reg] = io_state->a[7];
-    if (sim_named_control_register_index("isp", &isp_reg)) stack_pointer = io_state->c[isp_reg];
-  } else if (target_cpu >= M68K_ASM_CPU_68010 && sim_named_control_register_index("isp", &isp_reg)) {
+    if (sim_known_control_register_index(M68K_ASM_CONTROL_REGISTER_ISP, &isp_reg)) stack_pointer = io_state->c[isp_reg];
+  } else if (target_cpu >= M68K_ASM_CPU_68010 &&
+      sim_known_control_register_index(M68K_ASM_CONTROL_REGISTER_ISP, &isp_reg)) {
     stack_pointer = io_state->c[isp_reg];
   }
-  if (target_cpu >= M68K_ASM_CPU_68010 && sim_named_control_register_index("vbr", &vbr_reg)) {
+  if (target_cpu >= M68K_ASM_CPU_68010 &&
+      sim_known_control_register_index(M68K_ASM_CONTROL_REGISTER_VBR, &vbr_reg)) {
     vector_base = io_state->c[vbr_reg];
   }
   if (frame_kind == M68K_SIM_EXCEPTION_FRAME_MC68000_GROUP_1_2) {
     if (!sim_concrete_push_frame_long(memory, memory_size, &stack_pointer, saved_pc) ||
         !sim_concrete_push_frame_word(memory, memory_size, &stack_pointer, saved_sr)) {
-      m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+      sim_diag_error(diagnostics, "stack out of range");
       return 0;
     }
   } else if (frame_kind == M68K_SIM_EXCEPTION_FRAME_FORMAT_0) {
@@ -2840,7 +2799,7 @@ static int sim_concrete_enter_exception(const M68kInstructionIR *instruction, co
     if (!sim_concrete_push_frame_word(memory, memory_size, &stack_pointer, format_vector) ||
         !sim_concrete_push_frame_long(memory, memory_size, &stack_pointer, saved_pc) ||
         !sim_concrete_push_frame_word(memory, memory_size, &stack_pointer, saved_sr)) {
-      m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+      sim_diag_error(diagnostics, "stack out of range");
       return 0;
     }
   } else if (frame_kind == M68K_SIM_EXCEPTION_FRAME_FORMAT_2) {
@@ -2850,44 +2809,43 @@ static int sim_concrete_enter_exception(const M68kInstructionIR *instruction, co
         !sim_concrete_push_frame_word(memory, memory_size, &stack_pointer, format_vector) ||
         !sim_concrete_push_frame_long(memory, memory_size, &stack_pointer, saved_pc) ||
         !sim_concrete_push_frame_word(memory, memory_size, &stack_pointer, saved_sr)) {
-      m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+      sim_diag_error(diagnostics, "stack out of range");
       return 0;
     }
   } else {
-    m68k_platform_set_error(out_error, out_error_size, "unsupported concrete exception/trap: frame format");
+    sim_diag_error(diagnostics, "unsupported concrete exception/trap: frame format");
     return 0;
   }
   io_state->a[7] = stack_pointer;
-  if (sim_named_control_register_index("isp", &isp_reg)) io_state->c[isp_reg] = stack_pointer;
+  if (sim_known_control_register_index(M68K_ASM_CONTROL_REGISTER_ISP, &isp_reg)) io_state->c[isp_reg] = stack_pointer;
   vector_address = vector_base + ((uint32_t)vector * 4U);
   if (vector_address + 4U > memory_size) {
-    m68k_platform_set_error(out_error, out_error_size, "vector out of range");
+    sim_diag_error(diagnostics, "vector out of range");
     return 0;
   }
   handler_pc = m68k_read_u32be(memory + vector_address);
   next_sr = (uint16_t)((saved_sr & 0x0700U) | 0x2000U);
   io_state->sr = next_sr;
   io_state->pc = handler_pc;
-  m68k_platform_set_error(out_error, out_error_size, "");
   return 1;
 }
 
 static int sim_set_unsupported_concrete_operation_error(const M68kInstructionIR *instruction,
-    const M68kSimFormMetadata *metadata, char *out_error, size_t out_error_size) {
+    const M68kSimFormMetadata *metadata, M68kDiagSink diagnostics) {
   if (instruction == NULL || metadata == NULL) return 0;
   if (metadata->flow_kind == M68K_SIM_FLOW_TRAP) {
-    sim_set_unsupported_concrete_exception_error(out_error, out_error_size);
+    sim_set_unsupported_concrete_exception_error(diagnostics);
     return 1;
   }
   if (metadata->operation_type == M68K_SIM_OP_NONE &&
       metadata->flow_kind == M68K_SIM_FLOW_CALL) {
-    m68k_platform_set_error(out_error, out_error_size, "unsupported concrete admin instruction");
+    sim_diag_error(diagnostics, "unsupported concrete admin instruction");
     return 1;
   }
   if (metadata->operation_type == M68K_SIM_OP_NONE &&
       metadata->flow_kind == M68K_SIM_FLOW_SEQUENTIAL &&
       !sim_is_explicit_concrete_noop(instruction, metadata)) {
-    m68k_platform_set_error(out_error, out_error_size, "unsupported concrete admin instruction");
+    sim_diag_error(diagnostics, "unsupported concrete admin instruction");
     return 1;
   }
   return 0;
@@ -3878,19 +3836,20 @@ int m68k_simulate_step(const M68kObject *object, size_t section_index, const M68
 
 int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t target_cpu,
     const uint8_t *code, size_t code_size, uint8_t *memory, size_t memory_size, M68kSimConcreteState *io_state,
-    char *out_error, size_t out_error_size) {
+    M68kDiagSink diagnostics) {
   const M68kSimFormMetadata *metadata;
   const M68kOperandIR *source, *dest, *target;
   uint32_t immediate_value = 0U, resolved_value = 0U, resolved_address = 0U, current_address = 0U;
   uint8_t is_address, lhs_is_address, lhs_reg, rhs_is_address, rhs_reg;
   uint8_t aux_operand_index;
   if (instruction == NULL || io_state == NULL) {
-    m68k_platform_set_error(out_error, out_error_size, "bad arguments");
+    sim_diag_error(diagnostics, "bad arguments");
     return -1;
   }
   metadata = m68k_sim_metadata_for_instruction(instruction);
   if (metadata == NULL) {
-    snprintf(out_error, out_error_size, "missing simulator metadata for %s", instruction->mnemonic);
+    m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SIMULATION_FAILED, "missing simulator metadata for %s",
+      m68k_ir_instruction_mnemonic_name(instruction));
     return -1;
   }
   source = metadata->source_operand_index != 0xFFU && metadata->source_operand_index < instruction->operand_count
@@ -3901,12 +3860,12 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     ? &instruction->operands[metadata->target_operand_index] : NULL;
   if (metadata->exception_trigger == M68K_SIM_EXCEPTION_TRIGGER_ALWAYS) {
     return sim_concrete_enter_exception(instruction, metadata, NULL, target_cpu, memory, memory_size, io_state,
-      out_error, out_error_size) ? 0 : -1;
+      diagnostics) ? 0 : -1;
   }
   if (metadata->exception_trigger == M68K_SIM_EXCEPTION_TRIGGER_IF_USER_MODE &&
       (io_state->sr & 0x2000U) == 0U) {
     return sim_concrete_enter_exception(instruction, metadata, NULL, target_cpu, memory, memory_size, io_state,
-      out_error, out_error_size) ? 0 : -1;
+      diagnostics) ? 0 : -1;
   }
   if (metadata->operation_type == M68K_SIM_OP_MOVE && instruction->operand_count == 2U &&
       source != NULL && dest != NULL &&
@@ -3919,7 +3878,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index, dest, &is_address, &lhs_reg) && is_address) {
     if (!sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
           memory, memory_size, io_state->pc, &resolved_address)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete effective address");
+      sim_diag_error(diagnostics, "unsupported concrete effective address");
       return -1;
     }
     io_state->a[lhs_reg] = resolved_address;
@@ -3946,7 +3905,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index), &io_state->sr);
     if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
           io_state, memory, memory_size, io_state->pc, written_value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete logic destination");
+      sim_diag_error(diagnostics, "unsupported concrete logic destination");
       return -1;
     }
   } else if ((metadata->operation_type == M68K_SIM_OP_NEGATE || metadata->operation_type == M68K_SIM_OP_NOT ||
@@ -3959,7 +3918,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     uint8_t write_width = sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index);
     input_value = sim_value_constant(resolved_value, M68K_SIM_PROV_REGISTER_COPY);
     if (!sim_apply_unary(metadata->operation_type, instruction, metadata, &input_value, &output_value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete unary destination");
+      sim_diag_error(diagnostics, "unsupported concrete unary destination");
       return -1;
     }
     if (metadata->operation_type == M68K_SIM_OP_NEGATE) {
@@ -3975,12 +3934,12 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       if (write_width == 1U) merged_value = (resolved_value & 0xFFFFFF00U) | (output_value.value & 0xFFU);
       else if (write_width == 2U && !is_address) merged_value = (resolved_value & 0xFFFF0000U) | (output_value.value & 0xFFFFU);
       if (!sim_concrete_write_register(io_state, dest, merged_value)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete unary destination");
+        sim_diag_error(diagnostics, "unsupported concrete unary destination");
         return -1;
       }
     } else if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
           io_state, memory, memory_size, io_state->pc, output_value.value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete unary destination");
+      sim_diag_error(diagnostics, "unsupported concrete unary destination");
       return -1;
     }
   } else if ((metadata->operation_type == M68K_SIM_OP_SHIFT || metadata->operation_type == M68K_SIM_OP_ROTATE ||
@@ -4000,7 +3959,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     if (!sim_apply_shift_rotate(metadata->operation_type, instruction, metadata, &input_value,
           metadata->shift_count_source == M68K_SIM_SHIFT_COUNT_OPERAND ? &count_input : NULL,
           io_state->sr, &output_value, &io_state->sr)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete shift/rotate");
+      sim_diag_error(diagnostics, "unsupported concrete shift/rotate");
       return -1;
     }
     if (sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index, dest, &is_address, &lhs_reg)) {
@@ -4008,12 +3967,12 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       if (write_width == 1U) merged_value = (resolved_value & 0xFFFFFF00U) | (output_value.value & 0xFFU);
       else if (write_width == 2U && !is_address) merged_value = (resolved_value & 0xFFFF0000U) | (output_value.value & 0xFFFFU);
       if (!sim_concrete_write_register(io_state, dest, merged_value)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete shift/rotate");
+        sim_diag_error(diagnostics, "unsupported concrete shift/rotate");
         return -1;
       }
     } else if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
           io_state, memory, memory_size, io_state->pc, output_value.value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete shift/rotate");
+      sim_diag_error(diagnostics, "unsupported concrete shift/rotate");
       return -1;
     }
   } else if ((metadata->operation_type == M68K_SIM_OP_COMPARE || metadata->operation_type == M68K_SIM_OP_TEST) &&
@@ -4023,16 +3982,16 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     if (metadata->operation_type == M68K_SIM_OP_COMPARE && dest != NULL &&
         !sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest, io_state,
           memory, memory_size, io_state->pc, &resolved_address)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete compare destination");
+      sim_diag_error(diagnostics, "unsupported concrete compare destination");
       return -1;
     }
     if (!sim_apply_concrete_ea_register_update(instruction, metadata, metadata->source_operand_index, source, io_state)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete compare source update");
+      sim_diag_error(diagnostics, "unsupported concrete compare source update");
       return -1;
     }
     if (metadata->operation_type == M68K_SIM_OP_COMPARE && dest != NULL &&
         !sim_apply_concrete_ea_register_update(instruction, metadata, metadata->dest_operand_index, dest, io_state)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete compare destination update");
+      sim_diag_error(diagnostics, "unsupported concrete compare destination update");
       return -1;
     }
     if (metadata->operation_type == M68K_SIM_OP_COMPARE && dest != NULL) {
@@ -4059,7 +4018,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
           ? sim_apply_signed_divide_status(resolved_address, resolved_value, &result_value, &overflow)
           : sim_apply_unsigned_divide_status(resolved_address, resolved_value, &result_value, &overflow));
     if (!ok) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete multiply/divide");
+      sim_diag_error(diagnostics, "unsupported concrete multiply/divide");
       return -1;
     }
     if (metadata->operation_type == M68K_SIM_OP_DIVIDE) {
@@ -4079,7 +4038,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         io_state->d[lhs_reg] = result_value;
       } else if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
             io_state, memory, memory_size, io_state->pc, result_value)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete multiply/divide");
+        sim_diag_error(diagnostics, "unsupported concrete multiply/divide");
         return -1;
       }
     }
@@ -4112,7 +4071,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
             io_state, io_state->pc, &current_address) ||
           !sim_concrete_read_memory_sized(memory, memory_size, current_address, bounds_width, &low) ||
           !sim_concrete_read_memory_sized(memory, memory_size, current_address + bounds_width, bounds_width, &high)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete bounds source");
+        sim_diag_error(diagnostics, "unsupported concrete bounds source");
         return -1;
       }
       in_range = sim_value_in_bounds(resolved_address, low, high, bounds_width, metadata->numeric_is_signed);
@@ -4125,7 +4084,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       const uint16_t *saved_sr_override =
         metadata->exception_stacked_sr_source == M68K_SIM_EXCEPTION_STACKED_SR_UPDATED_FLAGS ? NULL : &prior_sr;
       return sim_concrete_enter_exception(instruction, metadata, saved_sr_override, target_cpu, memory, memory_size, io_state,
-        out_error, out_error_size) ? 0 : -1;
+        diagnostics) ? 0 : -1;
     }
   } else if (metadata->operation_type == M68K_SIM_OP_COMPARE_SWAP && instruction->operand_count >= 3U) {
     uint32_t compare_value, update_value, current_value, mask;
@@ -4144,7 +4103,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
           update_pair->reg >= 8U || update_pair->pair_reg >= 8U ||
           !dest_pair->reg_is_address || !dest_pair->pair_reg_is_address ||
           dest_pair->reg >= 8U || dest_pair->pair_reg >= 8U) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete compare-swap");
+        sim_diag_error(diagnostics, "unsupported concrete compare-swap");
         return -1;
       }
       compare1 = io_state->d[compare_pair->reg] & mask;
@@ -4155,7 +4114,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       addr2 = io_state->a[dest_pair->pair_reg];
       if (!sim_concrete_read_memory_sized(memory, memory_size, addr1, width, &current1) ||
           !sim_concrete_read_memory_sized(memory, memory_size, addr2, width, &current2)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete compare-swap");
+        sim_diag_error(diagnostics, "unsupported concrete compare-swap");
         return -1;
       }
       if (sim_apply_abstract_compare_test_flags(io_state->sr, compare1, current1, width, 1U, &io_state->sr)) {
@@ -4168,7 +4127,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       if ((current1 & mask) == compare1 && (current2 & mask) == compare2) {
         if (!sim_concrete_write_memory_sized(memory, memory_size, addr1, update1, width) ||
             !sim_concrete_write_memory_sized(memory, memory_size, addr2, update2, width)) {
-          m68k_platform_set_error(out_error, out_error_size, "unsupported concrete compare-swap destination");
+          sim_diag_error(diagnostics, "unsupported concrete compare-swap destination");
           return -1;
         }
       } else {
@@ -4189,14 +4148,14 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
             memory, memory_size, io_state->pc, &compare_value) ||
           !sim_concrete_eval_operand_by_metadata(instruction, metadata, 1U, &instruction->operands[1], io_state,
             memory, memory_size, io_state->pc, &update_value)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete compare-swap");
+        sim_diag_error(diagnostics, "unsupported concrete compare-swap");
         return -1;
       }
       width = sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index);
       if (sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index,
           &instruction->operands[metadata->dest_operand_index], &is_address, &lhs_reg)) {
         if (!sim_concrete_read_register(io_state, is_address, lhs_reg, &current_value)) {
-          m68k_platform_set_error(out_error, out_error_size, "unsupported concrete compare-swap");
+          sim_diag_error(diagnostics, "unsupported concrete compare-swap");
           return -1;
         }
       } else if (!sim_concrete_compute_ea_address(&instruction->operands[metadata->dest_operand_index],
@@ -4215,7 +4174,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
           metadata->operand_ea_index_sign_sources[metadata->dest_operand_index],
           io_state, io_state->pc, &current_address) ||
           !sim_concrete_read_memory_sized(memory, memory_size, current_address, width, &current_value)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete compare-swap");
+        sim_diag_error(diagnostics, "unsupported concrete compare-swap");
         return -1;
       }
       mask = sim_mask_for_width(sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index));
@@ -4230,12 +4189,12 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index,
               &instruction->operands[metadata->dest_operand_index], io_state, memory, memory_size, io_state->pc,
               update_value)) {
-          m68k_platform_set_error(out_error, out_error_size, "unsupported concrete compare-swap destination");
+          sim_diag_error(diagnostics, "unsupported concrete compare-swap destination");
           return -1;
         }
       } else if (!sim_concrete_write_operand_by_metadata(instruction, metadata, 0U, &instruction->operands[0],
             io_state, memory, memory_size, io_state->pc, current_value)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete compare-swap compare register");
+        sim_diag_error(diagnostics, "unsupported concrete compare-swap compare register");
         return -1;
       }
     }
@@ -4256,7 +4215,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       bf_operand = &instruction->operands[metadata->dest_operand_index];
     }
     if (!sim_bitfield_resolve_spec_concrete(&bf_operand->value, io_state, &bf_offset, &bf_width)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete bitfield");
+      sim_diag_error(diagnostics, "unsupported concrete bitfield");
       return -1;
     }
     field_mask = sim_bitfield_mask(bf_width);
@@ -4275,7 +4234,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index,
               &instruction->operands[metadata->dest_operand_index], io_state, memory, memory_size, io_state->pc,
               written)) {
-          m68k_platform_set_error(out_error, out_error_size, "unsupported concrete bitfield destination");
+          sim_diag_error(diagnostics, "unsupported concrete bitfield destination");
           return -1;
         }
       } else if (metadata->operation_type == M68K_SIM_OP_BITFIELD_CHANGE ||
@@ -4288,7 +4247,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         else if (!sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index,
               &instruction->operands[metadata->source_operand_index], io_state, memory, memory_size, io_state->pc,
               &updated_bits)) {
-          m68k_platform_set_error(out_error, out_error_size, "unsupported concrete bitfield source");
+          sim_diag_error(diagnostics, "unsupported concrete bitfield source");
           return -1;
         } else {
           updated_bits &= field_mask;
@@ -4327,7 +4286,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
             ? metadata->dest_operand_index : metadata->source_operand_index],
           io_state, io_state->pc, &resolved_address) ||
           !sim_concrete_read_memory_bitfield(memory, memory_size, resolved_address, bf_offset, bf_width, &field_value)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete bitfield");
+        sim_diag_error(diagnostics, "unsupported concrete bitfield");
         return -1;
       }
     sim_apply_bitfield_nz_flags(io_state->sr, field_value, bf_width, &io_state->sr);
@@ -4343,7 +4302,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index,
             &instruction->operands[metadata->dest_operand_index], io_state, memory, memory_size, io_state->pc,
             written)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete bitfield destination");
+        sim_diag_error(diagnostics, "unsupported concrete bitfield destination");
         return -1;
       }
     } else {
@@ -4353,13 +4312,13 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       else if (!sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index,
             &instruction->operands[metadata->source_operand_index], io_state, memory, memory_size, io_state->pc,
             &updated_bits)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete bitfield source");
+        sim_diag_error(diagnostics, "unsupported concrete bitfield source");
         return -1;
       } else {
         updated_bits &= field_mask;
       }
       if (!sim_concrete_write_memory_bitfield(memory, memory_size, resolved_address, bf_offset, bf_width, updated_bits)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete bitfield destination");
+        sim_diag_error(diagnostics, "unsupported concrete bitfield destination");
         return -1;
       }
     }
@@ -4372,7 +4331,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     const M68kOperandIR *adjust_operand = &instruction->operands[2];
     if (!sim_concrete_eval_operand_by_metadata(instruction, metadata, 2U, adjust_operand, io_state,
           memory, memory_size, io_state->pc, &immediate_value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete pack adjustment");
+      sim_diag_error(diagnostics, "unsupported concrete pack adjustment");
       return -1;
     }
     adjustment = (uint16_t)immediate_value;
@@ -4381,12 +4340,12 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
             io_state, &resolved_address) ||
           !sim_concrete_read_memory_sized(memory, memory_size, resolved_address,
             sim_effective_operand_width(instruction, metadata, metadata->source_operand_index), &source_value)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete pack source");
+        sim_diag_error(diagnostics, "unsupported concrete pack source");
         return -1;
       }
     } else if (!sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
           memory, memory_size, io_state->pc, &source_value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete pack source");
+      sim_diag_error(diagnostics, "unsupported concrete pack source");
       return -1;
     }
     dest_value = metadata->operation_type == M68K_SIM_OP_PACK
@@ -4397,12 +4356,12 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
             io_state, &resolved_address) ||
           !sim_concrete_write_memory_sized(memory, memory_size, resolved_address, dest_value,
             sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index))) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete pack destination");
+        sim_diag_error(diagnostics, "unsupported concrete pack destination");
         return -1;
       }
     } else if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
           io_state, memory, memory_size, io_state->pc, dest_value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete pack destination");
+      sim_diag_error(diagnostics, "unsupported concrete pack destination");
       return -1;
     }
   } else if (metadata->operation_type == M68K_SIM_OP_TEST_AND_SET && source != NULL &&
@@ -4412,7 +4371,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     uint32_t written_value = resolved_value | 0x80U;
     if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source,
           io_state, memory, memory_size, io_state->pc, written_value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete tas destination");
+      sim_diag_error(diagnostics, "unsupported concrete tas destination");
       return -1;
     }
   } else if (metadata->operation_type == M68K_SIM_OP_MOVE_PERIPHERAL && instruction->operand_count >= 2U) {
@@ -4422,7 +4381,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     const M68kOperandIR *reg_operand;
     const M68kOperandIR *address_operand;
     if (reg_index >= instruction->operand_count || address_index >= instruction->operand_count) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete movep metadata");
+      sim_diag_error(diagnostics, "unsupported concrete movep metadata");
       return -1;
     }
     reg_operand = &instruction->operands[reg_index];
@@ -4439,21 +4398,21 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
           metadata->operand_ea_index_scale_sources[address_index],
           metadata->operand_ea_index_sign_sources[address_index],
           io_state, io_state->pc, &resolved_address)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete movep address");
+      sim_diag_error(diagnostics, "unsupported concrete movep address");
       return -1;
     }
     if (metadata->striped_direction == M68K_SIM_STRIPED_REGISTER_TO_MEMORY) {
       uint8_t byte_index;
       if (!sim_concrete_eval_operand_by_metadata(instruction, metadata, reg_index, reg_operand, io_state,
             memory, memory_size, io_state->pc, &resolved_value)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete movep register");
+        sim_diag_error(diagnostics, "unsupported concrete movep register");
         return -1;
       }
       for (byte_index = 0U; byte_index < width; ++byte_index) {
         uint32_t byte_address = sim_striped_transfer_byte_address(resolved_address, metadata->striped_stride, byte_index);
         uint8_t shift = (uint8_t)(8U * (width - 1U - byte_index));
         if (!sim_concrete_write_memory_sized(memory, memory_size, byte_address, (resolved_value >> shift) & 0xFFU, 1U)) {
-          m68k_platform_set_error(out_error, out_error_size, "movep write out of range");
+          sim_diag_error(diagnostics, "movep write out of range");
           return -1;
         }
       }
@@ -4463,18 +4422,18 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       for (byte_index = 0U; byte_index < width; ++byte_index) {
         uint32_t byte_address = sim_striped_transfer_byte_address(resolved_address, metadata->striped_stride, byte_index);
         if (memory == NULL || byte_address >= memory_size) {
-          m68k_platform_set_error(out_error, out_error_size, "movep read out of range");
+          sim_diag_error(diagnostics, "movep read out of range");
           return -1;
         }
         combined = (combined << 8) | memory[byte_address];
       }
       if (!sim_concrete_write_operand_by_metadata(instruction, metadata, reg_index, reg_operand,
             io_state, memory, memory_size, io_state->pc, combined)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete movep destination");
+        sim_diag_error(diagnostics, "unsupported concrete movep destination");
         return -1;
       }
     } else {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete movep direction");
+      sim_diag_error(diagnostics, "unsupported concrete movep direction");
       return -1;
     }
   } else if ((metadata->operation_type == M68K_SIM_OP_BIT_TEST || metadata->operation_type == M68K_SIM_OP_BIT_SET ||
@@ -4497,7 +4456,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     if (metadata->operation_type != M68K_SIM_OP_BIT_TEST &&
         !sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
           io_state, memory, memory_size, io_state->pc, written_value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete bit destination");
+      sim_diag_error(diagnostics, "unsupported concrete bit destination");
       return -1;
     }
   } else if (metadata->operation_type == M68K_SIM_OP_MOVE_MULTIPLE && instruction->operand_count >= 2U) {
@@ -4506,7 +4465,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     uint8_t address_index = metadata->address_operand_index;
     const M68kOperandIR *address_operand;
     if (reglist_index >= instruction->operand_count || address_index >= instruction->operand_count) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete movem metadata");
+      sim_diag_error(diagnostics, "unsupported concrete movem metadata");
       return -1;
     }
     address_operand = &instruction->operands[address_index];
@@ -4522,7 +4481,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         const M68kSimConcreteState *read_state = sim_multi_transfer_source_state(
           metadata->multi_transfer_source_snapshot, io_state, &source_state);
         if (!sim_ea_address_register(address_shape, address_operand, &address_reg)) {
-          m68k_platform_set_error(out_error, out_error_size, "unsupported concrete movem address register");
+          sim_diag_error(diagnostics, "unsupported concrete movem address register");
           return -1;
         }
         if (
@@ -4538,7 +4497,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
             metadata->operand_ea_index_scale_sources[address_index],
             metadata->operand_ea_index_sign_sources[address_index],
             io_state, io_state->pc, &address)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete movem destination");
+        sim_diag_error(diagnostics, "unsupported concrete movem destination");
         return -1;
       }
       cursor = address;
@@ -4554,7 +4513,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         if (!sim_reglist_slot(lhs_reg, &reg_is_address, &reg_index) ||
             !sim_concrete_read_register(read_state, reg_is_address, reg_index, &reg_value) ||
             !sim_concrete_write_memory_sized(memory, memory_size, cursor, reg_value, width)) {
-          m68k_platform_set_error(out_error, out_error_size, "unsupported concrete movem store");
+          sim_diag_error(diagnostics, "unsupported concrete movem store");
           return -1;
         }
         cursor += width;
@@ -4568,7 +4527,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         int is_postincrement = sim_multi_transfer_uses_postincrement(metadata->multi_transfer_address_update,
           metadata->operand_ea_register_updates[address_index], address_shape);
         if (!sim_ea_address_register(address_shape, address_operand, &address_reg)) {
-          m68k_platform_set_error(out_error, out_error_size, "unsupported concrete movem address register");
+          sim_diag_error(diagnostics, "unsupported concrete movem address register");
           return -1;
         }
         if (
@@ -4584,7 +4543,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
             metadata->operand_ea_index_scale_sources[address_index],
             metadata->operand_ea_index_sign_sources[address_index],
             io_state, io_state->pc, &address)) {
-        m68k_platform_set_error(out_error, out_error_size, "unsupported concrete movem source");
+        sim_diag_error(diagnostics, "unsupported concrete movem source");
         return -1;
       }
       cursor = address;
@@ -4594,20 +4553,20 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         uint32_t reg_value;
         if (!sim_multi_transfer_includes_slot(metadata->multi_transfer_reg_iteration, mask, lhs_reg)) continue;
         if (!sim_reglist_slot(lhs_reg, &reg_is_address, &reg_index)) {
-          m68k_platform_set_error(out_error, out_error_size, "unsupported concrete movem reglist");
+          sim_diag_error(diagnostics, "unsupported concrete movem reglist");
           return -1;
         }
         if (width == 2U) {
           uint16_t word_value;
           if (memory == NULL || cursor + 2U > memory_size) {
-            m68k_platform_set_error(out_error, out_error_size, "movem read out of range");
+            sim_diag_error(diagnostics, "movem read out of range");
             return -1;
           }
           word_value = m68k_read_u16be(memory + cursor);
           reg_value = (uint32_t)(int32_t)(int16_t)word_value;
         } else {
           if (!sim_concrete_read_memory_u32(memory, memory_size, cursor, &reg_value)) {
-            m68k_platform_set_error(out_error, out_error_size, "movem read out of range");
+            sim_diag_error(diagnostics, "movem read out of range");
             return -1;
           }
         }
@@ -4619,16 +4578,16 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
   } else if (metadata->operation_type == M68K_SIM_OP_PUSH_EA && source != NULL) {
     if (!sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
           memory, memory_size, io_state->pc, &resolved_address)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete pea source");
+      sim_diag_error(diagnostics, "unsupported concrete pea source");
       return -1;
     }
     if (memory == NULL || io_state->a[7] < 4U || io_state->a[7] > memory_size) {
-      m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+      sim_diag_error(diagnostics, "stack out of range");
       return -1;
     }
     io_state->a[7] -= 4U;
     if (!sim_concrete_write_memory_sized(memory, memory_size, io_state->a[7], resolved_address, 4U)) {
-      m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+      sim_diag_error(diagnostics, "stack out of range");
       return -1;
     }
   } else if (metadata->operation_type == M68K_SIM_OP_LINK && source != NULL && instruction->operand_count >= 2U &&
@@ -4639,16 +4598,16 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         memory, memory_size, io_state->pc, &resolved_value)) {
     int32_t link_delta = 0;
     if (memory == NULL || io_state->a[7] < 4U || io_state->a[7] > memory_size) {
-      m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+      sim_diag_error(diagnostics, "stack out of range");
       return -1;
     }
     if (!sim_link_displacement_concrete(instruction, resolved_value, &link_delta)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete link displacement");
+      sim_diag_error(diagnostics, "unsupported concrete link displacement");
       return -1;
     }
     io_state->a[7] -= 4U;
     if (!sim_concrete_write_memory_sized(memory, memory_size, io_state->a[7], io_state->a[lhs_reg], 4U)) {
-      m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+      sim_diag_error(diagnostics, "stack out of range");
       return -1;
     }
     io_state->a[lhs_reg] = io_state->a[7];
@@ -4657,7 +4616,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       sim_direct_register_slot_by_metadata(metadata, metadata->source_operand_index, source, &is_address, &lhs_reg) && is_address) {
     io_state->a[7] = io_state->a[lhs_reg];
     if (memory == NULL || io_state->a[7] + 4U > memory_size) {
-      m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+      sim_diag_error(diagnostics, "stack out of range");
       return -1;
     }
     io_state->a[lhs_reg] = m68k_read_u32be(memory + io_state->a[7]);
@@ -4665,12 +4624,12 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
   } else if (metadata->operation_type == M68K_SIM_OP_MOVE && source != NULL && dest != NULL) {
     if (!sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
           memory, memory_size, io_state->pc, &resolved_value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete move source");
+      sim_diag_error(diagnostics, "unsupported concrete move source");
       return -1;
     }
     if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
           io_state, memory, memory_size, io_state->pc, resolved_value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete move destination");
+      sim_diag_error(diagnostics, "unsupported concrete move destination");
       return -1;
     }
   } else if (metadata->operation_type == M68K_SIM_OP_CLEAR && dest != NULL) {
@@ -4678,14 +4637,14 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index), &io_state->sr);
     if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
           io_state, memory, memory_size, io_state->pc, 0U)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete clear destination");
+      sim_diag_error(diagnostics, "unsupported concrete clear destination");
       return -1;
     }
   } else if (metadata->operation_type == M68K_SIM_OP_SET_COND && dest != NULL) {
     uint32_t value = sim_condition_true(metadata->condition_code, io_state->sr) ? 0xFFU : 0x00U;
     if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
           io_state, memory, memory_size, io_state->pc, value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete condition destination");
+      sim_diag_error(diagnostics, "unsupported concrete condition destination");
       return -1;
     }
   } else if (metadata->operation_type == M68K_SIM_OP_DBCC && source != NULL && target != NULL &&
@@ -4695,23 +4654,20 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     uint16_t counter;
     if (sim_condition_true(metadata->condition_code, io_state->sr)) {
       io_state->pc += (uint32_t)instruction->byte_count;
-      m68k_platform_set_error(out_error, out_error_size, "");
       return 0;
     }
     counter = (uint16_t)((io_state->d[lhs_reg] - 1U) & 0xFFFFU);
     io_state->d[lhs_reg] = (io_state->d[lhs_reg] & 0xFFFF0000U) | (uint32_t)counter;
     if (counter != 0xFFFFU) io_state->pc = resolved_address;
     else io_state->pc += (uint32_t)instruction->byte_count;
-    m68k_platform_set_error(out_error, out_error_size, "");
     return 0;
   } else if (metadata->operation_type == M68K_SIM_OP_TRAPV) {
     if ((io_state->sr & 0x0002U) == 0U) {
       io_state->pc += (uint32_t)instruction->byte_count;
-      m68k_platform_set_error(out_error, out_error_size, "");
       return 0;
     }
     return sim_concrete_enter_exception(instruction, metadata, NULL, target_cpu, memory, memory_size, io_state,
-      out_error, out_error_size) ? 0 : -1;
+      diagnostics) ? 0 : -1;
   } else if (metadata->operation_type == M68K_SIM_OP_SWAP && source != NULL && dest != NULL &&
       sim_direct_register_slot_by_metadata(metadata, metadata->source_operand_index, source, &lhs_is_address, &lhs_reg) &&
       sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index, dest, &rhs_is_address, &rhs_reg)) {
@@ -4721,7 +4677,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         !sim_concrete_read_register(io_state, rhs_is_address, rhs_reg, &rhs_value) ||
         !sim_concrete_write_register(io_state, source, rhs_value) ||
         !sim_concrete_write_register(io_state, dest, lhs_value)) {
-      m68k_platform_set_error(out_error, out_error_size, "unsupported concrete register swap");
+      sim_diag_error(diagnostics, "unsupported concrete register swap");
       return -1;
     }
   } else if (metadata->operation_type != M68K_SIM_OP_NONE &&
@@ -4732,17 +4688,16 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
           memory, memory_size, io_state->pc, &resolved_address)) {
       if (metadata->flow_conditional && !sim_condition_true(metadata->condition_code, io_state->sr)) {
         io_state->pc += (uint32_t)instruction->byte_count;
-        m68k_platform_set_error(out_error, out_error_size, "");
         return 0;
       }
       if (metadata->flow_kind == M68K_SIM_FLOW_CALL) {
         if (memory == NULL || io_state->a[7] < 4U || io_state->a[7] > memory_size) {
-          m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+          sim_diag_error(diagnostics, "stack out of range");
           return -1;
         }
         io_state->a[7] -= 4U;
         if (io_state->a[7] + 4U > memory_size) {
-          m68k_platform_set_error(out_error, out_error_size, "stack out of range");
+          sim_diag_error(diagnostics, "stack out of range");
           return -1;
         }
         memory[io_state->a[7]] = (uint8_t)(((io_state->pc + (uint32_t)instruction->byte_count) >> 24) & 0xFFU);
@@ -4751,28 +4706,26 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         memory[io_state->a[7] + 3U] = (uint8_t)((io_state->pc + (uint32_t)instruction->byte_count) & 0xFFU);
       }
       io_state->pc = resolved_address;
-      m68k_platform_set_error(out_error, out_error_size, "");
       return 0;
     }
-    m68k_platform_set_error(out_error, out_error_size, "unsupported concrete control transfer");
+    sim_diag_error(diagnostics, "unsupported concrete control transfer");
     return -1;
   } else if (metadata->flow_kind == M68K_SIM_FLOW_RETURN) {
     return sim_concrete_return_from_metadata(instruction, metadata, target_cpu, memory, memory_size, io_state,
-      out_error, out_error_size);
-  } else if (sim_set_unsupported_concrete_operation_error(instruction, metadata, out_error, out_error_size)) {
+      diagnostics);
+  } else if (sim_set_unsupported_concrete_operation_error(instruction, metadata, diagnostics)) {
     return -1;
   } else {
     (void)code;
     (void)code_size;
-    snprintf(out_error, out_error_size,
+    m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SIMULATION_FAILED,
       "unsupported concrete instruction %s op=%u class=%u flow=%u operands=%u/%u",
-      instruction->mnemonic, (unsigned)metadata->operation_type,
+      m68k_ir_instruction_mnemonic_name(instruction), (unsigned)metadata->operation_type,
       (unsigned)metadata->operation_class, (unsigned)metadata->flow_kind,
       instruction->operand_count != 0U ? (unsigned)instruction->operands[0].kind : 0U,
       instruction->operand_count > 1U ? (unsigned)instruction->operands[1].kind : 0U);
     return -1;
   }
   io_state->pc += (uint32_t)instruction->byte_count;
-  m68k_platform_set_error(out_error, out_error_size, "");
   return 0;
 }

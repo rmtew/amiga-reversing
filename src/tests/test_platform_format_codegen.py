@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT / "src"
 GENERATOR = SRC_DIR / "scripts" / "generate_platform_format_runtime.py"
 STYLE_CHECKER = SRC_DIR / "scripts" / "check_c_style.py"
-PYTHON = ROOT / ".venv" / "Scripts" / "python.exe"
+PYTHON = Path(sys.executable)
 
 COMMITTED_FILES = {
     "amiga_hunk_file_runtime.h": SRC_DIR / "generated" / "amiga_hunk_file_runtime.h",

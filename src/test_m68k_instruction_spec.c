@@ -80,11 +80,43 @@ static int test_decoded_ea_target_resolution(void) {
   return 0;
 }
 
+static int test_instruction_spec_mnemonic_resolution(void) {
+  InstructionSpec instruction;
+  const M68kAsmFormDef *form;
+
+  memset(&instruction, 0, sizeof(instruction));
+  instruction.form_index = M68K_IR_INVALID_FORM_INDEX;
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_NONE, instruction.mnemonic_id);
+  M68K_C_ASSERT_STR("", m68k_instruction_spec_mnemonic_name(&instruction));
+
+  instruction.mnemonic_id = M68K_ASM_MNEMONIC_JSR;
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_JSR, instruction.mnemonic_id);
+  M68K_C_ASSERT_STR("jsr", m68k_instruction_spec_mnemonic_name(&instruction));
+
+  memset(&instruction, 0, sizeof(instruction));
+  instruction.form_index = M68K_IR_INVALID_FORM_INDEX;
+  instruction.mnemonic_id = M68K_ASM_MNEMONIC_MOVEQ;
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_MOVEQ, instruction.mnemonic_id);
+  M68K_C_ASSERT_STR("moveq", m68k_instruction_spec_mnemonic_name(&instruction));
+
+  memset(&instruction, 0, sizeof(instruction));
+  form = m68k_asm_find_form_id(M68K_ASM_MNEMONIC_MOVE, 2U);
+  M68K_C_ASSERT(form != NULL);
+  instruction.form_index = form->form_index;
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_NONE, instruction.mnemonic_id);
+  M68K_C_ASSERT_STR("", m68k_instruction_spec_mnemonic_name(&instruction));
+  instruction.mnemonic_id = M68K_ASM_MNEMONIC_MOVE;
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_MOVE, instruction.mnemonic_id);
+  M68K_C_ASSERT_STR(form->mnemonic, m68k_instruction_spec_mnemonic_name(&instruction));
+  return 0;
+}
+
 int m68k_c_instruction_spec_tests(void) {
   static const M68kCTestCase cases[] = {
     {"direct_register_detection", test_direct_register_detection},
     {"decoded_ea_shape_and_target_kind", test_decoded_ea_shape_and_target_kind},
     {"decoded_ea_target_resolution", test_decoded_ea_target_resolution},
+    {"instruction_spec_mnemonic_resolution", test_instruction_spec_mnemonic_resolution},
   };
   return m68k_c_test_run_suite("m68k_instruction_spec", cases, sizeof(cases) / sizeof(cases[0]));
 }

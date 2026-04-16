@@ -93,15 +93,20 @@ typedef struct M68kObject {
   Arena *arena;
 } M68kObject;
 
+typedef struct M68kObjectAddResult {
+  uint8_t ok;
+  size_t index;
+} M68kObjectAddResult;
+
 int m68k_object_create(M68kObject *object);
 void m68k_object_destroy(M68kObject *object);
 void *m68k_object_alloc(M68kObject *object, size_t size);
 void *m68k_object_memdup(M68kObject *object, const void *data, size_t size);
-int m68k_object_add_section(M68kObject *object, const M68kSection *section, size_t *out_index);
+M68kObjectAddResult m68k_object_add_section(M68kObject *object, const M68kSection *section);
 /* Arena-backed setters never reclaim replaced storage until m68k_object_destroy(). */
 int m68k_object_set_section_data(M68kObject *object, size_t section_index, const uint8_t *data, uint32_t data_size);
 int m68k_object_set_section_debug_data(M68kObject *object, size_t section_index, const uint8_t *data, uint32_t debug_size);
-int m68k_object_add_symbol(M68kObject *object, const M68kSymbol *symbol, size_t *out_index);
-int m68k_object_add_fixup(M68kObject *object, const M68kFixup *fixup, size_t *out_index);
+M68kObjectAddResult m68k_object_add_symbol(M68kObject *object, const M68kSymbol *symbol);
+M68kObjectAddResult m68k_object_add_fixup(M68kObject *object, const M68kFixup *fixup);
 
 #endif

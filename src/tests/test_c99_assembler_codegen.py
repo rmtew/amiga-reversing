@@ -165,6 +165,9 @@ EXPECTED_TABLE_ROWS = (
 
 EXPECTED_HEADER_SNIPPETS = (
     "M68kAsmInstructionSpec",
+    "uint8_t mnemonic_id;",
+    "M68K_ASM_CONTROL_REGISTER_USP",
+    "M68K_ASM_CONTROL_REGISTER_VBR",
     "char size_suffix;",
     "uint8_t target_cpu;",
     "M68K_ASM_CPU_ANY",
@@ -184,7 +187,9 @@ EXPECTED_HEADER_SNIPPETS = (
     "target_cpu",
     "m68k_asm_form_effective_size_mask",
     "m68k_asm_choose_size_suffix",
+    "m68k_asm_find_form_id",
     "m68k_asm_find_form_for_operands",
+    "m68k_asm_find_form_for_operands_id",
     "m68k_asm_operand_extension_word_count",
     "g_m68k_asm_ea_text_forms",
     "base_token",

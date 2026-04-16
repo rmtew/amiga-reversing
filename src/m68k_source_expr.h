@@ -1,6 +1,8 @@
 #ifndef M68K_SOURCE_EXPR_H
 #define M68K_SOURCE_EXPR_H
 
+#include "m68k_source_lookup.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -13,13 +15,27 @@ typedef struct M68kSourceLinearExpr {
     int symbol_signs[2];
 } M68kSourceLinearExpr;
 
-typedef int (*M68kSourceExprLookupFn)(const char *name, int *out_defined, int *out_is_constant, uint32_t *out_value,
-    size_t *out_symbol_id, size_t *out_section_index, void *user_data);
+typedef struct M68kSourceLinearExprParseResult {
+    uint8_t ok;
+    M68kSourceLinearExpr expr;
+} M68kSourceLinearExprParseResult;
 
-int m68k_source_parse_linear_expression(const char *text, int constants_only, M68kSourceExprLookupFn lookup,
-    void *user_data, M68kSourceLinearExpr *out_expr);
+typedef struct M68kSourceRelocRef {
+    uint8_t ok;
+    size_t target_section;
+} M68kSourceRelocRef;
 
-int m68k_source_evaluate_linear_expression(const M68kSourceLinearExpr *expr, uint32_t *out_value, int *out_is_reloc,
-    size_t *out_target_section);
+typedef struct M68kSourceLinearExprEvalResult {
+    uint8_t ok;
+    uint32_t value;
+    M68kSourceRelocRef reloc;
+} M68kSourceLinearExprEvalResult;
+
+typedef M68kSourceLookupResult (*M68kSourceExprLookupFn)(const char *name, void *user_data);
+
+M68kSourceLinearExprParseResult m68k_source_parse_linear_expression(const char *text, int constants_only,
+    M68kSourceExprLookupFn lookup, void *user_data);
+
+M68kSourceLinearExprEvalResult m68k_source_evaluate_linear_expression(M68kSourceLinearExpr expr);
 
 #endif

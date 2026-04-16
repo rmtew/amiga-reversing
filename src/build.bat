@@ -45,11 +45,13 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_ir_parse.c ^
     src\m68k_ir_symbol_resolve.c ^
     src\m68k_parse_util.c ^
+    src\m68k_diagnostics.c ^
     src\util_arena.c ^
     src\m68k_c_unit_test.c ^
     src\test_m68k_parse_util.c ^
     src\test_m68k_instruction_spec.c ^
     src\test_m68k_ir.c ^
+    src\test_m68k_diagnostics.c ^
     src\test_m68k_c_main.c ^
     src\m68k_source_ir_render.c ^
     src\m68k_source_model.c ^
@@ -110,6 +112,7 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\m68k_ir_parse.obj ^
     %OUTDIR%\m68k_ir_symbol_resolve.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
+    %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\m68k_source_ir_render.obj ^
     %OUTDIR%\m68k_source_model.obj ^
@@ -143,6 +146,7 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\test_m68k_parse_util.obj ^
     %OUTDIR%\test_m68k_instruction_spec.obj ^
     %OUTDIR%\test_m68k_ir.obj ^
+    %OUTDIR%\test_m68k_diagnostics.obj ^
     %OUTDIR%\m68k_c_unit_test.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
@@ -150,9 +154,12 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\m68k_plain_parse.obj ^
     %OUTDIR%\m68k_ir.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
+    %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\m68k_object.obj ^
+    %OUTDIR%\amiga_os_runtime.obj ^
+    %OUTDIR%\atari_st_os_runtime.obj ^
     %OUTDIR%\platform_common.obj || exit /b %errorlevel%
 
 link %LDFLAGS% /DLL /OUT:%ASM_DLL% /EXPORT:m68k_source_ir_parse_file /EXPORT:m68k_source_ir_render_with_policy /EXPORT:m68k_source_ir_free /EXPORT:m68k_free_text ^
@@ -171,6 +178,7 @@ link %LDFLAGS% /DLL /OUT:%ASM_DLL% /EXPORT:m68k_source_ir_parse_file /EXPORT:m68
     %OUTDIR%\m68k_ir_parse.obj ^
     %OUTDIR%\m68k_ir_symbol_resolve.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
+    %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\m68k_source_ir_render.obj ^
     %OUTDIR%\m68k_source_model.obj ^
@@ -208,16 +216,20 @@ link %LDFLAGS% /DLL /OUT:%DISASM_DLL% ^
     %OUTDIR%\m68k_ir.obj ^
     %OUTDIR%\m68k_ir_codec.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
+    %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\m68k_instruction_spec.obj ^
     %OUTDIR%\m68k_plain_parse.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
+    %OUTDIR%\amiga_os_runtime.obj ^
+    %OUTDIR%\atari_st_os_runtime.obj ^
     %OUTDIR%\platform_common.obj || exit /b %errorlevel%
 
 link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\platform_disk_cli.obj ^
     %OUTDIR%\platform_disk_lib.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\platform_amiga_disk.obj ^
@@ -228,6 +240,7 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
 link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\platform_disk_lib.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\platform_amiga_disk.obj ^
@@ -257,6 +270,7 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\m68k_ir_parse.obj ^
     %OUTDIR%\m68k_ir_symbol_resolve.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
+    %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\m68k_source_ir_render.obj ^
     %OUTDIR%\m68k_source_model.obj ^
@@ -308,6 +322,7 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% /EXPORT:platform_file_analyze_path_json ^
     %OUTDIR%\m68k_ir_parse.obj ^
     %OUTDIR%\m68k_ir_symbol_resolve.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
+    %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\m68k_source_ir_render.obj ^
     %OUTDIR%\m68k_source_model.obj ^

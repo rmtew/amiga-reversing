@@ -1,10 +1,14 @@
 #include "m68k_source_include.h"
+#include "m68k_parse_util.h"
 #include "m68k_source_text_util.h"
-#include "platform_common.h"
 
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+
+static void source_include_error(M68kDiagSink diagnostics, const char *message) {
+  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SOURCE_FAILED, message);
+}
 
 
 static int parse_include_quoted_path_local(const char *text, char *out_path,
@@ -85,60 +89,59 @@ static int parse_ifc_args(const char *text, char *left, size_t left_size,
 static int parse_structure_builtin(const M68kSourceIncludeContext *context,
                                    char *rest) {
   char *comma = strchr(rest, ',');
-  uint32_t value = 0;
+  M68kSourceConstantResult value;
   if (comma == NULL)
     return 0;
   *comma = '\0';
   if (!context->set_constant(m68k_trim_in_place(rest), 0U, 0,
                              context->user_data))
     return 0;
-  if (!context->parse_constant(m68k_trim_in_place(comma + 1), &value,
-                               context->user_data))
+  value = context->parse_constant(m68k_trim_in_place(comma + 1), context->user_data);
+  if (!value.ok)
     return 0;
-  return context->set_constant("SOFFSET", value, 1, context->user_data);
+  return context->set_constant("SOFFSET", value.value, 1, context->user_data);
 }
 
 static int parse_struct_builtin(const M68kSourceIncludeContext *context,
                                 char *rest) {
   char *comma = strchr(rest, ',');
   uint32_t current_offset = 0;
-  uint32_t value = 0;
+  M68kSourceConstantResult value;
   if (comma == NULL)
     return 0;
   *comma = '\0';
-  if (!context->lookup_defined("SOFFSET", &current_offset, 1,
-                               context->user_data))
+  {
+    M68kSourceLookupResult offset = context->lookup_defined("SOFFSET", 1, context->user_data);
+    if (!offset.ok || !offset.defined) return 0;
+    current_offset = offset.value;
+  }
+  if (!context->set_constant(m68k_trim_in_place(rest), current_offset, 0, context->user_data))
     return 0;
-  if (!context->set_constant(m68k_trim_in_place(rest), current_offset, 0,
-                             context->user_data))
+  value = context->parse_constant(m68k_trim_in_place(comma + 1), context->user_data);
+  if (!value.ok)
     return 0;
-  if (!context->parse_constant(m68k_trim_in_place(comma + 1), &value,
-                               context->user_data))
-    return 0;
-  return context->set_constant("SOFFSET", current_offset + value, 1,
+  return context->set_constant("SOFFSET", current_offset + value.value, 1,
                                context->user_data);
 }
 
 static int parse_label_builtin(const M68kSourceIncludeContext *context,
                                char *rest) {
-  uint32_t current_offset = 0;
-  if (!context->lookup_defined("SOFFSET", &current_offset, 1,
-                               context->user_data))
+  M68kSourceLookupResult current_offset = context->lookup_defined("SOFFSET", 1, context->user_data);
+  if (!current_offset.ok || !current_offset.defined)
     return 0;
-  return context->set_constant(m68k_trim_in_place(rest), current_offset, 0,
+  return context->set_constant(m68k_trim_in_place(rest), current_offset.value, 0,
                                context->user_data);
 }
 
 static int parse_offset_builtin(const M68kSourceIncludeContext *context,
                                 char *rest, uint32_t delta) {
-  uint32_t current_offset = 0;
-  if (!context->lookup_defined("SOFFSET", &current_offset, 1,
-                               context->user_data))
+  M68kSourceLookupResult current_offset = context->lookup_defined("SOFFSET", 1, context->user_data);
+  if (!current_offset.ok || !current_offset.defined)
     return 0;
-  if (!context->set_constant(m68k_trim_in_place(rest), current_offset, 0,
+  if (!context->set_constant(m68k_trim_in_place(rest), current_offset.value, 0,
                              context->user_data))
     return 0;
-  return context->set_constant("SOFFSET", current_offset + delta, 1,
+  return context->set_constant("SOFFSET", current_offset.value + delta, 1,
                                context->user_data);
 }
 
@@ -147,25 +150,25 @@ static int parse_bitdef_builtin(const M68kSourceIncludeContext *context,
   char buffer[128];
   char *parts[3];
   size_t count;
-  uint32_t bit_value = 0;
+  M68kSourceConstantResult bit_value;
   snprintf(buffer, sizeof(buffer), "%s", rest);
   count = m68k_split_delimited_in_place(buffer, ',', parts,
                                         sizeof(parts) / sizeof(parts[0]));
   if (count != 3U)
     return 0;
-  if (!context->parse_constant(m68k_trim_in_place(parts[2]), &bit_value,
-                               context->user_data))
+  bit_value = context->parse_constant(m68k_trim_in_place(parts[2]), context->user_data);
+  if (!bit_value.ok)
     return 0;
   {
     char name_buffer[128];
     snprintf(name_buffer, sizeof(name_buffer), "%sB_%s",
              m68k_trim_in_place(parts[0]), m68k_trim_in_place(parts[1]));
-    if (!context->set_constant(name_buffer, bit_value, 0, context->user_data))
+    if (!context->set_constant(name_buffer, bit_value.value, 0, context->user_data))
       return 0;
     snprintf(name_buffer, sizeof(name_buffer), "%sF_%s",
              m68k_trim_in_place(parts[0]), m68k_trim_in_place(parts[1]));
     return context->set_constant(name_buffer,
-                                 (bit_value >= 31U) ? 0U : (1U << bit_value), 0,
+                                 (bit_value.value >= 31U) ? 0U : (1U << bit_value.value), 0,
                                  context->user_data);
   }
 }
@@ -174,30 +177,27 @@ static int parse_libinit_builtin(const M68kSourceIncludeContext *context,
                                  char *rest) {
   uint32_t base_value = 0;
   if (*m68k_trim_in_place(rest) == '\0') {
-    if (!context->lookup_defined("LIB_USERDEF", &base_value, 1,
-                                 context->user_data))
-      return 0;
+    M68kSourceLookupResult base = context->lookup_defined("LIB_USERDEF", 1, context->user_data);
+    if (!base.ok || !base.defined) return 0;
+    base_value = base.value;
   } else {
-    if (!context->parse_constant(m68k_trim_in_place(rest), &base_value,
-                                 context->user_data))
-      return 0;
+    M68kSourceConstantResult base = context->parse_constant(m68k_trim_in_place(rest), context->user_data);
+    if (!base.ok) return 0;
+    base_value = base.value;
   }
   return context->set_constant("COUNT_LIB", base_value, 1, context->user_data);
 }
 
 static int parse_libdef_builtin(const M68kSourceIncludeContext *context,
                                 char *rest) {
-  uint32_t count_lib = 0;
-  uint32_t vect_size = 0;
-  if (!context->lookup_defined("COUNT_LIB", &count_lib, 1, context->user_data))
+  M68kSourceLookupResult count_lib = context->lookup_defined("COUNT_LIB", 1, context->user_data);
+  M68kSourceLookupResult vect_size = context->lookup_defined("LIB_VECTSIZE", 1, context->user_data);
+  if (!count_lib.ok || !count_lib.defined || !vect_size.ok || !vect_size.defined)
     return 0;
-  if (!context->lookup_defined("LIB_VECTSIZE", &vect_size, 1,
-                               context->user_data))
-    return 0;
-  if (!context->set_constant(m68k_trim_in_place(rest), count_lib, 0,
+  if (!context->set_constant(m68k_trim_in_place(rest), count_lib.value, 0,
                              context->user_data))
     return 0;
-  return context->set_constant("COUNT_LIB", count_lib - vect_size, 1,
+  return context->set_constant("COUNT_LIB", count_lib.value - vect_size.value, 1,
                                context->user_data);
 }
 
@@ -205,55 +205,50 @@ static int parse_devinit_builtin(const M68kSourceIncludeContext *context,
                                  char *rest) {
   uint32_t base_value = 0;
   if (*m68k_trim_in_place(rest) == '\0') {
-    if (!context->lookup_defined("CMD_NONSTD", &base_value, 1,
-                                 context->user_data))
-      return 0;
+    M68kSourceLookupResult base = context->lookup_defined("CMD_NONSTD", 1, context->user_data);
+    if (!base.ok || !base.defined) return 0;
+    base_value = base.value;
   } else {
-    if (!context->parse_constant(m68k_trim_in_place(rest), &base_value,
-                                 context->user_data))
-      return 0;
+    M68kSourceConstantResult base = context->parse_constant(m68k_trim_in_place(rest), context->user_data);
+    if (!base.ok) return 0;
+    base_value = base.value;
   }
   return context->set_constant("CMD_COUNT", base_value, 1, context->user_data);
 }
 
 static int parse_devcmd_builtin(const M68kSourceIncludeContext *context,
                                 char *rest) {
-  uint32_t count_value = 0;
-  if (!context->lookup_defined("CMD_COUNT", &count_value, 1,
-                               context->user_data))
+  M68kSourceLookupResult count_value = context->lookup_defined("CMD_COUNT", 1, context->user_data);
+  if (!count_value.ok || !count_value.defined)
     return 0;
-  if (!context->set_constant(m68k_trim_in_place(rest), count_value, 0,
+  if (!context->set_constant(m68k_trim_in_place(rest), count_value.value, 0,
                              context->user_data))
     return 0;
-  return context->set_constant("CMD_COUNT", count_value + 1U, 1,
+  return context->set_constant("CMD_COUNT", count_value.value + 1U, 1,
                                context->user_data);
 }
 
 static int parse_libent_builtin(const M68kSourceIncludeContext *context,
                                 char *rest) {
-  uint32_t count_value = 0;
+  M68kSourceLookupResult count_value = context->lookup_defined("count", 1, context->user_data);
+  M68kSourceLookupResult vsize;
   char name_buffer[128];
-  if (!context->lookup_defined("count", &count_value, 1, context->user_data))
-    return 0;
+  if (!count_value.ok || !count_value.defined) return 0;
   snprintf(name_buffer, sizeof(name_buffer), "_LVO%s",
            m68k_trim_in_place(rest));
-  if (!context->set_constant(name_buffer, count_value, 0, context->user_data))
+  if (!context->set_constant(name_buffer, count_value.value, 0, context->user_data))
     return 0;
-  if (!context->lookup_defined("vsize", &count_value, 1, context->user_data))
-    return 0;
-  {
-    uint32_t current_count = 0;
-    if (!context->lookup_defined("count", &current_count, 1,
-                                 context->user_data))
-      return 0;
-    return context->set_constant("count", current_count - count_value, 1,
-                                 context->user_data);
-  }
+  vsize = context->lookup_defined("vsize", 1, context->user_data);
+  if (!vsize.ok || !vsize.defined) return 0;
+  count_value = context->lookup_defined("count", 1, context->user_data);
+  if (!count_value.ok || !count_value.defined) return 0;
+  return context->set_constant("count", count_value.value - vsize.value, 1,
+                               context->user_data);
 }
 
 static int process_include_line(const M68kSourceIncludeContext *context,
                                 M68kSourceIncludeState *state, char *line,
-                                char *out_error, size_t out_error_size);
+                                M68kDiagSink diagnostics);
 
 static void trim_trailing_line_continuation_in_place(char *line) {
   size_t length;
@@ -275,17 +270,15 @@ static void trim_trailing_line_continuation_in_place(char *line) {
 
 int m68k_source_include_process_file(const M68kSourceIncludeContext *context,
                                      M68kSourceIncludeState *state,
-                                     const char *path, char *out_error,
-                                     size_t out_error_size) {
+                                     const char *path, M68kDiagSink diagnostics) {
   FILE *input = fopen(path, "r");
   char line[256];
   if (input == NULL) {
-    m68k_platform_set_error(out_error, out_error_size, "failed opening include file");
+    source_include_error(diagnostics, "failed opening include file");
     return 0;
   }
   while (fgets(line, sizeof(line), input) != NULL) {
-    if (!process_include_line(context, state, line, out_error,
-                              out_error_size)) {
+    if (!process_include_line(context, state, line, diagnostics)) {
       fclose(input);
       return 0;
     }
@@ -296,10 +289,11 @@ int m68k_source_include_process_file(const M68kSourceIncludeContext *context,
 
 static int process_include_line(const M68kSourceIncludeContext *context,
                                 M68kSourceIncludeState *state, char *line,
-                                char *out_error, size_t out_error_size) {
+                                M68kDiagSink diagnostics) {
   char *rest = NULL;
   char *token0 = NULL;
   char *token1 = NULL;
+  M68kSourceDirectiveToken directive0 = M68K_SOURCE_DIRECTIVE_NONE;
   m68k_strip_comment_in_place(line);
   trim_trailing_line_continuation_in_place(line);
   rest = m68k_trim_in_place(line);
@@ -309,20 +303,19 @@ static int process_include_line(const M68kSourceIncludeContext *context,
     char *cursor = rest;
     token0 = m68k_next_token_in_place(&cursor);
     rest = m68k_trim_in_place(cursor);
-    if (_stricmp(token0, "ENDM") == 0) {
+    directive0 = m68k_parse_source_directive_token(token0);
+    if (directive0 == M68K_SOURCE_DIRECTIVE_ENDM) {
       state->inside_macro_definition = 0;
       return 1;
     }
     if (state->inside_macro_definition)
       return 1;
-    if (_stricmp(token0, "IFND") == 0) {
-      uint32_t ignored = 0;
+    if (directive0 == M68K_SOURCE_DIRECTIVE_IFND) {
+      M68kSourceLookupResult lookup_result = context->lookup_defined(m68k_trim_in_place(rest), 0, context->user_data);
       return push_conditional(state,
-                              !context->lookup_defined(
-                                  m68k_trim_in_place(rest), &ignored, 0,
-                                  context->user_data));
+                              !lookup_result.ok || !lookup_result.defined);
     }
-    if (_stricmp(token0, "IFC") == 0 || _stricmp(token0, "IFNC") == 0) {
+    if (directive0 == M68K_SOURCE_DIRECTIVE_IFC || directive0 == M68K_SOURCE_DIRECTIVE_IFNC) {
       char left[64];
       char right[64];
       int equal = 0;
@@ -330,92 +323,84 @@ static int process_include_line(const M68kSourceIncludeContext *context,
         return 0;
       equal = (strcmp(left, right) == 0);
       return push_conditional(state,
-                              (_stricmp(token0, "IFC") == 0) ? equal : !equal);
+                              (directive0 == M68K_SOURCE_DIRECTIVE_IFC) ? equal : !equal);
     }
-    if (_stricmp(token0, "ENDC") == 0)
+    if (directive0 == M68K_SOURCE_DIRECTIVE_ENDC)
       return pop_conditional(state);
     if (!current_conditional_is_active(state)) {
-      if (_stricmp(rest, "MACRO") == 0)
+      if (m68k_parse_source_directive_token(rest) == M68K_SOURCE_DIRECTIVE_MACRO)
         state->inside_macro_definition = 1;
       return 1;
     }
-    if (_stricmp(rest, "MACRO") == 0 || _stricmp(token0, "MACRO") == 0) {
+    if (m68k_parse_source_directive_token(rest) == M68K_SOURCE_DIRECTIVE_MACRO ||
+        directive0 == M68K_SOURCE_DIRECTIVE_MACRO) {
       state->inside_macro_definition = 1;
       return 1;
     }
-    if (_stricmp(token0, "INCLUDE") == 0) {
+    if (directive0 == M68K_SOURCE_DIRECTIVE_INCLUDE) {
       char include_path[512];
       char full_path[1024];
       if (!parse_include_quoted_path_local(rest, include_path,
                                           sizeof(include_path))) {
-        m68k_platform_set_error(out_error, out_error_size, "bad include path");
+        source_include_error(diagnostics, "bad include path");
         return 0;
       }
       snprintf(full_path, sizeof(full_path), "%s\\%s", state->include_dir,
                include_path);
-      return m68k_source_include_process_file(context, state, full_path,
-                                              out_error, out_error_size);
+      return m68k_source_include_process_file(context, state, full_path, diagnostics);
     }
     if (*rest != '\0') {
       char *cursor1 = rest;
+      M68kSourceDirectiveToken directive1 = M68K_SOURCE_DIRECTIVE_NONE;
       token1 = m68k_next_token_in_place(&cursor1);
-      if (_stricmp(token1, "EQU") == 0 || _stricmp(token1, "SET") == 0) {
-        uint32_t value = 0;
-        if (!context->parse_constant(m68k_trim_in_place(cursor1), &value,
-                                     context->user_data)) {
-          m68k_platform_set_error(out_error, out_error_size, "bad constant expression");
+      directive1 = m68k_parse_source_directive_token(token1);
+      if (directive1 == M68K_SOURCE_DIRECTIVE_EQU || directive1 == M68K_SOURCE_DIRECTIVE_SET) {
+        M68kSourceConstantResult value = context->parse_constant(m68k_trim_in_place(cursor1), context->user_data);
+        if (!value.ok) {
+          source_include_error(diagnostics, "bad constant expression");
           return 0;
         }
-        return context->set_constant( token0, value, _stricmp(token1, "SET") == 0, context->user_data);
+        return context->set_constant(token0, value.value, directive1 == M68K_SOURCE_DIRECTIVE_SET,
+          context->user_data);
       }
     }
-    if (_stricmp(token0, "STRUCTURE") == 0)
+    /* Supported include builtins are an explicit subset pinned by regression
+     * coverage against Amiga NDK includes and Atari Devpac includes. */
+    if (directive0 == M68K_SOURCE_DIRECTIVE_STRUCTURE)
       return parse_structure_builtin(context, rest);
-    if (_stricmp(token0, "STRUCT") == 0)
+    if (directive0 == M68K_SOURCE_DIRECTIVE_STRUCT)
       return parse_struct_builtin(context, rest);
-    if (_stricmp(token0, "LABEL") == 0)
+    if (directive0 == M68K_SOURCE_DIRECTIVE_LABEL)
       return parse_label_builtin(context, rest);
-    if (_stricmp(token0, "BYTE") == 0 || _stricmp(token0, "UBYTE") == 0)
-      return parse_offset_builtin(context, rest, 1U);
-    if (_stricmp(token0, "WORD") == 0 || _stricmp(token0, "UWORD") == 0 ||
-        _stricmp(token0, "BOOL") == 0 || _stricmp(token0, "SHORT") == 0 ||
-        _stricmp(token0, "USHORT") == 0 || _stricmp(token0, "RPTR") == 0) {
-      return parse_offset_builtin(context, rest, 2U);
+    {
+      M68kParseOffsetDirectiveResult offset_directive = m68k_parse_offset_directive_token(directive0);
+      if (offset_directive.ok) return parse_offset_builtin(context, rest, offset_directive.delta);
     }
-    if (_stricmp(token0, "LONG") == 0 || _stricmp(token0, "ULONG") == 0 ||
-        _stricmp(token0, "FLOAT") == 0 || _stricmp(token0, "APTR") == 0 ||
-        _stricmp(token0, "CPTR") == 0 || _stricmp(token0, "FPTR") == 0) {
-      return parse_offset_builtin(context, rest, 4U);
-    }
-    if (_stricmp(token0, "DOUBLE") == 0)
-      return parse_offset_builtin(context, rest, 8U);
-    if (_stricmp(token0, "ALIGNWORD") == 0) {
-      uint32_t current_offset = 0;
-      if (!context->lookup_defined("SOFFSET", &current_offset, 1,
-                                   context->user_data))
+    if (directive0 == M68K_SOURCE_DIRECTIVE_ALIGNWORD) {
+      M68kSourceLookupResult current_offset = context->lookup_defined("SOFFSET", 1, context->user_data);
+      if (!current_offset.ok || !current_offset.defined)
         return 0;
-      return context->set_constant("SOFFSET", (current_offset + 1U) & ~1U, 1,
+      return context->set_constant("SOFFSET", (current_offset.value + 1U) & ~1U, 1,
                                    context->user_data);
     }
-    if (_stricmp(token0, "ALIGNLONG") == 0) {
-      uint32_t current_offset = 0;
-      if (!context->lookup_defined("SOFFSET", &current_offset, 1,
-                                   context->user_data))
+    if (directive0 == M68K_SOURCE_DIRECTIVE_ALIGNLONG) {
+      M68kSourceLookupResult current_offset = context->lookup_defined("SOFFSET", 1, context->user_data);
+      if (!current_offset.ok || !current_offset.defined)
         return 0;
-      return context->set_constant("SOFFSET", (current_offset + 3U) & ~3U, 1,
+      return context->set_constant("SOFFSET", (current_offset.value + 3U) & ~3U, 1,
                                    context->user_data);
     }
-    if (_stricmp(token0, "BITDEF") == 0)
+    if (directive0 == M68K_SOURCE_DIRECTIVE_BITDEF)
       return parse_bitdef_builtin(context, rest);
-    if (_stricmp(token0, "LIBINIT") == 0)
+    if (directive0 == M68K_SOURCE_DIRECTIVE_LIBINIT)
       return parse_libinit_builtin(context, rest);
-    if (_stricmp(token0, "LIBDEF") == 0)
+    if (directive0 == M68K_SOURCE_DIRECTIVE_LIBDEF)
       return parse_libdef_builtin(context, rest);
-    if (_stricmp(token0, "LIBENT") == 0)
+    if (directive0 == M68K_SOURCE_DIRECTIVE_LIBENT)
       return parse_libent_builtin(context, rest);
-    if (_stricmp(token0, "DEVINIT") == 0)
+    if (directive0 == M68K_SOURCE_DIRECTIVE_DEVINIT)
       return parse_devinit_builtin(context, rest);
-    if (_stricmp(token0, "DEVCMD") == 0)
+    if (directive0 == M68K_SOURCE_DIRECTIVE_DEVCMD)
       return parse_devcmd_builtin(context, rest);
     return 1;
   }

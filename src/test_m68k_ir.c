@@ -52,6 +52,23 @@ static int test_analysis_defaults_and_inits(void) {
   return 0;
 }
 
+static int test_instruction_mnemonic_helpers_use_id(void) {
+  M68kInstructionIR instruction;
+  memset(&instruction, 0, sizeof(instruction));
+  m68k_ir_instruction_init(&instruction);
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_NONE, instruction.mnemonic_id);
+  M68K_C_ASSERT_STR("", m68k_ir_instruction_mnemonic_name(&instruction));
+
+  instruction.mnemonic_id = M68K_ASM_MNEMONIC_NOP;
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_NOP, instruction.mnemonic_id);
+  M68K_C_ASSERT_STR("nop", m68k_ir_instruction_mnemonic_name(&instruction));
+
+  instruction.form_index = 0U;
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_NOP, instruction.mnemonic_id);
+  M68K_C_ASSERT_STR("nop", m68k_ir_instruction_mnemonic_name(&instruction));
+  return 0;
+}
+
 static int test_section_append_statement_copies_data(void) {
   M68kSectionIR section;
   M68kStatementIR statement;
@@ -135,6 +152,126 @@ static int test_source_analysis_append_section_copies_recovered_dispatches(void)
   M68K_C_ASSERT(source.sections[0].recovered_inline_dispatches[0].entry_offsets != inline_entries);
   M68K_C_ASSERT_U32(0x120u, source.sections[0].recovered_word_dispatches[0].targets[0]);
   M68K_C_ASSERT_U32(0x320u, source.sections[0].recovered_inline_dispatches[0].targets[1]);
+
+  m68k_ir_source_analysis_destroy(&source);
+  m68k_ir_section_analysis_destroy(&section);
+  return 0;
+}
+
+static int test_source_analysis_append_section_rehydrates_legacy_platform_name_refs(void) {
+  M68kSectionAnalysisIR section;
+  M68kSourceAnalysisIR source;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source));
+
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_base_slot(&section,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, -30, "DOSBase"));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_effect(&section,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x40u, M68K_PLATFORM_EFFECT_SET_TYPED_REG, 1U, 0U, 0, 0,
+    NULL, NULL, "IO", NULL, NULL, 0U, 0));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_local_call_summary(&section,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x80u, M68K_PLATFORM_EFFECT_SET_TYPED_REG, 1U, 0U, 1U, 0U,
+    0U, 0, NULL, "IO", NULL, NULL, 0U, 0));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_call(&section,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0xA0u, 1U, "_LVOOpen", M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL,
+    "DOSBase", NULL, 0U, 0, 0, 0U, 0U, 0U, "1.3", "36"));
+
+  section.recovered_platform_base_slots[0].base_name = "DOSBase";
+  section.recovered_platform_effects[0].payload.typed.type_name = "IO";
+  section.recovered_local_call_summaries[0].payload.typed.type_name = "IO";
+  section.recovered_platform_calls[0].symbol_name = "_LVOOpen";
+  section.recovered_platform_calls[0].note_base_name = "DOSBase";
+  memset(&section.recovered_platform_base_slots[0].base_ref, 0, sizeof(section.recovered_platform_base_slots[0].base_ref));
+  memset(&section.recovered_platform_effects[0].payload.typed.type_ref, 0,
+    sizeof(section.recovered_platform_effects[0].payload.typed.type_ref));
+  memset(&section.recovered_platform_effects[0].payload.typed.semantic_kind_ref, 0,
+    sizeof(section.recovered_platform_effects[0].payload.typed.semantic_kind_ref));
+  memset(&section.recovered_platform_effects[0].payload.typed.value_domain_ref, 0,
+    sizeof(section.recovered_platform_effects[0].payload.typed.value_domain_ref));
+  memset(&section.recovered_local_call_summaries[0].payload.typed.type_ref, 0,
+    sizeof(section.recovered_local_call_summaries[0].payload.typed.type_ref));
+  memset(&section.recovered_local_call_summaries[0].payload.typed.semantic_kind_ref, 0,
+    sizeof(section.recovered_local_call_summaries[0].payload.typed.semantic_kind_ref));
+  memset(&section.recovered_local_call_summaries[0].payload.typed.value_domain_ref, 0,
+    sizeof(section.recovered_local_call_summaries[0].payload.typed.value_domain_ref));
+  memset(&section.recovered_platform_calls[0].symbol_ref, 0, sizeof(section.recovered_platform_calls[0].symbol_ref));
+  memset(&section.recovered_platform_calls[0].note_base_ref, 0, sizeof(section.recovered_platform_calls[0].note_base_ref));
+  memset(&section.recovered_platform_calls[0].note_symbol_ref, 0, sizeof(section.recovered_platform_calls[0].note_symbol_ref));
+
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source, &section));
+  M68K_C_ASSERT_INT(1, (int)source.section_count);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    source.sections[0].recovered_platform_base_slots[0].base_ref.platform_kind);
+  M68K_C_ASSERT(source.sections[0].recovered_platform_base_slots[0].base_ref.id != 0U);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    source.sections[0].recovered_platform_effects[0].payload.typed.type_ref.platform_kind);
+  M68K_C_ASSERT(source.sections[0].recovered_platform_effects[0].payload.typed.type_ref.id != 0U);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    source.sections[0].recovered_local_call_summaries[0].payload.typed.type_ref.platform_kind);
+  M68K_C_ASSERT(source.sections[0].recovered_local_call_summaries[0].payload.typed.type_ref.id != 0U);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    source.sections[0].recovered_platform_calls[0].symbol_ref.platform_kind);
+  M68K_C_ASSERT(source.sections[0].recovered_platform_calls[0].symbol_ref.id != 0U);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    source.sections[0].recovered_platform_calls[0].note_base_ref.platform_kind);
+  M68K_C_ASSERT(source.sections[0].recovered_platform_calls[0].note_base_ref.id != 0U);
+
+  m68k_ir_source_analysis_destroy(&source);
+  m68k_ir_section_analysis_destroy(&section);
+  return 0;
+}
+
+static int test_source_analysis_append_section_copies_ref_only_platform_names(void) {
+  M68kSectionAnalysisIR section;
+  M68kSourceAnalysisIR source;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source));
+
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_base_slot(&section,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, -30, "DOSBase"));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_effect(&section,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x40u, M68K_PLATFORM_EFFECT_SET_TYPED_REG, 1U, 0U, 0, 0,
+    NULL, NULL, "IO", NULL, NULL, 0U, 0));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_local_call_summary(&section,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x80u, M68K_PLATFORM_EFFECT_SET_TYPED_REG, 1U, 0U, 1U, 0U,
+    0U, 0, NULL, "IO", NULL, NULL, 0U, 0));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_call(&section,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0xA0u, 1U, "_LVOOpen", M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL,
+    "DOSBase", NULL, 0U, 0, 0, 0U, 0U, 0U, "1.3", "36"));
+
+  M68K_C_ASSERT(section.recovered_platform_base_slots[0].base_name == NULL);
+  M68K_C_ASSERT(section.recovered_platform_effects[0].payload.typed.type_name == NULL);
+  M68K_C_ASSERT(section.recovered_local_call_summaries[0].payload.typed.type_name == NULL);
+  M68K_C_ASSERT(section.recovered_platform_calls[0].symbol_name == NULL);
+  M68K_C_ASSERT(section.recovered_platform_calls[0].note_base_name == NULL);
+  M68K_C_ASSERT_STR("DOSBase",
+    m68k_platform_name_ref_name_or_text(&section.recovered_platform_base_slots[0].base_ref,
+      section.recovered_platform_base_slots[0].base_name));
+  M68K_C_ASSERT_STR("IO",
+    m68k_platform_name_ref_name_or_text(&section.recovered_platform_effects[0].payload.typed.type_ref,
+      section.recovered_platform_effects[0].payload.typed.type_name));
+  M68K_C_ASSERT_STR("_LVOOpen",
+    m68k_platform_name_ref_name_or_text(&section.recovered_platform_calls[0].symbol_ref,
+      section.recovered_platform_calls[0].symbol_name));
+
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source, &section));
+  M68K_C_ASSERT(source.sections[0].recovered_platform_base_slots[0].base_name == NULL);
+  M68K_C_ASSERT(source.sections[0].recovered_platform_effects[0].payload.typed.type_name == NULL);
+  M68K_C_ASSERT(source.sections[0].recovered_local_call_summaries[0].payload.typed.type_name == NULL);
+  M68K_C_ASSERT(source.sections[0].recovered_platform_calls[0].symbol_name == NULL);
+  M68K_C_ASSERT(source.sections[0].recovered_platform_calls[0].note_base_name == NULL);
+  M68K_C_ASSERT_STR("DOSBase",
+    m68k_platform_name_ref_name_or_text(&source.sections[0].recovered_platform_base_slots[0].base_ref,
+      source.sections[0].recovered_platform_base_slots[0].base_name));
+  M68K_C_ASSERT_STR("IO",
+    m68k_platform_name_ref_name_or_text(&source.sections[0].recovered_platform_effects[0].payload.typed.type_ref,
+      source.sections[0].recovered_platform_effects[0].payload.typed.type_name));
+  M68K_C_ASSERT_STR("_LVOOpen",
+    m68k_platform_name_ref_name_or_text(&source.sections[0].recovered_platform_calls[0].symbol_ref,
+      source.sections[0].recovered_platform_calls[0].symbol_name));
+  M68K_C_ASSERT_STR("DOSBase",
+    m68k_platform_name_ref_name_or_text(&source.sections[0].recovered_platform_calls[0].note_base_ref,
+      source.sections[0].recovered_platform_calls[0].note_base_name));
 
   m68k_ir_source_analysis_destroy(&source);
   m68k_ir_section_analysis_destroy(&section);
@@ -277,10 +414,15 @@ int m68k_c_ir_tests(void) {
     {"render_policy_defaults", test_render_policy_defaults},
     {"parse_syntax_mode_name", test_parse_syntax_mode_name},
     {"analysis_defaults_and_inits", test_analysis_defaults_and_inits},
+    {"instruction_mnemonic_helpers_use_id", test_instruction_mnemonic_helpers_use_id},
     {"section_append_statement_copies_data", test_section_append_statement_copies_data},
     {"section_analysis_label_dedupes", test_section_analysis_label_dedupes},
     {"source_analysis_append_section_copies_recovered_dispatches",
       test_source_analysis_append_section_copies_recovered_dispatches},
+    {"source_analysis_append_section_rehydrates_legacy_platform_name_refs",
+      test_source_analysis_append_section_rehydrates_legacy_platform_name_refs},
+    {"source_analysis_append_section_copies_ref_only_platform_names",
+      test_source_analysis_append_section_copies_ref_only_platform_names},
     {"section_many_interleaved_labels_and_data", test_section_many_interleaved_labels_and_data},
     {"section_many_interleaved_labels_and_expr_data", test_section_many_interleaved_labels_and_expr_data},
     {"arena_mark_rewind_reuses_same_block_range", test_arena_mark_rewind_reuses_same_block_range},
