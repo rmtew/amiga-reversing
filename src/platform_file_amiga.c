@@ -32,6 +32,12 @@ typedef struct AmigaTypedSlotTag {
   AmigaValueProvenance value;
 } AmigaTypedSlotTag;
 
+typedef struct AmigaAbsoluteBaseSlotTag {
+  size_t section_index;
+  uint32_t target_offset;
+  uint16_t base_id;
+} AmigaAbsoluteBaseSlotTag;
+
 typedef struct AmigaTypedStackEntry {
   AmigaValueProvenance value;
 } AmigaTypedStackEntry;
@@ -178,6 +184,18 @@ static int section_analysis_has_amiga_structural_slot_use(const M68kSectionAnaly
     int16_t displacement);
 static int load_amiga_recovered_local_success_summary_state(const M68kSectionAnalysisIR *section_analysis,
     uint32_t target_offset, AmigaCallEffectRegState *out_state);
+static int summarize_amiga_direct_local_success_outputs_at(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, size_t target_section_index, uint32_t target_offset,
+    AmigaLocalSuccessSummaryCacheEntry *same_section_cache, size_t same_section_cache_count,
+    AmigaCallEffectRegState *out_summary);
+static int resolve_amiga_local_wrapper_signature(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, size_t target_section_index, uint32_t target_offset,
+    PlatformLocalStackWrapperSignature *out_signature);
+static int append_amiga_recovered_function_args_from_signature(M68kSectionAnalysisIR *section_analysis,
+    uint32_t target_offset, const PlatformLocalStackWrapperSignature *signature);
+static int resolve_amiga_stack_push_wrapper_input(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
+    size_t *out_operand_index, const AmigaOsCallInputInfo **out_input_info, uint16_t *out_stack_offset);
 static int resolve_amiga_pre_call_pointer_app_disp(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, uint32_t call_offset, uint8_t reg_kind, uint8_t reg_index,
     int16_t *out_disp);
@@ -185,6 +203,7 @@ static int instruction_preserves_pointer_provenance_local(const M68kInstructionI
     uint8_t reg_index);
 static int operand_address_reg_index_local(const M68kOperandIR *operand, uint8_t *out_reg);
 static int operand_data_reg_index_local(const M68kOperandIR *operand, uint8_t *out_reg);
+static int operand_is_immediate_source_local(const M68kOperandIR *operand);
 static int instruction_pushes_data_reg_to_stack_local(const M68kInstructionIR *instruction, uint8_t *out_reg);
 static int instruction_pops_data_reg_from_stack_local(const M68kInstructionIR *instruction, uint8_t *out_reg);
 static int instruction_pushes_movem_to_stack_local(const M68kInstructionIR *instruction, uint16_t *out_mask);
@@ -193,6 +212,12 @@ static int operand_is_amiga_local_frame_slot(const M68kOperandIR *operand, const
     uint8_t *out_base_reg, uint16_t *out_base_id, int16_t *out_displacement);
 static int instruction_is_register_to_local_frame_slot_store(const M68kInstructionIR *instruction,
     const uint16_t *local_base_ids, uint8_t *out_source_kind, uint8_t *out_source_reg, uint16_t *out_base_id,
+    int16_t *out_displacement);
+static int instruction_is_register_to_resolved_app_slot_store(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
+    uint8_t *out_source_kind, uint8_t *out_source_reg, int16_t *out_displacement);
+static int instruction_is_register_to_known_app_slot_store(const M68kSectionAnalysisIR *section_analysis,
+    const M68kInstructionIR *instruction, uint8_t *out_source_kind, uint8_t *out_source_reg,
     int16_t *out_displacement);
 static void init_amiga_resolved_target(AmigaResolvedTarget *value);
 static void clear_amiga_target_local_slot_entry(AmigaTargetLocalSlotEntry *entry);
@@ -208,6 +233,8 @@ static int resolve_amiga_pre_call_absolute_target(const SectionAnalysisContext *
     uint32_t *out_target);
 static int has_recovered_amiga_typed_slot_effect(const M68kSectionAnalysisIR *section_analysis, uint32_t offset,
     int16_t displacement);
+static int has_recovered_amiga_app_slot_displacement(const M68kSectionAnalysisIR *section_analysis,
+    int16_t displacement);
 static int format_amiga_value_domain_symbolic_value(const char *domain_name, int32_t value, char *buf, size_t buf_size);
 static const AmigaOsLibraryVectorInfo *resolve_amiga_library_vector_entry(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction);
@@ -216,6 +243,7 @@ static const char *resolve_preceding_stack_reloaded_base_name(const SectionAnaly
 static void init_amiga_value_provenance(AmigaValueProvenance *value);
 static int amiga_value_provenance_has_any_info(const AmigaValueProvenance *value);
 static void init_amiga_base_slot_tag_array(AmigaBaseSlotTag *slots, size_t slot_count);
+static void init_amiga_absolute_base_slot_tag_array(AmigaAbsoluteBaseSlotTag *slots, size_t slot_count);
 static void init_amiga_base_id_array(uint16_t *ids, size_t count);
 static void init_amiga_typed_slot_tag_array(AmigaTypedSlotTag *slots, size_t slot_count);
 static uint16_t amiga_base_id_from_name_local(const char *base_name);
@@ -263,8 +291,20 @@ static void amiga_call_effect_reg_state_clear_base(AmigaCallEffectRegState *stat
 static int amiga_call_effect_reg_state_has_any_info(const AmigaCallEffectRegState *state);
 static uint16_t lookup_amiga_base_slot_id_local(const AmigaBaseSlotTag *slots, size_t slot_count, int16_t displacement);
 static void set_amiga_base_slot_id_local(AmigaBaseSlotTag *slots, size_t slot_count, int16_t displacement, uint16_t base_id);
+static uint16_t lookup_amiga_absolute_base_slot_id_local(const AmigaAbsoluteBaseSlotTag *slots, size_t slot_count,
+    size_t section_index, uint32_t target_offset);
+static void set_amiga_absolute_base_slot_id_local(AmigaAbsoluteBaseSlotTag *slots, size_t slot_count,
+    size_t section_index, uint32_t target_offset, uint16_t base_id);
+static uint16_t lookup_amiga_global_base_slot_id_local(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, size_t target_section_index, uint32_t target_offset);
+static void seed_amiga_absolute_base_slots_before_offset(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t before_offset, AmigaAbsoluteBaseSlotTag *absolute_base_slots,
+    size_t absolute_base_slot_count);
 static uint16_t lookup_recovered_platform_base_slot_id_local(const M68kSectionAnalysisIR *section_analysis,
     int16_t displacement);
+static uint16_t lookup_amiga_app_slot_base_id_for_operand(const M68kSectionAnalysisIR *section_analysis,
+    const AmigaBaseSlotTag *slot_base_names, size_t slot_base_count, const M68kOperandIR *operand,
+    uint16_t current_a6_base_id, int16_t *out_displacement);
 
 static const char *amiga_struct_field_name(const AmigaOsStructFieldInfo *field) {
   return field != NULL ? amiga_os_name(M68K_PLATFORM_NAME_FIELD, field->field_id) : NULL;
@@ -531,8 +571,8 @@ static void amiga_typed_payload_apply_to_value_local(AmigaValueProvenance *value
 static const char *amiga_call_effect_reg_state_base_name_local(const AmigaCallEffectRegState *state, uint8_t reg_kind,
     uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return NULL;
-  if (reg_kind == 1U) return amiga_os_name(M68K_PLATFORM_NAME_BASE, state->data_reg_base_ids[reg_index]);
-  if (reg_kind == 2U) return amiga_os_name(M68K_PLATFORM_NAME_BASE, state->addr_reg_base_ids[reg_index]);
+  if (reg_kind == 1U) return amiga_base_name_from_id_local(state->data_reg_base_ids[reg_index]);
+  if (reg_kind == 2U) return amiga_base_name_from_id_local(state->addr_reg_base_ids[reg_index]);
   return NULL;
 }
 
@@ -613,6 +653,98 @@ static void set_amiga_base_slot_id_local(AmigaBaseSlotTag *slots, size_t slot_co
   }
 }
 
+static void init_amiga_absolute_base_slot_tag_array(AmigaAbsoluteBaseSlotTag *slots, size_t slot_count) {
+  size_t index;
+  if (slots == NULL) return;
+  for (index = 0U; index < slot_count; ++index) {
+    slots[index].section_index = SIZE_MAX;
+    slots[index].target_offset = UINT32_MAX;
+    slots[index].base_id = AMIGA_OS_BASE_ID_NONE;
+  }
+}
+
+static uint16_t lookup_amiga_absolute_base_slot_id_local(const AmigaAbsoluteBaseSlotTag *slots, size_t slot_count,
+    size_t section_index, uint32_t target_offset) {
+  size_t index;
+  if (slots == NULL || section_index == SIZE_MAX || target_offset == UINT32_MAX) return AMIGA_OS_BASE_ID_NONE;
+  for (index = 0U; index < slot_count; ++index) {
+    if (!amiga_base_id_is_none_local(slots[index].base_id) && slots[index].section_index == section_index &&
+        slots[index].target_offset == target_offset)
+      return slots[index].base_id;
+  }
+  return AMIGA_OS_BASE_ID_NONE;
+}
+
+static void set_amiga_absolute_base_slot_id_local(AmigaAbsoluteBaseSlotTag *slots, size_t slot_count,
+    size_t section_index, uint32_t target_offset, uint16_t base_id) {
+  size_t index;
+  if (slots == NULL || section_index == SIZE_MAX || target_offset == UINT32_MAX ||
+      amiga_base_id_is_none_local(base_id) || amiga_base_id_is_app_local(base_id)) return;
+  for (index = 0U; index < slot_count; ++index) {
+    if (amiga_base_id_is_none_local(slots[index].base_id) ||
+        (slots[index].section_index == section_index && slots[index].target_offset == target_offset)) {
+      slots[index].section_index = section_index;
+      slots[index].target_offset = target_offset;
+      slots[index].base_id = base_id;
+      return;
+    }
+  }
+}
+
+static uint16_t lookup_amiga_global_base_slot_effect_id_local(const M68kSectionAnalysisIR *section_analysis,
+    size_t target_section_index, uint32_t target_offset) {
+  size_t index;
+  if (section_analysis == NULL || target_section_index == SIZE_MAX || target_offset == UINT32_MAX)
+    return AMIGA_OS_BASE_ID_NONE;
+  for (index = 0U; index < section_analysis->recovered_platform_effect_count; ++index) {
+    const M68kRecoveredPlatformEffectIR *effect = &section_analysis->recovered_platform_effects[index];
+    if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT ||
+        effect->target_section_index != target_section_index || effect->target_offset != target_offset)
+      continue;
+    if (!amiga_base_id_is_none_local(effect->payload.named_base.base_ref.id))
+      return effect->payload.named_base.base_ref.id;
+    return amiga_base_id_from_name_local(effect->payload.named_base.base_name);
+  }
+  return AMIGA_OS_BASE_ID_NONE;
+}
+
+static uint16_t lookup_amiga_global_base_slot_id_local(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, size_t target_section_index, uint32_t target_offset) {
+  size_t current_section_index = section_analysis_context_section_index(ctx);
+  uint16_t base_id;
+  const M68kSectionAnalysisIR *prior;
+  if (ctx == NULL || target_section_index == SIZE_MAX || target_offset == UINT32_MAX) return AMIGA_OS_BASE_ID_NONE;
+  if (target_section_index == current_section_index) {
+    base_id = lookup_amiga_global_base_slot_effect_id_local(section_analysis, target_section_index, target_offset);
+    if (!amiga_base_id_is_none_local(base_id)) return base_id;
+  }
+  prior = section_analysis_context_prior_section_analysis(ctx, target_section_index);
+  return lookup_amiga_global_base_slot_effect_id_local(prior, target_section_index, target_offset);
+}
+
+static uint16_t resolve_amiga_absolute_base_operand_id_local(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, const AmigaAbsoluteBaseSlotTag *absolute_base_slots,
+    size_t absolute_base_slot_count, const M68kInstructionIR *instruction, size_t operand_index,
+    uint32_t instruction_offset, int include_library_seed) {
+  const M68kObject *object = section_analysis_context_object(ctx);
+  size_t target_section_index = SIZE_MAX;
+  uint32_t target_offset = UINT32_MAX;
+  uint16_t base_id;
+  if (!instruction_operand_absolute_target_ref(ctx, instruction, operand_index, instruction_offset,
+        &target_section_index, &target_offset))
+    return AMIGA_OS_BASE_ID_NONE;
+  base_id = lookup_amiga_absolute_base_slot_id_local(absolute_base_slots, absolute_base_slot_count,
+    target_section_index, target_offset);
+  if (!amiga_base_id_is_none_local(base_id)) return base_id;
+  base_id = lookup_amiga_global_base_slot_id_local(ctx, section_analysis, target_section_index, target_offset);
+  if (!amiga_base_id_is_none_local(base_id)) return base_id;
+  if (include_library_seed && object != NULL && target_section_index < object->section_count) {
+    return amiga_base_id_from_name_local(read_amiga_library_seed_name_near(&object->sections[target_section_index],
+      target_offset));
+  }
+  return AMIGA_OS_BASE_ID_NONE;
+}
+
 static void set_amiga_typed_slot_tag(AmigaTypedSlotTag *slots, size_t slot_count, int16_t displacement,
     const AmigaValueProvenance *value) {
   size_t index;
@@ -676,6 +808,19 @@ static uint16_t lookup_recovered_platform_base_slot_id_local(const M68kSectionAn
   return AMIGA_OS_BASE_ID_NONE;
 }
 
+static uint16_t lookup_amiga_app_slot_base_id_for_operand(const M68kSectionAnalysisIR *section_analysis,
+    const AmigaBaseSlotTag *slot_base_names, size_t slot_base_count, const M68kOperandIR *operand,
+    uint16_t current_a6_base_id, int16_t *out_displacement) {
+  int16_t displacement;
+  if (out_displacement != NULL) *out_displacement = INT16_MIN;
+  if (!operand_is_app_base_disp_ea(operand, 6U, &displacement)) return AMIGA_OS_BASE_ID_NONE;
+  if (!amiga_base_id_is_app_local(current_a6_base_id) &&
+      !has_recovered_amiga_app_slot_displacement(section_analysis, displacement))
+    return AMIGA_OS_BASE_ID_NONE;
+  if (out_displacement != NULL) *out_displacement = displacement;
+  return lookup_amiga_base_slot_id_local(slot_base_names, slot_base_count, displacement);
+}
+
 static void seed_amiga_typed_slot_tags_from_effects(const M68kSectionAnalysisIR *section_analysis,
     AmigaTypedSlotTag *slots, size_t slot_count) {
   size_t index;
@@ -696,6 +841,80 @@ static void seed_amiga_typed_slot_tags_from_effects(const M68kSectionAnalysisIR 
 
 const char *lookup_recovered_platform_base_slot(const M68kSectionAnalysisIR *section_analysis, int16_t displacement) {
   return amiga_base_name_from_id_local(lookup_recovered_platform_base_slot_id_local(section_analysis, displacement));
+}
+
+static int amiga_section_has_direct_call_to_section(const SectionAnalysisContext *ctx, size_t source_section_index,
+    size_t target_section_index) {
+  const M68kObject *object = section_analysis_context_object(ctx);
+  const M68kSection *source_section;
+  const M68kSectionAnalysisIR *source_analysis;
+  Arena *arena;
+  SectionAnalysisContext source_ctx;
+  uint32_t source_offset;
+  int found = 0;
+  if (ctx == NULL || object == NULL || source_section_index >= object->section_count ||
+      target_section_index >= object->section_count || source_section_index == target_section_index)
+    return 0;
+  source_section = &object->sections[source_section_index];
+  source_analysis = section_analysis_context_prior_section_analysis(ctx, source_section_index);
+  if (source_section->kind != M68K_SECTION_CODE || source_analysis == NULL) return 0;
+  arena = arena_create(4096U);
+  if (arena == NULL) return 0;
+  if (section_analysis_context_init(&source_ctx, object, source_section_index, source_section,
+      ctx->prior_section_analyses, ctx->prior_section_analysis_count, section_analysis_context_policy(ctx), arena) != 0) {
+    arena_destroy(arena);
+    return 0;
+  }
+  for (source_offset = 0U; source_offset < source_section->data_size; ++source_offset) {
+    SectionDecodeResult decode;
+    size_t call_target_section = SIZE_MAX;
+    uint32_t call_target_offset = UINT32_MAX;
+    if (!section_analysis_context_probe_decode(&source_ctx, source_offset, &decode) || !decode.is_call) continue;
+    if (!platform_resolve_direct_target_with_fixup(&source_ctx, &decode.instruction, source_offset,
+        &call_target_section, &call_target_offset))
+      continue;
+    if (call_target_section == target_section_index) {
+      found = 1;
+      break;
+    }
+  }
+  arena_destroy(arena);
+  return found;
+}
+
+static uint16_t lookup_amiga_call_scoped_base_slot_id(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, int16_t displacement) {
+  const M68kObject *object;
+  size_t current_section_index;
+  size_t source_section_index;
+  uint16_t found_base_id = AMIGA_OS_BASE_ID_NONE;
+  if (ctx == NULL || section_analysis == NULL) return AMIGA_OS_BASE_ID_NONE;
+  object = section_analysis_context_object(ctx);
+  if (object == NULL || ctx->prior_section_analyses == NULL ||
+      ctx->prior_section_analysis_count < object->section_count)
+    return AMIGA_OS_BASE_ID_NONE;
+  current_section_index = section_analysis_context_section_index(ctx);
+  for (source_section_index = 0U; source_section_index < object->section_count; ++source_section_index) {
+    const M68kSectionAnalysisIR *source_analysis;
+    uint16_t source_base_id;
+    if (!amiga_section_has_direct_call_to_section(ctx, source_section_index, current_section_index)) continue;
+    source_analysis = section_analysis_context_prior_section_analysis(ctx, source_section_index);
+    source_base_id = lookup_recovered_platform_base_slot_id_local(source_analysis, displacement);
+    if (amiga_base_id_is_none_local(source_base_id)) continue;
+    if (!amiga_base_id_is_none_local(found_base_id) && found_base_id != source_base_id)
+      return AMIGA_OS_BASE_ID_NONE;
+    found_base_id = source_base_id;
+  }
+  return found_base_id;
+}
+
+static void format_amiga_app_base_slot_name(char *buf, size_t buf_size, const char *base_name) {
+  if (buf == NULL || buf_size == 0U) return;
+  if (base_name != NULL && strcmp(base_name, "SysBase") == 0) {
+    snprintf(buf, buf_size, "app_ExecBase");
+    return;
+  }
+  snprintf(buf, buf_size, "app_%s", base_name != NULL ? base_name : "");
 }
 
 static int lookup_recovered_platform_typed_slot_value(const M68kSectionAnalysisIR *section_analysis,
@@ -801,8 +1020,21 @@ static const char *lookup_amiga_effect_or_local_typed_slot(const M68kSectionAnal
 
 const char *resolve_amiga_app_slot_base_name(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, int16_t displacement) {
-  (void)ctx;
-  return lookup_recovered_platform_base_slot(section_analysis, displacement);
+  const char *base_name = lookup_recovered_platform_base_slot(section_analysis, displacement);
+  uint16_t scoped_base_id;
+  if (base_name != NULL) return base_name;
+  scoped_base_id = lookup_amiga_call_scoped_base_slot_id(ctx, section_analysis, displacement);
+  if (!amiga_base_id_is_none_local(scoped_base_id)) return amiga_base_name_from_id_local(scoped_base_id);
+  return NULL;
+}
+
+static uint16_t resolve_amiga_app_slot_base_id(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, int16_t displacement) {
+  uint16_t base_id = lookup_recovered_platform_base_slot_id_local(section_analysis, displacement);
+  if (!amiga_base_id_is_none_local(base_id)) return base_id;
+  base_id = lookup_amiga_call_scoped_base_slot_id(ctx, section_analysis, displacement);
+  if (!amiga_base_id_is_none_local(base_id)) return base_id;
+  return AMIGA_OS_BASE_ID_NONE;
 }
 
 int resolve_amiga_app_slot_symbol_name(const SectionAnalysisContext *ctx,
@@ -827,9 +1059,9 @@ int resolve_amiga_app_slot_symbol_name(const SectionAnalysisContext *ctx,
     snprintf(buf, buf_size, "%s+%s", slot_symbol_name, field_name);
     return 1;
   }
-  base_name = lookup_recovered_platform_base_slot(section_analysis, displacement);
+  base_name = resolve_amiga_app_slot_base_name(ctx, section_analysis, displacement);
   if (base_name != NULL && base_name[0] != '\0') {
-    snprintf(buf, buf_size, "app_%s", base_name);
+    format_amiga_app_base_slot_name(buf, buf_size, base_name);
     return 1;
   }
   type_name = lookup_recovered_platform_typed_slot(section_analysis, displacement);
@@ -877,10 +1109,10 @@ int resolve_amiga_app_slot_symbol_ref(const SectionAnalysisContext *ctx,
       snprintf(out_symbol_ref->symbolic_addend_name, sizeof(out_symbol_ref->symbolic_addend_name), "%s", field_name);
       return 1;
   }
-  base_name = lookup_recovered_platform_base_slot(section_analysis, displacement);
+  base_name = resolve_amiga_app_slot_base_name(ctx, section_analysis, displacement);
   if (base_name != NULL && base_name[0] != '\0') {
     out_symbol_ref->has_name = 1U;
-    snprintf(out_symbol_ref->name, sizeof(out_symbol_ref->name), "app_%s", base_name);
+    format_amiga_app_base_slot_name(out_symbol_ref->name, sizeof(out_symbol_ref->name), base_name);
     return 1;
   }
   type_name = lookup_recovered_platform_typed_slot(section_analysis, displacement);
@@ -927,123 +1159,83 @@ static void apply_recovered_amiga_platform_effects(const M68kSectionAnalysisIR *
     uint16_t *data_reg_base_ids, uint16_t *addr_reg_base_ids, AmigaValueProvenance *data_reg_values,
     AmigaValueProvenance *addr_reg_values, AmigaBaseSlotTag *slot_base_names, size_t slot_base_count,
     AmigaTypedSlotTag *slot_type_names, size_t slot_type_count) {
-  const M68kRecoveredPlatformEffectIR *effect;
+  size_t index;
   if (section_analysis == NULL) return;
-  for (effect = find_recovered_platform_effect(section_analysis, offset, M68K_PLATFORM_EFFECT_SET_BASE_REG);
-       effect != NULL;
-       effect = NULL) {
-    uint16_t base_id = amiga_named_base_payload_id_local(&effect->payload.named_base);
-    const char *base_type_name = resolve_amiga_base_type_name_from_id_local(base_id);
-    if (amiga_base_id_is_none_local(base_id)) break;
-    if (effect->reg_kind == 1U && data_reg_base_ids != NULL && effect->reg_index < 8U) {
-      data_reg_base_ids[effect->reg_index] = base_id;
-      if (data_reg_values != NULL &&
-          amiga_value_provenance_type_name_local(&data_reg_values[effect->reg_index]) == NULL) {
-        amiga_value_provenance_set_type_name(&data_reg_values[effect->reg_index], base_type_name);
-        amiga_value_provenance_set_owner_type_name(&data_reg_values[effect->reg_index], base_type_name);
+  for (index = 0U; index < section_analysis->recovered_platform_effect_count; ++index) {
+    const M68kRecoveredPlatformEffectIR *effect = &section_analysis->recovered_platform_effects[index];
+    if (effect->offset != offset) continue;
+    if (effect->kind == M68K_PLATFORM_EFFECT_SET_BASE_REG) {
+      uint16_t base_id = amiga_named_base_payload_id_local(&effect->payload.named_base);
+      const char *base_type_name = resolve_amiga_base_type_name_from_id_local(base_id);
+      if (amiga_base_id_is_none_local(base_id)) continue;
+      if (effect->reg_kind == 1U && data_reg_base_ids != NULL && effect->reg_index < 8U) {
+        data_reg_base_ids[effect->reg_index] = base_id;
+        if (data_reg_values != NULL &&
+            amiga_value_provenance_type_name_local(&data_reg_values[effect->reg_index]) == NULL) {
+          amiga_value_provenance_set_type_name(&data_reg_values[effect->reg_index], base_type_name);
+          amiga_value_provenance_set_owner_type_name(&data_reg_values[effect->reg_index], base_type_name);
+        }
+      } else if (effect->reg_kind == 2U && addr_reg_base_ids != NULL && effect->reg_index < 8U) {
+        addr_reg_base_ids[effect->reg_index] = base_id;
+        if (addr_reg_values != NULL &&
+            amiga_value_provenance_type_name_local(&addr_reg_values[effect->reg_index]) == NULL) {
+          amiga_value_provenance_set_type_name(&addr_reg_values[effect->reg_index], base_type_name);
+          amiga_value_provenance_set_owner_type_name(&addr_reg_values[effect->reg_index], base_type_name);
+        }
       }
-    } else if (effect->reg_kind == 2U && addr_reg_base_ids != NULL && effect->reg_index < 8U) {
-      addr_reg_base_ids[effect->reg_index] = base_id;
-      if (addr_reg_values != NULL &&
-          amiga_value_provenance_type_name_local(&addr_reg_values[effect->reg_index]) == NULL) {
-        amiga_value_provenance_set_type_name(&addr_reg_values[effect->reg_index], base_type_name);
-        amiga_value_provenance_set_owner_type_name(&addr_reg_values[effect->reg_index], base_type_name);
+    } else if (effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG) {
+      if (effect->reg_kind == 1U && data_reg_values != NULL && effect->reg_index < 8U) {
+        amiga_typed_payload_apply_to_value_local(&data_reg_values[effect->reg_index], &effect->payload.typed);
+        data_reg_values[effect->reg_index].source_offset = offset;
+        data_reg_values[effect->reg_index].source_reg_kind = effect->reg_kind;
+        data_reg_values[effect->reg_index].source_reg_index = effect->reg_index;
+      } else if (effect->reg_kind == 2U && addr_reg_values != NULL && effect->reg_index < 8U) {
+        amiga_typed_payload_apply_to_value_local(&addr_reg_values[effect->reg_index], &effect->payload.typed);
+        addr_reg_values[effect->reg_index].source_offset = offset;
+        addr_reg_values[effect->reg_index].source_reg_kind = effect->reg_kind;
+        addr_reg_values[effect->reg_index].source_reg_index = effect->reg_index;
       }
-    }
-  }
-  for (effect = find_recovered_platform_effect(section_analysis, offset, M68K_PLATFORM_EFFECT_SET_TYPED_REG);
-       effect != NULL;
-       effect = NULL) {
-    if (effect->reg_kind == 1U && data_reg_values != NULL && effect->reg_index < 8U) {
-      amiga_typed_payload_apply_to_value_local(&data_reg_values[effect->reg_index], &effect->payload.typed);
-      data_reg_values[effect->reg_index].source_offset = offset;
-      data_reg_values[effect->reg_index].source_reg_kind = effect->reg_kind;
-      data_reg_values[effect->reg_index].source_reg_index = effect->reg_index;
-    } else if (effect->reg_kind == 2U && addr_reg_values != NULL && effect->reg_index < 8U) {
-      amiga_typed_payload_apply_to_value_local(&addr_reg_values[effect->reg_index], &effect->payload.typed);
-      addr_reg_values[effect->reg_index].source_offset = offset;
-      addr_reg_values[effect->reg_index].source_reg_kind = effect->reg_kind;
-      addr_reg_values[effect->reg_index].source_reg_index = effect->reg_index;
-    }
-  }
-  for (effect = find_recovered_platform_effect(section_analysis, offset, M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG);
-       effect != NULL;
-       effect = NULL) {
-    if (effect->reg_kind == 1U && data_reg_values != NULL && effect->reg_index < 8U) {
+    } else if (effect->kind == M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG) {
+      AmigaValueProvenance *target = NULL;
+      if (effect->reg_kind == 1U && data_reg_values != NULL && effect->reg_index < 8U)
+        target = &data_reg_values[effect->reg_index];
+      else if (effect->reg_kind == 2U && addr_reg_values != NULL && effect->reg_index < 8U)
+        target = &addr_reg_values[effect->reg_index];
+      if (target == NULL) continue;
       if (amiga_os_name(M68K_PLATFORM_NAME_SEMANTIC_KIND, effect->payload.code_ptr.semantic_kind_ref.id) != NULL)
-        amiga_value_provenance_set_semantic_kind_id(&data_reg_values[effect->reg_index],
-          effect->payload.code_ptr.semantic_kind_ref.id);
+        amiga_value_provenance_set_semantic_kind_id(target, effect->payload.code_ptr.semantic_kind_ref.id);
       else
-        amiga_value_provenance_set_semantic_kind_name(&data_reg_values[effect->reg_index],
+        amiga_value_provenance_set_semantic_kind_name(target,
           effect->payload.code_ptr.semantic_kind != NULL ? effect->payload.code_ptr.semantic_kind : "code_ptr");
       if (amiga_os_name(M68K_PLATFORM_NAME_TYPE, effect->payload.code_ptr.owner_type_ref.id) != NULL)
-        amiga_value_provenance_set_owner_type_id(&data_reg_values[effect->reg_index],
-          effect->payload.code_ptr.owner_type_ref.id);
+        amiga_value_provenance_set_owner_type_id(target, effect->payload.code_ptr.owner_type_ref.id);
       else
-        amiga_value_provenance_set_owner_type_name(&data_reg_values[effect->reg_index],
-          effect->payload.code_ptr.owner_type_name);
-      data_reg_values[effect->reg_index].field_disp = effect->field_disp;
+        amiga_value_provenance_set_owner_type_name(target, effect->payload.code_ptr.owner_type_name);
+      target->field_disp = effect->field_disp;
       if (amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, effect->payload.code_ptr.field_symbol_ref.id) != NULL)
-        amiga_value_provenance_set_field_symbol_id(&data_reg_values[effect->reg_index],
-          effect->payload.code_ptr.field_symbol_ref.id);
+        amiga_value_provenance_set_field_symbol_id(target, effect->payload.code_ptr.field_symbol_ref.id);
       else
-        amiga_value_provenance_set_field_symbol_name(&data_reg_values[effect->reg_index],
-          effect->payload.code_ptr.field_symbol_name);
-      data_reg_values[effect->reg_index].source_offset = offset;
-      data_reg_values[effect->reg_index].source_reg_kind = effect->reg_kind;
-      data_reg_values[effect->reg_index].source_reg_index = effect->reg_index;
-      if (data_reg_values[effect->reg_index].slot_disp == INT16_MIN) {
-        data_reg_values[effect->reg_index].slot_disp = effect->displacement;
-      }
-    } else if (effect->reg_kind == 2U && addr_reg_values != NULL && effect->reg_index < 8U) {
-      if (amiga_os_name(M68K_PLATFORM_NAME_SEMANTIC_KIND, effect->payload.code_ptr.semantic_kind_ref.id) != NULL)
-        amiga_value_provenance_set_semantic_kind_id(&addr_reg_values[effect->reg_index],
-          effect->payload.code_ptr.semantic_kind_ref.id);
-      else
-        amiga_value_provenance_set_semantic_kind_name(&addr_reg_values[effect->reg_index],
-          effect->payload.code_ptr.semantic_kind != NULL ? effect->payload.code_ptr.semantic_kind : "code_ptr");
-      if (amiga_os_name(M68K_PLATFORM_NAME_TYPE, effect->payload.code_ptr.owner_type_ref.id) != NULL)
-        amiga_value_provenance_set_owner_type_id(&addr_reg_values[effect->reg_index],
-          effect->payload.code_ptr.owner_type_ref.id);
-      else
-        amiga_value_provenance_set_owner_type_name(&addr_reg_values[effect->reg_index],
-          effect->payload.code_ptr.owner_type_name);
-      addr_reg_values[effect->reg_index].field_disp = effect->field_disp;
-      if (amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, effect->payload.code_ptr.field_symbol_ref.id) != NULL)
-        amiga_value_provenance_set_field_symbol_id(&addr_reg_values[effect->reg_index],
-          effect->payload.code_ptr.field_symbol_ref.id);
-      else
-        amiga_value_provenance_set_field_symbol_name(&addr_reg_values[effect->reg_index],
-          effect->payload.code_ptr.field_symbol_name);
-      addr_reg_values[effect->reg_index].source_offset = offset;
-      addr_reg_values[effect->reg_index].source_reg_kind = effect->reg_kind;
-      addr_reg_values[effect->reg_index].source_reg_index = effect->reg_index;
-      if (addr_reg_values[effect->reg_index].slot_disp == INT16_MIN) {
-        addr_reg_values[effect->reg_index].slot_disp = effect->displacement;
-      }
-    }
-  }
-  for (effect = find_recovered_platform_effect(section_analysis, offset, M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT);
-       effect != NULL;
-       effect = NULL) {
-    uint16_t base_id;
-    if (slot_base_names == NULL) break;
-    base_id = amiga_named_base_payload_id_local(&effect->payload.named_base);
-    if (amiga_base_id_is_none_local(base_id)) break;
-    set_amiga_base_slot_id_local(slot_base_names, slot_base_count, effect->displacement, base_id);
-  }
-  for (effect = find_recovered_platform_effect(section_analysis, offset, M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT);
-       effect != NULL;
-       effect = NULL) {
-    AmigaValueProvenance value;
-    if (slot_type_names == NULL) break;
-    init_amiga_value_provenance(&value);
-    amiga_typed_payload_apply_to_value_local(&value, &effect->payload.typed);
-    value.source_offset = offset;
-    value.slot_disp = effect->displacement;
-    value.field_disp = effect->field_disp;
-    if (amiga_value_provenance_has_any_info(&value)) {
-      set_amiga_typed_slot_tag(slot_type_names, slot_type_count, effect->displacement, &value);
+        amiga_value_provenance_set_field_symbol_name(target, effect->payload.code_ptr.field_symbol_name);
+      target->source_offset = offset;
+      target->source_reg_kind = effect->reg_kind;
+      target->source_reg_index = effect->reg_index;
+      if (target->slot_disp == INT16_MIN) target->slot_disp = effect->displacement;
+    } else if (effect->kind == M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT) {
+      uint16_t base_id;
+      if (slot_base_names == NULL) continue;
+      base_id = amiga_named_base_payload_id_local(&effect->payload.named_base);
+      if (amiga_base_id_is_none_local(base_id)) continue;
+      set_amiga_base_slot_id_local(slot_base_names, slot_base_count, effect->displacement, base_id);
+    } else if (effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT) {
+      AmigaValueProvenance value;
+      if (slot_type_names == NULL) continue;
+      init_amiga_value_provenance(&value);
+      amiga_typed_payload_apply_to_value_local(&value, &effect->payload.typed);
+      value.source_offset = offset;
+      value.slot_disp = effect->displacement;
+      value.field_disp = effect->field_disp;
+      if (amiga_value_provenance_has_any_info(&value))
+        set_amiga_typed_slot_tag(slot_type_names, slot_type_count, effect->displacement, &value);
     }
   }
 }
@@ -1059,6 +1251,24 @@ static int has_recovered_amiga_typed_slot_effect(const M68kSectionAnalysisIR *se
         effect->displacement == displacement) {
       return 1;
     }
+  }
+  return 0;
+}
+
+static int has_recovered_amiga_app_slot_displacement(const M68kSectionAnalysisIR *section_analysis,
+    int16_t displacement) {
+  size_t index;
+  if (section_analysis == NULL || displacement == INT16_MIN) return 0;
+  for (index = 0U; index < section_analysis->recovered_platform_effect_count; ++index) {
+    const M68kRecoveredPlatformEffectIR *effect = &section_analysis->recovered_platform_effects[index];
+    if ((effect->kind == M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT ||
+         effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT) &&
+        effect->displacement == displacement) {
+      return 1;
+    }
+  }
+  for (index = 0U; index < section_analysis->recovered_platform_base_slot_count; ++index) {
+    if (section_analysis->recovered_platform_base_slots[index].displacement == displacement) return 1;
   }
   return 0;
 }
@@ -1224,6 +1434,11 @@ static int format_amiga_named_typed_slot_symbol_name(const M68kSectionAnalysisIR
     const char *library_name = amiga_os_find_library_name_by_base_name(context_name);
     if (library_name != NULL && library_name[0] != '\0') context_name = library_name;
   }
+  if ((context_name == NULL || context_name[0] == '\0') &&
+      (strcmp(symbol_name, "SegList") == 0 || strcmp(symbol_name, "seglist") == 0)) {
+    snprintf(buf, buf_size, "app_SegList");
+    return 1;
+  }
   out_index = (size_t)snprintf(buf, buf_size, "app_");
   if (out_index >= buf_size) return 0;
   if (context_name != NULL && context_name[0] != '\0') {
@@ -1244,6 +1459,9 @@ static int resolve_amiga_struct_field_symbol_name(const char *type_name, int16_t
   const AmigaOsStructFieldInfo *field;
   if (type_name == NULL || buf == NULL || buf_size == 0U) return 0;
   field = amiga_os_find_struct_field(type_name, displacement);
+  if (field == NULL && strcmp(type_name, "LIB") == 0) {
+    field = amiga_os_find_struct_field("LN", displacement);
+  }
   if (field != NULL && amiga_struct_field_name(field) != NULL && amiga_struct_field_name(field)[0] != '\0') {
     snprintf(buf, buf_size, "%s", amiga_struct_field_name(field));
     return 1;
@@ -1255,6 +1473,9 @@ static const char *resolve_amiga_struct_field_nested_type_name(const char *type_
   const AmigaOsStructFieldInfo *field;
   if (type_name == NULL) return NULL;
   field = amiga_os_find_struct_field(type_name, displacement);
+  if (field == NULL && strcmp(type_name, "LIB") == 0) {
+    field = amiga_os_find_struct_field("LN", displacement);
+  }
   if (field == NULL || amiga_struct_field_nested_type_name(field) == NULL ||
       amiga_struct_field_nested_type_name(field)[0] == '\0') {
     return NULL;
@@ -1417,6 +1638,209 @@ static const AmigaOsLibraryVectorInfo *resolve_amiga_library_vector_entry_for_ba
   return amiga_os_find_library_vector(base_name, displacement);
 }
 
+static int amiga_context_section_index_local(const SectionAnalysisContext *ctx, uint32_t *out_section_index) {
+  const M68kObject *object = section_analysis_context_object(ctx);
+  const M68kSection *section = section_analysis_context_section(ctx);
+  size_t index;
+  if (out_section_index == NULL) return 0;
+  if (object == NULL || section == NULL) return 0;
+  for (index = 0U; index < object->section_count; ++index) {
+    if (&object->sections[index] == section) {
+      *out_section_index = (uint32_t)index;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int amiga_register_seed_applies_at_or_before(const SectionAnalysisContext *ctx,
+    const M68kAnalysisRegisterSeed *seed, uint32_t trace_start) {
+  if (seed == NULL) return 0;
+  if (seed->platform_kind != 0U && seed->platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
+  if (seed->has_section_index) {
+    uint32_t section_index;
+    if (!amiga_context_section_index_local(ctx, &section_index) || seed->section_index != section_index) return 0;
+  }
+  return !seed->has_entry_offset || seed->entry_offset <= trace_start;
+}
+
+static int amiga_register_seed_is_better_for_trace(const M68kAnalysisRegisterSeed *seed,
+    const M68kAnalysisRegisterSeed *best_seed) {
+  if (seed == NULL) return 0;
+  if (best_seed == NULL) return 1;
+  if (seed->has_entry_offset && !best_seed->has_entry_offset) return 1;
+  if (!seed->has_entry_offset && best_seed->has_entry_offset) return 0;
+  if (seed->has_entry_offset && best_seed->has_entry_offset && seed->entry_offset > best_seed->entry_offset) return 1;
+  return 0;
+}
+
+static const char *amiga_register_seed_struct_type_name(const M68kAnalysisRegisterSeed *seed) {
+  const char *type_name;
+  if (seed == NULL) return NULL;
+  type_name = seed->type_name[0] != '\0' ? seed->type_name : seed->name;
+  if (seed->kind == M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE) {
+    const char *base_struct_name = seed->type_name[0] != '\0'
+      ? seed->type_name
+      : amiga_os_find_library_base_struct_name(seed->name);
+    if (base_struct_name != NULL && base_struct_name[0] != '\0') return base_struct_name;
+    return "LIB";
+  }
+  return type_name;
+}
+
+static int resolve_amiga_policy_seed_struct_field_symbol_name(const SectionAnalysisContext *ctx, uint32_t offset,
+    uint8_t reg_kind, uint8_t reg_index, int16_t displacement, char *buf, size_t buf_size, const char **out_type_name) {
+  const M68kAnalysisPolicy *policy = section_analysis_context_policy(ctx);
+  const M68kAnalysisRegisterSeed *best_seed = NULL;
+  uint32_t best_offset = 0U;
+  uint32_t section_index = 0U;
+  uint16_t index;
+  const char *type_name;
+  if (out_type_name != NULL) *out_type_name = NULL;
+  if (policy == NULL || buf == NULL || buf_size == 0U || reg_index >= 8U) return 0;
+  if (!amiga_context_section_index_local(ctx, &section_index)) return 0;
+  for (index = 0U; index < policy->register_seed_count && index < M68K_ANALYSIS_REGISTER_SEED_LIMIT; ++index) {
+    const M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
+    if ((seed->kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR &&
+         seed->kind != M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE) ||
+        seed->reg_kind != reg_kind ||
+        seed->reg_index != reg_index ||
+        (seed->platform_kind != 0U && seed->platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) ||
+        (seed->has_section_index && seed->section_index != section_index)) {
+      continue;
+    }
+    if (seed->has_entry_offset) {
+      if (seed->entry_offset > offset) continue;
+      if (best_seed != NULL && best_seed->has_entry_offset && seed->entry_offset < best_offset) continue;
+      best_offset = seed->entry_offset;
+    } else if (best_seed != NULL && best_seed->has_entry_offset) {
+      continue;
+    }
+    best_seed = seed;
+  }
+  type_name = amiga_register_seed_struct_type_name(best_seed);
+  if (type_name == NULL || type_name[0] == '\0') return 0;
+  if (!resolve_amiga_struct_field_symbol_name(type_name, displacement, buf, buf_size)) return 0;
+  if (out_type_name != NULL) *out_type_name = type_name;
+  return 1;
+}
+
+static void seed_amiga_base_regs_from_policy(const SectionAnalysisContext *ctx, uint32_t trace_start,
+    uint16_t *addr_reg_base_ids, uint16_t *addr_reg_seed_base_ids, uint16_t *data_reg_base_ids) {
+  const M68kAnalysisPolicy *policy = section_analysis_context_policy(ctx);
+  const M68kAnalysisRegisterSeed *best_addr_seeds[8] = {0};
+  const M68kAnalysisRegisterSeed *best_data_seeds[8] = {0};
+  uint16_t index;
+  uint8_t reg;
+  if (policy == NULL) return;
+  for (index = 0U; index < policy->register_seed_count && index < M68K_ANALYSIS_REGISTER_SEED_LIMIT; ++index) {
+    const M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
+    if (seed->kind != M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE ||
+        seed->reg_index >= 8U ||
+        !amiga_register_seed_applies_at_or_before(ctx, seed, trace_start)) continue;
+    if (seed->reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
+      if (amiga_register_seed_is_better_for_trace(seed, best_addr_seeds[seed->reg_index]))
+        best_addr_seeds[seed->reg_index] = seed;
+    } else if (seed->reg_kind == M68K_ANALYSIS_REGISTER_DATA) {
+      if (amiga_register_seed_is_better_for_trace(seed, best_data_seeds[seed->reg_index]))
+        best_data_seeds[seed->reg_index] = seed;
+    }
+  }
+  for (reg = 0U; reg < 8U; ++reg) {
+    uint16_t base_id;
+    const M68kAnalysisRegisterSeed *seed = best_addr_seeds[reg];
+    if (seed != NULL && addr_reg_base_ids != NULL) {
+      base_id = amiga_base_id_from_name_local(seed->name);
+      if (amiga_base_id_is_none_local(base_id))
+        base_id = amiga_base_id_from_name_local(amiga_os_find_library_base_name(seed->name));
+      if (!amiga_base_id_is_none_local(base_id)) {
+        addr_reg_base_ids[reg] = base_id;
+        if (addr_reg_seed_base_ids != NULL) addr_reg_seed_base_ids[reg] = base_id;
+      }
+    }
+    seed = best_data_seeds[reg];
+    if (seed != NULL && data_reg_base_ids != NULL) {
+      base_id = amiga_base_id_from_name_local(seed->name);
+      if (amiga_base_id_is_none_local(base_id))
+        base_id = amiga_base_id_from_name_local(amiga_os_find_library_base_name(seed->name));
+      if (!amiga_base_id_is_none_local(base_id)) data_reg_base_ids[reg] = base_id;
+    }
+  }
+}
+
+static void apply_amiga_typed_register_seed(const M68kAnalysisRegisterSeed *seed, uint32_t trace_start,
+    uint8_t reg_kind, uint8_t reg_index, AmigaValueProvenance *target) {
+  const char *type_name;
+  uint16_t struct_id;
+  if (seed == NULL || target == NULL) return;
+  type_name = amiga_register_seed_struct_type_name(seed);
+  if (type_name == NULL || type_name[0] == '\0') return;
+  struct_id = amiga_os_name_id(M68K_PLATFORM_NAME_STRUCT, type_name);
+  if (amiga_os_name(M68K_PLATFORM_NAME_STRUCT, struct_id) != NULL) {
+    amiga_value_provenance_set_struct_id(target, struct_id);
+    amiga_value_provenance_set_owner_struct_id(target, struct_id);
+  } else {
+    amiga_value_provenance_set_type_name(target, type_name);
+    amiga_value_provenance_copy_owner_from_type(target, target);
+  }
+  amiga_value_provenance_set_symbol_name(target, seed->name);
+  target->source_offset = trace_start;
+  target->source_reg_kind = reg_kind;
+  target->source_reg_index = reg_index;
+}
+
+static void seed_amiga_typed_regs_from_policy(const SectionAnalysisContext *ctx, uint32_t trace_start,
+    AmigaValueProvenance *data_reg_values, AmigaValueProvenance *addr_reg_values) {
+  const M68kAnalysisPolicy *policy = section_analysis_context_policy(ctx);
+  const M68kAnalysisRegisterSeed *best_addr_seeds[8] = {0};
+  const M68kAnalysisRegisterSeed *best_data_seeds[8] = {0};
+  uint16_t index;
+  uint8_t reg;
+  if (policy == NULL) return;
+  for (index = 0U; index < policy->register_seed_count && index < M68K_ANALYSIS_REGISTER_SEED_LIMIT; ++index) {
+    const M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
+    if ((seed->kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR &&
+         seed->kind != M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE) ||
+        seed->reg_index >= 8U ||
+        !amiga_register_seed_applies_at_or_before(ctx, seed, trace_start)) continue;
+    if (seed->reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
+      if (amiga_register_seed_is_better_for_trace(seed, best_addr_seeds[seed->reg_index]))
+        best_addr_seeds[seed->reg_index] = seed;
+    } else if (seed->reg_kind == M68K_ANALYSIS_REGISTER_DATA) {
+      if (amiga_register_seed_is_better_for_trace(seed, best_data_seeds[seed->reg_index]))
+        best_data_seeds[seed->reg_index] = seed;
+    }
+  }
+  for (reg = 0U; reg < 8U; ++reg) {
+    if (addr_reg_values != NULL) apply_amiga_typed_register_seed(best_addr_seeds[reg], trace_start,
+      M68K_ANALYSIS_REGISTER_ADDRESS, reg, &addr_reg_values[reg]);
+    if (data_reg_values != NULL) apply_amiga_typed_register_seed(best_data_seeds[reg], trace_start,
+      M68K_ANALYSIS_REGISTER_DATA, reg, &data_reg_values[reg]);
+  }
+}
+
+static int lookup_amiga_typed_register_seed_value(const SectionAnalysisContext *ctx, uint32_t trace_start,
+    uint8_t reg_kind, uint8_t reg_index, AmigaValueProvenance *out_value) {
+  const M68kAnalysisPolicy *policy = section_analysis_context_policy(ctx);
+  const M68kAnalysisRegisterSeed *best_seed = NULL;
+  uint16_t index;
+  if (out_value != NULL) init_amiga_value_provenance(out_value);
+  if (policy == NULL || out_value == NULL || reg_index >= 8U) return 0;
+  for (index = 0U; index < policy->register_seed_count && index < M68K_ANALYSIS_REGISTER_SEED_LIMIT; ++index) {
+    const M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
+    if ((seed->kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR &&
+         seed->kind != M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE) ||
+        seed->reg_kind != reg_kind ||
+        seed->reg_index != reg_index ||
+        !amiga_register_seed_applies_at_or_before(ctx, seed, trace_start)) {
+      continue;
+    }
+    if (amiga_register_seed_is_better_for_trace(seed, best_seed)) best_seed = seed;
+  }
+  apply_amiga_typed_register_seed(best_seed, trace_start, reg_kind, reg_index, out_value);
+  return amiga_value_provenance_has_any_info(out_value);
+}
+
 static void trace_amiga_call_setup(const SectionAnalysisContext *ctx, const M68kSectionAnalysisIR *section_analysis,
     uint32_t call_offset, const char **out_a0_seed_base_name, int16_t *out_a1_app_disp,
     const char **out_a1_seed_base_name) {
@@ -1440,6 +1864,7 @@ static void trace_amiga_call_setup(const SectionAnalysisContext *ctx, const M68k
   addr_reg_base_ids[6] = AMIGA_LOCAL_BASE_ID_APP;
   start = resolve_analysis_trace_start(ctx, section_analysis, call_offset);
   if (start == UINT32_MAX) return;
+  seed_amiga_base_regs_from_policy(ctx, start, addr_reg_base_ids, addr_reg_seed_base_ids, NULL);
   cursor = start;
   while (cursor < call_offset && cursor < section->data_size) {
     SectionDecodeResult decode;
@@ -1478,7 +1903,7 @@ static void trace_amiga_call_setup(const SectionAnalysisContext *ctx, const M68k
       }
     }
     if (instruction_is_address_move(&instruction, &dest_reg, &source)) {
-      if (operand_is_absolute_short_value(source, 4U)) {
+      if (operand_is_absolute_value(source, 4U)) {
         addr_reg_base_ids[dest_reg] = AMIGA_OS_BASE_ID_SYSBASE;
       } else if (source != NULL && source->kind == M68K_ASM_OPERAND_AN && source->value.reg < 8U) {
         addr_reg_base_ids[dest_reg] = addr_reg_base_ids[source->value.reg];
@@ -1724,6 +2149,9 @@ static int resolve_amiga_pre_call_absolute_target(const SectionAnalysisContext *
       } else if (operand_is_amiga_local_frame_slot(source, prev_local_base_ids, NULL, &local_base_id, &local_slot_disp) &&
           lookup_amiga_target_local_slot_entry(local_slots, sizeof(local_slots) / sizeof(local_slots[0]),
             local_base_id, local_slot_disp, &data_reg_targets[dest_reg])) {
+      } else if (operand_is_immediate_source_local(source) && source->value.value < section->data_size) {
+        data_reg_targets[dest_reg].target = source->value.value;
+        data_reg_targets[dest_reg].valid = 1U;
       } else if (resolve_amiga_absolute_target_from_operand(ctx, cursor, &instruction, source, 0U, &source_target)) {
         data_reg_targets[dest_reg].target = source_target;
         data_reg_targets[dest_reg].valid = 1U;
@@ -1739,6 +2167,9 @@ static int resolve_amiga_pre_call_absolute_target(const SectionAnalysisContext *
       } else if (operand_is_amiga_local_frame_slot(source, prev_local_base_ids, NULL, &local_base_id, &local_slot_disp) &&
           lookup_amiga_target_local_slot_entry(local_slots, sizeof(local_slots) / sizeof(local_slots[0]),
             local_base_id, local_slot_disp, &addr_reg_targets[dest_reg])) {
+      } else if (operand_is_immediate_source_local(source) && source->value.value < section->data_size) {
+        addr_reg_targets[dest_reg].target = source->value.value;
+        addr_reg_targets[dest_reg].valid = 1U;
       } else if (resolve_amiga_absolute_target_from_operand(ctx, cursor, &instruction, source, 0U, &source_target)) {
         addr_reg_targets[dest_reg].target = source_target;
         addr_reg_targets[dest_reg].valid = 1U;
@@ -1921,6 +2352,16 @@ static int operand_is_immediate_source_local(const M68kOperandIR *operand) {
       operand->value.ea_mode == 7U && operand->value.ea_reg == 4U);
 }
 
+static int instruction_has_unnamed_immediate_operand_local(const M68kInstructionIR *instruction) {
+  size_t operand_index;
+  if (instruction == NULL) return 0;
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    if (!operand->symbol_ref.has_name && operand_is_immediate_source_local(operand)) return 1;
+  }
+  return 0;
+}
+
 static void init_amiga_resolved_target(AmigaResolvedTarget *value) {
   if (value == NULL) return;
   value->target = 0U;
@@ -1978,38 +2419,126 @@ static int lookup_amiga_target_local_slot_entry(const AmigaTargetLocalSlotEntry 
 
 static int resolve_amiga_absolute_target_from_operand(const SectionAnalysisContext *ctx, uint32_t offset,
     const M68kInstructionIR *instruction, const M68kOperandIR *operand, size_t operand_index, uint32_t *out_target) {
-  const M68kSection *section = section_analysis_context_section(ctx);
-  const M68kSimFormMetadata *metadata;
-  uint32_t target;
+  size_t target_section_index = SIZE_MAX;
+  uint32_t target_offset = UINT32_MAX;
   if (out_target != NULL) *out_target = 0U;
-  if (ctx == NULL || section == NULL || operand == NULL) return 0;
-  metadata = instruction_sim_metadata(instruction);
-  if (operand_is_immediate_source_local(operand) && operand->value.value < section->data_size) {
-    if (out_target != NULL) *out_target = operand->value.value;
-    return 1;
-  }
-  if ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
-      operand->value.ea_mode == 7U) {
-    if ((operand->value.ea_reg == 0U || operand->value.ea_reg == 1U) &&
-        operand->value.value < section->data_size) {
-      if (out_target != NULL) *out_target = operand->value.value;
-      return 1;
+  if (operand == NULL ||
+      !instruction_operand_absolute_target_ref(ctx, instruction, operand_index, offset, &target_section_index,
+        &target_offset) ||
+      target_section_index != section_analysis_context_section_index(ctx))
+    return 0;
+  if (out_target != NULL) *out_target = target_offset;
+  return 1;
+}
+
+static void seed_amiga_absolute_base_slots_before_offset(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t before_offset, AmigaAbsoluteBaseSlotTag *absolute_base_slots,
+    size_t absolute_base_slot_count) {
+  const M68kSection *section = section_analysis_context_section(ctx);
+  uint16_t addr_reg_base_ids[8];
+  uint16_t data_reg_base_ids[8];
+  AmigaBaseSlotTag slot_base_names[AMIGA_BASE_SLOT_TAG_CAPACITY];
+  AmigaTypedSlotTag slot_type_names[AMIGA_BASE_SLOT_TAG_CAPACITY];
+  uint32_t cursor = 0U;
+  size_t section_index = section_analysis_context_section_index(ctx);
+  size_t slot_base_count = sizeof(slot_base_names) / sizeof(slot_base_names[0]);
+  if (ctx == NULL || section == NULL || section_analysis == NULL || absolute_base_slots == NULL) return;
+  init_amiga_base_id_array(addr_reg_base_ids, sizeof(addr_reg_base_ids) / sizeof(addr_reg_base_ids[0]));
+  init_amiga_base_id_array(data_reg_base_ids, sizeof(data_reg_base_ids) / sizeof(data_reg_base_ids[0]));
+  init_amiga_base_slot_tag_array(slot_base_names, sizeof(slot_base_names) / sizeof(slot_base_names[0]));
+  init_amiga_typed_slot_tag_array(slot_type_names, sizeof(slot_type_names) / sizeof(slot_type_names[0]));
+  seed_amiga_base_slot_tags_from_effects(section_analysis, slot_base_names, slot_base_count);
+  {
+    size_t index;
+    for (index = 0; index < section_analysis->recovered_platform_base_slot_count; ++index) {
+      const M68kRecoveredPlatformBaseSlotIR *slot = &section_analysis->recovered_platform_base_slots[index];
+      set_amiga_base_slot_id_local(slot_base_names, slot_base_count, slot->displacement,
+        !amiga_base_id_is_none_local(slot->base_ref.id) ? slot->base_ref.id : amiga_base_id_from_name_local(slot->base_name));
     }
-    if (operand->value.ea_reg == 2U) {
-      target = (uint32_t)((int32_t)offset + 2 + (int32_t)operand->value.value);
-      if (target < section->data_size) {
-        if (out_target != NULL) *out_target = target;
-        return 1;
+  }
+  addr_reg_base_ids[6] = AMIGA_LOCAL_BASE_ID_APP;
+  seed_amiga_base_regs_from_policy(ctx, 0U, addr_reg_base_ids, NULL, data_reg_base_ids);
+  while (cursor < before_offset && cursor < section->data_size) {
+    SectionDecodeResult decode;
+    M68kInstructionIR instruction;
+    uint16_t prev_addr_reg_base_ids[8];
+    uint16_t prev_data_reg_base_ids[8];
+    uint8_t reg;
+    if (!section_analysis_context_probe_decode(ctx, cursor, &decode)) {
+      ++cursor;
+      continue;
+    }
+    instruction = decode.instruction;
+    if (instruction.byte_count == 0U || cursor + instruction.byte_count > before_offset) break;
+    for (reg = 0U; reg < 8U; ++reg) {
+      prev_addr_reg_base_ids[reg] = addr_reg_base_ids[reg];
+      prev_data_reg_base_ids[reg] = data_reg_base_ids[reg];
+    }
+    for (reg = 0U; reg < 8U; ++reg) {
+      if (instruction_writes_address_reg_approx(&instruction, reg)) addr_reg_base_ids[reg] = AMIGA_OS_BASE_ID_NONE;
+      if (instruction_writes_data_reg_approx(&instruction, reg)) data_reg_base_ids[reg] = AMIGA_OS_BASE_ID_NONE;
+    }
+    {
+      uint8_t dest_reg;
+      uint8_t source_reg;
+      int16_t slot_disp;
+      uint32_t source_target;
+      uint16_t slot_base_id;
+      const M68kOperandIR *source = NULL;
+      if (instruction_is_data_move(&instruction, &dest_reg, &source) && source != NULL) {
+        if (operand_data_reg_index_local(source, &source_reg) && source_reg < 8U) {
+          data_reg_base_ids[dest_reg] = prev_data_reg_base_ids[source_reg];
+        } else if (operand_address_reg_index_local(source, &source_reg) && source_reg < 8U) {
+          data_reg_base_ids[dest_reg] = prev_addr_reg_base_ids[source_reg];
+        } else if (resolve_amiga_absolute_target_from_operand(ctx, cursor, &instruction, source, 0U, &source_target)) {
+          data_reg_base_ids[dest_reg] = lookup_amiga_absolute_base_slot_id_local(absolute_base_slots,
+            absolute_base_slot_count, section_index, source_target);
+        }
+      } else if (instruction_is_address_move(&instruction, &dest_reg, &source) && source != NULL) {
+        if (operand_is_absolute_value(source, 4U)) {
+          addr_reg_base_ids[dest_reg] = AMIGA_OS_BASE_ID_SYSBASE;
+        } else if (operand_address_reg_index_local(source, &source_reg) && source_reg < 8U) {
+          addr_reg_base_ids[dest_reg] = prev_addr_reg_base_ids[source_reg];
+        } else if (operand_data_reg_index_local(source, &source_reg) && source_reg < 8U) {
+          addr_reg_base_ids[dest_reg] = prev_data_reg_base_ids[source_reg];
+        } else if (!amiga_base_id_is_none_local((slot_base_id = lookup_amiga_app_slot_base_id_for_operand(
+            section_analysis, slot_base_names, slot_base_count, source, prev_addr_reg_base_ids[6], &slot_disp)))) {
+          addr_reg_base_ids[dest_reg] = slot_base_id;
+        } else if (resolve_amiga_absolute_target_from_operand(ctx, cursor, &instruction, source, 0U, &source_target)) {
+          addr_reg_base_ids[dest_reg] = lookup_amiga_absolute_base_slot_id_local(absolute_base_slots,
+            absolute_base_slot_count, section_index, source_target);
+        }
       }
     }
+    if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction.operand_count == 2U &&
+        instruction.size_suffix == 'l') {
+      const M68kOperandIR *src = &instruction.operands[0];
+      const M68kOperandIR *dst = &instruction.operands[1];
+      uint32_t target_offset = UINT32_MAX;
+      uint16_t stored_base_id = AMIGA_OS_BASE_ID_NONE;
+      uint8_t source_reg;
+      int16_t slot_disp;
+      if ((dst->kind == M68K_ASM_OPERAND_EA || dst->kind == M68K_ASM_OPERAND_BF_EA) &&
+          dst->value.ea_mode == 7U && (dst->value.ea_reg == 0U || dst->value.ea_reg == 1U) &&
+          dst->value.value < section->data_size) {
+        target_offset = dst->value.value;
+      }
+      if (target_offset != UINT32_MAX) {
+        if (operand_data_reg_index_local(src, &source_reg) && source_reg < 8U)
+          stored_base_id = prev_data_reg_base_ids[source_reg];
+        else if (operand_address_reg_index_local(src, &source_reg) && source_reg < 8U)
+          stored_base_id = prev_addr_reg_base_ids[source_reg];
+        else
+          stored_base_id = lookup_amiga_app_slot_base_id_for_operand(section_analysis, slot_base_names,
+            slot_base_count, src, prev_addr_reg_base_ids[6], &slot_disp);
+        set_amiga_absolute_base_slot_id_local(absolute_base_slots, absolute_base_slot_count, section_index, target_offset,
+          stored_base_id);
+      }
+    }
+    apply_recovered_amiga_platform_effects(section_analysis, cursor, data_reg_base_ids, addr_reg_base_ids,
+      NULL, NULL, slot_base_names, slot_base_count, slot_type_names, sizeof(slot_type_names) / sizeof(slot_type_names[0]));
+    cursor += (uint32_t)instruction.byte_count;
   }
-  if (metadata != NULL && operand_index <= UINT8_MAX &&
-      instruction_render_operand_target(instruction, metadata, (uint8_t)operand_index, offset,
-        (uint32_t)section->data_size, &target)) {
-    if (out_target != NULL) *out_target = target;
-    return 1;
-  }
-  return 0;
 }
 
 static void amiga_call_effect_reg_state_clear(AmigaCallEffectRegState *state) {
@@ -2219,7 +2748,8 @@ static void apply_recovered_amiga_platform_effects_to_call_state(const M68kSecti
   }
 }
 
-static void update_amiga_call_effect_reg_state_for_instruction(const M68kInstructionIR *instruction,
+static void update_amiga_call_effect_reg_state_for_instruction(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, const M68kInstructionIR *instruction, uint32_t offset,
     const AmigaCallEffectRegState *prev_state, AmigaCallEffectRegState *state) {
   uint8_t reg_index;
   uint8_t dest_reg;
@@ -2244,6 +2774,31 @@ static void update_amiga_call_effect_reg_state_for_instruction(const M68kInstruc
     } else if (operand_address_reg_index_local(source, &source_reg) && source_reg < 8U) {
       state->data_reg_base_ids[dest_reg] = prev_state->addr_reg_base_ids[source_reg];
       state->data_reg_values[dest_reg] = prev_state->addr_reg_values[source_reg];
+    } else {
+      int16_t field_disp = 0;
+      if (operand_is_indirect_or_disp_an(source, &source_reg, &field_disp) && source_reg < 8U &&
+          (amiga_value_provenance_type_name_local(&prev_state->addr_reg_values[source_reg]) != NULL ||
+           amiga_value_provenance_owner_type_name_local(&prev_state->addr_reg_values[source_reg]) != NULL ||
+           prev_state->addr_reg_values[source_reg].slot_disp != INT16_MIN)) {
+        const char *container_type = amiga_value_provenance_type_name_local(&prev_state->addr_reg_values[source_reg]) != NULL
+          ? amiga_value_provenance_type_name_local(&prev_state->addr_reg_values[source_reg])
+          : amiga_value_provenance_owner_type_name_local(&prev_state->addr_reg_values[source_reg]);
+        char field_symbol_name[64];
+        amiga_value_provenance_set_type_name(&state->data_reg_values[dest_reg],
+          resolve_amiga_struct_field_nested_type_name(container_type, field_disp));
+        amiga_value_provenance_set_owner_type_name(&state->data_reg_values[dest_reg], container_type);
+        state->data_reg_values[dest_reg].slot_disp = prev_state->addr_reg_values[source_reg].slot_disp;
+        state->data_reg_values[dest_reg].field_disp = field_disp;
+        state->data_reg_values[dest_reg].source_offset = offset;
+        state->data_reg_values[dest_reg].source_reg_kind = 1U;
+        state->data_reg_values[dest_reg].source_reg_index = dest_reg;
+        if (resolve_amiga_struct_field_symbol_name(container_type, field_disp, field_symbol_name,
+              sizeof(field_symbol_name))) {
+          amiga_value_provenance_set_field_symbol_name(&state->data_reg_values[dest_reg], field_symbol_name);
+          amiga_value_provenance_set_value_domain_name(&state->data_reg_values[dest_reg],
+            amiga_os_find_struct_field_value_domain(container_type, field_symbol_name, NULL));
+        }
+      }
     }
   }
   if (instruction_is_address_move(instruction, &dest_reg, &source) && source != NULL) {
@@ -2253,6 +2808,72 @@ static void update_amiga_call_effect_reg_state_for_instruction(const M68kInstruc
     } else if (operand_data_reg_index_local(source, &source_reg) && source_reg < 8U) {
       state->addr_reg_base_ids[dest_reg] = prev_state->data_reg_base_ids[source_reg];
       state->addr_reg_values[dest_reg] = prev_state->data_reg_values[source_reg];
+    } else {
+      int16_t slot_disp;
+      if (operand_is_app_base_disp_ea(source, 6U, &slot_disp)) {
+        AmigaValueProvenance loaded_value;
+        uint16_t loaded_base_id = resolve_amiga_app_slot_base_id(ctx, section_analysis, slot_disp);
+        if (lookup_recovered_platform_typed_slot_value(section_analysis, slot_disp, &loaded_value)) {
+          state->addr_reg_values[dest_reg] = loaded_value;
+        }
+        if (amiga_value_provenance_type_name_local(&state->addr_reg_values[dest_reg]) == NULL) {
+          amiga_value_provenance_set_type_name(&state->addr_reg_values[dest_reg],
+            resolve_amiga_base_type_name_from_id_local(loaded_base_id));
+        }
+        if (amiga_value_provenance_owner_type_name_local(&state->addr_reg_values[dest_reg]) == NULL) {
+          amiga_value_provenance_copy_owner_from_type(&state->addr_reg_values[dest_reg],
+            &state->addr_reg_values[dest_reg]);
+        }
+        state->addr_reg_values[dest_reg].slot_disp = slot_disp;
+        state->addr_reg_values[dest_reg].source_offset = offset;
+        state->addr_reg_values[dest_reg].source_reg_kind = 2U;
+        state->addr_reg_values[dest_reg].source_reg_index = dest_reg;
+      } else if (operand_is_indirect_or_disp_an(source, &source_reg, &slot_disp) && source_reg < 8U &&
+          (amiga_value_provenance_type_name_local(&prev_state->addr_reg_values[source_reg]) != NULL ||
+           amiga_value_provenance_owner_type_name_local(&prev_state->addr_reg_values[source_reg]) != NULL ||
+           prev_state->addr_reg_values[source_reg].slot_disp != INT16_MIN)) {
+        const char *container_type = amiga_value_provenance_type_name_local(&prev_state->addr_reg_values[source_reg]) != NULL
+          ? amiga_value_provenance_type_name_local(&prev_state->addr_reg_values[source_reg])
+          : amiga_value_provenance_owner_type_name_local(&prev_state->addr_reg_values[source_reg]);
+        char field_symbol_name[64];
+        amiga_value_provenance_set_type_name(&state->addr_reg_values[dest_reg],
+          resolve_amiga_struct_field_nested_type_name(container_type, slot_disp));
+        amiga_value_provenance_set_owner_type_name(&state->addr_reg_values[dest_reg], container_type);
+        state->addr_reg_values[dest_reg].slot_disp = prev_state->addr_reg_values[source_reg].slot_disp;
+        state->addr_reg_values[dest_reg].field_disp = slot_disp;
+        state->addr_reg_values[dest_reg].source_offset = offset;
+        state->addr_reg_values[dest_reg].source_reg_kind = 2U;
+        state->addr_reg_values[dest_reg].source_reg_index = dest_reg;
+        if (resolve_amiga_struct_field_symbol_name(container_type, slot_disp, field_symbol_name,
+              sizeof(field_symbol_name))) {
+          amiga_value_provenance_set_field_symbol_name(&state->addr_reg_values[dest_reg], field_symbol_name);
+          amiga_value_provenance_set_value_domain_name(&state->addr_reg_values[dest_reg],
+            amiga_os_find_struct_field_value_domain(container_type, field_symbol_name, NULL));
+        }
+      }
+    }
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction->operand_count == 2U &&
+      operand_address_reg_index_local(&instruction->operands[1], &dest_reg)) {
+    int16_t slot_disp;
+    if (operand_is_app_base_disp_ea(&instruction->operands[0], 6U, &slot_disp)) {
+      AmigaValueProvenance loaded_value;
+      uint16_t loaded_base_id = resolve_amiga_app_slot_base_id(ctx, section_analysis, slot_disp);
+      if (lookup_recovered_platform_typed_slot_value(section_analysis, slot_disp, &loaded_value)) {
+        state->addr_reg_values[dest_reg] = loaded_value;
+      }
+      if (amiga_value_provenance_type_name_local(&state->addr_reg_values[dest_reg]) == NULL) {
+        amiga_value_provenance_set_type_name(&state->addr_reg_values[dest_reg],
+          resolve_amiga_base_type_name_from_id_local(loaded_base_id));
+      }
+      if (amiga_value_provenance_owner_type_name_local(&state->addr_reg_values[dest_reg]) == NULL) {
+        amiga_value_provenance_copy_owner_from_type(&state->addr_reg_values[dest_reg],
+          &state->addr_reg_values[dest_reg]);
+      }
+      state->addr_reg_values[dest_reg].slot_disp = slot_disp;
+      state->addr_reg_values[dest_reg].source_offset = offset;
+      state->addr_reg_values[dest_reg].source_reg_kind = 2U;
+      state->addr_reg_values[dest_reg].source_reg_index = dest_reg;
     }
   }
 }
@@ -2277,6 +2898,10 @@ static int seed_amiga_call_effect_reg_state_from_call_entry(const SectionAnalysi
       trace_amiga_call_setup(ctx, section_analysis, offset, NULL, NULL, &returned_base_name);
     }
     returned_base_id = amiga_base_id_from_name_local(returned_base_name);
+    if (amiga_base_id_is_none_local(returned_base_id)) {
+      returned_base_name = amiga_os_find_library_base_name(returned_base_name);
+      returned_base_id = amiga_base_id_from_name_local(returned_base_name);
+    }
     if (!amiga_base_id_is_none_local(returned_base_id)) {
       if (effect_reg_kind == 1U && effect_reg_index < 8U) {
         const char *base_type_name = resolve_amiga_base_type_name_from_id_local(returned_base_id);
@@ -2302,6 +2927,7 @@ static int seed_amiga_call_effect_reg_state_from_call_entry(const SectionAnalysi
     if (effect_reg_kind == 1U && effect_reg_index < 8U) {
       amiga_value_provenance_set_struct_id(&out_state->data_reg_values[effect_reg_index], output_info->struct_id);
       amiga_value_provenance_set_owner_struct_id(&out_state->data_reg_values[effect_reg_index], output_info->struct_id);
+      amiga_value_provenance_set_symbol_id(&out_state->data_reg_values[effect_reg_index], output_info->output_id);
       amiga_value_provenance_set_semantic_kind_id(&out_state->data_reg_values[effect_reg_index],
         output_info->semantic_kind_id);
       amiga_value_provenance_set_value_domain_id(&out_state->data_reg_values[effect_reg_index],
@@ -2310,6 +2936,7 @@ static int seed_amiga_call_effect_reg_state_from_call_entry(const SectionAnalysi
     } else if (effect_reg_kind == 2U && effect_reg_index < 8U) {
       amiga_value_provenance_set_struct_id(&out_state->addr_reg_values[effect_reg_index], output_info->struct_id);
       amiga_value_provenance_set_owner_struct_id(&out_state->addr_reg_values[effect_reg_index], output_info->struct_id);
+      amiga_value_provenance_set_symbol_id(&out_state->addr_reg_values[effect_reg_index], output_info->output_id);
       amiga_value_provenance_set_semantic_kind_id(&out_state->addr_reg_values[effect_reg_index],
         output_info->semantic_kind_id);
       amiga_value_provenance_set_value_domain_id(&out_state->addr_reg_values[effect_reg_index],
@@ -2428,11 +3055,13 @@ static int resolve_next_amiga_call_input_for_reg(const SectionAnalysisContext *c
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
     uint8_t reg_kind, uint8_t reg_index, const AmigaOsLibraryVectorInfo **out_call_entry,
     const AmigaOsCallInputInfo **out_input_info) {
-  const M68kSection *section = section_analysis_context_section(ctx);
+  const M68kSection *section;
   uint32_t cursor;
   if (out_call_entry != NULL) *out_call_entry = NULL;
   if (out_input_info != NULL) *out_input_info = NULL;
-  if (ctx == NULL || section == NULL || section_analysis == NULL || reg_index >= 8U) return 0;
+  if (ctx == NULL || section_analysis == NULL || instruction == NULL || reg_index >= 8U) return 0;
+  section = section_analysis_context_section(ctx);
+  if (section == NULL) return 0;
   cursor = offset + (uint32_t)instruction->byte_count;
   while (cursor < section->data_size) {
     SectionDecodeResult decode;
@@ -2445,7 +3074,9 @@ static int resolve_next_amiga_call_input_for_reg(const SectionAnalysisContext *c
       if (info.kind != PLATFORM_RESOLVED_INDIRECT_NONE) {
         call_entry = resolve_amiga_library_vector_entry(ctx, section_analysis, cursor, &decode.instruction);
       } else {
-        info = resolve_amiga_local_wrapper_dispatch_info(ctx, section_analysis, cursor, &decode.instruction);
+        info = resolve_amiga_library_vector_info(ctx, section_analysis, cursor, &decode.instruction);
+        if (info.kind == PLATFORM_RESOLVED_INDIRECT_NONE)
+          info = resolve_amiga_local_wrapper_dispatch_info(ctx, section_analysis, cursor, &decode.instruction);
         if (info.kind != PLATFORM_RESOLVED_INDIRECT_NONE && info.note_symbol_name[0] != '\0')
           call_entry = amiga_os_find_library_vector_by_symbol_name(info.note_symbol_name);
       }
@@ -2459,6 +3090,285 @@ static int resolve_next_amiga_call_input_for_reg(const SectionAnalysisContext *c
       return 0;
     }
     if (instruction_stops_fallthrough(&decode.instruction)) return 0;
+    cursor += (uint32_t)decode.instruction.byte_count;
+  }
+  return 0;
+}
+
+typedef struct AmigaStackWrapperLookupContext {
+  const M68kSectionAnalysisIR *caller_section_analysis;
+} AmigaStackWrapperLookupContext;
+
+static uint16_t amiga_stack_wrapper_lookup_base_slot(void *user_ctx, const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, int16_t displacement) {
+  const AmigaStackWrapperLookupContext *lookup_ctx = (const AmigaStackWrapperLookupContext *)user_ctx;
+  uint16_t base_id;
+  (void)ctx;
+  base_id = lookup_recovered_platform_base_slot_id_local(section_analysis, displacement);
+  if (!amiga_base_id_is_none_local(base_id)) return base_id;
+  if (lookup_ctx != NULL && lookup_ctx->caller_section_analysis != NULL &&
+      lookup_ctx->caller_section_analysis != section_analysis) {
+    return lookup_recovered_platform_base_slot_id_local(lookup_ctx->caller_section_analysis, displacement);
+  }
+  return AMIGA_OS_BASE_ID_NONE;
+}
+
+static uint16_t amiga_stack_wrapper_lookup_operand_base(void *user_ctx, const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
+    uint8_t operand_index) {
+  (void)user_ctx;
+  if (ctx == NULL || section_analysis == NULL || instruction == NULL) return AMIGA_OS_BASE_ID_NONE;
+  return resolve_amiga_absolute_base_operand_id_local(ctx, section_analysis, NULL, 0U, instruction, operand_index,
+    offset, 1);
+}
+
+static const void *amiga_stack_wrapper_resolve_call(void *user_ctx, const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
+    const uint16_t addr_reg_base_ids[8]) {
+  const AmigaOsLibraryVectorInfo *call_entry;
+  (void)user_ctx;
+  call_entry = resolve_amiga_library_vector_entry(ctx, section_analysis, offset, instruction);
+  if (call_entry == NULL) {
+    const M68kOperandIR *target_operand = NULL;
+    if (addr_reg_base_ids != NULL && instruction_target_operand_local(instruction, &target_operand) && target_operand != NULL &&
+        (target_operand->kind == M68K_ASM_OPERAND_EA || target_operand->kind == M68K_ASM_OPERAND_BF_EA) &&
+        target_operand->value.ea_mode == 5U && target_operand->value.ea_reg < 8U) {
+      const char *base_name = amiga_base_name_from_id_local(addr_reg_base_ids[target_operand->value.ea_reg]);
+      call_entry = resolve_amiga_library_vector_entry_for_base_name(instruction, base_name);
+    }
+  }
+  if (call_entry == NULL) {
+    PlatformResolvedIndirectInfo info = resolve_amiga_indexed_library_dispatch_info(ctx, section_analysis, offset, instruction);
+    if (info.kind != PLATFORM_RESOLVED_INDIRECT_NONE && info.note_symbol_name[0] != '\0')
+      call_entry = amiga_os_find_library_vector_by_symbol_name(info.note_symbol_name);
+  }
+  return call_entry;
+}
+
+static int resolve_amiga_local_wrapper_signature(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, size_t target_section_index, uint32_t target_offset,
+    PlatformLocalStackWrapperSignature *out_signature) {
+  size_t current_section_index;
+  AmigaStackWrapperLookupContext lookup_ctx;
+  if (ctx == NULL || section_analysis == NULL || out_signature == NULL) return 0;
+  if (section_analysis_context_object(ctx) == NULL ||
+      section_analysis_context_object(ctx)->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK ||
+      section_analysis_context_object(ctx)->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE) {
+    return 0;
+  }
+  lookup_ctx.caller_section_analysis = section_analysis;
+  current_section_index = section_analysis_context_section_index(ctx);
+  if (target_section_index != current_section_index) {
+    return platform_analyze_local_stack_wrapper_signature_at(ctx, target_section_index, target_offset,
+      AMIGA_LOCAL_BASE_ID_APP, amiga_stack_wrapper_lookup_base_slot, amiga_stack_wrapper_lookup_operand_base,
+      amiga_stack_wrapper_resolve_call, &lookup_ctx, out_signature);
+  }
+  return platform_analyze_local_stack_wrapper_signature(ctx, section_analysis, target_offset, AMIGA_LOCAL_BASE_ID_APP,
+    amiga_stack_wrapper_lookup_base_slot, amiga_stack_wrapper_lookup_operand_base, amiga_stack_wrapper_resolve_call,
+    &lookup_ctx, out_signature);
+}
+
+static void append_amiga_identifier_tail(char *buf, size_t buf_size, const char *text, int strip_lvo_prefix,
+    int strip_base_suffix) {
+  const char *cursor = text;
+  size_t used;
+  size_t len;
+  if (buf == NULL || buf_size == 0U || text == NULL) return;
+  if (strip_lvo_prefix && strncmp(cursor, "_LVO", 4U) == 0) cursor += 4;
+  len = strlen(cursor);
+  if (strip_base_suffix && len > 4U && strcmp(cursor + len - 4U, "Base") == 0) len -= 4U;
+  used = strlen(buf);
+  while (len != 0U && used + 1U < buf_size) {
+    unsigned char ch = (unsigned char)*cursor++;
+    --len;
+    if (isalnum(ch) || ch == '_') {
+      buf[used++] = (char)ch;
+    }
+  }
+  buf[used] = '\0';
+}
+
+static int format_amiga_local_wrapper_label(size_t section_index, const AmigaOsLibraryVectorInfo *entry,
+    char *buf, size_t buf_size) {
+  const char *base_name;
+  const char *symbol_name;
+  int written;
+  if (buf == NULL || buf_size == 0U || entry == NULL) return 0;
+  base_name = amiga_os_name(M68K_PLATFORM_NAME_BASE, entry->base_id);
+  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, entry->lvo_symbol_id);
+  if (base_name == NULL || base_name[0] == '\0' || symbol_name == NULL || symbol_name[0] == '\0') return 0;
+  written = snprintf(buf, buf_size, "h%u_", (unsigned)section_index);
+  if (written < 0 || (size_t)written >= buf_size) return 0;
+  if (strcmp(base_name, "SysBase") == 0) {
+    append_amiga_identifier_tail(buf, buf_size, "Exec", 0, 0);
+  } else {
+    append_amiga_identifier_tail(buf, buf_size, base_name, 0, 1);
+  }
+  append_amiga_identifier_tail(buf, buf_size, symbol_name, 1, 0);
+  return buf[0] != '\0';
+}
+
+static int amiga_wrapper_scan_sees_caller_stack_arg_push_before_call(const SectionAnalysisContext *ctx,
+    uint32_t offset) {
+  const M68kSection *section;
+  uint32_t cursor;
+  if (ctx == NULL) return 0;
+  section = section_analysis_context_section(ctx);
+  if (section == NULL) return 0;
+  cursor = offset;
+  while (cursor < section->data_size && cursor - offset < 128U) {
+    SectionDecodeResult decode;
+    const M68kOperandIR *push_operand = NULL;
+    uint8_t pushed_data_reg;
+    uint8_t address_reg;
+    if (!section_analysis_context_probe_decode(ctx, cursor, &decode)) break;
+    if (decode.instruction.byte_count == 0U) break;
+    if (decode.is_call) return 0;
+    if (instruction_pushes_data_reg_to_stack_local(&decode.instruction, &pushed_data_reg)) return 1;
+    if (instruction_pushes_long_stack_arg_local(&decode.instruction, &push_operand) &&
+        (decode.instruction.mnemonic_id == M68K_ASM_MNEMONIC_PEA ||
+         !operand_address_reg_index_local(push_operand, &address_reg))) {
+      return 1;
+    }
+    if (instruction_stops_fallthrough(&decode.instruction)) return 0;
+    cursor += (uint32_t)decode.instruction.byte_count;
+  }
+  return 0;
+}
+
+static int amiga_has_other_same_inferred_wrapper_label(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const AmigaOsLibraryVectorInfo *entry) {
+  uint32_t cursor;
+  size_t block_index;
+  if (ctx == NULL || section_analysis == NULL || entry == NULL) return 0;
+  for (cursor = 0U; cursor < section_analysis->certain_code_size; ++cursor) {
+    PlatformLocalStackWrapperSignature prior_signature;
+    const AmigaOsLibraryVectorInfo *prior_entry;
+    int is_block_start = 0;
+    if (cursor == offset) continue;
+    if (section_analysis->certain_code_start == NULL || section_analysis->certain_code_start[cursor] == 0U) continue;
+    for (block_index = 0U; block_index < section_analysis->block_count; ++block_index) {
+      if (section_analysis->blocks[block_index].start_offset == cursor) {
+        is_block_start = 1;
+        break;
+      }
+    }
+    if (!is_block_start) continue;
+    if (amiga_wrapper_scan_sees_caller_stack_arg_push_before_call(ctx, cursor)) continue;
+    if (!resolve_amiga_local_wrapper_signature(ctx, section_analysis, section_analysis_context_section_index(ctx),
+        cursor, &prior_signature) ||
+        prior_signature.call_entry == NULL) {
+      continue;
+    }
+    prior_entry = (const AmigaOsLibraryVectorInfo *)prior_signature.call_entry;
+    if (prior_entry->base_id == entry->base_id && prior_entry->lvo_symbol_id == entry->lvo_symbol_id) return 1;
+  }
+  return 0;
+}
+
+int platform_amiga_resolve_inferred_label(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, char *buf, size_t buf_size) {
+  PlatformLocalStackWrapperSignature signature;
+  const AmigaOsLibraryVectorInfo *entry;
+  size_t block_index;
+  int is_block_start = 0;
+  if (buf != NULL && buf_size != 0U) buf[0] = '\0';
+  if (ctx == NULL || section_analysis == NULL || buf == NULL || buf_size == 0U) return 0;
+  for (block_index = 0U; block_index < section_analysis->block_count; ++block_index) {
+    if (section_analysis->blocks[block_index].start_offset == offset) {
+      is_block_start = 1;
+      break;
+    }
+  }
+  if (!is_block_start) return 0;
+  if (amiga_wrapper_scan_sees_caller_stack_arg_push_before_call(ctx, offset)) return 0;
+  if (!resolve_amiga_local_wrapper_signature(ctx, section_analysis, section_analysis_context_section_index(ctx),
+      offset, &signature) ||
+      signature.call_entry == NULL) {
+    return 0;
+  }
+  entry = (const AmigaOsLibraryVectorInfo *)signature.call_entry;
+  if (!format_amiga_local_wrapper_label(section_analysis_context_section_index(ctx), entry, buf, buf_size)) return 0;
+  if (amiga_has_other_same_inferred_wrapper_label(ctx, section_analysis, offset, entry)) {
+    size_t used = strlen(buf);
+    if (used + 6U < buf_size) snprintf(buf + used, buf_size - used, "_%04X", (unsigned)offset);
+  }
+  return 1;
+}
+
+static int resolve_amiga_stack_push_wrapper_input(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
+    size_t *out_operand_index, const AmigaOsCallInputInfo **out_input_info, uint16_t *out_stack_offset) {
+  const M68kSection *section;
+  const M68kOperandIR *push_operand = NULL;
+  uint32_t cursor;
+  uint16_t later_push_bytes = 0U;
+  if (out_operand_index != NULL) *out_operand_index = SIZE_MAX;
+  if (out_input_info != NULL) *out_input_info = NULL;
+  if (out_stack_offset != NULL) *out_stack_offset = 0U;
+  if (ctx == NULL || section_analysis == NULL || instruction == NULL) return 0;
+  section = section_analysis_context_section(ctx);
+  if (section == NULL) return 0;
+  if (!instruction_pushes_long_stack_arg_local(instruction, &push_operand)) return 0;
+  cursor = offset + (uint32_t)instruction->byte_count;
+  while (cursor < section->data_size) {
+    SectionDecodeResult decode;
+    const M68kOperandIR *ignored_operand = NULL;
+    if (!section_analysis_context_probe_decode(ctx, cursor, &decode)) break;
+    if (decode.instruction.byte_count == 0U) break;
+    if (decode.is_call) {
+      size_t target_section_index;
+      uint32_t target_offset;
+      PlatformLocalStackWrapperSignature signature;
+      size_t index;
+      uint16_t caller_stack_offset = (uint16_t)(4U + later_push_bytes);
+      uint16_t min_signature_stack_offset = UINT16_MAX;
+      if (!platform_resolve_direct_target_with_fixup(ctx, &decode.instruction, cursor, &target_section_index,
+          &target_offset))
+        return 0;
+      if (!resolve_amiga_local_wrapper_signature(ctx, section_analysis, target_section_index, target_offset, &signature) ||
+          signature.call_entry == NULL) {
+        return 0;
+      }
+      for (index = 0U; index < signature.arg_count; ++index) {
+        if (signature.args[index].caller_stack_offset != 0U &&
+            signature.args[index].caller_stack_offset < min_signature_stack_offset)
+          min_signature_stack_offset = signature.args[index].caller_stack_offset;
+      }
+      for (index = 0U; index < signature.arg_count; ++index) {
+        const AmigaOsCallInputInfo *input_info;
+        if (signature.args[index].caller_stack_offset != caller_stack_offset) {
+          if (min_signature_stack_offset == UINT16_MAX ||
+              signature.args[index].caller_stack_offset < min_signature_stack_offset ||
+              signature.args[index].caller_stack_offset - min_signature_stack_offset != later_push_bytes) {
+            continue;
+          }
+        }
+        input_info = find_amiga_call_input_for_reg((const AmigaOsLibraryVectorInfo *)signature.call_entry, signature.args[index].reg_kind,
+          signature.args[index].reg_index);
+        if (input_info == NULL) continue;
+        if (out_operand_index != NULL) {
+          size_t operand_index;
+          *out_operand_index = SIZE_MAX;
+          for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+            if (&instruction->operands[operand_index] == push_operand) {
+              *out_operand_index = operand_index;
+              break;
+            }
+          }
+          if (*out_operand_index == SIZE_MAX) return 0;
+        }
+        if (out_input_info != NULL) *out_input_info = input_info;
+        if (out_stack_offset != NULL) *out_stack_offset = caller_stack_offset;
+        return 1;
+      }
+      return 0;
+    }
+    if (instruction_pushes_long_stack_arg_local(&decode.instruction, &ignored_operand)) {
+      later_push_bytes = (uint16_t)(later_push_bytes + 4U);
+    } else if (instruction_stops_fallthrough(&decode.instruction)) {
+      return 0;
+    }
     cursor += (uint32_t)decode.instruction.byte_count;
   }
   return 0;
@@ -2562,7 +3472,9 @@ static int append_amiga_post_call_slot_effects(const SectionAnalysisContext *ctx
     if (next_instruction.byte_count == 0U) break;
     if (next_decode.is_call) break;
     if (instruction_is_register_to_app_slot_store(&next_instruction, &next_source_kind, &next_source_reg,
-          &next_slot_disp)) {
+          &next_slot_disp) ||
+        instruction_is_register_to_resolved_app_slot_store(ctx, section_analysis, offset, &next_instruction,
+          &next_source_kind, &next_source_reg, &next_slot_disp)) {
       const AmigaValueProvenance *stored_value = NULL;
       const char *stored_base_name = NULL, *stored_symbol_name = NULL, *stored_context_name = NULL;
       const char *stored_type_name = NULL, *stored_semantic_kind = NULL, *stored_value_domain_name = NULL;
@@ -2605,7 +3517,8 @@ static int append_amiga_post_call_slot_effects(const SectionAnalysisContext *ctx
     (void)source_reg;
     (void)source;
     (void)reg_index;
-    update_amiga_call_effect_reg_state_for_instruction(&next_instruction, &prev_state, &state);
+    update_amiga_call_effect_reg_state_for_instruction(ctx, section_analysis, &next_instruction, cursor,
+      &prev_state, &state);
     if (instruction_stops_fallthrough(&next_instruction)) break;
     cursor += (uint32_t)next_instruction.byte_count;
   }
@@ -2748,35 +3661,44 @@ static int summarize_amiga_direct_local_success_outputs(const SectionAnalysisCon
       amiga_call_effect_reg_state_copy(&prev_state, &state);
       copy_local_data_const_state(prev_const_known, prev_const_values, const_known, const_values);
       if (decode.is_call) {
+        size_t nested_target_section_index = SIZE_MAX;
         uint32_t nested_target_offset;
         AmigaCallEffectRegState nested_summary;
         AmigaCallEffectRegState call_effect_state;
         PlatformResolvedIndirectInfo info;
         const AmigaOsLibraryVectorInfo *call_entry = NULL;
+        int loaded_success_summary = 0;
         clear_all_amiga_call_effect_regs(&state);
         clear_local_data_const_state(const_known, const_values);
         amiga_call_effect_reg_state_clear(&nested_summary);
         amiga_call_effect_reg_state_clear(&call_effect_state);
-        if (instruction_direct_target_local(ctx, &decode.instruction, cursor, &nested_target_offset) &&
-            summarize_amiga_direct_local_success_outputs(ctx, section_analysis, nested_target_offset,
-              cache, cache_count, &nested_summary)) {
+        if (platform_resolve_direct_target_with_fixup(ctx, &decode.instruction, cursor, &nested_target_section_index,
+              &nested_target_offset) &&
+            summarize_amiga_direct_local_success_outputs_at(ctx, section_analysis, nested_target_section_index,
+              nested_target_offset, cache, cache_count, &nested_summary)) {
           amiga_call_effect_reg_state_copy(&state, &nested_summary);
           const_known[0] = 1U;
           const_values[0] = 0;
+          loaded_success_summary = 1;
         }
-        info = resolve_amiga_local_wrapper_dispatch_info(ctx, section_analysis, cursor, &decode.instruction);
-        if (info.kind != PLATFORM_RESOLVED_INDIRECT_NONE &&
-            info.note_symbol_name[0] != '\0') {
-          call_entry = amiga_os_find_library_vector_by_symbol_name(info.note_symbol_name);
-        }
-        if (call_entry != NULL &&
-            seed_amiga_call_effect_reg_state_from_call_entry(ctx, section_analysis, cursor, call_entry,
-              &call_effect_state)) {
-          amiga_call_effect_reg_state_copy(&state, &call_effect_state);
+        if (!loaded_success_summary) {
+          info = resolve_amiga_library_vector_info(ctx, section_analysis, cursor, &decode.instruction);
+          if (info.kind == PLATFORM_RESOLVED_INDIRECT_NONE)
+            info = resolve_amiga_local_wrapper_dispatch_info(ctx, section_analysis, cursor, &decode.instruction);
+          if (info.kind != PLATFORM_RESOLVED_INDIRECT_NONE &&
+              info.note_symbol_name[0] != '\0') {
+            call_entry = amiga_os_find_library_vector_by_symbol_name(info.note_symbol_name);
+          }
+          if (call_entry != NULL &&
+              seed_amiga_call_effect_reg_state_from_call_entry(ctx, section_analysis, cursor, call_entry,
+                &call_effect_state)) {
+            amiga_call_effect_reg_state_copy(&state, &call_effect_state);
+          }
         }
         apply_recovered_amiga_platform_effects_to_call_state(section_analysis, cursor, &state);
       } else {
-        update_amiga_call_effect_reg_state_for_instruction(&decode.instruction, &prev_state, &state);
+        update_amiga_call_effect_reg_state_for_instruction(ctx, section_analysis, &decode.instruction, cursor,
+          &prev_state, &state);
         update_local_data_const_state_for_instruction(&decode.instruction, prev_const_known, prev_const_values,
           const_known, const_values);
       }
@@ -2829,6 +3751,53 @@ cleanup:
   return result;
 }
 
+static const M68kSectionAnalysisIR *resolve_amiga_target_section_analysis(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, size_t target_section_index) {
+  if (ctx == NULL || section_analysis == NULL || target_section_index == SIZE_MAX) return NULL;
+  if (target_section_index == section_analysis_context_section_index(ctx)) return section_analysis;
+  return section_analysis_context_prior_section_analysis(ctx, target_section_index);
+}
+
+static int summarize_amiga_direct_local_success_outputs_at(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, size_t target_section_index, uint32_t target_offset,
+    AmigaLocalSuccessSummaryCacheEntry *same_section_cache, size_t same_section_cache_count,
+    AmigaCallEffectRegState *out_summary) {
+  const M68kObject *object;
+  const M68kSectionAnalysisIR *target_analysis;
+  const M68kSection *target_section;
+  size_t current_section_index;
+  if (out_summary != NULL) amiga_call_effect_reg_state_clear(out_summary);
+  if (ctx == NULL || section_analysis == NULL || out_summary == NULL) return 0;
+  current_section_index = section_analysis_context_section_index(ctx);
+  if (target_section_index == current_section_index) {
+    return summarize_amiga_direct_local_success_outputs(ctx, section_analysis, target_offset,
+      same_section_cache, same_section_cache_count, out_summary);
+  }
+  object = section_analysis_context_object(ctx);
+  if (object == NULL || target_section_index >= object->section_count) return 0;
+  target_analysis = section_analysis_context_prior_section_analysis(ctx, target_section_index);
+  if (target_analysis == NULL || target_analysis->block_count == 0U) return 0;
+  target_section = &object->sections[target_section_index];
+  {
+    Arena *arena = arena_create(4096U);
+    SectionAnalysisContext target_ctx;
+    AmigaLocalSuccessSummaryCacheEntry *target_cache;
+    int result = 0;
+    if (arena == NULL) return 0;
+    target_cache = (AmigaLocalSuccessSummaryCacheEntry *)calloc(target_analysis->block_count, sizeof(*target_cache));
+    if (target_cache != NULL &&
+        section_analysis_context_init(&target_ctx, object, target_section_index, target_section,
+          ctx->prior_section_analyses, ctx->prior_section_analysis_count, section_analysis_context_policy(ctx),
+          arena) == 0) {
+      result = summarize_amiga_direct_local_success_outputs(&target_ctx, target_analysis, target_offset,
+        target_cache, target_analysis->block_count, out_summary);
+    }
+    free(target_cache);
+    arena_destroy(arena);
+    return result;
+  }
+}
+
 static int load_amiga_recovered_local_success_summary_state(const M68kSectionAnalysisIR *section_analysis,
     uint32_t target_offset, AmigaCallEffectRegState *out_state) {
   size_t index;
@@ -2839,8 +3808,8 @@ static int load_amiga_recovered_local_success_summary_state(const M68kSectionAna
     const M68kRecoveredLocalCallSummaryIR *summary = &section_analysis->recovered_local_call_summaries[index];
     uint16_t base_id;
     if (summary->target_offset != target_offset) continue;
-    if (summary->success_reg_kind != 1U || summary->success_reg_index != 0U ||
-        !summary->success_value_known || summary->success_reg_value != 0) {
+    if (summary->success_value_known &&
+        (summary->success_reg_kind != 1U || summary->success_reg_index != 0U || summary->success_reg_value != 0)) {
       continue;
     }
     if (summary->reg_index >= 8U) continue;
@@ -2867,50 +3836,218 @@ static int load_amiga_recovered_local_success_summary_state(const M68kSectionAna
   return found;
 }
 
+static int append_amiga_recovered_local_call_summaries_from_state(M68kSectionAnalysisIR *section_analysis,
+    uint32_t target_offset, const AmigaCallEffectRegState *summary, uint8_t success_value_known, int32_t success_value) {
+  uint8_t reg_index;
+  if (section_analysis == NULL || summary == NULL) return 0;
+  for (reg_index = 0U; reg_index < 8U; ++reg_index) {
+    if (!amiga_base_id_is_none_local(summary->data_reg_base_ids[reg_index]) &&
+        m68k_ir_section_analysis_append_recovered_local_call_summary(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, target_offset,
+          M68K_PLATFORM_EFFECT_SET_BASE_REG, 1U, reg_index, 1U, 0U, success_value_known, success_value,
+          amiga_call_effect_reg_state_base_name_local(summary, 1U, reg_index), NULL, NULL, NULL, NULL, 0U, 0) != 0) {
+      return -1;
+    }
+    if (!amiga_base_id_is_none_local(summary->addr_reg_base_ids[reg_index]) &&
+        m68k_ir_section_analysis_append_recovered_local_call_summary(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, target_offset,
+          M68K_PLATFORM_EFFECT_SET_BASE_REG, 2U, reg_index, 1U, 0U, success_value_known, success_value,
+          amiga_call_effect_reg_state_base_name_local(summary, 2U, reg_index), NULL, NULL, NULL, NULL, 0U, 0) != 0) {
+      return -1;
+    }
+    if (amiga_value_provenance_has_any_info(&summary->data_reg_values[reg_index]) &&
+        m68k_ir_section_analysis_append_recovered_local_call_summary(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, target_offset,
+          M68K_PLATFORM_EFFECT_SET_TYPED_REG, 1U, reg_index, 1U, 0U, success_value_known, success_value,
+          amiga_value_provenance_context_base_name_local(&summary->data_reg_values[reg_index]),
+          amiga_value_provenance_symbol_name_local(&summary->data_reg_values[reg_index]),
+          amiga_value_provenance_type_name_local(&summary->data_reg_values[reg_index]),
+          amiga_value_provenance_semantic_kind_local(&summary->data_reg_values[reg_index]),
+          amiga_value_provenance_value_domain_name_local(&summary->data_reg_values[reg_index]),
+          summary->data_reg_values[reg_index].has_constant_value,
+          summary->data_reg_values[reg_index].constant_value) != 0) {
+      return -1;
+    }
+    if (amiga_value_provenance_has_any_info(&summary->addr_reg_values[reg_index]) &&
+        m68k_ir_section_analysis_append_recovered_local_call_summary(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, target_offset,
+          M68K_PLATFORM_EFFECT_SET_TYPED_REG, 2U, reg_index, 1U, 0U, success_value_known, success_value,
+          amiga_value_provenance_context_base_name_local(&summary->addr_reg_values[reg_index]),
+          amiga_value_provenance_symbol_name_local(&summary->addr_reg_values[reg_index]),
+          amiga_value_provenance_type_name_local(&summary->addr_reg_values[reg_index]),
+          amiga_value_provenance_semantic_kind_local(&summary->addr_reg_values[reg_index]),
+          amiga_value_provenance_value_domain_name_local(&summary->addr_reg_values[reg_index]),
+          summary->addr_reg_values[reg_index].has_constant_value,
+          summary->addr_reg_values[reg_index].constant_value) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_amiga_recovered_local_wrapper_summaries(const SectionAnalysisContext *ctx,
+    M68kSectionAnalysisIR *section_analysis, uint32_t target_offset) {
+  PlatformLocalStackWrapperSignature signature;
+  AmigaCallEffectRegState summary;
+  if (!resolve_amiga_local_wrapper_signature(ctx, section_analysis, section_analysis_context_section_index(ctx),
+      target_offset, &signature) ||
+      signature.call_entry == NULL) {
+    return 0;
+  }
+  if (append_amiga_recovered_function_args_from_signature(section_analysis, target_offset, &signature) != 0)
+    return -1;
+  amiga_call_effect_reg_state_clear(&summary);
+  if (!seed_amiga_call_effect_reg_state_from_call_entry(ctx, section_analysis, target_offset,
+      (const AmigaOsLibraryVectorInfo *)signature.call_entry, &summary))
+    return 0;
+  return append_amiga_recovered_local_call_summaries_from_state(section_analysis, target_offset, &summary, 0U, 0);
+}
+
+static int append_amiga_recovered_function_args_from_signature(M68kSectionAnalysisIR *section_analysis,
+    uint32_t target_offset, const PlatformLocalStackWrapperSignature *signature) {
+  size_t arg_index;
+  if (section_analysis == NULL || signature == NULL || signature->call_entry == NULL)
+    return 0;
+  for (arg_index = 0U; arg_index < signature->arg_count; ++arg_index) {
+    const PlatformLocalStackWrapperArgMapEntry *arg = &signature->args[arg_index];
+    const AmigaOsCallInputInfo *input_info = find_amiga_call_input_for_reg(
+      (const AmigaOsLibraryVectorInfo *)signature->call_entry, arg->reg_kind, arg->reg_index);
+    const char *input_symbol_name;
+    const char *input_context_name;
+    const char *input_struct_name;
+    const char *input_semantic_kind;
+    const char *input_value_domain_name;
+    if (input_info == NULL) continue;
+    input_symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, input_info->input_id);
+    input_context_name = NULL;
+    input_struct_name = amiga_type_or_struct_name_local(input_info->type_id, input_info->struct_id);
+    input_semantic_kind = amiga_os_name(M68K_PLATFORM_NAME_SEMANTIC_KIND, input_info->semantic_kind_id);
+    input_value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input_info->value_domain_id);
+    if (m68k_ir_section_analysis_append_recovered_function_arg(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          target_offset, arg->caller_stack_offset, arg->reg_kind, arg->reg_index, input_context_name,
+          input_symbol_name, input_struct_name, input_semantic_kind, input_value_domain_name, 0U, 0) != 0)
+      return -1;
+  }
+  return 0;
+}
+
+static int append_amiga_call_scoped_base_slots(M68kSectionAnalysisIR *target_analysis,
+    const M68kSectionAnalysisIR *caller_analysis, uint32_t target_offset) {
+  size_t index;
+  if (target_analysis == NULL || caller_analysis == NULL || target_analysis == caller_analysis) return 0;
+  for (index = 0U; index < caller_analysis->recovered_platform_effect_count; ++index) {
+    const M68kRecoveredPlatformEffectIR *effect = &caller_analysis->recovered_platform_effects[index];
+    const char *base_name;
+    uint16_t base_id;
+    int append_result;
+    if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT || effect->displacement == INT16_MIN) continue;
+    base_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.named_base.base_ref,
+      effect->payload.named_base.base_name);
+    if (base_name == NULL || base_name[0] == '\0') continue;
+    base_id = amiga_base_id_from_name_local(base_name);
+    if (m68k_ir_section_analysis_append_recovered_platform_effect(target_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        target_offset, M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT, 0U, 0U, effect->displacement, INT16_MIN, base_name, NULL,
+        NULL, NULL, NULL, 0U, 0) != 0 &&
+        lookup_recovered_platform_base_slot_id_local(target_analysis, effect->displacement) != base_id) {
+      return -1;
+    }
+    append_result = m68k_ir_section_analysis_append_recovered_platform_base_slot(target_analysis,
+      M68K_PLATFORM_BACKEND_AMIGA_HUNK, effect->displacement, base_name);
+    if (append_result != 0 && lookup_recovered_platform_base_slot_id_local(target_analysis, effect->displacement) ==
+        AMIGA_OS_BASE_ID_NONE) {
+      return -1;
+    }
+  }
+  for (index = 0U; index < caller_analysis->recovered_platform_base_slot_count; ++index) {
+    const M68kRecoveredPlatformBaseSlotIR *slot = &caller_analysis->recovered_platform_base_slots[index];
+    const char *base_name = m68k_platform_name_ref_resolve_text_or_fallback(&slot->base_ref, slot->base_name);
+    uint16_t base_id;
+    int append_result;
+    if (base_name == NULL || base_name[0] == '\0') continue;
+    base_id = amiga_base_id_from_name_local(base_name);
+    if (m68k_ir_section_analysis_append_recovered_platform_effect(target_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        target_offset, M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT, 0U, 0U, slot->displacement, INT16_MIN, base_name, NULL,
+        NULL, NULL, NULL, 0U, 0) != 0 &&
+        lookup_recovered_platform_base_slot_id_local(target_analysis, slot->displacement) != base_id) {
+      return -1;
+    }
+    append_result = m68k_ir_section_analysis_append_recovered_platform_base_slot(target_analysis,
+      M68K_PLATFORM_BACKEND_AMIGA_HUNK, slot->displacement, base_name);
+    if (append_result != 0 && lookup_recovered_platform_base_slot_id_local(target_analysis, slot->displacement) ==
+        AMIGA_OS_BASE_ID_NONE) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static int append_amiga_recovered_local_success_summaries(const SectionAnalysisContext *ctx,
     M68kSectionAnalysisIR *section_analysis, uint32_t target_offset, AmigaLocalSuccessSummaryCacheEntry *cache,
     size_t cache_count) {
   AmigaCallEffectRegState summary;
-  uint8_t reg_index;
   amiga_call_effect_reg_state_clear(&summary);
   if (!summarize_amiga_direct_local_success_outputs(ctx, section_analysis, target_offset, cache, cache_count, &summary)) return 0;
-  for (reg_index = 0U; reg_index < 8U; ++reg_index) {
-    if (!amiga_base_id_is_none_local(summary.data_reg_base_ids[reg_index]) &&
-        m68k_ir_section_analysis_append_recovered_local_call_summary(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, target_offset,
-          M68K_PLATFORM_EFFECT_SET_BASE_REG, 1U, reg_index, 1U, 0U, 1U, 0,
-          amiga_call_effect_reg_state_base_name_local(&summary, 1U, reg_index), NULL, NULL, NULL, NULL, 0U, 0) != 0) {
-      return -1;
+  return append_amiga_recovered_local_call_summaries_from_state(section_analysis, target_offset, &summary, 1U, 0);
+}
+
+static int collect_amiga_direct_call_targets_to_current_section(const SectionAnalysisContext *ctx,
+    M68kSectionAnalysisIR *section_analysis, uint32_t **direct_call_targets, size_t *direct_call_target_count,
+    size_t *direct_call_target_capacity) {
+  const M68kObject *object;
+  size_t current_section_index;
+  size_t source_section_index;
+  if (ctx == NULL || section_analysis == NULL || direct_call_targets == NULL || direct_call_target_count == NULL ||
+      direct_call_target_capacity == NULL)
+    return -1;
+  object = section_analysis_context_object(ctx);
+  if (object == NULL || ctx->prior_section_analyses == NULL || ctx->prior_section_analysis_count < object->section_count)
+    return 0;
+  current_section_index = section_analysis_context_section_index(ctx);
+  for (source_section_index = 0U; source_section_index < object->section_count; ++source_section_index) {
+    const M68kSection *source_section = &object->sections[source_section_index];
+    const M68kSectionAnalysisIR *source_analysis = section_analysis_context_prior_section_analysis(ctx, source_section_index);
+    Arena *arena;
+    SectionAnalysisContext source_ctx;
+    uint32_t source_offset;
+    int source_ctx_ok;
+    if (source_section_index == current_section_index || source_section == NULL || source_analysis == NULL ||
+        source_section->kind != M68K_SECTION_CODE)
+      continue;
+    arena = arena_create(4096U);
+    if (arena == NULL) return -1;
+    source_ctx_ok = section_analysis_context_init(&source_ctx, object, source_section_index, source_section,
+      ctx->prior_section_analyses, ctx->prior_section_analysis_count, section_analysis_context_policy(ctx), arena) == 0;
+    if (!source_ctx_ok) {
+      arena_destroy(arena);
+      continue;
     }
-    if (!amiga_base_id_is_none_local(summary.addr_reg_base_ids[reg_index]) &&
-        m68k_ir_section_analysis_append_recovered_local_call_summary(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, target_offset,
-          M68K_PLATFORM_EFFECT_SET_BASE_REG, 2U, reg_index, 1U, 0U, 1U, 0,
-          amiga_call_effect_reg_state_base_name_local(&summary, 2U, reg_index), NULL, NULL, NULL, NULL, 0U, 0) != 0) {
-      return -1;
+    for (source_offset = 0U; source_offset < source_section->data_size; ++source_offset) {
+      SectionDecodeResult decode;
+      size_t target_section_index;
+      uint32_t target_offset;
+      if (!section_analysis_context_probe_decode(&source_ctx, source_offset, &decode)) continue;
+      if (!decode.is_call) continue;
+      if (!platform_resolve_direct_target_with_fixup(&source_ctx, &decode.instruction, source_offset,
+          &target_section_index, &target_offset))
+        continue;
+      if (target_section_index != current_section_index) continue;
+      if (append_amiga_call_scoped_base_slots(section_analysis, source_analysis, target_offset) != 0) {
+        arena_destroy(arena);
+        return -1;
+      }
+      {
+        PlatformLocalStackWrapperSignature signature;
+        if (resolve_amiga_local_wrapper_signature(&source_ctx, source_analysis, target_section_index, target_offset,
+              &signature) &&
+            signature.call_entry != NULL &&
+            append_amiga_recovered_function_args_from_signature(section_analysis, target_offset, &signature) != 0) {
+          arena_destroy(arena);
+          return -1;
+        }
+      }
+      if (append_unique_u32(direct_call_targets, direct_call_target_count, direct_call_target_capacity,
+            target_offset) != 0) {
+        arena_destroy(arena);
+        return -1;
+      }
     }
-    if (amiga_value_provenance_has_any_info(&summary.data_reg_values[reg_index]) &&
-        m68k_ir_section_analysis_append_recovered_local_call_summary(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, target_offset,
-          M68K_PLATFORM_EFFECT_SET_TYPED_REG, 1U, reg_index, 1U, 0U, 1U, 0,
-          amiga_value_provenance_context_base_name_local(&summary.data_reg_values[reg_index]),
-          amiga_value_provenance_symbol_name_local(&summary.data_reg_values[reg_index]),
-          amiga_value_provenance_type_name_local(&summary.data_reg_values[reg_index]),
-          amiga_value_provenance_semantic_kind_local(&summary.data_reg_values[reg_index]),
-          amiga_value_provenance_value_domain_name_local(&summary.data_reg_values[reg_index]),
-          summary.data_reg_values[reg_index].has_constant_value,
-          summary.data_reg_values[reg_index].constant_value) != 0) {
-      return -1;
-    }
-    if (amiga_value_provenance_has_any_info(&summary.addr_reg_values[reg_index]) &&
-        m68k_ir_section_analysis_append_recovered_local_call_summary(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, target_offset,
-          M68K_PLATFORM_EFFECT_SET_TYPED_REG, 2U, reg_index, 1U, 0U, 1U, 0,
-          amiga_value_provenance_context_base_name_local(&summary.addr_reg_values[reg_index]),
-          amiga_value_provenance_symbol_name_local(&summary.addr_reg_values[reg_index]),
-          amiga_value_provenance_type_name_local(&summary.addr_reg_values[reg_index]),
-          amiga_value_provenance_semantic_kind_local(&summary.addr_reg_values[reg_index]),
-          amiga_value_provenance_value_domain_name_local(&summary.addr_reg_values[reg_index]),
-          summary.addr_reg_values[reg_index].has_constant_value,
-          summary.addr_reg_values[reg_index].constant_value) != 0) {
-      return -1;
-    }
+    arena_destroy(arena);
   }
   return 0;
 }
@@ -2937,28 +4074,42 @@ static int resolve_amiga_data_reg_info_from_success_local_calls(const SectionAna
     if (decode.instruction.byte_count == 0U || cursor + decode.instruction.byte_count > offset) break;
     amiga_call_effect_reg_state_copy(&prev_state, &state);
     if (decode.is_call) {
+      size_t target_section_index = SIZE_MAX;
       uint32_t target_offset;
       AmigaCallEffectRegState call_effect_state;
+      const M68kSectionAnalysisIR *target_analysis;
       PlatformResolvedIndirectInfo info;
       const AmigaOsLibraryVectorInfo *call_entry = NULL;
+      int loaded_success_summary = 0;
       clear_all_amiga_call_effect_regs(&state);
       amiga_call_effect_reg_state_clear(&call_effect_state);
-      if (instruction_direct_target_local(ctx, &decode.instruction, cursor, &target_offset)) {
-        load_amiga_recovered_local_success_summary_state(section_analysis, target_offset, &state);
+      if (platform_resolve_direct_target_with_fixup(ctx, &decode.instruction, cursor, &target_section_index,
+          &target_offset)) {
+        target_analysis = resolve_amiga_target_section_analysis(ctx, section_analysis, target_section_index);
+        loaded_success_summary = load_amiga_recovered_local_success_summary_state(target_analysis, target_offset, &state);
+        if (!loaded_success_summary) {
+          loaded_success_summary = summarize_amiga_direct_local_success_outputs_at(ctx, section_analysis,
+            target_section_index, target_offset, NULL, 0U, &state);
+        }
       }
-      info = resolve_amiga_local_wrapper_dispatch_info(ctx, section_analysis, cursor, &decode.instruction);
-      if (info.kind != PLATFORM_RESOLVED_INDIRECT_NONE &&
-          info.note_symbol_name[0] != '\0') {
-        call_entry = amiga_os_find_library_vector_by_symbol_name(info.note_symbol_name);
-      }
-      if (call_entry != NULL &&
-          seed_amiga_call_effect_reg_state_from_call_entry(ctx, section_analysis, cursor, call_entry,
-            &call_effect_state)) {
-        amiga_call_effect_reg_state_copy(&state, &call_effect_state);
+      if (!loaded_success_summary) {
+        info = resolve_amiga_library_vector_info(ctx, section_analysis, cursor, &decode.instruction);
+        if (info.kind == PLATFORM_RESOLVED_INDIRECT_NONE)
+          info = resolve_amiga_local_wrapper_dispatch_info(ctx, section_analysis, cursor, &decode.instruction);
+        if (info.kind != PLATFORM_RESOLVED_INDIRECT_NONE &&
+            info.note_symbol_name[0] != '\0') {
+          call_entry = amiga_os_find_library_vector_by_symbol_name(info.note_symbol_name);
+        }
+        if (call_entry != NULL &&
+            seed_amiga_call_effect_reg_state_from_call_entry(ctx, section_analysis, cursor, call_entry,
+              &call_effect_state)) {
+          amiga_call_effect_reg_state_copy(&state, &call_effect_state);
+        }
       }
       apply_recovered_amiga_platform_effects_to_call_state(section_analysis, cursor, &state);
     } else {
-      update_amiga_call_effect_reg_state_for_instruction(&decode.instruction, &prev_state, &state);
+      update_amiga_call_effect_reg_state_for_instruction(ctx, section_analysis, &decode.instruction, cursor,
+        &prev_state, &state);
     }
     cursor += (uint32_t)decode.instruction.byte_count;
   }
@@ -2996,11 +4147,17 @@ static int resolve_preceding_success_local_call_data_reg_info(const SectionAnaly
     }
     if (!have_prev || cursor != offset || prev_offset == UINT32_MAX || !prev_decode.is_call) continue;
     {
+      size_t target_section_index = SIZE_MAX;
       uint32_t target_offset;
       AmigaCallEffectRegState summary;
-      if (!instruction_direct_target_local(ctx, &prev_decode.instruction, prev_offset, &target_offset)) continue;
+      const M68kSectionAnalysisIR *target_analysis;
+      if (!platform_resolve_direct_target_with_fixup(ctx, &prev_decode.instruction, prev_offset, &target_section_index,
+          &target_offset)) continue;
       amiga_call_effect_reg_state_clear(&summary);
-      if (!load_amiga_recovered_local_success_summary_state(section_analysis, target_offset, &summary)) continue;
+      target_analysis = resolve_amiga_target_section_analysis(ctx, section_analysis, target_section_index);
+      if (!load_amiga_recovered_local_success_summary_state(target_analysis, target_offset, &summary) &&
+          !summarize_amiga_direct_local_success_outputs_at(ctx, section_analysis, target_section_index,
+            target_offset, NULL, 0U, &summary)) continue;
       if (amiga_value_provenance_type_name_local(&summary.data_reg_values[reg]) == NULL) continue;
       *out_info = summary.data_reg_values[reg];
       out_info->slot_disp = INT16_MIN;
@@ -3023,13 +4180,15 @@ static int resolve_amiga_data_reg_info_from_success_local_calls_uncached(const S
     resolve_amiga_data_reg_info_from_success_local_calls(ctx, section_analysis, offset, reg, out_info);
 }
 
-static const char *resolve_amiga_library_base_name_raw(const SectionAnalysisContext *ctx,
-    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t reg, int include_section_slots) {
+static const char *resolve_amiga_register_base_name_raw(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t target_reg_kind, uint8_t reg,
+    int include_section_slots) {
   const M68kSection *section = section_analysis_context_section(ctx);
   uint16_t addr_reg_base_ids[8];
   uint16_t addr_reg_seed_base_ids[8];
   uint16_t data_reg_base_ids[8];
   AmigaBaseSlotTag slot_base_names[AMIGA_BASE_SLOT_TAG_CAPACITY];
+  AmigaAbsoluteBaseSlotTag absolute_base_slots[AMIGA_BASE_SLOT_TAG_CAPACITY];
   AmigaTypedSlotTag slot_type_names[AMIGA_BASE_SLOT_TAG_CAPACITY];
   uint16_t saved_stack_base_ids[8];
   size_t saved_stack_base_count = 0U;
@@ -3041,6 +4200,7 @@ static const char *resolve_amiga_library_base_name_raw(const SectionAnalysisCont
   init_amiga_base_id_array(data_reg_base_ids, sizeof(data_reg_base_ids) / sizeof(data_reg_base_ids[0]));
   init_amiga_base_id_array(saved_stack_base_ids, sizeof(saved_stack_base_ids) / sizeof(saved_stack_base_ids[0]));
   init_amiga_base_slot_tag_array(slot_base_names, sizeof(slot_base_names) / sizeof(slot_base_names[0]));
+  init_amiga_absolute_base_slot_tag_array(absolute_base_slots, sizeof(absolute_base_slots) / sizeof(absolute_base_slots[0]));
   addr_reg_base_ids[6] = AMIGA_LOCAL_BASE_ID_APP;
   init_amiga_typed_slot_tag_array(slot_type_names, sizeof(slot_type_names) / sizeof(slot_type_names[0]));
   if (include_section_slots) {
@@ -3056,6 +4216,9 @@ static const char *resolve_amiga_library_base_name_raw(const SectionAnalysisCont
   }
   cursor = resolve_analysis_trace_start(ctx, section_analysis, offset);
   if (cursor == UINT32_MAX || cursor > offset) return NULL;
+  seed_amiga_absolute_base_slots_before_offset(ctx, section_analysis, cursor, absolute_base_slots,
+    sizeof(absolute_base_slots) / sizeof(absolute_base_slots[0]));
+  seed_amiga_base_regs_from_policy(ctx, cursor, addr_reg_base_ids, addr_reg_seed_base_ids, data_reg_base_ids);
   seed_amiga_effect_state_from_preceding_fallthrough(ctx, section_analysis, cursor,
     data_reg_base_ids, addr_reg_base_ids, NULL, NULL,
     slot_base_names, sizeof(slot_base_names) / sizeof(slot_base_names[0]),
@@ -3107,10 +4270,17 @@ static const char *resolve_amiga_library_base_name_raw(const SectionAnalysisCont
           data_reg_base_ids[dest_reg] = prev_data_reg_base_ids[source->value.reg];
         } else if (source != NULL && source->kind == M68K_ASM_OPERAND_AN && source->value.reg < 8U) {
           data_reg_base_ids[dest_reg] = prev_addr_reg_base_ids[source->value.reg];
+        } else if (!amiga_base_id_is_none_local((data_reg_base_ids[dest_reg] =
+            resolve_amiga_absolute_base_operand_id_local(ctx, section_analysis, absolute_base_slots,
+              sizeof(absolute_base_slots) / sizeof(absolute_base_slots[0]), &instruction, 0U, cursor, 1)))) {
         } else if (metadata != NULL &&
             instruction_render_operand_target(&instruction, metadata, metadata->source_operand_index, cursor,
               (uint32_t)section->data_size, &source_target)) {
-          data_reg_base_ids[dest_reg] = amiga_base_id_from_name_local(read_amiga_library_seed_name_near(section, source_target));
+          uint16_t absolute_base_id = lookup_amiga_absolute_base_slot_id_local(absolute_base_slots,
+            sizeof(absolute_base_slots) / sizeof(absolute_base_slots[0]), section_analysis_context_section_index(ctx),
+            source_target);
+          data_reg_base_ids[dest_reg] = !amiga_base_id_is_none_local(absolute_base_id) ? absolute_base_id :
+            amiga_base_id_from_name_local(read_amiga_library_seed_name_near(section, source_target));
         } else {
           data_reg_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
         }
@@ -3122,9 +4292,10 @@ static const char *resolve_amiga_library_base_name_raw(const SectionAnalysisCont
       uint8_t source_reg;
       int16_t slot_disp;
       uint32_t source_target;
+      uint16_t slot_base_id;
       if (instruction_is_address_move(&instruction, &dest_reg, &source)) {
         PlatformRegisterMatch popped = instruction_pop_address_reg_from_stack(&instruction);
-        if (operand_is_absolute_short_value(source, 4U)) {
+        if (operand_is_absolute_value(source, 4U)) {
           addr_reg_base_ids[dest_reg] = AMIGA_OS_BASE_ID_SYSBASE;
           addr_reg_seed_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
         } else if (popped.ok && popped.reg == 6U) {
@@ -3142,15 +4313,29 @@ static const char *resolve_amiga_library_base_name_raw(const SectionAnalysisCont
         } else if (source != NULL && operand_data_reg_index_local(source, &source_reg) && source_reg < 8U) {
           addr_reg_base_ids[dest_reg] = prev_data_reg_base_ids[source_reg];
           addr_reg_seed_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
-        } else if (source != NULL && operand_is_app_base_disp_ea(source, 6U, &slot_disp) &&
-            amiga_base_id_is_app_local(prev_addr_reg_base_ids[6])) {
-          addr_reg_base_ids[dest_reg] = lookup_amiga_base_slot_id_local(slot_base_names, slot_base_count, slot_disp);
+        } else if (!amiga_base_id_is_none_local((slot_base_id = lookup_amiga_app_slot_base_id_for_operand(
+            section_analysis, slot_base_names, slot_base_count, source, prev_addr_reg_base_ids[6], &slot_disp)))) {
+          addr_reg_base_ids[dest_reg] = slot_base_id;
+          addr_reg_seed_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
+        } else if (amiga_base_id_is_app_local(prev_addr_reg_base_ids[6]) &&
+            operand_is_app_base_disp_ea(source, 6U, &slot_disp) &&
+            !amiga_base_id_is_none_local((slot_base_id = resolve_amiga_app_slot_base_id(ctx, section_analysis, slot_disp)))) {
+          addr_reg_base_ids[dest_reg] = slot_base_id;
+          addr_reg_seed_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
+        } else if (!amiga_base_id_is_none_local((addr_reg_base_ids[dest_reg] =
+            resolve_amiga_absolute_base_operand_id_local(ctx, section_analysis, absolute_base_slots,
+              sizeof(absolute_base_slots) / sizeof(absolute_base_slots[0]), &instruction, 0U, cursor, 1)))) {
           addr_reg_seed_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
         } else if (metadata != NULL &&
             instruction_render_operand_target(&instruction, metadata, metadata->source_operand_index, cursor,
               (uint32_t)section->data_size, &source_target)) {
-          addr_reg_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
-          addr_reg_seed_base_ids[dest_reg] = amiga_base_id_from_name_local(read_amiga_library_seed_name_near(section, source_target));
+          uint16_t absolute_base_id = lookup_amiga_absolute_base_slot_id_local(absolute_base_slots,
+            sizeof(absolute_base_slots) / sizeof(absolute_base_slots[0]), section_analysis_context_section_index(ctx),
+            source_target);
+          addr_reg_base_ids[dest_reg] = absolute_base_id;
+          addr_reg_seed_base_ids[dest_reg] = amiga_base_id_is_none_local(absolute_base_id)
+            ? amiga_base_id_from_name_local(read_amiga_library_seed_name_near(section, source_target))
+            : AMIGA_OS_BASE_ID_NONE;
         } else {
           addr_reg_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
           addr_reg_seed_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
@@ -3159,15 +4344,25 @@ static const char *resolve_amiga_library_base_name_raw(const SectionAnalysisCont
           instruction.operand_count == 2U &&
           operand_address_reg_index_local(&instruction.operands[1], &dest_reg)) {
         source = &instruction.operands[0];
-        if (source != NULL && operand_is_app_base_disp_ea(source, 6U, &slot_disp) &&
-            amiga_base_id_is_app_local(prev_addr_reg_base_ids[6])) {
-          addr_reg_base_ids[dest_reg] = lookup_amiga_base_slot_id_local(slot_base_names, slot_base_count, slot_disp);
+        if (!amiga_base_id_is_none_local((slot_base_id = lookup_amiga_app_slot_base_id_for_operand(
+            section_analysis, slot_base_names, slot_base_count, source, prev_addr_reg_base_ids[6], &slot_disp)))) {
+          addr_reg_base_ids[dest_reg] = slot_base_id;
+          addr_reg_seed_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
+        } else if (amiga_base_id_is_app_local(prev_addr_reg_base_ids[6]) &&
+            operand_is_app_base_disp_ea(source, 6U, &slot_disp) &&
+            !amiga_base_id_is_none_local((slot_base_id = resolve_amiga_app_slot_base_id(ctx, section_analysis, slot_disp)))) {
+          addr_reg_base_ids[dest_reg] = slot_base_id;
           addr_reg_seed_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
         } else if (metadata != NULL &&
             instruction_render_operand_target(&instruction, metadata, metadata->source_operand_index, cursor,
               (uint32_t)section->data_size, &source_target)) {
-          addr_reg_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
-          addr_reg_seed_base_ids[dest_reg] = amiga_base_id_from_name_local(read_amiga_library_seed_name_near(section, source_target));
+          uint16_t absolute_base_id = lookup_amiga_absolute_base_slot_id_local(absolute_base_slots,
+            sizeof(absolute_base_slots) / sizeof(absolute_base_slots[0]), section_analysis_context_section_index(ctx),
+            source_target);
+          addr_reg_base_ids[dest_reg] = absolute_base_id;
+          addr_reg_seed_base_ids[dest_reg] = amiga_base_id_is_none_local(absolute_base_id)
+            ? amiga_base_id_from_name_local(read_amiga_library_seed_name_near(section, source_target))
+            : AMIGA_OS_BASE_ID_NONE;
         } else {
           addr_reg_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
           addr_reg_seed_base_ids[dest_reg] = AMIGA_OS_BASE_ID_NONE;
@@ -3188,11 +4383,16 @@ static const char *resolve_amiga_library_base_name_raw(const SectionAnalysisCont
       }
     }
     if (decode.is_call) {
+      size_t target_section_index = SIZE_MAX;
       uint32_t target_offset;
       AmigaCallEffectRegState summary_state;
+      const M68kSectionAnalysisIR *target_analysis;
       amiga_call_effect_reg_state_clear(&summary_state);
-      if (instruction_direct_target_local(ctx, &instruction, cursor, &target_offset) &&
-          load_amiga_recovered_local_success_summary_state(section_analysis, target_offset, &summary_state)) {
+      if (platform_resolve_direct_target_with_fixup(ctx, &instruction, cursor, &target_section_index, &target_offset) &&
+          ((target_analysis = resolve_amiga_target_section_analysis(ctx, section_analysis, target_section_index)) != NULL) &&
+          (load_amiga_recovered_local_success_summary_state(target_analysis, target_offset, &summary_state) ||
+           summarize_amiga_direct_local_success_outputs_at(ctx, section_analysis, target_section_index,
+             target_offset, NULL, 0U, &summary_state))) {
         for (written_reg = 0U; written_reg < 8U; ++written_reg) {
           if (!amiga_base_id_is_none_local(summary_state.data_reg_base_ids[written_reg])) {
             data_reg_base_ids[written_reg] = summary_state.data_reg_base_ids[written_reg];
@@ -3208,8 +4408,10 @@ static const char *resolve_amiga_library_base_name_raw(const SectionAnalysisCont
       uint8_t reg_kind;
       uint8_t reg_index;
       int16_t slot_disp;
-      if (instruction_is_register_to_app_slot_store(&instruction, &reg_kind, &reg_index, &slot_disp) &&
-          amiga_base_id_is_app_local(addr_reg_base_ids[6])) {
+      if ((instruction_is_register_to_app_slot_store(&instruction, &reg_kind, &reg_index, &slot_disp) &&
+            amiga_base_id_is_app_local(addr_reg_base_ids[6])) ||
+          instruction_is_register_to_resolved_app_slot_store(ctx, section_analysis, cursor, &instruction, &reg_kind,
+            &reg_index, &slot_disp)) {
         uint16_t stored_base_id = AMIGA_OS_BASE_ID_NONE;
         if (reg_kind == 1U && reg_index < 8U) stored_base_id = prev_data_reg_base_ids[reg_index];
         else if (reg_kind == 2U && reg_index < 8U) stored_base_id = prev_addr_reg_base_ids[reg_index];
@@ -3218,17 +4420,51 @@ static const char *resolve_amiga_library_base_name_raw(const SectionAnalysisCont
             stored_base_id);
       }
     }
+    if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction.operand_count == 2U &&
+        instruction.size_suffix == 'l') {
+      const M68kOperandIR *src = &instruction.operands[0];
+      const M68kOperandIR *dst = &instruction.operands[1];
+      uint32_t target_offset = UINT32_MAX;
+      uint16_t stored_base_id = AMIGA_OS_BASE_ID_NONE;
+      uint8_t source_reg;
+      int16_t slot_disp;
+      uint16_t source_slot_base_id;
+      if ((dst->kind == M68K_ASM_OPERAND_EA || dst->kind == M68K_ASM_OPERAND_BF_EA) &&
+          dst->value.ea_mode == 7U && (dst->value.ea_reg == 0U || dst->value.ea_reg == 1U) &&
+          dst->value.value < section->data_size) {
+        target_offset = dst->value.value;
+      }
+      if (target_offset != UINT32_MAX) {
+        if (operand_data_reg_index_local(src, &source_reg) && source_reg < 8U) {
+          stored_base_id = prev_data_reg_base_ids[source_reg];
+        } else if (operand_address_reg_index_local(src, &source_reg) && source_reg < 8U) {
+          stored_base_id = prev_addr_reg_base_ids[source_reg];
+        } else if (!amiga_base_id_is_none_local((source_slot_base_id = lookup_amiga_app_slot_base_id_for_operand(
+            section_analysis, slot_base_names, slot_base_count, src, prev_addr_reg_base_ids[6], &slot_disp)))) {
+          stored_base_id = source_slot_base_id;
+        } else {
+          stored_base_id = resolve_amiga_absolute_base_operand_id_local(ctx, section_analysis, absolute_base_slots,
+            sizeof(absolute_base_slots) / sizeof(absolute_base_slots[0]), &instruction, 0U, cursor, 0);
+        }
+        set_amiga_absolute_base_slot_id_local(absolute_base_slots,
+          sizeof(absolute_base_slots) / sizeof(absolute_base_slots[0]), section_analysis_context_section_index(ctx),
+          dst->value.value, stored_base_id);
+      }
+    }
     {
       uint8_t reg_kind;
       uint8_t reg_index;
       int16_t slot_disp;
-      if (instruction_is_app_slot_load(&instruction, &reg_kind, &reg_index, &slot_disp) &&
-          amiga_base_id_is_app_local(addr_reg_base_ids[6])) {
-        uint16_t loaded_base_id = lookup_amiga_base_slot_id_local(slot_base_names, slot_base_count, slot_disp);
-        if (reg_kind == 1U && reg_index < 8U) data_reg_base_ids[reg_index] = loaded_base_id;
-        else if (reg_kind == 2U && reg_index < 8U) {
-          addr_reg_base_ids[reg_index] = loaded_base_id;
-          addr_reg_seed_base_ids[reg_index] = AMIGA_OS_BASE_ID_NONE;
+      if (instruction_is_app_slot_load(&instruction, &reg_kind, &reg_index, &slot_disp)) {
+        uint16_t loaded_base_id = lookup_amiga_app_slot_base_id_for_operand(section_analysis, slot_base_names,
+          sizeof(slot_base_names) / sizeof(slot_base_names[0]), &instruction.operands[0], addr_reg_base_ids[6],
+          &slot_disp);
+        if (!amiga_base_id_is_none_local(loaded_base_id)) {
+          if (reg_kind == 1U && reg_index < 8U) data_reg_base_ids[reg_index] = loaded_base_id;
+          else if (reg_kind == 2U && reg_index < 8U) {
+            addr_reg_base_ids[reg_index] = loaded_base_id;
+            addr_reg_seed_base_ids[reg_index] = AMIGA_OS_BASE_ID_NONE;
+          }
         }
       }
     }
@@ -3237,8 +4473,13 @@ static const char *resolve_amiga_library_base_name_raw(const SectionAnalysisCont
       slot_type_names, sizeof(slot_type_names) / sizeof(slot_type_names[0]));
     cursor += (uint32_t)instruction.byte_count;
   }
-  if (amiga_base_id_is_app_local(addr_reg_base_ids[reg])) return NULL;
+  if (target_reg_kind == 1U) return amiga_base_name_from_id_local(data_reg_base_ids[reg]);
   return amiga_base_name_from_id_local(addr_reg_base_ids[reg]);
+}
+
+static const char *resolve_amiga_library_base_name_raw(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t reg, int include_section_slots) {
+  return resolve_amiga_register_base_name_raw(ctx, section_analysis, offset, 2U, reg, include_section_slots);
 }
 
 static const char *resolve_preceding_stack_reloaded_base_name(const SectionAnalysisContext *ctx,
@@ -3504,6 +4745,72 @@ static int instruction_is_register_to_local_frame_slot_store(const M68kInstructi
   return 1;
 }
 
+static int instruction_is_register_to_resolved_app_slot_store(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
+    uint8_t *out_source_kind, uint8_t *out_source_reg, int16_t *out_displacement) {
+  const M68kOperandIR *source;
+  const M68kOperandIR *target;
+  const char *base_name;
+  uint8_t source_reg;
+  uint8_t base_reg;
+  int16_t displacement;
+  if (out_source_kind != NULL) *out_source_kind = 0U;
+  if (out_source_reg != NULL) *out_source_reg = 0U;
+  if (out_displacement != NULL) *out_displacement = INT16_MIN;
+  if (instruction == NULL || instruction->operand_count != 2U ||
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE) return 0;
+  source = &instruction->operands[0];
+  target = &instruction->operands[1];
+  if (!operand_is_indirect_or_disp_an(target, &base_reg, &displacement) || base_reg >= 8U) return 0;
+  if (base_reg == 6U) return instruction_is_register_to_app_slot_store(instruction, out_source_kind, out_source_reg,
+    out_displacement);
+  base_name = resolve_amiga_library_base_name_raw(ctx, section_analysis, offset, base_reg, 1);
+  if (base_name == NULL || base_name[0] == '\0') return 0;
+  if (operand_data_reg_index_local(source, &source_reg)) {
+    if (out_source_kind != NULL) *out_source_kind = 1U;
+  } else if (operand_address_reg_index_local(source, &source_reg)) {
+    if (out_source_kind != NULL) *out_source_kind = 2U;
+  } else {
+    return 0;
+  }
+  if (out_source_reg != NULL) *out_source_reg = source_reg;
+  if (out_displacement != NULL) *out_displacement = displacement;
+  return 1;
+}
+
+static int instruction_is_register_to_known_app_slot_store(const M68kSectionAnalysisIR *section_analysis,
+    const M68kInstructionIR *instruction, uint8_t *out_source_kind, uint8_t *out_source_reg,
+    int16_t *out_displacement) {
+  const M68kOperandIR *source;
+  const M68kOperandIR *target;
+  uint8_t source_reg, base_reg;
+  int16_t displacement;
+  if (instruction_is_register_to_app_slot_store(instruction, out_source_kind, out_source_reg, out_displacement))
+    return 1;
+  if (out_source_kind != NULL) *out_source_kind = 0U;
+  if (out_source_reg != NULL) *out_source_reg = 0U;
+  if (out_displacement != NULL) *out_displacement = INT16_MIN;
+  if (instruction == NULL || instruction->operand_count != 2U ||
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE)
+    return 0;
+  source = &instruction->operands[0];
+  target = &instruction->operands[1];
+  if (!operand_is_indirect_or_disp_an(target, &base_reg, &displacement) ||
+      !has_recovered_amiga_app_slot_displacement(section_analysis, displacement))
+    return 0;
+  (void)base_reg;
+  if (operand_data_reg_index_local(source, &source_reg)) {
+    if (out_source_kind != NULL) *out_source_kind = 1U;
+  } else if (operand_address_reg_index_local(source, &source_reg)) {
+    if (out_source_kind != NULL) *out_source_kind = 2U;
+  } else {
+    return 0;
+  }
+  if (out_source_reg != NULL) *out_source_reg = source_reg;
+  if (out_displacement != NULL) *out_displacement = displacement;
+  return 1;
+}
+
 static uint32_t find_amiga_typed_trace_fallback_start(const SectionAnalysisContext *ctx, uint32_t offset) {
   const M68kSection *section = section_analysis_context_section(ctx);
   uint32_t low;
@@ -3569,6 +4876,7 @@ static int trace_amiga_typed_state(const SectionAnalysisContext *ctx, const M68k
     uint32_t fallback_cursor = find_amiga_typed_trace_fallback_start(ctx, offset);
     if (fallback_cursor != UINT32_MAX && fallback_cursor < cursor) cursor = fallback_cursor;
   }
+  seed_amiga_typed_regs_from_policy(ctx, cursor, out_state->data_reg_values, out_state->addr_reg_values);
   seed_amiga_effect_state_from_preceding_fallthrough(ctx, section_analysis, cursor,
     NULL, NULL, out_state->data_reg_values, out_state->addr_reg_values, NULL, 0U,
     out_state->slot_type_names, sizeof(out_state->slot_type_names) / sizeof(out_state->slot_type_names[0]));
@@ -3616,7 +4924,7 @@ static int trace_amiga_typed_state(const SectionAnalysisContext *ctx, const M68k
         out_state->data_reg_values[dest_reg].source_reg_kind = 1U;
         out_state->data_reg_values[dest_reg].source_reg_index = dest_reg;
       } else if (operand_is_app_base_disp_ea(source, 6U, &slot_disp)) {
-        uint16_t loaded_base_id = lookup_recovered_platform_base_slot_id_local(section_analysis, slot_disp);
+        uint16_t loaded_base_id = resolve_amiga_app_slot_base_id(ctx, section_analysis, slot_disp);
         AmigaValueProvenance loaded_value;
         init_amiga_value_provenance(&out_state->data_reg_values[dest_reg]);
         if (lookup_amiga_effect_or_local_typed_slot_value(section_analysis, out_state->slot_type_names,
@@ -3668,7 +4976,7 @@ static int trace_amiga_typed_state(const SectionAnalysisContext *ctx, const M68k
       uint8_t source_reg;
       int16_t field_disp;
       if (operand_is_app_base_disp_ea(source, 6U, &slot_disp)) {
-        uint16_t loaded_base_id = lookup_recovered_platform_base_slot_id_local(section_analysis, slot_disp);
+        uint16_t loaded_base_id = resolve_amiga_app_slot_base_id(ctx, section_analysis, slot_disp);
         AmigaValueProvenance loaded_value;
         init_amiga_value_provenance(&out_state->addr_reg_values[dest_reg]);
         out_state->addr_reg_values[dest_reg].slot_disp = slot_disp;
@@ -3741,7 +5049,7 @@ static int trace_amiga_typed_state(const SectionAnalysisContext *ctx, const M68k
         instruction.operand_count == 2U &&
         operand_address_reg_index_local(&instruction.operands[1], &dest_reg) &&
         operand_is_app_base_disp_ea(&instruction.operands[0], 6U, &slot_disp)) {
-      uint16_t loaded_base_id = lookup_recovered_platform_base_slot_id_local(section_analysis, slot_disp);
+      uint16_t loaded_base_id = resolve_amiga_app_slot_base_id(ctx, section_analysis, slot_disp);
       AmigaValueProvenance loaded_value;
       init_amiga_value_provenance(&out_state->addr_reg_values[dest_reg]);
       out_state->addr_reg_values[dest_reg].slot_disp = slot_disp;
@@ -3757,6 +5065,19 @@ static int trace_amiga_typed_state(const SectionAnalysisContext *ctx, const M68k
       if (amiga_value_provenance_owner_type_name_local(&out_state->addr_reg_values[dest_reg]) == NULL) {
         amiga_value_provenance_copy_owner_from_type(&out_state->addr_reg_values[dest_reg],
           &out_state->addr_reg_values[dest_reg]);
+      }
+    } else if (mnemonic_id == M68K_ASM_MNEMONIC_LEA &&
+        instruction.operand_count == 2U &&
+        operand_address_reg_index_local(&instruction.operands[1], &dest_reg)) {
+      const M68kSimFormMetadata *metadata = instruction_sim_metadata(&instruction);
+      uint32_t target;
+      if (instruction_render_operand_target(&instruction, metadata, 0U, cursor, section->data_size, &target)) {
+        init_amiga_value_provenance(&out_state->addr_reg_values[dest_reg]);
+        out_state->addr_reg_values[dest_reg].has_constant_value = 1U;
+        out_state->addr_reg_values[dest_reg].constant_value = (int32_t)target;
+        out_state->addr_reg_values[dest_reg].source_offset = cursor;
+        out_state->addr_reg_values[dest_reg].source_reg_kind = 2U;
+        out_state->addr_reg_values[dest_reg].source_reg_index = dest_reg;
       }
     } else if (mnemonic_id == M68K_ASM_MNEMONIC_LEA &&
         instruction.operand_count == 2U &&
@@ -4261,7 +5582,7 @@ PlatformResolvedIndirectInfo resolve_amiga_library_vector_info(const SectionAnal
 }
 
 static int append_amiga_typed_call_effects(const SectionAnalysisContext *ctx, M68kSectionAnalysisIR *section_analysis,
-    uint32_t offset, uint32_t instruction_size, const AmigaOsLibraryVectorInfo *call_entry) {
+    uint32_t offset, uint32_t instruction_size, const AmigaOsLibraryVectorInfo *call_entry, int include_outputs) {
   const M68kSection *section = section_analysis_context_section(ctx);
   const AmigaOsCallInputInfo *call_inputs;
   const AmigaOsCallOutputInfo *output_info;
@@ -4350,6 +5671,7 @@ static int append_amiga_typed_call_effects(const SectionAnalysisContext *ctx, M6
       }
     }
   }
+  if (!include_outputs) return 0;
   if (call_entry->returns_base_reg_kind != 0U && call_entry->returns_base_name_reg_kind == AMIGA_OS_REGISTER_ADDRESS) {
     effect_reg_kind = call_entry->returns_base_reg_kind;
     effect_reg_index = call_entry->returns_base_reg_index;
@@ -4361,6 +5683,10 @@ static int append_amiga_typed_call_effects(const SectionAnalysisContext *ctx, M6
   }
   if (returned_base_name != NULL && call_entry->returns_base_reg_kind != 0U) {
     uint16_t returned_base_id = amiga_base_id_from_name_local(returned_base_name);
+    if (amiga_base_id_is_none_local(returned_base_id)) {
+      returned_base_name = amiga_os_find_library_base_name(returned_base_name);
+      returned_base_id = amiga_base_id_from_name_local(returned_base_name);
+    }
     effect_reg_kind = call_entry->returns_base_reg_kind;
     effect_reg_index = call_entry->returns_base_reg_index;
     if (m68k_ir_section_analysis_append_recovered_platform_effect(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, offset,
@@ -4428,15 +5754,36 @@ static const M68kRecoveredPlatformEffectIR *find_recovered_typed_reg_effect_for_
 }
 
 static int append_amiga_constant_domain_effect(M68kSectionAnalysisIR *section_analysis,
-    const AmigaValueProvenance *value, const char *domain_name, AmigaProfileCounters *profile_counters) {
+    const AmigaValueProvenance *value, const AmigaOsCallInputInfo *input_info, const char *domain_name,
+    AmigaProfileCounters *profile_counters) {
+  AmigaValueProvenance annotated_value;
   const char *type_name;
   const char *semantic_kind;
   if (section_analysis == NULL || value == NULL || domain_name == NULL || domain_name[0] == '\0') return 0;
   if (!value->has_constant_value || value->source_offset == UINT32_MAX) return 0;
   if (value->source_reg_kind == 0U || value->source_reg_index >= 8U) return 0;
   if (profile_counters != NULL) ++profile_counters->domain_scan_constant_effects;
-  type_name = amiga_value_provenance_type_name_local(value);
-  semantic_kind = amiga_value_provenance_semantic_kind_local(value);
+  annotated_value = *value;
+  if (input_info != NULL) {
+    if (amiga_value_provenance_type_name_local(&annotated_value) == NULL &&
+        amiga_os_name(M68K_PLATFORM_NAME_TYPE, input_info->type_id) != NULL) {
+      amiga_value_provenance_set_type_id(&annotated_value, input_info->type_id);
+    }
+    if (amiga_value_provenance_symbol_name_local(&annotated_value) == NULL &&
+        amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, input_info->input_id) != NULL) {
+      amiga_value_provenance_set_symbol_id(&annotated_value, input_info->input_id);
+    }
+    if (amiga_value_provenance_semantic_kind_local(&annotated_value) == NULL &&
+        amiga_os_name(M68K_PLATFORM_NAME_SEMANTIC_KIND, input_info->semantic_kind_id) != NULL) {
+      amiga_value_provenance_set_semantic_kind_id(&annotated_value, input_info->semantic_kind_id);
+    }
+    if (amiga_value_provenance_value_domain_name_local(&annotated_value) == NULL &&
+        amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input_info->value_domain_id) != NULL) {
+      amiga_value_provenance_set_value_domain_id(&annotated_value, input_info->value_domain_id);
+    }
+  }
+  type_name = amiga_value_provenance_type_name_local(&annotated_value);
+  semantic_kind = amiga_value_provenance_semantic_kind_local(&annotated_value);
   return m68k_ir_section_analysis_append_recovered_platform_effect(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, value->source_offset,
     M68K_PLATFORM_EFFECT_SET_TYPED_REG, value->source_reg_kind, value->source_reg_index, INT16_MIN, INT16_MIN,
     NULL, NULL, type_name, semantic_kind, domain_name, 1U, value->constant_value);
@@ -4467,7 +5814,7 @@ static int append_amiga_call_domain_constant_effects(const SectionAnalysisContex
       resolved = resolve_amiga_data_reg_info(ctx, section_analysis, offset, reg_index, 1, &data_info);
       if (resolved && profile_counters != NULL) ++profile_counters->domain_scan_data_resolve_hits;
       if (resolved &&
-          append_amiga_constant_domain_effect(section_analysis, &data_info, input_value_domain_name,
+          append_amiga_constant_domain_effect(section_analysis, &data_info, input_info, input_value_domain_name,
             profile_counters) != 0) {
         return -1;
       }
@@ -4478,7 +5825,7 @@ static int append_amiga_call_domain_constant_effects(const SectionAnalysisContex
       resolved = resolve_amiga_address_reg_info(ctx, section_analysis, offset, reg_index, 1, &addr_info);
       if (resolved && profile_counters != NULL) ++profile_counters->domain_scan_addr_resolve_hits;
       if (resolved &&
-          append_amiga_constant_domain_effect(section_analysis, &addr_info, input_value_domain_name,
+          append_amiga_constant_domain_effect(section_analysis, &addr_info, input_info, input_value_domain_name,
             profile_counters) != 0) {
         return -1;
       }
@@ -4524,7 +5871,6 @@ PlatformResolvedIndirectInfo resolve_amiga_callback_field_info(const SectionAnal
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction) {
   PlatformResolvedIndirectInfo out_info;
   const M68kRecoveredPlatformCallIR *recovered;
-  const M68kRecoveredPlatformEffectIR *effect;
   const M68kOperandIR *target_operand = NULL;
   uint8_t target_reg;
   AmigaResolvedAddressRegInfo info;
@@ -4542,26 +5888,33 @@ PlatformResolvedIndirectInfo resolve_amiga_callback_field_info(const SectionAnal
   if (!instruction_is_call_transfer(instruction)) return out_info;
   if (!instruction_target_operand_local(instruction, &target_operand) || target_operand == NULL) return out_info;
   if (!operand_is_indirect_an(target_operand, &target_reg)) return out_info;
-  effect = find_recovered_platform_effect(section_analysis, offset, M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG);
-    if (effect != NULL && effect->reg_kind == 2U && effect->reg_index == target_reg &&
-      (effect->payload.code_ptr.owner_type_name != NULL || effect->payload.code_ptr.owner_type_ref.id != 0U)) {
-    const char *owner_type_name = effect->payload.code_ptr.owner_type_name != NULL
-      ? effect->payload.code_ptr.owner_type_name
-      : amiga_os_name(M68K_PLATFORM_NAME_TYPE, effect->payload.code_ptr.owner_type_ref.id);
-    const char *field_symbol_name = effect->payload.code_ptr.field_symbol_name != NULL
-      ? effect->payload.code_ptr.field_symbol_name
-      : amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, effect->payload.code_ptr.field_symbol_ref.id);
-    out_info.kind = PLATFORM_RESOLVED_INDIRECT_AMIGA_CALLBACK_FIELD_CALL;
-    out_info.note_kind = M68K_PLATFORM_CALL_NOTE_CALLBACK_FIELD;
-    out_info.note_disp = effect->displacement;
-    out_info.note_field_disp = effect->field_disp;
-    snprintf(out_info.note_base_name, sizeof(out_info.note_base_name), "%s", owner_type_name != NULL ? owner_type_name : "");
-    if (field_symbol_name != NULL && field_symbol_name[0] != '\0') {
-      snprintf(out_info.note_symbol_name, sizeof(out_info.note_symbol_name), "%s", field_symbol_name);
-    } else {
-      populate_amiga_callback_field_note_symbol(&out_info);
+  {
+    size_t effect_index;
+    for (effect_index = 0U; effect_index < section_analysis->recovered_platform_effect_count; ++effect_index) {
+      const M68kRecoveredPlatformEffectIR *effect = &section_analysis->recovered_platform_effects[effect_index];
+      const char *owner_type_name;
+      const char *field_symbol_name;
+      if (effect->offset != offset || effect->kind != M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG) continue;
+      if (effect->reg_kind != 2U || effect->reg_index != target_reg) continue;
+      if (effect->payload.code_ptr.owner_type_name == NULL && effect->payload.code_ptr.owner_type_ref.id == 0U) continue;
+      owner_type_name = effect->payload.code_ptr.owner_type_name != NULL
+        ? effect->payload.code_ptr.owner_type_name
+        : amiga_os_name(M68K_PLATFORM_NAME_TYPE, effect->payload.code_ptr.owner_type_ref.id);
+      field_symbol_name = effect->payload.code_ptr.field_symbol_name != NULL
+        ? effect->payload.code_ptr.field_symbol_name
+        : amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, effect->payload.code_ptr.field_symbol_ref.id);
+      out_info.kind = PLATFORM_RESOLVED_INDIRECT_AMIGA_CALLBACK_FIELD_CALL;
+      out_info.note_kind = M68K_PLATFORM_CALL_NOTE_CALLBACK_FIELD;
+      out_info.note_disp = effect->displacement;
+      out_info.note_field_disp = effect->field_disp;
+      snprintf(out_info.note_base_name, sizeof(out_info.note_base_name), "%s", owner_type_name != NULL ? owner_type_name : "");
+      if (field_symbol_name != NULL && field_symbol_name[0] != '\0') {
+        snprintf(out_info.note_symbol_name, sizeof(out_info.note_symbol_name), "%s", field_symbol_name);
+      } else {
+        populate_amiga_callback_field_note_symbol(&out_info);
+      }
+      return out_info;
     }
-    return out_info;
   }
   if (!resolve_amiga_address_reg_info(ctx, section_analysis, offset, target_reg, 1, &info)) {
     uint8_t source_data_reg;
@@ -4608,6 +5961,7 @@ PlatformResolvedIndirectInfo resolve_amiga_local_wrapper_dispatch_info(const Sec
   size_t visited[32];
   size_t pending_count = 0U;
   size_t visit_count = 0U;
+  size_t target_section_index;
   uint32_t target_offset;
   int32_t lvo;
   const AmigaOsLibraryVectorInfo *entry;
@@ -4618,7 +5972,24 @@ PlatformResolvedIndirectInfo resolve_amiga_local_wrapper_dispatch_info(const Sec
   if (section_analysis_context_object(ctx)->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE) return info;
   if (section == NULL) return info;
   if (!instruction_is_call_transfer(instruction)) return info;
-  if (!instruction_direct_target_local(ctx, instruction, offset, &target_offset)) return info;
+  if (!platform_resolve_direct_target_with_fixup(ctx, instruction, offset, &target_section_index, &target_offset))
+    return info;
+  {
+    PlatformLocalStackWrapperSignature signature;
+    if (resolve_amiga_local_wrapper_signature(ctx, section_analysis, target_section_index, target_offset, &signature) &&
+        signature.call_entry != NULL) {
+      const AmigaOsLibraryVectorInfo *signature_entry = (const AmigaOsLibraryVectorInfo *)signature.call_entry;
+      const char *base_name = amiga_os_name(M68K_PLATFORM_NAME_BASE, signature_entry->base_id);
+      const char *symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, signature_entry->lvo_symbol_id);
+      info.kind = PLATFORM_RESOLVED_INDIRECT_AMIGA_INDEXED_LIBRARY_DISPATCH;
+      info.note_kind = M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL;
+      snprintf(info.note_base_name, sizeof(info.note_base_name), "%s", base_name != NULL ? base_name : "");
+      snprintf(info.note_symbol_name, sizeof(info.note_symbol_name), "%s", symbol_name != NULL ? symbol_name : "");
+      populate_amiga_call_version_info(signature_entry, &info);
+      return info;
+    }
+  }
+  if (target_section_index != section_analysis_context_section_index(ctx)) return info;
   entry_block_index = section_analysis_find_block_index_containing(section_analysis, target_offset);
   if (entry_block_index == SIZE_MAX) return info;
   pending[pending_count++] = entry_block_index;
@@ -4718,40 +6089,54 @@ int collect_recovered_amiga_platform_facts(const SectionAnalysisContext *ctx, M6
     {
       uint8_t move_dest_reg;
       const M68kOperandIR *move_source = NULL;
+      const M68kOperandIR *d0_seed_operand = NULL;
       int direct_d0_imm_seed = 0;
       if (decode.instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ &&
           decode.instruction.operand_count == 2U &&
           operand_is_immediate_source_local(&decode.instruction.operands[0]) &&
           operand_is_data_reg_direct(&decode.instruction.operands[1], 0U)) {
         direct_d0_imm_seed = 1;
+        d0_seed_operand = &decode.instruction.operands[0];
       } else if (instruction_is_data_move(&decode.instruction, &move_dest_reg, &move_source) &&
           move_dest_reg == 0U && operand_is_immediate_source_local(move_source)) {
         direct_d0_imm_seed = 1;
+        d0_seed_operand = move_source;
       }
       if (direct_d0_imm_seed) {
-      uint32_t next_offset = offset + (uint32_t)decode.instruction.byte_count;
-      SectionDecodeResult next_decode;
-      info = platform_resolved_indirect_info_none();
-      if (next_offset < section->data_size &&
-          section_analysis_context_probe_decode(ctx, next_offset, &next_decode) &&
-          (info = resolve_amiga_local_wrapper_dispatch_info(ctx, section_analysis, next_offset,
-             &next_decode.instruction)).kind != PLATFORM_RESOLVED_INDIRECT_NONE && info.note_symbol_name[0] != '\0') {
-        if (m68k_ir_section_analysis_append_recovered_platform_call(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK,
-              offset, 0U, NULL, M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL,
-              info.note_base_name[0] != '\0' ? info.note_base_name : NULL,
-              info.note_symbol_name, 0U, INT16_MIN, INT16_MIN, 0U, 0U, 0U,
-              info.available_since[0] != '\0' ? info.available_since : NULL,
-              info.fd_version[0] != '\0' ? info.fd_version : NULL) != 0) {
-          free(success_cache);
-          return -1;
+        uint32_t next_offset = offset + (uint32_t)decode.instruction.byte_count;
+        SectionDecodeResult next_decode;
+        int32_t lvo_seed;
+        info = platform_resolved_indirect_info_none();
+        if (next_offset < section->data_size &&
+            section_analysis_context_probe_decode(ctx, next_offset, &next_decode) &&
+            operand_raw_constant_value_local(d0_seed_operand, &lvo_seed) &&
+            (info = resolve_amiga_local_wrapper_dispatch_info(ctx, section_analysis, next_offset,
+               &next_decode.instruction)).kind != PLATFORM_RESOLVED_INDIRECT_NONE && info.note_symbol_name[0] != '\0') {
+          if (decode.instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ && lvo_seed >= 0 && lvo_seed <= 255) {
+            lvo_seed = (int8_t)(uint8_t)lvo_seed;
+          }
+          const AmigaOsLibraryVectorInfo *selector_entry =
+            amiga_os_find_library_vector(info.note_base_name, (int16_t)lvo_seed);
+          const char *selector_symbol_name = selector_entry != NULL
+            ? amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, selector_entry->lvo_symbol_id)
+            : NULL;
+          if (selector_symbol_name != NULL && strcmp(selector_symbol_name, info.note_symbol_name) == 0 &&
+              m68k_ir_section_analysis_append_recovered_platform_call(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+                offset, 0U, NULL, M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL,
+                info.note_base_name[0] != '\0' ? info.note_base_name : NULL,
+                info.note_symbol_name, 0U, INT16_MIN, INT16_MIN, 0U, 0U, 0U,
+                info.available_since[0] != '\0' ? info.available_since : NULL,
+                info.fd_version[0] != '\0' ? info.fd_version : NULL) != 0) {
+            free(success_cache);
+            return -1;
+          }
         }
       }
-    }
     }
     if (!decode.is_call) continue;
     ++profile_counters.direct_call_scan_count;
     ++profile_counters.domain_scan_calls_seen;
-    if (instruction_direct_target_local(ctx, &decode.instruction, offset, &target_offset)) {
+    if (platform_resolve_same_section_direct_target_with_fixup(ctx, &decode.instruction, offset, &target_offset)) {
       if (append_unique_u32(&direct_call_targets, &direct_call_target_count, &direct_call_target_capacity,
             target_offset) != 0) {
         free(success_cache);
@@ -4775,7 +6160,7 @@ int collect_recovered_amiga_platform_facts(const SectionAnalysisContext *ctx, M6
     if (call_entry != NULL) {
       ++profile_counters.domain_scan_resolved_calls;
       if (append_amiga_typed_call_effects(ctx, section_analysis, offset, (uint32_t)decode.instruction.byte_count,
-            call_entry) != 0 ||
+            call_entry, info.note_kind != M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL) != 0 ||
           append_amiga_call_domain_constant_effects(ctx, section_analysis, offset, call_entry,
             &profile_counters) != 0) {
         free(success_cache);
@@ -4819,10 +6204,17 @@ int collect_recovered_amiga_platform_facts(const SectionAnalysisContext *ctx, M6
     amiga_profile_log_phase("collect_calls_and_effects", phase_start_ticks, phase_end_ticks);
   }
   phase_start_ticks = profiling_enabled ? clock() : 0;
+  if (collect_amiga_direct_call_targets_to_current_section(ctx, section_analysis, &direct_call_targets, &direct_call_target_count,
+        &direct_call_target_capacity) != 0) {
+    free(success_cache);
+    free(direct_call_targets);
+    return -1;
+  }
   for (offset = 0U; offset < direct_call_target_count; ++offset) {
     uint32_t target_offset = direct_call_targets[offset];
     ++profile_counters.local_summary_call_scan_count;
-    if (append_amiga_recovered_local_success_summaries(ctx, section_analysis, target_offset,
+    if (append_amiga_recovered_local_wrapper_summaries(ctx, section_analysis, target_offset) != 0 ||
+        append_amiga_recovered_local_success_summaries(ctx, section_analysis, target_offset,
           success_cache, success_cache_count) != 0) {
       free(success_cache);
       free(direct_call_targets);
@@ -4834,41 +6226,119 @@ int collect_recovered_amiga_platform_facts(const SectionAnalysisContext *ctx, M6
     amiga_profile_log_phase("collect_local_success_summaries", phase_start_ticks, phase_end_ticks);
   }
   phase_start_ticks = profiling_enabled ? clock() : 0;
+  {
+    uint16_t typed_addr_reg_base_ids[8];
+    uint16_t typed_data_reg_base_ids[8];
+    init_amiga_base_id_array(typed_addr_reg_base_ids, sizeof(typed_addr_reg_base_ids) / sizeof(typed_addr_reg_base_ids[0]));
+    init_amiga_base_id_array(typed_data_reg_base_ids, sizeof(typed_data_reg_base_ids) / sizeof(typed_data_reg_base_ids[0]));
   for (offset = 0U; offset < section->data_size; ++offset) {
     SectionDecodeResult decode;
-    uint8_t source_kind, source_reg;
-    int16_t slot_disp;
-    const char *stored_symbol_name = NULL, *stored_context_name = NULL;
+    uint8_t source_kind, source_reg, stored_has_constant_value = 0U;
+    int16_t slot_disp; int32_t stored_constant_value = 0; uint32_t trace_start = UINT32_MAX;
+    const char *stored_symbol_name = NULL, *stored_context_name = NULL, *stored_base_name = NULL;
     const char *stored_type_name = NULL, *stored_semantic_kind = NULL, *stored_value_domain_name = NULL;
-    uint8_t stored_has_constant_value = 0U;
-    int32_t stored_constant_value = 0;
+    uint16_t prev_addr_reg_base_ids[8], prev_data_reg_base_ids[8];
+    uint8_t reg;
     if (!section_analysis_context_probe_decode(ctx, offset, &decode)) continue;
-    if (!instruction_is_register_to_app_slot_store(&decode.instruction, &source_kind, &source_reg, &slot_disp)) continue;
+    seed_amiga_base_regs_from_policy(ctx, offset, typed_addr_reg_base_ids, NULL, typed_data_reg_base_ids);
+    for (reg = 0U; reg < 8U; ++reg) {
+      prev_addr_reg_base_ids[reg] = typed_addr_reg_base_ids[reg];
+      prev_data_reg_base_ids[reg] = typed_data_reg_base_ids[reg];
+      if (instruction_writes_address_reg_approx(&decode.instruction, reg))
+        typed_addr_reg_base_ids[reg] = AMIGA_OS_BASE_ID_NONE;
+      if (instruction_writes_data_reg_approx(&decode.instruction, reg))
+        typed_data_reg_base_ids[reg] = AMIGA_OS_BASE_ID_NONE;
+    }
+    {
+      const M68kOperandIR *source = NULL;
+      uint8_t dest_reg, source_reg_for_move;
+      if (instruction_is_data_move(&decode.instruction, &dest_reg, &source) && source != NULL) {
+        if (operand_data_reg_index_local(source, &source_reg_for_move) && source_reg_for_move < 8U)
+          typed_data_reg_base_ids[dest_reg] = prev_data_reg_base_ids[source_reg_for_move];
+        else if (operand_address_reg_index_local(source, &source_reg_for_move) && source_reg_for_move < 8U)
+          typed_data_reg_base_ids[dest_reg] = prev_addr_reg_base_ids[source_reg_for_move];
+      } else if (instruction_is_address_move(&decode.instruction, &dest_reg, &source) && source != NULL) {
+        if (operand_address_reg_index_local(source, &source_reg_for_move) && source_reg_for_move < 8U)
+          typed_addr_reg_base_ids[dest_reg] = prev_addr_reg_base_ids[source_reg_for_move];
+        else if (operand_data_reg_index_local(source, &source_reg_for_move) && source_reg_for_move < 8U)
+          typed_addr_reg_base_ids[dest_reg] = prev_data_reg_base_ids[source_reg_for_move];
+      }
+    }
+    if (!instruction_is_register_to_known_app_slot_store(section_analysis, &decode.instruction, &source_kind,
+          &source_reg, &slot_disp)) {
+      const M68kOperandIR *src;
+      const M68kOperandIR *dst;
+      uint8_t base_reg;
+      if (decode.instruction.operand_count != 2U || decode.instruction.mnemonic_id != M68K_ASM_MNEMONIC_MOVE)
+        continue;
+      src = &decode.instruction.operands[0];
+      dst = &decode.instruction.operands[1];
+      if (!operand_is_indirect_or_disp_an(dst, &base_reg, &slot_disp) || base_reg >= 8U ||
+          !amiga_base_id_is_app_local(prev_addr_reg_base_ids[base_reg]))
+        continue;
+      if (operand_data_reg_index_local(src, &source_reg)) source_kind = 1U;
+      else if (operand_address_reg_index_local(src, &source_reg)) source_kind = 2U;
+      else continue;
+    }
     ++profile_counters.typed_slot_store_scan_count;
+    trace_start = resolve_analysis_trace_start(ctx, section_analysis, offset);
+    if (trace_start != UINT32_MAX) {
+      AmigaValueProvenance seed_value;
+      if (lookup_amiga_typed_register_seed_value(ctx, trace_start,
+            source_kind == 1U ? M68K_ANALYSIS_REGISTER_DATA : M68K_ANALYSIS_REGISTER_ADDRESS, source_reg,
+            &seed_value)) {
+        stored_symbol_name = amiga_value_provenance_symbol_name_local(&seed_value);
+        stored_context_name = amiga_value_provenance_context_base_name_local(&seed_value);
+        stored_type_name = amiga_value_provenance_type_name_local(&seed_value);
+        stored_semantic_kind = amiga_value_provenance_semantic_kind_local(&seed_value);
+        stored_value_domain_name = amiga_value_provenance_value_domain_name_local(&seed_value);
+        stored_has_constant_value = seed_value.has_constant_value;
+        stored_constant_value = seed_value.constant_value;
+      }
+    }
     if (source_kind == 1U) {
       AmigaResolvedDataRegInfo data_info;
       if (resolve_preceding_field_loaded_data_reg_info(ctx, section_analysis, offset, source_reg, &data_info) ||
           resolve_preceding_success_local_call_data_reg_info(ctx, section_analysis, offset, source_reg, &data_info) ||
           resolve_amiga_data_reg_info(ctx, section_analysis, offset, source_reg, 1, &data_info) ||
           resolve_amiga_data_reg_info_from_success_local_calls(ctx, section_analysis, offset, source_reg, &data_info)) {
-        stored_symbol_name = amiga_value_provenance_symbol_name_local(&data_info);
-        stored_context_name = amiga_value_provenance_context_base_name_local(&data_info);
-        stored_type_name = amiga_value_provenance_type_name_local(&data_info);
-        stored_semantic_kind = amiga_value_provenance_semantic_kind_local(&data_info);
-        stored_value_domain_name = amiga_value_provenance_value_domain_name_local(&data_info);
-        stored_has_constant_value = data_info.has_constant_value;
-        stored_constant_value = data_info.constant_value;
+        if (stored_symbol_name == NULL) stored_symbol_name = amiga_value_provenance_symbol_name_local(&data_info);
+        if (stored_context_name == NULL) stored_context_name = amiga_value_provenance_context_base_name_local(&data_info);
+        if (stored_type_name == NULL) stored_type_name = amiga_value_provenance_type_name_local(&data_info);
+        if (stored_semantic_kind == NULL) stored_semantic_kind = amiga_value_provenance_semantic_kind_local(&data_info);
+        if (stored_value_domain_name == NULL)
+          stored_value_domain_name = amiga_value_provenance_value_domain_name_local(&data_info);
+        if (!stored_has_constant_value) {
+          stored_has_constant_value = data_info.has_constant_value;
+          stored_constant_value = data_info.constant_value;
+        }
       }
     } else if (source_kind == 2U) {
       AmigaResolvedAddressRegInfo addr_info;
+      stored_base_name = amiga_base_name_from_id_local(prev_addr_reg_base_ids[source_reg]);
+      if (stored_base_name == NULL)
+        stored_base_name = resolve_amiga_library_base_name(ctx, section_analysis, offset, source_reg);
       if (resolve_amiga_address_reg_info(ctx, section_analysis, offset, source_reg, 1, &addr_info)) {
-        stored_symbol_name = amiga_value_provenance_symbol_name_local(&addr_info);
-        stored_context_name = amiga_value_provenance_context_base_name_local(&addr_info);
-        stored_type_name = amiga_value_provenance_type_name_local(&addr_info);
-        stored_semantic_kind = amiga_value_provenance_semantic_kind_local(&addr_info);
-        stored_value_domain_name = amiga_value_provenance_value_domain_name_local(&addr_info);
-        stored_has_constant_value = addr_info.has_constant_value;
-        stored_constant_value = addr_info.constant_value;
+        if (stored_symbol_name == NULL) stored_symbol_name = amiga_value_provenance_symbol_name_local(&addr_info);
+        if (stored_context_name == NULL) stored_context_name = amiga_value_provenance_context_base_name_local(&addr_info);
+        if (stored_type_name == NULL) stored_type_name = amiga_value_provenance_type_name_local(&addr_info);
+        if (stored_semantic_kind == NULL) stored_semantic_kind = amiga_value_provenance_semantic_kind_local(&addr_info);
+        if (stored_value_domain_name == NULL)
+          stored_value_domain_name = amiga_value_provenance_value_domain_name_local(&addr_info);
+        if (!stored_has_constant_value) {
+          stored_has_constant_value = addr_info.has_constant_value;
+          stored_constant_value = addr_info.constant_value;
+        }
+      }
+    }
+    if (stored_base_name != NULL && stored_base_name[0] != '\0' &&
+        strcmp(stored_base_name, AMIGA_APP_BASE_TAG) != 0) {
+      if (m68k_ir_section_analysis_append_recovered_platform_effect(section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+            offset, M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT, 0U, 0U, slot_disp, INT16_MIN, stored_base_name, NULL, NULL,
+            NULL, NULL, 0U, 0) != 0) {
+        free(success_cache);
+        free(direct_call_targets);
+        return -1;
       }
     }
     if (stored_type_name != NULL || stored_semantic_kind != NULL || stored_value_domain_name != NULL ||
@@ -4894,6 +6364,52 @@ int collect_recovered_amiga_platform_facts(const SectionAnalysisContext *ctx, M6
   if (profiling_enabled) {
     phase_end_ticks = clock();
     amiga_profile_log_phase("collect_typed_slot_store_effects", phase_start_ticks, phase_end_ticks);
+  }
+  phase_start_ticks = profiling_enabled ? clock() : 0;
+  for (offset = 0U; offset < section->data_size; ++offset) {
+    SectionDecodeResult decode;
+    const M68kOperandIR *src;
+    size_t target_section_index = SIZE_MAX;
+    uint32_t target_offset = UINT32_MAX;
+    const char *stored_base_name = NULL;
+    uint8_t source_reg, base_reg;
+    int16_t slot_disp;
+    if (!section_analysis_context_probe_decode(ctx, offset, &decode)) continue;
+    if (decode.instruction.mnemonic_id != M68K_ASM_MNEMONIC_MOVE || decode.instruction.operand_count != 2U ||
+        decode.instruction.size_suffix != 'l')
+      continue;
+    if (!instruction_operand_absolute_target_ref(ctx, &decode.instruction, 1U, offset, &target_section_index,
+          &target_offset))
+      continue;
+    src = &decode.instruction.operands[0];
+    if (operand_data_reg_index_local(src, &source_reg) && source_reg < 8U) {
+      stored_base_name = resolve_amiga_register_base_name_raw(ctx, section_analysis, offset, 1U, source_reg, 1);
+    } else if (operand_address_reg_index_local(src, &source_reg) && source_reg < 8U) {
+      stored_base_name = resolve_amiga_library_base_name(ctx, section_analysis, offset, source_reg);
+    } else if (operand_is_indirect_disp_an(src, &base_reg, &slot_disp)) {
+      uint16_t slot_base_id = resolve_amiga_app_slot_base_id(ctx, section_analysis, slot_disp);
+      (void)base_reg;
+      if (!amiga_base_id_is_none_local(slot_base_id)) {
+        stored_base_name = amiga_base_name_from_id_local(slot_base_id);
+      }
+    } else {
+      uint16_t source_base_id = resolve_amiga_absolute_base_operand_id_local(ctx, section_analysis, NULL, 0U,
+        &decode.instruction, 0U, offset, 0);
+      stored_base_name = amiga_base_name_from_id_local(source_base_id);
+    }
+    if (stored_base_name == NULL || stored_base_name[0] == '\0' || strcmp(stored_base_name, AMIGA_APP_BASE_TAG) == 0)
+      continue;
+    if (m68k_ir_section_analysis_append_recovered_platform_global_base_slot_effect(section_analysis,
+          M68K_PLATFORM_BACKEND_AMIGA_HUNK, offset, target_section_index, target_offset, stored_base_name) != 0) {
+      free(success_cache);
+      free(direct_call_targets);
+      return -1;
+    }
+  }
+  }
+  if (profiling_enabled) {
+    phase_end_ticks = clock();
+    amiga_profile_log_phase("collect_global_base_slot_store_effects", phase_start_ticks, phase_end_ticks);
   }
   if (profiling_enabled) {
     total_end_ticks = clock();
@@ -4927,6 +6443,54 @@ PlatformResolvedIndirectInfo platform_amiga_resolve_additional_indirect_note(con
   return resolve_amiga_local_wrapper_dispatch_info(ctx, section_analysis, offset, instruction);
 }
 
+static int format_amiga_call_input_note(uint16_t stack_offset, const AmigaOsCallInputInfo *input_info,
+    char *buf, size_t buf_size) {
+  const char *symbol_name;
+  const char *type_name;
+  const char *semantic_kind;
+  const char *value_domain_name;
+  size_t used;
+  if (buf == NULL || buf_size == 0U || input_info == NULL || stack_offset == 0U) return 0;
+  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, input_info->input_id);
+  type_name = amiga_type_or_struct_name_local(input_info->type_id, input_info->struct_id);
+  semantic_kind = amiga_os_name(M68K_PLATFORM_NAME_SEMANTIC_KIND, input_info->semantic_kind_id);
+  value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input_info->value_domain_id);
+  snprintf(buf, buf_size, "KNOWN: arg +%u", (unsigned)stack_offset);
+  used = strlen(buf);
+  if (symbol_name != NULL && symbol_name[0] != '\0' && used + strlen(symbol_name) + 2U < buf_size) {
+    snprintf(buf + used, buf_size - used, " %s", symbol_name);
+    used = strlen(buf);
+  }
+  if (type_name != NULL && type_name[0] != '\0' && used + strlen(type_name) + 2U < buf_size) {
+    snprintf(buf + used, buf_size - used, " %s", type_name);
+    used = strlen(buf);
+  }
+  if (semantic_kind != NULL && semantic_kind[0] != '\0' && used + strlen(semantic_kind) + 2U < buf_size) {
+    snprintf(buf + used, buf_size - used, " %s", semantic_kind);
+    used = strlen(buf);
+  }
+  if (value_domain_name != NULL && value_domain_name[0] != '\0' && used + strlen(value_domain_name) + 2U < buf_size) {
+    snprintf(buf + used, buf_size - used, " %s", value_domain_name);
+  }
+  return 1;
+}
+
+int platform_amiga_format_instruction_comment(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
+    char *buf, size_t buf_size) {
+  size_t push_operand_index = SIZE_MAX;
+  const AmigaOsCallInputInfo *input_info = NULL;
+  uint16_t stack_offset = 0U;
+  if (buf != NULL && buf_size != 0U) buf[0] = '\0';
+  if (buf == NULL || buf_size == 0U) return 0;
+  if (!resolve_amiga_stack_push_wrapper_input(ctx, section_analysis, offset, instruction, &push_operand_index,
+      &input_info, &stack_offset) ||
+      push_operand_index >= instruction->operand_count || input_info == NULL) {
+    return 0;
+  }
+  return format_amiga_call_input_note(stack_offset, input_info, buf, buf_size);
+}
+
 int platform_amiga_annotate_instruction_symbol_refs(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, M68kInstructionIR *instruction) {
   const M68kRecoveredPlatformCallIR *recovered;
@@ -4934,6 +6498,7 @@ int platform_amiga_annotate_instruction_symbol_refs(const SectionAnalysisContext
   M68kOperandIR *imm_operand;
   size_t operand_index;
   const char *field_domain_name = NULL;
+  int has_unnamed_immediate;
   int annotated = 0;
   if (ctx == NULL || section_analysis == NULL) return 0;
   if (section_analysis_context_object(ctx) == NULL ||
@@ -4941,6 +6506,7 @@ int platform_amiga_annotate_instruction_symbol_refs(const SectionAnalysisContext
     return 0;
   }
   if (section_analysis_context_object(ctx)->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE) return 0;
+  has_unnamed_immediate = instruction_has_unnamed_immediate_operand_local(instruction);
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     uint8_t base_reg;
     int16_t displacement;
@@ -4949,12 +6515,46 @@ int platform_amiga_annotate_instruction_symbol_refs(const SectionAnalysisContext
     M68kOperandIR *operand = &instruction->operands[operand_index];
     const char *container_type;
     if (!operand_is_indirect_or_disp_an(operand, &base_reg, &displacement)) continue;
-    if (!resolve_amiga_address_reg_info(ctx, section_analysis, offset, base_reg, 1, &info)) continue;
-    container_type = amiga_value_provenance_type_name_local(&info) != NULL
-      ? amiga_value_provenance_type_name_local(&info)
-      : amiga_value_provenance_owner_type_name_local(&info);
-    if (!resolve_amiga_struct_field_symbol_name(container_type, displacement, field_symbol_name, sizeof(field_symbol_name)))
+    if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name_is_generated == 0U) continue;
+    container_type = NULL;
+    if (base_reg != 6U) {
+      uint8_t dest_reg;
+      const M68kOperandIR *source = NULL;
+      int treat_as_value = 1;
+      if (!has_recovered_amiga_app_slot_displacement(section_analysis, displacement)) {
+        goto try_struct_field;
+      }
+      if (operand_index == 0U && instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA) {
+        treat_as_value = 0;
+      } else if (operand_index == 0U && instruction->mnemonic_id == M68K_ASM_MNEMONIC_PEA) {
+        treat_as_value = 0;
+      } else if (instruction_is_address_move(instruction, &dest_reg, &source) && source == operand) {
+        treat_as_value = 0;
+      }
+      if ((treat_as_value
+            ? resolve_amiga_app_slot_value_symbol_ref(ctx, section_analysis, displacement, &operand->symbol_ref)
+            : resolve_amiga_app_slot_symbol_ref(ctx, section_analysis, displacement, &operand->symbol_ref))) {
+        operand->symbol_ref.name_is_generated = 0U;
+        operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
+        operand->symbol_ref.addend = 0;
+        annotated = 1;
+        continue;
+      }
+    }
+try_struct_field:
+    container_type = NULL;
+    if (resolve_amiga_address_reg_info(ctx, section_analysis, offset, base_reg, 1, &info)) {
+      container_type = amiga_value_provenance_type_name_local(&info) != NULL
+        ? amiga_value_provenance_type_name_local(&info)
+        : amiga_value_provenance_owner_type_name_local(&info);
+      if (!resolve_amiga_struct_field_symbol_name(container_type, displacement, field_symbol_name, sizeof(field_symbol_name)))
+        container_type = NULL;
+    }
+    if (container_type == NULL &&
+        !resolve_amiga_policy_seed_struct_field_symbol_name(ctx, offset, M68K_ANALYSIS_REGISTER_ADDRESS, base_reg,
+          displacement, field_symbol_name, sizeof(field_symbol_name), &container_type)) {
       continue;
+    }
     operand->symbol_ref.has_name = 1U;
     operand->symbol_ref.name_is_generated = 0U;
     operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
@@ -5054,7 +6654,31 @@ int platform_amiga_annotate_instruction_symbol_refs(const SectionAnalysisContext
       }
     }
   }
-  if (field_domain_name == NULL) {
+  {
+    size_t push_operand_index = SIZE_MAX;
+    const AmigaOsCallInputInfo *input_info = NULL;
+    const char *value_domain_name;
+    int32_t value;
+    char domain_symbol[128];
+    if (resolve_amiga_stack_push_wrapper_input(ctx, section_analysis, offset, instruction, &push_operand_index,
+        &input_info, NULL) &&
+        push_operand_index < instruction->operand_count && input_info != NULL &&
+        (value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input_info->value_domain_id)) != NULL &&
+        operand_raw_constant_value_local(&instruction->operands[push_operand_index], &value) &&
+        format_amiga_value_domain_symbolic_value(value_domain_name, value, domain_symbol, sizeof(domain_symbol))) {
+      M68kOperandIR *mutable_operand = &instruction->operands[push_operand_index];
+      if (!mutable_operand->symbol_ref.has_name) {
+        mutable_operand->symbol_ref.has_name = 1U;
+        mutable_operand->symbol_ref.name_is_generated = 0U;
+        mutable_operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
+        mutable_operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
+        mutable_operand->symbol_ref.addend = 0;
+        snprintf(mutable_operand->symbol_ref.name, sizeof(mutable_operand->symbol_ref.name), "%s", domain_symbol);
+        annotated = 1;
+      }
+    }
+  }
+  if (field_domain_name == NULL && has_unnamed_immediate) {
     for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
       uint8_t reg_index;
       AmigaResolvedDataRegInfo data_info;
@@ -5100,6 +6724,25 @@ int platform_amiga_resolve_app_base_slot_symbol_ref(const SectionAnalysisContext
     M68kSymbolRefIR *out_symbol_ref) {
   if (treat_as_value) return resolve_amiga_app_slot_value_symbol_ref(ctx, section_analysis, displacement, out_symbol_ref);
   return resolve_amiga_app_slot_symbol_ref(ctx, section_analysis, displacement, out_symbol_ref);
+}
+
+int platform_amiga_format_global_base_slot_label(size_t section_index, char width_suffix, const char *base_name,
+    char *buf, size_t buf_size) {
+  const char *tail = base_name;
+  size_t tail_index = 0U;
+  char normalized[64];
+  int written;
+  if (buf == NULL || buf_size == 0U || base_name == NULL || base_name[0] == '\0') return 0;
+  if (strcmp(base_name, "SysBase") == 0) tail = "ExecBase";
+  while (tail[0] == '_' || tail[0] == '.') ++tail;
+  while (tail[tail_index] != '\0' && tail_index + 1U < sizeof(normalized)) {
+    char ch = tail[tail_index];
+    normalized[tail_index] = (ch == '.' || ch == '-' || ch == ' ') ? '_' : ch;
+    ++tail_index;
+  }
+  normalized[tail_index] = '\0';
+  written = snprintf(buf, buf_size, "h%ud%c_%s", (unsigned)section_index, width_suffix, normalized);
+  return written > 0 && (size_t)written < buf_size;
 }
 
 

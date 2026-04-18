@@ -34,7 +34,7 @@
         "note": "Wire format entries are parser-asserted from chapter 11.7 line citations"
       }
     ],
-    "note": "Parsed from NDK 3.1 by parse_hunk_format.py",
+    "note": "Parsed from NDK 3.1; C runtime generation consumes this data",
     "longword_bytes": 4,
     "endianness": "big",
     "hunk_type_id_mask": 536870911,

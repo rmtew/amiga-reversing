@@ -95,9 +95,107 @@ class M68kRenderPolicy(ctypes.Structure):
     ]
 
 
+M68K_ANALYSIS_REGISTER_SEED_LIMIT = 64
+M68K_ANALYSIS_ENTRY_POINT_LIMIT = 64
+M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT = 256
+M68K_ANALYSIS_NAMED_LABEL_LIMIT = 128
+M68K_ANALYSIS_ENTRY_COMMENT_LIMIT = 128
+
+
+class M68kAnalysisRegisterSeed(ctypes.Structure):
+    _fields_ = [
+        ("platform_kind", ctypes.c_uint8),
+        ("kind", ctypes.c_uint8),
+        ("reg_kind", ctypes.c_uint8),
+        ("reg_index", ctypes.c_uint8),
+        ("has_entry_offset", ctypes.c_uint8),
+        ("has_section_index", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 2),
+        ("entry_offset", ctypes.c_uint32),
+        ("section_index", ctypes.c_uint32),
+        ("name", ctypes.c_char * 64),
+        ("type_name", ctypes.c_char * 64),
+        ("context_name", ctypes.c_char * 64),
+    ]
+
+
+class M68kAnalysisEntryPoint(ctypes.Structure):
+    _fields_ = [
+        ("has_section_index", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+    ]
+
+
+class M68kAnalysisStructuredDataItem(ctypes.Structure):
+    _fields_ = [
+        ("has_section_index", ctypes.c_uint8),
+        ("kind", ctypes.c_uint8),
+        ("is_pointer", ctypes.c_uint8),
+        ("has_target", ctypes.c_uint8),
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+        ("target_section", ctypes.c_uint32),
+        ("target_offset", ctypes.c_uint32),
+        ("has_constant_value", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+        ("constant_value", ctypes.c_int32),
+        ("label", ctypes.c_char * 64),
+        ("struct_name", ctypes.c_char * 64),
+        ("field_name", ctypes.c_char * 64),
+        ("field_type", ctypes.c_char * 64),
+        ("c_type", ctypes.c_char * 64),
+        ("pointer_struct", ctypes.c_char * 64),
+        ("value_domain", ctypes.c_char * 64),
+        ("constant_name", ctypes.c_char * 64),
+        ("semantic_role", ctypes.c_char * 64),
+        ("comment", ctypes.c_char * 64),
+    ]
+
+
+class M68kAnalysisNamedLabel(ctypes.Structure):
+    _fields_ = [
+        ("has_section_index", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+        ("name", ctypes.c_char * 64),
+    ]
+
+
+class M68kAnalysisEntryComment(ctypes.Structure):
+    _fields_ = [
+        ("has_section_index", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+        ("comment", ctypes.c_char * 192),
+    ]
+
+
 class M68kAnalysisPolicy(ctypes.Structure):
     _fields_ = [
         ("max_cpu", ctypes.c_uint8),
+        ("has_entry_offset", ctypes.c_uint8),
+        ("skip_platform_facts", ctypes.c_uint8),
+        ("reserved0", ctypes.c_uint8),
+        ("register_seed_count", ctypes.c_uint16),
+        ("entry_point_count", ctypes.c_uint16),
+        ("structured_data_item_count", ctypes.c_uint16),
+        ("named_label_count", ctypes.c_uint16),
+        ("entry_comment_count", ctypes.c_uint16),
+        ("reserved1", ctypes.c_uint16),
+        ("entry_offset", ctypes.c_uint32),
+        ("register_seeds", M68kAnalysisRegisterSeed * M68K_ANALYSIS_REGISTER_SEED_LIMIT),
+        ("entry_points", M68kAnalysisEntryPoint * M68K_ANALYSIS_ENTRY_POINT_LIMIT),
+        (
+            "structured_data_items",
+            M68kAnalysisStructuredDataItem * M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT,
+        ),
+        ("named_labels", M68kAnalysisNamedLabel * M68K_ANALYSIS_NAMED_LABEL_LIMIT),
+        ("entry_comments", M68kAnalysisEntryComment * M68K_ANALYSIS_ENTRY_COMMENT_LIMIT),
     ]
 
 
@@ -202,10 +300,41 @@ def _file_library():
         ctypes.POINTER(M68kAnalysisPolicy),
     ]
     library.platform_file_analyze_buffer_json.restype = PlatformFileTextResult
+    library.platform_file_inspect_path_json_alloc.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_inspect_path_json_alloc.restype = ctypes.c_int
+    library.platform_file_disassemble_path_text_alloc.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_disassemble_path_text_alloc.restype = ctypes.c_int
+    library.platform_file_analyze_path_json_alloc.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_analyze_path_json_alloc.restype = ctypes.c_int
+    library.platform_file_listing_rows_path_json_alloc.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_listing_rows_path_json_alloc.restype = ctypes.c_int
     library.platform_file_source_ir_free.argtypes = [ctypes.POINTER(M68kSourceFileIR)]
     library.platform_file_source_ir_free.restype = None
     library.platform_file_free_text.argtypes = [ctypes.c_void_p]
     library.platform_file_free_text.restype = None
+    library.platform_file_free_bytes.argtypes = [ctypes.c_void_p]
+    library.platform_file_free_bytes.restype = None
     return library
 
 
@@ -237,6 +366,17 @@ def _analysis_policy(max_cpu: int = 5) -> M68kAnalysisPolicy:
     policy = M68kAnalysisPolicy()
     policy.max_cpu = max_cpu
     return policy
+
+
+def _file_alloc_text(library, function_name: str, *args: bytes) -> tuple[int, str]:
+    out_text = ctypes.c_void_p()
+    result = getattr(library, function_name)(*args, ctypes.byref(out_text))
+    try:
+        text = ctypes.string_at(out_text).decode("utf-8") if out_text.value else ""
+        return result, text
+    finally:
+        if out_text.value:
+            library.platform_file_free_text(out_text)
 
 
 class IrPolicyDllTests(unittest.TestCase):
@@ -325,6 +465,42 @@ class IrPolicyDllTests(unittest.TestCase):
 
         self.assertIn("COMMENT HEAD=$7", text)
 
+    def test_source_ir_parse_rs_word_and_long_align_before_assignment(self) -> None:
+        library = _asm_library()
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.s"
+            path.write_text(
+                "RSSET 1\n"
+                "foo RS.W 1\n"
+                "bar RS.L 1\n"
+                "SECTION code,code\n"
+                "    DC.B foo,bar,__RS\n",
+                encoding="utf-8",
+            )
+            policy = _default_policy()
+            parse_result = library.m68k_source_ir_parse_file(
+                str(path).encode("utf-8"),
+                str(AMIGA_INCLUDE_DIR).encode("utf-8"),
+                0,
+                0,
+            )
+            self.assertFalse(_diag_has_errors(parse_result.diagnostics), _diag_message(parse_result.diagnostics))
+            source_file = parse_result.source_file
+            try:
+                render_result = library.m68k_source_ir_render_with_policy(
+                    ctypes.byref(source_file),
+                    ctypes.byref(policy),
+                )
+                self.assertFalse(_diag_has_errors(render_result.diagnostics), _diag_message(render_result.diagnostics))
+                try:
+                    text = ctypes.cast(render_result.text, ctypes.c_char_p).value.decode("utf-8")
+                finally:
+                    library.m68k_free_text(render_result.text)
+            finally:
+                library.m68k_source_ir_free(ctypes.byref(source_file))
+
+        self.assertIn("DC.B    $02,$04,$08", text)
+
     def test_platform_file_analysis_reports_cfg_for_certain_code(self) -> None:
         library = _file_library()
         sample = make_synthetic_hunkexe()
@@ -350,6 +526,91 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(code_section["edges"][0]["source_offset"], 0)
         self.assertEqual(code_section["edges"][0]["kind"], 5)
         self.assertEqual(data_section["block_count"], 0)
+
+    def test_platform_file_alloc_api_inspects_path(self) -> None:
+        library = _file_library()
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.hunk"
+            path.write_bytes(make_synthetic_hunkexe())
+
+            result, text = _file_alloc_text(
+                library,
+                "platform_file_inspect_path_json_alloc",
+                b"amiga-hunk",
+                str(path).encode("utf-8"),
+            )
+
+        self.assertEqual(result, 0, text)
+        info = json.loads(text)
+        self.assertEqual(info["platform"], "amiga-hunk")
+        self.assertEqual(info["section_count"], 2)
+
+    def test_platform_file_alloc_api_reports_error(self) -> None:
+        library = _file_library()
+        result, text = _file_alloc_text(
+            library,
+            "platform_file_inspect_path_json_alloc",
+            b"missing-backend",
+            b"missing.bin",
+        )
+
+        self.assertNotEqual(result, 0)
+        self.assertTrue(text)
+
+    def test_platform_file_alloc_api_uses_metadata_for_analysis_listing_and_render(self) -> None:
+        library = _file_library()
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.hunk"
+            metadata_path = Path(tmp) / "target_metadata.json"
+            path.write_bytes(make_synthetic_hunkexe())
+            metadata_path.write_text(
+                json.dumps(
+                    {
+                        "entry_register_seeds": [],
+                        "seeded_code_entrypoints": [
+                            {"addr": 0, "hunk": 0, "name": "manual_start"},
+                        ],
+                    },
+                ),
+                encoding="utf-8",
+            )
+            encoded_path = str(path).encode("utf-8")
+            encoded_metadata_path = str(metadata_path).encode("utf-8")
+
+            analyze_result, analyze_text = _file_alloc_text(
+                library,
+                "platform_file_analyze_path_json_alloc",
+                b"amiga-hunk",
+                encoded_path,
+                encoded_metadata_path,
+                b"",
+            )
+            listing_result, listing_text = _file_alloc_text(
+                library,
+                "platform_file_listing_rows_path_json_alloc",
+                b"amiga-hunk",
+                encoded_path,
+                encoded_metadata_path,
+            )
+            render_result, render_text = _file_alloc_text(
+                library,
+                "platform_file_disassemble_path_text_alloc",
+                b"amiga-hunk",
+                encoded_path,
+                b"vasm",
+                encoded_metadata_path,
+            )
+
+        self.assertEqual(analyze_result, 0, analyze_text)
+        self.assertEqual(json.loads(analyze_text)["section_count"], 2)
+        self.assertEqual(listing_result, 0, listing_text)
+        listing_rows = json.loads(listing_text)["rows"]
+        self.assertTrue(listing_rows)
+        addressed_rows = [row for row in listing_rows if isinstance(row.get("addr"), int)]
+        self.assertTrue(addressed_rows)
+        self.assertEqual(addressed_rows[0]["entity_addr"], addressed_rows[0]["addr"])
+        self.assertEqual(render_result, 0, render_text)
+        self.assertIn("SECTION", render_text)
 
     def test_platform_file_analysis_keeps_fallthrough_after_trap(self) -> None:
         library = _file_library()
@@ -401,7 +662,7 @@ class IrPolicyDllTests(unittest.TestCase):
         finally:
             library.platform_file_source_ir_free(ctypes.byref(source_file))
 
-        self.assertIn("loc_0000:", default_text)
+        self.assertIn("h0_0000:", default_text)
 
         fallback_policy = _default_policy()
         fallback_policy.presentation.prefer_generated_names = 0
@@ -427,8 +688,7 @@ class IrPolicyDllTests(unittest.TestCase):
         finally:
             library.platform_file_source_ir_free(ctypes.byref(source_file))
 
-        self.assertIn("L_0000:", fallback_text)
-        self.assertNotIn("loc_0000:", fallback_text)
+        self.assertIn("h0_0000:", fallback_text)
 
     def test_platform_file_ir_render_emits_minimum_os_version_comment(self) -> None:
         library = _file_library()

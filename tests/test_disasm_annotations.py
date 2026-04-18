@@ -5,7 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from disasm.annotations import AnnotationPatchInput, get_entity, patch_entity
+from amiga_reversing.disasm.annotations import (
+    AnnotationPatchInput,
+    get_entity,
+    patch_entity,
+)
 
 
 def test_get_entity_merges_overrides(tmp_path: Path) -> None:

@@ -62,8 +62,25 @@ class PlatformDiskTestCaseMixin:
             ctypes.c_size_t,
         ]
         cls.library.platform_disk_inspect_buffer_json.restype = PlatformDiskTextResult
-        cls.library.platform_disk_free_json.argtypes = [ctypes.c_void_p]
-        cls.library.platform_disk_free_json.restype = None
+        cls.library.platform_disk_inspect_path_json_alloc.argtypes = [
+            ctypes.c_char_p,
+            ctypes.c_char_p,
+            ctypes.POINTER(ctypes.c_void_p),
+        ]
+        cls.library.platform_disk_inspect_path_json_alloc.restype = ctypes.c_int
+        cls.library.platform_disk_extract_entry_path_bytes_alloc.argtypes = [
+            ctypes.c_char_p,
+            ctypes.c_char_p,
+            ctypes.c_char_p,
+            ctypes.POINTER(ctypes.c_void_p),
+            ctypes.POINTER(ctypes.c_size_t),
+            ctypes.POINTER(ctypes.c_void_p),
+        ]
+        cls.library.platform_disk_extract_entry_path_bytes_alloc.restype = ctypes.c_int
+        cls.library.platform_disk_free_text.argtypes = [ctypes.c_void_p]
+        cls.library.platform_disk_free_text.restype = None
+        cls.library.platform_disk_free_bytes.argtypes = [ctypes.c_void_p]
+        cls.library.platform_disk_free_bytes.restype = None
 
     def inspect_disk_buffer(self, platform_name: str, image: bytes) -> dict[str, object]:
         data_array = (ctypes.c_ubyte * len(image)).from_buffer_copy(image if image else b"\0")
@@ -76,4 +93,61 @@ class PlatformDiskTestCaseMixin:
         try:
             return json.loads(ctypes.string_at(result.text).decode("utf-8"))
         finally:
-            self.library.platform_disk_free_json(result.text)
+            self.library.platform_disk_free_text(result.text)
+
+    def inspect_disk_path_alloc(self, platform_name: str, image_path: Path) -> dict[str, object]:
+        out_text = ctypes.c_void_p()
+        result = self.library.platform_disk_inspect_path_json_alloc(
+            platform_name.encode("utf-8"),
+            str(image_path).encode("utf-8"),
+            ctypes.byref(out_text),
+        )
+        self.assertEqual(result, 0)
+        try:
+            return json.loads(ctypes.string_at(out_text).decode("utf-8"))
+        finally:
+            self.library.platform_disk_free_text(out_text)
+
+    def extract_disk_entry_path_alloc(self, platform_name: str, image_path: Path, entry_path: str) -> bytes:
+        out_data = ctypes.c_void_p()
+        out_size = ctypes.c_size_t()
+        out_error = ctypes.c_void_p()
+        result = self.library.platform_disk_extract_entry_path_bytes_alloc(
+            platform_name.encode("utf-8"),
+            str(image_path).encode("utf-8"),
+            entry_path.encode("utf-8"),
+            ctypes.byref(out_data),
+            ctypes.byref(out_size),
+            ctypes.byref(out_error),
+        )
+        try:
+            error = ctypes.string_at(out_error).decode("utf-8") if out_error.value else ""
+            self.assertEqual(result, 0, error)
+            return bytes(ctypes.string_at(out_data, out_size.value))
+        finally:
+            if out_error.value:
+                self.library.platform_disk_free_text(out_error)
+            if out_data.value:
+                self.library.platform_disk_free_bytes(out_data)
+
+    def extract_disk_entry_path_alloc_error(self, platform_name: str, image_path: Path, entry_path: str) -> str:
+        out_data = ctypes.c_void_p()
+        out_size = ctypes.c_size_t()
+        out_error = ctypes.c_void_p()
+        result = self.library.platform_disk_extract_entry_path_bytes_alloc(
+            platform_name.encode("utf-8"),
+            str(image_path).encode("utf-8"),
+            entry_path.encode("utf-8"),
+            ctypes.byref(out_data),
+            ctypes.byref(out_size),
+            ctypes.byref(out_error),
+        )
+        try:
+            self.assertNotEqual(result, 0)
+            self.assertFalse(out_data.value)
+            return ctypes.string_at(out_error).decode("utf-8") if out_error.value else ""
+        finally:
+            if out_error.value:
+                self.library.platform_disk_free_text(out_error)
+            if out_data.value:
+                self.library.platform_disk_free_bytes(out_data)

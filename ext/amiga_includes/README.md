@@ -5,7 +5,7 @@ Rules:
 - Lowercase paths to match emitted include strings.
 - Used for local assembly and round-trip validation.
 - Primary NDK parsing still reads the source trees on `D:\`.
-- Regenerate from original NDK inputs via `scripts/sync_amiga_includes.py`.
+- Regenerate from original NDK inputs via `src.scripts.sync_amiga_includes`.
 - `_lib.i` files are derived from original raw includes plus `.fd` files.
 
 Current snapshot:

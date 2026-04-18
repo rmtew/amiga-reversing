@@ -7,7 +7,7 @@ below.
 ## M68K Programmer's Reference Manual (required)
 
 - **File:** `resources/M68000PM_AD_Rev_1_Programmers_Reference_Manual_1992.pdf`
-- **Used by:** `scripts/parse_m68k.py` (extracts instruction encodings, EA modes,
+- **Used by:** `src.scripts.kb.m68k_parser` (extracts instruction encodings, EA modes,
   constraints into `knowledge/m68k_instructions.json`)
 - **Source:** Motorola M68000 Family Programmer's Reference Manual (1992).
   Freely available from various archive sites; search for the title.
@@ -16,7 +16,7 @@ below.
 
 - **Files:** `resources/Hardware_Manual.html` and `resources/Hardware_Manual_guide/`
   (764 HTML files)
-- **Used by:** `scripts/parse_hw_manual.py` (extracts register definitions into
+- **Used by:** `src.scripts.parse_hw_manual` (extracts register definitions into
   `knowledge/amiga_hw_registers.json`)
 - **Source:** Amiga Hardware Reference Manual, AmigaGuide-to-HTML conversion.
   Available on the ADCD 2.1 disc or amiga-dev.wikidot.com.
@@ -24,8 +24,8 @@ below.
 ## NDK 3.1 (required)
 
 - **Directory:** Available at any path; configure in parser invocation
-- **Used by:** `scripts/parse_ndk.py` (extracts OS function signatures, structs,
-constants into `knowledge/amiga_ndk_includes_parsed.json` and
+- **Used by:** `src.scripts.kb.ndk_parser` (extracts OS function signatures, structs,
+  constants into `knowledge/amiga_ndk_includes_parsed.json` and
   `knowledge/amiga_ndk_other_parsed.json`)
 - **Contents needed:** FD files, autodocs, and include files (especially `.i` asm
   headers for struct/constant definitions)
@@ -35,7 +35,7 @@ constants into `knowledge/amiga_ndk_includes_parsed.json` and
 ## Game binaries (per-game)
 
 - **Directory:** `bin/`
-- **Used by:** `scripts/build_entities.py`, `scripts/gen_disasm.py`
+- **Used by:** `amiga_reversing.tools.build_entities`, `amiga_reversing.tools.gen_disasm`
 - **Source:** User-supplied. Amiga hunk-format executables to disassemble.
 
 ## Target binaries for analysis (optional)

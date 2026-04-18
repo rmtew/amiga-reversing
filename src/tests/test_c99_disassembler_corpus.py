@@ -371,6 +371,9 @@ class C99DisassemblerCorpusTests(unittest.TestCase):
             ("68020", "move.w -$8(a1,d1.w),d1"),
             ("68020", "move.w -$8(pc,d1.w),d1"),
             ("68020", "lea.l $0(a0,d1.w){full,bdl=-$00000010,odl=-$00000004,iis=3},a0"),
+            ("68000", "link a6,#-268"),
+            ("68010", "rtd #-268"),
+            ("68020", "link.l a6,#-32768"),
         )
         for cpu_name, asm_text in samples:
             with self.subTest(cpu=cpu_name, asm=asm_text):

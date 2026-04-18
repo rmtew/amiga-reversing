@@ -1,2 +1,0 @@
-class DecodeError(Exception):
-    pass

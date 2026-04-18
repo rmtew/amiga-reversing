@@ -3,455 +3,455 @@
 
     COMMENT HEAD=$7
     SECTION TEXT,code
-loc_0000:
-    bra.s loc_001E
+h0_0000:
+    bra.s h0_001E
     DC.B    $95,$29
     DC.L    $7b008696
     DC.B    "Gen(C) HiSoft 1985-93",0
-loc_001E:
-    jsr sub_B8BE.l
-loc_0024:
-    jsr sub_9192.l
-loc_002A:
+h0_001E:
+    jsr h0_B8BE.l
+h0_0024:
+    jsr h0_9192.l
+h0_002A:
     move.l a7,$0266(a6)
     subq.l #4,$0266(a6)
     movea.l #dat_B65C,a0
     lea.l -$0002(a6),a1
     moveq.l #63,d0
-loc_003E:
+h0_003E:
     move.l (a0)+,(a1)+
-    dbf.w d0,loc_003E
-loc_0044:
+    dbf.w d0,h0_003E
+h0_0044:
     lea.l $00FE(a6),a0
     move.w #$AD,d0
-loc_004C:
+h0_004C:
     clr.w (a0)+
-    dbf.w d0,loc_004C
-loc_0052:
+    dbf.w d0,h0_004C
+h0_0052:
     sf.b $026C(a6)
     sf.b $026A(a6)
     clr.b $052F(a6)
-    jsr sub_9134.l
-loc_0064:
+    jsr h0_9134.l
+h0_0064:
     lea.l $027A(a6),a1
     clr.l (a1)
     move.l a1,$0178(a6)
     lea.l $0276(a6),a1
     clr.l (a1)
     move.l a1,$0170(a6)
-    bsr.w sub_6EA4
-loc_007C:
+    bsr.w h0_6EA4
+h0_007C:
     clr.b $06FE(a6)
     lea.l $507C(a6),a3
-    bsr.w sub_474A
-loc_0088:
+    bsr.w h0_474A
+h0_0088:
     lea.l $0868(a6),a3
-    bsr.w sub_474A
-loc_0090:
+    bsr.w h0_474A
+h0_0090:
     clr.b $0816(a6)
     lea.l $475A(a6),a0
     move.l a0,$47FA(a6)
     clr.w $0286(a6)
     move.b #$64,$026C(a6)
-    jsr sub_B956.l
-loc_00AC:
-    bne.w loc_045E
-loc_00B0:
+    jsr h0_B956.l
+h0_00AC:
+    bne.w h0_045E
+h0_00B0:
     clr.b $07C4(a6)
     st.b $46FA(a6)
     sf.b $46FB(a6)
     sf.b $46FC(a6)
     st.b $46FD(a6)
-    jsr sub_BB64.l
-loc_00CA:
+    jsr h0_BB64.l
+h0_00CA:
     sf.b $0103(a6)
-    jsr sub_BB50.l
-loc_00D4:
+    jsr h0_BB50.l
+h0_00D4:
     sf.b $0103(a6)
     lea.l $0816(a6),a0
     tst.b (a0)
-    beq.s loc_00F8
-loc_00E0:
-    jsr sub_BAF8.l
-loc_00E6:
-    beq.w loc_015C
-loc_00EA:
+    beq.s h0_00F8
+h0_00E0:
+    jsr h0_BAF8.l
+h0_00E6:
+    beq.w h0_015C
+h0_00EA:
     move.l a0,$0262(a6)
-    jsr sub_BB22.l
-loc_00F4:
-    bne.w loc_0158
-loc_00F8:
-    jsr sub_BBAA.l
-loc_00FE:
+    jsr h0_BB22.l
+h0_00F4:
+    bne.w h0_0158
+h0_00F8:
+    jsr h0_BBAA.l
+h0_00FE:
     tst.b $052F(a6)
-    beq.w loc_0160
-loc_0106:
+    beq.w h0_0160
+h0_0106:
     tst.b $0129(a6)
-    bne.s loc_0114
-loc_010C:
+    bne.s h0_0114
+h0_010C:
     moveq.l #0,d0
-    jsr sub_8F00.l
-loc_0114:
-    jsr sub_4672.l
-loc_011A:
-    bne.w loc_0154
-loc_011E:
-    jsr sub_10E3C.l
-loc_0124:
+    jsr h0_8F00.l
+h0_0114:
+    jsr h0_4672.l
+h0_011A:
+    bne.w h0_0154
+h0_011E:
+    jsr h0_10E3C.l
+h0_0124:
     sf.b $026C(a6)
     lea.l $475A(a6),a0
     move.l a0,$47FA(a6)
     clr.b $010B(a6)
     lea.l $052A(a6),a0
-    jsr sub_8904.l
-loc_013E:
-    beq.s loc_01B0
-loc_0140:
+    jsr h0_8904.l
+h0_013E:
+    beq.s h0_01B0
+h0_0140:
     moveq.l #10,d0
-    jsr sub_8F00.l
-loc_0148:
-    bsr.s sub_016C
-loc_014A:
+    jsr h0_8F00.l
+h0_0148:
+    bsr.s h0_016C
+h0_014A:
     move.b #$64,$026C(a6)
-    bra.w loc_045E
-loc_0154:
+    bra.w h0_045E
+h0_0154:
     moveq.l #26,d0
-    bra.s loc_0162
-loc_0158:
+    bra.s h0_0162
+h0_0158:
     moveq.l #24,d0
-    bra.s loc_0162
-loc_015C:
+    bra.s h0_0162
+h0_015C:
     moveq.l #25,d0
-    bra.s loc_0162
-loc_0160:
+    bra.s h0_0162
+h0_0160:
     moveq.l #23,d0
-loc_0162:
-    jsr sub_8F00.l
-loc_0168:
-    bra.w loc_045E
-sub_016C:
+h0_0162:
+    jsr h0_8F00.l
+h0_0168:
+    bra.w h0_045E
+h0_016C:
     lea.l $052A(a6),a0
     moveq.l #0,d0
     move.b $0005(a0),d0
     subq.w #2,d0
-    bmi.s loc_0188
-loc_017A:
+    bmi.s h0_0188
+h0_017A:
     addq.w #6,a0
-loc_017C:
+h0_017C:
     move.b (a0)+,d1
-    jsr loc_8F1E.l
-loc_0184:
-    dbf.w d0,loc_017C
-loc_0188:
-    jmp loc_8F12.l
-sub_018E:
+    jsr h0_8F1E.l
+h0_0184:
+    dbf.w d0,h0_017C
+h0_0188:
+    jmp h0_8F12.l
+h0_018E:
     move.w $024C(a6),-(a7)
     clr.w $024C(a6)
-    jsr sub_BB50.l
-loc_019C:
-    bne.s loc_0160
-loc_019E:
-    jsr sub_BB22.l
-loc_01A4:
-    bne.s loc_0158
-loc_01A6:
+    jsr h0_BB50.l
+h0_019C:
+    bne.s h0_0160
+h0_019E:
+    jsr h0_BB22.l
+h0_01A4:
+    bne.s h0_0158
+h0_01A6:
     move.w (a7)+,$024C(a6)
     sf.b $0103(a6)
     rts
-loc_01B0:
+h0_01B0:
     tst.l $01AC(a6)
-    bne.s loc_01BA
-loc_01B6:
+    bne.s h0_01BA
+h0_01B6:
     moveq.l #29,d0
-    bra.s loc_0162
-loc_01BA:
+    bra.s h0_0162
+h0_01BA:
     movea.l $052A(a6),a1
     move.b $052F(a6),d0
     subq.b #1,d0
-loc_01C4:
+h0_01C4:
     move.l a1,d2
     move.b d0,d3
-loc_01C8:
+h0_01C8:
     subq.b #1,d0
-    bcs.s loc_01E2
-loc_01CC:
+    bcs.s h0_01E2
+h0_01CC:
     move.b (a1)+,d1
     cmp.b #$5C,d1
-    beq.s loc_01C4
-loc_01D4:
+    beq.s h0_01C4
+h0_01D4:
     cmp.b #$2F,d1
-    beq.s loc_01C4
-loc_01DA:
+    beq.s h0_01C4
+h0_01DA:
     cmp.b #$3A,d1
-    beq.s loc_01C4
-loc_01E0:
-    bra.s loc_01C8
-loc_01E2:
+    beq.s h0_01C4
+h0_01E0:
+    bra.s h0_01C8
+h0_01E2:
     lea.l $05B4(a6),a0
     movea.l d2,a1
     move.b d3,(a0)+
-loc_01EA:
-    beq.s loc_01F2
-loc_01EC:
+h0_01EA:
+    beq.s h0_01F2
+h0_01EC:
     move.b (a1)+,(a0)+
     subq.b #1,d3
-    bra.s loc_01EA
-loc_01F2:
+    bra.s h0_01EA
+h0_01F2:
     move.b #$D,(a0)
-    bsr.w loc_0486
-loc_01FA:
+    bsr.w h0_0486
+h0_01FA:
     sf.b $46FA(a6)
     st.b $46FB(a6)
     st.b $46FC(a6)
-    jsr sub_BB64.l
-loc_020C:
+    jsr h0_BB64.l
+h0_020C:
     sf.b $0103(a6)
     lea.l $05DE(a6),a0
     move.l a0,$027E(a6)
     tst.b $0129(a6)
-    bne.s loc_0232
-loc_021E:
+    bne.s h0_0232
+h0_021E:
     moveq.l #27,d0
-    jsr sub_8F00.l
-loc_0226:
-    bsr.w sub_016C
-loc_022A:
+    jsr h0_8F00.l
+h0_0226:
+    bsr.w h0_016C
+h0_022A:
     moveq.l #1,d0
-    jsr sub_8F00.l
-loc_0232:
+    jsr h0_8F00.l
+h0_0232:
     move.b $480E(a6),$480F(a6)
     sf.b $46FA(a6)
     st.b $46FB(a6)
     st.b $46FC(a6)
     sf.b $46FD(a6)
-    bsr.w sub_018E
-loc_024C:
-    bsr.w sub_06C4
-loc_0250:
-    bne.s loc_029E
-loc_0252:
+    bsr.w h0_018E
+h0_024C:
+    bsr.w h0_06C4
+h0_0250:
+    bne.s h0_029E
+h0_0252:
     move.l a7,$0266(a6)
     subq.l #4,$0266(a6)
     sf.b $46FE(a6)
-    bsr.w sub_0A00
-loc_0262:
-    bsr.w loc_0830
-loc_0266:
+    bsr.w h0_0A00
+h0_0262:
+    bsr.w h0_0830
+h0_0266:
     tst.b $46FE(a6)
-    beq.s loc_0286
-loc_026C:
+    beq.s h0_0286
+h0_026C:
     tst.l $01D0(a6)
-    bne.s loc_0286
-loc_0272:
+    bne.s h0_0286
+h0_0272:
     sf.b $46FA(a6)
     st.b $46FB(a6)
     sf.b $46FC(a6)
     sf.b $46FD(a6)
-    bsr.w sub_018E
-loc_0286:
+    bsr.w h0_018E
+h0_0286:
     move.l a7,$0266(a6)
     subq.l #4,$0266(a6)
-loc_028E:
-    bsr.w sub_06C4
-loc_0292:
-    bne.s loc_029E
-loc_0294:
-    bsr.w sub_0A00
-loc_0298:
-    bsr.w loc_0830
-loc_029C:
-    bra.s loc_028E
-loc_029E:
+h0_028E:
+    bsr.w h0_06C4
+h0_0292:
+    bne.s h0_029E
+h0_0294:
+    bsr.w h0_0A00
+h0_0298:
+    bsr.w h0_0830
+h0_029C:
+    bra.s h0_028E
+h0_029E:
     tst.b $010D(a6)
-    bne.w loc_039E
-loc_02A6:
-    bsr.w sub_0584
-loc_02AA:
+    bne.w h0_039E
+h0_02A6:
+    bsr.w h0_0584
+h0_02AA:
     sf.b $480F(a6)
     tst.b $0129(a6)
-    bne.s loc_02BC
-loc_02B4:
+    bne.s h0_02BC
+h0_02B4:
     moveq.l #2,d0
-    jsr sub_8F00.l
-loc_02BC:
+    jsr h0_8F00.l
+h0_02BC:
     tst.b $0117(a6)
-    bgt.w loc_06BC
-loc_02C4:
+    bgt.w h0_06BC
+h0_02C4:
     move.b $480E(a6),$480F(a6)
-    jsr sub_BBFE.l
-loc_02D0:
+    jsr h0_BBFE.l
+h0_02D0:
     st.b $026A(a6)
-    bsr.w loc_0486
-loc_02D8:
+    bsr.w h0_0486
+h0_02D8:
     tst.b $480E(a6)
-    beq.s loc_02E6
-loc_02DE:
+    beq.s h0_02E6
+h0_02DE:
     sf.b $46F4(a6)
     st.b $0101(a6)
-loc_02E6:
+h0_02E6:
     lea.l $0868(a6),a3
-    bsr.w sub_475A
-loc_02EE:
+    bsr.w h0_475A
+h0_02EE:
     sf.b $46FA(a6)
     st.b $46FB(a6)
     sf.b $46FC(a6)
     st.b $46FD(a6)
-    jsr sub_BB64.l
-loc_0304:
+    jsr h0_BB64.l
+h0_0304:
     sf.b $46FB(a6)
-    jsr sub_BB50.l
-loc_030E:
-    jsr sub_BB22.l
-loc_0314:
+    jsr h0_BB50.l
+h0_030E:
+    jsr h0_BB22.l
+h0_0314:
     sf.b $0103(a6)
-    jsr sub_BBAA.l
-loc_031E:
+    jsr h0_BBAA.l
+h0_031E:
     lea.l $052A(a6),a0
     clr.b $010B(a6)
-    jsr sub_8904.l
-loc_032C:
-    beq.s loc_0334
-loc_032E:
-    jmp loc_853E.l
-loc_0334:
+    jsr h0_8904.l
+h0_032C:
+    beq.s h0_0334
+h0_032E:
+    jmp h0_853E.l
+h0_0334:
     st.b $46FB(a6)
     sf.b $46FD(a6)
-    bsr.w sub_018E
-loc_0340:
-    bsr.w sub_06C4
-loc_0344:
-    bne.s loc_0374
-loc_0346:
+    bsr.w h0_018E
+h0_0340:
+    bsr.w h0_06C4
+h0_0344:
+    bne.s h0_0374
+h0_0346:
     sf.b $46FE(a6)
-    bsr.w sub_0A00
-loc_034E:
-    bsr.w loc_0914
-loc_0352:
+    bsr.w h0_0A00
+h0_034E:
+    bsr.w h0_0914
+h0_0352:
     tst.b $46FE(a6)
-    beq.s loc_0364
-loc_0358:
-    bsr.w sub_018E
-loc_035C:
+    beq.s h0_0364
+h0_0358:
+    bsr.w h0_018E
+h0_035C:
     move.l a7,$0266(a6)
     subq.l #4,$0266(a6)
-loc_0364:
-    bsr.w sub_06C4
-loc_0368:
-    bne.s loc_0374
-loc_036A:
-    bsr.w sub_0A00
-loc_036E:
-    bsr.w loc_0914
-loc_0372:
-    bra.s loc_0364
-loc_0374:
-    bsr.w sub_056E
-loc_0378:
-    bsr.w sub_7A42
-loc_037C:
-    bsr.w sub_7A50
-loc_0380:
-    jsr sub_9B12.l
-loc_0386:
+h0_0364:
+    bsr.w h0_06C4
+h0_0368:
+    bne.s h0_0374
+h0_036A:
+    bsr.w h0_0A00
+h0_036E:
+    bsr.w h0_0914
+h0_0372:
+    bra.s h0_0364
+h0_0374:
+    bsr.w h0_056E
+h0_0378:
+    bsr.w h0_7A42
+h0_037C:
+    bsr.w h0_7A50
+h0_0380:
+    jsr h0_9B12.l
+h0_0386:
     tst.b $0100(a6)
-    beq.s loc_0392
-loc_038C:
-    jsr sub_8FE6.l
-loc_0392:
+    beq.s h0_0392
+h0_038C:
+    jsr h0_8FE6.l
+h0_0392:
     tst.b $010A(a6)
-    beq.s loc_039E
-loc_0398:
-    jsr sub_10C78.l
-loc_039E:
+    beq.s h0_039E
+h0_0398:
+    jsr h0_10C78.l
+h0_039E:
     sf.b $480F(a6)
-    jsr sub_91E4.l
-loc_03A8:
-    jsr loc_9B42.l
-loc_03AE:
-    jsr sub_8AC4.l
-loc_03B4:
+    jsr h0_91E4.l
+h0_03A8:
+    jsr h0_9B42.l
+h0_03AE:
+    jsr h0_8AC4.l
+h0_03B4:
     tst.b $0129(a6)
-    beq.s loc_03C2
-loc_03BA:
+    beq.s h0_03C2
+h0_03BA:
     move.b $010D(a6),d1
-    beq.w loc_045E
-loc_03C2:
-    jsr loc_8F12.l
-loc_03C8:
+    beq.w h0_045E
+h0_03C2:
+    jsr h0_8F12.l
+h0_03C8:
     moveq.l #0,d1
     move.b $010D(a6),d1
-    jsr sub_8F8A.l
-loc_03D4:
+    jsr h0_8F8A.l
+h0_03D4:
     moveq.l #3,d0
     cmpi.b #1,$010D(a6)
-    bne.s loc_03E0
-loc_03DE:
+    bne.s h0_03E0
+h0_03DE:
     addq.b #1,d0
-loc_03E0:
-    jsr sub_8F00.l
-loc_03E6:
+h0_03E0:
+    jsr h0_8F00.l
+h0_03E6:
     moveq.l #0,d1
     move.w $0254(a6),d1
     subq.w #1,d1
-    jsr sub_8F8A.l
-loc_03F4:
+    jsr h0_8F8A.l
+h0_03F4:
     moveq.l #5,d0
-    jsr sub_8F00.l
-loc_03FC:
+    jsr h0_8F00.l
+h0_03FC:
     move.l $0256(a6),d1
-    jsr sub_8F8A.l
-loc_0406:
+    jsr h0_8F8A.l
+h0_0406:
     moveq.l #12,d0
-    jsr sub_8F00.l
-loc_040E:
-    jsr sub_9718.l
-loc_0414:
+    jsr h0_8F00.l
+h0_040E:
+    jsr h0_9718.l
+h0_0414:
     moveq.l #22,d0
     tst.b $0114(a6)
-    bne.s loc_0426
-loc_041C:
+    bne.s h0_0426
+h0_041C:
     moveq.l #18,d0
     tst.b $0116(a6)
-    beq.s loc_0426
-loc_0424:
+    beq.s h0_0426
+h0_0424:
     moveq.l #17,d0
-loc_0426:
-    jsr sub_8F00.l
-loc_042C:
+h0_0426:
+    jsr h0_8F00.l
+h0_042C:
     moveq.l #19,d0
-    jsr sub_8F00.l
-loc_0434:
+    jsr h0_8F00.l
+h0_0434:
     moveq.l #0,d1
     move.w $01C0(a6),d1
-    beq.s loc_045E
-loc_043C:
-    jsr sub_8F8A.l
-loc_0442:
+    beq.s h0_045E
+h0_043C:
+    jsr h0_8F8A.l
+h0_0442:
     moveq.l #13,d0
-    jsr sub_8F00.l
-loc_044A:
+    jsr h0_8F00.l
+h0_044A:
     moveq.l #0,d0
     move.w $01C2(a6),d1
-    jsr sub_8F8A.l
-loc_0456:
+    jsr h0_8F8A.l
+h0_0456:
     moveq.l #14,d0
-    jsr sub_8F00.l
-loc_045E:
-    jsr sub_91F6.l
-loc_0464:
-    jsr sub_BC30.l
-loc_046A:
+    jsr h0_8F00.l
+h0_045E:
+    jsr h0_91F6.l
+h0_0464:
+    jsr h0_BC30.l
+h0_046A:
     move.l $01B8(a6),d3
-    beq.s loc_047A
-loc_0470:
-    jsr sub_BFAE.l
-loc_0476:
+    beq.s h0_047A
+h0_0470:
+    jsr h0_BFAE.l
+h0_0476:
     clr.l $01B8(a6)
-loc_047A:
-    jsr sub_917E.l
-loc_0480:
-    jsr sub_BD0A.l
-loc_0486:
+h0_047A:
+    jsr h0_917E.l
+h0_0480:
+    jsr h0_BD0A.l
+h0_0486:
     moveq.l #0,d0
     move.w d0,$024C(a6)
     move.l d0,$0256(a6)
@@ -493,8 +493,8 @@ loc_0486:
     st.b $46F4(a6)
     st.b $0106(a6)
     move.w #$80,$0252(a6)
-    jsr sub_8E08.l
-loc_0536:
+    jsr h0_8E08.l
+h0_0536:
     sf.b $0116(a6)
     sf.b $0117(a6)
     sf.b $011A(a6)
@@ -507,344 +507,344 @@ loc_0536:
     sf.b $0128(a6)
     move.b #$2E,$0118(a6)
     move.b #$1,$0109(a6)
-    bra.w loc_794E
-sub_056E:
+    bra.w h0_794E
+h0_056E:
     tst.w $4738(a6)
-    bne.s loc_0576
-loc_0574:
+    bne.s h0_0576
+h0_0574:
     rts
-loc_0576:
+h0_0576:
     move.w #$FFFF,$024C(a6)
     moveq.l #50,d0
-    jmp loc_8556.l
-sub_0584:
-    bsr.s sub_056E
-loc_0586:
-    bsr.w sub_7A42
-loc_058A:
-    bsr.w sub_7A50
-loc_058E:
-    jsr sub_8AC4.l
-loc_0594:
-    bsr.s sub_05A8
-loc_0596:
-    jsr sub_8B18.l
-loc_059C:
-    jsr sub_97BC.l
-loc_05A2:
+    jmp h0_8556.l
+h0_0584:
+    bsr.s h0_056E
+h0_0586:
+    bsr.w h0_7A42
+h0_058A:
+    bsr.w h0_7A50
+h0_058E:
+    jsr h0_8AC4.l
+h0_0594:
+    bsr.s h0_05A8
+h0_0596:
+    jsr h0_8B18.l
+h0_059C:
+    jsr h0_97BC.l
+h0_05A2:
     clr.l $01A8(a6)
     rts
-sub_05A8:
+h0_05A8:
     movea.l $0178(a6),a3
     movea.l (a3),a3
-    bsr.s sub_05DC
-loc_05B0:
+    bsr.s h0_05DC
+h0_05B0:
     lea.l $0184(a6),a0
-    bsr.s sub_05CC
-loc_05B6:
+    bsr.s h0_05CC
+h0_05B6:
     lea.l $0190(a6),a0
-    bsr.s sub_05CC
-loc_05BC:
+    bsr.s h0_05CC
+h0_05BC:
     lea.l $019C(a6),a0
-    bsr.s sub_05CC
-loc_05C2:
+    bsr.s h0_05CC
+h0_05C2:
     move.l $018C(a6),d0
     add.l d0,$0198(a6)
     rts
-sub_05CC:
+h0_05CC:
     btst.b #0,$0003(a0)
-    beq.s loc_05DA
-loc_05D4:
+    beq.s h0_05DA
+h0_05D4:
     addq.l #1,(a0)
     addq.l #1,$0008(a0)
-loc_05DA:
+h0_05DA:
     rts
-sub_05DC:
+h0_05DC:
     tst.l (a3)
-    beq.s loc_05E8
-loc_05E0:
+    beq.s h0_05E8
+h0_05E0:
     move.l a3,-(a7)
     movea.l (a3),a3
-    bsr.s sub_05DC
-loc_05E6:
+    bsr.s h0_05DC
+h0_05E6:
     movea.l (a7)+,a3
-loc_05E8:
+h0_05E8:
     cmpi.b #9,$000D(a3)
-    bne.s loc_05F6
-loc_05F0:
+    bne.s h0_05F6
+h0_05F0:
     movea.l $0008(a3),a2
-    bsr.s sub_0608
-loc_05F6:
+    bsr.s h0_0608
+h0_05F6:
     tst.l $0004(a3)
-    beq.s loc_0606
-loc_05FC:
+    beq.s h0_0606
+h0_05FC:
     move.l a3,-(a7)
     movea.l $0004(a3),a3
-    bsr.s sub_05DC
-loc_0604:
+    bsr.s h0_05DC
+h0_0604:
     movea.l (a7)+,a3
-loc_0606:
+h0_0606:
     rts
-sub_0608:
+h0_0608:
     tst.l (a2)
-    beq.s loc_0614
-loc_060C:
+    beq.s h0_0614
+h0_060C:
     move.l a2,-(a7)
     movea.l (a2),a2
-    bsr.s sub_0608
-loc_0612:
+    bsr.s h0_0608
+h0_0612:
     movea.l (a7)+,a2
-loc_0614:
+h0_0614:
     clr.l $0008(a2)
     tst.l $0004(a2)
-    beq.s loc_0628
-loc_061E:
+    beq.s h0_0628
+h0_061E:
     move.l a2,-(a7)
     movea.l $0004(a2),a2
-    bsr.s sub_0608
-loc_0626:
+    bsr.s h0_0608
+h0_0626:
     movea.l (a7)+,a2
-loc_0628:
+h0_0628:
     rts
-sub_062A:
+h0_062A:
     tst.l $474A(a6)
-    bne.s loc_0656
-loc_0630:
+    bne.s h0_0656
+h0_0630:
     tst.b $0102(a6)
-    bne.s loc_067A
-loc_0636:
+    bne.s h0_067A
+h0_0636:
     movea.l $01AC(a6),a1
     movea.l $009E(a1),a0
     cmpa.l $00A2(a1),a0
-    bcc.s loc_0696
-loc_0644:
+    bcc.s h0_0696
+h0_0644:
     cmpi.b #10,(a0)+
-    beq.s loc_064C
-loc_064A:
+    beq.s h0_064C
+h0_064A:
     subq.l #1,a0
-loc_064C:
+h0_064C:
     move.b (a0),d0
     cmp.b d0,d0
     rts
-    DC.B    $70,$ff,$4e,$75
-loc_0656:
+    DC.B    $70,$ff,$4e,$75 ; VIOLATION: orphaned code island at $0652 is not reached from known entrypoints
+h0_0656:
     tst.b $0102(a6)
-    beq.s loc_0666
-loc_065C:
+    beq.s h0_0666
+h0_065C:
     move.w $4752(a6),d0
     cmp.w $4754(a6),d0
-    bhi.s loc_067A
-loc_0666:
+    bhi.s h0_067A
+h0_0666:
     movea.l $474A(a6),a1
     movea.l $474E(a6),a0
     cmpa.l $0004(a1),a0
-    bne.s loc_064C
-loc_0674:
+    bne.s h0_064C
+h0_0674:
     movea.l $0008(a1),a0
-    bra.s loc_064C
-loc_067A:
+    bra.s h0_064C
+h0_067A:
     movea.l $473C(a6),a2
     movea.l $0004(a2),a1
     movea.l $0010(a2),a0
     cmpa.l $0004(a1),a0
-    bne.s loc_064C
-loc_068C:
+    bne.s h0_064C
+h0_068C:
     movea.l $0008(a1),a1
     movea.l $0000(a1),a0
-    bra.s loc_064C
-loc_0696:
+    bra.s h0_064C
+h0_0696:
     moveq.l #70,d0
-    jmp loc_853E.l
+    jmp h0_853E.l
     DC.B    $4a,$fb
     DC.B    "include_longmac",0
-loc_06B0:
+h0_06B0:
     tst.b $0117(a6)
-    beq.w loc_06EC
-loc_06B8:
-    bpl.s loc_06BC
-loc_06BA:
+    beq.w h0_06EC
+h0_06B8:
+    bpl.s h0_06BC
+h0_06BA:
     rts
-loc_06BC:
+h0_06BC:
     moveq.l #79,d0
-    jmp loc_853E.l
-sub_06C4:
+    jmp h0_853E.l
+h0_06C4:
     movea.l $01D4(a6),a0
     move.b (a0),d0
     andi.b #3,d0
     subq.b #3,d0
-    beq.s loc_06BC
-loc_06D2:
+    beq.s h0_06BC
+h0_06D2:
     tst.b $0117(a6)
-    bne.s loc_06B8
-loc_06D8:
+    bne.s h0_06B8
+h0_06D8:
     addq.w #1,$0254(a6)
     tst.b $0102(a6)
-    bne.w loc_708C
-loc_06E4:
+    bne.w h0_708C
+h0_06E4:
     tst.l $474A(a6)
-    bne.w loc_749E
-loc_06EC:
+    bne.w h0_749E
+h0_06EC:
     moveq.l #13,d1
     move.w #$FE,d2
     addq.w #1,$024C(a6)
-loc_06F6:
+h0_06F6:
     movea.l $01AC(a6),a1
     movea.l $009E(a1),a4
-loc_06FE:
+h0_06FE:
     cmpa.l $00A2(a1),a4
-    bcc.w loc_078C
-loc_0706:
+    bcc.w h0_078C
+h0_0706:
     cmpi.b #10,(a4)
-    bne.s loc_0710
-loc_070C:
+    bne.s h0_0710
+h0_070C:
     addq.l #1,a4
-    bra.s loc_06FE
-loc_0710:
+    bra.s h0_06FE
+h0_0710:
     move.w #$FC,d0
     moveq.l #13,d2
     move.l a4,$0272(a6)
     movea.l a4,a2
-loc_071C:
+h0_071C:
     cmp.b (a2)+,d2
-    dbeq.w d0,loc_071C
-loc_0722:
-    beq.s loc_073C
-loc_0724:
+    dbeq.w d0,h0_071C
+h0_0722:
+    beq.s h0_073C
+h0_0724:
     cmpa.l $00A2(a1),a2
-    bhi.s loc_0752
-loc_072A:
+    bhi.s h0_0752
+h0_072A:
     move.b #$2A,-(a2)
     move.b #$D,-$0001(a2)
     move.l a2,$009E(a1)
     moveq.l #0,d0
     rts
-loc_073C:
+h0_073C:
     moveq.l #10,d0
-loc_073E:
+h0_073E:
     cmpa.l $00A2(a1),a2
-    bhi.s loc_0752
-loc_0744:
+    bhi.s h0_0752
+h0_0744:
     cmp.b (a2)+,d0
-    beq.s loc_073E
-loc_0748:
+    beq.s h0_073E
+h0_0748:
     subq.l #1,a2
     move.l a2,$009E(a1)
     moveq.l #0,d0
     rts
-loc_0752:
+h0_0752:
     move.l $00A6(a1),d1
     movea.l $0008(a1),a2
     adda.l d1,a2
     cmpa.l $00A2(a1),a2
-    bne.s loc_07AE
-loc_0762:
+    bne.s h0_07AE
+h0_0762:
     move.l $00A2(a1),d2
     sub.l a4,d2
-    beq.s loc_078C
-loc_076A:
+    beq.s h0_078C
+h0_076A:
     move.l d2,-(a7)
     subq.l #1,d2
     movea.l a4,a0
     movea.l $0008(a1),a2
     move.l a2,$009E(a1)
-loc_0778:
+h0_0778:
     move.b (a0)+,(a2)+
-    dbf.w d2,loc_0778
-loc_077E:
+    dbf.w d2,h0_0778
+h0_077E:
     move.l $00A6(a1),d1
     sub.l (a7)+,d1
-    jsr sub_8A66.l
-loc_078A:
-    bra.s loc_07A4
-loc_078C:
+    jsr h0_8A66.l
+h0_078A:
+    bra.s h0_07A4
+h0_078C:
     movea.l $0008(a1),a2
     move.l a2,$009E(a1)
     adda.l $00A6(a1),a2
     cmpa.l $00A2(a1),a2
-    bne.s loc_07AE
-loc_079E:
-    jsr loc_8A70.l
-loc_07A4:
-    beq.w loc_06F6
-loc_07A8:
-    jmp loc_853E.l
-loc_07AE:
+    bne.s h0_07AE
+h0_079E:
+    jsr h0_8A70.l
+h0_07A4:
+    beq.w h0_06F6
+h0_07A8:
+    jmp h0_853E.l
+h0_07AE:
     move.w $009C(a1),$024C(a6)
     clr.w $009C(a1)
     tst.b $0136(a6)
-    beq.s loc_07CA
-loc_07BE:
+    beq.s h0_07CA
+h0_07BE:
     tst.b $026A(a6)
-    beq.s loc_07CA
-loc_07C4:
+    beq.s h0_07CA
+h0_07C4:
     move.b #$FE,$000E(a1)
-loc_07CA:
+h0_07CA:
     cmpi.b #12,$000D(a1)
-    beq.s loc_07E6
-loc_07D2:
+    beq.s h0_07E6
+h0_07D2:
     move.l $0098(a1),d2
-    beq.s loc_07E6
-loc_07D8:
+    beq.s h0_07E6
+h0_07D8:
     move.l a1,-(a7)
-    jsr loc_BF68.l
-loc_07E0:
+    jsr h0_BF68.l
+h0_07E0:
     movea.l (a7)+,a1
     clr.l $0098(a1)
-loc_07E6:
+h0_07E6:
     move.l $0010(a1),$01AC(a6)
-    bne.w loc_06B0
-loc_07F0:
+    bne.w h0_06B0
+h0_07F0:
     moveq.l #-1,d0
     rts
-    DC.L    $50ee0115,$4a2e026a,$6714b23c,$002b6718,$b23c002d,$670c720d,$50ee0101,$4e75720d
-    DC.B    "NuS.F"
-    DC.B    $f4,$60,$04
-    DC.L    $522e46f4,$5aee0101
-    DC.B    $12,$1c
-loc_0826:
+    DC.L    $50ee0115,$4a2e026a,$6714b23c,$002b6718,$b23c002d,$670c720d,$50ee0101 ; VIOLATION: orphaned code island at $07F4 is not reached from known entrypoints
+    DC.B    $4e,$75
+    DC.B    $72,$0d,$4e,$75 ; VIOLATION: orphaned code island at $0812 is not reached from known entrypoints
+    DC.B    $53,$2e,$46,$f4,$60,$04 ; VIOLATION: orphaned code island at $0816 is not reached from known entrypoints
+    DC.B    $52,$2e,$46,$f4,$5a,$ee,$01,$01,$12,$1c ; VIOLATION: orphaned code island at $081C is not reached from known entrypoints
+h0_0826:
     rts
-sub_0828:
+h0_0828:
     tst.b $026A(a6)
-    bne.w loc_0914
-loc_0830:
+    bne.w h0_0914
+h0_0830:
     tst.b $012B(a6)
-    beq.w loc_08FE
-loc_0838:
+    beq.w h0_08FE
+h0_0838:
     tst.l $01B0(a6)
-    beq.w loc_08FE
-loc_0840:
+    beq.w h0_08FE
+h0_0840:
     cmpi.b #1,$0109(a6)
-    bne.s loc_0826
-loc_0848:
+    bne.s h0_0826
+h0_0848:
     move.l $01AC(a6),d0
-    beq.s loc_0826
-loc_084E:
+    beq.s h0_0826
+h0_084E:
     move.b $014C(a6),d6
     movea.l d0,a0
     move.l $00AE(a0),d0
-    beq.s loc_0862
-loc_085A:
+    beq.s h0_0862
+h0_085A:
     movea.l d0,a0
     cmp.b $0004(a0),d6
-    beq.s loc_08B2
-loc_0862:
+    beq.s h0_08B2
+h0_0862:
     movea.l $01AC(a6),a0
     lea.l $00AA(a0),a0
-loc_086A:
+h0_086A:
     move.l (a0),d0
-    beq.s loc_087A
-loc_086E:
+    beq.s h0_087A
+h0_086E:
     movea.l d0,a0
     cmp.b $0004(a0),d6
-    beq.s loc_08AA
-loc_0876:
+    beq.s h0_08AA
+h0_0876:
     lea.l (a0),a0
-    bra.s loc_086A
-loc_087A:
+    bra.s h0_086A
+h0_087A:
     move.l a0,-(a7)
     moveq.l #32,d1
-    jsr sub_9146.l
-loc_0884:
+    jsr h0_9146.l
+h0_0884:
     movea.l (a7)+,a1
     move.l a0,(a1)
     clr.l (a0)
@@ -855,196 +855,196 @@ loc_0884:
     clr.l $000E(a0)
     clr.l $0014(a0)
     clr.l $0018(a0)
-loc_08AA:
+h0_08AA:
     movea.l $01AC(a6),a1
     move.l a0,$00AE(a1)
-loc_08B2:
+h0_08B2:
     move.l $026E(a6),d0
     sub.l $01B0(a6),d0
     cmp.l $0006(a0),d0
-    beq.s loc_08FE
-loc_08C0:
+    beq.s h0_08FE
+h0_08C0:
     moveq.l #0,d1
     move.w $024C(a6),d1
     cmp.l $000A(a0),d1
-    beq.s loc_08FE
-loc_08CC:
+    beq.s h0_08FE
+h0_08CC:
     tst.b $012C(a6)
-    beq.s loc_08F2
-loc_08D2:
+    beq.s h0_08F2
+h0_08D2:
     addq.w #1,$0012(a0)
     lea.l $000A(a0),a1
     move.l d0,-(a7)
     move.l d1,d0
-    jsr sub_8B8C.l
-loc_08E4:
+    jsr h0_8B8C.l
+h0_08E4:
     move.l (a7)+,d0
     lea.l $0006(a0),a1
-    jsr sub_8B8C.l
-loc_08F0:
-    bra.s loc_08FE
-loc_08F2:
+    jsr h0_8B8C.l
+h0_08F0:
+    bra.s h0_08FE
+h0_08F2:
     addq.l #8,$0018(a0)
     move.l d0,$0006(a0)
     move.l d1,$000A(a0)
-loc_08FE:
+h0_08FE:
     tst.b $0103(a6)
-    bne.w loc_09DC
-loc_0906:
+    bne.w h0_09DC
+h0_0906:
     tst.b $024E(a6)
-    beq.w loc_09CE
-loc_090E:
-    bra.w loc_09DC
-loc_0912:
+    beq.w h0_09CE
+h0_090E:
+    bra.w h0_09DC
+h0_0912:
     rts
-loc_0914:
+h0_0914:
     tst.b $012B(a6)
-    beq.w loc_09AA
-loc_091C:
+    beq.w h0_09AA
+h0_091C:
     tst.l $01B0(a6)
-    beq.w loc_09AA
-loc_0924:
+    beq.w h0_09AA
+h0_0924:
     cmpi.b #1,$0109(a6)
-    bne.s loc_09AA
-loc_092C:
+    bne.s h0_09AA
+h0_092C:
     move.l $01AC(a6),d0
-    beq.s loc_0912
-loc_0932:
+    beq.s h0_0912
+h0_0932:
     movea.l d0,a0
     move.b $014C(a6),d6
     movea.l $00AE(a0),a0
     cmp.b $0004(a0),d6
-    beq.s loc_0956
-loc_0942:
+    beq.s h0_0956
+h0_0942:
     movea.l $01AC(a6),a1
     lea.l $00AA(a1),a0
-loc_094A:
+h0_094A:
     movea.l (a0),a0
     cmp.b $0004(a0),d6
-    bne.s loc_094A
-loc_0952:
+    bne.s h0_094A
+h0_0952:
     move.l a0,$00AE(a1)
-loc_0956:
+h0_0956:
     move.l $026E(a6),d0
     sub.l $01B0(a6),d0
     cmp.l $0006(a0),d0
-    beq.s loc_09AA
-loc_0964:
+    beq.s h0_09AA
+h0_0964:
     moveq.l #0,d1
     move.w $024C(a6),d1
     cmp.l $000A(a0),d1
-    beq.s loc_09AA
-loc_0970:
+    beq.s h0_09AA
+h0_0970:
     tst.b $012C(a6)
-    beq.s loc_0996
-loc_0976:
+    beq.s h0_0996
+h0_0976:
     lea.l $000A(a0),a1
     move.l d0,-(a7)
     move.l d1,d0
-    jsr sub_8BC2.l
-loc_0984:
+    jsr h0_8BC2.l
+h0_0984:
     move.l a1,$0014(a0)
     move.l (a7)+,d0
     lea.l $0006(a0),a1
-    jsr sub_8BC2.l
-loc_0994:
-    bra.s loc_09A6
-loc_0996:
+    jsr h0_8BC2.l
+h0_0994:
+    bra.s h0_09A6
+h0_0996:
     movea.l $0014(a0),a1
     move.l d0,$0006(a0)
     move.l d1,$000A(a0)
     move.l d1,(a1)+
     move.l d0,(a1)+
-loc_09A6:
+h0_09A6:
     move.l a1,$0014(a0)
-loc_09AA:
+h0_09AA:
     tst.b $0103(a6)
-    bne.s loc_09DC
-loc_09B0:
+    bne.s h0_09DC
+h0_09B0:
     tst.b $0101(a6)
-    beq.s loc_09CE
-loc_09B6:
+    beq.s h0_09CE
+h0_09B6:
     tst.b $0115(a6)
-    bne.s loc_09CE
-loc_09BC:
+    bne.s h0_09CE
+h0_09BC:
     tst.b $0102(a6)
-    beq.s loc_09DC
-loc_09C2:
+    beq.s h0_09DC
+h0_09C2:
     tst.b $011A(a6)
-    bne.s loc_09DC
-loc_09C8:
+    bne.s h0_09DC
+h0_09C8:
     tst.b $0119(a6)
-    bne.s loc_09DC
-loc_09CE:
+    bne.s h0_09DC
+h0_09CE:
     sf.b $0115(a6)
     clr.b $46F5(a6)
     sf.b $011A(a6)
     rts
-loc_09DC:
+h0_09DC:
     sf.b $0103(a6)
-    jsr sub_937C.l
-loc_09E6:
-    bra.s loc_09CE
-    DC.L    $50ee0115,$720d4a2e,$026a6708,$51ee0101,$50ee46f4
+    jsr h0_937C.l
+h0_09E6:
+    bra.s h0_09CE
+    DC.L    $50ee0115,$720d4a2e,$026a6708,$51ee0101,$50ee46f4 ; VIOLATION: orphaned code island at $09E8 is not reached from known entrypoints
     DC.B    $4e,$75
-loc_09FE:
+h0_09FE:
     rts
-sub_0A00:
+h0_0A00:
     movea.l $027E(a6),a5
     move.l a5,$0282(a6)
     clr.l $01B0(a6)
     sf.b $010E(a6)
     move.b (a4)+,d1
     cmp.b #$D,d1
-    beq.s loc_09FE
-loc_0A18:
+    beq.s h0_09FE
+h0_0A18:
     cmp.b #$9,d1
-    beq.s loc_0A24
-loc_0A1E:
+    beq.s h0_0A24
+h0_0A1E:
     cmp.b #$20,d1
-    bne.s loc_0A48
-loc_0A24:
+    bne.s h0_0A48
+h0_0A24:
     clr.l $041E(a6)
-    bra.w loc_0A6A
-loc_0A2C:
+    bra.w h0_0A6A
+h0_0A2C:
     cmp.b #$A,d1
-    beq.w loc_0C84
-loc_0A34:
+    beq.w h0_0C84
+h0_0A34:
     cmp.b #$3B,d1
-    beq.w loc_0C84
-loc_0A3C:
+    beq.w h0_0C84
+h0_0A3C:
     cmp.b #$2A,d1
-    beq.w loc_0C84
-loc_0A44:
-    bra.w loc_8502
-loc_0A48:
+    beq.w h0_0C84
+h0_0A44:
+    bra.w h0_8502
+h0_0A48:
     st.b d2
     lea.l $041E(a6),a0
     clr.b $0004(a0)
-    bsr.w sub_7726
-loc_0A56:
-    bne.s loc_0A2C
-loc_0A58:
+    bsr.w h0_7726
+h0_0A56:
+    bne.s h0_0A2C
+h0_0A58:
     cmp.b #$3A,d1
-    bne.s loc_0A6C
-loc_0A5E:
+    bne.s h0_0A6C
+h0_0A5E:
     move.b (a4)+,d1
     cmp.b #$3A,d1
-    bne.s loc_0A6C
-loc_0A66:
+    bne.s h0_0A6C
+h0_0A66:
     st.b $0422(a6)
-loc_0A6A:
+h0_0A6A:
     move.b (a4)+,d1
-loc_0A6C:
+h0_0A6C:
     cmp.b #$9,d1
-    beq.s loc_0A6A
-loc_0A72:
+    beq.s h0_0A6A
+h0_0A72:
     cmp.b #$20,d1
-    beq.s loc_0A6A
-loc_0A78:
+    beq.s h0_0A6A
+h0_0A78:
     cmp.b #$3D,d1
-    beq.w loc_74EC
-loc_0A80:
+    beq.w h0_74EC
+h0_0A80:
     subq.l #1,a4
     move.l a4,-(a7)
     moveq.l #0,d2
@@ -1056,294 +1056,294 @@ loc_0A80:
     add.w d1,d1
     add.w $0(a0,d2.w),d1
     cmp.w $0(a1,d1.w),d2
-    bne.s loc_0AF2
-loc_0AA8:
+    bne.s h0_0AF2
+h0_0AA8:
     move.w $0(a2,d1.w),d2
-    bmi.s loc_0B28
-loc_0AAE:
+    bmi.s h0_0B28
+h0_0AAE:
     moveq.l #0,d1
     move.b (a4)+,d1
     add.w d1,d1
     add.w $0(a0,d2.w),d1
     cmp.w $0(a1,d1.w),d2
-    bne.s loc_0AF2
-loc_0ABE:
+    bne.s h0_0AF2
+h0_0ABE:
     move.w $0(a2,d1.w),d2
-    bmi.s loc_0B28
-loc_0AC4:
+    bmi.s h0_0B28
+h0_0AC4:
     moveq.l #0,d1
     move.b (a4)+,d1
     add.w d1,d1
     add.w $0(a0,d2.w),d1
     cmp.w $0(a1,d1.w),d2
-    bne.s loc_0AF2
-loc_0AD4:
+    bne.s h0_0AF2
+h0_0AD4:
     move.w $0(a2,d1.w),d2
-    bmi.s loc_0B28
-loc_0ADA:
+    bmi.s h0_0B28
+h0_0ADA:
     moveq.l #0,d1
     move.b (a4)+,d1
     add.w d1,d1
     add.w $0(a0,d2.w),d1
     cmp.w $0(a1,d1.w),d2
-    bne.s loc_0AF2
-loc_0AEA:
+    bne.s h0_0AF2
+h0_0AEA:
     move.w $0(a2,d1.w),d2
-    bpl.s loc_0ADA
-loc_0AF0:
-    bra.s loc_0B28
-loc_0AF2:
+    bpl.s h0_0ADA
+h0_0AF0:
+    bra.s h0_0B28
+h0_0AF2:
     move.w d2,d1
     add.w d1,d1
     add.w d1,d2
     movea.l #dat_F11E,a0
     adda.w d2,a0
     tst.w $0002(a0)
-    beq.s loc_0B28
-loc_0B06:
+    beq.s h0_0B28
+h0_0B06:
     move.b -$0001(a4),d1
     cmp.b #$2E,d1
-    beq.s loc_0B22
-loc_0B10:
+    beq.s h0_0B22
+h0_0B10:
     cmp.b #$D,d1
-    beq.s loc_0B22
-loc_0B16:
+    beq.s h0_0B22
+h0_0B16:
     cmp.b #$9,d1
-    beq.s loc_0B22
-loc_0B1C:
+    beq.s h0_0B22
+h0_0B1C:
     cmp.b #$20,d1
-    bne.s loc_0B28
-loc_0B22:
+    bne.s h0_0B28
+h0_0B22:
     move.l (a7)+,d2
-    bra.w loc_750A
-loc_0B28:
+    bra.w h0_750A
+h0_0B28:
     movea.l (a7)+,a4
     move.b (a4)+,d1
     cmp.b #$D,d1
-    beq.w loc_0C84
-loc_0B34:
+    beq.w h0_0C84
+h0_0B34:
     cmp.b #$3B,d1
-    beq.w loc_0C84
-loc_0B3C:
+    beq.w h0_0C84
+h0_0B3C:
     cmp.b #$2A,d1
-    beq.w loc_0C84
-loc_0B44:
+    beq.w h0_0C84
+h0_0B44:
     lea.l $0398(a6),a0
-    bsr.w sub_76EE
-loc_0B4C:
-    bne.w loc_8502
-loc_0B50:
+    bsr.w h0_76EE
+h0_0B4C:
+    bne.w h0_8502
+h0_0B50:
     movea.l $0178(a6),a2
     move.l a1,d4
     movem.l d2/a3-a5,-(a7)
-    bsr.w sub_0BC8
-loc_0B5E:
+    bsr.w h0_0BC8
+h0_0B5E:
     movem.l (a7)+,d2/a3-a5
-    beq.w loc_6EBE
-loc_0B66:
+    beq.w h0_6EBE
+h0_0B66:
     movea.l d4,a4
     move.b -$0001(a4),d1
     cmp.b #$3A,d1
-    bne.w loc_8516
-loc_0B74:
+    bne.w h0_8516
+h0_0B74:
     lea.l $041E(a6),a1
     tst.l (a1)
-    bne.w loc_8516
-loc_0B7E:
+    bne.w h0_8516
+h0_0B7E:
     move.b d2,$0005(a0)
-    bsr.s sub_0B8E
-loc_0B84:
+    bsr.s h0_0B8E
+h0_0B84:
     movea.l a1,a0
     clr.b $0004(a0)
-    bra.w loc_0A5E
-sub_0B8E:
+    bra.w h0_0A5E
+h0_0B8E:
     move.b $0005(a0),$0005(a1)
     tst.b $00FE(a6)
-    bne.s loc_0BA4
-loc_0B9A:
+    bne.s h0_0BA4
+h0_0B9A:
     move.l (a0),(a1)
     move.b $0006(a0),$0006(a1)
     rts
-loc_0BA4:
+h0_0BA4:
     move.b $0005(a0),d0
     lea.l $0006(a1),a2
     move.l a2,(a1)
     addq.w #6,a0
-loc_0BB0:
+h0_0BB0:
     move.b (a0)+,(a2)+
     subq.b #1,d0
-    bne.s loc_0BB0
-loc_0BB6:
+    bne.s h0_0BB0
+h0_0BB6:
     rts
-sub_0BB8:
+h0_0BB8:
     move.l (a2),d0
-    beq.s loc_0C08
-loc_0BBC:
+    beq.s h0_0C08
+h0_0BBC:
     movea.l d0,a1
     move.b $0016(a0),d2
     lea.l $0017(a0),a5
-    bra.s loc_0BDC
-sub_0BC8:
+    bra.s h0_0BDC
+h0_0BC8:
     move.l (a2),d0
-    beq.s loc_0C08
-loc_0BCC:
+    beq.s h0_0C08
+h0_0BCC:
     movea.l d0,a1
     move.b $0005(a0),d2
     movea.l (a0),a5
-    bra.s loc_0BDC
-loc_0BD6:
+    bra.s h0_0BDC
+h0_0BD6:
     move.l (a1),d0
-    beq.s loc_0C04
-loc_0BDA:
+    beq.s h0_0C04
+h0_0BDA:
     movea.l d0,a1
-loc_0BDC:
+h0_0BDC:
     cmp.b $0016(a1),d2
-    bcs.s loc_0BD6
-loc_0BE2:
-    bhi.s loc_0BF8
-loc_0BE4:
+    bcs.s h0_0BD6
+h0_0BE2:
+    bhi.s h0_0BF8
+h0_0BE4:
     move.b d2,d3
     lea.l $0017(a1),a3
     movea.l a5,a4
-loc_0BEC:
+h0_0BEC:
     cmpm.b (a3)+,(a4)+
-    bcs.s loc_0BD6
-loc_0BF0:
-    bhi.s loc_0BF8
-loc_0BF2:
+    bcs.s h0_0BD6
+h0_0BF0:
+    bhi.s h0_0BF8
+h0_0BF2:
     subq.b #1,d3
-    bne.s loc_0BEC
-loc_0BF6:
+    bne.s h0_0BEC
+h0_0BF6:
     rts
-loc_0BF8:
+h0_0BF8:
     move.l $0004(a1),d0
-    beq.s loc_0C02
-loc_0BFE:
+    beq.s h0_0C02
+h0_0BFE:
     movea.l d0,a1
-    bra.s loc_0BDC
-loc_0C02:
+    bra.s h0_0BDC
+h0_0C02:
     addq.w #4,a1
-loc_0C04:
+h0_0C04:
     moveq.l #3,d0
     rts
-loc_0C08:
+h0_0C08:
     movea.l a2,a1
     moveq.l #3,d0
     rts
-sub_0C0E:
+h0_0C0E:
     movem.l a3-a5,-(a7)
     move.l $0160(a6),d0
-    beq.s loc_0C22
-loc_0C18:
+    beq.s h0_0C22
+h0_0C18:
     movea.l d0,a2
-    bsr.s sub_0BC8
-loc_0C1C:
-    beq.s loc_0C3C
-loc_0C1E:
+    bsr.s h0_0BC8
+h0_0C1C:
+    beq.s h0_0C3C
+h0_0C1E:
     move.l a1,$0164(a6)
-loc_0C22:
+h0_0C22:
     movea.l $0168(a6),a2
-    bsr.s sub_0BC8
-loc_0C28:
-    beq.s loc_0C3C
-loc_0C2A:
+    bsr.s h0_0BC8
+h0_0C28:
+    beq.s h0_0C3C
+h0_0C2A:
     move.l a1,$016C(a6)
     movea.l $0170(a6),a2
-    bsr.s sub_0BC8
-loc_0C34:
-    beq.s loc_0C3C
-loc_0C36:
+    bsr.s h0_0BC8
+h0_0C34:
+    beq.s h0_0C3C
+h0_0C36:
     move.l a1,$0174(a6)
     moveq.l #-1,d0
-loc_0C3C:
+h0_0C3C:
     movem.l (a7)+,a3-a5
     rts
-loc_0C42:
-    bsr.s sub_0C0E
-loc_0C44:
-    bne.w loc_850A
-loc_0C48:
+h0_0C42:
+    bsr.s h0_0C0E
+h0_0C44:
+    bne.w h0_850A
+h0_0C48:
     bset.b #6,$000C(a1)
-    bne.w loc_8506
-loc_0C52:
+    bne.w h0_8506
+h0_0C52:
     move.b $0109(a6),d3
     cmp.b $000D(a1),d3
-    bne.w loc_8506
-loc_0C5E:
+    bne.w h0_8506
+h0_0C5E:
     cmp.l $0008(a1),d4
-    bne.w loc_850E
-loc_0C66:
+    bne.w h0_850E
+h0_0C66:
     move.b $0017(a1),d0
     cmp.b $0118(a6),d0
-    beq.s loc_0C82
-loc_0C70:
+    beq.s h0_0C82
+h0_0C70:
     tst.b $0004(a0)
-    beq.s loc_0C7A
-loc_0C76:
-    bsr.w sub_4F2A
-loc_0C7A:
+    beq.s h0_0C7A
+h0_0C76:
+    bsr.w h0_4F2A
+h0_0C7A:
     lea.l $0010(a1),a0
     move.l a0,$0160(a6)
-loc_0C82:
+h0_0C82:
     rts
-loc_0C84:
+h0_0C84:
     move.l $026E(a6),d4
     lea.l $041E(a6),a0
     tst.l (a0)
-    bne.s loc_0CC4
-loc_0C90:
+    bne.s h0_0CC4
+h0_0C90:
     rts
-loc_0C92:
+h0_0C92:
     btst.b #0,$0271(a6)
-    bne.w loc_0C9E
-loc_0C9C:
+    bne.w h0_0C9E
+h0_0C9C:
     rts
-loc_0C9E:
-    jmp loc_993A.l
-sub_0CA4:
+h0_0C9E:
+    jmp h0_993A.l
+h0_0CA4:
     lea.l $041E(a6),a0
     tst.l (a0)
-    beq.s loc_0C92
-loc_0CAC:
+    beq.s h0_0C92
+h0_0CAC:
     move.l $026E(a6),d4
     btst #0,d4
-    beq.s loc_0CC4
-loc_0CB6:
-    jsr loc_993A.l
-loc_0CBC:
+    beq.s h0_0CC4
+h0_0CB6:
+    jsr h0_993A.l
+h0_0CBC:
     lea.l $041E(a6),a0
     move.l $026E(a6),d4
-loc_0CC4:
+h0_0CC4:
     tst.b $026A(a6)
-    bne.w loc_0C42
-loc_0CCC:
-    bsr.w sub_0C0E
-loc_0CD0:
-    beq.w loc_8506
-loc_0CD4:
+    bne.w h0_0C42
+h0_0CCC:
+    bsr.w h0_0C0E
+h0_0CD0:
+    beq.w h0_8506
+h0_0CD4:
     move.b $0109(a6),d3
     move.b $0006(a0),d0
     cmp.b $0118(a6),d0
-    beq.s loc_0CEC
-loc_0CE2:
-    pea.l loc_0C7A(pc)
+    beq.s h0_0CEC
+h0_0CE2:
+    pea.l h0_0C7A(pc)
     lea.l $0168(a6),a2
-    bra.s loc_0CF6
-loc_0CEC:
+    bra.s h0_0CF6
+h0_0CEC:
     lea.l $0160(a6),a2
     tst.l (a2)
-    beq.w loc_8512
-loc_0CF6:
+    beq.w h0_8512
+h0_0CF6:
     movea.l $0004(a2),a1
-loc_0CFA:
+h0_0CFA:
     cmpi.w #152,$014E(a6)
-    bcc.s loc_0D10
-loc_0D02:
+    bcc.s h0_0D10
+h0_0D02:
     movem.l d3/a0-a1,-(a7)
-    jsr sub_9134.l
-loc_0D0C:
+    jsr h0_9134.l
+h0_0D0C:
     movem.l (a7)+,d3/a0-a1
-loc_0D10:
+h0_0D10:
     movea.l $0140(a6),a2
     move.l a2,(a1)
     movea.l a2,a1
@@ -1360,11 +1360,11 @@ loc_0D10:
     move.b $0005(a0),d0
     movea.l (a0),a0
     move.b d0,(a2)+
-loc_0D46:
+h0_0D46:
     move.b (a0)+,(a2)+
     subq.b #1,d0
-    bne.s loc_0D46
-loc_0D4C:
+    bne.s h0_0D46
+h0_0D4C:
     move.l a2,d0
     sub.l a1,d0
     addq.l #1,d0
@@ -1372,48 +1372,48 @@ loc_0D4C:
     sub.w d0,$014E(a6)
     add.l d0,$0140(a6)
     rts
-sub_0D60:
+h0_0D60:
     cmp.w $014E(a6),d0
-    bcs.s loc_0D74
-loc_0D66:
+    bcs.s h0_0D74
+h0_0D66:
     movem.l d0/d3/a0-a1,-(a7)
-    jsr sub_9134.l
-loc_0D70:
+    jsr h0_9134.l
+h0_0D70:
     movem.l (a7)+,d0/d3/a0-a1
-loc_0D74:
+h0_0D74:
     move.l d0,-(a7)
-    bsr.s loc_0CFA
-loc_0D78:
+    bsr.s h0_0CFA
+h0_0D78:
     sub.l d0,$0140(a6)
     add.w d0,$014E(a6)
     move.l (a7)+,d0
     sub.w d0,$014E(a6)
     add.l d0,$0140(a6)
     rts
-    DC.L    $226a0004,$0c6e0098,$014e640e,$48e710c0
+    DC.L    $226a0004,$0c6e0098,$014e640e,$48e710c0 ; VIOLATION: orphaned code island at $0D8C is not reached from known entrypoints
     DC.B    $4e,$b9
-    DC.L    sub_9134
+    DC.L    h0_9134
     DC.B    $4c,$df
     DC.L    $0308246e,$0140228a,$224a7000,$24802540,$00042544,$00081543,$000d3540,$00141540
     DC.L    $000c156e,$014c000e,$25400010,$45ea0016,$10280005,$205014c0,$14d85300,$66fa200a
     DC.L    $90895280,$08800000,$916e014e,$d1ae0140
     DC.B    $4e,$75
-sub_0DF6:
-    bsr.s sub_0E0C
-loc_0DF8:
+h0_0DF6:
+    bsr.s h0_0E0C
+h0_0DF8:
     cmp.b #$F,d3
-    bcs.s loc_0E0A
-loc_0DFE:
+    bcs.s h0_0E0A
+h0_0DFE:
     cmp.b #$13,d3
-    bcc.s loc_0E0A
-loc_0E04:
+    bcc.s h0_0E0A
+h0_0E04:
     moveq.l #98,d0
-    bra.w loc_8556
-loc_0E0A:
+    bra.w h0_8556
+h0_0E0A:
     rts
-sub_0E0C:
-    bsr.w sub_7AB6
-loc_0E10:
+h0_0E0C:
+    bsr.w h0_7AB6
+h0_0E10:
     lea.l $065E(a6),a0
     clr.w (a0)
     lea.l $0686(a6),a0
@@ -1421,21 +1421,21 @@ loc_0E10:
     moveq.l #0,d4
     movem.l d5-d7,-(a7)
     moveq.l #1,d5
-    bsr.w sub_1262
-loc_0E28:
+    bsr.w h0_1262
+h0_0E28:
     cmp.b #$1,d7
-    bne.s loc_0E6C
-loc_0E2E:
+    bne.s h0_0E6C
+h0_0E2E:
     movem.l d2-d3,-(a7)
     addq.b #1,d5
-    bsr.w sub_1262
-loc_0E38:
+    bsr.w h0_1262
+h0_0E38:
     cmp.b #$4,d7
-    bcs.w loc_0E90
-loc_0E40:
+    bcs.w h0_0E90
+h0_0E40:
     cmp.b #$16,d7
-    bcc.w loc_0E90
-loc_0E48:
+    bcc.w h0_0E90
+h0_0E48:
     lea.l $065E(a6),a0
     move.w (a0),d0
     addq.w #2,(a0)+
@@ -1445,202 +1445,202 @@ loc_0E48:
     addq.w #8,(a0)+
     move.l (a7)+,$0(a0,d0.w)
     move.l (a7)+,$4(a0,d0.w)
-    bsr.w loc_0F1A
-loc_0E6A:
-    bra.s loc_0E7E
-loc_0E6C:
+    bsr.w h0_0F1A
+h0_0E6A:
+    bra.s h0_0E7E
+h0_0E6C:
     lea.l $065E(a6),a0
     move.w (a0),d0
     addq.w #2,(a0)+
     move.w #$0,$0(a0,d0.w)
-    bsr.w loc_0F4A
-loc_0E7E:
+    bsr.w h0_0F4A
+h0_0E7E:
     movem.l (a7)+,d5-d7
     tst.w $065E(a6)
-    bne.s loc_0EA2
-loc_0E88:
+    bne.s h0_0EA2
+h0_0E88:
     tst.w $0686(a6)
-    bne.s loc_0EA2
-loc_0E8E:
+    bne.s h0_0EA2
+h0_0E8E:
     rts
-loc_0E90:
+h0_0E90:
     movem.l (a7)+,d2-d3
     movem.l (a7)+,d5-d7
     movea.l a0,a4
     move.b -$0001(a4),d1
     moveq.l #0,d0
     rts
-loc_0EA2:
+h0_0EA2:
     moveq.l #18,d0
-    bra.w loc_8552
+    bra.w h0_8552
     DC.L    $112b122d,$042a052f,$02280329,$137e083d,$0e26ea21,$105e0f7c,$fe24fa25,$f840f427
     DC.B    $f4,$22,$00
 dat_0ECB:
     DC.B    $00
     DC.L    $00000004,$04161614,$14141414
     DC.B    $14,$12
-    DC.W    sub_20F4-dat_0EE2
-    DC.W    loc_10E4-dat_0EE2
-    DC.W    sub_2C00-dat_0EE2
-    DC.W    sub_2CE2-dat_0EE2
+    DC.W    h0_20F4-dat_0EE2
+    DC.W    h0_10E4-dat_0EE2
+    DC.W    h0_2C00-dat_0EE2
+    DC.W    h0_2CE2-dat_0EE2
 dat_0EE2:
-    DC.W    sub_1134-dat_0EE2
-    DC.W    sub_1152-dat_0EE2
-    DC.W    sub_117A-dat_0EE2
-    DC.W    sub_117E-dat_0EE2
-    DC.W    sub_1182-dat_0EE2
-    DC.W    sub_11AA-dat_0EE2
-    DC.W    sub_11B0-dat_0EE2
-    DC.W    sub_11B6-dat_0EE2
-    DC.W    sub_11BC-dat_0EE2
-    DC.W    sub_11C2-dat_0EE2
-    DC.W    sub_116E-dat_0EE2
-    DC.W    sub_1172-dat_0EE2
-    DC.W    sub_1176-dat_0EE2
+    DC.W    h0_1134-dat_0EE2
+    DC.W    h0_1152-dat_0EE2
+    DC.W    h0_117A-dat_0EE2
+    DC.W    h0_117E-dat_0EE2
+    DC.W    h0_1182-dat_0EE2
+    DC.W    h0_11AA-dat_0EE2
+    DC.W    h0_11B0-dat_0EE2
+    DC.W    h0_11B6-dat_0EE2
+    DC.W    h0_11BC-dat_0EE2
+    DC.W    h0_11C2-dat_0EE2
+    DC.W    h0_116E-dat_0EE2
+    DC.W    h0_1172-dat_0EE2
+    DC.W    h0_1176-dat_0EE2
     DC.B    $01,$c8
-    DC.W    sub_10F0-dat_0EE2
-    DC.W    sub_11C8-dat_0EE2
-    DC.W    sub_11D4-dat_0EE2
-    DC.W    loc_11D2-dat_0EE2
-sub_0F06:
+    DC.W    h0_10F0-dat_0EE2
+    DC.W    h0_11C8-dat_0EE2
+    DC.W    h0_11D4-dat_0EE2
+    DC.W    h0_11D2-dat_0EE2
+h0_0F06:
     lea.l $065E(a6),a0
     move.w (a0),d0
     addq.w #2,(a0)+
     move.w #$0,$0(a0,d0.w)
     moveq.l #1,d5
-    bsr.w sub_1262
-loc_0F1A:
+    bsr.w h0_1262
+h0_0F1A:
     cmp.b #$2,d5
-    bne.s loc_0F30
-loc_0F20:
+    bne.s h0_0F30
+h0_0F20:
     cmp.b #$4,d7
-    bcs.w loc_101E
-loc_0F28:
+    bcs.w h0_101E
+h0_0F28:
     cmp.b #$16,d7
-    bcc.w loc_101E
-loc_0F30:
+    bcc.w h0_101E
+h0_0F30:
     cmp.b #$1,d7
-    bne.s loc_0F4A
-loc_0F36:
+    bne.s h0_0F4A
+h0_0F36:
     lea.l $0686(a6),a0
     move.w (a0),d0
     addq.w #8,(a0)+
     move.l d2,$0(a0,d0.w)
     move.l d3,$4(a0,d0.w)
-    bra.w loc_1014
-loc_0F4A:
+    bra.w h0_1014
+h0_0F4A:
     cmp.b #$2,d7
-    beq.w loc_0FE4
-loc_0F52:
+    beq.w h0_0FE4
+h0_0F52:
     cmp.b #$4,d7
-    bcs.w loc_1024
-loc_0F5A:
+    bcs.w h0_1024
+h0_0F5A:
     cmp.b #$16,d7
-    bcc.w loc_1024
-loc_0F62:
+    bcc.w h0_1024
+h0_0F62:
     cmp.b #$1,d5
-    bne.s loc_0FBA
-loc_0F68:
+    bne.s h0_0FBA
+h0_0F68:
     cmp.b #$11,d7
-    beq.s loc_0FB4
-loc_0F6E:
+    beq.s h0_0FB4
+h0_0F6E:
     cmp.b #$12,d7
-    beq.s loc_0FB8
-loc_0F74:
+    beq.s h0_0FB8
+h0_0F74:
     cmp.b #$4,d7
-    beq.s loc_0F84
-loc_0F7A:
+    beq.s h0_0F84
+h0_0F7A:
     cmp.b #$13,d7
-    bne.w loc_0EA2
-loc_0F82:
-    bra.s loc_0FBA
-loc_0F84:
+    bne.w h0_0EA2
+h0_0F82:
+    bra.s h0_0FBA
+h0_0F84:
     move.l $026E(a6),d2
     moveq.l #0,d3
     move.b $0109(a6),d3
     cmp.b #$1,d3
-    bne.s loc_0F98
-loc_0F94:
+    bne.s h0_0F98
+h0_0F94:
     addq.b #1,$010C(a6)
-loc_0F98:
+h0_0F98:
     tst.b $00FF(a6)
-    bne.s loc_0F36
-loc_0F9E:
+    bne.s h0_0F36
+h0_0F9E:
     tst.b $026A(a6)
-    beq.s loc_0F36
-loc_0FA4:
+    beq.s h0_0F36
+h0_0FA4:
     moveq.l #0,d0
     move.b $014C(a6),d0
     lea.l $0180(a6),a0
     add.l $0(a0,d0.w),d2
-    bra.s loc_0F36
-loc_0FB4:
+    bra.s h0_0F36
+h0_0FB4:
     moveq.l #21,d7
-    bra.s loc_0FBA
-loc_0FB8:
+    bra.s h0_0FBA
+h0_0FB8:
     moveq.l #20,d7
-loc_0FBA:
+h0_0FBA:
     lea.l dat_0ECB(pc),a2
     lea.l $065E(a6),a0
     move.w (a0),d0
     move.w $0(a0,d0.w),d6
     move.b $0(a2,d6.w),d6
     cmp.b $0(a2,d7.w),d6
-    bge.s loc_0FDA
-loc_0FD2:
+    bge.s h0_0FDA
+h0_0FD2:
     addq.w #2,(a0)+
     move.w d7,$0(a0,d0.w)
-    bra.s loc_0FE0
-loc_0FDA:
-    bsr.w sub_1054
-loc_0FDE:
-    bra.s loc_0FBA
-loc_0FE0:
+    bra.s h0_0FE0
+h0_0FDA:
+    bsr.w h0_1054
+h0_0FDE:
+    bra.s h0_0FBA
+h0_0FE0:
     moveq.l #0,d5
-    bra.s loc_1014
-loc_0FE4:
-    bsr.w sub_0F06
-loc_0FE8:
-    bsr.w sub_1262
-loc_0FEC:
+    bra.s h0_1014
+h0_0FE4:
+    bsr.w h0_0F06
+h0_0FE8:
+    bsr.w h0_1262
+h0_0FEC:
     lea.l $0686(a6),a0
     move.w (a0),d0
     addq.w #8,(a0)+
     move.l d2,$0(a0,d0.w)
     move.l d3,$4(a0,d0.w)
     tst.w d3
-    bpl.s loc_1006
-loc_1000:
+    bpl.s h0_1006
+h0_1000:
     moveq.l #42,d0
-    bsr.w loc_8556
-loc_1006:
+    bsr.w h0_8556
+h0_1006:
     cmp.b #$3,d7
-    beq.s loc_1012
-loc_100C:
+    beq.s h0_1012
+h0_100C:
     moveq.l #19,d0
-    bra.w loc_8552
-loc_1012:
+    bra.w h0_8552
+h0_1012:
     moveq.l #1,d5
-loc_1014:
+h0_1014:
     addq.w #1,d5
-    bsr.w sub_1262
-loc_101A:
-    bra.w loc_0F1A
-loc_101E:
+    bsr.w h0_1262
+h0_101A:
+    bra.w h0_0F1A
+h0_101E:
     movea.l a0,a4
     move.b -$0001(a4),d1
-loc_1024:
+h0_1024:
     lea.l dat_0ECB(pc),a2
-loc_1028:
+h0_1028:
     lea.l $065E(a6),a0
     move.w (a0),d0
     tst.w $0(a0,d0.w)
-    beq.s loc_103A
-loc_1034:
-    bsr.w sub_1054
-loc_1038:
-    bra.s loc_1028
-loc_103A:
+    beq.s h0_103A
+h0_1034:
+    bsr.w h0_1054
+h0_1038:
+    bra.s h0_1028
+h0_103A:
     subq.w #2,$065E(a6)
     lea.l $0686(a6),a0
     subq.w #8,(a0)
@@ -1648,13 +1648,13 @@ loc_103A:
     move.l $0(a0,d0.w),d2
     move.l $4(a0,d0.w),d3
     rts
-loc_1050:
-    bra.w loc_0EA2
-sub_1054:
+h0_1050:
+    bra.w h0_0EA2
+h0_1054:
     lea.l $0686(a6),a0
     subq.w #8,(a0)
-    bcs.s loc_1050
-loc_105C:
+    bcs.s h0_1050
+h0_105C:
     move.w (a0)+,d0
     move.l $0(a0,d0.w),d2
     move.l $4(a0,d0.w),d3
@@ -1664,382 +1664,383 @@ loc_105C:
     move.w (a1)+,d1
     move.w $0(a1,d1.w),d1
     cmp.b #$13,d1
-    bcc.s loc_108C
-loc_107A:
+    bcc.s h0_108C
+h0_107A:
     subq.w #8,-(a0)
-    bcs.s loc_1050
-loc_107E:
+    bcs.s h0_1050
+h0_107E:
     move.w (a0)+,d0
     move.l $4(a0,d0.w),d6
     move.l $0(a0,d0.w),d0
     exg d0,d2
     exg d6,d3
-loc_108C:
+h0_108C:
     lea.l dat_0EE2(pc),a1
     add.w d1,d1
     move.w -$8(a1,d1.w),d1
     jsr $0(a1,d1.w)
-loc_109A:
+h0_109A:
     move.w (a7)+,d1
     move.w -(a0),d0
     addq.w #8,(a0)+
     move.l d2,$0(a0,d0.w)
     move.l d3,$4(a0,d0.w)
     rts
-    DC.B    $d4,$80
-    DC.L    $b63c0001,$670ebc3c,$0001670e,$0246ff00,$86464e75,$bc3c0001,$6706163c,$000160ec
-loc_10CC:
+    DC.B    $d4,$80 ; VIOLATION: orphaned code island at $10AA is not reached from known entrypoints
+    DC.L    $b63c0001,$670ebc3c,$0001670e,$0246ff00,$86464e75
+    DC.B    $bc,$3c,$00,$01,$67,$06,$16,$3c,$00,$01,$60,$ec ; VIOLATION: orphaned code island at $10C0 is not reached from known entrypoints
+h0_10CC:
     tst.b $0108(a6)
-    bne.s loc_10E0
-loc_10D2:
+    bne.s h0_10E0
+h0_10D2:
     tst.b $026A(a6)
-    beq.s loc_10E4
-loc_10D8:
+    beq.s h0_10E4
+h0_10D8:
     moveq.l #21,d0
-loc_10DA:
-    bsr.w loc_8556
-loc_10DE:
+h0_10DA:
+    bsr.w h0_8556
+h0_10DE:
     st.b d4
-loc_10E0:
+h0_10E0:
     moveq.l #2,d3
     rts
-loc_10E4:
+h0_10E4:
     tst.b $015E(a6)
-    bne.s loc_10D8
-loc_10EA:
-    bra.s loc_10DE
-loc_10EC:
+    bne.s h0_10D8
+h0_10EA:
+    bra.s h0_10DE
+h0_10EC:
     moveq.l #20,d0
-    bra.s loc_10DA
-sub_10F0:
+    bra.s h0_10DA
+h0_10F0:
     sub.l d0,d2
     move.w d3,d0
     or.w d6,d0
     andi.w #32768,d0
     tst.w d6
-    bmi.s loc_112E
-loc_10FE:
+    bmi.s h0_112E
+h0_10FE:
     cmp.b #$1,d6
-    bne.s loc_111A
-loc_1104:
+    bne.s h0_111A
+h0_1104:
     btst.b #1,$0250(a6)
-    bne.s loc_1116
-loc_110C:
+    bne.s h0_1116
+h0_110C:
     btst #15,d3
-    beq.s loc_1116
-loc_1112:
+    beq.s h0_1116
+h0_1112:
     add.l $026E(a6),d2
-loc_1116:
+h0_1116:
     subq.b #2,$010C(a6)
-loc_111A:
+h0_111A:
     cmp.b d3,d6
-    beq.s loc_1126
-loc_111E:
+    beq.s h0_1126
+h0_111E:
     cmp.b #$1,d6
-    bne.s loc_112A
-loc_1124:
-    bsr.s loc_10CC
-loc_1126:
+    bne.s h0_112A
+h0_1124:
+    bsr.s h0_10CC
+h0_1126:
     move.b #$2,d3
-loc_112A:
+h0_112A:
     or.w d0,d3
     rts
-loc_112E:
-    bsr.w sub_7AF0
-loc_1132:
-    bra.s loc_111A
-sub_1134:
-    bsr.s loc_113E
-loc_1136:
-    bsr.w sub_11D8
-loc_113A:
+h0_112E:
+    bsr.w h0_7AF0
+h0_1132:
+    bra.s h0_111A
+h0_1134:
+    bsr.s h0_113E
+h0_1136:
+    bsr.w h0_11D8
+h0_113A:
     moveq.l #2,d3
     rts
-loc_113E:
+h0_113E:
     cmp.b #$1,d6
-    beq.s loc_10CC
-loc_1144:
+    beq.s h0_10CC
+h0_1144:
     or.w d3,d6
-    bmi.s loc_10EC
-loc_1148:
+    bmi.s h0_10EC
+h0_1148:
     cmp.b #$1,d3
-    beq.w loc_10CC
-loc_1150:
+    beq.w h0_10CC
+h0_1150:
     rts
-sub_1152:
-    bsr.s loc_113E
-loc_1154:
+h0_1152:
+    bsr.s h0_113E
+h0_1154:
     move.l d7,-(a7)
-    bsr.w sub_120C
-loc_115A:
+    bsr.w h0_120C
+h0_115A:
     movem.l (a7)+,d7
-    bne.s loc_1162
-loc_1160:
+    bne.s h0_1162
+h0_1160:
     rts
-loc_1162:
+h0_1162:
     tst.b $026A(a6)
-    bne.w loc_10DA
-loc_116A:
-    bra.w loc_10E4
-sub_116E:
+    bne.w h0_10DA
+h0_116A:
+    bra.w h0_10E4
+h0_116E:
     and.l d0,d2
-    bra.s loc_113E
-sub_1172:
+    bra.s h0_113E
+h0_1172:
     or.l d0,d2
-    bra.s loc_113E
-sub_1176:
+    bra.s h0_113E
+h0_1176:
     eor.l d0,d2
-    bra.s loc_113E
-sub_117A:
+    bra.s h0_113E
+h0_117A:
     lsl.l d0,d2
-    bra.s loc_113E
-sub_117E:
+    bra.s h0_113E
+h0_117E:
     lsr.l d0,d2
-    bra.s loc_113E
-sub_1182:
+    bra.s h0_113E
+h0_1182:
     cmp.l d0,d2
     seq.b d2
-loc_1186:
+h0_1186:
     ext.w d2
     ext.l d2
     move.w d3,d0
     or.w d6,d0
-    bmi.w loc_10EC
-loc_1192:
+    bmi.w h0_10EC
+h0_1192:
     cmp.b d3,d6
-    beq.s loc_11A6
-loc_1196:
+    beq.s h0_11A6
+h0_1196:
     cmp.b #$1,d3
-    beq.w loc_10CC
-loc_119E:
+    beq.w h0_10CC
+h0_119E:
     cmp.b #$1,d6
-    beq.w loc_10CC
-loc_11A6:
+    beq.w h0_10CC
+h0_11A6:
     moveq.l #2,d3
     rts
-sub_11AA:
+h0_11AA:
     cmp.l d0,d2
     sne.b d2
-    bra.s loc_1186
-sub_11B0:
+    bra.s h0_1186
+h0_11B0:
     cmp.l d0,d2
     slt.b d2
-    bra.s loc_1186
-sub_11B6:
+    bra.s h0_1186
+h0_11B6:
     cmp.l d0,d2
     sgt.b d2
-    bra.s loc_1186
-sub_11BC:
+    bra.s h0_1186
+h0_11BC:
     cmp.l d0,d2
     sle.b d2
-    bra.s loc_1186
-sub_11C2:
+    bra.s h0_1186
+h0_11C2:
     cmp.l d0,d2
     sge.b d2
-    bra.s loc_1186
-sub_11C8:
+    bra.s h0_1186
+h0_11C8:
     not.l d2
-loc_11CA:
+h0_11CA:
     cmp.w #$1,d3
-    beq.w loc_10CC
-loc_11D2:
+    beq.w h0_10CC
+h0_11D2:
     rts
-sub_11D4:
+h0_11D4:
     neg.l d2
-    bra.s loc_11CA
-sub_11D8:
+    bra.s h0_11CA
+h0_11D8:
     move.l d2,d6
     eor.l d0,d6
     tst.l d2
-    bgt.s loc_11E2
-loc_11E0:
+    bgt.s h0_11E2
+h0_11E0:
     neg.l d2
-loc_11E2:
+h0_11E2:
     tst.l d0
-    bgt.s loc_11E8
-loc_11E6:
+    bgt.s h0_11E8
+h0_11E6:
     neg.l d0
-loc_11E8:
+h0_11E8:
     move.l d2,d3
     swap.w d3
     mulu.w d0,d2
     swap.w d0
     tst.w d3
-    beq.s loc_11F8
-loc_11F4:
+    beq.s h0_11F8
+h0_11F4:
     swap.w d0
-    bra.s loc_11FE
-loc_11F8:
+    bra.s h0_11FE
+h0_11F8:
     tst.w d0
-    beq.s loc_1204
-loc_11FC:
+    beq.s h0_1204
+h0_11FC:
     swap.w d3
-loc_11FE:
+h0_11FE:
     mulu.w d3,d0
     swap.w d0
     add.l d0,d2
-loc_1204:
+h0_1204:
     tst.l d6
-    bpl.s loc_120A
-loc_1208:
+    bpl.s h0_120A
+h0_1208:
     neg.l d2
-loc_120A:
+h0_120A:
     rts
-sub_120C:
+h0_120C:
     tst.l d0
-    beq.s loc_125A
-loc_1210:
+    beq.s h0_125A
+h0_1210:
     move.l d2,d6
     eor.l d0,d6
     move.l d6,-(a7)
     move.l d2,-(a7)
     tst.l d0
-    bpl.s loc_121E
-loc_121C:
+    bpl.s h0_121E
+h0_121C:
     neg.l d0
-loc_121E:
+h0_121E:
     tst.l d2
-    bpl.s loc_1224
-loc_1222:
+    bpl.s h0_1224
+h0_1222:
     neg.l d2
-loc_1224:
+h0_1224:
     moveq.l #31,d6
     move.l d0,d7
     moveq.l #0,d0
-loc_122A:
+h0_122A:
     add.l d7,d7
-    dbcs.w d6,loc_122A
-loc_1230:
+    dbcs.w d6,h0_122A
+h0_1230:
     roxr.l #1,d7
     subi.w #31,d6
     neg.w d6
-loc_1238:
+h0_1238:
     add.l d0,d0
     cmp.l d7,d2
-    bcs.s loc_1242
-loc_123E:
+    bcs.s h0_1242
+h0_123E:
     addq.l #1,d0
     sub.l d7,d2
-loc_1242:
+h0_1242:
     lsr.l #1,d7
-    dbf.w d6,loc_1238
-loc_1248:
+    dbf.w d6,h0_1238
+h0_1248:
     move.l (a7)+,d6
-    bpl.s loc_124E
-loc_124C:
+    bpl.s h0_124E
+h0_124C:
     neg.l d2
-loc_124E:
+h0_124E:
     move.l (a7)+,d6
-    bpl.s loc_1254
-loc_1252:
+    bpl.s h0_1254
+h0_1252:
     neg.l d0
-loc_1254:
+h0_1254:
     exg d0,d2
     cmp.b d0,d0
     rts
-loc_125A:
+h0_125A:
     moveq.l #61,d0
     rts
-    DC.B    $20,$4c,$4e,$75
-sub_1262:
+    DC.B    $20,$4c,$4e,$75 ; VIOLATION: orphaned code island at $125E is not reached from known entrypoints
+h0_1262:
     moveq.l #0,d7
     ext.w d1
-    bmi.s loc_128C
-loc_1268:
+    bmi.s h0_128C
+h0_1268:
     move.b dat_12AC(pc,d1.w),d7
-    beq.s loc_127A
-loc_126E:
-    bpl.s loc_1280
-loc_1270:
+    beq.s h0_127A
+h0_126E:
+    bpl.s h0_1280
+h0_1270:
     cmp.b #$FF,d7
-    bne.s loc_1296
-loc_1276:
-    bra.w loc_12A0
-loc_127A:
+    bne.s h0_1296
+h0_1276:
+    bra.w h0_12A0
+h0_127A:
     movea.l a4,a0
     moveq.l #22,d7
     rts
-loc_1280:
+h0_1280:
     cmp.b #$1,d7
-    beq.s loc_128C
-loc_1286:
+    beq.s h0_128C
+h0_1286:
     movea.l a4,a0
     move.b (a4)+,d1
     rts
-loc_128C:
+h0_128C:
     movem.l d5-d6/a1-a2,-(a7)
     move.l a4,-(a7)
-    bra.w loc_132C
-loc_1296:
+    bra.w h0_132C
+h0_1296:
     movem.l d5-d6/a1-a2,-(a7)
     move.l a4,-(a7)
-    bra.w loc_1412
-loc_12A0:
+    bra.w h0_1412
+h0_12A0:
     movem.l d5-d6/a1-a2,-(a7)
     move.l a4,-(a7)
     moveq.l #0,d2
-    bra.w loc_137E
+    bra.w h0_137E
 dat_12AC:
     DC.L    $00000000,$00000000,$00000000,$00000000,$00000000,$00000000,$00000000,$00000000
     DC.L    $00eaf400,$fefa0ef4,$02030411,$00120105,$ffffffff,$ffffffff,$ffff0000,$f208ee00
     DC.L    $f8010101,$01010101,$01010101,$01010101,$01010101,$01010101,$01010100,$00001001
     DC.L    $00010101,$01010101,$01010101,$01010101,$01010101,$01010101,$01010100,$0f001300
-loc_132C:
+h0_132C:
     lea.l $04A4(a6),a0
-    bsr.w sub_7726
-loc_1334:
-    beq.w loc_158C
-loc_1338:
+    bsr.w h0_7726
+h0_1334:
+    beq.w h0_158C
+h0_1338:
     moveq.l #22,d7
-    bra.s loc_1376
-loc_133C:
+    bra.s h0_1376
+h0_133C:
     move.b (a4)+,d1
     cmp.b #$3D,d1
-    beq.s loc_135A
-loc_1344:
+    beq.s h0_135A
+h0_1344:
     moveq.l #15,d7
-    bra.s loc_1376
-loc_1348:
+    bra.s h0_1376
+h0_1348:
     moveq.l #10,d7
     move.b (a4)+,d1
     cmp.b #$3C,d1
-    beq.s loc_1372
-loc_1352:
+    beq.s h0_1372
+h0_1352:
     cmp.b #$3E,d1
-    beq.s loc_135A
-loc_1358:
-    bra.s loc_1368
-loc_135A:
+    beq.s h0_135A
+h0_1358:
+    bra.s h0_1368
+h0_135A:
     moveq.l #9,d7
-    bra.s loc_1374
-loc_135E:
+    bra.s h0_1374
+h0_135E:
     moveq.l #11,d7
     move.b (a4)+,d1
     cmp.b #$3E,d1
-    beq.s loc_1372
-loc_1368:
+    beq.s h0_1372
+h0_1368:
     cmp.b #$3D,d1
-    bne.s loc_1376
-loc_136E:
+    bne.s h0_1376
+h0_136E:
     addq.w #2,d7
-    bra.s loc_1374
-loc_1372:
+    bra.s h0_1374
+h0_1372:
     subq.w #4,d7
-loc_1374:
+h0_1374:
     move.b (a4)+,d1
-loc_1376:
+h0_1376:
     movea.l (a7)+,a0
     movem.l (a7)+,d5-d6/a1-a2
     rts
-loc_137E:
+h0_137E:
     move.b $0131(a6),d7
-    beq.s loc_138A
-loc_1384:
+    beq.s h0_138A
+h0_1384:
     subq.l #1,a4
-    bra.w loc_1412
-loc_138A:
+    bra.w h0_1412
+h0_138A:
     lea.l -$0001(a4),a0
-loc_138E:
+h0_138E:
     add.l d2,d2
     move.l d2,d0
     add.l d0,d0
@@ -2050,144 +2051,146 @@ loc_138E:
     add.l d1,d2
     move.b (a4)+,d1
     cmp.b #$3A,d1
-    bcc.s loc_13B2
-loc_13AC:
+    bcc.s h0_13B2
+h0_13AC:
     cmp.b #$30,d1
-    bcc.s loc_138E
-loc_13B2:
+    bcc.s h0_138E
+h0_13B2:
     moveq.l #1,d7
     moveq.l #2,d3
     cmp.b #$24,d1
-    bne.s loc_1376
-loc_13BC:
-    bra.w loc_16F2
-loc_13C0:
+    bne.s h0_1376
+h0_13BC:
+    bra.w h0_16F2
+h0_13C0:
     moveq.l #4,d0
     move.b d1,d3
-loc_13C4:
+h0_13C4:
     move.b (a4)+,d1
     cmp.b #$D,d1
-    beq.w loc_148E
-loc_13CE:
+    beq.w h0_148E
+h0_13CE:
     cmp.b d3,d1
-    bne.s loc_13DC
-loc_13D2:
+    bne.s h0_13DC
+h0_13D2:
     move.b (a4)+,d1
     cmp.b d3,d1
-    beq.s loc_13DC
-loc_13D8:
+    beq.s h0_13DC
+h0_13D8:
     moveq.l #2,d3
-    bra.s loc_1376
-loc_13DC:
+    bra.s h0_1376
+h0_13DC:
     subq.b #1,d0
-    bcs.w loc_1498
-loc_13E2:
+    bcs.w h0_1498
+h0_13E2:
     lsl.l #8,d2
     move.b d1,d2
-    bra.s loc_13C4
-loc_13E8:
+    bra.s h0_13C4
+h0_13E8:
     move.b (a4)+,d1
     subi.b #48,d1
-    bcs.w loc_148E
-loc_13F2:
+    bcs.w h0_148E
+h0_13F2:
     cmp.b #$2,d1
-    bcc.w loc_148E
-loc_13FA:
+    bcc.w h0_148E
+h0_13FA:
     add.l d2,d2
-    bcs.w loc_1498
-loc_1400:
+    bcs.w h0_1498
+h0_1400:
     or.b d1,d2
     move.b (a4)+,d1
     subi.b #48,d1
-    bcs.s loc_1486
-loc_140A:
+    bcs.s h0_1486
+h0_140A:
     cmp.b #$2,d1
-    bcs.s loc_13FA
-loc_1410:
-    bra.s loc_1486
-loc_1412:
+    bcs.s h0_13FA
+h0_1410:
+    bra.s h0_1486
+h0_1412:
     neg.b d7
     ext.w d7
     moveq.l #0,d2
     moveq.l #2,d3
     moveq.l #1,d0
     exg d0,d7
-loc_141E:
-    jmp loc_1422-2(pc,d0.w) ; VIOLATION: invalid overlap: pc-relative reference targets +2 into instruction at $141E | 
-loc_1422:
-    bra.w loc_1468
-loc_1426:
-    bra.s loc_13E8
-loc_1428:
-    bra.w loc_1440
-loc_142C:
-    bra.s loc_13C0
-loc_142E:
-    bra.w loc_1348
-loc_1432:
-    bra.w loc_135E
-loc_1436:
-    bra.w loc_133C
-loc_143A:
+h0_141E:
+    jmp h0_1422-2(pc,d0.w) ; VIOLATION: invalid overlap: pc-relative reference targets +2 into instruction at $141E | invalid overlap: instruction bytes at +2 are referenced by reachable pc-relative operand
+h0_1422:
+    bra.w h0_1468
+h0_1426:
+    bra.s h0_13E8
+h0_1428:
+    bra.w h0_1440
+h0_142C:
+    bra.s h0_13C0
+h0_142E:
+    bra.w h0_1348
+h0_1432:
+    bra.w h0_135E
+h0_1436:
+    bra.w h0_133C
+h0_143A:
     moveq.l #64,d1
-loc_143C:
-    bra.w loc_132C
-loc_1440:
+h0_143C:
+    bra.w h0_132C
+h0_1440:
     move.b (a4),d0
     subi.b #48,d0
-    bcs.s loc_143A
-loc_1448:
+    bcs.s h0_143A
+h0_1448:
     cmp.b #$9,d0
-    bcc.s loc_143A
-loc_144E:
+    bcc.s h0_143A
+h0_144E:
     move.b d0,d1
     addq.l #1,a4
-loc_1452:
+h0_1452:
     lsl.l #3,d2
-    bcs.s loc_1498
-loc_1456:
+    bcs.s h0_1498
+h0_1456:
     or.b d1,d2
     move.b (a4)+,d1
     subi.b #48,d1
-    bcs.s loc_1486
-loc_1460:
+    bcs.s h0_1486
+h0_1460:
     cmp.b #$9,d1
-    bcs.s loc_1452
-loc_1466:
-    bra.s loc_1486
-loc_1468:
+    bcs.s h0_1452
+h0_1466:
+    bra.s h0_1486
+h0_1468:
     lea.l dat_149C(pc),a0
     moveq.l #0,d1
     move.b (a4)+,d1
-    bmi.s loc_148E
-loc_1472:
+    bmi.s h0_148E
+h0_1472:
     move.b $0(a0,d1.w),d1
-    bmi.s loc_148E
-loc_1478:
+    bmi.s h0_148E
+h0_1478:
     lsl.l #4,d2
     or.b d1,d2
     move.b (a4)+,d1
-    bmi.s loc_1486
-loc_1480:
+    bmi.s h0_1486
+h0_1480:
     move.b $0(a0,d1.w),d1
-    bpl.s loc_1478
-loc_1486:
+    bpl.s h0_1478
+h0_1486:
     move.b -$0001(a4),d1
-    bra.w loc_1376
-loc_148E:
+    bra.w h0_1376
+h0_148E:
     moveq.l #22,d0
-    bsr.w loc_8556
-loc_1494:
+h0_1490:
+    bsr.w h0_8556
+h0_1494:
     st.b d4
-    bra.s loc_1486
-loc_1498:
-    DC.L    $701760f4
+    bra.s h0_1486
+h0_1498:
+    moveq.l #23,d0
+    bra.s h0_1490
 dat_149C:
     DC.L    $ffffffff,$ffffffff,$ffffffff,$ffffffff,$ffffffff,$ffffffff,$ffffffff,$ffffffff
     DC.L    $ffffffff,$ffffffff,$ffffffff,$ffffffff,$00010203,$04050607,$0809ffff,$ffffffff
     DC.L    $ff0a0b0c,$0d0e0fff,$ffffffff,$ffffffff,$ffffffff,$ffffffff,$ffffffff,$ffffffff
     DC.L    $ff0a0b0c,$0d0e0fff,$ffffffff,$ffffffff,$ffffffff,$ffffffff,$ffffffff,$ffffffff
-sub_151C:
+h0_151C:
     movea.l (a0),a1
     subq.l #4,a7
     move.b (a1)+,$0002(a7)
@@ -2196,105 +2199,105 @@ sub_151C:
     move.b (a1)+,$0001(a7)
     move.l (a7)+,d0
     cmp.l #$52474E41,d0
-    beq.s loc_157A
-loc_1538:
+    beq.s h0_157A
+h0_1538:
     cmp.w #$5F5F,d0
-    bne.s loc_1578
-loc_153E:
+    bne.s h0_1578
+h0_153E:
     swap.w d0
-loc_1540:
+h0_1540:
     cmp.w #$5253,d0
-    beq.s loc_1572
-loc_1546:
+    beq.s h0_1572
+h0_1546:
     cmp.w #$4732,d0
-    beq.s loc_1564
-loc_154C:
+    beq.s h0_1564
+h0_154C:
     cmp.w #$4C4B,d0
-    beq.s loc_1554
-loc_1552:
-    bne.s loc_1578
-loc_1554:
+    beq.s h0_1554
+h0_1552:
+    bne.s h0_1578
+h0_1554:
     moveq.l #0,d2
     tst.b $00FF(a6)
-    beq.s loc_156E
-loc_155C:
+    beq.s h0_156E
+h0_155C:
     move.w $0250(a6),d2
     addq.w #1,d2
-    bra.s loc_156E
-loc_1564:
+    bra.s h0_156E
+h0_1564:
     moveq.l #43,d2
     move.b $0123(a6),d0
     lsl.w #8,d0
     or.w d0,d2
-loc_156E:
+h0_156E:
     moveq.l #0,d0
     rts
-loc_1572:
+h0_1572:
     move.l $4704(a6),d2
-    bra.s loc_156E
-loc_1578:
+    bra.s h0_156E
+h0_1578:
     rts
-loc_157A:
+h0_157A:
     moveq.l #0,d2
     tst.b $0102(a6)
-    beq.s loc_1578
-loc_1582:
+    beq.s h0_1578
+h0_1582:
     movea.l $473C(a6),a1
     move.w $0008(a1),d2
-    bra.s loc_156E
-loc_158C:
+    bra.s h0_156E
+h0_158C:
     moveq.l #1,d7
     seq.b $0004(a0)
     cmp.b #$23,d1
-    bne.s loc_15A2
-loc_1598:
+    bne.s h0_15A2
+h0_1598:
     move.b (a4)+,d1
     tst.b $00FF(a6)
     sne.b $0004(a0)
-loc_15A2:
+h0_15A2:
     cmpi.b #4,$0005(a0)
-    bne.s loc_15B6
-loc_15AA:
-    bsr.w sub_151C
-loc_15AE:
-    bne.s loc_15B6
-loc_15B0:
+    bne.s h0_15B6
+h0_15AA:
+    bsr.w h0_151C
+h0_15AE:
+    bne.s h0_15B6
+h0_15B0:
     moveq.l #2,d3
-    bra.w loc_1628
-loc_15B6:
+    bra.w h0_1628
+h0_15B6:
     tst.b $026A(a6)
-    bne.w loc_166C
-loc_15BE:
-    bsr.w sub_0C0E
-loc_15C2:
-    beq.s loc_15CC
-loc_15C4:
+    bne.w h0_166C
+h0_15BE:
+    bsr.w h0_0C0E
+h0_15C2:
+    beq.s h0_15CC
+h0_15C4:
     moveq.l #0,d2
     st.b d4
     moveq.l #2,d3
-    bra.s loc_1628
-loc_15CC:
+    bra.s h0_1628
+h0_15CC:
     move.l $0008(a1),d2
     moveq.l #0,d3
     move.b $000D(a1),d3
     btst.b #4,$000C(a1)
-    bne.s loc_1630
-loc_15DE:
+    bne.s h0_1630
+h0_15DE:
     cmp.b #$2,d3
-    beq.s loc_1628
-loc_15E4:
+    beq.s h0_1628
+h0_15E4:
     cmp.b #$E,d3
-    beq.s loc_1628
-loc_15EA:
+    beq.s h0_1628
+h0_15EA:
     cmp.b #$1,d3
-    beq.s loc_1652
-loc_15F0:
+    beq.s h0_1652
+h0_15F0:
     cmp.b #$F,d3
-    bcs.s loc_1618
-loc_15F6:
+    bcs.s h0_1618
+h0_15F6:
     cmp.b #$13,d3
-    bcc.s loc_1618
-loc_15FC:
+    bcc.s h0_1618
+h0_15FC:
     lea.l $472C(a6),a0
     move.l a0,d2
     move.l $0008(a1),(a0)+
@@ -2302,96 +2305,96 @@ loc_15FC:
     move.b $000F(a1),(a0)+
     move.l $0010(a1),(a0)+
     move.w $0014(a1),(a0)
-    bra.s loc_1628
-loc_1618:
+    bra.s h0_1628
+h0_1618:
     cmp.b #$5,d3
-    bne.w loc_171E
-loc_1620:
+    bne.w h0_171E
+h0_1620:
     moveq.l #2,d3
     moveq.l #7,d0
-    bsr.w loc_8660
-loc_1628:
+    bsr.w h0_8660
+h0_1628:
     move.b -$0001(a4),d1
-    bra.w loc_1376
-loc_1630:
+    bra.w h0_1376
+h0_1630:
     st.b d4
     swap.w d3
     move.w $0014(a1),d3
-    bsr.w sub_7AC6
-loc_163C:
+    bsr.w h0_7AC6
+h0_163C:
     swap.w d3
     move.b -$0001(a4),d1
     tst.b $026A(a6)
-    beq.w loc_1376
-loc_164A:
+    beq.w h0_1376
+h0_164A:
     ori.w #32768,d3
-    bra.w loc_1376
-loc_1652:
+    bra.w h0_1376
+h0_1652:
     tst.b $00FF(a6)
-    bne.s loc_165E
-loc_1658:
+    bne.s h0_165E
+h0_1658:
     tst.b $000E(a1)
-    beq.s loc_1628
-loc_165E:
+    beq.s h0_1628
+h0_165E:
     move.b $014C(a6),d0
     cmp.b $000E(a1),d0
-    beq.s loc_1628
-loc_1668:
+    beq.s h0_1628
+h0_1668:
     st.b d4
-    bra.s loc_1628
-loc_166C:
-    bsr.w sub_0C0E
-loc_1670:
+    bra.s h0_1628
+h0_166C:
+    bsr.w h0_0C0E
+h0_1670:
     sne.b d0
     move.b -$0001(a4),d1
     cmp.b #$23,d1
-    bne.s loc_167E
-loc_167C:
+    bne.s h0_167E
+h0_167C:
     move.b (a4)+,d1
-loc_167E:
+h0_167E:
     tst.b d0
-    bne.w loc_172C
-loc_1684:
+    bne.w h0_172C
+h0_1684:
     btst.b #7,$000C(a1)
-    beq.s loc_1696
-loc_168C:
+    beq.s h0_1696
+h0_168C:
     btst.b #6,$000C(a1)
-    beq.w loc_172C
-loc_1696:
+    beq.w h0_172C
+h0_1696:
     move.l $0008(a1),d2
     moveq.l #0,d3
     move.b $000D(a1),d3
     tst.b $00FF(a6)
-    bne.s loc_16C0
-loc_16A6:
+    bne.s h0_16C0
+h0_16A6:
     cmp.b #$1,d3
-    bne.w loc_15DE
-loc_16AE:
+    bne.w h0_15DE
+h0_16AE:
     moveq.l #0,d0
     move.b $000E(a1),d0
     lea.l $0180(a6),a0
     add.l $0(a0,d0.w),d2
-    bra.w loc_1376
-loc_16C0:
+    bra.w h0_1376
+h0_16C0:
     btst.b #4,$000C(a1)
-    bne.w loc_1630
-loc_16CA:
+    bne.w h0_1630
+h0_16CA:
     cmp.b #$1,d3
-    bne.w loc_15DE
-loc_16D2:
+    bne.w h0_15DE
+h0_16D2:
     move.b $014C(a6),d0
     cmp.b $000E(a1),d0
-    bne.s loc_16E4
-loc_16DC:
+    bne.s h0_16E4
+h0_16DC:
     addq.b #1,$010C(a6)
-    bra.w loc_1376
-loc_16E4:
+    bra.w h0_1376
+h0_16E4:
     ori.w #32768,d3
     st.b d4
-    bsr.w sub_7ADC
-loc_16EE:
-    bra.w loc_1376
-loc_16F2:
+    bsr.w h0_7ADC
+h0_16EE:
+    bra.w h0_1376
+h0_16F2:
     movea.l a0,a1
     lea.l $04A4(a6),a0
     lea.l $0006(a0),a2
@@ -2402,68 +2405,75 @@ loc_16F2:
     sub.l a1,d0
     move.b d0,$0005(a0)
     subq.b #1,d0
-loc_1710:
+h0_1710:
     move.b (a1)+,(a2)+
     subq.b #1,d0
-    bne.s loc_1710
-loc_1716:
+    bne.s h0_1710
+h0_1716:
     move.b (a4)+,d1
     moveq.l #1,d7
-    bra.w loc_15B6
-loc_171E:
+    bra.w h0_15B6
+h0_171E:
     moveq.l #24,d0
-loc_1720:
+h0_1720:
     moveq.l #2,d3
     st.b d4
-    bsr.w loc_8556
-loc_1728:
-    bra.w loc_1376
-loc_172C:
+    bsr.w h0_8556
+h0_1728:
+    bra.w h0_1376
+h0_172C:
     moveq.l #3,d0
-    bra.s loc_1720
-sub_1730:
-    bsr.w sub_0DF6
-loc_1734:
+    bra.s h0_1720
+h0_1730:
+    bsr.w h0_0DF6
+h0_1734:
     tst.b $00FF(a6)
-    beq.s loc_173E
-loc_173A:
+    beq.s h0_173E
+h0_173A:
     tst.w d3
-    bmi.s loc_1752
-loc_173E:
+    bmi.s h0_1752
+h0_173E:
     cmp.b #$F,d3
-    bcs.s loc_1750
-loc_1744:
+    bcs.s h0_1750
+h0_1744:
     cmp.b #$13,d3
-    bcc.s loc_1750
-loc_174A:
+    bcc.s h0_1750
+h0_174A:
     moveq.l #98,d0
-    bra.w loc_8556
-loc_1750:
+    bra.w h0_8556
+h0_1750:
     rts
-loc_1752:
+h0_1752:
     st.b d4
     moveq.l #20,d0
-    bra.w loc_8556
-sub_175A:
-    bsr.s sub_1730
-loc_175C:
+    bra.w h0_8556
+h0_175A:
+    bsr.s h0_1730
+h0_175C:
     cmp.b #$1,d3
-    bne.s loc_176A
-loc_1762:
+    bne.s h0_176A
+h0_1762:
     tst.b $0108(a6)
-    beq.w loc_8522
-loc_176A:
+    beq.w h0_8522
+h0_176A:
     moveq.l #0,d0
     rts
-    DC.B    $20,$57
-    DC.L    $54976006,$20575497,$3ac63010,$3f000800,$00066708,$6100017a,$301f6006,$6100017e
-    DC.L    $301f206e,$027e8b50,$ba3c0030,$6528ba3c,$003a6514,$ba3c003c,$67160805,$00066626
-    DC.L    $08000006,$671a4e75,$08000005,$67124e75,$4a006a0c,$4e751405,$e60a0500,$67024e75
-    DC.L    $70116000,$6d820245,$00bf3405,$e15ac042,$67ee205f,$4ee80002,$70256000,$6d66611c
-    DC.L    $66f64a00,$66f24e75,$6112660c,$4a006606,$70106100,$6d52b000,$4e7560f4,$1001204c
-    DC.L    $48801036,$007eb03c,$00416728,$b03c0044,$6722b03c,$0052674a,$b03c0053,$6600007a
-    DC.L    $10184880,$1036007e,$b03c0050,$666a7001,$74076014,$1418b43c,$0037625c,$04020030
-    DC.L    $6556b03c,$004157c0,$02000001,$72001218
+    DC.B    $20,$57,$54,$97,$60,$06 ; VIOLATION: orphaned code island at $176E is not reached from known entrypoints
+    DC.L    $20575497,$3ac63010,$3f000800,$00066708,$6100017a,$301f6006 ; VIOLATION: orphaned code island at $1774 is not reached from known entrypoints
+    DC.L    $6100017e,$301f206e,$027e8b50,$ba3c0030,$6528ba3c,$003a6514,$ba3c003c,$67160805
+    DC.L    $00066626,$08000006,$671a4e75 ; VIOLATION: orphaned code island at $178C is not reached from known entrypoints
+    DC.B    $08,$00,$00,$05,$67,$12,$4e,$75 ; VIOLATION: orphaned code island at $17B8 is not reached from known entrypoints
+    DC.B    $4a,$00,$6a,$0c,$4e,$75 ; VIOLATION: orphaned code island at $17C0 is not reached from known entrypoints
+    DC.B    $14,$05,$e6,$0a,$05,$00,$67,$02,$4e,$75 ; VIOLATION: orphaned code island at $17C6 is not reached from known entrypoints
+    DC.B    $70,$11,$60,$00,$6d,$82 ; VIOLATION: orphaned code island at $17D0 is not reached from known entrypoints
+    DC.B    $02,$45 ; VIOLATION: orphaned code island at $17D6 is not reached from known entrypoints
+    DC.L    $00bf3405,$e15ac042,$67ee205f,$4ee80002
+    DC.B    $70,$25,$60,$00,$6d,$66 ; VIOLATION: orphaned code island at $17E8 is not reached from known entrypoints
+    DC.B    $61,$1c,$66,$f6,$4a,$00,$66,$f2,$4e,$75 ; VIOLATION: orphaned code island at $17EE is not reached from known entrypoints
+    DC.L    $6112660c,$4a006606,$70106100,$6d52b000,$4e7560f4,$1001204c,$48801036,$007eb03c
+    DC.L    $00416728,$b03c0044,$6722b03c,$0052674a,$b03c0053,$6600007a,$10184880,$1036007e
+    DC.L    $b03c0050,$666a7001,$74076014,$1418b43c,$0037625c,$04020030,$6556b03c,$004157c0
+    DC.L    $02000001,$72001218 ; VIOLATION: orphaned code island at $17F8 is not reached from known entrypoints
     DC.B    $22,$7c
     DC.L    dat_B75C
     DC.B    $4a,$31
@@ -2492,7 +2502,7 @@ loc_176A:
     DC.L    dat_9BB4
     DC.L    $6110b63c,$00016606
     DC.B    $4e,$b9
-    DC.L    dat_9C8C
+    DC.L    h0_9C8C
     DC.B    $2a,$c2
     DC.B    "NuJ."
     DC.L    $026d662c,$0c2e0001,$026b670c,$4a2e0121,$67060802,$0000661a,$0804000f,$6712b63c
@@ -2509,7 +2519,7 @@ loc_176A:
     DC.B    $b6,$3c
     DC.L    $00016606
     DC.B    $4e,$b9
-    DC.L    dat_9C8C
+    DC.L    h0_9C8C
     DC.B    $2a,$c2
     DC.B    "NuJ."
     DC.L    $026a6714,$4a2e00ff,$670a4a43,$6a064ef9
@@ -2552,7 +2562,7 @@ loc_176A:
     DC.B    $01,$08
     DC.L    $6606b63c,$0002671c,$94ae026e,$200d90ae,$027e9480,$52826100,$5b86600e
     DC.B    $4e,$b9
-    DC.L    dat_9B74
+    DC.L    h0_9B74
     DC.B    $60,$08
     DC.L    $70216100,$67ae1ac2,$b23c0029,$6600f25a,$121c4e75,$7200121c
     DC.B    $22,$7c
@@ -2592,90 +2602,106 @@ dat_1DCE:
     DC.L    $b23c002c,$6600647c,$121c6100,$f6b2007d,$4e75102e,$026b6700,$00e2b03c,$00016768
     DC.L    $b03c0002,$670000b4,$4a2e0126,$660000ac,$0c2e0014,$01236d42,$50c63ac6,$6100f642
     DC.L    $4a2e026a
-sub_20F4:
-    beq.s loc_2126
-loc_20F6:
+h0_20F4:
+    beq.s h0_2126
+h0_20F6:
     tst.b d4
-    bne.s loc_2126
-loc_20FA:
+    bne.s h0_2126
+h0_20FA:
     cmp.b #$2,d3
-    bne.s loc_210C
-loc_2100:
+    bne.s h0_210C
+h0_2100:
     tst.b $0108(a6)
-    bne.s loc_210C
-loc_2106:
+    bne.s h0_210C
+h0_2106:
     moveq.l #30,d0
-    bsr.w loc_8556
-loc_210C:
+    bsr.w h0_8556
+h0_210C:
     sub.l $026E(a6),d2
     tst.b $00FF(a6)
-    bne.s loc_2124
-loc_2116:
+    bne.s h0_2124
+h0_2116:
     moveq.l #0,d0
     move.b $014C(a6),d0
     lea.l $0180(a6),a0
     sub.l $0(a0,d0.w),d2
-loc_2124:
+h0_2124:
     subq.l #2,d2
-loc_2126:
+h0_2126:
     move.l d2,(a5)+
     rts
-    DC.B    $70,$05
-    DC.L    $61006532
-    DC.B    $60,$58,$70,$22,$60,$00
-    DC.B    $64,$20
+    DC.B    $70,$05,$61,$00,$65,$32,$60,$58 ; VIOLATION: orphaned code island at $212A is not reached from known entrypoints
+    DC.B    $70,$22,$60,$00,$64,$20 ; VIOLATION: orphaned code island at $2132 is not reached from known entrypoints
     DC.L    $610000e2,$6734e04e,$1ac64a2e,$00ff6706,$4a436b00,$7a284a82,$6630bc3c,$00616720
-    DC.L    $082e0006,$01116608,$70536100,$63f26006,$70116100
-    DC.B    "gJ*n"
-    DC.L    $027e3afc
-    DC.B    "NqNu"
-    DC.L    $1afc00ff,$703f6000,$63d66100,$579a1ac2,$4e756100,$00906716,$3ac64a2e,$00ff6706
-    DC.L    $4a436b00,$79f86100,$578a3ac2,$4e75588d
-    DC.B    "NuJ."
+    DC.L    $082e0006,$01116608,$70536100,$63f26006 ; VIOLATION: orphaned code island at $2138 is not reached from known entrypoints
+    DC.B    $70,$11,$61,$00,$67,$4a,$2a,$6e,$02,$7e,$3a,$fc,$4e,$71,$4e,$75 ; VIOLATION: orphaned code island at $2168 is not reached from known entrypoints
+    DC.B    $1a,$fc,$00,$ff,$70,$3f,$60,$00,$63,$d6 ; VIOLATION: orphaned code island at $2178 is not reached from known entrypoints
+    DC.B    $61,$00,$57,$9a,$1a,$c2,$4e,$75 ; VIOLATION: orphaned code island at $2182 is not reached from known entrypoints
+    DC.B    $61,$00 ; VIOLATION: orphaned code island at $218A is not reached from known entrypoints
+    DC.L    $00906716,$3ac64a2e,$00ff6706,$4a436b00,$79f86100,$578a3ac2
+    DC.B    $4e,$75
+    DC.B    $58,$8d,$4e,$75 ; VIOLATION: orphaned code island at $21A6 is not reached from known entrypoints
+    DC.B    $4a,$2e ; VIOLATION: orphaned code island at $21AA is not reached from known entrypoints
     DC.L    $012e6b88,$6600ff2e,$082e0000,$011167ce,$6100ec38,$4a046652,$4a2e0108,$6606b63c
     DC.L    $00026746,$2f024a2e,$00ff6606,$4a2e014c,$663694ae,$026e5982,$672e6a02,$54821002
-    DC.L    $488048c0,$b4806620,$61006c5e,$660c588f,$8c023ac6,$700b6000,$66b2082e,$00050111
-    DC.L    $67067010,$610066a4,$241f487a,$ff766004,$6100ebd8,$4a2e026a,$66104a04,$6648b63c
-    DC.L    $00026642,$4a2e0108
+    DC.L    $488048c0,$b4806620,$61006c5e,$660c588f,$8c023ac6,$700b6000
+    DC.B    $66,$b2
+    DC.B    $08,$2e ; VIOLATION: orphaned code island at $2206 is not reached from known entrypoints
+    DC.L    $00050111,$67067010,$610066a4,$241f487a,$ff766004
+    DC.L    $6100ebd8,$4a2e026a,$66104a04,$6648b63c,$00026642,$4a2e0108 ; VIOLATION: orphaned code island at $221C is not reached from known entrypoints
     DC.B    "f<J.",0
     DC.B    $ff,$67,$04
     DC.B    "JCk2J."
     DC.B    $01,$08
     DC.L    $6606b63c,$0002672c,$08020000,$67067023,$61006300,$94ae026e,$4a2e00ff,$660e7000
-    DC.L    $102e014c,$41ee0180,$94b00000,$55824a2e,$026a4e75,$70216100,$62da4a2e,$026a4e75
-    DC.L    $b23c0023,$660062b0,$121c6100,$f4ca4a82,$6b0eb4bc,$00000008,$64068c02,$3ac64e75
-    DC.L    $3ac6701d,$600062ac,$0c2e0014,$01236d00,$0fa40c2e,$00200123,$67000f9a,$4a2e026b
-    DC.L    $66006254,$6100f524,$024200ff,$e85a3a02,$b23c002c,$66006258,$121c617e,$206e027e
-    DC.L    $31450002,$4e750c2e,$00140123,$6d000f66,$0c2e0020,$01236700,$0f5c4a2e,$026b6600
-    DC.L    $62163ac6,$548d6100,$f4620065,$7a006158,$b23c002c,$66006218,$121c6100,$f4ce0242
-    DC.L    $00ffe85a,$8a42206e,$027e3145,$00024e75,$0c2e0014,$01236d00,$0f1c0c2e,$00200123
-    DC.L    $67000f12,$4a2e026b,$660061cc,$7a00610a,$206e027e,$31450002,$4e753ac6,$548d3f05
-    DC.L    $6100f408,$00253a1f,$b23c007b,$661a121c,$6100f496,$66184a00,$660e08c5,$000b0242
-    DC.L    $00ffed4a,$8a426028,$70556000,$61c26100,$f3c64a2e,$026a6718,$4a826b08,$b4bc0000
-    DC.L    $00206504,$6100558a,$ed4a0242,$07c08a42,$b23c003a,$66d2121c,$6100f44e,$660c4a00
-    DC.L    $66c608c5,$00058a02,$60226100,$f38a4a2e,$026a6718,$4a826606,$4a2e0122,$660e6f16
-    DC.L    $b4bc0000,$00206704,$6e0c8a42,$b23c007d,$6696121c,$4e756100,$553860f0,$50ee026d
-    DC.L    $b23c0023,$67226100,$f3e22f0c,$b23c002c,$6600611c,$121cd402,$52024267,$1ac21ac6
-    DC.L    $6100f348,$00fd6020,$3ac6121c,$6100e9c4,$2f0c3f02,$6100f736,$b23c002c,$660060f0
-    DC.L    $121c6100,$f326007d,$341f245f,$02450038,$66067003,$60000cc4,$b47c0008,$65164a2e
-    DC.L    $01206710,$284a6a06,$706a6000,$60e67009,$610061ea,$70016000,$0ca250ee,$026db23c
-    DC.L    $00236722,$6100f364,$2f0cb23c,$002c6600,$609e121c,$d4025202,$42671ac2,$1ac66100
-    DC.L    $f2ca003d,$60a23ac6,$121c6100,$e9462f0c,$3f026100,$f6b8b23c,$002c6600,$6072121c
-    DC.L    $6100f2a8,$003d6080,$0c2e0014,$01236600,$0d844a2e,$026b6704,$6100603c,$b23c0023
-    DC.L    $66006054,$121c3ac6,$6100e908,$6100f67e,$b23c002c,$66006038,$121c6100,$f26e0064
-    DC.L    $4e750c2e,$00140123,$6d000d4a,$0c2e0020,$01236700,$0d407000,$102e026b,$d0408c7b
-    DC.L    $00366100,$f2c67a00,$1a02b23c,$002c6600,$5ffe121c,$6100f2b4,$024200ff,$ed4a8a42
-    DC.L    $b23c002c,$66005fe8,$121c3f05,$6100f222,$003c3adf,$4e750400,$02000400,$06007056
-    DC.L    $60005fec,$0c2e0014,$01236d00,$0ce80c2e,$00200123,$67000cde,$7000102e,$026bb03c
-    DC.L    $00016700,$5f92b03c,$00036604,$08c60009,$3ac67a00,$7c006100,$f2528a02,$b23c003a
-    DC.L    $66bc121c,$6100f244,$8c02b23c,$002c6600,$5f7e121c,$61308a42,$b23c003a,$66a0121c
-    DC.L    $61000024,$8c42b23c,$002c6600,$5f62121c,$61208a42,$b23c003a,$6684121c,$61148c42
-    DC.L    $3ac53ac6,$4e756100,$f2020242,$00ffed4a,$4e75b23c,$00286620,$121c6100,$f20c6618
-    DC.L    $024200ff,$4a006704,$00020008,$e85ab23c,$00296604,$121c4e75,$60005ee4,$7e04b23c
-    DC.L    $00236612,$121c6100,$f12e2e02,$b23c002c,$66005efc,$121cb23c,$00096758,$b23c0020
-    DC.L    $6752b23c,$000d674c,$41ee04a4,$610050d4,$66005eac,$7c02b23c,$002e6620,$121c4881
-    DC.L    $1236107e,$b23c0042,$6714b23c,$0057670e,$7c04b23c,$004c6600,$5e9e6002,$538c121c
-    DC.L    $2807de86,$2f07610e,$2e1fb23c,$002c6604,$121c60b4
+    DC.L    $102e014c,$41ee0180,$94b00000,$55824a2e,$026a4e75
+    DC.B    $70,$21,$61,$00,$62,$da,$4a,$2e,$02,$6a,$4e,$75 ; VIOLATION: orphaned code island at $2278 is not reached from known entrypoints
+    DC.L    $b23c0023,$660062b0,$121c6100,$f4ca4a82,$6b0eb4bc,$00000008,$64068c02,$3ac64e75 ; VIOLATION: orphaned code island at $2284 is not reached from known entrypoints
+    DC.B    $3a,$c6,$70,$1d,$60,$00,$62,$ac ; VIOLATION: orphaned code island at $22A4 is not reached from known entrypoints
+    DC.L    $0c2e0014,$01236d00,$0fa40c2e,$00200123,$67000f9a,$4a2e026b,$66006254,$6100f524
+    DC.L    $024200ff,$e85a3a02,$b23c002c,$66006258,$121c617e,$206e027e,$31450002 ; VIOLATION: orphaned code island at $22AC is not reached from known entrypoints
+    DC.B    $4e,$75
+    DC.B    $0c,$2e ; VIOLATION: orphaned code island at $22EA is not reached from known entrypoints
+    DC.L    $00140123,$6d000f66,$0c2e0020,$01236700,$0f5c4a2e,$026b6600,$62163ac6,$548d6100
+    DC.L    $f4620065,$7a006158,$b23c002c,$66006218,$121c6100,$f4ce0242,$00ffe85a,$8a42206e
+    DC.L    $027e3145,$00024e75
+    DC.L    $0c2e0014,$01236d00,$0f1c0c2e,$00200123,$67000f12,$4a2e026b,$660061cc,$7a00610a
+    DC.L    $206e027e,$31450002 ; VIOLATION: orphaned code island at $2334 is not reached from known entrypoints
+    DC.B    $4e,$75
+    DC.B    $3a,$c6 ; VIOLATION: orphaned code island at $235E is not reached from known entrypoints
+    DC.L    $548d3f05,$6100f408,$00253a1f,$b23c007b,$661a121c,$6100f496,$66184a00,$660e08c5
+    DC.L    $000b0242,$00ffed4a,$8a426028
+    DC.B    $70,$55,$60,$00,$61,$c2 ; VIOLATION: orphaned code island at $238C is not reached from known entrypoints
+    DC.B    $61,$00 ; VIOLATION: orphaned code island at $2392 is not reached from known entrypoints
+    DC.L    $f3c64a2e,$026a6718,$4a826b08,$b4bc0000,$00206504,$6100558a,$ed4a0242,$07c08a42
+    DC.L    $b23c003a,$66d2121c,$6100f44e,$660c4a00,$66c608c5,$00058a02
+    DC.B    $60,$22
+    DC.B    $61,$00 ; VIOLATION: orphaned code island at $23CE is not reached from known entrypoints
+    DC.L    $f38a4a2e,$026a6718,$4a826606,$4a2e0122,$660e6f16,$b4bc0000,$00206704,$6e0c8a42
+    DC.L    $b23c007d,$6696121c
+    DC.B    $4e,$75
+    DC.B    $61,$00 ; VIOLATION: orphaned code island at $23FA is not reached from known entrypoints
+    DC.L    $553860f0,$50ee026d,$b23c0023,$67226100,$f3e22f0c,$b23c002c,$6600611c,$121cd402
+    DC.L    $52024267,$1ac21ac6,$6100f348,$00fd6020,$3ac6121c,$6100e9c4,$2f0c3f02,$6100f736
+    DC.L    $b23c002c,$660060f0,$121c6100,$f326007d,$341f245f,$02450038,$66067003,$60000cc4
+    DC.L    $b47c0008,$65164a2e,$01206710,$284a6a06,$706a6000,$60e67009,$610061ea,$70016000
+    DC.L    $0ca250ee,$026db23c,$00236722,$6100f364,$2f0cb23c,$002c6600,$609e121c,$d4025202
+    DC.L    $42671ac2,$1ac66100,$f2ca003d,$60a23ac6,$121c6100,$e9462f0c,$3f026100,$f6b8b23c
+    DC.L    $002c6600,$6072121c,$6100f2a8,$003d6080,$0c2e0014,$01236600,$0d844a2e,$026b6704
+    DC.L    $6100603c,$b23c0023,$66006054,$121c3ac6,$6100e908,$6100f67e,$b23c002c,$66006038
+    DC.L    $121c6100,$f26e0064,$4e750c2e,$00140123,$6d000d4a,$0c2e0020,$01236700,$0d407000
+    DC.L    $102e026b,$d0408c7b,$00366100,$f2c67a00,$1a02b23c,$002c6600,$5ffe121c,$6100f2b4
+    DC.L    $024200ff,$ed4a8a42,$b23c002c,$66005fe8,$121c3f05,$6100f222,$003c3adf,$4e750400
+    DC.L    $02000400,$06007056,$60005fec,$0c2e0014,$01236d00,$0ce80c2e,$00200123,$67000cde
+    DC.L    $7000102e,$026bb03c,$00016700,$5f92b03c,$00036604,$08c60009,$3ac67a00,$7c006100
+    DC.L    $f2528a02,$b23c003a,$66bc121c,$6100f244,$8c02b23c,$002c6600,$5f7e121c,$61308a42
+    DC.L    $b23c003a,$66a0121c,$61000024,$8c42b23c,$002c6600,$5f62121c,$61208a42,$b23c003a
+    DC.L    $6684121c,$61148c42,$3ac53ac6,$4e756100,$f2020242,$00ffed4a,$4e75b23c,$00286620
+    DC.L    $121c6100,$f20c6618,$024200ff,$4a006704,$00020008,$e85ab23c,$00296604,$121c4e75
+    DC.L    $60005ee4,$7e04b23c,$00236612,$121c6100,$f12e2e02,$b23c002c,$66005efc,$121cb23c
+    DC.L    $00096758,$b23c0020,$6752b23c,$000d674c,$41ee04a4,$610050d4,$66005eac,$7c02b23c
+    DC.L    $002e6620,$121c4881,$1236107e,$b23c0042,$6714b23c,$0057670e,$7c04b23c,$004c6600
+    DC.L    $5e9e6002,$538c121c,$2807de86,$2f07610e,$2e1fb23c,$002c6604,$121c60b4
     DC.B    "NuJ."
     DC.L    $026a662a,$6100e56c,$67005e60,$76021028,$0006b02e,$01186708,$45ee0170,$6000e63c
     DC.L    $45ee0160,$4a926600,$e6c86000,$5e4a6100,$e5426600,$5e3a08e9,$0006000c,$66005e2c
@@ -2726,62 +2752,75 @@ loc_2126:
     DC.L    $608c508f,$70376000,$598e0100,$01026100,$fe2a4880,$1c3b00f4,$61003f54,$4a82670a
     DC.L    $28021606,$72006000,$fe724e75,$50ee0117,$720d4e75,$41ee041e,$4a906702
     DC.B    "Nup)"
-sub_2C00:
-    bra.w loc_8552
+h0_2C00:
+    bra.w h0_8552
     DC.L    $61ee4a2e,$026a6630,$2f086100,$3ef8205f,$48e73000,$6100dff4,$4cdf0030,$670058e4
-    DC.L    $1605487a,$005e45ee,$01705505,$6700e0c4,$45ee0168,$6000e0bc,$6100dfd0,$660058dc
-    DC.L    $08290006,$000c6600,$58ba2f09,$6100eade,$225fb63c,$00016614,$4a2e00ff,$660e7000
-    DC.L    $102e014c,$41ee0180,$94b00000,$b4a90008,$66005898,$b629000d,$66005888,$08e90006
-    DC.L    $000c122c,$ffff1d7c,$003d46f5,$2d4246f6,$4e756100,$ff5c2f0c,$2f0843ec,$ffff4eb9
-    DC.L    dat_C03E
+    DC.L    $1605487a,$005e45ee,$01705505,$6700e0c4,$45ee0168,$6000e0bc ; VIOLATION: orphaned code island at $2C04 is not reached from known entrypoints
+    DC.L    $6100dfd0,$660058dc,$08290006,$000c6600,$58ba2f09,$6100eade,$225fb63c,$00016614
+    DC.L    $4a2e00ff,$660e7000,$102e014c,$41ee0180,$94b00000,$b4a90008,$66005898,$b629000d
+    DC.L    $66005888,$08e90006,$000c122c,$ffff1d7c,$003d46f5,$2d4246f6 ; VIOLATION: orphaned code island at $2C3C is not reached from known entrypoints
+    DC.B    $4e,$75
+    DC.B    $61,$00 ; VIOLATION: orphaned code island at $2C96 is not reached from known entrypoints
+    DC.L    $ff5c2f0c,$2f0843ec,$ffff4eb9
+    DC.L    h0_C03E
     DC.B    " _(I"
-    DC.L    $121c6100,$ff56285f,$4a016602,$720d4e75,$702e6000,$58966100,$ff306100,$eb4466f0
-    DC.L    $48423400,$48420282,$00ff00ff,$246e0170,$41ee041e
+    DC.L    $121c6100,$ff56285f,$4a016602,$720d4e75
+    DC.B    $70,$2e,$60,$00,$58,$96 ; VIOLATION: orphaned code island at $2CBC is not reached from known entrypoints
+    DC.B    $61,$00 ; VIOLATION: orphaned code island at $2CC2 is not reached from known entrypoints
+    DC.L    $ff306100,$eb4466f0,$48423400,$48420282,$00ff00ff,$246e0170,$41ee041e
     DC.B    $48,$e7
-sub_2CE2:
+h0_2CE2:
     move.l (a4)+,d0
     tst.b $026A(a6)
-    bne.s loc_2D00
-loc_2CEA:
-    bsr.w sub_0BC8
-loc_2CEE:
+    bne.s h0_2D00
+h0_2CEA:
+    bsr.w h0_0BC8
+h0_2CEE:
     movem.l (a7)+,d4/a3-a5
-    beq.w loc_8506
-loc_2CF6:
+    beq.w h0_8506
+h0_2CF6:
     moveq.l #4,d3
-    bsr.w loc_0CFA
-loc_2CFC:
+    bsr.w h0_0CFA
+h0_2CFC:
     moveq.l #13,d1
     rts
-loc_2D00:
-    bsr.w sub_0BC8
-loc_2D04:
+h0_2D00:
+    bsr.w h0_0BC8
+h0_2D04:
     movem.l (a7)+,d4/a3-a5
-    bne.w loc_850A
-loc_2D0C:
+    bne.w h0_850A
+h0_2D0C:
     cmpi.b #4,$000D(a1)
-    bne.w loc_8506
-loc_2D16:
+    bne.w h0_8506
+h0_2D16:
     cmp.l $0008(a1),d4
-    bne.w loc_8506
-loc_2D1E:
+    bne.w h0_8506
+h0_2D1E:
     bset.b #6,$000C(a1)
-    bne.w loc_8506
-loc_2D28:
+    bne.w h0_8506
+h0_2D28:
     moveq.l #13,d1
     rts
-    DC.L    $4a2e026b,$660057e8,$323c000d,$4e756100,$f71a6100,$eacc6644,$b23c002c,$660057e8
-    DC.L    $121c48a7,$a0006100,$eab84c9f,$0018662c,$b6006718,$00060088,$4a036702,$c9428c02
-    DC.L    $02440007,$ee5c8c44,$3ac64e75,$00060040,$4a0067ea,$00060008,$c94260e2,$548d702e
-    DC.L    $600057c8,$6100f24e,$0c2e0003,$026b6604,$00060040,$6100ea4c,$8c023ac6,$4e750c2e
-    DC.L    $00140123,$6d0004a6,$6100f6a0,$6100ea34,$8c023ac6,$4e75102e,$026b67f0,$b03c0002
-    DC.L    $67eab03c,$00036600,$574608c6,$000660dc,$720d7038,$60005774,$41ee4ade,$b23c000d
-    DC.L    $673cb23c,$00096736,$b23c0020,$67300401,$0030652c,$b23c0008,$64267007,$9001121c
-    DC.L    $b23c002b,$670ab23c,$002d6614,$01906002,$01d0121c,$b23c002c,$6604121c,$60be4e75
-    DC.L    $704c6000,$57266100,$3cfa4a82,$6700de4a,$b23c0009,$6706b23c,$00206604,$121c60f0
-    DC.L    $6100dc2a,$41fa0008,$2d4801a8,$720d4e75,$4a2e011d,$660056c8,$41ee041e,$76006100
-    DC.L    $4a1a41ee,$0424422e,$010b4eb9
-    DC.L    sub_BF9A
+    DC.B    $4a,$2e,$02,$6b,$66,$00,$57,$e8,$32,$3c,$00,$0d,$4e,$75 ; VIOLATION: orphaned code island at $2D2C is not reached from known entrypoints
+    DC.B    $61,$00 ; VIOLATION: orphaned code island at $2D3A is not reached from known entrypoints
+    DC.L    $f71a6100,$eacc6644,$b23c002c,$660057e8,$121c48a7,$a0006100,$eab84c9f,$0018662c
+    DC.L    $b6006718,$00060088,$4a036702,$c9428c02,$02440007,$ee5c8c44,$3ac64e75
+    DC.B    $00,$06,$00,$40,$4a,$00,$67,$ea,$00,$06,$00,$08,$c9,$42,$60,$e2 ; VIOLATION: orphaned code island at $2D78 is not reached from known entrypoints
+    DC.B    $54,$8d,$70,$2e,$60,$00,$57,$c8 ; VIOLATION: orphaned code island at $2D88 is not reached from known entrypoints
+    DC.L    $6100f24e,$0c2e0003,$026b6604,$00060040,$6100ea4c,$8c023ac6 ; VIOLATION: orphaned code island at $2D90 is not reached from known entrypoints
+    DC.B    $4e,$75
+    DC.B    $0c,$2e ; VIOLATION: orphaned code island at $2DAA is not reached from known entrypoints
+    DC.L    $00140123,$6d0004a6,$6100f6a0,$6100ea34,$8c023ac6
+    DC.B    $4e,$75
+    DC.B    $10,$2e ; VIOLATION: orphaned code island at $2DC2 is not reached from known entrypoints
+    DC.L    $026b67f0,$b03c0002,$67eab03c,$00036600,$574608c6,$000660dc
+    DC.B    $72,$0d,$70,$38,$60,$00,$57,$74 ; VIOLATION: orphaned code island at $2DDC is not reached from known entrypoints
+    DC.L    $41ee4ade,$b23c000d,$673cb23c,$00096736,$b23c0020,$67300401,$0030652c,$b23c0008
+    DC.L    $64267007,$9001121c,$b23c002b,$670ab23c,$002d6614,$01906002 ; VIOLATION: orphaned code island at $2DE4 is not reached from known entrypoints
+    DC.L    $01d0121c,$b23c002c,$6604121c,$60be4e75,$704c6000,$57266100,$3cfa4a82,$6700de4a
+    DC.L    $b23c0009,$6706b23c,$00206604,$121c60f0,$6100dc2a,$41fa0008,$2d4801a8,$720d4e75
+    DC.L    $4a2e011d,$660056c8,$41ee041e,$76006100,$4a1a41ee,$0424422e,$010b4eb9 ; VIOLATION: orphaned code island at $2E1C is not reached from known entrypoints
+    DC.L    h0_BF9A
     DC.L    $66000086,$2d4301b8,$2d4201bc,$6768b4bc,$ffffffff
     DC.B    "f* n"
     DC.L    $01d02228,$00242068,$00209288,$2d4101bc,$4a2e026a
@@ -2790,12 +2829,12 @@ loc_2D28:
     DC.B    "g0J."
     DC.L    $0104672a,$22026100,$627a2f08,$222e01bc,$262e01b8
     DC.B    $4e,$b9
-    DC.L    sub_BFB2
+    DC.L    h0_BFB2
     DC.B    $22,$2e
     DC.L    $01bc2057,$242e026e,$61006a7e,$205f6100
     DC.B    "bj&."
     DC.L    $01b842ae,$01b84eb9
-    DC.L    sub_BFAE
+    DC.L    h0_BFAE
     DC.L    $720d4e75,$701a6000,$564e47ee,$086850ee,$012d6000,$186641ee,$041e760b,$61004968
     DC.L    $50ee010b,$610059de,$66005614,$720d4e75,$6100e842,$00644a2e,$026b6600,$55de4e75
     DC.L    $50ee026d,$6100e82e,$006451ee,$026db23c,$002c6600,$55de48e7,$1800121c,$6100e8ae
@@ -2829,23 +2868,23 @@ loc_2D28:
     DC.L    $644e4881,$d441121c,$c4fc000a,$04010030,$653eb23c,$000a6438,$4881d441,$121c4a42
     DC.L    $6736b47c,$0008672e,$b47c000a,$672ab47c,$00146724,$b47c001e,$671eb47c,$014c673c
     DC.L    $b47c0028,$660a1d42,$012350ee,$01244e75
-loc_3258:
+h0_3258:
     DC.L    $70226000,$52fa7400,$1d420123,$51ee0124
     DC.B    "Nu(I"
     DC.L    $122cffff,$41fa001b,$48811236,$107eb218,$66da121c,$4a1066f0,$742060d8
     DC.B    "MC68",0
     DC.B    "CPU32",0
     DC.B    $00
-sub_3294:
+h0_3294:
     moveq.l #0,d2
-loc_3296:
+h0_3296:
     move.b (a4)+,d1
     cmp.b #$30,d1
-    bcs.s loc_32BA
-loc_329E:
+    bcs.s h0_32BA
+h0_329E:
     cmp.b #$3A,d1
-    bcc.s loc_32BA
-loc_32A4:
+    bcc.s h0_32BA
+h0_32A4:
     subi.b #48,d1
     ext.w d1
     ext.l d1
@@ -2855,46 +2894,46 @@ loc_32A4:
     add.l d2,d2
     add.l d0,d2
     add.l d1,d2
-    bra.s loc_3296
-loc_32BA:
+    bra.s h0_3296
+h0_32BA:
     subi.l #68000,d2
-    bcs.s loc_3302
-    beq.s loc_3324
+    bcs.s h0_3302
+    beq.s h0_3324
     cmp.l #$384,d2
-    bgt.s loc_3302
+    bgt.s h0_3302
     cmp.w #$8,d2
-    beq.s loc_3324
+    beq.s h0_3324
     cmp.w #$A,d2
-    beq.s loc_3324
+    beq.s h0_3324
     cmp.w #$14,d2
-    beq.s loc_3324
+    beq.s h0_3324
     cmp.w #$1E,d2
-    beq.s loc_3324
+    beq.s h0_3324
     cmp.w #$14C,d2
-    beq.s loc_3304
+    beq.s h0_3304
     cmp.w #$28,d2
-    beq.s loc_331E
+    beq.s h0_331E
     cmp.w #$371,d2
-    beq.s loc_3316
+    beq.s h0_3316
     cmp.w #$372,d2
-    beq.s loc_330E
+    beq.s h0_330E
     cmp.w #$353,d2
-    beq.s loc_3308
-loc_3302:
+    beq.s h0_3308
+h0_3302:
     rts
-loc_3304:
-    DC.L    $7420601c
-loc_3308:
-    DC.B    $50,$ee,$01,$25,$60,$1e
-loc_330E:
-    DC.B    $1d,$7c,$00,$52,$01,$24,$60,$16
-loc_3316:
-    DC.B    $1d,$7c,$00,$51,$01,$24,$60,$0e
-loc_331E:
-    DC.B    $50,$ee,$01,$24,$60,$04
-loc_3324:
+h0_3304:
+    DC.L    $7420601c ; VIOLATION: orphaned code island at $3304 is not reached from known entrypoints
+h0_3308:
+    DC.B    $50,$ee,$01,$25,$60,$1e ; VIOLATION: orphaned code island at $3308 is not reached from known entrypoints
+h0_330E:
+    DC.B    $1d,$7c,$00,$52,$01,$24,$60,$16 ; VIOLATION: orphaned code island at $330E is not reached from known entrypoints
+h0_3316:
+    DC.B    $1d,$7c,$00,$51,$01,$24,$60,$0e ; VIOLATION: orphaned code island at $3316 is not reached from known entrypoints
+h0_331E:
+    DC.B    $50,$ee,$01,$24,$60,$04 ; VIOLATION: orphaned code island at $331E is not reached from known entrypoints
+h0_3324:
     DC.L    $51ee0124,$1d420123,$b23c002f,$6700ff62,$70004e75,$61001cbe,$b23c0023,$660051f8
-    DC.L    $121c6100,$e4126116,$ee5a8c42,$b23c002c,$660051dc,$121c6100,$e418003f
+    DC.L    $121c6100,$e4126116,$ee5a8c42,$b23c002c,$660051dc,$121c6100,$e418003f ; VIOLATION: orphaned code island at $3324 is not reached from known entrypoints
     DC.B    "NuJ."
     DC.L    $026a6710,$4a82670e,$b4bc0000,$0008620c,$66027400
     DC.B    "NuJ."
@@ -2980,68 +3019,67 @@ loc_3324:
     DC.L    $003b6704,$61003060,$2f026100,$3f6e241f,$43ee0288,$2d490148,$23420008,$4229000e
     DC.L    $2d42026e,$41ee05de,$2d48027e,$1d7c0002,$010950ee,$011d122c
     DC.B    $ff,$ff
-loc_3B02:
+h0_3B02:
     rts
     DC.L    $61003028,$2f026100,$61d64cdf,$00046630,$2d42026e,$41fa5fca,$2d4801a8,$122cffff
-    DC.L    $50ee0114,$51ee011e,$1d7c000e,$0109102e,$026b670a,$b03c0003,$670450ee,$011e4e75
-    DC.L    $70456000
-    DC.B    $4a,$0e
-loc_3B4A:
+    DC.L    $50ee0114,$51ee011e,$1d7c000e,$0109102e,$026b670a,$b03c0003,$670450ee,$011e4e75 ; VIOLATION: orphaned code island at $3B04 is not reached from known entrypoints
+    DC.B    $70,$45,$60,$00,$4a,$0e ; VIOLATION: orphaned code island at $3B44 is not reached from known entrypoints
+h0_3B4A:
     move.b (a4)+,d1
-    beq.s loc_3B6E
-loc_3B4E:
+    beq.s h0_3B6E
+h0_3B4E:
     cmp.b #$20,d1
-    beq.s loc_3B4A
-loc_3B54:
+    beq.s h0_3B4A
+h0_3B54:
     cmp.b #$D,d1
-    beq.s loc_3B6E
-loc_3B5A:
+    beq.s h0_3B6E
+h0_3B5A:
     cmp.b #$2B,d1
-    beq.s loc_3B70
-loc_3B60:
+    beq.s h0_3B70
+h0_3B60:
     cmp.b #$2D,d1
-    bne.w loc_3B76
-loc_3B68:
-    bsr.w loc_3C7C
-loc_3B6C:
-    beq.s loc_3B4A
-loc_3B6E:
+    bne.w h0_3B76
+h0_3B68:
+    bsr.w h0_3C7C
+h0_3B6C:
+    beq.s h0_3B4A
+h0_3B6E:
     rts
-loc_3B70:
-    bsr.w loc_3F62
-loc_3B74:
-    bra.s loc_3B4A
-loc_3B76:
+h0_3B70:
+    bsr.w h0_3F62
+h0_3B74:
+    bra.s h0_3B4A
+h0_3B76:
     tst.b $4EF0(a6)
-    beq.s loc_3B9E
-loc_3B7C:
+    beq.s h0_3B9E
+h0_3B7C:
     movem.l d1/a4,-(a7)
     ext.w d1
     move.b $7E(a6,d1.w),d1
-    bsr.w sub_3FA0
-loc_3B8A:
-    beq.s loc_3B9A
-loc_3B8C:
-    bpl.s loc_3B94
-loc_3B8E:
+    bsr.w h0_3FA0
+h0_3B8A:
+    beq.s h0_3B9A
+h0_3B8C:
+    bpl.s h0_3B94
+h0_3B8E:
     tst.b $46FB(a6)
-    beq.s loc_3B96
-loc_3B94:
+    beq.s h0_3B96
+h0_3B94:
     jsr (a0)
-loc_3B96:
+h0_3B96:
     addq.w #8,a7
-    bra.s loc_3BA2
-loc_3B9A:
+    bra.s h0_3BA2
+h0_3B9A:
     movem.l (a7)+,d1/a4
-loc_3B9E:
-    bsr.w sub_3BA6
-loc_3BA2:
+h0_3B9E:
+    bsr.w h0_3BA6
+h0_3BA2:
     subq.w #1,a4
-    bra.s loc_3B4A
-sub_3BA6:
+    bra.s h0_3B4A
+h0_3BA6:
     tst.b $46FA(a6)
-    beq.w loc_4406
-loc_3BAE:
+    beq.w h0_4406
+h0_3BAE:
     lea.l $0750(a6),a1
     lea.l $0530(a6),a2
     move.l a2,$052A(a6)
@@ -3049,465 +3087,493 @@ loc_3BAE:
     lea.l $4EFE(a6),a3
     moveq.l #0,d2
     cmp.b #$22,d1
-    bne.s loc_3BD2
-loc_3BCA:
+    bne.s h0_3BD2
+h0_3BCA:
     move.b d1,d2
     move.b (a4)+,d1
-    beq.w loc_3DC8
-loc_3BD2:
+    beq.w h0_3DC8
+h0_3BD2:
     moveq.l #0,d3
-loc_3BD4:
+h0_3BD4:
     move.b d1,(a2)+
     move.b d1,(a1)+
     move.b d1,(a3)+
     addq.b #1,$052F(a6)
     move.b (a4)+,d1
-    beq.s loc_3C0A
-loc_3BE2:
+    beq.s h0_3C0A
+h0_3BE2:
     cmp.b #$D,d1
-    beq.s loc_3C0A
-loc_3BE8:
+    beq.s h0_3C0A
+h0_3BE8:
     cmp.b #$20,d1
-    beq.s loc_3C06
-loc_3BEE:
+    beq.s h0_3C06
+h0_3BEE:
     cmp.b #$2F,d1
-    beq.s loc_3BD2
-loc_3BF4:
+    beq.s h0_3BD2
+h0_3BF4:
     cmp.b d1,d2
-    beq.s loc_3C02
-loc_3BF8:
+    beq.s h0_3C02
+h0_3BF8:
     cmp.b #$2E,d1
-    bne.s loc_3BD4
-loc_3BFE:
+    bne.s h0_3BD4
+h0_3BFE:
     move.l a1,d3
-    bra.s loc_3BD4
-loc_3C02:
+    bra.s h0_3BD4
+h0_3C02:
     move.b (a4)+,d1
-    bra.s loc_3C0A
-loc_3C06:
+    bra.s h0_3C0A
+h0_3C06:
     tst.b d2
-    bne.s loc_3BD4
-loc_3C0A:
+    bne.s h0_3BD4
+h0_3C0A:
     tst.l d3
-    bne.s loc_3C1E
-loc_3C0E:
+    bne.s h0_3C1E
+h0_3C0E:
     clr.b (a1)
     move.b #$2E,(a2)+
     move.b #$73,(a2)+
     addq.b #2,$052F(a6)
-    bra.s loc_3C28
-loc_3C1E:
-    DC.B    $22,$43,$42,$11,$43,$e9,$47,$ae,$42,$11
-loc_3C28:
+    bra.s h0_3C28
+h0_3C1E:
+    movea.l d3,a1
+    clr.b (a1)
+    lea.l $47AE(a1),a1
+    clr.b (a1)
+h0_3C28:
     move.b #$B,(a2)
     addq.b #1,$052F(a6)
     clr.b (a3)
     lea.l $4EFE(a6),a0
-    bsr.w sub_3C4E
-loc_3C3A:
+    bsr.w h0_3C4E
+h0_3C3A:
     move.l a0,$4EFA(a6)
     lea.l $07A2(a6),a3
-loc_3C42:
+h0_3C42:
     move.b (a0)+,(a3)+
-    bne.s loc_3C42
-loc_3C46:
+    bne.s h0_3C42
+h0_3C46:
     movea.l $4EFA(a6),a0
     clr.b (a0)
     rts
-sub_3C4E:
+h0_3C4E:
     moveq.l #0,d0
     movea.l a0,a1
-loc_3C52:
+h0_3C52:
     move.b (a0)+,d1
-    beq.s loc_3C6C
-loc_3C56:
+    beq.s h0_3C6C
+h0_3C56:
     cmp.b #$5C,d1
-    beq.s loc_3C68
-loc_3C5C:
+    beq.s h0_3C68
+h0_3C5C:
     cmp.b #$2F,d1
-    beq.s loc_3C68
-loc_3C62:
+    beq.s h0_3C68
+h0_3C62:
     cmp.b #$3A,d1
-    bne.s loc_3C52
-loc_3C68:
+    bne.s h0_3C52
+h0_3C68:
     move.l a0,d0
-    bra.s loc_3C52
-loc_3C6C:
+    bra.s h0_3C52
+h0_3C6C:
     tst.l d0
-    bne.s loc_3C76
-loc_3C70:
+    bne.s h0_3C76
+h0_3C70:
     movea.l a1,a0
     moveq.l #-1,d0
     rts
-loc_3C76:
-    DC.B    $20,$40,$70,$00,$4e,$75
-loc_3C7C:
-    move.b (a4)+,d1
-    beq.s loc_3C8C
-loc_3C80:
-    cmp.b #$20,d1
-    beq.s loc_3C8C
-loc_3C86:
-    cmp.b #$D,d1
-    bne.s loc_3C90
-loc_3C8C:
+h0_3C76:
+    movea.l d0,a0
     moveq.l #0,d0
     rts
-loc_3C90:
+h0_3C7C:
+    move.b (a4)+,d1
+    beq.s h0_3C8C
+h0_3C80:
+    cmp.b #$20,d1
+    beq.s h0_3C8C
+h0_3C86:
+    cmp.b #$D,d1
+    bne.s h0_3C90
+h0_3C8C:
+    moveq.l #0,d0
+    rts
+h0_3C90:
     ext.w d1
     move.b $7E(a6,d1.w),d1
     cmp.b #$5B,d1
-    bcc.s loc_3CBA
-loc_3C9C:
+    bcc.s h0_3CBA
+h0_3C9C:
     subi.b #65,d1
-    bcs.s loc_3CAE
-loc_3CA2:
+    bcs.s h0_3CAE
+h0_3CA2:
     add.b d1,d1
     ext.w d1
     lea.l dat_3CBE(pc,d1.w),a2
     adda.w (a2),a2
     jmp (a2)
-loc_3CAE:
+h0_3CAE:
     addi.b #65,d1
     cmp.b #$2E,d1
-    beq.w loc_3D42
-loc_3CBA:
-    bra.w loc_3DC8
+    beq.w h0_3D42
+h0_3CBA:
+    bra.w h0_3DC8
 dat_3CBE:
-    DC.W    loc_3DC8-*
-    DC.W    loc_3D32-*
-    DC.W    loc_3D08-*
+    DC.W    h0_3DC8-*
+dat_3CC0:
+    DC.W    h0_3D32-*
+dat_3CC2:
+    DC.W    h0_3D08-*
     DC.B    $00,$50
-    DC.W    loc_3ED0-*
-    DC.W    loc_3DC8-*
-    DC.W    loc_3D48-*
-    DC.W    loc_3E30-*
-    DC.W    loc_3E12-*
-    DC.W    loc_3DC8-*
-    DC.W    loc_3DC8-*
+dat_3CC6:
+    DC.W    h0_3ED0-*
+dat_3CC8:
+    DC.W    h0_3DC8-*
+dat_3CCA:
+    DC.W    h0_3D48-*
+dat_3CCC:
+    DC.W    h0_3E30-*
+dat_3CCE:
+    DC.W    h0_3E12-*
+dat_3CD0:
+    DC.W    h0_3DC8-*
+dat_3CD2:
+    DC.W    h0_3DC8-*
     DC.B    $00,$88
-    DC.W    loc_3D2C-*
-    DC.W    loc_3DC8-*
-    DC.W    loc_3E40-*
+dat_3CD6:
+    DC.W    h0_3D2C-*
+dat_3CD8:
+    DC.W    h0_3DC8-*
+dat_3CDA:
+    DC.W    h0_3E40-*
     DC.B    $01,$a8
-    DC.W    loc_3D0E-*
-    DC.W    loc_3DC8-*
+dat_3CDE:
+    DC.W    h0_3D0E-*
+dat_3CE0:
+    DC.W    h0_3DC8-*
     DC.B    $00,$14
-    DC.W    loc_3DCC-*
-    DC.W    loc_3DC8-*
-    DC.W    loc_3F62-*
-    DC.W    loc_3E3A-*
-    DC.W    loc_3D26-*
-    DC.W    loc_3DC8-*
-    DC.W    loc_3DC0-*
+dat_3CE4:
+    DC.W    h0_3DCC-*
+dat_3CE6:
+    DC.W    h0_3DC8-*
+dat_3CE8:
+    DC.W    h0_3F62-*
+dat_3CEA:
+    DC.W    h0_3E3A-*
+dat_3CEC:
+    DC.W    h0_3D26-*
+dat_3CEE:
+    DC.W    h0_3DC8-*
+dat_3CF0:
+    DC.W    h0_3DC0-*
     DC.B    $70,$00
     DC.L    $4e7543ee
-    DC.W    loc_3DFE-6-*
-loc_3CFA:
+dat_3CF8:
+    DC.W    h0_3DFE-6-*
+h0_3CFA:
     tst.b $46FA(a6)
-    beq.w loc_3C7C
-loc_3D02:
+    beq.w h0_3C7C
+h0_3D02:
     st.b (a1)
-    bra.w loc_3C7C
-loc_3D08:
+    bra.w h0_3C7C
+h0_3D08:
     lea.l $00FE(a6),a1
-    bra.s loc_3CFA
-loc_3D0E:
+    bra.s h0_3CFA
+h0_3D0E:
     lea.l $4EF1(a6),a1
-    bra.s loc_3CFA
-    DC.L    $4a2e46fa,$6700ff62,$1d7c0001,$01056000
+    bra.s h0_3CFA
+    DC.L    $4a2e46fa,$6700ff62,$1d7c0001,$01056000 ; VIOLATION: orphaned code island at $3D14 is not reached from known entrypoints
     DC.B    $ff,$58
-loc_3D26:
+h0_3D26:
     lea.l $0105(a6),a1
-    bra.s loc_3CFA
-loc_3D2C:
+    bra.s h0_3CFA
+h0_3D2C:
     lea.l $024F(a6),a1
-    bra.s loc_3CFA
-loc_3D32:
+    bra.s h0_3CFA
+h0_3D32:
     tst.b $46FA(a6)
-    beq.w loc_3C7C
-loc_3D3A:
+    beq.w h0_3C7C
+h0_3D3A:
     sf.b $0104(a6)
-    bra.w loc_3C7C
-loc_3D42:
+    bra.w h0_3C7C
+h0_3D42:
     lea.l $0129(a6),a1
-    bra.s loc_3CFA
-loc_3D48:
+    bra.s h0_3CFA
+h0_3D48:
     tst.b $46FA(a6)
-    beq.w loc_3C7C
-loc_3D50:
+    beq.w h0_3C7C
+h0_3D50:
     sf.b $0104(a6)
     st.b $010A(a6)
-    bra.w loc_3C7C
+    bra.w h0_3C7C
     DC.L    $4a2e46fa,$6700000c,$3d7c0000,$025050ee,$00ff1014,$04000030,$6500ff06,$6616524c
-    DC.L    $4a2e46fa,$6700fefa,$51ee00ff,$426e0250,$6000feee,$53004880,$b07c0007,$6400fee2
-    DC.L    $013c0063,$67000026,$b03c0006,$66000004,$7002524c,$4a2e46fa,$6700fec6,$3d400250
-    DC.L    $6000febe
-loc_3DC0:
+    DC.L    $4a2e46fa,$6700fefa,$51ee00ff,$426e0250,$6000feee ; VIOLATION: orphaned code island at $3D5C is not reached from known entrypoints
+    DC.L    $53004880,$b07c0007,$6400fee2,$013c0063,$67000026,$b03c0006,$66000004,$7002524c
+    DC.L    $4a2e46fa,$6700fec6,$3d400250,$6000febe ; VIOLATION: orphaned code island at $3D90 is not reached from known entrypoints
+h0_3DC0:
     lea.l $024E(a6),a1
-    bra.w loc_3CFA
-loc_3DC8:
+    bra.w h0_3CFA
+h0_3DC8:
     moveq.l #-1,d0
     rts
-loc_3DCC:
+h0_3DCC:
     moveq.l #0,d2
     move.b (a4)+,d2
     subi.b #48,d2
-    bcs.s loc_3DC8
-loc_3DD6:
+    bcs.s h0_3DC8
+h0_3DD6:
     cmp.b #$A,d2
-    bcc.s loc_3DC8
-loc_3DDC:
+    bcc.s h0_3DC8
+h0_3DDC:
     move.b (a4),d1
     cmp.b #$30,d1
-    bcs.s loc_3DFE
-loc_3DE4:
+    bcs.s h0_3DFE
+h0_3DE4:
     cmp.b #$3A,d1
-    bcc.s loc_3DFE
-loc_3DEA:
+    bcc.s h0_3DFE
+h0_3DEA:
     mulu.w #$A,d2
     subi.b #48,d1
     andi.w #255,d1
     add.w d1,d2
     move.w d2,$4A26(a6)
     addq.w #1,a4
-loc_3DFE:
+h0_3DFE:
     tst.w d2
-    beq.s loc_3DC8
-loc_3E02:
+    beq.s h0_3DC8
+h0_3E02:
     tst.b $46FA(a6)
-    beq.w loc_3C7C
-loc_3E0A:
+    beq.w h0_3C7C
+h0_3E0A:
     move.w d2,$4A26(a6)
-    bra.w loc_3C7C
-loc_3E12:
+    bra.w h0_3C7C
+h0_3E12:
     lea.l $0868(a6),a3
     st.b $012D(a6)
     tst.b $46FD(a6)
-loc_3E1E:
-    beq.w loc_3E2A
-loc_3E22:
-    bsr.w loc_4778
-loc_3E26:
+h0_3E1E:
+    beq.w h0_3E2A
+h0_3E22:
+    bsr.w h0_4778
+h0_3E26:
     moveq.l #0,d0
     rts
-loc_3E2A:
-    bsr.w sub_47EC
-loc_3E2E:
-    bra.s loc_3E26
-loc_3E30:
+h0_3E2A:
+    bsr.w h0_47EC
+h0_3E2E:
+    bra.s h0_3E26
+h0_3E30:
     lea.l $507C(a6),a3
     sf.b $012D(a6)
-    bra.s loc_3E1E
-loc_3E3A:
+    bra.s h0_3E1E
+h0_3E3A:
     lea.l $0816(a6),a1
-    bra.s loc_3E44
-loc_3E40:
+    bra.s h0_3E44
+h0_3E40:
     lea.l $06FE(a6),a1
-loc_3E44:
+h0_3E44:
     moveq.l #81,d0
     moveq.l #0,d2
     cmpi.b #34,(a4)
-    bne.s loc_3E50
-loc_3E4E:
+    bne.s h0_3E50
+h0_3E4E:
     move.b (a4)+,d2
-loc_3E50:
+h0_3E50:
     move.b (a4)+,d1
-    beq.s loc_3E76
-loc_3E54:
+    beq.s h0_3E76
+h0_3E54:
     cmp.b #$D,d1
-    beq.s loc_3E76
-loc_3E5A:
+    beq.s h0_3E76
+h0_3E5A:
     cmp.b d2,d1
-    beq.s loc_3E78
-loc_3E5E:
+    beq.s h0_3E78
+h0_3E5E:
     cmp.b #$20,d1
-    bne.s loc_3E68
-loc_3E64:
+    bne.s h0_3E68
+h0_3E64:
     tst.b d2
-    beq.s loc_3E76
-loc_3E68:
+    beq.s h0_3E76
+h0_3E68:
     tst.b $46FA(a6)
-    beq.w loc_3E72
-loc_3E70:
+    beq.w h0_3E72
+h0_3E70:
     move.b d1,(a1)+
-loc_3E72:
+h0_3E72:
     subq.b #1,d0
-    bne.s loc_3E50
-loc_3E76:
+    bne.s h0_3E50
+h0_3E76:
     subq.w #1,a4
-loc_3E78:
+h0_3E78:
     tst.b $46FA(a6)
-    beq.w loc_3E82
-loc_3E80:
+    beq.w h0_3E82
+h0_3E80:
     clr.b (a1)
-loc_3E82:
+h0_3E82:
     rts
     DC.L    $4a2e46fa,$67000012,$50ee0101,$2d7c0000,$00034810,$50ee480e,$12146700,$fddcb23c
-    DC.L    $00206700,$fdd4b23c,$000d6700,$fdcc43ee,$07c4608c
-loc_3EB8:
+    DC.L    $00206700,$fdd4b23c,$000d6700,$fdcc43ee,$07c4608c ; VIOLATION: orphaned code island at $3E84 is not reached from known entrypoints
+h0_3EB8:
     move.b (a4)+,d1
-    beq.s loc_3ECE
-loc_3EBC:
+    beq.s h0_3ECE
+h0_3EBC:
     cmp.b #$D,d1
-    beq.s loc_3ECE
-loc_3EC2:
+    beq.s h0_3ECE
+h0_3EC2:
     cmp.b #$9,d1
-    beq.s loc_3EB8
-loc_3EC8:
+    beq.s h0_3EB8
+h0_3EC8:
     cmp.b #$20,d1
-    beq.s loc_3EB8
-loc_3ECE:
+    beq.s h0_3EB8
+h0_3ECE:
     rts
-loc_3ED0:
+h0_3ED0:
     tst.b $46FC(a6)
-    bne.w loc_3F02
-loc_3ED8:
-    bsr.s loc_3EB8
-loc_3EDA:
-    beq.s loc_3EFE
-loc_3EDC:
+    bne.w h0_3F02
+h0_3ED8:
+    bsr.s h0_3EB8
+h0_3EDA:
+    beq.s h0_3EFE
+h0_3EDC:
     move.b (a4)+,d1
-    beq.s loc_3EFE
-loc_3EE0:
+    beq.s h0_3EFE
+h0_3EE0:
     cmp.b #$D,d1
-    beq.s loc_3EFE
-loc_3EE6:
+    beq.s h0_3EFE
+h0_3EE6:
     cmp.b #$9,d1
-    beq.w loc_3EFE
-loc_3EEE:
+    beq.w h0_3EFE
+h0_3EEE:
     cmp.b #$20,d1
-loc_3EF2:
-    beq.w loc_3EFE
-loc_3EF6:
+h0_3EF2:
+    beq.w h0_3EFE
+h0_3EF6:
     cmp.b #$2C,d1
-    bne.s loc_3EDC
-loc_3EFC:
-    bra.s loc_3ED8
-loc_3EFE:
+    bne.s h0_3EDC
+h0_3EFC:
+    bra.s h0_3ED8
+h0_3EFE:
     subq.w #1,a4
     rts
-loc_3F02:
-    bsr.s loc_3EB8
-loc_3F04:
-    beq.s loc_3F60
-loc_3F06:
+h0_3F02:
+    bsr.s h0_3EB8
+h0_3F04:
+    beq.s h0_3F60
+h0_3F06:
     st.b d2
     lea.l $041E(a6),a0
     clr.b $0004(a0)
-    bsr.w sub_7726
-loc_3F14:
-    bne.s loc_3F5A
-loc_3F16:
+    bsr.w h0_7726
+h0_3F14:
+    bne.s h0_3F5A
+h0_3F16:
     cmp.b #$3D,d1
-    beq.s loc_3F22
-loc_3F1C:
+    beq.s h0_3F22
+h0_3F1C:
     moveq.l #1,d2
     moveq.l #2,d3
-    bra.s loc_3F32
-loc_3F22:
+    bra.s h0_3F32
+h0_3F22:
     move.b (a4)+,d1
-    bsr.w sub_0DF6
-loc_3F28:
+    bsr.w h0_0DF6
+h0_3F28:
     tst.b d4
-    bne.s loc_3F5A
-loc_3F2C:
+    bne.s h0_3F5A
+h0_3F2C:
     cmp.b #$2,d3
-    bne.s loc_3F5A
-loc_3F32:
+    bne.s h0_3F5A
+h0_3F32:
     lea.l $041E(a6),a0
     movem.l d1-d2,-(a7)
-    bsr.w sub_0C0E
-loc_3F3E:
+    bsr.w h0_0C0E
+h0_3F3E:
     movem.l (a7)+,d1/d4
-    beq.s loc_3F5A
-loc_3F44:
+    beq.s h0_3F5A
+h0_3F44:
     lea.l $0170(a6),a2
     moveq.l #2,d3
     move.w d1,-(a7)
-    bsr.w loc_0CF6
-loc_3F50:
+    bsr.w h0_0CF6
+h0_3F50:
     move.w (a7)+,d1
     cmp.b #$2C,d1
-    bne.s loc_3F60
-loc_3F58:
-    bra.s loc_3F02
-loc_3F5A:
+    bne.s h0_3F60
+h0_3F58:
+    bra.s h0_3F02
+h0_3F5A:
     moveq.l #81,d0
-    bra.w loc_8556
-loc_3F60:
-    bra.s loc_3F78
-loc_3F62:
+    bra.w h0_8556
+h0_3F60:
+    bra.s h0_3F78
+h0_3F62:
     tst.b $46FB(a6)
-    bne.s loc_3F7E
-loc_3F68:
+    bne.s h0_3F7E
+h0_3F68:
     move.b (a4)+,d1
-    beq.s loc_3F78
-loc_3F6C:
+    beq.s h0_3F78
+h0_3F6C:
     cmp.b #$20,d1
-    beq.s loc_3F78
-loc_3F72:
+    beq.s h0_3F78
+h0_3F72:
     cmp.b #$D,d1
-    bne.s loc_3F68
-loc_3F78:
+    bne.s h0_3F68
+h0_3F78:
     subq.w #1,a4
     moveq.l #0,d0
     rts
-loc_3F7E:
-    bsr.w loc_440E
-loc_3F82:
-    bra.s loc_3F78
-    DC.L    $2f0c426e,$024c610c
+h0_3F7E:
+    bsr.w h0_440E
+h0_3F82:
+    bra.s h0_3F78
+    DC.L    $2f0c426e,$024c610c ; VIOLATION: orphaned code island at $3F84 is not reached from known entrypoints
     DC.B    "(_Rn"
-    DC.L    $024c51ee,$01034e75,$2d4f0266,$60000470
-sub_3FA0:
+    DC.L    $024c51ee,$01034e75
+    DC.B    $2d,$4f,$02,$66,$60,$00,$04,$70 ; VIOLATION: orphaned code island at $3F98 is not reached from known entrypoints
+h0_3FA0:
     lea.l dat_4006(pc),a0
     moveq.l #0,d2
-loc_3FA6:
+h0_3FA6:
     move.b (a0)+,d2
-    beq.s loc_3FCE
-loc_3FAA:
+    beq.s h0_3FCE
+h0_3FAA:
     cmp.b (a0),d1
-    blt.s loc_3FCE
-loc_3FAE:
-    bne.s loc_3FC8
-loc_3FB0:
+    blt.s h0_3FCE
+h0_3FAE:
+    bne.s h0_3FC8
+h0_3FB0:
     lea.l $0001(a0),a1
     movea.l a4,a2
     move.b d2,d3
-loc_3FB8:
+h0_3FB8:
     subq.b #1,d3
-    beq.s loc_3FD2
-loc_3FBC:
+    beq.s h0_3FD2
+h0_3FBC:
     move.b (a2)+,d0
     ext.w d0
     move.b $7E(a6,d0.w),d0
     cmp.b (a1)+,d0
-    beq.s loc_3FB8
-loc_3FC8:
+    beq.s h0_3FB8
+h0_3FC8:
     lea.l $2(a0,d2.w),a0
-    bra.s loc_3FA6
-loc_3FCE:
+    bra.s h0_3FA6
+h0_3FCE:
     moveq.l #0,d0
     rts
-loc_3FD2:
+h0_3FD2:
     move.b (a2),d0
-    beq.s loc_3FF0
-loc_3FD6:
+    beq.s h0_3FF0
+h0_3FD6:
     cmp.b #$D,d0
-    beq.s loc_3FF0
-loc_3FDC:
+    beq.s h0_3FF0
+h0_3FDC:
     cmp.b #$2C,d0
-    beq.s loc_3FF0
-loc_3FE2:
+    beq.s h0_3FF0
+h0_3FE2:
     cmp.b #$9,d0
-    beq.s loc_3FF0
-loc_3FE8:
+    beq.s h0_3FF0
+h0_3FE8:
     cmp.b #$20,d0
-    beq.s loc_3FF0
-loc_3FEE:
-    bra.s loc_3FC8
-loc_3FF0:
+    beq.s h0_3FF0
+h0_3FEE:
+    bra.s h0_3FC8
+h0_3FF0:
     move.b (a1)+,d0
     lsl.w #8,d0
     move.b (a1)+,d0
@@ -3518,1000 +3584,1072 @@ loc_3FF0:
     cmpa.l a2,a0
     rts
 dat_4006:
-    DC.B    $09
-    DC.B    "ALLOWZERO"
-    DC.W    loc_437C-*
+    DC.B    $09,$41,$4c,$4c,$4f,$57,$5a,$45,$52,$4f
+dat_4010:
+    DC.W    h0_437C-*
     DC.B    $05
     DC.B    "ATARI"
-    DC.W    loc_42C8-*
+dat_4018:
+    DC.W    h0_42C8-*
     DC.B    $06
     DC.B    "AUTOPC"
-    DC.W    loc_4328-*
-    DC.B    $03
-    DC.B    $42,$44,$4c
-    DC.W    loc_4316-*
-    DC.B    $03,$42,$44
-    DC.B    $57
-    DC.W    loc_4310-*
-    DC.B    $03
-    DC.B    $42,$52,$42
-    DC.W    loc_42F2-*
-    DC.B    $03,$42,$52
-    DC.B    $4c
-    DC.W    loc_42FE-*
-    DC.B    $03
-    DC.B    $42,$52,$53
-    DC.W    loc_42F2-*
-    DC.B    $03,$42,$52
-    DC.B    $57
-    DC.W    loc_42F8-*
+dat_4021:
+    DC.W    h0_4328-*
+    DC.B    $03,$42,$44,$4c
+dat_4027:
+    DC.W    h0_4316-*
+    DC.B    $03,$42,$44,$57
+dat_402D:
+    DC.W    h0_4310-*
+    DC.B    $03,$42,$52,$42
+dat_4033:
+    DC.W    h0_42F2-*
+    DC.B    $03,$42,$52,$4c
+dat_4039:
+    DC.W    h0_42FE-*
+    DC.B    $03,$42,$52,$53
+dat_403F:
+    DC.W    h0_42F2-*
+    DC.B    $03,$42,$52,$57
+dat_4045:
+    DC.W    h0_42F8-*
     DC.B    $04
     DC.B    "CASE"
-    DC.W    loc_4230-*
+dat_404C:
+    DC.W    h0_4230-*
     DC.B    $06
     DC.B    "CHKBIT"
-    DC.W    loc_4368-*
+dat_4055:
+    DC.W    h0_4368-*
     DC.B    $06
     DC.B    "CHKIMM"
-    DC.W    loc_4350-*
+dat_405E:
+    DC.W    h0_4350-*
     DC.L    $0543484b
     DC.B    $50,$43
-    DC.W    loc_4334-*
+dat_4066:
+    DC.W    h0_4334-*
     DC.B    $01,$44
-    DC.W    loc_4246-*
+dat_406A:
+    DC.W    h0_4246-*
     DC.L    $05444542
     DC.B    $55,$47
-    DC.W    loc_4246-*
+dat_4072:
+    DC.W    h0_4246-*
     DC.L    $03445249
-    DC.W    loc_42D6-*
+dat_4078:
+    DC.W    h0_42D6-*
     DC.B    $04
     DC.B    "EVEN"
-    DC.W    loc_435C-*
+dat_407F:
+    DC.W    h0_435C-*
     DC.B    $04
     DC.B    "FROM"
-    DC.W    loc_43F4-*
+dat_4086:
+    DC.W    h0_43F4-*
     DC.L    $0647454e
     DC.B    $53,$59,$4d
-    DC.W    loc_4236-*
-    DC.B    $03,$47,$53
-    DC.B    $54
-    DC.W    loc_42CE-*
+dat_408F:
+    DC.W    h0_4236-*
+    DC.B    $03,$47,$53,$54
+dat_4095:
+    DC.W    h0_42CE-*
     DC.B    $04
     DC.B    "HCLN"
-    DC.W    loc_4394-*
+dat_409C:
+    DC.W    h0_4394-*
     DC.B    $06
     DC.B    "HEADER"
-    DC.W    loc_43C2-*
+dat_40A5:
+    DC.W    h0_43C2-*
     DC.B    $06
     DC.B    "INCDIR"
-    DC.W    loc_43D0-*
+dat_40AE:
+    DC.W    h0_43D0-*
     DC.L    $07494e43
     DC.B    "ONCE"
-    DC.W    loc_4388-*
+dat_40B8:
+    DC.W    h0_4388-*
     DC.B    $07
     DC.B    "LATTICE"
-    DC.W    loc_42A6-*
+dat_40C2:
+    DC.W    h0_42A6-*
     DC.L    $044c494e
     DC.B    $45
-    DC.W    loc_439E-*
+dat_40C9:
+    DC.W    h0_439E-*
     DC.B    $04
     DC.B    "LIST"
-    DC.W    loc_4284-*
+dat_40D0:
+    DC.W    h0_4284-*
     DC.B    $05
     DC.B    "LIST1"
-    DC.W    loc_4290-*
+dat_40D8:
+    DC.W    h0_4290-*
     DC.B    $08
     DC.B    "LOCALDOT"
-    DC.W    loc_4348-*
+dat_40E3:
+    DC.W    h0_4348-*
     DC.B    $06
     DC.B    "LOCALU"
-    DC.W    loc_4340-*
+dat_40EC:
+    DC.W    h0_4340-*
     DC.B    $06
     DC.B    "LOWMEM"
-    DC.W    loc_43E8-*
-    DC.B    $03
-    DC.B    $4d,$45,$58
-    DC.W    loc_42AA-*
+dat_40F5:
+    DC.W    h0_43E8-*
+    DC.B    $03,$4d,$45,$58
+dat_40FB:
+    DC.W    h0_42AA-*
     DC.B    $0b
     DC.B    "NOALLOWZERO"
-    DC.W    loc_4382-*
+dat_4109:
+    DC.W    h0_4382-*
     DC.B    $08
     DC.B    "NOAUTOPC"
-    DC.W    loc_432E-*
+dat_4114:
+    DC.W    h0_432E-*
     DC.B    $06
     DC.B    "NOCASE"
-    DC.W    loc_4240-*
+dat_411D:
+    DC.W    h0_4240-*
     DC.B    $08
     DC.B    "NOCHKBIT"
-    DC.W    loc_436E-*
+dat_4128:
+    DC.W    h0_436E-*
     DC.B    $08
     DC.B    "NOCHKIMM"
-    DC.W    loc_4356-*
+dat_4133:
+    DC.W    h0_4356-*
     DC.B    $07
     DC.B    "NOCHKPC"
-    DC.W    loc_433A-*
+dat_413D:
+    DC.W    h0_433A-*
     DC.B    $07
     DC.B    "NOCODES"
-    DC.W    loc_4254-*
+dat_4147:
+    DC.W    h0_4254-*
     DC.B    $07
     DC.B    "NODEBUG"
-    DC.W    loc_425A-*
+dat_4151:
+    DC.W    h0_425A-*
     DC.B    $06
     DC.B    "NOEVEN"
-    DC.W    loc_4362-*
+dat_415A:
+    DC.W    h0_4362-*
     DC.L    $064e4f48
     DC.B    $43,$4c,$4e
-    DC.W    loc_43A8-*
+dat_4163:
+    DC.W    h0_43A8-*
     DC.B    $09
     DC.B    "NOINCONCE"
-    DC.W    loc_438E-*
+dat_416F:
+    DC.W    h0_438E-*
     DC.B    $06
     DC.B    "NOLINE"
-    DC.W    loc_43A8-*
+dat_4178:
+    DC.W    h0_43A8-*
     DC.B    $06
     DC.B    "NOLIST"
-    DC.W    loc_428A-*
+dat_4181:
+    DC.W    h0_428A-*
     DC.B    $07
     DC.B    "NOLIST1"
-    DC.W    loc_4296-*
+dat_418B:
+    DC.W    h0_4296-*
     DC.B    $05
     DC.B    "NOMEX"
-    DC.W    loc_42B0-*
+dat_4193:
+    DC.W    h0_42B0-*
     DC.B    $08
-    DC.B    "NOSYMTAB",0
-    DC.B    $e0
+    DC.B    "NOSYMTAB"
+dat_419E:
+    DC.W    h0_427E-*
     DC.L    $094e4f54
-    DC.B    "RACEIF",0
-    DC.B    $f8
+    DC.B    "RACEIF"
+dat_41AA:
+    DC.W    h0_42A2-*
     DC.L    $064e4f54
     DC.B    $59,$50,$45
-    DC.W    loc_4266-*
+dat_41B3:
+    DC.W    h0_4266-*
     DC.B    $06
-    DC.B    "NOWARN",0
-    DC.B    $b6,$03,$4f
-    DC.B    $44,$4c
-    DC.W    loc_4322-*
+    DC.B    "NOWARN"
+dat_41BC:
+    DC.W    h0_4272-*
+    DC.B    $03,$4f,$44,$4c
+dat_41C2:
+    DC.W    h0_4322-*
     DC.L    $034f4457
-    DC.W    loc_431C-*
-    DC.B    $03,$4f
-    DC.B    $4c,$44
-    DC.W    loc_42B6-*
+dat_41C8:
+    DC.W    h0_431C-*
+    DC.B    $03,$4f,$4c,$44
+dat_41CE:
+    DC.W    h0_42B6-*
     DC.L    $05515549
     DC.B    $45,$54
-    DC.W    loc_43EE-*
+dat_41D6:
+    DC.W    h0_43EE-*
     DC.L    $04535245
     DC.B    $43
-    DC.W    loc_42D2-*
+dat_41DD:
+    DC.W    h0_42D2-*
     DC.B    $05
-    DC.B    "SUPER",0
-    DC.B    $d7,$06
-    DC.B    "SYMTAB",0
-    DC.B    $8a
+    DC.B    "SUPER"
+dat_41E5:
+    DC.W    h0_42BC-*
+    DC.B    $06
+    DC.B    "SYMTAB"
+dat_41EE:
+    DC.W    h0_4278-*
     DC.B    $02,$54,$4f
-    DC.W    loc_43AE-*
+dat_41F3:
+    DC.W    h0_43AE-*
     DC.B    $07
-    DC.B    "TRACEIF",0
-    DC.B    $9f,$04
-    DC.B    "TYPE",0
-    DC.B    $5c,$04
-    DC.B    "USER",0
-    DC.L    $b7045741
-    DC.B    $52,$4e
-    DC.W    loc_426C-*
+    DC.B    "TRACEIF"
+dat_41FD:
+    DC.W    h0_429C-*
+    DC.B    $04
+    DC.B    "TYPE"
+dat_4204:
+    DC.W    h0_4260-*
+    DC.B    $04
+    DC.B    "USER"
+dat_420B:
+    DC.W    h0_42C2-*
+    DC.B    $04
+    DC.B    "WARN"
+dat_4212:
+    DC.W    h0_426C-*
     DC.L    $07574152
     DC.B    "NBIT"
-    DC.W    loc_4374-*
+dat_421C:
+    DC.W    h0_4374-*
     DC.B    $04
     DC.B    "WITH"
-    DC.W    loc_43FC-*
+dat_4223:
+    DC.W    h0_43FC-*
     DC.B    $06
-    DC.B    "XDEBUG",0
-    DC.B    $22,$00,$00
-loc_4230:
+    DC.B    "XDEBUG"
+dat_422C:
+    DC.W    h0_424E-*
+    DC.B    $00,$00
+h0_4230:
     sf.b $00FE(a6)
     rts
-loc_4236:
+h0_4236:
     st.b $010A(a6)
     sf.b $0104(a6)
     rts
-loc_4240:
+h0_4240:
     st.b $00FE(a6)
     rts
-loc_4246:
+h0_4246:
     move.b #$1,$0105(a6)
     rts
-loc_424E:
+h0_424E:
     st.b $0105(a6)
     rts
-loc_4254:
+h0_4254:
     st.b $012A(a6)
     rts
-loc_425A:
+h0_425A:
     sf.b $0105(a6)
     rts
-loc_4260:
+h0_4260:
     sf.b $0108(a6)
     rts
-loc_4266:
+h0_4266:
     st.b $0108(a6)
     rts
-loc_426C:
+h0_426C:
     st.b $0106(a6)
     rts
-loc_4272:
+h0_4272:
     sf.b $0106(a6)
     rts
-loc_4278:
+h0_4278:
     st.b $0100(a6)
     rts
-loc_427E:
+h0_427E:
     sf.b $0100(a6)
     rts
-loc_4284:
+h0_4284:
     st.b $0101(a6)
     rts
-loc_428A:
+h0_428A:
     sf.b $0101(a6)
     rts
-loc_4290:
+h0_4290:
     st.b $024E(a6)
     rts
-loc_4296:
+h0_4296:
     sf.b $024E(a6)
     rts
-loc_429C:
+h0_429C:
     st.b $0128(a6)
     rts
-loc_42A2:
+h0_42A2:
     sf.b $0128(a6)
-loc_42A6:
+h0_42A6:
     moveq.l #2,d0
-    bra.s loc_42D8
-loc_42AA:
+    bra.s h0_42D8
+h0_42AA:
     st.b $0119(a6)
     rts
-loc_42B0:
+h0_42B0:
     sf.b $0119(a6)
     rts
-loc_42B6:
+h0_42B6:
     st.b $0126(a6)
     rts
-loc_42BC:
+h0_42BC:
     sf.b $0127(a6)
     rts
-loc_42C2:
+h0_42C2:
     st.b $0127(a6)
     rts
-loc_42C8:
+h0_42C8:
     sf.b $00FF(a6)
-    bra.s loc_42E0
-loc_42CE:
+    bra.s h0_42E0
+h0_42CE:
     moveq.l #0,d0
-    bra.s loc_42D8
-loc_42D2:
+    bra.s h0_42D8
+h0_42D2:
     moveq.l #5,d0
-    bra.s loc_42D8
-loc_42D6:
+    bra.s h0_42D8
+h0_42D6:
     moveq.l #1,d0
-loc_42D8:
+h0_42D8:
     st.b $00FF(a6)
     move.w d0,$0250(a6)
-loc_42E0:
+h0_42E0:
     tst.l $0256(a6)
-    bne.w loc_44AC
+    bne.w h0_44AC
     tst.b $026A(a6)
-    beq.w loc_45C6
+    beq.w h0_45C6
     rts
-loc_42F2:
+h0_42F2:
     st.b $012E(a6)
     rts
-loc_42F8:
+h0_42F8:
     sf.b $012E(a6)
     rts
-loc_42FE:
+h0_42FE:
     cmpi.b #20,$0123(a6)
-    blt.w loc_3258
+    blt.w h0_3258
     move.b #$1,$012E(a6)
     rts
-loc_4310:
+h0_4310:
     st.b $012F(a6)
     rts
-loc_4316:
+h0_4316:
     sf.b $012F(a6)
     rts
-loc_431C:
+h0_431C:
     st.b $0130(a6)
     rts
-loc_4322:
+h0_4322:
     sf.b $0130(a6)
     rts
-loc_4328:
+h0_4328:
     st.b $011B(a6)
     rts
-loc_432E:
+h0_432E:
     sf.b $011B(a6)
     rts
-loc_4334:
+h0_4334:
     st.b $0107(a6)
     rts
-loc_433A:
+h0_433A:
     sf.b $0107(a6)
     rts
-loc_4340:
+h0_4340:
     move.b #$5F,$0118(a6)
     rts
-loc_4348:
+h0_4348:
     move.b #$2E,$0118(a6)
     rts
-loc_4350:
+h0_4350:
     st.b $011F(a6)
     rts
-loc_4356:
+h0_4356:
     sf.b $011F(a6)
     rts
-loc_435C:
+h0_435C:
     st.b $0121(a6)
     rts
-loc_4362:
+h0_4362:
     sf.b $0121(a6)
     rts
-loc_4368:
+h0_4368:
     st.b $0120(a6)
     rts
-loc_436E:
+h0_436E:
     sf.b $0120(a6)
     rts
-loc_4374:
+h0_4374:
     move.b #$1,$0120(a6)
     rts
-loc_437C:
+h0_437C:
     st.b $0122(a6)
     rts
-loc_4382:
+h0_4382:
     sf.b $0122(a6)
     rts
-loc_4388:
+h0_4388:
     st.b $0136(a6)
     rts
-loc_438E:
+h0_438E:
     sf.b $0136(a6)
     rts
-loc_4394:
+h0_4394:
     st.b $012B(a6)
     st.b $012C(a6)
     rts
-loc_439E:
+h0_439E:
     st.b $012B(a6)
     sf.b $012C(a6)
     rts
-loc_43A8:
+h0_43A8:
     sf.b $012B(a6)
     rts
-loc_43AE:
-    bsr.w loc_3EB8
+h0_43AE:
+    bsr.w h0_3EB8
     subq.w #1,a4
     tst.b $46FA(a6)
-    beq.w loc_4406
-    bsr.w loc_3E40
-    bra.s loc_440A
-loc_43C2:
+    beq.w h0_4406
+    bsr.w h0_3E40
+    bra.s h0_440A
+h0_43C2:
     move.b $46FA(a6),-(a7)
     lea.l $507C(a6),a3
     sf.b $012D(a6)
-    bra.s loc_43DC
-loc_43D0:
+    bra.s h0_43DC
+h0_43D0:
     move.b $46FD(a6),-(a7)
     lea.l $0868(a6),a3
     st.b $012D(a6)
-loc_43DC:
-    bsr.w loc_3EB8
+h0_43DC:
+    bsr.w h0_3EB8
     subq.w #1,a4
     tst.b (a7)+
-    bra.w loc_3E1E
-loc_43E8:
+    bra.w h0_3E1E
+h0_43E8:
     st.b $024F(a6)
     rts
-loc_43EE:
+h0_43EE:
     st.b $0129(a6)
     rts
-loc_43F4:
-    bsr.w loc_3EB8
-    bra.w sub_3BA6
-loc_43FC:
-    bsr.w loc_3EB8
+h0_43F4:
+    bsr.w h0_3EB8
+    bra.w h0_3BA6
+h0_43FC:
+    bsr.w h0_3EB8
     subq.w #1,a4
     lea.l $0816(a6),a1
-loc_4406:
-    bsr.w loc_3E44
-loc_440A:
+h0_4406:
+    bsr.w h0_3E44
+h0_440A:
     move.b (a4)+,d1
     rts
-loc_440E:
+h0_440E:
     move.b (a4)+,d1
     st.b $46FE(a6)
     cmp.b #$D,d1
-    beq.w loc_3B02
-loc_441C:
+    beq.w h0_3B02
+h0_441C:
     cmp.b #$9,d1
-    beq.w loc_3B02
-loc_4424:
+    beq.w h0_3B02
+h0_4424:
     cmp.b #$20,d1
-    beq.w loc_3B02
-loc_442C:
+    beq.w h0_3B02
+h0_442C:
     ext.w d1
     move.b $7E(a6,d1.w),d1
-    beq.w loc_3B02
-loc_4436:
+    beq.w h0_3B02
+h0_4436:
     move.b (a4),d0
     cmp.b #$2B,d0
-    beq.s loc_444E
-loc_443E:
+    beq.s h0_444E
+h0_443E:
     cmp.b #$2D,d0
-    beq.s loc_444E
-loc_4444:
-    bsr.w sub_3FA0
-loc_4448:
-    beq.s loc_444E
-loc_444A:
+    beq.s h0_444E
+h0_4444:
+    bsr.w h0_3FA0
+h0_4448:
+    beq.s h0_444E
+h0_444A:
     jsr (a0)
-loc_444C:
-    bra.s loc_446A
-loc_444E:
+h0_444C:
+    bra.s h0_446A
+h0_444E:
     subi.b #65,d1
-    bcs.s loc_4472
-loc_4454:
+    bcs.s h0_4472
+h0_4454:
     cmp.b #$1A,d1
-    bcc.s loc_4472
-loc_445A:
+    bcc.s h0_4472
+h0_445A:
     ext.w d1
     add.w d1,d1
     move.w dat_4478(pc,d1.w),d0
-    beq.s loc_4472
-loc_4464:
+    beq.s h0_4472
+h0_4464:
     move.b (a4)+,d1
     jsr dat_4478(pc,d0.w)
-loc_446A:
+h0_446A:
     cmp.b #$2C,d1
-    beq.s loc_440E
-loc_4470:
+    beq.s h0_440E
+h0_4470:
     rts
-loc_4472:
+h0_4472:
     moveq.l #58,d0
-    bra.w loc_8552
+    bra.w h0_8552
 dat_4478:
-    DC.W    sub_4512-dat_4478
+    DC.W    h0_4512-dat_4478
     DC.W    $0000
     DC.B    $00,$c0
-    DC.W    sub_44C6-dat_4478
-    DC.W    sub_4522-dat_4478
+    DC.W    h0_44C6-dat_4478
+    DC.W    h0_4522-dat_4478
     DC.W    $0000
     DC.W    $0000
     DC.W    $0000
-    DC.W    sub_451A-dat_4478
+    DC.W    h0_451A-dat_4478
     DC.W    $0000
     DC.W    $0000
-    DC.W    sub_456A-dat_4478
-    DC.W    sub_44DC-dat_4478
+    DC.W    h0_456A-dat_4478
+    DC.W    h0_44DC-dat_4478
     DC.W    $0000
-    DC.W    sub_45E6-dat_4478
-    DC.W    sub_44E4-dat_4478
-    DC.W    $0000
-    DC.W    $0000
-    DC.W    sub_44FA-dat_4478
-    DC.W    sub_44D4-dat_4478
-    DC.W    sub_452A-dat_4478
-    DC.W    $0000
-    DC.W    sub_4502-dat_4478
-    DC.W    sub_450A-dat_4478
+    DC.W    h0_45E6-dat_4478
+    DC.W    h0_44E4-dat_4478
     DC.W    $0000
     DC.W    $0000
-loc_44AC:
+    DC.W    h0_44FA-dat_4478
+    DC.W    h0_44D4-dat_4478
+    DC.W    h0_452A-dat_4478
+    DC.W    $0000
+    DC.W    h0_4502-dat_4478
+    DC.W    h0_450A-dat_4478
+    DC.W    $0000
+    DC.W    $0000
+h0_44AC:
     moveq.l #64,d0
-    bra.w loc_8556
-sub_44B2:
+h0_44AE:
+    bra.w h0_8556
+h0_44B2:
     move.b (a4)+,d0
     exg d0,d1
     cmp.b #$2B,d0
-    beq.s loc_44C4
-loc_44BC:
+    beq.s h0_44C4
+h0_44BC:
     cmp.b #$2D,d0
-    bne.s loc_4472
-loc_44C2:
+    bne.s h0_4472
+h0_44C2:
     tst.b d0
-loc_44C4:
+h0_44C4:
     rts
-sub_44C6:
-    bsr.s sub_44B2
-loc_44C8:
+h0_44C6:
+    bsr.s h0_44B2
+h0_44C8:
     seq.b d0
     andi.b #1,d0
     move.b d0,$0105(a6)
     rts
-sub_44D4:
-    bsr.s sub_44B2
-loc_44D6:
+h0_44D4:
+    bsr.s h0_44B2
+h0_44D6:
     sne.b $0108(a6)
     rts
-sub_44DC:
-    bsr.s sub_44B2
-loc_44DE:
+h0_44DC:
+    bsr.s h0_44B2
+h0_44DE:
     seq.b $0119(a6)
     rts
-sub_44E4:
+h0_44E4:
     cmp.b #$3D,d1
-    bne.s loc_44F2
-loc_44EA:
-    bsr.w sub_3294
-loc_44EE:
-    bne.s loc_4472
-loc_44F0:
+    bne.s h0_44F2
+h0_44EA:
+    bsr.w h0_3294
+h0_44EE:
+    bne.s h0_4472
+h0_44F0:
     rts
-loc_44F2:
-    bsr.s sub_44B2
-loc_44F4:
+h0_44F2:
+    bsr.s h0_44B2
+h0_44F4:
     seq.b $0107(a6)
     rts
-sub_44FA:
-    bsr.s sub_44B2
-loc_44FC:
+h0_44FA:
+    bsr.s h0_44B2
+h0_44FC:
     seq.b $0100(a6)
     rts
-sub_4502:
-    bsr.s sub_44B2
-loc_4504:
+h0_4502:
+    bsr.s h0_44B2
+h0_4504:
     seq.b $0106(a6)
     rts
-sub_450A:
-    bsr.s sub_44B2
-loc_450C:
+h0_450A:
+    bsr.s h0_44B2
+h0_450C:
     seq.b $0105(a6)
     rts
-sub_4512:
-    bsr.s sub_44B2
-loc_4514:
+h0_4512:
+    bsr.s h0_44B2
+h0_4514:
     seq.b $011B(a6)
     rts
-sub_451A:
-    bsr.s sub_44B2
-loc_451C:
+h0_451A:
+    bsr.s h0_44B2
+h0_451C:
     seq.b $011F(a6)
     rts
-sub_4522:
-    bsr.s sub_44B2
-loc_4524:
+h0_4522:
+    bsr.s h0_44B2
+h0_4524:
     seq.b $0121(a6)
     rts
-sub_452A:
+h0_452A:
     moveq.l #95,d2
-    bsr.s sub_44B2
-loc_452E:
-    beq.s loc_4532
-loc_4530:
+    bsr.s h0_44B2
+h0_452E:
+    beq.s h0_4532
+h0_4530:
     moveq.l #46,d2
-loc_4532:
+h0_4532:
     move.b d2,$0118(a6)
     rts
     DC.L    $61000102,$6616b47c,$00086500,$ff2eb47c,$00806400,$ff265242,$3d420252,$b23c002b
-    DC.L    $6708b23c,$002d6608,$4a0156ee,$00fe121c
+    DC.L    $6708b23c,$002d6608,$4a0156ee,$00fe121c ; VIOLATION: orphaned code island at $4538 is not reached from known entrypoints
     DC.B    $4e,$75
-sub_456A:
+h0_456A:
     tst.l $0256(a6)
-    bne.w loc_44AC
-loc_4572:
+    bne.w h0_44AC
+h0_4572:
     move.b d1,d0
     move.b (a4)+,d1
     tst.b $026A(a6)
-    bne.s loc_45E4
-loc_457C:
+    bne.s h0_45E4
+h0_457C:
     cmp.b #$2B,d0
-    beq.s loc_45BE
-loc_4582:
+    beq.s h0_45BE
+h0_4582:
     cmp.b #$2D,d0
-    beq.s loc_45B8
-loc_4588:
+    beq.s h0_45B8
+h0_4588:
     subi.b #48,d0
-    bcs.w loc_4472
-loc_4590:
+    bcs.w h0_4472
+h0_4590:
     ext.w d0
-    beq.s loc_45B8
-loc_4594:
+    beq.s h0_45B8
+h0_4594:
     subq.w #1,d0
     cmp.w #$7,d0
-    bcc.w loc_4472
-loc_459E:
+    bcc.w h0_4472
+h0_459E:
     btst.b d0,#$63
-    beq.w loc_4472
-loc_45A6:
+    beq.w h0_4472
+h0_45A6:
     cmp.b #$6,d0
-    bne.s loc_45AE
-loc_45AC:
+    bne.s h0_45AE
+h0_45AC:
     moveq.l #2,d0
-loc_45AE:
+h0_45AE:
     st.b $00FF(a6)
     move.w d0,$0250(a6)
-    bra.s loc_45C6
-loc_45B8:
+    bra.s h0_45C6
+h0_45B8:
     sf.b $00FF(a6)
-    bra.s loc_45C6
-loc_45BE:
+    bra.s h0_45C6
+h0_45BE:
     st.b $00FF(a6)
     clr.w $0250(a6)
-loc_45C6:
+h0_45C6:
     movea.l $0148(a6),a1
     movea.l $0144(a6),a0
     clr.l $01C4(a6)
     tst.b $026A(a6)
-    bne.s loc_45DC
-loc_45D8:
+    bne.s h0_45DC
+h0_45D8:
     clr.l $01DA(a6)
-loc_45DC:
-    bsr.w loc_7A1A
-loc_45E0:
+h0_45DC:
+    bsr.w h0_7A1A
+h0_45E0:
     move.b -$0001(a4),d1
-loc_45E4:
+h0_45E4:
     rts
-sub_45E6:
+h0_45E6:
     lea.l $0110(a6),a1
     ext.w d1
     move.b $7E(a6,d1.w),d1
     cmp.b #$57,d1
-    bne.s loc_45FC
-loc_45F6:
+    bne.s h0_45FC
+h0_45F6:
     lea.l $0112(a6),a1
     move.b (a4)+,d1
-loc_45FC:
+h0_45FC:
     cmp.b #$2D,d1
-    beq.s loc_4630
-loc_4602:
+    beq.s h0_4630
+h0_4602:
     cmp.b #$2B,d1
-    beq.s loc_4634
-loc_4608:
-    bsr.w sub_463C
-loc_460C:
+    beq.s h0_4634
+h0_4608:
+    bsr.w h0_463C
+h0_460C:
     subq.w #1,d2
-    bmi.w loc_4472
-loc_4612:
+    bmi.w h0_4472
+h0_4612:
     cmp.w #$B,d2
-    bhi.w loc_4472
-loc_461A:
-    bsr.w sub_44B2
-loc_461E:
-    beq.s loc_4628
-loc_4620:
+    bhi.w h0_4472
+h0_461A:
+    bsr.w h0_44B2
+h0_461E:
+    beq.s h0_4628
+h0_4620:
     move.w (a1),d0
     bclr d2,d0
     move.w d0,(a1)
     rts
-loc_4628:
+h0_4628:
     move.w (a1),d0
     bset d2,d0
     move.w d0,(a1)
     rts
-loc_4630:
+h0_4630:
     clr.w (a1)
-    bra.s loc_4638
-loc_4634:
+    bra.s h0_4638
+h0_4634:
     move.w #$FFFF,(a1)
-loc_4638:
+h0_4638:
     move.b (a4)+,d1
     rts
-sub_463C:
+h0_463C:
     cmp.b #$30,d1
-    bcs.s loc_4670
-loc_4642:
+    bcs.s h0_4670
+h0_4642:
     cmp.b #$39,d1
-    bhi.s loc_4670
-loc_4648:
+    bhi.s h0_4670
+h0_4648:
     moveq.l #0,d2
     subi.b #48,d1
     move.b d1,d2
-loc_4650:
+h0_4650:
     move.b (a4)+,d1
     cmp.b #$30,d1
-    bcs.s loc_466E
-loc_4658:
+    bcs.s h0_466E
+h0_4658:
     cmp.b #$3A,d1
-    bcc.s loc_466E
-loc_465E:
+    bcc.s h0_466E
+h0_465E:
     mulu.w #$A,d2
     subi.b #48,d1
     andi.w #15,d1
     add.w d1,d2
-    bra.s loc_4650
-loc_466E:
+    bra.s h0_4650
+h0_466E:
     moveq.l #0,d0
-loc_4670:
+h0_4670:
     rts
-sub_4672:
+h0_4672:
     tst.b $480E(a6)
-    beq.s loc_46A8
-loc_4678:
+    beq.s h0_46A8
+h0_4678:
     lea.l $07C4(a6),a0
     tst.b (a0)
-    bne.s loc_46A4
-loc_4680:
+    bne.s h0_46A4
+h0_4680:
     lea.l $052A(a6),a1
     moveq.l #0,d0
     move.b $0005(a1),d0
     subq.b #1,d0
-    bmi.s loc_4696
-loc_468E:
+    bmi.s h0_4696
+h0_468E:
     movea.l (a1),a1
-loc_4690:
+h0_4690:
     move.b (a1)+,(a0)+
-    dbf.w d0,loc_4690
-loc_4696:
+    dbf.w d0,h0_4690
+h0_4696:
     clr.b (a0)
     lea.l $07C4(a6),a0
     lea.l dat_46AA(pc),a2
-    bsr.w sub_46B0
-loc_46A4:
-    bra.w loc_BBE4
-loc_46A8:
+    bsr.w h0_46B0
+h0_46A4:
+    bra.w h0_BBE4
+h0_46A8:
     rts
 dat_46AA:
-    DC.B    $2e,$6c,$73,$74,$00,$00
-sub_46B0:
-    bsr.s sub_46C4
-loc_46B2:
-    beq.s loc_46B6
-loc_46B4:
+    DC.B    $2e,$6c,$73,$74,$00,$00 ; VIOLATION: orphaned code island at $46AA is not reached from known entrypoints
+h0_46B0:
+    bsr.s h0_46C4
+h0_46B2:
+    beq.s h0_46B6
+h0_46B4:
     movea.l d2,a1
-loc_46B6:
+h0_46B6:
     subq.w #1,a1
-loc_46B8:
+h0_46B8:
     move.b (a2)+,(a1)+
-    bne.s loc_46B8
-loc_46BC:
+    bne.s h0_46B8
+h0_46BC:
     rts
-sub_46BE:
-    bsr.s sub_46C4
-loc_46C0:
-    beq.s loc_46B6
-loc_46C2:
+h0_46BE:
+    bsr.s h0_46C4
+h0_46C0:
+    beq.s h0_46B6
+h0_46C2:
     rts
-sub_46C4:
+h0_46C4:
     movea.l a0,a1
-loc_46C6:
+h0_46C6:
     moveq.l #0,d2
-loc_46C8:
+h0_46C8:
     move.b (a1)+,d1
-    beq.s loc_46E8
-loc_46CC:
+    beq.s h0_46E8
+h0_46CC:
     cmp.b #$5C,d1
-    beq.s loc_46C6
-loc_46D2:
+    beq.s h0_46C6
+h0_46D2:
     cmp.b #$2F,d1
-    beq.s loc_46C6
-loc_46D8:
+    beq.s h0_46C6
+h0_46D8:
     cmp.b #$3A,d1
-    beq.s loc_46C6
-loc_46DE:
+    beq.s h0_46C6
+h0_46DE:
     cmp.b #$2E,d1
-    bne.s loc_46C8
-loc_46E4:
+    bne.s h0_46C8
+h0_46E4:
     move.l a1,d2
-    bra.s loc_46C8
-loc_46E8:
+    bra.s h0_46C8
+h0_46E8:
     tst.l d2
-loc_46EA:
+h0_46EA:
     rts
-sub_46EC:
+h0_46EC:
     tst.b $012D(a6)
-    beq.s loc_46EA
-loc_46F2:
+    beq.s h0_46EA
+h0_46F2:
     movea.l (a3),a0
     move.b -$1(a0,d3.w),d0
     cmp.b #$3A,d0
-    beq.s loc_46EA
-loc_46FE:
+    beq.s h0_46EA
+h0_46FE:
     cmp.b #$2F,d0
-    beq.s loc_46EA
-loc_4704:
+    beq.s h0_46EA
+h0_4704:
     cmp.b #$5C,d0
-    beq.s loc_46EA
-loc_470A:
+    beq.s h0_46EA
+h0_470A:
     moveq.l #92,d1
-loc_470C:
+h0_470C:
     movea.l (a3),a0
     cmp.w $0004(a3),d3
-    bcs.s loc_4742
-loc_4714:
+    bcs.s h0_4742
+h0_4714:
     movem.l d0-d2/a1-a2,-(a7)
     moveq.l #100,d1
     add.w $0004(a3),d1
-    bsr.w sub_9146
-loc_4722:
+    bsr.w h0_9146
+h0_4722:
     movea.l (a3),a1
     move.l a0,(a3)
     move.w $0004(a3),d1
     lsr.w #2,d1
-    beq.s loc_4736
-loc_472E:
+    beq.s h0_4736
+h0_472E:
     subq.w #1,d1
-loc_4730:
+h0_4730:
     move.l (a1)+,(a0)+
-    dbf.w d1,loc_4730
-loc_4736:
+    dbf.w d1,h0_4730
+h0_4736:
     movem.l (a7)+,d0-d2/a1-a2
     addi.w #100,$0004(a3)
     movea.l (a3),a0
-loc_4742:
+h0_4742:
     move.b d1,$0(a0,d3.w)
     addq.w #1,d3
     rts
-sub_474A:
+h0_474A:
     moveq.l #4,d1
     move.w d1,$0004(a3)
-    bsr.w sub_9146
-loc_4754:
+    bsr.w h0_9146
+h0_4754:
     move.l a0,(a3)
     clr.b (a0)
     rts
-sub_475A:
+h0_475A:
     movea.l (a3),a0
     clr.b (a0)
-loc_475E:
+h0_475E:
     moveq.l #0,d3
     tst.w $0004(a3)
-    beq.s loc_4776
-loc_4766:
+    beq.s h0_4776
+h0_4766:
     movea.l (a3),a0
-loc_4768:
+h0_4768:
     tst.b (a0)+
-    beq.s loc_4776
-loc_476C:
+    beq.s h0_4776
+h0_476C:
     addq.w #1,d3
     tst.b (a0)+
-    bne.s loc_476C
-loc_4772:
+    bne.s h0_476C
+h0_4772:
     addq.w #1,d3
-    bra.s loc_4768
-loc_4776:
+    bra.s h0_4768
+h0_4776:
     rts
-loc_4778:
+h0_4778:
     move.b (a4)+,d1
-    bsr.s loc_475E
-loc_477C:
+    bsr.s h0_475E
+h0_477C:
     moveq.l #0,d2
     cmp.b #$22,d1
-    beq.s loc_478A
-loc_4784:
+    beq.s h0_478A
+h0_4784:
     cmp.b #$27,d1
-    bne.s loc_478E
-loc_478A:
+    bne.s h0_478E
+h0_478A:
     move.b d1,d2
-loc_478C:
+h0_478C:
     move.b (a4)+,d1
-loc_478E:
-    beq.s loc_47D8
-loc_4790:
+h0_478E:
+    beq.s h0_47D8
+h0_4790:
     cmp.b #$D,d1
-    beq.s loc_47D8
-loc_4796:
+    beq.s h0_47D8
+h0_4796:
     cmp.b #$20,d1
-    bne.s loc_47A2
-loc_479C:
+    bne.s h0_47A2
+h0_479C:
     tst.b d2
-    bne.s loc_47BC
-loc_47A0:
-    bra.s loc_47D8
-loc_47A2:
+    bne.s h0_47BC
+h0_47A0:
+    bra.s h0_47D8
+h0_47A2:
     cmp.b #$9,d1
-    beq.s loc_47D8
-loc_47A8:
+    beq.s h0_47D8
+h0_47A8:
     cmp.b d2,d1
-    beq.s loc_47C2
-loc_47AC:
+    beq.s h0_47C2
+h0_47AC:
     cmp.b #$3B,d1
-    beq.s loc_47B8
-loc_47B2:
+    beq.s h0_47B8
+h0_47B2:
     cmp.b #$2C,d1
-    bne.s loc_47BC
-loc_47B8:
+    bne.s h0_47BC
+h0_47B8:
     tst.b d2
-    beq.s loc_47CA
-loc_47BC:
-    bsr.w loc_470C
-loc_47C0:
-    bra.s loc_478C
-loc_47C2:
+    beq.s h0_47CA
+h0_47BC:
+    bsr.w h0_470C
+h0_47C0:
+    bra.s h0_478C
+h0_47C2:
     move.b (a4)+,d1
     cmp.b #$2C,d1
-    bne.s loc_47D8
-loc_47CA:
-    bsr.w sub_46EC
-loc_47CE:
+    bne.s h0_47D8
+h0_47CA:
+    bsr.w h0_46EC
+h0_47CE:
     moveq.l #0,d1
-    bsr.w loc_470C
-loc_47D4:
+    bsr.w h0_470C
+h0_47D4:
     move.b (a4)+,d1
-    bra.s loc_477C
-loc_47D8:
-    bsr.w sub_46EC
-loc_47DC:
+    bra.s h0_477C
+h0_47D8:
+    bsr.w h0_46EC
+h0_47DC:
     moveq.l #0,d1
-    bsr.w loc_470C
-loc_47E2:
-    bsr.w loc_470C
-loc_47E6:
+    bsr.w h0_470C
+h0_47E2:
+    bsr.w h0_470C
+h0_47E6:
     move.b -$0001(a4),d1
     rts
-sub_47EC:
+h0_47EC:
     move.b (a4)+,d1
-loc_47EE:
+h0_47EE:
     moveq.l #0,d2
     cmp.b #$22,d1
-    beq.s loc_47FC
-loc_47F6:
+    beq.s h0_47FC
+h0_47F6:
     cmp.b #$27,d1
-    bne.s loc_4800
-loc_47FC:
+    bne.s h0_4800
+h0_47FC:
     move.b d1,d2
-loc_47FE:
+h0_47FE:
     move.b (a4)+,d1
-loc_4800:
-    beq.s loc_4812
-loc_4802:
+h0_4800:
+    beq.s h0_4812
+h0_4802:
     cmp.b #$D,d1
-    beq.s loc_4812
-loc_4808:
+    beq.s h0_4812
+h0_4808:
     cmp.b #$20,d1
-    bne.s loc_4814
-loc_480E:
+    bne.s h0_4814
+h0_480E:
     tst.b d2
-    bne.s loc_47FE
-loc_4812:
+    bne.s h0_47FE
+h0_4812:
     rts
-loc_4814:
+h0_4814:
     cmp.b #$9,d1
-    beq.s loc_4812
-loc_481A:
+    beq.s h0_4812
+h0_481A:
     cmp.b d2,d1
-    beq.s loc_482E
-loc_481E:
+    beq.s h0_482E
+h0_481E:
     cmp.b #$3B,d1
-    beq.s loc_482A
-loc_4824:
+    beq.s h0_482A
+h0_4824:
     cmp.b #$2C,d1
-    bne.s loc_47FE
-loc_482A:
+    bne.s h0_47FE
+h0_482A:
     tst.b d2
-    bne.s loc_47FE
-loc_482E:
+    bne.s h0_47FE
+h0_482E:
     move.b (a4)+,d1
     cmp.b #$2C,d1
-    bne.s loc_4812
-loc_4836:
+    bne.s h0_4812
+h0_4836:
     move.b (a4)+,d1
-    bra.s loc_47EE
-    DC.B    $41,$ee
-    DC.L    $06fe7400,$4a106704,$720d4e75,$b23c000d,$671ab23c,$00096714,$b23c0020,$670e10c1
-    DC.L    $121c5202,$b43c0052,$66e2720d,$42104e75,$0c2e0014,$01236d00,$e9e40c2e,$00200123
-    DC.L    $6700e9da,$4a2e026b,$66003c94,$6100d550,$b23c002c,$66003ca0,$121cb23c,$00236600
-    DC.L    $3c9e121c,$6100c554,$6000d2ac,$6100dbac,$50ee026d,$6100cec2,$00644e75,$4a2e026a
-    DC.L    $670a08ee,$00004ade,$61007338,$720d50ee,$01154e75,$08ae0000,$4ade4e75,$61002254
-    DC.L    $b4bc0000,$000c6512,$b4bc0000,$00ff640a,$3d424a1e,$50ee0115
-    DC.B    "NupK`",0
-    DC.B    $3c,$5c
+    bra.s h0_47EE
+    DC.B    $41,$ee,$06,$fe,$74,$00,$4a,$10,$67,$04,$72,$0d,$4e,$75 ; VIOLATION: orphaned code island at $483A is not reached from known entrypoints
+    DC.L    $b23c000d,$671ab23c,$00096714,$b23c0020,$670e10c1,$121c5202,$b43c0052,$66e2720d
+    DC.L    $42104e75 ; VIOLATION: orphaned code island at $4848 is not reached from known entrypoints
+    DC.L    $0c2e0014,$01236d00,$e9e40c2e,$00200123,$6700e9da,$4a2e026b,$66003c94,$6100d550
+    DC.L    $b23c002c,$66003ca0,$121cb23c,$00236600,$3c9e121c,$6100c554,$6000d2ac ; VIOLATION: orphaned code island at $486C is not reached from known entrypoints
+    DC.L    $6100dbac,$50ee026d,$6100cec2,$00644e75,$4a2e026a,$670a08ee,$00004ade,$61007338
+    DC.L    $720d50ee,$01154e75 ; VIOLATION: orphaned code island at $48A8 is not reached from known entrypoints
+    DC.B    $08,$ae,$00,$00,$4a,$de,$4e,$75 ; VIOLATION: orphaned code island at $48D0 is not reached from known entrypoints
+    DC.L    $61002254,$b4bc0000,$000c6512,$b4bc0000,$00ff640a,$3d424a1e,$50ee0115 ; VIOLATION: orphaned code island at $48D8 is not reached from known entrypoints
+    DC.B    $4e,$75
+    DC.B    $70,$4b,$60,$00,$3c,$5c ; VIOLATION: orphaned code island at $48F6 is not reached from known entrypoints
     DC.L    $74000401,$0030654c,$b23c000a,$64461401,$121cb23c,$000d6724,$b23c0009,$671eb23c
     DC.L    $00206718,$04010030,$652ab23c,$000a6424,$c4fc000a,$0241000f,$d441121c,$70fc5582
-    DC.L    $671870fa,$5d826712,$70005582,$670c70fe,$5d826706,$705a6000,$3c021d40,$01314e75
+    DC.L    $671870fa,$5d826712,$70005582,$670c70fe,$5d826706,$705a6000 ; VIOLATION: orphaned code island at $48FC is not reached from known entrypoints
+    DC.B    $3c,$02
+    DC.B    $1d,$40,$01,$31,$4e,$75 ; VIOLATION: orphaned code island at $4956 is not reached from known entrypoints
     DC.L    $6100e296,$6100ee3e,$6600eea8,$74003404,$246e0170,$41ee041e,$48e7201c,$4a2e026a
-    DC.L    $66186100,$c2484cdf,$38106700,$3b7e7605,$6100c36c,$122cffff,$4e756100,$c2304cdf
-    DC.L    $38106600,$3b6a0c29,$0005000d,$66003b5c,$b8a90008,$66003b54,$08e90006,$000c6600
-    DC.L    $3b4a60d0,$01000102,$41ee041e,$7000102e,$026bb03c,$00016710,$082e0000,$47076708
-    DC.L    $242e4700,$d5ae4704,$4a906626,$6100cd70,$7000102e,$026b103b,$00cce1aa,$4a2e4700
-    DC.L    $6a024482,$202e4704,$d5ae4704,$24006000,$e27e4a2e,$026a6648,$2f086100,$cd42205f
-    DC.L    $666e4a04,$666a2a02,$6100c1e8,$67003adc,$45ee0170,$7602282e,$47041028,$0006b02e
-    DC.L    $0118670c,$6100c2b4,$2405122c,$ffff60a0,$45ee0160,$4a926700,$3abe6100,$c33460e8
+    DC.L    $66186100,$c2484cdf,$38106700,$3b7e7605,$6100c36c,$122cffff ; VIOLATION: orphaned code island at $495C is not reached from known entrypoints
+    DC.B    $4e,$75
+    DC.B    $61,$00 ; VIOLATION: orphaned code island at $4996 is not reached from known entrypoints
+    DC.L    $c2304cdf,$38106600,$3b6a0c29,$0005000d,$66003b5c,$b8a90008,$66003b54,$08e90006
+    DC.L    $000c6600,$3b4a60d0
+    DC.L    $01000102,$41ee041e,$7000102e,$026bb03c,$00016710,$082e0000,$47076708,$242e4700
+    DC.L    $d5ae4704,$4a906626,$6100cd70,$7000102e,$026b103b,$00cce1aa,$4a2e4700,$6a024482
+    DC.L    $202e4704,$d5ae4704,$24006000 ; VIOLATION: orphaned code island at $49C0 is not reached from known entrypoints
+    DC.B    $e2,$7e
+    DC.B    $4a,$2e ; VIOLATION: orphaned code island at $4A0E is not reached from known entrypoints
+    DC.L    $026a6648,$2f086100,$cd42205f,$666e4a04,$666a2a02,$6100c1e8,$67003adc,$45ee0170
+    DC.L    $7602282e,$47041028,$0006b02e,$0118670c,$6100c2b4,$2405122c,$ffff60a0
+    DC.B    $45,$ee,$01,$60,$4a,$92,$67,$00,$3a,$be,$61,$00,$c3,$34,$60,$e8 ; VIOLATION: orphaned code island at $4A4C is not reached from known entrypoints
     DC.L    $6100c1b0,$66003abc,$0c290002,$000d6600,$3ab22029,$0008b0ae,$47046600,$3a9608e9
     DC.L    $0006000c,$66003a84,$6100ccd4,$6000ff62,$4e756100,$20944a82,$6b00f0ae,$2f026100
     DC.L    $527a4cdf,$00046600,$f0a042ae,$01b094ae,$026e2d42,$01bc122c,$ffff4e75,$9481650e
     DC.L    $670a2802,$76007200,$6100df94,$70004e75,$42ae4704,$720d4e75,$6100cc84,$66f24a04
     DC.L    $66ee2d42,$47046000,$e1a60c2e,$000a0123,$6d00e76a,$3ac6b23c,$00236600,$3a42121c
     DC.L    $6100c2f8,$6000d050,$0c2e0014,$01236600,$e74c610e,$8c423ac6,$4a2e026b,$66003a00
-    DC.L    $4e756100,$ccec660e,$02420007,$02400001,$e7488440
+    DC.L    $4e756100,$ccec660e,$02420007,$02400001,$e7488440 ; VIOLATION: orphaned code island at $4A5C is not reached from known entrypoints
     DC.B    "Nup.`",0
     DC.B    $3a,$20
     DC.L    $6100d93e,$50ee026d,$6100cc32,$003d4e75,$611c4441,$54410000,$61144253,$5300610e
@@ -4554,56 +4692,71 @@ loc_4836:
     DC.L    $6604588f,$720d4e75,$121c61f0,$41ee041e,$61002828,$66003654,$3f01610a,$321fb23c
     DC.L    $002c67e4,$4e751028,$0006b02e,$01186700,$35f64a2e,$026a671a,$6100bce8
     DC.B    $66,$16
-sub_4F2A:
+h0_4F2A:
     move.b $000C(a1),d0
     andi.b #144,d0
-    bne.s loc_4F40
-loc_4F34:
+    bne.s h0_4F40
+h0_4F34:
     bset.b #5,$000C(a1)
-    beq.w loc_9850
-loc_4F3E:
+    beq.w h0_9850
+h0_4F3E:
     rts
-loc_4F40:
+h0_4F40:
     moveq.l #44,d0
-    bra.w loc_8556
-    DC.B    $70,$2b
-    DC.L    $60003608,$121c6004,$7a2c6194,$41ee041e,$610027cc,$660035f8,$10280006,$b02e0118
-    DC.L    $67dc7601,$0c2e0003,$026b6602,$76023f01,$3f036100,$bc924c9f,$0008670a,$226e016c
-    DC.L    $78006100,$bd6e6112,$321f1a01,$b23c002c,$67b2b23c,$003d67ac,$4e75082e,$00020251
-    DC.L    $6646b629,$000d6640,$08290005,$000c6638,$08290007,$000c6630,$10290017,$b02e0118
-    DC.L    $672608e9,$0004000c,$661c206e,$0144ba3c,$002c6708,$08e90002,$000c6004,$52680014
-    DC.L    $33680014,$00144e75,$303c002b,$60003560,$7000102e,$026b8c3b,$00044e75,$40004080
+    bra.w h0_8556
+    DC.B    $70,$2b,$60,$00,$36,$08 ; VIOLATION: orphaned code island at $4F46 is not reached from known entrypoints
+    DC.L    $121c6004 ; VIOLATION: orphaned code island at $4F4C is not reached from known entrypoints
+    DC.L    $7a2c6194,$41ee041e,$610027cc,$660035f8,$10280006,$b02e0118,$67dc7601,$0c2e0003
+    DC.L    $026b6602,$76023f01,$3f036100,$bc924c9f,$0008670a,$226e016c,$78006100,$bd6e6112
+    DC.L    $321f1a01,$b23c002c,$67b2b23c,$003d67ac ; VIOLATION: orphaned code island at $4F50 is not reached from known entrypoints
+    DC.B    $4e,$75
+    DC.B    $08,$2e ; VIOLATION: orphaned code island at $4FA2 is not reached from known entrypoints
+    DC.L    $00020251,$6646b629,$000d6640,$08290005,$000c6638,$08290007,$000c6630,$10290017
+    DC.L    $b02e0118,$672608e9,$0004000c,$661c206e,$0144ba3c,$002c6708,$08e90002,$000c6004
+    DC.B    $52,$68,$00,$14,$33,$68,$00,$14,$00,$14,$4e,$75 ; VIOLATION: orphaned code island at $4FE4 is not reached from known entrypoints
+    DC.B    $30,$3c,$00,$2b,$60,$00,$35,$60 ; VIOLATION: orphaned code island at $4FF0 is not reached from known entrypoints
+    DC.B    $70,$00,$10,$2e,$02,$6b,$8c,$3b,$00,$04,$4e,$75 ; VIOLATION: orphaned code island at $4FF8 is not reached from known entrypoints
+    DC.L    $40004080 ; VIOLATION: orphaned code island at $5004 is not reached from known entrypoints
     DC.B    "-MG("
     DC.L    $b23c005b,$670000a8,$7e0047ee,$470841ee
     DC.B    "GZ-HG"
     DC.B    $fa,$48,$6c
     DC.L    $ffff6100,$0464245f,$66000764,$08070000,$6634b23c,$00296600,$00b00807,$00016700
     DC.L    $00c04a2b,$00096600,$00b8102b,$00086b00,$00b07a10,$8a00121c,$b23c002b,$660608c5
-    DC.L    $0003121c,$4e75b23c,$002c6700,$0082121c,$b23c002e,$66000010,$2413362b,$0004182b
-    DC.L    $00066000,$c98eb23c,$00096700,$0018b23c,$00206700,$0010b23c,$002c6708,$b23c000d
-    DC.L    $6600c912,$284a122c,$ffff6100,$c1b26100,$c90a6000,$c1aa7e00,$47ee4708,$484708c7
-    DC.L    $00076600,$06ca47ee,$471841ee,$47aa2d48,$47fa121c,$b23c005d,$6734b23c,$00296720
-    DC.L    $610003a6,$660006a8,$b23c002c,$66e6121c,$b23c005b,$66ea4a2b,$000e6ec0,$60000690
-    DC.L    $4a2b000e,$6f000688,$121c6000,$001c4a2b,$000e6c00,$067a4847,$47ee4708,$41ee475a
-    DC.L    $2d4847fa,$121c60c0,$4a2b000e,$6c0e4847,$47ee4708,$41ee475a,$2d4847fa,$24070282
-    DC.L    $00070007,$20024840,$e7488042,$d040d040,$7a300807,$00036702,$7a3b0807,$00176700
-    DC.L    $04cc182e,$0123b83c,$00206700,$cfc2383c,$01d0243b,$00208842,$48422f0d,$3ac44ebb
-    DC.L    $2014205f,$08040006,$67040884,$00023084,$70004e75,$01200001,$01200001,$01000001
-    DC.L    $01000001,$01200001,$01200001,$05fa0000,$05fa0000,$01200005,$01200005,$01000005
-    DC.L    $01000005,$01200005,$01200005,$05fa0000,$05fa0000,$01200005,$01200005,$01000005
-    DC.L    $01000005,$01200005,$01200005,$05fa0000,$05fa0000,$01200005,$01200005,$01000005
-    DC.L    $01000005,$01200005,$01200005,$05fa0000,$05fa0000,$01620001,$01620001,$05fa0000
-    DC.L    $05fa0000,$05fa0000,$05fa0000,$05fa0000,$05fa0000,$01620001,$01620001,$05fa0000
-    DC.L    $05fa0000,$05fa0000,$05fa0000,$05fa0000,$05fa0000,$01620001,$01620001,$05fa0000
-    DC.L    $05fa0000,$05fa0000,$05fa0000,$05fa0000,$05fa0000,$01620001,$01620001,$05fa0000
-    DC.L    $05fa0000,$05fa0000,$05fa0000,$05fa0000,$05fa0000,$08870001,$08c70002,$7008d02e
-    DC.L    $47101d40,$47121d6e,$47114723,$51ee4714,$51ee4715,$47ee4718,$41ee47aa,$2d4847fa
-    DC.L    $08070010,$67046100,$00860807,$00116704,$61000066,$47ee4708,$41ee475a,$2d4847fa
-    DC.L    $08070002,$67046100,$00fc0807,$00006704,$6100011c,$4e7547ee,$471841ee,$47aa2d48
-    DC.L    $47fa0807,$00106704,$61000044,$08070011,$67046100,$00240807,$00126704,$610000c6
-    DC.L    $47ee4708,$41ee475a,$2d4847fa,$08070000,$67046100,$00da4e75,$4a2b0009,$660e0884
-    DC.L    $00070807,$00036604,$8a2b0008,$4e752413,$362b0004,$082e0007,$01116740,$b63c0001
-    DC.L    $661c2f02,$94ae026e
+    DC.L    $0003121c
+    DC.B    $4e,$75
+    DC.B    $b2,$3c ; VIOLATION: orphaned code island at $506A is not reached from known entrypoints
+    DC.L    $002c6700,$0082121c,$b23c002e,$66000010,$2413362b,$0004182b,$00066000
+    DC.B    $c9,$8e
+    DC.B    $b2,$3c ; VIOLATION: orphaned code island at $508A is not reached from known entrypoints
+    DC.L    $00096700,$0018b23c,$00206700,$0010b23c,$002c6708,$b23c000d,$6600c912,$284a122c
+    DC.L    $ffff6100,$c1b26100,$c90a6000
+    DC.B    $c1,$aa
+    DC.B    $7e,$00 ; VIOLATION: orphaned code island at $50BA is not reached from known entrypoints
+    DC.L    $47ee4708,$484708c7,$00076600,$06ca47ee,$471841ee,$47aa2d48,$47fa121c,$b23c005d
+    DC.L    $6734b23c,$00296720,$610003a6,$660006a8,$b23c002c,$66e6121c,$b23c005b,$66ea4a2b
+    DC.L    $000e6ec0,$60000690
+    DC.B    $4a,$2b,$00,$0e,$6f,$00,$06,$88,$12,$1c,$60,$00,$00,$1c ; VIOLATION: orphaned code island at $5104 is not reached from known entrypoints
+    DC.B    $4a,$2b ; VIOLATION: orphaned code island at $5112 is not reached from known entrypoints
+    DC.L    $000e6c00,$067a4847,$47ee4708,$41ee475a,$2d4847fa,$121c60c0
+    DC.L    $4a2b000e,$6c0e4847,$47ee4708,$41ee475a,$2d4847fa,$24070282,$00070007,$20024840
+    DC.L    $e7488042,$d040d040,$7a300807,$00036702,$7a3b0807,$00176700,$04cc182e,$0123b83c
+    DC.L    $00206700,$cfc2383c,$01d0243b,$00208842,$48422f0d,$3ac44ebb,$2014205f,$08040006
+    DC.L    $67040884,$00023084,$70004e75,$01200001,$01200001,$01000001,$01000001,$01200001
+    DC.L    $01200001,$05fa0000,$05fa0000,$01200005,$01200005,$01000005,$01000005,$01200005
+    DC.L    $01200005,$05fa0000,$05fa0000,$01200005,$01200005,$01000005,$01000005,$01200005
+    DC.L    $01200005,$05fa0000,$05fa0000,$01200005,$01200005,$01000005,$01000005,$01200005
+    DC.L    $01200005,$05fa0000,$05fa0000,$01620001,$01620001,$05fa0000,$05fa0000,$05fa0000
+    DC.L    $05fa0000,$05fa0000,$05fa0000,$01620001,$01620001,$05fa0000,$05fa0000,$05fa0000
+    DC.L    $05fa0000,$05fa0000,$05fa0000,$01620001,$01620001,$05fa0000,$05fa0000,$05fa0000
+    DC.L    $05fa0000,$05fa0000,$05fa0000,$01620001,$01620001,$05fa0000,$05fa0000,$05fa0000
+    DC.L    $05fa0000,$05fa0000,$05fa0000,$08870001,$08c70002,$7008d02e,$47101d40,$47121d6e
+    DC.L    $47114723,$51ee4714,$51ee4715,$47ee4718,$41ee47aa,$2d4847fa,$08070010,$67046100
+    DC.L    $00860807,$00116704,$61000066,$47ee4708,$41ee475a,$2d4847fa,$08070002,$67046100
+    DC.L    $00fc0807,$00006704,$6100011c,$4e7547ee,$471841ee,$47aa2d48,$47fa0807,$00106704
+    DC.L    $61000044,$08070011,$67046100,$00240807,$00126704,$610000c6,$47ee4708,$41ee475a
+    DC.L    $2d4847fa,$08070000,$67046100,$00da4e75,$4a2b0009,$660e0884,$00070807,$00036604
+    DC.L    $8a2b0008,$4e752413,$362b0004,$082e0007,$01116740,$b63c0001,$661c2f02,$94ae026e ; VIOLATION: orphaned code island at $512C is not reached from known entrypoints
     DC.B    " .G("
     DC.L    $90ae027e,$94803042,$b1c24cdf,$00046620,$60063042,$b1c26618,$4a2b0006,$66126100
     DC.L    $3ac4660c,$177c0001,$00077012,$61003518,$102b0007,$b03c0003,$670003c4,$53006724
@@ -4794,34 +4947,42 @@ loc_4F40:
     DC.L    $bf0c6604,$548d4e75,$55824a2e,$00ff6706,$4a436b00,$38706100,$16023ac2,$4e750c2e
     DC.L    $00280123,$66000014
     DC.B    $4a,$2e
-sub_633A:
+h0_633A:
     btst.b d0,-(a7)
-    beq.s loc_6344
-loc_633E:
+    beq.s h0_6344
+h0_633E:
     moveq.l #101,d0
-    bsr.w loc_8556
-loc_6344:
+    bsr.w h0_8556
+h0_6344:
     move.w #$F518,(a5)+
     rts
-    DC.B    $4a,$2e
+    DC.B    $4a,$2e ; VIOLATION: orphaned code island at $634A is not reached from known entrypoints
     DC.L    $0125660a,$0c2e001e,$01236600,$cf004a2e,$01276706,$70656100,$21f23ac6,$3afc2400
-    DC.L    $4e750c2e,$00280123,$6600cee2,$4a2e0127,$67067065,$610021d4,$3ac66100,$b5841005
-    DC.L    $02000038,$b03c0010,$660e0205,$0007206e,$027e8a50,$30854e75,$70686000,$21ae0c2e
-    DC.L    $00280123,$6600cea6,$4a2e0127,$67067065,$61002198,$3ac64e75,$0c2e0028,$01236600
-    DC.L    $00144a2e,$01276706,$70656100
+    DC.B    $4e,$75
+    DC.B    $0c,$2e ; VIOLATION: orphaned code island at $636E is not reached from known entrypoints
+    DC.L    $00280123,$6600cee2,$4a2e0127,$67067065,$610021d4,$3ac66100,$b5841005,$02000038
+    DC.L    $b03c0010,$660e0205,$0007206e,$027e8a50,$30854e75
+    DC.B    $70,$68,$60,$00,$21,$ae ; VIOLATION: orphaned code island at $63A4 is not reached from known entrypoints
+    DC.B    $0c,$2e ; VIOLATION: orphaned code island at $63AA is not reached from known entrypoints
+    DC.L    $00280123,$6600cea6,$4a2e0127,$67067065,$61002198,$3ac64e75
+    DC.L    $0c2e0028,$01236600,$00144a2e,$01276706,$70656100 ; VIOLATION: orphaned code island at $63C4 is not reached from known entrypoints
     DC.B    "!~<<"
-    DC.L    $f50860a4,$4a2e0125,$660a0c2e,$001e0123,$6600ce6a,$4a2e0127,$67067065,$6100215c
-    DC.L    $343c3000,$3ac66100,$005cb23c,$002c6600,$2126121c,$b23c0023,$66002124,$121c3f02
-    DC.L    $6100b33c,$361f4a2e,$012556c0,$02800000,$00080000,$00074a82,$6b04b480,$6f087059
-    DC.L    $61002118,$7400eb4a,$8443b23c,$002c6704,$3ac24e75,$121c08c2,$000b3ac2,$6100b314
-    DC.L    $00244e75,$b23c0023,$676e4881,$1236107e,$b23c0053,$6740b23c,$00446656,$121c0401
-    DC.L    $0030654e,$b23c0008,$6522b23c,$00166706,$b23c0036,$663c121c,$b23c0043,$6706b23c
-    DC.L    $0063662e,$00420001,$121c4e75,$08c10003,$8401121c,$4e75121c,$b23c0046,$6706b23c
-    DC.L    $0066660e,$121cb23c,$004367dc,$b23c0063,$67d67059,$60002080,$121c3f02,$6100b280
-    DC.L    $4a2e0125,$56c00280,$00000008,$00000007,$4a826b04,$b4806f08,$70596100,$205e7400
-    DC.L    $845f08c2,$00044e75,$4a2e0125,$660a0c2e,$00140123,$6600cd46,$4a2e0127,$67067065
-    DC.L    $61002038,$343c3400,$6000feda,$4a2e0125,$660a0c2e,$00140123,$6600cd22,$4a2e0127
-    DC.L    $67067065,$61002014,$3ac63afc,$a0006100,$b22200fc
+    DC.L    $f50860a4
+    DC.L    $4a2e0125,$660a0c2e,$001e0123,$6600ce6a,$4a2e0127,$67067065,$6100215c,$343c3000
+    DC.L    $3ac66100,$005cb23c,$002c6600,$2126121c,$b23c0023,$66002124,$121c3f02,$6100b33c
+    DC.L    $361f4a2e,$012556c0,$02800000,$00080000,$00074a82,$6b04b480,$6f087059,$61002118
+    DC.L    $7400eb4a,$8443b23c,$002c6704,$3ac24e75 ; VIOLATION: orphaned code island at $63E0 is not reached from known entrypoints
+    DC.L    $121c08c2,$000b3ac2,$6100b314,$00244e75,$b23c0023,$676e4881,$1236107e,$b23c0053
+    DC.L    $6740b23c,$00446656,$121c0401,$0030654e,$b23c0008,$6522b23c,$00166706,$b23c0036
+    DC.L    $663c121c,$b23c0043,$6706b23c,$0063662e,$00420001,$121c4e75 ; VIOLATION: orphaned code island at $6450 is not reached from known entrypoints
+    DC.B    $08,$c1,$00,$03,$84,$01,$12,$1c,$4e,$75 ; VIOLATION: orphaned code island at $64A8 is not reached from known entrypoints
+    DC.B    $12,$1c ; VIOLATION: orphaned code island at $64B2 is not reached from known entrypoints
+    DC.L    $b23c0046,$6706b23c,$0066660e,$121cb23c,$004367dc,$b23c0063,$67d67059,$60002080
+    DC.L    $121c3f02,$6100b280,$4a2e0125,$56c00280,$00000008,$00000007,$4a826b04,$b4806f08
+    DC.L    $70596100,$205e7400,$845f08c2,$00044e75 ; VIOLATION: orphaned code island at $64D4 is not reached from known entrypoints
+    DC.L    $4a2e0125,$660a0c2e,$00140123,$6600cd46,$4a2e0127,$67067065,$61002038,$343c3400
+    DC.L    $6000feda,$4a2e0125,$660a0c2e,$00140123,$6600cd22,$4a2e0127,$67067065,$61002014
+    DC.L    $3ac63afc,$a0006100,$b22200fc ; VIOLATION: orphaned code island at $6504 is not reached from known entrypoints
     DC.B    "NuJ."
     DC.L    $0125660a,$0c2e001e,$01236600,$ccf84a2e,$01276706,$70656100,$1fea3afc,$f0003406
     DC.L    $6100feea,$3ac2b23c,$002c6600,$1fb2121c,$6100b1e8,$00244e75,$0c2e001e,$01236600
@@ -4879,20 +5040,27 @@ loc_6344:
     DC.L    $00026724,$4e7550ee,$015e6100,$a2c251ee,$015e4a2e,$00ff6704,$4a436b0c,$b63c0001
     DC.L    $67064a04,$66024e75,$703e6000,$19fe61d6,$1d7c003d,$46f52d42,$46f64e75,$70336000
     DC.B    $19,$ea
-loc_6B6A:
+h0_6B6A:
     move.w #$34,d0
-    bra.w loc_853E
-    DC.B    $61,$e2
-    DC.L    $5ec0601c,$61dc5cc0,$601661d6,$5dc06010,$61d05fc0,$600a61ca,$57c06004,$61c456c0
+    bra.w h0_853E
+    DC.B    $61,$e2,$5e,$c0,$60,$1c ; VIOLATION: orphaned code island at $6B72 is not reached from known entrypoints
+    DC.B    $61,$dc,$5c,$c0,$60,$16 ; VIOLATION: orphaned code island at $6B78 is not reached from known entrypoints
+    DC.B    $61,$d6,$5d,$c0,$60,$10 ; VIOLATION: orphaned code island at $6B7E is not reached from known entrypoints
+    DC.B    $61,$d0,$5f,$c0,$60,$0a ; VIOLATION: orphaned code island at $6B84 is not reached from known entrypoints
+    DC.B    $61,$ca,$57,$c0,$60,$04 ; VIOLATION: orphaned code island at $6B8A is not reached from known entrypoints
+    DC.L    $61c456c0 ; VIOLATION: orphaned code island at $6B90 is not reached from known entrypoints
     DC.B    "RnG8J",0
     DC.B    $67,$08
-    DC.L    $61000170,$720d4e75,$61000168,$61009c7e
+    DC.L    $61000170,$720d4e75
+    DC.L    $61000168,$61009c7e ; VIOLATION: orphaned code island at $6BA4 is not reached from known entrypoints
     DC.B    ">.G8a",0
     DC.B    $9b,$12
     DC.L    $66b46174,$676c4a82,$6718b2bc
     DC.B    "ELSEf`"
     DC.B    $b4,$bc
-    DC.L    $49460000,$6658be6e,$473867c8,$6050b2bc
+    DC.L    $49460000,$6658be6e,$473867c8
+    DC.B    $60,$50
+    DC.B    $b2,$bc ; VIOLATION: orphaned code island at $6BD6 is not reached from known entrypoints
     DC.B    "ELSEg"
     DC.B    $f0,$b2,$bc
     DC.B    "ENDCg"
@@ -4900,22 +5068,31 @@ loc_6B6A:
     DC.B    "ENDMf"
     DC.B    $1e,$4a,$2e
     DC.L    $01026732,$60000700
-    DC.B    "0.G8SnG8"
-    DC.L    $be406622,$60966100,$00e0601a,$4841b27c,$49466612,$484141fa,$08b23018,$6708b240
-    DC.L    $66f8526e,$47386100,$9c006084,$121cb23c,$000d6700,$0094b23c,$0009672e,$b23c0020
-    DC.L    $6728b23c,$002a6700,$0080b23c,$003b6778,$121cb23c,$000d6770,$b23c0009,$670cb23c
-    DC.L    $00206706,$b23c003a,$66e6121c,$b23c000d,$6756b23c,$000967f2,$b23c0020,$67ecb23c
-    DC.L    $002a6744,$b23c003b,$673e41ee,$05de42a0,$42a07007,$601a121c,$b23c000d,$6722b23c
-    DC.L    $0009671c,$b23c0020,$6716b23c,$002e6710,$48811236,$107e10c1,$51c8ffdc,$70004e75
-    DC.L    $4cee0006,$05d670ff
-    DC.B    "Nu0.G8g"
+    DC.B    $30,$2e,$47,$38,$53,$6e,$47,$38,$be,$40,$66,$22,$60,$96 ; VIOLATION: orphaned code island at $6BF8 is not reached from known entrypoints
+    DC.B    $61,$00,$00,$e0,$60,$1a ; VIOLATION: orphaned code island at $6C06 is not reached from known entrypoints
+    DC.L    $4841b27c,$49466612,$484141fa,$08b23018,$6708b240,$66f8526e,$47386100,$9c006084 ; VIOLATION: orphaned code island at $6C0C is not reached from known entrypoints
+    DC.L    $121cb23c,$000d6700,$0094b23c,$0009672e,$b23c0020,$6728b23c,$002a6700,$0080b23c
+    DC.L    $003b6778,$121cb23c,$000d6770,$b23c0009,$670cb23c,$00206706,$b23c003a,$66e6121c
+    DC.L    $b23c000d,$6756b23c,$000967f2,$b23c0020,$67ecb23c,$002a6744,$b23c003b,$673e41ee
+    DC.L    $05de42a0,$42a07007 ; VIOLATION: orphaned code island at $6C2C is not reached from known entrypoints
+    DC.B    $60,$1a
+    DC.B    $12,$1c ; VIOLATION: orphaned code island at $6C96 is not reached from known entrypoints
+    DC.L    $b23c000d,$6722b23c,$0009671c,$b23c0020,$6716b23c,$002e6710,$48811236,$107e10c1
+    DC.L    $51c8ffdc,$70004e75
+    DC.B    $4c,$ee,$00,$06,$05,$d6,$70,$ff,$4e,$75 ; VIOLATION: orphaned code island at $6CC0 is not reached from known entrypoints
+    DC.B    "0.G8g" ; VIOLATION: orphaned code island at $6CCA is not reached from known entrypoints
     DC.B    $18
     DC.L    $4a2e0102,$670a246e,$473cb06a,$000e6708
     DC.B    "SnG8`",0
     DC.B    $fe,$b6
-    DC.L    $70306000,$186a302e,$47386714,$4a2e0102,$670a246e,$473cb06a,$000e6704,$6000fe9e
-    DC.L    $70316000,$184a4a2e,$01286722,$4a2e026a,$661c4a2e,$01026706,$4a2e0119,$6710302e
-    DC.L    $47380600,$00301d40,$46f56000
+    DC.B    $70,$30,$60,$00,$18,$6a ; VIOLATION: orphaned code island at $6CE8 is not reached from known entrypoints
+    DC.B    "0.G8g" ; VIOLATION: orphaned code island at $6CEE is not reached from known entrypoints
+    DC.B    $14
+    DC.L    $4a2e0102,$670a246e,$473cb06a,$000e6704,$6000fe9e
+    DC.B    $70,$31,$60,$00,$18,$4a ; VIOLATION: orphaned code island at $6D08 is not reached from known entrypoints
+    DC.B    $4a,$2e ; VIOLATION: orphaned code island at $6D0E is not reached from known entrypoints
+    DC.L    $01286722,$4a2e026a,$661c4a2e,$01026706,$4a2e0119,$6710302e,$47380600,$00301d40
+    DC.L    $46f56000
     DC.B    $26,$48,$4e,$75,$22,$3c,$00
     DC.B    $00
     DC.L    $13883d41,$01546100,$24022d48,$01504e75,$70366000,$18064a2e,$010266f4,$4aae474a
@@ -4932,52 +5109,52 @@ loc_6B6A:
     DC.L    $01502409,$948c956e,$01544e75,$4a006600,$169e0c29,$0008000d,$66001690,$08e90006
     DC.L    $000c6600,$16866100,$9a906100,$98286600,$fcde6100,$fd9c67ee,$b2bc454e,$444d66e6
     DC.L    $4a8266e2,$720d4e75
-sub_6EA4:
+h0_6EA4:
     move.l #$1F40,d1
     move.w d1,$4740(a6)
-    bsr.w sub_9146
-loc_6EB2:
+    bsr.w h0_9146
+h0_6EB2:
     move.l a0,$4742(a6)
     rts
-loc_6EB8:
+h0_6EB8:
     moveq.l #78,d0
-    bra.w loc_853E
-loc_6EBE:
+    bra.w h0_853E
+h0_6EBE:
     cmpi.w #580,$4740(a6)
-    bcs.s loc_6EB8
-loc_6EC6:
+    bcs.s h0_6EB8
+h0_6EC6:
     movem.l d1/a1,-(a7)
     btst.b #3,$000C(a1)
-    beq.s loc_6ED8
-loc_6ED2:
-    bsr.w sub_0CA4
-loc_6ED6:
-    bra.s loc_6EDC
-loc_6ED8:
-    bsr.w loc_0C84
-loc_6EDC:
+    beq.s h0_6ED8
+h0_6ED2:
+    bsr.w h0_0CA4
+h0_6ED6:
+    bra.s h0_6EDC
+h0_6ED8:
+    bsr.w h0_0C84
+h0_6EDC:
     movem.l (a7)+,d1/a1
     tst.b $026A(a6)
-    beq.s loc_6EF0
-loc_6EE6:
+    beq.s h0_6EF0
+h0_6EE6:
     btst.b #6,$000C(a1)
-    beq.w loc_851E
-loc_6EF0:
+    beq.w h0_851E
+h0_6EF0:
     moveq.l #87,d0
     cmp.b #$D,d1
-    beq.s loc_6F0E
-loc_6EF8:
+    beq.s h0_6F0E
+h0_6EF8:
     cmp.b #$9,d1
-    beq.s loc_6F0E
-loc_6EFE:
+    beq.s h0_6F0E
+h0_6EFE:
     cmp.b #$20,d1
-    beq.s loc_6F0E
-loc_6F04:
+    beq.s h0_6F0E
+h0_6F04:
     cmp.b #$2E,d1
-    bne.w loc_8516
-loc_6F0C:
+    bne.w h0_8516
+h0_6F0C:
     moveq.l #0,d0
-loc_6F0E:
+h0_6F0E:
     movea.l $4742(a6),a0
     sf.b $000C(a0)
     move.l $473C(a6),(a0)
@@ -4991,100 +5168,100 @@ loc_6F0E:
     clr.w (a1)
     lea.l $0116(a0),a0
     move.b d0,(a0)+
-    bne.s loc_6F60
-loc_6F44:
+    bne.s h0_6F60
+h0_6F44:
     subq.l #1,a0
-loc_6F46:
+h0_6F46:
     move.b (a4)+,d1
     cmp.b #$D,d1
-    beq.s loc_6F60
-loc_6F4E:
+    beq.s h0_6F60
+h0_6F4E:
     cmp.b #$9,d1
-    beq.s loc_6F5E
-loc_6F54:
+    beq.s h0_6F5E
+h0_6F54:
     cmp.b #$20,d1
-    beq.s loc_6F5E
-loc_6F5A:
+    beq.s h0_6F5E
+h0_6F5A:
     move.b d1,(a0)+
-    bra.s loc_6F46
-loc_6F5E:
+    bra.s h0_6F46
+h0_6F5E:
     move.b (a4)+,d1
-loc_6F60:
+h0_6F60:
     clr.b (a0)+
-loc_6F62:
+h0_6F62:
     cmp.b #$D,d1
-    beq.w loc_6FEA
-loc_6F6A:
+    beq.w h0_6FEA
+h0_6F6A:
     cmp.b #$2A,d1
-    beq.s loc_6FEA
-loc_6F70:
+    beq.s h0_6FEA
+h0_6F70:
     cmp.b #$3B,d1
-    beq.s loc_6FEA
-loc_6F76:
+    beq.s h0_6FEA
+h0_6F76:
     cmp.b #$9,d1
-    beq.s loc_6F82
-loc_6F7C:
+    beq.s h0_6F82
+h0_6F7C:
     cmp.b #$20,d1
-    bne.s loc_6F86
-loc_6F82:
+    bne.s h0_6F86
+h0_6F82:
     move.b (a4)+,d1
-    bra.s loc_6F62
-loc_6F86:
+    bra.s h0_6F62
+h0_6F86:
     addq.w #1,(a1)
     cmp.b #$2C,d1
-    beq.s loc_6FD4
-loc_6F8E:
+    beq.s h0_6FD4
+h0_6F8E:
     cmp.b #$D,d1
-    beq.s loc_6FD4
-loc_6F94:
+    beq.s h0_6FD4
+h0_6F94:
     cmp.b #$3C,d1
-    bne.s loc_6FB6
-loc_6F9A:
+    bne.s h0_6FB6
+h0_6F9A:
     move.b (a4)+,d1
-    beq.s loc_6F9A
-loc_6F9E:
+    beq.s h0_6F9A
+h0_6F9E:
     cmp.b #$D,d1
-    beq.s loc_6FD4
-loc_6FA4:
+    beq.s h0_6FD4
+h0_6FA4:
     cmp.b #$3E,d1
-    bne.s loc_6FB2
-loc_6FAA:
+    bne.s h0_6FB2
+h0_6FAA:
     move.b (a4)+,d1
     cmp.b #$3E,d1
-    bne.s loc_6FD4
-loc_6FB2:
+    bne.s h0_6FD4
+h0_6FB2:
     move.b d1,(a0)+
-    bra.s loc_6F9A
-loc_6FB6:
+    bra.s h0_6F9A
+h0_6FB6:
     move.b d1,(a0)+
-loc_6FB8:
+h0_6FB8:
     move.b (a4)+,d1
-    beq.s loc_6FB8
-loc_6FBC:
+    beq.s h0_6FB8
+h0_6FBC:
     cmp.b #$D,d1
-    beq.s loc_6FD4
-loc_6FC2:
+    beq.s h0_6FD4
+h0_6FC2:
     cmp.b #$9,d1
-    beq.s loc_6FD4
-loc_6FC8:
+    beq.s h0_6FD4
+h0_6FC8:
     cmp.b #$20,d1
-    beq.s loc_6FD4
-loc_6FCE:
+    beq.s h0_6FD4
+h0_6FCE:
     cmp.b #$2C,d1
-    bne.s loc_6FB6
-loc_6FD4:
+    bne.s h0_6FB6
+h0_6FD4:
     clr.b (a0)+
     cmp.b #$2C,d1
-    bne.s loc_6FEA
-loc_6FDC:
+    bne.s h0_6FEA
+h0_6FDC:
     move.b (a4)+,d1
     cmp.b #$D,d1
-    bne.s loc_6F86
-loc_6FE4:
-    bra.s loc_7016
-loc_6FE6:
+    bne.s h0_6F86
+h0_6FE4:
+    bra.s h0_7016
+h0_6FE6:
     move.l (a7)+,$473C(a6)
-loc_6FEA:
+h0_6FEA:
     move.l a0,d0
     addq.l #1,d0
     bclr #0,d0
@@ -5093,370 +5270,370 @@ loc_6FEA:
     sub.l (a7)+,d0
     sub.w d0,$4740(a6)
     move.w $4752(a6),d0
-    bne.s loc_700A
-loc_7006:
+    bne.s h0_700A
+h0_7006:
     st.b $011A(a6)
-loc_700A:
+h0_700A:
     st.b $0102(a6)
     addq.w #1,d0
     move.w d0,$4752(a6)
     rts
-loc_7016:
+h0_7016:
     movea.l $473C(a6),a2
     move.l a2,-(a7)
     move.l (a2),$473C(a6)
     movem.l a0-a1,-(a7)
-    bsr.w sub_062A
-loc_7028:
+    bsr.w h0_062A
+h0_7028:
     movem.l (a7)+,a0-a1
-    bne.s loc_6FE6
-loc_702E:
+    bne.s h0_6FE6
+h0_702E:
     cmp.b #$26,d0
-    bne.s loc_6FE6
-loc_7034:
+    bne.s h0_6FE6
+h0_7034:
     movem.l a0-a1,-(a7)
-    bsr.w sub_0828
-loc_703C:
-    bsr.w sub_06C4
-loc_7040:
+    bsr.w h0_0828
+h0_703C:
+    bsr.w h0_06C4
+h0_7040:
     movem.l (a7)+,a0-a1
     movea.l (a7)+,a2
-    bne.w loc_6B6A
-loc_704A:
+    bne.w h0_6B6A
+h0_704A:
     move.l a2,$473C(a6)
     move.b (a4)+,d1
     cmp.b #$26,d1
-    beq.s loc_705C
-loc_7056:
+    beq.s h0_705C
+h0_7056:
     moveq.l #70,d0
-    bsr.w loc_8556
-loc_705C:
+    bsr.w h0_8556
+h0_705C:
     move.b (a4)+,d1
     cmp.b #$9,d1
-    beq.s loc_705C
-loc_7064:
+    beq.s h0_705C
+h0_7064:
     cmp.b #$20,d1
-    beq.s loc_705C
-loc_706A:
-    bra.w loc_6F86
-loc_706E:
+    beq.s h0_705C
+h0_706A:
+    bra.w h0_6F86
+h0_706E:
     move.w $4752(a6),d0
     cmp.w $4754(a6),d0
-    bhi.s loc_7092
-loc_7078:
-    bsr.w loc_749E
-loc_707C:
+    bhi.s h0_7092
+h0_7078:
+    bsr.w h0_749E
+h0_707C:
     movea.l a4,a0
     movea.l $473C(a6),a2
     lea.l $0014(a2),a1
     moveq.l #0,d2
-    bra.w loc_716E
-loc_708C:
+    bra.w h0_716E
+h0_708C:
     tst.l $474A(a6)
-    bne.s loc_706E
-loc_7092:
+    bne.s h0_706E
+h0_7092:
     movea.l $473C(a6),a2
     movea.l $0004(a2),a1
     movea.l $0010(a2),a0
     cmpa.l $0004(a1),a0
-    bne.s loc_70AE
-loc_70A4:
+    bne.s h0_70AE
+h0_70A4:
     movea.l $0008(a1),a1
     move.l a1,$0004(a2)
     movea.l (a1),a0
-loc_70AE:
+h0_70AE:
     moveq.l #13,d0
     movea.l a0,a4
     moveq.l #92,d2
-loc_70B4:
+h0_70B4:
     move.b (a0)+,d1
     cmp.b d0,d1
-    beq.s loc_70C0
-loc_70BA:
+    beq.s h0_70C0
+h0_70BA:
     cmp.b d2,d1
-    bne.s loc_70B4
-loc_70BE:
-    bra.s loc_70DC
-loc_70C0:
+    bne.s h0_70B4
+h0_70BE:
+    bra.s h0_70DC
+h0_70C0:
     tst.l $474A(a6)
-    beq.s loc_70D0
-loc_70C6:
+    beq.s h0_70D0
+h0_70C6:
     move.w $4752(a6),d0
     cmp.w $4754(a6),d0
-    bls.s loc_70D4
-loc_70D0:
+    bls.s h0_70D4
+h0_70D0:
     move.l a0,$0010(a2)
-loc_70D4:
+h0_70D4:
     move.l a4,$0272(a6)
     moveq.l #0,d0
     rts
-loc_70DC:
+h0_70DC:
     lea.l $0014(a2),a1
     move.l a0,d2
     sub.l a4,d2
     subq.w #1,d2
-    beq.s loc_70F6
-loc_70E8:
+    beq.s h0_70F6
+h0_70E8:
     move.l a0,d1
     move.w d2,d0
     movea.l a4,a0
-loc_70EE:
+h0_70EE:
     move.b (a0)+,(a1)+
     subq.w #1,d0
-    bne.s loc_70EE
-loc_70F4:
+    bne.s h0_70EE
+h0_70F4:
     movea.l d1,a0
-loc_70F6:
+h0_70F6:
     move.b (a0)+,d1
     cmp.b #$D,d1
-    beq.w loc_7188
-loc_7100:
+    beq.w h0_7188
+h0_7100:
     cmp.b #$40,d1
-    beq.w loc_71F2
-loc_7108:
+    beq.w h0_71F2
+h0_7108:
     cmp.b #$3C,d1
-    beq.w loc_7258
-loc_7110:
+    beq.w h0_7258
+h0_7110:
     cmp.b #$3F,d1
-    beq.w loc_719E
-loc_7118:
+    beq.w h0_719E
+h0_7118:
     moveq.l #48,d0
     cmp.b d0,d1
-    bcs.s loc_7194
-loc_711E:
+    bcs.s h0_7194
+h0_711E:
     cmp.b #$3A,d1
-    bcs.s loc_7140
-loc_7124:
+    bcs.s h0_7140
+h0_7124:
     moveq.l #55,d0
     cmp.b #$41,d1
-    bcs.s loc_7168
-loc_712C:
+    bcs.s h0_7168
+h0_712C:
     cmp.b #$5B,d1
-    bcs.s loc_7140
-loc_7132:
+    bcs.s h0_7140
+h0_7132:
     moveq.l #87,d0
     cmp.b #$61,d1
-    bcs.s loc_7168
-loc_713A:
+    bcs.s h0_7168
+h0_713A:
     cmp.b #$7B,d1
-    bcc.s loc_7168
-loc_7140:
+    bcc.s h0_7168
+h0_7140:
     sub.b d0,d1
     move.l a0,-(a7)
     lea.l $0116(a2),a0
     ext.w d1
-    beq.s loc_715A
-loc_714C:
+    beq.s h0_715A
+h0_714C:
     cmp.w $0008(a2),d1
-    bgt.s loc_7164
-loc_7152:
+    bgt.s h0_7164
+h0_7152:
     tst.b (a0)+
-    bne.s loc_7152
-loc_7156:
+    bne.s h0_7152
+h0_7156:
     subq.w #1,d1
-    bne.s loc_7152
-loc_715A:
+    bne.s h0_7152
+h0_715A:
     addq.b #1,d2
-    beq.s loc_7180
-loc_715E:
+    beq.s h0_7180
+h0_715E:
     move.b (a0)+,(a1)+
-    bne.s loc_715A
-loc_7162:
+    bne.s h0_715A
+h0_7162:
     subq.l #1,a1
-loc_7164:
+h0_7164:
     movea.l (a7)+,a0
-    bra.s loc_716E
-loc_7168:
+    bra.s h0_716E
+h0_7168:
     addq.b #1,d2
-    beq.s loc_7182
-loc_716C:
+    beq.s h0_7182
+h0_716C:
     move.b d1,(a1)+
-loc_716E:
+h0_716E:
     move.b (a0)+,d1
     cmp.b #$D,d1
-    beq.s loc_7188
-loc_7176:
+    beq.s h0_7188
+h0_7176:
     cmp.b #$5C,d1
-    bne.s loc_7168
-loc_717C:
-    bra.w loc_70F6
-loc_7180:
+    bne.s h0_7168
+h0_717C:
+    bra.w h0_70F6
+h0_7180:
     movea.l (a7)+,a0
-loc_7182:
+h0_7182:
     cmpi.b #13,(a0)+
-    bne.s loc_7182
-loc_7188:
+    bne.s h0_7182
+h0_7188:
     move.b #$D,(a1)+
     lea.l $0014(a2),a4
-    bra.w loc_70C0
-loc_7194:
+    bra.w h0_70C0
+h0_7194:
     cmp.b #$23,d1
-    beq.w loc_72D2
-loc_719C:
-    bra.s loc_7168
-loc_719E:
+    beq.w h0_72D2
+h0_719C:
+    bra.s h0_7168
+h0_719E:
     move.b (a0)+,d1
     moveq.l #48,d0
     cmp.b d0,d1
-    bcs.s loc_7194
-loc_71A6:
+    bcs.s h0_7194
+h0_71A6:
     cmp.b #$3A,d1
-    bcs.s loc_71C8
-loc_71AC:
+    bcs.s h0_71C8
+h0_71AC:
     moveq.l #55,d0
     cmp.b #$41,d1
-    bcs.s loc_7168
-loc_71B4:
+    bcs.s h0_7168
+h0_71B4:
     cmp.b #$5B,d1
-    bcs.s loc_71C8
-loc_71BA:
+    bcs.s h0_71C8
+h0_71BA:
     moveq.l #87,d0
     cmp.b #$61,d1
-    bcs.s loc_7168
-loc_71C2:
+    bcs.s h0_7168
+h0_71C2:
     cmp.b #$7B,d1
-    bcc.s loc_7168
-loc_71C8:
+    bcc.s h0_7168
+h0_71C8:
     sub.b d0,d1
     move.l a0,-(a7)
     lea.l $0116(a2),a0
     ext.w d1
-    beq.s loc_71E2
-loc_71D4:
+    beq.s h0_71E2
+h0_71D4:
     cmp.w $0008(a2),d1
-    bgt.s loc_71EC
-loc_71DA:
+    bgt.s h0_71EC
+h0_71DA:
     tst.b (a0)+
-    bne.s loc_71DA
-loc_71DE:
+    bne.s h0_71DA
+h0_71DE:
     subq.w #1,d1
-    bne.s loc_71DA
-loc_71E2:
+    bne.s h0_71DA
+h0_71E2:
     moveq.l #0,d1
-loc_71E4:
+h0_71E4:
     tst.b (a0)+
-    beq.s loc_71EE
-loc_71E8:
+    beq.s h0_71EE
+h0_71E8:
     addq.l #1,d1
-    bra.s loc_71E4
-loc_71EC:
+    bra.s h0_71E4
+h0_71EC:
     moveq.l #0,d1
-loc_71EE:
-    bra.w loc_7226
-loc_71F2:
+h0_71EE:
+    bra.w h0_7226
+h0_71F2:
     tst.b $000C(a2)
-    bne.s loc_7204
-loc_71F8:
+    bne.s h0_7204
+h0_71F8:
     st.b $000C(a2)
     addq.w #1,$473A(a6)
     addq.w #1,$000A(a2)
-loc_7204:
+h0_7204:
     cmp.b #$F9,d2
-    bcc.w loc_7182
-loc_720C:
+    bcc.w h0_7182
+h0_720C:
     addq.b #1,d2
     move.b #$5F,(a1)+
     move.l a0,-(a7)
     moveq.l #0,d1
     move.w $000A(a2),d1
     cmp.w #$A,d1
-    bcs.s loc_7244
-loc_7220:
+    bcs.s h0_7244
+h0_7220:
     cmp.w #$64,d1
-    bcs.s loc_724A
-loc_7226:
+    bcs.s h0_724A
+h0_7226:
     movem.l d4/a2-a3,-(a7)
     movea.l a1,a3
     move.w d2,d4
-    lea.l loc_7252(pc),a2
-    bsr.w loc_8F8E
-loc_7236:
+    lea.l h0_7252(pc),a2
+    bsr.w h0_8F8E
+h0_7236:
     movea.l a3,a1
     move.w d4,d2
     movem.l (a7)+,d4/a2-a3
     movea.l (a7)+,a0
-    bra.w loc_716E
-loc_7244:
+    bra.w h0_716E
+h0_7244:
     addq.b #1,d2
     move.b #$30,(a1)+
-loc_724A:
+h0_724A:
     addq.b #1,d2
     move.b #$30,(a1)+
-    bra.s loc_7226
-loc_7252:
+    bra.s h0_7226
+h0_7252:
     addq.b #1,d4
     move.b d1,(a3)+
     rts
-loc_7258:
+h0_7258:
     cmp.b #$F5,d2
-    bcc.w loc_7182
-loc_7260:
+    bcc.w h0_7182
+h0_7260:
     move.b (a0)+,d1
     movem.l d2/d4/a0-a4,-(a7)
     cmp.b #$24,d1
     seq.b d4
-    bne.s loc_7276
-loc_726E:
+    bne.s h0_7276
+h0_726E:
     move.b (a0)+,d1
-    bra.s loc_7276
-loc_7272:
+    bra.s h0_7276
+h0_7272:
     move.l d2,d1
-    bra.s loc_7298
-loc_7276:
+    bra.s h0_7298
+h0_7276:
     movea.l a0,a4
     lea.l $041E(a6),a0
-    bsr.w sub_7726
-loc_7280:
-    bne.s loc_72C4
-loc_7282:
+    bsr.w h0_7726
+h0_7280:
+    bne.s h0_72C4
+h0_7282:
     cmp.b #$3E,d1
-    bne.s loc_72C4
-loc_7288:
-    bsr.w sub_151C
-loc_728C:
-    beq.s loc_7272
-loc_728E:
-    bsr.w sub_0C0E
-loc_7292:
-    bne.s loc_72C4
-loc_7294:
+    bne.s h0_72C4
+h0_7288:
+    bsr.w h0_151C
+h0_728C:
+    beq.s h0_7272
+h0_728E:
+    bsr.w h0_0C0E
+h0_7292:
+    bne.s h0_72C4
+h0_7294:
     move.l $0008(a1),d1
-loc_7298:
+h0_7298:
     movea.l $000C(a7),a3
-    lea.l loc_7252(pc),a2
+    lea.l h0_7252(pc),a2
     tst.b d4
-    beq.s loc_72AC
-loc_72A4:
+    beq.s h0_72AC
+h0_72A4:
     move.l (a7),d4
-    bsr.w sub_8F5E
-loc_72AA:
-    bra.s loc_72B2
-loc_72AC:
+    bsr.w h0_8F5E
+h0_72AA:
+    bra.s h0_72B2
+h0_72AC:
     move.l (a7),d4
-    bsr.w loc_8F8E
-loc_72B2:
+    bsr.w h0_8F8E
+h0_72B2:
     move.l a3,d1
     move.w d4,d2
     move.l a4,d3
     movem.l (a7)+,d0/d4/a0-a4
     movea.l d1,a1
     movea.l d3,a0
-    bra.w loc_716E
-loc_72C4:
+    bra.w h0_716E
+h0_72C4:
     movem.l (a7)+,d2/d4/a0-a4
     moveq.l #73,d0
-    bsr.w loc_8556
-loc_72CE:
-    bra.w loc_716E
-loc_72D2:
+    bsr.w h0_8556
+h0_72CE:
+    bra.w h0_716E
+h0_72D2:
     cmp.b #$FC,d2
-    bcc.w loc_7182
-loc_72DA:
+    bcc.w h0_7182
+h0_72DA:
     moveq.l #0,d1
     move.w $0008(a2),d1
     move.l a0,-(a7)
-    bra.w loc_7226
-    DC.B    $4a,$2e
+    bra.w h0_7226
+    DC.B    $4a,$2e ; VIOLATION: orphaned code island at $72E6 is not reached from known entrypoints
     DC.L    $01026754
     DC.B    "$nG<=j",0
     DC.B    $0e
@@ -5468,11 +5645,15 @@ loc_72DA:
     DC.B    "-JGB0*",0
     DC.B    $0e
     DC.L    $b06e4738,$670a3d40,$4738700a,$61001332,$20122d40,$473c6604,$51ee0102,$720d4e75
-    DC.L    $70356000,$1212703b,$600011f4,$282e026e,$41ee041e,$4a906704,$6100996a,$4aae474a
-    DC.L    $66000036,$6100f7c8
+    DC.B    $70,$35,$60,$00,$12,$12 ; VIOLATION: orphaned code island at $7340 is not reached from known entrypoints
+    DC.B    $70,$3b,$60,$00,$11,$f4 ; VIOLATION: orphaned code island at $7346 is not reached from known entrypoints
+    DC.L    $282e026e,$41ee041e,$4a906704,$6100996a,$4aae474a,$66000036,$6100f7c8 ; VIOLATION: orphaned code island at $734C is not reached from known entrypoints
     DC.B    "-BGFn0a",0
     DC.L    $94b86100,$93506600,$f7f26100,$f8b067ee,$4a8266ea,$b2bc5245,$5054670c,$b2bc454e
-    DC.L    $445266da,$720d4e75,$70476000,$11ba206e,$01500c6e,$01100154,$64046100,$f98c2d48
+    DC.L    $445266da,$720d4e75
+    DC.B    $70,$47,$60,$00,$11,$ba ; VIOLATION: orphaned code island at $7398 is not reached from known entrypoints
+    DC.B    $20,$6e ; VIOLATION: orphaned code island at $739E is not reached from known entrypoints
+    DC.L    $01500c6e,$01100154,$64046100,$f98c2d48
     DC.B    "GJ?."
     DC.L    $015442a8,$000843e8,$00102089,$21490004,$2148000c,$2d490150,$046e0010,$01542648
     DC.L    $61009452,$42ae474a,$610092e6,$6600f788
@@ -5488,26 +5669,28 @@ loc_72DA:
     DC.B    "GFe<-KGJC"
     DC.B    $eb
     DC.L    $00102d49,$474e6100,$92846600,$f72648e7,$00186100,$f7e04cdf,$1800670c,$b2bc454e
-    DC.L    $44526604,$4a8267cc,$50ee0115,$2f0b6100,$9598265f,$60d0301f,$342e0154,$4aab0008
-    DC.L    $67027000,$9440956e,$015448c2,$d5ae0150,$42ae474a,$41fa2656,$2d4801a8,$720d4e75
-    DC.L    $70486000
-    DC.B    $10,$ba
-loc_749E:
+    DC.L    $44526604,$4a8267cc,$50ee0115,$2f0b6100,$9598265f
+    DC.B    $60,$d0
+    DC.B    $30,$1f ; VIOLATION: orphaned code island at $746E is not reached from known entrypoints
+    DC.L    $342e0154,$4aab0008,$67027000,$9440956e,$015448c2,$d5ae0150,$42ae474a,$41fa2656
+    DC.L    $2d4801a8,$720d4e75
+    DC.B    $70,$48,$60,$00,$10,$ba ; VIOLATION: orphaned code island at $7498 is not reached from known entrypoints
+h0_749E:
     movea.l $474A(a6),a1
     movea.l $474E(a6),a0
     cmpa.l $0004(a1),a0
-    bne.s loc_74B6
-loc_74AC:
+    bne.s h0_74B6
+h0_74AC:
     movea.l $0008(a1),a1
     move.l a1,$474A(a6)
     movea.l (a1),a0
-loc_74B6:
+h0_74B6:
     movea.l a0,a4
     moveq.l #13,d0
-loc_74BA:
+h0_74BA:
     cmp.b (a0)+,d0
-    bne.s loc_74BA
-loc_74BE:
+    bne.s h0_74BA
+h0_74BE:
     move.l a0,$474E(a6)
     move.l a4,$0272(a6)
     moveq.l #0,d0
@@ -5516,121 +5699,121 @@ loc_74BE:
     DC.L    $4e434400
     DC.B    "NDGTGELTLE",0
     DC.B    $00
-loc_74E0:
+h0_74E0:
     move.l d2,-(a7)
-    bra.w loc_0B28
+    bra.w h0_0B28
 dat_74E6:
     DC.B    $00,$00,$0e,$36,$00,$00
-loc_74EC:
+h0_74EC:
     lea.l dat_74E6(pc),a0
     tst.b $00FF(a6)
-    beq.s loc_7504
-loc_74F6:
+    beq.s h0_7504
+h0_74F6:
     tst.b $026A(a6)
-    beq.s loc_7504
-loc_74FC:
-    bsr.w sub_98A6
-loc_7500:
+    beq.s h0_7504
+h0_74FC:
+    bsr.w h0_98A6
+h0_7500:
     move.b -$0001(a4),d1
-loc_7504:
+h0_7504:
     moveq.l #0,d0
-    bra.w loc_759C
-loc_750A:
+    bra.w h0_759C
+h0_750A:
     tst.b $00FF(a6)
-    beq.s loc_751E
-loc_7510:
+    beq.s h0_751E
+h0_7510:
     tst.b $026A(a6)
-    beq.s loc_751E
-loc_7516:
-    bsr.w sub_98A6
-loc_751A:
+    beq.s h0_751E
+h0_7516:
+    bsr.w h0_98A6
+h0_751A:
     move.b -$0001(a4),d1
-loc_751E:
+h0_751E:
     cmp.b #$2E,d1
-    bne.s loc_7570
-loc_7524:
+    bne.s h0_7570
+h0_7524:
     move.b (a4)+,d1
-    bmi.s loc_7540
-loc_7528:
+    bmi.s h0_7540
+h0_7528:
     ext.w d1
     lea.l dat_75E6(pc),a1
     adda.w d1,a1
     move.b $0005(a0),d0
-    bne.s loc_7544
-loc_7536:
+    bne.s h0_7544
+h0_7536:
     move.b (a1),d0
-    bmi.s loc_7564
-loc_753A:
+    bmi.s h0_7564
+h0_753A:
     cmp.b #$4,d0
-    bcs.s loc_7586
-loc_7540:
-    bra.w loc_851A
-loc_7544:
-    bmi.s loc_7554
-loc_7546:
+    bcs.s h0_7586
+h0_7540:
+    bra.w h0_851A
+h0_7544:
+    bmi.s h0_7554
+h0_7546:
     tst.b $0124(a6)
-    bne.w loc_7554
-loc_754E:
+    bne.w h0_7554
+h0_754E:
     subq.w #1,d0
-loc_7550:
-    beq.s loc_74E0
-loc_7552:
-    bra.s loc_7536
-loc_7554:
+h0_7550:
+    beq.s h0_74E0
+h0_7552:
+    bra.s h0_7536
+h0_7554:
     move.b (a1),d0
-    bpl.s loc_7586
-loc_7558:
+    bpl.s h0_7586
+h0_7558:
     addq.w #2,d0
-    beq.s loc_7582
-loc_755C:
+    beq.s h0_7582
+h0_755C:
     addq.b #1,d0
-    bne.s loc_7540
-loc_7560:
+    bne.s h0_7540
+h0_7560:
     moveq.l #6,d0
-    bra.s loc_759C
-loc_7564:
+    bra.s h0_759C
+h0_7564:
     addq.b #2,d0
-    beq.s loc_7582
-loc_7568:
+    beq.s h0_7582
+h0_7568:
     addq.b #1,d0
-    bne.s loc_7540
-loc_756C:
+    bne.s h0_7540
+h0_756C:
     moveq.l #1,d0
-    bra.s loc_7586
-loc_7570:
+    bra.s h0_7586
+h0_7570:
     move.b $0005(a0),d0
     subq.w #1,d0
-    bne.s loc_757E
-loc_7578:
+    bne.s h0_757E
+h0_7578:
     tst.b $0124(a6)
-    beq.s loc_7550
-loc_757E:
+    beq.s h0_7550
+h0_757E:
     moveq.l #0,d0
-    bra.s loc_759C
-loc_7582:
+    bra.s h0_759C
+h0_7582:
     moveq.l #2,d0
     subq.l #1,a4
-loc_7586:
+h0_7586:
     move.b (a4)+,d1
     cmp.b #$9,d1
-    beq.s loc_759C
-loc_758E:
+    beq.s h0_759C
+h0_758E:
     cmp.b #$20,d1
-    beq.s loc_759C
-loc_7594:
+    beq.s h0_759C
+h0_7594:
     cmp.b #$D,d1
-    bne.w loc_851A
-loc_759C:
+    bne.w h0_851A
+h0_759C:
     cmp.b #$D,d1
-    beq.s loc_75B0
-loc_75A2:
+    beq.s h0_75B0
+h0_75A2:
     move.b (a4)+,d1
     cmp.b #$9,d1
-    beq.s loc_759C
-loc_75AA:
+    beq.s h0_759C
+h0_75AA:
     cmp.b #$20,d1
-    beq.s loc_759C
-loc_75B0:
+    beq.s h0_759C
+h0_75B0:
     move.b d0,$026B(a6)
     sf.b $026D(a6)
     move.w (a0)+,d6
@@ -5642,17 +5825,17 @@ loc_75B0:
     move.l a0,-(a7)
     move.w d1,-(a7)
     btst #15,d2
-    beq.s loc_75D8
-loc_75D2:
-    bsr.w sub_0CA4
-loc_75D6:
-    bra.s loc_75E2
-loc_75D8:
+    beq.s h0_75D8
+h0_75D2:
+    bsr.w h0_0CA4
+h0_75D6:
+    bra.s h0_75E2
+h0_75D8:
     btst #14,d2
-    beq.s loc_75E2
-loc_75DE:
-    bsr.w loc_0C84
-loc_75E2:
+    beq.s h0_75E2
+h0_75DE:
+    bsr.w h0_0C84
+h0_75E2:
     move.w (a7)+,d1
     rts
 dat_75E6:
@@ -5670,29 +5853,29 @@ dat_7682:
     DC.L    $025642ae,$01b04e75,$220d92ae,$027e2d41,$01b06714,$242e026e,$d3ae026e,$d3ae0256
     DC.L    $4a2e026a,$660021e4
     DC.B    $4e,$75
-sub_76EE:
-    bsr.s sub_7726
-loc_76F0:
-    bne.s loc_770E
-loc_76F2:
+h0_76EE:
+    bsr.s h0_7726
+h0_76F0:
+    bne.s h0_770E
+h0_76F2:
     movea.l (a0),a1
     move.b $0005(a0),d0
     moveq.l #46,d2
     addq.l #1,a1
-    bra.s loc_7702
-loc_76FE:
+    bra.s h0_7702
+h0_76FE:
     cmp.b (a1)+,d2
-    beq.s loc_7710
-loc_7702:
+    beq.s h0_7710
+h0_7702:
     subq.b #1,d0
-    bne.s loc_76FE
-loc_7706:
+    bne.s h0_76FE
+h0_7706:
     move.b $0005(a0),d2
     movea.l a4,a1
     moveq.l #0,d0
-loc_770E:
+h0_770E:
     rts
-loc_7710:
+h0_7710:
     movea.l a4,a1
     move.b $0005(a0),d2
     sub.b d0,$0005(a0)
@@ -5701,52 +5884,52 @@ loc_7710:
     move.b -$0001(a4),d1
     moveq.l #0,d0
     rts
-sub_7726:
+h0_7726:
     andi.w #255,d1
     lea.l dat_B75C(pc),a2
     tst.b $0(a2,d1.w)
-    beq.s loc_7762
-loc_7734:
-    bpl.s loc_77A4
-loc_7736:
+    beq.s h0_7762
+h0_7734:
+    bpl.s h0_77A4
+h0_7736:
     move.b (a4),d1
     ext.w d1
     move.b $7E(a6,d1.w),d1
     cmp.b #$57,d1
-    beq.s loc_7750
-loc_7744:
+    beq.s h0_7750
+h0_7744:
     cmp.b #$42,d1
-    beq.s loc_7750
-loc_774A:
+    beq.s h0_7750
+h0_774A:
     cmp.b #$4C,d1
-    bne.s loc_775E
-loc_7750:
+    bne.s h0_775E
+h0_7750:
     move.b $0001(a4),d1
     tst.b $0(a2,d1.w)
-    ble.s loc_775E
-loc_775A:
+    ble.s h0_775E
+h0_775A:
     moveq.l #46,d1
-    bra.s loc_77A4
-loc_775E:
+    bra.s h0_77A4
+h0_775E:
     moveq.l #46,d1
-    bra.s loc_77AA
-loc_7762:
+    bra.s h0_77AA
+h0_7762:
     cmp.b #$3A,d1
-    bcc.s loc_77AA
-loc_7768:
+    bcc.s h0_77AA
+h0_7768:
     lea.l -$0001(a4),a1
     movea.l a4,a2
-loc_776E:
+h0_776E:
     move.b (a2)+,d1
     cmp.b #$24,d1
-    beq.s loc_7782
-loc_7776:
+    beq.s h0_7782
+h0_7776:
     cmp.b #$3A,d1
-    bcc.s loc_77A4
-loc_777C:
+    bcc.s h0_77A4
+h0_777C:
     cmp.b #$30,d1
-    bcc.s loc_776E
-loc_7782:
+    bcc.s h0_776E
+h0_7782:
     movea.l a2,a4
     move.l a2,d0
     sub.l a1,d0
@@ -5755,166 +5938,188 @@ loc_7782:
     move.l a2,(a0)
     move.b $0118(a6),(a2)+
     subq.b #1,d0
-loc_7798:
+h0_7798:
     move.b (a1)+,(a2)+
     subq.b #1,d0
-    bne.s loc_7798
-loc_779E:
+    bne.s h0_7798
+h0_779E:
     move.b (a4)+,d1
     moveq.l #0,d0
     rts
-loc_77A4:
+h0_77A4:
     clr.l (a0)
     moveq.l #41,d0
     rts
-loc_77AA:
+h0_77AA:
     tst.b $00FE(a6)
-    bne.w loc_781E
-loc_77B2:
+    bne.w h0_781E
+h0_77B2:
     move.b d1,$0006(a0)
     lea.l -$0001(a4),a1
     move.l a1,(a0)
     moveq.l #0,d1
     moveq.l #0,d2
-loc_77C0:
+h0_77C0:
     move.b (a4)+,d1
     tst.b $0(a2,d1.w)
-    beq.s loc_77C0
-loc_77C8:
-    bpl.s loc_7802
-loc_77CA:
+    beq.s h0_77C0
+h0_77C8:
+    bpl.s h0_7802
+h0_77CA:
     move.l a4,d2
-    bra.s loc_77C0
-loc_77CE:
-    DC.B    $94,$8c
-    DC.L    $54826632,$142cfffe,$b43c004c,$671eb43c,$006c6718,$b43c0057,$6712b43c,$0077670c
-    DC.L    $b43c0042,$6706b43c,$0062660a,$558c722e
-    DC.B    $60,$04
-loc_7802:
+    bra.s h0_77C0
+h0_77CE:
+    sub.l a4,d2
+    addq.l #2,d2
+    bne.s h0_7806
+    move.b -$0002(a4),d2
+    cmp.b #$4C,d2
+    beq.s h0_77FC
+    cmp.b #$6C,d2
+    beq.s h0_77FC
+    cmp.b #$57,d2
+    beq.s h0_77FC
+    cmp.b #$77,d2
+    beq.s h0_77FC
+    cmp.b #$42,d2
+    beq.s h0_77FC
+    cmp.b #$62,d2
+    bne.s h0_7806
+h0_77FC:
+    subq.l #2,a4
+    moveq.l #46,d1
+    bra.s h0_7806
+h0_7802:
     tst.l d2
-    bne.s loc_77CE
-loc_7806:
+    bne.s h0_77CE
+h0_7806:
     move.l a4,d0
     sub.l (a0),d0
     cmp.w $0252(a6),d0
-    bcs.s loc_7814
-loc_7810:
+    bcs.s h0_7814
+h0_7810:
     move.w $0252(a6),d0
-loc_7814:
+h0_7814:
     subq.b #1,d0
     move.b d0,$0005(a0)
     moveq.l #0,d0
     rts
-loc_781E:
+h0_781E:
     lea.l $0006(a0),a1
     move.l a1,(a0)
     moveq.l #1,d2
     moveq.l #0,d0
-loc_7828:
+h0_7828:
     ext.w d1
     move.b $7E(a6,d1.w),d1
     move.b d1,(a1)+
     moveq.l #0,d1
     move.b (a4)+,d1
     tst.b $0(a2,d1.w)
-    bgt.s loc_7852
-loc_783A:
-    bmi.s loc_7844
-loc_783C:
+    bgt.s h0_7852
+h0_783A:
+    bmi.s h0_7844
+h0_783C:
     addq.b #1,d2
-    bpl.s loc_7828
+    bpl.s h0_7828
+h0_7840:
     moveq.l #127,d2
-    bra.s loc_784A
-loc_7844:
+    bra.s h0_784A
+h0_7844:
     move.l a4,d0
     addq.b #1,d2
-    bpl.s loc_7828
-loc_784A:
+    bpl.s h0_7828
+h0_784A:
     move.b (a4)+,d1
     tst.b $0(a2,d1.w)
-    ble.s loc_784A
-loc_7852:
+    ble.s h0_784A
+h0_7852:
     tst.l d0
-    beq.s loc_787E
+    beq.s h0_787E
+h0_7856:
     sub.l a4,d0
     addq.l #2,d0
-    bne.s loc_787E
+    bne.s h0_787E
+h0_785C:
     move.b -$0002(a4),d0
     cmp.b #$4C,d0
-    beq.s loc_7878
+    beq.s h0_7878
+h0_7866:
     cmp.b #$6C,d0
-    beq.s loc_7878
+    beq.s h0_7878
+h0_786C:
     cmp.b #$57,d0
-    beq.s loc_7878
+    beq.s h0_7878
+h0_7872:
     cmp.b #$77,d0
-    bne.s loc_787E
-loc_7878:
+    bne.s h0_787E
+h0_7878:
     moveq.l #46,d1
     subq.l #2,a4
     subq.b #2,d2
-loc_787E:
+h0_787E:
     move.b d2,$0005(a0)
     moveq.l #0,d0
     rts
-sub_7886:
+h0_7886:
     moveq.l #0,d0
     move.b d1,d2
     cmp.b #$22,d1
-    beq.s loc_789A
-loc_7890:
+    beq.s h0_789A
+h0_7890:
     cmp.b #$27,d1
-    beq.s loc_789A
-loc_7896:
+    beq.s h0_789A
+h0_7896:
     moveq.l #0,d2
     subq.l #1,a4
-loc_789A:
+h0_789A:
     move.b (a4)+,d1
     cmp.b #$D,d1
-    beq.s loc_78DE
-loc_78A2:
+    beq.s h0_78DE
+h0_78A2:
     cmp.b d1,d2
-    beq.s loc_78EE
-loc_78A6:
+    beq.s h0_78EE
+h0_78A6:
     cmp.b #$9,d1
-    beq.s loc_78B2
-loc_78AC:
+    beq.s h0_78B2
+h0_78AC:
     cmp.b #$20,d1
-    bne.s loc_78B6
-loc_78B2:
+    bne.s h0_78B6
+h0_78B2:
     tst.b d2
-    beq.s loc_78DE
-loc_78B6:
+    beq.s h0_78DE
+h0_78B6:
     cmp.b #$2C,d1
-    bne.s loc_78C8
-loc_78BC:
+    bne.s h0_78C8
+h0_78BC:
     btst #16,d3
-    beq.s loc_78C8
-loc_78C2:
+    beq.s h0_78C8
+h0_78C2:
     move.l a4,$01C4(a6)
-    bra.s loc_78DE
-loc_78C8:
+    bra.s h0_78DE
+h0_78C8:
     btst #17,d3
-    bne.s loc_78D4
-loc_78CE:
+    bne.s h0_78D4
+h0_78CE:
     ext.w d1
     move.b $7E(a6,d1.w),d1
-loc_78D4:
+h0_78D4:
     move.b d1,$6(a0,d0.w)
     addq.b #1,d0
-    bpl.s loc_789A
+    bpl.s h0_789A
     moveq.l #126,d0
-loc_78DE:
+h0_78DE:
     lea.l $0005(a0),a1
     addq.b #1,d0
     move.b d0,(a1)+
     move.b d3,$5(a0,d0.w)
     move.l a1,(a0)
     rts
-loc_78EE:
+h0_78EE:
     cmpi.b #44,(a4)+
-    bne.s loc_78DE
-loc_78F4:
-    bra.s loc_78C2
+    bne.s h0_78DE
+h0_78F4:
+    bra.s h0_78C2
     DC.B    $ff,$ff
     DC.L    $ff002002,$c0bafff8,$6744b0ba,$fff2673e,$602a2002
     DC.B    "H@J@g4R@g0`"
@@ -5922,59 +6127,59 @@ loc_78F4:
     DC.L    $b63c0001,$671c1002,$48806008,$b63c0001,$67103002,$48c0b480,$66024e75,$701d6000
     DC.L    $0c1e701e,$4a2e0108,$67000c14,$4e75b63c,$000167ee
     DC.B    $4e,$75
-loc_794E:
+h0_794E:
     movea.l a4,a0
     lea.l $05B5(a6),a4
     move.b (a4)+,d1
     move.l a0,-(a7)
-    bsr.s sub_7970
-loc_795A:
+    bsr.s h0_7970
+h0_795A:
     lea.l dat_796A(pc),a4
     move.b (a4)+,d1
     moveq.l #1,d3
-    bsr.w sub_79C0
-loc_7966:
+    bsr.w h0_79C0
+h0_7966:
     movea.l (a7)+,a4
     rts
 dat_796A:
-    DC.B    $54,$45,$58,$54,$0d,$00
-sub_7970:
+    DC.B    $54,$45,$58,$54,$0d,$00 ; VIOLATION: orphaned code island at $796A is not reached from known entrypoints
+h0_7970:
     clr.l $0160(a6)
     lea.l $041E(a6),a0
     moveq.l #9,d3
-    bsr.w sub_7886
-loc_797E:
+    bsr.w h0_7886
+h0_797E:
     movea.l $0178(a6),a2
     movem.l a3-a5,-(a7)
-    bsr.w sub_0BC8
-loc_798A:
+    bsr.w h0_0BC8
+h0_798A:
     sne.b d0
     movem.l (a7)+,a3-a5
     tst.b $026A(a6)
-    bne.s loc_79B0
-loc_7996:
+    bne.s h0_79B0
+h0_7996:
     tst.b d0
-    beq.s loc_79B0
-loc_799A:
+    beq.s h0_79B0
+h0_799A:
     moveq.l #0,d4
     moveq.l #9,d3
-    bsr.w loc_0CFA
-loc_79A2:
+    bsr.w h0_0CFA
+h0_79A2:
     move.l a1,$0144(a6)
     lea.l $0010(a1),a1
     move.l a1,$0168(a6)
     rts
-loc_79B0:
+h0_79B0:
     tst.b d0
-    bne.s loc_79BA
-loc_79B4:
-    bsr.s loc_79A2
-loc_79B6:
-    bra.w loc_97EA
-loc_79BA:
+    bne.s h0_79BA
+h0_79B4:
+    bsr.s h0_79A2
+h0_79B6:
+    bra.w h0_97EA
+h0_79BA:
     moveq.l #11,d0
-    bra.w loc_853E
-sub_79C0:
+    bra.w h0_853E
+h0_79C0:
     sf.b $011D(a6)
     sf.b $011E(a6)
     move.b d3,$0109(a6)
@@ -5982,124 +6187,124 @@ sub_79C0:
     clr.l $01C4(a6)
     bset #16,d3
     tst.b $00FF(a6)
-    beq.s loc_79EA
-loc_79DE:
+    beq.s h0_79EA
+h0_79DE:
     btst.b #1,$0251(a6)
-    beq.s loc_79EA
-loc_79E6:
+    beq.s h0_79EA
+h0_79E6:
     bset #17,d3
-loc_79EA:
-    bsr.w sub_7886
-loc_79EE:
+h0_79EA:
+    bsr.w h0_7886
+h0_79EE:
     movea.l $0144(a6),a2
     addq.w #8,a2
     movem.l d3/a3-a5,-(a7)
-    bsr.w sub_0BC8
-loc_79FC:
+    bsr.w h0_0BC8
+h0_79FC:
     sne.b d0
     movem.l (a7)+,d3/a3-a5
     tst.b $026A(a6)
-    bne.s loc_7A3A
-loc_7A08:
+    bne.s h0_7A3A
+h0_7A08:
     tst.b d0
-    beq.s loc_7A26
-loc_7A0C:
+    beq.s h0_7A26
+h0_7A0C:
     moveq.l #0,d4
-    bsr.w loc_0CFA
-loc_7A12:
+    bsr.w h0_0CFA
+h0_7A12:
     movea.l $0144(a6),a0
     subq.b #1,$000C(a0)
-loc_7A1A:
+h0_7A1A:
     move.b $000C(a0),d0
-    bsr.w sub_7A5A
-loc_7A22:
+    bsr.w h0_7A5A
+h0_7A22:
     move.b d0,$000E(a1)
-loc_7A26:
+h0_7A26:
     move.l a1,$0148(a6)
     move.l $0008(a1),$026E(a6)
     move.b $000E(a1),$014C(a6)
-    bra.w loc_9AEA
-loc_7A3A:
+    bra.w h0_9AEA
+h0_7A3A:
     tst.b d0
-    beq.s loc_7A26
-loc_7A3E:
-    bra.w loc_79BA
-sub_7A42:
+    beq.s h0_7A26
+h0_7A3E:
+    bra.w h0_79BA
+h0_7A42:
     movea.l $0148(a6),a1
     move.l $026E(a6),$0008(a1)
-    bra.w loc_9AAA
-sub_7A50:
+    bra.w h0_9AAA
+h0_7A50:
     tst.b $026A(a6)
-    bne.w loc_981E
-loc_7A58:
+    bne.w h0_981E
+h0_7A58:
     rts
-sub_7A5A:
+h0_7A5A:
     tst.b $00FF(a6)
-    beq.s loc_7A68
-loc_7A60:
+    beq.s h0_7A68
+h0_7A60:
     cmpi.w #1,$0250(a6)
-    bne.s loc_7AB4
-loc_7A68:
+    bne.s h0_7AB4
+h0_7A68:
     move.b $0016(a1),d0
     move.l $0016(a1),d1
     cmp.b #$4,d0
-    beq.s loc_7A86
-loc_7A76:
+    beq.s h0_7A86
+h0_7A76:
     cmp.b #$5,d0
-    beq.s loc_7A92
-loc_7A7C:
+    beq.s h0_7A92
+h0_7A7C:
     moveq.l #13,d0
-    bsr.w loc_8556
-loc_7A82:
+    bsr.w h0_8556
+h0_7A82:
     moveq.l #0,d0
     rts
-loc_7A86:
+h0_7A86:
     cmp.l #$4425353,d1
-    bne.s loc_7A7C
-loc_7A8E:
+    bne.s h0_7A7C
+h0_7A8E:
     moveq.l #24,d0
     rts
-loc_7A92:
+h0_7A92:
     lsl.l #8,d1
     move.b $001A(a1),d1
     moveq.l #0,d0
     cmp.l #$434F4445,d1
-    beq.s loc_7AB4
-loc_7AA2:
+    beq.s h0_7AB4
+h0_7AA2:
     cmp.l #$54455854,d1
-    beq.s loc_7AB4
-loc_7AAA:
+    beq.s h0_7AB4
+h0_7AAA:
     cmp.l #$44415441,d1
-    bne.s loc_7A7C
-loc_7AB2:
+    bne.s h0_7A7C
+h0_7AB2:
     moveq.l #12,d0
-loc_7AB4:
+h0_7AB4:
     rts
-sub_7AB6:
+h0_7AB6:
     movea.l $47FA(a6),a0
     clr.w (a0)
     move.l a0,$4756(a6)
     sf.b $010C(a6)
     rts
-sub_7AC6:
+h0_7AC6:
     move.l a0,-(a7)
     movea.l $4756(a6),a0
     move.w #$2B2B,(a0)+
     move.w d3,(a0)+
-loc_7AD2:
+h0_7AD2:
     move.l a0,$4756(a6)
     clr.w (a0)
     movea.l (a7)+,a0
     rts
-sub_7ADC:
+h0_7ADC:
     move.l a0,-(a7)
     move.b $000E(a1),d0
     movea.l $4756(a6),a0
     move.w #$2B2B,(a0)+
     st.b (a0)+
     move.b d0,(a0)+
-    bra.s loc_7AD2
-sub_7AF0:
+    bra.s h0_7AD2
+h0_7AF0:
     move.l a0,-(a7)
     movea.l $4756(a6),a0
     move.w #$2D2D,-$0004(a0)
@@ -6213,204 +6418,207 @@ dat_7B00:
     DC.B    "INTERNAL:memory list corrupt",0
     DC.B    "bit number should be 0-7 for byte",0
     DC.B    "p(`L"
-loc_84F2:
-    bsr.w sub_BFDA
-loc_84F6:
-    bne.s loc_84FA
-loc_84F8:
+h0_84F2:
+    bsr.w h0_BFDA
+h0_84F6:
+    bne.s h0_84FA
+h0_84F8:
     rts
-loc_84FA:
-    bsr.w loc_9B42
-loc_84FE:
+h0_84FA:
+    bsr.w h0_9B42
+h0_84FE:
     moveq.l #39,d0
-    bra.s loc_853E
-loc_8502:
+    bra.s h0_853E
+h0_8502:
     moveq.l #1,d0
-    bra.s loc_8556
-loc_8506:
+    bra.s h0_8556
+h0_8506:
     moveq.l #5,d0
-    bra.s loc_8556
-loc_850A:
+    bra.s h0_8556
+h0_850A:
     moveq.l #4,d0
-    bra.s loc_8556
-loc_850E:
+    bra.s h0_8556
+h0_850E:
     moveq.l #6,d0
-    bra.s loc_8556
-loc_8512:
+    bra.s h0_8556
+h0_8512:
     moveq.l #7,d0
-    bra.s loc_8556
-loc_8516:
+    bra.s h0_8556
+h0_8516:
     moveq.l #9,d0
-    bra.s loc_8556
-loc_851A:
+    bra.s h0_8556
+h0_851A:
     moveq.l #10,d0
-    bra.s loc_8556
-loc_851E:
+    bra.s h0_8556
+h0_851E:
     moveq.l #12,d0
-    bra.s loc_8556
-loc_8522:
+    bra.s h0_8556
+h0_8522:
     moveq.l #33,d0
-    bra.s loc_8556
-    DC.B    $70,$1d,$60,$2c
-loc_852A:
+    bra.s h0_8556
+    DC.B    $70,$1d,$60,$2c ; VIOLATION: orphaned code island at $8526 is not reached from known entrypoints
+h0_852A:
     moveq.l #38,d0
-    bra.s loc_8556
-    DC.B    $70,$0f,$60,$20,$70,$1f,$60,$1c,$70,$20,$60,$18,$70,$24,$60,$14
-loc_853E:
+    bra.s h0_8556
+    DC.B    $70,$0f,$60,$20 ; VIOLATION: orphaned code island at $852E is not reached from known entrypoints
+    DC.B    $70,$1f,$60,$1c ; VIOLATION: orphaned code island at $8532 is not reached from known entrypoints
+    DC.B    $70,$20,$60,$18 ; VIOLATION: orphaned code island at $8536 is not reached from known entrypoints
+    DC.B    $70,$24,$60,$14 ; VIOLATION: orphaned code island at $853A is not reached from known entrypoints
+h0_853E:
     sf.b $480F(a6)
     move.b #$14,$026C(a6)
-    bsr.s loc_8556
-loc_854A:
-    jmp loc_039E.l
-loc_8550:
+    bsr.s h0_8556
+h0_854A:
+    jmp h0_039E.l
+h0_8550:
     rts
-loc_8552:
+h0_8552:
     movea.l $0266(a6),a7
-loc_8556:
+h0_8556:
     tst.b $010E(a6)
-    bne.s loc_8550
-loc_855C:
+    bne.s h0_8550
+h0_855C:
     st.b $010E(a6)
     cmpi.b #10,$026C(a6)
-    bcc.s loc_856E
-loc_8568:
+    bcc.s h0_856E
+h0_8568:
     move.b #$A,$026C(a6)
-loc_856E:
+h0_856E:
     move.l a4,$015A(a6)
     movem.l d1-d3/a0-a3,-(a7)
     move.w d0,-(a7)
     moveq.l #6,d0
-    bsr.w sub_8F00
-loc_857E:
+    bsr.w h0_8F00
+h0_857E:
     lea.l dat_7B00(pc),a0
     addq.b #1,$010D(a6)
     moveq.l #0,d2
-loc_8588:
+h0_8588:
     move.w (a7)+,d0
-loc_858A:
+h0_858A:
     subq.w #1,d0
-    beq.w loc_8596
-loc_8590:
+    beq.w h0_8596
+h0_8590:
     tst.b (a0)+
-    bne.s loc_8590
-loc_8594:
-    bra.s loc_858A
-loc_8596:
+    bne.s h0_8590
+h0_8594:
+    bra.s h0_858A
+h0_8596:
     tst.l $01D0(a6)
-    beq.s loc_8604
-loc_859C:
+    beq.s h0_8604
+h0_859C:
     movem.l d1-d3/a0-a2,-(a7)
     moveq.l #0,d0
     move.w $024C(a6),d0
     moveq.l #0,d2
     movea.l $01AC(a6),a1
     move.l a1,d1
-    beq.s loc_85F0
-loc_85B0:
+    beq.s h0_85F0
+h0_85B0:
     cmpi.b #12,$000D(a1)
-    bne.s loc_8600
-loc_85B8:
+    bne.s h0_8600
+h0_85B8:
     move.l $0098(a1),d2
     tst.b $0102(a6)
-    bne.s loc_85E6
-loc_85C2:
+    bne.s h0_85E6
+h0_85C2:
     tst.l $474A(a6)
-    bne.w loc_85E6
-loc_85CA:
+    bne.w h0_85E6
+h0_85CA:
     move.l $0272(a6),d1
-    beq.s loc_8600
-loc_85D0:
+    beq.s h0_8600
+h0_85D0:
     moveq.l #0,d3
     movea.l d1,a2
     move.l $015A(a6),d1
-loc_85D8:
+h0_85D8:
     cmpa.l d1,a2
-    beq.s loc_85EA
-loc_85DC:
+    beq.s h0_85EA
+h0_85DC:
     cmp.b #$D,d3
-    beq.s loc_8600
-loc_85E2:
+    beq.s h0_8600
+h0_85E2:
     move.b (a2)+,d3
-    bra.s loc_85D8
-loc_85E6:
+    bra.s h0_85D8
+h0_85E6:
     moveq.l #0,d1
-    bra.s loc_85F0
-loc_85EA:
+    bra.s h0_85F0
+h0_85EA:
     sub.l $0272(a6),d1
     subq.l #1,d1
-loc_85F0:
+h0_85F0:
     movea.l $01D0(a6),a1
     moveq.l #0,d3
     movea.l $01D0(a6),a1
     movea.l $0014(a1),a1
-    jsr (a1) ; CANDIDATE: indirect_call index unresolved
-loc_8600:
+    jsr (a1)                            ; CANDIDATE: indirect_call index unresolved
+h0_8600:
     movem.l (a7)+,d1-d3/a0-a2
-loc_8604:
-    bsr.w loc_9334
-loc_8608:
+h0_8604:
+    bsr.w h0_9334
+h0_8608:
     move.w $024C(a6),d0
-    beq.s loc_8658
-loc_860E:
+    beq.s h0_8658
+h0_860E:
     cmp.w #$FFFF,d0
-    beq.s loc_864A
-loc_8614:
+    beq.s h0_864A
+h0_8614:
     moveq.l #9,d0
-    bsr.w sub_8F00
-loc_861A:
+    bsr.w h0_8F00
+h0_861A:
     moveq.l #0,d1
     move.w $024C(a6),d1
-    bsr.w sub_8F8A
-loc_8624:
+    bsr.w h0_8F8A
+h0_8624:
     tst.l $01AC(a6)
-    beq.s loc_864A
-loc_862A:
+    beq.s h0_864A
+h0_862A:
     moveq.l #11,d0
-    bsr.w sub_8F00
-loc_8630:
+    bsr.w h0_8F00
+h0_8630:
     movea.l $01AC(a6),a1
     moveq.l #0,d2
     move.b $0016(a1),d2
     subq.b #2,d2
     lea.l $0017(a1),a1
-loc_8640:
+h0_8640:
     move.b (a1)+,d1
-    bsr.w loc_8F1E
-loc_8646:
-    dbf.w d2,loc_8640
-loc_864A:
-    bsr.w loc_8F12
-loc_864E:
+    bsr.w h0_8F1E
+h0_8646:
+    dbf.w d2,h0_8640
+h0_864A:
+    bsr.w h0_8F12
+h0_864E:
     st.b $0103(a6)
     movem.l (a7)+,d1-d3/a0-a3
-loc_8656:
+h0_8656:
     rts
-loc_8658:
+h0_8658:
     moveq.l #28,d0
-    bsr.w sub_8F00
-loc_865E:
-    bra.s loc_864A
-loc_8660:
+    bsr.w h0_8F00
+h0_865E:
+    bra.s h0_864A
+h0_8660:
     tst.b $026A(a6)
-    beq.s loc_8656
-loc_8666:
+    beq.s h0_8656
+h0_8666:
     tst.b $0106(a6)
-    beq.s loc_8656
-loc_866C:
+    beq.s h0_8656
+h0_866C:
     cmpi.b #5,$026C(a6)
-    bcc.s loc_867A
-loc_8674:
+    bcc.s h0_867A
+h0_8674:
     move.b #$5,$026C(a6)
-loc_867A:
+h0_867A:
     move.l a4,$015A(a6)
     movem.l d1-d3/a0-a3,-(a7)
     move.w d0,-(a7)
     moveq.l #8,d0
-    bsr.w sub_8F00
-loc_868A:
+    bsr.w h0_8F00
+h0_868A:
     lea.l dat_8696(pc),a0
     move.w #$8000,d2
-    bra.w loc_8588
+    bra.w h0_8588
 dat_8696:
     DC.B    "sign extended operand",0
     DC.B    "relative cannot be relocated",0
@@ -6438,81 +6646,81 @@ dat_8696:
     DC.L    $020400ff,$00020200,$02024a2e,$026a672c,$48a7c000,$0440000b,$103b00e4,$6b0a4880
     DC.L    $d16e01c2,$526e01c0,$30170440,$000b322e,$01120101,$4c9f0003,$6600fd7a
     DC.B    $4e,$75
-loc_88EA:
+h0_88EA:
     moveq.l #67,d0
-    bra.w loc_853E
-sub_88F0:
+    bra.w h0_853E
+h0_88F0:
     movem.l a3-a5,-(a7)
     movea.l $0178(a6),a2
-    jsr sub_0BC8.l
-loc_88FE:
+    jsr h0_0BC8.l
+h0_88FE:
     movem.l (a7)+,a3-a5
     rts
-sub_8904:
+h0_8904:
     tst.b $026A(a6)
-    bne.w loc_8A06
-loc_890C:
-    bsr.s sub_88F0
-loc_890E:
-    bne.s loc_892E
-loc_8910:
+    bne.w h0_8A06
+h0_890C:
+    bsr.s h0_88F0
+h0_890E:
+    bne.s h0_892E
+h0_8910:
     tst.b $0136(a6)
-    bne.s loc_892A
-loc_8916:
+    bne.s h0_892A
+h0_8916:
     cmpi.b #13,$000D(a1)
-    beq.s loc_892A
-loc_891E:
+    beq.s h0_892A
+h0_891E:
     tst.w $009C(a1)
-    bne.w loc_8AC0
-loc_8926:
-    bra.w loc_8A0E
-loc_892A:
+    bne.w h0_8AC0
+h0_8926:
+    bra.w h0_8A0E
+h0_892A:
     moveq.l #0,d0
     rts
-loc_892E:
+h0_892E:
     moveq.l #0,d4
     moveq.l #11,d3
     moveq.l #89,d0
     add.l d0,d0
-    jsr sub_0D60.l
-loc_893C:
+    jsr h0_0D60.l
+h0_893C:
     clr.l $0098(a1)
     clr.l $00AA(a1)
     clr.l $00AE(a1)
     move.l a1,-(a7)
-    bsr.w sub_BE60
-loc_894E:
+    bsr.w h0_BE60
+h0_894E:
     movea.l (a7)+,a1
-    bne.w loc_8ABC
-loc_8954:
+    bne.w h0_8ABC
+h0_8954:
     tst.l d1
-    bpl.s loc_8972
-loc_8958:
+    bpl.s h0_8972
+h0_8958:
     cmp.l #$FFFFFFFF,d1
-    beq.s loc_8972
-loc_8960:
+    beq.s h0_8972
+h0_8960:
     move.b #$D,$000D(a1)
     neg.l d1
-    jsr sub_10E38.l
-loc_896E:
+    jsr h0_10E38.l
+h0_896E:
     moveq.l #0,d0
     rts
-loc_8972:
+h0_8972:
     move.l d4,$0098(a1)
     move.l $01AC(a6),$0010(a1)
     move.l a1,$01AC(a6)
     tst.l d1
-    bmi.s loc_89C2
-loc_8984:
+    bmi.s h0_89C2
+h0_8984:
     addq.l #3,d1
     bclr #0,d1
     move.l #$1200,d2
-    bsr.w sub_C01E
-loc_8994:
+    bsr.w h0_C01E
+h0_8994:
     move.l a1,-(a7)
     move.l d1,d3
-    bsr.w sub_9146
-loc_899C:
+    bsr.w h0_9146
+h0_899C:
     movea.l (a7)+,a1
     move.l a0,$0008(a1)
     move.l d3,$00A6(a1)
@@ -6522,229 +6730,270 @@ loc_899C:
     move.w $024C(a6),$009C(a1)
     clr.w $024C(a6)
     st.b $000E(a1)
-    bra.w loc_8A70
-loc_89C2:
+    bra.w h0_8A70
+h0_89C2:
     move.b #$C,$000D(a1)
     movea.l $01D0(a6),a0
     move.l $0020(a0),$0008(a1)
     move.l $0020(a0),$009E(a1)
     movea.l $0024(a0),a2
     cmpi.b #10,-$0001(a2)
-    bne.s loc_89EC
-loc_89E4:
+    bne.s h0_89EC
+h0_89E4:
     cmpi.b #13,-$0002(a2)
-    beq.s loc_89F0
-loc_89EC:
+    beq.s h0_89F0
+h0_89EC:
     move.b #$D,(a2)+
-loc_89F0:
+h0_89F0:
     move.l a2,$00A2(a1)
     move.w $024C(a6),$009C(a1)
     clr.w $024C(a6)
     clr.b $000E(a1)
     moveq.l #0,d0
     rts
-loc_8A06:
-    bsr.w sub_88F0
-loc_8A0A:
-    bne.w loc_8AC0
-loc_8A0E:
+h0_8A06:
+    bsr.w h0_88F0
+h0_8A0A:
+    bne.w h0_8AC0
+h0_8A0E:
     move.b $000E(a1),d0
     cmp.b #$FE,d0
-    beq.s loc_8A50
-loc_8A18:
+    beq.s h0_8A50
+h0_8A18:
     cmpi.b #13,$000D(a1)
-    beq.s loc_8A50
-loc_8A20:
+    beq.s h0_8A50
+h0_8A20:
     move.l $01AC(a6),$0010(a1)
     move.l a1,$01AC(a6)
     tst.b d0
-    beq.s loc_8A52
-loc_8A2E:
+    beq.s h0_8A52
+h0_8A2E:
     move.l a1,-(a7)
-    bsr.w sub_BE60
-loc_8A34:
+    bsr.w h0_BE60
+h0_8A34:
     movea.l (a7)+,a1
-    bne.w loc_8ABC
-loc_8A3A:
+    bne.w h0_8ABC
+h0_8A3A:
     move.l d4,$0098(a1)
     move.l $0008(a1),$009E(a1)
     move.w $024C(a6),$009C(a1)
     clr.w $024C(a6)
-    bra.s loc_8A70
-loc_8A50:
+    bra.s h0_8A70
+h0_8A50:
     rts
-loc_8A52:
+h0_8A52:
     move.l $0008(a1),$009E(a1)
     move.w $024C(a6),$009C(a1)
     clr.w $024C(a6)
     moveq.l #0,d0
     rts
-sub_8A66:
+h0_8A66:
     move.l $0008(a1),$009E(a1)
     movea.l a2,a0
-    bra.s loc_8A7C
-loc_8A70:
+    bra.s h0_8A7C
+h0_8A70:
     movea.l $0008(a1),a0
     move.l a0,$009E(a1)
     move.l $00A6(a1),d1
-loc_8A7C:
+h0_8A7C:
     move.l $0098(a1),d2
     movem.l d1/a0-a1,-(a7)
-    bsr.w sub_BF84
-loc_8A88:
+    bsr.w h0_BF84
+h0_8A88:
     movem.l (a7)+,d2/a0-a1
-    bne.s loc_8AB8
-loc_8A8E:
+    bne.s h0_8AB8
+h0_8A8E:
     lea.l $0(a0,d1.l),a2
     cmp.l d1,d2
-    beq.s loc_8AAC
-loc_8A96:
+    beq.s h0_8AAC
+h0_8A96:
     clr.b (a2)
     cmpi.b #10,-$0001(a2)
-    bne.s loc_8AA8
-loc_8AA0:
+    bne.s h0_8AA8
+h0_8AA0:
     cmpi.b #13,-$0002(a2)
-    beq.s loc_8AAC
-loc_8AA8:
+    beq.s h0_8AAC
+h0_8AA8:
     move.b #$D,(a2)+
-loc_8AAC:
+h0_8AAC:
     move.l a2,$00A2(a1)
     addq.b #1,$000E(a1)
     moveq.l #0,d0
     rts
-loc_8AB8:
+h0_8AB8:
     moveq.l #25,d0
     rts
-loc_8ABC:
+h0_8ABC:
     moveq.l #26,d0
     rts
-loc_8AC0:
+h0_8AC0:
     moveq.l #28,d0
     rts
-sub_8AC4:
+h0_8AC4:
     moveq.l #11,d3
-    lea.l dat_8ACC(pc),a2
-    bra.s loc_8AE4
-dat_8ACC:
-    DC.L    $24280098,$671042a8,$009848e7,$00a06100,$348c4cdf,$05004e75
-loc_8AE4:
+    lea.l h0_8ACC(pc),a2
+    bra.s h0_8AE4
+h0_8ACC:
+    move.l $0098(a0),d2
+    beq.s h0_8AE2
+h0_8AD2:
+    clr.l $0098(a0)
+    movem.l a0/a2,-(a7)
+    bsr.w h0_BF68
+h0_8ADE:
+    movem.l (a7)+,a0/a2
+h0_8AE2:
+    rts
+h0_8AE4:
     move.l $0178(a6),d0
-    beq.s loc_8B16
-loc_8AEA:
+    beq.s h0_8B16
+h0_8AEA:
     movea.l d0,a0
     move.l (a0),d0
-    beq.s loc_8B16
-loc_8AF0:
+    beq.s h0_8B16
+h0_8AF0:
     movea.l d0,a0
-loc_8AF2:
+h0_8AF2:
     tst.l (a0)
-    beq.s loc_8AFE
-loc_8AF6:
+    beq.s h0_8AFE
+h0_8AF6:
     move.l a0,-(a7)
     movea.l (a0),a0
-    bsr.s loc_8AF2
-loc_8AFC:
+    bsr.s h0_8AF2
+h0_8AFC:
     movea.l (a7)+,a0
-loc_8AFE:
+h0_8AFE:
     tst.b d3
-    beq.s loc_8B08
-loc_8B02:
+    beq.s h0_8B08
+h0_8B02:
     cmp.b $000D(a0),d3
-    bne.s loc_8B0A
-loc_8B08:
-    jsr (a2) ; CANDIDATE: indirect_call index unresolved
-loc_8B0A:
+    bne.s h0_8B0A
+h0_8B08:
+    jsr (a2)
+h0_8B0A:
     tst.l $0004(a0)
-    beq.s loc_8B16
-loc_8B10:
+    beq.s h0_8B16
+h0_8B10:
     movea.l $0004(a0),a0
-    bra.s loc_8AF2
-loc_8B16:
+    bra.s h0_8AF2
+h0_8B16:
     rts
-sub_8B18:
+h0_8B18:
     lea.l $052A(a6),a0
     move.l d4,-(a7)
-    bsr.w sub_88F0
-loc_8B22:
+    bsr.w h0_88F0
+h0_8B22:
     move.l (a7)+,d4
     move.l a1,$05B0(a6)
     moveq.l #0,d3
-    lea.l dat_8B30(pc),a2
-    bra.s loc_8AE4
-dat_8B30:
-    DC.L    $1028000d,$b03c000b,$6706b03c,$000c664a,$2f0841e8,$00aa2010
-    DC.B    $67,$3e,$20,$50,$22,$28,$00
-    DC.B    $18
-    DC.L    $20010200,$00036706,$020100fc,$58812141,$001848e7,$00a06100,$05de2248,$4cdf0500
-    DC.L    $2149000e,$21490014,$217cffff,$ffff0006,$42a8000a,$41d060be
-    DC.B    " _Nu"
-sub_8B8C:
+    lea.l h0_8B30(pc),a2
+    bra.s h0_8AE4
+h0_8B30:
+    move.b $000D(a0),d0
+    cmp.b #$B,d0
+    beq.s h0_8B40
+h0_8B3A:
+    cmp.b #$C,d0
+    bne.s h0_8B8A
+h0_8B40:
+    move.l a0,-(a7)
+    lea.l $00AA(a0),a0
+h0_8B46:
+    move.l (a0),d0
+    beq.s h0_8B88
+h0_8B4A:
+    movea.l (a0),a0
+    move.l $0018(a0),d1
+    move.l d1,d0
+    andi.b #3,d0
+    beq.s h0_8B5E
+h0_8B58:
+    andi.b #252,d1
+    addq.l #4,d1
+h0_8B5E:
+    move.l d1,$0018(a0)
+    movem.l a0/a2,-(a7)
+    bsr.w h0_9146
+h0_8B6A:
+    movea.l a0,a1
+    movem.l (a7)+,a0/a2
+    move.l a1,$000E(a0)
+    move.l a1,$0014(a0)
+    move.l #$FFFFFFFF,$0006(a0)
+    clr.l $000A(a0)
+    lea.l (a0),a0
+    bra.s h0_8B46
+h0_8B88:
+    movea.l (a7)+,a0
+h0_8B8A:
+    rts
+h0_8B8C:
     move.l (a1),d1
-    bpl.s loc_8B94
-loc_8B90:
+    bpl.s h0_8B94
+h0_8B90:
     move.l d0,(a1)
-    bra.s loc_8B98
-loc_8B94:
+    bra.s h0_8B98
+h0_8B94:
     move.l d0,(a1)
     sub.l d1,d0
-loc_8B98:
-    beq.s loc_8BBA
-loc_8B9A:
+h0_8B98:
+    beq.s h0_8BBA
+h0_8B9A:
     move.l $0018(a0),d1
     addq.l #1,d1
     cmp.l #$80,d0
-    bcs.s loc_8BB4
-loc_8BA8:
+    bcs.s h0_8BB4
+h0_8BA8:
     addq.l #2,d1
     cmp.l #$8000,d0
-    bcs.s loc_8BB4
-loc_8BB2:
+    bcs.s h0_8BB4
+h0_8BB2:
     addq.l #4,d1
-loc_8BB4:
+h0_8BB4:
     move.l d1,$0018(a0)
     rts
-loc_8BBA:
+h0_8BBA:
     move.l $0018(a0),d1
     addq.l #7,d1
-    bra.s loc_8BB4
-sub_8BC2:
+    bra.s h0_8BB4
+h0_8BC2:
     move.l (a1),d1
-    bpl.s loc_8BCA
-loc_8BC6:
+    bpl.s h0_8BCA
+h0_8BC6:
     move.l d0,(a1)
-    bra.s loc_8BCE
-loc_8BCA:
+    bra.s h0_8BCE
+h0_8BCA:
     move.l d0,(a1)
     sub.l d1,d0
-loc_8BCE:
+h0_8BCE:
     movea.l $0014(a0),a1
-    beq.s loc_8BFA
-loc_8BD4:
+    beq.s h0_8BFA
+h0_8BD4:
     cmp.w #$80,d0
-    bcs.s loc_8BF6
-loc_8BDA:
+    bcs.s h0_8BF6
+h0_8BDA:
     clr.b (a1)+
     cmp.l #$8000,d0
-    bcs.s loc_8BF0
-loc_8BE4:
+    bcs.s h0_8BF0
+h0_8BE4:
     clr.b (a1)+
     clr.b (a1)+
     swap.w d0
-    bsr.w loc_8BF0
-loc_8BEE:
+    bsr.w h0_8BF0
+h0_8BEE:
     swap.w d0
-loc_8BF0:
+h0_8BF0:
     move.w d0,d1
     lsr.w #8,d1
     move.b d1,(a1)+
-loc_8BF6:
+h0_8BF6:
     move.b d0,(a1)+
     rts
-loc_8BFA:
+h0_8BFA:
     clr.b (a1)+
-    bra.s loc_8BE4
+    bra.s h0_8BE4
 dat_8BFE:
-    DC.B    $24,$48,$22,$3c,$00
+    DC.B    $24,$48,$22,$3c,$00 ; VIOLATION: orphaned code island at $8BFE is not reached from known entrypoints
     DC.B    $00
     DC.L    $03f16100
     DC.B    "&6a^a",0
@@ -6758,48 +7007,48 @@ dat_8BFE:
     DC.L    $70006100,$25b85229,$00164a2e,$012c670a,$7200322a,$00126100,$25fa6100,$25fe206a
     DC.L    $000e222a,$001848e7,$00606100,$f89a4cdf,$06006100,$2600204a,$45faff98
     DC.B    $4e,$75
-sub_8C6A:
+h0_8C6A:
     moveq.l #0,d1
     move.b $0016(a1),d1
     subq.b #1,d1
     move.b d1,$0016(a1)
     move.l d1,d0
     andi.b #3,d0
-    beq.s loc_8C84
-loc_8C7E:
+    beq.s h0_8C84
+h0_8C7E:
     andi.b #252,d1
     addq.l #4,d1
-loc_8C84:
+h0_8C84:
     add.l $0018(a2),d1
     lsr.l #2,d1
     addq.l #3,d1
     tst.b $012C(a6)
-    beq.s loc_8C94
-loc_8C92:
+    beq.s h0_8C94
+h0_8C92:
     addq.l #1,d1
-loc_8C94:
+h0_8C94:
     rts
-sub_8C96:
+h0_8C96:
     movea.l a0,a2
-    bsr.s sub_8C6A
-loc_8C9A:
+    bsr.s h0_8C6A
+h0_8C9A:
     move.l d1,-(a7)
     addq.l #2,d1
     add.l d1,d1
     add.l d1,d1
     sub.l d1,d4
-    bcs.w loc_88EA
-loc_8CA8:
+    bcs.w h0_88EA
+h0_8CA8:
     move.l (a7)+,d1
     move.l #$3F1,(a4)+
     move.l d1,(a4)+
     tst.b $012C(a6)
-    beq.s loc_8CF2
-loc_8CB8:
+    beq.s h0_8CF2
+h0_8CB8:
     clr.l (a4)+
     move.l #$48434C4E,(a4)+
-    bsr.w sub_A35E
-loc_8CC4:
+    bsr.w h0_A35E
+h0_8CC4:
     addq.b #1,$0016(a1)
     moveq.l #0,d1
     move.w $0012(a2),d1
@@ -6808,183 +7057,183 @@ loc_8CC4:
     move.l $0018(a2),d1
     lsr.l #2,d1
     subq.l #1,d1
-loc_8CDC:
+h0_8CDC:
     move.l (a0)+,(a4)+
-    dbf.w d1,loc_8CDC
-loc_8CE2:
+    dbf.w d1,h0_8CDC
+h0_8CE2:
     subi.l #65536,d1
-    bcc.s loc_8CDC
-loc_8CEA:
+    bcc.s h0_8CDC
+h0_8CEA:
     movea.l a2,a0
-    lea.l sub_8C96(pc),a2
+    lea.l h0_8C96(pc),a2
     rts
-loc_8CF2:
+h0_8CF2:
     clr.l (a4)+
     move.l #$4C494E45,(a4)+
-    bsr.w sub_A35E
-loc_8CFE:
+    bsr.w h0_A35E
+h0_8CFE:
     addq.b #1,$0016(a1)
     movea.l $000E(a2),a0
     move.l $0018(a2),d1
     lsr.l #3,d1
     subq.l #1,d1
-loc_8D0E:
+h0_8D0E:
     move.l (a0)+,(a4)+
     move.l (a0)+,(a4)+
-    dbf.w d1,loc_8D0E
-loc_8D16:
+    dbf.w d1,h0_8D0E
+h0_8D16:
     subi.l #65536,d1
-    bcc.s loc_8D0E
-loc_8D1E:
-    bra.s loc_8CEA
-sub_8D20:
+    bcc.s h0_8D0E
+h0_8D1E:
+    bra.s h0_8CEA
+h0_8D20:
     movea.l $05B0(a6),a0
-    bsr.w sub_8D62
-loc_8D28:
+    bsr.w h0_8D62
+h0_8D28:
     movea.l $0178(a6),a0
     movea.l (a0),a0
-loc_8D2E:
+h0_8D2E:
     tst.l (a0)
-    beq.s loc_8D3A
-loc_8D32:
+    beq.s h0_8D3A
+h0_8D32:
     move.l a0,-(a7)
     movea.l (a0),a0
-    bsr.s loc_8D2E
-loc_8D38:
+    bsr.s h0_8D2E
+h0_8D38:
     movea.l (a7)+,a0
-loc_8D3A:
+h0_8D3A:
     move.b $000D(a0),d0
     cmp.b #$B,d0
-    beq.s loc_8D4A
-loc_8D44:
+    beq.s h0_8D4A
+h0_8D44:
     cmp.b #$C,d0
-    bne.s loc_8D54
-loc_8D4A:
+    bne.s h0_8D54
+h0_8D4A:
     cmpa.l $05B0(a6),a0
-    beq.s loc_8D54
-loc_8D50:
-    bsr.w sub_8D62
-loc_8D54:
+    beq.s h0_8D54
+h0_8D50:
+    bsr.w h0_8D62
+h0_8D54:
     tst.l $0004(a0)
-    beq.s loc_8D60
-loc_8D5A:
+    beq.s h0_8D60
+h0_8D5A:
     movea.l $0004(a0),a0
-    bra.s loc_8D2E
-loc_8D60:
+    bra.s h0_8D2E
+h0_8D60:
     rts
-sub_8D62:
+h0_8D62:
     movea.l a0,a1
     move.l $00AA(a1),d0
-loc_8D68:
-    beq.s loc_8D78
-loc_8D6A:
+h0_8D68:
+    beq.s h0_8D78
+h0_8D6A:
     movea.l d0,a0
     cmp.b $0004(a0),d6
-    beq.s loc_8D76
-loc_8D72:
+    beq.s h0_8D76
+h0_8D72:
     move.l (a0),d0
-    bra.s loc_8D68
-loc_8D76:
+    bra.s h0_8D68
+h0_8D76:
     jsr (a2)
-loc_8D78:
+h0_8D78:
     movea.l a1,a0
     rts
-sub_8D7C:
+h0_8D7C:
     tst.l $0010(a1)
-    beq.s loc_8DA0
-loc_8D82:
+    beq.s h0_8DA0
+h0_8D82:
     movea.l $0010(a1),a1
-loc_8D86:
+h0_8D86:
     tst.l (a1)
-    beq.s loc_8D92
-loc_8D8A:
+    beq.s h0_8D92
+h0_8D8A:
     move.l a1,-(a7)
     movea.l (a1),a1
-    bsr.s loc_8D86
-loc_8D90:
+    bsr.s h0_8D86
+h0_8D90:
     movea.l (a7)+,a1
-loc_8D92:
+h0_8D92:
     jsr (a2)
-loc_8D94:
+h0_8D94:
     tst.l $0004(a1)
-    beq.s loc_8DA0
-loc_8D9A:
+    beq.s h0_8DA0
+h0_8D9A:
     movea.l $0004(a1),a1
-    bra.s loc_8D86
-loc_8DA0:
+    bra.s h0_8D86
+h0_8DA0:
     rts
-sub_8DA2:
+h0_8DA2:
     move.l a3,-(a7)
     movea.l a2,a3
-    lea.l sub_8DBC(pc),a2
-    bsr.s sub_8D7C
-loc_8DAC:
+    lea.l h0_8DBC(pc),a2
+    bsr.s h0_8D7C
+h0_8DAC:
     movea.l $0170(a6),a1
     tst.l (a1)
-    beq.s loc_8DB8
-loc_8DB4:
+    beq.s h0_8DB8
+h0_8DB4:
     movea.l (a1),a1
-    bsr.s loc_8D86
-loc_8DB8:
+    bsr.s h0_8D86
+h0_8DB8:
     movea.l (a7)+,a3
     rts
-sub_8DBC:
+h0_8DBC:
     btst.b #5,$000C(a1)
-    beq.s loc_8DCC
-loc_8DC4:
+    beq.s h0_8DCC
+h0_8DC4:
     cmp.b $000E(a1),d6
-    bne.s loc_8DCC
-loc_8DCA:
-    jsr (a3) ; CANDIDATE: indirect_call index unresolved
-loc_8DCC:
+    bne.s h0_8DCC
+h0_8DCA:
+    jsr (a3)                            ; CANDIDATE: indirect_call index unresolved
+h0_8DCC:
     rts
-sub_8DCE:
+h0_8DCE:
     tst.l $0010(a1)
-    beq.s loc_8DF2
-loc_8DD4:
+    beq.s h0_8DF2
+h0_8DD4:
     movea.l $0010(a1),a1
-loc_8DD8:
+h0_8DD8:
     tst.l (a1)
-    beq.s loc_8DE4
-loc_8DDC:
+    beq.s h0_8DE4
+h0_8DDC:
     move.l a1,-(a7)
     movea.l (a1),a1
-    bsr.s loc_8DD8
-loc_8DE2:
+    bsr.s h0_8DD8
+h0_8DE2:
     movea.l (a7)+,a1
-loc_8DE4:
-    bsr.s sub_8DF4
-loc_8DE6:
+h0_8DE4:
+    bsr.s h0_8DF4
+h0_8DE6:
     tst.l $0004(a1)
-    beq.s loc_8DF2
-loc_8DEC:
+    beq.s h0_8DF2
+h0_8DEC:
     movea.l $0004(a1),a1
-    bra.s loc_8DD8
-loc_8DF2:
+    bra.s h0_8DD8
+h0_8DF2:
     rts
-sub_8DF4:
+h0_8DF4:
     btst.b #4,$000C(a1)
-    beq.s loc_8E06
-loc_8DFC:
+    beq.s h0_8E06
+h0_8DFC:
     btst.b #2,$000C(a1)
-    bne.s loc_8E06
-loc_8E04:
+    bne.s h0_8E06
+h0_8E04:
     jsr (a2)
-loc_8E06:
+h0_8E06:
     rts
-sub_8E08:
+h0_8E08:
     tst.b $026A(a6)
-    bne.s loc_8E26
-loc_8E0E:
+    bne.s h0_8E26
+h0_8E0E:
     move.l #$196,d1
-    bsr.w sub_9146
-loc_8E18:
+    bsr.w h0_9146
+h0_8E18:
     move.l a0,$4802(a6)
     move.l a0,$4806(a6)
     clr.l (a0)+
     clr.w (a0)
     rts
-loc_8E26:
+h0_8E26:
     movea.l $4806(a6),a0
     move.w $0004(a0),d0
     lea.l $6(a0,d0.w),a0
@@ -6993,297 +7242,328 @@ loc_8E26:
     move.l a0,$4806(a6)
     moveq.l #-1,d0
     tst.w $0004(a0)
-    beq.s loc_8E4E
-loc_8E46:
+    beq.s h0_8E4E
+h0_8E46:
     clr.w $0004(a0)
     move.l $0006(a0),d0
-loc_8E4E:
+h0_8E4E:
     move.l d0,$47FE(a6)
     rts
     DC.L    $200d90ae,$027ed0ae,$02564a2e,$026a6644,$2f00206e,$48065888,$3018b07c,$01906710
-    DC.L    $219f0000,$21820004,$50403100,$70004e75,$48e76060,$223c0000,$01966100,$02b6226e
-    DC.L    $48062288,$2d484806,$42984258,$70004cdf,$060660cc,$b0ae47fe
+    DC.L    $219f0000,$21820004,$50403100,$70004e75 ; VIOLATION: orphaned code island at $8E54 is not reached from known entrypoints
+    DC.L    $48e76060,$223c0000,$01966100,$02b6226e,$48062288,$2d484806,$42984258,$70004cdf
+    DC.L    $060660cc ; VIOLATION: orphaned code island at $8E84 is not reached from known entrypoints
+    DC.L    $b0ae47fe ; VIOLATION: orphaned code island at $8EA8 is not reached from known entrypoints
     DC.B    "f2 nH"
     DC.B    $06,$58,$88
     DC.L    $3018b4b0,$0004670a,$3f007041,$6100f694,$301f5040,$b07c0190,$67143140,$fffed0c0
     DC.L    $b1ee480a,$671c2d50,$47fe7000
-    DC.B    "Nu nH"
-    DC.B    $06,$4a,$90
-    DC.L    $670c2050,$2d484806,$5c487000,$60d870ff,$2d4047fe,$70004e75
-sub_8F00:
+    DC.B    $4e,$75
+    DC.B    $20,$6e ; VIOLATION: orphaned code island at $8EE2 is not reached from known entrypoints
+    DC.L    $48064a90,$670c2050,$2d484806,$5c487000
+    DC.B    $60,$d8
+    DC.B    $70,$ff,$2d,$40,$47,$fe,$70,$00,$4e,$75 ; VIOLATION: orphaned code island at $8EF6 is not reached from known entrypoints
+h0_8F00:
     lea.l dat_94DC(pc),a0
     tst.w d0
-loc_8F06:
-    beq.w loc_9334
-loc_8F0A:
+h0_8F06:
+    beq.w h0_9334
+h0_8F0A:
     tst.b (a0)+
-    bne.s loc_8F0A
-loc_8F0E:
+    bne.s h0_8F0A
+h0_8F0E:
     subq.w #1,d0
-    bra.s loc_8F06
-loc_8F12:
+    bra.s h0_8F06
+h0_8F12:
     moveq.l #13,d1
-    bra.w loc_931A
-loc_8F18:
-    bsr.w loc_8F1C
-loc_8F1C:
+    bra.w h0_931A
+h0_8F18:
+    bsr.w h0_8F1C
+h0_8F1C:
     moveq.l #32,d1
-loc_8F1E:
+h0_8F1E:
     movem.l d0-d2/a0-a2,-(a7)
-    bsr.w loc_931A
-loc_8F26:
+    bsr.w h0_931A
+h0_8F26:
     movem.l (a7)+,d0-d2/a0-a2
     rts
-sub_8F2C:
+h0_8F2C:
     move.w d1,-(a7)
     swap.w d1
-    bsr.s loc_8F34
-loc_8F32:
+    bsr.s h0_8F34
+h0_8F32:
     move.w (a7)+,d1
-loc_8F34:
+h0_8F34:
     move.w d1,-(a7)
     lsr.w #8,d1
-    bsr.s loc_8F3C
-loc_8F3A:
+    bsr.s h0_8F3C
+h0_8F3A:
     move.w (a7)+,d1
-loc_8F3C:
+h0_8F3C:
     move.w d1,-(a7)
     lsr.w #4,d1
-    bsr.s loc_8F44
-loc_8F42:
+    bsr.s h0_8F44
+h0_8F42:
     move.w (a7)+,d1
-loc_8F44:
+h0_8F44:
     andi.w #15,d1
     move.b dat_8F4E(pc,d1.w),d1
-    bra.s loc_8F1E
+    bra.s h0_8F1E
 dat_8F4E:
     DC.B    $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
-sub_8F5E:
+h0_8F5E:
     moveq.l #6,d3
     moveq.l #0,d2
-loc_8F62:
+h0_8F62:
     rol.l #4,d1
     move.l d1,-(a7)
     andi.w #15,d1
-    bne.s loc_8F70
-loc_8F6C:
+    bne.s h0_8F70
+h0_8F6C:
     tst.b d2
-    beq.s loc_8F78
-loc_8F70:
+    beq.s h0_8F78
+h0_8F70:
     st.b d2
     move.b dat_8F4E(pc,d1.w),d1
     jsr (a2)
-loc_8F78:
+h0_8F78:
     move.l (a7)+,d1
-    dbf.w d3,loc_8F62
-loc_8F7E:
+    dbf.w d3,h0_8F62
+h0_8F7E:
     rol.l #4,d1
     andi.w #15,d1
     move.b dat_8F4E(pc,d1.w),d1
     jmp (a2)
-sub_8F8A:
-    lea.l loc_8F1E(pc),a2
-loc_8F8E:
+h0_8F8A:
+    lea.l h0_8F1E(pc),a2
+h0_8F8E:
     lea.l dat_8FC2(pc),a0
     moveq.l #1,d2
     moveq.l #8,d0
-loc_8F96:
+h0_8F96:
     moveq.l #0,d3
     cmp.l (a0)+,d1
-    bcs.s loc_8FA8
-loc_8F9C:
+    bcs.s h0_8FA8
+h0_8F9C:
     sub.l -(a0),d1
-loc_8F9E:
+h0_8F9E:
     addq.b #1,d3
     sub.l (a0),d1
-    bcc.s loc_8F9E
-loc_8FA4:
+    bcc.s h0_8F9E
+h0_8FA4:
     add.l (a0)+,d1
-    bra.s loc_8FAC
-loc_8FA8:
+    bra.s h0_8FAC
+h0_8FA8:
     tst.b d2
-    bpl.s loc_8FB8
-loc_8FAC:
+    bpl.s h0_8FB8
+h0_8FAC:
     st.b d2
     addi.b #48,d3
     exg d3,d1
     jsr (a2)
-loc_8FB6:
+h0_8FB6:
     exg d3,d1
-loc_8FB8:
-    dbf.w d0,loc_8F96
-loc_8FBC:
+h0_8FB8:
+    dbf.w d0,h0_8F96
+h0_8FBC:
     addi.b #48,d1
     jmp (a2)
 dat_8FC2:
-    DC.B    $3b,$9a
+    DC.B    $3b,$9a ; VIOLATION: orphaned code island at $8FC2 is not reached from known entrypoints
     DC.L    $ca0005f5,$e1000098,$9680000f,$42400001,$86a00000,$27100000,$03e80000,$00640000
     DC.B    $00,$0a
-sub_8FE6:
+h0_8FE6:
     moveq.l #20,d0
-    bsr.w sub_8F00
-loc_8FEC:
+    bsr.w h0_8F00
+h0_8FEC:
     movea.l $0170(a6),a2
     lea.l dat_9016(pc),a4
-    bsr.w sub_905E
-loc_8FF8:
+    bsr.w h0_905E
+h0_8FF8:
     moveq.l #9,d3
-    lea.l dat_901E(pc),a2
+    lea.l h0_901E(pc),a2
     lea.l dat_9006(pc),a4
-    bra.w loc_8AE4
+    bra.w h0_8AE4
 dat_9006:
-    DC.B    $0c,$2b,$00,$02,$00,$0d,$67,$08,$10,$2b,$00,$0e,$60,$00,$09,$82
+    DC.B    $0c,$2b,$00,$02,$00,$0d,$67,$08,$10,$2b,$00,$0e,$60,$00,$09,$82 ; VIOLATION: orphaned code island at $9006 is not reached from known entrypoints
 dat_9016:
-    DC.B    $61,$00,$ff,$04,$60,$00,$fe,$fc
-dat_901E:
-    DC.B    $48,$e7
-    DC.L    $10a02f08,$70156100,$fed84a2e,$00ff6712,$205741e8,$00161418,$12186100,$fee25302
-    DC.L    $6ef66100,$fece6100,$feca205f,$45e80010,$610c4cdf,$05084e75
-loc_9058:
-    jmp loc_06BC.l
-sub_905E:
+    DC.B    $61,$00,$ff,$04,$60,$00,$fe,$fc ; VIOLATION: orphaned code island at $9016 is not reached from known entrypoints
+h0_901E:
+    movem.l d3/a0/a2,-(a7)
+    move.l a0,-(a7)
+    moveq.l #21,d0
+    bsr.w h0_8F00
+h0_902A:
+    tst.b $00FF(a6)
+    beq.s h0_9042
+h0_9030:
+    movea.l (a7),a0
+    lea.l $0016(a0),a0
+    move.b (a0)+,d2
+h0_9038:
+    move.b (a0)+,d1
+    bsr.w h0_8F1E
+h0_903E:
+    subq.b #1,d2
+    bgt.s h0_9038
+h0_9042:
+    bsr.w h0_8F12
+h0_9046:
+    bsr.w h0_8F12
+h0_904A:
+    movea.l (a7)+,a0
+    lea.l $0010(a0),a2
+    bsr.s h0_905E
+h0_9052:
+    movem.l (a7)+,d3/a0/a2
+    rts
+h0_9058:
+    jmp h0_06BC.l
+h0_905E:
     move.l a2,d0
-    beq.s loc_90D8
-loc_9062:
+    beq.s h0_90D8
+h0_9062:
     move.l (a2),d0
-    beq.s loc_90D8
-loc_9066:
+    beq.s h0_90D8
+h0_9066:
     movea.l d0,a2
     suba.l a3,a3
     lea.l $05F4(a6),a0
     moveq.l #127,d0
     move.b d0,(a0)+
-loc_9072:
+h0_9072:
     st.b (a0)+
-    dbf.w d0,loc_9072
-loc_9078:
+    dbf.w d0,h0_9072
+h0_9078:
     tst.b $0117(a6)
-    bgt.s loc_9058
-loc_907E:
+    bgt.s h0_9058
+h0_907E:
     lea.l $05DE(a6),a3
     move.b $0017(a3),d3
-    bsr.s sub_90DA
-loc_9088:
+    bsr.s h0_90DA
+h0_9088:
     lea.l $05DE(a6),a0
     cmpa.l a3,a0
-    beq.s loc_90D8
-loc_9090:
+    beq.s h0_90D8
+h0_9090:
     bset.b #0,$000C(a3)
     btst.b #4,$000C(a3)
-    bne.s loc_9078
-loc_909E:
+    bne.s h0_9078
+h0_909E:
     move.l $0008(a3),d1
-    bsr.w sub_8F2C
-loc_90A6:
-    bsr.w loc_8F18
-loc_90AA:
-    jsr (a4) ; CANDIDATE: indirect_call index unresolved
-loc_90AC:
+    bsr.w h0_8F2C
+h0_90A6:
+    bsr.w h0_8F18
+h0_90AA:
+    jsr (a4)                            ; CANDIDATE: indirect_call index unresolved
+h0_90AC:
     moveq.l #0,d1
     move.b $000D(a3),d1
     lea.l dat_9126(pc),a0
     move.b $0(a0,d1.w),d1
-    bsr.w loc_8F1E
-loc_90BE:
-    bsr.w loc_8F18
-loc_90C2:
+    bsr.w h0_8F1E
+h0_90BE:
+    bsr.w h0_8F18
+h0_90C2:
     lea.l $0016(a3),a0
     move.b (a0)+,d4
-loc_90C8:
+h0_90C8:
     move.b (a0)+,d1
-    bsr.w loc_8F1E
-loc_90CE:
+    bsr.w h0_8F1E
+h0_90CE:
     subq.b #1,d4
-    bne.s loc_90C8
-loc_90D2:
-    bsr.w loc_8F12
-loc_90D6:
-    bra.s loc_9078
-loc_90D8:
+    bne.s h0_90C8
+h0_90D2:
+    bsr.w h0_8F12
+h0_90D6:
+    bra.s h0_9078
+h0_90D8:
     rts
-sub_90DA:
+h0_90DA:
     tst.l (a2)
-    beq.s loc_90E6
-loc_90DE:
+    beq.s h0_90E6
+h0_90DE:
     move.l a2,-(a7)
     movea.l (a2),a2
-    bsr.s sub_90DA
-loc_90E4:
+    bsr.s h0_90DA
+h0_90E4:
     movea.l (a7)+,a2
-loc_90E6:
+h0_90E6:
     btst.b #0,$000C(a2)
-    bne.s loc_9114
-loc_90EE:
+    bne.s h0_9114
+h0_90EE:
     cmp.b $0017(a2),d3
-    bcs.s loc_9114
-loc_90F4:
+    bcs.s h0_9114
+h0_90F4:
     lea.l $0016(a3),a0
     lea.l $0016(a2),a1
     move.b (a0)+,d0
     move.b (a1)+,d1
-loc_9100:
+h0_9100:
     cmpm.b (a1)+,(a0)+
-    bcs.s loc_9114
-loc_9104:
-    bne.s loc_910E
-loc_9106:
+    bcs.s h0_9114
+h0_9104:
+    bne.s h0_910E
+h0_9106:
     subq.b #1,d0
-    beq.s loc_9114
-loc_910A:
+    beq.s h0_9114
+h0_910A:
     subq.b #1,d1
-    bne.s loc_9100
-loc_910E:
+    bne.s h0_9100
+h0_910E:
     movea.l a2,a3
     move.b $0017(a3),d3
-loc_9114:
+h0_9114:
     tst.l $0004(a2)
-    beq.s loc_9124
-loc_911A:
+    beq.s h0_9124
+h0_911A:
     move.l a2,-(a7)
     movea.l $0004(a2),a2
-    bsr.s sub_90DA
-loc_9122:
+    bsr.s h0_90DA
+h0_9122:
     movea.l (a7)+,a2
-loc_9124:
+h0_9124:
     rts
 dat_9126:
     DC.B    $3f,$52,$41,$3f,$72,$6c,$3f,$3f,$3f,$3f,$3f,$3f,$4f,$00
-sub_9134:
+h0_9134:
     move.l #$2800,d1
     move.w d1,$014E(a6)
-    bsr.s sub_9146
-loc_9140:
+    bsr.s h0_9146
+h0_9140:
     move.l a0,$0140(a6)
     rts
-sub_9146:
+h0_9146:
     addq.l #4,d1
-    bsr.w sub_BDF4
-loc_914C:
-    beq.s loc_9178
-loc_914E:
+    bsr.w h0_BDF4
+h0_914C:
+    beq.s h0_9178
+h0_914E:
     move.l $013C(a6),(a0)
     move.l a0,$013C(a6)
     addq.w #4,a0
     rts
-    DC.B    $59,$48
-    DC.L    $43ee013c,$2011670e,$b1c06704,$224060f4,$22906000,$2ce07069,$6000f3c8
-loc_9178:
+    DC.B    $59,$48 ; VIOLATION: orphaned code island at $915A is not reached from known entrypoints
+    DC.L    $43ee013c,$2011670e,$b1c06704,$224060f4
+    DC.B    $22,$90,$60,$00,$2c,$e0 ; VIOLATION: orphaned code island at $916C is not reached from known entrypoints
+    DC.B    $70,$69,$60,$00,$f3,$c8 ; VIOLATION: orphaned code island at $9172 is not reached from known entrypoints
+h0_9178:
     moveq.l #2,d0
-    bra.w loc_853E
-sub_917E:
+    bra.w h0_853E
+h0_917E:
     movea.l $013C(a6),a0
-    bra.s loc_918C
-loc_9184:
+    bra.s h0_918C
+h0_9184:
     move.l (a0),-(a7)
-    bsr.w sub_BE50
-loc_918A:
+    bsr.w h0_BE50
+h0_918A:
     movea.l (a7)+,a0
-loc_918C:
+h0_918C:
     move.l a0,d0
-    bne.s loc_9184
-loc_9190:
+    bne.s h0_9184
+h0_9190:
     rts
-sub_9192:
+h0_9192:
     sf.b $480E(a6)
     sf.b $480F(a6)
     clr.l $4810(a6)
@@ -7301,184 +7581,184 @@ sub_9192:
     st.b $4ADE(a6)
     move.w #$8,$4A26(a6)
     lea.l $4A28(a6),a3
-    bsr.w loc_BD4A
-loc_91E0:
+    bsr.w h0_BD4A
+h0_91E0:
     clr.b (a3)
     rts
-sub_91E4:
+h0_91E4:
     tst.l $4810(a6)
-    beq.s loc_91F4
-loc_91EA:
-    bsr.w loc_BC04
-loc_91EE:
-    bsr.w sub_922A
-loc_91F2:
-    bsr.s sub_91F6
-loc_91F4:
+    beq.s h0_91F4
+h0_91EA:
+    bsr.w h0_BC04
+h0_91EE:
+    bsr.w h0_922A
+h0_91F2:
+    bsr.s h0_91F6
+h0_91F4:
     rts
-sub_91F6:
+h0_91F6:
     tst.l $4810(a6)
-    beq.s loc_91F4
-loc_91FC:
+    beq.s h0_91F4
+h0_91FC:
     move.l $4810(a6),d3
     clr.l $4810(a6)
-    bra.w loc_B8A8
-loc_9208:
+    bra.w h0_B8A8
+h0_9208:
     movea.l $4A14(a6),a0
     cmpa.l $4A18(a6),a0
-    beq.s loc_921A
-loc_9212:
+    beq.s h0_921A
+h0_9212:
     move.b d1,(a0)+
     move.l a0,$4A14(a6)
     rts
-loc_921A:
+h0_921A:
     move.w d1,-(a7)
-    bsr.s sub_922A
-loc_921E:
-    bne.s loc_9224
-loc_9220:
+    bsr.s h0_922A
+h0_921E:
+    bne.s h0_9224
+h0_9220:
     move.w (a7)+,d1
-    bra.s loc_9208
-loc_9224:
+    bra.s h0_9208
+h0_9224:
     moveq.l #74,d0
-    bra.w loc_853E
-sub_922A:
+    bra.w h0_853E
+h0_922A:
     move.l d3,-(a7)
     move.l $4810(a6),d3
     lea.l $4814(a6),a0
     move.l $4A14(a6),d1
     sub.l a0,d1
-    beq.s loc_9248
-loc_923C:
+    beq.s h0_9248
+h0_923C:
     lea.l $4814(a6),a1
     move.l a1,$4A14(a6)
-    bsr.w sub_B890
-loc_9248:
+    bsr.w h0_B890
+h0_9248:
     movem.l (a7)+,d3
     rts
-sub_924E:
+h0_924E:
     btst.b #0,$4ADE(a6)
-    bne.s loc_9258
-loc_9256:
+    bne.s h0_9258
+h0_9256:
     rts
-loc_9258:
+h0_9258:
     addq.w #1,$4A24(a6)
     moveq.l #16,d0
-    bsr.w sub_8F00
-loc_9262:
+    bsr.w h0_8F00
+h0_9262:
     lea.l $4A28(a6),a0
-    bsr.w loc_9334
-loc_926A:
+    bsr.w h0_9334
+h0_926A:
     moveq.l #15,d0
-    bsr.w sub_8F00
-loc_9270:
+    bsr.w h0_8F00
+h0_9270:
     moveq.l #0,d1
     move.w $4A24(a6),d1
     move.l d3,-(a7)
-    bsr.w sub_8F8A
-loc_927C:
+    bsr.w h0_8F8A
+h0_927C:
     move.l (a7)+,d3
-    bsr.w loc_8F12
-loc_9282:
+    bsr.w h0_8F12
+h0_9282:
     lea.l $4A3C(a6),a0
     tst.b (a0)
-    beq.s loc_9290
-loc_928A:
-    bsr.w loc_9334
-loc_928E:
-    bra.s loc_92B0
-loc_9290:
+    beq.s h0_9290
+h0_928A:
+    bsr.w h0_9334
+h0_928E:
+    bra.s h0_92B0
+h0_9290:
     tst.l $01AC(a6)
-    beq.s loc_92B0
-loc_9296:
+    beq.s h0_92B0
+h0_9296:
     movea.l $01AC(a6),a1
     moveq.l #0,d2
     move.b $0016(a1),d2
     subq.b #2,d2
     lea.l $0017(a1),a1
-loc_92A6:
+h0_92A6:
     move.b (a1)+,d1
-    bsr.w loc_8F1E
-loc_92AC:
-    dbf.w d2,loc_92A6
-loc_92B0:
-    bsr.w loc_8F12
-loc_92B4:
+    bsr.w h0_8F1E
+h0_92AC:
+    dbf.w d2,h0_92A6
+h0_92B0:
+    bsr.w h0_8F12
+h0_92B4:
     lea.l $4A8D(a6),a0
-    bsr.w loc_9334
-loc_92BC:
-    bsr.w loc_8F12
-loc_92C0:
-    bra.w loc_8F12
-loc_92C4:
+    bsr.w h0_9334
+h0_92BC:
+    bsr.w h0_8F12
+h0_92C0:
+    bra.w h0_8F12
+h0_92C4:
     tst.w $4A22(a6)
-    bpl.s loc_92D6
-loc_92CA:
+    bpl.s h0_92D6
+h0_92CA:
     clr.w $4A22(a6)
     move.w d1,-(a7)
-    bsr.w sub_924E
-loc_92D4:
+    bsr.w h0_924E
+h0_92D4:
     move.w (a7)+,d1
-loc_92D6:
+h0_92D6:
     cmp.b #$D,d1
-    bne.s loc_92FE
-loc_92DC:
+    bne.s h0_92FE
+h0_92DC:
     clr.w $4A20(a6)
     move.w $4A22(a6),d0
     addq.w #1,$4A22(a6)
     cmp.w $4A1E(a6),d0
-    beq.w loc_BC04
-loc_92F0:
+    beq.w h0_BC04
+h0_92F0:
     moveq.l #13,d1
-    bsr.w loc_9208
-loc_92F6:
+    bsr.w h0_9208
+h0_92F6:
     moveq.l #10,d1
-    bsr.w loc_9208
-loc_92FC:
+    bsr.w h0_9208
+h0_92FC:
     rts
-loc_92FE:
+h0_92FE:
     move.w $4A20(a6),d0
     cmp.w $4A1C(a6),d0
-    blt.s loc_9310
-loc_9308:
+    blt.s h0_9310
+h0_9308:
     move.w d1,-(a7)
-    bsr.s loc_92DC
-loc_930C:
+    bsr.s h0_92DC
+h0_930C:
     move.w (a7)+,d1
-    bra.s loc_92C4
-loc_9310:
-    bsr.w loc_9208
-loc_9314:
+    bra.s h0_92C4
+h0_9310:
+    bsr.w h0_9208
+h0_9314:
     addq.w #1,$4A20(a6)
     rts
-loc_931A:
+h0_931A:
     tst.b $480F(a6)
-    bne.s loc_92C4
-loc_9320:
+    bne.s h0_92C4
+h0_9320:
     cmp.b #$D,d1
-    bne.s loc_9330
-loc_9326:
+    bne.s h0_9330
+h0_9326:
     tst.l $01D0(a6)
-    bne.s loc_9330
-loc_932C:
-    bsr.s loc_9330
-loc_932E:
+    bne.s h0_9330
+h0_932C:
+    bsr.s h0_9330
+h0_932E:
     moveq.l #10,d1
-loc_9330:
-    bra.w loc_B870
-loc_9334:
+h0_9330:
+    bra.w h0_B870
+h0_9334:
     tst.b $480F(a6)
-    bne.s loc_936E
-loc_933A:
+    bne.s h0_936E
+h0_933A:
     tst.l $01D0(a6)
-    beq.s loc_936E
-loc_9340:
+    beq.s h0_936E
+h0_9340:
     movem.l d0-d2/a0-a2,-(a7)
     movea.l a0,a1
-loc_9346:
+h0_9346:
     move.b (a0)+,d1
-    bne.s loc_9346
-loc_934A:
+    bne.s h0_9346
+h0_934A:
     suba.l a1,a0
     subq.w #1,a0
     move.l a1,-(a7)
@@ -7487,198 +7767,198 @@ loc_934A:
     move.w #$40,-(a7)
     movea.l $01D0(a6),a0
     movea.l $0010(a0),a0
-    jsr (a0) ; CANDIDATE: indirect_call index unresolved
-loc_9364:
+    jsr (a0)                            ; CANDIDATE: indirect_call index unresolved
+h0_9364:
     lea.l $000C(a7),a7
     movem.l (a7)+,d0-d2/a0-a2
     rts
-loc_936E:
+h0_936E:
     move.b (a0)+,d1
-    beq.s loc_937A
-loc_9372:
+    beq.s h0_937A
+h0_9372:
     move.l a0,-(a7)
-    bsr.s loc_931A
-loc_9376:
+    bsr.s h0_931A
+h0_9376:
     movea.l (a7)+,a0
-    bra.s loc_936E
-loc_937A:
+    bra.s h0_936E
+h0_937A:
     rts
-sub_937C:
+h0_937C:
     movem.l d7/a3,-(a7)
     move.b $4ADE(a6),d7
     add.b d7,d7
-    bcc.s loc_93C0
-loc_9388:
+    bcc.s h0_93C0
+h0_9388:
     move.w $024C(a6),d2
     cmp.w #$2710,d2
-    bcc.s loc_93B4
-loc_9392:
-    bsr.w loc_8F1C
-loc_9396:
+    bcc.s h0_93B4
+h0_9392:
+    bsr.w h0_8F1C
+h0_9396:
     cmp.w #$3E8,d2
-    bcc.s loc_93B4
-loc_939C:
-    bsr.w loc_8F1C
-loc_93A0:
+    bcc.s h0_93B4
+h0_939C:
+    bsr.w h0_8F1C
+h0_93A0:
     cmp.w #$64,d2
-    bcc.s loc_93B4
-loc_93A6:
-    bsr.w loc_8F1C
-loc_93AA:
+    bcc.s h0_93B4
+h0_93A6:
+    bsr.w h0_8F1C
+h0_93AA:
     cmp.w #$A,d2
-    bcc.s loc_93B4
-loc_93B0:
-    bsr.w loc_8F1C
-loc_93B4:
+    bcc.s h0_93B4
+h0_93B0:
+    bsr.w h0_8F1C
+h0_93B4:
     moveq.l #0,d1
     move.w d2,d1
-    bsr.w sub_8F8A
-loc_93BC:
-    bsr.w loc_8F1C
-loc_93C0:
+    bsr.w h0_8F8A
+h0_93BC:
+    bsr.w h0_8F1C
+h0_93C0:
     move.l $01B0(a6),d4
     add.b d7,d7
-    bcc.s loc_940C
-loc_93C8:
+    bcc.s h0_940C
+h0_93C8:
     move.b $014C(a6),d0
     move.b $46F5(a6),d1
-    beq.s loc_93F6
-loc_93D2:
+    beq.s h0_93F6
+h0_93D2:
     cmp.b #$FF,d1
-    beq.s loc_93F0
-loc_93D8:
-    bsr.w loc_8F18
-loc_93DC:
+    beq.s h0_93F0
+h0_93D8:
+    bsr.w h0_8F18
+h0_93DC:
     move.b $46F5(a6),d1
-    bsr.w loc_931A
-loc_93E4:
+    bsr.w h0_931A
+h0_93E4:
     move.l $46F6(a6),d1
-    bsr.w sub_8F2C
-loc_93EC:
+    bsr.w h0_8F2C
+h0_93EC:
     moveq.l #0,d4
-    bra.s loc_940C
-loc_93F0:
-    bsr.w sub_9990
-loc_93F4:
-    bra.s loc_93E4
-loc_93F6:
-    bsr.w sub_9990
-loc_93FA:
+    bra.s h0_940C
+h0_93F0:
+    bsr.w h0_9990
+h0_93F4:
+    bra.s h0_93E4
+h0_93F6:
+    bsr.w h0_9990
+h0_93FA:
     move.l $01B0(a6),d4
     movea.l $0282(a6),a3
     move.l $026E(a6),d1
     sub.l d4,d1
-    bsr.w sub_8F2C
-loc_940C:
+    bsr.w h0_8F2C
+h0_940C:
     moveq.l #32,d1
     tst.b $0102(a6)
-    beq.s loc_941C
-loc_9414:
+    beq.s h0_941C
+h0_9414:
     tst.b $011A(a6)
-    bne.s loc_941C
-loc_941A:
+    bne.s h0_941C
+h0_941A:
     moveq.l #43,d1
-loc_941C:
-    bsr.w loc_931A
-loc_9420:
+h0_941C:
+    bsr.w h0_931A
+h0_9420:
     add.b d7,d7
-    bcc.s loc_944A
-loc_9424:
+    bcc.s h0_944A
+h0_9424:
     moveq.l #5,d3
     cmpi.w #81,$4A1C(a6)
-    bcs.s loc_9430
-loc_942E:
+    bcs.s h0_9430
+h0_942E:
     moveq.l #9,d3
-loc_9430:
+h0_9430:
     tst.l d4
-loc_9432:
-    beq.s loc_9442
-loc_9434:
+h0_9432:
+    beq.s h0_9442
+h0_9434:
     move.b (a3)+,d1
-    bsr.w loc_8F3C
-loc_943A:
+    bsr.w h0_8F3C
+h0_943A:
     subq.l #1,d4
-    dbf.w d3,loc_9432
-loc_9440:
-    bra.s loc_944A
-loc_9442:
-    bsr.w loc_8F18
-loc_9446:
-    dbf.w d3,loc_9442
-loc_944A:
-    bsr.w loc_8F1C
-loc_944E:
+    dbf.w d3,h0_9432
+h0_9440:
+    bra.s h0_944A
+h0_9442:
+    bsr.w h0_8F18
+h0_9446:
+    dbf.w d3,h0_9442
+h0_944A:
+    bsr.w h0_8F1C
+h0_944E:
     movea.l $0272(a6),a3
     moveq.l #0,d2
     moveq.l #0,d3
     tst.b $010E(a6)
-    beq.s loc_9466
-loc_945C:
+    beq.s h0_9466
+h0_945C:
     tst.b $480F(a6)
-    bne.s loc_9466
-loc_9462:
+    bne.s h0_9466
+h0_9462:
     move.l $015A(a6),d3
-loc_9466:
+h0_9466:
     move.b (a3)+,d1
     cmp.l a3,d3
-    bne.s loc_94A2
-loc_946C:
+    bne.s h0_94A2
+h0_946C:
     movem.l d0-d2/a0-a2,-(a7)
     cmp.b #$D,d1
-    beq.s loc_947C
-loc_9476:
+    beq.s h0_947C
+h0_9476:
     cmp.b #$9,d1
-    bne.s loc_947E
-loc_947C:
+    bne.s h0_947E
+h0_947C:
     moveq.l #32,d1
-loc_947E:
+h0_947E:
     tst.b $012A(a6)
-    bne.s loc_948A
-loc_9484:
-    bsr.w sub_B85C
-loc_9488:
-    bra.s loc_948E
-loc_948A:
-    bsr.w loc_B870
-loc_948E:
+    bne.s h0_948A
+h0_9484:
+    bsr.w h0_B85C
+h0_9488:
+    bra.s h0_948E
+h0_948A:
+    bsr.w h0_B870
+h0_948E:
     movem.l (a7)+,d0-d2/a0-a2
     cmp.b #$D,d1
-    beq.s loc_94D2
-loc_9498:
+    beq.s h0_94D2
+h0_9498:
     cmp.b #$9,d1
-    beq.s loc_94A2
-loc_949E:
+    beq.s h0_94A2
+h0_949E:
     addq.w #1,d2
-    bra.s loc_9466
-loc_94A2:
+    bra.s h0_9466
+h0_94A2:
     cmp.b #$D,d1
-    beq.s loc_94D2
-loc_94A8:
+    beq.s h0_94D2
+h0_94A8:
     cmp.b #$9,d1
-    bne.s loc_94CA
-loc_94AE:
+    bne.s h0_94CA
+h0_94AE:
     moveq.l #0,d0
     move.w d2,d0
     divu.w $4A26(a6),d0
     swap.w d0
     sub.w $4A26(a6),d0
     neg.w d0
-loc_94BE:
-    bsr.w loc_8F1C
-loc_94C2:
+h0_94BE:
+    bsr.w h0_8F1C
+h0_94C2:
     addq.w #1,d2
     subq.w #1,d0
-    bne.s loc_94BE
-loc_94C8:
-    bra.s loc_9466
-loc_94CA:
+    bne.s h0_94BE
+h0_94C8:
+    bra.s h0_9466
+h0_94CA:
     addq.w #1,d2
-    bsr.w loc_8F1E
-loc_94D0:
-    bra.s loc_9466
-loc_94D2:
-    bsr.w loc_931A
-loc_94D6:
+    bsr.w h0_8F1E
+h0_94D0:
+    bra.s h0_9466
+h0_94D2:
+    bsr.w h0_931A
+h0_94D6:
     movem.l (a7)+,d7/a3
     rts
 dat_94DC:
@@ -7731,437 +8011,446 @@ dat_94DC:
     DC.B    " in assembly options",0
     DC.B    "Main file already included in header file"
     DC.B    $0d,$00
-sub_9718:
-    pea.l loc_9334(pc)
+h0_9718:
+    pea.l h0_9334(pc)
     tst.b $010A(a6)
-    beq.s loc_9728
-loc_9722:
+    beq.s h0_9728
+h0_9722:
     lea.l dat_9760(pc),a0
     rts
-loc_9728:
+h0_9728:
     tst.b $00FF(a6)
-    beq.w loc_A45A
-loc_9730:
+    beq.w h0_A45A
+h0_9730:
     tst.w $0250(a6)
-    beq.w loc_A92C
-loc_9738:
+    beq.w h0_A92C
+h0_9738:
     btst.b #1,$0251(a6)
-    bne.w loc_B49C
-loc_9742:
+    bne.w h0_B49C
+h0_9742:
     btst.b #2,$0251(a6)
-    bne.w loc_10B06
-loc_974C:
-    bra.w loc_AC7A
-sub_9750:
+    bne.w h0_10B06
+h0_974C:
+    bra.w h0_AC7A
+h0_9750:
     tst.b $010A(a6)
-    beq.s loc_976C
-loc_9756:
+    beq.s h0_976C
+h0_9756:
     lea.l dat_975C(pc),a0
     rts
 dat_975C:
     DC.L    $2e677300
 dat_9760:
     DC.B    $47,$65,$6e,$20,$73,$79,$6d,$62,$6f,$6c,$00,$00
-loc_976C:
+h0_976C:
     tst.b $00FF(a6)
-    beq.w loc_A460
-loc_9774:
+    beq.w h0_A460
+h0_9774:
     tst.w $0250(a6)
-    beq.w loc_A932
-loc_977C:
+    beq.w h0_A932
+h0_977C:
     btst.b #1,$0251(a6)
-    bne.w loc_B4AE
-loc_9786:
+    bne.w h0_B4AE
+h0_9786:
     btst.b #2,$0251(a6)
-    bne.w loc_10B0C
-loc_9790:
-    bra.w loc_AC8A
+    bne.w h0_10B0C
+h0_9790:
+    bra.w h0_AC8A
     DC.L    $4a2e00ff,$67000ce2,$4a6e0250,$67000cda,$082e0001,$02516600,$1d2a082e,$00020251
-    DC.L    $66007378,$60000cc2
-sub_97BC:
+    DC.L    $66007378,$60000cc2 ; VIOLATION: orphaned code island at $9794 is not reached from known entrypoints
+h0_97BC:
     tst.b $00FF(a6)
-    beq.w loc_9D7C
-loc_97C4:
+    beq.w h0_9D7C
+h0_97C4:
     tst.w $0250(a6)
-    beq.w loc_A484
-loc_97CC:
+    beq.w h0_A484
+h0_97CC:
     btst.b #1,$0251(a6)
-    bne.w loc_AE8A
-loc_97D6:
+    bne.w h0_AE8A
+h0_97D6:
     btst.b #2,$0251(a6)
-    bne.w loc_10AA0
-loc_97E0:
-    bra.w loc_A94A
-loc_97E4:
+    bne.w h0_10AA0
+h0_97E0:
+    bra.w h0_A94A
+h0_97E4:
     moveq.l #66,d0
-    bra.w loc_853E
-loc_97EA:
+    bra.w h0_853E
+h0_97EA:
     tst.b $0104(a6)
-    beq.s loc_981C
-loc_97F0:
+    beq.s h0_981C
+h0_97F0:
     movea.l $0144(a6),a1
     tst.b $00FF(a6)
-    beq.w loc_9D48
-loc_97FC:
+    beq.w h0_9D48
+h0_97FC:
     tst.w $0250(a6)
-    beq.w loc_A4B2
-loc_9804:
+    beq.w h0_A4B2
+h0_9804:
     btst.b #1,$0251(a6)
-    bne.w loc_AD0A
-loc_980E:
+    bne.w h0_AD0A
+h0_980E:
     btst.b #2,$0251(a6)
-    bne.w loc_108B8
-loc_9818:
-    bra.w loc_A9E0
-loc_981C:
+    bne.w h0_108B8
+h0_9818:
+    bra.w h0_A9E0
+h0_981C:
     rts
-loc_981E:
+h0_981E:
     tst.b $0104(a6)
-    beq.s loc_981C
-loc_9824:
+    beq.s h0_981C
+h0_9824:
     movea.l $0144(a6),a1
     tst.b $00FF(a6)
-    beq.w loc_9D48
-loc_9830:
+    beq.w h0_9D48
+h0_9830:
     tst.w $0250(a6)
-    beq.w loc_A5BA
-loc_9838:
+    beq.w h0_A5BA
+h0_9838:
     btst.b #1,$0251(a6)
-    bne.w loc_AD0A
-loc_9842:
+    bne.w h0_AD0A
+h0_9842:
     btst.b #2,$0251(a6)
-    bne.w loc_108B8
-loc_984C:
-    bra.w loc_A9E0
-loc_9850:
+    bne.w h0_108B8
+h0_984C:
+    bra.w h0_A9E0
+h0_9850:
     tst.b $0104(a6)
-    beq.s loc_9876
-loc_9856:
+    beq.s h0_9876
+h0_9856:
     tst.w $0250(a6)
-    beq.w loc_A540
-loc_985E:
+    beq.w h0_A540
+h0_985E:
     btst.b #1,$0251(a6)
-    bne.w loc_AD0C
-loc_9868:
+    bne.w h0_AD0C
+h0_9868:
     btst.b #2,$0251(a6)
-    bne.w loc_108BA
-loc_9872:
-    bra.w loc_A9E0
-loc_9876:
+    bne.w h0_108BA
+h0_9872:
+    bra.w h0_A9E0
+h0_9876:
     rts
     DC.L    $4a2e0104,$67f84a2e,$00ff6700,$04c64a6e,$02506700,$0e12082e,$00010251,$66001474
-    DC.L    $082e0002,$02516600,$70186000
+    DC.L    $082e0002,$02516600,$70186000 ; VIOLATION: orphaned code island at $9878 is not reached from known entrypoints
     DC.B    $11,$42
-sub_98A6:
+h0_98A6:
     tst.b $00FF(a6)
-    beq.w loc_9D48
-loc_98AE:
+    beq.w h0_9D48
+h0_98AE:
     tst.w $0250(a6)
-    beq.w loc_A63A
-loc_98B6:
+    beq.w h0_A63A
+h0_98B6:
     btst.b #1,$0251(a6)
-    bne.w loc_AD0C
-loc_98C0:
+    bne.w h0_AD0C
+h0_98C0:
     btst.b #2,$0251(a6)
-    bne.w loc_108BA
-loc_98CA:
-    bra.w loc_A9E0
-sub_98CE:
+    bne.w h0_108BA
+h0_98CA:
+    bra.w h0_A9E0
+h0_98CE:
     tst.b $011D(a6)
-    bne.s loc_9902
-loc_98D4:
+    bne.s h0_9902
+h0_98D4:
     tst.b $0104(a6)
-    beq.s loc_9876
-loc_98DA:
+    beq.s h0_9876
+h0_98DA:
     tst.b $00FF(a6)
-    beq.w loc_9EE6
-loc_98E2:
+    beq.w h0_9EE6
+h0_98E2:
     tst.w $0250(a6)
-    beq.w loc_A736
-loc_98EA:
+    beq.w h0_A736
+h0_98EA:
     btst.b #1,$0251(a6)
-    bne.w loc_AD54
-loc_98F4:
+    bne.w h0_AD54
+h0_98F4:
     btst.b #2,$0251(a6)
-    bne.w loc_108F2
-loc_98FE:
-    bra.w loc_A9DA
-loc_9902:
+    bne.w h0_108F2
+h0_98FE:
+    bra.w h0_A9DA
+h0_9902:
     moveq.l #38,d0
-    bra.w loc_8556
-sub_9908:
+    bra.w h0_8556
+h0_9908:
     cmpi.b #255,$011D(a6)
-    beq.s loc_9938
-loc_9910:
+    beq.s h0_9938
+h0_9910:
     tst.b $00FF(a6)
-    beq.w loc_9E50
-loc_9918:
+    beq.w h0_9E50
+h0_9918:
     tst.w $0250(a6)
-    beq.w loc_A69A
-loc_9920:
+    beq.w h0_A69A
+h0_9920:
     btst.b #1,$0251(a6)
-    bne.w loc_AEEC
-loc_992A:
+    bne.w h0_AEEC
+h0_992A:
     btst.b #2,$0251(a6)
-    bne.w loc_10AD6
-loc_9934:
-    bra.w loc_9E50
-loc_9938:
+    bne.w h0_10AD6
+h0_9934:
+    bra.w h0_9E50
+h0_9938:
     rts
-loc_993A:
+h0_993A:
     move.l $026E(a6),d2
     moveq.l #1,d1
     clr.b (a5)+
     add.l d1,$026E(a6)
     add.l d1,$0256(a6)
     tst.b $026A(a6)
-    beq.s loc_995E
-loc_9950:
+    beq.s h0_995E
+h0_9950:
     tst.b $0104(a6)
-    beq.s loc_995E
-loc_9956:
-    bsr.s sub_9908
-loc_9958:
-    beq.s loc_995E
-loc_995A:
-    bsr.w sub_98CE
-loc_995E:
+    beq.s h0_995E
+h0_9956:
+    bsr.s h0_9908
+h0_9958:
+    beq.s h0_995E
+h0_995A:
+    bsr.w h0_98CE
+h0_995E:
     movea.l $027E(a6),a5
     move.l a5,$0282(a6)
     rts
     DC.L    $4a2e00ff,$670004ea,$4a6e0250,$67000d84,$082e0001,$02516600,$104e082e,$00020251
-    DC.L    $66001044,$60001040
-sub_9990:
+    DC.L    $66001044,$60001040 ; VIOLATION: orphaned code island at $9968 is not reached from known entrypoints
+h0_9990:
     tst.b $011D(a6)
-    bne.s loc_99BE
-loc_9996:
+    bne.s h0_99BE
+h0_9996:
     tst.b $00FF(a6)
-    beq.w loc_A442
-loc_999E:
+    beq.w h0_A442
+h0_999E:
     tst.w $0250(a6)
-    beq.w loc_A920
-loc_99A6:
+    beq.w h0_A920
+h0_99A6:
     btst.b #1,$0251(a6)
-    bne.w loc_AEDE
-loc_99B0:
+    bne.w h0_AEDE
+h0_99B0:
     btst.b #2,$0251(a6)
-    bne.w loc_AEDE
-loc_99BA:
-    bra.w loc_A442
-loc_99BE:
+    bne.w h0_AEDE
+h0_99BA:
+    bra.w h0_A442
+h0_99BE:
     moveq.l #79,d1
-    bsr.w loc_931A
-loc_99C4:
-    bra.w loc_8F18
-loc_99C8:
+    bsr.w h0_931A
+h0_99C4:
+    bra.w h0_8F18
+h0_99C8:
     moveq.l #40,d0
-    jmp loc_853E.l
-sub_99D0:
+    jmp h0_853E.l
+h0_99D0:
     tst.l $01C8(a6)
-    bne.w loc_88EA
-loc_99D8:
+    bne.w h0_88EA
+h0_99D8:
     tst.l $01B4(a6)
-    bne.s loc_9A08
-loc_99DE:
+    bne.s h0_9A08
+h0_99DE:
     movem.l d1-d2/a0-a2,-(a7)
     lea.l $06FE(a6),a0
-    bsr.w sub_9A0A
-loc_99EA:
-    bne.s loc_99C8
-loc_99EC:
+    bsr.w h0_9A0A
+h0_99EA:
+    bne.s h0_99C8
+h0_99EC:
     move.l d2,$01B4(a6)
     move.l $01D0(a6),d0
-    beq.s loc_9A04
-loc_99F6:
+    beq.s h0_9A04
+h0_99F6:
     movea.l d0,a1
     movea.l $0040(a1),a1
     move.l a1,d0
-    beq.s loc_9A04
-loc_9A00:
+    beq.s h0_9A04
+h0_9A00:
     move.b (a0)+,(a1)+
-    bne.s loc_9A00
-loc_9A04:
+    bne.s h0_9A00
+h0_9A04:
     movem.l (a7)+,d1-d2/a0-a2
-loc_9A08:
+h0_9A08:
     rts
-sub_9A0A:
+h0_9A0A:
     lea.l $0750(a6),a1
     move.b (a0),d0
-    beq.s loc_9A2A
-loc_9A12:
+    beq.s h0_9A2A
+h0_9A12:
     cmp.b #$2E,d0
-    bne.s loc_9A6C
-loc_9A18:
+    bne.s h0_9A6C
+h0_9A18:
     move.b $0001(a0),d0
     cmp.b #$2E,d0
-    beq.s loc_9A6C
-loc_9A22:
+    beq.s h0_9A6C
+h0_9A22:
     cmp.b #$5C,d0
-    beq.s loc_9A6C
-loc_9A28:
+    beq.s h0_9A6C
+h0_9A28:
     move.b (a0),d0
-loc_9A2A:
+h0_9A2A:
     move.l a1,d2
-loc_9A2C:
+h0_9A2C:
     tst.b (a1)+
-    bne.s loc_9A2C
-loc_9A30:
+    bne.s h0_9A2C
+h0_9A30:
     sub.l a1,d2
     neg.l d2
     tst.b d0
-    bne.s loc_9A3C
-loc_9A38:
-    bsr.w sub_9750
-loc_9A3C:
+    bne.s h0_9A3C
+h0_9A38:
+    bsr.w h0_9750
+h0_9A3C:
     subq.l #1,a1
     subq.b #1,d2
-    bsr.w loc_9A58
-loc_9A44:
-    bsr.w sub_BFC4
-loc_9A48:
+    bsr.w h0_9A58
+h0_9A44:
+    bsr.w h0_BFC4
+h0_9A48:
     lea.l $0750(a6),a0
     rts
-sub_9A4E:
+h0_9A4E:
     lea.l $06FE(a6),a0
     lea.l $0750(a6),a1
     moveq.l #0,d2
-loc_9A58:
+h0_9A58:
     cmp.b #$52,d2
-    beq.s loc_9A66
-loc_9A5E:
+    beq.s h0_9A66
+h0_9A5E:
     addq.b #1,d2
     move.b (a0)+,d1
     move.b d1,(a1)+
-    bne.s loc_9A58
-loc_9A66:
+    bne.s h0_9A58
+h0_9A66:
     lea.l $0750(a6),a0
     rts
-loc_9A6C:
+h0_9A6C:
     tst.b (a0)+
-    bne.s loc_9A6C
-loc_9A70:
+    bne.s h0_9A6C
+h0_9A70:
     move.b -$0002(a0),d0
     cmp.b #$5C,d0
-    beq.s loc_9A9C
-loc_9A7A:
+    beq.s h0_9A9C
+h0_9A7A:
     cmp.b #$3A,d0
-    beq.s loc_9A9C
-loc_9A80:
+    beq.s h0_9A9C
+h0_9A80:
     lea.l $06FE(a6),a0
-    bsr.w sub_BFC4
-loc_9A88:
-    beq.w loc_9AA4
-loc_9A8C:
-    bsr.s sub_9A4E
-loc_9A8E:
+    bsr.w h0_BFC4
+h0_9A88:
+    beq.w h0_9AA4
+h0_9A8C:
+    bsr.s h0_9A4E
+h0_9A8E:
     move.b #$5C,-$0001(a1)
-loc_9A94:
+h0_9A94:
     lea.l $07A2(a6),a0
-    bsr.s loc_9A58
-loc_9A9A:
-    bra.s loc_9A38
-loc_9A9C:
-    bsr.s sub_9A4E
-loc_9A9E:
+    bsr.s h0_9A58
+h0_9A9A:
+    bra.s h0_9A38
+h0_9A9C:
+    bsr.s h0_9A4E
+h0_9A9E:
     subq.w #1,a1
     subq.b #1,d2
-    bra.s loc_9A94
-loc_9AA4:
+    bra.s h0_9A94
+h0_9AA4:
     lea.l $06FE(a6),a0
     rts
-loc_9AAA:
+h0_9AAA:
     lea.l dat_9AE4(pc),a0
     move.l a0,$01A8(a6)
     move.l $027E(a6),d1
     tst.b $011D(a6)
-    bne.s loc_9AE8
-loc_9ABC:
+    bne.s h0_9AE8
+h0_9ABC:
     tst.b $00FF(a6)
-    beq.w loc_9FE0
-loc_9AC4:
+    beq.w h0_9FE0
+h0_9AC4:
     tst.w $0250(a6)
-    beq.w loc_A638
-loc_9ACC:
+    beq.w h0_A638
+h0_9ACC:
     btst.b #1,$0251(a6)
-    bne.w loc_AE04
-loc_9AD6:
+    bne.w h0_AE04
+h0_9AD6:
     btst.b #2,$0251(a6)
-    bne.w loc_109B6
-loc_9AE0:
-    bra.w loc_9FE0
+    bne.w h0_109B6
+h0_9AE0:
+    bra.w h0_9FE0
 dat_9AE4:
     DC.L    $42ae01b0
-loc_9AE8:
+h0_9AE8:
     rts
-loc_9AEA:
+h0_9AEA:
     tst.b $00FF(a6)
-    beq.w loc_A008
-loc_9AF2:
+    beq.w h0_A008
+h0_9AF2:
     tst.w $0250(a6)
-    beq.w loc_A618
-loc_9AFA:
+    beq.w h0_A618
+h0_9AFA:
     btst.b #1,$0251(a6)
-    bne.w loc_AD68
-loc_9B04:
+    bne.w h0_AD68
+h0_9B04:
     btst.b #2,$0251(a6)
-    bne.w loc_1091C
-loc_9B0E:
-    bra.w loc_A008
-sub_9B12:
+    bne.w h0_1091C
+h0_9B0E:
+    bra.w h0_A008
+h0_9B12:
     tst.b $0104(a6)
-    beq.s loc_9B40
-loc_9B18:
+    beq.s h0_9B40
+h0_9B18:
     tst.b $00FF(a6)
-    beq.w loc_A02C
-loc_9B20:
+    beq.w h0_A02C
+h0_9B20:
     tst.w $0250(a6)
-    beq.w loc_A812
-loc_9B28:
+    beq.w h0_A812
+h0_9B28:
     btst.b #1,$0251(a6)
-    bne.w loc_AF1E
-loc_9B32:
+    bne.w h0_AF1E
+h0_9B32:
     btst.b #2,$0251(a6)
-    bne.w loc_10AE6
-loc_9B3C:
-    bra.w loc_AAD0
-loc_9B40:
+    bne.w h0_10AE6
+h0_9B3C:
+    bra.w h0_AAD0
+h0_9B40:
     rts
-loc_9B42:
+h0_9B42:
     move.l $01B4(a6),d2
-    beq.s loc_9B50
-loc_9B48:
-    bsr.w loc_BF68
-loc_9B4C:
+    beq.s h0_9B50
+h0_9B48:
+    bsr.w h0_BF68
+h0_9B4C:
     clr.l $01B4(a6)
-loc_9B50:
+h0_9B50:
     rts
-sub_9B52:
+h0_9B52:
     move.l d2,-(a7)
-loc_9B54:
+h0_9B54:
     move.l #$50DA,d0
     sub.l d0,d1
-    bcc.s loc_9B62
-loc_9B5E:
+    bcc.s h0_9B62
+h0_9B5E:
     add.l d1,d0
     moveq.l #0,d1
-loc_9B62:
+h0_9B62:
     movea.l a6,a0
     move.l d1,-(a7)
     move.l d0,d1
-    bsr.w loc_84F2
-loc_9B6C:
+    bsr.w h0_84F2
+h0_9B6C:
     move.l (a7)+,d1
-    bne.s loc_9B54
-loc_9B70:
+    bne.s h0_9B54
+h0_9B70:
     move.l (a7)+,d2
     rts
-dat_9B74:
-    DC.L    $4a6e0250,$67000cb6,$082e0001,$02516600,$18d8082e,$00020251,$66006f74,$60000e7c
+h0_9B74:
+    tst.w $0250(a6)
+    beq.w h0_A830
+h0_9B7C:
+    btst.b #1,$0251(a6)
+    bne.w h0_B45C
+h0_9B86:
+    btst.b #2,$0251(a6)
+    bne.w h0_10B02
+h0_9B90:
+    bra.w h0_AA0E
 dat_9B94:
-    DC.L    $4a6e0250,$67000c9c,$082e0001,$02516600,$1876082e,$00020251,$66006f50,$60000eca
+    DC.L    $4a6e0250,$67000c9c,$082e0001,$02516600,$1876082e,$00020251,$66006f50,$60000eca ; VIOLATION: orphaned code island at $9B94 is not reached from known entrypoints
 dat_9BB4:
     DC.L    $4a2e0114,$67064a6e,$0250662a,$b63c0001,$660450ee,$01164a6e,$02506700,$0c44082e
-    DC.L    $00010251,$6600182c,$082e0002,$02516600,$6f166000,$0e604e75
+    DC.L    $00010251,$6600182c,$082e0002,$02516600,$6f166000,$0e604e75 ; VIOLATION: orphaned code island at $9BB4 is not reached from known entrypoints
 dat_9BEC:
     DC.L    $4a6e0250,$67000c3a,$082e0001,$02516600,$182a082e,$00020251,$66006ef8,$60000e62
     DC.L    $4a6e0250,$67000c1a,$082e0001,$02516600,$17fe082e,$00020251,$66006ed8,$60000e42
@@ -8171,47 +8460,80 @@ dat_9C4C:
     DC.L    $4a6e0250,$67000bd2,$082e0001,$02516600,$17e4082e,$00020251,$66006e9c,$60000da4
 dat_9C6C:
     DC.L    $4a6e0250,$67000bae,$082e0001,$02516600,$17e8082e,$00020251,$66006e7c,$60000d84
-dat_9C8C:
-    DC.L    $4a2e0107,$6706703c,$6000e8c0,$4a2e0114,$664248e7,$600050ee,$0116200d,$90ae027e
-    DC.L    $d0ae026e,$487a002a,$4a2e00ff,$670006de,$4a6e0250,$6700098c,$082e0001,$02516600
-    DC.L    $172e082e,$00020251,$66006e22,$60000cd0,$4cdf0006,$4e757000,$102e014c,$220292ae
-    DC.L    $026e4a2e,$00ff6700,$071e4a6e,$02506700,$09d2082e,$00010251,$66001008,$082e0002
-    DC.L    $02516600,$6bac6000,$0cce7000,$102e014c,$222e026e,$4a2e00ff,$6700ad92,$4a6e0250
-    DC.L    $6700098c,$082e0001,$02516600,$0ffa082e,$00020251,$66006bac,$6000ad72
-loc_9D48:
+h0_9C8C:
+    tst.b $0107(a6)
+    beq.s h0_9C98
+h0_9C92:
+    moveq.l #60,d0
+    bra.w h0_8556
+h0_9C98:
+    tst.b $0114(a6)
+    bne.s h0_9CE0
+h0_9C9E:
+    movem.l d1-d2,-(a7)
+    st.b $0116(a6)
+    move.l a5,d0
+    sub.l $027E(a6),d0
+    add.l $026E(a6),d0
+    pea.l dat_9CDC(pc)
+    tst.b $00FF(a6)
+    beq.w h0_A398
+h0_9CBC:
+    tst.w $0250(a6)
+    beq.w h0_A64E
+h0_9CC4:
+    btst.b #1,$0251(a6)
+    bne.w h0_B3FA
+h0_9CCE:
+    btst.b #2,$0251(a6)
+    bne.w h0_10AF8
+h0_9CD8:
+    bra.w h0_A9AA
+dat_9CDC:
+    DC.L    $4cdf0006
+h0_9CE0:
     rts
-    DC.B    $41,$fa
+    DC.B    $70,$00 ; VIOLATION: orphaned code island at $9CE2 is not reached from known entrypoints
+    DC.L    $102e014c,$220292ae,$026e4a2e,$00ff6700,$071e4a6e,$02506700,$09d2082e,$00010251
+    DC.L    $66001008,$082e0002,$02516600,$6bac6000
+    DC.B    $0c,$ce
+    DC.B    $70,$00 ; VIOLATION: orphaned code island at $9D16 is not reached from known entrypoints
+    DC.L    $102e014c,$222e026e,$4a2e00ff,$6700ad92,$4a6e0250,$6700098c,$082e0001,$02516600
+    DC.L    $0ffa082e,$00020251,$66006bac,$6000ad72
+h0_9D48:
+    rts
+    DC.B    $41,$fa ; VIOLATION: orphaned code island at $9D4A is not reached from known entrypoints
     DC.L    $002ab308,$6622b308,$661eb308,$661ab308,$6616b308,$66122f0c,$2849121c
     DC.B    $4e,$b9
-    DC.L    sub_175A
+    DC.L    h0_175A
     DC.B    $2d,$42
     DC.L    $4b10285f
     DC.B    "NuHEAD=",0
-loc_9D7C:
+h0_9D7C:
     tst.l $01C8(a6)
-    bne.w loc_9DF2
-loc_9D84:
+    bne.w h0_9DF2
+h0_9D84:
     move.l #$104,d1
     add.l $0184(a6),d1
     move.l #$1200,d2
-    bsr.w sub_C01E
-loc_9D98:
+    bsr.w h0_C01E
+h0_9D98:
     move.l d1,$4AE4(a6)
     move.l d1,$4AE8(a6)
-    bsr.w sub_9146
-loc_9DA4:
+    bsr.w h0_9146
+h0_9DA4:
     move.l a0,$4AE0(a6)
     move.l a0,$4AEC(a6)
     move.l a0,$027E(a6)
     move.l #$82,d1
     add.l $0190(a6),d1
     move.l #$1200,d2
-    bsr.w sub_C01E
-loc_9DC4:
+    bsr.w h0_C01E
+h0_9DC4:
     move.l d1,$4AF8(a6)
     move.l d1,$4AFC(a6)
-    bsr.w sub_9146
-loc_9DD0:
+    bsr.w h0_9146
+h0_9DD0:
     move.l a0,$4AF4(a6)
     move.l a0,$4B00(a6)
     moveq.l #0,d0
@@ -8220,10 +8542,10 @@ loc_9DD0:
     move.l d0,$4AF0(a6)
     add.l $0184(a6),d0
     move.l d0,$4B04(a6)
-loc_9DEC:
+h0_9DEC:
     clr.l $4B10(a6)
     rts
-loc_9DF2:
+h0_9DF2:
     moveq.l #28,d1
     add.l $01C8(a6),d1
     move.l d1,$4AE0(a6)
@@ -8241,8 +8563,8 @@ loc_9DF2:
     add.l $0184(a6),d1
     add.l $0190(a6),d1
     cmp.l $01CC(a6),d1
-    bcc.w loc_88EA
-loc_9E38:
+    bcc.w h0_88EA
+h0_9E38:
     movea.l $01C8(a6),a1
     clr.w (a1)+
     move.l $0184(a6),(a1)+
@@ -8250,97 +8572,99 @@ loc_9E38:
     move.l $019C(a6),(a1)+
     clr.l (a1)+
     clr.b (a1)+
-    bra.s loc_9DEC
-loc_9E50:
+    bra.s h0_9DEC
+h0_9E50:
     cmpi.b #24,$014C(a6)
     rts
     DC.L    $102e014c,$673cb03c,$000c6600,$e6c62002,$d081b0ae,$4afc6f34,$48e76080,$6100fb5a
-    DC.L    $43ee4af4,$222e4b04,$610000ea,$4cdf0106,$d081b0ae,$4b086f04,$2d404b08,$d3ae4b04
-    DC.L    $603e2002,$d081b0ae,$4ae86e0c,$d3ae027e,$1ad85381,$66fa4e75,$48e76080,$6100fb1a
-    DC.L    $43ee4ae0,$222e4af0,$610000aa,$4cdf0106,$d081b0ae,$4b086f04,$2d404b08,$d3ae4af0
-    DC.L    $08000000,$670452ae,$027e6000
+    DC.L    $43ee4af4,$222e4b04,$610000ea,$4cdf0106,$d081b0ae,$4b086f04,$2d404b08,$d3ae4b04 ; VIOLATION: orphaned code island at $9E58 is not reached from known entrypoints
+    DC.B    $60,$3e
+    DC.B    $20,$02 ; VIOLATION: orphaned code island at $9E9A is not reached from known entrypoints
+    DC.L    $d081b0ae,$4ae86e0c,$d3ae027e,$1ad85381,$66fa4e75
+    DC.L    $48e76080,$6100fb1a,$43ee4ae0,$222e4af0,$610000aa,$4cdf0106,$d081b0ae,$4b086f04
+    DC.L    $2d404b08,$d3ae4af0,$08000000,$670452ae,$027e6000 ; VIOLATION: orphaned code island at $9EB0 is not reached from known entrypoints
     DC.B    $e6,$0e
-loc_9EE6:
+h0_9EE6:
     moveq.l #0,d0
     move.b $014C(a6),d0
-    beq.s loc_9EF8
-loc_9EEE:
+    beq.s h0_9EF8
+h0_9EEE:
     cmp.b #$C,d0
-    beq.s loc_9F26
-loc_9EF4:
-    bra.w loc_852A
-loc_9EF8:
+    beq.s h0_9F26
+h0_9EF4:
+    bra.w h0_852A
+h0_9EF8:
     move.l d2,d0
     addi.l #256,d0
     cmp.l $4AE8(a6),d0
-    bcc.s loc_9F0C
-loc_9F06:
+    bcc.s h0_9F0C
+h0_9F06:
     add.l d1,$027E(a6)
     rts
-loc_9F0C:
+h0_9F0C:
     tst.l $01C8(a6)
-    bne.s loc_9F06
-loc_9F12:
-    bsr.w sub_99D0
-loc_9F16:
+    bne.s h0_9F06
+h0_9F12:
+    bsr.w h0_99D0
+h0_9F16:
     lea.l $4AE0(a6),a1
     move.l $4AF0(a6),d1
-    bsr.s sub_9F54
-loc_9F20:
+    bsr.s h0_9F54
+h0_9F20:
     add.l d1,$4AE8(a6)
     rts
-loc_9F26:
+h0_9F26:
     move.l d2,d0
     addi.l #256,d0
     cmp.l $4AFC(a6),d0
-    bcc.s loc_9F3A
-loc_9F34:
+    bcc.s h0_9F3A
+h0_9F34:
     add.l d1,$027E(a6)
     rts
-loc_9F3A:
+h0_9F3A:
     tst.l $01C8(a6)
-    bne.s loc_9F34
-loc_9F40:
-    bsr.w sub_99D0
-loc_9F44:
+    bne.s h0_9F34
+h0_9F40:
+    bsr.w h0_99D0
+h0_9F44:
     lea.l $4AF4(a6),a1
     move.l $4B04(a6),d1
-    bsr.s sub_9F54
-loc_9F4E:
+    bsr.s h0_9F54
+h0_9F4E:
     add.l d1,$4AFC(a6)
     rts
-sub_9F54:
+h0_9F54:
     move.l a5,d0
     andi.b #1,d0
-    beq.s loc_9F6C
-loc_9F5C:
+    beq.s h0_9F6C
+h0_9F5C:
     move.b -(a5),-(a7)
-    bsr.s loc_9F6C
-loc_9F60:
+    bsr.s h0_9F6C
+h0_9F60:
     movea.l $027E(a6),a0
     move.b (a7)+,(a0)+
     move.l a0,$027E(a6)
     rts
-loc_9F6C:
+h0_9F6C:
     tst.l $01C8(a6)
-    bne.w loc_88EA
-loc_9F74:
+    bne.w h0_88EA
+h0_9F74:
     move.l a1,-(a7)
     cmp.l $4B08(a6),d1
-    ble.s loc_9F8C
-loc_9F7C:
+    ble.s h0_9F8C
+h0_9F7C:
     move.l d1,-(a7)
     sub.l $4B08(a6),d1
     add.l d1,$4B08(a6)
-    bsr.w sub_9B52
-loc_9F8A:
+    bsr.w h0_9B52
+h0_9F8A:
     move.l (a7)+,d1
-loc_9F8C:
+h0_9F8C:
     movea.l (a7),a1
     move.l d1,$0010(a1)
     move.l d1,d2
-    bsr.w sub_BFFE
-loc_9F98:
+    bsr.w h0_BFFE
+h0_9F98:
     movea.l (a7)+,a1
     movea.l (a1),a0
     move.l a5,d1
@@ -8349,17 +8673,17 @@ loc_9F98:
     add.l d1,$0010(a1)
     move.l $0010(a1),-(a7)
     move.l d1,-(a7)
-    bsr.w loc_84F2
-loc_9FB2:
+    bsr.w h0_84F2
+h0_9FB2:
     move.l (a7)+,d1
     move.l (a7)+,d0
     cmp.l $4B08(a6),d0
-    ble.s loc_9FC0
-loc_9FBC:
+    ble.s h0_9FC0
+h0_9FBC:
     move.l d0,$4B08(a6)
-loc_9FC0:
+h0_9FC0:
     rts
-loc_9FC2:
+h0_9FC2:
     lea.l $0180(a6),a0
     moveq.l #0,d0
     move.b $014C(a6),d0
@@ -8368,120 +8692,120 @@ loc_9FC2:
     add.l d2,$4(a0,d0.w)
     move.l $026E(a6),$C(a0,d0.w)
     rts
-loc_9FE0:
+h0_9FE0:
     tst.b $026A(a6)
-    beq.s loc_9FC2
-loc_9FE6:
+    beq.s h0_9FC2
+h0_9FE6:
     move.b $014C(a6),d0
-    beq.s loc_9FF4
-loc_9FEC:
+    beq.s h0_9FF4
+h0_9FEC:
     cmp.b #$C,d0
-    beq.s loc_9FFA
-loc_9FF2:
+    beq.s h0_9FFA
+h0_9FF2:
     rts
-loc_9FF4:
+h0_9FF4:
     move.l d1,$4AEC(a6)
     rts
-loc_9FFA:
+h0_9FFA:
     move.l d1,$4B00(a6)
     rts
-loc_A000:
+h0_A000:
     move.l $0256(a6),$4B14(a6)
     rts
-loc_A008:
+h0_A008:
     tst.b $026A(a6)
-    beq.s loc_A000
-loc_A00E:
+    beq.s h0_A000
+h0_A00E:
     move.b $014C(a6),d0
-    beq.s loc_A01C
-loc_A014:
+    beq.s h0_A01C
+h0_A014:
     cmp.b #$C,d0
-    beq.s loc_A024
-loc_A01A:
+    beq.s h0_A024
+h0_A01A:
     rts
-loc_A01C:
+h0_A01C:
     move.l $4AEC(a6),$027E(a6)
     rts
-loc_A024:
+h0_A024:
     move.l $4B00(a6),$027E(a6)
     rts
-loc_A02C:
+h0_A02C:
     tst.l $01C8(a6)
-    bne.w loc_A2BE
-loc_A034:
-    bsr.w sub_99D0
-loc_A038:
+    bne.w h0_A2BE
+h0_A034:
+    bsr.w h0_99D0
+h0_A038:
     lea.l $4AE0(a6),a1
     move.l $4AF0(a6),d1
     movea.l $4AEC(a6),a5
-    bsr.w loc_9F6C
-loc_A048:
+    bsr.w h0_9F6C
+h0_A048:
     lea.l $4AF4(a6),a1
     move.l $4B04(a6),d1
     movea.l $4B00(a6),a5
-    bsr.w loc_9F6C
-loc_A058:
+    bsr.w h0_9F6C
+h0_A058:
     btst.b #0,$4B0B(a6)
-    beq.s loc_A06C
-loc_A060:
+    beq.s h0_A06C
+h0_A060:
     moveq.l #1,d1
     lea.l $05DE(a6),a0
     clr.b (a0)
-    bsr.w loc_84F2
-loc_A06C:
+    bsr.w h0_84F2
+h0_A06C:
     clr.l $4B0C(a6)
     tst.b $0105(a6)
-    beq.w loc_A172
-loc_A078:
+    beq.w h0_A172
+h0_A078:
     movea.l $4AE0(a6),a4
     move.l $4AE4(a6),d4
-    lea.l sub_A094(pc),a2
+    lea.l h0_A094(pc),a2
     movea.l $0144(a6),a1
-    bsr.w sub_8D7C
-loc_A08C:
-    bsr.w sub_A138
-loc_A090:
-    bra.w loc_A172
-sub_A094:
+    bsr.w h0_8D7C
+h0_A08C:
+    bsr.w h0_A138
+h0_A090:
+    bra.w h0_A172
+h0_A094:
     move.b $000D(a1),d0
     cmp.b #$1,d0
-    bne.w loc_A136
-loc_A0A0:
+    bne.w h0_A136
+h0_A0A0:
     moveq.l #0,d2
     move.w #$A200,d1
     move.b $000E(a1),d0
-    beq.s loc_A0C2
-loc_A0AC:
+    beq.s h0_A0C2
+h0_A0AC:
     move.l $0198(a6),d2
     move.w #$A100,d1
     cmp.b #$18,d0
-    beq.s loc_A0C2
-loc_A0BA:
+    beq.s h0_A0C2
+h0_A0BA:
     move.l $018C(a6),d2
     move.w #$A400,d1
-loc_A0C2:
+h0_A0C2:
     add.l $0008(a1),d2
     move.l d2,-(a7)
     move.b $0016(a1),d0
     lea.l $0017(a1),a0
     tst.b $0105(a6)
-    bpl.s loc_A114
-loc_A0D6:
+    bpl.s h0_A114
+h0_A0D6:
     cmp.b #$9,d0
-    bcs.s loc_A114
-loc_A0DC:
+    bcs.s h0_A114
+h0_A0DC:
     moveq.l #28,d2
     cmp.l d2,d4
-    bge.s loc_A0E4
-loc_A0E2:
-    bsr.s sub_A138
-loc_A0E4:
+    bge.s h0_A0E4
+h0_A0E2:
+    bsr.s h0_A138
+h0_A0E4:
     sub.l d2,d4
     moveq.l #7,d2
-loc_A0E8:
+h0_A0E8:
     move.b (a0)+,(a4)+
-    dbf.w d2,loc_A0E8
-loc_A0EE:
+    dbf.w d2,h0_A0E8
+h0_A0EE:
     move.b #$48,d1
     move.w d1,(a4)+
     move.l (a7)+,(a4)+
@@ -8493,78 +8817,78 @@ loc_A0EE:
     clr.l -(a4)
     clr.l -(a4)
     clr.w -(a4)
-loc_A10A:
+h0_A10A:
     move.b (a0)+,(a4)+
-    dbf.w d0,loc_A10A
-loc_A110:
+    dbf.w d0,h0_A10A
+h0_A110:
     movea.l (a7)+,a4
     rts
-loc_A114:
+h0_A114:
     moveq.l #14,d2
     cmp.l d2,d4
-    bge.s loc_A11C
-loc_A11A:
-    bsr.s sub_A138
-loc_A11C:
+    bge.s h0_A11C
+h0_A11A:
+    bsr.s h0_A138
+h0_A11C:
     sub.l d2,d4
     moveq.l #7,d2
-loc_A120:
+h0_A120:
     move.b (a0)+,(a4)+
     subq.b #1,d0
-    dbeq.w d2,loc_A120
-loc_A128:
+    dbeq.w d2,h0_A120
+h0_A128:
     subq.w #1,d2
-    bmi.s loc_A132
-loc_A12C:
+    bmi.s h0_A132
+h0_A12C:
     clr.b (a4)+
-    dbf.w d2,loc_A12C
-loc_A132:
+    dbf.w d2,h0_A12C
+h0_A132:
     move.w d1,(a4)+
     move.l (a7)+,(a4)+
-loc_A136:
+h0_A136:
     rts
-sub_A138:
+h0_A138:
     tst.l $01C8(a6)
-    bne.w loc_88EA
-loc_A140:
+    bne.w h0_88EA
+h0_A140:
     movem.l d0-d3/a0-a3,-(a7)
     move.l $4AE4(a6),d1
     sub.l d4,d1
-    beq.s loc_A15A
-loc_A14C:
+    beq.s h0_A15A
+h0_A14C:
     add.l d1,$4B0C(a6)
     movea.l $4AE0(a6),a0
     movea.l a0,a4
-    bsr.w loc_84F2
-loc_A15A:
+    bsr.w h0_84F2
+h0_A15A:
     movem.l (a7)+,d0-d3/a0-a3
     move.l $4AE4(a6),d4
     rts
-    DC.B    $26,$6e,$4a,$e0,$28,$2e,$4a,$e4,$42,$9b,$60,$00,$00,$c2
-loc_A172:
+    DC.B    $26,$6e,$4a,$e0,$28,$2e,$4a,$e4,$42,$9b,$60,$00,$00,$c2 ; VIOLATION: orphaned code island at $A164 is not reached from known entrypoints
+h0_A172:
     movea.l $4AE0(a6),a3
     move.l $4AE4(a6),d4
-    bsr.s sub_A180
-loc_A17C:
-    bra.w loc_A232
-sub_A180:
+    bsr.s h0_A180
+h0_A17C:
+    bra.w h0_A232
+h0_A180:
     move.l $0188(a6),d0
     or.l $0194(a6),d0
-    bne.s loc_A18E
-loc_A18A:
+    bne.s h0_A18E
+h0_A18A:
     clr.l (a3)+
     rts
-loc_A18E:
+h0_A18E:
     moveq.l #0,d3
     sf.b d6
     lea.l $0188(a6),a1
     tst.l (a1)
-    bne.s loc_A1A4
-loc_A19A:
+    bne.s h0_A1A4
+h0_A19A:
     lea.l $0194(a6),a1
     st.b d6
     move.l $0184(a6),d3
-loc_A1A4:
+h0_A1A4:
     movea.l (a1),a1
     lea.l $000A(a1),a0
     moveq.l #50,d2
@@ -8573,87 +8897,87 @@ loc_A1A4:
     add.l d3,d0
     move.l d0,(a3)+
     subq.l #4,d4
-loc_A1B8:
+h0_A1B8:
     subq.w #1,d2
-    beq.s loc_A1E0
-loc_A1BC:
+    beq.s h0_A1E0
+h0_A1BC:
     move.l (a0)+,d1
     add.l d3,d1
     move.l d1,d5
     sub.l d0,d1
-loc_A1C4:
+h0_A1C4:
     cmp.l #$FE,d1
-    ble.s loc_A1DA
-loc_A1CC:
+    ble.s h0_A1DA
+h0_A1CC:
     move.l d1,-(a7)
     moveq.l #1,d1
-    bsr.s loc_A206
-loc_A1D2:
+    bsr.s h0_A206
+h0_A1D2:
     moveq.l #-127,d1
     add.l d1,d1
     add.l (a7)+,d1
-    bra.s loc_A1C4
-loc_A1DA:
-    bsr.s loc_A206
-loc_A1DC:
+    bra.s h0_A1C4
+h0_A1DA:
+    bsr.s h0_A206
+h0_A1DC:
     move.l d5,d0
-    bra.s loc_A1B8
-loc_A1E0:
+    bra.s h0_A1B8
+h0_A1E0:
     tst.l (a1)
-    beq.s loc_A1F2
-loc_A1E4:
+    beq.s h0_A1F2
+h0_A1E4:
     movea.l (a1),a1
     lea.l $000A(a1),a0
     moveq.l #50,d2
     sub.w $0008(a1),d2
-    bra.s loc_A1BC
-loc_A1F2:
+    bra.s h0_A1BC
+h0_A1F2:
     tst.b d6
-    bne.s loc_A204
-loc_A1F6:
+    bne.s h0_A204
+h0_A1F6:
     st.b d6
     lea.l $0194(a6),a1
     move.l $0184(a6),d3
     tst.l (a1)
-    bne.s loc_A1E0
-loc_A204:
+    bne.s h0_A1E0
+h0_A204:
     moveq.l #0,d1
-loc_A206:
+h0_A206:
     move.b d1,(a3)+
     subq.l #1,d4
-    beq.s loc_A20E
-loc_A20C:
+    beq.s h0_A20E
+h0_A20C:
     rts
-loc_A20E:
+h0_A20E:
     tst.l $01C8(a6)
-    bne.w loc_88EA
-loc_A216:
+    bne.w h0_88EA
+h0_A216:
     movem.l d0-d2/a0-a2,-(a7)
     movea.l $4AE0(a6),a0
     move.l a3,d1
     sub.l a0,d1
     movea.l a0,a3
-    bsr.w loc_84F2
-loc_A228:
+    bsr.w h0_84F2
+h0_A228:
     move.l $4AE4(a6),d4
     movem.l (a7)+,d0-d2/a0-a2
     rts
-loc_A232:
+h0_A232:
     tst.b $012B(a6)
-    beq.s loc_A240
-loc_A238:
+    beq.s h0_A240
+h0_A238:
     btst #0,d4
-    beq.s loc_A240
-loc_A23E:
-    bsr.s loc_A204
-loc_A240:
-    bsr.s loc_A20E
-loc_A242:
-    bsr.s sub_A274
-loc_A244:
+    beq.s h0_A240
+h0_A23E:
+    bsr.s h0_A204
+h0_A240:
+    bsr.s h0_A20E
+h0_A242:
+    bsr.s h0_A274
+h0_A244:
     moveq.l #0,d2
-    bsr.w sub_BFFE
-loc_A24A:
+    bsr.w h0_BFFE
+h0_A24A:
     lea.l $05DE(a6),a0
     move.w #$601A,(a0)+
     move.l $0184(a6),(a0)+
@@ -8665,23 +8989,23 @@ loc_A24A:
     clr.w (a0)+
     lea.l $05DE(a6),a0
     moveq.l #28,d1
-    bra.w loc_84F2
-sub_A274:
+    bra.w h0_84F2
+h0_A274:
     tst.b $012B(a6)
-    beq.w loc_A298
-loc_A27C:
+    beq.w h0_A298
+h0_A27C:
     lea.l dat_A29A(pc),a0
     moveq.l #36,d1
-    bsr.w loc_84F2
-loc_A286:
-    bsr.w loc_B260
-loc_A28A:
+    bsr.w h0_84F2
+h0_A286:
+    bsr.w h0_B260
+h0_A28A:
     moveq.l #0,d6
     lea.l dat_8BFE(pc),a2
-    bsr.w sub_8D20
-loc_A294:
-    bra.w loc_B246
-loc_A298:
+    bsr.w h0_8D20
+h0_A294:
+    bra.w h0_B246
+h0_A298:
     rts
 dat_A29A:
     DC.B    $00,$00
@@ -8690,612 +9014,765 @@ dat_A29A:
     DC.B    $00,$00,$00
     DC.L    $00000000,$00000000
     DC.B    $00,$00
-loc_A2BE:
+h0_A2BE:
     moveq.l #0,d2
     move.l $01CC(a6),d4
     sub.l $0184(a6),d4
     sub.l $0190(a6),d4
     subi.l #30,d4
     tst.b $0105(a6)
-    beq.s loc_A30C
-loc_A2D8:
+    beq.s h0_A30C
+h0_A2D8:
     movea.l $01C8(a6),a4
     lea.l $001C(a4),a4
     adda.l $0184(a6),a4
     adda.l $0190(a6),a4
     move.l d4,-(a7)
-    lea.l sub_A094(pc),a2
+    lea.l h0_A094(pc),a2
     movea.l $0144(a6),a1
-    bsr.w sub_8D7C
-loc_A2F6:
+    bsr.w h0_8D7C
+h0_A2F6:
     move.l (a7)+,d2
     sub.l d4,d2
-    beq.s loc_A30C
-loc_A2FC:
+    beq.s h0_A30C
+h0_A2FC:
     movea.l $01C8(a6),a0
     addq.l #2,d2
     subq.l #2,d4
-    bcs.w loc_88EA
-loc_A308:
+    bcs.w h0_88EA
+h0_A308:
     move.l d2,$000E(a0)
-loc_A30C:
+h0_A30C:
     movea.l $01C8(a6),a3
     move.l $4B10(a6),$0016(a3)
     lea.l $001C(a3),a3
     adda.l $0184(a6),a3
     adda.l $0190(a6),a3
     adda.l d2,a3
-    bsr.w sub_A180
-loc_A328:
+    bsr.w h0_A180
+h0_A328:
     movea.l a3,a4
     btst #0,d4
-    beq.s loc_A334
-loc_A330:
+    beq.s h0_A334
+h0_A330:
     clr.b (a4)+
     subq.l #1,d4
-loc_A334:
+h0_A334:
     tst.b $012B(a6)
-    beq.s loc_A344
-loc_A33A:
+    beq.s h0_A344
+h0_A33A:
     moveq.l #0,d6
-    lea.l sub_8C96(pc),a2
-    bsr.w sub_8D20
-loc_A344:
+    lea.l h0_8C96(pc),a2
+    bsr.w h0_8D20
+h0_A344:
     cmp.l #$4,d4
-    bcs.w loc_88EA
-loc_A34E:
+    bcs.w h0_88EA
+h0_A34E:
     move.l #$3F2,(a4)+
     movea.l $01C8(a6),a0
     move.w #$601A,(a0)
     rts
-sub_A35E:
+h0_A35E:
     moveq.l #0,d1
     move.b $0016(a1),d1
     move.l d1,d2
     andi.b #3,d2
-    beq.s loc_A372
-loc_A36C:
+    beq.s h0_A372
+h0_A36C:
     andi.b #252,d1
     addq.l #4,d1
-loc_A372:
+h0_A372:
     lsr.l #2,d1
     move.l d1,(a4)+
     lea.l $0016(a1),a0
     move.b (a0)+,d0
-loc_A37C:
+h0_A37C:
     move.b (a0)+,(a4)+
     subq.b #1,d0
-    bne.s loc_A37C
-loc_A382:
+    bne.s h0_A37C
+h0_A382:
     move.b $0016(a1),d0
     andi.b #3,d0
-    beq.s loc_A396
-loc_A38C:
+    beq.s h0_A396
+h0_A38C:
     clr.b (a4)+
     addq.b #1,d0
     cmp.b #$4,d0
-    bne.s loc_A38C
-loc_A396:
+    bne.s h0_A38C
+h0_A396:
     rts
-    DC.L    $2400226e,$01487000,$1029000e,$b03c0018,$6700f8e8,$4a2e0104,$66024e75,$2f0a43ee
-    DC.L    $0188d2c0,$24514a91,$66286108
-    DC.B    "$H%H",0
-    DC.B    $04,$60,$30
-    DC.L    $48e70060,$223c0000,$00d26100,$ed6e4cdf,$06002288,$4290317c,$00320008
-    DC.B    "Nu j",0
-    DC.B    $04,$4a,$68
-    DC.L    $00086608,$224861d4,$25480004,$70329068,$0008d040,$d0405368,$00082182,$000a245f
-    DC.B    "NuJ."
-    DC.L    $026a671c,$4a2e0104,$6716b03c,$00186710,$b03c000c,$6706d3ae,$4ae8600e,$d3ae4afc
-    DC.L    $b03c0018,$660470ff,$4e757000
-    DC.B    $4e,$75
-loc_A442:
+h0_A398:
+    move.l d0,d2
+    movea.l $0148(a6),a1
+    moveq.l #0,d0
+    move.b $000E(a1),d0
+    cmp.b #$18,d0
+    beq.w h0_9C92
+h0_A3AC:
+    tst.b $0104(a6)
+    bne.s h0_A3B4
+h0_A3B2:
+    rts
+h0_A3B4:
+    move.l a2,-(a7)
+    lea.l $0188(a6),a1
+    adda.w d0,a1
+    movea.l (a1),a2
+    tst.l (a1)
+    bne.s h0_A3EA
+h0_A3C2:
+    bsr.s h0_A3CC
+h0_A3C4:
+    movea.l a0,a2
+    move.l a0,$0004(a2)
+    bra.s h0_A3FC
+h0_A3CC:
+    movem.l a1-a2,-(a7)
+    move.l #$D2,d1
+    bsr.w h0_9146
+h0_A3DA:
+    movem.l (a7)+,a1-a2
+    move.l a0,(a1)
+    clr.l (a0)
+    move.w #$32,$0008(a0)
+    rts
+h0_A3EA:
+    movea.l $0004(a2),a0
+    tst.w $0008(a0)
+    bne.s h0_A3FC
+h0_A3F4:
+    movea.l a0,a1
+    bsr.s h0_A3CC
+h0_A3F8:
+    move.l a0,$0004(a2)
+h0_A3FC:
+    moveq.l #50,d0
+    sub.w $0008(a0),d0
+    add.w d0,d0
+    add.w d0,d0
+    subq.w #1,$0008(a0)
+    move.l d2,$A(a0,d0.w)
+    movea.l (a7)+,a2
+    rts
+    DC.B    $4a,$2e ; VIOLATION: orphaned code island at $A412 is not reached from known entrypoints
+    DC.L    $026a671c,$4a2e0104,$6716b03c,$00186710,$b03c000c,$6706d3ae,$4ae8600e
+    DC.B    $d3,$ae,$4a,$fc,$b0,$3c,$00,$18,$66,$04,$70,$ff,$4e,$75 ; VIOLATION: orphaned code island at $A430 is not reached from known entrypoints
+    DC.B    $70,$00,$4e,$75 ; VIOLATION: orphaned code island at $A43E is not reached from known entrypoints
+h0_A442:
     moveq.l #84,d1
     tst.b d0
-    beq.s loc_A452
-loc_A448:
+    beq.s h0_A452
+h0_A448:
     moveq.l #68,d1
     cmp.b #$C,d0
-    beq.s loc_A452
-loc_A450:
+    beq.s h0_A452
+h0_A450:
     moveq.l #66,d1
-loc_A452:
-    bsr.w loc_931A
-loc_A456:
-    bra.w loc_8F18
-loc_A45A:
+h0_A452:
+    bsr.w h0_931A
+h0_A456:
+    bra.w h0_8F18
+h0_A45A:
     lea.l dat_A466(pc),a0
     rts
-loc_A460:
+h0_A460:
     lea.l dat_A477(pc),a0
     rts
 dat_A466:
     DC.B    "Atari executable",0
 dat_A477:
     DC.B    $2e,$50,$52,$47,$00,$12,$d8,$66,$fc,$53,$89,$4e,$75
-loc_A484:
+h0_A484:
     tst.l $01C8(a6)
-    bne.w loc_97E4
-loc_A48C:
+    bne.w h0_97E4
+h0_A48C:
     move.l #$4000,d1
     move.l #$400,d2
-    bsr.w sub_C01E
-loc_A49C:
+    bsr.w h0_C01E
+h0_A49C:
     move.l d1,$4B18(a6)
     move.l d1,$4B20(a6)
-    bsr.w sub_9146
-loc_A4A8:
+    bsr.w h0_9146
+h0_A4A8:
     move.l a0,$4B1C(a6)
     move.l a0,$4B24(a6)
     rts
-loc_A4B2:
+h0_A4B2:
     movea.l $4B24(a6),a2
     moveq.l #1,d1
-    bsr.w loc_A7A6
-loc_A4BC:
+    bsr.w h0_A7A6
+h0_A4BC:
     lea.l $0016(a1),a0
     move.b (a0)+,d1
     subq.b #1,d1
-    bsr.w loc_A7CE
-loc_A4C8:
+    bsr.w h0_A7CE
+h0_A4C8:
     move.l a2,$4B24(a6)
-    lea.l dat_A57E(pc),a2
+    lea.l h0_A57E(pc),a2
     moveq.l #0,d3
     moveq.l #0,d4
-loc_A4D4:
+h0_A4D4:
     subq.b #1,d4
     move.l a7,$0394(a6)
     movea.l $0008(a1),a0
-    bsr.w loc_8AF2
-loc_A4E2:
+    bsr.w h0_8AF2
+h0_A4E2:
     trap #15
+h0_A4E4:
     cmp.b $000C(a1),d4
-    bne.s loc_A4D4
-loc_A4EA:
+    bne.s h0_A4D4
+h0_A4EA:
     movea.l $0168(a6),a1
     movea.l (a1),a1
     movea.l $4B24(a6),a2
     move.l a1,d0
-    beq.s loc_A4FA
-loc_A4F8:
-    bsr.s sub_A500
-loc_A4FA:
+    beq.s h0_A4FA
+h0_A4F8:
+    bsr.s h0_A500
+h0_A4FA:
     move.l a2,$4B24(a6)
     rts
-sub_A500:
+h0_A500:
     tst.l (a1)
-    beq.s loc_A50C
-loc_A504:
+    beq.s h0_A50C
+h0_A504:
     move.l a1,-(a7)
     movea.l (a1),a1
-    bsr.s sub_A500
-loc_A50A:
+    bsr.s h0_A500
+h0_A50A:
     movea.l (a7)+,a1
-loc_A50C:
+h0_A50C:
     btst.b #4,$000C(a1)
-    beq.s loc_A516
-loc_A514:
-    bsr.s sub_A528
-loc_A516:
+    beq.s h0_A516
+h0_A514:
+    bsr.s h0_A528
+h0_A516:
     tst.l $0004(a1)
-    beq.s loc_A526
-loc_A51C:
+    beq.s h0_A526
+h0_A51C:
     move.l a1,-(a7)
     movea.l $0004(a1),a1
-    bsr.s sub_A500
-loc_A524:
+    bsr.s h0_A500
+h0_A524:
     movea.l (a7)+,a1
-loc_A526:
+h0_A526:
     rts
-sub_A528:
+h0_A528:
     moveq.l #16,d1
-    bsr.w loc_A7A6
-loc_A52E:
+    bsr.w h0_A7A6
+h0_A52E:
     move.w $0014(a1),d1
-    bsr.w loc_A7BA
-loc_A536:
+    bsr.w h0_A7BA
+h0_A536:
     lea.l $0016(a1),a0
     move.b (a0)+,d1
-    bra.w loc_A7CE
-loc_A540:
+    bra.w h0_A7CE
+h0_A540:
     movea.l $4B24(a6),a2
     moveq.l #6,d1
-    bsr.w loc_A7A6
-loc_A54A:
+    bsr.w h0_A7A6
+h0_A54A:
     lea.l $0016(a1),a0
     move.b (a0)+,d1
-    bsr.w loc_A7CE
-loc_A554:
+    bsr.w h0_A7CE
+h0_A554:
     move.w $0008(a1),d1
-    bsr.w loc_A7BA
-loc_A55C:
+    bsr.w h0_A7BA
+h0_A55C:
     move.w $000A(a1),d1
-    bsr.w loc_A7BA
-loc_A564:
+    bsr.w h0_A7BA
+h0_A564:
     move.b $000E(a1),d1
     ext.w d1
     cmpi.b #1,$000D(a1)
-    beq.s loc_A574
-loc_A572:
+    beq.s h0_A574
+h0_A572:
     moveq.l #0,d1
-loc_A574:
-    bsr.w loc_A7BA
-loc_A578:
+h0_A574:
+    bsr.w h0_A7BA
+h0_A578:
     move.l a2,$4B24(a6)
     rts
-dat_A57E:
-    DC.B    $b8,$28
-    DC.L    $000e6702,$4e7548e7,$00a0246e,$4b247210,$61000214,$1228000e,$48816100,$021e41e8
-    DC.L    $00161218,$53016100,$02262d4a,$4b244cdf,$05002e6e,$03946000
-    DC.B    $ff,$2c
-loc_A5BA:
+h0_A57E:
+    cmp.b $000E(a0),d4
+    beq.s h0_A586
+h0_A584:
+    rts
+h0_A586:
+    movem.l a0/a2,-(a7)
+    movea.l $4B24(a6),a2
+    moveq.l #16,d1
+    bsr.w h0_A7A6
+h0_A594:
+    move.b $000E(a0),d1
+    ext.w d1
+    bsr.w h0_A7BA
+h0_A59E:
+    lea.l $0016(a0),a0
+    move.b (a0)+,d1
+    subq.b #1,d1
+    bsr.w h0_A7CE
+h0_A5AA:
+    move.l a2,$4B24(a6)
+    movem.l (a7)+,a0/a2
+    movea.l $0394(a6),a7
+    bra.w h0_A4E4
+h0_A5BA:
     move.l $4B18(a6),d1
     sub.l $4B20(a6),d1
     moveq.l #16,d0
     add.b $05B4(a6),d0
     cmp.l d0,d1
-    bne.s loc_A5E0
-loc_A5CC:
+    bne.s h0_A5E0
+h0_A5CC:
     tst.l $01B4(a6)
-    bne.s loc_A5E0
-loc_A5D2:
+    bne.s h0_A5E0
+h0_A5D2:
     move.l $4B1C(a6),$4B24(a6)
     move.l $4B18(a6),$4B20(a6)
     rts
-loc_A5E0:
+h0_A5E0:
     tst.b $0105(a6)
-    beq.s loc_A5EE
-loc_A5E6:
-    lea.l sub_A5FE(pc),a2
-    bsr.w sub_8D7C
-loc_A5EE:
+    beq.s h0_A5EE
+h0_A5E6:
+    lea.l h0_A5FE(pc),a2
+    bsr.w h0_8D7C
+h0_A5EE:
     movea.l $4B24(a6),a2
     moveq.l #19,d1
-    bsr.w loc_A7A6
-loc_A5F8:
+    bsr.w h0_A7A6
+h0_A5F8:
     move.l a2,$4B24(a6)
     rts
-sub_A5FE:
+h0_A5FE:
     cmpi.b #1,$000D(a1)
-    bne.s loc_A616
-loc_A606:
+    bne.s h0_A616
+h0_A606:
     moveq.l #-80,d0
     and.b $000C(a1),d0
-    bne.s loc_A616
-loc_A60E:
+    bne.s h0_A616
+h0_A60E:
     move.l a2,-(a7)
-    bsr.w loc_A540
-loc_A614:
+    bsr.w h0_A540
+h0_A614:
     movea.l (a7)+,a2
-loc_A616:
+h0_A616:
     rts
-loc_A618:
+h0_A618:
     tst.b $026A(a6)
-    beq.s loc_A638
-loc_A61E:
+    beq.s h0_A638
+h0_A61E:
     movea.l $4B24(a6),a2
     moveq.l #4,d1
-    bsr.w loc_A7A6
-loc_A628:
+    bsr.w h0_A7A6
+h0_A628:
     move.b $014C(a6),d1
     ext.w d1
-    bsr.w loc_A7BA
-loc_A632:
+    bsr.w h0_A7BA
+h0_A632:
     move.l a2,$4B24(a6)
     rts
-loc_A638:
+h0_A638:
     rts
-loc_A63A:
+h0_A63A:
     lea.l $4B30(a6),a1
     move.l a1,$4B28(a6)
     clr.l (a1)
     lea.l $4CF0(a6),a1
     move.l a1,$4B2C(a6)
     rts
-    DC.B    $4a,$2e
-    DC.L    $01046744
-    DC.B    " nK( "
-    DC.B    $cd,$20,$ee
-    DC.L    $4b2c30fc,$00042d48,$4b284290
-    DC.B    " nK,"
-    DC.L    $10fc00fb,$10fc0007,$2f02224f,$10d910d9,$10d910d9,$10fc0054,$10fc002b,$50d810ee
-    DC.L    $014c10fc,$00fb2d48,$4b2c588f
-    DC.B    $4e,$75
-loc_A69A:
+h0_A64E:
+    tst.b $0104(a6)
+    beq.s h0_A698
+h0_A654:
+    movea.l $4B28(a6),a0
+    move.l a5,(a0)+
+    move.l $4B2C(a6),(a0)+
+    move.w #$4,(a0)+
+    move.l a0,$4B28(a6)
+    clr.l (a0)
+    movea.l $4B2C(a6),a0
+    move.b #$FB,(a0)+
+    move.b #$7,(a0)+
+    move.l d2,-(a7)
+    movea.l a7,a1
+    move.b (a1)+,(a0)+
+    move.b (a1)+,(a0)+
+    move.b (a1)+,(a0)+
+    move.b (a1)+,(a0)+
+    move.b #$54,(a0)+
+    move.b #$2B,(a0)+
+    st.b (a0)+
+    move.b $014C(a6),(a0)+
+    move.b #$FB,(a0)+
+    move.l a0,$4B2C(a6)
+    addq.l #4,a7
+h0_A698:
+    rts
+h0_A69A:
     moveq.l #-1,d0
     rts
-    DC.B    "$nK$r"
+    DC.B    "$nK$r" ; VIOLATION: orphaned code island at $A69E is not reached from known entrypoints
     DC.B    $02
     DC.L    $61000100,$0202007f,$12022049,$6100011c
-    DC.B    "-JK$NuJ."
+    DC.B    "-JK$Nu"
+    DC.B    $4a,$2e ; VIOLATION: orphaned code island at $A6BA is not reached from known entrypoints
     DC.L    $026a6738,$4a2e0104
     DC.B    "g2$nK$r"
-    DC.B    $05
-    DC.L    $60124a2e,$026a6724,$4a2e0104,$671e246e,$4b247203,$610000c4,$22024841,$610000d0
-    DC.L    $48416100,$00ca2d4a,$4b247000
-    DC.B    "Nu$nK$&.K S"
+    DC.B    $05,$60,$12
+    DC.B    $4a,$2e ; VIOLATION: orphaned code island at $A6CE is not reached from known entrypoints
+    DC.L    $026a6724,$4a2e0104,$671e246e,$4b247203,$610000c4,$22024841,$610000d0,$48416100
+    DC.L    $00ca2d4a,$4b247000
+    DC.B    $4e,$75
+    DC.B    "$nK$&.K S" ; VIOLATION: orphaned code island at $A6FA is not reached from known entrypoints
     DC.B    $81
     DC.L    $650e1018,$6114b03c,$00fb66f2,$610c60ee
-    DC.B    "-CK -JK$NuS"
-    DC.B    $83
-    DC.L    $650414c0,$4e755283
-    DC.B    "-CK a",0
-    DC.B    $00,$bc
-    DC.B    "&.K `"
-    DC.B    $e8
-loc_A736:
+    DC.B    $2d,$43,$4b,$20,$2d,$4a,$4b,$24,$4e,$75 ; VIOLATION: orphaned code island at $A714 is not reached from known entrypoints
+    DC.B    $53,$83,$65,$04,$14,$c0,$4e,$75 ; VIOLATION: orphaned code island at $A71E is not reached from known entrypoints
+    DC.B    $52,$83,$2d,$43,$4b,$20,$61,$00,$00,$bc,$26,$2e,$4b,$20,$60,$e8 ; VIOLATION: orphaned code island at $A726 is not reached from known entrypoints
+h0_A736:
     movea.l $4B24(a6),a2
     movea.l $027E(a6),a1
     move.l $4B20(a6),d3
     moveq.l #-5,d2
     tst.l $4B30(a6)
-    bne.w loc_A8B6
-loc_A74C:
+    bne.w h0_A8B6
+h0_A74C:
     subq.l #1,d3
-    bcs.s loc_A77E
-loc_A750:
+    bcs.s h0_A77E
+h0_A750:
     move.b (a1)+,d0
     move.b d0,(a2)+
     cmp.b d2,d0
-    beq.s loc_A766
-loc_A758:
+    beq.s h0_A766
+h0_A758:
     subq.l #1,d1
-    bne.s loc_A74C
-loc_A75C:
+    bne.s h0_A74C
+h0_A75C:
     move.l d3,$4B20(a6)
     move.l a2,$4B24(a6)
     rts
-loc_A766:
+h0_A766:
     subq.l #1,d3
-    bne.s loc_A77A
-loc_A76A:
+    bne.s h0_A77A
+h0_A76A:
     addq.l #1,d3
     move.l d3,$4B20(a6)
-    bsr.w loc_A7EA
-loc_A774:
+    bsr.w h0_A7EA
+h0_A774:
     move.l $4B20(a6),d3
     subq.l #1,d3
-loc_A77A:
+h0_A77A:
     move.b d2,(a2)+
-    bra.s loc_A758
-loc_A77E:
+    bra.s h0_A758
+h0_A77E:
     addq.l #1,d3
     move.l d3,$4B20(a6)
-    bsr.w loc_A7EA
-loc_A788:
+    bsr.w h0_A7EA
+h0_A788:
     move.l $4B20(a6),d3
-    bra.s loc_A74C
-    DC.B    $52,$ae
+    bra.s h0_A74C
+    DC.B    $52,$ae ; VIOLATION: orphaned code island at $A78E is not reached from known entrypoints
     DC.B    "K aVS"
     DC.B    $ae,$4b,$20
     DC.L    $65f414fc,$00fb4e75
-loc_A7A0:
+h0_A7A0:
     addq.l #2,$4B20(a6)
-    bsr.s loc_A7EA
-loc_A7A6:
+    bsr.s h0_A7EA
+h0_A7A6:
     subq.l #2,$4B20(a6)
-    bcs.s loc_A7A0
-loc_A7AC:
+    bcs.s h0_A7A0
+h0_A7AC:
     move.b #$FB,(a2)+
     move.b d1,(a2)+
     rts
-loc_A7B4:
+h0_A7B4:
     addq.l #2,$4B20(a6)
-    bsr.s loc_A7EA
-loc_A7BA:
+    bsr.s h0_A7EA
+h0_A7BA:
     subq.l #2,$4B20(a6)
-    bcs.s loc_A7B4
-loc_A7C0:
+    bcs.s h0_A7B4
+h0_A7C0:
     move.w d1,-(a7)
     move.b (a7),(a2)+
     move.b $0001(a7),(a2)+
     addq.l #2,a7
     rts
-loc_A7CC:
-    bsr.s loc_A7EA
-loc_A7CE:
+h0_A7CC:
+    bsr.s h0_A7EA
+h0_A7CE:
     ext.w d1
     ext.l d1
     cmp.l $4B20(a6),d1
-    bge.s loc_A7CC
-loc_A7D8:
+    bge.s h0_A7CC
+h0_A7D8:
     sub.l d1,$4B20(a6)
     subq.l #1,$4B20(a6)
     move.b d1,(a2)+
-loc_A7E2:
+h0_A7E2:
     move.b (a0)+,(a2)+
     subq.b #1,d1
-    bne.s loc_A7E2
-loc_A7E8:
+    bne.s h0_A7E2
+h0_A7E8:
     rts
-loc_A7EA:
+h0_A7EA:
     movem.l d0-d2/a0-a1,-(a7)
-    bsr.w sub_99D0
-loc_A7F2:
+    bsr.w h0_99D0
+h0_A7F2:
     movea.l $4B1C(a6),a0
     move.l $4B18(a6),d1
     sub.l $4B20(a6),d1
-    bsr.w loc_84F2
-loc_A802:
+    bsr.w h0_84F2
+h0_A802:
     movea.l $4B1C(a6),a2
     move.l $4B18(a6),$4B20(a6)
     movem.l (a7)+,d0-d2/a0-a1
     rts
-loc_A812:
-    bra.s loc_A7EA
-    DC.L    $7014b63c,$0001662e
-    DC.B    "pT`*p"
-    DC.B    $01,$60,$16
-    DC.L    $70096012,$7002600e,$700a600a,$70295382,$6014702a,$6010b63c,$0001660a,$3f007002
-    DC.L    $6100de1a,$301f206e,$4b2820cd,$36000203,$0007dac3,$20ee4b2c,$30c32d48,$4b284290
-    DC.B    " nK,"
-    DC.L    $10fc00fb,$10fc0007,$2f02224f,$10d910d9,$10d910d9,$10c0226e,$47fa4a2e,$010c6712
-    DC.L    $6a0610fc,$002d6004,$10fc002b,$50d810ee,$014c3019,$670c10c0,$3e9910d7,$10ef0001
-    DC.L    $60f010fc,$00fb2d48,$4b2c588f
-    DC.B    $4e,$75
-loc_A8B6:
+h0_A812:
+    bra.s h0_A7EA
+    DC.B    $70,$14,$b6,$3c,$00,$01,$66,$2e,$70,$54,$60,$2a ; VIOLATION: orphaned code island at $A814 is not reached from known entrypoints
+    DC.L    $70016016 ; VIOLATION: orphaned code island at $A820 is not reached from known entrypoints
+    DC.L    $70096012 ; VIOLATION: orphaned code island at $A824 is not reached from known entrypoints
+    DC.L    $7002600e ; VIOLATION: orphaned code island at $A828 is not reached from known entrypoints
+    DC.L    $700a600a ; VIOLATION: orphaned code island at $A82C is not reached from known entrypoints
+h0_A830:
+    moveq.l #41,d0
+    subq.l #1,d2
+    bra.s h0_A84A
+    DC.B    $70,$2a,$60,$10 ; VIOLATION: orphaned code island at $A836 is not reached from known entrypoints
+    DC.B    $b6,$3c,$00,$01,$66,$0a,$3f,$00,$70,$02,$61,$00,$de,$1a,$30,$1f ; VIOLATION: orphaned code island at $A83A is not reached from known entrypoints
+h0_A84A:
+    movea.l $4B28(a6),a0
+    move.l a5,(a0)+
+    move.w d0,d3
+    andi.b #7,d3
+    adda.w d3,a5
+    move.l $4B2C(a6),(a0)+
+    move.w d3,(a0)+
+    move.l a0,$4B28(a6)
+    clr.l (a0)
+    movea.l $4B2C(a6),a0
+    move.b #$FB,(a0)+
+    move.b #$7,(a0)+
+    move.l d2,-(a7)
+    movea.l a7,a1
+    move.b (a1)+,(a0)+
+    move.b (a1)+,(a0)+
+    move.b (a1)+,(a0)+
+    move.b (a1)+,(a0)+
+    move.b d0,(a0)+
+    movea.l $47FA(a6),a1
+    tst.b $010C(a6)
+    beq.s h0_A89A
+h0_A888:
+    bpl.s h0_A890
+h0_A88A:
+    move.b #$2D,(a0)+
+    bra.s h0_A894
+h0_A890:
+    move.b #$2B,(a0)+
+h0_A894:
+    st.b (a0)+
+    move.b $014C(a6),(a0)+
+h0_A89A:
+    move.w (a1)+,d0
+    beq.s h0_A8AA
+h0_A89E:
+    move.b d0,(a0)+
+    move.w (a1)+,(a7)
+    move.b (a7),(a0)+
+    move.b $0001(a7),(a0)+
+    bra.s h0_A89A
+h0_A8AA:
+    move.b #$FB,(a0)+
+    move.l a0,$4B2C(a6)
+    addq.l #4,a7
+    rts
+h0_A8B6:
     move.l d4,-(a7)
     lea.l $4B30(a6),a0
-loc_A8BC:
+h0_A8BC:
     move.l (a0)+,d4
-    beq.s loc_A900
-loc_A8C0:
+    beq.s h0_A900
+h0_A8C0:
     sub.l a1,d4
-    bsr.s sub_A910
-loc_A8C4:
+    bsr.s h0_A910
+h0_A8C4:
     movem.l a1/a3,-(a7)
     movea.l (a0)+,a1
     movea.l $4B2C(a6),a3
     move.w (a0)+,d0
     tst.l (a0)
-    beq.s loc_A8D8
-loc_A8D4:
+    beq.s h0_A8D8
+h0_A8D4:
     movea.l $0004(a0),a3
-loc_A8D8:
+h0_A8D8:
     move.l a3,d4
     sub.l a1,d4
     cmp.l d3,d4
-    ble.s loc_A8EC
-loc_A8E0:
+    ble.s h0_A8EC
+h0_A8E0:
     move.l d3,$4B20(a6)
-    bsr.w loc_A7EA
-loc_A8E8:
+    bsr.w h0_A7EA
+h0_A8E8:
     move.l $4B20(a6),d3
-loc_A8EC:
+h0_A8EC:
     sub.l d4,d3
-loc_A8EE:
+h0_A8EE:
     move.b (a1)+,(a2)+
     subq.l #1,d4
-    bne.s loc_A8EE
-loc_A8F4:
+    bne.s h0_A8EE
+h0_A8F4:
     movem.l (a7)+,a1/a3
     ext.l d0
     adda.l d0,a1
     sub.l d0,d1
-    bra.s loc_A8BC
-loc_A900:
+    bra.s h0_A8BC
+h0_A900:
     move.l d1,d4
-    bsr.s sub_A910
-loc_A904:
+    bsr.s h0_A910
+h0_A904:
     move.l d3,$4B20(a6)
     move.l (a7)+,d4
     move.l a2,$4B24(a6)
     rts
-sub_A910:
+h0_A910:
     tst.l d4
-    beq.s loc_A91E
-loc_A914:
+    beq.s h0_A91E
+h0_A914:
     exg d4,d1
     sub.l d1,d4
-    bsr.w loc_A74C
-loc_A91C:
+    bsr.w h0_A74C
+h0_A91C:
     exg d1,d4
-loc_A91E:
+h0_A91E:
     rts
-loc_A920:
+h0_A920:
     move.b d0,d1
-    bsr.w loc_8F3C
-loc_A926:
+    bsr.w h0_8F3C
+h0_A926:
     moveq.l #46,d1
-    bra.w loc_931A
-loc_A92C:
+    bra.w h0_931A
+h0_A92C:
     lea.l dat_A938(pc),a0
     rts
-loc_A932:
+h0_A932:
     lea.l dat_A945(pc),a0
     rts
 dat_A938:
     DC.B    $47,$53,$54,$20,$6c,$69,$6e,$6b,$61,$62,$6c,$65,$00
 dat_A945:
     DC.B    $2e,$42,$49,$4e,$00
-loc_A94A:
+h0_A94A:
     tst.l $01C8(a6)
-    bne.w loc_97E4
-loc_A952:
+    bne.w h0_97E4
+h0_A952:
     move.l $0184(a6),d1
     add.l d1,d1
     addi.l #100,d1
-    bsr.w sub_9146
-loc_A962:
+    bsr.w h0_9146
+h0_A962:
     move.l a0,$4AE0(a6)
     move.l a0,$4AEC(a6)
     move.l a0,$027E(a6)
     move.l $0184(a6),d1
-    bsr.s loc_A990
-loc_A974:
+    bsr.s h0_A990
+h0_A974:
     move.l $0190(a6),d1
     add.l d1,d1
     addi.l #100,d1
-    bsr.w sub_9146
-loc_A984:
+    bsr.w h0_9146
+h0_A984:
     move.l a0,$4AF4(a6)
     move.l a0,$4B00(a6)
     move.l $0190(a6),d1
-loc_A990:
+h0_A990:
     adda.l d1,a0
     lsr.l #1,d1
     subq.l #1,d1
-    bcs.s loc_A9A8
-loc_A998:
+    bcs.s h0_A9A8
+h0_A998:
     moveq.l #0,d0
-loc_A99A:
+h0_A99A:
     move.w d0,(a0)+
-    dbf.w d1,loc_A99A
-loc_A9A0:
+    dbf.w d1,h0_A99A
+h0_A9A0:
     subi.l #65536,d1
-    bcc.s loc_A99A
-loc_A9A8:
+    bcc.s h0_A99A
+h0_A9A8:
     rts
-    DC.B    $4a,$2e
-    DC.L    $0104671c,$202e0184,$74024a2e,$014c6706,$202e0190,$74013bbc,$00050800,$3b820802
-    DC.L    $4e75d3ae,$027e1ad8,$538166fa
-    DC.B    $4e,$75
-loc_A9DA:
+h0_A9AA:
+    tst.b $0104(a6)
+    beq.s h0_A9CC
+h0_A9B0:
+    move.l $0184(a6),d0
+    moveq.l #2,d2
+    tst.b $014C(a6)
+    beq.s h0_A9C2
+h0_A9BC:
+    move.l $0190(a6),d0
+    moveq.l #1,d2
+h0_A9C2:
+    move.w #$5,$0(a5,d0.l)
+    move.w d2,$2(a5,d0.l)
+h0_A9CC:
+    rts
+    DC.B    $d3,$ae,$02,$7e,$1a,$d8,$53,$81,$66,$fa,$4e,$75 ; VIOLATION: orphaned code island at $A9CE is not reached from known entrypoints
+h0_A9DA:
     add.l d1,$027E(a6)
     rts
-loc_A9E0:
+h0_A9E0:
     rts
-    DC.B    $70,$ff
-    DC.L    $4e75b47c,$00066618,$41fa0018,$10194880,$1036007e,$b0186608,$534266f0,$50ee0138
+    DC.B    $70,$ff,$4e,$75 ; VIOLATION: orphaned code island at $A9E2 is not reached from known entrypoints
+    DC.B    $b4,$7c ; VIOLATION: orphaned code island at $A9E6 is not reached from known entrypoints
+    DC.L    $00066618,$41fa0018,$10194880,$1036007e,$b0186608,$534266f0,$50ee0138
     DC.B    "NuPASCALX"
-    DC.B    $8f,$70,$44
-    DC.L    $6000db44,$4a2e0104
+    DC.B    $8f
+h0_AA0E:
+    moveq.l #68,d0
+    bra.w h0_8556
+    DC.L    $4a2e0104 ; VIOLATION: orphaned code island at $AA14 is not reached from known entrypoints
     DC.B    "g*$."
     DC.L    $01844a2e,$014c6704,$242e0190,$206e47fa,$3018b07c,$2b2b66d8,$30186a02
-    DC.B    "NuS@"
-    DC.L    $d040d040,$d0404e75,$588f4e75,$2ac261c8,$6b103bbc,$000528fc,$00000004,$3b8028fe
-    DC.L    $4e753bbc,$000528fc,$61263b80,$28fe4e75,$3ac261a4,$6b9c0000,$00043b80,$28fe4e75
-    DC.L    $3ac26194,$6b8c0000,$00063b80,$28fe4e75,$4a00670a,$b03c000c,$67087003,$4e757002
-    DC.L    $4e757001
     DC.B    $4e,$75
-sub_AAA2:
-    beq.s loc_AACE
-loc_AAA4:
+    DC.B    $53,$40,$d0,$40,$d0,$40,$d0,$40,$4e,$75 ; VIOLATION: orphaned code island at $AA3A is not reached from known entrypoints
+    DC.L    $588f4e75 ; VIOLATION: orphaned code island at $AA44 is not reached from known entrypoints
+    DC.L    $2ac261c8,$6b103bbc,$000528fc,$00000004,$3b8028fe ; VIOLATION: orphaned code island at $AA48 is not reached from known entrypoints
+    DC.B    $4e,$75
+    DC.B    $3b,$bc,$00,$05,$28,$fc,$61,$26,$3b,$80,$28,$fe,$4e,$75 ; VIOLATION: orphaned code island at $AA5E is not reached from known entrypoints
+    DC.B    $3a,$c2,$61,$a4,$6b,$9c,$00,$00,$00,$04,$3b,$80,$28,$fe,$4e,$75 ; VIOLATION: orphaned code island at $AA6C is not reached from known entrypoints
+    DC.B    $3a,$c2,$61,$94,$6b,$8c,$00,$00,$00,$06,$3b,$80,$28,$fe,$4e,$75 ; VIOLATION: orphaned code island at $AA7C is not reached from known entrypoints
+    DC.B    $4a,$00,$67,$0a,$b0,$3c,$00,$0c,$67,$08,$70,$03,$4e,$75 ; VIOLATION: orphaned code island at $AA8C is not reached from known entrypoints
+    DC.B    $70,$02,$4e,$75 ; VIOLATION: orphaned code island at $AA9A is not reached from known entrypoints
+    DC.B    $70,$01,$4e,$75 ; VIOLATION: orphaned code island at $AA9E is not reached from known entrypoints
+h0_AAA2:
+    beq.s h0_AACE
+h0_AAA4:
     tst.b $0138(a6)
-    beq.s loc_AACE
-loc_AAAA:
+    beq.s h0_AACE
+h0_AAAA:
     movem.l d1/a0,-(a7)
     add.l d1,d1
-    bsr.w sub_9146
-loc_AAB4:
+    bsr.w h0_9146
+h0_AAB4:
     movem.l (a7)+,d1/a1
     move.l a0,-(a7)
     move.l d1,d0
     lsr.l #1,d0
     lea.l $0(a1,d1.l),a2
-loc_AAC2:
+h0_AAC2:
     move.w (a1)+,(a0)+
     move.w (a2)+,(a0)+
     subq.l #1,d0
-    bne.s loc_AAC2
-loc_AACA:
+    bne.s h0_AAC2
+h0_AACA:
     movea.l (a7)+,a0
     add.l d1,d1
-loc_AACE:
+h0_AACE:
     rts
-loc_AAD0:
-    bsr.w sub_99D0
-loc_AAD4:
+h0_AAD0:
+    bsr.w h0_99D0
+h0_AAD4:
     lea.l $05DE(a6),a0
     move.w #$601A,(a0)+
     move.l $0184(a6),(a0)+
@@ -9306,54 +9783,54 @@ loc_AAD4:
     clr.l (a0)+
     moveq.l #0,d0
     tst.b $0138(a6)
-    beq.s loc_AAFA
-loc_AAF6:
+    beq.s h0_AAFA
+h0_AAF6:
     move.w #$4A4C,d0
-loc_AAFA:
+h0_AAFA:
     move.w d0,(a0)+
     lea.l $05DE(a6),a0
     moveq.l #28,d1
-    bsr.w loc_84F2
-loc_AB06:
+    bsr.w h0_84F2
+h0_AB06:
     movea.l $4AE0(a6),a0
     move.l $0184(a6),d1
-    bsr.s sub_AAA2
-loc_AB10:
-    bsr.w loc_84F2
-loc_AB14:
+    bsr.s h0_AAA2
+h0_AB10:
+    bsr.w h0_84F2
+h0_AB14:
     movea.l $4AF4(a6),a0
     move.l $0190(a6),d1
-    bsr.s sub_AAA2
-loc_AB1E:
-    bsr.w loc_84F2
-loc_AB22:
+    bsr.s h0_AAA2
+h0_AB1E:
+    bsr.w h0_84F2
+h0_AB22:
     clr.l $4B0C(a6)
     movea.l $0168(a6),a1
     movea.l (a1),a1
     move.l a1,d0
-    beq.w loc_AC26
-loc_AB32:
+    beq.w h0_AC26
+h0_AB32:
     moveq.l #0,d7
     movea.l $0144(a6),a0
     move.w $0014(a0),d6
-loc_AB3C:
+h0_AB3C:
     cmp.w d6,d7
-    beq.w loc_AC26
-loc_AB42:
+    beq.w h0_AC26
+h0_AB42:
     addq.w #1,d7
     move.l a7,$4B18(a6)
     movea.l $0168(a6),a1
     movea.l (a1),a1
-    bsr.s sub_AB9E
-loc_AB50:
+    bsr.s h0_AB9E
+h0_AB50:
     trap #15
-loc_AB52:
+h0_AB52:
     move.w #$8800,d2
     moveq.l #0,d3
-    bsr.s sub_AB5C
-loc_AB5A:
-    bra.s loc_AB3C
-sub_AB5C:
+    bsr.s h0_AB5C
+h0_AB5A:
+    bra.s h0_AB3C
+h0_AB5C:
     lea.l $05DE(a6),a0
     moveq.l #0,d0
     move.l d0,(a0)
@@ -9361,231 +9838,232 @@ sub_AB5C:
     move.b $0016(a1),d0
     lea.l $0017(a1),a2
     cmp.w #$9,d0
-    bcs.s loc_AB7A
-loc_AB76:
+    bcs.s h0_AB7A
+h0_AB76:
     moveq.l #7,d0
-loc_AB78:
+h0_AB78:
     move.b (a2)+,(a0)+
-loc_AB7A:
-    dbf.w d0,loc_AB78
-loc_AB7E:
+h0_AB7A:
+    dbf.w d0,h0_AB78
+h0_AB7E:
     lea.l $05DE(a6),a0
     move.w d2,$0008(a0)
     move.l d3,$000A(a0)
     moveq.l #14,d1
     add.l d1,$4B0C(a6)
     move.l a1,-(a7)
-    bsr.w sub_BFDA
-loc_AB96:
+    bsr.w h0_BFDA
+h0_AB96:
     movea.l (a7)+,a1
-    bne.w loc_84FA
-loc_AB9C:
+    bne.w h0_84FA
+h0_AB9C:
     rts
-sub_AB9E:
+h0_AB9E:
     tst.l (a1)
-    beq.s loc_ABAA
-loc_ABA2:
+    beq.s h0_ABAA
+h0_ABA2:
     move.l a1,-(a7)
     movea.l (a1),a1
-    bsr.s sub_AB9E
-loc_ABA8:
+    bsr.s h0_AB9E
+h0_ABA8:
     movea.l (a7)+,a1
-loc_ABAA:
+h0_ABAA:
     btst.b #4,$000C(a1)
-    beq.s loc_ABBE
-loc_ABB2:
+    beq.s h0_ABBE
+h0_ABB2:
     cmp.w $0014(a1),d7
-    bne.s loc_ABBE
-loc_ABB8:
+    bne.s h0_ABBE
+h0_ABB8:
     movea.l $4B18(a6),a7
-    bra.s loc_AB52
-loc_ABBE:
+    bra.s h0_AB52
+h0_ABBE:
     tst.l $0004(a1)
-    beq.s loc_ABCE
-loc_ABC4:
+    beq.s h0_ABCE
+h0_ABC4:
     move.l a1,-(a7)
     movea.l $0004(a1),a1
-    bsr.s sub_AB9E
-loc_ABCC:
+    bsr.s h0_AB9E
+h0_ABCC:
     movea.l (a7)+,a1
-loc_ABCE:
+h0_ABCE:
     rts
-sub_ABD0:
+h0_ABD0:
     move.w #$2000,d2
     btst.b #4,$000C(a1)
-    bne.s loc_AC24
-loc_ABDC:
+    bne.s h0_AC24
+h0_ABDC:
     btst.b #5,$000C(a1)
-    bne.s loc_ABEC
-loc_ABE4:
+    bne.s h0_ABEC
+h0_ABE4:
     moveq.l #0,d2
     tst.b $0105(a6)
-    beq.s loc_AC24
-loc_ABEC:
+    beq.s h0_AC24
+h0_ABEC:
     move.b $000D(a1),d0
     cmp.b #$1,d0
-    beq.s loc_AC00
-loc_ABF6:
+    beq.s h0_AC00
+h0_ABF6:
     cmp.b #$2,d0
-    bne.s loc_AC24
-loc_ABFC:
+    bne.s h0_AC24
+h0_ABFC:
     moveq.l #14,d3
-    bra.s loc_AC12
-loc_AC00:
+    bra.s h0_AC12
+h0_AC00:
     moveq.l #9,d3
     move.b $000E(a1),d0
-    beq.s loc_AC12
-loc_AC08:
+    beq.s h0_AC12
+h0_AC08:
     moveq.l #10,d3
     cmp.b #$C,d0
-    beq.s loc_AC12
-loc_AC10:
+    beq.s h0_AC12
+h0_AC10:
     moveq.l #8,d3
-loc_AC12:
+h0_AC12:
     bset d3,d2
     ori.w #32768,d2
     move.l $0008(a1),d3
     move.l a2,-(a7)
-    bsr.w sub_AB5C
-loc_AC22:
+    bsr.w h0_AB5C
+h0_AC22:
     movea.l (a7)+,a2
-loc_AC24:
+h0_AC24:
     rts
-loc_AC26:
+h0_AC26:
     movea.l $0144(a6),a1
-    lea.l sub_ABD0(pc),a2
-    bsr.w sub_8D7C
-loc_AC32:
+    lea.l h0_ABD0(pc),a2
+    bsr.w h0_8D7C
+h0_AC32:
     movea.l $0170(a6),a1
     movea.l (a1),a1
     move.l a1,d0
-    beq.s loc_AC40
-loc_AC3C:
-    bsr.w loc_8D86
-loc_AC40:
+    beq.s h0_AC40
+h0_AC3C:
+    bsr.w h0_8D86
+h0_AC40:
     tst.b $0138(a6)
-    bne.s loc_AC62
-loc_AC46:
+    bne.s h0_AC62
+h0_AC46:
     movea.l $4AE0(a6),a0
     move.l $0184(a6),d1
     adda.l d1,a0
-    bsr.w loc_84F2
-loc_AC54:
+    bsr.w h0_84F2
+h0_AC54:
     movea.l $4AF4(a6),a0
     move.l $0190(a6),d1
     adda.l d1,a0
-    bsr.w loc_84F2
-loc_AC62:
+    bsr.w h0_84F2
+h0_AC62:
     tst.l $4B0C(a6)
-    beq.s loc_AC78
-loc_AC68:
+    beq.s h0_AC78
+h0_AC68:
     moveq.l #14,d2
-    bsr.w sub_BFFE
-loc_AC6E:
+    bsr.w h0_BFFE
+h0_AC6E:
     lea.l $4B0C(a6),a0
     moveq.l #4,d1
-    bsr.w loc_84F2
-loc_AC78:
+    bsr.w h0_84F2
+h0_AC78:
     rts
-loc_AC7A:
+h0_AC7A:
     lea.l dat_AC90(pc),a0
     tst.b $0138(a6)
-    beq.s loc_AC88
-loc_AC84:
+    beq.s h0_AC88
+h0_AC84:
     lea.l dat_AC9D(pc),a0
-loc_AC88:
+h0_AC88:
     rts
-loc_AC8A:
+h0_AC8A:
     lea.l dat_ACAA(pc),a0
     rts
 dat_AC90:
-    DC.B    $44,$52,$49,$20,$6c,$69,$6e,$6b,$61,$62,$6c,$65,$00
+    DC.B    $44,$52,$49,$20,$6c,$69,$6e,$6b,$61,$62,$6c,$65,$00 ; VIOLATION: orphaned code island at $AC90 is not reached from known entrypoints
 dat_AC9D:
     DC.B    $4f,$53,$53,$20,$6c,$69,$6e,$6b,$61,$62,$6c,$65,$00
 dat_ACAA:
-    DC.B    $2e,$4f,$00,$00
-sub_ACAE:
+    DC.L    $2e4f0000
+h0_ACAE:
     moveq.l #-1,d0
     move.l a1,-(a7)
-loc_ACB2:
+h0_ACB2:
     move.b (a1)+,d1
     cmp.b #$D,d1
-    beq.s loc_ACC6
-loc_ACBA:
+    beq.s h0_ACC6
+h0_ACBA:
     cmp.b #$9,d1
-    beq.s loc_ACC6
-loc_ACC0:
+    beq.s h0_ACC6
+h0_ACC0:
     cmp.b #$20,d1
-    bne.s loc_ACB2
-loc_ACC6:
+    bne.s h0_ACB2
+h0_ACC6:
     move.l a1,d3
     movea.l (a7)+,a1
     sub.l a1,d3
     subq.l #1,d3
-    beq.s loc_AD00
-loc_ACD0:
+    beq.s h0_AD00
+h0_ACD0:
     moveq.l #0,d2
-loc_ACD2:
+h0_ACD2:
     addq.l #1,d0
     move.b (a2)+,d2
-    beq.s loc_AD00
-loc_ACD8:
+    beq.s h0_AD00
+h0_ACD8:
     cmp.b d2,d3
-    bcs.s loc_AD00
-loc_ACDC:
-    bne.s loc_ACFC
-loc_ACDE:
+    bcs.s h0_AD00
+h0_ACDC:
+    bne.s h0_ACFC
+h0_ACDE:
     movem.l d2-d3/a1-a2,-(a7)
-loc_ACE2:
+h0_ACE2:
     move.b (a1)+,d3
     ext.w d3
     move.b $7E(a6,d3.w),d3
     cmp.b (a2)+,d3
-    bne.s loc_ACF8
-loc_ACEE:
+    bne.s h0_ACF8
+h0_ACEE:
     subq.b #1,d2
-    bne.s loc_ACE2
-loc_ACF2:
+    bne.s h0_ACE2
+h0_ACF2:
     movem.l (a7)+,d2-d3/a1-a2
     rts
-loc_ACF8:
+h0_ACF8:
     movem.l (a7)+,d2-d3/a1-a2
-loc_ACFC:
+h0_ACFC:
     adda.l d2,a2
-    bra.s loc_ACD2
-loc_AD00:
+    bra.s h0_ACD2
+h0_AD00:
     moveq.l #80,d0
-    bsr.w loc_8556
-loc_AD06:
+    bsr.w h0_8556
+h0_AD06:
     moveq.l #-1,d0
     rts
-loc_AD0A:
+h0_AD0A:
     rts
-loc_AD0C:
+h0_AD0C:
     rts
-    DC.B    $4a,$2e
+    DC.B    $4a,$2e ; VIOLATION: orphaned code island at $AD0E is not reached from known entrypoints
     DC.L    $0104671a,$226e01de,$4a2e026a,$6610222e,$026e92a9,$001cd3a9,$00142342,$001c7000
-    DC.B    "NuJ."
+    DC.B    $4e,$75
+    DC.B    $4a,$2e ; VIOLATION: orphaned code island at $AD32 is not reached from known entrypoints
     DC.L    $026a6718,$4a2e0104,$6712226e,$01de0c69,$03eb0012,$67069481,$d5ae027e,$70004e75
-loc_AD54:
+h0_AD54:
     movea.l $01DE(a6),a0
     cmpi.w #1003,$0012(a0)
-    beq.w loc_852A
-loc_AD62:
+    beq.w h0_852A
+h0_AD62:
     add.l d1,$027E(a6)
     rts
-loc_AD68:
+h0_AD68:
     tst.b $026A(a6)
-    bne.w loc_ADCE
-loc_AD70:
-    bsr.w sub_ADE8
-loc_AD74:
-    beq.s loc_ADC8
-loc_AD76:
+    bne.w h0_ADCE
+h0_AD70:
+    bsr.w h0_ADE8
+h0_AD74:
+    beq.s h0_ADC8
+h0_AD76:
     movem.l a0-a1,-(a7)
     moveq.l #36,d1
-    bsr.w sub_9146
-loc_AD80:
+    bsr.w h0_9146
+h0_AD80:
     movem.l (a7)+,a1-a2
     move.l a0,(a1)
     clr.l (a0)
@@ -9595,74 +10073,74 @@ loc_AD80:
     clr.l $0018(a0)
     move.l #$3E9,$0010(a0)
     tst.l $01C4(a6)
-    beq.s loc_ADC2
-loc_ADA6:
+    beq.s h0_ADC2
+h0_ADA6:
     movea.l $01C4(a6),a1
     lea.l dat_AE2E(pc),a2
-    bsr.w sub_ACAE
-loc_ADB2:
-    bne.s loc_ADC2
-loc_ADB4:
+    bsr.w h0_ACAE
+h0_ADB2:
+    bne.s h0_ADC2
+h0_ADB4:
     add.w d0,d0
     add.w d0,d0
     lea.l dat_AE66(pc),a2
     move.l $0(a2,d0.w),$0010(a0)
-loc_ADC2:
+h0_ADC2:
     clr.l $0008(a0)
     movea.l a0,a1
-loc_ADC8:
+h0_ADC8:
     move.l a1,$01DE(a6)
     rts
-loc_ADCE:
-    bsr.s sub_ADE8
-loc_ADD0:
-    bne.s loc_AE28
-loc_ADD2:
+h0_ADCE:
+    bsr.s h0_ADE8
+h0_ADD0:
+    bne.s h0_AE28
+h0_ADD2:
     move.l $000C(a1),$027E(a6)
-    bne.s loc_ADE2
-loc_ADDA:
+    bne.s h0_ADE2
+h0_ADDA:
     lea.l $05DE(a6),a0
     move.l a0,$027E(a6)
-loc_ADE2:
+h0_ADE2:
     move.l a1,$01DE(a6)
     rts
-sub_ADE8:
+h0_ADE8:
     lea.l $01DA(a6),a0
     move.b $000E(a1),d0
-loc_ADF0:
+h0_ADF0:
     tst.l (a0)
-    beq.s loc_AE00
-loc_ADF4:
+    beq.s h0_AE00
+h0_ADF4:
     addq.b #1,d0
-    beq.s loc_ADFC
-loc_ADF8:
+    beq.s h0_ADFC
+h0_ADF8:
     movea.l (a0),a0
-    bra.s loc_ADF0
-loc_ADFC:
+    bra.s h0_ADF0
+h0_ADFC:
     movea.l (a0),a1
     rts
-loc_AE00:
+h0_AE00:
     moveq.l #-1,d0
     rts
-loc_AE04:
-    bsr.s sub_ADE8
-loc_AE06:
-    bne.s loc_AE28
-loc_AE08:
+h0_AE04:
+    bsr.s h0_ADE8
+h0_AE06:
+    bne.s h0_AE28
+h0_AE08:
     tst.b $026A(a6)
-    bne.s loc_AE22
-loc_AE0E:
+    bne.s h0_AE22
+h0_AE0E:
     move.l $026E(a6),d2
     sub.l $001C(a1),d2
     add.l d2,$0014(a1)
     move.l $026E(a6),$001C(a1)
     rts
-loc_AE22:
+h0_AE22:
     move.l a5,$000C(a1)
     rts
-loc_AE28:
+h0_AE28:
     moveq.l #77,d0
-    bra.w loc_853E
+    bra.w h0_853E
 dat_AE2E:
     DC.B    $03,$42
     DC.L    $53530443,$4f444504
@@ -9680,597 +10158,725 @@ dat_AE66:
     DC.B    $00,$00
     DC.L    $03eb0000,$03e90000,$03ea4000,$03eb8000,$03eb4000,$03e98000,$03e94000,$03ea8000
     DC.B    $03,$ea
-loc_AE8A:
+h0_AE8A:
     tst.l $01C8(a6)
-    bne.w loc_97E4
-loc_AE92:
+    bne.w h0_97E4
+h0_AE92:
     move.l a4,-(a7)
     lea.l $01DA(a6),a3
-loc_AE98:
+h0_AE98:
     tst.l (a3)
-    beq.s loc_AED4
-loc_AE9C:
+    beq.s h0_AED4
+h0_AE9C:
     movea.l (a3),a3
     move.l $0014(a3),d1
-    beq.s loc_AED8
-loc_AEA4:
+    beq.s h0_AED8
+h0_AEA4:
     move.l d1,d0
     andi.b #3,d0
-    beq.s loc_AEB2
-loc_AEAC:
+    beq.s h0_AEB2
+h0_AEAC:
     andi.b #252,d1
     addq.l #4,d1
-loc_AEB2:
+h0_AEB2:
     move.l d1,$0014(a3)
     cmpi.w #1003,$0012(a3)
-    beq.s loc_AED8
-loc_AEBE:
+    beq.s h0_AED8
+h0_AEBE:
     addq.l #8,d1
-    bsr.w sub_9146
-loc_AEC4:
+    bsr.w h0_9146
+h0_AEC4:
     move.l a0,$0008(a3)
     move.l a0,$000C(a3)
     adda.l $0014(a3),a0
     clr.l -(a0)
-    bra.s loc_AE98
-loc_AED4:
+    bra.s h0_AE98
+h0_AED4:
     movea.l (a7)+,a4
     rts
-loc_AED8:
+h0_AED8:
     clr.l $000C(a3)
-    bra.s loc_AE98
-loc_AEDE:
+    bra.s h0_AE98
+h0_AEDE:
     move.b d0,d1
     not.b d1
-    bsr.w loc_8F3C
-loc_AEE6:
+    bsr.w h0_8F3C
+h0_AEE6:
     moveq.l #46,d1
-    bra.w loc_931A
-loc_AEEC:
+    bra.w h0_931A
+h0_AEEC:
     movea.l $01DE(a6),a1
     cmpi.w #1003,$0012(a1)
     rts
-sub_AEF8:
+h0_AEF8:
     movem.l d6/a0-a2,-(a7)
     movea.l $0004(a0),a0
     move.b $000E(a0),d6
     lea.l dat_AF1A(pc),a2
     movea.l $0144(a6),a1
     moveq.l #0,d0
-    bsr.w sub_8DA2
-loc_AF12:
+    bsr.w h0_8DA2
+h0_AF12:
     movem.l (a7)+,d6/a0-a2
     tst.l d0
     rts
 dat_AF1A:
-    DC.B    $52,$80,$4e,$75
-loc_AF1E:
-    bsr.w sub_99D0
-loc_AF22:
+    DC.L    $52804e75 ; VIOLATION: orphaned code island at $AF1A is not reached from known entrypoints
+h0_AF1E:
+    bsr.w h0_99D0
+h0_AF22:
     cmpi.w #3,$0250(a6)
-    bne.s loc_AFA4
-loc_AF2A:
-    bsr.w loc_B260
-loc_AF2E:
+    bne.s h0_AFA4
+h0_AF2A:
+    bsr.w h0_B260
+h0_AF2E:
     move.l #$3F3,d1
-    bsr.w loc_B23E
-loc_AF38:
+    bsr.w h0_B23E
+h0_AF38:
     moveq.l #0,d1
-    bsr.w loc_B23E
-loc_AF3E:
+    bsr.w h0_B23E
+h0_AF3E:
     moveq.l #0,d1
     lea.l $01DA(a6),a0
-loc_AF44:
+h0_AF44:
     movea.l (a0),a0
     tst.l $0014(a0)
-    bne.s loc_AF50
-loc_AF4C:
-    bsr.s sub_AEF8
-loc_AF4E:
-    beq.s loc_AF52
-loc_AF50:
+    bne.s h0_AF50
+h0_AF4C:
+    bsr.s h0_AEF8
+h0_AF4E:
+    beq.s h0_AF52
+h0_AF50:
     addq.l #1,d1
-loc_AF52:
+h0_AF52:
     tst.l (a0)
-    bne.s loc_AF44
-loc_AF56:
-    bsr.w loc_B23E
-loc_AF5A:
+    bne.s h0_AF44
+h0_AF56:
+    bsr.w h0_B23E
+h0_AF5A:
     move.l d1,d2
     moveq.l #0,d1
-    bsr.w loc_B23E
-loc_AF62:
+    bsr.w h0_B23E
+h0_AF62:
     move.l d2,d1
     subq.l #1,d1
-    bsr.w loc_B23E
-loc_AF6A:
+    bsr.w h0_B23E
+h0_AF6A:
     lea.l $01DA(a6),a3
-loc_AF6E:
+h0_AF6E:
     movea.l (a3),a3
     move.l $0014(a3),d1
-    bne.s loc_AF7E
-loc_AF76:
+    bne.s h0_AF7E
+h0_AF76:
     movea.l a3,a0
-    bsr.w sub_AEF8
-loc_AF7C:
-    beq.s loc_AF8C
-loc_AF7E:
+    bsr.w h0_AEF8
+h0_AF7C:
+    beq.s h0_AF8C
+h0_AF7E:
     lsr.l #2,d1
     swap.w d1
     or.w $0010(a3),d1
     swap.w d1
-    bsr.w loc_B23E
-loc_AF8C:
+    bsr.w h0_B23E
+h0_AF8C:
     tst.l (a3)
-    bne.s loc_AF6E
-loc_AF90:
-    bsr.w loc_B246
-loc_AF94:
+    bne.s h0_AF6E
+h0_AF90:
+    bsr.w h0_B246
+h0_AF94:
     tst.b $012B(a6)
-    beq.s loc_AF9E
-loc_AF9A:
-    bsr.w sub_B526
-loc_AF9E:
+    beq.s h0_AF9E
+h0_AF9A:
+    bsr.w h0_B526
+h0_AF9E:
     lea.l $01DA(a6),a3
-    bra.s loc_AFD4
-loc_AFA4:
+    bra.s h0_AFD4
+h0_AFA4:
     move.l #$3E7,d1
     lea.l $01E2(a6),a1
     tst.b (a1)
-    beq.s loc_AFC0
-loc_AFB2:
+    beq.s h0_AFC0
+h0_AFB2:
     move.l a1,d0
-loc_AFB4:
+h0_AFB4:
     tst.b (a1)+
-    bne.s loc_AFB4
-loc_AFB8:
+    bne.s h0_AFB4
+h0_AFB8:
     subq.l #1,a1
     exg d0,a1
     sub.l a1,d0
-    bra.s loc_AFCC
-loc_AFC0:
+    bra.s h0_AFCC
+h0_AFC0:
     movea.l $0144(a6),a1
     lea.l $0016(a1),a1
     move.b (a1)+,d0
     subq.b #1,d0
-loc_AFCC:
-    bsr.w sub_B320
-loc_AFD0:
+h0_AFCC:
+    bsr.w h0_B320
+h0_AFD0:
     lea.l $01DA(a6),a3
-loc_AFD4:
+h0_AFD4:
     movea.l (a3),a3
     tst.l $0014(a3)
-    bne.s loc_AFE6
-loc_AFDC:
+    bne.s h0_AFE6
+h0_AFDC:
     movea.l a3,a0
-    bsr.w sub_AEF8
-loc_AFE2:
-    beq.w loc_B152
-loc_AFE6:
+    bsr.w h0_AEF8
+h0_AFE2:
+    beq.w h0_B152
+h0_AFE6:
     cmpi.w #3,$0250(a6)
-    beq.s loc_B004
-loc_AFEE:
+    beq.s h0_B004
+h0_AFEE:
     move.l #$3E8,d1
     movea.l $0004(a3),a1
     lea.l $0016(a1),a1
     move.b (a1)+,d0
     subq.b #1,d0
-    bsr.w sub_B320
-loc_B004:
+    bsr.w h0_B320
+h0_B004:
     lea.l $0014(a3),a0
     move.l (a0),d0
     lsr.l #2,d0
     move.l d0,(a0)
     subq.l #4,a0
     moveq.l #8,d1
-    bsr.w loc_84F2
-loc_B016:
+    bsr.w h0_84F2
+h0_B016:
     cmpi.w #1003,$0012(a3)
-    beq.s loc_B02E
-loc_B01E:
+    beq.s h0_B02E
+h0_B01E:
     movea.l $0008(a3),a0
     move.l $0014(a3),d1
     add.l d1,d1
     add.l d1,d1
-    bsr.w loc_84F2
-loc_B02E:
-    bsr.w loc_B260
-loc_B032:
+    bsr.w h0_84F2
+h0_B02E:
+    bsr.w h0_B260
+h0_B032:
     tst.l $0018(a3)
-    beq.w loc_B0DC
-loc_B03A:
+    beq.w h0_B0DC
+h0_B03A:
     moveq.l #1,d6
     move.l #$3EC,d1
-    bsr.s sub_B064
-loc_B044:
+    bsr.s h0_B064
+h0_B044:
     cmpi.w #3,$0250(a6)
-    beq.w loc_B0DC
-loc_B04E:
+    beq.w h0_B0DC
+h0_B04E:
     move.l #$3F8,d1
     moveq.l #40,d6
-    bsr.s sub_B064
-loc_B058:
+    bsr.s h0_B064
+h0_B058:
     move.l #$3F9,d1
     moveq.l #41,d6
-    bsr.s sub_B064
-loc_B062:
-    bra.s loc_B0DC
-sub_B064:
+    bsr.s h0_B064
+h0_B062:
+    bra.s h0_B0DC
+h0_B064:
     moveq.l #0,d3
     move.l d1,-(a7)
     pea.l $01DA(a6)
     clr.l -(a7)
-loc_B06E:
+h0_B06E:
     movea.l $0004(a7),a0
-loc_B072:
+h0_B072:
     tst.l (a0)
-    beq.s loc_B0CA
-loc_B076:
+    beq.s h0_B0CA
+h0_B076:
     movea.l (a0),a0
     subq.l #1,d3
     tst.l $0014(a0)
-    bne.s loc_B086
-loc_B080:
-    bsr.w sub_AEF8
-loc_B084:
-    beq.s loc_B072
-loc_B086:
+    bne.s h0_B086
+h0_B080:
+    bsr.w h0_AEF8
+h0_B084:
+    beq.s h0_B072
+h0_B086:
     move.l a0,$0004(a7)
-    bsr.w sub_B2B4
-loc_B08E:
-    beq.s loc_B0BE
-loc_B090:
+    bsr.w h0_B2B4
+h0_B08E:
+    beq.s h0_B0BE
+h0_B090:
     move.l $0008(a7),d0
-    beq.s loc_B0A4
-loc_B096:
+    beq.s h0_B0A4
+h0_B096:
     move.l d1,-(a7)
     move.l d0,d1
-    bsr.w loc_B23E
-loc_B09E:
+    bsr.w h0_B23E
+h0_B09E:
     move.l (a7)+,d1
     clr.l $0008(a7)
-loc_B0A4:
-    bsr.w loc_B23E
-loc_B0A8:
+h0_B0A4:
+    bsr.w h0_B23E
+h0_B0A8:
     move.l (a7),d1
-    bsr.w loc_B23E
-loc_B0AE:
-    bsr.w loc_B2E2
-loc_B0B2:
-    bne.s loc_B0BE
-loc_B0B4:
+    bsr.w h0_B23E
+h0_B0AE:
+    bsr.w h0_B2E2
+h0_B0B2:
+    bne.s h0_B0BE
+h0_B0B4:
     move.l $0004(a0),d1
-    bsr.w loc_B23E
-loc_B0BC:
-    bra.s loc_B0AE
-loc_B0BE:
+    bsr.w h0_B23E
+h0_B0BC:
+    bra.s h0_B0AE
+h0_B0BE:
     addq.l #1,(a7)
     movea.l $0144(a6),a0
     cmp.b $000C(a0),d3
-    bne.s loc_B06E
-loc_B0CA:
+    bne.s h0_B06E
+h0_B0CA:
     tst.l $0008(a7)
     lea.l $000C(a7),a7
-    bne.s loc_B0DA
-loc_B0D4:
+    bne.s h0_B0DA
+h0_B0D4:
     moveq.l #0,d1
-    bra.w loc_B23E
-loc_B0DA:
+    bra.w h0_B23E
+h0_B0DA:
     rts
-loc_B0DC:
+h0_B0DC:
     cmpi.w #3,$0250(a6)
-    beq.s loc_B116
-loc_B0E4:
+    beq.s h0_B116
+h0_B0E4:
     move.l #$3EF,d1
-    bsr.w loc_B23E
-loc_B0EE:
+    bsr.w h0_B23E
+h0_B0EE:
     movea.l $0004(a3),a0
     move.b $000E(a0),d3
     movea.l $0144(a6),a1
-    lea.l sub_B26A(pc),a2
-    bsr.w sub_8DCE
-loc_B102:
+    lea.l h0_B26A(pc),a2
+    bsr.w h0_8DCE
+h0_B102:
     move.b d3,d6
     lea.l dat_B184(pc),a2
     movea.l $0144(a6),a1
-    bsr.w sub_8DA2
-loc_B110:
+    bsr.w h0_8DA2
+h0_B110:
     moveq.l #0,d1
-    bsr.w loc_B23E
-loc_B116:
+    bsr.w h0_B23E
+h0_B116:
     tst.b $0105(a6)
-    beq.s loc_B140
-loc_B11C:
+    beq.s h0_B140
+h0_B11C:
     movea.l $0004(a3),a0
     move.b $000E(a0),d6
     move.l #$3F0,d1
-    bsr.w loc_B23E
-loc_B12E:
+    bsr.w h0_B23E
+h0_B12E:
     movea.l $0144(a6),a1
-    lea.l dat_B19C(pc),a2
-    bsr.w sub_8D7C
-loc_B13A:
+    lea.l h0_B19C(pc),a2
+    bsr.w h0_8D7C
+h0_B13A:
     moveq.l #0,d1
-    bsr.w loc_B23E
-loc_B140:
+    bsr.w h0_B23E
+h0_B140:
     tst.b $012B(a6)
-    beq.w loc_B150
-loc_B148:
+    beq.w h0_B150
+h0_B148:
     lea.l dat_8BFE(pc),a2
-    bsr.w sub_8D20
-loc_B150:
-    bsr.s loc_B174
-loc_B152:
+    bsr.w h0_8D20
+h0_B150:
+    bsr.s h0_B174
+h0_B152:
     tst.l (a3)
-    bne.w loc_AFD4
-loc_B158:
+    bne.w h0_AFD4
+h0_B158:
     lea.l $01DA(a6),a3
-loc_B15C:
+h0_B15C:
     movea.l (a3),a3
     tst.l $0014(a3)
-    bne.s loc_B182
-loc_B164:
+    bne.s h0_B182
+h0_B164:
     movea.l a3,a0
-    bsr.w sub_AEF8
-loc_B16A:
-    bne.s loc_B182
-loc_B16C:
+    bsr.w h0_AEF8
+h0_B16A:
+    bne.s h0_B182
+h0_B16C:
     tst.l (a3)
-    bne.s loc_B15C
-loc_B170:
-    bsr.w loc_B260
-loc_B174:
+    bne.s h0_B15C
+h0_B170:
+    bsr.w h0_B260
+h0_B174:
     move.l #$3F2,d1
-    bsr.w loc_B23E
-loc_B17E:
-    bra.w loc_B246
-loc_B182:
+    bsr.w h0_B23E
+h0_B17E:
+    bra.w h0_B246
+h0_B182:
     rts
 dat_B184:
-    DC.L    $70010c29,$0001000d,$67027002
-    DC.B    $61,$56,$22,$29,$00
-    DC.B    $08,$60,$00
-    DC.L    $00a64e75
-dat_B19C:
-    DC.L    $bc29000e,$66f80c29,$0001000d,$66f00829,$0004000c,$66e80c6e,$00030250,$67124a2e
-    DC.L    $01056a08,$08290005,$000c67d2,$700060c4,$302b0012,$b07c03ea,$670cb07c,$03e966ec
-    DC.L    $52ae0248,$60e652ae,$024460e0
-sub_B1E8:
+    DC.B    $70,$01,$0c,$29,$00,$01,$00,$0d,$67,$02,$70,$02 ; VIOLATION: orphaned code island at $B184 is not reached from known entrypoints
+h0_B190:
+    bsr.s h0_B1E8
+h0_B192:
+    move.l $0008(a1),d1
+    bra.w h0_B23E
+h0_B19A:
+    rts
+h0_B19C:
+    cmp.b $000E(a1),d6
+    bne.s h0_B19A
+h0_B1A2:
+    cmpi.b #1,$000D(a1)
+    bne.s h0_B19A
+h0_B1AA:
+    btst.b #4,$000C(a1)
+    bne.s h0_B19A
+h0_B1B2:
+    cmpi.w #3,$0250(a6)
+    beq.s h0_B1CC
+h0_B1BA:
+    tst.b $0105(a6)
+    bpl.s h0_B1C8
+h0_B1C0:
+    btst.b #5,$000C(a1)
+    beq.s h0_B19A
+h0_B1C8:
+    moveq.l #0,d0
+    bra.s h0_B190
+h0_B1CC:
+    move.w $0012(a3),d0
+    cmp.w #$3EA,d0
+    beq.s h0_B1E2
+h0_B1D6:
+    cmp.w #$3E9,d0
+    bne.s h0_B1C8
+h0_B1DC:
+    addq.l #1,$0248(a6)
+    bra.s h0_B1C8
+h0_B1E2:
+    addq.l #1,$0244(a6)
+    bra.s h0_B1C8
+h0_B1E8:
     moveq.l #0,d1
     move.b $0016(a1),d1
     move.l d1,d2
     andi.b #3,d2
-    beq.s loc_B1FC
-loc_B1F6:
+    beq.s h0_B1FC
+h0_B1F6:
     andi.b #252,d1
     addq.l #4,d1
-loc_B1FC:
+h0_B1FC:
     lsr.l #2,d1
     ror.l #8,d0
     or.l d0,d1
-    bsr.s loc_B23E
-loc_B204:
+    bsr.s h0_B23E
+h0_B204:
     moveq.l #4,d0
     add.b $0016(a1),d0
     cmp.w d0,d4
-    bcc.s loc_B210
-loc_B20E:
-    bsr.s loc_B246
-loc_B210:
+    bcc.s h0_B210
+h0_B20E:
+    bsr.s h0_B246
+h0_B210:
     lea.l $0016(a1),a0
     move.b (a0)+,d0
-loc_B216:
+h0_B216:
     move.b (a0)+,(a4)+
     subq.w #1,d4
     subq.b #1,d0
-    bne.s loc_B216
-loc_B21E:
+    bne.s h0_B216
+h0_B21E:
     move.b $0016(a1),d0
     andi.b #3,d0
-    beq.s loc_B234
-loc_B228:
+    beq.s h0_B234
+h0_B228:
     clr.b (a4)+
     addq.b #1,d0
     subq.w #1,d4
     cmp.b #$4,d0
-    bne.s loc_B228
-loc_B234:
+    bne.s h0_B228
+h0_B234:
     rts
-loc_B236:
+h0_B236:
     addq.w #4,d4
     move.l d1,-(a7)
-    bsr.s loc_B246
-loc_B23C:
+    bsr.s h0_B246
+h0_B23C:
     move.l (a7)+,d1
-loc_B23E:
+h0_B23E:
     subq.w #4,d4
-    bcs.s loc_B236
-loc_B242:
+    bcs.s h0_B236
+h0_B242:
     move.l d1,(a4)+
     rts
-loc_B246:
+h0_B246:
     move.l #$80,d1
     sub.w d4,d1
-    beq.s loc_B260
-loc_B250:
+    beq.s h0_B260
+h0_B250:
     movem.l d0/d2/a0-a2,-(a7)
     lea.l $05DE(a6),a0
-    bsr.w loc_84F2
-loc_B25C:
+    bsr.w h0_84F2
+h0_B25C:
     movem.l (a7)+,d0/d2/a0-a2
-loc_B260:
+h0_B260:
     lea.l $05DE(a6),a4
     move.w #$80,d4
     rts
-sub_B26A:
+h0_B26A:
     movem.l a1-a2,-(a7)
     moveq.l #2,d6
     move.w $0014(a1),d2
-    bsr.s sub_B28C
-loc_B276:
+    bsr.s h0_B28C
+h0_B276:
     moveq.l #4,d6
-    bsr.s sub_B28C
-loc_B27A:
+    bsr.s h0_B28C
+h0_B27A:
     moveq.l #5,d6
-    bsr.s sub_B28C
-loc_B27E:
+    bsr.s h0_B28C
+h0_B27E:
     moveq.l #7,d6
-    bsr.s sub_B28C
-loc_B282:
+    bsr.s h0_B28C
+h0_B282:
     moveq.l #8,d6
-    bsr.s sub_B28C
-loc_B286:
+    bsr.s h0_B28C
+h0_B286:
     movem.l (a7)+,a1-a2
     rts
-sub_B28C:
-    bsr.w sub_B2B4
-loc_B290:
-    beq.s loc_B2B2
-loc_B292:
+h0_B28C:
+    bsr.w h0_B2B4
+h0_B290:
+    beq.s h0_B2B2
+h0_B292:
     movem.l d1-d2,-(a7)
     moveq.l #127,d0
     add.b d6,d0
-    bsr.w sub_B1E8
-loc_B29E:
+    bsr.w h0_B1E8
+h0_B29E:
     movem.l (a7)+,d1-d2
-    bsr.s loc_B23E
-loc_B2A4:
-    bsr.w loc_B2E2
-loc_B2A8:
-    bne.s loc_B2B2
-loc_B2AA:
+    bsr.s h0_B23E
+h0_B2A4:
+    bsr.w h0_B2E2
+h0_B2A8:
+    bne.s h0_B2B2
+h0_B2AA:
     move.l $0004(a0),d1
-    bsr.s loc_B23E
-loc_B2B0:
-    bra.s loc_B2A4
-loc_B2B2:
+    bsr.s h0_B23E
+h0_B2B0:
+    bra.s h0_B2A4
+h0_B2B2:
     rts
-sub_B2B4:
+h0_B2B4:
     moveq.l #0,d1
     tst.l $0018(a3)
-    beq.s loc_B2CC
-loc_B2BC:
-    bsr.s sub_B2CE
-loc_B2BE:
-    beq.s loc_B2CC
-loc_B2C0:
-    bsr.s loc_B2E2
-loc_B2C2:
-    bne.s loc_B2C8
-loc_B2C4:
+    beq.s h0_B2CC
+h0_B2BC:
+    bsr.s h0_B2CE
+h0_B2BE:
+    beq.s h0_B2CC
+h0_B2C0:
+    bsr.s h0_B2E2
+h0_B2C2:
+    bne.s h0_B2C8
+h0_B2C4:
     addq.l #1,d1
-    bra.s loc_B2C0
-loc_B2C8:
-    bsr.s sub_B2CE
-loc_B2CA:
+    bra.s h0_B2C0
+h0_B2C8:
+    bsr.s h0_B2CE
+h0_B2CA:
     tst.l d1
-loc_B2CC:
+h0_B2CC:
     rts
-sub_B2CE:
+h0_B2CE:
     movea.l $0018(a3),a5
-loc_B2D2:
+h0_B2D2:
     moveq.l #10,d5
     lea.l $000A(a5),a0
     move.l a0,$0006(a5)
     sub.w $0004(a5),d5
     rts
-loc_B2E2:
+h0_B2E2:
     subq.w #1,d5
-    bcs.s loc_B312
-loc_B2E6:
+    bcs.s h0_B312
+h0_B2E6:
     movea.l $0006(a5),a0
     addq.l #8,$0006(a5)
     cmp.b (a0),d6
-    bne.s loc_B2E2
-loc_B2F2:
+    bne.s h0_B2E2
+h0_B2F2:
     cmp.b $0001(a0),d3
-    bne.s loc_B2E2
-loc_B2F8:
+    bne.s h0_B2E2
+h0_B2F8:
     cmp.b #$1,d6
-    beq.s loc_B310
-loc_B2FE:
+    beq.s h0_B310
+h0_B2FE:
     cmp.b #$28,d6
-    beq.s loc_B310
-loc_B304:
+    beq.s h0_B310
+h0_B304:
     cmp.b #$29,d6
-    beq.s loc_B310
-loc_B30A:
+    beq.s h0_B310
+h0_B30A:
     cmp.w $0002(a0),d2
-    bne.s loc_B2E2
-loc_B310:
+    bne.s h0_B2E2
+h0_B310:
     rts
-loc_B312:
+h0_B312:
     tst.l (a5)
-    beq.s loc_B31C
-loc_B316:
+    beq.s h0_B31C
+h0_B316:
     movea.l (a5),a5
-    bsr.s loc_B2D2
-loc_B31A:
-    bne.s loc_B2E2
-loc_B31C:
+    bsr.s h0_B2D2
+h0_B31A:
+    bne.s h0_B2E2
+h0_B31C:
     moveq.l #-1,d0
     rts
-sub_B320:
+h0_B320:
     lea.l $05DE(a6),a0
     move.l d1,(a0)+
     moveq.l #0,d1
     move.b d0,d1
     move.l d1,d2
     andi.b #3,d2
-    beq.s loc_B338
-loc_B332:
+    beq.s h0_B338
+h0_B332:
     andi.b #252,d1
     addq.l #4,d1
-loc_B338:
+h0_B338:
     lsr.l #2,d1
     move.l d1,(a0)+
-    beq.s loc_B34A
-loc_B33E:
+    beq.s h0_B34A
+h0_B33E:
     move.b (a1)+,(a0)+
     subq.b #1,d0
-    bne.s loc_B33E
-loc_B344:
+    bne.s h0_B33E
+h0_B344:
     clr.b (a0)+
     clr.b (a0)+
     clr.b (a0)+
-loc_B34A:
+h0_B34A:
     add.l d1,d1
     add.l d1,d1
     addq.l #8,d1
     lea.l $05DE(a6),a0
-    bra.w loc_84F2
-    DC.L    $206e01de,$41e80018,$4a90670c
-    DC.B    " PJh",0
-    DC.B    $04,$66,$24
-    DC.L    $4a9066f4,$48e7e0a0,$725a6100,$ddce4cdf,$06072288,$4290317c,$000a0004,$43e8000a
-    DC.L    $21490006,$53680004,$22680006,$50a80006
-    DC.B    " INu nG"
-    DC.B    $fa
-    DC.L    $3018b07c
-    DC.B    "++f,0"
-    DC.B    $18,$6a,$20
-    DC.L    $024000ff,$0c502d2d,$66164a28,$00026a10,$b0280003,$660a4a68,$0004660c,$588f4e75
-    DC.L    $4a506604
-    DC.B    "J`NupD`",0
-    DC.L    $d17ad4ae,$026ed48d,$94ae027e,$4a2e0104,$670a6100,$ff683080,$21420004,$4e752400
-    DC.L    $303c0100,$802e014c,$60e22ac2,$61966a08,$00400100,$74fc60ca,$6100005c,$02fc3ac2
-    DC.L    $61826bb8,$61000050,$04feb63c,$000166ee,$3ac26100,$ff706b04,$613c07fe,$00402800
-    DC.L    $74fe609e,$b63c0001,$661e1ac2,$6100ff56,$6b000006,$612008ff,$00402900,$74ff6082
-    DC.L    $94ae027e,$d48d5582,$1ac26100,$ff386b00,$ff6c6102,$05ff4a2e,$01046720,$6100fede
-    DC.L    $225710d9,$10ee014c,$30c01419,$488248c2,$d4ae026e,$d48d94ae,$027e20c2,$588f4e75
-loc_B49C:
-    lea.l dat_B4D4(pc),a0
-    cmpi.w #3,$0250(a6)
-    beq.s loc_B4AC
-loc_B4A8:
-    lea.l dat_B4C0(pc),a0
-loc_B4AC:
+    bra.w h0_84F2
+h0_B358:
+    movea.l $01DE(a6),a0
+    lea.l $0018(a0),a0
+    tst.l (a0)
+    beq.s h0_B370
+h0_B364:
+    movea.l (a0),a0
+    tst.w $0004(a0)
+    bne.s h0_B390
+h0_B36C:
+    tst.l (a0)
+    bne.s h0_B364
+h0_B370:
+    movem.l d0-d2/a0/a2,-(a7)
+    moveq.l #90,d1
+    bsr.w h0_9146
+h0_B37A:
+    movem.l (a7)+,d0-d2/a1-a2
+    move.l a0,(a1)
+    clr.l (a0)
+    move.w #$A,$0004(a0)
+    lea.l $000A(a0),a1
+    move.l a1,$0006(a0)
+h0_B390:
+    subq.w #1,$0004(a0)
+    movea.l $0006(a0),a1
+    addq.l #8,$0006(a0)
+    movea.l a1,a0
     rts
-loc_B4AE:
+h0_B3A0:
+    movea.l $47FA(a6),a0
+    move.w (a0)+,d0
+    cmp.w #$2B2B,d0
+    bne.s h0_B3D8
+h0_B3AC:
+    move.w (a0)+,d0
+    bpl.s h0_B3D0
+h0_B3B0:
+    andi.w #255,d0
+    cmpi.w #11565,(a0)
+    bne.s h0_B3D0
+h0_B3BA:
+    tst.b $0002(a0)
+    bpl.s h0_B3D0
+h0_B3C0:
+    cmp.b $0003(a0),d0
+    bne.s h0_B3D0
+h0_B3C6:
+    tst.w $0004(a0)
+    bne.s h0_B3D8
+h0_B3CC:
+    addq.l #4,a7
+    rts
+h0_B3D0:
+    tst.w (a0)
+    bne.s h0_B3D8
+h0_B3D4:
+    tst.w -(a0)
+    rts
+h0_B3D8:
+    moveq.l #68,d0
+    bra.w h0_8556
+    DC.B    $d4,$ae,$02,$6e,$d4,$8d,$94,$ae,$02,$7e ; VIOLATION: orphaned code island at $B3DE is not reached from known entrypoints
+h0_B3E8:
+    tst.b $0104(a6)
+    beq.s h0_B3F8
+h0_B3EE:
+    bsr.w h0_B358
+h0_B3F2:
+    move.w d0,(a0)
+    move.l d2,$0004(a0)
+h0_B3F8:
+    rts
+h0_B3FA:
+    move.l d0,d2
+    move.w #$100,d0
+    or.b $014C(a6),d0
+    bra.s h0_B3E8
+    DC.B    $2a,$c2 ; VIOLATION: orphaned code island at $B406 is not reached from known entrypoints
+    DC.L    $61966a08,$00400100,$74fc60ca,$6100005c,$02fc3ac2,$61826bb8,$61000050,$04feb63c
+    DC.L    $000166ee,$3ac26100,$ff706b04,$613c07fe,$00402800,$74fe609e,$b63c0001,$661e1ac2
+    DC.L    $6100ff56,$6b000006,$612008ff,$00402900,$74ff6082
+h0_B45C:
+    sub.l $027E(a6),d2
+    add.l a5,d2
+    subq.l #2,d2
+    move.b d2,(a5)+
+    bsr.w h0_B3A0
+h0_B46A:
+    bmi.w h0_B3D8
+h0_B46E:
+    bsr.s h0_B472
+    DC.B    $05,$ff ; VIOLATION: decode failed in reachable code; region emitted as data
+h0_B472:
+    tst.b $0104(a6)
+    beq.s h0_B498
+h0_B478:
+    bsr.w h0_B358
+h0_B47C:
+    movea.l (a7),a1
+    move.b (a1)+,(a0)+
+    move.b $014C(a6),(a0)+
+    move.w d0,(a0)+
+    move.b (a1)+,d2
+    ext.w d2
+    ext.l d2
+    add.l $026E(a6),d2
+    add.l a5,d2
+    sub.l $027E(a6),d2
+    move.l d2,(a0)+
+h0_B498:
+    addq.l #4,a7
+    rts
+h0_B49C:
     lea.l dat_B4D4(pc),a0
     cmpi.w #3,$0250(a6)
-    beq.s loc_B4AC
-loc_B4BA:
+    beq.s h0_B4AC
+h0_B4A8:
+    lea.l dat_B4C0(pc),a0
+h0_B4AC:
+    rts
+h0_B4AE:
+    lea.l dat_B4D4(pc),a0
+    cmpi.w #3,$0250(a6)
+    beq.s h0_B4AC
+h0_B4BA:
     lea.l dat_B4D1(pc),a0
     rts
 dat_B4C0:
@@ -10282,9 +10888,9 @@ dat_B4D4:
     DC.L    $01da2653,$4aab0014,$6608204b,$6100f9f6,$671a302b,$0012b07c,$03ea670c,$b07c03e9
     DC.L    $660a52ae,$02386004,$52ae023c,$4a9366d2
     DC.B    $4e,$75
-sub_B526:
-    bsr.w sub_C012
-loc_B52A:
+h0_B526:
+    bsr.w h0_C012
+h0_B52A:
     move.l d0,$0240(a6)
     moveq.l #11,d1
     add.l $0238(a6),d1
@@ -10292,21 +10898,24 @@ loc_B52A:
     add.l $0234(a6),d1
     lsl.l #2,d1
     movea.l a6,a0
-    bsr.w loc_84F2
-loc_B544:
-    bra.w loc_B260
+    bsr.w h0_84F2
+h0_B544:
+    bra.w h0_B260
     DC.L    $242e0240,$61000ab0,$6100fd0e,$223c0000,$03f16100,$fce27209,$d2ae0238,$d2ae023c
-    DC.L    $d2ae0234,$6100fcd0,$72006100,$fcca223c
+    DC.L    $d2ae0234,$6100fcd0,$72006100,$fcca223c ; VIOLATION: orphaned code island at $B548 is not reached from known entrypoints
     DC.B    "HEADa",0
     DC.B    $fc,$c0
     DC.B    $22,$3c,$44,$42,$47,$56,$61,$00
     DC.L    $fcb6223c,$30310000,$6100fcac,$222e0244,$6100fca4,$222e0248,$6100fc9c,$222e0234
     DC.L    $6100fc94,$45fa006c,$6100d532,$222e023c,$6100fc84,$263c0000,$03ea6100,$0018222e
-    DC.L    $02386100,$fc72263c,$000003e9,$61000006,$6000fc6c,$4a2e0105,$67367400,$47ee01da
-    DC.L    $26534aab,$00146608,$204b6100,$f904671a,$302b0012,$b6406612,$72001202,$e019d2ab
-    DC.L    $00201f02,$6100fc30,$141f5202,$4a9366d0,$4e757400,$47ee01da,$26534aab,$00146608
-    DC.L    $204b6100,$f8cc6712,$45fa0016,$206b0004,$1c28000e,$6100d6e2,$52024a93,$66da4e75
-    DC.L    $72001202,$e019d2a8,$001c2f08,$6100fbe8
+    DC.L    $02386100,$fc72263c,$000003e9,$61000006,$6000fc6c
+    DC.L    $4a2e0105,$67367400,$47ee01da,$26534aab,$00146608,$204b6100,$f904671a,$302b0012
+    DC.L    $b6406612,$72001202,$e019d2ab,$00201f02,$6100fc30,$141f5202,$4a9366d0 ; VIOLATION: orphaned code island at $B5DC is not reached from known entrypoints
+    DC.B    $4e,$75
+    DC.B    $74,$00 ; VIOLATION: orphaned code island at $B61A is not reached from known entrypoints
+    DC.L    $47ee01da,$26534aab,$00146608,$204b6100,$f8cc6712,$45fa0016,$206b0004,$1c28000e
+    DC.L    $6100d6e2,$52024a93,$66da4e75
+    DC.L    $72001202,$e019d2a8,$001c2f08,$6100fbe8 ; VIOLATION: orphaned code island at $B648 is not reached from known entrypoints
     DC.B    " _Nu"
 dat_B65C:
     DC.L    $809a9083,$8eb68f80,$88898a8b,$8c8d8e8f,$90929293,$99959697,$98999a9b,$9c9d9e9f
@@ -10330,37 +10939,37 @@ dat_B75C:
     DC.L    $00000000,$00000000,$01010101,$01000101,$00000000,$00000000,$00010101,$01010101
     DC.L    $01010101,$01010101,$01010101,$01010101,$01010101,$01010101,$01010101,$01010101
     DC.L    $01010101,$01010101,$01010101,$01010101,$01010101,$01010101,$01010101,$01010101
-sub_B85C:
+h0_B85C:
     move.w d1,-(a7)
     moveq.l #27,d1
-    bsr.s loc_B870
-loc_B862:
+    bsr.s h0_B870
+h0_B862:
     moveq.l #112,d1
-    bsr.s loc_B870
-loc_B866:
+    bsr.s h0_B870
+h0_B866:
     move.w (a7)+,d1
-    bsr.s loc_B870
-loc_B86A:
+    bsr.s h0_B870
+h0_B86A:
     moveq.l #27,d1
-    bsr.s loc_B870
-loc_B86E:
+    bsr.s h0_B870
+h0_B86E:
     moveq.l #113,d1
-loc_B870:
+h0_B870:
     andi.w #255,d1
     move.l $01D0(a6),d0
-    beq.s loc_B884
-loc_B87A:
+    beq.s h0_B884
+h0_B87A:
     movea.l d0,a0
     move.b d1,d0
     movea.l $001C(a0),a0
-    jmp (a0) ; CANDIDATE: indirect_jump index unresolved
-loc_B884:
+    jmp (a0)                            ; CANDIDATE: indirect_jump index unresolved
+h0_B884:
     move.w d1,-(a7)
     move.w #c_conout,-(a7)
     trap #1
     addq.l #4,a7
     rts
-sub_B890:
+h0_B890:
     move.l d1,-(a7)
     move.l a0,-(a7)
     move.l d1,-(a7)
@@ -10371,29 +10980,29 @@ sub_B890:
     move.l (a7)+,d1
     cmp.l d0,d1
     rts
-loc_B8A8:
+h0_B8A8:
     tst.w d3
-    bmi.s loc_B8B2
-loc_B8AC:
+    bmi.s h0_B8B2
+h0_B8AC:
     cmp.w #$5,d3
-    bcc.s loc_B8BC
-loc_B8B2:
+    bcc.s h0_B8BC
+h0_B8B2:
     move.w d3,-(a7)
     move.w #f_close,-(a7)
     trap #1
     addq.l #4,a7
-loc_B8BC:
+h0_B8BC:
     rts
-sub_B8BE:
+h0_B8BE:
     movea.l (a7)+,a3
     movea.l $0004(a7),a5
     move.l $0004(a5),d0
     sub.l (a5),d0
-    bcs.s loc_B918
-loc_B8CC:
+    bcs.s h0_B918
+h0_B8CC:
     cmp.l #$6178,d0
-    bcs.s loc_B918
-loc_B8D4:
+    bcs.s h0_B918
+h0_B8D4:
     movea.l $0018(a5),a6
     addq.w #2,a6
     move.l a5,$4EF2(a6)
@@ -10410,13 +11019,13 @@ loc_B8D4:
     trap #1
     lea.l $000C(a7),a7
     tst.l d0
-    bne.s loc_B918
-loc_B90A:
+    bne.s h0_B918
+h0_B90A:
     sf.b $4EF1(a6)
     sf.b $4EF0(a6)
     clr.b $4FA6(a6)
-    jmp (a3) ; CANDIDATE: indirect_jump index unresolved
-loc_B918:
+    jmp (a3)                            ; CANDIDATE: indirect_jump index unresolved
+h0_B918:
     move.w #$FFD9,-(a7)
     move.w #p_term,-(a7)
     trap #1
@@ -10430,41 +11039,41 @@ loc_B918:
     trap #1
     addq.l #6,a7
     move.l a4,d0
-    beq.s loc_B952
-loc_B940:
+    beq.s h0_B952
+h0_B940:
     move.l (a4)+,d0
-    beq.s loc_B952
-loc_B944:
+    beq.s h0_B952
+h0_B944:
     cmp.l d0,d3
-    beq.s loc_B94C
-loc_B948:
+    beq.s h0_B94C
+h0_B948:
     addq.l #4,a4
-    bra.s loc_B940
-loc_B94C:
+    bra.s h0_B940
+h0_B94C:
     move.l (a4)+,d0
     cmp.b d0,d0
     rts
-loc_B952:
+h0_B952:
     moveq.l #-1,d0
     rts
-sub_B956:
+h0_B956:
     movea.l a5,a2
     lea.l dat_BAD6(pc),a1
-    bsr.w sub_BB72
-loc_B960:
-    bne.s loc_B982
-loc_B962:
-    bsr.w sub_BA94
-loc_B966:
-    beq.s loc_B982
-loc_B968:
+    bsr.w h0_BB72
+h0_B960:
+    bne.s h0_B982
+h0_B962:
+    bsr.w h0_BA94
+h0_B966:
+    beq.s h0_B982
+h0_B968:
     move.l d1,$01D0(a6)
     movea.l d1,a0
     move.l $0028(a0),$01C8(a6)
     move.l $002C(a0),$01CC(a6)
     move.l $003C(a0),$01D4(a6)
-    bra.s loc_B99A
-loc_B982:
+    bra.s h0_B99A
+h0_B982:
     moveq.l #0,d0
     move.l d0,$01C8(a6)
     move.l d0,$01CC(a6)
@@ -10472,7 +11081,7 @@ loc_B982:
     lea.l $01D8(a6),a0
     move.b d0,(a0)
     move.l a0,$01D4(a6)
-loc_B99A:
+h0_B99A:
     clr.b $0750(a6)
     sf.b $024F(a6)
     st.b $0104(a6)
@@ -10484,49 +11093,49 @@ loc_B99A:
     move.l $4FB0(a6),d0
     sub.l $4FAC(a6),d0
     move.l d0,$4EF6(a6)
-    bsr.w sub_BCA4
-loc_B9CA:
+    bsr.w h0_BCA4
+h0_B9CA:
     move.l d0,$4FA2(a6)
     tst.l $01C8(a6)
-    bne.w loc_B9D6
-loc_B9D6:
+    bne.w h0_B9D6
+h0_B9D6:
     movea.l a5,a2
     cmpi.b #127,$0080(a5)
-    beq.s loc_B9F4
-loc_B9E0:
+    beq.s h0_B9F4
+h0_B9E0:
     lea.l dat_BAE8(pc),a1
-    bsr.w sub_BB72
-loc_B9E8:
-    bne.s loc_BA0A
-loc_B9EA:
-    bsr.w sub_BA94
-loc_B9EE:
+    bsr.w h0_BB72
+h0_B9E8:
+    bne.s h0_BA0A
+h0_B9EA:
+    bsr.w h0_BA94
+h0_B9EE:
     cmp.l $0024(a5),d1
-    bne.s loc_BA0A
-loc_B9F4:
+    bne.s h0_BA0A
+h0_B9F4:
     lea.l dat_BAE2(pc),a1
-    bsr.w sub_BB72
-loc_B9FC:
-    bne.s loc_BA0A
-loc_B9FE:
+    bsr.w h0_BB72
+h0_B9FC:
+    bne.s h0_BA0A
+h0_B9FE:
     tst.b (a0)+
-    bne.s loc_B9FE
-loc_BA02:
+    bne.s h0_B9FE
+h0_BA02:
     tst.b (a0)+
-    bne.s loc_BA02
-loc_BA06:
-    bra.w loc_BA1C
-loc_BA0A:
+    bne.s h0_BA02
+h0_BA06:
+    bra.w h0_BA1C
+h0_BA0A:
     movea.l a5,a0
     lea.l $0080(a0),a0
     moveq.l #0,d0
     move.b (a0)+,d0
     clr.b $0(a0,d0.w)
     clr.b $1(a0,d0.w)
-loc_BA1C:
+h0_BA1C:
     tst.b (a0)
-    bne.s loc_BA74
-loc_BA20:
+    bne.s h0_BA74
+h0_BA20:
     st.b $4EF1(a6)
     pea.l dat_BCDD(pc)
     move.w #c_conws,-(a7)
@@ -10547,66 +11156,66 @@ loc_BA20:
     lea.l $0081(a0),a0
     moveq.l #0,d0
     move.b (a0)+,d0
-    bne.s loc_BA64
-loc_BA5C:
+    bne.s h0_BA64
+h0_BA5C:
     sf.b $4EF1(a6)
     moveq.l #-1,d0
     rts
-loc_BA64:
+h0_BA64:
     movem.l d0/a0,-(a7)
-    bsr.w sub_BCA4
-loc_BA6C:
+    bsr.w h0_BCA4
+h0_BA6C:
     move.l d0,$4FA2(a6)
     movem.l (a7)+,d0/a0
-loc_BA74:
+h0_BA74:
     move.l a0,$025A(a6)
     clr.l $025E(a6)
     clr.l $0262(a6)
     movea.l a5,a2
     lea.l dat_BAEE(pc),a1
-    bsr.w sub_BB72
-loc_BA8A:
-    bne.s loc_BA90
-loc_BA8C:
+    bsr.w h0_BB72
+h0_BA8A:
+    bne.s h0_BA90
+h0_BA8C:
     move.l a0,$025E(a6)
-loc_BA90:
+h0_BA90:
     moveq.l #0,d0
     rts
-sub_BA94:
+h0_BA94:
     moveq.l #0,d0
     moveq.l #0,d1
-loc_BA98:
+h0_BA98:
     move.b (a0)+,d0
     cmp.b #$3A,d0
-    bcc.s loc_BAAC
-loc_BAA0:
+    bcc.s h0_BAAC
+h0_BAA0:
     cmp.b #$30,d0
-    bcs.s loc_BAD4
-loc_BAA6:
+    bcs.s h0_BAD4
+h0_BAA6:
     subi.w #48,d0
-    bra.s loc_BACE
-loc_BAAC:
+    bra.s h0_BACE
+h0_BAAC:
     cmp.b #$47,d0
-    bcc.s loc_BABE
-loc_BAB2:
+    bcc.s h0_BABE
+h0_BAB2:
     cmp.b #$41,d0
-    bcs.s loc_BAD4
-loc_BAB8:
+    bcs.s h0_BAD4
+h0_BAB8:
     subi.w #55,d0
-    bra.s loc_BACE
-loc_BABE:
+    bra.s h0_BACE
+h0_BABE:
     cmp.b #$67,d0
-    bcc.s loc_BAD4
-loc_BAC4:
+    bcc.s h0_BAD4
+h0_BAC4:
     cmp.b #$61,d0
-    bcs.s loc_BAD4
-loc_BACA:
+    bcs.s h0_BAD4
+h0_BACA:
     subi.w #87,d0
-loc_BACE:
+h0_BACE:
     lsl.l #4,d1
     add.l d0,d1
-    bra.s loc_BA98
-loc_BAD4:
+    bra.s h0_BA98
+h0_BAD4:
     rts
 dat_BAD6:
     DC.B    $5f,$5f,$48,$49,$53,$4f,$46,$54,$5f,$5f,$3d,$00
@@ -10616,224 +11225,224 @@ dat_BAE8:
     DC.B    $5f,$50,$42,$50,$3d,$00
 dat_BAEE:
     DC.B    $47,$45,$4e,$5f,$4f,$50,$54,$3d,$00,$00
-sub_BAF8:
-    bsr.w loc_BF0C
-loc_BAFC:
+h0_BAF8:
+    bsr.w h0_BF0C
+h0_BAFC:
     tst.l d4
-    beq.s loc_BB20
-loc_BB00:
+    beq.s h0_BB20
+h0_BB00:
     move.l d1,d5
     addq.l #1,d1
-    bsr.w sub_9146
-loc_BB08:
+    bsr.w h0_9146
+h0_BB08:
     move.l d5,d1
     move.l d4,d3
     move.l a0,-(a7)
-    bsr.w sub_BFB2
-loc_BB12:
+    bsr.w h0_BFB2
+h0_BB12:
     move.l d4,d3
-    bsr.w sub_BFAE
-loc_BB18:
+    bsr.w h0_BFAE
+h0_BB18:
     movea.l (a7)+,a0
     clr.b $0(a0,d5.l)
     tst.l d5
-loc_BB20:
+h0_BB20:
     rts
-sub_BB22:
+h0_BB22:
     move.l $0262(a6),d0
-    beq.s loc_BB62
-loc_BB28:
+    beq.s h0_BB62
+h0_BB28:
     st.b $4EF0(a6)
     movea.l d0,a4
-loc_BB2E:
-    jsr loc_3B4A.l
-loc_BB34:
-    bne.w loc_BB4A
-loc_BB38:
+h0_BB2E:
+    jsr h0_3B4A.l
+h0_BB34:
+    bne.w h0_BB4A
+h0_BB38:
     tst.b d1
-loc_BB3A:
-    beq.s loc_BB4A
-loc_BB3C:
+h0_BB3A:
+    beq.s h0_BB4A
+h0_BB3C:
     move.b (a4),d1
-    beq.s loc_BB62
-loc_BB40:
+    beq.s h0_BB62
+h0_BB40:
     cmp.b #$A,d1
-    bne.s loc_BB2E
-loc_BB46:
+    bne.s h0_BB2E
+h0_BB46:
     move.b (a4)+,d1
-    bra.s loc_BB3A
-loc_BB4A:
+    bra.s h0_BB3A
+h0_BB4A:
     sf.b $4EF0(a6)
     rts
-sub_BB50:
+h0_BB50:
     movea.l $025A(a6),a4
-loc_BB54:
-    jsr loc_3B4A.l
-loc_BB5A:
-    bne.w loc_BB62
-loc_BB5E:
+h0_BB54:
+    jsr h0_3B4A.l
+h0_BB5A:
+    bne.w h0_BB62
+h0_BB5E:
     move.b (a4),d1
-    bne.s loc_BB54
-loc_BB62:
+    bne.s h0_BB54
+h0_BB62:
     rts
-sub_BB64:
+h0_BB64:
     move.l $025E(a6),d0
-    beq.s loc_BB62
-loc_BB6A:
+    beq.s h0_BB62
+h0_BB6A:
     movea.l d0,a4
-    jmp loc_3B4A.l
-sub_BB72:
+    jmp h0_3B4A.l
+h0_BB72:
     movea.l $002C(a2),a0
     tst.b (a0)
-    bne.s loc_BB82
-loc_BB7A:
+    bne.s h0_BB82
+h0_BB7A:
     tst.b $0001(a0)
-    beq.s loc_BBA6
-loc_BB80:
+    beq.s h0_BBA6
+h0_BB80:
     addq.l #1,a0
-loc_BB82:
+h0_BB82:
     tst.b (a0)
-    beq.s loc_BBA6
-loc_BB86:
+    beq.s h0_BBA6
+h0_BB86:
     movem.l a0-a1,-(a7)
-loc_BB8A:
+h0_BB8A:
     move.b (a1)+,d0
-    beq.s loc_BB94
-loc_BB8E:
+    beq.s h0_BB94
+h0_BB8E:
     cmp.b (a0)+,d0
-    beq.s loc_BB8A
-loc_BB92:
-    bra.s loc_BB9C
-loc_BB94:
+    beq.s h0_BB8A
+h0_BB92:
+    bra.s h0_BB9C
+h0_BB94:
     movem.l (a7)+,d0/a1
     moveq.l #0,d0
     rts
-loc_BB9C:
+h0_BB9C:
     movem.l (a7)+,a0-a1
-loc_BBA0:
+h0_BBA0:
     tst.b (a0)+
-    bne.s loc_BBA0
-loc_BBA4:
-    bra.s loc_BB82
-loc_BBA6:
+    bne.s h0_BBA0
+h0_BBA4:
+    bra.s h0_BB82
+h0_BBA6:
     moveq.l #-1,d0
     rts
-sub_BBAA:
+h0_BBAA:
     lea.l dat_BBD2(pc),a1
     movea.l $4EF2(a6),a2
-    bsr.s sub_BB72
-loc_BBB4:
-    beq.s loc_BBC2
-loc_BBB6:
+    bsr.s h0_BB72
+h0_BBB4:
+    beq.s h0_BBC2
+h0_BBB6:
     lea.l dat_BBDA(pc),a1
     movea.l $4EF2(a6),a2
-    bsr.s sub_BB72
-loc_BBC0:
-    bne.s loc_BBD0
-loc_BBC2:
+    bsr.s h0_BB72
+h0_BBC0:
+    bne.s h0_BBD0
+h0_BBC2:
     movea.l a0,a4
     lea.l $0868(a6),a3
     st.b $012D(a6)
-    bra.w loc_4778
-loc_BBD0:
+    bra.w h0_4778
+h0_BBD0:
     rts
 dat_BBD2:
     DC.B    $49,$4e,$43,$44,$49,$52,$3d,$00
 dat_BBDA:
     DC.B    $49,$4e,$43,$4c,$55,$44,$45,$3d,$00,$00
-loc_BBE4:
+h0_BBE4:
     clr.w -(a7)
     move.l a0,-(a7)
     move.w #f_create,-(a7)
     trap #1
     addq.l #8,a7
     tst.l d0
-    bmi.w loc_BBFC
-loc_BBF6:
+    bmi.w h0_BBFC
+h0_BBF6:
     move.l d0,$4810(a6)
     moveq.l #0,d0
-loc_BBFC:
+h0_BBFC:
     rts
-sub_BBFE:
+h0_BBFE:
     tst.b $480F(a6)
-    beq.s loc_BC2E
-loc_BC04:
+    beq.s h0_BC2E
+h0_BC04:
     tst.w $4A22(a6)
-    bmi.s loc_BC2E
-loc_BC0A:
+    bmi.s h0_BC2E
+h0_BC0A:
     btst.b #0,$4ADE(a6)
-    beq.s loc_BC2E
-loc_BC12:
+    beq.s h0_BC2E
+h0_BC12:
     moveq.l #13,d1
-    bsr.w loc_9208
-loc_BC18:
+    bsr.w h0_9208
+h0_BC18:
     moveq.l #10,d1
-    bsr.w loc_9208
-loc_BC1E:
+    bsr.w h0_9208
+h0_BC1E:
     moveq.l #12,d1
-    bsr.w loc_9208
-loc_BC24:
+    bsr.w h0_9208
+h0_BC24:
     clr.w $4A20(a6)
     move.w #$FFFF,$4A22(a6)
-loc_BC2E:
+h0_BC2E:
     rts
-sub_BC30:
+h0_BC30:
     tst.b $0129(a6)
-    bne.s loc_BC2E
-loc_BC36:
-    bsr.s sub_BCA4
-loc_BC38:
+    bne.s h0_BC2E
+h0_BC36:
+    bsr.s h0_BCA4
+h0_BC38:
     move.l d0,-(a7)
     move.l $4EF6(a6),d1
     sub.l $4FB0(a6),d1
     add.l $4FAC(a6),d1
-    bsr.w sub_8F8A
-loc_BC4A:
+    bsr.w h0_8F8A
+h0_BC4A:
     lea.l dat_BCB8(pc),a0
-    bsr.w loc_9334
-loc_BC52:
+    bsr.w h0_9334
+h0_BC52:
     move.l $4EF6(a6),d1
-    bsr.w sub_8F8A
-loc_BC5A:
+    bsr.w h0_8F8A
+h0_BC5A:
     lea.l dat_BCCC(pc),a0
-    bsr.w loc_9334
-loc_BC62:
+    bsr.w h0_9334
+h0_BC62:
     move.l (a7)+,d2
     sub.l $4FA2(a6),d2
     divu.w #$C8,d2
     move.l d2,-(a7)
     moveq.l #0,d1
     move.w d2,d1
-    bsr.w sub_8F8A
-loc_BC76:
+    bsr.w h0_8F8A
+h0_BC76:
     moveq.l #46,d1
-    bsr.w loc_931A
-loc_BC7C:
+    bsr.w h0_931A
+h0_BC7C:
     move.l (a7)+,d2
     clr.w d2
     swap.w d2
     divu.w #$14,d2
     moveq.l #48,d1
     add.b d2,d1
-    bsr.w loc_931A
-loc_BC8E:
+    bsr.w h0_931A
+h0_BC8E:
     lea.l dat_BCD4(pc),a0
-    bsr.w loc_9334
-loc_BC96:
+    bsr.w h0_9334
+h0_BC96:
     tst.l $01D0(a6)
-    beq.s loc_BCA0
-loc_BC9C:
-    bsr.w loc_8F12
-loc_BCA0:
-    bra.w loc_8F12
-sub_BCA4:
+    beq.s h0_BCA0
+h0_BC9C:
+    bsr.w h0_8F12
+h0_BCA0:
+    bra.w h0_8F12
+h0_BCA4:
     pea.l dat_BCB2(pc)
     move.w #supexec,-(a7)
     trap #14
-    addq.l #6,a7 ; KNOWN: stack cleanup for supexec pop 6
+    addq.l #6,a7                        ; KNOWN: stack cleanup for supexec pop 6
     rts
 dat_BCB2:
-    DC.B    $20,$38,$04,$ba,$4e,$75
+    DC.B    $20,$38,$04,$ba,$4e,$75 ; VIOLATION: orphaned code island at $BCB2 is not reached from known entrypoints
 dat_BCB8:
     DC.B    " bytes used out of ",0
 dat_BCCC:
@@ -10849,42 +11458,42 @@ dat_BCF3:
     DC.L    $0a507265
     DC.B    "ss a key to exit",0
     DC.B    $00
-sub_BD0A:
+h0_BD0A:
     tst.b $4EF1(a6)
-    beq.s loc_BD3C
-loc_BD10:
+    beq.s h0_BD3C
+h0_BD10:
     pea.l dat_BCF3(pc)
     move.w #c_conws,-(a7)
     trap #1
     addq.l #6,a7
-loc_BD1C:
+h0_BD1C:
     move.l #$600FF,-(a7)
     trap #1
     addq.l #4,a7
     tst.w d0
-    bne.s loc_BD1C
-loc_BD2A:
+    bne.s h0_BD1C
+h0_BD2A:
     move.w #c_rawcin,(a7)
     trap #1
     cmp.b #$D,d0
-    beq.s loc_BD3C
-loc_BD36:
+    beq.s h0_BD3C
+h0_BD36:
     cmp.b #$20,d0
-    bcs.s loc_BD2A
-loc_BD3C:
+    bcs.s h0_BD2A
+h0_BD3C:
     move.b $026C(a6),d0
     ext.w d0
     move.w d0,-(a7)
     move.w #p_term,-(a7)
     trap #1
-loc_BD4A:
+h0_BD4A:
     moveq.l #-1,d0
     move.l d0,-(a7)
     move.l d0,-(a7)
     move.l d0,-(a7)
     move.w #keytbl,-(a7)
     trap #14
-    lea.l $000E(a7),a7 ; KNOWN: stack cleanup for keytbl pop 14
+    lea.l $000E(a7),a7                  ; KNOWN: stack cleanup for keytbl pop 14
     movea.l d0,a0
     movea.l $0004(a0),a0
     cmpi.b #35,$0004(a0)
@@ -10900,23 +11509,23 @@ loc_BD4A:
     lsr.w #5,d2
     andi.w #15,d2
     tst.b (a7)+
-    beq.s loc_BD8A
-loc_BD88:
+    beq.s h0_BD8A
+h0_BD88:
     exg d2,d1
-loc_BD8A:
-    bsr.s loc_BDDA
-loc_BD8C:
+h0_BD8A:
+    bsr.s h0_BDDA
+h0_BD8C:
     move.b #$2F,(a3)+
     move.w d2,d1
-    bsr.s loc_BDDA
-loc_BD94:
+    bsr.s h0_BDDA
+h0_BD94:
     move.b #$2F,(a3)+
     move.w d0,d1
     rol.w #7,d1
     andi.w #127,d1
     addi.w #80,d1
-    bsr.s loc_BDDA
-loc_BDA6:
+    bsr.s h0_BDDA
+h0_BDA6:
     move.b #$20,(a3)+
     move.b #$20,(a3)+
     move.w #t_gettime,-(a7)
@@ -10925,19 +11534,19 @@ loc_BDA6:
     move.w d0,d1
     rol.w #5,d1
     andi.w #31,d1
-    bsr.s loc_BDDA
-loc_BDC0:
+    bsr.s h0_BDDA
+h0_BDC0:
     move.b #$3A,(a3)+
     move.w d0,d1
     lsr.w #5,d1
     andi.w #63,d1
-    bsr.s loc_BDDA
-loc_BDCE:
+    bsr.s h0_BDDA
+h0_BDCE:
     move.b #$3A,(a3)+
     move.w d0,d1
     andi.w #31,d1
     add.w d1,d1
-loc_BDDA:
+h0_BDDA:
     swap.w d1
     clr.w d1
     swap.w d1
@@ -10948,21 +11557,21 @@ loc_BDDA:
     addi.b #48,d1
     move.b d1,(a3)+
     rts
-sub_BDF4:
+h0_BDF4:
     addq.l #1,d1
     andi.b #254,d1
     move.l d1,d0
     add.l $4FAC(a6),d0
     cmp.l $4FB0(a6),d0
-    bcc.s loc_BE16
-loc_BE06:
+    bcc.s h0_BE16
+h0_BE06:
     movea.l $4FAC(a6),a0
     add.l d1,$4FAC(a6)
-loc_BE0E:
+h0_BE0E:
     move.l a0,$4FA8(a6)
     moveq.l #-1,d0
     rts
-loc_BE16:
+h0_BE16:
     move.l d1,-(a7)
     move.l #$FFFFFFFF,-(a7)
     move.w #m_alloc,-(a7)
@@ -10970,8 +11579,8 @@ loc_BE16:
     addq.w #6,a7
     move.l (a7),d1
     cmp.l d1,d0
-    bcs.s loc_BE4A
-loc_BE2C:
+    bcs.s h0_BE4A
+h0_BE2C:
     move.l d0,$4FB0(a6)
     move.l d0,-(a7)
     move.w #m_alloc,-(a7)
@@ -10982,148 +11591,148 @@ loc_BE2C:
     add.l d0,$4FB0(a6)
     add.l d1,d0
     move.l d0,$4FAC(a6)
-    bra.s loc_BE0E
-loc_BE4A:
+    bra.s h0_BE0E
+h0_BE4A:
     move.l (a7)+,d1
     moveq.l #0,d0
     rts
-sub_BE50:
+h0_BE50:
     cmpa.l $4FA8(a6),a0
-    bne.s loc_BE5E
-loc_BE56:
+    bne.s h0_BE5E
+h0_BE56:
     move.l a0,$4FAC(a6)
     clr.l $4FA8(a6)
-loc_BE5E:
+h0_BE5E:
     rts
-sub_BE60:
+h0_BE60:
     lea.l $0016(a1),a0
     moveq.l #0,d0
     move.b (a0)+,d0
     lea.l -$1(a0,d0.w),a1
     clr.b (a1)
     move.l a1,-(a7)
-    bsr.s sub_BE98
-loc_BE72:
+    bsr.s h0_BE98
+h0_BE72:
     movea.l (a7)+,a1
     move.b #$B,(a1)
     tst.l d4
     eori #4,ccr
     rts
-sub_BE80:
+h0_BE80:
     movem.l d1/a0,-(a7)
-loc_BE84:
+h0_BE84:
     move.b (a0)+,d1
     cmp.b #$3A,d1
-    beq.s loc_BE92
-loc_BE8C:
+    beq.s h0_BE92
+h0_BE8C:
     tst.b d1
-    bne.s loc_BE84
-loc_BE90:
+    bne.s h0_BE84
+h0_BE90:
     moveq.l #-1,d1
-loc_BE92:
+h0_BE92:
     movem.l (a7)+,d1/a0
-loc_BE96:
+h0_BE96:
     rts
-sub_BE98:
-    bsr.s sub_BE80
-loc_BE9A:
-    beq.s loc_BEE2
-loc_BE9C:
+h0_BE98:
+    bsr.s h0_BE80
+h0_BE9A:
+    beq.s h0_BEE2
+h0_BE9C:
     move.l a0,-(a7)
-    bsr.w loc_BEE2
-loc_BEA2:
+    bsr.w h0_BEE2
+h0_BEA2:
     movea.l (a7)+,a0
     tst.l d4
-    bne.s loc_BE96
-loc_BEA8:
+    bne.s h0_BE96
+h0_BEA8:
     movea.l $4EFA(a6),a2
     move.l a0,-(a7)
-loc_BEAE:
+h0_BEAE:
     move.b (a0)+,(a2)+
-    bne.s loc_BEAE
-loc_BEB2:
+    bne.s h0_BEAE
+h0_BEB2:
     lea.l $4EFE(a6),a0
     move.l $0868(a6),-(a7)
-loc_BEBA:
-    bsr.s loc_BEE2
-loc_BEBC:
+h0_BEBA:
+    bsr.s h0_BEE2
+h0_BEBC:
     movea.l (a7)+,a1
     movea.l (a7)+,a0
     tst.l d4
-    bne.s loc_BEE0
-loc_BEC4:
+    bne.s h0_BEE0
+h0_BEC4:
     tst.b (a1)
-    beq.s loc_BEE0
-loc_BEC8:
+    beq.s h0_BEE0
+h0_BEC8:
     move.l a0,-(a7)
     lea.l $4FB4(a6),a2
-loc_BECE:
+h0_BECE:
     move.b (a1)+,(a2)+
-    bne.s loc_BECE
-loc_BED2:
+    bne.s h0_BECE
+h0_BED2:
     subq.l #1,a2
-loc_BED4:
+h0_BED4:
     move.b (a0)+,(a2)+
-    bne.s loc_BED4
-loc_BED8:
+    bne.s h0_BED4
+h0_BED8:
     move.l a1,-(a7)
     lea.l $4FB4(a6),a0
-    bra.s loc_BEBA
-loc_BEE0:
+    bra.s h0_BEBA
+h0_BEE0:
     rts
-loc_BEE2:
+h0_BEE2:
     tst.b $010B(a6)
-    beq.s loc_BF0C
-loc_BEE8:
+    beq.s h0_BF0C
+h0_BEE8:
     lea.l $5084(a6),a2
     move.l a0,-(a7)
-loc_BEEE:
+h0_BEEE:
     move.b (a0)+,(a2)+
-    bne.s loc_BEEE
-loc_BEF2:
+    bne.s h0_BEEE
+h0_BEF2:
     lea.l $5084(a6),a0
     lea.l dat_975C(pc),a2
-    bsr.w sub_46B0
-loc_BEFE:
-    bsr.w loc_BF0C
-loc_BF02:
+    bsr.w h0_46B0
+h0_BEFE:
+    bsr.w h0_BF0C
+h0_BF02:
     movea.l (a7)+,a0
     tst.l d4
-    beq.s loc_BF0C
-loc_BF08:
+    beq.s h0_BF0C
+h0_BF08:
     neg.l d1
     rts
-loc_BF0C:
+h0_BF0C:
     clr.w -(a7)
     move.l a0,-(a7)
     move.w #$3D,-(a7)
     move.l $01D0(a6),d0
-    beq.s loc_BF22
-loc_BF1A:
+    beq.s h0_BF22
+h0_BF1A:
     movea.l d0,a0
     movea.l (a0),a0
-    jsr (a0) ; CANDIDATE: indirect_call index unresolved
-loc_BF20:
-    bra.s loc_BF24
-loc_BF22:
+    jsr (a0)                            ; CANDIDATE: indirect_call index unresolved
+h0_BF20:
+    bra.s h0_BF24
+h0_BF22:
     trap #1
-loc_BF24:
+h0_BF24:
     addq.l #8,a7
     moveq.l #0,d4
     tst.l d0
-    bmi.s loc_BF66
-loc_BF2C:
+    bmi.s h0_BF66
+h0_BF2C:
     move.l d0,d4
     move.l $01D0(a6),d0
-    beq.s loc_BF40
-loc_BF34:
+    beq.s h0_BF40
+h0_BF34:
     movea.l d0,a0
     tst.l $0020(a0)
-    beq.s loc_BF40
-loc_BF3C:
+    beq.s h0_BF40
+h0_BF3C:
     moveq.l #-1,d1
     rts
-loc_BF40:
+h0_BF40:
     move.w #$2,-(a7)
     move.w d4,-(a7)
     clr.l -(a7)
@@ -11138,25 +11747,25 @@ loc_BF40:
     trap #1
     lea.l $000A(a7),a7
     move.l (a7)+,d1
-loc_BF66:
+h0_BF66:
     rts
-loc_BF68:
+h0_BF68:
     move.w d2,-(a7)
     move.w #$3E,-(a7)
     move.l $01D0(a6),d0
-    beq.s loc_BF7E
-loc_BF74:
+    beq.s h0_BF7E
+h0_BF74:
     movea.l d0,a0
     movea.l $0004(a0),a0
-    jsr (a0) ; CANDIDATE: indirect_call index unresolved
-loc_BF7C:
-    bra.s loc_BF80
-loc_BF7E:
+    jsr (a0)                            ; CANDIDATE: indirect_call index unresolved
+h0_BF7C:
+    bra.s h0_BF80
+h0_BF7E:
     trap #1
-loc_BF80:
+h0_BF80:
     addq.l #4,a7
     rts
-sub_BF84:
+h0_BF84:
     move.l a0,-(a7)
     move.l d1,-(a7)
     move.w d2,-(a7)
@@ -11166,19 +11775,19 @@ sub_BF84:
     move.l d0,d1
     moveq.l #0,d0
     rts
-sub_BF9A:
+h0_BF9A:
     move.l d4,-(a7)
-    bsr.w sub_BE98
-loc_BFA0:
+    bsr.w h0_BE98
+h0_BFA0:
     move.l d1,d2
     move.l d4,d3
     movem.l (a7)+,d4
     eori #4,ccr
     rts
-sub_BFAE:
+h0_BFAE:
     move.w d3,d2
-    bra.s loc_BF68
-sub_BFB2:
+    bra.s h0_BF68
+h0_BFB2:
     move.l a0,-(a7)
     move.l d1,-(a7)
     move.w d3,-(a7)
@@ -11186,23 +11795,23 @@ sub_BFB2:
     trap #1
     lea.l $000C(a7),a7
     rts
-sub_BFC4:
+h0_BFC4:
     clr.w -(a7)
     move.l a0,-(a7)
     move.w #f_create,-(a7)
     trap #1
     addq.l #8,a7
     tst.l d0
-    bmi.s loc_BFD8
-loc_BFD4:
+    bmi.s h0_BFD8
+h0_BFD4:
     move.l d0,d2
     moveq.l #0,d0
-loc_BFD8:
+h0_BFD8:
     rts
-sub_BFDA:
+h0_BFDA:
     tst.l d1
-    beq.s loc_BFFC
-loc_BFDE:
+    beq.s h0_BFFC
+h0_BFDE:
     movem.l d1-d2,-(a7)
     move.l $01B4(a6),d2
     move.l a0,-(a7)
@@ -11213,85 +11822,118 @@ loc_BFDE:
     lea.l $000C(a7),a7
     movem.l (a7)+,d1-d2
     cmp.l d0,d1
-loc_BFFC:
+h0_BFFC:
     rts
-sub_BFFE:
+h0_BFFE:
     clr.w -(a7)
     move.w $01B6(a6),-(a7)
     move.l d2,-(a7)
-loc_C006:
+h0_C006:
     move.w #f_seek,-(a7)
     trap #1
     lea.l $000A(a7),a7
     rts
-sub_C012:
+h0_C012:
     move.w #$1,-(a7)
     move.w $01B6(a6),-(a7)
     clr.l -(a7)
-    bra.s loc_C006
-sub_C01E:
+    bra.s h0_C006
+h0_C01E:
     tst.b $024F(a6)
-    bne.s loc_C03A
-loc_C024:
+    bne.s h0_C03A
+h0_C024:
     move.l $4FB0(a6),d0
     sub.l $4FAC(a6),d0
     cmp.l #$7D00,d0
-    bcs.s loc_C03A
-loc_C034:
+    bcs.s h0_C03A
+h0_C034:
     asr.l #1,d0
     cmp.l d0,d1
-    bcs.s loc_C03C
-loc_C03A:
+    bcs.s h0_C03C
+h0_C03A:
     move.l d2,d1
-loc_C03C:
+h0_C03C:
     rts
-dat_C03E:
-    DC.B    $41,$ee
-    DC.L    $4fb41219,$6716b23c,$000d6710,$b23c0020,$670ab23c,$00096704,$10c160e6,$10fc003d
-    DC.L    $421043ee,$4fb4246e,$4ef26100,$fb062248,$670443fa,$00044e75,$300045f8,$fa404a2e
-    DC.L    $4fa6663e,$48e770e8
+h0_C03E:
+    lea.l $4FB4(a6),a0
+h0_C042:
+    move.b (a1)+,d1
+    beq.s h0_C05C
+h0_C046:
+    cmp.b #$D,d1
+    beq.s h0_C05C
+h0_C04C:
+    cmp.b #$20,d1
+    beq.s h0_C05C
+h0_C052:
+    cmp.b #$9,d1
+    beq.s h0_C05C
+h0_C058:
+    move.b d1,(a0)+
+    bra.s h0_C042
+h0_C05C:
+    move.b #$3D,(a0)+
+    clr.b (a0)
+    lea.l $4FB4(a6),a1
+    movea.l $4EF2(a6),a2
+    bsr.w h0_BB72
+h0_C06E:
+    movea.l a0,a1
+    beq.s h0_C076
+h0_C072:
+    lea.l dat_C078(pc),a1
+h0_C076:
+    rts
+dat_C078:
+    DC.L    $300045f8,$fa404a2e,$4fa6663e,$48e770e8 ; VIOLATION: orphaned code island at $C078 is not reached from known entrypoints
     DC.B    "&<_FPUa",0
     DC.L    $f8924cdf,$170e660c,$08000010
     DC.B    "f p``",0
     DC.B    $c4,$9c
-    DC.L    $48e760e0,$487a001a,$3f3c0026,$4e4e5c8f,$4cdf0706,$4a806600,$c48250ee,$4fa64e75
+    DC.L    $48e760e0,$487a001a,$3f3c0026,$4e4e5c8f,$4cdf0706,$4a806600,$c48250ee,$4fa64e75 ; VIOLATION: orphaned code island at $C0A4 is not reached from known entrypoints
     DC.L    $007c0700,$45f8fa40,$240f41f8,$00084a78,$059e6706,$4e7a8801,$50482210,$43fa003a
     DC.L    $2089357c,$9000000a,$0c528900,$67fa257c,$00000000,$00104a12,$6bfc357c,$8800000a
-    DC.L    $0c528900,$67fa257c,$00000000,$00104a12,$6bfc7000,$20814e75
-    DC.B    "p`.B`"
-    DC.B    $f6,$70,$05
-    DC.L    $3f006100,$ff52301f,$4880d040,$610000ec,$70001003,$d040303b,$00044efb,$0002000e
+    DC.L    $0c528900,$67fa257c,$00000000,$00104a12,$6bfc7000,$20814e75 ; VIOLATION: orphaned code island at $C0C4 is not reached from known entrypoints
+    DC.B    $70,$60,$2e,$42,$60,$f6 ; VIOLATION: orphaned code island at $C11C is not reached from known entrypoints
+    DC.B    $70,$05 ; VIOLATION: orphaned code island at $C122 is not reached from known entrypoints
+    DC.L    $3f006100,$ff52301f,$4880d040,$610000ec,$70001003,$d040303b,$00044efb
+    DC.B    $00,$02
+    DC.B    $00,$0e ; VIOLATION: orphaned code island at $C142 is not reached from known entrypoints
     DC.L    $002e005e,$00760094,$004600b8,$357c7000,$000a0c52,$890067fa,$30aa0010,$4a126bfc
-    DC.L    $10a80001,$42280001,$70004e75,$357c7000,$000a0c52,$890067fa,$30aa0010,$4a126bfc
-    DC.L    $70004e75,$357c6400,$000a0c52,$890067fa,$20aa0010,$4a126bfc,$70004e75,$357c6000
-    DC.L    $000a0c52,$890067fa,$20aa0010,$4a126bfc,$70004e75,$357c7400,$000a0c52,$890067fa
-    DC.L    $20aa0010,$216a0010,$00044a12,$6bfc7000
-    DC.B    "Nu5|l",0
-    DC.B    $00,$0a
-    DC.L    $0c528900,$67fa20aa,$0010216a,$00100004,$216a0010,$00084a12,$6bfc7000
-    DC.B    "Nu5|h",0
-    DC.B    $00,$0a
-    DC.L    $0c528900,$67fa20aa,$0010216a,$00100004,$216a0010,$00084a12,$6bfc7000
-    DC.B    "Nu0;",0
-    DC.B    $04,$4e,$fb
-    DC.L    $0002000e,$002c005c,$00740092,$004400b6,$10104880,$3080357c,$5000000a,$0c528900
-    DC.L    $67fa3550,$00104a12,$6bfc7000
-    DC.B    "Nu5|P",0
-    DC.B    $00,$0a
-    DC.L    $0c528900,$67fa3550,$00104a12,$6bfc7000
-    DC.B    "Nu5|D",0
-    DC.B    $00,$0a
-    DC.L    $0c528900,$67fa2550,$00104a12,$6bfc7000
-    DC.B    "Nu5|@",0
-    DC.B    $00,$0a
-    DC.L    $0c528900,$67fa2550,$00104a12,$6bfc7000
-    DC.B    "Nu5|T",0
-    DC.B    $00,$0a
-    DC.L    $0c528900,$67fa2550,$00102568,$00040010,$4a126bfc,$70004e75,$357c4c00,$000a0c52
-    DC.L    $890067fa,$25500010,$25680004,$00102568,$00080010,$4a126bfc,$70004e75,$357c4800
-    DC.L    $000a0c52,$890067fa,$25500010,$25680004,$00102568,$00080010,$4a126bfc,$70004e75
+    DC.L    $10a80001,$42280001,$70004e75
+    DC.L    $357c7000,$000a0c52,$890067fa,$30aa0010,$4a126bfc,$70004e75 ; VIOLATION: orphaned code island at $C170 is not reached from known entrypoints
+    DC.L    $357c6400,$000a0c52,$890067fa,$20aa0010,$4a126bfc,$70004e75 ; VIOLATION: orphaned code island at $C188 is not reached from known entrypoints
+    DC.L    $357c6000,$000a0c52,$890067fa,$20aa0010,$4a126bfc,$70004e75 ; VIOLATION: orphaned code island at $C1A0 is not reached from known entrypoints
+    DC.L    $357c7400,$000a0c52,$890067fa,$20aa0010,$216a0010,$00044a12,$6bfc7000 ; VIOLATION: orphaned code island at $C1B8 is not reached from known entrypoints
+    DC.B    $4e,$75
+    DC.B    $35,$7c ; VIOLATION: orphaned code island at $C1D6 is not reached from known entrypoints
+    DC.L    $6c00000a,$0c528900,$67fa20aa,$0010216a,$00100004,$216a0010,$00084a12,$6bfc7000
+    DC.B    $4e,$75
+    DC.B    $35,$7c ; VIOLATION: orphaned code island at $C1FA is not reached from known entrypoints
+    DC.L    $6800000a,$0c528900,$67fa20aa,$0010216a,$00100004,$216a0010,$00084a12,$6bfc7000
+    DC.B    $4e,$75
+    DC.B    $30,$3b,$00,$04,$4e,$fb,$00,$02 ; VIOLATION: orphaned code island at $C21E is not reached from known entrypoints
+    DC.B    $00,$0e ; VIOLATION: orphaned code island at $C226 is not reached from known entrypoints
+    DC.L    $002c005c,$00740092,$004400b6,$10104880,$3080357c,$5000000a,$0c528900,$67fa3550
+    DC.L    $00104a12,$6bfc7000
+    DC.B    $4e,$75
+    DC.B    $35,$7c ; VIOLATION: orphaned code island at $C252 is not reached from known entrypoints
+    DC.L    $5000000a,$0c528900,$67fa3550,$00104a12,$6bfc7000
+    DC.B    $4e,$75
+    DC.B    $35,$7c ; VIOLATION: orphaned code island at $C26A is not reached from known entrypoints
+    DC.L    $4400000a,$0c528900,$67fa2550,$00104a12,$6bfc7000
+    DC.B    $4e,$75
+    DC.B    $35,$7c ; VIOLATION: orphaned code island at $C282 is not reached from known entrypoints
+    DC.L    $4000000a,$0c528900,$67fa2550,$00104a12,$6bfc7000
+    DC.B    $4e,$75
+    DC.B    $35,$7c ; VIOLATION: orphaned code island at $C29A is not reached from known entrypoints
+    DC.L    $5400000a,$0c528900,$67fa2550,$00102568,$00040010,$4a126bfc,$70004e75
+    DC.L    $357c4c00,$000a0c52,$890067fa,$25500010,$25680004,$00102568,$00080010,$4a126bfc
+    DC.L    $70004e75 ; VIOLATION: orphaned code island at $C2B8 is not reached from known entrypoints
+    DC.L    $357c4800,$000a0c52,$890067fa,$25500010,$25680004,$00102568,$00080010,$4a126bfc
+    DC.L    $70004e75 ; VIOLATION: orphaned code island at $C2DC is not reached from known entrypoints
     DC.L    $3f036100,$fd76361f,$48833003,$d0406100,$ff0e357c,$001a000a,$4a126bfc,$3003d040
-    DC.L    $6000fe18
+    DC.L    $6000fe18 ; VIOLATION: orphaned code island at $C300 is not reached from known entrypoints
 dat_C324:
     DC.L    dat_C324
 dat_C328:
@@ -11862,44 +12504,45 @@ dat_F11E:
     DC.L    $41da8001,$000241da,$80010005,$41da8001,$000441da,$80010011,$41da8001,$001e41da
     DC.L    $80010009,$41da8001,$000b41da,$8001000a,$41da8001,$000d41da,$8001000c,$41da8001
     DC.L    $000012b0,$4000f510,$45dc80ff,$f1404926,$80ff0018,$41da8001
-loc_108B8:
+h0_108B8:
     rts
-loc_108BA:
+h0_108BA:
     rts
-    DC.L    $4a2e0104
+    DC.L    $4a2e0104 ; VIOLATION: orphaned code island at $108BC is not reached from known entrypoints
     DC.B    $67,$28,$22,$6e
-    DC.L    $01de4a2e,$026a6612,$222e026e,$92a9001a,$d3a90012,$2342001a,$600c08e9,$00000010
-    DC.L    $66042342,$00167000,$4e7570ff
-    DC.B    $4e,$75
-loc_108F2:
+    DC.L    $01de4a2e,$026a6612,$222e026e,$92a9001a,$d3a90012,$2342001a
+    DC.B    $60,$0c
+    DC.B    $08,$e9,$00,$00,$00,$10,$66,$04,$23,$42,$00,$16,$70,$00,$4e,$75 ; VIOLATION: orphaned code island at $108DE is not reached from known entrypoints
+    DC.B    $70,$ff,$4e,$75 ; VIOLATION: orphaned code island at $108EE is not reached from known entrypoints
+h0_108F2:
     movea.l $01DE(a6),a0
     btst.b #1,$0010(a0)
-    bne.w loc_1090E
-loc_10900:
+    bne.w h0_1090E
+h0_10900:
     add.l d1,$027E(a6)
     bset.b #0,$0010(a0)
-    beq.s loc_10914
-loc_1090C:
+    beq.s h0_10914
+h0_1090C:
     rts
-loc_1090E:
-    jmp loc_852A.l
-loc_10914:
+h0_1090E:
+    jmp h0_852A.l
+h0_10914:
     moveq.l #8,d0
-    jmp loc_8660.l
-loc_1091C:
+    jmp h0_8660.l
+h0_1091C:
     move.b #$E,$0109(a6)
     tst.b $026A(a6)
-    bne.s loc_10974
-loc_10928:
+    bne.s h0_10974
+h0_10928:
     move.l a1,d2
-    bsr.w sub_ADE8
-loc_1092E:
-    beq.s loc_1096E
-loc_10930:
+    bsr.w h0_ADE8
+h0_1092E:
+    beq.s h0_1096E
+h0_10930:
     movem.l a0-a1,-(a7)
     moveq.l #34,d1
-    bsr.w sub_9146
-loc_1093A:
+    bsr.w h0_9146
+h0_1093A:
     movem.l (a7)+,a1-a2
     move.l a0,(a1)
     clr.l (a0)
@@ -11910,97 +12553,97 @@ loc_1093A:
     clr.l $001A(a0)
     movea.l d2,a2
     cmpi.l #71455571,$0016(a2)
-    bne.s loc_10968
-loc_10962:
+    bne.s h0_10968
+h0_10962:
     bset.b #1,$0010(a0)
-loc_10968:
+h0_10968:
     clr.l $0008(a0)
     movea.l a0,a1
-loc_1096E:
+h0_1096E:
     move.l a1,$01DE(a6)
     rts
-loc_10974:
-    bsr.w sub_ADE8
-loc_10978:
-    bne.w loc_AE28
-loc_1097C:
+h0_10974:
+    bsr.w h0_ADE8
+h0_10978:
+    bne.w h0_AE28
+h0_1097C:
     move.l $000C(a1),$027E(a6)
-    bne.s loc_1098C
-loc_10984:
+    bne.s h0_1098C
+h0_10984:
     lea.l $05DE(a6),a0
     move.l a0,$027E(a6)
-loc_1098C:
+h0_1098C:
     move.l a1,$01DE(a6)
     tst.l $01C4(a6)
-    beq.s loc_109B4
-loc_10996:
+    beq.s h0_109B4
+h0_10996:
     movem.l a1/a4,-(a7)
     movea.l $01C4(a6),a4
     move.b (a4)+,d1
-    jsr sub_175A.l
-loc_109A6:
+    jsr h0_175A.l
+h0_109A6:
     movem.l (a7)+,a1/a4
     move.l d2,$001E(a1)
     bset.b #2,$0010(a1)
-loc_109B4:
+h0_109B4:
     rts
-loc_109B6:
-    bsr.w sub_ADE8
-loc_109BA:
-    bne.w loc_AE28
-loc_109BE:
+h0_109B6:
+    bsr.w h0_ADE8
+h0_109BA:
+    bne.w h0_AE28
+h0_109BE:
     tst.b $026A(a6)
-    bne.s loc_109D8
-loc_109C4:
+    bne.s h0_109D8
+h0_109C4:
     move.l $026E(a6),d2
     sub.l $001A(a1),d2
     add.l d2,$0012(a1)
     move.l $026E(a6),$001A(a1)
     rts
-loc_109D8:
+h0_109D8:
     move.l a5,$000C(a1)
     rts
-loc_109DE:
+h0_109DE:
     lea.l $01DA(a6),a3
     moveq.l #26,d4
-loc_109E4:
+h0_109E4:
     tst.l (a3)
-    beq.s loc_109FE
-loc_109E8:
+    beq.s h0_109FE
+h0_109E8:
     movea.l (a3),a3
     move.l $0012(a3),d1
-    beq.s loc_109FC
-loc_109F0:
+    beq.s h0_109FC
+h0_109F0:
     btst.b #1,$0010(a3)
-    bne.s loc_109FC
-loc_109F8:
+    bne.s h0_109FC
+h0_109F8:
     add.l d1,d4
     addq.l #8,d4
-loc_109FC:
-    bra.s loc_109E4
-loc_109FE:
+h0_109FC:
+    bra.s h0_109E4
+h0_109FE:
     cmp.l $01CC(a6),d4
-    bcs.s loc_10A0A
-loc_10A04:
-    jmp loc_88EA.l
-loc_10A0A:
+    bcs.s h0_10A0A
+h0_10A04:
+    jmp h0_88EA.l
+h0_10A0A:
     lea.l $01DA(a6),a3
     movea.l $01C8(a6),a2
     clr.w (a2)+
     clr.l (a2)+
     lea.l $000C(a2),a2
     moveq.l #0,d3
-loc_10A1C:
+h0_10A1C:
     tst.l (a3)
-    beq.s loc_10A50
-loc_10A20:
+    beq.s h0_10A50
+h0_10A20:
     movea.l (a3),a3
     move.l $0012(a3),d0
-    beq.s loc_10A46
-loc_10A28:
+    beq.s h0_10A46
+h0_10A28:
     btst.b #1,$0010(a3)
-    bne.s loc_10A46
-loc_10A30:
+    bne.s h0_10A46
+h0_10A30:
     addq.l #1,d3
     move.l d0,(a2)+
     clr.l (a2)+
@@ -12008,12 +12651,12 @@ loc_10A30:
     move.l a2,$000C(a3)
     adda.l d0,a2
     clr.l -$0004(a2)
-    bra.s loc_10A1C
-loc_10A46:
+    bra.s h0_10A1C
+h0_10A46:
     clr.l $0008(a3)
     clr.l $000C(a3)
-    bra.s loc_10A1C
-loc_10A50:
+    bra.s h0_10A1C
+h0_10A50:
     movea.l $01C8(a6),a0
     addq.l #2,a0
     move.l a2,(a0)+
@@ -12022,29 +12665,29 @@ loc_10A50:
     clr.l (a0)+
     move.l d3,(a0)
     rts
-loc_10A62:
+h0_10A62:
     moveq.l #0,d0
     lea.l $01DA(a6),a3
-loc_10A68:
+h0_10A68:
     tst.l (a3)
-    beq.s loc_10A8E
-loc_10A6C:
+    beq.s h0_10A8E
+h0_10A6C:
     movea.l (a3),a3
     tst.l $0012(a3)
-    beq.s loc_10A68
-loc_10A74:
+    beq.s h0_10A68
+h0_10A74:
     btst.b #1,$0010(a3)
-    bne.s loc_10A68
-loc_10A7C:
+    bne.s h0_10A68
+h0_10A7C:
     movea.l $0008(a3),a0
     move.l $0016(a3),d1
     move.l d1,-(a0)
     tst.l d0
-    bne.s loc_10A68
-loc_10A8A:
+    bne.s h0_10A68
+h0_10A8A:
     move.l d1,d0
-    bra.s loc_10A68
-loc_10A8E:
+    bra.s h0_10A68
+h0_10A8E:
     movea.l $01C8(a6),a0
     move.w #$601B,(a0)+
     move.l (a0),d2
@@ -12052,143 +12695,150 @@ loc_10A8E:
     move.l d0,(a0)+
     rts
     DC.B    $4e,$75
-loc_10AA0:
+h0_10AA0:
     tst.l $01C8(a6)
-    bne.w loc_109DE
-loc_10AA8:
+    bne.w h0_109DE
+h0_10AA8:
     lea.l $01DA(a6),a3
-loc_10AAC:
+h0_10AAC:
     tst.l (a3)
-    beq.s loc_10AD4
-loc_10AB0:
+    beq.s h0_10AD4
+h0_10AB0:
     movea.l (a3),a3
     move.l $0012(a3),d1
-    beq.s loc_10AD2
-loc_10AB8:
+    beq.s h0_10AD2
+h0_10AB8:
     btst.b #1,$0010(a3)
-    bne.s loc_10AD2
-loc_10AC0:
+    bne.s h0_10AD2
+h0_10AC0:
     addq.l #8,d1
-    bsr.w sub_9146
-loc_10AC6:
+    bsr.w h0_9146
+h0_10AC6:
     move.l a0,$0008(a3)
     move.l a0,$000C(a3)
     adda.l $0012(a3),a0
-loc_10AD2:
-    bra.s loc_10AAC
-loc_10AD4:
+h0_10AD2:
+    bra.s h0_10AAC
+h0_10AD4:
     rts
-loc_10AD6:
+h0_10AD6:
     movea.l $01DE(a6),a1
     btst.b #1,$0010(a1)
     eori #4,ccr
     rts
-loc_10AE6:
+h0_10AE6:
     tst.l $01C8(a6)
-    bne.w loc_10A62
-loc_10AEE:
-    bsr.w sub_99D0
-loc_10AF2:
-    bra.w loc_10B36
-    DC.B    $4e,$75,$4e,$75,$2a,$c2,$4e,$75,$3a,$c2,$4e,$75,$1a,$c2,$4e,$75
-loc_10B06:
+    bne.w h0_10A62
+h0_10AEE:
+    bsr.w h0_99D0
+h0_10AF2:
+    bra.w h0_10B36
+    DC.B    $4e,$75
+h0_10AF8:
+    rts
+    DC.B    $2a,$c2,$4e,$75 ; VIOLATION: orphaned code island at $10AFA is not reached from known entrypoints
+    DC.B    $3a,$c2,$4e,$75 ; VIOLATION: orphaned code island at $10AFE is not reached from known entrypoints
+h0_10B02:
+    move.b d2,(a5)+
+    rts
+h0_10B06:
     lea.l dat_10B12(pc),a0
     rts
-loc_10B0C:
+h0_10B0C:
     lea.l dat_10B1B(pc),a0
     rts
 dat_10B12:
     DC.B    $53,$2d,$72,$65,$63,$6f,$72,$64,$00
 dat_10B1B:
-    DC.B    $2e,$6d,$78,$00
+    DC.L    $2e6d7800
 dat_10B1F:
     DC.B    "HISOFT DEVPAC",0
     DC.B    $00,$12,$d8
     DC.L    $66fc5389
     DC.B    $4e,$75
-loc_10B36:
-    bsr.w loc_B260
-loc_10B3A:
+h0_10B36:
+    bsr.w h0_B260
+h0_10B3A:
     lea.l $01E2(a6),a2
     tst.b (a2)
-    bne.s loc_10B46
-loc_10B42:
+    bne.s h0_10B46
+h0_10B42:
     lea.l dat_10B1F(pc),a2
-loc_10B46:
+h0_10B46:
     moveq.l #0,d6
     moveq.l #0,d5
     movea.l a2,a0
-loc_10B4C:
+h0_10B4C:
     tst.b (a0)+
-    bne.s loc_10B4C
-loc_10B50:
+    bne.s h0_10B4C
+h0_10B50:
     move.l a0,d2
     sub.l a2,d2
     subq.l #1,d2
-    bsr.w sub_10BD0
-loc_10B5A:
+    bsr.w h0_10BD0
+h0_10B5A:
     lea.l $01DA(a6),a3
-loc_10B5E:
+h0_10B5E:
     movea.l (a3),a3
     move.l $0012(a3),d3
-    beq.s loc_10BC8
-loc_10B66:
+    beq.s h0_10BC8
+h0_10B66:
     btst.b #1,$0010(a3)
-    bne.s loc_10BC8
-loc_10B6E:
+    bne.s h0_10BC8
+h0_10B6E:
     move.l $0016(a3),d2
     btst.b #2,$0010(a3)
-    beq.s loc_10B7E
-loc_10B7A:
+    beq.s h0_10B7E
+h0_10B7A:
     move.l $001E(a3),d2
-loc_10B7E:
+h0_10B7E:
     add.l d3,d2
     moveq.l #3,d5
     cmp.l #$1000000,d2
-    bcc.s loc_10B96
-loc_10B8A:
+    bcc.s h0_10B96
+h0_10B8A:
     moveq.l #2,d5
     cmp.l #$10000,d2
-    bcc.s loc_10B96
-loc_10B94:
+    bcc.s h0_10B96
+h0_10B94:
     moveq.l #1,d5
-loc_10B96:
+h0_10B96:
     movea.l $0008(a3),a2
     move.l $0016(a3),d6
     btst.b #2,$0010(a3)
-    beq.s loc_10BAA
-loc_10BA6:
+    beq.s h0_10BAA
+h0_10BA6:
     move.l $001E(a3),d6
-loc_10BAA:
+h0_10BAA:
     moveq.l #28,d2
     cmp.l d2,d3
-    bge.s loc_10BB2
-loc_10BB0:
+    bge.s h0_10BB2
+h0_10BB0:
     move.l d3,d2
-loc_10BB2:
+h0_10BB2:
     sub.l d2,d3
-    bsr.s sub_10BD0
-loc_10BB6:
+    bsr.s h0_10BD0
+h0_10BB6:
     tst.l d3
-    bne.s loc_10BAA
-loc_10BBA:
+    bne.s h0_10BAA
+h0_10BBA:
     moveq.l #10,d0
     sub.w d5,d0
     move.w d0,d5
     move.l $0016(a3),d6
     moveq.l #0,d2
-    bsr.s sub_10BD0
-loc_10BC8:
+    bsr.s h0_10BD0
+h0_10BC8:
     tst.l (a3)
-    bne.s loc_10B5E
-loc_10BCC:
-    bra.w loc_B246
-sub_10BD0:
+    bne.s h0_10B5E
+h0_10BCC:
+    bra.w h0_B246
+h0_10BD0:
     cmp.w #$49,d4
-    bcc.s loc_10BDA
-loc_10BD6:
-    bsr.w loc_B246
-loc_10BDA:
+    bcc.s h0_10BDA
+h0_10BD6:
+    bsr.w h0_B246
+h0_10BDA:
     moveq.l #48,d1
     add.b d5,d1
     movea.l a4,a0
@@ -12205,25 +12855,25 @@ loc_10BDA:
     move.l d0,-(a7)
     move.b (a1)+,d0
     movea.l a7,a1
-loc_10BFE:
+h0_10BFE:
     move.b (a1)+,d1
-    bsr.s sub_10C40
-loc_10C02:
+    bsr.s h0_10C40
+h0_10C02:
     subq.b #1,d0
-    bne.s loc_10BFE
-loc_10C06:
+    bne.s h0_10BFE
+h0_10C06:
     addq.l #4,a7
     add.l d2,d6
     tst.l d2
-    bra.s loc_10C14
-loc_10C0E:
+    bra.s h0_10C14
+h0_10C0E:
     move.b (a2)+,d1
-    bsr.s sub_10C40
-loc_10C12:
+    bsr.s h0_10C40
+h0_10C12:
     subq.l #1,d2
-loc_10C14:
-    bne.s loc_10C0E
-loc_10C16:
+h0_10C14:
+    bne.s h0_10C0E
+h0_10C16:
     move.l a4,-(a7)
     move.l a4,d1
     sub.l a0,d1
@@ -12232,26 +12882,26 @@ loc_10C16:
     lsr.w #1,d1
     subq.w #2,d1
     lea.l $0002(a0),a4
-    bsr.s sub_10C40
-loc_10C2A:
+    bsr.s h0_10C40
+h0_10C2A:
     movea.l (a7)+,a4
     not.b d7
     move.b d7,d1
-    bsr.s sub_10C40
-loc_10C32:
+    bsr.s h0_10C40
+h0_10C32:
     move.b #$D,(a4)+
     subq.l #1,d4
     move.b #$A,(a4)+
     subq.l #1,d4
     rts
-sub_10C40:
+h0_10C40:
     add.b d1,d7
     move.w d1,-(a7)
     lsr.w #4,d1
-    bsr.s loc_10C4A
-loc_10C48:
+    bsr.s h0_10C4A
+h0_10C48:
     move.w (a7)+,d1
-loc_10C4A:
+h0_10C4A:
     andi.w #15,d1
     move.b dat_10C68(pc,d1.w),(a4)+
     rts
@@ -12259,26 +12909,26 @@ dat_10C54:
     DC.L    $00021002,$08030004,$00010001,$00010004,$08031002
 dat_10C68:
     DC.B    $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
-sub_10C78:
-    bsr.w sub_99D0
-loc_10C7C:
+h0_10C78:
+    bsr.w h0_99D0
+h0_10C7C:
     movea.l $0170(a6),a1
     movea.l (a1),a1
     move.l #$84034,d2
     lea.l dat_10DDE(pc),a2
-    bsr.w sub_10DC0
-loc_10C90:
+    bsr.w h0_10DC0
+h0_10C90:
     move.l d1,-(a7)
     lea.l dat_10DDE(pc),a2
     movea.l $0178(a6),a1
     movea.l (a1),a1
     move.l #$3900,d2
-    bsr.w sub_10DC0
-loc_10CA6:
+    bsr.w h0_10DC0
+h0_10CA6:
     add.l (a7)+,d1
     addi.l #10,d1
-    jsr sub_9146.l
-loc_10CB4:
+    jsr h0_9146.l
+h0_10CB4:
     movea.l a0,a2
     move.w #$0,(a2)
     lea.l $000A(a0),a0
@@ -12287,32 +12937,32 @@ loc_10CB4:
     movea.l $0170(a6),a1
     movea.l (a1),a1
     move.l #$84034,d2
-    bsr.w loc_10D02
-loc_10CDA:
+    bsr.w h0_10D02
+h0_10CDA:
     clr.l (a3)
     lea.l $0006(a2),a3
     movea.l $0178(a6),a1
     movea.l (a1),a1
     move.l #$3900,d2
-    bsr.w loc_10D02
-loc_10CF0:
+    bsr.w h0_10D02
+h0_10CF0:
     move.l a0,d1
     sub.l a2,d1
     movea.l a2,a0
-    jsr loc_84F2.l
-loc_10CFC:
-    bra.w loc_9B42
-loc_10D00:
+    jsr h0_84F2.l
+h0_10CFC:
+    bra.w h0_9B42
+h0_10D00:
     rts
-loc_10D02:
+h0_10D02:
     move.l a1,d1
-    beq.s loc_10D00
-loc_10D06:
+    beq.s h0_10D00
+h0_10D06:
     move.b $000D(a1),d0
     move.l a1,-(a7)
     btst d0,d2
-    beq.s loc_10D58
-loc_10D10:
+    beq.s h0_10D58
+h0_10D10:
     move.l a0,d1
     sub.l a2,d1
     move.l d1,(a3)
@@ -12325,32 +12975,32 @@ loc_10D10:
     clr.l (a0)+
     addi.l #14,d0
     bset #0,d0
-loc_10D30:
+h0_10D30:
     move.b (a1)+,(a0)+
-    dbf.w d0,loc_10D30
-loc_10D36:
+    dbf.w d0,h0_10D30
+h0_10D36:
     movea.l d1,a1
     move.b $000D(a1),d0
     cmp.b #$8,d0
-    beq.s loc_10D66
-loc_10D42:
+    beq.s h0_10D66
+h0_10D42:
     cmp.b #$B,d0
-    bcs.s loc_10D58
-loc_10D48:
+    bcs.s h0_10D58
+h0_10D48:
     cmp.b #$E,d0
-    bcc.s loc_10D58
-loc_10D4E:
+    bcc.s h0_10D58
+h0_10D4E:
     move.b #$D,$000D(a1)
     clr.l $0098(a1)
-loc_10D58:
+h0_10D58:
     movea.l (a7),a1
     movea.l (a1),a1
-    bsr.s loc_10D02
-loc_10D5E:
+    bsr.s h0_10D02
+h0_10D5E:
     movea.l (a7)+,a1
     movea.l $0004(a1),a1
-    bra.s loc_10D02
-loc_10D66:
+    bra.s h0_10D02
+h0_10D66:
     move.l a0,d0
     sub.l a2,d0
     movea.l $0008(a1),a0
@@ -12365,150 +13015,150 @@ loc_10D66:
     move.l d0,(a0)
     clr.l $0008(a0)
     lea.l $0010(a0),a0
-loc_10D90:
+h0_10D90:
     move.l $0004(a1),d0
     sub.l (a1),d0
     move.l $0008(a1),-(a7)
     movea.l (a1),a1
     subq.w #1,d0
-    bmi.s loc_10DA6
-loc_10DA0:
+    bmi.s h0_10DA6
+h0_10DA0:
     move.b (a1)+,(a0)+
-    dbf.w d0,loc_10DA0
-loc_10DA6:
+    dbf.w d0,h0_10DA0
+h0_10DA6:
     move.l (a7)+,d0
-    beq.s loc_10DAE
-loc_10DAA:
+    beq.s h0_10DAE
+h0_10DAA:
     movea.l d0,a1
-    bra.s loc_10D90
-loc_10DAE:
+    bra.s h0_10D90
+h0_10DAE:
     move.l a0,d0
     sub.l a2,d0
     movea.l (a7)+,a1
     move.l d0,(a1)
     btst #0,d0
-    beq.s loc_10DBE
-loc_10DBC:
+    beq.s h0_10DBE
+h0_10DBC:
     addq.w #1,a0
-loc_10DBE:
-    bra.s loc_10D58
-sub_10DC0:
+h0_10DBE:
+    bra.s h0_10D58
+h0_10DC0:
     moveq.l #0,d1
     move.l a1,d0
-    beq.s loc_10DDC
-loc_10DC6:
+    beq.s h0_10DDC
+h0_10DC6:
     move.l a1,-(a7)
     movea.l (a1),a1
-    bsr.s sub_10DC0
-loc_10DCC:
+    bsr.s h0_10DC0
+h0_10DCC:
     movea.l (a7),a1
     move.l d1,-(a7)
     movea.l $0004(a1),a1
-    bsr.s sub_10DC0
-loc_10DD6:
+    bsr.s h0_10DC0
+h0_10DD6:
     add.l (a7)+,d1
     movea.l (a7)+,a1
-    jsr (a2) ; CANDIDATE: indirect_call index unresolved
-loc_10DDC:
+    jsr (a2)                            ; CANDIDATE: indirect_call index unresolved
+h0_10DDC:
     rts
 dat_10DDE:
-    DC.B    $10,$29
+    DC.B    $10,$29 ; VIOLATION: orphaned code island at $10DDE is not reached from known entrypoints
     DC.L    $000d0102,$6750b03c,$00086714,$b03c000b,$6532b03c,$000e642c,$06810000,$00b24e75
-    DC.L    $2f090681,$00000010,$22690008,$d2a90004,$92912029,$00086704,$224060f0,$52810881
-    DC.L    $0000225f,$70001029,$00160680,$00000018,$08800000,$d2804e75
-sub_10E38:
+    DC.L    $2f090681,$00000010,$22690008,$d2a90004,$92912029,$00086704,$224060f0 ; VIOLATION: orphaned code island at $10E00 is not reached from known entrypoints
+    DC.L    $52810881,$0000225f,$70001029,$00160680,$00000018,$08800000,$d2804e75 ; VIOLATION: orphaned code island at $10E1C is not reached from known entrypoints
+h0_10E38:
     move.l d4,d3
-    bra.s loc_10E72
-sub_10E3C:
+    bra.s h0_10E72
+h0_10E3C:
     movea.l $507C(a6),a0
-loc_10E40:
+h0_10E40:
     tst.b (a0)
-    beq.s loc_10E64
-loc_10E44:
+    beq.s h0_10E64
+h0_10E44:
     lea.l $5084(a6),a1
-loc_10E48:
+h0_10E48:
     move.b (a0)+,(a1)+
-    bne.s loc_10E48
-loc_10E4C:
+    bne.s h0_10E48
+h0_10E4C:
     move.l a0,-(a7)
     lea.l $5084(a6),a0
     lea.l dat_975C(pc),a2
-    jsr sub_46BE.l
-loc_10E5C:
-    bsr.w sub_10E66
-loc_10E60:
+    jsr h0_46BE.l
+h0_10E5C:
+    bsr.w h0_10E66
+h0_10E60:
     movea.l (a7)+,a0
-    bra.s loc_10E40
-loc_10E64:
+    bra.s h0_10E40
+h0_10E64:
     rts
-sub_10E66:
-    jsr sub_BF9A.l
-loc_10E6C:
-    bne.w loc_10EEE
-loc_10E70:
+h0_10E66:
+    jsr h0_BF9A.l
+h0_10E6C:
+    bne.w h0_10EEE
+h0_10E70:
     move.l d2,d1
-loc_10E72:
+h0_10E72:
     move.l d1,-(a7)
-    jsr sub_9146.l
-loc_10E7A:
+    jsr h0_9146.l
+h0_10E7A:
     move.l (a7),d1
     move.l a0,(a7)
     move.l d3,-(a7)
-    bsr.w sub_BFB2
-loc_10E84:
+    bsr.w h0_BFB2
+h0_10E84:
     move.l (a7)+,d3
-    bsr.w sub_BFAE
-loc_10E8A:
+    bsr.w h0_BFAE
+h0_10E8A:
     movea.l (a7)+,a2
     move.l a2,d2
     move.w (a2),d0
     cmp.w #$0,d0
-    bne.s loc_10EF6
-loc_10E96:
+    bne.s h0_10EF6
+h0_10E96:
     movem.l a3-a5,-(a7)
     movea.l $0002(a2),a0
     movea.l $0170(a6),a2
-    bsr.s loc_10EBE
-loc_10EA4:
+    bsr.s h0_10EBE
+h0_10EA4:
     movea.l d2,a0
     movea.l $0006(a0),a0
     movea.l $0178(a6),a2
-    bsr.s loc_10EBE
-loc_10EB0:
+    bsr.s h0_10EBE
+h0_10EB0:
     movem.l (a7)+,a3-a5
-loc_10EB4:
+h0_10EB4:
     rts
-loc_10EB6:
+h0_10EB6:
     move.l (a0),d0
-    beq.s loc_10EB4
-loc_10EBA:
+    beq.s h0_10EB4
+h0_10EBA:
     clr.l (a0)
     movea.l d0,a0
-loc_10EBE:
+h0_10EBE:
     adda.l d2,a0
     move.l d2,-(a7)
-    jsr sub_0BB8.l
-loc_10EC8:
+    jsr h0_0BB8.l
+h0_10EC8:
     movem.l (a7)+,d2
-    beq.s loc_10EB6
-loc_10ECE:
+    beq.s h0_10EB6
+h0_10ECE:
     move.l a0,(a1)
     move.b $000D(a0),d1
     cmp.b #$8,d1
-    bne.s loc_10EB6
-loc_10EDA:
+    bne.s h0_10EB6
+h0_10EDA:
     add.l d2,$0008(a0)
     movea.l $0008(a0),a1
     add.l d2,$0004(a1)
     add.l d2,(a1)
-    bra.s loc_10EB6
-    DC.B    $70,$05,$60,$02
-loc_10EEE:
+    bra.s h0_10EB6
+    DC.B    $70,$05,$60,$02 ; VIOLATION: orphaned code island at $10EEA is not reached from known entrypoints
+h0_10EEE:
     moveq.l #27,d0
-loc_10EF0:
-    jmp loc_853E.l
-loc_10EF6:
+h0_10EF0:
+    jmp h0_853E.l
+h0_10EF6:
     moveq.l #103,d0
-    bra.s loc_10EF0
+    bra.s h0_10EF0
     SECTION DATA,data
 

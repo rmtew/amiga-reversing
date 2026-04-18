@@ -200,12 +200,21 @@ static int append_signed_hex_width(char *out_text, size_t out_text_size, size_t 
 }
 
 static int append_immediate_text(char *out_text, size_t out_text_size, size_t *inout_used, uint32_t value,
-    char size_suffix, uint8_t has_exact_render_value, uint32_t exact_render_value) {
-  if (has_exact_render_value != 0U)
+    char size_suffix, uint8_t has_exact_render_value, uint32_t exact_render_value, uint8_t syntax_mode) {
+  if (has_exact_render_value != 0U && syntax_mode != M68K_IR_SYNTAX_VASM)
     return append_format(out_text, out_text_size, inout_used, "#$%X", (unsigned)exact_render_value);
   if (size_suffix == 'b') value &= 0xFFU;
   else if (size_suffix == 'w') value &= 0xFFFFU;
   return append_format(out_text, out_text_size, inout_used, "#%u", (unsigned)value);
+}
+
+static int append_signed_immediate_text(char *out_text, size_t out_text_size, size_t *inout_used, uint32_t value,
+    char size_suffix) {
+  int32_t signed_value;
+  if (size_suffix == 'b') signed_value = (int32_t)m68k_sign_extend32(value, 8U);
+  else if (size_suffix == 'w') signed_value = (int32_t)m68k_sign_extend32(value, 16U);
+  else signed_value = (int32_t)value;
+  return append_format(out_text, out_text_size, inout_used, "#%d", signed_value);
 }
 
 static int append_register_text(char *out_text, size_t out_text_size, size_t *inout_used, int is_address, uint8_t reg) {
@@ -496,6 +505,8 @@ static int append_symbolic_ea_text(char *out_text, size_t out_text_size, size_t 
     return append_format(out_text, out_text_size, inout_used, "%s.l", name);
   if (operand->value.ea_mode == 5)
     return append_format(out_text, out_text_size, inout_used, "%s(a%u)", name, (unsigned)operand->value.ea_reg);
+  if (operand->value.ea_mode == 2)
+    return append_format(out_text, out_text_size, inout_used, "%s(a%u)", name, (unsigned)operand->value.ea_reg);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 2)
     return append_format(out_text, out_text_size, inout_used, "%s(pc)", name);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 3) {
@@ -753,8 +764,12 @@ static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionI
         if (append_format(out_text, out_text_size, &used, "#%d",
               (int32_t)m68k_sign_extend32(operand->value.value, 8U)) != 0)
           goto overflow;
+      } else if (strstr(form->syntax, "<displacement>") != NULL) {
+        if (append_signed_immediate_text(out_text, out_text_size, &used, operand->value.value,
+              operand_size_suffix) != 0)
+          goto overflow;
       } else if (append_immediate_text(out_text, out_text_size, &used, operand->value.value, operand_size_suffix,
-            operand->has_exact_render_value, operand->exact_render_value) != 0)
+            operand->has_exact_render_value, operand->exact_render_value, syntax_mode) != 0)
         goto overflow;
       break;
     case M68K_ASM_OPERAND_LABEL:

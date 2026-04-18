@@ -5,10 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from disasm.binary_source import resolve_target_binary_source
-from disasm.project_paths import resolve_project_paths
-from disasm.projects import (
-    build_project_session,
+from amiga_reversing.disasm.binary_source import resolve_target_binary_source
+from amiga_reversing.disasm.project_paths import resolve_project_paths
+from amiga_reversing.disasm.projects import (
     create_project,
     dedupe_project_name,
     delete_project,
@@ -17,8 +16,7 @@ from disasm.projects import (
     list_projects,
     mark_project_opened,
 )
-from disasm.session import _filter_hint_blocks_against_seeded_entities
-from disasm.target_metadata import (
+from amiga_reversing.disasm.target_metadata import (
     AppSlotRegionMetadata,
     EntryRegisterSeedMetadata,
     SeededCodeEntrypointMetadata,
@@ -33,7 +31,6 @@ from disasm.target_metadata import (
     write_target_metadata,
     write_target_seeded_metadata,
 )
-from m68k.m68k_executor import BasicBlock
 
 
 def _disk_manifest_payload() -> dict[str, object]:
@@ -349,33 +346,6 @@ def test_load_target_metadata_applies_corrections_over_generated_seeded(tmp_path
             source_locator="GeneratedLabel",
         ),
     )
-
-
-def test_filter_hint_blocks_against_seeded_entities_drops_overlapping_hint_blocks() -> None:
-    hint_blocks = {
-        0x5B40: BasicBlock(start=0x5B40, end=0x5B68, instructions=[]),
-        0x5B80: BasicBlock(start=0x5B80, end=0x5B90, instructions=[]),
-    }
-    metadata = TargetMetadata(
-        target_type="program",
-        entry_register_seeds=(),
-        seeded_entities=(
-            SeededEntityMetadata(
-                addr=0x5B4C,
-                end=0x5B64,
-                hunk=0,
-                name="tan_gem_teleport_locations",
-                type="data",
-                seed_origin="primary_doc",
-                review_status="seeded",
-                citation="seeded:demo-overlap",
-            ),
-        ),
-    )
-
-    filtered = _filter_hint_blocks_against_seeded_entities(hint_blocks, metadata, hunk_index=0)
-
-    assert set(filtered) == {0x5B80}
 
 
 def test_validate_target_seeded_metadata_rejects_entry_register_seeds() -> None:
@@ -846,192 +816,6 @@ def test_get_project_sets_parent_project_for_disk_entry_target(tmp_path: Path) -
     project = get_project("amiga_disk_demo_disk__amiga_hunk_run_12345678", project_root=project_root)
 
     assert project.parent_project_id == "amiga_disk_demo_disk"
-
-
-def test_build_project_session_supports_raw_binary_target(tmp_path: Path) -> None:
-    project_root = tmp_path
-    disk_dir = project_root / "targets" / "amiga_disk_demo_disk"
-    disk_dir.mkdir(parents=True)
-    (disk_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
-    payload = _disk_manifest_payload()
-    payload["imported_targets"] = []
-    (disk_dir / "manifest.json").write_text(json.dumps(payload))
-    target_dir = project_root / "targets" / "amiga_disk_demo_disk" / "targets" / "amiga_raw_bootblock"
-    target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("")
-    (target_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
-    binary_path = target_dir / "binary.bin"
-    binary = bytearray(24)
-    binary[12:24] = bytes.fromhex("337c0002001c4eaefe384e75")
-    binary_path.write_bytes(binary)
-    (target_dir / "source_binary.json").write_text(json.dumps({
-        "kind": "raw_binary",
-        "address_model": "local_offset",
-        "path": "targets/amiga_disk_demo_disk/targets/amiga_raw_bootblock/binary.bin",
-        "load_address": 0x70000,
-        "entrypoint": 0x7000C,
-        "code_start_offset": 0x0C,
-        "parent_disk_id": "demo_disk",
-    }))
-    (target_dir / "target_metadata.json").write_text(json.dumps({
-        "target_type": "bootblock",
-            "entry_register_seeds": [
-                {
-                    "entry_offset": None,
-                    "register": "A6",
-                    "kind": "library_base",
-                    "note": "ExecBase",
-                    "library_name": "exec.library",
-                    "struct_name": "LIB",
-                "context_name": None,
-                },
-                {
-                    "entry_offset": None,
-                    "register": "A1",
-                    "kind": "struct_ptr",
-                    "note": "IOStdReq",
-                    "library_name": None,
-                "struct_name": "IO",
-                "context_name": "trackdisk.device",
-            },
-        ],
-        "bootblock": {
-            "magic_ascii": "DOS",
-            "flags_byte": 0,
-            "fs_description": "DOS\\0 - OFS",
-            "checksum": "0x00000000",
-            "checksum_valid": True,
-            "rootblock_ptr": 880,
-            "bootcode_offset": 0x0C,
-            "bootcode_size": 1012,
-            "load_address": 0x70000,
-            "entrypoint": 0x7000C,
-        },
-        "resident": None,
-        "library": None,
-        "custom_structs": [],
-        "app_slot_regions": [],
-    }))
-    write_target_seeded_metadata(
-        target_dir,
-        TargetMetadata(
-            target_type="bootblock",
-            entry_register_seeds=(),
-            seeded_code_entrypoints=(
-                SeededCodeEntrypointMetadata(
-                    addr=0x0E,
-                    name="post_boot_entry",
-                    hunk=0,
-                    comment="seeded keyboard stub",
-                    role="input routine",
-                    seed_origin="primary_doc",
-                    review_status="seeded",
-                    citation="seeded:demo-entry",
-                    source_id="demo",
-                    source_path="demo.md",
-                    source_locator="L1",
-                ),
-            ),
-        ),
-    )
-
-    session = build_project_session("amiga_disk_demo_disk__amiga_raw_bootblock", project_root=project_root)
-
-    assert len(session.hunk_sessions) == 1
-    assert session.hunk_sessions[0].base_addr == 0x0C
-    assert session.hunk_sessions[0].code_start == 0x0C
-    assert session.hunk_sessions[0].labels[0x0C] == "boot_entry"
-    assert session.hunk_sessions[0].labels[0x0E] == "post_boot_entry"
-    assert session.hunk_sessions[0].addr_comments[0x0E] == "input routine: seeded keyboard stub"
-
-
-def test_build_project_session_requires_metadata_for_raw_binary_target(tmp_path: Path) -> None:
-    project_root = tmp_path
-    disk_dir = project_root / "targets" / "amiga_disk_demo_disk"
-    disk_dir.mkdir(parents=True)
-    (disk_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
-    payload = _disk_manifest_payload()
-    payload["imported_targets"] = []
-    (disk_dir / "manifest.json").write_text(json.dumps(payload))
-    target_dir = project_root / "targets" / "amiga_disk_demo_disk" / "targets" / "amiga_raw_bootblock"
-    target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("")
-    (target_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
-    binary_path = target_dir / "binary.bin"
-    binary = bytearray(16)
-    binary[12:14] = bytes.fromhex("4e75")
-    binary_path.write_bytes(binary)
-    (target_dir / "source_binary.json").write_text(json.dumps({
-        "kind": "raw_binary",
-        "address_model": "local_offset",
-        "path": "targets/amiga_disk_demo_disk/targets/amiga_raw_bootblock/binary.bin",
-        "load_address": 0x70000,
-        "entrypoint": 0x7000E,
-        "code_start_offset": 0x0C,
-        "parent_disk_id": "demo_disk",
-    }))
-
-    with pytest.raises(ValueError, match="Missing target_metadata.json"):
-        build_project_session("amiga_disk_demo_disk__amiga_raw_bootblock", project_root=project_root)
-
-
-def test_build_project_session_rejects_custom_metadata_without_provenance(tmp_path: Path) -> None:
-    project_root = tmp_path
-    target_dir = project_root / "targets" / "amiga_hunk_demo"
-    target_dir.mkdir(parents=True)
-    (target_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
-    (target_dir / "entities.jsonl").write_text("")
-    (target_dir / "binary.bin").write_bytes(b"\x4e\x75")
-    (target_dir / "source_binary.json").write_text(json.dumps({
-        "kind": "raw_binary",
-        "address_model": "local_offset",
-        "path": "targets/amiga_hunk_demo/binary.bin",
-        "load_address": 0,
-        "entrypoint": 0,
-        "code_start_offset": 0,
-    }))
-    (target_dir / "target_metadata.json").write_text(json.dumps({
-        "target_type": "program",
-        "entry_register_seeds": [],
-        "bootblock": None,
-        "resident": None,
-        "library": None,
-        "custom_structs": [
-            {
-                "name": "SeededNode",
-                "size": 4,
-                "fields": [],
-                "source": "target_metadata",
-                "base_offset": 0,
-                "base_struct": None,
-                "available_since": "1.0",
-            }
-        ],
-        "app_slot_regions": [],
-    }))
-
-    with pytest.raises(ValueError, match="Bad target_metadata.json"):
-        build_project_session("amiga_hunk_demo", project_root=project_root)
 
 
 def test_create_project_creates_entities_file(tmp_path: Path) -> None:

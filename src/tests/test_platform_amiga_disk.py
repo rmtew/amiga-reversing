@@ -223,8 +223,12 @@ class AmigaDiskTests(PlatformDiskTestCaseMixin, unittest.TestCase):
         self.assertEqual(actual["root_block"], ROOT_BLOCK)
         self.assertEqual(actual["is_dos"], 1)
         self.assertEqual(actual["dos_flags"], 1)
+        entries = [
+            {key: entry[key] for key in ("path", "kind", "byte_size", "header_block", "extents")}
+            for entry in actual["entries"]
+        ]
         self.assertEqual(
-            actual["entries"],
+            entries,
             [
                 {"path": "Workbench", "kind": 3, "byte_size": 0, "header_block": ROOT_BLOCK, "extents": []},
                 {
@@ -244,6 +248,10 @@ class AmigaDiskTests(PlatformDiskTestCaseMixin, unittest.TestCase):
                 },
             ],
         )
+        self.assertEqual(actual["entries"][1]["name"], "HELLO")
+        self.assertEqual(actual["entries"][1]["kind_name"], "file")
+        self.assertEqual(actual["entries"][1]["data_blocks"], [910])
+        self.assertEqual(actual["entries"][3]["data_blocks"], [911])
 
     def test_analyze_ofs_adf(self) -> None:
         actual = self.inspect_disk_buffer("amiga-disk", _make_ofs_adf())
@@ -251,8 +259,12 @@ class AmigaDiskTests(PlatformDiskTestCaseMixin, unittest.TestCase):
         self.assertEqual(actual["root_block"], ROOT_BLOCK)
         self.assertEqual(actual["is_dos"], 1)
         self.assertEqual(actual["dos_flags"], 0)
+        entries = [
+            {key: entry[key] for key in ("path", "kind", "byte_size", "header_block", "extents")}
+            for entry in actual["entries"]
+        ]
         self.assertEqual(
-            actual["entries"],
+            entries,
             [
                 {"path": "Games", "kind": 3, "byte_size": 0, "header_block": ROOT_BLOCK, "extents": []},
                 {
@@ -267,6 +279,9 @@ class AmigaDiskTests(PlatformDiskTestCaseMixin, unittest.TestCase):
                 },
             ],
         )
+        self.assertEqual(actual["entries"][1]["name"], "README")
+        self.assertEqual(actual["entries"][1]["kind_name"], "file")
+        self.assertEqual(actual["entries"][1]["data_blocks"], [910, 911])
 
     def test_analyze_ffs_adf_with_extension_blocks(self) -> None:
         actual = self.inspect_disk_buffer("amiga-disk", _make_ffs_adf_with_extension())
@@ -298,12 +313,22 @@ class AmigaDiskTests(PlatformDiskTestCaseMixin, unittest.TestCase):
         self.assertEqual(actual["format_kind"], "non-dos-blank")
         self.assertEqual(actual["is_dos"], 0)
         self.assertEqual(actual["entry_count"], 0)
+        self.assertEqual(actual["track_analysis"]["non_empty_tracks"], 0)
+        self.assertEqual(actual["trackloader_analysis"]["candidate_code_tracks"], [])
+        self.assertEqual(actual["bootloader_analysis"]["stages"], [])
 
     def test_classifies_non_dos_bootable_adf(self) -> None:
         actual = self.inspect_disk_buffer("amiga-disk", _make_non_dos_bootable_adf())
         self.assertEqual(actual["format_kind"], "non-dos-bootable")
         self.assertEqual(actual["is_dos"], 0)
         self.assertEqual(actual["entry_count"], 0)
+        self.assertEqual(actual["track_analysis"]["track_size_bytes"], 5632)
+        self.assertEqual(actual["track_analysis"]["non_empty_tracks"], 1)
+        self.assertEqual(actual["trackloader_analysis"]["boot_ascii_strings"], ["BOOTCODE"])
+        self.assertEqual(actual["trackloader_analysis"]["candidate_code_tracks"], [0])
+        stages = {stage["name"]: stage for stage in actual["bootloader_analysis"]["stages"]}
+        self.assertIn("boot", stages)
+        self.assertEqual(stages["stage_1"]["disk_reads"][0]["disk_offset"], 1024)
 
     def test_classifies_dos_adf_with_invalid_root_pointer(self) -> None:
         actual = self.inspect_disk_buffer("amiga-disk", _make_dos_bad_root_pointer_adf())

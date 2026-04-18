@@ -98,8 +98,8 @@ def _platform_disk_library() -> Any:
         ctypes.c_size_t,
     ]
     library.platform_disk_inspect_buffer_json.restype = PlatformDiskTextResult
-    library.platform_disk_free_json.argtypes = [ctypes.c_void_p]
-    library.platform_disk_free_json.restype = None
+    library.platform_disk_free_text.argtypes = [ctypes.c_void_p]
+    library.platform_disk_free_text.restype = None
     return library
 
 
@@ -118,7 +118,7 @@ def _run_inspect(platform_name: str, image_name: str, image_bytes: bytes) -> dic
         assert isinstance(payload, dict)
         return payload
     finally:
-        library.platform_disk_free_json(result.text)
+        library.platform_disk_free_text(result.text)
 
 
 def _iter_atari_sources() -> list[dict[str, Any]]:

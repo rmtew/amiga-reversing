@@ -1,7 +1,12 @@
+import json
 from pathlib import Path
 from typing import cast
 
-from kb.ndk_parser import (
+from src.scripts.generate_amiga_os_runtime import (
+    build_api_input_value_domain_map,
+    build_merged_value_domains,
+)
+from src.scripts.kb.ndk_parser import (
     _map_clib_args_to_inputs,
     build_fd_function_min_versions,
     build_os_compatibility_kb,
@@ -19,15 +24,49 @@ from kb.ndk_parser import (
     scan_fd_function_names,
     scan_type_macros,
 )
-from kb.os_reference import (
-    load_os_reference_payload,
-    merge_os_reference_payloads,
+from src.scripts.kb.paths import (
+    AMIGA_OS_REFERENCE_CORRECTIONS_JSON,
+    AMIGA_OS_REFERENCE_INCLUDES_PARSED_JSON,
+    AMIGA_OS_REFERENCE_OTHER_PARSED_JSON,
 )
-from kb.paths import AMIGA_OS_REFERENCE_CORRECTIONS_JSON
-from tests.runtime_kb_helpers import (
-    load_canonical_os_kb_includes_parsed,
-    load_canonical_os_kb_other_parsed,
-)
+
+
+def load_json_payload(path: Path) -> dict[str, object]:
+    return cast(dict[str, object], json.loads(path.read_text(encoding="utf-8")))
+
+
+def merge_os_reference_payloads_for_test(
+    *,
+    includes: dict[str, object],
+    other: dict[str, object],
+    corrections: dict[str, object],
+) -> dict[str, object]:
+    merged = json.loads(json.dumps(includes))
+    other_functions = cast(dict[str, dict[str, object]], other.get("functions", {}))
+    for library_name, functions in other_functions.items():
+        library = cast(dict[str, object], cast(dict[str, object], merged["libraries"])[library_name])
+        library_functions = cast(dict[str, dict[str, object]], library.setdefault("functions", {}))
+        for function_name, overlay in functions.items():
+            base_function = dict(library_functions.get(function_name, {}))
+            base_function.update(cast(dict[str, object], overlay))
+            library_functions[function_name] = base_function
+    for library in cast(dict[str, dict[str, object]], merged["libraries"]).values():
+        functions = cast(dict[str, dict[str, object]], library.get("functions", {}))
+        library["lvo_index"] = {
+            str(function["lvo"]): function_name
+            for function_name, function in functions.items()
+            if isinstance(function.get("lvo"), int)
+        }
+    merged["_corrections"] = corrections
+    return cast(dict[str, object], merged)
+
+
+def load_canonical_os_kb_includes_parsed() -> dict[str, object]:
+    return load_json_payload(AMIGA_OS_REFERENCE_INCLUDES_PARSED_JSON)
+
+
+def load_canonical_os_kb_other_parsed() -> dict[str, object]:
+    return load_json_payload(AMIGA_OS_REFERENCE_OTHER_PARSED_JSON)
 
 
 def test_parse_clib_prototypes_preserves_function_pointer_args(
@@ -564,8 +603,42 @@ def test_parse_include_value_bindings_extracts_generic_device_context_domains(tm
     ]
 
 
+def test_generate_runtime_derives_alert_input_value_domain_from_alerts_include() -> None:
+    includes = {
+        "constants": {
+            "AN_IconLib": {
+                "value": 0x09000000,
+                "owner": {"assembler_include_path": "exec/alerts.i"},
+            },
+            "AG_OpenLib": {
+                "value": 0x00030000,
+                "owner": {"assembler_include_path": "exec/alerts.i"},
+            },
+            "AO_DOSLib": {
+                "value": 0x00008007,
+                "owner": {"assembler_include_path": "exec/alerts.i"},
+            },
+            "NOT_ALERT": {
+                "value": 1,
+                "owner": {"assembler_include_path": "exec/other.i"},
+            },
+        }
+    }
+
+    domains = build_merged_value_domains(includes, {})
+    bindings = build_api_input_value_domain_map(includes, {})
+
+    assert domains["exec.alert.number"] == {
+        "kind": "flags",
+        "members": ["AG_OpenLib", "AN_IconLib", "AO_DOSLib"],
+        "composition": "bit_or",
+        "remainder_policy": "error",
+    }
+    assert bindings[("exec.library", "Alert", "alertNum")] == "exec.alert.number"
+
+
 def test_corrections_json_exposes_explicit_api_value_bindings() -> None:
-    corrections = load_os_reference_payload(AMIGA_OS_REFERENCE_CORRECTIONS_JSON)
+    corrections = load_json_payload(AMIGA_OS_REFERENCE_CORRECTIONS_JSON)
     calling_convention = corrections["_meta"]["calling_convention"]
     exec_base_addr = corrections["_meta"]["exec_base_addr"]
     absolute_symbols = corrections["_meta"]["absolute_symbols"]
@@ -928,9 +1001,9 @@ def test_other_parsed_is_sparse_function_overlay() -> None:
 def test_merged_os_payload_derives_lvo_index_from_functions() -> None:
     includes = load_canonical_os_kb_includes_parsed()
     other = load_canonical_os_kb_other_parsed()
-    corrections = load_os_reference_payload(AMIGA_OS_REFERENCE_CORRECTIONS_JSON)
+    corrections = load_json_payload(AMIGA_OS_REFERENCE_CORRECTIONS_JSON)
 
-    merged = merge_os_reference_payloads(
+    merged = merge_os_reference_payloads_for_test(
         includes=includes,
         other=other,
         corrections=corrections,
@@ -1214,20 +1287,42 @@ def test_collect_raw_constants_from_include_dir_records_generated_constants(tmp_
         ]),
         encoding="ascii",
     )
+    (exec_dir / "libraries.i").write_text(
+        "\n".join([
+            "LIB_VECTSIZE EQU 6",
+            "LIB_RESERVED EQU 4",
+            "LIB_BASE EQU -LIB_VECTSIZE",
+            "LIB_USERDEF EQU LIB_BASE-(LIB_RESERVED*LIB_VECTSIZE)",
+            " LIBINIT LIB_BASE",
+            " LIBDEF LIB_OPEN",
+            " LIBDEF LIB_CLOSE",
+            " LIBDEF LIB_EXPUNGE ; must exist in all libraries",
+            " LIBDEF LIB_EXTFUNC",
+            "",
+        ]),
+        encoding="ascii",
+    )
 
     raw_constants, _constant_source_files, parsed_include_paths = collect_raw_constants_from_include_dir(
         str(tmp_path / "INCLUDE_I"),
         scan_type_macros(str(tmp_path / "INCLUDE_I")),
     )
+    evaluated = evaluate_all_constants(raw_constants)
 
     assert raw_constants["RT"] == "0"
     assert raw_constants["RT_MATCHWORD"] == "0"
     assert raw_constants["RT_INIT"] == "2"
     assert raw_constants["RT_SIZE"] == "6"
+    assert evaluated["LIB_BASE"]["value"] == -6
+    assert evaluated["LIB_USERDEF"]["value"] == -30
+    assert evaluated["LIB_OPEN"]["value"] == -6
+    assert evaluated["LIB_CLOSE"]["value"] == -12
+    assert evaluated["LIB_EXPUNGE"]["value"] == -18
+    assert evaluated["LIB_EXTFUNC"]["value"] == -24
     assert str(exec_dir / "resident.i") in parsed_include_paths
 
 
-def test_scan_fd_function_names_handles_legacy_fd_signatures_without_args(tmp_path: Path) -> None:
+def test_scan_fd_function_names_handles_raw_fd_signatures_without_args(tmp_path: Path) -> None:
     fd_path = tmp_path / "EXEC_LIB.FD"
     fd_path.write_text(
         "\n".join([

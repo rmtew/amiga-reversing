@@ -21,6 +21,12 @@ set FILE_EXE=%OUTDIR%\platform_file_cli.exe
 set FILE_DLL=%OUTDIR%\platform_file_lib.dll
 set CFLAGS=/nologo /W4 /WX /std:c11 /D_CRT_SECURE_NO_WARNINGS /I src
 set LDFLAGS=/nologo
+if /I "%AMIGA_BUILD_CONFIG%"=="debug" (
+    set CFLAGS=%CFLAGS% /Od /Zi
+    set LDFLAGS=%LDFLAGS% /DEBUG
+) else (
+    set CFLAGS=%CFLAGS% /O2 /Oi
+)
 
 if not exist %OUTDIR% mkdir %OUTDIR%
 
@@ -83,6 +89,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\json_builder.c ^
     src\m68k_object.c ^
     src\platform_amiga_hunk.c ^
+    src\platform_amiga_bootloader_analysis.c ^
     src\platform_amiga_disk.c ^
     src\platform_atari_st.c ^
     src\platform_atari_st_disk.c ^
@@ -233,24 +240,120 @@ link %LDFLAGS% /DLL /OUT:%DISASM_DLL% ^
 link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\platform_disk_cli.obj ^
     %OUTDIR%\platform_disk_lib.obj ^
+    %OUTDIR%\platform_file_lib.obj ^
+    %OUTDIR%\platform_file_core.obj ^
+    %OUTDIR%\platform_file_amiga.obj ^
+    %OUTDIR%\platform_file_atari_st.obj ^
+    %OUTDIR%\platform_file_platform.obj ^
+    %OUTDIR%\platform_file_json.obj ^
+    %OUTDIR%\platform_file_conversion.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\m68k_asm_tables.obj ^
+    %OUTDIR%\m68k_assembler.obj ^
+    %OUTDIR%\m68k_disassembler.obj ^
+    %OUTDIR%\m68k_ir.obj ^
+    %OUTDIR%\m68k_ir_codec.obj ^
+    %OUTDIR%\m68k_parse_util.obj ^
+    %OUTDIR%\m68k_instruction_spec.obj ^
+    %OUTDIR%\m68k_plain_parse.obj ^
+    %OUTDIR%\m68k_source_text_util.obj ^
+    %OUTDIR%\m68k_source_ir_api_dll.obj ^
+    %OUTDIR%\m68k_assembler_api.obj ^
+    %OUTDIR%\m68k_corpus_support.obj ^
+    %OUTDIR%\m68k_corpus_spec.obj ^
+    %OUTDIR%\m68k_simple_source.obj ^
+    %OUTDIR%\m68k_ir_parse.obj ^
+    %OUTDIR%\m68k_ir_symbol_resolve.obj ^
+    %OUTDIR%\m68k_source_ir_render.obj ^
+    %OUTDIR%\m68k_source_model.obj ^
+    %OUTDIR%\m68k_source_pipeline.obj ^
+    %OUTDIR%\m68k_source_instruction_resolve.obj ^
+    %OUTDIR%\m68k_source_constant_expr.obj ^
+    %OUTDIR%\m68k_source_data.obj ^
+    %OUTDIR%\m68k_source_expr.obj ^
+    %OUTDIR%\m68k_source_file_emit.obj ^
+    %OUTDIR%\m68k_source_file_parse.obj ^
+    %OUTDIR%\m68k_source_include.obj ^
+    %OUTDIR%\m68k_source_resolve_rewrite.obj ^
+    %OUTDIR%\m68k_source_rewrite.obj ^
+    %OUTDIR%\m68k_symbolic_parse.obj ^
+    %OUTDIR%\platform_binary_io.obj ^
+    %OUTDIR%\m68k_disassembler_lib.obj ^
+    %OUTDIR%\m68k_simulator.obj ^
+    %OUTDIR%\m68k_object.obj ^
+    %OUTDIR%\platform_amiga_hunk.obj ^
+    %OUTDIR%\platform_atari_st.obj ^
+    %OUTDIR%\platform_name_table.obj ^
+    %OUTDIR%\amiga_os_runtime.obj ^
+    %OUTDIR%\atari_st_os_runtime.obj ^
     %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\json_builder.obj ^
+    %OUTDIR%\platform_amiga_bootloader_analysis.obj ^
     %OUTDIR%\platform_amiga_disk.obj ^
     %OUTDIR%\platform_atari_st_disk.obj ^
+    %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\amiga_disk_file_runtime.obj ^
+    %OUTDIR%\atari_st_prg_file_runtime.obj ^
     %OUTDIR%\atari_st_disk_file_runtime.obj || exit /b %errorlevel%
 
 link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\platform_disk_lib.obj ^
+    %OUTDIR%\platform_file_lib.obj ^
+    %OUTDIR%\platform_file_core.obj ^
+    %OUTDIR%\platform_file_amiga.obj ^
+    %OUTDIR%\platform_file_atari_st.obj ^
+    %OUTDIR%\platform_file_platform.obj ^
+    %OUTDIR%\platform_file_json.obj ^
+    %OUTDIR%\platform_file_conversion.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\m68k_asm_tables.obj ^
+    %OUTDIR%\m68k_assembler.obj ^
+    %OUTDIR%\m68k_disassembler.obj ^
+    %OUTDIR%\m68k_ir.obj ^
+    %OUTDIR%\m68k_ir_codec.obj ^
+    %OUTDIR%\m68k_parse_util.obj ^
+    %OUTDIR%\m68k_instruction_spec.obj ^
+    %OUTDIR%\m68k_plain_parse.obj ^
+    %OUTDIR%\m68k_source_text_util.obj ^
+    %OUTDIR%\m68k_source_ir_api_dll.obj ^
+    %OUTDIR%\m68k_assembler_api.obj ^
+    %OUTDIR%\m68k_corpus_support.obj ^
+    %OUTDIR%\m68k_corpus_spec.obj ^
+    %OUTDIR%\m68k_simple_source.obj ^
+    %OUTDIR%\m68k_ir_parse.obj ^
+    %OUTDIR%\m68k_ir_symbol_resolve.obj ^
+    %OUTDIR%\m68k_source_ir_render.obj ^
+    %OUTDIR%\m68k_source_model.obj ^
+    %OUTDIR%\m68k_source_pipeline.obj ^
+    %OUTDIR%\m68k_source_instruction_resolve.obj ^
+    %OUTDIR%\m68k_source_constant_expr.obj ^
+    %OUTDIR%\m68k_source_data.obj ^
+    %OUTDIR%\m68k_source_expr.obj ^
+    %OUTDIR%\m68k_source_file_emit.obj ^
+    %OUTDIR%\m68k_source_file_parse.obj ^
+    %OUTDIR%\m68k_source_include.obj ^
+    %OUTDIR%\m68k_source_resolve_rewrite.obj ^
+    %OUTDIR%\m68k_source_rewrite.obj ^
+    %OUTDIR%\m68k_symbolic_parse.obj ^
+    %OUTDIR%\platform_binary_io.obj ^
+    %OUTDIR%\m68k_disassembler_lib.obj ^
+    %OUTDIR%\m68k_simulator.obj ^
+    %OUTDIR%\m68k_object.obj ^
+    %OUTDIR%\platform_amiga_hunk.obj ^
+    %OUTDIR%\platform_atari_st.obj ^
+    %OUTDIR%\platform_name_table.obj ^
+    %OUTDIR%\amiga_os_runtime.obj ^
+    %OUTDIR%\atari_st_os_runtime.obj ^
     %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\json_builder.obj ^
+    %OUTDIR%\platform_amiga_bootloader_analysis.obj ^
     %OUTDIR%\platform_amiga_disk.obj ^
     %OUTDIR%\platform_atari_st_disk.obj ^
+    %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\amiga_disk_file_runtime.obj ^
+    %OUTDIR%\atari_st_prg_file_runtime.obj ^
     %OUTDIR%\atari_st_disk_file_runtime.obj || exit /b %errorlevel%
 
 link %LDFLAGS% /OUT:%FILE_EXE% ^

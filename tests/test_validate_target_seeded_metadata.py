@@ -52,10 +52,8 @@ def test_validate_target_seeded_metadata_script_normalizes_seeded_file(tmp_path:
         ),
         encoding="utf-8",
     )
-    script = Path(__file__).resolve().parent.parent / "scripts" / "validate_target_seeded_metadata.py"
-
     result = subprocess.run(
-        [sys.executable, str(script), str(target_dir), "--write"],
+        [sys.executable, "-m", "amiga_reversing.tools.validate_target_seeded_metadata", str(target_dir), "--write"],
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
@@ -100,10 +98,8 @@ def test_validate_target_seeded_metadata_script_rejects_bootblock_payload(tmp_pa
         ),
         encoding="utf-8",
     )
-    script = Path(__file__).resolve().parent.parent / "scripts" / "validate_target_seeded_metadata.py"
-
     result = subprocess.run(
-        [sys.executable, str(script), str(target_dir)],
+        [sys.executable, "-m", "amiga_reversing.tools.validate_target_seeded_metadata", str(target_dir)],
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
@@ -147,10 +143,8 @@ def test_validate_target_seeded_metadata_script_rejects_missing_source_locator(t
         ),
         encoding="utf-8",
     )
-    script = Path(__file__).resolve().parent.parent / "scripts" / "validate_target_seeded_metadata.py"
-
     result = subprocess.run(
-        [sys.executable, str(script), str(target_dir)],
+        [sys.executable, "-m", "amiga_reversing.tools.validate_target_seeded_metadata", str(target_dir)],
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
@@ -168,10 +162,8 @@ def test_validate_target_seeded_metadata_script_rejects_non_object_root(tmp_path
         "[]",
         encoding="utf-8",
     )
-    script = Path(__file__).resolve().parent.parent / "scripts" / "validate_target_seeded_metadata.py"
-
     result = subprocess.run(
-        [sys.executable, str(script), str(target_dir)],
+        [sys.executable, "-m", "amiga_reversing.tools.validate_target_seeded_metadata", str(target_dir)],
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,

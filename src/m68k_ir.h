@@ -44,8 +44,111 @@ typedef struct M68kRenderPolicy {
   M68kOsRenderPolicy os;
 } M68kRenderPolicy;
 
+#define M68K_ANALYSIS_REGISTER_SEED_LIMIT 64U
+#define M68K_ANALYSIS_ENTRY_POINT_LIMIT 64U
+#define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 256U
+#define M68K_ANALYSIS_NAMED_LABEL_LIMIT 128U
+#define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 128U
+
+typedef enum M68kAnalysisRegisterKind {
+  M68K_ANALYSIS_REGISTER_NONE = 0,
+  M68K_ANALYSIS_REGISTER_DATA = 1,
+  M68K_ANALYSIS_REGISTER_ADDRESS = 2
+} M68kAnalysisRegisterKind;
+
+typedef enum M68kAnalysisRegisterSeedKind {
+  M68K_ANALYSIS_REGISTER_SEED_NONE = 0,
+  M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE = 1,
+  M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR = 2
+} M68kAnalysisRegisterSeedKind;
+
+typedef struct M68kAnalysisRegisterSeed {
+  uint8_t platform_kind;
+  uint8_t kind;
+  uint8_t reg_kind;
+  uint8_t reg_index;
+  uint8_t has_entry_offset;
+  uint8_t has_section_index;
+  uint8_t reserved[2];
+  uint32_t entry_offset;
+  uint32_t section_index;
+  char name[64];
+  char type_name[64];
+  char context_name[64];
+} M68kAnalysisRegisterSeed;
+
+typedef struct M68kAnalysisEntryPoint {
+  uint8_t has_section_index;
+  uint8_t reserved[3];
+  uint32_t section_index;
+  uint32_t offset;
+} M68kAnalysisEntryPoint;
+
+typedef enum M68kAnalysisStructuredDataKind {
+  M68K_ANALYSIS_STRUCTURED_DATA_BYTES = 1,
+  M68K_ANALYSIS_STRUCTURED_DATA_WORDS = 2,
+  M68K_ANALYSIS_STRUCTURED_DATA_LONGS = 3,
+  M68K_ANALYSIS_STRUCTURED_DATA_STRING = 4
+} M68kAnalysisStructuredDataKind;
+
+typedef struct M68kAnalysisStructuredDataItem {
+  uint8_t has_section_index;
+  uint8_t kind;
+  uint8_t is_pointer;
+  uint8_t has_target;
+  uint32_t section_index;
+  uint32_t offset;
+  uint32_t size;
+  uint32_t target_section;
+  uint32_t target_offset;
+  uint8_t has_constant_value;
+  uint8_t reserved[3];
+  int32_t constant_value;
+  char label[64];
+  char struct_name[64];
+  char field_name[64];
+  char field_type[64];
+  char c_type[64];
+  char pointer_struct[64];
+  char value_domain[64];
+  char constant_name[64];
+  char semantic_role[64];
+  char comment[64];
+} M68kAnalysisStructuredDataItem;
+
+typedef struct M68kAnalysisNamedLabel {
+  uint8_t has_section_index;
+  uint8_t reserved[3];
+  uint32_t section_index;
+  uint32_t offset;
+  char name[64];
+} M68kAnalysisNamedLabel;
+
+typedef struct M68kAnalysisEntryComment {
+  uint8_t has_section_index;
+  uint8_t reserved[3];
+  uint32_t section_index;
+  uint32_t offset;
+  char comment[192];
+} M68kAnalysisEntryComment;
+
 typedef struct M68kAnalysisPolicy {
   uint8_t max_cpu;
+  uint8_t has_entry_offset;
+  uint8_t skip_platform_facts;
+  uint8_t reserved0;
+  uint16_t register_seed_count;
+  uint16_t entry_point_count;
+  uint16_t structured_data_item_count;
+  uint16_t named_label_count;
+  uint16_t entry_comment_count;
+  uint16_t reserved1;
+  uint32_t entry_offset;
+  M68kAnalysisRegisterSeed register_seeds[M68K_ANALYSIS_REGISTER_SEED_LIMIT];
+  M68kAnalysisEntryPoint entry_points[M68K_ANALYSIS_ENTRY_POINT_LIMIT];
+  M68kAnalysisStructuredDataItem structured_data_items[M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT];
+  M68kAnalysisNamedLabel named_labels[M68K_ANALYSIS_NAMED_LABEL_LIMIT];
+  M68kAnalysisEntryComment entry_comments[M68K_ANALYSIS_ENTRY_COMMENT_LIMIT];
 } M68kAnalysisPolicy;
 
 typedef struct M68kAnalysisFindings {
@@ -146,12 +249,16 @@ typedef enum M68kStatementKind {
   M68K_STATEMENT_ALIGN = 4
 } M68kStatementKind;
 
+#define M68K_STATEMENT_SOURCE_BYTES_MAX 16U
+
 typedef struct M68kStatementIR {
   uint8_t kind;
   uint32_t offset;
   char *label_name;
   char *comment;
   uint8_t label_is_generated;
+  uint8_t source_byte_count;
+  uint8_t source_bytes[M68K_STATEMENT_SOURCE_BYTES_MAX];
   union {
     M68kInstructionIR instruction;
     M68kDataItemIR data;
@@ -215,7 +322,8 @@ typedef enum M68kViolationKind {
   M68K_VIOLATION_CPU_POLICY = 1,
   M68K_VIOLATION_DECODE_FAILED_REACHABLE = 2,
   M68K_VIOLATION_INVALID_INTERIOR_REFERENCE = 3,
-  M68K_VIOLATION_UNRESOLVED_INDIRECT = 4
+  M68K_VIOLATION_UNRESOLVED_INDIRECT = 4,
+  M68K_VIOLATION_ORPHANED_CODE = 5
 } M68kViolationKind;
 
 typedef enum GeneratedLabelKind {
@@ -262,6 +370,50 @@ typedef struct M68kRecoveredStringDispatchIR {
   uint32_t *targets;
 } M68kRecoveredStringDispatchIR;
 
+typedef struct M68kRecoveredStringRefIR {
+  uint32_t offset;
+  uint32_t target;
+  char *text;
+} M68kRecoveredStringRefIR;
+
+typedef enum M68kRecoveredIndirectFlowKind {
+  M68K_RECOVERED_INDIRECT_FLOW_CALL = 1,
+  M68K_RECOVERED_INDIRECT_FLOW_JUMP = 2
+} M68kRecoveredIndirectFlowKind;
+
+typedef enum M68kRecoveredIndirectShape {
+  M68K_RECOVERED_INDIRECT_SHAPE_IND = 1,
+  M68K_RECOVERED_INDIRECT_SHAPE_DISP = 2,
+  M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF = 3,
+  M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_BRIEF = 4,
+  M68K_RECOVERED_INDIRECT_SHAPE_INDEX_FULL = 5,
+  M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_FULL = 6,
+  M68K_RECOVERED_INDIRECT_SHAPE_INDEX_MEMIND = 7,
+  M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_MEMIND = 8
+} M68kRecoveredIndirectShape;
+
+typedef enum M68kRecoveredIndirectStatus {
+  M68K_RECOVERED_INDIRECT_STATUS_UNRESOLVED = 1,
+  M68K_RECOVERED_INDIRECT_STATUS_RESOLVED_RUNTIME = 2,
+  M68K_RECOVERED_INDIRECT_STATUS_RUNTIME = 3,
+  M68K_RECOVERED_INDIRECT_STATUS_PER_CALLER = 4,
+  M68K_RECOVERED_INDIRECT_STATUS_BACKWARD_SLICE = 5,
+  M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE = 6,
+  M68K_RECOVERED_INDIRECT_STATUS_EXTERNAL = 7
+} M68kRecoveredIndirectStatus;
+
+typedef struct M68kRecoveredIndirectSiteIR {
+  uint32_t offset;
+  uint8_t flow_kind;
+  uint8_t shape;
+  uint8_t status;
+  uint8_t has_target;
+  uint8_t has_target_count;
+  uint32_t target;
+  uint32_t target_count;
+  char *detail;
+} M68kRecoveredIndirectSiteIR;
+
 typedef struct M68kRecoveredPlatformBaseSlotIR {
   int16_t displacement;
   char *base_name;
@@ -274,7 +426,8 @@ typedef enum M68kPlatformEffectKind {
   M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT = 2,
   M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG = 3,
   M68K_PLATFORM_EFFECT_SET_TYPED_REG = 4,
-  M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT = 5
+  M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT = 5,
+  M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT = 6
 } M68kPlatformEffectKind;
 
 typedef struct M68kPlatformNamedBaseEffectPayloadIR {
@@ -313,6 +466,8 @@ typedef struct M68kRecoveredPlatformEffectIR {
   uint8_t reg_index;
   int16_t displacement;
   int16_t field_disp;
+  size_t target_section_index;
+  uint32_t target_offset;
   union {
     M68kPlatformNamedBaseEffectPayloadIR named_base;
     M68kPlatformTypedEffectPayloadIR typed;
@@ -334,6 +489,14 @@ typedef struct M68kRecoveredLocalCallSummaryIR {
     M68kPlatformTypedEffectPayloadIR typed;
   } payload;
 } M68kRecoveredLocalCallSummaryIR;
+
+typedef struct M68kRecoveredFunctionArgIR {
+  uint32_t function_offset;
+  uint16_t stack_offset;
+  uint8_t reg_kind;
+  uint8_t reg_index;
+  M68kPlatformTypedEffectPayloadIR typed;
+} M68kRecoveredFunctionArgIR;
 
 typedef enum M68kPlatformCallNoteKind {
   M68K_PLATFORM_CALL_NOTE_NONE = 0,
@@ -384,6 +547,14 @@ typedef struct M68kSectionAnalysisIR {
   uint32_t *label_offsets;
   size_t label_count;
   size_t label_capacity;
+  uint8_t *label_offset_lookup;
+  size_t label_offset_lookup_size;
+  uint8_t *block_start_lookup;
+  size_t block_start_lookup_size;
+  uint8_t *string_dispatch_target_lookup;
+  size_t string_dispatch_target_lookup_size;
+  uint32_t *nearest_static_label_lookup;
+  size_t nearest_static_label_lookup_size;
   M68kCfgBlockIR *blocks;
   size_t block_count;
   size_t block_capacity;
@@ -402,6 +573,12 @@ typedef struct M68kSectionAnalysisIR {
   M68kRecoveredStringDispatchIR *recovered_string_dispatches;
   size_t recovered_string_dispatch_count;
   size_t recovered_string_dispatch_capacity;
+  M68kRecoveredStringRefIR *recovered_string_refs;
+  size_t recovered_string_ref_count;
+  size_t recovered_string_ref_capacity;
+  M68kRecoveredIndirectSiteIR *recovered_indirect_sites;
+  size_t recovered_indirect_site_count;
+  size_t recovered_indirect_site_capacity;
   M68kRecoveredPlatformBaseSlotIR *recovered_platform_base_slots;
   size_t recovered_platform_base_slot_count;
   size_t recovered_platform_base_slot_capacity;
@@ -411,6 +588,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kRecoveredLocalCallSummaryIR *recovered_local_call_summaries;
   size_t recovered_local_call_summary_count;
   size_t recovered_local_call_summary_capacity;
+  M68kRecoveredFunctionArgIR *recovered_function_args;
+  size_t recovered_function_arg_count;
+  size_t recovered_function_arg_capacity;
   M68kRecoveredPlatformCallIR *recovered_platform_calls;
   size_t recovered_platform_call_count;
   size_t recovered_platform_call_capacity;
@@ -471,16 +651,27 @@ int m68k_ir_section_analysis_append_recovered_inline_dispatch(M68kSectionAnalysi
     const M68kRecoveredInlineDispatchIR *dispatch);
 int m68k_ir_section_analysis_append_recovered_string_dispatch(M68kSectionAnalysisIR *section_analysis,
     const M68kRecoveredStringDispatchIR *dispatch);
+int m68k_ir_section_analysis_append_recovered_string_ref(M68kSectionAnalysisIR *section_analysis,
+    const M68kRecoveredStringRefIR *ref);
+int m68k_ir_section_analysis_append_recovered_indirect_site(M68kSectionAnalysisIR *section_analysis,
+    const M68kRecoveredIndirectSiteIR *site);
 int m68k_ir_section_analysis_append_recovered_platform_base_slot(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, int16_t displacement, const char *base_name);
 int m68k_ir_section_analysis_append_recovered_platform_effect(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t offset, uint8_t kind, uint8_t reg_kind, uint8_t reg_index, int16_t displacement,
     int16_t field_disp, const char *base_name, const char *symbol_name, const char *type_name, const char *semantic_kind,
     const char *value_domain_name, uint8_t has_constant_value, int32_t constant_value);
+int m68k_ir_section_analysis_append_recovered_platform_global_base_slot_effect(
+    M68kSectionAnalysisIR *section_analysis, uint8_t platform_kind, uint32_t offset, size_t target_section_index,
+    uint32_t target_offset, const char *base_name);
 int m68k_ir_section_analysis_append_recovered_local_call_summary(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t target_offset, uint8_t effect_kind, uint8_t reg_kind, uint8_t reg_index,
     uint8_t success_reg_kind, uint8_t success_reg_index, uint8_t success_value_known, int32_t success_reg_value,
     const char *base_name, const char *symbol_name, const char *type_name, const char *semantic_kind,
+    const char *value_domain_name, uint8_t has_constant_value, int32_t constant_value);
+int m68k_ir_section_analysis_append_recovered_function_arg(M68kSectionAnalysisIR *section_analysis,
+    uint8_t platform_kind, uint32_t function_offset, uint16_t stack_offset, uint8_t reg_kind, uint8_t reg_index,
+    const char *context_name, const char *symbol_name, const char *type_name, const char *semantic_kind,
     const char *value_domain_name, uint8_t has_constant_value, int32_t constant_value);
 int m68k_ir_section_analysis_append_recovered_platform_call(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t offset, uint8_t kind, const char *symbol_name, uint8_t note_kind, const char *note_base_name,

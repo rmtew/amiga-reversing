@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from scripts.sync_amiga_includes import sync_amiga_includes
+from src.scripts.sync_amiga_includes import sync_amiga_includes
 
 
 def test_sync_amiga_includes_replaces_raw_lib_i_from_fd(tmp_path: Path) -> None:

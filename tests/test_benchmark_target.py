@@ -6,77 +6,30 @@ from types import SimpleNamespace
 
 import pytest
 
-from disasm.analysis_loader import analysis_cache_root, hunk_analysis_cache_path
-from disasm.os_compat import CompatibilityReport
-from disasm.target_metadata import (
-    EntryRegisterSeedMetadata,
-    ResidentAutoinitMetadata,
-    ResidentTargetMetadata,
-    SeededCodeEntrypointMetadata,
-    TargetMetadata,
-    load_target_metadata,
-    write_target_metadata,
-)
-from disasm.types import BlockRowContext, ListingRow, SemanticOperand
-from m68k.hunk_parser import Hunk, HunkType, MemType
-from scripts.benchmark_target import (
-    AnalysisBenchmark,
-    AnalysisTimingBenchmark,
-    DisasmBenchmark,
-    EntitiesTimingBenchmark,
+from amiga_reversing.tools.benchmark_target import (
     EntityBenchmark,
-    LibraryLvoBenchmark,
-    LvoBenchmark,
-    SessionTimingBenchmark,
-    SymbolUsageBenchmark,
     TargetBenchmark,
-    TimingBenchmark,
-    _analysis_cache_paths,
     _assembler_profile_for_target,
     _benchmark_binary_target,
     _benchmark_record,
-    _disasm_benchmark,
     _disk_project_benchmark,
     main,
 )
-from scripts.precommit import _benchmark_targets
+from amiga_reversing.tools.precommit import _benchmark_targets
 
 
 def test_benchmark_record_uses_target_command_and_sizes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    analysis = tmp_path / "binary.analysis.hunk-0"
+    c_benchmark: dict[str, object] = {"analysis": {"violation_count": 2}}
     entities = tmp_path / "entities.jsonl"
     disasm = tmp_path / "example.s"
-    analysis.write_bytes(b"a" * 10)
     entities.write_bytes(b"b" * 20)
     disasm.write_bytes(b"c" * 30)
 
     monkeypatch.setattr(
-        "scripts.benchmark_target._analysis_benchmark",
-        lambda paths: AnalysisBenchmark(
-            code_bytes=100,
-            core_block_count=2,
-            core_instruction_count=5,
-            core_covered_bytes=20,
-            core_coverage_ratio=0.2,
-            hint_block_count=1,
-            hint_instruction_count=2,
-            hint_covered_bytes=8,
-            hint_coverage_ratio=0.08,
-            xref_count=3,
-            jump_table_count=0,
-            indirect_site_count=1,
-            call_target_count=4,
-            branch_target_count=5,
-            library_call_count=6,
-            resolved_library_call_count=4,
-            library_count=2,
-        ),
-    )
-    monkeypatch.setattr(
-        "scripts.benchmark_target._entities_benchmark",
+        "amiga_reversing.tools.benchmark_target._entities_benchmark",
         lambda path: EntityBenchmark(
             entity_count=7,
             code_entity_count=3,
@@ -93,61 +46,52 @@ def test_benchmark_record_uses_target_command_and_sizes(
         "bin/Example",
         "ok",
         12.345,
-        [analysis],
+        c_benchmark,
         entities,
         disasm,
     )
 
     assert record.target == "example"
     assert record.binary == "bin/Example"
-    assert record.command == "uv run scripts/benchmark_target.py example"
+    assert record.command == "uv run amiga-benchmark-target example"
     assert record.status == "ok"
     assert record.elapsed_seconds == 12.35
-    assert record.analysis_bytes == 10
+    assert record.benchmark_bytes is not None
     assert record.entities_bytes == 20
     assert record.disasm_bytes == 30
-    assert record.timing is None
-    assert record.analysis is not None
-    assert record.analysis.core_block_count == 2
-    assert record.analysis.library_call_count == 6
+    assert record.analysis == {"violation_count": 2}
     assert record.entities is not None
     assert record.entities.entity_count == 7
     assert record.entities.named_entity_count == 4
-    assert record.disasm is None
-    assert record.compatibility_floor is None
     assert record.error is None
 
 
-def test_benchmark_record_sums_analysis_cache_sizes(
+def test_benchmark_record_uses_c_benchmark_json_size(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    analysis0 = tmp_path / "binary.analysis.hunk-0"
-    analysis1 = tmp_path / "binary.analysis.hunk-1"
+    c_benchmark: dict[str, object] = {"analysis": {"violation_counts": {"unresolved_indirect": 1}}}
     entities = tmp_path / "entities.jsonl"
     disasm = tmp_path / "example.s"
-    analysis0.write_bytes(b"a" * 10)
-    analysis1.write_bytes(b"b" * 15)
     entities.write_bytes(b"c" * 20)
     disasm.write_bytes(b"d" * 30)
 
-    monkeypatch.setattr("scripts.benchmark_target._analysis_benchmark", lambda paths: None)
-    monkeypatch.setattr("scripts.benchmark_target._entities_benchmark", lambda path: None)
+    monkeypatch.setattr("amiga_reversing.tools.benchmark_target._entities_benchmark", lambda path: None)
 
     record = _benchmark_record(
         "example",
         "bin/Example",
         "ok",
         1.0,
-        [analysis0, analysis1],
+        c_benchmark,
         entities,
         disasm,
     )
 
-    assert record.analysis_bytes == 25
+    assert record.benchmark_bytes == len(json.dumps(c_benchmark, sort_keys=True).encode("utf-8"))
 
 
-def test_benchmark_binary_target_writes_compatibility_export(
+def test_benchmark_binary_target_uses_c_analysis_and_render(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -157,42 +101,24 @@ def test_benchmark_binary_target_writes_compatibility_export(
     disasm_path = target_dir / "demo.s"
 
     monkeypatch.setattr(
-        "scripts.benchmark_target.resolve_project_paths",
+        "amiga_reversing.tools.benchmark_target.resolve_project_paths",
         lambda target, project_root, require_entities=False: SimpleNamespace(
             target_dir=target_dir,
-            binary_source=SimpleNamespace(display_path="bin/demo"),
+            binary_source=SimpleNamespace(kind="hunk_file", path=Path("bin/demo"), display_path="bin/demo"),
             entities_path=entities_path,
             output_path=disasm_path,
         ),
     )
-    monkeypatch.setattr("scripts.benchmark_target._analysis_cache_paths", lambda target_dir, binary_source: [])
     monkeypatch.setattr(
-        "scripts.benchmark_target.build_entities_from_source",
-        lambda binary_source, entities_path, phase_timer=None: Path(entities_path).write_text("", encoding="utf-8"),
+        "amiga_reversing.tools.benchmark_target.benchmark_project_source_with_text_from_c_backend",
+        lambda source, syntax, metadata_path, project_root: ({"analysis": {"violation_count": 1}}, "; demo\n"),
     )
-    monkeypatch.setattr(
-        "scripts.benchmark_target.build_disassembly_session",
-        lambda *args, **kwargs: SimpleNamespace(hunk_sessions=()),
-    )
-    monkeypatch.setattr(
-        "scripts.benchmark_target.emit_session_rows",
-        lambda session: [ListingRow(row_id="row", kind="comment", text="; demo\n")],
-    )
-    monkeypatch.setattr(
-        "scripts.benchmark_target.build_emit_compatibility_report",
-        lambda session, *, rows: CompatibilityReport(floor="1.3", dependencies=()),
-    )
-    monkeypatch.setattr("scripts.benchmark_target.render_rows", lambda rows: "; demo\n")
-    monkeypatch.setattr("scripts.benchmark_target._disasm_benchmark", lambda session, rows: None)
 
     record = _benchmark_binary_target("demo", write_output=True)
 
     assert record.status == "ok"
-    assert record.compatibility_floor == "1.3"
-    assert json.loads((target_dir / "compatibility.json").read_text(encoding="ascii")) == {
-        "floor": "1.3",
-        "dependencies": [],
-    }
+    assert record.analysis == {"violation_count": 1}
+    assert disasm_path.read_text(encoding="utf-8") == "; demo\n"
 
 
 def test_assembler_profile_for_target_uses_devpac_for_genam(tmp_path: Path) -> None:
@@ -237,15 +163,15 @@ def test_precommit_benchmark_targets_include_file_and_disk_sources(tmp_path: Pat
     (disk_target / "manifest.json").write_text('{"schema_version":1,"disk_id":"demo","source_path":"bin/demo.adf","source_sha256":"deadbeef","analysis":{"disk_info":{"path":"demo.adf","size":901120,"variant":"DD","total_sectors":1760,"sectors_per_track":11,"is_dos":true},"boot_block":{"magic_ascii":"DOS","is_dos":true,"flags_byte":1,"fs_type":"FFS","fs_description":"DOS\\\\1 - Fast File System","checksum":"0x00000000","checksum_valid":true,"rootblock_ptr":880,"bootcode_size":1012,"bootcode_has_code":false,"bootcode_entropy":0.0}},"imported_targets":[],"bootblock_target_name":"amiga_disk_demo__amiga_raw_bootblock","bootblock_target_path":"targets/amiga_disk_demo/targets/amiga_raw_bootblock"}', encoding="utf-8")
     (disk_target / ".project.json").write_text('{"schema_version":1,"created_at":"2026-03-25T00:00:00+00:00","updated_at":"2026-03-25T00:00:00+00:00"}', encoding="utf-8")
 
-    monkeypatch.setattr("scripts.precommit.TARGETS_DIR", targets_dir)
-    monkeypatch.setattr("scripts.precommit.ROOT", tmp_path)
+    monkeypatch.setattr("amiga_reversing.tools.precommit.TARGETS_DIR", targets_dir)
+    monkeypatch.setattr("amiga_reversing.tools.precommit.ROOT", tmp_path)
 
     assert _benchmark_targets() == ["amiga_disk_demo", "filedemo", "rawdemo"]
 
 
 def test_benchmark_main_fails_when_any_target_fails(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "scripts.benchmark_target.benchmark_target",
+        "amiga_reversing.tools.benchmark_target.benchmark_target",
         lambda target: type("Record", (), {"target": target, "status": "failed", "elapsed_seconds": 1.0})(),
     )
 
@@ -321,64 +247,27 @@ def test_disk_project_benchmark_orders_children_by_manifest_entry_path(
         return TargetBenchmark(
             target=target,
             binary=f"bin/{target}",
-            command=f"uv run scripts/benchmark_target.py {target}",
+            command=f"uv run amiga-benchmark-target {target}",
             measured_at="2026-03-26T12:00:00+13:00",
             status="ok",
             elapsed_seconds=1.0,
-            analysis_bytes=1,
+            benchmark_bytes=1,
             entities_bytes=1,
             disasm_bytes=1,
-            timing=TimingBenchmark(
-                entities=EntitiesTimingBenchmark(
-                    parse_source_seconds=0.1,
-                    analysis=AnalysisTimingBenchmark(
-                        init_seconds=0.2,
-                        core_seconds=0.3,
-                        per_caller_seconds=0.4,
-                        store_pass_seconds=0.5,
-                        hint_scan_seconds=0.6,
-                        os_call_seconds=0.7,
-                    ),
-                    naming_seconds=0.8,
-                    write_seconds=0.9,
-                ),
-                session=SessionTimingBenchmark(
-                    load_analysis_seconds=1.0,
-                    metadata_seconds=1.1,
-                    substitutions_seconds=1.2,
-                    build_seconds=1.3,
-                ),
-                emit_seconds=0.3,
-                render_seconds=0.4,
-            ),
+            benchmark_version=1,
+            platform="amiga-hunk",
+            timing={"analysis_seconds": 0.3, "ir_build_seconds": 0.2, "render_seconds": 0.4, "total_seconds": 0.9},
+            file=None,
             analysis=None,
+            render=None,
+            sections=None,
             entities=None,
-            disasm=DisasmBenchmark(
-                lvo=LvoBenchmark(
-                    included_count=2,
-                    inserted_count=1,
-                    by_library={
-                        "dos.library": LibraryLvoBenchmark(included=2, inserted=0),
-                        "foo.library": LibraryLvoBenchmark(included=0, inserted=1),
-                    },
-                ),
-                symbols=SymbolUsageBenchmark(
-                    immediate_constant_count=5,
-                    struct_field_count=6,
-                    app_struct_field_count=7,
-                    raw_absolute_branch_target_count=0,
-                    raw_absolute_call_target_count=0,
-                    raw_absolute_known_code_branch_target_count=0,
-                    raw_absolute_known_code_call_target_count=0,
-                ),
-            ),
-            compatibility_floor="1.3" if target.endswith("bootblock") else "2.0",
             error=None,
             targets=None,
         )
 
-    monkeypatch.setattr("scripts.benchmark_target.TARGETS_DIR", targets_dir)
-    monkeypatch.setattr("scripts.benchmark_target._benchmark_binary_target", fake_benchmark_binary_target)
+    monkeypatch.setattr("amiga_reversing.tools.benchmark_target.TARGETS_DIR", targets_dir)
+    monkeypatch.setattr("amiga_reversing.tools.benchmark_target._benchmark_binary_target", fake_benchmark_binary_target)
 
     record = _disk_project_benchmark("amiga_disk_demo")
 
@@ -388,253 +277,9 @@ def test_disk_project_benchmark_orders_children_by_manifest_entry_path(
         "amiga_disk_demo__amiga_hunk_z_last",
     ]
     assert seen_write_output == [True, True, True]
-    assert record.timing == TimingBenchmark(
-        entities=EntitiesTimingBenchmark(
-            parse_source_seconds=0.3,
-            analysis=AnalysisTimingBenchmark(
-                init_seconds=0.6,
-                core_seconds=0.9,
-                per_caller_seconds=1.2,
-                store_pass_seconds=1.5,
-                hint_scan_seconds=1.8,
-                os_call_seconds=2.1,
-            ),
-            naming_seconds=2.4,
-            write_seconds=2.7,
-        ),
-        session=SessionTimingBenchmark(
-            load_analysis_seconds=3.0,
-            metadata_seconds=3.3,
-            substitutions_seconds=3.6,
-            build_seconds=3.9,
-        ),
-        emit_seconds=0.9,
-        render_seconds=1.2,
-    )
-    assert record.disasm == DisasmBenchmark(
-        lvo=LvoBenchmark(
-            included_count=6,
-            inserted_count=3,
-            by_library={
-                "dos.library": LibraryLvoBenchmark(included=6, inserted=0),
-                "foo.library": LibraryLvoBenchmark(included=0, inserted=3),
-            },
-        ),
-        symbols=SymbolUsageBenchmark(
-            immediate_constant_count=15,
-            struct_field_count=18,
-            app_struct_field_count=21,
-            raw_absolute_branch_target_count=0,
-            raw_absolute_call_target_count=0,
-            raw_absolute_known_code_branch_target_count=0,
-            raw_absolute_known_code_call_target_count=0,
-        ),
-    )
-    assert record.compatibility_floor == "2.0"
-
-
-def test_disasm_benchmark_counts_raw_absolute_control_flow_operands() -> None:
-    session = SimpleNamespace(
-        hunk_sessions=[
-            SimpleNamespace(
-                hunk_index=0,
-                lvo_equs={},
-                arg_substitutions={},
-                blocks={0x40: object()},
-                hint_blocks={0x4480: object()},
-            )
-        ]
-    )
-    rows = [
-        ListingRow(
-            row_id="i1",
-            kind="instruction",
-            text="    bsr.w $4480\n",
-            operand_parts=(
-                SemanticOperand(kind="call_target", text="$4480", segment_addr=0x4480),
-            ),
-            source_context=BlockRowContext(kind="hint", hunk_index=0),
-        ),
-        ListingRow(
-            row_id="i2",
-            kind="instruction",
-            text="    bcs.s $43f0\n",
-            operand_parts=(
-                SemanticOperand(kind="branch_target", text="$43f0", segment_addr=0x43F0),
-            ),
-            source_context=BlockRowContext(kind="hint", hunk_index=0),
-        ),
-        ListingRow(
-            row_id="i3",
-            kind="instruction",
-            text="    bra.s loc_0040\n",
-            operand_parts=(
-                SemanticOperand(kind="branch_target", text="loc_0040"),
-            ),
-            source_context=BlockRowContext(kind="hint", hunk_index=0),
-        ),
-    ]
-
-    benchmark = _disasm_benchmark(session, rows)
-
-    assert benchmark.symbols.raw_absolute_call_target_count == 1
-    assert benchmark.symbols.raw_absolute_branch_target_count == 1
-    assert benchmark.symbols.raw_absolute_known_code_call_target_count == 1
-    assert benchmark.symbols.raw_absolute_known_code_branch_target_count == 0
-
-
-def test_analysis_cache_paths_for_resident_hunk_target_use_zero_code_start(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    target_dir = tmp_path / "targets" / "amiga_hunk_icon"
-    bin_dir = tmp_path / "bin"
-    target_dir.mkdir(parents=True)
-    bin_dir.mkdir()
-    (target_dir / ".project.json").write_text(
-        '{"schema_version":1,"created_at":"2026-03-25T00:00:00+00:00","updated_at":"2026-03-25T00:00:00+00:00"}',
-        encoding="utf-8",
-    )
-    (target_dir / "source_binary.json").write_text(
-        '{"kind":"hunk_file","path":"bin/icon.library"}\n',
-        encoding="utf-8",
-    )
-    write_target_metadata(
-        target_dir,
-        TargetMetadata(
-            target_type="library",
-            entry_register_seeds=(
-                EntryRegisterSeedMetadata(
-                    entry_offset=0x88,
-                    register="A6",
-                    kind="library_base",
-                    note="ExecBase",
-                    library_name="exec.library",
-                    struct_name="LIB",
-                    context_name=None,
-                ),
-            ),
-            resident=ResidentTargetMetadata(
-                offset=4,
-                matchword=0x4AFC,
-                flags=0x80,
-                version=37,
-                node_type_name="NT_LIBRARY",
-                priority=0,
-                name="icon.library",
-                id_string="icon 37.1",
-                init_offset=0x44,
-                auto_init=True,
-                autoinit=ResidentAutoinitMetadata(
-                    payload_offset=0x44,
-                    base_size=0x24,
-                    vectors_offset=0x54,
-                    vector_format="offset32",
-                    vector_offsets=(0x90,),
-                    init_struct_offset=None,
-                    init_func_offset=0x88,
-                ),
-            ),
-        ),
-    )
-    (bin_dir / "icon.library").write_bytes(b"fake")
-
-    from disasm.binary_source import resolve_target_binary_source
-    from disasm.entry_seeds import build_entry_seed_config
-
-    monkeypatch.setattr(
-        "scripts.benchmark_target.parse",
-        lambda _data: SimpleNamespace(
-            hunks=[
-                Hunk(
-                    index=0,
-                    hunk_type=int(HunkType.HUNK_CODE),
-                    mem_type=int(MemType.ANY),
-                    alloc_size=2,
-                    data=b"\x4e\x75",
-                )
-            ]
-        ),
-    )
-
-    binary_source = resolve_target_binary_source(target_dir, project_root=tmp_path)
-    assert binary_source is not None
-    analysis_paths = _analysis_cache_paths(target_dir, binary_source)
-    seed_key = build_entry_seed_config(load_target_metadata(target_dir)).seed_key
-    expected_root = analysis_cache_root(
-        binary_source.analysis_cache_path,
-        seed_key=seed_key,
-        base_addr=0,
-        code_start=0,
-        entry_points=(0x88, 0x90),
-        extra_entry_points=(),
-    )
-    assert analysis_paths == [hunk_analysis_cache_path(expected_root, 0)]
-
-
-def test_analysis_cache_paths_include_seeded_code_entrypoints_for_hunk_targets(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    target_dir = tmp_path / "targets" / "amiga_hunk_demo"
-    bin_dir = tmp_path / "bin"
-    target_dir.mkdir(parents=True)
-    bin_dir.mkdir()
-    (target_dir / ".project.json").write_text(
-        '{"schema_version":1,"created_at":"2026-03-25T00:00:00+00:00","updated_at":"2026-03-25T00:00:00+00:00"}',
-        encoding="utf-8",
-    )
-    (target_dir / "source_binary.json").write_text(
-        '{"kind":"hunk_file","path":"bin/demo.bin"}\n',
-        encoding="utf-8",
-    )
-    write_target_metadata(
-        target_dir,
-        TargetMetadata(
-            target_type="program",
-            entry_register_seeds=(),
-            seeded_code_entrypoints=(
-                SeededCodeEntrypointMetadata(
-                    addr=0x05D6,
-                    name="check_keyboard",
-                    hunk=0,
-                    seed_origin="primary_doc",
-                    review_status="seeded",
-                    citation="seeded:demo-entry",
-                ),
-            ),
-        ),
-    )
-    (bin_dir / "demo.bin").write_bytes(b"fake")
-
-    from disasm.binary_source import resolve_target_binary_source
-    from disasm.entry_seeds import build_entry_seed_config
-
-    monkeypatch.setattr(
-        "scripts.benchmark_target.parse",
-        lambda _data: SimpleNamespace(
-            hunks=[
-                Hunk(
-                    index=0,
-                    hunk_type=int(HunkType.HUNK_CODE),
-                    mem_type=int(MemType.ANY),
-                    alloc_size=2,
-                    data=b"\x4e\x75",
-                )
-            ]
-        ),
-    )
-
-    binary_source = resolve_target_binary_source(target_dir, project_root=tmp_path)
-    assert binary_source is not None
-    analysis_paths = _analysis_cache_paths(target_dir, binary_source)
-    seed_key = build_entry_seed_config(load_target_metadata(target_dir)).seed_key
-    expected_root = analysis_cache_root(
-        binary_source.analysis_cache_path,
-        seed_key=seed_key,
-        base_addr=0,
-        code_start=0,
-        entry_points=(),
-        extra_entry_points=(0x05D6,),
-    )
-    assert analysis_paths == [hunk_analysis_cache_path(expected_root, 0)]
+    assert record.timing == {
+        "analysis_seconds": 0.9,
+        "ir_build_seconds": 0.6,
+        "render_seconds": 1.2,
+        "total_seconds": 2.7,
+    }

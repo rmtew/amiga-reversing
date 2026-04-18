@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 INCLUDES_PATH = ROOT / "knowledge" / "amiga_ndk_includes_parsed.json"
 OTHER_PATH = ROOT / "knowledge" / "amiga_ndk_other_parsed.json"
 CORRECTIONS_PATH = ROOT / "knowledge" / "amiga_ndk_corrections.json"
+NAMING_RULES_PATH = ROOT / "knowledge" / "naming_rules.json"
 OUTPUT_DIR = ROOT / "src" / "generated"
 HEADER_PATH = OUTPUT_DIR / "amiga_os_runtime.h"
 SOURCE_PATH = OUTPUT_DIR / "amiga_os_runtime.c"
@@ -99,6 +100,61 @@ def name_id_literal(name_domain_meta: list[dict], label: str, value: str | None)
     if value is None:
         return f"{meta['enum_prefix']}_NONE"
     return meta["enum_values"][value]
+
+
+def naming_patterns(naming_rules_payload: dict) -> list[dict]:
+    patterns = naming_rules_payload.get("patterns", [])
+    return [pattern for pattern in patterns if isinstance(pattern, dict)]
+
+
+def naming_trivial_functions(naming_rules_payload: dict) -> list[str]:
+    functions = naming_rules_payload.get("trivial_functions", [])
+    return [function for function in functions if isinstance(function, str) and function]
+
+
+def resident_vector_prefix_rows(includes_payload: dict) -> list[tuple[str, int, str]]:
+    prefixes = includes_payload.get("_meta", {}).get("resident_vector_prefixes", {})
+    rows: list[tuple[str, int, str]] = []
+    if not isinstance(prefixes, dict):
+        return rows
+    for target_type, values in sorted(prefixes.items()):
+        if not isinstance(target_type, str) or not isinstance(values, list):
+            continue
+        for slot_index, symbol_name in enumerate(values):
+            if isinstance(symbol_name, str) and symbol_name:
+                rows.append((target_type, slot_index, symbol_name))
+    return rows
+
+
+def resident_entry_seed_rows(includes_payload: dict) -> list[dict[str, str | None]]:
+    seed_map = includes_payload.get("_meta", {}).get("resident_entry_register_seeds", {})
+    rows: list[dict[str, str | None]] = []
+    if not isinstance(seed_map, dict):
+        return rows
+    for target_type, role_map in sorted(seed_map.items()):
+        if not isinstance(target_type, str) or not isinstance(role_map, dict):
+            continue
+        for role, specs in sorted(role_map.items()):
+            if not isinstance(role, str) or not isinstance(specs, list):
+                continue
+            for spec in specs:
+                if not isinstance(spec, dict):
+                    continue
+                register = spec.get("register")
+                kind = spec.get("kind")
+                if not isinstance(register, str) or not isinstance(kind, str):
+                    continue
+                rows.append({
+                    "target_type": target_type,
+                    "role": role,
+                    "register": register,
+                    "kind": kind,
+                    "struct_name": spec.get("struct_name") if isinstance(spec.get("struct_name"), str) else None,
+                    "context_name": spec.get("context_name") if isinstance(spec.get("context_name"), str) else None,
+                    "named_base_source": spec.get("named_base_source") if isinstance(spec.get("named_base_source"), str) else None,
+                    "named_base_name": spec.get("named_base_name") if isinstance(spec.get("named_base_name"), str) else None,
+                })
+    return rows
 
 
 def parse_register_name(name: str | None) -> tuple[int, int]:
@@ -201,6 +257,8 @@ def build_api_input_value_domain_map(includes_payload: dict, corrections_payload
             if not isinstance(domain_name, str) or not domain_name:
                 continue
             rows[(library_name, function_name, input_name)] = domain_name
+    if _has_alert_number_domain(includes_payload):
+        rows.setdefault(("exec.library", "Alert", "alertNum"), "exec.alert.number")
     return rows
 
 
@@ -226,6 +284,34 @@ def build_api_input_semantic_kind_map(includes_payload: dict, corrections_payloa
             if not isinstance(semantic_kind, str) or not semantic_kind:
                 continue
             rows[(library_name, function_name, input_name)] = semantic_kind
+    return rows
+
+
+def build_api_input_type_override_map(corrections_payload: dict) -> dict[tuple[str, str, str], tuple[str, str | None]]:
+    rows: dict[tuple[str, str, str], tuple[str, str | None]] = {}
+    bindings = corrections_payload.get("_meta", {}).get("api_input_type_overrides", [])
+    if not isinstance(bindings, list):
+        return rows
+    for binding in bindings:
+        if not isinstance(binding, dict):
+            continue
+        library_name = binding.get("library")
+        function_name = binding.get("function")
+        input_name = binding.get("input")
+        type_name = binding.get("type")
+        struct_name = binding.get("i_struct")
+        if not isinstance(library_name, str) or not library_name:
+            continue
+        if not isinstance(function_name, str) or not function_name:
+            continue
+        if not isinstance(input_name, str) or not input_name:
+            continue
+        if not isinstance(type_name, str) or not type_name:
+            continue
+        rows[(library_name, function_name, input_name)] = (
+            type_name,
+            struct_name if isinstance(struct_name, str) and struct_name else None,
+        )
     return rows
 
 
@@ -266,7 +352,96 @@ def build_merged_value_domains(includes_payload: dict, corrections_payload: dict
         for domain_name, domain_info in domains.items():
             if isinstance(domain_name, str) and domain_name and isinstance(domain_info, dict):
                 merged[domain_name] = domain_info
+    constants = includes_payload.get("constants", {})
+    if isinstance(constants, dict):
+        def add_domain(name: str, kind: str, members: list[str], *, exact: bool = False) -> None:
+            present = [
+                member for member in members
+                if isinstance(constants.get(member), dict)
+                and isinstance(constants[member].get("value"), int)
+            ]
+            if present and name not in merged:
+                merged[name] = {
+                    "kind": kind,
+                    "members": present,
+                    **({"exact_match_policy": "error"} if exact else {}),
+                    **({"composition": "bit_or"} if kind == "flags" else {}),
+                }
+
+        add_domain("exec.resident.matchword", "enum", ["RTC_MATCHWORD"], exact=True)
+        add_domain("exec.resident.flags", "flags", [
+            "RTF_COLDSTART",
+            "RTF_SINGLETASK",
+            "RTF_AFTERDOS",
+            "RTF_AUTOINIT",
+        ])
+        add_domain("exec.node.type", "enum", [
+            "NT_UNKNOWN",
+            "NT_TASK",
+            "NT_INTERRUPT",
+            "NT_DEVICE",
+            "NT_MSGPORT",
+            "NT_MESSAGE",
+            "NT_FREEMSG",
+            "NT_REPLYMSG",
+            "NT_RESOURCE",
+            "NT_LIBRARY",
+            "NT_MEMORY",
+            "NT_SOFTINT",
+            "NT_FONT",
+            "NT_PROCESS",
+            "NT_SEMAPHORE",
+            "NT_SIGNALSEM",
+            "NT_BOOTNODE",
+            "NT_KICKMEM",
+            "NT_GRAPHICS",
+            "NT_DEATHMESSAGE",
+        ], exact=True)
+        add_domain("exec.library.flags", "flags", [
+            "LIBF_SUMMING",
+            "LIBF_CHANGED",
+            "LIBF_SUMUSED",
+            "LIBF_DELEXP",
+            "LIBF_EXP0CNT",
+        ])
+        alert_members = _alert_number_domain_members(includes_payload)
+        if alert_members and "exec.alert.number" not in merged:
+            merged["exec.alert.number"] = {
+                "kind": "flags",
+                "members": alert_members,
+                "composition": "bit_or",
+                "remainder_policy": "error",
+            }
     return merged
+
+
+def _constant_include_path(constant_info: dict) -> str | None:
+    owner = constant_info.get("owner")
+    if isinstance(owner, dict):
+        include_path = owner.get("assembler_include_path") or owner.get("canonical_include_path")
+        if isinstance(include_path, str) and include_path:
+            return include_path.replace("\\", "/").lower()
+    return None
+
+
+def _alert_number_domain_members(includes_payload: dict) -> list[str]:
+    constants = includes_payload.get("constants", {})
+    if not isinstance(constants, dict):
+        return []
+    rows: list[str] = []
+    for symbol_name, constant_info in constants.items():
+        if not isinstance(symbol_name, str) or not symbol_name.startswith(("AT_", "AG_", "AO_", "AN_")):
+            continue
+        if not isinstance(constant_info, dict) or not isinstance(constant_info.get("value"), int):
+            continue
+        if _constant_include_path(constant_info) != "exec/alerts.i":
+            continue
+        rows.append(symbol_name)
+    return sorted(rows)
+
+
+def _has_alert_number_domain(includes_payload: dict) -> bool:
+    return bool(_alert_number_domain_members(includes_payload))
 
 
 def build_constant_rows(includes_payload: dict) -> list[tuple[str, int, str | None]]:
@@ -285,7 +460,35 @@ def build_constant_rows(includes_payload: dict) -> list[tuple[str, int, str | No
             continue
         include_path = normalize_include_path(owner.get("assembler_include_path") if isinstance(owner, dict) else None)
         rows.append((symbol_name, int(value), include_path))
+    existing = {symbol_name for symbol_name, _, _ in rows}
+    missing = sorted({
+        symbol_name
+        for target_type, _slot_index, symbol_name in resident_vector_prefix_rows(includes_payload)
+        if target_type == "library" and symbol_name not in existing
+    })
+    if missing:
+        raise ValueError(
+            "missing parsed LIBDEF constants from exec/libraries.i: " + ", ".join(missing)
+        )
+    rows.sort(key=lambda row: row[0])
     return rows
+
+
+def ensure_core_struct_field_value_domain_rows(rows: list[tuple[str, str, str | None, str]],
+                                               merged_domains: dict[str, dict]) -> list[tuple[str, str, str | None, str]]:
+    row_map = {(struct_name, field_name, context_name): domain_name
+               for struct_name, field_name, context_name, domain_name in rows}
+    for struct_name, field_name, domain_name in (
+        ("RT", "RT_MATCHWORD", "exec.resident.matchword"),
+        ("RT", "RT_FLAGS", "exec.resident.flags"),
+        ("RT", "RT_TYPE", "exec.node.type"),
+        ("LIB", "LIB_FLAGS", "exec.library.flags"),
+    ):
+        if domain_name in merged_domains:
+            row_map.setdefault((struct_name, field_name, None), domain_name)
+    return sorted(((struct_name, field_name, context_name, domain_name)
+                   for (struct_name, field_name, context_name), domain_name in row_map.items()),
+                  key=lambda row: (row[0], row[1], "" if row[2] is None else row[2], row[3]))
 
 
 def build_domain_member_rows(merged_domains: dict[str, dict], constant_rows: list[tuple[str, int, str | None]]
@@ -317,6 +520,20 @@ def build_domain_member_rows(merged_domains: dict[str, dict], constant_rows: lis
     return rows, used_constant_rows
 
 
+def include_resident_vector_constant_rows(includes_payload: dict, constant_rows: list[tuple[str, int, str | None]],
+                                          used_constant_rows: list[tuple[str, int, str | None]]
+                                          ) -> list[tuple[str, int, str | None]]:
+    by_name = {symbol_name: (symbol_name, value, include_path)
+               for symbol_name, value, include_path in used_constant_rows}
+    constant_by_name = {symbol_name: (symbol_name, value, include_path)
+                        for symbol_name, value, include_path in constant_rows}
+    for _target_type, _slot_index, symbol_name in resident_vector_prefix_rows(includes_payload):
+        row = constant_by_name.get(symbol_name)
+        if row is not None:
+            by_name.setdefault(symbol_name, row)
+    return sorted(by_name.values(), key=lambda row: row[0])
+
+
 def value_domain_rows(merged_domains: dict[str, dict]) -> list[tuple[str, str | None, str | None, str | None, str | None, str | None]]:
     rows: list[tuple[str, str | None, str | None, str | None, str | None, str | None]] = []
     for domain_name in sorted(merged_domains.keys()):
@@ -340,7 +557,8 @@ def value_domain_rows(merged_domains: dict[str, dict]) -> list[tuple[str, str | 
 
 def input_rows(library_name: str, function_name: str, other_info: dict, includes_payload: dict, other_payload: dict,
                api_input_value_domains: dict[tuple[str, str, str], str],
-               api_input_semantic_kinds: dict[tuple[str, str, str], str]
+               api_input_semantic_kinds: dict[tuple[str, str, str], str],
+               api_input_type_overrides: dict[tuple[str, str, str], tuple[str, str | None]]
                ) -> list[tuple[str, str | None, str | None, str | None, str | None, str | None]]:
     rows: list[tuple[str, str | None, str | None, str | None, str | None, str | None]] = []
     for item in other_info.get("inputs", []):
@@ -352,12 +570,20 @@ def input_rows(library_name: str, function_name: str, other_info: dict, includes
         input_name = item.get("name") if isinstance(item.get("name"), str) and item.get("name") else None
         type_name = item.get("type") if isinstance(item.get("type"), str) and item.get("type") else None
         struct_name = item.get("i_struct") if isinstance(item.get("i_struct"), str) and item.get("i_struct") else None
+        if input_name is not None and (library_name, function_name, input_name) in api_input_type_overrides:
+            type_name, struct_name = api_input_type_overrides[(library_name, function_name, input_name)]
         if struct_name is None:
             struct_name = infer_struct_name_from_type(type_name, includes_payload, other_payload)
         semantic_kind = item.get("semantic_kind") if isinstance(item.get("semantic_kind"), str) and item.get("semantic_kind") else None
         if input_name is not None:
             semantic_kind = api_input_semantic_kinds.get((library_name, function_name, input_name), semantic_kind)
-        value_domain_name = api_input_value_domains.get((library_name, function_name, input_name)) if input_name is not None else None
+        value_domain_name = (
+            item.get("value_domain_name")
+            if isinstance(item.get("value_domain_name"), str) and item.get("value_domain_name")
+            else None
+        )
+        if input_name is not None:
+            value_domain_name = api_input_value_domains.get((library_name, function_name, input_name), value_domain_name)
         for reg_name_text in regs:
             if isinstance(reg_name_text, str) and reg_name_text:
                 rows.append((reg_name_text, input_name, type_name, struct_name, semantic_kind, value_domain_name))
@@ -497,7 +723,8 @@ def normalized_compatibility_enum_literal(version: str | None, supported_version
 
 def referenced_struct_names(rows: list[tuple[str, str, int, str, dict]], includes_payload: dict, other_payload: dict,
                             api_input_value_domains: dict[tuple[str, str, str], str],
-                            api_input_semantic_kinds: dict[tuple[str, str, str], str]) -> list[str]:
+                            api_input_semantic_kinds: dict[tuple[str, str, str], str],
+                            api_input_type_overrides: dict[tuple[str, str, str], tuple[str, str | None]]) -> list[str]:
     names: set[str] = set()
     for library_name, _, _, function_name, other_info in rows:
         if not isinstance(other_info, dict):
@@ -509,14 +736,14 @@ def referenced_struct_names(rows: list[tuple[str, str, int, str, dict]], include
                 names.add(value)
         for _, _, _, input_struct_name, _, _ in input_rows(library_name, function_name, other_info, includes_payload,
                                                            other_payload, api_input_value_domains,
-                                                           api_input_semantic_kinds):
+                                                           api_input_semantic_kinds, api_input_type_overrides):
             if input_struct_name:
                 names.add(input_struct_name)
     return sorted(names)
 
 
-def struct_field_rows(includes_payload: dict, struct_names: list[str]) -> list[tuple[str, int, str, str | None]]:
-    rows: list[tuple[str, int, str, str | None]] = []
+def struct_field_rows(includes_payload: dict, struct_names: list[str]) -> list[tuple[str, int, str, str | None, int, str | None, str | None, str | None]]:
+    rows: list[tuple[str, int, str, str | None, int, str | None, str | None, str | None]] = []
     structs = includes_payload.get("structs", {})
     for struct_name in struct_names:
         struct_info = structs.get(struct_name, {})
@@ -536,14 +763,31 @@ def struct_field_rows(includes_payload: dict, struct_names: list[str]) -> list[t
                 nested_type_name = field["struct"]
             elif isinstance(field.get("pointer_struct"), str) and field["pointer_struct"]:
                 nested_type_name = field["pointer_struct"]
-            rows.append((struct_name, int(offset), field_name, nested_type_name))
+            size = field.get("size")
+            field_type = field.get("type") if isinstance(field.get("type"), str) and field.get("type") else None
+            c_type = field.get("c_type") if isinstance(field.get("c_type"), str) and field.get("c_type") else None
+            pointer_struct = (
+                field.get("pointer_struct")
+                if isinstance(field.get("pointer_struct"), str) and field.get("pointer_struct")
+                else None
+            )
+            rows.append((
+                struct_name,
+                int(offset),
+                field_name,
+                nested_type_name,
+                int(size) if isinstance(size, int) else 0,
+                field_type,
+                c_type,
+                pointer_struct,
+            ))
     rows.sort(key=lambda row: (row[0], row[1], row[2]))
     return rows
 
 
 def symbol_include_rows(includes_payload: dict,
                         rows: list[tuple[str, str, int, str, dict]],
-                        field_rows: list[tuple[str, int, str, str | None]],
+                        field_rows: list[tuple[str, int, str, str | None, int, str | None, str | None, str | None]],
                         domain_constant_rows: list[tuple[str, int, str | None]]) -> list[tuple[str, str]]:
     entries: dict[str, str] = {}
     libraries = includes_payload.get("libraries", {})
@@ -584,7 +828,7 @@ def symbol_include_rows(includes_payload: dict,
 
 
 def build_name_domains(rows: list[tuple[str, str, int, str, dict]],
-                       field_rows: list[tuple[str, int, str, str | None]],
+                       field_rows: list[tuple[str, int, str, str | None, int, str | None, str | None, str | None]],
                        value_domain_rows_data: list[tuple[str, str | None, str | None, str | None, str | None, str | None]],
                        domain_member_rows: list[tuple[str, str, int | None, str | None]],
                        api_input_binding_rows: list[tuple[str, str, str, str]],
@@ -594,7 +838,8 @@ def build_name_domains(rows: list[tuple[str, str, int, str, dict]],
                        symbol_include_rows_data: list[tuple[str, str]],
                        includes_payload: dict, other_payload: dict,
                        api_input_value_domains: dict[tuple[str, str, str], str],
-                       api_input_semantic_kinds: dict[tuple[str, str, str], str]) -> list[tuple[int, str, list[str]]]:
+                       api_input_semantic_kinds: dict[tuple[str, str, str], str],
+                       api_input_type_overrides: dict[tuple[str, str, str], tuple[str, str | None]]) -> list[tuple[int, str, list[str]]]:
     library_names: set[str] = set()
     base_names: set[str] = set()
     function_names: set[str] = set()
@@ -613,7 +858,7 @@ def build_name_domains(rows: list[tuple[str, str, int, str, dict]],
         symbol_names.add(f"_LVO{function_name}")
         for _, input_name, type_name, struct_name, semantic_kind, value_domain_name in input_rows(
                 library_name, function_name, other_info, includes_payload, other_payload, api_input_value_domains,
-                api_input_semantic_kinds):
+                api_input_semantic_kinds, api_input_type_overrides):
             if input_name is not None:
                 symbol_names.add(input_name)
             if type_name is not None:
@@ -639,14 +884,17 @@ def build_name_domains(rows: list[tuple[str, str, int, str, dict]],
         if output_value_domain_name is not None:
             value_domain_names.add(output_value_domain_name)
 
-    for struct_name, _, field_name, nested_type_name in field_rows:
+    for struct_name, _, field_name, nested_type_name, _, field_type, c_type, pointer_struct in field_rows:
         struct_names.add(struct_name)
         type_names.add(struct_name)
         field_names.add(field_name)
         symbol_names.add(field_name)
-        if nested_type_name is not None:
-            type_names.add(nested_type_name)
-            struct_names.add(nested_type_name)
+        for type_name in (nested_type_name, field_type, c_type, pointer_struct):
+            if type_name is not None:
+                type_names.add(type_name)
+        for maybe_struct_name in (nested_type_name, pointer_struct):
+            if maybe_struct_name is not None:
+                struct_names.add(maybe_struct_name)
 
     for domain_name, _, zero_name, _, _, _ in value_domain_rows_data:
         value_domain_names.add(domain_name)
@@ -683,6 +931,23 @@ def build_name_domains(rows: list[tuple[str, str, int, str, dict]],
     for symbol_name, include_path in symbol_include_rows_data:
         symbol_names.add(symbol_name)
         include_paths.add(include_path)
+    for library_name, struct_name in includes_payload.get("_meta", {}).get("named_base_structs", {}).items():
+        library_names.add(library_name)
+        struct_names.add(struct_name)
+        type_names.add(struct_name)
+    for _, _, symbol_name in resident_vector_prefix_rows(includes_payload):
+        symbol_names.add(symbol_name)
+    for seed in resident_entry_seed_rows(includes_payload):
+        named_base_name = seed["named_base_name"]
+        struct_name = seed["struct_name"]
+        context_name = seed["context_name"]
+        if named_base_name is not None:
+            library_names.add(named_base_name)
+        if struct_name is not None:
+            struct_names.add(struct_name)
+            type_names.add(struct_name)
+        if context_name is not None:
+            symbol_names.add(context_name)
 
     return [
         (NAME_DOMAIN_LIBRARY, "library", sorted(library_names)),
@@ -698,7 +963,8 @@ def build_name_domains(rows: list[tuple[str, str, int, str, dict]],
     ]
 
 
-def write_header(rows: list[tuple[str, str, int, str, dict]], field_rows: list[tuple[str, int, str, str | None]],
+def write_header(rows: list[tuple[str, str, int, str, dict]],
+                 field_rows: list[tuple[str, int, str, str | None, int, str | None, str | None, str | None]],
                  value_domain_rows_data: list[tuple[str, str | None, str | None, str | None, str | None, str | None]],
                  domain_member_rows: list[tuple[str, str, int | None, str | None]],
                  api_input_binding_rows: list[tuple[str, str, str, str]],
@@ -707,16 +973,27 @@ def write_header(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
                  compatibility_versions_data: list[str], include_min_versions_data: list[tuple[str, str]],
                  includes_payload: dict, other_payload: dict,
                  api_input_value_domains: dict[tuple[str, str, str], str],
-                 api_input_semantic_kinds: dict[tuple[str, str, str], str]) -> None:
+                 api_input_semantic_kinds: dict[tuple[str, str, str], str],
+                 api_input_type_overrides: dict[tuple[str, str, str], tuple[str, str | None]],
+                 naming_rules_payload: dict) -> None:
     io_device_offset = struct_field_offset(includes_payload, "IO", "IO_DEVICE")
     symbol_include_rows_data = symbol_include_rows(includes_payload, rows, field_rows, domain_constant_rows)
+    named_base_struct_rows = sorted(includes_payload.get("_meta", {}).get("named_base_structs", {}).items())
+    naming_pattern_rows = naming_patterns(naming_rules_payload)
+    resident_prefix_rows = resident_vector_prefix_rows(includes_payload)
+    resident_seed_rows = resident_entry_seed_rows(includes_payload)
+    naming_function_limit = max(
+        (len(pattern.get("functions", [])) for pattern in naming_pattern_rows if isinstance(pattern.get("functions"), list)),
+        default=0,
+    )
     name_domains = build_name_domains(rows, field_rows, value_domain_rows_data, domain_member_rows,
                                       api_input_binding_rows, struct_field_binding_rows, domain_constant_rows,
                                       include_min_versions_data, symbol_include_rows_data, includes_payload,
-                                      other_payload, api_input_value_domains, api_input_semantic_kinds)
+                                      other_payload, api_input_value_domains, api_input_semantic_kinds,
+                                      api_input_type_overrides)
     name_domain_meta = build_name_domain_meta(name_domains, "AMIGA_OS")
     input_row_count = sum(len(input_rows(library_name, function_name, other_info, includes_payload, other_payload,
-                                         api_input_value_domains, api_input_semantic_kinds))
+                                         api_input_value_domains, api_input_semantic_kinds, api_input_type_overrides))
                           for library_name, _, _, function_name, other_info in rows)
     lines = [
         "/* Generated Amiga OS runtime metadata. Do not edit directly. */",
@@ -772,6 +1049,10 @@ def write_header(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
         lines.append(f"  {item['enum_prefix']}_NONE = {item['none_id']},")
         lines.extend([f"}} {item['enum_type']};", ""])
     lines.extend([
+        f"#define AMIGA_OS_NAMING_PATTERN_FUNCTION_LIMIT {naming_function_limit}u",
+        "",
+    ])
+    lines.extend([
         "typedef struct AmigaOsCallInputInfo {",
         "  uint8_t reg_kind;",
         "  uint8_t reg_index;",
@@ -780,6 +1061,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
         "  uint16_t struct_id;",
         "  uint16_t semantic_kind_id;",
         "  uint16_t value_domain_id;",
+        "  uint8_t source_kind;",
         "} AmigaOsCallInputInfo;",
         "",
         "typedef struct AmigaOsCallOutputInfo {",
@@ -814,6 +1096,10 @@ def write_header(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
         "  int16_t offset;",
         "  uint16_t field_id;",
         "  uint16_t nested_type_id;",
+        "  uint16_t size;",
+        "  uint16_t field_type_id;",
+        "  uint16_t c_type_id;",
+        "  uint16_t pointer_struct_id;",
         "} AmigaOsStructFieldInfo;",
         "",
         "typedef struct AmigaOsValueDomainMemberInfo {",
@@ -847,22 +1133,56 @@ def write_header(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
         "  uint16_t domain_id;",
         "} AmigaOsStructFieldValueDomainInfo;",
         "",
+        "typedef struct AmigaOsNamedBaseStructInfo {",
+        "  uint16_t library_id;",
+        "  uint16_t struct_id;",
+        "} AmigaOsNamedBaseStructInfo;",
+        "",
+        "typedef struct AmigaOsNamingPatternInfo {",
+        "  const char *name;",
+        "  uint16_t function_ids[AMIGA_OS_NAMING_PATTERN_FUNCTION_LIMIT];",
+        "  uint8_t function_count;",
+        "  uint8_t partial;",
+        "} AmigaOsNamingPatternInfo;",
+        "",
+        "typedef struct AmigaOsResidentVectorPrefixInfo {",
+        "  const char *target_type;",
+        "  uint8_t slot_index;",
+        "  uint16_t symbol_id;",
+        "} AmigaOsResidentVectorPrefixInfo;",
+        "",
+        "typedef struct AmigaOsResidentEntrySeedInfo {",
+        "  const char *target_type;",
+        "  const char *role;",
+        "  const char *register_name;",
+        "  const char *kind;",
+        "  const char *named_base_source;",
+        "  uint16_t named_base_library_id;",
+        "  uint16_t struct_id;",
+        "  uint16_t context_id;",
+        "} AmigaOsResidentEntrySeedInfo;",
+        "",
         "uint16_t amiga_os_name_id(uint8_t domain_kind, const char *name);",
         "const char *amiga_os_name(uint8_t domain_kind, uint16_t id);",
             "const char *amiga_os_register_name(uint8_t reg_kind, uint8_t reg_index);",
             "const char *amiga_os_find_library_base_name_by_id(uint16_t library_id);",
-            "const char *amiga_os_find_library_base_name(const char *library_name);",
-            "const char *amiga_os_find_library_name_by_base_id(uint16_t base_id);",
+        "const char *amiga_os_find_library_base_name(const char *library_name);",
+        "uint16_t amiga_os_find_library_base_struct_id(uint16_t library_id);",
+        "const char *amiga_os_find_library_base_struct_name(const char *library_name);",
+        "const AmigaOsNamedBaseStructInfo *amiga_os_named_base_struct_at(size_t index);",
+        "const char *amiga_os_find_library_name_by_base_id(uint16_t base_id);",
             "const char *amiga_os_find_library_name_by_base_name(const char *base_name);",
             "const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_base_id(uint16_t base_id, int16_t lvo);",
         "const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector(const char *base_name, int16_t lvo);",
         "const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_symbol_id(uint16_t lvo_symbol_id);",
         "const AmigaOsLibraryVectorInfo *amiga_os_find_library_vector_by_symbol_name(const char *lvo_symbol_name);",
+        "const AmigaOsLibraryVectorInfo *amiga_os_library_vector_at(size_t index);",
         "const AmigaOsCallInputInfo *amiga_os_library_vector_inputs(const AmigaOsLibraryVectorInfo *entry, size_t *out_count);",
         "const AmigaOsStructFieldInfo *amiga_os_find_struct_field_by_struct_id(uint16_t struct_id, int16_t offset);",
         "const AmigaOsStructFieldInfo *amiga_os_find_struct_field(const char *struct_name, int16_t offset);",
         "const AmigaOsStructFieldInfo *amiga_os_find_struct_field_by_field_id(uint16_t field_id);",
         "const AmigaOsStructFieldInfo *amiga_os_find_struct_field_by_symbol_name(const char *field_name);",
+        "const AmigaOsStructFieldInfo *amiga_os_struct_field_at(size_t index);",
         "const AmigaOsValueDomainInfo *amiga_os_find_value_domain_by_id(uint16_t domain_id);",
         "const AmigaOsValueDomainInfo *amiga_os_find_value_domain(const char *domain_name);",
         "const AmigaOsValueDomainMemberInfo *amiga_os_value_domain_members(const AmigaOsValueDomainInfo *domain, size_t *out_count);",
@@ -882,6 +1202,13 @@ def write_header(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
         "const char *amiga_os_normalize_compatibility_version(const char *version);",
         "uint16_t amiga_os_find_symbol_include_id(uint16_t symbol_id);",
         "const char *amiga_os_find_symbol_include(const char *symbol_name);",
+        "const AmigaOsNamingPatternInfo *amiga_os_naming_pattern_at(size_t index);",
+        "int amiga_os_is_trivial_naming_function_id(uint16_t function_id);",
+        "const char *amiga_os_generic_naming_prefix(void);",
+        "const AmigaOsResidentVectorPrefixInfo *amiga_os_resident_vector_prefix_at(size_t index);",
+        "const AmigaOsResidentEntrySeedInfo *amiga_os_resident_entry_seed_at(size_t index);",
+        "const char *amiga_os_exec_base_library_name(void);",
+        "uint8_t amiga_os_lvo_slot_size(void);",
         "",
         f"#define AMIGA_OS_LIBRARY_VECTOR_COUNT {len(rows)}u",
         f"#define AMIGA_OS_CALL_INPUT_COUNT {input_row_count}u",
@@ -890,9 +1217,14 @@ def write_header(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
         f"#define AMIGA_OS_VALUE_DOMAIN_MEMBER_COUNT {len(domain_member_rows)}u",
         f"#define AMIGA_OS_API_INPUT_VALUE_DOMAIN_COUNT {len(api_input_binding_rows)}u",
         f"#define AMIGA_OS_STRUCT_FIELD_VALUE_DOMAIN_COUNT {len(struct_field_binding_rows)}u",
+        f"#define AMIGA_OS_NAMED_BASE_STRUCT_COUNT {len(named_base_struct_rows)}u",
         f"#define AMIGA_OS_COMPATIBILITY_VERSION_COUNT {len(compatibility_versions_data)}u",
         f"#define AMIGA_OS_INCLUDE_MIN_VERSION_COUNT {len(include_min_versions_data)}u",
         f"#define AMIGA_OS_SYMBOL_INCLUDE_COUNT {len(symbol_include_rows_data)}u",
+        f"#define AMIGA_OS_NAMING_PATTERN_COUNT {len(naming_pattern_rows)}u",
+        f"#define AMIGA_OS_TRIVIAL_NAMING_FUNCTION_COUNT {len(naming_trivial_functions(naming_rules_payload))}u",
+        f"#define AMIGA_OS_RESIDENT_VECTOR_PREFIX_COUNT {len(resident_prefix_rows)}u",
+        f"#define AMIGA_OS_RESIDENT_ENTRY_SEED_COUNT {len(resident_seed_rows)}u",
     ])
     if io_device_offset is not None:
         lines.append(f"#define AMIGA_OS_STRUCT_IO_FIELD_IO_DEVICE_OFFSET {io_device_offset}u")
@@ -900,7 +1232,8 @@ def write_header(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
     HEADER_PATH.write_text("\n".join(lines), encoding="ascii")
 
 
-def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[tuple[str, int, str, str | None]],
+def write_source(rows: list[tuple[str, str, int, str, dict]],
+                 field_rows: list[tuple[str, int, str, str | None, int, str | None, str | None, str | None]],
                  value_domain_rows_data: list[tuple[str, str | None, str | None, str | None, str | None, str | None]],
                  domain_member_rows: list[tuple[str, str, int | None, str | None]],
                  api_input_binding_rows: list[tuple[str, str, str, str]],
@@ -909,14 +1242,22 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
                  compatibility_versions_data: list[str], include_min_versions_data: list[tuple[str, str]],
                  includes_payload: dict, other_payload: dict,
                  api_input_value_domains: dict[tuple[str, str, str], str],
-                 api_input_semantic_kinds: dict[tuple[str, str, str], str]) -> None:
+                 api_input_semantic_kinds: dict[tuple[str, str, str], str],
+                 api_input_type_overrides: dict[tuple[str, str, str], tuple[str, str | None]],
+                 naming_rules_payload: dict) -> None:
     symbol_include_rows_data = symbol_include_rows(includes_payload, rows, field_rows, domain_constant_rows)
     name_domains = build_name_domains(rows, field_rows, value_domain_rows_data, domain_member_rows,
                                       api_input_binding_rows, struct_field_binding_rows, domain_constant_rows,
                                       include_min_versions_data, symbol_include_rows_data, includes_payload,
-                                      other_payload, api_input_value_domains, api_input_semantic_kinds)
+                                      other_payload, api_input_value_domains, api_input_semantic_kinds,
+                                      api_input_type_overrides)
     name_domain_meta = build_name_domain_meta(name_domains, "AMIGA_OS")
-    flat_input_rows: list[tuple[str, str | None, str | None, str | None, str | None, str | None]] = []
+    named_base_struct_rows = sorted(includes_payload.get("_meta", {}).get("named_base_structs", {}).items())
+    naming_pattern_rows = naming_patterns(naming_rules_payload)
+    trivial_naming_functions = naming_trivial_functions(naming_rules_payload)
+    resident_prefix_rows = resident_vector_prefix_rows(includes_payload)
+    resident_seed_rows = resident_entry_seed_rows(includes_payload)
+    flat_input_rows: list[tuple[str, str | None, str | None, str | None, str | None, str | None, int]] = []
     lines = [
         "/* Generated Amiga OS runtime metadata. Do not edit directly. */",
         '#include "generated/amiga_os_runtime.h"',
@@ -988,11 +1329,14 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
     for library_name, _, _, function_name, other_info in rows:
         for reg_name_text, input_name, type_name, struct_name, semantic_kind, value_domain_name in input_rows(
                 library_name, function_name, other_info, includes_payload, other_payload, api_input_value_domains,
-                api_input_semantic_kinds):
+                api_input_semantic_kinds, api_input_type_overrides):
             reg_kind, reg_index = parse_register_name(reg_name_text)
-            flat_input_rows.append((reg_name_text, input_name, type_name, struct_name, semantic_kind, value_domain_name))
+            source_kind = 1 if input_name is not None and (
+                library_name, function_name, input_name) in api_input_type_overrides else 0
+            flat_input_rows.append((reg_name_text, input_name, type_name, struct_name, semantic_kind,
+                                    value_domain_name, source_kind))
             lines.append(
-                "  { %du, %du, %s, %s, %s, %s, %s },"
+                "  { %du, %du, %s, %s, %s, %s, %s, %du },"
                 % (
                     reg_kind,
                     reg_index,
@@ -1001,6 +1345,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
                     name_id_literal(name_domain_meta, "struct", struct_name),
                     name_id_literal(name_domain_meta, "semantic_kind", semantic_kind),
                     name_id_literal(name_domain_meta, "value_domain", value_domain_name),
+                    source_kind,
                 )
             )
     lines.extend([
@@ -1023,7 +1368,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             function_name, other_info, includes_payload, other_payload)
         output_reg_kind, output_reg_index = parse_register_name(output_reg_name)
         vector_input_rows = input_rows(library_name, function_name, other_info, includes_payload, other_payload,
-                                       api_input_value_domains, api_input_semantic_kinds)
+                                       api_input_value_domains, api_input_semantic_kinds, api_input_type_overrides)
         input_count = len(vector_input_rows)
         lines.append(
             "  { %s, %s, %d, %s, %s, %du, %du, %du, %du, %s, %s, %du, %du, { %du, %du, %s, %s, %s, %s, %s } },"
@@ -1058,14 +1403,18 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "static const AmigaOsStructFieldInfo g_amiga_os_struct_fields[] = {",
         ]
     )
-    for struct_name, offset, field_name, nested_type_name in field_rows:
+    for struct_name, offset, field_name, nested_type_name, size, field_type, c_type, pointer_struct in field_rows:
         lines.append(
-            "  { %s, %d, %s, %s },"
+            "  { %s, %d, %s, %s, %du, %s, %s, %s },"
             % (
                 name_id_literal(name_domain_meta, "struct", struct_name),
                 offset,
                 name_id_literal(name_domain_meta, "field", field_name),
                 name_id_literal(name_domain_meta, "type", nested_type_name),
+                size,
+                name_id_literal(name_domain_meta, "type", field_type),
+                name_id_literal(name_domain_meta, "type", c_type),
+                name_id_literal(name_domain_meta, "struct", pointer_struct),
             )
         )
     lines.extend(
@@ -1150,6 +1499,76 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
         [
             "};",
             "",
+            "static const AmigaOsNamedBaseStructInfo g_amiga_os_named_base_structs[] = {",
+        ]
+    )
+    for library_name, struct_name in named_base_struct_rows:
+        lines.append("  { %s, %s }," % (
+            name_id_literal(name_domain_meta, "library", library_name),
+            name_id_literal(name_domain_meta, "struct", struct_name)))
+    lines.extend(
+        [
+            "};",
+            "",
+            "static const AmigaOsNamingPatternInfo g_amiga_os_naming_patterns[] = {",
+        ]
+    )
+    for pattern in naming_pattern_rows:
+        raw_functions = pattern.get("functions", [])
+        functions = [function for function in raw_functions if isinstance(function, str)] if isinstance(raw_functions, list) else []
+        function_ids = [name_id_literal(name_domain_meta, "function", function) for function in functions]
+        initializer_values = ", ".join(function_ids)
+        if initializer_values:
+            initializer_values = "{ " + initializer_values + " }"
+        else:
+            initializer_values = "{ 0u }"
+        lines.append("  { \"%s\", %s, %du, %du }," % (
+            c_string(str(pattern.get("name", ""))),
+            initializer_values,
+            len(functions),
+            1 if pattern.get("partial") else 0))
+    lines.extend(
+        [
+            "};",
+            "",
+            "static const uint16_t g_amiga_os_trivial_naming_functions[] = {",
+        ]
+    )
+    for function_name in trivial_naming_functions:
+        lines.append("  %s," % name_id_literal(name_domain_meta, "function", function_name))
+    lines.extend(
+        [
+            "};",
+            "",
+            "static const AmigaOsResidentVectorPrefixInfo g_amiga_os_resident_vector_prefixes[] = {",
+        ]
+    )
+    for target_type, slot_index, symbol_name in resident_prefix_rows:
+        lines.append("  { \"%s\", %du, %s }," % (
+            c_string(target_type),
+            slot_index,
+            name_id_literal(name_domain_meta, "symbol", symbol_name)))
+    lines.extend(
+        [
+            "};",
+            "",
+            "static const AmigaOsResidentEntrySeedInfo g_amiga_os_resident_entry_seeds[] = {",
+        ]
+    )
+    for seed in resident_seed_rows:
+        lines.append("  { \"%s\", \"%s\", \"%s\", \"%s\", %s, %s, %s, %s }," % (
+            c_string(str(seed["target_type"])),
+            c_string(str(seed["role"])),
+            c_string(str(seed["register"])),
+            c_string(str(seed["kind"])),
+            "NULL" if seed["named_base_source"] is None else "\"%s\"" % c_string(str(seed["named_base_source"])),
+            name_id_literal(name_domain_meta, "library", seed["named_base_name"]),
+            name_id_literal(name_domain_meta, "struct", seed["struct_name"]),
+            name_id_literal(name_domain_meta, "symbol", seed["context_name"])))
+    lines.extend(
+        [
+            "};",
+            "",
             "static const AmigaOsConstantInfo g_amiga_os_constants[] = {",
         ]
     )
@@ -1216,6 +1635,62 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "  return amiga_os_find_library_base_name_by_id(amiga_os_name_id(%du, library_name));" % NAME_DOMAIN_LIBRARY,
             "}",
             "",
+            "uint16_t amiga_os_find_library_base_struct_id(uint16_t library_id) {",
+            "  size_t index;",
+            "  if (amiga_os_name(%du, library_id) == NULL) return AMIGA_OS_STRUCT_ID_NONE;" % NAME_DOMAIN_LIBRARY,
+            "  for (index = 0U; index < AMIGA_OS_NAMED_BASE_STRUCT_COUNT; ++index) {",
+            "    const AmigaOsNamedBaseStructInfo *entry = &g_amiga_os_named_base_structs[index];",
+            "    if (entry->library_id == library_id) return entry->struct_id;",
+            "  }",
+            "  return AMIGA_OS_STRUCT_ID_NONE;",
+            "}",
+            "",
+            "const char *amiga_os_find_library_base_struct_name(const char *library_name) {",
+            "  return amiga_os_name(%du, amiga_os_find_library_base_struct_id(amiga_os_name_id(%du, library_name)));" % (
+                NAME_DOMAIN_STRUCT, NAME_DOMAIN_LIBRARY),
+            "}",
+            "",
+            "const AmigaOsNamedBaseStructInfo *amiga_os_named_base_struct_at(size_t index) {",
+            "  if (index >= AMIGA_OS_NAMED_BASE_STRUCT_COUNT) return NULL;",
+            "  return &g_amiga_os_named_base_structs[index];",
+            "}",
+            "",
+            "const AmigaOsNamingPatternInfo *amiga_os_naming_pattern_at(size_t index) {",
+            "  if (index >= AMIGA_OS_NAMING_PATTERN_COUNT) return NULL;",
+            "  return &g_amiga_os_naming_patterns[index];",
+            "}",
+            "",
+            "int amiga_os_is_trivial_naming_function_id(uint16_t function_id) {",
+            "  size_t index;",
+            "  if (amiga_os_name(%du, function_id) == NULL) return 0;" % NAME_DOMAIN_FUNCTION,
+            "  for (index = 0U; index < AMIGA_OS_TRIVIAL_NAMING_FUNCTION_COUNT; ++index) {",
+            "    if (g_amiga_os_trivial_naming_functions[index] == function_id) return 1;",
+            "  }",
+            "  return 0;",
+            "}",
+            "",
+            "const char *amiga_os_generic_naming_prefix(void) {",
+            "  return \"%s\";" % c_string(str(naming_rules_payload.get("generic_prefix", ""))),
+            "}",
+            "",
+            "const AmigaOsResidentVectorPrefixInfo *amiga_os_resident_vector_prefix_at(size_t index) {",
+            "  if (index >= AMIGA_OS_RESIDENT_VECTOR_PREFIX_COUNT) return NULL;",
+            "  return &g_amiga_os_resident_vector_prefixes[index];",
+            "}",
+            "",
+            "const AmigaOsResidentEntrySeedInfo *amiga_os_resident_entry_seed_at(size_t index) {",
+            "  if (index >= AMIGA_OS_RESIDENT_ENTRY_SEED_COUNT) return NULL;",
+            "  return &g_amiga_os_resident_entry_seeds[index];",
+            "}",
+            "",
+            "const char *amiga_os_exec_base_library_name(void) {",
+            "  return \"%s\";" % c_string(str(includes_payload.get("_meta", {}).get("exec_base_addr", {}).get("library", "exec.library"))),
+            "}",
+            "",
+            "uint8_t amiga_os_lvo_slot_size(void) {",
+            "  return %du;" % int(includes_payload.get("_meta", {}).get("lvo_slot_size", 6)),
+            "}",
+            "",
             "const char *amiga_os_find_library_name_by_base_id(uint16_t base_id) {",
             "  size_t index;",
             "  if (amiga_os_name(%du, base_id) == NULL) return NULL;" % NAME_DOMAIN_BASE,
@@ -1266,6 +1741,11 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "  return amiga_os_find_library_vector_by_symbol_id(amiga_os_name_id(%du, lvo_symbol_name));" % NAME_DOMAIN_SYMBOL,
             "}",
             "",
+            "const AmigaOsLibraryVectorInfo *amiga_os_library_vector_at(size_t index) {",
+            "  if (index >= AMIGA_OS_LIBRARY_VECTOR_COUNT) return NULL;",
+            "  return &g_amiga_os_library_vectors[index];",
+            "}",
+            "",
             "const AmigaOsCallInputInfo *amiga_os_library_vector_inputs(const AmigaOsLibraryVectorInfo *entry, size_t *out_count) {",
             "  if (out_count != NULL) *out_count = 0U;",
             "  if (entry == NULL || entry->input_count == 0U) return NULL;",
@@ -1308,6 +1788,11 @@ def write_source(rows: list[tuple[str, str, int, str, dict]], field_rows: list[t
             "",
             "const AmigaOsStructFieldInfo *amiga_os_find_struct_field_by_symbol_name(const char *field_name) {",
             "  return amiga_os_find_struct_field_by_field_id(amiga_os_name_id(%du, field_name));" % NAME_DOMAIN_FIELD,
+            "}",
+            "",
+            "const AmigaOsStructFieldInfo *amiga_os_struct_field_at(size_t index) {",
+            "  if (index >= AMIGA_OS_STRUCT_FIELD_COUNT) return NULL;",
+            "  return &g_amiga_os_struct_fields[index];",
             "}",
             "",
             "const AmigaOsValueDomainInfo *amiga_os_find_value_domain_by_id(uint16_t domain_id) {",
@@ -1521,31 +2006,43 @@ def main() -> None:
     includes_payload = json.loads(INCLUDES_PATH.read_text(encoding="utf-8"))
     other_payload = json.loads(OTHER_PATH.read_text(encoding="utf-8"))
     corrections_payload = json.loads(CORRECTIONS_PATH.read_text(encoding="utf-8"))
+    naming_rules_payload = json.loads(NAMING_RULES_PATH.read_text(encoding="utf-8"))
     api_input_value_domains = build_api_input_value_domain_map(includes_payload, corrections_payload)
     api_input_semantic_kinds = build_api_input_semantic_kind_map(includes_payload, corrections_payload)
+    api_input_type_overrides = build_api_input_type_override_map(corrections_payload)
     merged_domains = build_merged_value_domains(includes_payload, corrections_payload)
     constant_rows = build_constant_rows(includes_payload)
     value_domain_rows_data = value_domain_rows(merged_domains)
     domain_member_rows, domain_constant_rows = build_domain_member_rows(merged_domains, constant_rows)
+    domain_constant_rows = include_resident_vector_constant_rows(includes_payload, constant_rows, domain_constant_rows)
+    constant_row_by_name = {symbol_name: (symbol_name, value, include_path) for symbol_name, value, include_path in constant_rows}
+    constant_row_by_name.update({symbol_name: (symbol_name, value, include_path) for symbol_name, value, include_path in domain_constant_rows})
+    domain_constant_rows = sorted(constant_row_by_name.values(), key=lambda row: row[0])
     api_input_binding_rows = sorted((library_name, function_name, input_name, domain_name)
                                     for (library_name, function_name, input_name), domain_name
                                     in api_input_value_domains.items())
-    struct_field_binding_rows = build_struct_field_value_domain_rows(includes_payload, corrections_payload)
+    struct_field_binding_rows = ensure_core_struct_field_value_domain_rows(
+        build_struct_field_value_domain_rows(includes_payload, corrections_payload),
+        merged_domains,
+    )
     compatibility_versions_data = compatibility_versions(includes_payload)
     include_min_versions_data = include_min_version_rows(includes_payload)
     rows = library_rows(includes_payload, other_payload)
     field_rows = struct_field_rows(includes_payload,
                                    referenced_struct_names(rows, includes_payload, other_payload,
-                                                           api_input_value_domains, api_input_semantic_kinds))
+                                                           api_input_value_domains, api_input_semantic_kinds,
+                                                           api_input_type_overrides))
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     write_header(rows, field_rows, value_domain_rows_data, domain_member_rows, api_input_binding_rows,
                  struct_field_binding_rows, domain_constant_rows, compatibility_versions_data,
                  include_min_versions_data, includes_payload, other_payload,
-                 api_input_value_domains, api_input_semantic_kinds)
+                 api_input_value_domains, api_input_semantic_kinds, api_input_type_overrides,
+                 naming_rules_payload)
     write_source(rows, field_rows, value_domain_rows_data, domain_member_rows, api_input_binding_rows,
                  struct_field_binding_rows, domain_constant_rows, compatibility_versions_data,
                  include_min_versions_data, includes_payload, other_payload,
-                 api_input_value_domains, api_input_semantic_kinds)
+                 api_input_value_domains, api_input_semantic_kinds, api_input_type_overrides,
+                 naming_rules_payload)
 
 
 if __name__ == "__main__":

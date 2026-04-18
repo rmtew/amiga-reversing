@@ -1,0 +1,320 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import shutil
+from collections.abc import Callable
+from pathlib import Path
+
+from amiga_reversing.amiga_disk.adf import (
+    DiskAnalysisError,
+    analyze_adf,
+    derive_disk_id,
+)
+from amiga_reversing.amiga_disk.models import (
+    AdfAnalysis,
+    BootloaderStage,
+    DiskManifest,
+    ImportedTarget,
+)
+from amiga_reversing.disasm.binary_source import write_source_descriptor
+from amiga_reversing.disasm.project_ids import (
+    disk_child_project_id,
+    disk_child_target_relpath,
+    disk_project_root,
+    disk_project_targets_dir,
+)
+from amiga_reversing.disasm.project_paths import PROJECT_ROOT
+from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
+
+
+def _materialized_bootloader_disk_stage_targets(
+    analysis: AdfAnalysis,
+    disk_bytes: bytes,
+) -> list[tuple[BootloaderStage, bytes]]:
+    if analysis.bootloader_analysis is None:
+        return []
+    stage_targets: list[tuple[BootloaderStage, bytes]] = []
+    for stage in analysis.bootloader_analysis.stages:
+        import_target = stage.import_target
+        if import_target is None or import_target.source is None:
+            continue
+        source = import_target.source
+        start = source.get("byte_offset")
+        size = source.get("byte_size")
+        if not isinstance(start, int) or not isinstance(size, int):
+            raise DiskAnalysisError(f"Bootloader stage import target has invalid source span: {stage.name}")
+        end = start + size
+        if start < 0 or end > len(disk_bytes):
+            continue
+        stage_targets.append((stage, disk_bytes[start:end]))
+    return stage_targets
+
+
+def _unique_bootloader_raw_span_targets(
+    analysis: AdfAnalysis,
+    disk_bytes: bytes,
+) -> list[tuple[BootloaderStage, int, bytes]]:
+    if analysis.bootloader_analysis is None:
+        return []
+    span_targets: list[tuple[BootloaderStage, int, bytes]] = []
+    for stage in analysis.bootloader_analysis.stages:
+        for span_index, region in enumerate(stage.decode_regions):
+            import_target = region.import_target
+            if import_target is None or import_target.source is None:
+                continue
+            source = import_target.source
+            start = source.get("byte_offset")
+            size = source.get("byte_size")
+            if not isinstance(start, int) or not isinstance(size, int):
+                raise DiskAnalysisError(f"Bootloader raw span import target has invalid source span: {stage.name}")
+            end = start + size
+            if start < 0 or end > len(disk_bytes):
+                continue
+            span_targets.append((stage, span_index, disk_bytes[start:end]))
+    return span_targets
+
+
+def _write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _write_bytes(path: Path, data: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+
+
+def _has_dos_filesystem(analysis: AdfAnalysis) -> bool:
+    return analysis.filesystem is not None
+
+
+def _require_complete_dos_analysis(analysis: AdfAnalysis) -> None:
+    if analysis.root_block is None:
+        raise DiskAnalysisError("DOS analysis is missing root block")
+    if analysis.files is None:
+        raise DiskAnalysisError("DOS analysis is missing file inventory")
+    if analysis.directories is None:
+        raise DiskAnalysisError("DOS analysis is missing directory inventory")
+    if analysis.bitmap is None:
+        raise DiskAnalysisError("DOS analysis is missing bitmap summary")
+    if analysis.block_usage is None:
+        raise DiskAnalysisError("DOS analysis is missing block usage summary")
+
+
+def _import_target_required_text(value: str | None, field_name: str, target_type: str) -> str:
+    if value is None or value == "":
+        raise DiskAnalysisError(f"C disk inspect {target_type} import target is missing {field_name}")
+    return value
+
+
+def create_disk_project(
+    adf_path: str | Path,
+    *,
+    disk_id: str | None = None,
+    project_root: Path = PROJECT_ROOT,
+    progress_fn: Callable[[str, int, int], None] | None = None,
+) -> DiskManifest:
+    from amiga_reversing.disasm.projects import (
+        create_project_at_path,
+        initialize_project_metadata,
+        mark_project_updated,
+    )
+
+    adf_file = Path(adf_path)
+    resolved_disk_id = disk_id or derive_disk_id(adf_file)
+    disk_target_root = disk_project_root(project_root, resolved_disk_id)
+    disk_children_root = disk_project_targets_dir(project_root, resolved_disk_id)
+    manifest_path = disk_target_root / "manifest.json"
+    if disk_target_root.exists():
+        raise DiskAnalysisError(f"Disk target root already exists: {disk_target_root}")
+    disk_target_root.mkdir(parents=True)
+    initialize_project_metadata(disk_target_root)
+    created_target_dirs: list[Path] = []
+    try:
+        disk_bytes = adf_file.read_bytes()
+        if progress_fn is not None:
+            progress_fn("analyze_disk", 1, 4)
+        analysis = analyze_adf(adf_file, include_tracks=True)
+
+        if progress_fn is not None:
+            progress_fn("create_bootblock_target", 2, 4)
+        bootblock_import = analysis.boot_block.import_target
+        if bootblock_import is None or bootblock_import.source is None:
+            raise DiskAnalysisError("C disk inspect output is missing bootblock import target")
+        bootblock_source = dict(bootblock_import.source)
+        bootblock_byte_offset = bootblock_source.pop("byte_offset")
+        bootblock_byte_size = bootblock_source.pop("byte_size")
+        if not isinstance(bootblock_byte_offset, int) or not isinstance(bootblock_byte_size, int):
+            raise DiskAnalysisError("C disk inspect bootblock source byte span is invalid")
+        bootblock_local_name = _import_target_required_text(
+            bootblock_import.local_target_id, "local_target_id", "bootblock"
+        )
+        bootblock_target_name = disk_child_project_id(resolved_disk_id, bootblock_local_name)
+        bootblock_target_dir = disk_children_root / bootblock_local_name
+        if bootblock_target_dir.exists():
+            raise DiskAnalysisError(f"Target already exists: {bootblock_target_name}")
+        create_project_at_path(
+            disk_child_target_relpath(resolved_disk_id, bootblock_local_name).as_posix(),
+            project_root=project_root,
+        )
+        created_target_dirs.append(bootblock_target_dir)
+        bootblock_binary_path = bootblock_target_dir / "binary.bin"
+        _write_bytes(bootblock_binary_path, disk_bytes[bootblock_byte_offset:bootblock_byte_offset + bootblock_byte_size])
+        bootblock_source["path"] = bootblock_binary_path.relative_to(project_root).as_posix()
+        bootblock_source["parent_disk_id"] = resolved_disk_id
+        write_source_descriptor(bootblock_target_dir, bootblock_source)
+        write_target_metadata(bootblock_target_dir, TargetMetadata.from_dict(bootblock_import.target_metadata))
+        mark_project_updated(bootblock_target_dir)
+
+        imported_targets: list[ImportedTarget] = []
+        for stage, stage_bytes in _materialized_bootloader_disk_stage_targets(analysis, disk_bytes):
+            assert stage.import_target is not None
+            assert stage.import_target.source is not None
+            stage_entry_path = _import_target_required_text(
+                stage.import_target.entry_path, "entry_path", stage.import_target.target_type
+            )
+            local_target_name = _import_target_required_text(
+                stage.import_target.local_target_id, "local_target_id", stage.import_target.target_type
+            )
+            target_name = disk_child_project_id(resolved_disk_id, local_target_name)
+            target_dir = disk_children_root / local_target_name
+            if target_dir.exists():
+                raise DiskAnalysisError(f"Target already exists: {target_name}")
+            create_project_at_path(
+                disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                project_root=project_root,
+            )
+            created_target_dirs.append(target_dir)
+            binary_path = target_dir / "binary.bin"
+            _write_bytes(binary_path, stage_bytes)
+            source_descriptor = dict(stage.import_target.source)
+            source_descriptor.pop("byte_offset", None)
+            source_descriptor.pop("byte_size", None)
+            source_descriptor["path"] = binary_path.relative_to(project_root).as_posix()
+            source_descriptor["parent_disk_id"] = resolved_disk_id
+            write_source_descriptor(target_dir, source_descriptor)
+            write_target_metadata(target_dir, TargetMetadata.from_dict(stage.import_target.target_metadata))
+            mark_project_updated(target_dir)
+            imported_targets.append(
+                ImportedTarget(
+                    target_name=target_name,
+                    target_path=disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                    entry_path=stage_entry_path,
+                    binary_path=f"{adf_file.as_posix()}::{stage_entry_path}",
+                    target_type=stage.import_target.target_type,
+                )
+            )
+        for stage, span_index, span_bytes in _unique_bootloader_raw_span_targets(analysis, disk_bytes):
+            import_target = stage.decode_regions[span_index].import_target
+            assert import_target is not None
+            assert import_target.source is not None
+            span_entry_path = _import_target_required_text(import_target.entry_path, "entry_path", import_target.target_type)
+            local_target_name = _import_target_required_text(
+                import_target.local_target_id, "local_target_id", import_target.target_type
+            )
+            target_name = disk_child_project_id(resolved_disk_id, local_target_name)
+            target_dir = disk_children_root / local_target_name
+            if target_dir.exists():
+                raise DiskAnalysisError(f"Target already exists: {target_name}")
+            create_project_at_path(
+                disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                project_root=project_root,
+            )
+            created_target_dirs.append(target_dir)
+            binary_path = target_dir / "binary.bin"
+            _write_bytes(binary_path, span_bytes)
+            source_descriptor = dict(import_target.source)
+            source_descriptor.pop("byte_offset", None)
+            source_descriptor.pop("byte_size", None)
+            source_descriptor["path"] = binary_path.relative_to(project_root).as_posix()
+            source_descriptor["parent_disk_id"] = resolved_disk_id
+            write_source_descriptor(target_dir, source_descriptor)
+            write_target_metadata(target_dir, TargetMetadata.from_dict(import_target.target_metadata))
+            mark_project_updated(target_dir)
+            imported_targets.append(
+                ImportedTarget(
+                    target_name=target_name,
+                    target_path=disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                    entry_path=span_entry_path,
+                    binary_path=f"{adf_file.as_posix()}::{span_entry_path}",
+                    target_type=import_target.target_type,
+                )
+            )
+        if _has_dos_filesystem(analysis):
+            _require_complete_dos_analysis(analysis)
+            if progress_fn is not None:
+                progress_fn("import_targets", 3, 4)
+            assert analysis.files is not None
+            for entry in analysis.files:
+                if entry.content is None:
+                    raise DiskAnalysisError(f"Extracted file is missing content classification: {entry.full_path}")
+                import_target = entry.content.import_target
+                if import_target is None:
+                    continue
+                local_target_name = _import_target_required_text(
+                    import_target.local_target_id, "local_target_id", import_target.target_type
+                )
+                entry_path = _import_target_required_text(import_target.entry_path, "entry_path", import_target.target_type)
+                target_name = disk_child_project_id(resolved_disk_id, local_target_name)
+                target_dir = disk_children_root / local_target_name
+                if target_dir.exists():
+                    raise DiskAnalysisError(f"Target already exists: {target_name}")
+                create_project_at_path(
+                    disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                    project_root=project_root,
+                )
+                created_target_dirs.append(target_dir)
+                write_source_descriptor(
+                    target_dir,
+                    {
+                        "kind": "disk_entry",
+                        "disk_id": resolved_disk_id,
+                        "disk_path": adf_file.as_posix(),
+                        "entry_path": entry_path,
+                        "parent_disk_id": resolved_disk_id,
+                    },
+                )
+                write_target_metadata(target_dir, TargetMetadata.from_dict(import_target.target_metadata))
+                mark_project_updated(target_dir)
+                imported_targets.append(
+                    ImportedTarget(
+                        target_name=target_name,
+                        target_path=disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                        entry_path=entry_path,
+                        binary_path=f"{adf_file.as_posix()}::{entry_path}",
+                        target_type=import_target.target_type,
+                    )
+                )
+
+        if progress_fn is not None:
+            progress_fn("write_manifest", 4, 4)
+        imported_targets.sort(key=lambda target: target.entry_path)
+        manifest = DiskManifest(
+            schema_version=1,
+            disk_id=resolved_disk_id,
+            source_path=adf_file.as_posix(),
+            source_sha256=hashlib.sha256(disk_bytes).hexdigest(),
+            analysis=analysis,
+            imported_targets=imported_targets,
+            bootblock_target_name=bootblock_target_name,
+            bootblock_target_path=disk_child_target_relpath(resolved_disk_id, bootblock_local_name).as_posix(),
+        )
+        _write_text(manifest_path, json.dumps(manifest.to_dict(), indent=2, sort_keys=True) + "\n")
+        mark_project_updated(disk_target_root)
+        return manifest
+    except Exception:
+        for target_dir in reversed(created_target_dirs):
+            shutil.rmtree(target_dir, ignore_errors=True)
+        shutil.rmtree(disk_target_root, ignore_errors=True)
+        raise
+
+
+def import_adf(
+    adf_path: str | Path,
+    *,
+    disk_id: str | None = None,
+    project_root: Path = PROJECT_ROOT,
+    progress_fn: Callable[[str, int, int], None] | None = None,
+) -> DiskManifest:
+    return create_disk_project(adf_path, disk_id=disk_id, project_root=project_root, progress_fn=progress_fn)

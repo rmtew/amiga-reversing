@@ -5,12 +5,29 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "machine68k",
     "pymupdf>=1.27.2",
 ]
 
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+amiga-analyze-disk = "amiga_reversing.tools.analyze_disk:main"
+amiga-benchmark-target = "amiga_reversing.tools.benchmark_target:main"
+amiga-build-entities = "amiga_reversing.tools.build_entities:main"
+amiga-check-mojibake = "amiga_reversing.tools.check_mojibake:main"
+amiga-disasm-server = "amiga_reversing.tools.disasm_server:main"
+amiga-genam-roundtrip = "amiga_reversing.tools.genam_roundtrip:main"
+amiga-gen-disasm = "amiga_reversing.tools.gen_disasm:main"
+amiga-import-adf = "amiga_reversing.tools.import_adf:main"
+amiga-precommit = "amiga_reversing.tools.precommit:main"
+amiga-update-progress = "amiga_reversing.tools.update_progress:main"
+amiga-validate-target-seeded-metadata = "amiga_reversing.tools.validate_target_seeded_metadata:main"
+
 [dependency-groups]
 dev = [
+    "machine68k",
     "mypy>=1.18",
     "pytest>=8",
     "ruff>=0.11",
@@ -20,7 +37,7 @@ dev = [
 testpaths = ["tests"]
 pythonpath = ["."]
 markers = [
-    "runtime_coverage: KB/runtime/assembler coverage-contract tests",
+    "web_e2e: Brave/CDP browser integration tests",
 ]
 
 [tool.mypy]
@@ -28,147 +45,15 @@ python_version = "3.14"
 strict = true
 follow_imports = "skip"
 files = [
-    "amiga_disk/__init__.py",
-    "amiga_disk/adf.py",
-    "amiga_disk/kb.py",
-    "disasm/__init__.py",
-    "disasm/api.py",
-    "disasm/absolute_resolver.py",
-    "disasm/analysis_loader.py",
-    "disasm/annotations.py",
-    "disasm/ascii.py",
-    "disasm/cli.py",
-    "disasm/comments.py",
-    "disasm/data_access.py",
-    "disasm/data_render.py",
-    "disasm/discovery.py",
-    "disasm/decode.py",
-    "disasm/emitter.py",
-    "disasm/entities.py",
-    "disasm/hardware_symbols.py",
-    "disasm/hint_validation.py",
-    "disasm/instruction_rows.py",
-    "disasm/jump_tables.py",
-    "disasm/metadata.py",
-    "disasm/operands.py",
-    "disasm/project_paths.py",
-    "disasm/projects.py",
-    "disasm/server.py",
-    "disasm/session.py",
-    "disasm/substitutions.py",
-    "disasm/text.py",
-    "disasm/validation.py",
-    "m68k/constant_evaluator.py",
-    "m68k/abstract_values.py",
-    "m68k/__init__.py",
-    "m68k/address_reconstruction.py",
-    "m68k/analysis.py",
-    "m68k/assembler_coverage_audit.py",
-    "m68k/decode_errors.py",
-    "m68k/ea_extension.py",
-    "m68k/hunk_parser.py",
-    "m68k/instruction_kb.py",
-    "m68k/jump_tables.py",
-    "m68k/m68k_asm.py",
-    "m68k/m68k_compute.py",
-    "m68k/m68k_executor.py",
-      "m68k/m68k_disasm.py",
-      "m68k/instruction_decode.py",
-    "m68k/instruction_primitives.py",
-    "m68k/indirect_analysis.py",
-    "m68k/indirect_core.py",
-    "m68k/memory_provenance.py",
-    "m68k/name_entities.py",
-    "m68k/os_calls.py",
-    "m68k/os_structs.py",
-    "m68k/operand_resolution.py",
-    "m68k/registers.py",
-    "m68k/static_values.py",
-    "m68k/strings.py",
-    "m68k/subroutine_ranges.py",
-    "m68k/subroutine_scan.py",
-    "m68k/subroutine_summary.py",
-    "m68k/table_recovery.py",
-    "m68k/typing_protocols.py",
-    "m68k/value_transforms.py",
-    "m68k/vasm.py",
-    "kb/__init__.py",
-    "kb/hunk_parser.py",
-    "kb/m68k_parser.py",
-    "kb/ndk_parser.py",
-    "kb/paths.py",
-    "kb/runtime_builder.py",
-    "kb/schemas.py",
-    "m68k_kb/runtime_m68k_analysis.py",
-    "m68k_kb/runtime_m68k.py",
-    "m68k_kb/runtime_m68k_asm.py",
-    "m68k_kb/runtime_m68k_compute.py",
-    "m68k_kb/runtime_m68k_decode.py",
-    "m68k_kb/runtime_m68k_disasm.py",
-    "m68k_kb/runtime_m68k_executor.py",
-    "m68k_kb/runtime_hardware.py",
-    "m68k_kb/runtime_hunk.py",
-    "m68k_kb/runtime_naming.py",
-    "m68k_kb/runtime_os.py",
-    "m68k_kb/runtime_types.py",
-    "m68k_kb/__init__.py",
-    "scripts/analyze_disk.py",
-    "scripts/build_entities.py",
-    "scripts/build_runtime_kb.py",
-    "scripts/benchmark_target.py",
-    "scripts/disasm_server.py",
-    "scripts/gen_disasm.py",
-    "scripts/import_adf.py",
-    "scripts/oracle_m68k_asm.py",
-    "scripts/oracle_m68k_exec.py",
-    "scripts/parse_hunk_format.py",
-    "scripts/parse_hw_manual.py",
-    "scripts/parse_iff_specs.py",
-    "scripts/parse_m68k.py",
-    "scripts/parse_ndk.py",
-    "scripts/precommit.py",
-    "scripts/update_progress.py",
-    "disasm/types.py",
-    "tests/os_kb_helpers.py",
-    "tests/platform_helpers.py",
-    "tests/runtime_kb_helpers.py",
-    "tests/test_absolute_resolver.py",
-    "tests/test_analysis.py",
-    "tests/test_assembler_coverage_audit.py",
-    "tests/test_benchmark_target.py",
-    "tests/test_build_entities.py",
-    "tests/test_code_section_reads.py",
-    "tests/test_disasm_annotations.py",
-    "tests/test_disasm_operand_coverage.py",
-    "tests/disasm_pipeline_support.py",
-    "tests/test_disasm_analysis_pipeline.py",
-    "tests/test_disasm_emit_pipeline.py",
-    "tests/test_disasm_metadata_pipeline.py",
-    "tests/test_disasm_render_pipeline.py",
-    "tests/test_disasm_projects.py",
-    "tests/test_disasm_server.py",
-    "tests/test_executor_effects.py",
-    "tests/test_executor_operand_decode.py",
-    "tests/test_executor_propagation.py",
-    "tests/test_gen_disasm.py",
-    "tests/test_import_adf.py",
-    "tests/test_indirect_resolution.py",
-    "tests/test_m68k_roundtrip.py",
-    "tests/test_memory_provenance.py",
-    "tests/test_os_calls.py",
-    "tests/test_parse_ndk.py",
-    "tests/test_runtime_kb.py",
-    "tests/test_target_render_regressions.py",
+    "amiga_reversing/amiga_disk",
+    "amiga_reversing/disasm",
+    "amiga_reversing/tools",
 ]
 
 [tool.ruff]
 target-version = "py314"
 include = [
-    "amiga_disk/**/*.py",
-    "disasm/**/*.py",
-    "kb/**/*.py",
-    "m68k/**/*.py",
-    "scripts/**/*.py",
+    "amiga_reversing/**/*.py",
     "tests/**/*.py",
 ]
 
@@ -178,6 +63,12 @@ ignore = ["PT018"]
 
 [tool.uv]
 exclude-newer = "7 days"
+
+[tool.setuptools.packages.find]
+include = ["amiga_reversing*"]
+
+[tool.setuptools.package-data]
+"amiga_reversing.web" = ["*.html", "*.css", "*.js"]
 
 [tool.uv.sources]
 machine68k = { path = "resources/machine68k/dist/machine68k-0.4.2.dev0+g61600df53.d20260308-cp314-cp314-win_amd64.whl" }

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import shutil
+import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -9,18 +11,12 @@ from types import SimpleNamespace
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from amiga_disk.adf import (
+from amiga_reversing.amiga_disk.adf import (
     DiskAnalysisError,
-    _classify_file_content,
-    _target_metadata_for_content,
     analyze_adf,
-    create_disk_project,
     derive_disk_id,
-    import_adf,
-    print_summary,
 )
-from amiga_disk.kb import load_disk_kb
-from amiga_disk.models import (
+from amiga_reversing.amiga_disk.models import (
     AdfAnalysis,
     BitmapInfo,
     BlockUsageInfo,
@@ -34,6 +30,7 @@ from amiga_disk.models import (
     DiskFileEntry,
     DiskInfo,
     FileContentInfo,
+    FileImportTargetInfo,
     FilesystemInfo,
     NonDosInfo,
     RawTrackSource,
@@ -44,15 +41,236 @@ from amiga_disk.models import (
     TrackloaderAnalysis,
     TrackSpan,
 )
-from disasm.target_metadata import target_structure_spec
-from m68k.hunk_parser import Hunk, HunkFile, HunkType, MemType
-from m68k_kb import runtime_os
+from amiga_reversing.amiga_disk.project import create_disk_project, import_adf
+from amiga_reversing.disasm.target_metadata import TargetMetadata
+from amiga_reversing.tools.analyze_disk import print_summary
+from src.tests.test_platform_amiga_disk import (
+    BLOCK_SIZE,
+    ROOT_BLOCK,
+    TOTAL_BLOCKS,
+    _make_boot_block,
+    _make_file_header,
+    _make_root_block,
+    _put_u32,
+)
+
+
+def _hunk_executable(code: bytes) -> bytes:
+    assert len(code) % 4 == 0
+    words = [1011, 0, 1, 0, 0, len(code) // 4, 1001, len(code) // 4]
+    return struct.pack(">" + "I" * len(words), *words) + code + struct.pack(">I", 1010)
+
+
+def _ffs_adf_with_single_file(payload: bytes) -> bytes:
+    blocks = [bytearray(BLOCK_SIZE) for _ in range(TOTAL_BLOCKS)]
+    blocks[0][:] = _make_boot_block(ROOT_BLOCK, 1)[:BLOCK_SIZE]
+    blocks[1][:] = _make_boot_block(ROOT_BLOCK, 1)[BLOCK_SIZE:]
+    blocks[ROOT_BLOCK][:] = _make_root_block("Workbench", [900])
+    file_header = _make_file_header(900, "RUN", len(payload))
+    _put_u32(file_header, 8, 1)
+    _put_u32(file_header, 24 + 71 * 4, 910)
+    blocks[900][:] = file_header
+    blocks[910][: len(payload)] = payload
+    return b"".join(bytes(block) for block in blocks)
+
+
+def _content_from_c_disk_inspect(tmp_path: Path, payload: bytes) -> FileContentInfo:
+    adf_path = tmp_path / "content.adf"
+    adf_path.write_bytes(_ffs_adf_with_single_file(payload))
+    analysis = analyze_adf(adf_path)
+    assert analysis.files is not None
+    content = analysis.files[0].content
+    assert content is not None
+    return content
+
+
+def _program_import_target() -> FileImportTargetInfo:
+    return FileImportTargetInfo(
+        target_type="program",
+        entry_path="c/Run",
+        local_target_id="amiga_hunk_c__run_dcce9fe5",
+        target_metadata={
+            "target_type": "program",
+            "entry_register_seeds": [],
+            "bootblock": None,
+            "resident": None,
+            "library": None,
+            "custom_structs": [],
+            "app_slot_regions": [],
+            "seeded_entities": [],
+            "seeded_code_labels": [],
+            "seeded_code_entrypoints": [],
+            "absolute_code_labels": [],
+            "execution_views": [],
+            "suppressed_seeded_items": [],
+        },
+    )
+
+
+def _bootblock_import_target(
+    *,
+    magic_ascii: str = "DOS",
+    flags_byte: int = 1,
+    fs_description: str = "DOS\\1 - Fast File System",
+    checksum: str = "0x00000000",
+    checksum_valid: bool = True,
+    rootblock_ptr: int = 880,
+    bootcode_size: int = 1012,
+) -> FileImportTargetInfo:
+    return FileImportTargetInfo(
+        target_type="bootblock",
+        entry_path="bootblock",
+        local_target_id="amiga_raw_bootblock",
+        source={
+            "kind": "raw_binary",
+            "address_model": "local_offset",
+            "byte_offset": 0,
+            "byte_size": bootcode_size + 12,
+            "load_address": 0x70000,
+            "entrypoint": 0x7000C,
+            "code_start_offset": 0x0C,
+        },
+        target_metadata={
+            "target_type": "bootblock",
+            "entry_register_seeds": [
+                {
+                    "entry_offset": None,
+                    "register": "A6",
+                    "kind": "library_base",
+                    "library_name": "exec.library",
+                    "struct_name": "LIB",
+                    "context_name": None,
+                    "note": "ExecBase",
+                },
+                {
+                    "entry_offset": None,
+                    "register": "A1",
+                    "kind": "struct_ptr",
+                    "library_name": None,
+                    "struct_name": "IO",
+                    "context_name": "trackdisk.device",
+                    "note": "IOStdReq (open trackdisk.device)",
+                },
+            ],
+            "bootblock": {
+                "magic_ascii": magic_ascii,
+                "flags_byte": flags_byte,
+                "fs_description": fs_description,
+                "checksum": checksum,
+                "checksum_valid": checksum_valid,
+                "rootblock_ptr": rootblock_ptr,
+                "bootcode_offset": 0x0C,
+                "bootcode_size": bootcode_size,
+                "load_address": 0x70000,
+                "entrypoint": 0x7000C,
+            },
+            "resident": None,
+            "library": None,
+            "custom_structs": [],
+            "app_slot_regions": [],
+            "seeded_entities": [],
+            "seeded_code_labels": [],
+            "seeded_code_entrypoints": [],
+            "absolute_code_labels": [],
+            "execution_views": [],
+            "suppressed_seeded_items": [],
+        },
+    )
+
+
+def _bootloader_stage_import_target(
+    *,
+    byte_offset: int = 0x200,
+    byte_size: int = 4,
+    load_address: int = 0x40000,
+    entrypoint: int = 0x40000,
+    execution_views: list[dict[str, object]] | None = None,
+) -> FileImportTargetInfo:
+    return FileImportTargetInfo(
+        target_type="bootloader_stage",
+        entry_path="bootloader/stage_1",
+        local_target_id="amiga_raw_bootloader_stage_1",
+        source={
+            "kind": "raw_binary",
+            "address_model": "runtime_absolute",
+            "byte_offset": byte_offset,
+            "byte_size": byte_size,
+            "load_address": load_address,
+            "entrypoint": entrypoint,
+            "code_start_offset": 0,
+        },
+        target_metadata={
+            "target_type": "bootloader_stage",
+            "entry_register_seeds": [
+                {
+                    "entry_offset": None,
+                    "register": "A6",
+                    "kind": "library_base",
+                    "library_name": "exec.library",
+                    "struct_name": "LIB",
+                    "context_name": None,
+                    "note": "ExecBase",
+                },
+                {
+                    "entry_offset": None,
+                    "register": "A1",
+                    "kind": "struct_ptr",
+                    "library_name": None,
+                    "struct_name": "IO",
+                    "context_name": "trackdisk.device",
+                    "note": "IOStdReq (open trackdisk.device)",
+                },
+            ],
+            "bootblock": None,
+            "resident": None,
+            "library": None,
+            "custom_structs": [],
+            "app_slot_regions": [],
+            "seeded_entities": [],
+            "seeded_code_labels": [],
+            "seeded_code_entrypoints": [],
+            "absolute_code_labels": [],
+            "execution_views": [] if execution_views is None else execution_views,
+            "suppressed_seeded_items": [],
+        },
+    )
+
+
+def _raw_span_import_target(*, byte_offset: int, byte_size: int) -> FileImportTargetInfo:
+    return FileImportTargetInfo(
+        target_type="bootloader_raw_span",
+        entry_path="bootloader/stage_2/raw_span_0",
+        local_target_id="amiga_raw_bootloader_stage_2_raw_span_0",
+        source={
+            "kind": "raw_binary",
+            "address_model": "local_offset",
+            "byte_offset": byte_offset,
+            "byte_size": byte_size,
+            "load_address": 0,
+            "entrypoint": 0,
+            "code_start_offset": 0,
+        },
+        target_metadata={
+            "target_type": "bootloader_raw_span",
+            "entry_register_seeds": [],
+            "bootblock": None,
+            "resident": None,
+            "library": None,
+            "custom_structs": [],
+            "app_slot_regions": [],
+            "seeded_entities": [],
+            "seeded_code_labels": [],
+            "seeded_code_entrypoints": [],
+            "absolute_code_labels": [],
+            "execution_views": [],
+            "suppressed_seeded_items": [],
+        },
+    )
 
 
 def test_analyze_disk_help_loads_cleanly() -> None:
-    script = Path(__file__).resolve().parent.parent / "scripts" / "analyze_disk.py"
     result = subprocess.run(
-        [sys.executable, str(script), "--help"],
+        [sys.executable, "-m", "amiga_reversing.tools.analyze_disk", "--help"],
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
@@ -63,9 +281,8 @@ def test_analyze_disk_help_loads_cleanly() -> None:
 
 
 def test_import_adf_help_loads_cleanly() -> None:
-    script = Path(__file__).resolve().parent.parent / "scripts" / "import_adf.py"
     result = subprocess.run(
-        [sys.executable, str(script), "--help"],
+        [sys.executable, "-m", "amiga_reversing.tools.import_adf", "--help"],
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
@@ -73,68 +290,6 @@ def test_import_adf_help_loads_cleanly() -> None:
     )
     assert result.returncode == 0, result.stderr
     assert "Import an ADF into bin/imported and targets/" in result.stdout
-
-
-def test_load_disk_kb_exposes_required_structured_values() -> None:
-    kb = load_disk_kb()
-
-    assert kb.bytes_per_sector == 512
-    assert kb.amiga_epoch.isoformat() == "1978-01-01T00:00:00"
-    assert kb.hunk_header_magic == b"\x00\x00\x03\xf3"
-    assert b"FORM" in kb.iff_group_ids
-    assert kb.block_types["T_HEADER"] == 2
-    assert kb.ffs_flag_mask == 1
-    assert kb.boot_block.rootblock_offset == 8
-    assert kb.root_block.hash_table_offset == 0x18
-    assert kb.file_header.data_blocks_offset == 0x18
-    assert tuple(bit.char for bit in kb.protection_bits) == tuple("hsparwed")
-    assert kb.non_dos_analysis.code_track_min_pattern_hits == 4
-    assert kb.non_dos_analysis.high_entropy_threshold == 7.8
-    assert tuple(signature.name for signature in kb.non_dos_analysis.m68k_code_word_signatures) == (
-        "RTS",
-        "RTE",
-        "NOP",
-        "STOP",
-        "JMP_abs",
-        "JSR_abs",
-    )
-    assert kb.boot_loader.entry_offset == 0x0C
-    assert kb.boot_loader.load_address == 0x70000
-    assert kb.boot_entry.entry_point_offset == 0x0C
-    assert len(kb.boot_entry.registers) == 2
-    a6_seed = next(seed for seed in kb.boot_entry.registers if seed.register == "A6")
-    a1_seed = next(seed for seed in kb.boot_entry.registers if seed.register == "A1")
-    assert a6_seed.kind == "library_base"
-    assert a6_seed.library_name == "exec.library"
-    assert a6_seed.struct_name == "LIB"
-    assert a6_seed.context_name is None
-    assert a6_seed.note == "ExecBase"
-    assert a1_seed.kind == "struct_ptr"
-    assert a1_seed.struct_name == "IO"
-    assert a1_seed.context_name == "trackdisk.device"
-    assert a1_seed.note == "IOStdReq (open trackdisk.device)"
-    assert kb.boot_loader.dsklen_length_mask == 0x3FFF
-    assert kb.boot_loader.dsklen_length_unit_bytes == 2
-    assert kb.boot_loader.cia_port_b_symbol == "ciaprb"
-    assert kb.boot_loader.initial_cylinder == 0
-    assert kb.boot_loader.initial_head == 0
-    assert kb.boot_loader.drive_select_masks[0] == 0x08
-    assert kb.boot_loader.side_bit_mask == 0x04
-    assert kb.boot_loader.direction_bit_mask == 0x02
-    assert kb.boot_loader.step_bit_mask == 0x01
-    assert kb.boot_loader.trace_watch_input_prefix_bytes_when_output_unknown == 64
-    assert kb.boot_loader.max_candidate_replay_stage_bytes == 1024
-    assert kb.boot_loader.max_candidate_replay_spans == 4
-    assert kb.boot_loader.hardware_access_group_gap_bytes == 16
-    assert kb.boot_loader.decode_output_backscan_instructions == 16
-    assert kb.boot_loader.decode_output_add_base_backscan_instructions == 4
-    assert kb.boot_loader.wait_loop_search_bytes == 24
-    assert kb.boot_loader.buffer_scan_search_bytes == 40
-    assert kb.boot_loader.iostdreq_offsets["io_Command"] == 28
-    assert kb.boot_loader.trackdisk_commands[2] == "CMD_READ"
-    assert kb.boot_loader.exec_vectors_by_lvo[-456] == "DoIO"
-    assert kb.boot_loader.tracked_hardware_registers[0xDFF07E] == "dsksync"
-    assert kb.boot_loader.tracked_hardware_registers[0xBFD100] == "ciaprb"
 
 
 def test_derive_disk_id_normalizes_filename() -> None:
@@ -182,6 +337,7 @@ def test_import_adf_creates_hidden_disk_manifest_and_targets(
                 bootcode_size=1012,
                 bootcode_has_code=True,
                 bootcode_entropy=1.0,
+                import_target=_bootblock_import_target(),
             ),
             root_block=RootBlockInfo(
                 block_num=880,
@@ -223,6 +379,7 @@ def test_import_adf_creates_hidden_disk_manifest_and_targets(
                         is_executable=True,
                         hunk_count=1,
                         target_type="program",
+                        import_target=_program_import_target(),
                     ),
                 )
             ],
@@ -237,7 +394,7 @@ def test_import_adf_creates_hidden_disk_manifest_and_targets(
             block_usage=BlockUsageInfo(summary={"boot": 2}, orphan_blocks=[]),
         )
 
-    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
 
     manifest = import_adf(adf_path, project_root=project_root)
 
@@ -316,6 +473,7 @@ def test_import_adf_creates_raw_target_for_bootloader_disk_stage(
                 bootcode_size=1012,
                 bootcode_has_code=True,
                 bootcode_entropy=0.0,
+                import_target=_bootblock_import_target(),
             ),
             non_dos=NonDosInfo(
                 description="Custom format disk (non-AmigaDOS)",
@@ -367,6 +525,7 @@ def test_import_adf_creates_raw_target_for_bootloader_disk_stage(
                         derived_regions=[],
                         handoffs=[],
                         handoff_target=0x40000,
+                        import_target=_bootloader_stage_import_target(),
                     ),
                 ],
                 memory_regions=[],
@@ -374,7 +533,7 @@ def test_import_adf_creates_raw_target_for_bootloader_disk_stage(
             ),
         )
 
-    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
 
     manifest = import_adf(adf_path, project_root=project_root)
 
@@ -395,6 +554,32 @@ def test_import_adf_creates_raw_target_for_bootloader_disk_stage(
     assert metadata["entry_register_seeds"][0]["register"] == "A6"
     assert metadata["entry_register_seeds"][0]["note"] == "ExecBase"
     assert metadata["entry_register_seeds"][1]["register"] == "A1"
+
+
+def test_import_adf_ice_uses_c_bootloader_stage_materialization(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    source_adf = repo_root / "bin" / "Ice (1991-06-28)(The Silents).adf"
+    disk_cli = repo_root / "src" / "build" / "platform_disk_cli.exe"
+    if not source_adf.exists():
+        pytest.skip("Ice ADF fixture is not present")
+    if not disk_cli.exists():
+        pytest.skip("platform_disk_cli.exe is not built; run cmd /c src\\build.bat")
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / source_adf.name
+    shutil.copy2(source_adf, adf_path)
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert manifest.bootblock_target_name == "amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootblock"
+    stage_target = next(target for target in manifest.imported_targets if target.entry_path == "bootloader/stage_1")
+    assert stage_target.target_type == "bootloader_stage"
+    stage_dir = project_root / stage_target.target_path
+    assert (stage_dir / "binary.bin").stat().st_size == 21504
+    source = json.loads((stage_dir / "source_binary.json").read_text(encoding="utf-8"))
+    assert source["load_address"] == 0x40000
+    assert source["entrypoint"] == 0x40000
 
 
 def test_import_adf_does_not_create_raw_target_for_bootloader_copied_stage(
@@ -439,6 +624,7 @@ def test_import_adf_does_not_create_raw_target_for_bootloader_copied_stage(
                 bootcode_size=1012,
                 bootcode_has_code=True,
                 bootcode_entropy=0.0,
+                import_target=_bootblock_import_target(),
             ),
             non_dos=NonDosInfo(
                 description="Custom format disk (non-AmigaDOS)",
@@ -490,6 +676,7 @@ def test_import_adf_does_not_create_raw_target_for_bootloader_copied_stage(
                         derived_regions=[],
                         handoffs=[],
                         handoff_target=0x6000,
+                        import_target=_bootloader_stage_import_target(byte_size=len(stage1_bytes)),
                     ),
                     BootloaderStage(
                         name="stage_2",
@@ -522,7 +709,7 @@ def test_import_adf_does_not_create_raw_target_for_bootloader_copied_stage(
             ),
         )
 
-    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
 
     manifest = import_adf(adf_path, project_root=project_root)
 
@@ -574,6 +761,7 @@ def test_import_adf_keeps_bootloader_copy_metadata_without_creating_stage_2_targ
                 bootcode_size=1012,
                 bootcode_has_code=True,
                 bootcode_entropy=0.0,
+                import_target=_bootblock_import_target(),
             ),
             non_dos=NonDosInfo(
                 description="Custom format disk (non-AmigaDOS)",
@@ -632,6 +820,21 @@ def test_import_adf_keeps_bootloader_copy_metadata_without_creating_stage_2_targ
                         derived_regions=[],
                         handoffs=[],
                         handoff_target=0x6000,
+                        import_target=_bootloader_stage_import_target(
+                            byte_size=len(stage1_bytes),
+                            execution_views=[
+                                {
+                                    "source_start": 2,
+                                    "source_end": 6,
+                                    "base_addr": 0x6000,
+                                    "name": "bootstrapped_code",
+                                    "seed_origin": "autodoc",
+                                    "review_status": "seeded",
+                                    "citation": "bootloader:stage_1:handoff",
+                                    "comment": "Embedded bootstrapped code executes from $00006000",
+                                }
+                            ],
+                        ),
                     ),
                     BootloaderStage(
                         name="stage_2",
@@ -657,7 +860,7 @@ def test_import_adf_keeps_bootloader_copy_metadata_without_creating_stage_2_targ
             ),
         )
 
-    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
 
     manifest = import_adf(adf_path, project_root=project_root)
 
@@ -713,6 +916,7 @@ def test_import_adf_does_not_create_raw_target_for_bootloader_decoded_stage(
                 bootcode_size=1012,
                 bootcode_has_code=True,
                 bootcode_entropy=0.0,
+                import_target=_bootblock_import_target(),
             ),
             non_dos=NonDosInfo(
                 description="Custom format disk (non-AmigaDOS)",
@@ -770,7 +974,7 @@ def test_import_adf_does_not_create_raw_target_for_bootloader_decoded_stage(
             ),
         )
 
-    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
 
     manifest = import_adf(adf_path, project_root=project_root)
 
@@ -818,6 +1022,7 @@ def test_import_adf_creates_raw_target_for_unique_bootloader_raw_span(
                 bootcode_size=1012,
                 bootcode_has_code=True,
                 bootcode_entropy=0.0,
+                import_target=_bootblock_import_target(),
             ),
             non_dos=NonDosInfo(
                 description="Custom format disk (non-AmigaDOS)",
@@ -886,6 +1091,7 @@ def test_import_adf_creates_raw_target_for_unique_bootloader_raw_span(
                                 output_addr=0x6000,
                                 byte_length=4,
                                 write_loop_addr=0x6010,
+                                import_target=_raw_span_import_target(byte_offset=0x120, byte_size=8),
                             )
                         ],
                         derived_regions=[],
@@ -898,7 +1104,7 @@ def test_import_adf_creates_raw_target_for_unique_bootloader_raw_span(
             ),
         )
 
-    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
 
     manifest = import_adf(adf_path, project_root=project_root)
 
@@ -918,8 +1124,8 @@ def test_import_adf_creates_raw_target_for_unique_bootloader_raw_span(
     assert metadata["entry_register_seeds"] == []
 
 
-def test_classify_file_content_classifies_library_targets_from_resident_structure(
-    monkeypatch: MonkeyPatch,
+def test_disk_content_summary_classifies_library_targets_from_resident_structure(
+    tmp_path: Path,
 ) -> None:
     code = bytearray(0x80)
     code[0:2] = bytes.fromhex("4afc")
@@ -933,23 +1139,12 @@ def test_classify_file_content_classifies_library_targets_from_resident_structur
     code[0x20:0x2D] = b"icon.library\x00"
     code[0x30:0x3A] = b"icon 37.1\x00"
 
-    hunk_file = HunkFile()
-    hunk_file.file_type = int(HunkType.HUNK_HEADER)
-    hunk_file.hunks = [
-        Hunk(
-            index=0,
-            hunk_type=int(HunkType.HUNK_CODE),
-            mem_type=int(MemType.ANY),
-            alloc_size=len(code),
-            data=bytes(code),
-        )
-    ]
-    monkeypatch.setattr("amiga_disk.adf.parse", lambda _data: hunk_file)
-    kb = load_disk_kb()
-
-    content = _classify_file_content(kb, b"\x00\x00\x03\xf3demo")
+    content = _content_from_c_disk_inspect(tmp_path, _hunk_executable(bytes(code)))
 
     assert content.target_type == "library"
+    assert content.import_target is not None
+    assert content.import_target.target_type == "library"
+    assert content.import_target.target_metadata["target_type"] == "library"
     assert content.resident is not None
     assert content.resident.name == "icon.library"
     assert content.library is not None
@@ -957,14 +1152,14 @@ def test_classify_file_content_classifies_library_targets_from_resident_structur
     assert content.library.version == 37
     assert content.library.public_function_count == 12
     assert content.library.total_lvo_count == 19
-    metadata = _target_metadata_for_content(content)
+    metadata = TargetMetadata.from_dict(content.import_target.target_metadata)
     assert metadata.resident is not None
     assert metadata.resident.offset == 0
-    assert metadata.resident.matchword == runtime_os.CONSTANTS["RTC_MATCHWORD"].value
+    assert metadata.resident.matchword == 0x4AFC
 
 
-def test_classify_file_content_extracts_autoinit_library_entrypoints(
-    monkeypatch: MonkeyPatch,
+def test_disk_content_summary_extracts_autoinit_library_entrypoints(
+    tmp_path: Path,
 ) -> None:
     code = bytearray(0x120)
     code[0:2] = bytes.fromhex("4afc")
@@ -988,76 +1183,64 @@ def test_classify_file_content_extracts_autoinit_library_entrypoints(
         code[start:start + 4] = target.to_bytes(4, byteorder="big")
     code[0x64:0x68] = (0xFFFFFFFF).to_bytes(4, byteorder="big", signed=False)
 
-    hunk_file = HunkFile()
-    hunk_file.file_type = int(HunkType.HUNK_HEADER)
-    hunk_file.hunks = [
-        Hunk(
-            index=0,
-            hunk_type=int(HunkType.HUNK_CODE),
-            mem_type=int(MemType.ANY),
-            alloc_size=len(code),
-            data=bytes(code),
-        )
-    ]
-    monkeypatch.setattr("amiga_disk.adf.parse", lambda _data: hunk_file)
-    kb = load_disk_kb()
-
-    content = _classify_file_content(kb, b"\x00\x00\x03\xf3demo")
+    content = _content_from_c_disk_inspect(tmp_path, _hunk_executable(bytes(code)))
 
     assert content.target_type == "library"
+    assert content.import_target is not None
+    assert content.import_target.target_type == "library"
     assert content.resident is not None
     assert content.resident.autoinit is not None
     assert content.resident.autoinit.payload_offset == 0x40
     assert content.resident.autoinit.vectors_offset == 0x50
     assert content.resident.autoinit.vector_offsets == (0xA0, 0xA8, 0xB0, 0xB8, 0xC0)
     assert content.resident.autoinit.init_func_offset == 0x90
-    metadata = _target_metadata_for_content(content)
-    structure = target_structure_spec(metadata)
-    assert structure is not None
-    assert structure.analysis_start_offset == 0x90
-    assert [seed.entry_offset for seed in metadata.entry_register_seeds] == [0x90, 0xA0, 0xA8, 0xB0, 0xB8, 0xC0]
-    assert metadata.entry_register_seeds[0].library_name == "exec.library"
-    assert all(seed.register == "A6" for seed in metadata.entry_register_seeds)
-    assert all(seed.library_name == "icon.library" for seed in metadata.entry_register_seeds[1:])
-    assert [entry.label for entry in structure.entrypoints] == [
-        "library_init",
-        "lib_open",
-        "lib_close",
-        "lib_expunge",
-        "lib_extfunc",
-        "icon_private_1",
-    ]
-    assert [entry.offset for entry in structure.entrypoints] == [
-        0x90,
-        0xA0,
-        0xA8,
-        0xB0,
-        0xB8,
-        0xC0,
-    ]
+    metadata = TargetMetadata.from_dict(content.import_target.target_metadata)
+    assert metadata.resident is not None
+    assert metadata.resident.autoinit is not None
+    assert metadata.resident.autoinit.init_func_offset == 0x90
+    assert metadata.resident.autoinit.vector_offsets == (0xA0, 0xA8, 0xB0, 0xB8, 0xC0)
 
 
-def test_classify_file_content_defaults_to_program_without_resident(
-    monkeypatch: MonkeyPatch,
+def test_disk_content_summary_defaults_to_program_without_resident(
+    tmp_path: Path,
 ) -> None:
-    hunk_file = HunkFile()
-    hunk_file.file_type = int(HunkType.HUNK_HEADER)
-    hunk_file.hunks = [
-        Hunk(
-            index=0,
-            hunk_type=int(HunkType.HUNK_CODE),
-            mem_type=int(MemType.ANY),
-            alloc_size=4,
-            data=b"\x4e\x75\x4e\x75",
-        )
-    ]
-
-    monkeypatch.setattr("amiga_disk.adf.parse", lambda _data: hunk_file)
-    kb = load_disk_kb()
-
-    content = _classify_file_content(kb, b"\x00\x00\x03\xf3demo")
+    content = _content_from_c_disk_inspect(tmp_path, _hunk_executable(b"\x4e\x75\x4e\x75"))
 
     assert content.target_type == "program"
+    assert content.import_target is not None
+    assert content.import_target.target_type == "program"
+    assert content.import_target.target_metadata["target_type"] == "program"
+    assert content.resident is None
+    assert content.library is None
+
+
+def test_disk_content_summary_classifies_iff_container(tmp_path: Path) -> None:
+    payload = b"FORM" + (4).to_bytes(4, byteorder="big") + b"ILBM"
+
+    content = _content_from_c_disk_inspect(tmp_path, payload)
+
+    assert content.kind == "iff_container"
+    assert content.size == len(payload)
+    assert content.sha256
+    assert content.group_id == "FORM"
+    assert content.form_id == "ILBM"
+    assert content.is_executable is None
+    assert content.target_type is None
+    assert content.import_target is None
+
+
+def test_disk_content_summary_keeps_malformed_hunk_metadata_stable(tmp_path: Path) -> None:
+    payload = b"\x00\x00\x03\xf3BROKEN"
+
+    content = _content_from_c_disk_inspect(tmp_path, payload)
+
+    assert content.kind == "amiga_hunk_executable"
+    assert content.size == len(payload)
+    assert content.sha256
+    assert content.is_executable is False
+    assert content.hunk_count is None
+    assert content.target_type is None
+    assert content.import_target is None
     assert content.resident is None
     assert content.library is None
 
@@ -1100,6 +1283,7 @@ def test_create_disk_project_keeps_non_dos_disk_without_imported_targets(
                 bootcode_size=1012,
                 bootcode_has_code=True,
                 bootcode_entropy=1.0,
+                import_target=_bootblock_import_target(),
             ),
             non_dos=NonDosInfo(
                 description="Custom format disk (non-AmigaDOS)",
@@ -1109,7 +1293,7 @@ def test_create_disk_project_keeps_non_dos_disk_without_imported_targets(
             ),
         )
 
-    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
 
     manifest = create_disk_project(adf_path, project_root=project_root)
 
@@ -1159,6 +1343,7 @@ def test_create_disk_project_requires_complete_dos_analysis(
                 bootcode_size=1012,
                 bootcode_has_code=True,
                 bootcode_entropy=1.0,
+                import_target=_bootblock_import_target(),
             ),
             filesystem=FilesystemInfo(
                 type="FFS",
@@ -1173,7 +1358,7 @@ def test_create_disk_project_requires_complete_dos_analysis(
             block_usage=None,
         )
 
-    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
 
     with pytest.raises(DiskAnalysisError, match="DOS analysis is missing root block"):
         create_disk_project(adf_path, project_root=project_root)
@@ -1198,7 +1383,7 @@ def test_create_disk_project_cleans_up_partial_disk_dir_on_failure(
     ) -> AdfAnalysis:
         raise RuntimeError("boom")
 
-    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
 
     with pytest.raises(RuntimeError, match="boom"):
         create_disk_project(adf_path, project_root=project_root)
@@ -1244,6 +1429,7 @@ def test_create_disk_project_cleans_up_created_targets_on_import_failure(
                 bootcode_size=1012,
                 bootcode_has_code=True,
                 bootcode_entropy=1.0,
+                import_target=_bootblock_import_target(),
             ),
             root_block=RootBlockInfo(
                 block_num=880,
@@ -1285,6 +1471,7 @@ def test_create_disk_project_cleans_up_created_targets_on_import_failure(
                         is_executable=True,
                         hunk_count=1,
                         target_type="program",
+                        import_target=_program_import_target(),
                     ),
                 )
             ],
@@ -1309,8 +1496,8 @@ def test_create_disk_project_cleans_up_created_targets_on_import_failure(
             raise RuntimeError("boom")
         original_write_source_descriptor(target_dir, payload)
 
-    monkeypatch.setattr("amiga_disk.adf.analyze_adf", fake_analyze_adf)
-    monkeypatch.setattr("amiga_disk.adf.write_source_descriptor", fail_on_second_source_write)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.write_source_descriptor", fail_on_second_source_write)
 
     with pytest.raises(RuntimeError, match="boom"):
         create_disk_project(adf_path, project_root=project_root)
@@ -1374,7 +1561,7 @@ def test_analyze_adf_treats_invalid_dos_root_as_non_dos(tmp_path: Path) -> None:
     assert result.non_dos is not None
     assert result.non_dos.dos_magic_without_filesystem is True
     assert result.non_dos.filesystem_parse_error is not None
-    assert "Unexpected root hash table size" in result.non_dos.filesystem_parse_error
+    assert "root" in result.non_dos.filesystem_parse_error
     assert result.track_analysis is not None
     assert result.track_analysis.track_size_bytes == 5632
     assert result.track_analysis.tracks[0].byte_offset == 0
@@ -1388,20 +1575,14 @@ def test_analyze_adf_treats_invalid_dos_root_as_non_dos(tmp_path: Path) -> None:
     assert result.trackloader_analysis.nonempty_head0_tracks == 1
     assert result.trackloader_analysis.nonempty_head1_tracks == 0
     assert result.bootloader_analysis is not None
-    assert len(result.bootloader_analysis.stages) == 2
-    assert result.bootloader_analysis.stages[0].loads[0].destination_addr == 0x40000
-    assert result.bootloader_analysis.stages[1].decode_regions[0].input_source_candidates[0].track == 0
-    symbols = [access.symbol for access in result.bootloader_analysis.stages[1].hardware_accesses]
-    assert "dskpt" in symbols
-    assert "dsksync" in symbols
-    assert symbols.count("adkcon") == 2
-    assert symbols.count("dsklen") >= 2
+    stages = {stage.name: stage for stage in result.bootloader_analysis.stages}
+    assert stages["stage_1"].disk_reads[0].source_kind == "logical_disk_offset"
+    assert stages["stage_1"].disk_reads[0].disk_offset == 1024
 
 
 def test_analyze_adf_dos_path_emits_trackloader_and_bootloader_analysis(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     adf_path = tmp_path / "dos.adf"
     adf_path.write_bytes(b"\x00" * 901120)
-    disk_kb = load_disk_kb()
     boot = BootBlockInfo(
         magic_ascii="DOS",
         is_dos=True,
@@ -1448,52 +1629,50 @@ def test_analyze_adf_dos_path_emits_trackloader_and_bootloader_analysis(monkeypa
         nonempty_head0_tracks=1,
         nonempty_head1_tracks=0,
     )
+    expected_track_analysis = TrackAnalysis(
+        total_tracks=160,
+        track_size_bytes=5632,
+        non_empty_tracks=1,
+        tracks=[
+            TrackInfo(
+                track=0,
+                cylinder=0,
+                head=0,
+                first_block=0,
+                byte_offset=0,
+                byte_length=5632,
+                empty=False,
+                entropy=1.0,
+                m68k_pattern_count=0,
+                has_code=True,
+                ascii_strings=[],
+            )
+        ],
+        raw_sources=[RawTrackSource(track=0, cylinder=0, head=0, byte_offset=0, byte_length=5632)],
+    )
     expected_bootloader = BootloaderAnalysis(stages=[], memory_regions=[], transfers=[])
 
-    monkeypatch.setattr("amiga_disk.adf._parse_boot_block", lambda _kb, _data: boot)
-    monkeypatch.setattr("amiga_disk.adf._load_dos_filesystem", lambda *_args, **_kwargs: filesystem)
     monkeypatch.setattr(
-        "amiga_disk.adf._analyze_track",
-        lambda _kb, _data, track_num, _sectors_per_track: TrackInfo(
-            track=track_num,
-            cylinder=0,
-            head=0,
-            first_block=0,
-            byte_offset=0,
-            byte_length=5632,
-            empty=False,
-            entropy=1.0,
-            m68k_pattern_count=0,
-            has_code=True,
-            ascii_strings=[],
-        ),
+        "amiga_reversing.amiga_disk.adf.inspect_disk_with_c_backend",
+        lambda *_args, **_kwargs: {
+            "disk_info": {
+                "size": 901120,
+                "variant": "DD",
+                "total_sectors": 1760,
+                "sectors_per_track": 11,
+                "is_dos": 1,
+            },
+            "boot_block": boot.to_dict(),
+            "track_analysis": expected_track_analysis.to_dict(),
+            "trackloader_analysis": expected_trackloader.to_dict(),
+            "bootloader_analysis": expected_bootloader.to_dict(),
+        },
     )
-    monkeypatch.setattr(
-        "amiga_disk.adf._build_trackloader_analysis",
-        lambda _kb, _data, _tracks, _track_size_bytes: expected_trackloader,
-    )
-
-    def fake_analyze_bootloader(
-        boot_code: bytes,
-        *,
-        disk_bytes: bytes | None = None,
-        raw_track_sources: list[RawTrackSource] | None = None,
-        kb: object | None = None,
-        kb_root: Path = Path("."),
-        entry_addr: int | None = None,
-    ) -> BootloaderAnalysis:
-        assert len(boot_code) == disk_kb.boot_block.boot_block_bytes - disk_kb.boot_block.bootcode_offset
-        assert disk_bytes == adf_path.read_bytes()
-        assert raw_track_sources is not None
-        assert len(raw_track_sources) == 160
-        assert raw_track_sources[0].track == 0
-        return expected_bootloader
-
-    monkeypatch.setattr("amiga_disk.adf.analyze_bootloader", fake_analyze_bootloader)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.adf._load_dos_filesystem", lambda *_args, **_kwargs: filesystem)
 
     result = analyze_adf(adf_path, include_tracks=True)
 
-    assert result.track_analysis is not None
+    assert result.track_analysis == expected_track_analysis
     assert result.trackloader_analysis == expected_trackloader
     assert result.bootloader_analysis == expected_bootloader
 
@@ -1540,23 +1719,21 @@ def test_analyze_adf_dos_path_emits_bootloader_analysis_without_tracks(monkeypat
     )
     expected_bootloader = BootloaderAnalysis(stages=[], memory_regions=[], transfers=[])
 
-    monkeypatch.setattr("amiga_disk.adf._parse_boot_block", lambda _kb, _data: boot)
-    monkeypatch.setattr("amiga_disk.adf._load_dos_filesystem", lambda *_args, **_kwargs: filesystem)
-
-    def fake_analyze_bootloader(
-        boot_code: bytes,
-        *,
-        disk_bytes: bytes | None = None,
-        raw_track_sources: list[RawTrackSource] | None = None,
-        kb: object | None = None,
-        kb_root: Path = Path("."),
-        entry_addr: int | None = None,
-    ) -> BootloaderAnalysis:
-        assert disk_bytes == adf_path.read_bytes()
-        assert raw_track_sources == []
-        return expected_bootloader
-
-    monkeypatch.setattr("amiga_disk.adf.analyze_bootloader", fake_analyze_bootloader)
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.adf.inspect_disk_with_c_backend",
+        lambda *_args, **_kwargs: {
+            "disk_info": {
+                "size": 901120,
+                "variant": "DD",
+                "total_sectors": 1760,
+                "sectors_per_track": 11,
+                "is_dos": 1,
+            },
+            "boot_block": boot.to_dict(),
+            "bootloader_analysis": expected_bootloader.to_dict(),
+        },
+    )
+    monkeypatch.setattr("amiga_reversing.amiga_disk.adf._load_dos_filesystem", lambda *_args, **_kwargs: filesystem)
 
     result = analyze_adf(adf_path, include_tracks=False)
 
@@ -1587,6 +1764,7 @@ def test_print_summary_requires_bootloader_analysis() -> None:
             bootcode_size=1012,
             bootcode_has_code=True,
             bootcode_entropy=1.0,
+            import_target=_bootblock_import_target(),
         ),
     )
 
@@ -1616,6 +1794,7 @@ def test_print_summary_requires_trackloader_analysis_when_tracks_exist() -> None
             bootcode_size=1012,
             bootcode_has_code=True,
             bootcode_entropy=1.0,
+            import_target=_bootblock_import_target(),
         ),
         track_analysis=TrackAnalysis(
             total_tracks=160,

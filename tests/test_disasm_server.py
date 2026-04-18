@@ -1,15 +1,31 @@
 from __future__ import annotations
 
 import json
+import queue
+import socket
+import subprocess
+import time
+import urllib.request
 from pathlib import Path
 from typing import cast
-from unittest.mock import Mock
 
 import pytest
 
-from disasm import server as disasm_server
-from disasm.projects import ProjectRecord
-from disasm.types import BlockRowContext, ListingRow
+from amiga_reversing.disasm import server as disasm_server
+from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
+from amiga_reversing.disasm.listing_types import BlockRowContext, ListingRow
+from amiga_reversing.disasm.projects import ProjectRecord
+
+
+def _free_tcp_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def _read_http_bytes(url: str) -> tuple[bytes, str]:
+    with urllib.request.urlopen(url, timeout=2) as response:
+        return response.read(), response.headers.get("Content-Type", "")
 
 
 def _binary_project(project_name: str, *, ready: bool) -> ProjectRecord:
@@ -84,6 +100,62 @@ def test_route_projects_returns_project_list(monkeypatch: pytest.MonkeyPatch) ->
 
     assert payload["ok"] is True
     assert payload["data"] == [_binary_project("bloodwych", ready=True).to_dict()]
+
+
+def test_installed_disasm_server_serves_web_static_assets() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    port = _free_tcp_port()
+    process = subprocess.Popen(
+        [
+            "uv",
+            "run",
+            "amiga-disasm-server",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(port),
+        ],
+        cwd=repo_root,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        base_url = f"http://127.0.0.1:{port}"
+        deadline = time.monotonic() + 8
+        last_error: Exception | None = None
+        while time.monotonic() < deadline:
+            if process.poll() is not None:
+                stdout, stderr = process.communicate(timeout=1)
+                raise AssertionError(f"server exited early\nstdout:\n{stdout}\nstderr:\n{stderr}")
+            try:
+                body, content_type = _read_http_bytes(f"{base_url}/")
+                break
+            except Exception as exc:
+                last_error = exc
+                time.sleep(0.1)
+        else:
+            raise AssertionError(f"server did not serve /: {last_error}")
+
+        assert b"<html" in body.lower()
+        assert content_type.startswith("text/html")
+
+        app_js, app_content_type = _read_http_bytes(f"{base_url}/app.js")
+        styles_css, styles_content_type = _read_http_bytes(f"{base_url}/styles.css")
+
+        assert b"function" in app_js
+        assert app_content_type.startswith("application/javascript")
+        assert b"body {" in styles_css
+        assert styles_content_type.startswith("text/css")
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=5)
 
 
 def test_route_create_project(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -273,13 +345,13 @@ def test_route_project_create_status_returns_job(monkeypatch: pytest.MonkeyPatch
 
 
 def test_route_delete_project(monkeypatch: pytest.MonkeyPatch) -> None:
-    deleted: list[str] = []
-    monkeypatch.setattr(disasm_server, "delete_project", lambda project_id: deleted.append(project_id))
+    removed_projects: list[str] = []
+    monkeypatch.setattr(disasm_server, "delete_project", lambda project_id: removed_projects.append(project_id))
 
     payload = disasm_server.route_request("POST", "/api/projects/demo/delete", {})
 
     assert payload["ok"] is True
-    assert deleted == ["demo"]
+    assert removed_projects == ["demo"]
 
 
 def test_create_project_from_media_creates_executable_project(
@@ -319,8 +391,8 @@ def test_create_project_from_media_creates_executable_project(
     monkeypatch.setattr(disasm_server, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(
         disasm_server,
-        "parse",
-        Mock(return_value=type("ParsedExecutable", (), {"is_executable": True})()),
+        "validate_amiga_hunk_executable_with_c_backend",
+        lambda path, project_root: None,
     )
     monkeypatch.setattr(disasm_server, "create_project", fake_create_project)
     monkeypatch.setattr(
@@ -341,6 +413,27 @@ def test_create_project_from_media_creates_executable_project(
         "kind": "hunk_file",
         "path": "bin/uploads/Bloodwych",
     }
+
+
+def test_create_project_from_media_rejects_invalid_executable_with_c_backend(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(disasm_server, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(
+        disasm_server,
+        "validate_amiga_hunk_executable_with_c_backend",
+        lambda path, project_root: (_ for _ in ()).throw(
+            ValueError("Uploaded media is not an Amiga executable")
+        ),
+    )
+
+    with pytest.raises(ValueError, match="Uploaded media is not an Amiga executable"):
+        disasm_server._create_project_from_media({
+            "filename": "Bloodwych",
+            "media_base64": "ZGVtbw==",
+        })
+
+    assert not (tmp_path / "bin" / "uploads" / "Bloodwych").exists()
 
 
 def test_create_project_from_media_creates_disk_project(
@@ -415,7 +508,21 @@ def test_route_listing_raises_if_rows_not_loaded(monkeypatch: pytest.MonkeyPatch
 
 
 def test_route_listing_returns_cached_window(monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [ListingRow(row_id="r0", kind="instruction", text="moveq #0,d0\n", addr=0x10)]
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="moveq #0,d0\n",
+            addr=0x10,
+            structured_data={
+                "struct_name": "RT",
+                "field_name": "RT_MATCHWORD",
+                "c_type": "UWORD",
+                "value_domain": "exec.resident.matchword",
+                "constant_name": "RTC_MATCHWORD",
+            },
+        )
+    ]
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
     monkeypatch.setattr(
@@ -436,6 +543,151 @@ def test_route_listing_returns_cached_window(monkeypatch: pytest.MonkeyPatch) ->
     assert data["anchor_addr"] == 0x10
     assert rows_data[0]["row_id"] == "r0"
     assert rows_data[0]["view_annotations"] == []
+    assert rows_data[0]["structured_data"] == {
+        "struct_name": "RT",
+        "field_name": "RT_MATCHWORD",
+        "c_type": "UWORD",
+        "value_domain": "exec.resident.matchword",
+        "constant_name": "RTC_MATCHWORD",
+    }
+
+
+def test_route_listing_returns_index_window(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
+        for index in range(5)
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing",
+        {"start": ["2"], "count": ["2"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
+
+    assert payload["ok"] is True
+    assert data["start"] == 2
+    assert data["end"] == 4
+    assert data["total_rows"] == 5
+    assert data["has_more_before"] is True
+    assert data["has_more_after"] is True
+    assert [row["row_id"] for row in rows_data] == ["r2", "r3"]
+
+
+def test_route_listing_navigation_uses_all_cached_rows(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(row_id="r0", kind="label", text="start:\n", addr=0, label="start:"),
+        ListingRow(row_id="r1", kind="instruction", text="rts\n", addr=2),
+        ListingRow(row_id="r2", kind="label", text="far_target:\n", addr=2000, label="far_target:"),
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "basic"
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing/navigation",
+        {},
+    )
+    data = cast(dict[str, object], payload["data"])
+    groups = cast(dict[str, list[dict[str, object]]], data["groups"])
+
+    assert payload["ok"] is True
+    assert data["analysis_generation"] == "basic"
+    assert data["total_rows"] == 3
+    assert [entry["summary"] for entry in groups["labels"]] == ["start:", "far_target:"]
+    assert groups["labels"][1]["addr"] == 2000
+
+
+def test_route_listing_navigation_includes_entity_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="label",
+            text="loc_0010:\n",
+            addr=0x10,
+            entity_addr=0x10,
+        )
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "get_entities_by_int_addr",
+        lambda project_name, project_root=None: {
+            0x10: {
+                "addr": "0x0010",
+                "type": "code",
+                "name": "main_entry",
+                "comment": "validated entry",
+                "confidence": "verified",
+            }
+        },
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing/navigation",
+        {},
+    )
+    groups = cast(dict[str, list[dict[str, object]]], cast(dict[str, object], payload["data"])["groups"])
+
+    assert [entry["summary"] for entry in groups["comments"]] == [
+        "main_entry; validated entry; code; verified"
+    ]
+
+
+def test_route_listing_navigation_rejects_stale_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = [
+        ListingRow(row_id="r0", kind="label", text="stale:\n", addr=0, label="stale:")
+    ]
+    disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "basic"
+    disasm_server._PROJECT_ROW_CACHE_KEY["bloodwych"] = "old-cache"
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "_project_listing_cache_key",
+        lambda project_name: "new-cache",
+    )
+
+    with pytest.raises(ValueError, match="Canonical rows not loaded"):
+        disasm_server.route_request(
+            "GET",
+            "/api/projects/bloodwych/listing/navigation",
+            {},
+        )
+
+    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
+    assert "bloodwych" not in disasm_server._PROJECT_ROW_GENERATION_CACHE
+    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE_KEY
 
 
 def test_route_listing_keeps_view_annotations_empty_for_monam(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -464,6 +716,61 @@ def test_route_listing_keeps_view_annotations_empty_for_monam(monkeypatch: pytes
     assert rows_data[0]["view_annotations"] == []
     assert rows_data[1]["view_annotations"] == []
     assert rows_data[2]["view_annotations"] == []
+
+
+def test_route_listing_hydrates_entity_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="label",
+            text="loc_0010:\n",
+            addr=0x10,
+            entity_addr=0x10,
+        )
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "get_entities_by_int_addr",
+        lambda project_name, project_root=None: {
+            0x10: {
+                "addr": "0x0010",
+                "type": "code",
+                "name": "main_entry",
+                "comment": "validated entry",
+                "confidence": "verified",
+            }
+        },
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing",
+        {"before": ["0"], "after": ["1"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
+
+    assert rows_data[0]["view_annotations"] == [
+        "main_entry",
+        "validated entry",
+        "code",
+        "verified",
+    ]
+    assert rows_data[0]["entity"] == {
+        "addr": "0x0010",
+        "type": "code",
+        "name": "main_entry",
+        "comment": "validated entry",
+        "confidence": "verified",
+    }
 
 
 def test_route_listing_adds_api_call_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -616,16 +923,11 @@ def test_route_listing_does_not_cross_apply_api_call_metadata_between_hunks(
 def test_route_type_catalog_returns_known_structs(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
-        "load_live_os_reference_payload",
-        lambda: {
-            "_meta": {"api_input_type_overrides": []},
-            "libraries": {},
-            "constants": {},
-            "structs": {
-                "SimpleSprite": {"source": "GRAPHICS/SPRITE.I", "size": 12, "fields": []},
-                "Window": {"source": "INTUITION/INTUITION.I", "size": 34, "fields": []},
-            },
-        },
+        "type_catalog_from_c_backend",
+        lambda project_name: [
+            {"name": "SimpleSprite", "source": "graphics/sprite.i", "size": 12},
+            {"name": "Window", "source": "intuition/intuition.i", "size": 34},
+        ],
     )
 
     payload = disasm_server.route_request("GET", "/api/projects/bloodwych/api/type-catalog", {})
@@ -633,7 +935,7 @@ def test_route_type_catalog_returns_known_structs(monkeypatch: pytest.MonkeyPatc
 
     assert payload["ok"] is True
     assert data[0]["name"] == "SimpleSprite"
-    assert data[0]["source"] == "GRAPHICS/SPRITE.I"
+    assert data[0]["source"] == "graphics/sprite.i"
 
 
 def test_route_patch_api_input_struct_writes_global_override(
@@ -654,27 +956,17 @@ def test_route_patch_api_input_struct_writes_global_override(
         "constants": {},
     }))
     monkeypatch.setattr(disasm_server, "_OS_CORRECTIONS_PATH", corrections_path)
-    monkeypatch.setattr(disasm_server, "install_live_runtime_os_kb", lambda: None)
     monkeypatch.setattr(
         disasm_server,
-        "load_live_os_reference_payload",
-        lambda: {
-            "_meta": {"api_input_type_overrides": []},
-            "constants": {},
-            "structs": {
-                "SimpleSprite": {"source": "GRAPHICS/SPRITE.I", "size": 12, "fields": []},
-            },
-            "libraries": {
-                "intuition.library": {
-                    "functions": {
-                        "SetPointer": {
-                            "inputs": [
-                                {"name": "pointer", "type": "UWORD *"},
-                            ]
-                        }
-                    }
-                }
-            },
+        "validate_api_input_struct_with_c_backend",
+        lambda project_name, library, function, input_name, struct_name: {
+            "library": library,
+            "function": function,
+            "input": input_name,
+            "type": f"struct {struct_name} *",
+            "i_struct": struct_name,
+            "source": "global correction",
+            "struct_source": "graphics/sprite.i",
         },
     )
 
@@ -689,6 +981,7 @@ def test_route_patch_api_input_struct_writes_global_override(
 
     assert payload["ok"] is True
     assert data["type"] == "struct SimpleSprite *"
+    assert data["struct_source"] == "graphics/sprite.i"
     overrides = persisted["_meta"]["api_input_type_overrides"]
     assert overrides == [{
         "citation": "User-edited via disasm UI",
@@ -710,8 +1003,14 @@ def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(
         disasm_server,
-        "_start_listing_job",
-        lambda project_name: {"job_id": "job-1", "project_id": project_name, "status": "queued"},
+        "_start_progressive_listing_jobs",
+        lambda project_name: {
+            "job_id": "job-basic",
+            "enrichment_job_id": "job-full",
+            "project_id": project_name,
+            "status": "queued",
+            "target_generation": "basic",
+        },
     )
 
     payload = disasm_server.route_request(
@@ -722,10 +1021,21 @@ def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
     data = cast(dict[str, object], payload["data"])
 
     assert payload["ok"] is True
-    assert data["job_id"] == "job-1"
+    assert data["job_id"] == "job-basic"
+    assert data["enrichment_job_id"] == "job-full"
 
 
-def test_start_listing_job_ignores_stale_ready_job_without_rows() -> None:
+def test_start_listing_job_ignores_stale_ready_job_without_rows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeThread:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def start(self) -> None:
+            pass
+
+    monkeypatch.setattr(disasm_server.threading, "Thread", FakeThread)
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["stale-job"] = {
@@ -747,10 +1057,176 @@ def test_start_listing_job_ignores_stale_ready_job_without_rows() -> None:
         "finished_at": 1.0,
     }
 
-    payload = disasm_server._start_listing_job("bloodwych")
+    payload = disasm_server._start_listing_job("bloodwych", generation="full")
 
     assert payload["job_id"] != "stale-job"
     assert payload["status"] in {"queued", "building"}
+
+
+def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [ListingRow(row_id="c:0", kind="instruction", text="nop\n", addr=0)]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._ASYNC_JOBS["job-1"] = {
+        "job_id": "job-1",
+        "job_kind": "full_listing",
+        "project_id": "bloodwych",
+        "result_project_id": "bloodwych",
+        "status": "queued",
+        "phase_id": "queued",
+        "phase_index": 0,
+        "phase_count": 2,
+        "progress_mode": "determinate",
+        "progress_current": 0,
+        "progress_total": 2,
+        "progress_percent": 0,
+        "total_rows": None,
+        "error": None,
+        "created_at": 1.0,
+        "finished_at": None,
+    }
+    monkeypatch.setattr(
+        disasm_server,
+        "build_project_rows_generation_with_c_backend",
+        lambda project_name, generation: (rows, {(0, 0): {"library": "exec.library"}}),
+    )
+
+    disasm_server._build_rows_job("job-1", "bloodwych", generation="full")
+
+    assert disasm_server._PROJECT_ROW_CACHE["bloodwych"] == rows
+    assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
+    assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
+        (0, 0): {"library": "exec.library"}
+    }
+    assert disasm_server._ASYNC_JOBS["job-1"]["status"] == "ready"
+
+
+def test_build_rows_job_reports_unsupported_c_backend(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._ASYNC_JOBS["job-1"] = {
+        "job_id": "job-1",
+        "job_kind": "full_listing",
+        "project_id": "bloodwych",
+        "result_project_id": "bloodwych",
+        "status": "queued",
+        "phase_id": "queued",
+        "phase_index": 0,
+        "phase_count": 2,
+        "progress_mode": "determinate",
+        "progress_current": 0,
+        "progress_total": 2,
+        "progress_percent": 0,
+        "total_rows": None,
+        "error": None,
+        "created_at": 1.0,
+        "finished_at": None,
+    }
+
+    def fail(project_name: str, generation: str) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]]]:
+        raise UnsupportedCBackendProject("unsupported project")
+
+    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend", fail)
+
+    disasm_server._build_rows_job("job-1", "bloodwych", generation="full")
+
+    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
+    assert disasm_server._ASYNC_JOBS["job-1"]["status"] == "failed"
+    assert disasm_server._ASYNC_JOBS["job-1"]["error"] == "unsupported project"
+
+
+def test_build_rows_job_stops_if_job_was_cleared() -> None:
+    disasm_server._ASYNC_JOBS.clear()
+
+    assert disasm_server._set_job_state("missing", status="building") is False
+    disasm_server._build_rows_job("missing", "bloodwych", generation="basic")
+
+
+def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPatch) -> None:
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._ASYNC_JOBS["job-basic"] = {
+        "job_id": "job-basic",
+        "job_kind": "basic_listing",
+        "project_id": "bloodwych",
+        "result_project_id": "bloodwych",
+        "status": "queued",
+        "phase_id": "queued",
+        "phase_index": 0,
+        "phase_count": 2,
+        "progress_mode": "determinate",
+        "progress_current": 0,
+        "progress_total": 2,
+        "progress_percent": 0,
+        "total_rows": None,
+        "error": None,
+        "created_at": 1.0,
+        "finished_at": None,
+        "target_generation": "basic",
+    }
+
+    def canceled_build(
+        project_name: str, generation: str
+    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]]]:
+        del disasm_server._ASYNC_JOBS["job-basic"]
+        return [ListingRow(row_id="stale", kind="instruction", text="nop\n")], {}
+
+    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend", canceled_build)
+
+    disasm_server._build_rows_job("job-basic", "bloodwych", generation="basic")
+
+    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
+    assert "bloodwych" not in disasm_server._PROJECT_ROW_GENERATION_CACHE
+
+
+def test_full_listing_replaces_basic_rows(monkeypatch: pytest.MonkeyPatch) -> None:
+    basic_rows = [ListingRow(row_id="basic", kind="instruction", text="nop\n", analysis_generation="basic")]
+    full_rows = [ListingRow(row_id="full", kind="instruction", text="rts\n", analysis_generation="full")]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._ASYNC_JOBS.clear()
+
+    def fake_build(
+        project_name: str, generation: str
+    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]]]:
+        if generation == "basic":
+            return basic_rows, {}
+        return full_rows, {(0, 4): {"library": "exec.library"}}
+
+    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend", fake_build)
+    for job_id, generation in (("job-basic", "basic"), ("job-full", "full")):
+        disasm_server._ASYNC_JOBS[job_id] = {
+            "job_id": job_id,
+            "job_kind": f"{generation}_listing",
+            "project_id": "bloodwych",
+            "result_project_id": "bloodwych",
+            "status": "queued",
+            "phase_id": "queued",
+            "phase_index": 0,
+            "phase_count": 2,
+            "progress_mode": "determinate",
+            "progress_current": 0,
+            "progress_total": 2,
+            "progress_percent": 0,
+            "total_rows": None,
+            "error": None,
+            "created_at": 1.0,
+            "finished_at": None,
+            "target_generation": generation,
+        }
+        disasm_server._build_rows_job(job_id, "bloodwych", generation=generation)
+
+    assert disasm_server._PROJECT_ROW_CACHE["bloodwych"] == full_rows
+    assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
+    assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
+        (0, 4): {"library": "exec.library"}
+    }
 
 
 def test_route_listing_status_returns_job(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -770,6 +1246,79 @@ def test_route_listing_status_returns_job(monkeypatch: pytest.MonkeyPatch) -> No
     assert payload["ok"] is True
     assert data["status"] == "building"
     assert data["phase_id"] == "emit_rows"
+
+
+def test_job_state_update_publishes_event() -> None:
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
+    subscriber: queue.Queue[disasm_server.AsyncJobPayload] = queue.Queue()
+    disasm_server._ASYNC_JOBS["job-1"] = {
+        "job_id": "job-1",
+        "job_kind": "full_listing",
+        "project_id": "bloodwych",
+        "result_project_id": "bloodwych",
+        "status": "queued",
+        "phase_id": "queued",
+        "phase_index": 0,
+        "phase_count": 2,
+        "progress_mode": "determinate",
+        "progress_current": 0,
+        "progress_total": 2,
+        "progress_percent": 0,
+        "total_rows": None,
+        "error": None,
+        "created_at": 1.0,
+        "finished_at": None,
+    }
+    disasm_server._JOB_EVENT_SUBSCRIBERS["job-1"] = [subscriber]
+
+    assert disasm_server._set_job_state(
+        "job-1",
+        status="ready",
+        phase_id="done",
+        finished_at=2.0,
+    )
+
+    payload = subscriber.get_nowait()
+    assert payload["job_id"] == "job-1"
+    assert payload["status"] == "ready"
+    assert payload["phase_id"] == "done"
+    disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
+    disasm_server._ASYNC_JOBS.clear()
+
+
+def test_cancel_listing_job_publishes_failed_event() -> None:
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
+    subscriber: queue.Queue[disasm_server.AsyncJobPayload] = queue.Queue()
+    disasm_server._ASYNC_JOBS["job-1"] = {
+        "job_id": "job-1",
+        "job_kind": "full_listing",
+        "project_id": "bloodwych",
+        "result_project_id": "bloodwych",
+        "status": "building",
+        "phase_id": "build_c_rows",
+        "phase_index": 1,
+        "phase_count": 2,
+        "progress_mode": "determinate",
+        "progress_current": 0,
+        "progress_total": 2,
+        "progress_percent": 0,
+        "total_rows": None,
+        "error": None,
+        "created_at": 1.0,
+        "finished_at": None,
+    }
+    disasm_server._JOB_EVENT_SUBSCRIBERS["job-1"] = [subscriber]
+
+    disasm_server._cancel_listing_jobs("bloodwych")
+
+    payload = subscriber.get_nowait()
+    assert payload["job_id"] == "job-1"
+    assert payload["status"] == "failed"
+    assert payload["error"] == "job canceled"
+    assert "job-1" not in disasm_server._ASYNC_JOBS
+    disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
 
 
 def test_json_bytes_returns_valid_json() -> None:
@@ -817,7 +1366,7 @@ def test_resolve_static_response_rejects_missing_file() -> None:
 
 def test_route_get_entity_returns_annotation_view(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "get_entity",
-                        lambda project_name, addr: {"addr": addr, "name": "main"})
+                        lambda project_name, addr, project_root=None: {"addr": addr, "name": "main"})
 
     payload = disasm_server.route_request(
         "GET", "/api/projects/bloodwych/entities/0x0000", {})
@@ -830,7 +1379,7 @@ def test_route_get_entity_returns_annotation_view(monkeypatch: pytest.MonkeyPatc
 def test_route_patch_entity_updates_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server, "patch_entity",
-        lambda project_name, addr, body: {"addr": addr, "name": body["name"]},
+        lambda project_name, addr, body, project_root=None: {"addr": addr, "name": body["name"]},
     )
 
     payload = disasm_server.route_request(

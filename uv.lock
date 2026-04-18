@@ -9,27 +9,25 @@ exclude-newer-span = "P7D"
 [[package]]
 name = "amiga-reversing2"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
-    { name = "machine68k" },
     { name = "pymupdf" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "machine68k" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "ruff" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "machine68k", path = "resources/machine68k/dist/machine68k-0.4.2.dev0+g61600df53.d20260308-cp314-cp314-win_amd64.whl" },
-    { name = "pymupdf", specifier = ">=1.27.2" },
-]
+requires-dist = [{ name = "pymupdf", specifier = ">=1.27.2" }]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "machine68k", path = "resources/machine68k/dist/machine68k-0.4.2.dev0+g61600df53.d20260308-cp314-cp314-win_amd64.whl" },
     { name = "mypy", specifier = ">=1.18" },
     { name = "pytest", specifier = ">=8" },
     { name = "ruff", specifier = ">=0.11" },

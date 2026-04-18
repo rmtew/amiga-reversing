@@ -613,13 +613,18 @@ static int format_immediate(uint16_t disasm_form_index, const M68kAsmOperandValu
     size_t out_size) {
   const M68kAsmFormDef *form = &g_m68k_disasm_forms[disasm_form_index];
   uint32_t value;
+  int32_t signed_value;
   if (operand == NULL || out == NULL || out_size == 0U) return -1;
   value = operand->value;
   if (value == 0U && g_m68k_disasm_inline_zero_means_eight[disasm_form_index] != 0U) value = 8U;
   if (form->mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ) return snprintf(out, out_size, "#%d",
     (int32_t)m68k_sign_extend32(value, 8U)) >= 0 ? 0 : -1;
-  if (strstr(form->syntax, "<displacement>") != NULL) return snprintf(out, out_size, "#%d",
-    (int32_t)m68k_sign_extend32(value, 16U)) >= 0 ? 0 : -1;
+  if (strstr(form->syntax, "<displacement>") != NULL) {
+    if (size_suffix == 'b') signed_value = (int32_t)m68k_sign_extend32(value, 8U);
+    else if (size_suffix == 'w') signed_value = (int32_t)m68k_sign_extend32(value, 16U);
+    else signed_value = (int32_t)value;
+    return snprintf(out, out_size, "#%d", signed_value) >= 0 ? 0 : -1;
+  }
   if (size_suffix == 'b') value &= 0xFFU;
   else if (size_suffix == 'w') value &= 0xFFFFU;
   return snprintf(out, out_size, "#%u", value) >= 0 ? 0 : -1;

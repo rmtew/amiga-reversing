@@ -1,19 +1,16 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 import subprocess
 import sys
-from collections.abc import MutableMapping
 from pathlib import Path
-from types import ModuleType, SimpleNamespace
-from typing import cast
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from disasm.binary_source import RawBinarySource
-from disasm.target_metadata import (
+import amiga_reversing.disasm.entity_builder as entity_builder
+from amiga_reversing.disasm.binary_source import RawBinarySource
+from amiga_reversing.disasm.target_metadata import (
     BootBlockTargetMetadata,
     EntryRegisterSeedMetadata,
     ResidentAutoinitMetadata,
@@ -23,52 +20,46 @@ from disasm.target_metadata import (
     TargetMetadata,
     write_target_metadata,
 )
-from m68k.hunk_parser import Hunk, HunkType, MemType, Reloc
-from m68k.indirect_core import IndirectSite, IndirectSiteStatus
-from m68k.m68k_asm import assemble_instruction
-from m68k.m68k_disasm import disassemble
-from m68k.m68k_executor import BasicBlock
-from m68k.name_entities import name_subroutines
-from m68k.os_calls import AppSlotInfo, LibraryCall
-from m68k_kb import runtime_m68k_analysis, runtime_os
-from tests.os_kb_helpers import make_empty_os_kb
-from tests.platform_helpers import make_platform
+
+
+def _fake_naming_catalog() -> dict[str, object]:
+    return {
+        "patterns": [
+            {"functions": ["AllocMem"], "name": "alloc_memory", "partial": False},
+        ],
+        "trivial_functions": ["AllocMem", "FreeMem", "SetSignal"],
+        "generic_prefix": "call_",
+        "libraries": ["dos.library", "exec.library", "icon.library"],
+    }
 
 
 def test_build_entities_help_loads_cleanly() -> None:
-    script = Path(__file__).resolve().parent.parent / "scripts" / "build_entities.py"
     result = subprocess.run(
-        [sys.executable, str(script), "--help"],
+        [sys.executable, "-m", "amiga_reversing.tools.build_entities", "--help"],
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert "Build entities.jsonl from hunk binary analysis" in result.stdout
+    assert "Build entities.jsonl from C backend binary analysis" in result.stdout
 
 
 def test_structured_prefix_entities_only_emit_when_requested() -> None:
     module = _load_build_entities_module()
-    metadata = TargetMetadata(
-        target_type="library",
-        entry_register_seeds=(),
-        resident=ResidentTargetMetadata(
-            offset=4,
-            matchword=0x4AFC,
-            flags=0x80,
-            version=37,
-            node_type_name="NT_LIBRARY",
-            priority=0,
-            name="icon.library",
-            id_string="icon 37.1",
-            init_offset=0x44,
-            auto_init=False,
-        ),
-    )
+    effective_policy = {
+        "analysis_policy": {
+            "structured_data_items": [{
+                "section_index": 0,
+                "offset": 4,
+                "size": 26,
+                "struct_name": "RT",
+            }]
+        }
+    }
 
-    assert module._structured_prefix_entities(metadata, 0, include_structure=False) == []
-    payloads = module._structured_prefix_entities(metadata, 0, include_structure=True)
+    assert module._structured_prefix_entities(effective_policy, 0, include_structure=False) == []
+    payloads = module._structured_prefix_entities(effective_policy, 0, include_structure=True)
     assert payloads == [{
         "addr": "0x0004",
         "end": "0x001E",
@@ -78,40 +69,6 @@ def test_structured_prefix_entities_only_emit_when_requested() -> None:
         "hunk": 0,
         "struct": "RT",
     }]
-
-
-def test_build_reloc_references_ignores_cross_hunk_targets() -> None:
-    module = _load_build_entities_module()
-    hunk = Hunk(
-        index=0,
-        hunk_type=int(HunkType.HUNK_CODE),
-        mem_type=int(MemType.ANY),
-        alloc_size=4,
-        data=(0x03FE).to_bytes(4, "big"),
-        relocs=[
-            Reloc(
-                reloc_type=HunkType.HUNK_RELOC32,
-                target_hunk=1,
-                offsets=(0,),
-            )
-        ],
-    )
-
-    refs = module.build_reloc_references([hunk], code_size=0x284, subroutines=[])
-
-    assert refs == []
-
-
-def test_filter_hunk_local_call_targets_excludes_cross_hunk_offsets() -> None:
-    module = _load_build_entities_module()
-
-    filtered = module._filter_hunk_local_call_targets(
-        {0x10, 0x03FE},
-        entry_addr=0,
-        code_size=0x284,
-    )
-
-    assert filtered == {0x10}
 
 
 def test_apply_seeded_entities_merges_name_and_inserts_data_range() -> None:
@@ -329,46 +286,51 @@ def test_apply_seeded_code_entrypoints_name_matching_code_entities() -> None:
     ]
 
 
-def _load_build_entities_module() -> ModuleType:
-    path = Path(__file__).resolve().parent.parent / "scripts" / "build_entities.py"
-    spec = importlib.util.spec_from_file_location("build_entities_script", path)
-    if spec is None or spec.loader is None:
-        raise ValueError("Unable to load build_entities.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+def _load_build_entities_module() -> object:
+    return entity_builder
 
 
-def test_collect_subroutine_app_slots_uses_containing_struct_region() -> None:
-    module = _load_build_entities_module()
-    inst = disassemble(assemble_instruction("movea.l 4300(a6),a0"), max_cpu="68010")[0]
-    sub = module.SubroutineRange(addr=0x20, end=0x24, block_count=1, instr_count=1)
-    blocks = {
-        0x20: SimpleNamespace(start=0x20, instructions=[inst]),
+def _empty_effective_policy() -> dict[str, object]:
+    return {"analysis_policy": {}}
+
+
+def _stub_effective_policy(
+    monkeypatch: MonkeyPatch,
+    module: object,
+    policy: dict[str, object] | None = None,
+) -> None:
+    monkeypatch.setattr(
+        module,
+        "effective_policy_project_source_with_c_backend",
+        lambda *args, **kwargs: _empty_effective_policy() if policy is None else policy,
+    )
+
+
+def _c_analysis_section(
+    *,
+    section_index: int = 0,
+    section_kind: int = 1,
+    section_size: int,
+    blocks: list[dict[str, int]] | None = None,
+    edges: list[dict[str, int]] | None = None,
+    calls: list[dict[str, object]] | None = None,
+    effects: list[dict[str, object]] | None = None,
+    entity_hints: list[dict[str, object]] | None = None,
+    indirect_sites: list[dict[str, object]] | None = None,
+    string_refs: list[dict[str, object]] | None = None,
+) -> dict[str, object]:
+    return {
+        "section_index": section_index,
+        "section_kind": section_kind,
+        "section_size": section_size,
+        "blocks": [] if blocks is None else blocks,
+        "edges": [] if edges is None else edges,
+        "entity_hints": [] if entity_hints is None else entity_hints,
+        "recovered_platform_calls": [] if calls is None else calls,
+        "recovered_platform_effects": [] if effects is None else effects,
+        "recovered_indirect_sites": [] if indirect_sites is None else indirect_sites,
+        "recovered_string_refs": [] if string_refs is None else string_refs,
     }
-    slot_infos = (
-        AppSlotInfo(
-            offset=0x10B8,
-            symbol="app_timer_device_iorequest",
-            usages=(),
-            struct="IO",
-            size=48,
-            named_base="timer.device",
-        ),
-    )
-
-    app_slots = module.collect_subroutine_app_slots(sub, blocks, slot_infos, 6)
-
-    assert app_slots == (
-        module.ReferencedAppSlot(
-            offset=0x10B8,
-            symbol="app_timer_device_iorequest",
-            struct="IO",
-            size=48,
-            pointer_struct=None,
-            named_base="timer.device",
-        ),
-    )
 
 
 def test_os_input_reg_key_joins_grouped_registers() -> None:
@@ -380,93 +342,18 @@ def test_os_input_reg_key_joins_grouped_registers() -> None:
 
 def test_grouped_os_call_inputs_are_emitted_in_entity_payload() -> None:
     module = _load_build_entities_module()
-    payload = module._typed_call_inputs_payload((
-        runtime_os.OsInput(
-            name="parm",
-            regs=("D0", "D1"),
-            type="DOUBLE",
-            i_struct=None,
-            semantic_kind=None,
-            semantic_note=None,
-        ),
-    ))
+    payload = module._c_api_call_type_payload("exec.library/Foo", {
+        "inputs": [{
+            "name": "parm",
+            "regs": ["D0", "D1"],
+            "type": "DOUBLE",
+        }],
+    })
 
     assert payload == {
-        "D0/D1": {"type": "DOUBLE"},
+        "call": "exec.library/Foo",
+        "inputs": {"D0/D1": {"type": "DOUBLE"}},
     }
-
-
-def test_app_slot_entity_payloads_emit_struct_and_named_base() -> None:
-    module = _load_build_entities_module()
-
-    payloads = module.app_slot_entity_payloads((
-        module.ReferencedAppSlot(
-            offset=0x0CD6,
-            symbol="app_dos_library_base",
-            struct=None,
-            size=None,
-            pointer_struct="DosLibrary",
-            named_base="dos.library",
-        ),
-    ))
-
-    assert payloads == [{
-        "offset": "0x0CD6",
-        "symbol": "app_dos_library_base",
-        "kind": "struct_pointer",
-        "pointer_struct": "DosLibrary",
-        "named_base": "dos.library",
-    }]
-
-
-def test_app_slot_entity_payloads_format_negative_offsets() -> None:
-    module = _load_build_entities_module()
-
-    payloads = module.app_slot_entity_payloads((
-        module.ReferencedAppSlot(
-            offset=-2,
-            symbol="app_freemem_memoryblock",
-            struct=None,
-            size=None,
-            pointer_struct=None,
-            named_base=None,
-        ),
-    ))
-
-    assert payloads == [{
-        "offset": "-0x0002",
-        "symbol": "app_freemem_memoryblock",
-    }]
-
-
-def test_app_slot_entity_payloads_emit_parser_buffer_metadata() -> None:
-    module = _load_build_entities_module()
-
-    payloads = module.app_slot_entity_payloads((
-        module.ReferencedAppSlot(
-            offset=0x0228,
-            symbol="app_option_source_buffer",
-            struct=None,
-            size=None,
-            pointer_struct=None,
-            named_base=None,
-            storage_kind="pointer",
-            semantic_type="source_text_buffer",
-            parser_role="option_source",
-            parser_routine="sub_ab00",
-            parse_order=0,
-        ),
-    ))
-
-    assert payloads == [{
-        "offset": "0x0228",
-        "symbol": "app_option_source_buffer",
-        "storage_kind": "pointer",
-        "semantic_type": "source_text_buffer",
-        "parser_role": "option_source",
-        "parser_routine": "sub_ab00",
-        "parse_order": 0,
-    }]
 
 
 def test_summarize_entity_app_slots_adds_direct_and_transitive_summaries() -> None:
@@ -508,130 +395,22 @@ def test_summarize_entity_app_slots_adds_direct_and_transitive_summaries() -> No
     assert entities[1]["struct_refs"] == ["DosLibrary"]
 
 
-def test_collect_subroutine_indirect_sites_keeps_dispatch_metadata() -> None:
+def test_c_subroutine_map_keeps_unowned_reached_blocks_as_code() -> None:
     module = _load_build_entities_module()
-    sub = module.SubroutineRange(addr=0x20, end=0x40, block_count=1, instr_count=1)
-    sites = [
-        IndirectSite(
-            addr=0x24,
-            mnemonic="jsr",
-            flow_type=runtime_m68k_analysis.FlowType.CALL,
-            shape="index.brief",
-            status=IndirectSiteStatus.PER_CALLER,
-            target=None,
-            detail="dispatch",
-            target_count=2,
-        ),
+    section = _c_analysis_section(
+        section_size=0x20,
+        blocks=[
+            {"start_offset": 0x00, "end_offset": 0x02, "certainty": 1, "edge_start": 0, "edge_count": 0},
+            {"start_offset": 0x10, "end_offset": 0x12, "certainty": 1, "edge_start": 0, "edge_count": 0},
+        ],
+    )
+
+    subroutines = module._build_c_subroutine_map(section, {0x00})
+
+    assert [(sub.addr, sub.end, sub.reached) for sub in subroutines] == [
+        (0x00, 0x02, True),
+        (0x10, 0x12, True),
     ]
-
-    indirect_sites = module.collect_subroutine_indirect_sites(sub, sites)
-
-    assert indirect_sites == (
-        module.ReferencedIndirectSite(
-            addr=0x24,
-            shape="index.brief",
-            status="per_caller",
-            flow="call",
-            detail="dispatch",
-            target_count=2,
-        ),
-    )
-
-
-def test_name_subroutines_uses_transitive_named_base_for_dispatch_wrapper() -> None:
-    entities: list[MutableMapping[str, object]] = [{
-        "addr": "0x0010",
-        "end": "0x0018",
-        "type": "code",
-        "named_bases_transitive": ["dos.library"],
-        "indirect_sites": [{
-            "addr": "0x0014",
-            "shape": "index.brief",
-            "status": "per_caller",
-            "flow": "call",
-        }],
-    }]
-
-    named = name_subroutines(entities, {}, b"", [])
-
-    assert named == 1
-    assert entities[0]["name"] == "dos_dispatch"
-
-
-def test_name_subroutines_ignores_unknown_library_call_names() -> None:
-    entities: list[MutableMapping[str, object]] = [{
-        "addr": "0x0010",
-        "end": "0x0018",
-        "type": "code",
-    }]
-
-    named = name_subroutines(
-        entities,
-        {},
-        b"",
-        [LibraryCall(
-            addr=0x0012,
-            block=0x0010,
-            library="unknown",
-            function="LVO_48",
-            lvo=-48,
-        )],
-    )
-
-    assert named == 0
-    assert "name" not in entities[0]
-
-
-def test_name_subroutines_uses_explicit_library_call_owner_sub() -> None:
-    entities: list[MutableMapping[str, object]] = [{
-        "addr": "0x0010",
-        "end": "0x0018",
-        "type": "code",
-    }, {
-        "addr": "0x0030",
-        "end": "0x0038",
-        "type": "code",
-    }]
-
-    named = name_subroutines(
-        entities,
-        {},
-        b"",
-        [LibraryCall(
-            addr=0x0032,
-            block=0x0030,
-            owner_sub=0x0010,
-            library="dos.library",
-            function="Open",
-            lvo=-30,
-        )],
-    )
-
-    assert named == 1
-    assert entities[0]["name"] == "call_open"
-    assert "name" not in entities[1]
-
-
-def test_name_subroutines_errors_when_library_call_owner_sub_missing() -> None:
-    entities: list[MutableMapping[str, object]] = [{
-        "addr": "0x0010",
-        "end": "0x0018",
-        "type": "code",
-    }]
-
-    with pytest.raises(ValueError, match="missing owner_sub"):
-        name_subroutines(
-            entities,
-            {},
-            b"",
-            [LibraryCall(
-                addr=0x0012,
-                block=0x0010,
-                library="dos.library",
-                function="Open",
-                lvo=-30,
-            )],
-        )
 
 
 def test_build_entities_from_raw_binary_rebases_addresses_to_local_offsets(
@@ -663,37 +442,6 @@ def test_build_entities_from_raw_binary_rebases_addresses_to_local_offsets(
             ),
         ),
     )
-    inst = disassemble(b"\x4E\x75")[0]
-    inst.offset = 0x000C
-    block = BasicBlock(
-        start=0x0000,
-        end=0x000E,
-        instructions=[inst],
-        is_entry=True,
-        is_return=True,
-    )
-    fake_analysis = SimpleNamespace(
-        blocks={0x0000: block},
-        xrefs=[],
-        call_targets=set(),
-        hint_blocks={},
-        hint_reasons={},
-        lib_calls=[],
-        os_kb=make_empty_os_kb(),
-        platform=make_platform(),
-        indirect_sites=[],
-        save=lambda path: None,
-    )
-    def fake_analyze_hunk(*args: object, **kwargs: object) -> SimpleNamespace:
-        assert kwargs["base_addr"] == 0x0C
-        assert kwargs["code_start"] == 0x0C
-        assert kwargs["entry_points"] == (0x0C,)
-        assert kwargs["extra_entry_points"] == ()
-        return fake_analysis
-
-    monkeypatch.setattr(module, "analyze_hunk", fake_analyze_hunk)
-    monkeypatch.setattr(module, "build_app_slot_infos", lambda *args, **kwargs: ())
-    monkeypatch.setattr(module, "name_subroutines", lambda *args, **kwargs: 0)
     source = RawBinarySource(
         kind="raw_binary",
         path=binary_path,
@@ -704,10 +452,42 @@ def test_build_entities_from_raw_binary_rebases_addresses_to_local_offsets(
         display_path=str(binary_path),
         analysis_cache_path=target_dir / "binary.analysis",
     )
+    fake_analysis = {
+        "sections": [
+            _c_analysis_section(
+                section_size=0x0E,
+                blocks=[
+                    {
+                        "start_offset": 0x0C,
+                        "end_offset": 0x0E,
+                        "certainty": 1,
+                        "edge_start": 0,
+                        "edge_count": 0,
+                    }
+                ],
+            )
+        ]
+    }
+    seen: dict[str, object] = {}
+
+    def fake_analyze_project_source_with_c_backend(*args: object, **kwargs: object) -> dict[str, object]:
+        seen["source"] = args[0]
+        seen["metadata_path"] = kwargs["metadata_path"]
+        seen["entry_offset_args"] = kwargs["entry_offset_args"]
+        return fake_analysis
+
+    monkeypatch.setattr(
+        module,
+        "analyze_project_source_with_c_backend",
+        fake_analyze_project_source_with_c_backend,
+    )
 
     result = module.build_entities_from_source(source, str(output_path))
 
     assert result == 0
+    assert seen["source"] is source
+    assert seen["metadata_path"] == target_dir / "target_metadata.json"
+    assert seen["entry_offset_args"] == ()
     payloads = [
         json.loads(line)
         for line in output_path.read_text(encoding="utf-8").splitlines()
@@ -719,6 +499,7 @@ def test_build_entities_from_raw_binary_rebases_addresses_to_local_offsets(
     assert payloads[0]["subtype"] == "struct_instance"
     assert payloads[1]["addr"] == "0x000C"
     assert payloads[1]["end"] == "0x000E"
+    assert payloads[1]["name"] == "boot_entry"
 
 
 def test_build_entities_from_runtime_absolute_raw_binary_normalizes_to_local_offsets(
@@ -750,37 +531,6 @@ def test_build_entities_from_runtime_absolute_raw_binary_normalizes_to_local_off
             ),
         ),
     )
-    inst = disassemble(b"\x4E\x75")[0]
-    inst.offset = 0x7000C
-    block = BasicBlock(
-        start=0x7000C,
-        end=0x7000E,
-        instructions=[inst],
-        is_entry=True,
-        is_return=True,
-    )
-    fake_analysis = SimpleNamespace(
-        blocks={0x7000C: block},
-        xrefs=[],
-        call_targets=set(),
-        hint_blocks={},
-        hint_reasons={},
-        lib_calls=[],
-        os_kb=make_empty_os_kb(),
-        platform=make_platform(),
-        indirect_sites=[],
-        save=lambda path: None,
-    )
-    def fake_analyze_hunk(*args: object, **kwargs: object) -> SimpleNamespace:
-        assert kwargs["base_addr"] == 0x7000C
-        assert kwargs["code_start"] == 0x0C
-        assert kwargs["entry_points"] == (0x7000C,)
-        assert kwargs["extra_entry_points"] == ()
-        return fake_analysis
-
-    monkeypatch.setattr(module, "analyze_hunk", fake_analyze_hunk)
-    monkeypatch.setattr(module, "build_app_slot_infos", lambda *args, **kwargs: ())
-    monkeypatch.setattr(module, "name_subroutines", lambda *args, **kwargs: 0)
     source = RawBinarySource(
         kind="raw_binary",
         path=binary_path,
@@ -791,10 +541,42 @@ def test_build_entities_from_runtime_absolute_raw_binary_normalizes_to_local_off
         display_path=str(binary_path),
         analysis_cache_path=target_dir / "binary.analysis",
     )
+    fake_analysis = {
+        "sections": [
+            _c_analysis_section(
+                section_size=0x0E,
+                blocks=[
+                    {
+                        "start_offset": 0x0C,
+                        "end_offset": 0x0E,
+                        "certainty": 1,
+                        "edge_start": 0,
+                        "edge_count": 0,
+                    }
+                ],
+            )
+        ]
+    }
+    seen: dict[str, object] = {}
+
+    def fake_analyze_project_source_with_c_backend(*args: object, **kwargs: object) -> dict[str, object]:
+        seen["source"] = args[0]
+        seen["metadata_path"] = kwargs["metadata_path"]
+        seen["entry_offset_args"] = kwargs["entry_offset_args"]
+        return fake_analysis
+
+    monkeypatch.setattr(
+        module,
+        "analyze_project_source_with_c_backend",
+        fake_analyze_project_source_with_c_backend,
+    )
 
     result = module.build_entities_from_source(source, str(output_path))
 
     assert result == 0
+    assert seen["source"] is source
+    assert seen["metadata_path"] == target_dir / "target_metadata.json"
+    assert seen["entry_offset_args"] == ()
     payloads = [
         json.loads(line)
         for line in output_path.read_text(encoding="utf-8").splitlines()
@@ -806,6 +588,7 @@ def test_build_entities_from_runtime_absolute_raw_binary_normalizes_to_local_off
     assert payloads[0]["subtype"] == "struct_instance"
     assert payloads[1]["addr"] == "0x000C"
     assert payloads[1]["end"] == "0x000E"
+    assert payloads[1]["name"] == "boot_entry"
 
 
 def test_build_entities_uses_all_structured_entrypoints_for_autoinit_resident(
@@ -866,44 +649,67 @@ def test_build_entities_uses_all_structured_entrypoints_for_autoinit_resident(
         ),
     )
 
-    hunk = Hunk(
-        index=0,
-        hunk_type=int(HunkType.HUNK_CODE),
-        mem_type=int(MemType.ANY),
-        alloc_size=2,
-        data=b"\x4e\x75",
-    )
-    monkeypatch.setattr(module, "parse", lambda _data: SimpleNamespace(is_executable=True, hunks=[hunk]))
     seen: dict[str, object] = {}
-    fake_analysis = SimpleNamespace(
-        blocks={0x88: BasicBlock(start=0x88, end=0x8A, instructions=[], is_entry=True)},
-        xrefs=[],
-        call_targets=set(),
-        hint_blocks={},
-        hint_reasons={},
-        lib_calls=[],
-        os_kb=make_empty_os_kb(),
-        platform=make_platform(),
-        indirect_sites=[],
-        save=lambda path: None,
-    )
+    fake_analysis = {
+        "sections": [
+            _c_analysis_section(
+                section_size=0x92,
+                blocks=[
+                    {
+                        "start_offset": 0x88,
+                        "end_offset": 0x8A,
+                        "certainty": 1,
+                        "edge_start": 0,
+                        "edge_count": 0,
+                    },
+                    {
+                        "start_offset": 0x90,
+                        "end_offset": 0x92,
+                        "certainty": 1,
+                        "edge_start": 0,
+                        "edge_count": 0,
+                    },
+                ],
+            )
+        ]
+    }
 
-    def fake_analyze_hunk(*args: object, **kwargs: object) -> SimpleNamespace:
-        seen["entry_points"] = kwargs["entry_points"]
-        seen["extra_entry_points"] = kwargs["extra_entry_points"]
-        seen["entry_initial_states"] = kwargs["entry_initial_states"]
+    def fake_analyze_project_source_with_c_backend(*args: object, **kwargs: object) -> dict[str, object]:
+        seen["metadata_path"] = kwargs["metadata_path"]
+        seen["entry_offset_args"] = kwargs["entry_offset_args"]
         return fake_analysis
 
-    monkeypatch.setattr(module, "analyze_hunk", fake_analyze_hunk)
-    monkeypatch.setattr(module, "build_app_slot_infos", lambda *args, **kwargs: ())
-    monkeypatch.setattr(module, "name_subroutines", lambda *args, **kwargs: 0)
+    monkeypatch.setattr(
+        module,
+        "analyze_project_source_with_c_backend",
+        fake_analyze_project_source_with_c_backend,
+    )
+    _stub_effective_policy(
+        monkeypatch,
+        module,
+        {
+            "analysis_policy": {
+                "entrypoints": [
+                    {"section_index": 0, "offset": 0x88},
+                    {"section_index": 0, "offset": 0x90},
+                ],
+                "register_seeds": [],
+            }
+        },
+    )
 
     result = module.build_entities(str(binary_path), str(output_path))
 
     assert result == 0
-    assert seen["entry_points"] == (0x88, 0x90)
-    assert seen["extra_entry_points"] == ()
-    assert set(cast(dict[int, object], seen["entry_initial_states"])) == {0x88, 0x90}
+    assert seen["metadata_path"] == target_dir / "target_metadata.json"
+    assert seen["entry_offset_args"] == ()
+    payloads = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    code_addrs = {payload["addr"] for payload in payloads if payload["type"] == "code"}
+    assert {"0x0088", "0x0090"} <= code_addrs
 
 
 def test_build_entities_passes_seeded_code_entrypoints_as_additive_hunk_seeds(
@@ -933,42 +739,516 @@ def test_build_entities_passes_seeded_code_entrypoints_as_additive_hunk_seeds(
             ),
         ),
     )
-    hunk = Hunk(
-        index=0,
-        hunk_type=int(HunkType.HUNK_CODE),
-        mem_type=int(MemType.ANY),
-        alloc_size=2,
-        data=b"\x4e\x75",
-    )
-    monkeypatch.setattr(module, "parse", lambda _data: SimpleNamespace(is_executable=True, hunks=[hunk]))
     seen: dict[str, object] = {}
-    fake_analysis = SimpleNamespace(
-        blocks={0: BasicBlock(start=0, end=2, instructions=[], is_entry=True)},
-        xrefs=[],
-        call_targets=set(),
-        hint_blocks={},
-        hint_reasons={},
-        lib_calls=[],
-        os_kb=make_empty_os_kb(),
-        platform=make_platform(),
-        indirect_sites=[],
-        save=lambda path: None,
-    )
+    fake_analysis = {
+        "sections": [
+            _c_analysis_section(
+                section_size=0x125,
+                blocks=[
+                    {
+                        "start_offset": 0x0123,
+                        "end_offset": 0x0125,
+                        "certainty": 1,
+                        "edge_start": 0,
+                        "edge_count": 0,
+                    }
+                ],
+            )
+        ]
+    }
 
-    def fake_analyze_hunk(*args: object, **kwargs: object) -> SimpleNamespace:
-        seen["entry_points"] = kwargs["entry_points"]
-        seen["extra_entry_points"] = kwargs["extra_entry_points"]
+    def fake_analyze_project_source_with_c_backend(*args: object, **kwargs: object) -> dict[str, object]:
+        seen["metadata_path"] = kwargs["metadata_path"]
+        seen["entry_offset_args"] = kwargs["entry_offset_args"]
         return fake_analysis
 
-    monkeypatch.setattr(module, "analyze_hunk", fake_analyze_hunk)
-    monkeypatch.setattr(module, "build_app_slot_infos", lambda *args, **kwargs: ())
-    monkeypatch.setattr(module, "name_subroutines", lambda *args, **kwargs: 0)
+    monkeypatch.setattr(
+        module,
+        "analyze_project_source_with_c_backend",
+        fake_analyze_project_source_with_c_backend,
+    )
+    _stub_effective_policy(monkeypatch, module)
 
     result = module.build_entities(str(binary_path), str(output_path))
 
     assert result == 0
-    assert seen["entry_points"] == ()
-    assert seen["extra_entry_points"] == (0x0123,)
+    assert seen["metadata_path"] == target_dir / "target_metadata.json"
+    assert seen["entry_offset_args"] == ()
+    payloads = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    seeded_entity = next(payload for payload in payloads if payload["addr"] == "0x0123")
+    assert seeded_entity["name"] == "seeded_entry"
+
+
+def test_build_entities_names_from_c_os_calls(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_build_entities_module()
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(b"fake")
+    output_path = target_dir / "entities.jsonl"
+    fake_analysis = {
+        "sections": [
+            _c_analysis_section(
+                section_size=0x20,
+                blocks=[
+                    {
+                        "start_offset": 0,
+                        "end_offset": 0x20,
+                        "certainty": 1,
+                        "edge_start": 0,
+                        "edge_count": 0,
+                    }
+                ],
+                calls=[
+                    {
+                        "offset": 0x10,
+                        "function_name": "AllocMem",
+                        "library_name": "exec.library",
+                        "inputs": [],
+                    }
+                ],
+            )
+        ]
+    }
+    monkeypatch.setattr(module, "analyze_project_source_with_c_backend", lambda *args, **kwargs: fake_analysis)
+    monkeypatch.setattr(module, "_c_naming_catalog", _fake_naming_catalog)
+    _stub_effective_policy(monkeypatch, module)
+
+    result = module.build_entities(str(binary_path), str(output_path))
+
+    assert result == 0
+    payloads = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    code_entity = next(payload for payload in payloads if payload["type"] == "code")
+    assert code_entity["name"] == "alloc_memory"
+    assert code_entity["status"] == "named"
+
+
+def test_build_entities_projects_c_effects_to_app_slots(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_build_entities_module()
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(b"fake")
+    output_path = target_dir / "entities.jsonl"
+    fake_analysis = {
+        "sections": [
+            _c_analysis_section(
+                section_size=0x20,
+                blocks=[
+                    {
+                        "start_offset": 0,
+                        "end_offset": 0x20,
+                        "certainty": 1,
+                        "edge_start": 0,
+                        "edge_count": 0,
+                    }
+                ],
+                effects=[
+                    {
+                        "offset": 0x04,
+                        "kind": 5,
+                        "reg_kind": 2,
+                        "reg_index": 0,
+                        "displacement": 0x10,
+                        "field_disp": -32768,
+                        "base_name": None,
+                        "symbol_name": None,
+                        "type_name": "IO",
+                        "semantic_kind": None,
+                        "value_domain_name": None,
+                        "has_constant_value": 0,
+                        "constant_value": 0,
+                    },
+                    {
+                        "offset": 0x08,
+                        "kind": 2,
+                        "reg_kind": 2,
+                        "reg_index": 0,
+                        "displacement": 0x20,
+                        "field_disp": -32768,
+                        "base_name": "DOSBase",
+                        "symbol_name": None,
+                        "type_name": None,
+                        "semantic_kind": None,
+                        "value_domain_name": None,
+                        "has_constant_value": 0,
+                        "constant_value": 0,
+                    },
+                    {
+                        "offset": 0x0C,
+                        "kind": 3,
+                        "reg_kind": 2,
+                        "reg_index": 1,
+                        "displacement": 0x30,
+                        "field_disp": 4,
+                        "base_name": None,
+                        "symbol_name": None,
+                        "type_name": "IO",
+                        "semantic_kind": "code_ptr",
+                        "value_domain_name": None,
+                        "has_constant_value": 0,
+                        "constant_value": 0,
+                    },
+                ],
+            )
+        ]
+    }
+    monkeypatch.setattr(module, "analyze_project_source_with_c_backend", lambda *args, **kwargs: fake_analysis)
+    _stub_effective_policy(monkeypatch, module)
+
+    result = module.build_entities(str(binary_path), str(output_path))
+
+    assert result == 0
+    payloads = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    code_entity = next(payload for payload in payloads if payload["type"] == "code")
+    assert code_entity["named_bases"] == ["DOSBase"]
+    assert code_entity["struct_refs"] == ["IO"]
+    slots = {slot["offset"]: slot for slot in code_entity["app_slots"]}
+    assert slots["0x0010"]["kind"] == "struct_instance"
+    assert slots["0x0010"]["struct"] == "IO"
+    assert slots["0x0020"]["named_base"] == "DOSBase"
+    assert slots["0x0030"]["kind"] == "code_pointer"
+    assert slots["0x0030"]["owner_type"] == "IO"
+    assert slots["0x0030"]["field_offset"] == "0x0004"
+
+
+def test_build_entities_prefers_c_entity_hints_for_app_slots(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_build_entities_module()
+    binary_path = tmp_path / "program.bin"
+    output_path = tmp_path / "entities.jsonl"
+    binary_path.write_bytes(b"\x4e\x75")
+    fake_analysis = {
+        "sections": [
+            _c_analysis_section(
+                section_size=2,
+                blocks=[{"start_offset": 0, "end_offset": 2}],
+                entity_hints=[
+                    {
+                        "offset": 0,
+                        "hint_kind": "app_slot",
+                        "app_slot": {
+                            "offset": "0x0020",
+                            "symbol": "app_slot_0020",
+                            "named_base": "DOSBase",
+                        },
+                    }
+                ],
+                effects=[
+                    {
+                        "offset": 0,
+                        "kind": 2,
+                        "displacement": 0x20,
+                        "base_name": "stale",
+                    }
+                ],
+            )
+        ]
+    }
+    monkeypatch.setattr(module, "analyze_project_source_with_c_backend", lambda *args, **kwargs: fake_analysis)
+    _stub_effective_policy(monkeypatch, module)
+
+    result = module.build_entities(str(binary_path), str(output_path))
+
+    assert result == 0
+    payloads = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    code_entity = next(payload for payload in payloads if payload["type"] == "code")
+    assert code_entity["app_slots"] == [
+        {
+            "offset": "0x0020",
+            "symbol": "app_slot_0020",
+            "named_base": "DOSBase",
+        }
+    ]
+
+
+def test_build_entities_projects_c_platform_calls_to_indirect_sites(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_build_entities_module()
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(b"fake")
+    output_path = target_dir / "entities.jsonl"
+    fake_analysis = {
+        "sections": [
+            _c_analysis_section(
+                section_size=0x20,
+                blocks=[
+                    {
+                        "start_offset": 0,
+                        "end_offset": 0x20,
+                        "certainty": 1,
+                        "edge_start": 0,
+                        "edge_count": 0,
+                    }
+                ],
+                calls=[
+                    {
+                        "offset": 0x04,
+                        "kind": 3,
+                        "symbol_name": None,
+                        "note_kind": 2,
+                        "note_base_name": "IO",
+                        "note_symbol_name": "io_CallBack",
+                        "note_reg": 0,
+                        "note_disp": 0x10B8,
+                        "note_field_disp": 4,
+                    },
+                    {
+                        "offset": 0x08,
+                        "kind": 2,
+                        "symbol_name": None,
+                        "note_kind": 3,
+                        "note_base_name": "DOSBase",
+                        "note_symbol_name": "_LVORead",
+                        "note_reg": 0,
+                        "note_disp": -32768,
+                        "note_field_disp": -32768,
+                        "library_name": "dos.library",
+                        "function_name": "Read",
+                        "inputs": [],
+                    },
+                    {
+                        "offset": 0x0C,
+                        "kind": 2,
+                        "symbol_name": None,
+                        "note_kind": 1,
+                        "note_base_name": "DOSBase",
+                        "note_symbol_name": None,
+                        "note_reg": 0,
+                        "note_disp": -32768,
+                        "note_field_disp": -32768,
+                        "library_name": "dos.library",
+                    },
+                ],
+            )
+        ]
+    }
+    monkeypatch.setattr(module, "analyze_project_source_with_c_backend", lambda *args, **kwargs: fake_analysis)
+    _stub_effective_policy(monkeypatch, module)
+
+    result = module.build_entities(str(binary_path), str(output_path))
+
+    assert result == 0
+    payloads = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    code_entity = next(payload for payload in payloads if payload["type"] == "code")
+    sites = {site["addr"]: site for site in code_entity["indirect_sites"]}
+    assert sites["0x0004"] == {
+        "addr": "0x0004",
+        "shape": "callback_field",
+        "status": "per_caller",
+        "flow": "call",
+        "detail": "IO.io_CallBack",
+        "base_offset": "0x10B8",
+        "field_offset": "0x0004",
+    }
+    assert sites["0x0008"] == {
+        "addr": "0x0008",
+        "shape": "local_wrapper_dispatch",
+        "status": "external",
+        "flow": "call",
+        "detail": "DOSBase/_LVORead",
+        "library": "dos.library",
+    }
+    assert sites["0x000C"] == {
+        "addr": "0x000C",
+        "shape": "indexed_library_dispatch",
+        "status": "per_caller",
+        "flow": "call",
+        "detail": "DOSBase",
+        "library": "dos.library",
+    }
+
+
+def test_build_entities_summarizes_c_indirect_site_library() -> None:
+    module = _load_build_entities_module()
+    entities = [{
+        "addr": "0x0010",
+        "end": "0x0018",
+        "type": "code",
+        "indirect_sites": [{
+            "addr": "0x0014",
+            "shape": "indexed_library_dispatch",
+            "status": "per_caller",
+            "flow": "call",
+            "library": "dos.library",
+        }],
+    }]
+
+    module.summarize_entity_app_slots(entities)
+    named = module._name_c_hunk_entities(entities)
+
+    assert entities[0]["named_bases"] == ["dos.library"]
+    assert entities[0]["struct_refs"] == ["DosLibrary"]
+    assert named == 1
+    assert entities[0]["name"] == "dos_dispatch"
+
+
+def test_name_c_hunk_entities_uses_c_string_refs(monkeypatch: MonkeyPatch) -> None:
+    module = _load_build_entities_module()
+    monkeypatch.setattr(module, "_c_naming_catalog", _fake_naming_catalog)
+    entities = [{
+        "addr": "0x0010",
+        "end": "0x0018",
+        "type": "code",
+        "string_refs": [{
+            "addr": "0x0012",
+            "target": "0x0080",
+            "text": "Line malformed",
+        }],
+    }]
+
+    named = module._name_c_hunk_entities(entities)
+
+    assert named == 1
+    assert entities[0]["name"] == "line_malformed"
+
+
+def test_build_entities_projects_c_generic_indirect_sites(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_build_entities_module()
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(b"fake")
+    output_path = target_dir / "entities.jsonl"
+    fake_analysis = {
+        "sections": [
+            _c_analysis_section(
+                section_size=0x20,
+                blocks=[
+                    {
+                        "start_offset": 0,
+                        "end_offset": 0x20,
+                        "certainty": 1,
+                        "edge_start": 0,
+                        "edge_count": 0,
+                    }
+                ],
+                indirect_sites=[
+                    {
+                        "offset": 0x04,
+                        "shape": "pcindex.brief",
+                        "status": "jump_table",
+                        "flow": "call",
+                        "detail": "word_dispatch",
+                        "target_count": 3,
+                    }
+                ],
+            )
+        ]
+    }
+    monkeypatch.setattr(module, "analyze_project_source_with_c_backend", lambda *args, **kwargs: fake_analysis)
+    monkeypatch.setattr(module, "_c_naming_catalog", _fake_naming_catalog)
+    _stub_effective_policy(monkeypatch, module)
+
+    result = module.build_entities(str(binary_path), str(output_path))
+
+    assert result == 0
+    payloads = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    code_entity = next(payload for payload in payloads if payload["type"] == "code")
+    assert code_entity["indirect_sites"] == [
+        {
+            "addr": "0x0004",
+            "shape": "pcindex.brief",
+            "status": "jump_table",
+            "flow": "call",
+            "detail": "word_dispatch",
+            "target_count": 3,
+        }
+    ]
+
+
+def test_build_entities_projects_c_string_refs(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_build_entities_module()
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(b"fake")
+    output_path = target_dir / "entities.jsonl"
+    fake_analysis = {
+        "sections": [
+            _c_analysis_section(
+                section_size=0x40,
+                blocks=[
+                    {
+                        "start_offset": 0,
+                        "end_offset": 0x20,
+                        "certainty": 1,
+                        "edge_start": 0,
+                        "edge_count": 0,
+                    }
+                ],
+                string_refs=[
+                    {
+                        "offset": 0x04,
+                        "target": 0x30,
+                        "text": "Sign extended operand",
+                    }
+                ],
+            )
+        ]
+    }
+    monkeypatch.setattr(module, "analyze_project_source_with_c_backend", lambda *args, **kwargs: fake_analysis)
+    _stub_effective_policy(monkeypatch, module)
+
+    result = module.build_entities(str(binary_path), str(output_path))
+
+    assert result == 0
+    payloads = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    code_entity = next(payload for payload in payloads if payload["type"] == "code")
+    assert code_entity["string_refs"] == [
+        {
+            "addr": "0x0004",
+            "target": "0x0030",
+            "text": "Sign extended operand",
+        }
+    ]
+    assert code_entity["name"] == "sign_extended_operand"
 
 
 def test_apply_seeded_code_entrypoints_uses_role_as_comment_when_comment_missing() -> None:

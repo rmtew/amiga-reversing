@@ -1,6 +1,6 @@
 # Amiga IFF Format Reference
 
-Auto-generated from `scripts/parse_iff_specs.py`. See `amiga_iff_formats.json` for machine-readable version.
+Auto-generated from `src.scripts.parse_iff_specs`. See `amiga_iff_formats.json` for machine-readable version.
 
 ## IFF Container (EA IFF 85)
 

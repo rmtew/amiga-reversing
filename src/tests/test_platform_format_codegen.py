@@ -136,7 +136,7 @@ class PlatformFormatCodegenTests(unittest.TestCase):
 
         self.assertEqual(amiga_disk_runtime["meta"]["name"], "amiga_disk_file")
         self.assertEqual(amiga_disk_runtime["meta"]["endianness"], "big")
-        self.assertEqual(amiga_disk_runtime["meta"]["sources"][0]["ref"], "amiga_disk/kb.py")
+        self.assertEqual(amiga_disk_runtime["meta"]["sources"][0]["ref"], "knowledge/amiga_disk_file.json")
 
     def test_generated_runtime_sources_pass_style_checker(self) -> None:
         result = subprocess.run(

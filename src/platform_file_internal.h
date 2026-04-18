@@ -23,7 +23,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct SectionAnalysisContext SectionAnalysisContext;
+typedef struct SectionDecodeCacheEntry {
+  M68kInstructionIR instruction;
+  uint32_t explicit_target;
+  uint8_t state;
+  uint8_t has_explicit_target;
+  uint8_t is_call;
+  uint8_t is_unconditional_transfer;
+  uint8_t is_conditional_transfer;
+  uint8_t stops_fallthrough;
+} SectionDecodeCacheEntry;
+
+typedef struct SectionDecodeCache {
+  SectionDecodeCacheEntry *entries;
+  size_t entry_count;
+} SectionDecodeCache;
+
+typedef struct SectionAnalysisContext {
+  const M68kObject *object;
+  const M68kSection *section;
+  size_t section_index;
+  const M68kSectionAnalysisIR *prior_section_analyses;
+  size_t prior_section_analysis_count;
+  const M68kAnalysisPolicy *analysis_policy;
+  SectionDecodeCache decode_cache;
+} SectionAnalysisContext;
+
 typedef struct SectionDecodeResult {
   M68kInstructionIR instruction;
   uint32_t explicit_target;
@@ -74,24 +99,61 @@ typedef struct PlatformAddressExgInfo {
   uint8_t right_reg;
 } PlatformAddressExgInfo;
 
+#define PLATFORM_LOCAL_STACK_WRAPPER_ARG_MAP_CAPACITY 16U
+
+typedef struct PlatformLocalStackWrapperArgMapEntry {
+  uint8_t reg_kind;
+  uint8_t reg_index;
+  uint16_t caller_stack_offset;
+} PlatformLocalStackWrapperArgMapEntry;
+
+typedef struct PlatformLocalStackWrapperSignature {
+  const void *call_entry;
+  PlatformLocalStackWrapperArgMapEntry args[PLATFORM_LOCAL_STACK_WRAPPER_ARG_MAP_CAPACITY];
+  size_t arg_count;
+} PlatformLocalStackWrapperSignature;
+
+typedef uint16_t (*PlatformStackWrapperLookupBaseSlotFn)(void *user_ctx, const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, int16_t displacement);
+typedef uint16_t (*PlatformStackWrapperLookupOperandBaseFn)(void *user_ctx, const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
+    uint8_t operand_index);
+typedef const void *(*PlatformStackWrapperResolveCallFn)(void *user_ctx, const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
+    const uint16_t addr_reg_base_ids[8]);
+
 int build_section_analysis(const M68kObject *object, size_t section_index, const M68kSection *section,
-    Arena *scratch_arena,
+    const M68kSectionAnalysisIR *prior_section_analyses, size_t prior_section_analysis_count, Arena *scratch_arena,
     const M68kAnalysisPolicy *analysis_policy, M68kAnalysisFindings *findings, M68kSectionAnalysisIR *out_analysis,
     M68kDiagSink diagnostics);
-int build_section_ir(const M68kObject *object, const M68kSection *section, M68kSectionAnalysisIR *section_analysis,
-    const M68kAnalysisPolicy *analysis_policy, M68kAnalysisFindings *findings, const M68kRenderPolicy *policy,
-    M68kSectionIR *out_section_ir, M68kDiagSink diagnostics);
+int section_analysis_context_init(SectionAnalysisContext *ctx, const M68kObject *object, size_t section_index,
+    const M68kSection *section, const M68kSectionAnalysisIR *prior_section_analyses,
+    size_t prior_section_analysis_count, const M68kAnalysisPolicy *analysis_policy, Arena *arena);
+int build_section_ir(const M68kObject *object, const M68kSection *section,
+    const M68kSectionAnalysisIR *prior_section_analyses, size_t prior_section_analysis_count,
+    M68kSectionAnalysisIR *section_analysis, const M68kAnalysisPolicy *analysis_policy,
+    M68kAnalysisFindings *findings, const M68kRenderPolicy *policy, M68kSectionIR *out_section_ir,
+    PlatformFileRunSectionMetrics *out_metrics, M68kDiagSink diagnostics);
 int finalize_section_analysis(const M68kSection *section, const M68kAnalysisPolicy *analysis_policy,
     M68kSectionAnalysisIR *section_analysis, M68kAnalysisFindings *out_findings);
 
 int inspect_object_json(const M68kBackend *backend, const M68kObject *object, char **out_json);
+int object_target_metadata_json(const M68kBackend *backend, const M68kObject *object, char **out_json);
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics);
+int source_file_to_json(const M68kSourceFileIR *source_file, char **out_json, M68kDiagSink diagnostics);
+int source_file_listing_rows_to_json(const M68kSourceFileIR *source_file, const char *rendered_text,
+    const M68kAnalysisPolicy *analysis_policy, char **out_json, M68kDiagSink diagnostics);
+int platform_type_catalog_to_json(const char *backend_name, char **out_json, M68kDiagSink diagnostics);
+int platform_naming_catalog_to_json(const char *backend_name, char **out_json, M68kDiagSink diagnostics);
+int platform_os_metadata_catalog_to_json(const char *backend_name, char **out_json, M68kDiagSink diagnostics);
+int platform_api_input_struct_to_json(const char *backend_name, const char *library_name, const char *function_name,
+    const char *input_name, const char *struct_name, char **out_json, M68kDiagSink diagnostics);
 int populate_source_ir_from_object(const M68kBackend *backend, const M68kObject *object,
     const M68kRenderPolicy *policy, const M68kAnalysisPolicy *analysis_policy, M68kSourceFileIR *out_source_file,
     M68kDiagSink diagnostics);
 int populate_source_ir_from_object_with_metrics(const M68kBackend *backend, const M68kObject *object,
     const M68kRenderPolicy *policy, const M68kAnalysisPolicy *analysis_policy, M68kSourceFileIR *out_source_file,
-    PlatformFileRunMetrics *out_metrics, M68kDiagSink diagnostics);
+    PlatformFileRunMetrics *out_metrics, M68kSourceAnalysisIR *out_source_analysis, M68kDiagSink diagnostics);
 int populate_source_analysis_from_object(const M68kObject *object, const M68kAnalysisPolicy *analysis_policy,
     M68kSourceAnalysisIR *out_source_analysis, M68kDiagSink diagnostics);
 
@@ -102,12 +164,23 @@ PlatformResolvedIndirectInfo platform_resolve_additional_indirect_note(const Sec
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction);
 int platform_annotate_instruction_symbol_refs(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, M68kInstructionIR *instruction);
+int platform_resolve_inferred_label(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, char *buf, size_t buf_size);
+int platform_format_instruction_comment(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
+    char *buf, size_t buf_size);
 int platform_resolve_app_base_slot_symbol_ref(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, int16_t displacement, int treat_as_value,
     M68kSymbolRefIR *out_symbol_ref);
+int platform_format_global_base_slot_label(uint8_t backend_kind, size_t section_index, char width_suffix,
+    const char *base_name, char *buf, size_t buf_size);
 uint8_t section_analysis_context_backend_kind(const SectionAnalysisContext *ctx);
 const M68kObject *section_analysis_context_object(const SectionAnalysisContext *ctx);
 const M68kSection *section_analysis_context_section(const SectionAnalysisContext *ctx);
+size_t section_analysis_context_section_index(const SectionAnalysisContext *ctx);
+const M68kSectionAnalysisIR *section_analysis_context_prior_section_analysis(const SectionAnalysisContext *ctx,
+    size_t section_index);
+const M68kAnalysisPolicy *section_analysis_context_policy(const SectionAnalysisContext *ctx);
 int section_analysis_context_probe_decode(const SectionAnalysisContext *ctx, uint32_t offset,
     SectionDecodeResult *out_result);
 size_t section_analysis_find_block_index_containing(const M68kSectionAnalysisIR *section_analysis, uint32_t offset);
@@ -115,8 +188,6 @@ const M68kRecoveredPlatformCallIR *find_recovered_platform_call(const M68kSectio
     uint32_t offset, uint8_t kind);
 const M68kRecoveredPlatformCallIR *find_any_recovered_platform_call(const M68kSectionAnalysisIR *section_analysis,
     uint32_t offset);
-const M68kRecoveredPlatformEffectIR *find_recovered_platform_effect(const M68kSectionAnalysisIR *section_analysis,
-    uint32_t offset, uint8_t kind);
 void load_recovered_platform_call_info(const M68kRecoveredPlatformCallIR *recovered,
     PlatformResolvedIndirectInfo *out_info);
 void platform_resolved_indirect_info_init(PlatformResolvedIndirectInfo *info);
@@ -127,12 +198,20 @@ const M68kSimFormMetadata *instruction_sim_metadata(const M68kInstructionIR *ins
 int instruction_branch_target(const M68kInstructionIR *instruction, uint32_t offset, uint32_t *out_target);
 int instruction_render_operand_target(const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata,
     uint8_t operand_index, uint32_t offset, uint32_t section_size, uint32_t *out_target);
+int instruction_operand_absolute_target_ref(const SectionAnalysisContext *ctx, const M68kInstructionIR *instruction,
+    size_t operand_index, uint32_t instruction_offset, size_t *out_section_index, uint32_t *out_target_offset);
 int instruction_is_call_transfer(const M68kInstructionIR *instruction);
 int instruction_stops_fallthrough(const M68kInstructionIR *instruction);
 int instruction_target_operand_local(const M68kInstructionIR *instruction, const M68kOperandIR **out_operand);
 int instruction_direct_target_local(const SectionAnalysisContext *ctx, const M68kInstructionIR *instruction,
     uint32_t offset, uint32_t *out_target);
+int platform_resolve_direct_target_with_fixup(const SectionAnalysisContext *ctx,
+    const M68kInstructionIR *instruction, uint32_t offset, size_t *out_section_index, uint32_t *out_target);
+int platform_resolve_same_section_direct_target_with_fixup(const SectionAnalysisContext *ctx,
+    const M68kInstructionIR *instruction, uint32_t offset, uint32_t *out_target);
 int operand_is_absolute_short_value(const M68kOperandIR *operand, uint16_t value);
+int operand_is_absolute_value(const M68kOperandIR *operand, uint32_t value);
+int operand_raw_constant_value_local(const M68kOperandIR *operand, int32_t *out_value);
 int operand_is_app_base_disp_ea(const M68kOperandIR *operand, uint8_t reg, int16_t *out_displacement);
 int operand_is_data_reg_direct(const M68kOperandIR *operand, uint8_t reg);
 int operand_is_indirect_an(const M68kOperandIR *operand, uint8_t *out_reg);
@@ -151,6 +230,17 @@ int instruction_is_app_slot_load(const M68kInstructionIR *instruction, uint8_t *
 PlatformRegisterMatch instruction_push_address_reg_to_stack(const M68kInstructionIR *instruction);
 PlatformRegisterMatch instruction_pop_address_reg_from_stack(const M68kInstructionIR *instruction);
 PlatformAddressExgInfo instruction_address_exg(const M68kInstructionIR *instruction);
+int instruction_pushes_long_stack_arg_local(const M68kInstructionIR *instruction, const M68kOperandIR **out_operand);
+int platform_analyze_local_stack_wrapper_signature(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t target_offset, uint16_t initial_a6_base_id,
+    PlatformStackWrapperLookupBaseSlotFn lookup_base_slot, PlatformStackWrapperLookupOperandBaseFn lookup_operand_base,
+    PlatformStackWrapperResolveCallFn resolve_call, void *user_ctx,
+    PlatformLocalStackWrapperSignature *out_signature);
+int platform_analyze_local_stack_wrapper_signature_at(const SectionAnalysisContext *ctx,
+    size_t target_section_index, uint32_t target_offset, uint16_t initial_a6_base_id,
+    PlatformStackWrapperLookupBaseSlotFn lookup_base_slot, PlatformStackWrapperLookupOperandBaseFn lookup_operand_base,
+    PlatformStackWrapperResolveCallFn resolve_call, void *user_ctx,
+    PlatformLocalStackWrapperSignature *out_signature);
 int instruction_writes_address_reg_approx(const M68kInstructionIR *instruction, uint8_t reg);
 int instruction_writes_data_reg_approx(const M68kInstructionIR *instruction, uint8_t reg);
 extern const char *const AMIGA_APP_BASE_TAG;
@@ -172,9 +262,16 @@ PlatformResolvedIndirectInfo platform_amiga_resolve_additional_indirect_note(con
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction);
 int platform_amiga_annotate_instruction_symbol_refs(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, M68kInstructionIR *instruction);
+int platform_amiga_resolve_inferred_label(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, char *buf, size_t buf_size);
+int platform_amiga_format_instruction_comment(const SectionAnalysisContext *ctx,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
+    char *buf, size_t buf_size);
 int platform_amiga_resolve_app_base_slot_symbol_ref(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, int16_t displacement, int treat_as_value,
     M68kSymbolRefIR *out_symbol_ref);
+int platform_amiga_format_global_base_slot_label(size_t section_index, char width_suffix, const char *base_name,
+    char *buf, size_t buf_size);
 const char *read_amiga_library_seed_name(const M68kSection *section, uint32_t target);
 void set_amiga_base_slot_tag(AmigaBaseSlotTag *slots, size_t slot_count, int16_t displacement, const char *base_name);
 const char *lookup_amiga_base_slot_tag(const AmigaBaseSlotTag *slots, size_t slot_count, int16_t displacement);

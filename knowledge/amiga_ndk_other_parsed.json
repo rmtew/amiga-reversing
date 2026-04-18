@@ -7750,6 +7750,8 @@
             "regs": [
               "A1"
             ],
+            "semantic_kind": "string_ptr",
+            "value_domain_name": "amiga.library_name",
             "type": "UBYTE *"
           }
         ],
@@ -7818,6 +7820,7 @@
               "A1"
             ],
             "semantic_kind": "string_ptr",
+            "value_domain_name": "amiga.library_name",
             "type": "UBYTE *"
           },
           {

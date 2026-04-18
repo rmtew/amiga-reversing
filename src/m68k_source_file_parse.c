@@ -80,6 +80,40 @@ static M68kSourceConstantResult parse_constant_expression_value(const AsmSourceF
   return m68k_source_parse_constant_expression(text, source_lookup_constant_callback, (void *)source);
 }
 
+static int parse_rs_delta_directive(M68kSourceDirectiveToken directive, uint32_t *out_width) {
+  if (out_width != NULL) *out_width = 0U;
+  switch (directive) {
+  case M68K_SOURCE_DIRECTIVE_RS_B:
+    if (out_width != NULL) *out_width = 1U;
+    return 1;
+  case M68K_SOURCE_DIRECTIVE_RS_W:
+    if (out_width != NULL) *out_width = 2U;
+    return 1;
+  case M68K_SOURCE_DIRECTIVE_RS_L:
+    if (out_width != NULL) *out_width = 4U;
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+static int parse_rs_count_delta(const AsmSourceFile *source, const char *text, uint32_t width, uint32_t *out_delta) {
+  M68kSourceConstantResult count;
+  char buffer[128];
+  if (out_delta != NULL) *out_delta = 0U;
+  if (out_delta == NULL || width == 0U) return 0;
+  snprintf(buffer, sizeof(buffer), "%s", text != NULL ? text : "");
+  count = parse_constant_expression_value(source, m68k_trim_in_place(buffer));
+  if (!count.ok) return 0;
+  *out_delta = count.value * width;
+  return 1;
+}
+
+static uint32_t apply_rs_directive_alignment(uint32_t offset, uint32_t width) {
+  if (width >= 2U && (offset & 1U) != 0U) return offset + 1U;
+  return offset;
+}
+
 static int source_is_symbol_name(const char *text, void *user_data) {
   (void)user_data;
   return m68k_is_symbol_name(text);
@@ -261,6 +295,56 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
         fclose(input);
         source_parse_errorf(diagnostics, "bad source constant at line %u", (unsigned)line_number);
         return 0;
+      }
+    }
+    if (directive0 == M68K_SOURCE_DIRECTIVE_RSSET) {
+      M68kSourceConstantResult value = parse_constant_expression_value(source, rest);
+      if (!value.ok || !m68k_source_model_set_constant(source, "__RS", value.value, 1)) {
+        fclose(input);
+        source_parse_errorf(diagnostics, "bad RSSET directive at line %u", (unsigned)line_number);
+        return 0;
+      }
+      continue;
+    }
+    {
+      uint32_t width = 0U;
+      if (parse_rs_delta_directive(directive0, &width)) {
+        M68kSourceLookupResult current_offset = lookup_defined_symbol_value(source, "__RS", 1);
+        uint32_t delta = 0U;
+        uint32_t aligned_offset = 0U;
+        if (current_offset.ok) aligned_offset = apply_rs_directive_alignment(current_offset.value, width);
+        if (!current_offset.ok || !parse_rs_count_delta(source, rest, width, &delta) ||
+            !m68k_source_model_set_constant(source, "__RS", aligned_offset + delta, 1)) {
+          fclose(input);
+          source_parse_errorf(diagnostics, "bad RS directive at line %u", (unsigned)line_number);
+          return 0;
+        }
+        continue;
+      }
+    }
+    if (*rest != '\0' && directive0 == M68K_SOURCE_DIRECTIVE_NONE) {
+      char rest_copy[256];
+      char *cursor1 = NULL;
+      char *token1 = NULL;
+      M68kSourceDirectiveToken directive1 = M68K_SOURCE_DIRECTIVE_NONE;
+      uint32_t width = 0U;
+      uint32_t delta = 0U;
+      M68kSourceLookupResult current_offset;
+      snprintf(rest_copy, sizeof(rest_copy), "%s", rest);
+      cursor1 = rest_copy;
+      token1 = m68k_next_token_in_place(&cursor1);
+      directive1 = m68k_parse_source_directive_token(token1);
+      if (parse_rs_delta_directive(directive1, &width)) {
+        current_offset = lookup_defined_symbol_value(source, "__RS", 1);
+        if (current_offset.ok) current_offset.value = apply_rs_directive_alignment(current_offset.value, width);
+        if (!current_offset.ok || !m68k_source_model_set_constant(source, token0, current_offset.value, 0) ||
+            !parse_rs_count_delta(source, m68k_trim_in_place(cursor1), width, &delta) ||
+            !m68k_source_model_set_constant(source, "__RS", current_offset.value + delta, 1)) {
+          fclose(input);
+          source_parse_errorf(diagnostics, "bad RS label directive at line %u", (unsigned)line_number);
+          return 0;
+        }
+        continue;
       }
     }
     if (directive0 == M68K_SOURCE_DIRECTIVE_SECTION) {

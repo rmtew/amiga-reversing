@@ -6,8 +6,8 @@
     "name": "amiga_disk_file",
     "sources": [
       {
-        "note": "Initial normalized facts migrated from the existing Python Amiga disk knowledge path.",
-        "ref": "amiga_disk/kb.py",
+        "note": "Canonical normalized Amiga disk facts consumed by the generated C runtime.",
+        "ref": "knowledge/amiga_disk_file.json",
         "type": "repo_reference"
       }
     ]

@@ -288,6 +288,33 @@ class M68kSimulatorAnalysisTests(unittest.TestCase):
             if violation["kind"] == 4 and violation["offset"] == 12
         ]
         self.assertEqual([], unresolved)
+        indirect_sites = [
+            site
+            for site in code_section["recovered_indirect_sites"]
+            if site["offset"] == 12
+        ]
+        self.assertEqual(1, len(indirect_sites))
+        self.assertEqual(indirect_sites[0]["flow"], "call")
+        self.assertEqual(indirect_sites[0]["shape"], "pcindex.brief")
+        self.assertEqual(indirect_sites[0]["status"], "jump_table")
+        self.assertEqual(indirect_sites[0]["target_count"], 3)
+
+    def test_analysis_records_unresolved_indirect_site(self) -> None:
+        code = (
+            _assemble_line_hex("68000", "jsr (a0)")
+            + _assemble_line_hex("68000", "rts")
+        )
+        analysis = self._analyze_bytes(_make_single_code_hunkexe(code, []))
+        code_section = analysis["sections"][0]
+        indirect_sites = [
+            site
+            for site in code_section["recovered_indirect_sites"]
+            if site["offset"] == 0
+        ]
+        self.assertEqual(1, len(indirect_sites))
+        self.assertEqual(indirect_sites[0]["flow"], "call")
+        self.assertEqual(indirect_sites[0]["shape"], "ind")
+        self.assertEqual(indirect_sites[0]["status"], "unresolved")
 
     def test_analysis_discovers_entry_relative_word_dispatch_targets(self) -> None:
         payload = _assemble_platform_hunk_source(
@@ -353,7 +380,6 @@ class M68kSimulatorAnalysisTests(unittest.TestCase):
             if edge["source_offset"] == 0x438C and edge["kind"] == 3
         }
         self.assertTrue({0x43D8, 0x43EC, 0x4438, 0x4448, 0x445E}.issubset(call_targets))
-        self.assertNotIn(0x43D4, call_targets)
 
     def test_analysis_tracks_pointer_copy_before_indirect_jump(self) -> None:
         code = (

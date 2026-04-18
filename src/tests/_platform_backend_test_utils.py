@@ -378,8 +378,8 @@ class PlatformBackendTestCaseMixin:
         cls.library.platform_file_roundtrip_buffer.restype = PlatformFileBufferResult
         cls.library.platform_file_free_text.argtypes = [ctypes.c_void_p]
         cls.library.platform_file_free_text.restype = None
-        cls.library.platform_file_free_buffer.argtypes = [ctypes.c_void_p]
-        cls.library.platform_file_free_buffer.restype = None
+        cls.library.platform_file_free_bytes.argtypes = [ctypes.c_void_p]
+        cls.library.platform_file_free_bytes.restype = None
         cls.harness = _ensure_platform_backend_harness()
 
     @classmethod
@@ -419,7 +419,7 @@ class PlatformBackendTestCaseMixin:
         try:
             return ctypes.string_at(result.data, result.size)
         finally:
-            self.library.platform_file_free_buffer(result.data)
+            self.library.platform_file_free_bytes(result.data)
 
 
 def _platform_backend_harness_source_text() -> str:

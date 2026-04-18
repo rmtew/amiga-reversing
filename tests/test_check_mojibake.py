@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scripts import check_mojibake
+from amiga_reversing.tools import check_mojibake
 
 
 def test_find_mojibake_detects_suspicious_sequences(tmp_path: Path) -> None:

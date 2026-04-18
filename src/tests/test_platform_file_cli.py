@@ -138,10 +138,145 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
+    def _source_map_file_path(self, platform_name: str, path: Path) -> dict[str, object]:
+        result = subprocess.run(
+            [str(self.file_exe), "source-map-file", platform_name, str(path)],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def _listing_rows_file_path(
+        self, platform_name: str, path: Path, metadata_path: Path | None = None
+    ) -> dict[str, object]:
+        command = [str(self.file_exe), "listing-rows-file"]
+        if metadata_path is not None:
+            command.extend(["--target-metadata", str(metadata_path)])
+        command.extend([platform_name, str(path)])
+        result = subprocess.run(
+            command,
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def _effective_policy_file_path(
+        self, platform_name: str, path: Path, metadata_path: Path | None = None
+    ) -> dict[str, object]:
+        command = [str(self.file_exe), "effective-policy-file"]
+        if metadata_path is not None:
+            command.extend(["--target-metadata", str(metadata_path)])
+        command.extend([platform_name, str(path)])
+        result = subprocess.run(
+            command,
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def _raw_cli_json(self, command: str, platform_name: str, data: bytes, entry_offset: int,
+                      *options: str) -> dict[str, object]:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "raw.bin"
+            path.write_bytes(data)
+            result = subprocess.run(
+                [str(self.file_exe), command, *options, platform_name, str(path), str(entry_offset)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return json.loads(result.stdout)
+
+    def _raw_disassemble(self, platform_name: str, data: bytes, entry_offset: int) -> str:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "raw.bin"
+            path.write_bytes(data)
+            result = subprocess.run(
+                [str(self.file_exe), "disassemble-raw", "--syntax", "vasm", platform_name, str(path), str(entry_offset)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return result.stdout
+
+    def _type_catalog(self, platform_name: str) -> list[dict[str, object]]:
+        result = subprocess.run(
+            [str(self.file_exe), "type-catalog", platform_name],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def _naming_catalog(self, platform_name: str) -> dict[str, object]:
+        result = subprocess.run(
+            [str(self.file_exe), "naming-catalog", platform_name],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def _os_metadata_catalog(self, platform_name: str) -> dict[str, object]:
+        result = subprocess.run(
+            [str(self.file_exe), "os-metadata-catalog", platform_name],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def _api_input_struct(self, platform_name: str, library: str, function: str, input_name: str,
+                          struct_name: str) -> dict[str, object]:
+        result = subprocess.run(
+            [str(self.file_exe), "api-input-struct", platform_name, library, function, input_name, struct_name],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
     def _disassemble_real_path(self, platform_name: str, path: Path, syntax: str = "genam") -> str:
         cache_key = (platform_name, str(path.resolve()), syntax)
         if self._is_cached_real_path(path) and cache_key in self._real_disassembly_cache:
             return self._real_disassembly_cache[cache_key]
+        if self._is_cached_real_path(path) and syntax == "vasm":
+            self._disassemble_real_path_with_benchmark(platform_name, path)
+            if cache_key in self._real_disassembly_cache:
+                return self._real_disassembly_cache[cache_key]
+        if self._is_cached_real_path(path) and syntax == "genam":
+            text, _ = self._disassemble_real_path_with_benchmark(platform_name, path)
+            return text
         result = subprocess.run(
             [str(self.file_exe), "disassemble-file", "--syntax", syntax, platform_name, str(path)],
             cwd=ROOT,
@@ -170,17 +305,19 @@ class PlatformFileCliTests(unittest.TestCase):
             cli_path = str(path)
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
             benchmark_path = Path(tmp) / "benchmark.json"
+            vasm_path = Path(tmp) / "source.vasm.s"
+            command = [
+                str(self.file_exe),
+                "disassemble-file",
+                "--syntax",
+                "genam",
+                "--benchmark-json-out",
+                str(benchmark_path),
+            ]
+            command.extend(["--also-syntax-output", "vasm", str(vasm_path)])
+            command.extend([platform_name, cli_path])
             result = subprocess.run(
-                [
-                    str(self.file_exe),
-                    "disassemble-file",
-                    "--syntax",
-                    "genam",
-                    "--benchmark-json-out",
-                    str(benchmark_path),
-                    platform_name,
-                    cli_path,
-                ],
+                command,
                 cwd=ROOT,
                 stdin=subprocess.DEVNULL,
                 capture_output=True,
@@ -189,8 +326,11 @@ class PlatformFileCliTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             payload = json.loads(benchmark_path.read_text(encoding="utf-8"))
+            vasm_text = vasm_path.read_text(encoding="utf-8") if vasm_path.exists() else None
         if self._is_cached_real_path(path):
             self._real_disassembly_cache[cache_key] = result.stdout
+            if vasm_text is not None:
+                self._real_disassembly_cache[(platform_name, str(path.resolve()), "vasm")] = vasm_text
             self._real_benchmark_cache[benchmark_cache_key] = payload
         return result.stdout, dict(payload)
 
@@ -202,6 +342,11 @@ class PlatformFileCliTests(unittest.TestCase):
         return payload
 
     def _normalized_benchmark(self, payload: dict[str, object]) -> dict[str, object]:
+        sections = []
+        for section in payload["sections"]:
+            normalized_section = dict(section)
+            normalized_section.pop("timing", None)
+            sections.append(normalized_section)
         return {
             "benchmark_version": payload["benchmark_version"],
             "platform": payload["platform"],
@@ -209,7 +354,7 @@ class PlatformFileCliTests(unittest.TestCase):
             "file": payload["file"],
             "analysis": payload["analysis"],
             "render": payload["render"],
-            "sections": payload["sections"],
+            "sections": sections,
         }
 
     def _normalized_file_summary(self, summary: dict[str, object]) -> dict[str, object]:
@@ -312,6 +457,818 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertEqual(actual["sections"][0]["kind"], "code")
         self.assertEqual(actual["sections"][1]["kind"], "data")
 
+    def test_source_map_file_emits_statement_offsets(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.exe"
+            path.write_bytes(make_synthetic_hunkexe())
+            actual = self._source_map_file_path("amiga-hunk", path)
+
+        self.assertEqual(actual["section_count"], 2)
+        first_section = actual["sections"][0]
+        self.assertEqual(first_section["section_index"], 0)
+        statements = first_section["statements"]
+        self.assertGreater(len(statements), 0)
+        instruction = next(stmt for stmt in statements if stmt["kind"] == "instruction")
+        self.assertIsInstance(instruction["offset"], int)
+        self.assertGreater(instruction["byte_count"], 0)
+        self.assertEqual(instruction["rendered_line_count"], 1)
+
+    def test_listing_rows_file_emits_rows_with_offsets(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.exe"
+            path.write_bytes(make_synthetic_hunkexe())
+            actual = self._listing_rows_file_path("amiga-hunk", path)
+
+        rows = actual["rows"]
+        instruction = next(row for row in rows if row["kind"] == "instruction")
+        self.assertIsInstance(instruction["addr"], int)
+        self.assertEqual(instruction["bytes"], "4e75")
+        self.assertEqual(instruction["source_context"], {"kind": "c-instruction", "hunk_index": 0})
+
+    def test_analyze_raw_uses_entry_offset(self) -> None:
+        payload = self._raw_cli_json("analyze-raw", "amiga-raw", b"\0" * 12 + b"\x4e\x75", 12)
+        section = payload["sections"][0]
+        self.assertEqual(section["block_count"], 1)
+        self.assertEqual(section["blocks"][0]["start_offset"], 12)
+
+    def test_analyze_raw_accepts_additional_entry_offsets(self) -> None:
+        payload = self._raw_cli_json(
+            "analyze-raw",
+            "amiga-raw",
+            b"\0" * 12 + b"\x4e\x75" + b"\0" * 6 + b"\x4e\x75",
+            12,
+            "--entry-offset",
+            "20",
+        )
+        starts = {block["start_offset"] for block in payload["sections"][0]["blocks"]}
+        self.assertIn(12, starts)
+        self.assertIn(20, starts)
+
+    def test_listing_rows_raw_emits_header_as_data_and_entry_as_code(self) -> None:
+        rows = self._raw_cli_json("listing-rows-raw", "amiga-raw", b"\0" * 12 + b"\x4e\x75", 12)["rows"]
+        text = "".join(row["text"] for row in rows)
+        self.assertIn("dc.b", text.lower())
+        self.assertIn("rts", text.lower())
+
+    def test_disassemble_raw_uses_entry_offset(self) -> None:
+        text = self._raw_disassemble("amiga-raw", b"\0" * 12 + b"\x4e\x75", 12)
+        self.assertIn("rts", text.lower())
+
+    def test_analyze_raw_entry_register_seed_resolves_bootblock_exec_call(self) -> None:
+        path = (
+            ROOT
+            / "targets"
+            / "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5"
+            / "targets"
+            / "amiga_raw_bootblock"
+            / "binary.bin"
+        )
+        result = subprocess.run(
+            [
+                str(self.file_exe),
+                "analyze-raw",
+                "--entry-register-seed",
+                "*:A6:library_base:exec.library:LIB:",
+                "amiga-raw",
+                str(path),
+                "12",
+            ],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        calls = payload["sections"][0]["recovered_platform_calls"]
+        self.assertEqual(calls[0]["library_name"], "exec.library")
+        self.assertEqual(calls[0]["function_name"], "FindResident")
+
+    def test_analyze_raw_target_metadata_resolves_seed_and_entrypoint(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            raw_path = Path(tmp) / "raw.bin"
+            metadata_path = Path(tmp) / "target_metadata.json"
+            raw_path.write_bytes(b"\0" * 12 + b"\x4e\x75" + b"\0" * 6 + b"\x4e\x75")
+            metadata_path.write_text(
+                """{
+  "entry_register_seeds": [
+    {"entry_offset": null, "register": "A6", "kind": "library_base", "library_name": "exec.library", "struct_name": "LIB", "context_name": null}
+  ],
+  "seeded_code_entrypoints": [
+    {"addr": 20, "hunk": 0, "name": "extra_entry"}
+  ]
+}
+""",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    str(self.file_exe),
+                    "analyze-raw",
+                    "--target-metadata",
+                    str(metadata_path),
+                    "amiga-raw",
+                    str(raw_path),
+                    "12",
+                ],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        starts = {block["start_offset"] for block in payload["sections"][0]["blocks"]}
+        self.assertIn(12, starts)
+        self.assertIn(20, starts)
+        self.assertEqual(payload["analysis_policy"]["entry_point_count"], 1)
+
+    def test_effective_policy_raw_reports_metadata_seeds_and_entrypoints(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            raw_path = Path(tmp) / "raw.bin"
+            metadata_path = Path(tmp) / "target_metadata.json"
+            raw_path.write_bytes(b"\0" * 12 + b"\x4e\x75" + b"\0" * 6 + b"\x4e\x75")
+            metadata_path.write_text(
+                """{
+  "target_type": "bootblock",
+  "entry_register_seeds": [
+    {"entry_offset": null, "register": "A6", "kind": "library_base", "library_name": "exec.library", "struct_name": "LIB", "context_name": null}
+  ],
+  "seeded_code_entrypoints": [
+    {"addr": 20, "hunk": 0, "name": "extra_entry"}
+  ]
+}
+""",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    str(self.file_exe),
+                    "effective-policy-raw",
+                    "--target-metadata",
+                    str(metadata_path),
+                    "amiga-raw",
+                    str(raw_path),
+                    "12",
+                ],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        policy = payload["analysis_policy"]
+        self.assertEqual(payload["source_kind"], "raw")
+        self.assertEqual(payload["target_type"], "bootblock")
+        self.assertEqual(payload["analysis_start"], 12)
+        self.assertIn({"section_index": 0, "offset": 20}, policy["entrypoints"])
+        self.assertTrue(
+            any(
+                seed["section_index"] == 0
+                and seed["entry_offset"] is None
+                and seed["register"] == "A6"
+                and seed["kind"] == "library_base"
+                and seed["name"] == "exec.library"
+                and seed["type_name"] == "LIB"
+                for seed in policy["register_seeds"]
+            )
+        )
+
+    def test_disassemble_file_scopes_metadata_register_seeds_to_first_hunk_by_default(self) -> None:
+        source = """\
+SECTION first,code
+    rts
+    DC.W 0
+SECTION second,code
+    rts
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "metadata_seed_scope.exe"
+            metadata_path = Path(tmp) / "target_metadata.json"
+            metadata_path.write_text(
+                """{
+  "entry_register_seeds": [
+    {"entry_offset": 0, "register": "A6", "kind": "library_base", "library_name": "exec.library", "struct_name": "LIB", "context_name": null}
+  ]
+}
+""",
+                encoding="utf-8",
+            )
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            result = subprocess.run(
+                [
+                    str(self.file_exe),
+                    "disassemble-file",
+                    "--syntax",
+                    "genam",
+                    "--target-metadata",
+                    str(metadata_path),
+                    "amiga-hunk",
+                    str(output_path),
+                ],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        h1_start = result.stdout.index("h1_0000:")
+        self.assertIn("; KNOWN: base A6=exec.library:LIB\nh0_0000:", result.stdout)
+        self.assertNotIn("KNOWN: base A6=exec.library:LIB", result.stdout[h1_start:])
+
+    def test_disassemble_file_scopes_explicit_metadata_hunk_to_intended_section(self) -> None:
+        source = (
+            "SECTION first,code\n"
+            + "".join("    rts\n    DC.W 0,0\n" for _ in range(18))
+            + "SECTION second,code\n"
+            + "".join("    rts\n    DC.W 0,0\n" for _ in range(18))
+        )
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "metadata_explicit_hunk_scope.exe"
+            metadata_path = Path(tmp) / "target_metadata.json"
+            metadata_path.write_text(
+                json.dumps(
+                    {
+                        "target_type": "library",
+                        "entry_register_seeds": [
+                            {
+                                "entry_offset": 0,
+                                "hunk": 1,
+                                "register": "A6",
+                                "kind": "library_base",
+                                "library_name": "exec.library",
+                                "struct_name": "LIB",
+                                "context_name": None,
+                            }
+                        ],
+                        "resident": {
+                            "name": "icon.library",
+                            "version": 40,
+                            "hunk": 1,
+                            "autoinit": {"vector_offsets": [index * 6 for index in range(18)]},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            result = subprocess.run(
+                [
+                    str(self.file_exe),
+                    "disassemble-file",
+                    "--syntax",
+                    "genam",
+                    "--target-metadata",
+                    str(metadata_path),
+                    "amiga-hunk",
+                    str(output_path),
+                ],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        sections = result.stdout.split("    SECTION section,code\n")
+        self.assertEqual(len(sections), 3, result.stdout)
+        h0_text = sections[1]
+        h1_text = sections[2]
+        self.assertNotIn("KNOWN: base A6=exec.library:LIB", h0_text)
+        self.assertNotIn("DECL: struct DiskObject *GetDiskObject(UBYTE *name)", h0_text)
+        self.assertIn("KNOWN: base A6=exec.library:LIB", h1_text)
+        self.assertIn("DECL: struct DiskObject *GetDiskObject(UBYTE *name)", h1_text)
+
+    def test_disassemble_file_declares_amiga_resident_lvo_vectors_from_generated_metadata(self) -> None:
+        source = (
+            "    SECTION code,code\n"
+            "    addq.w #1,32(a6)\n"
+            "    rts\n"
+            + "".join("    rts\n    DC.W 0,0\n" for _ in range(17))
+            + "    DC.W 0\n" * 80
+        )
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            tmp_path = Path(tmp)
+            output_path = tmp_path / "icon_vectors.exe"
+            metadata_path = tmp_path / "target_metadata.json"
+            metadata_path.write_text(
+                json.dumps(
+                    {
+                        "target_type": "library",
+                        "resident": {
+                            "name": "icon.library",
+                            "version": 40,
+                            "offset": 200,
+                            "hunk": 0,
+                            "autoinit": {"vector_offsets": [index * 6 for index in range(18)]},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            result = subprocess.run(
+                [
+                    str(self.file_exe),
+                    "disassemble-file",
+                    "--syntax",
+                    "genam",
+                    "--target-metadata",
+                    str(metadata_path),
+                    "amiga-hunk",
+                    str(output_path),
+                ],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("DECL: struct DiskObject *GetDiskObject(UBYTE *name)", result.stdout)
+        self.assertIn("DECL: void FreeDiskObject(struct DiskObject *diskobj)", result.stdout)
+        self.assertIn("DECL: char *FindToolType(UBYTE **toolTypeArray, UBYTE *typeName)", result.stdout)
+        self.assertIn("DECL: BOOL MatchToolValue(UBYTE *typeString, UBYTE *value)", result.stdout)
+        self.assertIn("DECL: char *BumpRevision(char *newbuf, UBYTE *oldname)", result.stdout)
+        self.assertIn(
+            "KNOWN: base A6=icon.library:LIB; type A0=toolTypeArray:UBYTE **; type A1=typeName:UBYTE *",
+            result.stdout,
+        )
+        self.assertIn("lib_open:\n    addq.w #1,LIB_OPENCNT(a6)", result.stdout)
+        self.assertIn('INCLUDE "exec/resident.i"', result.stdout)
+        self.assertIn('INCLUDE "exec/libraries.i"', result.stdout)
+        self.assertTrue(
+            result.stdout.startswith(
+                'INCLUDE "exec/libraries.i"\n'
+                'INCLUDE "exec/resident.i"\n\n'
+                "    SECTION section,code\n"
+            ),
+            result.stdout,
+        )
+        self.assertNotIn('INCLUDE "exec/resident.i"\nINCLUDE "exec/libraries.i"\n\nINCLUDE', result.stdout)
+
+    def test_effective_policy_file_reports_resident_library_vectors_from_c(self) -> None:
+        source = (
+            "    SECTION code,code\n"
+            + "".join("    rts\n    DC.W 0,0\n" for _ in range(18))
+            + "    DC.W 0\n" * 80
+        )
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            tmp_path = Path(tmp)
+            output_path = tmp_path / "icon_vectors_policy.exe"
+            metadata_path = tmp_path / "target_metadata.json"
+            metadata_path.write_text(
+                json.dumps(
+                    {
+                        "target_type": "library",
+                        "resident": {
+                            "name": "icon.library",
+                            "version": 40,
+                            "offset": 200,
+                            "hunk": 0,
+                            "autoinit": {"vector_offsets": [index * 6 for index in range(18)]},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            payload = self._effective_policy_file_path("amiga-hunk", output_path, metadata_path)
+        policy = payload["analysis_policy"]
+        self.assertEqual(payload["source_kind"], "file")
+        self.assertEqual(payload["target_type"], "library")
+        self.assertEqual(payload["analysis_start"], 0)
+        self.assertIn({"section_index": 0, "offset": 72}, policy["entrypoints"])
+        self.assertIn({"section_index": 0, "offset": 72, "name": "get_disk_object"}, policy["named_labels"])
+        self.assertTrue(
+            any(
+                item["section_index"] == 0
+                and item["offset"] == 200
+                and item["kind"] == "words"
+                and item["comment"] == "NOTE: resident matchword"
+                and item["struct_name"] == "RT"
+                and item["field_name"] == "RT_MATCHWORD"
+                and item["field_type"] == "UWORD"
+                and item["c_type"] == "UWORD"
+                and item["value_domain"] == "exec.resident.matchword"
+                and item["constant_name"] == "RTC_MATCHWORD"
+                and item["constant_value"] == 19196
+                for item in policy["structured_data_items"]
+            )
+        )
+        self.assertTrue(
+            any(
+                seed["section_index"] == 0
+                and seed["entry_offset"] == 72
+                and seed["register"] == "A6"
+                and seed["kind"] == "library_base"
+                and seed["name"] == "icon.library"
+                and seed["type_name"] == "LIB"
+                for seed in policy["register_seeds"]
+            )
+        )
+        self.assertIn(
+            {
+                "section_index": 0,
+                "offset": 72,
+                "comment": "DECL: struct DiskObject *GetDiskObject(UBYTE *name)",
+            },
+            policy["entry_comments"],
+        )
+
+    def test_effective_policy_file_uses_detected_resident_without_metadata(self) -> None:
+        source = """\
+    SECTION code,code
+    moveq.l #-1,d0
+    rts
+resident:
+    DC.W $4afc
+    DC.L resident
+    DC.L endskip
+    DC.B $80,$22,$09,$46
+    DC.L resident_name
+    DC.L resident_id
+    DC.L resident_autoinit
+resident_name:
+    DC.B "icon.library",0
+resident_id:
+    DC.B "icon 34.2 (22 Jun 1988)",13,10,0
+    EVEN
+resident_autoinit:
+    DC.L $2e
+    DC.L resident_vectors
+    DC.L resident_init_struct
+    DC.L resident_init
+resident_vectors:
+    DC.L lib_open
+    DC.L lib_close
+    DC.L lib_expunge
+    DC.L lib_extfunc
+    DC.L -1
+resident_init_struct:
+    DC.L 0,0,0,0
+lib_open:
+    rts
+lib_close:
+    rts
+lib_expunge:
+    rts
+lib_extfunc:
+    rts
+resident_init:
+    rts
+endskip:
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "detected_icon_resident.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            payload = self._effective_policy_file_path("amiga-hunk", output_path)
+        policy = payload["analysis_policy"]
+        self.assertEqual(payload["target_type"], "library")
+        self.assertGreater(policy["entry_point_count"], 0)
+        self.assertTrue(any(label["name"] == "resident_init" for label in policy["named_labels"]))
+        self.assertTrue(any(label["name"] == "lib_expunge" for label in policy["named_labels"]))
+        self.assertTrue(any(item["field_name"] == "RT_MATCHWORD" for item in policy["structured_data_items"]))
+
+    def test_effective_policy_file_rejects_missing_source(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            metadata_path = Path(tmp) / "target_metadata.json"
+            metadata_path.write_text(
+                json.dumps({"target_type": "library", "resident": {"offset": 200, "hunk": 0}}),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    str(self.file_exe),
+                    "effective-policy-file",
+                    "--target-metadata",
+                    str(metadata_path),
+                    "amiga-hunk",
+                    str(Path(tmp) / "missing.exe"),
+                ],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_effective_policy_file_rejects_out_of_range_metadata_hunk(self) -> None:
+        source = "SECTION code,code\n    rts\n"
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            tmp_path = Path(tmp)
+            output_path = tmp_path / "one_hunk.exe"
+            metadata_path = tmp_path / "target_metadata.json"
+            metadata_path.write_text(
+                json.dumps({"target_type": "library", "resident": {"offset": 0, "hunk": 2}}),
+                encoding="utf-8",
+            )
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            result = subprocess.run(
+                [
+                    str(self.file_exe),
+                    "effective-policy-file",
+                    "--target-metadata",
+                    str(metadata_path),
+                    "amiga-hunk",
+                    str(output_path),
+                ],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("hunk is out of range", result.stderr)
+
+    def test_effective_policy_file_rejects_amiga_policy_on_atari_backend(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            tmp_path = Path(tmp)
+            output_path = tmp_path / "sample.prg"
+            metadata_path = tmp_path / "target_metadata.json"
+            output_path.write_bytes(make_synthetic_atari_prg(b"\x4e\x75", b"", 0))
+            metadata_path.write_text(
+                json.dumps(
+                    {
+                        "target_type": "library",
+                        "resident": {"name": "icon.library", "version": 40, "offset": 0, "hunk": 0},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    str(self.file_exe),
+                    "effective-policy-file",
+                    "--target-metadata",
+                    str(metadata_path),
+                    "atari-st",
+                    str(output_path),
+                ],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Amiga-only policy", result.stderr)
+
+    def test_effective_policy_file_rejects_out_of_range_metadata_offset(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            tmp_path = Path(tmp)
+            output_path = tmp_path / "sample.exe"
+            metadata_path = tmp_path / "target_metadata.json"
+            output_path.write_bytes(make_synthetic_hunkexe(code_data=b"\x4e\x75"))
+            metadata_path.write_text(
+                json.dumps(
+                    {
+                        "target_type": "library",
+                        "resident": {"name": "icon.library", "version": 40, "offset": 9999, "hunk": 0},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    str(self.file_exe),
+                    "effective-policy-file",
+                    "--target-metadata",
+                    str(metadata_path),
+                    "amiga-hunk",
+                    str(output_path),
+                ],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("out of range", result.stderr)
+
+    def test_listing_rows_file_exposes_resident_structured_data_from_policy(self) -> None:
+        source = (
+            "SECTION code,code\n"
+            "    rts\n"
+            + "    DC.W 0\n" * 99
+            + "resident:\n"
+            "    DC.W $4afc\n"
+            "    DC.L resident\n"
+            "    DC.L 0\n"
+            "    DC.B $80,$28,$09,$46\n"
+            "    DC.L 0\n"
+            "    DC.L 0\n"
+            "    DC.L 0\n"
+        )
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            tmp_path = Path(tmp)
+            output_path = tmp_path / "resident_listing_rows.exe"
+            metadata_path = tmp_path / "target_metadata.json"
+            metadata_path.write_text(
+                json.dumps(
+                    {
+                        "target_type": "library",
+                        "resident": {"name": "icon.library", "version": 40, "offset": 200, "hunk": 0},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            payload = self._listing_rows_file_path("amiga-hunk", output_path, metadata_path)
+
+        rows = payload["rows"]
+        matchword = next(row for row in rows if row.get("kind") == "data" and row.get("addr") == 200)
+        self.assertEqual(matchword["operand_text"], "RTC_MATCHWORD")
+        self.assertEqual(matchword["comment_text"], "UWORD RT_MATCHWORD")
+        self.assertEqual(
+            matchword["structured_data"],
+            {
+                "label": "resident_matchword",
+                "struct_name": "RT",
+                "field_name": "RT_MATCHWORD",
+                "field_type": "UWORD",
+                "c_type": "UWORD",
+                "pointer_struct": None,
+                "value_domain": "exec.resident.matchword",
+                "constant_name": "RTC_MATCHWORD",
+                "has_constant_value": True,
+                "constant_value": 19196,
+                "semantic_role": "resident_matchword",
+                "is_pointer": False,
+                "target_section": None,
+                "target_offset": None,
+            },
+        )
+        matchtag = next(row for row in rows if row.get("kind") == "data" and row.get("addr") == 202)
+        self.assertEqual(matchtag["structured_data"]["field_name"], "RT_MATCHTAG")
+        self.assertEqual(matchtag["structured_data"]["target_section"], 0)
+        self.assertEqual(matchtag["structured_data"]["target_offset"], 200)
+        flags = next(row for row in rows if row.get("kind") == "data" and row.get("addr") == 210)
+        self.assertEqual(flags["operand_text"], "RTF_AUTOINIT")
+        self.assertEqual(flags["comment_text"], "UBYTE RT_FLAGS")
+        node_type = next(row for row in rows if row.get("kind") == "data" and row.get("addr") == 212)
+        self.assertEqual(node_type["operand_text"], "NT_LIBRARY")
+        self.assertEqual(node_type["comment_text"], "UBYTE RT_TYPE")
+        name_pointer = next(row for row in rows if row.get("kind") == "data" and row.get("addr") == 214)
+        self.assertEqual(name_pointer["structured_data"]["label"], "resident_name")
+        self.assertEqual(name_pointer["structured_data"]["field_name"], "RT_NAME")
+        self.assertEqual(name_pointer["structured_data"]["field_type"], "APTR")
+        self.assertEqual(name_pointer["structured_data"]["c_type"], "char *")
+        self.assertTrue(name_pointer["structured_data"]["is_pointer"])
+
+    def test_disassemble_raw_bootblock_metadata_seeds_iorequest_type(self) -> None:
+        target_dir = (
+            ROOT
+            / "targets"
+            / "amiga_disk_ice-1991-06-28-the-silents"
+            / "targets"
+            / "amiga_raw_bootblock"
+        )
+        result = subprocess.run(
+            [
+                str(self.file_exe),
+                "disassemble-raw",
+                "--syntax",
+                "vasm",
+                "--target-metadata",
+                str(target_dir / "target_metadata.json"),
+                "amiga-raw",
+                str(target_dir / "binary.bin"),
+                "12",
+            ],
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('INCLUDE "exec/io.i"', result.stdout)
+        self.assertRegex(result.stdout, r'DC\.B    "DOS",0\s+; NOTE: boot magic')
+        self.assertRegex(result.stdout, r"DC\.L    \$a382070f\s+; NOTE: boot checksum")
+        self.assertRegex(result.stdout, r"DC\.L    \$00000370\s+; NOTE: boot root block")
+        self.assertNotIn("boot_magic:", result.stdout)
+        self.assertIn("move.w #CMD_READ,IO_COMMAND(a1)", result.stdout)
+        self.assertIn("move.l #$40000,IO_DATA(a1)", result.stdout)
+        self.assertIn("move.l #$5400,IO_LENGTH(a1)", result.stdout)
+        self.assertIn("move.l #$400,IO_OFFSET(a1)", result.stdout)
+
+    def test_type_catalog_reports_generated_amiga_structs(self) -> None:
+        catalog = self._type_catalog("amiga-hunk")
+        by_name = {entry["name"]: entry for entry in catalog}
+
+        self.assertIn("SimpleSprite", by_name)
+        self.assertEqual(by_name["SimpleSprite"]["size"], 12)
+        self.assertEqual(by_name["SimpleSprite"]["source"], "graphics/sprite.i")
+        self.assertEqual(by_name["DosLibrary"]["named_base"], "dos.library")
+
+    def test_naming_catalog_reports_generated_amiga_naming_rules(self) -> None:
+        catalog = self._naming_catalog("amiga-hunk")
+        patterns = catalog["patterns"]
+
+        self.assertIn("dos.library", catalog["libraries"])
+        self.assertIn("AllocMem", catalog["trivial_functions"])
+        self.assertEqual(catalog["generic_prefix"], "call_")
+        self.assertIn(
+            {"functions": ["AllocMem"], "name": "alloc_memory", "partial": False},
+            patterns,
+        )
+
+    def test_os_metadata_catalog_reports_generated_amiga_resident_rules(self) -> None:
+        catalog = self._os_metadata_catalog("amiga-hunk")
+        prefix_rows = catalog["resident_vector_prefixes"]
+        seed_rows = catalog["resident_entry_register_seeds"]
+        structs = {entry["name"]: entry for entry in catalog["structs"]}
+
+        self.assertEqual(catalog["exec_base_library"], "exec.library")
+        self.assertEqual(catalog["lvo_slot_size"], 6)
+        self.assertIn({"target_type": "library", "slot_index": 0, "symbol": "LIB_OPEN"}, prefix_rows)
+        self.assertIn(
+            {
+                "target_type": "library",
+                "role": "init",
+                "register": "A6",
+                "kind": "library_base",
+                "named_base_source": "fixed",
+                "named_base_name": "exec.library",
+                "struct_name": None,
+                "context_name": None,
+            },
+            seed_rows,
+        )
+        self.assertEqual(structs["RT"]["size"], 26)
+
+    def test_api_input_struct_validates_generated_amiga_metadata(self) -> None:
+        actual = self._api_input_struct(
+            "amiga-hunk", "intuition.library", "SetPointer", "pointer", "SimpleSprite"
+        )
+
+        self.assertEqual(actual["type"], "struct SimpleSprite *")
+        self.assertEqual(actual["i_struct"], "SimpleSprite")
+        self.assertEqual(actual["struct_source"], "graphics/sprite.i")
+
+    def test_analyze_file_emits_generated_api_input_type_correction(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOSetPointer EQU -270
+app_IntuitionBase EQU 4280
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l intuition_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_IntuitionBase(a6)
+    move.l a6,-(a7)
+    movea.l app_IntuitionBase(a6),a6
+    lea.l sprite(pc),a1
+    moveq.l #0,d0
+    moveq.l #0,d1
+    moveq.l #0,d2
+    moveq.l #0,d3
+    moveq.l #0,d4
+    jsr _LVOSetPointer(a6)
+    movea.l (a7)+,a6
+    rts
+
+intuition_name:
+    DC.B "intuition.library",0
+    EVEN
+sprite:
+    DC.B 0,0,0,0,0,0,0,0,0,0,0,0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "setpointer.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            payload = self._analyze_file_path("amiga-hunk", output_path)
+
+        calls = payload["sections"][0]["recovered_platform_calls"]
+        set_pointer = next(call for call in calls if call["function_name"] == "SetPointer")
+        pointer_input = next(item for item in set_pointer["inputs"] if item["name"] == "pointer")
+        self.assertEqual(pointer_input["type"], "struct SimpleSprite *")
+        self.assertEqual(pointer_input["i_struct"], "SimpleSprite")
+        self.assertEqual(pointer_input["source"], "global correction")
+
     def _assemble_line_hex(self, cpu: str, text: str) -> bytes:
         result = subprocess.run(
             [str(self.asm_exe), "assemble-line", "--cpu", cpu, text],
@@ -337,7 +1294,7 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(default_result.returncode, 0, default_result.stderr)
-            self.assertIn("loc_0000:", default_result.stdout)
+            self.assertIn("h0_0000:", default_result.stdout)
 
             fallback_result = subprocess.run(
                 [str(self.file_exe), "disassemble-file", "--no-generated-names", "amiga-hunk", str(path)],
@@ -348,8 +1305,7 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(fallback_result.returncode, 0, fallback_result.stderr)
-            self.assertIn("L_0000:", fallback_result.stdout)
-            self.assertNotIn("loc_0000:", fallback_result.stdout)
+            self.assertIn("h0_0000:", fallback_result.stdout)
 
     def test_disassemble_file_honors_custom_prefixes(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
@@ -375,7 +1331,8 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("blk_0000:", result.stdout)
+            self.assertIn("h0_0000:", result.stdout)
+            self.assertNotIn("blk_0000:", result.stdout)
 
     def test_disassemble_file_syntax_mode_changes_short_branch_suffix(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
@@ -455,8 +1412,53 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("pea.l loc_0004(pc)", result.stdout)
+            self.assertIn("pea.l h0_0004(pc)", result.stdout)
             self.assertNotIn("VIOLATION: invalid overlap", result.stdout)
+
+    def test_analyze_file_reports_orphaned_code_violation_and_benchmark_count(self) -> None:
+        source = """\
+SECTION section,code
+start:
+    rts
+    DC.W 0
+    moveq.l #1,d0
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "orphaned_code.exe"
+            benchmark_path = Path(tmp) / "benchmark.json"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            payload = self._analyze_file_path("amiga-hunk", path)
+            result = subprocess.run(
+                [
+                    str(self.file_exe),
+                    "disassemble-file",
+                    "--benchmark-json-out",
+                    str(benchmark_path),
+                    "amiga-hunk",
+                    str(path),
+                ],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            benchmark = json.loads(benchmark_path.read_text(encoding="utf-8"))
+        violation = {
+            "offset": 4,
+            "kind": 5,
+            "message": "orphaned code island at $0004 is not reached from known entrypoints",
+        }
+        self.assertIn(violation, payload["sections"][0]["violations"])
+        self.assertEqual(1, benchmark["analysis"]["violation_counts"]["orphaned_code"])
+        self.assertEqual(1, benchmark["sections"][0]["violation_counts"]["orphaned_code"])
+        self.assertIn(
+            "VIOLATION: orphaned code island at $0004 is not reached from known entrypoints",
+            result.stdout,
+        )
 
     def test_disassemble_file_keeps_pc_index_pea_render_explicit(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
@@ -471,8 +1473,8 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("pea.l loc_0004(pc,d0.w)", result.stdout)
-            self.assertNotIn("loc_0000+2(pc,d0.w)", result.stdout)
+            self.assertIn("pea.l h0_0004(pc,d0.w)", result.stdout)
+            self.assertNotIn("h0_0000+2(pc,d0.w)", result.stdout)
 
     def test_disassemble_file_uses_current_relative_pc_index_base_for_interior_target(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
@@ -491,7 +1493,7 @@ class PlatformFileCliTests(unittest.TestCase):
             self.assertIn("invalid overlap: pc-relative reference targets +2 into instruction at $0000", result.stdout)
             self.assertIn("dat_0004:", result.stdout)
             self.assertNotIn("jmp *+2(pc,d0.w)", result.stdout)
-            self.assertNotIn("loc_0000+2(pc,d0.w)", result.stdout)
+            self.assertNotIn("h0_0000+2(pc,d0.w)", result.stdout)
 
     def test_disassemble_file_uses_pc_plus_2_base_for_lea_pc_displacement(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
@@ -506,8 +1508,8 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("lea.l loc_0000(pc),a1", result.stdout)
-            self.assertNotIn("lea.l loc_0002(pc),a1", result.stdout)
+            self.assertIn("lea.l h0_0000(pc),a1", result.stdout)
+            self.assertNotIn("lea.l h0_0002(pc),a1", result.stdout)
 
     def test_disassemble_file_renders_negative_indexed_displacement_signed(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
@@ -543,10 +1545,10 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("loc_0004:", result.stdout)
-            self.assertIn("loc_0008:", result.stdout)
-            self.assertIn("bra.w loc_000C", result.stdout)
-            self.assertIn("bra.w loc_000E", result.stdout)
+            self.assertIn("h0_0004:", result.stdout)
+            self.assertIn("h0_0008:", result.stdout)
+            self.assertIn("bra.w h0_000C", result.stdout)
+            self.assertIn("bra.w h0_000E", result.stdout)
             self.assertNotIn("ori.b #0,d0", result.stdout)
 
     def test_disassemble_file_preserves_noncanonical_byte_immediate_mnemonic(self) -> None:
@@ -573,8 +1575,10 @@ class PlatformFileCliTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(vasm_result.returncode, 0, vasm_result.stderr)
-            self.assertIn("ori.b #117,-(a4) ; NOTE: vasm-normalized from exact immediate word $4E75",
-                          vasm_result.stdout)
+            self.assertRegex(
+                vasm_result.stdout,
+                r"ori\.b #117,-\(a4\)\s+; NOTE: vasm-normalized from exact immediate word \$4E75",
+            )
 
     def test_disassemble_genam_resolves_real_jump_table_dispatch_site(self) -> None:
         text = self._disassemble_real_path("amiga-hunk", GENAM_BIN)
@@ -583,11 +1587,11 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertIn("move.w -$8(a1,d1.w),d1", text)
         self.assertIn("jsr $0(a1,d1.w)", text)
         self.assertNotIn("jsr $0(a1,d1.w) ; CANDIDATE: indirect_call index unresolved", text)
-        self.assertIn("DC.W    sub_20B4-dat_0EA2", text)
-        self.assertIn("DC.W    loc_10A4-dat_0EA2", text)
-        self.assertIn("DC.W    sub_2BC0-dat_0EA2", text)
-        self.assertIn("DC.W    sub_10DA-dat_0EA2", text)
-        self.assertIn("DC.W    sub_1120-dat_0EA2", text)
+        self.assertIn("DC.W    h0_20B4-dat_0EA2", text)
+        self.assertIn("DC.W    h0_10A4-dat_0EA2", text)
+        self.assertIn("DC.W    h0_2BC0-dat_0EA2", text)
+        self.assertIn("DC.W    h0_10DA-dat_0EA2", text)
+        self.assertIn("DC.W    h0_1120-dat_0EA2", text)
         self.assertIn("movea.l #dat_A664,a0", text)
         self.assertIn("movea.l #dat_B21E,a0", text)
         self.assertIn("movea.l #dat_CD3C,a1", text)
@@ -609,18 +1613,18 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertEqual(text.count("jsr _LVOSetSignal(a6)"), 2)
         self.assertIn("movea.l app_timer_device_iorequest+IO_DEVICE(a6),a0", text)
         self.assertIn("cmpi.w #36,LIB_VERSION(a0)", text)
-        self.assertIn("jsr (a1) ; KNOWN: callback field +4 from app_slot_01A2", text)
-        self.assertIn("jsr (a0) ; KNOWN: callback field +4 from app_slot_01A2", text)
+        self.assertRegex(text, r"jsr \(a1\)\s+; KNOWN: callback field \+4 from app_slot_01A2")
+        self.assertRegex(text, r"jsr \(a0\)\s+; KNOWN: callback field \+4 from app_slot_01A2")
         self.assertIn("movea.l app_timer_device_iorequest+IO_DEVICE(a6),a6", text)
         self.assertIn("movea.l app_DOSBase(a6),a1", text)
         self.assertIn("movea.l app_DOSBase(a6),a6", text)
         self.assertIn("lea.l app_timer_device_iorequest+IOSTD_SIZE(a6),a1", text)
-        self.assertIn("app_file_0CDA EQU 3290", text)
-        self.assertIn("app_file_0956 EQU 2390", text)
+        self.assertIn("app_file_0CDA RS.L 1", text)
+        self.assertIn("app_file_0956 RS.L 1", text)
         self.assertIn("move.l d0,app_file_0CDA+fh_Link(a6)", text)
         self.assertIn("move.l d0,app_file_0956+fh_Link(a6)", text)
         self.assertIn("move.l app_file_0CDA+fh_Link(a6),d1", text)
-        self.assertIn("app_fileinfoblock EQU 3298", text)
+        self.assertIn("app_fileinfoblock RS.L 1", text)
         self.assertIn("move.l fib_Size(a0),d1", text)
         self.assertIn("app_dest_10B0 EQU 4272", text)
         self.assertIn('INCLUDE "devices/timer.i"', text)
@@ -632,16 +1636,16 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertIn('INCLUDE "exec/libraries.i"', text)
         self.assertIn("move.l app_dest_10B0+TV_SECS(a6),d1", text)
         self.assertIn("move.l app_dest_10B0+TV_MICRO(a6),d1", text)
-        self.assertIn("app_slot_01A2 EQU 418", text)
+        self.assertIn("app_slot_01A2 RS.L 1", text)
         self.assertIn("moveq.l #_LVOOutput,d0", text)
         self.assertIn("moveq.l #_LVOWrite,d0", text)
         self.assertIn("move.l #$FFFFFF40,d0", text)
         self.assertNotIn("moveq.l #-60,d0", text)
         self.assertNotIn("moveq.l #196,d0", text)
-        self.assertIn("bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOOutput fallback via local wrapper", text)
-        self.assertIn("bsr.w sub_B0D6 ; KNOWN: DOSBase _LVOOpen fallback via local wrapper", text)
-        self.assertIn("bsr.w sub_B0D6 ; KNOWN: DOSBase _LVODateStamp fallback via local wrapper", text)
-        self.assertIn("jsr $0(a6,d0.w) ; KNOWN: DOSBase indexed vector via d0", text)
+        self.assertRegex(text, r"bsr\.w h0_B0D6\s+; KNOWN: DOSBase _LVOOutput fallback via local wrapper")
+        self.assertRegex(text, r"bsr\.w h0_B0D6\s+; KNOWN: DOSBase _LVOOpen fallback via local wrapper")
+        self.assertRegex(text, r"bsr\.w h0_B0D6\s+; KNOWN: DOSBase _LVODateStamp fallback via local wrapper")
+        self.assertRegex(text, r"jsr \$0\(a6,d0\.w\)\s+; KNOWN: DOSBase indexed vector via d0")
         self.assertNotIn("jsr (a0) ; CANDIDATE: indirect_call index unresolved", text)
         self.assertNotIn("jsr (a1) ; CANDIDATE: indirect_call index unresolved", text)
         self.assertNotIn("movea.l #$A664,a0", text)
@@ -662,44 +1666,44 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertNotIn("move.b $4(pc,d1.w),d1", text)
         self.assertNotIn("move.b $18(pc,d1.w),(a4)+", text)
         self.assertNotIn("dat_0EA4:", text)
-        self.assertNotIn("loc_0EA4:", text)
-        self.assertNotIn("DC.W    loc_12B8-dat_0EA2", text)
-        self.assertNotIn("DC.W    loc_24B6-dat_0EA2", text)
-        self.assertNotIn("DC.W    loc_22B6-dat_0EA2", text)
-        self.assertNotIn("DC.W    loc_22B4-dat_0EA2", text)
+        self.assertNotIn("h0_0EA4:", text)
+        self.assertNotIn("DC.W    h0_12B8-dat_0EA2", text)
+        self.assertNotIn("DC.W    h0_24B6-dat_0EA2", text)
+        self.assertNotIn("DC.W    h0_22B6-dat_0EA2", text)
+        self.assertNotIn("DC.W    h0_22B4-dat_0EA2", text)
         self.assertNotIn("lea.l dat_0EA4(pc),a1", text)
         self.assertNotIn("jsr -$00C6(a6) ; CANDIDATE: indirect_call index unresolved", text)
         self.assertNotIn("jsr -$00D2(a6) ; CANDIDATE: indirect_call index unresolved", text)
-        self.assertIn("jmp loc_13C8-2(pc,d0.w)", text)
+        self.assertIn("jmp h0_13C8-2(pc,d0.w)", text)
         self.assertNotIn("jmp *+2(pc,d0.w)", text)
-        self.assertNotIn("jmp loc_13C4+2(pc,d0.w)", text)
+        self.assertNotIn("jmp h0_13C4+2(pc,d0.w)", text)
         table_idx = text.find("dat_439E:")
         self.assertNotEqual(table_idx, -1)
-        table_window = text[table_idx:text.find("loc_43D2:", table_idx)]
+        table_window = text[table_idx:text.find("h0_43D2:", table_idx)]
         self.assertIn("DC.W    $0000", table_window)
         self.assertNotIn("DC.B    $00,$00", table_window)
         self.assertNotIn("DC.L    $00000000", table_window)
-        self.assertNotIn("loc_3F3D:", text)
-        self.assertNotIn("loc_3F43:", text)
+        self.assertNotIn("h0_3F3D:", text)
+        self.assertNotIn("h0_3F43:", text)
         string_dispatch_idx = text.find("dat_3F3C:")
         self.assertNotEqual(string_dispatch_idx, -1)
-        string_dispatch_window = text[string_dispatch_idx:text.find("loc_432C:", string_dispatch_idx)]
-        dispatch_call_idx = text.find("loc_4370:")
+        string_dispatch_window = text[string_dispatch_idx:text.find("h0_432C:", string_dispatch_idx)]
+        dispatch_call_idx = text.find("h0_4370:")
         self.assertNotEqual(dispatch_call_idx, -1)
-        dispatch_call_window = text[dispatch_call_idx:text.find("loc_4374:", dispatch_call_idx)]
+        dispatch_call_window = text[dispatch_call_idx:text.find("h0_4374:", dispatch_call_idx)]
         self.assertIn("jsr (a0)", dispatch_call_window)
         self.assertNotIn("jsr (a0) ; CANDIDATE: indirect_call index unresolved", dispatch_call_window)
-        early_dispatch_call_idx = text.find("loc_3AB0:")
+        early_dispatch_call_idx = text.find("h0_3AB0:")
         self.assertNotEqual(early_dispatch_call_idx, -1)
-        early_dispatch_call_window = text[early_dispatch_call_idx:text.find("loc_3AB2:", early_dispatch_call_idx)]
+        early_dispatch_call_window = text[early_dispatch_call_idx:text.find("h0_3AB2:", early_dispatch_call_idx)]
         self.assertIn("jsr (a0)", early_dispatch_call_window)
         self.assertNotIn("jsr (a0) ; CANDIDATE: indirect_call index unresolved", early_dispatch_call_window)
         self.assertIn('DC.B    "OWZERO"', string_dispatch_window)
-        self.assertIn("DC.W    loc_4200-*", string_dispatch_window)
-        self.assertIn("DC.W    loc_42A2-*", string_dispatch_window)
-        self.assertIn("loc_4200:\n    moveq.l #2,d0", text)
-        self.assertIn("loc_4218:\n    st.b $012C(a6)", text)
-        self.assertIn("loc_42A2:\n    st.b $0120(a6)", text)
+        self.assertIn("DC.W    h0_4200-*", string_dispatch_window)
+        self.assertIn("DC.W    h0_42A2-*", string_dispatch_window)
+        self.assertIn("h0_4200:\n    moveq.l #2,d0", text)
+        self.assertIn("h0_4218:\n    st.b $012C(a6)", text)
+        self.assertIn("h0_42A2:\n    st.b $0120(a6)", text)
         self.assertIn("jsr _LVOAllocMem(a6)", text)
         self.assertNotIn("jsr -$00C6(a6) ; CANDIDATE: indirect_call index unresolved", text)
         self.assertIn("jsr _LVOFreeMem(a6)", text)
@@ -712,7 +1716,7 @@ class PlatformFileCliTests(unittest.TestCase):
 
     def test_disassemble_genam_resolves_entry_relative_jump_table_dispatch_site(self) -> None:
         text = self._disassemble_real_path("amiga-hunk", GENAM_BIN)
-        dispatch_idx = text.find("loc_3BBE:")
+        dispatch_idx = text.find("h0_3BBE:")
         self.assertNotEqual(dispatch_idx, -1)
         dispatch_window = text[dispatch_idx:text.find("dat_3C12:", dispatch_idx)]
         self.assertIn("lea.l dat_3C12(pc,d1.w),a2", text)
@@ -720,10 +1724,10 @@ class PlatformFileCliTests(unittest.TestCase):
         self.assertIn("jmp (a2)", dispatch_window)
         self.assertNotIn("jmp (a2) ; CANDIDATE: indirect_jump index unresolved", dispatch_window)
         self.assertIn("dat_3C12:", text)
-        self.assertIn("DC.W    loc_3D00-*", text)
-        self.assertIn("DC.W    loc_3C86-*", text)
-        self.assertIn("DC.W    loc_3C5C-*", text)
-        self.assertIn("DC.W    loc_3E98-*", text)
+        self.assertIn("DC.W    h0_3D00-*", text)
+        self.assertIn("DC.W    h0_3C86-*", text)
+        self.assertIn("DC.W    h0_3C5C-*", text)
+        self.assertIn("DC.W    h0_3E98-*", text)
 
     def test_disassemble_amiga_open_device_flow_symbols_typed_io_field(self) -> None:
         source = """\
@@ -846,14 +1850,14 @@ dos_name:
             text,
             re.compile(
                 r"\{\s*2u,\s*1u,\s*AMIGA_OS_SYMBOL_ID_HANDLER,\s*AMIGA_OS_TYPE_ID_STRUCT_HOOK,\s*"
-                r"AMIGA_OS_STRUCT_ID_HOOK,\s*AMIGA_OS_SEMANTIC_KIND_ID_HOOK_PTR,\s*AMIGA_OS_VALUE_DOMAIN_ID_NONE\s*\}"
+                r"AMIGA_OS_STRUCT_ID_HOOK,\s*AMIGA_OS_SEMANTIC_KIND_ID_HOOK_PTR,\s*AMIGA_OS_VALUE_DOMAIN_ID_NONE,\s*0u\s*\}"
             ),
         )
         self.assertRegex(
             text,
             re.compile(
                 r"\{\s*2u,\s*0u,\s*AMIGA_OS_SYMBOL_ID_IFF,\s*AMIGA_OS_TYPE_ID_STRUCT_IFFHANDLE,\s*"
-                r"AMIGA_OS_STRUCT_ID_IFFHANDLE,\s*AMIGA_OS_SEMANTIC_KIND_ID_NONE,\s*AMIGA_OS_VALUE_DOMAIN_ID_NONE\s*\}"
+                r"AMIGA_OS_STRUCT_ID_IFFHANDLE,\s*AMIGA_OS_SEMANTIC_KIND_ID_NONE,\s*AMIGA_OS_VALUE_DOMAIN_ID_NONE,\s*0u\s*\}"
             ),
         )
 
@@ -863,30 +1867,49 @@ dos_name:
             text,
             re.compile(
                 r"\{\s*2u,\s*2u,\s*AMIGA_OS_SYMBOL_ID_INITPC,\s*AMIGA_OS_TYPE_ID_APTR,\s*AMIGA_OS_STRUCT_ID_NONE,\s*"
-                r"AMIGA_OS_SEMANTIC_KIND_ID_CODE_PTR,\s*AMIGA_OS_VALUE_DOMAIN_ID_NONE\s*\}"
+                r"AMIGA_OS_SEMANTIC_KIND_ID_CODE_PTR,\s*AMIGA_OS_VALUE_DOMAIN_ID_NONE,\s*0u\s*\}"
             ),
         )
         self.assertRegex(
             text,
             re.compile(
                 r"\{\s*2u,\s*3u,\s*AMIGA_OS_SYMBOL_ID_FINALPC,\s*AMIGA_OS_TYPE_ID_APTR,\s*AMIGA_OS_STRUCT_ID_NONE,\s*"
-                r"AMIGA_OS_SEMANTIC_KIND_ID_CODE_PTR,\s*AMIGA_OS_VALUE_DOMAIN_ID_NONE\s*\}"
+                r"AMIGA_OS_SEMANTIC_KIND_ID_CODE_PTR,\s*AMIGA_OS_VALUE_DOMAIN_ID_NONE,\s*0u\s*\}"
             ),
         )
         self.assertRegex(
             text,
             re.compile(
                 r"\{\s*1u,\s*2u,\s*AMIGA_OS_SYMBOL_ID_ACCESSMODE,\s*AMIGA_OS_TYPE_ID_LONG_3,\s*AMIGA_OS_STRUCT_ID_NONE,\s*AMIGA_OS_SEMANTIC_KIND_ID_NONE,\s*"
-                r"AMIGA_OS_VALUE_DOMAIN_ID_DOS_OPEN_ACCESS_MODE\s*\}"
+                r"AMIGA_OS_VALUE_DOMAIN_ID_DOS_OPEN_ACCESS_MODE,\s*0u\s*\}"
             ),
         )
         self.assertRegex(
             text,
             re.compile(
                 r"\{\s*1u,\s*1u,\s*AMIGA_OS_SYMBOL_ID_ATTRIBUTES,\s*AMIGA_OS_TYPE_ID_ULONG,\s*AMIGA_OS_STRUCT_ID_NONE,\s*AMIGA_OS_SEMANTIC_KIND_ID_NONE,\s*"
-                r"AMIGA_OS_VALUE_DOMAIN_ID_EXEC_ALLOCMEM_ATTRIBUTES\s*\}"
+                r"AMIGA_OS_VALUE_DOMAIN_ID_EXEC_ALLOCMEM_ATTRIBUTES,\s*0u\s*\}"
             ),
         )
+        self.assertRegex(
+            text,
+            re.compile(
+                r"\{\s*2u,\s*1u,\s*AMIGA_OS_SYMBOL_ID_LIBNAME,\s*AMIGA_OS_TYPE_ID_UBYTE_2,\s*AMIGA_OS_STRUCT_ID_NONE,\s*"
+                r"AMIGA_OS_SEMANTIC_KIND_ID_STRING_PTR,\s*AMIGA_OS_VALUE_DOMAIN_ID_AMIGA_LIBRARY_NAME,\s*0u\s*\}"
+            ),
+        )
+        self.assertIn(
+            "{ AMIGA_OS_STRUCT_ID_RT, 0, AMIGA_OS_FIELD_ID_RT_MATCHWORD, "
+            "AMIGA_OS_TYPE_ID_NONE, 2u, AMIGA_OS_TYPE_ID_UWORD, "
+            "AMIGA_OS_TYPE_ID_UWORD, AMIGA_OS_STRUCT_ID_NONE },",
+            text,
+        )
+        self.assertIn(
+            "{ AMIGA_OS_STRUCT_ID_RT, AMIGA_OS_FIELD_ID_RT_MATCHWORD, "
+            "AMIGA_OS_SYMBOL_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_EXEC_RESIDENT_MATCHWORD },",
+            text,
+        )
+        self.assertIn("{ AMIGA_OS_SYMBOL_ID_LIB_OPEN, -6 },", text)
 
     def test_generated_amiga_runtime_emits_compatibility_tables_and_versioned_vectors(self) -> None:
         header = AMIGA_RUNTIME_HEADER.read_text(encoding="utf-8")
@@ -974,6 +1997,7 @@ hook_data:
             self.assertEqual(assemble.returncode, 0, assemble.stderr)
             payload = self._analyze_file_path("amiga-hunk", output_path)
         effects = payload["sections"][0]["recovered_platform_effects"]
+        hints = payload["sections"][0]["entity_hints"]
         self.assertTrue(
             any(
                 effect["kind"] == 4
@@ -985,6 +2009,15 @@ hook_data:
                 for effect in effects
             ),
             effects,
+        )
+        self.assertTrue(
+            any(
+                hint["hint_kind"] == "app_slot"
+                and hint["app_slot"]["offset"] == "0x10B8"
+                and hint["app_slot"].get("named_base") == "UtilityBase"
+                for hint in hints
+            ),
+            hints,
         )
 
     def test_analyze_amiga_open_mode_effect_persists_constant_domain_payload(self) -> None:
@@ -1045,6 +2078,225 @@ file_name:
             effects,
         )
 
+    def test_disassemble_amiga_global_library_base_slots_resolve_vectors(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOForbid EQU -132
+_LVOOpen EQU -30
+
+    SECTION section,code
+start:
+    movea.l $0004.w,a6
+    move.l a6,exec_slot
+    movea.l exec_slot.l,a6
+    jsr _LVOForbid(a6)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    move.l d0,dos_slot
+    movea.l dos_slot.l,a6
+    moveq.l #0,d1
+    jsr _LVOOpen(a6)
+    rts
+
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+exec_slot:
+    DC.L 0
+dos_slot:
+    DC.L 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "global_bases.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("jsr _LVOForbid(a6)", text)
+        self.assertIn("jsr _LVOOpen(a6)", text)
+
+    def test_disassemble_amiga_absolute_long_sysbase_resolves_exec_vectors(self) -> None:
+        source = """\
+_LVOForbid EQU -132
+
+    SECTION section,code
+start:
+    movea.l $00000004.l,a6
+    jsr _LVOForbid(a6)
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "absolute_long_sysbase.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("movea.l $00000004.l,a6", text)
+        self.assertIn("jsr _LVOForbid(a6)", text)
+        self.assertNotIn("CANDIDATE: indirect_call", text)
+
+    def test_disassemble_amiga_cross_hunk_global_library_base_slots_resolve_vectors(self) -> None:
+        source = """\
+_LVOForbid EQU -132
+_LVOOpenLibrary EQU -552
+_LVOOpen EQU -30
+
+    SECTION first,code
+start:
+    movea.l $0004.w,a6
+    move.l a6,exec_slot
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    move.l d0,dos_slot
+    rts
+
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+exec_slot:
+    DC.L 0
+dos_slot:
+    DC.L 0
+    DC.W 0
+
+    SECTION second,code
+exec_wrapper:
+    movea.l exec_slot.l,a6
+    jsr _LVOForbid(a6)
+    rts
+
+    SECTION third,code
+dos_wrapper:
+    movea.l dos_slot.l,a6
+    moveq.l #0,d1
+    jsr _LVOOpen(a6)
+    rts
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "cross_hunk_global_bases.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("movea.l h0dl_ExecBase.l,a6", text)
+        self.assertIn("movea.l h0dl_DOSBase.l,a6", text)
+        self.assertNotIn("movea.l h0_", text)
+        self.assertIn("jsr _LVOForbid(a6)", text)
+        self.assertIn("jsr _LVOOpen(a6)", text)
+        self.assertNotIn("CANDIDATE: indirect_call", text)
+
+    def test_disassemble_amiga_branch_join_app_slot_global_base_resolves_vectors(self) -> None:
+        source = """\
+_LVOForbid EQU -132
+
+    SECTION first,code
+    DC.L 0
+resident_init:
+    movea.l d0,a2
+    move.l a0,$002A(a2)
+    move.l a6,$0022(a2)
+    bra.s ready
+failed:
+    rts
+ready:
+    move.l $0022(a2),exec_slot
+    move.l $002A(a2),seg_slot
+    rts
+exec_slot:
+    DC.L 0
+seg_slot:
+    DC.L 0
+
+    SECTION second,code
+wrapper:
+    movea.l exec_slot.l,a6
+    jsr _LVOForbid(a6)
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            tmp_path = Path(tmp)
+            output_path = tmp_path / "branch_join_global_base.exe"
+            metadata_path = tmp_path / "target_metadata.json"
+            metadata_path.write_text(
+                """{
+  "entry_register_seeds": [
+    {"entry_offset": 4, "register": "D0", "kind": "library_base", "library_name": "__amiga_app_base__", "struct_name": "", "context_name": null},
+    {"entry_offset": 4, "register": "D0", "kind": "struct_ptr", "note": "__amiga_app_base__", "struct_name": "LIB", "context_name": null},
+    {"entry_offset": 4, "register": "A0", "kind": "struct_ptr", "note": "seglist", "struct_name": "BPTR", "context_name": null},
+    {"entry_offset": 4, "register": "A6", "kind": "library_base", "library_name": "exec.library", "struct_name": "", "context_name": null}
+  ],
+  "seeded_code_entrypoints": [
+    {"addr": 4, "hunk": 0, "name": "resident_init"}
+  ]
+}
+""",
+                encoding="utf-8",
+            )
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            result = subprocess.run(
+                [
+                    str(self.file_exe),
+                    "disassemble-file",
+                    "--syntax",
+                    "genam",
+                    "--target-metadata",
+                    str(metadata_path),
+                    "amiga-hunk",
+                    str(output_path),
+                ],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("move.l a0,app_SegList(a2)", result.stdout)
+        self.assertIn("move.l a6,app_ExecBase(a2)", result.stdout)
+        self.assertIn("move.l app_ExecBase(a2),h0dl_ExecBase.l", result.stdout)
+        self.assertIn("move.l app_SegList(a2),", result.stdout)
+        self.assertIn("h0dl_ExecBase:", result.stdout)
+        self.assertIn("jsr _LVOForbid(a6)", result.stdout)
+        self.assertNotIn("CANDIDATE: indirect_call", result.stdout)
+
+    def test_analyze_amiga_openlibrary_name_effect_persists_string_domain_payload(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    rts
+
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "openlibrary_name_effect_payload.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            payload = self._analyze_file_path("amiga-hunk", output_path)
+        effects = payload["sections"][0]["recovered_platform_effects"]
+        self.assertTrue(
+            any(
+                effect["kind"] == 4
+                and effect["reg_kind"] == 2
+                and effect["reg_index"] == 1
+                and effect["type_name"] == "UBYTE *"
+                and effect["semantic_kind"] == "string_ptr"
+                and effect["value_domain_name"] == "amiga.library_name"
+                and effect["has_constant_value"] == 1
+                for effect in effects
+            ),
+            effects,
+        )
+
     def test_analyze_amiga_platform_calls_report_version_metadata(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
             output_path = Path(tmp) / "alloc_asl_request.exe"
@@ -1086,7 +2338,7 @@ start:
             self.assertEqual(assemble.returncode, 0, assemble.stderr)
             text = self._disassemble_real_path("amiga-hunk", output_path)
         self.assertIn("jsr _LVOAddTask(a6)", text)
-        self.assertRegex(text, r"loc_[0-9A-F]+:\r?\n\s+moveq\.l #0,d0\r?\n\s+rts")
+        self.assertRegex(text, r"h0_[0-9A-F]+:\r?\n\s+moveq\.l #0,d0\r?\n\s+rts")
 
     def test_disassemble_amiga_hook_input_local_frame_reload_resolves_callback(self) -> None:
         source = """\
@@ -1127,7 +2379,7 @@ hook_data:
         self.assertIn("move.l a0,$0010(a5)", text)
         self.assertIn("movea.l $0010(a5),a1", text)
         self.assertIn("movea.l h_Entry(a1),a2", text)
-        self.assertIn("jsr (a2) ; KNOWN: callback field h_Entry from HOOK", text)
+        self.assertRegex(text, r"jsr \(a2\)\s+; KNOWN: callback field h_Entry from HOOK")
 
     def test_disassemble_amiga_hook_input_movem_restore_resolves_callback(self) -> None:
         source = """\
@@ -1167,7 +2419,7 @@ hook_data:
         self.assertIn("movem.l a0,-(a7)", text)
         self.assertIn("movem.l (a7)+,a1", text)
         self.assertIn("movea.l h_Entry(a1),a2", text)
-        self.assertIn("jsr (a2) ; KNOWN: callback field h_Entry from HOOK", text)
+        self.assertRegex(text, r"jsr \(a2\)\s+; KNOWN: callback field h_Entry from HOOK")
 
     def test_disassemble_amiga_open_access_mode_renders_symbolically(self) -> None:
         source = """\
@@ -1261,6 +2513,408 @@ file_name:
         self.assertIn("move.l d0,$0010(a5)", text)
         self.assertIn("move.l $0010(a5),d2", text)
         self.assertIn("; KNOWN: DOSBase _LVOOpen fallback via local wrapper", text)
+
+    def test_disassemble_amiga_open_access_mode_renders_symbolically_via_stack_wrapper(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOOpen EQU -30
+app_DOSBase EQU 4280
+
+    SECTION section,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_DOSBase(a6)
+    pea.l $03ED.w
+    pea.l file_name(pc)
+    jsr open_wrapper
+    lea.l 8(a7),a7
+    rts
+
+open_wrapper:
+    movem.l d2/a6,-(a7)
+    movea.l app_DOSBase(a6),a6
+    movem.l $000C(a7),d1-d2
+    jsr _LVOOpen(a6)
+    movem.l (a7)+,d2/a6
+    rts
+
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+file_name:
+    DC.B "x",0
+    EVEN
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "open_mode_domain_stack_wrapper.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("pea.l MODE_OLDFILE.w", text)
+        self.assertIn("movem.l $000C(a7),d1-d2", text)
+
+    def test_disassemble_amiga_open_access_mode_renders_symbolically_via_cross_hunk_stack_wrapper(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOOpen EQU -30
+app_DOSBase EQU 4280
+
+    SECTION caller,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_DOSBase(a6)
+    pea.l $03ED.w
+    pea.l file_name(pc)
+    jsr open_wrapper
+    lea.l 8(a7),a7
+    rts
+
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+file_name:
+    DC.B "x",0
+    EVEN
+    DC.W 0
+
+    SECTION wrappers,code
+open_wrapper:
+    movem.l d2/a6,-(a7)
+    movea.l app_DOSBase(a6),a6
+    movem.l $000C(a7),d1-d2
+    jsr _LVOOpen(a6)
+    movem.l (a7)+,d2/a6
+    rts
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "open_mode_domain_cross_hunk_stack_wrapper.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("pea.l MODE_OLDFILE.w", text)
+        self.assertIn("jsr h1_DOSOpen.l", text)
+        self.assertNotIn("; KNOWN: DOSBase _LVOOpen fallback via local wrapper", text)
+
+    def test_analyze_amiga_cross_hunk_success_helper_carries_output_type(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOOpen EQU -30
+app_FH EQU 4284
+
+    SECTION caller,code
+start:
+    jsr helper_open
+    move.l d2,app_FH(a6)
+    rts
+    DC.L 0
+
+    SECTION helper,code
+helper_open:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l d0,a6
+    lea.l name_buf(pc),a0
+    move.l a0,d1
+    move.l #$3ED,d2
+    jsr _LVOOpen(a6)
+    movea.l (a7)+,a6
+    tst.l d0
+    beq.s helper_open_fail
+    move.l d0,d2
+    moveq.l #0,d0
+    rts
+helper_open_fail:
+    movea.l (a7)+,a6
+    moveq.l #-1,d0
+    rts
+
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+name_buf:
+    DC.B "x",0
+    EVEN
+    DC.L 0
+    DC.L 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "cross_hunk_success_helper_analysis.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            payload = self._analyze_file_path("amiga-hunk", output_path)
+        effects = payload["sections"][0]["recovered_platform_effects"]
+        self.assertTrue(
+            any(
+                effect["displacement"] == 4284
+                and effect["type_name"] == "FileHandle"
+                for effect in effects
+            ),
+            effects,
+        )
+
+    def test_disassemble_amiga_cross_hunk_stack_wrapper_comments_callee_args(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOOpen EQU -30
+MODE_OLDFILE EQU 1005
+app_DOSBase EQU 4280
+
+    SECTION caller,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_DOSBase(a6)
+    pea.l MODE_OLDFILE.w
+    pea.l file_name(pc)
+    jsr open_wrapper
+    addq.l #8,a7
+    rts
+file_name:
+    DC.B "s:startup-sequence",0
+    EVEN
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+    DC.L 0
+    DC.W 0
+
+    SECTION wrapper,code
+open_wrapper:
+    movea.l app_DOSBase(a6),a6
+    move.l 4(a7),d1
+    move.l 8(a7),d2
+    jsr _LVOOpen(a6)
+    rts
+    DC.L 0
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "cross_hunk_stack_wrapper_args.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+            payload = self._analyze_file_path("amiga-hunk", output_path)
+        self.assertIn("movea.l app_DOSBase(a6),a6", text)
+        self.assertIn("jsr _LVOOpen(a6)", text)
+        self.assertRegex(text, r"move\.l \$0004\(a7\),d1\s+; KNOWN: arg \+4 name STRPTR string_ptr")
+        self.assertRegex(text, r"move\.l \$0008\(a7\),d2\s+; KNOWN: arg \+8 accessMode long dos.open.access_mode")
+        args = payload["sections"][1]["recovered_function_args"]
+        self.assertTrue(any(arg["stack_offset"] == 4 and arg["symbol_name"] == "name" for arg in args), args)
+        self.assertTrue(
+            any(arg["stack_offset"] == 8 and arg["value_domain_name"] == "dos.open.access_mode" for arg in args),
+            args,
+        )
+
+    def test_disassemble_amiga_stack_wrapper_args_do_not_cross_function_blocks(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOOpen EQU -30
+MODE_OLDFILE EQU 1005
+app_DOSBase EQU 4280
+
+    SECTION caller,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_DOSBase(a6)
+    pea.l MODE_OLDFILE.w
+    pea.l file_name(pc)
+    jsr open_wrapper
+    addq.l #8,a7
+    jsr other_function
+    rts
+file_name:
+    DC.B "s:startup-sequence",0
+    EVEN
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+    DC.L 0
+    DC.W 0
+    DC.W 0
+
+    SECTION wrapper,code
+open_wrapper:
+    movea.l app_DOSBase(a6),a6
+    move.l 4(a7),d1
+    move.l 8(a7),d2
+    jsr _LVOOpen(a6)
+    rts
+other_function:
+    move.l 4(a7),d1
+    rts
+    DC.W 0
+    DC.L 0
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "stack_wrapper_arg_blocks.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertRegex(text, r"move\.l \$0004\(a7\),d1\s+; KNOWN: arg \+4 name STRPTR string_ptr")
+        self.assertGreaterEqual(text.count("move.l $0004(a7),d1"), 2)
+        self.assertEqual(2, text.count("KNOWN: arg +4 name STRPTR string_ptr"))
+
+    def test_disassemble_amiga_stack_wrapper_args_flow_through_helper_chain(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOOpen EQU -30
+MODE_OLDFILE EQU 1005
+app_DOSBase EQU 4280
+
+    SECTION caller,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_DOSBase(a6)
+    pea.l MODE_OLDFILE.w
+    pea.l file_name(pc)
+    jsr middle_wrapper
+    addq.l #8,a7
+    rts
+file_name:
+    DC.B "s:startup-sequence",0
+    EVEN
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+    DC.L 0
+    DC.W 0
+
+    SECTION middle,code
+middle_wrapper:
+    jsr open_wrapper
+    rts
+    DC.L 0
+    DC.W 0
+    DC.W 0
+
+    SECTION wrapper,code
+open_wrapper:
+    movea.l app_DOSBase(a6),a6
+    move.l 4(a7),d1
+    move.l 8(a7),d2
+    jsr _LVOOpen(a6)
+    rts
+    DC.L 0
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "stack_wrapper_helper_chain.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+            payload = self._analyze_file_path("amiga-hunk", output_path)
+        self.assertIn("movea.l app_DOSBase(a6),a6", text)
+        self.assertIn("jsr _LVOOpen(a6)", text)
+        self.assertRegex(text, r"move\.l \$0004\(a7\),d1\s+; KNOWN: arg \+4 name STRPTR string_ptr")
+        args = payload["sections"][2]["recovered_function_args"]
+        self.assertTrue(any(arg["stack_offset"] == 4 and arg["symbol_name"] == "name" for arg in args), args)
+
+    def test_disassemble_amiga_exec_stack_wrapper_gets_inferred_label_and_push_comment(self) -> None:
+        source = """\
+_LVOFreeEntry EQU -228
+
+    SECTION caller,code
+start:
+    move.l d0,-(a7)
+    jsr exec_free_entry_wrapper
+    addq.l #4,a7
+    rts
+
+    SECTION wrapper,code
+exec_free_entry_wrapper:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    movea.l 8(a7),a0
+    jsr _LVOFreeEntry(a6)
+    movea.l (a7)+,a6
+    rts
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "exec_free_entry_wrapper.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+        self.assertIn("h1_ExecFreeEntry:", text)
+        self.assertIn("jsr h1_ExecFreeEntry", text)
+        self.assertRegex(text, r"move\.l d0,-\(a7\)\s+; KNOWN: arg \+4 entry struct MemList \*")
+        self.assertRegex(text, r"movea\.l \$0008\(a7\),a0\s+; KNOWN: arg \+8 entry struct MemList \*")
+
+    def test_disassemble_amiga_stack_wrapper_args_stop_on_untracked_sp_adjustment(self) -> None:
+        source = """\
+_LVOOpenLibrary EQU -552
+_LVOOpen EQU -30
+MODE_OLDFILE EQU 1005
+app_DOSBase EQU 4280
+
+    SECTION caller,code
+start:
+    move.l a6,-(a7)
+    movea.l $0004.w,a6
+    lea.l dos_name(pc),a1
+    jsr _LVOOpenLibrary(a6)
+    movea.l (a7)+,a6
+    move.l d0,app_DOSBase(a6)
+    pea.l MODE_OLDFILE.w
+    pea.l file_name(pc)
+    jsr open_wrapper
+    addq.l #8,a7
+    rts
+file_name:
+    DC.B "s:startup-sequence",0
+    EVEN
+dos_name:
+    DC.B "dos.library",0
+    EVEN
+    DC.L 0
+    DC.W 0
+
+    SECTION wrapper,code
+open_wrapper:
+    movea.l app_DOSBase(a6),a6
+    subq.l #4,a7
+    move.l 8(a7),d1
+    move.l 12(a7),d2
+    jsr _LVOOpen(a6)
+    addq.l #4,a7
+    rts
+    DC.L 0
+    DC.W 0
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            output_path = Path(tmp) / "stack_wrapper_untracked_sp.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, output_path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            text = self._disassemble_real_path("amiga-hunk", output_path)
+            payload = self._analyze_file_path("amiga-hunk", output_path)
+        self.assertIn("jsr _LVOOpen(a6)", text)
+        self.assertNotIn("KNOWN: arg +4 name", text)
+        self.assertNotIn("KNOWN: arg +8 accessMode", text)
+        self.assertEqual([], payload["sections"][1]["recovered_function_args"])
 
     def test_disassemble_amiga_allocmem_flags_render_symbolically(self) -> None:
         source = """\
@@ -1380,7 +3034,7 @@ start:
             text = self._disassemble_real_path("amiga-hunk", output_path)
         self.assertIn("jsr _LVOSetIntVector(a6)", text)
         self.assertIn("movea.l IS_CODE(a0),a1", text)
-        self.assertIn("jsr (a1) ; KNOWN: callback field IS_CODE from IS", text)
+        self.assertRegex(text, r"jsr \(a1\)\s+; KNOWN: callback field IS_CODE from IS")
 
     def test_disassemble_amiga_findport_d0_to_typed_mp_slot_field(self) -> None:
         source = """\
@@ -1913,6 +3567,12 @@ start:
         self.assertTrue(GENAM_LATEST.exists(), GENAM_LATEST)
         self.assertEqual(self._disassemble_real_path("amiga-hunk", GENAM_BIN), self._read_fixture_text(GENAM_LATEST))
 
+    def test_genam_latest_does_not_emit_resident_library_rs_block(self) -> None:
+        rendered = self._disassemble_real_path("amiga-hunk", GENAM_BIN)
+        self.assertNotIn("RSSET LIB_SIZE", rendered)
+        self.assertIn("RSSET 0", rendered)
+        self.assertIn("app_SIZEOF EQU __RS", rendered)
+
     def test_bin_gen_latest_fixture_matches_current_disassembly(self) -> None:
         self.assertTrue(BIN_GEN_LATEST.exists(), BIN_GEN_LATEST)
         self.assertEqual(self._disassemble_real_path("atari-st", BIN_GEN_BIN), self._read_fixture_text(BIN_GEN_LATEST))
@@ -1943,6 +3603,7 @@ start:
     def test_genam_latest_roundtrips_via_vasm_with_matching_file_shape(self) -> None:
         vasm = ROOT / "ext" / "vasm" / "vasmm68k_mot.exe"
         self.assertTrue(vasm.exists(), vasm)
+        self.assertTrue(GENAM_LATEST.exists(), GENAM_LATEST)
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
             rebuilt_path = Path(tmp) / "GenAm.roundtrip.exe"
             source_path = Path(tmp) / "GenAm.vasm.s"
@@ -1999,10 +3660,48 @@ start:
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("bcs.b loc_000A", result.stdout)
-            self.assertIn("loc_000A:", result.stdout)
+            self.assertIn("bcs.b h0_000A", result.stdout)
+            self.assertIn("h0_000A:", result.stdout)
             self.assertIn("moveq.l #98,d0", result.stdout)
             self.assertNotIn("DC.B    $70,$62", result.stdout)
+
+    def test_disassemble_file_revisits_existing_blocks_when_loop_state_widens(self) -> None:
+        source = """\
+    SECTION section,code
+start:
+    moveq.l #0,d6
+    bra.w loop
+loop:
+    bsr.w helper
+after_call:
+    tst.l d6
+    bne.w target
+    move.l $0004(a7),d6
+    bra.w join
+target:
+    moveq.l #1,d0
+join:
+    tst.l $0008(a7)
+    bne.w loop
+    rts
+helper:
+    rts
+"""
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "loop_widen.exe"
+            assemble = self._assemble_synthetic_amiga_hunk_source(source, path)
+            self.assertEqual(assemble.returncode, 0, assemble.stderr)
+            result = subprocess.run(
+                [str(self.file_exe), "disassemble-file", "amiga-hunk", str(path)],
+                cwd=ROOT,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("moveq.l #1,d0", result.stdout)
+        self.assertNotIn("DC.B    $70,$01", result.stdout)
 
     def test_disassemble_file_emits_atari_comment_head_metadata(self) -> None:
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
@@ -2043,7 +3742,7 @@ start:
             self.assertNotIn("GEMDOS_Dgetdrv EQU 25", result.stdout)
             self.assertIn("move.w #d_getdrv,-(a7)", result.stdout)
             self.assertIn("trap #1", result.stdout)
-            self.assertIn("addq.l #2,a7 ; KNOWN: stack cleanup for d_getdrv pop 2", result.stdout)
+            self.assertRegex(result.stdout, r"addq\.l #2,a7\s+; KNOWN: stack cleanup for d_getdrv pop 2")
 
     def test_disassemble_real_bin_gen_emits_atari_os_symbols(self) -> None:
         text = self._disassemble_real_path("atari-st", BIN_GEN_BIN, "genam")
@@ -2069,7 +3768,7 @@ start:
         self.assertIn("move.w #p_term,-(a7)", text)
         self.assertIn("move.w #p_term,-(a7)", text)
         self.assertIn("trap #14", text)
-        self.assertIn("addq.l #6,a7 ; KNOWN: stack cleanup for supexec pop 6", text)
+        self.assertRegex(text, r"addq\.l #6,a7\s+; KNOWN: stack cleanup for supexec pop 6")
         self.assertIn("move.w #c_rawcin,(a7)", text)
         self.assertIn("move.w #c_rawcin,(a7)", text)
         self.assertIn("move.w #t_getdate,-(a7)", text)
@@ -2094,6 +3793,7 @@ start:
     def test_bin_gen_latest_roundtrips_via_vasm_with_matching_file_shape(self) -> None:
         vasm = ROOT / "ext" / "vasm" / "vasmm68k_mot.exe"
         self.assertTrue(BIN_GEN_BIN.exists(), BIN_GEN_BIN)
+        self.assertTrue(BIN_GEN_LATEST.exists(), BIN_GEN_LATEST)
         self.assertTrue(vasm.exists(), vasm)
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
             rebuilt_path = Path(tmp) / "BIN_GEN.roundtrip.ttp"

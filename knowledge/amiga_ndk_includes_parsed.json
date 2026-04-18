@@ -38792,7 +38792,40 @@
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/EXEC/LIBRARIES.I"
       },
       "raw": "-LIB_VECTSIZE",
-      "value": null
+      "value": -6
+    },
+    "LIB_CLOSE": {
+      "available_since": "1.3",
+      "owner": {
+        "assembler_include_path": "exec/libraries.i",
+        "canonical_include_path": "exec/libraries.i",
+        "kind": "native_include",
+        "source_file": "ext/amiga_includes/ndk_2.0/include/exec/libraries.i"
+      },
+      "raw": "LIB_OPEN-LIB_VECTSIZE",
+      "value": -12
+    },
+    "LIB_EXPUNGE": {
+      "available_since": "1.3",
+      "owner": {
+        "assembler_include_path": "exec/libraries.i",
+        "canonical_include_path": "exec/libraries.i",
+        "kind": "native_include",
+        "source_file": "ext/amiga_includes/ndk_2.0/include/exec/libraries.i"
+      },
+      "raw": "LIB_CLOSE-LIB_VECTSIZE",
+      "value": -18
+    },
+    "LIB_EXTFUNC": {
+      "available_since": "1.3",
+      "owner": {
+        "assembler_include_path": "exec/libraries.i",
+        "canonical_include_path": "exec/libraries.i",
+        "kind": "native_include",
+        "source_file": "ext/amiga_includes/ndk_2.0/include/exec/libraries.i"
+      },
+      "raw": "LIB_EXPUNGE-LIB_VECTSIZE",
+      "value": -24
     },
     "LIB_FLAGS": {
       "available_since": "1.3",
@@ -38837,6 +38870,17 @@
       },
       "raw": "LIB_USERDEF",
       "value": null
+    },
+    "LIB_OPEN": {
+      "available_since": "1.3",
+      "owner": {
+        "assembler_include_path": "exec/libraries.i",
+        "canonical_include_path": "exec/libraries.i",
+        "kind": "native_include",
+        "source_file": "ext/amiga_includes/ndk_2.0/include/exec/libraries.i"
+      },
+      "raw": "LIB_BASE",
+      "value": -6
     },
     "LIB_OPENCNT": {
       "available_since": "1.3",
@@ -38912,8 +38956,8 @@
         "kind": "native_include",
         "source_file": "D:/NDK/NDK_3.1/INCLUDES&LIBS/INCLUDE_I/EXEC/LIBRARIES.I"
       },
-      "raw": "LIB_BASE-(LIB_RESERVED",
-      "value": null
+      "raw": "LIB_BASE-(LIB_RESERVED*LIB_VECTSIZE)",
+      "value": -30
     },
     "LIB_VECTSIZE": {
       "available_since": "1.3",

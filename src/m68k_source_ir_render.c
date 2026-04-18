@@ -7,7 +7,10 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+#define M68K_RENDER_COMMENT_COLUMN 40U
 
 static int append_rendered_string_bytes(JsonBuilder *builder, const uint8_t *data, size_t size) {
   size_t index;
@@ -83,12 +86,34 @@ static int append_rendered_data_stmt(JsonBuilder *builder, const M68kDataItemIR 
   return 0;
 }
 
-static int append_statement_comment(JsonBuilder *builder, const M68kStatementIR *stmt) {
+static int append_comment_at_column(JsonBuilder *builder, size_t line_start, const char *comment) {
+  size_t line_len;
+  if (builder == NULL || comment == NULL) return -1;
+  line_len = builder->size >= line_start ? builder->size - line_start : 0U;
+  if (line_len + 1U < M68K_RENDER_COMMENT_COLUMN) {
+    size_t index;
+    for (index = line_len; index < M68K_RENDER_COMMENT_COLUMN; ++index) {
+      if (json_builder_append_char(builder, ' ') != 0) return -1;
+    }
+    return json_builder_appendf(builder, "; %s\n", comment);
+  }
+  return json_builder_appendf(builder, " ; %s\n", comment);
+}
+
+static int append_statement_comment(JsonBuilder *builder, const M68kStatementIR *stmt, size_t line_start) {
   if (stmt == NULL || stmt->comment == NULL || stmt->comment[0] == '\0') return json_builder_append(builder, "\n");
+  if (strncmp(stmt->comment, "FIELD:", 6) == 0) {
+    const char *field_comment = stmt->comment + 6;
+    while (*field_comment == ' ' || *field_comment == '\t') ++field_comment;
+    return append_comment_at_column(builder, line_start, field_comment);
+  }
   if (strstr(stmt->comment, "CANDIDATE:") != NULL || strncmp(stmt->comment, "NOTE:", 5) == 0 ||
-      strncmp(stmt->comment, "KNOWN:", 6) == 0)
-    return json_builder_appendf(builder, " ; %s\n", stmt->comment);
-  return json_builder_appendf(builder, " ; VIOLATION: %s\n", stmt->comment);
+      strncmp(stmt->comment, "KNOWN:", 6) == 0 || strncmp(stmt->comment, "DECL:", 5) == 0 ||
+      strncmp(stmt->comment, "STRUCT ", 7) == 0) {
+    return append_comment_at_column(builder, line_start, stmt->comment);
+  }
+  return json_builder_appendf(builder,
+    line_start == builder->size ? "; VIOLATION: %s\n" : " ; VIOLATION: %s\n", stmt->comment);
 }
 
 static int section_has_label_name(const M68kSectionIR *section, const char *name) {
@@ -103,9 +128,28 @@ static int section_has_label_name(const M68kSectionIR *section, const char *name
   return 0;
 }
 
+static int source_file_has_label_name(const M68kSourceFileIR *source_file, const char *name) {
+  size_t section_index;
+  if (source_file == NULL || name == NULL || name[0] == '\0') return 0;
+  for (section_index = 0; section_index < source_file->section_count; ++section_index) {
+    if (section_has_label_name(&source_file->sections[section_index], name)) return 1;
+  }
+  return 0;
+}
+
+static int source_file_has_amiga_resident_library_context(const M68kSourceFileIR *source_file) {
+  return source_file != NULL &&
+    source_file->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
+    (source_file_has_label_name(source_file, "resident") ||
+      source_file_has_label_name(source_file, "resident_autoinit") ||
+      source_file_has_label_name(source_file, "resident_vectors"));
+}
+
 typedef struct RenderEquate {
   char name[64];
   int32_t value;
+  int32_t min_extent;
+  uint8_t consumed;
 } RenderEquate;
 
 static void render_error(M68kDiagSink diagnostics, const char *message) {
@@ -407,20 +451,110 @@ static int32_t render_equate_value(const M68kStatementIR *stmt, const M68kOperan
   return (int16_t)(operand != NULL ? (operand->value.value & 0xFFFFU) : 0U);
 }
 
-static int append_or_update_render_equate(RenderEquate *equates, size_t *inout_equate_count,
-    size_t equate_capacity, const char *name, int32_t value) {
+static int append_or_update_render_equate_with_extent(RenderEquate *equates, size_t *inout_equate_count,
+    size_t equate_capacity, const char *name, int32_t value, int32_t min_extent) {
   size_t equate_index;
   if (equates == NULL || inout_equate_count == NULL || name == NULL || name[0] == '\0') return -1;
   for (equate_index = 0; equate_index < *inout_equate_count; ++equate_index) {
     if (strcmp(equates[equate_index].name, name) == 0) {
       equates[equate_index].value = value;
+      if (min_extent > equates[equate_index].min_extent) equates[equate_index].min_extent = min_extent;
       return 0;
     }
   }
   if (*inout_equate_count >= equate_capacity) return -1;
   snprintf(equates[*inout_equate_count].name, sizeof(equates[*inout_equate_count].name), "%s", name);
   equates[*inout_equate_count].value = value;
+  equates[*inout_equate_count].min_extent = min_extent;
+  equates[*inout_equate_count].consumed = 0U;
   ++(*inout_equate_count);
+  return 0;
+}
+
+static int append_or_update_render_equate(RenderEquate *equates, size_t *inout_equate_count,
+    size_t equate_capacity, const char *name, int32_t value) {
+  return append_or_update_render_equate_with_extent(equates, inout_equate_count, equate_capacity, name, value, 0);
+}
+
+static int render_equate_compare_by_value_then_name(const void *left, const void *right) {
+  const RenderEquate *left_equate = (const RenderEquate *)left;
+  const RenderEquate *right_equate = (const RenderEquate *)right;
+  if (left_equate->value < right_equate->value) return -1;
+  if (left_equate->value > right_equate->value) return 1;
+  return strcmp(left_equate->name, right_equate->name);
+}
+
+static int render_equate_is_app_extension_symbol(const RenderEquate *equate, int32_t base_offset) {
+  if (equate == NULL || base_offset < 0) return 0;
+  if (strncmp(equate->name, "app_", 4U) != 0) return 0;
+  if (strcmp(equate->name, "app_SIZEOF") == 0) return 0;
+  if (equate->value < base_offset) return 0;
+  return 1;
+}
+
+static int append_exact_rs_byte_gap(JsonBuilder *builder, int32_t gap) {
+  if (gap <= 0) return 0;
+  return json_builder_appendf(builder, "RS.B %d\n", (int)gap);
+}
+
+static int append_needed_amiga_app_extension_rs(JsonBuilder *builder, RenderEquate *equates, size_t equate_count,
+    const M68kSourceFileIR *source_file, uint8_t has_app_sizeof_value, int32_t app_sizeof_value) {
+  RenderEquate slots[64];
+  size_t slot_count = 0U;
+  size_t index;
+  int32_t lib_size = 0;
+  int32_t base_offset = 0;
+  int has_resident_library_context;
+  int32_t cursor;
+  int32_t inferred_sizeof = 0;
+  if (builder == NULL) return 0;
+  has_resident_library_context = source_file_has_amiga_resident_library_context(source_file);
+  if (has_resident_library_context) {
+    if (!amiga_os_find_constant_value("LIB_SIZE", &lib_size) || lib_size <= 0) return 0;
+    base_offset = lib_size;
+  }
+  for (index = 0U; index < equate_count; ++index) {
+    int32_t extent_end;
+    if (!render_equate_is_app_extension_symbol(&equates[index], base_offset)) continue;
+    if (slot_count >= sizeof(slots) / sizeof(slots[0])) return -1;
+    slots[slot_count++] = equates[index];
+    equates[index].consumed = 1U;
+    extent_end = equates[index].value + equates[index].min_extent;
+    if (extent_end > inferred_sizeof) inferred_sizeof = extent_end;
+  }
+  if (slot_count == 0U && (has_app_sizeof_value == 0U || app_sizeof_value <= base_offset)) return 0;
+  qsort(slots, slot_count, sizeof(slots[0]), render_equate_compare_by_value_then_name);
+  if (has_resident_library_context) {
+    if (json_builder_append(builder, "RSSET LIB_SIZE\n") != 0) return -1;
+  } else {
+    if (json_builder_append(builder, "RSSET 0\n") != 0) return -1;
+  }
+  cursor = base_offset;
+  for (index = 0U; index < slot_count; ++index) {
+    if (slots[index].value > cursor) {
+      int32_t gap = slots[index].value - cursor;
+      if (append_exact_rs_byte_gap(builder, gap) != 0) return -1;
+      cursor = slots[index].value;
+    }
+    if (slots[index].value < cursor) {
+      if (json_builder_appendf(builder, "%s RS.B 0\n", slots[index].name) != 0) return -1;
+    } else if ((cursor & 1) == 0) {
+      if (json_builder_appendf(builder, "%s RS.L 1\n", slots[index].name) != 0) return -1;
+      cursor += 4;
+    } else {
+      if (json_builder_appendf(builder, "%s RS.B 1\n", slots[index].name) != 0) return -1;
+      cursor += 1;
+    }
+  }
+  {
+    int32_t target_sizeof = has_app_sizeof_value != 0U ? app_sizeof_value : inferred_sizeof;
+    if (inferred_sizeof > target_sizeof) target_sizeof = inferred_sizeof;
+    if (target_sizeof > cursor) {
+      int32_t gap = target_sizeof - cursor;
+      if (append_exact_rs_byte_gap(builder, gap) != 0) return -1;
+    }
+  }
+  if (json_builder_append(builder, "app_SIZEOF EQU __RS\n\n") != 0) return -1;
   return 0;
 }
 
@@ -435,6 +569,7 @@ static int collect_data_expr_equate_symbol(const char *name, uint8_t provenance,
   RenderEquateCollectorContext *context = (RenderEquateCollectorContext *)opaque;
   int32_t value;
   if (lookup_symbol_include_path(context->source_file, name, provenance) != NULL) return 0;
+  if (source_file_has_label_name(context->source_file, name)) return 0;
   if (!lookup_symbol_equate_value(name, &value)) return 0;
   return append_or_update_render_equate(context->equates, context->equate_count, context->equate_capacity, name, value);
 }
@@ -443,6 +578,8 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
   RenderEquate equates[128];
   size_t equate_count = 0U;
   size_t section_index;
+  uint8_t has_app_sizeof_value = 0U;
+  int32_t app_sizeof_value = 0;
   RenderEquateCollectorContext context;
   context.equates = equates;
   context.equate_count = &equate_count;
@@ -455,6 +592,13 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
       const M68kStatementIR *stmt = &section->statements[stmt_index];
       size_t operand_index;
         if (stmt->kind == M68K_STATEMENT_DATA) {
+          if (stmt->u.data.expr_text != NULL && strcmp(stmt->u.data.expr_text, "app_SIZEOF") == 0 &&
+              stmt->u.data.data != NULL && stmt->u.data.size == 4U) {
+            uint32_t raw_value = ((uint32_t)stmt->u.data.data[0] << 24) | ((uint32_t)stmt->u.data.data[1] << 16) |
+              ((uint32_t)stmt->u.data.data[2] << 8) | (uint32_t)stmt->u.data.data[3];
+            has_app_sizeof_value = 1U;
+            app_sizeof_value = (int32_t)raw_value;
+          }
           if (visit_expr_text_symbols(stmt->u.data.expr_text, collect_data_expr_equate_symbol, &context) != 0) return -1;
           continue;
         }
@@ -488,14 +632,18 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
             if (operand->symbol_ref.has_symbolic_addend != 0U &&
                 operand->symbol_ref.symbolic_addend_name[0] != '\0') {
               if (lookup_symbol_include_path(source_file, operand->symbol_ref.name,
-                    operand->symbol_ref.name_provenance) == NULL) {
-                if (append_or_update_render_equate(equates, &equate_count, sizeof(equates) / sizeof(equates[0]),
-                      operand->symbol_ref.name, total_value - operand->symbol_ref.symbolic_addend_value) != 0) {
+                    operand->symbol_ref.name_provenance) == NULL &&
+                  !source_file_has_label_name(source_file, operand->symbol_ref.name)) {
+                if (append_or_update_render_equate_with_extent(equates, &equate_count,
+                      sizeof(equates) / sizeof(equates[0]), operand->symbol_ref.name,
+                      total_value - operand->symbol_ref.symbolic_addend_value,
+                      (int32_t)operand->symbol_ref.symbolic_addend_value) != 0) {
                   return -1;
                 }
               }
               if (lookup_symbol_include_path(source_file, operand->symbol_ref.symbolic_addend_name,
-                    operand->symbol_ref.symbolic_addend_provenance) == NULL) {
+                    operand->symbol_ref.symbolic_addend_provenance) == NULL &&
+                  !source_file_has_label_name(source_file, operand->symbol_ref.symbolic_addend_name)) {
                 if (append_or_update_render_equate(equates, &equate_count, sizeof(equates) / sizeof(equates[0]),
                       operand->symbol_ref.symbolic_addend_name, operand->symbol_ref.symbolic_addend_value) != 0) {
                   return -1;
@@ -504,7 +652,8 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
               continue;
             }
             if (lookup_symbol_include_path(source_file, operand->symbol_ref.name,
-                  operand->symbol_ref.name_provenance) == NULL) {
+                  operand->symbol_ref.name_provenance) == NULL &&
+                !source_file_has_label_name(source_file, operand->symbol_ref.name)) {
               if (append_or_update_render_equate(equates, &equate_count, sizeof(equates) / sizeof(equates[0]),
                     operand->symbol_ref.name, total_value) != 0) {
                 return -1;
@@ -513,7 +662,10 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
       }
     }
   }
+  if (append_needed_amiga_app_extension_rs(builder, equates, equate_count, source_file, has_app_sizeof_value,
+        app_sizeof_value) != 0) return -1;
   for (section_index = 0; section_index < equate_count; ++section_index) {
+    if (equates[section_index].consumed != 0U) continue;
     if (json_builder_appendf(builder, "%s EQU %d\n", equates[section_index].name, (int)equates[section_index].value) != 0)
       return -1;
   }
@@ -559,7 +711,7 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
     }
   }
   for (section_index = 0; section_index < include_count; ++section_index) {
-    if (json_builder_appendf(&builder, "    INCLUDE \"%s\"\n", includes[section_index].path) != 0) goto oom;
+    if (json_builder_appendf(&builder, "INCLUDE \"%s\"\n", includes[section_index].path) != 0) goto oom;
   }
   if (include_count != 0U && json_builder_append(&builder, "\n") != 0) goto oom;
   if (append_needed_equates(&builder, source_file) != 0) goto oom;
@@ -576,14 +728,22 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
     for (stmt_index = 0; stmt_index < section->statement_count; ++stmt_index) {
       const M68kStatementIR *stmt = &section->statements[stmt_index];
       if (stmt->kind == M68K_STATEMENT_LABEL) {
-        if (json_builder_appendf(&builder, "%s:\n", stmt->label_name != NULL ? stmt->label_name : "label") != 0)
+        size_t line_start;
+        if (stmt->comment != NULL && stmt->comment[0] != '\0' && strncmp(stmt->comment, "STRUCT ", 7) != 0 &&
+            json_builder_appendf(&builder, "    ; %s\n", stmt->comment) != 0)
           goto oom;
+        line_start = builder.size;
+        if (json_builder_appendf(&builder, "%s:", stmt->label_name != NULL ? stmt->label_name : "label") != 0) goto oom;
+        if (stmt->comment != NULL && strncmp(stmt->comment, "STRUCT ", 7) == 0) {
+          if (append_statement_comment(&builder, stmt, line_start) != 0) goto oom;
+        } else if (json_builder_append(&builder, "\n") != 0) goto oom;
       } else if (stmt->kind == M68K_STATEMENT_ALIGN) {
         if (json_builder_append(&builder, "    EVEN\n") != 0) goto oom;
       } else if (stmt->kind == M68K_STATEMENT_INSTRUCTION) {
         M68kInstructionIR rendered_instruction = stmt->u.instruction;
         M68kDiagList render_diagnostics;
         M68kIrRenderResult rendered;
+        size_t line_start;
         size_t operand_index;
         m68k_diag_list_reset(&render_diagnostics);
         for (operand_index = 0; operand_index < rendered_instruction.operand_count; ++operand_index) {
@@ -601,11 +761,13 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
           json_builder_destroy(&builder);
           return -1;
         }
+        line_start = builder.size;
         if (json_builder_appendf(&builder, "    %s", rendered.text) != 0) goto oom;
-        if (append_statement_comment(&builder, stmt) != 0) goto oom;
+        if (append_statement_comment(&builder, stmt, line_start) != 0) goto oom;
       } else if (stmt->kind == M68K_STATEMENT_DATA) {
+        size_t line_start = builder.size;
         if (append_rendered_data_stmt(&builder, &stmt->u.data, active_policy) != 0) goto oom;
-        if (append_statement_comment(&builder, stmt) != 0) goto oom;
+        if (append_statement_comment(&builder, stmt, line_start) != 0) goto oom;
       }
     }
   }

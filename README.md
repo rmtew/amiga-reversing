@@ -9,9 +9,9 @@ generated tools -- they are never part of the toolchain itself.
 ## Structure
 
 ```
-m68k/           Python package: disassembler, assembler, executor, analysis
-scripts/        CLI tools: parsers, pipeline scripts, oracle harnesses
-tests/          pytest suite (py -m pytest)
+src/            C disassembler, assembler, analysis, disk/file CLIs, generated metadata
+amiga_reversing/ Python web/API/project orchestration, DTO adapters, and runtime CLI tools
+tests/          Python web/orchestration pytest suite
 knowledge/      Generated JSON knowledge bases (M68K ISA, Amiga HW, OS)
 ext/vasm/       Vendored vasm assembler source
 targets/        Per-target output (entities, disassembly, progress)
@@ -24,7 +24,7 @@ resources/      External reference files (not tracked, see RESOURCES.md)
 ```
 py -m venv .venv
 .venv\Scripts\activate
-py -m pip install -r requirements.txt    # if present
+uv sync --dev
 ext\vasm\build.bat                       # build vasm (requires MSVC)
 ```
 
@@ -35,13 +35,13 @@ separately. See [RESOURCES.md](RESOURCES.md) for details.
 
 ```
 # Build entity database
-py scripts/build_entities.py bin/GenAm -t targets/amiga_hunk_genam
+uv run amiga-build-entities bin/GenAm -t targets/amiga_hunk_genam
 
 # Generate disassembly
-py scripts/gen_disasm.py bin/GenAm -t targets/amiga_hunk_genam
+uv run amiga-gen-disasm bin/GenAm -t targets/amiga_hunk_genam
 
 # Update progress dashboard
-py scripts/update_progress.py -t targets/amiga_hunk_genam
+uv run amiga-update-progress -t targets/amiga_hunk_genam
 
 # Run tests
 py -m pytest
@@ -49,20 +49,25 @@ py -m pytest
 
 ## Knowledge base rebuild
 
-If you have the source documents, regenerate the JSON knowledge bases:
+If you have the source documents, regenerate the JSON knowledge bases with
+maintenance scripts under `src.scripts`:
 
 ```
-py scripts/parse_m68k.py resources/M68000PM_AD_Rev_1_Programmers_Reference_Manual_1992.pdf
-py scripts/parse_hw_manual.py resources/Hardware_Manual.html
-py scripts/parse_ndk.py /path/to/NDK_3.1
+uv run python -m src.scripts.kb.m68k_parser resources/M68000PM_AD_Rev_1_Programmers_Reference_Manual_1992.pdf
+uv run python -m src.scripts.parse_hw_manual resources/Hardware_Manual.html
+uv run python -m src.scripts.kb.ndk_parser /path/to/NDK_3.1
 ```
 
-## Oracle tests
+## Validation
 
-These require external tools (vasm, machine68k) and are run separately from
-the pytest suite:
+Run the normal Python/web checks:
 
 ```
-py scripts/oracle_m68k_asm.py vasm
-py scripts/oracle_m68k_exec.py
+uv run pytest -q
+```
+
+Run the generated C toolchain validation:
+
+```
+cmd /c src\precommit.bat
 ```
