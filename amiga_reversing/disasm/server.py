@@ -112,7 +112,7 @@ type ApiCallRowKey = tuple[int, int]
 
 _PROJECT_API_CALL_CACHE: dict[str, dict[ApiCallRowKey, dict[str, object]]] = {}
 _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
-_JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[AsyncJobPayload]]] = {}
+_JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
 _JOB_LOCK = threading.Lock()
 
 _LISTING_PHASE_COUNT = 2
@@ -263,6 +263,16 @@ def _listing_row_code(row: ListingRow) -> str:
     if row.opcode_or_directive:
         return " ".join(part for part in (row.opcode_or_directive, row.operand_text) if part).strip()
     return row.text.strip()
+
+
+def _listing_anchor_code_start(rows: list[ListingRow], anchor_code: str) -> int:
+    wanted = anchor_code.strip()
+    if not wanted:
+        return 0
+    for index, row in enumerate(rows):
+        if _listing_row_code(row).strip() == wanted:
+            return index
+    return 0
 
 
 def _listing_row_has_segment_reference(row: ListingRow) -> bool:
@@ -439,7 +449,7 @@ def _job_payload_or_none(job_id: str) -> AsyncJobPayload | None:
     return _job_payload(job_id)
 
 
-def _publish_job_event_payload(job_id: str, payload: AsyncJobPayload) -> None:
+def _publish_job_event_payload(job_id: str, payload: dict[str, object]) -> None:
     with _JOB_LOCK:
         subscribers = list(_JOB_EVENT_SUBSCRIBERS.get(job_id, []))
     for subscriber in subscribers:
@@ -453,6 +463,44 @@ def _publish_job_event(job_id: str) -> None:
     payload = _job_payload_or_none(job_id)
     if payload is not None:
         _publish_job_event_payload(job_id, payload)
+
+
+def _listing_changed_ranges(rows: list[ListingRow]) -> list[dict[str, int]]:
+    ranges_by_section: dict[int, list[int]] = {}
+    for row in rows:
+        section_index = row.section_index
+        start_offset = row.start_offset
+        end_offset = row.end_offset
+        if section_index is None and isinstance(row.source_context, BlockRowContext):
+            section_index = row.source_context.hunk_index
+        if start_offset is None:
+            start_offset = row.addr
+        if end_offset is None:
+            end_offset = start_offset
+        if section_index is None or start_offset is None or end_offset is None:
+            continue
+        current = ranges_by_section.setdefault(section_index, [start_offset, end_offset])
+        current[0] = min(current[0], start_offset)
+        current[1] = max(current[1], end_offset)
+    return [
+        {"section_index": section_index, "start_offset": values[0], "end_offset": values[1]}
+        for section_index, values in sorted(ranges_by_section.items())
+    ]
+
+
+def _publish_listing_generation_ready_event(
+    job_id: str, project_name: str, generation: str, rows: list[ListingRow]
+) -> None:
+    _publish_job_event_payload(
+        job_id,
+        {
+            "_event_type": "listing_generation_ready",
+            "project_id": project_name,
+            "generation": generation,
+            "total_rows": len(rows),
+            "changed_ranges": _listing_changed_ranges(rows),
+        },
+    )
 
 
 def _cancel_listing_jobs(project_name: str | None = None) -> None:
@@ -676,6 +724,8 @@ def _build_rows_job(job_id: str, project_name: str, generation: str = "full") ->
             generation=generation,
             total_rows=len(rows),
         )
+        if generation == "full":
+            _publish_listing_generation_ready_event(job_id, project_name, generation, rows)
         _set_job_state(
             job_id,
             status="ready",
@@ -930,11 +980,14 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _write_sse_job_event(self, payload: AsyncJobPayload) -> None:
+    def _write_sse_event(self, event_name: str, payload: dict[str, object]) -> None:
         data = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-        self.wfile.write(b"event: job\n")
+        self.wfile.write(f"event: {event_name}\n".encode("ascii"))
         self.wfile.write(b"data: " + data + b"\n\n")
         self.wfile.flush()
+
+    def _write_sse_job_event(self, payload: AsyncJobPayload) -> None:
+        self._write_sse_event("job", cast(dict[str, object], payload))
 
     def _handle_job_events(self, query: dict[str, list[str]]) -> None:
         job_values = query.get("job_id")
@@ -945,7 +998,7 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
         if initial_payload is None:
             raise FileNotFoundError(f"Unknown job: {job_id}")
 
-        subscriber: queue.Queue[AsyncJobPayload] = queue.Queue()
+        subscriber: queue.Queue[dict[str, object]] = queue.Queue()
         with _JOB_LOCK:
             _JOB_EVENT_SUBSCRIBERS.setdefault(job_id, []).append(subscriber)
 
@@ -967,8 +1020,11 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
                     self.wfile.write(b": keepalive\n\n")
                     self.wfile.flush()
                     continue
-                self._write_sse_job_event(payload)
-                if payload["status"] not in {"queued", "building"}:
+                event_name = cast(str, payload.get("_event_type", "job"))
+                payload = dict(payload)
+                payload.pop("_event_type", None)
+                self._write_sse_event(event_name, payload)
+                if event_name == "job" and payload["status"] not in {"queued", "building"}:
                     return
         except (BrokenPipeError, ConnectionResetError, OSError):
             status = 499
@@ -1115,7 +1171,15 @@ def route_request(
                 )
             start = _parse_int_arg(query, "start")
             count = _parse_int_arg(query, "count")
-            if start is not None or count is not None:
+            anchor_code_values = query.get("anchor_code")
+            anchor_code = anchor_code_values[0].strip() if anchor_code_values else ""
+            if anchor_code:
+                payload = listing_index_window_payload(
+                    rows,
+                    _listing_anchor_code_start(rows, anchor_code),
+                    count or 240,
+                )
+            elif start is not None or count is not None:
                 payload = listing_index_window_payload(rows, start or 0, count or 240)
             else:
                 addr = _parse_int_arg(query, "addr")

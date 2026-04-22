@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from amiga_reversing.disasm.binary_source import DiskEntryBinarySource, HunkFileBinarySource, RawBinarySource
+from amiga_reversing.disasm import c_backend
 from amiga_reversing.disasm.c_backend import (
     amiga_naming_catalog_with_c_backend,
     amiga_os_metadata_catalog_with_c_backend,
@@ -23,7 +24,7 @@ from amiga_reversing.disasm.c_backend import (
 )
 from amiga_reversing.disasm.listing_types import BlockRowContext, HeaderRowContext
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
-from src.tests._platform_backend_test_utils import make_synthetic_hunkexe
+from src.tests._platform_backend_test_utils import make_synthetic_hunkexe, u32
 from src.tests._platform_backend_test_utils import M68kDiagList
 
 
@@ -31,6 +32,26 @@ def _requires_c_backend_dlls() -> None:
     build_dir = PROJECT_ROOT / "src" / "build"
     if not (build_dir / "platform_file_lib.dll").exists() or not (build_dir / "platform_disk_lib.dll").exists():
         pytest.skip("C backend DLLs are missing; run cmd /c src\\build.bat")
+
+
+def _make_two_code_hunkexe(first_code: bytes, second_code: bytes) -> bytes:
+    hunk_header = 1011
+    hunk_code = 1001
+    hunk_end = 1010
+    payload = bytearray()
+    payload += u32(hunk_header)
+    payload += u32(0)
+    payload += u32(2)
+    payload += u32(0)
+    payload += u32(1)
+    payload += u32((len(first_code) + 3) // 4)
+    payload += u32((len(second_code) + 3) // 4)
+    for code in (first_code, second_code):
+        payload += u32(hunk_code)
+        payload += u32((len(code) + 3) // 4)
+        payload += code.ljust(((len(code) + 3) // 4) * 4, b"\x00")
+        payload += u32(hunk_end)
+    return bytes(payload)
 
 
 class _M68kDiagSink(ctypes.Structure):
@@ -152,6 +173,10 @@ def test_rows_from_c_listing_json_uses_emitted_metadata() -> None:
                     "text": "    rts\n",
                     "stable_key": "s0:00000020:instruction:1",
                     "analysis_generation": "basic",
+                    "analysis_phase": "entrypoint-code",
+                    "section_index": 0,
+                    "start_offset": 32,
+                    "end_offset": 34,
                     "addr": 32,
                     "entity_addr": 32,
                     "bytes": "4e75",
@@ -177,6 +202,10 @@ def test_rows_from_c_listing_json_uses_emitted_metadata() -> None:
     assert rows[1].entity_addr == 32
     assert rows[1].stable_key == "s0:00000020:instruction:1"
     assert rows[1].analysis_generation == "basic"
+    assert rows[1].analysis_phase == "entrypoint-code"
+    assert rows[1].section_index == 0
+    assert rows[1].start_offset == 32
+    assert rows[1].end_offset == 34
     assert rows[1].opcode_or_directive == "rts"
     assert rows[1].bytes == b"\x4e\x75"
     assert rows[1].source_context == BlockRowContext(kind="c-instruction", hunk_index=0)
@@ -187,6 +216,150 @@ def test_rows_from_c_listing_json_uses_emitted_metadata() -> None:
         "value_domain": "exec.resident.matchword",
         "constant_name": "RTC_MATCHWORD",
     }
+
+
+def test_basic_listing_file_renders_code_section_as_data_without_explicit_entry(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "sample.exe"
+    path.write_bytes(make_synthetic_hunkexe(code_data=bytes.fromhex("6034944e75")))
+
+    payload = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_basic_listing_rows_path_json_alloc",
+            "amiga-hunk",
+            str(path),
+            "",
+            project_root=PROJECT_ROOT,
+        )
+    )
+    rows = rows_from_c_listing_json(payload)
+    data_rows = [row for row in rows if row.kind == "data"]
+
+    assert not [row for row in rows if row.kind == "instruction"]
+    assert data_rows[0].opcode_or_directive == "DC.B"
+    assert data_rows[0].bytes is not None
+    assert data_rows[0].bytes.startswith(bytes.fromhex("6034944e75"))
+    assert data_rows[0].analysis_phase == "raw-data"
+    assert data_rows[0].start_offset == 0
+    assert data_rows[0].end_offset == len(data_rows[0].bytes)
+
+
+def test_full_listing_data_rows_expose_source_bytes(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "raw.bin"
+    path.write_bytes(b"\0" * 12 + b"\x4e\x75" + b"ABC\0")
+
+    payload = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_listing_rows_with_analysis_raw_path_json_alloc",
+            "amiga-raw",
+            str(path),
+            12,
+            "",
+            project_root=PROJECT_ROOT,
+        )
+    )["listing"]
+    rows = rows_from_c_listing_json(payload)
+    data_rows = [row for row in rows if row.kind == "data"]
+
+    assert any(row.addr == 0 and row.bytes == b"\0" * 12 for row in data_rows)
+    assert any(row.addr == 14 and row.bytes == b"ABC\0" for row in data_rows)
+
+
+def test_basic_listing_rejects_invalid_platform_metadata(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "sample.exe"
+    metadata_path = tmp_path / "target_metadata.json"
+    path.write_bytes(make_synthetic_hunkexe(code_data=bytes.fromhex("4e750000")))
+    metadata_path.write_text(
+        json.dumps({"target_type": "library", "resident": {"hunk": 0, "offset": 9999}}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="target metadata range is out of range"):
+        c_backend._platform_file_text(
+            "platform_file_basic_listing_rows_path_json_alloc",
+            "amiga-hunk",
+            str(path),
+            str(metadata_path),
+            project_root=PROJECT_ROOT,
+        )
+
+
+def test_basic_listing_does_not_decode_platform_derived_entrypoint(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "sample.exe"
+    metadata_path = tmp_path / "target_metadata.json"
+    path.write_bytes(make_synthetic_hunkexe(code_data=bytes.fromhex("0000000000000000000000004e75")))
+    metadata_path.write_text(
+        json.dumps({"target_type": "bootblock", "bootblock": {"bootcode_offset": 12}}),
+        encoding="utf-8",
+    )
+
+    payload = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_basic_listing_rows_path_json_alloc",
+            "amiga-hunk",
+            str(path),
+            str(metadata_path),
+            project_root=PROJECT_ROOT,
+        )
+    )
+    rows = rows_from_c_listing_json(payload)
+
+    assert not [row for row in rows if row.kind == "instruction"]
+    assert any(row.kind == "data" and row.addr == 0 and row.bytes and b"\x4e\x75" in row.bytes for row in rows)
+
+
+def test_basic_listing_global_entrypoint_decodes_only_section_zero(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "sample.exe"
+    metadata_path = tmp_path / "target_metadata.json"
+    path.write_bytes(_make_two_code_hunkexe(bytes.fromhex("4e750000"), bytes.fromhex("4e750000")))
+    metadata_path.write_text(
+        json.dumps({"seeded_code_entrypoints": [{"addr": 0}]}),
+        encoding="utf-8",
+    )
+
+    payload = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_basic_listing_rows_path_json_alloc",
+            "amiga-hunk",
+            str(path),
+            str(metadata_path),
+            project_root=PROJECT_ROOT,
+        )
+    )
+    rows = rows_from_c_listing_json(payload)
+    instruction_rows = [row for row in rows if row.kind == "instruction"]
+
+    assert [(row.section_index, row.addr) for row in instruction_rows] == [(0, 0)]
+    assert any(row.kind == "data" and row.section_index == 1 and row.addr == 0 for row in rows)
+
+
+def test_basic_listing_raw_decodes_only_explicit_entrypoint(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "raw.bin"
+    path.write_bytes(b"\0" * 12 + b"\x4e\x75" + b"\x60\x00")
+
+    payload = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_basic_listing_rows_raw_path_json_alloc",
+            "amiga-raw",
+            str(path),
+            12,
+            "",
+            project_root=PROJECT_ROOT,
+        )
+    )
+    rows = rows_from_c_listing_json(payload)
+    instruction_rows = [row for row in rows if row.kind == "instruction"]
+
+    assert [row.addr for row in instruction_rows] == [12]
+    assert instruction_rows[0].opcode_or_directive == "rts"
+    assert instruction_rows[0].bytes == b"\x4e\x75"
+    assert instruction_rows[0].analysis_phase == "entrypoint-code"
+    assert any(row.kind == "data" and row.addr == 14 for row in rows)
 
 
 def test_api_calls_from_c_analysis_uses_recovered_symbols() -> None:

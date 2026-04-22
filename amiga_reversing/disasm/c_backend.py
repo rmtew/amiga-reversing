@@ -388,6 +388,10 @@ def rows_from_c_listing_json(payload: dict[str, object]) -> list[ListingRow]:
         entity_addr = raw_row.get("entity_addr")
         stable_key = raw_row.get("stable_key")
         analysis_generation = raw_row.get("analysis_generation")
+        analysis_phase = raw_row.get("analysis_phase")
+        section_index = raw_row.get("section_index")
+        start_offset = raw_row.get("start_offset")
+        end_offset = raw_row.get("end_offset")
         label = raw_row.get("label")
         opcode_or_directive = raw_row.get("opcode_or_directive")
         operand_text = raw_row.get("operand_text")
@@ -408,6 +412,10 @@ def rows_from_c_listing_json(payload: dict[str, object]) -> list[ListingRow]:
                 text=text,
                 stable_key=stable_key if isinstance(stable_key, str) else None,
                 analysis_generation=analysis_generation if isinstance(analysis_generation, str) else "full",
+                analysis_phase=analysis_phase if isinstance(analysis_phase, str) else None,
+                section_index=section_index if isinstance(section_index, int) else None,
+                start_offset=start_offset if isinstance(start_offset, int) else None,
+                end_offset=end_offset if isinstance(end_offset, int) else None,
                 addr=addr if isinstance(addr, int) else None,
                 entity_addr=entity_addr if isinstance(entity_addr, int) else None,
                 bytes=parsed_bytes,

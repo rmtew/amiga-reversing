@@ -300,7 +300,7 @@ class CdpWebSocket:
                     failures.append(str(entry.get("text", entry)))
             if method == "Network.loadingFailed" and params.get("errorText") != "net::ERR_CACHE_MISS":
                 if (
-                    params.get("type") == "EventSource"
+                    params.get("type") in {"EventSource", "Fetch"}
                     and params.get("errorText") == "net::ERR_ABORTED"
                     and params.get("canceled") is True
                 ):

@@ -1765,6 +1765,8 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
   const M68kAnalysisStructuredDataItem *structured_item = NULL;
   int has_addr = 0;
   uint32_t addr = 0U;
+  uint32_t end_offset = 0U;
+  uint32_t byte_count = 0U;
   copy_trimmed(text, sizeof(text), line_start, line_length);
   if (line_length + 1U < sizeof(text)) {
     memcpy(text, line_start, line_length);
@@ -1775,6 +1777,9 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
   if (stmt != NULL) {
     has_addr = 1;
     addr = stmt->offset;
+    if (stmt->kind == M68K_STATEMENT_INSTRUCTION) byte_count = (uint32_t)stmt->u.instruction.byte_count;
+    else if (stmt->kind == M68K_STATEMENT_DATA) byte_count = (uint32_t)stmt->u.data.size;
+    end_offset = addr + byte_count;
     label = stmt->label_name;
     structured_item = listing_structured_data_item_at_offset(analysis_policy, section_index, addr);
   } else if (strcmp(row_kind, "label") == 0) {
@@ -1795,10 +1800,26 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
   if (json_builder_append_json_string(builder,
       analysis_policy != NULL && analysis_policy->skip_platform_facts != 0U ? "basic" : "full") != 0)
     return -1;
+  if (json_builder_append(builder, ",\"analysis_phase\":") != 0) return -1;
+  if (json_builder_append_json_string(builder,
+      analysis_policy != NULL && analysis_policy->skip_platform_facts != 0U ? "raw-data" : "full") != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"section_index\":") != 0) return -1;
+  if (section_index >= 0) {
+    if (json_builder_appendf(builder, "%d", section_index) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"start_offset\":") != 0) return -1;
+  if (has_addr) {
+    if (json_builder_appendf(builder, "%u", (unsigned)addr) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"end_offset\":") != 0) return -1;
+  if (has_addr) {
+    if (json_builder_appendf(builder, "%u", (unsigned)end_offset) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
   if (json_builder_append(builder, ",\"text\":") != 0) return -1;
   if (json_builder_append_json_string(builder, text) != 0) return -1;
   if (json_builder_append(builder, ",\"bytes\":") != 0) return -1;
-  if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION && stmt->source_byte_count != 0U) {
+  if (stmt != NULL && stmt->source_byte_count != 0U) {
     if (json_builder_append_char(builder, '"') != 0) return -1;
     if (json_builder_append_hex_bytes(builder, stmt->source_bytes, stmt->source_byte_count) != 0) return -1;
     if (json_builder_append_char(builder, '"') != 0) return -1;

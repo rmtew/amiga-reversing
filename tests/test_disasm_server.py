@@ -50,6 +50,58 @@ def _binary_project(project_name: str, *, ready: bool) -> ProjectRecord:
     )
 
 
+def test_listing_anchor_code_start_matches_non_address_row() -> None:
+    rows = [
+        ListingRow(row_id="include", kind="directive", text='INCLUDE "exec/io.i"\n'),
+        ListingRow(row_id="section", kind="directive", text="    SECTION section,code\n"),
+        ListingRow(
+            row_id="code",
+            kind="instruction",
+            text="bra.b h0_0036\n",
+            addr=0,
+            opcode_or_directive="bra.b",
+            operand_text="h0_0036",
+        ),
+    ]
+
+    assert disasm_server._listing_anchor_code_start(rows, "SECTION section,code") == 1
+
+
+def test_route_listing_anchor_code_returns_window_at_non_address_row(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [
+        ListingRow(row_id="include", kind="directive", text='INCLUDE "exec/io.i"\n'),
+        ListingRow(row_id="section", kind="directive", text="    SECTION section,code\n"),
+        ListingRow(
+            row_id="code",
+            kind="instruction",
+            text="bra.b h0_0036\n",
+            addr=0,
+            opcode_or_directive="bra.b",
+            operand_text="h0_0036",
+        ),
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing",
+        {"anchor_code": ["SECTION section,code"], "count": ["2"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    window_rows = cast(list[dict[str, object]], data["rows"])
+
+    assert data["start"] == 1
+    assert window_rows[0]["text"].strip() == "SECTION section,code"
+
+
 def _disk_manifest_payload() -> dict[str, object]:
     return {
         "schema_version": 1,
@@ -1186,11 +1238,25 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
 
 def test_full_listing_replaces_basic_rows(monkeypatch: pytest.MonkeyPatch) -> None:
     basic_rows = [ListingRow(row_id="basic", kind="instruction", text="nop\n", analysis_generation="basic")]
-    full_rows = [ListingRow(row_id="full", kind="instruction", text="rts\n", analysis_generation="full")]
+    full_rows = [
+        ListingRow(
+            row_id="full",
+            kind="instruction",
+            text="rts\n",
+            analysis_generation="full",
+            section_index=0,
+            start_offset=4,
+            end_offset=6,
+            addr=4,
+        )
+    ]
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
+    disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
+    subscriber: queue.Queue[dict[str, object]] = queue.Queue()
+    disasm_server._JOB_EVENT_SUBSCRIBERS["job-full"] = [subscriber]
 
     def fake_build(
         project_name: str, generation: str
@@ -1227,6 +1293,19 @@ def test_full_listing_replaces_basic_rows(monkeypatch: pytest.MonkeyPatch) -> No
     assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
         (0, 4): {"library": "exec.library"}
     }
+    events: list[dict[str, object]] = []
+    while not subscriber.empty():
+        events.append(subscriber.get_nowait())
+    generation_events = [event for event in events if event.get("_event_type") == "listing_generation_ready"]
+    assert generation_events == [
+        {
+            "_event_type": "listing_generation_ready",
+            "project_id": "bloodwych",
+            "generation": "full",
+            "total_rows": 1,
+            "changed_ranges": [{"section_index": 0, "start_offset": 4, "end_offset": 6}],
+        }
+    ]
 
 
 def test_route_listing_status_returns_job(monkeypatch: pytest.MonkeyPatch) -> None:

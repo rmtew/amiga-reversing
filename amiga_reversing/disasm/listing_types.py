@@ -108,6 +108,10 @@ class ListingRow:
     text: str
     stable_key: str | None = None
     analysis_generation: str = "full"
+    analysis_phase: str | None = None
+    section_index: int | None = None
+    start_offset: int | None = None
+    end_offset: int | None = None
     addr: int | None = None
     entity_addr: int | None = None
     verified_state: str | None = None

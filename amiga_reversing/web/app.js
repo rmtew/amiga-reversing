@@ -14,6 +14,9 @@ const state = {
     requestSeq: 0,
     scrollTimer: null,
     scrollRaf: null,
+    pendingWindow: null,
+    inFlightWindow: null,
+    fetchAbortController: null,
     suppressScrollFetch: false,
   },
   listingColumns: {
@@ -38,6 +41,11 @@ const state = {
     overlayOpen: false,
     selectedTab: "fetch",
     fetchSamples: [],
+  },
+  analysisStatus: {
+    text: "",
+    state: "idle",
+    clearTimer: null,
   },
 };
 
@@ -115,6 +123,10 @@ async function fetchJson(url, options = {}) {
     throw new Error(payload.error || `Request failed: ${response.status}`);
   }
   return payload.data;
+}
+
+function isAbortError(error) {
+  return error instanceof DOMException && error.name === "AbortError";
 }
 
 function projectPath(projectId) {
@@ -368,6 +380,67 @@ function renderProgressOverlay(job, titleOverride = null) {
   `;
 }
 
+function analysisStatusTextForJob(job) {
+  if (!job || !job.job_kind || !["basic_listing", "full_listing", "listing"].includes(job.job_kind)) {
+    return "";
+  }
+  if (job.status === "failed") {
+    return "Full analysis failed";
+  }
+  const labels = JOB_PHASE_LABELS[job.job_kind] || {};
+  const phase = labels[job.phase_id] || labels[job.status] || "Analyzing";
+  if (job.job_kind === "basic_listing") {
+    return `Loading initial listing: ${phase}`;
+  }
+  if (job.job_kind === "full_listing") {
+    return `Analyzing full listing: ${phase}`;
+  }
+  return `Analyzing listing: ${phase}`;
+}
+
+function renderAnalysisStatus() {
+  const node = document.getElementById("analysis-status");
+  if (!node) {
+    return;
+  }
+  const text = state.analysisStatus.text || "";
+  node.hidden = text === "";
+  node.className = `analysis-status analysis-status-${state.analysisStatus.state || "idle"}`;
+  node.innerHTML = text
+    ? `<span class="analysis-status-spinner" aria-hidden="true"></span><span>${escapeHtml(text)}</span>`
+    : "";
+}
+
+function setAnalysisStatus(text, statusState = "running", clearAfterMs = null) {
+  if (state.analysisStatus.clearTimer) {
+    window.clearTimeout(state.analysisStatus.clearTimer);
+    state.analysisStatus.clearTimer = null;
+  }
+  state.analysisStatus.text = text || "";
+  state.analysisStatus.state = statusState;
+  renderAnalysisStatus();
+  if (clearAfterMs !== null) {
+    state.analysisStatus.clearTimer = window.setTimeout(() => {
+      state.analysisStatus.text = "";
+      state.analysisStatus.state = "idle";
+      state.analysisStatus.clearTimer = null;
+      renderAnalysisStatus();
+    }, clearAfterMs);
+  }
+}
+
+function updateAnalysisStatusFromJob(job) {
+  const text = analysisStatusTextForJob(job);
+  if (!text) {
+    return;
+  }
+  if (job.status === "failed") {
+    setAnalysisStatus(text, "failed");
+  } else if (job.status === "queued" || job.status === "building") {
+    setAnalysisStatus(text, "running");
+  }
+}
+
 function renderFetchLatencyGraph() {
   const samples = state.stats.fetchSamples.slice(-80);
   if (!samples.length) {
@@ -549,6 +622,7 @@ function waitForAsyncJobEvents(job, token, renderOverlay) {
         settle(reject, new Error("stale"));
         return;
       }
+      updateAnalysisStatusFromJob(jobState);
       renderOverlay(jobState);
       if (jobState.status === "failed") {
         settle(reject, new Error(jobState.error || "Async job failed"));
@@ -563,6 +637,14 @@ function waitForAsyncJobEvents(job, token, renderOverlay) {
         settle(reject, error);
       }
     });
+    source.addEventListener("listing_generation_ready", (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        void handleListingGenerationReady(payload, token);
+      } catch (error) {
+        settle(reject, error);
+      }
+    });
     source.onerror = () => {
       settle(reject, new Error("job event stream failed"));
     };
@@ -573,6 +655,7 @@ function waitForAsyncJobEvents(job, token, renderOverlay) {
 async function waitForAsyncJobPolling(statusUrl, job, token, renderOverlay) {
   let jobState = job;
   let pollDelayMs = 250;
+  updateAnalysisStatusFromJob(jobState);
   renderOverlay(jobState);
   while (jobState.status === "queued" || jobState.status === "building") {
     await sleep(pollDelayMs);
@@ -583,6 +666,7 @@ async function waitForAsyncJobPolling(statusUrl, job, token, renderOverlay) {
     if (token !== null && token !== state.loadingToken) {
       throw new Error("stale");
     }
+    updateAnalysisStatusFromJob(jobState);
     renderOverlay(jobState);
     pollDelayMs = Math.min(1000, Math.floor(pollDelayMs * 1.35));
   }
@@ -951,6 +1035,10 @@ function renderListingRows(rows) {
       data-row-code="${escapeHtml(renderListingCode(row))}"
       ${row.stable_key ? `data-row-stable-key="${escapeHtml(row.stable_key)}"` : ""}
       ${row.analysis_generation ? `data-analysis-generation="${escapeHtml(row.analysis_generation)}"` : ""}
+      ${row.analysis_phase ? `data-analysis-phase="${escapeHtml(row.analysis_phase)}"` : ""}
+      ${row.section_index !== null && row.section_index !== undefined ? `data-section-index="${escapeHtml(String(row.section_index))}"` : ""}
+      ${row.start_offset !== null && row.start_offset !== undefined ? `data-start-offset="${escapeHtml(String(row.start_offset))}"` : ""}
+      ${row.end_offset !== null && row.end_offset !== undefined ? `data-end-offset="${escapeHtml(String(row.end_offset))}"` : ""}
       ${row.structured_data?.struct_name ? `data-struct-name="${escapeHtml(row.structured_data.struct_name)}"` : ""}
       ${row.structured_data?.field_name ? `data-struct-field="${escapeHtml(row.structured_data.field_name)}"` : ""}
     >
@@ -991,7 +1079,7 @@ function measureRenderedListingRowHeight(viewport) {
   return state.virtualListing.rowHeight;
 }
 
-function renderVirtualListingWindow(projectId, listing, preserveScroll = false) {
+function renderVirtualListingWindow(projectId, listing, preserveScroll = false, forcedScrollTop = null) {
   const viewport = document.getElementById("listing-viewport");
   if (!viewport) {
     return;
@@ -1016,7 +1104,9 @@ function renderVirtualListingWindow(projectId, listing, preserveScroll = false) 
   measureRenderedListingRowHeight(viewport);
   bindListingEditors(projectId, listing.rows);
   bindVirtualListingScroller(projectId, viewport);
-  if (preserveScroll) {
+  if (forcedScrollTop !== null && Number.isFinite(forcedScrollTop)) {
+    viewport.scrollTop = Math.max(0, forcedScrollTop);
+  } else if (preserveScroll) {
     viewport.scrollTop = scrollTop;
   }
   renderNavigationOverlay();
@@ -1038,7 +1128,7 @@ function bindVirtualListingScroller(projectId, viewport) {
     }
     state.virtualListing.scrollRaf = window.requestAnimationFrame(() => {
       state.virtualListing.scrollRaf = null;
-      void loadListingWindowForScroll(projectId, viewport);
+      scheduleListingWindowForScroll(projectId, viewport, {delayMs: 120});
     });
   };
   viewport.addEventListener("scroll", viewport._listingScrollHandler);
@@ -1061,7 +1151,8 @@ function scrollListingViewport(projectId, direction) {
   } else {
     return false;
   }
-  void loadListingWindowForScroll(projectId, viewport);
+  scheduleListingWindowForScroll(projectId, viewport, {delayMs: 0});
+  void flushPendingListingWindow();
   return true;
 }
 
@@ -1075,6 +1166,184 @@ function currentListingIndexWindow(viewport) {
     start: Math.max(0, firstVisible - margin),
     count,
   };
+}
+
+function captureListingAddressAnchor(viewport) {
+  if (!(viewport instanceof HTMLElement)) {
+    return null;
+  }
+  const viewportTop = viewport.getBoundingClientRect().top;
+  const rows = Array.from(viewport.querySelectorAll(".listing-row"))
+    .filter((row) => row instanceof HTMLElement);
+  if (!rows.length) {
+    return null;
+  }
+  let best = rows[0];
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const row of rows) {
+    const rect = row.getBoundingClientRect();
+    const distance = Math.abs(rect.top - viewportTop);
+    if (distance < bestDistance) {
+      best = row;
+      bestDistance = distance;
+    }
+  }
+  return {
+    addr: best.dataset.rowAddr !== "" && best.dataset.rowAddr !== undefined
+      ? Number(best.dataset.rowAddr)
+      : null,
+    stableKey: best.dataset.rowStableKey || null,
+    rowCode: best.dataset.rowCode || "",
+    topDelta: best.getBoundingClientRect().top - viewportTop,
+  };
+}
+
+function selectListingAnchorRow(viewport, anchor) {
+  if (!(viewport instanceof HTMLElement) || !anchor) {
+    return null;
+  }
+  if (Number.isFinite(anchor.addr)) {
+    const row = selectBestListingRow(viewport, anchor.addr, anchor.rowCode || null);
+    if (row instanceof HTMLElement) {
+      return row;
+    }
+  }
+  if (anchor.stableKey) {
+    const row = viewport.querySelector(`[data-row-stable-key="${CSS.escape(anchor.stableKey)}"]`);
+    if (row instanceof HTMLElement) {
+      return row;
+    }
+  }
+  if (anchor.rowCode) {
+    const rows = Array.from(viewport.querySelectorAll(".listing-row"));
+    const row = rows.find((candidate) => (
+      candidate instanceof HTMLElement && candidate.dataset.rowCode === anchor.rowCode
+    ));
+    if (row instanceof HTMLElement) {
+      return row;
+    }
+  }
+  return null;
+}
+
+function listingAnchorRowIndexInRows(rows, anchor) {
+  if (!anchor) {
+    return -1;
+  }
+  if (Number.isFinite(anchor.addr)) {
+    const wantedCode = String(anchor.rowCode || "");
+    const exactIndex = rows.findIndex((row) => (
+      row.addr === anchor.addr && (!wantedCode || renderListingCode(row) === wantedCode)
+    ));
+    if (exactIndex >= 0) {
+      return exactIndex;
+    }
+    const addrIndex = rows.findIndex((row) => row.addr === anchor.addr);
+    if (addrIndex >= 0) {
+      return addrIndex;
+    }
+  }
+  if (anchor.stableKey) {
+    const stableIndex = rows.findIndex((row) => row.stable_key === anchor.stableKey);
+    if (stableIndex >= 0) {
+      return stableIndex;
+    }
+  }
+  if (anchor.rowCode) {
+    const wanted = String(anchor.rowCode).trim();
+    return rows.findIndex((row) => renderListingCode(row).trim() === wanted);
+  }
+  return -1;
+}
+
+function listingAnchorRowIndex(anchor) {
+  return listingAnchorRowIndexInRows(state.listingRows, anchor);
+}
+
+function listingAnchorScrollTop(listing, anchor) {
+  const rowIndex = listingAnchorRowIndexInRows(listing?.rows || [], anchor);
+  if (rowIndex < 0) {
+    return null;
+  }
+  const rowHeight = Math.max(1, state.virtualListing.rowHeight || 22);
+  return (((listing.start || 0) + rowIndex) * rowHeight) - (anchor?.topDelta || 0);
+}
+
+function restoreListingAddressAnchor(viewport, anchor) {
+  if (!(viewport instanceof HTMLElement) || !anchor) {
+    return;
+  }
+  const rowIndex = listingAnchorRowIndex(anchor);
+  if (rowIndex >= 0) {
+    const rowHeight = Math.max(1, state.virtualListing.rowHeight || 22);
+    viewport.scrollTop = Math.max(0, ((state.virtualListing.start + rowIndex) * rowHeight) - anchor.topDelta);
+    return;
+  }
+  const row = selectListingAnchorRow(viewport, anchor);
+  if (!(row instanceof HTMLElement)) {
+    return;
+  }
+  const viewportTop = viewport.getBoundingClientRect().top;
+  const delta = row.getBoundingClientRect().top - viewportTop - anchor.topDelta;
+  viewport.scrollTop += delta;
+}
+
+async function refreshListingAtCurrentAddressAnchor(projectId, token = null) {
+  const viewport = document.getElementById("listing-viewport");
+  if (!(viewport instanceof HTMLElement)) {
+    return null;
+  }
+  const anchor = captureListingAddressAnchor(viewport);
+  const visibleRows = listingVisibleRowCount(viewport);
+  const count = listingFetchCount(viewport);
+  const rowHeight = Math.max(1, state.virtualListing.rowHeight || 22);
+  const isAtListingTop = state.virtualListing.start === 0 && viewport.scrollTop <= rowHeight * 2;
+  const requestSeqBeforeRefresh = state.virtualListing.requestSeq;
+  const shouldUseCodeAnchor = anchor?.rowCode && (isAtListingTop || !Number.isFinite(anchor.addr));
+  const listing = shouldUseCodeAnchor
+    ? await loadListingWindow(projectId, null, 0, count, {
+        anchorCode: anchor.rowCode,
+        count,
+        preserveScroll: false,
+        restoreAnchor: anchor,
+      })
+    : !isAtListingTop && anchor && Number.isFinite(anchor.addr)
+    ? await loadListingWindow(projectId, anchor.addr, visibleRows, count - visibleRows, {
+        preserveScroll: false,
+        restoreAnchor: anchor,
+      })
+    : await loadListingWindow(projectId, null, 0, count, {
+        ...(isAtListingTop ? {start: 0, count} : currentListingIndexWindow(viewport)),
+        preserveScroll: false,
+        restoreAnchor: anchor,
+      });
+  if (token !== null && token !== state.loadingToken) {
+    return listing;
+  }
+  if (state.virtualListing.requestSeq !== requestSeqBeforeRefresh + 1) {
+    return listing;
+  }
+  restoreListingAddressAnchor(document.getElementById("listing-viewport"), anchor);
+  return listing;
+}
+
+async function handleListingGenerationReady(payload, token = null) {
+  if (!state.project || payload.project_id !== state.project || payload.generation === state.virtualListing.generation) {
+    return;
+  }
+  if (token !== null && token !== state.loadingToken) {
+    return;
+  }
+  setAnalysisStatus("Applying full analysis", "running");
+  const listing = await refreshListingAtCurrentAddressAnchor(state.project, token);
+  if (token !== null && token !== state.loadingToken) {
+    return;
+  }
+  if (listing?.analysis_generation === payload.generation) {
+    await loadNavigationEntries(state.project);
+    renderNavigationOverlay();
+    setAnalysisStatus("Full analysis ready", "ready", 2000);
+  }
 }
 
 async function loadListingWindowForScroll(projectId, viewport) {
@@ -1091,6 +1360,80 @@ async function loadListingWindowForScroll(projectId, viewport) {
   }
   const {start, count} = currentListingIndexWindow(viewport);
   await loadListingWindow(projectId, null, 0, count, {start, count, preserveScroll: true});
+}
+
+function desiredListingWindowForScroll(viewport) {
+  if (!(viewport instanceof HTMLElement)) {
+    return null;
+  }
+  const rowHeight = Math.max(1, state.virtualListing.rowHeight || 22);
+  const visibleRows = listingVisibleRowCount(viewport);
+  const firstVisible = Math.max(0, Math.floor(viewport.scrollTop / rowHeight));
+  const lastVisible = firstVisible + visibleRows;
+  const margin = visibleRows;
+  if (
+    firstVisible >= state.virtualListing.start + margin &&
+    lastVisible <= state.virtualListing.end - margin
+  ) {
+    return null;
+  }
+  return currentListingIndexWindow(viewport);
+}
+
+function sameListingWindow(left, right) {
+  return Boolean(left && right && left.start === right.start && left.count === right.count);
+}
+
+function scheduleListingWindowForScroll(projectId, viewport, {delayMs = 120} = {}) {
+  const desired = desiredListingWindowForScroll(viewport);
+  if (!desired) {
+    return;
+  }
+  state.virtualListing.pendingWindow = {
+    projectId,
+    start: desired.start,
+    count: desired.count,
+  };
+  if (state.virtualListing.scrollTimer !== null) {
+    window.clearTimeout(state.virtualListing.scrollTimer);
+    state.virtualListing.scrollTimer = null;
+  }
+  state.virtualListing.scrollTimer = window.setTimeout(() => {
+    state.virtualListing.scrollTimer = null;
+    void flushPendingListingWindow();
+  }, Math.max(0, delayMs));
+}
+
+async function flushPendingListingWindow() {
+  const pending = state.virtualListing.pendingWindow;
+  if (!pending) {
+    return null;
+  }
+  if (sameListingWindow(pending, state.virtualListing.inFlightWindow)) {
+    return null;
+  }
+  state.virtualListing.pendingWindow = null;
+  state.virtualListing.inFlightWindow = pending;
+  try {
+    return await loadListingWindow(pending.projectId, null, 0, pending.count, {
+      start: pending.start,
+      count: pending.count,
+      preserveScroll: true,
+      abortPrevious: true,
+    });
+  } catch (error) {
+    if (!isAbortError(error)) {
+      throw error;
+    }
+    return null;
+  } finally {
+    if (sameListingWindow(state.virtualListing.inFlightWindow, pending)) {
+      state.virtualListing.inFlightWindow = null;
+    }
+    if (state.virtualListing.pendingWindow) {
+      void flushPendingListingWindow();
+    }
+  }
 }
 
 function isEditableTarget(target) {
@@ -1660,8 +2003,16 @@ function bindListingEditors(projectId, rows) {
 
 async function loadListingWindow(projectId, addr = null, before = 24, after = 80, options = {}) {
   const requestSeq = ++state.virtualListing.requestSeq;
+  if (options.abortPrevious && state.virtualListing.fetchAbortController) {
+    state.virtualListing.fetchAbortController.abort();
+  }
+  const abortController = new AbortController();
+  state.virtualListing.fetchAbortController = abortController;
   const params = new URLSearchParams();
-  if (options.start !== null && options.start !== undefined) {
+  if (options.anchorCode) {
+    params.set("anchor_code", String(options.anchorCode).trim());
+    params.set("count", String(options.count || after || LISTING_INITIAL_ROW_WINDOW));
+  } else if (options.start !== null && options.start !== undefined) {
     params.set("start", String(options.start));
     params.set("count", String(options.count || after || LISTING_INITIAL_ROW_WINDOW));
   } else if (addr !== null && addr !== undefined) {
@@ -1673,9 +2024,17 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
     params.set("count", String(options.count || after || LISTING_INITIAL_ROW_WINDOW));
   }
   const startedAt = performance.now();
-  const listing = await fetchJson(
-    `/api/projects/${encodeURIComponent(projectId)}/listing?${params.toString()}`
-  );
+  let listing;
+  try {
+    listing = await fetchJson(
+      `/api/projects/${encodeURIComponent(projectId)}/listing?${params.toString()}`,
+      {signal: abortController.signal},
+    );
+  } finally {
+    if (state.virtualListing.fetchAbortController === abortController) {
+      state.virtualListing.fetchAbortController = null;
+    }
+  }
   const elapsedMs = performance.now() - startedAt;
   if (requestSeq !== state.virtualListing.requestSeq) {
     return listing;
@@ -1687,7 +2046,12 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
     totalRows: listing.total_rows || 0,
     generation: listing.analysis_generation || state.virtualListing.generation,
   });
-  renderVirtualListingWindow(projectId, listing, options.preserveScroll === true);
+  renderVirtualListingWindow(
+    projectId,
+    listing,
+    options.preserveScroll === true,
+    options.restoreAnchor ? listingAnchorScrollTop(listing, options.restoreAnchor) : null,
+  );
   return listing;
 }
 
@@ -1708,23 +2072,19 @@ async function refreshListingWindowAfterEnrichment(projectId, enrichmentJobId, t
     if (token !== state.loadingToken || fullJobState.visible_generation !== "full") {
       return;
     }
-    const viewport = document.getElementById("listing-viewport");
-    const {start, count} = currentListingIndexWindow(viewport);
-    const listing = await loadListingWindow(projectId, null, 0, count, {
-      start,
-      count,
-      preserveScroll: true,
-    });
+    const listing = await refreshListingAtCurrentAddressAnchor(projectId, token);
     if (token !== state.loadingToken) {
       return;
     }
-    if (listing.analysis_generation === "full") {
+    if (listing?.analysis_generation === "full") {
       await loadNavigationEntries(projectId);
       renderNavigationOverlay();
+      setAnalysisStatus("Full analysis ready", "ready", 2000);
     }
   } catch (error) {
     if (String(error.message || error) !== "stale") {
       console.warn("Full listing enrichment failed", error);
+      setAnalysisStatus("Full analysis failed", "failed");
     }
   }
 }
@@ -2030,6 +2390,7 @@ async function renderProject(projectId) {
       <div class="project-bar">
         <div class="project-title" id="project-title">${escapeHtml(projectId)}</div>
         <div class="project-details" id="project-details">Loading project...</div>
+        <div class="analysis-status" id="analysis-status" aria-live="polite" hidden></div>
         <div class="project-actions">
           <button id="navigation-back" type="button" title="Back">Back</button>
           <button id="navigation-forward" type="button" title="Forward">Forward</button>
@@ -2061,12 +2422,27 @@ async function renderProject(projectId) {
   state.virtualListing.totalRows = 0;
   state.virtualListing.generation = null;
   state.virtualListing.requestSeq = 0;
+  state.virtualListing.pendingWindow = null;
+  state.virtualListing.inFlightWindow = null;
+  if (state.virtualListing.scrollTimer !== null) {
+    window.clearTimeout(state.virtualListing.scrollTimer);
+    state.virtualListing.scrollTimer = null;
+  }
+  if (state.virtualListing.scrollRaf !== null) {
+    window.cancelAnimationFrame(state.virtualListing.scrollRaf);
+    state.virtualListing.scrollRaf = null;
+  }
+  if (state.virtualListing.fetchAbortController) {
+    state.virtualListing.fetchAbortController.abort();
+    state.virtualListing.fetchAbortController = null;
+  }
   state.navigation.overlayOpen = false;
   state.navigation.entries = null;
   state.navigation.generation = null;
   state.stats.overlayOpen = false;
   state.stats.selectedTab = "fetch";
   state.stats.fetchSamples = [];
+  setAnalysisStatus("");
   renderStatsOverlay();
   renderNavigationOverlay();
   fetchJson(`/api/projects/${encodeURIComponent(projectId)}/open`, {method: "POST"})
@@ -2147,7 +2523,10 @@ async function renderProject(projectId) {
       && job.enrichment_job_id !== job.job_id
       && jobState.visible_generation !== "full"
     ) {
+      setAnalysisStatus("Analyzing full listing", "running");
       void refreshListingWindowAfterEnrichment(projectId, job.enrichment_job_id, token);
+    } else if (jobState.visible_generation === "full") {
+      setAnalysisStatus("Full analysis ready", "ready", 2000);
     }
   } catch (error) {
     if (String(error.message || error) === "stale") {
@@ -2184,16 +2563,45 @@ window.addEventListener("popstate", () => {
   void route();
 });
 
-document.addEventListener("pointerdown", (event) => {
-  const handle = event.target instanceof HTMLElement
+function beginListingColumnResize(event) {
+  let handle = event.target instanceof HTMLElement
     ? event.target.closest("[data-listing-column-resize]")
     : null;
+  let column = handle instanceof HTMLElement ? handle.dataset.listingColumnResize : null;
   if (!(handle instanceof HTMLElement)) {
-    return;
+    handle = Array.from(document.querySelectorAll("[data-listing-column-resize]"))
+      .find((candidate) => {
+        if (!(candidate instanceof HTMLElement)) {
+          return false;
+        }
+        const rect = candidate.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        return event.clientY >= rect.top
+          && event.clientY <= rect.bottom
+          && Math.abs(event.clientX - centerX) <= 10;
+      }) || null;
+    column = handle instanceof HTMLElement ? handle.dataset.listingColumnResize : null;
   }
-  const column = handle.dataset.listingColumnResize;
+  if (!(handle instanceof HTMLElement)) {
+    const rowLayer = document.querySelector(".listing-row-layer");
+    if (rowLayer instanceof HTMLElement) {
+      const rect = rowLayer.getBoundingClientRect();
+      const boundaries = [
+        ["offset", rect.left + state.listingColumns.offset],
+        ["bytes", rect.left + state.listingColumns.offset + state.listingColumns.bytes],
+        ["code", rect.left + state.listingColumns.offset + state.listingColumns.bytes + state.listingColumns.code],
+      ];
+      const nearest = boundaries.find(([_column, x]) => Math.abs(event.clientX - x) <= 16);
+      if (nearest && event.clientY >= rect.top && event.clientY <= rect.bottom) {
+        column = nearest[0];
+      }
+    }
+  }
+  if (state.listingColumns.drag) {
+    return false;
+  }
   if (!column || !Object.prototype.hasOwnProperty.call(LISTING_COLUMN_MIN_WIDTHS, column)) {
-    return;
+    return false;
   }
   event.preventDefault();
   state.listingColumns.drag = {
@@ -2202,25 +2610,35 @@ document.addEventListener("pointerdown", (event) => {
     startWidth: state.listingColumns[column],
   };
   document.body.classList.add("listing-column-resizing");
-});
+  return true;
+}
 
-document.addEventListener("pointermove", (event) => {
+function updateListingColumnResize(event) {
   const drag = state.listingColumns.drag;
   if (!drag) {
-    return;
+    return false;
   }
   const minWidth = LISTING_COLUMN_MIN_WIDTHS[drag.column] || 48;
   state.listingColumns[drag.column] = Math.max(minWidth, drag.startWidth + event.clientX - drag.startX);
   applyListingColumnWidths();
-});
+  return true;
+}
 
-document.addEventListener("pointerup", () => {
+function endListingColumnResize() {
   if (!state.listingColumns.drag) {
-    return;
+    return false;
   }
   state.listingColumns.drag = null;
   document.body.classList.remove("listing-column-resizing");
-});
+  return true;
+}
+
+document.addEventListener("pointerdown", beginListingColumnResize);
+document.addEventListener("pointermove", updateListingColumnResize);
+document.addEventListener("pointerup", endListingColumnResize);
+document.addEventListener("mousedown", beginListingColumnResize);
+document.addEventListener("mousemove", updateListingColumnResize);
+document.addEventListener("mouseup", endListingColumnResize);
 
 document.addEventListener("keydown", (event) => {
   if (!state.project) {

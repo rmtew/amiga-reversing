@@ -152,7 +152,7 @@ body {
 
 .project-bar {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   gap: 12px;
   align-items: center;
   background: #111;
@@ -171,6 +171,43 @@ body {
   align-items: center;
   flex-wrap: wrap;
   overflow: hidden;
+}
+
+.analysis-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: #ddd;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.analysis-status[hidden] {
+  display: none;
+}
+
+.analysis-status-spinner::before {
+  content: "/";
+  display: inline-block;
+  width: 1ch;
+  animation: analysis-status-spin 900ms steps(4, end) infinite;
+}
+
+.analysis-status-ready {
+  color: #cfe8bf;
+}
+
+.analysis-status-failed {
+  color: #ffd0d0;
+}
+
+@keyframes analysis-status-spin {
+  0% { content: "/"; }
+  25% { content: "-"; }
+  50% { content: "\\"; }
+  75% { content: "|"; }
+  100% { content: "/"; }
 }
 
 .project-bar button {
@@ -305,11 +342,13 @@ body {
 }
 
 .listing-column-resizer {
+  position: relative;
+  z-index: 3;
   align-self: stretch;
-  width: 7px;
-  margin-left: -4px;
+  width: 16px;
+  margin-left: -8px;
   cursor: col-resize;
-  z-index: 2;
+  touch-action: none;
 }
 
 .listing-column-resizer-offset {

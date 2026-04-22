@@ -48,12 +48,58 @@ def test_web_app_annotation_button_is_hover_only_and_has_fallback_entity() -> No
     assert ".listing-row:focus-within .listing-annotation-edit" in styles_css
 
 
-def test_web_app_initial_listing_load_requests_all_ready_rows() -> None:
+def test_web_app_initial_listing_load_requests_virtual_window() -> None:
     app_js = (
         Path(__file__).resolve().parent.parent
         / "amiga_reversing" / "web"
         / "app.js"
     ).read_text(encoding="utf-8")
 
-    assert "await loadListingWindow(projectId, null, 0, Number(jobState.total_rows || 240));" in app_js
+    assert "const count = viewport ? listingFetchCount(viewport) : LISTING_INITIAL_ROW_WINDOW;" in app_js
+    assert "return loadListingWindow(projectId, null, 0, count, {start: 0, count});" in app_js
     assert "await loadListingWindow(projectId, null, 0, 240);" not in app_js
+
+
+def test_web_app_generation_refresh_restores_only_applied_request() -> None:
+    app_js = (
+        Path(__file__).resolve().parent.parent
+        / "amiga_reversing" / "web"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+
+    assert "const requestSeqBeforeRefresh = state.virtualListing.requestSeq;" in app_js
+    assert "if (state.virtualListing.requestSeq !== requestSeqBeforeRefresh + 1) {" in app_js
+    assert "restoreListingAddressAnchor(document.getElementById(\"listing-viewport\"), anchor);" in app_js
+
+
+def test_web_app_generation_refresh_anchors_non_address_rows() -> None:
+    app_js = (
+        Path(__file__).resolve().parent.parent
+        / "amiga_reversing" / "web"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+
+    assert 'viewport.querySelectorAll(".listing-row")' in app_js
+    assert "stableKey: best.dataset.rowStableKey || null" in app_js
+    assert "rowCode: best.dataset.rowCode || \"\"" in app_js
+    assert "const shouldUseCodeAnchor = anchor?.rowCode && (isAtListingTop || !Number.isFinite(anchor.addr));" in app_js
+    assert "anchorCode: anchor.rowCode" in app_js
+    assert 'params.set("anchor_code", String(options.anchorCode).trim());' in app_js
+    assert "function selectListingAnchorRow(viewport, anchor)" in app_js
+    assert "function listingAnchorRowIndex(anchor)" in app_js
+    assert "function listingAnchorScrollTop(listing, anchor)" in app_js
+    assert "options.restoreAnchor ? listingAnchorScrollTop(listing, options.restoreAnchor) : null" in app_js
+    assert "viewport.scrollTop = Math.max(0, ((state.virtualListing.start + rowIndex) * rowHeight) - anchor.topDelta);" in app_js
+
+
+def test_web_app_shows_non_occluding_analysis_status() -> None:
+    web_dir = Path(__file__).resolve().parent.parent / "amiga_reversing" / "web"
+    app_js = (web_dir / "app.js").read_text(encoding="utf-8")
+    styles_css = (web_dir / "styles.css").read_text(encoding="utf-8")
+
+    assert 'id="analysis-status" aria-live="polite"' in app_js
+    assert "function updateAnalysisStatusFromJob(job)" in app_js
+    assert 'setAnalysisStatus("Applying full analysis", "running")' in app_js
+    assert 'setAnalysisStatus("Full analysis ready", "ready", 2000)' in app_js
+    assert ".analysis-status" in styles_css
+    assert ".listing-viewport .analysis-status" not in styles_css

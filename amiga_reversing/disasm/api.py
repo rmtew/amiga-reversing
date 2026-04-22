@@ -52,6 +52,10 @@ class SerializedRow(TypedDict):
     text: str
     stable_key: str | None
     analysis_generation: str
+    analysis_phase: str | None
+    section_index: int | None
+    start_offset: int | None
+    end_offset: int | None
     addr: int | None
     entity_addr: int | None
     verified_state: str | None
@@ -139,6 +143,10 @@ def serialize_row(row: ListingRow) -> SerializedRow:
         "text": row.text,
         "stable_key": row.stable_key,
         "analysis_generation": row.analysis_generation,
+        "analysis_phase": row.analysis_phase,
+        "section_index": row.section_index,
+        "start_offset": row.start_offset,
+        "end_offset": row.end_offset,
         "addr": row.addr,
         "entity_addr": row.entity_addr,
         "verified_state": row.verified_state,

@@ -92,8 +92,24 @@ static int append_basic_listing_row(JsonBuilder *builder, size_t *row_index, int
   } else if (json_builder_append(builder, "null") != 0) return -1;
   if (json_builder_append(builder, ",\"stable_key\":") != 0 ||
       json_builder_append_json_string(builder, stable_key) != 0 ||
-      json_builder_append(builder, ",\"analysis_generation\":\"basic\",\"addr\":") != 0)
+      json_builder_append(builder, ",\"analysis_generation\":\"basic\",\"analysis_phase\":") != 0 ||
+      json_builder_append_json_string(builder, strcmp(kind, "instruction") == 0 ? "entrypoint-code" : "raw-data") != 0 ||
+      json_builder_append(builder, ",\"section_index\":") != 0)
     return -1;
+  if (section_index >= 0) {
+    if (json_builder_appendf(builder, "%d", section_index) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"start_offset\":") != 0) return -1;
+  if (has_addr) {
+    if (json_builder_appendf(builder, "%u", (unsigned)addr) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"end_offset\":") != 0) return -1;
+  if (has_addr) {
+    uint32_t end_offset = addr + (uint32_t)source_byte_count;
+    if (end_offset == addr && strcmp(kind, "label") != 0) end_offset = addr;
+    if (json_builder_appendf(builder, "%u", (unsigned)end_offset) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"addr\":") != 0) return -1;
   if (has_addr) {
     if (json_builder_appendf(builder, "%u", (unsigned)addr) != 0 ||
         json_builder_append(builder, ",\"entity_addr\":") != 0 ||
@@ -144,13 +160,41 @@ static const char *basic_policy_label_at(const M68kAnalysisPolicy *policy, size_
 static int basic_policy_has_entry_at(const M68kAnalysisPolicy *policy, size_t section_index, uint32_t offset) {
   size_t index;
   if (policy == NULL) return 0;
-  if (policy->has_entry_offset && offset == policy->entry_offset) return 1;
+  if (policy->has_entry_offset && section_index == 0U && offset == policy->entry_offset) return 1;
   for (index = 0U; index < policy->entry_point_count; ++index) {
     const M68kAnalysisEntryPoint *entry = &policy->entry_points[index];
-    if (entry->offset == offset && (!entry->has_section_index || entry->section_index == section_index))
+    if (entry->offset == offset &&
+        (entry->has_section_index ? entry->section_index == section_index : section_index == 0U))
       return 1;
   }
   return 0;
+}
+
+static int basic_policy_has_explicit_entry_at(const M68kAnalysisPolicy *policy, size_t section_index,
+    uint32_t offset) {
+  return basic_policy_has_entry_at(policy, section_index, offset);
+}
+
+static uint32_t basic_policy_next_boundary(const M68kAnalysisPolicy *policy, size_t section_index, uint32_t offset,
+    uint32_t limit) {
+  uint32_t result = limit;
+  size_t index;
+  if (policy == NULL) return result;
+  if (policy->has_entry_offset && section_index == 0U && policy->entry_offset > offset && policy->entry_offset < result)
+    result = policy->entry_offset;
+  for (index = 0U; index < policy->entry_point_count; ++index) {
+    const M68kAnalysisEntryPoint *entry = &policy->entry_points[index];
+    if (entry->offset > offset && entry->offset < result &&
+        (entry->has_section_index ? entry->section_index == section_index : section_index == 0U))
+      result = entry->offset;
+  }
+  for (index = 0U; index < policy->named_label_count; ++index) {
+    const M68kAnalysisNamedLabel *label = &policy->named_labels[index];
+    if (label->offset > offset && label->offset < result &&
+        (!label->has_section_index || label->section_index == section_index))
+      result = label->offset;
+  }
+  return result;
 }
 
 static int basic_listing_rows_object_json(const M68kObject *object, const M68kAnalysisPolicy *analysis_policy,
@@ -200,7 +244,8 @@ static int basic_listing_rows_object_json(const M68kObject *object, const M68kAn
             line, NULL, 0U, line, NULL, "") != 0)
           goto oom;
       }
-      if (section->kind == M68K_SECTION_CODE && offset + 2U <= section->data_size) {
+      if (section->kind == M68K_SECTION_CODE && offset + 2U <= section->data_size &&
+          basic_policy_has_explicit_entry_at(analysis_policy, section_index, offset)) {
         M68kDiagList instruction_diagnostics;
         M68kDisasmResult disasm;
         char opcode[64];
@@ -218,11 +263,36 @@ static int basic_listing_rows_object_json(const M68kObject *object, const M68kAn
           continue;
         }
       }
-      snprintf(line, sizeof(line), "    DC.B    $%02x\n", (unsigned)section->data[offset]);
-      if (append_basic_listing_row(&builder, &row_index, &need_comma, "data", (int)section_index, 1U, offset,
-          line, NULL, 0U, NULL, "DC.B", "") != 0)
-        goto oom;
-      ++offset;
+      {
+        size_t chunk = section->data_size - offset;
+        uint32_t next_boundary;
+        size_t index;
+        char *out = line;
+        size_t remaining = sizeof(line);
+        int written;
+        if (chunk > 16U) chunk = 16U;
+        next_boundary = basic_policy_next_boundary(analysis_policy, section_index, offset,
+          (uint32_t)section->data_size);
+        if (next_boundary > offset && next_boundary - offset < chunk) chunk = next_boundary - offset;
+        written = snprintf(out, remaining, "    DC.B    ");
+        if (written < 0 || (size_t)written >= remaining) goto oom;
+        out += written;
+        remaining -= (size_t)written;
+        for (index = 0U; index < chunk; ++index) {
+          written = snprintf(out, remaining, "%s$%02x", index == 0U ? "" : ",",
+            (unsigned)section->data[offset + index]);
+          if (written < 0 || (size_t)written >= remaining) goto oom;
+          out += written;
+          remaining -= (size_t)written;
+        }
+        if (remaining < 2U) goto oom;
+        *out++ = '\n';
+        *out = '\0';
+        if (append_basic_listing_row(&builder, &row_index, &need_comma, "data", (int)section_index, 1U, offset,
+            line, section->data + offset, chunk, NULL, "DC.B", "") != 0)
+          goto oom;
+        offset += (uint32_t)chunk;
+      }
     }
   }
   if (json_builder_append(&builder, "]}") != 0) goto oom;
@@ -1697,6 +1767,18 @@ static int configure_analysis_policy_for_alloc(M68kAnalysisPolicy *policy, const
     cursor = next;
   }
   free(offsets_copy);
+  return 0;
+}
+
+static int configure_basic_render_policy_for_alloc(M68kAnalysisPolicy *policy, const char *metadata_path,
+    M68kDiagList *diagnostics) {
+  if (policy == NULL) return -1;
+  m68k_analysis_policy_init_default(policy);
+  if (metadata_path != NULL && metadata_path[0] != '\0' &&
+      platform_file_analysis_policy_load_target_metadata(policy, metadata_path, m68k_diag_sink(diagnostics)) != 0) {
+    return -1;
+  }
+  policy->skip_platform_facts = 1U;
   return 0;
 }
 
@@ -3812,36 +3894,50 @@ int platform_file_listing_rows_path_json_alloc(const char *backend_name, const c
 
 int platform_file_basic_listing_rows_path_json_alloc(const char *backend_name, const char *path,
     const char *metadata_path, char **out_text) {
-  M68kAnalysisPolicy *analysis_policy;
+  M68kAnalysisPolicy *validation_policy;
+  M68kAnalysisPolicy *render_policy;
   M68kDiagList diagnostics;
   PlatformFileTextResult result;
   M68kObject object;
   m68k_diag_list_reset(&diagnostics);
   memset(&object, 0, sizeof(object));
-  analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*analysis_policy));
-  if (analysis_policy == NULL) {
+  validation_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*validation_policy));
+  render_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*render_policy));
+  if (validation_policy == NULL || render_policy == NULL) {
     result.text = NULL;
     memset(&result.diagnostics, 0, sizeof(result.diagnostics));
     platform_file_add_error(&result.diagnostics, "out of memory");
+    free(validation_policy);
+    free(render_policy);
     return text_result_to_alloc(&result, out_text);
   }
-  if (configure_analysis_policy_for_alloc(analysis_policy, backend_name, metadata_path, NULL, &diagnostics) != 0) {
+  if (configure_analysis_policy_for_alloc(validation_policy, backend_name, metadata_path, NULL, &diagnostics) != 0 ||
+      configure_basic_render_policy_for_alloc(render_policy, metadata_path, &diagnostics) != 0) {
     result.text = NULL;
     result.diagnostics = diagnostics;
-    free(analysis_policy);
+    free(validation_policy);
+    free(render_policy);
     return text_result_to_alloc(&result, out_text);
   }
-  analysis_policy->skip_platform_facts = 1U;
   memset(&result, 0, sizeof(result));
   if (load_object_from_path(m68k_backend_by_name(backend_name), path, &object, m68k_diag_sink(&result.diagnostics)) != 0) {
-    free(analysis_policy);
+    free(validation_policy);
+    free(render_policy);
     return text_result_to_alloc(&result, out_text);
   }
-  if (basic_listing_rows_object_json(&object, analysis_policy, &result.text, m68k_diag_sink(&result.diagnostics)) != 0 &&
+  enrich_policy_pointer_targets_from_object_local(validation_policy, &object);
+  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, validation_policy)) {
+    m68k_object_destroy(&object);
+    free(validation_policy);
+    free(render_policy);
+    return text_result_to_alloc(&result, out_text);
+  }
+  if (basic_listing_rows_object_json(&object, render_policy, &result.text, m68k_diag_sink(&result.diagnostics)) != 0 &&
       !m68k_diag_has_errors(&result.diagnostics))
     platform_file_add_error(&result.diagnostics, "failed building basic listing rows json");
   m68k_object_destroy(&object);
-  free(analysis_policy);
+  free(validation_policy);
+  free(render_policy);
   return text_result_to_alloc(&result, out_text);
 }
 
@@ -3920,38 +4016,54 @@ int platform_file_listing_rows_with_analysis_raw_path_json_alloc(const char *pla
 
 int platform_file_basic_listing_rows_raw_path_json_alloc(const char *platform_name, const char *path,
     uint32_t entry_offset, const char *metadata_path, char **out_text) {
-  M68kAnalysisPolicy *analysis_policy;
+  M68kAnalysisPolicy *validation_policy;
+  M68kAnalysisPolicy *render_policy;
   M68kDiagList diagnostics;
   PlatformFileTextResult result;
   M68kObject object;
   m68k_diag_list_reset(&diagnostics);
   memset(&object, 0, sizeof(object));
-  analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*analysis_policy));
-  if (analysis_policy == NULL) {
+  validation_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*validation_policy));
+  render_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*render_policy));
+  if (validation_policy == NULL || render_policy == NULL) {
     result.text = NULL;
     memset(&result.diagnostics, 0, sizeof(result.diagnostics));
     platform_file_add_error(&result.diagnostics, "out of memory");
+    free(validation_policy);
+    free(render_policy);
     return text_result_to_alloc(&result, out_text);
   }
-  if (configure_analysis_policy_for_alloc(analysis_policy, platform_name, metadata_path, NULL, &diagnostics) != 0) {
+  if (configure_analysis_policy_for_alloc(validation_policy, platform_name, metadata_path, NULL, &diagnostics) != 0 ||
+      configure_basic_render_policy_for_alloc(render_policy, metadata_path, &diagnostics) != 0) {
     result.text = NULL;
     result.diagnostics = diagnostics;
-    free(analysis_policy);
+    free(validation_policy);
+    free(render_policy);
     return text_result_to_alloc(&result, out_text);
   }
-  analysis_policy->skip_platform_facts = 1U;
-  analysis_policy->has_entry_offset = 1U;
-  analysis_policy->entry_offset = entry_offset;
+  validation_policy->has_entry_offset = 1U;
+  validation_policy->entry_offset = entry_offset;
+  render_policy->has_entry_offset = 1U;
+  render_policy->entry_offset = entry_offset;
   memset(&result, 0, sizeof(result));
   if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&result.diagnostics)) != 0) {
-    free(analysis_policy);
+    free(validation_policy);
+    free(render_policy);
     return text_result_to_alloc(&result, out_text);
   }
-  if (basic_listing_rows_object_json(&object, analysis_policy, &result.text, m68k_diag_sink(&result.diagnostics)) != 0 &&
+  enrich_policy_pointer_targets_from_object_local(validation_policy, &object);
+  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, validation_policy)) {
+    m68k_object_destroy(&object);
+    free(validation_policy);
+    free(render_policy);
+    return text_result_to_alloc(&result, out_text);
+  }
+  if (basic_listing_rows_object_json(&object, render_policy, &result.text, m68k_diag_sink(&result.diagnostics)) != 0 &&
       !m68k_diag_has_errors(&result.diagnostics))
     platform_file_add_error(&result.diagnostics, "failed building basic listing rows json");
   m68k_object_destroy(&object);
-  free(analysis_policy);
+  free(validation_policy);
+  free(render_policy);
   return text_result_to_alloc(&result, out_text);
 }
 
