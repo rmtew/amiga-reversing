@@ -2014,6 +2014,326 @@ def apply_parser_asserted_ea_mode_fixes(kb_data: list[JsonDict]) -> None:
                 del inst["ea_modes_020"]
 
 
+PMMU_68030_FC_VARIANTS: tuple[tuple[str, str, int, str], ...] = (
+    ("FC", "ctrl_reg", 0, "value"),
+    ("Dn", "dn", 1, "reg"),
+    ("# <fc>", "imm", 2, "value"),
+)
+
+
+def _pmmu_68030_fc_operand(kind: str) -> JsonDict:
+    return {"type": kind}
+
+
+def _pmmu_68030_fc_form(
+    syntax: str,
+    fc_kind: str,
+    operands: list[JsonDict],
+    *,
+    processor_set: list[str] | None = None,
+    encoding_group_index: int | None = None,
+    encoding_group_span: int | None = None,
+) -> JsonDict:
+    form: JsonDict = {
+        "syntax": syntax,
+        "operands": [_pmmu_68030_fc_operand(fc_kind), *operands],
+    }
+    if processor_set is not None:
+        form["processor_set"] = processor_set
+    if encoding_group_index is not None:
+        form["encoding_group_index"] = encoding_group_index
+    if encoding_group_span is not None:
+        form["encoding_group_span"] = encoding_group_span
+    if fc_kind == "ctrl_reg":
+        form["control_registers"] = ["sfc", "dfc"]
+    return form
+
+
+def _pmmu_68030_pload_forms() -> list[JsonDict]:
+    forms: list[JsonDict] = []
+    for mnemonic in ("PLOADR", "PLOADW"):
+        for fc_syntax, fc_kind, _, _ in PMMU_68030_FC_VARIANTS:
+            forms.append(
+                _pmmu_68030_fc_form(
+                    f"{mnemonic} {fc_syntax},<ea>",
+                    fc_kind,
+                    [{"type": "ea"}],
+                )
+            )
+    return forms
+
+
+def _pmmu_68030_pflush_forms() -> list[JsonDict]:
+    forms: list[JsonDict] = [
+        {
+            "syntax": "PFLUSHA",
+            "encoding_group_index": 0,
+            "encoding_group_span": 2,
+            "processor_set": ["68030"],
+            "operands": [],
+        }
+    ]
+    for fc_syntax, fc_kind, _, _ in PMMU_68030_FC_VARIANTS:
+        forms.append(
+            _pmmu_68030_fc_form(
+                f"PFLUSH {fc_syntax},# <mask>",
+                fc_kind,
+                [{"type": "imm"}],
+                processor_set=["68030"],
+                encoding_group_index=0,
+                encoding_group_span=2,
+            )
+        )
+    for fc_syntax, fc_kind, _, _ in PMMU_68030_FC_VARIANTS:
+        forms.append(
+            _pmmu_68030_fc_form(
+                f"PFLUSH {fc_syntax},# <mask>,<ea>",
+                fc_kind,
+                [{"type": "imm"}, {"type": "ea"}],
+                processor_set=["68030"],
+                encoding_group_index=0,
+                encoding_group_span=2,
+            )
+        )
+    forms.extend(
+        [
+            {
+                "syntax": "PFLUSHA",
+                "encoding_group_index": 1,
+                "encoding_group_span": 1,
+                "processor_set": ["68040"],
+                "operands": [],
+            },
+            {
+                "syntax": "PFLUSH (An)",
+                "encoding_group_index": 1,
+                "encoding_group_span": 1,
+                "processor_set": ["68040"],
+                "operands": [{"type": "ind"}],
+            },
+            {
+                "syntax": "PFLUSHA",
+                "encoding_group_index": 2,
+                "encoding_group_span": 1,
+                "processor_set": ["68040"],
+                "operands": [],
+            },
+            {
+                "syntax": "PFLUSH (An)",
+                "encoding_group_index": 2,
+                "encoding_group_span": 1,
+                "processor_set": ["68040"],
+                "operands": [{"type": "ind"}],
+            },
+        ]
+    )
+    return forms
+
+
+def _pmmu_68030_ptest_forms() -> list[JsonDict]:
+    forms: list[JsonDict] = []
+    for mnemonic in ("PTESTR", "PTESTW"):
+        for fc_syntax, fc_kind, _, _ in PMMU_68030_FC_VARIANTS:
+            forms.append(
+                _pmmu_68030_fc_form(
+                    f"{mnemonic} {fc_syntax},<ea>,# <level>",
+                    fc_kind,
+                    [{"type": "ea"}, {"type": "imm"}],
+                    processor_set=["68030"],
+                    encoding_group_index=0,
+                    encoding_group_span=2,
+                )
+            )
+    for mnemonic in ("PTESTR", "PTESTW"):
+        for fc_syntax, fc_kind, _, _ in PMMU_68030_FC_VARIANTS:
+            forms.append(
+                _pmmu_68030_fc_form(
+                    f"{mnemonic} {fc_syntax},<ea>,# <level>,An",
+                    fc_kind,
+                    [{"type": "ea"}, {"type": "imm"}, {"type": "an"}],
+                    processor_set=["68030"],
+                    encoding_group_index=0,
+                    encoding_group_span=2,
+                )
+            )
+    forms.extend(
+        [
+            {
+                "syntax": "PTESTR FC,<ea>,# <level>",
+                "encoding_group_index": 1,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}],
+            },
+            {
+                "syntax": "PTESTW FC,<ea>,# <level>",
+                "encoding_group_index": 1,
+                "encoding_group_span": 2,
+                "processor_set": ["68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}],
+            },
+            {
+                "syntax": "PTESTR (An)",
+                "encoding_group_index": 2,
+                "encoding_group_span": 1,
+                "processor_set": ["68040"],
+                "operands": [{"type": "ind"}],
+            },
+            {
+                "syntax": "PTESTW (An)",
+                "encoding_group_index": 3,
+                "encoding_group_span": 1,
+                "processor_set": ["68040"],
+                "operands": [{"type": "ind"}],
+            },
+            {
+                "syntax": "PTESTR FC,<ea>,# <level>,An",
+                "encoding_group_index": 4,
+                "encoding_group_span": 2,
+                "processor_set": ["68020", "68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}, {"type": "an"}],
+            },
+            {
+                "syntax": "PTESTW FC,<ea>,# <level>,An",
+                "encoding_group_index": 4,
+                "encoding_group_span": 2,
+                "processor_set": ["68020", "68030"],
+                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}, {"type": "an"}],
+            },
+        ]
+    )
+    return forms
+
+
+def _pmmu_68030_pload_field_values() -> list[JsonDict]:
+    rw_values: dict[int, int] = {}
+    fc_mode_values: dict[int, int] = {}
+    for form_index in range(6):
+        rw_values[form_index] = 1 if form_index < 3 else 0
+        fc_mode_values[form_index] = PMMU_68030_FC_VARIANTS[form_index % 3][2]
+    return [
+        {"field": "R/ W", "form_field_value": rw_values},
+        {"field": "FC-MODE", "occurrence": 0, "form_field_value": fc_mode_values},
+    ]
+
+
+def _pmmu_68030_pload_field_bindings() -> list[JsonDict]:
+    bindings: list[JsonDict] = []
+    for form_index in range(6):
+        _, _, _, fc_value_source = PMMU_68030_FC_VARIANTS[form_index % 3]
+        bindings.extend(
+            [
+                {"form_index": form_index, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+                {"form_index": form_index, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+                {"form_index": form_index, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": fc_value_source},
+            ]
+        )
+    return bindings
+
+
+def _pmmu_68030_pflush_field_values() -> list[JsonDict]:
+    fc_mode_values = {0: 0}
+    for form_index in range(1, 7):
+        fc_mode_values[form_index] = PMMU_68030_FC_VARIANTS[(form_index - 1) % 3][2]
+    return [
+        {"field": "MODE", "occurrence": 0, "form_field_value": {0: 0, 1: 0, 2: 0, 3: 0}},
+        {"field": "REGISTER", "occurrence": 0, "form_field_value": {0: 0, 1: 0, 2: 0, 3: 0, 7: 0, 9: 0}},
+        {"field": "MODE", "occurrence": 1, "form_field_value": {0: 1, 1: 4, 2: 4, 3: 4, 4: 6, 5: 6, 6: 6}},
+        {"field": "MASK", "occurrence": 0, "form_field_value": {0: 0}},
+        {"field": "FC-MODE", "occurrence": 0, "form_field_value": fc_mode_values},
+        {"field": "FC", "occurrence": 0, "form_field_value": {0: 0}},
+        {"field": "OPMODE", "occurrence": 0, "form_field_value": {7: 3, 8: 1, 9: 3, 10: 1}},
+    ]
+
+
+def _pmmu_68030_pflush_field_bindings() -> list[JsonDict]:
+    bindings: list[JsonDict] = []
+    for form_index in range(1, 4):
+        _, _, _, fc_value_source = PMMU_68030_FC_VARIANTS[(form_index - 1) % 3]
+        bindings.extend(
+            [
+                {"form_index": form_index, "field": "MASK", "occurrence": 0, "operand_index": 1, "value_source": "value"},
+                {"form_index": form_index, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": fc_value_source},
+            ]
+        )
+    for form_index in range(4, 7):
+        _, _, _, fc_value_source = PMMU_68030_FC_VARIANTS[(form_index - 4) % 3]
+        bindings.extend(
+            [
+                {"form_index": form_index, "field": "MODE", "occurrence": 0, "operand_index": 2, "value_source": "ea_mode"},
+                {"form_index": form_index, "field": "REGISTER", "occurrence": 0, "operand_index": 2, "value_source": "ea_reg"},
+                {"form_index": form_index, "field": "MASK", "occurrence": 0, "operand_index": 1, "value_source": "value"},
+                {"form_index": form_index, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": fc_value_source},
+            ]
+        )
+    return bindings
+
+
+def _pmmu_68030_ptest_field_values() -> list[JsonDict]:
+    rw_values: dict[int, int] = {}
+    a_values: dict[int, int] = {}
+    fc_mode_values: dict[int, int] = {}
+    register_values: dict[int, int] = {}
+    for form_index in range(12):
+        is_read = form_index < 3 or 6 <= form_index < 9
+        has_an = form_index >= 6
+        variant_index = form_index % 3
+        rw_values[form_index] = 1 if is_read else 0
+        a_values[form_index] = 1 if has_an else 0
+        fc_mode_values[form_index] = PMMU_68030_FC_VARIANTS[variant_index][2]
+        if not has_an:
+            register_values[form_index] = 0
+    rw_values.update({12: 1, 13: 0, 14: 1, 15: 0, 16: 1, 17: 0})
+    return [
+        {"field": "R/ W", "form_field_value": rw_values},
+        {"field": "A", "form_field_value": a_values},
+        {"field": "REGISTER", "occurrence": 1, "form_field_value": register_values},
+        {"field": "FC-MODE", "occurrence": 0, "form_field_value": fc_mode_values},
+    ]
+
+
+def _pmmu_68030_ptest_field_bindings() -> list[JsonDict]:
+    bindings: list[JsonDict] = []
+    for form_index in range(12):
+        has_an = form_index >= 6
+        _, _, _, fc_value_source = PMMU_68030_FC_VARIANTS[form_index % 3]
+        bindings.extend(
+            [
+                {"form_index": form_index, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+                {"form_index": form_index, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+                {"form_index": form_index, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": fc_value_source},
+                {"form_index": form_index, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
+            ]
+        )
+        if has_an:
+            bindings.append(
+                {"form_index": form_index, "field": "REGISTER", "occurrence": 1, "operand_index": 3, "value_source": "reg"}
+            )
+    bindings.extend(
+        [
+            {"form_index": 12, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+            {"form_index": 12, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+            {"form_index": 12, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+            {"form_index": 13, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+            {"form_index": 13, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+            {"form_index": 13, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+            {"form_index": 14, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+            {"form_index": 15, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
+            {"form_index": 16, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+            {"form_index": 16, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+            {"form_index": 16, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+            {"form_index": 16, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
+            {"form_index": 16, "field": "A-REGISTER", "occurrence": 0, "operand_index": 3, "value_source": "reg"},
+            {"form_index": 17, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
+            {"form_index": 17, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
+            {"form_index": 17, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
+            {"form_index": 17, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
+            {"form_index": 17, "field": "A-REGISTER", "occurrence": 0, "operand_index": 3, "value_source": "reg"},
+        ]
+    )
+    return bindings
+
+
 PARSER_ASSERTED_SYNTAX_FIXES: dict[str, dict[str, object]] = {
     "EXT, EXTB": {
         "syntax": ["EXT.W Dn", "EXT.L Dn", "EXTB.L Dn"],
@@ -2101,57 +2421,7 @@ PARSER_ASSERTED_SYNTAX_FIXES: dict[str, dict[str, object]] = {
             "PFLUSHA",
             "PFLUSH (An)",
         ],
-        "forms": [
-            {
-                "syntax": "PFLUSHA",
-                "encoding_group_index": 0,
-                "encoding_group_span": 2,
-                "processor_set": ["68030"],
-                "operands": [],
-            },
-            {
-                "syntax": "PFLUSH FC,# <mask>",
-                "encoding_group_index": 0,
-                "encoding_group_span": 2,
-                "processor_set": ["68030"],
-                "operands": [{"type": "ctrl_reg"}, {"type": "imm"}],
-            },
-            {
-                "syntax": "PFLUSH FC,# <mask>,<ea>",
-                "encoding_group_index": 0,
-                "encoding_group_span": 2,
-                "processor_set": ["68030"],
-                "operands": [{"type": "ctrl_reg"}, {"type": "imm"}, {"type": "ea"}],
-            },
-            {
-                "syntax": "PFLUSHA",
-                "encoding_group_index": 1,
-                "encoding_group_span": 1,
-                "processor_set": ["68040"],
-                "operands": [],
-            },
-            {
-                "syntax": "PFLUSH (An)",
-                "encoding_group_index": 1,
-                "encoding_group_span": 1,
-                "processor_set": ["68040"],
-                "operands": [{"type": "ind"}],
-            },
-            {
-                "syntax": "PFLUSHA",
-                "encoding_group_index": 2,
-                "encoding_group_span": 1,
-                "processor_set": ["68040"],
-                "operands": [],
-            },
-            {
-                "syntax": "PFLUSH (An)",
-                "encoding_group_index": 2,
-                "encoding_group_span": 1,
-                "processor_set": ["68040"],
-                "operands": [{"type": "ind"}],
-            },
-        ],
+        "forms": _pmmu_68030_pflush_forms(),
     },
     "PFLUSH PFLUSHA": {
         "syntax": ["PFLUSHA", "PFLUSH FC,# <mask>", "PFLUSH FC,# <mask>,<ea>"],
@@ -2249,10 +2519,7 @@ PARSER_ASSERTED_SYNTAX_FIXES: dict[str, dict[str, object]] = {
     },
     "PLOAD": {
         "syntax": ["PLOADR FC,<ea>", "PLOADW FC,<ea>"],
-        "forms": [
-            {"syntax": "PLOADR FC,<ea>", "operands": [{"type": "ctrl_reg"}, {"type": "ea"}]},
-            {"syntax": "PLOADW FC,<ea>", "operands": [{"type": "ctrl_reg"}, {"type": "ea"}]},
-        ],
+        "forms": _pmmu_68030_pload_forms(),
     },
     "PMOVE": {
         "syntax": [
@@ -2323,78 +2590,7 @@ PARSER_ASSERTED_SYNTAX_FIXES: dict[str, dict[str, object]] = {
             "PTESTR <ea>",
             "PTESTW <ea>",
         ],
-        "forms": [
-            {
-                "syntax": "PTESTR FC,<ea>,# <level>",
-                "encoding_group_index": 0,
-                "encoding_group_span": 2,
-                "processor_set": ["68030"],
-                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}],
-            },
-            {
-                "syntax": "PTESTW FC,<ea>,# <level>",
-                "encoding_group_index": 0,
-                "encoding_group_span": 2,
-                "processor_set": ["68030"],
-                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}],
-            },
-            {
-                "syntax": "PTESTR FC,<ea>,# <level>,An",
-                "encoding_group_index": 0,
-                "encoding_group_span": 2,
-                "processor_set": ["68030"],
-                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}, {"type": "an"}],
-            },
-            {
-                "syntax": "PTESTW FC,<ea>,# <level>,An",
-                "encoding_group_index": 0,
-                "encoding_group_span": 2,
-                "processor_set": ["68030"],
-                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}, {"type": "an"}],
-            },
-            {
-                "syntax": "PTESTR FC,<ea>,# <level>",
-                "encoding_group_index": 1,
-                "encoding_group_span": 2,
-                "processor_set": ["68030"],
-                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}],
-            },
-            {
-                "syntax": "PTESTW FC,<ea>,# <level>",
-                "encoding_group_index": 1,
-                "encoding_group_span": 2,
-                "processor_set": ["68030"],
-                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}],
-            },
-            {
-                "syntax": "PTESTR (An)",
-                "encoding_group_index": 2,
-                "encoding_group_span": 1,
-                "processor_set": ["68040"],
-                "operands": [{"type": "ind"}],
-            },
-            {
-                "syntax": "PTESTW (An)",
-                "encoding_group_index": 3,
-                "encoding_group_span": 1,
-                "processor_set": ["68040"],
-                "operands": [{"type": "ind"}],
-            },
-            {
-                "syntax": "PTESTR FC,<ea>,# <level>,An",
-                "encoding_group_index": 4,
-                "encoding_group_span": 2,
-                "processor_set": ["68020", "68030"],
-                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}, {"type": "an"}],
-            },
-            {
-                "syntax": "PTESTW FC,<ea>,# <level>,An",
-                "encoding_group_index": 4,
-                "encoding_group_span": 2,
-                "processor_set": ["68020", "68030"],
-                "operands": [{"type": "ctrl_reg"}, {"type": "ea"}, {"type": "imm"}, {"type": "an"}],
-            },
-        ],
+        "forms": _pmmu_68030_ptest_forms(),
     },
     "CAS CAS2": {
         "syntax": ["CAS Dc,Du,<ea>", "CAS2 Dc1:Dc2,Du1:Du2,(Rn1):(Rn2)"],
@@ -2514,23 +2710,15 @@ PARSER_ASSERTED_FIELD_VALUE_FIXES: dict[str, list[JsonDict]] = {
         {"field": "MODE", "form_field_value": {0: 1, 1: 4, 2: 7}},
         {"field": "REGISTER", "form_field_value": {0: 0}},
     ],
-    "PFLUSH": [
-        {"field": "MODE", "occurrence": 0, "form_field_value": {0: 0, 1: 0}},
-        {"field": "REGISTER", "occurrence": 0, "form_field_value": {0: 0, 1: 0, 3: 0, 5: 0}},
-        {"field": "MODE", "occurrence": 1, "form_field_value": {0: 1, 1: 4, 2: 6}},
-        {"field": "OPMODE", "occurrence": 0, "form_field_value": {3: 3, 4: 1, 5: 3, 6: 1}},
-    ],
-    "PLOAD": [{"field": "R/ W", "form_field_value": {0: 1, 1: 0}}],
+    "PFLUSH": _pmmu_68030_pflush_field_values(),
+    "PLOAD": _pmmu_68030_pload_field_values(),
     "PMOVE": [{"field": "R/ W", "form_field_value": {0: 1, 1: 0, 2: 1, 3: 0, 4: 1, 5: 0}}],
     "FSAVE": [{"field": "ID", "form_field_value": {0: 1}}],
     "FRESTORE": [{"field": "ID", "form_field_value": {0: 1}}],
     "cpTRAPcc": [{"field": "OPMODE", "form_field_value": {0: 4, 1: 2, 2: 3}}],
     "PBcc": [{"field": "SIZE", "form_field_value": {0: 0, 1: 1}}],
     "PTRAPcc": [{"field": "OPMODE", "form_field_value": {0: 4, 1: 2, 2: 3}}],
-    "PTEST": [
-        {"field": "R/ W", "form_field_value": {0: 1, 1: 0, 2: 1, 3: 0, 4: 1, 5: 0, 6: 1, 7: 0, 8: 1, 9: 0}},
-        {"field": "A", "form_field_value": {0: 0, 1: 0, 2: 1, 3: 1}},
-    ],
+    "PTEST": _pmmu_68030_ptest_field_values(),
     "ASL, ASR": [{"field": "i/r", "form_field_value": {0: 1, 1: 0}}],
     "LSL, LSR": [{"field": "i/r", "form_field_value": {0: 1, 1: 0}}],
     "ROL, ROR": [{"field": "i/r", "form_field_value": {0: 1, 1: 0}}],
@@ -2833,6 +3021,7 @@ PARSER_ASSERTED_FIELD_BINDING_FIXES: dict[str, list[JsonDict]] = {
         {"form_index": 2, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
         {"form_index": 2, "field": "MASK", "occurrence": 0, "operand_index": 1, "value_source": "value"},
     ],
+    "PFLUSH": _pmmu_68030_pflush_field_bindings(),
     "cpScc": [
         {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 0, "value_source": "ea_mode"},
         {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "ea_reg"},
@@ -2857,14 +3046,7 @@ PARSER_ASSERTED_FIELD_BINDING_FIXES: dict[str, list[JsonDict]] = {
         {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
         {"form_index": 1, "field": "REGISTER", "occurrence": 1, "operand_index": 0, "value_source": "reg"},
     ],
-    "PLOAD": [
-        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
-        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
-        {"form_index": 0, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
-        {"form_index": 1, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
-        {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
-        {"form_index": 1, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
-    ],
+    "PLOAD": _pmmu_68030_pload_field_bindings(),
     "PMOVE": [
         {"form_index": 0, "field": "P-REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "value"},
         {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
@@ -2883,44 +3065,7 @@ PARSER_ASSERTED_FIELD_BINDING_FIXES: dict[str, list[JsonDict]] = {
         {"form_index": 5, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "ea_reg"},
         {"form_index": 5, "field": "P-REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "value"},
     ],
-    "PTEST": [
-        {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
-        {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
-        {"form_index": 0, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
-        {"form_index": 0, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
-        {"form_index": 1, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
-        {"form_index": 1, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
-        {"form_index": 1, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
-        {"form_index": 1, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
-        {"form_index": 2, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
-        {"form_index": 2, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
-        {"form_index": 2, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
-        {"form_index": 2, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
-        {"form_index": 2, "field": "REGISTER", "occurrence": 1, "operand_index": 3, "value_source": "reg"},
-        {"form_index": 3, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
-        {"form_index": 3, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
-        {"form_index": 3, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
-        {"form_index": 3, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
-        {"form_index": 3, "field": "REGISTER", "occurrence": 1, "operand_index": 3, "value_source": "reg"},
-        {"form_index": 4, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
-        {"form_index": 4, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
-        {"form_index": 4, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
-        {"form_index": 5, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
-        {"form_index": 5, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
-        {"form_index": 5, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
-        {"form_index": 6, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
-        {"form_index": 7, "field": "REGISTER", "occurrence": 0, "operand_index": 0, "value_source": "reg"},
-        {"form_index": 8, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
-        {"form_index": 8, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
-        {"form_index": 8, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
-        {"form_index": 8, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
-        {"form_index": 8, "field": "A-REGISTER", "occurrence": 0, "operand_index": 3, "value_source": "reg"},
-        {"form_index": 9, "field": "MODE", "occurrence": 0, "operand_index": 1, "value_source": "ea_mode"},
-        {"form_index": 9, "field": "REGISTER", "occurrence": 0, "operand_index": 1, "value_source": "ea_reg"},
-        {"form_index": 9, "field": "FC", "occurrence": 0, "operand_index": 0, "value_source": "value"},
-        {"form_index": 9, "field": "LEVEL", "occurrence": 0, "operand_index": 2, "value_source": "value"},
-        {"form_index": 9, "field": "A-REGISTER", "occurrence": 0, "operand_index": 3, "value_source": "reg"},
-    ],
+    "PTEST": _pmmu_68030_ptest_field_bindings(),
     "CAS CAS2": [
         {"form_index": 0, "field": "MODE", "occurrence": 0, "operand_index": 2, "value_source": "ea_mode"},
         {"form_index": 0, "field": "REGISTER", "occurrence": 0, "operand_index": 2, "value_source": "ea_reg"},
@@ -3145,6 +3290,92 @@ def apply_parser_asserted_encoding_fixes(kb_data: list[JsonDict]) -> None:
         fix = PARSER_ASSERTED_ENCODING_FIXES.get(str(inst.get("mnemonic")))
         if fix is not None:
             inst["encodings"] = deepcopy(fix)
+
+
+def _replace_encoding_field(
+    fields: list[JsonDict],
+    *,
+    name: str,
+    bit_hi: int,
+    bit_lo: int,
+    replacements: list[JsonDict],
+) -> None:
+    for index, field in enumerate(fields):
+        if (
+            str(field.get("name")) == name
+            and int(field.get("bit_hi", -1)) == bit_hi
+            and int(field.get("bit_lo", -1)) == bit_lo
+        ):
+            fields[index : index + 1] = deepcopy(replacements)
+            return
+    raise RuntimeError(f"missing encoding field {name} {bit_hi}:{bit_lo}")
+
+
+def apply_parser_asserted_pmmu_fc_encoding_fixes(kb_data: list[JsonDict]) -> None:
+    """Split 68030 PMMU function-code selector fields.
+
+    Track B parser-assertion: the 68030 PMMU FC operand used by PFLUSH
+    (PRM p486), PLOAD (PRM p497), and PTEST (PRM p517) is documented as one
+    assembler operand that may be SFC/DFC, Dn, or an immediate value. The PDF
+    diagrams label the packed bits as `FC`, but the prose defines the three
+    operand classes; the current table extractor therefore collapses the class
+    selector and value bits into one opaque field. We assert the standard split:
+      selector 00 -> SFC/DFC value bits
+      selector 01 -> Dn value bits
+      selector 10 -> immediate value bits
+    This keeps the generated assembler/disassembler driven by JSON fields
+    instead of downstream PMMU opcode special cases.
+    """
+    for inst in kb_data:
+        mnemonic = str(inst.get("mnemonic"))
+        if mnemonic not in {"PFLUSH", "PLOAD", "PTEST"}:
+            continue
+        encodings = inst.get("encodings")
+        if not isinstance(encodings, list):
+            continue
+        if mnemonic == "PLOAD":
+            fields = cast(list[JsonDict], encodings[1]["fields"])
+            _replace_encoding_field(
+                fields,
+                name="FC",
+                bit_hi=4,
+                bit_lo=0,
+                replacements=[
+                    {"name": "FC-MODE", "bit_hi": 4, "bit_lo": 3, "width": 2},
+                    {"name": "FC", "bit_hi": 2, "bit_lo": 0, "width": 3},
+                ],
+            )
+        elif mnemonic == "PFLUSH":
+            fields = cast(list[JsonDict], encodings[1]["fields"])
+            _replace_encoding_field(
+                fields,
+                name="MASK",
+                bit_hi=7,
+                bit_lo=4,
+                replacements=[{"name": "MASK", "bit_hi": 7, "bit_lo": 5, "width": 3}],
+            )
+            _replace_encoding_field(
+                fields,
+                name="FC",
+                bit_hi=3,
+                bit_lo=0,
+                replacements=[
+                    {"name": "FC-MODE", "bit_hi": 4, "bit_lo": 3, "width": 2},
+                    {"name": "FC", "bit_hi": 2, "bit_lo": 0, "width": 3},
+                ],
+            )
+        elif mnemonic == "PTEST":
+            fields = cast(list[JsonDict], encodings[1]["fields"])
+            _replace_encoding_field(
+                fields,
+                name="REGISTER",
+                bit_hi=7,
+                bit_lo=3,
+                replacements=[
+                    {"name": "REGISTER", "bit_hi": 7, "bit_lo": 5, "width": 3},
+                    {"name": "FC-MODE", "bit_hi": 4, "bit_lo": 3, "width": 2},
+                ],
+            )
 
 
 def apply_parser_asserted_field_binding_fixes(kb_data: list[JsonDict]) -> None:
@@ -6327,6 +6558,13 @@ def _execution_semantic_op(inst: JsonDict) -> str | None:
         return "pflushr"
     if mnemonic == "PLOAD":
         return "pload"
+    # Parser assertion: PRM supervisor instruction pages for cpSAVE/cpRESTORE
+    # describe the same state-frame memory write/read shape as FSAVE/FRESTORE
+    # and PSAVE/PRESTORE, but with a generic coprocessor ID.
+    if mnemonic == "cpSAVE":
+        return "cpsave"
+    if mnemonic == "cpRESTORE":
+        return "cprestore"
     if mnemonic == "FSAVE":
         return "fsave"
     if mnemonic == "FRESTORE":
@@ -6954,6 +7192,117 @@ def _merge_execution_form_overrides(execution: JsonDict, form_index: str, overri
     form_overrides[form_index] = merged
 
 
+def _execution_operand_for_form_type(
+    operand_index: int,
+    operand_type: str,
+    *,
+    role: str,
+    usage: str,
+) -> JsonDict:
+    access_kind = _operand_access_kind(operand_type, usage)
+    result_kind = "address" if usage == "address" else (
+        "control_target" if access_kind == "branch_target" else "scalar"
+    )
+    ea_address_formula = _ea_address_formula_for_operand_type(operand_type)
+    if ea_address_formula is None and usage == "address" and operand_type == "ea":
+        ea_address_formula = "decoded_ea"
+    return {
+        "index": operand_index,
+        "role": role,
+        "usage": usage,
+        "expected_kind": _expected_operand_kind(operand_type),
+        "ea_address_formula": ea_address_formula,
+        "ea_register_update": _ea_register_update_for_operand_type(operand_type),
+        "ea_index_extension_format": _ea_index_extension_format_for_operand_type(operand_type),
+        "ea_index_register_class": _ea_index_register_class_for_operand_type(operand_type),
+        "ea_index_value_width_source": _ea_index_value_width_source_for_operand_type(operand_type),
+        "ea_index_scale_source": _ea_index_scale_source_for_operand_type(operand_type),
+        "ea_index_sign_source": _ea_index_sign_source_for_operand_type(operand_type),
+        "ea_displacement_source": _ea_displacement_source_for_operand_type(operand_type),
+        "ea_address_shape": _ea_address_shape_for_operand_type(operand_type),
+        "ea_base_kind": _ea_base_kind_for_operand_type(operand_type),
+        "ea_uses_displacement": _ea_uses_displacement_for_operand_type(operand_type),
+        "ea_uses_index": _ea_uses_index_for_operand_type(operand_type),
+        "ea_pc_base_bias_bytes": _ea_pc_base_bias_bytes_for_operand_type(operand_type),
+        "ea_address_literal_width_bytes": _ea_address_literal_width_bytes_for_operand_type(operand_type),
+        "access": {
+            "kind": access_kind,
+            "width": None,
+            "width_source": None,
+            "result_kind": result_kind,
+        },
+    }
+
+
+def _pmmu_form_execution_operands(mnemonic: str, form: JsonDict) -> list[JsonDict]:
+    operand_types = [
+        str(operand.get("type", "unknown"))
+        for operand in cast(list[JsonDict], form.get("operands", []))
+    ]
+    if mnemonic == "PLOAD":
+        if len(operand_types) != 2:
+            return []
+        return [
+            _execution_operand_for_form_type(0, operand_types[0], role="source", usage="value"),
+            _execution_operand_for_form_type(1, operand_types[1], role="source", usage="address"),
+        ]
+    if mnemonic in ("PFLUSH", "PFLUSH PFLUSHA"):
+        if not operand_types:
+            return []
+        if len(operand_types) == 1:
+            return [_execution_operand_for_form_type(0, operand_types[0], role="source", usage="address")]
+        if len(operand_types) == 2:
+            return [
+                _execution_operand_for_form_type(0, operand_types[0], role="source", usage="value"),
+                _execution_operand_for_form_type(1, operand_types[1], role="source", usage="value"),
+            ]
+        if len(operand_types) == 3:
+            return [
+                _execution_operand_for_form_type(0, operand_types[0], role="source", usage="value"),
+                _execution_operand_for_form_type(1, operand_types[1], role="source", usage="value"),
+                _execution_operand_for_form_type(2, operand_types[2], role="source", usage="address"),
+            ]
+    if mnemonic == "PTEST":
+        if len(operand_types) == 1:
+            return [_execution_operand_for_form_type(0, operand_types[0], role="source", usage="address")]
+        if len(operand_types) == 3:
+            return [
+                _execution_operand_for_form_type(0, operand_types[0], role="source", usage="value"),
+                _execution_operand_for_form_type(1, operand_types[1], role="source", usage="address"),
+                _execution_operand_for_form_type(2, operand_types[2], role="source", usage="value"),
+            ]
+        if len(operand_types) == 4:
+            return [
+                _execution_operand_for_form_type(0, operand_types[0], role="source", usage="value"),
+                _execution_operand_for_form_type(1, operand_types[1], role="source", usage="address"),
+                _execution_operand_for_form_type(2, operand_types[2], role="source", usage="value"),
+                _execution_operand_for_form_type(3, operand_types[3], role="dest", usage="write"),
+            ]
+    return []
+
+
+def _replace_pmmu_execution_operands_from_forms(inst: JsonDict, execution: JsonDict) -> None:
+    forms = cast(list[JsonDict], inst.get("forms", []))
+    if not forms:
+        return
+    mnemonic = str(inst.get("mnemonic", ""))
+    # Parser assertion: PRM PMMU pages define FC operands as SFC/DFC, Dn, or
+    # immediate variants (PFLUSH p486, PLOAD p497, PTEST p517). After the PDF
+    # parser expands those forms, execution metadata must follow the expanded
+    # JSON forms instead of the earlier generic FC placeholder.
+    base_operands = _pmmu_form_execution_operands(mnemonic, forms[0])
+    execution["operands"] = base_operands
+    form_overrides: JsonDict = {}
+    for form_index, form in enumerate(forms[1:], start=1):
+        operands = _pmmu_form_execution_operands(mnemonic, form)
+        if operands != base_operands:
+            form_overrides[str(form_index)] = {"operands": operands}
+    if form_overrides:
+        execution["form_overrides"] = form_overrides
+    else:
+        execution.pop("form_overrides", None)
+
+
 def _execution_operand_usage(inst: JsonDict, operand_index: int, operand_type: str) -> str:
     mnemonic = str(inst.get("mnemonic", ""))
     op_type = str(inst.get("operation_type", ""))
@@ -7045,7 +7394,7 @@ def _execution_operand_types(inst: JsonDict) -> list[str]:
         return ["ctrl_reg", "ind"]
     if mnemonic == "PFLUSHR":
         return ["ea"]
-    if mnemonic in {"FSAVE", "FRESTORE", "PSAVE", "PRESTORE"}:
+    if mnemonic in {"FSAVE", "FRESTORE", "PSAVE", "PRESTORE", "cpSAVE", "cpRESTORE"}:
         return ["ea"]
     if mnemonic == "CALLM":
         return ["imm", "ea"]
@@ -7920,7 +8269,7 @@ def _build_execution_metadata(inst: JsonDict) -> JsonDict | None:
                 },
             },
         ]
-    if mnemonic in ("FSAVE", "PSAVE"):
+    if mnemonic in ("FSAVE", "PSAVE", "cpSAVE"):
         execution["operands"] = [
             {
                 "index": 0,
@@ -7935,7 +8284,7 @@ def _build_execution_metadata(inst: JsonDict) -> JsonDict | None:
                 },
             },
         ]
-    if mnemonic in ("FRESTORE", "PRESTORE"):
+    if mnemonic in ("FRESTORE", "PRESTORE", "cpRESTORE"):
         execution["operands"] = [
             {
                 "index": 0,
@@ -8299,6 +8648,8 @@ def _build_execution_metadata(inst: JsonDict) -> JsonDict | None:
                 },
             ],
         })
+    if mnemonic in ("PLOAD", "PFLUSH", "PFLUSH PFLUSHA", "PTEST"):
+        _replace_pmmu_execution_operands_from_forms(inst, execution)
     if mnemonic in ("ABCD", "SBCD", "ADDX", "SUBX"):
         _merge_execution_form_overrides(execution, "1", {
             "operands": [
@@ -9282,6 +9633,7 @@ def main() -> None:
     apply_syntax_forms(kb_data)
     apply_parser_asserted_syntax_fixes(kb_data)
     apply_parser_asserted_encoding_fixes(kb_data)
+    apply_parser_asserted_pmmu_fc_encoding_fixes(kb_data)
     apply_parser_asserted_field_value_fixes(kb_data)
 
     # Phase 4: Derive constraints

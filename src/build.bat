@@ -46,6 +46,10 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_disassembler.c ^
     src\m68k_disassembler_lib.c ^
     src\m68k_simulator.c ^
+    src\m68k_decode_ir.c ^
+    src\m68k_fact_ir.c ^
+    src\m68k_render_ir.c ^
+    src\m68k_analysis_facts_v2.c ^
     src\m68k_ir.c ^
     src\m68k_ir_codec.c ^
     src\m68k_ir_parse.c ^
@@ -74,6 +78,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_symbolic_parse.c ^
     src\m68k_source_text_util.c ^
     src\platform_common.c ^
+    src\platform_facts_v2.c ^
     src\platform_name_table.c ^
     src\platform_binary_io.c ^
     src\platform_disk_cli.c ^
@@ -85,7 +90,6 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\platform_file_atari_st.c ^
     src\platform_file_platform.c ^
     src\platform_file_json.c ^
-    src\platform_file_conversion.c ^
     src\json_builder.c ^
     src\m68k_object.c ^
     src\platform_amiga_hunk.c ^
@@ -113,6 +117,10 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\m68k_corpus_support.obj ^
     %OUTDIR%\m68k_corpus_spec.obj ^
     %OUTDIR%\m68k_instruction_spec.obj ^
+    %OUTDIR%\m68k_decode_ir.obj ^
+    %OUTDIR%\m68k_fact_ir.obj ^
+    %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_plain_parse.obj ^
     %OUTDIR%\m68k_simple_source.obj ^
     %OUTDIR%\m68k_ir.obj ^
@@ -137,6 +145,7 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\platform_facts_v2.obj ^
     %OUTDIR%\platform_name_table.obj ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
@@ -160,16 +169,32 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
     %OUTDIR%\m68k_instruction_spec.obj ^
+    %OUTDIR%\m68k_disassembler.obj ^
+    %OUTDIR%\m68k_simulator.obj ^
+    %OUTDIR%\m68k_decode_ir.obj ^
+    %OUTDIR%\m68k_fact_ir.obj ^
+    %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_plain_parse.obj ^
     %OUTDIR%\m68k_ir.obj ^
+    %OUTDIR%\m68k_ir_codec.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
+    %OUTDIR%\m68k_source_model.obj ^
+    %OUTDIR%\m68k_source_constant_expr.obj ^
+    %OUTDIR%\m68k_source_expr.obj ^
     %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\m68k_object.obj ^
+    %OUTDIR%\platform_amiga_hunk.obj ^
+    %OUTDIR%\platform_atari_st.obj ^
+    %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\amiga_os_runtime.obj ^
     %OUTDIR%\atari_st_os_runtime.obj ^
+    %OUTDIR%\amiga_hunk_file_runtime.obj ^
+    %OUTDIR%\atari_st_prg_file_runtime.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\platform_facts_v2.obj ^
     %OUTDIR%\platform_name_table.obj || exit /b %errorlevel%
 
 link %LDFLAGS% /DLL /OUT:%ASM_DLL% /EXPORT:m68k_source_ir_parse_file /EXPORT:m68k_source_ir_render_with_policy /EXPORT:m68k_source_ir_free /EXPORT:m68k_free_text ^
@@ -241,16 +266,21 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\platform_disk_cli.obj ^
     %OUTDIR%\platform_disk_lib.obj ^
     %OUTDIR%\platform_file_lib.obj ^
+    %OUTDIR%\m68k_assembler_app.obj ^
     %OUTDIR%\platform_file_core.obj ^
     %OUTDIR%\platform_file_amiga.obj ^
     %OUTDIR%\platform_file_atari_st.obj ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
-    %OUTDIR%\platform_file_conversion.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\platform_facts_v2.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
+    %OUTDIR%\m68k_decode_ir.obj ^
+    %OUTDIR%\m68k_fact_ir.obj ^
+    %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_ir.obj ^
     %OUTDIR%\m68k_ir_codec.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
@@ -300,16 +330,21 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
 link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\platform_disk_lib.obj ^
     %OUTDIR%\platform_file_lib.obj ^
+    %OUTDIR%\m68k_assembler_app.obj ^
     %OUTDIR%\platform_file_core.obj ^
     %OUTDIR%\platform_file_amiga.obj ^
     %OUTDIR%\platform_file_atari_st.obj ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
-    %OUTDIR%\platform_file_conversion.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\platform_facts_v2.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
+    %OUTDIR%\m68k_decode_ir.obj ^
+    %OUTDIR%\m68k_fact_ir.obj ^
+    %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_ir.obj ^
     %OUTDIR%\m68k_ir_codec.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
@@ -359,12 +394,12 @@ link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
 link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\platform_file_cli.obj ^
     %OUTDIR%\platform_file_lib.obj ^
+    %OUTDIR%\m68k_assembler_app.obj ^
     %OUTDIR%\platform_file_core.obj ^
     %OUTDIR%\platform_file_amiga.obj ^
     %OUTDIR%\platform_file_atari_st.obj ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
-    %OUTDIR%\platform_file_conversion.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\m68k_source_ir_api_dll.obj ^
     %OUTDIR%\m68k_assembler_api.obj ^
@@ -395,9 +430,14 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\platform_facts_v2.obj ^
     %OUTDIR%\platform_name_table.obj ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
+    %OUTDIR%\m68k_decode_ir.obj ^
+    %OUTDIR%\m68k_fact_ir.obj ^
+    %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
     %OUTDIR%\m68k_simulator.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
@@ -410,14 +450,14 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
 
-link %LDFLAGS% /DLL /OUT:%FILE_DLL% /EXPORT:platform_file_analyze_path_json ^
+link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
     %OUTDIR%\platform_file_lib.obj ^
+    %OUTDIR%\m68k_assembler_app.obj ^
     %OUTDIR%\platform_file_core.obj ^
     %OUTDIR%\platform_file_amiga.obj ^
     %OUTDIR%\platform_file_atari_st.obj ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
-    %OUTDIR%\platform_file_conversion.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\m68k_source_ir_api_dll.obj ^
     %OUTDIR%\m68k_assembler_api.obj ^
@@ -448,9 +488,14 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% /EXPORT:platform_file_analyze_path_json ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\platform_common.obj ^
+    %OUTDIR%\platform_facts_v2.obj ^
     %OUTDIR%\platform_name_table.obj ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
+    %OUTDIR%\m68k_decode_ir.obj ^
+    %OUTDIR%\m68k_fact_ir.obj ^
+    %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
     %OUTDIR%\m68k_simulator.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^

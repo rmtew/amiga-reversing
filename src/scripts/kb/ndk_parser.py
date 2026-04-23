@@ -677,49 +677,6 @@ def parse_autodoc(path: str) -> dict[str, JsonDict]:
     return entries
 
 
-def _split_autodoc_input_sections(inputs_text: str) -> dict[str, str]:
-    sections: dict[str, list[str]] = {}
-    current_name = None
-    current_lines: list[str] = []
-    for raw_line in inputs_text.splitlines():
-        line = raw_line.rstrip()
-        match = None
-        if raw_line[:1] not in (" ", "\t"):
-            match = re.match(r"^([A-Za-z_]\w*)\s+-\s*(.*)$", line)
-        if match:
-            if current_name is not None:
-                sections[current_name] = current_lines
-            current_name = match.group(1)
-            current_lines = [match.group(2).strip()]
-            continue
-        if current_name is None:
-            continue
-        current_lines.append(line.strip())
-    if current_name is not None:
-        sections[current_name] = current_lines
-    return {
-        name: "\n".join(line for line in lines if line).strip()
-        for name, lines in sections.items()
-    }
-
-
-def _api_input_value_binding(
-    library: str,
-    function: str,
-    input_name: str,
-    domain: str,
-    *,
-    available_since: str = "1.0",
-) -> JsonDict:
-    return {
-        "library": library,
-        "function": function,
-        "input": input_name,
-        "domain": domain,
-        "available_since": available_since,
-    }
-
-
 def _struct_field_value_binding(
     owner_struct: str,
     field_name: str,
@@ -1866,6 +1823,7 @@ def _canonical_include_relpath_from_source(include_dir: str, source_path: str) -
 def collect_raw_constants_from_include_dir(
     include_dir: str,
     type_sizes: dict[str, int],
+    constant_source_file_sets: dict[str, set[str]] | None = None,
 ) -> tuple[dict[str, object], dict[str, str], list[str]]:
     raw_constants: dict[str, object] = {}
     constant_source_files: dict[str, str] = {}
@@ -1883,6 +1841,12 @@ def collect_raw_constants_from_include_dir(
     type_alt = "|".join(re.escape(t) for t in sized_types)
     sim_type_re = re.compile(rf'\s+({type_alt})\s+(\w+)') if sized_types else None
 
+    def record_constant(name: str, raw: object, source_file: str) -> None:
+        raw_constants[name] = raw
+        constant_source_files[name] = source_file
+        if constant_source_file_sets is not None:
+            constant_source_file_sets.setdefault(name, set()).add(source_file)
+
     for pass_num in range(2):
         for subdir in include_subdirs:
             subdir_path = os.path.join(include_dir, subdir)
@@ -1897,22 +1861,31 @@ def collect_raw_constants_from_include_dir(
                 cmd_count: int | None = None
                 lib_count: int | None = None
                 in_struct = False
+                in_macro = False
                 with open(fpath, encoding="utf-8", errors="replace") as f:
                     for line in f:
                         line = line.rstrip()
+                        stripped_upper = line.strip().upper()
+
+                        if in_macro:
+                            if stripped_upper == "ENDM":
+                                in_macro = False
+                            continue
+
+                        if re.match(r'^\s*\w+\s+MACRO\b', line, re.IGNORECASE):
+                            in_macro = True
+                            continue
 
                         cm = re.match(r'^(\w+)\s+[Ee][Qq][Uu]\s+(.+?)(?:\s+[;*].*)?$', line)
                         if cm:
                             name = cm.group(1)
-                            raw_constants[name] = cm.group(2).strip()
-                            constant_source_files[name] = fpath
+                            record_constant(name, cm.group(2).strip(), fpath)
                             continue
 
                         cm = re.match(r'^(\w+)\s+SET\s+(.+?)(?:\s+[;*].*)?$', line)
                         if cm and not cm.group(1).endswith("_I") and cm.group(1) not in ("SOFFSET", "EOFFSET"):
                             name = cm.group(1)
-                            raw_constants[name] = cm.group(2).strip()
-                            constant_source_files[name] = fpath
+                            record_constant(name, cm.group(2).strip(), fpath)
                             continue
 
                         bm = re.match(r'\s+BITDEF\s+(\w+),(\w+),(\d+)', line)
@@ -1922,10 +1895,8 @@ def collect_raw_constants_from_include_dir(
                             bitnum = bm.group(3)
                             bit_name = f"{prefix}B_{name}"
                             flag_name = f"{prefix}F_{name}"
-                            raw_constants[bit_name] = bitnum
-                            raw_constants[flag_name] = f"(1<<{bitnum})"
-                            constant_source_files[bit_name] = fpath
-                            constant_source_files[flag_name] = fpath
+                            record_constant(bit_name, bitnum, fpath)
+                            record_constant(flag_name, f"(1<<{bitnum})", fpath)
                             continue
 
                         dm = re.match(r'\s+DEVINIT(?:\s+(\S+))?\s*$', line)
@@ -1939,8 +1910,7 @@ def collect_raw_constants_from_include_dir(
                             if cmd_count is None:
                                 continue
                             name = dm.group(1)
-                            raw_constants[name] = str(cmd_count)
-                            constant_source_files[name] = fpath
+                            record_constant(name, str(cmd_count), fpath)
                             cmd_count += 1
                             continue
 
@@ -1955,10 +1925,20 @@ def collect_raw_constants_from_include_dir(
                             if lib_count is None:
                                 continue
                             name = lm.group(1)
-                            raw_constants[name] = str(lib_count)
-                            constant_source_files[name] = fpath
+                            record_constant(name, str(lib_count), fpath)
                             slot_size = resolve_constant_value("LIB_VECTSIZE", raw_constants)
                             lib_count -= slot_size if slot_size is not None else 6
+                            continue
+
+                        lm = re.match(r'\s+LIBENT\s+(?!MACRO\b)(\w+)', line)
+                        if lm:
+                            lvo_value = resolve_constant_value("count", raw_constants)
+                            if lvo_value is None:
+                                continue
+                            name = f"_LVO{lm.group(1)}"
+                            record_constant(name, str(lvo_value), fpath)
+                            slot_size = resolve_constant_value("vsize", raw_constants)
+                            record_constant("count", str(lvo_value - (slot_size if slot_size is not None else 6)), fpath)
                             continue
 
                         enm = re.match(r'\s+ENUM(?:\s+(\S+))?\s*$', line)
@@ -1977,8 +1957,7 @@ def collect_raw_constants_from_include_dir(
                         em = re.match(r'\s+EITEM\s+(\w+)', line)
                         if em:
                             name = em.group(1)
-                            raw_constants[name] = str(eoffset)
-                            constant_source_files[name] = fpath
+                            record_constant(name, str(eoffset), fpath)
                             eoffset += 1
                             continue
 
@@ -1986,8 +1965,7 @@ def collect_raw_constants_from_include_dir(
                         if sm:
                             struct_name = sm.group(1)
                             init_str = sm.group(2)
-                            raw_constants[struct_name] = "0"
-                            constant_source_files[struct_name] = fpath
+                            record_constant(struct_name, "0", fpath)
                             try:
                                 soffset = int(init_str)
                             except ValueError:
@@ -2005,16 +1983,14 @@ def collect_raw_constants_from_include_dir(
                             tm = sim_type_re.match(line)
                             if tm:
                                 name = tm.group(2)
-                                raw_constants[name] = str(soffset)
-                                constant_source_files[name] = fpath
+                                record_constant(name, str(soffset), fpath)
                                 soffset += type_sizes[tm.group(1)]
                                 continue
 
                             ssm = re.match(r'\s+STRUCT\s+(\w+),(\w+)', line)
                             if ssm:
                                 name = ssm.group(1)
-                                raw_constants[name] = str(soffset)
-                                constant_source_files[name] = fpath
+                                record_constant(name, str(soffset), fpath)
                                 size_str = ssm.group(2)
                                 try:
                                     soffset += int(size_str)
@@ -2031,8 +2007,7 @@ def collect_raw_constants_from_include_dir(
                             lm = re.match(r'\s+LABEL\s+(\w+)', line)
                             if lm:
                                 name = lm.group(1)
-                                raw_constants[name] = str(soffset)
-                                constant_source_files[name] = fpath
+                                record_constant(name, str(soffset), fpath)
                                 continue
 
                             if re.match(r'\s+ALIGNWORD\b', line):
@@ -2044,10 +2019,6 @@ def collect_raw_constants_from_include_dir(
                                 continue
 
     return raw_constants, constant_source_files, parsed_include_paths
-
-
-def _field_key(struct_name: str, field_name: str) -> str:
-    return f"{struct_name}.{field_name}"
 
 
 def _include_source_from_path(path: str) -> str:

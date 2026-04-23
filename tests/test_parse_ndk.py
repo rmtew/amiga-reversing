@@ -5,6 +5,8 @@ from typing import cast
 from src.scripts.generate_amiga_os_runtime import (
     build_api_input_value_domain_map,
     build_merged_value_domains,
+    load_assembler_include_symbols,
+    symbol_include_rows,
 )
 from src.scripts.kb.ndk_parser import (
     _map_clib_args_to_inputs,
@@ -67,6 +69,61 @@ def load_canonical_os_kb_includes_parsed() -> dict[str, object]:
 
 def load_canonical_os_kb_other_parsed() -> dict[str, object]:
     return load_json_payload(AMIGA_OS_REFERENCE_OTHER_PARSED_JSON)
+
+
+def test_symbol_include_rows_require_exact_lvo_include_symbol() -> None:
+    includes = {
+        "libraries": {
+            "exec.library": {
+                "owner": {
+                    "assembler_include_path": "exec/exec_lib.i",
+                },
+            },
+        },
+        "structs": {},
+    }
+    rows = [
+        ("exec.library", "SysBase", -36, "execPrivate1", {}),
+        ("exec.library", "SysBase", -30, "Supervisor", {}),
+    ]
+
+    result = symbol_include_rows(
+        includes,
+        rows,
+        [],
+        [],
+        {"exec/exec_lib.i": {"_LVOSupervisor"}},
+    )
+
+    assert ("_LVOSupervisor", "exec/exec_lib.i") in result
+    assert ("_LVOexecPrivate1", "exec/exec_lib.i") not in result
+
+
+def test_load_assembler_include_symbols_expands_libent_lvo_symbols(tmp_path: Path) -> None:
+    dos_dir = tmp_path / "dos"
+    libraries_dir = tmp_path / "libraries"
+    dos_dir.mkdir()
+    libraries_dir.mkdir()
+    (dos_dir / "dos_lib.i").write_text(
+        "\n".join([
+            "vsize EQU 6",
+            "count SET -30",
+            "LIBENT MACRO",
+            "_LVO\\1 EQU count",
+            " ENDM",
+            "   LIBENT   Open",
+            "   LIBENT   Output",
+            "",
+        ]),
+        encoding="ascii",
+    )
+    (libraries_dir / "dos_lib.i").write_text("_LVOOutput EQU -60\n", encoding="ascii")
+
+    result = load_assembler_include_symbols(tmp_path)
+
+    assert {"_LVOOpen", "_LVOOutput"}.issubset(result["dos/dos_lib.i"])
+    assert "_LVOOutput" in result["libraries/dos_lib.i"]
+    assert "_LVOMACRO" not in result["dos/dos_lib.i"]
 
 
 def test_parse_clib_prototypes_preserves_function_pointer_args(

@@ -15,6 +15,21 @@ static int instruction_uses_movem_predecrement_mask_ir_local(const M68kInstructi
     return instruction->operands[1].value.ea_mode == 4U;
 }
 
+static int normalize_symbolic_zero_address_displacements_local(M68kInstructionIR *instruction) {
+    size_t operand_index;
+    int changed = 0;
+    if (instruction == NULL) return 0;
+    for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
+        M68kOperandIR *operand = &instruction->operands[operand_index];
+        if (!operand->symbol_ref.has_name || operand->symbol_ref.has_section) continue;
+        if (operand->value.kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 5U) continue;
+        if (operand->value.value != 0U) continue;
+        operand->value.ea_mode = 2U;
+        changed = 1;
+    }
+    return changed;
+}
+
 M68kSourceResolvedInstruction m68k_source_resolve_instruction_operands(const M68kSourceInstructionResolveContext *context,
     size_t stmt_section_index, size_t line_number, char requested_size_suffix, uint32_t instruction_offset,
     int allow_undefined, const M68kInstructionIR *parsed_instruction, M68kDiagSink diagnostics) {
@@ -60,6 +75,18 @@ M68kSourceResolvedInstruction m68k_source_resolve_instruction_operands(const M68
         instruction_offset, line_number, allow_undefined, diagnostics);
     if (!symbol_result.ok) return result;
     result.instruction = symbol_result.instruction;
+    if (normalize_symbolic_zero_address_displacements_local(&result.instruction)) {
+        for (operand_index = 0; operand_index < result.instruction.operand_count && operand_index < 4U; ++operand_index) {
+            form_operands[operand_index] = result.instruction.operands[operand_index].value;
+        }
+        asm_form_index = m68k_asm_form_index_for_operands_id(result.instruction.mnemonic_id, form_operands,
+            result.instruction.operand_count, requested_size_suffix, result.instruction.target_cpu);
+        if (g_m68k_asm_forms[asm_form_index].mnemonic_id == M68K_ASM_MNEMONIC_NONE) {
+            m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SOURCE_FAILED,
+                "failed resolving zero displacement instruction form");
+            return result;
+        }
+    }
     if (context->enable_vasm_compat_rewrites) {
         m68k_instruction_ir_to_spec(&result.instruction, &temp_spec);
         if (m68k_try_rewrite_local_call_to_branch(&rewrite_context, stmt_section_index, requested_size_suffix,

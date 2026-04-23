@@ -5,6 +5,7 @@ from typing import Any, NotRequired, TypedDict, cast
 
 from amiga_reversing.disasm.listing_types import (
     AddressRowContext,
+    AppSlotRef,
     BlockRowContext,
     HeaderRowContext,
     ListingRow,
@@ -30,6 +31,14 @@ class SerializedOperand(TypedDict):
     displacement: int | None
     segment_addr: int | None
     metadata: dict[str, object]
+
+
+class SerializedAppSlotRef(TypedDict):
+    symbol: str
+    displacement: int
+    base_register: str
+    operand_index: int
+    access: str
 
 
 class SerializedApiInput(TypedDict):
@@ -63,6 +72,7 @@ class SerializedRow(TypedDict):
     label: str | None
     opcode_or_directive: str | None
     operand_parts: list[SerializedOperand]
+    app_slot_refs: list[SerializedAppSlotRef]
     operand_text: str
     comment_parts: list[str]
     comment_text: str
@@ -71,6 +81,7 @@ class SerializedRow(TypedDict):
     entity: dict[str, object] | None
     view_annotations: list[str]
     api_call: SerializedApiCall | None
+    repro_issues: NotRequired[list[dict[str, object]]]
 
 
 class SessionHunkMetadata(TypedDict):
@@ -136,6 +147,16 @@ def serialize_operand(operand: SemanticOperand) -> SerializedOperand:
     }
 
 
+def serialize_app_slot_ref(ref: AppSlotRef) -> SerializedAppSlotRef:
+    return {
+        "symbol": ref.symbol,
+        "displacement": ref.displacement,
+        "base_register": ref.base_register,
+        "operand_index": ref.operand_index,
+        "access": ref.access,
+    }
+
+
 def serialize_row(row: ListingRow) -> SerializedRow:
     return {
         "row_id": row.row_id,
@@ -154,6 +175,7 @@ def serialize_row(row: ListingRow) -> SerializedRow:
         "label": row.label,
         "opcode_or_directive": row.opcode_or_directive,
         "operand_parts": [serialize_operand(op) for op in row.operand_parts],
+        "app_slot_refs": [serialize_app_slot_ref(ref) for ref in row.app_slot_refs],
         "operand_text": row.operand_text,
         "comment_parts": list(row.comment_parts),
         "comment_text": row.comment_text,

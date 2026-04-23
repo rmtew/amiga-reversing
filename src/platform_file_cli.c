@@ -5,8 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int write_benchmark_json_file(const char *benchmark_json_path, const char *platform_name, const char *path,
-    const PlatformFileRunMetrics *metrics);
+static int write_benchmark_profile_file(const char *benchmark_json_path, const char *profile_json);
 static int write_text_file(const char *path, const char *text);
 
 static int inspect_file_to_stdout(const char *platform_name, const char *path) {
@@ -20,9 +19,9 @@ static int inspect_file_to_stdout(const char *platform_name, const char *path) {
   return 0;
 }
 
-static int analyze_file_to_stdout(const char *platform_name, const char *path,
+static int facts_v2_analysis_file_to_stdout(const char *platform_name, const char *path,
     const M68kAnalysisPolicy *analysis_policy) {
-  PlatformFileTextResult result = platform_file_analyze_path_json(platform_name, path, analysis_policy);
+  PlatformFileTextResult result = platform_file_facts_v2_analysis_path_json(platform_name, path, analysis_policy);
   if (m68k_diag_has_errors(&result.diagnostics)) {
     fprintf(stderr, "%s\n", m68k_diag_first_message(&result.diagnostics));
     return 1;
@@ -32,9 +31,9 @@ static int analyze_file_to_stdout(const char *platform_name, const char *path,
   return 0;
 }
 
-static int analyze_raw_to_stdout(const char *platform_name, const char *path, uint32_t entry_offset,
+static int facts_v2_analysis_raw_to_stdout(const char *platform_name, const char *path, uint32_t entry_offset,
     const M68kAnalysisPolicy *analysis_policy) {
-  PlatformFileTextResult result = platform_file_analyze_raw_path_json(platform_name, path, entry_offset,
+  PlatformFileTextResult result = platform_file_facts_v2_analysis_raw_path_json(platform_name, path, entry_offset,
     analysis_policy);
   if (m68k_diag_has_errors(&result.diagnostics)) {
     fprintf(stderr, "%s\n", m68k_diag_first_message(&result.diagnostics));
@@ -134,76 +133,65 @@ static int effective_policy_raw_to_stdout(const char *platform_name, const char 
 }
 
 static int disassemble_file_to_stdout_with_policy(const char *platform_name, const char *path,
-    const M68kRenderPolicy *policy, const M68kAnalysisPolicy *analysis_policy, const char *benchmark_json_path,
-    const char *also_syntax, const char *also_output_path) {
-  PlatformFileRunResult result = platform_file_run_path_with_policy(platform_name, path, policy, analysis_policy);
-  if (m68k_diag_has_errors(&result.diagnostics)) {
-    fprintf(stderr, "%s\n", m68k_diag_first_message(&result.diagnostics));
+    const M68kRenderPolicy *policy, const M68kAnalysisPolicy *analysis_policy, const char *metadata_path,
+    const char *benchmark_json_path, const char *also_syntax, const char *also_output_path) {
+  char *source_text = NULL;
+  char *profile_json = NULL;
+  int result;
+  (void)policy;
+  (void)analysis_policy;
+  (void)also_syntax;
+  result = platform_file_facts_v2_asm_source_path_text_profile_alloc(platform_name, path,
+    metadata_path != NULL ? metadata_path : "", &source_text, &profile_json);
+  if (result != 0) {
+    fprintf(stderr, "%s\n", source_text != NULL ? source_text : "facts_v2 source render failed");
+    platform_file_free_text(source_text);
+    platform_file_free_text(profile_json);
     return 1;
   }
-  if (write_benchmark_json_file(benchmark_json_path, platform_name, path, &result.metrics) != 0) {
-    platform_file_free_text(result.text);
-    platform_file_run_metrics_free(&result.metrics);
-    platform_file_source_ir_free(&result.source_file);
+  if (write_benchmark_profile_file(benchmark_json_path, profile_json) != 0) {
+    platform_file_free_text(source_text);
+    platform_file_free_text(profile_json);
     fprintf(stderr, "failed writing benchmark json: %s\n", benchmark_json_path);
     return 1;
   }
-  if (also_syntax != NULL && also_output_path != NULL) {
-    uint8_t syntax_mode = M68K_IR_SYNTAX_CANONICAL;
-    M68kRenderPolicy also_policy;
-    PlatformFileTextResult also_result;
-    if (!m68k_ir_parse_syntax_mode_name(also_syntax, &syntax_mode)) {
-      platform_file_free_text(result.text);
-      platform_file_run_metrics_free(&result.metrics);
-      platform_file_source_ir_free(&result.source_file);
-      fprintf(stderr, "unknown syntax: %s\n", also_syntax);
-      return 2;
-    }
-    m68k_render_policy_init_for_syntax(&also_policy, syntax_mode);
-    also_result = platform_file_render_ir_with_policy(&result.source_file, &also_policy);
-    if (m68k_diag_has_errors(&also_result.diagnostics)) {
-      platform_file_free_text(result.text);
-      platform_file_run_metrics_free(&result.metrics);
-      platform_file_source_ir_free(&result.source_file);
-      fprintf(stderr, "%s\n", m68k_diag_first_message(&also_result.diagnostics));
-      return 1;
-    }
-    if (write_text_file(also_output_path, also_result.text) != 0) {
-      platform_file_free_text(also_result.text);
-      platform_file_free_text(result.text);
-      platform_file_run_metrics_free(&result.metrics);
-      platform_file_source_ir_free(&result.source_file);
-      fprintf(stderr, "failed writing syntax output: %s\n", also_output_path);
-      return 1;
-    }
-    platform_file_free_text(also_result.text);
+  if (also_output_path != NULL && write_text_file(also_output_path, source_text) != 0) {
+    platform_file_free_text(source_text);
+    platform_file_free_text(profile_json);
+    fprintf(stderr, "failed writing syntax output: %s\n", also_output_path);
+    return 1;
   }
-  puts(result.text);
-  platform_file_free_text(result.text);
-  platform_file_run_metrics_free(&result.metrics);
-  platform_file_source_ir_free(&result.source_file);
+  puts(source_text);
+  platform_file_free_text(source_text);
+  platform_file_free_text(profile_json);
   return 0;
 }
 
 static int disassemble_raw_to_stdout_with_policy(const char *platform_name, const char *path, uint32_t entry_offset,
-    const M68kRenderPolicy *policy, const M68kAnalysisPolicy *analysis_policy, const char *benchmark_json_path) {
-  PlatformFileRunResult result = platform_file_run_raw_path_with_policy(platform_name, path, entry_offset, policy,
-    analysis_policy);
-  if (m68k_diag_has_errors(&result.diagnostics)) {
-    fprintf(stderr, "%s\n", m68k_diag_first_message(&result.diagnostics));
+    const M68kRenderPolicy *policy, const M68kAnalysisPolicy *analysis_policy, const char *metadata_path,
+    const char *benchmark_json_path) {
+  char *source_text = NULL;
+  char *profile_json = NULL;
+  int result;
+  (void)policy;
+  (void)analysis_policy;
+  result = platform_file_facts_v2_asm_source_raw_path_text_profile_alloc(platform_name, path, entry_offset,
+    metadata_path != NULL ? metadata_path : "", &source_text, &profile_json);
+  if (result != 0) {
+    fprintf(stderr, "%s\n", source_text != NULL ? source_text : "facts_v2 source render failed");
+    platform_file_free_text(source_text);
+    platform_file_free_text(profile_json);
     return 1;
   }
-  if (write_benchmark_json_file(benchmark_json_path, platform_name, path, &result.metrics) != 0) {
-    platform_file_free_text(result.text);
-    platform_file_run_metrics_free(&result.metrics);
-    platform_file_source_ir_free(&result.source_file);
+  if (write_benchmark_profile_file(benchmark_json_path, profile_json) != 0) {
+    platform_file_free_text(source_text);
+    platform_file_free_text(profile_json);
     fprintf(stderr, "failed writing benchmark json: %s\n", benchmark_json_path);
     return 1;
   }
-  puts(result.text);
-  platform_file_free_text(result.text);
-  platform_file_run_metrics_free(&result.metrics);
-  platform_file_source_ir_free(&result.source_file);
+  puts(source_text);
+  platform_file_free_text(source_text);
+  platform_file_free_text(profile_json);
   return 0;
 }
 
@@ -270,26 +258,18 @@ static int load_analysis_policy_metadata_option(M68kAnalysisPolicy *policy, cons
   return -1;
 }
 
-static int write_benchmark_json_file(const char *benchmark_json_path, const char *platform_name, const char *path,
-    const PlatformFileRunMetrics *metrics) {
+static int write_benchmark_profile_file(const char *benchmark_json_path, const char *profile_json) {
   FILE *out = NULL;
-  PlatformFileTextResult result;
-  if (benchmark_json_path == NULL || metrics == NULL) return 0;
-  result = platform_file_run_metrics_json(platform_name, path, metrics);
-  if (m68k_diag_has_errors(&result.diagnostics))
-    return -1;
+  size_t size;
+  if (benchmark_json_path == NULL || profile_json == NULL) return 0;
   out = fopen(benchmark_json_path, "wb");
-  if (out == NULL) {
-    platform_file_free_text(result.text);
-    return -1;
-  }
-  if (fwrite(result.text, 1, strlen(result.text), out) != strlen(result.text)) {
+  if (out == NULL) return -1;
+  size = strlen(profile_json);
+  if (fwrite(profile_json, 1, size, out) != size) {
     fclose(out);
-    platform_file_free_text(result.text);
     return -1;
   }
-  platform_file_free_text(result.text);
-  fclose(out);
+  if (fclose(out) != 0) return -1;
   return 0;
 }
 
@@ -326,7 +306,7 @@ int main(int argc, char **argv) {
   }
   if (argc == 4 && strcmp(argv[1], "analyze-file") == 0) {
     m68k_analysis_policy_init_default(analysis_policy);
-    return analyze_file_to_stdout(argv[2], argv[3], analysis_policy);
+    return facts_v2_analysis_file_to_stdout(argv[2], argv[3], analysis_policy);
   }
   if (argc >= 4 && strcmp(argv[1], "effective-policy-file") == 0) {
     const char *platform_name = NULL;
@@ -453,23 +433,14 @@ int main(int argc, char **argv) {
       return 2;
     }
     if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
-    return analyze_raw_to_stdout(platform_name, path, entry_offset, analysis_policy);
-  }
-  if (argc == 4 && strcmp(argv[1], "source-map-file") == 0) {
-    PlatformFileTextResult result = platform_file_source_map_path_json(argv[2], argv[3], NULL, NULL);
-    if (m68k_diag_has_errors(&result.diagnostics)) {
-      fprintf(stderr, "%s\n", m68k_diag_first_message(&result.diagnostics));
-      return 1;
-    }
-    puts(result.text);
-    platform_file_free_text(result.text);
-    return 0;
+    return facts_v2_analysis_raw_to_stdout(platform_name, path, entry_offset, analysis_policy);
   }
   if (argc >= 4 && strcmp(argv[1], "listing-rows-file") == 0) {
     const char *platform_name = NULL;
     const char *path = NULL;
     const char *metadata_path = NULL;
-    PlatformFileTextResult result;
+    char *text = NULL;
+    int result;
     m68k_analysis_policy_init_default(analysis_policy);
     for (argi = 2; argi < argc; ++argi) {
       int policy_result = parse_analysis_policy_option(argc, argv, &argi, analysis_policy, &metadata_path);
@@ -491,13 +462,15 @@ int main(int argc, char **argv) {
       return 2;
     }
     if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
-    result = platform_file_listing_rows_path_json(platform_name, path, NULL, analysis_policy);
-    if (m68k_diag_has_errors(&result.diagnostics)) {
-      fprintf(stderr, "%s\n", m68k_diag_first_message(&result.diagnostics));
+    result = platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc(platform_name, path,
+      metadata_path != NULL ? metadata_path : "", "", &text);
+    if (result != 0) {
+      fprintf(stderr, "%s\n", text != NULL ? text : "failed building listing rows");
+      platform_file_free_text(text);
       return 1;
     }
-    puts(result.text);
-    platform_file_free_text(result.text);
+    puts(text);
+    platform_file_free_text(text);
     return 0;
   }
   if (argc >= 5 && strcmp(argv[1], "listing-rows-raw") == 0) {
@@ -506,7 +479,8 @@ int main(int argc, char **argv) {
     const char *metadata_path = NULL;
     uint32_t entry_offset = 0U;
     int have_entry_offset = 0;
-    PlatformFileTextResult result;
+    char *text = NULL;
+    int result;
     m68k_analysis_policy_init_default(analysis_policy);
     for (argi = 2; argi < argc; ++argi) {
       int policy_result = parse_analysis_policy_option(argc, argv, &argi, analysis_policy, &metadata_path);
@@ -536,13 +510,15 @@ int main(int argc, char **argv) {
       return 2;
     }
     if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
-    result = platform_file_listing_rows_raw_path_json(platform_name, path, entry_offset, NULL, analysis_policy);
-    if (m68k_diag_has_errors(&result.diagnostics)) {
-      fprintf(stderr, "%s\n", m68k_diag_first_message(&result.diagnostics));
+    result = platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc(platform_name, path, entry_offset,
+      metadata_path != NULL ? metadata_path : "", "", &text);
+    if (result != 0) {
+      fprintf(stderr, "%s\n", text != NULL ? text : "failed building listing rows");
+      platform_file_free_text(text);
       return 1;
     }
-    puts(result.text);
-    platform_file_free_text(result.text);
+    puts(text);
+    platform_file_free_text(text);
     return 0;
   }
   if (argc >= 4 && strcmp(argv[1], "analyze-file") == 0) {
@@ -570,7 +546,7 @@ int main(int argc, char **argv) {
       return 2;
     }
     if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
-    return analyze_file_to_stdout(platform_name, path, analysis_policy);
+    return facts_v2_analysis_file_to_stdout(platform_name, path, analysis_policy);
   }
   if (argc >= 4 && strcmp(argv[1], "disassemble-file") == 0) {
     const char *platform_name = NULL, *path = NULL, *metadata_path = NULL;
@@ -625,7 +601,7 @@ int main(int argc, char **argv) {
       return 2;
     }
     if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
-    return disassemble_file_to_stdout_with_policy(platform_name, path, &policy, analysis_policy,
+    return disassemble_file_to_stdout_with_policy(platform_name, path, &policy, analysis_policy, metadata_path,
       benchmark_json_path, also_syntax, also_output_path);
   }
   if (argc >= 5 && strcmp(argv[1], "disassemble-raw") == 0) {
@@ -685,6 +661,7 @@ int main(int argc, char **argv) {
     }
     if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
     return disassemble_raw_to_stdout_with_policy(platform_name, path, entry_offset, &policy, analysis_policy,
+      metadata_path,
       benchmark_json_path);
   }
   fprintf(stderr, "usage: %s inspect-file <amiga-hunk|atari-st> <file>\n", argv[0]);
@@ -696,7 +673,6 @@ int main(int argc, char **argv) {
     "<amiga-hunk|atari-st> <file>\n", argv[0]);
   fprintf(stderr, "   or: %s effective-policy-raw [--target-metadata file] [--entry-offset offset] "
     "<amiga-raw|atari-st-raw> <file> <entry-offset>\n", argv[0]);
-  fprintf(stderr, "   or: %s source-map-file <amiga-hunk|atari-st> <file>\n", argv[0]);
   fprintf(stderr, "   or: %s listing-rows-file <amiga-hunk|atari-st> <file>\n", argv[0]);
   fprintf(stderr, "   or: %s listing-rows-raw <amiga-raw|atari-st-raw> <file> <entry-offset>\n", argv[0]);
   fprintf(stderr, "   or: %s analyze-raw <amiga-raw|atari-st-raw> <file> <entry-offset>\n", argv[0]);

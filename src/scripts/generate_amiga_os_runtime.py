@@ -12,6 +12,7 @@ NAMING_RULES_PATH = ROOT / "knowledge" / "naming_rules.json"
 OUTPUT_DIR = ROOT / "src" / "generated"
 HEADER_PATH = OUTPUT_DIR / "amiga_os_runtime.h"
 SOURCE_PATH = OUTPUT_DIR / "amiga_os_runtime.c"
+VENDORED_AMIGA_INCLUDE_ROOT = ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"
 
 NAME_DOMAIN_LIBRARY = 1
 NAME_DOMAIN_BASE = 2
@@ -41,7 +42,6 @@ AMIGA_VALUE_DOMAIN_COMPOSITION_BIT_OR = 2
 
 AMIGA_VALUE_DOMAIN_REMAINDER_NONE = 0
 AMIGA_VALUE_DOMAIN_REMAINDER_ERROR = 1
-
 
 def c_string(text: str) -> str:
     return text.replace("\\", "\\\\").replace('"', '\\"')
@@ -202,6 +202,41 @@ def normalize_include_path(path: str | None) -> str | None:
     if ":" in normalized:
         return None
     return normalized.lower()
+
+
+def load_assembler_include_symbols(include_root: Path = VENDORED_AMIGA_INCLUDE_ROOT) -> dict[str, set[str]]:
+    import sys
+
+    symbols_by_path: dict[str, set[str]] = {}
+    if not include_root.is_dir():
+        return symbols_by_path
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from src.scripts.kb.ndk_parser import collect_raw_constants_from_include_dir, scan_type_macros
+
+    include_root_str = str(include_root)
+    constant_source_file_sets: dict[str, set[str]] = {}
+    raw_constants, _constant_source_files, parsed_include_paths = collect_raw_constants_from_include_dir(
+        include_root_str,
+        scan_type_macros(include_root_str),
+        constant_source_file_sets,
+    )
+    for include_path in parsed_include_paths:
+        relative_path = Path(include_path).relative_to(include_root).as_posix().lower()
+        symbols_by_path[relative_path] = set()
+    for symbol_name in raw_constants:
+        for source_file in constant_source_file_sets.get(symbol_name, set()):
+            relative_path = Path(source_file).relative_to(include_root).as_posix().lower()
+            symbols_by_path.setdefault(relative_path, set()).add(symbol_name)
+    return symbols_by_path
+
+
+def include_defines_assembler_symbol(
+        symbols_by_path: dict[str, set[str]],
+        include_path: str,
+        symbol_name: str) -> bool:
+    symbols = symbols_by_path.get(include_path)
+    return symbols is None or symbol_name in symbols
 
 
 def struct_field_offset(payload: dict, struct_name: str, field_name: str) -> int | None:
@@ -788,10 +823,13 @@ def struct_field_rows(includes_payload: dict, struct_names: list[str]) -> list[t
 def symbol_include_rows(includes_payload: dict,
                         rows: list[tuple[str, str, int, str, dict]],
                         field_rows: list[tuple[str, int, str, str | None, int, str | None, str | None, str | None]],
-                        domain_constant_rows: list[tuple[str, int, str | None]]) -> list[tuple[str, str]]:
+                        domain_constant_rows: list[tuple[str, int, str | None]],
+                        assembler_include_symbols_by_path: dict[str, set[str]] | None = None) -> list[tuple[str, str]]:
     entries: dict[str, str] = {}
     libraries = includes_payload.get("libraries", {})
     structs = includes_payload.get("structs", {})
+    if assembler_include_symbols_by_path is None:
+        assembler_include_symbols_by_path = load_assembler_include_symbols()
 
     for library_name, _, _, function_name, _ in rows:
         library = libraries.get(library_name, {})
@@ -801,7 +839,9 @@ def symbol_include_rows(includes_payload: dict,
         include_path = normalize_include_path(owner.get("assembler_include_path") if isinstance(owner, dict) else None)
         if include_path is None:
             continue
-        entries.setdefault(f"_LVO{function_name}", include_path)
+        symbol_name = f"_LVO{function_name}"
+        if include_defines_assembler_symbol(assembler_include_symbols_by_path, include_path, symbol_name):
+            entries.setdefault(symbol_name, include_path)
 
     for struct_name in sorted(structs.keys()):
         struct_info = structs.get(struct_name, {})

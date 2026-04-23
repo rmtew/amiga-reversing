@@ -514,11 +514,6 @@ static int sim_expected_kind_prefers_register_write(uint8_t expected_kind, const
   return 0;
 }
 
-static int sim_expected_kind_prefers_register_read(uint8_t expected_kind, const M68kOperandIR *operand) {
-  return sim_expected_kind_prefers_register_write(expected_kind, operand);
-}
-
-static int sim_operand_is_immediate_value(const M68kOperandIR *operand, uint32_t *out_value);
 static int sim_direct_register_slot_by_metadata(const M68kSimFormMetadata *metadata, uint8_t operand_index,
     const M68kOperandIR *operand, uint8_t *out_is_address, uint8_t *out_reg);
 static int sim_ea_base_address_value(const M68kSimCpuState *state, const M68kOperandIR *operand, M68kSimValue *out_value);
@@ -1275,28 +1270,6 @@ static int sim_read_memory_value(const M68kObject *object, size_t section_index,
     out_value);
 }
 
-static int sim_eval_operand(const M68kObject *object, size_t section_index, const M68kSection *section,
-    const M68kInstructionIR *instruction, uint32_t offset, const M68kOperandIR *operand,
-    const M68kSimCpuState *state, const M68kSimMemoryState *memory_state, M68kSimStepResult *result,
-    M68kSimValue *out_value) {
-  uint8_t is_address;
-  uint8_t reg;
-  if (operand == NULL || out_value == NULL) return 0;
-  m68k_sim_value_init_unknown(out_value);
-  if (sim_special_register_value(state, operand, out_value)) return 1;
-  if (sim_register_is_direct(operand, &is_address, &reg)) return sim_register_value(state, is_address, reg, out_value);
-  if (operand->kind == M68K_ASM_OPERAND_LABEL) {
-    *out_value = sim_value_constant(operand->value.value, M68K_SIM_PROV_PC_REL);
-    return 1;
-  }
-  if (operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_IND ||
-      operand->kind == M68K_ASM_OPERAND_POSTINC || operand->kind == M68K_ASM_OPERAND_ABSL) {
-    return sim_read_memory_value(object, section_index, section, instruction, offset, operand, state, memory_state, result,
-      4U, out_value);
-  }
-  return 0;
-}
-
 static int sim_eval_operand_by_metadata(const M68kObject *object, size_t section_index, const M68kSection *section,
     const M68kInstructionIR *instruction, uint32_t offset, const M68kSimFormMetadata *metadata, uint8_t operand_index,
     const M68kOperandIR *operand, const M68kSimCpuState *state, const M68kSimMemoryState *memory_state,
@@ -1802,11 +1775,6 @@ static int sim_apply_signed_divide_status(uint32_t dividend_raw, uint32_t diviso
   return 1;
 }
 
-static int sim_apply_signed_divide(uint32_t dividend_raw, uint32_t divisor_raw, uint32_t *out_value) {
-  uint8_t overflow;
-  return sim_apply_signed_divide_status(dividend_raw, divisor_raw, out_value, &overflow) && !overflow;
-}
-
 static int sim_apply_unsigned_divide_status(uint32_t dividend, uint32_t divisor_raw, uint32_t *out_value,
     uint8_t *out_overflow) {
   uint32_t divisor;
@@ -1824,11 +1792,6 @@ static int sim_apply_unsigned_divide_status(uint32_t dividend, uint32_t divisor_
   remainder = dividend % divisor;
   *out_value = ((remainder & 0xFFFFU) << 16) | (quotient & 0xFFFFU);
   return 1;
-}
-
-static int sim_apply_unsigned_divide(uint32_t dividend, uint32_t divisor_raw, uint32_t *out_value) {
-  uint8_t overflow;
-  return sim_apply_unsigned_divide_status(dividend, divisor_raw, out_value, &overflow) && !overflow;
 }
 
 static uint32_t sim_normalize_numeric_value(uint32_t value, uint8_t width, uint8_t is_signed) {

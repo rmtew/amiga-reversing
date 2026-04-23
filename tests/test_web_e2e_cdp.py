@@ -16,11 +16,12 @@ import pytest
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.c_backend import build_project_rows_with_c_backend
-from amiga_reversing.disasm.listing_types import BlockRowContext, ListingRow
+from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, ListingRow
 from amiga_reversing.disasm.projects import ProjectRecord
-from tests.cdp_brave import brave_page
+from tests.cdp_brave import brave_cdp_requested, brave_cdp_skip_reason, brave_page
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+pytestmark = pytest.mark.skipif(not brave_cdp_requested(), reason=brave_cdp_skip_reason())
 
 
 def _binary_project(project_name: str) -> ProjectRecord:
@@ -142,6 +143,110 @@ def test_brave_cdp_can_open_project_and_render_listing(monkeypatch: pytest.Monke
         assert page.evaluate("document.querySelector('#project-title')?.textContent") == project.id
         assert page.evaluate("document.querySelector('.listing-code')?.textContent") == "start:"
         assert page.evaluate("location.pathname") == f"/{project.id}"
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_app_slot_navigation_drills_to_refs(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_app_slots")
+    rows = [
+        ListingRow(
+            row_id="rs0",
+            kind="directive",
+            text="app_0234 RS.L 1\n",
+            stable_key="app-rs",
+        ),
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="move.l app_DOSBase(a6),d0\n",
+            stable_key="app-read",
+            addr=0x20,
+            source_context=BlockRowContext(kind="core-block", hunk_index=0),
+            app_slot_refs=(AppSlotRef("app_DOSBase", 0x26, "A6", 0, "read"),),
+        ),
+        ListingRow(
+            row_id="r1",
+            kind="instruction",
+            text="move.l d0,app_0234(a6)\n",
+            stable_key="app-write",
+            addr=0x30,
+            source_context=BlockRowContext(kind="core-block", hunk_index=0),
+            app_slot_refs=(AppSlotRef("app_0234", 0x0234, "A6", 1, "write"),),
+        ),
+        ListingRow(
+            row_id="r2",
+            kind="instruction",
+            text="lea.l app_0234(a6),a0\n",
+            stable_key="app-address",
+            addr=0x40,
+            source_context=BlockRowContext(kind="core-block", hunk_index=0),
+            app_slot_refs=(AppSlotRef("app_0234", 0x0234, "A6", 0, "address"),),
+        ),
+    ]
+    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
+    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length >= 3")
+        page.click("#open-navigation")
+        page.wait_for_selector("#navigation-overlay")
+        page.select_value("[data-navigation-class='1']", "app-slots")
+        page.wait_for_expression("document.body.textContent.includes('app_0234')")
+        assert page.evaluate("document.querySelector('.navigation-summary')?.textContent") == "2 entries"
+
+        page.evaluate(
+            """
+            Array.from(document.querySelectorAll('.navigation-item'))
+              .find((item) => item.textContent.includes('app_0234') && item.textContent.includes('2 refs'))
+              .click()
+            """
+        )
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'app_0234: 2 refs'")
+        assert page.evaluate(
+            "Array.from(document.querySelectorAll('.navigation-access-badge')).map((badge) => badge.textContent).join('|')"
+        ) == "W|A"
+        page.evaluate(
+            """
+            Array.from(document.querySelectorAll('.navigation-item'))
+              .find((item) => item.textContent.includes('move.l d0,app_0234(a6)'))
+              .click()
+            """
+        )
+        page.wait_for_expression(
+            "document.querySelector('.listing-row-focus')?.dataset.rowStableKey === 'app-write'",
+            timeout=10.0,
+        )
+        page.evaluate(
+            """
+            Array.from(document.querySelectorAll('.listing-app-slot-reference'))
+              .find((item) => item.textContent === 'app_DOSBase')
+              .click()
+            """
+        )
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'app_DOSBase: 1 ref'")
+        assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('move.l app_DOSBase(a6),d0')")
+        page.evaluate(
+            """
+            Array.from(document.querySelectorAll('.listing-app-slot-reference'))
+              .find((item) => item.textContent === 'app_0234' && item.closest('.listing-row')?.dataset.rowStableKey === 'app-address')
+              .click()
+            """
+        )
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'app_0234: 2 refs'")
+        assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('lea.l app_0234(a6),a0')")
+        page.evaluate("loadListingWindow(state.project, null, 0, 20, {start: 0, count: 20})")
+        page.wait_for_selector(".listing-app-slot-definition[data-app-slot-symbol='app_0234']")
+        page.click(".listing-app-slot-definition[data-app-slot-symbol='app_0234']")
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'app_0234: 2 refs'")
+        assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('move.l d0,app_0234(a6)')")
+        page.click("[data-navigation-app-slots-root='1']")
+        assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('app_0234')")
         page.assert_no_errors()
 
 
@@ -376,7 +481,13 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
         return rows
 
     basic_rows = make_rows("basic", "far_basic")
-    full_rows = make_rows("full", "far_full")
+    full_rows = [
+        ListingRow(row_id="full-comment", kind="comment", text="; full header\n", analysis_generation="full"),
+        ListingRow(row_id="full-equ", kind="directive", text="app_SIZEOF EQU __RS\n", analysis_generation="full"),
+        ListingRow(row_id="full-include", kind="directive", text='INCLUDE "exec/exec_lib.i"\n', analysis_generation="full"),
+        ListingRow(row_id="full-section", kind="directive", text="    SECTION section,code\n", analysis_generation="full"),
+        *make_rows("full", "far_full"),
+    ]
     full_started = threading.Event()
     release_full = threading.Event()
 
@@ -432,6 +543,28 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
         after_scroll = page.evaluate("document.querySelector('#listing-viewport').scrollTop")
         assert after_scroll >= before_scroll - 44
         assert page.evaluate("document.querySelectorAll('.listing-row').length < 600")
+        page.evaluate(
+            """
+            (async () => {
+              const viewport = document.querySelector("#listing-viewport");
+              viewport.scrollTop = 0;
+              viewport.dispatchEvent(new Event("scroll"));
+              await flushPendingListingWindow();
+              return true;
+            })()
+            """
+        )
+        page.wait_for_expression(
+            "document.querySelector('.listing-row')?.dataset.rowCode.trim() === '; full header'",
+            timeout=10.0,
+        )
+        assert page.evaluate("document.body.textContent.includes('INCLUDE \"exec/exec_lib.i\"')")
+        assert page.evaluate(
+            "Array.from(document.querySelectorAll('.listing-row')).some((row) => row.dataset.rowCode.trim() === 'app_SIZEOF EQU __RS')"
+        )
+        assert page.evaluate(
+            "Array.from(document.querySelectorAll('.listing-row')).some((row) => row.dataset.rowCode.trim() === 'SECTION section,code')"
+        )
         page.assert_no_errors()
 
 
@@ -512,6 +645,9 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
             "document.querySelector('.listing-row')?.dataset.rowCode.trim()"
         )
         assert before_top_code == "SECTION section,code"
+        assert page.evaluate(
+            "document.querySelector('.listing-row-data .listing-code')?.textContent === '    DC.B $60,$34'"
+        )
         assert full_started.wait(timeout=10.0)
         release_full.set()
         page.wait_for_expression(
@@ -521,8 +657,29 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
         assert page.evaluate(
             "document.querySelector('.listing-row')?.dataset.rowCode.trim()"
         ) == "SECTION section,code"
-        assert not page.evaluate(
-            "document.querySelector('.listing-row')?.dataset.rowCode.includes('INCLUDE')"
+        page.evaluate(
+            """
+            (async () => {
+              const viewport = document.querySelector("#listing-viewport");
+              viewport.scrollTop = 0;
+              viewport.dispatchEvent(new Event("scroll"));
+              await flushPendingListingWindow();
+              return true;
+            })()
+            """
+        )
+        page.wait_for_expression(
+            "document.querySelector('.listing-row')?.dataset.rowCode.includes('INCLUDE')",
+            timeout=10.0,
+        )
+        assert page.evaluate(
+            "Array.from(document.querySelectorAll('.listing-row')).some((row) => row.dataset.rowCode.trim() === 'app_ULONG RS.L 1')"
+        )
+        assert page.evaluate(
+            "Array.from(document.querySelectorAll('.listing-row')).some((row) => row.dataset.rowCode.trim() === 'app_SIZEOF EQU __RS')"
+        )
+        assert page.evaluate(
+            "Array.from(document.querySelectorAll('.listing-row')).some((row) => row.dataset.rowCode.trim() === 'SECTION section,code')"
         )
         page.assert_no_errors()
 
@@ -577,6 +734,144 @@ def test_brave_cdp_navigation_overlay_opens_on_listing(
             """
         )
         page.wait_for_expression("document.querySelector('#navigation-overlay') === null")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_navigation_overlay_list_scrolls_with_many_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project = _binary_project("amiga_hunk_many_nav_entries")
+    rows = [
+        ListingRow(
+            row_id=f"r{index}",
+            kind="label",
+            text=f"label_{index:02d}:\n",
+            addr=index * 4,
+            label=f"label_{index:02d}:",
+        )
+        for index in range(40)
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length === 40")
+
+        page.click("#open-navigation")
+        page.wait_for_selector("#navigation-overlay")
+        page.select_value("[data-navigation-class='1']", "labels")
+        page.wait_for_expression("document.querySelectorAll('.navigation-item').length === 40")
+
+        metrics = page.evaluate(
+            """
+            (() => {
+              const list = document.querySelector("[data-navigation-list='1']");
+              return {
+                clientHeight: list.clientHeight,
+                scrollHeight: list.scrollHeight,
+                count: document.querySelectorAll(".navigation-item").length,
+              };
+            })()
+            """
+        )
+        assert metrics["count"] == 40
+        assert metrics["scrollHeight"] > metrics["clientHeight"]
+
+        page.evaluate(
+            """
+            (() => {
+              const list = document.querySelector("[data-navigation-list='1']");
+              list.scrollTop = list.scrollHeight;
+              list.dispatchEvent(new Event("scroll"));
+              return true;
+            })()
+            """
+        )
+        page.wait_for_expression(
+            "document.querySelector('[data-navigation-list=\"1\"]').scrollTop > 0"
+        )
+        assert page.evaluate(
+            "document.querySelectorAll('.navigation-item')[39]?.textContent.includes('label_39')"
+        )
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_api_navigation_uses_row_index_for_duplicate_offsets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project = _binary_project("amiga_hunk_duplicate_api_offsets")
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="jsr loc_shared(pc)\n",
+            stable_key="h0-call",
+            addr=0x10,
+            source_context=BlockRowContext(kind="core-block", hunk_index=0),
+        ),
+        ListingRow(
+            row_id="r1",
+            kind="label",
+            text="loc_0010:\n",
+            stable_key="h1-label",
+            addr=0x10,
+            source_context=BlockRowContext(kind="core-block", hunk_index=1),
+        ),
+        ListingRow(
+            row_id="r2",
+            kind="instruction",
+            text="jsr _LVOSetPointer(a6)\n",
+            stable_key="h1-call",
+            addr=0x10,
+            opcode_or_directive="jsr",
+            operand_text="_LVOSetPointer(a6)",
+            source_context=BlockRowContext(kind="core-block", hunk_index=1),
+        ),
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
+    disasm_server._PROJECT_API_CALL_CACHE[project.id] = {
+        (1, 0x10): {
+            "library": "intuition.library",
+            "function": "SetPointer",
+            "note_kind": 0,
+            "call_kind": 1,
+            "inputs": [],
+        }
+    }
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length === 3")
+
+        page.click("#open-navigation")
+        page.wait_for_selector("#navigation-overlay")
+        page.select_value("[data-navigation-class='1']", "api-calls")
+        page.wait_for_expression("document.querySelectorAll('.navigation-item').length === 1")
+
+        assert page.evaluate("document.querySelector('.navigation-item-addr')?.textContent") == "h1:0010"
+        assert page.evaluate(
+            "document.querySelector('.navigation-item-text')?.textContent"
+        ) == "SetPointer (intuition.library)"
+        page.evaluate("document.querySelector('.navigation-item')?.click()")
+        page.wait_for_expression(
+            "document.querySelector('.listing-row-focus')?.dataset.rowStableKey === 'h1-call'"
+        )
         page.assert_no_errors()
 
 
@@ -846,11 +1141,11 @@ def test_brave_cdp_navigation_buttons_move_history(monkeypatch: pytest.MonkeyPat
 
         page.click("#navigation-back")
         page.wait_for_expression(
-            "document.querySelector('[data-row-addr=\"0\"]')?.classList.contains('listing-row-focus')"
+            "Array.from(document.querySelectorAll('[data-row-addr=\"0\"]')).some((row) => row.classList.contains('listing-row-focus'))"
         )
         page.click("#navigation-forward")
         page.wait_for_expression(
-            "document.querySelector('[data-row-addr=\"8\"]')?.classList.contains('listing-row-focus')"
+            "Array.from(document.querySelectorAll('[data-row-addr=\"8\"]')).some((row) => row.classList.contains('listing-row-focus'))"
         )
         page.assert_no_errors()
 
@@ -1230,8 +1525,10 @@ def test_brave_cdp_api_edit_modal_applies_struct_override(
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
         page.wait_for_selector("[data-api-edit='1']")
+        page.evaluate("new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))")
         page.click("[data-api-edit='1']")
         page.wait_for_selector(".api-edit-dialog")
+        page.wait_for_selector(".api-edit-input", timeout=20.0)
         page.fill(".api-edit-input", "SimpleSprite")
         page.click(".api-edit-apply")
 
@@ -1297,8 +1594,7 @@ def test_brave_cdp_annotation_edit_modal_patches_entity(monkeypatch: pytest.Monk
         page.wait_for_event("Page.loadEventFired")
         page.wait_for_selector("[data-annotation-edit='1']")
         page.evaluate("new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))")
-        page.click("[data-annotation-edit='1']")
-        page.wait_for_selector(".annotation-edit-dialog")
+        page.click_until_selector("[data-annotation-edit='1']", ".annotation-edit-dialog")
         page.fill(".annotation-edit-name", "main_entry")
         page.fill(".annotation-edit-comment", "validated entry")
         page.select_value(".annotation-edit-confidence", "verified")
@@ -1340,12 +1636,8 @@ def test_brave_cdp_real_annotation_edit_round_trip(
         page.call("Page.navigate", {"url": f"{base_url}/{project_id}"})
         page.wait_for_event("Page.loadEventFired")
         page.wait_for_selector("[data-annotation-edit='1']", timeout=45.0)
-        page.evaluate(
-            """
-            document.querySelector('[data-row-addr="0"] [data-annotation-edit="1"]')?.click()
-            """
-        )
-        page.wait_for_selector(".annotation-edit-dialog")
+        page.evaluate("new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))")
+        page.click_until_selector('[data-row-addr="0"] [data-annotation-edit="1"]', ".annotation-edit-dialog")
         page.evaluate(
             """
             (() => {

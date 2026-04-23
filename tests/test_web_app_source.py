@@ -103,3 +103,32 @@ def test_web_app_shows_non_occluding_analysis_status() -> None:
     assert 'setAnalysisStatus("Full analysis ready", "ready", 2000)' in app_js
     assert ".analysis-status" in styles_css
     assert ".listing-viewport .analysis-status" not in styles_css
+
+
+def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None:
+    web_dir = Path(__file__).resolve().parent.parent / "amiga_reversing" / "web"
+    app_js = (web_dir / "app.js").read_text(encoding="utf-8")
+    styles_css = (web_dir / "styles.css").read_text(encoding="utf-8")
+
+    assert "function reproductionBadge(ready, report)" in app_js
+    assert 'id="open-repro"' in app_js
+    assert "function renderReproPanel()" in app_js
+    assert "function currentReproIssue()" in app_js
+    assert "function reproductionReportKey(report)" in app_js
+    assert "const previousReportKey = state.reproduction.reportKey || reproductionReportKey(state.reproduction.report);" in app_js
+    assert "state.reproduction.reportKey = null;" in app_js
+    assert "state.reproduction.reportKey = reproductionReportKey(state.reproduction.report);" in app_js
+    assert "state.reproduction.selectedIssueEntry = entry;" in app_js
+    assert '`/api/projects/${encodeURIComponent(projectId)}/reproduction/run`' in app_js
+    assert '`/api/projects/${encodeURIComponent(state.project)}/target-edits`' in app_js
+    assert "payload.hunk = hunk;" in app_js
+    assert 'data-repro-edit-kind="label"' in app_js
+    assert 'data-repro-edit-kind="external_symbol"' in app_js
+    assert "defaultReproSymbolName(issue, kind, addr)" in app_js
+    assert 'data-repro-edit-kind="suppress_inferred_pointer"' in app_js
+    assert 'return {label: "Unsupported"' in app_js
+    assert '"repro-issues": []' in app_js
+    assert '["repro-issues", "Repro Issues"]' in app_js
+    assert "listing-row-repro-issue" in app_js
+    assert ".repro-panel" in styles_css
+    assert ".project-badge-repro-exact" in styles_css

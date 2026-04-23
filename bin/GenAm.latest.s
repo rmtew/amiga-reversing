@@ -36,7 +36,6 @@ app_SIZEOF EQU __RS
 h0_0000:
     bra.s h0_ExecAllocMem_0036
     DC.B    $94,$4f
-dat_0004:
     DC.L    $7a3085c2
     DC.B    "$VER: GenAm 3.18 (2.8.94)",0
     DC.B    "(C) HiSoft 1985-1997"
@@ -104,7 +103,7 @@ h0_00EC:
     tst.b (a0)
     beq.s h0_0110
 h0_00F8:
-    jsr h0_DOSOpen_B0AC.l               ; KNOWN: DOSBase _LVOOpen fallback via local wrapper
+    jsr h0_B0AC.l
 h0_00FE:
     beq.w h0_0174
 h0_0102:
@@ -2107,7 +2106,7 @@ h0_13B8:
     moveq.l #1,d0
     exg d0,d7
 h0_13C4:
-    jmp h0_13C8-2(pc,d0.w) ; VIOLATION: invalid overlap: pc-relative reference targets +2 into instruction at $13C4 | invalid overlap: instruction bytes at +2 are referenced by reachable pc-relative operand
+    jmp h0_13C8-2(pc,d0.w) ; VIOLATION: invalid overlap: instruction bytes at +2 are referenced by reachable pc-relative operand | invalid overlap: pc-relative reference targets +2 into instruction at $13C4
 h0_13C8:
     bra.w h0_140E
 h0_13CC:
@@ -3272,7 +3271,7 @@ h0_20C6:
     DC.B    $08,$2e ; VIOLATION: orphaned code island at $211A is not reached from known entrypoints
     DC.L    $0005010f,$67067011,$610066e2,$241f487a,$ff886004
     DC.L    $6100ec84,$4a2e0238,$66104a04,$662eb63c,$00026628,$4a2e0107 ; VIOLATION: orphaned code island at $2130 is not reached from known entrypoints
-    DC.B    $66,$22,$4a,$43,$6b
+    DC.B    "f",$22,"JCk"
     DC.B    $1e,$4a,$2e
     DC.L    $01076606,$b63c0002,$67180802,$00006706,$70236100,$632294ae,$023c5582,$4a2e0238
     DC.B    $4e,$75
@@ -3947,21 +3946,8 @@ h0_3CC8:
     ext.w d0
     cmp.w #$7,d0
     bcc.w h0_3B98
-h0_3CD4:
-    btst.b d0,#$6C
-    beq.w h0_3D00
-h0_3CDC:
-    cmp.b #$6,d0
-    bne.w h0_3CE6
-h0_3CE4:
-    moveq.l #2,d0
-h0_3CE6:
-    addq.w #1,a4
-    tst.b $0840(a6)
-    beq.w h0_3B98
-h0_3CF0:
-    move.w d0,$021C(a6)
-    bra.w h0_3B98
+    DC.L    $013c006c,$67000026,$b03c0006,$66000004,$7002524c,$4a2e0840,$6700feaa,$3d40021c
+    DC.L    $6000fea2 ; VIOLATION: decode failed in reachable code; region emitted as data
 h0_3CF8:
     lea.l $021A(a6),a1
     bra.w h0_3C4E
@@ -4000,13 +3986,19 @@ h0_3D42:
     move.w d2,$0B6C(a6)
     bra.w h0_3B98
 h0_3D4A:
-    lea.l $0832(a6),a3
-    st.b $012B(a6)
-    tst.b $0843(a6)
+    DC.B    $47 ; VIOLATION: invalid overlap: decoded instruction at $3D4A crosses required label at $3D4B; region emitted as data
+h0_3D4B:
+    lsr.b #7,d0
+    movea.w (a0),a1
+    asr.b #7,d1
+    move.l a2,$2E08(a5)
+    DC.B    $43 ; VIOLATION: decode failed in reachable code; region emitted as data
 h0_3D56:
     beq.w h0_3D62
 h0_3D5A:
-    bsr.w h0_4696
+    DC.B    $61,$00 ; VIOLATION: invalid overlap: decoded instruction at $3D5A crosses required label at $3D5C; region emitted as data
+h0_3D5C:
+    DC.B    $09,$3a ; VIOLATION: invalid overlap: decoded instruction at $3D5C crosses required label at $3D5E; region emitted as data
 h0_3D5E:
     moveq.l #0,d0
     rts
@@ -4038,8 +4030,9 @@ h0_3D8C:
     cmp.b #$A,d1
     beq.s h0_3DAE
 h0_3D92:
-    cmp.b d2,d1
-    beq.s h0_3DB0
+    DC.B    $b2 ; VIOLATION: invalid overlap: decoded instruction at $3D92 crosses required label at $3D93; region emitted as data
+h0_3D93:
+    DC.B    $02,$67,$1a ; VIOLATION: invalid overlap: decoded instruction at $3D93 crosses required label at $3D96; region emitted as data
 h0_3D96:
     cmp.b #$20,d1
     bne.s h0_3DA0
@@ -4050,7 +4043,9 @@ h0_3DA0:
     tst.b $0840(a6)
     beq.w h0_3DAA
 h0_3DA8:
-    move.b d1,(a1)+
+    DC.B    $12 ; VIOLATION: invalid overlap: decoded instruction at $3DA8 crosses required label at $3DA9; region emitted as data
+h0_3DA9:
+    DC.B    $c1 ; VIOLATION: invalid overlap: decoded instruction at $3DA9 crosses required label at $3DAA; region emitted as data
 h0_3DAA:
     subq.b #1,d0
     bne.s h0_3D88
@@ -4064,8 +4059,10 @@ h0_3DB8:
 h0_3DBA:
     rts
 h0_3DBC:
-    tst.b $0840(a6)
-    beq.w h0_3DD2
+    DC.B    $4a,$2e,$08 ; VIOLATION: invalid overlap: decoded instruction at $3DBC crosses required label at $3DBF; region emitted as data
+h0_3DBF:
+    negx.w -(a7)
+    DC.B    $00,$00,$10 ; VIOLATION: invalid overlap: decoded instruction at $3DC1 crosses required label at $3DC4; region emitted as data
 h0_3DC4:
     st.b $0100(a6)
     move.l app_file_0CDA+fh_Link(a6),app_file_0956+fh_Link(a6)
@@ -4175,7 +4172,9 @@ h0_3E96:
     bra.s h0_3EAE
 h0_3E98:
     tst.b $0841(a6)
-    bne.s h0_3EB4
+    DC.B    $66 ; VIOLATION: invalid overlap: decoded instruction at $3E9C crosses required label at $3E9D; region emitted as data
+h0_3E9D:
+    DC.B    $16 ; VIOLATION: invalid overlap: decoded instruction at $3E9D crosses required label at $3E9E; region emitted as data
 h0_3E9E:
     move.b (a4)+,d1
     beq.s h0_3EAE
@@ -4252,7 +4251,7 @@ h0_3F26:
     lea.l -$2(a1,d0.w),a0
     movea.l a2,a4
     move.b (a4)+,d1
-    lea.l $39D(pc),a2
+    lea.l dat_42D3(pc),a2
     cmpa.l a2,a0
     rts
 dat_3F3C:
@@ -4677,7 +4676,9 @@ h0_42C4:
     rts
 h0_42CE:
     sf.b $0129(a6)
-    rts
+    DC.B    $4e ; VIOLATION: invalid overlap: decoded instruction at $42D2 crosses required label at $42D3; region emitted as data
+dat_42D3:
+    DC.B    $75
 h0_42D4:
     bsr.w h0_3DEE
     subq.w #1,a4
@@ -4921,8 +4922,9 @@ h0_44A2:
     cmp.b #$2B,d0
     beq.s h0_44E0
 h0_44A8:
-    cmp.b #$2D,d0
-    beq.s h0_44DC
+    DC.B    $b0,$3c ; VIOLATION: invalid overlap: decoded instruction at $44A8 crosses required label at $44AA; region emitted as data
+h0_44AA:
+    DC.B    $00,$2d,$67,$2e ; VIOLATION: invalid overlap: decoded instruction at $44AA crosses required label at $44AE; region emitted as data
 h0_44AE:
     subi.b #48,d0
     bcs.w h0_4398
@@ -4933,8 +4935,7 @@ h0_44BA:
     subq.w #1,d0
     cmp.w #$7,d0
     bcc.w h0_4398
-h0_44C4:
-    btst.b d0,#$6C
+    DC.L    $013c006c ; VIOLATION: decode failed in reachable code; region emitted as data
 h0_44C8:
     beq.w h0_4398
 h0_44CC:
@@ -5883,16 +5884,18 @@ h0_5572:
     move.w d4,(a0)
     rts
 dat_5576:
-    DC.B    $00,$18 ; VIOLATION: orphaned code island at $5576 is not reached from known entrypoints
+    DC.B    $00,$18
     DC.L    $00000034,$000000ba,$000000ba,$00000078,$000000ba,$00004a2b,$00096600,$009c4a2b
     DC.L    $00086a00,$00947a3a,$558d508f,$3afcfffe
-    DC.B    $4e,$75
-    DC.B    $4a,$2b ; VIOLATION: orphaned code island at $55AA is not reached from known entrypoints
-    DC.L    $00096600,$00800c2b,$00020007,$67000076,$558d508f,$2413362b,$0004182b,$00060885
-    DC.L    $00000807,$00036600,$00f07a28,$8a2b0008,$4a436b00,$433c3ac2,$4a2e0238,$660022cc
-    DC.B    $4e,$75
-    DC.B    $4a,$2b ; VIOLATION: orphaned code island at $55EE is not reached from known entrypoints
-    DC.L    $0009663c,$4a2b000b,$66360807,$00036630,$422b0003
+    DC.B    "NuJ+",0
+    DC.B    $09,$66,$00
+    DC.L    $00800c2b,$00020007,$67000076,$558d508f,$2413362b,$0004182b,$00060885,$00000807
+    DC.L    $00036600,$00f07a28,$8a2b0008,$4a436b00,$433c3ac2,$4a2e0238,$660022cc
+    DC.B    "NuJ+",0
+    DC.B    $09
+    DC.B    "f<J+",0
+    DC.B    $0b
+    DC.L    $66360807,$00036630,$422b0003
     DC.B    $61,$08
 h0_5606:
     addq.w #4,a7
@@ -6138,7 +6141,7 @@ dat_5782:
     DC.L    $488248c2,$41ee087e,$2020d182,$20807400,$2020d182,$20802020,$d1826506,$2080225f
     DC.B    "Nup]a",0
     DC.B    $23,$04
-    DC.B    $22,$5f,$4e,$75,$20,$42,$48
+    DC.B    $22,"_Nu BH"
     DC.B    $83
     DC.L    $103b3013,$6b083ad8,$530066fa,$4e757000,$10183ac0,$4e75ff01,$02040602,$06004a2e
     DC.L    $0123660a,$0c2e0014,$01216600,$cf7a4a2e,$01256706,$70656100,$22c2102e,$02396716
@@ -6333,7 +6336,7 @@ h0_6434:
     DC.L    $6100feea,$3ac2b23c,$002c6600,$1faa121c,$6100b222,$00244e75,$0c2e001e,$01216600
     DC.L    $cc664a2e,$01256706,$70656100,$1fae3afc,$f000343c,$01006048,$4a2e0123,$660a0c2e
     DC.L    $001e0121,$6600cc40,$4a2e0125,$67067065,$61001f88,$3afcf000
-    DC.B    $61,$58,$66,$22
+    DC.B    "aXf",$22
     DC.L    $08c20009,$3ac2b23c,$002c6600,$1f4e121c,$6100f5ea
     DC.B    "p?J."
     DC.L    $01236602,$70246000,$b1dc7400,$4a2e0239,$67001f18,$3ac26100,$f5cc7024,$6100b1c6
@@ -6502,9 +6505,9 @@ h0_6C66:
     DC.B    $fe,$9e
     DC.B    $70,$31,$60,$00,$17,$dc ; VIOLATION: orphaned code island at $6CA6 is not reached from known entrypoints
     DC.L    $4a2e0126 ; VIOLATION: orphaned code island at $6CAC is not reached from known entrypoints
-    DC.B    $67,$22,$4a,$2e
+    DC.B    "g",$22,"J."
     DC.L    $0238661c,$4a2e0101,$67064a2e,$01176710,$302e087e,$06000030,$1d40083b,$600025ce
-    DC.B    $4e,$75,$22,$3c,$00
+    DC.B    "Nu",$22,"<",0
     DC.B    $00,$13,$88
     DC.L    $3d41014e,$610023d8,$2d48014a
     DC.B    "Nup6`",0
@@ -7183,8 +7186,9 @@ h0_74A8:
 h0_74AC:
     move.b -$0001(a4),d1
 h0_74B0:
-    cmp.b #$2E,d1
-    bne.s h0_7502
+    DC.B    $b2,$3c ; VIOLATION: invalid overlap: decoded instruction at $74B0 crosses required label at $74B2; region emitted as data
+h0_74B2:
+    DC.B    $00,$2e,$66,$4c ; VIOLATION: invalid overlap: decoded instruction at $74B2 crosses required label at $74B6; region emitted as data
 h0_74B6:
     move.b (a4)+,d1
     bmi.s h0_74D2
@@ -8169,7 +8173,9 @@ h0_888E:
     bsr.w h0_AE7C
 h0_88A0:
     movea.l (a7)+,a1
-    bne.w h0_89FE
+    DC.B    $66 ; VIOLATION: invalid overlap: decoded instruction at $88A2 crosses required label at $88A3; region emitted as data
+h0_88A3:
+    DC.B    $00,$01,$5a ; VIOLATION: invalid overlap: decoded instruction at $88A3 crosses required label at $88A6; region emitted as data
 h0_88A6:
     tst.l d1
     bpl.s h0_ExecAvailMem_88C4
@@ -8471,9 +8477,9 @@ h0_8B48:
 dat_8B4C:
     DC.L    $24480c6e,$0003021c,$66146100,$159e48e7,$20e06100,$24f44cdf,$07042540,$001c223c
     DC.L    $000003f1,$6100157c,$615e6100,$15767200,$61001570 ; VIOLATION: orphaned code island at $8B4C is not reached from known entrypoints
-    DC.B    $22,$3c,$4c,$49,$4e,$45,$4a,$2e
+    DC.B    $22,"<LINEJ."
     DC.L    $012a6706
-    DC.B    $22,$3c,$48,$43,$4c,$4e,$61,$00
+    DC.B    $22,"<HCLNa",0
     DC.L    $155a7000,$610014fe,$52290016,$4a2e012a,$670a7200,$322a0012,$61001540,$61001544
     DC.L    $206a000e,$222a0018,$48e70060,$6100f860,$4cdf0600,$61001546,$204a45fa,$ff7c4e75
 h0_8BD4:
@@ -9542,7 +9548,7 @@ h0_968A:
     bne.s h0_969E
 h0_9690:
     btst.b #2,$021D(a6)
-    bne.w h0_ExecAllocMem_F954
+    bne.w h0_F954
 h0_969A:
     bra.w h0_ExecAllocMem_9BC6
 h0_969E:
@@ -9936,12 +9942,12 @@ h0_9AA4:
     bne.w h0_9B0A
 h0_9AAC:
     bsr.w h0_9B24
-h0_ExecAllocMem_9AB0:
+h0_9AB0:
     beq.s h0_9B04
-h0_ExecAllocMem_9AB2:
+h0_9AB2:
     movem.l a0-a1,-(a7)
     moveq.l #36,d1
-    bsr.w h0_ExecAllocMem_90BA
+    bsr.w h0_ExecAllocMem_90BA          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
 h0_9ABC:
     movem.l (a7)+,a1-a2
     move.l a0,(a1)
@@ -10058,7 +10064,7 @@ h0_ExecAllocMem_9BE4:
 h0_ExecAllocMem_9BEA:
     move.l d1,$0014(a3)
     tst.l app_file_0186+fh_End(a6)
-    beq.s h0_ExecAllocMem_9C02
+    beq.s h0_9C02
 h0_ExecAllocMem_9BF4:
     move.w $0010(a3),d0
     bsr.w h0_ExecAllocMem_AE02
@@ -10066,12 +10072,12 @@ h0_9BFC:
     bne.w h0_90EC
 h0_9C00:
     bra.s h0_9C10
-h0_ExecAllocMem_9C02:
+h0_9C02:
     cmpi.w #1003,$0012(a3)
     beq.s h0_9C24
-h0_ExecAllocMem_9C0A:
+h0_9C0A:
     addq.l #8,d1
-    bsr.w h0_ExecAllocMem_90BA
+    bsr.w h0_ExecAllocMem_90BA          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
 h0_9C10:
     move.l a0,$0008(a3)
     move.l a0,$000C(a3)
@@ -10803,22 +10809,22 @@ h0_A1FA:
     addq.l #8,d1
     lea.l $05A8(a6),a0
     bra.w h0_8422
-h0_ExecAllocMem_A208:
+h0_A208:
     movea.l $01AA(a6),a0
     lea.l $0018(a0),a0
     tst.l (a0)
-    beq.s h0_ExecAllocMem_A220
-h0_ExecAllocMem_A214:
+    beq.s h0_A220
+h0_A214:
     movea.l (a0),a0
     tst.w $0004(a0)
     bne.s h0_A240
-h0_ExecAllocMem_A21C:
+h0_A21C:
     tst.l (a0)
-    bne.s h0_ExecAllocMem_A214
-h0_ExecAllocMem_A220:
+    bne.s h0_A214
+h0_A220:
     movem.l d0-d2/a0/a2,-(a7)
     moveq.l #90,d1
-    bsr.w h0_ExecAllocMem_90BA
+    bsr.w h0_ExecAllocMem_90BA          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
 h0_A22A:
     movem.l (a7)+,d0-d2/a1-a2
     move.l a0,(a1)
@@ -10865,15 +10871,15 @@ h0_A284:
 h0_A288:
     moveq.l #68,d0
     bra.w h0_8486
-h0_ExecAllocMem_A28E:
+h0_A28E:
     add.l $023C(a6),d2
     add.l a5,d2
     sub.l $024C(a6),d2
-h0_ExecAllocMem_A298:
+h0_A298:
     tst.b $0103(a6)
     beq.s h0_A2A8
-h0_ExecAllocMem_A29E:
-    bsr.w h0_ExecAllocMem_A208
+h0_A29E:
+    bsr.w h0_A208
 h0_A2A2:
     move.w d0,(a0)
     move.l d2,$0004(a0)
@@ -10883,7 +10889,7 @@ h0_A2AA:
     move.l d0,d2
     move.w #$100,d0
     or.b $0146(a6),d0
-    bra.s h0_ExecAllocMem_A298
+    bra.s h0_A298
 h0_A2B6:
     move.l d2,(a5)+
     bsr.s h0_A250
@@ -10892,9 +10898,9 @@ h0_A2BA:
 h0_A2BC:
     ori.w #256,d0
     moveq.l #-4,d2
-    bra.s h0_ExecAllocMem_A28E
+    bra.s h0_A28E
 h0_A2C4:
-    bsr.w h0_ExecAllocMem_A36C          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
+    bsr.w h0_A36C
     DC.B    $02,$fc ; VIOLATION: decode failed in reachable code; region emitted as data
 h0_A2CA:
     move.w d2,(a5)+
@@ -10902,7 +10908,7 @@ h0_A2CA:
 h0_A2CE:
     bmi.s h0_A288
 h0_A2D0:
-    bsr.w h0_ExecAllocMem_A36C          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
+    bsr.w h0_A36C
     DC.B    $04,$fe ; VIOLATION: decode failed in reachable code; region emitted as data
 h0_A2D6:
     cmpi.w #3,$021C(a6)
@@ -10943,12 +10949,12 @@ h0_A318:
 h0_A31E:
     bmi.s h0_A324
 h0_A320:
-    bsr.s h0_ExecAllocMem_A36C          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
+    bsr.s h0_A36C
     DC.B    $07,$fe ; VIOLATION: decode failed in reachable code; region emitted as data
 h0_A324:
     ori.w #10240,d0
     moveq.l #-2,d2
-    bra.w h0_ExecAllocMem_A28E
+    bra.w h0_A28E
 h0_A32E:
     cmpi.w #3,$021C(a6)
     beq.w h0_A288
@@ -10961,12 +10967,12 @@ h0_A33E:
 h0_A344:
     bmi.w h0_A34C
 h0_A348:
-    bsr.s h0_ExecAllocMem_A36C          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
+    bsr.s h0_A36C
     DC.B    $08,$ff ; VIOLATION: decode failed in reachable code; region emitted as data
 h0_A34C:
     ori.w #10496,d0
     moveq.l #-1,d2
-    bra.w h0_ExecAllocMem_A28E
+    bra.w h0_A28E
 h0_A356:
     sub.l $024C(a6),d2
     add.l a5,d2
@@ -10977,13 +10983,13 @@ h0_A35E:
 h0_A364:
     bmi.w h0_A288
 h0_A368:
-    bsr.s h0_ExecAllocMem_A36C          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
+    bsr.s h0_A36C
     DC.B    $05,$ff ; VIOLATION: decode failed in reachable code; region emitted as data
-h0_ExecAllocMem_A36C:
+h0_A36C:
     tst.b $0103(a6)
     beq.s h0_A392
-h0_ExecAllocMem_A372:
-    bsr.w h0_ExecAllocMem_A208
+h0_A372:
+    bsr.w h0_A208
 h0_A376:
     movea.l (a7),a1
     move.b (a1)+,(a0)+
@@ -11194,12 +11200,7 @@ dat_A664:
     DC.L    $c0c1c2c3,$c4c5c6c7,$c8c9cacb,$cccdcecf,$d0d1d2d3,$d4d5d6d7,$d8d9dadb,$dcdddedf
     DC.L    $c0c1c2c3,$c4c5c6c7,$c8c9cacb,$cccdcecf,$d0d1d2d3,$d4d5d6f7,$d8d9dadb,$dcdddeff
     DC.L    $00010203,$04050607,$08090a0b,$0c0d0e0f,$10111213,$14151617,$18191a1b,$1c1d1e1f
-    DC.B    $20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$2a,$2b,$2c,$2d,$2e,$2f
-    DC.B    $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$3a,$3b,$3c,$3d,$3e,$3f
-    DC.B    $40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$4a,$4b,$4c,$4d,$4e,$4f
-    DC.B    $50,$51,$52,$53,$54,$55,$56,$57,$58,$59,$5a,$5b,$5c,$5d,$5e,$5f
-    DC.B    $60,$41,$42,$43,$44,$45,$46,$47,$48,$49,$4a,$4b,$4c,$4d,$4e,$4f
-    DC.B    $50,$51,$52,$53,$54,$55,$56,$57,$58,$59,$5a,$7b,$7c,$7d,$7e
+    DC.B    " !",$22,"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[",$5c,"]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~"
     DC.B    $7f
 dat_A764:
     DC.L    $01010101,$01010101,$01010101,$01010101,$01010101,$01010101,$01010101,$01010101
@@ -11367,9 +11368,9 @@ h0_A9C8:
     bsr.w h0_9292
 h0_DOSOutput_A9D0:
     bsr.w h0_A864                       ; KNOWN: DOSBase _LVOOutput fallback via local wrapper
-h0_ExecAllocMem_A9D4:
+h0_A9D4:
     move.l #MEMF_LOCAL,d1
-    bsr.w h0_ExecAllocMem_90BA
+    bsr.w h0_ExecAllocMem_90BA          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
 h0_DOSInput_A9DE:
     move.l a0,-(a7)
     moveq.l #_LVOInput,d0
@@ -11430,12 +11431,12 @@ h0_AA70:
     bne.s h0_AA9C
 h0_AA84:
     lea.l dat_AAF4(pc),a0
-    bsr.w h0_DOSOpen_B0AC               ; KNOWN: DOSBase _LVOOpen fallback via local wrapper
+    bsr.w h0_B0AC
 h0_AA8C:
     bne.s h0_AA98
 h0_AA8E:
     lea.l dat_AAE9(pc),a0
-    bsr.w h0_DOSOpen_B0AC               ; KNOWN: DOSBase _LVOOpen fallback via local wrapper
+    bsr.w h0_B0AC
 h0_AA96:
     beq.s h0_AA9C
 h0_AA98:
@@ -11904,7 +11905,7 @@ h0_AEFC:
     rts
 h0_AEFE:
     tst.b $010A(a6)
-    beq.s h0_DOSOpen_AF28
+    beq.s h0_DOSOpen
 h0_AF04:
     lea.l app_timer_device_iorequest+IOSTD_SIZE(a6),a2
     move.l a0,-(a7)
@@ -11916,15 +11917,15 @@ h0_AF0E:
     lea.l dat_9656(pc),a2
     bsr.w h0_45CE
 h0_AF1A:
-    bsr.w h0_DOSOpen_AF28               ; KNOWN: DOSBase _LVOOpen fallback via local wrapper
+    bsr.w h0_DOSOpen                    ; KNOWN: DOSBase _LVOOpen fallback via local wrapper
 h0_AF1E:
     movea.l (a7)+,a0
     tst.l d4
-    beq.s h0_DOSOpen_AF28
+    beq.s h0_DOSOpen
 h0_AF24:
     neg.l d1
     rts
-h0_DOSOpen_AF28:
+h0_DOSOpen:
     move.l a0,-(a7)
     move.l a0,d1
     move.l #MODE_OLDFILE,d2
@@ -12118,15 +12119,15 @@ h0_B09E:
     bra.s h0_B096
 dat_B0A0:
     DC.B    $64,$6f,$73,$2e,$6c,$69,$62,$72,$61,$72,$79,$00
-h0_DOSOpen_B0AC:
-    bsr.w h0_DOSOpen_AF28
-h0_ExecAllocMem_B0B0:
+h0_B0AC:
+    bsr.w h0_DOSOpen                    ; KNOWN: DOSBase _LVOOpen fallback via local wrapper
+h0_B0B0:
     tst.l d4
     beq.s h0_B0D4
-h0_ExecAllocMem_B0B4:
+h0_B0B4:
     move.l d1,d5
     addq.l #1,d1
-    bsr.w h0_ExecAllocMem_90BA
+    bsr.w h0_ExecAllocMem_90BA          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
 h0_DOSRead_B0BC:
     move.l d5,d1
     move.l d4,d3
@@ -12773,12 +12774,12 @@ h0_F892:
 h0_F89E:
     move.l a1,d2
     bsr.w h0_9B24
-h0_ExecAllocMem_F8A4:
+h0_F8A4:
     beq.s h0_F8E4
-h0_ExecAllocMem_F8A6:
+h0_F8A6:
     movem.l a0-a1,-(a7)
     moveq.l #34,d1
-    bsr.w h0_ExecAllocMem_90BA
+    bsr.w h0_ExecAllocMem_90BA          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
 h0_F8B0:
     movem.l (a7)+,a1-a2
     move.l a0,(a1)
@@ -12840,27 +12841,27 @@ h0_F93A:
 h0_F94E:
     move.l a5,$000C(a1)
     rts
-h0_ExecAllocMem_F954:
+h0_F954:
     lea.l $01A6(a6),a3
-h0_ExecAllocMem_F958:
+h0_F958:
     tst.l (a3)
     beq.s h0_F980
-h0_ExecAllocMem_F95C:
+h0_F95C:
     movea.l (a3),a3
     move.l $0012(a3),d1
     beq.s h0_F97E
-h0_ExecAllocMem_F964:
+h0_F964:
     btst.b #1,$0010(a3)
     bne.s h0_F97E
-h0_ExecAllocMem_F96C:
+h0_F96C:
     addq.l #8,d1
-    bsr.w h0_ExecAllocMem_90BA
+    bsr.w h0_ExecAllocMem_90BA          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
 h0_F972:
     move.l a0,$0008(a3)
     move.l a0,$000C(a3)
     adda.l $0012(a3),a0
 h0_F97E:
-    bra.s h0_ExecAllocMem_F958
+    bra.s h0_F958
 h0_F980:
     rts
 h0_F982:
@@ -13067,10 +13068,10 @@ h0_FB2E:
     movea.l (a1),a1
     move.l #$3900,d2
     bsr.w h0_FC5E
-h0_ExecAllocMem_FB44:
+h0_FB44:
     add.l (a7)+,d1
     addi.l #10,d1
-    jsr h0_ExecAllocMem_90BA.l
+    jsr h0_ExecAllocMem_90BA.l          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
 h0_FB52:
     movea.l a0,a2
     move.w #$0,(a2)
@@ -13246,7 +13247,7 @@ h0_FD0E:
     move.l d2,d1
 h0_FD10:
     move.l d1,-(a7)
-    jsr h0_ExecAllocMem_90BA.l
+    jsr h0_ExecAllocMem_90BA.l          ; KNOWN: SysBase _LVOAllocMem fallback via local wrapper
 h0_FD18:
     move.l (a7),d1
     move.l a0,(a7)

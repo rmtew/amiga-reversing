@@ -152,6 +152,20 @@ static M68kDisasmResult make_result(size_t byte_count, const char *text, uint16_
   return result;
 }
 
+static void set_result_coprocessor_id(M68kDisasmResult *result, uint16_t disasm_form_index,
+    const uint16_t *field_values) {
+  const M68kAsmFormDef *form = &g_m68k_disasm_forms[disasm_form_index];
+  size_t patch_index;
+  if (result == NULL || field_values == NULL) return;
+  for (patch_index = 0U; patch_index < form->patch_count; ++patch_index) {
+    const M68kAsmFieldPatch *patch = &g_m68k_disasm_patches[form->patch_start + patch_index];
+    if (patch->field_kind != M68K_ASM_FIELD_ID) continue;
+    result->has_coprocessor_id = 1U;
+    result->coprocessor_id = (uint8_t)(field_values[patch_index] & 0x7U);
+    return;
+  }
+}
+
 static int extract_patch_values(uint16_t disasm_form_index, const uint8_t *data, uint16_t *field_values) {
   const M68kAsmFormDef *form = &g_m68k_disasm_forms[disasm_form_index];
   size_t patch_index;
@@ -443,8 +457,26 @@ static void init_operand(M68kAsmOperandValue *operand, uint16_t disasm_form_inde
   if (operand->kind == M68K_ASM_OPERAND_EA && shape == 2U) operand->ea_mode = 5U;
 }
 
+static int operand_ea_mode_allowed(uint16_t disasm_form_index, size_t operand_index, const M68kAsmOperandValue *operand) {
+  uint64_t mask;
+  uint64_t bit;
+  if (operand == NULL || operand_index >= 4U) return 0;
+  if (operand->kind != M68K_ASM_OPERAND_EA && operand->kind != M68K_ASM_OPERAND_BF_EA) return 1;
+  mask = g_m68k_disasm_operand_ea_mode_masks[disasm_form_index][operand_index];
+  if (mask == 0ULL) return 1;
+  if (operand->ea_mode > 7U || operand->ea_reg > 7U) return 0;
+  bit = 1ULL << ((unsigned)operand->ea_mode * 8U + (unsigned)operand->ea_reg);
+  return (mask & bit) != 0ULL;
+}
+
+static int control_register_supports_cpu(const M68kAsmControlRegisterDef *entry, uint8_t target_cpu) {
+  if (entry == NULL) return 0;
+  if (target_cpu == M68K_ASM_CPU_ANY) return 1;
+  return (entry->cpu_mask & (1u << target_cpu)) != 0u;
+}
+
 static int decode_operands(uint16_t disasm_form_index, const uint16_t *field_values, char size_suffix,
-    const uint8_t *data, size_t size, M68kAsmOperandValue *operands, size_t *out_byte_count) {
+    const uint8_t *data, size_t size, M68kAsmOperandValue *operands, size_t *out_byte_count, uint8_t target_cpu) {
   const M68kAsmFormDef *form = &g_m68k_disasm_forms[disasm_form_index];
   size_t operand_index;
   size_t patch_index;
@@ -522,6 +554,9 @@ static int decode_operands(uint16_t disasm_form_index, const uint16_t *field_val
   }
   if (decode_extensions(disasm_form_index, data, size, operands, size_suffix, out_byte_count) != 0) return -1;
   for (operand_index = 0; operand_index < form->operand_count; ++operand_index) {
+    if (!operand_ea_mode_allowed(disasm_form_index, operand_index, &operands[operand_index])) return -1;
+  }
+  for (operand_index = 0; operand_index < form->operand_count; ++operand_index) {
     M68kAsmOperandValue *operand = &operands[operand_index];
     if (operand->kind == M68K_ASM_OPERAND_CTRL_REG) {
       size_t control_index;
@@ -530,17 +565,27 @@ static int decode_operands(uint16_t disasm_form_index, const uint16_t *field_val
         uint16_t control_id = g_m68k_disasm_form_control_register_ids[form->control_register_start + control_index];
         const M68kAsmControlRegisterDef *entry = &g_m68k_asm_control_registers[control_id];
         if (entry->value != operand->value) continue;
+        if (!control_register_supports_cpu(entry, target_cpu)) continue;
         operand->reg = (uint8_t)entry->id;
         break;
+      }
+      if (operand->reg == M68K_ASM_CONTROL_REGISTER_NONE && form->control_register_count == 1U) {
+        uint16_t control_id = g_m68k_disasm_form_control_register_ids[form->control_register_start];
+        const M68kAsmControlRegisterDef *entry = &g_m68k_asm_control_registers[control_id];
+        if (!control_register_supports_cpu(entry, target_cpu)) return -1;
+        operand->reg = (uint8_t)entry->id;
+        operand->value = entry->value;
       }
       if (operand->reg == M68K_ASM_CONTROL_REGISTER_NONE) {
         for (control_index = 0; control_index < g_m68k_asm_control_register_count; ++control_index) {
           const M68kAsmControlRegisterDef *entry = &g_m68k_asm_control_registers[control_index];
           if (entry->value != operand->value) continue;
+          if (!control_register_supports_cpu(entry, target_cpu)) continue;
           operand->reg = (uint8_t)entry->id;
           break;
         }
       }
+      if (operand->reg == M68K_ASM_CONTROL_REGISTER_NONE) return -1;
     }
   }
   if (form->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && form->operand_count >= 2U &&
@@ -890,12 +935,14 @@ static M68kDisasmResult m68k_disassemble_one_impl(const uint8_t *data, size_t si
     if (extract_patch_values(disasm_form_index, data, field_values) != 0) continue;
     if (validate_patch_values(disasm_form_index, field_values) != 0) continue;
     size_suffix = resolve_size_suffix(form, field_values);
-    if (decode_operands(disasm_form_index, field_values, size_suffix, data, size, operands, &byte_count) != 0) continue;
+    if (decode_operands(disasm_form_index, field_values, size_suffix, data, size, operands, &byte_count,
+        target_cpu) != 0) continue;
     if (render_instruction(disasm_form_index, operands, form->operand_count, size_suffix, rendered_text,
         sizeof(rendered_text)) != 0) continue;
     specificity = disasm_form_specificity(disasm_form_index);
     if (!have_match || specificity > best_specificity) {
       best_result = make_result(byte_count, rendered_text, disasm_form_index, operands, size_suffix, target_cpu);
+      set_result_coprocessor_id(&best_result, disasm_form_index, field_values);
       have_match = 1;
       best_specificity = specificity;
     }

@@ -35,7 +35,8 @@ from amiga_reversing.disasm.c_backend import (
     validate_amiga_hunk_executable_with_c_backend,
     validate_api_input_struct_with_c_backend,
 )
-from amiga_reversing.disasm.listing_types import BlockRowContext, ListingRow
+from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
+from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, ListingRow
 from amiga_reversing.disasm.project_ids import derive_disk_id_from_stem, disk_project_id
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from amiga_reversing.disasm.projects import (
@@ -49,6 +50,15 @@ from amiga_reversing.disasm.projects import (
     mark_project_opened,
     mark_project_updated,
 )
+from amiga_reversing.disasm.reproduction import (
+    issues_by_row_index,
+    load_reproduction_report,
+    reproduction_input_stamp,
+    reproduction_navigation_entries,
+    run_reproduction,
+    source_renderer_tool_stamps,
+)
+from amiga_reversing.disasm.target_ui_edits import append_target_ui_edit
 
 WEB_ROOT = Path(__file__).resolve().parents[1] / "web"
 LOGGER = logging.getLogger("amiga_reversing.disasm.server")
@@ -83,13 +93,14 @@ class AsyncJobPayload(TypedDict):
     finished_at: float | None
     visible_generation: NotRequired[str | None]
     target_generation: NotRequired[str | None]
-    enrichment_job_id: NotRequired[str | None]
     cache_key: NotRequired[str | None]
+    reproduction_status: NotRequired[str | None]
 
 
 class ProjectPayload(TypedDict):
     project: dict[str, object]
     disk_manifest: NotRequired[dict[str, object]]
+    reproduction: NotRequired[dict[str, object]]
 
 
 class ApiResponse(TypedDict):
@@ -115,13 +126,17 @@ _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
 _JOB_LOCK = threading.Lock()
 
-_LISTING_PHASE_COUNT = 2
+_LISTING_PHASE_COUNT = 4
+_REPRODUCTION_PHASE_COUNT = 4
 _PROJECT_CREATE_EXECUTABLE_PHASE_COUNT = 4
 _PROJECT_CREATE_DISK_PHASE_COUNT = 5
 
 _OS_CORRECTIONS_PATH = (
     Path(__file__).resolve().parents[2] / "knowledge" / "amiga_ndk_corrections.json"
 )
+_API_CALL_NOTE_INDEXED_VECTOR = 1
+_API_CALL_NOTE_LOCAL_WRAPPER_SYMBOL = 3
+_APP_SLOT_ACCESS_ORDER = ("read", "write", "read-write", "address")
 
 
 def _os_corrections_payload() -> dict[str, object]:
@@ -222,11 +237,13 @@ def _annotate_listing_payload(
     project_name: str, payload: ListingWindowPayload
 ) -> ListingWindowPayload:
     annotated_rows: list[SerializedRow] = []
+    repro_issues = _active_reproduction_issues_by_row_index(project_name)
+    window_start = int(payload.get("start") or 0)
     try:
         entities_by_addr = get_entities_by_int_addr(project_name, project_root=PROJECT_ROOT)
     except (FileNotFoundError, ValueError, AssertionError):
         entities_by_addr = {}
-    for row in payload["rows"]:
+    for relative_index, row in enumerate(payload["rows"]):
         annotations: list[str] = []
         entity = None
         entity_addr = row.get("entity_addr")
@@ -238,12 +255,56 @@ def _annotate_listing_payload(
                     if isinstance(value, str) and value:
                         annotations.append(value)
         entity_payload = cast(dict[str, object], entity) if entity is not None else None
-        annotated_rows.append({**row, "entity": entity_payload, "view_annotations": annotations})
+        row_issues = repro_issues.get(window_start + relative_index, [])
+        if row_issues:
+            annotations.append("REPRO: " + str(row_issues[0].get("summary") or row_issues[0].get("message") or "issue"))
+        annotated_rows.append({
+            **row,
+            "entity": entity_payload,
+            "view_annotations": annotations,
+            "repro_issues": row_issues,
+        })
     payload = {
         **payload,
         "rows": annotated_rows,
     }
     return _annotate_api_calls(project_name, payload)
+
+
+def _active_reproduction_report(project_name: str) -> dict[str, object] | None:
+    try:
+        report = load_reproduction_report(project_name, project_root=PROJECT_ROOT)
+    except (FileNotFoundError, ValueError, RuntimeError):
+        return None
+    if report.get("stale"):
+        return None
+    return report
+
+
+def _active_reproduction_issues_by_row_index(
+    project_name: str,
+) -> dict[int, list[dict[str, object]]]:
+    report = _active_reproduction_report(project_name)
+    if report is None:
+        return {}
+    return issues_by_row_index(report)
+
+
+def _not_ready_reproduction_payload(
+    project_name: str, error: str | None = None
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "target": project_name,
+        "status": "not_ready",
+        "exact": False,
+        "stale": False,
+        "issues": [],
+        "diff_ranges": [],
+        "assembler_diagnostics": [],
+    }
+    if error:
+        payload["error"] = error
+    return payload
 
 
 def _entity_annotation_values(entity: dict[str, object] | None) -> list[str]:
@@ -289,6 +350,43 @@ def _listing_row_is_label(row: ListingRow) -> bool:
     return bool(row.label) or _listing_row_code(row).endswith(":")
 
 
+def _api_call_same_function(left: dict[str, object], right: dict[str, object]) -> bool:
+    return left.get("library") == right.get("library") and left.get("function") == right.get("function")
+
+
+def _api_call_has_near_lvo_reference(
+    api_calls: dict[ApiCallRowKey, dict[str, object]],
+    hunk_index: int,
+    offset: int,
+    api_call: dict[str, object],
+) -> bool:
+    for probe_offset in range(max(0, offset - 8), offset):
+        candidate = api_calls.get((hunk_index, probe_offset))
+        if (
+            candidate is not None
+            and candidate.get("note_kind") == 0
+            and _api_call_same_function(candidate, api_call)
+        ):
+            return True
+    return False
+
+
+def _api_call_is_navigation_target(
+    api_calls: dict[ApiCallRowKey, dict[str, object]],
+    hunk_index: int,
+    offset: int,
+    api_call: dict[str, object],
+) -> bool:
+    if api_call.get("note_kind") == _API_CALL_NOTE_LOCAL_WRAPPER_SYMBOL:
+        return False
+    if (
+        api_call.get("note_kind") == _API_CALL_NOTE_INDEXED_VECTOR
+        and _api_call_has_near_lvo_reference(api_calls, hunk_index, offset, api_call)
+    ):
+        return False
+    return True
+
+
 def _listing_navigation_summary(
     row: ListingRow,
     jump_class: str,
@@ -298,6 +396,8 @@ def _listing_navigation_summary(
     if jump_class == "api-calls" and api_call:
         library = api_call.get("library", "")
         function = api_call.get("function", "")
+        if api_call.get("note_kind") == 1:
+            return f"{function} dispatch ({library})".strip()
         return f"{function} ({library})".strip()
     if jump_class == "comments" and annotations:
         return "; ".join(annotations)
@@ -321,28 +421,62 @@ def _navigation_entry(
     annotations: list[str] | None = None,
 ) -> dict[str, object]:
     assert row.addr is not None
-    return {
+    entry = {
         "addr": row.addr,
         "row_index": row_index,
         "summary": _listing_navigation_summary(row, jump_class, api_call, annotations),
         "match_text": _listing_row_code(row),
         "stable_key": row.stable_key,
     }
+    if isinstance(row.source_context, BlockRowContext):
+        entry["hunk_index"] = row.source_context.hunk_index
+    if row.section_index is not None:
+        entry["section_index"] = row.section_index
+    return entry
+
+
+def _ordered_app_slot_access_counts(access_counts: dict[str, int]) -> dict[str, int]:
+    ordered = {access: access_counts[access] for access in _APP_SLOT_ACCESS_ORDER if access_counts.get(access)}
+    for access, count in sorted(access_counts.items()):
+        if access not in ordered and count:
+            ordered[access] = count
+    return ordered
+
+
+def _app_slot_navigation_ref_entry(row: ListingRow, row_index: int, ref: AppSlotRef) -> dict[str, object]:
+    entry = _navigation_entry(row, row_index, "app-slots")
+    entry.update(
+        {
+            "symbol": ref.symbol,
+            "displacement": ref.displacement,
+            "base_register": ref.base_register,
+            "operand_index": ref.operand_index,
+            "access": ref.access,
+            "summary": _listing_row_code(row) or ref.symbol,
+        }
+    )
+    return entry
 
 
 def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> dict[str, object]:
     groups: dict[str, list[dict[str, object]]] = {
+        "repro-issues": [],
         "typed-data": [],
         "relocations": [],
         "api-calls": [],
+        "app-slots": [],
         "labels": [],
         "comments": [],
     }
+    repro_report = _active_reproduction_report(project_name)
+    if repro_report is not None:
+        groups["repro-issues"] = reproduction_navigation_entries(repro_report)
     api_calls = _PROJECT_API_CALL_CACHE.get(project_name, {})
     try:
         entities_by_addr = get_entities_by_int_addr(project_name, project_root=PROJECT_ROOT)
     except (FileNotFoundError, ValueError, AssertionError):
         entities_by_addr = {}
+    app_slots: dict[str, dict[str, object]] = {}
     for row_index, row in enumerate(rows):
         if row.addr is None:
             continue
@@ -355,12 +489,43 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
             groups["typed-data"].append(_navigation_entry(row, row_index, "typed-data"))
         if _listing_row_has_segment_reference(row):
             groups["relocations"].append(_navigation_entry(row, row_index, "relocations"))
-        if api_call is not None:
+        if (
+            row.kind == "instruction"
+            and api_call is not None
+            and isinstance(row.source_context, BlockRowContext)
+            and _api_call_is_navigation_target(api_calls, row.source_context.hunk_index, row.addr, api_call)
+        ):
             groups["api-calls"].append(_navigation_entry(row, row_index, "api-calls", api_call))
+        for ref in row.app_slot_refs:
+            slot_entry = app_slots.setdefault(
+                ref.symbol,
+                {
+                    "symbol": ref.symbol,
+                    "summary": ref.symbol,
+                    "match_text": ref.symbol,
+                    "displacement": ref.displacement,
+                    "ref_count": 0,
+                    "access_counts": {},
+                    "refs": [],
+                },
+            )
+            refs = cast(list[dict[str, object]], slot_entry["refs"])
+            access_counts = cast(dict[str, int], slot_entry["access_counts"])
+            refs.append(_app_slot_navigation_ref_entry(row, row_index, ref))
+            access_counts[ref.access] = access_counts.get(ref.access, 0) + 1
         if _listing_row_is_label(row):
             groups["labels"].append(_navigation_entry(row, row_index, "labels"))
         if row.comment_text or annotations:
             groups["comments"].append(_navigation_entry(row, row_index, "comments", annotations=annotations))
+    for slot_entry in app_slots.values():
+        refs = cast(list[dict[str, object]], slot_entry["refs"])
+        refs.sort(key=lambda entry: cast(int, entry.get("row_index", -1)))
+        slot_entry["ref_count"] = len(refs)
+        slot_entry["access_counts"] = _ordered_app_slot_access_counts(cast(dict[str, int], slot_entry["access_counts"]))
+    groups["app-slots"] = sorted(
+        app_slots.values(),
+        key=lambda entry: (cast(int, entry.get("displacement", 0)), cast(str, entry.get("symbol", ""))),
+    )
     return {
         "analysis_generation": _PROJECT_ROW_GENERATION_CACHE.get(project_name),
         "total_rows": len(rows),
@@ -542,6 +707,7 @@ def _set_job_state(
     finished_at: float | None | object = _MISSING,
     visible_generation: str | None | object = _MISSING,
     target_generation: str | None | object = _MISSING,
+    reproduction_status: str | None | object = _MISSING,
 ) -> bool:
     updated = False
     with _JOB_LOCK:
@@ -593,6 +759,9 @@ def _set_job_state(
         if target_generation is not _MISSING:
             assert target_generation is None or isinstance(target_generation, str)
             job["target_generation"] = target_generation
+        if reproduction_status is not _MISSING:
+            assert reproduction_status is None or isinstance(reproduction_status, str)
+            job["reproduction_status"] = reproduction_status
         updated = True
     if updated:
         _publish_job_event(job_id)
@@ -655,7 +824,14 @@ def _project_listing_cache_key(project_name: str) -> str:
         if hasattr(source, attr):
             parts.append(f"{attr}={getattr(source, attr)}")
     parts.append(_file_cache_stamp(paths.target_dir / "source_binary.json"))
-    parts.append(_file_cache_stamp(paths.target_dir / "target_metadata.json"))
+    parts.append(
+        "source_renderer_tool_stamps="
+        + json.dumps(source_renderer_tool_stamps(PROJECT_ROOT), sort_keys=True)
+    )
+    try:
+        parts.append(f"effective_metadata={effective_metadata_hash(paths.target_dir)}")
+    except ValueError as exc:
+        parts.append(f"effective_metadata_error={exc}")
     return "|".join(parts)
 
 
@@ -676,47 +852,73 @@ def _build_rows_job(job_id: str, project_name: str, generation: str = "full") ->
         _log_event("listing_job start", job_id=job_id, project=project_name, generation=generation)
         if not _set_job_state(job_id, status="building"):
             return
-        if not _set_job_phase(
-            job_id,
-            phase_id="build_c_rows",
-            phase_index=1,
-            phase_count=phase_count,
-        ):
-            return
-        _log_event(
-            "listing_job phase",
-            job_id=job_id,
-            project=project_name,
-            generation=generation,
-            phase="build_c_rows",
-        )
-        rows, api_calls = build_project_rows_generation_with_c_backend(project_name, generation=generation)
-        if not _set_job_phase(
-            job_id, phase_id="emit_rows", phase_index=2, phase_count=phase_count
-        ):
-            return
-        if _project_listing_cache_key(project_name) != cache_key:
-            _set_job_state(
+        generations = ["basic", "full"] if generation == "full" else [generation]
+        for generation_index, active_generation in enumerate(generations):
+            build_phase = "build_basic_rows" if active_generation == "basic" else "build_c_rows"
+            emit_phase = "emit_basic_rows" if active_generation == "basic" else "emit_rows"
+            build_phase_index = 1 if active_generation == "basic" else 3
+            emit_phase_index = 2 if active_generation == "basic" else 4
+            if not _set_job_phase(
                 job_id,
-                status="failed",
-                phase_id="stale",
-                error="project changed while listing job was building",
-                finished_at=time.time(),
+                phase_id=build_phase,
+                phase_index=build_phase_index,
+                phase_count=phase_count,
+            ):
+                return
+            _log_event(
+                "listing_job phase",
+                job_id=job_id,
+                project=project_name,
+                generation=active_generation,
+                phase=build_phase,
             )
-            return
-        with _JOB_LOCK:
-            if job_id not in _ASYNC_JOBS:
+            rows, api_calls = build_project_rows_generation_with_c_backend(
+                project_name,
+                generation=active_generation,
+            )
+            if not _set_job_phase(
+                job_id, phase_id=emit_phase, phase_index=emit_phase_index, phase_count=phase_count
+            ):
                 return
-            job_cache_key = _ASYNC_JOBS[job_id].get("cache_key")
-            if job_cache_key is not None and job_cache_key != cache_key:
+            if _project_listing_cache_key(project_name) != cache_key:
+                _set_job_state(
+                    job_id,
+                    status="failed",
+                    phase_id="stale",
+                    error="project changed while listing job was building",
+                    finished_at=time.time(),
+                )
                 return
-            _PROJECT_ROW_CACHE[project_name] = rows
-            _PROJECT_ROW_GENERATION_CACHE[project_name] = generation
-            _PROJECT_ROW_CACHE_KEY[project_name] = cache_key
-            if generation == "full":
-                _PROJECT_API_CALL_CACHE[project_name] = api_calls
-            elif project_name not in _PROJECT_API_CALL_CACHE:
-                _PROJECT_API_CALL_CACHE[project_name] = {}
+            with _JOB_LOCK:
+                if job_id not in _ASYNC_JOBS:
+                    return
+                job_cache_key = _ASYNC_JOBS[job_id].get("cache_key")
+                if job_cache_key is not None and job_cache_key != cache_key:
+                    return
+                _PROJECT_ROW_CACHE[project_name] = rows
+                _PROJECT_ROW_GENERATION_CACHE[project_name] = active_generation
+                _PROJECT_ROW_CACHE_KEY[project_name] = cache_key
+                if active_generation == "full":
+                    _PROJECT_API_CALL_CACHE[project_name] = api_calls
+                elif project_name not in _PROJECT_API_CALL_CACHE:
+                    _PROJECT_API_CALL_CACHE[project_name] = {}
+            _log_event(
+                "listing_job generation_ready",
+                job_id=job_id,
+                project=project_name,
+                generation=active_generation,
+                total_rows=len(rows),
+            )
+            _publish_listing_generation_ready_event(job_id, project_name, active_generation, rows)
+            if not _set_job_state(
+                job_id,
+                total_rows=len(rows),
+                visible_generation=active_generation,
+                target_generation=generation,
+            ):
+                return
+            if generation_index + 1 >= len(generations):
+                break
         _log_event(
             "listing_job done",
             job_id=job_id,
@@ -724,8 +926,6 @@ def _build_rows_job(job_id: str, project_name: str, generation: str = "full") ->
             generation=generation,
             total_rows=len(rows),
         )
-        if generation == "full":
-            _publish_listing_generation_ready_event(job_id, project_name, generation, rows)
         _set_job_state(
             job_id,
             status="ready",
@@ -741,6 +941,8 @@ def _build_rows_job(job_id: str, project_name: str, generation: str = "full") ->
             target_generation=generation,
             finished_at=time.time(),
         )
+        if generation == "full":
+            _start_reproduction_job_if_needed(project_name)
     except Exception as exc:  # pragma: no cover
         _log_event(
             "listing_job failed", job_id=job_id, project=project_name, error=str(exc)
@@ -782,6 +984,8 @@ def _start_listing_job(project_name: str, generation: str = "full") -> AsyncJobP
         }
         with _JOB_LOCK:
             _ASYNC_JOBS[job_id] = payload
+        if payload.get("visible_generation") == "full":
+            _start_reproduction_job_if_needed(project_name)
         return payload
 
     with _JOB_LOCK:
@@ -826,11 +1030,175 @@ def _start_listing_job(project_name: str, generation: str = "full") -> AsyncJobP
 
 
 def _start_progressive_listing_jobs(project_name: str) -> AsyncJobPayload:
-    basic_job = _start_listing_job(project_name, generation="basic")
-    full_job = _start_listing_job(project_name, generation="full")
-    basic_job = cast(AsyncJobPayload, dict(basic_job))
-    basic_job["enrichment_job_id"] = full_job["job_id"]
-    return basic_job
+    return _start_listing_job(project_name, generation="full")
+
+
+def _reproduction_cache_key(project_name: str) -> str:
+    try:
+        stamp = reproduction_input_stamp(project_name, project_root=PROJECT_ROOT)
+    except Exception as exc:
+        return f"{project_name}|reproduction-unresolved|{exc}"
+    return json.dumps(stamp, sort_keys=True)
+
+
+def _build_reproduction_job(job_id: str, project_name: str) -> None:
+    phase_count = _REPRODUCTION_PHASE_COUNT
+    try:
+        cache_key = _reproduction_cache_key(project_name)
+        _log_event("reproduction_job start", job_id=job_id, project=project_name)
+        if not _set_job_state(job_id, status="building"):
+            return
+        if not _set_job_phase(job_id, phase_id="prepare", phase_index=1, phase_count=phase_count):
+            return
+        rows = _cached_project_rows(project_name)
+        if _PROJECT_ROW_GENERATION_CACHE.get(project_name) != "full":
+            rows = None
+        if not _set_job_phase(job_id, phase_id="assemble", phase_index=2, phase_count=phase_count):
+            return
+        report = run_reproduction(project_name, rows=rows, project_root=PROJECT_ROOT)
+        if not _set_job_phase(job_id, phase_id="diff", phase_index=3, phase_count=phase_count):
+            return
+        if _reproduction_cache_key(project_name) != cache_key:
+            _set_job_state(
+                job_id,
+                status="failed",
+                phase_id="stale",
+                error="project changed while reproduction job was running",
+                finished_at=time.time(),
+            )
+            return
+        _set_job_state(
+            job_id,
+            status="ready",
+            phase_id="done",
+            phase_index=phase_count,
+            phase_count=phase_count,
+            progress_mode="determinate",
+            progress_current=phase_count,
+            progress_total=phase_count,
+            progress_percent=100,
+            finished_at=time.time(),
+            reproduction_status=str(report.get("status") or ""),
+        )
+        _log_event(
+            "reproduction_job done",
+            job_id=job_id,
+            project=project_name,
+            status=report.get("status"),
+        )
+    except Exception as exc:  # pragma: no cover
+        _log_event("reproduction_job failed", job_id=job_id, project=project_name, error=str(exc))
+        _set_job_state(
+            job_id,
+            status="failed",
+            phase_id="error",
+            error=str(exc),
+            finished_at=time.time(),
+        )
+
+
+def _start_reproduction_job(project_name: str, *, force: bool = True) -> AsyncJobPayload:
+    cache_key = _reproduction_cache_key(project_name)
+    if not force:
+        try:
+            report = load_reproduction_report(project_name, project_root=PROJECT_ROOT)
+        except Exception:
+            report = {"status": "not_ready", "stale": True}
+        if report.get("status") != "not_ready" and report.get("stale") is False:
+            job_id = f"cached-reproduction-{project_name}"
+            payload: AsyncJobPayload = {
+                "job_id": job_id,
+                "job_kind": "reproduction",
+                "project_id": project_name,
+                "result_project_id": project_name,
+                "status": "ready",
+                "phase_id": "done",
+                "phase_index": _REPRODUCTION_PHASE_COUNT,
+                "phase_count": _REPRODUCTION_PHASE_COUNT,
+                "progress_mode": "determinate",
+                "progress_current": _REPRODUCTION_PHASE_COUNT,
+                "progress_total": _REPRODUCTION_PHASE_COUNT,
+                "progress_percent": 100,
+                "total_rows": None,
+                "error": None,
+                "created_at": time.time(),
+                "finished_at": time.time(),
+                "cache_key": cache_key,
+                "reproduction_status": str(report.get("status") or ""),
+            }
+            with _JOB_LOCK:
+                _ASYNC_JOBS[job_id] = payload
+            return payload
+    with _JOB_LOCK:
+        for _existing_id, job in _ASYNC_JOBS.items():
+            if (
+                job["job_kind"] == "reproduction"
+                and job["project_id"] == project_name
+                and job.get("cache_key") == cache_key
+                and job["status"] in {"queued", "building"}
+            ):
+                return cast(AsyncJobPayload, dict(job))
+        job_id = str(uuid.uuid4())
+        _ASYNC_JOBS[job_id] = {
+            "job_id": job_id,
+            "job_kind": "reproduction",
+            "project_id": project_name,
+            "result_project_id": project_name,
+            "status": "queued",
+            "phase_id": "queued",
+            "phase_index": 0,
+            "phase_count": _REPRODUCTION_PHASE_COUNT,
+            "progress_mode": "determinate",
+            "progress_current": 0,
+            "progress_total": _REPRODUCTION_PHASE_COUNT,
+            "progress_percent": 0,
+            "total_rows": None,
+            "error": None,
+            "created_at": time.time(),
+            "finished_at": None,
+            "cache_key": cache_key,
+            "reproduction_status": None,
+        }
+    worker = threading.Thread(
+        target=_build_reproduction_job,
+        args=(job_id, project_name),
+        daemon=True,
+    )
+    worker.start()
+    return _job_payload(job_id)
+
+
+def _start_reproduction_job_if_needed(project_name: str) -> AsyncJobPayload | None:
+    try:
+        project = get_project(project_name)
+    except FileNotFoundError:
+        return None
+    if project.kind != "binary" or not project.ready:
+        return None
+    if "reproduction-unresolved" in _reproduction_cache_key(project_name):
+        return None
+    return _start_reproduction_job(project_name, force=False)
+
+
+def _cancel_reproduction_jobs(project_name: str | None = None) -> None:
+    canceled: list[tuple[str, AsyncJobPayload]] = []
+    with _JOB_LOCK:
+        stale_job_ids = [
+            job_id
+            for job_id, job in _ASYNC_JOBS.items()
+            if job["job_kind"] == "reproduction"
+            and (project_name is None or job["project_id"] == project_name)
+        ]
+        for job_id in stale_job_ids:
+            job = dict(_ASYNC_JOBS[job_id])
+            job["status"] = "failed"
+            job["phase_id"] = "error"
+            job["error"] = "job canceled"
+            job["finished_at"] = time.time()
+            canceled.append((job_id, cast(AsyncJobPayload, job)))
+            del _ASYNC_JOBS[job_id]
+    for job_id, payload in canceled:
+        _publish_job_event_payload(job_id, payload)
 
 
 def _build_project_create_job(job_id: str, body: dict[str, object]) -> None:
@@ -904,6 +1272,11 @@ def _project_payload(project_name: str) -> ProjectPayload:
             raise ValueError(f"Disk project {project_name} is missing manifest_path")
         manifest = DiskManifest.load(Path(manifest_path))
         payload["disk_manifest"] = manifest.to_dict()
+    elif project.kind == "binary" and project.ready:
+        try:
+            payload["reproduction"] = load_reproduction_report(project_name, project_root=PROJECT_ROOT)
+        except Exception as exc:
+            payload["reproduction"] = _not_ready_reproduction_payload(project_name, str(exc))
     return payload
 
 
@@ -1142,6 +1515,7 @@ def route_request(
             return {"ok": True, "data": _project_payload(project_name)}
         if method == "POST" and len(parts) == 4 and parts[3] == "delete":
             _cancel_listing_jobs(project_name)
+            _cancel_reproduction_jobs(project_name)
             _clear_project_listing_cache(project_name)
             delete_project(project_name)
             return {"ok": True, "data": None}
@@ -1156,6 +1530,58 @@ def route_request(
             and parts[4] == "type-catalog"
         ):
             return {"ok": True, "data": _type_catalog_payload(project_name)}
+        if method == "GET" and len(parts) == 4 and parts[3] == "reproduction":
+            project = get_project(project_name)
+            if project.kind != "binary":
+                raise ValueError(
+                    f"Project {project_name} does not expose target reproduction"
+                )
+            if not project.ready:
+                return {
+                    "ok": True,
+                    "data": _not_ready_reproduction_payload(project_name),
+                }
+            try:
+                report = load_reproduction_report(project_name, project_root=PROJECT_ROOT)
+            except Exception as exc:
+                report = _not_ready_reproduction_payload(project_name, str(exc))
+            return {"ok": True, "data": report}
+        if (
+            method == "POST"
+            and len(parts) == 5
+            and parts[3] == "reproduction"
+            and parts[4] == "run"
+        ):
+            project = get_project(project_name)
+            if project.kind != "binary" or not project.ready:
+                raise ValueError(
+                    f"Project {project_name} is not ready for target reproduction"
+                )
+            return {"ok": True, "data": _start_reproduction_job(project_name, force=True)}
+        if (
+            method == "GET"
+            and len(parts) == 5
+            and parts[3] == "reproduction"
+            and parts[4] == "status"
+        ):
+            job_values = query.get("job_id")
+            job_id = job_values[0] if job_values else None
+            if not job_id:
+                raise ValueError("Missing job_id")
+            return {"ok": True, "data": _job_payload(job_id)}
+        if method == "POST" and len(parts) == 4 and parts[3] == "target-edits":
+            project = get_project(project_name)
+            if project.kind != "binary" or not project.ready:
+                raise ValueError(
+                    f"Project {project_name} is not ready for target metadata edits"
+                )
+            paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT, require_entities=False)
+            edit = append_target_ui_edit(paths.target_dir, cast(dict[str, object], body or {}))
+            _cancel_listing_jobs(project_name)
+            _cancel_reproduction_jobs(project_name)
+            _clear_project_listing_cache(project_name)
+            mark_project_updated(paths.target_dir)
+            return {"ok": True, "data": {"edit": edit}}
         if method == "GET" and len(parts) == 4 and parts[3] == "listing":
             project = get_project(project_name)
             if project.kind != "binary":

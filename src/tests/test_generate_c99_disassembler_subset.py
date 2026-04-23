@@ -52,7 +52,18 @@ class GenerateC99DisassemblerSubsetTests(unittest.TestCase):
             "static const uint8_t g_m68k_disasm_operand_shapes[M68K_DISASM_FORM_SLOT_COUNT][4] = {",
             self._tables,
         )
+        self.assertIn(
+            "static const uint64_t g_m68k_disasm_operand_ea_mode_masks[M68K_DISASM_FORM_SLOT_COUNT][4] = {",
+            self._tables,
+        )
         self.assertIn("static const M68kAsmFormDef g_m68k_disasm_forms[M68K_DISASM_FORM_SLOT_COUNT]", self._tables)
+
+    def test_cmp2_ea_mask_excludes_register_direct_modes(self) -> None:
+        forms = self._generator._load_forms()
+        cmp2_form = next(form for form in forms if form.syntax == "CMP2 <ea>,Rn")
+        mask = cmp2_form.ea_mode_masks[0]
+        self.assertEqual(mask & 0xFFFF, 0)
+        self.assertNotEqual(mask & (1 << (2 * 8)), 0)
 
     def test_includes_concrete_coprocessor_condition_forms(self) -> None:
         self.assertIn('"cpbcc"', self._tables)

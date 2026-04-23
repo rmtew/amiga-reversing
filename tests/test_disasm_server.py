@@ -7,13 +7,14 @@ import subprocess
 import time
 import urllib.request
 from pathlib import Path
+from types import SimpleNamespace
 from typing import cast
 
 import pytest
 
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
-from amiga_reversing.disasm.listing_types import BlockRowContext, ListingRow
+from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, ListingRow
 from amiga_reversing.disasm.projects import ProjectRecord
 
 
@@ -239,6 +240,76 @@ def test_route_project_returns_project_and_session(monkeypatch: pytest.MonkeyPat
     assert project["name"] == "bloodwych"
     assert "session" not in data
     assert "disk_manifest" not in data
+
+
+def test_route_reproduction_read_run_and_status(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "load_reproduction_report",
+        lambda project_name, project_root=None: {"target": project_name, "status": "exact"},
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "_start_reproduction_job",
+        lambda project_name, force=True: cast(
+            disasm_server.AsyncJobPayload,
+            {
+                "job_id": "repro-1",
+                "job_kind": "reproduction",
+                "project_id": project_name,
+                "result_project_id": project_name,
+                "status": "queued",
+                "phase_id": "queued",
+                "phase_index": 0,
+                "phase_count": 4,
+                "progress_mode": "determinate",
+                "progress_current": 0,
+                "progress_total": 4,
+                "progress_percent": 0,
+                "total_rows": None,
+                "error": None,
+                "created_at": 1.0,
+                "finished_at": None,
+            },
+        ),
+    )
+    disasm_server._ASYNC_JOBS["repro-1"] = cast(
+        disasm_server.AsyncJobPayload,
+        {
+            "job_id": "repro-1",
+            "job_kind": "reproduction",
+            "project_id": "bloodwych",
+            "result_project_id": "bloodwych",
+            "status": "ready",
+            "phase_id": "done",
+            "phase_index": 4,
+            "phase_count": 4,
+            "progress_mode": "determinate",
+            "progress_current": 4,
+            "progress_total": 4,
+            "progress_percent": 100,
+            "total_rows": None,
+            "error": None,
+            "created_at": 1.0,
+            "finished_at": 2.0,
+        },
+    )
+
+    read_payload = disasm_server.route_request("GET", "/api/projects/bloodwych/reproduction", {})
+    run_payload = disasm_server.route_request("POST", "/api/projects/bloodwych/reproduction/run", {})
+    status_payload = disasm_server.route_request(
+        "GET", "/api/projects/bloodwych/reproduction/status", {"job_id": ["repro-1"]}
+    )
+
+    assert cast(dict[str, object], read_payload["data"])["status"] == "exact"
+    assert cast(dict[str, object], run_payload["data"])["job_kind"] == "reproduction"
+    assert cast(dict[str, object], status_payload["data"])["status"] == "ready"
+    disasm_server._ASYNC_JOBS.clear()
 
 
 def test_route_project_returns_disk_manifest_for_disk_project(
@@ -709,6 +780,150 @@ def test_route_listing_navigation_includes_entity_annotations(monkeypatch: pytes
     ]
 
 
+def test_listing_navigation_api_calls_use_instruction_row_and_hunk_context() -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="moveq #0,d0\n",
+            addr=0x10,
+            source_context=BlockRowContext(kind="core-block", hunk_index=0),
+        ),
+        ListingRow(
+            row_id="r1",
+            kind="label",
+            text="loc_0010:\n",
+            addr=0x10,
+            source_context=BlockRowContext(kind="core-block", hunk_index=1),
+        ),
+        ListingRow(
+            row_id="r2",
+            kind="instruction",
+            text="jsr loc_0100(pc)\t; KNOWN: local helper uses IntuitionBase _LVOSetPointer\n",
+            addr=0x10,
+            opcode_or_directive="jsr",
+            operand_text="loc_0100(pc)",
+            comment_text="KNOWN: local helper uses IntuitionBase _LVOSetPointer",
+            source_context=BlockRowContext(kind="core-block", hunk_index=1),
+        ),
+        ListingRow(
+            row_id="r3",
+            kind="instruction",
+            text="moveq.l #_LVOSetPointer,d0\n",
+            addr=0x12,
+            opcode_or_directive="moveq.l",
+            operand_text="#_LVOSetPointer,d0",
+            source_context=BlockRowContext(kind="core-block", hunk_index=1),
+        ),
+        ListingRow(
+            row_id="r4",
+            kind="instruction",
+            text="bsr.w loc_dispatch\n",
+            addr=0x14,
+            opcode_or_directive="bsr.w",
+            operand_text="loc_dispatch",
+            source_context=BlockRowContext(kind="core-block", hunk_index=1),
+        ),
+    ]
+    disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] = {
+        (1, 0x10): {
+            "library": "intuition.library",
+            "function": "SetPointer",
+            "note_kind": 3,
+            "call_kind": 1,
+            "inputs": [],
+        },
+        (1, 0x12): {
+            "library": "intuition.library",
+            "function": "SetPointer",
+            "note_kind": 0,
+            "call_kind": 1,
+            "inputs": [],
+        },
+        (1, 0x14): {
+            "library": "intuition.library",
+            "function": "SetPointer",
+            "note_kind": 1,
+            "call_kind": 2,
+            "inputs": [],
+        },
+    }
+
+    try:
+        payload = disasm_server._listing_navigation_payload("bloodwych", rows)
+        groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
+
+        assert groups["api-calls"] == [
+            {
+                "addr": 0x12,
+                "row_index": 3,
+                "summary": "SetPointer (intuition.library)",
+                "match_text": "moveq.l #_LVOSetPointer,d0",
+                "stable_key": None,
+                "hunk_index": 1,
+            }
+        ]
+    finally:
+        disasm_server._PROJECT_API_CALL_CACHE.clear()
+
+
+def test_listing_navigation_groups_app_slot_refs_by_symbol(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server, "_active_reproduction_report", lambda project_name: None)
+    monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="move.l app_DOSBase(a6),d0\n",
+            stable_key="app-read",
+            addr=0x20,
+            opcode_or_directive="move.l",
+            operand_text="app_DOSBase(a6),d0",
+            source_context=BlockRowContext(kind="core-block", hunk_index=0),
+            app_slot_refs=(AppSlotRef("app_DOSBase", 0x26, "A6", 0, "read"),),
+        ),
+        ListingRow(
+            row_id="r1",
+            kind="instruction",
+            text="move.l d0,app_0234(a6)\n",
+            stable_key="app-write",
+            addr=0x30,
+            opcode_or_directive="move.l",
+            operand_text="d0,app_0234(a6)",
+            source_context=BlockRowContext(kind="core-block", hunk_index=0),
+            app_slot_refs=(AppSlotRef("app_0234", 0x0234, "A6", 1, "write"),),
+        ),
+        ListingRow(
+            row_id="r2",
+            kind="instruction",
+            text="lea.l app_0234(a6),a0\n",
+            stable_key="app-address",
+            addr=0x40,
+            opcode_or_directive="lea.l",
+            operand_text="app_0234(a6),a0",
+            source_context=BlockRowContext(kind="core-block", hunk_index=0),
+            app_slot_refs=(AppSlotRef("app_0234", 0x0234, "A6", 0, "address"),),
+        ),
+    ]
+
+    payload = disasm_server._listing_navigation_payload("bloodwych", rows)
+    groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
+    app_slots = groups["app-slots"]
+
+    assert [entry["symbol"] for entry in app_slots] == ["app_DOSBase", "app_0234"]
+    assert app_slots[0]["ref_count"] == 1
+    assert app_slots[0]["access_counts"] == {"read": 1}
+    assert app_slots[1]["ref_count"] == 2
+    assert app_slots[1]["access_counts"] == {"write": 1, "address": 1}
+    refs = cast(list[dict[str, object]], app_slots[1]["refs"])
+    assert [(ref["row_index"], ref["access"], ref["stable_key"]) for ref in refs] == [
+        (1, "write", "app-write"),
+        (2, "address", "app-address"),
+    ]
+    assert refs[0]["summary"] == "move.l d0,app_0234(a6)"
+
+
 def test_route_listing_navigation_rejects_stale_cache(monkeypatch: pytest.MonkeyPatch) -> None:
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
@@ -740,6 +955,37 @@ def test_route_listing_navigation_rejects_stale_cache(monkeypatch: pytest.Monkey
     assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
     assert "bloodwych" not in disasm_server._PROJECT_ROW_GENERATION_CACHE
     assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE_KEY
+
+
+def test_project_listing_cache_key_includes_renderer_tool_stamps(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_path = tmp_path / "demo.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    source = SimpleNamespace(
+        kind="hunk_file",
+        display_path="demo.bin",
+        path=binary_path,
+    )
+    stamp = {"value": "a"}
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root, require_entities=False: SimpleNamespace(
+            target_dir=target_dir,
+            binary_source=source,
+        ),
+    )
+    monkeypatch.setattr(disasm_server, "effective_metadata_hash", lambda target_dir: "metadata")
+    monkeypatch.setattr(disasm_server, "source_renderer_tool_stamps", lambda project_root: {"renderer": stamp["value"]})
+
+    first = disasm_server._project_listing_cache_key("demo")
+    stamp["value"] = "b"
+    second = disasm_server._project_listing_cache_key("demo")
+
+    assert first != second
 
 
 def test_route_listing_keeps_view_annotations_empty_for_monam(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1057,11 +1303,10 @@ def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
         disasm_server,
         "_start_progressive_listing_jobs",
         lambda project_name: {
-            "job_id": "job-basic",
-            "enrichment_job_id": "job-full",
+            "job_id": "job-full",
             "project_id": project_name,
             "status": "queued",
-            "target_generation": "basic",
+            "target_generation": "full",
         },
     )
 
@@ -1073,8 +1318,8 @@ def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
     data = cast(dict[str, object], payload["data"])
 
     assert payload["ok"] is True
-    assert data["job_id"] == "job-basic"
-    assert data["enrichment_job_id"] == "job-full"
+    assert data["job_id"] == "job-full"
+    assert data["target_generation"] == "full"
 
 
 def test_start_listing_job_ignores_stale_ready_job_without_rows(
@@ -1117,6 +1362,7 @@ def test_start_listing_job_ignores_stale_ready_job_without_rows(
 
 def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [ListingRow(row_id="c:0", kind="instruction", text="nop\n", addr=0)]
+    build_calls: list[tuple[str, str, str | None]] = []
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
@@ -1141,7 +1387,8 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(
         disasm_server,
         "build_project_rows_generation_with_c_backend",
-        lambda project_name, generation: (rows, {(0, 0): {"library": "exec.library"}}),
+        lambda project_name, generation: build_calls.append((project_name, generation))
+        or (rows, {(0, 0): {"library": "exec.library"}}),
     )
 
     disasm_server._build_rows_job("job-1", "bloodwych", generation="full")
@@ -1151,6 +1398,7 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
     assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
         (0, 0): {"library": "exec.library"}
     }
+    assert build_calls == [("bloodwych", "basic"), ("bloodwych", "full")]
     assert disasm_server._ASYNC_JOBS["job-1"]["status"] == "ready"
 
 
@@ -1179,7 +1427,10 @@ def test_build_rows_job_reports_unsupported_c_backend(
         "finished_at": None,
     }
 
-    def fail(project_name: str, generation: str) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]]]:
+    def fail(
+        project_name: str,
+        generation: str,
+    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]]]:
         raise UnsupportedCBackendProject("unsupported project")
 
     monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend", fail)
@@ -1223,7 +1474,8 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
     }
 
     def canceled_build(
-        project_name: str, generation: str
+        project_name: str,
+        generation: str,
     ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]]]:
         del disasm_server._ASYNC_JOBS["job-basic"]
         return [ListingRow(row_id="stale", kind="instruction", text="nop\n")], {}
@@ -1259,34 +1511,34 @@ def test_full_listing_replaces_basic_rows(monkeypatch: pytest.MonkeyPatch) -> No
     disasm_server._JOB_EVENT_SUBSCRIBERS["job-full"] = [subscriber]
 
     def fake_build(
-        project_name: str, generation: str
+        project_name: str,
+        generation: str,
     ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]]]:
         if generation == "basic":
             return basic_rows, {}
         return full_rows, {(0, 4): {"library": "exec.library"}}
 
     monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend", fake_build)
-    for job_id, generation in (("job-basic", "basic"), ("job-full", "full")):
-        disasm_server._ASYNC_JOBS[job_id] = {
-            "job_id": job_id,
-            "job_kind": f"{generation}_listing",
-            "project_id": "bloodwych",
-            "result_project_id": "bloodwych",
-            "status": "queued",
-            "phase_id": "queued",
-            "phase_index": 0,
-            "phase_count": 2,
-            "progress_mode": "determinate",
-            "progress_current": 0,
-            "progress_total": 2,
-            "progress_percent": 0,
-            "total_rows": None,
-            "error": None,
-            "created_at": 1.0,
-            "finished_at": None,
-            "target_generation": generation,
-        }
-        disasm_server._build_rows_job(job_id, "bloodwych", generation=generation)
+    disasm_server._ASYNC_JOBS["job-full"] = {
+        "job_id": "job-full",
+        "job_kind": "full_listing",
+        "project_id": "bloodwych",
+        "result_project_id": "bloodwych",
+        "status": "queued",
+        "phase_id": "queued",
+        "phase_index": 0,
+        "phase_count": 4,
+        "progress_mode": "determinate",
+        "progress_current": 0,
+        "progress_total": 4,
+        "progress_percent": 0,
+        "total_rows": None,
+        "error": None,
+        "created_at": 1.0,
+        "finished_at": None,
+        "target_generation": "full",
+    }
+    disasm_server._build_rows_job("job-full", "bloodwych", generation="full")
 
     assert disasm_server._PROJECT_ROW_CACHE["bloodwych"] == full_rows
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
@@ -1298,6 +1550,13 @@ def test_full_listing_replaces_basic_rows(monkeypatch: pytest.MonkeyPatch) -> No
         events.append(subscriber.get_nowait())
     generation_events = [event for event in events if event.get("_event_type") == "listing_generation_ready"]
     assert generation_events == [
+        {
+            "_event_type": "listing_generation_ready",
+            "project_id": "bloodwych",
+            "generation": "basic",
+            "total_rows": 1,
+            "changed_ranges": [],
+        },
         {
             "_event_type": "listing_generation_ready",
             "project_id": "bloodwych",
@@ -1468,3 +1727,195 @@ def test_route_patch_entity_updates_annotations(monkeypatch: pytest.MonkeyPatch)
 
     assert payload["ok"] is True
     assert data["name"] == "main"
+
+
+def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -> None:
+    queued: list[str] = []
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "build_project_rows_generation_with_c_backend",
+        lambda project_name, generation: (
+            [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)],
+            {},
+        ),
+    )
+    monkeypatch.setattr(disasm_server, "_start_reproduction_job_if_needed", lambda project_name: queued.append(project_name))
+    disasm_server._ASYNC_JOBS["job-1"] = cast(
+        disasm_server.AsyncJobPayload,
+        {
+            "job_id": "job-1",
+            "job_kind": "full_listing",
+            "project_id": "bloodwych",
+            "result_project_id": "bloodwych",
+            "status": "queued",
+            "phase_id": "queued",
+            "phase_index": 0,
+            "phase_count": 2,
+            "progress_mode": "determinate",
+            "progress_current": 0,
+            "progress_total": 2,
+            "progress_percent": 0,
+            "total_rows": None,
+            "error": None,
+            "created_at": 1.0,
+            "finished_at": None,
+            "cache_key": "cache",
+        },
+    )
+
+    disasm_server._build_rows_job("job-1", "bloodwych", generation="full")
+
+    assert queued == ["bloodwych"]
+    assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+
+
+def test_cached_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -> None:
+    queued: list[str] = []
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = [
+        ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)
+    ]
+    disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
+    disasm_server._PROJECT_ROW_CACHE_KEY["bloodwych"] = "cache"
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "_start_reproduction_job_if_needed",
+        lambda project_name: queued.append(project_name),
+    )
+
+    payload = disasm_server._start_listing_job("bloodwych", generation="full")
+
+    assert payload["status"] == "ready"
+    assert queued == ["bloodwych"]
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+
+
+def test_reproduction_job_does_not_use_stale_cached_rows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_rows: list[list[ListingRow] | None] = []
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = [
+        ListingRow(row_id="stale", kind="instruction", text="nop\n", addr=0)
+    ]
+    disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
+    disasm_server._PROJECT_ROW_CACHE_KEY["bloodwych"] = "old-cache"
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "fresh-cache")
+    monkeypatch.setattr(disasm_server, "_reproduction_cache_key", lambda project_name: "repro-cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "run_reproduction",
+        lambda project_name, rows, project_root: captured_rows.append(rows) or {"status": "exact"},
+    )
+    disasm_server._ASYNC_JOBS["repro-job"] = cast(
+        disasm_server.AsyncJobPayload,
+        {
+            "job_id": "repro-job",
+            "job_kind": "reproduction",
+            "project_id": "bloodwych",
+            "result_project_id": "bloodwych",
+            "status": "queued",
+            "phase_id": "queued",
+            "phase_index": 0,
+            "phase_count": 4,
+            "progress_mode": "determinate",
+            "progress_current": 0,
+            "progress_total": 4,
+            "progress_percent": 0,
+            "total_rows": None,
+            "error": None,
+            "created_at": 1.0,
+            "finished_at": None,
+            "cache_key": "repro-cache",
+        },
+    )
+
+    disasm_server._build_reproduction_job("repro-job", "bloodwych")
+
+    assert captured_rows == [None]
+    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
+    assert disasm_server._ASYNC_JOBS["repro-job"]["status"] == "ready"
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+
+
+def test_metadata_edit_route_invalidates_listing_and_reproduction(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    canceled: list[str] = []
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = []
+    disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
+    disasm_server._PROJECT_ROW_CACHE_KEY["bloodwych"] = "cache"
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root, require_entities=False: SimpleNamespace(target_dir=target_dir),
+    )
+    monkeypatch.setattr(disasm_server, "append_target_ui_edit", lambda target_dir, body: {"kind": body["kind"], "addr": body["addr"]})
+    monkeypatch.setattr(disasm_server, "_cancel_listing_jobs", lambda project_name: canceled.append(f"listing:{project_name}"))
+    monkeypatch.setattr(disasm_server, "_cancel_reproduction_jobs", lambda project_name: canceled.append(f"repro:{project_name}"))
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/target-edits",
+        {},
+        {"kind": "entrypoint", "addr": 0x20},
+    )
+
+    assert cast(dict[str, object], cast(dict[str, object], payload["data"])["edit"])["kind"] == "entrypoint"
+    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
+    assert canceled == ["listing:bloodwych", "repro:bloodwych"]
+
+
+def test_listing_navigation_includes_repro_issues(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0x20)]
+    monkeypatch.setattr(
+        disasm_server,
+        "_active_reproduction_report",
+        lambda project_name: {
+            "issues": [
+                {
+                    "kind": "diff",
+                    "summary": "Diff at file offset 0x20",
+                    "row_index": 0,
+                    "addr": 0x20,
+                    "match_text": "rts",
+                }
+            ]
+        },
+    )
+    monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
+
+    payload = disasm_server._listing_navigation_payload("bloodwych", rows)
+    groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
+
+    assert groups["repro-issues"][0]["summary"] == "Diff at file offset 0x20"

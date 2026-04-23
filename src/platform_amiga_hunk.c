@@ -237,13 +237,15 @@ static M68kObjectAddResult add_symbol(M68kObject *object, const char *name, M68k
 static int find_symbol_index(const M68kObject *object, const char *name, M68kSymbolBinding binding, int defined,
     size_t *out_index);
 static int add_fixup(M68kObject *object, size_t section_index, uint32_t offset, uint32_t target_section,
-    M68kFixupKind kind, M68kFixupWidth width);
+    M68kFixupKind kind, M68kFixupWidth width, AmigaHunkFileRecordKind record_kind, uint32_t record_wire_id,
+    uint32_t block_index, uint32_t group_index);
 static int add_symbol_fixup(M68kObject *object, size_t section_index, uint32_t offset, size_t symbol_index,
     M68kFixupKind kind, M68kFixupWidth width);
 static int parse_symbol_block(Reader *reader, M68kObject *object, size_t section_index, M68kDiagSink diagnostics);
 static int parse_debug_block(Reader *reader, M68kObject *object, size_t section_index, M68kDiagSink diagnostics);
 static int parse_reloc_block(Reader *reader, M68kObject *object, size_t section_index, AmigaHunkFileRecordKind record_kind,
-    M68kFixupKind kind, M68kFixupWidth width, int short_counts, M68kDiagSink diagnostics);
+    uint32_t record_wire_id, uint32_t block_index, M68kFixupKind kind, M68kFixupWidth width, int short_counts,
+    M68kDiagSink diagnostics);
 static int parse_ext_block(Reader *reader, M68kObject *object, size_t section_index, M68kDiagSink diagnostics);
 static int parse_section_body(Reader *reader, M68kObject *object, size_t section_index, int is_executable,
     M68kDiagSink diagnostics);
@@ -253,6 +255,8 @@ static int parse_hunk_executable(Reader *reader, M68kObject *object, M68kDiagSin
 static int parse_hunk_object(Reader *reader, M68kObject *object, M68kDiagSink diagnostics);
 static int amiga_hunk_read_buffer(const unsigned char *data, size_t size, M68kObject *out_object, M68kDiagSink diagnostics);
 static int amiga_hunk_read_file(const char *path, M68kObject *out_object, M68kDiagSink diagnostics);
+static int amiga_hunk_write_buffer(const M68kObject *object, unsigned char **out_data, size_t *out_size,
+    M68kDiagSink diagnostics);
 static int amiga_hunk_write_file(const char *path, const M68kObject *object, M68kDiagSink diagnostics);
 
 static int ensure_amiga_hunk_platform_data(M68kObject *object, AmigaHunkPlatformData **out_data) {
@@ -271,6 +275,7 @@ const M68kBackend M68K_BACKEND_AMIGA_HUNK = {
     "amiga-hunk",
     amiga_hunk_read_file,
     amiga_hunk_read_buffer,
+    amiga_hunk_write_buffer,
     amiga_hunk_write_file,
 };
 
@@ -309,7 +314,8 @@ static M68kObjectAddResult add_symbol(M68kObject *object, const char *name, M68k
 }
 
 static int add_fixup(M68kObject *object, size_t section_index, uint32_t offset, uint32_t target_section,
-    M68kFixupKind kind, M68kFixupWidth width) {
+    M68kFixupKind kind, M68kFixupWidth width, AmigaHunkFileRecordKind record_kind, uint32_t record_wire_id,
+    uint32_t block_index, uint32_t group_index) {
     M68kFixup fixup;
     memset(&fixup, 0, sizeof(fixup));
     fixup.section_index = section_index;
@@ -318,6 +324,10 @@ static int add_fixup(M68kObject *object, size_t section_index, uint32_t offset, 
     fixup.width = width;
     fixup.target_section_index = target_section;
     fixup.has_target_section = 1;
+    fixup.platform_relocation_record_kind = (uint32_t)record_kind;
+    fixup.platform_relocation_record_wire_id = record_wire_id;
+    fixup.platform_relocation_block_index = block_index;
+    fixup.platform_relocation_group_index = group_index;
     return m68k_object_add_fixup(object, &fixup).ok ? 0 : -1;
 }
 
@@ -331,6 +341,7 @@ static uint32_t empty_reloc_mask_bit(AmigaHunkFileRecordKind record_kind) {
         case AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_DREL8: return 1u << 5;
         case AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELRELOC32: return 1u << 6;
         case AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_ABSRELOC16: return 1u << 7;
+        case AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELOC32SHORT: return 1u << 8;
         default: return 0U;
     }
 }
@@ -418,7 +429,9 @@ static int parse_debug_block(Reader *reader, M68kObject *object, size_t section_
 }
 
 static int parse_reloc_block(Reader *reader, M68kObject *object, size_t section_index, AmigaHunkFileRecordKind record_kind,
-    M68kFixupKind kind, M68kFixupWidth width, int short_counts, M68kDiagSink diagnostics) {
+    uint32_t record_wire_id, uint32_t block_index, M68kFixupKind kind, M68kFixupWidth width, int short_counts,
+    M68kDiagSink diagnostics) {
+    uint32_t group_index = 0U;
     while (1) {
         uint32_t count = 0;
         uint32_t target = 0;
@@ -461,6 +474,7 @@ static int parse_reloc_block(Reader *reader, M68kObject *object, size_t section_
             }
         }
         if (count == 0U) break;
+        ++group_index;
         for (i = 0; i < count; ++i) {
             uint32_t offset = 0;
             if (short_counts) {
@@ -476,7 +490,8 @@ static int parse_reloc_block(Reader *reader, M68kObject *object, size_t section_
                     return -1;
                 }
             }
-            if (add_fixup(object, section_index, offset, target, kind, width) != 0) {
+            if (add_fixup(object, section_index, offset, target, kind, width, record_kind, record_wire_id,
+                    block_index, group_index) != 0) {
                 platform_file_diag_error(diagnostics, "Failed adding relocation");
                 return -1;
             }
@@ -582,6 +597,7 @@ static int parse_ext_block(Reader *reader, M68kObject *object, size_t section_in
 
 static int parse_section_body(Reader *reader, M68kObject *object, size_t section_index, int is_executable,
     M68kDiagSink diagnostics) {
+    uint32_t relocation_block_index = 0U;
     while (reader->pos < reader->size) {
         uint32_t raw = 0;
         uint32_t hunk_id = 0;
@@ -608,8 +624,9 @@ static int parse_section_body(Reader *reader, M68kObject *object, size_t section
                 platform_file_diag_error(diagnostics, "Unsupported relocation record");
                 return -1;
             }
-            if (parse_reloc_block(reader, object, section_index, interpreted_kind, kind, width, short_counts,
-                    diagnostics) != 0) {
+            ++relocation_block_index;
+            if (parse_reloc_block(reader, object, section_index, interpreted_kind, hunk_id,
+                    relocation_block_index, kind, width, short_counts, diagnostics) != 0) {
                 return -1;
             }
         } else if (hunk_id == HUNK_EXT) {
@@ -992,7 +1009,7 @@ static uint32_t section_type_word(const M68kSection *section) {
     return unmap_hunk_kind(section->kind) | ((uint32_t)section->platform_mem_type << HUNK_MEM_SHIFT);
 }
 
-static AmigaHunkFileRecordKind internal_reloc_record_kind_for_fixup(const M68kFixup *fixup) {
+static AmigaHunkFileRecordKind canonical_internal_reloc_record_kind_for_fixup(const M68kFixup *fixup) {
     if (!fixup->has_target_section) return AMIGA_HUNK_FILE_META_RECORD_KIND_NONE;
     if (fixup->kind == M68K_FIXUP_ABS && fixup->width == M68K_FIXUP_WIDTH_32) return AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELOC32;
     if (fixup->kind == M68K_FIXUP_ABS && fixup->width == M68K_FIXUP_WIDTH_16) return AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_ABSRELOC16;
@@ -1005,51 +1022,179 @@ static AmigaHunkFileRecordKind internal_reloc_record_kind_for_fixup(const M68kFi
     return AMIGA_HUNK_FILE_META_RECORD_KIND_NONE;
 }
 
-static int write_internal_reloc_block_for_section(Writer *writer, const M68kObject *object, size_t section_index,
-    AmigaHunkFileRecordKind record_kind, int preserve_empty) {
-    const AmigaHunkFileRecordInfo *record_info = amiga_hunk_file_record_info_by_record_kind(record_kind);
-    size_t i;
-    size_t j;
-    int wrote_header = 0;
-    size_t total_count = 0;
+static int fixup_matches_relocation_record_kind(const M68kFixup *fixup, AmigaHunkFileRecordKind record_kind) {
+    const AmigaHunkFileRelocationKind *reloc = amiga_hunk_file_relocation_kind_lookup(record_kind);
+    if (reloc == NULL) return 0;
+    if (map_width_bytes_to_fixup_width(reloc->width_bytes) != fixup->width) return 0;
+    return map_relocation_mode_to_fixup_kind(reloc->mode) == fixup->kind;
+}
 
-    if (record_info == NULL || record_info->wire_id == 0U) return -1;
-    for (i = 0; i < object->section_count; ++i) {
-        size_t count = 0;
-        for (j = 0; j < object->fixup_count; ++j) {
-            const M68kFixup *fixup = &object->fixups[j];
-            if (fixup->section_index == section_index
-                && fixup->has_target_section
-                && fixup->target_section_index == i
-                && internal_reloc_record_kind_for_fixup(fixup) == record_kind) {
-                    ++count;
-                    ++total_count;
-                }
-            }
-        if (count == 0U) continue;
-        if (!wrote_header) {
-            if (m68k_writer_u32be(writer, record_info->wire_id) != 0) return -1;
-            wrote_header = 1;
-        }
-        if (m68k_writer_u32be(writer, (uint32_t)count) != 0 || m68k_writer_u32be(writer, (uint32_t)i) != 0) return -1;
-        for (j = 0; j < object->fixup_count; ++j) {
-            const M68kFixup *fixup = &object->fixups[j];
-            if (fixup->section_index == section_index
-                && fixup->has_target_section
-                && fixup->target_section_index == i
-                && internal_reloc_record_kind_for_fixup(fixup) == record_kind) {
-                if (m68k_writer_u32be(writer, fixup->offset) != 0) return -1;
-            }
+static AmigaHunkFileRecordKind internal_reloc_record_kind_for_fixup(const M68kFixup *fixup) {
+    AmigaHunkFileRecordKind platform_kind = (AmigaHunkFileRecordKind)fixup->platform_relocation_record_kind;
+    if (fixup->has_target_section && platform_kind != AMIGA_HUNK_FILE_META_RECORD_KIND_NONE
+        && fixup_matches_relocation_record_kind(fixup, platform_kind)) {
+        return platform_kind;
+    }
+    return canonical_internal_reloc_record_kind_for_fixup(fixup);
+}
+
+static int relocation_record_uses_short_counts(AmigaHunkFileRecordKind record_kind) {
+    return record_kind == AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELOC32SHORT;
+}
+
+static int find_next_internal_reloc_for_section(const M68kObject *object, size_t section_index, size_t start,
+    size_t *out_index) {
+    size_t i;
+    for (i = start; i < object->fixup_count; ++i) {
+        const M68kFixup *fixup = &object->fixups[i];
+        if (fixup->section_index == section_index
+            && internal_reloc_record_kind_for_fixup(fixup) != AMIGA_HUNK_FILE_META_RECORD_KIND_NONE) {
+            *out_index = i;
+            return 1;
         }
     }
-    if (!wrote_header && preserve_empty && total_count == 0U) {
-        if (m68k_writer_u32be(writer, record_info->wire_id) != 0 || m68k_writer_u32be(writer, 0U) != 0) return -1;
-    }
-    if (wrote_header && m68k_writer_u32be(writer, 0U) != 0) return -1;
     return 0;
 }
 
-static int write_internal_relocs_for_section(Writer *writer, const M68kObject *object, size_t section_index) {
+static int fixup_is_same_relocation_block(const M68kFixup *anchor, const M68kFixup *candidate,
+    AmigaHunkFileRecordKind record_kind) {
+    if (internal_reloc_record_kind_for_fixup(candidate) != record_kind) return 0;
+    if (anchor->platform_relocation_block_index != 0U || candidate->platform_relocation_block_index != 0U) {
+        return anchor->platform_relocation_block_index != 0U
+            && anchor->platform_relocation_block_index == candidate->platform_relocation_block_index;
+    }
+    return 1;
+}
+
+static int fixup_is_same_relocation_group(const M68kFixup *anchor, const M68kFixup *candidate,
+    AmigaHunkFileRecordKind record_kind) {
+    if (!fixup_is_same_relocation_block(anchor, candidate, record_kind)) return 0;
+    if (anchor->platform_relocation_group_index != 0U || candidate->platform_relocation_group_index != 0U) {
+        return anchor->platform_relocation_group_index != 0U
+            && anchor->platform_relocation_group_index == candidate->platform_relocation_group_index;
+    }
+    return anchor->target_section_index == candidate->target_section_index;
+}
+
+static int count_internal_reloc_group(const M68kObject *object, size_t section_index, size_t group_start,
+    AmigaHunkFileRecordKind record_kind, size_t *out_count, size_t *out_next_index) {
+    const M68kFixup *anchor = &object->fixups[group_start];
+    size_t cursor = group_start;
+    size_t index = 0U;
+    size_t count = 0U;
+    while (find_next_internal_reloc_for_section(object, section_index, cursor, &index)) {
+        const M68kFixup *candidate = &object->fixups[index];
+        if (!fixup_is_same_relocation_group(anchor, candidate, record_kind)) {
+            *out_count = count;
+            *out_next_index = index;
+            return 0;
+        }
+        ++count;
+        cursor = index + 1U;
+    }
+    *out_count = count;
+    *out_next_index = object->fixup_count;
+    return 0;
+}
+
+static int write_internal_reloc_group(Writer *writer, const M68kObject *object, size_t section_index,
+    size_t group_start, AmigaHunkFileRecordKind record_kind, size_t count) {
+    const M68kFixup *anchor = &object->fixups[group_start];
+    int short_counts = relocation_record_uses_short_counts(record_kind);
+    size_t cursor = group_start;
+    size_t index = 0U;
+    size_t written = 0U;
+    if (short_counts) {
+        if (count > UINT16_MAX || anchor->target_section_index > UINT16_MAX) return -1;
+        if (m68k_writer_u16be(writer, (uint16_t)count) != 0
+            || m68k_writer_u16be(writer, (uint16_t)anchor->target_section_index) != 0) {
+            return -1;
+        }
+    } else {
+        if (count > UINT32_MAX || anchor->target_section_index > UINT32_MAX) return -1;
+        if (m68k_writer_u32be(writer, (uint32_t)count) != 0
+            || m68k_writer_u32be(writer, (uint32_t)anchor->target_section_index) != 0) {
+            return -1;
+        }
+    }
+    while (written < count && find_next_internal_reloc_for_section(object, section_index, cursor, &index)) {
+        const M68kFixup *fixup = &object->fixups[index];
+        if (!fixup_is_same_relocation_group(anchor, fixup, record_kind)) return -1;
+        if (short_counts) {
+            if (fixup->offset > UINT16_MAX) return -1;
+            if (m68k_writer_u16be(writer, (uint16_t)fixup->offset) != 0) return -1;
+        } else {
+            if (m68k_writer_u32be(writer, fixup->offset) != 0) return -1;
+        }
+        ++written;
+        cursor = index + 1U;
+    }
+    return written == count ? 0 : -1;
+}
+
+static int write_internal_reloc_terminator(Writer *writer, AmigaHunkFileRecordKind record_kind) {
+    if (relocation_record_uses_short_counts(record_kind)) {
+        if (m68k_writer_u16be(writer, 0U) != 0) return -1;
+        if ((writer->size & 3U) != 0U && m68k_writer_u16be(writer, 0U) != 0) return -1;
+        return 0;
+    }
+    return m68k_writer_u32be(writer, 0U);
+}
+
+static int write_empty_internal_reloc_block(Writer *writer, AmigaHunkFileRecordKind record_kind) {
+    const AmigaHunkFileRecordInfo *record_info = amiga_hunk_file_record_info_by_record_kind(record_kind);
+    if (record_info == NULL || record_info->wire_id == 0U) return -1;
+    if (m68k_writer_u32be(writer, record_info->wire_id) != 0) return -1;
+    return write_internal_reloc_terminator(writer, record_kind);
+}
+
+static int section_has_internal_reloc_kind(const M68kObject *object, size_t section_index,
+    AmigaHunkFileRecordKind record_kind) {
+    size_t i;
+    for (i = 0; i < object->fixup_count; ++i) {
+        const M68kFixup *fixup = &object->fixups[i];
+        if (fixup->section_index == section_index
+            && internal_reloc_record_kind_for_fixup(fixup) == record_kind) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int write_preserved_internal_relocs_for_section(Writer *writer, const M68kObject *object,
+    size_t section_index) {
+    size_t cursor = 0U;
+    size_t block_start = 0U;
+    while (find_next_internal_reloc_for_section(object, section_index, cursor, &block_start)) {
+        const M68kFixup *block_anchor = &object->fixups[block_start];
+        AmigaHunkFileRecordKind record_kind = internal_reloc_record_kind_for_fixup(block_anchor);
+        const AmigaHunkFileRecordInfo *record_info = amiga_hunk_file_record_info_by_record_kind(record_kind);
+        uint32_t wire_id = block_anchor->platform_relocation_record_wire_id != 0U
+            ? block_anchor->platform_relocation_record_wire_id
+            : (record_info != NULL ? record_info->wire_id : 0U);
+        size_t group_start = block_start;
+        if (wire_id == 0U) return -1;
+        if (m68k_writer_u32be(writer, wire_id) != 0) return -1;
+        while (group_start < object->fixup_count) {
+            size_t count = 0U;
+            size_t next_index = object->fixup_count;
+            const M68kFixup *group_anchor = &object->fixups[group_start];
+            if (!fixup_is_same_relocation_block(block_anchor, group_anchor, record_kind)) break;
+            if (count_internal_reloc_group(object, section_index, group_start, record_kind, &count,
+                    &next_index) != 0 || count == 0U) {
+                return -1;
+            }
+            if (write_internal_reloc_group(writer, object, section_index, group_start, record_kind, count) != 0)
+                return -1;
+            group_start = next_index;
+        }
+        if (write_internal_reloc_terminator(writer, record_kind) != 0) return -1;
+        cursor = group_start;
+    }
+    return 0;
+}
+
+static int write_empty_internal_relocs_for_section(Writer *writer, const M68kObject *object, size_t section_index) {
     static const AmigaHunkFileRecordKind RECORD_KINDS[] = {
         AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELOC32,
         AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELOC16,
@@ -1059,6 +1204,7 @@ static int write_internal_relocs_for_section(Writer *writer, const M68kObject *o
         AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_DREL8,
         AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELRELOC32,
         AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_ABSRELOC16,
+        AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELOC32SHORT,
     };
     const AmigaHunkPlatformData *platform_data = (const AmigaHunkPlatformData *)object->platform_data;
     size_t i;
@@ -1067,10 +1213,16 @@ static int write_internal_relocs_for_section(Writer *writer, const M68kObject *o
         if (platform_data != NULL && platform_data->section_empty_reloc_masks != NULL && section_index < object->section_count) {
             preserve_empty = (platform_data->section_empty_reloc_masks[section_index] & empty_reloc_mask_bit(RECORD_KINDS[i])) != 0U;
         }
-        if (write_internal_reloc_block_for_section(writer, object, section_index, RECORD_KINDS[i], preserve_empty) != 0)
+        if (!preserve_empty || section_has_internal_reloc_kind(object, section_index, RECORD_KINDS[i])) continue;
+        if (write_empty_internal_reloc_block(writer, RECORD_KINDS[i]) != 0)
             return -1;
     }
     return 0;
+}
+
+static int write_internal_relocs_for_section(Writer *writer, const M68kObject *object, size_t section_index) {
+    if (write_preserved_internal_relocs_for_section(writer, object, section_index) != 0) return -1;
+    return write_empty_internal_relocs_for_section(writer, object, section_index);
 }
 
 static int write_section_payload(Writer *writer, const M68kSection *section) {
@@ -1122,7 +1274,11 @@ static int validate_writable_object(const M68kObject *object, M68kDiagSink diagn
     for (i = 0; i < object->section_count; ++i) {
         const M68kSection *section = &object->sections[i];
         if ((section->size & 3U) != 0U || (section->data_size & 3U) != 0U) {
-            platform_file_diag_error(diagnostics, "Current Amiga hunk writer requires longword-aligned section sizes");
+            char message[160];
+            snprintf(message, sizeof(message),
+                "Current Amiga hunk writer requires longword-aligned section sizes; section %u size=%u data_size=%u",
+                (unsigned)i, (unsigned)section->size, (unsigned)section->data_size);
+            platform_file_diag_error(diagnostics, message);
             return -1;
         }
         if ((section->debug_size & 3U) != 0U) {
@@ -1151,12 +1307,18 @@ static int validate_writable_object(const M68kObject *object, M68kDiagSink diagn
     return 0;
 }
 
-static int amiga_hunk_write_file(const char *path, const M68kObject *object, M68kDiagSink diagnostics) {
+static int amiga_hunk_write_buffer(const M68kObject *object, unsigned char **out_data, size_t *out_size,
+    M68kDiagSink diagnostics) {
     Writer writer;
-    FILE *fp = NULL;
     unsigned char *writer_data = NULL;
     size_t i;
 
+    if (out_data == NULL || out_size == NULL) {
+        platform_file_diag_error(diagnostics, "Bad Amiga hunk writer arguments");
+        return -1;
+    }
+    *out_data = NULL;
+    *out_size = 0U;
     if (object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE
         && object->platform_file_kind != M68K_PLATFORM_FILE_OBJECT) {
         platform_file_diag_error(diagnostics, "Unsupported Amiga hunk object kind");
@@ -1228,34 +1390,42 @@ static int amiga_hunk_write_file(const char *path, const M68kObject *object, M68
         }
     }
 
-    fp = fopen(path, "wb");
-    if (fp == NULL) {
-        m68k_writer_destroy(&writer);
-        platform_file_diag_error(diagnostics, "Failed opening output file");
-        return -1;
-    }
     writer_data = m68k_writer_build(&writer);
     if (writer.size != 0U && writer_data == NULL) {
-        fclose(fp);
         m68k_writer_destroy(&writer);
         platform_file_diag_error(diagnostics, "Out of memory writing Amiga hunk file");
         return -1;
     }
-    if (writer.size != 0U && fwrite(writer_data, 1, writer.size, fp) != writer.size) {
-        fclose(fp);
-        free(writer_data);
-        m68k_writer_destroy(&writer);
-        platform_file_diag_error(diagnostics, "Failed writing output file");
-        return -1;
-    }
-    fclose(fp);
-    free(writer_data);
-        m68k_writer_destroy(&writer);
+    *out_data = writer_data;
+    *out_size = writer.size;
+    m68k_writer_destroy(&writer);
     return 0;
 
 oom:
     m68k_writer_destroy(&writer);
     platform_file_diag_error(diagnostics, "Out of memory writing Amiga hunk file");
     return -1;
+}
+
+static int amiga_hunk_write_file(const char *path, const M68kObject *object, M68kDiagSink diagnostics) {
+    FILE *fp = NULL;
+    unsigned char *writer_data = NULL;
+    size_t writer_size = 0U;
+    if (amiga_hunk_write_buffer(object, &writer_data, &writer_size, diagnostics) != 0) return -1;
+    fp = fopen(path, "wb");
+    if (fp == NULL) {
+        free(writer_data);
+        platform_file_diag_error(diagnostics, "Failed opening output file");
+        return -1;
+    }
+    if (writer_size != 0U && fwrite(writer_data, 1, writer_size, fp) != writer_size) {
+        fclose(fp);
+        free(writer_data);
+        platform_file_diag_error(diagnostics, "Failed writing output file");
+        return -1;
+    }
+    fclose(fp);
+    free(writer_data);
+    return 0;
 }
 

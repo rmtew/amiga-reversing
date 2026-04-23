@@ -29,7 +29,8 @@ typedef enum AsmSourceStmtKind {
     ASM_SOURCE_STMT_INSTRUCTION = 3,
     ASM_SOURCE_STMT_DATA = 4,
     ASM_SOURCE_STMT_EVEN = 5,
-    ASM_SOURCE_STMT_END = 6
+    ASM_SOURCE_STMT_END = 6,
+    ASM_SOURCE_STMT_RESERVE = 7
 } AsmSourceStmtKind;
 
 typedef struct AsmSourceInstructionStmt {
@@ -47,18 +48,27 @@ typedef struct AsmSourceStmt {
         struct {
             char name[64];
             M68kSectionKind kind;
+            uint8_t platform_mem_type;
+            uint32_t platform_mem_attrs;
+            uint8_t has_alloc_size;
+            uint32_t alloc_size;
         } section;
         struct {
             char name[M68K_SOURCE_MAX_LABEL_NAME];
         } label;
         AsmSourceInstructionStmt instruction;
         AsmSourceDataStmt data;
+        uint32_t reserve_size;
     } u;
 } AsmSourceStmt;
 
 typedef struct AsmSectionDef {
     char name[64];
     M68kSectionKind kind;
+    uint8_t platform_mem_type;
+    uint32_t platform_mem_attrs;
+    uint8_t has_alloc_size;
+    uint32_t alloc_size;
 } AsmSectionDef;
 
 typedef struct AsmSourceFile {
@@ -68,6 +78,8 @@ typedef struct AsmSourceFile {
     AsmSourceSymbol *symbols;
     size_t symbol_count;
     size_t symbol_capacity;
+    size_t *symbol_index_slots;
+    size_t symbol_index_capacity;
     AsmSourceStmt *statements;
     size_t statement_count;
     size_t statement_capacity;
@@ -78,6 +90,15 @@ typedef struct AsmSourceFile {
     int enable_vasm_compat_rewrites;
     int has_atari_st_program_flags;
     uint32_t atari_st_program_flags;
+    int has_atari_st_relocation_flag;
+    uint32_t atari_st_relocation_flag;
+    int has_atari_st_symbol_table;
+    uint32_t atari_st_symbol_table_type;
+    uint8_t *atari_st_symbol_table_data;
+    uint32_t atari_st_symbol_table_size;
+    int has_atari_st_relocation_stream;
+    uint8_t *atari_st_relocation_stream_data;
+    uint32_t atari_st_relocation_stream_size;
 } AsmSourceFile;
 
 typedef struct M68kSourceModelIndexResult {
@@ -89,7 +110,8 @@ M68kSourceModelIndexResult m68k_source_model_find_symbol_index(const AsmSourceFi
 M68kSourceLookupResult m68k_source_model_lookup_symbol(const char *name, void *user_data);
 M68kSourceLookupResult m68k_source_model_expr_lookup_symbol(const char *name, void *user_data);
 M68kSourceModelIndexResult m68k_source_model_append_section(AsmSourceFile *source, const char *name,
-    M68kSectionKind kind);
+    M68kSectionKind kind, uint8_t platform_mem_type, uint32_t platform_mem_attrs, uint8_t has_alloc_size,
+    uint32_t alloc_size);
 M68kSourceModelIndexResult m68k_source_model_ensure_symbol(AsmSourceFile *source, const char *name,
     AsmSourceSymbolKind kind);
 int m68k_source_model_set_constant(AsmSourceFile *source, const char *name, uint32_t value, int allow_redefine);

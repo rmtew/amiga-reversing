@@ -32,15 +32,19 @@ static const M68kSourceDirectiveEntry g_m68k_source_directives[] = {
   {"DCB.B", M68K_SOURCE_DIRECTIVE_DCB_B},
   {"DCB.L", M68K_SOURCE_DIRECTIVE_DCB_L},
   {"DCB.W", M68K_SOURCE_DIRECTIVE_DCB_W},
+  {"DS.B", M68K_SOURCE_DIRECTIVE_DS_B},
   {"DEVCMD", M68K_SOURCE_DIRECTIVE_DEVCMD},
   {"DEVINIT", M68K_SOURCE_DIRECTIVE_DEVINIT},
   {"DOUBLE", M68K_SOURCE_DIRECTIVE_DOUBLE},
   {"END", M68K_SOURCE_DIRECTIVE_END},
   {"ENDC", M68K_SOURCE_DIRECTIVE_ENDC},
   {"ENDM", M68K_SOURCE_DIRECTIVE_ENDM},
+  {"EITEM", M68K_SOURCE_DIRECTIVE_EITEM},
+  {"ENUM", M68K_SOURCE_DIRECTIVE_ENUM},
   {"EQU", M68K_SOURCE_DIRECTIVE_EQU},
   {"EVEN", M68K_SOURCE_DIRECTIVE_EVEN},
   {"FLOAT", M68K_SOURCE_DIRECTIVE_FLOAT},
+  {"FPU", M68K_SOURCE_DIRECTIVE_FPU},
   {"FPTR", M68K_SOURCE_DIRECTIVE_FPTR},
   {"IFC", M68K_SOURCE_DIRECTIVE_IFC},
   {"IFNC", M68K_SOURCE_DIRECTIVE_IFNC},
@@ -462,6 +466,7 @@ M68kParseCpuResult m68k_parse_cpu_name(const char *text) {
   if (m68k_ascii_equal_ci(text, "68030")) { result.ok = 1U; result.cpu = M68K_ASM_CPU_68030; return result; }
   if (m68k_ascii_equal_ci(text, "68040")) { result.ok = 1U; result.cpu = M68K_ASM_CPU_68040; return result; }
   if (m68k_ascii_equal_ci(text, "68060")) { result.ok = 1U; result.cpu = M68K_ASM_CPU_68060; return result; }
+  if (m68k_ascii_equal_ci(text, "any")) { result.ok = 1U; result.cpu = M68K_ASM_CPU_ANY; return result; }
   return result;
 }
 

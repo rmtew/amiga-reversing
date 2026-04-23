@@ -13,12 +13,10 @@ set INTEGRATION_MODULES=^
  src.tests_integration.test_c99_assembler_corpus_integration ^
  src.tests_integration.test_c99_disassembler_corpus_integration ^
  src.tests.test_ir_policy_dll ^
- src.tests.test_m68k_simulator_analysis ^
  src.tests_integration.test_m68k_simulator_oracle_integration ^
  src.tests_integration.test_platform_backends_integration ^
  src.tests.test_platform_backends ^
  src.tests.test_platform_disk_cli ^
- src.tests.test_platform_file_cli ^
  src.tests.test_platform_file_manifest ^
  src.tests_integration.test_platform_manifest_integration ^
  src.tests_integration.test_vasm_mmu_oracle_integration

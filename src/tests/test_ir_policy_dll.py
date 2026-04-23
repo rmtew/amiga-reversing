@@ -179,8 +179,7 @@ class M68kAnalysisPolicy(ctypes.Structure):
     _fields_ = [
         ("max_cpu", ctypes.c_uint8),
         ("has_entry_offset", ctypes.c_uint8),
-        ("skip_platform_facts", ctypes.c_uint8),
-        ("reserved0", ctypes.c_uint8),
+        ("reserved0", ctypes.c_uint8 * 2),
         ("register_seed_count", ctypes.c_uint16),
         ("entry_point_count", ctypes.c_uint16),
         ("structured_data_item_count", ctypes.c_uint16),
@@ -233,13 +232,6 @@ class PlatformFileTextResult(ctypes.Structure):
     ]
 
 
-class PlatformFileSourceIrResult(ctypes.Structure):
-    _fields_ = [
-        ("source_file", M68kSourceFileIR),
-        ("diagnostics", M68kDiagList),
-    ]
-
-
 @lru_cache(maxsize=1)
 def _asm_library():
     require_built_tools()
@@ -267,70 +259,48 @@ def _asm_library():
 def _file_library():
     require_built_tools()
     library = ctypes.CDLL(str(prepare_test_dll(FILE_DLL_PATH)))
-    library.platform_file_to_ir_with_policy.argtypes = [
-        ctypes.c_char_p,
-        ctypes.c_char_p,
-        ctypes.POINTER(M68kRenderPolicy),
-        ctypes.POINTER(M68kAnalysisPolicy),
-    ]
-    library.platform_file_to_ir_with_policy.restype = PlatformFileSourceIrResult
-    library.platform_file_to_ir_buffer_with_policy.argtypes = [
-        ctypes.c_char_p,
-        ctypes.POINTER(ctypes.c_uint8),
-        ctypes.c_size_t,
-        ctypes.POINTER(M68kRenderPolicy),
-        ctypes.POINTER(M68kAnalysisPolicy),
-    ]
-    library.platform_file_to_ir_buffer_with_policy.restype = PlatformFileSourceIrResult
-    library.platform_file_render_ir_with_policy.argtypes = [
-        ctypes.POINTER(M68kSourceFileIR),
-        ctypes.POINTER(M68kRenderPolicy),
-    ]
-    library.platform_file_render_ir_with_policy.restype = PlatformFileTextResult
-    library.platform_file_analyze_path_json.argtypes = [
+    library.platform_file_facts_v2_analysis_path_json.argtypes = [
         ctypes.c_char_p,
         ctypes.c_char_p,
         ctypes.POINTER(M68kAnalysisPolicy),
     ]
-    library.platform_file_analyze_path_json.restype = PlatformFileTextResult
-    library.platform_file_analyze_buffer_json.argtypes = [
+    library.platform_file_facts_v2_analysis_path_json.restype = PlatformFileTextResult
+    library.platform_file_facts_v2_analysis_buffer_json.argtypes = [
         ctypes.c_char_p,
         ctypes.POINTER(ctypes.c_uint8),
         ctypes.c_size_t,
         ctypes.POINTER(M68kAnalysisPolicy),
     ]
-    library.platform_file_analyze_buffer_json.restype = PlatformFileTextResult
+    library.platform_file_facts_v2_analysis_buffer_json.restype = PlatformFileTextResult
     library.platform_file_inspect_path_json_alloc.argtypes = [
         ctypes.c_char_p,
         ctypes.c_char_p,
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_inspect_path_json_alloc.restype = ctypes.c_int
-    library.platform_file_disassemble_path_text_alloc.argtypes = [
+    library.platform_file_facts_v2_asm_source_path_text_alloc.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_facts_v2_asm_source_path_text_alloc.restype = ctypes.c_int
+    library.platform_file_facts_v2_analysis_path_json_alloc.argtypes = [
         ctypes.c_char_p,
         ctypes.c_char_p,
         ctypes.c_char_p,
         ctypes.c_char_p,
         ctypes.POINTER(ctypes.c_void_p),
     ]
-    library.platform_file_disassemble_path_text_alloc.restype = ctypes.c_int
-    library.platform_file_analyze_path_json_alloc.argtypes = [
+    library.platform_file_facts_v2_analysis_path_json_alloc.restype = ctypes.c_int
+    library.platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc.argtypes = [
         ctypes.c_char_p,
         ctypes.c_char_p,
         ctypes.c_char_p,
         ctypes.c_char_p,
         ctypes.POINTER(ctypes.c_void_p),
     ]
-    library.platform_file_analyze_path_json_alloc.restype = ctypes.c_int
-    library.platform_file_listing_rows_path_json_alloc.argtypes = [
-        ctypes.c_char_p,
-        ctypes.c_char_p,
-        ctypes.c_char_p,
-        ctypes.POINTER(ctypes.c_void_p),
-    ]
-    library.platform_file_listing_rows_path_json_alloc.restype = ctypes.c_int
-    library.platform_file_source_ir_free.argtypes = [ctypes.POINTER(M68kSourceFileIR)]
-    library.platform_file_source_ir_free.restype = None
+    library.platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc.restype = ctypes.c_int
     library.platform_file_free_text.argtypes = [ctypes.c_void_p]
     library.platform_file_free_text.restype = None
     library.platform_file_free_bytes.argtypes = [ctypes.c_void_p]
@@ -505,7 +475,7 @@ class IrPolicyDllTests(unittest.TestCase):
         library = _file_library()
         sample = make_synthetic_hunkexe()
         sample_buf = (ctypes.c_uint8 * len(sample)).from_buffer_copy(sample)
-        result = library.platform_file_analyze_buffer_json(
+        result = library.platform_file_facts_v2_analysis_buffer_json(
             b"amiga-hunk",
             sample_buf,
             len(sample),
@@ -579,7 +549,7 @@ class IrPolicyDllTests(unittest.TestCase):
 
             analyze_result, analyze_text = _file_alloc_text(
                 library,
-                "platform_file_analyze_path_json_alloc",
+                "platform_file_facts_v2_analysis_path_json_alloc",
                 b"amiga-hunk",
                 encoded_path,
                 encoded_metadata_path,
@@ -587,24 +557,24 @@ class IrPolicyDllTests(unittest.TestCase):
             )
             listing_result, listing_text = _file_alloc_text(
                 library,
-                "platform_file_listing_rows_path_json_alloc",
+                "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
                 b"amiga-hunk",
                 encoded_path,
                 encoded_metadata_path,
+                b"",
             )
             render_result, render_text = _file_alloc_text(
                 library,
-                "platform_file_disassemble_path_text_alloc",
+                "platform_file_facts_v2_asm_source_path_text_alloc",
                 b"amiga-hunk",
                 encoded_path,
-                b"vasm",
                 encoded_metadata_path,
             )
 
         self.assertEqual(analyze_result, 0, analyze_text)
         self.assertEqual(json.loads(analyze_text)["section_count"], 2)
         self.assertEqual(listing_result, 0, listing_text)
-        listing_rows = json.loads(listing_text)["rows"]
+        listing_rows = json.loads(listing_text)["listing"]["rows"]
         self.assertTrue(listing_rows)
         addressed_rows = [row for row in listing_rows if isinstance(row.get("addr"), int)]
         self.assertTrue(addressed_rows)
@@ -616,7 +586,7 @@ class IrPolicyDllTests(unittest.TestCase):
         library = _file_library()
         sample = make_synthetic_hunkexe(code_data=b"\x4E\x4F\x4E\x75")
         sample_buf = (ctypes.c_uint8 * len(sample)).from_buffer_copy(sample)
-        result = library.platform_file_analyze_buffer_json(
+        result = library.platform_file_facts_v2_analysis_buffer_json(
             b"amiga-hunk",
             sample_buf,
             len(sample),
@@ -634,92 +604,6 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(code_section["edge_count"], 1)
         self.assertEqual(code_section["edges"][0]["source_offset"], 2)
         self.assertEqual(code_section["edges"][0]["kind"], 5)
-
-    def test_platform_file_ir_render_respects_generated_name_policy(self) -> None:
-        library = _file_library()
-        sample = make_synthetic_hunkexe()
-        sample_buf = (ctypes.c_uint8 * len(sample)).from_buffer_copy(sample)
-        default_policy = _default_policy()
-        result = library.platform_file_to_ir_buffer_with_policy(
-            b"amiga-hunk",
-            sample_buf,
-            len(sample),
-            ctypes.byref(default_policy),
-            ctypes.byref(_analysis_policy()),
-        )
-        self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
-        source_file = result.source_file
-        try:
-            render_result = library.platform_file_render_ir_with_policy(
-                ctypes.byref(source_file),
-                ctypes.byref(default_policy),
-            )
-            self.assertFalse(_diag_has_errors(render_result.diagnostics), _diag_message(render_result.diagnostics))
-            try:
-                default_text = ctypes.cast(render_result.text, ctypes.c_char_p).value.decode("utf-8")
-            finally:
-                library.platform_file_free_text(render_result.text)
-        finally:
-            library.platform_file_source_ir_free(ctypes.byref(source_file))
-
-        self.assertIn("h0_0000:", default_text)
-
-        fallback_policy = _default_policy()
-        fallback_policy.presentation.prefer_generated_names = 0
-        result = library.platform_file_to_ir_buffer_with_policy(
-            b"amiga-hunk",
-            sample_buf,
-            len(sample),
-            ctypes.byref(fallback_policy),
-            ctypes.byref(_analysis_policy()),
-        )
-        self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
-        source_file = result.source_file
-        try:
-            render_result = library.platform_file_render_ir_with_policy(
-                ctypes.byref(source_file),
-                ctypes.byref(fallback_policy),
-            )
-            self.assertFalse(_diag_has_errors(render_result.diagnostics), _diag_message(render_result.diagnostics))
-            try:
-                fallback_text = ctypes.cast(render_result.text, ctypes.c_char_p).value.decode("utf-8")
-            finally:
-                library.platform_file_free_text(render_result.text)
-        finally:
-            library.platform_file_source_ir_free(ctypes.byref(source_file))
-
-        self.assertIn("h0_0000:", fallback_text)
-
-    def test_platform_file_ir_render_emits_minimum_os_version_comment(self) -> None:
-        library = _file_library()
-        sample = make_synthetic_hunkexe()
-        sample_buf = (ctypes.c_uint8 * len(sample)).from_buffer_copy(sample)
-        policy = _default_policy()
-        policy.os.compatibility_kind = M68K_OS_COMPATIBILITY_AMIGA
-        policy.os.compatibility_level = AMIGA_OS_COMPAT_VERSION_1_3
-        result = library.platform_file_to_ir_buffer_with_policy(
-            b"amiga-hunk",
-            sample_buf,
-            len(sample),
-            ctypes.byref(policy),
-            ctypes.byref(_analysis_policy()),
-        )
-        self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
-        source_file = result.source_file
-        try:
-            render_result = library.platform_file_render_ir_with_policy(
-                ctypes.byref(source_file),
-                ctypes.byref(policy),
-            )
-            self.assertFalse(_diag_has_errors(render_result.diagnostics), _diag_message(render_result.diagnostics))
-            try:
-                text = ctypes.cast(render_result.text, ctypes.c_char_p).value.decode("utf-8")
-            finally:
-                library.platform_file_free_text(render_result.text)
-        finally:
-            library.platform_file_source_ir_free(ctypes.byref(source_file))
-
-        self.assertTrue(text.startswith("; Minimum OS version: 1.3\n"), text)
 
     def test_assembler_source_ir_render_preserves_source_names_when_generated_names_disabled(self) -> None:
         library = _asm_library()

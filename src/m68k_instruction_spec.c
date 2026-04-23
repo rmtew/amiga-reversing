@@ -12,15 +12,42 @@ const char *m68k_instruction_spec_mnemonic_name(const InstructionSpec *instructi
 
 size_t m68k_instruction_spec_assemble_bytes(const InstructionSpec *instruction, unsigned char *out_bytes,
     size_t max_bytes) {
+  uint16_t patch_values[M68K_INSTRUCTION_SPEC_MAX_PATCH_VALUES];
   M68kAsmInstructionSpec spec;
+  const M68kAsmFormDef *form;
+  uint16_t asm_form_index;
   size_t byte_count = 0;
+  size_t patch_index;
   memset(&spec, 0, sizeof(spec));
+  asm_form_index = instruction->asm_form_index;
+  form = &g_m68k_asm_forms[asm_form_index];
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) {
+    asm_form_index = m68k_asm_form_index_for_operands_id(instruction->mnemonic_id, instruction->operands,
+      instruction->operand_count, instruction->size_suffix, instruction->target_cpu);
+    form = &g_m68k_asm_forms[asm_form_index];
+  }
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE ||
+      form->patch_count > M68K_INSTRUCTION_SPEC_MAX_PATCH_VALUES) {
+    return 0;
+  }
+  if (instruction->patch_value_count >= form->patch_count) {
+    memcpy(patch_values, instruction->patch_values, form->patch_count * sizeof(patch_values[0]));
+  } else if (m68k_asm_build_patch_values(asm_form_index, instruction->size_suffix, instruction->operands,
+      instruction->operand_count, patch_values, sizeof(patch_values) / sizeof(patch_values[0])) != 0) {
+    return 0;
+  }
+  if (instruction->has_coprocessor_id != 0U) {
+    for (patch_index = 0U; patch_index < form->patch_count; ++patch_index) {
+      const M68kAsmFieldPatch *patch = &g_m68k_asm_patches[form->patch_start + patch_index];
+      if (patch->field_kind == M68K_ASM_FIELD_ID) patch_values[patch_index] = instruction->coprocessor_id & 0x7U;
+    }
+  }
   spec.mnemonic_id = instruction->mnemonic_id;
   spec.size_suffix = instruction->size_suffix;
   spec.target_cpu = instruction->target_cpu;
   spec.operand_count = instruction->operand_count;
-  spec.patch_values = instruction->patch_values;
-  spec.patch_value_count = instruction->patch_value_count;
+  spec.patch_values = patch_values;
+  spec.patch_value_count = form->patch_count;
   spec.operands = instruction->operands;
   if (m68k_asm_assemble_instruction(&spec, out_bytes, max_bytes, &byte_count) != 0) return 0;
   return byte_count;
@@ -175,6 +202,8 @@ void m68k_instruction_spec_to_ir(const InstructionSpec *spec, M68kInstructionIR 
   out_instruction->mnemonic_id = spec->mnemonic_id;
   out_instruction->size_suffix = spec->size_suffix;
   out_instruction->target_cpu = spec->target_cpu;
+  out_instruction->has_coprocessor_id = spec->has_coprocessor_id;
+  out_instruction->coprocessor_id = spec->coprocessor_id;
   out_instruction->operand_count = spec->operand_count;
   form = &g_m68k_asm_forms[spec->asm_form_index];
   if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) {
@@ -217,6 +246,8 @@ void m68k_instruction_ir_to_spec(const M68kInstructionIR *instruction, Instructi
   out_spec->mnemonic_id = instruction->mnemonic_id;
   out_spec->size_suffix = instruction->size_suffix;
   out_spec->target_cpu = instruction->target_cpu;
+  out_spec->has_coprocessor_id = instruction->has_coprocessor_id;
+  out_spec->coprocessor_id = instruction->coprocessor_id;
   out_spec->asm_form_index = instruction->asm_form_index;
   out_spec->operand_count = instruction->operand_count;
   for (operand_index = 0; operand_index < instruction->operand_count &&
@@ -226,6 +257,41 @@ void m68k_instruction_ir_to_spec(const M68kInstructionIR *instruction, Instructi
       snprintf(out_spec->operand_label_names[operand_index], sizeof(out_spec->operand_label_names[operand_index]), "%s",
         instruction->operands[operand_index].symbol_ref.name);
       out_spec->operand_label_addends[operand_index] = instruction->operands[operand_index].symbol_ref.addend;
+    }
+  }
+  {
+    M68kAsmOperandValue form_operands[M68K_INSTRUCTION_SPEC_MAX_OPERANDS];
+    const M68kAsmFormDef *form;
+    uint16_t asm_form_index = out_spec->asm_form_index;
+    size_t patch_index;
+    for (operand_index = 0; operand_index < out_spec->operand_count &&
+        operand_index < M68K_INSTRUCTION_SPEC_MAX_OPERANDS; ++operand_index) {
+      form_operands[operand_index] = out_spec->operands[operand_index];
+    }
+    if (m68k_instruction_spec_uses_movem_predecrement_mask(out_spec))
+      form_operands[0].value = m68k_reverse_reglist_mask((uint16_t)form_operands[0].value);
+    form = &g_m68k_asm_forms[asm_form_index];
+    if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) {
+      asm_form_index = m68k_asm_form_index_for_operands_id(out_spec->mnemonic_id, form_operands,
+        out_spec->operand_count, out_spec->size_suffix, out_spec->target_cpu);
+      form = &g_m68k_asm_forms[asm_form_index];
+    }
+    if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE ||
+        form->patch_count > M68K_INSTRUCTION_SPEC_MAX_PATCH_VALUES) {
+      return;
+    }
+    if (m68k_asm_build_patch_values(asm_form_index, out_spec->size_suffix, form_operands,
+        out_spec->operand_count, out_spec->patch_values,
+        sizeof(out_spec->patch_values) / sizeof(out_spec->patch_values[0])) != 0) {
+      return;
+    }
+    out_spec->patch_value_count = form->patch_count;
+    if (out_spec->has_coprocessor_id != 0U) {
+      for (patch_index = 0U; patch_index < form->patch_count; ++patch_index) {
+        const M68kAsmFieldPatch *patch = &g_m68k_asm_patches[form->patch_start + patch_index];
+        if (patch->field_kind == M68K_ASM_FIELD_ID) out_spec->patch_values[patch_index] =
+          out_spec->coprocessor_id & 0x7U;
+      }
     }
   }
 }

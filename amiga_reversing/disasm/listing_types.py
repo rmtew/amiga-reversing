@@ -101,6 +101,15 @@ class SemanticOperand:
     metadata: SemanticOperandMetadata | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class AppSlotRef:
+    symbol: str
+    displacement: int
+    base_register: str
+    operand_index: int
+    access: str
+
+
 @dataclass(frozen=True)
 class ListingRow:
     row_id: str
@@ -119,6 +128,7 @@ class ListingRow:
     label: str | None = None
     opcode_or_directive: str | None = None
     operand_parts: tuple[SemanticOperand, ...] = ()
+    app_slot_refs: tuple[AppSlotRef, ...] = ()
     operand_text: str = ""
     comment_parts: tuple[str, ...] = ()
     comment_text: str = ""

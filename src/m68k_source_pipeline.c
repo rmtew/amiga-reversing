@@ -38,6 +38,14 @@ int m68k_source_pipeline_parse_and_layout(AsmSourceFile *source, const char *pat
     && m68k_source_file_layout(source, &emit_context, diagnostics);
 }
 
+int m68k_source_pipeline_parse_text_and_layout(AsmSourceFile *source, const char *source_text,
+    M68kDiagSink diagnostics) {
+  M68kSourceFileEmitContext emit_context;
+  init_source_file_emit_context(&emit_context);
+  return m68k_source_file_parse_text(source, source_text, diagnostics)
+    && m68k_source_file_layout(source, &emit_context, diagnostics);
+}
+
 int m68k_source_pipeline_emit_object(AsmSourceFile *source, M68kObject *out_object, M68kDiagSink diagnostics) {
   M68kSourceFileEmitContext emit_context;
   init_source_file_emit_context(&emit_context);

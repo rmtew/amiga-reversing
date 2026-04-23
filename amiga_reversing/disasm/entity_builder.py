@@ -841,9 +841,9 @@ def _c_struct_size(type_name: str) -> int | None:
 def _c_app_slot_symbol(effect: JsonDict, displacement: int) -> str:
     for key in ("symbol_name", "base_name", "type_name"):
         value = _json_str(effect, key)
-        if value is not None and value.startswith("app_slot_"):
+        if value is not None and value.startswith("app_"):
             return value
-    return f"app_slot_{displacement & 0xFFFF:04X}"
+    return f"app_{displacement & 0xFFFF:04X}"
 
 
 def _c_effect_app_slot_payload(effect: JsonDict) -> JsonDict | None:

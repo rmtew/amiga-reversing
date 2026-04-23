@@ -29,11 +29,12 @@ const state = {
     overlayOpen: false,
     selectedClass: "typed-data",
     selectedIndex: 0,
-    windowStart: 0,
+    appSlotSymbol: null,
     entries: null,
     generation: null,
     originEntry: null,
     currentPreviewEntry: null,
+    currentLocation: null,
     historyBack: [],
     historyForward: [],
   },
@@ -42,6 +43,13 @@ const state = {
     selectedTab: "fetch",
     fetchSamples: [],
   },
+  reproduction: {
+    panelOpen: false,
+    report: null,
+    reportKey: null,
+    job: null,
+    selectedIssueEntry: null,
+  },
   analysisStatus: {
     text: "",
     state: "idle",
@@ -49,8 +57,6 @@ const state = {
   },
 };
 
-const NAVIGATION_WINDOW_SIZE = 14;
-const NAVIGATION_WINDOW_MARGIN = 3;
 const LISTING_INITIAL_ROW_WINDOW = 240;
 const LISTING_MIN_WINDOW_ROWS = 120;
 const LISTING_MAX_WINDOW_ROWS = 600;
@@ -60,6 +66,13 @@ const LISTING_COLUMN_MIN_WIDTHS = {
   offset: 48,
   bytes: 80,
   code: 260,
+};
+const APP_SLOT_ACCESS_ORDER = ["read", "write", "read-write", "address"];
+const APP_SLOT_ACCESS_LABELS = {
+  read: "R",
+  write: "W",
+  "read-write": "RW",
+  address: "A",
 };
 const ENTITY_SUBTYPES = [
   "",
@@ -96,6 +109,8 @@ const JOB_PHASE_LABELS = {
   full_listing: {
     queued: "Queued",
     build_session: "Opening file",
+    build_basic_rows: "Building initial rows",
+    emit_basic_rows: "Showing initial listing",
     build_c_rows: "Enriching analysis",
     emit_rows: "Updating listing",
     done: "Done",
@@ -112,6 +127,15 @@ const JOB_PHASE_LABELS = {
     create_target: "Creating target",
     finalize: "Finalizing project",
     done: "Done",
+    error: "Failed",
+  },
+  reproduction: {
+    queued: "Queued",
+    prepare: "Preparing reproduction",
+    assemble: "Assembling",
+    diff: "Diffing",
+    done: "Done",
+    stale: "Stale",
     error: "Failed",
   },
 };
@@ -216,6 +240,7 @@ function buildProjectBadges(project, projectData = null) {
         ? `${formatTargetTypeLabel(targetType)} target`
         : `${formatTargetTypeLabel(targetType)} target not ready`,
     });
+    badges.push(reproductionBadge(project.ready, projectData?.reproduction || null));
   } else {
     badges.push({
       label: "disk",
@@ -242,9 +267,51 @@ function buildProjectBadges(project, projectData = null) {
 function renderProjectBadges(project, projectData = null) {
   return buildProjectBadges(project, projectData)
     .map((badge) => (
-      `<span class="project-badge"${badge.title ? ` title="${escapeHtml(badge.title)}"` : ""}>${escapeHtml(badge.label)}</span>`
+      `<span class="project-badge${badge.className ? ` ${escapeHtml(badge.className)}` : ""}"${badge.title ? ` title="${escapeHtml(badge.title)}"` : ""}>${escapeHtml(badge.label)}</span>`
     ))
     .join("");
+}
+
+function reproductionBadge(ready, report) {
+  if (!ready) {
+    return {label: "Not ready", className: "project-badge-repro-not-ready", title: "Reproduction waits for a ready binary target"};
+  }
+  if (!report) {
+    return {label: "Not ready", className: "project-badge-repro-not-ready", title: "No reproduction report yet"};
+  }
+  if (report.stale) {
+    return {label: "Stale", className: "project-badge-repro-stale", title: "Reproduction inputs changed"};
+  }
+  if (report.status === "exact") {
+    return {label: "Exact", className: "project-badge-repro-exact", title: "Rebuilt bytes match the original"};
+  }
+  if (report.status === "binary_mismatch") {
+    return {label: "Diff", className: "project-badge-repro-diff", title: "Rebuilt bytes differ from the original"};
+  }
+  if (report.status === "content_match" || report.status === "semantic_match") {
+    return {label: "Content", className: "project-badge-repro-diff", title: "Content comparison matched but file bytes are not exact"};
+  }
+  if (report.status === "assembler_error") {
+    return {label: "Asm error", className: "project-badge-repro-error", title: "Assembler failed"};
+  }
+  if (report.status === "render_error") {
+    return {label: "Render error", className: "project-badge-repro-error", title: "Source rendering failed"};
+  }
+  if (report.status === "tool_error") {
+    return {label: "Tool error", className: "project-badge-repro-error", title: "Reproduction tooling failed"};
+  }
+  if (report.status === "unsupported") {
+    return {label: "Unsupported", className: "project-badge-repro-not-ready", title: "Exact reproduction is not supported for this target"};
+  }
+  return {label: "Not ready", className: "project-badge-repro-not-ready", title: report.status || "No reproduction report yet"};
+}
+
+function refreshProjectBadges() {
+  const detailsNode = document.getElementById("project-details");
+  if (!detailsNode || !state.projectData) {
+    return;
+  }
+  detailsNode.innerHTML = renderProjectBadges(state.projectData.project, state.projectData);
 }
 
 function formatProjectTimestamp(timestamp, emptyText) {
@@ -540,6 +607,337 @@ function bindStatsOverlay() {
   });
 }
 
+async function loadReproductionReport(projectId) {
+  const report = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/reproduction`);
+  const reportKey = reproductionReportKey(report);
+  const previousReportKey = state.reproduction.reportKey || reproductionReportKey(state.reproduction.report);
+  if (previousReportKey && previousReportKey !== reportKey) {
+    state.reproduction.selectedIssueEntry = null;
+  }
+  state.reproduction.report = report;
+  state.reproduction.reportKey = reportKey;
+  if (state.projectData) {
+    state.projectData.reproduction = report;
+  }
+  refreshProjectBadges();
+  renderReproPanel();
+  return report;
+}
+
+function reproductionReportKey(report) {
+  if (!report) {
+    return "";
+  }
+  return JSON.stringify({
+    status: report.status || "",
+    stale: Boolean(report.stale),
+    input_stamp: report.input_stamp || null,
+    issue_count: Array.isArray(report.issues) ? report.issues.length : 0,
+  });
+}
+
+async function refreshReproductionReport(projectId) {
+  try {
+    return await loadReproductionReport(projectId);
+  } catch (error) {
+    console.warn("Reproduction report unavailable", error);
+    return null;
+  }
+}
+
+async function pollReproductionReport(projectId, token, attempts = 12) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (token !== state.loadingToken) {
+      return;
+    }
+    const report = await refreshReproductionReport(projectId);
+    if (token !== state.loadingToken) {
+      return;
+    }
+    if (report && report.status !== "not_ready") {
+      return;
+    }
+    await sleep(1000);
+  }
+}
+
+function reproductionStatusText(report) {
+  if (!report) {
+    return "Not ready";
+  }
+  if (report.stale) {
+    return "Stale";
+  }
+  if (report.status === "exact") {
+    return "Exact match";
+  }
+  if (report.status === "binary_mismatch") {
+    return "Binary diff";
+  }
+  if (report.status === "content_match") {
+    return "Content match";
+  }
+  if (report.status === "semantic_match") {
+    return "Semantic match";
+  }
+  if (report.status === "assembler_error") {
+    return "Assembler error";
+  }
+  if (report.status === "render_error") {
+    return "Render error";
+  }
+  if (report.status === "tool_error") {
+    return "Tool error";
+  }
+  if (report.status === "unsupported") {
+    return "Unsupported";
+  }
+  return "Not ready";
+}
+
+function reproIssues() {
+  const issues = Array.isArray(state.reproduction.report?.issues) ? state.reproduction.report.issues : [];
+  return issues.map((issue, index) => ({
+    ...issue,
+    issue_index: issue.issue_index ?? index,
+    issueIndex: issue.issueIndex ?? issue.issue_index ?? index,
+  }));
+}
+
+function sameIssueField(left, right) {
+  return left !== null
+    && left !== undefined
+    && right !== null
+    && right !== undefined
+    && String(left) === String(right);
+}
+
+function reproIssueMatchesEntry(issue, entry) {
+  if (!issue || !entry) {
+    return false;
+  }
+  const entryRowIndex = entry.row_index ?? entry.rowIndex;
+  if (
+    sameIssueField(issue.issue_index, entry.issue_index)
+    || sameIssueField(issue.issue_index, entry.issueIndex)
+  ) {
+    if (sameIssueField(issue.stable_key, entry.stable_key ?? entry.stableKey)) {
+      return true;
+    }
+    return sameIssueField(issue.row_index, entryRowIndex) && sameIssueField(issue.addr, entry.addr);
+  }
+  if (sameIssueField(issue.row_index, entryRowIndex)) {
+    if (sameIssueField(issue.stable_key, entry.stable_key ?? entry.stableKey)) {
+      return true;
+    }
+    return sameIssueField(issue.addr, entry.addr);
+  }
+  return false;
+}
+
+function reproIssueForNavigationEntry(entry) {
+  return reproIssues().find((issue) => reproIssueMatchesEntry(issue, entry)) || null;
+}
+
+function currentReproIssue() {
+  const selected = reproIssueForNavigationEntry(state.reproduction.selectedIssueEntry);
+  if (selected) {
+    return selected;
+  }
+  const issues = reproIssues();
+  return issues.find((issue) => Number.isFinite(issue.addr)) || issues[0] || null;
+}
+
+function renderReproPanelBody(report) {
+  const firstDiff = report?.first_diff || null;
+  const diagnostics = Array.isArray(report?.assembler_diagnostics) ? report.assembler_diagnostics : [];
+  const issue = currentReproIssue();
+  const suggestedActions = issue && Number.isFinite(issue.addr)
+    ? `
+      <div class="repro-actions">
+        <button type="button" data-repro-edit-kind="code_range">Code</button>
+        <button type="button" data-repro-edit-kind="data_range">Data</button>
+        <button type="button" data-repro-edit-kind="text_range">Text</button>
+        <button type="button" data-repro-edit-kind="pointer_table">Ptrs</button>
+        <button type="button" data-repro-edit-kind="jump_table">Jump</button>
+        <button type="button" data-repro-edit-kind="entrypoint">Entry</button>
+        <button type="button" data-repro-edit-kind="label">Label</button>
+        <button type="button" data-repro-edit-kind="external_symbol">Ext Symbol</button>
+        <button type="button" data-repro-edit-kind="suppress_inferred_code">No Code</button>
+        <button type="button" data-repro-edit-kind="suppress_inferred_pointer">No Ptr</button>
+      </div>
+    `
+    : "";
+  return `
+    <div class="repro-summary-grid">
+      <div><span>Status</span><strong>${escapeHtml(reproductionStatusText(report))}</strong></div>
+      <div><span>Original</span><strong>${escapeHtml(String(report?.original_size ?? report?.input_stamp?.original_size ?? "?"))}</strong></div>
+      <div><span>Rebuilt</span><strong>${escapeHtml(String(report?.rebuilt_size ?? "?"))}</strong></div>
+    </div>
+    <div class="repro-detail">
+      ${firstDiff ? `First diff: ${escapeHtml(formatRowOffset(firstDiff.offset))}` : "First diff: none"}
+    </div>
+    ${issue ? `<div class="repro-detail">Issue: ${escapeHtml(issue.summary || issue.message || issue.kind || "")}</div>` : ""}
+    ${suggestedActions}
+    ${diagnostics.length ? `
+      <pre class="repro-diagnostics">${escapeHtml(diagnostics.slice(0, 12).map((item) => item.message || item.summary || String(item)).join("\n"))}</pre>
+    ` : ""}
+  `;
+}
+
+function renderReproPanel() {
+  const existing = document.getElementById("repro-overlay");
+  if (!state.reproduction.panelOpen) {
+    existing?.remove();
+    return;
+  }
+  const app = document.getElementById("app");
+  if (!app) {
+    return;
+  }
+  const job = state.reproduction.job;
+  const jobProgress = job && (job.status === "queued" || job.status === "building")
+    ? `<div class="repro-detail">${escapeHtml(formatJobProgress(job).detail)}</div>`
+    : "";
+  const html = `
+    <div class="repro-overlay" id="repro-overlay">
+      <div class="repro-panel">
+        <div class="repro-header">
+          <div class="repro-title">Repro</div>
+          <button type="button" class="repro-close" data-repro-close="1">Close</button>
+        </div>
+        ${jobProgress}
+        ${renderReproPanelBody(state.reproduction.report)}
+        <button type="button" class="repro-run" data-repro-run="1">Run Repro</button>
+      </div>
+    </div>
+  `;
+  if (existing) {
+    existing.outerHTML = html;
+  } else {
+    app.insertAdjacentHTML("beforeend", html);
+  }
+  bindReproPanel();
+}
+
+async function openReproPanel() {
+  state.reproduction.panelOpen = true;
+  renderReproPanel();
+  if (state.project) {
+    await refreshReproductionReport(state.project);
+  }
+}
+
+function closeReproPanel() {
+  state.reproduction.panelOpen = false;
+  renderReproPanel();
+}
+
+async function runReproduction(projectId) {
+  const job = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/reproduction/run`, {method: "POST"});
+  state.reproduction.job = job;
+  renderReproPanel();
+  setAnalysisStatus("Running reproduction", "running");
+  await waitForAsyncJob(
+    (jobId) => `/api/projects/${encodeURIComponent(projectId)}/reproduction/status?job_id=${encodeURIComponent(jobId)}`,
+    job,
+    state.loadingToken,
+    (currentJob) => {
+      state.reproduction.job = currentJob;
+      renderReproPanel();
+    },
+  );
+  state.reproduction.job = null;
+  const report = await loadReproductionReport(projectId);
+  await loadNavigationEntries(projectId);
+  renderNavigationOverlay();
+  const editNeeded = report?.status === "binary_mismatch" || report?.status === "assembler_error";
+  const statusText = report?.status === "exact"
+    ? "Reproduction exact"
+    : (editNeeded ? "Reproduction needs edits" : "Reproduction failed");
+  setAnalysisStatus(statusText, report?.status === "exact" ? "ready" : "failed", 2500);
+}
+
+async function applyReproTargetEdit(kind) {
+  if (!state.project) {
+    return;
+  }
+  const issue = currentReproIssue();
+  const anchor = captureViewportAnchor();
+  const addr = Number.isFinite(issue?.addr) ? issue.addr : anchor?.addr;
+  if (!Number.isFinite(addr)) {
+    return;
+  }
+  const payload = {kind, addr};
+  if (kind === "label" || kind === "external_symbol") {
+    const name = window.prompt(
+      kind === "label" ? "Label name" : "External symbol name",
+      defaultReproSymbolName(issue, kind, addr),
+    );
+    if (!name || !name.trim()) {
+      return;
+    }
+    payload.name = name.trim();
+  }
+  const hunk = Number.isInteger(issue?.hunk)
+    ? issue.hunk
+    : (Number.isInteger(issue?.section_index)
+      ? issue.section_index
+      : (Number.isInteger(anchor?.hunk) ? anchor.hunk : null));
+  if (hunk !== null) {
+    payload.hunk = hunk;
+  }
+  const length = Number(issue?.diff_range?.length || 0);
+  if (length > 1 && kind !== "entrypoint" && !kind.startsWith("suppress_")) {
+    payload.end = addr + length;
+  }
+  await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/target-edits`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload),
+  });
+  if (state.projectData) {
+    state.projectData.reproduction = {
+      ...(state.projectData.reproduction || {}),
+      status: state.projectData.reproduction?.status || "not_ready",
+      stale: true,
+    };
+  }
+  state.navigation.entries = null;
+  state.reproduction.selectedIssueEntry = null;
+  refreshProjectBadges();
+  renderReproPanel();
+  setAnalysisStatus("Metadata edit saved", "ready", 2000);
+}
+
+function defaultReproSymbolName(issue, kind, addr) {
+  const text = String(issue?.match_text || issue?.message || issue?.summary || "");
+  const symbolMatch = text.match(/\b[A-Za-z_.$][A-Za-z0-9_.$]*\b/);
+  if (symbolMatch && !/^(move|lea|jsr|jmp|bra|bsr|dc|section)$/i.test(symbolMatch[0])) {
+    return symbolMatch[0].replace(/^\./, "local_");
+  }
+  const prefix = kind === "external_symbol" ? "ext" : "label";
+  return `${prefix}_${Number(addr).toString(16)}`;
+}
+
+function bindReproPanel() {
+  const overlay = document.getElementById("repro-overlay");
+  if (!overlay) {
+    return;
+  }
+  overlay.querySelector("[data-repro-close='1']")?.addEventListener("click", closeReproPanel);
+  overlay.querySelector("[data-repro-run='1']")?.addEventListener("click", () => {
+    if (state.project) {
+      void runReproduction(state.project);
+    }
+  });
+  overlay.querySelectorAll("[data-repro-edit-kind]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void applyReproTargetEdit(button.dataset.reproEditKind || "");
+    });
+  });
+}
+
 function renderErrorOverlay(message) {
   return `
     <div class="progress-overlay">
@@ -622,8 +1020,31 @@ function waitForAsyncJobEvents(job, token, renderOverlay) {
         settle(reject, new Error("stale"));
         return;
       }
+      const isListingJob = ["basic_listing", "full_listing", "listing"].includes(jobState.job_kind);
       updateAnalysisStatusFromJob(jobState);
-      renderOverlay(jobState);
+      if (
+        isListingJob
+        && jobState.visible_generation === "basic"
+        && jobState.project_id
+        && jobState.visible_generation !== state.virtualListing.generation
+      ) {
+        void handleListingGenerationReady({
+          project_id: jobState.project_id,
+          generation: jobState.visible_generation,
+          total_rows: jobState.total_rows || 0,
+        }, token);
+      }
+      const hasVisibleListingRows = Boolean(
+        state.virtualListing.generation
+        && document.querySelector("#listing-viewport .listing-row")
+      );
+      if (
+        !isListingJob
+        || !hasVisibleListingRows
+        || jobState.status === "failed"
+      ) {
+        renderOverlay(jobState);
+      }
       if (jobState.status === "failed") {
         settle(reject, new Error(jobState.error || "Async job failed"));
       } else if (jobState.status !== "queued" && jobState.status !== "building") {
@@ -640,7 +1061,9 @@ function waitForAsyncJobEvents(job, token, renderOverlay) {
     source.addEventListener("listing_generation_ready", (event) => {
       try {
         const payload = JSON.parse(event.data);
-        void handleListingGenerationReady(payload, token);
+        if (payload.generation === "basic") {
+          void handleListingGenerationReady(payload, token);
+        }
       } catch (error) {
         settle(reject, error);
       }
@@ -854,6 +1277,32 @@ function formatRowOffset(addr) {
   return addr.toString(16).padStart(4, "0");
 }
 
+function navigationEntryHunkIndex(entry) {
+  const value = entry.hunk_index ?? entry.hunkIndex ?? entry.section_index ?? entry.sectionIndex;
+  return Number.isInteger(value) ? value : null;
+}
+
+function formatAppSlotDisplacement(entry) {
+  const displacement = Number(entry?.displacement);
+  if (!Number.isFinite(displacement)) {
+    return "";
+  }
+  const sign = displacement < 0 ? "-" : "";
+  return `${sign}$${Math.abs(displacement).toString(16).toUpperCase().padStart(4, "0")}`;
+}
+
+function formatNavigationEntryOffset(entry) {
+  if (entry?.refs && entry?.symbol) {
+    return formatAppSlotDisplacement(entry);
+  }
+  const offset = formatRowOffset(entry.addr);
+  const hunkIndex = navigationEntryHunkIndex(entry);
+  if (hunkIndex === null || !offset) {
+    return offset;
+  }
+  return `h${hunkIndex}:${offset}`;
+}
+
 function formatRowBytes(hexBytes) {
   if (!hexBytes) {
     return "";
@@ -862,10 +1311,12 @@ function formatRowBytes(hexBytes) {
 }
 
 function renderListingCode(row) {
-  if (row.kind === "instruction") {
+  if (row.kind === "instruction" || row.kind === "data") {
     const opcode = row.opcode_or_directive || "";
     const operands = row.operand_text || "";
-    return `    ${opcode}${operands ? ` ${operands}` : ""}`;
+    if (opcode) {
+      return `    ${opcode}${operands ? ` ${operands}` : ""}`;
+    }
   }
   const text = row.text.replace(/\n$/, "");
   if (!rowHasAddress(row) && !text.trimStart().startsWith("SECTION ")) {
@@ -897,6 +1348,10 @@ function labelNameFromText(text) {
   }
   const name = trimmed.slice(0, -1).trim();
   return name || null;
+}
+
+function isAppSlotSymbolName(name) {
+  return /^app_[A-Za-z0-9_]+$/.test(String(name || "")) && name !== "app_SIZEOF";
 }
 
 function rowHasAddress(row) {
@@ -939,20 +1394,77 @@ function isKnownListingLabelName(name) {
   return labels.has(name);
 }
 
-function renderListingCodeHtml(row) {
+function renderOperandAppSlotRefsHtml(row, operand, globalRowIndex) {
+  const refs = Array.isArray(row.app_slot_refs) ? row.app_slot_refs : [];
+  const ranges = [];
+  const nextSearchBySymbol = new Map();
+  refs.forEach((ref) => {
+    const symbol = String(ref?.symbol || "");
+    if (!symbol) {
+      return;
+    }
+    const startAt = nextSearchBySymbol.get(symbol) || 0;
+    const start = operand.indexOf(symbol, startAt);
+    if (start < 0) {
+      return;
+    }
+    const end = start + symbol.length;
+    nextSearchBySymbol.set(symbol, end);
+    ranges.push({
+      start,
+      end,
+      symbol,
+      operandIndex: Number(ref.operand_index ?? ref.operandIndex),
+      access: String(ref.access || ""),
+    });
+  });
+  if (!ranges.length) {
+    return null;
+  }
+  ranges.sort((left, right) => left.start - right.start || left.end - right.end);
+  let cursor = 0;
+  let html = "";
+  ranges.forEach((range) => {
+    if (range.start < cursor) {
+      return;
+    }
+    html += escapeHtml(operand.slice(cursor, range.start));
+    html += `<button class="listing-symbol-link listing-symbol-reference listing-app-slot-reference" type="button" data-app-slot-symbol="${escapeHtml(range.symbol)}" data-row-index="${escapeHtml(String(globalRowIndex))}" data-app-slot-operand-index="${escapeHtml(String(range.operandIndex))}" data-app-slot-access="${escapeHtml(range.access)}">${escapeHtml(range.symbol)}</button>`;
+    cursor = range.end;
+  });
+  html += escapeHtml(operand.slice(cursor));
+  return html;
+}
+
+function renderListingCodeHtml(row, globalRowIndex = null) {
   const globalRsEqu = parseGlobalRsEquRow(row);
   if (globalRsEqu) {
     const labelTitle = globalRsEqu.label ? ` title="${escapeHtml(globalRsEqu.label)}"` : "";
-    return `<span class="listing-global-structured"><span class="listing-global-label"${labelTitle}>${escapeHtml(globalRsEqu.label)}</span><span class="listing-global-directive">${escapeHtml(globalRsEqu.directive)}</span><span class="listing-global-operand">${escapeHtml(globalRsEqu.operand)}</span></span>`;
+    const labelHtml = isAppSlotSymbolName(globalRsEqu.label)
+      ? `<button class="listing-symbol-link listing-global-label listing-app-slot-definition" type="button" data-app-slot-symbol="${escapeHtml(globalRsEqu.label)}"${labelTitle}>${escapeHtml(globalRsEqu.label)}</button>`
+      : `<span class="listing-global-label"${labelTitle}>${escapeHtml(globalRsEqu.label)}</span>`;
+    return `<span class="listing-global-structured">${labelHtml}<span class="listing-global-directive">${escapeHtml(globalRsEqu.directive)}</span><span class="listing-global-operand">${escapeHtml(globalRsEqu.operand)}</span></span>`;
   }
   const code = renderListingCode(row);
   const labelName = labelNameFromText(code);
   if (labelName && row.kind === "label" && rowHasAddress(row)) {
     return `<button class="listing-symbol-link listing-symbol-definition" type="button" data-symbol-name="${escapeHtml(labelName)}">${escapeHtml(code)}</button>`;
   }
+  const appSlotCodeHtml = Number.isFinite(globalRowIndex)
+    ? renderOperandAppSlotRefsHtml(row, code, globalRowIndex)
+    : null;
+  if (appSlotCodeHtml !== null) {
+    return appSlotCodeHtml;
+  }
   if (row.kind === "instruction" && rowHasAddress(row) && row.operand_text) {
     const opcode = row.opcode_or_directive || "";
     const operand = row.operand_text || "";
+    const appSlotOperandHtml = Number.isFinite(globalRowIndex)
+      ? renderOperandAppSlotRefsHtml(row, operand, globalRowIndex)
+      : null;
+    if (appSlotOperandHtml !== null) {
+      return `    ${escapeHtml(opcode)} ${appSlotOperandHtml}`;
+    }
     const candidate = labelLinkCandidateFromOperandText(operand);
     if (candidate && isKnownListingLabelName(candidate)) {
       const suffix = operand.slice(candidate.length);
@@ -963,7 +1475,7 @@ function renderListingCodeHtml(row) {
 }
 
 function renderListingComment(row) {
-  if (row.kind === "instruction" && row.comment_text) {
+  if ((row.kind === "instruction" || row.kind === "data") && row.comment_text) {
     return `; ${row.comment_text}`;
   }
   return "";
@@ -1011,6 +1523,15 @@ function renderApiTypeBadges(row) {
     .join("");
 }
 
+function renderReproIssueBadges(row) {
+  if (!Array.isArray(row.repro_issues) || !row.repro_issues.length) {
+    return "";
+  }
+  return row.repro_issues
+    .map((issue) => `<span class="project-badge project-badge-repro-issue" title="${escapeHtml(issue.message || issue.summary || "Repro issue")}">${escapeHtml(issue.kind || "repro")}</span>`)
+    .join("");
+}
+
 function listingColumnStyle() {
   return `--listing-offset-width:${state.listingColumns.offset}px;--listing-bytes-width:${state.listingColumns.bytes}px;--listing-code-width:${state.listingColumns.code}px;`;
 }
@@ -1023,14 +1544,15 @@ function applyListingColumnWidths() {
   });
 }
 
-function renderListingRows(rows) {
+function renderListingRows(rows, globalStart = 0) {
   if (!rows.length) {
     return '<div class="empty listing-empty">No disassembly available.</div>';
   }
   return rows.map((row, rowIndex) => `
     <div
-      class="listing-row listing-row-${escapeHtml(row.kind)}${rowUsesGlobalTextColumn(row) ? " listing-row-global" : ""}"
+      class="listing-row listing-row-${escapeHtml(row.kind)}${rowUsesGlobalTextColumn(row) ? " listing-row-global" : ""}${Array.isArray(row.repro_issues) && row.repro_issues.length ? " listing-row-repro-issue" : ""}"
       data-row-addr="${row.addr === null || row.addr === undefined ? "" : escapeHtml(String(row.addr))}"
+      data-row-index="${escapeHtml(String(globalStart + rowIndex))}"
       data-row-kind="${escapeHtml(row.kind)}"
       data-row-code="${escapeHtml(renderListingCode(row))}"
       ${row.stable_key ? `data-row-stable-key="${escapeHtml(row.stable_key)}"` : ""}
@@ -1044,8 +1566,8 @@ function renderListingRows(rows) {
     >
       <span class="listing-offset">${escapeHtml(formatRowOffset(row.addr))}</span>
       <span class="listing-bytes">${escapeHtml(formatRowBytes(row.bytes))}</span>
-      <span class="listing-code">${renderListingCodeHtml(row)}</span>
-      <span class="listing-comment">${escapeHtml(renderListingComment(row))}${renderListingComment(row) && renderListingAnnotations(row) ? " " : ""}${renderListingAnnotations(row)}${renderApiTypeBadges(row)}${(renderListingAnnotations(row) || renderApiTypeBadges(row)) ? " " : ""}${renderApiEditButton(row, rowIndex)}${renderAnnotationEditButton(row, rowIndex)}</span>
+      <span class="listing-code">${renderListingCodeHtml(row, globalStart + rowIndex)}</span>
+      <span class="listing-comment">${escapeHtml(renderListingComment(row))}${renderListingComment(row) && renderListingAnnotations(row) ? " " : ""}${renderListingAnnotations(row)}${renderReproIssueBadges(row)}${renderApiTypeBadges(row)}${(renderListingAnnotations(row) || renderReproIssueBadges(row) || renderApiTypeBadges(row)) ? " " : ""}${renderApiEditButton(row, rowIndex)}${renderAnnotationEditButton(row, rowIndex)}</span>
       <span class="listing-column-resizer listing-column-resizer-offset" data-listing-column-resize="offset" aria-hidden="true"></span>
       <span class="listing-column-resizer listing-column-resizer-bytes" data-listing-column-resize="bytes" aria-hidden="true"></span>
       <span class="listing-column-resizer listing-column-resizer-code" data-listing-column-resize="code" aria-hidden="true"></span>
@@ -1096,7 +1618,7 @@ function renderVirtualListingWindow(projectId, listing, preserveScroll = false, 
   viewport.innerHTML = `
     <div class="listing-scroll-spacer" style="height:${totalHeight}px;${listingColumnStyle()}">
       <div class="listing-row-layer" style="transform:translateY(${top}px);${listingColumnStyle()}">
-        ${renderListingRows(listing.rows)}
+        ${renderListingRows(listing.rows, state.virtualListing.start)}
       </div>
     </div>
   `;
@@ -1328,10 +1850,25 @@ async function refreshListingAtCurrentAddressAnchor(projectId, token = null) {
 }
 
 async function handleListingGenerationReady(payload, token = null) {
-  if (!state.project || payload.project_id !== state.project || payload.generation === state.virtualListing.generation) {
+  if (!state.project || payload.project_id !== state.project) {
     return;
   }
   if (token !== null && token !== state.loadingToken) {
+    return;
+  }
+  if (payload.generation === "basic") {
+    if (state.virtualListing.generation === "basic" || state.virtualListing.generation === "full") {
+      return;
+    }
+    setAnalysisStatus("Loading initial listing", "running");
+    await loadInitialListingWindow(state.project);
+    if (token !== null && token !== state.loadingToken) {
+      return;
+    }
+    setAnalysisStatus("Analyzing full listing", "running");
+    return;
+  }
+  if (payload.generation === state.virtualListing.generation) {
     return;
   }
   setAnalysisStatus("Applying full analysis", "running");
@@ -1462,8 +1999,47 @@ function rowHasComment(row) {
   return Boolean(row.comment_text) || (Array.isArray(row.view_annotations) && row.view_annotations.length > 0);
 }
 
+function rowApiCallHasNearLvoReference(rows, row, rowIndex) {
+  const hunkIndex = rowHunkIndex(row);
+  const start = Math.max(0, rowIndex - 8);
+  for (let index = start; index < rowIndex; ++index) {
+    const candidate = rows[index];
+    if (
+      candidate?.api_call
+      && candidate.api_call.note_kind === 0
+      && rowHunkIndex(candidate) === hunkIndex
+      && candidate.addr >= row.addr - 8
+      && candidate.addr < row.addr
+      && candidate.api_call.library === row.api_call.library
+      && candidate.api_call.function === row.api_call.function
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function rowApiCallIsNavigationTarget(rows, row, rowIndex) {
+  if (!row.api_call || row.api_call.note_kind === 3) {
+    return false;
+  }
+  if (row.api_call.note_kind === 1 && rowApiCallHasNearLvoReference(rows, row, rowIndex)) {
+    return false;
+  }
+  return true;
+}
+
+function rowHunkIndex(row) {
+  const context = row.source_context || row.sourceContext || {};
+  const value = context.hunk_index ?? context.hunkIndex ?? row.section_index ?? row.sectionIndex;
+  return Number.isInteger(value) ? value : null;
+}
+
 function summarizeNavigationRow(row, jumpClass) {
   if (jumpClass === "api-calls" && row.api_call) {
+    if (row.api_call.note_kind === 1) {
+      return `${row.api_call.function} dispatch (${row.api_call.library})`;
+    }
     return `${row.api_call.function} (${row.api_call.library})`;
   }
   if (jumpClass === "typed-data" && (row.comment_text || row.structured_data)) {
@@ -1476,17 +2052,116 @@ function summarizeNavigationRow(row, jumpClass) {
   return renderListingCode(row).trim() || row.comment_text || row.kind;
 }
 
+function normalizedAppSlotRef(rawRef) {
+  if (!rawRef || typeof rawRef !== "object") {
+    return null;
+  }
+  const symbol = rawRef.symbol;
+  const displacement = Number(rawRef.displacement);
+  const baseRegister = rawRef.base_register ?? rawRef.baseRegister;
+  const operandIndex = Number(rawRef.operand_index ?? rawRef.operandIndex);
+  const access = rawRef.access;
+  if (
+    typeof symbol !== "string" ||
+    !Number.isFinite(displacement) ||
+    typeof baseRegister !== "string" ||
+    !Number.isInteger(operandIndex) ||
+    typeof access !== "string" ||
+    !APP_SLOT_ACCESS_ORDER.includes(access)
+  ) {
+    return null;
+  }
+  return {
+    symbol,
+    displacement,
+    base_register: baseRegister,
+    operand_index: operandIndex,
+    access,
+  };
+}
+
+function addAppSlotNavigationRef(appSlots, row, rowIndex, rawRef) {
+  const ref = normalizedAppSlotRef(rawRef);
+  if (!ref) {
+    return;
+  }
+  let slot = appSlots.get(ref.symbol);
+  if (!slot) {
+    slot = {
+      symbol: ref.symbol,
+      summary: ref.symbol,
+      match_text: ref.symbol,
+      displacement: ref.displacement,
+      ref_count: 0,
+      access_counts: {},
+      refs: [],
+    };
+    appSlots.set(ref.symbol, slot);
+  }
+  const hunkIndex = rowHunkIndex(row);
+  const stableKey = row.stable_key ?? row.stableKey ?? null;
+  const matchText = renderListingCode(row);
+  slot.refs.push({
+    addr: row.addr,
+    rowIndex,
+    row_index: rowIndex,
+    hunkIndex,
+    hunk_index: hunkIndex,
+    stableKey,
+    stable_key: stableKey,
+    summary: matchText.trim() || ref.symbol,
+    matchText,
+    match_text: matchText,
+    symbol: ref.symbol,
+    displacement: ref.displacement,
+    base_register: ref.base_register,
+    operand_index: ref.operand_index,
+    access: ref.access,
+  });
+  slot.ref_count += 1;
+  slot.access_counts[ref.access] = (slot.access_counts[ref.access] || 0) + 1;
+}
+
+function sortedAppSlotNavigationEntries(appSlots) {
+  return Array.from(appSlots.values())
+    .map((slot) => {
+      slot.refs.sort((left, right) => Number(left.row_index) - Number(right.row_index));
+      return slot;
+    })
+    .sort((left, right) => (left.displacement - right.displacement) || left.symbol.localeCompare(right.symbol));
+}
+
 function buildNavigationEntries(rows) {
   const groups = {
+    "repro-issues": [],
     "typed-data": [],
     "relocations": [],
     "api-calls": [],
+    "app-slots": [],
     "labels": [],
     "comments": [],
   };
+  const appSlots = new Map();
   rows.forEach((row, rowIndex) => {
     if (row.addr === null || row.addr === undefined) {
       return;
+    }
+    if (Array.isArray(row.repro_issues) && row.repro_issues.length) {
+      const issue = row.repro_issues[0];
+      groups["repro-issues"].push({
+        addr: row.addr,
+        issueIndex: issue.issue_index ?? issue.issueIndex ?? null,
+        issue_index: issue.issue_index ?? issue.issueIndex ?? null,
+        rowIndex,
+        row_index: issue.row_index ?? rowIndex,
+        section_index: issue.section_index ?? null,
+        hunk: issue.hunk ?? null,
+        stableKey: issue.stable_key ?? row.stable_key ?? null,
+        stable_key: issue.stable_key ?? row.stable_key ?? null,
+        summary: row.repro_issues[0].summary || row.repro_issues[0].message || "Repro issue",
+        matchText: renderListingCode(row),
+        match_text: issue.match_text || renderListingCode(row),
+      });
     }
     if (rowHasTypedData(row)) {
       groups["typed-data"].push({
@@ -1504,13 +2179,25 @@ function buildNavigationEntries(rows) {
         matchText: renderListingCode(row),
       });
     }
-    if (row.api_call) {
+    if (row.kind === "instruction" && rowApiCallIsNavigationTarget(rows, row, rowIndex)) {
+      const hunkIndex = rowHunkIndex(row);
+      const stableKey = row.stable_key ?? row.stableKey ?? null;
+      const matchText = renderListingCode(row);
       groups["api-calls"].push({
         addr: row.addr,
         rowIndex,
+        row_index: rowIndex,
+        hunkIndex,
+        hunk_index: hunkIndex,
+        stableKey,
+        stable_key: stableKey,
         summary: summarizeNavigationRow(row, "api-calls"),
-        matchText: renderListingCode(row),
+        matchText,
+        match_text: matchText,
       });
+    }
+    if (Array.isArray(row.app_slot_refs)) {
+      row.app_slot_refs.forEach((ref) => addAppSlotNavigationRef(appSlots, row, rowIndex, ref));
     }
     if (isLabelRow(row)) {
       groups.labels.push({
@@ -1529,11 +2216,16 @@ function buildNavigationEntries(rows) {
       });
     }
   });
+  groups["app-slots"] = sortedAppSlotNavigationEntries(appSlots);
   return groups;
 }
 
 function currentNavigationEntries() {
   const groups = state.navigation.entries || buildNavigationEntries(state.listingRows || []);
+  if (state.navigation.selectedClass === "app-slots" && state.navigation.appSlotSymbol) {
+    const slot = (groups["app-slots"] || []).find((entry) => entry.symbol === state.navigation.appSlotSymbol);
+    return slot?.refs || [];
+  }
   return groups[state.navigation.selectedClass] || [];
 }
 
@@ -1541,6 +2233,12 @@ async function loadNavigationEntries(projectId) {
   const payload = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/listing/navigation`);
   state.navigation.entries = payload.groups || null;
   state.navigation.generation = payload.analysis_generation || null;
+  if (
+    state.navigation.appSlotSymbol &&
+    !((state.navigation.entries?.["app-slots"] || []).some((entry) => entry.symbol === state.navigation.appSlotSymbol))
+  ) {
+    state.navigation.appSlotSymbol = null;
+  }
   return state.navigation.entries;
 }
 
@@ -1551,34 +2249,36 @@ async function ensureNavigationEntries(projectId) {
   return loadNavigationEntries(projectId);
 }
 
-function clampNavigationWindow(entries, requestedStart) {
-  const maxStart = Math.max(entries.length - NAVIGATION_WINDOW_SIZE, 0);
-  return Math.max(0, Math.min(maxStart, requestedStart));
-}
-
-function syncNavigationWindow() {
+function syncNavigationSelection() {
   const entries = currentNavigationEntries();
   if (!entries.length) {
-    state.navigation.windowStart = 0;
     state.navigation.selectedIndex = 0;
     return;
   }
   const maxIndex = entries.length - 1;
   state.navigation.selectedIndex = Math.max(0, Math.min(maxIndex, state.navigation.selectedIndex));
-  let windowStart = clampNavigationWindow(entries, state.navigation.windowStart);
-  const windowEnd = windowStart + NAVIGATION_WINDOW_SIZE - 1;
-  if (state.navigation.selectedIndex < windowStart + NAVIGATION_WINDOW_MARGIN) {
-    windowStart = clampNavigationWindow(
-      entries,
-      state.navigation.selectedIndex - NAVIGATION_WINDOW_MARGIN,
-    );
-  } else if (state.navigation.selectedIndex > windowEnd - NAVIGATION_WINDOW_MARGIN) {
-    windowStart = clampNavigationWindow(
-      entries,
-      state.navigation.selectedIndex - NAVIGATION_WINDOW_SIZE + NAVIGATION_WINDOW_MARGIN + 1,
-    );
+}
+
+function navigationEntryRowIndex(entry) {
+  const value = Number(entry?.rowIndex ?? entry?.row_index);
+  return Number.isFinite(value) ? value : null;
+}
+
+function navigationEntriesSameLocation(left, right) {
+  if (!left || !right) {
+    return false;
   }
-  state.navigation.windowStart = windowStart;
+  const leftStable = left.stableKey || left.stable_key || null;
+  const rightStable = right.stableKey || right.stable_key || null;
+  if (leftStable && rightStable) {
+    return leftStable === rightStable;
+  }
+  const leftRowIndex = navigationEntryRowIndex(left);
+  const rightRowIndex = navigationEntryRowIndex(right);
+  if (leftRowIndex !== null && rightRowIndex !== null) {
+    return leftRowIndex === rightRowIndex;
+  }
+  return left.addr === right.addr && navigationEntryHunkIndex(left) === navigationEntryHunkIndex(right);
 }
 
 function captureViewportAnchor() {
@@ -1600,10 +2300,136 @@ function captureViewportAnchor() {
   }
   return {
     addr,
+    hunk: candidate.dataset.sectionIndex === undefined ? null : Number(candidate.dataset.sectionIndex),
     matchText: candidate.dataset.rowCode || null,
+    rowIndex: candidate.dataset.rowIndex === undefined ? null : Number(candidate.dataset.rowIndex),
+    row_index: candidate.dataset.rowIndex === undefined ? null : Number(candidate.dataset.rowIndex),
     stableKey: candidate.dataset.rowStableKey || null,
+    stable_key: candidate.dataset.rowStableKey || null,
     scrollTop: viewport.scrollTop,
   };
+}
+
+function appSlotAccessBadgeLabel(access) {
+  return APP_SLOT_ACCESS_LABELS[access] || access;
+}
+
+function renderNavigationAccessBadges(entry) {
+  const badges = [];
+  const accessCounts = entry.access_counts || entry.accessCounts || null;
+  const refCount = Number(entry.ref_count ?? entry.refCount);
+  if (Number.isFinite(refCount) && refCount > 0) {
+    badges.push(`${refCount} ref${refCount === 1 ? "" : "s"}`);
+  }
+  if (accessCounts && typeof accessCounts === "object") {
+    APP_SLOT_ACCESS_ORDER.forEach((access) => {
+      const count = Number(accessCounts[access]);
+      if (Number.isFinite(count) && count > 0) {
+        badges.push(`${appSlotAccessBadgeLabel(access)} ${count}`);
+      }
+    });
+  } else if (typeof entry.access === "string") {
+    badges.push(appSlotAccessBadgeLabel(entry.access));
+  }
+  if (!badges.length) {
+    return "";
+  }
+  return `<span class="navigation-item-badges">${badges.map((badge) => `<span class="navigation-access-badge">${escapeHtml(badge)}</span>`).join("")}</span>`;
+}
+
+function currentAppSlotNavigationSymbol() {
+  if (state.navigation.selectedClass !== "app-slots") {
+    return null;
+  }
+  return state.navigation.appSlotSymbol || null;
+}
+
+function navigationSummaryText(entries) {
+  const appSlotSymbol = currentAppSlotNavigationSymbol();
+  if (appSlotSymbol) {
+    return `${appSlotSymbol}: ${entries.length} ref${entries.length === 1 ? "" : "s"}`;
+  }
+  return `${entries.length} entries`;
+}
+
+function navigationEntryHasRefs(entry) {
+  return Array.isArray(entry?.refs);
+}
+
+function appSlotEntriesFromGroups(groups) {
+  return groups?.["app-slots"] || [];
+}
+
+function appSlotEntryIndex(entries, symbolName) {
+  return entries.findIndex((entry) => entry.symbol === symbolName);
+}
+
+function appSlotRefEntryIndex(refs, rowIndex, operandIndex, access) {
+  const wantedRow = Number(rowIndex);
+  const wantedOperand = Number(operandIndex);
+  const wantedAccess = String(access || "");
+  if (Number.isFinite(wantedRow)) {
+    const exact = refs.findIndex((ref) => (
+      navigationEntryRowIndex(ref) === wantedRow
+      && (!Number.isFinite(wantedOperand) || Number(ref.operand_index ?? ref.operandIndex) === wantedOperand)
+      && (!wantedAccess || ref.access === wantedAccess)
+    ));
+    if (exact >= 0) {
+      return exact;
+    }
+    const sameRow = refs.findIndex((ref) => navigationEntryRowIndex(ref) === wantedRow);
+    if (sameRow >= 0) {
+      return sameRow;
+    }
+  }
+  return refs.length ? 0 : -1;
+}
+
+function focusVisibleListingRowByIndex(rowIndex) {
+  const viewport = document.getElementById("listing-viewport");
+  const value = Number(rowIndex);
+  if (!(viewport instanceof HTMLElement) || !Number.isFinite(value)) {
+    return;
+  }
+  const row = viewport.querySelector(`[data-row-index="${String(Math.floor(value))}"]`);
+  if (!(row instanceof HTMLElement)) {
+    return;
+  }
+  row.classList.add("listing-row-focus");
+  window.setTimeout(() => row.classList.remove("listing-row-focus"), 1200);
+}
+
+async function selectAppSlotNavigationRef(projectId, symbolName, rowIndex = null, operandIndex = null, access = null) {
+  const symbol = String(symbolName || "");
+  if (!isAppSlotSymbolName(symbol)) {
+    return;
+  }
+  const groups = await ensureNavigationEntries(projectId);
+  const entries = appSlotEntriesFromGroups(groups);
+  const slotIndex = appSlotEntryIndex(entries, symbol);
+  if (slotIndex < 0) {
+    return;
+  }
+  const refs = entries[slotIndex].refs || [];
+  const refIndex = appSlotRefEntryIndex(refs, rowIndex, operandIndex, access);
+  if (!state.navigation.overlayOpen) {
+    state.navigation.originEntry = captureViewportAnchor();
+  }
+  state.navigation.overlayOpen = true;
+  state.navigation.selectedClass = "app-slots";
+  state.navigation.appSlotSymbol = symbol;
+  state.navigation.selectedIndex = Math.max(0, refIndex);
+  state.navigation.currentPreviewEntry = refs[state.navigation.selectedIndex] || null;
+  renderNavigationOverlay();
+  syncNavigationListFocus();
+  focusVisibleListingRowByIndex(rowIndex);
+}
+
+function renderAppSlotNavigationBack() {
+  if (!currentAppSlotNavigationSymbol()) {
+    return "";
+  }
+  return '<button type="button" class="navigation-back-to-slots" data-navigation-app-slots-root="1">All App Slots</button>';
 }
 
 function renderNavigationOverlay() {
@@ -1617,14 +2443,14 @@ function renderNavigationOverlay() {
     return;
   }
   const entries = currentNavigationEntries();
-  syncNavigationWindow();
+  syncNavigationSelection();
   const selectedClass = state.navigation.selectedClass;
-  const windowStart = state.navigation.windowStart;
-  const windowEntries = entries.slice(windowStart, windowStart + NAVIGATION_WINDOW_SIZE);
   const classOptions = [
+    ["repro-issues", "Repro Issues"],
     ["typed-data", "Typed Data"],
     ["relocations", "Relocations"],
     ["api-calls", "API Calls"],
+    ["app-slots", "App Slots"],
     ["labels", "Labels"],
     ["comments", "Comments"],
   ];
@@ -1641,22 +2467,23 @@ function renderNavigationOverlay() {
             ${classOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${value === selectedClass ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}
           </select>
         </label>
-        <div class="navigation-summary">${entries.length} entries</div>
+        <div class="navigation-summary-row">
+          <div class="navigation-summary">${escapeHtml(navigationSummaryText(entries))}</div>
+          ${renderAppSlotNavigationBack()}
+        </div>
         <div class="navigation-list" tabindex="0" data-navigation-list="1">
           ${entries.length
-            ? windowEntries.map((entry, windowIndex) => {
-              const index = windowStart + windowIndex;
-              return `
+            ? entries.map((entry, index) => `
               <button
                 type="button"
                 class="navigation-item${index === state.navigation.selectedIndex ? " active" : ""}"
                 data-navigation-index="${index}"
               >
-                <span class="navigation-item-addr">${escapeHtml(formatRowOffset(entry.addr))}</span>
+                <span class="navigation-item-addr">${escapeHtml(formatNavigationEntryOffset(entry))}</span>
                 <span class="navigation-item-text">${escapeHtml(entry.summary)}</span>
+                ${renderNavigationAccessBadges(entry)}
               </button>
-            `;
-            }).join("")
+            `).join("")
             : '<div class="navigation-empty">No entries in this class.</div>'}
         </div>
       </div>
@@ -1677,14 +2504,39 @@ function syncNavigationListFocus() {
     return;
   }
   list.focus();
+  if (selected instanceof HTMLElement) {
+    selected.scrollIntoView({ block: "nearest" });
+  }
 }
 
 async function previewNavigationEntry(entry) {
   if (!entry || !state.project) {
     return;
   }
+  if (navigationEntryHasRefs(entry)) {
+    return;
+  }
   state.navigation.currentPreviewEntry = entry;
-  await jumpToListingAddr(state.project, entry.addr, entry.matchText || null);
+  if (state.navigation.selectedClass === "repro-issues") {
+    state.reproduction.selectedIssueEntry = entry;
+    renderReproPanel();
+  }
+  await jumpToNavigationEntry(state.project, entry);
+}
+
+async function activateNavigationEntry(entry) {
+  if (!entry) {
+    return;
+  }
+  if (state.navigation.selectedClass === "app-slots" && navigationEntryHasRefs(entry)) {
+    state.navigation.appSlotSymbol = entry.symbol || null;
+    state.navigation.selectedIndex = 0;
+    state.navigation.currentPreviewEntry = null;
+    renderNavigationOverlay();
+    syncNavigationListFocus();
+    return;
+  }
+  await previewNavigationEntry(entry);
 }
 
 async function moveNavigationSelection(delta) {
@@ -1705,7 +2557,8 @@ async function moveNavigationSelection(delta) {
 async function setNavigationClass(value) {
   state.navigation.selectedClass = value;
   state.navigation.selectedIndex = 0;
-  state.navigation.windowStart = 0;
+  state.navigation.appSlotSymbol = null;
+  state.navigation.currentPreviewEntry = null;
   renderNavigationOverlay();
   syncNavigationListFocus();
   const [first] = currentNavigationEntries();
@@ -1715,11 +2568,12 @@ async function setNavigationClass(value) {
 function commitNavigationPreview() {
   const origin = state.navigation.originEntry;
   const current = state.navigation.currentPreviewEntry;
-  if (!origin || !current || origin.addr === current.addr) {
+  if (!origin || !current || navigationEntriesSameLocation(origin, current)) {
     return;
   }
   state.navigation.historyBack.push(origin);
   state.navigation.historyForward = [];
+  state.navigation.currentLocation = current;
 }
 
 function closeNavigationOverlay() {
@@ -1736,7 +2590,6 @@ async function openNavigationOverlay() {
   }
   state.navigation.overlayOpen = true;
   state.navigation.originEntry = captureViewportAnchor();
-  state.navigation.windowStart = 0;
   renderNavigationOverlay();
   syncNavigationListFocus();
   const entries = currentNavigationEntries();
@@ -1758,11 +2611,12 @@ async function navigateHistory(direction) {
   if (!target || !state.project) {
     return;
   }
-  const current = captureViewportAnchor();
+  const current = state.navigation.currentLocation || captureViewportAnchor();
   if (current) {
     targetStack.push(current);
   }
-  await jumpToListingAddr(state.project, target.addr, target.matchText || null);
+  await jumpToNavigationEntry(state.project, target);
+  state.navigation.currentLocation = target;
 }
 
 function bindNavigationOverlay() {
@@ -1776,12 +2630,21 @@ function bindNavigationOverlay() {
   overlay.querySelector("[data-navigation-class='1']")?.addEventListener("change", (event) => {
     void setNavigationClass(event.target.value);
   });
+  overlay.querySelector("[data-navigation-app-slots-root='1']")?.addEventListener("click", () => {
+    const entries = appSlotEntriesFromGroups(state.navigation.entries || buildNavigationEntries(state.listingRows || []));
+    const slotIndex = appSlotEntryIndex(entries, state.navigation.appSlotSymbol || "");
+    state.navigation.appSlotSymbol = null;
+    state.navigation.selectedIndex = slotIndex >= 0 ? slotIndex : 0;
+    state.navigation.currentPreviewEntry = null;
+    renderNavigationOverlay();
+    syncNavigationListFocus();
+  });
   overlay.querySelectorAll("[data-navigation-index]").forEach((button) => {
     button.addEventListener("click", () => {
       state.navigation.selectedIndex = Number(button.dataset.navigationIndex);
       renderNavigationOverlay();
       syncNavigationListFocus();
-      void previewNavigationEntry(currentNavigationEntries()[state.navigation.selectedIndex]);
+      void activateNavigationEntry(currentNavigationEntries()[state.navigation.selectedIndex]);
     });
   });
 }
@@ -1792,6 +2655,10 @@ async function ensureTypeCatalog(projectId) {
   }
   state.typeCatalog = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/api/type-catalog`);
   return state.typeCatalog;
+}
+
+function renderTypeCatalogOptions(catalog) {
+  return catalog.map((entry) => `<option value="${escapeHtml(entry.name)}">${escapeHtml(entry.name)} (${escapeHtml(entry.source)}, ${escapeHtml(String(entry.size))} bytes)</option>`).join("");
 }
 
 function renderApiEditDialog(projectId, row) {
@@ -1845,7 +2712,6 @@ async function refreshListingAfterApiEdit(projectId, addr) {
 }
 
 async function openApiEditDialog(projectId, row) {
-  const catalog = await ensureTypeCatalog(projectId);
   const viewport = document.getElementById("listing-viewport");
   if (!viewport) {
     return;
@@ -1855,11 +2721,17 @@ async function openApiEditDialog(projectId, row) {
     existing.remove();
   }
   viewport.insertAdjacentHTML("beforeend", `
-    <datalist id="api-struct-catalog">
-      ${catalog.map((entry) => `<option value="${escapeHtml(entry.name)}">${escapeHtml(entry.name)} (${escapeHtml(entry.source)}, ${escapeHtml(String(entry.size))} bytes)</option>`).join("")}
-    </datalist>
+    <datalist id="api-struct-catalog"></datalist>
     ${renderApiEditDialog(projectId, row)}
   `);
+  void ensureTypeCatalog(projectId).then((catalog) => {
+    const datalist = document.getElementById("api-struct-catalog");
+    if (datalist) {
+      datalist.innerHTML = renderTypeCatalogOptions(catalog);
+    }
+  }).catch((error) => {
+    console.warn("Type catalog unavailable", error);
+  });
   const dialog = document.querySelector(".api-edit-dialog");
   if (!dialog) {
     return;
@@ -1987,6 +2859,29 @@ function bindListingEditors(projectId, rows) {
       }
     });
   });
+  viewport.querySelectorAll("[data-app-slot-symbol]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void selectAppSlotNavigationRef(
+        projectId,
+        button.dataset.appSlotSymbol || "",
+        button.dataset.rowIndex ?? null,
+        button.dataset.appSlotOperandIndex ?? null,
+        button.dataset.appSlotAccess ?? null,
+      );
+    });
+    button.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void selectAppSlotNavigationRef(
+          projectId,
+          button.dataset.appSlotSymbol || "",
+          button.dataset.rowIndex ?? null,
+          button.dataset.appSlotOperandIndex ?? null,
+          button.dataset.appSlotAccess ?? null,
+        );
+      }
+    });
+  });
   viewport.querySelectorAll("[data-api-edit='1']").forEach((button, index) => {
     button.addEventListener("click", () => {
       const rowIndex = Number(button.dataset.rowIndex);
@@ -2058,35 +2953,7 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
 async function loadInitialListingWindow(projectId) {
   const viewport = document.getElementById("listing-viewport");
   const count = viewport ? listingFetchCount(viewport) : LISTING_INITIAL_ROW_WINDOW;
-  return loadListingWindow(projectId, null, 0, count, {start: 0, count});
-}
-
-async function refreshListingWindowAfterEnrichment(projectId, enrichmentJobId, token) {
-  try {
-    const fullJobState = await waitForAsyncJob(
-      (jobId) => `/api/projects/${encodeURIComponent(projectId)}/listing/status?job_id=${encodeURIComponent(jobId)}`,
-      {job_id: enrichmentJobId, status: "building", job_kind: "full_listing", phase_id: "build_c_rows"},
-      token,
-      () => {},
-    );
-    if (token !== state.loadingToken || fullJobState.visible_generation !== "full") {
-      return;
-    }
-    const listing = await refreshListingAtCurrentAddressAnchor(projectId, token);
-    if (token !== state.loadingToken) {
-      return;
-    }
-    if (listing?.analysis_generation === "full") {
-      await loadNavigationEntries(projectId);
-      renderNavigationOverlay();
-      setAnalysisStatus("Full analysis ready", "ready", 2000);
-    }
-  } catch (error) {
-    if (String(error.message || error) !== "stale") {
-      console.warn("Full listing enrichment failed", error);
-      setAnalysisStatus("Full analysis failed", "failed");
-    }
-  }
+  return loadListingWindow(projectId, 0, 0, count);
 }
 
 function normalizeJumpText(text) {
@@ -2095,9 +2962,21 @@ function normalizeJumpText(text) {
     .replaceAll(/[^a-z0-9]+/g, "");
 }
 
-function selectBestListingRow(viewport, addr, matchText = null) {
+function selectBestListingRow(viewport, addr, matchText = null, stableKey = null, rowIndex = null) {
   if (!viewport) {
     return null;
+  }
+  if (Number.isFinite(rowIndex)) {
+    const indexed = viewport.querySelector(`[data-row-index="${String(Math.floor(rowIndex))}"]`);
+    if (indexed) {
+      return indexed;
+    }
+  }
+  if (stableKey) {
+    const stable = viewport.querySelector(`[data-row-stable-key="${CSS.escape(stableKey)}"]`);
+    if (stable) {
+      return stable;
+    }
   }
   const rows = Array.from(viewport.querySelectorAll(`[data-row-addr="${String(addr)}"]`));
   if (!rows.length) {
@@ -2117,8 +2996,8 @@ function selectBestListingRow(viewport, addr, matchText = null) {
   return labelRows[0] || rows[0];
 }
 
-function scrollRowIntoView(viewport, addr, block = "center", matchText = null) {
-  const row = selectBestListingRow(viewport, addr, matchText);
+function scrollRowIntoView(viewport, addr, block = "center", matchText = null, stableKey = null, rowIndex = null) {
+  const row = selectBestListingRow(viewport, addr, matchText, stableKey, rowIndex);
   if (!row) {
     return false;
   }
@@ -2331,7 +3210,7 @@ async function jumpToListingAddr(projectId, addr, matchText = null) {
   window.setTimeout(() => row.classList.remove("listing-row-focus"), 1200);
 }
 
-async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null) {
+async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null, stableKey = null) {
   const viewport = document.getElementById("listing-viewport");
   if (!(viewport instanceof HTMLElement) || !Number.isFinite(rowIndex)) {
     await jumpToListingAddr(projectId, addr, matchText);
@@ -2346,8 +3225,8 @@ async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null) {
   try {
     viewport.scrollTop = Math.max(0, (targetIndex * rowHeight) - Math.floor(viewport.clientHeight / 2));
     await loadListingWindow(projectId, null, 0, count, {start, count, preserveScroll: true});
-    scrollRowIntoView(viewport, addr, "center", matchText);
-    const row = selectBestListingRow(viewport, addr, matchText);
+    scrollRowIntoView(viewport, addr, "center", matchText, stableKey, targetIndex);
+    const row = selectBestListingRow(viewport, addr, matchText, stableKey, targetIndex);
     if (!row) {
       return;
     }
@@ -2358,6 +3237,17 @@ async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null) {
       state.virtualListing.suppressScrollFetch = false;
     }, 80);
   }
+}
+
+async function jumpToNavigationEntry(projectId, entry) {
+  const matchText = entry.matchText || entry.match_text || null;
+  const stableKey = entry.stableKey || entry.stable_key || null;
+  const rowIndex = navigationEntryRowIndex(entry);
+  if (rowIndex !== null) {
+    await jumpToListingIndex(projectId, rowIndex, entry.addr, matchText, stableKey);
+    return;
+  }
+  await jumpToListingAddr(projectId, entry.addr, matchText);
 }
 
 async function jumpToListingSymbol(projectId, symbolName) {
@@ -2376,6 +3266,7 @@ async function jumpToListingSymbol(projectId, symbolName) {
     target.rowIndex ?? target.row_index,
     target.addr,
     target.matchText || target.match_text || `${wanted}:`,
+    target.stableKey || target.stable_key || null,
   );
 }
 
@@ -2396,6 +3287,7 @@ async function renderProject(projectId) {
           <button id="navigation-forward" type="button" title="Forward">Forward</button>
           <button id="open-navigation" type="button" title="Navigate">Navigate</button>
           <button id="open-stats" type="button" title="Stats">Stats</button>
+          <button id="open-repro" type="button" title="Repro">Repro</button>
           <button id="exit-project" type="button">Project</button>
         </div>
       </div>
@@ -2439,11 +3331,23 @@ async function renderProject(projectId) {
   state.navigation.overlayOpen = false;
   state.navigation.entries = null;
   state.navigation.generation = null;
+  state.navigation.appSlotSymbol = null;
+  state.navigation.originEntry = null;
+  state.navigation.currentPreviewEntry = null;
+  state.navigation.currentLocation = null;
+  state.navigation.historyBack = [];
+  state.navigation.historyForward = [];
   state.stats.overlayOpen = false;
   state.stats.selectedTab = "fetch";
   state.stats.fetchSamples = [];
+  state.reproduction.panelOpen = false;
+  state.reproduction.report = null;
+  state.reproduction.reportKey = null;
+  state.reproduction.job = null;
+  state.reproduction.selectedIssueEntry = null;
   setAnalysisStatus("");
   renderStatsOverlay();
+  renderReproPanel();
   renderNavigationOverlay();
   fetchJson(`/api/projects/${encodeURIComponent(projectId)}/open`, {method: "POST"})
     .catch(() => null);
@@ -2453,6 +3357,8 @@ async function renderProject(projectId) {
       return;
     }
     state.projectData = projectData;
+    state.reproduction.report = projectData.reproduction || null;
+    state.reproduction.reportKey = reproductionReportKey(state.reproduction.report);
     const detailsText = formatProjectDetails(projectData);
     const detailsNode = document.getElementById("project-details");
     const titleNode = document.getElementById("project-title");
@@ -2474,6 +3380,9 @@ async function renderProject(projectId) {
       void openNavigationOverlay();
     });
     document.getElementById("open-stats")?.addEventListener("click", openStatsOverlay);
+    document.getElementById("open-repro")?.addEventListener("click", () => {
+      void openReproPanel();
+    });
     document.getElementById("navigation-back")?.addEventListener("click", () => {
       void navigateHistory("back");
     });
@@ -2505,9 +3414,16 @@ async function renderProject(projectId) {
       token,
       (currentJob) => setViewportOverlay(renderProgressOverlay(currentJob)),
     );
-    setViewportOverlay(loadingRowsOverlay());
-    await loadInitialListingWindow(projectId);
+    if (state.virtualListing.generation && state.virtualListing.generation !== "full") {
+      await refreshListingAtCurrentAddressAnchor(projectId, token);
+    } else if (state.virtualListing.generation !== "full") {
+      setViewportOverlay(loadingRowsOverlay());
+      await loadInitialListingWindow(projectId);
+    }
     await loadNavigationEntries(projectId);
+    if (token !== state.loadingToken) {
+      return;
+    }
     renderVirtualListingWindow(projectId, {
       rows: state.listingRows,
       start: state.virtualListing.start,
@@ -2515,17 +3431,8 @@ async function renderProject(projectId) {
       total_rows: state.virtualListing.totalRows,
       analysis_generation: state.virtualListing.generation,
     }, true);
-    if (token !== state.loadingToken) {
-      return;
-    }
-    if (
-      job.enrichment_job_id
-      && job.enrichment_job_id !== job.job_id
-      && jobState.visible_generation !== "full"
-    ) {
-      setAnalysisStatus("Analyzing full listing", "running");
-      void refreshListingWindowAfterEnrichment(projectId, job.enrichment_job_id, token);
-    } else if (jobState.visible_generation === "full") {
+    if (jobState.visible_generation === "full") {
+      void pollReproductionReport(projectId, token);
       setAnalysisStatus("Full analysis ready", "ready", 2000);
     }
   } catch (error) {
@@ -2672,6 +3579,11 @@ document.addEventListener("keydown", (event) => {
     closeStatsOverlay();
     return;
   }
+  if (state.reproduction.panelOpen && event.key === "Escape") {
+    event.preventDefault();
+    closeReproPanel();
+    return;
+  }
   if (isEditableTarget(event.target)) {
     return;
   }
@@ -2709,7 +3621,12 @@ document.addEventListener("keydown", (event) => {
   }
   if (event.key === "Enter") {
     event.preventDefault();
-    closeNavigationOverlay();
+    const entry = currentNavigationEntries()[state.navigation.selectedIndex];
+    if (navigationEntryHasRefs(entry)) {
+      void activateNavigationEntry(entry);
+      return;
+    }
+    void activateNavigationEntry(entry).then(() => closeNavigationOverlay());
     return;
   }
   if (event.key === "ArrowDown") {

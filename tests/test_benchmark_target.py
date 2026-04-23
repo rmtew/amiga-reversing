@@ -15,6 +15,7 @@ from amiga_reversing.tools.benchmark_target import (
     _disk_project_benchmark,
     main,
 )
+from amiga_reversing.tools import precommit
 from amiga_reversing.tools.precommit import _benchmark_targets
 
 
@@ -22,7 +23,10 @@ def test_benchmark_record_uses_target_command_and_sizes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    c_benchmark: dict[str, object] = {"analysis": {"violation_count": 2}}
+    c_benchmark: dict[str, object] = {
+        "analysis": {"violation_count": 2},
+        "facts_v2": {"decoded_candidates": 3},
+    }
     entities = tmp_path / "entities.jsonl"
     disasm = tmp_path / "example.s"
     entities.write_bytes(b"b" * 20)
@@ -60,6 +64,7 @@ def test_benchmark_record_uses_target_command_and_sizes(
     assert record.entities_bytes == 20
     assert record.disasm_bytes == 30
     assert record.analysis == {"violation_count": 2}
+    assert record.facts_v2 == {"decoded_candidates": 3}
     assert record.entities is not None
     assert record.entities.entity_count == 7
     assert record.entities.named_entity_count == 4
@@ -111,13 +116,17 @@ def test_benchmark_binary_target_uses_c_analysis_and_render(
     )
     monkeypatch.setattr(
         "amiga_reversing.tools.benchmark_target.benchmark_project_source_with_text_from_c_backend",
-        lambda source, syntax, metadata_path, project_root: ({"analysis": {"violation_count": 1}}, "; demo\n"),
+        lambda source, syntax, metadata_path, project_root: (
+            {"analysis": {"violation_count": 1}, "analysis_backend": "facts_v2"},
+            "; demo\n",
+        ),
     )
 
     record = _benchmark_binary_target("demo", write_output=True)
 
     assert record.status == "ok"
     assert record.analysis == {"violation_count": 1}
+    assert record.command == "uv run amiga-benchmark-target demo"
     assert disasm_path.read_text(encoding="utf-8") == "; demo\n"
 
 
@@ -169,13 +178,87 @@ def test_precommit_benchmark_targets_include_file_and_disk_sources(tmp_path: Pat
     assert _benchmark_targets() == ["amiga_disk_demo", "filedemo", "rawdemo"]
 
 
+def test_precommit_benchmark_step_runs_target_benchmark(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(precommit.FACTS_V2_GATE_ENV, "0")
+    commands: list[list[str]] = []
+    monkeypatch.setattr(precommit, "_run", lambda command: commands.append(command) or 0)
+
+    assert precommit.main(["precommit.py", "demo"]) == 0
+
+    assert commands[-1] == [
+        "uv",
+        "run",
+        "amiga-benchmark-target",
+        "demo",
+    ]
+
+
+def test_precommit_can_run_facts_v2_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(precommit.FACTS_V2_GATE_ENV, raising=False)
+    commands: list[list[str]] = []
+    envs: list[dict[str, str] | None] = []
+
+    def fake_run(command: list[str], *, env: dict[str, str] | None = None) -> int:
+        commands.append(command)
+        envs.append(env)
+        return 0
+
+    monkeypatch.setattr(precommit, "_run", fake_run)
+
+    assert precommit.main(["precommit.py", "demo"]) == 0
+
+    assert commands[-2] == [
+        precommit.sys.executable,
+        "-m",
+        "pytest",
+        "tests/test_full_reproduction_integration.py",
+        "-q",
+    ]
+    assert envs[-2] is not None
+    assert envs[-2][precommit.FULL_REPRO_INTEGRATION_ENV] == "1"
+    assert envs[-2][precommit.FULL_REPRO_PROFILE_ENV] == "1"
+    assert precommit.FULL_REPRO_FACTS_V2_SOURCE_GATE_ENV not in envs[-2]
+    assert commands[-1] == commands[-2]
+    assert envs[-1] is not None
+    assert envs[-1][precommit.FULL_REPRO_FACTS_V2_SOURCE_GATE_ENV] == "1"
+
+
+def test_precommit_can_disable_facts_v2_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(precommit.FACTS_V2_GATE_ENV, "0")
+    commands: list[list[str]] = []
+    monkeypatch.setattr(precommit, "_run", lambda command: commands.append(command) or 0)
+
+    assert precommit.main(["precommit.py", "demo"]) == 0
+
+    assert not any("tests/test_full_reproduction_integration.py" in command for command in commands)
+
+
 def test_benchmark_main_fails_when_any_target_fails(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "amiga_reversing.tools.benchmark_target.benchmark_target",
-        lambda target: type("Record", (), {"target": target, "status": "failed", "elapsed_seconds": 1.0})(),
+        lambda target: type(
+            "Record",
+            (),
+            {"target": target, "status": "failed", "elapsed_seconds": 1.0},
+        )(),
     )
 
     assert main(["benchmark_target.py", "demo"]) == 1
+
+
+def test_benchmark_main_passes_targets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    def fake_benchmark_target(target: str) -> object:
+        calls.append(target)
+        return type("Record", (), {"target": target, "status": "ok", "elapsed_seconds": 1.0})()
+
+    monkeypatch.setattr("amiga_reversing.tools.benchmark_target.benchmark_target", fake_benchmark_target)
+
+    assert main(["benchmark_target.py", "demo"]) == 0
+    assert calls == ["demo"]
 
 
 def test_disk_project_benchmark_orders_children_by_manifest_entry_path(

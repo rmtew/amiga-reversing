@@ -83,10 +83,6 @@ def _metadata_path(project_dir: Path) -> Path:
     return project_dir / PROJECT_METADATA_FILE_NAME
 
 
-def _iso_from_timestamp(timestamp: float) -> str:
-    return datetime.fromtimestamp(timestamp, UTC).isoformat()
-
-
 def _load_project_metadata(project_dir: Path) -> ProjectMetadata:
     metadata_path = _metadata_path(project_dir)
     if not metadata_path.exists():

@@ -13,11 +13,16 @@ static void source_include_error(M68kDiagSink diagnostics, const char *message) 
 
 static int parse_include_quoted_path_local(const char *text, char *out_path,
                                            size_t out_path_size) {
-  const char *first_quote = strchr(text, '"');
-  const char *last_quote = strrchr(text, '"');
+  const char *first_quote;
+  const char *last_quote;
+  char quote;
   size_t length;
-  if (first_quote == NULL || last_quote == NULL || last_quote <= first_quote)
-    return 0;
+  while (*text != '\0' && isspace((unsigned char)*text)) ++text;
+  if (*text != '"' && *text != '\'') return 0;
+  quote = *text;
+  first_quote = text;
+  last_quote = strrchr(text + 1, quote);
+  if (last_quote == NULL || last_quote <= first_quote) return 0;
   length = (size_t)(last_quote - first_quote - 1);
   if (length >= out_path_size)
     return 0;
@@ -134,15 +139,23 @@ static int parse_label_builtin(const M68kSourceIncludeContext *context,
 }
 
 static int parse_offset_builtin(const M68kSourceIncludeContext *context,
-                                char *rest, uint32_t delta) {
+                                char *rest, uint32_t delta, M68kDiagSink diagnostics) {
   M68kSourceLookupResult current_offset = context->lookup_defined("SOFFSET", 1, context->user_data);
-  if (!current_offset.ok || !current_offset.defined)
+  char *name = m68k_trim_in_place(rest);
+  if (!current_offset.ok || !current_offset.defined) {
+    source_include_error(diagnostics, "offset directive before active structure");
     return 0;
-  if (!context->set_constant(m68k_trim_in_place(rest), current_offset.value, 0,
-                             context->user_data))
+  }
+  if (!context->set_constant(name, current_offset.value, 0, context->user_data)) {
+    m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SOURCE_FAILED,
+      "failed defining include offset label %.96s", name);
     return 0;
-  return context->set_constant("SOFFSET", current_offset.value + delta, 1,
-                               context->user_data);
+  }
+  if (!context->set_constant("SOFFSET", current_offset.value + delta, 1, context->user_data)) {
+    source_include_error(diagnostics, "failed updating include structure offset");
+    return 0;
+  }
+  return 1;
 }
 
 static int parse_bitdef_builtin(const M68kSourceIncludeContext *context,
@@ -228,6 +241,32 @@ static int parse_devcmd_builtin(const M68kSourceIncludeContext *context,
                                context->user_data);
 }
 
+static int parse_enum_builtin(const M68kSourceIncludeContext *context,
+                              char *rest) {
+  char *expr = m68k_trim_in_place(rest);
+  uint32_t base_value = 0U;
+  if (*expr != '\0') {
+    M68kSourceConstantResult base = context->parse_constant(expr, context->user_data);
+    if (!base.ok) return 0;
+    base_value = base.value;
+  }
+  return context->set_constant("EOFFSET", base_value, 1, context->user_data);
+}
+
+static int parse_eitem_builtin(const M68kSourceIncludeContext *context,
+                               char *rest) {
+  char *name = m68k_trim_in_place(rest);
+  char *comma = strchr(name, ',');
+  M68kSourceLookupResult current_offset;
+  if (comma != NULL) *comma = '\0';
+  name = m68k_trim_in_place(name);
+  if (*name == '\0') return 0;
+  current_offset = context->lookup_defined("EOFFSET", 1, context->user_data);
+  if (!current_offset.ok || !current_offset.defined) return 0;
+  if (!context->set_constant(name, current_offset.value, 0, context->user_data)) return 0;
+  return context->set_constant("EOFFSET", current_offset.value + 1U, 1, context->user_data);
+}
+
 static int parse_libent_builtin(const M68kSourceIncludeContext *context,
                                 char *rest) {
   M68kSourceLookupResult count_value = context->lookup_defined("count", 1, context->user_data);
@@ -273,12 +312,18 @@ int m68k_source_include_process_file(const M68kSourceIncludeContext *context,
                                      const char *path, M68kDiagSink diagnostics) {
   FILE *input = fopen(path, "r");
   char line[256];
+  unsigned line_number = 0U;
   if (input == NULL) {
     source_include_error(diagnostics, "failed opening include file");
     return 0;
   }
   while (fgets(line, sizeof(line), input) != NULL) {
+    ++line_number;
     if (!process_include_line(context, state, line, diagnostics)) {
+      if (!m68k_diag_has_errors(diagnostics.list)) {
+        m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SOURCE_FAILED,
+          "failed processing include file %s at line %u", path, line_number);
+      }
       fclose(input);
       return 0;
     }
@@ -342,7 +387,8 @@ static int process_include_line(const M68kSourceIncludeContext *context,
       char full_path[1024];
       if (!parse_include_quoted_path_local(rest, include_path,
                                           sizeof(include_path))) {
-        source_include_error(diagnostics, "bad include path");
+        m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SOURCE_FAILED,
+          "bad include path: %.96s", rest);
         return 0;
       }
       snprintf(full_path, sizeof(full_path), "%s\\%s", state->include_dir,
@@ -355,9 +401,11 @@ static int process_include_line(const M68kSourceIncludeContext *context,
       token1 = m68k_next_token_in_place(&cursor1);
       directive1 = m68k_parse_source_directive_token(token1);
       if (directive1 == M68K_SOURCE_DIRECTIVE_EQU || directive1 == M68K_SOURCE_DIRECTIVE_SET) {
-        M68kSourceConstantResult value = context->parse_constant(m68k_trim_in_place(cursor1), context->user_data);
+        const char *expr_text = m68k_trim_in_place(cursor1);
+        M68kSourceConstantResult value = context->parse_constant(expr_text, context->user_data);
         if (!value.ok) {
-          source_include_error(diagnostics, "bad constant expression");
+          m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SOURCE_FAILED,
+            "bad include constant expression %.96s", expr_text);
           return 0;
         }
         return context->set_constant(token0, value.value, directive1 == M68K_SOURCE_DIRECTIVE_SET,
@@ -374,7 +422,7 @@ static int process_include_line(const M68kSourceIncludeContext *context,
       return parse_label_builtin(context, rest);
     {
       M68kParseOffsetDirectiveResult offset_directive = m68k_parse_offset_directive_token(directive0);
-      if (offset_directive.ok) return parse_offset_builtin(context, rest, offset_directive.delta);
+      if (offset_directive.ok) return parse_offset_builtin(context, rest, offset_directive.delta, diagnostics);
     }
     if (directive0 == M68K_SOURCE_DIRECTIVE_ALIGNWORD) {
       M68kSourceLookupResult current_offset = context->lookup_defined("SOFFSET", 1, context->user_data);
@@ -402,6 +450,10 @@ static int process_include_line(const M68kSourceIncludeContext *context,
       return parse_devinit_builtin(context, rest);
     if (directive0 == M68K_SOURCE_DIRECTIVE_DEVCMD)
       return parse_devcmd_builtin(context, rest);
+    if (directive0 == M68K_SOURCE_DIRECTIVE_ENUM)
+      return parse_enum_builtin(context, rest);
+    if (directive0 == M68K_SOURCE_DIRECTIVE_EITEM)
+      return parse_eitem_builtin(context, rest);
     return 1;
   }
 }

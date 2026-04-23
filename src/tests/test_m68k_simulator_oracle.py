@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import ctypes
-import json
-import os
 import re
 import subprocess
 import unittest

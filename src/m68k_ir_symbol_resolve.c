@@ -45,7 +45,7 @@ M68kIrSymbolApplyResult m68k_ir_apply_symbol_refs(const M68kIrResolveContext *co
     } else {
       operand->value = symbol_value;
     }
-    if (symbol.defined) {
+    if (symbol.defined && !symbol.is_constant) {
       result.instruction.operands[operand_index].symbol_ref.has_section = 1;
       result.instruction.operands[operand_index].symbol_ref.section_index = symbol.section_index;
     }

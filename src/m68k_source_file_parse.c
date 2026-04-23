@@ -1,6 +1,7 @@
 #include "m68k_source_file_parse.h"
 
 #include "m68k_parse_util.h"
+#include "m68k_instruction_spec.h"
 #include "m68k_plain_parse.h"
 #include "m68k_source_constant_expr.h"
 #include "m68k_source_data.h"
@@ -11,7 +12,24 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+#define M68K_SOURCE_PARSE_LINE_CAPACITY 8192U
+
+typedef struct M68kSourceLineReader M68kSourceLineReader;
+
+struct M68kSourceLineReader {
+  int (*next)(M68kSourceLineReader *reader, char *buffer, size_t buffer_size);
+  void (*close)(M68kSourceLineReader *reader);
+  union {
+    FILE *file;
+    struct {
+      const char *text;
+      size_t offset;
+    } memory;
+  } u;
+};
 
 static void source_parse_error(M68kDiagSink diagnostics, const char *message) {
   m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PARSE_FAILED, message);
@@ -32,6 +50,43 @@ static void source_parse_errorf(M68kDiagSink diagnostics, const char *fmt, ...) 
   va_start(args, fmt);
   vsnprintf(diag->message, sizeof(diag->message), fmt, args);
   va_end(args);
+}
+
+static int source_file_line_reader_next(M68kSourceLineReader *reader, char *buffer, size_t buffer_size) {
+  if (reader == NULL || reader->u.file == NULL || buffer == NULL || buffer_size == 0U) return 0;
+  return fgets(buffer, (int)buffer_size, reader->u.file) != NULL;
+}
+
+static void source_file_line_reader_close(M68kSourceLineReader *reader) {
+  if (reader == NULL || reader->u.file == NULL) return;
+  fclose(reader->u.file);
+  reader->u.file = NULL;
+}
+
+static int source_text_line_reader_next(M68kSourceLineReader *reader, char *buffer, size_t buffer_size) {
+  const char *text;
+  size_t cursor;
+  size_t copied = 0U;
+  if (reader == NULL || buffer == NULL || buffer_size == 0U) return 0;
+  text = reader->u.memory.text;
+  if (text == NULL) return 0;
+  cursor = reader->u.memory.offset;
+  if (text[cursor] == '\0') return 0;
+  while (copied + 1U < buffer_size && text[cursor] != '\0') {
+    buffer[copied++] = text[cursor++];
+    if (buffer[copied - 1U] == '\n') break;
+  }
+  buffer[copied] = '\0';
+  reader->u.memory.offset = cursor;
+  return 1;
+}
+
+static void source_text_line_reader_close(M68kSourceLineReader *reader) {
+  (void)reader;
+}
+
+static void source_line_reader_close(M68kSourceLineReader *reader) {
+  if (reader != NULL && reader->close != NULL) reader->close(reader);
 }
 
 static int parse_include_quoted_path(const char *text, char *out_path,
@@ -78,6 +133,106 @@ static M68kSourceConstantResult source_lookup_constant_callback(const char *name
 
 static M68kSourceConstantResult parse_constant_expression_value(const AsmSourceFile *source, const char *text) {
   return m68k_source_parse_constant_expression(text, source_lookup_constant_callback, (void *)source);
+}
+
+static int parse_hex_nibble(char ch, uint8_t *out_value) {
+  if (out_value == NULL) return 0;
+  if (ch >= '0' && ch <= '9') {
+    *out_value = (uint8_t)(ch - '0');
+    return 1;
+  }
+  if (ch >= 'A' && ch <= 'F') {
+    *out_value = (uint8_t)(ch - 'A' + 10);
+    return 1;
+  }
+  if (ch >= 'a' && ch <= 'f') {
+    *out_value = (uint8_t)(ch - 'a' + 10);
+    return 1;
+  }
+  return 0;
+}
+
+static int parse_hex_blob(const char *text, uint8_t **out_data, uint32_t *out_size) {
+  const char *cursor;
+  size_t digit_count = 0U;
+  size_t byte_count;
+  uint8_t *data;
+  size_t index;
+  if (out_data != NULL) *out_data = NULL;
+  if (out_size != NULL) *out_size = 0U;
+  if (text == NULL || out_data == NULL || out_size == NULL) return 0;
+  cursor = text;
+  if (*cursor == '$') ++cursor;
+  while (cursor[digit_count] != '\0') {
+    uint8_t ignored = 0U;
+    if (!parse_hex_nibble(cursor[digit_count], &ignored)) return 0;
+    ++digit_count;
+  }
+  if ((digit_count & 1U) != 0U) return 0;
+  byte_count = digit_count / 2U;
+  if (byte_count > UINT32_MAX) return 0;
+  data = (uint8_t *)malloc(byte_count == 0U ? 1U : byte_count);
+  if (data == NULL) return 0;
+  for (index = 0U; index < byte_count; ++index) {
+    uint8_t hi = 0U;
+    uint8_t lo = 0U;
+    if (!parse_hex_nibble(cursor[index * 2U], &hi) || !parse_hex_nibble(cursor[index * 2U + 1U], &lo)) {
+      free(data);
+      return 0;
+    }
+    data[index] = (uint8_t)((hi << 4) | lo);
+  }
+  *out_data = data;
+  *out_size = (uint32_t)byte_count;
+  return 1;
+}
+
+static int append_atari_relocation_stream_chunk(AsmSourceFile *source, const uint8_t *data, uint32_t size,
+    int replace_existing) {
+  uint8_t *combined;
+  if (source == NULL || (data == NULL && size != 0U)) return 0;
+  if (replace_existing) {
+    free(source->atari_st_relocation_stream_data);
+    source->atari_st_relocation_stream_data = NULL;
+    source->atari_st_relocation_stream_size = 0U;
+  }
+  if (size == 0U) {
+    source->has_atari_st_relocation_stream = 1;
+    return 1;
+  }
+  if ((uint32_t)(UINT32_MAX - source->atari_st_relocation_stream_size) < size) return 0;
+  combined = (uint8_t *)realloc(source->atari_st_relocation_stream_data,
+    (size_t)source->atari_st_relocation_stream_size + size);
+  if (combined == NULL) return 0;
+  memcpy(combined + source->atari_st_relocation_stream_size, data, size);
+  source->atari_st_relocation_stream_data = combined;
+  source->atari_st_relocation_stream_size += size;
+  source->has_atari_st_relocation_stream = 1;
+  return 1;
+}
+
+static int append_atari_symbol_table_chunk(AsmSourceFile *source, const uint8_t *data, uint32_t size,
+    int replace_existing) {
+  uint8_t *combined;
+  if (source == NULL || (data == NULL && size != 0U)) return 0;
+  if (replace_existing) {
+    free(source->atari_st_symbol_table_data);
+    source->atari_st_symbol_table_data = NULL;
+    source->atari_st_symbol_table_size = 0U;
+  }
+  if (size == 0U) {
+    source->has_atari_st_symbol_table = 1;
+    return 1;
+  }
+  if ((uint32_t)(UINT32_MAX - source->atari_st_symbol_table_size) < size) return 0;
+  combined = (uint8_t *)realloc(source->atari_st_symbol_table_data,
+    (size_t)source->atari_st_symbol_table_size + size);
+  if (combined == NULL) return 0;
+  memcpy(combined + source->atari_st_symbol_table_size, data, size);
+  source->atari_st_symbol_table_data = combined;
+  source->atari_st_symbol_table_size += size;
+  source->has_atari_st_symbol_table = 1;
+  return 1;
 }
 
 static int parse_rs_delta_directive(M68kSourceDirectiveToken directive, uint32_t *out_width) {
@@ -153,13 +308,74 @@ static int source_data_append_item_callback(AsmSourceDataStmt *data_stmt,
   return m68k_source_model_append_data_item(data_stmt, item);
 }
 
+static int statement_is_fpu_id_alias_instruction(const char *text) {
+  char line[128];
+  char *cursor;
+  char *token;
+  M68kParseMnemonicResult mnemonic;
+  if (text == NULL) return 0;
+  snprintf(line, sizeof(line), "%s", text);
+  cursor = line;
+  token = m68k_next_token_in_place(&cursor);
+  mnemonic = m68k_parse_mnemonic_token(token);
+  return mnemonic.mnemonic_id == M68K_ASM_MNEMONIC_FRESTORE ||
+    mnemonic.mnemonic_id == M68K_ASM_MNEMONIC_FSAVE;
+}
 
-int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink diagnostics) {
-  FILE *input = fopen(path, "r");
-  char line[256];
-  char last_symbol_fallback_line[256];
+static int apply_current_fpu_id_to_instruction(M68kInstructionIR *instruction, uint8_t current_fpu_id,
+    uint8_t target_cpu) {
+  M68kAsmOperandValue operands[4];
+  uint8_t candidate_cpus[8];
+  size_t candidate_cpu_count = 0U, operand_index;
+  uint8_t mnemonic_id, form_cpu = 0U, cpu;
+  uint16_t form_index = 0U;
+  if (instruction == NULL || current_fpu_id <= 1U) return 1;
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_FRESTORE) {
+    mnemonic_id = M68K_ASM_MNEMONIC_CPRESTORE;
+  } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_FSAVE) {
+    mnemonic_id = M68K_ASM_MNEMONIC_CPSAVE;
+  } else {
+    return 1;
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    m68k_instruction_operand_to_asm_value(&instruction->operands[operand_index], &operands[operand_index]);
+  }
+  candidate_cpus[candidate_cpu_count++] = target_cpu;
+  if (instruction->target_cpu != target_cpu) candidate_cpus[candidate_cpu_count++] = instruction->target_cpu;
+  for (cpu = M68K_ASM_CPU_68000; cpu <= M68K_ASM_CPU_68060; ++cpu) {
+    size_t index;
+    int seen = 0;
+    for (index = 0U; index < candidate_cpu_count; ++index) {
+      if (candidate_cpus[index] == cpu) {
+        seen = 1;
+        break;
+      }
+    }
+    if (!seen) candidate_cpus[candidate_cpu_count++] = cpu;
+  }
+  for (operand_index = 0U; operand_index < candidate_cpu_count; ++operand_index) {
+    form_cpu = candidate_cpus[operand_index];
+    form_index = m68k_asm_form_index_for_operands_id(mnemonic_id, operands,
+      instruction->operand_count, instruction->size_suffix, form_cpu);
+    if (g_m68k_asm_forms[form_index].mnemonic_id != M68K_ASM_MNEMONIC_NONE) break;
+  }
+  if (g_m68k_asm_forms[form_index].mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 0;
+  instruction->asm_form_index = form_index;
+  instruction->mnemonic_id = mnemonic_id;
+  instruction->target_cpu = form_cpu;
+  instruction->has_coprocessor_id = 1U;
+  instruction->coprocessor_id = current_fpu_id & 0x7U;
+  return 1;
+}
+
+
+static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineReader *reader,
+    M68kDiagSink diagnostics) {
+  char line[M68K_SOURCE_PARSE_LINE_CAPACITY];
+  char last_symbol_fallback_line[M68K_SOURCE_PARSE_LINE_CAPACITY];
   size_t line_number = 0;
   size_t current_section_index = (size_t)-1;
+  uint8_t current_fpu_id = 1U;
   M68kSourceIncludeState include_state;
   M68kSourceIncludeContext include_context;
   M68kSourceDataParseContext data_parse_context;
@@ -189,18 +405,18 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
   rewrite_context.is_constant_symbol = source_rewrite_is_constant_symbol;
   rewrite_context.parse_constant = source_rewrite_parse_constant;
   last_symbol_fallback_line[0] = '\0';
-  if (input == NULL) {
-    source_parse_error(diagnostics, "failed opening source file");
+  if (reader == NULL || reader->next == NULL) {
+    source_parse_error(diagnostics, "bad source reader");
     return 0;
   }
-  while (fgets(line, sizeof(line), input) != NULL) {
+  while (reader->next(reader, line, sizeof(line))) {
     char *rest = NULL;
     char *cursor = NULL;
     char *token0 = NULL;
     M68kSourceDirectiveToken directive0 = M68K_SOURCE_DIRECTIVE_NONE;
-    char statement_text[256];
-    char rewritten_statement_text[256];
-    char optimized_statement_text[256];
+    char statement_text[M68K_SOURCE_PARSE_LINE_CAPACITY];
+    char rewritten_statement_text[M68K_SOURCE_PARSE_LINE_CAPACITY];
+    char optimized_statement_text[M68K_SOURCE_PARSE_LINE_CAPACITY];
     ++line_number;
     m68k_strip_comment_in_place(line);
     rest = m68k_trim_in_place(line);
@@ -214,20 +430,20 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
         AsmSourceStmt *label_stmt = NULL;
         *colon = '\0';
         if (!m68k_is_symbol_name(m68k_trim_in_place(rest))) {
-          fclose(input);
+          source_line_reader_close(reader);
           source_parse_errorf(diagnostics, "bad label at line %u", (unsigned)line_number);
           return 0;
         }
         label_symbol_result = m68k_source_model_ensure_symbol(source, m68k_trim_in_place(rest),
           ASM_SOURCE_SYMBOL_LABEL);
         if (!label_symbol_result.ok) {
-          fclose(input);
+          source_line_reader_close(reader);
           source_parse_error(diagnostics, "out of memory");
           return 0;
         }
         label_stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_LABEL, line_number);
         if (!label_stmt_result.ok) {
-          fclose(input);
+          source_line_reader_close(reader);
           source_parse_error(diagnostics, "out of memory");
           return 0;
         }
@@ -263,14 +479,14 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
       char include_path[512];
       char full_path[1024];
       if (!parse_include_quoted_path(rest, include_path, sizeof(include_path))) {
-        fclose(input);
+        source_line_reader_close(reader);
         source_parse_errorf(diagnostics, "bad include path at line %u", (unsigned)line_number);
         return 0;
       }
       snprintf(full_path, sizeof(full_path), "%s\\%s", source->include_dir,
                include_path);
       if (!m68k_source_include_process_file(&include_context, &include_state, full_path, diagnostics)) {
-        fclose(input);
+        source_line_reader_close(reader);
         return 0;
       }
       continue;
@@ -292,7 +508,7 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
                                          directive1 == M68K_SOURCE_DIRECTIVE_SET)) {
         continue;
       } else if (directive1 == M68K_SOURCE_DIRECTIVE_EQU || directive1 == M68K_SOURCE_DIRECTIVE_SET) {
-        fclose(input);
+        source_line_reader_close(reader);
         source_parse_errorf(diagnostics, "bad source constant at line %u", (unsigned)line_number);
         return 0;
       }
@@ -300,7 +516,7 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
     if (directive0 == M68K_SOURCE_DIRECTIVE_RSSET) {
       M68kSourceConstantResult value = parse_constant_expression_value(source, rest);
       if (!value.ok || !m68k_source_model_set_constant(source, "__RS", value.value, 1)) {
-        fclose(input);
+        source_line_reader_close(reader);
         source_parse_errorf(diagnostics, "bad RSSET directive at line %u", (unsigned)line_number);
         return 0;
       }
@@ -315,7 +531,7 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
         if (current_offset.ok) aligned_offset = apply_rs_directive_alignment(current_offset.value, width);
         if (!current_offset.ok || !parse_rs_count_delta(source, rest, width, &delta) ||
             !m68k_source_model_set_constant(source, "__RS", aligned_offset + delta, 1)) {
-          fclose(input);
+          source_line_reader_close(reader);
           source_parse_errorf(diagnostics, "bad RS directive at line %u", (unsigned)line_number);
           return 0;
         }
@@ -340,7 +556,7 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
         if (!current_offset.ok || !m68k_source_model_set_constant(source, token0, current_offset.value, 0) ||
             !parse_rs_count_delta(source, m68k_trim_in_place(cursor1), width, &delta) ||
             !m68k_source_model_set_constant(source, "__RS", current_offset.value + delta, 1)) {
-          fclose(input);
+          source_line_reader_close(reader);
           source_parse_errorf(diagnostics, "bad RS label directive at line %u", (unsigned)line_number);
           return 0;
         }
@@ -352,21 +568,38 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
       M68kSourceModelIndexResult section_result;
       AsmSourceStmt *stmt = NULL;
       char buffer[128];
-      char *parts[2];
+      char *parts[3];
       size_t count = 0;
       M68kSectionKind kind;
+      uint8_t platform_mem_type = 0U;
+      uint32_t platform_mem_attrs = 0U;
+      uint8_t has_alloc_size = 0U;
+      uint32_t alloc_size = 0U;
       snprintf(buffer, sizeof(buffer), "%s", rest);
       count = m68k_split_delimited_in_place(buffer, ',', parts,
                                             sizeof(parts) / sizeof(parts[0]));
-      if (count != 2U || !m68k_parse_section_kind(m68k_trim_in_place(parts[1]), &kind)) {
-        fclose(input);
+      if ((count != 2U && count != 3U) ||
+          !m68k_parse_section_spec(m68k_trim_in_place(parts[1]), &kind, &platform_mem_type,
+            &platform_mem_attrs)) {
+        source_line_reader_close(reader);
         source_parse_errorf(diagnostics, "bad section directive at line %u", (unsigned)line_number);
         return 0;
       }
+      if (count == 3U) {
+        M68kParseU32Result parsed_alloc_size = m68k_parse_number_u32(m68k_trim_in_place(parts[2]));
+        if (!parsed_alloc_size.ok) {
+          source_line_reader_close(reader);
+          source_parse_errorf(diagnostics, "bad section allocation size at line %u", (unsigned)line_number);
+          return 0;
+        }
+        has_alloc_size = 1U;
+        alloc_size = parsed_alloc_size.value;
+      }
       stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_SECTION, line_number);
-      section_result = m68k_source_model_append_section(source, m68k_trim_in_place(parts[0]), kind);
+      section_result = m68k_source_model_append_section(source, m68k_trim_in_place(parts[0]), kind,
+        platform_mem_type, platform_mem_attrs, has_alloc_size, alloc_size);
       if (!stmt_result.ok || !section_result.ok) {
-        fclose(input);
+        source_line_reader_close(reader);
         source_parse_errorf(diagnostics, "bad section directive at line %u", (unsigned)line_number);
         return 0;
       }
@@ -374,8 +607,12 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
       current_section_index = section_result.index;
       stmt->section_index = current_section_index;
       snprintf(stmt->u.section.name, sizeof(stmt->u.section.name), "%s",
-               m68k_trim_in_place(parts[0]));
+                 m68k_trim_in_place(parts[0]));
       stmt->u.section.kind = kind;
+      stmt->u.section.platform_mem_type = platform_mem_type;
+      stmt->u.section.platform_mem_attrs = platform_mem_attrs;
+      stmt->u.section.has_alloc_size = has_alloc_size;
+      stmt->u.section.alloc_size = alloc_size;
       continue;
     }
     if (directive0 == M68K_SOURCE_DIRECTIVE_EVEN) {
@@ -383,7 +620,7 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
       AsmSourceStmt *stmt = NULL;
       stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_EVEN, line_number);
       if (!stmt_result.ok) {
-        fclose(input);
+        source_line_reader_close(reader);
         source_parse_error(diagnostics, "out of memory");
         return 0;
       }
@@ -396,7 +633,7 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
       AsmSourceStmt *stmt = NULL;
       stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_END, line_number);
       if (!stmt_result.ok) {
-        fclose(input);
+        source_line_reader_close(reader);
         source_parse_error(diagnostics, "out of memory");
         return 0;
       }
@@ -405,15 +642,21 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
       break;
     }
     if (directive0 == M68K_SOURCE_DIRECTIVE_COMMENT) {
-      const char *head_prefix = "HEAD=";
-      size_t head_prefix_len = strlen(head_prefix);
+      static const char head_prefix[] = "HEAD=", reloc_flag_prefix[] = "ATARI_RELOC_FLAG=";
+      static const char symbol_type_prefix[] = "ATARI_SYMBOL_TYPE=", symbol_append_prefix[] = "ATARI_SYMBOLS+=";
+      static const char symbol_prefix[] = "ATARI_SYMBOLS=", reloc_append_prefix[] = "ATARI_RELOC+=";
+      static const char reloc_prefix[] = "ATARI_RELOC=";
+      size_t head_prefix_len = strlen(head_prefix), reloc_flag_prefix_len = strlen(reloc_flag_prefix);
+      size_t symbol_type_prefix_len = strlen(symbol_type_prefix), symbol_append_prefix_len = strlen(symbol_append_prefix);
+      size_t symbol_prefix_len = strlen(symbol_prefix), reloc_append_prefix_len = strlen(reloc_append_prefix);
+      size_t reloc_prefix_len = strlen(reloc_prefix);
       char *head_text = m68k_trim_in_place(rest);
       M68kSourceConstantResult value;
       if (m68k_ascii_prefix_equal_ci(head_text, head_prefix)) {
         head_text = m68k_trim_in_place(head_text + head_prefix_len);
         value = parse_constant_expression_value(source, head_text);
         if (!value.ok) {
-          fclose(input);
+          source_line_reader_close(reader);
           source_parse_errorf(diagnostics, "bad COMMENT HEAD directive at line %u", (unsigned)line_number);
           return 0;
         }
@@ -421,11 +664,139 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
         source->atari_st_program_flags = value.value;
         continue;
       }
+      if (m68k_ascii_prefix_equal_ci(head_text, reloc_flag_prefix)) {
+        head_text = m68k_trim_in_place(head_text + reloc_flag_prefix_len);
+        value = parse_constant_expression_value(source, head_text);
+        if (!value.ok || value.value > 0xFFFFU) {
+          source_line_reader_close(reader);
+          source_parse_errorf(diagnostics, "bad COMMENT ATARI_RELOC_FLAG directive at line %u",
+            (unsigned)line_number);
+          return 0;
+        }
+        source->has_atari_st_relocation_flag = 1;
+        source->atari_st_relocation_flag = value.value;
+        continue;
+      }
+      if (m68k_ascii_prefix_equal_ci(head_text, symbol_type_prefix)) {
+        head_text = m68k_trim_in_place(head_text + symbol_type_prefix_len);
+        value = parse_constant_expression_value(source, head_text);
+        if (!value.ok) {
+          source_line_reader_close(reader);
+          source_parse_errorf(diagnostics, "bad COMMENT ATARI_SYMBOL_TYPE directive at line %u",
+            (unsigned)line_number);
+          return 0;
+        }
+        source->has_atari_st_symbol_table = 1;
+        source->atari_st_symbol_table_type = value.value;
+        continue;
+      }
+      if (m68k_ascii_prefix_equal_ci(head_text, symbol_append_prefix)) {
+        uint8_t *symbol_table = NULL;
+        uint32_t symbol_table_size = 0U;
+        head_text = m68k_trim_in_place(head_text + symbol_append_prefix_len);
+        if (!parse_hex_blob(head_text, &symbol_table, &symbol_table_size)) {
+          source_line_reader_close(reader);
+          source_parse_errorf(diagnostics, "bad COMMENT ATARI_SYMBOLS append directive at line %u",
+            (unsigned)line_number);
+          return 0;
+        }
+        if (!append_atari_symbol_table_chunk(source, symbol_table, symbol_table_size, 0)) {
+          free(symbol_table);
+          source_line_reader_close(reader);
+          source_parse_error(diagnostics, "out of memory");
+          return 0;
+        }
+        free(symbol_table);
+        continue;
+      }
+      if (m68k_ascii_prefix_equal_ci(head_text, symbol_prefix)) {
+        uint8_t *symbol_table = NULL;
+        uint32_t symbol_table_size = 0U;
+        head_text = m68k_trim_in_place(head_text + symbol_prefix_len);
+        if (!parse_hex_blob(head_text, &symbol_table, &symbol_table_size)) {
+          source_line_reader_close(reader);
+          source_parse_errorf(diagnostics, "bad COMMENT ATARI_SYMBOLS directive at line %u",
+            (unsigned)line_number);
+          return 0;
+        }
+        if (!append_atari_symbol_table_chunk(source, symbol_table, symbol_table_size, 1)) {
+          free(symbol_table);
+          source_line_reader_close(reader);
+          source_parse_error(diagnostics, "out of memory");
+          return 0;
+        }
+        free(symbol_table);
+        continue;
+      }
+      if (m68k_ascii_prefix_equal_ci(head_text, reloc_append_prefix)) {
+        uint8_t *relocation_stream = NULL;
+        uint32_t relocation_stream_size = 0U;
+        head_text = m68k_trim_in_place(head_text + reloc_append_prefix_len);
+        if (!parse_hex_blob(head_text, &relocation_stream, &relocation_stream_size)) {
+          source_line_reader_close(reader);
+          source_parse_errorf(diagnostics, "bad COMMENT ATARI_RELOC append directive at line %u",
+            (unsigned)line_number);
+          return 0;
+        }
+        if (!append_atari_relocation_stream_chunk(source, relocation_stream, relocation_stream_size, 0)) {
+          free(relocation_stream);
+          source_line_reader_close(reader);
+          source_parse_error(diagnostics, "out of memory");
+          return 0;
+        }
+        free(relocation_stream);
+        continue;
+      }
+      if (m68k_ascii_prefix_equal_ci(head_text, reloc_prefix)) {
+        uint8_t *relocation_stream = NULL;
+        uint32_t relocation_stream_size = 0U;
+        head_text = m68k_trim_in_place(head_text + reloc_prefix_len);
+        if (!parse_hex_blob(head_text, &relocation_stream, &relocation_stream_size)) {
+          source_line_reader_close(reader);
+          source_parse_errorf(diagnostics, "bad COMMENT ATARI_RELOC directive at line %u",
+            (unsigned)line_number);
+          return 0;
+        }
+        if (!append_atari_relocation_stream_chunk(source, relocation_stream, relocation_stream_size, 1)) {
+          free(relocation_stream);
+          source_line_reader_close(reader);
+          source_parse_error(diagnostics, "out of memory");
+          return 0;
+        }
+        free(relocation_stream);
+        continue;
+      }
+    }
+    if (directive0 == M68K_SOURCE_DIRECTIVE_FPU) {
+      M68kSourceConstantResult fpu_id = parse_constant_expression_value(source, rest);
+      if (!fpu_id.ok || fpu_id.value > 7U) {
+        source_line_reader_close(reader);
+        source_parse_errorf(diagnostics, "bad FPU directive at line %u", (unsigned)line_number);
+        return 0;
+      }
+      current_fpu_id = (uint8_t)fpu_id.value;
+      continue;
     }
     if (current_section_index == (size_t)-1) {
-      fclose(input);
+      source_line_reader_close(reader);
       source_parse_error(diagnostics, "source statement before section");
       return 0;
+    }
+    if (directive0 == M68K_SOURCE_DIRECTIVE_DS_B) {
+      M68kSourceModelIndexResult stmt_result;
+      M68kSourceConstantResult reserve_size;
+      AsmSourceStmt *stmt = NULL;
+      reserve_size = parse_constant_expression_value(source, rest);
+      stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_RESERVE, line_number);
+      if (!reserve_size.ok || !stmt_result.ok) {
+        source_line_reader_close(reader);
+        source_parse_errorf(diagnostics, "bad DS.B directive at line %u", (unsigned)line_number);
+        return 0;
+      }
+      stmt = &source->statements[stmt_result.index];
+      stmt->section_index = current_section_index;
+      stmt->u.reserve_size = reserve_size.value;
+      continue;
     }
     if (source->enable_vasm_compat_rewrites &&
         m68k_is_elided_lea_noop(optimized_statement_text))
@@ -437,7 +808,7 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
         AsmSourceStmt *stmt = NULL;
         stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_DATA, line_number);
         if (!stmt_result.ok) {
-          fclose(input);
+          source_line_reader_close(reader);
           source_parse_errorf(diagnostics,
                      "bad data directive at line %u: %s %s",
                      (unsigned)line_number, token0, rest);
@@ -445,7 +816,7 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
         }
         stmt = &source->statements[stmt_result.index];
         if (!m68k_source_parse_data_statement(token0, rest, &stmt->u.data, &data_parse_context)) {
-          fclose(input);
+          source_line_reader_close(reader);
           source_parse_errorf(diagnostics,
                      "bad data directive at line %u: %s %s",
                      (unsigned)line_number, token0, rest);
@@ -459,7 +830,7 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
         AsmSourceStmt *stmt = NULL;
         stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_DATA, line_number);
         if (!stmt_result.ok) {
-          fclose(input);
+          source_line_reader_close(reader);
           source_parse_errorf(diagnostics,
                      "bad data directive at line %u: %s %s",
                      (unsigned)line_number, token0, rest);
@@ -467,7 +838,7 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
         }
         stmt = &source->statements[stmt_result.index];
         if (!m68k_source_parse_dcb_statement(token0, rest, &stmt->u.data, &data_parse_context)) {
-          fclose(input);
+          source_line_reader_close(reader);
           source_parse_errorf(diagnostics,
                      "bad data directive at line %u: %s %s",
                      (unsigned)line_number, token0, rest);
@@ -484,7 +855,7 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
       M68kDiagList parse_diagnostics;
       stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_INSTRUCTION, line_number);
       if (!stmt_result.ok) {
-        fclose(input);
+        source_line_reader_close(reader);
         source_parse_error(diagnostics, "out of memory");
         return 0;
       }
@@ -493,13 +864,26 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
       stmt->u.instruction.parsed_ir = m68k_plain_parse_instruction_to_ir(optimized_statement_text,
         source->target_cpu, m68k_diag_sink(&parse_diagnostics));
       parse_ok = !m68k_diag_has_errors(&parse_diagnostics);
+      if (!parse_ok && current_fpu_id > 1U && statement_is_fpu_id_alias_instruction(optimized_statement_text)) {
+        m68k_diag_list_reset(&parse_diagnostics);
+        stmt->u.instruction.parsed_ir = m68k_plain_parse_instruction_to_ir(optimized_statement_text,
+          M68K_ASM_CPU_68040, m68k_diag_sink(&parse_diagnostics));
+        parse_ok = !m68k_diag_has_errors(&parse_diagnostics);
+      }
       if (!parse_ok) {
         parse_ok = m68k_parse_instruction_with_symbol_fallback_ir( &symbolic_parse_context, optimized_statement_text,
             &stmt->u.instruction.parsed_ir, last_symbol_fallback_line,
             sizeof(last_symbol_fallback_line));
       }
+      if (!parse_ok && current_fpu_id > 1U && statement_is_fpu_id_alias_instruction(optimized_statement_text)) {
+        M68kSymbolicParseContext fpu_symbolic_parse_context = symbolic_parse_context;
+        fpu_symbolic_parse_context.target_cpu = M68K_ASM_CPU_68040;
+        parse_ok = m68k_parse_instruction_with_symbol_fallback_ir(&fpu_symbolic_parse_context,
+            optimized_statement_text, &stmt->u.instruction.parsed_ir, last_symbol_fallback_line,
+            sizeof(last_symbol_fallback_line));
+      }
       if (!parse_ok) {
-        fclose(input);
+        source_line_reader_close(reader);
         if (strstr(statement_text, "MEMF_PUBLIC") != NULL ||
             strstr(statement_text, "MEMF_LARGEST") != NULL) {
           M68kSourceLookupResult public_value = lookup_defined_symbol_value(source, "MEMF_PUBLIC", 1);
@@ -521,13 +905,53 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
         }
         return 0;
       }
+      if (!apply_current_fpu_id_to_instruction(&stmt->u.instruction.parsed_ir, current_fpu_id,
+          source->target_cpu)) {
+        source_line_reader_close(reader);
+        source_parse_errorf(diagnostics, "bad FPU instruction at line %u", (unsigned)line_number);
+        return 0;
+      }
       stmt->section_index = current_section_index;
       stmt->u.instruction.requested_size_suffix =
           m68k_requested_size_suffix_from_text(statement_text);
     }
   }
-  fclose(input);
+  source_line_reader_close(reader);
   return 1;
 }
+
+int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink diagnostics) {
+  FILE *input;
+  M68kSourceLineReader reader;
+  memset(&reader, 0, sizeof(reader));
+  if (path == NULL) {
+    source_parse_error(diagnostics, "failed opening source file");
+    return 0;
+  }
+  input = fopen(path, "r");
+  if (input == NULL) {
+    source_parse_error(diagnostics, "failed opening source file");
+    return 0;
+  }
+  reader.next = source_file_line_reader_next;
+  reader.close = source_file_line_reader_close;
+  reader.u.file = input;
+  return m68k_source_file_parse_reader(source, &reader, diagnostics);
+}
+
+int m68k_source_file_parse_text(AsmSourceFile *source, const char *source_text, M68kDiagSink diagnostics) {
+  M68kSourceLineReader reader;
+  memset(&reader, 0, sizeof(reader));
+  if (source_text == NULL) {
+    source_parse_error(diagnostics, "missing source text");
+    return 0;
+  }
+  reader.next = source_text_line_reader_next;
+  reader.close = source_text_line_reader_close;
+  reader.u.memory.text = source_text;
+  reader.u.memory.offset = 0U;
+  return m68k_source_file_parse_reader(source, &reader, diagnostics);
+}
+
 
 

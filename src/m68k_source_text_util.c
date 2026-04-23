@@ -238,18 +238,67 @@ char m68k_requested_size_suffix_from_text(const char *line_text) {
 }
 
 int m68k_parse_section_kind(const char *text, M68kSectionKind *out_kind) {
-  if (m68k_ascii_equal_ci(text, "code")) {
+  uint8_t mem_type;
+  uint32_t mem_attrs;
+  return m68k_parse_section_spec(text, out_kind, &mem_type, &mem_attrs);
+}
+
+static int parse_section_base_kind(const char *text, size_t length, M68kSectionKind *out_kind) {
+  if (length == 4U && _strnicmp(text, "code", length) == 0) {
     *out_kind = M68K_SECTION_CODE;
     return 1;
   }
-  if (m68k_ascii_equal_ci(text, "data")) {
+  if (length == 4U && _strnicmp(text, "data", length) == 0) {
     *out_kind = M68K_SECTION_DATA;
     return 1;
   }
-  if (m68k_ascii_equal_ci(text, "bss")) {
+  if (length == 3U && _strnicmp(text, "bss", length) == 0) {
     *out_kind = M68K_SECTION_BSS;
     return 1;
   }
+  return 0;
+}
+
+int m68k_parse_section_spec(const char *text, M68kSectionKind *out_kind, uint8_t *out_platform_mem_type,
+                            uint32_t *out_platform_mem_attrs) {
+  const char *suffix;
+  size_t base_len;
+  M68kSectionKind kind;
+  if (text == NULL || out_kind == NULL || out_platform_mem_type == NULL || out_platform_mem_attrs == NULL) return 0;
+  suffix = strchr(text, '_');
+  base_len = suffix != NULL ? (size_t)(suffix - text) : strlen(text);
+  if (!parse_section_base_kind(text, base_len, &kind)) return 0;
+  *out_kind = kind;
+  *out_platform_mem_type = 0U;
+  *out_platform_mem_attrs = 0U;
+  if (suffix == NULL) return 1;
+  ++suffix;
+  if (m68k_ascii_equal_ci(suffix, "c") || m68k_ascii_equal_ci(suffix, "chip")) {
+    *out_platform_mem_type = 1U;
+    return 1;
+  }
+  if (m68k_ascii_equal_ci(suffix, "f") || m68k_ascii_equal_ci(suffix, "fast")) {
+    *out_platform_mem_type = 2U;
+    return 1;
+  }
+  if ((suffix[0] == 'x' || suffix[0] == 'X') && suffix[1] != '\0') {
+    M68kParseU32Result value = m68k_parse_number_u32(suffix + 1);
+    if (!value.ok) return 0;
+    *out_platform_mem_type = 3U;
+    *out_platform_mem_attrs = value.value;
+    return 1;
+  }
+  return 0;
+}
+
+int m68k_format_section_spec(M68kSectionKind kind, uint8_t platform_mem_type, uint32_t platform_mem_attrs,
+                             char *out_text, size_t out_text_size) {
+  const char *base = (kind == M68K_SECTION_CODE) ? "code" : (kind == M68K_SECTION_DATA) ? "data" : "bss";
+  if (out_text == NULL || out_text_size == 0U) return 0;
+  if (platform_mem_type == 0U) return snprintf(out_text, out_text_size, "%s", base) >= 0;
+  if (platform_mem_type == 1U) return snprintf(out_text, out_text_size, "%s_c", base) >= 0;
+  if (platform_mem_type == 2U) return snprintf(out_text, out_text_size, "%s_f", base) >= 0;
+  if (platform_mem_type == 3U) return snprintf(out_text, out_text_size, "%s_x$%08X", base, platform_mem_attrs) >= 0;
   return 0;
 }
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 import time
@@ -15,6 +16,7 @@ from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.c_backend import (
     benchmark_project_source_with_text_from_c_backend,
 )
+from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_ids import target_output_stem
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 
@@ -53,6 +55,7 @@ class TargetBenchmark:
     entities: EntityBenchmark | None
     error: str | None = None
     targets: dict[str, TargetBenchmark] | None = None
+    facts_v2: dict[str, object] | None = None
 
 
 def _entities_benchmark(entities_path: Path) -> EntityBenchmark | None:
@@ -109,7 +112,6 @@ def _benchmark_record(
     entities_path: Path,
     disasm_path: Path,
     error: str | None = None,
-    *,
     targets: dict[str, TargetBenchmark] | None = None,
 ) -> TargetBenchmark:
     benchmark_version = c_benchmark.get("benchmark_version") if c_benchmark is not None else None
@@ -119,6 +121,7 @@ def _benchmark_record(
     analysis = c_benchmark.get("analysis") if c_benchmark is not None else None
     render = c_benchmark.get("render") if c_benchmark is not None else None
     sections = c_benchmark.get("sections") if c_benchmark is not None else None
+    facts_v2 = c_benchmark.get("facts_v2") if c_benchmark is not None else None
     return TargetBenchmark(
         target=target,
         binary=binary_display_path,
@@ -139,6 +142,7 @@ def _benchmark_record(
         entities=_entities_benchmark(entities_path),
         error=error,
         targets=targets,
+        facts_v2=facts_v2 if isinstance(facts_v2, dict) else None,
     )
 
 
@@ -158,7 +162,11 @@ def _c_syntax_for_assembler_profile(assembler_profile_name: str) -> str:
     return assembler_profile_name
 
 
-def _benchmark_binary_target(target: str, *, write_output: bool) -> TargetBenchmark:
+def _benchmark_binary_target(
+    target: str,
+    *,
+    write_output: bool,
+) -> TargetBenchmark:
     paths = resolve_project_paths(target, project_root=ROOT, require_entities=False)
     target_dir = paths.target_dir
     entities_path = paths.entities_path
@@ -170,14 +178,14 @@ def _benchmark_binary_target(target: str, *, write_output: bool) -> TargetBenchm
     assembler_profile_name = _assembler_profile_for_target(target_dir)
     c_benchmark: dict[str, object] | None = None
     try:
-        metadata_path = target_dir / "target_metadata.json"
         c_syntax = _c_syntax_for_assembler_profile(assembler_profile_name)
-        c_benchmark, rendered_text = benchmark_project_source_with_text_from_c_backend(
-            paths.binary_source,
-            syntax=c_syntax,
-            metadata_path=metadata_path,
-            project_root=ROOT,
-        )
+        with effective_metadata_file(target_dir) as metadata_path:
+            c_benchmark, rendered_text = benchmark_project_source_with_text_from_c_backend(
+                paths.binary_source,
+                syntax=c_syntax,
+                metadata_path=metadata_path,
+                project_root=ROOT,
+            )
         c_benchmark["path"] = paths.binary_source.display_path
         assembler_profile = load_assembler_profile(assembler_profile_name)
         newline = "\n" if assembler_profile.render.line_ending == "lf" else "\r\n"
@@ -228,7 +236,10 @@ def _disk_project_benchmark(target: str) -> TargetBenchmark:
     started = time.perf_counter()
     child_records: dict[str, TargetBenchmark] = {}
     for child_target in child_targets:
-        child_records[child_target] = _benchmark_binary_target(child_target, write_output=True)
+        child_records[child_target] = _benchmark_binary_target(
+            child_target,
+            write_output=True,
+        )
     elapsed = time.perf_counter() - started
     failures = [record for record in child_records.values() if record.status != "ok"]
     c_timing = _sum_c_timing(list(child_records.values()))
@@ -266,16 +277,20 @@ def benchmark_target(target: str) -> TargetBenchmark:
     target_dir = TARGETS_DIR / target
     if (target_dir / "manifest.json").exists():
         return _disk_project_benchmark(target)
-    return _benchmark_binary_target(target, write_output=True)
+    return _benchmark_binary_target(
+        target,
+        write_output=True,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
     if argv is None:
         argv = sys.argv
-    if len(argv) < 2:
-        raise SystemExit("usage: uv run amiga-benchmark-target <target> [<target> ...]")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("targets", nargs="+")
+    args = parser.parse_args(argv[1:])
     had_failures = False
-    for target in argv[1:]:
+    for target in args.targets:
         record = benchmark_target(target)
         if record.status == "ok":
             print(f"{record.target}: {record.elapsed_seconds:.2f}s")

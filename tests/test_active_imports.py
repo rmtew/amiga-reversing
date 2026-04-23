@@ -51,6 +51,7 @@ if active_machine68k_modules:
 def test_kb_parser_imports_are_limited_to_maintenance_tools() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     allowed = {
+        "src/scripts/generate_amiga_os_runtime.py",
         "src/scripts/sync_amiga_includes.py",
         "tests/test_active_imports.py",
         "tests/test_parse_ndk.py",
@@ -120,6 +121,7 @@ def test_active_runtime_imports_are_current_package_or_standard_library() -> Non
         "logging",
         "os",
         "pathlib",
+        "queue",
         "re",
         "shutil",
         "subprocess",
@@ -127,9 +129,11 @@ def test_active_runtime_imports_are_current_package_or_standard_library() -> Non
         "tempfile",
         "threading",
         "time",
+        "traceback",
         "typing",
         "urllib",
         "uuid",
+        "zipfile",
     }
     offenders: list[str] = []
     for package in ("amiga_reversing/disasm", "amiga_reversing/amiga_disk", "amiga_reversing/tools"):

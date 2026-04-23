@@ -1,9 +1,27 @@
 #include "m68k_source_expr.h"
 
+#include "m68k_source_constant_expr.h"
 #include "m68k_parse_util.h"
 
 #include <ctype.h>
 #include <string.h>
+
+typedef struct LinearExprConstantLookupContext {
+  M68kSourceExprLookupFn lookup;
+  void *user_data;
+} LinearExprConstantLookupContext;
+
+static M68kSourceConstantResult linear_expr_lookup_constant(const char *name, void *user_data) {
+  M68kSourceConstantResult result = {0};
+  LinearExprConstantLookupContext *context = (LinearExprConstantLookupContext *)user_data;
+  M68kSourceLookupResult lookup_result;
+  if (context == NULL || context->lookup == NULL) return result;
+  lookup_result = context->lookup(name, context->user_data);
+  if (!lookup_result.ok || !lookup_result.defined || !lookup_result.is_constant) return result;
+  result.ok = 1U;
+  result.value = lookup_result.value;
+  return result;
+}
 
 M68kSourceLinearExprParseResult m68k_source_parse_linear_expression(const char *text, int constants_only,
     M68kSourceExprLookupFn lookup, void *user_data) {
@@ -12,6 +30,19 @@ M68kSourceLinearExprParseResult m68k_source_parse_linear_expression(const char *
   int sign = 1;
   memset(&result, 0, sizeof(result));
   result.expr.valid = 1;
+  if (text == NULL) return result;
+  if (lookup != NULL) {
+    LinearExprConstantLookupContext constant_context;
+    M68kSourceConstantResult constant_result;
+    constant_context.lookup = lookup;
+    constant_context.user_data = user_data;
+    constant_result = m68k_source_parse_constant_expression(text, linear_expr_lookup_constant, &constant_context);
+    if (constant_result.ok) {
+      result.ok = 1U;
+      result.expr.constant = (int32_t)constant_result.value;
+      return result;
+    }
+  }
   while (1) {
     char token[128];
     size_t token_length = 0;

@@ -13,6 +13,8 @@ typedef struct {
   uint16_t disasm_form_index;
   uint8_t mnemonic_id;
   uint8_t target_cpu;
+  uint8_t has_coprocessor_id;
+  uint8_t coprocessor_id;
   char mnemonic[32];
   char size_suffix;
   size_t operand_count;

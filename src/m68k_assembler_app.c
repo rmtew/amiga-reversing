@@ -12,11 +12,131 @@
 #include "platform_atari_st.h"
 #include "platform_common.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define MAX_CASE_BYTES 64
+
+static double assembler_elapsed_seconds(clock_t start_ticks, clock_t end_ticks) {
+  return ((double)(end_ticks - start_ticks)) / (double)CLOCKS_PER_SEC;
+}
+
+static void assembler_add_error(M68kDiagSink diagnostics, const char *message) {
+  if (message == NULL || message[0] == '\0') message = "platform assembler failed";
+  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, message);
+}
+
+static M68kPlatformBackendKind platform_backend_kind_for_name(const char *backend_name) {
+  if (backend_name != NULL && strcmp(backend_name, M68K_BACKEND_AMIGA_HUNK.name) == 0)
+    return M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  if (backend_name != NULL && strcmp(backend_name, M68K_BACKEND_ATARI_ST.name) == 0)
+    return M68K_PLATFORM_BACKEND_ATARI_ST;
+  return M68K_PLATFORM_BACKEND_UNKNOWN;
+}
+
+static uint32_t file_size_u32(const char *path) {
+  FILE *input;
+  int64_t size;
+  if (path == NULL) return 0U;
+  input = fopen(path, "rb");
+  if (input == NULL) return 0U;
+  if (fseek(input, 0, SEEK_END) != 0) {
+    fclose(input);
+    return 0U;
+  }
+  size = (int64_t)ftell(input);
+  fclose(input);
+  if (size <= 0L) return 0U;
+  if ((uint64_t)size > 0xFFFFFFFFULL) return 0xFFFFFFFFU;
+  return (uint32_t)size;
+}
+
+static int make_temp_output_path(char *path_buf, size_t path_buf_size) {
+  char temp_name[L_tmpnam];
+  if (path_buf == NULL || path_buf_size == 0U) return -1;
+  if (tmpnam_s(temp_name, sizeof(temp_name)) != 0) return -1;
+  if (strlen(temp_name) + 4U >= path_buf_size) return -1;
+  strcpy(path_buf, temp_name);
+  strcat(path_buf, ".bin");
+  return 0;
+}
+
+static int read_binary_file_alloc(const char *path, unsigned char **out_data, size_t *out_size,
+    M68kDiagSink diagnostics) {
+  FILE *input = NULL;
+  int64_t file_size_value;
+  size_t file_size;
+  unsigned char *buffer = NULL;
+  if (path == NULL || out_data == NULL || out_size == NULL) {
+    assembler_add_error(diagnostics, "bad arguments");
+    return -1;
+  }
+  input = fopen(path, "rb");
+  if (input == NULL) {
+    assembler_add_error(diagnostics, "failed opening assembler output");
+    return -1;
+  }
+  if (fseek(input, 0, SEEK_END) != 0) {
+    fclose(input);
+    assembler_add_error(diagnostics, "failed sizing assembler output");
+    return -1;
+  }
+  file_size_value = (int64_t)ftell(input);
+  if (file_size_value < 0L) {
+    fclose(input);
+    assembler_add_error(diagnostics, "failed sizing assembler output");
+    return -1;
+  }
+  if (fseek(input, 0, SEEK_SET) != 0) {
+    fclose(input);
+    assembler_add_error(diagnostics, "failed seeking assembler output");
+    return -1;
+  }
+  file_size = (size_t)file_size_value;
+  buffer = (unsigned char *)malloc(file_size != 0U ? file_size : 1U);
+  if (buffer == NULL) {
+    fclose(input);
+    assembler_add_error(diagnostics, "out of memory");
+    return -1;
+  }
+  if (file_size != 0U && fread(buffer, 1, file_size, input) != file_size) {
+    fclose(input);
+    free(buffer);
+    assembler_add_error(diagnostics, "failed reading assembler output");
+    return -1;
+  }
+  fclose(input);
+  *out_data = buffer;
+  *out_size = file_size;
+  return 0;
+}
+
+static int write_binary_file(const char *path, const unsigned char *data, size_t size, M68kDiagSink diagnostics) {
+  FILE *output = NULL;
+  if (path == NULL || path[0] == '\0') {
+    assembler_add_error(diagnostics, "bad output path");
+    return -1;
+  }
+  if (data == NULL && size != 0U) {
+    assembler_add_error(diagnostics, "bad assembler output buffer");
+    return -1;
+  }
+  output = fopen(path, "wb");
+  if (output == NULL) {
+    assembler_add_error(diagnostics, "failed opening assembler output");
+    return -1;
+  }
+  if (size != 0U && fwrite(data, 1, size, output) != size) {
+    fclose(output);
+    assembler_add_error(diagnostics, "failed writing assembler output");
+    return -1;
+  }
+  fclose(output);
+  return 0;
+}
 
 static int simple_source_parse_instruction_callback(const char *line_text, InstructionSpec *out_instruction,
     int allow_label_symbols, uint8_t target_cpu) {
@@ -64,10 +184,12 @@ int m68k_assemble_file_to_binary(const char *input_path, const char *output_path
     simple_source_parse_instruction_callback);
 }
 
-static int assemble_platform_source_to_object(const char *input_path, const char *include_dir, uint8_t target_cpu,
-    int enable_vasm_compat_rewrites, M68kPlatformBackendKind platform_backend_kind,
-    M68kObject *out_object, M68kDiagSink diagnostics) {
+static int assemble_platform_source_to_object_common(const char *input_path, const char *source_text,
+    const char *include_dir, uint8_t target_cpu, int enable_vasm_compat_rewrites,
+    M68kPlatformBackendKind platform_backend_kind, M68kObject *out_object,
+    M68kPlatformAssembleProfile *profile, M68kDiagSink diagnostics) {
   AsmSourceFile source;
+  clock_t phase_start;
   size_t index;
   memset(&source, 0, sizeof(source));
   snprintf(source.include_dir, sizeof(source.include_dir), "%s", include_dir);
@@ -75,10 +197,15 @@ static int assemble_platform_source_to_object(const char *input_path, const char
   source.platform_backend_kind = platform_backend_kind;
   source.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
   source.enable_vasm_compat_rewrites = enable_vasm_compat_rewrites;
-  if (!m68k_source_pipeline_parse_and_layout(&source, input_path, diagnostics)) {
+  phase_start = clock();
+  if (!((source_text != NULL)
+      ? m68k_source_pipeline_parse_text_and_layout(&source, source_text, diagnostics)
+      : m68k_source_pipeline_parse_and_layout(&source, input_path, diagnostics))) {
+    if (profile != NULL) profile->parse_layout_seconds += assembler_elapsed_seconds(phase_start, clock());
     m68k_source_model_free(&source);
     return 0;
   }
+  if (profile != NULL) profile->parse_layout_seconds += assembler_elapsed_seconds(phase_start, clock());
   if (getenv("M68K_ASM_DUMP_LABELS") != NULL) {
     for (index = 0; index < source.symbol_count; ++index) {
       if (source.symbols[index].defined && source.symbols[index].kind == ASM_SOURCE_SYMBOL_LABEL) {
@@ -86,18 +213,64 @@ static int assemble_platform_source_to_object(const char *input_path, const char
       }
     }
   }
+  phase_start = clock();
   if (!m68k_source_pipeline_emit_object(&source, out_object, diagnostics)) {
+    if (profile != NULL) profile->emit_object_seconds += assembler_elapsed_seconds(phase_start, clock());
     m68k_source_model_free(&source);
     return 0;
   }
+  if (profile != NULL) profile->emit_object_seconds += assembler_elapsed_seconds(phase_start, clock());
+  phase_start = clock();
   if (source.has_atari_st_program_flags && m68k_atari_st_set_program_flags(out_object, source.atari_st_program_flags) != 0) {
+    if (profile != NULL) profile->platform_finalize_seconds += assembler_elapsed_seconds(phase_start, clock());
     m68k_source_model_free(&source);
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
       "failed setting Atari ST program flags");
     return 0;
   }
+  if (source.has_atari_st_relocation_flag &&
+      m68k_atari_st_set_relocation_flag(out_object, (uint16_t)source.atari_st_relocation_flag) != 0) {
+    if (profile != NULL) profile->platform_finalize_seconds += assembler_elapsed_seconds(phase_start, clock());
+    m68k_source_model_free(&source);
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
+      "failed setting Atari ST relocation flag");
+    return 0;
+  }
+  if (source.has_atari_st_symbol_table &&
+      m68k_atari_st_set_raw_symbol_table(out_object, source.atari_st_symbol_table_type,
+        source.atari_st_symbol_table_data, source.atari_st_symbol_table_size) != 0) {
+    if (profile != NULL) profile->platform_finalize_seconds += assembler_elapsed_seconds(phase_start, clock());
+    m68k_source_model_free(&source);
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
+      "failed setting Atari ST symbol table");
+    return 0;
+  }
+  if (source.has_atari_st_relocation_stream &&
+      m68k_atari_st_set_raw_relocation_stream(out_object, source.atari_st_relocation_stream_data,
+        source.atari_st_relocation_stream_size) != 0) {
+    if (profile != NULL) profile->platform_finalize_seconds += assembler_elapsed_seconds(phase_start, clock());
+    m68k_source_model_free(&source);
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
+      "failed setting Atari ST relocation stream");
+    return 0;
+  }
+  if (profile != NULL) profile->platform_finalize_seconds += assembler_elapsed_seconds(phase_start, clock());
   m68k_source_model_free(&source);
   return 1;
+}
+
+static int assemble_platform_source_to_object(const char *input_path, const char *include_dir, uint8_t target_cpu,
+    int enable_vasm_compat_rewrites, M68kPlatformBackendKind platform_backend_kind,
+    M68kObject *out_object, M68kPlatformAssembleProfile *profile, M68kDiagSink diagnostics) {
+  return assemble_platform_source_to_object_common(input_path, NULL, include_dir, target_cpu,
+    enable_vasm_compat_rewrites, platform_backend_kind, out_object, profile, diagnostics);
+}
+
+static int assemble_platform_source_text_to_object(const char *source_text, const char *include_dir,
+    uint8_t target_cpu, int enable_vasm_compat_rewrites, M68kPlatformBackendKind platform_backend_kind,
+    M68kObject *out_object, M68kPlatformAssembleProfile *profile, M68kDiagSink diagnostics) {
+  return assemble_platform_source_to_object_common(NULL, source_text, include_dir, target_cpu,
+    enable_vasm_compat_rewrites, platform_backend_kind, out_object, profile, diagnostics);
 }
 
 int m68k_assemble_platform_file_to_output(const char *backend_name, const char *include_dir, const char *input_path,
@@ -112,12 +285,9 @@ int m68k_assemble_platform_file_to_output(const char *backend_name, const char *
     fprintf(stderr, "backend unavailable: %s\n", backend_name);
     return 2;
   }
-  if (strcmp(backend_name, M68K_BACKEND_AMIGA_HUNK.name) == 0)
-    platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
-  else if (strcmp(backend_name, M68K_BACKEND_ATARI_ST.name) == 0)
-    platform_backend_kind = M68K_PLATFORM_BACKEND_ATARI_ST;
+  platform_backend_kind = platform_backend_kind_for_name(backend_name);
   if (!assemble_platform_source_to_object(input_path, include_dir, target_cpu,
-      enable_vasm_compat_rewrites, platform_backend_kind, &object, m68k_diag_sink(&diagnostics))) {
+      enable_vasm_compat_rewrites, platform_backend_kind, &object, NULL, m68k_diag_sink(&diagnostics))) {
     fprintf(stderr, "%s\n", m68k_diag_first_message(&diagnostics));
     return 1;
   }
@@ -129,6 +299,171 @@ int m68k_assemble_platform_file_to_output(const char *backend_name, const char *
   }
   m68k_object_destroy(&object);
   return 0;
+}
+
+static int assemble_platform_source_to_output_buffer_alloc_impl(const char *backend_name, const char *include_dir,
+    const char *input_path, const char *source_text, const char *output_path, int remove_output_after_read,
+    uint8_t target_cpu, int enable_vasm_compat_rewrites, unsigned char **out_data, size_t *out_size,
+    M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
+  const M68kBackend *backend;
+  M68kPlatformAssembleProfile profile;
+  M68kPlatformBackendKind platform_backend_kind;
+  M68kObject object;
+  char temp_path[512];
+  const char *write_path;
+  clock_t total_start;
+  clock_t phase_start;
+  memset(&profile, 0, sizeof(profile));
+  temp_path[0] = '\0';
+  if (out_data == NULL || out_size == NULL || (input_path == NULL && source_text == NULL)) {
+    assembler_add_error(diagnostics, "bad arguments");
+    return -1;
+  }
+  *out_data = NULL;
+  *out_size = 0U;
+  total_start = clock();
+  profile.source_bytes = source_text != NULL
+    ? (uint32_t)((strlen(source_text) > 0xFFFFFFFFUL) ? 0xFFFFFFFFUL : strlen(source_text))
+    : file_size_u32(input_path);
+  backend = m68k_backend_by_name(backend_name);
+  if (backend == NULL || (backend->write_buffer == NULL && backend->write_file == NULL)) {
+    assembler_add_error(diagnostics, "backend unavailable");
+    if (out_profile != NULL) {
+      profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+      *out_profile = profile;
+    }
+    return -1;
+  }
+  platform_backend_kind = platform_backend_kind_for_name(backend_name);
+  if (!(source_text != NULL
+      ? assemble_platform_source_text_to_object(source_text, include_dir != NULL ? include_dir : "", target_cpu,
+          enable_vasm_compat_rewrites, platform_backend_kind, &object, &profile, diagnostics)
+      : assemble_platform_source_to_object(input_path, include_dir != NULL ? include_dir : "", target_cpu,
+          enable_vasm_compat_rewrites, platform_backend_kind, &object, &profile, diagnostics))) {
+    if (out_profile != NULL) {
+      profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+      *out_profile = profile;
+    }
+    return -1;
+  }
+  if (backend->write_buffer != NULL) {
+    phase_start = clock();
+    if (backend->write_buffer(&object, out_data, out_size, diagnostics) != 0) {
+      m68k_object_destroy(&object);
+      if (out_profile != NULL) {
+        profile.write_buffer_seconds += assembler_elapsed_seconds(phase_start, clock());
+        profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+        *out_profile = profile;
+      }
+      return -1;
+    }
+    profile.write_buffer_seconds += assembler_elapsed_seconds(phase_start, clock());
+    m68k_object_destroy(&object);
+    if (output_path != NULL && output_path[0] != '\0') {
+      remove(output_path);
+      phase_start = clock();
+      if (write_binary_file(output_path, *out_data, *out_size, diagnostics) != 0) {
+        remove(output_path);
+        free(*out_data);
+        *out_data = NULL;
+        *out_size = 0U;
+        if (out_profile != NULL) {
+          profile.write_file_seconds += assembler_elapsed_seconds(phase_start, clock());
+          profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+          *out_profile = profile;
+        }
+        return -1;
+      }
+      profile.write_file_seconds += assembler_elapsed_seconds(phase_start, clock());
+    }
+    profile.rebuilt_bytes = *out_size > 0xFFFFFFFFU ? 0xFFFFFFFFU : (uint32_t)*out_size;
+    profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+    if (out_profile != NULL) *out_profile = profile;
+    return 0;
+  }
+  write_path = output_path;
+  if (write_path == NULL || write_path[0] == '\0') {
+    if (make_temp_output_path(temp_path, sizeof(temp_path)) != 0) {
+      m68k_object_destroy(&object);
+      assembler_add_error(diagnostics, "failed creating temp path");
+      if (out_profile != NULL) {
+        profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+        *out_profile = profile;
+      }
+      return -1;
+    }
+    write_path = temp_path;
+    remove_output_after_read = 1;
+  } else {
+    remove(write_path);
+  }
+  phase_start = clock();
+  if (backend->write_file(write_path, &object, diagnostics) != 0) {
+    remove(write_path);
+    m68k_object_destroy(&object);
+    if (out_profile != NULL) {
+      profile.write_file_seconds += assembler_elapsed_seconds(phase_start, clock());
+      profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+      *out_profile = profile;
+    }
+    return -1;
+  }
+  profile.write_file_seconds += assembler_elapsed_seconds(phase_start, clock());
+  m68k_object_destroy(&object);
+  phase_start = clock();
+  if (read_binary_file_alloc(write_path, out_data, out_size, diagnostics) != 0) {
+    if (remove_output_after_read) remove(write_path);
+    if (out_profile != NULL) {
+      profile.read_output_seconds += assembler_elapsed_seconds(phase_start, clock());
+      profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+      *out_profile = profile;
+    }
+    return -1;
+  }
+  profile.read_output_seconds += assembler_elapsed_seconds(phase_start, clock());
+  if (remove_output_after_read) remove(write_path);
+  profile.rebuilt_bytes = *out_size > 0xFFFFFFFFU ? 0xFFFFFFFFU : (uint32_t)*out_size;
+  profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+  if (out_profile != NULL) *out_profile = profile;
+  return 0;
+}
+
+int m68k_assemble_platform_file_to_buffer_alloc(const char *backend_name, const char *include_dir,
+    const char *input_path, uint8_t target_cpu, int enable_vasm_compat_rewrites, unsigned char **out_data,
+    size_t *out_size, M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
+  return assemble_platform_source_to_output_buffer_alloc_impl(backend_name, include_dir, input_path, NULL, NULL, 1,
+    target_cpu, enable_vasm_compat_rewrites, out_data, out_size, out_profile, diagnostics);
+}
+
+int m68k_assemble_platform_file_to_output_buffer_alloc(const char *backend_name, const char *include_dir,
+    const char *input_path, const char *output_path, uint8_t target_cpu, int enable_vasm_compat_rewrites,
+    unsigned char **out_data, size_t *out_size, M68kPlatformAssembleProfile *out_profile,
+    M68kDiagSink diagnostics) {
+  if (output_path == NULL || output_path[0] == '\0') {
+    assembler_add_error(diagnostics, "bad output path");
+    return -1;
+  }
+  return assemble_platform_source_to_output_buffer_alloc_impl(backend_name, include_dir, input_path, NULL,
+    output_path, 0, target_cpu, enable_vasm_compat_rewrites, out_data, out_size, out_profile, diagnostics);
+}
+
+int m68k_assemble_platform_source_text_to_buffer_alloc(const char *backend_name, const char *include_dir,
+    const char *source_text, uint8_t target_cpu, int enable_vasm_compat_rewrites, unsigned char **out_data,
+    size_t *out_size, M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
+  return assemble_platform_source_to_output_buffer_alloc_impl(backend_name, include_dir, NULL, source_text, NULL, 1,
+    target_cpu, enable_vasm_compat_rewrites, out_data, out_size, out_profile, diagnostics);
+}
+
+int m68k_assemble_platform_source_text_to_output_buffer_alloc(const char *backend_name, const char *include_dir,
+    const char *source_text, const char *output_path, uint8_t target_cpu, int enable_vasm_compat_rewrites,
+    unsigned char **out_data, size_t *out_size, M68kPlatformAssembleProfile *out_profile,
+    M68kDiagSink diagnostics) {
+  if (output_path == NULL || output_path[0] == '\0') {
+    assembler_add_error(diagnostics, "bad output path");
+    return -1;
+  }
+  return assemble_platform_source_to_output_buffer_alloc_impl(backend_name, include_dir, NULL, source_text,
+    output_path, 0, target_cpu, enable_vasm_compat_rewrites, out_data, out_size, out_profile, diagnostics);
 }
 
 int m68k_render_source_file_to_stdout(const char *input_path, const char *include_dir, uint8_t target_cpu,

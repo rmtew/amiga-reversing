@@ -8,7 +8,6 @@ import unittest
 import struct
 from pathlib import Path
 
-from src.scripts import build_platform_disk_manifest as disk_manifest_builder
 from src.scripts import build_platform_file_manifest as file_manifest_builder
 from src.tests._build_helpers import require_built_tools
 from src.tests._platform_backend_test_utils import make_synthetic_atari_prg

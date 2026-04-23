@@ -145,6 +145,76 @@ def make_synthetic_hunkexe(code_data: bytes = b"\x4E\x75\x00\x00", data_data: by
     return bytes(payload)
 
 
+def make_synthetic_hunkexe_data_bss_tail_reloc() -> bytes:
+    hunk_header = 1011
+    hunk_code = 1001
+    hunk_data = 1002
+    hunk_reloc32 = 1004
+    hunk_end = 1010
+
+    code_data = b"\x4E\x75\x00\x00"
+    data_data = u32(8)
+    payload = bytearray()
+    payload += u32(hunk_header)
+    payload += u32(0)
+    payload += u32(2)
+    payload += u32(0)
+    payload += u32(1)
+    payload += u32(1)
+    payload += u32(4)
+
+    payload += u32(hunk_code)
+    payload += u32(1)
+    payload += code_data
+    payload += u32(hunk_end)
+
+    payload += u32(hunk_data)
+    payload += u32(1)
+    payload += data_data
+    payload += u32(hunk_reloc32)
+    payload += u32(1)
+    payload += u32(1)
+    payload += u32(0)
+    payload += u32(0)
+    payload += u32(hunk_end)
+    return bytes(payload)
+
+
+def make_synthetic_hunkexe_code_to_data_bss_tail_reloc() -> bytes:
+    hunk_header = 1011
+    hunk_code = 1001
+    hunk_data = 1002
+    hunk_reloc32 = 1004
+    hunk_end = 1010
+
+    code_data = bytes.fromhex("41f9000000084e75")
+    data_data = u32(0)
+    payload = bytearray()
+    payload += u32(hunk_header)
+    payload += u32(0)
+    payload += u32(2)
+    payload += u32(0)
+    payload += u32(1)
+    payload += u32(2)
+    payload += u32(4)
+
+    payload += u32(hunk_code)
+    payload += u32(2)
+    payload += code_data
+    payload += u32(hunk_reloc32)
+    payload += u32(1)
+    payload += u32(1)
+    payload += u32(2)
+    payload += u32(0)
+    payload += u32(hunk_end)
+
+    payload += u32(hunk_data)
+    payload += u32(1)
+    payload += data_data
+    payload += u32(hunk_end)
+    return bytes(payload)
+
+
 def make_synthetic_hunk_object_with_ext() -> bytes:
     hunk_unit = 999
     hunk_name = 1000
@@ -390,6 +460,7 @@ class PlatformBackendTestCaseMixin:
         return subprocess.run(
             [str(self.harness), *args],
             cwd=ROOT,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             check=False,
@@ -508,6 +579,7 @@ def _ensure_platform_backend_harness() -> Path:
     compile_result = subprocess.run(
         ["cmd", "/c", str(HARNESS_COMPILE)],
         cwd=ROOT,
+        stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
         check=False,

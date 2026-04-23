@@ -15,16 +15,95 @@ static int grow_items(void **items, size_t item_size, size_t *capacity, size_t c
   return 1;
 }
 
-M68kSourceModelIndexResult m68k_source_model_find_symbol_index(const AsmSourceFile *source, const char *name) {
+static size_t source_symbol_hash(const char *name) {
+  size_t hash = (size_t)1469598103934665603ULL;
+  const unsigned char *cursor = (const unsigned char *)name;
+  while (*cursor != '\0') {
+    hash ^= (size_t)*cursor++;
+    hash *= (size_t)1099511628211ULL;
+  }
+  return hash != 0U ? hash : 1U;
+}
+
+static int source_symbol_index_insert(AsmSourceFile *source, size_t symbol_index) {
+  size_t mask;
+  size_t slot;
+  if (source == NULL || source->symbol_index_slots == NULL || source->symbol_index_capacity == 0U) return 0;
+  mask = source->symbol_index_capacity - 1U;
+  slot = source_symbol_hash(source->symbols[symbol_index].name) & mask;
+  for (;;) {
+    size_t stored = source->symbol_index_slots[slot];
+    if (stored == 0U) {
+      source->symbol_index_slots[slot] = symbol_index + 1U;
+      return 1;
+    }
+    if (stored == symbol_index + 1U) return 1;
+    slot = (slot + 1U) & mask;
+  }
+}
+
+static int source_symbol_index_reserve(AsmSourceFile *source, size_t count_needed) {
+  size_t next_capacity = 16U;
+  size_t index;
+  size_t *slots;
+  if (source == NULL) return 0;
+  while (next_capacity < count_needed * 2U) next_capacity *= 2U;
+  if (source->symbol_index_capacity >= next_capacity) return 1;
+  slots = (size_t *)calloc(next_capacity, sizeof(*slots));
+  if (slots == NULL) return 0;
+  free(source->symbol_index_slots);
+  source->symbol_index_slots = slots;
+  source->symbol_index_capacity = next_capacity;
+  for (index = 0U; index < source->symbol_count; ++index) {
+    if (!source_symbol_index_insert(source, index)) return 0;
+  }
+  return 1;
+}
+
+static M68kSourceModelIndexResult m68k_source_model_find_symbol_index_exact(const AsmSourceFile *source,
+    const char *name) {
   M68kSourceModelIndexResult result = {0};
   size_t index;
+  if (source->symbol_index_slots != NULL && source->symbol_index_capacity != 0U) {
+    size_t mask = source->symbol_index_capacity - 1U;
+    size_t slot = source_symbol_hash(name) & mask;
+    for (;;) {
+      size_t stored = source->symbol_index_slots[slot];
+      if (stored == 0U) return result;
+      index = stored - 1U;
+      if (strcmp(source->symbols[index].name, name) == 0) {
+        result.ok = 1U;
+        result.index = index;
+        return result;
+      }
+      slot = (slot + 1U) & mask;
+    }
+  }
   for (index = 0; index < source->symbol_count; ++index) {
-    if (_stricmp(source->symbols[index].name, name) == 0) {
+    if (strcmp(source->symbols[index].name, name) == 0) {
       result.ok = 1U;
       result.index = index;
       return result;
     }
   }
+  return result;
+}
+
+M68kSourceModelIndexResult m68k_source_model_find_symbol_index(const AsmSourceFile *source, const char *name) {
+  M68kSourceModelIndexResult result = m68k_source_model_find_symbol_index_exact(source, name);
+  size_t index;
+  size_t match_count = 0U;
+  if (result.ok) return result;
+  for (index = 0; index < source->symbol_count; ++index) {
+    if (_stricmp(source->symbols[index].name, name) == 0) {
+      result.ok = 1U;
+      result.index = index;
+      ++match_count;
+    }
+  }
+  if (match_count == 1U) return result;
+  result.ok = 0U;
+  result.index = 0U;
   return result;
 }
 
@@ -47,12 +126,18 @@ M68kSourceLookupResult m68k_source_model_expr_lookup_symbol(const char *name, vo
 }
 
 M68kSourceModelIndexResult m68k_source_model_append_section(AsmSourceFile *source, const char *name,
-    M68kSectionKind kind) {
+    M68kSectionKind kind, uint8_t platform_mem_type, uint32_t platform_mem_attrs, uint8_t has_alloc_size,
+    uint32_t alloc_size) {
   M68kSourceModelIndexResult result = {0};
   size_t index;
   for (index = 0; index < source->section_count; ++index) {
     if (_stricmp(source->sections[index].name, name) == 0) {
-      if (source->sections[index].kind != kind) return result;
+      if (source->sections[index].kind != kind ||
+          source->sections[index].platform_mem_type != platform_mem_type ||
+          source->sections[index].platform_mem_attrs != platform_mem_attrs ||
+          source->sections[index].has_alloc_size != has_alloc_size ||
+          source->sections[index].alloc_size != alloc_size)
+        return result;
       result.ok = 1U;
       result.index = index;
       return result;
@@ -63,6 +148,10 @@ M68kSourceModelIndexResult m68k_source_model_append_section(AsmSourceFile *sourc
   memset(&source->sections[source->section_count], 0, sizeof(*source->sections));
   snprintf(source->sections[source->section_count].name, sizeof(source->sections[source->section_count].name), "%s", name);
   source->sections[source->section_count].kind = kind;
+  source->sections[source->section_count].platform_mem_type = platform_mem_type;
+  source->sections[source->section_count].platform_mem_attrs = platform_mem_attrs;
+  source->sections[source->section_count].has_alloc_size = has_alloc_size;
+  source->sections[source->section_count].alloc_size = alloc_size;
   result.ok = 1U;
   result.index = source->section_count;
   source->section_count += 1U;
@@ -73,7 +162,7 @@ M68kSourceModelIndexResult m68k_source_model_ensure_symbol(AsmSourceFile *source
     AsmSourceSymbolKind kind) {
   M68kSourceModelIndexResult result = {0};
   size_t index = 0;
-  M68kSourceModelIndexResult found_result = m68k_source_model_find_symbol_index(source, name);
+  M68kSourceModelIndexResult found_result = m68k_source_model_find_symbol_index_exact(source, name);
   if (found_result.ok) {
     index = found_result.index;
     if (source->symbols[index].kind != kind) return result;
@@ -81,6 +170,7 @@ M68kSourceModelIndexResult m68k_source_model_ensure_symbol(AsmSourceFile *source
     result.index = index;
     return result;
   }
+  if (!source_symbol_index_reserve(source, source->symbol_count + 1U)) return result;
   if (!grow_items((void **)&source->symbols, sizeof(*source->symbols), &source->symbol_capacity,
     source->symbol_count + 1U)) return result;
   memset(&source->symbols[source->symbol_count], 0, sizeof(*source->symbols));
@@ -89,6 +179,12 @@ M68kSourceModelIndexResult m68k_source_model_ensure_symbol(AsmSourceFile *source
   result.ok = 1U;
   result.index = source->symbol_count;
   source->symbol_count += 1U;
+  if (!source_symbol_index_insert(source, result.index)) {
+    source->symbol_count -= 1U;
+    result.ok = 0U;
+    result.index = 0U;
+    return result;
+  }
   return result;
 }
 
@@ -153,6 +249,9 @@ void m68k_source_model_free(AsmSourceFile *source) {
   }
   free(source->sections);
   free(source->symbols);
+  free(source->symbol_index_slots);
   free(source->statements);
+  free(source->atari_st_symbol_table_data);
+  free(source->atari_st_relocation_stream_data);
   memset(source, 0, sizeof(*source));
 }

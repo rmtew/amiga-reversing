@@ -209,8 +209,10 @@ static int append_immediate_text(char *out_text, size_t out_text_size, size_t *i
 }
 
 static int append_signed_immediate_text(char *out_text, size_t out_text_size, size_t *inout_used, uint32_t value,
-    char size_suffix) {
+    char size_suffix, uint8_t has_exact_render_value, uint32_t exact_render_value, uint8_t syntax_mode) {
   int32_t signed_value;
+  if (has_exact_render_value != 0U && syntax_mode != M68K_IR_SYNTAX_VASM)
+    return append_format(out_text, out_text_size, inout_used, "#$%X", (unsigned)exact_render_value);
   if (size_suffix == 'b') signed_value = (int32_t)m68k_sign_extend32(value, 8U);
   else if (size_suffix == 'w') signed_value = (int32_t)m68k_sign_extend32(value, 16U);
   else signed_value = (int32_t)value;
@@ -226,8 +228,8 @@ static int append_index_register_text(char *out_text, size_t out_text_size, size
   if (append_format(out_text, out_text_size, inout_used, "%c%u.%c", operand->index_is_address ? 'a' : 'd',
       (unsigned)operand->index_reg, operand->index_long ? 'l' : 'w') != 0)
     return -1;
-  if (operand->scale > 1U)
-    return append_format(out_text, out_text_size, inout_used, "*%u", (unsigned)operand->scale);
+  if (operand->scale != 0U)
+    return append_format(out_text, out_text_size, inout_used, "*%u", (unsigned)(1U << (operand->scale & 0x3U)));
   return 0;
 }
 
@@ -266,6 +268,12 @@ static const char *control_register_name_from_value(const M68kInstructionIR *ins
         [g_m68k_asm_form_control_register_ids[form->control_register_start + index]];
       if (entry->value == value) return entry->name;
     }
+    if (form->control_register_count == 1U) {
+      const M68kAsmControlRegisterDef *entry = &g_m68k_asm_control_registers
+        [g_m68k_asm_form_control_register_ids[form->control_register_start]];
+      return entry->name;
+    }
+    return NULL;
   }
   if (reg_index < g_m68k_asm_control_register_count && g_m68k_asm_control_registers[reg_index].value == value) {
     return g_m68k_asm_control_registers[reg_index].name;
@@ -319,7 +327,8 @@ static int instruction_uses_movem_predecrement_mask(const M68kInstructionIR *ins
 }
 
 static int append_ea_text(char *out_text, size_t out_text_size, size_t *inout_used,
-    const M68kAsmOperandValue *operand, char size_suffix) {
+    const M68kAsmOperandValue *operand, char size_suffix, uint8_t has_exact_render_value,
+    uint32_t exact_render_value, uint8_t syntax_mode) {
   int32_t disp = (int32_t)operand->value;
   switch (operand->ea_mode) {
   case 0:
@@ -464,6 +473,8 @@ static int append_ea_text(char *out_text, size_t out_text_size, size_t *inout_us
         return -1;
       return append_text(out_text, out_text_size, inout_used, ")");
     case 4:
+      if (has_exact_render_value != 0U && syntax_mode != M68K_IR_SYNTAX_VASM)
+        return append_format(out_text, out_text_size, inout_used, "#$%X", (unsigned)exact_render_value);
       if (size_suffix == 'b')
         return append_format(out_text, out_text_size, inout_used, "#$%X", (unsigned)(operand->value & 0xFFU));
       if (size_suffix == 'w')
@@ -610,6 +621,8 @@ M68kInstructionIR m68k_ir_decode_one(const uint8_t *data, size_t size, uint8_t t
   if (result.byte_count == 0U) return instruction;
   instruction.mnemonic_id = result.mnemonic_id;
   instruction.target_cpu = result.target_cpu;
+  instruction.has_coprocessor_id = result.has_coprocessor_id;
+  instruction.coprocessor_id = result.coprocessor_id;
   instruction.byte_count = result.byte_count;
   instruction.size_suffix = result.size_suffix;
   instruction.operand_count = result.operand_count;
@@ -678,6 +691,15 @@ M68kIrEncodeResult m68k_ir_encode_one(const M68kInstructionIR *instruction, uint
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
       "unable to build patch values");
     return result;
+  }
+  if (instruction->has_coprocessor_id != 0U) {
+    size_t patch_index;
+    for (patch_index = 0U; patch_index < form->patch_count; ++patch_index) {
+      const M68kAsmFieldPatch *patch = &g_m68k_asm_patches[form->patch_start + patch_index];
+      if (patch->field_kind == M68K_ASM_FIELD_ID) {
+        patch_values[patch_index] = (uint16_t)(instruction->coprocessor_id & 0x7U);
+      }
+    }
   }
   memset(&spec, 0, sizeof(spec));
   spec.mnemonic_id = form->mnemonic_id;
@@ -766,7 +788,7 @@ static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionI
           goto overflow;
       } else if (strstr(form->syntax, "<displacement>") != NULL) {
         if (append_signed_immediate_text(out_text, out_text_size, &used, operand->value.value,
-              operand_size_suffix) != 0)
+              operand_size_suffix, operand->has_exact_render_value, operand->exact_render_value, syntax_mode) != 0)
           goto overflow;
       } else if (append_immediate_text(out_text, out_text_size, &used, operand->value.value, operand_size_suffix,
             operand->has_exact_render_value, operand->exact_render_value, syntax_mode) != 0)
@@ -789,7 +811,8 @@ static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionI
     case M68K_ASM_OPERAND_BF_EA:
       if ((operand_has_renderable_symbol_name(operand, policy) == 0 ||
           append_symbolic_ea_text(out_text, out_text_size, &used, operand) != 0) &&
-          append_ea_text(out_text, out_text_size, &used, &operand->value, operand_size_suffix) != 0)
+          append_ea_text(out_text, out_text_size, &used, &operand->value, operand_size_suffix,
+            operand->has_exact_render_value, operand->exact_render_value, syntax_mode) != 0)
         goto overflow;
       if (operand->kind == M68K_ASM_OPERAND_BF_EA) {
         if (append_text(out_text, out_text_size, &used, "{") != 0)

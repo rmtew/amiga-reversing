@@ -1,0 +1,1983 @@
+#include "m68k_analysis_facts_v2.h"
+
+#include "m68k_decode_ir.h"
+#include "m68k_fact_ir.h"
+#include "m68k_ir_codec.h"
+#include "m68k_render_ir.h"
+#include "platform_common.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+typedef struct M68kFactsV2WorkItem {
+  size_t section_index;
+  uint32_t offset;
+  uint32_t reason;
+  size_t source_section_index;
+  uint32_t source_offset;
+  uint8_t confidence;
+} M68kFactsV2WorkItem;
+
+typedef struct M68kFactsV2WorkQueue {
+  M68kFactsV2WorkItem *items;
+  size_t count;
+  size_t capacity;
+  size_t cursor;
+  size_t section_count;
+  uint8_t **queued_confidence;
+  uint32_t *extents;
+} M68kFactsV2WorkQueue;
+
+typedef struct M68kFactsV2RelocationFailure {
+  uint32_t reason;
+  uint32_t anchor_kind;
+  uint32_t section;
+  uint32_t offset;
+  uint32_t target_section;
+  uint32_t width;
+  uint32_t platform_record_kind;
+  uint32_t raw_value;
+  int64_t computed_target;
+} M68kFactsV2RelocationFailure;
+
+typedef struct M68kFactsV2RelocationLookup {
+  size_t section_count;
+  size_t **indices;
+  uint32_t *extents;
+} M68kFactsV2RelocationLookup;
+
+typedef struct M68kFactsV2LabelLookup {
+  size_t section_count;
+  uint8_t **labels;
+  uint32_t *extents;
+} M68kFactsV2LabelLookup;
+
+typedef struct M68kAcceptedSectionIndex {
+  const M68kDecodeCandidate **candidates;
+  size_t count;
+} M68kAcceptedSectionIndex;
+
+typedef struct M68kAcceptedCandidateIndex {
+  M68kAcceptedSectionIndex *sections;
+  size_t section_count;
+} M68kAcceptedCandidateIndex;
+
+static int append_violation_fact(M68kFactIR *facts, size_t section_index, uint32_t source_offset,
+  uint32_t target_offset);
+static int append_relocation_anchor_fact(M68kFactIR *facts, const M68kFixup *fixup,
+  const M68kFactsV2RelocationFailure *anchor);
+
+static int policy_structured_item_matches_section(const M68kAnalysisStructuredDataItem *item,
+    size_t section_index) {
+  if (item == NULL) return 0;
+  if (item->has_section_index) return item->section_index == (uint32_t)section_index;
+  return section_index == 0U;
+}
+
+static int policy_structured_data_overlaps_range(const M68kAnalysisPolicy *policy, size_t section_index,
+    uint32_t start, uint32_t size, uint32_t *out_structured_offset) {
+  uint16_t index;
+  uint32_t end;
+  if (out_structured_offset != NULL) *out_structured_offset = 0U;
+  if (policy == NULL || size == 0U || UINT32_MAX - start < size) return 0;
+  end = start + size;
+  for (index = 0U; index < policy->structured_data_item_count &&
+       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
+    uint32_t item_end;
+    if (item->size == 0U || !policy_structured_item_matches_section(item, section_index)) continue;
+    if (UINT32_MAX - item->offset < item->size) continue;
+    item_end = item->offset + item->size;
+    if (start < item_end && end > item->offset) {
+      if (out_structured_offset != NULL) *out_structured_offset = item->offset;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static double elapsed_seconds_local(clock_t start, clock_t end) {
+  return ((double)(end - start)) / (double)CLOCKS_PER_SEC;
+}
+
+static void add_elapsed_seconds_local(double *total, clock_t start, clock_t end) {
+  if (total != NULL) *total += elapsed_seconds_local(start, end);
+}
+
+static clock_t profile_phase_start_local(int enabled) {
+  return enabled ? clock() : (clock_t)0;
+}
+
+static void profile_phase_add_local(int enabled, double *total, clock_t start) {
+  if (enabled) add_elapsed_seconds_local(total, start, clock());
+}
+
+static int preview_source_enabled_local(void) {
+  const char *value = getenv("AMIGA_REVERSING_FACTS_V2_PREVIEW_SOURCE");
+  return value != NULL && strcmp(value, "1") == 0;
+}
+
+static int asm_source_enabled_local(void) {
+  const char *value = getenv("AMIGA_REVERSING_FACTS_V2_ASM_SOURCE");
+  return value != NULL && strcmp(value, "1") == 0;
+}
+
+static int reachable_profile_enabled_local(void) {
+  const char *value = getenv("AMIGA_REVERSING_FACTS_V2_REACHABLE_PROFILE");
+  return value != NULL && strcmp(value, "1") == 0;
+}
+
+static void work_queue_destroy(M68kFactsV2WorkQueue *queue) {
+  size_t section_index;
+  if (queue == NULL) return;
+  if (queue->queued_confidence != NULL) {
+    for (section_index = 0U; section_index < queue->section_count; ++section_index)
+      free(queue->queued_confidence[section_index]);
+  }
+  free(queue->queued_confidence);
+  free(queue->extents);
+  free(queue->items);
+  memset(queue, 0, sizeof(*queue));
+}
+
+static int work_queue_init_for_decode(M68kFactsV2WorkQueue *queue, const M68kDecodeIR *decode) {
+  size_t section_index;
+  if (queue == NULL || decode == NULL) return -1;
+  memset(queue, 0, sizeof(*queue));
+  queue->section_count = decode->section_count;
+  queue->queued_confidence = (uint8_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+    sizeof(*queue->queued_confidence));
+  queue->extents = (uint32_t *)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+    sizeof(*queue->extents));
+  if (queue->queued_confidence == NULL || queue->extents == NULL) goto fail;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    uint32_t extent = decode->sections[section_index].size;
+    queue->extents[section_index] = extent;
+    if (extent == 0U) continue;
+    queue->queued_confidence[section_index] = (uint8_t *)calloc(extent, sizeof(*queue->queued_confidence[section_index]));
+    if (queue->queued_confidence[section_index] == NULL) goto fail;
+  }
+  return 0;
+fail:
+  work_queue_destroy(queue);
+  return -1;
+}
+
+static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, uint32_t offset,
+    uint8_t confidence, uint32_t reason, size_t source_section_index, uint32_t source_offset) {
+  M68kFactsV2WorkItem *grown;
+  size_t next_capacity;
+  if (queue == NULL) return -1;
+  if (section_index < queue->section_count && queue->queued_confidence != NULL &&
+      queue->extents != NULL && queue->queued_confidence[section_index] != NULL &&
+      offset < queue->extents[section_index]) {
+    if (queue->queued_confidence[section_index][offset] >= confidence) return 0;
+    queue->queued_confidence[section_index][offset] = confidence;
+  }
+  if (queue->count == queue->capacity) {
+    next_capacity = queue->capacity == 0U ? 64U : queue->capacity * 2U;
+    grown = (M68kFactsV2WorkItem *)realloc(queue->items, next_capacity * sizeof(*grown));
+    if (grown == NULL) return -1;
+    queue->items = grown;
+    queue->capacity = next_capacity;
+  }
+  queue->items[queue->count].section_index = section_index;
+  queue->items[queue->count].offset = offset;
+  queue->items[queue->count].reason = reason;
+  queue->items[queue->count].source_section_index = source_section_index;
+  queue->items[queue->count].source_offset = source_offset;
+  queue->items[queue->count].confidence = confidence;
+  ++queue->count;
+  return 0;
+}
+
+static int work_queue_pop(M68kFactsV2WorkQueue *queue, M68kFactsV2WorkItem *out_item) {
+  if (queue == NULL || out_item == NULL || queue->cursor >= queue->count) return 0;
+  *out_item = queue->items[queue->cursor++];
+  return 1;
+}
+
+static void relocation_lookup_destroy(M68kFactsV2RelocationLookup *lookup) {
+  size_t section_index;
+  if (lookup == NULL) return;
+  if (lookup->indices != NULL) {
+    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
+      free(lookup->indices[section_index]);
+  }
+  free(lookup->indices);
+  free(lookup->extents);
+  memset(lookup, 0, sizeof(*lookup));
+}
+
+static int relocation_lookup_build(M68kFactsV2RelocationLookup *lookup, const M68kDecodeIR *decode,
+    const M68kFactIR *facts) {
+  size_t section_index;
+  size_t fact_index;
+  if (lookup == NULL || decode == NULL || facts == NULL) return -1;
+  memset(lookup, 0, sizeof(*lookup));
+  lookup->section_count = decode->section_count;
+  lookup->indices = (size_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+    sizeof(*lookup->indices));
+  lookup->extents = (uint32_t *)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+    sizeof(*lookup->extents));
+  if (lookup->indices == NULL || lookup->extents == NULL) goto fail;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    uint32_t extent = section->size;
+    uint32_t offset;
+    lookup->extents[section_index] = extent;
+    if (extent == 0U) continue;
+    lookup->indices[section_index] = (size_t *)malloc((size_t)extent * sizeof(*lookup->indices[section_index]));
+    if (lookup->indices[section_index] == NULL) goto fail;
+    for (offset = 0U; offset < extent; ++offset) lookup->indices[section_index][offset] = SIZE_MAX;
+  }
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    if (fact->kind != M68K_FACT_RELOCATION_REF || fact->section_index >= decode->section_count) continue;
+    if (fact->offset >= lookup->extents[fact->section_index] ||
+        lookup->indices[fact->section_index] == NULL) continue;
+    if (lookup->indices[fact->section_index][fact->offset] == SIZE_MAX)
+      lookup->indices[fact->section_index][fact->offset] = fact_index;
+  }
+  return 0;
+fail:
+  relocation_lookup_destroy(lookup);
+  return -1;
+}
+
+static const M68kFact *relocation_lookup_ref_at(const M68kFactsV2RelocationLookup *lookup,
+    const M68kFactIR *facts, size_t section_index, uint32_t offset) {
+  size_t fact_index;
+  if (lookup == NULL || facts == NULL || section_index >= lookup->section_count ||
+      lookup->indices == NULL || lookup->extents == NULL || offset >= lookup->extents[section_index] ||
+      lookup->indices[section_index] == NULL) {
+    return NULL;
+  }
+  fact_index = lookup->indices[section_index][offset];
+  if (fact_index == SIZE_MAX || fact_index >= facts->fact_count) return NULL;
+  return &facts->facts[fact_index];
+}
+
+static uint32_t decode_section_extent_local(const M68kDecodeSectionIR *section) {
+  if (section == NULL) return 0U;
+  return section->allocation_size > section->size ? section->allocation_size : section->size;
+}
+
+static void label_lookup_destroy(M68kFactsV2LabelLookup *lookup) {
+  size_t section_index;
+  if (lookup == NULL) return;
+  if (lookup->labels != NULL) {
+    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
+      free(lookup->labels[section_index]);
+  }
+  free(lookup->labels);
+  free(lookup->extents);
+  memset(lookup, 0, sizeof(*lookup));
+}
+
+static int label_lookup_build(M68kFactsV2LabelLookup *lookup, const M68kDecodeIR *decode) {
+  size_t section_index;
+  if (lookup == NULL || decode == NULL) return -1;
+  memset(lookup, 0, sizeof(*lookup));
+  lookup->section_count = decode->section_count;
+  lookup->labels = (uint8_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+    sizeof(*lookup->labels));
+  lookup->extents = (uint32_t *)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+    sizeof(*lookup->extents));
+  if (lookup->labels == NULL || lookup->extents == NULL) goto fail;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    uint32_t extent = decode_section_extent_local(&decode->sections[section_index]);
+    lookup->extents[section_index] = extent;
+    lookup->labels[section_index] = (uint8_t *)calloc((size_t)extent + 1U, sizeof(*lookup->labels[section_index]));
+    if (lookup->labels[section_index] == NULL) goto fail;
+  }
+  return 0;
+fail:
+  label_lookup_destroy(lookup);
+  return -1;
+}
+
+static int label_lookup_has_label(const M68kFactsV2LabelLookup *lookup, const M68kFactIR *facts,
+    size_t section_index, uint32_t offset) {
+  if (lookup != NULL && section_index < lookup->section_count && lookup->labels != NULL &&
+      lookup->extents != NULL && lookup->labels[section_index] != NULL &&
+      offset <= lookup->extents[section_index]) {
+    return lookup->labels[section_index][offset] != 0U;
+  }
+  return m68k_fact_ir_has_label(facts, section_index, offset);
+}
+
+static int label_lookup_create_label(M68kFactsV2LabelLookup *lookup, M68kFactIR *facts,
+    size_t section_index, uint32_t offset, uint8_t confidence) {
+  M68kFact fact;
+  if (facts == NULL) return -1;
+  if (label_lookup_has_label(lookup, facts, section_index, offset)) return 0;
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_LABEL_CREATED;
+  fact.confidence = confidence;
+  fact.section_index = section_index;
+  fact.offset = offset;
+  if (m68k_fact_ir_append(facts, &fact) != 0) return -1;
+  if (lookup != NULL && section_index < lookup->section_count && lookup->labels != NULL &&
+      lookup->extents != NULL && lookup->labels[section_index] != NULL &&
+      offset <= lookup->extents[section_index]) {
+    lookup->labels[section_index][offset] = 1U;
+  }
+  return 0;
+}
+
+static const M68kDecodeCandidate *ensure_candidate_at_offset(M68kDecodeIR *decode,
+    const M68kDecodeSectionIR *section, uint32_t offset, uint8_t max_cpu) {
+  const M68kDecodeCandidate *candidate = NULL;
+  if (decode == NULL || section == NULL) return NULL;
+  if (m68k_decode_ir_ensure_candidate_at(decode, section->section_index, offset, max_cpu, &candidate,
+      m68k_diag_sink(NULL)) != 0) {
+    return NULL;
+  }
+  return candidate;
+}
+
+static int accepted_offset_is_interior(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const uint8_t *accepted_bytes, uint32_t offset) {
+  if (section == NULL || accepted_start == NULL || accepted_bytes == NULL || offset >= section->size)
+    return 0;
+  return accepted_bytes[offset] != 0U && accepted_start[offset] == 0U;
+}
+
+static void accepted_candidate_index_destroy(M68kAcceptedCandidateIndex *index) {
+  size_t section_index;
+  if (index == NULL) return;
+  if (index->sections != NULL) {
+    for (section_index = 0U; section_index < index->section_count; ++section_index)
+      free(index->sections[section_index].candidates);
+  }
+  free(index->sections);
+  memset(index, 0, sizeof(*index));
+}
+
+static int accepted_candidate_index_build(M68kAcceptedCandidateIndex *index, const M68kDecodeIR *decode,
+    uint8_t **accepted_start) {
+  size_t section_index;
+  if (index == NULL || decode == NULL || accepted_start == NULL) return -1;
+  accepted_candidate_index_destroy(index);
+  index->section_count = decode->section_count;
+  index->sections = (M68kAcceptedSectionIndex *)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+    sizeof(*index->sections));
+  if (index->sections == NULL) goto fail;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    M68kAcceptedSectionIndex *section_indexed = &index->sections[section_index];
+    size_t candidate_index;
+    size_t accepted_count = 0U;
+    if (accepted_start[section_index] == NULL) continue;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      if (candidate->offset < section->size && accepted_start[section_index][candidate->offset])
+        ++accepted_count;
+    }
+    if (accepted_count == 0U) continue;
+    section_indexed->candidates = (const M68kDecodeCandidate **)malloc(accepted_count * sizeof(*section_indexed->candidates));
+    if (section_indexed->candidates == NULL) goto fail;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      if (candidate->offset < section->size && accepted_start[section_index][candidate->offset])
+        section_indexed->candidates[section_indexed->count++] = candidate;
+    }
+  }
+  return 0;
+fail:
+  accepted_candidate_index_destroy(index);
+  return -1;
+}
+
+static const M68kDecodeCandidate *accepted_candidate_index_covering(const M68kAcceptedCandidateIndex *index,
+    const uint8_t *accepted_start,
+    size_t section_index, uint32_t offset, int interior_only) {
+  const M68kAcceptedSectionIndex *section_indexed;
+  const M68kDecodeCandidate *candidate;
+  size_t lo = 0U;
+  size_t hi;
+  uint32_t candidate_end;
+  if (index == NULL || accepted_start == NULL || section_index >= index->section_count ||
+      index->sections == NULL) {
+    return NULL;
+  }
+  section_indexed = &index->sections[section_index];
+  if (section_indexed->candidates == NULL || section_indexed->count == 0U) return NULL;
+  hi = section_indexed->count;
+  while (lo < hi) {
+    size_t mid = lo + ((hi - lo) / 2U);
+    if (section_indexed->candidates[mid]->offset <= offset) lo = mid + 1U;
+    else hi = mid;
+  }
+  if (lo == 0U) return NULL;
+  candidate = section_indexed->candidates[lo - 1U];
+  if (candidate == NULL || !accepted_start[candidate->offset]) return NULL;
+  if (candidate->byte_count == 0U || candidate->offset > UINT32_MAX - candidate->byte_count) return NULL;
+  candidate_end = candidate->offset + candidate->byte_count;
+  if (offset < candidate->offset || offset >= candidate_end) return NULL;
+  if (interior_only && offset <= candidate->offset) return NULL;
+  return candidate;
+}
+
+static void profile_record_code_start(M68kFactsV2Profile *profile, uint32_t reason) {
+  if (profile == NULL) return;
+  ++profile->code_start_facts;
+  switch (reason) {
+    case M68K_FACT_CODE_START_REASON_SECTION_ENTRY:
+      ++profile->code_start_section_entries;
+      break;
+    case M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET:
+      ++profile->code_start_policy_entry_offsets;
+      break;
+    case M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT:
+      ++profile->code_start_policy_entry_points;
+      break;
+    case M68K_FACT_CODE_START_REASON_CONTROL_TARGET:
+      ++profile->code_start_control_targets;
+      break;
+    case M68K_FACT_CODE_START_REASON_FALLTHROUGH:
+      ++profile->code_start_fallthroughs;
+      break;
+    case M68K_FACT_CODE_START_REASON_INLINE_RESUME:
+      ++profile->code_start_inline_resumes;
+      break;
+    default:
+      break;
+  }
+}
+
+static int append_code_start_fact(M68kFactIR *facts, size_t section_index, uint32_t offset, uint8_t confidence,
+    uint32_t reason, size_t source_section_index, uint32_t source_offset) {
+  M68kFact fact;
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_CODE_START;
+  fact.confidence = confidence;
+  fact.section_index = section_index;
+  fact.offset = offset;
+  fact.reason = reason;
+  fact.source_section_index = source_section_index;
+  fact.source_offset = source_offset;
+  return m68k_fact_ir_append(facts, &fact);
+}
+
+static int enqueue_code_start(M68kFactIR *facts, M68kFactsV2WorkQueue *queue, M68kFactsV2Profile *profile,
+    size_t section_index, uint32_t offset, uint8_t confidence, uint32_t reason,
+    size_t source_section_index, uint32_t source_offset) {
+  if (append_code_start_fact(facts, section_index, offset, confidence, reason, source_section_index,
+      source_offset) != 0) {
+    return -1;
+  }
+  profile_record_code_start(profile, reason);
+  return work_queue_push(queue, section_index, offset, confidence, reason, source_section_index,
+    source_offset);
+}
+
+static uint32_t fixup_width_bytes_local(const M68kFixup *fixup) {
+  if (fixup == NULL) return 0U;
+  switch (fixup->width) {
+    case M68K_FIXUP_WIDTH_8: return 1U;
+    case M68K_FIXUP_WIDTH_16: return 2U;
+    case M68K_FIXUP_WIDTH_32: return 4U;
+    default: return 0U;
+  }
+}
+
+static int fixup_payload_fits_section_data_local(const M68kSection *section, const M68kFixup *fixup) {
+  uint32_t width = fixup_width_bytes_local(fixup);
+  if (section == NULL || fixup == NULL || width == 0U) return 0;
+  if (fixup->offset > section->data_size) return 0;
+  return width <= section->data_size - fixup->offset;
+}
+
+static int read_fixup_payload_raw_local(const M68kSection *section, const M68kFixup *fixup,
+    uint32_t *out_raw_value) {
+  uint32_t width;
+  if (out_raw_value != NULL) *out_raw_value = 0U;
+  if (section == NULL || fixup == NULL || out_raw_value == NULL) return 0;
+  width = fixup_width_bytes_local(fixup);
+  if (width == 0U || !fixup_payload_fits_section_data_local(section, fixup)) return 0;
+  if (width == 1U) *out_raw_value = section->data[fixup->offset];
+  else if (width == 2U) *out_raw_value = m68k_read_u16be(section->data + fixup->offset);
+  else *out_raw_value = m68k_read_u32be(section->data + fixup->offset);
+  return 1;
+}
+
+static void relocation_failure_init(M68kFactsV2RelocationFailure *failure, const M68kFixup *fixup) {
+  if (failure == NULL) return;
+  memset(failure, 0, sizeof(*failure));
+  failure->computed_target = -1;
+  if (fixup == NULL) return;
+  failure->section = (uint32_t)fixup->section_index;
+  failure->offset = fixup->offset;
+  failure->target_section = (uint32_t)fixup->target_section_index;
+  failure->width = fixup_width_bytes_local(fixup);
+  failure->platform_record_kind = fixup->platform_relocation_record_kind;
+}
+
+static void relocation_failure_set(M68kFactsV2RelocationFailure *failure, uint32_t reason,
+    uint32_t raw_value, int64_t computed_target) {
+  if (failure == NULL) return;
+  failure->reason = reason;
+  failure->raw_value = raw_value;
+  failure->computed_target = computed_target;
+}
+
+static void profile_record_relocation_failure(M68kFactsV2Profile *profile,
+    const M68kFactsV2RelocationFailure *failure) {
+  if (profile == NULL) return;
+  if (profile->relocation_failures == 0U && failure != NULL) {
+    profile->first_relocation_failure_reason = failure->reason;
+    profile->first_relocation_failure_section = failure->section;
+    profile->first_relocation_failure_offset = failure->offset;
+    profile->first_relocation_failure_target_section = failure->target_section;
+    profile->first_relocation_failure_width = failure->width;
+    profile->first_relocation_failure_raw_value = failure->raw_value;
+    profile->first_relocation_failure_computed_target = failure->computed_target;
+  }
+  ++profile->relocation_failures;
+}
+
+static void profile_record_relocation_anchor(M68kFactsV2Profile *profile,
+    const M68kFactsV2RelocationFailure *anchor) {
+  if (profile == NULL) return;
+  if (profile->relocation_anchors == 0U && anchor != NULL) {
+    profile->first_relocation_anchor_kind = anchor->anchor_kind;
+    profile->first_relocation_anchor_section = anchor->section;
+    profile->first_relocation_anchor_offset = anchor->offset;
+    profile->first_relocation_anchor_target_section = anchor->target_section;
+    profile->first_relocation_anchor_width = anchor->width;
+    profile->first_relocation_anchor_platform_record_kind = anchor->platform_record_kind;
+    profile->first_relocation_anchor_raw_value = anchor->raw_value;
+    profile->first_relocation_anchor_addend = anchor->computed_target;
+  }
+  ++profile->relocation_anchors;
+}
+
+static uint32_t classify_out_of_range_relocation_anchor(const M68kObject *object,
+    const M68kFixup *fixup, uint32_t width, uint32_t raw_value) {
+  if (object != NULL && fixup != NULL &&
+      object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
+      object->platform_file_kind == M68K_PLATFORM_FILE_EXECUTABLE &&
+      width == 4U &&
+      (fixup->kind == M68K_FIXUP_ABS || fixup->kind == M68K_FIXUP_SECTION_REL)) {
+    if ((int32_t)raw_value < 0)
+      return M68K_FACTS_V2_RELOCATION_ANCHOR_NEGATIVE;
+    return M68K_FACTS_V2_RELOCATION_ANCHOR_POSITIVE;
+  }
+  return M68K_FACTS_V2_RELOCATION_ANCHOR_NONE;
+}
+
+static int facts_v2_fixup_addend_is_platform_normalized_target(const M68kObject *object,
+    const M68kFixup *fixup, uint32_t width, uint32_t target_extent, uint32_t *out_offset) {
+  if (object == NULL || fixup == NULL || out_offset == NULL) return 0;
+  if (object->platform_backend_kind != M68K_PLATFORM_BACKEND_ATARI_ST ||
+      object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE) {
+    return 0;
+  }
+  if (fixup->kind != M68K_FIXUP_ABS || width != 4U || !fixup->has_target_section) return 0;
+  if (fixup->addend < 0 || (uint32_t)fixup->addend >= target_extent) return 0;
+  *out_offset = (uint32_t)fixup->addend;
+  return 1;
+}
+
+static int facts_v2_first_section_of_kind(const M68kObject *object, M68kSectionKind kind,
+    size_t *out_index, const M68kSection **out_section) {
+  size_t index;
+  if (object == NULL) return 0;
+  for (index = 0U; index < object->section_count; ++index) {
+    if (object->sections[index].kind != kind) continue;
+    if (out_index != NULL) *out_index = index;
+    if (out_section != NULL) *out_section = &object->sections[index];
+    return 1;
+  }
+  return 0;
+}
+
+static int facts_v2_atari_image_offset_target(const M68kObject *object, const M68kFixup *fixup,
+    uint32_t raw_value, size_t *out_section_index, uint32_t *out_offset) {
+  size_t text_index = 0U;
+  size_t data_index = 0U;
+  size_t bss_index = 0U;
+  const M68kSection *text_section = NULL;
+  const M68kSection *data_section = NULL;
+  const M68kSection *bss_section = NULL;
+  uint32_t text_size;
+  uint32_t data_size;
+  uint32_t bss_size;
+  if (object == NULL || fixup == NULL || out_section_index == NULL || out_offset == NULL) return 0;
+  if (object->platform_backend_kind != M68K_PLATFORM_BACKEND_ATARI_ST ||
+      object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE ||
+      fixup->kind != M68K_FIXUP_ABS || fixup_width_bytes_local(fixup) != 4U) {
+    return 0;
+  }
+  if (!facts_v2_first_section_of_kind(object, M68K_SECTION_CODE, &text_index, &text_section) ||
+      !facts_v2_first_section_of_kind(object, M68K_SECTION_DATA, &data_index, &data_section)) {
+    return 0;
+  }
+  text_size = text_section->size;
+  data_size = data_section->size;
+  bss_size = facts_v2_first_section_of_kind(object, M68K_SECTION_BSS, &bss_index, &bss_section)
+    ? bss_section->size : 0U;
+  if (raw_value < text_size) {
+    *out_section_index = text_index;
+    *out_offset = raw_value;
+    return 1;
+  }
+  if (raw_value - text_size < data_size) {
+    *out_section_index = data_index;
+    *out_offset = raw_value - text_size;
+    return 1;
+  }
+  if (bss_section != NULL && raw_value - text_size - data_size <= bss_size) {
+    *out_section_index = bss_index;
+    *out_offset = raw_value - text_size - data_size;
+    return 1;
+  }
+  return 0;
+}
+
+static int facts_v2_fixup_target_offset(const M68kObject *object, const M68kFixup *fixup,
+    uint32_t *out_offset, M68kFactsV2RelocationFailure *out_failure) {
+  const M68kSection *source_section;
+  const M68kSection *target_section;
+  uint32_t target_extent, width, target;
+  uint32_t raw_value = 0U;
+  int32_t signed_value = 0;
+  int64_t computed_target = -1;
+  relocation_failure_init(out_failure, fixup);
+  if (object == NULL || fixup == NULL || out_offset == NULL || !fixup->has_target_section ||
+      fixup->section_index >= object->section_count || fixup->target_section_index >= object->section_count) {
+    relocation_failure_set(out_failure, M68K_FACTS_V2_RELOCATION_FAILURE_INVALID_FIXUP, 0U, -1);
+    return 0;
+  }
+  source_section = &object->sections[fixup->section_index];
+  target_section = &object->sections[fixup->target_section_index];
+  target_extent = target_section->size != 0U ? target_section->size : target_section->data_size;
+  width = fixup_width_bytes_local(fixup);
+  if (width == 0U) {
+    relocation_failure_set(out_failure, M68K_FACTS_V2_RELOCATION_FAILURE_BAD_WIDTH, 0U, -1);
+    return 0;
+  }
+  if (!fixup_payload_fits_section_data_local(source_section, fixup)) {
+    relocation_failure_set(out_failure, M68K_FACTS_V2_RELOCATION_FAILURE_PAYLOAD_OUT_OF_DATA, 0U, -1);
+    return 0;
+  }
+  if (width == 1U) {
+    raw_value = source_section->data[fixup->offset];
+    signed_value = (int8_t)raw_value;
+  } else if (width == 2U) {
+    raw_value = m68k_read_u16be(source_section->data + fixup->offset);
+    signed_value = (int16_t)raw_value;
+  } else {
+    raw_value = m68k_read_u32be(source_section->data + fixup->offset);
+    signed_value = (int32_t)raw_value;
+  }
+  if (fixup->kind == M68K_FIXUP_PC_REL) computed_target = (int64_t)fixup->offset + (int64_t)signed_value;
+  else if (fixup->kind == M68K_FIXUP_ABS || fixup->kind == M68K_FIXUP_SECTION_REL) computed_target = raw_value;
+  else {
+    relocation_failure_set(out_failure, M68K_FACTS_V2_RELOCATION_FAILURE_UNSUPPORTED_KIND, raw_value, -1);
+    return 0;
+  }
+  if (computed_target >= 0 && computed_target <= UINT32_MAX) target = (uint32_t)computed_target;
+  else target = UINT32_MAX;
+  if (target > target_extent) {
+    if (facts_v2_fixup_addend_is_platform_normalized_target(object, fixup, width, target_extent, &target)) {
+      *out_offset = target;
+      return 1;
+    }
+    uint32_t anchor_kind = classify_out_of_range_relocation_anchor(object, fixup, width, raw_value);
+    if (out_failure != NULL) out_failure->anchor_kind = anchor_kind;
+    if (anchor_kind != M68K_FACTS_V2_RELOCATION_ANCHOR_NONE) {
+      int64_t addend = anchor_kind == M68K_FACTS_V2_RELOCATION_ANCHOR_NEGATIVE
+        ? (int64_t)(int32_t)raw_value
+        : computed_target;
+      relocation_failure_set(out_failure, M68K_FACTS_V2_RELOCATION_FAILURE_NONE, raw_value, addend);
+    } else {
+      relocation_failure_set(out_failure, M68K_FACTS_V2_RELOCATION_FAILURE_TARGET_OUT_OF_RANGE, raw_value,
+        computed_target);
+    }
+    return 0;
+  }
+  *out_offset = target;
+  return 1;
+}
+
+static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPolicy *policy,
+    M68kFactIR *facts, M68kFactsV2LabelLookup *label_lookup, M68kFactsV2WorkQueue *queue,
+    M68kFactsV2Profile *profile) {
+  size_t section_index;
+  size_t fixup_index;
+  size_t entry_index;
+  size_t label_index;
+  size_t symbol_index;
+  if (object == NULL || policy == NULL || facts == NULL || label_lookup == NULL ||
+      queue == NULL || profile == NULL)
+    return -1;
+  for (section_index = 0U; section_index < object->section_count; ++section_index) {
+    const M68kSection *section = &object->sections[section_index];
+    M68kFact fact;
+    memset(&fact, 0, sizeof(fact));
+    if (section->kind == M68K_SECTION_CODE && section->data_size != 0U &&
+        !(policy->has_entry_offset && section_index == 0U)) {
+      if (enqueue_code_start(facts, queue, profile, section_index, 0U, M68K_FACT_CONFIDENCE_REQUIRED,
+          M68K_FACT_CODE_START_REASON_SECTION_ENTRY, section_index, 0U) != 0) return -1;
+      if (label_lookup_create_label(label_lookup, facts, section_index, 0U,
+          M68K_FACT_CONFIDENCE_REQUIRED) != 0) return -1;
+    } else if (section->data_size != 0U || section->size != 0U) {
+      fact.kind = M68K_FACT_DATA_SPAN;
+      fact.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+      fact.section_index = section_index;
+      fact.size = section->data_size != 0U ? section->data_size : section->size;
+      if (m68k_fact_ir_append(facts, &fact) != 0) return -1;
+    }
+  }
+  if (policy->has_entry_offset && object->section_count != 0U) {
+    const M68kSection *section = &object->sections[0];
+    uint32_t extent = section->size != 0U ? section->size : section->data_size;
+    if (policy->entry_offset <= extent) {
+      if (enqueue_code_start(facts, queue, profile, 0U, policy->entry_offset, M68K_FACT_CONFIDENCE_REQUIRED,
+          M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET, 0U, policy->entry_offset) != 0) return -1;
+      if (label_lookup_create_label(label_lookup, facts, 0U, policy->entry_offset,
+          M68K_FACT_CONFIDENCE_REQUIRED) != 0)
+        return -1;
+    }
+  }
+  for (entry_index = 0U; entry_index < policy->entry_point_count; ++entry_index) {
+    const M68kAnalysisEntryPoint *entry = &policy->entry_points[entry_index];
+    size_t target_section = entry->has_section_index ? entry->section_index : 0U;
+    if (target_section >= object->section_count) continue;
+    if (enqueue_code_start(facts, queue, profile, target_section, entry->offset, M68K_FACT_CONFIDENCE_REQUIRED,
+        M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT, target_section, entry->offset) != 0) return -1;
+    if (label_lookup_create_label(label_lookup, facts, target_section, entry->offset,
+        M68K_FACT_CONFIDENCE_REQUIRED) != 0) return -1;
+  }
+  for (label_index = 0U; label_index < policy->named_label_count; ++label_index) {
+    const M68kAnalysisNamedLabel *label = &policy->named_labels[label_index];
+    size_t target_section = label->has_section_index ? label->section_index : 0U;
+    if (target_section >= object->section_count) continue;
+    if (label_lookup_create_label(label_lookup, facts, target_section, label->offset,
+        M68K_FACT_CONFIDENCE_REQUIRED) != 0)
+      return -1;
+  }
+  for (symbol_index = 0U; symbol_index < object->symbol_count; ++symbol_index) {
+    const M68kSymbol *symbol = &object->symbols[symbol_index];
+    const M68kSection *section;
+    uint32_t extent;
+    if (!symbol->defined || symbol->section_index >= object->section_count) continue;
+    section = &object->sections[symbol->section_index];
+    extent = section->size != 0U ? section->size : section->data_size;
+    if (symbol->value > extent) continue;
+    if (label_lookup_create_label(label_lookup, facts, symbol->section_index, symbol->value,
+        M68K_FACT_CONFIDENCE_REQUIRED) != 0) return -1;
+  }
+  for (fixup_index = 0U; fixup_index < object->fixup_count; ++fixup_index) {
+    const M68kFixup *fixup = &object->fixups[fixup_index];
+    M68kFactsV2RelocationFailure failure;
+    M68kFact fact;
+    uint32_t target_offset = 0U;
+    uint32_t raw_value = 0U;
+    int has_raw_value = 0;
+    int has_target_section = fixup->has_target_section;
+    size_t target_section_index = fixup->target_section_index;
+    memset(&fact, 0, sizeof(fact));
+    memset(&failure, 0, sizeof(failure));
+    if (fixup->section_index < object->section_count)
+      has_raw_value = read_fixup_payload_raw_local(&object->sections[fixup->section_index], fixup, &raw_value);
+    if (fixup->has_target_section && !facts_v2_fixup_target_offset(object, fixup, &target_offset, &failure)) {
+      if (failure.anchor_kind != M68K_FACTS_V2_RELOCATION_ANCHOR_NONE) {
+        if (append_relocation_anchor_fact(facts, fixup, &failure) != 0) return -1;
+        profile_record_relocation_anchor(profile, &failure);
+        continue;
+      }
+      if (append_violation_fact(facts, fixup->section_index, fixup->offset, 0U) != 0) return -1;
+      profile_record_relocation_failure(profile, &failure);
+      continue;
+    }
+    if (!has_target_section && has_raw_value &&
+        facts_v2_atari_image_offset_target(object, fixup, raw_value, &target_section_index, &target_offset)) {
+      has_target_section = 1;
+    }
+    if (!has_target_section) {
+      relocation_failure_init(&failure, fixup);
+      relocation_failure_set(&failure, M68K_FACTS_V2_RELOCATION_FAILURE_TARGET_OUT_OF_RANGE, raw_value,
+        (int64_t)raw_value);
+      if (append_violation_fact(facts, fixup->section_index, fixup->offset, raw_value) != 0) return -1;
+      profile_record_relocation_failure(profile, &failure);
+      continue;
+    }
+    fact.kind = M68K_FACT_RELOCATION_REF;
+    fact.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+    fact.section_index = fixup->section_index;
+    fact.offset = fixup->offset;
+    fact.target_section_index = target_section_index;
+    fact.target_offset = target_offset;
+    if (has_raw_value && (fixup->kind == M68K_FIXUP_ABS || fixup->kind == M68K_FIXUP_SECTION_REL))
+      fact.target_addend = raw_value;
+    fact.size = fixup_width_bytes_local(fixup);
+    fact.platform_record_kind = fixup->platform_relocation_record_kind;
+    if (m68k_fact_ir_append(facts, &fact) != 0) return -1;
+    if (has_target_section) {
+      if (m68k_fact_ir_require_label(facts, target_section_index, fact.target_offset,
+          M68K_FACT_CONFIDENCE_REQUIRED) != 0) return -1;
+      if (label_lookup_create_label(label_lookup, facts, target_section_index, fact.target_offset,
+          M68K_FACT_CONFIDENCE_REQUIRED) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
+static int is_conditional_branch_or_dbcc(uint8_t mnemonic_id) {
+  return (mnemonic_id >= M68K_ASM_MNEMONIC_BHI && mnemonic_id <= M68K_ASM_MNEMONIC_BLE) ||
+    (mnemonic_id >= M68K_ASM_MNEMONIC_DBT && mnemonic_id <= M68K_ASM_MNEMONIC_DBLE);
+}
+
+static int instruction_has_fallthrough(uint8_t mnemonic_id) {
+  if (mnemonic_id == M68K_ASM_MNEMONIC_RTS || mnemonic_id == M68K_ASM_MNEMONIC_RTR ||
+      mnemonic_id == M68K_ASM_MNEMONIC_RTE || mnemonic_id == M68K_ASM_MNEMONIC_BRA ||
+      mnemonic_id == M68K_ASM_MNEMONIC_JMP) {
+    return 0;
+  }
+  return 1;
+}
+
+static int is_code_target_invalid_for_section(const M68kDecodeSectionIR *section,
+    const M68kDecodeTarget *target) {
+  if (section == NULL || target == NULL || !target->has_section) return 0;
+  if (target->section_index != section->section_index) return 0;
+  return target->offset >= section->size || (target->offset & 1U) != 0U;
+}
+
+static int candidate_has_invalid_code_target(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, uint32_t *out_target_offset) {
+  size_t target_index;
+  if (section == NULL || candidate == NULL) return 0;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->kind != M68K_DECODE_TARGET_BRANCH && target->kind != M68K_DECODE_TARGET_CALL &&
+        target->kind != M68K_DECODE_TARGET_JUMP) {
+      continue;
+    }
+    if (!is_code_target_invalid_for_section(section, target)) continue;
+    if (out_target_offset != NULL) *out_target_offset = target->offset;
+    return 1;
+  }
+  return 0;
+}
+
+static int operand_is_address_register_direct(const M68kAsmOperandValue *operand, uint8_t *out_reg) {
+  if (operand == NULL) return 0;
+  if (operand->kind == M68K_ASM_OPERAND_AN) {
+    if (out_reg != NULL) *out_reg = operand->reg;
+    return 1;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_RN && operand->reg_is_address) {
+    if (out_reg != NULL) *out_reg = operand->reg;
+    return 1;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 1U) {
+    if (out_reg != NULL) *out_reg = operand->ea_reg;
+    return 1;
+  }
+  return 0;
+}
+
+static int operand_is_stack_predecrement(const M68kAsmOperandValue *operand) {
+  return operand != NULL && operand->kind == M68K_ASM_OPERAND_EA &&
+    operand->ea_mode == 4U && operand->ea_reg == 7U;
+}
+
+static int operand_is_stack_postincrement(const M68kAsmOperandValue *operand) {
+  return operand != NULL && operand->kind == M68K_ASM_OPERAND_EA &&
+    operand->ea_mode == 3U && operand->ea_reg == 7U;
+}
+
+static int operand_is_stack_displacement(const M68kAsmOperandValue *operand, uint32_t displacement) {
+  return operand != NULL && operand->kind == M68K_ASM_OPERAND_EA &&
+    operand->ea_mode == 5U && operand->ea_reg == 7U && operand->value == displacement;
+}
+
+static int candidate_pushes_address_reg_to_stack(const M68kDecodeCandidate *candidate, uint8_t *out_reg) {
+  uint8_t reg = 0U;
+  if (candidate == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_MOVE ||
+      candidate->size_suffix != 'l' || candidate->operand_count != 2U) {
+    return 0;
+  }
+  if (!operand_is_address_register_direct(&candidate->operands[0], &reg)) return 0;
+  if (!operand_is_stack_predecrement(&candidate->operands[1])) return 0;
+  if (out_reg != NULL) *out_reg = reg;
+  return 1;
+}
+
+static int candidate_loads_return_slot_to_address_reg(const M68kDecodeCandidate *candidate, uint8_t reg) {
+  uint8_t dest_reg = 0U;
+  return candidate != NULL && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA &&
+    candidate->size_suffix == 'l' && candidate->operand_count == 2U &&
+    operand_is_stack_displacement(&candidate->operands[0], 4U) &&
+    operand_is_address_register_direct(&candidate->operands[1], &dest_reg) && dest_reg == reg;
+}
+
+static int candidate_stores_address_reg_to_return_slot(const M68kDecodeCandidate *candidate, uint8_t reg) {
+  uint8_t source_reg = 0U;
+  return candidate != NULL && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
+    candidate->size_suffix == 'l' && candidate->operand_count == 2U &&
+    operand_is_address_register_direct(&candidate->operands[0], &source_reg) && source_reg == reg &&
+    operand_is_stack_displacement(&candidate->operands[1], 4U);
+}
+
+static int candidate_pops_address_reg_from_stack(const M68kDecodeCandidate *candidate, uint8_t reg) {
+  uint8_t dest_reg = 0U;
+  return candidate != NULL && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA &&
+    candidate->size_suffix == 'l' && candidate->operand_count == 2U &&
+    operand_is_stack_postincrement(&candidate->operands[0]) &&
+    operand_is_address_register_direct(&candidate->operands[1], &dest_reg) && dest_reg == reg;
+}
+
+static int callee_rewrites_return_address_from_string_cursor(M68kDecodeIR *decode,
+    const M68kDecodeSectionIR *section, uint32_t target_offset, uint8_t max_cpu) {
+  const M68kDecodeCandidate *candidate;
+  uint8_t reg = 0U;
+  uint32_t offset;
+  uint32_t scan_end;
+  int saw_store = 0;
+  int saw_pop = 0;
+  if (section == NULL || target_offset >= section->size || (target_offset & 1U) != 0U) return 0;
+  candidate = ensure_candidate_at_offset(decode, section, target_offset, max_cpu);
+  if (!candidate_pushes_address_reg_to_stack(candidate, &reg)) return 0;
+  offset = candidate->offset + candidate->byte_count;
+  candidate = ensure_candidate_at_offset(decode, section, offset, max_cpu);
+  if (!candidate_loads_return_slot_to_address_reg(candidate, reg)) return 0;
+  offset = candidate->offset + candidate->byte_count;
+  scan_end = target_offset + 160U;
+  if (scan_end < target_offset || scan_end > section->size) scan_end = section->size;
+  while (offset < scan_end) {
+    candidate = ensure_candidate_at_offset(decode, section, offset, max_cpu);
+    if (candidate == NULL || candidate->byte_count == 0U) return 0;
+    if (candidate_stores_address_reg_to_return_slot(candidate, reg)) saw_store = 1;
+    else if (candidate_pops_address_reg_from_stack(candidate, reg)) saw_pop = 1;
+    else if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_RTS) return saw_store && saw_pop;
+    offset = candidate->offset + candidate->byte_count;
+  }
+  return 0;
+}
+
+static int is_inline_string_byte(uint8_t value) {
+  return (value >= 0x20U && value <= 0x7EU) || value == '\r' || value == '\n' || value == '\t';
+}
+
+static int find_inline_string_payload_end(const M68kDecodeSectionIR *section, uint32_t offset,
+    uint32_t *out_end) {
+  uint32_t cursor;
+  uint32_t scan_end;
+  uint32_t string_bytes = 0U;
+  if (section == NULL || section->data == NULL || out_end == NULL || offset >= section->size) return 0;
+  cursor = offset;
+  scan_end = offset + 2048U;
+  if (scan_end < offset || scan_end > section->size) scan_end = section->size;
+  while (cursor < scan_end) {
+    uint8_t value = section->data[cursor++];
+    if (value == 0U) {
+      uint32_t end = cursor;
+      if (string_bytes < 3U) return 0;
+      if ((end & 1U) != 0U) ++end;
+      if (end > section->size) return 0;
+      *out_end = end;
+      return 1;
+    }
+    if (!is_inline_string_byte(value)) return 0;
+    ++string_bytes;
+  }
+  return 0;
+}
+
+static int call_consumes_inline_string_payload(M68kDecodeIR *decode, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, uint32_t fallthrough, uint32_t *out_resume_offset, uint8_t max_cpu) {
+  size_t target_index;
+  if (section == NULL || candidate == NULL || out_resume_offset == NULL) return 0;
+  if (candidate->mnemonic_id != M68K_ASM_MNEMONIC_BSR && candidate->mnemonic_id != M68K_ASM_MNEMONIC_JSR) return 0;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->kind != M68K_DECODE_TARGET_CALL || !target->has_section ||
+        target->section_index != section->section_index) {
+      continue;
+    }
+    if (!callee_rewrites_return_address_from_string_cursor(decode, section, target->offset, max_cpu)) continue;
+    if (find_inline_string_payload_end(section, fallthrough, out_resume_offset)) return 1;
+  }
+  return 0;
+}
+
+static int append_xref_fact(M68kFactIR *facts, size_t section_index, uint32_t source_offset,
+    uint32_t target_offset, uint8_t confidence) {
+  M68kFact fact;
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_XREF;
+  fact.confidence = confidence;
+  fact.section_index = section_index;
+  fact.offset = source_offset;
+  fact.target_section_index = section_index;
+  fact.target_offset = target_offset;
+  return m68k_fact_ir_append(facts, &fact);
+}
+
+static int append_cross_section_xref_fact(M68kFactIR *facts, size_t source_section_index, uint32_t source_offset,
+    size_t target_section_index, uint32_t target_offset, uint8_t confidence) {
+  M68kFact fact;
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_XREF;
+  fact.confidence = confidence;
+  fact.section_index = source_section_index;
+  fact.offset = source_offset;
+  fact.target_section_index = target_section_index;
+  fact.target_offset = target_offset;
+  return m68k_fact_ir_append(facts, &fact);
+}
+
+static int append_violation_fact(M68kFactIR *facts, size_t section_index, uint32_t source_offset,
+    uint32_t target_offset) {
+  M68kFact fact;
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_VIOLATION;
+  fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  fact.section_index = section_index;
+  fact.offset = source_offset;
+  fact.target_section_index = section_index;
+  fact.target_offset = target_offset;
+  return m68k_fact_ir_append(facts, &fact);
+}
+
+static int candidate_is_absolute_control_transfer(const M68kDecodeCandidate *candidate) {
+  M68kAsmOperandValue operand;
+  if (candidate == NULL || candidate->operand_count != 1U) return 0;
+  if (candidate->mnemonic_id != M68K_ASM_MNEMONIC_JSR && candidate->mnemonic_id != M68K_ASM_MNEMONIC_JMP)
+    return 0;
+  operand = candidate->operands[0];
+  operand.kind = candidate->operand_kinds[0];
+  if (operand.kind == M68K_ASM_OPERAND_ABSL) return 1;
+  return operand.kind == M68K_ASM_OPERAND_EA && operand.ea_mode == 7U &&
+    (operand.ea_reg == 0U || operand.ea_reg == 1U);
+}
+
+static int enqueue_relocated_control_target(M68kDecodeIR *decode, M68kFactIR *facts,
+    const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
+    uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kFactsV2Profile *profile, uint8_t max_cpu, size_t source_section_index,
+    const M68kDecodeCandidate *candidate) {
+  uint32_t offset;
+  uint32_t end;
+  if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      profile == NULL || candidate == NULL || !candidate_is_absolute_control_transfer(candidate)) {
+    return 0;
+  }
+  end = candidate->offset + candidate->byte_count;
+  for (offset = candidate->offset + 2U; offset < end; ++offset) {
+    const M68kFact *relocation = relocation_lookup_ref_at(relocation_lookup, facts, source_section_index, offset);
+    const M68kDecodeSectionIR *target_section;
+    const M68kDecodeCandidate *target_candidate = NULL;
+    if (relocation == NULL) continue;
+    if (relocation->target_section_index >= decode->section_count) continue;
+    target_section = &decode->sections[relocation->target_section_index];
+    if (target_section->kind != M68K_SECTION_CODE) continue;
+    if (relocation->target_offset >= target_section->size || (relocation->target_offset & 1U) != 0U) continue;
+    if (accepted_start[relocation->target_section_index][relocation->target_offset]) continue;
+    if (accepted_offset_is_interior(target_section, accepted_start[relocation->target_section_index],
+        accepted_bytes[relocation->target_section_index], relocation->target_offset)) {
+      if (append_violation_fact(facts, source_section_index, candidate->offset, relocation->target_offset) != 0)
+        return -1;
+      continue;
+    }
+    if (m68k_decode_ir_ensure_candidate_at(decode, relocation->target_section_index, relocation->target_offset,
+        max_cpu, &target_candidate, m68k_diag_sink(NULL)) != 0) return -1;
+    if (target_candidate == NULL) continue;
+    if (append_cross_section_xref_fact(facts, source_section_index, candidate->offset,
+        relocation->target_section_index, relocation->target_offset, M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0)
+      return -1;
+    if (enqueue_code_start(facts, queue, profile, relocation->target_section_index, relocation->target_offset,
+        M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
+        source_section_index, candidate->offset) != 0) return -1;
+  }
+  return 0;
+}
+
+static int append_relocation_anchor_fact(M68kFactIR *facts, const M68kFixup *fixup,
+    const M68kFactsV2RelocationFailure *anchor) {
+  M68kFact fact;
+  if (facts == NULL || fixup == NULL || anchor == NULL) return -1;
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_RELOCATION_ANCHOR;
+  fact.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  fact.section_index = fixup->section_index;
+  fact.offset = fixup->offset;
+  fact.target_section_index = fixup->target_section_index;
+  fact.target_offset = anchor->raw_value;
+  fact.target_addend = anchor->computed_target;
+  fact.size = fixup_width_bytes_local(fixup);
+  fact.platform_record_kind = anchor->platform_record_kind;
+  fact.anchor_kind = anchor->anchor_kind;
+  return m68k_fact_ir_append(facts, &fact);
+}
+
+static int mark_accepted_bytes(uint8_t *accepted_bytes, const M68kDecodeCandidate *candidate,
+    uint32_t section_size) {
+  uint32_t index;
+  if (accepted_bytes == NULL || candidate == NULL || candidate->offset + candidate->byte_count > section_size)
+    return -1;
+  for (index = 0U; index < candidate->byte_count; ++index) accepted_bytes[candidate->offset + index] = 1U;
+  return 0;
+}
+
+static int candidate_overlaps_accepted_bytes(const uint8_t *accepted_bytes,
+    const M68kDecodeCandidate *candidate, uint32_t section_size) {
+  uint32_t index;
+  if (accepted_bytes == NULL || candidate == NULL || candidate->offset + candidate->byte_count > section_size)
+    return 1;
+  for (index = 0U; index < candidate->byte_count; ++index) {
+    if (accepted_bytes[candidate->offset + index] != 0U) return 1;
+  }
+  return 0;
+}
+
+static void clear_accepted_candidate(uint8_t *accepted_start, uint8_t *accepted_bytes,
+    const M68kDecodeCandidate *candidate, uint32_t *accepted_count) {
+  uint32_t byte_index;
+  if (accepted_start == NULL || accepted_bytes == NULL || candidate == NULL) return;
+  if (!accepted_start[candidate->offset]) return;
+  accepted_start[candidate->offset] = 0U;
+  for (byte_index = 0U; byte_index < candidate->byte_count; ++byte_index)
+    accepted_bytes[candidate->offset + byte_index] = 0U;
+  if (accepted_count != NULL && *accepted_count != 0U) --*accepted_count;
+}
+
+static int rebuild_accepted_bytes_from_starts(const M68kDecodeIR *decode, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, uint32_t *out_accepted_count) {
+  size_t section_index;
+  uint32_t accepted_count = 0U;
+  if (decode == NULL || accepted_start == NULL || accepted_bytes == NULL || out_accepted_count == NULL)
+    return -1;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    size_t candidate_index;
+    if (accepted_bytes[section_index] == NULL || accepted_start[section_index] == NULL) return -1;
+    memset(accepted_bytes[section_index], 0, section->size);
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      if (!accepted_start[section_index][candidate->offset]) continue;
+      if (candidate_overlaps_accepted_bytes(accepted_bytes[section_index], candidate, section->size)) return -1;
+      if (mark_accepted_bytes(accepted_bytes[section_index], candidate, section->size) != 0) return -1;
+      ++accepted_count;
+    }
+  }
+  *out_accepted_count = accepted_count;
+  return 0;
+}
+
+static int candidate_reencodes_exactly(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate) {
+  M68kInstructionIR instruction;
+  M68kIrEncodeResult encoded;
+  uint8_t encoded_bytes[32];
+  if (section == NULL || candidate == NULL || candidate->byte_count > sizeof(encoded_bytes)) return 0;
+  if (candidate->offset > section->size || candidate->byte_count > section->size - candidate->offset) return 0;
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  encoded = m68k_ir_encode_one(&instruction, encoded_bytes, sizeof(encoded_bytes), m68k_diag_sink(NULL));
+  return encoded.byte_count == candidate->byte_count &&
+    memcmp(encoded_bytes, section->data + candidate->offset, candidate->byte_count) == 0;
+}
+
+static int operand_has_reserved_full_extension(const M68kAsmOperandValue *operand) {
+  if (operand == NULL) return 0;
+  if (operand->full_ext_base_disp_size != M68K_ASM_FULL_EXT_BD_RESERVED) return 0;
+  if (operand->full_ext_base_suppress == 0U && operand->full_ext_index_suppress == 0U &&
+      operand->full_ext_outer_disp_size == 0U && operand->full_ext_iis == 0U) {
+    return 0;
+  }
+  return (operand->ea_mode == 6U || (operand->ea_mode == 7U && operand->ea_reg == 3U));
+}
+
+static int candidate_has_reserved_full_extension(const M68kDecodeCandidate *candidate) {
+  size_t operand_index;
+  if (candidate == NULL) return 0;
+  for (operand_index = 0U; operand_index < candidate->operand_count; ++operand_index) {
+    if (candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA &&
+        candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_BF_EA) {
+      continue;
+    }
+    if (operand_has_reserved_full_extension(&candidate->operands[operand_index])) return 1;
+  }
+  return 0;
+}
+
+static int reject_or_demote_unsafe_candidate(M68kFactIR *facts, const M68kFactsV2WorkItem *item,
+    M68kFactsV2Profile *profile) {
+  if (facts == NULL || item == NULL || profile == NULL) return -1;
+  if (append_violation_fact(facts, item->section_index, item->offset, item->offset) != 0) return -1;
+  if (item->confidence >= M68K_FACT_CONFIDENCE_REQUIRED) {
+    if (profile->required_instruction_failures == 0U) {
+      profile->first_required_instruction_failure_section = (uint32_t)item->section_index;
+      profile->first_required_instruction_failure_offset = item->offset;
+      profile->first_required_instruction_failure_reason = item->reason;
+      profile->first_required_instruction_failure_source_section = (uint32_t)item->source_section_index;
+      profile->first_required_instruction_failure_source_offset = item->source_offset;
+    }
+    ++profile->required_instruction_failures;
+    return 0;
+  }
+  if (profile->unsupported_instruction_demotes == 0U) {
+    profile->first_unsupported_instruction_demote_section = (uint32_t)item->section_index;
+    profile->first_unsupported_instruction_demote_offset = item->offset;
+    profile->first_unsupported_instruction_demote_reason = item->reason;
+    profile->first_unsupported_instruction_demote_source_section = (uint32_t)item->source_section_index;
+    profile->first_unsupported_instruction_demote_source_offset = item->source_offset;
+  }
+  ++profile->unsupported_instruction_demotes;
+  return 1;
+}
+
+static int validate_reachable_candidate_for_acceptance(const M68kAnalysisPolicy *policy, M68kFactIR *facts,
+    const M68kFactsV2WorkItem *item, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, uint8_t **accepted_bytes, M68kFactsV2Profile *profile) {
+  uint32_t structured_offset = 0U;
+  uint32_t invalid_target_offset = 0U;
+  int reject_result;
+  if (policy_structured_data_overlaps_range(policy, item->section_index, candidate->offset,
+      candidate->byte_count, &structured_offset)) {
+    if (append_violation_fact(facts, item->section_index, item->offset, structured_offset) != 0) return -1;
+    return 1;
+  }
+  if (candidate_has_invalid_code_target(section, candidate, &invalid_target_offset)) {
+    if (append_violation_fact(facts, item->section_index, item->offset, invalid_target_offset) != 0) return -1;
+    reject_result = reject_or_demote_unsafe_candidate(facts, item, profile);
+    if (reject_result < 0) return -1;
+    if (reject_result > 0) return 1;
+  }
+  if (candidate_has_reserved_full_extension(candidate) || !candidate_reencodes_exactly(section, candidate)) {
+    reject_result = reject_or_demote_unsafe_candidate(facts, item, profile);
+    if (reject_result < 0) return -1;
+    if (reject_result > 0) return 1;
+  }
+  if (candidate_overlaps_accepted_bytes(accepted_bytes[item->section_index], candidate, section->size)) {
+    reject_result = reject_or_demote_unsafe_candidate(facts, item, profile);
+    if (reject_result < 0) return -1;
+    if (reject_result > 0) return 1;
+  }
+  return 0;
+}
+
+static uint32_t count_data_spans_and_append_facts(const M68kDecodeIR *decode, uint8_t **accepted_bytes,
+    M68kFactIR *facts) {
+  size_t section_index;
+  uint32_t span_count = 0U;
+  if (decode == NULL || accepted_bytes == NULL || facts == NULL) return 0U;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    uint32_t offset = 0U;
+    while (offset < section->size) {
+      uint32_t start;
+      while (offset < section->size && accepted_bytes[section_index][offset]) ++offset;
+      if (offset >= section->size) break;
+      start = offset;
+      while (offset < section->size && !accepted_bytes[section_index][offset]) ++offset;
+      {
+        M68kFact fact;
+        memset(&fact, 0, sizeof(fact));
+        fact.kind = M68K_FACT_DATA_SPAN;
+        fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+        fact.section_index = section->section_index;
+        fact.offset = start;
+        fact.size = offset - start;
+        if (m68k_fact_ir_append(facts, &fact) != 0) return span_count;
+      }
+      ++span_count;
+    }
+  }
+  return span_count;
+}
+
+static int demote_required_label_conflicts(const M68kDecodeIR *decode,
+    const M68kAcceptedCandidateIndex *accepted_index, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, M68kFactIR *facts, M68kFactsV2LabelLookup *label_lookup,
+    uint32_t *accepted_count, uint32_t *out_interior_conflicts) {
+  size_t fact_index;
+  uint32_t interior = 0U;
+  if (decode == NULL || accepted_index == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      facts == NULL || accepted_count == NULL || out_interior_conflicts == NULL) {
+    return -1;
+  }
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    const M68kDecodeSectionIR *section;
+    const M68kDecodeCandidate *candidate;
+    if (fact->kind != M68K_FACT_LABEL_REQUIRED || fact->section_index >= decode->section_count) continue;
+    section = &decode->sections[fact->section_index];
+    if (!accepted_offset_is_interior(section, accepted_start[fact->section_index],
+        accepted_bytes[fact->section_index], fact->offset)) {
+      continue;
+    }
+    candidate = accepted_candidate_index_covering(accepted_index, accepted_start[fact->section_index],
+      fact->section_index, fact->offset, 1);
+    if (candidate == NULL) continue;
+    clear_accepted_candidate(accepted_start[fact->section_index], accepted_bytes[fact->section_index],
+      candidate, accepted_count);
+    if (label_lookup_create_label(label_lookup, facts, fact->section_index, fact->offset,
+        fact->confidence) != 0) return -1;
+    if (append_violation_fact(facts, fact->section_index, candidate->offset, fact->offset) != 0) return -1;
+    ++interior;
+  }
+  *out_interior_conflicts = interior;
+  return 0;
+}
+
+static int demote_opcode_relocation_conflicts(const M68kDecodeIR *decode,
+    const M68kAcceptedCandidateIndex *accepted_index, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, M68kFactIR *facts, uint32_t *accepted_count, M68kFactsV2Profile *profile) {
+  size_t fact_index;
+  if (decode == NULL || accepted_index == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      facts == NULL || accepted_count == NULL || profile == NULL) {
+    return -1;
+  }
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    const M68kDecodeSectionIR *section;
+    const M68kDecodeCandidate *candidate;
+    uint32_t relocation_end;
+    uint32_t offset;
+    if (fact->kind != M68K_FACT_RELOCATION_REF || fact->section_index >= decode->section_count) continue;
+    if (fact->size == 0U || fact->offset > UINT32_MAX - fact->size) continue;
+    section = &decode->sections[fact->section_index];
+    relocation_end = fact->offset + fact->size;
+    for (offset = fact->offset; offset < relocation_end && offset < section->size; ++offset) {
+      uint32_t candidate_end;
+      candidate = accepted_candidate_index_covering(accepted_index, accepted_start[fact->section_index],
+        fact->section_index, offset, 0);
+      if (candidate == NULL || !accepted_start[fact->section_index][candidate->offset]) continue;
+      if (candidate->offset < fact->offset && candidate->byte_count <= UINT32_MAX - candidate->offset) {
+        candidate_end = candidate->offset + candidate->byte_count;
+        if (candidate_end >= relocation_end) continue;
+      }
+      clear_accepted_candidate(accepted_start[fact->section_index], accepted_bytes[fact->section_index],
+        candidate, accepted_count);
+      if (append_violation_fact(facts, fact->section_index, candidate->offset, fact->offset) != 0) return -1;
+      if (profile->opcode_relocation_conflicts_resolved_by_demote == 0U) {
+        profile->first_opcode_relocation_conflict_section = (uint32_t)fact->section_index;
+        profile->first_opcode_relocation_conflict_offset = candidate->offset;
+        profile->first_opcode_relocation_conflict_aux_offset = fact->offset;
+      }
+      ++profile->opcode_relocation_conflicts_resolved_by_demote;
+    }
+  }
+  return 0;
+}
+
+static int candidate_is_hunk_base_register_anchor(const M68kDecodeCandidate *candidate,
+    const M68kFact *fact) {
+  uint8_t dest_reg = 0U;
+  const M68kAsmOperandValue *source;
+  if (candidate == NULL || fact == NULL) return 0;
+  if (candidate->mnemonic_id != M68K_ASM_MNEMONIC_LEA || candidate->size_suffix != 'l' ||
+      candidate->operand_count != 2U) {
+    return 0;
+  }
+  if (fact->size != 4U || fact->offset != candidate->offset + 2U) return 0;
+  source = &candidate->operands[0];
+  if (source->kind != M68K_ASM_OPERAND_EA || source->ea_mode != 7U || source->ea_reg != 1U)
+    return 0;
+  if (source->value != fact->target_offset) return 0;
+  return operand_is_address_register_direct(&candidate->operands[1], &dest_reg);
+}
+
+static uint32_t classify_relocation_anchor_context(const M68kDecodeIR *decode,
+    const M68kAcceptedCandidateIndex *accepted_index, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    const M68kFact *fact, uint32_t *out_instruction_offset) {
+  const M68kDecodeSectionIR *section;
+  const M68kDecodeCandidate *candidate;
+  if (out_instruction_offset != NULL) *out_instruction_offset = 0U;
+  if (decode == NULL || accepted_index == NULL || accepted_start == NULL || accepted_bytes == NULL || fact == NULL ||
+      fact->section_index >= decode->section_count) {
+    return M68K_FACTS_V2_RELOCATION_ANCHOR_CONTEXT_UNKNOWN;
+  }
+  section = &decode->sections[fact->section_index];
+  candidate = accepted_candidate_index_covering(accepted_index, accepted_start[fact->section_index],
+    fact->section_index, fact->offset, 0);
+  if (candidate != NULL) {
+    if (out_instruction_offset != NULL) *out_instruction_offset = candidate->offset;
+    if (candidate_is_hunk_base_register_anchor(candidate, fact))
+      return M68K_FACTS_V2_RELOCATION_ANCHOR_CONTEXT_BASE_REGISTER;
+    return M68K_FACTS_V2_RELOCATION_ANCHOR_CONTEXT_INSTRUCTION_BYTES;
+  }
+  if (fact->offset < section->size && accepted_bytes[fact->section_index] != NULL &&
+      accepted_bytes[fact->section_index][fact->offset] == 0U) {
+    return M68K_FACTS_V2_RELOCATION_ANCHOR_CONTEXT_DATA_PAYLOAD;
+  }
+  return M68K_FACTS_V2_RELOCATION_ANCHOR_CONTEXT_UNKNOWN;
+}
+
+static int classify_relocation_anchor_contexts(const M68kDecodeIR *decode,
+    const M68kAcceptedCandidateIndex *accepted_index, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, const M68kFactIR *facts, M68kFactsV2Profile *profile) {
+  size_t fact_index;
+  uint32_t anchor_index = 0U;
+  if (decode == NULL || accepted_index == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      facts == NULL || profile == NULL)
+    return -1;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    uint32_t instruction_offset = 0U;
+    uint32_t context;
+    if (fact->kind != M68K_FACT_RELOCATION_ANCHOR) continue;
+    context = classify_relocation_anchor_context(decode, accepted_index, accepted_start, accepted_bytes, fact,
+      &instruction_offset);
+    if (anchor_index == 0U) {
+      profile->first_relocation_anchor_context = context;
+      profile->first_relocation_anchor_instruction_offset = instruction_offset;
+    }
+    switch (context) {
+      case M68K_FACTS_V2_RELOCATION_ANCHOR_CONTEXT_INSTRUCTION_BYTES:
+        ++profile->relocation_anchor_instruction_bytes;
+        break;
+      case M68K_FACTS_V2_RELOCATION_ANCHOR_CONTEXT_DATA_PAYLOAD:
+        ++profile->relocation_anchor_data_payloads;
+        ++profile->unassemblable_hunk_data_relocations;
+        break;
+      case M68K_FACTS_V2_RELOCATION_ANCHOR_CONTEXT_BASE_REGISTER:
+        ++profile->unassemblable_hunk_base_register_relocations;
+        break;
+      default:
+        ++profile->relocation_anchor_unknown_contexts;
+        break;
+    }
+    ++anchor_index;
+  }
+  return 0;
+}
+
+static int materialize_safe_required_labels(const M68kDecodeIR *decode, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, M68kFactIR *facts, M68kFactsV2LabelLookup *label_lookup) {
+  size_t fact_index;
+  if (decode == NULL || accepted_start == NULL || accepted_bytes == NULL || facts == NULL) return -1;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    const M68kDecodeSectionIR *section;
+    uint32_t extent;
+    if (fact->kind != M68K_FACT_LABEL_REQUIRED || fact->section_index >= decode->section_count) continue;
+    section = &decode->sections[fact->section_index];
+    extent = decode_section_extent_local(section);
+    if (fact->offset > extent) continue;
+    if (accepted_offset_is_interior(section, accepted_start[fact->section_index],
+        accepted_bytes[fact->section_index], fact->offset)) {
+      continue;
+    }
+    if (label_lookup_create_label(label_lookup, facts, fact->section_index, fact->offset,
+        fact->confidence) != 0) return -1;
+  }
+  return 0;
+}
+
+static uint32_t resolve_required_label_invariants(const M68kDecodeIR *decode, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, const M68kFactIR *facts, M68kFactIR *out_facts,
+    const M68kFactsV2LabelLookup *label_lookup, uint32_t *out_interior_conflicts) {
+  size_t fact_index;
+  uint32_t unresolved = 0U;
+  uint32_t interior = 0U;
+  if (decode == NULL || accepted_start == NULL || accepted_bytes == NULL || facts == NULL || out_facts == NULL ||
+      out_interior_conflicts == NULL) {
+    return 0U;
+  }
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    const M68kDecodeSectionIR *section;
+    if (fact->kind != M68K_FACT_LABEL_REQUIRED || fact->section_index >= decode->section_count) continue;
+    section = &decode->sections[fact->section_index];
+    if (label_lookup_has_label(label_lookup, facts, fact->section_index, fact->offset)) continue;
+    ++unresolved;
+    if (accepted_offset_is_interior(section, accepted_start[fact->section_index],
+        accepted_bytes[fact->section_index], fact->offset)) {
+      if (append_violation_fact(out_facts, fact->section_index, fact->offset, fact->offset) == 0) ++interior;
+    }
+  }
+  *out_interior_conflicts = interior;
+  return unresolved;
+}
+
+static int run_reachable_fixed_point(M68kDecodeIR *decode, M68kFactIR *facts,
+    const M68kAnalysisPolicy *policy,
+    const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
+    uint8_t **accepted_start, uint8_t **accepted_bytes,
+    uint32_t *out_accepted_count, M68kFactsV2Profile *profile, uint8_t max_cpu) {
+  M68kFactsV2WorkItem item;
+  uint32_t accepted_count = 0U;
+  int profile_reachable_phases = reachable_profile_enabled_local();
+  if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      out_accepted_count == NULL || profile == NULL) {
+    return -1;
+  }
+  while (work_queue_pop(queue, &item)) {
+    const M68kDecodeSectionIR *section;
+    const M68kDecodeCandidate *candidate;
+    M68kDecodeCandidate candidate_copy;
+    size_t target_index;
+    clock_t phase_start;
+    int validation_result;
+    if (item.section_index >= decode->section_count) continue;
+    section = &decode->sections[item.section_index];
+    if (item.offset >= section->size) continue;
+    if (accepted_start[item.section_index][item.offset]) continue;
+    phase_start = profile_phase_start_local(profile_reachable_phases);
+    if (m68k_decode_ir_ensure_candidate_at(decode, item.section_index, item.offset, max_cpu, &candidate,
+        m68k_diag_sink(NULL)) != 0) {
+      profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_decode_seconds,
+        phase_start);
+      return -1;
+    }
+    profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_decode_seconds,
+      phase_start);
+    if (candidate == NULL) {
+      if (accepted_offset_is_interior(section, accepted_start[item.section_index],
+          accepted_bytes[item.section_index], item.offset) &&
+          append_violation_fact(facts, item.section_index, item.offset, item.offset) != 0) return -1;
+      continue;
+    }
+    candidate_copy = *candidate;
+    candidate = &candidate_copy;
+    phase_start = profile_phase_start_local(profile_reachable_phases);
+    validation_result = validate_reachable_candidate_for_acceptance(policy, facts, &item, section, candidate,
+      accepted_bytes, profile);
+    profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_validate_seconds,
+      phase_start);
+    if (validation_result < 0) return -1;
+    if (validation_result > 0) continue;
+    phase_start = profile_phase_start_local(profile_reachable_phases);
+    if (mark_accepted_bytes(accepted_bytes[item.section_index], candidate, section->size) != 0) return -1;
+    accepted_start[item.section_index][item.offset] = 1U;
+    {
+      M68kFact fact;
+      memset(&fact, 0, sizeof(fact));
+      fact.kind = M68K_FACT_CODE_ACCEPTED;
+      fact.confidence = item.confidence;
+      fact.section_index = item.section_index;
+      fact.offset = item.offset;
+      fact.size = candidate->byte_count;
+      if (m68k_fact_ir_append(facts, &fact) != 0) return -1;
+    }
+    ++accepted_count;
+    profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_accept_seconds,
+      phase_start);
+    phase_start = profile_phase_start_local(profile_reachable_phases);
+    for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+      const M68kDecodeTarget *target = &candidate->targets[target_index];
+      if (!target->has_section || target->offset >= section->size) continue;
+      if (append_xref_fact(facts, item.section_index, item.offset, target->offset,
+          M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) return -1;
+      if (accepted_offset_is_interior(section, accepted_start[item.section_index],
+          accepted_bytes[item.section_index], target->offset)) {
+        if (append_violation_fact(facts, item.section_index, item.offset, target->offset) != 0) return -1;
+        continue;
+      }
+      if (m68k_fact_ir_require_label(facts, item.section_index, target->offset,
+          M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) return -1;
+      if (target->kind == M68K_DECODE_TARGET_DATA) continue;
+      {
+        const M68kDecodeCandidate *target_candidate = NULL;
+        if (m68k_decode_ir_ensure_candidate_at(decode, item.section_index, target->offset, max_cpu,
+            &target_candidate, m68k_diag_sink(NULL)) != 0) return -1;
+        if (target_candidate == NULL) continue;
+        if (enqueue_code_start(facts, queue, profile, item.section_index, target->offset,
+            M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
+            item.section_index, item.offset) != 0) return -1;
+      }
+    }
+    profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_target_seconds,
+      phase_start);
+    phase_start = profile_phase_start_local(profile_reachable_phases);
+    if (enqueue_relocated_control_target(decode, facts, relocation_lookup, queue, accepted_start, accepted_bytes,
+        profile, max_cpu, item.section_index, candidate) != 0) return -1;
+    profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_relocation_seconds,
+      phase_start);
+    phase_start = profile_phase_start_local(profile_reachable_phases);
+    if (instruction_has_fallthrough(candidate->mnemonic_id)) {
+      uint32_t fallthrough = candidate->offset + candidate->byte_count;
+      if (fallthrough < section->size) {
+        uint32_t inline_resume = 0U;
+        uint8_t fallthrough_confidence = is_conditional_branch_or_dbcc(candidate->mnemonic_id)
+          ? M68K_FACT_CONFIDENCE_TOOL_INFERRED : M68K_FACT_CONFIDENCE_SPECULATIVE;
+        if (call_consumes_inline_string_payload(decode, section, candidate, fallthrough, &inline_resume, max_cpu)) {
+          if (inline_resume < section->size) {
+            if (enqueue_code_start(facts, queue, profile, item.section_index, inline_resume,
+                M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_INLINE_RESUME,
+                item.section_index, item.offset) != 0) return -1;
+          }
+          profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_fallthrough_seconds,
+            phase_start);
+          continue;
+        }
+        if (enqueue_code_start(facts, queue, profile, item.section_index, fallthrough,
+            fallthrough_confidence, M68K_FACT_CODE_START_REASON_FALLTHROUGH,
+            item.section_index, item.offset) != 0) return -1;
+      }
+    }
+    profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_fallthrough_seconds,
+      phase_start);
+  }
+  *out_accepted_count = accepted_count;
+  return 0;
+}
+
+static int allocate_section_maps(const M68kDecodeIR *decode, uint8_t ***out_start, uint8_t ***out_bytes) {
+  uint8_t **starts;
+  uint8_t **bytes;
+  size_t section_index;
+  if (decode == NULL || out_start == NULL || out_bytes == NULL) return -1;
+  starts = (uint8_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U, sizeof(*starts));
+  bytes = (uint8_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U, sizeof(*bytes));
+  if (starts == NULL || bytes == NULL) {
+    free(starts);
+    free(bytes);
+    return -1;
+  }
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    uint32_t size = decode->sections[section_index].size;
+    starts[section_index] = (uint8_t *)calloc(size != 0U ? size : 1U, 1U);
+    bytes[section_index] = (uint8_t *)calloc(size != 0U ? size : 1U, 1U);
+    if (starts[section_index] == NULL || bytes[section_index] == NULL) {
+      size_t cleanup_index;
+      for (cleanup_index = 0U; cleanup_index <= section_index; ++cleanup_index) {
+        free(starts[cleanup_index]);
+        free(bytes[cleanup_index]);
+      }
+      free(starts);
+      free(bytes);
+      return -1;
+    }
+  }
+  *out_start = starts;
+  *out_bytes = bytes;
+  return 0;
+}
+
+static void free_section_maps(const M68kDecodeIR *decode, uint8_t **starts, uint8_t **bytes) {
+  size_t section_index;
+  if (decode != NULL) {
+    for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+      free(starts != NULL ? starts[section_index] : NULL);
+      free(bytes != NULL ? bytes[section_index] : NULL);
+    }
+  }
+  free(starts);
+  free(bytes);
+}
+
+void m68k_facts_v2_profile_init(M68kFactsV2Profile *profile) {
+  if (profile == NULL) return;
+  memset(profile, 0, sizeof(*profile));
+}
+
+static int facts_v2_has_hard_failures(const M68kFactsV2Profile *profile) {
+  return profile != NULL && (profile->unresolved_labels != 0U ||
+    profile->interior_conflicts_unresolved != 0U || profile->relocation_failures != 0U ||
+    profile->relocation_anchor_instruction_bytes != 0U ||
+    profile->relocation_anchor_unknown_contexts != 0U ||
+    profile->required_instruction_failures != 0U);
+}
+
+static int facts_v2_has_source_blockers(const M68kFactsV2Profile *profile) {
+  return facts_v2_has_hard_failures(profile);
+}
+
+static void facts_v2_record_source_blocker_first_failure(M68kFactsV2Profile *profile) {
+  uint32_t kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE;
+  uint32_t section = 0U;
+  uint32_t offset = 0U;
+  uint32_t aux_offset = 0U;
+  if (profile == NULL ||
+      profile->asm_source_first_failure_kind != M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE)
+    return;
+  if (profile->unresolved_labels != 0U) {
+    kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_UNRESOLVED_LABEL;
+  } else if (profile->interior_conflicts_unresolved != 0U) {
+    kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_INTERIOR_CONFLICT;
+  } else if (profile->relocation_failures != 0U) {
+    kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_RELOCATION;
+    section = profile->first_relocation_failure_section;
+    offset = profile->first_relocation_failure_offset;
+    aux_offset = profile->first_relocation_failure_target_section;
+  } else if (profile->relocation_anchor_instruction_bytes != 0U ||
+      profile->relocation_anchor_unknown_contexts != 0U) {
+    section = profile->first_relocation_anchor_section;
+    offset = profile->first_relocation_anchor_offset;
+    aux_offset = profile->first_relocation_anchor_target_section;
+    kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_RELOCATION_ANCHOR;
+  } else if (profile->required_instruction_failures != 0U) {
+    kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_REQUIRED_INSTRUCTION;
+    section = profile->first_required_instruction_failure_section;
+    offset = profile->first_required_instruction_failure_offset;
+  }
+  profile->asm_source_first_failure_kind = kind;
+  profile->asm_source_first_failure_section = section;
+  profile->asm_source_first_failure_offset = offset;
+  profile->asm_source_first_failure_aux_offset = aux_offset;
+}
+
+static int facts_v2_has_asm_source_failures(const M68kFactsV2Profile *profile) {
+  return profile != NULL && (profile->asm_source_instruction_render_failures != 0U ||
+    profile->asm_source_instruction_byte_mismatches != 0U ||
+    profile->asm_source_instruction_relocation_failures != 0U);
+}
+
+static int facts_v2_collect_profile_internal(const M68kObject *object, const M68kAnalysisPolicy *policy,
+    M68kFactsV2Profile *out_profile, int force_asm_source, int collect_asm_source_text,
+    int fail_on_asm_refused, int mark_source_blockers, char **out_asm_source,
+    M68kSourceAnalysisIR *out_source_analysis, M68kDiagSink diagnostics) {
+  M68kDecodeIR decode;
+  M68kFactIR facts;
+  M68kFactsV2WorkQueue queue;
+  M68kFactsV2RelocationLookup relocation_lookup;
+  M68kFactsV2LabelLookup label_lookup;
+  M68kAcceptedCandidateIndex accepted_index;
+  M68kRenderIRPreview render_preview;
+  int render_text_preview;
+  int render_asm_source;
+  uint8_t **accepted_start = NULL;
+  uint8_t **accepted_bytes = NULL;
+  clock_t start, end;
+  uint8_t max_cpu;
+  if (object == NULL || policy == NULL || out_profile == NULL) return -1;
+  if (out_asm_source != NULL) *out_asm_source = NULL;
+  if (out_source_analysis != NULL) memset(out_source_analysis, 0, sizeof(*out_source_analysis));
+  m68k_facts_v2_profile_init(out_profile);
+  m68k_decode_ir_init(&decode);
+  m68k_fact_ir_init(&facts);
+  m68k_render_ir_preview_init(&render_preview);
+  memset(&queue, 0, sizeof(queue));
+  memset(&relocation_lookup, 0, sizeof(relocation_lookup));
+  memset(&label_lookup, 0, sizeof(label_lookup));
+  memset(&accepted_index, 0, sizeof(accepted_index));
+  render_text_preview = preview_source_enabled_local();
+  render_asm_source = force_asm_source || asm_source_enabled_local();
+  max_cpu = policy->max_cpu != 0U ? policy->max_cpu : M68K_ASM_CPU_68060;
+  start = clock();
+  if (m68k_decode_ir_build_object_sections(&decode, object, diagnostics) != 0) goto fail;
+  end = clock();
+  out_profile->decode_seconds = elapsed_seconds_local(start, end);
+  if (work_queue_init_for_decode(&queue, &decode) != 0) goto fail;
+  if (allocate_section_maps(&decode, &accepted_start, &accepted_bytes) != 0) goto fail;
+  start = clock();
+  if (label_lookup_build(&label_lookup, &decode) != 0) goto fail;
+  if (seed_facts_from_object(object, policy, &facts, &label_lookup, &queue, out_profile) != 0) goto fail;
+  if (relocation_lookup_build(&relocation_lookup, &decode, &facts) != 0) goto fail;
+  end = clock();
+  out_profile->seed_seconds = elapsed_seconds_local(start, end);
+  start = clock();
+  if (run_reachable_fixed_point(&decode, &facts, policy, &relocation_lookup, &queue, accepted_start, accepted_bytes,
+      &out_profile->accepted_instructions, out_profile, max_cpu) != 0) goto fail;
+  end = clock();
+  add_elapsed_seconds_local(&out_profile->fixed_point_reachable_seconds, start, end);
+  out_profile->decoded_candidates = decode.decoded_candidate_count;
+  start = clock();
+  if (accepted_candidate_index_build(&accepted_index, &decode, accepted_start) != 0) goto fail;
+  end = clock();
+  add_elapsed_seconds_local(&out_profile->fixed_point_index_seconds, start, end);
+  {
+    uint32_t demoted_interior_conflicts = 0U;
+    start = clock();
+    if (demote_required_label_conflicts(&decode, &accepted_index, accepted_start, accepted_bytes, &facts,
+        &label_lookup, &out_profile->accepted_instructions, &demoted_interior_conflicts) != 0) goto fail;
+    end = clock();
+    add_elapsed_seconds_local(&out_profile->fixed_point_required_label_conflict_seconds, start, end);
+    out_profile->interior_conflicts_resolved_by_demote = demoted_interior_conflicts;
+  }
+  {
+    start = clock();
+    if (demote_opcode_relocation_conflicts(&decode, &accepted_index, accepted_start, accepted_bytes, &facts,
+        &out_profile->accepted_instructions, out_profile) != 0) goto fail;
+    end = clock();
+    add_elapsed_seconds_local(&out_profile->fixed_point_opcode_relocation_conflict_seconds, start, end);
+  }
+  accepted_candidate_index_destroy(&accepted_index);
+  start = clock();
+  if (rebuild_accepted_bytes_from_starts(&decode, accepted_start, accepted_bytes,
+      &out_profile->accepted_instructions) != 0) goto fail;
+  end = clock();
+  add_elapsed_seconds_local(&out_profile->fixed_point_rebuild_accepted_seconds, start, end);
+  start = clock();
+  if (accepted_candidate_index_build(&accepted_index, &decode, accepted_start) != 0) goto fail;
+  end = clock();
+  add_elapsed_seconds_local(&out_profile->fixed_point_index_seconds, start, end);
+  start = clock();
+  if (classify_relocation_anchor_contexts(&decode, &accepted_index, accepted_start, accepted_bytes, &facts,
+      out_profile) != 0) goto fail;
+  end = clock();
+  add_elapsed_seconds_local(&out_profile->fixed_point_relocation_anchor_seconds, start, end);
+  accepted_candidate_index_destroy(&accepted_index);
+  start = clock();
+  if (materialize_safe_required_labels(&decode, accepted_start, accepted_bytes, &facts, &label_lookup) != 0)
+    goto fail;
+  end = clock();
+  add_elapsed_seconds_local(&out_profile->fixed_point_materialize_labels_seconds, start, end);
+  start = clock();
+  out_profile->data_spans = count_data_spans_and_append_facts(&decode, accepted_bytes, &facts);
+  end = clock();
+  add_elapsed_seconds_local(&out_profile->fixed_point_data_span_seconds, start, end);
+  out_profile->fixed_point_seconds =
+    out_profile->fixed_point_reachable_seconds +
+    out_profile->fixed_point_index_seconds +
+    out_profile->fixed_point_required_label_conflict_seconds +
+    out_profile->fixed_point_opcode_relocation_conflict_seconds +
+    out_profile->fixed_point_rebuild_accepted_seconds +
+    out_profile->fixed_point_relocation_anchor_seconds +
+    out_profile->fixed_point_materialize_labels_seconds +
+    out_profile->fixed_point_data_span_seconds;
+  {
+    uint32_t invariant_interior_conflicts = 0U;
+    start = clock();
+    out_profile->unresolved_labels = resolve_required_label_invariants(&decode, accepted_start, accepted_bytes,
+      &facts, &facts, &label_lookup, &invariant_interior_conflicts);
+    end = clock();
+    add_elapsed_seconds_local(&out_profile->fixed_point_invariant_seconds, start, end);
+    out_profile->interior_conflicts_unresolved = invariant_interior_conflicts;
+    out_profile->interior_conflicts = out_profile->interior_conflicts_resolved_by_demote +
+      out_profile->interior_conflicts_unresolved;
+  }
+  if ((render_asm_source || mark_source_blockers) && facts_v2_has_source_blockers(out_profile)) {
+    out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;
+    out_profile->asm_source_refused = 1U;
+    out_profile->asm_source_relocation_anchor_refusals =
+      out_profile->relocation_anchor_instruction_bytes + out_profile->relocation_anchor_unknown_contexts;
+    out_profile->asm_source_unassemblable_hunk_data_relocation_refusals =
+      out_profile->unassemblable_hunk_data_relocations;
+    out_profile->asm_source_unassemblable_hunk_base_register_relocation_refusals =
+      out_profile->unassemblable_hunk_base_register_relocations;
+    facts_v2_record_source_blocker_first_failure(out_profile);
+    render_asm_source = 0;
+    if (fail_on_asm_refused && force_asm_source) {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "facts_v2 asm source refused because structural invariants failed");
+      goto fail;
+    }
+  }
+  out_profile->labels_created = facts.label_created_count;
+  out_profile->labels_referenced = facts.label_required_count;
+  out_profile->queue_iterations = (uint32_t)queue.cursor;
+  start = clock();
+  if (m68k_render_ir_preview_build(object, &decode, &facts, policy, accepted_start, accepted_bytes,
+      render_text_preview, render_asm_source, collect_asm_source_text,
+      &render_preview, out_source_analysis) != 0) goto fail;
+  end = clock();
+  out_profile->render_ir_seconds = elapsed_seconds_local(start, end);
+  out_profile->render_ir_statements = render_preview.statement_count;
+  out_profile->render_ir_labels = render_preview.label_statement_count;
+  out_profile->render_ir_instructions = render_preview.instruction_statement_count;
+  out_profile->render_ir_data_spans = render_preview.data_statement_count;
+  out_profile->render_ir_hash = render_preview.structural_hash;
+  out_profile->preview_source_enabled = render_text_preview ? 1U : 0U;
+  out_profile->preview_source_bytes = render_preview.text_bytes;
+  out_profile->preview_source_hash = render_preview.text_hash;
+  if (out_profile->asm_source_refused == 0U) out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;
+  out_profile->asm_source_bytes = render_preview.asm_source_bytes;
+  out_profile->asm_source_lines = render_preview.asm_source_lines;
+  out_profile->asm_source_relocation_exprs = render_preview.asm_source_relocation_exprs;
+  out_profile->asm_source_symbolic_instructions = render_preview.asm_source_symbolic_instructions;
+  out_profile->platform_base_slot_count = render_preview.platform_base_slot_count;
+  out_profile->platform_call_count = render_preview.platform_call_count;
+  out_profile->platform_effect_count = render_preview.platform_effect_count;
+  out_profile->asm_source_lossy_numeric_hunk_relocations =
+    render_preview.asm_source_lossy_numeric_hunk_relocations;
+  out_profile->asm_source_instruction_render_failures = render_preview.asm_source_instruction_render_failures;
+  out_profile->asm_source_instruction_byte_mismatches = render_preview.asm_source_instruction_byte_mismatches;
+  out_profile->asm_source_instruction_relocation_failures =
+    render_preview.asm_source_instruction_relocation_failures;
+  if (out_profile->asm_source_first_failure_kind == M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE) {
+    out_profile->asm_source_first_failure_kind = render_preview.asm_source_first_failure_kind;
+    out_profile->asm_source_first_failure_section = render_preview.asm_source_first_failure_section;
+    out_profile->asm_source_first_failure_offset = render_preview.asm_source_first_failure_offset;
+    out_profile->asm_source_first_failure_aux_offset = render_preview.asm_source_first_failure_aux_offset;
+  }
+  out_profile->asm_source_hash = render_preview.asm_source_hash;
+  if (render_asm_source && (out_profile->relocation_anchor_instruction_bytes != 0U ||
+      out_profile->relocation_anchor_unknown_contexts != 0U)) {
+    out_profile->asm_source_enabled = 1U;
+    out_profile->asm_source_refused = 1U;
+    out_profile->asm_source_relocation_anchor_refusals =
+      out_profile->relocation_anchor_instruction_bytes + out_profile->relocation_anchor_unknown_contexts;
+    facts_v2_record_source_blocker_first_failure(out_profile);
+  }
+  if (render_asm_source && facts_v2_has_asm_source_failures(out_profile)) {
+    out_profile->asm_source_enabled = 1U;
+    out_profile->asm_source_refused = 1U;
+    if (fail_on_asm_refused) {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "facts_v2 asm source refused because source rendering invariants failed");
+      goto fail;
+    }
+  }
+  if (out_asm_source != NULL && !facts_v2_has_asm_source_failures(out_profile) &&
+      render_preview.asm_source_text != NULL) {
+    *out_asm_source = render_preview.asm_source_text;
+    render_preview.asm_source_text = NULL;
+  }
+  m68k_render_ir_preview_destroy(&render_preview);
+  accepted_candidate_index_destroy(&accepted_index);
+  free_section_maps(&decode, accepted_start, accepted_bytes);
+  label_lookup_destroy(&label_lookup);
+  relocation_lookup_destroy(&relocation_lookup);
+  work_queue_destroy(&queue);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  return 0;
+fail:
+  if (out_source_analysis != NULL) m68k_ir_source_analysis_destroy(out_source_analysis);
+  m68k_render_ir_preview_destroy(&render_preview);
+  accepted_candidate_index_destroy(&accepted_index);
+  free_section_maps(&decode, accepted_start, accepted_bytes);
+  label_lookup_destroy(&label_lookup);
+  relocation_lookup_destroy(&relocation_lookup);
+  work_queue_destroy(&queue);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  return -1;
+}
+
+int m68k_facts_v2_collect_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
+    M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
+  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 0, 0, NULL, NULL, diagnostics);
+}
+
+int m68k_facts_v2_collect_direct_rebuild_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
+    M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
+  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 0, 1, NULL, NULL, diagnostics);
+}
+
+int m68k_facts_v2_collect_asm_source_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
+    M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
+  return facts_v2_collect_profile_internal(object, policy, out_profile, 1, 0, 0, 0, NULL, NULL, diagnostics);
+}
+
+int m68k_facts_v2_render_asm_source_alloc(const M68kObject *object, const M68kAnalysisPolicy *policy,
+    char **out_source, M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
+  return m68k_facts_v2_render_asm_source_profile_alloc(object, policy, out_source, out_profile, 1U, diagnostics);
+}
+
+int m68k_facts_v2_render_asm_source_profile_alloc(const M68kObject *object, const M68kAnalysisPolicy *policy,
+    char **out_source, M68kFactsV2Profile *out_profile, uint8_t fail_on_refused, M68kDiagSink diagnostics) {
+  M68kFactsV2Profile local_profile;
+  M68kFactsV2Profile *profile = out_profile != NULL ? out_profile : &local_profile;
+  if (out_source == NULL) return -1;
+  *out_source = NULL;
+  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, fail_on_refused != 0U, 0, out_source,
+    NULL, diagnostics);
+}
+
+int m68k_facts_v2_render_asm_source_analysis_profile_alloc(const M68kObject *object,
+    const M68kAnalysisPolicy *policy, char **out_source, M68kFactsV2Profile *out_profile,
+    M68kSourceAnalysisIR *out_source_analysis, uint8_t fail_on_refused, M68kDiagSink diagnostics) {
+  M68kFactsV2Profile local_profile;
+  M68kFactsV2Profile *profile = out_profile != NULL ? out_profile : &local_profile;
+  if (out_source == NULL || out_source_analysis == NULL) return -1;
+  *out_source = NULL;
+  memset(out_source_analysis, 0, sizeof(*out_source_analysis));
+  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, fail_on_refused != 0U, 0, out_source,
+    out_source_analysis, diagnostics);
+}
+
+void m68k_facts_v2_free_text(char *text) {
+  free(text);
+}

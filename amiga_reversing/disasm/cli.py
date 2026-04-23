@@ -73,7 +73,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
             faulthandler.cancel_dump_traceback_later()
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description="Generate assembler-profiled .s file from binary + entities")
     parser.add_argument("binary", help="Path to Amiga hunk executable")
@@ -99,7 +99,7 @@ def main() -> None:
     )
     parser.add_argument("--stall-timeout", type=float,
                         help="Dump Python traceback every N seconds while running")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     target_dir = args.target_dir
     entities = args.entities or (str(Path(target_dir) / "entities.jsonl") if target_dir else "entities.jsonl")

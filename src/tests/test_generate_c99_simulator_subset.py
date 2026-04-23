@@ -227,7 +227,13 @@ class GenerateC99SimulatorSubsetTests(unittest.TestCase):
         self.assertEqual(instructions["CINV"]["execution"]["form_overrides"]["2"]["operands"][0]["expected_kind"], "ctrl_reg")
         self.assertEqual(instructions["CPUSH"]["execution"]["semantic_op"], "cache_push")
         self.assertEqual(instructions["PFLUSH"]["execution"]["semantic_op"], "pflush")
-        self.assertEqual(instructions["PFLUSH"]["execution"]["form_overrides"]["2"]["operands"][2]["usage"], "address")
+        pflush_address_operands = [
+            operand
+            for form in instructions["PFLUSH"]["execution"]["form_overrides"].values()
+            for operand in form["operands"]
+            if operand["index"] == 2
+        ]
+        self.assertTrue(any(operand["usage"] == "address" for operand in pflush_address_operands))
         self.assertEqual(instructions["PFLUSH PFLUSHA"]["execution"]["semantic_op"], "pflush")
         self.assertEqual(instructions["PFLUSHR"]["execution"]["semantic_op"], "pflushr")
         self.assertEqual(instructions["PFLUSHR"]["execution"]["operands"][0]["access"]["kind"], "compute_address")
@@ -239,10 +245,20 @@ class GenerateC99SimulatorSubsetTests(unittest.TestCase):
         self.assertEqual(instructions["FRESTORE"]["execution"]["operands"][0]["access"]["kind"], "memory_read")
         self.assertEqual(instructions["PSAVE"]["execution"]["semantic_op"], "psave")
         self.assertEqual(instructions["PRESTORE"]["execution"]["semantic_op"], "prestore")
+        self.assertEqual(instructions["cpSAVE"]["execution"]["semantic_op"], "cpsave")
+        self.assertEqual(instructions["cpSAVE"]["execution"]["operands"][0]["access"]["kind"], "memory_write")
+        self.assertEqual(instructions["cpRESTORE"]["execution"]["semantic_op"], "cprestore")
+        self.assertEqual(instructions["cpRESTORE"]["execution"]["operands"][0]["access"]["kind"], "memory_read")
         self.assertEqual(instructions["PMOVE"]["execution"]["semantic_op"], "pmove")
         self.assertEqual(instructions["PMOVE"]["execution"]["form_overrides"]["1"]["operands"][1]["expected_kind"], "ctrl_reg")
         self.assertEqual(instructions["PTEST"]["execution"]["semantic_op"], "ptest")
-        self.assertEqual(instructions["PTEST"]["execution"]["form_overrides"]["2"]["operands"][3]["expected_kind"], "an")
+        ptest_writeback_operands = [
+            operand
+            for form in instructions["PTEST"]["execution"]["form_overrides"].values()
+            for operand in form["operands"]
+            if operand["index"] == 3
+        ]
+        self.assertTrue(any(operand["expected_kind"] == "an" for operand in ptest_writeback_operands))
         self.assertEqual(instructions["TRAP"]["execution"]["semantic_op"], "trap")
         self.assertEqual(instructions["ASL, ASR"]["execution"]["operands"][0]["access"]["width_source"], "instruction_size")
         self.assertEqual(instructions["LSL, LSR"]["execution"]["semantic_op"], "shift")
@@ -252,7 +268,7 @@ class GenerateC99SimulatorSubsetTests(unittest.TestCase):
     def test_only_width_irrelevant_accesses_remain_widthless(self) -> None:
         kb = json.loads((ROOT / "knowledge" / "m68k_instructions.json").read_text(encoding="utf-8"))
         unexpected = []
-        widthless_ok = {"BFCHG", "BFCLR", "BFEXTS", "BFEXTU", "BFFFO", "BFINS", "BFSET", "BFTST", "CINV", "CPUSH", "PFLUSH", "PFLUSH PFLUSHA", "PFLUSHR", "PLOAD", "FSAVE", "FRESTORE", "PSAVE", "PRESTORE", "PMOVE", "PTEST", "TRAP"}
+        widthless_ok = {"BFCHG", "BFCLR", "BFEXTS", "BFEXTU", "BFFFO", "BFINS", "BFSET", "BFTST", "CINV", "CPUSH", "PFLUSH", "PFLUSH PFLUSHA", "PFLUSHR", "PLOAD", "FSAVE", "FRESTORE", "PSAVE", "PRESTORE", "cpSAVE", "cpRESTORE", "PMOVE", "PTEST", "TRAP"}
         for inst in kb["instructions"]:
             execution = inst.get("execution")
             if not isinstance(execution, dict):

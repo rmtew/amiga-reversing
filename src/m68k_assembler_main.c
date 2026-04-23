@@ -171,30 +171,30 @@ int main(int argc, char **argv) {
     return m68k_render_source_file_to_stdout( input_path, include_dir, target_cpu, enable_vasm_compat_rewrites, &render_policy);
   }
   fprintf(stderr, "usage: %s verify <all_cases.txt> <all_cases.bin>\n", argv[0]);
-  fprintf(stderr, "   or: %s verify --cpu <68000|68010|68020|68030|68040|68060> <all_cases.txt> <all_cases.bin>\n",
+  fprintf(stderr, "   or: %s verify --cpu <68000|68010|68020|68030|68040|68060|any> <all_cases.txt> <all_cases.bin>\n",
     argv[0]);
   fprintf(stderr, "   or: %s verify-manifest <cases.txt>\n", argv[0]);
-  fprintf(stderr, "   or: %s verify-manifest --cpu <68000|68010|68020|68030|68040|68060> <cases.txt>\n", argv[0]);
+  fprintf(stderr, "   or: %s verify-manifest --cpu <68000|68010|68020|68030|68040|68060|any> <cases.txt>\n", argv[0]);
   fprintf(stderr, "   or: %s assemble-case <all_cases.txt> <case_id>\n", argv[0]);
-  fprintf(stderr, "   or: %s assemble-case --cpu <68000|68010|68020|68030|68040|68060> <all_cases.txt> <case_id>\n",
+  fprintf(stderr, "   or: %s assemble-case --cpu <68000|68010|68020|68030|68040|68060|any> <all_cases.txt> <case_id>\n",
     argv[0]);
   fprintf(stderr, "   or: %s assemble-manifest <all_cases.txt> <out.bin>\n", argv[0]);
-  fprintf(stderr, "   or: %s assemble-manifest --cpu <68000|68010|68020|68030|68040|68060> <all_cases.txt> <out.bin>\n",
+  fprintf(stderr, "   or: %s assemble-manifest --cpu <68000|68010|68020|68030|68040|68060|any> <all_cases.txt> <out.bin>\n",
     argv[0]);
   fprintf(stderr, "   or: %s assemble-line \"<asm>\"\n", argv[0]);
-  fprintf(stderr, "   or: %s assemble-line --cpu <68000|68010|68020|68030|68040|68060> \"<asm>\"\n", argv[0]);
+  fprintf(stderr, "   or: %s assemble-line --cpu <68000|68010|68020|68030|68040|68060|any> \"<asm>\"\n", argv[0]);
   fprintf(stderr, "   or: %s assemble-file <input.s> <out.bin>\n", argv[0]);
-  fprintf(stderr, "   or: %s assemble-file --cpu <68000|68010|68020|68030|68040|68060> <input.s> <out.bin>\n", argv[0]);
+  fprintf(stderr, "   or: %s assemble-file --cpu <68000|68010|68020|68030|68040|68060|any> <input.s> <out.bin>\n", argv[0]);
   fprintf(stderr, "   or: %s assemble-platform-file --backend <amiga-hunk|atari-st> --include-dir <dir> <input.s> <out>\n",
     argv[0]);
-  fprintf(stderr, "   or: %s assemble-platform-file --cpu <68000|68010|68020|68030|68040|68060> --backend <amiga-hunk|atari-st> "
+  fprintf(stderr, "   or: %s assemble-platform-file --cpu <68000|68010|68020|68030|68040|68060|any> --backend <amiga-hunk|atari-st> "
     "--include-dir <dir> <input.s> <out>\n", argv[0]);
   fprintf(stderr, "   or: %s assemble-platform-file --syntax-compat vasm --backend <amiga-hunk|atari-st> --include-dir <dir> "
     "<input.s> <out>\n", argv[0]);
-  fprintf(stderr, "   or: %s assemble-platform-file --cpu <68000|68010|68020|68030|68040|68060> --syntax-compat vasm "
+  fprintf(stderr, "   or: %s assemble-platform-file --cpu <68000|68010|68020|68030|68040|68060|any> --syntax-compat vasm "
     "--backend <amiga-hunk|atari-st> --include-dir <dir> <input.s> <out>\n", argv[0]);
   fprintf(stderr, "   or: %s render-source-file --include-dir <dir> <input.s>\n", argv[0]);
-  fprintf(stderr, "   or: %s render-source-file [--cpu <68000|68010|68020|68030|68040|68060>] [--syntax "
+  fprintf(stderr, "   or: %s render-source-file [--cpu <68000|68010|68020|68030|68040|68060|any>] [--syntax "
     "canonical|genam|vasm]\n", argv[0]);
   fprintf(stderr, "          [--syntax-compat vasm] [--no-strings] [--no-longs] [--no-generated-names]\n");
   fprintf(stderr, "          [--min-os-version <1.3|2.0|3.1|3.5>]\n");

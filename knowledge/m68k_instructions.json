@@ -2985,20 +2985,36 @@
       "pdbcc:dn,label": "PDBcc",
       "pflusha:": "PFLUSH",
       "pflush:ctrl_reg,imm": "PFLUSH",
+      "pflush:dn,imm": "PFLUSH",
+      "pflush:imm,imm": "PFLUSH",
       "pflush:ctrl_reg,imm,ea": "PFLUSH",
+      "pflush:dn,imm,ea": "PFLUSH",
+      "pflush:imm,imm,ea": "PFLUSH",
       "pflush:ind": "PFLUSH",
       "pflushr:ea": "PFLUSHR",
       "ploadr:ctrl_reg,ea": "PLOAD",
+      "ploadr:dn,ea": "PLOAD",
+      "ploadr:imm,ea": "PLOAD",
       "ploadw:ctrl_reg,ea": "PLOAD",
+      "ploadw:dn,ea": "PLOAD",
+      "ploadw:imm,ea": "PLOAD",
       "pmove:ctrl_reg,ea": "PMOVE",
       "pmove:ea,ctrl_reg": "PMOVE",
       "prestore:ea": "PRESTORE",
       "psave:ea": "PSAVE",
       "pscc:ea": "PScc",
       "ptestr:ctrl_reg,ea,imm": "PTEST",
+      "ptestr:dn,ea,imm": "PTEST",
+      "ptestr:imm,ea,imm": "PTEST",
       "ptestw:ctrl_reg,ea,imm": "PTEST",
+      "ptestw:dn,ea,imm": "PTEST",
+      "ptestw:imm,ea,imm": "PTEST",
       "ptestr:ctrl_reg,ea,imm,an": "PTEST",
+      "ptestr:dn,ea,imm,an": "PTEST",
+      "ptestr:imm,ea,imm,an": "PTEST",
       "ptestw:ctrl_reg,ea,imm,an": "PTEST",
+      "ptestw:dn,ea,imm,an": "PTEST",
+      "ptestw:imm,ea,imm,an": "PTEST",
       "ptestr:ind": "PTEST",
       "ptestw:ind": "PTEST",
       "ptrapcc:": "PTRAPcc",
@@ -33592,6 +33608,44 @@
         ]
       },
       "operation_type": "sr_op",
+      "execution": {
+        "semantic_op": "cprestore",
+        "operation_class": null,
+        "flow": {
+          "kind": "sequential",
+          "conditional": false,
+          "has_fallthrough": true,
+          "target_kind": "none"
+        },
+        "result": {
+          "kind": "none",
+          "formula": null
+        },
+        "ccr": {
+          "writes": false,
+          "formula": null
+        },
+        "stack": {
+          "effect_id": null,
+          "effects": []
+        },
+        "implicit_reads": [],
+        "implicit_writes": [],
+        "operands": [
+          {
+            "index": 0,
+            "role": "source",
+            "usage": "value",
+            "expected_kind": "ea",
+            "access": {
+              "kind": "memory_read",
+              "width": null,
+              "width_source": null,
+              "result_kind": "scalar"
+            }
+          }
+        ]
+      },
       "encoding_template": "enc_004",
       "field_binding_template": "fb_007",
       "form_template": "form_015",
@@ -33676,6 +33730,44 @@
         ]
       },
       "operation_type": "sr_op",
+      "execution": {
+        "semantic_op": "cpsave",
+        "operation_class": null,
+        "flow": {
+          "kind": "sequential",
+          "conditional": false,
+          "has_fallthrough": true,
+          "target_kind": "none"
+        },
+        "result": {
+          "kind": "none",
+          "formula": null
+        },
+        "ccr": {
+          "writes": false,
+          "formula": null
+        },
+        "stack": {
+          "effect_id": null,
+          "effects": []
+        },
+        "implicit_reads": [],
+        "implicit_writes": [],
+        "operands": [
+          {
+            "index": 0,
+            "role": "dest",
+            "usage": "write",
+            "expected_kind": "ea",
+            "access": {
+              "kind": "memory_write",
+              "width": null,
+              "width_source": null,
+              "result_kind": "scalar"
+            }
+          }
+        ]
+      },
       "encoding_template": "enc_003",
       "field_binding_template": "fb_007",
       "form_template": "form_015",
@@ -37047,14 +37139,20 @@
             {
               "name": "MASK",
               "bit_hi": 7,
-              "bit_lo": 4,
-              "width": 4
+              "bit_lo": 5,
+              "width": 3
+            },
+            {
+              "name": "FC-MODE",
+              "bit_hi": 4,
+              "bit_lo": 3,
+              "width": 2
             },
             {
               "name": "FC",
-              "bit_hi": 3,
+              "bit_hi": 2,
               "bit_lo": 0,
-              "width": 4
+              "width": 3
             }
           ]
         },
@@ -37259,11 +37357,6 @@
         },
         {
           "syntax": "PFLUSH FC,# <mask>",
-          "encoding_group_index": 0,
-          "encoding_group_span": 2,
-          "processor_set": [
-            "68030"
-          ],
           "operands": [
             {
               "type": "ctrl_reg"
@@ -37271,15 +37364,51 @@
             {
               "type": "imm"
             }
-          ]
-        },
-        {
-          "syntax": "PFLUSH FC,# <mask>,<ea>",
-          "encoding_group_index": 0,
-          "encoding_group_span": 2,
+          ],
           "processor_set": [
             "68030"
           ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2,
+          "control_registers": [
+            "sfc",
+            "dfc"
+          ]
+        },
+        {
+          "syntax": "PFLUSH Dn,# <mask>",
+          "operands": [
+            {
+              "type": "dn"
+            },
+            {
+              "type": "imm"
+            }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2
+        },
+        {
+          "syntax": "PFLUSH # <fc>,# <mask>",
+          "operands": [
+            {
+              "type": "imm"
+            },
+            {
+              "type": "imm"
+            }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2
+        },
+        {
+          "syntax": "PFLUSH FC,# <mask>,<ea>",
           "operands": [
             {
               "type": "ctrl_reg"
@@ -37290,7 +37419,54 @@
             {
               "type": "ea"
             }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2,
+          "control_registers": [
+            "sfc",
+            "dfc"
           ]
+        },
+        {
+          "syntax": "PFLUSH Dn,# <mask>,<ea>",
+          "operands": [
+            {
+              "type": "dn"
+            },
+            {
+              "type": "imm"
+            },
+            {
+              "type": "ea"
+            }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2
+        },
+        {
+          "syntax": "PFLUSH # <fc>,# <mask>,<ea>",
+          "operands": [
+            {
+              "type": "imm"
+            },
+            {
+              "type": "imm"
+            },
+            {
+              "type": "ea"
+            }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2
         },
         {
           "syntax": "PFLUSHA",
@@ -37351,7 +37527,9 @@
           "occurrence": 0,
           "form_field_value": {
             "0": 0,
-            "1": 0
+            "1": 0,
+            "2": 0,
+            "3": 0
           }
         },
         {
@@ -37360,8 +37538,10 @@
           "form_field_value": {
             "0": 0,
             "1": 0,
+            "2": 0,
             "3": 0,
-            "5": 0
+            "7": 0,
+            "9": 0
           }
         },
         {
@@ -37370,17 +37550,48 @@
           "form_field_value": {
             "0": 1,
             "1": 4,
-            "2": 6
+            "2": 4,
+            "3": 4,
+            "4": 6,
+            "5": 6,
+            "6": 6
+          }
+        },
+        {
+          "field": "MASK",
+          "occurrence": 0,
+          "form_field_value": {
+            "0": 0
+          }
+        },
+        {
+          "field": "FC-MODE",
+          "occurrence": 0,
+          "form_field_value": {
+            "0": 0,
+            "1": 0,
+            "2": 1,
+            "3": 2,
+            "4": 0,
+            "5": 1,
+            "6": 2
+          }
+        },
+        {
+          "field": "FC",
+          "occurrence": 0,
+          "form_field_value": {
+            "0": 0
           }
         },
         {
           "field": "OPMODE",
           "occurrence": 0,
           "form_field_value": {
-            "3": 3,
-            "4": 1,
-            "5": 3,
-            "6": 1
+            "7": 3,
+            "8": 1,
+            "9": 3,
+            "10": 1
           }
         }
       ],
@@ -37449,7 +37660,20 @@
                 "role": "source",
                 "usage": "value",
                 "expected_kind": "ctrl_reg",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "register_read",
                   "width": null,
@@ -37462,7 +37686,20 @@
                 "role": "source",
                 "usage": "value",
                 "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "immediate",
                   "width": null,
@@ -37478,8 +37715,21 @@
                 "index": 0,
                 "role": "source",
                 "usage": "value",
-                "expected_kind": "ctrl_reg",
+                "expected_kind": "dn",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "register_read",
                   "width": null,
@@ -37492,7 +37742,132 @@
                 "role": "source",
                 "usage": "value",
                 "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              }
+            ]
+          },
+          "3": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              }
+            ]
+          },
+          "4": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "ctrl_reg",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_read",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "immediate",
                   "width": null,
@@ -37505,6 +37880,20 @@
                 "role": "source",
                 "usage": "address",
                 "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "compute_address",
                   "width": null,
@@ -37514,13 +37903,79 @@
               }
             ]
           },
-          "4": {
+          "5": {
             "operands": [
               {
                 "index": 0,
                 "role": "source",
+                "usage": "value",
+                "expected_kind": "dn",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_read",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 2,
+                "role": "source",
                 "usage": "address",
-                "expected_kind": "ind",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "compute_address",
                   "width": null,
@@ -37535,8 +37990,134 @@
               {
                 "index": 0,
                 "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 2,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              }
+            ]
+          },
+          "8": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
                 "usage": "address",
                 "expected_kind": "ind",
+                "ea_address_formula": "an",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": "indirect",
+                "ea_base_kind": "an",
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              }
+            ]
+          },
+          "10": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ind",
+                "ea_address_formula": "an",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": "indirect",
+                "ea_base_kind": "an",
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "compute_address",
                   "width": null,
@@ -37551,31 +38132,129 @@
       "field_bindings": [
         {
           "form_index": 1,
-          "field": "DATA",
+          "field": "MASK",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "value"
+        },
+        {
+          "form_index": 1,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "value"
+        },
+        {
+          "form_index": 2,
+          "field": "MASK",
           "occurrence": 0,
           "operand_index": 1,
           "value_source": "value"
         },
         {
           "form_index": 2,
-          "field": "DATA",
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 3,
+          "field": "MASK",
           "occurrence": 0,
           "operand_index": 1,
           "value_source": "value"
         },
         {
-          "form_index": 2,
+          "form_index": 3,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "value"
+        },
+        {
+          "form_index": 4,
           "field": "MODE",
           "occurrence": 0,
           "operand_index": 2,
           "value_source": "ea_mode"
         },
         {
-          "form_index": 2,
+          "form_index": 4,
           "field": "REGISTER",
           "occurrence": 0,
           "operand_index": 2,
           "value_source": "ea_reg"
+        },
+        {
+          "form_index": 4,
+          "field": "MASK",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "value"
+        },
+        {
+          "form_index": 4,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "value"
+        },
+        {
+          "form_index": 5,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 2,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 5,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 2,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 5,
+          "field": "MASK",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "value"
+        },
+        {
+          "form_index": 5,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 6,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 2,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 6,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 2,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 6,
+          "field": "MASK",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "value"
+        },
+        {
+          "form_index": 6,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "value"
         }
       ]
     },
@@ -37878,7 +38557,20 @@
                 "role": "source",
                 "usage": "value",
                 "expected_kind": "ctrl_reg",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "register_read",
                   "width": null,
@@ -37891,7 +38583,20 @@
                 "role": "source",
                 "usage": "value",
                 "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "immediate",
                   "width": null,
@@ -37908,7 +38613,20 @@
                 "role": "source",
                 "usage": "value",
                 "expected_kind": "ctrl_reg",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "register_read",
                   "width": null,
@@ -37921,7 +38639,20 @@
                 "role": "source",
                 "usage": "value",
                 "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "immediate",
                   "width": null,
@@ -37934,38 +38665,20 @@
                 "role": "source",
                 "usage": "address",
                 "expected_kind": "ea",
-                "access": {
-                  "kind": "compute_address",
-                  "width": null,
-                  "width_source": null,
-                  "result_kind": "address"
-                }
-              }
-            ]
-          },
-          "4": {
-            "operands": [
-              {
-                "index": 0,
-                "role": "source",
-                "usage": "address",
-                "expected_kind": "ind",
-                "access": {
-                  "kind": "compute_address",
-                  "width": null,
-                  "width_source": null,
-                  "result_kind": "address"
-                }
-              }
-            ]
-          },
-          "6": {
-            "operands": [
-              {
-                "index": 0,
-                "role": "source",
-                "usage": "address",
-                "expected_kind": "ind",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "compute_address",
                   "width": null,
@@ -38489,10 +39202,16 @@
               "width": 1
             },
             {
-              "name": "FC",
+              "name": "FC-MODE",
               "bit_hi": 4,
+              "bit_lo": 3,
+              "width": 2
+            },
+            {
+              "name": "FC",
+              "bit_hi": 2,
               "bit_lo": 0,
-              "width": 5
+              "width": 3
             }
           ]
         }
@@ -38527,6 +39246,32 @@
             {
               "type": "ea"
             }
+          ],
+          "control_registers": [
+            "sfc",
+            "dfc"
+          ]
+        },
+        {
+          "syntax": "PLOADR Dn,<ea>",
+          "operands": [
+            {
+              "type": "dn"
+            },
+            {
+              "type": "ea"
+            }
+          ]
+        },
+        {
+          "syntax": "PLOADR # <fc>,<ea>",
+          "operands": [
+            {
+              "type": "imm"
+            },
+            {
+              "type": "ea"
+            }
           ]
         },
         {
@@ -38534,6 +39279,32 @@
           "operands": [
             {
               "type": "ctrl_reg"
+            },
+            {
+              "type": "ea"
+            }
+          ],
+          "control_registers": [
+            "sfc",
+            "dfc"
+          ]
+        },
+        {
+          "syntax": "PLOADW Dn,<ea>",
+          "operands": [
+            {
+              "type": "dn"
+            },
+            {
+              "type": "ea"
+            }
+          ]
+        },
+        {
+          "syntax": "PLOADW # <fc>,<ea>",
+          "operands": [
+            {
+              "type": "imm"
             },
             {
               "type": "ea"
@@ -38554,7 +39325,23 @@
           "field": "R/ W",
           "form_field_value": {
             "0": 1,
-            "1": 0
+            "1": 1,
+            "2": 1,
+            "3": 0,
+            "4": 0,
+            "5": 0
+          }
+        },
+        {
+          "field": "FC-MODE",
+          "occurrence": 0,
+          "form_field_value": {
+            "0": 0,
+            "1": 1,
+            "2": 2,
+            "3": 0,
+            "4": 1,
+            "5": 2
           }
         }
       ],
@@ -38620,7 +39407,20 @@
             "role": "source",
             "usage": "value",
             "expected_kind": "ctrl_reg",
+            "ea_address_formula": null,
+            "ea_register_update": "none",
+            "ea_index_extension_format": "none",
+            "ea_index_register_class": "none",
+            "ea_index_value_width_source": "none",
+            "ea_index_scale_source": "none",
+            "ea_index_sign_source": "none",
+            "ea_displacement_source": "none",
             "ea_address_shape": null,
+            "ea_base_kind": null,
+            "ea_uses_displacement": false,
+            "ea_uses_index": false,
+            "ea_pc_base_bias_bytes": 0,
+            "ea_address_literal_width_bytes": 0,
             "access": {
               "kind": "register_read",
               "width": null,
@@ -38633,6 +39433,20 @@
             "role": "source",
             "usage": "address",
             "expected_kind": "ea",
+            "ea_address_formula": "decoded_ea",
+            "ea_register_update": "none",
+            "ea_index_extension_format": "none",
+            "ea_index_register_class": "none",
+            "ea_index_value_width_source": "none",
+            "ea_index_scale_source": "none",
+            "ea_index_sign_source": "none",
+            "ea_displacement_source": "none",
+            "ea_address_shape": null,
+            "ea_base_kind": null,
+            "ea_uses_displacement": false,
+            "ea_uses_index": false,
+            "ea_pc_base_bias_bytes": 0,
+            "ea_address_literal_width_bytes": 0,
             "access": {
               "kind": "compute_address",
               "width": null,
@@ -38640,7 +39454,233 @@
               "result_kind": "address"
             }
           }
-        ]
+        ],
+        "form_overrides": {
+          "1": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "dn",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_read",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              }
+            ]
+          },
+          "2": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              }
+            ]
+          },
+          "4": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "dn",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_read",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              }
+            ]
+          },
+          "5": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              }
+            ]
+          }
+        }
       },
       "field_bindings": [
         {
@@ -38680,6 +39720,90 @@
         },
         {
           "form_index": 1,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 2,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 2,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 2,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "value"
+        },
+        {
+          "form_index": 3,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 3,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 3,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "value"
+        },
+        {
+          "form_index": 4,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 4,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 4,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 5,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 5,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 5,
           "field": "FC",
           "occurrence": 0,
           "operand_index": 0,
@@ -40605,8 +41729,14 @@
             {
               "name": "REGISTER",
               "bit_hi": 7,
+              "bit_lo": 5,
+              "width": 3
+            },
+            {
+              "name": "FC-MODE",
+              "bit_hi": 4,
               "bit_lo": 3,
-              "width": 5
+              "width": 2
             },
             {
               "name": "FC",
@@ -41093,11 +42223,6 @@
       "forms": [
         {
           "syntax": "PTESTR FC,<ea>,# <level>",
-          "encoding_group_index": 0,
-          "encoding_group_span": 2,
-          "processor_set": [
-            "68030"
-          ],
           "operands": [
             {
               "type": "ctrl_reg"
@@ -41108,15 +42233,57 @@
             {
               "type": "imm"
             }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2,
+          "control_registers": [
+            "sfc",
+            "dfc"
           ]
+        },
+        {
+          "syntax": "PTESTR Dn,<ea>,# <level>",
+          "operands": [
+            {
+              "type": "dn"
+            },
+            {
+              "type": "ea"
+            },
+            {
+              "type": "imm"
+            }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2
+        },
+        {
+          "syntax": "PTESTR # <fc>,<ea>,# <level>",
+          "operands": [
+            {
+              "type": "imm"
+            },
+            {
+              "type": "ea"
+            },
+            {
+              "type": "imm"
+            }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2
         },
         {
           "syntax": "PTESTW FC,<ea>,# <level>",
-          "encoding_group_index": 0,
-          "encoding_group_span": 2,
-          "processor_set": [
-            "68030"
-          ],
           "operands": [
             {
               "type": "ctrl_reg"
@@ -41127,15 +42294,57 @@
             {
               "type": "imm"
             }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2,
+          "control_registers": [
+            "sfc",
+            "dfc"
           ]
+        },
+        {
+          "syntax": "PTESTW Dn,<ea>,# <level>",
+          "operands": [
+            {
+              "type": "dn"
+            },
+            {
+              "type": "ea"
+            },
+            {
+              "type": "imm"
+            }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2
+        },
+        {
+          "syntax": "PTESTW # <fc>,<ea>,# <level>",
+          "operands": [
+            {
+              "type": "imm"
+            },
+            {
+              "type": "ea"
+            },
+            {
+              "type": "imm"
+            }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2
         },
         {
           "syntax": "PTESTR FC,<ea>,# <level>,An",
-          "encoding_group_index": 0,
-          "encoding_group_span": 2,
-          "processor_set": [
-            "68030"
-          ],
           "operands": [
             {
               "type": "ctrl_reg"
@@ -41149,15 +42358,63 @@
             {
               "type": "an"
             }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2,
+          "control_registers": [
+            "sfc",
+            "dfc"
           ]
         },
         {
-          "syntax": "PTESTW FC,<ea>,# <level>,An",
-          "encoding_group_index": 0,
-          "encoding_group_span": 2,
+          "syntax": "PTESTR Dn,<ea>,# <level>,An",
+          "operands": [
+            {
+              "type": "dn"
+            },
+            {
+              "type": "ea"
+            },
+            {
+              "type": "imm"
+            },
+            {
+              "type": "an"
+            }
+          ],
           "processor_set": [
             "68030"
           ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2
+        },
+        {
+          "syntax": "PTESTR # <fc>,<ea>,# <level>,An",
+          "operands": [
+            {
+              "type": "imm"
+            },
+            {
+              "type": "ea"
+            },
+            {
+              "type": "imm"
+            },
+            {
+              "type": "an"
+            }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2
+        },
+        {
+          "syntax": "PTESTW FC,<ea>,# <level>,An",
           "operands": [
             {
               "type": "ctrl_reg"
@@ -41171,7 +42428,60 @@
             {
               "type": "an"
             }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2,
+          "control_registers": [
+            "sfc",
+            "dfc"
           ]
+        },
+        {
+          "syntax": "PTESTW Dn,<ea>,# <level>,An",
+          "operands": [
+            {
+              "type": "dn"
+            },
+            {
+              "type": "ea"
+            },
+            {
+              "type": "imm"
+            },
+            {
+              "type": "an"
+            }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2
+        },
+        {
+          "syntax": "PTESTW # <fc>,<ea>,# <level>,An",
+          "operands": [
+            {
+              "type": "imm"
+            },
+            {
+              "type": "ea"
+            },
+            {
+              "type": "imm"
+            },
+            {
+              "type": "an"
+            }
+          ],
+          "processor_set": [
+            "68030"
+          ],
+          "encoding_group_index": 0,
+          "encoding_group_span": 2
         },
         {
           "syntax": "PTESTR FC,<ea>,# <level>",
@@ -41297,15 +42607,23 @@
           "field": "R/ W",
           "form_field_value": {
             "0": 1,
-            "1": 0,
+            "1": 1,
             "2": 1,
             "3": 0,
-            "4": 1,
+            "4": 0,
             "5": 0,
             "6": 1,
-            "7": 0,
+            "7": 1,
             "8": 1,
-            "9": 0
+            "9": 0,
+            "10": 0,
+            "11": 0,
+            "12": 1,
+            "13": 0,
+            "14": 1,
+            "15": 0,
+            "16": 1,
+            "17": 0
           }
         },
         {
@@ -41313,8 +42631,46 @@
           "form_field_value": {
             "0": 0,
             "1": 0,
-            "2": 1,
-            "3": 1
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1
+          }
+        },
+        {
+          "field": "REGISTER",
+          "occurrence": 1,
+          "form_field_value": {
+            "0": 0,
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0
+          }
+        },
+        {
+          "field": "FC-MODE",
+          "occurrence": 0,
+          "form_field_value": {
+            "0": 0,
+            "1": 1,
+            "2": 2,
+            "3": 0,
+            "4": 1,
+            "5": 2,
+            "6": 0,
+            "7": 1,
+            "8": 2,
+            "9": 0,
+            "10": 1,
+            "11": 2
           }
         }
       ],
@@ -41380,7 +42736,20 @@
             "role": "source",
             "usage": "value",
             "expected_kind": "ctrl_reg",
+            "ea_address_formula": null,
+            "ea_register_update": "none",
+            "ea_index_extension_format": "none",
+            "ea_index_register_class": "none",
+            "ea_index_value_width_source": "none",
+            "ea_index_scale_source": "none",
+            "ea_index_sign_source": "none",
+            "ea_displacement_source": "none",
             "ea_address_shape": null,
+            "ea_base_kind": null,
+            "ea_uses_displacement": false,
+            "ea_uses_index": false,
+            "ea_pc_base_bias_bytes": 0,
+            "ea_address_literal_width_bytes": 0,
             "access": {
               "kind": "register_read",
               "width": null,
@@ -41393,6 +42762,20 @@
             "role": "source",
             "usage": "address",
             "expected_kind": "ea",
+            "ea_address_formula": "decoded_ea",
+            "ea_register_update": "none",
+            "ea_index_extension_format": "none",
+            "ea_index_register_class": "none",
+            "ea_index_value_width_source": "none",
+            "ea_index_scale_source": "none",
+            "ea_index_sign_source": "none",
+            "ea_displacement_source": "none",
+            "ea_address_shape": null,
+            "ea_base_kind": null,
+            "ea_uses_displacement": false,
+            "ea_uses_index": false,
+            "ea_pc_base_bias_bytes": 0,
+            "ea_address_literal_width_bytes": 0,
             "access": {
               "kind": "compute_address",
               "width": null,
@@ -41405,7 +42788,20 @@
             "role": "source",
             "usage": "value",
             "expected_kind": "imm",
+            "ea_address_formula": null,
+            "ea_register_update": "none",
+            "ea_index_extension_format": "none",
+            "ea_index_register_class": "none",
+            "ea_index_value_width_source": "none",
+            "ea_index_scale_source": "none",
+            "ea_index_sign_source": "none",
+            "ea_displacement_source": "none",
             "ea_address_shape": null,
+            "ea_base_kind": null,
+            "ea_uses_displacement": false,
+            "ea_uses_index": false,
+            "ea_pc_base_bias_bytes": 0,
+            "ea_address_literal_width_bytes": 0,
             "access": {
               "kind": "immediate",
               "width": null,
@@ -41415,14 +42811,27 @@
           }
         ],
         "form_overrides": {
-          "2": {
+          "1": {
             "operands": [
               {
                 "index": 0,
                 "role": "source",
                 "usage": "value",
-                "expected_kind": "ctrl_reg",
+                "expected_kind": "dn",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "register_read",
                   "width": null,
@@ -41435,6 +42844,20 @@
                 "role": "source",
                 "usage": "address",
                 "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "compute_address",
                   "width": null,
@@ -41447,22 +42870,22 @@
                 "role": "source",
                 "usage": "value",
                 "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "immediate",
-                  "width": null,
-                  "width_source": null,
-                  "result_kind": "scalar"
-                }
-              },
-              {
-                "index": 3,
-                "role": "dest",
-                "usage": "write",
-                "expected_kind": "an",
-                "ea_address_shape": null,
-                "access": {
-                  "kind": "register_write",
                   "width": null,
                   "width_source": null,
                   "result_kind": "scalar"
@@ -41470,16 +42893,29 @@
               }
             ]
           },
-          "3": {
+          "2": {
             "operands": [
               {
                 "index": 0,
                 "role": "source",
                 "usage": "value",
-                "expected_kind": "ctrl_reg",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
-                  "kind": "register_read",
+                  "kind": "immediate",
                   "width": null,
                   "width_source": null,
                   "result_kind": "scalar"
@@ -41490,6 +42926,20 @@
                 "role": "source",
                 "usage": "address",
                 "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "compute_address",
                   "width": null,
@@ -41502,7 +42952,132 @@
                 "role": "source",
                 "usage": "value",
                 "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              }
+            ]
+          },
+          "4": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "dn",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_read",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              },
+              {
+                "index": 2,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              }
+            ]
+          },
+          "5": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "immediate",
                   "width": null,
@@ -41511,13 +43086,52 @@
                 }
               },
               {
-                "index": 3,
-                "role": "dest",
-                "usage": "write",
-                "expected_kind": "an",
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
-                  "kind": "register_write",
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              },
+              {
+                "index": 2,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
                   "width": null,
                   "width_source": null,
                   "result_kind": "scalar"
@@ -41530,43 +43144,22 @@
               {
                 "index": 0,
                 "role": "source",
-                "usage": "address",
-                "expected_kind": "ind",
-                "ea_address_shape": null,
-                "access": {
-                  "kind": "compute_address",
-                  "width": null,
-                  "width_source": null,
-                  "result_kind": "address"
-                }
-              }
-            ]
-          },
-          "7": {
-            "operands": [
-              {
-                "index": 0,
-                "role": "source",
-                "usage": "address",
-                "expected_kind": "ind",
-                "ea_address_shape": null,
-                "access": {
-                  "kind": "compute_address",
-                  "width": null,
-                  "width_source": null,
-                  "result_kind": "address"
-                }
-              }
-            ]
-          },
-          "8": {
-            "operands": [
-              {
-                "index": 0,
-                "role": "source",
                 "usage": "value",
                 "expected_kind": "ctrl_reg",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "register_read",
                   "width": null,
@@ -41579,6 +43172,20 @@
                 "role": "source",
                 "usage": "address",
                 "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "compute_address",
                   "width": null,
@@ -41591,7 +43198,20 @@
                 "role": "source",
                 "usage": "value",
                 "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "immediate",
                   "width": null,
@@ -41604,7 +43224,236 @@
                 "role": "dest",
                 "usage": "write",
                 "expected_kind": "an",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_write",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              }
+            ]
+          },
+          "7": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "dn",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_read",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              },
+              {
+                "index": 2,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 3,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "an",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_write",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              }
+            ]
+          },
+          "8": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              },
+              {
+                "index": 2,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 3,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "an",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "register_write",
                   "width": null,
@@ -41621,7 +43470,20 @@
                 "role": "source",
                 "usage": "value",
                 "expected_kind": "ctrl_reg",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "register_read",
                   "width": null,
@@ -41634,6 +43496,20 @@
                 "role": "source",
                 "usage": "address",
                 "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "compute_address",
                   "width": null,
@@ -41646,7 +43522,20 @@
                 "role": "source",
                 "usage": "value",
                 "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "immediate",
                   "width": null,
@@ -41659,7 +43548,512 @@
                 "role": "dest",
                 "usage": "write",
                 "expected_kind": "an",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
                 "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_write",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              }
+            ]
+          },
+          "10": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "dn",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_read",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              },
+              {
+                "index": 2,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 3,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "an",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_write",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              }
+            ]
+          },
+          "11": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              },
+              {
+                "index": 2,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 3,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "an",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_write",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              }
+            ]
+          },
+          "14": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ind",
+                "ea_address_formula": "an",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": "indirect",
+                "ea_base_kind": "an",
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              }
+            ]
+          },
+          "15": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ind",
+                "ea_address_formula": "an",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": "indirect",
+                "ea_base_kind": "an",
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              }
+            ]
+          },
+          "16": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "ctrl_reg",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_read",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              },
+              {
+                "index": 2,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 3,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "an",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_write",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              }
+            ]
+          },
+          "17": {
+            "operands": [
+              {
+                "index": 0,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "ctrl_reg",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "register_read",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 1,
+                "role": "source",
+                "usage": "address",
+                "expected_kind": "ea",
+                "ea_address_formula": "decoded_ea",
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "compute_address",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "address"
+                }
+              },
+              {
+                "index": 2,
+                "role": "source",
+                "usage": "value",
+                "expected_kind": "imm",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
+                "access": {
+                  "kind": "immediate",
+                  "width": null,
+                  "width_source": null,
+                  "result_kind": "scalar"
+                }
+              },
+              {
+                "index": 3,
+                "role": "dest",
+                "usage": "write",
+                "expected_kind": "an",
+                "ea_address_formula": null,
+                "ea_register_update": "none",
+                "ea_index_extension_format": "none",
+                "ea_index_register_class": "none",
+                "ea_index_value_width_source": "none",
+                "ea_index_scale_source": "none",
+                "ea_index_sign_source": "none",
+                "ea_displacement_source": "none",
+                "ea_address_shape": null,
+                "ea_base_kind": null,
+                "ea_uses_displacement": false,
+                "ea_uses_index": false,
+                "ea_pc_base_bias_bytes": 0,
+                "ea_address_literal_width_bytes": 0,
                 "access": {
                   "kind": "register_write",
                   "width": null,
@@ -41719,7 +44113,7 @@
           "field": "FC",
           "occurrence": 0,
           "operand_index": 0,
-          "value_source": "value"
+          "value_source": "reg"
         },
         {
           "form_index": 1,
@@ -41757,13 +44151,6 @@
           "value_source": "value"
         },
         {
-          "form_index": 2,
-          "field": "REGISTER",
-          "occurrence": 1,
-          "operand_index": 3,
-          "value_source": "reg"
-        },
-        {
           "form_index": 3,
           "field": "MODE",
           "occurrence": 0,
@@ -41792,13 +44179,6 @@
           "value_source": "value"
         },
         {
-          "form_index": 3,
-          "field": "REGISTER",
-          "occurrence": 1,
-          "operand_index": 3,
-          "value_source": "reg"
-        },
-        {
           "form_index": 4,
           "field": "MODE",
           "occurrence": 0,
@@ -41817,6 +44197,13 @@
           "field": "FC",
           "occurrence": 0,
           "operand_index": 0,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 4,
+          "field": "LEVEL",
+          "occurrence": 0,
+          "operand_index": 2,
           "value_source": "value"
         },
         {
@@ -41835,6 +44222,34 @@
         },
         {
           "form_index": 5,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "value"
+        },
+        {
+          "form_index": 5,
+          "field": "LEVEL",
+          "occurrence": 0,
+          "operand_index": 2,
+          "value_source": "value"
+        },
+        {
+          "form_index": 6,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 6,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 6,
           "field": "FC",
           "occurrence": 0,
           "operand_index": 0,
@@ -41842,16 +44257,51 @@
         },
         {
           "form_index": 6,
+          "field": "LEVEL",
+          "occurrence": 0,
+          "operand_index": 2,
+          "value_source": "value"
+        },
+        {
+          "form_index": 6,
           "field": "REGISTER",
+          "occurrence": 1,
+          "operand_index": 3,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 7,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 7,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 7,
+          "field": "FC",
           "occurrence": 0,
           "operand_index": 0,
           "value_source": "reg"
         },
         {
           "form_index": 7,
-          "field": "REGISTER",
+          "field": "LEVEL",
           "occurrence": 0,
-          "operand_index": 0,
+          "operand_index": 2,
+          "value_source": "value"
+        },
+        {
+          "form_index": 7,
+          "field": "REGISTER",
+          "occurrence": 1,
+          "operand_index": 3,
           "value_source": "reg"
         },
         {
@@ -41884,8 +44334,8 @@
         },
         {
           "form_index": 8,
-          "field": "A-REGISTER",
-          "occurrence": 0,
+          "field": "REGISTER",
+          "occurrence": 1,
           "operand_index": 3,
           "value_source": "reg"
         },
@@ -41919,6 +44369,202 @@
         },
         {
           "form_index": 9,
+          "field": "REGISTER",
+          "occurrence": 1,
+          "operand_index": 3,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 10,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 10,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 10,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 10,
+          "field": "LEVEL",
+          "occurrence": 0,
+          "operand_index": 2,
+          "value_source": "value"
+        },
+        {
+          "form_index": 10,
+          "field": "REGISTER",
+          "occurrence": 1,
+          "operand_index": 3,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 11,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 11,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 11,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "value"
+        },
+        {
+          "form_index": 11,
+          "field": "LEVEL",
+          "occurrence": 0,
+          "operand_index": 2,
+          "value_source": "value"
+        },
+        {
+          "form_index": 11,
+          "field": "REGISTER",
+          "occurrence": 1,
+          "operand_index": 3,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 12,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 12,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 12,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "value"
+        },
+        {
+          "form_index": 13,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 13,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 13,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "value"
+        },
+        {
+          "form_index": 14,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 15,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 16,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 16,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 16,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "value"
+        },
+        {
+          "form_index": 16,
+          "field": "LEVEL",
+          "occurrence": 0,
+          "operand_index": 2,
+          "value_source": "value"
+        },
+        {
+          "form_index": 16,
+          "field": "A-REGISTER",
+          "occurrence": 0,
+          "operand_index": 3,
+          "value_source": "reg"
+        },
+        {
+          "form_index": 17,
+          "field": "MODE",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_mode"
+        },
+        {
+          "form_index": 17,
+          "field": "REGISTER",
+          "occurrence": 0,
+          "operand_index": 1,
+          "value_source": "ea_reg"
+        },
+        {
+          "form_index": 17,
+          "field": "FC",
+          "occurrence": 0,
+          "operand_index": 0,
+          "value_source": "value"
+        },
+        {
+          "form_index": 17,
+          "field": "LEVEL",
+          "occurrence": 0,
+          "operand_index": 2,
+          "value_source": "value"
+        },
+        {
+          "form_index": 17,
           "field": "A-REGISTER",
           "occurrence": 0,
           "operand_index": 3,

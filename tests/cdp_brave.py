@@ -8,6 +8,7 @@ import secrets
 import socket
 import struct
 import subprocess
+import sys
 import tempfile
 import time
 from collections.abc import Iterator
@@ -19,6 +20,8 @@ from urllib.request import Request, urlopen
 import pytest
 
 _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+_CDP_TEST_FILE = "test_web_e2e_cdp.py"
+_CDP_TEST_MODULE = "tests.test_web_e2e_cdp"
 
 type AllowedHttpFailure = tuple[str, int]
 
@@ -52,6 +55,27 @@ def find_brave() -> Path:
         if candidate.exists():
             return candidate
     raise FileNotFoundError("Brave executable not found; set BRAVE_PATH")
+
+
+def brave_cdp_skip_reason() -> str:
+    return (
+        "set M68K_RUN_BRAVE_CDP=1 to run Brave/CDP web E2E tests as part of a wider suite, "
+        "or select tests/test_web_e2e_cdp.py directly"
+    )
+
+
+def brave_cdp_requested() -> bool:
+    if os.environ.get("M68K_RUN_BRAVE_CDP") == "1":
+        return True
+    for arg in sys.argv[1:]:
+        if arg.startswith("-"):
+            continue
+        normalized = arg.replace("\\", "/")
+        if normalized.endswith(_CDP_TEST_FILE) or f"{_CDP_TEST_FILE}::" in normalized:
+            return True
+        if normalized == _CDP_TEST_MODULE or normalized.startswith(f"{_CDP_TEST_MODULE}::"):
+            return True
+    return False
 
 
 def _http_failure_allowed(url: str, status: int, allowed: list[AllowedHttpFailure]) -> bool:
@@ -227,6 +251,30 @@ class CdpWebSocket:
               return true;
             }})()
             """
+        )
+
+    def click_until_selector(
+        self,
+        click_selector: str,
+        target_selector: str,
+        *,
+        timeout: float = 5.0,
+        interval: float = 0.1,
+    ) -> None:
+        quoted_click = json.dumps(click_selector)
+        quoted_target = json.dumps(target_selector)
+        self.wait_for_expression(
+            f"""
+            (() => {{
+              if (document.querySelector({quoted_target})) return true;
+              const node = document.querySelector({quoted_click});
+              if (!node) return false;
+              node.click();
+              return document.querySelector({quoted_target}) !== null;
+            }})()
+            """,
+            timeout=timeout,
+            interval=interval,
         )
 
     def fill(self, selector: str, value: str) -> None:
@@ -426,8 +474,8 @@ class CdpWebSocket:
 
 @contextmanager
 def brave_page() -> Iterator[CdpWebSocket]:
-    if os.environ.get("M68K_RUN_BRAVE_CDP") != "1":
-        pytest.skip("set M68K_RUN_BRAVE_CDP=1 to run Brave/CDP web E2E tests")
+    if not brave_cdp_requested():
+        pytest.skip(brave_cdp_skip_reason())
     brave = find_brave()
     port = _free_port()
     with tempfile.TemporaryDirectory(prefix="amiga-reversing-brave-", ignore_cleanup_errors=True) as profile_dir:

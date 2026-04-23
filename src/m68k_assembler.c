@@ -420,7 +420,8 @@ int m68k_asm_encode_opword(uint16_t asm_form_index, const uint16_t *field_values
     uint16_t width = (uint16_t)(patch->bit_hi - patch->bit_lo + 1);
     uint16_t mask = (uint16_t)(((uint16_t)1U << width) - 1U);
     uint16_t value = (uint16_t)(field_values[patch_index] & mask);
-    opword = (uint16_t)(opword | (uint16_t)(value << patch->bit_lo));
+    uint16_t shifted_mask = (uint16_t)(mask << patch->bit_lo);
+    opword = (uint16_t)((opword & (uint16_t)~shifted_mask) | (uint16_t)(value << patch->bit_lo));
   }
   *out_opword = opword;
   return 0;
@@ -451,7 +452,8 @@ static int m68k_asm_emit_bound_extension_word(const M68kAsmFormDef *form, uint8_
     uint16_t width = (uint16_t)(patch->bit_hi - patch->bit_lo + 1);
     uint16_t mask = (uint16_t)(((uint16_t)1U << width) - 1U);
     uint16_t value = (uint16_t)(field_values[patch_index] & mask);
-    extword = (uint16_t)(extword | (uint16_t)(value << patch->bit_lo));
+    uint16_t shifted_mask = (uint16_t)(mask << patch->bit_lo);
+    extword = (uint16_t)((extword & (uint16_t)~shifted_mask) | (uint16_t)(value << patch->bit_lo));
   }
   return m68k_asm_append_word(out_words, max_words, word_count, extword);
 }
@@ -587,6 +589,7 @@ int m68k_asm_build_patch_values(uint16_t asm_form_index, char size_suffix, const
       case M68K_ASM_FIELD_CACHE:
       case M68K_ASM_FIELD_DA:
       case M68K_ASM_FIELD_MODE:
+      case M68K_ASM_FIELD_ID:
       case M68K_ASM_FIELD_DATA:
       case M68K_ASM_FIELD_DISPLACEMENT_8:
       case M68K_ASM_FIELD_DISPLACEMENT_16:

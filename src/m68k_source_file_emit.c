@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 
 #define M68K_SOURCE_FILE_EMIT_MAX_CASE_BYTES 64
@@ -16,6 +17,23 @@ typedef struct M68kSourceEmitExprContext {
 
 static void source_emit_error(M68kDiagSink diagnostics, const char *message) {
   m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SOURCE_FAILED, message);
+}
+
+static void source_emit_errorf(M68kDiagSink diagnostics, const char *fmt, ...) {
+  M68kDiag *diag;
+  va_list args;
+  if (diagnostics.list == NULL) return;
+  if (diagnostics.list->count >= M68K_DIAG_LIST_CAPACITY) {
+    diagnostics.list->dropped_count += 1U;
+    return;
+  }
+  diag = &diagnostics.list->items[diagnostics.list->count++];
+  memset(diag, 0, sizeof(*diag));
+  diag->severity = M68K_DIAG_SEVERITY_ERROR;
+  diag->code = M68K_DIAG_CODE_SOURCE_FAILED;
+  va_start(args, fmt);
+  vsnprintf(diag->message, sizeof(diag->message), fmt, args);
+  va_end(args);
 }
 
 static size_t data_statement_size(const AsmSourceDataStmt *data_stmt) {
@@ -114,25 +132,45 @@ static int should_emit_internal_abs_fixup(const AsmSourceFile *source, M68kFixup
 
 int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitContext *context,
     M68kDiagSink diagnostics) {
+  uint32_t *offsets;
   size_t pass_index;
+  size_t section_count;
+  if (source == NULL) {
+    source_emit_error(diagnostics, "missing source");
+    return 0;
+  }
+  section_count = source->section_count != 0U ? source->section_count : 1U;
+  offsets = (uint32_t *)calloc(section_count, sizeof(*offsets));
+  if (offsets == NULL) {
+    source_emit_error(diagnostics, "out of memory");
+    return 0;
+  }
   for (pass_index = 0; pass_index < 8U; ++pass_index) {
-    uint32_t offsets[16] = {0};
     int changed = 0;
     size_t stmt_index;
+    memset(offsets, 0, section_count * sizeof(*offsets));
     for (stmt_index = 0; stmt_index < source->statement_count; ++stmt_index) {
       AsmSourceStmt *stmt = &source->statements[stmt_index];
       if (stmt->kind == ASM_SOURCE_STMT_SECTION) continue;
       if (stmt->kind == ASM_SOURCE_STMT_END) break;
       if (stmt->kind == ASM_SOURCE_STMT_LABEL) {
-        uint32_t value = (stmt->section_index == (size_t)-1) ? 0U : offsets[stmt->section_index];
+        uint32_t value;
+        if (stmt->section_index != (size_t)-1 && stmt->section_index >= source->section_count) {
+          source_emit_error(diagnostics, "invalid section index");
+          free(offsets);
+          return 0;
+        }
+        value = (stmt->section_index == (size_t)-1) ? 0U : offsets[stmt->section_index];
         if (!context->set_label_value(source, stmt->u.label.name, stmt->section_index, value)) {
           source_emit_error(diagnostics, "failed updating label");
+          free(offsets);
           return 0;
         }
         stmt->offset = value; continue;
       }
-      if (stmt->section_index >= sizeof(offsets) / sizeof(offsets[0])) {
-        source_emit_error(diagnostics, "too many sections");
+      if (stmt->section_index >= source->section_count) {
+        source_emit_error(diagnostics, "invalid section index");
+        free(offsets);
         return 0;
       }
       stmt->offset = offsets[stmt->section_index];
@@ -140,13 +178,18 @@ int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitConte
         stmt->size = (stmt->offset & 1U) ? 1U : 0U;
       } else if (stmt->kind == ASM_SOURCE_STMT_DATA) {
         stmt->size = (uint32_t)data_statement_size(&stmt->u.data);
+      } else if (stmt->kind == ASM_SOURCE_STMT_RESERVE) {
+        stmt->size = stmt->u.reserve_size;
       } else if (stmt->kind == ASM_SOURCE_STMT_INSTRUCTION) {
         M68kSourceResolvedInstruction resolved;
         unsigned char bytes[M68K_SOURCE_FILE_EMIT_MAX_CASE_BYTES];
         M68kDiagList encode_diagnostics;
         M68kIrEncodeResult encoded;
         resolved = context->resolve_instruction(source, stmt, stmt->offset, 1, diagnostics);
-        if (!resolved.ok) return 0;
+        if (!resolved.ok) {
+          free(offsets);
+          return 0;
+        }
         if (resolved.instruction.size_suffix == '\0')
           resolved.instruction.size_suffix = stmt->u.instruction.requested_size_suffix;
         m68k_diag_list_reset(&encode_diagnostics);
@@ -154,6 +197,7 @@ int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitConte
           m68k_diag_sink(&encode_diagnostics));
         if (m68k_diag_has_errors(&encode_diagnostics)) {
           source_emit_error(diagnostics, m68k_diag_first_message(&encode_diagnostics));
+          free(offsets);
           return 0;
         }
         if (stmt->size != (uint32_t)encoded.byte_count) changed = 1;
@@ -161,9 +205,13 @@ int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitConte
       }
       offsets[stmt->section_index] += stmt->size;
     }
-    if (!changed) return 1;
+    if (!changed) {
+      free(offsets);
+      return 1;
+    }
   }
   source_emit_error(diagnostics, "layout did not stabilize");
+  free(offsets);
   return 0;
 }
 
@@ -191,7 +239,8 @@ static int emit_data_statement(const AsmSourceFile *source, const AsmSourceStmt 
         &expr_context);
       evaluated_expr = m68k_source_evaluate_linear_expression(parsed_expr.expr);
       if (!parsed_expr.ok || !evaluated_expr.ok) {
-        source_emit_error(diagnostics, "bad data expression");
+        source_emit_errorf(diagnostics, "bad data expression at line %u: %s",
+          (unsigned)stmt->line_number, item->expr);
         return 0;
       }
       if (stmt->u.data.width_bytes == 1U) {
@@ -211,6 +260,7 @@ static int emit_data_statement(const AsmSourceFile *source, const AsmSourceStmt 
         fixup.offset = (uint32_t)(writer->size - stmt->u.data.width_bytes);
         fixup.kind = M68K_FIXUP_ABS;
         fixup.width = width;
+        fixup.addend = (int32_t)evaluated_expr.value;
         fixup.target_section_index = evaluated_expr.reloc.target_section;
         fixup.has_target_section = 1;
         if (!m68k_object_add_fixup(object, &fixup).ok) return 0;
@@ -258,6 +308,7 @@ static int emit_instruction_statement(const AsmSourceFile *source, const M68kSou
     fixup.section_index = stmt->section_index;
     fixup.offset = (uint32_t)(stmt->offset + span_start);
     fixup.kind = M68K_FIXUP_ABS;
+    fixup.addend = (int32_t)resolved.instruction.operands[operand_index].value.value;
     fixup.target_section_index = source->symbols[symbol_index.index].section_index;
     fixup.has_target_section = 1;
     if (!m68k_object_add_fixup(object, &fixup).ok) return 0;
@@ -267,11 +318,22 @@ static int emit_instruction_statement(const AsmSourceFile *source, const M68kSou
 
 int m68k_source_file_emit_object(const AsmSourceFile *source, const M68kSourceFileEmitContext *context,
     M68kObject *out_object, M68kDiagSink diagnostics) {
-  M68kBinaryWriter section_writers[16];
+  M68kBinaryWriter *section_writers = NULL;
   size_t index;
-  memset(section_writers, 0, sizeof(section_writers));
+  size_t section_writer_count = 0U;
+  if (source == NULL) {
+    source_emit_error(diagnostics, "missing source");
+    return 0;
+  }
+  section_writers = (M68kBinaryWriter *)calloc(source->section_count != 0U ? source->section_count : 1U,
+    sizeof(*section_writers));
+  if (section_writers == NULL) {
+    source_emit_error(diagnostics, "out of memory");
+    return 0;
+  }
   if (m68k_object_create(out_object) != 0) {
     source_emit_error(diagnostics, "out of memory");
+    free(section_writers);
     return 0;
   }
   out_object->platform_backend_kind = source->platform_backend_kind;
@@ -281,24 +343,38 @@ int m68k_source_file_emit_object(const AsmSourceFile *source, const M68kSourceFi
       source_emit_error(diagnostics, "out of memory");
       goto fail;
     }
+    section_writer_count = index + 1U;
   }
   for (index = 0; index < source->section_count; ++index) {
     M68kSection section;
     memset(&section, 0, sizeof(section));
     section.name = source->sections[index].name;
     section.kind = source->sections[index].kind;
+    section.platform_mem_type = source->sections[index].platform_mem_type;
+    section.platform_mem_attrs = source->sections[index].platform_mem_attrs;
     section.alignment = 2U;
-    if (!m68k_object_add_section(out_object, &section).ok) return 0;
+    if (!m68k_object_add_section(out_object, &section).ok) {
+      source_emit_error(diagnostics, "out of memory");
+      goto fail;
+    }
   }
   for (index = 0; index < source->statement_count; ++index) {
     const AsmSourceStmt *stmt = &source->statements[index];
     if (stmt->kind == ASM_SOURCE_STMT_END || stmt->kind == ASM_SOURCE_STMT_SECTION ||
         stmt->kind == ASM_SOURCE_STMT_LABEL)
       continue;
+    if (stmt->section_index >= source->section_count) {
+      source_emit_error(diagnostics, "invalid section index");
+      goto fail;
+    }
+    if (stmt->kind != ASM_SOURCE_STMT_RESERVE && section_writers[stmt->section_index].size != stmt->offset) {
+      source_emit_error(diagnostics, "emitted data after reserved section gap is not supported");
+      goto fail;
+    }
     if (stmt->kind == ASM_SOURCE_STMT_EVEN) {
       if ((section_writers[stmt->section_index].size & 1U) != 0U &&
           m68k_writer_u8(&section_writers[stmt->section_index], 0U) != 0)
-        return 0;
+        goto fail;
     } else if (stmt->kind == ASM_SOURCE_STMT_DATA) {
       if (!emit_data_statement(source, stmt, context->expr_lookup_symbol, (void *)source,
           &section_writers[stmt->section_index], out_object, diagnostics))
@@ -312,24 +388,36 @@ int m68k_source_file_emit_object(const AsmSourceFile *source, const M68kSourceFi
   for (index = 0; index < out_object->section_count; ++index) {
     M68kSection *section = &out_object->sections[index];
     uint8_t *data = (uint8_t *)m68k_writer_build(&section_writers[index]);
+    uint32_t data_size = (uint32_t)section_writers[index].size;
     if (section_writers[index].size != 0U && data == NULL) {
       source_emit_error(diagnostics, "out of memory");
       goto fail;
     }
-    if (m68k_object_set_section_data(out_object, index, data, (uint32_t)section_writers[index].size) != 0) {
+    if (m68k_object_set_section_data(out_object, index, data, data_size) != 0) {
       free(data);
       source_emit_error(diagnostics, "out of memory");
       goto fail;
     }
-    section->size = (uint32_t)section_writers[index].size;
+    if (source->sections[index].has_alloc_size) {
+      if (source->sections[index].alloc_size < data_size) {
+        free(data);
+        source_emit_error(diagnostics, "section allocation size is smaller than emitted data");
+        goto fail;
+      }
+      section->size = source->sections[index].alloc_size;
+    } else {
+      section->size = data_size;
+    }
     free(data);
     m68k_writer_destroy(&section_writers[index]);
   }
+  free(section_writers);
   return 1;
 
 fail:
-  for (index = 0; index < source->section_count; ++index)
+  for (index = 0; index < section_writer_count; ++index)
     m68k_writer_destroy(&section_writers[index]);
+  free(section_writers);
   m68k_object_destroy(out_object);
   return 0;
 }
@@ -345,7 +433,8 @@ static int append_instruction_ir_statement_direct(M68kSectionIR *section, uint32
 }
 
 static int append_data_ir_statement(const AsmSourceFile *source, const AsmSourceStmt *stmt,
-    M68kSourceExprLookupFn expr_lookup_symbol, void *expr_lookup_user_data, M68kSectionIR *section) {
+    M68kSourceExprLookupFn expr_lookup_symbol, void *expr_lookup_user_data, M68kSectionIR *section,
+    M68kDiagSink diagnostics) {
   M68kStatementIR statement;
   M68kBinaryWriter writer;
   size_t item_index;
@@ -370,6 +459,8 @@ static int append_data_ir_statement(const AsmSourceFile *source, const AsmSource
         &expr_context);
       evaluated_expr = m68k_source_evaluate_linear_expression(parsed_expr.expr);
       if (!parsed_expr.ok || !evaluated_expr.ok) {
+        source_emit_errorf(diagnostics, "bad data expression at line %u: %s",
+          (unsigned)stmt->line_number, item->expr);
         goto fail;
       }
       if (stmt->u.data.width_bytes == 1U) {
@@ -434,6 +525,8 @@ int m68k_source_file_build_ir(const AsmSourceFile *source, M68kSourceExprLookupF
       goto fail;
     }
     section.kind = source->sections[section_index].kind;
+    section.platform_mem_type = source->sections[section_index].platform_mem_type;
+    section.platform_mem_attrs = source->sections[section_index].platform_mem_attrs;
     for (stmt_index = 0; stmt_index < source->statement_count; ++stmt_index) {
       const AsmSourceStmt *stmt = &source->statements[stmt_index];
       M68kStatementIR statement;
@@ -460,6 +553,16 @@ int m68k_source_file_build_ir(const AsmSourceFile *source, M68kSourceExprLookupF
           m68k_ir_section_destroy(&section);
           goto fail;
         }
+      } else if (stmt->kind == ASM_SOURCE_STMT_RESERVE) {
+        m68k_ir_statement_init(&statement);
+        statement.kind = M68K_STATEMENT_RESERVE;
+        statement.offset = stmt->offset;
+        statement.u.reserve_size = stmt->u.reserve_size;
+        if (m68k_ir_section_append_statement(&section, &statement) != 0) {
+          source_emit_error(diagnostics, "failed appending source ir reserve");
+          m68k_ir_section_destroy(&section);
+          goto fail;
+        }
       } else if (stmt->kind == ASM_SOURCE_STMT_INSTRUCTION) {
         if (!append_instruction_ir_statement_direct(&section, stmt->offset, &stmt->u.instruction.parsed_ir)) {
           source_emit_error(diagnostics, "failed appending source ir instruction");
@@ -467,13 +570,26 @@ int m68k_source_file_build_ir(const AsmSourceFile *source, M68kSourceExprLookupF
           goto fail;
         }
       } else if (stmt->kind == ASM_SOURCE_STMT_DATA) {
-        if (!append_data_ir_statement(source, stmt, expr_lookup_symbol, expr_lookup_user_data, &section)) {
+        if (!append_data_ir_statement(source, stmt, expr_lookup_symbol, expr_lookup_user_data, &section,
+            diagnostics)) {
           source_emit_error(diagnostics, "failed appending source ir data");
           m68k_ir_section_destroy(&section);
           goto fail;
         }
       }
     }
+    for (stmt_index = 0; stmt_index < source->statement_count; ++stmt_index) {
+      const AsmSourceStmt *stmt = &source->statements[stmt_index];
+      uint32_t stmt_end;
+      if (stmt->section_index != section_index) continue;
+      if (stmt->kind == ASM_SOURCE_STMT_END || stmt->kind == ASM_SOURCE_STMT_SECTION ||
+          stmt->kind == ASM_SOURCE_STMT_LABEL || stmt->kind == ASM_SOURCE_STMT_RESERVE)
+        continue;
+      stmt_end = stmt->offset + stmt->size;
+      if (stmt_end > section.data_size) section.data_size = stmt_end;
+    }
+    section.size = source->sections[section_index].has_alloc_size
+      ? source->sections[section_index].alloc_size : section.data_size;
     if (m68k_ir_source_file_append_section(out_source_file, &section) != 0) {
       source_emit_error(diagnostics, "failed appending source ir section");
       m68k_ir_section_destroy(&section);

@@ -71,3 +71,6 @@ Run the generated C toolchain validation:
 ```
 cmd /c src\precommit.bat
 ```
+
+See [docs/reproduction.md](docs/reproduction.md) for the web UI binary
+reproduction workflow and assembler customization policy.

@@ -628,6 +628,18 @@ static uint16_t movem_reglist_mask_from_text(const char *text, int use_predecrem
   return mask;
 }
 
+static int candidate_form_allows_control_register(const M68kAsmFormDef *form,
+    const M68kAsmOperandValue *operand) {
+  size_t index;
+  if (form == NULL || operand == NULL || operand->kind != M68K_ASM_OPERAND_CTRL_REG) return 0;
+  if (form->control_register_count == 0U) return 1;
+  for (index = 0; index < form->control_register_count; ++index) {
+    if (g_m68k_asm_form_control_register_ids[form->control_register_start + index] == operand->reg)
+      return 1;
+  }
+  return 0;
+}
+
 static int parse_instruction_text_to_spec(const char *line_text, InstructionSpec *out_instruction, uint8_t target_cpu) {
   char line[256];
   char *comment;
@@ -725,9 +737,11 @@ static int parse_instruction_text_to_spec(const char *line_text, InstructionSpec
     for (operand_index = 0; operand_index < operand_count; ++operand_index) {
       if (candidate_instruction.operands[operand_index].kind != M68K_ASM_OPERAND_CTRL_REG) continue;
       if (candidate_instruction.operands[operand_index].reg >= g_m68k_asm_control_register_count) continue;
+      if (!candidate_form_allows_control_register(candidate, &candidate_instruction.operands[operand_index])) break;
       candidate_instruction.operands[operand_index].value =
           g_m68k_asm_control_registers[candidate_instruction.operands[operand_index].reg].value;
     }
+    if (operand_index != operand_count) continue;
     size_suffix = m68k_asm_choose_size_suffix(candidate, candidate_instruction.operands, candidate_instruction.operand_count,
         candidate_instruction.size_suffix);
     if (size_suffix == '\0' && candidate_instruction.size_suffix != '\0')

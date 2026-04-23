@@ -17,8 +17,16 @@ TEST_INTEGRATION_BAT = ROOT / "src" / "test_integration.bat"
 TEST_EXPLICIT_BAT = ROOT / "src" / "test_explicit.bat"
 NATIVE_C_UNIT_EXE = ROOT / "src" / "build" / "m68k_c_unit_tests.exe"
 CORPUS_GENERATOR_PATH = ROOT / "src" / "scripts" / "generate_c99_assembler_corpus.py"
+FIND_DEAD_CODE_PATH = ROOT / "src" / "scripts" / "find_dead_code.py"
 
 CPU_NAMES = ("68000", "68010", "68020", "68030", "68040", "68060")
+DEAD_CODE_C_CHECKS = (
+    "c-static-functions",
+    "c-static-prototypes",
+    "c-external-functions",
+    "c-local-typedefs",
+    "c-local-macros",
+)
 
 
 def _load_module(path: Path, name: str):
@@ -163,6 +171,34 @@ def _run_native_c_unit() -> dict[str, object]:
     }
 
 
+def _run_dead_code_c_scan() -> dict[str, object]:
+    start = time.perf_counter()
+    command = [_python_exe(), str(FIND_DEAD_CODE_PATH), "--fail-on-findings"]
+    for check in DEAD_CODE_C_CHECKS:
+        command.extend(["--check", check])
+    result = subprocess.run(
+        command,
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    elapsed = time.perf_counter() - start
+    return {
+        "name": "find_dead_code_c",
+        "seconds": round(elapsed, 3),
+        "ok": result.returncode == 0,
+        "tests_run": 0,
+        "failures": 0 if result.returncode == 0 else 1,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0,
+        "no_tests_ran": False,
+        "output": result.stdout + result.stderr,
+    }
+
+
 def _run_unittest_module(module_name: str, extra_env: dict[str, str] | None = None) -> dict[str, object]:
     env = os.environ.copy()
     if extra_env:
@@ -264,6 +300,13 @@ def _run_unit_stage() -> dict[str, object]:
     return summary
 
 
+def _run_dead_code_stage() -> dict[str, object]:
+    runs = [_run_dead_code_c_scan()]
+    summary = _summarize_stage_runs(runs)
+    summary["_runs"] = runs
+    return summary
+
+
 def _run_module_stage(
     batch_path: Path,
     variable_name: str | None = None,
@@ -318,6 +361,7 @@ def main() -> int:
         "corpus": _collect_corpus_stats(),
     }
     if not build["ok"]:
+        benchmark["dead_code"] = {"ok": False, "timings": {"runs": []}}
         benchmark["unit"] = {"ok": False, "timings": {"runs": []}}
         benchmark["integration"] = {"ok": False, "timings": {"runs": []}}
         benchmark["explicit"] = {"ok": False, "timings": {"runs": []}}
@@ -328,8 +372,24 @@ def main() -> int:
         sys.stderr.write(build["stderr"])
         return int(build["returncode"])
 
-    unit = _run_unit_stage()
-    if unit["ok"]:
+    dead_code = _run_dead_code_stage()
+    if dead_code["ok"]:
+        unit = _run_unit_stage()
+    else:
+        unit = {
+            "seconds": 0.0,
+            "ok": False,
+            "tests_run": 0,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0,
+            "expected_failures": 0,
+            "unexpected_successes": 0,
+            "timings": {"runs": []},
+            "output": "skipped because dead-code scan failed\n",
+            "_runs": [],
+        }
+    if dead_code["ok"] and unit["ok"]:
         integration = _run_module_stage(
             TEST_INTEGRATION_BAT,
             "INTEGRATION_MODULES",
@@ -349,7 +409,7 @@ def main() -> int:
             "output": "skipped because unit suite failed\n",
             "_runs": [],
         }
-    if unit["ok"] and integration["ok"]:
+    if dead_code["ok"] and unit["ok"] and integration["ok"]:
         explicit = _run_module_stage(TEST_EXPLICIT_BAT, None, {"AMIGA_INCLUDE_EXPLICIT_TESTS": "1"})
     else:
         explicit = {
@@ -366,38 +426,52 @@ def main() -> int:
             "_runs": [],
         }
 
+    benchmark["dead_code"] = {key: value for key, value in dead_code.items() if key != "output"}
     benchmark["unit"] = {key: value for key, value in unit.items() if key != "output"}
     benchmark["integration"] = {key: value for key, value in integration.items() if key != "output"}
     benchmark["explicit"] = {key: value for key, value in explicit.items() if key != "output"}
     benchmark["total_seconds"] = round(
         float(build["seconds"])
         + float(benchmark["corpus"]["seconds"])
+        + float(dead_code["seconds"])
         + float(unit["seconds"])
         + float(integration["seconds"])
         + float(explicit["seconds"]),
         3,
     )
-    benchmark["status"] = "ok" if unit["ok"] and integration["ok"] and explicit["ok"] else "test_failed"
+    benchmark["status"] = (
+        "ok"
+        if dead_code["ok"] and unit["ok"] and integration["ok"] and explicit["ok"]
+        else "dead_code_failed"
+        if not dead_code["ok"]
+        else "test_failed"
+    )
     _write_benchmark(benchmark)
 
     sys.stdout.write(build["stdout"])
     sys.stderr.write(build["stderr"])
-    _print_stage_summary("unit", unit)
-    if unit["ok"]:
+    _print_stage_summary("dead_code", dead_code)
+    if dead_code["ok"]:
+        _print_stage_summary("unit", unit)
+    else:
+        sys.stdout.write("unit: skipped because dead-code scan failed\n")
+    if dead_code["ok"] and unit["ok"]:
         _print_stage_summary("integration", integration)
     else:
-        sys.stdout.write("integration: skipped because unit failed\n")
-    if unit["ok"] and integration["ok"]:
+        sys.stdout.write("integration: skipped because earlier suite failed\n")
+    if dead_code["ok"] and unit["ok"] and integration["ok"]:
         _print_stage_summary("explicit", explicit)
     else:
         sys.stdout.write("explicit: skipped because earlier suite failed\n")
-    if not unit["ok"]:
+    if not dead_code["ok"]:
+        _print_failed_stage_details("dead_code", dead_code)
+    if not unit["ok"] and dead_code["ok"]:
         _print_failed_stage_details("unit", unit)
-    if not integration["ok"] and unit["ok"]:
+    if not integration["ok"] and dead_code["ok"] and unit["ok"]:
         _print_failed_stage_details("integration", integration)
-    if not explicit["ok"] and unit["ok"] and integration["ok"]:
+    if not explicit["ok"] and dead_code["ok"] and unit["ok"] and integration["ok"]:
         _print_failed_stage_details("explicit", explicit)
-    return 0 if unit["ok"] and integration["ok"] and explicit["ok"] else 1
+    return 0 if dead_code["ok"] and unit["ok"] and integration["ok"] and explicit["ok"] else 1
 
 
 if __name__ == "__main__":

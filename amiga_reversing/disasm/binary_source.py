@@ -7,6 +7,7 @@ from typing import Literal, cast
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_DESCRIPTOR_FILE_NAME = "source_binary.json"
+_DISK_ENTRY_BYTES_CACHE: dict[tuple[str, str, str, int, int], bytes] = {}
 
 
 # TODO(X)
@@ -37,11 +38,35 @@ class DiskEntryBinarySource:
     display_path: str
     analysis_cache_path: Path
     parent_disk_id: str | None = None
+    project_root: Path = PROJECT_ROOT
 
     def read_bytes(self) -> bytes:
         from amiga_reversing.disasm.c_backend import extract_disk_entry_with_c_backend
 
-        return extract_disk_entry_with_c_backend(self.adf_path, self.entry_path)
+        try:
+            stat = self.adf_path.stat()
+        except OSError:
+            stat = None
+        key = None
+        if stat is not None:
+            key = (
+                str(self.project_root.resolve()),
+                str(self.adf_path.resolve()),
+                self.entry_path,
+                stat.st_size,
+                stat.st_mtime_ns,
+            )
+            cached = _DISK_ENTRY_BYTES_CACHE.get(key)
+            if cached is not None:
+                return cached
+        data = extract_disk_entry_with_c_backend(
+            self.adf_path,
+            self.entry_path,
+            project_root=self.project_root,
+        )
+        if key is not None:
+            _DISK_ENTRY_BYTES_CACHE[key] = data
+        return data
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,6 +169,7 @@ def _load_disk_entry_source(
         display_path=f"{adf_path.as_posix()}::{entry_path}",
         analysis_cache_path=target_dir / "binary.analysis",
         parent_disk_id=parent_disk_id,
+        project_root=project_root,
     )
 
 

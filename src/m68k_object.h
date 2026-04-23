@@ -75,6 +75,10 @@ typedef struct M68kFixup {
   int has_target_section;
   size_t symbol_index;
   int has_symbol;
+  uint32_t platform_relocation_record_kind;
+  uint32_t platform_relocation_record_wire_id;
+  uint32_t platform_relocation_block_index;
+  uint32_t platform_relocation_group_index;
 } M68kFixup;
 
 typedef struct M68kObject {

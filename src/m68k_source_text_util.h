@@ -4,6 +4,7 @@
 #include "m68k_object.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 char *m68k_trim_in_place(char *text);
 void m68k_strip_comment_in_place(char *line);
@@ -18,6 +19,10 @@ int m68k_is_elided_lea_noop(const char *line_text);
 int m68k_rewrite_cmp_zero_to_tst(const char *line_text, char *out_text, size_t out_text_size);
 char m68k_requested_size_suffix_from_text(const char *line_text);
 int m68k_parse_section_kind(const char *text, M68kSectionKind *out_kind);
+int m68k_parse_section_spec(const char *text, M68kSectionKind *out_kind, uint8_t *out_platform_mem_type,
+                            uint32_t *out_platform_mem_attrs);
+int m68k_format_section_spec(M68kSectionKind kind, uint8_t platform_mem_type, uint32_t platform_mem_attrs,
+                             char *out_text, size_t out_text_size);
 char *m68k_find_label_delimiter(char *text);
 
 #endif

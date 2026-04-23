@@ -100,6 +100,8 @@
     "BKPT",
     "CALLM",
     "CINV",
+    "cpRESTORE",
+    "cpSAVE",
     "CPUSH",
     "FRESTORE",
     "FSAVE",

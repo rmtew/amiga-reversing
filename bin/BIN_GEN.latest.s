@@ -1,5 +1,5 @@
-    INCLUDE "GEMDOS.I"
-    INCLUDE "XBIOS.I"
+INCLUDE "GEMDOS.I"
+INCLUDE "XBIOS.I"
 
     COMMENT HEAD=$7
     SECTION TEXT,code
@@ -2114,7 +2114,7 @@ h0_1412:
     moveq.l #1,d0
     exg d0,d7
 h0_141E:
-    jmp h0_1422-2(pc,d0.w) ; VIOLATION: invalid overlap: pc-relative reference targets +2 into instruction at $141E | invalid overlap: instruction bytes at +2 are referenced by reachable pc-relative operand
+    jmp h0_1422-2(pc,d0.w) ; VIOLATION: invalid overlap: instruction bytes at +2 are referenced by reachable pc-relative operand | invalid overlap: pc-relative reference targets +2 into instruction at $141E
 h0_1422:
     bra.w h0_1468
 h0_1426:
@@ -2499,7 +2499,7 @@ h0_176A:
     DC.L    $5eec0884,$000e6100,$003e3ac2,$4e75528c,$121c0884,$000f6004,$08c4000f
     DC.B    "z9J."
     DC.L    $026a671e,$4a2e00ff,$670a4a43,$6a064ef9
-    DC.L    dat_9BB4
+    DC.L    h0_9BB4
     DC.L    $6110b63c,$00016606
     DC.B    $4e,$b9
     DC.L    h0_9C8C
@@ -2515,7 +2515,7 @@ h0_176A:
     DC.L    $6100f2dc,$7a3c102e,$026b672e,$53006748,$53006726,$4a2e026a,$671c4a2e,$00ff670a
     DC.L    $4a436a06
     DC.B    $4e,$f9
-    DC.L    dat_9BB4
+    DC.L    h0_9BB4
     DC.B    $b6,$3c
     DC.L    $00016606
     DC.B    $4e,$b9
@@ -2523,16 +2523,16 @@ h0_176A:
     DC.B    $2a,$c2
     DC.B    "NuJ."
     DC.L    $026a6714,$4a2e00ff,$670a4a43,$6a064ef9
-    DC.L    dat_9C2C
+    DC.L    h0_9C2C
     DC.L    $61005da0,$3ac24e75,$4a2e026a,$67f64a2e,$00ff6704,$4a436b0c,$61005d78,$024200ff
     DC.L    $3ac24e75,$1afc0000
     DC.B    $4e,$f9
-    DC.L    dat_9C6C
+    DC.L    h0_9C6C
     DC.B    $12,$1c
     DC.L    $2f026100,$fc706600,$00e66100,$fc58b23c,$00296650,$082e0001,$01116724,$4a046620
     DC.L    $4a97661c,$7a108a02,$241f6100,$72906608,$121c700c,$60006ce8,$2f021405,$02020007
     DC.L    $7a288a02,$241f121c,$4a2e00ff,$670a4a43,$6a064ef9
-    DC.L    dat_9BEC
+    DC.L    h0_9BEC
     DC.L    $3ac24a2e,$026a6600
     DC.B    "],Nu"
     DC.L    $b23c002c,$66006930,$7a308a02,$121c6100,$fc006600,$691ee708,$8002e908,$48431600
@@ -2543,13 +2543,13 @@ h0_176A:
     DC.B    $ff,$67,$0a
     DC.L    $4a436a06
     DC.B    $4e,$f9
-    DC.L    dat_9C4C
+    DC.L    h0_9C4C
     DC.B    $1a,$c2
     DC.L    $4a2e026a,$66005c9c,$4e754881,$1236107e,$b23c0050,$6600689c,$121c4881,$1236107e
     DC.L    $b23c0043,$6600688c,$241f121c,$b23c0029,$665e121c
     DC.B    "z:J."
     DC.L    $026a6750,$4a2e00ff,$670a4a43,$6a064ef9
-    DC.L    dat_9B94
+    DC.L    h0_9B94
     DC.L    $b63c0002,$672e0884,$000f6100,$fdaa94ae,$026e200d,$90ae027e,$94804a2e,$00ff660e
     DC.L    $7000102e,$014c41ee,$018094b0,$00003ac2,$60005c30,$4a2e0108,$66cc7021,$61006850
     DC.L    $3ac24e75,$b23c002c,$6600681c,$7a3b2f02,$121c6100,$faf06600,$680ee708,$8002e908
@@ -2706,7 +2706,7 @@ h0_2126:
     DC.L    $026a662a,$6100e56c,$67005e60,$76021028,$0006b02e,$01186708,$45ee0170,$6000e63c
     DC.L    $45ee0160,$4a926600,$e6c86000,$5e4a6100,$e5426600,$5e3a08e9,$0006000c,$66005e2c
     DC.L    $0c290002,$000d6600,$5e22b8a9,$00086600
-    DC.B    $5e,$22,$4e,$75
+    DC.B    "^",$22,"Nu"
     DC.L    $0c2e0014,$01236d00,$0158102e,$026b6712,$b03c0002,$670cb03c,$00036600,$5e0e0886
     DC.L    $00076100,$f06000fd,$b23c002c,$66005e14,$121c6100,$f0ca206e,$027ed402,$85104e75
     DC.L    $0c2e0014,$01236d00,$0b203a06,$0886000b,$7000102e,$026bd040,$8c7b002a,$3ac60245
@@ -2724,7 +2724,7 @@ h0_2126:
     DC.L    $08ae6100,$27843ac6,$6100f086,$b23c002c,$66005cb0,$121c3f05,$6100f082,$381f206e
     DC.L    $027e3005,$02000078,$674ab03c,$00086754,$b83c003c,$67741004,$02000078,$b03c0018
     DC.L    $662e1005,$02000078,$b03c0018
-    DC.B    $66,$22,$3c,$3c
+    DC.B    "f",$22,"<<"
     DC.L    $b1086100,$27341004,$02000007,$8c001005,$02400007,$ee588c40,$206e027e,$30864e75
     DC.L    $6000eeee,$da058b10,$3a048b50,$303c00ff,$6000eea6,$02050007,$da050c2e,$0003026b
     DC.L    $66025205,$8b103a04,$004400c0,$8950303c,$00ff6100,$ee846000,$f6c83c3c,$0c006100
@@ -3305,9 +3305,9 @@ h0_3D50:
     st.b $010A(a6)
     bra.w h0_3C7C
     DC.L    $4a2e46fa,$6700000c,$3d7c0000,$025050ee,$00ff1014,$04000030,$6500ff06,$6616524c
-    DC.L    $4a2e46fa,$6700fefa,$51ee00ff,$426e0250,$6000feee ; VIOLATION: orphaned code island at $3D5C is not reached from known entrypoints
-    DC.L    $53004880,$b07c0007,$6400fee2,$013c0063,$67000026,$b03c0006,$66000004,$7002524c
-    DC.L    $4a2e46fa,$6700fec6,$3d400250,$6000febe ; VIOLATION: orphaned code island at $3D90 is not reached from known entrypoints
+    DC.L    $4a2e46fa,$6700fefa,$51ee00ff,$426e0250,$6000feee,$53004880,$b07c0007,$6400fee2
+    DC.L    $013c0063,$67000026,$b03c0006,$66000004,$7002524c,$4a2e46fa,$6700fec6,$3d400250
+    DC.L    $6000febe ; VIOLATION: orphaned code island at $3D5C is not reached from known entrypoints
 h0_3DC0:
     lea.l $024E(a6),a1
     bra.w h0_3CFA
@@ -3580,7 +3580,7 @@ h0_3FF0:
     lea.l -$2(a1,d0.w),a0
     movea.l a2,a4
     move.b (a4)+,d1
-    lea.l $3AD(pc),a2
+    lea.l dat_43AD(pc),a2
     cmpa.l a2,a0
     rts
 dat_4006:
@@ -4013,7 +4013,9 @@ h0_439E:
     rts
 h0_43A8:
     sf.b $012B(a6)
-    rts
+    DC.B    $4e ; VIOLATION: invalid overlap: decoded instruction at $43AC crosses required label at $43AD; region emitted as data
+dat_43AD:
+    DC.B    $75
 h0_43AE:
     bsr.w h0_3EB8
     subq.w #1,a4
@@ -4246,18 +4248,8 @@ h0_4594:
     subq.w #1,d0
     cmp.w #$7,d0
     bcc.w h0_4472
-h0_459E:
-    btst.b d0,#$63
-    beq.w h0_4472
-h0_45A6:
-    cmp.b #$6,d0
-    bne.s h0_45AE
-h0_45AC:
-    moveq.l #2,d0
-h0_45AE:
-    st.b $00FF(a6)
-    move.w d0,$0250(a6)
-    bra.s h0_45C6
+    DC.B    $01,$3c ; VIOLATION: decode failed in reachable code; region emitted as data
+    DC.L    $00636700,$feceb03c,$00066602,$700250ee,$00ff3d40,$0250600e
 h0_45B8:
     sf.b $00FF(a6)
     bra.s h0_45C6
@@ -4931,11 +4923,11 @@ h0_4F40:
     DC.B    "XP@ ",0
     DC.B    $40,$00,$00
     DC.L    $2f094a40,$671a4840,$4240d100,$484041ee
-    DC.B    $47,$38,$22,$48
+    DC.B    "G8",$22,"H"
     DC.L    $d388d388,$d3886528,$534066ee,$d1004882,$48c241ee
     DC.B    "G8  "
     DC.L    $d1822080,$74002020,$d1822080,$2020d182,$65062080
-    DC.B    $22,$5f,$4e,$75,$70,$5d,$61,$00
+    DC.B    $22,"_Nup]a",0
     DC.L    $22f2225f
     DC.B    "Nu BH"
     DC.B    $83,$10,$3b
@@ -4988,7 +4980,7 @@ h0_6344:
     DC.L    $6100feea,$3ac2b23c,$002c6600,$1fb2121c,$6100b1e8,$00244e75,$0c2e001e,$01236600
     DC.L    $ccc44a2e,$01276706,$70656100,$1fb63afc,$f000343c,$01006048,$4a2e0125,$660a0c2e
     DC.L    $001e0123,$6600cc9e,$4a2e0127,$67067065,$61001f90,$3afcf000
-    DC.B    $61,$58,$66,$22
+    DC.B    "aXf",$22
     DC.L    $08c20009,$3ac2b23c,$002c6600,$1f56121c,$6100f60e
     DC.B    "p?J."
     DC.L    $01256602,$70246000,$b1a27400,$4a2e026b,$67001f20,$3ac26100,$f5f07024,$6100b18c
@@ -5093,7 +5085,7 @@ h0_6B6A:
     DC.B    $4a,$2e ; VIOLATION: orphaned code island at $6D0E is not reached from known entrypoints
     DC.L    $01286722,$4a2e026a,$661c4a2e,$01026706,$4a2e0119,$6710302e,$47380600,$00301d40
     DC.L    $46f56000
-    DC.B    $26,$48,$4e,$75,$22,$3c,$00
+    DC.B    "&HNu",$22,"<",0
     DC.B    $00
     DC.L    $13883d41,$01546100,$24022d48,$01504e75,$70366000,$18064a2e,$010266f4,$4aae474a
     DC.L    $66ee6100,$be94246e,$017848e7,$000c6100,$9e5c56c0,$4cdf3000,$4a2e026a,$660000ee
@@ -6993,13 +6985,13 @@ h0_8BFA:
     clr.b (a1)+
     bra.s h0_8BE4
 dat_8BFE:
-    DC.B    $24,$48,$22,$3c,$00 ; VIOLATION: orphaned code island at $8BFE is not reached from known entrypoints
+    DC.B    "$H",$22,"<",0 ; VIOLATION: orphaned code island at $8BFE is not reached from known entrypoints
     DC.B    $00
     DC.L    $03f16100
     DC.B    "&6a^a",0
     DC.B    $26,$30
     DC.L    $72006100
-    DC.B    $26,$2a,$22,$3c,$4c,$49,$4e,$45,$4a,$2e
+    DC.B    "&*",$22,"<LINEJ."
     DC.B    $01,$2c
     DC.L    $6706223c
     DC.B    "HCLNa",0
@@ -8446,20 +8438,86 @@ h0_9B86:
     bne.w h0_10B02
 h0_9B90:
     bra.w h0_AA0E
-dat_9B94:
-    DC.L    $4a6e0250,$67000c9c,$082e0001,$02516600,$1876082e,$00020251,$66006f50,$60000eca ; VIOLATION: orphaned code island at $9B94 is not reached from known entrypoints
-dat_9BB4:
-    DC.L    $4a2e0114,$67064a6e,$0250662a,$b63c0001,$660450ee,$01164a6e,$02506700,$0c44082e
-    DC.L    $00010251,$6600182c,$082e0002,$02516600,$6f166000,$0e604e75 ; VIOLATION: orphaned code island at $9BB4 is not reached from known entrypoints
-dat_9BEC:
-    DC.L    $4a6e0250,$67000c3a,$082e0001,$02516600,$182a082e,$00020251,$66006ef8,$60000e62
-    DC.L    $4a6e0250,$67000c1a,$082e0001,$02516600,$17fe082e,$00020251,$66006ed8,$60000e42
-dat_9C2C:
-    DC.L    $4a6e0250,$67000bf6,$082e0001,$02516600,$17de082e,$00020251,$66006eb8,$60000e22
-dat_9C4C:
-    DC.L    $4a6e0250,$67000bd2,$082e0001,$02516600,$17e4082e,$00020251,$66006e9c,$60000da4
-dat_9C6C:
-    DC.L    $4a6e0250,$67000bae,$082e0001,$02516600,$17e8082e,$00020251,$66006e7c,$60000d84
+h0_9B94:
+    tst.w $0250(a6)
+    beq.w h0_A836
+h0_9B9C:
+    btst.b #1,$0251(a6)
+    bne.w h0_B41A
+h0_9BA6:
+    btst.b #2,$0251(a6)
+    bne.w h0_10AFE
+h0_9BB0:
+    bra.w h0_AA7C
+h0_9BB4:
+    tst.b $0114(a6)
+    beq.s h0_9BC0
+h0_9BBA:
+    tst.w $0250(a6)
+    bne.s h0_9BEA
+h0_9BC0:
+    cmp.b #$1,d3
+    bne.s h0_9BCA
+h0_9BC6:
+    st.b $0116(a6)
+h0_9BCA:
+    tst.w $0250(a6)
+    beq.w h0_A814
+h0_9BD2:
+    btst.b #1,$0251(a6)
+    bne.w h0_B406
+h0_9BDC:
+    btst.b #2,$0251(a6)
+    bne.w h0_10AFA
+h0_9BE6:
+    bra.w h0_AA48
+h0_9BEA:
+    rts
+h0_9BEC:
+    tst.w $0250(a6)
+    beq.w h0_A82C
+h0_9BF4:
+    btst.b #1,$0251(a6)
+    bne.w h0_B426
+h0_9BFE:
+    btst.b #2,$0251(a6)
+    bne.w h0_10AFE
+h0_9C08:
+    bra.w h0_AA6C
+    DC.L    $4a6e0250,$67000c1a,$082e0001,$02516600,$17fe082e,$00020251,$66006ed8,$60000e42 ; VIOLATION: orphaned code island at $9C0C is not reached from known entrypoints
+h0_9C2C:
+    tst.w $0250(a6)
+    beq.w h0_A828
+h0_9C34:
+    btst.b #1,$0251(a6)
+    bne.w h0_B41A
+h0_9C3E:
+    btst.b #2,$0251(a6)
+    bne.w h0_10AFE
+h0_9C48:
+    bra.w h0_AA6C
+h0_9C4C:
+    tst.w $0250(a6)
+    beq.w h0_A824
+h0_9C54:
+    btst.b #1,$0251(a6)
+    bne.w h0_B440
+h0_9C5E:
+    btst.b #2,$0251(a6)
+    bne.w h0_10B02
+h0_9C68:
+    bra.w h0_AA0E
+h0_9C6C:
+    tst.w $0250(a6)
+    beq.w h0_A820
+h0_9C74:
+    btst.b #1,$0251(a6)
+    bne.w h0_B464
+h0_9C7E:
+    btst.b #2,$0251(a6)
+    bne.w h0_10B02
+h0_9C88:
+    bra.w h0_AA0E
 h0_9C8C:
     tst.b $0107(a6)
     beq.s h0_9C98
@@ -9530,17 +9588,41 @@ h0_A802:
     rts
 h0_A812:
     bra.s h0_A7EA
-    DC.B    $70,$14,$b6,$3c,$00,$01,$66,$2e,$70,$54,$60,$2a ; VIOLATION: orphaned code island at $A814 is not reached from known entrypoints
-    DC.L    $70016016 ; VIOLATION: orphaned code island at $A820 is not reached from known entrypoints
-    DC.L    $70096012 ; VIOLATION: orphaned code island at $A824 is not reached from known entrypoints
-    DC.L    $7002600e ; VIOLATION: orphaned code island at $A828 is not reached from known entrypoints
-    DC.L    $700a600a ; VIOLATION: orphaned code island at $A82C is not reached from known entrypoints
+h0_A814:
+    moveq.l #20,d0
+    cmp.b #$1,d3
+    bne.s h0_A84A
+h0_A81C:
+    moveq.l #84,d0
+    bra.s h0_A84A
+h0_A820:
+    moveq.l #1,d0
+    bra.s h0_A83A
+h0_A824:
+    moveq.l #9,d0
+    bra.s h0_A83A
+h0_A828:
+    moveq.l #2,d0
+    bra.s h0_A83A
+h0_A82C:
+    moveq.l #10,d0
+    bra.s h0_A83A
 h0_A830:
     moveq.l #41,d0
     subq.l #1,d2
     bra.s h0_A84A
-    DC.B    $70,$2a,$60,$10 ; VIOLATION: orphaned code island at $A836 is not reached from known entrypoints
-    DC.B    $b6,$3c,$00,$01,$66,$0a,$3f,$00,$70,$02,$61,$00,$de,$1a,$30,$1f ; VIOLATION: orphaned code island at $A83A is not reached from known entrypoints
+h0_A836:
+    moveq.l #42,d0
+    bra.s h0_A84A
+h0_A83A:
+    cmp.b #$1,d3
+    bne.s h0_A84A
+h0_A840:
+    move.w d0,-(a7)
+    moveq.l #2,d0
+    bsr.w h0_8660
+h0_A848:
+    move.w (a7)+,d0
 h0_A84A:
     movea.l $4B28(a6),a0
     move.l a5,(a0)+
@@ -9726,25 +9808,89 @@ h0_A9E0:
     DC.B    $70,$ff,$4e,$75 ; VIOLATION: orphaned code island at $A9E2 is not reached from known entrypoints
     DC.B    $b4,$7c ; VIOLATION: orphaned code island at $A9E6 is not reached from known entrypoints
     DC.L    $00066618,$41fa0018,$10194880,$1036007e,$b0186608,$534266f0,$50ee0138
-    DC.B    "NuPASCALX"
-    DC.B    $8f
+    DC.B    "NuPASCAL"
+h0_AA0C:
+    addq.l #4,a7
 h0_AA0E:
     moveq.l #68,d0
     bra.w h0_8556
-    DC.L    $4a2e0104 ; VIOLATION: orphaned code island at $AA14 is not reached from known entrypoints
-    DC.B    "g*$."
-    DC.L    $01844a2e,$014c6704,$242e0190,$206e47fa,$3018b07c,$2b2b66d8,$30186a02
-    DC.B    $4e,$75
-    DC.B    $53,$40,$d0,$40,$d0,$40,$d0,$40,$4e,$75 ; VIOLATION: orphaned code island at $AA3A is not reached from known entrypoints
-    DC.L    $588f4e75 ; VIOLATION: orphaned code island at $AA44 is not reached from known entrypoints
-    DC.L    $2ac261c8,$6b103bbc,$000528fc,$00000004,$3b8028fe ; VIOLATION: orphaned code island at $AA48 is not reached from known entrypoints
-    DC.B    $4e,$75
-    DC.B    $3b,$bc,$00,$05,$28,$fc,$61,$26,$3b,$80,$28,$fe,$4e,$75 ; VIOLATION: orphaned code island at $AA5E is not reached from known entrypoints
-    DC.B    $3a,$c2,$61,$a4,$6b,$9c,$00,$00,$00,$04,$3b,$80,$28,$fe,$4e,$75 ; VIOLATION: orphaned code island at $AA6C is not reached from known entrypoints
-    DC.B    $3a,$c2,$61,$94,$6b,$8c,$00,$00,$00,$06,$3b,$80,$28,$fe,$4e,$75 ; VIOLATION: orphaned code island at $AA7C is not reached from known entrypoints
-    DC.B    $4a,$00,$67,$0a,$b0,$3c,$00,$0c,$67,$08,$70,$03,$4e,$75 ; VIOLATION: orphaned code island at $AA8C is not reached from known entrypoints
-    DC.B    $70,$02,$4e,$75 ; VIOLATION: orphaned code island at $AA9A is not reached from known entrypoints
-    DC.B    $70,$01,$4e,$75 ; VIOLATION: orphaned code island at $AA9E is not reached from known entrypoints
+h0_AA14:
+    tst.b $0104(a6)
+    beq.s h0_AA44
+h0_AA1A:
+    move.l $0184(a6),d2
+    tst.b $014C(a6)
+    beq.s h0_AA28
+h0_AA24:
+    move.l $0190(a6),d2
+h0_AA28:
+    movea.l $47FA(a6),a0
+    move.w (a0)+,d0
+    cmp.w #$2B2B,d0
+    bne.s h0_AA0C
+h0_AA34:
+    move.w (a0)+,d0
+    bpl.s h0_AA3A
+h0_AA38:
+    rts
+h0_AA3A:
+    subq.w #1,d0
+    add.w d0,d0
+    add.w d0,d0
+    add.w d0,d0
+    rts
+h0_AA44:
+    addq.l #4,a7
+    rts
+h0_AA48:
+    move.l d2,(a5)+
+    bsr.s h0_AA14
+h0_AA4C:
+    bmi.s h0_AA5E
+h0_AA4E:
+    move.w #$5,-$4(a5,d2.l)
+    ori.b #4,d0
+    move.w d0,-$2(a5,d2.l)
+    rts
+h0_AA5E:
+    move.w #$5,-$4(a5,d2.l)
+    bsr.s h0_AA8C
+h0_AA66:
+    move.w d0,-$2(a5,d2.l)
+    rts
+h0_AA6C:
+    move.w d2,(a5)+
+    bsr.s h0_AA14
+h0_AA70:
+    bmi.s h0_AA0E
+h0_AA72:
+    ori.b #4,d0
+    move.w d0,-$2(a5,d2.l)
+    rts
+h0_AA7C:
+    move.w d2,(a5)+
+    bsr.s h0_AA14
+h0_AA80:
+    bmi.s h0_AA0E
+h0_AA82:
+    ori.b #6,d0
+    move.w d0,-$2(a5,d2.l)
+    rts
+h0_AA8C:
+    tst.b d0
+    beq.s h0_AA9A
+h0_AA90:
+    cmp.b #$C,d0
+    beq.s h0_AA9E
+h0_AA96:
+    moveq.l #3,d0
+    rts
+h0_AA9A:
+    moveq.l #2,d0
+    rts
+h0_AA9E:
+    moveq.l #1,d0
+    rts
 h0_AAA2:
     beq.s h0_AACE
 h0_AAA4:
@@ -9976,7 +10122,7 @@ h0_AC8A:
     lea.l dat_ACAA(pc),a0
     rts
 dat_AC90:
-    DC.B    $44,$52,$49,$20,$6c,$69,$6e,$6b,$61,$62,$6c,$65,$00 ; VIOLATION: orphaned code island at $AC90 is not reached from known entrypoints
+    DC.B    $44,$52,$49,$20,$6c,$69,$6e,$6b,$61,$62,$6c,$65,$00
 dat_AC9D:
     DC.B    $4f,$53,$53,$20,$6c,$69,$6e,$6b,$61,$62,$6c,$65,$00
 dat_ACAA:
@@ -10813,7 +10959,10 @@ h0_B3D4:
 h0_B3D8:
     moveq.l #68,d0
     bra.w h0_8556
-    DC.B    $d4,$ae,$02,$6e,$d4,$8d,$94,$ae,$02,$7e ; VIOLATION: orphaned code island at $B3DE is not reached from known entrypoints
+h0_B3DE:
+    add.l $026E(a6),d2
+    add.l a5,d2
+    sub.l $027E(a6),d2
 h0_B3E8:
     tst.b $0104(a6)
     beq.s h0_B3F8
@@ -10829,14 +10978,61 @@ h0_B3FA:
     move.w #$100,d0
     or.b $014C(a6),d0
     bra.s h0_B3E8
-    DC.B    $2a,$c2 ; VIOLATION: orphaned code island at $B406 is not reached from known entrypoints
-    DC.L    $61966a08,$00400100,$74fc60ca,$6100005c,$02fc3ac2,$61826bb8,$61000050,$04feb63c
-    DC.L    $000166ee,$3ac26100,$ff706b04,$613c07fe,$00402800,$74fe609e,$b63c0001,$661e1ac2
-    DC.L    $6100ff56,$6b000006,$612008ff,$00402900,$74ff6082
+h0_B406:
+    move.l d2,(a5)+
+    bsr.s h0_B3A0
+h0_B40A:
+    bpl.s h0_B414
+h0_B40C:
+    ori.w #256,d0
+    moveq.l #-4,d2
+    bra.s h0_B3DE
+h0_B414:
+    bsr.w h0_B472
+    DC.B    $02,$fc ; VIOLATION: decode failed in reachable code; region emitted as data
+h0_B41A:
+    move.w d2,(a5)+
+    bsr.s h0_B3A0
+h0_B41E:
+    bmi.s h0_B3D8
+h0_B420:
+    bsr.w h0_B472
+    DC.B    $04,$fe ; VIOLATION: decode failed in reachable code; region emitted as data
+h0_B426:
+    cmp.b #$1,d3
+    bne.s h0_B41A
+h0_B42C:
+    move.w d2,(a5)+
+    bsr.w h0_B3A0
+h0_B432:
+    bmi.s h0_B438
+h0_B434:
+    bsr.s h0_B472
+    DC.B    $07,$fe ; VIOLATION: decode failed in reachable code; region emitted as data
+h0_B438:
+    ori.w #10240,d0
+    moveq.l #-2,d2
+    bra.s h0_B3DE
+h0_B440:
+    cmp.b #$1,d3
+    bne.s h0_B464
+h0_B446:
+    move.b d2,(a5)+
+    bsr.w h0_B3A0
+h0_B44C:
+    bmi.w h0_B454
+h0_B450:
+    bsr.s h0_B472
+    DC.B    $08,$ff ; VIOLATION: decode failed in reachable code; region emitted as data
+h0_B454:
+    ori.w #10496,d0
+    moveq.l #-1,d2
+    bra.s h0_B3DE
 h0_B45C:
     sub.l $027E(a6),d2
     add.l a5,d2
     subq.l #2,d2
+h0_B464:
     move.b d2,(a5)+
     bsr.w h0_B3A0
 h0_B46A:
@@ -10905,7 +11101,7 @@ h0_B544:
     DC.L    $d2ae0234,$6100fcd0,$72006100,$fcca223c ; VIOLATION: orphaned code island at $B548 is not reached from known entrypoints
     DC.B    "HEADa",0
     DC.B    $fc,$c0
-    DC.B    $22,$3c,$44,$42,$47,$56,$61,$00
+    DC.B    $22,"<DBGVa",0
     DC.L    $fcb6223c,$30310000,$6100fcac,$222e0244,$6100fca4,$222e0248,$6100fc9c,$222e0234
     DC.L    $6100fc94,$45fa006c,$6100d532,$222e023c,$6100fc84,$263c0000,$03ea6100,$0018222e
     DC.L    $02386100,$fc72263c,$000003e9,$61000006,$6000fc6c
@@ -10923,12 +11119,7 @@ dat_B65C:
     DC.L    $c1c1c2c3,$c4c5c6c7,$c8c9cacb,$cccdcecf,$d0d1d2d3,$d4d5d6d7,$d8d9dadb,$dcdddedf
     DC.L    $e0e1e2e3,$e4e5e6e7,$e8e9eaeb,$ecedeeef,$f0f1f2f3,$f4f5f6f7,$f8f9fafb,$fcfdfeff
     DC.L    $00010203,$04050607,$08090a0b,$0c0d0e0f,$10111213,$14151617,$18191a1b,$1c1d1e1f
-    DC.B    $20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$2a,$2b,$2c,$2d,$2e,$2f
-    DC.B    $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$3a,$3b,$3c,$3d,$3e,$3f
-    DC.B    $40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$4a,$4b,$4c,$4d,$4e,$4f
-    DC.B    $50,$51,$52,$53,$54,$55,$56,$57,$58,$59,$5a,$5b,$5c,$5d,$5e,$5f
-    DC.B    $60,$41,$42,$43,$44,$45,$46,$47,$48,$49,$4a,$4b,$4c,$4d,$4e,$4f
-    DC.B    $50,$51,$52,$53,$54,$55,$56,$57,$58,$59,$5a,$7b,$7c,$7d,$7e
+    DC.B    " !",$22,"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[",$5c,"]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~"
     DC.B    $7f
 dat_B75C:
     DC.L    $01010101,$01010101,$01010101,$01010101,$01010101,$01010101,$01010101,$01010101
@@ -11896,44 +12087,38 @@ dat_C078:
     DC.L    $0c528900,$67fa257c,$00000000,$00104a12,$6bfc7000,$20814e75 ; VIOLATION: orphaned code island at $C0C4 is not reached from known entrypoints
     DC.B    $70,$60,$2e,$42,$60,$f6 ; VIOLATION: orphaned code island at $C11C is not reached from known entrypoints
     DC.B    $70,$05 ; VIOLATION: orphaned code island at $C122 is not reached from known entrypoints
-    DC.L    $3f006100,$ff52301f,$4880d040,$610000ec,$70001003,$d040303b,$00044efb
-    DC.B    $00,$02
-    DC.B    $00,$0e ; VIOLATION: orphaned code island at $C142 is not reached from known entrypoints
+    DC.L    $3f006100,$ff52301f,$4880d040,$610000ec,$70001003,$d040303b,$00044efb,$0002000e
     DC.L    $002e005e,$00760094,$004600b8,$357c7000,$000a0c52,$890067fa,$30aa0010,$4a126bfc
-    DC.L    $10a80001,$42280001,$70004e75
-    DC.L    $357c7000,$000a0c52,$890067fa,$30aa0010,$4a126bfc,$70004e75 ; VIOLATION: orphaned code island at $C170 is not reached from known entrypoints
-    DC.L    $357c6400,$000a0c52,$890067fa,$20aa0010,$4a126bfc,$70004e75 ; VIOLATION: orphaned code island at $C188 is not reached from known entrypoints
-    DC.L    $357c6000,$000a0c52,$890067fa,$20aa0010,$4a126bfc,$70004e75 ; VIOLATION: orphaned code island at $C1A0 is not reached from known entrypoints
-    DC.L    $357c7400,$000a0c52,$890067fa,$20aa0010,$216a0010,$00044a12,$6bfc7000 ; VIOLATION: orphaned code island at $C1B8 is not reached from known entrypoints
-    DC.B    $4e,$75
-    DC.B    $35,$7c ; VIOLATION: orphaned code island at $C1D6 is not reached from known entrypoints
-    DC.L    $6c00000a,$0c528900,$67fa20aa,$0010216a,$00100004,$216a0010,$00084a12,$6bfc7000
-    DC.B    $4e,$75
-    DC.B    $35,$7c ; VIOLATION: orphaned code island at $C1FA is not reached from known entrypoints
-    DC.L    $6800000a,$0c528900,$67fa20aa,$0010216a,$00100004,$216a0010,$00084a12,$6bfc7000
-    DC.B    $4e,$75
-    DC.B    $30,$3b,$00,$04,$4e,$fb,$00,$02 ; VIOLATION: orphaned code island at $C21E is not reached from known entrypoints
-    DC.B    $00,$0e ; VIOLATION: orphaned code island at $C226 is not reached from known entrypoints
-    DC.L    $002c005c,$00740092,$004400b6,$10104880,$3080357c,$5000000a,$0c528900,$67fa3550
-    DC.L    $00104a12,$6bfc7000
-    DC.B    $4e,$75
-    DC.B    $35,$7c ; VIOLATION: orphaned code island at $C252 is not reached from known entrypoints
-    DC.L    $5000000a,$0c528900,$67fa3550,$00104a12,$6bfc7000
-    DC.B    $4e,$75
-    DC.B    $35,$7c ; VIOLATION: orphaned code island at $C26A is not reached from known entrypoints
-    DC.L    $4400000a,$0c528900,$67fa2550,$00104a12,$6bfc7000
-    DC.B    $4e,$75
-    DC.B    $35,$7c ; VIOLATION: orphaned code island at $C282 is not reached from known entrypoints
-    DC.L    $4000000a,$0c528900,$67fa2550,$00104a12,$6bfc7000
-    DC.B    $4e,$75
-    DC.B    $35,$7c ; VIOLATION: orphaned code island at $C29A is not reached from known entrypoints
-    DC.L    $5400000a,$0c528900,$67fa2550,$00102568,$00040010,$4a126bfc,$70004e75
-    DC.L    $357c4c00,$000a0c52,$890067fa,$25500010,$25680004,$00102568,$00080010,$4a126bfc
-    DC.L    $70004e75 ; VIOLATION: orphaned code island at $C2B8 is not reached from known entrypoints
-    DC.L    $357c4800,$000a0c52,$890067fa,$25500010,$25680004,$00102568,$00080010,$4a126bfc
-    DC.L    $70004e75 ; VIOLATION: orphaned code island at $C2DC is not reached from known entrypoints
+    DC.L    $10a80001,$42280001,$70004e75,$357c7000,$000a0c52,$890067fa,$30aa0010,$4a126bfc
+    DC.L    $70004e75,$357c6400,$000a0c52,$890067fa,$20aa0010,$4a126bfc,$70004e75,$357c6000
+    DC.L    $000a0c52,$890067fa,$20aa0010,$4a126bfc,$70004e75,$357c7400,$000a0c52,$890067fa
+    DC.L    $20aa0010,$216a0010,$00044a12,$6bfc7000
+    DC.B    "Nu5|l",0
+    DC.B    $00,$0a
+    DC.L    $0c528900,$67fa20aa,$0010216a,$00100004,$216a0010,$00084a12,$6bfc7000
+    DC.B    "Nu5|h",0
+    DC.B    $00,$0a
+    DC.L    $0c528900,$67fa20aa,$0010216a,$00100004,$216a0010,$00084a12,$6bfc7000
+    DC.B    "Nu0;",0
+    DC.B    $04,$4e,$fb
+    DC.L    $0002000e,$002c005c,$00740092,$004400b6,$10104880,$3080357c,$5000000a,$0c528900
+    DC.L    $67fa3550,$00104a12,$6bfc7000
+    DC.B    "Nu5|P",0
+    DC.B    $00,$0a
+    DC.L    $0c528900,$67fa3550,$00104a12,$6bfc7000
+    DC.B    "Nu5|D",0
+    DC.B    $00,$0a
+    DC.L    $0c528900,$67fa2550,$00104a12,$6bfc7000
+    DC.B    "Nu5|@",0
+    DC.B    $00,$0a
+    DC.L    $0c528900,$67fa2550,$00104a12,$6bfc7000
+    DC.B    "Nu5|T",0
+    DC.B    $00,$0a
+    DC.L    $0c528900,$67fa2550,$00102568,$00040010,$4a126bfc,$70004e75,$357c4c00,$000a0c52
+    DC.L    $890067fa,$25500010,$25680004,$00102568,$00080010,$4a126bfc,$70004e75,$357c4800
+    DC.L    $000a0c52,$890067fa,$25500010,$25680004,$00102568,$00080010,$4a126bfc,$70004e75
     DC.L    $3f036100,$fd76361f,$48833003,$d0406100,$ff0e357c,$001a000a,$4a126bfc,$3003d040
-    DC.L    $6000fe18 ; VIOLATION: orphaned code island at $C300 is not reached from known entrypoints
+    DC.L    $6000fe18
 dat_C324:
     DC.L    dat_C324
 dat_C328:
@@ -12509,7 +12694,7 @@ h0_108B8:
 h0_108BA:
     rts
     DC.L    $4a2e0104 ; VIOLATION: orphaned code island at $108BC is not reached from known entrypoints
-    DC.B    $67,$28,$22,$6e
+    DC.B    "g(",$22,"n"
     DC.L    $01de4a2e,$026a6612,$222e026e,$92a9001a,$d3a90012,$2342001a
     DC.B    $60,$0c
     DC.B    $08,$e9,$00,$00,$00,$10,$66,$04,$23,$42,$00,$16,$70,$00,$4e,$75 ; VIOLATION: orphaned code island at $108DE is not reached from known entrypoints
@@ -12736,8 +12921,12 @@ h0_10AF2:
     DC.B    $4e,$75
 h0_10AF8:
     rts
-    DC.B    $2a,$c2,$4e,$75 ; VIOLATION: orphaned code island at $10AFA is not reached from known entrypoints
-    DC.B    $3a,$c2,$4e,$75 ; VIOLATION: orphaned code island at $10AFE is not reached from known entrypoints
+h0_10AFA:
+    move.l d2,(a5)+
+    rts
+h0_10AFE:
+    move.w d2,(a5)+
+    rts
 h0_10B02:
     move.b d2,(a5)+
     rts

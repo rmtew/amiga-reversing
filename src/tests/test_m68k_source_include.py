@@ -158,6 +158,27 @@ start:
         self.assertIn("move.l #$10,d5", render.stdout)
         self.assertIn("move.l #$14,d6", render.stdout)
 
+    def test_amiga_include_preprocessor_allows_case_distinct_symbols(self) -> None:
+        render = self._render_source_text(
+            """\
+INCLUDE "intuition/screens.i"
+
+    SECTION section,code
+start:
+    move.l #DRI_VERSION,d0
+    move.l #dri_Version,d1
+    move.l #DETAILPEN,d2
+    move.l #NUMDRIPENS,d3
+    rts
+""",
+            GENAM_INCLUDE_DIR,
+        )
+        self.assertEqual(render.returncode, 0, render.stderr)
+        self.assertIn("move.l #$1,d0", render.stdout)
+        self.assertIn("move.l #$0,d1", render.stdout)
+        self.assertIn("move.l #$0,d2", render.stdout)
+        self.assertIn("move.l #$9,d3", render.stdout)
+
     def test_atari_include_preprocessor_supports_gemdos_equates(self) -> None:
         render = self._render_source_text(
             """\

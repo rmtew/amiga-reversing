@@ -15,6 +15,8 @@ typedef struct {
   uint8_t mnemonic_id;
   char size_suffix;
   uint8_t target_cpu;
+  uint8_t has_coprocessor_id;
+  uint8_t coprocessor_id;
   uint16_t asm_form_index;
   size_t operand_count;
   uint16_t patch_values[M68K_INSTRUCTION_SPEC_MAX_PATCH_VALUES];

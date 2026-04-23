@@ -25,26 +25,39 @@ static int parse_data_item_text_local(const char *text, AsmDataItem *out_item) {
 
 int m68k_source_parse_data_statement(const char *directive, char *rest, AsmSourceDataStmt *out_data,
     const M68kSourceDataParseContext *context) {
-  char buffer[256];
+  char *buffer;
   char *items[64];
   size_t count = 0;
   size_t index;
   M68kParseDataDirectiveResult data_directive = m68k_parse_data_directive_token(m68k_parse_source_directive_token(directive));
   if (!data_directive.ok || data_directive.is_repeat != 0U) return 0;
   out_data->width_bytes = data_directive.width_bytes;
-  snprintf(buffer, sizeof(buffer), "%s", rest);
-  if (!m68k_split_operands_in_place(buffer, items, 64U, &count)) return 0;
+  buffer = (char *)malloc(strlen(rest) + 1U);
+  if (buffer == NULL) return 0;
+  strcpy(buffer, rest);
+  if (!m68k_split_operands_in_place(buffer, items, 64U, &count)) {
+    free(buffer);
+    return 0;
+  }
   for (index = 0; index < count; ++index) {
     AsmDataItem item;
-    if (!parse_data_item_text_local(items[index], &item)) return 0;
-    if (!context->append_item(out_data, &item, context->user_data)) return 0;
+    if (!parse_data_item_text_local(items[index], &item)) {
+      free(buffer);
+      return 0;
+    }
+    if (!context->append_item(out_data, &item, context->user_data)) {
+      free(item.bytes);
+      free(buffer);
+      return 0;
+    }
   }
+  free(buffer);
   return 1;
 }
 
 int m68k_source_parse_dcb_statement(const char *directive, char *rest, AsmSourceDataStmt *out_data,
     const M68kSourceDataParseContext *context) {
-  char buffer[256];
+  char *buffer;
   char *parts[2];
   size_t count = 0;
   uint32_t repeat_count = 0;
@@ -54,19 +67,31 @@ int m68k_source_parse_dcb_statement(const char *directive, char *rest, AsmSource
   M68kParseDataDirectiveResult data_directive = m68k_parse_data_directive_token(m68k_parse_source_directive_token(directive));
   if (!data_directive.ok || data_directive.is_repeat == 0U) return 0;
   out_data->width_bytes = data_directive.width_bytes;
-  snprintf(buffer, sizeof(buffer), "%s", rest);
+  buffer = (char *)malloc(strlen(rest) + 1U);
+  if (buffer == NULL) return 0;
+  strcpy(buffer, rest);
   count = m68k_split_delimited_in_place(buffer, ',', parts, sizeof(parts) / sizeof(parts[0]));
-  if (count != 2U) return 0;
+  if (count != 2U) {
+    free(buffer);
+    return 0;
+  }
   repeat_result = context->parse_constant(m68k_trim_in_place(parts[0]), context->user_data);
-  if (!repeat_result.ok) return 0;
+  if (!repeat_result.ok) {
+    free(buffer);
+    return 0;
+  }
   repeat_count = repeat_result.value;
-  if (!parse_data_item_text_local(m68k_trim_in_place(parts[1]), &item)) return 0;
+  if (!parse_data_item_text_local(m68k_trim_in_place(parts[1]), &item)) {
+    free(buffer);
+    return 0;
+  }
   for (index = 0; index < repeat_count; ++index) {
     AsmDataItem copy = item;
     if (item.kind == ASM_DATA_ITEM_STRING && item.byte_count != 0U) {
       copy.bytes = (uint8_t *)malloc(item.byte_count);
       if (copy.bytes == NULL) {
         free(item.bytes);
+        free(buffer);
         return 0;
       }
       memcpy(copy.bytes, item.bytes, item.byte_count);
@@ -74,9 +99,11 @@ int m68k_source_parse_dcb_statement(const char *directive, char *rest, AsmSource
     if (!context->append_item(out_data, &copy, context->user_data)) {
       free(copy.bytes);
       free(item.bytes);
+      free(buffer);
       return 0;
     }
   }
   free(item.bytes);
+  free(buffer);
   return 1;
 }

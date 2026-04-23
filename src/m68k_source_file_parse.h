@@ -7,5 +7,6 @@
 #include <stddef.h>
 
 int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink diagnostics);
+int m68k_source_file_parse_text(AsmSourceFile *source, const char *source_text, M68kDiagSink diagnostics);
 
 #endif

@@ -43,6 +43,7 @@ FIELD_KIND_ENUM = {
     "CACHE": "M68K_ASM_FIELD_CACHE",
     "D/A": "M68K_ASM_FIELD_DA",
     "DATA": "M68K_ASM_FIELD_DATA",
+    "ID": "M68K_ASM_FIELD_ID",
     "MODE": "M68K_ASM_FIELD_MODE",
     "OPMODE": "M68K_ASM_FIELD_OPMODE",
     "OFFSET": "M68K_ASM_FIELD_OFFSET",
@@ -106,6 +107,20 @@ CPU_MIN_ENUM = {
 }
 
 CPU_ORDER = tuple(CPU_MIN_ENUM.keys())
+EA_MODE_BITS = {
+    "dn": tuple((0, reg) for reg in range(8)),
+    "an": tuple((1, reg) for reg in range(8)),
+    "ind": tuple((2, reg) for reg in range(8)),
+    "postinc": tuple((3, reg) for reg in range(8)),
+    "predec": tuple((4, reg) for reg in range(8)),
+    "disp": tuple((5, reg) for reg in range(8)),
+    "index": tuple((6, reg) for reg in range(8)),
+    "absw": ((7, 0),),
+    "absl": ((7, 1),),
+    "pcdisp": ((7, 2),),
+    "pcindex": ((7, 3),),
+    "imm": ((7, 4),),
+}
 
 
 def _cpu_mask_value(cpu_names: tuple[str, ...] | list[str]) -> int:
@@ -143,6 +158,7 @@ SIZE_BIT = {"b": 1 << 0, "w": 1 << 1, "l": 1 << 2}
 UNSET_FIELD_VALUE = 0xFF
 MAX_BOUND_WORDS = 2
 STYLE_LINE_LENGTH = 140
+SINGLE_CLAUSE_BODY_RE = re.compile(r"^\s*(?:return\b.*|break;|continue;)\s*$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -169,6 +185,7 @@ class FormDef:
     size_mask_68000: int
     ea_dn_size_mask: int
     ea_memory_size_mask: int
+    ea_mode_masks: tuple[int, int, int, int]
     cpu_mask: int
     control_register_ids: tuple[int, ...]
     opword_base: int
@@ -278,12 +295,6 @@ def _load_ea_text_forms(kb: dict[str, object]) -> list[dict[str, object]]:
     return [dict(entry) for entry in forms]
 
 
-def _load_register_aliases(kb: dict[str, object]) -> dict[str, str]:
-    aliases = _kb_meta(kb, "register_aliases")
-    assert isinstance(aliases, dict)
-    return {str(key): str(value) for key, value in aliases.items()}
-
-
 def _load_condition_family_map(kb: dict[str, object]) -> dict[str, dict[str, object]]:
     families = _kb_meta(kb, "condition_families")
     assert isinstance(families, list)
@@ -343,6 +354,7 @@ def _normalize_field_name(name: str) -> str:
         "HIGH-ORDER ADDRESS",
         "LOW-ORDER ADDRESS",
         "FC",
+        "FC-MODE",
         "MASK",
         "LEVEL",
         "P-REGISTER",
@@ -355,6 +367,59 @@ def _normalize_runtime_operand_kind(kind: str) -> str:
     if kind in {"disp", "predec"}:
         return "ea"
     return kind
+
+
+def _ea_mode_mask(mode_names: object) -> int:
+    if not isinstance(mode_names, list):
+        return 0
+    mask = 0
+    for mode_name in mode_names:
+        for mode, reg in EA_MODE_BITS.get(str(mode_name), ()):
+            mask |= 1 << (mode * 8 + reg)
+    return mask
+
+
+def _merged_ea_mode_masks_by_role(item: dict[str, object]) -> dict[str, int]:
+    merged: dict[str, int] = {}
+    for table_name in ("ea_modes", "ea_modes_020"):
+        table = item.get(table_name)
+        if not isinstance(table, dict):
+            continue
+        for role, mode_names in table.items():
+            merged[str(role)] = merged.get(str(role), 0) | _ea_mode_mask(mode_names)
+    return merged
+
+
+def _form_ea_mode_masks(item: dict[str, object], form_source: dict[str, object]) -> tuple[int, int, int, int]:
+    masks = [0, 0, 0, 0]
+    role_masks = _merged_ea_mode_masks_by_role(item)
+    if not role_masks:
+        return tuple(masks)
+    operand_types = [str(operand["type"]) for operand in form_source["operands"]]
+    ea_indexes = [
+        index
+        for index, operand_type in enumerate(operand_types[:4])
+        if _normalize_runtime_operand_kind(operand_type) in {"ea", "bf_ea"}
+    ]
+    if not ea_indexes:
+        return tuple(masks)
+    if "ea" in role_masks:
+        for index in ea_indexes:
+            masks[index] = role_masks["ea"]
+        return tuple(masks)
+    if len(ea_indexes) == 2 and {"src", "dst"}.issubset(role_masks):
+        masks[ea_indexes[0]] = role_masks["src"]
+        masks[ea_indexes[1]] = role_masks["dst"]
+        return tuple(masks)
+    if len(ea_indexes) == 1:
+        index = ea_indexes[0]
+        if len(role_masks) == 1:
+            masks[index] = next(iter(role_masks.values()))
+        elif index == 0 and "src" in role_masks:
+            masks[index] = role_masks["src"]
+        elif index == len(operand_types) - 1 and "dst" in role_masks:
+            masks[index] = role_masks["dst"]
+    return tuple(masks)
 
 
 def _default_field_binding(
@@ -377,9 +442,8 @@ def _default_field_binding(
         dn_operand_indexes = [index for index, operand_type in enumerate(operand_types) if operand_type == "dn"]
         if len(dn_operand_indexes) == 1:
             return dn_operand_indexes[0], "reg"
-    if name == "D/A":
-        if occurrence < len(operand_types) and operand_types[occurrence] == "rn":
-            return occurrence, "reg_kind"
+    if name == "D/A" and occurrence < len(operand_types) and operand_types[occurrence] == "rn":
+        return occurrence, "reg_kind"
     if name == "CACHE":
         if occurrence < len(operand_types) and operand_types[occurrence] == "cache_sel":
             return occurrence, "value"
@@ -498,6 +562,52 @@ def _is_bound_extension_encoding(fields: list[dict[str, object]]) -> bool:
     return _normalize_field_name(raw_name) not in {"DATA"}
 
 
+def _control_register_id_key(entry: dict[str, object]) -> tuple[str, int, int]:
+    return (
+        str(entry.get("abbrev", "")).lower(),
+        int(str(entry["hex"]), 16),
+        _cpu_mask_value(_cpu_names_for_entry(entry)),
+    )
+
+
+def _allowed_control_register_ids_for_form(
+    item: dict[str, object],
+    form_source: dict[str, object],
+    control_register_ids_by_name: dict[str, list[int]],
+    control_register_id_by_key: dict[tuple[str, int, int], int],
+) -> tuple[int, ...]:
+    names = [str(name).lower() for name in form_source.get("control_registers", [])]
+    constraints = item.get("constraints", {})
+    assert isinstance(constraints, dict)
+    instruction_registers = constraints.get("control_registers", [])
+    assert isinstance(instruction_registers, list)
+    if not names:
+        operand_kinds = [str(operand.get("type", "")) for operand in form_source.get("operands", [])]
+        if "ctrl_reg" not in operand_kinds or not instruction_registers:
+            return ()
+        names = [
+            str(entry.get("abbrev", "")).lower()
+            for entry in instruction_registers
+            if isinstance(entry, dict)
+        ]
+    result: list[int] = []
+    seen: set[int] = set()
+    for name in names:
+        matched = [
+            control_register_id_by_key[_control_register_id_key(entry)]
+            for entry in instruction_registers
+            if isinstance(entry, dict) and str(entry.get("abbrev", "")).lower() == name
+        ]
+        if not matched:
+            matched = control_register_ids_by_name[name]
+        for control_register_id in matched:
+            if control_register_id in seen:
+                continue
+            seen.add(control_register_id)
+            result.append(control_register_id)
+    return tuple(result)
+
+
 def _load_forms(kb_path: Path, supported_mnemonics: tuple[str, ...] | None = None) -> list[FormDef]:
     data = _load_kb(kb_path)
     instructions = data["instructions"]
@@ -506,6 +616,10 @@ def _load_forms(kb_path: Path, supported_mnemonics: tuple[str, ...] | None = Non
     control_register_ids: dict[str, list[int]] = {}
     for entry in control_registers:
         control_register_ids.setdefault(str(entry["abbrev"]), []).append(int(entry["id"]))
+    control_register_id_by_key = {
+        (str(entry["abbrev"]), int(entry["value"]), int(entry["cpu_mask"])): int(entry["id"])
+        for entry in control_registers
+    }
     condition_families = _load_condition_family_map(data)
     cc_test_definitions = _load_cc_test_definitions(data)
     encoding_templates = meta.get("encoding_templates", {})
@@ -701,19 +815,15 @@ def _load_forms(kb_path: Path, supported_mnemonics: tuple[str, ...] | None = Non
                     encoding_group_index = form_source.get("encoding_group_index")
                     if encoding_group_index is not None and len(encoding_variants) > 1 and encoding_variant_index != int(encoding_group_index):
                         continue
-                rn_operand_indexes = [
-                    operand_index
-                    for operand_index, operand in enumerate(form_source["operands"])
-                    if str(operand["type"]) == "rn"
-                ]
                 sampling_operand_kinds = tuple(str(operand["type"]) for operand in form_source["operands"])
                 if any(kind not in SUPPORTED_OPERAND_KINDS for kind in sampling_operand_kinds):
                     continue
                 operand_kinds = tuple(_normalize_runtime_operand_kind(kind) for kind in sampling_operand_kinds)
-                allowed_control_register_ids = tuple(
-                    control_register_id
-                    for name in form_source.get("control_registers", [])
-                    for control_register_id in control_register_ids[str(name).lower()]
+                allowed_control_register_ids = _allowed_control_register_ids_for_form(
+                    item,
+                    form_source,
+                    control_register_ids,
+                    control_register_id_by_key,
                 )
                 if opmode_entries and operand_kinds not in {("ea", "dn"), ("ea", "an"), ("dn", "ea")}:
                     matching_opmodes = [
@@ -904,6 +1014,7 @@ def _load_forms(kb_path: Path, supported_mnemonics: tuple[str, ...] | None = Non
                         size_mask_68000=form_size_mask_68000,
                         ea_dn_size_mask=ea_dn_size_mask,
                         ea_memory_size_mask=ea_memory_size_mask,
+                        ea_mode_masks=_form_ea_mode_masks(item, form_source),
                         cpu_mask=_cpu_mask_value(form_cpu_names),
                         control_register_ids=allowed_control_register_ids,
                         opword_base=opword_base,
@@ -1135,6 +1246,7 @@ typedef enum {{
     M68K_ASM_FIELD_CACHE,
     M68K_ASM_FIELD_DA,
     M68K_ASM_FIELD_MODE,
+    M68K_ASM_FIELD_ID,
     M68K_ASM_FIELD_OPMODE,
     M68K_ASM_FIELD_OFFSET,
     M68K_ASM_FIELD_SIZE,

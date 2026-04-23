@@ -478,14 +478,6 @@ def _ea_mode_encoding(kb: dict[str, object]) -> dict[str, tuple[int, int | None]
     }
 
 
-def _brief_ext_fields(kb: dict[str, object]) -> dict[str, tuple[int, int]]:
-    fields = _kb_meta(kb, "ea_brief_ext_word")
-    return {
-        str(field["name"]): (int(field["bit_hi"]), int(field["bit_lo"]))
-        for field in fields
-    }
-
-
 def _full_ext_fields(kb: dict[str, object]) -> dict[str, tuple[int, int]]:
     meta = kb["_meta"]
     assert isinstance(meta, dict)

@@ -1,5 +1,7 @@
 #include "m68k_c_unit_test.h"
 #include "m68k_parse_util.h"
+#include "m68k_source_expr.h"
+#include "m68k_source_text_util.h"
 
 #include <string.h>
 
@@ -38,8 +40,29 @@ static int test_parse_cpu_name(void) {
   result = m68k_parse_cpu_name("68060");
   M68K_C_ASSERT(result.ok);
   M68K_C_ASSERT_INT(M68K_ASM_CPU_68060, result.cpu);
+  result = m68k_parse_cpu_name("any");
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_INT(M68K_ASM_CPU_ANY, result.cpu);
   result = m68k_parse_cpu_name("68008");
   M68K_C_ASSERT(!result.ok);
+  return 0;
+}
+
+static int test_parse_section_spec(void) {
+  M68kSectionKind kind = M68K_SECTION_BSS;
+  uint8_t mem_type = 0U;
+  uint32_t mem_attrs = 0U;
+  char text[32];
+  M68K_C_ASSERT(m68k_parse_section_spec("code_c", &kind, &mem_type, &mem_attrs));
+  M68K_C_ASSERT_INT(M68K_SECTION_CODE, kind);
+  M68K_C_ASSERT_INT(1, mem_type);
+  M68K_C_ASSERT_U32(0, mem_attrs);
+  M68K_C_ASSERT(m68k_parse_section_spec("data_x$12345678", &kind, &mem_type, &mem_attrs));
+  M68K_C_ASSERT_INT(M68K_SECTION_DATA, kind);
+  M68K_C_ASSERT_INT(3, mem_type);
+  M68K_C_ASSERT_U32(0x12345678U, mem_attrs);
+  M68K_C_ASSERT(m68k_format_section_spec(M68K_SECTION_CODE, 2U, 0U, text, sizeof(text)));
+  M68K_C_ASSERT_STR("code_f", text);
   return 0;
 }
 
@@ -130,12 +153,40 @@ static int test_normalize_pc_current_expr(void) {
   return 0;
 }
 
+static M68kSourceLookupResult test_source_expr_lookup(const char *name, void *user_data) {
+  M68kSourceLookupResult result = {0};
+  (void)user_data;
+  if (strcmp(name, "RTF_COLDSTART") == 0) {
+    result.ok = 1U;
+    result.defined = 1U;
+    result.is_constant = 1U;
+    result.value = 0x01U;
+  } else if (strcmp(name, "RTF_AUTOINIT") == 0) {
+    result.ok = 1U;
+    result.defined = 1U;
+    result.is_constant = 1U;
+    result.value = 0x80U;
+  }
+  return result;
+}
+
+static int test_source_linear_expr_accepts_constant_or(void) {
+  M68kSourceLinearExprParseResult parsed =
+    m68k_source_parse_linear_expression("RTF_COLDSTART|RTF_AUTOINIT", 0, test_source_expr_lookup, NULL);
+  M68kSourceLinearExprEvalResult evaluated = m68k_source_evaluate_linear_expression(parsed.expr);
+  M68K_C_ASSERT(parsed.ok);
+  M68K_C_ASSERT(evaluated.ok);
+  M68K_C_ASSERT_U32(0x81U, evaluated.value);
+  return 0;
+}
+
 int m68k_c_parse_util_tests(void) {
   static const M68kCTestCase cases[] = {
     {"sign_extend32", test_sign_extend32},
     {"popcount16", test_popcount16},
     {"parse_number_u32", test_parse_number_u32},
     {"parse_cpu_name", test_parse_cpu_name},
+    {"parse_section_spec", test_parse_section_spec},
     {"parse_mnemonic_token", test_parse_mnemonic_token},
     {"parse_special_register_token", test_parse_special_register_token},
     {"parse_cache_selector_token", test_parse_cache_selector_token},
@@ -143,6 +194,7 @@ int m68k_c_parse_util_tests(void) {
     {"parse_data_directive_token", test_parse_data_directive_token},
     {"parse_offset_directive_token", test_parse_offset_directive_token},
     {"normalize_pc_current_expr", test_normalize_pc_current_expr},
+    {"source_linear_expr_accepts_constant_or", test_source_linear_expr_accepts_constant_or},
   };
   return m68k_c_test_run_suite("m68k_parse_util", cases, sizeof(cases) / sizeof(cases[0]));
 }
