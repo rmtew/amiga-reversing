@@ -13,6 +13,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
 #define M68K_SOURCE_PARSE_LINE_CAPACITY 8192U
@@ -245,6 +246,23 @@ static int parse_rs_delta_directive(M68kSourceDirectiveToken directive, uint32_t
     if (out_width != NULL) *out_width = 2U;
     return 1;
   case M68K_SOURCE_DIRECTIVE_RS_L:
+    if (out_width != NULL) *out_width = 4U;
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+static int parse_ds_directive_width(M68kSourceDirectiveToken directive, uint32_t *out_width) {
+  if (out_width != NULL) *out_width = 0U;
+  switch (directive) {
+  case M68K_SOURCE_DIRECTIVE_DS_B:
+    if (out_width != NULL) *out_width = 1U;
+    return 1;
+  case M68K_SOURCE_DIRECTIVE_DS_W:
+    if (out_width != NULL) *out_width = 2U;
+    return 1;
+  case M68K_SOURCE_DIRECTIVE_DS_L:
     if (out_width != NULL) *out_width = 4U;
     return 1;
   default:
@@ -782,21 +800,24 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
       source_parse_error(diagnostics, "source statement before section");
       return 0;
     }
-    if (directive0 == M68K_SOURCE_DIRECTIVE_DS_B) {
-      M68kSourceModelIndexResult stmt_result;
-      M68kSourceConstantResult reserve_size;
-      AsmSourceStmt *stmt = NULL;
-      reserve_size = parse_constant_expression_value(source, rest);
-      stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_RESERVE, line_number);
-      if (!reserve_size.ok || !stmt_result.ok) {
-        source_line_reader_close(reader);
-        source_parse_errorf(diagnostics, "bad DS.B directive at line %u", (unsigned)line_number);
-        return 0;
+    {
+      uint32_t ds_width = 0U;
+      if (parse_ds_directive_width(directive0, &ds_width)) {
+        M68kSourceModelIndexResult stmt_result;
+        M68kSourceConstantResult reserve_count;
+        AsmSourceStmt *stmt = NULL;
+        reserve_count = parse_constant_expression_value(source, rest);
+        stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_RESERVE, line_number);
+        if (!reserve_count.ok || !stmt_result.ok || (ds_width != 0U && reserve_count.value > UINT32_MAX / ds_width)) {
+          source_line_reader_close(reader);
+          source_parse_errorf(diagnostics, "bad DS directive at line %u", (unsigned)line_number);
+          return 0;
+        }
+        stmt = &source->statements[stmt_result.index];
+        stmt->section_index = current_section_index;
+        stmt->u.reserve_size = reserve_count.value * ds_width;
+        continue;
       }
-      stmt = &source->statements[stmt_result.index];
-      stmt->section_index = current_section_index;
-      stmt->u.reserve_size = reserve_size.value;
-      continue;
     }
     if (source->enable_vasm_compat_rewrites &&
         m68k_is_elided_lea_noop(optimized_statement_text))

@@ -3629,6 +3629,35 @@ static int test_facts_v2_render_asm_source_alloc_returns_text(void) {
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_collapses_repeated_present_data(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[32];
+  memset(bytes, 0, sizeof(bytes));
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdcb.b $20,$00\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $00,$00,$00,$00,$00,$00,$00,$00") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_alloc_fails_on_invalid_relocation(void) {
   M68kObject object;
   M68kSection section;
@@ -3826,6 +3855,8 @@ int m68k_c_ir_tests(void) {
     {"facts_v2_demotes_opcode_relocation_to_data_expr",
       test_facts_v2_demotes_opcode_relocation_to_data_expr},
     {"facts_v2_render_asm_source_alloc_returns_text", test_facts_v2_render_asm_source_alloc_returns_text},
+    {"facts_v2_render_asm_source_collapses_repeated_present_data",
+      test_facts_v2_render_asm_source_collapses_repeated_present_data},
     {"facts_v2_render_asm_source_alloc_fails_on_invalid_relocation",
       test_facts_v2_render_asm_source_alloc_fails_on_invalid_relocation},
   };

@@ -105,6 +105,8 @@ static int test_parse_source_directive_token(void) {
   M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_INCLUDE, m68k_parse_source_directive_token("include"));
   M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_SECTION, m68k_parse_source_directive_token("SECTION"));
   M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_DCB_W, m68k_parse_source_directive_token("dcb.w"));
+  M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_DS_W, m68k_parse_source_directive_token("ds.w"));
+  M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_DS_L, m68k_parse_source_directive_token("DS.L"));
   M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_ALIGNLONG, m68k_parse_source_directive_token("AlignLong"));
   M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_NONE, m68k_parse_source_directive_token("move"));
   return 0;

@@ -1661,7 +1661,8 @@ static const char *listing_row_kind_for_line(const char *stripped) {
   if (stripped[0] == ';') return "comment";
   length = strlen(stripped);
   if (length != 0U && stripped[length - 1U] == ':') return "label";
-  if (text_starts_with_ci(stripped, "DC.") || text_starts_with_ci(stripped, "DS.")) return "data";
+  if (text_starts_with_ci(stripped, "DC.") || text_starts_with_ci(stripped, "DCB.") ||
+      text_starts_with_ci(stripped, "DS.")) return "data";
   if (text_starts_with_ci(stripped, "INCLUDE ") || text_starts_with_ci(stripped, "SECTION ") ||
       text_starts_with_ci(stripped, "COMMENT ") || text_starts_with_ci(stripped, "EVEN") ||
       text_starts_with_ci(stripped, "FPU ") ||

@@ -895,14 +895,48 @@ static void render_asm_relocation_expr(M68kRenderIRPreview *preview, const M68kR
   ++preview->asm_source_relocation_exprs;
 }
 
+static uint32_t repeated_byte_run_length(const uint8_t *data, uint32_t offset, uint32_t size) {
+  uint32_t count = 1U;
+  uint8_t value;
+  if (data == NULL || size == 0U) return 0U;
+  value = data[offset];
+  while (count < size && data[offset + count] == value) ++count;
+  return count;
+}
+
+static void render_asm_dcb_b(M68kRenderIRPreview *preview, uint32_t count, uint8_t value,
+    const char *comment) {
+  char line[128];
+  if (preview == NULL || count == 0U) return;
+  if (comment != NULL && comment[0] != '\0')
+    snprintf(line, sizeof(line), "\tdcb.b $%X,$%02X\t; %s\n", (unsigned)count, (unsigned)value, comment);
+  else
+    snprintf(line, sizeof(line), "\tdcb.b $%X,$%02X\n", (unsigned)count, (unsigned)value);
+  hash_asm_text(preview, line);
+  ++preview->asm_source_lines;
+}
+
 static void render_asm_dc_b(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
     uint32_t size, const char *comment) {
+  enum { DCB_MIN_REPEAT = 8U };
   uint32_t cursor = 0U;
   if (preview == NULL || data == NULL) return;
   while (cursor < size) {
     uint32_t line_count = size - cursor;
     uint32_t index;
+    uint32_t repeat_count = repeated_byte_run_length(data, offset + cursor, size - cursor);
+    if (repeat_count >= DCB_MIN_REPEAT) {
+      render_asm_dcb_b(preview, repeat_count, data[offset + cursor], comment);
+      cursor += repeat_count;
+      continue;
+    }
     if (line_count > 16U) line_count = 16U;
+    for (index = 1U; index < line_count; ++index) {
+      if (repeated_byte_run_length(data, offset + cursor + index, size - cursor - index) >= DCB_MIN_REPEAT) {
+        line_count = index;
+        break;
+      }
+    }
     hash_asm_text(preview, "\tdc.b ");
     for (index = 0U; index < line_count; ++index) {
       char token[8];

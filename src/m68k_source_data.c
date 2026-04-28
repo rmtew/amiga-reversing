@@ -71,7 +71,7 @@ int m68k_source_parse_dcb_statement(const char *directive, char *rest, AsmSource
   if (buffer == NULL) return 0;
   strcpy(buffer, rest);
   count = m68k_split_delimited_in_place(buffer, ',', parts, sizeof(parts) / sizeof(parts[0]));
-  if (count != 2U) {
+  if (count != 1U && count != 2U) {
     free(buffer);
     return 0;
   }
@@ -81,7 +81,7 @@ int m68k_source_parse_dcb_statement(const char *directive, char *rest, AsmSource
     return 0;
   }
   repeat_count = repeat_result.value;
-  if (!parse_data_item_text_local(m68k_trim_in_place(parts[1]), &item)) {
+  if (!parse_data_item_text_local(count == 2U ? m68k_trim_in_place(parts[1]) : "0", &item)) {
     free(buffer);
     return 0;
   }
