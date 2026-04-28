@@ -9,6 +9,7 @@ INCLUDES_PATH = ROOT / "knowledge" / "amiga_ndk_includes_parsed.json"
 OTHER_PATH = ROOT / "knowledge" / "amiga_ndk_other_parsed.json"
 CORRECTIONS_PATH = ROOT / "knowledge" / "amiga_ndk_corrections.json"
 NAMING_RULES_PATH = ROOT / "knowledge" / "naming_rules.json"
+HW_SYMBOLS_PATH = ROOT / "knowledge" / "amiga_hw_symbols.json"
 OUTPUT_DIR = ROOT / "src" / "generated"
 HEADER_PATH = OUTPUT_DIR / "amiga_os_runtime.h"
 SOURCE_PATH = OUTPUT_DIR / "amiga_os_runtime.c"
@@ -42,6 +43,18 @@ AMIGA_VALUE_DOMAIN_COMPOSITION_BIT_OR = 2
 
 AMIGA_VALUE_DOMAIN_REMAINDER_NONE = 0
 AMIGA_VALUE_DOMAIN_REMAINDER_ERROR = 1
+
+HARDWARE_CLEAR_ALL_CONSTANT_ROWS: tuple[tuple[str, int, str | None], ...] = (
+    ("ADKF_CLRALL", 0x7FFF, None),
+    ("DMAF_CLRALL", 0x7FFF, None),
+    ("INTF_CLRALL", 0x7FFF, None),
+)
+
+HARDWARE_CLEAR_ALL_DOMAIN_MEMBERS: tuple[tuple[str, str], ...] = (
+    ("hardware.custom.adk.flags", "ADKF_CLRALL"),
+    ("hardware.custom.dma.flags", "DMAF_CLRALL"),
+    ("hardware.custom.int.flags", "INTF_CLRALL"),
+)
 
 def c_string(text: str) -> str:
     return text.replace("\\", "\\\\").replace('"', '\\"')
@@ -403,6 +416,47 @@ def build_merged_value_domains(includes_payload: dict, corrections_payload: dict
                     **({"composition": "bit_or"} if kind == "flags" else {}),
                 }
 
+        def domain_members_by_prefix(prefix: str, include_path: str) -> list[str]:
+            normalized_include = include_path.lower()
+            members: list[tuple[int, str]] = []
+            for symbol_name, constant_info in constants.items():
+                if not isinstance(symbol_name, str) or not symbol_name.startswith(prefix):
+                    continue
+                if not isinstance(constant_info, dict) or not isinstance(constant_info.get("value"), int):
+                    continue
+                if _constant_include_path(constant_info) != normalized_include:
+                    continue
+                members.append((int(constant_info["value"]), symbol_name))
+            return [
+                symbol_name for _value, symbol_name in sorted(
+                    members,
+                    key=lambda item: (
+                        0 if item[1].endswith("_SETCLR") else 1,
+                        -item[0],
+                        item[1],
+                    ),
+                )
+            ]
+
+        def add_prefixed_domain(name: str, prefix: str, include_path: str, kind: str) -> None:
+            add_domain(name, kind, domain_members_by_prefix(prefix, include_path), exact=(kind == "enum"))
+
+        def add_explicit_domain(name: str, include_path: str, members: list[str], kind: str = "flags") -> None:
+            normalized_include = include_path.lower()
+            present = [
+                member for member in members
+                if isinstance(constants.get(member), dict)
+                and isinstance(constants[member].get("value"), int)
+                and _constant_include_path(constants[member]) == normalized_include
+            ]
+            if present and name not in merged:
+                merged[name] = {
+                    "kind": kind,
+                    "members": present,
+                    **({"exact_match_policy": "error"} if kind == "enum" else {}),
+                    **({"composition": "bit_or"} if kind == "flags" else {}),
+                }
+
         add_domain("exec.resident.matchword", "enum", ["RTC_MATCHWORD"], exact=True)
         add_domain("exec.resident.flags", "flags", [
             "RTF_COLDSTART",
@@ -447,6 +501,120 @@ def build_merged_value_domains(includes_payload: dict, corrections_payload: dict
                 "composition": "bit_or",
                 "remainder_policy": "error",
             }
+        add_prefixed_domain("hardware.custom.dma.flags", "DMAF_", "hardware/dmabits.i", "flags")
+        add_prefixed_domain("hardware.custom.dma.bits", "DMAB_", "hardware/dmabits.i", "enum")
+        add_prefixed_domain("hardware.custom.int.flags", "INTF_", "hardware/intbits.i", "flags")
+        add_prefixed_domain("hardware.custom.int.bits", "INTB_", "hardware/intbits.i", "enum")
+        add_prefixed_domain("hardware.custom.adk.flags", "ADKF_", "hardware/adkbits.i", "flags")
+        add_prefixed_domain("hardware.custom.adk.bits", "ADKB_", "hardware/adkbits.i", "enum")
+        add_prefixed_domain("hardware.cia.icr.flags", "CIAICRF_", "hardware/cia.i", "flags")
+        add_prefixed_domain("hardware.cia.icr.bits", "CIAICRB_", "hardware/cia.i", "enum")
+        add_prefixed_domain("hardware.cia.cra.flags", "CIACRAF_", "hardware/cia.i", "flags")
+        add_prefixed_domain("hardware.cia.cra.bits", "CIACRAB_", "hardware/cia.i", "enum")
+        add_prefixed_domain("hardware.cia.crb.flags", "CIACRBF_", "hardware/cia.i", "flags")
+        add_prefixed_domain("hardware.cia.crb.bits", "CIACRBB_", "hardware/cia.i", "enum")
+        add_explicit_domain("hardware.ciaa.pra.flags", "hardware/cia.i", [
+            "CIAF_GAMEPORT1",
+            "CIAF_GAMEPORT0",
+            "CIAF_DSKRDY",
+            "CIAF_DSKTRACK0",
+            "CIAF_DSKPROT",
+            "CIAF_DSKCHANGE",
+            "CIAF_LED",
+            "CIAF_OVERLAY",
+        ])
+        add_explicit_domain("hardware.ciaa.pra.bits", "hardware/cia.i", [
+            "CIAB_GAMEPORT1",
+            "CIAB_GAMEPORT0",
+            "CIAB_DSKRDY",
+            "CIAB_DSKTRACK0",
+            "CIAB_DSKPROT",
+            "CIAB_DSKCHANGE",
+            "CIAB_LED",
+            "CIAB_OVERLAY",
+        ], "enum")
+        add_explicit_domain("hardware.ciab.pra.flags", "hardware/cia.i", [
+            "CIAF_COMDTR",
+            "CIAF_COMRTS",
+            "CIAF_COMCD",
+            "CIAF_COMCTS",
+            "CIAF_COMDSR",
+            "CIAF_PRTRSEL",
+            "CIAF_PRTRPOUT",
+            "CIAF_PRTRBUSY",
+        ])
+        add_explicit_domain("hardware.ciab.pra.bits", "hardware/cia.i", [
+            "CIAB_COMDTR",
+            "CIAB_COMRTS",
+            "CIAB_COMCD",
+            "CIAB_COMCTS",
+            "CIAB_COMDSR",
+            "CIAB_PRTRSEL",
+            "CIAB_PRTRPOUT",
+            "CIAB_PRTRBUSY",
+        ], "enum")
+        add_explicit_domain("hardware.ciab.prb.flags", "hardware/cia.i", [
+            "CIAF_DSKMOTOR",
+            "CIAF_DSKSEL3",
+            "CIAF_DSKSEL2",
+            "CIAF_DSKSEL1",
+            "CIAF_DSKSEL0",
+            "CIAF_DSKSIDE",
+            "CIAF_DSKDIREC",
+            "CIAF_DSKSTEP",
+        ])
+        add_explicit_domain("hardware.ciab.prb.bits", "hardware/cia.i", [
+            "CIAB_DSKMOTOR",
+            "CIAB_DSKSEL3",
+            "CIAB_DSKSEL2",
+            "CIAB_DSKSEL1",
+            "CIAB_DSKSEL0",
+            "CIAB_DSKSIDE",
+            "CIAB_DSKDIREC",
+            "CIAB_DSKSTEP",
+        ], "enum")
+        add_explicit_domain("hardware.custom.bltcon0.flags", "hardware/blit.i", [
+            "BC0F_DEST",
+            "BC0F_SRCC",
+            "BC0F_SRCB",
+            "BC0F_SRCA",
+            "ABC",
+            "ABNC",
+            "ANBC",
+            "ANBNC",
+            "NABC",
+            "NABNC",
+            "NANBC",
+            "NANBNC",
+        ])
+        add_explicit_domain("hardware.custom.bltcon0.bits", "hardware/blit.i", [
+            "BC0B_DEST",
+            "BC0B_SRCC",
+            "BC0B_SRCB",
+            "BC0B_SRCA",
+        ], "enum")
+        add_explicit_domain("hardware.custom.bltcon1.flags", "hardware/blit.i", [
+            "SIGNFLAG",
+            "OVFLAG",
+            "FILL_XOR",
+            "SUD",
+            "FILL_OR",
+            "SUL",
+            "FILL_CARRYIN",
+            "AUL",
+            "BC1F_DESC",
+            "ONEDOT",
+            "LINEMODE",
+        ])
+    for domain_name, member_name in HARDWARE_CLEAR_ALL_DOMAIN_MEMBERS:
+        domain_info = merged.get(domain_name)
+        if not isinstance(domain_info, dict):
+            continue
+        members = domain_info.setdefault("members", [])
+        if not isinstance(members, list):
+            continue
+        if member_name not in members:
+            members.insert(0, member_name)
     return merged
 
 
@@ -505,6 +673,10 @@ def build_constant_rows(includes_payload: dict) -> list[tuple[str, int, str | No
         raise ValueError(
             "missing parsed LIBDEF constants from exec/libraries.i: " + ", ".join(missing)
         )
+    by_name = {symbol_name: (symbol_name, value, include_path) for symbol_name, value, include_path in rows}
+    for symbol_name, value, include_path in HARDWARE_CLEAR_ALL_CONSTANT_ROWS:
+        by_name.setdefault(symbol_name, (symbol_name, value, include_path))
+    rows = list(by_name.values())
     rows.sort(key=lambda row: row[0])
     return rows
 
@@ -588,6 +760,84 @@ def value_domain_rows(merged_domains: dict[str, dict]) -> list[tuple[str, str | 
             if isinstance(domain_info.get("remainder_policy"), str) and domain_info.get("remainder_policy") else None,
         ))
     return rows
+
+
+def hardware_register_domains(base_symbol: str, symbol_name: str,
+                              merged_domains: dict[str, dict]) -> tuple[str | None, str | None]:
+    value_domain: str | None = None
+    bit_domain: str | None = None
+    if base_symbol == "_custom":
+        if symbol_name in {"dmacon", "dmaconr"}:
+            value_domain = "hardware.custom.dma.flags"
+            bit_domain = "hardware.custom.dma.bits"
+        elif symbol_name in {"intena", "intenar", "intreq", "intreqr"}:
+            value_domain = "hardware.custom.int.flags"
+            bit_domain = "hardware.custom.int.bits"
+        elif symbol_name in {"adkcon", "adkconr"}:
+            value_domain = "hardware.custom.adk.flags"
+            bit_domain = "hardware.custom.adk.bits"
+        elif symbol_name in {"bltcon0", "bltcon0l"}:
+            value_domain = "hardware.custom.bltcon0.flags"
+            bit_domain = "hardware.custom.bltcon0.bits"
+        elif symbol_name == "bltcon1":
+            value_domain = "hardware.custom.bltcon1.flags"
+    elif base_symbol in {"_ciaa", "_ciab"}:
+        if symbol_name == "ciaicr":
+            value_domain = "hardware.cia.icr.flags"
+            bit_domain = "hardware.cia.icr.bits"
+        elif symbol_name == "ciacra":
+            value_domain = "hardware.cia.cra.flags"
+            bit_domain = "hardware.cia.cra.bits"
+        elif symbol_name == "ciacrb":
+            value_domain = "hardware.cia.crb.flags"
+            bit_domain = "hardware.cia.crb.bits"
+        elif base_symbol == "_ciaa" and symbol_name == "ciapra":
+            value_domain = "hardware.ciaa.pra.flags"
+            bit_domain = "hardware.ciaa.pra.bits"
+        elif base_symbol == "_ciab" and symbol_name == "ciapra":
+            value_domain = "hardware.ciab.pra.flags"
+            bit_domain = "hardware.ciab.pra.bits"
+        elif base_symbol == "_ciab" and symbol_name == "ciaprb":
+            value_domain = "hardware.ciab.prb.flags"
+            bit_domain = "hardware.ciab.prb.bits"
+    manual_value_domain = f"hardware.custom.{symbol_name.lower()}.flags"
+    manual_bit_domain = f"hardware.custom.{symbol_name.lower()}.bits"
+    if value_domain is None and manual_value_domain in merged_domains:
+        value_domain = manual_value_domain
+    if bit_domain is None and manual_bit_domain in merged_domains:
+        bit_domain = manual_bit_domain
+    if value_domain not in merged_domains:
+        value_domain = None
+    if bit_domain not in merged_domains:
+        bit_domain = None
+    return value_domain, bit_domain
+
+
+def hardware_register_rows(payload: dict, merged_domains: dict[str, dict]) -> list[tuple[str, int, int, str, str, str | None, str | None]]:
+    rows: list[tuple[str, int, int, str, str, str | None, str | None]] = []
+    for item in payload.get("registers", []):
+        if not isinstance(item, dict):
+            continue
+        base_symbol = item.get("base_symbol")
+        include_path = normalize_include_path(item.get("include") if isinstance(item.get("include"), str) else None)
+        symbols = item.get("symbols")
+        if not isinstance(base_symbol, str) or not base_symbol:
+            continue
+        if include_path is None:
+            continue
+        if not isinstance(symbols, list) or not symbols or not isinstance(symbols[0], str) or not symbols[0]:
+            continue
+        try:
+            cpu_address = int(str(item.get("cpu_address")), 0)
+            offset = int(str(item.get("offset")), 0)
+        except (TypeError, ValueError):
+            continue
+        base_address = cpu_address - offset
+        if cpu_address < 0 or offset < 0 or base_address < 0:
+            continue
+        value_domain, bit_domain = hardware_register_domains(base_symbol, symbols[0], merged_domains)
+        rows.append((base_symbol, base_address, offset, symbols[0], include_path, value_domain, bit_domain))
+    return sorted(set(rows), key=lambda row: (row[1], row[2], row[3]))
 
 
 def input_rows(library_name: str, function_name: str, other_info: dict, includes_payload: dict, other_payload: dict,
@@ -824,7 +1074,8 @@ def symbol_include_rows(includes_payload: dict,
                         rows: list[tuple[str, str, int, str, dict]],
                         field_rows: list[tuple[str, int, str, str | None, int, str | None, str | None, str | None]],
                         domain_constant_rows: list[tuple[str, int, str | None]],
-                        assembler_include_symbols_by_path: dict[str, set[str]] | None = None) -> list[tuple[str, str]]:
+                        assembler_include_symbols_by_path: dict[str, set[str]] | None = None,
+                        hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None]] | None = None) -> list[tuple[str, str]]:
     entries: dict[str, str] = {}
     libraries = includes_payload.get("libraries", {})
     structs = includes_payload.get("structs", {})
@@ -864,6 +1115,9 @@ def symbol_include_rows(includes_payload: dict,
         if include_path is not None:
             entries.setdefault(symbol_name, include_path)
 
+    for _, _, _, symbol_name, include_path, _, _ in hardware_rows or []:
+        entries.setdefault(symbol_name, include_path)
+
     return sorted(entries.items(), key=lambda row: (row[1], row[0]))
 
 
@@ -876,6 +1130,7 @@ def build_name_domains(rows: list[tuple[str, str, int, str, dict]],
                        domain_constant_rows: list[tuple[str, int, str | None]],
                        include_min_versions_data: list[tuple[str, str]],
                        symbol_include_rows_data: list[tuple[str, str]],
+                       hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None]],
                        includes_payload: dict, other_payload: dict,
                        api_input_value_domains: dict[tuple[str, str, str], str],
                        api_input_semantic_kinds: dict[tuple[str, str, str], str],
@@ -971,6 +1226,13 @@ def build_name_domains(rows: list[tuple[str, str, int, str, dict]],
     for symbol_name, include_path in symbol_include_rows_data:
         symbol_names.add(symbol_name)
         include_paths.add(include_path)
+    for _, _, _, symbol_name, include_path, value_domain_name, bit_domain_name in hardware_rows:
+        symbol_names.add(symbol_name)
+        include_paths.add(include_path)
+        if value_domain_name is not None:
+            value_domain_names.add(value_domain_name)
+        if bit_domain_name is not None:
+            value_domain_names.add(bit_domain_name)
     for library_name, struct_name in includes_payload.get("_meta", {}).get("named_base_structs", {}).items():
         library_names.add(library_name)
         struct_names.add(struct_name)
@@ -1010,6 +1272,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
                  api_input_binding_rows: list[tuple[str, str, str, str]],
                  struct_field_binding_rows: list[tuple[str, str, str | None, str]],
                  domain_constant_rows: list[tuple[str, int, str | None]],
+                 hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None]],
                  compatibility_versions_data: list[str], include_min_versions_data: list[tuple[str, str]],
                  includes_payload: dict, other_payload: dict,
                  api_input_value_domains: dict[tuple[str, str, str], str],
@@ -1017,7 +1280,8 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
                  api_input_type_overrides: dict[tuple[str, str, str], tuple[str, str | None]],
                  naming_rules_payload: dict) -> None:
     io_device_offset = struct_field_offset(includes_payload, "IO", "IO_DEVICE")
-    symbol_include_rows_data = symbol_include_rows(includes_payload, rows, field_rows, domain_constant_rows)
+    symbol_include_rows_data = symbol_include_rows(includes_payload, rows, field_rows, domain_constant_rows,
+                                                   hardware_rows=hardware_rows)
     named_base_struct_rows = sorted(includes_payload.get("_meta", {}).get("named_base_structs", {}).items())
     naming_pattern_rows = naming_patterns(naming_rules_payload)
     resident_prefix_rows = resident_vector_prefix_rows(includes_payload)
@@ -1027,10 +1291,10 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         default=0,
     )
     name_domains = build_name_domains(rows, field_rows, value_domain_rows_data, domain_member_rows,
-                                      api_input_binding_rows, struct_field_binding_rows, domain_constant_rows,
-                                      include_min_versions_data, symbol_include_rows_data, includes_payload,
-                                      other_payload, api_input_value_domains, api_input_semantic_kinds,
-                                      api_input_type_overrides)
+                                       api_input_binding_rows, struct_field_binding_rows, domain_constant_rows,
+                                       include_min_versions_data, symbol_include_rows_data, hardware_rows,
+                                       includes_payload, other_payload, api_input_value_domains, api_input_semantic_kinds,
+                                       api_input_type_overrides)
     name_domain_meta = build_name_domain_meta(name_domains, "AMIGA_OS")
     input_row_count = sum(len(input_rows(library_name, function_name, other_info, includes_payload, other_payload,
                                          api_input_value_domains, api_input_semantic_kinds, api_input_type_overrides))
@@ -1202,6 +1466,16 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "  uint16_t context_id;",
         "} AmigaOsResidentEntrySeedInfo;",
         "",
+        "typedef struct AmigaOsHardwareRegisterInfo {",
+        "  const char *base_symbol;",
+        "  uint32_t base_address;",
+        "  uint32_t offset;",
+        "  const char *symbol_name;",
+        "  const char *include_path;",
+        "  uint16_t value_domain_id;",
+        "  uint16_t bit_domain_id;",
+        "} AmigaOsHardwareRegisterInfo;",
+        "",
         "uint16_t amiga_os_name_id(uint8_t domain_kind, const char *name);",
         "const char *amiga_os_name(uint8_t domain_kind, uint16_t id);",
             "const char *amiga_os_register_name(uint8_t reg_kind, uint8_t reg_index);",
@@ -1247,6 +1521,11 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "const char *amiga_os_generic_naming_prefix(void);",
         "const AmigaOsResidentVectorPrefixInfo *amiga_os_resident_vector_prefix_at(size_t index);",
         "const AmigaOsResidentEntrySeedInfo *amiga_os_resident_entry_seed_at(size_t index);",
+        "const AmigaOsHardwareRegisterInfo *amiga_os_hardware_register_at(size_t index);",
+        "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_cpu_address(uint32_t cpu_address);",
+        "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_offset(const char *base_symbol, uint32_t offset);",
+        "const char *amiga_os_find_hardware_base_symbol_by_address(uint32_t base_address);",
+        "int amiga_os_find_hardware_base_address(const char *base_symbol, uint32_t *out_address);",
         "const char *amiga_os_exec_base_library_name(void);",
         "uint8_t amiga_os_lvo_slot_size(void);",
         "",
@@ -1265,6 +1544,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         f"#define AMIGA_OS_TRIVIAL_NAMING_FUNCTION_COUNT {len(naming_trivial_functions(naming_rules_payload))}u",
         f"#define AMIGA_OS_RESIDENT_VECTOR_PREFIX_COUNT {len(resident_prefix_rows)}u",
         f"#define AMIGA_OS_RESIDENT_ENTRY_SEED_COUNT {len(resident_seed_rows)}u",
+        f"#define AMIGA_OS_HARDWARE_REGISTER_COUNT {len(hardware_rows)}u",
     ])
     if io_device_offset is not None:
         lines.append(f"#define AMIGA_OS_STRUCT_IO_FIELD_IO_DEVICE_OFFSET {io_device_offset}u")
@@ -1279,18 +1559,20 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
                  api_input_binding_rows: list[tuple[str, str, str, str]],
                  struct_field_binding_rows: list[tuple[str, str, str | None, str]],
                  domain_constant_rows: list[tuple[str, int, str | None]],
+                 hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None]],
                  compatibility_versions_data: list[str], include_min_versions_data: list[tuple[str, str]],
                  includes_payload: dict, other_payload: dict,
                  api_input_value_domains: dict[tuple[str, str, str], str],
                  api_input_semantic_kinds: dict[tuple[str, str, str], str],
                  api_input_type_overrides: dict[tuple[str, str, str], tuple[str, str | None]],
                  naming_rules_payload: dict) -> None:
-    symbol_include_rows_data = symbol_include_rows(includes_payload, rows, field_rows, domain_constant_rows)
+    symbol_include_rows_data = symbol_include_rows(includes_payload, rows, field_rows, domain_constant_rows,
+                                                   hardware_rows=hardware_rows)
     name_domains = build_name_domains(rows, field_rows, value_domain_rows_data, domain_member_rows,
-                                      api_input_binding_rows, struct_field_binding_rows, domain_constant_rows,
-                                      include_min_versions_data, symbol_include_rows_data, includes_payload,
-                                      other_payload, api_input_value_domains, api_input_semantic_kinds,
-                                      api_input_type_overrides)
+                                       api_input_binding_rows, struct_field_binding_rows, domain_constant_rows,
+                                       include_min_versions_data, symbol_include_rows_data, hardware_rows,
+                                       includes_payload, other_payload, api_input_value_domains, api_input_semantic_kinds,
+                                       api_input_type_overrides)
     name_domain_meta = build_name_domain_meta(name_domains, "AMIGA_OS")
     named_base_struct_rows = sorted(includes_payload.get("_meta", {}).get("named_base_structs", {}).items())
     naming_pattern_rows = naming_patterns(naming_rules_payload)
@@ -1661,6 +1943,22 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
         [
             "};",
             "",
+            "static const AmigaOsHardwareRegisterInfo g_amiga_os_hardware_registers[] = {",
+        ]
+    )
+    for base_symbol, base_address, offset, symbol_name, include_path, value_domain_name, bit_domain_name in hardware_rows:
+        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, \"%s\", \"%s\", %s, %s }," % (
+            c_string(base_symbol),
+            base_address,
+            offset,
+            c_string(symbol_name),
+            c_string(include_path),
+            name_id_literal(name_domain_meta, "value_domain", value_domain_name),
+            name_id_literal(name_domain_meta, "value_domain", bit_domain_name)))
+    lines.extend(
+        [
+            "};",
+            "",
             "const char *amiga_os_find_library_base_name_by_id(uint16_t library_id) {",
             "  size_t index;",
             "  if (amiga_os_name(%du, library_id) == NULL) return NULL;" % NAME_DOMAIN_LIBRARY,
@@ -1721,6 +2019,53 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "const AmigaOsResidentEntrySeedInfo *amiga_os_resident_entry_seed_at(size_t index) {",
             "  if (index >= AMIGA_OS_RESIDENT_ENTRY_SEED_COUNT) return NULL;",
             "  return &g_amiga_os_resident_entry_seeds[index];",
+            "}",
+            "",
+            "const AmigaOsHardwareRegisterInfo *amiga_os_hardware_register_at(size_t index) {",
+            "  if (index >= AMIGA_OS_HARDWARE_REGISTER_COUNT) return NULL;",
+            "  return &g_amiga_os_hardware_registers[index];",
+            "}",
+            "",
+            "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_cpu_address(uint32_t cpu_address) {",
+            "  size_t index;",
+            "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_COUNT; ++index) {",
+            "    const AmigaOsHardwareRegisterInfo *entry = &g_amiga_os_hardware_registers[index];",
+            "    if (entry->base_address + entry->offset == cpu_address) return entry;",
+            "  }",
+            "  return NULL;",
+            "}",
+            "",
+            "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_offset(const char *base_symbol, uint32_t offset) {",
+            "  size_t index;",
+            "  if (base_symbol == NULL || base_symbol[0] == '\\0') return NULL;",
+            "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_COUNT; ++index) {",
+            "    const AmigaOsHardwareRegisterInfo *entry = &g_amiga_os_hardware_registers[index];",
+            "    if (entry->offset == offset && strcmp(entry->base_symbol, base_symbol) == 0) return entry;",
+            "  }",
+            "  return NULL;",
+            "}",
+            "",
+            "const char *amiga_os_find_hardware_base_symbol_by_address(uint32_t base_address) {",
+            "  size_t index;",
+            "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_COUNT; ++index) {",
+            "    const AmigaOsHardwareRegisterInfo *entry = &g_amiga_os_hardware_registers[index];",
+            "    if (entry->base_address == base_address) return entry->base_symbol;",
+            "  }",
+            "  return NULL;",
+            "}",
+            "",
+            "int amiga_os_find_hardware_base_address(const char *base_symbol, uint32_t *out_address) {",
+            "  size_t index;",
+            "  if (out_address != NULL) *out_address = 0U;",
+            "  if (base_symbol == NULL || base_symbol[0] == '\\0' || out_address == NULL) return 0;",
+            "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_COUNT; ++index) {",
+            "    const AmigaOsHardwareRegisterInfo *entry = &g_amiga_os_hardware_registers[index];",
+            "    if (strcmp(entry->base_symbol, base_symbol) == 0) {",
+            "      *out_address = entry->base_address;",
+            "      return 1;",
+            "    }",
+            "  }",
+            "  return 0;",
             "}",
             "",
             "const char *amiga_os_exec_base_library_name(void) {",
@@ -2047,6 +2392,7 @@ def main() -> None:
     other_payload = json.loads(OTHER_PATH.read_text(encoding="utf-8"))
     corrections_payload = json.loads(CORRECTIONS_PATH.read_text(encoding="utf-8"))
     naming_rules_payload = json.loads(NAMING_RULES_PATH.read_text(encoding="utf-8"))
+    hardware_payload = json.loads(HW_SYMBOLS_PATH.read_text(encoding="utf-8"))
     api_input_value_domains = build_api_input_value_domain_map(includes_payload, corrections_payload)
     api_input_semantic_kinds = build_api_input_semantic_kind_map(includes_payload, corrections_payload)
     api_input_type_overrides = build_api_input_type_override_map(corrections_payload)
@@ -2067,6 +2413,7 @@ def main() -> None:
     )
     compatibility_versions_data = compatibility_versions(includes_payload)
     include_min_versions_data = include_min_version_rows(includes_payload)
+    hardware_rows = hardware_register_rows(hardware_payload, merged_domains)
     rows = library_rows(includes_payload, other_payload)
     field_rows = struct_field_rows(includes_payload,
                                    referenced_struct_names(rows, includes_payload, other_payload,
@@ -2074,12 +2421,12 @@ def main() -> None:
                                                            api_input_type_overrides))
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     write_header(rows, field_rows, value_domain_rows_data, domain_member_rows, api_input_binding_rows,
-                 struct_field_binding_rows, domain_constant_rows, compatibility_versions_data,
+                 struct_field_binding_rows, domain_constant_rows, hardware_rows, compatibility_versions_data,
                  include_min_versions_data, includes_payload, other_payload,
                  api_input_value_domains, api_input_semantic_kinds, api_input_type_overrides,
                  naming_rules_payload)
     write_source(rows, field_rows, value_domain_rows_data, domain_member_rows, api_input_binding_rows,
-                 struct_field_binding_rows, domain_constant_rows, compatibility_versions_data,
+                 struct_field_binding_rows, domain_constant_rows, hardware_rows, compatibility_versions_data,
                  include_min_versions_data, includes_payload, other_payload,
                  api_input_value_domains, api_input_semantic_kinds, api_input_type_overrides,
                  naming_rules_payload)

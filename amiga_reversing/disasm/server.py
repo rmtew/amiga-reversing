@@ -307,6 +307,59 @@ def _not_ready_reproduction_payload(
     return payload
 
 
+def _active_reproduction_job(
+    project_name: str, cache_key: str | None = None
+) -> AsyncJobPayload | None:
+    with _JOB_LOCK:
+        for job in _ASYNC_JOBS.values():
+            if (
+                job["job_kind"] == "reproduction"
+                and job["project_id"] == project_name
+                and job["status"] in {"queued", "building"}
+                and (cache_key is None or job.get("cache_key") == cache_key)
+            ):
+                return cast(AsyncJobPayload, dict(job))
+    return None
+
+
+def _reproduction_payload_with_job(
+    report: dict[str, object], job: AsyncJobPayload | None
+) -> dict[str, object]:
+    payload = dict(report)
+    if job is not None and job["status"] in {"queued", "building"}:
+        payload["refreshing"] = True
+        payload["active_job"] = dict(job)
+    else:
+        payload["refreshing"] = False
+    return payload
+
+
+def _current_reproduction_payload(
+    project_name: str, *, auto_start: bool = False
+) -> dict[str, object]:
+    try:
+        report = load_reproduction_report(project_name, project_root=PROJECT_ROOT)
+    except Exception as exc:
+        report = _not_ready_reproduction_payload(project_name, str(exc))
+    cache_key = _reproduction_cache_key(project_name)
+    job: AsyncJobPayload | None = None
+    if "reproduction-unresolved" not in cache_key:
+        job = _active_reproduction_job(project_name, cache_key)
+        if (
+            job is None
+            and auto_start
+            and (report.get("status") == "not_ready" or bool(report.get("stale")))
+        ):
+            job = _start_reproduction_job(project_name, force=False)
+            if job["status"] == "ready":
+                try:
+                    report = load_reproduction_report(project_name, project_root=PROJECT_ROOT)
+                except Exception:
+                    pass
+                job = None
+    return _reproduction_payload_with_job(report, job)
+
+
 def _entity_annotation_values(entity: dict[str, object] | None) -> list[str]:
     if entity is None:
         return []
@@ -1273,10 +1326,7 @@ def _project_payload(project_name: str) -> ProjectPayload:
         manifest = DiskManifest.load(Path(manifest_path))
         payload["disk_manifest"] = manifest.to_dict()
     elif project.kind == "binary" and project.ready:
-        try:
-            payload["reproduction"] = load_reproduction_report(project_name, project_root=PROJECT_ROOT)
-        except Exception as exc:
-            payload["reproduction"] = _not_ready_reproduction_payload(project_name, str(exc))
+        payload["reproduction"] = _current_reproduction_payload(project_name)
     return payload
 
 
@@ -1541,11 +1591,13 @@ def route_request(
                     "ok": True,
                     "data": _not_ready_reproduction_payload(project_name),
                 }
-            try:
-                report = load_reproduction_report(project_name, project_root=PROJECT_ROOT)
-            except Exception as exc:
-                report = _not_ready_reproduction_payload(project_name, str(exc))
-            return {"ok": True, "data": report}
+            return {
+                "ok": True,
+                "data": _current_reproduction_payload(
+                    project_name,
+                    auto_start=_PROJECT_ROW_GENERATION_CACHE.get(project_name) == "full",
+                ),
+            }
         if (
             method == "POST"
             and len(parts) == 5

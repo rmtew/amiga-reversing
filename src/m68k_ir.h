@@ -132,6 +132,26 @@ typedef struct M68kAnalysisEntryComment {
   char comment[192];
 } M68kAnalysisEntryComment;
 
+#define M68K_ANALYSIS_RUNTIME_RANGE_LIMIT 64U
+#define M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT 64U
+
+typedef struct M68kAnalysisRuntimeRange {
+  uint8_t has_section_index;
+  uint8_t reserved[3];
+  uint32_t section_index;
+  uint32_t offset;
+  uint32_t size;
+  uint32_t runtime_address;
+  char name[64];
+} M68kAnalysisRuntimeRange;
+
+typedef struct M68kAnalysisRuntimeEntryPoint {
+  uint8_t has_section_index;
+  uint8_t reserved[3];
+  uint32_t section_index;
+  uint32_t runtime_address;
+} M68kAnalysisRuntimeEntryPoint;
+
 typedef struct M68kAnalysisPolicy {
   uint8_t max_cpu;
   uint8_t has_entry_offset;
@@ -141,6 +161,8 @@ typedef struct M68kAnalysisPolicy {
   uint16_t structured_data_item_count;
   uint16_t named_label_count;
   uint16_t entry_comment_count;
+  uint16_t runtime_range_count;
+  uint16_t runtime_entry_point_count;
   uint16_t reserved1;
   uint32_t entry_offset;
   M68kAnalysisRegisterSeed register_seeds[M68K_ANALYSIS_REGISTER_SEED_LIMIT];
@@ -148,6 +170,8 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisStructuredDataItem structured_data_items[M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT];
   M68kAnalysisNamedLabel named_labels[M68K_ANALYSIS_NAMED_LABEL_LIMIT];
   M68kAnalysisEntryComment entry_comments[M68K_ANALYSIS_ENTRY_COMMENT_LIMIT];
+  M68kAnalysisRuntimeRange runtime_ranges[M68K_ANALYSIS_RUNTIME_RANGE_LIMIT];
+  M68kAnalysisRuntimeEntryPoint runtime_entry_points[M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT];
 } M68kAnalysisPolicy;
 
 typedef struct M68kAnalysisFindings {
@@ -167,6 +191,8 @@ typedef enum M68kIrSymbolProvenance {
   M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA = 1,
   M68K_IR_SYMBOL_PROVENANCE_PLATFORM_ATARI_ST = 2
 } M68kIrSymbolProvenance;
+
+#define M68K_IR_SYMBOL_NAME_SIZE 256U
 
 typedef enum M68kPlatformNameDomainKind {
   M68K_PLATFORM_NAME_NONE = 0,
@@ -203,7 +229,7 @@ typedef struct M68kSymbolRefIR {
   int has_section;
   int32_t addend;
   int32_t symbolic_addend_value;
-  char name[64];
+  char name[M68K_IR_SYMBOL_NAME_SIZE];
   char symbolic_addend_name[64];
 } M68kSymbolRefIR;
 

@@ -2,6 +2,7 @@
 
 #include "m68k_decode_ir.h"
 #include "m68k_parse_util.h"
+#include "generated/m68k_cpu_runtime.h"
 #include "generated/atari_st_os_runtime.h"
 
 #include <stdio.h>
@@ -10,6 +11,10 @@
 void platform_facts_v2_resolved_call_init(PlatformFactsV2ResolvedCall *info) {
   if (info == NULL) return;
   memset(info, 0, sizeof(*info));
+}
+
+static int amiga_is_callback_vector_slot(uint32_t address) {
+  return m68k_cpu_exception_vector_address_has_kind(address, M68K_CPU_VECTOR_KIND_INTERRUPT);
 }
 
 static int facts_v2_accepted_start_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
@@ -309,6 +314,15 @@ int platform_facts_v2_resolve_stack_cleanup_call(uint8_t platform_kind,
   case M68K_PLATFORM_BACKEND_ATARI_ST:
     return atari_resolve_stack_cleanup_call(section, accepted_start, block_start, cleanup_offset,
       cleanup_instruction, out_info);
+  default:
+    return 0;
+  }
+}
+
+int platform_facts_v2_is_callback_vector_slot(uint8_t platform_kind, uint32_t address) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_is_callback_vector_slot(address);
   default:
     return 0;
   }

@@ -190,6 +190,27 @@ class _M68kAnalysisEntryComment(ctypes.Structure):
     ]
 
 
+class _M68kAnalysisRuntimeRange(ctypes.Structure):
+    _fields_ = [
+        ("has_section_index", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+        ("runtime_address", ctypes.c_uint32),
+        ("name", ctypes.c_char * 64),
+    ]
+
+
+class _M68kAnalysisRuntimeEntryPoint(ctypes.Structure):
+    _fields_ = [
+        ("has_section_index", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+        ("section_index", ctypes.c_uint32),
+        ("runtime_address", ctypes.c_uint32),
+    ]
+
+
 class _M68kAnalysisPolicy(ctypes.Structure):
     _fields_ = [
         ("max_cpu", ctypes.c_uint8),
@@ -200,6 +221,8 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("structured_data_item_count", ctypes.c_uint16),
         ("named_label_count", ctypes.c_uint16),
         ("entry_comment_count", ctypes.c_uint16),
+        ("runtime_range_count", ctypes.c_uint16),
+        ("runtime_entry_point_count", ctypes.c_uint16),
         ("reserved1", ctypes.c_uint16),
         ("entry_offset", ctypes.c_uint32),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
@@ -207,6 +230,8 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("structured_data_items", _M68kAnalysisStructuredDataItem * 256),
         ("named_labels", _M68kAnalysisNamedLabel * 128),
         ("entry_comments", _M68kAnalysisEntryComment * 128),
+        ("runtime_ranges", _M68kAnalysisRuntimeRange * 64),
+        ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
     ]
 
 
@@ -1053,6 +1078,36 @@ def test_project_source_facts_v2_asm_source_uses_dedicated_c_api(monkeypatch, tm
     ]
 
 
+def test_project_source_runtime_absolute_raw_binary_passes_runtime_entrypoint(
+    monkeypatch, tmp_path: Path
+) -> None:
+    binary_path = tmp_path / "stage.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="runtime_absolute",
+        load_address=0x400,
+        entrypoint=0x400,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    calls: list[tuple[object, ...]] = []
+
+    def fake_file_run(function_name: str, *args: object, project_root):
+        calls.append((function_name, *args))
+        return "    SECTION section,code\nloc_0_00000000:\n\trts\n"
+
+    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
+
+    facts_v2_asm_source_project_source_with_c_backend(source, project_root=tmp_path)
+
+    assert calls == [
+        ("platform_file_facts_v2_asm_source_raw_path_text_alloc", "amiga-raw", str(binary_path), 0x400, ""),
+    ]
+
+
 def test_project_source_facts_v2_asm_source_profile_uses_fast_c_api(monkeypatch, tmp_path: Path) -> None:
     binary_path = tmp_path / "boot.bin"
     binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
@@ -1871,6 +1926,47 @@ def test_real_dll_facts_v2_listing_rows_parse_sectioned_source(tmp_path: Path) -
     assert any(row.kind == "instruction" and row.opcode_or_directive == "rts" and row.bytes == b"\x4e\x75" for row in rows)
 
 
+def test_real_dll_raw_runtime_absolute_entry_uses_execution_view(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "stage.bin"
+    binary_path.write_bytes(b"\x4e\x75" + (b"\0" * 14) + b"\x4e\x75")
+    metadata_path = tmp_path / "target_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "entry_register_seeds": [],
+                "bootblock": None,
+                "resident": None,
+                "library": None,
+                "custom_structs": [],
+                "app_slot_regions": [],
+                "execution_views": [
+                    {
+                        "source_start": 0,
+                        "source_end": 18,
+                        "base_addr": 0x400,
+                        "name": "loaded_stage",
+                    }
+                ],
+                "absolute_code_labels": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    source = c_backend._platform_file_text(
+        "platform_file_facts_v2_asm_source_raw_path_text_alloc",
+        "amiga-raw",
+        str(binary_path),
+        0x410,
+        str(metadata_path),
+        project_root=PROJECT_ROOT,
+    )
+
+    assert "loc_0_00000010:\n\trts\n" in source
+
+
 def test_real_dll_facts_v2_basic_listing_rows_use_basic_api_without_source_directives(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "boot.bin"
@@ -2408,6 +2504,23 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
                         "struct_name": "LIB",
                     }
                 ],
+                "execution_views": [
+                    {
+                        "source_start": 0x20,
+                        "source_end": 0x30,
+                        "base_addr": 0x400,
+                        "name": "loaded_stage",
+                    }
+                ],
+                "absolute_code_labels": [
+                    {
+                        "addr": 0x404,
+                        "name": "stage_entry",
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "test",
+                    }
+                ],
                 "resident": {"name": "icon.library", "version": 40, "offset": 0, "hunk": 0},
             }
         ),
@@ -2422,8 +2535,14 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
         _M68kDiagSink(ctypes.pointer(generic_diagnostics)),
     ) == 0
     assert generic_policy.register_seed_count == 1
+    assert generic_policy.runtime_range_count == 1
+    assert generic_policy.runtime_ranges[0].offset == 0x20
+    assert generic_policy.runtime_ranges[0].size == 0x10
+    assert generic_policy.runtime_ranges[0].runtime_address == 0x400
     assert generic_policy.structured_data_item_count == 0
-    assert generic_policy.named_label_count == 0
+    assert generic_policy.named_label_count == 1
+    assert generic_policy.named_labels[0].offset == 0x24
+    assert generic_policy.named_labels[0].name == b"stage_entry"
 
     amiga_policy = _M68kAnalysisPolicy()
     amiga_diagnostics = M68kDiagList()
@@ -2527,15 +2646,49 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
     )
 
     assert profile["analysis_backend"] == "facts_v2"
+    facts_v2 = profile["facts_v2"]
+    assert facts_v2["asm_source_refused"] is False
+    assert facts_v2["required_instruction_failures"] == 0
+    assert facts_v2["unsupported_instruction_demotes"] == 0
+    assert facts_v2["interior_conflicts_unresolved"] == 0
     copied_stage_rows = [
         row for row in rows if row.section_index == 0 and row.start_offset == 0x5C
     ]
     assert any(row.kind == "label" and "loc_0_0000005C:" in row.text for row in copied_stage_rows)
     assert any(
-        row.kind == "instruction" and row.text.strip() == "move.w #$7FFF,$00DFF09A.l"
+        row.kind == "instruction" and row.text.strip() == "move.w #INTF_CLRALL,_custom+intena.l"
         for row in copied_stage_rows
     )
+    assert not any("BPLCON0_" in row.text for row in rows)
+    assert any(row.text.strip() == "INCLUDE \"graphics/display.i\"" for row in rows)
+    assert any("INTF_CLRALL" in row.text and "EQU" in row.text for row in rows)
+    assert any("DMAF_CLRALL" in row.text and "EQU" in row.text for row in rows)
+    assert any(
+        row.kind == "instruction"
+        and row.start_offset == 0xF4
+        and row.text.strip() == "move.w #(4<<PLNCNTSHFT)|COLORON,_custom+bplcon0.l"
+        for row in rows
+    )
+    assert any(
+        row.kind == "instruction"
+        and row.start_offset == 0x1E4
+        and row.text.strip() == "move.w #DMAF_CLRALL,_custom+dmacon.l"
+        for row in rows
+    )
+    assert any(
+        row.kind == "instruction"
+        and row.text.strip() == "move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER|DMAF_COPPER|DMAF_SPRITE,_custom+dmacon.l"
+        for row in rows
+    )
+    assert any(
+        row.kind == "instruction"
+        and row.text.strip() == "move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER|INTF_PORTS,_custom+intena.l"
+        for row in rows
+    )
     assert not any(row.kind == "data" for row in copied_stage_rows)
+    labels = {row.text.strip() for row in rows if row.section_index == 0 and row.kind == "label"}
+    assert {"loc_0_0000022A:", "loc_0_00008500:", "loc_0_0000887C:", "loc_0_00008924:"} <= labels
+    assert {"loc_0_000005CE:", "loc_0_000088A4:", "loc_0_00008C20:", "loc_0_00008CC8:"}.isdisjoint(labels)
 
 
 def test_real_dll_inspects_and_extracts_dos_disk_entry() -> None:

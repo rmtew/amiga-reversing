@@ -8,6 +8,7 @@
 #include "m68k_source_text_util.h"
 
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -519,6 +520,7 @@ static int lookup_symbol_equate_value(const char *name, int32_t *out_value) {
   const AmigaOsLibraryVectorInfo *amiga_vector;
   const AtariStOsCallInfo *atari_call;
   const AmigaOsStructFieldInfo *amiga_field;
+  uint32_t amiga_hardware_base_address = 0U;
   if (name == NULL || name[0] == '\0' || out_value == NULL) return 0;
   atari_call = atari_st_os_find_call_by_symbol_name(name);
   if (atari_call != NULL) {
@@ -533,6 +535,11 @@ static int lookup_symbol_equate_value(const char *name, int32_t *out_value) {
   amiga_field = amiga_os_find_struct_field_by_symbol_name(name);
   if (amiga_field != NULL) {
     *out_value = amiga_field->offset;
+    return 1;
+  }
+  if (amiga_os_find_hardware_base_address(name, &amiga_hardware_base_address) &&
+      amiga_hardware_base_address <= (uint32_t)INT32_MAX) {
+    *out_value = (int32_t)amiga_hardware_base_address;
     return 1;
   }
   if (amiga_os_find_constant_value(name, out_value)) return 1;
@@ -811,6 +818,12 @@ static int render_equate_is_app_extension_symbol(const RenderEquate *equate, int
   return 1;
 }
 
+static void format_render_equate_value(int32_t value, char *out_text, size_t out_text_size) {
+  if (out_text == NULL || out_text_size == 0U) return;
+  if (value >= 0) snprintf(out_text, out_text_size, "$%X", (unsigned)value);
+  else snprintf(out_text, out_text_size, "%d", (int)value);
+}
+
 static int append_exact_rs_byte_gap(JsonBuilder *builder, int32_t gap, const char *directive_prefix) {
   if (gap <= 0) return 0;
   return json_builder_appendf(builder, "%sRS.B %d\n", directive_prefix, (int)gap);
@@ -991,8 +1004,10 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
   if (append_needed_amiga_app_extension_rs(builder, equates, equate_count, source_file, label_indexes, has_app_sizeof_value,
         app_sizeof_value, syntax_mode) != 0) return -1;
   for (section_index = 0; section_index < equate_count; ++section_index) {
+    char value_text[32];
     if (equates[section_index].consumed != 0U) continue;
-    if (json_builder_appendf(builder, "%s EQU %d\n", equates[section_index].name, (int)equates[section_index].value) != 0)
+    format_render_equate_value(equates[section_index].value, value_text, sizeof(value_text));
+    if (json_builder_appendf(builder, "%s EQU %s\n", equates[section_index].name, value_text) != 0)
       return -1;
   }
   if (equate_count != 0U && json_builder_append(builder, "\n") != 0) return -1;

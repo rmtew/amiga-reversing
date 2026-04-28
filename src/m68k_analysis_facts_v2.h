@@ -90,6 +90,9 @@ typedef struct M68kFactsV2Profile {
   uint32_t code_start_control_targets;
   uint32_t code_start_fallthroughs;
   uint32_t code_start_inline_resumes;
+  uint32_t runtime_address_ranges;
+  uint32_t runtime_address_range_conflicts;
+  uint32_t runtime_address_view_starts;
   uint32_t required_instruction_failures;
   uint32_t unsupported_instruction_demotes;
   uint32_t first_required_instruction_failure_section;

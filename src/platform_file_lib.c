@@ -97,6 +97,17 @@ static int copy_policy_text(char *dest, size_t dest_size, const char *source) {
   return 1;
 }
 
+static int policy_add_named_label_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
+  const char *name);
+static int policy_add_entry_comment_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
+  const char *comment);
+static int policy_add_runtime_range_local(M68kAnalysisPolicy *policy, uint32_t section_index,
+  uint32_t source_start, uint32_t source_end, uint32_t base_addr, const char *name);
+static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index,
+  uint32_t runtime_address);
+static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
+  uint32_t runtime_address, uint32_t *out_section_index, uint32_t *out_offset);
+
 int platform_file_analysis_policy_add_register_seed_arg(M68kAnalysisPolicy *policy, const char *text) {
   char buffer[256];
   char *parts[6] = {0};
@@ -395,6 +406,48 @@ static int append_metadata_entry_point_local(const char *object_start, const cha
   return platform_file_analysis_policy_add_entry_point_arg(policy, entry_arg);
 }
 
+static int append_metadata_execution_view_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  uint32_t source_start = 0U;
+  uint32_t source_end = 0U;
+  uint32_t base_addr = 0U;
+  int has_source_start = 0;
+  int has_source_end = 0;
+  int has_base_addr = 0;
+  char name[64];
+  name[0] = '\0';
+  if (!json_number_field_local(object_start, object_end, "source_start", &source_start, &has_source_start) ||
+      !json_number_field_local(object_start, object_end, "source_end", &source_end, &has_source_end) ||
+      !json_number_field_local(object_start, object_end, "base_addr", &base_addr, &has_base_addr) ||
+      !json_optional_string_field_local(object_start, object_end, "name", name, sizeof(name))) {
+    return 0;
+  }
+  if (!has_source_start || !has_source_end || !has_base_addr) return 1;
+  return policy_add_runtime_range_local(policy, 0U, source_start, source_end, base_addr, name);
+}
+
+static int append_metadata_absolute_code_label_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  uint32_t runtime_address = 0U;
+  uint32_t section_index = 0U;
+  uint32_t offset = 0U;
+  int has_addr = 0;
+  char name[64];
+  char comment[192];
+  name[0] = '\0';
+  comment[0] = '\0';
+  if (!json_number_field_local(object_start, object_end, "addr", &runtime_address, &has_addr) ||
+      !json_optional_string_field_local(object_start, object_end, "name", name, sizeof(name)) ||
+      !json_optional_string_field_local(object_start, object_end, "comment", comment, sizeof(comment))) {
+    return 0;
+  }
+  if (!has_addr || name[0] == '\0') return 1;
+  if (!policy_runtime_address_to_source_offset_local(policy, runtime_address, &section_index, &offset)) return 0;
+  if (!policy_add_named_label_local(policy, section_index, offset, name)) return 0;
+  if (comment[0] != '\0' && !policy_add_entry_comment_local(policy, section_index, offset, comment)) return 0;
+  return 1;
+}
+
 static int policy_add_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset) {
   M68kAnalysisEntryPoint *entry;
   uint16_t index;
@@ -409,6 +462,66 @@ static int policy_add_entry_point_local(M68kAnalysisPolicy *policy, uint32_t sec
   entry->section_index = section_index;
   entry->offset = offset;
   return 1;
+}
+
+static int policy_add_runtime_range_local(M68kAnalysisPolicy *policy, uint32_t section_index,
+    uint32_t source_start, uint32_t source_end, uint32_t base_addr, const char *name) {
+  M68kAnalysisRuntimeRange *range;
+  uint16_t index;
+  uint32_t size;
+  if (policy == NULL || source_end < source_start ||
+      policy->runtime_range_count >= M68K_ANALYSIS_RUNTIME_RANGE_LIMIT) return 0;
+  size = source_end - source_start;
+  for (index = 0U; index < policy->runtime_range_count; ++index) {
+    const M68kAnalysisRuntimeRange *existing = &policy->runtime_ranges[index];
+    if (existing->has_section_index && existing->section_index == section_index &&
+        existing->offset == source_start && existing->size == size &&
+        existing->runtime_address == base_addr) return 1;
+  }
+  range = &policy->runtime_ranges[policy->runtime_range_count++];
+  memset(range, 0, sizeof(*range));
+  range->has_section_index = 1U;
+  range->section_index = section_index;
+  range->offset = source_start;
+  range->size = size;
+  range->runtime_address = base_addr;
+  if (name != NULL && name[0] != '\0' && !copy_policy_text(range->name, sizeof(range->name), name)) return 0;
+  return 1;
+}
+
+static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index,
+    uint32_t runtime_address) {
+  M68kAnalysisRuntimeEntryPoint *entry;
+  uint16_t index;
+  if (policy == NULL || policy->runtime_entry_point_count >= M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT) return 0;
+  for (index = 0U; index < policy->runtime_entry_point_count; ++index) {
+    const M68kAnalysisRuntimeEntryPoint *existing = &policy->runtime_entry_points[index];
+    if (existing->has_section_index && existing->section_index == section_index &&
+        existing->runtime_address == runtime_address) return 1;
+  }
+  entry = &policy->runtime_entry_points[policy->runtime_entry_point_count++];
+  memset(entry, 0, sizeof(*entry));
+  entry->has_section_index = 1U;
+  entry->section_index = section_index;
+  entry->runtime_address = runtime_address;
+  return 1;
+}
+
+static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
+    uint32_t runtime_address, uint32_t *out_section_index, uint32_t *out_offset) {
+  uint16_t index;
+  if (policy == NULL || out_section_index == NULL || out_offset == NULL) return 0;
+  for (index = policy->runtime_range_count; index > 0U; --index) {
+    const M68kAnalysisRuntimeRange *range = &policy->runtime_ranges[index - 1U];
+    uint32_t delta;
+    if (!range->has_section_index || runtime_address < range->runtime_address) continue;
+    delta = runtime_address - range->runtime_address;
+    if ((range->size != 0U && delta >= range->size) || range->offset > UINT32_MAX - delta) continue;
+    *out_section_index = range->section_index;
+    *out_offset = range->offset + delta;
+    return 1;
+  }
+  return 0;
 }
 
 static void make_policy_symbol_label_local(char *out, size_t out_size, const char *symbol) {
@@ -820,11 +933,23 @@ static const char *json_find_object_field_local(const char *text, const char *ke
 static int append_metadata_bootblock_structure_local(const char *text, M68kAnalysisPolicy *policy) {
   const char *object_end = NULL;
   const char *object_start = json_find_object_field_local(text, "bootblock", &object_end);
-  uint32_t bootcode_offset = 0U;
-  int has_bootcode_offset = 0;
+  uint32_t bootcode_offset = 0U, bootcode_size = 0U, load_address = 0U, entrypoint = 0U;
+  int has_bootcode_offset = 0, has_bootcode_size = 0, has_load_address = 0, has_entrypoint = 0;
   if (object_start == NULL) return 1;
-  if (!json_number_field_local(object_start, object_end, "bootcode_offset", &bootcode_offset, &has_bootcode_offset))
+  if (!json_number_field_local(object_start, object_end, "bootcode_offset", &bootcode_offset, &has_bootcode_offset) ||
+      !json_number_field_local(object_start, object_end, "bootcode_size", &bootcode_size, &has_bootcode_size) ||
+      !json_number_field_local(object_start, object_end, "load_address", &load_address, &has_load_address) ||
+      !json_number_field_local(object_start, object_end, "entrypoint", &entrypoint, &has_entrypoint))
     return 0;
+  if (has_load_address && has_bootcode_offset) {
+    uint32_t source_end = 0U;
+    if (has_bootcode_size) {
+      if (bootcode_offset > UINT32_MAX - bootcode_size) return 0;
+      source_end = bootcode_offset + bootcode_size;
+    }
+    if (!policy_add_runtime_range_local(policy, 0U, 0U, source_end, load_address, "bootblock")) return 0;
+  }
+  if (has_entrypoint && !policy_add_runtime_entry_point_local(policy, 0U, entrypoint)) return 0;
   if (!has_bootcode_offset || bootcode_offset < 12U) return 1;
   return policy_add_entry_point_local(policy, 0U, bootcode_offset) &&
     policy_add_named_label_local(policy, 0U, bootcode_offset, "boot_entry") &&
@@ -1472,6 +1597,28 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     }
     cursor = object_end;
   }
+  cursor = json_find_array_local(text, "execution_views", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_execution_view_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata execution view");
+      return -1;
+    }
+    cursor = object_end;
+  }
+  cursor = json_find_array_local(text, "absolute_code_labels", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_absolute_code_label_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata absolute code label");
+      return -1;
+    }
+    cursor = object_end;
+  }
   return 0;
 }
 
@@ -1643,6 +1790,16 @@ static uint32_t effective_policy_analysis_start_local(const M68kAnalysisPolicy *
       have = 1;
     }
   }
+  for (index = 0U; index < policy->runtime_entry_point_count &&
+       index < M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT; ++index) {
+    uint32_t section_index = 0U;
+    uint32_t offset = 0U;
+    if (policy_runtime_address_to_source_offset_local(policy, policy->runtime_entry_points[index].runtime_address,
+        &section_index, &offset) && section_index == 0U && (!have || offset < result)) {
+      result = offset;
+      have = 1;
+    }
+  }
   return result;
 }
 
@@ -1741,7 +1898,51 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
           comment->offset, "target metadata entry comment offset is out of range for source file"))
       return 0;
   }
+  for (index = 0U; index < policy->runtime_range_count && index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++index) {
+    const M68kAnalysisRuntimeRange *range = &policy->runtime_ranges[index];
+    if (!validate_policy_section_index_local(diagnostics, object, range->has_section_index, range->section_index))
+      return 0;
+    if (!validate_policy_range_local(diagnostics, object, range->has_section_index, range->section_index,
+          range->offset, range->size))
+      return 0;
+  }
+  for (index = 0U; index < policy->runtime_entry_point_count &&
+       index < M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT; ++index) {
+    const M68kAnalysisRuntimeEntryPoint *entry = &policy->runtime_entry_points[index];
+    uint32_t section_index = 0U;
+    uint32_t offset = 0U;
+    if (!validate_policy_section_index_local(diagnostics, object, entry->has_section_index, entry->section_index))
+      return 0;
+    if (!policy_runtime_address_to_source_offset_local(policy, entry->runtime_address, &section_index, &offset) ||
+        (entry->has_section_index && section_index != entry->section_index)) {
+      platform_file_add_error(diagnostics, "target metadata runtime entrypoint is outside execution views");
+      return 0;
+    }
+    if (!validate_policy_offset_local(diagnostics, object, 1U, section_index, offset,
+          "target metadata runtime entrypoint is out of range for source file"))
+      return 0;
+  }
   return 1;
+}
+
+static int policy_set_raw_entry_address_local(M68kAnalysisPolicy *policy, const M68kObject *object,
+    uint32_t entry_address, M68kDiagList *diagnostics) {
+  uint32_t section_size = 0U;
+  uint32_t section_index = 0U;
+  uint32_t offset = 0U;
+  if (policy == NULL || object == NULL) return 0;
+  policy_section_size_local(object, 1U, 0U, &section_size);
+  if (entry_address < section_size) {
+    policy->has_entry_offset = 1U;
+    policy->entry_offset = entry_address;
+    return 1;
+  }
+  if (policy_runtime_address_to_source_offset_local(policy, entry_address, &section_index, &offset)) {
+    policy->has_entry_offset = 0U;
+    return policy_add_runtime_entry_point_local(policy, section_index, entry_address);
+  }
+  platform_file_add_error(diagnostics, "raw entrypoint is outside source bytes and execution views");
+  return 0;
 }
 
 static uint32_t read_be32_local(const uint8_t *data) {
@@ -1882,10 +2083,12 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
   if (builder == NULL || policy == NULL) return -1;
   if (json_builder_appendf(builder,
         "\"analysis_policy\":{\"max_cpu\":%u,\"entry_point_count\":%u,\"register_seed_count\":%u,"
-        "\"structured_data_item_count\":%u,\"named_label_count\":%u,\"entry_comment_count\":%u",
+        "\"structured_data_item_count\":%u,\"named_label_count\":%u,\"entry_comment_count\":%u,"
+        "\"runtime_range_count\":%u,\"runtime_entry_point_count\":%u",
         (unsigned)policy->max_cpu, (unsigned)policy->entry_point_count, (unsigned)policy->register_seed_count,
         (unsigned)policy->structured_data_item_count, (unsigned)policy->named_label_count,
-        (unsigned)policy->entry_comment_count) != 0)
+        (unsigned)policy->entry_comment_count, (unsigned)policy->runtime_range_count,
+        (unsigned)policy->runtime_entry_point_count) != 0)
     return -1;
   if (json_builder_append(builder, ",\"entrypoints\":[") != 0) return -1;
   for (index = 0U; index < policy->entry_point_count && index < M68K_ANALYSIS_ENTRY_POINT_LIMIT; ++index) {
@@ -1985,6 +2188,28 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (json_builder_append_json_string(builder, comment->comment) != 0) return -1;
     if (json_builder_append(builder, "}") != 0) return -1;
   }
+  if (json_builder_append(builder, "],\"runtime_ranges\":[") != 0) return -1;
+  for (index = 0U; index < policy->runtime_range_count && index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++index) {
+    const M68kAnalysisRuntimeRange *range = &policy->runtime_ranges[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"section_index\":") != 0) return -1;
+    if (append_nullable_u32_json_local(builder, range->has_section_index, range->section_index) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"offset\":%u,\"size\":%u,\"runtime_address\":%u,\"name\":",
+          (unsigned)range->offset, (unsigned)range->size, (unsigned)range->runtime_address) != 0)
+      return -1;
+    if (append_nullable_text_json_local(builder, range->name) != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
+  }
+  if (json_builder_append(builder, "],\"runtime_entry_points\":[") != 0) return -1;
+  for (index = 0U; index < policy->runtime_entry_point_count &&
+       index < M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT; ++index) {
+    const M68kAnalysisRuntimeEntryPoint *entry = &policy->runtime_entry_points[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"section_index\":") != 0) return -1;
+    if (append_nullable_u32_json_local(builder, entry->has_section_index, entry->section_index) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"runtime_address\":%u}", (unsigned)entry->runtime_address) != 0)
+      return -1;
+  }
   return json_builder_append(builder, "]}");
 }
 
@@ -2060,8 +2285,17 @@ static int effective_policy_json_to_alloc(const char *platform_name, const char 
   }
   object_loaded = 1;
   if (is_raw) {
-    analysis_policy->has_entry_offset = 1U;
-    analysis_policy->entry_offset = raw_entry_offset;
+    if (!policy_set_raw_entry_address_local(analysis_policy, &object, raw_entry_offset, &diagnostics)) {
+      PlatformFileTextResult error_result;
+      memset(&error_result, 0, sizeof(error_result));
+      error_result.diagnostics = diagnostics;
+      m68k_object_destroy(&object);
+      {
+        int rc = text_result_to_alloc(&error_result, out_text);
+        free(analysis_policy);
+        return rc;
+      }
+    }
   }
   enrich_policy_pointer_targets_from_object_local(analysis_policy, &object);
   if (!validate_effective_policy_against_object_local(&diagnostics, &object, analysis_policy)) {
@@ -2408,6 +2642,9 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     "\"code_start_control_targets\":%u,"
     "\"code_start_fallthroughs\":%u,"
     "\"code_start_inline_resumes\":%u,"
+    "\"runtime_address_ranges\":%u,"
+    "\"runtime_address_range_conflicts\":%u,"
+    "\"runtime_address_view_starts\":%u,"
     "\"required_instruction_failures\":%u,"
     "\"unsupported_instruction_demotes\":%u,"
     "\"first_required_instruction_failure_section\":%u,"
@@ -2515,6 +2752,9 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     (unsigned)profile->code_start_control_targets,
     (unsigned)profile->code_start_fallthroughs,
     (unsigned)profile->code_start_inline_resumes,
+    (unsigned)profile->runtime_address_ranges,
+    (unsigned)profile->runtime_address_range_conflicts,
+    (unsigned)profile->runtime_address_view_starts,
     (unsigned)profile->required_instruction_failures,
     (unsigned)profile->unsupported_instruction_demotes,
     (unsigned)profile->first_required_instruction_failure_section,
@@ -3001,8 +3241,10 @@ PlatformFileTextResult platform_file_facts_v2_analysis_raw_path_json(const char 
   if (analysis_policy != NULL) raw_analysis_policy = *analysis_policy;
   else m68k_analysis_policy_init_default(&raw_analysis_policy);
   if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&result.diagnostics)) != 0) return result;
-  raw_analysis_policy.has_entry_offset = 1U;
-  raw_analysis_policy.entry_offset = entry_offset;
+  if (!policy_set_raw_entry_address_local(&raw_analysis_policy, &object, entry_offset, &result.diagnostics)) {
+    m68k_object_destroy(&object);
+    return result;
+  }
   enrich_policy_pointer_targets_from_object_local(&raw_analysis_policy, &object);
   if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, &raw_analysis_policy)) {
     m68k_object_destroy(&object);
@@ -3203,9 +3445,12 @@ int platform_file_facts_v2_asm_source_raw_path_text_alloc(const char *platform_n
     free(analysis_policy);
     return text_result_to_alloc(&result, out_text);
   }
-  analysis_policy->has_entry_offset = 1U;
-  analysis_policy->entry_offset = entry_offset;
   if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&result.diagnostics)) != 0) {
+    free(analysis_policy);
+    return text_result_to_alloc(&result, out_text);
+  }
+  if (!policy_set_raw_entry_address_local(analysis_policy, &object, entry_offset, &result.diagnostics)) {
+    m68k_object_destroy(&object);
     free(analysis_policy);
     return text_result_to_alloc(&result, out_text);
   }
@@ -3796,9 +4041,12 @@ int platform_file_facts_v2_asm_source_raw_path_json_alloc(const char *platform_n
     free(analysis_policy);
     return text_result_to_alloc(&result, out_text);
   }
-  analysis_policy->has_entry_offset = 1U;
-  analysis_policy->entry_offset = entry_offset;
   if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&result.diagnostics)) != 0) {
+    free(analysis_policy);
+    return text_result_to_alloc(&result, out_text);
+  }
+  if (!policy_set_raw_entry_address_local(analysis_policy, &object, entry_offset, &result.diagnostics)) {
+    m68k_object_destroy(&object);
     free(analysis_policy);
     return text_result_to_alloc(&result, out_text);
   }
@@ -3869,9 +4117,8 @@ int platform_file_facts_v2_asm_source_raw_path_text_profile_alloc(const char *pl
   }
   if (configure_analysis_policy_for_alloc(analysis_policy, platform_name, metadata_path, NULL, &diagnostics) != 0)
     goto cleanup;
-  analysis_policy->has_entry_offset = 1U;
-  analysis_policy->entry_offset = entry_offset;
   if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
+  if (!policy_set_raw_entry_address_local(analysis_policy, &object, entry_offset, &diagnostics)) goto cleanup;
   enrich_policy_pointer_targets_from_object_local(analysis_policy, &object);
   if (!validate_effective_policy_against_object_local(&diagnostics, &object, analysis_policy)) goto cleanup;
   result = facts_v2_asm_source_object_text_profile_alloc(platform_name, path, &object, analysis_policy,
@@ -4042,9 +4289,8 @@ int platform_file_facts_v2_render_assemble_raw_path_bytes_profile_alloc(const ch
   }
   if (configure_analysis_policy_for_alloc(analysis_policy, platform_name, metadata_path, NULL, &diagnostics) != 0)
     goto cleanup;
-  analysis_policy->has_entry_offset = 1U;
-  analysis_policy->entry_offset = entry_offset;
   if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
+  if (!policy_set_raw_entry_address_local(analysis_policy, &object, entry_offset, &diagnostics)) goto cleanup;
   enrich_policy_pointer_targets_from_object_local(analysis_policy, &object);
   if (!validate_effective_policy_against_object_local(&diagnostics, &object, analysis_policy)) goto cleanup;
   result = facts_v2_render_assemble_object_alloc(platform_name, path, &object, analysis_policy, include_dir,
@@ -4465,9 +4711,12 @@ static int platform_file_facts_v2_listing_rows_raw_path_json_alloc_local(const c
     free(analysis_policy);
     return text_result_to_alloc(&result, out_text);
   }
-  analysis_policy->has_entry_offset = 1U;
-  analysis_policy->entry_offset = entry_offset;
   if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&result.diagnostics)) != 0) {
+    free(analysis_policy);
+    return text_result_to_alloc(&result, out_text);
+  }
+  if (!policy_set_raw_entry_address_local(analysis_policy, &object, entry_offset, &result.diagnostics)) {
+    m68k_object_destroy(&object);
     free(analysis_policy);
     return text_result_to_alloc(&result, out_text);
   }
@@ -4514,9 +4763,12 @@ int platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc(const char *pl
     free(analysis_policy);
     return text_result_to_alloc(&result, out_text);
   }
-  analysis_policy->has_entry_offset = 1U;
-  analysis_policy->entry_offset = entry_offset;
   if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&result.diagnostics)) != 0) {
+    free(analysis_policy);
+    return text_result_to_alloc(&result, out_text);
+  }
+  if (!policy_set_raw_entry_address_local(analysis_policy, &object, entry_offset, &result.diagnostics)) {
+    m68k_object_destroy(&object);
     free(analysis_policy);
     return text_result_to_alloc(&result, out_text);
   }

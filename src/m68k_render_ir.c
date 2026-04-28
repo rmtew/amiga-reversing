@@ -13,6 +13,7 @@
 #include "generated/amiga_os_runtime.h"
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -21,6 +22,8 @@ typedef struct M68kRenderLookup M68kRenderLookup;
 typedef struct M68kRenderPlatformState {
   uint8_t address_base_known[8];
   char address_base_library[8][64];
+  uint8_t address_hardware_base_known[8];
+  char address_hardware_base_symbol[8][64];
   uint8_t data_app_base_known[8];
   uint8_t address_app_base_known[8];
   uint8_t d0_lvo_known;
@@ -247,6 +250,7 @@ static void platform_state_clear_d0_lvo(M68kRenderPlatformState *state);
 static int platform_state_name_is_app_base(const char *name);
 static int operand_is_address_displacement_local(const M68kOperandIR *operand, uint8_t *out_reg,
   int16_t *out_displacement);
+static int operand_is_immediate_value_local(const M68kOperandIR *operand, uint32_t *out_value);
 static int operand_is_data_register_local(const M68kOperandIR *operand, uint8_t *out_reg);
 static int operand_address_register_index_local(const M68kOperandIR *operand, uint8_t *out_reg);
 static uint8_t app_slot_access_kind_from_instruction(const M68kInstructionIR *instruction, size_t operand_index);
@@ -423,6 +427,33 @@ static int render_asm_declare_symbol_once(M68kRenderIRPreview *preview, const ch
   return 1;
 }
 
+static int render_asm_declare_symbol_hex_once(M68kRenderIRPreview *preview, const char *symbol_name, uint32_t value) {
+  uint16_t index;
+  char line[160];
+  if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0') return 1;
+  if (preview->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 1;
+  if (!asm_symbol_name_is_safe_local(symbol_name)) {
+    ++preview->asm_source_instruction_render_failures;
+    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+    return 0;
+  }
+  for (index = 0U; index < preview->asm_source_declaration_count; ++index) {
+    if (strcmp(preview->asm_source_declarations[index], symbol_name) == 0) return 1;
+  }
+  if (preview->asm_source_declaration_count >= M68K_RENDER_ASM_DECLARATION_LIMIT) {
+    ++preview->asm_source_instruction_render_failures;
+    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+    return 0;
+  }
+  snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
+    sizeof(preview->asm_source_declarations[preview->asm_source_declaration_count]), "%s", symbol_name);
+  ++preview->asm_source_declaration_count;
+  snprintf(line, sizeof(line), "%s\tEQU\t$%X\n", symbol_name, (unsigned)value);
+  hash_asm_text(preview, line);
+  ++preview->asm_source_lines;
+  return 1;
+}
+
 static int render_asm_define_amiga_lvo_symbol_once(M68kRenderIRPreview *preview, uint16_t symbol_id) {
   const char *symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, symbol_id);
   const AmigaOsLibraryVectorInfo *vector = amiga_os_find_library_vector_by_symbol_id(symbol_id);
@@ -436,6 +467,23 @@ static int render_asm_define_amiga_lvo_symbol_once(M68kRenderIRPreview *preview,
   return render_asm_declare_symbol_once(preview, symbol_name, (int32_t)vector->lvo);
 }
 
+static int render_asm_define_amiga_hardware_base_once(M68kRenderIRPreview *preview, const char *symbol_name) {
+  uint32_t address;
+  if (symbol_name == NULL || symbol_name[0] == '\0') return 1;
+  if (!amiga_os_find_hardware_base_address(symbol_name, &address)) return 1;
+  if (address > (uint32_t)INT32_MAX) return 0;
+  return render_asm_declare_symbol_hex_once(preview, symbol_name, address);
+}
+
+static int render_asm_define_amiga_constant_once(M68kRenderIRPreview *preview, const char *symbol_name) {
+  int32_t value;
+  if (symbol_name == NULL || symbol_name[0] == '\0') return 1;
+  if (amiga_os_find_symbol_include(symbol_name) != NULL) return 1;
+  if (!amiga_os_find_constant_value(symbol_name, &value)) return 1;
+  if (value >= 0) return render_asm_declare_symbol_hex_once(preview, symbol_name, (uint32_t)value);
+  return render_asm_declare_symbol_once(preview, symbol_name, value);
+}
+
 static int render_asm_include_for_amiga_symbol(M68kRenderIRPreview *preview, const char *symbol_name) {
   const char *include_path;
   if (symbol_name == NULL || symbol_name[0] == '\0') return 1;
@@ -444,23 +492,29 @@ static int render_asm_include_for_amiga_symbol(M68kRenderIRPreview *preview, con
 }
 
 static int render_asm_include_for_symbol_expr(M68kRenderIRPreview *preview, const char *expr) {
-  char token[64];
-  size_t token_len = 0U;
-  size_t index;
+  const char *cursor;
   if (expr == NULL || expr[0] == '\0') return 1;
-  for (index = 0U;; ++index) {
-    char c = expr[index];
-    if (c == '|' || c == '\0') {
-      if (token_len == 0U || token_len >= sizeof(token)) return 0;
-      token[token_len] = '\0';
-      if (!asm_symbol_name_is_safe_local(token) || !render_asm_include_for_amiga_symbol(preview, token)) return 0;
-      token_len = 0U;
-      if (c == '\0') return 1;
-    } else {
-      if (token_len + 1U >= sizeof(token)) return 0;
-      token[token_len++] = c;
+  cursor = expr;
+  while (*cursor != '\0') {
+    char token[64];
+    size_t token_len = 0U;
+    if (!((*cursor >= 'A' && *cursor <= 'Z') || (*cursor >= 'a' && *cursor <= 'z') || *cursor == '_')) {
+      ++cursor;
+      continue;
     }
+    while ((*cursor >= 'A' && *cursor <= 'Z') || (*cursor >= 'a' && *cursor <= 'z') ||
+           (*cursor >= '0' && *cursor <= '9') || *cursor == '_') {
+      if (token_len + 1U >= sizeof(token)) return 0;
+      token[token_len++] = *cursor;
+      ++cursor;
+    }
+    token[token_len] = '\0';
+    if (!asm_symbol_name_is_safe_local(token)) return 0;
+    if (!render_asm_include_for_amiga_symbol(preview, token)) return 0;
+    if (!render_asm_define_amiga_hardware_base_once(preview, token)) return 0;
+    if (!render_asm_define_amiga_constant_once(preview, token)) return 0;
   }
+  return 1;
 }
 
 static int render_asm_include_for_amiga_symbol_id(M68kRenderIRPreview *preview, uint16_t symbol_id) {
@@ -500,12 +554,26 @@ static void platform_state_clear_register(M68kRenderPlatformState *state, uint8_
   if (state == NULL || reg_index >= 8U) return;
   state->address_base_known[reg_index] = 0U;
   state->address_base_library[reg_index][0] = '\0';
+  state->address_hardware_base_known[reg_index] = 0U;
+  state->address_hardware_base_symbol[reg_index][0] = '\0';
   state->address_app_base_known[reg_index] = 0U;
 }
 
 static void platform_state_clear_address_app_base(M68kRenderPlatformState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
   state->address_app_base_known[reg_index] = 0U;
+}
+
+static void platform_state_clear_address_hardware_base(M68kRenderPlatformState *state, uint8_t reg_index) {
+  if (state == NULL || reg_index >= 8U) return;
+  state->address_hardware_base_known[reg_index] = 0U;
+  state->address_hardware_base_symbol[reg_index][0] = '\0';
+}
+
+static void platform_state_clear_all_hardware_bases(M68kRenderPlatformState *state) {
+  if (state == NULL) return;
+  memset(state->address_hardware_base_known, 0, sizeof(state->address_hardware_base_known));
+  memset(state->address_hardware_base_symbol, 0, sizeof(state->address_hardware_base_symbol));
 }
 
 static void platform_state_clear_data_app_base(M68kRenderPlatformState *state, uint8_t reg_index) {
@@ -531,6 +599,7 @@ static void platform_state_set_register_library(M68kRenderPlatformState *state, 
   if (amiga_os_find_library_base_name(library_name) == NULL) return;
   state->address_base_known[reg_index] = 1U;
   state->address_app_base_known[reg_index] = 0U;
+  platform_state_clear_address_hardware_base(state, reg_index);
   snprintf(state->address_base_library[reg_index], sizeof(state->address_base_library[reg_index]), "%s",
     library_name);
 }
@@ -548,8 +617,23 @@ static void platform_state_set_register_app_base(M68kRenderPlatformState *state,
   } else if (reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
     state->address_base_known[reg_index] = 0U;
     state->address_base_library[reg_index][0] = '\0';
+    platform_state_clear_address_hardware_base(state, reg_index);
     state->address_app_base_known[reg_index] = 1U;
   }
+}
+
+static void platform_state_set_register_hardware_base(M68kRenderPlatformState *state, uint8_t reg_index,
+    const char *base_symbol) {
+  uint32_t base_address;
+  if (state == NULL || reg_index >= 8U || base_symbol == NULL || base_symbol[0] == '\0') return;
+  if (!amiga_os_find_hardware_base_address(base_symbol, &base_address)) return;
+  (void)base_address;
+  state->address_base_known[reg_index] = 0U;
+  state->address_base_library[reg_index][0] = '\0';
+  state->address_app_base_known[reg_index] = 0U;
+  state->address_hardware_base_known[reg_index] = 1U;
+  snprintf(state->address_hardware_base_symbol[reg_index], sizeof(state->address_hardware_base_symbol[reg_index]),
+    "%s", base_symbol);
 }
 
 static void preview_record_platform_vector(M68kRenderIRPreview *preview, const AmigaOsLibraryVectorInfo *vector) {
@@ -1408,6 +1492,61 @@ static int platform_state_operand_is_app_base(const M68kRenderPlatformState *sta
   return 0;
 }
 
+static const char *platform_state_operand_hardware_base_symbol(const M68kRenderPlatformState *state,
+    const M68kOperandIR *operand) {
+  uint8_t reg = 0U;
+  uint32_t value = 0U;
+  const char *base_symbol;
+  if (operand == NULL) return NULL;
+  if (operand_address_register_index_local(operand, &reg) && reg < 8U &&
+      state != NULL && state->address_hardware_base_known[reg]) {
+    return state->address_hardware_base_symbol[reg];
+  }
+  if (operand->symbol_ref.has_name != 0U) {
+    uint32_t base_address;
+    if (amiga_os_find_hardware_base_address(operand->symbol_ref.name, &base_address))
+      return operand->symbol_ref.name;
+  }
+  if (operand_is_immediate_value_local(operand, &value) || operand_absolute_offset_local(operand, &value)) {
+    base_symbol = amiga_os_find_hardware_base_symbol_by_address(value);
+    if (base_symbol != NULL && base_symbol[0] != '\0') return base_symbol;
+  }
+  return NULL;
+}
+
+static void platform_state_update_hardware_base_after_instruction(M68kRenderPlatformState *state,
+    const M68kInstructionIR *instruction) {
+  uint8_t dest_reg = 0U;
+  const char *source_base_symbol;
+  if (state == NULL || instruction == NULL) return;
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_RTS ||
+      instruction->mnemonic_id == M68K_ASM_MNEMONIC_RTE ||
+      instruction->mnemonic_id == M68K_ASM_MNEMONIC_JMP) {
+    platform_state_clear_all_hardware_bases(state);
+    return;
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM) {
+    if (instruction->operand_count >= 2U && instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
+      for (dest_reg = 0U; dest_reg < 8U; ++dest_reg) {
+        if (reglist_contains_address_register_local(&instruction->operands[1], dest_reg))
+          platform_state_clear_address_hardware_base(state, dest_reg);
+      }
+    }
+    return;
+  }
+  if (instruction->operand_count < 2U) return;
+  source_base_symbol = platform_state_operand_hardware_base_symbol(state, &instruction->operands[0]);
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE ||
+      instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA ||
+      instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA) {
+    const M68kOperandIR *dest = &instruction->operands[instruction->operand_count - 1U];
+    if (operand_address_register_index_local(dest, &dest_reg)) {
+      if (source_base_symbol != NULL) platform_state_set_register_hardware_base(state, dest_reg, source_base_symbol);
+      else platform_state_clear_address_hardware_base(state, dest_reg);
+    }
+  }
+}
+
 static void platform_state_update_app_base_after_instruction(M68kRenderPlatformState *state,
     const M68kInstructionIR *instruction) {
   uint8_t dest_reg = 0U;
@@ -1458,12 +1597,14 @@ static void platform_state_update_after_instruction(M68kRenderPlatformState *sta
       instruction->mnemonic_id == M68K_ASM_MNEMONIC_RTE ||
       instruction->mnemonic_id == M68K_ASM_MNEMONIC_JMP) {
     platform_state_clear_register(state, 6U);
+    platform_state_update_hardware_base_after_instruction(state, instruction);
     platform_state_update_app_base_after_instruction(state, instruction);
     return;
   }
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM) {
     if (instruction->operand_count >= 2U && reglist_contains_address_register_local(&instruction->operands[1], 6U))
       platform_state_clear_register(state, 6U);
+    platform_state_update_hardware_base_after_instruction(state, instruction);
     platform_state_update_app_base_after_instruction(state, instruction);
     return;
   }
@@ -1504,6 +1645,7 @@ static void platform_state_update_after_instruction(M68kRenderPlatformState *sta
       platform_state_clear_register(state, 6U);
     }
   }
+  platform_state_update_hardware_base_after_instruction(state, instruction);
   platform_state_update_app_base_after_instruction(state, instruction);
 }
 
@@ -1538,6 +1680,213 @@ static const AmigaOsLibraryVectorInfo *attach_amiga_lvo_symbol_if_known(const M6
   operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
   snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
   return vector;
+}
+
+static void attach_amiga_platform_symbol(M68kOperandIR *operand, const char *symbol_name) {
+  if (operand == NULL || symbol_name == NULL || symbol_name[0] == '\0') return;
+  m68k_ir_symbol_ref_init(&operand->symbol_ref);
+  operand->symbol_ref.has_name = 1U;
+  operand->symbol_ref.name_is_generated = 0U;
+  operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
+  operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
+  snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
+}
+
+static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState *state,
+    const M68kInstructionIR *source_instruction, M68kInstructionIR *instruction) {
+  size_t operand_index;
+  int attached = 0;
+  if (instruction == NULL) return 0;
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint32_t value = 0U;
+    uint8_t base_reg = 0U;
+    int16_t displacement = 0;
+    const char *base_symbol = NULL;
+    const AmigaOsHardwareRegisterInfo *hardware_register = NULL;
+    char symbol_name[64];
+    if (operand->symbol_ref.has_name != 0U) continue;
+    if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
+        state != NULL && base_reg < 8U && state->address_hardware_base_known[base_reg] &&
+        displacement >= 0) {
+      hardware_register = amiga_os_find_hardware_register_by_base_offset(
+        state->address_hardware_base_symbol[base_reg], (uint32_t)(uint16_t)displacement);
+      if (hardware_register == NULL) continue;
+      attach_amiga_platform_symbol(operand, hardware_register->symbol_name);
+      attached = 1;
+      continue;
+    }
+    if (operand_absolute_offset_local(operand, &value)) {
+      base_symbol = amiga_os_find_hardware_base_symbol_by_address(value);
+      if (source_instruction != NULL && source_instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA &&
+          base_symbol != NULL && base_symbol[0] != '\0') {
+        attach_amiga_platform_symbol(operand, base_symbol);
+        attached = 1;
+        continue;
+      }
+      hardware_register = amiga_os_find_hardware_register_by_cpu_address(value);
+      if (hardware_register != NULL) {
+        snprintf(symbol_name, sizeof(symbol_name), "%s+%s", hardware_register->base_symbol,
+          hardware_register->symbol_name);
+        attach_amiga_platform_symbol(operand, symbol_name);
+        attached = 1;
+        continue;
+      }
+      if (base_symbol != NULL && base_symbol[0] != '\0') {
+        attach_amiga_platform_symbol(operand, base_symbol);
+        attached = 1;
+      }
+      continue;
+    }
+    if (operand_is_immediate_value_local(operand, &value)) {
+      base_symbol = amiga_os_find_hardware_base_symbol_by_address(value);
+      if (base_symbol == NULL || base_symbol[0] == '\0') continue;
+      attach_amiga_platform_symbol(operand, base_symbol);
+      attached = 1;
+    }
+  }
+  return attached;
+}
+
+static const AmigaOsHardwareRegisterInfo *resolve_amiga_hardware_register_operand(const M68kRenderPlatformState *state,
+    const M68kOperandIR *operand) {
+  uint8_t base_reg = 0U;
+  int16_t displacement = 0;
+  uint32_t value = 0U;
+  if (operand == NULL) return NULL;
+  if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
+      state != NULL && base_reg < 8U && state->address_hardware_base_known[base_reg] &&
+      displacement >= 0) {
+    const char *base_symbol = state->address_hardware_base_symbol[base_reg];
+    return amiga_os_find_hardware_register_by_base_offset(base_symbol, (uint32_t)(uint16_t)displacement);
+  }
+  if (operand_absolute_offset_local(operand, &value)) return amiga_os_find_hardware_register_by_cpu_address(value);
+  return NULL;
+}
+
+static uint32_t immediate_domain_value_for_instruction_size(const M68kInstructionIR *instruction, uint32_t value) {
+  if (instruction == NULL) return value;
+  if (instruction->size_suffix == 'b') return value & 0xFFU;
+  if (instruction->size_suffix == 'w') return value & 0xFFFFU;
+  return value;
+}
+
+static int append_symbolic_expr_component(char *expr, size_t expr_size, const char *component) {
+  size_t used;
+  size_t component_len;
+  if (expr == NULL || expr_size == 0U || component == NULL || component[0] == '\0') return 0;
+  used = strlen(expr);
+  component_len = strlen(component);
+  if (used + (used != 0U ? 1U : 0U) + component_len + 1U > expr_size) return 0;
+  if (used != 0U) strcat(expr, "|");
+  strcat(expr, component);
+  return 1;
+}
+
+static int amiga_bplcon0_symbolic_expr(uint32_t value, char *expr, size_t expr_size) {
+  uint32_t word = value & 0xFFFFU;
+  uint32_t remaining = word;
+  uint32_t plane_count = (word >> 12) & 7U;
+  char component[32];
+  if (expr == NULL || expr_size == 0U) return 0;
+  expr[0] = '\0';
+  if ((word & 0x8000U) != 0U) {
+    if (!append_symbolic_expr_component(expr, expr_size, "MODE_640")) return 0;
+    remaining &= ~0x8000U;
+  }
+  if (plane_count != 0U) {
+    snprintf(component, sizeof(component), "(%u<<PLNCNTSHFT)", (unsigned)plane_count);
+    if (!append_symbolic_expr_component(expr, expr_size, component)) return 0;
+    remaining &= ~0x7000U;
+  }
+  if ((word & 0x0800U) != 0U) {
+    if (!append_symbolic_expr_component(expr, expr_size, "HOLDNMODIFY")) return 0;
+    remaining &= ~0x0800U;
+  }
+  if ((word & 0x0400U) != 0U) {
+    if (!append_symbolic_expr_component(expr, expr_size, "DBLPF")) return 0;
+    remaining &= ~0x0400U;
+  }
+  if ((word & 0x0200U) != 0U) {
+    if (!append_symbolic_expr_component(expr, expr_size, "COLORON")) return 0;
+    remaining &= ~0x0200U;
+  }
+  if ((word & 0x0004U) != 0U) {
+    if (!append_symbolic_expr_component(expr, expr_size, "INTERLACE")) return 0;
+    remaining &= ~0x0004U;
+  }
+  if (remaining != 0U) return 0;
+  return expr[0] != '\0';
+}
+
+static int amiga_hardware_register_uses_custom_immediate_expr(const AmigaOsHardwareRegisterInfo *hardware_register,
+    int use_bit_domain) {
+  if (hardware_register == NULL || use_bit_domain) return 0;
+  return strcmp(hardware_register->base_symbol, "_custom") == 0 &&
+    strcmp(hardware_register->symbol_name, "bplcon0") == 0;
+}
+
+static int amiga_hardware_register_custom_immediate_expr(const AmigaOsHardwareRegisterInfo *hardware_register,
+    uint32_t value, int use_bit_domain, char *expr, size_t expr_size) {
+  if (amiga_hardware_register_uses_custom_immediate_expr(hardware_register, use_bit_domain)) {
+    return amiga_bplcon0_symbolic_expr(value, expr, expr_size);
+  }
+  return 0;
+}
+
+static int attach_amiga_hardware_register_immediate_symbols(const M68kRenderPlatformState *state,
+    M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  const AmigaOsHardwareRegisterInfo *hardware_register = NULL;
+  uint16_t domain_id = AMIGA_OS_VALUE_DOMAIN_ID_NONE;
+  const char *domain_name = NULL;
+  size_t operand_index;
+  int use_bit_domain = 0;
+  if (instruction == NULL || instruction->operand_count < 2U) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 0;
+  use_bit_domain =
+    metadata->operation_type == M68K_SIM_OP_BIT_TEST ||
+    metadata->operation_type == M68K_SIM_OP_BIT_SET ||
+    metadata->operation_type == M68K_SIM_OP_BIT_CLEAR ||
+    metadata->operation_type == M68K_SIM_OP_BIT_CHANGE;
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    uint8_t access_kind = metadata->operand_access_kinds[operand_index];
+    if (access_kind != M68K_SIM_ACCESS_MEMORY_WRITE &&
+        access_kind != M68K_SIM_ACCESS_MEMORY_READ &&
+        access_kind != M68K_SIM_ACCESS_COMPUTE_ADDRESS) {
+      continue;
+    }
+    hardware_register = resolve_amiga_hardware_register_operand(state, &instruction->operands[operand_index]);
+    if (hardware_register == NULL) continue;
+    domain_id = use_bit_domain ? hardware_register->bit_domain_id : hardware_register->value_domain_id;
+    if (domain_id != AMIGA_OS_VALUE_DOMAIN_ID_NONE ||
+        amiga_hardware_register_uses_custom_immediate_expr(hardware_register, use_bit_domain)) {
+      break;
+    }
+  }
+  if (hardware_register == NULL) return 0;
+  if (domain_id != AMIGA_OS_VALUE_DOMAIN_ID_NONE) {
+    domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, domain_id);
+    if (domain_name == NULL || domain_name[0] == '\0') return 0;
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint32_t value = 0U;
+    char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
+    if (operand->symbol_ref.has_name != 0U) continue;
+    if (!operand_is_immediate_value_local(operand, &value)) continue;
+    if (!use_bit_domain) value = immediate_domain_value_for_instruction_size(instruction, value);
+    if (!amiga_hardware_register_custom_immediate_expr(hardware_register, value, use_bit_domain, symbol_expr,
+          sizeof(symbol_expr)) &&
+        (domain_name == NULL ||
+         !amiga_value_domain_symbolic_expr(domain_name, value, symbol_expr, sizeof(symbol_expr)))) {
+      continue;
+    }
+    attach_amiga_platform_symbol(operand, symbol_expr);
+    return 1;
+  }
+  return 0;
 }
 
 static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
@@ -1620,7 +1969,7 @@ static int render_asm_include_for_instruction_platform_symbols(M68kRenderIRPrevi
         operand->symbol_ref.name_provenance != M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA) {
       continue;
     }
-    if (!render_asm_include_for_amiga_symbol(preview, operand->symbol_ref.name)) return 0;
+    if (!render_asm_include_for_symbol_expr(preview, operand->symbol_ref.name)) return 0;
   }
   return 1;
 }
@@ -6429,7 +6778,7 @@ static int attach_amiga_next_call_input_immediate_symbol(M68kRenderIRPreview *pr
     const AmigaOsLibraryVectorInfo *vector;
     const AmigaOsCallInputInfo *input;
     const char *value_domain_name;
-    char symbol_expr[64];
+    char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
     if (!accepted_start_at(section, accepted_start_all[section->section_index], cursor)) break;
     next_candidate = find_candidate_at_offset_local(section, cursor);
     if (next_candidate == NULL || next_candidate->byte_count == 0U) break;
@@ -6614,6 +6963,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
       section, candidate, &instruction) < 0) {
     return 0;
   }
+  (void)attach_amiga_hardware_register_symbols(platform_state, &instruction, &instruction);
+  (void)attach_amiga_hardware_register_immediate_symbols(platform_state, &instruction);
   (void)attach_amiga_app_base_slot_symbols(lookup, platform_state, &instruction);
   (void)attach_amiga_typed_struct_field_symbols(typed_state, &instruction);
   if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return 0;

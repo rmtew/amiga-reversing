@@ -1340,7 +1340,7 @@ def _source_file_for_c_backend(
                 temp_path.unlink(missing_ok=True)
         return
     if isinstance(binary_source, RawBinarySource):
-        yield _CBackendSourceFile(binary_source.path, "amiga-raw", binary_source.local_entrypoint)
+        yield _CBackendSourceFile(binary_source.path, "amiga-raw", binary_source.analysis_entrypoint)
         return
     raise UnsupportedCBackendProject(f"C backend does not support binary source: {binary_source.display_path}")
 

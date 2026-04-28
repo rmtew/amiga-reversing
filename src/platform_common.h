@@ -47,5 +47,6 @@ int platform_facts_v2_resolve_stack_cleanup_call(uint8_t platform_kind,
   const struct M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t block_start,
   uint32_t cleanup_offset, const struct M68kInstructionIR *cleanup_instruction,
   PlatformFactsV2ResolvedCall *out_info);
+int platform_facts_v2_is_callback_vector_slot(uint8_t platform_kind, uint32_t address);
 
 #endif

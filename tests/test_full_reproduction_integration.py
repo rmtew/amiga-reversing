@@ -61,6 +61,9 @@ FACTS_V2_ACCEPTED_MISMATCH_KINDS = {
     "atari_relocation_target_out_of_range",
     "lossy_hunk_reloc32",
 }
+REQUIRED_EXACT_FULL_REPRO_TARGET_PREFIXES = (
+    "existing_amiga_hunk_bloodwych",
+)
 RESOURCE_IMPORT_CACHE_ROOT = PROJECT_ROOT / "bin" / "rebuilt" / "_full_repro_resource_import_cache"
 RESOURCE_DIRS = (
     PROJECT_ROOT / "resources" / "platform_amiga",
@@ -247,6 +250,11 @@ def test_all_importable_targets_reproduce(tmp_path: Path) -> None:
         overall_started_at=overall_started_at,
         setup_timing=setup_timing,
     )
+
+    required_failures = _required_exact_full_repro_target_failures(summary, limit=limit)
+    if required_failures:
+        failure_text = "\n".join(required_failures)
+        pytest.fail(f"required exact reproduction target failed:\nReport: {report_path}\n{failure_text}")
 
     if _facts_v2_structural_gate_enabled():
         gate_failures = _facts_v2_structural_gate_failures(summary)
@@ -976,6 +984,39 @@ def _facts_v2_source_gate_enabled() -> bool:
 
 def _facts_v2_reproduction_gate_enabled() -> bool:
     return os.environ.get(FULL_REPRO_FACTS_V2_REPRODUCTION_GATE_ENV) == "1"
+
+
+def _required_exact_full_repro_target_failures(summary: dict[str, object], *, limit: int | None) -> list[str]:
+    if limit is not None:
+        return []
+    targets = summary.get("targets")
+    if not isinstance(targets, list):
+        return ["missing reproduction target summary"]
+    failures: list[str] = []
+    for prefix in REQUIRED_EXACT_FULL_REPRO_TARGET_PREFIXES:
+        matches = [
+            target for target in targets
+            if isinstance(target, dict) and str(target.get("target", "")).startswith(prefix)
+        ]
+        if not matches:
+            failures.append(f"{prefix}: target did not run")
+            continue
+        exact_matches = [
+            target for target in matches
+            if target.get("status") == "exact"
+            and target.get("exact") is True
+            and target.get("comparison_status") == "exact_file"
+            and target.get("content_exact") is True
+            and target.get("canonical_full_file_exact") is True
+        ]
+        if exact_matches:
+            continue
+        statuses = ", ".join(
+            f"{target.get('target')}={target.get('status')}/{target.get('comparison_status')}"
+            for target in matches
+        )
+        failures.append(f"{prefix}: expected exact full-file reproduction, got {statuses}")
+    return failures
 
 
 def _facts_v2_structural_gate_failures(summary: dict[str, object]) -> list[str]:

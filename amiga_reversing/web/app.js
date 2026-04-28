@@ -279,8 +279,11 @@ function reproductionBadge(ready, report) {
   if (!report) {
     return {label: "Not ready", className: "project-badge-repro-not-ready", title: "No reproduction report yet"};
   }
+  if (report.refreshing || isRunningReproductionJob(report.active_job)) {
+    return {label: "Repro running", className: "project-badge-repro-stale", title: "Reproduction is running for the current listing"};
+  }
   if (report.stale) {
-    return {label: "Stale", className: "project-badge-repro-stale", title: "Reproduction inputs changed"};
+    return {label: "Needs repro", className: "project-badge-repro-stale", title: "Current listing has not been reproduced yet"};
   }
   if (report.status === "exact") {
     return {label: "Exact", className: "project-badge-repro-exact", title: "Rebuilt bytes match the original"};
@@ -304,6 +307,14 @@ function reproductionBadge(ready, report) {
     return {label: "Unsupported", className: "project-badge-repro-not-ready", title: "Exact reproduction is not supported for this target"};
   }
   return {label: "Not ready", className: "project-badge-repro-not-ready", title: report.status || "No reproduction report yet"};
+}
+
+function isRunningReproductionJob(job) {
+  return Boolean(
+    job
+    && job.job_kind === "reproduction"
+    && (job.status === "queued" || job.status === "building")
+  );
 }
 
 function refreshProjectBadges() {
@@ -616,6 +627,11 @@ async function loadReproductionReport(projectId) {
   }
   state.reproduction.report = report;
   state.reproduction.reportKey = reportKey;
+  if (isRunningReproductionJob(report?.active_job)) {
+    state.reproduction.job = report.active_job;
+  } else if (state.reproduction.job?.job_kind === "reproduction") {
+    state.reproduction.job = null;
+  }
   if (state.projectData) {
     state.projectData.reproduction = report;
   }
@@ -631,6 +647,7 @@ function reproductionReportKey(report) {
   return JSON.stringify({
     status: report.status || "",
     stale: Boolean(report.stale),
+    refreshing: Boolean(report.refreshing),
     input_stamp: report.input_stamp || null,
     issue_count: Array.isArray(report.issues) ? report.issues.length : 0,
   });
@@ -645,7 +662,7 @@ async function refreshReproductionReport(projectId) {
   }
 }
 
-async function pollReproductionReport(projectId, token, attempts = 12) {
+async function pollReproductionReport(projectId, token, attempts = 120) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     if (token !== state.loadingToken) {
       return;
@@ -654,7 +671,25 @@ async function pollReproductionReport(projectId, token, attempts = 12) {
     if (token !== state.loadingToken) {
       return;
     }
-    if (report && report.status !== "not_ready") {
+    if (isRunningReproductionJob(report?.active_job)) {
+      let finalReport = null;
+      try {
+        finalReport = await followReproductionJob(projectId, report.active_job, token);
+      } catch (error) {
+        if (String(error.message || error) === "stale") {
+          return;
+        }
+        console.warn("Background reproduction failed", error);
+        finalReport = await refreshReproductionReport(projectId);
+      }
+      if (finalReport?.status === "exact") {
+        setAnalysisStatus("Reproduction exact", "ready", 2500);
+      } else if (finalReport?.status && finalReport.status !== "not_ready") {
+        setAnalysisStatus("Reproduction needs edits", "failed", 2500);
+      }
+      return;
+    }
+    if (report && report.status !== "not_ready" && !report.stale && !report.refreshing) {
       return;
     }
     await sleep(1000);
@@ -665,8 +700,11 @@ function reproductionStatusText(report) {
   if (!report) {
     return "Not ready";
   }
+  if (report.refreshing || isRunningReproductionJob(report.active_job)) {
+    return "Running";
+  }
   if (report.stale) {
-    return "Stale";
+    return "Needs repro";
   }
   if (report.status === "exact") {
     return "Exact match";
@@ -833,24 +871,37 @@ function closeReproPanel() {
   renderReproPanel();
 }
 
-async function runReproduction(projectId) {
-  const job = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/reproduction/run`, {method: "POST"});
-  state.reproduction.job = job;
-  renderReproPanel();
-  setAnalysisStatus("Running reproduction", "running");
-  await waitForAsyncJob(
-    (jobId) => `/api/projects/${encodeURIComponent(projectId)}/reproduction/status?job_id=${encodeURIComponent(jobId)}`,
-    job,
-    state.loadingToken,
-    (currentJob) => {
-      state.reproduction.job = currentJob;
-      renderReproPanel();
-    },
-  );
+async function followReproductionJob(projectId, job, token, options = {}) {
+  if (isRunningReproductionJob(job)) {
+    state.reproduction.job = job;
+    refreshProjectBadges();
+    renderReproPanel();
+    if (options.announce) {
+      setAnalysisStatus("Running reproduction", "running");
+    }
+    await waitForAsyncJob(
+      (jobId) => `/api/projects/${encodeURIComponent(projectId)}/reproduction/status?job_id=${encodeURIComponent(jobId)}`,
+      job,
+      token,
+      (currentJob) => {
+        state.reproduction.job = currentJob;
+        refreshProjectBadges();
+        renderReproPanel();
+      },
+    );
+  }
   state.reproduction.job = null;
+  refreshProjectBadges();
+  renderReproPanel();
   const report = await loadReproductionReport(projectId);
   await loadNavigationEntries(projectId);
   renderNavigationOverlay();
+  return report;
+}
+
+async function runReproduction(projectId) {
+  const job = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/reproduction/run`, {method: "POST"});
+  const report = await followReproductionJob(projectId, job, state.loadingToken, {announce: true});
   const editNeeded = report?.status === "binary_mismatch" || report?.status === "assembler_error";
   const statusText = report?.status === "exact"
     ? "Reproduction exact"

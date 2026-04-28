@@ -312,6 +312,73 @@ def test_route_reproduction_read_run_and_status(monkeypatch: pytest.MonkeyPatch)
     disasm_server._ASYNC_JOBS.clear()
 
 
+def test_route_reproduction_stale_full_listing_exposes_background_job(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    started: list[tuple[str, bool]] = []
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = [
+        ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)
+    ]
+    disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(disasm_server, "_reproduction_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "load_reproduction_report",
+        lambda project_name, project_root=None: {
+            "target": project_name,
+            "status": "exact",
+            "stale": True,
+            "issues": [],
+        },
+    )
+
+    def start_reproduction(project_name: str, force: bool = True) -> disasm_server.AsyncJobPayload:
+        started.append((project_name, force))
+        return cast(
+            disasm_server.AsyncJobPayload,
+            {
+                "job_id": "repro-bg",
+                "job_kind": "reproduction",
+                "project_id": project_name,
+                "result_project_id": project_name,
+                "status": "queued",
+                "phase_id": "queued",
+                "phase_index": 0,
+                "phase_count": 4,
+                "progress_mode": "determinate",
+                "progress_current": 0,
+                "progress_total": 4,
+                "progress_percent": 0,
+                "total_rows": None,
+                "error": None,
+                "created_at": 1.0,
+                "finished_at": None,
+                "cache_key": "cache",
+            },
+        )
+
+    monkeypatch.setattr(disasm_server, "_start_reproduction_job", start_reproduction)
+
+    payload = disasm_server.route_request("GET", "/api/projects/bloodwych/reproduction", {})
+    data = cast(dict[str, object], payload["data"])
+    active_job = cast(dict[str, object], data["active_job"])
+
+    assert started == [("bloodwych", False)]
+    assert data["stale"] is True
+    assert data["refreshing"] is True
+    assert active_job["job_id"] == "repro-bg"
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+
+
 def test_route_project_returns_disk_manifest_for_disk_project(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

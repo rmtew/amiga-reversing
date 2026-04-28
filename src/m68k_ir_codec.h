@@ -7,7 +7,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define M68K_IR_RENDER_TEXT_SIZE 256U
+#define M68K_IR_RENDER_TEXT_SIZE 512U
 
 typedef struct M68kIrRenderResult {
   char text[M68K_IR_RENDER_TEXT_SIZE];
