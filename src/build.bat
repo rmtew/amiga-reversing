@@ -178,10 +178,20 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\m68k_plain_parse.obj ^
     %OUTDIR%\m68k_ir.obj ^
     %OUTDIR%\m68k_ir_codec.obj ^
+    %OUTDIR%\m68k_ir_symbol_resolve.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
     %OUTDIR%\m68k_source_model.obj ^
+    %OUTDIR%\m68k_source_pipeline.obj ^
+    %OUTDIR%\m68k_source_instruction_resolve.obj ^
     %OUTDIR%\m68k_source_constant_expr.obj ^
+    %OUTDIR%\m68k_source_data.obj ^
     %OUTDIR%\m68k_source_expr.obj ^
+    %OUTDIR%\m68k_source_file_emit.obj ^
+    %OUTDIR%\m68k_source_file_parse.obj ^
+    %OUTDIR%\m68k_source_include.obj ^
+    %OUTDIR%\m68k_source_resolve_rewrite.obj ^
+    %OUTDIR%\m68k_source_rewrite.obj ^
+    %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^

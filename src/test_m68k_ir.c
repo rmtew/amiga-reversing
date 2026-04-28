@@ -9,6 +9,7 @@
 #include "m68k_plain_parse.h"
 #include "m68k_render_ir.h"
 #include "m68k_source_model.h"
+#include "m68k_source_pipeline.h"
 #include "platform_atari_st.h"
 #include "util_arena.h"
 #include "generated/amiga_hunk_file_runtime.h"
@@ -625,6 +626,25 @@ static int test_decode_ir_treats_cpu_policy_as_ceiling(void) {
   M68K_C_ASSERT_INT(M68K_ASM_CPU_68030, candidate->target_cpu);
   m68k_decode_ir_destroy(&decode);
   m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_source_parse_treats_cpu_policy_as_ceiling(void) {
+  AsmSourceFile source;
+  M68kDiagList diagnostics;
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "\tmovec cacr,d0\n";
+  memset(&source, 0, sizeof(source));
+  m68k_diag_list_reset(&diagnostics);
+  source.target_cpu = M68K_ASM_CPU_68060;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&source, source_text,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(2U, source.statement_count);
+  M68K_C_ASSERT_INT(ASM_SOURCE_STMT_INSTRUCTION, source.statements[1].kind);
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_MOVEC, source.statements[1].u.instruction.parsed_ir.mnemonic_id);
+  M68K_C_ASSERT_INT(M68K_ASM_CPU_68020, source.statements[1].u.instruction.parsed_ir.target_cpu);
+  m68k_source_model_free(&source);
   return 0;
 }
 
@@ -1856,6 +1876,80 @@ static int test_facts_v2_render_asm_source_keeps_unrelocated_abs_call_numeric(vo
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_relocation_failures);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_prefers_lower_cpu_fallthrough_over_inferred_interior_target(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[14] = {
+    0x4eu, 0xb9u, 0x00u, 0x00u, 0x00u, 0x08u,
+    0x30u, 0x3cu, 0x4eu, 0x7au, 0x00u, 0x00u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #$4E7A,d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "movec") == NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000008:") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_detects_runtime_copy_jump_target(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[36] = {
+    0x41u, 0xfau, 0x00u, 0x1eu,
+    0x43u, 0xf9u, 0x00u, 0x00u, 0x01u, 0x00u,
+    0x70u, 0x03u,
+    0x12u, 0xd8u,
+    0x53u, 0x80u,
+    0x64u, 0xfau,
+    0x4eu, 0xf9u, 0x00u, 0x00u, 0x01u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0x71u, 0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp $00000100.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000020:\n\tnop\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000020:\n\tdc.b $4E,$71,$4E,$75") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;
@@ -3725,6 +3819,7 @@ int m68k_c_ir_tests(void) {
     {"arena_reset_poisons_head_block_range", test_arena_reset_poisons_head_block_range},
     {"decode_ir_decodes_aligned_candidates", test_decode_ir_decodes_aligned_candidates},
     {"decode_ir_treats_cpu_policy_as_ceiling", test_decode_ir_treats_cpu_policy_as_ceiling},
+    {"source_parse_treats_cpu_policy_as_ceiling", test_source_parse_treats_cpu_policy_as_ceiling},
     {"decode_ir_negative_cache_preserves_higher_cpu_decode",
       test_decode_ir_negative_cache_preserves_higher_cpu_decode},
     {"decode_ir_records_branch_target_candidate", test_decode_ir_records_branch_target_candidate},
@@ -3780,6 +3875,9 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_accepts_reachable_68030_pmmu},
     {"facts_v2_render_asm_source_keeps_unrelocated_abs_call_numeric",
       test_facts_v2_render_asm_source_keeps_unrelocated_abs_call_numeric},
+    {"facts_v2_prefers_lower_cpu_fallthrough_over_inferred_interior_target",
+      test_facts_v2_prefers_lower_cpu_fallthrough_over_inferred_interior_target},
+    {"facts_v2_detects_runtime_copy_jump_target", test_facts_v2_detects_runtime_copy_jump_target},
     {"facts_v2_render_asm_source_preserves_exact_byte_immediate_word",
       test_facts_v2_render_asm_source_preserves_exact_byte_immediate_word},
     {"facts_v2_render_asm_source_preserves_move_byte_immediate_high_word",

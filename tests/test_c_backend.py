@@ -2518,6 +2518,26 @@ def test_real_dll_renders_genam() -> None:
     )
 
 
+def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
+    _requires_c_backend_dlls()
+    rows, _, profile = build_project_rows_generation_with_c_backend_profile(
+        "amiga_hunk_bloodwych",
+        generation="full",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert profile["analysis_backend"] == "facts_v2"
+    copied_stage_rows = [
+        row for row in rows if row.section_index == 0 and row.start_offset == 0x5C
+    ]
+    assert any(row.kind == "label" and "loc_0_0000005C:" in row.text for row in copied_stage_rows)
+    assert any(
+        row.kind == "instruction" and row.text.strip() == "move.w #$7FFF,$00DFF09A.l"
+        for row in copied_stage_rows
+    )
+    assert not any(row.kind == "data" for row in copied_stage_rows)
+
+
 def test_real_dll_inspects_and_extracts_dos_disk_entry() -> None:
     _requires_c_backend_dlls()
     disk_path = PROJECT_ROOT / "bin" / "Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf"

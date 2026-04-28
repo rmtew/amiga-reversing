@@ -2782,9 +2782,7 @@ static void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68k
     char symbol_name[64];
     int conflict = 0;
     int32_t extent_end;
-    if (slot->conflicted != 0U || strcmp(slot->owner_name, "__amiga_app_base__") != 0) {
-      continue;
-    }
+    if (slot->conflicted != 0U || strcmp(slot->owner_name, "__amiga_app_base__") != 0) continue;
     if ((int32_t)slot->displacement < base_offset) continue;
     if (!app_base_slot_symbol_name_from_slot(slot, symbol_name, sizeof(symbol_name)) ||
         lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, slot->displacement)) {

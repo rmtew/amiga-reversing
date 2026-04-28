@@ -386,6 +386,44 @@ static int apply_current_fpu_id_to_instruction(M68kInstructionIR *instruction, u
   return 1;
 }
 
+static int parse_plain_instruction_for_cpu_ceiling(const char *text, uint8_t target_cpu,
+    M68kInstructionIR *out_instruction, M68kDiagList *diagnostics) {
+  uint8_t cpu;
+  if (out_instruction == NULL || diagnostics == NULL) return 0;
+  m68k_diag_list_reset(diagnostics);
+  *out_instruction = m68k_plain_parse_instruction_to_ir(text, target_cpu, m68k_diag_sink(diagnostics));
+  if (!m68k_diag_has_errors(diagnostics)) return 1;
+  if (target_cpu == M68K_ASM_CPU_ANY || target_cpu > M68K_ASM_CPU_68060) return 0;
+  for (cpu = M68K_ASM_CPU_68000; cpu < target_cpu; ++cpu) {
+    m68k_diag_list_reset(diagnostics);
+    *out_instruction = m68k_plain_parse_instruction_to_ir(text, cpu, m68k_diag_sink(diagnostics));
+    if (!m68k_diag_has_errors(diagnostics)) return 1;
+  }
+  return 0;
+}
+
+static int parse_symbolic_instruction_for_cpu_ceiling(const M68kSymbolicParseContext *context,
+    const char *text, M68kInstructionIR *out_instruction, char *out_fallback_line,
+    size_t out_fallback_line_size) {
+  M68kSymbolicParseContext cpu_context;
+  uint8_t cpu;
+  if (context == NULL || out_instruction == NULL) return 0;
+  if (m68k_parse_instruction_with_symbol_fallback_ir(context, text, out_instruction, out_fallback_line,
+      out_fallback_line_size)) {
+    return 1;
+  }
+  if (context->target_cpu == M68K_ASM_CPU_ANY || context->target_cpu > M68K_ASM_CPU_68060) return 0;
+  for (cpu = M68K_ASM_CPU_68000; cpu < context->target_cpu; ++cpu) {
+    cpu_context = *context;
+    cpu_context.target_cpu = cpu;
+    if (m68k_parse_instruction_with_symbol_fallback_ir(&cpu_context, text, out_instruction, out_fallback_line,
+        out_fallback_line_size)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 
 static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineReader *reader,
     M68kDiagSink diagnostics) {
@@ -881,10 +919,8 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
         return 0;
       }
       stmt = &source->statements[stmt_result.index];
-      m68k_diag_list_reset(&parse_diagnostics);
-      stmt->u.instruction.parsed_ir = m68k_plain_parse_instruction_to_ir(optimized_statement_text,
-        source->target_cpu, m68k_diag_sink(&parse_diagnostics));
-      parse_ok = !m68k_diag_has_errors(&parse_diagnostics);
+      parse_ok = parse_plain_instruction_for_cpu_ceiling(optimized_statement_text, source->target_cpu,
+        &stmt->u.instruction.parsed_ir, &parse_diagnostics);
       if (!parse_ok && current_fpu_id > 1U && statement_is_fpu_id_alias_instruction(optimized_statement_text)) {
         m68k_diag_list_reset(&parse_diagnostics);
         stmt->u.instruction.parsed_ir = m68k_plain_parse_instruction_to_ir(optimized_statement_text,
@@ -892,7 +928,7 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
         parse_ok = !m68k_diag_has_errors(&parse_diagnostics);
       }
       if (!parse_ok) {
-        parse_ok = m68k_parse_instruction_with_symbol_fallback_ir( &symbolic_parse_context, optimized_statement_text,
+        parse_ok = parse_symbolic_instruction_for_cpu_ceiling(&symbolic_parse_context, optimized_statement_text,
             &stmt->u.instruction.parsed_ir, last_symbol_fallback_line,
             sizeof(last_symbol_fallback_line));
       }

@@ -898,6 +898,30 @@ static int operand_is_stack_displacement(const M68kAsmOperandValue *operand, uin
     operand->ea_mode == 5U && operand->ea_reg == 7U && operand->value == displacement;
 }
 
+static int operand_is_postincrement_address_register(uint8_t kind, const M68kAsmOperandValue *operand,
+    uint8_t *out_reg) {
+  if (operand == NULL) return 0;
+  if (kind == M68K_ASM_OPERAND_POSTINC) {
+    if (out_reg != NULL) *out_reg = operand->reg;
+    return 1;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 3U) {
+    if (out_reg != NULL) *out_reg = operand->ea_reg;
+    return 1;
+  }
+  return 0;
+}
+
+static int operand_absolute_long_value(uint8_t kind, const M68kAsmOperandValue *operand, uint32_t *out_value) {
+  if (operand == NULL || out_value == NULL) return 0;
+  if (kind == M68K_ASM_OPERAND_ABSL ||
+      (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 7U && operand->ea_reg == 1U)) {
+    *out_value = operand->value;
+    return 1;
+  }
+  return 0;
+}
+
 static int candidate_pushes_address_reg_to_stack(const M68kDecodeCandidate *candidate, uint8_t *out_reg) {
   uint8_t reg = 0U;
   if (candidate == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_MOVE ||
@@ -1059,6 +1083,141 @@ static int candidate_is_absolute_control_transfer(const M68kDecodeCandidate *can
     (operand.ea_reg == 0U || operand.ea_reg == 1U);
 }
 
+static int candidate_absolute_jump_target(const M68kDecodeCandidate *candidate, uint32_t *out_address) {
+  if (candidate == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_JMP ||
+      candidate->operand_count != 1U || out_address == NULL)
+    return 0;
+  return operand_absolute_long_value(candidate->operand_kinds[0], &candidate->operands[0], out_address);
+}
+
+static int candidate_lea_absolute_address(const M68kDecodeCandidate *candidate, uint8_t *out_reg,
+    uint32_t *out_address) {
+  uint8_t dest_reg = 0U;
+  uint32_t address = 0U;
+  if (candidate == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_LEA ||
+      candidate->operand_count != 2U)
+    return 0;
+  if (!operand_absolute_long_value(candidate->operand_kinds[0], &candidate->operands[0], &address)) return 0;
+  if (!operand_is_address_register_direct(&candidate->operands[1], &dest_reg)) return 0;
+  if (out_reg != NULL) *out_reg = dest_reg;
+  if (out_address != NULL) *out_address = address;
+  return 1;
+}
+
+static int candidate_lea_pc_relative_data_target(const M68kDecodeCandidate *candidate, size_t section_index,
+    uint8_t *out_reg, uint32_t *out_offset) {
+  size_t target_index;
+  uint8_t dest_reg = 0U;
+  if (candidate == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_LEA ||
+      candidate->operand_count != 2U)
+    return 0;
+  if (!operand_is_address_register_direct(&candidate->operands[1], &dest_reg)) return 0;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->kind != M68K_DECODE_TARGET_DATA || !target->has_operand || target->operand_index != 0U ||
+        !target->has_section || target->section_index != section_index)
+      continue;
+    if (out_reg != NULL) *out_reg = dest_reg;
+    if (out_offset != NULL) *out_offset = target->offset;
+    return 1;
+  }
+  return 0;
+}
+
+static int candidate_is_byte_postincrement_copy(const M68kDecodeCandidate *candidate, uint8_t *out_source_reg,
+    uint8_t *out_dest_reg) {
+  uint8_t source_reg = 0U;
+  uint8_t dest_reg = 0U;
+  if (candidate == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_MOVE ||
+      candidate->size_suffix != 'b' || candidate->operand_count != 2U)
+    return 0;
+  if (!operand_is_postincrement_address_register(candidate->operand_kinds[0], &candidate->operands[0],
+      &source_reg))
+    return 0;
+  if (!operand_is_postincrement_address_register(candidate->operand_kinds[1], &candidate->operands[1],
+      &dest_reg))
+    return 0;
+  if (out_source_reg != NULL) *out_source_reg = source_reg;
+  if (out_dest_reg != NULL) *out_dest_reg = dest_reg;
+  return 1;
+}
+
+static int find_runtime_copy_source_for_jump(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kDecodeCandidate *jump_candidate,
+    uint32_t *out_source_offset) {
+  uint8_t reg_has_source[8] = {0};
+  uint8_t reg_has_address[8] = {0};
+  uint32_t reg_source_offset[8] = {0};
+  uint32_t reg_address[8] = {0};
+  uint32_t jump_address = 0U;
+  uint32_t scan_start;
+  uint32_t offset;
+  if (section == NULL || accepted_start == NULL || jump_candidate == NULL || out_source_offset == NULL)
+    return 0;
+  if (!candidate_absolute_jump_target(jump_candidate, &jump_address)) return 0;
+  scan_start = jump_candidate->offset > 192U ? jump_candidate->offset - 192U : 0U;
+  for (offset = scan_start; offset < jump_candidate->offset; offset += 2U) {
+    const M68kDecodeCandidate *candidate;
+    uint8_t reg = 0U;
+    uint8_t source_reg = 0U;
+    uint8_t dest_reg = 0U;
+    uint32_t value = 0U;
+    if (offset >= section->size || accepted_start[offset] == 0U) continue;
+    candidate = m68k_decode_ir_find_candidate_at_offset(section, offset);
+    if (candidate == NULL) continue;
+    if (candidate_lea_pc_relative_data_target(candidate, section->section_index, &reg, &value)) {
+      reg_has_source[reg] = 1U;
+      reg_source_offset[reg] = value;
+      continue;
+    }
+    if (candidate_lea_absolute_address(candidate, &reg, &value)) {
+      reg_has_address[reg] = 1U;
+      reg_address[reg] = value;
+      continue;
+    }
+    if (!candidate_is_byte_postincrement_copy(candidate, &source_reg, &dest_reg)) continue;
+    if (!reg_has_source[source_reg] || !reg_has_address[dest_reg]) continue;
+    if (reg_address[dest_reg] != jump_address) continue;
+    *out_source_offset = reg_source_offset[source_reg];
+    return 1;
+  }
+  return 0;
+}
+
+static int enqueue_runtime_copy_control_target(M68kDecodeIR *decode, M68kFactIR *facts,
+    M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
+    const M68kDecodeCandidate *candidate) {
+  const M68kDecodeSectionIR *section;
+  const M68kDecodeCandidate *target_candidate = NULL;
+  uint32_t source_offset = 0U;
+  if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      profile == NULL || candidate == NULL || section_index >= decode->section_count)
+    return 0;
+  section = &decode->sections[section_index];
+  if (!find_runtime_copy_source_for_jump(section, accepted_start[section_index], candidate, &source_offset))
+    return 0;
+  if (source_offset >= section->size || (source_offset & 1U) != 0U) return 0;
+  if (accepted_start[section_index][source_offset]) return 0;
+  if (accepted_offset_is_interior(section, accepted_start[section_index], accepted_bytes[section_index],
+      source_offset)) {
+    if (append_violation_fact(facts, section_index, candidate->offset, source_offset) != 0) return -1;
+    return 0;
+  }
+  if (m68k_decode_ir_ensure_candidate_at(decode, section_index, source_offset, max_cpu, &target_candidate,
+      m68k_diag_sink(NULL)) != 0)
+    return -1;
+  if (target_candidate == NULL) return 0;
+  if (append_xref_fact(facts, section_index, candidate->offset, source_offset,
+      M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0)
+    return -1;
+  if (m68k_fact_ir_require_label(facts, section_index, source_offset, M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0)
+    return -1;
+  return enqueue_code_start(facts, queue, profile, section_index, source_offset,
+    M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
+    section_index, candidate->offset);
+}
+
 static int enqueue_relocated_control_target(M68kDecodeIR *decode, M68kFactIR *facts,
     const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
     uint8_t **accepted_start, uint8_t **accepted_bytes,
@@ -1138,6 +1297,20 @@ static int candidate_overlaps_accepted_bytes(const uint8_t *accepted_bytes,
   return 0;
 }
 
+static const M68kFact *find_accepted_code_fact(const M68kFactIR *facts, size_t section_index,
+    uint32_t offset) {
+  size_t fact_index;
+  if (facts == NULL) return NULL;
+  for (fact_index = facts->fact_count; fact_index > 0U; --fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index - 1U];
+    if (fact->kind == M68K_FACT_CODE_ACCEPTED && fact->section_index == section_index &&
+        fact->offset == offset) {
+      return fact;
+    }
+  }
+  return NULL;
+}
+
 static void clear_accepted_candidate(uint8_t *accepted_start, uint8_t *accepted_bytes,
     const M68kDecodeCandidate *candidate, uint32_t *accepted_count) {
   uint32_t byte_index;
@@ -1147,6 +1320,53 @@ static void clear_accepted_candidate(uint8_t *accepted_start, uint8_t *accepted_
   for (byte_index = 0U; byte_index < candidate->byte_count; ++byte_index)
     accepted_bytes[candidate->offset + byte_index] = 0U;
   if (accepted_count != NULL && *accepted_count != 0U) --*accepted_count;
+}
+
+static int fallthrough_candidate_should_replace_overlap(const M68kFactIR *facts,
+    const M68kFactsV2WorkItem *item, const M68kDecodeCandidate *candidate,
+    const M68kDecodeCandidate *existing) {
+  const M68kFact *existing_fact;
+  if (facts == NULL || item == NULL || candidate == NULL || existing == NULL) return 0;
+  if (item->reason != M68K_FACT_CODE_START_REASON_FALLTHROUGH) return 0;
+  if (candidate->offset >= existing->offset) return 0;
+  if (candidate->target_cpu >= existing->target_cpu) return 0;
+  existing_fact = find_accepted_code_fact(facts, item->section_index, existing->offset);
+  if (existing_fact == NULL) return 0;
+  if (existing_fact->confidence >= M68K_FACT_CONFIDENCE_REQUIRED) return 0;
+  return existing_fact->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET;
+}
+
+static int replace_overlapping_inferred_targets_if_preferred(M68kFactIR *facts,
+    const M68kFactsV2WorkItem *item, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    uint32_t *accepted_count) {
+  uint32_t offset;
+  uint32_t end;
+  int replaced = 0;
+  if (facts == NULL || item == NULL || section == NULL || candidate == NULL || accepted_start == NULL ||
+      accepted_bytes == NULL || accepted_count == NULL) {
+    return 0;
+  }
+  if (candidate->offset > section->size || candidate->byte_count > section->size - candidate->offset)
+    return 0;
+  end = candidate->offset + candidate->byte_count;
+  for (offset = candidate->offset; offset < end; ++offset) {
+    const M68kDecodeCandidate *existing;
+    if (accepted_start[item->section_index][offset] == 0U) continue;
+    existing = m68k_decode_ir_find_candidate_at_offset(section, offset);
+    if (existing == NULL) return 0;
+    if (!fallthrough_candidate_should_replace_overlap(facts, item, candidate, existing)) return 0;
+  }
+  for (offset = candidate->offset; offset < end; ++offset) {
+    const M68kDecodeCandidate *existing;
+    if (accepted_start[item->section_index][offset] == 0U) continue;
+    existing = m68k_decode_ir_find_candidate_at_offset(section, offset);
+    if (existing == NULL) return -1;
+    clear_accepted_candidate(accepted_start[item->section_index], accepted_bytes[item->section_index],
+      existing, accepted_count);
+    replaced = 1;
+  }
+  return replaced;
 }
 
 static int rebuild_accepted_bytes_from_starts(const M68kDecodeIR *decode, uint8_t **accepted_start,
@@ -1236,7 +1456,8 @@ static int reject_or_demote_unsafe_candidate(M68kFactIR *facts, const M68kFactsV
 
 static int validate_reachable_candidate_for_acceptance(const M68kAnalysisPolicy *policy, M68kFactIR *facts,
     const M68kFactsV2WorkItem *item, const M68kDecodeSectionIR *section,
-    const M68kDecodeCandidate *candidate, uint8_t **accepted_bytes, M68kFactsV2Profile *profile) {
+    const M68kDecodeCandidate *candidate, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    uint32_t *accepted_count, M68kFactsV2Profile *profile) {
   uint32_t structured_offset = 0U;
   uint32_t invalid_target_offset = 0U;
   int reject_result;
@@ -1257,6 +1478,10 @@ static int validate_reachable_candidate_for_acceptance(const M68kAnalysisPolicy 
     if (reject_result > 0) return 1;
   }
   if (candidate_overlaps_accepted_bytes(accepted_bytes[item->section_index], candidate, section->size)) {
+    int replace_result = replace_overlapping_inferred_targets_if_preferred(facts, item, section, candidate,
+      accepted_start, accepted_bytes, accepted_count);
+    if (replace_result < 0) return -1;
+    if (replace_result > 0) return 0;
     reject_result = reject_or_demote_unsafe_candidate(facts, item, profile);
     if (reject_result < 0) return -1;
     if (reject_result > 0) return 1;
@@ -1308,7 +1533,9 @@ static int demote_required_label_conflicts(const M68kDecodeIR *decode,
     const M68kFact *fact = &facts->facts[fact_index];
     const M68kDecodeSectionIR *section;
     const M68kDecodeCandidate *candidate;
-    if (fact->kind != M68K_FACT_LABEL_REQUIRED || fact->section_index >= decode->section_count) continue;
+    if (fact->kind != M68K_FACT_LABEL_REQUIRED || fact->confidence < M68K_FACT_CONFIDENCE_REQUIRED ||
+        fact->section_index >= decode->section_count)
+      continue;
     section = &decode->sections[fact->section_index];
     if (!accepted_offset_is_interior(section, accepted_start[fact->section_index],
         accepted_bytes[fact->section_index], fact->offset)) {
@@ -1486,7 +1713,9 @@ static uint32_t resolve_required_label_invariants(const M68kDecodeIR *decode, ui
   for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
     const M68kFact *fact = &facts->facts[fact_index];
     const M68kDecodeSectionIR *section;
-    if (fact->kind != M68K_FACT_LABEL_REQUIRED || fact->section_index >= decode->section_count) continue;
+    if (fact->kind != M68K_FACT_LABEL_REQUIRED || fact->confidence < M68K_FACT_CONFIDENCE_REQUIRED ||
+        fact->section_index >= decode->section_count)
+      continue;
     section = &decode->sections[fact->section_index];
     if (label_lookup_has_label(label_lookup, facts, fact->section_index, fact->offset)) continue;
     ++unresolved;
@@ -1541,7 +1770,7 @@ static int run_reachable_fixed_point(M68kDecodeIR *decode, M68kFactIR *facts,
     candidate = &candidate_copy;
     phase_start = profile_phase_start_local(profile_reachable_phases);
     validation_result = validate_reachable_candidate_for_acceptance(policy, facts, &item, section, candidate,
-      accepted_bytes, profile);
+      accepted_start, accepted_bytes, &accepted_count, profile);
     profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_validate_seconds,
       phase_start);
     if (validation_result < 0) return -1;
@@ -1556,6 +1785,9 @@ static int run_reachable_fixed_point(M68kDecodeIR *decode, M68kFactIR *facts,
       fact.confidence = item.confidence;
       fact.section_index = item.section_index;
       fact.offset = item.offset;
+      fact.reason = item.reason;
+      fact.source_section_index = item.source_section_index;
+      fact.source_offset = item.source_offset;
       fact.size = candidate->byte_count;
       if (m68k_fact_ir_append(facts, &fact) != 0) return -1;
     }
@@ -1590,6 +1822,8 @@ static int run_reachable_fixed_point(M68kDecodeIR *decode, M68kFactIR *facts,
       phase_start);
     phase_start = profile_phase_start_local(profile_reachable_phases);
     if (enqueue_relocated_control_target(decode, facts, relocation_lookup, queue, accepted_start, accepted_bytes,
+        profile, max_cpu, item.section_index, candidate) != 0) return -1;
+    if (enqueue_runtime_copy_control_target(decode, facts, queue, accepted_start, accepted_bytes,
         profile, max_cpu, item.section_index, candidate) != 0) return -1;
     profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_relocation_seconds,
       phase_start);
