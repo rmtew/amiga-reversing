@@ -940,8 +940,19 @@ def hardware_register_range_rows(
     if not isinstance(manual_registers, list):
         return []
     rows: list[tuple[str, int, int, int, str, str]] = []
+    manual_by_offset: dict[int, dict] = {}
+    for item in manual_registers:
+        if not isinstance(item, dict):
+            continue
+        try:
+            manual_offset = int(str(item.get("address")), 0)
+        except (TypeError, ValueError):
+            continue
+        manual_by_offset[manual_offset] = item
+    hardware_start_offsets = sorted({row[2] for row in hardware_rows})
     for base_symbol, base_address, offset, symbol_name, include_path, _, _, _, _ in hardware_rows:
         numbered_offsets: list[int] = []
+        next_hardware_offset = next((candidate for candidate in hardware_start_offsets if candidate > offset), None)
         prefix = symbol_name.upper()
         if not prefix:
             continue
@@ -959,11 +970,18 @@ def hardware_register_range_rows(
             except (TypeError, ValueError):
                 continue
             numbered_offsets.append(manual_offset)
-        if len(numbered_offsets) < 2 or min(numbered_offsets) != offset:
+        if len(numbered_offsets) >= 2 and min(numbered_offsets) == offset:
+            size = max(numbered_offsets) + 2 - offset
+            if size > 0:
+                rows.append((base_symbol, base_address, offset, size, symbol_name, include_path))
+        if not bool(manual_by_offset.get(offset, {}).get("pointer_pair")):
             continue
-        size = max(numbered_offsets) + 2 - offset
-        if size > 0:
-            rows.append((base_symbol, base_address, offset, size, symbol_name, include_path))
+        range_end = offset
+        while bool(manual_by_offset.get(range_end, {}).get("pointer_pair")) and (
+            next_hardware_offset is None or range_end < next_hardware_offset):
+            range_end += 2
+        if range_end > offset + 2:
+            rows.append((base_symbol, base_address, offset, range_end - offset, symbol_name, include_path))
     return sorted(set(rows), key=lambda row: (row[1], row[2], row[4]))
 
 

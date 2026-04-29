@@ -2161,6 +2161,10 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
             "4e75"
             "01004200"
             "00e01234"
+            "00e25678"
+            "013e0000"
+            "009c8010"
+            "2c07fffe"
             "fffffffe"
         )
     )
@@ -2172,7 +2176,7 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
                 "execution_views": [
                     {
                         "source_start": 0,
-                        "source_end": 24,
+                        "source_end": 40,
                         "base_addr": 0,
                         "name": "loaded_stage",
                     }
@@ -2194,11 +2198,16 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
         )
     )["listing"]
     rows = rows_from_c_listing_json(payload)
-    copper_row = next(row for row in rows if row.addr == 0x0C and row.kind == "data")
+    copper_rows = {row.addr: row for row in rows if row.kind == "data" and row.addr is not None}
 
-    assert copper_row.kind == "data"
-    assert copper_row.data_class == "copper_list"
-    assert copper_row.text.strip() == "dc.w bplcon0,$4200"
+    assert copper_rows[0x0C].data_class == "copper_list"
+    assert copper_rows[0x0C].text.strip() == "dc.w bplcon0,(4<<PLNCNTSHFT)|COLORON"
+    assert copper_rows[0x10].text.strip() == "dc.w bplpt,$1234"
+    assert copper_rows[0x14].text.strip() == "dc.w bplpt+$02,$5678"
+    assert copper_rows[0x18].text.strip() == "dc.w sprpt+$1E,$0000"
+    assert copper_rows[0x1C].text.strip() == "dc.w intreq,INTF_SETCLR|INTF_COPER"
+    assert copper_rows[0x20].text.strip() == "dc.w COPPER_WAIT|$2C06,$FFFE"
+    assert copper_rows[0x24].text.strip() == "dc.w $FFFF,$FFFE"
 
 
 def test_real_dll_facts_v2_basic_listing_rows_use_basic_api_without_source_directives(tmp_path: Path) -> None:
@@ -2927,8 +2936,11 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "ORG $5C" not in source_text
     assert "loc_0_0000005C\tEQU" not in source_text
     assert "\tmove.l #loc_0_00008E10,_custom+cop1lc.l\n" in source_text
-    assert "loc_0_00008E10:\n\tdc.w bplpt,$0007\n" in source_text
+    assert "loc_0_00008E10:\n\tdc.w bplpt,$0007\n\tdc.w bplpt+$02,$0000\n" in source_text
     assert "loc_0_00008E30:\n\tdc.w sprpt,$0000\n" in source_text
+    assert "\tdc.w sprpt+$1E,$0000\n" in source_text
+    assert "\tdc.w COPPER_WAIT|$9800,$FF00\n" in source_text
+    assert "\tdc.w intreq,INTF_SETCLR|INTF_COPER\n" in source_text
     assert "m68k_vector_level_3_interrupt_autovector\tEQU\t$6C" in source_text
     assert "\tmove.l #loc_0_00008C20,m68k_vector_level_3_interrupt_autovector.w\n" in source_text
     assert "$00DFF" not in source_text

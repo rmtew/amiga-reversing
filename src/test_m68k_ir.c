@@ -3038,7 +3038,7 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   const char *section_line;
   const char *custom_include_line;
   const char *intf_decl_line;
-  uint8_t bytes[78] = {
+  uint8_t bytes[86] = {
     0x41u, 0xF9u, 0x00u, 0xDFu, 0xF0u, 0x00u,
     0x31u, 0x7Cu, 0x7Fu, 0xFFu, 0x00u, 0x9Au,
     0x31u, 0x7Cu, 0xC0u, 0x00u, 0x00u, 0x9Au,
@@ -3050,6 +3050,8 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
     0x33u, 0xFCu, 0x42u, 0x00u, 0x00u, 0xDFu, 0xF1u, 0x00u,
     0x21u, 0xFCu, 0x12u, 0x34u, 0x56u, 0x78u, 0x00u, 0x6Cu,
     0x33u, 0xC0u, 0x00u, 0xDFu, 0xF1u, 0x9Eu,
+    0x31u, 0x40u, 0x00u, 0xE2u,
+    0x31u, 0x40u, 0x01u, 0x3Eu,
     0x2Cu, 0x78u, 0x00u, 0x04u,
     0x4Eu, 0x75u
   };
@@ -3094,6 +3096,8 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   M68K_C_ASSERT(strstr(source,
     "\tmove.l #$12345678,m68k_vector_level_3_interrupt_autovector.w\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,_custom+color+$1E.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w d0,bplpt+$02(a0)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w d0,sprpt+$1E(a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l $0004.w,a6\n") != NULL);
   M68K_C_ASSERT(strstr(source, "m68k_vector_initial_pc") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
@@ -3114,6 +3118,16 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
     amiga_os_find_hardware_register_field_by_cpu_address(0x00DFF0A4U);
   const AmigaOsHardwareRegisterFieldInfo *aud0_len_by_base =
     amiga_os_find_hardware_register_field_by_base_offset("_custom", 0x00A4U);
+  const AmigaOsHardwareRegisterRangeInfo *bplpt_tail =
+    amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x00E2U);
+  const AmigaOsHardwareRegisterRangeInfo *bplpt_past_end =
+    amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x00F8U);
+  const AmigaOsHardwareRegisterRangeInfo *sprpt_tail =
+    amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x013EU);
+  const AmigaOsHardwareRegisterRangeInfo *sprpt_past_end =
+    amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x0140U);
+  const AmigaOsHardwareRegisterRangeInfo *aud0_len_as_range =
+    amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x00A4U);
   M68K_C_ASSERT(cop1lc != NULL);
   M68K_C_ASSERT(dskpt != NULL);
   M68K_C_ASSERT(intena != NULL);
@@ -3121,6 +3135,13 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
   M68K_C_ASSERT(aud0_len_by_base == aud0_len);
   M68K_C_ASSERT_STR("aud0", aud0_len->register_symbol);
   M68K_C_ASSERT_STR("ac_len", aud0_len->field_symbol);
+  M68K_C_ASSERT(bplpt_tail != NULL);
+  M68K_C_ASSERT(sprpt_tail != NULL);
+  M68K_C_ASSERT_STR("bplpt", bplpt_tail->symbol_name);
+  M68K_C_ASSERT_STR("sprpt", sprpt_tail->symbol_name);
+  M68K_C_ASSERT(bplpt_past_end == NULL);
+  M68K_C_ASSERT(sprpt_past_end == NULL);
+  M68K_C_ASSERT(aud0_len_as_range == NULL);
   M68K_C_ASSERT_STR("copper_list", cop1lc->runtime_target_role);
   M68K_C_ASSERT((cop1lc->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U);
   M68K_C_ASSERT((dskpt->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U);
@@ -4198,9 +4219,12 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   char *source = NULL;
-  uint8_t bytes[16] = {
+  uint8_t bytes[28] = {
     0x01u, 0x00u, 0x42u, 0x00u,
     0x00u, 0xE0u, 0x12u, 0x34u,
+    0x00u, 0xE2u, 0x56u, 0x78u,
+    0x01u, 0x3Eu, 0x00u, 0x00u,
+    0x00u, 0x9Cu, 0x80u, 0x10u,
     0x2Cu, 0x07u, 0xFFu, 0xFEu,
     0xFFu, 0xFFu, 0xFFu, 0xFEu
   };
@@ -4235,11 +4259,17 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "INCLUDE \"hardware/custom.i\"") != NULL);
+  M68K_C_ASSERT(strstr(source, "INCLUDE \"graphics/copper.i\"") != NULL);
+  M68K_C_ASSERT(strstr(source, "INCLUDE \"graphics/display.i\"") != NULL);
+  M68K_C_ASSERT(strstr(source, "INCLUDE \"hardware/intbits.i\"") != NULL);
   M68K_C_ASSERT(strstr(source, "copper_list:\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.w bplcon0,$4200\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\n") != NULL);
   M68K_C_ASSERT(strstr(source, "copper_patch:\n\tdc.w bplpt,$1234\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w bplpt,$1234\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.w $2C07,$FFFE\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w bplpt+$02,$5678\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w sprpt+$1E,$0000\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w intreq,INTF_SETCLR|INTF_COPER\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w COPPER_WAIT|$2C06,$FFFE\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w $FFFF,$FFFE\n") != NULL);
   M68K_C_ASSERT(strstr(source, "; copper_list") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
@@ -4286,7 +4316,9 @@ static int test_facts_v2_runtime_copper_pointer_auto_classifies_copper_list(void
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l #loc_0_0000000C,_custom+cop1lc.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_0000000C:\n\tdc.w bplcon0,$4200\n\tdc.w bplpt,$1234\n\tdc.w $FFFF,$FFFE\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "loc_0_0000000C:\n\tdc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\n\tdc.w bplpt,$1234\n"
+    "\tdc.w $FFFF,$FFFE\n") != NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 0x0CU &&

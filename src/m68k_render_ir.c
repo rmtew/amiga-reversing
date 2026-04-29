@@ -243,6 +243,12 @@ static int structured_data_item_symbolic_operand_expr(const M68kDecodeSectionIR 
     const M68kAnalysisStructuredDataItem *item, char *expr, size_t expr_size);
 static int amiga_value_domain_symbolic_expr(const char *domain_name, uint32_t value, char *expr,
     size_t expr_size);
+static int amiga_hardware_register_custom_immediate_expr(const AmigaOsHardwareRegisterInfo *hardware_register,
+  uint32_t value, int use_bit_domain, char *expr, size_t expr_size);
+static int format_amiga_hardware_register_field_symbol(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
+  int include_hardware_base, char *buf, size_t buf_size);
+static int format_amiga_hardware_register_range_symbol(const AmigaOsHardwareRegisterRangeInfo *hardware_range,
+  uint32_t offset, int include_hardware_base, char *buf, size_t buf_size);
 static void record_asm_source_failure(M68kRenderIRPreview *preview, uint32_t kind, size_t section_index,
     uint32_t offset, uint32_t aux_offset);
 static void record_numeric_runtime_ref(M68kRenderIRPreview *preview, const M68kFact *fact);
@@ -1403,17 +1409,41 @@ static int structured_data_item_is_copper_list(const M68kAnalysisStructuredDataI
 
 static int format_copper_register_symbol(uint16_t copper_register_word, char *buf, size_t buf_size) {
   const AmigaOsHardwareRegisterInfo *hardware_register;
+  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
+  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+  uint32_t offset = (uint32_t)(copper_register_word & 0x01FEU);
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
   if ((copper_register_word & 1U) != 0U) return 0;
-  hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom",
-    (uint32_t)(copper_register_word & 0x01FEU));
-  if (hardware_register == NULL || hardware_register->symbol_name == NULL ||
-      hardware_register->symbol_name[0] == '\0') {
-    return 0;
+  hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", offset);
+  if (hardware_register != NULL && hardware_register->symbol_name != NULL &&
+      hardware_register->symbol_name[0] != '\0') {
+    snprintf(buf, buf_size, "%s", hardware_register->symbol_name);
+    return strlen(buf) + 1U < buf_size;
   }
-  snprintf(buf, buf_size, "%s", hardware_register->symbol_name);
-  return strlen(buf) + 1U < buf_size;
+  hardware_field = amiga_os_find_hardware_register_field_by_base_offset("_custom", offset);
+  if (hardware_field != NULL && format_amiga_hardware_register_field_symbol(hardware_field, 0, buf, buf_size))
+    return 1;
+  hardware_range = amiga_os_find_hardware_register_range_by_base_offset("_custom", offset);
+  if (hardware_range != NULL && format_amiga_hardware_register_range_symbol(hardware_range, offset, 0, buf, buf_size))
+    return 1;
+  return 0;
+}
+
+static int format_copper_register_value_expr(uint16_t copper_register_word, uint16_t value, char *buf,
+    size_t buf_size) {
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  const char *domain_name;
+  uint32_t offset = (uint32_t)(copper_register_word & 0x01FEU);
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if ((copper_register_word & 1U) != 0U) return 0;
+  hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", offset);
+  if (hardware_register == NULL) return 0;
+  if (amiga_hardware_register_custom_immediate_expr(hardware_register, value, 0, buf, buf_size)) return 1;
+  if (hardware_register->value_domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) return 0;
+  domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, hardware_register->value_domain_id);
+  return amiga_value_domain_symbolic_expr(domain_name, value, buf, buf_size);
 }
 
 static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
@@ -1423,23 +1453,39 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
   if (preview == NULL || data == NULL || size == 0U) return;
   while (cursor + 4U <= size) {
     char left[64];
-    char right[16];
-    char line[192];
+    char right[96];
+    char line[256];
     uint16_t first = m68k_read_u16be(data + offset + cursor);
     uint16_t second = m68k_read_u16be(data + offset + cursor + 2U);
+    int copper_move = 0;
     if (cursor != 0U && lookup_has_renderable_label(lookup, section->section_index, offset + cursor)) {
       render_asm_label(preview, lookup, section->section_index, offset + cursor, io_logical_pc);
     }
     if (first == 0xFFFFU && second == 0xFFFEU) {
       snprintf(left, sizeof(left), "$FFFF");
+    } else if ((first & 1U) != 0U && (second & 1U) == 0U) {
+      snprintf(left, sizeof(left), "COPPER_WAIT|$%04X", (unsigned)(first & 0xFFFEU));
+      if (!render_asm_include_for_symbol_expr(preview, left)) {
+        ++preview->asm_source_instruction_render_failures;
+        record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, offset + cursor, 0U);
+        return;
+      }
     } else if (!format_copper_register_symbol(first, left, sizeof(left))) {
       snprintf(left, sizeof(left), "$%04X", (unsigned)first);
     } else if (!render_asm_include_for_symbol_expr(preview, left)) {
       ++preview->asm_source_instruction_render_failures;
       record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, offset + cursor, 0U);
       return;
+    } else {
+      copper_move = 1;
     }
-    snprintf(right, sizeof(right), "$%04X", (unsigned)second);
+    if (!copper_move || !format_copper_register_value_expr(first, second, right, sizeof(right))) {
+      snprintf(right, sizeof(right), "$%04X", (unsigned)second);
+    } else if (!render_asm_include_for_symbol_expr(preview, right)) {
+      ++preview->asm_source_instruction_render_failures;
+      record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, offset + cursor, 0U);
+      return;
+    }
     if (comment != NULL && comment[0] != '\0')
       snprintf(line, sizeof(line), "\tdc.w %s,%s\t; %s\n", left, right, comment);
     else
@@ -2057,6 +2103,7 @@ static int format_amiga_hardware_register_field_symbol(const AmigaOsHardwareRegi
 static int format_amiga_hardware_register_range_symbol(const AmigaOsHardwareRegisterRangeInfo *hardware_range,
     uint32_t offset, int include_hardware_base, char *buf, size_t buf_size) {
   uint32_t delta;
+  char delta_text[16];
   int written;
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
@@ -2065,18 +2112,19 @@ static int format_amiga_hardware_register_range_symbol(const AmigaOsHardwareRegi
     return 0;
   }
   delta = offset - hardware_range->offset;
+  snprintf(delta_text, sizeof(delta_text), delta < 0x100U ? "$%02X" : "$%X", (unsigned)delta);
   if (include_hardware_base) {
     if (hardware_range->base_symbol == NULL || hardware_range->base_symbol[0] == '\0') return 0;
     if (delta == 0U)
       written = snprintf(buf, buf_size, "%s+%s", hardware_range->base_symbol, hardware_range->symbol_name);
     else
-      written = snprintf(buf, buf_size, "%s+%s+$%X", hardware_range->base_symbol,
-        hardware_range->symbol_name, (unsigned)delta);
+      written = snprintf(buf, buf_size, "%s+%s+%s", hardware_range->base_symbol,
+        hardware_range->symbol_name, delta_text);
   } else {
     if (delta == 0U)
       written = snprintf(buf, buf_size, "%s", hardware_range->symbol_name);
     else
-      written = snprintf(buf, buf_size, "%s+$%X", hardware_range->symbol_name, (unsigned)delta);
+      written = snprintf(buf, buf_size, "%s+%s", hardware_range->symbol_name, delta_text);
   }
   return written > 0 && (size_t)written < buf_size;
 }
