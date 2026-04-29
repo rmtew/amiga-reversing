@@ -10,6 +10,7 @@ OTHER_PATH = ROOT / "knowledge" / "amiga_ndk_other_parsed.json"
 CORRECTIONS_PATH = ROOT / "knowledge" / "amiga_ndk_corrections.json"
 NAMING_RULES_PATH = ROOT / "knowledge" / "naming_rules.json"
 HW_SYMBOLS_PATH = ROOT / "knowledge" / "amiga_hw_symbols.json"
+HW_REGISTERS_PATH = ROOT / "knowledge" / "amiga_hw_registers.json"
 OUTPUT_DIR = ROOT / "src" / "generated"
 HEADER_PATH = OUTPUT_DIR / "amiga_os_runtime.h"
 SOURCE_PATH = OUTPUT_DIR / "amiga_os_runtime.c"
@@ -43,6 +44,13 @@ AMIGA_VALUE_DOMAIN_COMPOSITION_BIT_OR = 2
 
 AMIGA_VALUE_DOMAIN_REMAINDER_NONE = 0
 AMIGA_VALUE_DOMAIN_REMAINDER_ERROR = 1
+
+AMIGA_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK = 1
+
+CUSTOM_HARDWARE_REGISTER_FIELD_GROUPS: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
+    (("aud0", "aud1", "aud2", "aud3"), ("ac_ptr", "ac_len", "ac_per", "ac_vol", "ac_dat")),
+    (("spr",), ("sd_pos", "sd_ctl", "sd_dataa", "sd_dataB")),
+)
 
 HARDWARE_CLEAR_ALL_CONSTANT_ROWS: tuple[tuple[str, int, str | None], ...] = (
     ("ADKF_CLRALL", 0x7FFF, None),
@@ -813,8 +821,49 @@ def hardware_register_domains(base_symbol: str, symbol_name: str,
     return value_domain, bit_domain
 
 
-def hardware_register_rows(payload: dict, merged_domains: dict[str, dict]) -> list[tuple[str, int, int, str, str, str | None, str | None]]:
-    rows: list[tuple[str, int, int, str, str, str | None, str | None]] = []
+def hardware_register_manual_rows(payload: dict) -> dict[int, dict]:
+    rows: dict[int, dict] = {}
+    for item in payload.get("registers", []):
+        if not isinstance(item, dict):
+            continue
+        raw_address = item.get("address_68k")
+        try:
+            cpu_address = int(str(raw_address), 0)
+        except (TypeError, ValueError):
+            continue
+        rows[cpu_address] = item
+    return rows
+
+
+def hardware_register_semantic_flags(manual_row: dict | None) -> int:
+    if not isinstance(manual_row, dict):
+        return 0
+    access = str(manual_row.get("access", "")).upper()
+    function = str(manual_row.get("function", "")).lower()
+    if "W" not in access:
+        return 0
+    if "pointer" in function or "location" in function:
+        return AMIGA_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK
+    return 0
+
+
+def hardware_register_runtime_target_role(manual_row: dict | None) -> str | None:
+    if not isinstance(manual_row, dict):
+        return None
+    access = str(manual_row.get("access", "")).upper()
+    function = str(manual_row.get("function", "")).lower()
+    if "W" not in access or not manual_row.get("pointer_pair"):
+        return None
+    if "coprocessor" in function and "location" in function:
+        return "copper_list"
+    return None
+
+
+def hardware_register_rows(payload: dict, merged_domains: dict[str, dict],
+                           manual_payload: dict
+                           ) -> list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]]:
+    rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]] = []
+    manual_rows = hardware_register_manual_rows(manual_payload)
     for item in payload.get("registers", []):
         if not isinstance(item, dict):
             continue
@@ -836,8 +885,86 @@ def hardware_register_rows(payload: dict, merged_domains: dict[str, dict]) -> li
         if cpu_address < 0 or offset < 0 or base_address < 0:
             continue
         value_domain, bit_domain = hardware_register_domains(base_symbol, symbols[0], merged_domains)
-        rows.append((base_symbol, base_address, offset, symbols[0], include_path, value_domain, bit_domain))
+        manual_row = manual_rows.get(cpu_address)
+        flags = hardware_register_semantic_flags(manual_row)
+        runtime_target_role = hardware_register_runtime_target_role(manual_row)
+        rows.append((base_symbol, base_address, offset, symbols[0], include_path, value_domain, bit_domain, flags,
+                     runtime_target_role))
     return sorted(set(rows), key=lambda row: (row[1], row[2], row[3]))
+
+
+def hardware_register_field_rows(
+    hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
+                                 includes_payload: dict) -> list[tuple[str, int, int, str, int, str, str]]:
+    constants = includes_payload.get("constants", {})
+    if not isinstance(constants, dict):
+        return []
+    constant_values: dict[str, tuple[int, str]] = {}
+    for symbol_name, info in constants.items():
+        if not isinstance(symbol_name, str) or not isinstance(info, dict):
+            continue
+        value = info.get("value")
+        owner = info.get("owner", {})
+        include_path = normalize_include_path(owner.get("assembler_include_path") if isinstance(owner, dict) else None)
+        if isinstance(value, int) and include_path is not None:
+            constant_values[symbol_name] = (value, include_path)
+    registers_by_symbol = {
+        symbol_name: (base_symbol, base_address, offset, include_path)
+        for base_symbol, base_address, offset, symbol_name, include_path, _, _, _, _ in hardware_rows
+    }
+    rows: list[tuple[str, int, int, str, int, str, str]] = []
+    for register_symbols, field_symbols in CUSTOM_HARDWARE_REGISTER_FIELD_GROUPS:
+        for register_symbol in register_symbols:
+            register = registers_by_symbol.get(register_symbol)
+            if register is None:
+                continue
+            base_symbol, base_address, register_offset, register_include_path = register
+            for field_symbol in field_symbols:
+                field = constant_values.get(field_symbol)
+                if field is None:
+                    continue
+                field_offset, field_include_path = field
+                if field_offset < 0:
+                    continue
+                include_path = field_include_path or register_include_path
+                rows.append((base_symbol, base_address, register_offset, register_symbol, field_offset,
+                             field_symbol, include_path))
+    return sorted(set(rows), key=lambda row: (row[1], row[2] + row[4], row[2], row[3], row[4], row[5]))
+
+
+def hardware_register_range_rows(
+    hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
+    manual_payload: dict,
+) -> list[tuple[str, int, int, int, str, str]]:
+    manual_registers = manual_payload.get("registers", [])
+    if not isinstance(manual_registers, list):
+        return []
+    rows: list[tuple[str, int, int, int, str, str]] = []
+    for base_symbol, base_address, offset, symbol_name, include_path, _, _, _, _ in hardware_rows:
+        numbered_offsets: list[int] = []
+        prefix = symbol_name.upper()
+        if not prefix:
+            continue
+        for item in manual_registers:
+            if not isinstance(item, dict):
+                continue
+            name = item.get("name")
+            if not isinstance(name, str) or not name.upper().startswith(prefix):
+                continue
+            suffix = name[len(prefix):]
+            if not suffix.isdigit():
+                continue
+            try:
+                manual_offset = int(str(item.get("address")), 0)
+            except (TypeError, ValueError):
+                continue
+            numbered_offsets.append(manual_offset)
+        if len(numbered_offsets) < 2 or min(numbered_offsets) != offset:
+            continue
+        size = max(numbered_offsets) + 2 - offset
+        if size > 0:
+            rows.append((base_symbol, base_address, offset, size, symbol_name, include_path))
+    return sorted(set(rows), key=lambda row: (row[1], row[2], row[4]))
 
 
 def input_rows(library_name: str, function_name: str, other_info: dict, includes_payload: dict, other_payload: dict,
@@ -1075,7 +1202,7 @@ def symbol_include_rows(includes_payload: dict,
                         field_rows: list[tuple[str, int, str, str | None, int, str | None, str | None, str | None]],
                         domain_constant_rows: list[tuple[str, int, str | None]],
                         assembler_include_symbols_by_path: dict[str, set[str]] | None = None,
-                        hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None]] | None = None) -> list[tuple[str, str]]:
+                        hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]] | None = None) -> list[tuple[str, str]]:
     entries: dict[str, str] = {}
     libraries = includes_payload.get("libraries", {})
     structs = includes_payload.get("structs", {})
@@ -1115,7 +1242,7 @@ def symbol_include_rows(includes_payload: dict,
         if include_path is not None:
             entries.setdefault(symbol_name, include_path)
 
-    for _, _, _, symbol_name, include_path, _, _ in hardware_rows or []:
+    for _, _, _, symbol_name, include_path, _, _, _, _ in hardware_rows or []:
         entries.setdefault(symbol_name, include_path)
 
     return sorted(entries.items(), key=lambda row: (row[1], row[0]))
@@ -1130,7 +1257,7 @@ def build_name_domains(rows: list[tuple[str, str, int, str, dict]],
                        domain_constant_rows: list[tuple[str, int, str | None]],
                        include_min_versions_data: list[tuple[str, str]],
                        symbol_include_rows_data: list[tuple[str, str]],
-                       hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None]],
+                       hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
                        includes_payload: dict, other_payload: dict,
                        api_input_value_domains: dict[tuple[str, str, str], str],
                        api_input_semantic_kinds: dict[tuple[str, str, str], str],
@@ -1226,7 +1353,7 @@ def build_name_domains(rows: list[tuple[str, str, int, str, dict]],
     for symbol_name, include_path in symbol_include_rows_data:
         symbol_names.add(symbol_name)
         include_paths.add(include_path)
-    for _, _, _, symbol_name, include_path, value_domain_name, bit_domain_name in hardware_rows:
+    for _, _, _, symbol_name, include_path, value_domain_name, bit_domain_name, _, _ in hardware_rows:
         symbol_names.add(symbol_name)
         include_paths.add(include_path)
         if value_domain_name is not None:
@@ -1272,7 +1399,9 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
                  api_input_binding_rows: list[tuple[str, str, str, str]],
                  struct_field_binding_rows: list[tuple[str, str, str | None, str]],
                  domain_constant_rows: list[tuple[str, int, str | None]],
-                 hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None]],
+                 hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
+                 hardware_field_rows: list[tuple[str, int, int, str, int, str, str]],
+                 hardware_range_rows: list[tuple[str, int, int, int, str, str]],
                  compatibility_versions_data: list[str], include_min_versions_data: list[tuple[str, str]],
                  includes_payload: dict, other_payload: dict,
                  api_input_value_domains: dict[tuple[str, str, str], str],
@@ -1342,6 +1471,11 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "  AMIGA_OS_VALUE_DOMAIN_REMAINDER_NONE = 0,",
         "  AMIGA_OS_VALUE_DOMAIN_REMAINDER_ERROR = 1",
         "} AmigaOsValueDomainRemainderPolicy;",
+        "",
+        "typedef enum AmigaOsHardwareRegisterFlags {",
+        "  AMIGA_OS_HARDWARE_REGISTER_FLAG_NONE = 0,",
+        "  AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK = 1",
+        "} AmigaOsHardwareRegisterFlags;",
         "",
     ])
     for item in name_domain_meta:
@@ -1474,7 +1608,28 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "  const char *include_path;",
         "  uint16_t value_domain_id;",
         "  uint16_t bit_domain_id;",
+        "  uint16_t flags;",
+        "  const char *runtime_target_role;",
         "} AmigaOsHardwareRegisterInfo;",
+        "",
+        "typedef struct AmigaOsHardwareRegisterFieldInfo {",
+        "  const char *base_symbol;",
+        "  uint32_t base_address;",
+        "  uint32_t register_offset;",
+        "  const char *register_symbol;",
+        "  uint32_t field_offset;",
+        "  const char *field_symbol;",
+        "  const char *include_path;",
+        "} AmigaOsHardwareRegisterFieldInfo;",
+        "",
+        "typedef struct AmigaOsHardwareRegisterRangeInfo {",
+        "  const char *base_symbol;",
+        "  uint32_t base_address;",
+        "  uint32_t offset;",
+        "  uint32_t size;",
+        "  const char *symbol_name;",
+        "  const char *include_path;",
+        "} AmigaOsHardwareRegisterRangeInfo;",
         "",
         "uint16_t amiga_os_name_id(uint8_t domain_kind, const char *name);",
         "const char *amiga_os_name(uint8_t domain_kind, uint16_t id);",
@@ -1522,8 +1677,14 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "const AmigaOsResidentVectorPrefixInfo *amiga_os_resident_vector_prefix_at(size_t index);",
         "const AmigaOsResidentEntrySeedInfo *amiga_os_resident_entry_seed_at(size_t index);",
         "const AmigaOsHardwareRegisterInfo *amiga_os_hardware_register_at(size_t index);",
+        "const AmigaOsHardwareRegisterFieldInfo *amiga_os_hardware_register_field_at(size_t index);",
+        "const AmigaOsHardwareRegisterRangeInfo *amiga_os_hardware_register_range_at(size_t index);",
         "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_cpu_address(uint32_t cpu_address);",
         "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_offset(const char *base_symbol, uint32_t offset);",
+        "const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_cpu_address(uint32_t cpu_address);",
+        "const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_base_offset(const char *base_symbol, uint32_t offset);",
+        "const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_cpu_address(uint32_t cpu_address);",
+        "const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_base_offset(const char *base_symbol, uint32_t offset);",
         "const char *amiga_os_find_hardware_base_symbol_by_address(uint32_t base_address);",
         "int amiga_os_find_hardware_base_address(const char *base_symbol, uint32_t *out_address);",
         "const char *amiga_os_exec_base_library_name(void);",
@@ -1545,6 +1706,8 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         f"#define AMIGA_OS_RESIDENT_VECTOR_PREFIX_COUNT {len(resident_prefix_rows)}u",
         f"#define AMIGA_OS_RESIDENT_ENTRY_SEED_COUNT {len(resident_seed_rows)}u",
         f"#define AMIGA_OS_HARDWARE_REGISTER_COUNT {len(hardware_rows)}u",
+        f"#define AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT {len(hardware_field_rows)}u",
+        f"#define AMIGA_OS_HARDWARE_REGISTER_RANGE_COUNT {len(hardware_range_rows)}u",
     ])
     if io_device_offset is not None:
         lines.append(f"#define AMIGA_OS_STRUCT_IO_FIELD_IO_DEVICE_OFFSET {io_device_offset}u")
@@ -1559,7 +1722,9 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
                  api_input_binding_rows: list[tuple[str, str, str, str]],
                  struct_field_binding_rows: list[tuple[str, str, str | None, str]],
                  domain_constant_rows: list[tuple[str, int, str | None]],
-                 hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None]],
+                 hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
+                 hardware_field_rows: list[tuple[str, int, int, str, int, str, str]],
+                 hardware_range_rows: list[tuple[str, int, int, int, str, str]],
                  compatibility_versions_data: list[str], include_min_versions_data: list[tuple[str, str]],
                  includes_payload: dict, other_payload: dict,
                  api_input_value_domains: dict[tuple[str, str, str], str],
@@ -1946,15 +2111,48 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "static const AmigaOsHardwareRegisterInfo g_amiga_os_hardware_registers[] = {",
         ]
     )
-    for base_symbol, base_address, offset, symbol_name, include_path, value_domain_name, bit_domain_name in hardware_rows:
-        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, \"%s\", \"%s\", %s, %s }," % (
+    for base_symbol, base_address, offset, symbol_name, include_path, value_domain_name, bit_domain_name, flags, runtime_target_role in hardware_rows:
+        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, \"%s\", \"%s\", %s, %s, %du, %s }," % (
             c_string(base_symbol),
             base_address,
             offset,
             c_string(symbol_name),
             c_string(include_path),
             name_id_literal(name_domain_meta, "value_domain", value_domain_name),
-            name_id_literal(name_domain_meta, "value_domain", bit_domain_name)))
+            name_id_literal(name_domain_meta, "value_domain", bit_domain_name),
+            flags,
+            "NULL" if runtime_target_role is None else "\"%s\"" % c_string(runtime_target_role)))
+    lines.extend(
+        [
+            "};",
+            "",
+            "static const AmigaOsHardwareRegisterFieldInfo g_amiga_os_hardware_register_fields[] = {",
+        ]
+    )
+    for base_symbol, base_address, register_offset, register_symbol, field_offset, field_symbol, include_path in hardware_field_rows:
+        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, \"%s\", 0x%04Xu, \"%s\", \"%s\" }," % (
+            c_string(base_symbol),
+            base_address,
+            register_offset,
+            c_string(register_symbol),
+            field_offset,
+            c_string(field_symbol),
+            c_string(include_path)))
+    lines.extend(
+        [
+            "};",
+            "",
+            "static const AmigaOsHardwareRegisterRangeInfo g_amiga_os_hardware_register_ranges[] = {",
+        ]
+    )
+    for base_symbol, base_address, offset, size, symbol_name, include_path in hardware_range_rows:
+        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, 0x%04Xu, \"%s\", \"%s\" }," % (
+            c_string(base_symbol),
+            base_address,
+            offset,
+            size,
+            c_string(symbol_name),
+            c_string(include_path)))
     lines.extend(
         [
             "};",
@@ -2026,6 +2224,16 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "  return &g_amiga_os_hardware_registers[index];",
             "}",
             "",
+            "const AmigaOsHardwareRegisterFieldInfo *amiga_os_hardware_register_field_at(size_t index) {",
+            "  if (index >= AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT) return NULL;",
+            "  return &g_amiga_os_hardware_register_fields[index];",
+            "}",
+            "",
+            "const AmigaOsHardwareRegisterRangeInfo *amiga_os_hardware_register_range_at(size_t index) {",
+            "  if (index >= AMIGA_OS_HARDWARE_REGISTER_RANGE_COUNT) return NULL;",
+            "  return &g_amiga_os_hardware_register_ranges[index];",
+            "}",
+            "",
             "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_cpu_address(uint32_t cpu_address) {",
             "  size_t index;",
             "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_COUNT; ++index) {",
@@ -2041,6 +2249,45 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_COUNT; ++index) {",
             "    const AmigaOsHardwareRegisterInfo *entry = &g_amiga_os_hardware_registers[index];",
             "    if (entry->offset == offset && strcmp(entry->base_symbol, base_symbol) == 0) return entry;",
+            "  }",
+            "  return NULL;",
+            "}",
+            "",
+            "const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_cpu_address(uint32_t cpu_address) {",
+            "  size_t index;",
+            "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT; ++index) {",
+            "    const AmigaOsHardwareRegisterFieldInfo *entry = &g_amiga_os_hardware_register_fields[index];",
+            "    if (entry->base_address + entry->register_offset + entry->field_offset == cpu_address) return entry;",
+            "  }",
+            "  return NULL;",
+            "}",
+            "",
+            "const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_base_offset(const char *base_symbol, uint32_t offset) {",
+            "  size_t index;",
+            "  if (base_symbol == NULL || base_symbol[0] == '\\0') return NULL;",
+            "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT; ++index) {",
+            "    const AmigaOsHardwareRegisterFieldInfo *entry = &g_amiga_os_hardware_register_fields[index];",
+            "    if (entry->register_offset + entry->field_offset == offset && strcmp(entry->base_symbol, base_symbol) == 0) return entry;",
+            "  }",
+            "  return NULL;",
+            "}",
+            "",
+            "const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_cpu_address(uint32_t cpu_address) {",
+            "  size_t index;",
+            "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_RANGE_COUNT; ++index) {",
+            "    const AmigaOsHardwareRegisterRangeInfo *entry = &g_amiga_os_hardware_register_ranges[index];",
+            "    uint32_t start = entry->base_address + entry->offset;",
+            "    if (cpu_address >= start && cpu_address < start + entry->size) return entry;",
+            "  }",
+            "  return NULL;",
+            "}",
+            "",
+            "const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_base_offset(const char *base_symbol, uint32_t offset) {",
+            "  size_t index;",
+            "  if (base_symbol == NULL || base_symbol[0] == '\\0') return NULL;",
+            "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_RANGE_COUNT; ++index) {",
+            "    const AmigaOsHardwareRegisterRangeInfo *entry = &g_amiga_os_hardware_register_ranges[index];",
+            "    if (strcmp(entry->base_symbol, base_symbol) == 0 && offset >= entry->offset && offset < entry->offset + entry->size) return entry;",
             "  }",
             "  return NULL;",
             "}",
@@ -2393,6 +2640,7 @@ def main() -> None:
     corrections_payload = json.loads(CORRECTIONS_PATH.read_text(encoding="utf-8"))
     naming_rules_payload = json.loads(NAMING_RULES_PATH.read_text(encoding="utf-8"))
     hardware_payload = json.loads(HW_SYMBOLS_PATH.read_text(encoding="utf-8"))
+    hardware_registers_payload = json.loads(HW_REGISTERS_PATH.read_text(encoding="utf-8"))
     api_input_value_domains = build_api_input_value_domain_map(includes_payload, corrections_payload)
     api_input_semantic_kinds = build_api_input_semantic_kind_map(includes_payload, corrections_payload)
     api_input_type_overrides = build_api_input_type_override_map(corrections_payload)
@@ -2413,7 +2661,9 @@ def main() -> None:
     )
     compatibility_versions_data = compatibility_versions(includes_payload)
     include_min_versions_data = include_min_version_rows(includes_payload)
-    hardware_rows = hardware_register_rows(hardware_payload, merged_domains)
+    hardware_rows = hardware_register_rows(hardware_payload, merged_domains, hardware_registers_payload)
+    hardware_field_rows = hardware_register_field_rows(hardware_rows, includes_payload)
+    hardware_range_rows = hardware_register_range_rows(hardware_rows, hardware_registers_payload)
     rows = library_rows(includes_payload, other_payload)
     field_rows = struct_field_rows(includes_payload,
                                    referenced_struct_names(rows, includes_payload, other_payload,
@@ -2421,15 +2671,15 @@ def main() -> None:
                                                            api_input_type_overrides))
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     write_header(rows, field_rows, value_domain_rows_data, domain_member_rows, api_input_binding_rows,
-                 struct_field_binding_rows, domain_constant_rows, hardware_rows, compatibility_versions_data,
-                 include_min_versions_data, includes_payload, other_payload,
-                 api_input_value_domains, api_input_semantic_kinds, api_input_type_overrides,
-                 naming_rules_payload)
+                 struct_field_binding_rows, domain_constant_rows, hardware_rows, hardware_field_rows,
+                 hardware_range_rows, compatibility_versions_data, include_min_versions_data, includes_payload,
+                 other_payload, api_input_value_domains, api_input_semantic_kinds,
+                 api_input_type_overrides, naming_rules_payload)
     write_source(rows, field_rows, value_domain_rows_data, domain_member_rows, api_input_binding_rows,
-                 struct_field_binding_rows, domain_constant_rows, hardware_rows, compatibility_versions_data,
-                 include_min_versions_data, includes_payload, other_payload,
-                 api_input_value_domains, api_input_semantic_kinds, api_input_type_overrides,
-                 naming_rules_payload)
+                 struct_field_binding_rows, domain_constant_rows, hardware_rows, hardware_field_rows,
+                 hardware_range_rows, compatibility_versions_data, include_min_versions_data, includes_payload,
+                 other_payload, api_input_value_domains, api_input_semantic_kinds,
+                 api_input_type_overrides, naming_rules_payload)
 
 
 if __name__ == "__main__":

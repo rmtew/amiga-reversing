@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import socket
+import sys
 import threading
 import time
 from collections.abc import Iterator
@@ -16,7 +17,13 @@ import pytest
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.c_backend import build_project_rows_with_c_backend
-from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, ListingRow
+from amiga_reversing.disasm.listing_types import (
+    AppSlotRef,
+    BlockRowContext,
+    ListingRow,
+    SemanticOperand,
+    SymbolOperandMetadata,
+)
 from amiga_reversing.disasm.projects import ProjectRecord
 from tests.cdp_brave import brave_cdp_requested, brave_cdp_skip_reason, brave_page
 
@@ -85,6 +92,14 @@ def _free_port() -> int:
         return int(sock.getsockname()[1])
 
 
+class _QuietThreadingHTTPServer(ThreadingHTTPServer):
+    def handle_error(self, request: object, client_address: object) -> None:
+        _, exc, _ = sys.exc_info()
+        if isinstance(exc, (BrokenPipeError, ConnectionAbortedError, ConnectionResetError)):
+            return
+        super().handle_error(request, client_address)
+
+
 @pytest.fixture(autouse=True)
 def _clear_disasm_server_listing_state() -> Iterator[None]:
     disasm_server._PROJECT_ROW_CACHE.clear()
@@ -105,7 +120,7 @@ def _clear_disasm_server_listing_state() -> Iterator[None]:
 @contextmanager
 def _live_server() -> Iterator[str]:
     port = _free_port()
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), disasm_server.DisasmApiHandler)
+    httpd = _QuietThreadingHTTPServer(("127.0.0.1", port), disasm_server.DisasmApiHandler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
     try:
@@ -299,40 +314,55 @@ def test_brave_cdp_virtual_listing_scrolls_and_navigation_uses_global_index(
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(project.id)}",
+            timeout=10.0,
+        )
         page.wait_for_expression("document.querySelectorAll('.listing-row').length > 0")
         assert page.evaluate("document.querySelectorAll('.listing-row').length < 600")
         assert page.evaluate("document.querySelector('.listing-scroll-spacer').offsetHeight > 10000")
         assert not page.evaluate("document.body.textContent.includes('far_target:')")
 
-        page.evaluate(
+        page.wait_for_app_event_after_js(
+            "amiga:listing-window-rendered",
             """
             (() => {
-              const viewport = document.querySelector("#listing-viewport");
-              viewport.scrollTop = viewport.scrollHeight;
-              viewport.dispatchEvent(new Event("scroll"));
+              scrollListingViewport(state.project, "end");
               return true;
             })()
-            """
+            """,
+            "detail.start > 0 && detail.end === detail.totalRows",
+            timeout=10.0,
         )
-        page.wait_for_expression("document.body.textContent.includes('far_target:')", timeout=10.0)
+        assert page.evaluate("document.body.textContent.includes('far_target:')")
         assert page.evaluate("document.querySelectorAll('.listing-row').length < 600")
 
-        page.evaluate("document.querySelector('#listing-viewport').scrollTop = 0")
+        page.wait_for_app_event_after_js(
+            "amiga:listing-window-rendered",
+            """
+            (() => {
+              scrollListingViewport(state.project, "home");
+              return true;
+            })()
+            """,
+            "detail.start === 0",
+            timeout=10.0,
+        )
         page.click("#open-navigation")
         page.wait_for_selector("#navigation-overlay")
         page.select_value("[data-navigation-class='1']", "labels")
         page.wait_for_expression(
             "Array.from(document.querySelectorAll('.navigation-item')).some((item) => item.textContent.includes('far_target'))"
         )
-        page.evaluate(
+        page.wait_for_app_event_after_js(
+            "amiga:listing-row-focused",
             """
             Array.from(document.querySelectorAll('.navigation-item'))
               .find((item) => item.textContent.includes('far_target'))
               .click()
-            """
-        )
-        page.wait_for_expression(
-            "document.querySelector('[data-row-addr=\"1798\"]')?.classList.contains('listing-row-focus')",
+            """,
+            "detail.addr === 1798",
             timeout=10.0,
         )
         page.press_key("Escape")
@@ -420,20 +450,26 @@ def test_brave_cdp_stats_overlay_shows_fetch_latency(monkeypatch: pytest.MonkeyP
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(project.id)}",
+            timeout=10.0,
+        )
         page.wait_for_expression("document.querySelectorAll('.listing-row').length > 0")
-        page.evaluate(
+        page.wait_for_app_event_after_js(
+            "amiga:listing-window-rendered",
             """
-            (() => {
-              const viewport = document.querySelector("#listing-viewport");
-              viewport.scrollTop = 1800;
-              viewport.dispatchEvent(new Event("scroll"));
+            (async () => {
+              await loadListingWindow(state.project, null, 0, 80, {
+                start: 120,
+                count: 80,
+                preserveScroll: true,
+              });
               return true;
             })()
-            """
-        )
-        page.wait_for_expression(
-            "Number(document.querySelector('.listing-row')?.dataset.rowAddr || 0) > 0",
-            timeout=2.0,
+            """,
+            "detail.start === 120",
+            timeout=10.0,
         )
         page.click("#open-stats")
         page.wait_for_selector("#stats-overlay")
@@ -518,17 +554,18 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
             "document.querySelector('.listing-row')?.dataset.analysisGeneration === 'basic'",
             timeout=10.0,
         )
-        page.evaluate(
+        page.wait_for_app_event_after_js(
+            "amiga:listing-window-rendered",
             """
             (() => {
-              const viewport = document.querySelector("#listing-viewport");
-              viewport.scrollTop = viewport.scrollHeight;
-              viewport.dispatchEvent(new Event("scroll"));
+              scrollListingViewport(state.project, "end");
               return true;
             })()
-            """
+            """,
+            "detail.start > 0 && detail.generation === 'basic'",
+            timeout=10.0,
         )
-        page.wait_for_expression("document.body.textContent.includes('far_basic:')", timeout=10.0)
+        assert page.evaluate("document.body.textContent.includes('far_basic:')")
         before_scroll = page.evaluate("document.querySelector('#listing-viewport').scrollTop")
         assert full_started.wait(timeout=10.0)
         release_full.set()
@@ -543,16 +580,16 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
         after_scroll = page.evaluate("document.querySelector('#listing-viewport').scrollTop")
         assert after_scroll >= before_scroll - 44
         assert page.evaluate("document.querySelectorAll('.listing-row').length < 600")
-        page.evaluate(
+        page.wait_for_app_event_after_js(
+            "amiga:listing-window-rendered",
             """
-            (async () => {
-              const viewport = document.querySelector("#listing-viewport");
-              viewport.scrollTop = 0;
-              viewport.dispatchEvent(new Event("scroll"));
-              await flushPendingListingWindow();
+            (() => {
+              scrollListingViewport(state.project, "home");
               return true;
             })()
-            """
+            """,
+            "detail.start === 0 && detail.generation === 'full'",
+            timeout=10.0,
         )
         page.wait_for_expression(
             "document.querySelector('.listing-row')?.dataset.rowCode.trim() === '; full header'",
@@ -657,16 +694,16 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
         assert page.evaluate(
             "document.querySelector('.listing-row')?.dataset.rowCode.trim()"
         ) == "SECTION section,code"
-        page.evaluate(
+        page.wait_for_app_event_after_js(
+            "amiga:listing-window-rendered",
             """
-            (async () => {
-              const viewport = document.querySelector("#listing-viewport");
-              viewport.scrollTop = 0;
-              viewport.dispatchEvent(new Event("scroll"));
-              await flushPendingListingWindow();
+            (() => {
+              scrollListingViewport(state.project, "home");
               return true;
             })()
-            """
+            """,
+            "detail.start === 0 && detail.generation === 'full'",
+            timeout=10.0,
         )
         page.wait_for_expression(
             "document.querySelector('.listing-row')?.dataset.rowCode.includes('INCLUDE')",
@@ -882,7 +919,7 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
     project = _binary_project("amiga_hunk_symbol_links")
     rows: list[ListingRow] = [
         ListingRow(row_id="global-rs", kind="directive", text="app_ULONG RS.L 1\n"),
-        ListingRow(row_id="r0", kind="label", text="start:\n", addr=0, label="start:"),
+        ListingRow(row_id="r0", kind="label", text="start:\n", addr=0, label="start"),
         ListingRow(
             row_id="r1",
             kind="instruction",
@@ -890,6 +927,9 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
             addr=2,
             opcode_or_directive="jsr",
             operand_text="target.l",
+            operand_parts=(
+                SemanticOperand(kind="symbol", text="target", metadata=SymbolOperandMetadata(symbol="target")),
+            ),
         ),
         ListingRow(
             row_id="r2",
@@ -907,8 +947,47 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
             opcode_or_directive="jsr",
             operand_text="_LVOSetSignal(a6)",
         ),
+        ListingRow(
+            row_id="r4",
+            kind="instruction",
+            text="move.l #target,$006C.w\n",
+            addr=8,
+            opcode_or_directive="move.l",
+            operand_text="#target,$006C.w",
+            operand_parts=(
+                SemanticOperand(kind="symbol", text="target", metadata=SymbolOperandMetadata(symbol="target")),
+            ),
+        ),
+        ListingRow(
+            row_id="r5",
+            kind="instruction",
+            text="dbf.w d1,target\n",
+            addr=10,
+            opcode_or_directive="dbf.w",
+            operand_text="d1,target",
+            operand_parts=(
+                SemanticOperand(kind="symbol", text="target", metadata=SymbolOperandMetadata(symbol="target")),
+            ),
+        ),
+        ListingRow(
+            row_id="r6",
+            kind="instruction",
+            text="move.l #target,d0\n",
+            addr=12,
+            opcode_or_directive="move.l",
+            operand_text="#target,d0",
+        ),
+        ListingRow(
+            row_id="r7",
+            kind="instruction",
+            text="move.l #target,d1\n",
+            addr=14,
+            opcode_or_directive="move.l",
+            operand_text="#target,d1",
+            operand_parts=(SemanticOperand(kind="symbol", text="target"),),
+        ),
     ]
-    for index in range(4, 180):
+    for index in range(8, 180):
         rows.append(
             ListingRow(
                 row_id=f"r{index}",
@@ -918,7 +997,7 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
                 opcode_or_directive="rts",
             )
         )
-    rows.append(ListingRow(row_id="target", kind="label", text="target:\n", addr=400, label="target:"))
+    rows.append(ListingRow(row_id="target", kind="label", text="target:\n", addr=400, label="target"))
 
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
@@ -933,30 +1012,96 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(project.id)}",
+            timeout=10.0,
+        )
         page.wait_for_selector(".listing-symbol-reference[data-symbol-name='target']")
         assert not page.evaluate("document.querySelector('[data-symbol-name=\"app_ULONG\"]')")
         assert not page.evaluate("document.querySelector('[data-symbol-name=\"RS\"]')")
         assert not page.evaluate("document.querySelector('[data-symbol-name=\"d0\"]')")
         assert not page.evaluate("document.querySelector('[data-symbol-name=\"a6\"]')")
         assert not page.evaluate("document.querySelector('[data-symbol-name=\"_LVOSetSignal\"]')")
+        assert page.evaluate(
+            "document.querySelectorAll('.listing-symbol-reference[data-symbol-name=\"target\"]').length === 3"
+        )
+        page.evaluate(
+            """
+            state.navigation.entries = null;
+            renderVirtualListingWindow(state.project, {
+              rows: state.listingRows,
+              start: state.virtualListing.start,
+              end: state.virtualListing.end,
+              total_rows: state.virtualListing.totalRows,
+              analysis_generation: state.virtualListing.generation,
+            }, true);
+            """
+        )
+        assert page.evaluate(
+            "document.querySelectorAll('.listing-symbol-reference[data-symbol-name=\"target\"]').length === 3"
+        )
         assert page.evaluate("document.querySelector('.listing-symbol-reference[data-symbol-name=\"target\"]')?.tabIndex === 0")
         page.evaluate("document.querySelector('.listing-symbol-reference[data-symbol-name=\"target\"]').focus()")
         assert page.evaluate("document.activeElement?.dataset.symbolName === 'target'")
-        page.press_key("Enter")
-        page.wait_for_expression(
-            "document.querySelector('[data-row-addr=\"400\"]')?.classList.contains('listing-row-focus')",
+        focus_wait = page.begin_app_event_wait(
+            "amiga:listing-row-focused",
+            "detail.addr === 400",
             timeout=10.0,
         )
+        page.press_key("Enter")
+        page.finish_app_event_wait(focus_wait, timeout=10.0)
         assert page.evaluate("document.querySelector('#listing-viewport')?.textContent.includes('target:')")
 
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
-        page.wait_for_selector(".listing-symbol-reference[data-symbol-name='target']")
-        page.click(".listing-symbol-reference[data-symbol-name='target']")
-        page.wait_for_expression(
-            "document.querySelector('[data-row-addr=\"400\"]')?.classList.contains('listing-row-focus')",
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(project.id)}",
             timeout=10.0,
         )
+        page.wait_for_selector(".listing-symbol-reference[data-symbol-name='target']")
+        page.wait_for_app_event_after_js(
+            "amiga:listing-row-focused",
+            "document.querySelector('.listing-symbol-reference[data-symbol-name=\"target\"]').click()",
+            "detail.addr === 400",
+            timeout=10.0,
+        )
+        page.click(".listing-symbol-definition[data-symbol-name='target']")
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'target: 4 refs'")
+        assert page.evaluate("document.querySelector('[data-navigation-class=\"1\"]')?.value") == "labels"
+        assert page.evaluate(
+            "document.querySelector('.navigation-item.active')?.textContent.includes('target:')"
+        )
+        assert page.evaluate(
+            "document.querySelector('.navigation-item.active .navigation-access-badge')?.textContent"
+        ) == "D"
+        page.click("[data-navigation-labels-root='1']")
+        assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('target')")
+        page.click("[data-navigation-close='1']")
+        page.wait_for_expression("document.querySelector('#navigation-overlay') === null")
+
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(project.id)}",
+            timeout=10.0,
+        )
+        page.wait_for_selector(".listing-symbol-reference[data-symbol-name='target']")
+        page.evaluate(
+            """
+            document.querySelector('.listing-symbol-reference[data-symbol-name="target"]')
+              .dispatchEvent(new MouseEvent('click', {bubbles: true, ctrlKey: true}))
+            """
+        )
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'target: 4 refs'")
+        assert page.evaluate(
+            "document.querySelector('.navigation-item.active')?.textContent.includes('jsr target.l')"
+        )
+        assert page.evaluate(
+            "document.querySelector('.navigation-item.active .navigation-access-badge')?.textContent"
+        ) == "R"
         page.assert_no_errors()
 
 
@@ -1524,10 +1669,18 @@ def test_brave_cdp_api_edit_modal_applies_struct_override(
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(project.id)}",
+            timeout=10.0,
+        )
         page.wait_for_selector("[data-api-edit='1']")
-        page.evaluate("new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))")
-        page.click("[data-api-edit='1']")
-        page.wait_for_selector(".api-edit-dialog")
+        page.wait_for_app_event_after_js(
+            "amiga:api-edit-dialog-opened",
+            "document.querySelector('[data-api-edit=\"1\"]').click()",
+            "detail.function === 'SetPointer'",
+            timeout=10.0,
+        )
         page.wait_for_selector(".api-edit-input", timeout=20.0)
         page.fill(".api-edit-input", "SimpleSprite")
         page.click(".api-edit-apply")
@@ -1592,9 +1745,18 @@ def test_brave_cdp_annotation_edit_modal_patches_entity(monkeypatch: pytest.Monk
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(project.id)}",
+            timeout=10.0,
+        )
         page.wait_for_selector("[data-annotation-edit='1']")
-        page.evaluate("new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))")
-        page.click_until_selector("[data-annotation-edit='1']", ".annotation-edit-dialog")
+        page.wait_for_app_event_after_js(
+            "amiga:annotation-edit-dialog-opened",
+            "document.querySelector('[data-annotation-edit=\"1\"]').click()",
+            "detail.addr === 16",
+            timeout=10.0,
+        )
         page.fill(".annotation-edit-name", "main_entry")
         page.fill(".annotation-edit-comment", "validated entry")
         page.select_value(".annotation-edit-confidence", "verified")
@@ -1635,9 +1797,18 @@ def test_brave_cdp_real_annotation_edit_round_trip(
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project_id}"})
         page.wait_for_event("Page.loadEventFired")
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(project_id)}",
+            timeout=45.0,
+        )
         page.wait_for_selector("[data-annotation-edit='1']", timeout=45.0)
-        page.evaluate("new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))")
-        page.click_until_selector('[data-row-addr="0"] [data-annotation-edit="1"]', ".annotation-edit-dialog")
+        page.wait_for_app_event_after_js(
+            "amiga:annotation-edit-dialog-opened",
+            "document.querySelector('[data-row-addr=\"0\"] [data-annotation-edit=\"1\"]').click()",
+            "detail.addr === 0",
+            timeout=10.0,
+        )
         page.evaluate(
             """
             (() => {

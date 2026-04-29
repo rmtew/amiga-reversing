@@ -37227,139 +37227,170 @@ static const AmigaOsSymbolIncludeInfo g_amiga_os_symbol_includes[] = {
 };
 
 static const AmigaOsHardwareRegisterInfo g_amiga_os_hardware_registers[] = {
-  { "_ciab", 0x00BFD000u, 0x0000u, "ciapra", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIAB_PRA_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIAB_PRA_BITS },
-  { "_ciab", 0x00BFD000u, 0x0100u, "ciaprb", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIAB_PRB_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIAB_PRB_BITS },
-  { "_ciab", 0x00BFD000u, 0x0200u, "ciaddra", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciab", 0x00BFD000u, 0x0300u, "ciaddrb", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciab", 0x00BFD000u, 0x0400u, "ciatalo", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciab", 0x00BFD000u, 0x0500u, "ciatahi", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciab", 0x00BFD000u, 0x0600u, "ciatblo", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciab", 0x00BFD000u, 0x0700u, "ciatbhi", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciab", 0x00BFD000u, 0x0800u, "ciatodlow", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciab", 0x00BFD000u, 0x0900u, "ciatodmid", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciab", 0x00BFD000u, 0x0A00u, "ciatodhi", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciab", 0x00BFD000u, 0x0C00u, "ciasdr", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciab", 0x00BFD000u, 0x0D00u, "ciaicr", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_ICR_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_ICR_BITS },
-  { "_ciab", 0x00BFD000u, 0x0E00u, "ciacra", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRA_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRA_BITS },
-  { "_ciab", 0x00BFD000u, 0x0F00u, "ciacrb", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRB_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRB_BITS },
-  { "_ciaa", 0x00BFE001u, 0x0000u, "ciapra", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIAA_PRA_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIAA_PRA_BITS },
-  { "_ciaa", 0x00BFE001u, 0x0100u, "ciaprb", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciaa", 0x00BFE001u, 0x0200u, "ciaddra", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciaa", 0x00BFE001u, 0x0300u, "ciaddrb", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciaa", 0x00BFE001u, 0x0400u, "ciatalo", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciaa", 0x00BFE001u, 0x0500u, "ciatahi", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciaa", 0x00BFE001u, 0x0600u, "ciatblo", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciaa", 0x00BFE001u, 0x0700u, "ciatbhi", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciaa", 0x00BFE001u, 0x0800u, "ciatodlow", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciaa", 0x00BFE001u, 0x0900u, "ciatodmid", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciaa", 0x00BFE001u, 0x0A00u, "ciatodhi", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciaa", 0x00BFE001u, 0x0C00u, "ciasdr", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_ciaa", 0x00BFE001u, 0x0D00u, "ciaicr", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_ICR_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_ICR_BITS },
-  { "_ciaa", 0x00BFE001u, 0x0E00u, "ciacra", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRA_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRA_BITS },
-  { "_ciaa", 0x00BFE001u, 0x0F00u, "ciacrb", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRB_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRB_BITS },
-  { "_custom", 0x00DFF000u, 0x0000u, "bltddat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0002u, "dmaconr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_DMA_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_DMA_BITS },
-  { "_custom", 0x00DFF000u, 0x0004u, "vposr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0006u, "vhposr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0008u, "dskdatr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x000Au, "joy0dat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x000Cu, "joy1dat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x000Eu, "clxdat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0010u, "adkconr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_ADK_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_ADK_BITS },
-  { "_custom", 0x00DFF000u, 0x0012u, "pot0dat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0014u, "pot1dat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0016u, "potinp", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0018u, "serdatr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x001Au, "dskbytr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x001Cu, "intenar", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_BITS },
-  { "_custom", 0x00DFF000u, 0x001Eu, "intreqr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_BITS },
-  { "_custom", 0x00DFF000u, 0x0020u, "dskpt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0024u, "dsklen", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0026u, "dskdat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0028u, "refptr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x002Au, "vposw", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x002Cu, "vhposw", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x002Eu, "copcon", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0030u, "serdat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0032u, "serper", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0034u, "potgo", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0036u, "joytest", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0038u, "strequ", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x003Au, "strvbl", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x003Cu, "strhor", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x003Eu, "strlong", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0040u, "bltcon0", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_BLTCON0_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_BLTCON0_BITS },
-  { "_custom", 0x00DFF000u, 0x0042u, "bltcon1", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_BLTCON1_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0044u, "bltafwm", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0046u, "bltalwm", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0048u, "bltcpt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x004Cu, "bltbpt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0050u, "bltapt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0054u, "bltdpt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0058u, "bltsize", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x005Bu, "bltcon0l", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_BLTCON0_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_BLTCON0_BITS },
-  { "_custom", 0x00DFF000u, 0x005Cu, "bltsizv", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x005Eu, "bltsizh", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0060u, "bltcmod", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0062u, "bltbmod", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0064u, "bltamod", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0066u, "bltdmod", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0070u, "bltcdat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0072u, "bltbdat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0074u, "bltadat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x007Cu, "deniseid", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x007Eu, "dsksync", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0080u, "cop1lc", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0084u, "cop2lc", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0088u, "copjmp1", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x008Au, "copjmp2", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x008Cu, "copins", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x008Eu, "diwstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0090u, "diwstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0092u, "ddfstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0094u, "ddfstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0096u, "dmacon", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_DMA_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_DMA_BITS },
-  { "_custom", 0x00DFF000u, 0x0098u, "clxcon", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x009Au, "intena", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_BITS },
-  { "_custom", 0x00DFF000u, 0x009Cu, "intreq", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_BITS },
-  { "_custom", 0x00DFF000u, 0x009Eu, "adkcon", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_ADK_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_ADK_BITS },
-  { "_custom", 0x00DFF000u, 0x00A0u, "aud0", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x00B0u, "aud1", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x00C0u, "aud2", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x00D0u, "aud3", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x00E0u, "bplpt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0100u, "bplcon0", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0102u, "bplcon1", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0104u, "bplcon2", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0106u, "bplcon3", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0108u, "bpl1mod", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x010Au, "bpl2mod", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x010Cu, "bplcon4", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x010Eu, "clxcon2", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0110u, "bpldat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0120u, "sprpt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0140u, "spr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x0180u, "color", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01C0u, "htotal", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01C2u, "hsstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01C4u, "hbstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01C6u, "hbstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01C8u, "vtotal", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01CAu, "vsstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01CCu, "vbstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01CEu, "vbstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01D0u, "sprhstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01D2u, "sprhstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01D4u, "bplhstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01D6u, "bplhstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01D8u, "hhposw", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01DAu, "hhposr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01DCu, "beamcon0", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01DEu, "hsstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01E0u, "vsstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01E2u, "hcenter", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01E4u, "diwhigh", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
-  { "_custom", 0x00DFF000u, 0x01FCu, "fmode", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE },
+  { "_ciab", 0x00BFD000u, 0x0000u, "ciapra", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIAB_PRA_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIAB_PRA_BITS, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0100u, "ciaprb", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIAB_PRB_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIAB_PRB_BITS, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0200u, "ciaddra", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0300u, "ciaddrb", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0400u, "ciatalo", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0500u, "ciatahi", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0600u, "ciatblo", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0700u, "ciatbhi", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0800u, "ciatodlow", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0900u, "ciatodmid", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0A00u, "ciatodhi", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0C00u, "ciasdr", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0D00u, "ciaicr", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_ICR_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_ICR_BITS, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0E00u, "ciacra", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRA_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRA_BITS, 0u, NULL },
+  { "_ciab", 0x00BFD000u, 0x0F00u, "ciacrb", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRB_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRB_BITS, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0000u, "ciapra", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIAA_PRA_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIAA_PRA_BITS, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0100u, "ciaprb", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0200u, "ciaddra", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0300u, "ciaddrb", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0400u, "ciatalo", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0500u, "ciatahi", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0600u, "ciatblo", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0700u, "ciatbhi", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0800u, "ciatodlow", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0900u, "ciatodmid", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0A00u, "ciatodhi", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0C00u, "ciasdr", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0D00u, "ciaicr", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_ICR_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_ICR_BITS, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0E00u, "ciacra", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRA_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRA_BITS, 0u, NULL },
+  { "_ciaa", 0x00BFE001u, 0x0F00u, "ciacrb", "hardware/cia.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRB_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CIA_CRB_BITS, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0000u, "bltddat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0002u, "dmaconr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_DMA_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_DMA_BITS, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0004u, "vposr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0006u, "vhposr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0008u, "dskdatr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x000Au, "joy0dat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x000Cu, "joy1dat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x000Eu, "clxdat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0010u, "adkconr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_ADK_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_ADK_BITS, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0012u, "pot0dat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0014u, "pot1dat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0016u, "potinp", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0018u, "serdatr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x001Au, "dskbytr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x001Cu, "intenar", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_BITS, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x001Eu, "intreqr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_BITS, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0020u, "dskpt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, NULL },
+  { "_custom", 0x00DFF000u, 0x0024u, "dsklen", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0026u, "dskdat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0028u, "refptr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, NULL },
+  { "_custom", 0x00DFF000u, 0x002Au, "vposw", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x002Cu, "vhposw", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x002Eu, "copcon", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0030u, "serdat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0032u, "serper", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0034u, "potgo", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0036u, "joytest", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0038u, "strequ", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x003Au, "strvbl", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x003Cu, "strhor", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x003Eu, "strlong", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0040u, "bltcon0", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_BLTCON0_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_BLTCON0_BITS, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0042u, "bltcon1", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_BLTCON1_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0044u, "bltafwm", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0046u, "bltalwm", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0048u, "bltcpt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, NULL },
+  { "_custom", 0x00DFF000u, 0x004Cu, "bltbpt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, NULL },
+  { "_custom", 0x00DFF000u, 0x0050u, "bltapt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, NULL },
+  { "_custom", 0x00DFF000u, 0x0054u, "bltdpt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, NULL },
+  { "_custom", 0x00DFF000u, 0x0058u, "bltsize", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x005Bu, "bltcon0l", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_BLTCON0_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_BLTCON0_BITS, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x005Cu, "bltsizv", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x005Eu, "bltsizh", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0060u, "bltcmod", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0062u, "bltbmod", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0064u, "bltamod", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0066u, "bltdmod", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0070u, "bltcdat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0072u, "bltbdat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0074u, "bltadat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x007Cu, "deniseid", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x007Eu, "dsksync", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0080u, "cop1lc", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, "copper_list" },
+  { "_custom", 0x00DFF000u, 0x0084u, "cop2lc", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, "copper_list" },
+  { "_custom", 0x00DFF000u, 0x0088u, "copjmp1", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x008Au, "copjmp2", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x008Cu, "copins", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x008Eu, "diwstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0090u, "diwstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0092u, "ddfstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0094u, "ddfstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0096u, "dmacon", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_DMA_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_DMA_BITS, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0098u, "clxcon", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x009Au, "intena", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_BITS, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x009Cu, "intreq", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_INT_BITS, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x009Eu, "adkcon", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_ADK_FLAGS, AMIGA_OS_VALUE_DOMAIN_ID_HARDWARE_CUSTOM_ADK_BITS, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x00A0u, "aud0", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, NULL },
+  { "_custom", 0x00DFF000u, 0x00B0u, "aud1", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, NULL },
+  { "_custom", 0x00DFF000u, 0x00C0u, "aud2", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, NULL },
+  { "_custom", 0x00DFF000u, 0x00D0u, "aud3", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, NULL },
+  { "_custom", 0x00DFF000u, 0x00E0u, "bplpt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, NULL },
+  { "_custom", 0x00DFF000u, 0x0100u, "bplcon0", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0102u, "bplcon1", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0104u, "bplcon2", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0106u, "bplcon3", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0108u, "bpl1mod", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x010Au, "bpl2mod", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x010Cu, "bplcon4", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x010Eu, "clxcon2", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0110u, "bpldat", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0120u, "sprpt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 1u, NULL },
+  { "_custom", 0x00DFF000u, 0x0140u, "spr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x0180u, "color", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01C0u, "htotal", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01C2u, "hsstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01C4u, "hbstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01C6u, "hbstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01C8u, "vtotal", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01CAu, "vsstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01CCu, "vbstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01CEu, "vbstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01D0u, "sprhstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01D2u, "sprhstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01D4u, "bplhstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01D6u, "bplhstop", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01D8u, "hhposw", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01DAu, "hhposr", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01DCu, "beamcon0", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01DEu, "hsstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01E0u, "vsstrt", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01E2u, "hcenter", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01E4u, "diwhigh", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+  { "_custom", 0x00DFF000u, 0x01FCu, "fmode", "hardware/custom.i", AMIGA_OS_VALUE_DOMAIN_ID_NONE, AMIGA_OS_VALUE_DOMAIN_ID_NONE, 0u, NULL },
+};
+
+static const AmigaOsHardwareRegisterFieldInfo g_amiga_os_hardware_register_fields[] = {
+  { "_custom", 0x00DFF000u, 0x00A0u, "aud0", 0x0000u, "ac_ptr", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00A0u, "aud0", 0x0004u, "ac_len", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00A0u, "aud0", 0x0006u, "ac_per", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00A0u, "aud0", 0x0008u, "ac_vol", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00A0u, "aud0", 0x000Au, "ac_dat", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00B0u, "aud1", 0x0000u, "ac_ptr", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00B0u, "aud1", 0x0004u, "ac_len", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00B0u, "aud1", 0x0006u, "ac_per", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00B0u, "aud1", 0x0008u, "ac_vol", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00B0u, "aud1", 0x000Au, "ac_dat", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00C0u, "aud2", 0x0000u, "ac_ptr", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00C0u, "aud2", 0x0004u, "ac_len", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00C0u, "aud2", 0x0006u, "ac_per", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00C0u, "aud2", 0x0008u, "ac_vol", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00C0u, "aud2", 0x000Au, "ac_dat", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00D0u, "aud3", 0x0000u, "ac_ptr", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00D0u, "aud3", 0x0004u, "ac_len", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00D0u, "aud3", 0x0006u, "ac_per", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00D0u, "aud3", 0x0008u, "ac_vol", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00D0u, "aud3", 0x000Au, "ac_dat", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0140u, "spr", 0x0000u, "sd_pos", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0140u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0140u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0140u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i" },
+};
+
+static const AmigaOsHardwareRegisterRangeInfo g_amiga_os_hardware_register_ranges[] = {
+  { "_custom", 0x00DFF000u, 0x0180u, 0x0040u, "color", "hardware/custom.i" },
 };
 
 const char *amiga_os_find_library_base_name_by_id(uint16_t library_id) {
@@ -37428,6 +37459,16 @@ const AmigaOsHardwareRegisterInfo *amiga_os_hardware_register_at(size_t index) {
   return &g_amiga_os_hardware_registers[index];
 }
 
+const AmigaOsHardwareRegisterFieldInfo *amiga_os_hardware_register_field_at(size_t index) {
+  if (index >= AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT) return NULL;
+  return &g_amiga_os_hardware_register_fields[index];
+}
+
+const AmigaOsHardwareRegisterRangeInfo *amiga_os_hardware_register_range_at(size_t index) {
+  if (index >= AMIGA_OS_HARDWARE_REGISTER_RANGE_COUNT) return NULL;
+  return &g_amiga_os_hardware_register_ranges[index];
+}
+
 const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_cpu_address(uint32_t cpu_address) {
   size_t index;
   for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_COUNT; ++index) {
@@ -37443,6 +37484,45 @@ const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_offse
   for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_COUNT; ++index) {
     const AmigaOsHardwareRegisterInfo *entry = &g_amiga_os_hardware_registers[index];
     if (entry->offset == offset && strcmp(entry->base_symbol, base_symbol) == 0) return entry;
+  }
+  return NULL;
+}
+
+const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_cpu_address(uint32_t cpu_address) {
+  size_t index;
+  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT; ++index) {
+    const AmigaOsHardwareRegisterFieldInfo *entry = &g_amiga_os_hardware_register_fields[index];
+    if (entry->base_address + entry->register_offset + entry->field_offset == cpu_address) return entry;
+  }
+  return NULL;
+}
+
+const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_base_offset(const char *base_symbol, uint32_t offset) {
+  size_t index;
+  if (base_symbol == NULL || base_symbol[0] == '\0') return NULL;
+  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT; ++index) {
+    const AmigaOsHardwareRegisterFieldInfo *entry = &g_amiga_os_hardware_register_fields[index];
+    if (entry->register_offset + entry->field_offset == offset && strcmp(entry->base_symbol, base_symbol) == 0) return entry;
+  }
+  return NULL;
+}
+
+const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_cpu_address(uint32_t cpu_address) {
+  size_t index;
+  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_RANGE_COUNT; ++index) {
+    const AmigaOsHardwareRegisterRangeInfo *entry = &g_amiga_os_hardware_register_ranges[index];
+    uint32_t start = entry->base_address + entry->offset;
+    if (cpu_address >= start && cpu_address < start + entry->size) return entry;
+  }
+  return NULL;
+}
+
+const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_base_offset(const char *base_symbol, uint32_t offset) {
+  size_t index;
+  if (base_symbol == NULL || base_symbol[0] == '\0') return NULL;
+  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_RANGE_COUNT; ++index) {
+    const AmigaOsHardwareRegisterRangeInfo *entry = &g_amiga_os_hardware_register_ranges[index];
+    if (strcmp(entry->base_symbol, base_symbol) == 0 && offset >= entry->offset && offset < entry->offset + entry->size) return entry;
   }
   return NULL;
 }

@@ -10,7 +10,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef int (*M68kSourceFileSetLabelFn)(AsmSourceFile *source, const char *name, size_t section_index, uint32_t value);
+typedef int (*M68kSourceFileSetLabelFn)(AsmSourceFile *source, const char *name, size_t section_index, uint32_t value,
+    uint8_t is_absolute);
 typedef M68kSourceModelIndexResult (*M68kSourceFileLookupSymbolIndexFn)(const AsmSourceFile *source,
     const char *name);
 typedef M68kSourceResolvedInstruction (*M68kSourceFileResolveInstructionFn)(const AsmSourceFile *source,

@@ -871,7 +871,9 @@ static int append_needed_amiga_app_extension_rs(JsonBuilder *builder, RenderEqua
       cursor = slots[index].value;
     }
     if (slots[index].value < cursor) {
-      if (json_builder_appendf(builder, "%s RS.B 0\n", slots[index].name) != 0) return -1;
+      char value_text[32];
+      format_render_equate_value(slots[index].value, value_text, sizeof(value_text));
+      if (json_builder_appendf(builder, "%s EQU %s\n", slots[index].name, value_text) != 0) return -1;
     } else if ((cursor & 1) == 0) {
       if (json_builder_appendf(builder, "%s RS.L 1\n", slots[index].name) != 0) return -1;
       cursor += 4;

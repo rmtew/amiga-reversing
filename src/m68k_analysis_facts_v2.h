@@ -124,6 +124,12 @@ typedef struct M68kFactsV2Profile {
   uint32_t asm_source_lines;
   uint32_t asm_source_relocation_exprs;
   uint32_t asm_source_symbolic_instructions;
+  uint32_t asm_source_numeric_runtime_refs;
+  uint32_t asm_source_first_numeric_runtime_ref_section;
+  uint32_t asm_source_first_numeric_runtime_ref_offset;
+  uint32_t asm_source_first_numeric_runtime_ref_target_section;
+  uint32_t asm_source_first_numeric_runtime_ref_target_offset;
+  uint32_t asm_source_first_numeric_runtime_ref_runtime_address;
   uint32_t platform_base_slot_count;
   uint32_t platform_call_count;
   uint32_t platform_effect_count;

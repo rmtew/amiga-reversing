@@ -116,10 +116,13 @@ static M68kSourceLookupResult lookup_defined_symbol_value(const AsmSourceFile *s
     return result;
   result.ok = 1U;
   result.defined = 1U;
-  result.is_constant = (uint8_t)(source->symbols[index.index].kind == ASM_SOURCE_SYMBOL_CONSTANT);
+  result.is_absolute = source->symbols[index.index].is_absolute;
+  result.is_constant = (uint8_t)(source->symbols[index.index].kind == ASM_SOURCE_SYMBOL_CONSTANT ||
+    source->symbols[index.index].is_absolute);
   result.value = source->symbols[index.index].value;
   result.symbol_id = index.index;
-  result.section_index = source->symbols[index.index].section_index;
+  result.section_index = source->symbols[index.index].is_absolute
+    ? (size_t)-1 : source->symbols[index.index].section_index;
   return result;
 }
 
@@ -837,6 +840,22 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
       source_line_reader_close(reader);
       source_parse_error(diagnostics, "source statement before section");
       return 0;
+    }
+    if (directive0 == M68K_SOURCE_DIRECTIVE_ORG) {
+      M68kSourceModelIndexResult stmt_result;
+      M68kSourceConstantResult org_value;
+      AsmSourceStmt *stmt = NULL;
+      org_value = parse_constant_expression_value(source, rest);
+      stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_ORG, line_number);
+      if (!org_value.ok || !stmt_result.ok) {
+        source_line_reader_close(reader);
+        source_parse_errorf(diagnostics, "bad ORG directive at line %u", (unsigned)line_number);
+        return 0;
+      }
+      stmt = &source->statements[stmt_result.index];
+      stmt->section_index = current_section_index;
+      stmt->u.org_value = org_value.value;
+      continue;
     }
     {
       uint32_t ds_width = 0U;

@@ -21,8 +21,22 @@ def c_string(text: str) -> str:
     return text.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def exception_vector_rows(payload: dict) -> list[tuple[int, int, str, str]]:
-    rows: list[tuple[int, int, str, str]] = []
+def vector_symbol_name(name: str) -> str:
+    chars: list[str] = []
+    last_was_sep = False
+    for ch in name.lower():
+        if ch.isalnum():
+            chars.append(ch)
+            last_was_sep = False
+        elif not last_was_sep:
+            chars.append("_")
+            last_was_sep = True
+    text = "".join(chars).strip("_")
+    return f"m68k_vector_{text}" if text else "m68k_vector_unknown"
+
+
+def exception_vector_rows(payload: dict) -> list[tuple[int, int, str, str, str]]:
+    rows: list[tuple[int, int, str, str, str]] = []
     for item in payload.get("_meta", {}).get("exception_vectors", []):
         if not isinstance(item, dict):
             continue
@@ -36,11 +50,11 @@ def exception_vector_rows(payload: dict) -> list[tuple[int, int, str, str]]:
             continue
         if not isinstance(kind, str) or kind not in KIND_IDS:
             kind = "unknown"
-        rows.append((vector, address, kind, name))
+        rows.append((vector, address, kind, name, vector_symbol_name(name)))
     return sorted(rows, key=lambda row: row[1])
 
 
-def write_header(rows: list[tuple[int, int, str, str]]) -> None:
+def write_header(rows: list[tuple[int, int, str, str, str]]) -> None:
     lines = [
         "/* Generated M68K CPU runtime metadata. Do not edit directly. */",
         "#ifndef M68K_CPU_RUNTIME_H",
@@ -62,16 +76,17 @@ def write_header(rows: list[tuple[int, int, str, str]]) -> None:
         "  uint16_t address;",
         "  uint8_t kind;",
         "  const char *name;",
+        "  const char *symbol_name;",
         "} M68kCpuExceptionVectorInfo;",
         "",
         f"#define M68K_CPU_EXCEPTION_VECTOR_COUNT {len(rows)}u",
         "",
         "static const M68kCpuExceptionVectorInfo g_m68k_cpu_exception_vectors[] = {",
     ]
-    for vector, address, kind, name in rows:
+    for vector, address, kind, name, symbol_name in rows:
         lines.append(
-            '  { %du, 0x%04Xu, M68K_CPU_VECTOR_KIND_%s, "%s" },'
-            % (vector, address, kind.upper(), c_string(name))
+            '  { %du, 0x%04Xu, M68K_CPU_VECTOR_KIND_%s, "%s", "%s" },'
+            % (vector, address, kind.upper(), c_string(name), c_string(symbol_name))
         )
     lines.extend(
         [
@@ -87,6 +102,20 @@ def write_header(rows: list[tuple[int, int, str, str]]) -> None:
             "  for (index = 0U; index < M68K_CPU_EXCEPTION_VECTOR_COUNT; ++index) {",
             "    const M68kCpuExceptionVectorInfo *entry = &g_m68k_cpu_exception_vectors[index];",
             "    if (entry->address == address) return entry;",
+            "  }",
+            "  return NULL;",
+            "}",
+            "",
+            "static inline const M68kCpuExceptionVectorInfo *m68k_cpu_find_exception_vector_by_symbol_name(const char *symbol_name) {",
+            "  size_t index;",
+            "  if (symbol_name == NULL || symbol_name[0] == '\\0') return NULL;",
+            "  for (index = 0U; index < M68K_CPU_EXCEPTION_VECTOR_COUNT; ++index) {",
+            "    const M68kCpuExceptionVectorInfo *entry = &g_m68k_cpu_exception_vectors[index];",
+            "    const char *left = entry->symbol_name;",
+            "    const char *right = symbol_name;",
+            "    if (left == NULL) continue;",
+            "    while (*left != '\\0' && *right != '\\0' && *left == *right) { ++left; ++right; }",
+            "    if (*left == '\\0' && *right == '\\0') return entry;",
             "  }",
             "  return NULL;",
             "}",

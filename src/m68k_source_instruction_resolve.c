@@ -15,13 +15,18 @@ static int instruction_uses_movem_predecrement_mask_ir_local(const M68kInstructi
     return instruction->operands[1].value.ea_mode == 4U;
 }
 
-static int normalize_symbolic_zero_address_displacements_local(M68kInstructionIR *instruction) {
+static int normalize_symbolic_zero_address_displacements_local(const M68kSourceInstructionResolveContext *context,
+    M68kInstructionIR *instruction) {
     size_t operand_index;
     int changed = 0;
     if (instruction == NULL) return 0;
     for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
         M68kOperandIR *operand = &instruction->operands[operand_index];
         if (!operand->symbol_ref.has_name || operand->symbol_ref.has_section) continue;
+        if (context != NULL && context->lookup_symbol != NULL) {
+            M68kSourceLookupResult symbol = context->lookup_symbol(operand->symbol_ref.name, context->user_data);
+            if (symbol.ok && symbol.defined && symbol.is_constant) continue;
+        }
         if (operand->value.kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 5U) continue;
         if (operand->value.value != 0U) continue;
         operand->value.ea_mode = 2U;
@@ -75,7 +80,7 @@ M68kSourceResolvedInstruction m68k_source_resolve_instruction_operands(const M68
         instruction_offset, line_number, allow_undefined, diagnostics);
     if (!symbol_result.ok) return result;
     result.instruction = symbol_result.instruction;
-    if (normalize_symbolic_zero_address_displacements_local(&result.instruction)) {
+    if (normalize_symbolic_zero_address_displacements_local(context, &result.instruction)) {
         for (operand_index = 0; operand_index < result.instruction.operand_count && operand_index < 4U; ++operand_index) {
             form_operands[operand_index] = result.instruction.operands[operand_index].value;
         }

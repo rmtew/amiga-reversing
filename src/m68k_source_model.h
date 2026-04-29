@@ -19,6 +19,7 @@ typedef struct AsmSourceSymbol {
     char name[M68K_SOURCE_MAX_LABEL_NAME];
     AsmSourceSymbolKind kind;
     int defined;
+    uint8_t is_absolute;
     size_t section_index;
     uint32_t value;
 } AsmSourceSymbol;
@@ -30,7 +31,8 @@ typedef enum AsmSourceStmtKind {
     ASM_SOURCE_STMT_DATA = 4,
     ASM_SOURCE_STMT_EVEN = 5,
     ASM_SOURCE_STMT_END = 6,
-    ASM_SOURCE_STMT_RESERVE = 7
+    ASM_SOURCE_STMT_RESERVE = 7,
+    ASM_SOURCE_STMT_ORG = 8
 } AsmSourceStmtKind;
 
 typedef struct AsmSourceInstructionStmt {
@@ -43,6 +45,7 @@ typedef struct AsmSourceStmt {
     size_t line_number;
     size_t section_index;
     uint32_t offset;
+    uint32_t logical_offset;
     uint32_t size;
     union {
         struct {
@@ -59,6 +62,7 @@ typedef struct AsmSourceStmt {
         AsmSourceInstructionStmt instruction;
         AsmSourceDataStmt data;
         uint32_t reserve_size;
+        uint32_t org_value;
     } u;
 } AsmSourceStmt;
 
@@ -115,7 +119,8 @@ M68kSourceModelIndexResult m68k_source_model_append_section(AsmSourceFile *sourc
 M68kSourceModelIndexResult m68k_source_model_ensure_symbol(AsmSourceFile *source, const char *name,
     AsmSourceSymbolKind kind);
 int m68k_source_model_set_constant(AsmSourceFile *source, const char *name, uint32_t value, int allow_redefine);
-int m68k_source_model_set_label_value(AsmSourceFile *source, const char *name, size_t section_index, uint32_t value);
+int m68k_source_model_set_label_value(AsmSourceFile *source, const char *name, size_t section_index, uint32_t value,
+    uint8_t is_absolute);
 M68kSourceModelIndexResult m68k_source_model_append_statement(AsmSourceFile *source, AsmSourceStmtKind kind,
     size_t line_number);
 int m68k_source_model_append_data_item(AsmSourceDataStmt *data_stmt, const AsmDataItem *item);

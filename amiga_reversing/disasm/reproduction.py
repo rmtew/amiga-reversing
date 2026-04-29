@@ -113,6 +113,8 @@ def run_reproduction(
     source_text: str | None = pre_rendered_source_text
     source_size = 0
     rebuilt_bytes: bytes | None = None
+    assembled_source_for_reproduction = False
+    direct_source_report: dict[str, object] | None = None
     assembler_stdout = ""
     assembler_stderr = ""
     listing_profile: dict[str, object] | None = None
@@ -249,12 +251,18 @@ def run_reproduction(
                             "facts_v2_direct_source_compare_seconds",
                             compare_started_at,
                         )
+                        original_for_source_compare = paths.binary_source.read_bytes()
                         _record_direct_source_comparison(
                             profile_timings,
                             direct_bytes,
                             source_bytes,
-                            original_bytes=paths.binary_source.read_bytes(),
+                            original_bytes=original_for_source_compare,
                             backend=backend,
+                        )
+                        direct_source_report = _direct_source_report_fields(
+                            original_for_source_compare,
+                            source_bytes,
+                            assembler=assembler,
                         )
                         if direct_bytes != source_bytes:
                             profile_timings["facts_v2_direct_source_mismatch"] = 1.0
@@ -302,6 +310,8 @@ def run_reproduction(
                             "canonical_file_shape_diagnostics": _direct_compare_shape_diagnostics(direct_profile),
                             "comparison": comparison,
                         }
+                        if direct_source_report is not None:
+                            report.update(direct_source_report)
                         if listing_profile is not None:
                             report["listing_profile"] = listing_profile
                         if profile:
@@ -410,6 +420,7 @@ def run_reproduction(
                             )
                         )
                         _merge_assembler_profile(profile_timings, assembler_profile)
+                        assembled_source_for_reproduction = True
                     except FactsV2SourceRefused as exc:
                         message = str(exc)
                         _record_profile_timing(profile_timings, "render_assemble_seconds", phase_started_at)
@@ -546,6 +557,7 @@ def run_reproduction(
                     project_root=project_root,
                 )
                 _merge_assembler_profile(profile_timings, assembler_profile)
+                assembled_source_for_reproduction = True
             except RuntimeError as exc:
                 assembler_stderr = str(exc)
                 _record_profile_timing(profile_timings, "assemble_seconds", phase_started_at)
@@ -651,6 +663,13 @@ def run_reproduction(
                 canonical_diff_ranges=canonical_diff_ranges,
                 file_layout=file_layout,
             )
+        if direct_source_report is None and assembled_source_for_reproduction:
+            direct_source_report = _direct_source_report_fields_from_ranges(
+                original,
+                canonical_rebuilt,
+                assembler=assembler,
+                diff_ranges=canonical_diff_ranges,
+            )
         _record_profile_timing(profile_timings, "diff_phase_seconds", phase_started_at)
         exact = bool(comparison.get("full_file_exact"))
         report_status = "exact" if exact else "binary_mismatch"
@@ -703,6 +722,8 @@ def run_reproduction(
             "canonical_file_shape_diagnostics": canonical_file_shape_diagnostics,
             "comparison": comparison,
         }
+        if direct_source_report is not None:
+            report.update(direct_source_report)
         if listing_profile is not None:
             report["listing_profile"] = listing_profile
         if source_artifact_error is not None:
@@ -1815,6 +1836,10 @@ def _base_reproduction_report(
         "rebuilt_size": None,
         "original_sha256": input_stamp.get("original_sha256"),
         "rebuilt_sha256": None,
+        "direct_source_exact": None,
+        "direct_source_assembler": None,
+        "direct_source_diff_range_count": None,
+        "direct_source_first_diff": None,
         "first_diff": None,
         "diff_ranges": [],
         "row_mappings": [],
@@ -1917,6 +1942,30 @@ def _record_direct_source_comparison(
         timings["facts_v2_source_relocation_semantics_exact"] = 1.0 if relocation_semantics else 0.0
     if relocation_encoding is not None:
         timings["facts_v2_source_relocation_encoding_exact"] = 1.0 if relocation_encoding else 0.0
+
+
+def _direct_source_report_fields(original: bytes, source_bytes: bytes, *, assembler: str) -> dict[str, object]:
+    return _direct_source_report_fields_from_ranges(
+        original,
+        source_bytes,
+        assembler=assembler,
+        diff_ranges=grouped_diff_ranges(original, source_bytes),
+    )
+
+
+def _direct_source_report_fields_from_ranges(
+    original: bytes,
+    source_bytes: bytes,
+    *,
+    assembler: str,
+    diff_ranges: list[dict[str, object]],
+) -> dict[str, object]:
+    return {
+        "direct_source_exact": not diff_ranges,
+        "direct_source_assembler": assembler,
+        "direct_source_diff_range_count": len(diff_ranges),
+        "direct_source_first_diff": _first_diff_from_ranges(original, source_bytes, diff_ranges),
+    }
 
 
 def _profile_timing_total(profile: dict[str, object] | None) -> float:

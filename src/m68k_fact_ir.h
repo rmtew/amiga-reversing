@@ -14,7 +14,9 @@ typedef enum M68kFactKind {
   M68K_FACT_RELOCATION_REF = 6,
   M68K_FACT_DATA_SPAN = 7,
   M68K_FACT_VIOLATION = 8,
-  M68K_FACT_RELOCATION_ANCHOR = 9
+  M68K_FACT_RELOCATION_ANCHOR = 9,
+  M68K_FACT_RUNTIME_ADDRESS_REF = 10,
+  M68K_FACT_RUNTIME_ADDRESS_RANGE = 11
 } M68kFactKind;
 
 typedef enum M68kFactConfidence {
@@ -23,6 +25,9 @@ typedef enum M68kFactConfidence {
   M68K_FACT_CONFIDENCE_REQUIRED = 3,
   M68K_FACT_CONFIDENCE_VERIFIED = 4
 } M68kFactConfidence;
+
+#define M68K_FACT_RUNTIME_RANGE_KIND_POLICY 1U
+#define M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY 2U
 
 typedef enum M68kFactCodeStartReason {
   M68K_FACT_CODE_START_REASON_UNKNOWN = 0,
@@ -40,6 +45,10 @@ typedef struct M68kFact {
   size_t section_index;
   uint32_t offset;
   uint32_t reason;
+  uint8_t has_runtime_address;
+  uint8_t runtime_kind;
+  uint8_t reserved[2];
+  uint32_t runtime_address;
   size_t source_section_index;
   uint32_t source_offset;
   size_t target_section_index;
@@ -61,6 +70,8 @@ typedef struct M68kFactIR {
   uint32_t xref_count;
   uint32_t relocation_ref_count;
   uint32_t relocation_anchor_count;
+  uint32_t runtime_address_ref_count;
+  uint32_t runtime_address_range_count;
   uint32_t data_span_count;
   uint32_t violation_count;
 } M68kFactIR;

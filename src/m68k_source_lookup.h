@@ -8,6 +8,7 @@ typedef struct M68kSourceLookupResult {
     uint8_t ok;
     uint8_t defined;
     uint8_t is_constant;
+    uint8_t is_absolute;
     uint32_t value;
     size_t symbol_id;
     size_t section_index;

@@ -205,6 +205,140 @@ class CdpWebSocket:
             time.sleep(interval)
         raise TimeoutError(f"Timed out waiting for expression: {expression}; last={last_value!r}")
 
+    def wait_for_app_event(
+        self,
+        event_name: str,
+        predicate: str = "true",
+        *,
+        timeout: float = 5.0,
+    ) -> Any:
+        quoted_event = json.dumps(event_name)
+        timeout_ms = int(timeout * 1000)
+        return self.evaluate(
+            f"""
+            (() => {{
+              const eventName = {quoted_event};
+              const timeoutMs = {timeout_ms};
+              const predicate = (detail) => Boolean({predicate});
+              const last = window.__amigaLastEvents && window.__amigaLastEvents[eventName];
+              if (last && predicate(last)) return last;
+              return new Promise((resolve, reject) => {{
+                let settled = false;
+                const cleanup = () => {{
+                  window.removeEventListener(eventName, handler);
+                  window.clearTimeout(timer);
+                }};
+                const settle = (callback, value) => {{
+                  if (settled) return;
+                  settled = true;
+                  cleanup();
+                  callback(value);
+                }};
+                const handler = (event) => {{
+                  const detail = event.detail || {{}};
+                  let matched = false;
+                  try {{
+                    matched = predicate(detail);
+                  }} catch (error) {{
+                    settle(reject, error);
+                    return;
+                  }}
+                  if (matched) settle(resolve, detail);
+                }};
+                const timer = window.setTimeout(
+                  () => settle(reject, new Error(`Timed out waiting for ${{eventName}}`)),
+                  timeoutMs,
+                );
+                window.addEventListener(eventName, handler);
+              }});
+            }})()
+            """,
+            timeout=timeout + 1.0,
+        )
+
+    def begin_app_event_wait(
+        self,
+        event_name: str,
+        predicate: str = "true",
+        *,
+        timeout: float = 5.0,
+    ) -> str:
+        token = f"wait_{secrets.token_hex(8)}"
+        quoted_token = json.dumps(token)
+        quoted_event = json.dumps(event_name)
+        timeout_ms = int(timeout * 1000)
+        value = self.evaluate(
+            f"""
+            (() => {{
+              const token = {quoted_token};
+              const eventName = {quoted_event};
+              const timeoutMs = {timeout_ms};
+              const startSeq = window.__amigaEventSeq || 0;
+              window.__cdpEventWaits = window.__cdpEventWaits || {{}};
+              window.__cdpEventWaits[token] = new Promise((resolve, reject) => {{
+                let settled = false;
+                const predicate = (detail) => Boolean({predicate});
+                const cleanup = () => {{
+                  window.removeEventListener(eventName, handler);
+                  window.clearTimeout(timer);
+                }};
+                const settle = (callback, value) => {{
+                  if (settled) return;
+                  settled = true;
+                  cleanup();
+                  callback(value);
+                }};
+                const handler = (event) => {{
+                  const detail = event.detail || {{}};
+                  if (!Number.isFinite(detail.seq) || detail.seq <= startSeq) return;
+                  let matched = false;
+                  try {{
+                    matched = predicate(detail);
+                  }} catch (error) {{
+                    settle(reject, error);
+                    return;
+                  }}
+                  if (matched) settle(resolve, detail);
+                }};
+                const timer = window.setTimeout(
+                  () => settle(reject, new Error(`Timed out waiting for ${{eventName}}`)),
+                  timeoutMs,
+                );
+                window.addEventListener(eventName, handler);
+              }});
+              return token;
+            }})()
+            """,
+            timeout=2.0,
+        )
+        assert isinstance(value, str)
+        return value
+
+    def finish_app_event_wait(self, token: str, *, timeout: float = 5.0) -> Any:
+        quoted_token = json.dumps(token)
+        try:
+            return self.evaluate(
+                f"window.__cdpEventWaits && window.__cdpEventWaits[{quoted_token}]",
+                timeout=timeout + 1.0,
+            )
+        finally:
+            self.evaluate(
+                f"if (window.__cdpEventWaits) delete window.__cdpEventWaits[{quoted_token}]; true",
+                timeout=2.0,
+            )
+
+    def wait_for_app_event_after_js(
+        self,
+        event_name: str,
+        action_expression: str,
+        predicate: str = "true",
+        *,
+        timeout: float = 5.0,
+    ) -> Any:
+        token = self.begin_app_event_wait(event_name, predicate, timeout=timeout)
+        self.evaluate(action_expression, timeout=timeout)
+        return self.finish_app_event_wait(token, timeout=timeout)
+
     def ui_error_text(self) -> str:
         value = self.evaluate(
             """

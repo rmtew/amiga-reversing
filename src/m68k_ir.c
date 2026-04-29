@@ -720,6 +720,29 @@ int m68k_ir_section_analysis_append_app_slot_ref(M68kSectionAnalysisIR *section_
   return 0;
 }
 
+int m68k_ir_section_analysis_append_runtime_view(M68kSectionAnalysisIR *section_analysis,
+    const M68kRuntimeViewIR *runtime_view) {
+  size_t index;
+  if (section_analysis == NULL || runtime_view == NULL) return -1;
+  if (section_analysis->arena == NULL || runtime_view->size == 0U) return -1;
+  for (index = 0; index < section_analysis->runtime_view_count; ++index) {
+    const M68kRuntimeViewIR *existing = &section_analysis->runtime_views[index];
+    if (existing->runtime_view_id == runtime_view->runtime_view_id ||
+        (existing->storage_offset == runtime_view->storage_offset &&
+         existing->runtime_address == runtime_view->runtime_address &&
+         existing->size == runtime_view->size)) {
+      return 0;
+    }
+  }
+  section_analysis->runtime_views = (M68kRuntimeViewIR *)arena_grow_array(section_analysis->arena,
+    section_analysis->runtime_views, section_analysis->runtime_view_count,
+    &section_analysis->runtime_view_capacity, 4U, sizeof(*section_analysis->runtime_views));
+  if (section_analysis->runtime_views == NULL) return -1;
+  section_analysis->runtime_views[section_analysis->runtime_view_count] = *runtime_view;
+  section_analysis->runtime_view_count += 1U;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_recovered_platform_base_slot(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, int16_t displacement, const char *base_name) {
   size_t index;
@@ -1420,6 +1443,12 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->app_slot_ref_count; ++index) {
     if (m68k_ir_section_analysis_append_app_slot_ref(&copy,
           &section_analysis->app_slot_refs[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->runtime_view_count; ++index) {
+    if (m68k_ir_section_analysis_append_runtime_view(&copy, &section_analysis->runtime_views[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

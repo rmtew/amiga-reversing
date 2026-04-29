@@ -824,6 +824,10 @@ def test_run_reproduction_direct_source_compare_does_not_override_direct_bytes(
     assert profile["facts_v2_source_content_exact"] == 1.0
     assert profile["facts_v2_source_payload_exact"] == 1.0
     assert "facts_v2_direct_source_compare_fell_back" not in profile
+    assert report["direct_source_exact"] is True
+    assert report["direct_source_assembler"] == "our"
+    assert report["direct_source_diff_range_count"] == 0
+    assert report["direct_source_first_diff"] is None
 
 
 def test_run_reproduction_direct_compare_exact_skips_python_diff(
@@ -887,6 +891,8 @@ def test_run_reproduction_direct_compare_exact_skips_python_diff(
     assert report["exact"] is True
     assert report["diff_ranges"] == []
     assert report["comparison"]["canonical_full_file_exact"] is True
+    assert report["direct_source_exact"] is None
+    assert report["direct_source_assembler"] is None
     profile = cast(dict[str, object], report["profile"])
     assert profile["facts_v2_direct_exact_fast_path"] == 1.0
     assert profile["facts_v2_direct_rebuild_exact"] == 1.0

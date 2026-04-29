@@ -36,7 +36,7 @@ from amiga_reversing.disasm.c_backend import (
     validate_api_input_struct_with_c_backend,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
-from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, ListingRow
+from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, ListingRow, SymbolOperandMetadata
 from amiga_reversing.disasm.project_ids import derive_disk_id_from_stem, disk_project_id
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from amiga_reversing.disasm.projects import (
@@ -511,6 +511,43 @@ def _app_slot_navigation_ref_entry(row: ListingRow, row_index: int, ref: AppSlot
     return entry
 
 
+def _listing_label_symbol(row: ListingRow) -> str | None:
+    if row.label:
+        symbol = row.label.rstrip(":").strip()
+        return symbol or None
+    text = _listing_row_code(row).strip()
+    if not text.endswith(":"):
+        return None
+    symbol = text[:-1].strip()
+    return symbol or None
+
+
+def _listing_row_symbol_operands(row: ListingRow) -> list[str]:
+    symbols: list[str] = []
+    seen: set[str] = set()
+    for operand in row.operand_parts:
+        symbol = None
+        if isinstance(operand.metadata, SymbolOperandMetadata):
+            symbol = operand.metadata.symbol
+        if not symbol or symbol in seen:
+            continue
+        seen.add(symbol)
+        symbols.append(symbol)
+    return symbols
+
+
+def _label_navigation_ref_entry(row: ListingRow, row_index: int, symbol: str, access: str) -> dict[str, object]:
+    entry = _navigation_entry(row, row_index, "labels")
+    entry.update(
+        {
+            "symbol": symbol,
+            "access": access,
+            "summary": f"{symbol}:" if access == "definition" else (_listing_row_code(row) or symbol),
+        }
+    )
+    return entry
+
+
 def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> dict[str, object]:
     groups: dict[str, list[dict[str, object]]] = {
         "repro-issues": [],
@@ -530,6 +567,24 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
     except (FileNotFoundError, ValueError, AssertionError):
         entities_by_addr = {}
     app_slots: dict[str, dict[str, object]] = {}
+    labels: dict[str, dict[str, object]] = {}
+    for row_index, row in enumerate(rows):
+        if row.addr is None or not _listing_row_is_label(row):
+            continue
+        symbol = _listing_label_symbol(row)
+        if symbol is None:
+            continue
+        label_entry = _navigation_entry(row, row_index, "labels")
+        label_entry.update(
+            {
+                "symbol": symbol,
+                "summary": f"{symbol}:",
+                "ref_count": 1,
+                "access_counts": {"definition": 1},
+                "refs": [_label_navigation_ref_entry(row, row_index, symbol, "definition")],
+            }
+        )
+        labels[symbol] = label_entry
     for row_index, row in enumerate(rows):
         if row.addr is None:
             continue
@@ -566,8 +621,15 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
             access_counts = cast(dict[str, int], slot_entry["access_counts"])
             refs.append(_app_slot_navigation_ref_entry(row, row_index, ref))
             access_counts[ref.access] = access_counts.get(ref.access, 0) + 1
-        if _listing_row_is_label(row):
-            groups["labels"].append(_navigation_entry(row, row_index, "labels"))
+        for symbol in _listing_row_symbol_operands(row):
+            label_entry = labels.get(symbol)
+            if label_entry is None:
+                continue
+            refs = cast(list[dict[str, object]], label_entry["refs"])
+            access_counts = cast(dict[str, int], label_entry["access_counts"])
+            refs.append(_label_navigation_ref_entry(row, row_index, symbol, "reference"))
+            label_entry["ref_count"] = cast(int, label_entry["ref_count"]) + 1
+            access_counts["reference"] = access_counts.get("reference", 0) + 1
         if row.comment_text or annotations:
             groups["comments"].append(_navigation_entry(row, row_index, "comments", annotations=annotations))
     for slot_entry in app_slots.values():
@@ -579,6 +641,10 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
         app_slots.values(),
         key=lambda entry: (cast(int, entry.get("displacement", 0)), cast(str, entry.get("symbol", ""))),
     )
+    for label_entry in labels.values():
+        refs = cast(list[dict[str, object]], label_entry["refs"])
+        refs.sort(key=lambda entry: cast(int, entry.get("row_index", -1)))
+    groups["labels"] = sorted(labels.values(), key=lambda entry: cast(int, entry.get("row_index", -1)))
     return {
         "analysis_generation": _PROJECT_ROW_GENERATION_CACHE.get(project_name),
         "total_rows": len(rows),

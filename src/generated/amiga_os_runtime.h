@@ -41,6 +41,11 @@ typedef enum AmigaOsValueDomainRemainderPolicy {
   AMIGA_OS_VALUE_DOMAIN_REMAINDER_ERROR = 1
 } AmigaOsValueDomainRemainderPolicy;
 
+typedef enum AmigaOsHardwareRegisterFlags {
+  AMIGA_OS_HARDWARE_REGISTER_FLAG_NONE = 0,
+  AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK = 1
+} AmigaOsHardwareRegisterFlags;
+
 typedef enum AmigaOsLibraryId {
   AMIGA_OS_LIBRARY_ID_AMIGAGUIDE_LIBRARY = 0,
   AMIGA_OS_LIBRARY_ID_ASL_LIBRARY = 1,
@@ -14008,7 +14013,28 @@ typedef struct AmigaOsHardwareRegisterInfo {
   const char *include_path;
   uint16_t value_domain_id;
   uint16_t bit_domain_id;
+  uint16_t flags;
+  const char *runtime_target_role;
 } AmigaOsHardwareRegisterInfo;
+
+typedef struct AmigaOsHardwareRegisterFieldInfo {
+  const char *base_symbol;
+  uint32_t base_address;
+  uint32_t register_offset;
+  const char *register_symbol;
+  uint32_t field_offset;
+  const char *field_symbol;
+  const char *include_path;
+} AmigaOsHardwareRegisterFieldInfo;
+
+typedef struct AmigaOsHardwareRegisterRangeInfo {
+  const char *base_symbol;
+  uint32_t base_address;
+  uint32_t offset;
+  uint32_t size;
+  const char *symbol_name;
+  const char *include_path;
+} AmigaOsHardwareRegisterRangeInfo;
 
 uint16_t amiga_os_name_id(uint8_t domain_kind, const char *name);
 const char *amiga_os_name(uint8_t domain_kind, uint16_t id);
@@ -14056,8 +14082,14 @@ const char *amiga_os_generic_naming_prefix(void);
 const AmigaOsResidentVectorPrefixInfo *amiga_os_resident_vector_prefix_at(size_t index);
 const AmigaOsResidentEntrySeedInfo *amiga_os_resident_entry_seed_at(size_t index);
 const AmigaOsHardwareRegisterInfo *amiga_os_hardware_register_at(size_t index);
+const AmigaOsHardwareRegisterFieldInfo *amiga_os_hardware_register_field_at(size_t index);
+const AmigaOsHardwareRegisterRangeInfo *amiga_os_hardware_register_range_at(size_t index);
 const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_cpu_address(uint32_t cpu_address);
 const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_offset(const char *base_symbol, uint32_t offset);
+const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_cpu_address(uint32_t cpu_address);
+const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_base_offset(const char *base_symbol, uint32_t offset);
+const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_cpu_address(uint32_t cpu_address);
+const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_base_offset(const char *base_symbol, uint32_t offset);
 const char *amiga_os_find_hardware_base_symbol_by_address(uint32_t base_address);
 int amiga_os_find_hardware_base_address(const char *base_symbol, uint32_t *out_address);
 const char *amiga_os_exec_base_library_name(void);
@@ -14079,6 +14111,8 @@ uint8_t amiga_os_lvo_slot_size(void);
 #define AMIGA_OS_RESIDENT_VECTOR_PREFIX_COUNT 10u
 #define AMIGA_OS_RESIDENT_ENTRY_SEED_COUNT 6u
 #define AMIGA_OS_HARDWARE_REGISTER_COUNT 133u
+#define AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT 24u
+#define AMIGA_OS_HARDWARE_REGISTER_RANGE_COUNT 1u
 #define AMIGA_OS_STRUCT_IO_FIELD_IO_DEVICE_OFFSET 20u
 
 #endif

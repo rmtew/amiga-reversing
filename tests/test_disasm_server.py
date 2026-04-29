@@ -14,7 +14,13 @@ import pytest
 
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
-from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, ListingRow
+from amiga_reversing.disasm.listing_types import (
+    AppSlotRef,
+    BlockRowContext,
+    ListingRow,
+    SemanticOperand,
+    SymbolOperandMetadata,
+)
 from amiga_reversing.disasm.projects import ProjectRecord
 
 
@@ -772,6 +778,34 @@ def test_route_listing_returns_index_window(monkeypatch: pytest.MonkeyPatch) -> 
     assert [row["row_id"] for row in rows_data] == ["r2", "r3"]
 
 
+def test_route_listing_index_window_clamps_past_end(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
+        for index in range(5)
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing",
+        {"start": ["999"], "count": ["2"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
+
+    assert payload["ok"] is True
+    assert data["start"] == 3
+    assert data["end"] == 5
+    assert data["total_rows"] == 5
+    assert [row["row_id"] for row in rows_data] == ["r3", "r4"]
+
+
 def test_route_listing_navigation_uses_all_cached_rows(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id="r0", kind="label", text="start:\n", addr=0, label="start:"),
@@ -801,6 +835,62 @@ def test_route_listing_navigation_uses_all_cached_rows(monkeypatch: pytest.Monke
     assert data["total_rows"] == 3
     assert [entry["summary"] for entry in groups["labels"]] == ["start:", "far_target:"]
     assert groups["labels"][1]["addr"] == 2000
+
+
+def test_route_listing_navigation_indexes_label_definition_and_refs(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(row_id="r0", kind="label", text="start:\n", addr=0, label="start"),
+        ListingRow(
+            row_id="r1",
+            kind="instruction",
+            text="bra.w target\n",
+            addr=2,
+            opcode_or_directive="bra.w",
+            operand_text="target",
+            operand_parts=(SemanticOperand(kind="symbol", text="target", metadata=SymbolOperandMetadata("target")),),
+        ),
+        ListingRow(
+            row_id="r2",
+            kind="instruction",
+            text="move.l #target,d0\n",
+            addr=6,
+            opcode_or_directive="move.l",
+            operand_text="#target,d0",
+        ),
+        ListingRow(
+            row_id="r3",
+            kind="instruction",
+            text="move.l #target,d1\n",
+            addr=8,
+            opcode_or_directive="move.l",
+            operand_text="#target,d1",
+            operand_parts=(SemanticOperand(kind="symbol", text="target"),),
+        ),
+        ListingRow(row_id="r4", kind="label", text="target:\n", addr=10, label="target"),
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing/navigation",
+        {},
+    )
+    data = cast(dict[str, object], payload["data"])
+    groups = cast(dict[str, list[dict[str, object]]], data["groups"])
+    target = groups["labels"][1]
+    refs = cast(list[dict[str, object]], target["refs"])
+
+    assert target["symbol"] == "target"
+    assert target["ref_count"] == 2
+    assert target["access_counts"] == {"definition": 1, "reference": 1}
+    assert [(ref["access"], ref["row_index"]) for ref in refs] == [("reference", 1), ("definition", 4)]
 
 
 def test_route_listing_navigation_includes_entity_annotations(monkeypatch: pytest.MonkeyPatch) -> None:

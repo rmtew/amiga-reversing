@@ -4,6 +4,7 @@
 static int json_builder_append_nullable_string(JsonBuilder *builder, const char *text);
 static void amiga_struct_catalog_info(uint16_t struct_id, const char **out_source, int16_t *out_size);
 static const char *app_slot_access_kind_name(uint8_t access_kind);
+static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt);
 
 static const char *file_kind_name(M68kPlatformFileKind kind) {
   if (kind == M68K_PLATFORM_FILE_EXECUTABLE) return "executable";
@@ -1139,19 +1140,34 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
   }
   for (section_index = 0; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
-    size_t block_index, edge_index, violation_index, app_slot_ref_index;
+    size_t block_index, edge_index, violation_index, app_slot_ref_index, runtime_view_index;
     size_t string_ref_index;
     size_t effect_index, call_index, indirect_site_index;
     if (section_index != 0U && json_builder_append(&builder, ",") != 0)
       goto oom;
     if (json_builder_appendf(&builder,
         "{\"section_index\":%u,\"section_kind\":%u,\"section_size\":%u,\"label_count\":%u,\"block_count\":%u,"
-        "\"edge_count\":%u,\"violation_count\":%u,\"blocks\":[",
+        "\"edge_count\":%u,\"violation_count\":%u,\"runtime_view_count\":%u,\"runtime_views\":[",
         (unsigned)section->section_index, (unsigned)section->section_kind, (unsigned)section->section_size,
         (unsigned)section->label_count, (unsigned)section->block_count, (unsigned)section->edge_count,
-        (unsigned)section->violation_count) != 0) {
+        (unsigned)section->violation_count, (unsigned)section->runtime_view_count) != 0) {
       goto oom;
     }
+    for (runtime_view_index = 0; runtime_view_index < section->runtime_view_count; ++runtime_view_index) {
+      const M68kRuntimeViewIR *view = &section->runtime_views[runtime_view_index];
+      if (runtime_view_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"runtime_view_id\":%u,\"storage_address\":%u,\"storage_offset\":%u,\"size\":%u,"
+          "\"runtime_address\":%u,\"kind\":%u,\"confidence\":%u}",
+          (unsigned)view->runtime_view_id, (unsigned)view->storage_offset,
+          (unsigned)view->storage_offset, (unsigned)view->size, (unsigned)view->runtime_address,
+          (unsigned)view->kind, (unsigned)view->confidence) != 0) {
+        goto oom;
+      }
+    }
+    if (json_builder_append(&builder, "],\"blocks\":[") != 0)
+      goto oom;
     for (block_index = 0; block_index < section->block_count; ++block_index) {
       const M68kCfgBlockIR *block = &section->blocks[block_index];
       if (block_index != 0U && json_builder_append(&builder, ",") != 0)
@@ -1640,6 +1656,18 @@ static int text_token_is_rs_directive(const char *text, size_t length) {
     text_token_equals_ci(text, length, "RS.L");
 }
 
+static int text_first_token_equals_ci(const char *text, const char *expected) {
+  const char *cursor = text;
+  const char *token_start;
+  size_t token_length;
+  if (cursor == NULL) return 0;
+  while (*cursor == ' ' || *cursor == '\t') ++cursor;
+  token_start = cursor;
+  while (*cursor != '\0' && *cursor != ' ' && *cursor != '\t') ++cursor;
+  token_length = (size_t)(cursor - token_start);
+  return token_length != 0U && text_token_equals_ci(token_start, token_length, expected);
+}
+
 static int text_contains_rs_directive_token(const char *text) {
   const char *cursor = text;
   if (cursor == NULL) return 0;
@@ -1665,7 +1693,7 @@ static const char *listing_row_kind_for_line(const char *stripped) {
       text_starts_with_ci(stripped, "DS.")) return "data";
   if (text_starts_with_ci(stripped, "INCLUDE ") || text_starts_with_ci(stripped, "SECTION ") ||
       text_starts_with_ci(stripped, "COMMENT ") || text_starts_with_ci(stripped, "EVEN") ||
-      text_starts_with_ci(stripped, "FPU ") ||
+      text_starts_with_ci(stripped, "FPU ") || text_first_token_equals_ci(stripped, "ORG") ||
       text_contains_equ(stripped) || text_contains_rs_directive_token(stripped)) {
     return "directive";
   }
@@ -1804,6 +1832,28 @@ static int append_listing_structured_data_json(JsonBuilder *builder, const M68kA
   return json_builder_append(builder, "}");
 }
 
+static int listing_data_class_is_known(const char *value) {
+  static const char *known[] = {
+    "audio_table",
+    "copper_list",
+    "pointer_table",
+    "string_control_stream"
+  };
+  size_t index;
+  if (value == NULL || value[0] == '\0') return 0;
+  for (index = 0U; index < sizeof(known) / sizeof(known[0]); ++index) {
+    if (strcmp(value, known[index]) == 0) return 1;
+  }
+  return 0;
+}
+
+static const char *listing_data_class_for_structured_item(const M68kAnalysisStructuredDataItem *item) {
+  if (item == NULL) return NULL;
+  if (listing_data_class_is_known(item->semantic_role)) return item->semantic_role;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING) return "string";
+  return NULL;
+}
+
 static const char *app_slot_access_kind_name(uint8_t access_kind) {
   switch (access_kind) {
   case M68K_APP_SLOT_ACCESS_READ: return "read";
@@ -1936,6 +1986,50 @@ static int append_listing_app_slot_refs_json(JsonBuilder *builder, const M68kSta
   return json_builder_append(builder, "]");
 }
 
+static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt) {
+  size_t operand_index;
+  int emitted = 0;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return json_builder_append(builder, "]");
+  for (operand_index = 0U; operand_index < stmt->u.instruction.operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &stmt->u.instruction.operands[operand_index];
+    const char *symbol_name = operand->symbol_ref.has_name != 0U ? operand->symbol_ref.name : NULL;
+    if (symbol_name == NULL || symbol_name[0] == '\0') continue;
+    if (emitted && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"kind\":\"symbol\",\"text\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, symbol_name) != 0) return -1;
+    if (json_builder_append(builder,
+          ",\"value\":null,\"register\":null,\"base_register\":null,\"displacement\":null,"
+          "\"segment_addr\":null,\"metadata\":{\"symbol\":") != 0)
+      return -1;
+    if (json_builder_append_json_string(builder, symbol_name) != 0) return -1;
+    if (json_builder_append(builder, "}}") != 0) return -1;
+    emitted = 1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static const M68kRuntimeViewIR *listing_runtime_view_for_storage_offset(
+    const M68kSourceAnalysisIR *source_analysis, int section_index, uint32_t storage_offset,
+    uint32_t *out_runtime_address) {
+  const M68kSectionAnalysisIR *section;
+  size_t index;
+  if (out_runtime_address != NULL) *out_runtime_address = 0U;
+  if (source_analysis == NULL || section_index < 0 || (size_t)section_index >= source_analysis->section_count)
+    return NULL;
+  section = &source_analysis->sections[section_index];
+  for (index = 0U; index < section->runtime_view_count; ++index) {
+    const M68kRuntimeViewIR *view = &section->runtime_views[index];
+    uint32_t delta;
+    if (storage_offset < view->storage_offset) continue;
+    delta = storage_offset - view->storage_offset;
+    if (delta >= view->size || view->runtime_address > UINT32_MAX - delta) continue;
+    if (out_runtime_address != NULL) *out_runtime_address = view->runtime_address + delta;
+    return view;
+  }
+  return NULL;
+}
+
 static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const char *line_start, size_t line_length,
     const char *row_kind, int section_index, const M68kStatementIR *stmt, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation) {
@@ -1950,6 +2044,8 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
   uint32_t addr = 0U;
   uint32_t end_offset = 0U;
   uint32_t byte_count = 0U;
+  const M68kRuntimeViewIR *runtime_view = NULL;
+  uint32_t runtime_address = 0U;
   copy_trimmed(text, sizeof(text), line_start, line_length);
   if (line_length + 1U < sizeof(text)) {
     memcpy(text, line_start, line_length);
@@ -1965,6 +2061,7 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
     end_offset = addr + byte_count;
     label = stmt->label_name;
     structured_item = listing_structured_data_item_at_offset(analysis_policy, section_index, addr);
+    runtime_view = listing_runtime_view_for_storage_offset(source_analysis, section_index, addr, &runtime_address);
   } else if (strcmp(row_kind, "label") == 0) {
     size_t stripped_length = strlen(stripped);
     if (stripped_length != 0U && stripped[stripped_length - 1U] == ':') stripped[stripped_length - 1U] = '\0';
@@ -1997,6 +2094,18 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
   if (has_addr) {
     if (json_builder_appendf(builder, "%u", (unsigned)end_offset) != 0) return -1;
   } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"storage_address\":") != 0) return -1;
+  if (has_addr) {
+    if (json_builder_appendf(builder, "%u", (unsigned)addr) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"runtime_address\":") != 0) return -1;
+  if (runtime_view != NULL) {
+    if (json_builder_appendf(builder, "%u", (unsigned)runtime_address) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"runtime_view_id\":") != 0) return -1;
+  if (runtime_view != NULL) {
+    if (json_builder_appendf(builder, "%u", (unsigned)runtime_view->runtime_view_id) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
   if (json_builder_append(builder, ",\"text\":") != 0) return -1;
   if (json_builder_append_json_string(builder, text) != 0) return -1;
   if (json_builder_append(builder, ",\"bytes\":") != 0) return -1;
@@ -2022,6 +2131,8 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
   } else if (json_builder_append(builder, "null") != 0) return -1;
   if (json_builder_append(builder, ",\"operand_text\":") != 0) return -1;
   if (json_builder_append_json_string(builder, operand) != 0) return -1;
+  if (json_builder_append(builder, ",\"operand_parts\":") != 0) return -1;
+  if (append_listing_operand_parts_json(builder, stmt) != 0) return -1;
   if (json_builder_append(builder, ",\"comment_text\":") != 0) return -1;
   if (json_builder_append_json_string(builder, comment) != 0) return -1;
   if (json_builder_append(builder, ",\"source_context\":") != 0) return -1;
@@ -2036,6 +2147,9 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
     return -1;
   if (json_builder_append(builder, ",\"structured_data\":") != 0) return -1;
   if (append_listing_structured_data_json(builder, structured_item) != 0) return -1;
+  if (json_builder_append(builder, ",\"data_class\":") != 0) return -1;
+  if (json_builder_append_nullable_string(builder, listing_data_class_for_structured_item(structured_item)) != 0)
+    return -1;
   return json_builder_append(builder, "}");
 }
 
@@ -2101,7 +2215,8 @@ static int listing_should_keep_source_only_body_row(const char *row_kind, const 
     int active_section_index) {
   if (active_section_index < 0 || row_kind == NULL) return 0;
   if (strcmp(row_kind, "comment") == 0) return 1;
-  return strcmp(row_kind, "directive") == 0 && text_starts_with_ci(stripped, "FPU ");
+  return strcmp(row_kind, "directive") == 0 &&
+    (text_starts_with_ci(stripped, "FPU ") || text_first_token_equals_ci(stripped, "ORG"));
 }
 
 static int collect_listing_source_header_rows(const M68kSourceFileIR *source_file, const char *rendered_text,

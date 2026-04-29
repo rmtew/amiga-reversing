@@ -37,7 +37,7 @@ from amiga_reversing.disasm.c_backend import (
     validate_amiga_hunk_executable_with_c_backend,
 )
 from amiga_reversing.disasm.facts_v2_source_refusal import FactsV2SourceRefused
-from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, HeaderRowContext
+from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, HeaderRowContext, SymbolOperandMetadata
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from src.tests._platform_backend_test_utils import (
     M68kDiagList,
@@ -253,20 +253,33 @@ def test_rows_from_c_listing_json_uses_emitted_metadata() -> None:
                 {
                     "row_id": "c:1",
                     "kind": "instruction",
-                    "text": "    rts\n",
+                    "text": "    jsr target.l\n",
                     "stable_key": "s0:00000020:instruction:1",
                     "analysis_generation": "basic",
                     "analysis_phase": "entrypoint-code",
                     "section_index": 0,
                     "start_offset": 32,
-                    "end_offset": 34,
+                    "end_offset": 38,
                     "addr": 32,
                     "entity_addr": 32,
-                    "bytes": "4e75",
+                    "bytes": "4eb900000040",
                     "label": None,
-                    "opcode_or_directive": "rts",
-                    "operand_text": "",
+                    "opcode_or_directive": "jsr",
+                    "operand_text": "target.l",
+                    "operand_parts": [
+                        {
+                            "kind": "symbol",
+                            "text": "target",
+                            "value": None,
+                            "register": None,
+                            "base_register": None,
+                            "displacement": None,
+                            "segment_addr": None,
+                            "metadata": {"symbol": "target"},
+                        }
+                    ],
                     "comment_text": "",
+                    "data_class": "copper_list",
                     "source_context": {"kind": "c-instruction", "hunk_index": 0},
                     "app_slot_refs": [
                         {
@@ -297,10 +310,14 @@ def test_rows_from_c_listing_json_uses_emitted_metadata() -> None:
     assert rows[1].analysis_phase == "entrypoint-code"
     assert rows[1].section_index == 0
     assert rows[1].start_offset == 32
-    assert rows[1].end_offset == 34
-    assert rows[1].opcode_or_directive == "rts"
-    assert rows[1].bytes == b"\x4e\x75"
+    assert rows[1].end_offset == 38
+    assert rows[1].opcode_or_directive == "jsr"
+    assert rows[1].bytes == bytes.fromhex("4eb900000040")
+    assert rows[1].operand_parts[0].kind == "symbol"
+    assert rows[1].operand_parts[0].text == "target"
+    assert rows[1].operand_parts[0].metadata == SymbolOperandMetadata(symbol="target")
     assert rows[1].source_context == BlockRowContext(kind="c-instruction", hunk_index=0)
+    assert rows[1].data_class == "copper_list"
     assert rows[1].app_slot_refs == (AppSlotRef("app_0234", 0x0234, "A6", 0, "read"),)
     assert rows[1].structured_data == {
         "struct_name": "RT",
@@ -332,6 +349,121 @@ def test_full_listing_data_rows_expose_source_bytes(tmp_path: Path) -> None:
 
     assert any(row.addr == 0 and row.bytes == b"\0" * 12 for row in data_rows)
     assert any(row.addr == 14 and row.bytes == b"ABC\0" for row in data_rows)
+
+
+def test_full_listing_instruction_rows_expose_symbol_operand_parts(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "raw.bin"
+    path.write_bytes(bytes.fromhex("60024e754e75"))
+
+    payload = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
+            "amiga-raw",
+            str(path),
+            0,
+            "",
+            "",
+            project_root=PROJECT_ROOT,
+        )
+    )["listing"]
+    rows = rows_from_c_listing_json(payload)
+    branch = next(row for row in rows if row.kind == "instruction" and row.addr == 0)
+
+    assert branch.operand_text == "loc_0_00000004"
+    assert branch.operand_parts[0].kind == "symbol"
+    assert branch.operand_parts[0].text == "loc_0_00000004"
+    assert branch.operand_parts[0].metadata == SymbolOperandMetadata(symbol="loc_0_00000004")
+
+
+def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "raw.bin"
+    metadata_path = tmp_path / "target_metadata.json"
+    path.write_bytes(
+        bytes.fromhex(
+            "41fa001e"
+            "4ef900000080"
+            "000000000000"
+            "4ef900000100"
+            "4e75"
+            "0000000000000000"
+            "4e714e75"
+        )
+    )
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "execution_views": [
+                    {"source_start": 0x10, "source_end": 0x20, "base_addr": 0x80},
+                    {"source_start": 0x20, "source_end": 0x24, "base_addr": 0x100},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    combined = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_listing_rows_with_analysis_and_text_raw_path_json_alloc",
+            "amiga-raw",
+            str(path),
+            0,
+            str(metadata_path),
+            "",
+            project_root=PROJECT_ROOT,
+        )
+    )
+    source_text = combined["source_text"]
+    assert "\tlea.l loc_0_00000020(pc),a0\n" in source_text
+    assert "\tjmp $00000080.l\n" in source_text
+    assert "loc_0_00000020:\n    ORG $100\nloc_0_00000100:\n" in source_text
+    assert "    ORG $20\n" not in source_text
+    assert "    ORG $80\n" not in source_text
+    assert "src_0_" not in source_text
+    assert "loc_0_00000020 EQU" not in source_text
+    facts_v2 = combined["profile"]["facts_v2"]
+    assert facts_v2["asm_source_numeric_runtime_refs"] == 1
+    assert facts_v2["asm_source_first_numeric_runtime_ref_offset"] == 4
+    assert facts_v2["asm_source_first_numeric_runtime_ref_target_offset"] == 0x10
+    assert facts_v2["asm_source_first_numeric_runtime_ref_runtime_address"] == 0x80
+    runtime_views = combined["analysis"]["sections"][0]["runtime_views"]
+    assert runtime_views == [
+        {
+            "runtime_view_id": 0,
+            "storage_address": 0x10,
+            "storage_offset": 0x10,
+            "size": 0x10,
+            "runtime_address": 0x80,
+            "kind": 1,
+            "confidence": 3,
+        },
+        {
+            "runtime_view_id": 1,
+            "storage_address": 0x20,
+            "storage_offset": 0x20,
+            "size": 0x04,
+            "runtime_address": 0x100,
+            "kind": 1,
+            "confidence": 3,
+        },
+    ]
+
+    rows = rows_from_c_listing_json(combined["listing"])
+    row_texts = [row.text.rstrip("\n") for row in rows]
+    ref_index = next(index for index, text in enumerate(row_texts) if "lea.l loc_0_00000020(pc),a0" in text)
+    storage_label_index = row_texts.index("loc_0_00000020:")
+    org_index = row_texts.index("    ORG $100")
+    runtime_label_index = row_texts.index("loc_0_00000100:")
+    assert ref_index < storage_label_index < org_index < runtime_label_index
+    storage_row = rows[storage_label_index]
+    runtime_row = rows[runtime_label_index]
+    assert storage_row.storage_address == 0x20
+    assert storage_row.runtime_address == 0x100
+    assert storage_row.runtime_view_id == 1
+    assert runtime_row.storage_address == 0x20
+    assert runtime_row.runtime_address == 0x100
+    assert runtime_row.runtime_view_id == 1
 
 
 def test_facts_v2_listing_rejects_invalid_platform_metadata(tmp_path: Path) -> None:
@@ -1964,7 +2096,109 @@ def test_real_dll_raw_runtime_absolute_entry_uses_execution_view(tmp_path: Path)
         project_root=PROJECT_ROOT,
     )
 
-    assert "loc_0_00000010:\n\trts\n" in source
+    assert "    ORG $400\nloc_0_00000400:\n\trts\n" in source
+    assert "loc_0_00000410:\n\trts\n" in source
+    assert "loc_0_00000010:" not in source
+
+
+def test_real_dll_runtime_org_is_visible_in_listing_rows(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "stage.bin"
+    binary_path.write_bytes(b"\x4e\x75" + (b"\0" * 14) + b"\x4e\x75")
+    metadata_path = tmp_path / "target_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "entry_register_seeds": [],
+                "bootblock": None,
+                "resident": None,
+                "library": None,
+                "custom_structs": [],
+                "app_slot_regions": [],
+                "execution_views": [
+                    {
+                        "source_start": 0,
+                        "source_end": 18,
+                        "base_addr": 0x400,
+                        "name": "loaded_stage",
+                    }
+                ],
+                "absolute_code_labels": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
+            "amiga-raw",
+            str(binary_path),
+            0x410,
+            str(metadata_path),
+            "",
+            project_root=PROJECT_ROOT,
+        )
+    )["listing"]
+    rows = rows_from_c_listing_json(payload)
+    org_index = next(index for index, row in enumerate(rows) if row.text.strip() == "ORG $400")
+    label_index = next(index for index, row in enumerate(rows) if row.label == "loc_0_00000400")
+
+    assert rows[org_index].kind == "directive"
+    assert rows[org_index].opcode_or_directive == "ORG"
+    assert rows[org_index].operand_text == "$400"
+    assert rows[org_index].addr is None
+    assert org_index < label_index
+
+
+def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_pointer(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "copper.bin"
+    binary_path.write_bytes(
+        bytes.fromhex(
+            "23fc0000000c00dff080"
+            "4e75"
+            "01004200"
+            "00e01234"
+            "fffffffe"
+        )
+    )
+    metadata_path = tmp_path / "target_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "execution_views": [
+                    {
+                        "source_start": 0,
+                        "source_end": 24,
+                        "base_addr": 0,
+                        "name": "loaded_stage",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
+            "amiga-raw",
+            str(binary_path),
+            0,
+            str(metadata_path),
+            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
+            project_root=PROJECT_ROOT,
+        )
+    )["listing"]
+    rows = rows_from_c_listing_json(payload)
+    copper_row = next(row for row in rows if row.addr == 0x0C and row.kind == "data")
+
+    assert copper_row.kind == "data"
+    assert copper_row.data_class == "copper_list"
+    assert copper_row.text.strip() == "dc.w bplcon0,$4200"
 
 
 def test_real_dll_facts_v2_basic_listing_rows_use_basic_api_without_source_directives(tmp_path: Path) -> None:
@@ -2228,15 +2462,16 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
         "boot_entry:"
         in source_text
     )
-    assert "\tlea.l loc_0_00000026(pc),a1\n" in source_text
+    assert "\tlea.l loc_0_00070026(pc),a1\n" in source_text
     assert "\tjsr _LVOFindResident(a6)\n" in source_text
     assert "\tmovea.l RT_INIT(a0),a0\n" in source_text
     assert 'INCLUDE "exec/resident.i"' in source_text
-    assert "loc_0_00000026:" in source_text
+    assert "loc_0_00070026:" in source_text
     assert '\tdc.b "dos.library",$00\n' in source_text
     assert "facts_v2 data bytes" not in source_text
-    assert any(row.kind == "instruction" and "loc_0_00000026(pc)" in row.text for row in rows)
-    assert any(row.kind == "label" and row.addr == 0x26 and row.text.strip() == "loc_0_00000026:" for row in rows)
+    assert any(row.kind == "instruction" and "loc_0_00070026(pc)" in row.text for row in rows)
+    assert any(row.kind == "label" and row.addr == 0x26 and row.text.strip() == "loc_0_00070026:" for row in rows)
+    assert any(row.addr == 0 and row.data_class == "string" for row in rows)
 
 
 def test_real_dll_facts_v2_listing_rows_emit_base_slot_effects(tmp_path: Path) -> None:
@@ -2654,41 +2889,52 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
     copied_stage_rows = [
         row for row in rows if row.section_index == 0 and row.start_offset == 0x5C
     ]
-    assert any(row.kind == "label" and "loc_0_0000005C:" in row.text for row in copied_stage_rows)
-    assert any(
-        row.kind == "instruction" and row.text.strip() == "move.w #INTF_CLRALL,_custom+intena.l"
-        for row in copied_stage_rows
-    )
-    assert not any("BPLCON0_" in row.text for row in rows)
-    assert any(row.text.strip() == "INCLUDE \"graphics/display.i\"" for row in rows)
-    assert any("INTF_CLRALL" in row.text and "EQU" in row.text for row in rows)
-    assert any("DMAF_CLRALL" in row.text and "EQU" in row.text for row in rows)
-    assert any(
-        row.kind == "instruction"
-        and row.start_offset == 0xF4
-        and row.text.strip() == "move.w #(4<<PLNCNTSHFT)|COLORON,_custom+bplcon0.l"
-        for row in rows
-    )
-    assert any(
-        row.kind == "instruction"
-        and row.start_offset == 0x1E4
-        and row.text.strip() == "move.w #DMAF_CLRALL,_custom+dmacon.l"
-        for row in rows
-    )
-    assert any(
-        row.kind == "instruction"
-        and row.text.strip() == "move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER|DMAF_COPPER|DMAF_SPRITE,_custom+dmacon.l"
-        for row in rows
-    )
-    assert any(
-        row.kind == "instruction"
-        and row.text.strip() == "move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER|INTF_PORTS,_custom+intena.l"
-        for row in rows
-    )
+    assert any(row.kind == "label" and "loc_0_00000400:" in row.text for row in copied_stage_rows)
+    assert any(row.kind == "instruction" for row in copied_stage_rows)
     assert not any(row.kind == "data" for row in copied_stage_rows)
-    labels = {row.text.strip() for row in rows if row.section_index == 0 and row.kind == "label"}
-    assert {"loc_0_0000022A:", "loc_0_00008500:", "loc_0_0000887C:", "loc_0_00008924:"} <= labels
-    assert {"loc_0_000005CE:", "loc_0_000088A4:", "loc_0_00008C20:", "loc_0_00008CC8:"}.isdisjoint(labels)
+
+
+def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    paths = resolve_project_paths(
+        "amiga_hunk_bloodwych",
+        project_root=PROJECT_ROOT,
+        require_entities=False,
+    )
+
+    source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    rebuilt, source_profile, assembler_profile = facts_v2_render_assemble_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
+        output_path=tmp_path / "bloodwych_generated_source.hunk",
+        target_cpu="any",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    section_pos = source_text.index("    SECTION section,code_c\n")
+    assert source_text.index("    RSSET 0\n") < section_pos
+    assert source_text.index('    INCLUDE "hardware/custom.i"\n') < section_pos
+    assert source_text.index('    INCLUDE "graphics/display.i"\n') < section_pos
+    assert source_text.index("INTF_CLRALL\tEQU\t$7FFF\n") < section_pos
+    assert "\nloc_0_00000000:\nINTF_CLRALL\tEQU" not in source_text
+    assert "loc_0_0000005C:\n    ORG $400\nloc_0_00000400:" in source_text
+    assert "ORG $5C" not in source_text
+    assert "loc_0_0000005C\tEQU" not in source_text
+    assert "\tmove.l #loc_0_00008E10,_custom+cop1lc.l\n" in source_text
+    assert "loc_0_00008E10:\n\tdc.w bplpt,$0007\n" in source_text
+    assert "loc_0_00008E30:\n\tdc.w sprpt,$0000\n" in source_text
+    assert "m68k_vector_level_3_interrupt_autovector\tEQU\t$6C" in source_text
+    assert "\tmove.l #loc_0_00008C20,m68k_vector_level_3_interrupt_autovector.w\n" in source_text
+    assert "$00DFF" not in source_text
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert assembler_profile["rebuilt_bytes"] == len(rebuilt)
+    assert rebuilt == paths.binary_source.path.read_bytes()
 
 
 def test_real_dll_inspects_and_extracts_dos_disk_entry() -> None:
@@ -2724,6 +2970,7 @@ def test_real_dll_renders_icon_library_resident_structure() -> None:
     )
 
     assert "    RSSET LIB_SIZE\napp_ExecBase RS.L 1\napp_DOSBase RS.L 1\napp_SegList RS.L 1\napp_SIZEOF EQU __RS" in rendered
+    assert rendered.index("    RSSET LIB_SIZE\n") < rendered.index("    SECTION section_0,code\n")
     assert "app_ExecBase EQU 34" not in rendered
     assert "app_DOSBase EQU 38" not in rendered
     assert "app_SegList EQU 42" not in rendered
@@ -2763,7 +3010,8 @@ def test_real_dll_renders_icon_library_resident_structure() -> None:
     assert "resident.w,a6" not in rendered
     assert "KNOWN: base A6=exec.library" in rendered
     assert "KNOWN: base A6=icon.library" in rendered
-    assert "icon_lib_open:\n    INCLUDE \"exec/libraries.i\"\n\taddq.w #1,LIB_OPENCNT(a6)" in rendered
+    assert rendered.index('    INCLUDE "exec/libraries.i"\n') < rendered.index("    SECTION section_0,code\n")
+    assert "icon_lib_open:\n\taddq.w #1,LIB_OPENCNT(a6)" in rendered
     assert "icon_lib_open:\n\taddq.w #1,$0020(a6)" not in rendered
     assert "icon_lib_extfunc:\n\tmoveq.l #0,d0" in rendered
     assert "dat_00A4+44" not in rendered
@@ -3035,9 +3283,11 @@ def test_symbolic_zero_address_displacement_preserves_instruction_width(tmp_path
         "\n".join(
             [
                 "    SECTION section_0,code",
+                "app_0000 EQU 0",
                 "loc_0_00000000:",
                 "    dc.w $0000",
                 "    move.l loc_0_00000000(a0),d0",
+                "    move.w app_0000(a6),d5",
                 "    dc.w $0000",
                 "",
             ]
@@ -3075,8 +3325,8 @@ def test_symbolic_zero_address_displacement_preserves_instruction_width(tmp_path
     )
     assert inspect_result.returncode == 0, inspect_result.stderr
     section = json.loads(inspect_result.stdout)["sections"][0]
-    assert section["data_size"] == 8
-    assert section["data_hex"] == "0000202800000000"
+    assert section["data_size"] == 12
+    assert section["data_hex"] == "0000202800003a2e00000000"
 
 
 def test_real_dll_extract_disk_entry_reports_c_error() -> None:

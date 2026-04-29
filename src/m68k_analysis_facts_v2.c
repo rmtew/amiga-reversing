@@ -86,9 +86,6 @@ typedef struct M68kAcceptedCandidateIndex {
   size_t section_count;
 } M68kAcceptedCandidateIndex;
 
-#define M68K_FACTS_V2_RUNTIME_RANGE_POLICY 1U
-#define M68K_FACTS_V2_RUNTIME_RANGE_DISCOVERED_COPY 2U
-
 typedef struct M68kRuntimeAddressRange {
   size_t section_index;
   uint32_t source_offset;
@@ -121,7 +118,7 @@ static int candidate_lea_absolute_address(const M68kDecodeCandidate *candidate, 
   uint32_t *out_address);
 static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t section_index,
   uint32_t source_offset, uint32_t runtime_address, uint32_t size, uint8_t kind, uint8_t confidence,
-  M68kFactsV2Profile *profile);
+  M68kFactIR *facts, M68kFactsV2Profile *profile);
 static int resolve_runtime_or_section_target(const M68kRuntimeAddressSpace *space, size_t section_index,
   uint32_t runtime_address, uint32_t section_size, uint32_t *out_source_offset);
 
@@ -529,7 +526,8 @@ static void profile_record_code_start(M68kFactsV2Profile *profile, uint32_t reas
 }
 
 static int append_code_start_fact(M68kFactIR *facts, size_t section_index, uint32_t offset, uint8_t confidence,
-    uint32_t reason, size_t source_section_index, uint32_t source_offset) {
+    uint32_t reason, size_t source_section_index, uint32_t source_offset, uint8_t has_runtime_address,
+    uint32_t runtime_address) {
   M68kFact fact;
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_CODE_START;
@@ -537,6 +535,8 @@ static int append_code_start_fact(M68kFactIR *facts, size_t section_index, uint3
   fact.section_index = section_index;
   fact.offset = offset;
   fact.reason = reason;
+  fact.has_runtime_address = has_runtime_address;
+  fact.runtime_address = runtime_address;
   fact.source_section_index = source_section_index;
   fact.source_offset = source_offset;
   return m68k_fact_ir_append(facts, &fact);
@@ -554,7 +554,7 @@ static int enqueue_code_start_runtime(M68kFactIR *facts, M68kFactsV2WorkQueue *q
     uint32_t reason, size_t source_section_index, uint32_t source_offset, uint8_t has_runtime_address,
     uint32_t runtime_address, const M68kFactsV2TraceState *trace_state) {
   if (append_code_start_fact(facts, section_index, offset, confidence, reason, source_section_index,
-      source_offset) != 0) {
+      source_offset, has_runtime_address, runtime_address) != 0) {
     return -1;
   }
   profile_record_code_start(profile, reason);
@@ -728,7 +728,7 @@ static int facts_v2_atari_image_offset_target(const M68kObject *object, const M6
 }
 
 static int seed_runtime_address_space_from_policy(const M68kObject *object, const M68kAnalysisPolicy *policy,
-    M68kRuntimeAddressSpace *runtime_addresses, M68kFactsV2Profile *profile) {
+    M68kRuntimeAddressSpace *runtime_addresses, M68kFactIR *facts, M68kFactsV2Profile *profile) {
   uint16_t range_index;
   if (object == NULL || policy == NULL || runtime_addresses == NULL) return -1;
   for (range_index = 0U; range_index < policy->runtime_range_count &&
@@ -744,7 +744,7 @@ static int seed_runtime_address_space_from_policy(const M68kObject *object, cons
     if (range->offset >= extent) continue;
     size = range->size != 0U && range->size <= extent - range->offset ? range->size : extent - range->offset;
     if (runtime_address_space_add(runtime_addresses, section_index, range->offset, range->runtime_address,
-        size, M68K_FACTS_V2_RUNTIME_RANGE_POLICY, M68K_FACT_CONFIDENCE_REQUIRED, profile) != 0) {
+        size, M68K_FACT_RUNTIME_RANGE_KIND_POLICY, M68K_FACT_CONFIDENCE_REQUIRED, facts, profile) != 0) {
       return -1;
     }
   }
@@ -828,7 +828,7 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
   if (object == NULL || policy == NULL || facts == NULL || label_lookup == NULL ||
       queue == NULL || runtime_addresses == NULL || profile == NULL)
     return -1;
-  if (seed_runtime_address_space_from_policy(object, policy, runtime_addresses, profile) != 0) return -1;
+  if (seed_runtime_address_space_from_policy(object, policy, runtime_addresses, facts, profile) != 0) return -1;
   for (section_index = 0U; section_index < object->section_count; ++section_index) {
     const M68kSection *section = &object->sections[section_index];
     M68kFact fact;
@@ -1084,6 +1084,41 @@ static int operand_immediate_value(uint8_t kind, const M68kAsmOperandValue *oper
   return 0;
 }
 
+static int candidate_operand_runtime_address_value(const M68kDecodeCandidate *candidate, size_t operand_index,
+    uint8_t platform_kind, uint32_t *out_value) {
+  uint32_t value = 0U;
+  if (candidate == NULL || operand_index >= candidate->operand_count || out_value == NULL) return 0;
+  if (operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+      &value)) {
+    *out_value = value;
+    return 1;
+  }
+  if (!operand_immediate_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+      &value)) {
+    return 0;
+  }
+  if (operand_index == 0U && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA &&
+      candidate->operand_count == 2U) {
+    uint8_t dest_reg = 0U;
+    if (operand_is_address_register_direct(&candidate->operands[1], &dest_reg)) {
+      *out_value = value;
+      return 1;
+    }
+  }
+  if (operand_index == 0U && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
+      candidate->size_suffix == 'l' && candidate->operand_count == 2U) {
+    uint32_t dest_address = 0U;
+    if (operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &dest_address) &&
+        (platform_facts_v2_is_callback_vector_slot(platform_kind, dest_address) ||
+         platform_facts_v2_is_runtime_address_sink(platform_kind, dest_address))) {
+      *out_value = value;
+      return 1;
+    }
+  }
+  *out_value = value;
+  return 0;
+}
+
 static int ir_operand_direct_data_register(const M68kOperandIR *operand, uint8_t *out_reg) {
   if (operand == NULL) return 0;
   if (operand->kind == M68K_ASM_OPERAND_DN) {
@@ -1189,9 +1224,9 @@ static uint32_t trace_copy_size_from_state(const M68kFactsV2TraceState *state, u
   return fallback_size;
 }
 
-static int trace_state_record_runtime_copy(M68kRuntimeAddressSpace *space, M68kFactsV2Profile *profile,
-    size_t section_index, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
-    const M68kFactsV2TraceState *state) {
+static int trace_state_record_runtime_copy(M68kRuntimeAddressSpace *space, M68kFactIR *facts,
+    M68kFactsV2Profile *profile, size_t section_index, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *state) {
   uint8_t source_reg = 0U;
   uint8_t dest_reg = 0U;
   uint32_t width = 0U;
@@ -1220,8 +1255,8 @@ static int trace_state_record_runtime_copy(M68kRuntimeAddressSpace *space, M68kF
   copy_size = trace_copy_size_from_state(state, width, fallback_size);
   if (copy_size > fallback_size) copy_size = fallback_size;
   return runtime_address_space_add(space, section_index, state->a[source_reg].value,
-    state->a[dest_reg].value, copy_size, M68K_FACTS_V2_RUNTIME_RANGE_DISCOVERED_COPY,
-    M68K_FACT_CONFIDENCE_TOOL_INFERRED, profile);
+    state->a[dest_reg].value, copy_size, M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY,
+    M68K_FACT_CONFIDENCE_TOOL_INFERRED, facts, profile);
 }
 
 static void trace_state_apply_known_effects(size_t section_index, const M68kDecodeCandidate *candidate,
@@ -1383,6 +1418,16 @@ static int call_consumes_inline_string_payload(M68kDecodeIR *decode, const M68kD
 static int append_xref_fact(M68kFactIR *facts, size_t section_index, uint32_t source_offset,
     uint32_t target_offset, uint8_t confidence) {
   M68kFact fact;
+  size_t fact_index;
+  if (facts == NULL) return -1;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *existing = &facts->facts[fact_index];
+    if (existing->kind == M68K_FACT_XREF && existing->section_index == section_index &&
+        existing->offset == source_offset && existing->target_section_index == section_index &&
+        existing->target_offset == target_offset) {
+      return 0;
+    }
+  }
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_XREF;
   fact.confidence = confidence;
@@ -1390,6 +1435,63 @@ static int append_xref_fact(M68kFactIR *facts, size_t section_index, uint32_t so
   fact.offset = source_offset;
   fact.target_section_index = section_index;
   fact.target_offset = target_offset;
+  return m68k_fact_ir_append(facts, &fact);
+}
+
+static int append_runtime_address_ref_fact(M68kFactIR *facts, size_t section_index, uint32_t source_offset,
+    size_t operand_index, uint32_t target_offset, uint32_t runtime_address, uint8_t confidence) {
+  M68kFact fact;
+  size_t fact_index;
+  if (facts == NULL || operand_index > UINT32_MAX) return -1;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *existing = &facts->facts[fact_index];
+    if (existing->kind == M68K_FACT_RUNTIME_ADDRESS_REF && existing->section_index == section_index &&
+        existing->offset == source_offset && existing->reason == (uint32_t)operand_index &&
+        existing->target_section_index == section_index && existing->target_offset == target_offset &&
+        existing->has_runtime_address && existing->runtime_address == runtime_address) {
+      return 0;
+    }
+  }
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_RUNTIME_ADDRESS_REF;
+  fact.confidence = confidence;
+  fact.section_index = section_index;
+  fact.offset = source_offset;
+  fact.reason = (uint32_t)operand_index;
+  fact.has_runtime_address = 1U;
+  fact.runtime_address = runtime_address;
+  fact.target_section_index = section_index;
+  fact.target_offset = target_offset;
+  return m68k_fact_ir_append(facts, &fact) == 0 ? 1 : -1;
+}
+
+static int append_runtime_address_range_fact(M68kFactIR *facts, size_t section_index, uint32_t source_offset,
+    uint32_t runtime_address, uint32_t size, uint8_t kind, uint8_t confidence) {
+  M68kFact fact;
+  size_t fact_index;
+  if (facts == NULL || size == 0U) return -1;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *existing = &facts->facts[fact_index];
+    if (existing->kind == M68K_FACT_RUNTIME_ADDRESS_RANGE &&
+        existing->section_index == section_index &&
+        existing->offset == source_offset &&
+        existing->runtime_address == runtime_address &&
+        existing->size == size &&
+        existing->runtime_kind == kind) {
+      return 0;
+    }
+  }
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_RUNTIME_ADDRESS_RANGE;
+  fact.confidence = confidence;
+  fact.section_index = section_index;
+  fact.offset = source_offset;
+  fact.has_runtime_address = 1U;
+  fact.runtime_kind = kind;
+  fact.runtime_address = runtime_address;
+  fact.source_section_index = section_index;
+  fact.source_offset = source_offset;
+  fact.size = size;
   return m68k_fact_ir_append(facts, &fact);
 }
 
@@ -1446,11 +1548,12 @@ static void runtime_address_space_destroy(M68kRuntimeAddressSpace *space) {
 }
 
 static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t section_index, uint32_t source_offset,
-    uint32_t runtime_address, uint32_t size, uint8_t kind, uint8_t confidence, M68kFactsV2Profile *profile) {
+    uint32_t runtime_address, uint32_t size, uint8_t kind, uint8_t confidence, M68kFactIR *facts,
+    M68kFactsV2Profile *profile) {
   size_t index;
   M68kRuntimeAddressRange *grown;
   size_t next_capacity;
-  if (space == NULL || size == 0U) return 0;
+  if (space == NULL || facts == NULL || size == 0U) return 0;
   for (index = 0U; index < space->count; ++index) {
     M68kRuntimeAddressRange *existing = &space->ranges[index];
     uint64_t existing_start = existing->runtime_address;
@@ -1459,7 +1562,13 @@ static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t sect
     uint64_t new_end = new_start + size;
     if (existing->section_index == section_index && existing->source_offset == source_offset &&
         existing->runtime_address == runtime_address) {
-      if (size > existing->size) existing->size = size;
+      if (size > existing->size) {
+        existing->size = size;
+        if (append_runtime_address_range_fact(facts, section_index, source_offset, runtime_address, size, kind,
+            confidence) != 0) {
+          return -1;
+        }
+      }
       if (confidence > existing->confidence) existing->confidence = confidence;
       return 0;
     }
@@ -1467,7 +1576,10 @@ static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t sect
       uint64_t overlap_start = existing_start > new_start ? existing_start : new_start;
       uint64_t existing_source = (uint64_t)existing->source_offset + (overlap_start - existing_start);
       uint64_t new_source = (uint64_t)source_offset + (overlap_start - new_start);
-      if (existing_source != new_source && profile != NULL) ++profile->runtime_address_range_conflicts;
+      if (existing_source != new_source) {
+        if (profile != NULL) ++profile->runtime_address_range_conflicts;
+        return -1;
+      }
     }
   }
   if (space->count == space->capacity) {
@@ -1486,7 +1598,8 @@ static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t sect
   space->ranges[space->count].confidence = confidence;
   ++space->count;
   if (profile != NULL) ++profile->runtime_address_ranges;
-  return 0;
+  return append_runtime_address_range_fact(facts, section_index, source_offset, runtime_address, size, kind,
+    confidence);
 }
 
 static int runtime_address_space_translate(const M68kRuntimeAddressSpace *space, size_t section_index,
@@ -1548,6 +1661,54 @@ static int resolve_runtime_or_section_target(const M68kRuntimeAddressSpace *spac
   if (runtime_address < section_size) {
     *out_source_offset = runtime_address;
     return 1;
+  }
+  return 0;
+}
+
+static int append_runtime_address_refs_for_accepted(const M68kDecodeIR *decode, uint8_t platform_kind,
+    const M68kRuntimeAddressSpace *runtime_addresses, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kFactIR *facts) {
+  size_t section_index;
+  if (decode == NULL || runtime_addresses == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      facts == NULL) {
+    return -1;
+  }
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    size_t candidate_index;
+    if (accepted_start[section_index] == NULL || accepted_bytes[section_index] == NULL) return -1;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      size_t operand_index;
+      if (!accepted_start[section_index][candidate->offset]) continue;
+      for (operand_index = 0U; operand_index < candidate->operand_count; ++operand_index) {
+        uint32_t runtime_address = 0U;
+        uint32_t target_offset = 0U;
+        int ref_result;
+        if (!candidate_operand_runtime_address_value(candidate, operand_index, platform_kind, &runtime_address))
+          continue;
+        if (!runtime_address_space_translate(runtime_addresses, section_index, runtime_address, section->size,
+            &target_offset)) {
+          continue;
+        }
+        if (accepted_offset_is_interior(section, accepted_start[section_index], accepted_bytes[section_index],
+            target_offset)) {
+          continue;
+        }
+        ref_result = append_runtime_address_ref_fact(facts, section_index, candidate->offset, operand_index,
+          target_offset, runtime_address, M68K_FACT_CONFIDENCE_TOOL_INFERRED);
+        if (ref_result < 0) return -1;
+        if (ref_result == 0) continue;
+        if (append_xref_fact(facts, section_index, candidate->offset, target_offset,
+            M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
+          return -1;
+        }
+        if (m68k_fact_ir_require_label(facts, section_index, target_offset,
+              M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
+          return -1;
+        }
+      }
+    }
   }
   return 0;
 }
@@ -2316,7 +2477,7 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
       profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_accept_seconds,
         phase_start);
     }
-    if (trace_state_record_runtime_copy(runtime_addresses, profile, item.section_index, section, candidate,
+    if (trace_state_record_runtime_copy(runtime_addresses, facts, profile, item.section_index, section, candidate,
         &item.trace_state) != 0)
       return -1;
     trace_state_after_candidate(item.section_index, candidate, &item.trace_state, &next_trace_state);
@@ -2623,6 +2784,10 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   add_elapsed_seconds_local(&out_profile->fixed_point_relocation_anchor_seconds, start, end);
   accepted_candidate_index_destroy(&accepted_index);
   start = clock();
+  if (append_runtime_address_refs_for_accepted(&decode, object->platform_backend_kind, &runtime_addresses,
+      accepted_start, accepted_bytes, &facts) != 0) {
+    goto fail;
+  }
   if (materialize_safe_required_labels(&decode, accepted_start, accepted_bytes, &facts, &label_lookup) != 0)
     goto fail;
   end = clock();
@@ -2673,8 +2838,8 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   out_profile->queue_iterations = (uint32_t)queue.cursor;
   start = clock();
   if (m68k_render_ir_preview_build(object, &decode, &facts, policy, accepted_start, accepted_bytes,
-      render_text_preview, render_asm_source, collect_asm_source_text,
-      &render_preview, out_source_analysis) != 0) goto fail;
+      render_text_preview, render_asm_source, collect_asm_source_text, &render_preview,
+      out_source_analysis) != 0) goto fail;
   end = clock();
   out_profile->render_ir_seconds = elapsed_seconds_local(start, end);
   out_profile->render_ir_statements = render_preview.statement_count;
@@ -2690,6 +2855,17 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   out_profile->asm_source_lines = render_preview.asm_source_lines;
   out_profile->asm_source_relocation_exprs = render_preview.asm_source_relocation_exprs;
   out_profile->asm_source_symbolic_instructions = render_preview.asm_source_symbolic_instructions;
+  out_profile->asm_source_numeric_runtime_refs = render_preview.asm_source_numeric_runtime_refs;
+  out_profile->asm_source_first_numeric_runtime_ref_section =
+    render_preview.asm_source_first_numeric_runtime_ref_section;
+  out_profile->asm_source_first_numeric_runtime_ref_offset =
+    render_preview.asm_source_first_numeric_runtime_ref_offset;
+  out_profile->asm_source_first_numeric_runtime_ref_target_section =
+    render_preview.asm_source_first_numeric_runtime_ref_target_section;
+  out_profile->asm_source_first_numeric_runtime_ref_target_offset =
+    render_preview.asm_source_first_numeric_runtime_ref_target_offset;
+  out_profile->asm_source_first_numeric_runtime_ref_runtime_address =
+    render_preview.asm_source_first_numeric_runtime_ref_runtime_address;
   out_profile->platform_base_slot_count = render_preview.platform_base_slot_count;
   out_profile->platform_call_count = render_preview.platform_call_count;
   out_profile->platform_effect_count = render_preview.platform_effect_count;
@@ -2778,8 +2954,8 @@ int m68k_facts_v2_render_asm_source_profile_alloc(const M68kObject *object, cons
   M68kFactsV2Profile *profile = out_profile != NULL ? out_profile : &local_profile;
   if (out_source == NULL) return -1;
   *out_source = NULL;
-  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, fail_on_refused != 0U, 0, out_source,
-    NULL, diagnostics);
+  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, fail_on_refused != 0U, 0,
+    out_source, NULL, diagnostics);
 }
 
 int m68k_facts_v2_render_asm_source_analysis_profile_alloc(const M68kObject *object,
@@ -2790,8 +2966,8 @@ int m68k_facts_v2_render_asm_source_analysis_profile_alloc(const M68kObject *obj
   if (out_source == NULL || out_source_analysis == NULL) return -1;
   *out_source = NULL;
   memset(out_source_analysis, 0, sizeof(*out_source_analysis));
-  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, fail_on_refused != 0U, 0, out_source,
-    out_source_analysis, diagnostics);
+  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, fail_on_refused != 0U, 0,
+    out_source, out_source_analysis, diagnostics);
 }
 
 void m68k_facts_v2_free_text(char *text) {

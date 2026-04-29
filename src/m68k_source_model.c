@@ -114,10 +114,13 @@ M68kSourceLookupResult m68k_source_model_lookup_symbol(const char *name, void *u
   if (!symbol_result.ok) return result;
   result.ok = 1U;
   result.defined = (uint8_t)(source->symbols[symbol_result.index].defined != 0);
-  result.is_constant = (uint8_t)(source->symbols[symbol_result.index].kind == ASM_SOURCE_SYMBOL_CONSTANT);
+  result.is_absolute = source->symbols[symbol_result.index].is_absolute;
+  result.is_constant = (uint8_t)(source->symbols[symbol_result.index].kind == ASM_SOURCE_SYMBOL_CONSTANT ||
+    source->symbols[symbol_result.index].is_absolute);
   result.value = source->symbols[symbol_result.index].value;
   result.symbol_id = symbol_result.index;
-  result.section_index = source->symbols[symbol_result.index].section_index;
+  result.section_index = source->symbols[symbol_result.index].is_absolute
+    ? (size_t)-1 : source->symbols[symbol_result.index].section_index;
   return result;
 }
 
@@ -196,17 +199,20 @@ int m68k_source_model_set_constant(AsmSourceFile *source, const char *name, uint
   index = symbol_result.index;
   if (source->symbols[index].defined && !allow_redefine && source->symbols[index].value != value) return 0;
   source->symbols[index].defined = 1;
+  source->symbols[index].is_absolute = 0U;
   source->symbols[index].section_index = (size_t)-1;
   source->symbols[index].value = value;
   return 1;
 }
 
-int m68k_source_model_set_label_value(AsmSourceFile *source, const char *name, size_t section_index, uint32_t value) {
+int m68k_source_model_set_label_value(AsmSourceFile *source, const char *name, size_t section_index, uint32_t value,
+    uint8_t is_absolute) {
   M68kSourceModelIndexResult symbol_result = m68k_source_model_ensure_symbol(source, name, ASM_SOURCE_SYMBOL_LABEL);
   size_t index;
   if (!symbol_result.ok) return 0;
   index = symbol_result.index;
   source->symbols[index].defined = 1;
+  source->symbols[index].is_absolute = is_absolute;
   source->symbols[index].section_index = section_index;
   source->symbols[index].value = value;
   return 1;

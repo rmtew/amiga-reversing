@@ -121,6 +121,9 @@ class ListingRow:
     section_index: int | None = None
     start_offset: int | None = None
     end_offset: int | None = None
+    storage_address: int | None = None
+    runtime_address: int | None = None
+    runtime_view_id: int | None = None
     addr: int | None = None
     entity_addr: int | None = None
     verified_state: str | None = None
@@ -133,6 +136,7 @@ class ListingRow:
     comment_parts: tuple[str, ...] = ()
     comment_text: str = ""
     source_context: RowSourceContext | None = None
+    data_class: str | None = None
     structured_data: dict[str, Any] | None = None
 
 

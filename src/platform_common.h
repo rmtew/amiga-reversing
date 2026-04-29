@@ -48,5 +48,7 @@ int platform_facts_v2_resolve_stack_cleanup_call(uint8_t platform_kind,
   uint32_t cleanup_offset, const struct M68kInstructionIR *cleanup_instruction,
   PlatformFactsV2ResolvedCall *out_info);
 int platform_facts_v2_is_callback_vector_slot(uint8_t platform_kind, uint32_t address);
+int platform_facts_v2_is_runtime_address_sink(uint8_t platform_kind, uint32_t address);
+const char *platform_facts_v2_runtime_address_sink_data_class(uint8_t platform_kind, uint32_t address);
 
 #endif

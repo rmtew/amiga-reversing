@@ -39,6 +39,7 @@ from amiga_reversing.disasm.listing_types import (
     HeaderRowContext,
     ListingRow,
     SemanticOperand,
+    SymbolOperandMetadata,
 )
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 
@@ -649,13 +650,18 @@ def rows_from_c_listing_json(payload: dict[str, object]) -> list[ListingRow]:
         section_index = raw_row.get("section_index")
         start_offset = raw_row.get("start_offset")
         end_offset = raw_row.get("end_offset")
+        storage_address = raw_row.get("storage_address")
+        runtime_address = raw_row.get("runtime_address")
+        runtime_view_id = raw_row.get("runtime_view_id")
         label = raw_row.get("label")
         opcode_or_directive = raw_row.get("opcode_or_directive")
         operand_text = raw_row.get("operand_text")
         comment_text = raw_row.get("comment_text")
+        data_class = raw_row.get("data_class")
         structured_data = raw_row.get("structured_data")
         source_context = _source_context_from_c_json(raw_row.get("source_context"))
         app_slot_refs = _app_slot_refs_from_c_json(raw_row.get("app_slot_refs"))
+        operand_parts = _operand_parts_from_c_json(raw_row.get("operand_parts"), operand_text)
         row_bytes = raw_row.get("bytes")
         parsed_bytes = None
         if isinstance(row_bytes, str) and row_bytes != "":
@@ -674,23 +680,65 @@ def rows_from_c_listing_json(payload: dict[str, object]) -> list[ListingRow]:
                 section_index=section_index if isinstance(section_index, int) else None,
                 start_offset=start_offset if isinstance(start_offset, int) else None,
                 end_offset=end_offset if isinstance(end_offset, int) else None,
+                storage_address=storage_address if isinstance(storage_address, int) else None,
+                runtime_address=runtime_address if isinstance(runtime_address, int) else None,
+                runtime_view_id=runtime_view_id if isinstance(runtime_view_id, int) else None,
                 addr=addr if isinstance(addr, int) else None,
                 entity_addr=entity_addr if isinstance(entity_addr, int) else None,
                 bytes=parsed_bytes,
                 label=label if isinstance(label, str) else None,
                 opcode_or_directive=opcode_or_directive if isinstance(opcode_or_directive, str) else None,
-                operand_parts=()
-                if not isinstance(operand_text, str) or operand_text == ""
-                else (SemanticOperand(kind="text", text=operand_text),),
+                operand_parts=operand_parts,
                 app_slot_refs=app_slot_refs,
                 operand_text=operand_text if isinstance(operand_text, str) else "",
                 comment_parts=() if not isinstance(comment_text, str) or comment_text == "" else (comment_text,),
                 comment_text=comment_text if isinstance(comment_text, str) else "",
                 source_context=source_context,
+                data_class=data_class if isinstance(data_class, str) else None,
                 structured_data=structured_data if isinstance(structured_data, dict) else None,
             )
         )
     return rows
+
+
+def _operand_parts_from_c_json(value: object, operand_text: object) -> tuple[SemanticOperand, ...]:
+    parts: list[SemanticOperand] = []
+    if isinstance(value, list):
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+            kind = item.get("kind")
+            text = item.get("text")
+            if not isinstance(kind, str) or not isinstance(text, str) or text == "":
+                continue
+            metadata_obj = item.get("metadata")
+            metadata = None
+            if isinstance(metadata_obj, dict):
+                symbol = metadata_obj.get("symbol")
+                if isinstance(symbol, str) and symbol:
+                    metadata = SymbolOperandMetadata(symbol=symbol)
+            raw_value = item.get("value")
+            raw_register = item.get("register")
+            raw_base_register = item.get("base_register")
+            raw_displacement = item.get("displacement")
+            raw_segment_addr = item.get("segment_addr")
+            parts.append(
+                SemanticOperand(
+                    kind=kind,
+                    text=text,
+                    value=raw_value if isinstance(raw_value, int) else None,
+                    register=raw_register if isinstance(raw_register, str) else None,
+                    base_register=raw_base_register if isinstance(raw_base_register, str) else None,
+                    displacement=raw_displacement if isinstance(raw_displacement, int) else None,
+                    segment_addr=raw_segment_addr if isinstance(raw_segment_addr, int) else None,
+                    metadata=metadata,
+                )
+            )
+    if parts:
+        return tuple(parts)
+    if isinstance(operand_text, str) and operand_text != "":
+        return (SemanticOperand(kind="text", text=operand_text),)
+    return ()
 
 
 def _app_slot_refs_from_c_json(value: object) -> tuple[AppSlotRef, ...]:

@@ -65,6 +65,9 @@ class SerializedRow(TypedDict):
     section_index: int | None
     start_offset: int | None
     end_offset: int | None
+    storage_address: int | None
+    runtime_address: int | None
+    runtime_view_id: int | None
     addr: int | None
     entity_addr: int | None
     verified_state: str | None
@@ -77,6 +80,7 @@ class SerializedRow(TypedDict):
     comment_parts: list[str]
     comment_text: str
     source_context: dict[str, object]
+    data_class: str | None
     structured_data: dict[str, object] | None
     entity: dict[str, object] | None
     view_annotations: list[str]
@@ -168,6 +172,9 @@ def serialize_row(row: ListingRow) -> SerializedRow:
         "section_index": row.section_index,
         "start_offset": row.start_offset,
         "end_offset": row.end_offset,
+        "storage_address": row.storage_address,
+        "runtime_address": row.runtime_address,
+        "runtime_view_id": row.runtime_view_id,
         "addr": row.addr,
         "entity_addr": row.entity_addr,
         "verified_state": row.verified_state,
@@ -180,6 +187,7 @@ def serialize_row(row: ListingRow) -> SerializedRow:
         "comment_parts": list(row.comment_parts),
         "comment_text": row.comment_text,
         "source_context": _row_source_context_dict(row.source_context),
+        "data_class": row.data_class,
         "structured_data": cast(dict[str, object] | None, row.structured_data),
         "entity": None,
         "view_annotations": [],
@@ -229,8 +237,12 @@ def listing_window_payload(rows: list[ListingRow], addr: int | None,
 
 def listing_index_window_payload(rows: list[ListingRow], start: int,
                                  count: int) -> ListingWindowPayload:
-    safe_start = max(0, min(start, len(rows)))
     safe_count = max(0, count)
+    if safe_count == 0 or not rows:
+        safe_start = 0
+    else:
+        max_start = max(0, len(rows) - safe_count)
+        safe_start = max(0, min(start, max_start))
     end = min(len(rows), safe_start + safe_count)
     return {
         "anchor_addr": rows[safe_start].addr if safe_start < len(rows) else None,

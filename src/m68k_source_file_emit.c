@@ -133,6 +133,7 @@ static int should_emit_internal_abs_fixup(const AsmSourceFile *source, M68kFixup
 int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitContext *context,
     M68kDiagSink diagnostics) {
   uint32_t *offsets;
+  uint32_t *logical_offsets;
   size_t pass_index;
   size_t section_count;
   if (source == NULL) {
@@ -141,14 +142,18 @@ int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitConte
   }
   section_count = source->section_count != 0U ? source->section_count : 1U;
   offsets = (uint32_t *)calloc(section_count, sizeof(*offsets));
-  if (offsets == NULL) {
+  logical_offsets = (uint32_t *)calloc(section_count, sizeof(*logical_offsets));
+  if (offsets == NULL || logical_offsets == NULL) {
     source_emit_error(diagnostics, "out of memory");
+    free(offsets);
+    free(logical_offsets);
     return 0;
   }
   for (pass_index = 0; pass_index < 8U; ++pass_index) {
     int changed = 0;
     size_t stmt_index;
     memset(offsets, 0, section_count * sizeof(*offsets));
+    memset(logical_offsets, 0, section_count * sizeof(*logical_offsets));
     for (stmt_index = 0; stmt_index < source->statement_count; ++stmt_index) {
       AsmSourceStmt *stmt = &source->statements[stmt_index];
       if (stmt->kind == ASM_SOURCE_STMT_SECTION) continue;
@@ -158,24 +163,38 @@ int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitConte
         if (stmt->section_index != (size_t)-1 && stmt->section_index >= source->section_count) {
           source_emit_error(diagnostics, "invalid section index");
           free(offsets);
+          free(logical_offsets);
           return 0;
         }
-        value = (stmt->section_index == (size_t)-1) ? 0U : offsets[stmt->section_index];
-        if (!context->set_label_value(source, stmt->u.label.name, stmt->section_index, value)) {
+        value = (stmt->section_index == (size_t)-1) ? 0U : logical_offsets[stmt->section_index];
+        uint8_t is_absolute = (uint8_t)(stmt->section_index != (size_t)-1 &&
+          value != offsets[stmt->section_index]);
+        if (!context->set_label_value(source, stmt->u.label.name, stmt->section_index, value, is_absolute)) {
           source_emit_error(diagnostics, "failed updating label");
           free(offsets);
+          free(logical_offsets);
           return 0;
         }
-        stmt->offset = value; continue;
+        stmt->offset = (stmt->section_index == (size_t)-1) ? 0U : offsets[stmt->section_index];
+        stmt->logical_offset = value;
+        continue;
       }
       if (stmt->section_index >= source->section_count) {
         source_emit_error(diagnostics, "invalid section index");
         free(offsets);
+        free(logical_offsets);
         return 0;
       }
       stmt->offset = offsets[stmt->section_index];
+      stmt->logical_offset = logical_offsets[stmt->section_index];
+      if (stmt->kind == ASM_SOURCE_STMT_ORG) {
+        stmt->logical_offset = stmt->u.org_value;
+        logical_offsets[stmt->section_index] = stmt->u.org_value;
+        stmt->size = 0U;
+        continue;
+      }
       if (stmt->kind == ASM_SOURCE_STMT_EVEN) {
-        stmt->size = (stmt->offset & 1U) ? 1U : 0U;
+        stmt->size = (stmt->logical_offset & 1U) ? 1U : 0U;
       } else if (stmt->kind == ASM_SOURCE_STMT_DATA) {
         stmt->size = (uint32_t)data_statement_size(&stmt->u.data);
       } else if (stmt->kind == ASM_SOURCE_STMT_RESERVE) {
@@ -185,9 +204,10 @@ int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitConte
         unsigned char bytes[M68K_SOURCE_FILE_EMIT_MAX_CASE_BYTES];
         M68kDiagList encode_diagnostics;
         M68kIrEncodeResult encoded;
-        resolved = context->resolve_instruction(source, stmt, stmt->offset, 1, diagnostics);
+        resolved = context->resolve_instruction(source, stmt, stmt->logical_offset, 1, diagnostics);
         if (!resolved.ok) {
           free(offsets);
+          free(logical_offsets);
           return 0;
         }
         if (resolved.instruction.size_suffix == '\0')
@@ -198,20 +218,24 @@ int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitConte
         if (m68k_diag_has_errors(&encode_diagnostics)) {
           source_emit_error(diagnostics, m68k_diag_first_message(&encode_diagnostics));
           free(offsets);
+          free(logical_offsets);
           return 0;
         }
         if (stmt->size != (uint32_t)encoded.byte_count) changed = 1;
         stmt->size = (uint32_t)encoded.byte_count;
       }
       offsets[stmt->section_index] += stmt->size;
+      logical_offsets[stmt->section_index] += stmt->size;
     }
     if (!changed) {
       free(offsets);
+      free(logical_offsets);
       return 1;
     }
   }
   source_emit_error(diagnostics, "layout did not stabilize");
   free(offsets);
+  free(logical_offsets);
   return 0;
 }
 
@@ -234,7 +258,8 @@ static int emit_data_statement(const AsmSourceFile *source, const AsmSourceStmt 
       M68kSourceLinearExprEvalResult evaluated_expr;
       M68kSourceEmitExprContext expr_context;
       M68kFixup fixup;
-      init_emit_expr_context(&expr_context, expr_lookup_symbol, expr_lookup_user_data, (uint32_t)writer->size);
+      init_emit_expr_context(&expr_context, expr_lookup_symbol, expr_lookup_user_data,
+        stmt->logical_offset + (uint32_t)(writer->size - stmt->offset));
       parsed_expr = m68k_source_parse_linear_expression(item->expr, 0, expr_lookup_symbol_with_current,
         &expr_context);
       evaluated_expr = m68k_source_evaluate_linear_expression(parsed_expr.expr);
@@ -277,7 +302,7 @@ static int emit_instruction_statement(const AsmSourceFile *source, const M68kSou
   M68kDiagList encode_diagnostics;
   M68kIrEncodeResult encoded;
   size_t fixup_index;
-  resolved = context->resolve_instruction(source, stmt, stmt->offset, 0, diagnostics);
+  resolved = context->resolve_instruction(source, stmt, stmt->logical_offset, 0, diagnostics);
   if (!resolved.ok) return 0;
   if (resolved.instruction.size_suffix == '\0')
     resolved.instruction.size_suffix = stmt->u.instruction.requested_size_suffix;
@@ -361,7 +386,7 @@ int m68k_source_file_emit_object(const AsmSourceFile *source, const M68kSourceFi
   for (index = 0; index < source->statement_count; ++index) {
     const AsmSourceStmt *stmt = &source->statements[index];
     if (stmt->kind == ASM_SOURCE_STMT_END || stmt->kind == ASM_SOURCE_STMT_SECTION ||
-        stmt->kind == ASM_SOURCE_STMT_LABEL)
+        stmt->kind == ASM_SOURCE_STMT_LABEL || stmt->kind == ASM_SOURCE_STMT_ORG)
       continue;
     if (stmt->section_index >= source->section_count) {
       source_emit_error(diagnostics, "invalid section index");
@@ -454,7 +479,7 @@ static int append_data_ir_statement(const AsmSourceFile *source, const AsmSource
       M68kSourceLinearExprEvalResult evaluated_expr;
       M68kSourceEmitExprContext expr_context;
       init_emit_expr_context(&expr_context, expr_lookup_symbol, expr_lookup_user_data,
-        stmt->offset + (uint32_t)writer.size);
+        stmt->logical_offset + (uint32_t)writer.size);
       parsed_expr = m68k_source_parse_linear_expression(item->expr, 0, expr_lookup_symbol_with_current,
         &expr_context);
       evaluated_expr = m68k_source_evaluate_linear_expression(parsed_expr.expr);
@@ -531,7 +556,8 @@ int m68k_source_file_build_ir(const AsmSourceFile *source, M68kSourceExprLookupF
       const AsmSourceStmt *stmt = &source->statements[stmt_index];
       M68kStatementIR statement;
       if (stmt->section_index != section_index) continue;
-      if (stmt->kind == ASM_SOURCE_STMT_END || stmt->kind == ASM_SOURCE_STMT_SECTION) continue;
+      if (stmt->kind == ASM_SOURCE_STMT_END || stmt->kind == ASM_SOURCE_STMT_SECTION ||
+          stmt->kind == ASM_SOURCE_STMT_ORG) continue;
       if (stmt->kind == ASM_SOURCE_STMT_LABEL) {
         m68k_ir_statement_init(&statement);
         statement.kind = M68K_STATEMENT_LABEL;
@@ -583,7 +609,8 @@ int m68k_source_file_build_ir(const AsmSourceFile *source, M68kSourceExprLookupF
       uint32_t stmt_end;
       if (stmt->section_index != section_index) continue;
       if (stmt->kind == ASM_SOURCE_STMT_END || stmt->kind == ASM_SOURCE_STMT_SECTION ||
-          stmt->kind == ASM_SOURCE_STMT_LABEL || stmt->kind == ASM_SOURCE_STMT_RESERVE)
+          stmt->kind == ASM_SOURCE_STMT_LABEL || stmt->kind == ASM_SOURCE_STMT_RESERVE ||
+          stmt->kind == ASM_SOURCE_STMT_ORG)
         continue;
       stmt_end = stmt->offset + stmt->size;
       if (stmt_end > section.data_size) section.data_size = stmt_end;

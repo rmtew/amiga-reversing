@@ -583,6 +583,16 @@ typedef struct M68kRecoveredDirectSectionCallIR {
   uint32_t target_offset;
 } M68kRecoveredDirectSectionCallIR;
 
+typedef struct M68kRuntimeViewIR {
+  uint32_t runtime_view_id;
+  uint32_t storage_offset;
+  uint32_t size;
+  uint32_t runtime_address;
+  uint8_t kind;
+  uint8_t confidence;
+  uint8_t reserved[2];
+} M68kRuntimeViewIR;
+
 typedef struct M68kSectionAnalysisIR {
   size_t section_index;
   char *section_name;
@@ -670,6 +680,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kRecoveredDirectSectionCallIR *recovered_direct_section_calls;
   size_t recovered_direct_section_call_count;
   size_t recovered_direct_section_call_capacity;
+  M68kRuntimeViewIR *runtime_views;
+  size_t runtime_view_count;
+  size_t runtime_view_capacity;
   uint8_t recovered_direct_section_calls_indexed;
   Arena *arena;
   uint8_t owns_arena;
@@ -761,6 +774,8 @@ int m68k_ir_section_analysis_append_recovered_platform_call(M68kSectionAnalysisI
     const char *available_since, const char *fd_version);
 int m68k_ir_section_analysis_append_recovered_direct_section_call(M68kSectionAnalysisIR *section_analysis,
     uint32_t offset, size_t target_section_index, uint32_t target_offset);
+int m68k_ir_section_analysis_append_runtime_view(M68kSectionAnalysisIR *section_analysis,
+    const M68kRuntimeViewIR *runtime_view);
 int m68k_ir_source_analysis_create(M68kSourceAnalysisIR *source_analysis);
 void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis);
 int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis);

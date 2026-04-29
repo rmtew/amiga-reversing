@@ -30,6 +30,7 @@ const state = {
     selectedClass: "typed-data",
     selectedIndex: 0,
     appSlotSymbol: null,
+    labelSymbol: null,
     entries: null,
     generation: null,
     originEntry: null,
@@ -73,6 +74,11 @@ const APP_SLOT_ACCESS_LABELS = {
   write: "W",
   "read-write": "RW",
   address: "A",
+};
+const LABEL_ACCESS_ORDER = ["definition", "reference"];
+const LABEL_ACCESS_LABELS = {
+  definition: "D",
+  reference: "R",
 };
 const ENTITY_SUBTYPES = [
   "",
@@ -150,7 +156,10 @@ async function fetchJson(url, options = {}) {
 }
 
 function isAbortError(error) {
-  return error instanceof DOMException && error.name === "AbortError";
+  return Boolean(error && (
+    error.name === "AbortError" ||
+    String(error.message || error).toLowerCase().includes("aborted")
+  ));
 }
 
 function projectPath(projectId) {
@@ -367,6 +376,14 @@ async function fileToBase64(file) {
 
 function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function dispatchAppEvent(name, detail = {}) {
+  window.__amigaEventSeq = (window.__amigaEventSeq || 0) + 1;
+  window.__amigaLastEvents = window.__amigaLastEvents || {};
+  const eventDetail = {...detail, seq: window.__amigaEventSeq};
+  window.__amigaLastEvents[name] = eventDetail;
+  window.dispatchEvent(new CustomEvent(name, {detail: eventDetail}));
 }
 
 function getJobPhaseLabel(job) {
@@ -1112,9 +1129,7 @@ function waitForAsyncJobEvents(job, token, renderOverlay) {
     source.addEventListener("listing_generation_ready", (event) => {
       try {
         const payload = JSON.parse(event.data);
-        if (payload.generation === "basic") {
-          void handleListingGenerationReady(payload, token);
-        }
+        void handleListingGenerationReady(payload, token);
       } catch (error) {
         settle(reject, error);
       }
@@ -1343,7 +1358,7 @@ function formatAppSlotDisplacement(entry) {
 }
 
 function formatNavigationEntryOffset(entry) {
-  if (entry?.refs && entry?.symbol) {
+  if (entry?.refs && entry?.symbol && entry?.displacement !== undefined) {
     return formatAppSlotDisplacement(entry);
   }
   const offset = formatRowOffset(entry.addr);
@@ -1397,7 +1412,11 @@ function labelNameFromText(text) {
   if (!trimmed.endsWith(":")) {
     return null;
   }
-  const name = trimmed.slice(0, -1).trim();
+  return normalizedLabelSymbol(trimmed);
+}
+
+function normalizedLabelSymbol(value) {
+  const name = String(value || "").trim().replace(/:$/, "").trim();
   return name || null;
 }
 
@@ -1416,19 +1435,6 @@ function rowUsesGlobalTextColumn(row) {
   return !renderListingCode(row).trimStart().startsWith("SECTION ");
 }
 
-function labelLinkCandidateFromOperandText(text) {
-  const trimmed = String(text || "").trim();
-  if (!trimmed) {
-    return null;
-  }
-  const first = trimmed.split(/[,\s(]+/)[0] || "";
-  const name = first.replace(/\.(b|w|l|s)$/i, "").replace(/[+\-].*$/, "");
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
-    return null;
-  }
-  return name;
-}
-
 function labelNamesFromNavigation() {
   const labels = state.navigation.entries?.labels || [];
   return new Set(labels.map((entry) => {
@@ -1437,12 +1443,88 @@ function labelNamesFromNavigation() {
   }).filter(Boolean));
 }
 
-function isKnownListingLabelName(name) {
-  if (!name) {
-    return false;
+function isListingSymbolChar(char) {
+  return /^[A-Za-z0-9_]$/.test(char || "");
+}
+
+function rowOperandSymbolNames(row) {
+  const symbols = [];
+  const seen = new Set();
+  if (!Array.isArray(row?.operand_parts)) {
+    return symbols;
   }
-  const labels = labelNamesFromNavigation();
-  return labels.has(name);
+  row.operand_parts.forEach((operand) => {
+    const metadataSymbol = operand?.metadata && typeof operand.metadata.symbol === "string"
+      ? operand.metadata.symbol
+      : "";
+    const symbol = metadataSymbol;
+    if (!symbol || seen.has(symbol)) {
+      return;
+    }
+    seen.add(symbol);
+    symbols.push(symbol);
+  });
+  return symbols;
+}
+
+function listingOperandSymbolNames(row) {
+  return rowOperandSymbolNames(row);
+}
+
+function listingLabelRefRanges(row, text) {
+  const source = String(text || "");
+  if (!source) {
+    return [];
+  }
+  const labels = listingOperandSymbolNames(row)
+    .filter((label) => label && source.includes(label))
+    .sort((left, right) => right.length - left.length || left.localeCompare(right));
+  const ranges = [];
+  labels.forEach((label) => {
+    let cursor = 0;
+    while (cursor < source.length) {
+      const start = source.indexOf(label, cursor);
+      if (start < 0) {
+        break;
+      }
+      const end = start + label.length;
+      const before = start > 0 ? source[start - 1] : "";
+      const after = end < source.length ? source[end] : "";
+      if (!isListingSymbolChar(before) && !isListingSymbolChar(after)) {
+        ranges.push({start, end, symbol: label});
+      }
+      cursor = end;
+    }
+  });
+  ranges.sort((left, right) => left.start - right.start || right.end - left.end);
+  const filtered = [];
+  let cursor = 0;
+  ranges.forEach((range) => {
+    if (range.start < cursor) {
+      return;
+    }
+    filtered.push(range);
+    cursor = range.end;
+  });
+  return filtered;
+}
+
+function renderListingLabelRefsHtml(row, text, globalRowIndex = null) {
+  const source = String(text || "");
+  const ranges = listingLabelRefRanges(row, source);
+  if (!ranges.length) {
+    return null;
+  }
+  let cursor = 0;
+  let html = "";
+  ranges.forEach((range) => {
+    html += escapeHtml(source.slice(cursor, range.start));
+    const rowIndex = Number.isFinite(globalRowIndex) ? ` data-row-index="${escapeHtml(String(globalRowIndex))}"` : "";
+    html += `<button class="listing-symbol-link listing-symbol-reference" type="button" data-symbol-name="${escapeHtml(range.symbol)}" data-symbol-role="reference"${rowIndex}>${escapeHtml(range.symbol)}</button>`;
+    cursor = range.end;
+  });
+  html += escapeHtml(source.slice(cursor));
+  return html;
 }
 
 function renderOperandAppSlotRefsHtml(row, operand, globalRowIndex) {
@@ -1497,9 +1579,10 @@ function renderListingCodeHtml(row, globalRowIndex = null) {
     return `<span class="listing-global-structured">${labelHtml}<span class="listing-global-directive">${escapeHtml(globalRsEqu.directive)}</span><span class="listing-global-operand">${escapeHtml(globalRsEqu.operand)}</span></span>`;
   }
   const code = renderListingCode(row);
-  const labelName = labelNameFromText(code);
+  const labelName = labelSymbolFromRow(row);
   if (labelName && row.kind === "label" && rowHasAddress(row)) {
-    return `<button class="listing-symbol-link listing-symbol-definition" type="button" data-symbol-name="${escapeHtml(labelName)}">${escapeHtml(code)}</button>`;
+    const rowIndex = Number.isFinite(globalRowIndex) ? ` data-row-index="${escapeHtml(String(globalRowIndex))}"` : "";
+    return `<button class="listing-symbol-link listing-symbol-definition" type="button" data-symbol-name="${escapeHtml(labelName)}" data-symbol-role="definition"${rowIndex}>${escapeHtml(code)}</button>`;
   }
   const appSlotCodeHtml = Number.isFinite(globalRowIndex)
     ? renderOperandAppSlotRefsHtml(row, code, globalRowIndex)
@@ -1516,10 +1599,9 @@ function renderListingCodeHtml(row, globalRowIndex = null) {
     if (appSlotOperandHtml !== null) {
       return `    ${escapeHtml(opcode)} ${appSlotOperandHtml}`;
     }
-    const candidate = labelLinkCandidateFromOperandText(operand);
-    if (candidate && isKnownListingLabelName(candidate)) {
-      const suffix = operand.slice(candidate.length);
-      return `    ${escapeHtml(opcode)} <button class="listing-symbol-link listing-symbol-reference" type="button" data-symbol-name="${escapeHtml(candidate)}">${escapeHtml(candidate)}</button>${escapeHtml(suffix)}`;
+    const labelOperandHtml = renderListingLabelRefsHtml(row, operand, globalRowIndex);
+    if (labelOperandHtml !== null) {
+      return `    ${escapeHtml(opcode)} ${labelOperandHtml}`;
     }
   }
   return escapeHtml(code);
@@ -1652,11 +1734,34 @@ function measureRenderedListingRowHeight(viewport) {
   return state.virtualListing.rowHeight;
 }
 
+function listingWindowWithGenerationTransitionAnchor(viewport, listing) {
+  const existingRow = viewport?.querySelector(".listing-row");
+  const existingGeneration = existingRow instanceof HTMLElement ? existingRow.dataset.analysisGeneration : "";
+  const nextGeneration = listing?.analysis_generation || "";
+  if (!existingGeneration || !nextGeneration || existingGeneration === nextGeneration) {
+    return listing;
+  }
+  const anchor = captureListingAddressAnchor(viewport);
+  if (!anchor?.rowCode || Number.isFinite(anchor.addr)) {
+    return listing;
+  }
+  const anchorIndex = listingAnchorRowIndexInRows(listing.rows || [], anchor);
+  if (anchorIndex <= 0) {
+    return listing;
+  }
+  return {
+    ...listing,
+    start: (listing.start || 0) + anchorIndex,
+    rows: listing.rows.slice(anchorIndex),
+  };
+}
+
 function renderVirtualListingWindow(projectId, listing, preserveScroll = false, forcedScrollTop = null) {
   const viewport = document.getElementById("listing-viewport");
   if (!viewport) {
     return;
   }
+  listing = listingWindowWithGenerationTransitionAnchor(viewport, listing);
   const scrollTop = viewport.scrollTop;
   state.listingRows = listing.rows;
   state.virtualListing.start = listing.start || 0;
@@ -1683,6 +1788,15 @@ function renderVirtualListingWindow(projectId, listing, preserveScroll = false, 
     viewport.scrollTop = scrollTop;
   }
   renderNavigationOverlay();
+  dispatchAppEvent("amiga:listing-window-rendered", {
+    projectId,
+    start: state.virtualListing.start,
+    end: state.virtualListing.end,
+    totalRows: state.virtualListing.totalRows,
+    generation: state.virtualListing.generation,
+    rowCount: listing.rows.length,
+    requestSeq: state.virtualListing.requestSeq,
+  });
 }
 
 function bindVirtualListingScroller(projectId, viewport) {
@@ -1707,6 +1821,18 @@ function bindVirtualListingScroller(projectId, viewport) {
   viewport.addEventListener("scroll", viewport._listingScrollHandler);
 }
 
+function cancelScheduledListingScrollFetch() {
+  if (state.virtualListing.scrollRaf !== null) {
+    window.cancelAnimationFrame(state.virtualListing.scrollRaf);
+    state.virtualListing.scrollRaf = null;
+  }
+  if (state.virtualListing.scrollTimer !== null) {
+    window.clearTimeout(state.virtualListing.scrollTimer);
+    state.virtualListing.scrollTimer = null;
+  }
+  state.virtualListing.pendingWindow = null;
+}
+
 function scrollListingViewport(projectId, direction) {
   const viewport = document.getElementById("listing-viewport");
   if (!(viewport instanceof HTMLElement)) {
@@ -1724,6 +1850,7 @@ function scrollListingViewport(projectId, direction) {
   } else {
     return false;
   }
+  cancelScheduledListingScrollFetch();
   scheduleListingWindowForScroll(projectId, viewport, {delayMs: 0});
   void flushPendingListingWindow();
   return true;
@@ -1994,6 +2121,7 @@ function scheduleListingWindowForScroll(projectId, viewport, {delayMs = 120} = {
 
 async function flushPendingListingWindow() {
   const pending = state.virtualListing.pendingWindow;
+  let result = null;
   if (!pending) {
     return null;
   }
@@ -2003,7 +2131,7 @@ async function flushPendingListingWindow() {
   state.virtualListing.pendingWindow = null;
   state.virtualListing.inFlightWindow = pending;
   try {
-    return await loadListingWindow(pending.projectId, null, 0, pending.count, {
+    result = await loadListingWindow(pending.projectId, null, 0, pending.count, {
       start: pending.start,
       count: pending.count,
       preserveScroll: true,
@@ -2018,10 +2146,11 @@ async function flushPendingListingWindow() {
     if (sameListingWindow(state.virtualListing.inFlightWindow, pending)) {
       state.virtualListing.inFlightWindow = null;
     }
-    if (state.virtualListing.pendingWindow) {
-      void flushPendingListingWindow();
-    }
   }
+  if (state.virtualListing.pendingWindow) {
+    return flushPendingListingWindow();
+  }
+  return result;
 }
 
 function isEditableTarget(target) {
@@ -2173,6 +2302,78 @@ function addAppSlotNavigationRef(appSlots, row, rowIndex, rawRef) {
   slot.access_counts[ref.access] = (slot.access_counts[ref.access] || 0) + 1;
 }
 
+function labelSymbolFromRow(row) {
+  if (row?.label) {
+    return normalizedLabelSymbol(row.label);
+  }
+  return labelNameFromText(renderListingCode(row));
+}
+
+function addLabelNavigationEntry(labels, row, rowIndex) {
+  const symbol = labelSymbolFromRow(row);
+  if (!symbol) {
+    return;
+  }
+  const hunkIndex = rowHunkIndex(row);
+  const stableKey = row.stable_key ?? row.stableKey ?? null;
+  const matchText = renderListingCode(row);
+  labels.set(symbol, {
+    symbol,
+    summary: `${symbol}:`,
+    matchText,
+    match_text: matchText,
+    addr: row.addr,
+    rowIndex,
+    row_index: rowIndex,
+    hunkIndex,
+    hunk_index: hunkIndex,
+    stableKey,
+    stable_key: stableKey,
+    ref_count: 1,
+    access_counts: {definition: 1},
+    refs: [{
+      symbol,
+      addr: row.addr,
+      rowIndex,
+      row_index: rowIndex,
+      hunkIndex,
+      hunk_index: hunkIndex,
+      stableKey,
+      stable_key: stableKey,
+      summary: matchText.trim() || `${symbol}:`,
+      matchText,
+      match_text: matchText,
+      access: "definition",
+    }],
+  });
+}
+
+function addLabelNavigationRef(labels, row, rowIndex, symbol) {
+  const label = labels.get(symbol);
+  if (!label) {
+    return;
+  }
+  const hunkIndex = rowHunkIndex(row);
+  const stableKey = row.stable_key ?? row.stableKey ?? null;
+  const matchText = renderListingCode(row);
+  label.refs.push({
+    symbol,
+    addr: row.addr,
+    rowIndex,
+    row_index: rowIndex,
+    hunkIndex,
+    hunk_index: hunkIndex,
+    stableKey,
+    stable_key: stableKey,
+    summary: matchText.trim() || symbol,
+    matchText,
+    match_text: matchText,
+    access: "reference",
+  });
+  label.ref_count += 1;
+  label.access_counts.reference = (label.access_counts.reference || 0) + 1;
+}
+
 function sortedAppSlotNavigationEntries(appSlots) {
   return Array.from(appSlots.values())
     .map((slot) => {
@@ -2180,6 +2381,13 @@ function sortedAppSlotNavigationEntries(appSlots) {
       return slot;
     })
     .sort((left, right) => (left.displacement - right.displacement) || left.symbol.localeCompare(right.symbol));
+}
+
+function sortedLabelNavigationEntries(labels) {
+  return Array.from(labels.values()).map((label) => {
+    label.refs.sort((left, right) => Number(left.row_index) - Number(right.row_index));
+    return label;
+  }).sort((left, right) => Number(left.row_index) - Number(right.row_index) || left.symbol.localeCompare(right.symbol));
 }
 
 function buildNavigationEntries(rows) {
@@ -2193,6 +2401,15 @@ function buildNavigationEntries(rows) {
     "comments": [],
   };
   const appSlots = new Map();
+  const labels = new Map();
+  rows.forEach((row, rowIndex) => {
+    if (row.addr === null || row.addr === undefined) {
+      return;
+    }
+    if (isLabelRow(row)) {
+      addLabelNavigationEntry(labels, row, rowIndex);
+    }
+  });
   rows.forEach((row, rowIndex) => {
     if (row.addr === null || row.addr === undefined) {
       return;
@@ -2250,14 +2467,7 @@ function buildNavigationEntries(rows) {
     if (Array.isArray(row.app_slot_refs)) {
       row.app_slot_refs.forEach((ref) => addAppSlotNavigationRef(appSlots, row, rowIndex, ref));
     }
-    if (isLabelRow(row)) {
-      groups.labels.push({
-        addr: row.addr,
-        rowIndex,
-        summary: summarizeNavigationRow(row, "labels"),
-        matchText: renderListingCode(row),
-      });
-    }
+    rowOperandSymbolNames(row).forEach((symbol) => addLabelNavigationRef(labels, row, rowIndex, symbol));
     if (rowHasComment(row)) {
       groups.comments.push({
         addr: row.addr,
@@ -2268,6 +2478,7 @@ function buildNavigationEntries(rows) {
     }
   });
   groups["app-slots"] = sortedAppSlotNavigationEntries(appSlots);
+  groups.labels = sortedLabelNavigationEntries(labels);
   return groups;
 }
 
@@ -2276,6 +2487,10 @@ function currentNavigationEntries() {
   if (state.navigation.selectedClass === "app-slots" && state.navigation.appSlotSymbol) {
     const slot = (groups["app-slots"] || []).find((entry) => entry.symbol === state.navigation.appSlotSymbol);
     return slot?.refs || [];
+  }
+  if (state.navigation.selectedClass === "labels" && state.navigation.labelSymbol) {
+    const label = (groups.labels || []).find((entry) => entry.symbol === state.navigation.labelSymbol);
+    return label?.refs || [];
   }
   return groups[state.navigation.selectedClass] || [];
 }
@@ -2289,6 +2504,12 @@ async function loadNavigationEntries(projectId) {
     !((state.navigation.entries?.["app-slots"] || []).some((entry) => entry.symbol === state.navigation.appSlotSymbol))
   ) {
     state.navigation.appSlotSymbol = null;
+  }
+  if (
+    state.navigation.labelSymbol &&
+    !((state.navigation.entries?.labels || []).some((entry) => entry.symbol === state.navigation.labelSymbol))
+  ) {
+    state.navigation.labelSymbol = null;
   }
   return state.navigation.entries;
 }
@@ -2365,6 +2586,10 @@ function appSlotAccessBadgeLabel(access) {
   return APP_SLOT_ACCESS_LABELS[access] || access;
 }
 
+function labelAccessBadgeLabel(access) {
+  return LABEL_ACCESS_LABELS[access] || access;
+}
+
 function renderNavigationAccessBadges(entry) {
   const badges = [];
   const accessCounts = entry.access_counts || entry.accessCounts || null;
@@ -2373,14 +2598,16 @@ function renderNavigationAccessBadges(entry) {
     badges.push(`${refCount} ref${refCount === 1 ? "" : "s"}`);
   }
   if (accessCounts && typeof accessCounts === "object") {
-    APP_SLOT_ACCESS_ORDER.forEach((access) => {
+    const accessOrder = state.navigation.selectedClass === "labels" ? LABEL_ACCESS_ORDER : APP_SLOT_ACCESS_ORDER;
+    const labelForAccess = state.navigation.selectedClass === "labels" ? labelAccessBadgeLabel : appSlotAccessBadgeLabel;
+    accessOrder.forEach((access) => {
       const count = Number(accessCounts[access]);
       if (Number.isFinite(count) && count > 0) {
-        badges.push(`${appSlotAccessBadgeLabel(access)} ${count}`);
+        badges.push(`${labelForAccess(access)} ${count}`);
       }
     });
   } else if (typeof entry.access === "string") {
-    badges.push(appSlotAccessBadgeLabel(entry.access));
+    badges.push(state.navigation.selectedClass === "labels" ? labelAccessBadgeLabel(entry.access) : appSlotAccessBadgeLabel(entry.access));
   }
   if (!badges.length) {
     return "";
@@ -2395,10 +2622,21 @@ function currentAppSlotNavigationSymbol() {
   return state.navigation.appSlotSymbol || null;
 }
 
+function currentLabelNavigationSymbol() {
+  if (state.navigation.selectedClass !== "labels") {
+    return null;
+  }
+  return state.navigation.labelSymbol || null;
+}
+
 function navigationSummaryText(entries) {
   const appSlotSymbol = currentAppSlotNavigationSymbol();
   if (appSlotSymbol) {
     return `${appSlotSymbol}: ${entries.length} ref${entries.length === 1 ? "" : "s"}`;
+  }
+  const labelSymbol = currentLabelNavigationSymbol();
+  if (labelSymbol) {
+    return `${labelSymbol}: ${entries.length} ref${entries.length === 1 ? "" : "s"}`;
   }
   return `${entries.length} entries`;
 }
@@ -2411,7 +2649,15 @@ function appSlotEntriesFromGroups(groups) {
   return groups?.["app-slots"] || [];
 }
 
+function labelEntriesFromGroups(groups) {
+  return groups?.labels || [];
+}
+
 function appSlotEntryIndex(entries, symbolName) {
+  return entries.findIndex((entry) => entry.symbol === symbolName);
+}
+
+function labelEntryIndex(entries, symbolName) {
   return entries.findIndex((entry) => entry.symbol === symbolName);
 }
 
@@ -2424,6 +2670,24 @@ function appSlotRefEntryIndex(refs, rowIndex, operandIndex, access) {
       navigationEntryRowIndex(ref) === wantedRow
       && (!Number.isFinite(wantedOperand) || Number(ref.operand_index ?? ref.operandIndex) === wantedOperand)
       && (!wantedAccess || ref.access === wantedAccess)
+    ));
+    if (exact >= 0) {
+      return exact;
+    }
+    const sameRow = refs.findIndex((ref) => navigationEntryRowIndex(ref) === wantedRow);
+    if (sameRow >= 0) {
+      return sameRow;
+    }
+  }
+  return refs.length ? 0 : -1;
+}
+
+function labelRefEntryIndex(refs, rowIndex, access) {
+  const wantedRow = Number(rowIndex);
+  const wantedAccess = String(access || "");
+  if (Number.isFinite(wantedRow)) {
+    const exact = refs.findIndex((ref) => (
+      navigationEntryRowIndex(ref) === wantedRow && (!wantedAccess || ref.access === wantedAccess)
     ));
     if (exact >= 0) {
       return exact;
@@ -2476,11 +2740,65 @@ async function selectAppSlotNavigationRef(projectId, symbolName, rowIndex = null
   focusVisibleListingRowByIndex(rowIndex);
 }
 
-function renderAppSlotNavigationBack() {
-  if (!currentAppSlotNavigationSymbol()) {
-    return "";
+async function selectLabelNavigationRef(projectId, symbolName, rowIndex = null, access = null) {
+  const symbol = String(symbolName || "").replace(/:$/, "");
+  if (!symbol) {
+    return;
   }
-  return '<button type="button" class="navigation-back-to-slots" data-navigation-app-slots-root="1">All App Slots</button>';
+  const groups = await ensureNavigationEntries(projectId);
+  const entries = labelEntriesFromGroups(groups);
+  const labelIndex = labelEntryIndex(entries, symbol);
+  if (labelIndex < 0) {
+    return;
+  }
+  const refs = entries[labelIndex].refs || [];
+  const refIndex = labelRefEntryIndex(refs, rowIndex, access);
+  if (!state.navigation.overlayOpen) {
+    state.navigation.originEntry = captureViewportAnchor();
+  }
+  state.navigation.overlayOpen = true;
+  state.navigation.selectedClass = "labels";
+  state.navigation.labelSymbol = symbol;
+  state.navigation.selectedIndex = Math.max(0, refIndex);
+  state.navigation.currentPreviewEntry = refs[state.navigation.selectedIndex] || null;
+  renderNavigationOverlay();
+  syncNavigationListFocus();
+  focusVisibleListingRowByIndex(rowIndex);
+}
+
+function handleListingSymbolButtonAction(projectId, button, event) {
+  const symbol = button?.dataset?.symbolName || "";
+  if (!symbol) {
+    return false;
+  }
+  const role = button.dataset.symbolRole || "";
+  const rowIndex = button.dataset.rowIndex ?? null;
+  if (role === "definition") {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    void selectLabelNavigationRef(projectId, symbol, rowIndex, "definition");
+    return true;
+  }
+  if (role === "reference" && (event?.ctrlKey || event?.metaKey)) {
+    event.preventDefault();
+    event.stopPropagation?.();
+    void selectLabelNavigationRef(projectId, symbol, rowIndex, "reference");
+    return true;
+  }
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  void jumpToListingSymbol(projectId, symbol);
+  return true;
+}
+
+function renderNavigationBack() {
+  if (currentAppSlotNavigationSymbol()) {
+    return '<button type="button" class="navigation-back-to-slots" data-navigation-app-slots-root="1">All App Slots</button>';
+  }
+  if (currentLabelNavigationSymbol()) {
+    return '<button type="button" class="navigation-back-to-slots" data-navigation-labels-root="1">All Labels</button>';
+  }
+  return "";
 }
 
 function renderNavigationOverlay() {
@@ -2520,7 +2838,7 @@ function renderNavigationOverlay() {
         </label>
         <div class="navigation-summary-row">
           <div class="navigation-summary">${escapeHtml(navigationSummaryText(entries))}</div>
-          ${renderAppSlotNavigationBack()}
+          ${renderNavigationBack()}
         </div>
         <div class="navigation-list" tabindex="0" data-navigation-list="1">
           ${entries.length
@@ -2564,7 +2882,7 @@ async function previewNavigationEntry(entry) {
   if (!entry || !state.project) {
     return;
   }
-  if (navigationEntryHasRefs(entry)) {
+  if (state.navigation.selectedClass === "app-slots" && navigationEntryHasRefs(entry)) {
     return;
   }
   state.navigation.currentPreviewEntry = entry;
@@ -2609,6 +2927,7 @@ async function setNavigationClass(value) {
   state.navigation.selectedClass = value;
   state.navigation.selectedIndex = 0;
   state.navigation.appSlotSymbol = null;
+  state.navigation.labelSymbol = null;
   state.navigation.currentPreviewEntry = null;
   renderNavigationOverlay();
   syncNavigationListFocus();
@@ -2686,6 +3005,15 @@ function bindNavigationOverlay() {
     const slotIndex = appSlotEntryIndex(entries, state.navigation.appSlotSymbol || "");
     state.navigation.appSlotSymbol = null;
     state.navigation.selectedIndex = slotIndex >= 0 ? slotIndex : 0;
+    state.navigation.currentPreviewEntry = null;
+    renderNavigationOverlay();
+    syncNavigationListFocus();
+  });
+  overlay.querySelector("[data-navigation-labels-root='1']")?.addEventListener("click", () => {
+    const entries = labelEntriesFromGroups(state.navigation.entries || buildNavigationEntries(state.listingRows || []));
+    const labelIndex = labelEntryIndex(entries, state.navigation.labelSymbol || "");
+    state.navigation.labelSymbol = null;
+    state.navigation.selectedIndex = labelIndex >= 0 ? labelIndex : 0;
     state.navigation.currentPreviewEntry = null;
     renderNavigationOverlay();
     syncNavigationListFocus();
@@ -2809,6 +3137,12 @@ async function openApiEditDialog(projectId, row) {
       await refreshListingAfterApiEdit(projectId, row.addr);
     });
   });
+  dispatchAppEvent("amiga:api-edit-dialog-opened", {
+    projectId,
+    addr: row.addr ?? null,
+    library: row.api_call?.library || "",
+    function: row.api_call?.function || "",
+  });
 }
 
 function renderAnnotationEditDialog(entity) {
@@ -2892,6 +3226,25 @@ async function openAnnotationEditDialog(projectId, row) {
     dialog.remove();
     await refreshListingAfterAnnotationEdit(projectId, addr);
   });
+  dispatchAppEvent("amiga:annotation-edit-dialog-opened", {
+    projectId,
+    addr,
+  });
+}
+
+function listingWindowRowByGlobalIndex(rows, rowIndex) {
+  const globalIndex = Number(rowIndex);
+  if (!Number.isFinite(globalIndex)) {
+    return null;
+  }
+  const localIndex = globalIndex - (state.virtualListing.start || 0);
+  if (Number.isInteger(localIndex) && localIndex >= 0 && localIndex < rows.length) {
+    return rows[localIndex];
+  }
+  if (Number.isInteger(globalIndex) && globalIndex >= 0 && globalIndex < rows.length) {
+    return rows[globalIndex];
+  }
+  return null;
 }
 
 function bindListingEditors(projectId, rows) {
@@ -2900,13 +3253,12 @@ function bindListingEditors(projectId, rows) {
     return;
   }
   viewport.querySelectorAll("[data-symbol-name]").forEach((button) => {
-    button.addEventListener("click", () => {
-      void jumpToListingSymbol(projectId, button.dataset.symbolName || "");
+    button.addEventListener("click", (event) => {
+      handleListingSymbolButtonAction(projectId, button, event);
     });
     button.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
-        event.preventDefault();
-        void jumpToListingSymbol(projectId, button.dataset.symbolName || "");
+        handleListingSymbolButtonAction(projectId, button, event);
       }
     });
   });
@@ -2936,13 +3288,19 @@ function bindListingEditors(projectId, rows) {
   viewport.querySelectorAll("[data-api-edit='1']").forEach((button, index) => {
     button.addEventListener("click", () => {
       const rowIndex = Number(button.dataset.rowIndex);
-      void openApiEditDialog(projectId, rows[rowIndex]);
+      const row = listingWindowRowByGlobalIndex(rows, rowIndex);
+      if (row) {
+        void openApiEditDialog(projectId, row);
+      }
     });
   });
   viewport.querySelectorAll("[data-annotation-edit='1']").forEach((button) => {
     button.addEventListener("click", () => {
       const rowIndex = Number(button.dataset.rowIndex);
-      void openAnnotationEditDialog(projectId, rows[rowIndex]);
+      const row = listingWindowRowByGlobalIndex(rows, rowIndex);
+      if (row) {
+        void openAnnotationEditDialog(projectId, row);
+      }
     });
   });
 }
@@ -3054,6 +3412,20 @@ function scrollRowIntoView(viewport, addr, block = "center", matchText = null, s
   }
   row.scrollIntoView({block, behavior: "smooth"});
   return true;
+}
+
+function focusListingRow(row) {
+  if (!(row instanceof HTMLElement)) {
+    return;
+  }
+  row.classList.add("listing-row-focus");
+  dispatchAppEvent("amiga:listing-row-focused", {
+    addr: row.dataset.rowAddr !== "" && row.dataset.rowAddr !== undefined ? Number(row.dataset.rowAddr) : null,
+    rowIndex: row.dataset.rowIndex !== "" && row.dataset.rowIndex !== undefined ? Number(row.dataset.rowIndex) : null,
+    stableKey: row.dataset.rowStableKey || null,
+    rowCode: row.dataset.rowCode || "",
+  });
+  window.setTimeout(() => row.classList.remove("listing-row-focus"), 1200);
 }
 
 function formatFileKind(entry) {
@@ -3257,8 +3629,7 @@ async function jumpToListingAddr(projectId, addr, matchText = null) {
   if (!row) {
     return;
   }
-  row.classList.add("listing-row-focus");
-  window.setTimeout(() => row.classList.remove("listing-row-focus"), 1200);
+  focusListingRow(row);
 }
 
 async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null, stableKey = null) {
@@ -3272,6 +3643,7 @@ async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null, s
   const targetIndex = Math.floor(rowIndex);
   const start = Math.max(0, targetIndex - visibleRows);
   const rowHeight = Math.max(1, state.virtualListing.rowHeight || 22);
+  cancelScheduledListingScrollFetch();
   state.virtualListing.suppressScrollFetch = true;
   try {
     viewport.scrollTop = Math.max(0, (targetIndex * rowHeight) - Math.floor(viewport.clientHeight / 2));
@@ -3281,8 +3653,7 @@ async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null, s
     if (!row) {
       return;
     }
-    row.classList.add("listing-row-focus");
-    window.setTimeout(() => row.classList.remove("listing-row-focus"), 1200);
+    focusListingRow(row);
   } finally {
     window.setTimeout(() => {
       state.virtualListing.suppressScrollFetch = false;
@@ -3383,6 +3754,7 @@ async function renderProject(projectId) {
   state.navigation.entries = null;
   state.navigation.generation = null;
   state.navigation.appSlotSymbol = null;
+  state.navigation.labelSymbol = null;
   state.navigation.originEntry = null;
   state.navigation.currentPreviewEntry = null;
   state.navigation.currentLocation = null;
@@ -3486,6 +3858,11 @@ async function renderProject(projectId) {
       void pollReproductionReport(projectId, token);
       setAnalysisStatus("Full analysis ready", "ready", 2000);
     }
+    dispatchAppEvent("amiga:project-rendered", {
+      projectId,
+      generation: state.virtualListing.generation,
+      totalRows: state.virtualListing.totalRows,
+    });
   } catch (error) {
     if (String(error.message || error) === "stale") {
       return;
@@ -3606,8 +3983,7 @@ document.addEventListener("keydown", (event) => {
     ? event.target.closest("[data-symbol-name]")
     : null;
   if (symbolLink && event.key === "Enter") {
-    event.preventDefault();
-    void jumpToListingSymbol(state.project, symbolLink.dataset.symbolName || "");
+    handleListingSymbolButtonAction(state.project, symbolLink, event);
     return;
   }
   if (event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey && event.key === "ArrowLeft") {

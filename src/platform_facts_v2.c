@@ -3,6 +3,7 @@
 #include "m68k_decode_ir.h"
 #include "m68k_parse_util.h"
 #include "generated/m68k_cpu_runtime.h"
+#include "generated/amiga_os_runtime.h"
 #include "generated/atari_st_os_runtime.h"
 
 #include <stdio.h>
@@ -325,5 +326,37 @@ int platform_facts_v2_is_callback_vector_slot(uint8_t platform_kind, uint32_t ad
     return amiga_is_callback_vector_slot(address);
   default:
     return 0;
+  }
+}
+
+int platform_facts_v2_is_runtime_address_sink(uint8_t platform_kind, uint32_t address) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+  {
+    const AmigaOsHardwareRegisterInfo *hardware_register =
+      amiga_os_find_hardware_register_by_cpu_address(address);
+    return hardware_register != NULL &&
+      (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U;
+  }
+  default:
+    return 0;
+  }
+}
+
+const char *platform_facts_v2_runtime_address_sink_data_class(uint8_t platform_kind, uint32_t address) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+  {
+    const AmigaOsHardwareRegisterInfo *hardware_register =
+      amiga_os_find_hardware_register_by_cpu_address(address);
+    if (hardware_register == NULL ||
+        (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
+        hardware_register->runtime_target_role == NULL || hardware_register->runtime_target_role[0] == '\0') {
+      return NULL;
+    }
+    return hardware_register->runtime_target_role;
+  }
+  default:
+    return NULL;
   }
 }

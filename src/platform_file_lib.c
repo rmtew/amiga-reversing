@@ -2676,6 +2676,12 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     "\"asm_source_lines\":%u,"
     "\"asm_source_relocation_exprs\":%u,"
     "\"asm_source_symbolic_instructions\":%u,"
+    "\"asm_source_numeric_runtime_refs\":%u,"
+    "\"asm_source_first_numeric_runtime_ref_section\":%u,"
+    "\"asm_source_first_numeric_runtime_ref_offset\":%u,"
+    "\"asm_source_first_numeric_runtime_ref_target_section\":%u,"
+    "\"asm_source_first_numeric_runtime_ref_target_offset\":%u,"
+    "\"asm_source_first_numeric_runtime_ref_runtime_address\":%u,"
     "\"platform_base_slot_count\":%u,"
     "\"platform_call_count\":%u,"
     "\"platform_effect_count\":%u,"
@@ -2786,6 +2792,12 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     (unsigned)profile->asm_source_lines,
     (unsigned)profile->asm_source_relocation_exprs,
     (unsigned)profile->asm_source_symbolic_instructions,
+    (unsigned)profile->asm_source_numeric_runtime_refs,
+    (unsigned)profile->asm_source_first_numeric_runtime_ref_section,
+    (unsigned)profile->asm_source_first_numeric_runtime_ref_offset,
+    (unsigned)profile->asm_source_first_numeric_runtime_ref_target_section,
+    (unsigned)profile->asm_source_first_numeric_runtime_ref_target_offset,
+    (unsigned)profile->asm_source_first_numeric_runtime_ref_runtime_address,
     (unsigned)profile->platform_base_slot_count,
     (unsigned)profile->platform_call_count,
     (unsigned)profile->platform_effect_count,
@@ -3924,7 +3936,7 @@ static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *back
     goto cleanup;
   }
   source_end = clock();
-  if (facts_v2_listing_rows_from_source_text(object, analysis_policy, &source_analysis, source, include_dir,
+  if (facts_v2_listing_rows_from_source_text(object, &source_analysis.policy, &source_analysis, source, include_dir,
       include_source_text, &rows_json,
       m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
