@@ -821,6 +821,7 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
     M68kFactIR *facts, M68kFactsV2LabelLookup *label_lookup, M68kFactsV2WorkQueue *queue,
     M68kRuntimeAddressSpace *runtime_addresses, M68kFactsV2Profile *profile) {
   size_t section_index;
+  size_t implicit_entry_section = (size_t)-1;
   size_t fixup_index;
   size_t entry_index;
   size_t label_index;
@@ -829,12 +830,22 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
       queue == NULL || runtime_addresses == NULL || profile == NULL)
     return -1;
   if (seed_runtime_address_space_from_policy(object, policy, runtime_addresses, facts, profile) != 0) return -1;
+  /* AmigaOS 3.1 dos/loadseg.asm links load hunks in file/table order and returns
+     the first segment; it handles CODE/DATA/BSS as load hunks but does not scan
+     forward for the next CODE hunk. A normal implicit executable entry therefore
+     exists only when section 0 is code. */
+  if (!policy->disable_implicit_entry_points && !policy->has_entry_offset &&
+      object->section_count != 0U) {
+    const M68kSection *entry_section = &object->sections[0];
+    if (entry_section->kind == M68K_SECTION_CODE && entry_section->data_size != 0U)
+      implicit_entry_section = 0U;
+  }
   for (section_index = 0U; section_index < object->section_count; ++section_index) {
     const M68kSection *section = &object->sections[section_index];
     M68kFact fact;
     memset(&fact, 0, sizeof(fact));
     if (section->kind == M68K_SECTION_CODE && section->data_size != 0U &&
-        !(policy->has_entry_offset && section_index == 0U)) {
+        section_index == implicit_entry_section) {
       if (enqueue_code_start(facts, queue, profile, section_index, 0U, M68K_FACT_CONFIDENCE_REQUIRED,
           M68K_FACT_CODE_START_REASON_SECTION_ENTRY, section_index, 0U) != 0) return -1;
       if (label_lookup_create_label(label_lookup, facts, section_index, 0U,
@@ -2105,19 +2116,25 @@ static int candidate_has_reserved_full_extension(const M68kDecodeCandidate *cand
   return 0;
 }
 
+static void facts_v2_record_required_instruction_failure(M68kFactsV2Profile *profile,
+    const M68kFactsV2WorkItem *item) {
+  if (profile == NULL || item == NULL) return;
+  if (profile->required_instruction_failures == 0U) {
+    profile->first_required_instruction_failure_section = (uint32_t)item->section_index;
+    profile->first_required_instruction_failure_offset = item->offset;
+    profile->first_required_instruction_failure_reason = item->reason;
+    profile->first_required_instruction_failure_source_section = (uint32_t)item->source_section_index;
+    profile->first_required_instruction_failure_source_offset = item->source_offset;
+  }
+  ++profile->required_instruction_failures;
+}
+
 static int reject_or_demote_unsafe_candidate(M68kFactIR *facts, const M68kFactsV2WorkItem *item,
     M68kFactsV2Profile *profile) {
   if (facts == NULL || item == NULL || profile == NULL) return -1;
   if (append_violation_fact(facts, item->section_index, item->offset, item->offset) != 0) return -1;
   if (item->confidence >= M68K_FACT_CONFIDENCE_REQUIRED) {
-    if (profile->required_instruction_failures == 0U) {
-      profile->first_required_instruction_failure_section = (uint32_t)item->section_index;
-      profile->first_required_instruction_failure_offset = item->offset;
-      profile->first_required_instruction_failure_reason = item->reason;
-      profile->first_required_instruction_failure_source_section = (uint32_t)item->source_section_index;
-      profile->first_required_instruction_failure_source_offset = item->source_offset;
-    }
-    ++profile->required_instruction_failures;
+    facts_v2_record_required_instruction_failure(profile, item);
     return 0;
   }
   if (profile->unsupported_instruction_demotes == 0U) {
@@ -2442,9 +2459,17 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
     profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_decode_seconds,
       phase_start);
     if (candidate == NULL) {
+      int appended_violation = 0;
       if (accepted_offset_is_interior(section, accepted_start[item.section_index],
-          accepted_bytes[item.section_index], item.offset) &&
-          append_violation_fact(facts, item.section_index, item.offset, item.offset) != 0) return -1;
+          accepted_bytes[item.section_index], item.offset)) {
+        if (append_violation_fact(facts, item.section_index, item.offset, item.offset) != 0) return -1;
+        appended_violation = 1;
+      }
+      if (item.confidence >= M68K_FACT_CONFIDENCE_REQUIRED) {
+        if (!appended_violation &&
+            append_violation_fact(facts, item.section_index, item.offset, item.offset) != 0) return -1;
+        facts_v2_record_required_instruction_failure(profile, &item);
+      }
       continue;
     }
     candidate_copy = *candidate;

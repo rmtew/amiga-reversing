@@ -178,6 +178,33 @@ def _candidate_entries(disk_entry: dict[str, Any]) -> list[dict[str, Any]]:
     return candidates
 
 
+def _file_origin(disk_entry: dict[str, Any], file_entry: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "display_name": disk_entry["origin"]["display_name"],
+        "source_relpath": disk_entry["origin"]["source_relpath"],
+        "container_relpath": disk_entry["origin"]["container_relpath"],
+        "member_name": disk_entry["origin"]["member_name"],
+        "in_image_path": file_entry["path"],
+        "alternate_origins": [],
+    }
+
+
+def _file_ref(disk_entry: dict[str, Any], file_entry: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "disk_platform": disk_entry["platform"],
+        "disk_id": disk_entry["id"],
+        "extents": file_entry.get("extents", []),
+        "alternate_refs": [],
+    }
+
+
+def _manifest_id(backend_name: str, file_bytes: bytes, disk_entry: dict[str, Any], file_entry: dict[str, Any]) -> str:
+    if file_bytes:
+        return f"{backend_name}/{sha256(file_bytes)[:12]}"
+    key = f"{backend_name}\0{disk_entry['id']}\0{file_entry.get('path', '')}".encode("utf-8")
+    return f"{backend_name}/{sha256(key)[:12]}"
+
+
 def _error_manifest_entry(
     disk_entry: dict[str, Any],
     backend_name: str,
@@ -186,23 +213,13 @@ def _error_manifest_entry(
     error: str,
 ) -> dict[str, Any]:
     return {
-        "id": f"{backend_name}/{sha256(file_bytes)[:12]}",
+        "id": _manifest_id(backend_name, file_bytes, disk_entry, file_entry),
         "platform": backend_name,
         "sha256": sha256(file_bytes),
         "size": len(file_bytes),
         "disk_sha256": disk_entry["sha256"],
-        "origin": {
-            "display_name": disk_entry["origin"]["display_name"],
-            "source_relpath": disk_entry["origin"]["source_relpath"],
-            "container_relpath": disk_entry["origin"]["container_relpath"],
-            "member_name": disk_entry["origin"]["member_name"],
-            "in_image_path": file_entry["path"],
-        },
-        "file_ref": {
-            "disk_platform": disk_entry["platform"],
-            "disk_id": disk_entry["id"],
-            "extents": file_entry.get("extents", []),
-        },
+        "origin": _file_origin(disk_entry, file_entry),
+        "file_ref": _file_ref(disk_entry, file_entry),
         "expect": {
             "summary_version": 1,
             "status": "error",
@@ -219,29 +236,59 @@ def _manifest_entry(
     inspect: dict[str, Any],
 ) -> dict[str, Any]:
     return {
-        "id": f"{backend_name}/{sha256(file_bytes)[:12]}",
+        "id": _manifest_id(backend_name, file_bytes, disk_entry, file_entry),
         "platform": backend_name,
         "sha256": sha256(file_bytes),
         "size": len(file_bytes),
         "disk_sha256": disk_entry["sha256"],
-        "origin": {
-            "display_name": disk_entry["origin"]["display_name"],
-            "source_relpath": disk_entry["origin"]["source_relpath"],
-            "container_relpath": disk_entry["origin"]["container_relpath"],
-            "member_name": disk_entry["origin"]["member_name"],
-            "in_image_path": file_entry["path"],
-        },
-        "file_ref": {
-            "disk_platform": disk_entry["platform"],
-            "disk_id": disk_entry["id"],
-            "extents": file_entry.get("extents", []),
-        },
+        "origin": _file_origin(disk_entry, file_entry),
+        "file_ref": _file_ref(disk_entry, file_entry),
         "expect": {
             "summary_version": 1,
             "status": "ok",
             "inspect": inspect,
         },
     }
+
+
+def _without_alternates(mapping: dict[str, Any], key: str) -> dict[str, Any]:
+    result = dict(mapping)
+    result.pop(key, None)
+    return result
+
+
+def _append_unique(items: list[dict[str, Any]], item: dict[str, Any]) -> None:
+    if item not in items:
+        items.append(item)
+
+
+def _merge_duplicate_manifest_entry(existing: dict[str, Any], duplicate: dict[str, Any]) -> None:
+    origin = existing.setdefault("origin", {})
+    alternate_origins = origin.setdefault("alternate_origins", [])
+    duplicate_origin = _without_alternates(duplicate.get("origin", {}), "alternate_origins")
+    canonical_origin = _without_alternates(origin, "alternate_origins")
+    if duplicate_origin != canonical_origin:
+        _append_unique(alternate_origins, duplicate_origin)
+
+    file_ref = existing.setdefault("file_ref", {})
+    alternate_refs = file_ref.setdefault("alternate_refs", [])
+    duplicate_ref = _without_alternates(duplicate.get("file_ref", {}), "alternate_refs")
+    canonical_ref = _without_alternates(file_ref, "alternate_refs")
+    if duplicate_ref != canonical_ref:
+        _append_unique(alternate_refs, duplicate_ref)
+
+
+def _dedupe_manifest(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    by_id: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        existing = by_id.get(entry["id"])
+        if existing is None:
+            by_id[entry["id"]] = entry
+            result.append(entry)
+        else:
+            _merge_duplicate_manifest_entry(existing, entry)
+    return result
 
 
 def build_manifest(disk_manifest_path: Path) -> list[dict[str, Any]]:
@@ -283,7 +330,7 @@ def build_manifest(disk_manifest_path: Path) -> list[dict[str, Any]]:
                     manifest.append(_error_manifest_entry(disk_entry, backend_name, file_entry, file_bytes, str(exc)))
                     continue
             manifest.append(_manifest_entry(disk_entry, backend_name, file_entry, file_bytes, inspect))
-    return manifest
+    return _dedupe_manifest(manifest)
 
 
 def write_manifest(path: Path, entries: list[dict[str, Any]]) -> None:

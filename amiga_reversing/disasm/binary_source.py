@@ -9,8 +9,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_DESCRIPTOR_FILE_NAME = "source_binary.json"
 _DISK_ENTRY_BYTES_CACHE: dict[tuple[str, str, str, int, int], bytes] = {}
 
-
-# TODO(X)
 def _json_object(value: object) -> dict[str, object]:
     if not isinstance(value, dict):
         raise TypeError(f"Expected JSON object, got {type(value).__name__}")

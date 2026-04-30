@@ -170,7 +170,10 @@ def test_precommit_benchmark_targets_include_file_and_disk_sources(tmp_path: Pat
         encoding="utf-8",
     )
     (disk_target / "manifest.json").write_text('{"schema_version":1,"disk_id":"demo","source_path":"bin/demo.adf","source_sha256":"deadbeef","analysis":{"disk_info":{"path":"demo.adf","size":901120,"variant":"DD","total_sectors":1760,"sectors_per_track":11,"is_dos":true},"boot_block":{"magic_ascii":"DOS","is_dos":true,"flags_byte":1,"fs_type":"FFS","fs_description":"DOS\\\\1 - Fast File System","checksum":"0x00000000","checksum_valid":true,"rootblock_ptr":880,"bootcode_size":1012,"bootcode_has_code":false,"bootcode_entropy":0.0}},"imported_targets":[],"bootblock_target_name":"amiga_disk_demo__amiga_raw_bootblock","bootblock_target_path":"targets/amiga_disk_demo/targets/amiga_raw_bootblock"}', encoding="utf-8")
-    (disk_target / ".project.json").write_text('{"schema_version":1,"created_at":"2026-03-25T00:00:00+00:00","updated_at":"2026-03-25T00:00:00+00:00"}', encoding="utf-8")
+    (disk_target / ".project.json").write_text(
+        '{"schema_version":2,"created_at":"2026-03-25T00:00:00+00:00","updated_at":"2026-03-25T00:00:00+00:00","origin":{"kind":"test_project"}}',
+        encoding="utf-8",
+    )
 
     monkeypatch.setattr("amiga_reversing.tools.precommit.TARGETS_DIR", targets_dir)
     monkeypatch.setattr("amiga_reversing.tools.precommit.ROOT", tmp_path)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
@@ -27,6 +27,7 @@ from amiga_reversing.disasm.target_metadata import load_target_metadata
 
 STATE_FILE_NAME = ".browser_state.json"
 PROJECT_METADATA_FILE_NAME = ".project.json"
+PROJECT_METADATA_SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,6 +40,7 @@ class ProjectMetadata:
     schema_version: int
     created_at: str
     updated_at: str
+    origin: dict[str, object]
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +62,7 @@ class ProjectRecord:
     target_type: str | None
     created_at: str
     updated_at: str
+    origin: dict[str, object] = field(default_factory=lambda: {"kind": "project_record"})
 
     def to_dict(self) -> dict[str, object]:
         result = asdict(self)
@@ -90,15 +93,23 @@ def _load_project_metadata(project_dir: Path) -> ProjectMetadata:
     payload = json.loads(metadata_path.read_text(encoding="utf-8"))
     assert isinstance(payload, dict)
     schema_version = payload["schema_version"]
+    assert isinstance(schema_version, int)
+    if schema_version != PROJECT_METADATA_SCHEMA_VERSION:
+        raise ValueError(
+            f"Unsupported {PROJECT_METADATA_FILE_NAME} schema for project {project_dir.name}: "
+            f"{schema_version}"
+        )
     created_at = payload["created_at"]
     updated_at = payload["updated_at"]
-    assert isinstance(schema_version, int)
+    origin = payload["origin"]
     assert isinstance(created_at, str)
     assert isinstance(updated_at, str)
+    assert isinstance(origin, dict)
     return ProjectMetadata(
         schema_version=schema_version,
         created_at=created_at,
         updated_at=updated_at,
+        origin=dict(origin),
     )
 
 
@@ -109,11 +120,21 @@ def _save_project_metadata(project_dir: Path, metadata: ProjectMetadata) -> None
     )
 
 
-def initialize_project_metadata(project_dir: Path, *, timestamp: datetime | None = None) -> None:
+def initialize_project_metadata(
+    project_dir: Path,
+    *,
+    timestamp: datetime | None = None,
+    origin: dict[str, object],
+) -> None:
     now = (timestamp or datetime.now(UTC)).isoformat()
     _save_project_metadata(
         project_dir,
-        ProjectMetadata(schema_version=1, created_at=now, updated_at=now),
+        ProjectMetadata(
+            schema_version=PROJECT_METADATA_SCHEMA_VERSION,
+            created_at=now,
+            updated_at=now,
+            origin=dict(origin),
+        ),
     )
 
 
@@ -125,6 +146,7 @@ def mark_project_updated(project_dir: Path, *, timestamp: datetime | None = None
             schema_version=metadata.schema_version,
             created_at=metadata.created_at,
             updated_at=(timestamp or datetime.now(UTC)).isoformat(),
+            origin=metadata.origin,
         ),
     )
 
@@ -183,6 +205,7 @@ def _binary_project_record(project_id: str, target_dir: Path, state: BrowserStat
         target_type=None if target_metadata is None else target_metadata.target_type,
         created_at=metadata.created_at,
         updated_at=metadata.updated_at,
+        origin=metadata.origin,
     )
 
 
@@ -227,6 +250,7 @@ def _disk_project_record(disk_dir: Path, state: BrowserState) -> ProjectRecord:
         target_type=None,
         created_at=metadata.created_at,
         updated_at=metadata.updated_at,
+        origin=metadata.origin,
     )
 
 
@@ -261,24 +285,40 @@ def list_projects(project_root: Path = PROJECT_ROOT) -> list[ProjectRecord]:
     return projects
 
 
-def create_project(project_name: str, project_root: Path = PROJECT_ROOT) -> ProjectRecord:
+def create_project(
+    project_name: str,
+    project_root: Path = PROJECT_ROOT,
+    *,
+    origin: dict[str, object] | None = None,
+) -> ProjectRecord:
     project_name = ensure_safe_project_id(project_name)
     target_dir = _targets_dir(project_root) / project_name
     if target_dir.exists():
         raise FileExistsError(f"Project already exists: {project_name}")
     target_dir.mkdir(parents=True)
     (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
-    initialize_project_metadata(target_dir)
+    initialize_project_metadata(
+        target_dir,
+        origin=origin or {"kind": "manual_project", "project_id": project_name},
+    )
     return get_project(project_name, project_root=project_root)
 
 
-def create_project_at_path(target_relpath: str, project_root: Path = PROJECT_ROOT) -> Path:
+def create_project_at_path(
+    target_relpath: str,
+    project_root: Path = PROJECT_ROOT,
+    *,
+    origin: dict[str, object] | None = None,
+) -> Path:
     target_dir = project_root / Path(target_relpath)
     if target_dir.exists():
         raise FileExistsError(f"Project already exists: {target_relpath}")
     target_dir.mkdir(parents=True)
     (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
-    initialize_project_metadata(target_dir)
+    initialize_project_metadata(
+        target_dir,
+        origin=origin or {"kind": "materialized_target", "target_relpath": target_relpath},
+    )
     return target_dir
 
 

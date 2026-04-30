@@ -936,6 +936,7 @@ static int append_metadata_bootblock_structure_local(const char *text, M68kAnaly
   uint32_t bootcode_offset = 0U, bootcode_size = 0U, load_address = 0U, entrypoint = 0U;
   int has_bootcode_offset = 0, has_bootcode_size = 0, has_load_address = 0, has_entrypoint = 0;
   if (object_start == NULL) return 1;
+  policy->disable_implicit_entry_points = 1U;
   if (!json_number_field_local(object_start, object_end, "bootcode_offset", &bootcode_offset, &has_bootcode_offset) ||
       !json_number_field_local(object_start, object_end, "bootcode_size", &bootcode_size, &has_bootcode_size) ||
       !json_number_field_local(object_start, object_end, "load_address", &load_address, &has_load_address) ||
@@ -1534,6 +1535,7 @@ static int append_metadata_resident_structure_local(const char *text, M68kAnalys
   target_type[0] = '\0';
   library_name[0] = '\0';
   if (resident_start == NULL) return 1;
+  policy->disable_implicit_entry_points = 1U;
   if (!json_number_field_local(resident_start, resident_end, "offset", &resident_offset, &has_resident_offset) ||
       !json_number_field_local(resident_start, resident_end, "hunk", &hunk, &has_hunk) ||
       !json_optional_string_field_local(text, text_end, "target_type", target_type, sizeof(target_type)) ||
@@ -2045,6 +2047,8 @@ static int enrich_policy_from_object_target_info_local(M68kAnalysisPolicy *polic
     inspected_target_type, sizeof(inspected_target_type));
   if (target_type != NULL && target_type_size != 0U && target_type[0] == '\0' && inspected_target_type[0] != '\0')
     (void)copy_policy_text(target_type, target_type_size, inspected_target_type);
+  if (inspected_target_type[0] != '\0' && strcmp(inspected_target_type, "program") != 0)
+    policy->disable_implicit_entry_points = 1U;
   if (platform_name_uses_amiga_metadata_policy_local(backend_name)) {
     M68kDiagList ignored_diagnostics;
     const char *resident_end = NULL;
@@ -2082,10 +2086,12 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
   uint16_t index;
   if (builder == NULL || policy == NULL) return -1;
   if (json_builder_appendf(builder,
-        "\"analysis_policy\":{\"max_cpu\":%u,\"entry_point_count\":%u,\"register_seed_count\":%u,"
+        "\"analysis_policy\":{\"max_cpu\":%u,\"implicit_entry_points\":%s,"
+        "\"entry_point_count\":%u,\"register_seed_count\":%u,"
         "\"structured_data_item_count\":%u,\"named_label_count\":%u,\"entry_comment_count\":%u,"
         "\"runtime_range_count\":%u,\"runtime_entry_point_count\":%u",
-        (unsigned)policy->max_cpu, (unsigned)policy->entry_point_count, (unsigned)policy->register_seed_count,
+        (unsigned)policy->max_cpu, policy->disable_implicit_entry_points ? "false" : "true",
+        (unsigned)policy->entry_point_count, (unsigned)policy->register_seed_count,
         (unsigned)policy->structured_data_item_count, (unsigned)policy->named_label_count,
         (unsigned)policy->entry_comment_count, (unsigned)policy->runtime_range_count,
         (unsigned)policy->runtime_entry_point_count) != 0)

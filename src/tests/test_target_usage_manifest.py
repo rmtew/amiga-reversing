@@ -77,8 +77,14 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "listing": {
                     "rows": [
                         {
+                            "kind": "label",
+                            "text": "loc_0_00000020:\n",
+                            "section_index": 0,
+                            "start_offset": 0x20,
+                        },
+                        {
                             "kind": "data",
-                            "text": "\tdc.w bplpt+$02,$0000\n",
+                            "text": "\tdc.w bplcon0,BPU2|BPU1|COLORON\n",
                             "section_index": 0,
                             "start_offset": 0x60,
                             "data_class": "copper_list",
@@ -90,6 +96,20 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "start_offset": 0x70,
                             "app_slot_refs": [
                                 {"symbol": "app_0234", "displacement": 0x234, "access": "write"}
+                            ],
+                        },
+                        {
+                            "kind": "instruction",
+                            "text": "\tbsr.w loc_0_00000090\n",
+                            "section_index": 0,
+                            "start_offset": 0x74,
+                            "operand_parts": [
+                                {
+                                    "kind": "symbol",
+                                    "text": "loc_0_00000090",
+                                    "segment_addr": 0x90,
+                                    "metadata": {"symbol": "loc_0_00000090"},
+                                }
                             ],
                         },
                         {
@@ -139,13 +159,73 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["hardware:custom/display"], 1)
         self.assertEqual(counts["value_domain:amiga.custom.copper"], 1)
         self.assertEqual(counts["value_domain:amiga.custom.display_config"], 1)
-        self.assertEqual(counts["hardware_register:bplpt"], 1)
+        self.assertEqual(counts["hardware_register:bplcon0"], 1)
+        self.assertEqual(counts["display:bplcon0"], 1)
+        self.assertEqual(counts["display:bitplanes:6"], 1)
+        self.assertEqual(counts["display:color"], 1)
         self.assertEqual(counts["hardware_register:aud0"], 1)
         self.assertEqual(counts["hardware_register:aud0+ac_len"], 1)
+        self.assertEqual(counts["label:any"], 1)
+        self.assertEqual(counts["label:definition"], 1)
+        self.assertEqual(counts["label:reference"], 1)
+        self.assertEqual(counts["xref:segment_ref"], 1)
+        self.assertEqual(counts["xref:code_ref"], 1)
         self.assertNotIn("coprocessor:fpu", counts)
         self.assertNotIn("coprocessor:fpu_id:3", counts)
         self.assertIn("os:exec.library/AllocMem", tags)
         self.assertEqual(examples["os:exec.library/AllocMem"][0]["offset"], 0x20)
+
+    def test_device_features_use_resolved_device_names_for_all_io_calls(self) -> None:
+        bag = usage.FeatureBag()
+        usage._add_analysis_features(
+            {
+                "sections": [
+                    {
+                        "section_index": 0,
+                        "recovered_platform_calls": [
+                            {
+                                "offset": 0x20,
+                                "library_name": "exec.library",
+                                "function_name": "DoIO",
+                                "device_name": "trackdisk.device",
+                            }
+                        ],
+                    }
+                ],
+            },
+            bag,
+        )
+
+        counts, _examples, _tags = bag.row_features()
+
+        self.assertEqual(counts["device_call:any"], 1)
+        self.assertEqual(counts["device_call_function:DoIO"], 1)
+        self.assertEqual(counts["device:trackdisk.device"], 1)
+        self.assertEqual(counts["device_call:trackdisk.device/DoIO"], 1)
+
+    def test_numeric_copper_register_rows_use_hardware_metadata(self) -> None:
+        bag = usage.FeatureBag()
+        usage._add_listing_features(
+            {
+                "rows": [
+                    {
+                        "kind": "data",
+                        "text": "\tdc.w $0100,$4200\n",
+                        "section_index": 0,
+                        "start_offset": 0x10,
+                        "data_class": "copper_list",
+                    }
+                ]
+            },
+            bag,
+        )
+
+        counts, _examples, _tags = bag.row_features()
+
+        self.assertEqual(counts["hardware_register:bplcon0"], 1)
+        self.assertEqual(counts["hardware:custom/display"], 1)
+        self.assertEqual(counts["display:bplcon0"], 1)
+        self.assertEqual(counts["display:bitplanes:4"], 1)
 
     def test_builds_xrefs_from_structured_analysis_and_listing_metadata(self) -> None:
         target_row = {
@@ -192,6 +272,14 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "section_index": 0,
                         "start_offset": 0x20,
                         "stable_key": "row-os",
+                        "operand_parts": [
+                            {
+                                "kind": "symbol",
+                                "text": "loc_0_00000080",
+                                "segment_addr": 0x80,
+                                "metadata": {"symbol": "loc_0_00000080"},
+                            }
+                        ],
                     },
                     {
                         "kind": "instruction",
@@ -212,7 +300,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                     },
                     {
                         "kind": "data",
-                        "text": "\tdc.w bplpt,$0007\n",
+                        "text": "\tdc.w bplcon0,BPU2|BPU1|BPU0|COLORON\n",
                         "section_index": 0,
                         "start_offset": 0x50,
                         "stable_key": "row-copper",
@@ -241,12 +329,20 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("os_call_library:exec.library", "os_call", 0x20, 1), by_feature)
         self.assertIn(("os:exec.library/AllocMem", "os_call", 1, "local_wrapper"), by_feature_resolution)
         self.assertIn(("os_library:exec.library", "os_library", None, None), by_feature_resolution)
+        self.assertIn(("label:any", "label_definition", 0x20, 0), by_feature)
+        self.assertIn(("label:definition", "label_definition", 0x20, 0), by_feature)
+        self.assertIn(("label:reference", "label_ref", 0x20, 1), by_feature)
+        self.assertIn(("xref:segment_ref", "segment_ref", 0x20, 1), by_feature)
+        self.assertIn(("xref:code_ref", "segment_ref", 0x20, 1), by_feature)
         self.assertIn(("app_slot:write", "app_slot_ref", 0x30, 2), by_feature)
         self.assertIn(("runtime:copied_code", "runtime_view", 0x40, 3), by_feature)
         self.assertIn(("data:copper_list", "data_class", 0x50, 4), by_feature)
+        self.assertIn(("copper_register:bplcon0", "copper_ref", 0x50, 4), by_feature)
         self.assertIn(("hardware:custom", "hardware_ref", 0x50, 4), by_feature)
         self.assertIn(("hardware:custom/copper", "hardware_ref", 0x50, 4), by_feature)
         self.assertIn(("hardware:custom/display", "hardware_ref", 0x50, 4), by_feature)
+        self.assertIn(("display:bitplanes:7", "display_ref", 0x50, 4), by_feature)
+        self.assertIn(("display:color", "display_ref", 0x50, 4), by_feature)
         self.assertIn(("hardware:custom/audio", "hardware_ref", 0x60, 5), by_feature)
         self.assertIn(("hardware_register:aud0+ac_len", "hardware_ref", 0x60, 5), by_feature)
         ids = [xref["id"] for xref in xrefs]
@@ -380,8 +476,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "source_id": "source/a",
                 "platform": "amiga-hunk",
                 "origin": {"display_name": "a"},
-                "feature_counts": {"hardware:custom/display": 2, "os_call:any": 1},
-                "feature_examples": {"hardware:custom/display": [{"offset": 4}]},
+                "feature_counts": {"hardware:custom/display": 2, "display:bitplanes:5": 1, "os_call:any": 1},
+                "feature_examples": {"hardware:custom/display": [{"offset": 4}], "display:bitplanes:5": [{"offset": 6}]},
             },
             {
                 "id": "b",
@@ -398,12 +494,137 @@ class TargetUsageManifestTests(unittest.TestCase):
         ]
 
         query = usage.query_usage_manifest(rows, "", group="hardware")
+        display_query = usage.query_usage_manifest(rows, "", group="display")
         xref_query = usage.query_usage_xrefs(xrefs, group="hardware")
 
         self.assertEqual([item["id"] for item in query], ["a"])
         self.assertEqual(query[0]["count"], 2)
         self.assertEqual(query[0]["examples"], [{"offset": 4}])
+        self.assertEqual([item["id"] for item in display_query], ["a"])
+        self.assertEqual(display_query[0]["count"], 3)
         self.assertEqual([item["target_id"] for item in xref_query], ["a"])
+
+    def test_builds_variant_index_for_same_named_file_different_hashes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = Path(tmp) / "files.jsonl"
+            rows = [
+                {
+                    "id": "amiga-hunk/aaa",
+                    "platform": "amiga-hunk",
+                    "sha256": "a" * 64,
+                    "size": 4,
+                    "disk_sha256": "d1",
+                    "origin": {
+                        "display_name": "Bloodwych (1989)(Image Works)[b2].zip",
+                        "source_relpath": "resources/Bloodwych b2.zip",
+                        "container_relpath": "resources/Bloodwych b2.zip",
+                        "member_name": "Bloodwych (1989)(Image Works)[b2].adf",
+                        "in_image_path": "C/BLOODWYCH",
+                    },
+                    "file_ref": {"disk_id": "disk/a"},
+                    "expect": {"status": "ok"},
+                },
+                {
+                    "id": "amiga-hunk/bbb",
+                    "platform": "amiga-hunk",
+                    "sha256": "b" * 64,
+                    "size": 5,
+                    "disk_sha256": "d2",
+                    "origin": {
+                        "display_name": "Bloodwych (1989)(Image Works)[cr QTX].zip",
+                        "source_relpath": "resources/Bloodwych cr.zip",
+                        "container_relpath": "resources/Bloodwych cr.zip",
+                        "member_name": "Bloodwych (1989)(Image Works)[cr QTX].adf",
+                        "in_image_path": "c/bloodwych",
+                    },
+                    "file_ref": {"disk_id": "disk/b"},
+                    "expect": {"status": "ok"},
+                },
+                {
+                    "id": "amiga-hunk/ccc",
+                    "platform": "amiga-hunk",
+                    "sha256": "c" * 64,
+                    "size": 5,
+                    "disk_sha256": "d3",
+                    "origin": {
+                        "display_name": "Bloodwych - The Extended Levels (1989)(Image Works).zip",
+                        "source_relpath": "resources/Bloodwych ext.zip",
+                        "container_relpath": "resources/Bloodwych ext.zip",
+                        "member_name": "Bloodwych - The Extended Levels (1989)(Image Works).adf",
+                        "in_image_path": "C/BLOODWYCH",
+                    },
+                    "file_ref": {"disk_id": "disk/c"},
+                    "expect": {"status": "ok"},
+                },
+            ]
+            _write_jsonl(manifest, rows)
+
+            variants = usage.build_variant_index(manifest)
+
+        self.assertEqual(len(variants), 1)
+        self.assertEqual(variants[0]["platform"], "amiga-hunk")
+        self.assertEqual(variants[0]["title_family"], "bloodwych")
+        self.assertEqual(variants[0]["file_path_key"], "c/bloodwych")
+        self.assertEqual(variants[0]["unique_hash_count"], 2)
+        self.assertEqual(
+            [target["target_id"] for target in variants[0]["targets"]],
+            ["platform_file_manifest:amiga-hunk/aaa", "platform_file_manifest:amiga-hunk/bbb"],
+        )
+
+    def test_variant_index_uses_alternate_origins_without_duplicate_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = Path(tmp) / "files.jsonl"
+            rows = [
+                {
+                    "id": "atari-st/aaa",
+                    "platform": "atari-st",
+                    "sha256": "a" * 64,
+                    "size": 4,
+                    "origin": {
+                        "display_name": "Magicland Dizzy (1991)(Codemasters)[cr Elite][t].st",
+                        "source_relpath": "resources/magic.st",
+                        "container_relpath": None,
+                        "member_name": None,
+                        "in_image_path": "AUTO/MAG_LAND.PRG",
+                        "alternate_origins": [
+                            {
+                                "display_name": "Magicland Dizzy (1991)(Codemasters)[cr Elite][t].st",
+                                "source_relpath": "resources/magic.st",
+                                "container_relpath": None,
+                                "member_name": None,
+                                "in_image_path": "MAG_LAND.PRG",
+                            }
+                        ],
+                    },
+                    "expect": {"status": "ok"},
+                },
+                {
+                    "id": "atari-st/bbb",
+                    "platform": "atari-st",
+                    "sha256": "b" * 64,
+                    "size": 5,
+                    "origin": {
+                        "display_name": "Magicland Dizzy (1991)(Codemasters)[cr Other].st",
+                        "source_relpath": "resources/magic-other.st",
+                        "container_relpath": None,
+                        "member_name": None,
+                        "in_image_path": "MAG_LAND.PRG",
+                    },
+                    "expect": {"status": "ok"},
+                },
+            ]
+            _write_jsonl(manifest, rows)
+
+            variants = usage.build_variant_index(manifest)
+
+        matching = [row for row in variants if row["file_path_key"] == "mag_land.prg"]
+        self.assertEqual(len(matching), 1)
+        self.assertEqual(matching[0]["target_count"], 2)
+        self.assertEqual(
+            [target["target_id"] for target in matching[0]["targets"]],
+            ["platform_file_manifest:atari-st/aaa", "platform_file_manifest:atari-st/bbb"],
+        )
+        self.assertEqual(matching[0]["targets"][0]["origin"]["in_image_path"], "MAG_LAND.PRG")
 
     def test_cli_query_json_is_deterministic(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

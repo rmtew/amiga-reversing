@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import json
 import logging
 import queue
@@ -12,7 +13,7 @@ from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import NotRequired, TypedDict, cast
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from amiga_reversing.amiga_disk.models import DiskManifest
 from amiga_reversing.amiga_disk.project import create_disk_project
@@ -1668,6 +1669,8 @@ def route_request(
             platform = _first_query_value(query, "platform")
             q = _first_query_value(query, "q")
             source_only = _first_query_value(query, "source_only") == "1"
+            limit = _parse_int_arg(query, "limit")
+            offset = _parse_int_arg(query, "offset", 0) or 0
             return {
                 "ok": True,
                 "data": corpus_usage.query_targets(
@@ -1676,26 +1679,38 @@ def route_request(
                     platform=platform,
                     q=q,
                     source_only=source_only,
+                    limit=limit,
+                    offset=offset,
+                    projects=[project.to_dict() for project in list_projects()],
                 ),
             }
-        if method == "GET" and len(parts) == 4 and parts[2] == "targets":
-            return {"ok": True, "data": corpus_usage.target_payload(unquote(parts[3]))}
+        if method == "GET" and len(parts) == 3 and parts[2] == "variants":
+            target_id = _first_query_value(query, "target_id")
+            if not target_id:
+                raise ValueError("Missing target_id")
+            return {"ok": True, "data": corpus_usage.variants_payload(target_id)}
+        if method == "GET" and len(parts) == 3 and parts[2] == "diff":
+            left_target_id = _first_query_value(query, "left_target_id")
+            right_target_id = _first_query_value(query, "right_target_id")
+            if not left_target_id or not right_target_id:
+                raise ValueError("Missing left_target_id/right_target_id")
+            return {"ok": True, "data": corpus_usage.diff_payload(left_target_id, right_target_id)}
         if method == "GET" and len(parts) == 3 and parts[2] == "xrefs":
             target_id = _first_query_value(query, "target_id")
             feature = _first_query_value(query, "feature")
             group = _first_query_value(query, "group")
-            platform = _first_query_value(query, "platform")
-            q = _first_query_value(query, "q")
             source_only = _first_query_value(query, "source_only") == "1"
+            limit = _parse_int_arg(query, "limit")
+            offset = _parse_int_arg(query, "offset", 0) or 0
             return {
                 "ok": True,
                 "data": corpus_usage.query_xrefs(
                     target_id=target_id,
                     feature=feature,
                     group=group,
-                    platform=platform,
-                    q=q,
                     source_only=source_only,
+                    limit=limit,
+                    offset=offset,
                 ),
             }
         if method == "GET" and len(parts) == 3 and parts[2] == "snippet":
@@ -1716,8 +1731,13 @@ def route_request(
             target_id = (body or {}).get("target_id")
             if not isinstance(target_id, str) or not target_id:
                 raise ValueError("target_id is required")
+            mode = (body or {}).get("mode", "target")
+            if not isinstance(mode, str):
+                raise ValueError("mode must be a string")
             try:
-                job = _start_project_create_job(corpus_usage.corpus_import_media_body(target_id))
+                job = _start_project_create_job(
+                    corpus_usage.corpus_import_media_body(target_id, mode=mode)
+                )
             except Exception as exc:
                 job = _failed_project_create_job(str(exc))
             return {"ok": True, "data": job}
@@ -1970,6 +1990,19 @@ def _create_project_from_media(
     if not isinstance(media_base64, str):
         raise ValueError("Uploaded media payload is missing")
     uploaded_bytes = base64.b64decode(media_base64, validate=True)
+    origin_payload = body.get("project_origin")
+    if origin_payload is not None and not isinstance(origin_payload, dict):
+        raise ValueError("project_origin must be an object")
+    media_platform = "amiga-disk" if Path(filename).suffix.lower() == ".adf" else "amiga-hunk"
+    project_origin = (
+        {"kind": "user_upload", "filename": filename}
+        if origin_payload is None
+        else dict(cast(dict[str, object], origin_payload))
+    )
+    project_origin.setdefault("filename", filename)
+    project_origin.setdefault("platform", media_platform)
+    project_origin.setdefault("sha256", hashlib.sha256(uploaded_bytes).hexdigest())
+    project_origin.setdefault("size", len(uploaded_bytes))
     uploads_dir = PROJECT_ROOT / "bin" / "uploads"
     uploads_dir.mkdir(parents=True, exist_ok=True)
     report("write_media", 1, 4)
@@ -1999,6 +2032,7 @@ def _create_project_from_media(
             media_path,
             disk_id=disk_id,
             project_root=PROJECT_ROOT,
+            origin=project_origin,
             progress_fn=(
                 None
                 if job_id is None
@@ -2016,7 +2050,7 @@ def _create_project_from_media(
         media_path.unlink(missing_ok=True)
         raise
     report("create_target", 3, 4)
-    project = create_project(base_name, project_root=PROJECT_ROOT)
+    project = create_project(base_name, project_root=PROJECT_ROOT, origin=project_origin)
     if job_id is not None:
         _set_job_state(job_id, project_id=project.id)
     write_source_descriptor(

@@ -11,6 +11,36 @@ from src.scripts.kb.paths import AMIGA_HW_REGISTERS_JSON, AMIGA_HW_SYMBOLS_JSON
 HARDWARE_BASES = ("_custom", "_ciaa", "_ciab")
 
 
+def display_features_from_listing_text(text: str, *, copper_row: bool) -> list[str]:
+    features: set[str] = set()
+    refs = symbol_refs_from_listing_text(text, copper_row=copper_row)
+    symbols = {symbol.split("+", 1)[0].casefold() for base, symbol in refs if base == "_custom"}
+    if "bplcon0" in symbols:
+        bitplanes = _bplcon0_bitplanes(text)
+        if bitplanes is None and copper_row:
+            value = _copper_row_second_word(text)
+            if value is not None:
+                bitplanes = (value >> 12) & 0x7
+        features.add("display:bplcon0")
+        if bitplanes is not None:
+            features.add(f"display:bitplanes:{bitplanes}")
+        if "COLORON" in text.upper():
+            features.add("display:color")
+        if "HIRES" in text.upper():
+            features.add("display:hires")
+    if any(symbol.startswith("color") for symbol in symbols):
+        features.add("display:palette")
+    if any(symbol.startswith("bpl") and symbol.endswith("pt") for symbol in symbols) or "bplpt" in symbols:
+        features.add("display:bitplane_pointers")
+    if any(symbol in {"diwstrt", "diwstop"} for symbol in symbols):
+        features.add("display:window")
+    if any(symbol in {"ddfstrt", "ddfstop"} for symbol in symbols):
+        features.add("display:fetch_window")
+    if any(symbol.startswith("spr") and symbol.endswith("pt") for symbol in symbols) or "sprpt" in symbols:
+        features.add("display:sprite_pointers")
+    return sorted(features)
+
+
 def symbol_refs_from_listing_text(text: str, *, copper_row: bool) -> list[tuple[str, str]]:
     refs: set[tuple[str, str]] = set()
     for match in re.finditer(r"_custom\+([A-Za-z_][A-Za-z0-9_]*(?:\+[A-Za-z_][A-Za-z0-9_]*)*)", text):
@@ -23,6 +53,11 @@ def symbol_refs_from_listing_text(text: str, *, copper_row: bool) -> list[tuple[
         match = re.match(r"\s*dc\.w\s+([A-Za-z_][A-Za-z0-9_]*)(?:[,+]|$)", text)
         if match:
             refs.add(("_custom", match.group(1)))
+        numeric = re.match(r"\s*dc\.w\s+\$([0-9A-Fa-f]{1,4})(?:[,+]|$)", text)
+        if numeric:
+            symbol = _custom_symbol_for_copper_register_word(int(numeric.group(1), 16))
+            if symbol:
+                refs.add(("_custom", symbol))
     return sorted(refs)
 
 
@@ -49,6 +84,66 @@ def group_features(base_name: str, symbol: str, *, copper_row: bool) -> list[str
         if _mentions(function, "disk") or "dsk" in head or head in {"ciapra", "ciaprb"}:
             features.update({"hardware:cia/disk", "value_domain:amiga.cia.disk"})
     return sorted(features)
+
+
+def _bplcon0_bitplanes(text: str) -> int | None:
+    upper = text.upper()
+    if "BPU" in upper:
+        value = 0
+        if "BPU0" in upper:
+            value |= 1
+        if "BPU1" in upper:
+            value |= 2
+        if "BPU2" in upper:
+            value |= 4
+        return value
+    match = re.search(r"BPLCON0\s*,\s*\$([0-9A-Fa-f]{1,4})", text)
+    if not match:
+        match = re.search(r"_CUSTOM\+BPLCON0(?:\.\w+)?\s*,?\s*#?\$([0-9A-Fa-f]{1,4})", upper)
+    if not match:
+        match = re.search(r"#?\$([0-9A-Fa-f]{1,4})\s*,\s*_CUSTOM\+BPLCON0", upper)
+    if not match:
+        return None
+    return (int(match.group(1), 16) >> 12) & 0x7
+
+
+def _copper_row_second_word(text: str) -> int | None:
+    match = re.match(r"\s*dc\.w\s+[^,]+,\s*\$([0-9A-Fa-f]{1,4})(?:\s|;|$)", text)
+    if not match:
+        return None
+    return int(match.group(1), 16)
+
+
+def _custom_symbol_for_copper_register_word(word: int) -> str | None:
+    if word & 1:
+        return None
+    return _custom_symbol_by_offset().get(word & 0x01FE)
+
+
+@lru_cache(maxsize=1)
+def _custom_symbol_by_offset() -> dict[int, str]:
+    symbols: dict[int, str] = {}
+    try:
+        payload = json.loads(Path(AMIGA_HW_SYMBOLS_JSON).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return symbols
+    for row in payload.get("registers", []):
+        if not isinstance(row, dict):
+            continue
+        if row.get("base_symbol") != "_custom":
+            continue
+        names = row.get("symbols")
+        if not isinstance(names, list):
+            continue
+        try:
+            offset = int(str(row.get("offset")), 0)
+        except (TypeError, ValueError):
+            continue
+        for name in names:
+            if isinstance(name, str) and name:
+                symbols.setdefault(offset, name)
+                break
+    return symbols
 
 
 def _is_display_register(symbol: str, function: str) -> bool:

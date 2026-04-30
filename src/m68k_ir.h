@@ -155,7 +155,8 @@ typedef struct M68kAnalysisRuntimeEntryPoint {
 typedef struct M68kAnalysisPolicy {
   uint8_t max_cpu;
   uint8_t has_entry_offset;
-  uint8_t reserved0[2];
+  uint8_t disable_implicit_entry_points;
+  uint8_t reserved0[1];
   uint16_t register_seed_count;
   uint16_t entry_point_count;
   uint16_t structured_data_item_count;

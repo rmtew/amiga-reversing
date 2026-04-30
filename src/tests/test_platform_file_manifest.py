@@ -326,6 +326,88 @@ class PlatformFileManifestTests(unittest.TestCase):
             self.assertEqual(rows[0]["expect"]["status"], "error")
             self.assertEqual(rows[0]["expect"]["error"], "In-image file extent lies outside disk image")
 
+    def test_dedupes_identical_files_as_alternate_origins(self) -> None:
+        prg = make_synthetic_atari_prg(b"\x4E\x75", b"\x12\x34", 6)
+        image_a = (b"\x00" * 4096) + prg + (b"\x00" * 256)
+        image_b = (b"\x00" * 8192) + prg + (b"\x00" * 512)
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            tmpdir = Path(tmp)
+            disk_a = tmpdir / "disk_a.st"
+            disk_b = tmpdir / "disk_b.st"
+            disk_a.write_bytes(image_a)
+            disk_b.write_bytes(image_b)
+            disk_manifest_path = tmpdir / "platform_disk_manifest.jsonl"
+            file_manifest_path = tmpdir / "platform_file_manifest.jsonl"
+            rows = [
+                {
+                    "id": f"atari-st-disk/{_sha256(image_a)[:12]}",
+                    "platform": "atari-st-disk",
+                    "sha256": _sha256(image_a),
+                    "size": len(image_a),
+                    "origin": {
+                        "display_name": "disk_a.st",
+                        "source_relpath": disk_a.relative_to(ROOT).as_posix(),
+                        "container_relpath": None,
+                        "member_name": None,
+                    },
+                    "expect": {
+                        "summary_version": 1,
+                        "status": "ok",
+                        "entry_count": 1,
+                        "inspect": {
+                            "platform": "atari-st-disk",
+                            "entry_count": 1,
+                            "entries": [
+                                {
+                                    "path": "A/HELLO.PRG",
+                                    "kind": 1,
+                                    "file_size": len(prg),
+                                    "is_executable_candidate": 1,
+                                    "extents": [{"image_offset": 4096, "byte_size": len(prg), "cluster_index": 2}],
+                                }
+                            ],
+                        },
+                    },
+                },
+                {
+                    "id": f"atari-st-disk/{_sha256(image_b)[:12]}",
+                    "platform": "atari-st-disk",
+                    "sha256": _sha256(image_b),
+                    "size": len(image_b),
+                    "origin": {
+                        "display_name": "disk_b.st",
+                        "source_relpath": disk_b.relative_to(ROOT).as_posix(),
+                        "container_relpath": None,
+                        "member_name": None,
+                    },
+                    "expect": {
+                        "summary_version": 1,
+                        "status": "ok",
+                        "entry_count": 1,
+                        "inspect": {
+                            "platform": "atari-st-disk",
+                            "entry_count": 1,
+                            "entries": [
+                                {
+                                    "path": "B/HELLO.PRG",
+                                    "kind": 1,
+                                    "file_size": len(prg),
+                                    "is_executable_candidate": 1,
+                                    "extents": [{"image_offset": 8192, "byte_size": len(prg), "cluster_index": 2}],
+                                }
+                            ],
+                        },
+                    },
+                },
+            ]
+            disk_manifest_path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            _write_file_manifest(disk_manifest_path, file_manifest_path)
+            file_rows = [json.loads(line) for line in file_manifest_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            self.assertEqual(len(file_rows), 1)
+            self.assertEqual(file_rows[0]["origin"]["in_image_path"], "A/HELLO.PRG")
+            self.assertEqual(file_rows[0]["origin"]["alternate_origins"][0]["in_image_path"], "B/HELLO.PRG")
+            self.assertEqual(file_rows[0]["file_ref"]["alternate_refs"][0]["disk_id"], rows[1]["id"])
+
 if __name__ == "__main__":
     unittest.main()
 

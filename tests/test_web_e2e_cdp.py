@@ -195,18 +195,32 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(
         disasm_server.corpus_usage,
         "query_targets",
-        lambda *, feature=None, group=None, platform=None, q=None, source_only=False: [
+        lambda *, feature=None, group=None, platform=None, q=None, source_only=False, limit=None, offset=0, projects=None: [
             {
                 "id": "platform_file_manifest:amiga-hunk/demo",
                 "platform": "amiga-hunk",
                 "count": 1,
                 "source_example_count": 1,
                 "origin": {"in_image_path": "c/Demo"},
+                "source_context": {
+                    "target_name": "c/Demo",
+                    "disk_name": "DemoDisk.adf",
+                    "disk_target_id": "platform_disk_manifest:amiga-disk/demo",
+                },
+                "project_coverage": {
+                    "target_project_id": None,
+                    "disk_project_id": "amiga_disk_demo_project",
+                    "parent_disk_target_id": "platform_disk_manifest:amiga-disk/demo",
+                    "import_modes": [
+                        {"mode": "target", "label": "Add file as project", "available": True},
+                        {"mode": "disk", "label": "Disk in Projects", "available": False, "covered_project_id": "amiga_disk_demo_project"},
+                    ],
+                },
                 "tags": ["hardware:custom"],
             }
         ],
     )
-    def fake_query_xrefs(*, target_id=None, feature=None, group=None, platform=None, q=None, source_only=False):
+    def fake_query_xrefs(*, target_id=None, feature=None, group=None, source_only=False, limit=None, offset=0):
         rows = [
             {
                 "id": "xref-target",
@@ -229,13 +243,16 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
             rows = [row for row in rows if row["feature"] == feature]
         if source_only:
             rows = [row for row in rows if isinstance(row.get("row_index"), int)]
+        if limit is not None:
+            rows = rows[offset:offset + limit]
         return rows
 
     monkeypatch.setattr(disasm_server.corpus_usage, "query_xrefs", fake_query_xrefs)
-    monkeypatch.setattr(
-        disasm_server.corpus_usage,
-        "snippet_payload",
-        lambda xref_id, before=20, after=20: {
+    snippet_release = threading.Event()
+
+    def fake_snippet_payload(xref_id, before=20, after=20):
+        snippet_release.wait(timeout=5.0)
+        return {
             "xref": {"id": xref_id},
             "start": 0,
             "end": 1,
@@ -250,12 +267,13 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
                     "bytes": "33fc7fff00dff09a",
                 }
             ],
-        },
-    )
+        }
+
+    monkeypatch.setattr(disasm_server.corpus_usage, "snippet_payload", fake_snippet_payload)
     monkeypatch.setattr(
         disasm_server.corpus_usage,
         "corpus_import_media_body",
-        lambda target_id: {"filename": "Demo", "media_base64": "ZGVtbw=="},
+        lambda target_id, mode="target": {"filename": "Demo", "media_base64": "ZGVtbw=="},
     )
     monkeypatch.setattr(
         disasm_server,
@@ -308,14 +326,20 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
         page.wait_for_selector("[data-home-view='corpus']")
         page.click("[data-home-view='corpus']")
         page.wait_for_selector("#corpus-feature")
-        assert "1 source" in page.text_content("#corpus-feature")
+        page.wait_for_expression("document.querySelector('#corpus-feature')?.textContent.includes('1 source')")
+        assert "analysis:facts_v2" not in page.text_content("#corpus-feature")
         page.click("[data-corpus-group='hardware']")
         page.wait_for_expression("document.querySelector('.corpus-quick-filter.active')?.textContent.includes('Hardware')")
         page.select_value("#corpus-feature", "hardware:custom")
         page.wait_for_selector(".corpus-card")
         assert "1 source examples" in page.text_content(".corpus-card-meta")
+        assert "Disk: DemoDisk.adf" in page.text_content(".corpus-card")
+        assert page.evaluate("document.querySelector('.corpus-card-main .corpus-card-source-button') !== null")
+        assert "Disk in projects" in page.text_content(".corpus-card")
+        assert page.evaluate("document.querySelector('.corpus-card-source-button')?.dataset.corpusRelatedTarget === 'platform_disk_manifest:amiga-disk/demo'")
         assert page.text_content(".corpus-add-button") == "\U0001f516"
         assert page.evaluate("document.querySelector('.corpus-add-button')?.title === 'Promote to be a real project'")
+        assert page.evaluate("getComputedStyle(document.querySelector('.corpus-quick-filters')).flexWrap === 'wrap'")
         page.click(".corpus-card-main")
         page.wait_for_selector(".corpus-xref")
         assert "Source Examples" in page.text_content(".corpus-detail")
@@ -326,13 +350,21 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
         assert page.evaluate("getComputedStyle(document.querySelector('.corpus-results')).overflowY === 'auto'")
         assert page.evaluate("getComputedStyle(document.querySelector('.corpus-detail')).overflowY === 'auto'")
         page.click("button.corpus-xref[data-corpus-xref='xref-1']")
+        page.wait_for_selector("#corpus-snippet-overlay .corpus-snippet-loading")
+        assert "Loading source context" in page.text_content("#corpus-snippet-overlay")
+        snippet_release.set()
         page.wait_for_selector("#corpus-snippet-overlay .corpus-listing-row.active")
         assert "_custom+intena" in page.text_content("#corpus-snippet-overlay .corpus-listing-row.active")
         page.press_key("Escape")
         page.wait_for_expression("document.querySelector('#corpus-snippet-overlay') === null")
         page.click(".corpus-add-button")
+        page.wait_for_selector(".corpus-import-menu")
+        assert "Add file as project" in page.text_content(".corpus-import-menu")
+        assert "Disk in Projects" in page.text_content(".corpus-import-menu")
+        page.click("[data-corpus-import-mode='target']")
         page.wait_for_expression(f"location.pathname === '/{project.id}'", timeout=10.0)
         page.wait_for_expression("document.querySelectorAll('.listing-row').length === 2")
+        page.wait_for_expression("document.querySelector('.listing-row-focus')?.dataset.rowIndex === '0'")
         page.assert_no_errors()
 
 
@@ -595,6 +627,130 @@ def test_brave_cdp_virtual_listing_pagedown_fetches_low_latency(
         )
         assert time.perf_counter() - started < 1.0
         assert page.evaluate("document.querySelectorAll('.listing-row').length < 600")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_corpus_tab_renders_before_corpus_fetches_finish(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [])
+    feature_entered = threading.Event()
+    feature_release = threading.Event()
+
+    def fake_feature_list():
+        feature_entered.set()
+        feature_release.wait(timeout=5.0)
+        return [
+            {
+                "feature": "hardware:custom",
+                "target_count": 1,
+                "occurrence_count": 1,
+                "source_example_count": 1,
+                "source_target_count": 1,
+            }
+        ]
+
+    monkeypatch.setattr(disasm_server.corpus_usage, "feature_list", fake_feature_list)
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "query_targets",
+        lambda *, feature=None, group=None, platform=None, q=None, source_only=False, limit=None, offset=0, projects=None: [],
+    )
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": base_url})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector("[data-home-view='corpus']")
+        page.click("[data-home-view='corpus']")
+        assert feature_entered.wait(timeout=5.0)
+        page.wait_for_selector(".page-corpus")
+        assert "Loading features" in page.text_content("#corpus-feature")
+        feature_release.set()
+        page.wait_for_expression("document.querySelector('#corpus-feature')?.textContent.includes('1 source')")
+        assert page.evaluate("compareInlineSourceText('dc.b $EF', 'dc.b $EE').left.includes('corpus-inline-diff')")
+        assert page.evaluate("compareInlineSourceText('dc.b $EF', 'dc.b $EE').right.includes('corpus-inline-diff')")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_corpus_target_selection_ignores_stale_xrefs(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [])
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "feature_list",
+        lambda: [
+            {
+                "feature": "hardware:custom",
+                "target_count": 2,
+                "occurrence_count": 2,
+                "source_example_count": 2,
+                "source_target_count": 2,
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "query_targets",
+        lambda *, feature=None, group=None, platform=None, q=None, source_only=False, limit=None, offset=0, projects=None: [
+            {
+                "id": "slow-target",
+                "platform": "amiga-hunk",
+                "count": 1,
+                "source_example_count": 1,
+                "origin": {"in_image_path": "slow"},
+                "source_context": {"target_name": "slow"},
+                "project_coverage": {"import_modes": []},
+                "tags": ["hardware:custom"],
+            },
+            {
+                "id": "fast-target",
+                "platform": "amiga-hunk",
+                "count": 1,
+                "source_example_count": 1,
+                "origin": {"in_image_path": "fast"},
+                "source_context": {"target_name": "fast"},
+                "project_coverage": {"import_modes": []},
+                "tags": ["hardware:custom"],
+            },
+        ],
+    )
+    slow_entered = threading.Event()
+    slow_release = threading.Event()
+
+    def fake_query_xrefs(*, target_id=None, feature=None, group=None, source_only=False, limit=None, offset=0):
+        if target_id == "slow-target":
+            slow_entered.set()
+            slow_release.wait(timeout=5.0)
+        text = "slow-ref" if target_id == "slow-target" else "fast-ref"
+        rows = [
+            {
+                "id": f"{target_id}-xref",
+                "target_id": target_id,
+                "feature": "hardware:custom",
+                "kind": "hardware_ref",
+                "row_index": 0,
+                "text": text,
+            }
+        ]
+        if limit is not None:
+            rows = rows[offset:offset + limit]
+        return rows
+
+    monkeypatch.setattr(disasm_server.corpus_usage, "query_xrefs", fake_query_xrefs)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": base_url})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector("[data-home-view='corpus']")
+        page.click("[data-home-view='corpus']")
+        page.wait_for_selector(".corpus-card-main")
+        page.evaluate("document.querySelectorAll('.corpus-card-main')[0].click()")
+        assert slow_entered.wait(timeout=5.0)
+        page.evaluate("document.querySelectorAll('.corpus-card-main')[1].click()")
+        page.wait_for_expression("document.querySelector('.corpus-detail')?.textContent.includes('fast-ref')")
+        slow_release.set()
+        time.sleep(0.2)
+        assert "fast-ref" in page.text_content(".corpus-detail")
+        assert "slow-ref" not in page.text_content(".corpus-detail")
         page.assert_no_errors()
 
 

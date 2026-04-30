@@ -33,6 +33,15 @@ from amiga_reversing.disasm.target_metadata import (
 )
 
 
+def _project_metadata_payload(kind: str = "test_project") -> dict[str, object]:
+    return {
+        "schema_version": 2,
+        "created_at": "2026-03-25T00:00:00+00:00",
+        "updated_at": "2026-03-25T00:00:00+00:00",
+        "origin": {"kind": kind},
+    }
+
+
 def _disk_manifest_payload() -> dict[str, object]:
     return {
         "schema_version": 1,
@@ -471,11 +480,7 @@ def test_resolve_project_paths_supports_disk_entry_binary_source(tmp_path: Path)
     project_root = tmp_path
     disk_dir = project_root / "targets" / "amiga_disk_demo_disk"
     disk_dir.mkdir(parents=True)
-    (disk_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (disk_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (disk_dir / "manifest.json").write_text(json.dumps(_disk_manifest_payload()))
     target_dir = project_root / "targets" / "amiga_disk_demo_disk" / "targets" / "amiga_hunk_run_12345678"
     bin_dir = project_root / "bin"
@@ -504,11 +509,7 @@ def test_resolve_project_paths_supports_raw_binary_source(tmp_path: Path) -> Non
     project_root = tmp_path
     disk_dir = project_root / "targets" / "amiga_disk_demo_disk"
     disk_dir.mkdir(parents=True)
-    (disk_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (disk_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     payload = _disk_manifest_payload()
     payload["imported_targets"] = []
     (disk_dir / "manifest.json").write_text(json.dumps(payload))
@@ -595,11 +596,7 @@ def test_resolve_project_paths_allows_missing_entities_when_requested(tmp_path: 
     project_root = tmp_path
     disk_dir = project_root / "targets" / "amiga_disk_demo_disk"
     disk_dir.mkdir(parents=True)
-    (disk_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (disk_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     payload = _disk_manifest_payload()
     payload["imported_targets"] = []
     (disk_dir / "manifest.json").write_text(json.dumps(payload))
@@ -637,11 +634,7 @@ def test_list_projects_includes_unready_binary_project(tmp_path: Path) -> None:
     target_dir = project_root / "targets" / "demo"
     target_dir.mkdir(parents=True)
     (target_dir / "entities.jsonl").write_text("")
-    (target_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (target_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
 
     projects = list_projects(project_root=project_root)
 
@@ -659,11 +652,7 @@ def test_list_projects_includes_disk_project(tmp_path: Path) -> None:
     project_root = tmp_path
     disk_dir = project_root / "targets" / "amiga_disk_demo_disk"
     disk_dir.mkdir(parents=True)
-    (disk_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (disk_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (disk_dir / "manifest.json").write_text(json.dumps(_disk_manifest_payload()))
 
     projects = list_projects(project_root=project_root)
@@ -681,28 +670,16 @@ def test_list_projects_hides_imported_disk_child_targets(tmp_path: Path) -> None
     project_root = tmp_path
     disk_dir = project_root / "targets" / "amiga_disk_demo_disk"
     disk_dir.mkdir(parents=True)
-    (disk_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (disk_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (disk_dir / "manifest.json").write_text(json.dumps(_disk_manifest_payload()))
     child_dir = project_root / "targets" / "amiga_disk_demo_disk" / "targets" / "amiga_hunk_run_12345678"
     child_dir.mkdir(parents=True)
     (child_dir / "entities.jsonl").write_text("")
-    (child_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (child_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     bootblock_dir = project_root / "targets" / "amiga_disk_demo_disk" / "targets" / "amiga_raw_bootblock"
     bootblock_dir.mkdir(parents=True)
     (bootblock_dir / "entities.jsonl").write_text("")
-    (bootblock_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (bootblock_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (bootblock_dir / "binary.bin").write_bytes(b"\x4e\x75")
     (bootblock_dir / "source_binary.json").write_text(json.dumps({
         "kind": "raw_binary",
@@ -731,13 +708,7 @@ def test_list_projects_requires_disk_manifest(tmp_path: Path) -> None:
     disk_dir = project_root / "targets" / "amiga_disk_broken_disk"
     disk_dir.mkdir(parents=True)
     (disk_dir / ".project.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "created_at": "2026-03-25T00:00:00+00:00",
-                "updated_at": "2026-03-25T00:00:00+00:00",
-            }
-        )
+        json.dumps(_project_metadata_payload())
     )
 
     with pytest.raises(FileNotFoundError, match="Missing manifest.json for disk project: amiga_disk_broken_disk"):
@@ -748,11 +719,7 @@ def test_get_project_reads_disk_project(tmp_path: Path) -> None:
     project_root = tmp_path
     disk_dir = project_root / "targets" / "amiga_disk_demo_disk"
     disk_dir.mkdir(parents=True)
-    (disk_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (disk_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     payload = _disk_manifest_payload()
     payload["imported_targets"] = []
     (disk_dir / "manifest.json").write_text(json.dumps(payload))
@@ -770,11 +737,7 @@ def test_get_project_marks_dos_magic_without_filesystem_as_non_dos(tmp_path: Pat
     project_root = tmp_path
     disk_dir = project_root / "targets" / "amiga_disk_demo_disk"
     disk_dir.mkdir(parents=True)
-    (disk_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (disk_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (disk_dir / "manifest.json").write_text(json.dumps(_dos_magic_non_dos_manifest_payload()))
 
     project = get_project("amiga_disk_demo_disk", project_root=project_root)
@@ -786,22 +749,14 @@ def test_get_project_sets_parent_project_for_disk_entry_target(tmp_path: Path) -
     project_root = tmp_path
     disk_dir = project_root / "targets" / "amiga_disk_demo_disk"
     disk_dir.mkdir(parents=True)
-    (disk_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (disk_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (disk_dir / "manifest.json").write_text(json.dumps(_disk_manifest_payload()))
     target_dir = project_root / "targets" / "amiga_disk_demo_disk" / "targets" / "amiga_hunk_run_12345678"
     bin_dir = project_root / "bin"
     target_dir.mkdir(parents=True)
     bin_dir.mkdir()
     (target_dir / "entities.jsonl").write_text("")
-    (target_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (target_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (target_dir / "binary.analysis").write_text("")
     adf_path = bin_dir / "demo.adf"
     adf_path.write_bytes(b"demo")
@@ -825,9 +780,10 @@ def test_create_project_creates_entities_file(tmp_path: Path) -> None:
     assert project.kind == "binary"
     assert (tmp_path / "targets" / "demo" / "entities.jsonl").exists()
     metadata = json.loads((tmp_path / "targets" / "demo" / ".project.json").read_text())
-    assert metadata["schema_version"] == 1
+    assert metadata["schema_version"] == 2
     assert metadata["created_at"] == project.created_at
     assert metadata["updated_at"] == project.updated_at
+    assert metadata["origin"] == {"kind": "manual_project", "project_id": "demo"}
 
 
 def test_derive_project_name_uses_filename_stem() -> None:
@@ -847,11 +803,7 @@ def test_mark_project_opened_records_recent_timestamp_for_binary_and_disk(tmp_pa
     create_project("demo", project_root=tmp_path)
     disk_dir = tmp_path / "targets" / "amiga_disk_demo_disk"
     disk_dir.mkdir(parents=True)
-    (disk_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (disk_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     payload = _disk_manifest_payload()
     payload["imported_targets"] = []
     (disk_dir / "manifest.json").write_text(json.dumps(payload))
@@ -895,19 +847,11 @@ def test_delete_disk_project_removes_manifest_targets_and_source(tmp_path: Path)
     source_path.write_bytes(b"demo")
     disk_dir = targets_dir / "amiga_disk_demo_disk"
     disk_dir.mkdir(parents=True)
-    (disk_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (disk_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     imported_dir = targets_dir / "amiga_disk_demo_disk" / "targets" / "amiga_hunk_run_12345678"
     imported_dir.mkdir(parents=True)
     (imported_dir / "entities.jsonl").write_text("")
-    (imported_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (imported_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (imported_dir / "source_binary.json").write_text(json.dumps({
         "kind": "disk_entry",
         "disk_id": "demo_disk",
@@ -918,11 +862,7 @@ def test_delete_disk_project_removes_manifest_targets_and_source(tmp_path: Path)
     bootblock_dir = targets_dir / "amiga_disk_demo_disk" / "targets" / "amiga_raw_bootblock"
     bootblock_dir.mkdir(parents=True)
     (bootblock_dir / "entities.jsonl").write_text("")
-    (bootblock_dir / ".project.json").write_text(json.dumps({
-        "schema_version": 1,
-        "created_at": "2026-03-25T00:00:00+00:00",
-        "updated_at": "2026-03-25T00:00:00+00:00",
-    }))
+    (bootblock_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (bootblock_dir / "binary.bin").write_bytes(b"\x00" * 0x0C + b"\x4e\x75")
     (bootblock_dir / "source_binary.json").write_text(json.dumps({
         "kind": "raw_binary",

@@ -114,6 +114,7 @@ def create_disk_project(
     disk_id: str | None = None,
     project_root: Path = PROJECT_ROOT,
     progress_fn: Callable[[str, int, int], None] | None = None,
+    origin: dict[str, object] | None = None,
 ) -> DiskManifest:
     from amiga_reversing.disasm.projects import (
         create_project_at_path,
@@ -129,10 +130,19 @@ def create_disk_project(
     if disk_target_root.exists():
         raise DiskAnalysisError(f"Disk target root already exists: {disk_target_root}")
     disk_target_root.mkdir(parents=True)
-    initialize_project_metadata(disk_target_root)
     created_target_dirs: list[Path] = []
     try:
         disk_bytes = adf_file.read_bytes()
+        disk_sha256 = hashlib.sha256(disk_bytes).hexdigest()
+        disk_origin = origin or {
+            "kind": "user_upload",
+            "filename": adf_file.name,
+            "platform": "amiga-disk",
+            "source_path": adf_file.as_posix(),
+            "sha256": disk_sha256,
+            "size": len(disk_bytes),
+        }
+        initialize_project_metadata(disk_target_root, origin=disk_origin)
         if progress_fn is not None:
             progress_fn("analyze_disk", 1, 4)
         analysis = analyze_adf(adf_file, include_tracks=True)
@@ -157,6 +167,13 @@ def create_disk_project(
         create_project_at_path(
             disk_child_target_relpath(resolved_disk_id, bootblock_local_name).as_posix(),
             project_root=project_root,
+            origin={
+                "kind": "disk_child",
+                "parent_disk_id": resolved_disk_id,
+                "target_role": "bootblock",
+                "target_type": "bootblock",
+                "source_path": adf_file.as_posix(),
+            },
         )
         created_target_dirs.append(bootblock_target_dir)
         bootblock_binary_path = bootblock_target_dir / "binary.bin"
@@ -184,6 +201,14 @@ def create_disk_project(
             create_project_at_path(
                 disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
                 project_root=project_root,
+                origin={
+                    "kind": "disk_child",
+                    "parent_disk_id": resolved_disk_id,
+                    "target_role": "bootloader_stage",
+                    "entry_path": stage_entry_path,
+                    "target_type": stage.import_target.target_type,
+                    "source_path": adf_file.as_posix(),
+                },
             )
             created_target_dirs.append(target_dir)
             binary_path = target_dir / "binary.bin"
@@ -220,6 +245,14 @@ def create_disk_project(
             create_project_at_path(
                 disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
                 project_root=project_root,
+                origin={
+                    "kind": "disk_child",
+                    "parent_disk_id": resolved_disk_id,
+                    "target_role": "bootloader_raw_span",
+                    "entry_path": span_entry_path,
+                    "target_type": import_target.target_type,
+                    "source_path": adf_file.as_posix(),
+                },
             )
             created_target_dirs.append(target_dir)
             binary_path = target_dir / "binary.bin"
@@ -263,6 +296,14 @@ def create_disk_project(
                 create_project_at_path(
                     disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
                     project_root=project_root,
+                    origin={
+                        "kind": "disk_child",
+                        "parent_disk_id": resolved_disk_id,
+                        "target_role": "disk_entry",
+                        "entry_path": entry_path,
+                        "target_type": import_target.target_type,
+                        "source_path": adf_file.as_posix(),
+                    },
                 )
                 created_target_dirs.append(target_dir)
                 write_source_descriptor(
@@ -294,7 +335,7 @@ def create_disk_project(
             schema_version=1,
             disk_id=resolved_disk_id,
             source_path=adf_file.as_posix(),
-            source_sha256=hashlib.sha256(disk_bytes).hexdigest(),
+            source_sha256=disk_sha256,
             analysis=analysis,
             imported_targets=imported_targets,
             bootblock_target_name=bootblock_target_name,

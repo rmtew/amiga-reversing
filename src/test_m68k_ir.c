@@ -880,6 +880,107 @@ static int test_facts_v2_profile_collects_decode_and_label_facts(void) {
   return 0;
 }
 
+static int test_facts_v2_implicit_entry_only_first_code_section(void) {
+  M68kObject object;
+  M68kSection first_section;
+  M68kSection second_section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  uint8_t first_bytes[2] = {0x4eu, 0x75u};
+  uint8_t second_bytes[2] = {0x4eu, 0x75u};
+  memset(&first_section, 0, sizeof(first_section));
+  memset(&second_section, 0, sizeof(second_section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  first_section.kind = M68K_SECTION_CODE;
+  first_section.size = sizeof(first_bytes);
+  first_section.data_size = sizeof(first_bytes);
+  first_section.data = first_bytes;
+  second_section.kind = M68K_SECTION_CODE;
+  second_section.size = sizeof(second_bytes);
+  second_section.data_size = sizeof(second_bytes);
+  second_section.data = second_bytes;
+  added = m68k_object_add_section(&object, &first_section);
+  M68K_C_ASSERT(added.ok);
+  added = m68k_object_add_section(&object, &second_section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_profile(&object, &policy, &profile, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, profile.code_start_section_entries);
+  M68K_C_ASSERT_U32(1U, profile.accepted_instructions);
+  M68K_C_ASSERT_U32(1U, profile.render_ir_instructions);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_implicit_entry_does_not_scan_to_later_code_section(void) {
+  M68kObject object;
+  M68kSection data_section;
+  M68kSection code_section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  uint8_t data_bytes[2] = {0x00u, 0x00u};
+  uint8_t code_bytes[2] = {0x4eu, 0x75u};
+  /* AmigaOS 3.1 dos/loadseg.asm returns the first linked load segment and does
+     not scan forward for the next CODE hunk; keep this isolated from any real
+     target so corpus quirks cannot define the rule. */
+  memset(&data_section, 0, sizeof(data_section));
+  memset(&code_section, 0, sizeof(code_section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  data_section.kind = M68K_SECTION_DATA;
+  data_section.size = sizeof(data_bytes);
+  data_section.data_size = sizeof(data_bytes);
+  data_section.data = data_bytes;
+  code_section.kind = M68K_SECTION_CODE;
+  code_section.size = sizeof(code_bytes);
+  code_section.data_size = sizeof(code_bytes);
+  code_section.data = code_bytes;
+  added = m68k_object_add_section(&object, &data_section);
+  M68K_C_ASSERT(added.ok);
+  added = m68k_object_add_section(&object, &code_section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_profile(&object, &policy, &profile, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(0U, profile.code_start_section_entries);
+  M68K_C_ASSERT_U32(0U, profile.accepted_instructions);
+  M68K_C_ASSERT_U32(0U, profile.render_ir_instructions);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_required_entry_without_decode_is_hard_failure(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  uint8_t bytes[4] = {0x53u, 0xbeu, 0x00u, 0x00u};
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_profile(&object, &policy, &profile, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, profile.code_start_section_entries);
+  M68K_C_ASSERT_U32(0U, profile.decoded_candidates);
+  M68K_C_ASSERT_U32(0U, profile.accepted_instructions);
+  M68K_C_ASSERT_U32(1U, profile.required_instruction_failures);
+  M68K_C_ASSERT_U32(0U, profile.first_required_instruction_failure_section);
+  M68K_C_ASSERT_U32(0U, profile.first_required_instruction_failure_offset);
+  M68K_C_ASSERT_U32(M68K_FACTS_V2_CODE_START_REASON_SECTION_ENTRY,
+    profile.first_required_instruction_failure_reason);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_work_queue_dedupes_same_confidence_starts(void) {
   M68kObject object;
   M68kSection section;
@@ -4117,8 +4218,9 @@ static int test_facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target(
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr loc_1_00000004.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_1_00000004:\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_1_00000000:\n\trts\n") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
-  M68K_C_ASSERT(profile.accepted_instructions >= 4U);
+  M68K_C_ASSERT_U32(3U, profile.accepted_instructions);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;
@@ -4737,6 +4839,12 @@ int m68k_c_ir_tests(void) {
     {"decode_ir_keeps_odd_branch_target_for_analysis", test_decode_ir_keeps_odd_branch_target_for_analysis},
     {"fact_ir_label_creation_dedupes", test_fact_ir_label_creation_dedupes},
     {"facts_v2_profile_collects_decode_and_label_facts", test_facts_v2_profile_collects_decode_and_label_facts},
+    {"facts_v2_implicit_entry_only_first_code_section",
+      test_facts_v2_implicit_entry_only_first_code_section},
+    {"facts_v2_implicit_entry_does_not_scan_to_later_code_section",
+      test_facts_v2_implicit_entry_does_not_scan_to_later_code_section},
+    {"facts_v2_required_entry_without_decode_is_hard_failure",
+      test_facts_v2_required_entry_without_decode_is_hard_failure},
     {"facts_v2_work_queue_dedupes_same_confidence_starts",
       test_facts_v2_work_queue_dedupes_same_confidence_starts},
     {"facts_v2_records_mid_instruction_required_label", test_facts_v2_records_mid_instruction_required_label},

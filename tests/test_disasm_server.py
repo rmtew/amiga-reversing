@@ -523,6 +523,7 @@ def test_route_create_project_from_executable_media(monkeypatch: pytest.MonkeyPa
 
 
 def test_route_corpus_features_query_xrefs_and_snippet(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [])
     monkeypatch.setattr(
         disasm_server.corpus_usage,
         "feature_list",
@@ -531,7 +532,7 @@ def test_route_corpus_features_query_xrefs_and_snippet(monkeypatch: pytest.Monke
     monkeypatch.setattr(
         disasm_server.corpus_usage,
         "query_targets",
-        lambda *, feature=None, group=None, platform=None, q=None, source_only=False: [
+        lambda *, feature=None, group=None, platform=None, q=None, source_only=False, limit=None, offset=0, projects=None: [
             {
                 "id": "platform_file_manifest:amiga-hunk/demo",
                 "platform": platform,
@@ -541,14 +542,16 @@ def test_route_corpus_features_query_xrefs_and_snippet(monkeypatch: pytest.Monke
                 "group": group,
                 "q": q,
                 "source_only": source_only,
+                "limit": limit,
+                "offset": offset,
             }
         ],
     )
     monkeypatch.setattr(
         disasm_server.corpus_usage,
         "query_xrefs",
-        lambda *, target_id=None, feature=None, group=None, platform=None, q=None, source_only=False: [
-            {"id": "xref-1", "target_id": target_id, "feature": feature, "group": group, "row_index": 4}
+        lambda *, target_id=None, feature=None, group=None, source_only=False, limit=None, offset=0: [
+            {"id": "xref-1", "target_id": target_id, "feature": feature, "group": group, "row_index": 4, "limit": limit, "offset": offset}
         ],
     )
     snippet_args: list[tuple[str, int, int]] = []
@@ -569,12 +572,12 @@ def test_route_corpus_features_query_xrefs_and_snippet(monkeypatch: pytest.Monke
     query = disasm_server.route_request(
         "GET",
         "/api/corpus/query",
-        {"feature": ["hardware:custom"], "group": ["hardware"], "platform": ["amiga-hunk"], "q": ["intena"], "source_only": ["1"]},
+        {"feature": ["hardware:custom"], "group": ["hardware"], "platform": ["amiga-hunk"], "q": ["intena"], "source_only": ["1"], "limit": ["41"], "offset": ["40"]},
     )
     xrefs = disasm_server.route_request(
         "GET",
         "/api/corpus/xrefs",
-        {"target_id": ["platform_file_manifest:amiga-hunk/demo"], "feature": ["hardware:custom"], "group": ["hardware"], "source_only": ["1"]},
+        {"target_id": ["platform_file_manifest:amiga-hunk/demo"], "feature": ["hardware:custom"], "group": ["hardware"], "source_only": ["1"], "limit": ["121"], "offset": ["120"]},
     )
     snippet = disasm_server.route_request(
         "GET",
@@ -588,29 +591,14 @@ def test_route_corpus_features_query_xrefs_and_snippet(monkeypatch: pytest.Monke
     assert cast(list[dict[str, object]], query["data"])[0]["source_example_count"] == 1
     assert cast(list[dict[str, object]], query["data"])[0]["group"] == "hardware"
     assert cast(list[dict[str, object]], query["data"])[0]["source_only"] is True
+    assert cast(list[dict[str, object]], query["data"])[0]["limit"] == 41
+    assert cast(list[dict[str, object]], query["data"])[0]["offset"] == 40
     assert cast(list[dict[str, object]], xrefs["data"])[0]["row_index"] == 4
+    assert cast(list[dict[str, object]], xrefs["data"])[0]["limit"] == 121
+    assert cast(list[dict[str, object]], xrefs["data"])[0]["offset"] == 120
     assert cast(dict[str, object], snippet["data"])["highlighted_row_index"] == 4
     assert snippet_args == [("xref-1", 0, 0)]
     assert cast(list[dict[str, object]], cast(dict[str, object], snippet["data"])["rows"])[0]["row_index"] == 4
-
-
-def test_route_corpus_target_decodes_slash_id(monkeypatch: pytest.MonkeyPatch) -> None:
-    seen: list[str] = []
-
-    def fake_target_payload(target_id: str) -> dict[str, object]:
-        seen.append(target_id)
-        return {"target": {"id": target_id}, "xrefs": []}
-
-    monkeypatch.setattr(disasm_server.corpus_usage, "target_payload", fake_target_payload)
-
-    payload = disasm_server.route_request(
-        "GET",
-        "/api/corpus/targets/platform_file_manifest%3Aamiga-hunk%2Fdemo",
-        {},
-    )
-
-    assert cast(dict[str, object], cast(dict[str, object], payload["data"])["target"])["id"] == "platform_file_manifest:amiga-hunk/demo"
-    assert seen == ["platform_file_manifest:amiga-hunk/demo"]
 
 
 def test_corpus_snippet_payload_preserves_explicit_row_indexes(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -641,11 +629,378 @@ def test_corpus_snippet_payload_preserves_explicit_row_indexes(monkeypatch: pyte
     assert payload["highlighted_row_index"] == 10
 
 
+def test_route_corpus_variants_and_diff(monkeypatch: pytest.MonkeyPatch) -> None:
+    left = {
+        "id": "left-target",
+        "platform": "amiga-hunk",
+        "source_id": "left-source",
+        "sha256": "left-sha",
+        "size": 4,
+        "origin": {"display_name": "Bloodwych [b2].zip", "in_image_path": "C/BLOODWYCH"},
+        "feature_counts": {"hardware:custom": 1, "data:copper_list": 1},
+    }
+    right = {
+        "id": "right-target",
+        "platform": "amiga-hunk",
+        "source_id": "right-source",
+        "sha256": "right-sha",
+        "size": 4,
+        "origin": {"display_name": "Bloodwych [cr].zip", "in_image_path": "C/BLOODWYCH"},
+        "feature_counts": {"hardware:custom": 2, "runtime:copied_code": 1},
+    }
+    monkeypatch.setattr(disasm_server.corpus_usage, "read_manifest", lambda: [left, right])
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "read_variants",
+        lambda: [
+            {
+                "id": "variant-1",
+                "platform": "amiga-hunk",
+                "title_family": "bloodwych",
+                "display_path": "C/BLOODWYCH",
+                "target_count": 2,
+                "unique_hash_count": 2,
+                "targets": [
+                    {"target_id": "left-target", "sha256": "left-sha", "origin": left["origin"]},
+                    {"target_id": "right-target", "sha256": "right-sha", "origin": right["origin"]},
+                ],
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "_target_media_bytes",
+        lambda target: b"abcX" if target["id"] == "left-target" else b"abcY",
+    )
+    snippet_rows = [
+        {"target_id": "left-target", "row_index": 0, "row": {"section_index": 0, "start_offset": 0, "text": "same_label:"}},
+        {"target_id": "left-target", "row_index": 1, "row": {"section_index": 0, "start_offset": 3, "end_offset": 4, "text": "moveq #1,d0"}},
+        {"target_id": "right-target", "row_index": 0, "row": {"section_index": 0, "start_offset": 0, "text": "same_label:"}},
+        {"target_id": "right-target", "row_index": 1, "row": {"section_index": 0, "start_offset": 3, "end_offset": 4, "text": "moveq #2,d0"}},
+    ]
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "read_snippet_rows_for_target",
+        lambda target_id: [row for row in snippet_rows if row["target_id"] == target_id],
+    )
+
+    variants = disasm_server.route_request("GET", "/api/corpus/variants", {"target_id": ["left-target"]})
+    diff = disasm_server.route_request(
+        "GET",
+        "/api/corpus/diff",
+        {"left_target_id": ["left-target"], "right_target_id": ["right-target"]},
+    )
+
+    variant_data = cast(dict[str, object], variants["data"])
+    diff_data = cast(dict[str, object], diff["data"])
+    byte_diff = cast(dict[str, object], diff_data["byte_diff"])
+    assert cast(dict[str, object], variant_data["group"])["id"] == "variant-1"
+    assert cast(dict[str, object], diff_data["variant_group"])["id"] == "variant-1"
+    assert [item["selected"] for item in cast(list[dict[str, object]], variant_data["variants"])] == [True, False]
+    assert byte_diff["first_diff"] == 3
+    assert byte_diff["region_count"] == 1
+    regions = cast(list[dict[str, object]], byte_diff["regions"])
+    assert regions[0]["left_start"] == 3
+    assert regions[0]["right_start"] == 3
+    assert regions[0]["skipped_left"] == 3
+    assert regions[0]["skipped_right"] == 3
+    assert "moveq #1,d0" in [row["text"] for row in cast(list[dict[str, object]], regions[0]["left_context"])]
+    assert "moveq #2,d0" in [row["text"] for row in cast(list[dict[str, object]], regions[0]["right_context"])]
+
+
+def test_corpus_diff_uses_listing_byte_space_not_raw_file_offsets(monkeypatch: pytest.MonkeyPatch) -> None:
+    left = {"id": "left-target", "platform": "amiga-hunk", "origin": {"display_name": "left"}, "feature_counts": {}}
+    right = {"id": "right-target", "platform": "amiga-hunk", "origin": {"display_name": "right"}, "feature_counts": {}}
+    monkeypatch.setattr(disasm_server.corpus_usage, "read_manifest", lambda: [left, right])
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "read_variants",
+        lambda: [
+            {
+                "id": "variant-1",
+                "platform": "amiga-hunk",
+                "title_family": "demo",
+                "display_path": "C/DEMO",
+                "targets": [{"target_id": "left-target"}, {"target_id": "right-target"}],
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "_target_media_bytes",
+        lambda target: (b"raw-left-header" if target["id"] == "left-target" else b"different-raw-header") + b"\xaa\xef\xbb",
+    )
+    snippet_rows = [
+        {
+            "target_id": "left-target",
+            "row_index": 0,
+            "row": {
+                "section_index": 0,
+                "start_offset": 0,
+                "end_offset": 3,
+                "bytes": "aaefbb",
+                "text": "\tdc.b $AA,$EF,$BB\n",
+            },
+        },
+        {
+            "target_id": "right-target",
+            "row_index": 0,
+            "row": {
+                "section_index": 0,
+                "start_offset": 0,
+                "end_offset": 3,
+                "bytes": "aaeebb",
+                "text": "\tdc.b $AA,$EE,$BB\n",
+            },
+        },
+    ]
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "read_snippet_rows_for_target",
+        lambda target_id: [row for row in snippet_rows if row["target_id"] == target_id],
+    )
+
+    diff = disasm_server.corpus_usage.diff_payload("left-target", "right-target")
+
+    byte_diff = cast(dict[str, object], diff["byte_diff"])
+    regions = cast(list[dict[str, object]], byte_diff["regions"])
+    assert byte_diff["left_space"] == "listing"
+    assert byte_diff["right_space"] == "listing"
+    assert byte_diff["left_size"] == 3
+    assert byte_diff["right_size"] == 3
+    assert byte_diff["first_diff"] == 1
+    assert regions[0]["left_start"] == 1
+    assert regions[0]["right_start"] == 1
+    left_context = cast(list[dict[str, object]], regions[0]["left_context"])[0]
+    assert left_context["diff_start_offset"] == 0
+    assert left_context["diff_end_offset"] == 3
+
+
+def test_corpus_listing_diff_space_expands_dcb_directives() -> None:
+    rows = [
+        {
+            "section_index": 0,
+            "row_index": 0,
+            "start_offset": 0,
+            "end_offset": 4,
+            "bytes": "efef",
+            "opcode_or_directive": "dcb.b",
+            "operand_text": "4,$EF",
+            "text": "\tdcb.b 4,$EF\n",
+        }
+    ]
+
+    space = disasm_server.corpus_usage._listing_diff_space(rows)
+
+    assert space is not None
+    assert space["bytes"] == b"\xef\xef\xef\xef"
+    mapped_rows = cast(list[dict[str, object]], space["rows"])
+    assert mapped_rows[0]["diff_start_offset"] == 0
+    assert mapped_rows[0]["diff_end_offset"] == 4
+
+
+def test_corpus_diff_context_includes_preceding_rows_for_nearby_semantics() -> None:
+    rows = [
+        {"row_index": 0, "section_index": 0, "start_offset": 0, "end_offset": 4, "bytes": "11111111", "text": "\tmoveq #1,d0\n"},
+        {"row_index": 1, "section_index": 0, "start_offset": 4, "end_offset": 8, "bytes": "22222222", "text": "\tmoveq #2,d0\n"},
+        {"row_index": 2, "section_index": 0, "start_offset": 8, "end_offset": 12, "bytes": "33333333", "text": "\tmoveq #3,d0\n"},
+        {"row_index": 3, "section_index": 0, "start_offset": 12, "end_offset": 16, "bytes": "44444444", "text": "\tmoveq #4,d0\n"},
+    ]
+
+    context = disasm_server.corpus_usage._source_rows_for_range(rows, 14, 15, limit=4, before=2)
+
+    assert [row["row_index"] for row in context] == [1, 2, 3]
+
+
+def test_corpus_byte_diff_merges_small_equal_runs_and_reports_skips() -> None:
+    left = b"A" * 80 + b"abcd" + b"=" * 8 + b"wxyz" + b"B" * 80
+    right = b"A" * 80 + b"ABCD" + b"=" * 8 + b"WXYZ" + b"B" * 80
+
+    diff = disasm_server.corpus_usage._byte_diff_summary(left, right, merge_equal_gap=16)
+
+    regions = cast(list[dict[str, object]], diff["regions"])
+    assert diff["region_count"] == 1
+    assert regions[0]["left_start"] == 80
+    assert regions[0]["right_start"] == 80
+    assert regions[0]["left_length"] == 16
+    assert regions[0]["right_length"] == 16
+    assert regions[0]["skipped_left"] == 80
+    assert regions[0]["skipped_right"] == 80
+    assert diff["trailing_skipped_left"] == 80
+    assert diff["trailing_skipped_right"] == 80
+
+
+def test_corpus_context_pairs_align_same_code_at_different_offsets() -> None:
+    pairs = disasm_server.corpus_usage._paired_context_rows(
+        [
+            {"start_offset": 0x280, "end_offset": 0x284, "text": "\tmove.b ciaicr(a0),d0\n"},
+            {"start_offset": 0x284, "end_offset": 0x286, "text": "\tandi.b #$7f,d0\n"},
+        ],
+        [
+            {"start_offset": 0x25C, "end_offset": 0x260, "text": "\tmove.b ciaicr(a0),d0\n"},
+            {"start_offset": 0x260, "end_offset": 0x266, "text": "\tandi.b #$7f,d0\n"},
+        ],
+    )
+
+    assert len(pairs) == 2
+    assert pairs[0]["same_text"] is True
+    assert pairs[0]["same_offset"] is False
+    assert cast(dict[str, object], pairs[0]["left"])["start_offset"] == 0x280
+    assert cast(dict[str, object], pairs[0]["right"])["start_offset"] == 0x25C
+
+
+def test_corpus_context_pairs_deemphasise_consistent_address_shift() -> None:
+    pairs = disasm_server.corpus_usage._paired_context_rows(
+        [
+            {"start_offset": 0x1146, "end_offset": 0x114A, "opcode_or_directive": "bsr.w", "operand_text": "loc_0_00008576", "text": "\tbsr.w loc_0_00008576\n"},
+            {"start_offset": 0x114A, "end_offset": 0x114E, "opcode_or_directive": "bsr.w", "operand_text": "loc_0_00008538", "text": "\tbsr.w loc_0_00008538\n"},
+        ],
+        [
+            {"start_offset": 0x110A, "end_offset": 0x110E, "opcode_or_directive": "bsr.w", "operand_text": "loc_0_000084DA", "text": "\tbsr.w loc_0_000084DA\n"},
+            {"start_offset": 0x110E, "end_offset": 0x1112, "opcode_or_directive": "bsr.w", "operand_text": "loc_0_0000849C", "text": "\tbsr.w loc_0_0000849C\n"},
+        ],
+    )
+
+    assert [pair["diff_class"] for pair in pairs] == ["shifted_address", "shifted_address"]
+    assert pairs[0]["dominant_delta"] == 0x9C
+    assert "shifted address" in cast(str, pairs[0]["diff_label"])
+
+
+def test_corpus_context_pairs_classify_immediate_and_addressing_mode_changes() -> None:
+    pairs = disasm_server.corpus_usage._paired_context_rows(
+        [
+            {"start_offset": 0xACF, "end_offset": 0xAD4, "opcode_or_directive": "subi.l", "operand_text": "#60368,d0", "text": "\tsubi.l #60368,d0\n"},
+            {"start_offset": 0x1A8, "end_offset": 0x1AE, "opcode_or_directive": "lea.l", "operand_text": "$00000060.l,a0", "text": "\tlea.l $00000060.l,a0\n"},
+        ],
+        [
+            {"start_offset": 0xA92, "end_offset": 0xA98, "opcode_or_directive": "subi.l", "operand_text": "#60202,d0", "text": "\tsubi.l #60202,d0\n"},
+            {"start_offset": 0x18E, "end_offset": 0x192, "opcode_or_directive": "lea.l", "operand_text": "$0060.w,a0", "text": "\tlea.l $0060.w,a0\n"},
+        ],
+    )
+
+    assert pairs[0]["diff_class"] == "immediate_semantic"
+    assert pairs[1]["diff_class"] == "addressing_mode"
+
+
+def test_route_corpus_diff_rejects_unrelated_targets(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "read_manifest",
+        lambda: [
+            {"id": "left-target", "platform": "amiga-hunk", "origin": {"display_name": "left"}},
+            {"id": "right-target", "platform": "amiga-hunk", "origin": {"display_name": "right"}},
+        ],
+    )
+    monkeypatch.setattr(disasm_server.corpus_usage, "read_variants", lambda: [])
+
+    with pytest.raises(ValueError, match="not variants"):
+        disasm_server.route_request(
+            "GET",
+            "/api/corpus/diff",
+            {"left_target_id": ["left-target"], "right_target_id": ["right-target"]},
+        )
+
+
+def test_corpus_query_marks_existing_file_and_disk_coverage(monkeypatch: pytest.MonkeyPatch) -> None:
+    manifest_rows = [
+        {
+            "id": "file-target",
+            "platform": "amiga-hunk",
+            "source_id": "file-row",
+            "sha256": "file-sha",
+            "size": 12,
+            "feature_counts": {"hardware:custom": 1},
+            "tags": ["hardware:custom"],
+            "origin": {"in_image_path": "C/Run"},
+        },
+        {
+            "id": "disk-target",
+            "platform": "amiga-disk",
+            "source_id": "disk-row",
+            "sha256": "disk-sha",
+            "size": 901120,
+            "feature_counts": {"format:disk_image": 1},
+            "tags": ["format:disk_image"],
+            "origin": {"member_name": "Demo.adf"},
+        },
+    ]
+    monkeypatch.setattr(disasm_server.corpus_usage, "read_manifest", lambda: manifest_rows)
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "read_xrefs",
+        lambda: [{"id": "xref", "target_id": "file-target", "feature": "hardware:custom", "row_index": 3}],
+    )
+
+    def fake_read_jsonl(path: Path) -> list[dict[str, object]]:
+        if path == disasm_server.corpus_usage.FILE_MANIFEST_PATH:
+            return [{"id": "file-row", "disk_sha256": "disk-sha"}]
+        return []
+
+    monkeypatch.setattr(disasm_server.corpus_usage, "_read_jsonl_cached", fake_read_jsonl)
+
+    rows = disasm_server.corpus_usage.query_targets(
+        feature="hardware:custom",
+        projects=[
+            {"id": "project-file", "origin": {"kind": "user_upload", "platform": "amiga-hunk", "sha256": "file-sha", "size": 12}},
+            {"id": "project-disk", "origin": {"kind": "user_upload", "platform": "amiga-disk", "sha256": "disk-sha", "size": 901120}},
+        ],
+    )
+
+    assert len(rows) == 1
+    coverage = cast(dict[str, object], rows[0]["project_coverage"])
+    assert coverage["target_project_id"] == "project-file"
+    assert coverage["disk_project_id"] == "project-disk"
+    assert coverage["parent_disk_target_id"] == "disk-target"
+    assert rows[0]["source_context"] == {
+        "target_name": "C/Run",
+        "disk_name": "Demo.adf",
+        "disk_target_id": "disk-target",
+    }
+
+
+def test_corpus_import_disk_mode_for_file_imports_parent_disk(monkeypatch: pytest.MonkeyPatch) -> None:
+    file_target = {
+        "id": "file-target",
+        "platform": "amiga-hunk",
+        "source_id": "file-row",
+        "origin": {"in_image_path": "C/Run"},
+    }
+    disk_target = {
+        "id": "disk-target",
+        "platform": "amiga-disk",
+        "source_id": "disk-row",
+        "source_manifest": "platform_disk_manifest",
+        "sha256": "disk-sha",
+        "size": 901120,
+        "origin": {"member_name": "Demo.adf", "source_relpath": "resources/Demo.zip"},
+    }
+    monkeypatch.setattr(disasm_server.corpus_usage, "read_manifest", lambda: [file_target, disk_target])
+
+    def fake_read_jsonl(path: Path) -> list[dict[str, object]]:
+        if path == disasm_server.corpus_usage.FILE_MANIFEST_PATH:
+            return [{"id": "file-row", "disk_sha256": "disk-sha"}]
+        if path == disasm_server.corpus_usage.DISK_MANIFEST_PATH:
+            return [{"id": "disk-row", "origin": {"member_name": "Demo.adf"}}]
+        return []
+
+    monkeypatch.setattr(disasm_server.corpus_usage, "_read_jsonl_cached", fake_read_jsonl)
+    monkeypatch.setattr(disasm_server.corpus_usage, "load_disk_image_bytes", lambda origin: b"disk-bytes")
+
+    body = disasm_server.corpus_usage.corpus_import_media_body("file-target", mode="disk")
+
+    assert body["filename"] == "Demo.adf"
+    assert body["media_base64"] == "ZGlzay1ieXRlcw=="
+    origin = cast(dict[str, object], body["project_origin"])
+    assert origin["kind"] == "corpus_disk"
+    assert origin["corpus_target_id"] == "disk-target"
+    assert origin["requested_corpus_target_id"] == "file-target"
+
+
 def test_route_corpus_import_uses_project_create_job(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server.corpus_usage,
         "corpus_import_media_body",
-        lambda target_id: {"filename": f"{target_id}.hunk", "media_base64": "ZGVtbw=="},
+        lambda target_id, mode="target": {"filename": f"{target_id}-{mode}.hunk", "media_base64": "ZGVtbw=="},
     )
     monkeypatch.setattr(
         disasm_server,
@@ -657,13 +1012,13 @@ def test_route_corpus_import_uses_project_create_job(monkeypatch: pytest.MonkeyP
         "POST",
         "/api/corpus/import",
         {},
-        {"target_id": "demo"},
+        {"target_id": "demo", "mode": "disk"},
     )
     data = cast(dict[str, object], payload["data"])
 
     assert payload["ok"] is True
     assert data["job_id"] == "job-corpus"
-    assert data["filename"] == "demo.hunk"
+    assert data["filename"] == "demo-disk.hunk"
 
 
 def test_route_corpus_import_failure_returns_failed_project_job(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -671,7 +1026,7 @@ def test_route_corpus_import_failure_returns_failed_project_job(monkeypatch: pyt
     monkeypatch.setattr(
         disasm_server.corpus_usage,
         "corpus_import_media_body",
-        lambda target_id: (_ for _ in ()).throw(ValueError("cannot reconstruct")),
+        lambda target_id, mode="target": (_ for _ in ()).throw(ValueError("cannot reconstruct")),
     )
 
     payload = disasm_server.route_request(
@@ -722,14 +1077,26 @@ def test_create_project_from_media_creates_executable_project(
 ) -> None:
     target_dir = tmp_path / "targets" / "amiga_hunk_bloodwych"
 
-    def fake_create_project(project_id: str, project_root: Path) -> ProjectRecord:
+    def fake_create_project(
+        project_id: str,
+        project_root: Path,
+        *,
+        origin: dict[str, object] | None = None,
+    ) -> ProjectRecord:
         assert project_root == tmp_path
+        assert origin is not None
+        assert origin["kind"] == "user_upload"
+        assert origin["filename"] == "Bloodwych"
+        assert origin["platform"] == "amiga-hunk"
+        assert origin["size"] == 4
+        assert isinstance(origin["sha256"], str)
         target_dir.mkdir(parents=True, exist_ok=True)
         (target_dir / "entities.jsonl").write_text("")
         (target_dir / ".project.json").write_text(json.dumps({
-            "schema_version": 1,
+            "schema_version": 2,
             "created_at": "2026-03-25T00:00:00+00:00",
             "updated_at": "2026-03-25T00:00:00+00:00",
+            "origin": origin,
         }))
         return ProjectRecord(
             id=project_id,
@@ -806,7 +1173,7 @@ def test_create_project_from_media_creates_disk_project(
     monkeypatch.setattr(
         disasm_server,
         "create_disk_project",
-        lambda media_path, *, disk_id, project_root, progress_fn=None: type("Manifest", (), {"disk_id": disk_id})(),
+        lambda media_path, *, disk_id, project_root, progress_fn=None, origin=None: type("Manifest", (), {"disk_id": disk_id})(),
     )
     monkeypatch.setattr(
         disasm_server,

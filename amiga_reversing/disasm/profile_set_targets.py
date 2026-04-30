@@ -17,7 +17,7 @@ from amiga_reversing.disasm.project_ids import (
     ensure_safe_project_id,
     normalize_filename_stem,
 )
-from amiga_reversing.disasm.project_paths import PROJECT_ROOT, PROJECT_TARGET_INDEX_FILE_NAME
+from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.projects import create_project_at_path
 from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
 
@@ -113,7 +113,6 @@ def build_profile_set_project(
         )
     )
     selected_targets = select_profile_targets(target_names)
-    _write_target_resolution_index(project_root, selected_targets)
     result = ProfileSetProject(
         project_root=project_root,
         target_names=target_names,
@@ -414,38 +413,6 @@ def _target_source_kind(project_root: Path, target_name: str) -> str | None:
     payload = cast(dict[str, object], json.loads(source_path.read_text(encoding="utf-8")))
     kind = payload.get("kind")
     return kind if isinstance(kind, str) else None
-
-
-def _write_target_resolution_index(project_root: Path, target_names: Sequence[str]) -> None:
-    targets_dir = project_root / "targets"
-    pending = set(target_names)
-    index: dict[str, str] = {}
-    for target_name in target_names:
-        direct_target_dir = targets_dir / target_name
-        if direct_target_dir.exists():
-            index[target_name] = direct_target_dir.relative_to(project_root).as_posix()
-            pending.discard(target_name)
-    if pending:
-        for manifest_path in sorted(targets_dir.glob("*/manifest.json")):
-            manifest = DiskManifest.load(manifest_path)
-            if manifest.bootblock_target_name in pending:
-                index[manifest.bootblock_target_name] = manifest.bootblock_target_path
-                pending.discard(manifest.bootblock_target_name)
-            for imported_target in manifest.imported_targets:
-                if imported_target.target_name not in pending:
-                    continue
-                index[imported_target.target_name] = imported_target.target_path
-                pending.discard(imported_target.target_name)
-            if not pending:
-                break
-    if not index:
-        return
-    index_path = targets_dir / PROJECT_TARGET_INDEX_FILE_NAME
-    index_path.write_text(
-        json.dumps({"schema_version": 1, "targets": index}, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-
 
 def _integration_target_name(prefix: str, label: str) -> str:
     stem = normalize_filename_stem(Path(label).stem)[:36]

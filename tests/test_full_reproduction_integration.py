@@ -24,7 +24,7 @@ from amiga_reversing.disasm.project_ids import (
     ensure_safe_project_id,
     normalize_filename_stem,
 )
-from amiga_reversing.disasm.project_paths import PROJECT_ROOT, PROJECT_TARGET_INDEX_FILE_NAME
+from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.projects import create_project_at_path
 from amiga_reversing.disasm.reproduction_sweep import (
     crash_record,
@@ -156,10 +156,6 @@ def test_all_importable_targets_reproduce(tmp_path: Path) -> None:
         if limit is not None:
             target_names = target_names[:limit]
     setup_timing["profile_select_seconds"] = round(time.perf_counter() - phase_started_at, 4)
-
-    phase_started_at = time.perf_counter()
-    _write_target_resolution_index(project_root, target_names)
-    setup_timing["target_index_seconds"] = round(time.perf_counter() - phase_started_at, 4)
 
     assert target_names or import_failures, "No reproduction targets discovered."
 
@@ -361,38 +357,6 @@ def _copy_existing_binary_targets(project_root: Path, *, limit: int | None) -> l
                 shutil.copy2(metadata_path, target_dir / metadata_name)
         target_names.append(target_name)
     return target_names
-
-
-def _write_target_resolution_index(project_root: Path, target_names: list[str]) -> None:
-    targets_dir = project_root / "targets"
-    pending = set(target_names)
-    index: dict[str, str] = {}
-    for target_name in target_names:
-        direct_target_dir = targets_dir / target_name
-        if direct_target_dir.exists():
-            index[target_name] = direct_target_dir.relative_to(project_root).as_posix()
-            pending.discard(target_name)
-    if pending:
-        for manifest_path in sorted(targets_dir.glob("*/manifest.json")):
-            manifest = DiskManifest.load(manifest_path)
-            if manifest.bootblock_target_name in pending:
-                index[manifest.bootblock_target_name] = manifest.bootblock_target_path
-                pending.discard(manifest.bootblock_target_name)
-            for imported_target in manifest.imported_targets:
-                if imported_target.target_name not in pending:
-                    continue
-                index[imported_target.target_name] = imported_target.target_path
-                pending.discard(imported_target.target_name)
-            if not pending:
-                break
-    if not index:
-        return
-    index_path = targets_dir / PROJECT_TARGET_INDEX_FILE_NAME
-    index_path.write_text(
-        json.dumps({"schema_version": 1, "targets": index}, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-
 
 def _absolute_source_payload(payload: dict[str, object]) -> dict[str, object]:
     result = dict(payload)

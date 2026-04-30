@@ -6,18 +6,41 @@ const state = {
   homeView: "projects",
   corpus: {
     features: null,
+    featuresLoading: false,
+    featuresError: null,
     feature: "",
     group: "",
     platform: "",
     q: "",
     showTargetFacts: false,
     results: [],
+    resultOffset: 0,
+    resultLimit: 40,
+    resultsHasMore: false,
+    resultsLoading: false,
+    resultsError: null,
+    resultsLoaded: false,
+    resultsQueryKey: "",
+    resultRequestToken: 0,
+    targetRequestToken: 0,
     selectedTargetId: null,
     xrefs: [],
+    xrefOffset: 0,
+    xrefLimit: 120,
+    xrefsHasMore: false,
     selectedXrefId: null,
     snippet: null,
     snippetLoading: false,
+    snippetError: null,
+    variants: null,
+    variantsLoading: false,
+    variantsError: null,
+    variantDiff: null,
+    variantDiffLoading: false,
+    variantDiffError: null,
+    importMenuTargetId: null,
   },
+  pendingCorpusFocus: null,
   typeCatalog: null,
   listingRows: [],
   virtualListing: {
@@ -114,16 +137,24 @@ const CORPUS_GROUPS = [
   {id: "hardware", label: "Hardware"},
   {id: "devices", label: "Devices"},
   {id: "copper", label: "Copper"},
+  {id: "display", label: "Display"},
   {id: "runtime", label: "Runtime"},
   {id: "app_slots", label: "App slots"},
+  {id: "symbols", label: "Symbols"},
+  {id: "data", label: "Data"},
+  {id: "diagnostics", label: "Diagnostics"},
 ];
 const CORPUS_GROUP_PREFIXES = {
   os: ["os_call", "os:"],
   hardware: ["hardware:", "hardware_register:", "value_domain:amiga.custom", "value_domain:amiga.cia"],
   devices: ["device:", "device_call"],
   copper: ["data:copper_list", "hardware:custom/copper", "value_domain:amiga.custom.copper"],
+  display: ["display:", "hardware:custom/display", "value_domain:amiga.custom.display_config"],
   runtime: ["runtime:"],
   app_slots: ["app_slot:"],
+  symbols: ["label:", "xref:label", "xref:segment"],
+  data: ["data:", "xref:data"],
+  diagnostics: ["diagnostic:"],
 };
 
 const JOB_PHASE_LABELS = {
@@ -234,6 +265,10 @@ function formatProjectDetails(projectData) {
     if (projectData.project.source_path) {
       details.push(projectData.project.source_path);
     }
+    const origin = formatProjectOrigin(projectData.project.origin);
+    if (origin) {
+      details.push(origin);
+    }
     if (projectData.project.target_count !== undefined) {
       details.push(`${projectData.project.target_count} targets`);
     }
@@ -257,6 +292,10 @@ function formatProjectDetails(projectData) {
   if (projectData.project.binary_path) {
     details.push(projectData.project.binary_path);
   }
+  const origin = formatProjectOrigin(projectData.project.origin);
+  if (origin) {
+    details.push(origin);
+  }
   if (!projectData.project.output_path) {
     details.push("No disassembly output");
   }
@@ -264,6 +303,23 @@ function formatProjectDetails(projectData) {
     details.push("No executable loaded");
   }
   return details.join(" | ");
+}
+
+function formatProjectOrigin(origin) {
+  if (!origin || !origin.kind) {
+    return "";
+  }
+  if (origin.kind === "corpus_file" || origin.kind === "corpus_disk") {
+    const label = origin.in_image_path || origin.member_name || origin.display_name || origin.corpus_target_id;
+    return label ? `corpus=${label}` : "corpus";
+  }
+  if (origin.kind === "user_upload") {
+    return origin.filename ? `upload=${origin.filename}` : "upload";
+  }
+  if (origin.kind === "disk_child") {
+    return origin.entry_path ? `disk-entry=${origin.entry_path}` : "disk child";
+  }
+  return String(origin.kind).replaceAll("_", " ");
 }
 
 function buildProjectBadges(project, projectData = null) {
@@ -300,6 +356,12 @@ function buildProjectBadges(project, projectData = null) {
         ].filter(Boolean).join("\n"),
       });
     }
+  }
+  if (project.origin && String(project.origin.kind || "").startsWith("corpus_")) {
+    badges.push({
+      label: "corpus",
+      title: project.origin.display_name || project.origin.in_image_path || project.origin.corpus_target_id || "Corpus import",
+    });
   }
   return badges;
 }
@@ -1389,10 +1451,8 @@ async function renderHome() {
 
 async function renderCorpusHome() {
   const app = document.getElementById("app");
-  if (!state.corpus.features) {
-    state.corpus.features = await fetchJson("/api/corpus/features");
-  }
-  state.corpus.results = await fetchJson(corpusQueryUrl());
+  ensureCorpusFeaturesLoading();
+  ensureCorpusResultsLoading();
   app.innerHTML = `
     <section class="page page-home page-corpus">
       <div class="projects-header">
@@ -1402,22 +1462,13 @@ async function renderCorpusHome() {
         </div>
       </div>
       <div class="corpus-controls">
-        <label>
+        <label class="corpus-control-feature">
           Feature
-          <select id="corpus-feature">
-            <option value="">All features</option>
-            ${corpusVisibleFeatures().map((item) => {
-              const feature = item.feature || "";
-              const selected = feature === state.corpus.feature ? " selected" : "";
-              const sourceCount = Number(item.source_example_count || 0);
-              const suffix = sourceCount > 0
-                ? `${item.target_count || 0} targets, ${sourceCount} source`
-                : `${item.target_count || 0} targets`;
-              return `<option value="${escapeHtml(feature)}"${selected}>${escapeHtml(feature)} (${escapeHtml(suffix)})</option>`;
-            }).join("")}
+          <select id="corpus-feature"${state.corpus.featuresLoading ? " disabled" : ""}>
+            ${renderCorpusFeatureOptions()}
           </select>
         </label>
-        <label>
+        <label class="corpus-control-mode">
           Mode
           <select id="corpus-group">
             ${CORPUS_GROUPS.map((item) => {
@@ -1426,7 +1477,7 @@ async function renderCorpusHome() {
             }).join("")}
           </select>
         </label>
-        <label>
+        <label class="corpus-control-platform">
           Platform
           <select id="corpus-platform">
             ${["", "amiga-hunk", "amiga-disk", "atari-st"].map((platform) => {
@@ -1436,7 +1487,7 @@ async function renderCorpusHome() {
             }).join("")}
           </select>
         </label>
-        <label>
+        <label class="corpus-control-search">
           Search
           <input id="corpus-search" type="search" value="${escapeHtml(state.corpus.q)}">
         </label>
@@ -1462,10 +1513,70 @@ async function renderCorpusHome() {
           ${renderCorpusDetailHtml()}
         </div>
       </div>
-      ${renderCorpusSnippetOverlayHtml(state.corpus.snippet)}
+      ${renderCorpusSnippetOverlayHtml(state.corpus.snippet, state.corpus.snippetLoading, state.corpus.snippetError)}
+      ${renderCorpusVariantDiffOverlayHtml(state.corpus.variantDiff, state.corpus.variantDiffLoading, state.corpus.variantDiffError)}
     </section>
   `;
   bindCorpusHome();
+}
+
+function ensureCorpusFeaturesLoading() {
+  if (state.corpus.features || state.corpus.featuresLoading) {
+    return;
+  }
+  state.corpus.featuresLoading = true;
+  state.corpus.featuresError = null;
+  void fetchJson("/api/corpus/features")
+    .then((features) => {
+      state.corpus.features = Array.isArray(features) ? features : [];
+    })
+    .catch((err) => {
+      state.corpus.features = [];
+      state.corpus.featuresError = String(err.message || err);
+    })
+    .finally(() => {
+      state.corpus.featuresLoading = false;
+      if (state.homeView === "corpus") {
+        void renderHome();
+      }
+    });
+}
+
+function ensureCorpusResultsLoading() {
+  const queryKey = corpusQueryUrl();
+  if (state.corpus.resultsQueryKey === queryKey && (state.corpus.resultsLoading || state.corpus.resultsLoaded || state.corpus.resultsError)) {
+    return;
+  }
+  state.corpus.resultsQueryKey = queryKey;
+  state.corpus.results = [];
+  state.corpus.resultsHasMore = false;
+  state.corpus.resultsLoading = true;
+  state.corpus.resultsError = null;
+  state.corpus.resultsLoaded = false;
+  const requestToken = state.corpus.resultRequestToken + 1;
+  state.corpus.resultRequestToken = requestToken;
+  void loadCorpusResults(queryKey, requestToken);
+}
+
+function renderCorpusFeatureOptions() {
+  if (state.corpus.featuresLoading) {
+    return '<option value="">Loading features</option>';
+  }
+  if (state.corpus.featuresError) {
+    return `<option value="">${escapeHtml(state.corpus.featuresError)}</option>`;
+  }
+  return `
+    <option value="">All features</option>
+    ${corpusVisibleFeatures().map((item) => {
+      const feature = item.feature || "";
+      const selected = feature === state.corpus.feature ? " selected" : "";
+      const sourceCount = Number(item.source_example_count || 0);
+      const suffix = sourceCount > 0
+        ? `${item.target_count || 0} targets, ${sourceCount} source`
+        : `${item.target_count || 0} targets`;
+      return `<option value="${escapeHtml(feature)}"${selected}>${escapeHtml(corpusFeatureLabel(feature))} (${escapeHtml(suffix)})</option>`;
+    }).join("")}
+  `;
 }
 
 function corpusVisibleFeatures() {
@@ -1487,6 +1598,44 @@ function corpusFeatureMatchesGroup(feature, group) {
   return prefixes.some((prefix) => feature.startsWith(prefix));
 }
 
+function corpusFeatureLabel(feature) {
+  const text = String(feature || "");
+  if (text === "os_call:any") return "All OS calls";
+  if (text.startsWith("os_call_library:")) return `Library calls: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("os:")) return text.split(":", 2)[1].replaceAll("/", " / ");
+  if (text.startsWith("device:")) return `Device: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("device_call:")) return `Device call: ${text.split(":", 2)[1].replaceAll("/", " / ")}`;
+  if (text.startsWith("device_call_function:")) return `Device call: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("os_library:")) return `Library: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("hardware_register:")) return `Register: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("hardware:")) return text.split(":", 2)[1].replaceAll("/", " / ");
+  if (text.startsWith("copper_register:")) return `Copper register: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("display:bitplanes:")) return `Display: ${text.split(":").pop()} bitplanes`;
+  if (text.startsWith("display:")) return `Display: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
+  if (text.startsWith("data:")) return text.split(":", 2)[1].replaceAll("_", " ");
+  if (text.startsWith("app_slot:")) return `App slot: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("runtime:")) return text.split(":", 2)[1].replaceAll("_", " ");
+  if (text.startsWith("label:")) return `Labels: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("xref:")) return text.split(":", 2)[1].replaceAll("_", " ");
+  if (text.startsWith("diagnostic:")) return `Diagnostic: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:")) return `Internal: ${text.split(":", 2)[1]}`;
+  return text;
+}
+
+function corpusVisibleTags(tags) {
+  return tags.filter((tag) => {
+    const text = String(tag);
+    return state.corpus.showTargetFacts || (
+      !text.startsWith("analysis:")
+      && !text.startsWith("analysis_generation:")
+      && !text.startsWith("platform:")
+      && !text.startsWith("status:")
+      && !text.startsWith("file_platform:")
+      && !text.startsWith("inspect_platform:")
+    );
+  });
+}
+
 function corpusQueryUrl() {
   const params = new URLSearchParams();
   if (state.corpus.feature) {
@@ -1504,35 +1653,139 @@ function corpusQueryUrl() {
   if (!state.corpus.showTargetFacts) {
     params.set("source_only", "1");
   }
+  params.set("offset", String(state.corpus.resultOffset || 0));
+  params.set("limit", String((state.corpus.resultLimit || 40) + 1));
   const suffix = params.toString();
   return `/api/corpus/query${suffix ? `?${suffix}` : ""}`;
 }
 
-function renderCorpusResultsHtml(results) {
-  const rows = (results || []).slice(0, 80);
-  if (!rows.length) {
-    return '<div class="empty">No corpus targets.</div>';
+async function loadCorpusResults(queryUrl, requestToken) {
+  const limit = state.corpus.resultLimit || 40;
+  try {
+    const rows = await fetchJson(queryUrl);
+    if (state.corpus.resultRequestToken !== requestToken || state.corpus.resultsQueryKey !== queryUrl) {
+      return;
+    }
+    state.corpus.resultsHasMore = rows.length > limit;
+    state.corpus.results = rows.slice(0, limit);
+    state.corpus.resultsLoaded = true;
+  } catch (err) {
+    if (state.corpus.resultRequestToken !== requestToken || state.corpus.resultsQueryKey !== queryUrl) {
+      return;
+    }
+    state.corpus.results = [];
+    state.corpus.resultsHasMore = false;
+    state.corpus.resultsError = String(err.message || err);
+    state.corpus.resultsLoaded = true;
+  } finally {
+    if (state.corpus.resultRequestToken === requestToken && state.corpus.resultsQueryKey === queryUrl) {
+      state.corpus.resultsLoading = false;
+    }
+    if (state.homeView === "corpus") {
+      void renderHome();
+    }
   }
-  return rows.map((target) => {
+}
+
+function renderCorpusResultsHtml(results) {
+  if (state.corpus.resultsLoading) {
+    return '<div class="empty">Loading corpus targets.</div>';
+  }
+  if (state.corpus.resultsError) {
+    return `<div class="error">${escapeHtml(state.corpus.resultsError)}</div>`;
+  }
+  const rows = results || [];
+  if (!rows.length) {
+    return '<div class="empty">No corpus targets match these filters.</div>';
+  }
+  const resultHtml = rows.map((target) => {
     const targetId = target.id || "";
     const origin = target.origin || {};
-    const title = origin.in_image_path || origin.member_name || origin.display_name || targetId;
+    const sourceContext = target.source_context || {};
+    const title = sourceContext.target_name || origin.in_image_path || origin.member_name || origin.display_name || targetId;
+    const diskName = sourceContext.disk_name || "";
+    const diskTargetId = sourceContext.disk_target_id || "";
     const count = target.count === undefined || target.count === null ? "" : `${target.count} uses`;
     const sourceCount = Number(target.source_example_count || 0);
     const sourceSummary = sourceCount > 0 ? ` | ${sourceCount} source examples` : " | 0 source examples";
+    const variantCount = Number(target.variant_count || 0);
     const active = targetId === state.corpus.selectedTargetId ? " active" : "";
-    const tags = (target.tags || []).slice(0, 6).map((tag) => `<span class="project-badge">${escapeHtml(tag)}</span>`).join("");
+    const tags = corpusVisibleTags(target.tags || []).slice(0, 6).map((tag) => `<span class="project-badge">${escapeHtml(corpusFeatureLabel(tag))}</span>`).join("");
     return `
       <div class="corpus-card${active}">
         <button type="button" class="corpus-card-main" data-corpus-target="${escapeHtml(targetId)}">
           <span class="corpus-card-title">${escapeHtml(title)}</span>
           <span class="corpus-card-meta">${escapeHtml(target.platform || "")}${count ? ` | ${escapeHtml(count)}` : ""}${escapeHtml(sourceSummary)}</span>
+          ${renderCorpusCoverageBadges(target)}
+          ${variantCount > 1 ? `<span class="corpus-coverage-list"><span class="project-badge">${escapeHtml(`${variantCount} variants`)}</span></span>` : ""}
           <span class="corpus-tags">${tags}</span>
+          ${diskName && diskName !== title ? renderCorpusDiskContext(diskName, diskTargetId) : ""}
         </button>
-        <button type="button" class="corpus-add-button" data-corpus-import="${escapeHtml(targetId)}" title="Promote to be a real project" aria-label="Promote to be a real project">&#128278;</button>
+        ${renderCorpusImportControl(target)}
       </div>
     `;
   }).join("");
+  return `
+    ${resultHtml}
+    <div class="corpus-pager">
+      <button type="button" data-corpus-results-prev="1"${state.corpus.resultOffset <= 0 ? " disabled" : ""}>Previous</button>
+      <span>${escapeHtml(String((state.corpus.resultOffset || 0) + 1))}-${escapeHtml(String((state.corpus.resultOffset || 0) + rows.length))}</span>
+      <button type="button" data-corpus-results-next="1"${state.corpus.resultsHasMore ? "" : " disabled"}>More</button>
+    </div>
+  `;
+}
+
+function renderCorpusCoverageBadges(target) {
+  const coverage = target.project_coverage || {};
+  const badges = [];
+  if (coverage.target_project_id) {
+    badges.push(`<span class="project-badge" title="${escapeHtml(`Covered by ${coverage.target_project_id}`)}">File in projects</span>`);
+  }
+  if (coverage.disk_project_id) {
+    badges.push(`<span class="project-badge" title="${escapeHtml(`Covered by ${coverage.disk_project_id}`)}">Disk in projects</span>`);
+  }
+  return badges.length ? `<span class="corpus-coverage-list">${badges.join("")}</span>` : "";
+}
+
+function renderCorpusDiskContext(diskName, diskTargetId) {
+  if (!diskTargetId) {
+    return `<span class="corpus-card-source">Disk: ${escapeHtml(diskName)}</span>`;
+  }
+  return `
+    <span role="button" tabindex="0" class="corpus-card-source-button" data-corpus-related-target="${escapeHtml(diskTargetId)}">
+      Disk: ${escapeHtml(diskName)}
+    </span>
+  `;
+}
+
+function renderCorpusImportControl(target) {
+  const targetId = target.id || "";
+  const coverage = target.project_coverage || {};
+  const modes = Array.isArray(coverage.import_modes) ? coverage.import_modes : [];
+  if (!modes.length) {
+    return "";
+  }
+  const availableModes = modes.filter((mode) => mode.available);
+  if (!availableModes.length) {
+    return '<span class="corpus-coverage-badge" title="Already covered by a project">In Projects</span>';
+  }
+  const menuOpen = state.corpus.importMenuTargetId === targetId;
+  return `
+    <button type="button" class="corpus-add-button" data-corpus-import-menu="${escapeHtml(targetId)}" title="Promote to be a real project" aria-label="Promote to be a real project">&#128278;</button>
+    ${menuOpen ? `
+      <div class="corpus-import-menu">
+        ${modes.map((mode) => `
+          <button
+            type="button"
+            data-corpus-import="${escapeHtml(targetId)}"
+            data-corpus-import-mode="${escapeHtml(mode.mode || "target")}"
+            ${mode.available ? "" : " disabled"}
+            title="${escapeHtml(mode.covered_project_id ? `Covered by ${mode.covered_project_id}` : mode.label || "")}"
+          >${escapeHtml(mode.label || mode.mode || "Add")}</button>
+        `).join("")}
+      </div>
+    ` : ""}
+  `;
 }
 
 function renderCorpusDetailHtml() {
@@ -1543,6 +1796,7 @@ function renderCorpusDetailHtml() {
   const targetFacts = (state.corpus.xrefs || []).filter((xref) => !Number.isInteger(xref.row_index));
   return `
     <div class="corpus-xrefs">
+      ${renderCorpusVariantsHtml()}
       <div class="corpus-detail-title">Source Examples</div>
       ${renderCorpusSourceXrefsHtml(sourceXrefs)}
       ${state.corpus.showTargetFacts ? `
@@ -1553,19 +1807,54 @@ function renderCorpusDetailHtml() {
   `;
 }
 
+function renderCorpusVariantsHtml() {
+  if (state.corpus.variantsLoading) {
+    return '<div class="corpus-variants"><div class="corpus-detail-title">Variants</div><div class="progress-detail">Loading variants</div></div>';
+  }
+  if (state.corpus.variantsError) {
+    return `<div class="corpus-variants"><div class="corpus-detail-title">Variants</div><div class="error">${escapeHtml(state.corpus.variantsError)}</div></div>`;
+  }
+  const payload = state.corpus.variants || {};
+  const variants = Array.isArray(payload.variants) ? payload.variants : [];
+  if (variants.length <= 1) {
+    return "";
+  }
+  const group = payload.group || {};
+  return `
+    <div class="corpus-variants">
+      <div class="corpus-detail-title">Variants</div>
+      <div class="corpus-card-meta">${escapeHtml(group.title_family || "")}${group.display_path ? ` | ${escapeHtml(group.display_path)}` : ""}</div>
+      <div class="corpus-variant-list">
+        ${variants.map((variant) => {
+          const targetId = variant.target_id || "";
+          const origin = variant.origin || {};
+          const label = origin.display_name || origin.member_name || targetId;
+          const selected = variant.selected ? " selected" : "";
+          return `
+            <button type="button" class="corpus-variant${selected}" data-corpus-variant-compare="${escapeHtml(targetId)}"${variant.selected ? " disabled" : ""}>
+              <span>${escapeHtml(label)}</span>
+              <span class="corpus-card-meta">${escapeHtml(String(variant.size ?? "?"))} bytes | ${escapeHtml(String(variant.sha256 || "").slice(0, 12))}</span>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderCorpusSourceXrefsHtml(xrefs) {
-  const rows = (xrefs || []).slice(0, 160);
+  const rows = xrefs || [];
   if (!rows.length) {
     return '<div class="empty">No source-row examples for this filter.</div>';
   }
-  return rows.map((xref) => {
+  const xrefHtml = rows.map((xref) => {
     const active = xref.id === state.corpus.selectedXrefId ? " active" : "";
     const hasSnippet = Number.isInteger(xref.row_index);
     const location = hasSnippet ? `row ${xref.row_index}` : "target";
     const access = xref.access ? `<span class="navigation-badge">${escapeHtml(APP_SLOT_ACCESS_LABELS[xref.access] || xref.access)}</span>` : "";
     const resolution = xref.resolution ? `<span class="navigation-badge">${escapeHtml(String(xref.resolution).replaceAll("_", " "))}</span>` : "";
     const inner = `
-      <span class="corpus-xref-feature">${escapeHtml(xref.feature || "")}</span>
+      <span class="corpus-xref-feature">${escapeHtml(corpusFeatureLabel(xref.feature || ""))}</span>
       <span class="corpus-xref-text">${escapeHtml(xref.text || xref.symbol || "")}</span>
       <span class="corpus-xref-meta">${escapeHtml(location)}${access}${resolution}</span>
     `;
@@ -1575,6 +1864,14 @@ function renderCorpusSourceXrefsHtml(xrefs) {
       </button>
     `;
   }).join("");
+  return `
+    ${xrefHtml}
+    <div class="corpus-pager">
+      <button type="button" data-corpus-xrefs-prev="1"${state.corpus.xrefOffset <= 0 ? " disabled" : ""}>Previous</button>
+      <span>${escapeHtml(String((state.corpus.xrefOffset || 0) + 1))}-${escapeHtml(String((state.corpus.xrefOffset || 0) + rows.length))}</span>
+      <button type="button" data-corpus-xrefs-next="1"${state.corpus.xrefsHasMore ? "" : " disabled"}>More</button>
+    </div>
+  `;
 }
 
 function renderCorpusFactXrefsHtml(xrefs) {
@@ -1587,7 +1884,7 @@ function renderCorpusFactXrefsHtml(xrefs) {
     const resolution = xref.resolution ? `<span class="navigation-badge">${escapeHtml(String(xref.resolution).replaceAll("_", " "))}</span>` : "";
     return `
       <div class="corpus-xref corpus-xref-static">
-        <span class="corpus-xref-feature">${escapeHtml(xref.feature || "")}</span>
+        <span class="corpus-xref-feature">${escapeHtml(corpusFeatureLabel(xref.feature || ""))}</span>
         <span class="corpus-xref-text">${escapeHtml(xref.text || xref.symbol || "")}</span>
         <span class="corpus-xref-meta">target${access}${resolution}</span>
       </div>
@@ -1618,15 +1915,29 @@ function renderCorpusSnippetHtml(snippet) {
   `;
 }
 
-function renderCorpusSnippetOverlayHtml(snippet) {
-  if (!snippet) {
+function renderCorpusSnippetOverlayHtml(snippet, loading = false, error = null) {
+  if (!snippet && !loading && !error) {
     return "";
   }
-  const xref = snippet.xref || {};
-  const target = snippet.target || {};
+  const selectedXref = (state.corpus.xrefs || []).find((item) => item.id === state.corpus.selectedXrefId) || {};
+  const xref = snippet?.xref || selectedXref;
+  const target = snippet?.target || {};
   const origin = target.origin || {};
   const title = origin.in_image_path || origin.member_name || origin.display_name || target.id || "Corpus example";
   const subtitle = `${xref.feature || ""}${xref.resolution ? ` | ${String(xref.resolution).replaceAll("_", " ")}` : ""}`;
+  let body = "";
+  if (loading) {
+    body = `
+      <div class="corpus-snippet-loading" role="status" aria-live="polite">
+        <div class="progress-bar indeterminate"><div class="progress-fill"></div></div>
+        <div class="progress-detail">Loading source context</div>
+      </div>
+    `;
+  } else if (error) {
+    body = `<div class="error corpus-snippet-error">${escapeHtml(error)}</div>`;
+  } else {
+    body = renderCorpusSnippetHtml(snippet);
+  }
   return `
     <div class="corpus-snippet-overlay" id="corpus-snippet-overlay" role="dialog" aria-modal="true" aria-labelledby="corpus-snippet-title">
       <button type="button" class="corpus-snippet-backdrop" data-corpus-snippet-close="1" aria-label="Close snippet"></button>
@@ -1638,10 +1949,285 @@ function renderCorpusSnippetOverlayHtml(snippet) {
           </div>
           <button type="button" class="corpus-snippet-close" data-corpus-snippet-close="1">Close</button>
         </div>
-        ${renderCorpusSnippetHtml(snippet)}
+        ${body}
       </div>
     </div>
   `;
+}
+
+function renderCorpusVariantDiffOverlayHtml(diff, loading = false, error = null) {
+  if (!diff && !loading && !error) {
+    return "";
+  }
+  const left = diff?.left || {};
+  const right = diff?.right || {};
+  const title = loading ? "Comparing variants" : `${left.display_name || "Left"} <> ${right.display_name || "Right"}`;
+  let body = "";
+  if (loading) {
+    body = `
+      <div class="corpus-snippet-loading" role="status" aria-live="polite">
+        <div class="progress-bar indeterminate"><div class="progress-fill"></div></div>
+        <div class="progress-detail">Loading variant diff</div>
+      </div>
+    `;
+  } else if (error) {
+    body = `<div class="error corpus-snippet-error">${escapeHtml(error)}</div>`;
+  } else {
+    body = renderCorpusByteDiff(diff.byte_diff || {});
+  }
+  return `
+    <div class="corpus-snippet-overlay" id="corpus-variant-diff-overlay" role="dialog" aria-modal="true" aria-labelledby="corpus-variant-diff-title">
+      <button type="button" class="corpus-snippet-backdrop" data-corpus-diff-close="1" aria-label="Close diff"></button>
+      <div class="corpus-snippet-panel">
+        <div class="corpus-snippet-header">
+          <div>
+            <div class="corpus-detail-title" id="corpus-variant-diff-title">${escapeHtml(title)}</div>
+            <div class="corpus-snippet-subtitle">${escapeHtml([left.disk_name, right.disk_name].filter(Boolean).join(" <> "))}</div>
+          </div>
+          <button type="button" class="corpus-snippet-close" data-corpus-diff-close="1">Close</button>
+        </div>
+        ${body}
+      </div>
+    </div>
+  `;
+}
+
+function renderCorpusByteDiff(byteDiff) {
+  const regions = byteDiff.regions || [];
+  return `
+    <div class="corpus-diff-summary">
+      First diff: ${escapeHtml(formatByteOffset(byteDiff.first_diff))}
+      | regions: ${escapeHtml(String(byteDiff.region_count || 0))}
+      | sizes: ${escapeHtml(String(byteDiff.left_size || 0))} / ${escapeHtml(String(byteDiff.right_size || 0))}
+      | space: ${escapeHtml(byteDiff.left_space || "file")} / ${escapeHtml(byteDiff.right_space || "file")}
+      ${byteDiff.truncated_region_count ? ` | hidden: ${escapeHtml(String(byteDiff.truncated_region_count))}` : ""}
+    </div>
+    <div class="corpus-diff-legend">
+      <span class="corpus-diff-chip corpus-diff-chip-shifted_address">shifted address</span>
+      <span class="corpus-diff-chip corpus-diff-chip-address_only">address-only</span>
+      <span class="corpus-diff-chip corpus-diff-chip-addressing_mode">address mode</span>
+      <span class="corpus-diff-chip corpus-diff-chip-immediate_semantic">immediate value</span>
+      <span class="corpus-diff-chip corpus-diff-chip-semantic">semantic</span>
+    </div>
+    <div class="corpus-byte-diff-list">
+      ${regions.map((region) => renderCorpusByteDiffRegion(region)).join("") || '<div class="empty">No byte differences.</div>'}
+      ${(byteDiff.trailing_skipped_left || byteDiff.trailing_skipped_right) ? `
+        <div class="corpus-byte-skip">Skipped tail: left +${escapeHtml(String(byteDiff.trailing_skipped_left || 0))} bytes, right +${escapeHtml(String(byteDiff.trailing_skipped_right || 0))} bytes</div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function renderCorpusByteDiffRegion(region) {
+  const leftLength = Number(region.left_length ?? region.length ?? 0);
+  const rightLength = Number(region.right_length ?? region.length ?? 0);
+  const skippedLeft = Number(region.skipped_left || 0);
+  const skippedRight = Number(region.skipped_right || 0);
+  return `
+    ${(skippedLeft || skippedRight) ? `<div class="corpus-byte-skip">Skipped equal span: left +${escapeHtml(String(skippedLeft))} bytes, right +${escapeHtml(String(skippedRight))} bytes</div>` : ""}
+    <div class="corpus-byte-region">
+      <div class="corpus-byte-region-head">
+        <span>${escapeHtml(region.kind || "change")}</span>
+        <span>left ${escapeHtml(formatByteOffset(region.left_start ?? region.offset))} +${escapeHtml(String(leftLength))}</span>
+        <span>right ${escapeHtml(formatByteOffset(region.right_start ?? region.offset))} +${escapeHtml(String(rightLength))}</span>
+        ${renderCorpusDiffSummary(region.diff_summary || {})}
+      </div>
+      <div class="corpus-byte-hex-pair">
+        <pre>${renderCorpusHexBytes(region.left_hex || "", region.left_start ?? region.offset, "left")}${region.left_hex_truncated ? ` <span class="corpus-byte-truncated">... +${escapeHtml(String(region.left_hex_truncated))} bytes</span>` : ""}</pre>
+        <pre>${renderCorpusHexBytes(region.right_hex || "", region.right_start ?? region.offset, "right")}${region.right_hex_truncated ? ` <span class="corpus-byte-truncated">... +${escapeHtml(String(region.right_hex_truncated))} bytes</span>` : ""}</pre>
+      </div>
+      ${renderCorpusDiffContextPairs(region.context_pairs || [])}
+    </div>
+  `;
+}
+
+function renderCorpusDiffSummary(summary) {
+  const classes = summary.classes || {};
+  const entries = Object.entries(classes).filter(([, count]) => Number(count) > 0);
+  if (!entries.length) {
+    return "";
+  }
+  return `
+    <span class="corpus-diff-class-summary">
+      ${entries.map(([name, count]) => `<span class="corpus-diff-chip corpus-diff-chip-${escapeHtml(cssClassToken(name))}">${escapeHtml(diffClassLabel(name))}: ${escapeHtml(String(count))}</span>`).join("")}
+    </span>
+  `;
+}
+
+function renderCorpusHexBytes(hex, baseOffset, side) {
+  const base = Number(baseOffset);
+  if (!Number.isFinite(base)) {
+    return escapeHtml(hex);
+  }
+  const bytes = [];
+  for (let index = 0; index + 1 < hex.length; index += 2) {
+    const offset = base + Math.floor(index / 2);
+    const byteText = hex.slice(index, index + 2);
+    bytes.push(`<span class="corpus-byte-byte" data-byte-side="${escapeHtml(side)}" data-byte-offset="${escapeHtml(String(offset))}">${escapeHtml(byteText)}</span>`);
+  }
+  return bytes.join("");
+}
+
+function renderCorpusDiffContextPairs(pairs) {
+  if (!pairs.length) {
+    return "";
+  }
+  return `
+    <div class="corpus-byte-context-pairs">
+      <div class="corpus-byte-context-head">
+        <span>Left context</span>
+        <span>Right context</span>
+      </div>
+      ${pairs.map((pair) => {
+        const left = pair.left || {};
+        const right = pair.right || {};
+        const sameText = pair.same_text === true;
+        const sameOffset = pair.same_offset === true;
+        const diffClass = pair.diff_class || (sameText ? "unchanged" : "semantic");
+        const comparedText = compareInlineSourceText((left.text || "").trim(), (right.text || "").trim(), diffClass);
+        return `
+        <div class="corpus-byte-context-pair corpus-diff-row-${escapeHtml(cssClassToken(diffClass))}${sameText ? "" : " text-diff"}${sameOffset ? "" : " offset-diff"}"
+          data-left-start="${escapeHtml(String(contextRowHighlightStart(left)))}"
+          data-left-end="${escapeHtml(String(contextRowHighlightEnd(left)))}"
+          data-right-start="${escapeHtml(String(contextRowHighlightStart(right)))}"
+          data-right-end="${escapeHtml(String(contextRowHighlightEnd(right)))}">
+          <span class="corpus-byte-context-offset${sameOffset ? "" : " changed"}">${escapeHtml(formatByteOffset(contextRowStart(left)))}</span>
+          <span class="corpus-byte-context-text${sameText ? "" : " changed"}">${comparedText.left}${renderContextDiffBadge(pair)}</span>
+          <span class="corpus-byte-context-offset${sameOffset ? "" : " changed"}">${escapeHtml(formatByteOffset(contextRowStart(right)))}</span>
+          <span class="corpus-byte-context-text${sameText ? "" : " changed"}">${comparedText.right}</span>
+        </div>
+      `; }).join("")}
+    </div>
+  `;
+}
+
+function renderContextDiffBadge(pair) {
+  const diffClass = pair.diff_class || "semantic";
+  if (diffClass === "unchanged") {
+    return "";
+  }
+  const label = pair.diff_label || diffClassLabel(diffClass);
+  return ` <span class="corpus-diff-chip corpus-diff-chip-${escapeHtml(cssClassToken(diffClass))}">${escapeHtml(label)}</span>`;
+}
+
+function compareInlineSourceText(leftText, rightText, diffClass = "semantic") {
+  if (leftText === rightText) {
+    return {left: escapeHtml(leftText), right: escapeHtml(rightText)};
+  }
+  const tokenClass = inlineDiffClass(diffClass);
+  const leftTokens = tokenizeSourceText(leftText);
+  const rightTokens = tokenizeSourceText(rightText);
+  const table = Array.from({length: leftTokens.length + 1}, () => Array(rightTokens.length + 1).fill(0));
+  for (let leftIndex = leftTokens.length - 1; leftIndex >= 0; leftIndex -= 1) {
+    for (let rightIndex = rightTokens.length - 1; rightIndex >= 0; rightIndex -= 1) {
+      table[leftIndex][rightIndex] = leftTokens[leftIndex] === rightTokens[rightIndex]
+        ? table[leftIndex + 1][rightIndex + 1] + 1
+        : Math.max(table[leftIndex + 1][rightIndex], table[leftIndex][rightIndex + 1]);
+    }
+  }
+  const leftParts = [];
+  const rightParts = [];
+  let leftIndex = 0;
+  let rightIndex = 0;
+  while (leftIndex < leftTokens.length || rightIndex < rightTokens.length) {
+    if (leftIndex < leftTokens.length && rightIndex < rightTokens.length && leftTokens[leftIndex] === rightTokens[rightIndex]) {
+      leftParts.push(escapeHtml(leftTokens[leftIndex]));
+      rightParts.push(escapeHtml(rightTokens[rightIndex]));
+      leftIndex += 1;
+      rightIndex += 1;
+      continue;
+    }
+    if (rightIndex >= rightTokens.length || (leftIndex < leftTokens.length && table[leftIndex + 1][rightIndex] >= table[leftIndex][rightIndex + 1])) {
+      leftParts.push(`<span class="${tokenClass}">${escapeHtml(leftTokens[leftIndex])}</span>`);
+      leftIndex += 1;
+    } else {
+      rightParts.push(`<span class="${tokenClass}">${escapeHtml(rightTokens[rightIndex])}</span>`);
+      rightIndex += 1;
+    }
+  }
+  return {left: leftParts.join(""), right: rightParts.join("")};
+}
+
+function inlineDiffClass(diffClass) {
+  return `corpus-inline-diff corpus-inline-diff-${cssClassToken(diffClass)}`;
+}
+
+function cssClassToken(value) {
+  return String(value || "semantic").replace(/[^A-Za-z0-9_-]/g, "_");
+}
+
+function diffClassLabel(value) {
+  const labels = {
+    shifted_address: "shifted address",
+    address_only: "address-only",
+    target_change: "target change",
+    addressing_mode: "address mode",
+    immediate_semantic: "immediate value",
+    semantic: "semantic",
+    missing_row: "missing row",
+  };
+  return labels[value] || String(value || "semantic").replace(/_/g, " ");
+}
+
+function tokenizeSourceText(text) {
+  return String(text || "").match(/\$[0-9A-Fa-f]+|[A-Za-z_][A-Za-z0-9_]*|\d+|\s+|./g) || [];
+}
+
+function contextRowStart(row) {
+  const value = Number(row?.start_offset ?? row?.addr);
+  return Number.isFinite(value) ? value : null;
+}
+
+function contextRowEnd(row) {
+  const explicit = Number(row?.end_offset);
+  if (Number.isFinite(explicit) && explicit > Number(contextRowStart(row))) {
+    return explicit;
+  }
+  const start = contextRowStart(row);
+  if (start === null) {
+    return null;
+  }
+  const byteText = typeof row?.bytes === "string" ? row.bytes : "";
+  return start + Math.max(1, Math.floor(byteText.length / 2));
+}
+
+function contextRowHighlightStart(row) {
+  const value = Number(row?.diff_start_offset ?? row?.start_offset ?? row?.addr);
+  return Number.isFinite(value) ? value : null;
+}
+
+function contextRowHighlightEnd(row) {
+  const explicit = Number(row?.diff_end_offset);
+  if (Number.isFinite(explicit) && explicit > Number(contextRowHighlightStart(row))) {
+    return explicit;
+  }
+  const start = contextRowHighlightStart(row);
+  if (start === null) {
+    return null;
+  }
+  const byteText = typeof row?.bytes === "string" ? row.bytes : "";
+  return start + Math.max(1, Math.floor(byteText.length / 2));
+}
+
+function setCorpusByteHighlight(row, enabled) {
+  const region = row.closest(".corpus-byte-region");
+  if (!region) {
+    return;
+  }
+  [
+    ["left", Number(row.dataset.leftStart), Number(row.dataset.leftEnd)],
+    ["right", Number(row.dataset.rightStart), Number(row.dataset.rightEnd)],
+  ].forEach(([side, start, end]) => {
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+      return;
+    }
+    region.querySelectorAll(`[data-byte-side="${side}"]`).forEach((byteNode) => {
+      const offset = Number(byteNode.dataset.byteOffset);
+      if (Number.isFinite(offset) && offset >= start && offset < end) {
+        byteNode.classList.toggle("highlight", enabled);
+      }
+    });
+  });
 }
 
 function bindCorpusHome() {
@@ -1653,6 +2239,7 @@ function bindCorpusHome() {
   });
   document.getElementById("corpus-search-button")?.addEventListener("click", () => {
     updateCorpusFiltersFromControls();
+    resetCorpusResultPaging();
     void renderHome();
   });
   document.getElementById("corpus-feature")?.addEventListener("change", () => {
@@ -1663,6 +2250,8 @@ function bindCorpusHome() {
     state.corpus.selectedTargetId = null;
     state.corpus.xrefs = [];
     state.corpus.snippet = null;
+    state.corpus.snippetError = null;
+    resetCorpusResultPaging();
     void renderHome();
   });
   document.getElementById("corpus-group")?.addEventListener("change", () => {
@@ -1673,6 +2262,8 @@ function bindCorpusHome() {
     state.corpus.selectedTargetId = null;
     state.corpus.xrefs = [];
     state.corpus.snippet = null;
+    state.corpus.snippetError = null;
+    resetCorpusResultPaging();
     void renderHome();
   });
   document.getElementById("corpus-platform")?.addEventListener("change", () => {
@@ -1680,11 +2271,14 @@ function bindCorpusHome() {
     state.corpus.selectedTargetId = null;
     state.corpus.xrefs = [];
     state.corpus.snippet = null;
+    state.corpus.snippetError = null;
+    resetCorpusResultPaging();
     void renderHome();
   });
   document.getElementById("corpus-show-facts")?.addEventListener("change", () => {
     updateCorpusFiltersFromControls();
     state.corpus.snippet = null;
+    state.corpus.snippetError = null;
     if (state.corpus.selectedTargetId) {
       void selectCorpusTarget(state.corpus.selectedTargetId);
     } else {
@@ -1698,18 +2292,58 @@ function bindCorpusHome() {
       state.corpus.selectedTargetId = null;
       state.corpus.xrefs = [];
       state.corpus.snippet = null;
+      state.corpus.snippetError = null;
+      resetCorpusResultPaging();
       void renderHome();
     });
   });
   document.getElementById("corpus-search")?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       updateCorpusFiltersFromControls();
+      resetCorpusResultPaging();
       void renderHome();
     }
+  });
+  document.querySelector("[data-corpus-results-prev]")?.addEventListener("click", () => {
+    state.corpus.resultOffset = Math.max(0, (state.corpus.resultOffset || 0) - (state.corpus.resultLimit || 40));
+    state.corpus.selectedTargetId = null;
+    state.corpus.xrefs = [];
+    state.corpus.snippet = null;
+    state.corpus.snippetError = null;
+    void renderHome();
+  });
+  document.querySelector("[data-corpus-results-next]")?.addEventListener("click", () => {
+    state.corpus.resultOffset = (state.corpus.resultOffset || 0) + (state.corpus.resultLimit || 40);
+    state.corpus.selectedTargetId = null;
+    state.corpus.xrefs = [];
+    state.corpus.snippet = null;
+    state.corpus.snippetError = null;
+    void renderHome();
+  });
+  document.querySelector("[data-corpus-xrefs-prev]")?.addEventListener("click", () => {
+    state.corpus.xrefOffset = Math.max(0, (state.corpus.xrefOffset || 0) - (state.corpus.xrefLimit || 120));
+    void selectCorpusTarget(state.corpus.selectedTargetId || "");
+  });
+  document.querySelector("[data-corpus-xrefs-next]")?.addEventListener("click", () => {
+    state.corpus.xrefOffset = (state.corpus.xrefOffset || 0) + (state.corpus.xrefLimit || 120);
+    void selectCorpusTarget(state.corpus.selectedTargetId || "");
   });
   document.querySelectorAll("[data-corpus-target]").forEach((button) => {
     button.addEventListener("click", () => {
       void selectCorpusTarget(button.dataset.corpusTarget || "");
+    });
+  });
+  document.querySelectorAll("[data-corpus-related-target]").forEach((button) => {
+    const selectRelatedTarget = (event) => {
+      event.stopPropagation();
+      void selectCorpusTarget(button.dataset.corpusRelatedTarget || "");
+    };
+    button.addEventListener("click", selectRelatedTarget);
+    button.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectRelatedTarget(event);
+      }
     });
   });
   document.querySelectorAll("[data-corpus-xref]").forEach((button) => {
@@ -1717,16 +2351,48 @@ function bindCorpusHome() {
       void selectCorpusXref(button.dataset.corpusXref || "");
     });
   });
+  document.querySelectorAll("[data-corpus-variant-compare]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void selectCorpusVariantDiff(button.dataset.corpusVariantCompare || "");
+    });
+  });
   document.querySelectorAll("[data-corpus-snippet-close]").forEach((button) => {
     button.addEventListener("click", () => {
       void closeCorpusSnippetOverlay();
     });
   });
-  document.querySelectorAll("[data-corpus-import]").forEach((button) => {
+  document.querySelectorAll("[data-corpus-diff-close]").forEach((button) => {
     button.addEventListener("click", () => {
-      void importCorpusTarget(button.dataset.corpusImport || "");
+      void closeCorpusVariantDiffOverlay();
     });
   });
+  document.querySelectorAll(".corpus-byte-context-pair").forEach((row) => {
+    row.addEventListener("mouseenter", () => setCorpusByteHighlight(row, true));
+    row.addEventListener("mouseleave", () => setCorpusByteHighlight(row, false));
+  });
+  document.querySelectorAll("[data-corpus-import]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void importCorpusTarget(button.dataset.corpusImport || "", button.dataset.corpusImportMode || "target");
+    });
+  });
+  document.querySelectorAll("[data-corpus-import-menu]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetId = button.dataset.corpusImportMenu || "";
+      state.corpus.importMenuTargetId = state.corpus.importMenuTargetId === targetId ? null : targetId;
+      void renderHome();
+    });
+  });
+}
+
+function resetCorpusResultPaging() {
+  state.corpus.resultOffset = 0;
+  state.corpus.xrefOffset = 0;
+  state.corpus.xrefsHasMore = false;
+  state.corpus.resultsQueryKey = "";
+  state.corpus.results = [];
+  state.corpus.resultsHasMore = false;
+  state.corpus.resultsError = null;
+  state.corpus.resultsLoaded = false;
 }
 
 function updateCorpusFiltersFromControls() {
@@ -1741,10 +2407,25 @@ async function selectCorpusTarget(targetId) {
   if (!targetId) {
     return;
   }
+  const requestToken = state.corpus.targetRequestToken + 1;
+  state.corpus.targetRequestToken = requestToken;
+  const previousTargetId = state.corpus.selectedTargetId;
   state.corpus.selectedTargetId = targetId;
   state.corpus.selectedXrefId = null;
   state.corpus.snippet = null;
   state.corpus.snippetLoading = false;
+  state.corpus.snippetError = null;
+  state.corpus.variants = null;
+  const selectedTarget = (state.corpus.results || []).find((item) => item.id === targetId) || {};
+  const shouldLoadVariants = Number(selectedTarget.variant_count || 0) > 1;
+  state.corpus.variantsLoading = shouldLoadVariants;
+  state.corpus.variantsError = null;
+  state.corpus.variantDiff = null;
+  state.corpus.variantDiffLoading = false;
+  state.corpus.variantDiffError = null;
+  if (previousTargetId !== targetId) {
+    state.corpus.xrefOffset = 0;
+  }
   const params = new URLSearchParams({target_id: targetId});
   if (state.corpus.feature) {
     params.set("feature", state.corpus.feature);
@@ -1755,7 +2436,37 @@ async function selectCorpusTarget(targetId) {
   if (!state.corpus.showTargetFacts) {
     params.set("source_only", "1");
   }
-  state.corpus.xrefs = await fetchJson(`/api/corpus/xrefs?${params}`);
+  const limit = state.corpus.xrefLimit || 120;
+  params.set("offset", String(state.corpus.xrefOffset || 0));
+  params.set("limit", String(limit + 1));
+  const rows = await fetchJson(`/api/corpus/xrefs?${params}`);
+  if (state.corpus.targetRequestToken !== requestToken || state.corpus.selectedTargetId !== targetId) {
+    return;
+  }
+  state.corpus.xrefsHasMore = rows.length > limit;
+  state.corpus.xrefs = rows.slice(0, limit);
+  if (shouldLoadVariants) {
+    try {
+      const variants = await fetchJson(`/api/corpus/variants?target_id=${encodeURIComponent(targetId)}`);
+      if (state.corpus.targetRequestToken !== requestToken || state.corpus.selectedTargetId !== targetId) {
+        return;
+      }
+      state.corpus.variants = variants;
+    } catch (err) {
+      if (state.corpus.targetRequestToken !== requestToken || state.corpus.selectedTargetId !== targetId) {
+        return;
+      }
+      state.corpus.variants = null;
+      state.corpus.variantsError = String(err.message || err);
+    } finally {
+      if (state.corpus.targetRequestToken === requestToken && state.corpus.selectedTargetId === targetId) {
+        state.corpus.variantsLoading = false;
+      }
+    }
+  }
+  if (state.corpus.targetRequestToken !== requestToken || state.corpus.selectedTargetId !== targetId) {
+    return;
+  }
   await renderHome();
 }
 
@@ -1768,42 +2479,89 @@ async function selectCorpusXref(xrefId) {
     state.corpus.selectedXrefId = null;
     state.corpus.snippet = null;
     state.corpus.snippetLoading = false;
+    state.corpus.snippetError = null;
     await renderHome();
     return;
   }
   state.corpus.selectedXrefId = xrefId;
+  state.corpus.snippet = null;
   state.corpus.snippetLoading = true;
-  state.corpus.snippet = await fetchJson(`/api/corpus/snippet?xref_id=${encodeURIComponent(xrefId)}&before=20&after=20`);
-  state.corpus.snippetLoading = false;
+  state.corpus.snippetError = null;
+  await renderHome();
+  try {
+    state.corpus.snippet = await fetchJson(`/api/corpus/snippet?xref_id=${encodeURIComponent(xrefId)}&before=20&after=20`);
+  } catch (err) {
+    state.corpus.snippet = null;
+    state.corpus.snippetError = String(err.message || err);
+  } finally {
+    state.corpus.snippetLoading = false;
+  }
   await renderHome();
 }
 
 async function closeCorpusSnippetOverlay() {
   state.corpus.snippet = null;
   state.corpus.snippetLoading = false;
+  state.corpus.snippetError = null;
   await renderHome();
 }
 
-async function importCorpusTarget(targetId) {
+async function selectCorpusVariantDiff(rightTargetId) {
+  const leftTargetId = state.corpus.selectedTargetId || "";
+  if (!leftTargetId || !rightTargetId || leftTargetId === rightTargetId) {
+    return;
+  }
+  state.corpus.variantDiff = null;
+  state.corpus.variantDiffLoading = true;
+  state.corpus.variantDiffError = null;
+  await renderHome();
+  try {
+    const params = new URLSearchParams({
+      left_target_id: leftTargetId,
+      right_target_id: rightTargetId,
+    });
+    state.corpus.variantDiff = await fetchJson(`/api/corpus/diff?${params}`);
+  } catch (err) {
+    state.corpus.variantDiff = null;
+    state.corpus.variantDiffError = String(err.message || err);
+  } finally {
+    state.corpus.variantDiffLoading = false;
+  }
+  await renderHome();
+}
+
+async function closeCorpusVariantDiffOverlay() {
+  state.corpus.variantDiff = null;
+  state.corpus.variantDiffLoading = false;
+  state.corpus.variantDiffError = null;
+  await renderHome();
+}
+
+async function importCorpusTarget(targetId, mode = "target") {
   if (!targetId) {
     return;
   }
   const error = document.getElementById("home-error");
   error.textContent = "";
   try {
+    const focus = corpusSelectedFocus();
     const job = await fetchJson("/api/corpus/import", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({target_id: targetId}),
+      body: JSON.stringify({target_id: targetId, mode}),
     });
+    state.corpus.importMenuTargetId = null;
     const jobState = await waitForAsyncJob(
       (jobId) => `/api/projects/create/status?job_id=${encodeURIComponent(jobId)}`,
       job,
       null,
-      (currentJob) => setHomeOverlay(renderProgressOverlay(currentJob, "Adding corpus target")),
+      (currentJob) => setHomeOverlay(renderProgressOverlay(currentJob, mode === "disk" ? "Adding corpus disk" : "Adding corpus target")),
     );
     clearHomeOverlay();
     if (jobState.result_project_id) {
+      if (focus) {
+        state.pendingCorpusFocus = {...focus, projectId: jobState.result_project_id};
+      }
       navigateToProject(jobState.result_project_id);
     }
   } catch (err) {
@@ -1812,11 +2570,32 @@ async function importCorpusTarget(targetId) {
   }
 }
 
+function corpusSelectedFocus() {
+  const xref = (state.corpus.xrefs || []).find((item) => item.id === state.corpus.selectedXrefId);
+  if (!xref || !Number.isInteger(xref.row_index)) {
+    return null;
+  }
+  return {
+    rowIndex: xref.row_index,
+    addr: Number.isFinite(xref.offset) ? xref.offset : null,
+    matchText: xref.text || null,
+    stableKey: xref.stable_key || null,
+  };
+}
+
 function formatRowOffset(addr) {
   if (addr === null || addr === undefined) {
     return "";
   }
   return addr.toString(16).padStart(4, "0");
+}
+
+function formatByteOffset(addr) {
+  const value = Number(addr);
+  if (!Number.isFinite(value)) {
+    return "";
+  }
+  return `$${Math.max(0, value).toString(16).toUpperCase().padStart(6, "0")}`;
 }
 
 function navigationEntryHunkIndex(entry) {
@@ -4326,6 +5105,7 @@ async function renderProject(projectId) {
       total_rows: state.virtualListing.totalRows,
       analysis_generation: state.virtualListing.generation,
     }, true);
+    await focusPendingCorpusExample(projectId);
     if (jobState.visible_generation === "full") {
       void pollReproductionReport(projectId, token);
       setAnalysisStatus("Full analysis ready", "ready", 2000);
@@ -4344,6 +5124,19 @@ async function renderProject(projectId) {
     }
     document.getElementById("project-details").textContent = "Load failed";
     document.getElementById("listing-viewport").innerHTML = renderErrorOverlay(String(error.message || error));
+  }
+}
+
+async function focusPendingCorpusExample(projectId) {
+  const focus = state.pendingCorpusFocus;
+  if (!focus || focus.projectId !== projectId) {
+    return;
+  }
+  state.pendingCorpusFocus = null;
+  if (Number.isFinite(focus.rowIndex)) {
+    await jumpToListingIndex(projectId, focus.rowIndex, focus.addr, focus.matchText, focus.stableKey);
+  } else if (Number.isFinite(focus.addr)) {
+    await jumpToListingAddr(projectId, focus.addr, focus.matchText);
   }
 }
 
@@ -4448,10 +5241,32 @@ document.addEventListener("mousemove", updateListingColumnResize);
 document.addEventListener("mouseup", endListingColumnResize);
 
 document.addEventListener("keydown", (event) => {
-  if (state.homeView === "corpus" && state.corpus.snippet && event.key === "Escape") {
-    event.preventDefault();
-    void closeCorpusSnippetOverlay();
-    return;
+  if (event.key === "Escape") {
+    if (document.getElementById("corpus-variant-diff-overlay")) {
+      event.preventDefault();
+      void closeCorpusVariantDiffOverlay();
+      return;
+    }
+    if (document.getElementById("corpus-snippet-overlay")) {
+      event.preventDefault();
+      void closeCorpusSnippetOverlay();
+      return;
+    }
+    if (state.stats.overlayOpen || document.getElementById("stats-overlay")) {
+      event.preventDefault();
+      closeStatsOverlay();
+      return;
+    }
+    if (state.navigation.overlayOpen || document.getElementById("navigation-overlay")) {
+      event.preventDefault();
+      closeNavigationOverlay();
+      return;
+    }
+    if (state.reproduction.panelOpen) {
+      event.preventDefault();
+      closeReproPanel();
+      return;
+    }
   }
   if (!state.project) {
     return;
@@ -4471,21 +5286,6 @@ document.addEventListener("keydown", (event) => {
   if (event.altKey && !event.shiftKey && !event.ctrlKey && !event.metaKey && event.key === "ArrowRight") {
     event.preventDefault();
     void navigateHistory("forward");
-    return;
-  }
-  if (state.navigation.overlayOpen && event.key === "Escape") {
-    event.preventDefault();
-    closeNavigationOverlay();
-    return;
-  }
-  if (state.stats.overlayOpen && event.key === "Escape") {
-    event.preventDefault();
-    closeStatsOverlay();
-    return;
-  }
-  if (state.reproduction.panelOpen && event.key === "Escape") {
-    event.preventDefault();
-    closeReproPanel();
     return;
   }
   if (isEditableTarget(event.target)) {

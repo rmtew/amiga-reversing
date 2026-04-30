@@ -24,6 +24,7 @@ DEFAULT_FILE_MANIFEST = ROOT / "corpus" / "platform_file_manifest.jsonl"
 DEFAULT_OUTPUT = ROOT / "corpus" / "target_usage_manifest.jsonl"
 DEFAULT_XREF_OUTPUT = ROOT / "corpus" / "target_usage_xrefs.jsonl"
 DEFAULT_SNIPPET_ROWS_OUTPUT = ROOT / "corpus" / "target_usage_snippet_rows.jsonl"
+DEFAULT_VARIANT_OUTPUT = ROOT / "corpus" / "target_variant_index.jsonl"
 MAX_EXAMPLES = 5
 CPU_NAMES = {
     0: "68000",
@@ -37,9 +38,13 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     "os": ("os_call", "os:"),
     "hardware": ("hardware:", "hardware_register:", "value_domain:amiga.custom", "value_domain:amiga.cia"),
     "devices": ("device:", "device_call"),
-    "copper": ("data:copper_list", "hardware:custom/copper", "value_domain:amiga.custom.copper"),
+    "copper": ("data:copper_list", "hardware:custom/copper", "value_domain:amiga.custom.copper", "copper_register:"),
+    "display": ("display:", "hardware:custom/display", "value_domain:amiga.custom.display_config"),
     "runtime": ("runtime:",),
     "app_slots": ("app_slot:",),
+    "symbols": ("label:", "xref:label", "xref:segment"),
+    "data": ("data:", "xref:data"),
+    "diagnostics": ("diagnostic:",),
 }
 
 
@@ -210,6 +215,133 @@ def build_usage_outputs(
         ),
     )
     return rows, xrefs, snippet_rows
+
+
+def build_variant_index(
+    file_manifest_path: Path = DEFAULT_FILE_MANIFEST,
+) -> list[dict[str, object]]:
+    groups: dict[tuple[str, str, str], dict[str, tuple[dict[str, Any], dict[str, Any]]]] = {}
+    for entry in read_jsonl_manifest(file_manifest_path):
+        platform = _string_value(entry.get("platform"))
+        source_id = _string_value(entry.get("id"))
+        if not platform or not source_id:
+            continue
+        for origin in _variant_origins(entry):
+            in_image_path = _string_value(origin.get("in_image_path"))
+            if not in_image_path:
+                continue
+            key = (
+                platform,
+                _disk_title_family(origin),
+                _normalise_variant_path(in_image_path),
+            )
+            groups.setdefault(key, {}).setdefault(source_id, (entry, origin))
+
+    rows: list[dict[str, object]] = []
+    for (platform, title_family, file_path_key), members_by_id in sorted(groups.items()):
+        members = list(members_by_id.values())
+        entries = [entry for entry, _origin in members]
+        hashes = sorted({str(entry.get("sha256")) for entry in entries if isinstance(entry.get("sha256"), str)})
+        if len(hashes) <= 1:
+            continue
+        targets = [
+            _variant_target(entry, origin)
+            for entry, origin in sorted(members, key=_variant_member_sort_key)
+        ]
+        raw_id = json.dumps(
+            {"platform": platform, "title_family": title_family, "file_path_key": file_path_key},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        rows.append(
+            {
+                "schema_version": 1,
+                "id": f"variant/{hashlib.sha256(raw_id.encode('utf-8')).hexdigest()[:20]}",
+                "platform": platform,
+                "title_family": title_family,
+                "file_path_key": file_path_key,
+                "display_path": _display_variant_path(members[0][1]),
+                "target_count": len(targets),
+                "unique_hash_count": len(hashes),
+                "targets": targets,
+            }
+        )
+    return rows
+
+
+def _variant_origins(entry: dict[str, Any]) -> list[dict[str, Any]]:
+    origin = entry.get("origin")
+    if not isinstance(origin, dict):
+        return []
+    origins = [origin]
+    alternate_origins = origin.get("alternate_origins")
+    if isinstance(alternate_origins, list):
+        origins.extend(item for item in alternate_origins if isinstance(item, dict))
+    return origins
+
+
+def _variant_target(entry: dict[str, Any], origin: dict[str, Any]) -> dict[str, object]:
+    primary_origin = entry.get("origin") if isinstance(entry.get("origin"), dict) else {}
+    file_ref = entry.get("file_ref") if isinstance(entry.get("file_ref"), dict) else {}
+    alternate_origins = primary_origin.get("alternate_origins")
+    return {
+        "target_id": f"platform_file_manifest:{entry.get('id')}",
+        "source_id": entry.get("id"),
+        "platform": entry.get("platform"),
+        "sha256": entry.get("sha256"),
+        "size": entry.get("size"),
+        "status": _status(entry),
+        "origin": _origin_summary_from_origin(origin),
+        "disk_id": file_ref.get("disk_id"),
+        "disk_sha256": entry.get("disk_sha256"),
+        "origin_count": 1 + (len(alternate_origins) if isinstance(alternate_origins, list) else 0),
+    }
+
+
+def _origin_summary_from_origin(origin: dict[str, Any]) -> dict[str, object]:
+    keys = ("display_name", "source_relpath", "container_relpath", "member_name", "in_image_path")
+    return {
+        key: origin[key]
+        for key in keys
+        if key in origin and (isinstance(origin.get(key), (str, int, float, bool)) or origin.get(key) is None)
+    }
+
+
+def _variant_member_sort_key(member: tuple[dict[str, Any], dict[str, Any]]) -> tuple[str, str, str]:
+    entry, origin = member
+    return (
+        str(origin.get("display_name", "")),
+        str(origin.get("in_image_path", "")),
+        str(entry.get("sha256", "")),
+    )
+
+
+def _display_variant_path(origin: dict[str, Any]) -> str:
+    path = origin.get("in_image_path")
+    return str(path) if isinstance(path, str) else ""
+
+
+def _normalise_variant_path(path: str) -> str:
+    return re.sub(r"/+", "/", path.replace("\\", "/").casefold().strip())
+
+
+def _disk_title_family(origin: dict[str, Any]) -> str:
+    name = (
+        _string_value(origin.get("member_name"))
+        or _string_value(origin.get("display_name"))
+        or _string_value(origin.get("source_relpath"))
+        or "unknown"
+    )
+    stem = Path(name.replace("\\", "/")).name
+    for suffix in (".zip", ".adf", ".adz", ".st"):
+        if stem.casefold().endswith(suffix):
+            stem = stem[: -len(suffix)]
+    stem = re.sub(r"\[[^\]]*\]", " ", stem)
+    stem = re.sub(r"\([^)]*\)", " ", stem)
+    stem = re.sub(r"\bdisk\s+\d+\s+of\s+\d+\b", " ", stem, flags=re.IGNORECASE)
+    stem = re.sub(r"[^a-zA-Z0-9]+", " ", stem)
+    stem = re.sub(r"\s+", " ", stem).strip().casefold()
+    return stem or "unknown"
 
 
 def collect_disk_usage_rows(disk_entries: list[dict[str, Any]]) -> list[dict[str, object]]:
@@ -436,13 +568,17 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
 
 
 def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
-    for row in _dict_items(listing.get("rows")):
+    for row_index, row in enumerate(_dict_items(listing.get("rows"))):
         text = _string_value(row.get("text")) or ""
         opcode_or_directive = (_string_value(row.get("opcode_or_directive")) or "").upper()
         is_equate = bool(re.search(r"(^|\s)EQU(\s|$)", text))
         section_index = _int_value(row.get("section_index"), -1)
         offset = row.get("start_offset") if isinstance(row.get("start_offset"), int) else row.get("addr")
         example = _offset_example(section_index, offset, text.strip()[:160])
+        example["row_index"] = row_index
+        if _listing_row_label_symbol(row):
+            bag.add("label:any", example=example)
+            bag.add("label:definition", example=example)
         data_class = _string_value(row.get("data_class"))
         row_hardware_group_features: set[str] = set()
         if data_class:
@@ -459,6 +595,29 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
                 row_hardware_group_features.update(amiga_hardware_usage.group_features(base, symbol, copper_row=bool(data_class == "copper_list")))
         for feature in sorted(row_hardware_group_features):
             bag.add(feature, example=example)
+        for feature in amiga_hardware_usage.display_features_from_listing_text(
+            text, copper_row=bool(data_class == "copper_list")
+        ):
+            bag.add(feature, example=example)
+        for operand in _dict_items(row.get("operand_parts")):
+            segment_addr = _int_value(operand.get("segment_addr"))
+            if segment_addr is not None:
+                bag.add("xref:segment_ref", example=example)
+                bag.add("xref:data_ref" if row.get("kind") == "data" else "xref:code_ref", example=example)
+            symbol = _operand_symbol(operand)
+            if symbol:
+                bag.add("label:reference", example=example)
+            metadata = operand.get("metadata")
+            if isinstance(metadata, dict):
+                value_domain = _string_value(metadata.get("value_domain"))
+                if value_domain:
+                    bag.add(f"value_domain:{_safe_part(value_domain)}", example=example)
+                semantic_kind = _string_value(metadata.get("semantic_kind"))
+                if semantic_kind:
+                    bag.add(f"semantic:{_safe_part(semantic_kind)}", example=example)
+                type_name = _string_value(metadata.get("type_name"))
+                if type_name:
+                    bag.add(f"type:{_safe_part(type_name)}", example=example)
         for app_ref in _dict_items(row.get("app_slot_refs")):
             access = _string_value(app_ref.get("access")) or "unknown"
             bag.add("app_slot:any", example=example)
@@ -581,6 +740,7 @@ def _compact_listing_row(row: dict[str, Any]) -> dict[str, object]:
         "bytes",
         "label",
         "opcode_or_directive",
+        "operand_parts",
         "operand_text",
         "comment_text",
         "data_class",
@@ -772,9 +932,18 @@ def _analysis_xrefs(
                 xrefs.append(_xref(row, f"runtime:view_kind:{kind}", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=kind, text=row_text or f"runtime view kind {kind}"))
             if storage is not None and runtime is not None and storage != runtime:
                 xrefs.append(_xref(row, "runtime:copied_code", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or f"copied code ${runtime:04X}"))
-        violation_count = _int_value(section.get("violation_count"), 0) or 0
-        for index in range(violation_count):
-            xrefs.append(_xref(row, "diagnostic:analysis_violation", "diagnostic", section=section_index, value=index, text="analysis violation"))
+        violations = _dict_items(section.get("violations"))
+        if violations:
+            for index, violation in enumerate(violations):
+                offset = _int_value(violation.get("offset"))
+                row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
+                message = _string_value(violation.get("message")) or "analysis violation"
+                kind = _int_value(violation.get("kind"))
+                xrefs.append(_xref(row, "diagnostic:analysis_violation", "diagnostic", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, value=kind if kind is not None else index, text=row_text or message))
+        else:
+            violation_count = _int_value(section.get("violation_count"), 0) or 0
+            for index in range(violation_count):
+                xrefs.append(_xref(row, "diagnostic:analysis_violation", "diagnostic", section=section_index, value=index, text="analysis violation"))
         for name, feature in (
             ("recovered_indirect_site_count", "analysis:indirect_site"),
             ("recovered_string_ref_count", "data:string_ref"),
@@ -796,6 +965,10 @@ def _listing_xrefs(row: dict[str, object], listing: dict[str, Any]) -> list[dict
         stable_key = _string_value(listing_row.get("stable_key"))
         data_class = _string_value(listing_row.get("data_class"))
         seen_group_features: set[str] = set()
+        label_symbol = _listing_row_label_symbol(listing_row)
+        if label_symbol:
+            xrefs.append(_xref(row, "label:any", "label_definition", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=label_symbol, text=text.strip()))
+            xrefs.append(_xref(row, "label:definition", "label_definition", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=label_symbol, text=text.strip()))
         if data_class:
             xrefs.append(_xref(row, f"data:{_safe_part(data_class)}", "data_class", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=data_class, text=text.strip()))
             if data_class == "copper_list":
@@ -810,10 +983,36 @@ def _listing_xrefs(row: dict[str, object], listing: dict[str, Any]) -> list[dict
                     xrefs.append(_xref(row, f"hardware:{base.removeprefix('_')}", "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=base, text=text.strip()))
             for base, symbol in amiga_hardware_usage.symbol_refs_from_listing_text(text, copper_row=bool(data_class == "copper_list")):
                 xrefs.append(_xref(row, f"hardware_register:{_safe_part(symbol)}", "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=text.strip()))
+                if data_class == "copper_list":
+                    xrefs.append(_xref(row, f"copper_register:{_safe_part(symbol)}", "copper_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=text.strip()))
                 for feature in amiga_hardware_usage.group_features(base, symbol, copper_row=bool(data_class == "copper_list")):
                     if feature not in seen_group_features:
                         seen_group_features.add(feature)
                         xrefs.append(_xref(row, feature, "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=text.strip()))
+        for feature in amiga_hardware_usage.display_features_from_listing_text(
+            text, copper_row=bool(data_class == "copper_list")
+        ):
+            xrefs.append(_xref(row, feature, "display_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, text=text.strip()))
+        for operand in _dict_items(listing_row.get("operand_parts")):
+            operand_text = _string_value(operand.get("text")) or text.strip()
+            segment_addr = _int_value(operand.get("segment_addr"))
+            symbol = _operand_symbol(operand)
+            if symbol:
+                xrefs.append(_xref(row, "label:reference", "label_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=text.strip()))
+            if segment_addr is not None:
+                ref_feature = "xref:data_ref" if listing_row.get("kind") == "data" else "xref:code_ref"
+                xrefs.append(_xref(row, "xref:segment_ref", "segment_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, value=segment_addr, text=operand_text))
+                xrefs.append(_xref(row, ref_feature, "segment_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, value=segment_addr, text=operand_text))
+            metadata = operand.get("metadata")
+            if isinstance(metadata, dict):
+                for key, prefix, kind in (
+                    ("value_domain", "value_domain", "value_domain"),
+                    ("semantic_kind", "semantic", "semantic"),
+                    ("type_name", "type", "type"),
+                ):
+                    value = _string_value(metadata.get(key))
+                    if value:
+                        xrefs.append(_xref(row, f"{prefix}:{_safe_part(value)}", kind, section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, value=value, text=text.strip()))
         for app_ref in _dict_items(listing_row.get("app_slot_refs")):
             access = _string_value(app_ref.get("access")) or "unknown"
             symbol = _string_value(app_ref.get("symbol")) or _app_slot_symbol(app_ref.get("displacement"))
@@ -956,6 +1155,34 @@ def _app_slot_symbol(displacement: object) -> str | None:
     return None
 
 
+def _listing_row_label_symbol(row: dict[str, Any]) -> str | None:
+    label = _string_value(row.get("label"))
+    if label:
+        return label.rstrip(":").strip() or None
+    text = (_string_value(row.get("text")) or "").strip()
+    if text.endswith(":") and " " not in text and "\t" not in text:
+        return text[:-1].strip() or None
+    return None
+
+
+def _operand_symbol(operand: dict[str, Any]) -> str | None:
+    metadata = operand.get("metadata")
+    if isinstance(metadata, dict):
+        for key in ("symbol", "symbol_name", "label", "name"):
+            value = _string_value(metadata.get(key))
+            if value:
+                return value.rstrip(":")
+    text = _string_value(operand.get("text"))
+    if not text:
+        return None
+    candidate = text.strip().split("+", 1)[0].split("(", 1)[0].split(",", 1)[0].strip()
+    if not candidate or candidate.startswith("#") or candidate.startswith("$"):
+        return None
+    if re.match(r"^[A-Za-z_][A-Za-z0-9_$.]*$", candidate):
+        return candidate.rstrip(":")
+    return None
+
+
 def _hex_int(value: int | None) -> str:
     return "?" if value is None else f"{value:04X}"
 
@@ -1029,6 +1256,10 @@ def write_usage_snippet_rows(path: Path, rows: list[dict[str, object]]) -> None:
     write_jsonl_manifest(path, rows)
 
 
+def write_variant_index(path: Path, rows: list[dict[str, object]]) -> None:
+    write_jsonl_manifest(path, rows)
+
+
 def read_usage_manifest(path: Path = DEFAULT_OUTPUT) -> list[dict[str, Any]]:
     return read_jsonl_manifest(path)
 
@@ -1038,6 +1269,10 @@ def read_usage_xrefs(path: Path = DEFAULT_XREF_OUTPUT) -> list[dict[str, Any]]:
 
 
 def read_usage_snippet_rows(path: Path = DEFAULT_SNIPPET_ROWS_OUTPUT) -> list[dict[str, Any]]:
+    return read_jsonl_manifest(path)
+
+
+def read_variant_index(path: Path = DEFAULT_VARIANT_OUTPUT) -> list[dict[str, Any]]:
     return read_jsonl_manifest(path)
 
 
@@ -1229,6 +1464,7 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     build.add_argument("--xrefs-output", type=Path, default=DEFAULT_XREF_OUTPUT)
     build.add_argument("--snippet-rows-output", type=Path, default=DEFAULT_SNIPPET_ROWS_OUTPUT)
+    build.add_argument("--variants-output", type=Path, default=DEFAULT_VARIANT_OUTPUT)
 
     list_features = subparsers.add_parser("list-features")
     list_features.add_argument("--manifest", type=Path, default=DEFAULT_OUTPUT)
@@ -1244,15 +1480,19 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "build":
         rows, xrefs, snippet_rows = build_usage_outputs(args.disk_manifest, args.file_manifest)
+        variant_rows = build_variant_index(args.file_manifest)
         write_usage_manifest(args.output, rows)
         write_usage_xrefs(args.xrefs_output, xrefs)
         write_usage_snippet_rows(args.snippet_rows_output, snippet_rows)
+        write_variant_index(args.variants_output, variant_rows)
         print(f"Wrote {args.output}")
         print(f"Wrote {args.xrefs_output}")
         print(f"Wrote {args.snippet_rows_output}")
+        print(f"Wrote {args.variants_output}")
         print(f"Entries: {len(rows)}")
         print(f"Xrefs: {len(xrefs)}")
         print(f"Snippet rows: {len(snippet_rows)}")
+        print(f"Variants: {len(variant_rows)}")
         return 0
     rows = read_usage_manifest(args.manifest)
     if args.command == "list-features":
