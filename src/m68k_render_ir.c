@@ -97,6 +97,18 @@ typedef struct M68kRenderAppSlotRef {
   M68kAppSlotRefIR ref;
 } M68kRenderAppSlotRef;
 
+typedef struct M68kRenderDeviceInstance {
+  int16_t iorequest_displacement;
+  uint8_t conflicted;
+  char device_name[64];
+} M68kRenderDeviceInstance;
+
+typedef struct M68kRenderDeviceCall {
+  size_t section_index;
+  uint32_t offset;
+  char device_name[64];
+} M68kRenderDeviceCall;
+
 typedef struct M68kRenderRuntimeAddressRef {
   const M68kFact *fact;
 } M68kRenderRuntimeAddressRef;
@@ -319,6 +331,8 @@ static int render_lookup_add_recovered_local_call_summary(M68kRenderLookup *look
   uint32_t target_offset, const AmigaOsLibraryVectorInfo *vector);
 static int render_lookup_add_typed_slot_effect(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
   int16_t displacement, const AmigaOsCallOutputInfo *output);
+static const char *render_lookup_device_name_for_call(const M68kRenderLookup *lookup, size_t section_index,
+  uint32_t offset);
 static int render_lookup_add_string_span(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
   uint32_t size);
 static const char *lookup_instruction_comment(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
@@ -896,13 +910,10 @@ static void preview_record_platform_vector_effects(M68kRenderIRPreview *preview,
 }
 
 static void preview_record_platform_vector_call(M68kRenderIRPreview *preview,
-    M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t kind, uint8_t note_kind,
-    const AmigaOsLibraryVectorInfo *vector) {
-  const char *symbol_name;
-  const char *note_symbol_name = NULL;
-  const char *available_since = NULL;
-  const char *library_name;
-  const char *note_base_name = NULL;
+    const M68kRenderLookup *lookup, M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t kind,
+    uint8_t note_kind, const AmigaOsLibraryVectorInfo *vector) {
+  const char *symbol_name, *library_name, *device_name;
+  const char *note_symbol_name = NULL, *available_since = NULL, *note_base_name = NULL;
   if (preview == NULL || vector == NULL) return;
   preview_record_platform_vector(preview, vector);
   if (section_analysis == NULL) return;
@@ -920,6 +931,12 @@ static void preview_record_platform_vector_call(M68kRenderIRPreview *preview,
       note_base_name, note_symbol_name, 0U, INT16_MIN, INT16_MIN, 0U, 0U, 0U,
       available_since != NULL && available_since[0] != '\0' ? available_since : NULL,
       vector->fd_version != NULL && vector->fd_version[0] != '\0' ? vector->fd_version : NULL) != 0) {
+    preview->asm_source_allocation_failed = 1U;
+  }
+  device_name = render_lookup_device_name_for_call(lookup, section_analysis->section_index, offset);
+  if (device_name != NULL &&
+      m68k_ir_section_analysis_set_recovered_platform_call_device_name(section_analysis, offset, kind,
+        device_name) != 0) {
     preview->asm_source_allocation_failed = 1U;
   }
   preview_record_platform_vector_effects(preview, section_analysis, offset, vector);
@@ -2569,34 +2586,6 @@ static const AmigaOsLibraryVectorInfo *resolve_amiga_indexed_wrapper_call_vector
   return amiga_os_find_library_vector(base_name, state->d0_lvo);
 }
 
-static int format_amiga_local_wrapper_call_comment(const AmigaOsLibraryVectorInfo *vector,
-    char *comment, size_t comment_size) {
-  const char *base_name;
-  const char *symbol_name;
-  if (comment == NULL || comment_size == 0U) return 0;
-  comment[0] = '\0';
-  if (vector == NULL) return 0;
-  base_name = amiga_os_name(M68K_PLATFORM_NAME_BASE, vector->base_id);
-  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
-  if (base_name == NULL || base_name[0] == '\0' || symbol_name == NULL || symbol_name[0] == '\0') return 0;
-  snprintf(comment, comment_size, "KNOWN: %s %s via local wrapper", base_name, symbol_name);
-  return 1;
-}
-
-static int format_amiga_local_helper_call_comment(const AmigaOsLibraryVectorInfo *vector,
-    char *comment, size_t comment_size) {
-  const char *base_name;
-  const char *symbol_name;
-  if (comment == NULL || comment_size == 0U) return 0;
-  comment[0] = '\0';
-  if (vector == NULL) return 0;
-  base_name = amiga_os_name(M68K_PLATFORM_NAME_BASE, vector->base_id);
-  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
-  if (base_name == NULL || base_name[0] == '\0' || symbol_name == NULL || symbol_name[0] == '\0') return 0;
-  snprintf(comment, comment_size, "KNOWN: local helper uses %s %s", base_name, symbol_name);
-  return 1;
-}
-
 static int rendered_text_reencodes_original_bytes(const char *text, const M68kInstructionIR *source_instruction,
     const M68kInstructionIR *render_instruction, const uint8_t *raw_bytes, size_t raw_size) {
   M68kInstructionIR parsed;
@@ -2680,6 +2669,12 @@ struct M68kRenderLookup {
   M68kRenderAppSlotRef *app_slot_refs;
   size_t app_slot_ref_count;
   size_t app_slot_ref_capacity;
+  M68kRenderDeviceInstance *device_instances;
+  size_t device_instance_count;
+  size_t device_instance_capacity;
+  M68kRenderDeviceCall *device_calls;
+  size_t device_call_count;
+  size_t device_call_capacity;
   M68kRenderRuntimeAddressRef *runtime_address_refs;
   size_t runtime_address_ref_count;
   size_t runtime_address_ref_capacity;
@@ -2744,6 +2739,8 @@ static void render_lookup_destroy(M68kRenderLookup *lookup) {
   free(lookup->global_base_slots);
   free(lookup->base_field_slots);
   free(lookup->app_slot_refs);
+  free(lookup->device_instances);
+  free(lookup->device_calls);
   free(lookup->runtime_address_refs);
   free(lookup->runtime_address_ranges);
   free(lookup->xrefs);
@@ -5877,6 +5874,90 @@ static int render_lookup_add_app_access_slot(M68kRenderLookup *lookup, int16_t d
     M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS, source_section_index, source_offset);
 }
 
+static int render_lookup_add_device_instance(M68kRenderLookup *lookup, int16_t iorequest_displacement,
+    const char *device_name) {
+  size_t index;
+  M68kRenderDeviceInstance *grown;
+  size_t next_capacity;
+  if (lookup == NULL || device_name == NULL || device_name[0] == '\0') return 0;
+  for (index = 0U; index < lookup->device_instance_count; ++index) {
+    M68kRenderDeviceInstance *instance = &lookup->device_instances[index];
+    if (instance->iorequest_displacement != iorequest_displacement) continue;
+    if (strcmp(instance->device_name, device_name) != 0) {
+      instance->device_name[0] = '\0';
+      instance->conflicted = 1U;
+    }
+    return 0;
+  }
+  if (lookup->device_instance_count == lookup->device_instance_capacity) {
+    next_capacity = lookup->device_instance_capacity == 0U ? 8U : lookup->device_instance_capacity * 2U;
+    grown = (M68kRenderDeviceInstance *)realloc(lookup->device_instances, next_capacity * sizeof(*grown));
+    if (grown == NULL) return -1;
+    lookup->device_instances = grown;
+    lookup->device_instance_capacity = next_capacity;
+  }
+  memset(&lookup->device_instances[lookup->device_instance_count], 0,
+    sizeof(lookup->device_instances[lookup->device_instance_count]));
+  lookup->device_instances[lookup->device_instance_count].iorequest_displacement = iorequest_displacement;
+  snprintf(lookup->device_instances[lookup->device_instance_count].device_name,
+    sizeof(lookup->device_instances[lookup->device_instance_count].device_name), "%s", device_name);
+  ++lookup->device_instance_count;
+  return 0;
+}
+
+static const char *render_lookup_device_name_for_iorequest(const M68kRenderLookup *lookup,
+    int16_t iorequest_displacement) {
+  size_t index;
+  if (lookup == NULL) return NULL;
+  for (index = 0U; index < lookup->device_instance_count; ++index) {
+    const M68kRenderDeviceInstance *instance = &lookup->device_instances[index];
+    if (instance->iorequest_displacement == iorequest_displacement && instance->conflicted == 0U &&
+        instance->device_name[0] != '\0') {
+      return instance->device_name;
+    }
+  }
+  return NULL;
+}
+
+static int render_lookup_add_device_call(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
+    const char *device_name) {
+  size_t index;
+  M68kRenderDeviceCall *grown;
+  size_t next_capacity;
+  if (lookup == NULL || device_name == NULL || device_name[0] == '\0') return 0;
+  for (index = 0U; index < lookup->device_call_count; ++index) {
+    M68kRenderDeviceCall *call = &lookup->device_calls[index];
+    if (call->section_index != section_index || call->offset != offset) continue;
+    return strcmp(call->device_name, device_name) == 0 ? 0 : -1;
+  }
+  if (lookup->device_call_count == lookup->device_call_capacity) {
+    next_capacity = lookup->device_call_capacity == 0U ? 8U : lookup->device_call_capacity * 2U;
+    grown = (M68kRenderDeviceCall *)realloc(lookup->device_calls, next_capacity * sizeof(*grown));
+    if (grown == NULL) return -1;
+    lookup->device_calls = grown;
+    lookup->device_call_capacity = next_capacity;
+  }
+  memset(&lookup->device_calls[lookup->device_call_count], 0, sizeof(lookup->device_calls[lookup->device_call_count]));
+  lookup->device_calls[lookup->device_call_count].section_index = section_index;
+  lookup->device_calls[lookup->device_call_count].offset = offset;
+  snprintf(lookup->device_calls[lookup->device_call_count].device_name,
+    sizeof(lookup->device_calls[lookup->device_call_count].device_name), "%s", device_name);
+  ++lookup->device_call_count;
+  return 0;
+}
+
+static const char *render_lookup_device_name_for_call(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset) {
+  size_t index;
+  if (lookup == NULL) return NULL;
+  for (index = 0U; index < lookup->device_call_count; ++index) {
+    const M68kRenderDeviceCall *call = &lookup->device_calls[index];
+    if (call->section_index == section_index && call->offset == offset && call->device_name[0] != '\0')
+      return call->device_name;
+  }
+  return NULL;
+}
+
 static int render_lookup_add_app_access_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     uint8_t base_reg, int16_t displacement, uint8_t operand_index, uint8_t access_kind) {
   size_t index;
@@ -6812,6 +6893,25 @@ static const AmigaOsCallInputInfo *open_device_iorequest_input_info(void) {
   return NULL;
 }
 
+static int amiga_vector_iorequest_address_register(const AmigaOsLibraryVectorInfo *vector, uint8_t *out_reg) {
+  const AmigaOsCallInputInfo *inputs;
+  size_t count = 0U;
+  size_t index;
+  if (out_reg != NULL) *out_reg = 0U;
+  if (vector == NULL) return 0;
+  inputs = amiga_os_library_vector_inputs(vector, &count);
+  if (inputs == NULL) return 0;
+  for (index = 0U; index < count; ++index) {
+    const AmigaOsCallInputInfo *input = &inputs[index];
+    if (input->reg_kind == AMIGA_OS_REGISTER_ADDRESS && input->reg_index < 8U &&
+        input->struct_id == AMIGA_OS_STRUCT_ID_IO) {
+      if (out_reg != NULL) *out_reg = input->reg_index;
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static int format_open_device_app_iorequest_slot_name(const char *device_name, char *symbol_name,
     size_t symbol_name_size) {
   const AmigaOsCallInputInfo *input = open_device_iorequest_input_info();
@@ -6899,6 +6999,25 @@ static int candidate_is_exec_open_device_call(const M68kRenderBaseTraceState *st
   if (!candidate_calls_a6_lvo(candidate, &lvo)) return 0;
   open_device = amiga_os_find_library_vector_by_symbol_name("_LVOOpenDevice");
   return open_device != NULL && open_device->lvo == lvo;
+}
+
+static int render_lookup_record_device_call_from_iorequest(M68kRenderLookup *lookup,
+    const M68kRenderBaseTraceState *state, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate) {
+  int16_t lvo = 0;
+  const AmigaOsLibraryVectorInfo *vector;
+  const char *base_name;
+  uint8_t iorequest_reg = 0U;
+  const char *device_name;
+  if (lookup == NULL || state == NULL || section == NULL || candidate == NULL) return 0;
+  if (!state->addr_regs[6].known || !candidate_calls_a6_lvo(candidate, &lvo)) return 0;
+  base_name = amiga_os_find_library_base_name(state->addr_regs[6].name);
+  vector = amiga_os_find_library_vector(base_name != NULL ? base_name : state->addr_regs[6].name, lvo);
+  if (!amiga_vector_iorequest_address_register(vector, &iorequest_reg)) return 0;
+  if (!state->app_addresses[iorequest_reg].known) return 0;
+  device_name = render_lookup_device_name_for_iorequest(lookup, state->app_addresses[iorequest_reg].displacement);
+  if (device_name == NULL) return 0;
+  return render_lookup_add_device_call(lookup, section->section_index, candidate->offset, device_name);
 }
 
 static int candidate_stores_library_to_local_slot(const M68kRenderBaseTraceState *state,
@@ -7278,6 +7397,12 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
         char iorequest_slot_name[64];
         int32_t device_base_displacement = (int32_t)trace_state.app_addresses[1].displacement +
           (int32_t)AMIGA_OS_STRUCT_IO_FIELD_IO_DEVICE_OFFSET;
+        if (render_lookup_add_device_instance(lookup, trace_state.app_addresses[1].displacement,
+            trace_state.addr_regs[0].name) != 0 ||
+            render_lookup_add_device_call(lookup, section->section_index, candidate->offset,
+            trace_state.addr_regs[0].name) != 0) {
+          goto cleanup;
+        }
         if (format_open_device_app_iorequest_slot_name(trace_state.addr_regs[0].name, iorequest_slot_name,
             sizeof(iorequest_slot_name))) {
           if (render_lookup_add_base_field_slot_with_symbol(lookup, "__amiga_app_base__",
@@ -7294,6 +7419,8 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
           }
         }
       }
+      if (render_lookup_record_device_call_from_iorequest(lookup, &trace_state, section, candidate) != 0)
+        goto cleanup;
       if (candidate_stores_library_to_local_slot(&trace_state, candidate, &local_base_reg, &local_displacement,
           &library_name)) {
         const char *owner_name = trace_state.addr_regs[local_base_reg].known
@@ -8015,10 +8142,6 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   (void)attach_amiga_typed_struct_field_symbols(typed_state, &instruction);
   (void)attach_m68k_cpu_vector_symbols(&instruction);
   if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return 0;
-  if (!format_amiga_local_wrapper_call_comment(direct_wrapper_vector != NULL ? direct_wrapper_vector : wrapper_call_vector,
-      platform_comment, sizeof(platform_comment))) {
-    (void)format_amiga_local_helper_call_comment(helper_call_vector, platform_comment, sizeof(platform_comment));
-  }
   attach_platform_stack_cleanup_comment_for_render(preview, lookup, section, accepted_start, candidate, &instruction,
     section_analysis, platform_comment, sizeof(platform_comment));
   (void)append_comment_part_local(instruction_comment, sizeof(instruction_comment),
@@ -8104,7 +8227,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   } else if (direct_wrapper_vector != NULL || helper_call_vector != NULL) {
     chosen_note_kind = M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL;
   }
-  preview_record_platform_vector_call(preview, section_analysis, candidate->offset, chosen_kind,
+  preview_record_platform_vector_call(preview, lookup, section_analysis, candidate->offset, chosen_kind,
     chosen_note_kind, chosen_vector);
   typed_state_update_after_instruction(typed_state, &instruction, chosen_vector);
   platform_state_update_d0_lvo_after_instruction(platform_state, &instruction);

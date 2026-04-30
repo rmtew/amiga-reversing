@@ -2,17 +2,22 @@ from __future__ import annotations
 
 import argparse
 import ctypes
-import gzip
-import hashlib
 import json
 import os
 import shutil
 import subprocess
 import tempfile
-import zipfile
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+from src.scripts.platform_manifest_io import (
+    load_disk_image_bytes,
+    read_jsonl_manifest,
+    reconstruct_file_bytes,
+    sha256,
+    write_jsonl_manifest,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT = ROOT / "corpus" / "platform_disk_manifest.jsonl"
@@ -75,66 +80,12 @@ def _ensure_tools_built() -> None:
         raise RuntimeError(result.stdout + result.stderr)
 
 
-def _sha256(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-
-def _read_manifest(path: Path) -> list[dict[str, Any]]:
-    entries: list[dict[str, Any]] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            entries.append(json.loads(line))
-    return entries
-
-
 def _load_amiga_hunk_top_level_magics() -> set[int]:
     payload = json.loads(AMIGA_HUNK_RUNTIME_JSON.read_text(encoding="utf-8"))
     return {int(value) for value in payload.get("container_magic_wire_ids", [])}
 
 
 AMIGA_HUNK_TOP_LEVEL_MAGICS = _load_amiga_hunk_top_level_magics()
-
-
-def _decode_member(container_path: Path, member_name: str) -> bytes:
-    with zipfile.ZipFile(container_path) as archive:
-        raw = archive.read(member_name)
-    if member_name.lower().endswith(".adz"):
-        return gzip.decompress(raw)
-    return raw
-
-
-def _load_disk_image_bytes(origin: dict[str, Any]) -> bytes:
-    source_relpath = origin["source_relpath"]
-    path = ROOT / source_relpath
-    container_relpath = origin.get("container_relpath")
-    member_name = origin.get("member_name")
-    if container_relpath and member_name:
-        return _decode_member(ROOT / container_relpath, member_name)
-    return path.read_bytes()
-
-
-def _reconstruct_file_bytes(platform: str, file_entry: dict[str, Any], image_bytes: bytes) -> bytes:
-    parts = []
-    if platform == "atari-st-disk":
-        file_size = int(file_entry["file_size"])
-    else:
-        file_size = int(file_entry["byte_size"])
-    if file_size < 0:
-        raise RuntimeError("Negative file size in disk manifest")
-    if file_size == 0:
-        return b""
-    if not file_entry.get("extents"):
-        raise RuntimeError("Missing file extents for non-empty in-image file")
-    for extent in file_entry.get("extents", []):
-        image_offset = int(extent["image_offset"])
-        byte_size = int(extent["byte_size"])
-        if image_offset < 0 or byte_size < 0 or image_offset + byte_size > len(image_bytes):
-            raise RuntimeError("In-image file extent lies outside disk image")
-        parts.append(image_bytes[image_offset : image_offset + byte_size])
-    data = b"".join(parts)
-    if len(data) < file_size:
-        raise RuntimeError("In-image file extents do not cover declared file size")
-    return data[:file_size]
 
 
 def _is_probable_amiga_hunk(file_bytes: bytes) -> bool:
@@ -235,9 +186,9 @@ def _error_manifest_entry(
     error: str,
 ) -> dict[str, Any]:
     return {
-        "id": f"{backend_name}/{_sha256(file_bytes)[:12]}",
+        "id": f"{backend_name}/{sha256(file_bytes)[:12]}",
         "platform": backend_name,
-        "sha256": _sha256(file_bytes),
+        "sha256": sha256(file_bytes),
         "size": len(file_bytes),
         "disk_sha256": disk_entry["sha256"],
         "origin": {
@@ -268,9 +219,9 @@ def _manifest_entry(
     inspect: dict[str, Any],
 ) -> dict[str, Any]:
     return {
-        "id": f"{backend_name}/{_sha256(file_bytes)[:12]}",
+        "id": f"{backend_name}/{sha256(file_bytes)[:12]}",
         "platform": backend_name,
-        "sha256": _sha256(file_bytes),
+        "sha256": sha256(file_bytes),
         "size": len(file_bytes),
         "disk_sha256": disk_entry["sha256"],
         "origin": {
@@ -295,17 +246,17 @@ def _manifest_entry(
 
 def build_manifest(disk_manifest_path: Path) -> list[dict[str, Any]]:
     manifest: list[dict[str, Any]] = []
-    for disk_entry in _read_manifest(disk_manifest_path):
+    for disk_entry in read_jsonl_manifest(disk_manifest_path):
         if disk_entry.get("expect", {}).get("status") != "ok":
             continue
-        image_bytes = _load_disk_image_bytes(disk_entry["origin"])
+        image_bytes = load_disk_image_bytes(disk_entry["origin"], root=ROOT)
         for candidate in _candidate_entries(disk_entry):
             backend_name = candidate.get("backend")
             suffix = candidate.get("suffix", ".bin")
             file_entry = candidate["entry"]
             file_bytes = b""
             try:
-                file_bytes = _reconstruct_file_bytes(disk_entry["platform"], file_entry, image_bytes)
+                file_bytes = reconstruct_file_bytes(disk_entry["platform"], file_entry, image_bytes)
             except RuntimeError as exc:
                 manifest.append(_error_manifest_entry(disk_entry, backend_name or "amiga-unknown", file_entry, b"", str(exc)))
                 continue
@@ -336,8 +287,7 @@ def build_manifest(disk_manifest_path: Path) -> list[dict[str, Any]]:
 
 
 def write_manifest(path: Path, entries: list[dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("".join(json.dumps(entry, sort_keys=True) + "\n" for entry in entries), encoding="utf-8")
+    write_jsonl_manifest(path, entries)
 
 
 def main() -> int:

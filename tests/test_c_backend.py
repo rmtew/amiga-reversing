@@ -2650,6 +2650,45 @@ def test_real_dll_facts_v2_listing_rows_emit_wrapper_function_args(tmp_path: Pat
     ]
 
 
+def test_real_dll_facts_v2_propagates_opendevice_instance_to_io_calls(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "device_calls.bin"
+    binary_path.write_bytes(
+        bytes.fromhex(
+            "41f90000002c"
+            "43ee0040"
+            "2c780004"
+            "4eaefe44"
+            "2c780004"
+            "43ee0040"
+            "4eaefe38"
+            "2c780004"
+            "43ee0040"
+            "4eaefe3e"
+            "4e75"
+        )
+        + b"input.device\0"
+    )
+
+    combined = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
+            "amiga-raw",
+            str(binary_path),
+            0,
+            "",
+            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
+            project_root=PROJECT_ROOT,
+        )
+    )
+    calls = combined["analysis"]["sections"][0]["recovered_platform_calls"]
+    by_function = {call["function_name"]: call for call in calls if call.get("function_name")}
+
+    assert by_function["OpenDevice"]["device_name"] == "input.device"
+    assert by_function["DoIO"]["device_name"] == "input.device"
+    assert by_function["CloseDevice"]["device_name"] == "input.device"
+
+
 def test_project_source_raw_binary_passes_metadata_register_seeds(monkeypatch, tmp_path: Path) -> None:
     binary_path = tmp_path / "boot.bin"
     metadata_path = tmp_path / "target_metadata.json"

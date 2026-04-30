@@ -1465,6 +1465,10 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_nullable_string(&builder, call->fd_version) != 0)
         goto oom;
+      if (json_builder_append(&builder, ",\"device_name\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, call->device_name) != 0)
+        goto oom;
       if (json_builder_append(&builder, ",\"library_name\":") != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder, library_name) != 0)

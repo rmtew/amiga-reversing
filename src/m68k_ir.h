@@ -575,6 +575,7 @@ typedef struct M68kRecoveredPlatformCallIR {
   char *available_since;
   uint16_t available_since_version;
   char *fd_version;
+  char *device_name;
 } M68kRecoveredPlatformCallIR;
 
 typedef struct M68kRecoveredDirectSectionCallIR {
@@ -772,6 +773,8 @@ int m68k_ir_section_analysis_append_recovered_platform_call(M68kSectionAnalysisI
     const char *note_symbol_name, uint8_t note_reg, int16_t note_disp, int16_t note_field_disp,
     uint8_t note_stack_cleanup_known, uint16_t note_stack_cleanup_bytes, uint8_t note_return_kind,
     const char *available_since, const char *fd_version);
+int m68k_ir_section_analysis_set_recovered_platform_call_device_name(M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, uint8_t kind, const char *device_name);
 int m68k_ir_section_analysis_append_recovered_direct_section_call(M68kSectionAnalysisIR *section_analysis,
     uint32_t offset, size_t target_section_index, uint32_t target_offset);
 int m68k_ir_section_analysis_append_runtime_view(M68kSectionAnalysisIR *section_analysis,

@@ -457,6 +457,8 @@ class CdpWebSocket:
             "windowsVirtualKeyCode": key_code,
             "nativeVirtualKeyCode": key_code,
         }
+        self.call("Page.bringToFront", timeout=2.0)
+        self.evaluate("window.focus(); true", timeout=2.0)
         self.call("Input.dispatchKeyEvent", {"type": "keyDown", **params})
         self.call("Input.dispatchKeyEvent", {"type": "keyUp", **params})
 

@@ -162,6 +162,181 @@ def test_brave_cdp_can_open_project_and_render_listing(monkeypatch: pytest.Monke
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_corpus_demo")
+    disasm_server._PROJECT_ROW_CACHE[project.id] = [
+        ListingRow(row_id="r0", kind="label", text="imported_start:\n", addr=0),
+        ListingRow(row_id="r1", kind="instruction", text="rts\n", addr=0),
+    ]
+    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "feature_list",
+        lambda: [
+            {
+                "feature": "hardware:custom",
+                "target_count": 1,
+                "occurrence_count": 1,
+                "source_example_count": 1,
+                "source_target_count": 1,
+            },
+            {
+                "feature": "analysis:facts_v2",
+                "target_count": 1,
+                "occurrence_count": 1,
+                "source_example_count": 0,
+                "source_target_count": 0,
+            },
+        ],
+    )
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "query_targets",
+        lambda *, feature=None, group=None, platform=None, q=None, source_only=False: [
+            {
+                "id": "platform_file_manifest:amiga-hunk/demo",
+                "platform": "amiga-hunk",
+                "count": 1,
+                "source_example_count": 1,
+                "origin": {"in_image_path": "c/Demo"},
+                "tags": ["hardware:custom"],
+            }
+        ],
+    )
+    def fake_query_xrefs(*, target_id=None, feature=None, group=None, platform=None, q=None, source_only=False):
+        rows = [
+            {
+                "id": "xref-target",
+                "target_id": target_id,
+                "feature": "analysis:facts_v2",
+                "kind": "analysis_profile",
+                "row_index": None,
+                "text": "facts_v2",
+            },
+            {
+                "id": "xref-1",
+                "target_id": target_id,
+                "feature": "hardware:custom",
+                "kind": "hardware_ref",
+                "row_index": 0,
+                "text": "move.w #$7fff,_custom+intena.l",
+            }
+        ]
+        if feature:
+            rows = [row for row in rows if row["feature"] == feature]
+        if source_only:
+            rows = [row for row in rows if isinstance(row.get("row_index"), int)]
+        return rows
+
+    monkeypatch.setattr(disasm_server.corpus_usage, "query_xrefs", fake_query_xrefs)
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "snippet_payload",
+        lambda xref_id, before=20, after=20: {
+            "xref": {"id": xref_id},
+            "start": 0,
+            "end": 1,
+            "highlighted_row_index": 0,
+            "rows": [
+                {
+                    "row_id": "s0",
+                    "row_index": 0,
+                    "kind": "instruction",
+                    "text": "\tmove.w #$7fff,_custom+intena.l\n",
+                    "start_offset": 0,
+                    "bytes": "33fc7fff00dff09a",
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "corpus_import_media_body",
+        lambda target_id: {"filename": "Demo", "media_base64": "ZGVtbw=="},
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "_start_project_create_job",
+        lambda body: {
+            "job_id": "cached-corpus-import",
+            "job_kind": "project_create",
+            "project_id": None,
+            "result_project_id": project.id,
+            "status": "ready",
+            "phase_id": "done",
+            "phase_index": 4,
+            "phase_count": 4,
+            "progress_mode": "determinate",
+            "progress_current": 4,
+            "progress_total": 4,
+            "progress_percent": 100,
+            "total_rows": None,
+            "error": None,
+            "created_at": 1.0,
+            "finished_at": 1.0,
+        },
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "_start_progressive_listing_jobs",
+        lambda project_name: {
+            "job_id": "cached-listing",
+            "job_kind": "full_listing",
+            "project_id": project_name,
+            "result_project_id": project_name,
+            "status": "ready",
+            "phase_id": "done",
+            "phase_index": 4,
+            "phase_count": 4,
+            "progress_mode": "determinate",
+            "progress_current": 4,
+            "progress_total": 4,
+            "progress_percent": 100,
+            "total_rows": 2,
+            "error": None,
+            "created_at": 1.0,
+            "finished_at": 1.0,
+        },
+    )
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": base_url})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector("[data-home-view='corpus']")
+        page.click("[data-home-view='corpus']")
+        page.wait_for_selector("#corpus-feature")
+        assert "1 source" in page.text_content("#corpus-feature")
+        page.click("[data-corpus-group='hardware']")
+        page.wait_for_expression("document.querySelector('.corpus-quick-filter.active')?.textContent.includes('Hardware')")
+        page.select_value("#corpus-feature", "hardware:custom")
+        page.wait_for_selector(".corpus-card")
+        assert "1 source examples" in page.text_content(".corpus-card-meta")
+        assert page.text_content(".corpus-add-button") == "\U0001f516"
+        assert page.evaluate("document.querySelector('.corpus-add-button')?.title === 'Promote to be a real project'")
+        page.click(".corpus-card-main")
+        page.wait_for_selector(".corpus-xref")
+        assert "Source Examples" in page.text_content(".corpus-detail")
+        assert "Target Facts" not in page.text_content(".corpus-detail")
+        page.click("#corpus-show-facts")
+        page.wait_for_expression("document.querySelector('.corpus-detail')?.textContent.includes('Target Facts')")
+        assert "No target facts for this filter." in page.text_content(".corpus-detail")
+        assert page.evaluate("getComputedStyle(document.querySelector('.corpus-results')).overflowY === 'auto'")
+        assert page.evaluate("getComputedStyle(document.querySelector('.corpus-detail')).overflowY === 'auto'")
+        page.click("button.corpus-xref[data-corpus-xref='xref-1']")
+        page.wait_for_selector("#corpus-snippet-overlay .corpus-listing-row.active")
+        assert "_custom+intena" in page.text_content("#corpus-snippet-overlay .corpus-listing-row.active")
+        page.press_key("Escape")
+        page.wait_for_expression("document.querySelector('#corpus-snippet-overlay') === null")
+        page.click(".corpus-add-button")
+        page.wait_for_expression(f"location.pathname === '/{project.id}'", timeout=10.0)
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length === 2")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_app_slot_navigation_drills_to_refs(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_app_slots")
     rows = [
@@ -478,6 +653,12 @@ def test_brave_cdp_stats_overlay_shows_fetch_latency(monkeypatch: pytest.MonkeyP
         assert page.evaluate("document.querySelector('.stats-grid')?.textContent.includes('Median')")
         assert page.evaluate("document.querySelector('.stats-grid')?.textContent.includes('Mean')")
         assert page.evaluate("document.querySelector('.stats-latest')?.textContent.includes('Latest:')")
+        assert page.evaluate("document.querySelector('.stats-latest')?.textContent.includes('queue')")
+        assert page.evaluate("document.querySelector('.stats-latest')?.textContent.includes('fetch')")
+        assert page.evaluate("document.querySelector('.stats-latest')?.textContent.includes('render')")
+        assert page.evaluate("state.stats.fetchSamples.at(-1).queueMs !== undefined")
+        assert page.evaluate("state.stats.fetchSamples.at(-1).fetchMs !== undefined")
+        assert page.evaluate("state.stats.fetchSamples.at(-1).renderMs !== undefined")
         page.click("[data-stats-tab='jobs']")
         page.wait_for_expression("document.querySelector('.stats-tab.active')?.textContent === 'Jobs'")
         page.press_key("Escape")

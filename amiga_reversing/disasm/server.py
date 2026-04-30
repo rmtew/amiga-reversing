@@ -12,7 +12,7 @@ from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import NotRequired, TypedDict, cast
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from amiga_reversing.amiga_disk.models import DiskManifest
 from amiga_reversing.amiga_disk.project import create_disk_project
@@ -35,6 +35,7 @@ from amiga_reversing.disasm.c_backend import (
     validate_amiga_hunk_executable_with_c_backend,
     validate_api_input_struct_with_c_backend,
 )
+from amiga_reversing.disasm import corpus_usage
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
 from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, ListingRow, SymbolOperandMetadata
 from amiga_reversing.disasm.project_ids import derive_disk_id_from_stem, disk_project_id
@@ -689,6 +690,14 @@ def _parse_int_arg(
         return default
     assert raw is not None
     return int(raw, 0)
+
+
+def _first_query_value(values: dict[str, list[str]], key: str) -> str | None:
+    raw_values = values.get(key)
+    raw = raw_values[0] if raw_values else None
+    if raw in (None, ""):
+        return None
+    return raw
 
 
 def _empty_listing_payload(addr: int | None) -> EmptyListingPayload:
@@ -1382,6 +1391,31 @@ def _start_project_create_job(body: dict[str, object]) -> AsyncJobPayload:
     return _job_payload(job_id)
 
 
+def _failed_project_create_job(error: str) -> AsyncJobPayload:
+    job_id = str(uuid.uuid4())
+    now = time.time()
+    with _JOB_LOCK:
+        _ASYNC_JOBS[job_id] = {
+            "job_id": job_id,
+            "job_kind": "project_create",
+            "project_id": None,
+            "result_project_id": None,
+            "status": "failed",
+            "phase_id": "error",
+            "phase_index": 0,
+            "phase_count": _PROJECT_CREATE_EXECUTABLE_PHASE_COUNT,
+            "progress_mode": "determinate",
+            "progress_current": 0,
+            "progress_total": _PROJECT_CREATE_EXECUTABLE_PHASE_COUNT,
+            "progress_percent": 0,
+            "total_rows": None,
+            "error": error,
+            "created_at": now,
+            "finished_at": now,
+        }
+    return _job_payload(job_id)
+
+
 def _project_payload(project_name: str) -> ProjectPayload:
     project = get_project(project_name)
     payload: ProjectPayload = {"project": project.to_dict()}
@@ -1625,6 +1659,68 @@ def route_request(
         return {"ok": True, "data": _job_payload(job_id)}
 
     parts = [part for part in path.split("/") if part]
+    if len(parts) >= 2 and parts[0] == "api" and parts[1] == "corpus":
+        if method == "GET" and len(parts) == 3 and parts[2] == "features":
+            return {"ok": True, "data": corpus_usage.feature_list()}
+        if method == "GET" and len(parts) == 3 and parts[2] == "query":
+            feature = _first_query_value(query, "feature")
+            group = _first_query_value(query, "group")
+            platform = _first_query_value(query, "platform")
+            q = _first_query_value(query, "q")
+            source_only = _first_query_value(query, "source_only") == "1"
+            return {
+                "ok": True,
+                "data": corpus_usage.query_targets(
+                    feature=feature,
+                    group=group,
+                    platform=platform,
+                    q=q,
+                    source_only=source_only,
+                ),
+            }
+        if method == "GET" and len(parts) == 4 and parts[2] == "targets":
+            return {"ok": True, "data": corpus_usage.target_payload(unquote(parts[3]))}
+        if method == "GET" and len(parts) == 3 and parts[2] == "xrefs":
+            target_id = _first_query_value(query, "target_id")
+            feature = _first_query_value(query, "feature")
+            group = _first_query_value(query, "group")
+            platform = _first_query_value(query, "platform")
+            q = _first_query_value(query, "q")
+            source_only = _first_query_value(query, "source_only") == "1"
+            return {
+                "ok": True,
+                "data": corpus_usage.query_xrefs(
+                    target_id=target_id,
+                    feature=feature,
+                    group=group,
+                    platform=platform,
+                    q=q,
+                    source_only=source_only,
+                ),
+            }
+        if method == "GET" and len(parts) == 3 and parts[2] == "snippet":
+            xref_id = _first_query_value(query, "xref_id")
+            if not xref_id:
+                raise ValueError("Missing xref_id")
+            before = _parse_int_arg(query, "before", 20)
+            after = _parse_int_arg(query, "after", 20)
+            return {
+                "ok": True,
+                "data": corpus_usage.snippet_payload(
+                    xref_id,
+                    before=20 if before is None else before,
+                    after=20 if after is None else after,
+                ),
+            }
+        if method == "POST" and len(parts) == 3 and parts[2] == "import":
+            target_id = (body or {}).get("target_id")
+            if not isinstance(target_id, str) or not target_id:
+                raise ValueError("target_id is required")
+            try:
+                job = _start_project_create_job(corpus_usage.corpus_import_media_body(target_id))
+            except Exception as exc:
+                job = _failed_project_create_job(str(exc))
+            return {"ok": True, "data": job}
     if len(parts) >= 3 and parts[0] == "api" and parts[1] == "projects":
         project_name = parts[2]
         if method == "GET" and len(parts) == 3:

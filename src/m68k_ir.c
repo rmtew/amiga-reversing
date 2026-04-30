@@ -1316,11 +1316,30 @@ int m68k_ir_section_analysis_append_recovered_platform_call(M68kSectionAnalysisI
     available_since_version;
   section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].fd_version =
     copy_fd_version;
+  section_analysis->recovered_platform_calls[section_analysis->recovered_platform_call_count].device_name = NULL;
   section_analysis->recovered_platform_call_count += 1U;
   section_analysis->recovered_platform_call_lookup = NULL;
   section_analysis->recovered_platform_call_lookup_size = 0U;
   section_analysis->recovered_platform_call_next_lookup = NULL;
   section_analysis->recovered_platform_call_next_lookup_size = 0U;
+  return 0;
+}
+
+int m68k_ir_section_analysis_set_recovered_platform_call_device_name(M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, uint8_t kind, const char *device_name) {
+  size_t index;
+  char *copy_name;
+  if (section_analysis == NULL || device_name == NULL || device_name[0] == '\0') return 0;
+  if (section_analysis->arena == NULL) return -1;
+  for (index = 0; index < section_analysis->recovered_platform_call_count; ++index) {
+    M68kRecoveredPlatformCallIR *call = &section_analysis->recovered_platform_calls[index];
+    if (call->offset != offset || call->kind != kind) continue;
+    if (call->device_name != NULL) return strcmp(call->device_name, device_name) == 0 ? 0 : -1;
+    copy_name = arena_strdup(section_analysis->arena, device_name);
+    if (copy_name == NULL) return -1;
+    call->device_name = copy_name;
+    return 0;
+  }
   return 0;
 }
 
@@ -1673,6 +1692,11 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
           note_symbol_name, call->note_reg, call->note_disp, call->note_field_disp,
           call->note_stack_cleanup_known, call->note_stack_cleanup_bytes, call->note_return_kind,
           call->available_since, call->fd_version) != 0) {
+          m68k_ir_section_analysis_destroy(&copy);
+          return -1;
+        }
+      if (m68k_ir_section_analysis_set_recovered_platform_call_device_name(&copy, call->offset, call->kind,
+          call->device_name) != 0) {
           m68k_ir_section_analysis_destroy(&copy);
           return -1;
         }

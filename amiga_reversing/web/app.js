@@ -3,6 +3,21 @@ const state = {
   projectData: null,
   loadingToken: 0,
   homeDropCleanup: null,
+  homeView: "projects",
+  corpus: {
+    features: null,
+    feature: "",
+    group: "",
+    platform: "",
+    q: "",
+    showTargetFacts: false,
+    results: [],
+    selectedTargetId: null,
+    xrefs: [],
+    selectedXrefId: null,
+    snippet: null,
+    snippetLoading: false,
+  },
   typeCatalog: null,
   listingRows: [],
   virtualListing: {
@@ -12,7 +27,6 @@ const state = {
     rowHeight: 22,
     generation: null,
     requestSeq: 0,
-    scrollTimer: null,
     scrollRaf: null,
     pendingWindow: null,
     inFlightWindow: null,
@@ -61,7 +75,7 @@ const state = {
 const LISTING_INITIAL_ROW_WINDOW = 240;
 const LISTING_MIN_WINDOW_ROWS = 120;
 const LISTING_MAX_WINDOW_ROWS = 600;
-const LISTING_OVERSCAN_SCREENS = 2;
+const LISTING_OVERSCAN_SCREENS = 4;
 const STATS_MAX_FETCH_SAMPLES = 240;
 const LISTING_COLUMN_MIN_WIDTHS = {
   offset: 48,
@@ -94,6 +108,23 @@ const ENTITY_SUBTYPES = [
   "sound_sample",
   "level_data",
 ];
+const CORPUS_GROUPS = [
+  {id: "", label: "All"},
+  {id: "os", label: "OS calls"},
+  {id: "hardware", label: "Hardware"},
+  {id: "devices", label: "Devices"},
+  {id: "copper", label: "Copper"},
+  {id: "runtime", label: "Runtime"},
+  {id: "app_slots", label: "App slots"},
+];
+const CORPUS_GROUP_PREFIXES = {
+  os: ["os_call", "os:"],
+  hardware: ["hardware:", "hardware_register:", "value_domain:amiga.custom", "value_domain:amiga.cia"],
+  devices: ["device:", "device_call"],
+  copper: ["data:copper_list", "hardware:custom/copper", "value_domain:amiga.custom.copper"],
+  runtime: ["runtime:"],
+  app_slots: ["app_slot:"],
+};
 
 const JOB_PHASE_LABELS = {
   listing: {
@@ -416,7 +447,10 @@ function formatJobProgress(job) {
 }
 
 function recordListingFetchSample(sample) {
-  state.stats.fetchSamples.push(sample);
+  state.stats.fetchSamples.push({
+    ...sample,
+    ms: sample.totalMs ?? sample.ms ?? 0,
+  });
   if (state.stats.fetchSamples.length > STATS_MAX_FETCH_SAMPLES) {
     state.stats.fetchSamples.splice(0, state.stats.fetchSamples.length - STATS_MAX_FETCH_SAMPLES);
   }
@@ -559,6 +593,9 @@ function renderFetchLatencyGraph() {
 function renderFetchStatsTab() {
   const stats = fetchLatencyStats();
   const latest = state.stats.fetchSamples[state.stats.fetchSamples.length - 1] || null;
+  const latestBreakdown = latest
+    ? `total ${formatMs(latest.ms)}; queue ${formatMs(latest.queueMs || 0)}, fetch ${formatMs(latest.fetchMs || 0)}, render ${formatMs(latest.renderMs || 0)}`
+    : "";
   return `
     ${renderFetchLatencyGraph()}
     <div class="stats-grid">
@@ -568,11 +605,11 @@ function renderFetchStatsTab() {
       <div><span>Mean</span><strong>${formatMs(stats.mean)}</strong></div>
       <div><span>P95</span><strong>${formatMs(stats.p95)}</strong></div>
       <div><span>Max</span><strong>${formatMs(stats.max)}</strong></div>
-    </div>
-    <div class="stats-latest">
-      ${latest ? `Latest: ${formatMs(latest.ms)} for rows ${latest.start}-${latest.end} (${escapeHtml(latest.generation || "unknown")})` : "Latest: none"}
-    </div>
-  `;
+      </div>
+      <div class="stats-latest">
+        ${latest ? `Latest: ${latestBreakdown} for rows ${latest.start}-${latest.end} (${escapeHtml(latest.generation || "unknown")})` : "Latest: none"}
+      </div>
+    `;
 }
 
 function renderStatsOverlay() {
@@ -1170,12 +1207,19 @@ async function renderHome() {
     state.homeDropCleanup();
     state.homeDropCleanup = null;
   }
+  if (state.homeView === "corpus") {
+    await renderCorpusHome();
+    return;
+  }
   const projects = await fetchJson("/api/projects");
   const app = document.getElementById("app");
   app.innerHTML = `
     <section class="page page-home">
       <div class="projects-header">
-        <h1>Projects</h1>
+        <div class="home-tabs">
+          <button type="button" class="home-tab active" data-home-view="projects">Projects</button>
+          <button type="button" class="home-tab" data-home-view="corpus">Corpus</button>
+        </div>
         <button id="add-project-button" type="button">Add Project</button>
       </div>
       <div class="drop-hint">Drop Amiga executables or ADF disk images anywhere on this page to create projects.</div>
@@ -1208,6 +1252,13 @@ async function renderHome() {
       </div>
     </section>
   `;
+
+  document.querySelectorAll("[data-home-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.homeView = button.dataset.homeView || "projects";
+      void renderHome();
+    });
+  });
 
   document.querySelectorAll(".project-open-button").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1334,6 +1385,431 @@ async function renderHome() {
     homePage.removeEventListener("dragleave", onDragLeave);
     homePage.removeEventListener("drop", onDrop);
   };
+}
+
+async function renderCorpusHome() {
+  const app = document.getElementById("app");
+  if (!state.corpus.features) {
+    state.corpus.features = await fetchJson("/api/corpus/features");
+  }
+  state.corpus.results = await fetchJson(corpusQueryUrl());
+  app.innerHTML = `
+    <section class="page page-home page-corpus">
+      <div class="projects-header">
+        <div class="home-tabs">
+          <button type="button" class="home-tab" data-home-view="projects">Projects</button>
+          <button type="button" class="home-tab active" data-home-view="corpus">Corpus</button>
+        </div>
+      </div>
+      <div class="corpus-controls">
+        <label>
+          Feature
+          <select id="corpus-feature">
+            <option value="">All features</option>
+            ${corpusVisibleFeatures().map((item) => {
+              const feature = item.feature || "";
+              const selected = feature === state.corpus.feature ? " selected" : "";
+              const sourceCount = Number(item.source_example_count || 0);
+              const suffix = sourceCount > 0
+                ? `${item.target_count || 0} targets, ${sourceCount} source`
+                : `${item.target_count || 0} targets`;
+              return `<option value="${escapeHtml(feature)}"${selected}>${escapeHtml(feature)} (${escapeHtml(suffix)})</option>`;
+            }).join("")}
+          </select>
+        </label>
+        <label>
+          Mode
+          <select id="corpus-group">
+            ${CORPUS_GROUPS.map((item) => {
+              const selected = item.id === state.corpus.group ? " selected" : "";
+              return `<option value="${escapeHtml(item.id)}"${selected}>${escapeHtml(item.label)}</option>`;
+            }).join("")}
+          </select>
+        </label>
+        <label>
+          Platform
+          <select id="corpus-platform">
+            ${["", "amiga-hunk", "amiga-disk", "atari-st"].map((platform) => {
+              const label = platform || "All platforms";
+              const selected = platform === state.corpus.platform ? " selected" : "";
+              return `<option value="${escapeHtml(platform)}"${selected}>${escapeHtml(label)}</option>`;
+            }).join("")}
+          </select>
+        </label>
+        <label>
+          Search
+          <input id="corpus-search" type="search" value="${escapeHtml(state.corpus.q)}">
+        </label>
+        <button id="corpus-search-button" type="button">Search</button>
+      </div>
+      <div class="corpus-quick-filters">
+        ${CORPUS_GROUPS.map((item) => {
+          const active = item.id === state.corpus.group ? " active" : "";
+          return `<button type="button" class="corpus-quick-filter${active}" data-corpus-group="${escapeHtml(item.id)}">${escapeHtml(item.label)}</button>`;
+        }).join("")}
+        <label class="corpus-facts-toggle">
+          <input id="corpus-show-facts" type="checkbox"${state.corpus.showTargetFacts ? " checked" : ""}>
+          Target facts
+        </label>
+      </div>
+      <div id="home-error" class="error"></div>
+      <div id="home-overlay" class="overlay-host" hidden></div>
+      <div class="corpus-layout">
+        <div class="corpus-results">
+          ${renderCorpusResultsHtml(state.corpus.results)}
+        </div>
+        <div class="corpus-detail">
+          ${renderCorpusDetailHtml()}
+        </div>
+      </div>
+      ${renderCorpusSnippetOverlayHtml(state.corpus.snippet)}
+    </section>
+  `;
+  bindCorpusHome();
+}
+
+function corpusVisibleFeatures() {
+  const features = state.corpus.features || [];
+  return features.filter((item) => {
+    const feature = item.feature || "";
+    if (state.corpus.group && !corpusFeatureMatchesGroup(feature, state.corpus.group)) {
+      return feature === state.corpus.feature;
+    }
+    return state.corpus.showTargetFacts || Number(item.source_example_count || 0) > 0 || feature === state.corpus.feature;
+  });
+}
+
+function corpusFeatureMatchesGroup(feature, group) {
+  if (!group) {
+    return true;
+  }
+  const prefixes = CORPUS_GROUP_PREFIXES[group] || [];
+  return prefixes.some((prefix) => feature.startsWith(prefix));
+}
+
+function corpusQueryUrl() {
+  const params = new URLSearchParams();
+  if (state.corpus.feature) {
+    params.set("feature", state.corpus.feature);
+  }
+  if (state.corpus.group) {
+    params.set("group", state.corpus.group);
+  }
+  if (state.corpus.platform) {
+    params.set("platform", state.corpus.platform);
+  }
+  if (state.corpus.q) {
+    params.set("q", state.corpus.q);
+  }
+  if (!state.corpus.showTargetFacts) {
+    params.set("source_only", "1");
+  }
+  const suffix = params.toString();
+  return `/api/corpus/query${suffix ? `?${suffix}` : ""}`;
+}
+
+function renderCorpusResultsHtml(results) {
+  const rows = (results || []).slice(0, 80);
+  if (!rows.length) {
+    return '<div class="empty">No corpus targets.</div>';
+  }
+  return rows.map((target) => {
+    const targetId = target.id || "";
+    const origin = target.origin || {};
+    const title = origin.in_image_path || origin.member_name || origin.display_name || targetId;
+    const count = target.count === undefined || target.count === null ? "" : `${target.count} uses`;
+    const sourceCount = Number(target.source_example_count || 0);
+    const sourceSummary = sourceCount > 0 ? ` | ${sourceCount} source examples` : " | 0 source examples";
+    const active = targetId === state.corpus.selectedTargetId ? " active" : "";
+    const tags = (target.tags || []).slice(0, 6).map((tag) => `<span class="project-badge">${escapeHtml(tag)}</span>`).join("");
+    return `
+      <div class="corpus-card${active}">
+        <button type="button" class="corpus-card-main" data-corpus-target="${escapeHtml(targetId)}">
+          <span class="corpus-card-title">${escapeHtml(title)}</span>
+          <span class="corpus-card-meta">${escapeHtml(target.platform || "")}${count ? ` | ${escapeHtml(count)}` : ""}${escapeHtml(sourceSummary)}</span>
+          <span class="corpus-tags">${tags}</span>
+        </button>
+        <button type="button" class="corpus-add-button" data-corpus-import="${escapeHtml(targetId)}" title="Promote to be a real project" aria-label="Promote to be a real project">&#128278;</button>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderCorpusDetailHtml() {
+  if (!state.corpus.selectedTargetId) {
+    return '<div class="empty">Select a corpus target to inspect examples.</div>';
+  }
+  const sourceXrefs = (state.corpus.xrefs || []).filter((xref) => Number.isInteger(xref.row_index));
+  const targetFacts = (state.corpus.xrefs || []).filter((xref) => !Number.isInteger(xref.row_index));
+  return `
+    <div class="corpus-xrefs">
+      <div class="corpus-detail-title">Source Examples</div>
+      ${renderCorpusSourceXrefsHtml(sourceXrefs)}
+      ${state.corpus.showTargetFacts ? `
+        <div class="corpus-detail-title">Target Facts</div>
+        ${renderCorpusFactXrefsHtml(targetFacts)}
+      ` : ""}
+    </div>
+  `;
+}
+
+function renderCorpusSourceXrefsHtml(xrefs) {
+  const rows = (xrefs || []).slice(0, 160);
+  if (!rows.length) {
+    return '<div class="empty">No source-row examples for this filter.</div>';
+  }
+  return rows.map((xref) => {
+    const active = xref.id === state.corpus.selectedXrefId ? " active" : "";
+    const hasSnippet = Number.isInteger(xref.row_index);
+    const location = hasSnippet ? `row ${xref.row_index}` : "target";
+    const access = xref.access ? `<span class="navigation-badge">${escapeHtml(APP_SLOT_ACCESS_LABELS[xref.access] || xref.access)}</span>` : "";
+    const resolution = xref.resolution ? `<span class="navigation-badge">${escapeHtml(String(xref.resolution).replaceAll("_", " "))}</span>` : "";
+    const inner = `
+      <span class="corpus-xref-feature">${escapeHtml(xref.feature || "")}</span>
+      <span class="corpus-xref-text">${escapeHtml(xref.text || xref.symbol || "")}</span>
+      <span class="corpus-xref-meta">${escapeHtml(location)}${access}${resolution}</span>
+    `;
+    return `
+      <button type="button" class="corpus-xref${active}" data-corpus-xref="${escapeHtml(xref.id)}">
+        ${inner}
+      </button>
+    `;
+  }).join("");
+}
+
+function renderCorpusFactXrefsHtml(xrefs) {
+  const rows = (xrefs || []).slice(0, 80);
+  if (!rows.length) {
+    return '<div class="empty">No target facts for this filter.</div>';
+  }
+  return rows.map((xref) => {
+    const access = xref.access ? `<span class="navigation-badge">${escapeHtml(APP_SLOT_ACCESS_LABELS[xref.access] || xref.access)}</span>` : "";
+    const resolution = xref.resolution ? `<span class="navigation-badge">${escapeHtml(String(xref.resolution).replaceAll("_", " "))}</span>` : "";
+    return `
+      <div class="corpus-xref corpus-xref-static">
+        <span class="corpus-xref-feature">${escapeHtml(xref.feature || "")}</span>
+        <span class="corpus-xref-text">${escapeHtml(xref.text || xref.symbol || "")}</span>
+        <span class="corpus-xref-meta">target${access}${resolution}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderCorpusSnippetHtml(snippet) {
+  if (!snippet) {
+    return "";
+  }
+  const rows = snippet.rows || [];
+  return `
+    <div class="corpus-listing">
+      ${rows.map((row, index) => {
+        const rowIndex = Number.isInteger(row.row_index) ? row.row_index : Number(snippet.start || 0) + index;
+        const active = rowIndex === snippet.highlighted_row_index ? " active" : "";
+        const offset = row.start_offset ?? row.addr ?? row.offset ?? null;
+        return `
+          <div class="corpus-listing-row${active}">
+            <span class="corpus-listing-offset">${escapeHtml(formatRowOffset(offset))}</span>
+            <span class="corpus-listing-bytes">${escapeHtml(row.bytes || "")}</span>
+            <span class="corpus-listing-code">${escapeHtml(row.text || "")}</span>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderCorpusSnippetOverlayHtml(snippet) {
+  if (!snippet) {
+    return "";
+  }
+  const xref = snippet.xref || {};
+  const target = snippet.target || {};
+  const origin = target.origin || {};
+  const title = origin.in_image_path || origin.member_name || origin.display_name || target.id || "Corpus example";
+  const subtitle = `${xref.feature || ""}${xref.resolution ? ` | ${String(xref.resolution).replaceAll("_", " ")}` : ""}`;
+  return `
+    <div class="corpus-snippet-overlay" id="corpus-snippet-overlay" role="dialog" aria-modal="true" aria-labelledby="corpus-snippet-title">
+      <button type="button" class="corpus-snippet-backdrop" data-corpus-snippet-close="1" aria-label="Close snippet"></button>
+      <div class="corpus-snippet-panel">
+        <div class="corpus-snippet-header">
+          <div>
+            <div class="corpus-detail-title" id="corpus-snippet-title">${escapeHtml(title)}</div>
+            <div class="corpus-snippet-subtitle">${escapeHtml(subtitle)}</div>
+          </div>
+          <button type="button" class="corpus-snippet-close" data-corpus-snippet-close="1">Close</button>
+        </div>
+        ${renderCorpusSnippetHtml(snippet)}
+      </div>
+    </div>
+  `;
+}
+
+function bindCorpusHome() {
+  document.querySelectorAll("[data-home-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.homeView = button.dataset.homeView || "projects";
+      void renderHome();
+    });
+  });
+  document.getElementById("corpus-search-button")?.addEventListener("click", () => {
+    updateCorpusFiltersFromControls();
+    void renderHome();
+  });
+  document.getElementById("corpus-feature")?.addEventListener("change", () => {
+    updateCorpusFiltersFromControls();
+    if (state.corpus.feature) {
+      state.corpus.group = "";
+    }
+    state.corpus.selectedTargetId = null;
+    state.corpus.xrefs = [];
+    state.corpus.snippet = null;
+    void renderHome();
+  });
+  document.getElementById("corpus-group")?.addEventListener("change", () => {
+    updateCorpusFiltersFromControls();
+    if (state.corpus.feature && !corpusFeatureMatchesGroup(state.corpus.feature, state.corpus.group)) {
+      state.corpus.feature = "";
+    }
+    state.corpus.selectedTargetId = null;
+    state.corpus.xrefs = [];
+    state.corpus.snippet = null;
+    void renderHome();
+  });
+  document.getElementById("corpus-platform")?.addEventListener("change", () => {
+    updateCorpusFiltersFromControls();
+    state.corpus.selectedTargetId = null;
+    state.corpus.xrefs = [];
+    state.corpus.snippet = null;
+    void renderHome();
+  });
+  document.getElementById("corpus-show-facts")?.addEventListener("change", () => {
+    updateCorpusFiltersFromControls();
+    state.corpus.snippet = null;
+    if (state.corpus.selectedTargetId) {
+      void selectCorpusTarget(state.corpus.selectedTargetId);
+    } else {
+      void renderHome();
+    }
+  });
+  document.querySelectorAll("[data-corpus-group]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.corpus.group = button.dataset.corpusGroup || "";
+      state.corpus.feature = "";
+      state.corpus.selectedTargetId = null;
+      state.corpus.xrefs = [];
+      state.corpus.snippet = null;
+      void renderHome();
+    });
+  });
+  document.getElementById("corpus-search")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      updateCorpusFiltersFromControls();
+      void renderHome();
+    }
+  });
+  document.querySelectorAll("[data-corpus-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void selectCorpusTarget(button.dataset.corpusTarget || "");
+    });
+  });
+  document.querySelectorAll("[data-corpus-xref]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void selectCorpusXref(button.dataset.corpusXref || "");
+    });
+  });
+  document.querySelectorAll("[data-corpus-snippet-close]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void closeCorpusSnippetOverlay();
+    });
+  });
+  document.querySelectorAll("[data-corpus-import]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void importCorpusTarget(button.dataset.corpusImport || "");
+    });
+  });
+}
+
+function updateCorpusFiltersFromControls() {
+  state.corpus.feature = document.getElementById("corpus-feature")?.value || "";
+  state.corpus.group = document.getElementById("corpus-group")?.value || "";
+  state.corpus.platform = document.getElementById("corpus-platform")?.value || "";
+  state.corpus.q = document.getElementById("corpus-search")?.value || "";
+  state.corpus.showTargetFacts = Boolean(document.getElementById("corpus-show-facts")?.checked);
+}
+
+async function selectCorpusTarget(targetId) {
+  if (!targetId) {
+    return;
+  }
+  state.corpus.selectedTargetId = targetId;
+  state.corpus.selectedXrefId = null;
+  state.corpus.snippet = null;
+  state.corpus.snippetLoading = false;
+  const params = new URLSearchParams({target_id: targetId});
+  if (state.corpus.feature) {
+    params.set("feature", state.corpus.feature);
+  }
+  if (state.corpus.group) {
+    params.set("group", state.corpus.group);
+  }
+  if (!state.corpus.showTargetFacts) {
+    params.set("source_only", "1");
+  }
+  state.corpus.xrefs = await fetchJson(`/api/corpus/xrefs?${params}`);
+  await renderHome();
+}
+
+async function selectCorpusXref(xrefId) {
+  if (!xrefId) {
+    return;
+  }
+  const xref = (state.corpus.xrefs || []).find((item) => item.id === xrefId);
+  if (!xref || !Number.isInteger(xref.row_index)) {
+    state.corpus.selectedXrefId = null;
+    state.corpus.snippet = null;
+    state.corpus.snippetLoading = false;
+    await renderHome();
+    return;
+  }
+  state.corpus.selectedXrefId = xrefId;
+  state.corpus.snippetLoading = true;
+  state.corpus.snippet = await fetchJson(`/api/corpus/snippet?xref_id=${encodeURIComponent(xrefId)}&before=20&after=20`);
+  state.corpus.snippetLoading = false;
+  await renderHome();
+}
+
+async function closeCorpusSnippetOverlay() {
+  state.corpus.snippet = null;
+  state.corpus.snippetLoading = false;
+  await renderHome();
+}
+
+async function importCorpusTarget(targetId) {
+  if (!targetId) {
+    return;
+  }
+  const error = document.getElementById("home-error");
+  error.textContent = "";
+  try {
+    const job = await fetchJson("/api/corpus/import", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({target_id: targetId}),
+    });
+    const jobState = await waitForAsyncJob(
+      (jobId) => `/api/projects/create/status?job_id=${encodeURIComponent(jobId)}`,
+      job,
+      null,
+      (currentJob) => setHomeOverlay(renderProgressOverlay(currentJob, "Adding corpus target")),
+    );
+    clearHomeOverlay();
+    if (jobState.result_project_id) {
+      navigateToProject(jobState.result_project_id);
+    }
+  } catch (err) {
+    clearHomeOverlay();
+    error.textContent = String(err.message || err);
+  }
 }
 
 function formatRowOffset(addr) {
@@ -1757,9 +2233,10 @@ function listingWindowWithGenerationTransitionAnchor(viewport, listing) {
 }
 
 function renderVirtualListingWindow(projectId, listing, preserveScroll = false, forcedScrollTop = null) {
+  const renderStartedAt = performance.now();
   const viewport = document.getElementById("listing-viewport");
   if (!viewport) {
-    return;
+    return {renderMs: 0};
   }
   listing = listingWindowWithGenerationTransitionAnchor(viewport, listing);
   const scrollTop = viewport.scrollTop;
@@ -1797,6 +2274,7 @@ function renderVirtualListingWindow(projectId, listing, preserveScroll = false, 
     rowCount: listing.rows.length,
     requestSeq: state.virtualListing.requestSeq,
   });
+  return {renderMs: performance.now() - renderStartedAt};
 }
 
 function bindVirtualListingScroller(projectId, viewport) {
@@ -1815,7 +2293,7 @@ function bindVirtualListingScroller(projectId, viewport) {
     }
     state.virtualListing.scrollRaf = window.requestAnimationFrame(() => {
       state.virtualListing.scrollRaf = null;
-      scheduleListingWindowForScroll(projectId, viewport, {delayMs: 120});
+      scheduleListingWindowForScroll(projectId, viewport);
     });
   };
   viewport.addEventListener("scroll", viewport._listingScrollHandler);
@@ -1825,10 +2303,6 @@ function cancelScheduledListingScrollFetch() {
   if (state.virtualListing.scrollRaf !== null) {
     window.cancelAnimationFrame(state.virtualListing.scrollRaf);
     state.virtualListing.scrollRaf = null;
-  }
-  if (state.virtualListing.scrollTimer !== null) {
-    window.clearTimeout(state.virtualListing.scrollTimer);
-    state.virtualListing.scrollTimer = null;
   }
   state.virtualListing.pendingWindow = null;
 }
@@ -1851,7 +2325,7 @@ function scrollListingViewport(projectId, direction) {
     return false;
   }
   cancelScheduledListingScrollFetch();
-  scheduleListingWindowForScroll(projectId, viewport, {delayMs: 0});
+  scheduleListingWindowForScroll(projectId, viewport);
   void flushPendingListingWindow();
   return true;
 }
@@ -2099,7 +2573,7 @@ function sameListingWindow(left, right) {
   return Boolean(left && right && left.start === right.start && left.count === right.count);
 }
 
-function scheduleListingWindowForScroll(projectId, viewport, {delayMs = 120} = {}) {
+function scheduleListingWindowForScroll(projectId, viewport) {
   const desired = desiredListingWindowForScroll(viewport);
   if (!desired) {
     return;
@@ -2108,15 +2582,11 @@ function scheduleListingWindowForScroll(projectId, viewport, {delayMs = 120} = {
     projectId,
     start: desired.start,
     count: desired.count,
+    requestedAt: performance.now(),
   };
-  if (state.virtualListing.scrollTimer !== null) {
-    window.clearTimeout(state.virtualListing.scrollTimer);
-    state.virtualListing.scrollTimer = null;
-  }
-  state.virtualListing.scrollTimer = window.setTimeout(() => {
-    state.virtualListing.scrollTimer = null;
+  if (!state.virtualListing.inFlightWindow) {
     void flushPendingListingWindow();
-  }, Math.max(0, delayMs));
+  }
 }
 
 async function flushPendingListingWindow() {
@@ -2136,6 +2606,7 @@ async function flushPendingListingWindow() {
       count: pending.count,
       preserveScroll: true,
       abortPrevious: true,
+      requestedAt: pending.requestedAt,
     });
   } catch (error) {
     if (!isAbortError(error)) {
@@ -3327,6 +3798,7 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
     params.set("start", "0");
     params.set("count", String(options.count || after || LISTING_INITIAL_ROW_WINDOW));
   }
+  const requestedAt = Number.isFinite(options.requestedAt) ? options.requestedAt : performance.now();
   const startedAt = performance.now();
   let listing;
   try {
@@ -3339,23 +3811,27 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
       state.virtualListing.fetchAbortController = null;
     }
   }
-  const elapsedMs = performance.now() - startedAt;
+  const fetchedAt = performance.now();
+  const fetchMs = fetchedAt - startedAt;
   if (requestSeq !== state.virtualListing.requestSeq) {
     return listing;
   }
-  recordListingFetchSample({
-    ms: elapsedMs,
-    start: listing.start || 0,
-    end: listing.end || (listing.rows ? listing.rows.length : 0),
-    totalRows: listing.total_rows || 0,
-    generation: listing.analysis_generation || state.virtualListing.generation,
-  });
-  renderVirtualListingWindow(
+  const renderMetrics = renderVirtualListingWindow(
     projectId,
     listing,
     options.preserveScroll === true,
     options.restoreAnchor ? listingAnchorScrollTop(listing, options.restoreAnchor) : null,
   );
+  recordListingFetchSample({
+    totalMs: performance.now() - requestedAt,
+    queueMs: Math.max(0, startedAt - requestedAt),
+    fetchMs,
+    renderMs: renderMetrics.renderMs || 0,
+    start: listing.start || 0,
+    end: listing.end || (listing.rows ? listing.rows.length : 0),
+    totalRows: listing.total_rows || 0,
+    generation: listing.analysis_generation || state.virtualListing.generation,
+  });
   return listing;
 }
 
@@ -3738,10 +4214,6 @@ async function renderProject(projectId) {
   state.virtualListing.requestSeq = 0;
   state.virtualListing.pendingWindow = null;
   state.virtualListing.inFlightWindow = null;
-  if (state.virtualListing.scrollTimer !== null) {
-    window.clearTimeout(state.virtualListing.scrollTimer);
-    state.virtualListing.scrollTimer = null;
-  }
   if (state.virtualListing.scrollRaf !== null) {
     window.cancelAnimationFrame(state.virtualListing.scrollRaf);
     state.virtualListing.scrollRaf = null;
@@ -3976,6 +4448,11 @@ document.addEventListener("mousemove", updateListingColumnResize);
 document.addEventListener("mouseup", endListingColumnResize);
 
 document.addEventListener("keydown", (event) => {
+  if (state.homeView === "corpus" && state.corpus.snippet && event.key === "Escape") {
+    event.preventDefault();
+    void closeCorpusSnippetOverlay();
+    return;
+  }
   if (!state.project) {
     return;
   }

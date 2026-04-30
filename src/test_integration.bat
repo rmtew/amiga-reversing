@@ -19,6 +19,7 @@ set INTEGRATION_MODULES=^
  src.tests.test_platform_disk_cli ^
  src.tests.test_platform_file_manifest ^
  src.tests_integration.test_platform_manifest_integration ^
+ src.tests_integration.test_target_usage_manifest_integration ^
  src.tests_integration.test_vasm_mmu_oracle_integration
 if /I not "%~1"=="--no-build" (
     call "%SCRIPT_DIR%build.bat"

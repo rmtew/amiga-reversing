@@ -3755,9 +3755,9 @@ static int test_facts_v2_render_asm_source_infers_lvo_immediate_for_indexed_wrap
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tmoveq.l #_LVOOpen,d0\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "; KNOWN: DOSBase _LVOOpen via local wrapper") != NULL);
+  M68K_C_ASSERT(strstr(source, "; KNOWN: DOSBase _LVOOpen via local wrapper") == NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l #_LVODateStamp,d0\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "; KNOWN: DOSBase _LVODateStamp via local wrapper") != NULL);
+  M68K_C_ASSERT(strstr(source, "; KNOWN: DOSBase _LVODateStamp via local wrapper") == NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr $0(a6,d0.w)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
@@ -3823,7 +3823,7 @@ static int test_facts_v2_render_asm_source_ignores_ambiguous_wrapper_stack_arg(v
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_annotates_cross_section_local_wrapper(void) {
+static int test_facts_v2_render_asm_source_tracks_cross_section_local_wrapper_without_inline_comment(void) {
   M68kObject object;
   M68kSection caller_section;
   M68kSection wrapper_section;
@@ -3896,14 +3896,15 @@ static int test_facts_v2_render_asm_source_annotates_cross_section_local_wrapper
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tjsr loc_1_00000000.l\t; KNOWN: SysBase _LVOAllocMem via local wrapper\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr loc_1_00000000.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "via local wrapper") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_marks_non_wrapper_local_helper(void) {
+static int test_facts_v2_render_asm_source_tracks_non_wrapper_local_helper_without_inline_comment(void) {
   M68kObject object;
   M68kSection caller_section;
   M68kSection target_section;
@@ -3978,8 +3979,8 @@ static int test_facts_v2_render_asm_source_marks_non_wrapper_local_helper(void) 
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source,
-    "\tjsr loc_1_00000000.l\t; KNOWN: local helper uses SysBase _LVOAllocMem\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr loc_1_00000000.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "local helper uses") == NULL);
   M68K_C_ASSERT(strstr(source, "via local wrapper") == NULL);
   M68K_C_ASSERT_U32(2U, profile.platform_call_count);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
@@ -3988,7 +3989,7 @@ static int test_facts_v2_render_asm_source_marks_non_wrapper_local_helper(void) 
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_annotates_wrapper_stack_args(void) {
+static int test_facts_v2_render_asm_source_annotates_wrapper_stack_args_without_wrapper_comment(void) {
   M68kObject object;
   M68kSection caller_section;
   M68kSection wrapper_section;
@@ -4069,7 +4070,8 @@ static int test_facts_v2_render_asm_source_annotates_wrapper_stack_args(void) {
   M68K_C_ASSERT(strstr(source, "\tmove.l #$10000,-(a7)\t; KNOWN: arg +8 attributes") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovem.l $0008(a7),d0-d1\t; KNOWN: arg +4 byteSize") != NULL);
   M68K_C_ASSERT(strstr(source, "KNOWN: arg +8 attributes") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tjsr loc_1_00000000.l\t; KNOWN: SysBase _LVOAllocMem via local wrapper") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr loc_1_00000000.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "via local wrapper") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
@@ -4864,12 +4866,12 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_infers_lvo_immediate_for_indexed_wrapper},
     {"facts_v2_render_asm_source_ignores_ambiguous_wrapper_stack_arg",
       test_facts_v2_render_asm_source_ignores_ambiguous_wrapper_stack_arg},
-    {"facts_v2_render_asm_source_annotates_cross_section_local_wrapper",
-      test_facts_v2_render_asm_source_annotates_cross_section_local_wrapper},
-    {"facts_v2_render_asm_source_marks_non_wrapper_local_helper",
-      test_facts_v2_render_asm_source_marks_non_wrapper_local_helper},
-    {"facts_v2_render_asm_source_annotates_wrapper_stack_args",
-      test_facts_v2_render_asm_source_annotates_wrapper_stack_args},
+    {"facts_v2_render_asm_source_tracks_cross_section_local_wrapper_without_inline_comment",
+      test_facts_v2_render_asm_source_tracks_cross_section_local_wrapper_without_inline_comment},
+    {"facts_v2_render_asm_source_tracks_non_wrapper_local_helper_without_inline_comment",
+      test_facts_v2_render_asm_source_tracks_non_wrapper_local_helper_without_inline_comment},
+    {"facts_v2_render_asm_source_annotates_wrapper_stack_args_without_wrapper_comment",
+      test_facts_v2_render_asm_source_annotates_wrapper_stack_args_without_wrapper_comment},
     {"facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target",
       test_facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target},
     {"facts_v2_render_asm_source_renders_structured_data_comment",

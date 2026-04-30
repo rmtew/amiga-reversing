@@ -522,6 +522,173 @@ def test_route_create_project_from_executable_media(monkeypatch: pytest.MonkeyPa
     assert data["job_kind"] == "project_create"
 
 
+def test_route_corpus_features_query_xrefs_and_snippet(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "feature_list",
+        lambda: [{"feature": "hardware:custom", "target_count": 1, "occurrence_count": 2, "source_example_count": 1}],
+    )
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "query_targets",
+        lambda *, feature=None, group=None, platform=None, q=None, source_only=False: [
+            {
+                "id": "platform_file_manifest:amiga-hunk/demo",
+                "platform": platform,
+                "count": 2,
+                "source_example_count": 1,
+                "feature": feature,
+                "group": group,
+                "q": q,
+                "source_only": source_only,
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "query_xrefs",
+        lambda *, target_id=None, feature=None, group=None, platform=None, q=None, source_only=False: [
+            {"id": "xref-1", "target_id": target_id, "feature": feature, "group": group, "row_index": 4}
+        ],
+    )
+    snippet_args: list[tuple[str, int, int]] = []
+
+    def fake_snippet_payload(xref_id: str, before: int = 20, after: int = 20) -> dict[str, object]:
+        snippet_args.append((xref_id, before, after))
+        return {
+            "xref": {"id": xref_id},
+            "start": 3,
+            "end": 6,
+            "highlighted_row_index": 4,
+            "rows": [{"row_index": 4, "row_id": "r4", "text": "move.w _custom+intena,d0\n"}],
+        }
+
+    monkeypatch.setattr(disasm_server.corpus_usage, "snippet_payload", fake_snippet_payload)
+
+    features = disasm_server.route_request("GET", "/api/corpus/features", {})
+    query = disasm_server.route_request(
+        "GET",
+        "/api/corpus/query",
+        {"feature": ["hardware:custom"], "group": ["hardware"], "platform": ["amiga-hunk"], "q": ["intena"], "source_only": ["1"]},
+    )
+    xrefs = disasm_server.route_request(
+        "GET",
+        "/api/corpus/xrefs",
+        {"target_id": ["platform_file_manifest:amiga-hunk/demo"], "feature": ["hardware:custom"], "group": ["hardware"], "source_only": ["1"]},
+    )
+    snippet = disasm_server.route_request(
+        "GET",
+        "/api/corpus/snippet",
+        {"xref_id": ["xref-1"], "before": ["0"], "after": ["0"]},
+    )
+
+    assert cast(list[dict[str, object]], features["data"])[0]["feature"] == "hardware:custom"
+    assert cast(list[dict[str, object]], features["data"])[0]["source_example_count"] == 1
+    assert cast(list[dict[str, object]], query["data"])[0]["platform"] == "amiga-hunk"
+    assert cast(list[dict[str, object]], query["data"])[0]["source_example_count"] == 1
+    assert cast(list[dict[str, object]], query["data"])[0]["group"] == "hardware"
+    assert cast(list[dict[str, object]], query["data"])[0]["source_only"] is True
+    assert cast(list[dict[str, object]], xrefs["data"])[0]["row_index"] == 4
+    assert cast(dict[str, object], snippet["data"])["highlighted_row_index"] == 4
+    assert snippet_args == [("xref-1", 0, 0)]
+    assert cast(list[dict[str, object]], cast(dict[str, object], snippet["data"])["rows"])[0]["row_index"] == 4
+
+
+def test_route_corpus_target_decodes_slash_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[str] = []
+
+    def fake_target_payload(target_id: str) -> dict[str, object]:
+        seen.append(target_id)
+        return {"target": {"id": target_id}, "xrefs": []}
+
+    monkeypatch.setattr(disasm_server.corpus_usage, "target_payload", fake_target_payload)
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/corpus/targets/platform_file_manifest%3Aamiga-hunk%2Fdemo",
+        {},
+    )
+
+    assert cast(dict[str, object], cast(dict[str, object], payload["data"])["target"])["id"] == "platform_file_manifest:amiga-hunk/demo"
+    assert seen == ["platform_file_manifest:amiga-hunk/demo"]
+
+
+def test_corpus_snippet_payload_preserves_explicit_row_indexes(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "read_xrefs",
+        lambda: [{"id": "xref-1", "target_id": "target-1", "row_index": 10}],
+    )
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "read_manifest",
+        lambda: [{"id": "target-1", "platform": "amiga-hunk", "origin": {"display_name": "demo"}}],
+    )
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "read_snippet_rows",
+        lambda: [
+            {"target_id": "target-1", "row_index": 9, "row": {"text": "before"}},
+            {"target_id": "target-1", "row_index": 10, "row": {"text": "hit"}},
+            {"target_id": "target-1", "row_index": 12, "row": {"text": "sparse"}},
+        ],
+    )
+
+    payload = disasm_server.corpus_usage.snippet_payload("xref-1", before=1, after=2)
+
+    rows = cast(list[dict[str, object]], payload["rows"])
+    assert [row["row_index"] for row in rows] == [9, 10, 12]
+    assert payload["highlighted_row_index"] == 10
+
+
+def test_route_corpus_import_uses_project_create_job(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "corpus_import_media_body",
+        lambda target_id: {"filename": f"{target_id}.hunk", "media_base64": "ZGVtbw=="},
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "_start_project_create_job",
+        lambda body: {"job_id": "job-corpus", "job_kind": "project_create", "status": "queued", "filename": body["filename"]},
+    )
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/corpus/import",
+        {},
+        {"target_id": "demo"},
+    )
+    data = cast(dict[str, object], payload["data"])
+
+    assert payload["ok"] is True
+    assert data["job_id"] == "job-corpus"
+    assert data["filename"] == "demo.hunk"
+
+
+def test_route_corpus_import_failure_returns_failed_project_job(monkeypatch: pytest.MonkeyPatch) -> None:
+    disasm_server._ASYNC_JOBS.clear()
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "corpus_import_media_body",
+        lambda target_id: (_ for _ in ()).throw(ValueError("cannot reconstruct")),
+    )
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/corpus/import",
+        {},
+        {"target_id": "missing"},
+    )
+    data = cast(dict[str, object], payload["data"])
+
+    assert payload["ok"] is True
+    assert data["job_kind"] == "project_create"
+    assert data["status"] == "failed"
+    assert data["error"] == "cannot reconstruct"
+    disasm_server._ASYNC_JOBS.clear()
+
+
 def test_route_project_create_status_returns_job(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
