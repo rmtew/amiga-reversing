@@ -129,6 +129,8 @@ static int test_movec_control_register_cpu_mask_from_kb(void) {
 static int test_coprocessor_id_roundtrips_from_kb_id_field(void) {
   M68kInstructionIR decoded;
   M68kIrEncodeResult encoded;
+  M68kRenderPolicy policy;
+  M68kIrRenderResult rendered;
   uint8_t out_bytes[4];
   const uint8_t bytes[2] = {0xFBu, 0x54u};
   decoded = m68k_ir_decode_one(bytes, sizeof(bytes), M68K_ASM_CPU_68020, m68k_diag_sink(NULL));
@@ -136,6 +138,9 @@ static int test_coprocessor_id_roundtrips_from_kb_id_field(void) {
   M68K_C_ASSERT_U32(M68K_ASM_MNEMONIC_CPRESTORE, decoded.mnemonic_id);
   M68K_C_ASSERT_U32(1U, decoded.has_coprocessor_id);
   M68K_C_ASSERT_U32(5U, decoded.coprocessor_id);
+  m68k_render_policy_init_default(&policy);
+  rendered = m68k_ir_render_one_with_policy(&decoded, &policy, m68k_diag_sink(NULL));
+  M68K_C_ASSERT_STR("cprestore (a4)", rendered.text);
   encoded = m68k_ir_encode_one(&decoded, out_bytes, sizeof(out_bytes), m68k_diag_sink(NULL));
   M68K_C_ASSERT_U32(2U, (uint32_t)encoded.byte_count);
   M68K_C_ASSERT(memcmp(out_bytes, bytes, sizeof(bytes)) == 0);
@@ -652,6 +657,75 @@ static int test_source_parse_treats_cpu_policy_as_ceiling(void) {
   M68K_C_ASSERT_INT(ASM_SOURCE_STMT_INSTRUCTION, source.statements[1].kind);
   M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_MOVEC, source.statements[1].u.instruction.parsed_ir.mnemonic_id);
   M68K_C_ASSERT_INT(M68K_ASM_CPU_68020, source.statements[1].u.instruction.parsed_ir.target_cpu);
+  m68k_source_model_free(&source);
+  return 0;
+}
+
+static int test_source_fpu_directive_encodes_external_coprocessor_id(void) {
+  AsmSourceFile source;
+  M68kObject object;
+  M68kDiagList diagnostics;
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "\tFPU 5\n"
+    "\tfrestore (a4)\n"
+    "\tFPU 1\n"
+    "\tfsave (a6)\n";
+  memset(&source, 0, sizeof(source));
+  memset(&object, 0, sizeof(object));
+  m68k_diag_list_reset(&diagnostics);
+  source.target_cpu = M68K_ASM_CPU_68020;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&source, source_text,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(1, m68k_source_pipeline_emit_object(&source, &object, m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)object.section_count);
+  M68K_C_ASSERT_U32(4U, object.sections[0].data_size);
+  M68K_C_ASSERT_U32(0xFBU, object.sections[0].data[0]);
+  M68K_C_ASSERT_U32(0x54U, object.sections[0].data[1]);
+  M68K_C_ASSERT_U32(0xF3U, object.sections[0].data[2]);
+  M68K_C_ASSERT_U32(0x16U, object.sections[0].data[3]);
+  m68k_object_destroy(&object);
+  m68k_source_model_free(&source);
+  return 0;
+}
+
+static int test_source_fpu_directive_uses_external_id_under_cpu_ceiling(void) {
+  AsmSourceFile source;
+  M68kObject object;
+  M68kDiagList diagnostics;
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "\tFPU 5\n"
+    "\tfrestore (a4)\n";
+  memset(&source, 0, sizeof(source));
+  memset(&object, 0, sizeof(object));
+  m68k_diag_list_reset(&diagnostics);
+  /* target_cpu is a ceiling here; the directive still encodes the external 68881/68882 cpID. */
+  source.target_cpu = M68K_ASM_CPU_68040;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&source, source_text,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(1, m68k_source_pipeline_emit_object(&source, &object, m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)object.section_count);
+  M68K_C_ASSERT_U32(2U, object.sections[0].data_size);
+  M68K_C_ASSERT_U32(0xFBU, object.sections[0].data[0]);
+  M68K_C_ASSERT_U32(0x54U, object.sections[0].data[1]);
+  m68k_object_destroy(&object);
+  m68k_source_model_free(&source);
+  return 0;
+}
+
+static int test_source_fpu_zero_disables_fpu_alias_instruction(void) {
+  AsmSourceFile source;
+  M68kDiagList diagnostics;
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "\tFPU 0\n"
+    "\tfrestore (a4)\n";
+  memset(&source, 0, sizeof(source));
+  m68k_diag_list_reset(&diagnostics);
+  source.target_cpu = M68K_ASM_CPU_68040;
+  M68K_C_ASSERT(!m68k_source_pipeline_parse_text_and_layout(&source, source_text,
+    m68k_diag_sink(&diagnostics)));
   m68k_source_model_free(&source);
   return 0;
 }
@@ -2877,12 +2951,83 @@ static int test_facts_v2_render_asm_source_maps_bss_relocation_label(void) {
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "#loc_1_00000004") != NULL);
   M68K_C_ASSERT(strstr(source, "    SECTION section_1,bss,$10") != NULL);
-  M68K_C_ASSERT(strstr(source, "DS.B $4") != NULL);
+  M68K_C_ASSERT(strstr(source, "DS.L $1") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_1_00000004:") != NULL);
-  M68K_C_ASSERT(strstr(source, "DS.B $C") != NULL);
+  M68K_C_ASSERT(strstr(source, "DS.L $3") != NULL);
+  M68K_C_ASSERT(strstr(source, "facts_v2 uninitialized") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.relocation_failures);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_relocation_failures);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_render_asm_source_renders_pure_bss_as_ds_reserve(void) {
+  M68kObject object;
+  M68kSection code_section;
+  M68kSection bss_section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[2] = {0x4eu, 0x75u};
+  memset(&code_section, 0, sizeof(code_section));
+  memset(&bss_section, 0, sizeof(bss_section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  code_section.kind = M68K_SECTION_CODE;
+  code_section.size = sizeof(bytes);
+  code_section.data_size = sizeof(bytes);
+  code_section.data = bytes;
+  added = m68k_object_add_section(&object, &code_section);
+  M68K_C_ASSERT(added.ok);
+  bss_section.kind = M68K_SECTION_BSS;
+  bss_section.size = 0x14U;
+  bss_section.data_size = 0U;
+  bss_section.data = NULL;
+  added = m68k_object_add_section(&object, &bss_section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "    SECTION section_1,bss,$14") != NULL);
+  M68K_C_ASSERT(strstr(source, "DS.L $5") != NULL);
+  M68K_C_ASSERT(strstr(source, "DS.B $14") == NULL);
+  M68K_C_ASSERT(strstr(source, "facts_v2 uninitialized") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_render_asm_source_symbols_amiga_loadseg_segment_link(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[6] = {0x43u, 0xFAu, 0xFFu, 0xFAu, 0x4eu, 0x75u};
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "amiga_loadseg_segment_link\tEQU\t-4") != NULL);
+  M68K_C_ASSERT(strstr(source, "lea.l amiga_loadseg_segment_link(pc),a1") != NULL);
+  M68K_C_ASSERT(strstr(source, "lea.l -$6(pc),a1") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;
@@ -4584,14 +4729,14 @@ static int test_facts_v2_inline_return_string_call_skips_payload(void) {
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_scopes_nondefault_fpu_id(void) {
+static int test_facts_v2_render_asm_source_scopes_external_fpu_coprocessor_id(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   char *source = NULL;
-  uint8_t bytes[6] = {0x19u, 0x21u, 0xFBu, 0x54u, 0x4Eu, 0x75u};
+  uint8_t bytes[4] = {0xFBu, 0x54u, 0x4Eu, 0x75u};
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   section.kind = M68K_SECTION_CODE;
@@ -4601,13 +4746,14 @@ static int test_facts_v2_render_asm_source_scopes_nondefault_fpu_id(void) {
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  policy.max_cpu = M68K_ASM_CPU_68040;
+  policy.max_cpu = M68K_ASM_CPU_68020;
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tFPU     5\n") != NULL || strstr(source, "    FPU     5\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tfrestore (a4)") != NULL || strstr(source, "    frestore (a4)") != NULL);
   M68K_C_ASSERT(strstr(source, "\tFPU     1\n") != NULL || strstr(source, "    FPU     1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "cprestore") == NULL);
   M68K_C_ASSERT(strstr(source, "dc.b $FB,$54") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.unsupported_instruction_demotes);
@@ -4829,6 +4975,12 @@ int m68k_c_ir_tests(void) {
     {"decode_ir_decodes_aligned_candidates", test_decode_ir_decodes_aligned_candidates},
     {"decode_ir_treats_cpu_policy_as_ceiling", test_decode_ir_treats_cpu_policy_as_ceiling},
     {"source_parse_treats_cpu_policy_as_ceiling", test_source_parse_treats_cpu_policy_as_ceiling},
+    {"source_fpu_directive_encodes_external_coprocessor_id",
+      test_source_fpu_directive_encodes_external_coprocessor_id},
+    {"source_fpu_directive_uses_external_id_under_cpu_ceiling",
+      test_source_fpu_directive_uses_external_id_under_cpu_ceiling},
+    {"source_fpu_zero_disables_fpu_alias_instruction",
+      test_source_fpu_zero_disables_fpu_alias_instruction},
     {"source_org_sets_logical_pc_without_padding", test_source_org_sets_logical_pc_without_padding},
     {"decode_ir_negative_cache_preserves_higher_cpu_decode",
       test_decode_ir_negative_cache_preserves_higher_cpu_decode},
@@ -4928,6 +5080,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_maps_relocation_after_imm_operand},
     {"facts_v2_render_asm_source_maps_bss_relocation_label",
       test_facts_v2_render_asm_source_maps_bss_relocation_label},
+    {"facts_v2_render_asm_source_renders_pure_bss_as_ds_reserve",
+      test_facts_v2_render_asm_source_renders_pure_bss_as_ds_reserve},
+    {"facts_v2_render_asm_source_symbols_amiga_loadseg_segment_link",
+      test_facts_v2_render_asm_source_symbols_amiga_loadseg_segment_link},
     {"facts_v2_demotes_speculative_unencodable_instruction",
       test_facts_v2_demotes_speculative_unencodable_instruction},
     {"facts_v2_demotes_speculative_reserved_full_extension",
@@ -4994,8 +5150,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_renders_call_input_domain_immediate},
     {"facts_v2_inline_return_string_call_skips_payload",
       test_facts_v2_inline_return_string_call_skips_payload},
-    {"facts_v2_render_asm_source_scopes_nondefault_fpu_id",
-      test_facts_v2_render_asm_source_scopes_nondefault_fpu_id},
+    {"facts_v2_render_asm_source_scopes_external_fpu_coprocessor_id",
+      test_facts_v2_render_asm_source_scopes_external_fpu_coprocessor_id},
     {"facts_v2_render_asm_source_uses_default_fpu_mnemonic",
       test_facts_v2_render_asm_source_uses_default_fpu_mnemonic},
     {"facts_v2_demotes_opcode_relocation_to_data_expr",

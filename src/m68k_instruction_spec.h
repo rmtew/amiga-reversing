@@ -32,6 +32,12 @@ int m68k_instruction_spec_uses_movem_predecrement_mask(const InstructionSpec *in
 uint16_t m68k_reverse_reglist_mask(uint16_t mask);
 void m68k_instruction_spec_to_ir(const InstructionSpec *spec, M68kInstructionIR *out_instruction);
 void m68k_instruction_ir_to_spec(const M68kInstructionIR *instruction, InstructionSpec *out_spec);
+int m68k_instruction_is_fpu_id_alias_instruction(const M68kInstructionIR *instruction);
+int m68k_instruction_needs_fpu_id_directive(const M68kInstructionIR *instruction);
+int m68k_instruction_make_fpu_id_render_instruction(const M68kInstructionIR *instruction,
+  M68kInstructionIR *out_instruction);
+int m68k_instruction_apply_fpu_directive_alias(M68kInstructionIR *instruction, uint8_t current_fpu_id,
+  uint8_t current_fpu_directive_active, uint8_t target_cpu);
 int m68k_instruction_operand_supports_decoded_ea_target(const M68kOperandIR *operand);
 uint8_t m68k_instruction_operand_decoded_ea_shape(const M68kOperandIR *operand);
 uint8_t m68k_instruction_decoded_ea_target_kind(const M68kOperandIR *operand, uint8_t ea_shape,

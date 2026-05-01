@@ -507,7 +507,7 @@ def test_relocation_backed_entry_splits_speculative_decode(tmp_path: Path) -> No
 
     assert "jsr loc_1_00000004.l" in source
     assert "loc_1_00000004:" in source
-    assert "dc.b $00,$00" in source.lower()
+    assert "dc.b $4e,$71,$00,$00" in source.lower()
     assert "ori.b #$75,d0" not in source.lower()
 
     result = subprocess.run(
@@ -3165,7 +3165,7 @@ def test_real_dll_listing_rows_load_king_nondefault_fpu_save() -> None:
     )
 
 
-def test_real_dll_renders_mathtrans_overlap_and_fpu_restore_reassembles(tmp_path: Path) -> None:
+def test_real_dll_renders_mathtrans_overlap_as_data_and_reassembles(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     assembler = PROJECT_ROOT / "src" / "build" / "m68k_assembler_app.exe"
     if not assembler.exists():
@@ -3206,9 +3206,9 @@ def test_real_dll_renders_mathtrans_overlap_and_fpu_restore_reassembles(tmp_path
     assert "ori.b #142,d0" not in rendered
     assert "invalid overlap: decoded code" in rendered
     lowered = rendered.lower()
-    assert "fpu     5" in lowered
-    assert "frestore (a4)" in lowered
-    assert "fpu     1" in lowered
+    assert "dc.b $19,$21,$fb,$54" in lowered
+    assert "fpu     5" not in lowered
+    assert "frestore" not in lowered
     assert "cprestore" not in lowered
     result = subprocess.run(
         [

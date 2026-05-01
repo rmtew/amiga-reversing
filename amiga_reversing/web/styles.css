@@ -321,7 +321,6 @@ body {
 .corpus-card-source,
 .corpus-card-source-button {
   display: block;
-  width: 100%;
   box-sizing: border-box;
   margin-top: 2px;
   padding: 0;
@@ -334,9 +333,33 @@ body {
   white-space: nowrap;
 }
 
+.corpus-card-source-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+}
+
+.corpus-card-source-button {
+  min-width: 0;
+}
+
 .corpus-card-source-button {
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.corpus-disk-browse-button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 22px;
+  border: 1px solid #9a9a9a;
+  background: #fff;
+  color: #111;
+  font-size: 14px;
+  line-height: 1;
 }
 
 .corpus-card.active .corpus-card-main,
@@ -567,6 +590,156 @@ body {
 .corpus-snippet-panel .corpus-listing {
   max-height: none;
   min-height: 0;
+}
+
+.corpus-disk-browser-panel {
+  width: min(860px, calc(100vw - 56px));
+}
+
+.corpus-disk-browser-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #d7d7d7;
+  background: #fff;
+}
+
+.corpus-disk-browser-toolbar button,
+.corpus-disk-entry-detail button,
+.corpus-disk-promote-button {
+  font: inherit;
+  padding: 5px 8px;
+  border: 1px solid #9a9a9a;
+  background: #fff;
+  cursor: pointer;
+}
+
+.corpus-disk-promote-button {
+  margin-left: auto;
+}
+
+.corpus-disk-entry-list {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px 12px;
+}
+
+.corpus-disk-entry {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(120px, 0.55fr) 72px auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 8px;
+  font: inherit;
+  text-align: left;
+  border: 1px solid #c9c9c9;
+  background: #fff;
+  cursor: pointer;
+}
+
+.corpus-disk-entry.directory {
+  background: #fffdf0;
+}
+
+.corpus-disk-entry-name,
+.corpus-disk-entry-type,
+.corpus-disk-entry-size {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.corpus-disk-entry-type,
+.corpus-disk-entry-size {
+  color: #555;
+  font-size: 12px;
+}
+
+.corpus-disk-entry-size {
+  text-align: right;
+}
+
+.corpus-disk-target-button {
+  padding: 3px 6px;
+  border: 1px solid #9a9a9a;
+  background: #fff;
+  font-size: 12px;
+}
+
+.corpus-disk-entry-detail {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(120px, 0.5fr) 72px auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #d7d7d7;
+  background: #fff6c9;
+}
+
+.corpus-disk-view-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #d7d7d7;
+  background: #fff;
+}
+
+.corpus-disk-view-tabs button {
+  font: inherit;
+  padding: 5px 8px;
+  border: 1px solid #9a9a9a;
+  background: #fff;
+  cursor: pointer;
+}
+
+.corpus-disk-view-tabs button.active {
+  background: #111;
+  color: #fff;
+}
+
+.corpus-disk-view-tabs button:disabled {
+  color: #999;
+  cursor: default;
+}
+
+.corpus-disk-content {
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px 12px;
+}
+
+.corpus-disk-content pre {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid #c9c9c9;
+  background: #fff;
+  white-space: pre-wrap;
+}
+
+.corpus-disk-content-error {
+  margin: 10px 12px 12px;
+}
+
+.corpus-disk-hexdump {
+  display: grid;
+  grid-template-columns: 78px minmax(360px, 1fr) minmax(120px, 0.3fr);
+  border: 1px solid #c9c9c9;
+  background: #fff;
+}
+
+.corpus-disk-hexdump span {
+  padding: 2px 8px;
+  border-bottom: 1px solid #ececec;
+  white-space: pre;
+}
+
+.corpus-disk-hexdump-offset {
+  color: #666;
 }
 
 .corpus-snippet-loading {

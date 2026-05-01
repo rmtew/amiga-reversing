@@ -4,6 +4,15 @@ const state = {
   loadingToken: 0,
   homeDropCleanup: null,
   homeView: "projects",
+  diskBrowser: {
+    payload: null,
+    loading: false,
+    error: null,
+    requestKey: null,
+    requestToken: 0,
+    view: "entries",
+    urlForPath: null,
+  },
   corpus: {
     features: null,
     featuresLoading: false,
@@ -1265,6 +1274,8 @@ async function waitForAsyncJobPolling(statusUrl, job, token, renderOverlay) {
 }
 
 async function renderHome() {
+  state.project = null;
+  state.projectData = null;
   if (state.homeDropCleanup) {
     state.homeDropCleanup();
     state.homeDropCleanup = null;
@@ -1515,6 +1526,7 @@ async function renderCorpusHome() {
       </div>
       ${renderCorpusSnippetOverlayHtml(state.corpus.snippet, state.corpus.snippetLoading, state.corpus.snippetError)}
       ${renderCorpusVariantDiffOverlayHtml(state.corpus.variantDiff, state.corpus.variantDiffLoading, state.corpus.variantDiffError)}
+      ${renderDiskBrowserOverlayHtml()}
     </section>
   `;
   bindCorpusHome();
@@ -1706,6 +1718,7 @@ function renderCorpusResultsHtml(results) {
     const diskName = sourceContext.disk_name || "";
     const diskTargetId = sourceContext.disk_target_id || "";
     const count = target.count === undefined || target.count === null ? "" : `${target.count} uses`;
+    const size = formatFileSize(target.size);
     const sourceCount = Number(target.source_example_count || 0);
     const sourceSummary = sourceCount > 0 ? ` | ${sourceCount} source examples` : " | 0 source examples";
     const variantCount = Number(target.variant_count || 0);
@@ -1715,7 +1728,7 @@ function renderCorpusResultsHtml(results) {
       <div class="corpus-card${active}">
         <button type="button" class="corpus-card-main" data-corpus-target="${escapeHtml(targetId)}">
           <span class="corpus-card-title">${escapeHtml(title)}</span>
-          <span class="corpus-card-meta">${escapeHtml(target.platform || "")}${count ? ` | ${escapeHtml(count)}` : ""}${escapeHtml(sourceSummary)}</span>
+          <span class="corpus-card-meta">${escapeHtml(target.platform || "")}${size ? ` | ${escapeHtml(size)}` : ""}${count ? ` | ${escapeHtml(count)}` : ""}${escapeHtml(sourceSummary)}</span>
           ${renderCorpusCoverageBadges(target)}
           ${variantCount > 1 ? `<span class="corpus-coverage-list"><span class="project-badge">${escapeHtml(`${variantCount} variants`)}</span></span>` : ""}
           <span class="corpus-tags">${tags}</span>
@@ -1752,8 +1765,11 @@ function renderCorpusDiskContext(diskName, diskTargetId) {
     return `<span class="corpus-card-source">Disk: ${escapeHtml(diskName)}</span>`;
   }
   return `
-    <span role="button" tabindex="0" class="corpus-card-source-button" data-corpus-related-target="${escapeHtml(diskTargetId)}">
-      Disk: ${escapeHtml(diskName)}
+    <span class="corpus-card-source-row">
+      <span role="button" tabindex="0" class="corpus-card-source-button" data-corpus-related-target="${escapeHtml(diskTargetId)}">
+        Disk: ${escapeHtml(diskName)}
+      </span>
+      <span role="button" tabindex="0" class="corpus-disk-browse-button" data-corpus-disk-browse="${escapeHtml(diskTargetId)}" title="Browse disk files" aria-label="Browse disk files">&#128190;</span>
     </span>
   `;
 }
@@ -1988,6 +2004,165 @@ function renderCorpusVariantDiffOverlayHtml(diff, loading = false, error = null)
         </div>
         ${body}
       </div>
+    </div>
+  `;
+}
+
+function renderDiskBrowserOverlayHtml() {
+  const browser = state.diskBrowser.payload;
+  const loading = state.diskBrowser.loading;
+  const error = state.diskBrowser.error;
+  const view = state.diskBrowser.view;
+  if (!browser && !loading && !error) {
+    return "";
+  }
+  const disk = browser?.disk || {};
+  const entries = Array.isArray(browser?.entries) ? browser.entries : [];
+  const selectedEntry = browser?.selected_entry || null;
+  const selectedContent = selectedEntry?.content || null;
+  const activeView = selectedContent ? view : "entries";
+  const title = loading ? "Disk files" : (disk.display_name || "Disk files");
+  const path = browser?.path || "";
+  let body = "";
+  if (loading) {
+    body = `
+      <div class="corpus-snippet-loading" role="status" aria-live="polite">
+        <div class="progress-bar indeterminate"><div class="progress-fill"></div></div>
+        <div class="progress-detail">Loading disk files</div>
+      </div>
+    `;
+  } else if (error) {
+    body = `<div class="error corpus-snippet-error">${escapeHtml(error)}</div>`;
+  } else {
+    body = `
+      <div class="corpus-disk-browser-toolbar">
+        ${browser.parent_path !== null && browser.parent_path !== undefined ? `<button type="button" data-disk-browser-path="${escapeHtml(browser.parent_path)}">Up</button>` : ""}
+        <span>${escapeHtml(path || "/")}</span>
+      </div>
+      ${selectedEntry ? renderDiskEntryDetail(selectedEntry) : ""}
+      ${selectedContent ? renderDiskViewTabs(activeView, selectedContent) : ""}
+      ${activeView === "entries" ? renderDiskEntryList(entries) : renderDiskContentView(selectedContent, activeView)}
+    `;
+  }
+  return `
+    <div class="corpus-snippet-overlay" id="corpus-disk-browser-overlay" role="dialog" aria-modal="true" aria-labelledby="corpus-disk-browser-title">
+      <button type="button" class="corpus-snippet-backdrop" data-disk-browser-close="1" aria-label="Close disk browser"></button>
+      <div class="corpus-snippet-panel corpus-disk-browser-panel">
+        <div class="corpus-snippet-header">
+          <div>
+            <div class="corpus-detail-title" id="corpus-disk-browser-title">${escapeHtml(title)}</div>
+            <div class="corpus-snippet-subtitle">${escapeHtml([disk.disk_name, path].filter(Boolean).join(" / "))}</div>
+          </div>
+          ${renderDiskBrowserImportAction(disk)}
+          <button type="button" class="corpus-snippet-close" data-disk-browser-close="1">Close</button>
+        </div>
+        ${body}
+      </div>
+    </div>
+  `;
+}
+
+function renderDiskBrowserImportAction(disk) {
+  const coverage = disk?.project_coverage || {};
+  const modes = Array.isArray(coverage.import_modes) ? coverage.import_modes : [];
+  const diskMode = modes.find((mode) => mode.mode === "disk");
+  if (!diskMode) {
+    return "";
+  }
+  const targetId = diskMode.corpus_target_id || disk.corpus_target_id || disk.id || "";
+  if (!targetId) {
+    return "";
+  }
+  if (diskMode.available) {
+    return `
+      <button
+        type="button"
+        class="corpus-disk-promote-button"
+        data-corpus-import="${escapeHtml(targetId)}"
+        data-corpus-import-mode="disk"
+        title="Promote disk to be a real project"
+      >Promote disk</button>
+    `;
+  }
+  return `<span class="corpus-coverage-badge" title="${escapeHtml(diskMode.covered_project_id ? `Covered by ${diskMode.covered_project_id}` : "Already covered by a project")}">${escapeHtml(diskMode.label || "Disk in Projects")}</span>`;
+}
+
+function renderDiskEntryList(entries) {
+  return `
+    <div class="corpus-disk-entry-list">
+      ${entries.map((entry) => renderDiskEntryRow(entry)).join("") || '<div class="empty">No entries.</div>'}
+    </div>
+  `;
+}
+
+function renderDiskViewTabs(view, content) {
+  const tabs = [
+    ["entries", "Entries", true],
+    ["text", "Text", Boolean(content.text_available)],
+    ["bytes", "Bytes", true],
+    ["hexdump", "Hexdump", true],
+  ];
+  return `
+    <div class="corpus-disk-view-tabs">
+      ${tabs.map(([id, label, enabled]) => `
+        <button type="button" data-disk-browser-view="${escapeHtml(id)}" class="${id === view ? "active" : ""}"${enabled ? "" : " disabled"}>
+          ${escapeHtml(label)}
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderDiskContentView(content, view) {
+  if (!content) {
+    return "";
+  }
+  if (content.error) {
+    return `<div class="error corpus-disk-content-error">${escapeHtml(content.error)}</div>`;
+  }
+  const truncated = content.truncated ? '<div class="progress-detail">Preview truncated.</div>' : "";
+  if (view === "text") {
+    return `<div class="corpus-disk-content">${truncated}<pre>${escapeHtml(content.text || "")}</pre></div>`;
+  }
+  if (view === "bytes") {
+    return `<div class="corpus-disk-content">${truncated}<pre>${escapeHtml(content.bytes || "")}</pre></div>`;
+  }
+  const rows = Array.isArray(content.hexdump) ? content.hexdump : [];
+  return `
+    <div class="corpus-disk-content">
+      ${truncated}
+      <div class="corpus-disk-hexdump">
+        ${rows.map((row) => `
+          <span class="corpus-disk-hexdump-offset">${escapeHtml(formatByteOffset(row.offset || 0))}</span>
+          <span class="corpus-disk-hexdump-hex">${escapeHtml(row.hex || "")}</span>
+          <span class="corpus-disk-hexdump-ascii">${escapeHtml(row.ascii || "")}</span>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderDiskEntryRow(entry) {
+  const path = entry.path || "";
+  const icon = entry.is_directory ? "\u{1F4C1}" : "\u{1F4C4}";
+  const targetAction = entry.target_id ? `<span role="button" tabindex="0" class="corpus-disk-target-button" data-disk-browser-target="${escapeHtml(entry.target_id)}">Open</span>` : "";
+  return `
+    <button type="button" class="corpus-disk-entry${entry.is_directory ? " directory" : " file"}" data-disk-browser-path="${escapeHtml(path)}">
+      <span class="corpus-disk-entry-name">${icon} ${escapeHtml(entry.name || path)}</span>
+      <span class="corpus-disk-entry-type">${escapeHtml(entry.type || entry.kind_name || "")}</span>
+      <span class="corpus-disk-entry-size">${escapeHtml(formatFileSize(entry.size))}</span>
+      ${targetAction}
+    </button>
+  `;
+}
+
+function renderDiskEntryDetail(entry) {
+  return `
+    <div class="corpus-disk-entry-detail">
+      <span>${escapeHtml(entry.name || entry.path || "")}</span>
+      <span>${escapeHtml(entry.type || "")}</span>
+      <span>${escapeHtml(formatFileSize(entry.size))}</span>
+      ${entry.target_id ? `<button type="button" data-disk-browser-target="${escapeHtml(entry.target_id)}">Open target</button>` : ""}
     </div>
   `;
 }
@@ -2346,6 +2521,19 @@ function bindCorpusHome() {
       }
     });
   });
+  document.querySelectorAll("[data-corpus-disk-browse]").forEach((button) => {
+    const openDisk = (event) => {
+      event.stopPropagation();
+      void openCorpusDiskBrowser(button.dataset.corpusDiskBrowse || "", "");
+    };
+    button.addEventListener("click", openDisk);
+    button.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openDisk(event);
+      }
+    });
+  });
   document.querySelectorAll("[data-corpus-xref]").forEach((button) => {
     button.addEventListener("click", () => {
       void selectCorpusXref(button.dataset.corpusXref || "");
@@ -2366,6 +2554,7 @@ function bindCorpusHome() {
       void closeCorpusVariantDiffOverlay();
     });
   });
+  bindDiskBrowserControls();
   document.querySelectorAll(".corpus-byte-context-pair").forEach((row) => {
     row.addEventListener("mouseenter", () => setCorpusByteHighlight(row, true));
     row.addEventListener("mouseleave", () => setCorpusByteHighlight(row, false));
@@ -2380,6 +2569,42 @@ function bindCorpusHome() {
       const targetId = button.dataset.corpusImportMenu || "";
       state.corpus.importMenuTargetId = state.corpus.importMenuTargetId === targetId ? null : targetId;
       void renderHome();
+    });
+  });
+}
+
+function bindDiskBrowserControls() {
+  document.querySelectorAll("[data-disk-browser-path]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      void reopenDiskBrowser(button.dataset.diskBrowserPath || "");
+    });
+  });
+  document.querySelectorAll("[data-disk-browser-view]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      state.diskBrowser.view = button.dataset.diskBrowserView || "entries";
+      void renderDiskBrowserHost();
+    });
+  });
+  document.querySelectorAll("[data-disk-browser-target]").forEach((button) => {
+    const openTarget = (event) => {
+      event.stopPropagation();
+      const targetId = button.dataset.diskBrowserTarget || "";
+      resetDiskBrowser();
+      void selectCorpusTarget(targetId);
+    };
+    button.addEventListener("click", openTarget);
+    button.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openTarget(event);
+      }
+    });
+  });
+  document.querySelectorAll("[data-disk-browser-close]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void closeDiskBrowserOverlay();
     });
   });
 }
@@ -2537,6 +2762,118 @@ async function closeCorpusVariantDiffOverlay() {
   await renderHome();
 }
 
+async function openCorpusDiskBrowser(targetId, path = "") {
+  if (!targetId) {
+    return;
+  }
+  await openDiskBrowser({
+    requestKey: `corpus:${targetId}`,
+    path,
+    urlForPath: (entryPath) => {
+      const params = new URLSearchParams({target_id: targetId});
+      if (entryPath) {
+        params.set("path", entryPath);
+      }
+      return `/api/corpus/disk?${params}`;
+    },
+  });
+}
+
+async function openProjectDiskBrowser(projectId, path = "") {
+  if (!projectId) {
+    return;
+  }
+  await openDiskBrowser({
+    requestKey: `project:${projectId}`,
+    path,
+    urlForPath: (entryPath) => {
+      const params = new URLSearchParams();
+      if (entryPath) {
+        params.set("path", entryPath);
+      }
+      const query = params.toString();
+      return `/api/projects/${encodeURIComponent(projectId)}/disk-browser${query ? `?${query}` : ""}`;
+    },
+  });
+}
+
+async function openDiskBrowser({requestKey, path = "", urlForPath}) {
+  const requestToken = state.diskBrowser.requestToken + 1;
+  state.diskBrowser.requestToken = requestToken;
+  state.diskBrowser.requestKey = requestKey;
+  state.diskBrowser.urlForPath = urlForPath;
+  state.diskBrowser.payload = null;
+  state.diskBrowser.loading = true;
+  state.diskBrowser.error = null;
+  await renderDiskBrowserHost();
+  try {
+    const payload = await fetchJson(urlForPath(path));
+    if (state.diskBrowser.requestToken !== requestToken || state.diskBrowser.requestKey !== requestKey) {
+      return;
+    }
+    state.diskBrowser.payload = payload;
+    state.diskBrowser.view = defaultDiskBrowserView(payload);
+  } catch (err) {
+    if (state.diskBrowser.requestToken !== requestToken || state.diskBrowser.requestKey !== requestKey) {
+      return;
+    }
+    state.diskBrowser.payload = null;
+    state.diskBrowser.error = String(err.message || err);
+  } finally {
+    if (state.diskBrowser.requestToken === requestToken && state.diskBrowser.requestKey === requestKey) {
+      state.diskBrowser.loading = false;
+    }
+  }
+  await renderDiskBrowserHost();
+}
+
+async function reopenDiskBrowser(path = "") {
+  if (!state.diskBrowser.requestKey || typeof state.diskBrowser.urlForPath !== "function") {
+    return;
+  }
+  await openDiskBrowser({
+    requestKey: state.diskBrowser.requestKey,
+    path,
+    urlForPath: state.diskBrowser.urlForPath,
+  });
+}
+
+async function closeDiskBrowserOverlay() {
+  resetDiskBrowser();
+  await renderDiskBrowserHost();
+}
+
+function resetDiskBrowser() {
+  state.diskBrowser.payload = null;
+  state.diskBrowser.loading = false;
+  state.diskBrowser.error = null;
+  state.diskBrowser.requestKey = null;
+  state.diskBrowser.requestToken += 1;
+  state.diskBrowser.view = "entries";
+  state.diskBrowser.urlForPath = null;
+}
+
+async function renderDiskBrowserHost() {
+  if (state.homeView === "corpus" && !state.project) {
+    await renderHome();
+    return;
+  }
+  if (state.projectData?.project?.kind === "disk") {
+    renderDiskProject(state.projectData);
+  }
+}
+
+function defaultDiskBrowserView(payload) {
+  const content = payload?.selected_entry?.content || null;
+  if (!content) {
+    return "entries";
+  }
+  if (content.error) {
+    return "hexdump";
+  }
+  return content.text_available ? "text" : "hexdump";
+}
+
 async function importCorpusTarget(targetId, mode = "target") {
   if (!targetId) {
     return;
@@ -2596,6 +2933,20 @@ function formatByteOffset(addr) {
     return "";
   }
   return `$${Math.max(0, value).toString(16).toUpperCase().padStart(6, "0")}`;
+}
+
+function formatFileSize(size) {
+  const value = Number(size);
+  if (!Number.isFinite(value) || value < 0) {
+    return "";
+  }
+  if (value < 1024) {
+    return `${value} B`;
+  }
+  if (value < 1024 * 1024) {
+    return `${Math.round(value / 1024)} KB`;
+  }
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function navigationEntryHunkIndex(entry) {
@@ -4802,12 +5153,21 @@ function renderDiskFiles(files) {
   }
   return `
     <div class="disk-list">
-      ${files.map((entry) => `
-        <div class="disk-item">
-          <span class="disk-item-main">${escapeHtml(entry.full_path)}</span>
-          <span class="disk-item-meta">${escapeHtml(`${entry.size} bytes | ${formatFileKind(entry)}`)}</span>
-        </div>
-      `).join("")}
+      <button class="disk-item disk-file-button" data-project-disk-path="" type="button">
+        <span class="disk-item-main">Browse disk files</span>
+        <span class="disk-item-meta">Directory view</span>
+      </button>
+      ${files.map((entry) => {
+        const path = entry.full_path || entry.path || entry.name || "";
+        const size = formatFileSize(entry.size);
+        const meta = [size, formatFileKind(entry)].filter(Boolean).join(" | ");
+        return `
+        <button class="disk-item disk-file-button" data-project-disk-path="${escapeHtml(path)}" type="button">
+          <span class="disk-item-main">${escapeHtml(path)}</span>
+          <span class="disk-item-meta">${escapeHtml(meta)}</span>
+        </button>
+      `;
+      }).join("")}
     </div>
   `;
 }
@@ -4839,11 +5199,17 @@ function renderDiskProject(projectData) {
         </div>
       </div>` : ""}
     </section>
+    ${renderDiskBrowserOverlayHtml()}
   `;
 
   document.querySelectorAll(".disk-target-button").forEach((button) => {
     button.addEventListener("click", () => {
       navigateToProject(button.dataset.projectId);
+    });
+  });
+  document.querySelectorAll("[data-project-disk-path]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void openProjectDiskBrowser(projectData.project.id, button.dataset.projectDiskPath || "");
     });
   });
 
@@ -4864,6 +5230,7 @@ function renderDiskProject(projectData) {
       });
     });
   });
+  bindDiskBrowserControls();
 }
 
 async function jumpToListingAddr(projectId, addr, matchText = null) {
@@ -4985,6 +5352,7 @@ async function renderProject(projectId) {
 
   const token = ++state.loadingToken;
   state.project = projectId;
+  resetDiskBrowser();
   state.listingRows = [];
   state.virtualListing.start = 0;
   state.virtualListing.end = 0;
@@ -5245,6 +5613,11 @@ document.addEventListener("keydown", (event) => {
     if (document.getElementById("corpus-variant-diff-overlay")) {
       event.preventDefault();
       void closeCorpusVariantDiffOverlay();
+      return;
+    }
+    if (document.getElementById("corpus-disk-browser-overlay")) {
+      event.preventDefault();
+      void closeDiskBrowserOverlay();
       return;
     }
     if (document.getElementById("corpus-snippet-overlay")) {

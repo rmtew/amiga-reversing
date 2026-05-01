@@ -171,41 +171,6 @@ static int append_statement_comment(JsonBuilder *builder, const M68kStatementIR 
     line_start == builder->size ? "; VIOLATION: %s\n" : " ; VIOLATION: %s\n", stmt->comment);
 }
 
-static int instruction_needs_fpu_id_directive(const M68kInstructionIR *instruction) {
-  if (instruction == NULL || instruction->has_coprocessor_id == 0U || instruction->coprocessor_id == 1U)
-    return 0;
-  return instruction->mnemonic_id == M68K_ASM_MNEMONIC_CPRESTORE ||
-    instruction->mnemonic_id == M68K_ASM_MNEMONIC_CPSAVE;
-}
-
-static int instruction_renders_with_fpu_mnemonic(const M68kInstructionIR *instruction) {
-  if (instruction == NULL || instruction->has_coprocessor_id == 0U) return 0;
-  return instruction->mnemonic_id == M68K_ASM_MNEMONIC_CPRESTORE ||
-    instruction->mnemonic_id == M68K_ASM_MNEMONIC_CPSAVE;
-}
-
-static int make_fpu_id_render_instruction(const M68kInstructionIR *instruction,
-    M68kInstructionIR *out_instruction) {
-  M68kAsmOperandValue operands[4];
-  uint8_t mnemonic_id;
-  size_t operand_index;
-  if (instruction == NULL || out_instruction == NULL) return 0;
-  if (!instruction_renders_with_fpu_mnemonic(instruction)) return 0;
-  *out_instruction = *instruction;
-  mnemonic_id = instruction->mnemonic_id == M68K_ASM_MNEMONIC_CPRESTORE
-    ? M68K_ASM_MNEMONIC_FRESTORE : M68K_ASM_MNEMONIC_FSAVE;
-  out_instruction->mnemonic_id = mnemonic_id;
-  out_instruction->has_coprocessor_id = 0U;
-  out_instruction->coprocessor_id = 0U;
-  out_instruction->target_cpu = M68K_ASM_CPU_68040;
-  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
-    m68k_instruction_operand_to_asm_value(&instruction->operands[operand_index], &operands[operand_index]);
-  }
-  out_instruction->asm_form_index = m68k_asm_form_index_for_operands_id(mnemonic_id, operands,
-    instruction->operand_count, instruction->size_suffix, instruction->target_cpu);
-  return g_m68k_asm_forms[out_instruction->asm_form_index].mnemonic_id != M68K_ASM_MNEMONIC_NONE;
-}
-
 typedef struct RenderLabelIndex {
   const char **names;
   size_t count;
@@ -1125,15 +1090,15 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
             operand->symbol_ref.has_name = 0U;
           }
         }
-        if (instruction_renders_with_fpu_mnemonic(&rendered_instruction)) {
-          if (!make_fpu_id_render_instruction(&rendered_instruction, &rendered_instruction)) {
+        if (m68k_instruction_is_fpu_id_alias_instruction(&rendered_instruction)) {
+          if (!m68k_instruction_make_fpu_id_render_instruction(&rendered_instruction, &rendered_instruction)) {
             render_error(diagnostics, "unable to render coprocessor instruction");
             json_builder_destroy(&builder);
             render_label_indexes_destroy(&label_indexes);
             render_symbol_include_cache_destroy(&include_cache);
             return -1;
           }
-          if (instruction_needs_fpu_id_directive(&stmt->u.instruction) &&
+          if (m68k_instruction_needs_fpu_id_directive(&stmt->u.instruction) &&
               json_builder_appendf(&builder, "    FPU     %u\n",
                 (unsigned)stmt->u.instruction.coprocessor_id) != 0)
             goto oom;
@@ -1151,7 +1116,7 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
         line_start = builder.size;
         if (json_builder_appendf(&builder, "    %s", rendered.text) != 0) goto oom;
         if (append_statement_comment(&builder, stmt, line_start) != 0) goto oom;
-        if (instruction_needs_fpu_id_directive(&stmt->u.instruction) &&
+        if (m68k_instruction_needs_fpu_id_directive(&stmt->u.instruction) &&
             json_builder_append(&builder, "    FPU     1\n") != 0)
           goto oom;
       } else if (stmt->kind == M68K_STATEMENT_DATA) {

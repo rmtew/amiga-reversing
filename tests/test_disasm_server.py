@@ -426,6 +426,99 @@ def test_route_project_returns_disk_manifest_for_disk_project(
     assert disk_manifest["disk_id"] == "demo_disk"
 
 
+def test_route_project_disk_browser_uses_common_disk_introspection(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    extracted = tmp_path / "extracted" / "s" / "startup-sequence"
+    extracted.parent.mkdir(parents=True)
+    extracted.write_bytes(b"Echo")
+    payload = _disk_manifest_payload()
+    analysis = cast(dict[str, object], payload["analysis"])
+    analysis["directories"] = [
+        {
+            "block_num": 42,
+            "name": "s",
+            "full_path": "s",
+            "protection": "----rwed",
+            "comment": None,
+            "date": "2026-01-01T00:00:00",
+            "hash_chain": 0,
+            "parent": 880,
+            "checksum_valid": True,
+        }
+    ]
+    analysis["files"] = [
+        {
+            "block_num": 43,
+            "name": "startup-sequence",
+            "full_path": "s/startup-sequence",
+            "size": 4,
+            "protection": "----rwed",
+            "comment": None,
+            "date": "2026-01-01T00:00:00",
+            "hash_chain": 0,
+            "parent": 42,
+            "extension_blocks": [],
+            "data_blocks": [44],
+            "data_block_count": 1,
+            "checksum_valid": True,
+            "extracted_path": str(extracted),
+            "content": {"kind": "text", "size": 4, "sha256": "text-sha"},
+        }
+    ]
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(payload))
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: ProjectRecord(
+            id=project_name,
+            name="demo_disk",
+            kind="disk",
+            target_dir=str(tmp_path),
+            entities_path=None,
+            output_path=None,
+            binary_path=None,
+            ready=False,
+            last_opened=None,
+            manifest_path=str(manifest_path),
+            target_count=0,
+            source_path="bin/demo.adf",
+            disk_type="DOS",
+            parent_project_id=None,
+            target_type=None,
+            created_at="2026-03-25T00:00:00+00:00",
+            updated_at="2026-03-25T01:00:00+00:00",
+        ),
+    )
+
+    root = disasm_server.route_request("GET", "/api/projects/amiga_disk_demo_disk/disk-browser", {})
+    child = disasm_server.route_request(
+        "GET",
+        "/api/projects/amiga_disk_demo_disk/disk-browser",
+        {"path": ["s"]},
+    )
+    file_payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/amiga_disk_demo_disk/disk-browser",
+        {"path": ["s/startup-sequence"]},
+    )
+
+    root_entries = cast(list[dict[str, object]], cast(dict[str, object], root["data"])["entries"])
+    child_data = cast(dict[str, object], child["data"])
+    child_entries = cast(list[dict[str, object]], child_data["entries"])
+    assert [entry["name"] for entry in root_entries] == ["s"]
+    assert root_entries[0]["type"] == "directory"
+    assert child_data["parent_path"] == ""
+    assert child_entries[0]["name"] == "startup-sequence"
+    assert child_entries[0]["size"] == 4
+    assert child_entries[0]["type"] == "text"
+    selected = cast(dict[str, object], cast(dict[str, object], file_payload["data"])["selected_entry"])
+    content = cast(dict[str, object], selected["content"])
+    assert content["text"] == "Echo"
+    assert content["bytes"] == "45 63 68 6F"
+
+
 def test_route_listing_rejects_disk_project(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(json.dumps(_disk_manifest_payload()))
@@ -956,6 +1049,86 @@ def test_corpus_query_marks_existing_file_and_disk_coverage(monkeypatch: pytest.
         "disk_name": "Demo.adf",
         "disk_target_id": "disk-target",
     }
+
+
+def test_corpus_disk_browser_lists_directories_first_and_file_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
+    disk_target = {
+        "id": "disk-target",
+        "platform": "amiga-disk",
+        "source_id": "disk-row",
+        "sha256": "disk-sha",
+        "size": 901120,
+        "origin": {"member_name": "Demo.adf"},
+    }
+    file_target = {
+        "id": "file-run-target",
+        "platform": "amiga-hunk",
+        "source_id": "file-run-row",
+        "sha256": "run-sha",
+        "size": 12148,
+        "origin": {"in_image_path": "run"},
+    }
+    disk_row = {
+        "id": "disk-row",
+        "platform": "amiga-disk",
+        "origin": {"source_relpath": "resources/demo.adf"},
+        "expect": {
+            "inspect": {
+                "entries": [
+                    {"path": "Demo", "name": "Demo", "kind_name": "volume", "kind": 3},
+                    {"path": "run", "name": "run", "kind_name": "file", "kind": 1, "byte_size": 12148, "content": {"kind": "amiga_hunk_executable", "target_type": "program", "size": 12148}},
+                    {"path": "s", "name": "s", "kind_name": "directory", "kind": 2},
+                    {"path": "s/startup-sequence", "name": "startup-sequence", "kind_name": "file", "kind": 1, "byte_size": 4, "extents": [{"image_offset": 0, "byte_size": 4}], "content": {"kind": "text", "size": 4}},
+                ]
+            }
+        },
+    }
+    monkeypatch.setattr(disasm_server.corpus_usage, "read_manifest", lambda: [disk_target, file_target])
+    monkeypatch.setattr(disasm_server.corpus_usage, "load_disk_image_bytes", lambda origin: b"Echo")
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [])
+
+    def fake_read_jsonl(path: Path) -> list[dict[str, object]]:
+        if path == disasm_server.corpus_usage.DISK_MANIFEST_PATH:
+            return [disk_row]
+        if path == disasm_server.corpus_usage.FILE_MANIFEST_PATH:
+            return [{"id": "file-run-row", "disk_sha256": "disk-sha", "origin": {"in_image_path": "run"}}]
+        return []
+
+    monkeypatch.setattr(disasm_server.corpus_usage, "_read_jsonl_cached", fake_read_jsonl)
+
+    root = disasm_server.route_request("GET", "/api/corpus/disk", {"target_id": ["disk-target"]})
+    root_data = cast(dict[str, object], root["data"])
+    root_entries = cast(list[dict[str, object]], root_data["entries"])
+    child = disasm_server.route_request("GET", "/api/corpus/disk", {"target_id": ["file-run-target"], "path": ["s"]})
+    child_data = cast(dict[str, object], child["data"])
+    child_entries = cast(list[dict[str, object]], child_data["entries"])
+    selected = disasm_server.corpus_usage.disk_browser_payload("disk-target", "s/startup-sequence")
+
+    assert root_data["path"] == ""
+    disk = cast(dict[str, object], root_data["disk"])
+    coverage = cast(dict[str, object], disk["project_coverage"])
+    modes = cast(list[dict[str, object]], coverage["import_modes"])
+    assert modes == [
+        {
+            "mode": "disk",
+            "label": "Promote disk",
+            "available": True,
+            "covered_project_id": None,
+            "corpus_target_id": "disk-target",
+        }
+    ]
+    assert [entry["name"] for entry in root_entries] == ["s", "run"]
+    assert root_entries[0]["is_directory"] is True
+    assert root_entries[1]["size"] == 12148
+    assert root_entries[1]["type"] == "Amiga HUNK program"
+    assert root_entries[1]["target_id"] == "file-run-target"
+    assert child_data["parent_path"] == ""
+    assert [entry["name"] for entry in child_entries] == ["startup-sequence"]
+    assert cast(dict[str, object], selected["selected_entry"])["name"] == "startup-sequence"
+    assert selected["entries"] == []
+    content = cast(dict[str, object], cast(dict[str, object], selected["selected_entry"])["content"])
+    assert content["text"] == "Echo"
+    assert content["bytes"] == "45 63 68 6F"
 
 
 def test_corpus_import_disk_mode_for_file_imports_parent_disk(monkeypatch: pytest.MonkeyPatch) -> None:

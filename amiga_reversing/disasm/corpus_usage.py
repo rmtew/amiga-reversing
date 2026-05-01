@@ -13,10 +13,12 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from amiga_reversing.disasm import disk_browser
 from src.scripts import target_usage_manifest as usage
 from src.scripts.platform_manifest_io import (
     load_disk_image_bytes,
     read_jsonl_manifest,
+    reconstruct_file_bytes,
 )
 
 MANIFEST_PATH = ROOT / "corpus" / "target_usage_manifest.jsonl"
@@ -207,6 +209,31 @@ def variants_payload(target_id: str) -> dict[str, object]:
         },
         "variants": variants,
     }
+
+
+def disk_browser_payload(
+    target_id: str,
+    path: str = "",
+    *,
+    projects: list[dict[str, object]] | None = None,
+) -> dict[str, object]:
+    target = target_row(target_id)
+    disk_target = target if _is_disk_platform(str(target.get("platform"))) else _parent_disk_target_row(target)
+    if disk_target is None:
+        raise ValueError(f"Corpus target {target_id} has no indexed disk container")
+    disk_row = _disk_manifest_row(disk_target)
+    entries = _disk_entries(disk_row)
+    target_index = _disk_entry_target_index(disk_target)
+    disk = _diff_target_summary(disk_target)
+    disk["corpus_target_id"] = disk_target.get("id")
+    disk["project_coverage"] = _project_coverage_for_target(disk_target, projects or [])
+    return disk_browser.browser_payload(
+        disk=disk,
+        entries=entries,
+        path=path,
+        target_index=target_index,
+        content_for_entry=lambda entry: _disk_entry_content_payload(disk_row, entry),
+    )
 
 
 def diff_payload(left_target_id: str, right_target_id: str) -> dict[str, object]:
@@ -1149,6 +1176,62 @@ def _variant_group_for_pair(left_target_id: str, right_target_id: str) -> dict[s
     return None
 
 
+def _is_disk_platform(platform: str) -> bool:
+    return platform in {"amiga-disk", "atari-st-disk"}
+
+
+def _disk_manifest_row(disk_target: dict[str, Any]) -> dict[str, Any]:
+    source_id = disk_target.get("source_id")
+    if not isinstance(source_id, str):
+        raise FileNotFoundError(f"Corpus disk target {disk_target.get('id')} has no source id")
+    for row in _read_jsonl_cached(DISK_MANIFEST_PATH):
+        if row.get("id") == source_id:
+            return row
+    raise FileNotFoundError(f"Missing disk corpus row {source_id}")
+
+
+def _disk_entries(disk_row: dict[str, Any]) -> list[dict[str, Any]]:
+    expect = disk_row.get("expect")
+    inspect = expect.get("inspect") if isinstance(expect, dict) else None
+    entries = inspect.get("entries") if isinstance(inspect, dict) else None
+    return [entry for entry in entries if isinstance(entry, dict)] if isinstance(entries, list) else []
+
+
+def _disk_entry_content_payload(disk_row: dict[str, Any], entry: dict[str, Any]) -> dict[str, object]:
+    try:
+        origin = disk_row.get("origin")
+        if not isinstance(origin, dict):
+            raise RuntimeError("Corpus disk row has no origin")
+        image_bytes = load_disk_image_bytes(origin)
+        data = reconstruct_file_bytes(str(disk_row.get("platform")), entry, image_bytes)
+    except Exception as exc:
+        return disk_browser.content_error_payload(str(exc), disk_browser.entry_size(entry))
+    return disk_browser.content_payload_from_bytes(data)
+
+
+def _disk_entry_target_index(disk_target: dict[str, Any]) -> dict[str, str]:
+    disk_sha256 = disk_target.get("sha256")
+    if not isinstance(disk_sha256, str):
+        return {}
+    file_rows = {
+        str(row.get("id")): row
+        for row in _read_jsonl_cached(FILE_MANIFEST_PATH)
+        if isinstance(row.get("id"), str)
+    }
+    result: dict[str, str] = {}
+    for target in read_manifest():
+        source_id = target.get("source_id")
+        file_row = file_rows.get(source_id) if isinstance(source_id, str) else None
+        if file_row is None or file_row.get("disk_sha256") != disk_sha256:
+            continue
+        origin = file_row.get("origin")
+        entry_path = origin.get("in_image_path") if isinstance(origin, dict) else None
+        target_id = target.get("id")
+        if isinstance(entry_path, str) and isinstance(target_id, str):
+            result[disk_browser.normalise_path(entry_path).lower()] = target_id
+    return result
+
+
 def _import_target_for_mode(target: dict[str, Any], *, mode: str) -> dict[str, Any]:
     platform = str(target.get("platform"))
     if mode == "target":
@@ -1211,7 +1294,7 @@ def _parent_disk_target_row(target: dict[str, Any]) -> dict[str, Any] | None:
     if not isinstance(disk_sha256, str):
         return None
     for row in read_manifest():
-        if row.get("platform") == "amiga-disk" and row.get("sha256") == disk_sha256:
+        if _is_disk_platform(str(row.get("platform"))) and row.get("sha256") == disk_sha256:
             return row
     return None
 
@@ -1234,7 +1317,7 @@ def _target_source_context(target: dict[str, Any]) -> dict[str, object]:
     target_name = origin.get("in_image_path") or origin.get("member_name") or origin.get("display_name")
     if isinstance(target_name, str) and target_name:
         result["target_name"] = target_name
-    disk_target = _parent_disk_target_row(target) if target.get("platform") == "amiga-hunk" else None
+    disk_target = None if _is_disk_platform(str(target.get("platform"))) else _parent_disk_target_row(target)
     if disk_target is not None and isinstance(disk_target.get("id"), str):
         result["disk_target_id"] = disk_target["id"]
     disk_origin = disk_target.get("origin") if disk_target is not None else origin
@@ -1258,14 +1341,15 @@ def _project_coverage_for_target(
     if target.get("platform") == "amiga-hunk":
         modes.append({
             "mode": "target",
-            "label": "Add file as project" if exact_project is None else "File in Projects",
+            "label": "Promote file" if exact_project is None else "File in Projects",
             "available": exact_project is None,
             "covered_project_id": exact_project,
         })
     if disk_target_id is not None:
+        disk_label = "Promote disk" if target.get("platform") == "amiga-disk" else "Promote containing disk"
         modes.append({
             "mode": "disk",
-            "label": "Add disk as project" if disk_project is None else "Disk in Projects",
+            "label": disk_label if disk_project is None else "Disk in Projects",
             "available": disk_project is None,
             "covered_project_id": disk_project,
             "corpus_target_id": disk_target_id,

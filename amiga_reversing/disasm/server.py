@@ -32,11 +32,12 @@ from amiga_reversing.disasm.api import (
 from amiga_reversing.disasm.binary_source import write_source_descriptor
 from amiga_reversing.disasm.c_backend import (
     build_project_rows_generation_with_c_backend,
+    extract_disk_entry_with_c_backend,
     type_catalog_from_c_backend,
     validate_amiga_hunk_executable_with_c_backend,
     validate_api_input_struct_with_c_backend,
 )
-from amiga_reversing.disasm import corpus_usage
+from amiga_reversing.disasm import corpus_usage, disk_browser
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
 from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, ListingRow, SymbolOperandMetadata
 from amiga_reversing.disasm.project_ids import derive_disk_id_from_stem, disk_project_id
@@ -1431,6 +1432,46 @@ def _project_payload(project_name: str) -> ProjectPayload:
     return payload
 
 
+def _project_disk_browser_payload(project_name: str, path: str = "") -> dict[str, object]:
+    project = get_project(project_name)
+    if project.kind != "disk":
+        raise ValueError(f"Project {project_name} is not a disk project")
+    manifest_path = project.manifest_path
+    if manifest_path is None:
+        raise ValueError(f"Disk project {project_name} is missing manifest_path")
+    manifest = DiskManifest.load(Path(manifest_path))
+    manifest_dict = manifest.to_dict()
+    return disk_browser.payload_from_project_manifest(
+        manifest_dict,
+        path,
+        content_for_entry=lambda entry: _project_disk_entry_content_payload(manifest_dict, entry),
+    )
+
+
+def _project_disk_entry_content_payload(
+    manifest: dict[str, object],
+    entry: dict[str, object],
+) -> dict[str, object]:
+    extracted_path = entry.get("extracted_path")
+    try:
+        if isinstance(extracted_path, str) and extracted_path:
+            path = Path(extracted_path)
+            data = path.read_bytes()
+        else:
+            source_path = manifest.get("source_path")
+            entry_path = entry.get("full_path") or entry.get("path")
+            if not isinstance(source_path, str) or not isinstance(entry_path, str):
+                raise RuntimeError("Disk file entry is missing source path metadata")
+            data = extract_disk_entry_with_c_backend(
+                Path(source_path),
+                entry_path,
+                project_root=PROJECT_ROOT,
+            )
+    except Exception as exc:
+        return disk_browser.content_error_payload(str(exc), disk_browser.entry_size(cast(dict[str, object], entry)))
+    return disk_browser.content_payload_from_bytes(data)
+
+
 def resolve_static_response(path: str) -> StaticResponse:
     relative = "index.html" if path in ("", "/") else path.lstrip("/")
     direct_file_path = (WEB_ROOT / relative).resolve()
@@ -1689,6 +1730,18 @@ def route_request(
             if not target_id:
                 raise ValueError("Missing target_id")
             return {"ok": True, "data": corpus_usage.variants_payload(target_id)}
+        if method == "GET" and len(parts) == 3 and parts[2] == "disk":
+            target_id = _first_query_value(query, "target_id")
+            if not target_id:
+                raise ValueError("Missing target_id")
+            return {
+                "ok": True,
+                "data": corpus_usage.disk_browser_payload(
+                    target_id,
+                    _first_query_value(query, "path") or "",
+                    projects=[project.to_dict() for project in list_projects()],
+                ),
+            }
         if method == "GET" and len(parts) == 3 and parts[2] == "diff":
             left_target_id = _first_query_value(query, "left_target_id")
             right_target_id = _first_query_value(query, "right_target_id")
@@ -1745,6 +1798,8 @@ def route_request(
         project_name = parts[2]
         if method == "GET" and len(parts) == 3:
             return {"ok": True, "data": _project_payload(project_name)}
+        if method == "GET" and len(parts) == 4 and parts[3] == "disk-browser":
+            return {"ok": True, "data": _project_disk_browser_payload(project_name, _first_query_value(query, "path") or "")}
         if method == "POST" and len(parts) == 4 and parts[3] == "delete":
             _cancel_listing_jobs(project_name)
             _cancel_reproduction_jobs(project_name)

@@ -194,6 +194,96 @@ void m68k_instruction_operand_to_asm_value(const M68kOperandIR *operand, M68kAsm
   }
 }
 
+static int cpu_uses_external_fpu_id(uint8_t target_cpu) {
+  /* The parser target CPU is a decode ceiling. FPU <cpID> still selects an external 68881/68882 ID. */
+  return target_cpu == M68K_ASM_CPU_68020 || target_cpu == M68K_ASM_CPU_68030;
+}
+
+static uint8_t fpu_id_alias_mnemonic(uint8_t mnemonic_id) {
+  if (mnemonic_id == M68K_ASM_MNEMONIC_CPRESTORE) return M68K_ASM_MNEMONIC_FRESTORE;
+  if (mnemonic_id == M68K_ASM_MNEMONIC_CPSAVE) return M68K_ASM_MNEMONIC_FSAVE;
+  return M68K_ASM_MNEMONIC_NONE;
+}
+
+static uint8_t fpu_id_coprocessor_mnemonic(uint8_t mnemonic_id) {
+  if (mnemonic_id == M68K_ASM_MNEMONIC_FRESTORE) return M68K_ASM_MNEMONIC_CPRESTORE;
+  if (mnemonic_id == M68K_ASM_MNEMONIC_FSAVE) return M68K_ASM_MNEMONIC_CPSAVE;
+  return M68K_ASM_MNEMONIC_NONE;
+}
+
+int m68k_instruction_is_fpu_id_alias_instruction(const M68kInstructionIR *instruction) {
+  if (instruction == NULL || instruction->has_coprocessor_id == 0U) return 0;
+  return fpu_id_alias_mnemonic(instruction->mnemonic_id) != M68K_ASM_MNEMONIC_NONE;
+}
+
+int m68k_instruction_needs_fpu_id_directive(const M68kInstructionIR *instruction) {
+  if (!m68k_instruction_is_fpu_id_alias_instruction(instruction)) return 0;
+  return instruction->coprocessor_id != 1U;
+}
+
+int m68k_instruction_make_fpu_id_render_instruction(const M68kInstructionIR *instruction,
+    M68kInstructionIR *out_instruction) {
+  M68kAsmOperandValue operands[4];
+  uint8_t mnemonic_id;
+  size_t operand_index;
+  if (instruction == NULL || out_instruction == NULL) return 0;
+  mnemonic_id = fpu_id_alias_mnemonic(instruction->mnemonic_id);
+  if (mnemonic_id == M68K_ASM_MNEMONIC_NONE || instruction->has_coprocessor_id == 0U) return 0;
+  *out_instruction = *instruction;
+  out_instruction->mnemonic_id = mnemonic_id;
+  out_instruction->target_cpu = M68K_ASM_CPU_68040;
+  out_instruction->has_coprocessor_id = 0U;
+  out_instruction->coprocessor_id = 0U;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index)
+    m68k_instruction_operand_to_asm_value(&instruction->operands[operand_index], &operands[operand_index]);
+  out_instruction->asm_form_index = m68k_asm_form_index_for_operands_id(mnemonic_id, operands,
+    instruction->operand_count, instruction->size_suffix, out_instruction->target_cpu);
+  return g_m68k_asm_forms[out_instruction->asm_form_index].mnemonic_id != M68K_ASM_MNEMONIC_NONE;
+}
+
+int m68k_instruction_apply_fpu_directive_alias(M68kInstructionIR *instruction, uint8_t current_fpu_id,
+    uint8_t current_fpu_directive_active, uint8_t target_cpu) {
+  M68kAsmOperandValue operands[4];
+  uint8_t candidate_cpus[8];
+  size_t candidate_cpu_count = 0U, operand_index;
+  uint8_t mnemonic_id, form_cpu = 0U, cpu;
+  uint16_t form_index = 0U;
+  if (instruction == NULL) return 1;
+  mnemonic_id = fpu_id_coprocessor_mnemonic(instruction->mnemonic_id);
+  if (mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 1;
+  if (current_fpu_directive_active == 0U) return 1;
+  if (current_fpu_id == 0U) return 0;
+  if (current_fpu_id == 1U && !cpu_uses_external_fpu_id(target_cpu)) return 1;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index)
+    m68k_instruction_operand_to_asm_value(&instruction->operands[operand_index], &operands[operand_index]);
+  candidate_cpus[candidate_cpu_count++] = target_cpu;
+  if (instruction->target_cpu != target_cpu) candidate_cpus[candidate_cpu_count++] = instruction->target_cpu;
+  for (cpu = M68K_ASM_CPU_68000; cpu <= M68K_ASM_CPU_68060; ++cpu) {
+    size_t index;
+    int seen = 0;
+    for (index = 0U; index < candidate_cpu_count; ++index) {
+      if (candidate_cpus[index] == cpu) {
+        seen = 1;
+        break;
+      }
+    }
+    if (!seen) candidate_cpus[candidate_cpu_count++] = cpu;
+  }
+  for (operand_index = 0U; operand_index < candidate_cpu_count; ++operand_index) {
+    form_cpu = candidate_cpus[operand_index];
+    form_index = m68k_asm_form_index_for_operands_id(mnemonic_id, operands,
+      instruction->operand_count, instruction->size_suffix, form_cpu);
+    if (g_m68k_asm_forms[form_index].mnemonic_id != M68K_ASM_MNEMONIC_NONE) break;
+  }
+  if (g_m68k_asm_forms[form_index].mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 0;
+  instruction->asm_form_index = form_index;
+  instruction->mnemonic_id = mnemonic_id;
+  instruction->target_cpu = form_cpu;
+  instruction->has_coprocessor_id = 1U;
+  instruction->coprocessor_id = current_fpu_id & 0x7U;
+  return 1;
+}
+
 void m68k_instruction_spec_to_ir(const InstructionSpec *spec, M68kInstructionIR *out_instruction) {
   const M68kAsmFormDef *form;
   unsigned char bytes[64];

@@ -199,6 +199,7 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
             {
                 "id": "platform_file_manifest:amiga-hunk/demo",
                 "platform": "amiga-hunk",
+                "size": 12148,
                 "count": 1,
                 "source_example_count": 1,
                 "origin": {"in_image_path": "c/Demo"},
@@ -212,8 +213,8 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
                     "disk_project_id": "amiga_disk_demo_project",
                     "parent_disk_target_id": "platform_disk_manifest:amiga-disk/demo",
                     "import_modes": [
-                        {"mode": "target", "label": "Add file as project", "available": True},
-                        {"mode": "disk", "label": "Disk in Projects", "available": False, "covered_project_id": "amiga_disk_demo_project"},
+                        {"mode": "target", "label": "Promote file", "available": True},
+                        {"mode": "disk", "label": "Promote containing disk", "available": True, "corpus_target_id": "platform_disk_manifest:amiga-disk/demo"},
                     ],
                 },
                 "tags": ["hardware:custom"],
@@ -270,6 +271,81 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
         }
 
     monkeypatch.setattr(disasm_server.corpus_usage, "snippet_payload", fake_snippet_payload)
+
+    def fake_disk_browser_payload(target_id, path="", **_kwargs):
+        disk = {
+            "id": "platform_disk_manifest:amiga-disk/demo",
+            "corpus_target_id": "platform_disk_manifest:amiga-disk/demo",
+            "platform": "amiga-disk",
+            "display_name": "DemoDisk.adf",
+            "disk_name": "DemoDisk.adf",
+            "size": 901120,
+            "project_coverage": {
+                "import_modes": [
+                    {"mode": "disk", "label": "Promote disk", "available": True, "corpus_target_id": "platform_disk_manifest:amiga-disk/demo"},
+                ],
+            },
+        }
+        if path == "s":
+            return {
+                "disk": disk,
+                "path": "s",
+                "parent_path": "",
+                "volume": None,
+                "selected_entry": {"name": "s", "path": "s", "type": "directory", "is_directory": True, "size": None},
+                "entries": [
+                    {
+                        "name": "startup-sequence",
+                        "path": "s/startup-sequence",
+                        "type": "text",
+                        "size": 42,
+                        "is_directory": False,
+                    }
+                ],
+            }
+        if path == "s/startup-sequence":
+            return {
+                "disk": disk,
+                "path": "s/startup-sequence",
+                "parent_path": "s",
+                "volume": None,
+                "selected_entry": {
+                    "name": "startup-sequence",
+                    "path": "s/startup-sequence",
+                    "type": "text",
+                    "size": 4,
+                    "is_directory": False,
+                    "content": {
+                        "size": 4,
+                        "truncated": False,
+                        "text_available": True,
+                        "text": "Echo",
+                        "bytes": "45 63 68 6F",
+                        "hexdump": [{"offset": 0, "hex": "45 63 68 6F", "ascii": "Echo"}],
+                    },
+                },
+                "entries": [],
+            }
+        return {
+            "disk": disk,
+            "path": "",
+            "parent_path": None,
+            "volume": None,
+            "selected_entry": None,
+            "entries": [
+                {"name": "s", "path": "s", "type": "directory", "size": None, "is_directory": True},
+                {
+                    "name": "run",
+                    "path": "run",
+                    "type": "Amiga HUNK program",
+                    "size": 12148,
+                    "is_directory": False,
+                    "target_id": "platform_file_manifest:amiga-hunk/demo",
+                },
+            ],
+        }
+
+    monkeypatch.setattr(disasm_server.corpus_usage, "disk_browser_payload", fake_disk_browser_payload)
     monkeypatch.setattr(
         disasm_server.corpus_usage,
         "corpus_import_media_body",
@@ -333,13 +409,32 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
         page.select_value("#corpus-feature", "hardware:custom")
         page.wait_for_selector(".corpus-card")
         assert "1 source examples" in page.text_content(".corpus-card-meta")
+        assert "12 KB" in page.text_content(".corpus-card-meta")
         assert "Disk: DemoDisk.adf" in page.text_content(".corpus-card")
         assert page.evaluate("document.querySelector('.corpus-card-main .corpus-card-source-button') !== null")
+        assert page.evaluate("document.querySelector('.corpus-disk-browse-button')?.dataset.corpusDiskBrowse === 'platform_disk_manifest:amiga-disk/demo'")
         assert "Disk in projects" in page.text_content(".corpus-card")
         assert page.evaluate("document.querySelector('.corpus-card-source-button')?.dataset.corpusRelatedTarget === 'platform_disk_manifest:amiga-disk/demo'")
         assert page.text_content(".corpus-add-button") == "\U0001f516"
         assert page.evaluate("document.querySelector('.corpus-add-button')?.title === 'Promote to be a real project'")
         assert page.evaluate("getComputedStyle(document.querySelector('.corpus-quick-filters')).flexWrap === 'wrap'")
+        page.click(".corpus-disk-browse-button")
+        page.wait_for_selector("#corpus-disk-browser-overlay .corpus-disk-entry")
+        assert "Amiga HUNK program" in page.text_content("#corpus-disk-browser-overlay")
+        assert "12 KB" in page.text_content("#corpus-disk-browser-overlay")
+        assert "Promote disk" in page.text_content("#corpus-disk-browser-overlay")
+        assert page.evaluate("document.querySelector('#corpus-disk-browser-overlay [data-corpus-import-mode=\"disk\"]')?.dataset.corpusImport === 'platform_disk_manifest:amiga-disk/demo'")
+        disk_entries = page.evaluate("[...document.querySelectorAll('.corpus-disk-entry-name')].map((el) => el.textContent)")
+        assert "s" in disk_entries[0]
+        assert "run" in disk_entries[1]
+        page.click("#corpus-disk-browser-overlay .corpus-disk-entry.directory")
+        page.wait_for_expression("document.querySelector('#corpus-disk-browser-overlay')?.textContent.includes('startup-sequence')")
+        page.click("#corpus-disk-browser-overlay .corpus-disk-entry.file")
+        page.wait_for_expression("document.querySelector('#corpus-disk-browser-overlay')?.textContent.includes('Echo')")
+        page.click("[data-disk-browser-view='hexdump']")
+        page.wait_for_expression("document.querySelector('#corpus-disk-browser-overlay')?.textContent.includes('45 63 68 6F')")
+        page.press_key("Escape")
+        page.wait_for_expression("document.querySelector('#corpus-disk-browser-overlay') === null")
         page.click(".corpus-card-main")
         page.wait_for_selector(".corpus-xref")
         assert "Source Examples" in page.text_content(".corpus-detail")
@@ -359,8 +454,8 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
         page.wait_for_expression("document.querySelector('#corpus-snippet-overlay') === null")
         page.click(".corpus-add-button")
         page.wait_for_selector(".corpus-import-menu")
-        assert "Add file as project" in page.text_content(".corpus-import-menu")
-        assert "Disk in Projects" in page.text_content(".corpus-import-menu")
+        assert "Promote file" in page.text_content(".corpus-import-menu")
+        assert "Promote containing disk" in page.text_content(".corpus-import-menu")
         page.click("[data-corpus-import-mode='target']")
         page.wait_for_expression(f"location.pathname === '/{project.id}'", timeout=10.0)
         page.wait_for_expression("document.querySelectorAll('.listing-row').length === 2")

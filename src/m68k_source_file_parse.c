@@ -343,52 +343,6 @@ static int statement_is_fpu_id_alias_instruction(const char *text) {
     mnemonic.mnemonic_id == M68K_ASM_MNEMONIC_FSAVE;
 }
 
-static int apply_current_fpu_id_to_instruction(M68kInstructionIR *instruction, uint8_t current_fpu_id,
-    uint8_t target_cpu) {
-  M68kAsmOperandValue operands[4];
-  uint8_t candidate_cpus[8];
-  size_t candidate_cpu_count = 0U, operand_index;
-  uint8_t mnemonic_id, form_cpu = 0U, cpu;
-  uint16_t form_index = 0U;
-  if (instruction == NULL || current_fpu_id <= 1U) return 1;
-  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_FRESTORE) {
-    mnemonic_id = M68K_ASM_MNEMONIC_CPRESTORE;
-  } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_FSAVE) {
-    mnemonic_id = M68K_ASM_MNEMONIC_CPSAVE;
-  } else {
-    return 1;
-  }
-  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
-    m68k_instruction_operand_to_asm_value(&instruction->operands[operand_index], &operands[operand_index]);
-  }
-  candidate_cpus[candidate_cpu_count++] = target_cpu;
-  if (instruction->target_cpu != target_cpu) candidate_cpus[candidate_cpu_count++] = instruction->target_cpu;
-  for (cpu = M68K_ASM_CPU_68000; cpu <= M68K_ASM_CPU_68060; ++cpu) {
-    size_t index;
-    int seen = 0;
-    for (index = 0U; index < candidate_cpu_count; ++index) {
-      if (candidate_cpus[index] == cpu) {
-        seen = 1;
-        break;
-      }
-    }
-    if (!seen) candidate_cpus[candidate_cpu_count++] = cpu;
-  }
-  for (operand_index = 0U; operand_index < candidate_cpu_count; ++operand_index) {
-    form_cpu = candidate_cpus[operand_index];
-    form_index = m68k_asm_form_index_for_operands_id(mnemonic_id, operands,
-      instruction->operand_count, instruction->size_suffix, form_cpu);
-    if (g_m68k_asm_forms[form_index].mnemonic_id != M68K_ASM_MNEMONIC_NONE) break;
-  }
-  if (g_m68k_asm_forms[form_index].mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 0;
-  instruction->asm_form_index = form_index;
-  instruction->mnemonic_id = mnemonic_id;
-  instruction->target_cpu = form_cpu;
-  instruction->has_coprocessor_id = 1U;
-  instruction->coprocessor_id = current_fpu_id & 0x7U;
-  return 1;
-}
-
 static int parse_plain_instruction_for_cpu_ceiling(const char *text, uint8_t target_cpu,
     M68kInstructionIR *out_instruction, M68kDiagList *diagnostics) {
   uint8_t cpu;
@@ -435,6 +389,7 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
   size_t line_number = 0;
   size_t current_section_index = (size_t)-1;
   uint8_t current_fpu_id = 1U;
+  uint8_t current_fpu_directive_active = 0U;
   M68kSourceIncludeState include_state;
   M68kSourceIncludeContext include_context;
   M68kSourceDataParseContext data_parse_context;
@@ -834,6 +789,7 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
         return 0;
       }
       current_fpu_id = (uint8_t)fpu_id.value;
+      current_fpu_directive_active = 1U;
       continue;
     }
     if (current_section_index == (size_t)-1) {
@@ -940,7 +896,8 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
       stmt = &source->statements[stmt_result.index];
       parse_ok = parse_plain_instruction_for_cpu_ceiling(optimized_statement_text, source->target_cpu,
         &stmt->u.instruction.parsed_ir, &parse_diagnostics);
-      if (!parse_ok && current_fpu_id > 1U && statement_is_fpu_id_alias_instruction(optimized_statement_text)) {
+      if (!parse_ok && current_fpu_directive_active != 0U && current_fpu_id > 0U &&
+          statement_is_fpu_id_alias_instruction(optimized_statement_text)) {
         m68k_diag_list_reset(&parse_diagnostics);
         stmt->u.instruction.parsed_ir = m68k_plain_parse_instruction_to_ir(optimized_statement_text,
           M68K_ASM_CPU_68040, m68k_diag_sink(&parse_diagnostics));
@@ -951,7 +908,8 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
             &stmt->u.instruction.parsed_ir, last_symbol_fallback_line,
             sizeof(last_symbol_fallback_line));
       }
-      if (!parse_ok && current_fpu_id > 1U && statement_is_fpu_id_alias_instruction(optimized_statement_text)) {
+      if (!parse_ok && current_fpu_directive_active != 0U && current_fpu_id > 0U &&
+          statement_is_fpu_id_alias_instruction(optimized_statement_text)) {
         M68kSymbolicParseContext fpu_symbolic_parse_context = symbolic_parse_context;
         fpu_symbolic_parse_context.target_cpu = M68K_ASM_CPU_68040;
         parse_ok = m68k_parse_instruction_with_symbol_fallback_ir(&fpu_symbolic_parse_context,
@@ -981,8 +939,8 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
         }
         return 0;
       }
-      if (!apply_current_fpu_id_to_instruction(&stmt->u.instruction.parsed_ir, current_fpu_id,
-          source->target_cpu)) {
+      if (!m68k_instruction_apply_fpu_directive_alias(&stmt->u.instruction.parsed_ir, current_fpu_id,
+          current_fpu_directive_active, source->target_cpu)) {
         source_line_reader_close(reader);
         source_parse_errorf(diagnostics, "bad FPU instruction at line %u", (unsigned)line_number);
         return 0;

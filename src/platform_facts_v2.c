@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define AMIGA_LOADSEG_SEGMENT_LINK_SYMBOL "amiga_loadseg_segment_link"
+
 void platform_facts_v2_resolved_call_init(PlatformFactsV2ResolvedCall *info) {
   if (info == NULL) return;
   memset(info, 0, sizeof(*info));
@@ -358,5 +360,32 @@ const char *platform_facts_v2_runtime_address_sink_data_class(uint8_t platform_k
   }
   default:
     return NULL;
+  }
+}
+
+int platform_facts_v2_pc_relative_symbol_for_target(uint8_t platform_kind, int64_t target,
+    char *out_name, size_t name_size) {
+  if (out_name != NULL && name_size != 0U) out_name[0] = '\0';
+  if (out_name == NULL || name_size == 0U) return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    if (target != -4) return 0;
+    snprintf(out_name, name_size, "%s", AMIGA_LOADSEG_SEGMENT_LINK_SYMBOL);
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+int platform_facts_v2_synthetic_symbol_value(uint8_t platform_kind, const char *symbol_name, int32_t *out_value) {
+  if (out_value != NULL) *out_value = 0;
+  if (symbol_name == NULL || symbol_name[0] == '\0' || out_value == NULL) return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    if (strcmp(symbol_name, AMIGA_LOADSEG_SEGMENT_LINK_SYMBOL) != 0) return 0;
+    *out_value = -4;
+    return 1;
+  default:
+    return 0;
   }
 }

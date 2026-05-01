@@ -6,6 +6,7 @@
 #include "m68k_parse_util.h"
 #include "m68k_plain_parse.h"
 #include "m68k_simulator.h"
+#include "m68k_source_pipeline.h"
 #include "m68k_source_text_util.h"
 #include "platform_atari_st.h"
 #include "platform_common.h"
@@ -688,6 +689,13 @@ static int render_asm_define_m68k_vector_symbol_once(M68kRenderIRPreview *previe
   return render_asm_declare_symbol_hex_once(preview, symbol_name, vector->address);
 }
 
+static int render_asm_define_platform_symbol_once(M68kRenderIRPreview *preview, const char *symbol_name) {
+  int32_t value;
+  if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0') return 1;
+  if (!platform_facts_v2_synthetic_symbol_value(preview->platform_backend_kind, symbol_name, &value)) return 1;
+  return render_asm_declare_symbol_once(preview, symbol_name, value);
+}
+
 static int render_asm_include_for_amiga_symbol(M68kRenderIRPreview *preview, const char *symbol_name) {
   const char *include_path;
   if (symbol_name == NULL || symbol_name[0] == '\0') return 1;
@@ -718,6 +726,7 @@ static int render_asm_include_for_symbol_expr(M68kRenderIRPreview *preview, cons
     if (!render_asm_define_amiga_hardware_base_once(preview, token)) return 0;
     if (!render_asm_define_amiga_constant_once(preview, token)) return 0;
     if (!render_asm_define_m68k_vector_symbol_once(preview, token)) return 0;
+    if (!render_asm_define_platform_symbol_once(preview, token)) return 0;
   }
   return 1;
 }
@@ -1415,6 +1424,23 @@ static void render_asm_dc_symbol_expr(M68kRenderIRPreview *preview, uint32_t siz
     snprintf(line, sizeof(line), "\t%s %s\t; %s\n", directive, expr, comment);
   else
     snprintf(line, sizeof(line), "\t%s %s\n", directive, expr);
+  hash_asm_text(preview, line);
+  ++preview->asm_source_lines;
+}
+
+static void render_asm_ds_best_fit(M68kRenderIRPreview *preview, uint32_t offset, uint32_t size) {
+  char line[96];
+  const char *directive = "DS.B";
+  uint32_t count = size;
+  if (preview == NULL || size == 0U) return;
+  if ((offset & 3U) == 0U && (size & 3U) == 0U) {
+    directive = "DS.L";
+    count = size / 4U;
+  } else if ((offset & 1U) == 0U && (size & 1U) == 0U) {
+    directive = "DS.W";
+    count = size / 2U;
+  }
+  snprintf(line, sizeof(line), "\t%s $%X\n", directive, (unsigned)count);
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
 }
@@ -2596,10 +2622,29 @@ static int rendered_text_reencodes_original_bytes(const char *text, const M68kIn
   uint8_t parse_cpu;
   if (text == NULL || source_instruction == NULL || raw_bytes == NULL || raw_size > sizeof(encoded_bytes)) return 0;
   if (instruction_has_symbolic_or_relative_text(source_instruction)) return 1;
-  if (source_instruction->has_coprocessor_id != 0U && source_instruction->coprocessor_id != 1U &&
-      (source_instruction->mnemonic_id == M68K_ASM_MNEMONIC_CPRESTORE ||
-       source_instruction->mnemonic_id == M68K_ASM_MNEMONIC_CPSAVE)) {
-    return 1;
+  if (m68k_instruction_needs_fpu_id_directive(source_instruction)) {
+    AsmSourceFile source;
+    M68kObject object;
+    char source_text[512];
+    int ok = 0;
+    memset(&source, 0, sizeof(source));
+    memset(&object, 0, sizeof(object));
+    snprintf(source_text, sizeof(source_text), "SECTION section_0,code\n\tFPU %u\n\t%s\n\tFPU 1\n",
+      (unsigned)source_instruction->coprocessor_id, text);
+    source.target_cpu = source_instruction->target_cpu;
+    m68k_diag_list_reset(&parse_diagnostics);
+    if (m68k_source_pipeline_parse_text_and_layout(&source, source_text, m68k_diag_sink(&parse_diagnostics)) &&
+        !m68k_diag_has_errors(&parse_diagnostics)) {
+      m68k_diag_list_reset(&encode_diagnostics);
+      if (m68k_source_pipeline_emit_object(&source, &object, m68k_diag_sink(&encode_diagnostics)) &&
+          !m68k_diag_has_errors(&encode_diagnostics) && object.section_count == 1U &&
+          object.sections[0].data_size == raw_size && object.sections[0].data != NULL) {
+        ok = memcmp(object.sections[0].data, raw_bytes, raw_size) == 0;
+      }
+    }
+    m68k_object_destroy(&object);
+    m68k_source_model_free(&source);
+    return ok;
   }
   parse_cpu = render_instruction != NULL ? render_instruction->target_cpu : source_instruction->target_cpu;
   m68k_diag_list_reset(&parse_diagnostics);
@@ -2609,41 +2654,6 @@ static int rendered_text_reencodes_original_bytes(const char *text, const M68kIn
   encoded = m68k_ir_encode_one(&parsed, encoded_bytes, sizeof(encoded_bytes), m68k_diag_sink(&encode_diagnostics));
   if (m68k_diag_has_errors(&encode_diagnostics) || encoded.byte_count != raw_size) return 0;
   return memcmp(encoded_bytes, raw_bytes, raw_size) == 0;
-}
-
-static int instruction_needs_fpu_id_directive_for_render(const M68kInstructionIR *instruction) {
-  if (instruction == NULL || instruction->has_coprocessor_id == 0U || instruction->coprocessor_id == 1U)
-    return 0;
-  return instruction->mnemonic_id == M68K_ASM_MNEMONIC_CPRESTORE ||
-    instruction->mnemonic_id == M68K_ASM_MNEMONIC_CPSAVE;
-}
-
-static int instruction_renders_with_fpu_mnemonic_for_render(const M68kInstructionIR *instruction) {
-  if (instruction == NULL || instruction->has_coprocessor_id == 0U) return 0;
-  return instruction->mnemonic_id == M68K_ASM_MNEMONIC_CPRESTORE ||
-    instruction->mnemonic_id == M68K_ASM_MNEMONIC_CPSAVE;
-}
-
-static int make_fpu_id_render_instruction_for_preview(const M68kInstructionIR *instruction,
-    M68kInstructionIR *out_instruction) {
-  M68kAsmOperandValue operands[4];
-  uint8_t mnemonic_id;
-  size_t operand_index;
-  if (instruction == NULL || out_instruction == NULL) return 0;
-  if (!instruction_renders_with_fpu_mnemonic_for_render(instruction)) return 0;
-  *out_instruction = *instruction;
-  mnemonic_id = instruction->mnemonic_id == M68K_ASM_MNEMONIC_CPRESTORE
-    ? M68K_ASM_MNEMONIC_FRESTORE : M68K_ASM_MNEMONIC_FSAVE;
-  out_instruction->mnemonic_id = mnemonic_id;
-  out_instruction->target_cpu = M68K_ASM_CPU_68040;
-  out_instruction->has_coprocessor_id = 0U;
-  out_instruction->coprocessor_id = 0U;
-  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
-    m68k_instruction_operand_to_asm_value(&instruction->operands[operand_index], &operands[operand_index]);
-  }
-  out_instruction->asm_form_index = m68k_asm_form_index_for_operands_id(mnemonic_id, operands,
-    instruction->operand_count, instruction->size_suffix, out_instruction->target_cpu);
-  return g_m68k_asm_forms[out_instruction->asm_form_index].mnemonic_id != M68K_ASM_MNEMONIC_NONE;
 }
 
 struct M68kRenderLookup {
@@ -7768,6 +7778,49 @@ static int attach_symbolic_targets(const M68kRenderLookup *lookup, size_t source
   return 0;
 }
 
+static int attach_platform_pc_relative_synthetic_symbols(const M68kRenderLookup *lookup, size_t section_index,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
+  size_t operand_index;
+  if (lookup == NULL || lookup->object == NULL || candidate == NULL || instruction == NULL) return 0;
+  (void)section_index;
+  for (operand_index = 0U; operand_index < instruction->operand_count &&
+       operand_index < candidate->operand_count; ++operand_index) {
+    M68kOperandIR *operand = &instruction->operands[operand_index];
+    M68kAsmOperandValue asm_operands[M68K_DECODE_IR_MAX_OPERANDS];
+    char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
+    size_t index;
+    size_t relative_base;
+    int64_t target;
+    if (operand->symbol_ref.has_name != 0U) continue;
+    if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 7U || operand->value.ea_reg != 2U)
+      continue;
+    if (candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA ||
+        candidate->operands[operand_index].ea_mode != 7U ||
+        candidate->operands[operand_index].ea_reg != 2U) {
+      continue;
+    }
+    for (index = 0U; index < candidate->operand_count; ++index) {
+      asm_operands[index] = candidate->operands[index];
+      asm_operands[index].kind = candidate->operand_kinds[index];
+    }
+    relative_base = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, asm_operands,
+      candidate->operand_count, candidate_effective_size_suffix(candidate), operand_index, 0);
+    target = (int64_t)candidate->offset + (int64_t)relative_base + signed_16(candidate->operands[operand_index].value);
+    if (!platform_facts_v2_pc_relative_symbol_for_target(lookup->object->platform_backend_kind, target,
+        symbol_name, sizeof(symbol_name))) {
+      continue;
+    }
+    m68k_ir_symbol_ref_init(&operand->symbol_ref);
+    operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_PC_REL;
+    operand->symbol_ref.has_name = 1U;
+    operand->symbol_ref.name_provenance = lookup->object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK
+      ? M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA
+      : M68K_IR_SYMBOL_PROVENANCE_NONE;
+    snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
+  }
+  return 0;
+}
+
 static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     size_t section_index,
     const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
@@ -8100,6 +8153,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
       !attach_proven_instruction_relocations(preview, lookup, section->section_index, candidate, &instruction)) {
     return 0;
   }
+  (void)attach_platform_pc_relative_synthetic_symbols(lookup, section->section_index, candidate, &instruction);
   if (!attach_runtime_address_ref_symbols(preview, lookup, section->section_index, candidate, &instruction)) return 0;
   platform_vector = attach_amiga_lvo_symbol_if_known(platform_state, &instruction);
   immediate_vector = attach_amiga_lvo_immediate_if_known(lookup, section, accepted_start, candidate, &instruction);
@@ -8149,8 +8203,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   (void)append_comment_part_local(instruction_comment, sizeof(instruction_comment), platform_comment);
   apply_exact_byte_immediate_render_values(&instruction, section->data + candidate->offset, candidate->byte_count);
   render_instruction = instruction;
-  if (instruction_renders_with_fpu_mnemonic_for_render(&instruction) &&
-      !make_fpu_id_render_instruction_for_preview(&instruction, &render_instruction)) {
+  if (m68k_instruction_is_fpu_id_alias_instruction(&instruction) &&
+      !m68k_instruction_make_fpu_id_render_instruction(&instruction, &render_instruction)) {
     ++preview->asm_source_instruction_render_failures;
     record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, section->section_index,
       candidate->offset, 0U);
@@ -8206,7 +8260,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
     } else {
       snprintf(line, sizeof(line), "\t%s\n", rendered.text);
     }
-    if (instruction_needs_fpu_id_directive_for_render(&instruction)) {
+    if (m68k_instruction_needs_fpu_id_directive(&instruction)) {
       char scoped_line[1200];
       snprintf(scoped_line, sizeof(scoped_line), "\tFPU     %u\n%s\tFPU     1\n",
         (unsigned)instruction.coprocessor_id, line);
@@ -8516,7 +8570,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
                 render_asm_comment_line(out_preview,
                   lookup_instruction_comment(&lookup, section->section_index, start));
                 if (initialized_span) render_asm_dc_b(out_preview, section->data, start, offset - start, NULL);
-                else render_asm_ds_b(out_preview, offset - start, "facts_v2 uninitialized bytes");
+                else render_asm_ds_best_fit(out_preview, start, offset - start);
                 asm_logical_pc += offset - start;
               }
               }

@@ -820,12 +820,8 @@ static int facts_v2_fixup_target_offset(const M68kObject *object, const M68kFixu
 static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPolicy *policy,
     M68kFactIR *facts, M68kFactsV2LabelLookup *label_lookup, M68kFactsV2WorkQueue *queue,
     M68kRuntimeAddressSpace *runtime_addresses, M68kFactsV2Profile *profile) {
-  size_t section_index;
+  size_t section_index, fixup_index, entry_index, label_index, symbol_index;
   size_t implicit_entry_section = (size_t)-1;
-  size_t fixup_index;
-  size_t entry_index;
-  size_t label_index;
-  size_t symbol_index;
   if (object == NULL || policy == NULL || facts == NULL || label_lookup == NULL ||
       queue == NULL || runtime_addresses == NULL || profile == NULL)
     return -1;

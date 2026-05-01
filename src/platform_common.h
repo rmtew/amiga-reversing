@@ -50,5 +50,8 @@ int platform_facts_v2_resolve_stack_cleanup_call(uint8_t platform_kind,
 int platform_facts_v2_is_callback_vector_slot(uint8_t platform_kind, uint32_t address);
 int platform_facts_v2_is_runtime_address_sink(uint8_t platform_kind, uint32_t address);
 const char *platform_facts_v2_runtime_address_sink_data_class(uint8_t platform_kind, uint32_t address);
+int platform_facts_v2_pc_relative_symbol_for_target(uint8_t platform_kind, int64_t target,
+  char *out_name, size_t name_size);
+int platform_facts_v2_synthetic_symbol_value(uint8_t platform_kind, const char *symbol_name, int32_t *out_value);
 
 #endif
