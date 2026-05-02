@@ -42,6 +42,7 @@ from amiga_reversing.disasm.listing_types import (
     BlockRowContext,
     HeaderRowContext,
     PlatformTypedAccess,
+    PlatformUnresolvedTypedAccess,
     SymbolOperandMetadata,
 )
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
@@ -324,6 +325,24 @@ def test_rows_from_c_listing_json_uses_emitted_metadata() -> None:
                             "nested": False,
                         }
                     ],
+                    "unresolved_typed_accesses": [
+                        {
+                            "operand_index": 1,
+                            "base_register": "A0",
+                            "displacement": 36,
+                            "struct_size": 34,
+                            "root_struct_name": "InputEvent",
+                            "classification": "prefix_extension",
+                            "container_candidate_count": 3,
+                            "container_struct_name": "SyntheticEvent",
+                            "container_field_expr": "se_Field",
+                            "refinement_applied": True,
+                            "refined_struct_name": "SyntheticEvent",
+                            "type_provenance_kind": "api_output",
+                            "type_provenance_section": 0,
+                            "type_provenance_offset": 32,
+                        }
+                    ],
                     "structured_data": {
                         "struct_name": "RT",
                         "field_name": "RT_MATCHWORD",
@@ -365,6 +384,24 @@ def test_rows_from_c_listing_json_uses_emitted_metadata() -> None:
             field_expr="LIB_VERSION",
             inherited=False,
             nested=False,
+        ),
+    )
+    assert rows[1].unresolved_typed_accesses == (
+        PlatformUnresolvedTypedAccess(
+            operand_index=1,
+            base_register="A0",
+            displacement=36,
+            struct_size=34,
+            root_struct_name="InputEvent",
+            classification="prefix_extension",
+            container_candidate_count=3,
+            container_struct_name="SyntheticEvent",
+            container_field_expr="se_Field",
+            refinement_applied=True,
+            refined_struct_name="SyntheticEvent",
+            type_provenance_kind="api_output",
+            type_provenance_section=0,
+            type_provenance_offset=32,
         ),
     )
     assert rows[1].structured_data == {
@@ -3212,6 +3249,8 @@ def test_real_dll_genam_profile_exposes_c_app_slot_analysis() -> None:
     assert {"TIMEVAL", "IO"} <= struct_names
     assert {"TV_SECS", "TV_MICRO", "IO_DEVICE", "IO_ERROR", "IO_DATA"} <= field_names
     assert field_gap_coverages == {"known_struct_field"}
+    assert profile["timing"]["total_seconds"] < 30.0
+    assert profile["facts_v2"]["queue_iterations"] < 10000
     assert isinstance(source_text, str)
     assert "app_slot_analysis" not in source_text
 

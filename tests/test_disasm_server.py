@@ -19,6 +19,7 @@ from amiga_reversing.disasm.listing_types import (
     BlockRowContext,
     ListingRow,
     PlatformTypedAccess,
+    PlatformUnresolvedTypedAccess,
     SemanticOperand,
     SymbolOperandMetadata,
 )
@@ -1584,6 +1585,65 @@ def test_listing_navigation_indexes_instruction_typed_accesses(monkeypatch: pyte
     ]
 
 
+def test_listing_navigation_indexes_unresolved_typed_accesses(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server, "_active_reproduction_report", lambda project_name: None)
+    monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="cmpi.w #36,$0024(a0)\n",
+            stable_key="gap-row",
+            addr=0x34,
+            unresolved_typed_accesses=(
+                PlatformUnresolvedTypedAccess(
+                    operand_index=1,
+                    base_register="A0",
+                    displacement=36,
+                    struct_size=34,
+                    root_struct_name="InputEvent",
+                    classification="prefix_extension",
+                    container_candidate_count=1,
+                    container_struct_name="DerivedEvent",
+                    container_field_expr="de_Field",
+                    refinement_applied=True,
+                    refined_struct_name="DerivedEvent",
+                    type_provenance_kind="prefix_refinement",
+                    type_provenance_section=0,
+                    type_provenance_offset=0x34,
+                ),
+            ),
+        )
+    ]
+
+    payload = disasm_server._listing_navigation_payload("bloodwych", rows)
+    groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
+
+    assert groups["typed-gaps"] == [
+        {
+            "addr": 0x34,
+            "row_index": 0,
+            "summary": "InputEvent+$0024 refines to DerivedEvent",
+            "match_text": "cmpi.w #36,$0024(a0)",
+            "stable_key": "gap-row",
+            "root_struct_name": "InputEvent",
+            "base_register": "A0",
+            "operand_index": 1,
+            "displacement": 36,
+            "struct_size": 34,
+            "classification": "prefix_extension",
+            "container_candidate_count": 1,
+            "container_struct_name": "DerivedEvent",
+            "container_field_expr": "de_Field",
+            "refinement_applied": True,
+            "refined_struct_name": "DerivedEvent",
+            "type_provenance_kind": "prefix_refinement",
+            "type_provenance_section": 0,
+            "type_provenance_offset": 0x34,
+        }
+    ]
+
+
 def test_route_listing_navigation_indexes_label_definition_and_refs(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id="r0", kind="label", text="start:\n", addr=0, label="start"),
@@ -1867,6 +1927,28 @@ def test_listing_navigation_groups_app_slot_refs_by_symbol(monkeypatch: pytest.M
         assert refs[0]["summary"] == "move.l d0,app_0234(a6)"
     finally:
         disasm_server._PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
+
+
+def test_listing_navigation_exposes_type_flow_analysis_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server, "_active_reproduction_report", lambda project_name: None)
+    monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
+    disasm_server._PROJECT_TYPE_FLOW_ANALYSIS_CACHE["bloodwych"] = {
+        "schema_version": 1,
+        "target_id": "project_target:bloodwych",
+        "pointer_chain_root_counts": {"app_slot": 2},
+        "chains": [{"kind": "register_to_app_slot_reload", "count": 2}],
+    }
+    try:
+        payload = disasm_server._listing_navigation_payload("bloodwych", [])
+
+        assert payload["type_flow_analysis"] == {
+            "schema_version": 1,
+            "target_id": "project_target:bloodwych",
+            "pointer_chain_root_counts": {"app_slot": 2},
+            "chains": [{"kind": "register_to_app_slot_reload", "count": 2}],
+        }
+    finally:
+        disasm_server._PROJECT_TYPE_FLOW_ANALYSIS_CACHE.clear()
 
 
 def test_listing_navigation_exposes_app_slot_regions_and_gaps(monkeypatch: pytest.MonkeyPatch) -> None:

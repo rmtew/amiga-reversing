@@ -39,6 +39,7 @@ from amiga_reversing.disasm.listing_types import (
     HeaderRowContext,
     ListingRow,
     PlatformTypedAccess,
+    PlatformUnresolvedTypedAccess,
     SemanticOperand,
     SymbolOperandMetadata,
 )
@@ -575,6 +576,9 @@ def _build_project_rows_generation_from_source(
         app_slot_analysis = listing_rows.get("app_slot_analysis")
         if isinstance(app_slot_analysis, dict):
             profile["app_slot_analysis"] = app_slot_analysis
+        type_flow_analysis = listing_rows.get("type_flow_analysis")
+        if isinstance(type_flow_analysis, dict):
+            profile["type_flow_analysis"] = type_flow_analysis
         rendered_source_text = combined.get("source_text")
         source_text = rendered_source_text if isinstance(rendered_source_text, str) else None
     return rows_from_c_listing_json(listing_rows), api_calls_from_c_analysis(analysis), profile, source_text
@@ -667,6 +671,7 @@ def rows_from_c_listing_json(payload: dict[str, object]) -> list[ListingRow]:
         source_context = _source_context_from_c_json(raw_row.get("source_context"))
         app_slot_refs = _app_slot_refs_from_c_json(raw_row.get("app_slot_refs"))
         typed_accesses = _typed_accesses_from_c_json(raw_row.get("typed_accesses"))
+        unresolved_typed_accesses = _unresolved_typed_accesses_from_c_json(raw_row.get("unresolved_typed_accesses"))
         operand_parts = _operand_parts_from_c_json(raw_row.get("operand_parts"), operand_text)
         operand_accesses = _string_tuple_from_c_json(raw_row.get("operand_accesses"))
         operand_registers = _nullable_string_tuple_from_c_json(raw_row.get("operand_registers"))
@@ -702,6 +707,7 @@ def rows_from_c_listing_json(payload: dict[str, object]) -> list[ListingRow]:
                 operand_registers=operand_registers,
                 app_slot_refs=app_slot_refs,
                 typed_accesses=typed_accesses,
+                unresolved_typed_accesses=unresolved_typed_accesses,
                 operand_text=operand_text if isinstance(operand_text, str) else "",
                 comment_parts=() if not isinstance(comment_text, str) or comment_text == "" else (comment_text,),
                 comment_text=comment_text if isinstance(comment_text, str) else "",
@@ -835,6 +841,56 @@ def _typed_accesses_from_c_json(value: object) -> tuple[PlatformTypedAccess, ...
                 field_expr=field_expr,
                 inherited=bool(inherited),
                 nested=bool(nested),
+            )
+        )
+    return tuple(accesses)
+
+
+def _unresolved_typed_accesses_from_c_json(value: object) -> tuple[PlatformUnresolvedTypedAccess, ...]:
+    if not isinstance(value, list):
+        return ()
+    accesses: list[PlatformUnresolvedTypedAccess] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        operand_index = item.get("operand_index")
+        base_register = item.get("base_register")
+        displacement = item.get("displacement")
+        struct_size = item.get("struct_size")
+        root_struct_name = item.get("root_struct_name")
+        classification = item.get("classification")
+        container_candidate_count = item.get("container_candidate_count")
+        container_struct_name = item.get("container_struct_name")
+        container_field_expr = item.get("container_field_expr")
+        refinement_applied = item.get("refinement_applied")
+        refined_struct_name = item.get("refined_struct_name")
+        type_provenance_kind = item.get("type_provenance_kind")
+        type_provenance_section = item.get("type_provenance_section")
+        type_provenance_offset = item.get("type_provenance_offset")
+        if (
+            not isinstance(operand_index, int)
+            or not isinstance(base_register, str)
+            or not isinstance(displacement, int)
+        ):
+            continue
+        accesses.append(
+            PlatformUnresolvedTypedAccess(
+                operand_index=operand_index,
+                base_register=base_register,
+                displacement=displacement,
+                struct_size=struct_size if isinstance(struct_size, int) else None,
+                root_struct_name=root_struct_name if isinstance(root_struct_name, str) else None,
+                classification=classification if isinstance(classification, str) else None,
+                container_candidate_count=(
+                    container_candidate_count if isinstance(container_candidate_count, int) else None
+                ),
+                container_struct_name=container_struct_name if isinstance(container_struct_name, str) else None,
+                container_field_expr=container_field_expr if isinstance(container_field_expr, str) else None,
+                refinement_applied=bool(refinement_applied),
+                refined_struct_name=refined_struct_name if isinstance(refined_struct_name, str) else None,
+                type_provenance_kind=type_provenance_kind if isinstance(type_provenance_kind, str) else None,
+                type_provenance_section=type_provenance_section if isinstance(type_provenance_section, int) else None,
+                type_provenance_offset=type_provenance_offset if isinstance(type_provenance_offset, int) else None,
             )
         )
     return tuple(accesses)

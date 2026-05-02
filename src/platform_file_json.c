@@ -4,12 +4,52 @@
 static int json_builder_append_nullable_string(JsonBuilder *builder, const char *text);
 static void amiga_struct_catalog_info(uint16_t struct_id, const char **out_source, int16_t *out_size);
 static const char *app_slot_access_kind_name(uint8_t access_kind);
+static const char *unresolved_typed_access_classification_name(uint8_t classification);
+static const char *type_provenance_kind_name(uint8_t kind);
 static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt);
 
 static const char *file_kind_name(M68kPlatformFileKind kind) {
   if (kind == M68K_PLATFORM_FILE_EXECUTABLE) return "executable";
   if (kind == M68K_PLATFORM_FILE_OBJECT) return "object";
   return "unknown";
+}
+
+static const char *unresolved_typed_access_classification_name(uint8_t classification) {
+  switch (classification) {
+  case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION:
+    return "prefix_extension";
+  case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE:
+    return "custom_tail_or_mistyped_base";
+  case M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP:
+  default:
+    return "field_gap";
+  }
+}
+
+static const char *type_provenance_kind_name(uint8_t kind) {
+  switch (kind) {
+  case M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT:
+    return "api_output";
+  case M68K_PLATFORM_TYPE_PROVENANCE_REGISTER_COPY:
+    return "register_copy";
+  case M68K_PLATFORM_TYPE_PROVENANCE_STACK_SLOT:
+    return "stack_slot";
+  case M68K_PLATFORM_TYPE_PROVENANCE_BASE_SLOT:
+    return "base_slot";
+  case M68K_PLATFORM_TYPE_PROVENANCE_LOOKUP_STORAGE:
+    return "lookup_storage";
+  case M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT:
+    return "app_slot";
+  case M68K_PLATFORM_TYPE_PROVENANCE_FIELD_POINTER:
+    return "field_pointer";
+  case M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT:
+    return "prefix_refinement";
+  case M68K_PLATFORM_TYPE_PROVENANCE_FIELD_ADDRESS:
+    return "field_address";
+  case M68K_PLATFORM_TYPE_PROVENANCE_NONE:
+  default:
+    return "unknown";
+  }
 }
 
 static uint16_t read_u16be_local(const uint8_t *data, size_t size, uint32_t offset, int *ok) {
@@ -475,6 +515,32 @@ static int append_amiga_call_outputs_json(JsonBuilder *builder, const AmigaOsLib
   return json_builder_append(builder, "}]");
 }
 
+static const char *atari_return_value_domain(uint8_t return_kind) {
+  switch (return_kind) {
+  case ATARI_ST_OS_RETURN_WORD:
+    return "atari.st.os.return.word";
+  case ATARI_ST_OS_RETURN_LONG:
+    return "atari.st.os.return.long";
+  default:
+    return NULL;
+  }
+}
+
+static int append_atari_call_outputs_json(JsonBuilder *builder, const M68kRecoveredPlatformCallIR *call) {
+  const char *value_domain;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (call == NULL || call->note_symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_ATARI_ST)
+    return json_builder_append(builder, "]");
+  value_domain = atari_return_value_domain(call->note_return_kind);
+  if (value_domain == NULL) return json_builder_append(builder, "]");
+  if (json_builder_append(builder, "{\"name\":\"return\",\"regs\":[\"D0\"],\"type\":null,\"o_struct\":null,") != 0)
+    return -1;
+  if (json_builder_append(builder, "\"semantic_kind\":\"return_value\",\"value_domain\":") != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, value_domain) != 0) return -1;
+  return json_builder_append(builder, "}]");
+}
+
 static const char *app_slot_symbol_for_effect(const M68kRecoveredPlatformEffectIR *effect, const char *base_name,
     const char *symbol_name, const char *type_name, char *fallback, size_t fallback_size) {
   if (symbol_name != NULL && strncmp(symbol_name, "app_", 4U) == 0) return symbol_name;
@@ -707,7 +773,7 @@ static int append_amiga_type_catalog_json(JsonBuilder *builder) {
   uint16_t struct_id;
   int first = 1;
   if (json_builder_append(builder, "[") != 0) return -1;
-  for (struct_id = 0U; struct_id < AMIGA_OS_STRUCT_ID_NONE; ++struct_id) {
+  for (struct_id = 0U; struct_id < AMIGA_OS_STRUCT_ID_COUNT; ++struct_id) {
     const char *struct_name = amiga_os_name(7U, struct_id);
     const char *source = NULL;
     const char *named_base = NULL;
@@ -905,7 +971,7 @@ static int append_amiga_os_structs_json(JsonBuilder *builder) {
   uint16_t struct_id;
   int first = 1;
   if (json_builder_append(builder, "[") != 0) return -1;
-  for (struct_id = 0U; struct_id < AMIGA_OS_STRUCT_ID_NONE; ++struct_id) {
+  for (struct_id = 0U; struct_id < AMIGA_OS_STRUCT_ID_COUNT; ++struct_id) {
     const char *struct_name = amiga_os_name(7U, struct_id);
     const char *source = NULL;
     int16_t struct_size = 0;
@@ -1408,8 +1474,18 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_json_string(&builder, access->field_expr != NULL ? access->field_expr : "") != 0)
         goto oom;
-      if (json_builder_appendf(&builder, ",\"inherited\":%u,\"nested\":%u}",
+      if (json_builder_appendf(&builder, ",\"inherited\":%u,\"nested\":%u,\"type_provenance_kind\":",
           (unsigned)access->inherited, (unsigned)access->nested) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          type_provenance_kind_name(access->type_provenance_kind)) != 0)
+        goto oom;
+      if (access->type_provenance_kind != M68K_PLATFORM_TYPE_PROVENANCE_NONE) {
+        if (json_builder_appendf(&builder, ",\"type_provenance_section\":%u,\"type_provenance_offset\":%u",
+            (unsigned)access->type_provenance_section_index, (unsigned)access->type_provenance_offset) != 0)
+          goto oom;
+      }
+      if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
     if (json_builder_appendf(&builder,
@@ -1424,6 +1500,10 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         &section->recovered_platform_unresolved_typed_accesses[unresolved_typed_access_index];
       const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
         access->root_struct_name);
+      const char *container_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(
+        &access->container_struct_ref, access->container_struct_name);
+      const char *refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(
+        &access->refined_struct_ref, access->refined_struct_name);
       if (unresolved_typed_access_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
       if (json_builder_appendf(&builder,
@@ -1434,6 +1514,34 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_nullable_string(&builder, root_struct_name) != 0)
         goto oom;
+      if (json_builder_append(&builder, ",\"classification\":") != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          unresolved_typed_access_classification_name(access->classification)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"container_candidate_count\":%u,\"container_struct_name\":",
+          (unsigned)access->container_candidate_count) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, container_struct_name) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"container_field_expr\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, access->container_field_expr) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"refinement_applied\":%u,\"refined_struct_name\":",
+          (unsigned)access->refinement_applied) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, refined_struct_name) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"type_provenance_kind\":") != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
+        goto oom;
+      if (access->type_provenance_kind != M68K_PLATFORM_TYPE_PROVENANCE_NONE) {
+        if (json_builder_appendf(&builder, ",\"type_provenance_section\":%u,\"type_provenance_offset\":%u",
+            (unsigned)access->type_provenance_section_index, (unsigned)access->type_provenance_offset) != 0)
+          goto oom;
+      }
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
@@ -1703,8 +1811,15 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append(&builder, ",\"outputs\":") != 0)
         goto oom;
-      if (append_amiga_call_outputs_json(&builder, amiga_vector) != 0)
+      if (amiga_vector != NULL) {
+        if (append_amiga_call_outputs_json(&builder, amiga_vector) != 0)
+          goto oom;
+      } else if (call->note_symbol_ref.platform_kind == M68K_PLATFORM_BACKEND_ATARI_ST) {
+        if (append_atari_call_outputs_json(&builder, call) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "[]") != 0) {
         goto oom;
+      }
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
@@ -2242,9 +2357,68 @@ static int append_listing_typed_accesses_json(JsonBuilder *builder, const M68kSt
     if (json_builder_append(builder, ",\"field_expr\":") != 0) return -1;
     if (json_builder_append_json_string(builder, access->field_expr != NULL ? access->field_expr : "") != 0)
       return -1;
-    if (json_builder_appendf(builder, ",\"inherited\":%u,\"nested\":%u}",
+    if (json_builder_appendf(builder, ",\"inherited\":%u,\"nested\":%u,\"type_provenance_kind\":",
         (unsigned)access->inherited, (unsigned)access->nested) != 0)
       return -1;
+    if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
+      return -1;
+    if (access->type_provenance_kind != M68K_PLATFORM_TYPE_PROVENANCE_NONE &&
+        json_builder_appendf(builder, ",\"type_provenance_section\":%u,\"type_provenance_offset\":%u",
+          (unsigned)access->type_provenance_section_index, (unsigned)access->type_provenance_offset) != 0)
+      return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
+    emitted = 1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_unresolved_typed_accesses_json(JsonBuilder *builder, const M68kStatementIR *stmt,
+    const M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  int emitted = 0;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION || section_analysis == NULL)
+    return json_builder_append(builder, "]");
+  for (index = 0U; index < section_analysis->recovered_platform_unresolved_typed_access_count; ++index) {
+    const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
+      &section_analysis->recovered_platform_unresolved_typed_accesses[index];
+    const char *root_struct_name;
+    const char *container_struct_name;
+    const char *refined_struct_name;
+    if (access->offset != stmt->offset) continue;
+    root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+      access->root_struct_name);
+    container_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->container_struct_ref,
+      access->container_struct_name);
+    refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->refined_struct_ref,
+      access->refined_struct_name);
+    if (emitted && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_appendf(builder,
+        "{\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"struct_size\":%u,"
+        "\"root_struct_name\":",
+        (unsigned)access->operand_index, (unsigned)access->base_reg, (int)access->displacement,
+        (unsigned)access->struct_size) != 0)
+      return -1;
+    if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"classification\":") != 0) return -1;
+    if (json_builder_append_json_string(builder,
+        unresolved_typed_access_classification_name(access->classification)) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"container_candidate_count\":%u,\"container_struct_name\":",
+        (unsigned)access->container_candidate_count) != 0) return -1;
+    if (json_builder_append_nullable_string(builder, container_struct_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"container_field_expr\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, access->container_field_expr) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"refinement_applied\":%u,\"refined_struct_name\":",
+        (unsigned)access->refinement_applied) != 0) return -1;
+    if (json_builder_append_nullable_string(builder, refined_struct_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"type_provenance_kind\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
+      return -1;
+    if (access->type_provenance_kind != M68K_PLATFORM_TYPE_PROVENANCE_NONE &&
+        json_builder_appendf(builder, ",\"type_provenance_section\":%u,\"type_provenance_offset\":%u",
+          (unsigned)access->type_provenance_section_index, (unsigned)access->type_provenance_offset) != 0)
+      return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
     emitted = 1;
   }
   return json_builder_append(builder, "]");
@@ -4066,6 +4240,12 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
     return -1;
   if (json_builder_append(builder, ",\"typed_accesses\":") != 0) return -1;
   if (append_listing_typed_accesses_json(builder, stmt,
+      source_analysis != NULL && section_index >= 0 && (size_t)section_index < source_analysis->section_count
+        ? &source_analysis->sections[section_index]
+        : NULL) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"unresolved_typed_accesses\":") != 0) return -1;
+  if (append_listing_unresolved_typed_accesses_json(builder, stmt,
       source_analysis != NULL && section_index >= 0 && (size_t)section_index < source_analysis->section_count
         ? &source_analysis->sections[section_index]
         : NULL) != 0)

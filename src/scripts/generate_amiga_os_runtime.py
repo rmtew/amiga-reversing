@@ -87,6 +87,7 @@ def build_name_domain_meta(name_domains: list[tuple[int, str, list[str]]], prefi
         enum_prefix = f"{prefix}_{label.upper()}_ID"
         enum_values: dict[str, str] = {}
         used: set[str] = set()
+        none_zero = label == "struct"
         for value in values:
             base_name = f"{enum_prefix}_{enum_token(value)}"
             name = base_name
@@ -103,8 +104,9 @@ def build_name_domain_meta(name_domains: list[tuple[int, str, list[str]]], prefi
             "enum_type": f"{prefix.title().replace('_', '')}{pascal_case(label)}Id",
             "enum_prefix": enum_prefix,
             "enum_values": enum_values,
-            "id_map": {value: index for index, value in enumerate(values)},
-            "none_id": len(values),
+            "id_map": {value: index + (1 if none_zero else 0) for index, value in enumerate(values)},
+            "none_id": 0 if none_zero else len(values),
+            "none_zero": none_zero,
         })
     return items
 
@@ -1288,6 +1290,10 @@ def referenced_struct_names(rows: list[tuple[str, str, int, str, dict]], include
                                                            api_input_semantic_kinds, api_input_type_overrides):
             if input_struct_name:
                 names.add(input_struct_name)
+    for struct_name, base_struct_name, _, _ in struct_base_rows(includes_payload):
+        names.add(struct_name)
+        if base_struct_name is not None:
+            names.add(base_struct_name)
     return sorted(names)
 
 
@@ -1703,9 +1709,14 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         lines.extend([
             f"typedef enum {item['enum_type']} {{",
         ])
+        if item.get("none_zero"):
+            lines.append(f"  {item['enum_prefix']}_NONE = {item['none_id']},")
         for value in item["values"]:
             lines.append(f"  {item['enum_values'][value]} = {item['id_map'][value]},")
-        lines.append(f"  {item['enum_prefix']}_NONE = {item['none_id']},")
+        if item.get("none_zero"):
+            lines.append(f"  {item['enum_prefix']}_COUNT = {len(item['values']) + 1},")
+        else:
+            lines.append(f"  {item['enum_prefix']}_NONE = {item['none_id']},")
         lines.extend([f"}} {item['enum_type']};", ""])
     lines.extend([
         f"#define AMIGA_OS_NAMING_PATTERN_FUNCTION_LIMIT {naming_function_limit}u",
@@ -1895,6 +1906,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "const AmigaOsStructFieldInfo *amiga_os_find_struct_field_by_field_id(uint16_t field_id);",
         "const AmigaOsStructFieldInfo *amiga_os_find_struct_field_by_symbol_name(const char *field_name);",
         "const AmigaOsStructFieldInfo *amiga_os_struct_field_at(size_t index);",
+        "uint16_t amiga_os_struct_id_from_type_id(uint16_t type_id);",
         "const AmigaOsStructBaseInfo *amiga_os_find_struct_base_by_struct_id(uint16_t struct_id);",
         "const AmigaOsStructBaseInfo *amiga_os_struct_base_at(size_t index);",
         "int amiga_os_resolve_struct_field_by_struct_id(uint16_t struct_id, int16_t offset, int prefer_nested_exact, AmigaOsResolvedStructFieldInfo *out_field);",
@@ -2031,9 +2043,12 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
         lines.extend([
             f"static const char *const g_amiga_os_{label}_names[] = {{",
         ])
+        if label == "struct":
+            lines.append("  NULL,")
         for value in values:
             lines.append(f'  "{c_string(value)}",')
-        lines.append("  NULL,")
+        if label != "struct":
+            lines.append("  NULL,")
         lines.extend(["};", ""])
     lines.extend([
         "uint16_t amiga_os_name_id(uint8_t domain_kind, const char *name) {",
@@ -2041,9 +2056,19 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
     ])
     for domain_kind, label, _ in name_domains:
         count_expr = f"(sizeof(g_amiga_os_{label}_names) / sizeof(g_amiga_os_{label}_names[0]))"
-        lines.append(
-            f"  case {domain_kind}u: return platform_name_id_from_table(g_amiga_os_{label}_names, "
-            f"{count_expr}, name);")
+        if label == "struct":
+            lines.extend([
+                f"  case {domain_kind}u:",
+                "    if (name == NULL || name[0] == '\\0') return AMIGA_OS_STRUCT_ID_NONE;",
+                f"    for (size_t index = 1U; index < {count_expr}; ++index) {{",
+                f"      if (g_amiga_os_{label}_names[index] != NULL && strcmp(g_amiga_os_{label}_names[index], name) == 0) return (uint16_t)index;",
+                "    }",
+                "    return AMIGA_OS_STRUCT_ID_NONE;",
+            ])
+        else:
+            lines.append(
+                f"  case {domain_kind}u: return platform_name_id_from_table(g_amiga_os_{label}_names, "
+                f"{count_expr}, name);")
     lines.extend([
         "  default: return 0U;",
         "  }",
@@ -2054,8 +2079,12 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
     ])
     for domain_kind, label, _ in name_domains:
         count_expr = f"(sizeof(g_amiga_os_{label}_names) / sizeof(g_amiga_os_{label}_names[0]))"
-        lines.append(
-            f"  case {domain_kind}u: return g_amiga_os_{label}_names[(size_t)id < {count_expr} ? (size_t)id : {count_expr} - 1U];")
+        if label == "struct":
+            lines.append(
+                f"  case {domain_kind}u: return (size_t)id < {count_expr} ? g_amiga_os_{label}_names[(size_t)id] : NULL;")
+        else:
+            lines.append(
+                f"  case {domain_kind}u: return g_amiga_os_{label}_names[(size_t)id < {count_expr} ? (size_t)id : {count_expr} - 1U];")
     lines.extend([
         "  default: return NULL;",
         "  }",
@@ -2725,7 +2754,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "  out_field->owner_struct_id = AMIGA_OS_STRUCT_ID_NONE;",
             "}",
             "",
-            "static uint16_t amiga_os_struct_id_from_type_id(uint16_t type_id) {",
+            "uint16_t amiga_os_struct_id_from_type_id(uint16_t type_id) {",
             "  const char *type_name = amiga_os_name(%du, type_id);" % NAME_DOMAIN_TYPE,
             "  if (type_name == NULL || type_name[0] == '\\0') return AMIGA_OS_STRUCT_ID_NONE;",
             "  return amiga_os_name_id(%du, type_name);" % NAME_DOMAIN_STRUCT,

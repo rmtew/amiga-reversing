@@ -6842,10 +6842,13 @@ def _operand_width_for_instruction(inst: JsonDict) -> int | None:
 
 
 def _execution_operand_width_source(inst: JsonDict, operand_index: int, operand_type: str) -> str | None:
-    del operand_index
     del operand_type
     mnemonic = str(inst.get("mnemonic", ""))
     op_type = str(inst.get("operation_type", ""))
+    flow_kind = _execution_target_kind(inst)
+    op_count = len(_execution_operand_types(inst))
+    if flow_kind == "ea_address" and operand_index == op_count - 1:
+        return None
     if op_type in ("neg", "not"):
         return "instruction_size"
     if mnemonic == "MOVE":
@@ -6874,6 +6877,8 @@ def _execution_operand_width_source(inst: JsonDict, operand_index: int, operand_
 
 
 def _operand_access_kind(operand_type: str, usage: str) -> str:
+    if usage == "target":
+        return "branch_target"
     if operand_type == "imm":
         return "immediate"
     if operand_type == "label":
@@ -7204,7 +7209,7 @@ def _execution_operand_for_form_type(
         "control_target" if access_kind == "branch_target" else "scalar"
     )
     ea_address_formula = _ea_address_formula_for_operand_type(operand_type)
-    if ea_address_formula is None and usage == "address" and operand_type == "ea":
+    if ea_address_formula is None and usage in ("address", "target") and operand_type == "ea":
         ea_address_formula = "decoded_ea"
     return {
         "index": operand_index,
@@ -7309,7 +7314,7 @@ def _execution_operand_usage(inst: JsonDict, operand_index: int, operand_type: s
     flow_kind = _execution_target_kind(inst)
     op_count = len(_execution_operand_types(inst))
     if flow_kind != "none" and operand_index == op_count - 1:
-        return "address" if flow_kind == "ea_address" else "target"
+        return "target"
     if mnemonic == "LEA" and operand_index == 0:
         return "address"
     if mnemonic == "PEA" and operand_index == 0:
@@ -7434,7 +7439,7 @@ def _build_execution_metadata(inst: JsonDict) -> JsonDict | None:
             "address" if usage == "address" or (usage == "write" and mnemonic in ("LEA", "MOVEA")) or mnemonic == "MOVEA" else "scalar"
         )
         ea_address_formula = _ea_address_formula_for_operand_type(operand_type)
-        if ea_address_formula is None and usage == "address" and operand_type == "ea":
+        if ea_address_formula is None and usage in ("address", "target") and operand_type == "ea":
             ea_address_formula = "decoded_ea"
         execution_operands.append({
             "index": operand_index,
@@ -9912,7 +9917,7 @@ def main() -> None:
             outpath = Path(outfile)
             if outpath.exists():
                 outpath.unlink()
-            with open(outpath, "w", encoding="utf-8") as f:
+            with open(outpath, "w", encoding="utf-8", newline="\n") as f:
                 json.dump(
                     _as_kb_payload(
                         kb_data,

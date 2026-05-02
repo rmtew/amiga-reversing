@@ -39,7 +39,13 @@ from amiga_reversing.disasm.c_backend import (
 )
 from amiga_reversing.disasm import corpus_usage, disk_browser
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
-from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, ListingRow, SymbolOperandMetadata
+from amiga_reversing.disasm.listing_types import (
+    AppSlotRef,
+    BlockRowContext,
+    ListingRow,
+    PlatformUnresolvedTypedAccess,
+    SymbolOperandMetadata,
+)
 from amiga_reversing.disasm.project_ids import derive_disk_id_from_stem, disk_project_id
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from amiga_reversing.disasm.projects import (
@@ -122,6 +128,7 @@ _PROJECT_ROW_CACHE: dict[str, list[ListingRow]] = {}
 _PROJECT_ROW_GENERATION_CACHE: dict[str, str] = {}
 _PROJECT_ROW_CACHE_KEY: dict[str, str] = {}
 _PROJECT_APP_SLOT_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
+_PROJECT_TYPE_FLOW_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
 type ApiCallRowKey = tuple[int, int]
 
 
@@ -222,6 +229,7 @@ def _write_api_input_type_override(
     _PROJECT_ROW_GENERATION_CACHE.clear()
     _PROJECT_ROW_CACHE_KEY.clear()
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
+    _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.clear()
     _PROJECT_API_CALL_CACHE.clear()
     _cancel_listing_jobs()
 
@@ -447,6 +455,30 @@ def _api_call_is_navigation_target(
     return True
 
 
+def _signed_hex_offset(value: int) -> str:
+    sign = "-" if value < 0 else ""
+    return f"{sign}${abs(value):04X}"
+
+
+def _unresolved_typed_access_summary(access: PlatformUnresolvedTypedAccess) -> str:
+    root = access.root_struct_name or "typed base"
+    displacement = _signed_hex_offset(access.displacement)
+    joiner = "" if access.displacement < 0 else "+"
+    if access.classification == "prefix_extension":
+        if access.refinement_applied and access.refined_struct_name:
+            return f"{root}{joiner}{displacement} refines to {access.refined_struct_name}"
+        if access.container_struct_name and access.container_field_expr:
+            return f"{root}{joiner}{displacement} prefix extension: {access.container_struct_name}.{access.container_field_expr}"
+        if access.container_struct_name:
+            return f"{root}{joiner}{displacement} prefix extension: {access.container_struct_name}"
+        if access.container_candidate_count:
+            return f"{root}{joiner}{displacement} prefix extension ({access.container_candidate_count} candidate types)"
+        return f"{root}{joiner}{displacement} prefix extension"
+    if access.classification == "custom_tail_or_mistyped_base":
+        return f"{root}{joiner}{displacement} unknown extension"
+    return f"{root}{joiner}{displacement} field metadata gap"
+
+
 def _listing_navigation_summary(
     row: ListingRow,
     jump_class: str,
@@ -471,6 +503,8 @@ def _listing_navigation_summary(
             return field
         if owner:
             return owner
+    if jump_class == "typed-gaps" and row.unresolved_typed_accesses:
+        return _unresolved_typed_access_summary(row.unresolved_typed_accesses[0])
     if jump_class == "typed-data" and (row.comment_text or row.structured_data):
         structured = row.structured_data or {}
         for key in ("label", "field_name"):
@@ -523,6 +557,34 @@ def _app_slot_navigation_ref_entry(row: ListingRow, row_index: int, ref: AppSlot
             "operand_index": ref.operand_index,
             "access": ref.access,
             "summary": _listing_row_code(row) or ref.symbol,
+        }
+    )
+    return entry
+
+
+def _typed_gap_navigation_entry(
+    row: ListingRow,
+    row_index: int,
+    access: PlatformUnresolvedTypedAccess,
+) -> dict[str, object]:
+    entry = _navigation_entry(row, row_index, "typed-gaps")
+    entry.update(
+        {
+            "root_struct_name": access.root_struct_name,
+            "base_register": access.base_register,
+            "operand_index": access.operand_index,
+            "displacement": access.displacement,
+            "struct_size": access.struct_size,
+            "classification": access.classification,
+            "container_candidate_count": access.container_candidate_count,
+            "container_struct_name": access.container_struct_name,
+            "container_field_expr": access.container_field_expr,
+            "refinement_applied": access.refinement_applied,
+            "refined_struct_name": access.refined_struct_name,
+            "type_provenance_kind": access.type_provenance_kind,
+            "type_provenance_section": access.type_provenance_section,
+            "type_provenance_offset": access.type_provenance_offset,
+            "summary": _unresolved_typed_access_summary(access),
         }
     )
     return entry
@@ -710,6 +772,7 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
     groups: dict[str, list[dict[str, object]]] = {
         "repro-issues": [],
         "typed-data": [],
+        "typed-gaps": [],
         "relocations": [],
         "api-calls": [],
         "app-slots": [],
@@ -758,6 +821,8 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
             api_call = api_calls.get((row.source_context.hunk_index, row.addr))
         if _listing_row_has_typed_data(row):
             groups["typed-data"].append(_navigation_entry(row, row_index, "typed-data"))
+        for access in row.unresolved_typed_accesses:
+            groups["typed-gaps"].append(_typed_gap_navigation_entry(row, row_index, access))
         if _listing_row_has_segment_reference(row):
             groups["relocations"].append(_navigation_entry(row, row_index, "relocations"))
         if (
@@ -874,6 +939,7 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
         "total_rows": len(rows),
         "groups": groups,
         "app_slot_analysis": app_slot_analysis,
+        "type_flow_analysis": _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.get(project_name, {}),
     }
 
 
@@ -882,6 +948,7 @@ def _clear_project_listing_cache(project_name: str) -> None:
     _PROJECT_ROW_GENERATION_CACHE.pop(project_name, None)
     _PROJECT_ROW_CACHE_KEY.pop(project_name, None)
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
+    _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
     _PROJECT_API_CALL_CACHE.pop(project_name, None)
 
 
@@ -1230,6 +1297,7 @@ def _build_rows_job(job_id: str, project_name: str, generation: str = "full") ->
                 generation=active_generation,
             )
             app_slot_analysis = profile.get("app_slot_analysis")
+            type_flow_analysis = profile.get("type_flow_analysis")
             if not _set_job_phase(
                 job_id, phase_id=emit_phase, phase_index=emit_phase_index, phase_count=phase_count
             ):
@@ -1258,9 +1326,14 @@ def _build_rows_job(job_id: str, project_name: str, generation: str = "full") ->
                         _PROJECT_APP_SLOT_ANALYSIS_CACHE[project_name] = app_slot_analysis
                     else:
                         _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
+                    if isinstance(type_flow_analysis, dict):
+                        _PROJECT_TYPE_FLOW_ANALYSIS_CACHE[project_name] = type_flow_analysis
+                    else:
+                        _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
                 elif project_name not in _PROJECT_API_CALL_CACHE:
                     _PROJECT_API_CALL_CACHE[project_name] = {}
                     _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
+                    _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
             _log_event(
                 "listing_job generation_ready",
                 job_id=job_id,

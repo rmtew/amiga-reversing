@@ -1,0 +1,239 @@
+{
+  "api_feature_counts": {
+    "os:BIOS/setexc": 1,
+    "os:GEMDOS/c_conout": 1,
+    "os:GEMDOS/c_conws": 6,
+    "os:GEMDOS/f_close": 1,
+    "os:GEMDOS/f_create": 2,
+    "os:GEMDOS/f_open": 2,
+    "os:GEMDOS/f_read": 1,
+    "os:GEMDOS/f_seek": 1,
+    "os:GEMDOS/f_write": 6,
+    "os:GEMDOS/m_shrink": 9,
+    "os:GEMDOS/m_xalloc": 2,
+    "os:GEMDOS/p_exec": 13,
+    "os:GEMDOS/p_term": 11,
+    "os:GEMDOS/p_termres": 2,
+    "os:GEMDOS/super": 68,
+    "os:XBIOS/getrez": 4,
+    "os:XBIOS/keytbl": 8,
+    "os:XBIOS/physbase": 1,
+    "os:XBIOS/supexec": 16,
+    "os:dos.library/DateStamp": 2,
+    "os:dos.library/DupLock": 2,
+    "os:dos.library/Open": 8,
+    "os:dos.library/ParentOfFH": 1,
+    "os:exec.library/AddHead": 2,
+    "os:exec.library/AddLibrary": 2,
+    "os:exec.library/AddPort": 4,
+    "os:exec.library/Alert": 5,
+    "os:exec.library/AllocMem": 219,
+    "os:exec.library/AllocSignal": 9,
+    "os:exec.library/AvailMem": 1,
+    "os:exec.library/CloseDevice": 1,
+    "os:exec.library/CloseLibrary": 16,
+    "os:exec.library/Deallocate": 3,
+    "os:exec.library/DoIO": 1,
+    "os:exec.library/Enable": 2,
+    "os:exec.library/FindName": 5,
+    "os:exec.library/FindTask": 106,
+    "os:exec.library/Forbid": 6,
+    "os:exec.library/FreeMem": 18,
+    "os:exec.library/GetMsg": 7,
+    "os:exec.library/InitResident": 4,
+    "os:exec.library/MakeFunctions": 2,
+    "os:exec.library/MakeLibrary": 5,
+    "os:exec.library/ObtainSemaphore": 1,
+    "os:exec.library/OldOpenLibrary": 19,
+    "os:exec.library/OpenDevice": 1,
+    "os:exec.library/OpenLibrary": 27,
+    "os:exec.library/OpenResource": 5,
+    "os:exec.library/Permit": 1,
+    "os:exec.library/PutMsg": 1,
+    "os:exec.library/RawDoFmt": 12,
+    "os:exec.library/RemPort": 1,
+    "os:exec.library/Remove": 3,
+    "os:exec.library/ReplyMsg": 4,
+    "os:exec.library/SendIO": 1,
+    "os:exec.library/Signal": 7,
+    "os:exec.library/SuperState": 1,
+    "os:exec.library/Supervisor": 5,
+    "os:exec.library/Wait": 1,
+    "os:exec.library/WaitPort": 3,
+    "os:exec.library/execPrivate1": 2,
+    "os:exec.library/execPrivate3": 5,
+    "os:exec.library/execPrivate5": 3,
+    "os:graphics.library/Move": 1,
+    "os:intuition.library/OpenScreen": 1
+  },
+  "numeric_cause_by_platform": {
+    "amiga-hunk": {
+      "api_output_nearby": 129,
+      "api_output_nearby_unknown_output": 13,
+      "app_slot_load": 198,
+      "global_or_base_slot_load": 1602,
+      "post_call_existing_base": 757,
+      "post_call_register_copy": 76,
+      "stack_slot_load": 3477,
+      "unknown_pointer_chain": 10881
+    },
+    "atari-st": {
+      "api_output_nearby": 12,
+      "global_or_base_slot_load": 1869,
+      "post_call_existing_base": 180,
+      "post_call_register_copy": 6,
+      "stack_slot_load": 1956,
+      "unknown_pointer_chain": 18419
+    }
+  },
+  "numeric_cause_counts": {
+    "api_output_nearby": 141,
+    "api_output_nearby_unknown_output": 13,
+    "app_slot_load": 198,
+    "global_or_base_slot_load": 3471,
+    "post_call_existing_base": 937,
+    "post_call_register_copy": 82,
+    "stack_slot_load": 5433,
+    "unknown_pointer_chain": 29300
+  },
+  "platform_open_counts": {
+    "amiga-hunk": {
+      "app_slot_field_gap": 51,
+      "app_slot_gap": 143,
+      "app_slot_substructure_access": 162,
+      "app_slot_substructure_suggested_region": 55,
+      "app_slot_suggested_region": 10,
+      "numeric_address_reg_access_without_type": 17133,
+      "typed_base_unresolved_field": 129,
+      "untyped_app_slot_api_arg": 3
+    },
+    "atari-st": {
+      "numeric_address_reg_access_without_type": 22442
+    }
+  },
+  "pointer_chain_root_by_platform": {
+    "amiga-hunk": {
+      "api_output_register": 384,
+      "app_slot": 485,
+      "global_or_base_slot": 283,
+      "immediate": 424,
+      "register": 578,
+      "stack_slot": 1248,
+      "unknown": 10977
+    },
+    "atari-st": {
+      "api_output_register": 15,
+      "global_or_base_slot": 329,
+      "immediate": 57,
+      "register": 679,
+      "stack_slot": 1051,
+      "unknown": 18833
+    }
+  },
+  "pointer_chain_root_counts": {
+    "api_output_register": 399,
+    "app_slot": 485,
+    "global_or_base_slot": 612,
+    "immediate": 481,
+    "register": 1257,
+    "stack_slot": 2299,
+    "unknown": 29810
+  },
+  "pointer_chain_stop_by_platform": {
+    "amiga-hunk": {
+      "no_assignment_to_chain_base": 9244,
+      "register_source": 578,
+      "source_is_api_output_register": 384,
+      "source_is_app_slot": 485,
+      "source_is_global_or_base_slot": 283,
+      "source_is_immediate": 424,
+      "source_is_stack_slot": 1248,
+      "source_is_unknown": 1733
+    },
+    "atari-st": {
+      "max_depth": 43,
+      "no_assignment_to_chain_base": 17219,
+      "register_source": 679,
+      "source_is_api_output_register": 15,
+      "source_is_global_or_base_slot": 329,
+      "source_is_immediate": 57,
+      "source_is_stack_slot": 1051,
+      "source_is_unknown": 1571
+    }
+  },
+  "pointer_chain_stop_counts": {
+    "max_depth": 43,
+    "no_assignment_to_chain_base": 26463,
+    "register_source": 1257,
+    "source_is_api_output_register": 399,
+    "source_is_app_slot": 485,
+    "source_is_global_or_base_slot": 612,
+    "source_is_immediate": 481,
+    "source_is_stack_slot": 2299,
+    "source_is_unknown": 3304
+  },
+  "propagation_chain_by_platform": {
+    "amiga-hunk": {
+      "api_call_to_app_slot_reload_unknown_output": 17,
+      "api_call_to_global_or_base_slot_reload_unknown_output": 6,
+      "api_call_to_stack_slot_reload_unknown_output": 1,
+      "api_output_to_global_or_base_slot_reload": 7,
+      "api_unstructured_output_to_global_or_base_slot_reload": 24,
+      "api_unstructured_output_to_stack_slot_reload": 1,
+      "register_to_app_slot_reload": 15,
+      "register_to_global_or_base_slot_reload": 91
+    },
+    "atari-st": {
+      "api_unstructured_output_to_global_or_base_slot_reload": 1,
+      "register_to_global_or_base_slot_reload": 206,
+      "register_to_stack_slot_reload": 45
+    }
+  },
+  "propagation_chain_counts": {
+    "api_call_to_app_slot_reload_unknown_output": 17,
+    "api_call_to_global_or_base_slot_reload_unknown_output": 6,
+    "api_call_to_stack_slot_reload_unknown_output": 1,
+    "api_output_to_global_or_base_slot_reload": 7,
+    "api_unstructured_output_to_global_or_base_slot_reload": 25,
+    "api_unstructured_output_to_stack_slot_reload": 1,
+    "register_to_app_slot_reload": 15,
+    "register_to_global_or_base_slot_reload": 297,
+    "register_to_stack_slot_reload": 45
+  },
+  "schema_version": 1,
+  "storage_kind_counts": {
+    "app_slot": 32,
+    "global_or_base_slot": 335,
+    "stack_slot": 47
+  },
+  "target_count": 150,
+  "totals": {
+    "app_slot_field_gap": 51,
+    "app_slot_gap": 143,
+    "app_slot_substructure_access": 162,
+    "app_slot_substructure_suggested_region": 55,
+    "app_slot_suggested_region": 10,
+    "custom_tail_or_mistyped_base": 90,
+    "custom_tail_struct_count": 2,
+    "numeric_address_reg_access_without_type": 39575,
+    "prefix_extension_ambiguous": 39,
+    "prefix_extension_evidence": 39,
+    "prefix_extension_unique": 0,
+    "resolved_after_type_refinement": 2,
+    "resolved_typed_access": 125,
+    "type_refinement_applied": 4,
+    "typed_base_unresolved_field": 129,
+    "typed_storage": 1461,
+    "untyped_app_slot_api_arg": 3
+  },
+  "typed_access_provenance_counts": {
+    "api_output": 116,
+    "base_slot": 2,
+    "prefix_refinement": 7
+  },
+  "typed_storage_provenance_counts": {
+    "app_slot": 29,
+    "global_slot": 69,
+    "register": 1363
+  }
+}

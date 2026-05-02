@@ -5,6 +5,7 @@
 #include "m68k_instruction_spec.h"
 #include "m68k_ir_codec.h"
 #include "m68k_parse_util.h"
+#include "m68k_simulator.h"
 #include "m68k_source_text_util.h"
 
 #include <stdarg.h>
@@ -742,6 +743,23 @@ static int32_t render_equate_value(const M68kStatementIR *stmt, const M68kOperan
   return (int16_t)(operand != NULL ? (operand->value.value & 0xFFFFU) : 0U);
 }
 
+static int32_t render_operand_memory_width(const M68kStatementIR *stmt, size_t operand_index) {
+  const M68kInstructionIR *instruction;
+  const M68kSimFormMetadata *metadata;
+  uint8_t access_kind;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return 0;
+  instruction = &stmt->u.instruction;
+  if (operand_index >= instruction->operand_count || operand_index >= 4U) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 0;
+  access_kind = metadata->operand_access_kinds[operand_index];
+  if (access_kind != M68K_SIM_ACCESS_MEMORY_READ && access_kind != M68K_SIM_ACCESS_MEMORY_WRITE) return 0;
+  if (instruction->size_suffix == 'b') return 1;
+  if (instruction->size_suffix == 'w') return 2;
+  if (instruction->size_suffix == 'l') return 4;
+  return 0;
+}
+
 static int append_or_update_render_equate_with_extent(RenderEquate *equates, size_t *inout_equate_count,
     size_t equate_capacity, const char *name, int32_t value, int32_t min_extent) {
   size_t equate_index;
@@ -830,6 +848,8 @@ static int append_needed_amiga_app_extension_rs(JsonBuilder *builder, RenderEqua
   }
   cursor = base_offset;
   for (index = 0U; index < slot_count; ++index) {
+    int32_t natural_size = (slots[index].value & 1) == 0 ? 4 : 1;
+    int32_t slot_size = slots[index].min_extent > natural_size ? slots[index].min_extent : natural_size;
     if (slots[index].value > cursor) {
       int32_t gap = slots[index].value - cursor;
       if (append_exact_rs_byte_gap(builder, gap, directive_prefix) != 0) return -1;
@@ -839,12 +859,15 @@ static int append_needed_amiga_app_extension_rs(JsonBuilder *builder, RenderEqua
       char value_text[32];
       format_render_equate_value(slots[index].value, value_text, sizeof(value_text));
       if (json_builder_appendf(builder, "%s EQU %s\n", slots[index].name, value_text) != 0) return -1;
-    } else if ((cursor & 1) == 0) {
+    } else if (slot_size == 4 && (cursor & 1) == 0) {
       if (json_builder_appendf(builder, "%s RS.L 1\n", slots[index].name) != 0) return -1;
-      cursor += 4;
-    } else {
+      cursor += slot_size;
+    } else if (slot_size == 1) {
       if (json_builder_appendf(builder, "%s RS.B 1\n", slots[index].name) != 0) return -1;
-      cursor += 1;
+      cursor += slot_size;
+    } else {
+      if (json_builder_appendf(builder, "%s RS.B %d\n", slots[index].name, (int)slot_size) != 0) return -1;
+      cursor += slot_size;
     }
   }
   {
@@ -937,13 +960,16 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
             total_value = render_equate_value(stmt, operand);
             if (operand->symbol_ref.has_symbolic_addend != 0U &&
                 operand->symbol_ref.symbolic_addend_name[0] != '\0') {
+              int32_t min_extent = operand->symbol_ref.symbolic_addend_value;
+              int32_t memory_width = render_operand_memory_width(stmt, operand_index);
+              if (min_extent >= 0 && memory_width > 0) min_extent += memory_width;
               if (lookup_symbol_include_path_cached(include_cache, source_file, operand->symbol_ref.name,
                     operand->symbol_ref.name_provenance) == NULL &&
                   !source_file_has_label_name(source_file, label_indexes, operand->symbol_ref.name)) {
                 if (append_or_update_render_equate_with_extent(equates, &equate_count,
                       sizeof(equates) / sizeof(equates[0]), operand->symbol_ref.name,
                       total_value - operand->symbol_ref.symbolic_addend_value,
-                      (int32_t)operand->symbol_ref.symbolic_addend_value) != 0) {
+                      min_extent) != 0) {
                   return -1;
                 }
               }

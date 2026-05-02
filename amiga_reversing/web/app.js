@@ -150,6 +150,7 @@ const CORPUS_GROUPS = [
   {id: "display", label: "Display"},
   {id: "runtime", label: "Runtime"},
   {id: "app_slots", label: "App slots"},
+  {id: "platform_types", label: "Types"},
   {id: "symbols", label: "Symbols"},
   {id: "data", label: "Data"},
   {id: "diagnostics", label: "Diagnostics"},
@@ -168,6 +169,20 @@ const CORPUS_GROUP_PREFIXES = {
     "app_slot_field_path:",
     "app_slot_field_gap:",
     "app_slot_field_gap_path:",
+  ],
+  platform_types: [
+    "platform_typed_access:",
+    "platform_typed_access_struct:",
+    "platform_typed_access_owner:",
+    "platform_unresolved_typed_access:",
+    "platform_unresolved_typed_access_struct:",
+    "platform_prefix_extension_struct:",
+    "platform_prefix_extension_candidate:",
+    "platform_field:",
+    "platform_struct_field:",
+    "platform_field_expr:",
+    "typed_base_unresolved_field",
+    "struct:",
   ],
   symbols: ["label:", "xref:label", "xref:segment"],
   data: ["data:", "xref:data"],
@@ -1639,6 +1654,17 @@ function corpusFeatureLabel(feature) {
   if (text.startsWith("app_slot_field_path:")) return `App slot field: ${text.split(":", 2)[1].replaceAll("_", ".")}`;
   if (text.startsWith("app_slot_field_gap:")) return `App slot field gap: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
   if (text.startsWith("app_slot_field_gap_path:")) return `App slot field gap: ${text.split(":", 2)[1].replaceAll("_", ".")}`;
+  if (text === "typed_base_unresolved_field") return "Typed base unresolved field";
+  if (text.startsWith("platform_typed_access_struct:")) return `Typed struct: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("platform_typed_access_owner:")) return `Typed owner: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("platform_typed_access:")) return `Typed access: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
+  if (text.startsWith("platform_prefix_extension_candidate:")) return `Typed prefix candidate: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("platform_prefix_extension_struct:")) return `Typed prefix base: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("platform_unresolved_typed_access_struct:")) return `Typed field gap: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("platform_unresolved_typed_access:")) return `Typed field gap: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
+  if (text.startsWith("platform_struct_field:")) return `Struct field: ${text.split(":", 2)[1].replaceAll("_", ".")}`;
+  if (text.startsWith("platform_field_expr:")) return `Field expr: ${text.split(":", 2)[1].replaceAll("_", ".")}`;
+  if (text.startsWith("platform_field:")) return `Field: ${text.split(":", 2)[1]}`;
   if (text.startsWith("runtime:")) return text.split(":", 2)[1].replaceAll("_", " ");
   if (text.startsWith("label:")) return `Labels: ${text.split(":", 2)[1]}`;
   if (text.startsWith("xref:")) return text.split(":", 2)[1].replaceAll("_", " ");
@@ -2976,6 +3002,60 @@ function formatAppSlotDisplacement(entry) {
   return `${sign}$${Math.abs(displacement).toString(16).toUpperCase().padStart(4, "0")}`;
 }
 
+function typedGapLabel(access) {
+  const root = String(access?.root_struct_name || access?.rootStructName || "typed base");
+  const displacement = Number(access?.displacement);
+  const formatted = formatAppSlotDisplacement(access);
+  if (!formatted || !Number.isFinite(displacement)) {
+    return root;
+  }
+  return `${root}${displacement < 0 ? "" : "+"}${formatted}`;
+}
+
+function typedGapSummary(access) {
+  const label = typedGapLabel(access);
+  const classification = String(access?.classification || "");
+  const container = String(access?.container_struct_name || access?.containerStructName || "");
+  const fieldExpr = String(access?.container_field_expr || access?.containerFieldExpr || "");
+  const refined = String(access?.refined_struct_name || access?.refinedStructName || "");
+  const refinementApplied = Boolean(access?.refinement_applied ?? access?.refinementApplied);
+  const candidateCount = Number(access?.container_candidate_count ?? access?.containerCandidateCount);
+  if (classification === "prefix_extension") {
+    if (refinementApplied && refined) return `${label} refines to ${refined}`;
+    if (container && fieldExpr) return `${label} prefix extension: ${container}.${fieldExpr}`;
+    if (container) return `${label} prefix extension: ${container}`;
+    if (Number.isFinite(candidateCount) && candidateCount > 0) {
+      return `${label} prefix extension (${candidateCount} candidates)`;
+    }
+    return `${label} prefix extension`;
+  }
+  if (classification === "custom_tail_or_mistyped_base") return `${label} unknown extension`;
+  return `${label} field metadata gap`;
+}
+
+function typedGapProvenanceSummary(access) {
+  const kind = String(access?.type_provenance_kind || access?.typeProvenanceKind || "");
+  if (!kind) {
+    return "";
+  }
+  const labels = {
+    api_output: "API output",
+    app_slot: "app slot",
+    base_slot: "base slot",
+    stack_slot: "stack slot",
+    lookup_storage: "storage reload",
+    prefix_refinement: "prefix refinement",
+  };
+  const label = labels[kind] || kind.replaceAll("_", " ");
+  const section = Number(access?.type_provenance_section ?? access?.typeProvenanceSection);
+  const offset = Number(access?.type_provenance_offset ?? access?.typeProvenanceOffset);
+  if (Number.isFinite(offset)) {
+    const location = `${Number.isFinite(section) ? `h${section}:` : ""}$${offset.toString(16).toUpperCase().padStart(8, "0")}`;
+    return `type from ${label} at ${location}`;
+  }
+  return `type from ${label}`;
+}
+
 function appSlotTypedInfoForSymbol(symbol) {
   const analysis = state.navigation.appSlotAnalysis;
   const regions = Array.isArray(analysis?.regions) ? analysis.regions : [];
@@ -3347,6 +3427,41 @@ function renderReproIssueBadges(row) {
     .join("");
 }
 
+function renderUnresolvedTypedAccessBadges(row) {
+  if (!rowHasUnresolvedTypedAccess(row)) {
+    return "";
+  }
+  return row.unresolved_typed_accesses
+    .map((access) => {
+      const structSize = Number(access.struct_size ?? access.structSize);
+      const candidateCount = Number(access.container_candidate_count ?? access.containerCandidateCount);
+      const container = String(access.container_struct_name || access.containerStructName || "");
+      const fieldExpr = String(access.container_field_expr || access.containerFieldExpr || "");
+      const titleParts = [
+        `Known typed base: ${typedGapSummary(access)}`,
+        "Field metadata is not available; source operand remains numeric.",
+      ];
+      if (Number.isFinite(structSize)) {
+        titleParts.push(`Struct size: $${structSize.toString(16).toUpperCase().padStart(4, "0")}`);
+      }
+      if (Number.isFinite(candidateCount) && candidateCount > 0) {
+        titleParts.push(`Container candidates: ${candidateCount}`);
+      }
+      const provenance = typedGapProvenanceSummary(access);
+      if (provenance) {
+        titleParts.push(provenance);
+      }
+      if (container) {
+        titleParts.push(`Candidate container: ${container}${fieldExpr ? `.${fieldExpr}` : ""}`);
+      }
+      if (access.refinement_applied || access.refinementApplied) {
+        titleParts.push(`Analysis refinement: ${access.refined_struct_name || access.refinedStructName || container || "applied"}`);
+      }
+      return `<span class="project-badge project-badge-typed-gap" title="${escapeHtml(titleParts.join("\n"))}">${escapeHtml(`type gap ${typedGapSummary(access)}`)}</span>`;
+    })
+    .join("");
+}
+
 function listingColumnStyle() {
   return `--listing-offset-width:${state.listingColumns.offset}px;--listing-bytes-width:${state.listingColumns.bytes}px;--listing-code-width:${state.listingColumns.code}px;`;
 }
@@ -3382,7 +3497,7 @@ function renderListingRows(rows, globalStart = 0) {
       <span class="listing-offset">${escapeHtml(formatRowOffset(row.addr))}</span>
       <span class="listing-bytes">${escapeHtml(formatRowBytes(row.bytes))}</span>
       <span class="listing-code">${renderListingCodeHtml(row, globalStart + rowIndex)}</span>
-      <span class="listing-comment">${escapeHtml(renderListingComment(row))}${renderListingComment(row) && renderListingAnnotations(row) ? " " : ""}${renderListingAnnotations(row)}${renderReproIssueBadges(row)}${renderApiTypeBadges(row)}${(renderListingAnnotations(row) || renderReproIssueBadges(row) || renderApiTypeBadges(row)) ? " " : ""}${renderApiEditButton(row, rowIndex)}${renderAnnotationEditButton(row, rowIndex)}</span>
+      <span class="listing-comment">${escapeHtml(renderListingComment(row))}${renderListingComment(row) && renderListingAnnotations(row) ? " " : ""}${renderListingAnnotations(row)}${renderReproIssueBadges(row)}${renderApiTypeBadges(row)}${renderUnresolvedTypedAccessBadges(row)}${(renderListingAnnotations(row) || renderReproIssueBadges(row) || renderApiTypeBadges(row) || renderUnresolvedTypedAccessBadges(row)) ? " " : ""}${renderApiEditButton(row, rowIndex)}${renderAnnotationEditButton(row, rowIndex)}</span>
       <span class="listing-column-resizer listing-column-resizer-offset" data-listing-column-resize="offset" aria-hidden="true"></span>
       <span class="listing-column-resizer listing-column-resizer-bytes" data-listing-column-resize="bytes" aria-hidden="true"></span>
       <span class="listing-column-resizer listing-column-resizer-code" data-listing-column-resize="code" aria-hidden="true"></span>
@@ -3849,7 +3964,14 @@ function rowHasSegmentReference(row) {
 }
 
 function rowHasTypedData(row) {
+  if (Array.isArray(row.typed_accesses) && row.typed_accesses.length > 0) {
+    return true;
+  }
   return row.kind !== "instruction" && row.kind !== "label" && (Boolean(row.comment_text) || Boolean(row.structured_data));
+}
+
+function rowHasUnresolvedTypedAccess(row) {
+  return Array.isArray(row.unresolved_typed_accesses) && row.unresolved_typed_accesses.length > 0;
 }
 
 function rowHasComment(row) {
@@ -3898,6 +4020,15 @@ function summarizeNavigationRow(row, jumpClass) {
       return `${row.api_call.function} dispatch (${row.api_call.library})`;
     }
     return `${row.api_call.function} (${row.api_call.library})`;
+  }
+  if (jumpClass === "typed-data" && Array.isArray(row.typed_accesses) && row.typed_accesses.length) {
+    const access = row.typed_accesses[0];
+    const owner = access.owner_struct_name || access.ownerStructName || access.root_struct_name || access.rootStructName || "";
+    const field = access.field_expr || access.fieldExpr || access.field_name || access.fieldName || "";
+    return owner && field ? `${owner}.${field}` : (field || owner || renderListingCode(row).trim());
+  }
+  if (jumpClass === "typed-gaps" && rowHasUnresolvedTypedAccess(row)) {
+    return typedGapSummary(row.unresolved_typed_accesses[0]);
   }
   if (jumpClass === "typed-data" && (row.comment_text || row.structured_data)) {
     const item = row.structured_data || {};
@@ -4071,6 +4202,7 @@ function buildNavigationEntries(rows) {
   const groups = {
     "repro-issues": [],
     "typed-data": [],
+    "typed-gaps": [],
     "relocations": [],
     "api-calls": [],
     "app-slots": [],
@@ -4116,8 +4248,45 @@ function buildNavigationEntries(rows) {
       groups["typed-data"].push({
         addr: row.addr,
         rowIndex,
+        row_index: rowIndex,
+        stableKey: row.stable_key ?? row.stableKey ?? null,
+        stable_key: row.stable_key ?? row.stableKey ?? null,
         summary: summarizeNavigationRow(row, "typed-data"),
         matchText: renderListingCode(row),
+        match_text: renderListingCode(row),
+      });
+    }
+    if (rowHasUnresolvedTypedAccess(row)) {
+      const hunkIndex = rowHunkIndex(row);
+      const stableKey = row.stable_key ?? row.stableKey ?? null;
+      const matchText = renderListingCode(row);
+      row.unresolved_typed_accesses.forEach((access) => {
+        groups["typed-gaps"].push({
+          addr: row.addr,
+          rowIndex,
+          row_index: rowIndex,
+          hunkIndex,
+          hunk_index: hunkIndex,
+          stableKey,
+          stable_key: stableKey,
+          summary: typedGapSummary(access),
+          matchText,
+          match_text: matchText,
+          root_struct_name: access.root_struct_name ?? access.rootStructName ?? null,
+          base_register: access.base_register ?? access.baseRegister ?? null,
+          operand_index: access.operand_index ?? access.operandIndex ?? null,
+          displacement: access.displacement,
+          struct_size: access.struct_size ?? access.structSize ?? null,
+          classification: access.classification ?? null,
+          container_candidate_count: access.container_candidate_count ?? access.containerCandidateCount ?? null,
+          container_struct_name: access.container_struct_name ?? access.containerStructName ?? null,
+          container_field_expr: access.container_field_expr ?? access.containerFieldExpr ?? null,
+          refinement_applied: access.refinement_applied ?? access.refinementApplied ?? false,
+          refined_struct_name: access.refined_struct_name ?? access.refinedStructName ?? null,
+          type_provenance_kind: access.type_provenance_kind ?? access.typeProvenanceKind ?? null,
+          type_provenance_section: access.type_provenance_section ?? access.typeProvenanceSection ?? null,
+          type_provenance_offset: access.type_provenance_offset ?? access.typeProvenanceOffset ?? null,
+        });
       });
     }
     if (rowHasSegmentReference(row)) {
@@ -4330,6 +4499,22 @@ function renderNavigationAccessBadges(entry) {
     }
     if (entry.reason) {
       badges.push(String(entry.reason).replaceAll("_", " "));
+    }
+  }
+  if (state.navigation.selectedClass === "typed-gaps") {
+    if (entry.base_register) {
+      badges.push(String(entry.base_register));
+    }
+    if (entry.root_struct_name) {
+      badges.push(String(entry.root_struct_name));
+    }
+    const structSize = Number(entry.struct_size ?? entry.structSize);
+    if (Number.isFinite(structSize)) {
+      badges.push(`size $${structSize.toString(16).toUpperCase().padStart(4, "0")}`);
+    }
+    const provenance = typedGapProvenanceSummary(entry);
+    if (provenance) {
+      badges.push(provenance);
     }
   }
   if (!badges.length) {
@@ -4550,6 +4735,7 @@ function renderNavigationOverlay() {
   const classOptions = [
     ["repro-issues", "Repro Issues"],
     ["typed-data", "Typed Data"],
+    ["typed-gaps", "Typed Gaps"],
     ["relocations", "Relocations"],
     ["api-calls", "API Calls"],
     ["app-slots", "App Slots"],

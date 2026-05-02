@@ -243,10 +243,6 @@ app_10E0 RS.L 1
 app_10E8 RS.L 1
 app_SIZEOF EQU __RS
 
-agm_Msg	EQU	$0
-    INCLUDE "exec/nodes.i"
-    INCLUDE "exec/ports.i"
-agm_Type	EQU	$14
     INCLUDE "exec/memory.i"
     INCLUDE "dos/dos_lib.i"
     INCLUDE "exec/exec_lib.i"
@@ -732,17 +728,17 @@ loc_0_0000063E:
 loc_0_0000064E:
 	movea.l app_0890(a6),a1
 	movea.l app_0894(a6),a0
-	cmpa.l agm_Msg+LN_PRED(a1),a0
+	cmpa.l $0004(a1),a0
 	bne.b loc_0_00000634
-	movea.l agm_Msg+LN_TYPE(a1),a0
+	movea.l $0008(a1),a0
 	bra.b loc_0_00000634
 loc_0_00000662:
 	movea.l app_0882(a6),a2
-	movea.l agm_Msg+LN_PRED(a2),a1
-	movea.l agm_Msg+MN_REPLYPORT+2(a2),a0
-	cmpa.l LN_PRED(a1),a0
+	movea.l $0004(a2),a1
+	movea.l $0010(a2),a0
+	cmpa.l $0004(a1),a0
 	bne.b loc_0_00000634
-	movea.l LN_TYPE(a1),a1
+	movea.l $0008(a1),a1
 	movea.l $0000(a1),a0
 	bra.b loc_0_00000634
 loc_0_0000067E:
@@ -799,7 +795,7 @@ loc_0_0000070C:
 	rts
 loc_0_0000071A:
 	move.l $00A6(a1),d1
-	movea.l agm_Msg+LN_TYPE(a1),a2
+	movea.l $0008(a1),a2
 	adda.l d1,a2
 	cmpa.l $00A2(a1),a2
 	bne.b loc_0_00000776
@@ -809,7 +805,7 @@ loc_0_0000071A:
 	move.l d2,-(a7)
 	subq.l #1,d2
 	movea.l a4,a0
-	movea.l agm_Msg+LN_TYPE(a1),a2
+	movea.l $0008(a1),a2
 	move.l a2,$009E(a1)
 loc_0_00000740:
 	move.b (a0)+,(a2)+
@@ -819,7 +815,7 @@ loc_0_00000740:
 	jsr loc_0_000089B0.l
 	bra.b loc_0_0000076C
 loc_0_00000754:
-	movea.l agm_Msg+LN_TYPE(a1),a2
+	movea.l $0008(a1),a2
 	move.l a2,$009E(a1)
 	adda.l $00A6(a1),a2
 	cmpa.l $00A2(a1),a2
@@ -835,9 +831,9 @@ loc_0_00000776:
 	beq.b loc_0_00000792
 	tst.b app_0238(a6)
 	beq.b loc_0_00000792
-	move.b #$FE,agm_Msg+MN_REPLYPORT(a1)
+	move.b #$FE,$000E(a1)
 loc_0_00000792:
-	cmpi.b #12,agm_Msg+LN_NAME+3(a1)
+	cmpi.b #12,$000D(a1)
 	beq.b loc_0_000007AE
 	move.l $0098(a1),d2
 	beq.b loc_0_000007AE
@@ -1287,7 +1283,7 @@ loc_0_00000CAC:
 	tst.l (a2)
 	beq.w loc_0_00008442
 loc_0_00000CB6:
-	movea.l agm_Msg+LN_PRED(a2),a1
+	movea.l $0004(a2),a1
 loc_0_00000CBA:
 	cmpi.w #152,app_0148(a6)
 	bcc.b loc_0_00000CD0
@@ -1300,14 +1296,14 @@ loc_0_00000CD0:
 	movea.l a2,a1
 	moveq.l #0,d0
 	move.l d0,(a2)
-	move.l d0,agm_Msg+LN_PRED(a2)
-	move.l d4,agm_Msg+LN_TYPE(a2)
-	move.b d3,agm_Msg+LN_NAME+3(a2)
-	move.w d0,agm_Type(a2)
-	move.b d0,agm_Msg+LN_NAME+2(a2)
-	move.b app_0146(a6),agm_Msg+MN_REPLYPORT(a2)
-	move.l d0,agm_Msg+MN_REPLYPORT+2(a2)
-	lea.l agm_Type+2(a2),a2
+	move.l d0,$0004(a2)
+	move.l d4,$0008(a2)
+	move.b d3,$000D(a2)
+	move.w d0,$0014(a2)
+	move.b d0,$000C(a2)
+	move.b app_0146(a6),$000E(a2)
+	move.l d0,$0010(a2)
+	lea.l $0016(a2),a2
 	move.b $0005(a0),d0
 	movea.l (a0),a0
 	move.b d0,(a2)+
@@ -1751,7 +1747,7 @@ loc_0_0000151E:
 	tst.b app_0101(a6)
 	beq.b loc_0_0000151C
 	movea.l app_0882(a6),a1
-	move.w agm_Msg+LN_TYPE(a1),d2
+	move.w $0008(a1),d2
 	bra.b loc_0_00001512
 loc_0_00001530:
 	moveq.l #1,d7
@@ -3751,15 +3747,15 @@ loc_0_00006E8E:
 	moveq.l #0,d0
 loc_0_00006EAC:
 	movea.l app_0888(a6),a0
-	sf.b agm_Msg+LN_NAME+2(a0)
+	sf.b $000C(a0)
 	move.l app_0882(a6),(a0)
 	move.l a0,app_0882(a6)
-	move.w app_0880(a6),agm_Msg+LN_NAME(a0)
+	move.w app_0880(a6),$000A(a0)
 	movea.l $0008(a1),a1
-	move.l a1,agm_Msg+LN_PRED(a0)
-	move.l (a1),agm_Msg+MN_REPLYPORT+2(a0)
-	move.w app_087E(a6),agm_Msg+MN_REPLYPORT(a0)
-	lea.l agm_Msg+LN_TYPE(a0),a1
+	move.l a1,$0004(a0)
+	move.l (a1),$0010(a0)
+	move.w app_087E(a6),$000E(a0)
+	lea.l $0008(a0),a1
 	clr.w (a1)
 	lea.l $0116(a0),a0
 	move.b d0,(a0)+
@@ -3889,7 +3885,7 @@ loc_0_0000700C:
 	bsr.w loc_0_0000743C
 	movea.l a4,a0
 	movea.l app_0882(a6),a2
-	lea.l agm_Type(a2),a1
+	lea.l $0014(a2),a1
 	moveq.l #0,d2
 	bra.w loc_0_0000710C
 loc_0_0000702A:
@@ -3897,12 +3893,12 @@ loc_0_0000702A:
 	bne.b loc_0_0000700C
 loc_0_00007030:
 	movea.l app_0882(a6),a2
-	movea.l agm_Msg+LN_PRED(a2),a1
-	movea.l agm_Msg+MN_REPLYPORT+2(a2),a0
-	cmpa.l LN_PRED(a1),a0
+	movea.l $0004(a2),a1
+	movea.l $0010(a2),a0
+	cmpa.l $0004(a1),a0
 	bne.b loc_0_0000704C
-	movea.l LN_TYPE(a1),a1
-	move.l a1,agm_Msg+LN_PRED(a2)
+	movea.l $0008(a1),a1
+	move.l a1,$0004(a2)
 	movea.l (a1),a0
 loc_0_0000704C:
 	moveq.l #10,d0
@@ -3928,7 +3924,7 @@ loc_0_00007072:
 	moveq.l #0,d0
 	rts
 loc_0_0000707A:
-	lea.l agm_Type(a2),a1
+	lea.l $0014(a2),a1
 	move.l a0,d2
 	sub.l a4,d2
 	subq.w #1,d2
@@ -4178,9 +4174,9 @@ loc_0_00007270:
 loc_0_0000743C:
 	movea.l app_0890(a6),a1
 	movea.l app_0894(a6),a0
-	cmpa.l agm_Msg+LN_PRED(a1),a0
+	cmpa.l $0004(a1),a0
 	bne.b loc_0_00007454
-	movea.l agm_Msg+LN_TYPE(a1),a1
+	movea.l $0008(a1),a1
 	move.l a1,app_0890(a6)
 	movea.l (a1),a0
 loc_0_00007454:
@@ -4636,8 +4632,8 @@ loc_0_00007976:
 	moveq.l #0,d4
 	bsr.w loc_0_00000CBA
 	movea.l app_013E(a6),a0
-	subq.b #1,agm_Msg+LN_NAME+2(a0)
-	move.b agm_Msg+LN_NAME+2(a0),d0
+	subq.b #1,$000C(a0)
+	move.b $000C(a0),d0
 	bsr.w loc_0_000079E4
 	move.b d0,$000E(a1)
 loc_0_000079B2:
@@ -4651,7 +4647,7 @@ loc_0_000079C6:
 	bra.b loc_0_0000794C
 loc_0_000079CC:
 	movea.l app_0142(a6),a1
-	move.l app_023C(a6),agm_Msg+LN_TYPE(a1)
+	move.l app_023C(a6),$0008(a1)
 	bra.w loc_0_00009864
 loc_0_000079DA:
 	tst.b app_0238(a6)
@@ -4929,7 +4925,7 @@ loc_0_000084C6:
 	movea.l app_017E(a6),a1
 	move.l a1,d1
 	beq.b loc_0_00008520
-	cmpi.b #12,agm_Msg+LN_NAME+3(a1)
+	cmpi.b #12,$000D(a1)
 	bne.b loc_0_0000852C
 	move.l $0098(a1),d2
 	tst.b app_0101(a6)
@@ -4951,7 +4947,7 @@ loc_0_00008508:
 loc_0_00008516:
 	move.l $009E(a1),d1
 loc_0_0000851A:
-	sub.l agm_Msg+LN_TYPE(a1),d1
+	sub.l $0008(a1),d1
 	subq.l #1,d1
 loc_0_00008520:
 	movea.l app_01A2(a6),a1
@@ -4977,9 +4973,9 @@ loc_0_00008530:
 	bsr.w loc_0_00008E7A
 	movea.l app_017E(a6),a1
 	moveq.l #0,d2
-	move.b agm_Type+2(a1),d2
+	move.b $0016(a1),d2
 	subq.b #2,d2
-	lea.l agm_Type+3(a1),a1
+	lea.l $0017(a1),a1
 loc_0_0000856C:
 	move.b (a1)+,d1
 	bsr.w loc_0_00008E98
@@ -5450,16 +5446,16 @@ loc_0_00008D82:
 	rts
 loc_0_00008DA0:
 	movea.l app_094C(a6),a0
-	move.w agm_Msg+LN_PRED(a0),d0
+	move.w $0004(a0),d0
 	lea.l $6(a0,d0.w),a0
 	move.l a0,app_0950(a6)
 	movea.l app_0948(a6),a0
 	move.l a0,app_094C(a6)
 	moveq.l #-1,d0
-	tst.w agm_Msg+LN_PRED(a0)
+	tst.w $0004(a0)
 	beq.b loc_0_00008DC8
-	clr.w agm_Msg+LN_PRED(a0)
-	move.l agm_Msg+LN_PRED+2(a0),d0
+	clr.w $0004(a0)
+	move.l $0006(a0),d0
 loc_0_00008DC8:
 	move.l d0,app_0944(a6)
 	rts
@@ -5798,9 +5794,9 @@ loc_0_00009204:
 	beq.b loc_0_00009224
 	movea.l app_017E(a6),a1
 	moveq.l #0,d2
-	move.b agm_Type+2(a1),d2
+	move.b $0016(a1),d2
 	subq.b #2,d2
-	lea.l agm_Type+3(a1),a1
+	lea.l $0017(a1),a1
 loc_0_0000921A:
 	move.b (a1)+,d1
 	bsr.w loc_0_00008E98
@@ -6342,7 +6338,7 @@ loc_0_00009A2E:
 	dc.b $03,$EB,$00,$12,$67,$06,$94,$81,$D5,$AE,$02,$4C,$70,$00,$4E,$75
 loc_0_00009A90:
 	movea.l app_current_node(a6),a0
-	cmpi.w #1003,agm_Msg+MN_LENGTH(a0)
+	cmpi.w #1003,$0012(a0)
 	beq.w loc_0_0000845A
 	add.l d1,app_024C(a6)
 	rts
@@ -6477,7 +6473,7 @@ loc_0_00009C2A:
 	bra.w loc_0_00009288
 loc_0_00009C38:
 	movea.l app_current_node(a6),a1
-	cmpi.w #1003,agm_Msg+MN_LENGTH(a1)
+	cmpi.w #1003,$0012(a1)
 	rts
 loc_0_00009C44:
 	movea.l app_019E(a6),a4
@@ -6647,7 +6643,7 @@ loc_0_00009E44:
 	bra.b loc_0_00009E5C
 loc_0_00009E50:
 	movea.l app_013E(a6),a1
-	lea.l agm_Type+2(a1),a1
+	lea.l $0016(a1),a1
 	move.b (a1)+,d0
 	subq.b #1,d0
 loc_0_00009E5C:
@@ -6740,7 +6736,7 @@ loc_0_00009F3E:
 loc_0_00009F4E:
 	addq.l #1,(a7)
 	movea.l app_013E(a6),a0
-	cmp.b agm_Msg+LN_NAME+2(a0),d3
+	cmp.b $000C(a0),d3
 	bne.b loc_0_00009EFE
 loc_0_00009F5A:
 	tst.l $0008(a7)
@@ -9050,10 +9046,10 @@ loc_0_0000F830:
 	dc.b $4E,$75,$70,$FF,$4E,$75
 loc_0_0000F868:
 	movea.l app_current_node(a6),a0
-	btst.b #1,agm_Msg+MN_REPLYPORT+2(a0)
+	btst.b #1,$0010(a0)
 	bne.w loc_0_0000F884
 	add.l d1,app_024C(a6)
-	bset.b #0,agm_Msg+MN_REPLYPORT+2(a0)
+	bset.b #0,$0010(a0)
 	beq.b loc_0_0000F88A
 	rts
 loc_0_0000F884:
@@ -9143,7 +9139,7 @@ loc_0_0000F980:
 	rts
 loc_0_0000F982:
 	movea.l app_current_node(a6),a1
-	btst.b #1,agm_Msg+MN_REPLYPORT+2(a1)
+	btst.b #1,$0010(a1)
 	eori #4,ccr
 	rts
 loc_0_0000F992:

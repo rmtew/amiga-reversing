@@ -124,6 +124,24 @@ class PlatformTypedAccess:
     nested: bool = False
 
 
+@dataclass(frozen=True, slots=True)
+class PlatformUnresolvedTypedAccess:
+    operand_index: int
+    base_register: str
+    displacement: int
+    struct_size: int | None
+    root_struct_name: str | None
+    classification: str | None = None
+    container_candidate_count: int | None = None
+    container_struct_name: str | None = None
+    container_field_expr: str | None = None
+    refinement_applied: bool = False
+    refined_struct_name: str | None = None
+    type_provenance_kind: str | None = None
+    type_provenance_section: int | None = None
+    type_provenance_offset: int | None = None
+
+
 @dataclass(frozen=True)
 class ListingRow:
     row_id: str
@@ -150,6 +168,7 @@ class ListingRow:
     operand_registers: tuple[str | None, ...] = ()
     app_slot_refs: tuple[AppSlotRef, ...] = ()
     typed_accesses: tuple[PlatformTypedAccess, ...] = ()
+    unresolved_typed_accesses: tuple[PlatformUnresolvedTypedAccess, ...] = ()
     operand_text: str = ""
     comment_parts: tuple[str, ...] = ()
     comment_text: str = ""

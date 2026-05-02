@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
 import json
 import re
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
+from amiga_reversing.disasm.binary_source import HunkFileBinarySource, resolve_target_binary_source
 from amiga_reversing.disasm import c_backend
+from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from src.scripts import amiga_hardware_usage
 from src.scripts.platform_manifest_io import (
     ROOT,
@@ -26,7 +29,9 @@ DEFAULT_XREF_OUTPUT = ROOT / "corpus" / "target_usage_xrefs.jsonl"
 DEFAULT_SNIPPET_ROWS_OUTPUT = ROOT / "corpus" / "target_usage_snippet_rows.jsonl"
 DEFAULT_VARIANT_OUTPUT = ROOT / "corpus" / "target_variant_index.jsonl"
 DEFAULT_TYPE_FLOW_REPORT_OUTPUT = ROOT / "corpus" / "target_type_flow_report.jsonl"
+DEFAULT_UNRESOLVED_TYPED_FIELD_REPORT_OUTPUT = ROOT / "corpus" / "target_unresolved_typed_fields.jsonl"
 DEFAULT_TYPE_FLOW_SNAPSHOT_DIR = ROOT / "corpus" / "type_flow_snapshots"
+DEFAULT_TYPE_FLOW_BASELINE = ROOT / "src" / "tests" / "fixtures" / "type_flow_baseline.json"
 MAX_EXAMPLES = 5
 CPU_NAMES = {
     0: "68000",
@@ -45,6 +50,14 @@ PLATFORM_EFFECT_NAMES = {
     6: "write_global_base_slot",
     7: "write_typed_global_slot",
 }
+TYPED_STORAGE_EFFECT_TARGETS = {
+    "set_typed_reg": "register",
+    "write_typed_slot": "app_slot",
+    "write_typed_global_slot": "global_slot",
+}
+NUMERIC_ADDRESS_REG_ACCESS_RE = re.compile(r"\$[0-9A-Fa-f]{2,8}(?:\.[wlWL])?\([aA][0-7]\)")
+SUSPICIOUS_FIRST_STRUCT_NAMES = ("AmigaGuideMsg",)
+SUSPICIOUS_FIRST_STRUCT_PREFIXES = ("agm_",)
 FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     "os": ("os_call", "os:"),
     "hardware": ("hardware:", "hardware_register:", "value_domain:amiga.custom", "value_domain:amiga.cia"),
@@ -73,6 +86,10 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
         "platform_struct_field:",
         "platform_field_expr:",
         "typed_base_unresolved_field",
+        "typed_storage:",
+        "typed_storage_kind:",
+        "typed_storage_type:",
+        "typed_storage_target:",
     ),
     "symbols": ("label:", "xref:label", "xref:segment"),
     "data": ("data:", "xref:data"),
@@ -223,6 +240,11 @@ def build_usage_outputs(
         tmp_dir = Path(tmp)
         for entry in file_entries:
             row, row_xrefs, row_snippets = collect_file_usage_catalog_entry(entry, resolver, tmp_dir, root=root)
+            rows.append(row)
+            xrefs.extend(row_xrefs)
+            snippet_rows.extend(row_snippets)
+        for target_dir in _project_target_dirs(root):
+            row, row_xrefs, row_snippets = collect_project_usage_catalog_entry(target_dir, tmp_dir, root=root)
             rows.append(row)
             xrefs.extend(row_xrefs)
             snippet_rows.extend(row_snippets)
@@ -416,6 +438,119 @@ def collect_file_usage_catalog_entry(
     row = _base_row("platform_file_manifest", entry, bag)
     xrefs = _file_usage_xrefs(row, entry, combined, analysis_error)
     return row, xrefs, _snippet_rows_for_xrefs(row, combined, xrefs)
+
+
+def _project_target_dirs(root: Path = ROOT) -> list[Path]:
+    targets_dir = root / "targets"
+    if not targets_dir.exists():
+        return []
+    return [
+        target_dir
+        for target_dir in sorted(targets_dir.iterdir(), key=lambda item: item.name)
+        if target_dir.is_dir() and (target_dir / "source_binary.json").exists()
+    ]
+
+
+def collect_project_usage_catalog_entry(
+    target_dir: Path,
+    tmp_dir: Path,
+    *,
+    root: Path = ROOT,
+) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
+    bag = FeatureBag()
+    bag.add("project_target:any", example={"target": target_dir.name})
+    entry, source = _project_target_manifest_entry(target_dir, root=root)
+    platform = str(entry.get("platform", "unknown"))
+    if source is not None:
+        bag.add(f"format:{_safe_part(source.kind)}")
+    if _status(entry) != "ok":
+        expect = entry.get("expect") if isinstance(entry.get("expect"), dict) else {}
+        bag.add("diagnostic:manifest_error", example={"message": expect.get("error") if isinstance(expect, dict) else None})
+    combined: dict[str, Any] | None = None
+    analysis_error: str | None = None
+    if _status(entry) == "ok" and isinstance(source, HunkFileBinarySource) and platform == "amiga-hunk":
+        try:
+            combined = analyze_project_hunk_file(platform, source.path, target_dir, root=root)
+            _add_executable_analysis_features(combined, bag, platform=platform, root=root)
+        except Exception as exc:
+            analysis_error = str(exc)
+            bag.add("diagnostic:analysis_error", example={"message": str(exc)})
+    row = _base_row("project_target", entry, bag)
+    xrefs = _project_target_xrefs(row, entry, combined, analysis_error)
+    return row, xrefs, _snippet_rows_for_xrefs(row, combined, xrefs)
+
+
+def _project_target_manifest_entry(target_dir: Path, *, root: Path = ROOT) -> tuple[dict[str, Any], object | None]:
+    project = _read_json_object(target_dir / ".project.json")
+    project_origin = project.get("origin") if isinstance(project.get("origin"), dict) else {}
+    source_error: str | None = None
+    try:
+        source = resolve_target_binary_source(target_dir, project_root=root)
+    except Exception as exc:
+        source = None
+        source_error = str(exc)
+    platform = _string_value(project_origin.get("platform"))
+    if platform is None and isinstance(source, HunkFileBinarySource):
+        platform = "amiga-hunk"
+    status = "ok" if source is not None and platform is not None else ("error" if source_error else "unsupported")
+    origin = {
+        "display_name": target_dir.name,
+        "source_relpath": getattr(source, "display_path", None),
+    }
+    filename = _string_value(project_origin.get("filename"))
+    if filename:
+        origin["member_name"] = filename
+    entry: dict[str, Any] = {
+        "id": target_dir.name,
+        "platform": platform or "unknown",
+        "status": status,
+        "origin": origin,
+    }
+    if source_error:
+        entry["expect"] = {"status": "error", "error": source_error}
+    sha_value = _string_value(project_origin.get("sha256"))
+    size_value = _int_value(project_origin.get("size"))
+    if sha_value:
+        entry["sha256"] = sha_value
+    if size_value is not None:
+        entry["size"] = size_value
+    if source is not None and hasattr(source, "path") and ("sha256" not in entry or "size" not in entry):
+        path = getattr(source, "path")
+        if isinstance(path, Path):
+            try:
+                data = path.read_bytes()
+                if "sha256" not in entry:
+                    entry["sha256"] = sha256(data)
+                if "size" not in entry:
+                    entry["size"] = len(data)
+            except OSError:
+                pass
+    return entry, source
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def analyze_project_hunk_file(platform: str, path: Path, target_dir: Path, *, root: Path = ROOT) -> dict[str, Any]:
+    include_dir = _include_dir_for_platform(platform, root)
+    with effective_metadata_file(target_dir) as metadata_path:
+        combined_text = c_backend._platform_file_text(
+            "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
+            platform,
+            str(path),
+            str(metadata_path) if metadata_path is not None else "",
+            str(include_dir),
+            project_root=root,
+        )
+    payload = json.loads(combined_text)
+    if not isinstance(payload, dict):
+        raise RuntimeError("C backend returned non-object project usage analysis")
+    return payload
 
 
 def analyze_executable_file(platform: str, file_bytes: bytes, tmp_dir: Path, *, root: Path = ROOT) -> dict[str, Any]:
@@ -648,6 +783,14 @@ def _platform_typed_access_parts(access: dict[str, Any]) -> tuple[str | None, st
     return root_struct, owner_struct, field_name, field_expr
 
 
+def _typed_access_provenance(access: dict[str, Any]) -> tuple[str | None, int | None, int | None]:
+    return (
+        _string_value(access.get("type_provenance_kind")),
+        _int_value(access.get("type_provenance_section")),
+        _int_value(access.get("type_provenance_offset")),
+    )
+
+
 def _add_platform_typed_access_features(
     bag: FeatureBag,
     access: dict[str, Any],
@@ -656,7 +799,10 @@ def _add_platform_typed_access_features(
 ) -> None:
     root_struct, owner_struct, field_name, field_expr = _platform_typed_access_parts(access)
     owner_for_feature = owner_struct or root_struct
+    type_provenance_kind, _type_provenance_section, _type_provenance_offset = _typed_access_provenance(access)
     bag.add("platform_typed_access:any", example=example)
+    if type_provenance_kind:
+        bag.add(f"platform_typed_access_provenance:{_safe_part(type_provenance_kind)}", example=example)
     if root_struct:
         bag.add(f"platform_typed_access_struct:{_safe_part(root_struct)}", example=example)
         bag.add(f"struct:{_safe_part(root_struct)}", example=example)
@@ -681,11 +827,29 @@ def _add_platform_unresolved_typed_access_features(
     example: dict[str, object],
 ) -> None:
     root_struct = _string_value(access.get("root_struct_name"))
+    classification = _string_value(access.get("classification"))
+    container_struct = _string_value(access.get("container_struct_name"))
+    refined_struct = _string_value(access.get("refined_struct_name"))
+    refinement_applied = access.get("refinement_applied") is True or access.get("refinement_applied") == 1
     bag.add("typed_base_unresolved_field", example=example)
     bag.add("platform_unresolved_typed_access:any", example=example)
+    if classification:
+        bag.add(f"platform_unresolved_typed_access:{_safe_part(classification)}", example=example)
     if root_struct:
         bag.add(f"platform_unresolved_typed_access_struct:{_safe_part(root_struct)}", example=example)
         bag.add(f"struct:{_safe_part(root_struct)}", example=example)
+        if classification == "prefix_extension":
+            bag.add(f"platform_prefix_extension_struct:{_safe_part(root_struct)}", example=example)
+    if classification == "prefix_extension" and container_struct:
+        bag.add(f"platform_prefix_extension_candidate:{_safe_part(container_struct)}", example=example)
+    if classification == "custom_tail_or_mistyped_base" and root_struct:
+        bag.add(f"platform_custom_tail_struct:{_safe_part(root_struct)}", example=example)
+    if refinement_applied:
+        bag.add("platform_type_refinement:applied", example=example)
+        if root_struct:
+            bag.add(f"platform_type_refinement_from:{_safe_part(root_struct)}", example=example)
+        if refined_struct:
+            bag.add(f"platform_type_refinement_to:{_safe_part(refined_struct)}", example=example)
 
 
 def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
@@ -754,6 +918,12 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             type_name = _string_value(effect.get("type_name"))
             if type_name:
                 bag.add(f"type:{_safe_part(type_name)}")
+                storage_target = TYPED_STORAGE_EFFECT_TARGETS.get(effect_kind_name or "")
+                if storage_target:
+                    bag.add("typed_storage:any", example=effect_example)
+                    bag.add(f"typed_storage_kind:{_safe_part(effect_kind_name or 'unknown')}", example=effect_example)
+                    bag.add(f"typed_storage_type:{_safe_part(type_name)}", example=effect_example)
+                    bag.add(f"typed_storage_target:{_safe_part(storage_target)}", example=effect_example)
         for ref in _dict_items(section.get("app_slot_refs")):
             access = _string_value(ref.get("access")) or "unknown"
             example = _offset_example(section_index, ref.get("offset"), _string_value(ref.get("displacement")))
@@ -848,6 +1018,8 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
             bag.add(f"app_slot:{_safe_part(access)}", example=example)
         for access in _dict_items(row.get("typed_accesses")):
             _add_platform_typed_access_features(bag, access, example=example)
+        for access in _dict_items(row.get("unresolved_typed_accesses")):
+            _add_platform_unresolved_typed_access_features(bag, access, example=example)
 
 
 def _disk_usage_xrefs(row: dict[str, object], entry: dict[str, Any]) -> list[dict[str, object]]:
@@ -914,6 +1086,19 @@ def _file_usage_xrefs(
     return _dedupe_xrefs(xrefs)
 
 
+def _project_target_xrefs(
+    row: dict[str, object],
+    entry: dict[str, Any],
+    combined: dict[str, Any] | None,
+    analysis_error: str | None,
+) -> list[dict[str, object]]:
+    xrefs = [
+        _xref(row, "project_target:any", "project_target", text=str(row.get("source_id") or "")),
+        *_file_usage_xrefs(row, entry, combined, analysis_error),
+    ]
+    return _dedupe_xrefs(xrefs)
+
+
 def _snippet_rows_for_xrefs(
     target_row: dict[str, object],
     combined: dict[str, Any] | None,
@@ -976,6 +1161,7 @@ def _compact_listing_row(row: dict[str, Any]) -> dict[str, object]:
         "structured_data",
         "app_slot_refs",
         "typed_accesses",
+        "unresolved_typed_accesses",
     )
     return {key: row[key] for key in keys if key in row}
 
@@ -1097,6 +1283,7 @@ def _platform_typed_access_xrefs(
     owner_for_feature = owner_struct or root_struct
     text = row_text or field_expr or field_name or owner_for_feature or "typed platform access"
     field_offset = _int_value(access.get("field_offset"))
+    type_provenance_kind, type_provenance_section, type_provenance_offset = _typed_access_provenance(access)
     xrefs = [
         _xref(
             target_row,
@@ -1230,6 +1417,31 @@ def _platform_typed_access_xrefs(
                 text=text,
             )
         )
+    if type_provenance_kind:
+        xrefs.append(
+            _xref(
+                target_row,
+                f"platform_typed_access_provenance:{_safe_part(type_provenance_kind)}",
+                "platform_typed_access",
+                section=section_index,
+                offset=offset,
+                row_index=row_index,
+                stable_key=stable_key,
+                symbol=field_name,
+                value=field_offset,
+                text=text,
+                type_provenance_kind=type_provenance_kind,
+                type_provenance_section=type_provenance_section,
+                type_provenance_offset=type_provenance_offset,
+            )
+        )
+    if type_provenance_kind:
+        for xref in xrefs:
+            xref["type_provenance_kind"] = type_provenance_kind
+            if type_provenance_section is not None:
+                xref["type_provenance_section"] = type_provenance_section
+            if type_provenance_offset is not None:
+                xref["type_provenance_offset"] = type_provenance_offset
     return xrefs
 
 
@@ -1245,6 +1457,16 @@ def _platform_unresolved_typed_access_xrefs(
 ) -> list[dict[str, object]]:
     root_struct = _string_value(access.get("root_struct_name"))
     displacement = _int_value(access.get("displacement"))
+    struct_size = _int_value(access.get("struct_size"))
+    classification = _string_value(access.get("classification"))
+    container_candidate_count = _int_value(access.get("container_candidate_count"))
+    container_struct_name = _string_value(access.get("container_struct_name"))
+    container_field_expr = _string_value(access.get("container_field_expr"))
+    refinement_applied = access.get("refinement_applied") is True or access.get("refinement_applied") == 1
+    refined_struct_name = _string_value(access.get("refined_struct_name"))
+    type_provenance_kind = _string_value(access.get("type_provenance_kind"))
+    type_provenance_section = _int_value(access.get("type_provenance_section"))
+    type_provenance_offset = _int_value(access.get("type_provenance_offset"))
     text = row_text or root_struct or "unresolved typed platform access"
     xrefs = [
         _xref(
@@ -1258,6 +1480,16 @@ def _platform_unresolved_typed_access_xrefs(
             symbol=root_struct,
             value=displacement,
             text=text,
+            struct_size=struct_size,
+            classification=classification,
+            container_candidate_count=container_candidate_count,
+            container_struct_name=container_struct_name,
+            container_field_expr=container_field_expr,
+            refinement_applied=refinement_applied,
+            refined_struct_name=refined_struct_name,
+            type_provenance_kind=type_provenance_kind,
+            type_provenance_section=type_provenance_section,
+            type_provenance_offset=type_provenance_offset,
         ),
         _xref(
             target_row,
@@ -1270,8 +1502,106 @@ def _platform_unresolved_typed_access_xrefs(
             symbol=root_struct,
             value=displacement,
             text=text,
+            struct_size=struct_size,
+            classification=classification,
+            container_candidate_count=container_candidate_count,
+            container_struct_name=container_struct_name,
+            container_field_expr=container_field_expr,
+            refinement_applied=refinement_applied,
+            refined_struct_name=refined_struct_name,
+            type_provenance_kind=type_provenance_kind,
+            type_provenance_section=type_provenance_section,
+            type_provenance_offset=type_provenance_offset,
         ),
     ]
+    if refinement_applied:
+        xrefs.append(
+            _xref(
+                target_row,
+                "platform_type_refinement:applied",
+                "platform_type_refinement",
+                section=section_index,
+                offset=offset,
+                row_index=row_index,
+                stable_key=stable_key,
+                symbol=refined_struct_name or container_struct_name or root_struct,
+                value=displacement,
+                text=text,
+                struct_size=struct_size,
+                classification=classification,
+                container_candidate_count=container_candidate_count,
+                container_struct_name=container_struct_name,
+                container_field_expr=container_field_expr,
+                refinement_applied=True,
+                refined_struct_name=refined_struct_name,
+                type_provenance_kind=type_provenance_kind,
+                type_provenance_section=type_provenance_section,
+                type_provenance_offset=type_provenance_offset,
+            )
+        )
+        if root_struct:
+            xrefs.append(
+                _xref(
+                    target_row,
+                    f"platform_type_refinement_from:{_safe_part(root_struct)}",
+                    "platform_type_refinement",
+                    section=section_index,
+                    offset=offset,
+                    row_index=row_index,
+                    stable_key=stable_key,
+                    symbol=root_struct,
+                    value=displacement,
+                    text=text,
+                    refinement_applied=True,
+                    refined_struct_name=refined_struct_name,
+                    type_provenance_kind=type_provenance_kind,
+                    type_provenance_section=type_provenance_section,
+                    type_provenance_offset=type_provenance_offset,
+                )
+            )
+        if refined_struct_name:
+            xrefs.append(
+                _xref(
+                    target_row,
+                    f"platform_type_refinement_to:{_safe_part(refined_struct_name)}",
+                    "platform_type_refinement",
+                    section=section_index,
+                    offset=offset,
+                    row_index=row_index,
+                    stable_key=stable_key,
+                    symbol=refined_struct_name,
+                    value=displacement,
+                    text=text,
+                    refinement_applied=True,
+                    refined_struct_name=refined_struct_name,
+                    type_provenance_kind=type_provenance_kind,
+                    type_provenance_section=type_provenance_section,
+                    type_provenance_offset=type_provenance_offset,
+                )
+            )
+    if classification:
+        xrefs.append(
+            _xref(
+                target_row,
+                f"platform_unresolved_typed_access:{_safe_part(classification)}",
+                "platform_unresolved_typed_access",
+                section=section_index,
+                offset=offset,
+                row_index=row_index,
+                stable_key=stable_key,
+                symbol=root_struct,
+                value=displacement,
+                text=text,
+                struct_size=struct_size,
+                classification=classification,
+                container_candidate_count=container_candidate_count,
+                container_struct_name=container_struct_name,
+                container_field_expr=container_field_expr,
+                type_provenance_kind=type_provenance_kind,
+                type_provenance_section=type_provenance_section,
+                type_provenance_offset=type_provenance_offset,
+            )
+        )
     if root_struct:
         xrefs.append(
             _xref(
@@ -1285,6 +1615,14 @@ def _platform_unresolved_typed_access_xrefs(
                 symbol=root_struct,
                 value=displacement,
                 text=text,
+                struct_size=struct_size,
+                classification=classification,
+                container_candidate_count=container_candidate_count,
+                container_struct_name=container_struct_name,
+                container_field_expr=container_field_expr,
+                type_provenance_kind=type_provenance_kind,
+                type_provenance_section=type_provenance_section,
+                type_provenance_offset=type_provenance_offset,
             )
         )
         xrefs.append(
@@ -1299,6 +1637,54 @@ def _platform_unresolved_typed_access_xrefs(
                 symbol=root_struct,
                 value=displacement,
                 text=text,
+                struct_size=struct_size,
+                classification=classification,
+                container_candidate_count=container_candidate_count,
+                container_struct_name=container_struct_name,
+                container_field_expr=container_field_expr,
+                type_provenance_kind=type_provenance_kind,
+                type_provenance_section=type_provenance_section,
+                type_provenance_offset=type_provenance_offset,
+            )
+        )
+        if classification == "prefix_extension":
+            xrefs.append(
+                _xref(
+                    target_row,
+                    f"platform_prefix_extension_struct:{_safe_part(root_struct)}",
+                    "platform_unresolved_typed_access",
+                    section=section_index,
+                    offset=offset,
+                    row_index=row_index,
+                    stable_key=stable_key,
+                    symbol=root_struct,
+                    value=displacement,
+                    text=text,
+                    struct_size=struct_size,
+                    classification=classification,
+                    container_candidate_count=container_candidate_count,
+                    container_struct_name=container_struct_name,
+                    container_field_expr=container_field_expr,
+                )
+            )
+    if classification == "prefix_extension" and container_struct_name:
+        xrefs.append(
+            _xref(
+                target_row,
+                f"platform_prefix_extension_candidate:{_safe_part(container_struct_name)}",
+                "platform_unresolved_typed_access",
+                section=section_index,
+                offset=offset,
+                row_index=row_index,
+                stable_key=stable_key,
+                symbol=container_struct_name,
+                value=displacement,
+                text=text,
+                struct_size=struct_size,
+                classification=classification,
+                container_candidate_count=container_candidate_count,
+                container_struct_name=container_struct_name,
+                container_field_expr=container_field_expr,
             )
         )
     return xrefs
@@ -1382,6 +1768,33 @@ def _analysis_xrefs(
             type_name = _string_value(effect.get("type_name"))
             if type_name:
                 xrefs.append(_xref(row, f"type:{_safe_part(type_name)}", "type", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, value=type_name, text=row_text or base_name or type_name))
+                storage_target = TYPED_STORAGE_EFFECT_TARGETS.get(effect_kind_name or "")
+                if storage_target:
+                    storage_text = row_text or base_name or type_name
+                    storage_value = _int_value(effect.get("target_offset"))
+                    if storage_value is None:
+                        storage_value = _int_value(effect.get("displacement"))
+                    for feature in (
+                        "typed_storage:any",
+                        f"typed_storage_kind:{_safe_part(effect_kind_name or 'unknown')}",
+                        f"typed_storage_type:{_safe_part(type_name)}",
+                        f"typed_storage_target:{_safe_part(storage_target)}",
+                    ):
+                        xrefs.append(
+                            _xref(
+                                row,
+                                feature,
+                                "typed_storage",
+                                section=section_index,
+                                offset=offset,
+                                row_index=row_index,
+                                stable_key=stable_key,
+                                symbol=type_name,
+                                access=storage_target,
+                                value=storage_value,
+                                text=storage_text,
+                            )
+                        )
         for ref in _dict_items(section.get("app_slot_refs")):
             access = _string_value(ref.get("access")) or "unknown"
             offset = _int_value(ref.get("offset"))
@@ -1519,6 +1932,18 @@ def _listing_xrefs(row: dict[str, object], listing: dict[str, Any]) -> list[dict
         for access in _dict_items(listing_row.get("typed_accesses")):
             xrefs.extend(
                 _platform_typed_access_xrefs(
+                    row,
+                    access,
+                    section_index=section_index,
+                    offset=_int_value(offset),
+                    row_index=row_index,
+                    stable_key=stable_key,
+                    row_text=text.strip(),
+                )
+            )
+        for access in _dict_items(listing_row.get("unresolved_typed_accesses")):
+            xrefs.extend(
+                _platform_unresolved_typed_access_xrefs(
                     row,
                     access,
                     section_index=section_index,
@@ -1700,6 +2125,16 @@ def _xref(
     text: str | None = None,
     resolution: str | None = None,
     source_stable_key: str | None = None,
+    struct_size: object = None,
+    classification: str | None = None,
+    container_candidate_count: object = None,
+    container_struct_name: str | None = None,
+    container_field_expr: str | None = None,
+    refinement_applied: object = None,
+    refined_struct_name: str | None = None,
+    type_provenance_kind: str | None = None,
+    type_provenance_section: object = None,
+    type_provenance_offset: object = None,
 ) -> dict[str, object]:
     target_id = str(target_row.get("id"))
     payload: dict[str, object] = {
@@ -1720,6 +2155,26 @@ def _xref(
         "value": value if isinstance(value, (str, int, float, bool)) or value is None else str(value),
         "text": text or "",
     }
+    if isinstance(struct_size, int):
+        payload["struct_size"] = struct_size
+    if classification is not None:
+        payload["classification"] = classification
+    if isinstance(container_candidate_count, int):
+        payload["container_candidate_count"] = container_candidate_count
+    if container_struct_name is not None:
+        payload["container_struct_name"] = container_struct_name
+    if container_field_expr is not None:
+        payload["container_field_expr"] = container_field_expr
+    if isinstance(refinement_applied, bool):
+        payload["refinement_applied"] = refinement_applied
+    if refined_struct_name is not None:
+        payload["refined_struct_name"] = refined_struct_name
+    if type_provenance_kind is not None:
+        payload["type_provenance_kind"] = type_provenance_kind
+    if isinstance(type_provenance_section, int):
+        payload["type_provenance_section"] = type_provenance_section
+    if isinstance(type_provenance_offset, int):
+        payload["type_provenance_offset"] = type_provenance_offset
     if source_stable_key is not None:
         payload["source_stable_key"] = source_stable_key
     payload["id"] = _stable_xref_id(payload)
@@ -1743,6 +2198,10 @@ def _stable_xref_id(payload: dict[str, object]) -> str:
     )
     if payload.get("source_stable_key") is not None:
         keys = (*keys[:7], "source_stable_key", *keys[7:])
+    if payload.get("struct_size") is not None:
+        keys = (*keys, "struct_size")
+    if payload.get("type_provenance_kind") is not None:
+        keys = (*keys, "type_provenance_kind", "type_provenance_section", "type_provenance_offset")
     raw = json.dumps({key: payload.get(key) for key in keys}, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]
 
@@ -1978,6 +2437,10 @@ def write_type_flow_report(path: Path, rows: list[dict[str, object]]) -> None:
     write_jsonl_manifest(path, rows)
 
 
+def write_unresolved_typed_field_report(path: Path, rows: list[dict[str, object]]) -> None:
+    write_jsonl_manifest(path, rows)
+
+
 def type_flow_snapshot_path(output_dir: Path, name: str) -> Path:
     safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", name).strip("._")
     if not safe:
@@ -2002,6 +2465,11 @@ def write_type_flow_delta(path: Path, delta: dict[str, object]) -> None:
     path.write_text(json.dumps(delta, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def write_type_flow_baseline(path: Path, baseline: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(baseline, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def read_usage_manifest(path: Path = DEFAULT_OUTPUT) -> list[dict[str, Any]]:
     return read_jsonl_manifest(path)
 
@@ -2022,7 +2490,18 @@ def read_type_flow_report(path: Path = DEFAULT_TYPE_FLOW_REPORT_OUTPUT) -> list[
     return read_jsonl_manifest(path)
 
 
+def read_unresolved_typed_field_report(
+    path: Path = DEFAULT_UNRESOLVED_TYPED_FIELD_REPORT_OUTPUT,
+) -> list[dict[str, Any]]:
+    return read_jsonl_manifest(path)
+
+
 def read_type_flow_delta(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else {}
+
+
+def read_type_flow_baseline(path: Path = DEFAULT_TYPE_FLOW_BASELINE) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return payload if isinstance(payload, dict) else {}
 
@@ -2032,6 +2511,35 @@ def _type_flow_numeric_address_base_reg(text: str) -> int | None:
     if match is None:
         return None
     return int(match.group(1))
+
+
+def _type_flow_numeric_address_displacement(text: str) -> int | None:
+    match = re.search(r"(-?)\$([0-9A-Fa-f]{2,8})(?:\.[wlWL])?\([aA][0-7]\)", text)
+    if match is None:
+        return None
+    value = int(match.group(2), 16)
+    return -value if match.group(1) == "-" else value
+
+
+def _type_flow_app_slot_subaccess(trace: dict[str, object]) -> dict[str, object] | None:
+    assignment = trace.get("assignment")
+    if not isinstance(assignment, dict):
+        return None
+    source = _string_value(assignment.get("source"))
+    text = _string_value(trace.get("text"))
+    if source is None or text is None:
+        return None
+    slot_match = re.search(r"\b(app_[0-9A-Fa-f]+|app_[A-Za-z0-9_]+)\s*\([aA]6\)", source)
+    if slot_match is None:
+        return None
+    displacement = _type_flow_numeric_address_displacement(text)
+    if displacement is None:
+        return None
+    return {
+        "slot": slot_match.group(1),
+        "slot_access_displacement": displacement,
+        "slot_access_displacement_hex": _signed_hex_string(displacement),
+    }
 
 
 def _type_flow_assignment_source_for_reg(text: str, base_reg: int) -> str | None:
@@ -2069,6 +2577,20 @@ def _type_flow_normalized_operand_expr(text: str) -> str:
 
 def _type_flow_operand_is_register(text: str) -> bool:
     return re.fullmatch(r"[dDaA][0-7]", text.strip()) is not None
+
+
+def _type_flow_register_name(text: str) -> str | None:
+    match = re.fullmatch(r"([dDaA][0-7])", text.strip())
+    if match is None:
+        return None
+    return match.group(1).upper()
+
+
+def _type_flow_address_base_register_name(text: str) -> str | None:
+    match = re.search(r"\([aA]([0-7])\)", text)
+    if match is None:
+        return None
+    return f"A{match.group(1)}"
 
 
 def _type_flow_row_is_call_like(row: dict[str, Any]) -> bool:
@@ -2145,15 +2667,9 @@ def _type_flow_storage_reload_chain(
         return None
     storage_key = _type_flow_normalized_operand_expr(assignment_source)
     storage_kind = _type_flow_storage_kind(assignment_source, assignment_row)
-    for candidate in reversed(rows):
-        candidate_index = candidate.get("row_index")
-        if (
-            not isinstance(candidate_index, int)
-            or candidate_index >= assignment_row_index
-            or candidate_index < assignment_row_index - 48
-        ):
-            continue
-        candidate_row = candidate.get("row")
+    del rows
+    for candidate_index in range(assignment_row_index - 1, max(0, assignment_row_index - 48) - 1, -1):
+        candidate_row = rows_by_index.get(candidate_index)
         if not isinstance(candidate_row, dict) or candidate_row.get("kind") != "instruction":
             continue
         store = _type_flow_store_to_memory(_string_value(candidate_row.get("text")) or "")
@@ -2223,6 +2739,160 @@ def _type_flow_storage_reload_chain(
             "store_source_reg": source_reg,
         }
     return None
+
+
+def _type_flow_find_assignment_to_reg(
+    rows: list[dict[str, Any]],
+    *,
+    row_index: int,
+    reg_name: str,
+    rows_by_index: dict[int, dict[str, Any]] | None = None,
+    window: int = 64,
+) -> tuple[int, dict[str, Any], str] | None:
+    reg_name = reg_name.upper()
+    if rows_by_index is not None:
+        for candidate_index in range(row_index - 1, max(0, row_index - window) - 1, -1):
+            candidate_row = rows_by_index.get(candidate_index)
+            if not isinstance(candidate_row, dict) or candidate_row.get("kind") != "instruction":
+                continue
+            source = _type_flow_assignment_source_for_named_reg(_string_value(candidate_row.get("text")) or "", reg_name)
+            if source is not None:
+                return candidate_index, candidate_row, source
+        return None
+    for candidate in reversed(rows):
+        candidate_index = candidate.get("row_index")
+        if (
+            not isinstance(candidate_index, int)
+            or candidate_index >= row_index
+            or candidate_index < row_index - window
+        ):
+            continue
+        candidate_row = candidate.get("row")
+        if not isinstance(candidate_row, dict) or candidate_row.get("kind") != "instruction":
+            continue
+        source = _type_flow_assignment_source_for_named_reg(_string_value(candidate_row.get("text")) or "", reg_name)
+        if source is None:
+            continue
+        return candidate_index, candidate_row, source
+    return None
+
+
+def _type_flow_pointer_chain_source_kind(
+    assignment_source: str,
+    assignment_row: dict[str, Any] | None,
+    target_id: str,
+    assignment_row_index: int,
+    xrefs_by_row: dict[tuple[str, int], list[dict[str, Any]]],
+    rows_by_index: dict[int, dict[str, Any]],
+) -> str:
+    source_lower = assignment_source.lower()
+    source_reg = _type_flow_register_name(assignment_source)
+    app_refs = assignment_row.get("app_slot_refs") if isinstance(assignment_row, dict) else None
+    if "app_" in source_lower or _dict_items(app_refs):
+        return "app_slot"
+    if "(a7)" in source_lower or "(sp)" in source_lower:
+        return "stack_slot"
+    if source_reg is not None:
+        os_call = _type_flow_nearby_os_call(
+            target_id, assignment_row_index - 8, assignment_row_index, xrefs_by_row, rows_by_index
+        )
+        output_regs = os_call.get("output_regs") if os_call is not None else None
+        if isinstance(output_regs, list) and source_reg in output_regs:
+            return "api_output_register"
+        return "register"
+    if re.search(r"\([aA][0-7]\)", assignment_source):
+        return "memory_indirect"
+    if source_lower.startswith("#"):
+        return "immediate"
+    if source_lower.startswith("$") or re.search(r"\$[0-9a-f]{4,8}(?:\.[wl])?$", source_lower):
+        return "global_or_base_slot"
+    return "unknown"
+
+
+def _type_flow_pointer_chain_trace(
+    target_id: str,
+    base_reg: int,
+    row_index: int,
+    rows: list[dict[str, Any]],
+    rows_by_index: dict[int, dict[str, Any]],
+    xrefs_by_row: dict[tuple[str, int], list[dict[str, Any]]],
+    *,
+    max_hops: int = 6,
+) -> dict[str, object]:
+    cursor_reg = f"A{base_reg}"
+    cursor_row_index = row_index
+    hops: list[dict[str, object]] = []
+    seen: set[tuple[str, int]] = set()
+    root_kind = "unknown"
+    stop_reason = "max_depth"
+    for _depth in range(max_hops):
+        key = (cursor_reg, cursor_row_index)
+        if key in seen:
+            stop_reason = "cycle"
+            break
+        seen.add(key)
+        assignment = _type_flow_find_assignment_to_reg(
+            rows, row_index=cursor_row_index, reg_name=cursor_reg, rows_by_index=rows_by_index
+        )
+        if assignment is None:
+            root_kind = "unknown"
+            stop_reason = "no_assignment_to_chain_base"
+            break
+        assignment_row_index, assignment_row, assignment_source = assignment
+        source_kind = _type_flow_pointer_chain_source_kind(
+            assignment_source,
+            assignment_row,
+            target_id,
+            assignment_row_index,
+            xrefs_by_row,
+            rows_by_index,
+        )
+        hop: dict[str, object] = {
+            "row_index": assignment_row_index,
+            "stable_key": assignment_row.get("stable_key"),
+            "dest": cursor_reg,
+            "source": assignment_source,
+            "source_kind": source_kind,
+            "text": (_string_value(assignment_row.get("text")) or "").strip(),
+        }
+        storage_chain = _type_flow_storage_reload_chain(
+            target_id, assignment_source, assignment_row, assignment_row_index, rows, rows_by_index, xrefs_by_row
+        )
+        if storage_chain is not None:
+            hop["propagation_chain"] = storage_chain
+        os_call = _type_flow_nearby_os_call(target_id, assignment_row_index - 8, assignment_row_index,
+            xrefs_by_row, rows_by_index)
+        if os_call is not None:
+            hop["nearest_os_call"] = os_call
+        hops.append(hop)
+        if source_kind == "register":
+            source_reg = _type_flow_register_name(assignment_source)
+            if source_reg is not None and source_reg.startswith("A"):
+                cursor_reg = source_reg
+                cursor_row_index = assignment_row_index
+                continue
+            root_kind = source_kind
+            stop_reason = "register_source"
+            break
+        if source_kind == "memory_indirect":
+            next_reg = _type_flow_address_base_register_name(assignment_source)
+            if next_reg is not None and next_reg != "A7":
+                cursor_reg = next_reg
+                cursor_row_index = assignment_row_index
+                continue
+            root_kind = source_kind
+            stop_reason = "memory_indirect_without_address_base"
+            break
+        root_kind = source_kind
+        stop_reason = f"source_is_{source_kind}"
+        break
+    return {
+        "base_register": f"A{base_reg}",
+        "depth": len(hops),
+        "hops": hops,
+        "root_kind": root_kind,
+        "stop_reason": stop_reason,
+    }
 
 
 def _type_flow_rows_for_target(snippet_rows: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
@@ -2363,6 +3033,7 @@ def _type_flow_numeric_access_trace(
     snippet: dict[str, Any],
     rows_by_target: dict[str, list[dict[str, Any]]],
     xrefs_by_row: dict[tuple[str, int], list[dict[str, Any]]],
+    rows_by_index_by_target: dict[str, dict[int, dict[str, Any]]] | None = None,
 ) -> dict[str, object]:
     row = snippet.get("row")
     text = _string_value(row.get("text")) if isinstance(row, dict) else None
@@ -2385,34 +3056,32 @@ def _type_flow_numeric_access_trace(
         trace["stop_reason"] = "stack_pointer_base"
         return trace
     rows = rows_by_target.get(target_id, [])
-    rows_by_index = _type_flow_rows_by_index(rows_by_target, target_id)
+    rows_by_index = (
+        rows_by_index_by_target.get(target_id, {})
+        if rows_by_index_by_target is not None
+        else _type_flow_rows_by_index(rows_by_target, target_id)
+    )
+    pointer_chain = _type_flow_pointer_chain_trace(target_id, base_reg, row_index, rows, rows_by_index, xrefs_by_row)
+    trace["pointer_chain"] = pointer_chain
     assignment_source: str | None = None
     assignment_row_index = row_index
     assignment_row: dict[str, Any] | None = None
-    for candidate in reversed(rows):
-        candidate_index = candidate.get("row_index")
-        if not isinstance(candidate_index, int) or candidate_index >= row_index or candidate_index < row_index - 16:
-            continue
-        candidate_row = candidate.get("row")
-        if not isinstance(candidate_row, dict) or candidate_row.get("kind") != "instruction":
-            continue
-        candidate_text = _string_value(candidate_row.get("text")) or ""
-        source = _type_flow_assignment_source_for_reg(candidate_text, base_reg)
-        if source is None:
-            continue
-        assignment_source = source
-        assignment_row_index = candidate_index
-        assignment_row = candidate_row
-        break
+    assignment = _type_flow_find_assignment_to_reg(
+        rows, row_index=row_index, reg_name=f"A{base_reg}", rows_by_index=rows_by_index, window=16
+    )
+    if assignment is not None:
+        assignment_row_index, assignment_row, assignment_source = assignment
     if assignment_source is None:
         os_call = _type_flow_nearby_os_call(target_id, row_index - 8, row_index, xrefs_by_row, rows_by_index)
         if os_call is not None:
             trace["cause"] = "post_call_existing_base"
             trace["nearest_os_call"] = os_call
             trace["stop_reason"] = "existing_base_access_after_nearby_os_call"
+            trace["pointer_chain"] = pointer_chain
             return trace
         trace["cause"] = "unknown_pointer_chain"
         trace["stop_reason"] = "no_assignment_to_base_register"
+        trace["pointer_chain"] = pointer_chain
         return trace
     cause = _type_flow_numeric_source_kind(
         assignment_source, assignment_row, target_id, assignment_row_index, xrefs_by_row, rows_by_index
@@ -2449,6 +3118,561 @@ def _type_flow_numeric_access_trace(
     return trace
 
 
+def _signed_hex_string(value: int) -> str:
+    sign = "-" if value < 0 else ""
+    return f"{sign}${abs(value):04X}"
+
+
+@functools.lru_cache(maxsize=1)
+def _ndk_structs() -> dict[str, Any]:
+    path = ROOT / "knowledge" / "amiga_ndk_includes_parsed.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except OSError:
+        return {}
+    structs = payload.get("structs")
+    return structs if isinstance(structs, dict) else {}
+
+
+def _struct_chain_contains(structs: dict[str, Any], struct_name: str, base_name: str) -> bool:
+    current = struct_name
+    seen: set[str] = set()
+    while current and current not in seen:
+        seen.add(current)
+        info = structs.get(current)
+        if not isinstance(info, dict):
+            return False
+        parent = _string_value(info.get("base_struct"))
+        if parent == base_name:
+            return True
+        if parent is None:
+            return False
+        current = parent
+    return False
+
+
+def _struct_field_match_at(structs: dict[str, Any], struct_name: str, displacement: int) -> dict[str, object] | None:
+    info = structs.get(struct_name)
+    if not isinstance(info, dict):
+        return None
+    for field in _dict_items(info.get("fields")):
+        if field.get("type") == "LABEL":
+            continue
+        field_name = _string_value(field.get("name"))
+        offset = _int_value(field.get("offset"))
+        size = _int_value(field.get("size"), 0) or 0
+        if field_name is None or offset is None:
+            continue
+        end = offset + max(size, 1)
+        if not offset <= displacement < end:
+            continue
+        nested_struct = _string_value(field.get("struct"))
+        if nested_struct and displacement != offset:
+            nested = _struct_field_match_at(structs, nested_struct, displacement - offset)
+            if nested:
+                nested_offset = _int_value(nested.get("field_offset"), 0) or 0
+                result = dict(nested)
+                result["field_expr"] = f"{field_name}+{nested.get('field_expr')}"
+                result["field_offset"] = offset + nested_offset
+                result["field_start_delta"] = displacement - (offset + nested_offset)
+                result["nested"] = True
+                return result
+        delta = displacement - offset
+        expr = field_name if delta == 0 else f"{field_name}+{delta}"
+        return {
+            "field_expr": expr,
+            "field_offset": offset,
+            "field_size": size,
+            "field_start_delta": delta,
+            "exact_field_start": delta == 0,
+        }
+    base_name = _string_value(info.get("base_struct"))
+    base_size = _int_value(info.get("base_offset"))
+    if base_name is not None and base_size is not None and displacement < base_size:
+        return _struct_field_match_at(structs, base_name, displacement)
+    return None
+
+
+def _struct_field_expr_at(structs: dict[str, Any], struct_name: str, displacement: int) -> str | None:
+    match = _struct_field_match_at(structs, struct_name, displacement)
+    if match is None:
+        return None
+    return _string_value(match.get("field_expr"))
+
+
+def _instruction_access_size_from_text(text: object) -> int | None:
+    value = _string_value(text)
+    if value is None:
+        return None
+    match = re.search(r"^\s*[a-z][a-z0-9]*\.(?P<size>[bwl])\b", value, flags=re.IGNORECASE)
+    if match is None:
+        return None
+    return {"b": 1, "w": 2, "l": 4}.get(match.group("size").casefold())
+
+
+def _access_size_counts_from_group(group: dict[str, Any]) -> dict[int, int]:
+    raw = group.get("access_size_counts")
+    if not isinstance(raw, dict):
+        return {}
+    result: dict[int, int] = {}
+    for key, value in raw.items():
+        size = key if isinstance(key, int) else None
+        if size is None and isinstance(key, str):
+            try:
+                size = int(key, 10)
+            except ValueError:
+                size = None
+        if isinstance(size, int) and isinstance(value, int) and size > 0 and value > 0:
+            result[size] = result.get(size, 0) + value
+    return result
+
+
+def _rank_prefix_extension_candidate(candidate: dict[str, object], access_size_counts: dict[int, int]) -> None:
+    score = int(candidate.get("target_context_score", 0)) * 3
+    reasons: list[str] = []
+    field_start_delta = _int_value(candidate.get("field_start_delta"))
+    field_size = _int_value(candidate.get("field_size"))
+    exact_count = 0
+    partial_count = 0
+    if int(candidate.get("target_context_score", 0)) > 0:
+        reasons.append("struct appears elsewhere in target context")
+    for access_size, count in sorted(access_size_counts.items()):
+        if field_start_delta != 0:
+            continue
+        if field_size == access_size:
+            exact_count += count
+            score += 20 * count
+        elif field_size is not None and field_size > access_size:
+            partial_count += count
+            score += 2 * count
+    if exact_count:
+        reasons.append("field starts at displacement and matches access size")
+    elif partial_count:
+        reasons.append("field starts at displacement and contains access size")
+    candidate["access_size_score"] = (exact_count * 20) + (partial_count * 2)
+    candidate["exact_access_size_match_count"] = exact_count
+    candidate["candidate_rank_score"] = score
+    if reasons:
+        candidate["ranking_reasons"] = reasons
+
+
+def _dominant_prefix_candidate(candidates: list[dict[str, object]]) -> dict[str, object] | None:
+    if not candidates:
+        return None
+    top_score = int(candidates[0].get("candidate_rank_score", 0))
+    if top_score <= 0:
+        return None
+    second_score = int(candidates[1].get("candidate_rank_score", 0)) if len(candidates) > 1 else -1
+    if top_score <= second_score:
+        return None
+    top_exact_matches = int(candidates[0].get("exact_access_size_match_count", 0))
+    if len(candidates) > 1 and top_exact_matches <= 0:
+        return None
+    if len(candidates) > 1:
+        second_exact_matches = max(
+            int(candidate.get("exact_access_size_match_count", 0)) for candidate in candidates[1:]
+        )
+        if top_exact_matches <= second_exact_matches:
+            return None
+    return candidates[0]
+
+
+def _serialise_access_size_counts(access_size_counts: dict[int, int]) -> dict[str, int]:
+    return {str(size): access_size_counts[size] for size in sorted(access_size_counts)}
+
+
+def _attach_custom_tail_cluster_summaries(rows: list[dict[str, object]]) -> None:
+    clusters: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if _string_value(row.get("classification")) != "custom_tail_or_mistyped_base":
+            continue
+        root_struct = _string_value(row.get("root_struct_name")) or "unknown"
+        displacement = _int_value(row.get("displacement"))
+        tail_offset = _int_value(row.get("tail_offset_from_struct_end"))
+        count = _int_value(row.get("count"), 0) or 0
+        cluster = clusters.setdefault(
+            root_struct,
+            {
+                "root_struct_name": root_struct,
+                "group_count": 0,
+                "xref_count": 0,
+                "target_ids": set(),
+                "displacements": {},
+                "displacement_values": [],
+                "tail_offsets": {},
+                "tail_offset_values": [],
+                "nearby_api_features": {},
+            },
+        )
+        cluster["group_count"] = int(cluster["group_count"]) + 1
+        cluster["xref_count"] = int(cluster["xref_count"]) + count
+        target_ids = cluster.get("target_ids")
+        if isinstance(target_ids, set):
+            for target_id in row.get("target_ids", []):
+                target_ids.add(str(target_id))
+        if displacement is not None:
+            values = cluster.get("displacement_values")
+            if isinstance(values, list):
+                values.append(displacement)
+            hist = cluster["displacements"]
+            if isinstance(hist, dict):
+                key = _signed_hex_string(displacement)
+                hist[key] = int(hist.get(key, 0)) + count
+        if tail_offset is not None:
+            values = cluster.get("tail_offset_values")
+            if isinstance(values, list):
+                values.append(tail_offset)
+            hist = cluster["tail_offsets"]
+            if isinstance(hist, dict):
+                key = _signed_hex_string(tail_offset)
+                hist[key] = int(hist.get(key, 0)) + count
+        nearby_api_feature = _string_value(row.get("nearby_api_feature")) or "none"
+        nearby = cluster["nearby_api_features"]
+        if isinstance(nearby, dict):
+            nearby[nearby_api_feature] = int(nearby.get(nearby_api_feature, 0)) + count
+    summaries: dict[str, dict[str, object]] = {}
+    for root_struct, cluster in clusters.items():
+        target_ids = cluster.get("target_ids")
+        sorted_targets = sorted(target_ids) if isinstance(target_ids, set) else []
+        displacement_values = [
+            value for value in cluster.get("displacement_values", []) if isinstance(value, int)
+        ]
+        tail_offset_values = [
+            value for value in cluster.get("tail_offset_values", []) if isinstance(value, int)
+        ]
+        summary = {
+            "root_struct_name": root_struct,
+            "group_count": int(cluster.get("group_count", 0)),
+            "xref_count": int(cluster.get("xref_count", 0)),
+            "target_count": len(sorted_targets),
+            "target_ids": sorted_targets[:MAX_EXAMPLES],
+            "displacement_histogram": dict(sorted(cluster.get("displacements", {}).items())),
+            "tail_offset_histogram": dict(sorted(cluster.get("tail_offsets", {}).items())),
+            "nearby_api_feature_counts": dict(sorted(cluster.get("nearby_api_features", {}).items())),
+        }
+        if displacement_values:
+            summary["displacement_min"] = min(displacement_values)
+            summary["displacement_max"] = max(displacement_values)
+            summary["displacement_min_hex"] = _signed_hex_string(min(displacement_values))
+            summary["displacement_max_hex"] = _signed_hex_string(max(displacement_values))
+        if tail_offset_values:
+            summary["tail_offset_min"] = min(tail_offset_values)
+            summary["tail_offset_max"] = max(tail_offset_values)
+            summary["tail_offset_min_hex"] = _signed_hex_string(min(tail_offset_values))
+            summary["tail_offset_max_hex"] = _signed_hex_string(max(tail_offset_values))
+        summaries[root_struct] = summary
+    for row in rows:
+        if _string_value(row.get("classification")) != "custom_tail_or_mistyped_base":
+            continue
+        root_struct = _string_value(row.get("root_struct_name")) or "unknown"
+        if root_struct in summaries:
+            row["tail_cluster_summary"] = summaries[root_struct]
+
+
+def _prefix_extension_candidates(root_struct: str, displacement: int) -> list[dict[str, object]]:
+    structs = _ndk_structs()
+    candidates: list[dict[str, object]] = []
+    for struct_name, info in structs.items():
+        if not isinstance(struct_name, str) or not isinstance(info, dict) or struct_name == root_struct:
+            continue
+        size = _int_value(info.get("size"))
+        if size is None or displacement >= size:
+            continue
+        if not _struct_chain_contains(structs, struct_name, root_struct):
+            continue
+        candidate: dict[str, object] = {"struct_name": struct_name, "size": size}
+        field_match = _struct_field_match_at(structs, struct_name, displacement)
+        if field_match:
+            candidate.update(field_match)
+        candidates.append(candidate)
+    return sorted(candidates, key=lambda item: (str(item.get("struct_name")), str(item.get("field_expr"))))
+
+
+def _unresolved_typed_field_text_is_control_transfer(text: object) -> bool:
+    value = _string_value(text)
+    if value is None:
+        return False
+    stripped = value.strip().lower()
+    return stripped.startswith("jsr ") or stripped.startswith("jmp ")
+
+
+def _classify_unresolved_typed_field_group(group: dict[str, Any]) -> tuple[str, str]:
+    examples = group.get("examples")
+    displacement = _int_value(group.get("displacement"))
+    struct_size = _int_value(group.get("struct_size"))
+    source_classification = _string_value(group.get("source_classification"))
+    if isinstance(examples, list) and any(
+        isinstance(example, dict) and _unresolved_typed_field_text_is_control_transfer(example.get("text"))
+        for example in examples
+    ):
+        return (
+            "control_transfer_operand",
+            "example operand is a control-transfer target, not a data field access",
+        )
+    if source_classification == "prefix_extension":
+        return (
+            "prefix_extension",
+            "displacement is outside the prefix type and inside one or more generated container types",
+        )
+    if source_classification == "custom_tail_or_mistyped_base":
+        return (
+            "custom_tail_or_mistyped_base",
+            "displacement is outside the known structure and no generated container type matched",
+        )
+    if source_classification == "field_gap":
+        return (
+            "field_gap",
+            "field metadata did not resolve inside the known structure bounds",
+        )
+    if displacement is not None and struct_size is not None and not 0 <= displacement < struct_size:
+        return (
+            "out_of_struct_bounds",
+            "displacement is outside the known structure size",
+        )
+    if group.get("nearby_api_feature") is not None:
+        return (
+            "nearby_api_unknown_field",
+            "field access is near a platform API call but the field metadata did not resolve",
+        )
+    return (
+        "unknown_struct_field",
+        "field metadata did not resolve for this typed base access",
+    )
+
+
+def build_unresolved_typed_field_report(
+    manifest_rows: list[dict[str, Any]],
+    xrefs: list[dict[str, Any]],
+    snippet_rows: list[dict[str, Any]],
+) -> list[dict[str, object]]:
+    manifest_by_id = {
+        str(row.get("id")): row
+        for row in manifest_rows
+        if isinstance(row.get("id"), str)
+    }
+    rows_by_target = _type_flow_rows_for_target(snippet_rows)
+    xrefs_by_row = _type_flow_xrefs_by_target_row(xrefs)
+    struct_features_by_target: dict[str, set[str]] = {}
+    for xref in xrefs:
+        target_id = _string_value(xref.get("target_id"))
+        feature = _string_value(xref.get("feature"))
+        if target_id is None or feature is None:
+            continue
+        if feature.startswith("struct:") or feature.startswith("platform_typed_access_struct:"):
+            struct_features_by_target.setdefault(target_id, set()).add(feature.split(":", 1)[1])
+    rows_by_index_cache: dict[str, dict[int, dict[str, Any]]] = {}
+    groups: dict[tuple[str, int, str], dict[str, Any]] = {}
+
+    for xref in xrefs:
+        if (
+            _string_value(xref.get("kind")) != "platform_unresolved_typed_access"
+            or _string_value(xref.get("feature")) != "typed_base_unresolved_field"
+        ):
+            continue
+        target_id = _string_value(xref.get("target_id"))
+        displacement = _int_value(xref.get("value"))
+        if target_id is None or displacement is None:
+            continue
+        root_struct = _string_value(xref.get("symbol")) or "unknown"
+        struct_size = _int_value(xref.get("struct_size"))
+        source_classification = _string_value(xref.get("classification"))
+        container_candidate_count = _int_value(xref.get("container_candidate_count"))
+        container_struct_name = _string_value(xref.get("container_struct_name"))
+        container_field_expr = _string_value(xref.get("container_field_expr"))
+        refinement_applied = xref.get("refinement_applied") is True or xref.get("refinement_applied") == 1
+        refined_struct_name = _string_value(xref.get("refined_struct_name"))
+        row_index = _int_value(xref.get("row_index"))
+        rows_by_index = rows_by_index_cache.setdefault(
+            target_id,
+            _type_flow_rows_by_index(rows_by_target, target_id),
+        )
+        row = rows_by_index.get(row_index, {}) if row_index is not None else {}
+        row_text = (_string_value(xref.get("text")) or _string_value(row.get("text")) or "").strip()
+        access_size = _instruction_access_size_from_text(row_text)
+        nearby_api = (
+            _type_flow_nearby_os_call(target_id, row_index - 8, row_index, xrefs_by_row, rows_by_index)
+            if row_index is not None
+            else None
+        )
+        nearby_feature = _string_value(nearby_api.get("feature")) if isinstance(nearby_api, dict) else None
+        nearby_key = nearby_feature or "none"
+        key = (root_struct, displacement, nearby_key)
+        group = groups.get(key)
+        if group is None:
+            group = {
+                "schema_version": 1,
+                "root_struct_name": root_struct,
+                "displacement": displacement,
+                "displacement_hex": _signed_hex_string(displacement),
+                "struct_size": struct_size,
+                "in_struct_bounds": None if struct_size is None else 0 <= displacement < struct_size,
+                "nearby_api_feature": nearby_feature,
+                "source_classification": source_classification,
+                "container_candidate_count": container_candidate_count,
+                "container_struct_name": container_struct_name,
+                "container_field_expr": container_field_expr,
+                "refinement_applied_count": 0,
+                "refined_struct_name": refined_struct_name,
+                "access_size_counts": {},
+                "count": 0,
+                "target_ids": set(),
+                "examples": [],
+            }
+            groups[key] = group
+        if group.get("struct_size") is None and struct_size is not None:
+            group["struct_size"] = struct_size
+            group["in_struct_bounds"] = 0 <= displacement < struct_size
+        if source_classification:
+            existing_classification = _string_value(group.get("source_classification"))
+            if existing_classification is None:
+                group["source_classification"] = source_classification
+            elif existing_classification != source_classification:
+                group["source_classification"] = "mixed"
+        if container_candidate_count is not None:
+            existing_count = _int_value(group.get("container_candidate_count"))
+            if existing_count is None or container_candidate_count > existing_count:
+                group["container_candidate_count"] = container_candidate_count
+        if container_struct_name:
+            existing_container = _string_value(group.get("container_struct_name"))
+            if existing_container is None:
+                group["container_struct_name"] = container_struct_name
+            elif existing_container != container_struct_name:
+                group["container_struct_name"] = None
+        if container_field_expr:
+            existing_expr = _string_value(group.get("container_field_expr"))
+            if existing_expr is None:
+                group["container_field_expr"] = container_field_expr
+            elif existing_expr != container_field_expr:
+                group["container_field_expr"] = None
+        if refinement_applied:
+            group["refinement_applied_count"] = int(group.get("refinement_applied_count", 0)) + 1
+        if refined_struct_name:
+            existing_refined = _string_value(group.get("refined_struct_name"))
+            if existing_refined is None:
+                group["refined_struct_name"] = refined_struct_name
+            elif existing_refined != refined_struct_name:
+                group["refined_struct_name"] = None
+        group["count"] = int(group.get("count", 0)) + 1
+        if access_size is not None:
+            access_size_counts = group.get("access_size_counts")
+            if isinstance(access_size_counts, dict):
+                access_size_counts[access_size] = int(access_size_counts.get(access_size, 0)) + 1
+        cast_target_ids = group["target_ids"]
+        if isinstance(cast_target_ids, set):
+            cast_target_ids.add(target_id)
+        examples = group["examples"]
+        if isinstance(examples, list) and len(examples) < MAX_EXAMPLES:
+            manifest = manifest_by_id.get(target_id, {})
+            example: dict[str, object] = {
+                "target_id": target_id,
+                "source_id": xref.get("source_id") or manifest.get("source_id"),
+                "platform": xref.get("platform") or manifest.get("platform"),
+                "section": xref.get("section"),
+                "offset": xref.get("offset"),
+                "row_index": row_index,
+                "stable_key": xref.get("stable_key") or row.get("stable_key"),
+                "text": row_text,
+            }
+            if isinstance(nearby_api, dict):
+                example["nearby_api"] = nearby_api
+            if source_classification:
+                example["classification"] = source_classification
+            if container_candidate_count is not None:
+                example["container_candidate_count"] = container_candidate_count
+            if container_struct_name:
+                example["container_struct_name"] = container_struct_name
+            if container_field_expr:
+                example["container_field_expr"] = container_field_expr
+            if refinement_applied:
+                example["refinement_applied"] = True
+            if refined_struct_name:
+                example["refined_struct_name"] = refined_struct_name
+            type_provenance_kind = _string_value(xref.get("type_provenance_kind"))
+            if type_provenance_kind:
+                example["type_provenance_kind"] = type_provenance_kind
+                type_provenance_offset = _int_value(xref.get("type_provenance_offset"))
+                if type_provenance_offset is not None:
+                    example["type_provenance_offset"] = type_provenance_offset
+            examples.append(_compact_example(example))
+
+    result: list[dict[str, object]] = []
+    for group in groups.values():
+        target_ids = group.get("target_ids")
+        sorted_targets = sorted(str(target_id) for target_id in target_ids) if isinstance(target_ids, set) else []
+        classification, classification_reason = _classify_unresolved_typed_field_group(group)
+        group["classification"] = classification
+        group["classification_reason"] = classification_reason
+        access_size_counts = _access_size_counts_from_group(group)
+        if access_size_counts:
+            group["access_size_counts"] = _serialise_access_size_counts(access_size_counts)
+        if classification == "custom_tail_or_mistyped_base":
+            displacement = _int_value(group.get("displacement"))
+            struct_size = _int_value(group.get("struct_size"))
+            if displacement is not None and struct_size is not None:
+                tail_offset = displacement - struct_size
+                group["tail_offset_from_struct_end"] = tail_offset
+                group["tail_offset_from_struct_end_hex"] = _signed_hex_string(tail_offset)
+        if classification == "prefix_extension":
+            root_struct = _string_value(group.get("root_struct_name"))
+            displacement = _int_value(group.get("displacement"))
+            if root_struct is not None and displacement is not None:
+                candidates = _prefix_extension_candidates(root_struct, displacement)
+                for candidate in candidates:
+                    candidate_struct = _string_value(candidate.get("struct_name"))
+                    score = 0
+                    if candidate_struct is not None:
+                        for target_id in sorted_targets:
+                            if candidate_struct in struct_features_by_target.get(target_id, set()):
+                                score += 1
+                    candidate["target_context_score"] = score
+                    _rank_prefix_extension_candidate(candidate, access_size_counts)
+                candidates.sort(
+                    key=lambda item: (
+                        -int(item.get("candidate_rank_score", 0)),
+                        -int(item.get("exact_access_size_match_count", 0)),
+                        -int(item.get("target_context_score", 0)),
+                        abs(int(item.get("field_start_delta", 999999))),
+                        str(item.get("struct_name")),
+                        str(item.get("field_expr")),
+                    )
+                )
+                if candidates:
+                    group["candidate_rankings"] = candidates[:10]
+                    dominant = _dominant_prefix_candidate(candidates)
+                    if dominant is not None:
+                        group["dominant_candidate"] = {
+                            key: dominant[key]
+                            for key in (
+                                "struct_name",
+                                "field_expr",
+                                "field_offset",
+                                "field_size",
+                                "exact_access_size_match_count",
+                                "exact_field_start",
+                                "field_start_delta",
+                                "access_size_score",
+                                "target_context_score",
+                                "candidate_rank_score",
+                                "ranking_reasons",
+                            )
+                            if key in dominant
+                        }
+        group["target_count"] = len(sorted_targets)
+        group["target_ids"] = sorted_targets
+        result.append(group)
+    _attach_custom_tail_cluster_summaries(result)
+    return sorted(
+        result,
+        key=lambda row: (
+            -int(row.get("count", 0)),
+            -int(row.get("target_count", 0)),
+            str(row.get("root_struct_name")),
+            int(row.get("displacement", 0)) if isinstance(row.get("displacement"), int) else 0,
+            str(row.get("nearby_api_feature")),
+        ),
+    )
+
+
 def build_type_flow_report(
     manifest_rows: list[dict[str, Any]],
     xrefs: list[dict[str, Any]],
@@ -2475,8 +3699,13 @@ def build_type_flow_report(
             "counts": {},
             "struct_counts": {},
             "field_counts": {},
+            "typed_access_provenance_counts": {},
+            "typed_storage_provenance_counts": {},
             "numeric_cause_counts": {},
             "propagation_chain_counts": {},
+            "pointer_chain_root_counts": {},
+            "pointer_chain_stop_counts": {},
+            "_app_slot_substructure_clusters": {},
             "examples": {},
         }
         reports[target_id] = report
@@ -2513,12 +3742,57 @@ def build_type_flow_report(
             "value": xref.get("value"),
             "text": xref.get("text"),
         }
+        if _string_value(xref.get("access")):
+            example["access"] = xref.get("access")
+        classification = _string_value(xref.get("classification"))
+        candidate_count = _int_value(xref.get("container_candidate_count"))
+        if classification:
+            example["classification"] = classification
+        if candidate_count is not None:
+            example["container_candidate_count"] = candidate_count
+        if _string_value(xref.get("container_struct_name")):
+            example["container_struct_name"] = xref.get("container_struct_name")
+        if xref.get("refinement_applied") is True or xref.get("refinement_applied") == 1:
+            example["refinement_applied"] = True
+        if _string_value(xref.get("refined_struct_name")):
+            example["refined_struct_name"] = xref.get("refined_struct_name")
+        type_provenance_kind = _string_value(xref.get("type_provenance_kind"))
+        if type_provenance_kind:
+            example["type_provenance_kind"] = type_provenance_kind
+            if _int_value(xref.get("type_provenance_offset")) is not None:
+                example["type_provenance_offset"] = xref.get("type_provenance_offset")
         if kind == "platform_typed_access" and feature == "platform_typed_access:any":
             bump(report, "resolved_typed_access")
+            if type_provenance_kind:
+                bump_map(report, "typed_access_provenance_counts", type_provenance_kind)
+                bump(report, f"typed_access_provenance:{_safe_part(type_provenance_kind)}")
             add_example(report, "resolved_typed_access", example)
+        elif kind == "typed_storage" and feature == "typed_storage:any":
+            storage_target = _string_value(xref.get("access")) or "unknown"
+            bump(report, "typed_storage")
+            bump_map(report, "typed_storage_provenance_counts", storage_target)
+            bump(report, f"typed_storage_provenance:{_safe_part(storage_target)}")
+            add_example(report, "typed_storage", example)
         elif kind == "platform_unresolved_typed_access" and feature == "typed_base_unresolved_field":
             bump(report, "typed_base_unresolved_field")
+            if type_provenance_kind:
+                bump(report, f"type_provenance:{_safe_part(type_provenance_kind)}")
+            if classification == "prefix_extension":
+                bump(report, "prefix_extension_evidence")
+                if candidate_count == 1:
+                    bump(report, "prefix_extension_unique")
+                elif candidate_count is not None and candidate_count > 1:
+                    bump(report, "prefix_extension_ambiguous")
+            elif classification == "custom_tail_or_mistyped_base":
+                bump(report, "custom_tail_or_mistyped_base")
+                if _string_value(xref.get("symbol")):
+                    bump(report, f"custom_tail_struct:{_safe_part(str(xref.get('symbol')))}")
             add_example(report, "typed_base_unresolved_field", example)
+        elif kind == "platform_type_refinement" and feature == "platform_type_refinement:applied":
+            bump(report, "type_refinement_applied")
+            if type_provenance_kind:
+                bump(report, f"type_refinement_provenance:{_safe_part(type_provenance_kind)}")
+            add_example(report, "type_refinement_applied", example)
         elif kind == "app_slot_api_arg" and feature == "app_slot:untyped_api_arg":
             bump(report, "untyped_app_slot_api_arg")
             add_example(report, "untyped_app_slot_api_arg", example)
@@ -2540,7 +3814,53 @@ def build_type_flow_report(
         elif feature.startswith("app_slot_api_arg_reason:"):
             bump(report, f"untyped_reason:{feature.removeprefix('app_slot_api_arg_reason:')}")
 
+    refinements_by_target: dict[str, list[dict[str, object]]] = {}
+    typed_structs_by_target: dict[str, list[dict[str, object]]] = {}
+    for xref in xrefs:
+        target_id = _string_value(xref.get("target_id"))
+        feature = _string_value(xref.get("feature")) or ""
+        row_index = _int_value(xref.get("row_index"))
+        if target_id is None or row_index is None:
+            continue
+        if _string_value(xref.get("kind")) == "platform_type_refinement" and feature == "platform_type_refinement:applied":
+            refinements_by_target.setdefault(target_id, []).append(xref)
+        elif feature.startswith("platform_typed_access_struct:"):
+            typed_structs_by_target.setdefault(target_id, []).append(xref)
+    for target_id, refinements in refinements_by_target.items():
+        typed_structs = typed_structs_by_target.get(target_id, [])
+        if not typed_structs:
+            continue
+        report = report_for(target_id)
+        for refinement in refinements:
+            refined_struct = _string_value(refinement.get("refined_struct_name")) or _string_value(refinement.get("symbol"))
+            refinement_row = _int_value(refinement.get("row_index"))
+            if refined_struct is None or refinement_row is None:
+                continue
+            feature_name = f"platform_typed_access_struct:{_safe_part(refined_struct)}"
+            for access in typed_structs:
+                access_row = _int_value(access.get("row_index"))
+                if access_row is None or access_row <= refinement_row or _string_value(access.get("feature")) != feature_name:
+                    continue
+                bump(report, "resolved_after_type_refinement")
+                add_example(
+                    report,
+                    "resolved_after_type_refinement",
+                    {
+                        "refinement_row_index": refinement_row,
+                        "row_index": access_row,
+                        "refined_struct_name": refined_struct,
+                        "refinement_text": refinement.get("text"),
+                        "text": access.get("text"),
+                        "stable_key": access.get("stable_key"),
+                    },
+                )
+                break
+
     rows_by_target = _type_flow_rows_for_target(snippet_rows)
+    rows_by_index_by_target = {
+        target_id: _type_flow_rows_by_index(rows_by_target, target_id)
+        for target_id in rows_by_target
+    }
     xrefs_by_row = _type_flow_xrefs_by_target_row(xrefs)
     for snippet in snippet_rows:
         target_id = _string_value(snippet.get("target_id"))
@@ -2549,15 +3869,18 @@ def build_type_flow_report(
             continue
         if row.get("kind") != "instruction":
             continue
-        if _dict_items(row.get("typed_accesses")):
+        if _dict_items(row.get("typed_accesses")) or _dict_items(row.get("unresolved_typed_accesses")):
             continue
         text = _string_value(row.get("text")) or ""
-        if re.search(r"\$[0-9A-Fa-f]{2,8}(?:\.[wlWL])?\([aA][0-7]\)", text) is None:
+        if NUMERIC_ADDRESS_REG_ACCESS_RE.search(text) is None:
             continue
         report = report_for(target_id)
-        trace = _type_flow_numeric_access_trace(target_id, snippet, rows_by_target, xrefs_by_row)
+        trace = _type_flow_numeric_access_trace(
+            target_id, snippet, rows_by_target, xrefs_by_row, rows_by_index_by_target
+        )
         cause = str(trace.get("cause", "unknown_pointer_chain"))
         propagation_chain = trace.get("propagation_chain")
+        pointer_chain = trace.get("pointer_chain")
         propagation_chain_kind = (
             str(propagation_chain.get("kind"))
             if isinstance(propagation_chain, dict) and isinstance(propagation_chain.get("kind"), str)
@@ -2566,6 +3889,67 @@ def build_type_flow_report(
         bump(report, "numeric_address_reg_access_without_type")
         bump(report, f"numeric_cause:{cause}")
         bump_map(report, "numeric_cause_counts", cause)
+        if isinstance(pointer_chain, dict):
+            pointer_root = _string_value(pointer_chain.get("root_kind")) or "unknown"
+            pointer_stop = _string_value(pointer_chain.get("stop_reason")) or "unknown"
+            bump(report, f"pointer_chain_root:{_safe_part(pointer_root)}")
+            bump(report, f"pointer_chain_stop:{_safe_part(pointer_stop)}")
+            bump_map(report, "pointer_chain_root_counts", pointer_root)
+            bump_map(report, "pointer_chain_stop_counts", pointer_stop)
+        pointer_chain_example: dict[str, object] | None = None
+        if isinstance(pointer_chain, dict):
+            pointer_chain_example = {
+                "root_kind": _string_value(pointer_chain.get("root_kind")) or "unknown",
+                "stop_reason": _string_value(pointer_chain.get("stop_reason")) or "unknown",
+                "depth": int(pointer_chain.get("depth", 0)) if isinstance(pointer_chain.get("depth"), int) else 0,
+            }
+            hops = pointer_chain.get("hops")
+            if isinstance(hops, list) and hops and isinstance(hops[0], dict):
+                pointer_chain_example["first_source"] = hops[0].get("source")
+                pointer_chain_example["first_source_kind"] = hops[0].get("source_kind")
+            if isinstance(hops, list) and len(hops) > 1 and isinstance(hops[1], dict):
+                pointer_chain_example["root_source"] = hops[-1].get("source") if isinstance(hops[-1], dict) else None
+        app_slot_subaccess = _type_flow_app_slot_subaccess(trace) if cause == "app_slot_load" else None
+        if app_slot_subaccess is not None:
+            slot_name = str(app_slot_subaccess["slot"])
+            slot_disp = str(app_slot_subaccess["slot_access_displacement_hex"])
+            slot_displacement = int(app_slot_subaccess["slot_access_displacement"])
+            clusters = report["_app_slot_substructure_clusters"]
+            cluster = clusters.setdefault(
+                slot_name,
+                {
+                    "slot": slot_name,
+                    "access_count": 0,
+                    "min_field_displacement": slot_displacement,
+                    "max_field_displacement": slot_displacement,
+                    "fields": {},
+                },
+            )
+            cluster["access_count"] = int(cluster.get("access_count", 0)) + 1
+            cluster["min_field_displacement"] = min(int(cluster["min_field_displacement"]), slot_displacement)
+            cluster["max_field_displacement"] = max(int(cluster["max_field_displacement"]), slot_displacement)
+            fields = cluster["fields"]
+            field = fields.setdefault(
+                slot_disp,
+                {
+                    "displacement": slot_displacement,
+                    "displacement_hex": slot_disp,
+                    "access_count": 0,
+                    "examples": [],
+                },
+            )
+            field["access_count"] = int(field.get("access_count", 0)) + 1
+            if len(field["examples"]) < MAX_EXAMPLES:
+                field["examples"].append(
+                    {
+                        "row_index": snippet.get("row_index"),
+                        "stable_key": row.get("stable_key"),
+                        "text": text.strip(),
+                    }
+                )
+            bump(report, "app_slot_substructure_access")
+            bump(report, f"app_slot_substructure_slot:{_safe_part(slot_name)}")
+            bump(report, f"app_slot_substructure_field:{_safe_part(slot_name)}:{_safe_part(slot_disp)}")
         if propagation_chain_kind:
             bump(report, f"propagation_chain:{propagation_chain_kind}")
             bump_map(report, "propagation_chain_counts", propagation_chain_kind)
@@ -2587,6 +3971,7 @@ def build_type_flow_report(
                 "offset": row.get("start_offset") if isinstance(row.get("start_offset"), int) else row.get("addr"),
                 "text": text.strip(),
                 "cause": cause,
+                "pointer_chain": pointer_chain_example,
                 "trace": trace,
             },
         )
@@ -2599,9 +3984,25 @@ def build_type_flow_report(
                 "section": row.get("section_index"),
                 "offset": row.get("start_offset") if isinstance(row.get("start_offset"), int) else row.get("addr"),
                 "text": text.strip(),
+                "pointer_chain": pointer_chain_example,
                 "trace": trace,
             },
         )
+        if app_slot_subaccess is not None:
+            add_example(
+                report,
+                "app_slot_substructure_access",
+                {
+                    "row_index": snippet.get("row_index"),
+                    "stable_key": row.get("stable_key"),
+                    "section": row.get("section_index"),
+                    "offset": row.get("start_offset") if isinstance(row.get("start_offset"), int) else row.get("addr"),
+                    "text": text.strip(),
+                    "app_slot_subaccess": app_slot_subaccess,
+                    "pointer_chain": pointer_chain_example,
+                    "trace": trace,
+                },
+            )
         if propagation_chain_kind:
             add_example(
                 report,
@@ -2653,6 +4054,39 @@ def build_type_flow_report(
         counts = report["counts"]
         if not counts:
             continue
+        substructure_suggestions: list[dict[str, object]] = []
+        for cluster in report.pop("_app_slot_substructure_clusters", {}).values():
+            fields = [
+                dict(field)
+                for field in sorted(
+                    cluster.get("fields", {}).values(),
+                    key=lambda item: int(item.get("displacement", 0)),
+                )
+            ]
+            if not fields:
+                continue
+            substructure_suggestions.append(
+                {
+                    "kind": "app_slot_substructure_region",
+                    "inference_kind": "app_slot_pointer_substructure_access",
+                    "confidence": "evidence",
+                    "source": "numeric_app_slot_substructure_access",
+                    "slot": cluster["slot"],
+                    "access_count": int(cluster.get("access_count", 0)),
+                    "field_count": len(fields),
+                    "min_field_displacement": int(cluster["min_field_displacement"]),
+                    "min_field_displacement_hex": _signed_hex_string(int(cluster["min_field_displacement"])),
+                    "max_field_displacement": int(cluster["max_field_displacement"]),
+                    "max_field_displacement_hex": _signed_hex_string(int(cluster["max_field_displacement"])),
+                    "fields": fields,
+                }
+            )
+        substructure_suggestions.sort(
+            key=lambda item: (-int(item.get("access_count", 0)), str(item.get("slot", "")))
+        )
+        if substructure_suggestions:
+            counts["app_slot_substructure_suggested_region"] = len(substructure_suggestions)
+            report["app_slot_substructure_suggestions"] = substructure_suggestions
         opportunity_count = sum(
             int(counts.get(key, 0))
             for key in (
@@ -2660,6 +4094,7 @@ def build_type_flow_report(
                 "app_slot_gap",
                 "app_slot_field_gap",
                 "app_slot_suggested_region",
+                "app_slot_substructure_suggested_region",
                 "typed_base_unresolved_field",
                 "numeric_address_reg_access_without_type",
             )
@@ -2669,8 +4104,12 @@ def build_type_flow_report(
         report["counts"] = dict(sorted(counts.items()))
         report["struct_counts"] = dict(sorted(report["struct_counts"].items()))
         report["field_counts"] = dict(sorted(report["field_counts"].items()))
+        report["typed_access_provenance_counts"] = dict(sorted(report["typed_access_provenance_counts"].items()))
+        report["typed_storage_provenance_counts"] = dict(sorted(report["typed_storage_provenance_counts"].items()))
         report["numeric_cause_counts"] = dict(sorted(report["numeric_cause_counts"].items()))
         report["propagation_chain_counts"] = dict(sorted(report["propagation_chain_counts"].items()))
+        report["pointer_chain_root_counts"] = dict(sorted(report["pointer_chain_root_counts"].items()))
+        report["pointer_chain_stop_counts"] = dict(sorted(report["pointer_chain_stop_counts"].items()))
         report["examples"] = {
             key: report["examples"][key]
             for key in sorted(report["examples"])
@@ -2724,6 +4163,920 @@ def _type_flow_delta_map(before: dict[str, int], after: dict[str, int]) -> dict[
     return result
 
 
+TYPE_FLOW_EFFECTIVENESS_KEYS = (
+    "numeric_address_reg_access_without_type",
+    "typed_base_unresolved_field",
+    "resolved_typed_access",
+    "typed_storage",
+    "prefix_extension_evidence",
+    "prefix_extension_unique",
+    "prefix_extension_ambiguous",
+    "custom_tail_or_mistyped_base",
+    "type_refinement_applied",
+    "resolved_after_type_refinement",
+    "untyped_app_slot_api_arg",
+    "app_slot_gap",
+    "app_slot_field_gap",
+    "app_slot_suggested_region",
+    "app_slot_substructure_access",
+    "app_slot_substructure_suggested_region",
+)
+
+
+def _type_flow_effectiveness_totals(rows: list[dict[str, Any]]) -> dict[str, int]:
+    counts = _type_flow_total_map(rows, "counts")
+    result = {key: int(counts.get(key, 0)) for key in TYPE_FLOW_EFFECTIVENESS_KEYS}
+    result["custom_tail_struct_count"] = sum(
+        1 for key, value in counts.items() if key.startswith("custom_tail_struct:") and value > 0
+    )
+    return result
+
+
+TYPE_FLOW_OPEN_OPPORTUNITY_KEYS = (
+    "numeric_address_reg_access_without_type",
+    "typed_base_unresolved_field",
+    "untyped_app_slot_api_arg",
+    "app_slot_gap",
+    "app_slot_field_gap",
+    "app_slot_suggested_region",
+    "app_slot_substructure_access",
+    "app_slot_substructure_suggested_region",
+)
+
+
+def _type_flow_open_score(row: dict[str, Any]) -> int:
+    counts = _type_flow_count_map(row, "counts")
+    return sum(int(counts.get(key, 0)) for key in TYPE_FLOW_OPEN_OPPORTUNITY_KEYS)
+
+
+def _type_flow_nested_bump(
+    mapping: dict[str, dict[str, int]],
+    outer: object,
+    inner: object,
+    amount: int,
+) -> None:
+    outer_key = str(outer) if isinstance(outer, str) and outer else "unknown"
+    inner_key = str(inner) if isinstance(inner, str) and inner else "unknown"
+    bucket = mapping.setdefault(outer_key, {})
+    bucket[inner_key] = int(bucket.get(inner_key, 0)) + int(amount)
+
+
+def _type_flow_storage_kind_from_chain(chain_kind: str) -> str | None:
+    match = re.search(r"_to_(.+)_reload(?:_|$)", chain_kind)
+    if match:
+        return match.group(1)
+    match = re.search(r"^register_to_(.+)_reload$", chain_kind)
+    if match:
+        return match.group(1)
+    return None
+
+
+def _type_flow_api_feature_from_example(example: dict[str, Any]) -> str | None:
+    trace = example.get("trace")
+    if not isinstance(trace, dict):
+        return None
+    for key in ("nearest_os_call", "os_call"):
+        os_call = trace.get(key)
+        if isinstance(os_call, dict):
+            feature = os_call.get("feature")
+            if isinstance(feature, str) and feature:
+                return feature
+    chain = trace.get("propagation_chain")
+    if isinstance(chain, dict):
+        for key in ("os_call", "nearest_os_call"):
+            os_call = chain.get(key)
+            if isinstance(os_call, dict):
+                feature = os_call.get("feature")
+                if isinstance(feature, str) and feature:
+                    return feature
+        feature = chain.get("api_feature")
+        if isinstance(feature, str) and feature:
+            return feature
+    return None
+
+
+def _type_flow_example_trace(example: dict[str, Any]) -> dict[str, Any]:
+    trace = example.get("trace")
+    return trace if isinstance(trace, dict) else {}
+
+
+def _type_flow_example_propagation_chain(example: dict[str, Any]) -> dict[str, Any]:
+    trace = _type_flow_example_trace(example)
+    chain = trace.get("propagation_chain")
+    return chain if isinstance(chain, dict) else {}
+
+
+def _type_flow_example_pointer_chain(example: dict[str, Any]) -> dict[str, Any]:
+    trace = _type_flow_example_trace(example)
+    chain = trace.get("pointer_chain")
+    return chain if isinstance(chain, dict) else {}
+
+
+def _type_flow_example_value(mapping: dict[str, Any], key: str, fallback: str = "unknown") -> str:
+    value = mapping.get(key)
+    return value if isinstance(value, str) and value else fallback
+
+
+def _type_flow_example_items(row: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
+    result: list[tuple[str, dict[str, Any]]] = []
+    examples = row.get("examples")
+    if not isinstance(examples, dict):
+        return result
+    for example_kind, values in examples.items():
+        if not isinstance(values, list):
+            continue
+        for example in values:
+            if isinstance(example, dict):
+                result.append((str(example_kind), example))
+    return result
+
+
+def build_type_flow_api_audit_report(
+    type_flow_rows: list[dict[str, Any]],
+    *,
+    api_feature: str | None = None,
+    max_targets: int = 25,
+) -> dict[str, object]:
+    features: dict[str, dict[str, Any]] = {}
+    target_sets: dict[str, set[str]] = {}
+    for row in type_flow_rows:
+        target_id = row.get("target_id") if isinstance(row.get("target_id"), str) else "unknown"
+        platform = row.get("platform") if isinstance(row.get("platform"), str) else "unknown"
+        for example_kind, example in _type_flow_example_items(row):
+            feature = _type_flow_api_feature_from_example(example)
+            if feature is None or (api_feature is not None and feature != api_feature):
+                continue
+            trace = _type_flow_example_trace(example)
+            pointer_chain = _type_flow_example_pointer_chain(example)
+            propagation_chain = _type_flow_example_propagation_chain(example)
+            chain_kind = _type_flow_example_value(propagation_chain, "kind", "none")
+            storage_kind = _type_flow_example_value(
+                propagation_chain,
+                "storage_kind",
+                _type_flow_storage_kind_from_chain(chain_kind) or "none",
+            )
+            bucket = features.setdefault(
+                feature,
+                {
+                    "feature": feature,
+                    "example_count": 0,
+                    "platform_counts": {},
+                    "cause_counts": {},
+                    "example_kind_counts": {},
+                    "propagation_chain_counts": {},
+                    "pointer_chain_root_counts": {},
+                    "pointer_chain_stop_counts": {},
+                    "storage_kind_counts": {},
+                    "targets": [],
+                },
+            )
+            bucket["example_count"] = int(bucket["example_count"]) + 1
+            _type_flow_nested_bump({"root": bucket["platform_counts"]}, "root", platform, 1)
+            _type_flow_nested_bump({"root": bucket["cause_counts"]}, "root", trace.get("cause"), 1)
+            _type_flow_nested_bump({"root": bucket["example_kind_counts"]}, "root", example_kind, 1)
+            _type_flow_nested_bump({"root": bucket["propagation_chain_counts"]}, "root", chain_kind, 1)
+            _type_flow_nested_bump(
+                {"root": bucket["pointer_chain_root_counts"]},
+                "root",
+                pointer_chain.get("root_kind"),
+                1,
+            )
+            _type_flow_nested_bump(
+                {"root": bucket["pointer_chain_stop_counts"]},
+                "root",
+                pointer_chain.get("stop_reason"),
+                1,
+            )
+            _type_flow_nested_bump({"root": bucket["storage_kind_counts"]}, "root", storage_kind, 1)
+            target_sets.setdefault(feature, set()).add(target_id)
+            targets = cast(list[dict[str, object]], bucket["targets"])
+            if len(targets) < max_targets:
+                targets.append(
+                    {
+                        "target_id": target_id,
+                        "source_id": row.get("source_id"),
+                        "platform": platform,
+                        "example_kind": example_kind,
+                        "cause": trace.get("cause"),
+                        "propagation_chain": propagation_chain,
+                        "pointer_chain": pointer_chain,
+                        "example": example,
+                    }
+                )
+    ordered_features = sorted(
+        features.values(),
+        key=lambda item: (-int(item.get("example_count", 0)), str(item.get("feature", ""))),
+    )
+    for item in ordered_features:
+        feature_name = str(item.get("feature", ""))
+        item["target_count"] = len(target_sets.get(feature_name, set()))
+        for key in (
+            "platform_counts",
+            "cause_counts",
+            "example_kind_counts",
+            "propagation_chain_counts",
+            "pointer_chain_root_counts",
+            "pointer_chain_stop_counts",
+            "storage_kind_counts",
+        ):
+            value = item.get(key)
+            if isinstance(value, dict):
+                item[key] = dict(sorted((str(k), int(v)) for k, v in value.items()))
+    return {
+        "schema_version": 1,
+        "api_feature": api_feature,
+        "feature_count": len(ordered_features),
+        "features": ordered_features,
+    }
+
+
+def build_type_flow_chain_slice_report(
+    type_flow_rows: list[dict[str, Any]],
+    *,
+    max_slices: int = 25,
+    platform: str | None = None,
+) -> dict[str, object]:
+    buckets: dict[tuple[str, str, str, str, str, str, str], dict[str, Any]] = {}
+    target_sets: dict[tuple[str, str, str, str, str, str, str], set[str]] = {}
+    for row in type_flow_rows:
+        row_platform = row.get("platform") if isinstance(row.get("platform"), str) else "unknown"
+        if platform is not None and row_platform != platform:
+            continue
+        target_id = row.get("target_id") if isinstance(row.get("target_id"), str) else "unknown"
+        for example_kind, example in _type_flow_example_items(row):
+            trace = _type_flow_example_trace(example)
+            if not trace:
+                continue
+            pointer_chain = _type_flow_example_pointer_chain(example)
+            propagation_chain = _type_flow_example_propagation_chain(example)
+            chain_kind = _type_flow_example_value(propagation_chain, "kind", "none")
+            storage_kind = _type_flow_example_value(
+                propagation_chain,
+                "storage_kind",
+                _type_flow_storage_kind_from_chain(chain_kind) or "none",
+            )
+            feature = _type_flow_api_feature_from_example(example) or "none"
+            key = (
+                row_platform,
+                _type_flow_example_value(trace, "cause"),
+                _type_flow_example_value(pointer_chain, "root_kind"),
+                _type_flow_example_value(pointer_chain, "stop_reason"),
+                chain_kind,
+                storage_kind,
+                feature,
+            )
+            bucket = buckets.setdefault(
+                key,
+                {
+                    "platform": key[0],
+                    "cause": key[1],
+                    "pointer_root": key[2],
+                    "pointer_stop": key[3],
+                    "propagation_chain": key[4],
+                    "storage_kind": key[5],
+                    "api_feature": key[6],
+                    "example_count": 0,
+                    "example_kind_counts": {},
+                    "targets": [],
+                },
+            )
+            bucket["example_count"] = int(bucket["example_count"]) + 1
+            _type_flow_nested_bump({"root": bucket["example_kind_counts"]}, "root", example_kind, 1)
+            target_sets.setdefault(key, set()).add(target_id)
+            targets = cast(list[dict[str, object]], bucket["targets"])
+            if len(targets) < 5:
+                targets.append(
+                    {
+                        "target_id": target_id,
+                        "source_id": row.get("source_id"),
+                        "example_kind": example_kind,
+                        "example": example,
+                    }
+                )
+    slices = sorted(
+        buckets.values(),
+        key=lambda item: (
+            -int(item.get("example_count", 0)),
+            str(item.get("platform", "")),
+            str(item.get("cause", "")),
+            str(item.get("pointer_root", "")),
+            str(item.get("propagation_chain", "")),
+            str(item.get("api_feature", "")),
+        ),
+    )
+    for key, item in buckets.items():
+        item["target_count"] = len(target_sets.get(key, set()))
+    for item in slices:
+        counts = item.get("example_kind_counts")
+        if isinstance(counts, dict):
+            item["example_kind_counts"] = dict(sorted((str(k), int(v)) for k, v in counts.items()))
+    return {
+        "schema_version": 1,
+        "platform": platform,
+        "slice_count": len(slices),
+        "slices": slices[:max_slices],
+    }
+
+
+def _type_flow_storage_type_aliases(type_name: str | None) -> set[str]:
+    if not type_name:
+        return set()
+    aliases = {type_name}
+    cleaned = re.sub(r"\b(?:const|volatile|struct)\b", " ", type_name)
+    cleaned = cleaned.replace("*", " ")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if cleaned:
+        aliases.add(cleaned)
+        parts = cleaned.split()
+        if parts:
+            aliases.add(parts[-1])
+    return {alias for alias in aliases if alias and alias not in {"void"}}
+
+
+def _type_flow_row_context(row: dict[str, Any]) -> dict[str, object]:
+    return _compact_example(
+        {
+            "row_index": row.get("row_index"),
+            "section": row.get("section"),
+            "offset": row.get("offset"),
+            "stable_key": row.get("stable_key"),
+            "symbol": row.get("symbol"),
+            "access": row.get("access"),
+            "value": row.get("value"),
+            "text": row.get("text"),
+        }
+    )
+
+
+def _type_flow_access_structs_by_target_row(xrefs: list[dict[str, Any]]) -> dict[tuple[str, int], set[str]]:
+    structs_by_row: dict[tuple[str, int], set[str]] = {}
+    for xref in xrefs:
+        if _string_value(xref.get("kind")) != "platform_typed_access":
+            continue
+        target_id = _string_value(xref.get("target_id"))
+        row_index = _int_value(xref.get("row_index"))
+        feature = _string_value(xref.get("feature")) or ""
+        if target_id is None or row_index is None:
+            continue
+        if not (
+            feature.startswith("platform_typed_access_struct:")
+            or feature.startswith("platform_typed_access_owner:")
+        ):
+            continue
+        symbol = _string_value(xref.get("symbol"))
+        if symbol:
+            structs_by_row.setdefault((target_id, row_index), set()).add(symbol)
+    return structs_by_row
+
+
+def _type_flow_storage_nearby_api_call(
+    target_id: str,
+    row_index: int,
+    xrefs_by_row: dict[tuple[str, int], list[dict[str, Any]]],
+    *,
+    lookbehind: int = 8,
+) -> dict[str, object] | None:
+    for candidate_row in range(row_index, max(0, row_index - lookbehind) - 1, -1):
+        row_xrefs = xrefs_by_row.get((target_id, candidate_row), [])
+        row_has_output = any(
+            _string_value(item.get("kind")) in {"os_call_output", "os_call_output_struct"}
+            for item in row_xrefs
+        )
+        if candidate_row != row_index and not row_has_output:
+            continue
+        for xref in row_xrefs:
+            feature = _string_value(xref.get("feature")) or ""
+            if _string_value(xref.get("kind")) != "os_call" or not feature.startswith("os:"):
+                continue
+            return _compact_example(
+                {
+                    "row_index": xref.get("row_index"),
+                    "section": xref.get("section"),
+                    "offset": xref.get("offset"),
+                    "stable_key": xref.get("stable_key"),
+                    "feature": feature,
+                    "symbol": xref.get("symbol"),
+                    "value": xref.get("value"),
+                    "resolution": xref.get("resolution"),
+                    "text": xref.get("text"),
+                }
+            )
+    return None
+
+
+def _type_flow_access_matches_storage(storage: dict[str, Any], access: dict[str, Any]) -> bool:
+    storage_section = _int_value(storage.get("section"))
+    storage_offset = _int_value(storage.get("offset"))
+    provenance_section = _int_value(access.get("type_provenance_section"))
+    provenance_offset = _int_value(access.get("type_provenance_offset"))
+    if provenance_offset is not None and storage_offset is not None:
+        if provenance_offset == storage_offset and (
+            provenance_section is None or storage_section is None or provenance_section == storage_section
+        ):
+            return True
+    storage_aliases = _type_flow_storage_type_aliases(_string_value(storage.get("symbol")))
+    access_structs = access.get("structs")
+    if storage_aliases and isinstance(access_structs, set) and storage_aliases.intersection(access_structs):
+        return True
+    return False
+
+
+def _type_flow_first_later_xref(
+    xrefs: list[dict[str, Any]],
+    storage: dict[str, Any],
+    *,
+    max_window: int,
+    match_kind: str | None = None,
+) -> dict[str, object] | None:
+    storage_row = _int_value(storage.get("row_index"))
+    storage_section = _int_value(storage.get("section"))
+    if storage_row is None:
+        return None
+    best: dict[str, Any] | None = None
+    for xref in xrefs:
+        row_index = _int_value(xref.get("row_index"))
+        if row_index is None or row_index <= storage_row or row_index - storage_row > max_window:
+            continue
+        if storage_section is not None and _int_value(xref.get("section")) not in (None, storage_section):
+            continue
+        if match_kind is not None and _string_value(xref.get("kind")) != match_kind:
+            continue
+        if best is None or row_index < int(best.get("row_index", 1 << 30)):
+            best = xref
+    return _type_flow_row_context(best) if best is not None else None
+
+
+def _type_flow_first_later_numeric_access(
+    snippet_rows: list[dict[str, Any]],
+    storage: dict[str, Any],
+    *,
+    max_window: int,
+) -> dict[str, object] | None:
+    storage_row = _int_value(storage.get("row_index"))
+    storage_section = _int_value(storage.get("section"))
+    if storage_row is None:
+        return None
+    for snippet in snippet_rows:
+        row_index = _int_value(snippet.get("row_index"))
+        row = snippet.get("row")
+        if row_index is None or not isinstance(row, dict):
+            continue
+        if row_index <= storage_row or row_index - storage_row > max_window:
+            continue
+        if storage_section is not None and _int_value(row.get("section_index")) not in (None, storage_section):
+            continue
+        if row.get("kind") != "instruction":
+            continue
+        if _dict_items(row.get("typed_accesses")) or _dict_items(row.get("unresolved_typed_accesses")):
+            continue
+        text = _string_value(row.get("text")) or ""
+        if NUMERIC_ADDRESS_REG_ACCESS_RE.search(text) is None:
+            continue
+        return _compact_example(
+            {
+                "row_index": row_index,
+                "section": row.get("section_index"),
+                "offset": row.get("start_offset") if isinstance(row.get("start_offset"), int) else row.get("addr"),
+                "stable_key": row.get("stable_key"),
+                "text": text.strip(),
+            }
+        )
+    return None
+
+
+def build_type_flow_storage_access_gap_report(
+    type_flow_rows: list[dict[str, Any]],
+    xrefs: list[dict[str, Any]],
+    snippet_rows: list[dict[str, Any]],
+    *,
+    platform: str | None = None,
+    api_feature: str | None = None,
+    storage_target: str | None = None,
+    max_targets: int = 25,
+    max_examples: int = 5,
+    window: int = 500,
+) -> dict[str, object]:
+    manifest_by_target = {
+        str(row.get("target_id")): row
+        for row in type_flow_rows
+        if isinstance(row.get("target_id"), str)
+    }
+    rows_by_target = _type_flow_rows_for_target(snippet_rows)
+    xrefs_by_row = _type_flow_xrefs_by_target_row(xrefs)
+    structs_by_row = _type_flow_access_structs_by_target_row(xrefs)
+    access_xrefs_by_target: dict[str, list[dict[str, Any]]] = {}
+    unresolved_xrefs_by_target: dict[str, list[dict[str, Any]]] = {}
+    storage_xrefs: list[dict[str, Any]] = []
+    for xref in xrefs:
+        target_id = _string_value(xref.get("target_id"))
+        kind = _string_value(xref.get("kind"))
+        feature = _string_value(xref.get("feature")) or ""
+        if target_id is None:
+            continue
+        if kind == "typed_storage" and feature == "typed_storage:any":
+            storage_xrefs.append(xref)
+        elif kind == "platform_typed_access" and feature == "platform_typed_access:any":
+            entry = dict(xref)
+            row_index = _int_value(xref.get("row_index"))
+            entry["structs"] = set(structs_by_row.get((target_id, row_index if row_index is not None else -1), set()))
+            access_xrefs_by_target.setdefault(target_id, []).append(entry)
+        elif kind == "platform_unresolved_typed_access" and feature == "typed_base_unresolved_field":
+            unresolved_xrefs_by_target.setdefault(target_id, []).append(xref)
+    for values in access_xrefs_by_target.values():
+        values.sort(key=lambda item: _sort_int(item.get("row_index")))
+    for values in unresolved_xrefs_by_target.values():
+        values.sort(key=lambda item: _sort_int(item.get("row_index")))
+
+    targets: dict[str, dict[str, Any]] = {}
+    platform_counts: dict[str, int] = {}
+    api_feature_counts: dict[str, int] = {}
+    storage_target_counts: dict[str, int] = {}
+    storage_type_counts: dict[str, int] = {}
+    total_storage_count = 0
+    covered_storage_count = 0
+    total_gap_count = 0
+
+    def bump(mapping: dict[str, int], key: str | None, amount: int = 1) -> None:
+        safe_key = key if key else "none"
+        mapping[safe_key] = int(mapping.get(safe_key, 0)) + amount
+
+    for storage in sorted(storage_xrefs, key=lambda item: (str(item.get("target_id")), _sort_int(item.get("row_index")))):
+        target_id = _string_value(storage.get("target_id"))
+        if target_id is None:
+            continue
+        target_row = manifest_by_target.get(target_id, {})
+        target_platform = _string_value(storage.get("platform")) or _string_value(target_row.get("platform")) or "unknown"
+        if platform is not None and target_platform != platform:
+            continue
+        observed_storage_target = _string_value(storage.get("access")) or "unknown"
+        if storage_target is not None and observed_storage_target != storage_target:
+            continue
+        row_index = _int_value(storage.get("row_index"))
+        if row_index is None:
+            continue
+        api_call = _type_flow_storage_nearby_api_call(target_id, row_index, xrefs_by_row)
+        observed_api_feature = _string_value(api_call.get("feature")) if isinstance(api_call, dict) else None
+        if api_feature is not None and observed_api_feature != api_feature:
+            continue
+        total_storage_count += 1
+        access_candidates = access_xrefs_by_target.get(target_id, [])
+        matching_access = None
+        for access in access_candidates:
+            access_row = _int_value(access.get("row_index"))
+            if access_row is None or access_row <= row_index or access_row - row_index > window:
+                continue
+            if _type_flow_access_matches_storage(storage, access):
+                matching_access = access
+                break
+        if matching_access is not None:
+            covered_storage_count += 1
+            continue
+
+        total_gap_count += 1
+        bump(platform_counts, target_platform)
+        bump(storage_target_counts, observed_storage_target)
+        storage_type = _string_value(storage.get("symbol")) or "unknown"
+        bump(storage_type_counts, storage_type)
+        bump(api_feature_counts, observed_api_feature)
+        target = targets.setdefault(
+            target_id,
+            {
+                "target_id": target_id,
+                "source_id": storage.get("source_id") or target_row.get("source_id"),
+                "platform": target_platform,
+                "origin": storage.get("origin") if isinstance(storage.get("origin"), dict) else target_row.get("origin", {}),
+                "gap_count": 0,
+                "storage_target_counts": {},
+                "storage_type_counts": {},
+                "api_feature_counts": {},
+                "gaps": [],
+            },
+        )
+        target["gap_count"] = int(target["gap_count"]) + 1
+        bump(cast(dict[str, int], target["storage_target_counts"]), observed_storage_target)
+        bump(cast(dict[str, int], target["storage_type_counts"]), storage_type)
+        bump(cast(dict[str, int], target["api_feature_counts"]), observed_api_feature)
+        gaps = cast(list[dict[str, object]], target["gaps"])
+        if len(gaps) < max_examples:
+            target_snippets = rows_by_target.get(target_id, [])
+            gaps.append(
+                _compact_example(
+                    {
+                        "storage": _type_flow_row_context(storage),
+                        "api_call": api_call,
+                        "first_later_typed_access": _type_flow_first_later_xref(
+                            access_candidates,
+                            storage,
+                            max_window=window,
+                            match_kind="platform_typed_access",
+                        ),
+                        "first_later_unresolved_access": _type_flow_first_later_xref(
+                            unresolved_xrefs_by_target.get(target_id, []),
+                            storage,
+                            max_window=window,
+                            match_kind="platform_unresolved_typed_access",
+                        ),
+                        "first_later_numeric_access": _type_flow_first_later_numeric_access(
+                            target_snippets,
+                            storage,
+                            max_window=window,
+                        ),
+                    }
+                )
+            )
+
+    target_rows = sorted(
+        targets.values(),
+        key=lambda item: (
+            -int(item.get("gap_count", 0)),
+            str(item.get("platform", "")),
+            str(item.get("target_id", "")),
+        ),
+    )
+    for item in target_rows:
+        item["storage_target_counts"] = dict(sorted(cast(dict[str, int], item["storage_target_counts"]).items()))
+        item["storage_type_counts"] = dict(sorted(cast(dict[str, int], item["storage_type_counts"]).items()))
+        item["api_feature_counts"] = dict(sorted(cast(dict[str, int], item["api_feature_counts"]).items()))
+    return {
+        "schema_version": 1,
+        "platform": platform,
+        "api_feature": api_feature,
+        "storage_target": storage_target,
+        "window": window,
+        "total_storage_count": total_storage_count,
+        "covered_storage_count": covered_storage_count,
+        "total_gap_count": total_gap_count,
+        "target_count": len(target_rows),
+        "platform_counts": dict(sorted(platform_counts.items())),
+        "api_feature_counts": dict(sorted(api_feature_counts.items())),
+        "storage_target_counts": dict(sorted(storage_target_counts.items())),
+        "storage_type_counts": dict(sorted(storage_type_counts.items())),
+        "targets": target_rows[:max_targets],
+    }
+
+
+def build_type_flow_opportunity_report(
+    type_flow_rows: list[dict[str, Any]],
+    *,
+    max_targets: int = 25,
+    platform: str | None = None,
+) -> dict[str, object]:
+    rows = [
+        row
+        for row in type_flow_rows
+        if platform is None or row.get("platform") == platform
+    ]
+    targets: list[dict[str, object]] = []
+    platform_open_counts: dict[str, dict[str, int]] = {}
+    numeric_cause_by_platform: dict[str, dict[str, int]] = {}
+    propagation_chain_by_platform: dict[str, dict[str, int]] = {}
+    pointer_chain_root_by_platform: dict[str, dict[str, int]] = {}
+    pointer_chain_stop_by_platform: dict[str, dict[str, int]] = {}
+    storage_kind_counts: dict[str, int] = {}
+    api_feature_counts: dict[str, int] = {}
+    for row in rows:
+        score = _type_flow_open_score(row)
+        platform_name = str(row.get("platform")) if isinstance(row.get("platform"), str) else "unknown"
+        counts = _type_flow_count_map(row, "counts")
+        for key in TYPE_FLOW_OPEN_OPPORTUNITY_KEYS:
+            value = int(counts.get(key, 0))
+            if value:
+                _type_flow_nested_bump(platform_open_counts, platform_name, key, value)
+        for cause, value in _type_flow_count_map(row, "numeric_cause_counts").items():
+            _type_flow_nested_bump(numeric_cause_by_platform, platform_name, cause, value)
+        for chain, value in _type_flow_count_map(row, "propagation_chain_counts").items():
+            storage_kind = _type_flow_storage_kind_from_chain(chain)
+            _type_flow_nested_bump(propagation_chain_by_platform, platform_name, chain, value)
+            if storage_kind is not None:
+                storage_kind_counts[storage_kind] = int(storage_kind_counts.get(storage_kind, 0)) + int(value)
+        for root_kind, value in _type_flow_count_map(row, "pointer_chain_root_counts").items():
+            _type_flow_nested_bump(pointer_chain_root_by_platform, platform_name, root_kind, value)
+        for stop_reason, value in _type_flow_count_map(row, "pointer_chain_stop_counts").items():
+            _type_flow_nested_bump(pointer_chain_stop_by_platform, platform_name, stop_reason, value)
+        examples = row.get("examples")
+        if isinstance(examples, dict):
+            for values in examples.values():
+                if not isinstance(values, list):
+                    continue
+                for example in values:
+                    if not isinstance(example, dict):
+                        continue
+                    feature = _type_flow_api_feature_from_example(example)
+                    if feature is not None:
+                        api_feature_counts[feature] = int(api_feature_counts.get(feature, 0)) + 1
+        if score <= 0:
+            continue
+        targets.append(
+            {
+                "target_id": row.get("target_id"),
+                "source_id": row.get("source_id"),
+                "platform": row.get("platform"),
+                "origin": row.get("origin") if isinstance(row.get("origin"), dict) else {},
+                "open_score": score,
+                "resolved_typed_access_count": _type_flow_int(row, "resolved_typed_access_count"),
+                "open_counts": {
+                    key: int(counts.get(key, 0))
+                    for key in TYPE_FLOW_OPEN_OPPORTUNITY_KEYS
+                    if int(counts.get(key, 0)) != 0
+                },
+                "numeric_cause_counts": _type_flow_count_map(row, "numeric_cause_counts"),
+                "propagation_chain_counts": _type_flow_count_map(row, "propagation_chain_counts"),
+                "pointer_chain_root_counts": _type_flow_count_map(row, "pointer_chain_root_counts"),
+                "pointer_chain_stop_counts": _type_flow_count_map(row, "pointer_chain_stop_counts"),
+                "typed_access_provenance_counts": _type_flow_count_map(row, "typed_access_provenance_counts"),
+                "typed_storage_provenance_counts": _type_flow_count_map(row, "typed_storage_provenance_counts"),
+                "app_slot_substructure_suggestions": row.get("app_slot_substructure_suggestions", []),
+                "examples": row.get("examples") if isinstance(row.get("examples"), dict) else {},
+            }
+        )
+    targets.sort(
+        key=lambda row: (
+            -int(row.get("open_score", 0)),
+            -int(row.get("resolved_typed_access_count", 0)),
+            str(row.get("platform")),
+            str(row.get("target_id")),
+        )
+    )
+    return {
+        "schema_version": 1,
+        "target_count": len(targets),
+        "totals": _type_flow_effectiveness_totals(rows),
+        "numeric_cause_counts": _type_flow_total_map(rows, "numeric_cause_counts"),
+        "propagation_chain_counts": _type_flow_total_map(rows, "propagation_chain_counts"),
+        "pointer_chain_root_counts": _type_flow_total_map(rows, "pointer_chain_root_counts"),
+        "pointer_chain_stop_counts": _type_flow_total_map(rows, "pointer_chain_stop_counts"),
+        "platform_open_counts": {key: dict(sorted(value.items())) for key, value in sorted(platform_open_counts.items())},
+        "numeric_cause_by_platform": {
+            key: dict(sorted(value.items())) for key, value in sorted(numeric_cause_by_platform.items())
+        },
+        "propagation_chain_by_platform": {
+            key: dict(sorted(value.items())) for key, value in sorted(propagation_chain_by_platform.items())
+        },
+        "pointer_chain_root_by_platform": {
+            key: dict(sorted(value.items())) for key, value in sorted(pointer_chain_root_by_platform.items())
+        },
+        "pointer_chain_stop_by_platform": {
+            key: dict(sorted(value.items())) for key, value in sorted(pointer_chain_stop_by_platform.items())
+        },
+        "api_feature_counts": dict(sorted(api_feature_counts.items())),
+        "storage_kind_counts": dict(sorted(storage_kind_counts.items())),
+        "typed_access_provenance_counts": _type_flow_total_map(rows, "typed_access_provenance_counts"),
+        "typed_storage_provenance_counts": _type_flow_total_map(rows, "typed_storage_provenance_counts"),
+        "targets": targets[:max_targets],
+    }
+
+
+TYPE_FLOW_BASELINE_MIN_TOTALS = (
+    "resolved_typed_access",
+    "typed_storage",
+    "type_refinement_applied",
+    "resolved_after_type_refinement",
+)
+TYPE_FLOW_BASELINE_MAX_TOTALS = (
+    "numeric_address_reg_access_without_type",
+)
+TYPE_FLOW_BASELINE_MAX_NUMERIC_CAUSES = (
+    "unknown_pointer_chain",
+    "stack_slot_load",
+    "global_or_base_slot_load",
+)
+
+
+def build_type_flow_baseline_report(type_flow_rows: list[dict[str, Any]]) -> dict[str, object]:
+    opportunity = build_type_flow_opportunity_report(type_flow_rows, max_targets=0)
+    return {
+        "schema_version": 1,
+        "target_count": len(type_flow_rows),
+        "totals": opportunity["totals"],
+        "numeric_cause_counts": opportunity["numeric_cause_counts"],
+        "propagation_chain_counts": opportunity["propagation_chain_counts"],
+        "pointer_chain_root_counts": opportunity["pointer_chain_root_counts"],
+        "pointer_chain_stop_counts": opportunity["pointer_chain_stop_counts"],
+        "platform_open_counts": opportunity["platform_open_counts"],
+        "numeric_cause_by_platform": opportunity["numeric_cause_by_platform"],
+        "propagation_chain_by_platform": opportunity["propagation_chain_by_platform"],
+        "pointer_chain_root_by_platform": opportunity["pointer_chain_root_by_platform"],
+        "pointer_chain_stop_by_platform": opportunity["pointer_chain_stop_by_platform"],
+        "api_feature_counts": opportunity["api_feature_counts"],
+        "storage_kind_counts": opportunity["storage_kind_counts"],
+        "typed_access_provenance_counts": opportunity["typed_access_provenance_counts"],
+        "typed_storage_provenance_counts": opportunity["typed_storage_provenance_counts"],
+    }
+
+
+def _type_flow_compact_target_baseline_row(row: dict[str, Any]) -> dict[str, object]:
+    return {
+        "target_id": row.get("target_id"),
+        "source_id": row.get("source_id"),
+        "platform": row.get("platform"),
+        "origin": row.get("origin") if isinstance(row.get("origin"), dict) else {},
+        "opportunity_count": _type_flow_int(row, "opportunity_count"),
+        "resolved_typed_access_count": _type_flow_int(row, "resolved_typed_access_count"),
+        "counts": _type_flow_count_map(row, "counts"),
+        "numeric_cause_counts": _type_flow_count_map(row, "numeric_cause_counts"),
+        "propagation_chain_counts": _type_flow_count_map(row, "propagation_chain_counts"),
+        "pointer_chain_root_counts": _type_flow_count_map(row, "pointer_chain_root_counts"),
+        "pointer_chain_stop_counts": _type_flow_count_map(row, "pointer_chain_stop_counts"),
+        "typed_access_provenance_counts": _type_flow_count_map(row, "typed_access_provenance_counts"),
+        "typed_storage_provenance_counts": _type_flow_count_map(row, "typed_storage_provenance_counts"),
+        "struct_counts": _type_flow_count_map(row, "struct_counts"),
+        "field_counts": _type_flow_count_map(row, "field_counts"),
+    }
+
+
+def build_type_flow_target_baseline_report(type_flow_rows: list[dict[str, Any]]) -> dict[str, object]:
+    targets = [
+        _type_flow_compact_target_baseline_row(row)
+        for row in type_flow_rows
+        if isinstance(row.get("target_id"), str)
+    ]
+    targets.sort(key=lambda row: (str(row.get("platform")), str(row.get("target_id"))))
+    return {
+        "schema_version": 1,
+        "target_count": len(targets),
+        "targets": targets,
+    }
+
+
+def _type_flow_target_baseline_rows(payload: dict[str, Any] | list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return payload
+    targets = payload.get("targets") if isinstance(payload, dict) else None
+    if not isinstance(targets, list):
+        return []
+    return [cast(dict[str, Any], row) for row in targets if isinstance(row, dict)]
+
+
+def build_type_flow_target_baseline_delta_report(
+    type_flow_rows: list[dict[str, Any]],
+    baseline: dict[str, Any] | list[dict[str, Any]],
+    *,
+    max_targets: int = 25,
+) -> dict[str, object]:
+    current = cast(list[dict[str, Any]], build_type_flow_target_baseline_report(type_flow_rows)["targets"])
+    before = _type_flow_target_baseline_rows(baseline)
+    delta = build_type_flow_report_delta(before, current, max_targets=max_targets)
+    return {
+        "schema_version": 1,
+        "baseline_target_count": len(before),
+        "current_target_count": len(current),
+        "delta": delta,
+    }
+
+
+def build_type_flow_baseline_gate_report(
+    type_flow_rows: list[dict[str, Any]],
+    unresolved_typed_field_rows: list[dict[str, Any]],
+    xrefs: list[dict[str, Any]],
+    baseline: dict[str, Any],
+) -> dict[str, object]:
+    correctness = build_type_flow_correctness_report(type_flow_rows, unresolved_typed_field_rows, xrefs)
+    current = build_type_flow_baseline_report(type_flow_rows)
+    current_totals = current.get("totals") if isinstance(current.get("totals"), dict) else {}
+    baseline_totals = baseline.get("totals") if isinstance(baseline.get("totals"), dict) else {}
+    current_causes = current.get("numeric_cause_counts") if isinstance(current.get("numeric_cause_counts"), dict) else {}
+    baseline_causes = baseline.get("numeric_cause_counts") if isinstance(baseline.get("numeric_cause_counts"), dict) else {}
+    metric_regressions: list[dict[str, object]] = []
+    for key in TYPE_FLOW_BASELINE_MIN_TOTALS:
+        current_value = int(current_totals.get(key, 0))
+        baseline_value = int(baseline_totals.get(key, 0))
+        if current_value < baseline_value:
+            metric_regressions.append({
+                "kind": "below_baseline_minimum",
+                "key": key,
+                "current": current_value,
+                "baseline": baseline_value,
+            })
+    for key in TYPE_FLOW_BASELINE_MAX_TOTALS:
+        current_value = int(current_totals.get(key, 0))
+        baseline_value = int(baseline_totals.get(key, 0))
+        if baseline_value != 0 and current_value > baseline_value:
+            metric_regressions.append({
+                "kind": "above_baseline_maximum",
+                "key": key,
+                "current": current_value,
+                "baseline": baseline_value,
+            })
+    for key in TYPE_FLOW_BASELINE_MAX_NUMERIC_CAUSES:
+        current_value = int(current_causes.get(key, 0))
+        baseline_value = int(baseline_causes.get(key, 0))
+        if baseline_value != 0 and current_value > baseline_value:
+            metric_regressions.append({
+                "kind": "numeric_cause_above_baseline_maximum",
+                "key": key,
+                "current": current_value,
+                "baseline": baseline_value,
+            })
+    return {
+        "schema_version": 1,
+        "ok": bool(correctness.get("ok")) and not metric_regressions,
+        "correctness": correctness,
+        "metric_regressions": metric_regressions,
+        "current": current,
+        "baseline": baseline,
+    }
+
+
 def build_type_flow_report_delta(
     before_rows: list[dict[str, Any]],
     after_rows: list[dict[str, Any]],
@@ -2763,11 +5116,36 @@ def build_type_flow_report_delta(
             _type_flow_count_map(before_row, "propagation_chain_counts"),
             _type_flow_count_map(after_row, "propagation_chain_counts"),
         )
+        pointer_root_delta = _type_flow_delta_map(
+            _type_flow_count_map(before_row, "pointer_chain_root_counts"),
+            _type_flow_count_map(after_row, "pointer_chain_root_counts"),
+        )
+        pointer_stop_delta = _type_flow_delta_map(
+            _type_flow_count_map(before_row, "pointer_chain_stop_counts"),
+            _type_flow_count_map(after_row, "pointer_chain_stop_counts"),
+        )
+        typed_access_provenance_delta = _type_flow_delta_map(
+            _type_flow_count_map(before_row, "typed_access_provenance_counts"),
+            _type_flow_count_map(after_row, "typed_access_provenance_counts"),
+        )
+        typed_storage_provenance_delta = _type_flow_delta_map(
+            _type_flow_count_map(before_row, "typed_storage_provenance_counts"),
+            _type_flow_count_map(after_row, "typed_storage_provenance_counts"),
+        )
+        count_delta = _type_flow_delta_map(
+            _type_flow_count_map(before_row, "counts"),
+            _type_flow_count_map(after_row, "counts"),
+        )
         if (
             opportunity_delta == 0
             and resolved_delta == 0
+            and not any(item["delta"] != 0 for item in count_delta.values())
             and not any(item["delta"] != 0 for item in numeric_delta.values())
             and not any(item["delta"] != 0 for item in propagation_delta.values())
+            and not any(item["delta"] != 0 for item in pointer_root_delta.values())
+            and not any(item["delta"] != 0 for item in pointer_stop_delta.values())
+            and not any(item["delta"] != 0 for item in typed_access_provenance_delta.values())
+            and not any(item["delta"] != 0 for item in typed_storage_provenance_delta.values())
         ):
             continue
         display_row = after_row or before_row or {}
@@ -2783,8 +5161,13 @@ def build_type_flow_report_delta(
                 "before_resolved_typed_access_count": before_resolved_count,
                 "after_resolved_typed_access_count": after_resolved_count,
                 "resolved_typed_access_delta": resolved_delta,
+                "count_deltas": count_delta,
                 "numeric_cause_deltas": numeric_delta,
                 "propagation_chain_deltas": propagation_delta,
+                "pointer_chain_root_deltas": pointer_root_delta,
+                "pointer_chain_stop_deltas": pointer_stop_delta,
+                "typed_access_provenance_deltas": typed_access_provenance_delta,
+                "typed_storage_provenance_deltas": typed_storage_provenance_delta,
             }
         )
 
@@ -2816,6 +5199,10 @@ def build_type_flow_report_delta(
             _type_flow_total_map(before_rows, "counts"),
             _type_flow_total_map(after_rows, "counts"),
         ),
+        "effectiveness_deltas": _type_flow_delta_map(
+            _type_flow_effectiveness_totals(before_rows),
+            _type_flow_effectiveness_totals(after_rows),
+        ),
         "numeric_cause_deltas": _type_flow_delta_map(
             _type_flow_total_map(before_rows, "numeric_cause_counts"),
             _type_flow_total_map(after_rows, "numeric_cause_counts"),
@@ -2823,6 +5210,22 @@ def build_type_flow_report_delta(
         "propagation_chain_deltas": _type_flow_delta_map(
             _type_flow_total_map(before_rows, "propagation_chain_counts"),
             _type_flow_total_map(after_rows, "propagation_chain_counts"),
+        ),
+        "pointer_chain_root_deltas": _type_flow_delta_map(
+            _type_flow_total_map(before_rows, "pointer_chain_root_counts"),
+            _type_flow_total_map(after_rows, "pointer_chain_root_counts"),
+        ),
+        "pointer_chain_stop_deltas": _type_flow_delta_map(
+            _type_flow_total_map(before_rows, "pointer_chain_stop_counts"),
+            _type_flow_total_map(after_rows, "pointer_chain_stop_counts"),
+        ),
+        "typed_access_provenance_deltas": _type_flow_delta_map(
+            _type_flow_total_map(before_rows, "typed_access_provenance_counts"),
+            _type_flow_total_map(after_rows, "typed_access_provenance_counts"),
+        ),
+        "typed_storage_provenance_deltas": _type_flow_delta_map(
+            _type_flow_total_map(before_rows, "typed_storage_provenance_counts"),
+            _type_flow_total_map(after_rows, "typed_storage_provenance_counts"),
         ),
         "struct_deltas": _type_flow_delta_map(
             _type_flow_total_map(before_rows, "struct_counts"),
@@ -2834,6 +5237,296 @@ def build_type_flow_report_delta(
         ),
         "target_deltas": target_deltas[:max_targets],
     }
+
+
+def _suspicious_first_struct_match(text: str) -> str | None:
+    lowered = text.lower()
+    for name in SUSPICIOUS_FIRST_STRUCT_NAMES:
+        if name.lower() in lowered:
+            return name
+    for prefix in SUSPICIOUS_FIRST_STRUCT_PREFIXES:
+        if prefix.lower() in lowered:
+            return prefix
+    return None
+
+
+def build_type_flow_suspicious_first_struct_report(
+    manifest_rows: list[dict[str, Any]],
+    xrefs: list[dict[str, Any]],
+    snippet_rows: list[dict[str, Any]],
+) -> dict[str, object]:
+    manifest_by_id = {
+        str(row.get("id")): row
+        for row in manifest_rows
+        if isinstance(row.get("id"), str)
+    }
+    examples: list[dict[str, object]] = []
+    target_counts: dict[str, int] = {}
+
+    def add_example(target_id: str, match: str, example: dict[str, object]) -> None:
+        target_counts[target_id] = target_counts.get(target_id, 0) + 1
+        if len(examples) >= MAX_EXAMPLES:
+            return
+        manifest = manifest_by_id.get(target_id, {})
+        payload = {
+            "target_id": target_id,
+            "source_id": manifest.get("source_id"),
+            "platform": manifest.get("platform"),
+            "match": match,
+        }
+        payload.update(example)
+        examples.append(_compact_example(payload))
+
+    interesting_kinds = {
+        "platform_typed_access",
+        "platform_unresolved_typed_access",
+        "platform_type_refinement",
+        "typed_storage",
+        "struct",
+        "type",
+    }
+    for xref in xrefs:
+        target_id = _string_value(xref.get("target_id"))
+        if target_id is None:
+            continue
+        kind = _string_value(xref.get("kind")) or ""
+        feature = _string_value(xref.get("feature")) or ""
+        if kind not in interesting_kinds and not feature.startswith(("struct:", "type:", "platform_typed_access_")):
+            continue
+        haystack = " ".join(
+            str(value)
+            for value in (
+                xref.get("feature"),
+                xref.get("kind"),
+                xref.get("symbol"),
+                xref.get("value"),
+                xref.get("text"),
+            )
+            if value is not None
+        )
+        match = _suspicious_first_struct_match(haystack)
+        if match is None:
+            continue
+        add_example(
+            target_id,
+            match,
+            {
+                "source": "xref",
+                "feature": feature,
+                "kind": kind,
+                "section": xref.get("section"),
+                "offset": xref.get("offset"),
+                "row_index": xref.get("row_index"),
+                "stable_key": xref.get("stable_key"),
+                "text": xref.get("text"),
+            },
+        )
+
+    for snippet in snippet_rows:
+        target_id = _string_value(snippet.get("target_id"))
+        row = snippet.get("row")
+        if target_id is None or not isinstance(row, dict):
+            continue
+        text = _string_value(row.get("text")) or ""
+        match = _suspicious_first_struct_match(text)
+        if match is None:
+            continue
+        add_example(
+            target_id,
+            match,
+            {
+                "source": "listing",
+                "section": row.get("section_index"),
+                "offset": row.get("start_offset") if isinstance(row.get("start_offset"), int) else row.get("addr"),
+                "row_index": snippet.get("row_index"),
+                "stable_key": row.get("stable_key"),
+                "text": text.strip(),
+            },
+        )
+
+    return {
+        "schema_version": 1,
+        "total": sum(target_counts.values()),
+        "target_count": len(target_counts),
+        "target_counts": dict(sorted(target_counts.items())),
+        "examples": examples,
+    }
+
+
+def build_type_flow_correctness_report(
+    type_flow_rows: list[dict[str, Any]],
+    unresolved_typed_field_rows: list[dict[str, Any]],
+    xrefs: list[dict[str, Any]],
+) -> dict[str, object]:
+    violations: list[dict[str, object]] = []
+    suspicious_kinds = {
+        "platform_typed_access",
+        "platform_unresolved_typed_access",
+        "platform_type_refinement",
+        "typed_storage",
+        "struct",
+        "type",
+    }
+    for row in unresolved_typed_field_rows:
+        dominant = row.get("dominant_candidate")
+        rankings = row.get("candidate_rankings")
+        if not isinstance(dominant, dict) or not isinstance(rankings, list) or len(rankings) <= 1:
+            continue
+        dominant_exact = _int_value(dominant.get("exact_access_size_match_count"), 0) or 0
+        other_exact = max(
+            (_int_value(candidate.get("exact_access_size_match_count"), 0) or 0)
+            for candidate in rankings[1:]
+            if isinstance(candidate, dict)
+        )
+        if dominant_exact <= other_exact:
+            violations.append(
+                {
+                    "kind": "dominant_candidate_exact_size_tie",
+                    "root_struct_name": row.get("root_struct_name"),
+                    "displacement_hex": row.get("displacement_hex"),
+                    "dominant_struct_name": dominant.get("struct_name"),
+                    "dominant_exact_access_size_match_count": dominant_exact,
+                    "next_exact_access_size_match_count": other_exact,
+                }
+            )
+    for xref in xrefs:
+        kind = _string_value(xref.get("kind")) or ""
+        feature = _string_value(xref.get("feature")) or ""
+        if kind == "platform_type_refinement" and feature == "platform_type_refinement:applied":
+            if _string_value(xref.get("classification")) != "prefix_extension":
+                violations.append(
+                    {
+                        "kind": "refinement_without_prefix_extension_classification",
+                        "target_id": xref.get("target_id"),
+                        "row_index": xref.get("row_index"),
+                        "text": xref.get("text"),
+                    }
+                )
+            if not _string_value(xref.get("refined_struct_name")):
+                violations.append(
+                    {
+                        "kind": "refinement_without_refined_struct",
+                        "target_id": xref.get("target_id"),
+                        "row_index": xref.get("row_index"),
+                        "text": xref.get("text"),
+                    }
+                )
+            if not _string_value(xref.get("container_field_expr")):
+                violations.append(
+                    {
+                        "kind": "refinement_without_generated_field_expression",
+                        "target_id": xref.get("target_id"),
+                        "row_index": xref.get("row_index"),
+                        "refined_struct_name": xref.get("refined_struct_name"),
+                        "text": xref.get("text"),
+                    }
+                )
+        if kind in suspicious_kinds or feature.startswith(("struct:", "type:", "platform_typed_access_")):
+            haystack = " ".join(
+                str(value)
+                for value in (
+                    xref.get("feature"),
+                    xref.get("kind"),
+                    xref.get("symbol"),
+                    xref.get("value"),
+                    xref.get("text"),
+                )
+                if value is not None
+            )
+            suspicious_match = _suspicious_first_struct_match(haystack)
+            if suspicious_match is not None:
+                violations.append(
+                    {
+                        "kind": "suspicious_first_struct_type_flow",
+                        "target_id": xref.get("target_id"),
+                        "match": suspicious_match,
+                        "feature": feature,
+                        "xref_kind": kind,
+                        "row_index": xref.get("row_index"),
+                        "text": xref.get("text"),
+                    }
+                )
+    for row in type_flow_rows:
+        counts = row.get("counts") if isinstance(row.get("counts"), dict) else {}
+        resolved_after = _int_value(counts.get("resolved_after_type_refinement"), 0) or 0
+        resolved = _int_value(counts.get("resolved_typed_access"), 0) or 0
+        if resolved_after > resolved:
+            violations.append(
+                {
+                    "kind": "resolved_after_refinement_exceeds_resolved_typed_access",
+                    "target_id": row.get("target_id"),
+                    "resolved_after_type_refinement": resolved_after,
+                    "resolved_typed_access": resolved,
+                }
+            )
+    return {
+        "schema_version": 1,
+        "ok": not violations,
+        "violation_count": len(violations),
+        "violations": violations,
+        "applied_refinement_count": sum(
+            1
+            for xref in xrefs
+            if _string_value(xref.get("kind")) == "platform_type_refinement"
+            and _string_value(xref.get("feature")) == "platform_type_refinement:applied"
+        ),
+        "dominant_candidate_count": sum(
+            1 for row in unresolved_typed_field_rows if isinstance(row.get("dominant_candidate"), dict)
+        ),
+    }
+
+
+def build_type_flow_gate_report(
+    type_flow_rows: list[dict[str, Any]],
+    unresolved_typed_field_rows: list[dict[str, Any]],
+    xrefs: list[dict[str, Any]],
+    *,
+    before_rows: list[dict[str, Any]] | None = None,
+    fail_on_metric_regression: bool = False,
+    max_targets: int = 25,
+) -> dict[str, object]:
+    correctness = build_type_flow_correctness_report(type_flow_rows, unresolved_typed_field_rows, xrefs)
+    delta = (
+        build_type_flow_report_delta(before_rows, type_flow_rows, max_targets=max_targets)
+        if before_rows is not None
+        else None
+    )
+    metric_regressions: list[dict[str, object]] = []
+    if fail_on_metric_regression and isinstance(delta, dict):
+        for key in ("resolved_typed_access", "type_refinement_applied", "resolved_after_type_refinement"):
+            change = delta.get("effectiveness_deltas", {}).get(key) if isinstance(delta.get("effectiveness_deltas"), dict) else None
+            if isinstance(change, dict) and int(change.get("delta", 0)) < 0:
+                metric_regressions.append({"key": key, "change": change})
+    return {
+        "schema_version": 1,
+        "ok": bool(correctness.get("ok")) and not metric_regressions,
+        "correctness": correctness,
+        "delta": delta,
+        "metric_regressions": metric_regressions,
+    }
+
+
+def build_type_flow_snapshot_gate_report(
+    type_flow_rows: list[dict[str, Any]],
+    unresolved_typed_field_rows: list[dict[str, Any]],
+    xrefs: list[dict[str, Any]],
+    *,
+    snapshot_path: Path,
+    before_rows: list[dict[str, Any]] | None = None,
+    fail_on_metric_regression: bool = False,
+    max_targets: int = 25,
+) -> dict[str, object]:
+    write_type_flow_report(snapshot_path, type_flow_rows)
+    gate = build_type_flow_gate_report(
+        type_flow_rows,
+        unresolved_typed_field_rows,
+        xrefs,
+        before_rows=before_rows,
+        fail_on_metric_regression=fail_on_metric_regression,
+        max_targets=max_targets,
+    )
+    gate["snapshot_path"] = str(snapshot_path)
+    return gate
 
 
 def feature_summary(rows: list[dict[str, Any]]) -> list[dict[str, object]]:
@@ -3027,6 +5720,8 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--snippet-rows-output", type=Path, default=DEFAULT_SNIPPET_ROWS_OUTPUT)
     build.add_argument("--variants-output", type=Path, default=DEFAULT_VARIANT_OUTPUT)
     build.add_argument("--type-flow-report-output", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
+    build.add_argument("--unresolved-typed-field-report-output", type=Path,
+        default=DEFAULT_UNRESOLVED_TYPED_FIELD_REPORT_OUTPUT)
 
     list_features = subparsers.add_parser("list-features")
     list_features.add_argument("--manifest", type=Path, default=DEFAULT_OUTPUT)
@@ -3046,6 +5741,13 @@ def main(argv: list[str] | None = None) -> int:
     type_flow_report.add_argument("--output", type=Path)
     type_flow_report.add_argument("--json", action="store_true")
 
+    unresolved_typed_fields = subparsers.add_parser("unresolved-typed-fields")
+    unresolved_typed_fields.add_argument("--manifest", type=Path, default=DEFAULT_OUTPUT)
+    unresolved_typed_fields.add_argument("--xrefs", type=Path, default=DEFAULT_XREF_OUTPUT)
+    unresolved_typed_fields.add_argument("--snippet-rows", type=Path, default=DEFAULT_SNIPPET_ROWS_OUTPUT)
+    unresolved_typed_fields.add_argument("--output", type=Path)
+    unresolved_typed_fields.add_argument("--json", action="store_true")
+
     type_flow_delta = subparsers.add_parser("type-flow-delta")
     type_flow_delta.add_argument("--before", type=Path, required=True)
     type_flow_delta.add_argument("--after", type=Path, required=True)
@@ -3053,32 +5755,127 @@ def main(argv: list[str] | None = None) -> int:
     type_flow_delta.add_argument("--max-targets", type=int, default=25)
     type_flow_delta.add_argument("--json", action="store_true")
 
+    type_flow_opportunities = subparsers.add_parser("type-flow-opportunities")
+    type_flow_opportunities.add_argument("--type-flow-report", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
+    type_flow_opportunities.add_argument("--output", type=Path)
+    type_flow_opportunities.add_argument("--max-targets", type=int, default=25)
+    type_flow_opportunities.add_argument("--platform")
+    type_flow_opportunities.add_argument("--json", action="store_true")
+
+    type_flow_api_audit = subparsers.add_parser("type-flow-api-audit")
+    type_flow_api_audit.add_argument("--type-flow-report", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
+    type_flow_api_audit.add_argument("--api-feature")
+    type_flow_api_audit.add_argument("--output", type=Path)
+    type_flow_api_audit.add_argument("--max-targets", type=int, default=25)
+    type_flow_api_audit.add_argument("--json", action="store_true")
+
+    type_flow_chain_slices = subparsers.add_parser("type-flow-chain-slices")
+    type_flow_chain_slices.add_argument("--type-flow-report", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
+    type_flow_chain_slices.add_argument("--output", type=Path)
+    type_flow_chain_slices.add_argument("--max-slices", type=int, default=25)
+    type_flow_chain_slices.add_argument("--platform")
+    type_flow_chain_slices.add_argument("--json", action="store_true")
+
+    type_flow_storage_access_gaps = subparsers.add_parser("type-flow-storage-access-gaps")
+    type_flow_storage_access_gaps.add_argument("--type-flow-report", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
+    type_flow_storage_access_gaps.add_argument("--xrefs", type=Path, default=DEFAULT_XREF_OUTPUT)
+    type_flow_storage_access_gaps.add_argument("--snippet-rows", type=Path, default=DEFAULT_SNIPPET_ROWS_OUTPUT)
+    type_flow_storage_access_gaps.add_argument("--output", type=Path)
+    type_flow_storage_access_gaps.add_argument("--platform")
+    type_flow_storage_access_gaps.add_argument("--api-feature")
+    type_flow_storage_access_gaps.add_argument("--storage-target")
+    type_flow_storage_access_gaps.add_argument("--window", type=int, default=500)
+    type_flow_storage_access_gaps.add_argument("--max-targets", type=int, default=25)
+    type_flow_storage_access_gaps.add_argument("--max-examples", type=int, default=5)
+    type_flow_storage_access_gaps.add_argument("--json", action="store_true")
+
+    type_flow_baseline = subparsers.add_parser("type-flow-baseline")
+    type_flow_baseline.add_argument("--type-flow-report", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
+    type_flow_baseline.add_argument("--output", type=Path, default=DEFAULT_TYPE_FLOW_BASELINE)
+    type_flow_baseline.add_argument("--json", action="store_true")
+
+    type_flow_target_baseline = subparsers.add_parser("type-flow-target-baseline")
+    type_flow_target_baseline.add_argument("--type-flow-report", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
+    type_flow_target_baseline.add_argument("--output", type=Path, required=True)
+    type_flow_target_baseline.add_argument("--json", action="store_true")
+
+    type_flow_target_baseline_delta = subparsers.add_parser("type-flow-target-baseline-delta")
+    type_flow_target_baseline_delta.add_argument("--type-flow-report", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
+    type_flow_target_baseline_delta.add_argument("--baseline", type=Path, required=True)
+    type_flow_target_baseline_delta.add_argument("--output", type=Path)
+    type_flow_target_baseline_delta.add_argument("--max-targets", type=int, default=25)
+    type_flow_target_baseline_delta.add_argument("--json", action="store_true")
+
+    type_flow_baseline_check = subparsers.add_parser("type-flow-baseline-check")
+    type_flow_baseline_check.add_argument("--type-flow-report", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
+    type_flow_baseline_check.add_argument("--unresolved-typed-fields", type=Path,
+        default=DEFAULT_UNRESOLVED_TYPED_FIELD_REPORT_OUTPUT)
+    type_flow_baseline_check.add_argument("--xrefs", type=Path, default=DEFAULT_XREF_OUTPUT)
+    type_flow_baseline_check.add_argument("--baseline", type=Path, default=DEFAULT_TYPE_FLOW_BASELINE)
+    type_flow_baseline_check.add_argument("--output", type=Path)
+    type_flow_baseline_check.add_argument("--json", action="store_true")
+
+    type_flow_check = subparsers.add_parser("type-flow-check")
+    type_flow_check.add_argument("--type-flow-report", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
+    type_flow_check.add_argument("--unresolved-typed-fields", type=Path,
+        default=DEFAULT_UNRESOLVED_TYPED_FIELD_REPORT_OUTPUT)
+    type_flow_check.add_argument("--xrefs", type=Path, default=DEFAULT_XREF_OUTPUT)
+    type_flow_check.add_argument("--before", type=Path)
+    type_flow_check.add_argument("--output", type=Path)
+    type_flow_check.add_argument("--max-targets", type=int, default=25)
+    type_flow_check.add_argument("--fail-on-metric-regression", action="store_true")
+    type_flow_check.add_argument("--json", action="store_true")
+
+    suspicious_first_struct = subparsers.add_parser("type-flow-suspicious-first-struct")
+    suspicious_first_struct.add_argument("--manifest", type=Path, default=DEFAULT_OUTPUT)
+    suspicious_first_struct.add_argument("--xrefs", type=Path, default=DEFAULT_XREF_OUTPUT)
+    suspicious_first_struct.add_argument("--snippet-rows", type=Path, default=DEFAULT_SNIPPET_ROWS_OUTPUT)
+    suspicious_first_struct.add_argument("--output", type=Path)
+    suspicious_first_struct.add_argument("--json", action="store_true")
+
     type_flow_snapshot = subparsers.add_parser("type-flow-snapshot")
     type_flow_snapshot.add_argument("--report", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
     type_flow_snapshot.add_argument("--output-dir", type=Path, default=DEFAULT_TYPE_FLOW_SNAPSHOT_DIR)
     type_flow_snapshot.add_argument("--name", required=True)
     type_flow_snapshot.add_argument("--json", action="store_true")
 
+    type_flow_snapshot_check = subparsers.add_parser("type-flow-snapshot-check")
+    type_flow_snapshot_check.add_argument("--type-flow-report", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
+    type_flow_snapshot_check.add_argument("--unresolved-typed-fields", type=Path,
+        default=DEFAULT_UNRESOLVED_TYPED_FIELD_REPORT_OUTPUT)
+    type_flow_snapshot_check.add_argument("--xrefs", type=Path, default=DEFAULT_XREF_OUTPUT)
+    type_flow_snapshot_check.add_argument("--before", type=Path)
+    type_flow_snapshot_check.add_argument("--output-dir", type=Path, default=DEFAULT_TYPE_FLOW_SNAPSHOT_DIR)
+    type_flow_snapshot_check.add_argument("--name", required=True)
+    type_flow_snapshot_check.add_argument("--output", type=Path)
+    type_flow_snapshot_check.add_argument("--max-targets", type=int, default=25)
+    type_flow_snapshot_check.add_argument("--fail-on-metric-regression", action="store_true")
+    type_flow_snapshot_check.add_argument("--json", action="store_true")
+
     args = parser.parse_args(argv)
     if args.command == "build":
         rows, xrefs, snippet_rows = build_usage_outputs(args.disk_manifest, args.file_manifest)
         variant_rows = build_variant_index(args.file_manifest)
         type_flow_rows = build_type_flow_report(rows, xrefs, snippet_rows)
+        unresolved_typed_field_rows = build_unresolved_typed_field_report(rows, xrefs, snippet_rows)
         write_usage_manifest(args.output, rows)
         write_usage_xrefs(args.xrefs_output, xrefs)
         write_usage_snippet_rows(args.snippet_rows_output, snippet_rows)
         write_variant_index(args.variants_output, variant_rows)
         write_type_flow_report(args.type_flow_report_output, type_flow_rows)
+        write_unresolved_typed_field_report(args.unresolved_typed_field_report_output, unresolved_typed_field_rows)
         print(f"Wrote {args.output}")
         print(f"Wrote {args.xrefs_output}")
         print(f"Wrote {args.snippet_rows_output}")
         print(f"Wrote {args.variants_output}")
         print(f"Wrote {args.type_flow_report_output}")
+        print(f"Wrote {args.unresolved_typed_field_report_output}")
         print(f"Entries: {len(rows)}")
         print(f"Xrefs: {len(xrefs)}")
         print(f"Snippet rows: {len(snippet_rows)}")
         print(f"Variants: {len(variant_rows)}")
         print(f"Type-flow report rows: {len(type_flow_rows)}")
+        print(f"Unresolved typed field report rows: {len(unresolved_typed_field_rows)}")
         return 0
     if args.command == "list-features":
         rows = read_usage_manifest(args.manifest)
@@ -3096,6 +5893,18 @@ def main(argv: list[str] | None = None) -> int:
         if args.json or args.output is None:
             print(json.dumps(type_flow_rows, indent=2, sort_keys=True))
         return 0
+    if args.command == "unresolved-typed-fields":
+        rows = read_usage_manifest(args.manifest)
+        report_rows = build_unresolved_typed_field_report(
+            rows,
+            read_usage_xrefs(args.xrefs),
+            read_usage_snippet_rows(args.snippet_rows),
+        )
+        if args.output is not None:
+            write_unresolved_typed_field_report(args.output, report_rows)
+        if args.json or args.output is None:
+            print(json.dumps(report_rows, indent=2, sort_keys=True))
+        return 0
     if args.command == "type-flow-delta":
         delta = build_type_flow_report_delta(
             read_type_flow_report(args.before),
@@ -3107,6 +5916,127 @@ def main(argv: list[str] | None = None) -> int:
         if args.json or args.output is None:
             print(json.dumps(delta, indent=2, sort_keys=True))
         return 0
+    if args.command == "type-flow-opportunities":
+        report = build_type_flow_opportunity_report(
+            read_type_flow_report(args.type_flow_report),
+            max_targets=max(0, int(args.max_targets)),
+            platform=args.platform if isinstance(args.platform, str) else None,
+        )
+        if args.output is not None:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        if args.json or args.output is None:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
+    if args.command == "type-flow-api-audit":
+        report = build_type_flow_api_audit_report(
+            read_type_flow_report(args.type_flow_report),
+            api_feature=args.api_feature if isinstance(args.api_feature, str) else None,
+            max_targets=max(0, int(args.max_targets)),
+        )
+        if args.output is not None:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        if args.json or args.output is None:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
+    if args.command == "type-flow-chain-slices":
+        report = build_type_flow_chain_slice_report(
+            read_type_flow_report(args.type_flow_report),
+            max_slices=max(0, int(args.max_slices)),
+            platform=args.platform if isinstance(args.platform, str) else None,
+        )
+        if args.output is not None:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        if args.json or args.output is None:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
+    if args.command == "type-flow-storage-access-gaps":
+        report = build_type_flow_storage_access_gap_report(
+            read_type_flow_report(args.type_flow_report),
+            read_usage_xrefs(args.xrefs),
+            read_usage_snippet_rows(args.snippet_rows),
+            platform=args.platform if isinstance(args.platform, str) else None,
+            api_feature=args.api_feature if isinstance(args.api_feature, str) else None,
+            storage_target=args.storage_target if isinstance(args.storage_target, str) else None,
+            max_targets=max(0, int(args.max_targets)),
+            max_examples=max(0, int(args.max_examples)),
+            window=max(0, int(args.window)),
+        )
+        if args.output is not None:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        if args.json or args.output is None:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
+    if args.command == "type-flow-baseline":
+        report = build_type_flow_baseline_report(read_type_flow_report(args.type_flow_report))
+        write_type_flow_baseline(args.output, report)
+        if args.json:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        else:
+            print(f"Wrote {args.output}")
+        return 0
+    if args.command == "type-flow-target-baseline":
+        report = build_type_flow_target_baseline_report(read_type_flow_report(args.type_flow_report))
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        if args.json:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        else:
+            print(f"Wrote {args.output}")
+        return 0
+    if args.command == "type-flow-target-baseline-delta":
+        report = build_type_flow_target_baseline_delta_report(
+            read_type_flow_report(args.type_flow_report),
+            read_type_flow_baseline(args.baseline),
+            max_targets=max(0, int(args.max_targets)),
+        )
+        if args.output is not None:
+            write_type_flow_delta(args.output, report)
+        if args.json or args.output is None:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
+    if args.command == "type-flow-baseline-check":
+        gate = build_type_flow_baseline_gate_report(
+            read_type_flow_report(args.type_flow_report),
+            read_unresolved_typed_field_report(args.unresolved_typed_fields),
+            read_usage_xrefs(args.xrefs),
+            read_type_flow_baseline(args.baseline),
+        )
+        if args.output is not None:
+            write_type_flow_delta(args.output, gate)
+        if args.json or args.output is None:
+            print(json.dumps(gate, indent=2, sort_keys=True))
+        return 0 if gate.get("ok") is True else 1
+    if args.command == "type-flow-check":
+        gate = build_type_flow_gate_report(
+            read_type_flow_report(args.type_flow_report),
+            read_unresolved_typed_field_report(args.unresolved_typed_fields),
+            read_usage_xrefs(args.xrefs),
+            before_rows=read_type_flow_report(args.before) if args.before is not None else None,
+            fail_on_metric_regression=bool(args.fail_on_metric_regression),
+            max_targets=max(0, int(args.max_targets)),
+        )
+        if args.output is not None:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(gate, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        if args.json or args.output is None:
+            print(json.dumps(gate, indent=2, sort_keys=True))
+        return 0 if gate.get("ok") is True else 1
+    if args.command == "type-flow-suspicious-first-struct":
+        report = build_type_flow_suspicious_first_struct_report(
+            read_usage_manifest(args.manifest),
+            read_usage_xrefs(args.xrefs),
+            read_usage_snippet_rows(args.snippet_rows),
+        )
+        if args.output is not None:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        if args.json or args.output is None:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
     if args.command == "type-flow-snapshot":
         snapshot_path = write_type_flow_snapshot(args.report, args.output_dir, name=str(args.name))
         if args.json:
@@ -3114,6 +6044,22 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(f"Wrote {snapshot_path}")
         return 0
+    if args.command == "type-flow-snapshot-check":
+        snapshot_path = type_flow_snapshot_path(args.output_dir, str(args.name))
+        gate = build_type_flow_snapshot_gate_report(
+            read_type_flow_report(args.type_flow_report),
+            read_unresolved_typed_field_report(args.unresolved_typed_fields),
+            read_usage_xrefs(args.xrefs),
+            snapshot_path=snapshot_path,
+            before_rows=read_type_flow_report(args.before) if args.before is not None else None,
+            fail_on_metric_regression=bool(args.fail_on_metric_regression),
+            max_targets=max(0, int(args.max_targets)),
+        )
+        if args.output is not None:
+            write_type_flow_delta(args.output, gate)
+        if args.json or args.output is None:
+            print(json.dumps(gate, indent=2, sort_keys=True))
+        return 0 if gate.get("ok") is True else 1
     return 2
 
 

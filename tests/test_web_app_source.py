@@ -148,6 +148,18 @@ def test_web_app_marks_typed_app_slot_refs_without_source_changes() -> None:
     assert "app_slot_region_source:" in app_js
     assert '["app-slot-suggestions", "App Suggestions"]' in app_js
     assert '["app-slot-api-args", "App API Args"]' in app_js
+    assert '["typed-gaps", "Typed Gaps"]' in app_js
+    assert "function renderUnresolvedTypedAccessBadges(row)" in app_js
+    assert "row.unresolved_typed_accesses" in app_js
+    assert "typed_base_unresolved_field" in app_js
+    assert "platform_unresolved_typed_access:" in app_js
+    assert "platform_prefix_extension_candidate:" in app_js
+    assert "refinement_applied" in app_js
+    assert "refined_struct_name" in app_js
+    assert "function typedGapSummary(access)" in app_js
+    assert "function typedGapProvenanceSummary(access)" in app_js
+    assert "type_provenance_kind" in app_js
+    assert ".project-badge-typed-gap" in styles_css
     assert "untyped_api_arg_count" in app_js
     assert "base_symbol" in app_js
     assert "field_expr" in app_js

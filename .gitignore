@@ -36,6 +36,7 @@ targets/*
 targets/*/*
 !targets/*/*.s
 !targets/*/benchmark.json
+!targets/amiga_hunk_genam/progress.md
 !targets/*/binary_path.txt
 !targets/*/source_disk.json
 !targets/amiga_disk_ice-1991-06-28-the-silents/targets/amiga_raw_bootblock/bootblock.s

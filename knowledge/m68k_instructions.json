@@ -18977,7 +18977,7 @@
           {
             "index": 0,
             "role": "target",
-            "usage": "address",
+            "usage": "target",
             "expected_kind": "ea",
             "ea_address_formula": "decoded_ea",
             "ea_register_update": "none",
@@ -18994,10 +18994,10 @@
             "ea_pc_base_bias_bytes": 0,
             "ea_address_literal_width_bytes": 0,
             "access": {
-              "kind": "compute_address",
+              "kind": "branch_target",
               "width": null,
               "width_source": null,
-              "result_kind": "address"
+              "result_kind": "control_target"
             }
           }
         ]
@@ -19203,7 +19203,7 @@
           {
             "index": 0,
             "role": "target",
-            "usage": "address",
+            "usage": "target",
             "expected_kind": "ea",
             "ea_address_formula": "decoded_ea",
             "ea_register_update": "none",
@@ -19220,10 +19220,10 @@
             "ea_pc_base_bias_bytes": 0,
             "ea_address_literal_width_bytes": 0,
             "access": {
-              "kind": "compute_address",
+              "kind": "branch_target",
               "width": null,
-              "width_source": "instruction_size",
-              "result_kind": "address"
+              "width_source": null,
+              "result_kind": "control_target"
             }
           }
         ]

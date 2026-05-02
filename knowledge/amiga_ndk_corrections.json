@@ -96,6 +96,30 @@
         "seed_origin": "autodoc",
         "semantic_note": "Parser-authored: exec.library/CreateMsgPort description states that it allocates and initializes a new message port, but the parsed autodoc entry has no SYNOPSIS return row. The standard C prototype returns struct MsgPort * in the default Amiga return register.",
         "type": "struct MsgPort *"
+      },
+      {
+        "citation": "exec.library autodoc FindTask",
+        "function": "FindTask",
+        "i_struct": "TC_Struct",
+        "library": "exec.library",
+        "name": "task",
+        "reg": "D0",
+        "review_status": "seeded",
+        "seed_origin": "autodoc",
+        "semantic_note": "Parser-authored: exec.library/FindTask autodoc states that it returns a pointer to the task control block. The parsed C type names struct Task, while the parsed include struct carrying the task-control fields is TC_Struct.",
+        "type": "struct Task *"
+      },
+      {
+        "citation": "exec.library autodoc MakeLibrary",
+        "function": "MakeLibrary",
+        "i_struct": "LIB",
+        "library": "exec.library",
+        "name": "library",
+        "reg": "D0",
+        "review_status": "seeded",
+        "seed_origin": "autodoc",
+        "semantic_note": "Parser-authored: exec.library/MakeLibrary returns the initialized library base. The parsed autodoc return type is malformed as 'library =', so preserve the platform API fact as struct Library * in the default return register.",
+        "type": "struct Library *"
       }
     ],
     "api_input_value_bindings": [

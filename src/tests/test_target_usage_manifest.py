@@ -66,6 +66,14 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "semantic_kind": "library_base",
                                     "value_domain_name": "dos.mode",
                                     "type_name": "struct FileHandle *",
+                                },
+                                {
+                                    "offset": 0x32,
+                                    "kind": 7,
+                                    "target_section_index": 0,
+                                    "target_offset": 0x200,
+                                    "base_name": "TimerBase",
+                                    "type_name": "Device",
                                 }
                             ],
                             "recovered_platform_typed_accesses": [
@@ -81,6 +89,9 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "field_expr": "LIB_VERSION",
                                     "inherited": False,
                                     "nested": False,
+                                    "type_provenance_kind": "api_output",
+                                    "type_provenance_section": 0,
+                                    "type_provenance_offset": 0x20,
                                 }
                             ],
                             "recovered_platform_unresolved_typed_accesses": [
@@ -145,6 +156,9 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "field_expr": "IO_COMMAND",
                                     "inherited": False,
                                     "nested": False,
+                                    "type_provenance_kind": "lookup_storage",
+                                    "type_provenance_section": 0,
+                                    "type_provenance_offset": 0x30,
                                 }
                             ],
                         },
@@ -263,7 +277,14 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["app_slot_base:DOSBase"], 1)
         self.assertEqual(counts["semantic:library_base"], 1)
         self.assertEqual(counts["type:struct_FileHandle_*"], 1)
+        self.assertEqual(counts["type:Device"], 1)
+        self.assertEqual(counts["typed_storage:any"], 1)
+        self.assertEqual(counts["typed_storage_kind:write_typed_global_slot"], 1)
+        self.assertEqual(counts["typed_storage_type:Device"], 1)
+        self.assertEqual(counts["typed_storage_target:global_slot"], 1)
         self.assertEqual(counts["platform_typed_access:any"], 2)
+        self.assertEqual(counts["platform_typed_access_provenance:api_output"], 1)
+        self.assertEqual(counts["platform_typed_access_provenance:lookup_storage"], 1)
         self.assertEqual(counts["platform_typed_access_struct:Library"], 1)
         self.assertEqual(counts["platform_typed_access_struct:IO"], 1)
         self.assertEqual(counts["platform_typed_access_owner:IO"], 1)
@@ -403,7 +424,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                             }
                         ],
                         "recovered_platform_effects": [
-                            {"offset": 0x30, "kind": 2, "displacement": 0x234, "base_name": "DOSBase"}
+                            {"offset": 0x30, "kind": 2, "displacement": 0x234, "base_name": "DOSBase"},
+                            {"offset": 0x30, "kind": 5, "displacement": 0x240, "type_name": "MP"},
                         ],
                         "recovered_platform_typed_accesses": [
                             {
@@ -418,6 +440,9 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "field_expr": "LIB_VERSION",
                                 "inherited": False,
                                 "nested": False,
+                                "type_provenance_kind": "api_output",
+                                "type_provenance_section": 0,
+                                "type_provenance_offset": 0x20,
                             }
                         ],
                         "recovered_platform_unresolved_typed_accesses": [
@@ -484,6 +509,9 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "field_expr": "LIB_VERSION",
                                 "inherited": False,
                                 "nested": False,
+                                "type_provenance_kind": "api_output",
+                                "type_provenance_section": 0,
+                                "type_provenance_offset": 0x20,
                             }
                         ],
                     },
@@ -518,6 +546,10 @@ class TargetUsageManifestTests(unittest.TestCase):
         by_feature_resolution = {
             (xref["feature"], xref["kind"], xref["row_index"], xref.get("resolution")) for xref in xrefs
         }
+        typed_any = [
+            xref for xref in xrefs
+            if xref["feature"] == "platform_typed_access:any" and xref["kind"] == "platform_typed_access"
+        ]
         snippets = usage._snippet_rows_for_xrefs(target_row, combined, xrefs, before=1, after=0)
 
         self.assertIn(("os:exec.library/AllocMem", "os_call", 0x20, 1), by_feature)
@@ -537,7 +569,11 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("app_slot:base_slot", "app_slot_base_slot", 0x30, 2), by_feature)
         self.assertIn(("app_slot_base:DOSBase", "app_slot_base_slot", 0x30, 2), by_feature)
         self.assertIn(("app_slot:write", "app_slot_ref", 0x30, 2), by_feature)
+        self.assertIn(("typed_storage:any", "typed_storage", 0x30, 2), by_feature)
+        self.assertIn(("typed_storage_kind:write_typed_slot", "typed_storage", 0x30, 2), by_feature)
         self.assertIn(("platform_typed_access:any", "platform_typed_access", 0x30, 2), by_feature)
+        self.assertTrue(any(xref.get("type_provenance_kind") == "api_output" for xref in typed_any))
+        self.assertIn(("platform_typed_access_provenance:api_output", "platform_typed_access", 0x30, 2), by_feature)
         self.assertIn(("platform_typed_access_struct:Library", "platform_typed_access", 0x30, 2), by_feature)
         self.assertIn(("platform_field:LIB_VERSION", "platform_typed_access", 0x30, 2), by_feature)
         self.assertIn(("platform_struct_field:Library.LIB_VERSION", "platform_typed_access", 0x30, 2), by_feature)
@@ -637,6 +673,22 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "symbol": "LIB_VERSION",
                 "value": 20,
                 "text": "cmpi.w #36,LIB_VERSION(a0)",
+                "type_provenance_kind": "api_output",
+                "type_provenance_section": 0,
+                "type_provenance_offset": 0x20,
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "typed_storage:any",
+                "kind": "typed_storage",
+                "section": 0,
+                "offset": 0x28,
+                "row_index": 1,
+                "stable_key": "storage-row",
+                "symbol": "MP",
+                "access": "global_slot",
+                "value": 0x100,
+                "text": "move.l d0,$100.l",
             },
             {
                 "target_id": "platform_file_manifest:demo",
@@ -695,8 +747,13 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(report[0]["opportunity_count"], 3)
         self.assertEqual(report[0]["counts"]["untyped_app_slot_api_arg"], 1)
         self.assertEqual(report[0]["counts"]["typed_base_unresolved_field"], 1)
+        self.assertEqual(report[0]["counts"]["typed_access_provenance:api_output"], 1)
+        self.assertEqual(report[0]["counts"]["typed_storage"], 1)
+        self.assertEqual(report[0]["counts"]["typed_storage_provenance:global_slot"], 1)
         self.assertEqual(report[0]["counts"]["numeric_address_reg_access_without_type"], 1)
         self.assertEqual(report[0]["counts"]["numeric_cause:unknown_pointer_chain"], 1)
+        self.assertEqual(report[0]["typed_access_provenance_counts"], {"api_output": 1})
+        self.assertEqual(report[0]["typed_storage_provenance_counts"], {"global_slot": 1})
         self.assertEqual(report[0]["numeric_cause_counts"], {"unknown_pointer_chain": 1})
         self.assertEqual(report[0]["struct_counts"], {"InputEvent": 1, "Library": 1})
         self.assertEqual(report[0]["field_counts"], {"Library.LIB_VERSION": 1})
@@ -709,6 +766,503 @@ class TargetUsageManifestTests(unittest.TestCase):
             report[0]["examples"]["numeric_address_reg_access_without_type"][0]["trace"]["stop_reason"],
             "no_assignment_to_base_register",
         )
+
+    def test_unresolved_typed_field_report_groups_by_struct_displacement_and_nearby_api(self) -> None:
+        manifest_rows = [
+            {"id": "platform_file_manifest:demo-a", "source_id": "demo-a", "platform": "amiga-hunk"},
+            {"id": "platform_file_manifest:demo-b", "source_id": "demo-b", "platform": "amiga-hunk"},
+        ]
+        xrefs = [
+            {
+                "target_id": "platform_file_manifest:demo-a",
+                "feature": "os:exec.library/FindTask",
+                "kind": "os_call",
+                "row_index": 10,
+                "stable_key": "call-a",
+                "text": "FindTask",
+            },
+            {
+                "target_id": "platform_file_manifest:demo-a",
+                "feature": "typed_base_unresolved_field",
+                "kind": "platform_unresolved_typed_access",
+                "section": 0,
+                "offset": 0x34,
+                "row_index": 12,
+                "stable_key": "gap-a",
+                "symbol": "Task",
+                "value": 0xAC,
+                "struct_size": 0x5C,
+                "text": "move.l $00AC(a0),d0",
+            },
+            {
+                "target_id": "platform_file_manifest:demo-b",
+                "feature": "os:exec.library/FindTask",
+                "kind": "os_call",
+                "row_index": 20,
+                "stable_key": "call-b",
+                "text": "FindTask",
+            },
+            {
+                "target_id": "platform_file_manifest:demo-b",
+                "feature": "typed_base_unresolved_field",
+                "kind": "platform_unresolved_typed_access",
+                "section": 0,
+                "offset": 0x48,
+                "row_index": 22,
+                "stable_key": "gap-b",
+                "symbol": "Task",
+                "value": 0xAC,
+                "struct_size": 0x5C,
+                "text": "cmpi.w #1,$00AC(a0)",
+            },
+        ]
+        snippets = [
+            {
+                "target_id": "platform_file_manifest:demo-a",
+                "row_index": 10,
+                "row": {"kind": "instruction", "text": "\tjsr _LVOFindTask(a6)\n", "stable_key": "call-a"},
+            },
+            {
+                "target_id": "platform_file_manifest:demo-a",
+                "row_index": 12,
+                "row": {"kind": "instruction", "text": "\tmove.l $00AC(a0),d0\n", "stable_key": "gap-a"},
+            },
+            {
+                "target_id": "platform_file_manifest:demo-b",
+                "row_index": 20,
+                "row": {"kind": "instruction", "text": "\tjsr _LVOFindTask(a6)\n", "stable_key": "call-b"},
+            },
+            {
+                "target_id": "platform_file_manifest:demo-b",
+                "row_index": 22,
+                "row": {"kind": "instruction", "text": "\tcmpi.w #1,$00AC(a0)\n", "stable_key": "gap-b"},
+            },
+        ]
+
+        report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
+
+        self.assertEqual(len(report), 1)
+        self.assertEqual(report[0]["root_struct_name"], "Task")
+        self.assertEqual(report[0]["displacement"], 0xAC)
+        self.assertEqual(report[0]["displacement_hex"], "$00AC")
+        self.assertEqual(report[0]["struct_size"], 0x5C)
+        self.assertFalse(report[0]["in_struct_bounds"])
+        self.assertEqual(report[0]["classification"], "out_of_struct_bounds")
+        self.assertEqual(report[0]["nearby_api_feature"], "os:exec.library/FindTask")
+        self.assertEqual(report[0]["count"], 2)
+        self.assertEqual(report[0]["target_count"], 2)
+        self.assertEqual(report[0]["examples"][0]["nearby_api"]["stable_key"], "call-a")
+
+    def test_unresolved_typed_field_report_classifies_control_transfer_operands(self) -> None:
+        manifest_rows = [{"id": "platform_file_manifest:demo", "platform": "amiga-hunk"}]
+        xrefs = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "typed_base_unresolved_field",
+                "kind": "platform_unresolved_typed_access",
+                "section": 0,
+                "offset": 0x20,
+                "row_index": 4,
+                "stable_key": "lvo",
+                "symbol": "Library",
+                "value": -0x7E,
+                "struct_size": 0x22,
+                "text": "jsr -$007E(a6)",
+            }
+        ]
+        snippets = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "row_index": 4,
+                "row": {"kind": "instruction", "text": "\tjsr -$007E(a6)\n", "stable_key": "lvo"},
+            }
+        ]
+
+        report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
+
+        self.assertEqual(len(report), 1)
+        self.assertEqual(report[0]["classification"], "control_transfer_operand")
+        self.assertIn("control-transfer", report[0]["classification_reason"])
+
+    def test_unresolved_typed_field_report_uses_prefix_extension_metadata(self) -> None:
+        manifest_rows = [{"id": "platform_file_manifest:demo", "platform": "amiga-hunk"}]
+        xrefs = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "typed_base_unresolved_field",
+                "kind": "platform_unresolved_typed_access",
+                "section": 0,
+                "offset": 0x30,
+                "row_index": 3,
+                "stable_key": "prefix-row",
+                "symbol": "MP",
+                "value": 0x40,
+                "struct_size": 34,
+                "classification": "prefix_extension",
+                "container_candidate_count": 1,
+                "container_struct_name": "ConUnit",
+                "container_field_expr": "cu_YCCP",
+                "refinement_applied": True,
+                "refined_struct_name": "ConUnit",
+                "text": "move.l $0040(a0),d0",
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "platform_typed_access_struct:ConUnit",
+                "kind": "platform_typed_access",
+            },
+        ]
+        snippets = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "row_index": 3,
+                "row": {"kind": "instruction", "text": "\tmove.l $0040(a0),d0\n", "stable_key": "prefix-row"},
+            }
+        ]
+
+        report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
+
+        self.assertEqual(len(report), 1)
+        self.assertEqual(report[0]["classification"], "prefix_extension")
+        self.assertEqual(report[0]["container_candidate_count"], 1)
+        self.assertEqual(report[0]["container_struct_name"], "ConUnit")
+        self.assertEqual(report[0]["container_field_expr"], "cu_YCCP")
+        self.assertEqual(report[0]["refinement_applied_count"], 1)
+        self.assertEqual(report[0]["refined_struct_name"], "ConUnit")
+        self.assertEqual(report[0]["access_size_counts"], {"4": 1})
+        self.assertEqual(report[0]["candidate_rankings"][0]["struct_name"], "ConUnit")
+        self.assertEqual(report[0]["candidate_rankings"][0]["field_size"], 2)
+        self.assertEqual(report[0]["candidate_rankings"][0]["target_context_score"], 1)
+        self.assertEqual(report[0]["examples"][0]["container_struct_name"], "ConUnit")
+        self.assertEqual(report[0]["examples"][0]["refinement_applied"], True)
+        self.assertEqual(report[0]["examples"][0]["refined_struct_name"], "ConUnit")
+
+    def test_unresolved_typed_field_report_ranks_exact_size_prefix_candidates(self) -> None:
+        manifest_rows = [{"id": "platform_file_manifest:demo", "platform": "amiga-hunk"}]
+        xrefs = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "typed_base_unresolved_field",
+                "kind": "platform_unresolved_typed_access",
+                "platform": "amiga-hunk",
+                "section": 0,
+                "offset": 0x20,
+                "row_index": 4,
+                "stable_key": "row",
+                "symbol": "LIB",
+                "value": 0xCE,
+                "struct_size": 34,
+                "classification": "prefix_extension",
+                "container_candidate_count": 3,
+                "text": "move.w $00CE(a0),d0",
+            }
+        ]
+        snippets = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "row_index": 4,
+                "row": {"text": "move.w $00CE(a0),d0", "stable_key": "row"},
+            }
+        ]
+
+        report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
+
+        self.assertEqual(report[0]["access_size_counts"], {"2": 1})
+        self.assertEqual(report[0]["candidate_rankings"][0]["struct_name"], "GfxBase")
+        self.assertEqual(report[0]["candidate_rankings"][0]["field_expr"], "gb_DisplayFlags")
+        self.assertEqual(report[0]["candidate_rankings"][0]["exact_access_size_match_count"], 1)
+        self.assertEqual(report[0]["dominant_candidate"]["struct_name"], "GfxBase")
+        self.assertEqual(report[0]["dominant_candidate"]["exact_access_size_match_count"], 1)
+
+    def test_unresolved_typed_field_report_does_not_dominate_when_exact_size_ties(self) -> None:
+        manifest_rows = [{"id": "platform_file_manifest:demo", "platform": "amiga-hunk"}]
+        xrefs = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "typed_base_unresolved_field",
+                "kind": "platform_unresolved_typed_access",
+                "platform": "amiga-hunk",
+                "row_index": 4,
+                "stable_key": "row",
+                "symbol": "MN",
+                "value": 0x24,
+                "struct_size": 20,
+                "classification": "prefix_extension",
+                "container_candidate_count": 14,
+                "text": "move.l $0024(a0),d0",
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "platform_typed_access_struct:IO",
+                "kind": "platform_typed_access",
+                "row_index": 3,
+                "symbol": "IO",
+                "text": "move.l IO_LENGTH(a0),d0",
+            },
+        ]
+        snippets = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "row_index": 4,
+                "row": {"text": "move.l $0024(a0),d0", "stable_key": "row"},
+            }
+        ]
+
+        report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
+
+        self.assertEqual(report[0]["candidate_rankings"][0]["struct_name"], "IO")
+        self.assertEqual(report[0]["candidate_rankings"][0]["exact_access_size_match_count"], 1)
+        self.assertNotIn("dominant_candidate", report[0])
+
+    def test_unresolved_typed_field_report_marks_custom_tail_distance(self) -> None:
+        manifest_rows = [{"id": "platform_file_manifest:demo", "platform": "amiga-hunk"}]
+        xrefs = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "typed_base_unresolved_field",
+                "kind": "platform_unresolved_typed_access",
+                "row_index": 3,
+                "stable_key": "tail-row",
+                "symbol": "AmigaGuideMsg",
+                "value": 0x36,
+                "struct_size": 0x34,
+                "classification": "custom_tail_or_mistyped_base",
+                "container_candidate_count": 0,
+                "text": "move.l $0036(a0),d0",
+            }
+        ]
+        snippets = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "row_index": 3,
+                "row": {"kind": "instruction", "text": "\tmove.l $0036(a0),d0\n", "stable_key": "tail-row"},
+            }
+        ]
+
+        report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
+
+        self.assertEqual(report[0]["classification"], "custom_tail_or_mistyped_base")
+        self.assertEqual(report[0]["tail_offset_from_struct_end"], 2)
+        self.assertEqual(report[0]["tail_offset_from_struct_end_hex"], "$0002")
+
+    def test_unresolved_typed_field_report_clusters_custom_tail_groups(self) -> None:
+        manifest_rows = [{"id": "platform_file_manifest:demo", "platform": "amiga-hunk"}]
+        xrefs = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "typed_base_unresolved_field",
+                "kind": "platform_unresolved_typed_access",
+                "platform": "amiga-hunk",
+                "section": 0,
+                "offset": 0x10,
+                "row_index": 1,
+                "stable_key": "row-a",
+                "symbol": "AmigaGuideMsg",
+                "value": 0x36,
+                "struct_size": 0x34,
+                "classification": "custom_tail_or_mistyped_base",
+                "container_candidate_count": 0,
+                "text": "move.l $0036(a0),d0",
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "typed_base_unresolved_field",
+                "kind": "platform_unresolved_typed_access",
+                "platform": "amiga-hunk",
+                "section": 0,
+                "offset": 0x14,
+                "row_index": 2,
+                "stable_key": "row-b",
+                "symbol": "AmigaGuideMsg",
+                "value": 0x3A,
+                "struct_size": 0x34,
+                "classification": "custom_tail_or_mistyped_base",
+                "container_candidate_count": 0,
+                "text": "move.l $003A(a0),d0",
+            },
+        ]
+
+        report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, [])
+
+        first = next(row for row in report if row["displacement"] == 0x36)
+        cluster = first["tail_cluster_summary"]
+        self.assertEqual(cluster["root_struct_name"], "AmigaGuideMsg")
+        self.assertEqual(cluster["group_count"], 2)
+        self.assertEqual(cluster["xref_count"], 2)
+        self.assertEqual(cluster["displacement_min"], 0x36)
+        self.assertEqual(cluster["displacement_max"], 0x3A)
+        self.assertEqual(cluster["tail_offset_histogram"], {"$0002": 1, "$0006": 1})
+
+    def test_unresolved_typed_fields_cli_writes_report(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            manifest_path = tmp_path / "manifest.jsonl"
+            xrefs_path = tmp_path / "xrefs.jsonl"
+            snippets_path = tmp_path / "snippets.jsonl"
+            output_path = tmp_path / "report.jsonl"
+            _write_jsonl(manifest_path, [{"id": "platform_file_manifest:demo", "platform": "amiga-hunk"}])
+            _write_jsonl(
+                xrefs_path,
+                [
+                    {
+                        "target_id": "platform_file_manifest:demo",
+                        "feature": "typed_base_unresolved_field",
+                        "kind": "platform_unresolved_typed_access",
+                        "row_index": 1,
+                        "symbol": "InputEvent",
+                        "value": 36,
+                        "struct_size": 34,
+                        "text": "cmpi.w #36,$0024(a0)",
+                    }
+                ],
+            )
+            _write_jsonl(
+                snippets_path,
+                [
+                    {
+                        "target_id": "platform_file_manifest:demo",
+                        "row_index": 1,
+                        "row": {"kind": "instruction", "text": "\tcmpi.w #36,$0024(a0)\n"},
+                    }
+                ],
+            )
+
+            exit_code = usage.main(
+                [
+                    "unresolved-typed-fields",
+                    "--manifest",
+                    str(manifest_path),
+                    "--xrefs",
+                    str(xrefs_path),
+                    "--snippet-rows",
+                    str(snippets_path),
+                    "--output",
+                    str(output_path),
+                ]
+            )
+
+            self.assertEqual(exit_code, 0)
+            rows = usage.read_unresolved_typed_field_report(output_path)
+            self.assertEqual(rows[0]["root_struct_name"], "InputEvent")
+
+    def test_type_flow_report_counts_prefix_refinement_resolution(self) -> None:
+        manifest_rows = [{"id": "platform_file_manifest:demo", "platform": "amiga-hunk"}]
+        xrefs = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "typed_base_unresolved_field",
+                "kind": "platform_unresolved_typed_access",
+                "row_index": 10,
+                "stable_key": "prefix-row",
+                "symbol": "MP",
+                "value": 0x40,
+                "classification": "prefix_extension",
+                "container_candidate_count": 1,
+                "container_struct_name": "ConUnit",
+                "container_field_expr": "cu_YCCP",
+                "refinement_applied": True,
+                "refined_struct_name": "ConUnit",
+                "text": "move.l $0040(a0),d0",
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "platform_type_refinement:applied",
+                "kind": "platform_type_refinement",
+                "row_index": 10,
+                "stable_key": "prefix-row",
+                "symbol": "ConUnit",
+                "value": 0x40,
+                "classification": "prefix_extension",
+                "container_candidate_count": 1,
+                "container_struct_name": "ConUnit",
+                "container_field_expr": "cu_YCCP",
+                "refinement_applied": True,
+                "refined_struct_name": "ConUnit",
+                "text": "move.l $0040(a0),d0",
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "platform_typed_access:any",
+                "kind": "platform_typed_access",
+                "row_index": 11,
+                "stable_key": "typed-row",
+                "symbol": "cu_YCCP",
+                "text": "tst.w cu_YCCP(a0)",
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "platform_typed_access_struct:ConUnit",
+                "kind": "platform_typed_access",
+                "row_index": 11,
+                "stable_key": "typed-row",
+                "symbol": "ConUnit",
+                "text": "tst.w cu_YCCP(a0)",
+            },
+        ]
+        snippets: list[dict[str, object]] = []
+
+        report = usage.build_type_flow_report(manifest_rows, xrefs, snippets)[0]
+
+        self.assertEqual(report["counts"]["typed_base_unresolved_field"], 1)
+        self.assertEqual(report["counts"]["prefix_extension_evidence"], 1)
+        self.assertEqual(report["counts"]["prefix_extension_unique"], 1)
+        self.assertEqual(report["counts"]["type_refinement_applied"], 1)
+        self.assertEqual(report["counts"]["resolved_after_type_refinement"], 1)
+        self.assertEqual(report["counts"]["resolved_typed_access"], 1)
+        self.assertEqual(report["examples"]["type_refinement_applied"][0]["refined_struct_name"], "ConUnit")
+        self.assertEqual(
+            report["examples"]["resolved_after_type_refinement"][0]["refined_struct_name"],
+            "ConUnit",
+        )
+
+    def test_type_flow_report_counts_custom_tail_structs(self) -> None:
+        manifest_rows = [{"id": "platform_file_manifest:demo", "platform": "amiga-hunk"}]
+        xrefs = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "typed_base_unresolved_field",
+                "kind": "platform_unresolved_typed_access",
+                "row_index": 10,
+                "stable_key": "tail-row",
+                "symbol": "AmigaGuideMsg",
+                "value": 0x36,
+                "classification": "custom_tail_or_mistyped_base",
+                "container_candidate_count": 0,
+                "text": "move.l $0036(a0),d0",
+            }
+        ]
+
+        report = usage.build_type_flow_report(manifest_rows, xrefs, [])[0]
+
+        self.assertEqual(report["counts"]["custom_tail_or_mistyped_base"], 1)
+        self.assertEqual(report["counts"]["custom_tail_struct:AmigaGuideMsg"], 1)
+
+    def test_suspicious_first_struct_report_finds_stale_struct_names(self) -> None:
+        manifest_rows = [{"id": "platform_file_manifest:demo", "source_id": "demo", "platform": "amiga-hunk"}]
+        xrefs = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "platform_typed_access_struct:AmigaGuideMsg",
+                "kind": "platform_typed_access",
+                "row_index": 3,
+                "stable_key": "typed",
+                "symbol": "AmigaGuideMsg",
+                "text": "cmpi.w #36,agm_Type(a0)",
+            }
+        ]
+        snippets = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "row_index": 4,
+                "row": {"kind": "instruction", "text": "\tmove.w agm_Msg(a0),d0\n", "stable_key": "agm-row"},
+            }
+        ]
+
+        report = usage.build_type_flow_suspicious_first_struct_report(manifest_rows, xrefs, snippets)
+
+        self.assertEqual(report["total"], 2)
+        self.assertEqual(report["target_counts"], {"platform_file_manifest:demo": 2})
+        self.assertEqual(report["examples"][0]["match"], "AmigaGuideMsg")
 
     def test_type_flow_report_classifies_numeric_access_causes(self) -> None:
         manifest_rows = [{"id": "platform_file_manifest:demo", "platform": "amiga-hunk"}]
@@ -888,6 +1442,16 @@ class TargetUsageManifestTests(unittest.TestCase):
             },
             {
                 "target_id": "platform_file_manifest:demo",
+                "row_index": 24,
+                "row": {
+                    "kind": "instruction",
+                    "text": "\tmovea.l app_Window(a6),a4\n",
+                    "app_slot_refs": [{"symbol": "app_Window"}],
+                    "stable_key": "chain-root",
+                },
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
                 "row_index": 28,
                 "row": {"kind": "instruction", "text": "\tjsr _LVOWaitPort(a6)\n"},
             },
@@ -1039,12 +1603,12 @@ class TargetUsageManifestTests(unittest.TestCase):
             report["numeric_cause_counts"],
             {
                 "api_output_nearby": 1,
-                "app_slot_load": 1,
+                "app_slot_load": 2,
                 "global_or_base_slot_load": 4,
                 "post_call_existing_base": 1,
                 "post_call_register_copy": 2,
                 "stack_slot_load": 2,
-                "unknown_pointer_chain": 2,
+                "unknown_pointer_chain": 1,
             },
         )
         self.assertEqual(report["counts"]["numeric_address_reg_access_without_type"], 13)
@@ -1061,6 +1625,23 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(report["counts"]["propagation_gap:api_output_to_global_or_base_slot_reload"], 2)
         self.assertEqual(report["counts"]["propagation_gap:library_base_reload_lvo_gap"], 1)
         self.assertEqual(report["counts"]["propagation_gap:local_helper_output_storage_gap"], 1)
+        self.assertEqual(report["counts"]["app_slot_substructure_access"], 2)
+        self.assertEqual(report["counts"]["app_slot_substructure_slot:app_Window"], 2)
+        self.assertEqual(report["counts"]["app_slot_substructure_field:app_Window:$0004"], 2)
+        self.assertEqual(report["counts"]["app_slot_substructure_suggested_region"], 1)
+        self.assertGreaterEqual(report["pointer_chain_root_counts"]["app_slot"], 1)
+        self.assertGreaterEqual(report["pointer_chain_stop_counts"]["source_is_app_slot"], 1)
+        self.assertEqual(report["app_slot_substructure_suggestions"][0]["slot"], "app_Window")
+        self.assertEqual(
+            report["app_slot_substructure_suggestions"][0]["inference_kind"],
+            "app_slot_pointer_substructure_access",
+        )
+        self.assertEqual(report["app_slot_substructure_suggestions"][0]["field_count"], 1)
+        self.assertEqual(report["app_slot_substructure_suggestions"][0]["fields"][0]["displacement_hex"], "$0004")
+        self.assertEqual(
+            report["examples"]["app_slot_substructure_access"][0]["app_slot_subaccess"]["slot_access_displacement_hex"],
+            "$0004",
+        )
         self.assertEqual(
             report["examples"]["numeric_address_reg_access_without_type:app_slot_load"][0]["stable_key"],
             "app",
@@ -1132,6 +1713,48 @@ class TargetUsageManifestTests(unittest.TestCase):
             report["examples"]["numeric_address_reg_access_without_type:post_call_register_copy"][0]["trace"],
         )
 
+    def test_type_flow_numeric_trace_follows_pointer_chain_to_app_slot_root(self) -> None:
+        snippets = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "row_index": 1,
+                "row": {
+                    "kind": "instruction",
+                    "text": "\tmovea.l app_Window(a6),a4\n",
+                    "app_slot_refs": [{"symbol": "app_Window"}],
+                },
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
+                "row_index": 2,
+                "row": {"kind": "instruction", "text": "\tmovea.l $0004(a4),a5\n"},
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
+                "row_index": 3,
+                "row": {"kind": "instruction", "text": "\ttst.w $0008(a5)\n"},
+            },
+        ]
+        rows_by_target = usage._type_flow_rows_for_target(snippets)
+        rows_by_index = {
+            "platform_file_manifest:demo": usage._type_flow_rows_by_index(
+                rows_by_target, "platform_file_manifest:demo"
+            )
+        }
+
+        trace = usage._type_flow_numeric_access_trace(
+            "platform_file_manifest:demo",
+            snippets[2],
+            rows_by_target,
+            {},
+            rows_by_index,
+        )
+
+        self.assertEqual(trace["cause"], "unknown_pointer_chain")
+        self.assertEqual(trace["pointer_chain"]["root_kind"], "app_slot")
+        self.assertEqual(trace["pointer_chain"]["hops"][0]["source"], "$0004(a4)")
+        self.assertEqual(trace["pointer_chain"]["hops"][1]["source"], "app_Window(a6)")
+
     def test_type_flow_delta_summarizes_totals_and_target_changes(self) -> None:
         before = [
             {
@@ -1140,9 +1763,15 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "platform": "amiga-hunk",
                 "opportunity_count": 4,
                 "resolved_typed_access_count": 1,
-                "counts": {"numeric_address_reg_access_without_type": 4, "resolved_typed_access": 1},
+                "counts": {
+                    "numeric_address_reg_access_without_type": 4,
+                    "prefix_extension_ambiguous": 1,
+                    "resolved_typed_access": 1,
+                },
                 "numeric_cause_counts": {"api_output_nearby": 3, "unknown_pointer_chain": 1},
                 "propagation_chain_counts": {"api_output_to_global_or_base_slot_reload": 2},
+                "typed_access_provenance_counts": {"api_output": 1},
+                "typed_storage_provenance_counts": {"global_slot": 1},
                 "struct_counts": {"Library": 1},
                 "field_counts": {"Library.LIB_VERSION": 1},
             },
@@ -1166,9 +1795,16 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "origin": {"display_name": "A"},
                 "opportunity_count": 2,
                 "resolved_typed_access_count": 3,
-                "counts": {"numeric_address_reg_access_without_type": 2, "resolved_typed_access": 3},
+                "counts": {
+                    "numeric_address_reg_access_without_type": 2,
+                    "resolved_typed_access": 3,
+                    "resolved_after_type_refinement": 1,
+                    "type_refinement_applied": 1,
+                },
                 "numeric_cause_counts": {"api_output_nearby": 1, "unknown_pointer_chain": 1},
                 "propagation_chain_counts": {"api_output_to_global_or_base_slot_reload": 1},
+                "typed_access_provenance_counts": {"api_output": 3},
+                "typed_storage_provenance_counts": {"global_slot": 2},
                 "struct_counts": {"Library": 3},
                 "field_counts": {"Library.LIB_VERSION": 3},
             },
@@ -1191,12 +1827,22 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(delta["totals"]["resolved_typed_access_count"], {"before": 1, "after": 3, "delta": 2})
         self.assertEqual(delta["numeric_cause_deltas"]["api_output_nearby"], {"before": 3, "after": 1, "delta": -2})
         self.assertEqual(
+            delta["effectiveness_deltas"]["type_refinement_applied"],
+            {"before": 0, "after": 1, "delta": 1},
+        )
+        self.assertEqual(
             delta["propagation_chain_deltas"]["api_output_to_global_or_base_slot_reload"],
             {"before": 2, "after": 1, "delta": -1},
         )
+        self.assertEqual(delta["typed_access_provenance_deltas"]["api_output"], {"before": 1, "after": 3, "delta": 2})
+        self.assertEqual(delta["typed_storage_provenance_deltas"]["global_slot"], {"before": 1, "after": 2, "delta": 1})
         self.assertEqual(delta["struct_deltas"]["Library"], {"before": 1, "after": 3, "delta": 2})
         self.assertEqual([item["target_id"] for item in delta["target_deltas"]], ["a"])
         self.assertEqual(delta["target_deltas"][0]["origin"], {"display_name": "A"})
+        self.assertEqual(
+            delta["target_deltas"][0]["count_deltas"]["resolved_after_type_refinement"],
+            {"before": 0, "after": 1, "delta": 1},
+        )
 
     def test_type_flow_delta_cli_reads_and_writes_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1213,6 +1859,668 @@ class TargetUsageManifestTests(unittest.TestCase):
             payload = usage.read_type_flow_delta(output)
             self.assertEqual(payload["totals"]["opportunity_count"], {"before": 1, "after": 0, "delta": -1})
             self.assertEqual(payload["totals"]["resolved_typed_access_count"], {"before": 0, "after": 1, "delta": 1})
+
+    def test_type_flow_opportunity_report_ranks_open_shapes(self) -> None:
+        rows = [
+            {
+                "target_id": "a",
+                "source_id": "a",
+                "platform": "amiga-hunk",
+                "origin": {"display_name": "A"},
+                "resolved_typed_access_count": 3,
+                "counts": {
+                    "numeric_address_reg_access_without_type": 2,
+                    "typed_base_unresolved_field": 1,
+                    "app_slot_substructure_access": 1,
+                },
+                "numeric_cause_counts": {"app_slot_load": 2},
+                "propagation_chain_counts": {"register_to_app_slot_reload": 1},
+                "app_slot_substructure_suggestions": [{"slot": "app_input_event"}],
+                "examples": {
+                    "propagation_chain:register_to_app_slot_reload": [
+                        {
+                            "trace": {
+                                "propagation_chain": {
+                                    "kind": "register_to_app_slot_reload",
+                                    "storage_kind": "app_slot",
+                                },
+                                "nearest_os_call": {"feature": "os:exec.library/WaitPort"},
+                            }
+                        }
+                    ]
+                },
+            },
+            {
+                "target_id": "b",
+                "source_id": "b",
+                "platform": "atari-st",
+                "counts": {"numeric_address_reg_access_without_type": 8},
+                "numeric_cause_counts": {"unknown_pointer_chain": 8},
+            },
+        ]
+
+        report = usage.build_type_flow_opportunity_report(rows, platform="amiga-hunk")
+
+        self.assertEqual(report["target_count"], 1)
+        self.assertEqual(report["totals"]["app_slot_substructure_access"], 1)
+        self.assertEqual(report["numeric_cause_counts"], {"app_slot_load": 2})
+        self.assertEqual(
+            report["platform_open_counts"],
+            {
+                "amiga-hunk": {
+                    "app_slot_substructure_access": 1,
+                    "numeric_address_reg_access_without_type": 2,
+                    "typed_base_unresolved_field": 1,
+                }
+            },
+        )
+        self.assertEqual(report["numeric_cause_by_platform"], {"amiga-hunk": {"app_slot_load": 2}})
+        self.assertEqual(report["propagation_chain_by_platform"], {"amiga-hunk": {"register_to_app_slot_reload": 1}})
+        self.assertEqual(report["storage_kind_counts"], {"app_slot": 1})
+        self.assertEqual(report["api_feature_counts"], {"os:exec.library/WaitPort": 1})
+        self.assertEqual(report["targets"][0]["target_id"], "a")
+        self.assertEqual(report["targets"][0]["open_score"], 4)
+        self.assertEqual(
+            report["targets"][0]["app_slot_substructure_suggestions"],
+            [{"slot": "app_input_event"}],
+        )
+
+    def test_type_flow_opportunities_cli_writes_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            report_path = tmpdir / "type_flow.jsonl"
+            output_path = tmpdir / "opportunities.json"
+            _write_jsonl(
+                report_path,
+                [
+                    {
+                        "target_id": "a",
+                        "platform": "amiga-hunk",
+                        "counts": {"numeric_address_reg_access_without_type": 1},
+                    }
+                ],
+            )
+
+            result = usage.main(
+                [
+                    "type-flow-opportunities",
+                    "--type-flow-report",
+                    str(report_path),
+                    "--output",
+                    str(output_path),
+                ]
+            )
+
+            self.assertEqual(result, 0)
+            self.assertEqual(json.loads(output_path.read_text(encoding="utf-8"))["target_count"], 1)
+
+    def test_type_flow_api_audit_groups_api_output_fallout(self) -> None:
+        rows = [
+            {
+                "target_id": "genam",
+                "source_id": "genam",
+                "platform": "amiga-hunk",
+                "examples": {
+                    "propagation_chain:api_output_to_global_or_base_slot_reload": [
+                        {
+                            "trace": {
+                                "cause": "global_or_base_slot_load",
+                                "pointer_chain": {
+                                    "root_kind": "global_or_base_slot",
+                                    "stop_reason": "source_is_global_or_base_slot",
+                                },
+                                "propagation_chain": {
+                                    "kind": "api_output_to_global_or_base_slot_reload",
+                                    "storage_kind": "global_or_base_slot",
+                                    "os_call": {"feature": "os:exec.library/MakeLibrary"},
+                                },
+                            }
+                        }
+                    ]
+                },
+            }
+        ]
+
+        report = usage.build_type_flow_api_audit_report(rows, api_feature="os:exec.library/MakeLibrary")
+
+        self.assertEqual(report["feature_count"], 1)
+        feature = report["features"][0]
+        self.assertEqual(feature["feature"], "os:exec.library/MakeLibrary")
+        self.assertEqual(feature["example_count"], 1)
+        self.assertEqual(feature["target_count"], 1)
+        self.assertEqual(feature["propagation_chain_counts"], {"api_output_to_global_or_base_slot_reload": 1})
+        self.assertEqual(feature["storage_kind_counts"], {"global_or_base_slot": 1})
+
+    def test_type_flow_chain_slice_report_ranks_pointer_chain_shapes(self) -> None:
+        rows = [
+            {
+                "target_id": "a",
+                "platform": "amiga-hunk",
+                "examples": {
+                    "numeric_address_reg_access_without_type": [
+                        {
+                            "trace": {
+                                "cause": "unknown_pointer_chain",
+                                "pointer_chain": {"root_kind": "stack_slot", "stop_reason": "source_is_stack_slot"},
+                                "propagation_chain": {
+                                    "kind": "register_to_stack_slot_reload",
+                                    "storage_kind": "stack_slot",
+                                },
+                            }
+                        },
+                        {
+                            "trace": {
+                                "cause": "unknown_pointer_chain",
+                                "pointer_chain": {"root_kind": "stack_slot", "stop_reason": "source_is_stack_slot"},
+                                "propagation_chain": {
+                                    "kind": "register_to_stack_slot_reload",
+                                    "storage_kind": "stack_slot",
+                                },
+                            }
+                        },
+                    ]
+                },
+            },
+            {
+                "target_id": "b",
+                "platform": "atari-st",
+                "examples": {
+                    "numeric_address_reg_access_without_type": [
+                        {
+                            "trace": {
+                                "cause": "unknown_pointer_chain",
+                                "pointer_chain": {"root_kind": "unknown", "stop_reason": "no_assignment_to_chain_base"},
+                            }
+                        }
+                    ]
+                },
+            },
+        ]
+
+        report = usage.build_type_flow_chain_slice_report(rows, platform="amiga-hunk")
+
+        self.assertEqual(report["slice_count"], 1)
+        self.assertEqual(report["slices"][0]["example_count"], 2)
+        self.assertEqual(report["slices"][0]["pointer_root"], "stack_slot")
+        self.assertEqual(report["slices"][0]["propagation_chain"], "register_to_stack_slot_reload")
+
+    def test_type_flow_storage_access_gap_report_groups_uncovered_storage(self) -> None:
+        rows = [{"target_id": "demo", "platform": "amiga-hunk", "source_id": "demo-source"}]
+        xrefs = [
+            {
+                "target_id": "demo",
+                "platform": "amiga-hunk",
+                "feature": "os:exec.library/AllocMem",
+                "kind": "os_call",
+                "row_index": 10,
+                "section": 0,
+                "offset": 0x20,
+                "stable_key": "call",
+                "symbol": "AllocMem",
+                "value": "exec.library",
+                "text": "jsr _LVOAllocMem(a6)",
+            },
+            {
+                "target_id": "demo",
+                "platform": "amiga-hunk",
+                "feature": "os_call_output_reg:D0",
+                "kind": "os_call_output",
+                "row_index": 10,
+                "section": 0,
+                "offset": 0x20,
+                "stable_key": "call",
+                "symbol": "AllocMem",
+                "value": "D0",
+                "text": "jsr _LVOAllocMem(a6)",
+            },
+            {
+                "target_id": "demo",
+                "platform": "amiga-hunk",
+                "feature": "typed_storage:any",
+                "kind": "typed_storage",
+                "row_index": 11,
+                "section": 0,
+                "offset": 0x24,
+                "stable_key": "store",
+                "symbol": "void *",
+                "access": "app_slot",
+                "value": 0x100,
+                "text": "move.l d0,app_buffer(a6)",
+            },
+            {
+                "target_id": "demo",
+                "platform": "amiga-hunk",
+                "feature": "platform_typed_access:any",
+                "kind": "platform_typed_access",
+                "row_index": 18,
+                "section": 0,
+                "offset": 0x38,
+                "stable_key": "later-typed",
+                "symbol": "LIB_VERSION",
+                "value": 0x14,
+                "text": "cmpi.w #36,LIB_VERSION(a0)",
+            },
+            {
+                "target_id": "demo",
+                "platform": "amiga-hunk",
+                "feature": "typed_storage:any",
+                "kind": "typed_storage",
+                "row_index": 30,
+                "section": 0,
+                "offset": 0x60,
+                "stable_key": "lib-store",
+                "symbol": "LIB",
+                "access": "global_slot",
+                "value": 0x200,
+                "text": "move.l d0,TimerBase.l",
+            },
+            {
+                "target_id": "demo",
+                "platform": "amiga-hunk",
+                "feature": "platform_typed_access:any",
+                "kind": "platform_typed_access",
+                "row_index": 35,
+                "section": 0,
+                "offset": 0x70,
+                "stable_key": "lib-access",
+                "symbol": "LIB_VERSION",
+                "value": 0x14,
+                "text": "cmpi.w #36,LIB_VERSION(a0)",
+            },
+            {
+                "target_id": "demo",
+                "platform": "amiga-hunk",
+                "feature": "platform_typed_access_struct:LIB",
+                "kind": "platform_typed_access",
+                "row_index": 35,
+                "section": 0,
+                "offset": 0x70,
+                "stable_key": "lib-access",
+                "symbol": "LIB",
+                "value": 0x14,
+                "text": "cmpi.w #36,LIB_VERSION(a0)",
+            },
+        ]
+        snippets = [
+            {
+                "target_id": "demo",
+                "row_index": 12,
+                "row": {
+                    "kind": "instruction",
+                    "section_index": 0,
+                    "start_offset": 0x28,
+                    "stable_key": "numeric",
+                    "text": "move.l $0004(a0),d1",
+                },
+            }
+        ]
+
+        report = usage.build_type_flow_storage_access_gap_report(rows, xrefs, snippets)
+
+        self.assertEqual(report["total_storage_count"], 2)
+        self.assertEqual(report["covered_storage_count"], 1)
+        self.assertEqual(report["total_gap_count"], 1)
+        self.assertEqual(report["api_feature_counts"], {"os:exec.library/AllocMem": 1})
+        self.assertEqual(report["storage_target_counts"], {"app_slot": 1})
+        self.assertEqual(report["storage_type_counts"], {"void *": 1})
+        gap = report["targets"][0]["gaps"][0]
+        self.assertEqual(gap["api_call"]["feature"], "os:exec.library/AllocMem")
+        self.assertEqual(gap["first_later_numeric_access"]["text"], "move.l $0004(a0),d1")
+        self.assertEqual(gap["first_later_typed_access"]["stable_key"], "later-typed")
+
+    def test_type_flow_storage_access_gaps_cli_writes_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            type_flow = tmpdir / "type_flow.jsonl"
+            xrefs = tmpdir / "xrefs.jsonl"
+            snippets = tmpdir / "snippets.jsonl"
+            output = tmpdir / "storage_gaps.json"
+            _write_jsonl(type_flow, [{"target_id": "demo", "platform": "amiga-hunk"}])
+            _write_jsonl(
+                xrefs,
+                [
+                    {
+                        "target_id": "demo",
+                        "platform": "amiga-hunk",
+                        "feature": "os:exec.library/AllocMem",
+                        "kind": "os_call",
+                        "row_index": 1,
+                        "section": 0,
+                        "offset": 0x10,
+                        "text": "jsr _LVOAllocMem(a6)",
+                    },
+                    {
+                        "target_id": "demo",
+                        "platform": "amiga-hunk",
+                        "feature": "os_call_output_reg:D0",
+                        "kind": "os_call_output",
+                        "row_index": 1,
+                        "section": 0,
+                        "offset": 0x10,
+                        "symbol": "AllocMem",
+                        "value": "D0",
+                        "text": "jsr _LVOAllocMem(a6)",
+                    },
+                    {
+                        "target_id": "demo",
+                        "platform": "amiga-hunk",
+                        "feature": "typed_storage:any",
+                        "kind": "typed_storage",
+                        "row_index": 2,
+                        "section": 0,
+                        "offset": 0x14,
+                        "symbol": "void *",
+                        "access": "global_slot",
+                        "value": 0x80,
+                        "text": "move.l d0,buffer.l",
+                    },
+                ],
+            )
+            _write_jsonl(snippets, [])
+
+            result = usage.main(
+                [
+                    "type-flow-storage-access-gaps",
+                    "--type-flow-report",
+                    str(type_flow),
+                    "--xrefs",
+                    str(xrefs),
+                    "--snippet-rows",
+                    str(snippets),
+                    "--api-feature",
+                    "os:exec.library/AllocMem",
+                    "--output",
+                    str(output),
+                ]
+            )
+
+            self.assertEqual(result, 0)
+            payload = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(payload["total_gap_count"], 1)
+            self.assertEqual(payload["api_feature"], "os:exec.library/AllocMem")
+
+    def test_type_flow_target_baseline_delta_reports_per_target_changes(self) -> None:
+        baseline = {
+            "targets": [
+                {
+                    "target_id": "a",
+                    "platform": "amiga-hunk",
+                    "opportunity_count": 4,
+                    "resolved_typed_access_count": 1,
+                    "counts": {"numeric_address_reg_access_without_type": 4},
+                    "numeric_cause_counts": {"unknown_pointer_chain": 4},
+                }
+            ]
+        }
+        current = [
+            {
+                "target_id": "a",
+                "platform": "amiga-hunk",
+                "opportunity_count": 2,
+                "resolved_typed_access_count": 3,
+                "counts": {"numeric_address_reg_access_without_type": 2, "resolved_typed_access": 3},
+                "numeric_cause_counts": {"unknown_pointer_chain": 2},
+            }
+        ]
+
+        report = usage.build_type_flow_target_baseline_delta_report(current, baseline)
+
+        delta = report["delta"]
+        self.assertEqual(delta["totals"]["opportunity_count"], {"before": 4, "after": 2, "delta": -2})
+        self.assertEqual(delta["totals"]["resolved_typed_access_count"], {"before": 1, "after": 3, "delta": 2})
+        self.assertEqual(delta["target_deltas"][0]["target_id"], "a")
+
+    def test_type_flow_baseline_report_keeps_aggregate_metrics(self) -> None:
+        rows = [
+            {
+                "target_id": "a",
+                "counts": {
+                    "numeric_address_reg_access_without_type": 3,
+                    "resolved_typed_access": 2,
+                    "typed_storage": 4,
+                },
+                "numeric_cause_counts": {"unknown_pointer_chain": 2, "stack_slot_load": 1},
+                "propagation_chain_counts": {"register_to_stack_slot_reload": 1},
+                "pointer_chain_root_counts": {"stack_slot": 1, "unknown": 2},
+                "pointer_chain_stop_counts": {"source_is_stack_slot": 1, "no_assignment_to_chain_base": 2},
+                "typed_access_provenance_counts": {"api_output": 2},
+                "typed_storage_provenance_counts": {"stack_slot": 4},
+            }
+        ]
+
+        baseline = usage.build_type_flow_baseline_report(rows)
+
+        self.assertEqual(baseline["target_count"], 1)
+        self.assertEqual(baseline["totals"]["resolved_typed_access"], 2)
+        self.assertEqual(baseline["numeric_cause_counts"]["unknown_pointer_chain"], 2)
+        self.assertEqual(baseline["pointer_chain_root_counts"]["stack_slot"], 1)
+
+    def test_type_flow_baseline_check_rejects_metric_regressions(self) -> None:
+        current = [
+            {
+                "target_id": "a",
+                "counts": {
+                    "numeric_address_reg_access_without_type": 3,
+                    "resolved_typed_access": 1,
+                    "typed_storage": 1,
+                },
+                "numeric_cause_counts": {"unknown_pointer_chain": 3},
+            }
+        ]
+        baseline = {
+            "totals": {
+                "numeric_address_reg_access_without_type": 2,
+                "resolved_typed_access": 2,
+                "typed_storage": 2,
+            },
+            "numeric_cause_counts": {"unknown_pointer_chain": 2},
+        }
+
+        gate = usage.build_type_flow_baseline_gate_report(current, [], [], baseline)
+
+        self.assertEqual(gate["ok"], False)
+        self.assertEqual(
+            {regression["kind"] for regression in gate["metric_regressions"]},
+            {"above_baseline_maximum", "below_baseline_minimum", "numeric_cause_above_baseline_maximum"},
+        )
+
+    def test_type_flow_baseline_cli_writes_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            report_path = tmpdir / "type_flow.jsonl"
+            output_path = tmpdir / "baseline.json"
+            _write_jsonl(
+                report_path,
+                [
+                    {
+                        "target_id": "a",
+                        "counts": {"resolved_typed_access": 1},
+                        "numeric_cause_counts": {"unknown_pointer_chain": 1},
+                    }
+                ],
+            )
+
+            result = usage.main(
+                [
+                    "type-flow-baseline",
+                    "--type-flow-report",
+                    str(report_path),
+                    "--output",
+                    str(output_path),
+                ]
+            )
+
+            self.assertEqual(result, 0)
+            self.assertEqual(usage.read_type_flow_baseline(output_path)["totals"]["resolved_typed_access"], 1)
+
+    def test_type_flow_baseline_check_cli_fails_on_regression(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            report_path = tmpdir / "type_flow.jsonl"
+            unresolved = tmpdir / "unresolved.jsonl"
+            xrefs = tmpdir / "xrefs.jsonl"
+            baseline = tmpdir / "baseline.json"
+            output = tmpdir / "gate.json"
+            _write_jsonl(report_path, [{"target_id": "a", "counts": {"resolved_typed_access": 0}}])
+            _write_jsonl(unresolved, [])
+            _write_jsonl(xrefs, [])
+            baseline.write_text(
+                json.dumps({"totals": {"resolved_typed_access": 1}}) + "\n",
+                encoding="utf-8",
+            )
+
+            result = usage.main(
+                [
+                    "type-flow-baseline-check",
+                    "--type-flow-report",
+                    str(report_path),
+                    "--unresolved-typed-fields",
+                    str(unresolved),
+                    "--xrefs",
+                    str(xrefs),
+                    "--baseline",
+                    str(baseline),
+                    "--output",
+                    str(output),
+                ]
+            )
+
+            self.assertEqual(result, 1)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["ok"], False)
+
+    def test_type_flow_correctness_report_rejects_dominant_exact_ties(self) -> None:
+        report = usage.build_type_flow_correctness_report(
+            [],
+            [
+                {
+                    "root_struct_name": "MN",
+                    "displacement_hex": "$0024",
+                    "dominant_candidate": {"struct_name": "IO", "exact_access_size_match_count": 1},
+                    "candidate_rankings": [
+                        {"struct_name": "IO", "exact_access_size_match_count": 1},
+                        {"struct_name": "RexxMsg", "exact_access_size_match_count": 1},
+                    ],
+                }
+            ],
+            [],
+        )
+
+        self.assertEqual(report["ok"], False)
+        self.assertEqual(report["violations"][0]["kind"], "dominant_candidate_exact_size_tie")
+
+    def test_type_flow_gate_rejects_suspicious_first_struct_xrefs(self) -> None:
+        gate = usage.build_type_flow_gate_report(
+            [],
+            [],
+            [
+                {
+                    "target_id": "demo",
+                    "feature": "platform_typed_access_struct:AmigaGuideMsg",
+                    "kind": "platform_typed_access",
+                    "row_index": 4,
+                    "text": "move.l agm_Reserved(a0),d0",
+                }
+            ],
+        )
+
+        self.assertEqual(gate["ok"], False)
+        self.assertEqual(
+            gate["correctness"]["violations"][0]["kind"],
+            "suspicious_first_struct_type_flow",
+        )
+
+    def test_type_flow_gate_accepts_audited_refinement_shapes(self) -> None:
+        type_flow_rows = [
+            {
+                "target_id": "demo",
+                "counts": {
+                    "resolved_typed_access": 2,
+                    "type_refinement_applied": 2,
+                    "resolved_after_type_refinement": 1,
+                },
+            }
+        ]
+        unresolved_rows = [
+            {
+                "root_struct_name": "LIB",
+                "displacement_hex": "$00CE",
+                "dominant_candidate": {"struct_name": "GfxBase", "exact_access_size_match_count": 1},
+                "candidate_rankings": [
+                    {"struct_name": "GfxBase", "exact_access_size_match_count": 1},
+                    {"struct_name": "ExecBase", "exact_access_size_match_count": 0},
+                ],
+            },
+            {
+                "root_struct_name": "MN",
+                "displacement_hex": "$0018",
+                "candidate_rankings": [
+                    {"struct_name": "ColorTextFont", "exact_access_size_match_count": 1},
+                    {"struct_name": "TextFont", "exact_access_size_match_count": 1},
+                ],
+            },
+        ]
+        xrefs = [
+            {
+                "target_id": "demo",
+                "feature": "platform_type_refinement:applied",
+                "kind": "platform_type_refinement",
+                "classification": "prefix_extension",
+                "container_field_expr": "gb_DisplayFlags",
+                "refined_struct_name": "GfxBase",
+            },
+            {
+                "target_id": "demo",
+                "feature": "platform_type_refinement:applied",
+                "kind": "platform_type_refinement",
+                "classification": "prefix_extension",
+                "container_field_expr": "tf_XSize",
+                "refined_struct_name": "TextFont",
+            },
+        ]
+
+        gate = usage.build_type_flow_gate_report(type_flow_rows, unresolved_rows, xrefs)
+
+        self.assertEqual(gate["ok"], True)
+        self.assertEqual(gate["correctness"]["applied_refinement_count"], 2)
+
+    def test_type_flow_check_cli_fails_on_correctness_violation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            type_flow = tmpdir / "type_flow.jsonl"
+            unresolved = tmpdir / "unresolved.jsonl"
+            xrefs = tmpdir / "xrefs.jsonl"
+            output = tmpdir / "gate.json"
+            _write_jsonl(type_flow, [])
+            _write_jsonl(
+                unresolved,
+                [
+                    {
+                        "dominant_candidate": {"struct_name": "IO", "exact_access_size_match_count": 1},
+                        "candidate_rankings": [
+                            {"struct_name": "IO", "exact_access_size_match_count": 1},
+                            {"struct_name": "RexxMsg", "exact_access_size_match_count": 1},
+                        ],
+                    }
+                ],
+            )
+            _write_jsonl(xrefs, [])
+
+            result = usage.main(
+                [
+                    "type-flow-check",
+                    "--type-flow-report",
+                    str(type_flow),
+                    "--unresolved-typed-fields",
+                    str(unresolved),
+                    "--xrefs",
+                    str(xrefs),
+                    "--output",
+                    str(output),
+                ]
+            )
+
+            self.assertEqual(result, 1)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["ok"], False)
 
     def test_type_flow_snapshot_cli_writes_sanitized_report_copy(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1236,6 +2544,47 @@ class TargetUsageManifestTests(unittest.TestCase):
             self.assertEqual(result, 0)
             snapshot = out_dir / "before_api_output.jsonl"
             self.assertEqual(usage.read_type_flow_report(snapshot), [{"target_id": "a", "opportunity_count": 1}])
+
+    def test_type_flow_snapshot_check_cli_writes_snapshot_and_gate_delta(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            before = tmpdir / "before.jsonl"
+            report = tmpdir / "report.jsonl"
+            unresolved = tmpdir / "unresolved.jsonl"
+            xrefs = tmpdir / "xrefs.jsonl"
+            out_dir = tmpdir / "snapshots"
+            output = tmpdir / "gate.json"
+            _write_jsonl(before, [{"target_id": "a", "opportunity_count": 1, "resolved_typed_access_count": 0}])
+            _write_jsonl(report, [{"target_id": "a", "opportunity_count": 0, "resolved_typed_access_count": 1}])
+            _write_jsonl(unresolved, [])
+            _write_jsonl(xrefs, [])
+
+            result = usage.main(
+                [
+                    "type-flow-snapshot-check",
+                    "--type-flow-report",
+                    str(report),
+                    "--unresolved-typed-fields",
+                    str(unresolved),
+                    "--xrefs",
+                    str(xrefs),
+                    "--before",
+                    str(before),
+                    "--output-dir",
+                    str(out_dir),
+                    "--name",
+                    "after type propagation",
+                    "--output",
+                    str(output),
+                ]
+            )
+
+            self.assertEqual(result, 0)
+            snapshot = out_dir / "after_type_propagation.jsonl"
+            self.assertEqual(usage.read_type_flow_report(snapshot), [{"target_id": "a", "opportunity_count": 0, "resolved_typed_access_count": 1}])
+            payload = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(payload["snapshot_path"], str(snapshot))
+            self.assertEqual(payload["delta"]["totals"]["resolved_typed_access_count"], {"before": 0, "after": 1, "delta": 1})
 
     def test_builds_stable_manifest_and_records_analysis_errors(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1302,6 +2651,70 @@ class TargetUsageManifestTests(unittest.TestCase):
             self.assertEqual(counts["format:executable"], 1)
             self.assertEqual(counts["relocation:fixup"], 2)
             self.assertEqual(counts["diagnostic:analysis_error"], 1)
+
+    def test_build_usage_outputs_includes_project_targets_with_effective_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            disk_manifest = tmpdir / "disk.jsonl"
+            file_manifest = tmpdir / "file.jsonl"
+            _write_jsonl(disk_manifest, [])
+            _write_jsonl(file_manifest, [])
+            binary_path = tmpdir / "demo.hunk"
+            binary_path.write_bytes(b"\0\0\3\xf3")
+            target_dir = tmpdir / "targets" / "demo_project"
+            target_dir.mkdir(parents=True)
+            (target_dir / "source_binary.json").write_text(
+                json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+                encoding="utf-8",
+            )
+            (target_dir / ".project.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 2,
+                        "origin": {
+                            "filename": "Demo",
+                            "platform": "amiga-hunk",
+                            "sha256": sha256(binary_path.read_bytes()),
+                            "size": binary_path.stat().st_size,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            metadata_path = tmpdir / "effective_metadata.json"
+            metadata_path.write_text("{}", encoding="utf-8")
+            calls: list[tuple[object, ...]] = []
+
+            @contextlib.contextmanager
+            def fake_effective_metadata_file(target: Path):
+                self.assertEqual(target, target_dir)
+                yield metadata_path
+
+            def fake_platform_file_text(function_name: str, *args: object, project_root: Path) -> str:
+                calls.append((function_name, *args, project_root))
+                return json.dumps(
+                    {
+                        "profile": {"generation": "facts_v2_full_listing"},
+                        "analysis": {"sections": []},
+                        "listing": {"rows": []},
+                    }
+                )
+
+            with mock.patch.object(usage, "effective_metadata_file", fake_effective_metadata_file):
+                with mock.patch.object(usage.c_backend, "_platform_file_text", fake_platform_file_text):
+                    rows, xrefs, snippets = usage.build_usage_outputs(disk_manifest, file_manifest, root=tmpdir)
+
+            self.assertEqual([row["id"] for row in rows], ["project_target:demo_project"])
+            self.assertEqual(rows[0]["feature_counts"]["project_target:any"], 1)
+            self.assertEqual(rows[0]["feature_counts"]["analysis:facts_v2"], 1)
+            self.assertEqual(calls[0][0], "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc")
+            self.assertEqual(
+                calls[0][1:5],
+                ("amiga-hunk", str(binary_path), str(metadata_path), str(tmpdir / "ext" / "amiga_includes" / "ndk_2.0" / "include")),
+            )
+            self.assertEqual(calls[0][5], tmpdir)
+            self.assertIn("project_target:any", {xref["feature"] for xref in xrefs})
+            self.assertEqual(snippets, [])
 
     def test_non_executable_file_rows_use_format_tags_without_analysis(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

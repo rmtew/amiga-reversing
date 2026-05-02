@@ -490,6 +490,9 @@ typedef struct M68kRecoveredPlatformTypedAccessIR {
   uint8_t nested;
   int16_t displacement;
   int16_t field_offset;
+  uint8_t type_provenance_kind;
+  size_t type_provenance_section_index;
+  uint32_t type_provenance_offset;
   char *root_struct_name;
   char *owner_struct_name;
   char *field_name;
@@ -499,14 +502,44 @@ typedef struct M68kRecoveredPlatformTypedAccessIR {
   M68kPlatformNameRef field_ref;
 } M68kRecoveredPlatformTypedAccessIR;
 
+typedef enum M68kPlatformUnresolvedTypedAccessClassification {
+  M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP = 0,
+  M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION = 1,
+  M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE = 2
+} M68kPlatformUnresolvedTypedAccessClassification;
+
+typedef enum M68kPlatformTypeProvenanceKind {
+  M68K_PLATFORM_TYPE_PROVENANCE_NONE = 0,
+  M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT = 1,
+  M68K_PLATFORM_TYPE_PROVENANCE_REGISTER_COPY = 2,
+  M68K_PLATFORM_TYPE_PROVENANCE_STACK_SLOT = 3,
+  M68K_PLATFORM_TYPE_PROVENANCE_BASE_SLOT = 4,
+  M68K_PLATFORM_TYPE_PROVENANCE_LOOKUP_STORAGE = 5,
+  M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT = 6,
+  M68K_PLATFORM_TYPE_PROVENANCE_FIELD_POINTER = 7,
+  M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT = 8,
+  M68K_PLATFORM_TYPE_PROVENANCE_FIELD_ADDRESS = 9
+} M68kPlatformTypeProvenanceKind;
+
 typedef struct M68kRecoveredPlatformUnresolvedTypedAccessIR {
   uint32_t offset;
   uint8_t operand_index;
   uint8_t base_reg;
   int16_t displacement;
   uint16_t struct_size;
+  uint8_t classification;
+  uint16_t container_candidate_count;
+  uint8_t refinement_applied;
+  uint8_t type_provenance_kind;
+  size_t type_provenance_section_index;
+  uint32_t type_provenance_offset;
   char *root_struct_name;
+  char *container_struct_name;
+  char *container_field_expr;
+  char *refined_struct_name;
   M68kPlatformNameRef root_struct_ref;
+  M68kPlatformNameRef container_struct_ref;
+  M68kPlatformNameRef refined_struct_ref;
 } M68kRecoveredPlatformUnresolvedTypedAccessIR;
 
 typedef enum M68kPlatformEffectKind {
@@ -801,10 +834,14 @@ int m68k_ir_section_analysis_append_app_slot_ref(M68kSectionAnalysisIR *section_
 int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
     int16_t field_offset, const char *root_struct_name, const char *owner_struct_name, const char *field_name,
-    const char *field_expr, uint8_t inherited, uint8_t nested);
+    const char *field_expr, uint8_t inherited, uint8_t nested, uint8_t type_provenance_kind,
+    size_t type_provenance_section_index, uint32_t type_provenance_offset);
 int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
     M68kSectionAnalysisIR *section_analysis, uint8_t platform_kind, uint32_t offset, uint8_t operand_index,
-    uint8_t base_reg, int16_t displacement, uint16_t struct_size, const char *root_struct_name);
+    uint8_t base_reg, int16_t displacement, uint16_t struct_size, const char *root_struct_name,
+    uint8_t classification, uint16_t container_candidate_count, const char *container_struct_name,
+    const char *container_field_expr, uint8_t refinement_applied, const char *refined_struct_name,
+    uint8_t type_provenance_kind, size_t type_provenance_section_index, uint32_t type_provenance_offset);
 int m68k_ir_section_analysis_append_recovered_platform_base_slot(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, int16_t displacement, const char *base_name);
 int m68k_ir_section_analysis_append_recovered_platform_effect(M68kSectionAnalysisIR *section_analysis,

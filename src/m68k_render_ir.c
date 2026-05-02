@@ -505,12 +505,34 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
 }
 
 static void platform_state_clear_register(M68kRenderPlatformState *state, uint8_t reg_index) {
+  size_t index;
   if (state == NULL || reg_index >= 8U) return;
   state->address_base_known[reg_index] = 0U;
   state->address_base_library[reg_index][0] = '\0';
   state->address_hardware_base_known[reg_index] = 0U;
   state->address_hardware_base_symbol[reg_index][0] = '\0';
   state->address_app_base_known[reg_index] = 0U;
+  for (index = 0U; index < sizeof(state->local_base_slots) / sizeof(state->local_base_slots[0]); ++index) {
+    if (state->local_base_slots[index].valid && state->local_base_slots[index].base_reg == reg_index)
+      state->local_base_slots[index].valid = 0U;
+  }
+}
+
+static void platform_state_clear_data_library(M68kRenderPlatformState *state, uint8_t reg_index) {
+  if (state == NULL || reg_index >= 8U) return;
+  state->data_base_known[reg_index] = 0U;
+  state->data_base_library[reg_index][0] = '\0';
+}
+
+static void platform_state_clear_all_data_libraries(M68kRenderPlatformState *state) {
+  if (state == NULL) return;
+  memset(state->data_base_known, 0, sizeof(state->data_base_known));
+  memset(state->data_base_library, 0, sizeof(state->data_base_library));
+}
+
+static void platform_state_clear_all_local_base_slots(M68kRenderPlatformState *state) {
+  if (state == NULL) return;
+  memset(state->local_base_slots, 0, sizeof(state->local_base_slots));
 }
 
 static void platform_state_clear_address_app_base(M68kRenderPlatformState *state, uint8_t reg_index) {
@@ -549,13 +571,105 @@ void platform_state_clear_d0_lvo(M68kRenderPlatformState *state) {
 
 static void platform_state_set_register_library(M68kRenderPlatformState *state, uint8_t reg_index,
     const char *library_name) {
+  size_t index;
   if (state == NULL || reg_index >= 8U || library_name == NULL || library_name[0] == '\0') return;
   if (amiga_os_find_library_base_name(library_name) == NULL) return;
+  for (index = 0U; index < sizeof(state->local_base_slots) / sizeof(state->local_base_slots[0]); ++index) {
+    if (state->local_base_slots[index].valid && state->local_base_slots[index].base_reg == reg_index)
+      state->local_base_slots[index].valid = 0U;
+  }
   state->address_base_known[reg_index] = 1U;
   state->address_app_base_known[reg_index] = 0U;
   platform_state_clear_address_hardware_base(state, reg_index);
   snprintf(state->address_base_library[reg_index], sizeof(state->address_base_library[reg_index]), "%s",
     library_name);
+}
+
+static void platform_state_set_data_library(M68kRenderPlatformState *state, uint8_t reg_index,
+    const char *library_name) {
+  if (state == NULL || reg_index >= 8U || library_name == NULL || library_name[0] == '\0') return;
+  if (amiga_os_find_library_base_name(library_name) == NULL) return;
+  state->data_base_known[reg_index] = 1U;
+  snprintf(state->data_base_library[reg_index], sizeof(state->data_base_library[reg_index]), "%s",
+    library_name);
+}
+
+int amiga_unknown_base_register_owner_name(uint8_t base_reg, char *buf, size_t buf_size) {
+  int written;
+  if (buf != NULL && buf_size != 0U) buf[0] = '\0';
+  if (buf == NULL || buf_size == 0U || base_reg >= 8U || base_reg == 6U || base_reg == 7U) return 0;
+  written = snprintf(buf, buf_size, "__amiga_local_base_a%u__", (unsigned)base_reg);
+  return written > 0 && (size_t)written < buf_size;
+}
+
+static int amiga_unknown_base_owner_name_is_internal(const char *owner_name) {
+  static const char prefix[] = "__amiga_local_base_a";
+  size_t prefix_len = sizeof(prefix) - 1U;
+  if (owner_name == NULL) return 0;
+  if (strncmp(owner_name, prefix, prefix_len) != 0) return 0;
+  if (owner_name[prefix_len] < '0' || owner_name[prefix_len] > '7') return 0;
+  return owner_name[prefix_len + 1U] == '_' &&
+    owner_name[prefix_len + 2U] == '_' &&
+    owner_name[prefix_len + 3U] == '\0';
+}
+
+static int amiga_vector_is_open_library_result(const AmigaOsLibraryVectorInfo *vector);
+
+static const char *platform_state_local_base_slot_library(const M68kRenderPlatformState *state, uint8_t base_reg,
+    int16_t displacement) {
+  size_t index;
+  if (state == NULL || base_reg >= 8U) return NULL;
+  for (index = 0U; index < sizeof(state->local_base_slots) / sizeof(state->local_base_slots[0]); ++index) {
+    const M68kRenderPlatformLocalBaseSlot *slot = &state->local_base_slots[index];
+    if (slot->valid && slot->base_reg == base_reg && slot->displacement == displacement)
+      return slot->library_name;
+  }
+  return NULL;
+}
+
+static void platform_state_set_local_base_slot(M68kRenderPlatformState *state, uint8_t base_reg,
+    int16_t displacement, const char *library_name) {
+  size_t index;
+  if (state == NULL || base_reg >= 8U || library_name == NULL || library_name[0] == '\0') return;
+  if (amiga_os_find_library_base_name(library_name) == NULL) return;
+  for (index = 0U; index < sizeof(state->local_base_slots) / sizeof(state->local_base_slots[0]); ++index) {
+    M68kRenderPlatformLocalBaseSlot *slot = &state->local_base_slots[index];
+    if (slot->valid && slot->base_reg == base_reg && slot->displacement == displacement) {
+      snprintf(slot->library_name, sizeof(slot->library_name), "%s", library_name);
+      return;
+    }
+  }
+  for (index = 0U; index < sizeof(state->local_base_slots) / sizeof(state->local_base_slots[0]); ++index) {
+    M68kRenderPlatformLocalBaseSlot *slot = &state->local_base_slots[index];
+    if (slot->valid) continue;
+    slot->valid = 1U;
+    slot->base_reg = base_reg;
+    slot->displacement = displacement;
+    snprintf(slot->library_name, sizeof(slot->library_name), "%s", library_name);
+    return;
+  }
+}
+
+static void platform_state_clear_local_base_slot(M68kRenderPlatformState *state, uint8_t base_reg,
+    int16_t displacement) {
+  size_t index;
+  if (state == NULL || base_reg >= 8U) return;
+  for (index = 0U; index < sizeof(state->local_base_slots) / sizeof(state->local_base_slots[0]); ++index) {
+    M68kRenderPlatformLocalBaseSlot *slot = &state->local_base_slots[index];
+    if (slot->valid && slot->base_reg == base_reg && slot->displacement == displacement)
+      slot->valid = 0U;
+  }
+}
+
+static const char *platform_state_operand_library(const M68kRenderPlatformState *state,
+    const M68kOperandIR *operand) {
+  uint8_t reg = 0U;
+  if (state == NULL || operand == NULL) return NULL;
+  if (operand_is_data_register_local(operand, &reg) && state->data_base_known[reg])
+    return state->data_base_library[reg];
+  if (operand_address_register_index_local(operand, &reg) && state->address_base_known[reg])
+    return state->address_base_library[reg];
+  return NULL;
 }
 
 int platform_state_name_is_app_base(const char *name) {
@@ -566,12 +680,11 @@ static void platform_state_set_register_app_base(M68kRenderPlatformState *state,
     uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
   if (reg_kind == M68K_ANALYSIS_REGISTER_DATA) {
+    platform_state_clear_data_library(state, reg_index);
     state->data_app_base_known[reg_index] = 1U;
     if (reg_index == 0U) platform_state_clear_d0_lvo(state);
   } else if (reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
-    state->address_base_known[reg_index] = 0U;
-    state->address_base_library[reg_index][0] = '\0';
-    platform_state_clear_address_hardware_base(state, reg_index);
+    platform_state_clear_register(state, reg_index);
     state->address_app_base_known[reg_index] = 1U;
   }
 }
@@ -582,9 +695,7 @@ static void platform_state_set_register_hardware_base(M68kRenderPlatformState *s
   if (state == NULL || reg_index >= 8U || base_symbol == NULL || base_symbol[0] == '\0') return;
   if (!amiga_os_find_hardware_base_address(base_symbol, &base_address)) return;
   (void)base_address;
-  state->address_base_known[reg_index] = 0U;
-  state->address_base_library[reg_index][0] = '\0';
-  state->address_app_base_known[reg_index] = 0U;
+  platform_state_clear_register(state, reg_index);
   state->address_hardware_base_known[reg_index] = 1U;
   snprintf(state->address_hardware_base_symbol[reg_index], sizeof(state->address_hardware_base_symbol[reg_index]),
     "%s", base_symbol);
@@ -1707,6 +1818,52 @@ static void platform_state_update_app_base_after_instruction(M68kRenderPlatformS
   }
 }
 
+static void platform_state_update_library_slots_after_instruction(M68kRenderPlatformState *state,
+    const M68kInstructionIR *instruction) {
+  const M68kOperandIR *source;
+  const M68kOperandIR *dest;
+  const char *source_library;
+  uint8_t dest_reg = 0U;
+  uint8_t base_reg = 0U;
+  int16_t displacement = 0;
+  if (state == NULL || instruction == NULL || instruction->operand_count < 2U) return;
+  source = &instruction->operands[0];
+  dest = &instruction->operands[instruction->operand_count - 1U];
+  source_library = platform_state_operand_library(state, source);
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE ||
+      instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) {
+    if (operand_is_data_register_local(dest, &dest_reg)) {
+      if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction->size_suffix == 'l' &&
+          source_library != NULL) {
+        platform_state_set_data_library(state, dest_reg, source_library);
+      } else {
+        platform_state_clear_data_library(state, dest_reg);
+      }
+    } else if (operand_address_register_index_local(dest, &dest_reg)) {
+      const char *slot_library = NULL;
+      if (operand_is_address_displacement_local(source, &base_reg, &displacement))
+        slot_library = platform_state_local_base_slot_library(state, base_reg, displacement);
+      if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA && slot_library != NULL) {
+        platform_state_set_register_library(state, dest_reg, slot_library);
+      } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA && source_library != NULL) {
+        platform_state_set_register_library(state, dest_reg, source_library);
+      } else if (dest_reg != 6U) {
+        platform_state_clear_register(state, dest_reg);
+      }
+    } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction->size_suffix == 'l' &&
+        operand_is_address_displacement_local(dest, &base_reg, &displacement)) {
+      if (source_library != NULL) platform_state_set_local_base_slot(state, base_reg, displacement, source_library);
+      else platform_state_clear_local_base_slot(state, base_reg, displacement);
+    }
+  } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ &&
+      operand_is_data_register_local(dest, &dest_reg)) {
+    platform_state_clear_data_library(state, dest_reg);
+  } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA &&
+      operand_address_register_index_local(dest, &dest_reg) && dest_reg != 6U) {
+    platform_state_clear_register(state, dest_reg);
+  }
+}
+
 void platform_state_update_after_instruction(M68kRenderPlatformState *state, const M68kRenderLookup *lookup,
     const M68kInstructionIR *instruction) {
   if (state == NULL || instruction == NULL) return;
@@ -1714,17 +1871,29 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
       instruction->mnemonic_id == M68K_ASM_MNEMONIC_RTE ||
       instruction->mnemonic_id == M68K_ASM_MNEMONIC_JMP) {
     platform_state_clear_register(state, 6U);
+    platform_state_clear_all_data_libraries(state);
+    platform_state_clear_all_local_base_slots(state);
     platform_state_update_hardware_base_after_instruction(state, instruction);
     platform_state_update_app_base_after_instruction(state, instruction);
     return;
   }
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM) {
-    if (instruction->operand_count >= 2U && reglist_contains_address_register_local(&instruction->operands[1], 6U))
-      platform_state_clear_register(state, 6U);
+    if (instruction->operand_count >= 2U) {
+      uint8_t reg_index;
+      if (reglist_contains_address_register_local(&instruction->operands[1], 6U))
+        platform_state_clear_register(state, 6U);
+      for (reg_index = 0U; reg_index < 8U; ++reg_index) {
+        if (reglist_contains_data_register_local(&instruction->operands[1], reg_index))
+          platform_state_clear_data_library(state, reg_index);
+        if (reg_index != 6U && reglist_contains_address_register_local(&instruction->operands[1], reg_index))
+          platform_state_clear_register(state, reg_index);
+      }
+    }
     platform_state_update_hardware_base_after_instruction(state, instruction);
     platform_state_update_app_base_after_instruction(state, instruction);
     return;
   }
+  platform_state_update_library_slots_after_instruction(state, instruction);
   if (instruction->operand_count >= 2U && operand_is_address_register_local(&instruction->operands[1], 6U)) {
     uint32_t absolute_offset = 0U;
     const char *library_name = instruction->operands[0].symbol_ref.has_name
@@ -1741,6 +1910,16 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
       if (operand_is_address_displacement_local(&instruction->operands[0], &base_reg, &displacement) &&
           state->address_base_known[base_reg]) {
         library_name = lookup_base_field_slot_library(lookup, state->address_base_library[base_reg], displacement);
+      }
+      if (library_name == NULL && operand_is_address_displacement_local(&instruction->operands[0], &base_reg,
+          &displacement)) {
+        library_name = platform_state_local_base_slot_library(state, base_reg, displacement);
+      }
+      if (library_name == NULL && operand_is_address_displacement_local(&instruction->operands[0], &base_reg,
+          &displacement)) {
+        char owner_name[32];
+        if (amiga_unknown_base_register_owner_name(base_reg, owner_name, sizeof(owner_name)))
+          library_name = lookup_base_field_slot_library(lookup, owner_name, displacement);
       }
     }
     if (library_name == NULL && instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) {
@@ -1764,6 +1943,19 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
   }
   platform_state_update_hardware_base_after_instruction(state, instruction);
   platform_state_update_app_base_after_instruction(state, instruction);
+}
+
+void platform_state_note_call_result_after_instruction(M68kRenderPlatformState *state,
+    const M68kInstructionIR *instruction, const AmigaOsLibraryVectorInfo *vector) {
+  if (state == NULL || instruction == NULL) return;
+  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_JSR &&
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_BSR &&
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_JMP) {
+    return;
+  }
+  platform_state_clear_data_library(state, 0U);
+  if (amiga_vector_is_open_library_result(vector) && state->address_base_known[1U])
+    platform_state_set_data_library(state, 0U, state->address_base_library[1U]);
 }
 
 const AmigaOsLibraryVectorInfo *attach_amiga_lvo_symbol_if_known(const M68kRenderPlatformState *state,
@@ -2116,6 +2308,107 @@ static int attach_amiga_hardware_register_immediate_symbols(const M68kRenderPlat
   return 0;
 }
 
+static uint16_t render_amiga_struct_size_for_struct_id(uint16_t struct_id);
+
+static int lookup_typed_app_slot_field_symbol_name(const M68kRenderLookup *lookup, int16_t displacement,
+    char *base_symbol, size_t base_symbol_size, char *field_expr, size_t field_expr_size,
+    int32_t *out_field_offset) {
+  size_t index;
+  int found = 0;
+  char found_base_symbol[64];
+  char found_field_expr[96];
+  int32_t found_field_offset = 0;
+  if (base_symbol != NULL && base_symbol_size > 0U) base_symbol[0] = '\0';
+  if (field_expr != NULL && field_expr_size > 0U) field_expr[0] = '\0';
+  if (out_field_offset != NULL) *out_field_offset = 0;
+  if (lookup == NULL) return 0;
+  for (index = 0U; index < lookup->base_field_slot_count; ++index) {
+    const M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[index];
+    if (slot->conflicted == 0U && strcmp(slot->owner_name, "__amiga_app_base__") == 0 &&
+        slot->displacement == displacement && slot->value_kind != M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS) {
+      return 0;
+    }
+  }
+  for (index = 0U; index < lookup->typed_app_slot_count; ++index) {
+    const M68kRenderTypedAppSlot *slot = &lookup->typed_app_slots[index];
+    uint16_t struct_size;
+    int32_t field_offset;
+    char candidate_base_symbol[64];
+    char candidate_field_expr[96];
+    if (slot->conflicted != 0U || slot->inline_region == 0U ||
+        slot->struct_id == AMIGA_OS_STRUCT_ID_NONE) {
+      continue;
+    }
+    struct_size = render_amiga_struct_size_for_struct_id(slot->struct_id);
+    field_offset = (int32_t)displacement - (int32_t)slot->displacement;
+    if (struct_size == 0U || field_offset <= 0 || field_offset >= (int32_t)struct_size ||
+        field_offset < INT16_MIN || field_offset > INT16_MAX) {
+      continue;
+    }
+    if (!lookup_app_base_field_slot_symbol_name(lookup, slot->displacement, candidate_base_symbol,
+        sizeof(candidate_base_symbol)) ||
+        !amiga_os_resolve_struct_field_symbol_expr_by_struct_id(slot->struct_id, (int16_t)field_offset, 0,
+          candidate_field_expr, sizeof(candidate_field_expr))) {
+      continue;
+    }
+    if (found != 0) {
+      if (strcmp(found_base_symbol, candidate_base_symbol) != 0 ||
+          strcmp(found_field_expr, candidate_field_expr) != 0 ||
+          found_field_offset != field_offset) {
+        return 0;
+      }
+      continue;
+    }
+    snprintf(found_base_symbol, sizeof(found_base_symbol), "%s", candidate_base_symbol);
+    snprintf(found_field_expr, sizeof(found_field_expr), "%s", candidate_field_expr);
+    found_field_offset = field_offset;
+    found = 1;
+  }
+  if (found == 0) return 0;
+  if (base_symbol != NULL && base_symbol_size > 0U)
+    snprintf(base_symbol, base_symbol_size, "%s", found_base_symbol);
+  if (field_expr != NULL && field_expr_size > 0U)
+    snprintf(field_expr, field_expr_size, "%s", found_field_expr);
+  if (out_field_offset != NULL) *out_field_offset = found_field_offset;
+  return 1;
+}
+
+static uint16_t render_amiga_struct_size_for_struct_id(uint16_t struct_id) {
+  int32_t max_end = 0;
+  size_t index;
+  if (struct_id == AMIGA_OS_STRUCT_ID_NONE || amiga_os_name(M68K_PLATFORM_NAME_STRUCT, struct_id) == NULL)
+    return 0U;
+  for (index = 0U; index < AMIGA_OS_STRUCT_FIELD_COUNT; ++index) {
+    const AmigaOsStructFieldInfo *field = amiga_os_struct_field_at(index);
+    int32_t end;
+    if (field == NULL || field->struct_id != struct_id) continue;
+    end = (int32_t)field->offset + (int32_t)field->size;
+    if (field->size == 0U) end = field->offset;
+    if (end > max_end) max_end = end;
+  }
+  if (max_end <= 0) return 0U;
+  return max_end > UINT16_MAX ? UINT16_MAX : (uint16_t)max_end;
+}
+
+static int32_t lookup_typed_app_slot_region_size(const M68kRenderLookup *lookup, int16_t displacement) {
+  size_t index;
+  int32_t found_size = 0;
+  if (lookup == NULL) return 0;
+  for (index = 0U; index < lookup->typed_app_slot_count; ++index) {
+    const M68kRenderTypedAppSlot *slot = &lookup->typed_app_slots[index];
+    uint16_t struct_size;
+    if (slot->conflicted != 0U || slot->inline_region == 0U || slot->displacement != displacement ||
+        slot->struct_id == AMIGA_OS_STRUCT_ID_NONE) {
+      continue;
+    }
+    struct_size = render_amiga_struct_size_for_struct_id(slot->struct_id);
+    if (struct_size == 0U) continue;
+    if (found_size != 0 && found_size != (int32_t)struct_size) return 0;
+    found_size = (int32_t)struct_size;
+  }
+  return found_size;
+}
+
 static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     const M68kRenderPlatformState *state, M68kInstructionIR *instruction) {
   size_t operand_index;
@@ -2125,21 +2418,32 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     M68kOperandIR *operand = &instruction->operands[operand_index];
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
-    char symbol_name[64];
+    char symbol_name[64], field_expr[96];
+    int32_t field_offset = 0;
     if (operand->symbol_ref.has_name != 0U) continue;
     if (!operand_is_address_displacement_local(operand, &base_reg, &displacement)) continue;
     if (state->address_app_base_known[base_reg]) {
-      if (!lookup_app_base_field_slot_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name))) continue;
+      if (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),
+          field_expr, sizeof(field_expr), &field_offset) &&
+          !lookup_app_base_field_slot_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name))) {
+        continue;
+      }
     } else if (state->address_base_known[base_reg]) {
       if (!library_base_can_use_app_extension_slot(state->address_base_library[base_reg], displacement) ||
-          !lookup_app_base_field_slot_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name))) {
+          (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),
+            field_expr, sizeof(field_expr), &field_offset) &&
+          !lookup_app_base_field_slot_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name)))) {
         if (!lookup_base_field_slot_symbol_name(lookup, state->address_base_library[base_reg], displacement,
             symbol_name, sizeof(symbol_name))) {
           continue;
         }
       }
     } else if (base_reg == 6U) {
-      if (!lookup_app_base_field_slot_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name))) continue;
+      if (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),
+          field_expr, sizeof(field_expr), &field_offset) &&
+          !lookup_app_base_field_slot_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name))) {
+        continue;
+      }
     } else {
       continue;
     }
@@ -2149,6 +2453,13 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
     operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
     snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
+    if (field_offset != 0 && field_expr[0] != '\0') {
+      operand->symbol_ref.has_symbolic_addend = 1U;
+      operand->symbol_ref.symbolic_addend_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
+      operand->symbol_ref.symbolic_addend_value = field_offset;
+      snprintf(operand->symbol_ref.symbolic_addend_name, sizeof(operand->symbol_ref.symbolic_addend_name),
+        "%s", field_expr);
+    }
     attached = 1;
   }
   return attached;
@@ -2196,6 +2507,11 @@ static int render_asm_include_for_instruction_platform_symbols(M68kRenderIRPrevi
     const M68kOperandIR *operand = &instruction->operands[operand_index];
     if (operand->symbol_ref.has_name == 0U) continue;
     if (!render_asm_include_for_symbol_expr(preview, operand->symbol_ref.name)) return 0;
+    if (operand->symbol_ref.has_symbolic_addend != 0U &&
+        operand->symbol_ref.symbolic_addend_name[0] != '\0' &&
+        !render_asm_include_for_symbol_expr(preview, operand->symbol_ref.symbolic_addend_name)) {
+      return 0;
+    }
   }
   return 1;
 }
@@ -3223,6 +3539,7 @@ static int app_base_slot_symbol_name_from_slot(const M68kRenderBaseFieldSlot *sl
     size_t symbol_name_size) {
   if (symbol_name != NULL && symbol_name_size != 0U) symbol_name[0] = '\0';
   if (slot == NULL || slot->conflicted != 0U) return 0;
+  if (amiga_unknown_base_owner_name_is_internal(slot->owner_name)) return 0;
   if (slot->symbol_name[0] != '\0') {
     if (symbol_name == NULL || symbol_name_size == 0U) return 0;
     snprintf(symbol_name, symbol_name_size, "%s", slot->symbol_name);
@@ -3442,6 +3759,7 @@ int lookup_base_field_slot_symbol_name(const M68kRenderLookup *lookup, const cha
       symbol_name == NULL || symbol_name_size == 0U) {
     return 0;
   }
+  if (amiga_unknown_base_owner_name_is_internal(owner_name)) return 0;
   for (index = 0U; index < lookup->base_field_slot_count; ++index) {
     const M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[index];
     char slot_symbol[64];
@@ -3590,10 +3908,16 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
   for (index = 0U; index < lookup->base_field_slot_count; ++index) {
     const M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[index];
     char symbol_name[64];
+    char region_symbol_name[64], field_expr[96];
     int conflict = 0;
     int32_t extent_end;
+    int32_t region_size;
     if (slot->conflicted != 0U || strcmp(slot->owner_name, "__amiga_app_base__") != 0) continue;
     if ((int32_t)slot->displacement < base_offset) continue;
+    if (lookup_typed_app_slot_field_symbol_name(lookup, slot->displacement, region_symbol_name,
+        sizeof(region_symbol_name), field_expr, sizeof(field_expr), NULL)) {
+      continue;
+    }
     if (!app_base_slot_symbol_name_from_slot(slot, symbol_name, sizeof(symbol_name)) ||
         lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, slot->displacement)) {
       continue;
@@ -3613,10 +3937,11 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       continue;
     }
     slots[slot_count].displacement = slot->displacement;
-    slots[slot_count].size = (slot->displacement & 1) == 0 ? 4 : 1;
+    region_size = lookup_typed_app_slot_region_size(lookup, slot->displacement);
+    slots[slot_count].size = region_size > 0 ? region_size : ((slot->displacement & 1) == 0 ? 4 : 1);
     snprintf(slots[slot_count].name, sizeof(slots[slot_count].name), "%s", symbol_name);
     ++slot_count;
-    extent_end = (int32_t)slot->displacement + ((slot->displacement & 1) == 0 ? 4 : 1);
+    extent_end = (int32_t)slot->displacement + slots[slot_count - 1U].size;
     if (extent_end > inferred_sizeof) inferred_sizeof = extent_end;
   }
   if (slot_count == 0U && has_app_sizeof_value == 0) {
@@ -3650,9 +3975,12 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     } else if (slots[index].size == 4) {
       snprintf(line, sizeof(line), "%s RS.L 1\n", slots[index].name);
       cursor += 4;
-    } else {
+    } else if (slots[index].size == 1) {
       snprintf(line, sizeof(line), "%s RS.B 1\n", slots[index].name);
       cursor += 1;
+    } else {
+      snprintf(line, sizeof(line), "%s RS.B %d\n", slots[index].name, (int)slots[index].size);
+      cursor += slots[index].size;
     }
     hash_asm_text(preview, line);
     ++preview->asm_source_lines;
@@ -4810,6 +5138,14 @@ static void attach_platform_stack_cleanup_comment_for_render(M68kRenderIRPreview
   record_facts_v2_platform_call(preview, section_analysis, candidate->offset, &call_info);
 }
 
+static int amiga_vector_is_open_library_result(const AmigaOsLibraryVectorInfo *vector) {
+  const char *symbol_name;
+  if (vector == NULL) return 0;
+  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
+  return symbol_name != NULL &&
+    (strcmp(symbol_name, "_LVOOpenLibrary") == 0 || strcmp(symbol_name, "_LVOOldOpenLibrary") == 0);
+}
+
 static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode, uint8_t **accepted_start_all,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
@@ -4958,6 +5294,18 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
     chosen_note_kind, chosen_vector);
   platform_state_update_d0_lvo_after_instruction(platform_state, &instruction);
   platform_state_update_after_instruction(platform_state, lookup, &instruction);
+  {
+    uint8_t loaded_address_reg = 0U;
+    char loaded_library_name[64];
+    if (candidate_lea_known_amiga_name_to_address_reg(section, candidate, &loaded_address_reg,
+        loaded_library_name, sizeof(loaded_library_name))) {
+      platform_state_set_register_library(platform_state, loaded_address_reg, loaded_library_name);
+    }
+  }
+  if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_JSR ||
+      instruction.mnemonic_id == M68K_ASM_MNEMONIC_BSR) {
+    platform_state_note_call_result_after_instruction(platform_state, &instruction, chosen_vector);
+  }
   return 1;
 }
 

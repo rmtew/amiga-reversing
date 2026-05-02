@@ -24,7 +24,16 @@
 
 typedef struct M68kRenderLookup M68kRenderLookup;
 
+typedef struct M68kRenderPlatformLocalBaseSlot {
+  uint8_t valid;
+  uint8_t base_reg;
+  int16_t displacement;
+  char library_name[64];
+} M68kRenderPlatformLocalBaseSlot;
+
 typedef struct M68kRenderPlatformState {
+  uint8_t data_base_known[8];
+  char data_base_library[8][64];
   uint8_t address_base_known[8];
   char address_base_library[8][64];
   uint8_t address_hardware_base_known[8];
@@ -33,6 +42,7 @@ typedef struct M68kRenderPlatformState {
   uint8_t address_app_base_known[8];
   uint8_t d0_lvo_known;
   int16_t d0_lvo;
+  M68kRenderPlatformLocalBaseSlot local_base_slots[32];
 } M68kRenderPlatformState;
 
 typedef struct M68kRenderGlobalBaseSlot {
@@ -129,10 +139,47 @@ typedef struct M68kRenderXref {
   uint32_t target_offset;
 } M68kRenderXref;
 
+enum {
+  M68K_RENDER_TYPED_ORIGIN_NONE = 0,
+  M68K_RENDER_TYPED_ORIGIN_STACK_SLOT = 1,
+  M68K_RENDER_TYPED_ORIGIN_BASE_SLOT = 2,
+  M68K_RENDER_TYPED_ORIGIN_LOOKUP_STORAGE = 3
+};
+
+enum {
+  M68K_RENDER_TYPED_PROVENANCE_NONE = 0,
+  M68K_RENDER_TYPED_PROVENANCE_API_OUTPUT = 1,
+  M68K_RENDER_TYPED_PROVENANCE_REGISTER_COPY = 2,
+  M68K_RENDER_TYPED_PROVENANCE_STACK_SLOT = 3,
+  M68K_RENDER_TYPED_PROVENANCE_BASE_SLOT = 4,
+  M68K_RENDER_TYPED_PROVENANCE_LOOKUP_STORAGE = 5,
+  M68K_RENDER_TYPED_PROVENANCE_APP_SLOT = 6,
+  M68K_RENDER_TYPED_PROVENANCE_FIELD_POINTER = 7,
+  M68K_RENDER_TYPED_PROVENANCE_PREFIX_REFINEMENT = 8,
+  M68K_RENDER_TYPED_PROVENANCE_FIELD_ADDRESS = 9
+};
+
+typedef struct M68kRenderTypedStorageOrigin {
+  uint8_t kind;
+  uint8_t storage_kind;
+  uint8_t base_reg;
+  size_t section_index;
+  int32_t displacement;
+  uint32_t address;
+} M68kRenderTypedStorageOrigin;
+
+typedef struct M68kRenderTypedProvenance {
+  uint8_t kind;
+  size_t section_index;
+  uint32_t offset;
+} M68kRenderTypedProvenance;
+
 typedef struct M68kRenderTypedRegValue {
   uint8_t known;
   const AmigaOsCallOutputInfo *output;
   uint16_t struct_id;
+  M68kRenderTypedStorageOrigin origin;
+  M68kRenderTypedProvenance provenance;
 } M68kRenderTypedRegValue;
 
 typedef struct M68kRenderTypedStoredValue {
@@ -141,12 +188,19 @@ typedef struct M68kRenderTypedStoredValue {
   uint16_t struct_id;
   uint8_t app_address_known;
   int16_t app_displacement;
+  M68kRenderTypedProvenance provenance;
 } M68kRenderTypedStoredValue;
 
 typedef struct M68kRenderTypedAppAddressValue {
   uint8_t known;
   int16_t displacement;
 } M68kRenderTypedAppAddressValue;
+
+typedef struct M68kRenderTypedMemoryBaseValue {
+  uint8_t known;
+  size_t section_index;
+  uint32_t offset;
+} M68kRenderTypedMemoryBaseValue;
 
 typedef struct M68kRenderTypedStackSlot {
   uint8_t known;
@@ -167,7 +221,10 @@ typedef struct M68kRenderTypedBaseSlot {
 typedef struct M68kRenderTypedState {
   M68kRenderTypedRegValue data_regs[8];
   M68kRenderTypedRegValue addr_regs[8];
+  M68kRenderTypedAppAddressValue data_app_addr_regs[8];
   M68kRenderTypedAppAddressValue app_addr_regs[8];
+  M68kRenderTypedMemoryBaseValue data_memory_base_regs[8];
+  M68kRenderTypedMemoryBaseValue memory_base_regs[8];
   M68kRenderTypedStackSlot stack_slots[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
   size_t stack_slot_count;
   M68kRenderTypedBaseSlot base_slots[M68K_RENDER_TYPED_BASE_SLOT_LIMIT];
@@ -192,6 +249,7 @@ typedef struct M68kRenderTypedAccess {
   int16_t field_offset;
   uint8_t inherited;
   uint8_t nested;
+  M68kRenderTypedProvenance provenance;
   char root_struct_name[64];
   char owner_struct_name[64];
   char field_name[64];
@@ -205,20 +263,29 @@ typedef struct M68kRenderUnresolvedTypedAccess {
   uint8_t base_reg;
   int16_t displacement;
   uint16_t struct_size;
+  uint8_t classification;
+  uint16_t container_candidate_count;
+  uint8_t refinement_applied;
+  M68kRenderTypedProvenance provenance;
   char root_struct_name[64];
+  char container_struct_name[64];
+  char container_field_expr[96];
+  char refined_struct_name[64];
 } M68kRenderUnresolvedTypedAccess;
 
 typedef struct M68kRenderTypedAppSlot {
   int16_t displacement;
   uint16_t struct_id;
   uint8_t conflicted;
+  uint8_t inline_region;
   size_t source_section_index;
   uint32_t source_offset;
 } M68kRenderTypedAppSlot;
 
 enum {
   M68K_RENDER_TYPED_STORAGE_APP_SLOT = 1,
-  M68K_RENDER_TYPED_STORAGE_ABSOLUTE = 2
+  M68K_RENDER_TYPED_STORAGE_ABSOLUTE = 2,
+  M68K_RENDER_TYPED_STORAGE_BASE_SLOT = 3
 };
 
 typedef struct M68kRenderTypedStorageSlot {
@@ -427,6 +494,8 @@ int operand_address_register_index_local(const M68kOperandIR *operand, uint8_t *
 uint8_t app_slot_access_kind_from_instruction(const M68kInstructionIR *instruction, size_t operand_index);
 int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uint8_t base_reg,
   int16_t displacement);
+int candidate_lea_known_amiga_name_to_address_reg(const M68kDecodeSectionIR *section,
+  const M68kDecodeCandidate *candidate, uint8_t *out_reg, char *out_name, size_t out_size);
 int reglist_contains_data_register_local(const M68kOperandIR *operand, uint8_t reg_index);
 int reglist_contains_address_register_local(const M68kOperandIR *operand, uint8_t reg_index);
 int accepted_start_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t offset);
@@ -455,17 +524,21 @@ int render_lookup_add_recovered_local_call_summary(M68kRenderLookup *lookup, siz
 int render_lookup_add_typed_slot_effect(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
   int16_t displacement, const AmigaOsCallOutputInfo *output);
 int render_lookup_add_typed_app_slot(M68kRenderLookup *lookup, int16_t displacement, uint16_t struct_id,
-  size_t source_section_index, uint32_t source_offset, int *out_added);
+    size_t source_section_index, uint32_t source_offset, int *out_added);
+int render_lookup_add_typed_app_slot_region(M68kRenderLookup *lookup, int16_t displacement, uint16_t struct_id,
+    size_t source_section_index, uint32_t source_offset, int *out_added);
 int render_lookup_add_typed_storage_slot(M68kRenderLookup *lookup, uint8_t kind, size_t section_index,
   int32_t displacement, uint32_t address, const M68kRenderTypedStoredValue *value,
   size_t source_section_index, uint32_t source_offset, int *out_added);
 int render_lookup_conflict_typed_storage_slot(M68kRenderLookup *lookup, uint8_t kind, size_t section_index,
   int32_t displacement, uint32_t address, size_t source_section_index, uint32_t source_offset, int *out_added);
 int render_lookup_add_typed_access(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
-  uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t root_struct_id,
-  const AmigaOsResolvedStructFieldInfo *field, const char *field_expr);
+    uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t root_struct_id,
+    const AmigaOsResolvedStructFieldInfo *field, const char *field_expr,
+    const M68kRenderTypedProvenance *provenance);
 int render_lookup_add_unresolved_typed_access(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
-  uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t root_struct_id, uint16_t struct_size);
+  uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t root_struct_id, uint16_t struct_size,
+  uint8_t refinement_applied, uint16_t refined_struct_id, const M68kRenderTypedProvenance *provenance);
 const char *render_lookup_device_name_for_call(const M68kRenderLookup *lookup, size_t section_index,
   uint32_t offset);
 int render_lookup_add_string_span(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
@@ -499,6 +572,7 @@ int ascii_char_is_symbol_local(char c, int first);
 int asm_symbol_name_is_safe_local(const char *name);
 int ascii_contains_case_local(const char *text, const char *needle);
 const char *amiga_library_name_from_base_symbol_name(const char *symbol_name);
+int amiga_unknown_base_register_owner_name(uint8_t base_reg, char *buf, size_t buf_size);
 const AmigaOsCallInputInfo *amiga_vector_input_by_register(const AmigaOsLibraryVectorInfo *vector,
   uint8_t reg_kind, uint8_t reg_index);
 const AmigaOsCallInputInfo *amiga_vector_input_by_stack_index(const AmigaOsLibraryVectorInfo *vector,
@@ -535,6 +609,8 @@ void platform_state_update_d0_lvo_after_instruction(M68kRenderPlatformState *sta
   const M68kInstructionIR *instruction);
 void platform_state_update_after_instruction(M68kRenderPlatformState *state, const M68kRenderLookup *lookup,
   const M68kInstructionIR *instruction);
+void platform_state_note_call_result_after_instruction(M68kRenderPlatformState *state,
+  const M68kInstructionIR *instruction, const AmigaOsLibraryVectorInfo *vector);
 uint32_t render_section_extent(const M68kDecodeSectionIR *section);
 int render_cfg_candidate_has_fallthrough(const M68kDecodeCandidate *candidate);
 int render_lookup_add_indexed_vector_wrapper_branch_aliases(M68kRenderLookup *lookup,

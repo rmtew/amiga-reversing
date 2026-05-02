@@ -10,6 +10,7 @@ from amiga_reversing.disasm.listing_types import (
     HeaderRowContext,
     ListingRow,
     PlatformTypedAccess,
+    PlatformUnresolvedTypedAccess,
     RowSourceContext,
     SemanticOperand,
     SemanticOperandMetadata,
@@ -53,6 +54,20 @@ class SerializedTypedAccess(TypedDict):
     field_expr: str
     inherited: bool
     nested: bool
+
+
+class SerializedUnresolvedTypedAccess(TypedDict):
+    operand_index: int
+    base_register: str
+    displacement: int
+    struct_size: int | None
+    root_struct_name: str | None
+    classification: str | None
+    container_candidate_count: int | None
+    container_struct_name: str | None
+    container_field_expr: str | None
+    refinement_applied: bool
+    refined_struct_name: str | None
 
 
 class SerializedApiInput(TypedDict):
@@ -107,6 +122,7 @@ class SerializedRow(TypedDict):
     operand_registers: list[str | None]
     app_slot_refs: list[SerializedAppSlotRef]
     typed_accesses: list[SerializedTypedAccess]
+    unresolved_typed_accesses: list[SerializedUnresolvedTypedAccess]
     operand_text: str
     comment_parts: list[str]
     comment_text: str
@@ -207,6 +223,22 @@ def serialize_typed_access(access: PlatformTypedAccess) -> SerializedTypedAccess
     }
 
 
+def serialize_unresolved_typed_access(access: PlatformUnresolvedTypedAccess) -> SerializedUnresolvedTypedAccess:
+    return {
+        "operand_index": access.operand_index,
+        "base_register": access.base_register,
+        "displacement": access.displacement,
+        "struct_size": access.struct_size,
+        "root_struct_name": access.root_struct_name,
+        "classification": access.classification,
+        "container_candidate_count": access.container_candidate_count,
+        "container_struct_name": access.container_struct_name,
+        "container_field_expr": access.container_field_expr,
+        "refinement_applied": access.refinement_applied,
+        "refined_struct_name": access.refined_struct_name,
+    }
+
+
 def serialize_row(row: ListingRow) -> SerializedRow:
     return {
         "row_id": row.row_id,
@@ -233,6 +265,10 @@ def serialize_row(row: ListingRow) -> SerializedRow:
         "operand_registers": list(row.operand_registers),
         "app_slot_refs": [serialize_app_slot_ref(ref) for ref in row.app_slot_refs],
         "typed_accesses": [serialize_typed_access(access) for access in row.typed_accesses],
+        "unresolved_typed_accesses": [
+            serialize_unresolved_typed_access(access)
+            for access in row.unresolved_typed_accesses
+        ],
         "operand_text": row.operand_text,
         "comment_parts": list(row.comment_parts),
         "comment_text": row.comment_text,
