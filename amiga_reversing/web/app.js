@@ -78,6 +78,7 @@ const state = {
     appSlotSymbol: null,
     labelSymbol: null,
     entries: null,
+    appSlotAnalysis: null,
     generation: null,
     originEntry: null,
     currentPreviewEntry: null,
@@ -160,7 +161,14 @@ const CORPUS_GROUP_PREFIXES = {
   copper: ["data:copper_list", "hardware:custom/copper", "value_domain:amiga.custom.copper"],
   display: ["display:", "hardware:custom/display", "value_domain:amiga.custom.display_config"],
   runtime: ["runtime:"],
-  app_slots: ["app_slot:"],
+  app_slots: [
+    "app_slot:",
+    "app_slot_region:",
+    "app_slot_region_source:",
+    "app_slot_field_path:",
+    "app_slot_field_gap:",
+    "app_slot_field_gap_path:",
+  ],
   symbols: ["label:", "xref:label", "xref:segment"],
   data: ["data:", "xref:data"],
   diagnostics: ["diagnostic:"],
@@ -1626,6 +1634,11 @@ function corpusFeatureLabel(feature) {
   if (text.startsWith("display:")) return `Display: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
   if (text.startsWith("data:")) return text.split(":", 2)[1].replaceAll("_", " ");
   if (text.startsWith("app_slot:")) return `App slot: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("app_slot_region:")) return `App slot region: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("app_slot_region_source:")) return `App slot source: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
+  if (text.startsWith("app_slot_field_path:")) return `App slot field: ${text.split(":", 2)[1].replaceAll("_", ".")}`;
+  if (text.startsWith("app_slot_field_gap:")) return `App slot field gap: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
+  if (text.startsWith("app_slot_field_gap_path:")) return `App slot field gap: ${text.split(":", 2)[1].replaceAll("_", ".")}`;
   if (text.startsWith("runtime:")) return text.split(":", 2)[1].replaceAll("_", " ");
   if (text.startsWith("label:")) return `Labels: ${text.split(":", 2)[1]}`;
   if (text.startsWith("xref:")) return text.split(":", 2)[1].replaceAll("_", " ");
@@ -2963,7 +2976,56 @@ function formatAppSlotDisplacement(entry) {
   return `${sign}$${Math.abs(displacement).toString(16).toUpperCase().padStart(4, "0")}`;
 }
 
+function appSlotTypedInfoForSymbol(symbol) {
+  const analysis = state.navigation.appSlotAnalysis;
+  const regions = Array.isArray(analysis?.regions) ? analysis.regions : [];
+  for (const region of regions) {
+    if (region?.source !== "platform_api_arg") {
+      continue;
+    }
+    if (String(region.symbol || "") === symbol) {
+      return {region, field: null};
+    }
+    const fieldRefs = Array.isArray(region.field_refs) ? region.field_refs : [];
+    for (const field of fieldRefs) {
+      if (String(field?.symbol || "") === symbol) {
+        return {region, field};
+      }
+    }
+  }
+  return null;
+}
+
+function appSlotFieldPath(field, structName) {
+  const path = Array.isArray(field?.field_path) ? field.field_path.filter((part) => typeof part === "string" && part) : [];
+  if (path.length) {
+    return [structName, ...path].join(".");
+  }
+  return field?.field_name ? `${structName}.${field.field_name}` : "";
+}
+
+function appSlotTypedInfoTitle(info) {
+  const structName = String(info?.region?.struct_name || "typed app slot");
+  if (info?.field) {
+    const fieldName = appSlotFieldPath(info.field, structName) || info.field.symbol || "field";
+    const fieldOffset = formatAppSlotDisplacement({displacement: Number(info.field.field_offset || 0)});
+    const baseSymbol = String(info.field.base_symbol || info.region.symbol || "");
+    const fieldExpr = String(info.field.field_expr || "");
+    const sourceExpr = baseSymbol && fieldExpr ? `${baseSymbol}+${fieldExpr}` : "";
+    return `${structName}${fieldOffset ? `+${fieldOffset}` : ""} ${fieldName}${sourceExpr ? ` (${sourceExpr})` : ""}`;
+  }
+  const offset = formatAppSlotDisplacement({displacement: Number(info?.region?.offset || 0)});
+  const size = Number(info?.region?.size || 0);
+  return `${structName} app slot ${offset}${size > 0 ? ` (${size} bytes)` : ""}`;
+}
+
 function formatNavigationEntryOffset(entry) {
+  if (Number.isFinite(Number(entry?.start)) && Number.isFinite(Number(entry?.end))) {
+    return `${formatAppSlotDisplacement({displacement: Number(entry.start)})}-${formatAppSlotDisplacement({displacement: Number(entry.end)})}`;
+  }
+  if (Number.isFinite(Number(entry?.offset)) && Number.isFinite(Number(entry?.end))) {
+    return `${formatAppSlotDisplacement({displacement: Number(entry.offset)})}-${formatAppSlotDisplacement({displacement: Number(entry.end)})}`;
+  }
   if (entry?.refs && entry?.symbol && entry?.displacement !== undefined) {
     return formatAppSlotDisplacement(entry);
   }
@@ -3168,7 +3230,10 @@ function renderOperandAppSlotRefsHtml(row, operand, globalRowIndex) {
       return;
     }
     html += escapeHtml(operand.slice(cursor, range.start));
-    html += `<button class="listing-symbol-link listing-symbol-reference listing-app-slot-reference" type="button" data-app-slot-symbol="${escapeHtml(range.symbol)}" data-row-index="${escapeHtml(String(globalRowIndex))}" data-app-slot-operand-index="${escapeHtml(String(range.operandIndex))}" data-app-slot-access="${escapeHtml(range.access)}">${escapeHtml(range.symbol)}</button>`;
+    const typedInfo = appSlotTypedInfoForSymbol(range.symbol);
+    const typedClass = typedInfo ? " listing-app-slot-typed" : "";
+    const title = typedInfo ? ` title="${escapeHtml(appSlotTypedInfoTitle(typedInfo))}"` : "";
+    html += `<button class="listing-symbol-link listing-symbol-reference listing-app-slot-reference${typedClass}" type="button" data-app-slot-symbol="${escapeHtml(range.symbol)}" data-row-index="${escapeHtml(String(globalRowIndex))}" data-app-slot-operand-index="${escapeHtml(String(range.operandIndex))}" data-app-slot-access="${escapeHtml(range.access)}"${title}>${escapeHtml(range.symbol)}</button>`;
     cursor = range.end;
   });
   html += escapeHtml(operand.slice(cursor));
@@ -3178,9 +3243,13 @@ function renderOperandAppSlotRefsHtml(row, operand, globalRowIndex) {
 function renderListingCodeHtml(row, globalRowIndex = null) {
   const globalRsEqu = parseGlobalRsEquRow(row);
   if (globalRsEqu) {
-    const labelTitle = globalRsEqu.label ? ` title="${escapeHtml(globalRsEqu.label)}"` : "";
+    const typedInfo = isAppSlotSymbolName(globalRsEqu.label) ? appSlotTypedInfoForSymbol(globalRsEqu.label) : null;
+    const labelTitle = typedInfo
+      ? ` title="${escapeHtml(appSlotTypedInfoTitle(typedInfo))}"`
+      : (globalRsEqu.label ? ` title="${escapeHtml(globalRsEqu.label)}"` : "");
+    const typedClass = typedInfo ? " listing-app-slot-typed" : "";
     const labelHtml = isAppSlotSymbolName(globalRsEqu.label)
-      ? `<button class="listing-symbol-link listing-global-label listing-app-slot-definition" type="button" data-app-slot-symbol="${escapeHtml(globalRsEqu.label)}"${labelTitle}>${escapeHtml(globalRsEqu.label)}</button>`
+      ? `<button class="listing-symbol-link listing-global-label listing-app-slot-definition${typedClass}" type="button" data-app-slot-symbol="${escapeHtml(globalRsEqu.label)}"${labelTitle}>${escapeHtml(globalRsEqu.label)}</button>`
       : `<span class="listing-global-label"${labelTitle}>${escapeHtml(globalRsEqu.label)}</span>`;
     return `<span class="listing-global-structured">${labelHtml}<span class="listing-global-directive">${escapeHtml(globalRsEqu.directive)}</span><span class="listing-global-operand">${escapeHtml(globalRsEqu.operand)}</span></span>`;
   }
@@ -3245,18 +3314,25 @@ function renderAnnotationEditButton(row, rowIndex) {
 }
 
 function renderApiTypeBadges(row) {
-  if (!row.api_call || !Array.isArray(row.api_call.inputs)) {
+  if (!row.api_call) {
     return "";
   }
-  const highlighted = row.api_call.inputs.filter((input) => input.i_struct || input.source !== "parsed NDK");
+  const inputs = Array.isArray(row.api_call.inputs) ? row.api_call.inputs : [];
+  const outputs = Array.isArray(row.api_call.outputs) ? row.api_call.outputs : [];
+  const highlighted = inputs
+    .filter((input) => input.i_struct || input.source !== "parsed NDK")
+    .map((input) => ({...input, direction: "in", struct: input.i_struct}));
+  outputs
+    .filter((output) => output.o_struct || output.source !== "parsed NDK")
+    .forEach((output) => highlighted.push({...output, direction: "out", struct: output.o_struct}));
   if (!highlighted.length) {
     return "";
   }
   return highlighted
-    .map((input) => {
-      const label = `${input.regs.join("/")} ${input.i_struct || input.type || input.name}`;
-      const title = `${input.name}: ${input.type || "(untyped)"}\nsource: ${input.source}`;
-      const sourceClass = `project-badge-source-${String(input.source || "unknown").toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}`;
+    .map((item) => {
+      const label = `${item.direction}:${item.regs.join("/")} ${item.struct || item.type || item.name}`;
+      const title = `${item.direction} ${item.name}: ${item.type || "(untyped)"}\nsource: ${item.source}`;
+      const sourceClass = `project-badge-source-${String(item.source || "unknown").toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}`;
       return `<span class="project-badge ${sourceClass}" title="${escapeHtml(title)}">${escapeHtml(label)}</span>`;
     })
     .join("");
@@ -3998,6 +4074,10 @@ function buildNavigationEntries(rows) {
     "relocations": [],
     "api-calls": [],
     "app-slots": [],
+    "app-slot-regions": [],
+    "app-slot-gaps": [],
+    "app-slot-field-gaps": [],
+    "app-slot-api-args": [],
     "labels": [],
     "comments": [],
   };
@@ -4099,6 +4179,7 @@ function currentNavigationEntries() {
 async function loadNavigationEntries(projectId) {
   const payload = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/listing/navigation`);
   state.navigation.entries = payload.groups || null;
+  state.navigation.appSlotAnalysis = payload.app_slot_analysis || null;
   state.navigation.generation = payload.analysis_generation || null;
   if (
     state.navigation.appSlotSymbol &&
@@ -4135,6 +4216,16 @@ function syncNavigationSelection() {
 function navigationEntryRowIndex(entry) {
   const value = Number(entry?.rowIndex ?? entry?.row_index);
   return Number.isFinite(value) ? value : null;
+}
+
+function navigationEntryHasJumpTarget(entry) {
+  if (!entry || entry.navigable === false) {
+    return false;
+  }
+  if (navigationEntryRowIndex(entry) !== null) {
+    return true;
+  }
+  return entry.addr !== null && entry.addr !== undefined && Number.isFinite(Number(entry.addr));
 }
 
 function navigationEntriesSameLocation(left, right) {
@@ -4210,6 +4301,37 @@ function renderNavigationAccessBadges(entry) {
   } else if (typeof entry.access === "string") {
     badges.push(state.navigation.selectedClass === "labels" ? labelAccessBadgeLabel(entry.access) : appSlotAccessBadgeLabel(entry.access));
   }
+  if (state.navigation.selectedClass === "app-slots" && entry.width_counts && typeof entry.width_counts === "object") {
+    [["byte", "B"], ["word", "W"], ["long", "L"], ["unknown", "?"]].forEach(([width, label]) => {
+      const count = Number(entry.width_counts[width]);
+      if (Number.isFinite(count) && count > 0) {
+        badges.push(`${label} ${count}`);
+      }
+    });
+  }
+  if (state.navigation.selectedClass === "app-slots" && Array.isArray(entry.containing_regions) && entry.containing_regions.length) {
+    badges.push("typed");
+  }
+  if (state.navigation.selectedClass === "app-slot-regions") {
+    if (entry.struct_name) {
+      badges.push(String(entry.struct_name));
+    }
+    const fieldRefCount = Number(entry.field_ref_count);
+    if (Number.isFinite(fieldRefCount) && fieldRefCount > 0) {
+      badges.push(`${fieldRefCount} field${fieldRefCount === 1 ? "" : "s"}`);
+    }
+  }
+  if (state.navigation.selectedClass === "app-slot-api-args") {
+    if (entry.register) {
+      badges.push(String(entry.register));
+    }
+    if (entry.type_name) {
+      badges.push(String(entry.type_name));
+    }
+    if (entry.reason) {
+      badges.push(String(entry.reason).replaceAll("_", " "));
+    }
+  }
   if (!badges.length) {
     return "";
   }
@@ -4238,6 +4360,16 @@ function navigationSummaryText(entries) {
   const labelSymbol = currentLabelNavigationSymbol();
   if (labelSymbol) {
     return `${labelSymbol}: ${entries.length} ref${entries.length === 1 ? "" : "s"}`;
+  }
+  if (state.navigation.selectedClass === "app-slots" && state.navigation.appSlotAnalysis) {
+    const analysis = state.navigation.appSlotAnalysis;
+    const slots = Number(analysis.slot_count || 0);
+    const refs = Number(analysis.ref_count || 0);
+    const typed = Number(analysis.typed_region_count || 0);
+    const gaps = Number(analysis.gap_count || 0);
+    const suggestions = Number(analysis.suggestion_count || 0);
+    const untyped = Number(analysis.untyped_api_arg_count || 0);
+    return `${slots} slots, ${refs} refs, ${typed} typed regions, ${gaps} gaps, ${suggestions} suggestions, ${untyped} untyped API args`;
   }
   return `${entries.length} entries`;
 }
@@ -4421,6 +4553,11 @@ function renderNavigationOverlay() {
     ["relocations", "Relocations"],
     ["api-calls", "API Calls"],
     ["app-slots", "App Slots"],
+    ["app-slot-regions", "App Regions"],
+    ["app-slot-gaps", "App Gaps"],
+    ["app-slot-field-gaps", "App Field Gaps"],
+    ["app-slot-api-args", "App API Args"],
+    ["app-slot-suggestions", "App Suggestions"],
     ["labels", "Labels"],
     ["comments", "Comments"],
   ];
@@ -4486,12 +4623,15 @@ async function previewNavigationEntry(entry) {
   if (state.navigation.selectedClass === "app-slots" && navigationEntryHasRefs(entry)) {
     return;
   }
-  state.navigation.currentPreviewEntry = entry;
   if (state.navigation.selectedClass === "repro-issues") {
     state.reproduction.selectedIssueEntry = entry;
     renderReproPanel();
   }
-  await jumpToNavigationEntry(state.project, entry);
+  if (await jumpToNavigationEntry(state.project, entry)) {
+    state.navigation.currentPreviewEntry = entry;
+  } else {
+    state.navigation.currentPreviewEntry = null;
+  }
 }
 
 async function activateNavigationEntry(entry) {
@@ -4968,7 +5108,7 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
 async function loadInitialListingWindow(projectId) {
   const viewport = document.getElementById("listing-viewport");
   const count = viewport ? listingFetchCount(viewport) : LISTING_INITIAL_ROW_WINDOW;
-  return loadListingWindow(projectId, 0, 0, count);
+  return loadListingWindow(projectId, null, 0, count, {start: 0, count});
 }
 
 function normalizeJumpText(text) {
@@ -5284,14 +5424,18 @@ async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null, s
 }
 
 async function jumpToNavigationEntry(projectId, entry) {
+  if (!navigationEntryHasJumpTarget(entry)) {
+    return false;
+  }
   const matchText = entry.matchText || entry.match_text || null;
   const stableKey = entry.stableKey || entry.stable_key || null;
   const rowIndex = navigationEntryRowIndex(entry);
   if (rowIndex !== null) {
     await jumpToListingIndex(projectId, rowIndex, entry.addr, matchText, stableKey);
-    return;
+    return true;
   }
   await jumpToListingAddr(projectId, entry.addr, matchText);
+  return true;
 }
 
 async function jumpToListingSymbol(projectId, symbolName) {
@@ -5371,6 +5515,7 @@ async function renderProject(projectId) {
   }
   state.navigation.overlayOpen = false;
   state.navigation.entries = null;
+  state.navigation.appSlotAnalysis = null;
   state.navigation.generation = null;
   state.navigation.appSlotSymbol = null;
   state.navigation.labelSymbol = null;

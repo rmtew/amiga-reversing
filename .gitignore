@@ -4,6 +4,7 @@
 # Temporary/transient files
 tmp/*
 !tmp/.gitkeep
+corpus/
 
 # Python venv
 .venv/

@@ -110,6 +110,20 @@ class AppSlotRef:
     access: str
 
 
+@dataclass(frozen=True, slots=True)
+class PlatformTypedAccess:
+    operand_index: int
+    base_register: str
+    displacement: int
+    field_offset: int
+    root_struct_name: str | None
+    owner_struct_name: str | None
+    field_name: str | None
+    field_expr: str
+    inherited: bool = False
+    nested: bool = False
+
+
 @dataclass(frozen=True)
 class ListingRow:
     row_id: str
@@ -130,8 +144,12 @@ class ListingRow:
     bytes: bytes | None = None
     label: str | None = None
     opcode_or_directive: str | None = None
+    operation_type: str | None = None
     operand_parts: tuple[SemanticOperand, ...] = ()
+    operand_accesses: tuple[str, ...] = ()
+    operand_registers: tuple[str | None, ...] = ()
     app_slot_refs: tuple[AppSlotRef, ...] = ()
+    typed_accesses: tuple[PlatformTypedAccess, ...] = ()
     operand_text: str = ""
     comment_parts: tuple[str, ...] = ()
     comment_text: str = ""

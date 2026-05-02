@@ -1339,6 +1339,10 @@ body {
   text-underline-offset: 2px;
 }
 
+.listing-app-slot-typed {
+  text-decoration-style: double;
+}
+
 .listing-api-edit,
 .listing-annotation-edit {
   margin-left: 8px;

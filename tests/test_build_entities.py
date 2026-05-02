@@ -356,6 +356,29 @@ def test_grouped_os_call_inputs_are_emitted_in_entity_payload() -> None:
     }
 
 
+def test_grouped_os_call_outputs_are_emitted_in_entity_payload() -> None:
+    module = _load_build_entities_module()
+    payload = module._c_api_call_type_payload(
+        "exec.library/CreateMsgPort",
+        {
+            "outputs": [
+                {
+                    "name": "port",
+                    "regs": ["D0"],
+                    "type": "struct MsgPort *",
+                    "o_struct": "MsgPort",
+                    "value_domain": "exec.msgport",
+                }
+            ],
+        },
+    )
+
+    assert payload == {
+        "call": "exec.library/CreateMsgPort",
+        "outputs": {"D0": {"type": "struct MsgPort *", "o_struct": "MsgPort", "value_domain": "exec.msgport"}},
+    }
+
+
 def test_summarize_entity_app_slots_adds_direct_and_transitive_summaries() -> None:
     module = _load_build_entities_module()
     entities = [

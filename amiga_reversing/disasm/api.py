@@ -9,6 +9,7 @@ from amiga_reversing.disasm.listing_types import (
     BlockRowContext,
     HeaderRowContext,
     ListingRow,
+    PlatformTypedAccess,
     RowSourceContext,
     SemanticOperand,
     SemanticOperandMetadata,
@@ -41,18 +42,44 @@ class SerializedAppSlotRef(TypedDict):
     access: str
 
 
+class SerializedTypedAccess(TypedDict):
+    operand_index: int
+    base_register: str
+    displacement: int
+    field_offset: int
+    root_struct_name: str | None
+    owner_struct_name: str | None
+    field_name: str | None
+    field_expr: str
+    inherited: bool
+    nested: bool
+
+
 class SerializedApiInput(TypedDict):
     name: str
     regs: list[str]
     type: str | None
     i_struct: str | None
     source: str
+    semantic_kind: str | None
+    value_domain: str | None
+
+
+class SerializedApiOutput(TypedDict):
+    name: str
+    regs: list[str]
+    type: str | None
+    o_struct: str | None
+    source: str
+    semantic_kind: str | None
+    value_domain: str | None
 
 
 class SerializedApiCall(TypedDict):
     library: str
     function: str
     inputs: list[SerializedApiInput]
+    outputs: list[SerializedApiOutput]
 
 
 class SerializedRow(TypedDict):
@@ -74,8 +101,12 @@ class SerializedRow(TypedDict):
     bytes: str | None
     label: str | None
     opcode_or_directive: str | None
+    operation_type: str | None
     operand_parts: list[SerializedOperand]
+    operand_accesses: list[str]
+    operand_registers: list[str | None]
     app_slot_refs: list[SerializedAppSlotRef]
+    typed_accesses: list[SerializedTypedAccess]
     operand_text: str
     comment_parts: list[str]
     comment_text: str
@@ -161,6 +192,21 @@ def serialize_app_slot_ref(ref: AppSlotRef) -> SerializedAppSlotRef:
     }
 
 
+def serialize_typed_access(access: PlatformTypedAccess) -> SerializedTypedAccess:
+    return {
+        "operand_index": access.operand_index,
+        "base_register": access.base_register,
+        "displacement": access.displacement,
+        "field_offset": access.field_offset,
+        "root_struct_name": access.root_struct_name,
+        "owner_struct_name": access.owner_struct_name,
+        "field_name": access.field_name,
+        "field_expr": access.field_expr,
+        "inherited": access.inherited,
+        "nested": access.nested,
+    }
+
+
 def serialize_row(row: ListingRow) -> SerializedRow:
     return {
         "row_id": row.row_id,
@@ -181,8 +227,12 @@ def serialize_row(row: ListingRow) -> SerializedRow:
         "bytes": row.bytes.hex() if row.bytes is not None else None,
         "label": row.label,
         "opcode_or_directive": row.opcode_or_directive,
+        "operation_type": row.operation_type,
         "operand_parts": [serialize_operand(op) for op in row.operand_parts],
+        "operand_accesses": list(row.operand_accesses),
+        "operand_registers": list(row.operand_registers),
         "app_slot_refs": [serialize_app_slot_ref(ref) for ref in row.app_slot_refs],
+        "typed_accesses": [serialize_typed_access(access) for access in row.typed_accesses],
         "operand_text": row.operand_text,
         "comment_parts": list(row.comment_parts),
         "comment_text": row.comment_text,

@@ -105,6 +105,9 @@ static int policy_add_runtime_range_local(M68kAnalysisPolicy *policy, uint32_t s
   uint32_t source_start, uint32_t source_end, uint32_t base_addr, const char *name);
 static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index,
   uint32_t runtime_address);
+static int policy_add_app_slot_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
+  const char *symbol, const char *struct_name, const char *pointer_struct, const char *storage_kind,
+  const char *semantic_type);
 static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
   uint32_t runtime_address, uint32_t *out_section_index, uint32_t *out_offset);
 
@@ -448,6 +451,48 @@ static int append_metadata_absolute_code_label_local(const char *object_start, c
   return 1;
 }
 
+static uint8_t app_slot_region_size_from_storage_kind_local(const char *storage_kind) {
+  if (storage_kind == NULL || storage_kind[0] == '\0') return 4U;
+  if (strcmp(storage_kind, "struct_instance") == 0 ||
+      strcmp(storage_kind, "struct_pointer") == 0 ||
+      strcmp(storage_kind, "pointer") == 0 ||
+      strcmp(storage_kind, "scalar") == 0) {
+    return 4U;
+  }
+  return 4U;
+}
+
+static int append_metadata_app_slot_region_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  uint32_t offset = 0U;
+  int has_offset = 0;
+  char symbol[64];
+  char struct_name[64];
+  char pointer_struct[64];
+  char storage_kind[32];
+  char semantic_type[64];
+  symbol[0] = '\0';
+  struct_name[0] = '\0';
+  pointer_struct[0] = '\0';
+  storage_kind[0] = '\0';
+  semantic_type[0] = '\0';
+  if (!json_number_field_local(object_start, object_end, "offset", &offset, &has_offset) ||
+      !json_optional_string_field_local(object_start, object_end, "symbol", symbol, sizeof(symbol)) ||
+      !json_optional_string_field_local(object_start, object_end, "struct_name", struct_name, sizeof(struct_name)) ||
+      !json_optional_string_field_local(object_start, object_end, "pointer_struct", pointer_struct,
+        sizeof(pointer_struct)) ||
+      !json_optional_string_field_local(object_start, object_end, "storage_kind", storage_kind,
+        sizeof(storage_kind)) ||
+      !json_optional_string_field_local(object_start, object_end, "semantic_type", semantic_type,
+        sizeof(semantic_type))) {
+    return 0;
+  }
+  if (!has_offset) return 1;
+  return policy_add_app_slot_region_local(policy, offset,
+    app_slot_region_size_from_storage_kind_local(storage_kind), symbol, struct_name, pointer_struct, storage_kind,
+    semantic_type);
+}
+
 static int policy_add_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset) {
   M68kAnalysisEntryPoint *entry;
   uint16_t index;
@@ -504,6 +549,35 @@ static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint
   entry->has_section_index = 1U;
   entry->section_index = section_index;
   entry->runtime_address = runtime_address;
+  return 1;
+}
+
+static int policy_add_app_slot_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
+    const char *symbol, const char *struct_name, const char *pointer_struct, const char *storage_kind,
+    const char *semantic_type) {
+  M68kAnalysisAppSlotRegion *slot;
+  uint16_t index;
+  if (policy == NULL || offset > 0x7FFFU || size == 0U ||
+      policy->app_slot_region_count >= M68K_ANALYSIS_APP_SLOT_REGION_LIMIT) {
+    return 0;
+  }
+  for (index = 0U; index < policy->app_slot_region_count; ++index) {
+    const M68kAnalysisAppSlotRegion *existing = &policy->app_slot_regions[index];
+    if (existing->offset == offset) return 1;
+  }
+  slot = &policy->app_slot_regions[policy->app_slot_region_count];
+  memset(slot, 0, sizeof(*slot));
+  slot->offset = offset;
+  slot->size = size;
+  if (!copy_policy_text(slot->symbol, sizeof(slot->symbol), symbol) ||
+      !copy_policy_text(slot->struct_name, sizeof(slot->struct_name), struct_name) ||
+      !copy_policy_text(slot->pointer_struct, sizeof(slot->pointer_struct), pointer_struct) ||
+      !copy_policy_text(slot->storage_kind, sizeof(slot->storage_kind), storage_kind) ||
+      !copy_policy_text(slot->semantic_type, sizeof(slot->semantic_type), semantic_type)) {
+    memset(slot, 0, sizeof(*slot));
+    return 0;
+  }
+  policy->app_slot_region_count += 1U;
   return 1;
 }
 
@@ -1626,6 +1700,8 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
 
 static int append_metadata_amiga_policy_text_local(const char *text, M68kAnalysisPolicy *policy,
     M68kDiagSink diagnostics) {
+  const char *array_end;
+  const char *cursor;
   if (!append_metadata_bootblock_structure_local(text, policy)) {
     platform_file_add_error(diagnostics.list, "failed parsing target metadata bootblock structure");
     return -1;
@@ -1633,6 +1709,17 @@ static int append_metadata_amiga_policy_text_local(const char *text, M68kAnalysi
   if (!append_metadata_resident_structure_local(text, policy)) {
     append_metadata_resident_parse_issue_local(text, policy);
     platform_file_add_warning(diagnostics.list, "failed parsing target metadata resident structure");
+  }
+  cursor = json_find_array_local(text, "app_slot_regions", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_app_slot_region_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata app slot region");
+      return -1;
+    }
+    cursor = object_end;
   }
   return 0;
 }
@@ -1643,11 +1730,15 @@ static int platform_name_uses_amiga_metadata_policy_local(const char *platform_n
 }
 
 static int metadata_text_has_amiga_policy_local(const char *text) {
+  const char *array_end;
+  const char *array_start;
   const char *resident_end;
   const char *text_end;
   char target_type[32];
   if (text == NULL) return 0;
   if (json_find_object_field_local(text, "resident", &resident_end) != NULL) return 1;
+  array_start = json_find_array_local(text, "app_slot_regions", &array_end);
+  if (array_start != NULL && json_next_object_local(array_start, array_end, NULL) != NULL) return 1;
   text_end = text + strlen(text);
   target_type[0] = '\0';
   if (json_optional_string_field_local(text, text_end, "target_type", target_type, sizeof(target_type)) &&
@@ -2089,12 +2180,12 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
         "\"analysis_policy\":{\"max_cpu\":%u,\"implicit_entry_points\":%s,"
         "\"entry_point_count\":%u,\"register_seed_count\":%u,"
         "\"structured_data_item_count\":%u,\"named_label_count\":%u,\"entry_comment_count\":%u,"
-        "\"runtime_range_count\":%u,\"runtime_entry_point_count\":%u",
+        "\"runtime_range_count\":%u,\"runtime_entry_point_count\":%u,\"app_slot_region_count\":%u",
         (unsigned)policy->max_cpu, policy->disable_implicit_entry_points ? "false" : "true",
         (unsigned)policy->entry_point_count, (unsigned)policy->register_seed_count,
         (unsigned)policy->structured_data_item_count, (unsigned)policy->named_label_count,
         (unsigned)policy->entry_comment_count, (unsigned)policy->runtime_range_count,
-        (unsigned)policy->runtime_entry_point_count) != 0)
+        (unsigned)policy->runtime_entry_point_count, (unsigned)policy->app_slot_region_count) != 0)
     return -1;
   if (json_builder_append(builder, ",\"entrypoints\":[") != 0) return -1;
   for (index = 0U; index < policy->entry_point_count && index < M68K_ANALYSIS_ENTRY_POINT_LIMIT; ++index) {
@@ -2172,6 +2263,24 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (append_nullable_u32_json_local(builder, item->has_target, item->target_section) != 0) return -1;
     if (json_builder_append(builder, ",\"target_offset\":") != 0) return -1;
     if (append_nullable_u32_json_local(builder, item->has_target, item->target_offset) != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
+  }
+  if (json_builder_append(builder, "],\"app_slot_regions\":[") != 0) return -1;
+  for (index = 0U; index < policy->app_slot_region_count && index < M68K_ANALYSIS_APP_SLOT_REGION_LIMIT; ++index) {
+    const M68kAnalysisAppSlotRegion *slot = &policy->app_slot_regions[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_appendf(builder, "{\"offset\":%u,\"size\":%u,\"symbol\":",
+          (unsigned)slot->offset, (unsigned)slot->size) != 0)
+      return -1;
+    if (append_nullable_text_json_local(builder, slot->symbol) != 0) return -1;
+    if (json_builder_append(builder, ",\"struct_name\":") != 0) return -1;
+    if (append_nullable_text_json_local(builder, slot->struct_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"pointer_struct\":") != 0) return -1;
+    if (append_nullable_text_json_local(builder, slot->pointer_struct) != 0) return -1;
+    if (json_builder_append(builder, ",\"storage_kind\":") != 0) return -1;
+    if (append_nullable_text_json_local(builder, slot->storage_kind) != 0) return -1;
+    if (json_builder_append(builder, ",\"semantic_type\":") != 0) return -1;
+    if (append_nullable_text_json_local(builder, slot->semantic_type) != 0) return -1;
     if (json_builder_append(builder, "}") != 0) return -1;
   }
   if (json_builder_append(builder, "],\"named_labels\":[") != 0) return -1;
@@ -3198,7 +3307,6 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *ob
   M68kAnalysisPolicy local_policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR analysis;
-  char *source = NULL;
   int json_result;
   memset(&result, 0, sizeof(result));
   memset(&profile, 0, sizeof(profile));
@@ -3209,15 +3317,14 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *ob
   }
   if (analysis_policy != NULL) local_policy = *analysis_policy;
   else m68k_analysis_policy_init_default(&local_policy);
-  if (m68k_facts_v2_render_asm_source_analysis_profile_alloc(object, &local_policy, &source, &profile,
-      &analysis, 0U, m68k_diag_sink(&result.diagnostics)) != 0) {
+  if (m68k_facts_v2_collect_source_analysis_profile(object, &local_policy, &profile, &analysis,
+      m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "failed building facts_v2 source analysis");
     return result;
   }
   json_result = source_analysis_to_json(&analysis, &result.text, m68k_diag_sink(&result.diagnostics));
   m68k_ir_source_analysis_destroy(&analysis);
-  m68k_facts_v2_free_text(source);
   if (json_result != 0 && !m68k_diag_has_errors(&result.diagnostics))
     platform_file_add_error(&result.diagnostics, "failed building analysis json");
   return result;

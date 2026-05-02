@@ -31,7 +31,7 @@ from amiga_reversing.disasm.api import (
 )
 from amiga_reversing.disasm.binary_source import write_source_descriptor
 from amiga_reversing.disasm.c_backend import (
-    build_project_rows_generation_with_c_backend,
+    build_project_rows_generation_with_c_backend_profile,
     extract_disk_entry_with_c_backend,
     type_catalog_from_c_backend,
     validate_amiga_hunk_executable_with_c_backend,
@@ -121,6 +121,7 @@ _MISSING = object()
 _PROJECT_ROW_CACHE: dict[str, list[ListingRow]] = {}
 _PROJECT_ROW_GENERATION_CACHE: dict[str, str] = {}
 _PROJECT_ROW_CACHE_KEY: dict[str, str] = {}
+_PROJECT_APP_SLOT_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
 type ApiCallRowKey = tuple[int, int]
 
 
@@ -220,6 +221,7 @@ def _write_api_input_type_override(
     _PROJECT_ROW_CACHE.clear()
     _PROJECT_ROW_GENERATION_CACHE.clear()
     _PROJECT_ROW_CACHE_KEY.clear()
+    _PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
     _PROJECT_API_CALL_CACHE.clear()
     _cancel_listing_jobs()
 
@@ -397,6 +399,8 @@ def _listing_row_has_segment_reference(row: ListingRow) -> bool:
 
 
 def _listing_row_has_typed_data(row: ListingRow) -> bool:
+    if row.typed_accesses:
+        return True
     return row.kind not in {"instruction", "label"} and (
         bool(row.comment_text) or row.structured_data is not None
     )
@@ -457,6 +461,16 @@ def _listing_navigation_summary(
         return f"{function} ({library})".strip()
     if jump_class == "comments" and annotations:
         return "; ".join(annotations)
+    if jump_class == "typed-data" and row.typed_accesses:
+        access = row.typed_accesses[0]
+        owner = access.owner_struct_name or access.root_struct_name or ""
+        field = access.field_expr or access.field_name or ""
+        if owner and field:
+            return f"{owner}.{field}"
+        if field:
+            return field
+        if owner:
+            return owner
     if jump_class == "typed-data" and (row.comment_text or row.structured_data):
         structured = row.structured_data or {}
         for key in ("label", "field_name"):
@@ -514,6 +528,147 @@ def _app_slot_navigation_ref_entry(row: ListingRow, row_index: int, ref: AppSlot
     return entry
 
 
+def _app_slot_region_navigation_entry(region: dict[str, object]) -> dict[str, object]:
+    offset = cast(int, region.get("offset", 0))
+    end = cast(int, region.get("end", offset))
+    struct_name = cast(str, region.get("struct_name") or "")
+    symbol = cast(str, region.get("symbol") or "")
+    evidence = cast(list[dict[str, object]], region.get("evidence", []))
+    first_evidence = evidence[0] if evidence else {}
+    summary_type = f": {struct_name}" if struct_name else ""
+    entry: dict[str, object] = {
+        "summary": f"{symbol}{summary_type} ${offset:04X}-${end:04X}",
+        "match_text": symbol,
+        "symbol": symbol,
+        "offset": offset,
+        "end": end,
+        "size": region.get("size"),
+        "source": region.get("source"),
+        "confidence": region.get("confidence"),
+        "struct_name": struct_name,
+        "field_ref_count": len(cast(list[dict[str, object]], region.get("field_refs", []))),
+        "field_paths": [
+            ".".join([struct_name, *path])
+            for path in (
+                field_ref.get("field_path")
+                for field_ref in cast(list[dict[str, object]], region.get("field_refs", []))
+                if isinstance(field_ref, dict)
+            )
+            if isinstance(path, list) and all(isinstance(part, str) for part in path)
+        ],
+    }
+    if isinstance(first_evidence.get("row_index"), int):
+        entry["row_index"] = first_evidence["row_index"]
+    if isinstance(first_evidence.get("addr"), int):
+        entry["addr"] = first_evidence["addr"]
+    if isinstance(first_evidence.get("hunk_index"), int):
+        entry["hunk_index"] = first_evidence["hunk_index"]
+    if isinstance(first_evidence.get("stable_key"), str):
+        entry["stable_key"] = first_evidence["stable_key"]
+    return entry
+
+
+def _app_slot_field_gap_navigation_entry(gap: dict[str, object]) -> dict[str, object]:
+    start = cast(int, gap.get("start", 0))
+    end = cast(int, gap.get("end", start))
+    size = max(0, end - start)
+    struct_name = cast(str, gap.get("struct_name") or "")
+    field_path = gap.get("field_path")
+    field_label = ""
+    if isinstance(field_path, list) and all(isinstance(part, str) for part in field_path):
+        field_label = ".".join([struct_name, *field_path])
+    coverage = cast(str, gap.get("coverage") or "unknown")
+    suffix = f" {field_label}" if field_label else f" {coverage}"
+    return {
+        "summary": f"Field gap ${start:04X}-${end:04X} ({size} bytes){suffix}",
+        "match_text": field_label,
+        "navigable": False,
+        "start": start,
+        "end": end,
+        "size": size,
+        "coverage": coverage,
+        "field_path": field_path,
+        "region_id": gap.get("region_id"),
+        "symbol": gap.get("symbol"),
+        "struct_name": struct_name,
+    }
+
+
+def _app_slot_gap_navigation_entry(gap: dict[str, object]) -> dict[str, object]:
+    start = cast(int, gap.get("start", 0))
+    end = cast(int, gap.get("end", start))
+    size = max(0, end - start)
+    return {
+        "summary": f"Gap ${start:04X}-${end:04X} ({size} bytes)",
+        "match_text": "",
+        "navigable": False,
+        "start": start,
+        "end": end,
+        "size": size,
+        "after": gap.get("after"),
+        "before": gap.get("before"),
+        "coverage": gap.get("coverage"),
+    }
+
+
+def _app_slot_suggestion_navigation_entry(suggestion: dict[str, object]) -> dict[str, object]:
+    metadata = suggestion.get("metadata")
+    metadata = metadata if isinstance(metadata, dict) else {}
+    evidence = cast(list[dict[str, object]], suggestion.get("evidence", []))
+    first_evidence = evidence[0] if evidence else {}
+    offset = cast(int, metadata.get("offset", 0))
+    size = cast(int, metadata.get("size", 0))
+    struct_name = cast(str, metadata.get("struct_name") or "")
+    symbol = cast(str, metadata.get("symbol") or "")
+    summary_type = f": {struct_name}" if struct_name else ""
+    entry: dict[str, object] = {
+        "summary": cast(str, suggestion.get("summary") or f"Suggest {symbol}{summary_type} ${offset:04X}"),
+        "match_text": symbol,
+        "symbol": symbol,
+        "offset": offset,
+        "size": size,
+        "struct_name": struct_name,
+        "action": suggestion.get("action"),
+        "confidence": suggestion.get("confidence"),
+        "metadata": metadata,
+    }
+    for source_key, target_key in (("row_index", "row_index"), ("addr", "addr"), ("hunk_index", "hunk_index")):
+        if source_key in first_evidence:
+            entry[target_key] = first_evidence[source_key]
+    if isinstance(first_evidence.get("stable_key"), str):
+        entry["stable_key"] = first_evidence["stable_key"]
+    return entry
+
+
+def _app_slot_untyped_api_arg_navigation_entry(arg: dict[str, object]) -> dict[str, object]:
+    offset = cast(int, arg.get("displacement", 0))
+    symbol = cast(str, arg.get("symbol") or "")
+    function_name = cast(str, arg.get("function") or "")
+    input_name = cast(str, arg.get("input_name") or "")
+    register = cast(str, arg.get("register") or "")
+    reason = cast(str, arg.get("reason") or "untyped")
+    summary_input = f" {input_name}" if input_name else ""
+    entry: dict[str, object] = {
+        "summary": f"{symbol} -> {function_name}{summary_input} {register} ({reason})",
+        "match_text": symbol,
+        "symbol": symbol,
+        "offset": offset,
+        "displacement": offset,
+        "function": function_name,
+        "input_name": input_name,
+        "register": register,
+        "reason": reason,
+        "type_name": arg.get("type_name"),
+    }
+    for key in ("row_index", "addr", "hunk_index", "source_row_index", "source_flow_row_index"):
+        if isinstance(arg.get(key), int):
+            entry[key] = arg[key]
+    for key in ("stable_key", "source_stable_key"):
+        if isinstance(arg.get(key), str):
+            entry[key] = arg[key]
+    return entry
+
+
 def _listing_label_symbol(row: ListingRow) -> str | None:
     if row.label:
         symbol = row.label.rstrip(":").strip()
@@ -558,6 +713,11 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
         "relocations": [],
         "api-calls": [],
         "app-slots": [],
+        "app-slot-regions": [],
+        "app-slot-gaps": [],
+        "app-slot-field-gaps": [],
+        "app-slot-suggestions": [],
+        "app-slot-api-args": [],
         "labels": [],
         "comments": [],
     }
@@ -640,6 +800,67 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
         refs.sort(key=lambda entry: cast(int, entry.get("row_index", -1)))
         slot_entry["ref_count"] = len(refs)
         slot_entry["access_counts"] = _ordered_app_slot_access_counts(cast(dict[str, int], slot_entry["access_counts"]))
+    app_slot_analysis = _PROJECT_APP_SLOT_ANALYSIS_CACHE.get(
+        project_name,
+        {
+            "slot_count": 0,
+            "ref_count": 0,
+            "typed_region_count": 0,
+            "gap_count": 0,
+            "field_gap_count": 0,
+            "suggestion_count": 0,
+            "untyped_api_arg_count": 0,
+            "slots": [],
+            "regions": [],
+            "gaps": [],
+            "field_gaps": [],
+            "suggestions": [],
+            "untyped_api_args": [],
+        },
+    )
+    app_slot_summaries = {
+        cast(str, slot["symbol"]): slot
+        for slot in cast(list[dict[str, object]], app_slot_analysis.get("slots", []))
+        if isinstance(slot.get("symbol"), str)
+    }
+    for slot_entry in app_slots.values():
+        slot_summary = app_slot_summaries.get(cast(str, slot_entry.get("symbol", "")))
+        if slot_summary is None:
+            continue
+        for key in (
+            "base_registers",
+            "width_counts",
+            "observed_size",
+            "observed_end",
+            "first_row_index",
+            "last_row_index",
+            "first_addr",
+            "last_addr",
+            "containing_regions",
+        ):
+            if key in slot_summary:
+                slot_entry[key] = slot_summary[key]
+    groups["app-slot-regions"] = [
+        _app_slot_region_navigation_entry(region)
+        for region in cast(list[dict[str, object]], app_slot_analysis.get("regions", []))
+        if region.get("source") == "platform_api_arg"
+    ]
+    groups["app-slot-gaps"] = [
+        _app_slot_gap_navigation_entry(gap)
+        for gap in cast(list[dict[str, object]], app_slot_analysis.get("gaps", []))
+    ]
+    groups["app-slot-field-gaps"] = [
+        _app_slot_field_gap_navigation_entry(gap)
+        for gap in cast(list[dict[str, object]], app_slot_analysis.get("field_gaps", []))
+    ]
+    groups["app-slot-suggestions"] = [
+        _app_slot_suggestion_navigation_entry(suggestion)
+        for suggestion in cast(list[dict[str, object]], app_slot_analysis.get("suggestions", []))
+    ]
+    groups["app-slot-api-args"] = [
+        _app_slot_untyped_api_arg_navigation_entry(arg)
+        for arg in cast(list[dict[str, object]], app_slot_analysis.get("untyped_api_args", []))
+    ]
     groups["app-slots"] = sorted(
         app_slots.values(),
         key=lambda entry: (cast(int, entry.get("displacement", 0)), cast(str, entry.get("symbol", ""))),
@@ -652,6 +873,7 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
         "analysis_generation": _PROJECT_ROW_GENERATION_CACHE.get(project_name),
         "total_rows": len(rows),
         "groups": groups,
+        "app_slot_analysis": app_slot_analysis,
     }
 
 
@@ -659,6 +881,7 @@ def _clear_project_listing_cache(project_name: str) -> None:
     _PROJECT_ROW_CACHE.pop(project_name, None)
     _PROJECT_ROW_GENERATION_CACHE.pop(project_name, None)
     _PROJECT_ROW_CACHE_KEY.pop(project_name, None)
+    _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
     _PROJECT_API_CALL_CACHE.pop(project_name, None)
 
 
@@ -1002,10 +1225,11 @@ def _build_rows_job(job_id: str, project_name: str, generation: str = "full") ->
                 generation=active_generation,
                 phase=build_phase,
             )
-            rows, api_calls = build_project_rows_generation_with_c_backend(
+            rows, api_calls, profile = build_project_rows_generation_with_c_backend_profile(
                 project_name,
                 generation=active_generation,
             )
+            app_slot_analysis = profile.get("app_slot_analysis")
             if not _set_job_phase(
                 job_id, phase_id=emit_phase, phase_index=emit_phase_index, phase_count=phase_count
             ):
@@ -1030,8 +1254,13 @@ def _build_rows_job(job_id: str, project_name: str, generation: str = "full") ->
                 _PROJECT_ROW_CACHE_KEY[project_name] = cache_key
                 if active_generation == "full":
                     _PROJECT_API_CALL_CACHE[project_name] = api_calls
+                    if isinstance(app_slot_analysis, dict):
+                        _PROJECT_APP_SLOT_ANALYSIS_CACHE[project_name] = app_slot_analysis
+                    else:
+                        _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
                 elif project_name not in _PROJECT_API_CALL_CACHE:
                     _PROJECT_API_CALL_CACHE[project_name] = {}
+                    _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
             _log_event(
                 "listing_job generation_ready",
                 job_id=job_id,

@@ -49,6 +49,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_decode_ir.c ^
     src\m68k_fact_ir.c ^
     src\m68k_render_ir.c ^
+    src\m68k_analysis_render_lookup.c ^
     src\m68k_analysis_facts_v2.c ^
     src\m68k_ir.c ^
     src\m68k_ir_codec.c ^
@@ -120,6 +121,7 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_plain_parse.obj ^
     %OUTDIR%\m68k_simple_source.obj ^
@@ -174,6 +176,7 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_plain_parse.obj ^
     %OUTDIR%\m68k_ir.obj ^
@@ -196,6 +199,12 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\m68k_object.obj ^
+    %OUTDIR%\platform_file_core.obj ^
+    %OUTDIR%\platform_file_amiga.obj ^
+    %OUTDIR%\platform_file_atari_st.obj ^
+    %OUTDIR%\platform_file_platform.obj ^
+    %OUTDIR%\platform_file_json.obj ^
+    %OUTDIR%\json_builder.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
     %OUTDIR%\platform_atari_st.obj ^
     %OUTDIR%\platform_binary_io.obj ^
@@ -290,6 +299,7 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_ir.obj ^
     %OUTDIR%\m68k_ir_codec.obj ^
@@ -354,6 +364,7 @@ link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_ir.obj ^
     %OUTDIR%\m68k_ir_codec.obj ^
@@ -447,6 +458,7 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
     %OUTDIR%\m68k_simulator.obj ^
@@ -505,6 +517,7 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
     %OUTDIR%\m68k_simulator.obj ^

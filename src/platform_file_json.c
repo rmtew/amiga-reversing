@@ -445,6 +445,36 @@ static int append_amiga_call_inputs_json(JsonBuilder *builder, const AmigaOsLibr
   return json_builder_append(builder, "]");
 }
 
+static int append_amiga_call_outputs_json(JsonBuilder *builder, const AmigaOsLibraryVectorInfo *entry) {
+  const AmigaOsCallOutputInfo *output;
+  const char *reg_name;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (entry == NULL) return json_builder_append(builder, "]");
+  output = &entry->output;
+  if (output->reg_kind == AMIGA_OS_REGISTER_NONE && output->output_id == AMIGA_OS_SYMBOL_ID_NONE &&
+      output->type_id == AMIGA_OS_TYPE_ID_NONE && output->struct_id == AMIGA_OS_STRUCT_ID_NONE &&
+      output->semantic_kind_id == AMIGA_OS_SEMANTIC_KIND_ID_NONE &&
+      output->value_domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) {
+    return json_builder_append(builder, "]");
+  }
+  reg_name = amiga_os_register_name(output->reg_kind, output->reg_index);
+  if (json_builder_append(builder, "{\"name\":") != 0) return -1;
+  if (json_builder_append_nullable_string(builder, amiga_os_name(4U, output->output_id)) != 0) return -1;
+  if (json_builder_append(builder, ",\"regs\":[") != 0) return -1;
+  if (reg_name != NULL) {
+    if (json_builder_append_json_string(builder, reg_name) != 0) return -1;
+  }
+  if (json_builder_append(builder, "],\"type\":") != 0) return -1;
+  if (json_builder_append_nullable_string(builder, amiga_os_name(6U, output->type_id)) != 0) return -1;
+  if (json_builder_append(builder, ",\"o_struct\":") != 0) return -1;
+  if (json_builder_append_nullable_string(builder, amiga_os_name(7U, output->struct_id)) != 0) return -1;
+  if (json_builder_append(builder, ",\"semantic_kind\":") != 0) return -1;
+  if (json_builder_append_nullable_string(builder, amiga_os_name(9U, output->semantic_kind_id)) != 0) return -1;
+  if (json_builder_append(builder, ",\"value_domain\":") != 0) return -1;
+  if (json_builder_append_nullable_string(builder, amiga_os_name(10U, output->value_domain_id)) != 0) return -1;
+  return json_builder_append(builder, "}]");
+}
+
 static const char *app_slot_symbol_for_effect(const M68kRecoveredPlatformEffectIR *effect, const char *base_name,
     const char *symbol_name, const char *type_name, char *fallback, size_t fallback_size) {
   if (symbol_name != NULL && strncmp(symbol_name, "app_", 4U) == 0) return symbol_name;
@@ -652,16 +682,18 @@ static void amiga_struct_catalog_info(uint16_t struct_id, const char **out_sourc
   const char *source = NULL;
   int16_t size = -1;
   int16_t max_field_offset = 0;
-  int offset;
-  for (offset = 0; offset <= 8191; ++offset) {
-    const AmigaOsStructFieldInfo *field = amiga_os_find_struct_field_by_struct_id(struct_id, (int16_t)offset);
+  size_t index;
+  for (index = 0U; index < AMIGA_OS_STRUCT_FIELD_COUNT; ++index) {
+    const AmigaOsStructFieldInfo *field = amiga_os_struct_field_at(index);
     const char *field_name;
     const char *field_source;
-    if (field == NULL) continue;
+    int32_t field_end;
+    if (field == NULL || field->struct_id != struct_id) continue;
     field_name = amiga_os_name(8U, field->field_id);
     field_source = amiga_os_find_symbol_include(field_name);
     if (source == NULL && field_source != NULL) source = field_source;
-    if (field->offset > max_field_offset) max_field_offset = field->offset;
+    field_end = (int32_t)field->offset + (int32_t)field->size;
+    if (field_end > max_field_offset) max_field_offset = (int16_t)field_end;
     if (text_ends_with(field_name, "_SIZEOF")) {
       size = field->offset;
       if (field_source != NULL) source = field_source;
@@ -753,38 +785,153 @@ static int append_amiga_naming_catalog_json(JsonBuilder *builder) {
   return json_builder_append(builder, "]}");
 }
 
-static int append_amiga_struct_fields_json(JsonBuilder *builder, uint16_t struct_id, int16_t struct_size) {
-  int16_t offset;
+static int append_amiga_struct_fields_json(JsonBuilder *builder, uint16_t struct_id) {
+  size_t index;
   int first = 1;
   if (json_builder_append(builder, "[") != 0) return -1;
-  for (offset = 0; offset <= struct_size; ++offset) {
-    const AmigaOsStructFieldInfo *field = amiga_os_find_struct_field_by_struct_id(struct_id, offset);
+  for (index = 0U; index < AMIGA_OS_STRUCT_FIELD_COUNT; ++index) {
+    const AmigaOsStructFieldInfo *field = amiga_os_struct_field_at(index);
     const char *field_name;
-    int16_t next_offset;
-    int16_t size = 0;
-    if (field == NULL) continue;
+    if (field == NULL || field->struct_id != struct_id) continue;
     field_name = amiga_os_name(8U, field->field_id);
     if (field_name == NULL) continue;
-    for (next_offset = (int16_t)(offset + 1); next_offset <= struct_size; ++next_offset) {
-      if (amiga_os_find_struct_field_by_struct_id(struct_id, next_offset) != NULL) {
-        size = (int16_t)(next_offset - offset);
-        break;
-      }
-    }
-    if (size == 0 && struct_size > offset) size = (int16_t)(struct_size - offset);
     if (!first && json_builder_append(builder, ",") != 0) return -1;
     first = 0;
     if (json_builder_appendf(builder, "{\"name\":") != 0) return -1;
     if (json_builder_append_json_string(builder, field_name) != 0) return -1;
-    if (json_builder_appendf(builder, ",\"offset\":%d,\"size\":%d}", (int)offset, (int)size) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"offset\":%d,\"size\":%u,\"field_type\":",
+          (int)field->offset, (unsigned)field->size) != 0)
+      return -1;
+    if (json_builder_append_nullable_string(builder, amiga_os_name(6U, field->field_type_id)) != 0) return -1;
+    if (json_builder_append(builder, ",\"c_type\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, amiga_os_name(6U, field->c_type_id)) != 0) return -1;
+    if (json_builder_append(builder, ",\"nested_type\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, amiga_os_name(6U, field->nested_type_id)) != 0) return -1;
+    if (json_builder_append(builder, ",\"pointer_struct\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, amiga_os_name(7U, field->pointer_struct_id)) != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_amiga_struct_base_json(JsonBuilder *builder, uint16_t struct_id) {
+  const AmigaOsStructBaseInfo *base = amiga_os_find_struct_base_by_struct_id(struct_id);
+  if (base == NULL) return json_builder_append(builder, "null");
+  if (json_builder_append(builder, "{\"struct\":") != 0) return -1;
+  if (json_builder_append_nullable_string(builder, amiga_os_name(7U, base->base_struct_id)) != 0) return -1;
+  if (json_builder_append(builder, ",\"size_symbol\":") != 0) return -1;
+  if (json_builder_append_nullable_string(builder, amiga_os_name(4U, base->size_symbol_id)) != 0) return -1;
+  if (json_builder_appendf(builder, ",\"size\":%u}", (unsigned)base->size) != 0) return -1;
+  return 0;
+}
+
+static int resolved_struct_field_shape_matches(const AmigaOsResolvedStructFieldInfo *left,
+    const AmigaOsResolvedStructFieldInfo *right) {
+  size_t index;
+  if (left == NULL || right == NULL) return 0;
+  if (left->root_struct_id != right->root_struct_id || left->offset != right->offset ||
+      left->field_id != right->field_id || left->owner_struct_id != right->owner_struct_id ||
+      left->size != right->size || left->inherited != right->inherited || left->nested != right->nested ||
+      left->path_count != right->path_count) {
+    return 0;
+  }
+  for (index = 0U; index < left->path_count; ++index) {
+    if (left->path_field_ids[index] != right->path_field_ids[index]) return 0;
+  }
+  return 1;
+}
+
+static int append_amiga_resolved_struct_field_json(JsonBuilder *builder,
+    const AmigaOsResolvedStructFieldInfo *field, int16_t query_start, int16_t query_end) {
+  size_t path_index;
+  const char *field_name;
+  if (field == NULL) return -1;
+  field_name = amiga_os_name(8U, field->field_id);
+  if (field_name == NULL) return -1;
+  if (json_builder_appendf(builder, "{\"query_start\":%d,\"query_end\":%d,\"name\":",
+        (int)query_start, (int)query_end) != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, field_name) != 0) return -1;
+  if (json_builder_appendf(builder, ",\"offset\":%d,\"size\":%u,\"owner_struct\":",
+        (int)field->offset, (unsigned)field->size) != 0)
+    return -1;
+  if (json_builder_append_nullable_string(builder, amiga_os_name(7U, field->owner_struct_id)) != 0) return -1;
+  if (json_builder_appendf(builder, ",\"inherited\":%s,\"nested\":%s,\"path\":[",
+        field->inherited ? "true" : "false", field->nested ? "true" : "false") != 0)
+    return -1;
+  for (path_index = 0U; path_index < field->path_count; ++path_index) {
+    const char *path_name = amiga_os_name(8U, field->path_field_ids[path_index]);
+    if (path_name == NULL) return -1;
+    if (path_index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append_json_string(builder, path_name) != 0) return -1;
+  }
+  return json_builder_append(builder, "]}");
+}
+
+static int append_amiga_resolved_struct_fields_json(JsonBuilder *builder, uint16_t struct_id, int16_t struct_size,
+    int prefer_nested_exact) {
+  int16_t cursor;
+  int first = 1;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (struct_size <= 0) return json_builder_append(builder, "]");
+  cursor = 0;
+  while (cursor < struct_size) {
+    AmigaOsResolvedStructFieldInfo resolved;
+    int16_t query_start;
+    int16_t query_end;
+    if (!amiga_os_resolve_struct_field_by_struct_id(struct_id, cursor, prefer_nested_exact, &resolved)) {
+      ++cursor;
+      continue;
+    }
+    query_start = cursor;
+    query_end = (int16_t)(cursor + 1);
+    while (query_end < struct_size) {
+      AmigaOsResolvedStructFieldInfo next;
+      if (!amiga_os_resolve_struct_field_by_struct_id(struct_id, query_end, prefer_nested_exact, &next) ||
+          !resolved_struct_field_shape_matches(&resolved, &next)) {
+        break;
+      }
+      ++query_end;
+    }
+    if (!first && json_builder_append(builder, ",") != 0) return -1;
+    first = 0;
+    if (append_amiga_resolved_struct_field_json(builder, &resolved, query_start, query_end) != 0) return -1;
+    cursor = query_end;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_amiga_os_structs_json(JsonBuilder *builder) {
+  uint16_t struct_id;
+  int first = 1;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  for (struct_id = 0U; struct_id < AMIGA_OS_STRUCT_ID_NONE; ++struct_id) {
+    const char *struct_name = amiga_os_name(7U, struct_id);
+    const char *source = NULL;
+    int16_t struct_size = 0;
+    if (struct_name == NULL) continue;
+    amiga_struct_catalog_info(struct_id, &source, &struct_size);
+    if (!first && json_builder_append(builder, ",") != 0) return -1;
+    first = 0;
+    if (json_builder_append(builder, "{\"name\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, struct_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"source\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, source) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"size\":%d,\"fields\":", (int)struct_size) != 0) return -1;
+    if (append_amiga_struct_fields_json(builder, struct_id) != 0) return -1;
+    if (json_builder_append(builder, ",\"base\":") != 0) return -1;
+    if (append_amiga_struct_base_json(builder, struct_id) != 0) return -1;
+    if (json_builder_append(builder, ",\"resolved_fields\":") != 0) return -1;
+    if (append_amiga_resolved_struct_fields_json(builder, struct_id, struct_size, 0) != 0) return -1;
+    if (json_builder_append(builder, ",\"resolved_gap_fields\":") != 0) return -1;
+    if (append_amiga_resolved_struct_fields_json(builder, struct_id, struct_size, 1) != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
   }
   return json_builder_append(builder, "]");
 }
 
 static int append_amiga_os_metadata_catalog_json(JsonBuilder *builder) {
   size_t index;
-  const char *source = NULL;
-  int16_t rt_size = 0;
   int first = 1;
   if (json_builder_append(builder, "{\"exec_base_library\":") != 0) return -1;
   if (json_builder_append_json_string(builder, amiga_os_exec_base_library_name()) != 0) return -1;
@@ -839,11 +986,9 @@ static int append_amiga_os_metadata_catalog_json(JsonBuilder *builder) {
     if (json_builder_append_nullable_string(builder, amiga_os_name(7U, entry->struct_id)) != 0) return -1;
     if (json_builder_append(builder, "}") != 0) return -1;
   }
-  amiga_struct_catalog_info(AMIGA_OS_STRUCT_ID_RT, &source, &rt_size);
-  if (json_builder_append(builder, "],\"structs\":[{\"name\":\"RT\",\"size\":") != 0) return -1;
-  if (json_builder_appendf(builder, "%d,\"fields\":", (int)rt_size) != 0) return -1;
-  if (append_amiga_struct_fields_json(builder, AMIGA_OS_STRUCT_ID_RT, rt_size) != 0) return -1;
-  if (json_builder_append(builder, "}],\"libraries\":[") != 0) return -1;
+  if (json_builder_append(builder, "],\"structs\":") != 0) return -1;
+  if (append_amiga_os_structs_json(builder) != 0) return -1;
+  if (json_builder_append(builder, ",\"libraries\":[") != 0) return -1;
   for (index = 0U; index < AMIGA_OS_LIBRARY_ID_NONE; ++index) {
     const char *library_name = amiga_os_name(1U, (uint16_t)index);
     size_t vector_index;
@@ -868,6 +1013,8 @@ static int append_amiga_os_metadata_catalog_json(JsonBuilder *builder) {
       if (json_builder_append_nullable_string(builder, vector->fd_version) != 0) return -1;
       if (json_builder_append(builder, ",\"inputs\":") != 0) return -1;
       if (append_amiga_call_inputs_json(builder, vector) != 0) return -1;
+      if (json_builder_append(builder, ",\"outputs\":") != 0) return -1;
+      if (append_amiga_call_outputs_json(builder, vector) != 0) return -1;
       if (json_builder_append(builder, "}") != 0) return -1;
     }
     if (json_builder_append(builder, "]}") != 0) return -1;
@@ -1140,7 +1287,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
   }
   for (section_index = 0; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
-    size_t block_index, edge_index, violation_index, app_slot_ref_index, runtime_view_index;
+    size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index;
+    size_t unresolved_typed_access_index, runtime_view_index;
     size_t string_ref_index;
     size_t effect_index, call_index, indirect_site_index;
     if (section_index != 0U && json_builder_append(&builder, ",") != 0)
@@ -1224,6 +1372,71 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
+    if (json_builder_appendf(&builder,
+          "],\"recovered_platform_typed_access_count\":%u,\"recovered_platform_typed_accesses\":[",
+          (unsigned)section->recovered_platform_typed_access_count) != 0)
+      goto oom;
+    for (typed_access_index = 0; typed_access_index < section->recovered_platform_typed_access_count;
+        ++typed_access_index) {
+      const M68kRecoveredPlatformTypedAccessIR *access =
+        &section->recovered_platform_typed_accesses[typed_access_index];
+      const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+        access->root_struct_name);
+      const char *owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->owner_struct_ref,
+        access->owner_struct_name);
+      const char *field_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->field_ref,
+        access->field_name);
+      if (typed_access_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+            "{\"offset\":%u,\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,"
+            "\"field_offset\":%d,\"root_struct_name\":",
+            (unsigned)access->offset, (unsigned)access->operand_index, (unsigned)access->base_reg,
+            (int)access->displacement, (int)access->field_offset) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, root_struct_name) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"owner_struct_name\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, owner_struct_name) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"field_name\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, field_name) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"field_expr\":") != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, access->field_expr != NULL ? access->field_expr : "") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"inherited\":%u,\"nested\":%u}",
+          (unsigned)access->inherited, (unsigned)access->nested) != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder,
+          "],\"recovered_platform_unresolved_typed_access_count\":%u,"
+          "\"recovered_platform_unresolved_typed_accesses\":[",
+          (unsigned)section->recovered_platform_unresolved_typed_access_count) != 0)
+      goto oom;
+    for (unresolved_typed_access_index = 0;
+        unresolved_typed_access_index < section->recovered_platform_unresolved_typed_access_count;
+        ++unresolved_typed_access_index) {
+      const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
+        &section->recovered_platform_unresolved_typed_accesses[unresolved_typed_access_index];
+      const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+        access->root_struct_name);
+      if (unresolved_typed_access_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+            "{\"offset\":%u,\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,"
+            "\"struct_size\":%u,\"root_struct_name\":",
+            (unsigned)access->offset, (unsigned)access->operand_index, (unsigned)access->base_reg,
+            (int)access->displacement, (unsigned)access->struct_size) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, root_struct_name) != 0)
+        goto oom;
+      if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
     if (json_builder_appendf(&builder, "],\"recovered_platform_effect_count\":%u,\"recovered_platform_effects\":[",
           (unsigned)section->recovered_platform_effect_count) != 0)
       goto oom;
@@ -1246,7 +1459,9 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
           effect->payload.code_ptr.owner_type_name);
         semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.semantic_kind_ref,
           effect->payload.code_ptr.semantic_kind);
-      } else if (effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT) {
+      } else if (effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG ||
+          effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT ||
+          effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT) {
         symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.symbol_ref,
           effect->payload.typed.symbol_name);
         type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
@@ -1485,6 +1700,10 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_append(&builder, ",\"inputs\":") != 0)
         goto oom;
       if (append_amiga_call_inputs_json(&builder, amiga_vector) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"outputs\":") != 0)
+        goto oom;
+      if (append_amiga_call_outputs_json(&builder, amiga_vector) != 0)
         goto oom;
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
@@ -1990,6 +2209,47 @@ static int append_listing_app_slot_refs_json(JsonBuilder *builder, const M68kSta
   return json_builder_append(builder, "]");
 }
 
+static int append_listing_typed_accesses_json(JsonBuilder *builder, const M68kStatementIR *stmt,
+    const M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  int emitted = 0;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION || section_analysis == NULL)
+    return json_builder_append(builder, "]");
+  for (index = 0U; index < section_analysis->recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access = &section_analysis->recovered_platform_typed_accesses[index];
+    const char *root_struct_name;
+    const char *owner_struct_name;
+    const char *field_name;
+    if (access->offset != stmt->offset) continue;
+    root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+      access->root_struct_name);
+    owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->owner_struct_ref,
+      access->owner_struct_name);
+    field_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->field_ref, access->field_name);
+    if (emitted && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_appendf(builder,
+        "{\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"field_offset\":%d,"
+        "\"root_struct_name\":",
+        (unsigned)access->operand_index, (unsigned)access->base_reg, (int)access->displacement,
+        (int)access->field_offset) != 0)
+      return -1;
+    if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"owner_struct_name\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, owner_struct_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"field_name\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, field_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"field_expr\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, access->field_expr != NULL ? access->field_expr : "") != 0)
+      return -1;
+    if (json_builder_appendf(builder, ",\"inherited\":%u,\"nested\":%u}",
+        (unsigned)access->inherited, (unsigned)access->nested) != 0)
+      return -1;
+    emitted = 1;
+  }
+  return json_builder_append(builder, "]");
+}
+
 static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt) {
   size_t operand_index;
   int emitted = 0;
@@ -2011,6 +2271,1655 @@ static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kSta
     emitted = 1;
   }
   return json_builder_append(builder, "]");
+}
+
+static const char *listing_operand_access_name(uint8_t access_kind) {
+  switch (access_kind) {
+  case M68K_SIM_ACCESS_NONE: return "none";
+  case M68K_SIM_ACCESS_REGISTER_READ: return "register_read";
+  case M68K_SIM_ACCESS_REGISTER_WRITE: return "register_write";
+  case M68K_SIM_ACCESS_MEMORY_READ: return "memory_read";
+  case M68K_SIM_ACCESS_MEMORY_WRITE: return "memory_write";
+  case M68K_SIM_ACCESS_COMPUTE_ADDRESS: return "address";
+  case M68K_SIM_ACCESS_IMMEDIATE: return "immediate";
+  case M68K_SIM_ACCESS_BRANCH_TARGET: return "branch_target";
+  case M68K_SIM_ACCESS_REGISTER_LIST_READ: return "register_list_read";
+  case M68K_SIM_ACCESS_REGISTER_LIST_WRITE: return "register_list_write";
+  default: return "unknown";
+  }
+}
+
+static const char *listing_operation_type_name(uint8_t operation_type) {
+  switch (operation_type) {
+  case M68K_SIM_OP_NONE: return NULL;
+  case M68K_SIM_OP_ADD: return "add";
+  case M68K_SIM_OP_CLEAR: return "clear";
+  case M68K_SIM_OP_COMPARE: return "compare";
+  case M68K_SIM_OP_DBCC: return "dbcc";
+  case M68K_SIM_OP_MOVE: return "move";
+  case M68K_SIM_OP_SET_COND: return "set_cond";
+  case M68K_SIM_OP_SUB: return "sub";
+  case M68K_SIM_OP_SWAP: return "swap";
+  case M68K_SIM_OP_TEST: return "test";
+  case M68K_SIM_OP_PUSH_EA: return "push_ea";
+  case M68K_SIM_OP_LINK: return "link";
+  case M68K_SIM_OP_UNLK: return "unlk";
+  case M68K_SIM_OP_TEST_AND_SET: return "test_and_set";
+  case M68K_SIM_OP_BIT_TEST: return "bit_test";
+  case M68K_SIM_OP_BIT_SET: return "bit_set";
+  case M68K_SIM_OP_BIT_CLEAR: return "bit_clear";
+  case M68K_SIM_OP_BIT_CHANGE: return "bit_change";
+  case M68K_SIM_OP_MOVE_MULTIPLE: return "move_multiple";
+  case M68K_SIM_OP_MOVE_PERIPHERAL: return "move_peripheral";
+  case M68K_SIM_OP_LOGIC_AND: return "logic_and";
+  case M68K_SIM_OP_LOGIC_OR: return "logic_or";
+  case M68K_SIM_OP_LOGIC_XOR: return "logic_xor";
+  case M68K_SIM_OP_NEGATE: return "negate";
+  case M68K_SIM_OP_NOT: return "not";
+  case M68K_SIM_OP_SIGN_EXTEND: return "sign_extend";
+  case M68K_SIM_OP_SWAP_WORDS: return "swap_words";
+  case M68K_SIM_OP_SHIFT: return "shift";
+  case M68K_SIM_OP_ROTATE: return "rotate";
+  case M68K_SIM_OP_ROTATE_EXTEND: return "rotate_extend";
+  case M68K_SIM_OP_TRAPV: return "trapv";
+  case M68K_SIM_OP_PACK: return "pack";
+  case M68K_SIM_OP_UNPACK: return "unpack";
+  case M68K_SIM_OP_MULTIPLY: return "multiply";
+  case M68K_SIM_OP_DIVIDE: return "divide";
+  case M68K_SIM_OP_BOUNDS_CHECK: return "bounds_check";
+  case M68K_SIM_OP_COMPARE_SWAP: return "compare_swap";
+  case M68K_SIM_OP_BITFIELD_CHANGE: return "bitfield_change";
+  case M68K_SIM_OP_BITFIELD_CLEAR: return "bitfield_clear";
+  case M68K_SIM_OP_BITFIELD_EXTRACT_SIGNED: return "bitfield_extract_signed";
+  case M68K_SIM_OP_BITFIELD_EXTRACT_UNSIGNED: return "bitfield_extract_unsigned";
+  case M68K_SIM_OP_BITFIELD_FIND_FIRST_ONE: return "bitfield_find_first_one";
+  case M68K_SIM_OP_BITFIELD_INSERT: return "bitfield_insert";
+  case M68K_SIM_OP_BITFIELD_SET: return "bitfield_set";
+  case M68K_SIM_OP_BITFIELD_TEST: return "bitfield_test";
+  default: return "unknown";
+  }
+}
+
+static int append_listing_operation_type_json(JsonBuilder *builder, const M68kStatementIR *stmt) {
+  const M68kSimFormMetadata *metadata;
+  const char *operation_type = NULL;
+  if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION) {
+    metadata = instruction_sim_metadata(&stmt->u.instruction);
+    if (metadata != NULL) operation_type = listing_operation_type_name(metadata->operation_type);
+  }
+  return json_builder_append_nullable_string(builder, operation_type);
+}
+
+static int append_listing_operand_accesses_json(JsonBuilder *builder, const M68kStatementIR *stmt) {
+  const M68kInstructionIR *instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return json_builder_append(builder, "]");
+  instruction = &stmt->u.instruction;
+  metadata = instruction_sim_metadata(instruction);
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const char *access_name = "unknown";
+    if (metadata != NULL) access_name = listing_operand_access_name(metadata->operand_access_kinds[operand_index]);
+    if (operand_index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append_json_string(builder, access_name) != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_operand_registers_json(JsonBuilder *builder, const M68kStatementIR *stmt) {
+  const M68kInstructionIR *instruction;
+  size_t operand_index;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return json_builder_append(builder, "]");
+  instruction = &stmt->u.instruction;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint8_t is_address = 0U;
+    uint8_t reg = 0U;
+    if (operand_index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (m68k_instruction_operand_direct_register(operand, &is_address, &reg)) {
+      if (json_builder_appendf(builder, "\"%c%u\"", is_address ? 'A' : 'D', (unsigned)reg) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+typedef struct ListingAppSlotRefRecord {
+  char symbol[64];
+  int16_t displacement;
+  uint8_t base_reg;
+  uint8_t operand_index;
+  uint8_t width_size;
+  char width_name[16];
+  char access[16];
+  size_t row_index;
+  uint32_t addr;
+  int section_index;
+  char stable_key[128];
+} ListingAppSlotRefRecord;
+
+typedef struct ListingAppSlotSource {
+  uint8_t valid;
+  char symbol[64];
+  int16_t displacement;
+  int16_t symbol_displacement;
+  uint8_t base_reg;
+  size_t row_index;
+  size_t origin_row_index;
+  size_t last_row_index;
+  uint32_t addr;
+  char stable_key[128];
+  uint8_t has_via_reg;
+  uint8_t via_reg;
+} ListingAppSlotSource;
+
+typedef struct ListingAppSlotEvidence {
+  size_t row_index;
+  uint32_t addr;
+  int section_index;
+  char stable_key[128];
+  char library[64];
+  char function[64];
+  char input_name[64];
+  char reg[4];
+  size_t source_row_index;
+  size_t source_flow_row_index;
+  uint32_t source_addr;
+  char source_stable_key[128];
+  char source_via_register[4];
+} ListingAppSlotEvidence;
+
+typedef struct ListingAppSlotApiArgCandidate {
+  char id[96];
+  char symbol[64];
+  char base_symbol[64];
+  int16_t displacement;
+  int16_t base_displacement;
+  uint8_t base_reg;
+  ListingAppSlotEvidence evidence;
+  char type_name[64];
+  char reason[64];
+} ListingAppSlotApiArgCandidate;
+
+typedef struct ListingAppSlotTypedRegion {
+  char id[96];
+  char symbol[64];
+  char base_symbol[64];
+  int16_t offset;
+  int16_t base_displacement;
+  int16_t end;
+  int16_t size;
+  uint16_t struct_id;
+  char struct_name[64];
+  char struct_source[128];
+  ListingAppSlotEvidence *evidence;
+  size_t evidence_count;
+  size_t evidence_capacity;
+} ListingAppSlotTypedRegion;
+
+typedef struct ListingAppSlotAnalysisBuilder {
+  uint8_t enabled;
+  ListingAppSlotRefRecord *refs;
+  size_t ref_count;
+  size_t ref_capacity;
+  ListingAppSlotTypedRegion *regions;
+  size_t region_count;
+  size_t region_capacity;
+  ListingAppSlotApiArgCandidate *untyped_api_args;
+  size_t untyped_api_arg_count;
+  size_t untyped_api_arg_capacity;
+  ListingAppSlotSource *sources;
+  size_t source_section_count;
+} ListingAppSlotAnalysisBuilder;
+
+typedef struct ListingAppSlotSummary {
+  char symbol[64];
+  int16_t displacement;
+  uint8_t base_regs[8];
+  uint32_t access_read;
+  uint32_t access_write;
+  uint32_t access_read_write;
+  uint32_t access_address;
+  uint32_t width_byte;
+  uint32_t width_word;
+  uint32_t width_long;
+  uint32_t width_unknown;
+  uint32_t ref_count;
+  uint8_t observed_size;
+  int16_t observed_end;
+  size_t first_row_index;
+  size_t last_row_index;
+  uint32_t first_addr;
+  uint32_t last_addr;
+} ListingAppSlotSummary;
+
+typedef struct ListingAppSlotFieldRefSummary {
+  char symbol[64];
+  int16_t displacement;
+  int16_t field_offset;
+  uint32_t ref_count;
+  uint32_t access_read;
+  uint32_t access_write;
+  uint32_t access_read_write;
+  uint32_t access_address;
+  uint32_t width_byte;
+  uint32_t width_word;
+  uint32_t width_long;
+  uint32_t width_unknown;
+  uint8_t region_address;
+  uint8_t has_field;
+  AmigaOsResolvedStructFieldInfo field;
+} ListingAppSlotFieldRefSummary;
+
+typedef struct ListingAppSlotInterval {
+  int16_t offset;
+  int16_t end;
+  char id[96];
+} ListingAppSlotInterval;
+
+static void listing_copy_text(char *dst, size_t dst_size, const char *src) {
+  if (dst == NULL || dst_size == 0U) return;
+  snprintf(dst, dst_size, "%s", src != NULL ? src : "");
+}
+
+static void listing_row_stable_key(char *buf, size_t buf_size, int section_index, uint32_t addr,
+    const char *row_kind, size_t row_index) {
+  if (buf == NULL || buf_size == 0U) return;
+  snprintf(buf, buf_size, "s%d:%08X:%s:%u", section_index, (unsigned)addr, row_kind != NULL ? row_kind : "",
+    (unsigned)row_index);
+}
+
+static void listing_register_name(char *buf, size_t buf_size, uint8_t reg) {
+  if (buf == NULL || buf_size == 0U) return;
+  snprintf(buf, buf_size, "A%u", (unsigned)reg);
+}
+
+static void listing_app_slot_ref_width(const M68kStatementIR *stmt, char *width_name, size_t width_name_size,
+    uint8_t *out_width_size) {
+  uint8_t width_size = 1U;
+  const char *name = "unknown";
+  if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION) {
+    if (stmt->u.instruction.size_suffix == 'b') {
+      name = "byte";
+      width_size = 1U;
+    } else if (stmt->u.instruction.size_suffix == 'w') {
+      name = "word";
+      width_size = 2U;
+    } else if (stmt->u.instruction.size_suffix == 'l') {
+      name = "long";
+      width_size = 4U;
+    }
+  }
+  listing_copy_text(width_name, width_name_size, name);
+  if (out_width_size != NULL) *out_width_size = width_size;
+}
+
+static int listing_app_slot_analysis_init(ListingAppSlotAnalysisBuilder *analysis,
+    const M68kSourceFileIR *source_file, const M68kSourceAnalysisIR *source_analysis) {
+  if (analysis == NULL) return -1;
+  memset(analysis, 0, sizeof(*analysis));
+  if (source_file == NULL || source_analysis == NULL ||
+      source_file->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK ||
+      source_analysis->section_count == 0U) {
+    return 0;
+  }
+  analysis->sources = (ListingAppSlotSource *)calloc(source_analysis->section_count * 8U, sizeof(*analysis->sources));
+  if (analysis->sources == NULL) return -1;
+  analysis->source_section_count = source_analysis->section_count;
+  analysis->enabled = 1U;
+  return 0;
+}
+
+static void listing_app_slot_analysis_destroy(ListingAppSlotAnalysisBuilder *analysis) {
+  size_t index;
+  if (analysis == NULL) return;
+  for (index = 0U; index < analysis->region_count; ++index) {
+    free(analysis->regions[index].evidence);
+  }
+  free(analysis->regions);
+  free(analysis->untyped_api_args);
+  free(analysis->refs);
+  free(analysis->sources);
+  memset(analysis, 0, sizeof(*analysis));
+}
+
+static ListingAppSlotSource *listing_app_slot_source_for(ListingAppSlotAnalysisBuilder *analysis, int section_index,
+    uint8_t reg) {
+  if (analysis == NULL || analysis->sources == NULL || reg >= 8U || section_index < 0 ||
+      (size_t)section_index >= analysis->source_section_count) {
+    return NULL;
+  }
+  return &analysis->sources[((size_t)section_index * 8U) + reg];
+}
+
+static int listing_app_slot_analysis_append_ref(ListingAppSlotAnalysisBuilder *analysis,
+    const ListingAppSlotRefRecord *ref) {
+  ListingAppSlotRefRecord *grown;
+  size_t next_capacity;
+  if (analysis == NULL || ref == NULL || !analysis->enabled) return 0;
+  if (analysis->ref_count == analysis->ref_capacity) {
+    next_capacity = analysis->ref_capacity == 0U ? 64U : analysis->ref_capacity * 2U;
+    grown = (ListingAppSlotRefRecord *)realloc(analysis->refs, next_capacity * sizeof(*grown));
+    if (grown == NULL) return -1;
+    analysis->refs = grown;
+    analysis->ref_capacity = next_capacity;
+  }
+  analysis->refs[analysis->ref_count++] = *ref;
+  return 0;
+}
+
+static ListingAppSlotTypedRegion *listing_app_slot_analysis_region_for(ListingAppSlotAnalysisBuilder *analysis,
+    int16_t offset, int16_t end, uint16_t struct_id, const char *symbol, int16_t base_displacement) {
+  ListingAppSlotTypedRegion *grown;
+  ListingAppSlotTypedRegion *region;
+  const char *struct_source = NULL;
+  size_t index, next_capacity;
+  if (analysis == NULL || !analysis->enabled) return NULL;
+  for (index = 0U; index < analysis->region_count; ++index) {
+    region = &analysis->regions[index];
+    if (region->offset == offset && region->end == end && region->struct_id == struct_id) return region;
+  }
+  if (analysis->region_count == analysis->region_capacity) {
+    next_capacity = analysis->region_capacity == 0U ? 8U : analysis->region_capacity * 2U;
+    grown = (ListingAppSlotTypedRegion *)realloc(analysis->regions, next_capacity * sizeof(*grown));
+    if (grown == NULL) return NULL;
+    analysis->regions = grown;
+    analysis->region_capacity = next_capacity;
+  }
+  region = &analysis->regions[analysis->region_count++];
+  memset(region, 0, sizeof(*region));
+  region->offset = offset;
+  region->base_displacement = base_displacement;
+  region->end = end;
+  region->size = (int16_t)(end - offset);
+  region->struct_id = struct_id;
+  listing_copy_text(region->symbol, sizeof(region->symbol), symbol);
+  listing_copy_text(region->base_symbol, sizeof(region->base_symbol), symbol);
+  listing_copy_text(region->struct_name, sizeof(region->struct_name), amiga_os_name(7U, struct_id));
+  amiga_struct_catalog_info(struct_id, &struct_source, NULL);
+  listing_copy_text(region->struct_source, sizeof(region->struct_source), struct_source);
+  snprintf(region->id, sizeof(region->id), "app_slot_region_%04X_%s", (unsigned)(uint16_t)offset,
+    region->struct_name);
+  return region;
+}
+
+static int listing_app_slot_analysis_append_evidence(ListingAppSlotTypedRegion *region,
+    const ListingAppSlotEvidence *evidence) {
+  ListingAppSlotEvidence *grown;
+  size_t next_capacity;
+  if (region == NULL || evidence == NULL) return -1;
+  if (region->evidence_count == region->evidence_capacity) {
+    next_capacity = region->evidence_capacity == 0U ? 2U : region->evidence_capacity * 2U;
+    grown = (ListingAppSlotEvidence *)realloc(region->evidence, next_capacity * sizeof(*grown));
+    if (grown == NULL) return -1;
+    region->evidence = grown;
+    region->evidence_capacity = next_capacity;
+  }
+  region->evidence[region->evidence_count++] = *evidence;
+  return 0;
+}
+
+static int listing_app_slot_analysis_append_untyped_api_arg(ListingAppSlotAnalysisBuilder *analysis,
+    const ListingAppSlotSource *source, const ListingAppSlotEvidence *evidence, const AmigaOsCallInputInfo *input,
+    const char *reason) {
+  ListingAppSlotApiArgCandidate *candidate;
+  ListingAppSlotApiArgCandidate *grown;
+  const char *type_name = NULL;
+  size_t index, next_capacity;
+  if (analysis == NULL || source == NULL || evidence == NULL || input == NULL || !analysis->enabled) return 0;
+  for (index = 0U; index < analysis->untyped_api_arg_count; ++index) {
+    candidate = &analysis->untyped_api_args[index];
+    if (candidate->displacement == source->displacement && candidate->evidence.row_index == evidence->row_index &&
+        strcmp(candidate->symbol, source->symbol) == 0 &&
+        strcmp(candidate->evidence.reg, evidence->reg) == 0) {
+      return 0;
+    }
+  }
+  if (analysis->untyped_api_arg_count == analysis->untyped_api_arg_capacity) {
+    next_capacity = analysis->untyped_api_arg_capacity == 0U ? 8U : analysis->untyped_api_arg_capacity * 2U;
+    grown = (ListingAppSlotApiArgCandidate *)realloc(analysis->untyped_api_args, next_capacity * sizeof(*grown));
+    if (grown == NULL) return -1;
+    analysis->untyped_api_args = grown;
+    analysis->untyped_api_arg_capacity = next_capacity;
+  }
+  candidate = &analysis->untyped_api_args[analysis->untyped_api_arg_count++];
+  memset(candidate, 0, sizeof(*candidate));
+  listing_copy_text(candidate->symbol, sizeof(candidate->symbol), source->symbol);
+  listing_copy_text(candidate->base_symbol, sizeof(candidate->base_symbol), source->symbol);
+  candidate->displacement = source->displacement;
+  candidate->base_displacement = source->symbol_displacement;
+  candidate->base_reg = source->base_reg;
+  candidate->evidence = *evidence;
+  type_name = amiga_os_name(6U, input->type_id);
+  listing_copy_text(candidate->type_name, sizeof(candidate->type_name), type_name);
+  listing_copy_text(candidate->reason, sizeof(candidate->reason), reason);
+  snprintf(candidate->id, sizeof(candidate->id), "app_slot_api_arg_%04X_%s_%s",
+    (unsigned)(uint16_t)candidate->displacement, evidence->function, evidence->reg);
+  return 0;
+}
+
+static int listing_app_slot_address_target_register(const M68kStatementIR *stmt, uint8_t ref_operand_index,
+    uint8_t *out_reg) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  uint8_t found = 0U;
+  uint8_t found_reg = 0U;
+  if (out_reg != NULL) *out_reg = 0U;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return 0;
+  metadata = instruction_sim_metadata(&stmt->u.instruction);
+  if (metadata == NULL) return 0;
+  for (operand_index = 0U; operand_index < stmt->u.instruction.operand_count && operand_index < 4U; ++operand_index) {
+    uint8_t is_address = 0U;
+    uint8_t reg = 0U;
+    if (operand_index == ref_operand_index ||
+        metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_REGISTER_WRITE ||
+        !m68k_instruction_operand_direct_register(&stmt->u.instruction.operands[operand_index], &is_address, &reg) ||
+        !is_address) {
+      continue;
+    }
+    if (found) return 0;
+    found = 1U;
+    found_reg = reg;
+  }
+  if (!found) return 0;
+  if (out_reg != NULL) *out_reg = found_reg;
+  return 1;
+}
+
+static int listing_app_slot_address_register_copy(const M68kStatementIR *stmt, uint8_t *out_source_reg,
+    uint8_t *out_target_reg) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  uint8_t read_count = 0U, write_count = 0U;
+  uint8_t read_reg = 0U, write_reg = 0U;
+  if (out_source_reg != NULL) *out_source_reg = 0U;
+  if (out_target_reg != NULL) *out_target_reg = 0U;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return 0;
+  metadata = instruction_sim_metadata(&stmt->u.instruction);
+  if (metadata == NULL || metadata->operation_type != M68K_SIM_OP_MOVE) return 0;
+  for (operand_index = 0U; operand_index < stmt->u.instruction.operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &stmt->u.instruction.operands[operand_index];
+    uint8_t access = metadata->operand_access_kinds[operand_index];
+    uint8_t is_address = 0U;
+    uint8_t reg = 0U;
+    if (!m68k_instruction_operand_direct_register(operand, &is_address, &reg) || !is_address) continue;
+    if (access == M68K_SIM_ACCESS_REGISTER_READ || access == M68K_SIM_ACCESS_MEMORY_READ) {
+      ++read_count;
+      read_reg = reg;
+    } else if (access == M68K_SIM_ACCESS_REGISTER_WRITE || access == M68K_SIM_ACCESS_MEMORY_WRITE) {
+      ++write_count;
+      write_reg = reg;
+    }
+  }
+  if (read_count != 1U || write_count != 1U || read_reg == write_reg) return 0;
+  if (out_source_reg != NULL) *out_source_reg = read_reg;
+  if (out_target_reg != NULL) *out_target_reg = write_reg;
+  return 1;
+}
+
+static int listing_operand_is_immediate_value(const M68kOperandIR *operand, uint32_t *out_value) {
+  if (out_value != NULL) *out_value = 0U;
+  if (operand == NULL) return 0;
+  if (operand->kind == M68K_ASM_OPERAND_IMM ||
+      ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_ABSL) &&
+        operand->value.ea_mode == 7U && operand->value.ea_reg == 4U)) {
+    if (out_value != NULL) *out_value = operand->value.value;
+    return 1;
+  }
+  return 0;
+}
+
+static int listing_app_slot_address_register_immediate_adjust(const M68kStatementIR *stmt, uint8_t *out_reg,
+    int16_t *out_delta) {
+  const M68kSimFormMetadata *metadata;
+  const M68kOperandIR *source, *dest;
+  uint8_t is_address = 0U, reg = 0U;
+  uint32_t value = 0U;
+  int32_t delta;
+  if (out_reg != NULL) *out_reg = 0U;
+  if (out_delta != NULL) *out_delta = 0;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return 0;
+  metadata = instruction_sim_metadata(&stmt->u.instruction);
+  if (metadata == NULL || (metadata->operation_type != M68K_SIM_OP_ADD &&
+      metadata->operation_type != M68K_SIM_OP_SUB) ||
+      metadata->source_operand_index >= stmt->u.instruction.operand_count ||
+      metadata->dest_operand_index >= stmt->u.instruction.operand_count) {
+    return 0;
+  }
+  source = &stmt->u.instruction.operands[metadata->source_operand_index];
+  dest = &stmt->u.instruction.operands[metadata->dest_operand_index];
+  if (!listing_operand_is_immediate_value(source, &value) || value > INT16_MAX ||
+      !m68k_instruction_operand_direct_register(dest, &is_address, &reg) || !is_address) {
+    return 0;
+  }
+  delta = metadata->operation_type == M68K_SIM_OP_SUB ? -(int32_t)value : (int32_t)value;
+  if (delta < INT16_MIN || delta > INT16_MAX) return 0;
+  if (out_reg != NULL) *out_reg = reg;
+  if (out_delta != NULL) *out_delta = (int16_t)delta;
+  return 1;
+}
+
+static int listing_app_slot_computed_address_register_copy(const M68kStatementIR *stmt, uint8_t *out_source_reg,
+    uint8_t *out_target_reg, int16_t *out_delta) {
+  const M68kSimFormMetadata *metadata;
+  const M68kOperandIR *source, *dest;
+  size_t operand_index;
+  uint8_t is_address = 0U, target_reg = 0U;
+  uint8_t source_reg = 0U;
+  int16_t displacement = 0;
+  uint8_t source_operand_index = 255U, dest_operand_index = 255U;
+  if (out_source_reg != NULL) *out_source_reg = 0U;
+  if (out_target_reg != NULL) *out_target_reg = 0U;
+  if (out_delta != NULL) *out_delta = 0;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return 0;
+  metadata = instruction_sim_metadata(&stmt->u.instruction);
+  if (metadata == NULL) return 0;
+  for (operand_index = 0U; operand_index < stmt->u.instruction.operand_count && operand_index < 4U; ++operand_index) {
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_COMPUTE_ADDRESS) {
+      if (source_operand_index != 255U) return 0;
+      source_operand_index = (uint8_t)operand_index;
+    } else if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE) {
+      const M68kOperandIR *operand = &stmt->u.instruction.operands[operand_index];
+      uint8_t operand_is_address = 0U, operand_reg = 0U;
+      if (!m68k_instruction_operand_direct_register(operand, &operand_is_address, &operand_reg) ||
+          !operand_is_address) {
+        continue;
+      }
+      if (dest_operand_index != 255U) return 0;
+      dest_operand_index = (uint8_t)operand_index;
+    }
+  }
+  if (source_operand_index == 255U || dest_operand_index == 255U) return 0;
+  source = &stmt->u.instruction.operands[source_operand_index];
+  dest = &stmt->u.instruction.operands[dest_operand_index];
+  if (!m68k_instruction_operand_direct_register(dest, &is_address, &target_reg) || !is_address) return 0;
+  if (!operand_is_indirect_or_disp_an(source, &source_reg, &displacement)) return 0;
+  if (source_reg >= 8U) return 0;
+  if (out_source_reg != NULL) *out_source_reg = source_reg;
+  if (out_target_reg != NULL) *out_target_reg = target_reg;
+  if (out_delta != NULL) *out_delta = displacement;
+  return 1;
+}
+
+static void listing_app_slot_mark_written_address_registers(const M68kStatementIR *stmt, uint8_t written_regs[8]) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION || written_regs == NULL) return;
+  metadata = instruction_sim_metadata(&stmt->u.instruction);
+  if (metadata == NULL) return;
+  for (operand_index = 0U; operand_index < stmt->u.instruction.operand_count && operand_index < 4U; ++operand_index) {
+    uint8_t is_address = 0U;
+    uint8_t reg = 0U;
+    uint8_t access = metadata->operand_access_kinds[operand_index];
+    if (access != M68K_SIM_ACCESS_REGISTER_WRITE && access != M68K_SIM_ACCESS_MEMORY_WRITE &&
+        access != M68K_SIM_ACCESS_REGISTER_LIST_WRITE) {
+      continue;
+    }
+    if (!m68k_instruction_operand_direct_register(&stmt->u.instruction.operands[operand_index], &is_address, &reg) ||
+        !is_address || reg >= 8U) {
+      continue;
+    }
+    written_regs[reg] = 1U;
+  }
+}
+
+static int listing_app_slot_analysis_add_api_regions(ListingAppSlotAnalysisBuilder *analysis, int section_index,
+    size_t row_index, const char *row_kind, const M68kStatementIR *stmt, const M68kSectionAnalysisIR *section) {
+  size_t call_index;
+  if (analysis == NULL || !analysis->enabled || stmt == NULL || section == NULL ||
+      stmt->kind != M68K_STATEMENT_INSTRUCTION) {
+    return 0;
+  }
+  for (call_index = 0U; call_index < section->recovered_platform_call_count; ++call_index) {
+    const M68kRecoveredPlatformCallIR *call = &section->recovered_platform_calls[call_index];
+    const AmigaOsLibraryVectorInfo *vector;
+    const AmigaOsCallInputInfo *inputs;
+    const char *resolved_symbol = NULL;
+    const char *library_name;
+    const char *function_name;
+    size_t input_count = 0U;
+    size_t input_index;
+    if (call->offset != stmt->offset) continue;
+    vector = resolve_amiga_call_vector_for_json(call, &resolved_symbol);
+    if (vector == NULL) continue;
+    library_name = resolve_amiga_call_library_name_for_json(call, vector);
+    function_name = amiga_os_name(3U, vector->function_id);
+    inputs = amiga_os_library_vector_inputs(vector, &input_count);
+    for (input_index = 0U; input_index < input_count; ++input_index) {
+      const AmigaOsCallInputInfo *input = &inputs[input_index];
+      ListingAppSlotSource *source;
+      ListingAppSlotTypedRegion *region;
+      ListingAppSlotEvidence evidence;
+      int16_t struct_size = 0;
+      int16_t end;
+      uint8_t source_is_stale;
+      if (input->reg_kind != AMIGA_OS_REGISTER_ADDRESS || input->reg_index >= 8U) continue;
+      source = listing_app_slot_source_for(analysis, section_index, input->reg_index);
+      source_is_stale = source != NULL && row_index - source->last_row_index > 32U;
+      if (source == NULL || !source->valid || source->last_row_index >= row_index || source_is_stale) continue;
+      memset(&evidence, 0, sizeof(evidence));
+      evidence.row_index = row_index;
+      evidence.addr = stmt->offset;
+      evidence.section_index = section_index;
+      listing_row_stable_key(evidence.stable_key, sizeof(evidence.stable_key), section_index, stmt->offset, row_kind,
+        row_index);
+      listing_copy_text(evidence.library, sizeof(evidence.library), library_name);
+      listing_copy_text(evidence.function, sizeof(evidence.function), function_name);
+      listing_copy_text(evidence.input_name, sizeof(evidence.input_name), amiga_os_name(4U, input->input_id));
+      listing_register_name(evidence.reg, sizeof(evidence.reg), input->reg_index);
+      evidence.source_row_index = source->origin_row_index;
+      evidence.source_flow_row_index = source->last_row_index;
+      evidence.source_addr = source->addr;
+      listing_copy_text(evidence.source_stable_key, sizeof(evidence.source_stable_key), source->stable_key);
+      if (source->has_via_reg) listing_register_name(evidence.source_via_register,
+        sizeof(evidence.source_via_register), source->via_reg);
+      if (input->struct_id == AMIGA_OS_STRUCT_ID_NONE) {
+        if (listing_app_slot_analysis_append_untyped_api_arg(analysis, source, &evidence, input,
+            "missing_struct_metadata") != 0)
+          return -1;
+        continue;
+      }
+      amiga_struct_catalog_info(input->struct_id, NULL, &struct_size);
+      if (struct_size <= 0 || source->displacement > INT16_MAX - struct_size) {
+        if (listing_app_slot_analysis_append_untyped_api_arg(analysis, source, &evidence, input,
+            "unknown_struct_size") != 0)
+          return -1;
+        continue;
+      }
+      end = (int16_t)(source->displacement + struct_size);
+      region = listing_app_slot_analysis_region_for(analysis, source->displacement, end, input->struct_id,
+        source->symbol, source->symbol_displacement);
+      if (region == NULL) return -1;
+      if (listing_app_slot_analysis_append_evidence(region, &evidence) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
+static int listing_app_slot_analysis_observe_row(ListingAppSlotAnalysisBuilder *analysis, size_t row_index,
+    const char *row_kind, int section_index, const M68kStatementIR *stmt,
+    const M68kSourceAnalysisIR *source_analysis) {
+  const M68kSectionAnalysisIR *section = NULL;
+  uint8_t set_regs[8] = {0};
+  uint8_t written_regs[8] = {0};
+  size_t ref_index;
+  if (analysis == NULL || !analysis->enabled || stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION ||
+      source_analysis == NULL || section_index < 0 || (size_t)section_index >= source_analysis->section_count) {
+    return 0;
+  }
+  section = &source_analysis->sections[section_index];
+  if (listing_app_slot_analysis_add_api_regions(analysis, section_index, row_index, row_kind, stmt, section) != 0)
+    return -1;
+  for (ref_index = 0U; ref_index < section->app_slot_ref_count; ++ref_index) {
+    const M68kAppSlotRefIR *ref = &section->app_slot_refs[ref_index];
+    char fallback_symbol[64];
+    const char *symbol_name;
+    const char *access_kind;
+    ListingAppSlotRefRecord record;
+    if (ref->offset != stmt->offset) continue;
+    symbol_name = listing_app_slot_ref_symbol_name(stmt, ref, fallback_symbol, sizeof(fallback_symbol));
+    access_kind = app_slot_access_kind_name(ref->access_kind);
+    if (symbol_name == NULL || access_kind == NULL) continue;
+    memset(&record, 0, sizeof(record));
+    listing_copy_text(record.symbol, sizeof(record.symbol), symbol_name);
+    record.displacement = ref->displacement;
+    record.base_reg = ref->base_reg;
+    record.operand_index = ref->operand_index;
+    listing_copy_text(record.access, sizeof(record.access), access_kind);
+    listing_app_slot_ref_width(strcmp(access_kind, "address") == 0 ? NULL : stmt, record.width_name,
+      sizeof(record.width_name), &record.width_size);
+    if (strcmp(access_kind, "address") == 0) record.width_size = 0U;
+    record.row_index = row_index;
+    record.addr = stmt->offset;
+    record.section_index = section_index;
+    listing_row_stable_key(record.stable_key, sizeof(record.stable_key), section_index, stmt->offset, row_kind,
+      row_index);
+    if (listing_app_slot_analysis_append_ref(analysis, &record) != 0) return -1;
+    if (strcmp(access_kind, "address") == 0) {
+      uint8_t target_reg = 0U;
+      if (listing_app_slot_address_target_register(stmt, ref->operand_index, &target_reg)) {
+        ListingAppSlotSource *source = listing_app_slot_source_for(analysis, section_index, target_reg);
+        if (source != NULL) {
+          memset(source, 0, sizeof(*source));
+          source->valid = 1U;
+          listing_copy_text(source->symbol, sizeof(source->symbol), symbol_name);
+          source->displacement = ref->displacement;
+          source->symbol_displacement = ref->displacement;
+          source->base_reg = ref->base_reg;
+          source->row_index = row_index;
+          source->origin_row_index = row_index;
+          source->last_row_index = row_index;
+          source->addr = stmt->offset;
+          listing_copy_text(source->stable_key, sizeof(source->stable_key), record.stable_key);
+          set_regs[target_reg] = 1U;
+        }
+      }
+    }
+  }
+  {
+    uint8_t source_reg = 0U, target_reg = 0U;
+    int16_t delta = 0;
+    if (listing_app_slot_address_register_copy(stmt, &source_reg, &target_reg) ||
+        listing_app_slot_computed_address_register_copy(stmt, &source_reg, &target_reg, &delta)) {
+      ListingAppSlotSource *source = listing_app_slot_source_for(analysis, section_index, source_reg);
+      ListingAppSlotSource *target = listing_app_slot_source_for(analysis, section_index, target_reg);
+      int32_t adjusted = source != NULL ? (int32_t)source->displacement + (int32_t)delta : 0;
+      if (source != NULL && target != NULL && source->valid && adjusted >= INT16_MIN && adjusted <= INT16_MAX) {
+        *target = *source;
+        target->displacement = (int16_t)adjusted;
+        target->last_row_index = row_index;
+        target->has_via_reg = 1U;
+        target->via_reg = source_reg;
+        set_regs[target_reg] = 1U;
+      }
+    }
+  }
+  {
+    uint8_t target_reg = 0U;
+    int16_t delta = 0;
+    if (listing_app_slot_address_register_immediate_adjust(stmt, &target_reg, &delta)) {
+      ListingAppSlotSource *source = listing_app_slot_source_for(analysis, section_index, target_reg);
+      int32_t adjusted = source != NULL ? (int32_t)source->displacement + (int32_t)delta : 0;
+      if (source != NULL && source->valid && adjusted >= INT16_MIN && adjusted <= INT16_MAX) {
+        source->displacement = (int16_t)adjusted;
+        source->last_row_index = row_index;
+        set_regs[target_reg] = 1U;
+      }
+    }
+  }
+  listing_app_slot_mark_written_address_registers(stmt, written_regs);
+  for (ref_index = 0U; ref_index < 8U; ++ref_index) {
+    if (written_regs[ref_index] && !set_regs[ref_index]) {
+      ListingAppSlotSource *source = listing_app_slot_source_for(analysis, section_index, (uint8_t)ref_index);
+      if (source != NULL) memset(source, 0, sizeof(*source));
+    }
+  }
+  return 0;
+}
+
+static int listing_app_slot_summary_compare(const void *left_ptr, const void *right_ptr) {
+  const ListingAppSlotSummary *left = (const ListingAppSlotSummary *)left_ptr;
+  const ListingAppSlotSummary *right = (const ListingAppSlotSummary *)right_ptr;
+  if (left->displacement != right->displacement) return (int)left->displacement - (int)right->displacement;
+  return strcmp(left->symbol, right->symbol);
+}
+
+static int listing_app_slot_region_compare(const void *left_ptr, const void *right_ptr) {
+  const ListingAppSlotTypedRegion *left = (const ListingAppSlotTypedRegion *)left_ptr;
+  const ListingAppSlotTypedRegion *right = (const ListingAppSlotTypedRegion *)right_ptr;
+  if (left->offset != right->offset) return (int)left->offset - (int)right->offset;
+  if (left->end != right->end) return (int)left->end - (int)right->end;
+  return strcmp(left->struct_name, right->struct_name);
+}
+
+static int listing_app_slot_interval_compare(const void *left_ptr, const void *right_ptr) {
+  const ListingAppSlotInterval *left = (const ListingAppSlotInterval *)left_ptr;
+  const ListingAppSlotInterval *right = (const ListingAppSlotInterval *)right_ptr;
+  if (left->offset != right->offset) return (int)left->offset - (int)right->offset;
+  if (left->end != right->end) return (int)left->end - (int)right->end;
+  return strcmp(left->id, right->id);
+}
+
+static int listing_app_slot_field_ref_compare(const void *left_ptr, const void *right_ptr) {
+  const ListingAppSlotFieldRefSummary *left = (const ListingAppSlotFieldRefSummary *)left_ptr;
+  const ListingAppSlotFieldRefSummary *right = (const ListingAppSlotFieldRefSummary *)right_ptr;
+  if (left->field_offset != right->field_offset) return (int)left->field_offset - (int)right->field_offset;
+  return strcmp(left->symbol, right->symbol);
+}
+
+static void listing_app_slot_summary_add_counts(ListingAppSlotSummary *summary, const ListingAppSlotRefRecord *ref) {
+  if (summary == NULL || ref == NULL) return;
+  ++summary->ref_count;
+  if (ref->base_reg < 8U) summary->base_regs[ref->base_reg] = 1U;
+  if (strcmp(ref->access, "read") == 0) ++summary->access_read;
+  else if (strcmp(ref->access, "write") == 0) ++summary->access_write;
+  else if (strcmp(ref->access, "read-write") == 0) ++summary->access_read_write;
+  else if (strcmp(ref->access, "address") == 0) ++summary->access_address;
+  if (ref->width_size != 0U) {
+    if (strcmp(ref->width_name, "byte") == 0) ++summary->width_byte;
+    else if (strcmp(ref->width_name, "word") == 0) ++summary->width_word;
+    else if (strcmp(ref->width_name, "long") == 0) ++summary->width_long;
+    else ++summary->width_unknown;
+    if (ref->width_size > summary->observed_size) summary->observed_size = ref->width_size;
+  }
+  if (ref->row_index < summary->first_row_index) summary->first_row_index = ref->row_index;
+  if (ref->row_index > summary->last_row_index) summary->last_row_index = ref->row_index;
+  if (ref->addr < summary->first_addr) summary->first_addr = ref->addr;
+  if (ref->addr > summary->last_addr) summary->last_addr = ref->addr;
+}
+
+static ListingAppSlotSummary *listing_app_slot_build_summaries(const ListingAppSlotAnalysisBuilder *analysis,
+    size_t *out_count) {
+  ListingAppSlotSummary *summaries = NULL;
+  size_t summary_count = 0U, summary_capacity = 0U;
+  size_t ref_index;
+  if (out_count != NULL) *out_count = 0U;
+  if (analysis == NULL || analysis->ref_count == 0U) return NULL;
+  for (ref_index = 0U; ref_index < analysis->ref_count; ++ref_index) {
+    const ListingAppSlotRefRecord *ref = &analysis->refs[ref_index];
+    ListingAppSlotSummary *summary = NULL;
+    size_t summary_index;
+    for (summary_index = 0U; summary_index < summary_count; ++summary_index) {
+      if (strcmp(summaries[summary_index].symbol, ref->symbol) == 0) {
+        summary = &summaries[summary_index];
+        break;
+      }
+    }
+    if (summary == NULL) {
+      ListingAppSlotSummary *grown;
+      size_t next_capacity;
+      if (summary_count == summary_capacity) {
+        next_capacity = summary_capacity == 0U ? 32U : summary_capacity * 2U;
+        grown = (ListingAppSlotSummary *)realloc(summaries, next_capacity * sizeof(*grown));
+        if (grown == NULL) {
+          free(summaries);
+          return NULL;
+        }
+        summaries = grown;
+        summary_capacity = next_capacity;
+      }
+      summary = &summaries[summary_count++];
+      memset(summary, 0, sizeof(*summary));
+      listing_copy_text(summary->symbol, sizeof(summary->symbol), ref->symbol);
+      summary->displacement = ref->displacement;
+      summary->first_row_index = ref->row_index;
+      summary->last_row_index = ref->row_index;
+      summary->first_addr = ref->addr;
+      summary->last_addr = ref->addr;
+    }
+    listing_app_slot_summary_add_counts(summary, ref);
+  }
+  for (ref_index = 0U; ref_index < summary_count; ++ref_index) {
+    ListingAppSlotSummary *summary = &summaries[ref_index];
+    if (summary->observed_size == 0U) summary->observed_size = 1U;
+    summary->observed_end = (int16_t)(summary->displacement + summary->observed_size);
+  }
+  qsort(summaries, summary_count, sizeof(*summaries), listing_app_slot_summary_compare);
+  if (out_count != NULL) *out_count = summary_count;
+  return summaries;
+}
+
+static int append_listing_count_object(JsonBuilder *builder, const char *first_name, uint32_t first_count,
+    const char *second_name, uint32_t second_count, const char *third_name, uint32_t third_count,
+    const char *fourth_name, uint32_t fourth_count) {
+  int emitted = 0;
+  const char *names[4];
+  uint32_t counts[4];
+  size_t index;
+  names[0] = first_name;
+  names[1] = second_name;
+  names[2] = third_name;
+  names[3] = fourth_name;
+  counts[0] = first_count;
+  counts[1] = second_count;
+  counts[2] = third_count;
+  counts[3] = fourth_count;
+  if (json_builder_append(builder, "{") != 0) return -1;
+  for (index = 0U; index < 4U; ++index) {
+    if (counts[index] == 0U || names[index] == NULL) continue;
+    if (emitted && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append_json_string(builder, names[index]) != 0) return -1;
+    if (json_builder_appendf(builder, ":%u", (unsigned)counts[index]) != 0) return -1;
+    emitted = 1;
+  }
+  return json_builder_append(builder, "}");
+}
+
+static int append_listing_app_slot_base_registers(JsonBuilder *builder, const uint8_t base_regs[8]) {
+  uint8_t reg;
+  int emitted = 0;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  for (reg = 0U; reg < 8U; ++reg) {
+    char reg_name[4];
+    if (!base_regs[reg]) continue;
+    if (emitted && json_builder_append(builder, ",") != 0) return -1;
+    listing_register_name(reg_name, sizeof(reg_name), reg);
+    if (json_builder_append_json_string(builder, reg_name) != 0) return -1;
+    emitted = 1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_app_slot_slots_json(JsonBuilder *builder, const ListingAppSlotSummary *summaries,
+    size_t summary_count) {
+  size_t index;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  for (index = 0U; index < summary_count; ++index) {
+    const ListingAppSlotSummary *summary = &summaries[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"symbol\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, summary->symbol) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"displacement\":%d,\"base_registers\":", (int)summary->displacement) != 0)
+      return -1;
+    if (append_listing_app_slot_base_registers(builder, summary->base_regs) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"ref_count\":%u,\"access_counts\":", (unsigned)summary->ref_count) != 0)
+      return -1;
+    if (append_listing_count_object(builder, "read", summary->access_read, "write", summary->access_write,
+        "read-write", summary->access_read_write, "address", summary->access_address) != 0)
+      return -1;
+    if (json_builder_append(builder, ",\"width_counts\":") != 0) return -1;
+    if (append_listing_count_object(builder, "byte", summary->width_byte, "word", summary->width_word,
+        "long", summary->width_long, "unknown", summary->width_unknown) != 0)
+      return -1;
+    if (json_builder_appendf(builder,
+          ",\"observed_size\":%u,\"observed_end\":%d,\"first_row_index\":%u,\"last_row_index\":%u,"
+          "\"first_addr\":%u,\"last_addr\":%u}",
+          (unsigned)summary->observed_size, (int)summary->observed_end, (unsigned)summary->first_row_index,
+          (unsigned)summary->last_row_index, (unsigned)summary->first_addr, (unsigned)summary->last_addr) != 0)
+      return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static void listing_app_slot_field_ref_add_counts(ListingAppSlotFieldRefSummary *summary,
+    const ListingAppSlotRefRecord *ref) {
+  if (summary == NULL || ref == NULL) return;
+  ++summary->ref_count;
+  if (strcmp(ref->access, "read") == 0) ++summary->access_read;
+  else if (strcmp(ref->access, "write") == 0) ++summary->access_write;
+  else if (strcmp(ref->access, "read-write") == 0) ++summary->access_read_write;
+  else if (strcmp(ref->access, "address") == 0) ++summary->access_address;
+  if (ref->width_size != 0U) {
+    if (strcmp(ref->width_name, "byte") == 0) ++summary->width_byte;
+    else if (strcmp(ref->width_name, "word") == 0) ++summary->width_word;
+    else if (strcmp(ref->width_name, "long") == 0) ++summary->width_long;
+    else ++summary->width_unknown;
+  }
+}
+
+static ListingAppSlotFieldRefSummary *listing_app_slot_build_field_refs(
+    const ListingAppSlotAnalysisBuilder *analysis, const ListingAppSlotTypedRegion *region, size_t *out_count) {
+  ListingAppSlotFieldRefSummary *fields = NULL;
+  size_t field_count = 0U, field_capacity = 0U;
+  size_t ref_index;
+  if (out_count != NULL) *out_count = 0U;
+  if (analysis == NULL || region == NULL) return NULL;
+  for (ref_index = 0U; ref_index < analysis->ref_count; ++ref_index) {
+    const ListingAppSlotRefRecord *ref = &analysis->refs[ref_index];
+    ListingAppSlotFieldRefSummary *field = NULL;
+    int16_t field_offset;
+    size_t field_index;
+    if (ref->displacement < region->offset || ref->displacement >= region->end) continue;
+    field_offset = (int16_t)(ref->displacement - region->offset);
+    for (field_index = 0U; field_index < field_count; ++field_index) {
+      if (fields[field_index].field_offset == field_offset &&
+          strcmp(fields[field_index].symbol, ref->symbol) == 0) {
+        field = &fields[field_index];
+        break;
+      }
+    }
+    if (field == NULL) {
+      ListingAppSlotFieldRefSummary *grown;
+      size_t next_capacity;
+      if (field_count == field_capacity) {
+        next_capacity = field_capacity == 0U ? 8U : field_capacity * 2U;
+        grown = (ListingAppSlotFieldRefSummary *)realloc(fields, next_capacity * sizeof(*grown));
+        if (grown == NULL) {
+          free(fields);
+          return NULL;
+        }
+        fields = grown;
+        field_capacity = next_capacity;
+      }
+      field = &fields[field_count++];
+      memset(field, 0, sizeof(*field));
+      listing_copy_text(field->symbol, sizeof(field->symbol), ref->symbol);
+      field->displacement = ref->displacement;
+      field->field_offset = field_offset;
+      field->region_address = strcmp(ref->access, "address") == 0 && field_offset == 0 &&
+        strcmp(ref->symbol, region->symbol) == 0;
+      if (!field->region_address &&
+          amiga_os_resolve_struct_field_by_struct_id(region->struct_id, field_offset, 0, &field->field)) {
+        field->has_field = 1U;
+      }
+    } else if (!(strcmp(ref->access, "address") == 0 && field_offset == 0 &&
+        strcmp(ref->symbol, region->symbol) == 0)) {
+      field->region_address = 0U;
+      if (!field->has_field &&
+          amiga_os_resolve_struct_field_by_struct_id(region->struct_id, field_offset, 0, &field->field)) {
+        field->has_field = 1U;
+      }
+    }
+    listing_app_slot_field_ref_add_counts(field, ref);
+  }
+  qsort(fields, field_count, sizeof(*fields), listing_app_slot_field_ref_compare);
+  if (out_count != NULL) *out_count = field_count;
+  return fields;
+}
+
+static uint8_t listing_app_slot_field_observed_size(const ListingAppSlotFieldRefSummary *field) {
+  if (field == NULL) return 1U;
+  if (field->width_long != 0U) return 4U;
+  if (field->width_word != 0U) return 2U;
+  if (field->width_byte != 0U || field->width_unknown != 0U) return 1U;
+  return 1U;
+}
+
+static int append_listing_resolved_field_path_json(JsonBuilder *builder,
+    const AmigaOsResolvedStructFieldInfo *resolved) {
+  size_t index;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (resolved != NULL) {
+    for (index = 0U; index < resolved->path_count; ++index) {
+      const char *name = amiga_os_name(8U, resolved->path_field_ids[index]);
+      if (name == NULL) continue;
+      if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_append_json_string(builder, name) != 0) return -1;
+    }
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_field_refs_json(JsonBuilder *builder, const ListingAppSlotAnalysisBuilder *analysis,
+    const ListingAppSlotTypedRegion *region, const ListingAppSlotFieldRefSummary *fields, size_t field_count) {
+  size_t field_index;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  for (field_index = 0U; field_index < field_count; ++field_index) {
+    const ListingAppSlotFieldRefSummary *field = &fields[field_index];
+    size_t ref_index;
+    int emitted_ref = 0;
+    if (field_index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"symbol\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, field->symbol) != 0) return -1;
+    if (json_builder_appendf(builder,
+          ",\"base_symbol\":") != 0)
+      return -1;
+    if (json_builder_append_json_string(builder, region->symbol) != 0) return -1;
+    if (json_builder_appendf(builder,
+          ",\"displacement\":%d,\"field_offset\":%d,\"ref_count\":%u,\"access_counts\":",
+          (int)field->displacement, (int)field->field_offset, (unsigned)field->ref_count) != 0)
+      return -1;
+    if (append_listing_count_object(builder, "read", field->access_read, "write", field->access_write,
+        "read-write", field->access_read_write, "address", field->access_address) != 0)
+      return -1;
+    if (json_builder_append(builder, ",\"width_counts\":") != 0) return -1;
+    if (append_listing_count_object(builder, "byte", field->width_byte, "word", field->width_word,
+        "long", field->width_long, "unknown", field->width_unknown) != 0)
+      return -1;
+    if (field->region_address && json_builder_append(builder, ",\"region_address\":true") != 0) return -1;
+    if (field->has_field) {
+      const char *field_name = amiga_os_name(8U, field->field.field_id);
+      const char *owner_name = amiga_os_name(7U, field->field.owner_struct_id);
+      if (json_builder_append(builder, ",\"field_name\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, field_name) != 0) return -1;
+      if (json_builder_appendf(builder, ",\"field_base_offset\":%d,\"field_owner_struct\":",
+            (int)field->field.offset) != 0)
+        return -1;
+      if (json_builder_append_nullable_string(builder, owner_name) != 0) return -1;
+      if (json_builder_appendf(builder, ",\"field_inherited\":%s,\"field_nested\":%s,\"field_path\":",
+            field->field.inherited ? "true" : "false", field->field.nested ? "true" : "false") != 0)
+        return -1;
+      if (append_listing_resolved_field_path_json(builder, &field->field) != 0) return -1;
+      if (field->field.offset != field->field_offset &&
+          json_builder_appendf(builder, ",\"field_delta\":%d", (int)(field->field_offset - field->field.offset)) != 0)
+        return -1;
+      {
+        char field_expr[128];
+        if (amiga_os_resolve_struct_field_symbol_expr_by_struct_id(region->struct_id, field->field_offset, 0,
+            field_expr, sizeof(field_expr))) {
+          if (json_builder_append(builder, ",\"field_expr\":") != 0) return -1;
+          if (json_builder_append_json_string(builder, field_expr) != 0) return -1;
+        }
+      }
+    }
+    if (json_builder_append(builder, ",\"refs\":[") != 0) return -1;
+    for (ref_index = 0U; ref_index < analysis->ref_count; ++ref_index) {
+      const ListingAppSlotRefRecord *ref = &analysis->refs[ref_index];
+      if (ref->displacement < region->offset || ref->displacement >= region->end ||
+          (int16_t)(ref->displacement - region->offset) != field->field_offset ||
+          strcmp(ref->symbol, field->symbol) != 0) {
+        continue;
+      }
+      if (emitted_ref && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_appendf(builder, "{\"row_index\":%u,\"addr\":%u,\"access\":",
+            (unsigned)ref->row_index, (unsigned)ref->addr) != 0)
+        return -1;
+      if (json_builder_append_json_string(builder, ref->access) != 0) return -1;
+      if (json_builder_append(builder, ",\"stable_key\":") != 0) return -1;
+      if (json_builder_append_json_string(builder, ref->stable_key) != 0) return -1;
+      if (json_builder_append(builder, "}") != 0) return -1;
+      emitted_ref = 1;
+    }
+    if (json_builder_append(builder, "]}") != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_app_slot_region_evidence_json(JsonBuilder *builder,
+    const ListingAppSlotTypedRegion *region) {
+  size_t index;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  for (index = 0U; index < region->evidence_count; ++index) {
+    const ListingAppSlotEvidence *evidence = &region->evidence[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_appendf(builder, "{\"row_index\":%u,\"addr\":%u,\"hunk_index\":%d,\"library\":",
+          (unsigned)evidence->row_index, (unsigned)evidence->addr, evidence->section_index) != 0)
+      return -1;
+    if (json_builder_append_json_string(builder, evidence->library) != 0) return -1;
+    if (json_builder_append(builder, ",\"function\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, evidence->function) != 0) return -1;
+    if (json_builder_append(builder, ",\"input_name\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, evidence->input_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"register\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, evidence->reg) != 0) return -1;
+    if (json_builder_append(builder, ",\"stable_key\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, evidence->stable_key) != 0) return -1;
+    if (json_builder_appendf(builder,
+          ",\"source_row_index\":%u,\"source_flow_row_index\":%u,\"source_addr\":%u,\"source_stable_key\":",
+          (unsigned)evidence->source_row_index, (unsigned)evidence->source_flow_row_index,
+          (unsigned)evidence->source_addr) != 0)
+      return -1;
+    if (json_builder_append_json_string(builder, evidence->source_stable_key) != 0) return -1;
+    if (evidence->source_via_register[0] != '\0') {
+      if (json_builder_append(builder, ",\"source_via_register\":") != 0) return -1;
+      if (json_builder_append_json_string(builder, evidence->source_via_register) != 0) return -1;
+    }
+    if (json_builder_append(builder, "}") != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_app_slot_regions_json(JsonBuilder *builder, const ListingAppSlotAnalysisBuilder *analysis,
+    const ListingAppSlotSummary *summaries, size_t summary_count) {
+  size_t index;
+  int emitted = 0;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  for (index = 0U; index < analysis->region_count; ++index) {
+    const ListingAppSlotTypedRegion *region = &analysis->regions[index];
+    ListingAppSlotFieldRefSummary *fields;
+    size_t field_count = 0U;
+    fields = listing_app_slot_build_field_refs(analysis, region, &field_count);
+    if (emitted && json_builder_append(builder, ",") != 0) {
+      free(fields);
+      return -1;
+    }
+    if (json_builder_append(builder, "{\"id\":") != 0) {
+      free(fields);
+      return -1;
+    }
+    if (json_builder_append_json_string(builder, region->id) != 0 ||
+        json_builder_append(builder, ",\"symbol\":") != 0 ||
+        json_builder_append_json_string(builder, region->symbol) != 0 ||
+        json_builder_append(builder, ",\"base_symbol\":") != 0 ||
+        json_builder_append_json_string(builder, region->base_symbol) != 0 ||
+        json_builder_appendf(builder,
+          ",\"offset\":%d,\"base_displacement\":%d,\"effective_offset\":%d,\"end\":%d,\"size\":%d,"
+          "\"source\":\"platform_api_arg\","
+          "\"confidence\":\"tool-inferred\",\"struct_name\":",
+          (int)region->offset, (int)region->base_displacement, (int)region->offset, (int)region->end,
+          (int)region->size) != 0 ||
+        json_builder_append_json_string(builder, region->struct_name) != 0 ||
+        json_builder_append(builder, ",\"struct_source\":") != 0 ||
+        json_builder_append_json_string(builder, region->struct_source) != 0 ||
+        json_builder_append(builder, ",\"evidence\":") != 0 ||
+        append_listing_app_slot_region_evidence_json(builder, region) != 0 ||
+        json_builder_append(builder, ",\"field_refs\":") != 0 ||
+        append_listing_field_refs_json(builder, analysis, region, fields, field_count) != 0 ||
+        json_builder_append(builder, "}") != 0) {
+      free(fields);
+      return -1;
+    }
+    free(fields);
+    emitted = 1;
+  }
+  for (index = 0U; index < summary_count; ++index) {
+    const ListingAppSlotSummary *summary = &summaries[index];
+    char id[96];
+    snprintf(id, sizeof(id), "app_slot_observed_%s", summary->symbol);
+    if (emitted && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"id\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, id) != 0) return -1;
+    if (json_builder_append(builder, ",\"symbol\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, summary->symbol) != 0) return -1;
+    if (json_builder_appendf(builder,
+          ",\"offset\":%d,\"end\":%d,\"size\":%d,\"source\":\"observed_app_slot_refs\","
+          "\"confidence\":\"tool-inferred\",\"ref_count\":%u,\"covered_by_regions\":[",
+          (int)summary->displacement, (int)summary->observed_end,
+          (int)(summary->observed_end - summary->displacement), (unsigned)summary->ref_count) != 0)
+      return -1;
+    {
+      size_t region_index;
+      int emitted_region = 0;
+      for (region_index = 0U; region_index < analysis->region_count; ++region_index) {
+        const ListingAppSlotTypedRegion *region = &analysis->regions[region_index];
+        if (region->offset <= summary->displacement && summary->observed_end <= region->end) {
+          if (emitted_region && json_builder_append(builder, ",") != 0) return -1;
+          if (json_builder_append_json_string(builder, region->id) != 0) return -1;
+          emitted_region = 1;
+        }
+      }
+    }
+    if (json_builder_append(builder, "]}") != 0) return -1;
+    emitted = 1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static ListingAppSlotInterval *listing_app_slot_build_intervals(const ListingAppSlotAnalysisBuilder *analysis,
+    const ListingAppSlotSummary *summaries, size_t summary_count, size_t *out_count) {
+  ListingAppSlotInterval *intervals;
+  size_t index, count = 0U;
+  if (out_count != NULL) *out_count = 0U;
+  if (analysis == NULL || (analysis->region_count + summary_count) == 0U) return NULL;
+  intervals = (ListingAppSlotInterval *)calloc(analysis->region_count + summary_count, sizeof(*intervals));
+  if (intervals == NULL) return NULL;
+  for (index = 0U; index < analysis->region_count; ++index) {
+    intervals[count].offset = analysis->regions[index].offset;
+    intervals[count].end = analysis->regions[index].end;
+    listing_copy_text(intervals[count].id, sizeof(intervals[count].id), analysis->regions[index].id);
+    ++count;
+  }
+  for (index = 0U; index < summary_count; ++index) {
+    intervals[count].offset = summaries[index].displacement;
+    intervals[count].end = summaries[index].observed_end;
+    snprintf(intervals[count].id, sizeof(intervals[count].id), "app_slot_observed_%s", summaries[index].symbol);
+    ++count;
+  }
+  qsort(intervals, count, sizeof(*intervals), listing_app_slot_interval_compare);
+  if (out_count != NULL) *out_count = count;
+  return intervals;
+}
+
+static int append_listing_app_slot_gaps_json(JsonBuilder *builder, const ListingAppSlotInterval *intervals,
+    size_t interval_count, size_t *out_gap_count) {
+  size_t index;
+  int emitted = 0;
+  int16_t current_end;
+  const char *current_id;
+  size_t gap_count = 0U;
+  if (out_gap_count != NULL) *out_gap_count = 0U;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (interval_count == 0U) return json_builder_append(builder, "]");
+  current_end = intervals[0].end;
+  current_id = intervals[0].id;
+  for (index = 1U; index < interval_count; ++index) {
+    if (intervals[index].offset > current_end) {
+      if (emitted && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_appendf(builder, "{\"start\":%d,\"end\":%d,\"size\":%d,\"after\":",
+            (int)current_end, (int)intervals[index].offset, (int)(intervals[index].offset - current_end)) != 0)
+        return -1;
+      if (json_builder_append_json_string(builder, current_id) != 0) return -1;
+      if (json_builder_append(builder, ",\"before\":") != 0) return -1;
+      if (json_builder_append_json_string(builder, intervals[index].id) != 0) return -1;
+      if (json_builder_append(builder, ",\"coverage\":\"unknown_app_slot_space\"}") != 0) return -1;
+      emitted = 1;
+      ++gap_count;
+    }
+    if (intervals[index].end > current_end) {
+      current_end = intervals[index].end;
+      current_id = intervals[index].id;
+    }
+  }
+  if (out_gap_count != NULL) *out_gap_count = gap_count;
+  return json_builder_append(builder, "]");
+}
+
+static size_t listing_app_slot_gap_count(const ListingAppSlotInterval *intervals, size_t interval_count) {
+  size_t index, gap_count = 0U;
+  int16_t current_end;
+  if (intervals == NULL || interval_count == 0U) return 0U;
+  current_end = intervals[0].end;
+  for (index = 1U; index < interval_count; ++index) {
+    if (intervals[index].offset > current_end) ++gap_count;
+    if (intervals[index].end > current_end) current_end = intervals[index].end;
+  }
+  return gap_count;
+}
+
+static int append_listing_app_slot_field_gap_json(JsonBuilder *builder, const ListingAppSlotTypedRegion *region,
+    int16_t start, int16_t end, size_t *io_count) {
+  AmigaOsResolvedStructFieldInfo resolved;
+  int has_field;
+  if (builder == NULL || region == NULL || start >= end) return -1;
+  has_field = amiga_os_resolve_struct_field_by_struct_id(region->struct_id, start, 1, &resolved);
+  if (json_builder_appendf(builder,
+        "{\"id\":\"%s_field_gap_%04X_%04X\",\"region_id\":",
+        region->id, (unsigned)(uint16_t)start, (unsigned)(uint16_t)end) != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, region->id) != 0) return -1;
+  if (json_builder_append(builder, ",\"symbol\":") != 0) return -1;
+  if (json_builder_append_json_string(builder, region->symbol) != 0) return -1;
+  if (json_builder_append(builder, ",\"struct_name\":") != 0) return -1;
+  if (json_builder_append_json_string(builder, region->struct_name) != 0) return -1;
+  if (json_builder_appendf(builder,
+        ",\"start\":%d,\"end\":%d,\"size\":%d,\"field_offset\":%d,\"field_end_offset\":%d,\"coverage\":",
+        (int)(region->offset + start), (int)(region->offset + end), (int)(end - start), (int)start,
+        (int)end) != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, has_field ? "known_struct_field" : "unknown_struct_area") != 0)
+    return -1;
+  if (has_field) {
+    const char *field_name = amiga_os_name(8U, resolved.field_id);
+    const char *owner_name = amiga_os_name(7U, resolved.owner_struct_id);
+    if (json_builder_append(builder, ",\"field_name\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, field_name) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"field_base_offset\":%d,\"field_owner_struct\":",
+          (int)resolved.offset) != 0)
+      return -1;
+    if (json_builder_append_nullable_string(builder, owner_name) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"field_inherited\":%s,\"field_nested\":%s,\"field_path\":",
+          resolved.inherited ? "true" : "false", resolved.nested ? "true" : "false") != 0)
+      return -1;
+    if (append_listing_resolved_field_path_json(builder, &resolved) != 0) return -1;
+  }
+  if (json_builder_append(builder, "}") != 0) return -1;
+  if (io_count != NULL) ++*io_count;
+  return 0;
+}
+
+static int listing_app_slot_next_known_field_offset(const ListingAppSlotTypedRegion *region, int16_t start,
+    int16_t end, int16_t *out_offset) {
+  int16_t cursor;
+  if (out_offset != NULL) *out_offset = end;
+  if (region == NULL) return 0;
+  for (cursor = (int16_t)(start + 1); cursor < end; ++cursor) {
+    AmigaOsResolvedStructFieldInfo resolved;
+    if (amiga_os_resolve_struct_field_by_struct_id(region->struct_id, cursor, 1, &resolved)) {
+      if (out_offset != NULL) *out_offset = cursor;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int append_listing_app_slot_field_gap_segments_json(JsonBuilder *builder,
+    const ListingAppSlotTypedRegion *region, int16_t start, int16_t end, int *io_emitted, size_t *io_count) {
+  int16_t cursor = start;
+  if (builder == NULL || region == NULL || io_emitted == NULL || start > end) return -1;
+  while (cursor < end) {
+    AmigaOsResolvedStructFieldInfo resolved;
+    int16_t segment_end;
+    if (amiga_os_resolve_struct_field_by_struct_id(region->struct_id, cursor, 1, &resolved)) {
+      if (resolved.offset >= cursor && resolved.size != 0U) {
+        segment_end = (int16_t)(resolved.offset + (int16_t)resolved.size);
+        if (segment_end <= cursor) segment_end = (int16_t)(cursor + 1);
+        if (segment_end > end) segment_end = end;
+      } else {
+        segment_end = (int16_t)(cursor + 1);
+      }
+    } else if (!listing_app_slot_next_known_field_offset(region, cursor, end, &segment_end)) {
+      segment_end = end;
+    }
+    if (*io_emitted && json_builder_append(builder, ",") != 0) return -1;
+    if (append_listing_app_slot_field_gap_json(builder, region, cursor, segment_end, io_count) != 0) return -1;
+    *io_emitted = 1;
+    cursor = segment_end;
+  }
+  return 0;
+}
+
+static size_t listing_app_slot_count_field_gap_segments(const ListingAppSlotTypedRegion *region, int16_t start,
+    int16_t end) {
+  int16_t cursor = start;
+  size_t count = 0U;
+  if (region == NULL || start > end) return 0U;
+  while (cursor < end) {
+    AmigaOsResolvedStructFieldInfo resolved;
+    int16_t segment_end;
+    if (amiga_os_resolve_struct_field_by_struct_id(region->struct_id, cursor, 1, &resolved)) {
+      if (resolved.offset >= cursor && resolved.size != 0U) {
+        segment_end = (int16_t)(resolved.offset + (int16_t)resolved.size);
+        if (segment_end <= cursor) segment_end = (int16_t)(cursor + 1);
+        if (segment_end > end) segment_end = end;
+      } else {
+        segment_end = (int16_t)(cursor + 1);
+      }
+    } else if (!listing_app_slot_next_known_field_offset(region, cursor, end, &segment_end)) {
+      segment_end = end;
+    }
+    ++count;
+    cursor = segment_end;
+  }
+  return count;
+}
+
+static int append_listing_app_slot_field_gaps_json(JsonBuilder *builder,
+    const ListingAppSlotAnalysisBuilder *analysis, size_t *out_field_gap_count) {
+  size_t region_index;
+  int emitted = 0;
+  size_t gap_count = 0U;
+  if (out_field_gap_count != NULL) *out_field_gap_count = 0U;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  for (region_index = 0U; region_index < analysis->region_count; ++region_index) {
+    const ListingAppSlotTypedRegion *region = &analysis->regions[region_index];
+    ListingAppSlotFieldRefSummary *fields;
+    size_t field_count = 0U;
+    int16_t intervals[128][2];
+    size_t interval_count = 0U;
+    int16_t cursor = 0;
+    size_t field_index, interval_index;
+    fields = listing_app_slot_build_field_refs(analysis, region, &field_count);
+    for (field_index = 0U; field_index < field_count && interval_count < 128U; ++field_index) {
+      ListingAppSlotFieldRefSummary *field = &fields[field_index];
+      int16_t start = field->field_offset;
+      int16_t end;
+      if (field->region_address || start < 0 || start >= region->size) continue;
+      end = (int16_t)(start + listing_app_slot_field_observed_size(field));
+      if (end > region->size) end = region->size;
+      if (end <= start) continue;
+      intervals[interval_count][0] = start;
+      intervals[interval_count][1] = end;
+      ++interval_count;
+    }
+    for (interval_index = 0U; interval_index < interval_count; ++interval_index) {
+      size_t other;
+      for (other = interval_index + 1U; other < interval_count; ++other) {
+        if (intervals[other][0] < intervals[interval_index][0]) {
+          int16_t tmp_start = intervals[interval_index][0], tmp_end = intervals[interval_index][1];
+          intervals[interval_index][0] = intervals[other][0];
+          intervals[interval_index][1] = intervals[other][1];
+          intervals[other][0] = tmp_start;
+          intervals[other][1] = tmp_end;
+        }
+      }
+    }
+    for (interval_index = 0U; interval_index < interval_count; ++interval_index) {
+      int16_t start = intervals[interval_index][0];
+      int16_t end = intervals[interval_index][1];
+      if (start > cursor) {
+        if (append_listing_app_slot_field_gap_segments_json(builder, region, cursor, start, &emitted,
+            &gap_count) != 0) {
+          free(fields);
+          return -1;
+        }
+      }
+      if (end > cursor) cursor = end;
+    }
+    if (cursor < region->size && interval_count != 0U) {
+      if (append_listing_app_slot_field_gap_segments_json(builder, region, cursor, region->size, &emitted,
+          &gap_count) != 0) {
+        free(fields);
+        return -1;
+      }
+    }
+    free(fields);
+  }
+  if (out_field_gap_count != NULL) *out_field_gap_count = gap_count;
+  return json_builder_append(builder, "]");
+}
+
+static size_t listing_app_slot_field_gap_count(const ListingAppSlotAnalysisBuilder *analysis) {
+  size_t region_index, gap_count = 0U;
+  if (analysis == NULL) return 0U;
+  for (region_index = 0U; region_index < analysis->region_count; ++region_index) {
+    const ListingAppSlotTypedRegion *region = &analysis->regions[region_index];
+    ListingAppSlotFieldRefSummary *fields;
+    size_t field_count = 0U;
+    int16_t intervals[128][2];
+    size_t interval_count = 0U;
+    int16_t cursor = 0;
+    size_t field_index, interval_index;
+    fields = listing_app_slot_build_field_refs(analysis, region, &field_count);
+    for (field_index = 0U; field_index < field_count && interval_count < 128U; ++field_index) {
+      ListingAppSlotFieldRefSummary *field = &fields[field_index];
+      int16_t start = field->field_offset;
+      int16_t end;
+      if (field->region_address || start < 0 || start >= region->size) continue;
+      end = (int16_t)(start + listing_app_slot_field_observed_size(field));
+      if (end > region->size) end = region->size;
+      if (end <= start) continue;
+      intervals[interval_count][0] = start;
+      intervals[interval_count][1] = end;
+      ++interval_count;
+    }
+    for (interval_index = 0U; interval_index < interval_count; ++interval_index) {
+      size_t other;
+      for (other = interval_index + 1U; other < interval_count; ++other) {
+        if (intervals[other][0] < intervals[interval_index][0]) {
+          int16_t tmp_start = intervals[interval_index][0], tmp_end = intervals[interval_index][1];
+          intervals[interval_index][0] = intervals[other][0];
+          intervals[interval_index][1] = intervals[other][1];
+          intervals[other][0] = tmp_start;
+          intervals[other][1] = tmp_end;
+        }
+      }
+    }
+    for (interval_index = 0U; interval_index < interval_count; ++interval_index) {
+      int16_t start = intervals[interval_index][0];
+      int16_t end = intervals[interval_index][1];
+      if (start > cursor) gap_count += listing_app_slot_count_field_gap_segments(region, cursor, start);
+      if (end > cursor) cursor = end;
+    }
+    if (cursor < region->size && interval_count != 0U)
+      gap_count += listing_app_slot_count_field_gap_segments(region, cursor, region->size);
+    free(fields);
+  }
+  return gap_count;
+}
+
+static int append_listing_app_slot_suggestions_json(JsonBuilder *builder,
+    const ListingAppSlotAnalysisBuilder *analysis) {
+  size_t index;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  for (index = 0U; index < analysis->region_count; ++index) {
+    const ListingAppSlotTypedRegion *region = &analysis->regions[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"kind\":\"app_slot_region\",\"action\":\"add_target_metadata\","
+          "\"confidence\":\"tool-inferred\",\"summary\":") != 0)
+      return -1;
+    {
+      char summary[192];
+      snprintf(summary, sizeof(summary), "%s at app+0x%x matches %s from platform API usage",
+        region->symbol, (unsigned)(uint16_t)region->offset, region->struct_name);
+      if (json_builder_append_json_string(builder, summary) != 0) return -1;
+    }
+    if (json_builder_appendf(builder, ",\"metadata\":{\"offset\":%d,\"size\":%d,\"symbol\":",
+          (int)region->offset, (int)region->size) != 0)
+      return -1;
+    if (json_builder_append_json_string(builder, region->symbol) != 0) return -1;
+    if (json_builder_append(builder, ",\"storage_kind\":\"struct_instance\","
+          "\"semantic_type\":\"platform_api_buffer\",\"struct_name\":") != 0)
+      return -1;
+    if (json_builder_append_json_string(builder, region->struct_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"pointer_struct\":null,\"seed_origin\":\"auto_analysis\","
+          "\"review_status\":\"suggested\"},\"evidence\":") != 0)
+      return -1;
+    if (append_listing_app_slot_region_evidence_json(builder, region) != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_app_slot_untyped_api_args_json(JsonBuilder *builder,
+    const ListingAppSlotAnalysisBuilder *analysis) {
+  size_t index;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (analysis == NULL) return json_builder_append(builder, "]");
+  for (index = 0U; index < analysis->untyped_api_arg_count; ++index) {
+    const ListingAppSlotApiArgCandidate *candidate = &analysis->untyped_api_args[index];
+    const ListingAppSlotEvidence *evidence = &candidate->evidence;
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"id\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, candidate->id) != 0) return -1;
+    if (json_builder_append(builder, ",\"symbol\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, candidate->symbol) != 0) return -1;
+    if (json_builder_append(builder, ",\"base_symbol\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, candidate->base_symbol) != 0) return -1;
+    if (json_builder_appendf(builder,
+          ",\"displacement\":%d,\"base_displacement\":%d,\"effective_displacement\":%d,\"base_register\":",
+          (int)candidate->displacement, (int)candidate->base_displacement, (int)candidate->displacement) != 0)
+      return -1;
+    {
+      char reg_name[4];
+      listing_register_name(reg_name, sizeof(reg_name), candidate->base_reg);
+      if (json_builder_append_json_string(builder, reg_name) != 0) return -1;
+    }
+    if (json_builder_append(builder, ",\"type_name\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, candidate->type_name[0] != '\0' ? candidate->type_name : NULL) != 0)
+      return -1;
+    if (json_builder_append(builder, ",\"reason\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, candidate->reason) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"row_index\":%u,\"addr\":%u,\"hunk_index\":%d,\"library\":",
+          (unsigned)evidence->row_index, (unsigned)evidence->addr, evidence->section_index) != 0)
+      return -1;
+    if (json_builder_append_json_string(builder, evidence->library) != 0) return -1;
+    if (json_builder_append(builder, ",\"function\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, evidence->function) != 0) return -1;
+    if (json_builder_append(builder, ",\"input_name\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, evidence->input_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"register\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, evidence->reg) != 0) return -1;
+    if (json_builder_append(builder, ",\"stable_key\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, evidence->stable_key) != 0) return -1;
+    if (json_builder_appendf(builder,
+          ",\"source_row_index\":%u,\"source_flow_row_index\":%u,\"source_addr\":%u,\"source_stable_key\":",
+          (unsigned)evidence->source_row_index, (unsigned)evidence->source_flow_row_index,
+          (unsigned)evidence->source_addr) != 0)
+      return -1;
+    if (json_builder_append_json_string(builder, evidence->source_stable_key) != 0) return -1;
+    if (evidence->source_via_register[0] != '\0') {
+      if (json_builder_append(builder, ",\"source_via_register\":") != 0) return -1;
+      if (json_builder_append_json_string(builder, evidence->source_via_register) != 0) return -1;
+    }
+    if (json_builder_append(builder, "}") != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_app_slot_analysis_json(JsonBuilder *builder,
+    const ListingAppSlotAnalysisBuilder *analysis) {
+  ListingAppSlotSummary *summaries = NULL;
+  ListingAppSlotInterval *intervals = NULL;
+  size_t summary_count = 0U, interval_count = 0U;
+  size_t gap_count = 0U, field_gap_count = 0U;
+  int result = -1;
+  if (analysis == NULL || !analysis->enabled) {
+    return json_builder_append(builder,
+      "{\"slot_count\":0,\"ref_count\":0,\"typed_region_count\":0,\"gap_count\":0,\"field_gap_count\":0,"
+      "\"suggestion_count\":0,\"untyped_api_arg_count\":0,\"slots\":[],\"regions\":[],\"gaps\":[],"
+      "\"field_gaps\":[],\"suggestions\":[],\"untyped_api_args\":[]}");
+  }
+  qsort(analysis->regions, analysis->region_count, sizeof(*analysis->regions), listing_app_slot_region_compare);
+  summaries = listing_app_slot_build_summaries(analysis, &summary_count);
+  intervals = listing_app_slot_build_intervals(analysis, summaries, summary_count, &interval_count);
+  gap_count = listing_app_slot_gap_count(intervals, interval_count);
+  field_gap_count = listing_app_slot_field_gap_count(analysis);
+  if (json_builder_appendf(builder,
+        "{\"slot_count\":%u,\"ref_count\":%u,\"typed_region_count\":%u,\"gap_count\":%u,"
+        "\"field_gap_count\":%u,\"suggestion_count\":%u,\"untyped_api_arg_count\":%u,\"slots\":",
+        (unsigned)summary_count, (unsigned)analysis->ref_count, (unsigned)analysis->region_count,
+        (unsigned)gap_count, (unsigned)field_gap_count, (unsigned)analysis->region_count,
+        (unsigned)analysis->untyped_api_arg_count) != 0)
+    goto cleanup;
+  if (append_listing_app_slot_slots_json(builder, summaries, summary_count) != 0) goto cleanup;
+  if (json_builder_append(builder, ",\"regions\":") != 0) goto cleanup;
+  if (append_listing_app_slot_regions_json(builder, analysis, summaries, summary_count) != 0) goto cleanup;
+  if (json_builder_append(builder, ",\"gaps\":") != 0) goto cleanup;
+  if (append_listing_app_slot_gaps_json(builder, intervals, interval_count, NULL) != 0) goto cleanup;
+  if (json_builder_append(builder, ",\"field_gaps\":") != 0) goto cleanup;
+  if (append_listing_app_slot_field_gaps_json(builder, analysis, NULL) != 0) goto cleanup;
+  if (json_builder_append(builder, ",\"suggestions\":") != 0) goto cleanup;
+  if (append_listing_app_slot_suggestions_json(builder, analysis) != 0) goto cleanup;
+  if (json_builder_append(builder, ",\"untyped_api_args\":") != 0) goto cleanup;
+  if (append_listing_app_slot_untyped_api_args_json(builder, analysis) != 0) goto cleanup;
+  if (json_builder_append(builder, "}") != 0) goto cleanup;
+  result = 0;
+
+cleanup:
+  free(summaries);
+  free(intervals);
+  return result;
 }
 
 static const M68kRuntimeViewIR *listing_runtime_view_for_storage_offset(
@@ -2133,10 +4042,16 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
       strcmp(row_kind, "comment") != 0) {
     if (json_builder_append_json_string(builder, opcode) != 0) return -1;
   } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"operation_type\":") != 0) return -1;
+  if (append_listing_operation_type_json(builder, stmt) != 0) return -1;
   if (json_builder_append(builder, ",\"operand_text\":") != 0) return -1;
   if (json_builder_append_json_string(builder, operand) != 0) return -1;
   if (json_builder_append(builder, ",\"operand_parts\":") != 0) return -1;
   if (append_listing_operand_parts_json(builder, stmt) != 0) return -1;
+  if (json_builder_append(builder, ",\"operand_accesses\":") != 0) return -1;
+  if (append_listing_operand_accesses_json(builder, stmt) != 0) return -1;
+  if (json_builder_append(builder, ",\"operand_registers\":") != 0) return -1;
+  if (append_listing_operand_registers_json(builder, stmt) != 0) return -1;
   if (json_builder_append(builder, ",\"comment_text\":") != 0) return -1;
   if (json_builder_append_json_string(builder, comment) != 0) return -1;
   if (json_builder_append(builder, ",\"source_context\":") != 0) return -1;
@@ -2145,6 +4060,12 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
   } else if (append_listing_source_context(builder, NULL, -1) != 0) return -1;
   if (json_builder_append(builder, ",\"app_slot_refs\":") != 0) return -1;
   if (append_listing_app_slot_refs_json(builder, stmt,
+      source_analysis != NULL && section_index >= 0 && (size_t)section_index < source_analysis->section_count
+        ? &source_analysis->sections[section_index]
+        : NULL) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"typed_accesses\":") != 0) return -1;
+  if (append_listing_typed_accesses_json(builder, stmt,
       source_analysis != NULL && section_index >= 0 && (size_t)section_index < source_analysis->section_count
         ? &source_analysis->sections[section_index]
         : NULL) != 0)
@@ -2311,6 +4232,7 @@ int source_file_listing_rows_to_json(const M68kSourceFileIR *source_file, const 
     const char *analysis_generation, int include_source_only_rows, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
   ListingSourceHeaderRows header_rows = {0};
+  ListingAppSlotAnalysisBuilder app_slot_analysis = {0};
   const char *cursor = rendered_text;
   size_t row_index = 0U;
   int active_section_index = -1;
@@ -2325,6 +4247,7 @@ int source_file_listing_rows_to_json(const M68kSourceFileIR *source_file, const 
   if (!include_source_only_rows &&
       collect_listing_source_header_rows(source_file, rendered_text, &header_rows, use_rendered_line_count) != 0)
     goto oom;
+  if (listing_app_slot_analysis_init(&app_slot_analysis, source_file, source_analysis) != 0) goto oom;
   if (json_builder_create(&builder) != 0) goto oom;
   if (json_builder_append(&builder, "{\"rows\":[") != 0) goto oom;
   while (*cursor != '\0') {
@@ -2367,17 +4290,24 @@ int source_file_listing_rows_to_json(const M68kSourceFileIR *source_file, const 
     if (append_listing_row_json(&builder, row_index, line_start, line_length, row_kind, active_section_index, stmt,
           analysis_policy, source_analysis, analysis_generation) != 0)
       goto oom;
+    if (listing_app_slot_analysis_observe_row(&app_slot_analysis, row_index, row_kind, active_section_index, stmt,
+        source_analysis) != 0)
+      goto oom;
     ++row_index;
   }
-  if (json_builder_append(&builder, "]}") != 0) goto oom;
+  if (json_builder_append(&builder, "],\"app_slot_analysis\":") != 0) goto oom;
+  if (append_listing_app_slot_analysis_json(&builder, &app_slot_analysis) != 0) goto oom;
+  if (json_builder_append(&builder, "}") != 0) goto oom;
   *out_json = json_builder_build(&builder);
   if (*out_json == NULL) goto oom;
   json_builder_destroy(&builder);
+  listing_app_slot_analysis_destroy(&app_slot_analysis);
   listing_source_header_rows_destroy(&header_rows);
   return 0;
 
 oom:
   json_builder_destroy(&builder);
+  listing_app_slot_analysis_destroy(&app_slot_analysis);
   listing_source_header_rows_destroy(&header_rows);
   m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
   return -1;

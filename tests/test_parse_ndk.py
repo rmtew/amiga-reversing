@@ -4,8 +4,14 @@ from typing import cast
 
 from src.scripts.generate_amiga_os_runtime import (
     build_api_input_value_domain_map,
+    build_calling_convention_mask_map,
+    build_api_output_type_override_map,
     build_merged_value_domains,
+    input_rows,
     load_assembler_include_symbols,
+    output_row,
+    struct_base_rows,
+    struct_field_rows,
     symbol_include_rows,
 )
 from src.scripts.kb.ndk_parser import (
@@ -97,6 +103,34 @@ def test_symbol_include_rows_require_exact_lvo_include_symbol() -> None:
 
     assert ("_LVOSupervisor", "exec/exec_lib.i") in result
     assert ("_LVOexecPrivate1", "exec/exec_lib.i") not in result
+
+
+def test_symbol_include_rows_skip_unavailable_include_paths() -> None:
+    includes = {
+        "libraries": {},
+        "structs": {
+            "AG": {
+                "source": "libraries/amigaguide.i",
+                "fields": [{"name": "agm_Msg", "offset": 0}],
+            },
+            "MP": {
+                "source": "exec/ports.i",
+                "fields": [{"name": "MP_SIGBIT", "offset": 15}],
+            },
+        },
+    }
+
+    result = symbol_include_rows(
+        includes,
+        [],
+        [],
+        [],
+        {},
+        available_include_paths={"exec/ports.i"},
+    )
+
+    assert ("MP_SIGBIT", "exec/ports.i") in result
+    assert ("agm_Msg", "libraries/amigaguide.i") not in result
 
 
 def test_load_assembler_include_symbols_expands_libent_lvo_symbols(tmp_path: Path) -> None:
@@ -527,6 +561,83 @@ def test_parse_include_value_bindings_extracts_exec_io_domains(tmp_path: Path) -
     assert field_bindings == [
         {"struct": "IO", "field": "IO_COMMAND", "domain": "exec.io.command", "available_since": "1.0"},
         {"struct": "IO", "field": "IO_FLAGS", "domain": "exec.io.flags", "available_since": "1.0"},
+    ]
+
+
+def test_parse_asm_include_preserves_struct_base_offset_symbol(tmp_path: Path) -> None:
+    exec_dir = tmp_path / "Include_I" / "Exec"
+    exec_dir.mkdir(parents=True)
+    include_path = exec_dir / "IO.I"
+    include_path.write_text(
+        "\n".join([
+            "    STRUCTURE IO,MN_SIZE",
+            "    UWORD IO_COMMAND",
+            "    UBYTE IO_FLAGS",
+            "",
+        ]),
+        encoding="utf-8",
+    )
+    payload = parse_asm_include(
+        str(include_path),
+        {"UWORD": 2, "UBYTE": 1},
+        evaluate_all_constants({"MN_SIZE": "20"}),
+    )
+    io_struct = cast(dict[str, object], cast(dict[str, object], payload["structs"])["IO"])
+    fields = cast(list[dict[str, object]], io_struct["fields"])
+
+    assert io_struct["base_offset"] == 20
+    assert io_struct["base_offset_symbol"] == "MN_SIZE"
+    assert fields[0] == {"name": "IO_COMMAND", "type": "UWORD", "offset": 20, "size": 2}
+
+
+def test_struct_base_rows_resolves_size_label_to_base_struct() -> None:
+    includes = {
+        "structs": {
+            "MN": {
+                "size": 20,
+                "fields": [
+                    {"name": "MN_REPLYPORT", "type": "APTR", "offset": 14, "size": 4},
+                    {"name": "MN_SIZE", "type": "LABEL", "offset": 20, "size": 0},
+                ],
+            },
+            "IO": {
+                "base_offset": 20,
+                "base_offset_symbol": "MN_SIZE",
+                "size": 48,
+                "fields": [
+                    {"name": "IO_DEVICE", "type": "APTR", "offset": 20, "size": 4},
+                ],
+            },
+        }
+    }
+
+    assert struct_base_rows(includes) == [("IO", "MN", "MN_SIZE", 20)]
+
+
+def test_struct_field_rows_resolves_embedded_struct_size_label_to_nested_type() -> None:
+    includes = {
+        "structs": {
+            "TIMEVAL": {
+                "size": 8,
+                "fields": [
+                    {"name": "TV_SECS", "type": "ULONG", "offset": 0, "size": 4},
+                    {"name": "TV_MICRO", "type": "ULONG", "offset": 4, "size": 4},
+                    {"name": "TV_SIZE", "type": "LABEL", "offset": 8, "size": 0},
+                ],
+            },
+            "InputEvent": {
+                "size": 22,
+                "fields": [
+                    {"name": "ie_Code", "type": "UWORD", "offset": 6, "size": 2},
+                    {"name": "ie_TimeStamp", "type": "STRUCT", "offset": 14, "size": 8, "size_symbol": "TV_SIZE"},
+                ],
+            },
+        }
+    }
+
+    assert struct_field_rows(includes, ["InputEvent"]) == [
+        ("InputEvent", 6, "ie_Code", None, 2, "UWORD", None, None),
+        ("InputEvent", 14, "ie_TimeStamp", "TIMEVAL", 8, "STRUCT", None, None),
     ]
 
 
@@ -971,6 +1082,77 @@ def test_corrections_json_exposes_explicit_api_value_bindings() -> None:
             "citation": "lowlevel.library autodoc AddVBlankInt",
         },
     ]
+
+
+def test_input_rows_preserves_include_struct_type_when_autodoc_overlay_is_looser() -> None:
+    includes = load_canonical_os_kb_includes_parsed()
+    other = load_canonical_os_kb_other_parsed()
+    raw_key_convert = cast(
+        dict[str, object],
+        cast(dict[str, dict[str, object]], cast(dict[str, object], other["functions"])["console.device"])[
+            "RawKeyConvert"
+        ],
+    )
+
+    rows = input_rows("console.device", "RawKeyConvert", raw_key_convert, includes, other, {}, {}, {})
+
+    assert ("A0", "event", "struct InputEvent *", "InputEvent", None, None) in rows
+
+
+def test_output_row_applies_platform_correction_for_missing_return_type() -> None:
+    includes = load_canonical_os_kb_includes_parsed()
+    other = load_canonical_os_kb_other_parsed()
+    corrections = load_json_payload(AMIGA_OS_REFERENCE_CORRECTIONS_JSON)
+    create_msg_port = cast(
+        dict[str, object],
+        cast(dict[str, dict[str, object]], cast(dict[str, object], other["functions"])["exec.library"])[
+            "CreateMsgPort"
+        ],
+    )
+
+    overrides = build_api_output_type_override_map(corrections)
+
+    assert output_row("exec.library", "CreateMsgPort", create_msg_port, includes, other, overrides) == (
+        "D0",
+        "port",
+        "struct MsgPort *",
+        "MP",
+        None,
+        None,
+    )
+
+
+def test_output_row_infers_struct_from_output_name_when_autodoc_type_is_lossy() -> None:
+    includes = load_canonical_os_kb_includes_parsed()
+    other = load_canonical_os_kb_other_parsed()
+    open_screen_tag_list = cast(
+        dict[str, object],
+        cast(dict[str, dict[str, object]], cast(dict[str, object], other["functions"])["intuition.library"])[
+            "OpenScreenTagList"
+        ],
+    )
+
+    assert output_row("intuition.library", "OpenScreenTagList", open_screen_tag_list, includes, other, {}) == (
+        "D0",
+        "Screen",
+        "Screen =",
+        "Screen",
+        None,
+        None,
+    )
+
+
+def test_calling_convention_masks_are_generated_from_corrections() -> None:
+    corrections = load_json_payload(AMIGA_OS_REFERENCE_CORRECTIONS_JSON)
+
+    masks = build_calling_convention_mask_map(corrections)
+
+    assert masks == {
+        "scratch_data": 0x03,
+        "scratch_address": 0x03,
+        "preserved_data": 0xFC,
+        "preserved_address": 0x7C,
+    }
 
 
 def test_parse_synopsis_prefers_prototype_argument_names_over_fd_names() -> None:

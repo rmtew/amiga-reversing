@@ -38,6 +38,7 @@ from amiga_reversing.disasm.listing_types import (
     BlockRowContext,
     HeaderRowContext,
     ListingRow,
+    PlatformTypedAccess,
     SemanticOperand,
     SymbolOperandMetadata,
 )
@@ -571,6 +572,9 @@ def _build_project_rows_generation_from_source(
         listing_rows = cast(dict[str, object], combined.get("listing", {}))
         analysis = cast(dict[str, object], combined.get("analysis", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))
+        app_slot_analysis = listing_rows.get("app_slot_analysis")
+        if isinstance(app_slot_analysis, dict):
+            profile["app_slot_analysis"] = app_slot_analysis
         rendered_source_text = combined.get("source_text")
         source_text = rendered_source_text if isinstance(rendered_source_text, str) else None
     return rows_from_c_listing_json(listing_rows), api_calls_from_c_analysis(analysis), profile, source_text
@@ -655,13 +659,17 @@ def rows_from_c_listing_json(payload: dict[str, object]) -> list[ListingRow]:
         runtime_view_id = raw_row.get("runtime_view_id")
         label = raw_row.get("label")
         opcode_or_directive = raw_row.get("opcode_or_directive")
+        operation_type = raw_row.get("operation_type")
         operand_text = raw_row.get("operand_text")
         comment_text = raw_row.get("comment_text")
         data_class = raw_row.get("data_class")
         structured_data = raw_row.get("structured_data")
         source_context = _source_context_from_c_json(raw_row.get("source_context"))
         app_slot_refs = _app_slot_refs_from_c_json(raw_row.get("app_slot_refs"))
+        typed_accesses = _typed_accesses_from_c_json(raw_row.get("typed_accesses"))
         operand_parts = _operand_parts_from_c_json(raw_row.get("operand_parts"), operand_text)
+        operand_accesses = _string_tuple_from_c_json(raw_row.get("operand_accesses"))
+        operand_registers = _nullable_string_tuple_from_c_json(raw_row.get("operand_registers"))
         row_bytes = raw_row.get("bytes")
         parsed_bytes = None
         if isinstance(row_bytes, str) and row_bytes != "":
@@ -688,8 +696,12 @@ def rows_from_c_listing_json(payload: dict[str, object]) -> list[ListingRow]:
                 bytes=parsed_bytes,
                 label=label if isinstance(label, str) else None,
                 opcode_or_directive=opcode_or_directive if isinstance(opcode_or_directive, str) else None,
+                operation_type=operation_type if isinstance(operation_type, str) else None,
                 operand_parts=operand_parts,
+                operand_accesses=operand_accesses,
+                operand_registers=operand_registers,
                 app_slot_refs=app_slot_refs,
+                typed_accesses=typed_accesses,
                 operand_text=operand_text if isinstance(operand_text, str) else "",
                 comment_parts=() if not isinstance(comment_text, str) or comment_text == "" else (comment_text,),
                 comment_text=comment_text if isinstance(comment_text, str) else "",
@@ -699,6 +711,18 @@ def rows_from_c_listing_json(payload: dict[str, object]) -> list[ListingRow]:
             )
         )
     return rows
+
+
+def _string_tuple_from_c_json(value: object) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        return ()
+    return tuple(item for item in value if isinstance(item, str))
+
+
+def _nullable_string_tuple_from_c_json(value: object) -> tuple[str | None, ...]:
+    if not isinstance(value, list):
+        return ()
+    return tuple(item if isinstance(item, str) else None for item in value)
 
 
 def _operand_parts_from_c_json(value: object, operand_text: object) -> tuple[SemanticOperand, ...]:
@@ -774,6 +798,48 @@ def _app_slot_refs_from_c_json(value: object) -> tuple[AppSlotRef, ...]:
     return tuple(refs)
 
 
+def _typed_accesses_from_c_json(value: object) -> tuple[PlatformTypedAccess, ...]:
+    if not isinstance(value, list):
+        return ()
+    accesses: list[PlatformTypedAccess] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        operand_index = item.get("operand_index")
+        base_register = item.get("base_register")
+        displacement = item.get("displacement")
+        field_offset = item.get("field_offset")
+        root_struct_name = item.get("root_struct_name")
+        owner_struct_name = item.get("owner_struct_name")
+        field_name = item.get("field_name")
+        field_expr = item.get("field_expr")
+        inherited = item.get("inherited")
+        nested = item.get("nested")
+        if (
+            not isinstance(operand_index, int)
+            or not isinstance(base_register, str)
+            or not isinstance(displacement, int)
+            or not isinstance(field_offset, int)
+            or not isinstance(field_expr, str)
+        ):
+            continue
+        accesses.append(
+            PlatformTypedAccess(
+                operand_index=operand_index,
+                base_register=base_register,
+                displacement=displacement,
+                field_offset=field_offset,
+                root_struct_name=root_struct_name if isinstance(root_struct_name, str) else None,
+                owner_struct_name=owner_struct_name if isinstance(owner_struct_name, str) else None,
+                field_name=field_name if isinstance(field_name, str) else None,
+                field_expr=field_expr,
+                inherited=bool(inherited),
+                nested=bool(nested),
+            )
+        )
+    return tuple(accesses)
+
+
 def api_calls_from_c_analysis(analysis: dict[str, object]) -> dict[ApiCallRowKey, dict[str, object]]:
     result: dict[ApiCallRowKey, dict[str, object]] = {}
     for section in cast(list[dict[str, object]], analysis.get("sections", [])):
@@ -796,6 +862,7 @@ def api_calls_from_c_analysis(analysis: dict[str, object]) -> dict[ApiCallRowKey
                 "symbol_name": call.get("symbol_name"),
                 "note_symbol_name": call.get("note_symbol_name"),
                 "inputs": _api_call_inputs(call),
+                "outputs": _api_call_outputs(call),
             }
     return result
 
@@ -849,6 +916,32 @@ def _api_call_inputs(call: dict[str, object]) -> list[dict[str, object]]:
                 "regs": [reg for reg in regs if isinstance(reg, str)] if isinstance(regs, list) else [],
                 "type": item.get("type") if isinstance(item.get("type"), str) else None,
                 "i_struct": item.get("i_struct") if isinstance(item.get("i_struct"), str) else None,
+                "source": item.get("source") if isinstance(item.get("source"), str) else "parsed NDK",
+                "semantic_kind": item.get("semantic_kind") if isinstance(item.get("semantic_kind"), str) else None,
+                "value_domain": item.get("value_domain") if isinstance(item.get("value_domain"), str) else None,
+            }
+        )
+    return result
+
+
+def _api_call_outputs(call: dict[str, object]) -> list[dict[str, object]]:
+    outputs = call.get("outputs")
+    if not isinstance(outputs, list):
+        return []
+    result: list[dict[str, object]] = []
+    for item in outputs:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        regs = item.get("regs")
+        if not isinstance(name, str):
+            continue
+        result.append(
+            {
+                "name": name,
+                "regs": [reg for reg in regs if isinstance(reg, str)] if isinstance(regs, list) else [],
+                "type": item.get("type") if isinstance(item.get("type"), str) else None,
+                "o_struct": item.get("o_struct") if isinstance(item.get("o_struct"), str) else None,
                 "source": item.get("source") if isinstance(item.get("source"), str) else "parsed NDK",
                 "semantic_kind": item.get("semantic_kind") if isinstance(item.get("semantic_kind"), str) else None,
                 "value_domain": item.get("value_domain") if isinstance(item.get("value_domain"), str) else None,

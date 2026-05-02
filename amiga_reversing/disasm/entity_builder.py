@@ -749,6 +749,7 @@ def _c_xrefs(section: JsonDict) -> list[EntityXRef]:
 def _c_api_call_type_payload(call_name: str, call: JsonDict) -> JsonDict | None:
     entry: JsonDict = {"call": call_name}
     typed_inputs: JsonDict = {}
+    typed_outputs: JsonDict = {}
     inputs = call.get("inputs")
     if isinstance(inputs, list):
         for raw_input in inputs:
@@ -768,9 +769,30 @@ def _c_api_call_type_payload(call_name: str, call: JsonDict) -> JsonDict | None:
                 if isinstance(value, str):
                     info[field] = value
             typed_inputs[reg_key] = info
+    outputs = call.get("outputs")
+    if isinstance(outputs, list):
+        for raw_output in outputs:
+            if not isinstance(raw_output, dict):
+                continue
+            output_type = raw_output.get("type")
+            regs = raw_output.get("regs")
+            if not isinstance(output_type, str) or not isinstance(regs, list):
+                continue
+            reg_tuple = tuple(reg for reg in regs if isinstance(reg, str))
+            if not reg_tuple:
+                continue
+            reg_key = _os_input_reg_key(reg_tuple)
+            info = {"type": output_type}
+            for field in ("o_struct", "semantic_kind", "value_domain"):
+                value = raw_output.get(field)
+                if isinstance(value, str):
+                    info[field] = value
+            typed_outputs[reg_key] = info
     if typed_inputs:
         entry["inputs"] = typed_inputs
-    return entry if "inputs" in entry else None
+    if typed_outputs:
+        entry["outputs"] = typed_outputs
+    return entry if "inputs" in entry or "outputs" in entry else None
 
 
 def _c_api_calls_by_section(analysis: JsonDict) -> dict[int, list[tuple[int, JsonDict]]]:

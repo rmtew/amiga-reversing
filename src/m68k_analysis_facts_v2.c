@@ -2718,7 +2718,7 @@ static int facts_v2_has_asm_source_failures(const M68kFactsV2Profile *profile) {
 
 static int facts_v2_collect_profile_internal(const M68kObject *object, const M68kAnalysisPolicy *policy,
     M68kFactsV2Profile *out_profile, int force_asm_source, int collect_asm_source_text,
-    int fail_on_asm_refused, int mark_source_blockers, char **out_asm_source,
+    int allow_env_asm_source, int fail_on_asm_refused, int mark_source_blockers, char **out_asm_source,
     M68kSourceAnalysisIR *out_source_analysis, M68kDiagSink diagnostics) {
   M68kDecodeIR decode;
   M68kFactIR facts;
@@ -2747,7 +2747,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   memset(&accepted_index, 0, sizeof(accepted_index));
   memset(&runtime_addresses, 0, sizeof(runtime_addresses));
   render_text_preview = preview_source_enabled_local();
-  render_asm_source = force_asm_source || asm_source_enabled_local();
+  render_asm_source = force_asm_source || (allow_env_asm_source && asm_source_enabled_local());
   max_cpu = policy->max_cpu != 0U ? policy->max_cpu : M68K_ASM_CPU_68060;
   start = clock();
   if (m68k_decode_ir_build_object_sections(&decode, object, diagnostics) != 0) goto fail;
@@ -2951,17 +2951,17 @@ fail:
 
 int m68k_facts_v2_collect_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
     M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
-  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 0, 0, NULL, NULL, diagnostics);
+  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 1, 0, 0, NULL, NULL, diagnostics);
 }
 
 int m68k_facts_v2_collect_direct_rebuild_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
     M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
-  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 0, 1, NULL, NULL, diagnostics);
+  return facts_v2_collect_profile_internal(object, policy, out_profile, 0, 0, 1, 0, 1, NULL, NULL, diagnostics);
 }
 
 int m68k_facts_v2_collect_asm_source_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
     M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
-  return facts_v2_collect_profile_internal(object, policy, out_profile, 1, 0, 0, 0, NULL, NULL, diagnostics);
+  return facts_v2_collect_profile_internal(object, policy, out_profile, 1, 0, 1, 0, 0, NULL, NULL, diagnostics);
 }
 
 int m68k_facts_v2_render_asm_source_alloc(const M68kObject *object, const M68kAnalysisPolicy *policy,
@@ -2975,7 +2975,7 @@ int m68k_facts_v2_render_asm_source_profile_alloc(const M68kObject *object, cons
   M68kFactsV2Profile *profile = out_profile != NULL ? out_profile : &local_profile;
   if (out_source == NULL) return -1;
   *out_source = NULL;
-  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, fail_on_refused != 0U, 0,
+  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, fail_on_refused != 0U, 0,
     out_source, NULL, diagnostics);
 }
 
@@ -2987,8 +2987,19 @@ int m68k_facts_v2_render_asm_source_analysis_profile_alloc(const M68kObject *obj
   if (out_source == NULL || out_source_analysis == NULL) return -1;
   *out_source = NULL;
   memset(out_source_analysis, 0, sizeof(*out_source_analysis));
-  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, fail_on_refused != 0U, 0,
+  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, fail_on_refused != 0U, 0,
     out_source, out_source_analysis, diagnostics);
+}
+
+int m68k_facts_v2_collect_source_analysis_profile(const M68kObject *object,
+    const M68kAnalysisPolicy *policy, M68kFactsV2Profile *out_profile,
+    M68kSourceAnalysisIR *out_source_analysis, M68kDiagSink diagnostics) {
+  M68kFactsV2Profile local_profile;
+  M68kFactsV2Profile *profile = out_profile != NULL ? out_profile : &local_profile;
+  if (out_source_analysis == NULL) return -1;
+  memset(out_source_analysis, 0, sizeof(*out_source_analysis));
+  return facts_v2_collect_profile_internal(object, policy, profile, 0, 0, 0, 0, 0, NULL,
+    out_source_analysis, diagnostics);
 }
 
 void m68k_facts_v2_free_text(char *text) {

@@ -84,6 +84,20 @@
         "type": "struct SimpleSprite *"
       }
     ],
+    "api_output_type_overrides": [
+      {
+        "citation": "exec.library autodoc CreateMsgPort",
+        "function": "CreateMsgPort",
+        "i_struct": "MP",
+        "library": "exec.library",
+        "name": "port",
+        "reg": "D0",
+        "review_status": "seeded",
+        "seed_origin": "autodoc",
+        "semantic_note": "Parser-authored: exec.library/CreateMsgPort description states that it allocates and initializes a new message port, but the parsed autodoc entry has no SYNOPSIS return row. The standard C prototype returns struct MsgPort * in the default Amiga return register.",
+        "type": "struct MsgPort *"
+      }
+    ],
     "api_input_value_bindings": [
       {
         "available_since": "1.0",

@@ -32,6 +32,7 @@ ALWAYS_IGNORED_DIRS = {
 }
 GENERATED_DIRS = {"generated"}
 GENERATED_SUFFIXES = ("_runtime.c", "_runtime.h", "_tables.c", "_tables.h")
+C_FRAGMENT_SUFFIXES = (".inc.c",)
 DEFAULT_CHECKS = (
     "c-static-functions",
     "c-static-prototypes",
@@ -128,6 +129,7 @@ TYPEDEF_RE = re.compile(r"(?ms)^[ \t]*typedef\b.*?;\s*(?:\r?\n)?")
 MACRO_RE = re.compile(r"(?m)^[ \t]*#[ \t]*define[ \t]+([A-Za-z_]\w*)\b")
 IF_ZERO_RE = re.compile(r"(?m)^[ \t]*#[ \t]*if[ \t]+0(?:[ \t]|$)")
 IDENT_RE = re.compile(r"\b[A-Za-z_]\w*\b")
+LOCAL_C_FRAGMENT_INCLUDE_RE = re.compile(r'(?m)^[ \t]*#[ \t]*include[ \t]+"([^"]+\.inc\.c)"')
 
 
 def _repo_path(path: Path) -> str:
@@ -145,10 +147,29 @@ def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="ignore")
 
 
+def _is_c_fragment_path(path: Path) -> bool:
+    return path.name.endswith(C_FRAGMENT_SUFFIXES)
+
+
 def _is_generated_path(path: Path) -> bool:
     if any(part in GENERATED_DIRS for part in path.parts):
         return True
     return path.name.endswith(GENERATED_SUFFIXES)
+
+
+def _expand_local_c_fragments(path: Path, text: str, include_generated: bool, seen: set[Path] | None = None) -> str:
+    seen = set() if seen is None else set(seen)
+    seen.add(path.resolve())
+
+    def replace(match: re.Match[str]) -> str:
+        include_path = (path.parent / match.group(1)).resolve()
+        if _is_generated_path(include_path) and not include_generated:
+            return match.group(0)
+        if not _is_c_fragment_path(include_path) or include_path in seen or not include_path.is_file():
+            return match.group(0)
+        return "\n" + _expand_local_c_fragments(include_path, _read_text(include_path), include_generated, seen) + "\n"
+
+    return LOCAL_C_FRAGMENT_INCLUDE_RE.sub(replace, text)
 
 
 def _iter_repo_files(include_generated: bool, exclude_tests: bool) -> tuple[list[Path], list[Path], list[Path]]:
@@ -169,6 +190,8 @@ def _iter_repo_files(include_generated: bool, exclude_tests: bool) -> tuple[list
         for filename in filenames:
             path = current / filename
             if not include_generated and _is_generated_path(path):
+                continue
+            if _is_c_fragment_path(path):
                 continue
             suffix = path.suffix.lower()
             if suffix == ".c":
@@ -639,7 +662,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.grep:
         selected.add("grep")
     c_paths, h_paths, py_paths = _iter_repo_files(args.include_generated, args.exclude_tests)
-    cfiles = [CFile(path, _read_text(path), _strip_c_comments_and_strings(_read_text(path))) for path in c_paths]
+    cfiles: list[CFile] = []
+    for path in c_paths:
+        raw = _expand_local_c_fragments(path, _read_text(path), args.include_generated)
+        cfiles.append(CFile(path, raw, _strip_c_comments_and_strings(raw)))
     findings: list[Finding] = []
     if "c-static-functions" in selected:
         findings.extend(_scan_c_static_functions(cfiles))

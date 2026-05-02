@@ -37,7 +37,13 @@ from amiga_reversing.disasm.c_backend import (
     validate_amiga_hunk_executable_with_c_backend,
 )
 from amiga_reversing.disasm.facts_v2_source_refusal import FactsV2SourceRefused
-from amiga_reversing.disasm.listing_types import AppSlotRef, BlockRowContext, HeaderRowContext, SymbolOperandMetadata
+from amiga_reversing.disasm.listing_types import (
+    AppSlotRef,
+    BlockRowContext,
+    HeaderRowContext,
+    PlatformTypedAccess,
+    SymbolOperandMetadata,
+)
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from src.tests._platform_backend_test_utils import (
     M68kDiagList,
@@ -211,6 +217,19 @@ class _M68kAnalysisRuntimeEntryPoint(ctypes.Structure):
     ]
 
 
+class _M68kAnalysisAppSlotRegion(ctypes.Structure):
+    _fields_ = [
+        ("offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+        ("symbol", ctypes.c_char * 64),
+        ("struct_name", ctypes.c_char * 64),
+        ("pointer_struct", ctypes.c_char * 64),
+        ("storage_kind", ctypes.c_char * 32),
+        ("semantic_type", ctypes.c_char * 64),
+    ]
+
+
 class _M68kAnalysisPolicy(ctypes.Structure):
     _fields_ = [
         ("max_cpu", ctypes.c_uint8),
@@ -223,7 +242,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("entry_comment_count", ctypes.c_uint16),
         ("runtime_range_count", ctypes.c_uint16),
         ("runtime_entry_point_count", ctypes.c_uint16),
-        ("reserved1", ctypes.c_uint16),
+        ("app_slot_region_count", ctypes.c_uint16),
         ("entry_offset", ctypes.c_uint32),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
         ("entry_points", _M68kAnalysisEntryPoint * 64),
@@ -232,6 +251,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("entry_comments", _M68kAnalysisEntryComment * 128),
         ("runtime_ranges", _M68kAnalysisRuntimeRange * 64),
         ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
+        ("app_slot_regions", _M68kAnalysisAppSlotRegion * 128),
     ]
 
 
@@ -290,6 +310,20 @@ def test_rows_from_c_listing_json_uses_emitted_metadata() -> None:
                             "access": "read",
                         }
                     ],
+                    "typed_accesses": [
+                        {
+                            "operand_index": 0,
+                            "base_register": "A0",
+                            "displacement": 20,
+                            "field_offset": 20,
+                            "root_struct_name": "Library",
+                            "owner_struct_name": "Library",
+                            "field_name": "LIB_VERSION",
+                            "field_expr": "LIB_VERSION",
+                            "inherited": False,
+                            "nested": False,
+                        }
+                    ],
                     "structured_data": {
                         "struct_name": "RT",
                         "field_name": "RT_MATCHWORD",
@@ -319,6 +353,20 @@ def test_rows_from_c_listing_json_uses_emitted_metadata() -> None:
     assert rows[1].source_context == BlockRowContext(kind="c-instruction", hunk_index=0)
     assert rows[1].data_class == "copper_list"
     assert rows[1].app_slot_refs == (AppSlotRef("app_0234", 0x0234, "A6", 0, "read"),)
+    assert rows[1].typed_accesses == (
+        PlatformTypedAccess(
+            operand_index=0,
+            base_register="A0",
+            displacement=20,
+            field_offset=20,
+            root_struct_name="Library",
+            owner_struct_name="Library",
+            field_name="LIB_VERSION",
+            field_expr="LIB_VERSION",
+            inherited=False,
+            nested=False,
+        ),
+    )
     assert rows[1].structured_data == {
         "struct_name": "RT",
         "field_name": "RT_MATCHWORD",
@@ -668,6 +716,17 @@ def test_api_calls_from_c_analysis_uses_recovered_symbols() -> None:
                                     "source": "parsed NDK",
                                 }
                             ],
+                            "outputs": [
+                                {
+                                    "name": "handle",
+                                    "regs": ["D0"],
+                                    "type": "BPTR",
+                                    "o_struct": None,
+                                    "semantic_kind": None,
+                                    "value_domain": None,
+                                    "source": "parsed NDK",
+                                }
+                            ],
                         },
                         {
                             "offset": 0x30,
@@ -701,6 +760,17 @@ def test_api_calls_from_c_analysis_uses_recovered_symbols() -> None:
                 "value_domain": None,
             }
         ],
+        "outputs": [
+            {
+                "name": "handle",
+                "regs": ["D0"],
+                "type": "BPTR",
+                "o_struct": None,
+                "source": "parsed NDK",
+                "semantic_kind": None,
+                "value_domain": None,
+            }
+        ],
     }
     assert api_calls[(0, 0x30)] == {
         "library": "unknown",
@@ -710,6 +780,7 @@ def test_api_calls_from_c_analysis_uses_recovered_symbols() -> None:
         "symbol_name": "_LVOOpenLibrary",
         "note_symbol_name": None,
         "inputs": [],
+        "outputs": [],
     }
 
 
@@ -749,6 +820,46 @@ def test_api_calls_from_c_analysis_uses_c_emitted_input_metadata() -> None:
             "source": "global correction",
             "semantic_kind": None,
             "value_domain": None,
+        }
+    ]
+
+
+def test_api_calls_from_c_analysis_uses_c_emitted_output_metadata() -> None:
+    api_calls = api_calls_from_c_analysis(
+        {
+            "sections": [
+                {
+                    "section_index": 0,
+                    "recovered_platform_calls": [
+                        {
+                            "offset": 0x44,
+                            "library_name": "exec.library",
+                            "function_name": "CreateMsgPort",
+                            "outputs": [
+                                {
+                                    "name": "port",
+                                    "regs": ["D0"],
+                                    "type": "struct MsgPort *",
+                                    "o_struct": "MsgPort",
+                                    "value_domain": "exec.msgport",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ]
+        }
+    )
+
+    assert api_calls[(0, 0x44)]["outputs"] == [
+        {
+            "name": "port",
+            "regs": ["D0"],
+            "type": "struct MsgPort *",
+            "o_struct": "MsgPort",
+            "source": "parsed NDK",
+            "semantic_kind": None,
+            "value_domain": "exec.msgport",
         }
     ]
 
@@ -849,6 +960,70 @@ def test_amiga_os_metadata_catalog_uses_c_dll(monkeypatch) -> None:
         "libraries": [],
     }
     assert calls == [(("amiga-hunk",), PROJECT_ROOT)]
+
+
+def test_real_dll_amiga_os_metadata_catalog_exposes_generated_struct_fields() -> None:
+    _requires_c_backend_dlls()
+
+    catalog = amiga_os_metadata_catalog_with_c_backend()
+    structs = {
+        struct["name"]: struct
+        for struct in catalog.get("structs", [])
+        if isinstance(struct, dict) and isinstance(struct.get("name"), str)
+    }
+    input_event_fields = {
+        field["name"]: field
+        for field in structs["InputEvent"]["fields"]
+        if isinstance(field, dict) and isinstance(field.get("name"), str)
+    }
+    io_fields = {
+        field["name"]: field
+        for field in structs["IO"]["fields"]
+        if isinstance(field, dict) and isinstance(field.get("name"), str)
+    }
+    input_event_resolved = {
+        field["query_start"]: field
+        for field in structs["InputEvent"]["resolved_fields"]
+        if isinstance(field, dict) and isinstance(field.get("query_start"), int)
+    }
+    input_event_gap_resolved = {
+        field["query_start"]: field
+        for field in structs["InputEvent"]["resolved_gap_fields"]
+        if isinstance(field, dict) and isinstance(field.get("query_start"), int)
+    }
+    io_resolved = {
+        field["query_start"]: field
+        for field in structs["IO"]["resolved_fields"]
+        if isinstance(field, dict) and isinstance(field.get("query_start"), int)
+    }
+    io_gap_resolved = {
+        field["query_start"]: field
+        for field in structs["IO"]["resolved_gap_fields"]
+        if isinstance(field, dict) and isinstance(field.get("query_start"), int)
+    }
+
+    assert structs["InputEvent"]["size"] == 22
+    assert input_event_fields["ie_Code"]["offset"] == 6
+    assert input_event_fields["ie_Code"]["size"] == 2
+    assert input_event_fields["ie_TimeStamp"]["nested_type"] == "TIMEVAL"
+    assert input_event_resolved[18]["name"] == "TV_MICRO"
+    assert input_event_resolved[18]["offset"] == 18
+    assert input_event_resolved[18]["owner_struct"] == "TIMEVAL"
+    assert input_event_resolved[18]["nested"] is True
+    assert input_event_resolved[18]["path"] == ["ie_TimeStamp", "TV_MICRO"]
+    assert input_event_gap_resolved[14]["name"] == "TV_SECS"
+    assert input_event_gap_resolved[14]["query_end"] == 18
+    assert structs["IO"]["size"] == 48
+    assert structs["IO"]["base"] == {"struct": "MN", "size_symbol": "MN_SIZE", "size": 20}
+    assert io_fields["IO_DEVICE"]["offset"] == 20
+    assert io_fields["IO_DEVICE"]["pointer_struct"] == "DD"
+    assert io_fields["IO_ACTUAL"]["offset"] == 32
+    assert io_fields["IO_SIZE"]["offset"] == 32
+    assert io_resolved[14]["name"] == "MN_REPLYPORT"
+    assert io_resolved[14]["owner_struct"] == "MN"
+    assert io_resolved[14]["inherited"] is True
+    assert io_gap_resolved[14]["name"] == "MN_REPLYPORT"
+    assert io_gap_resolved[14]["nested"] is False
 
 
 def test_inspect_disk_uses_c_disk_backend(monkeypatch, tmp_path: Path) -> None:
@@ -2353,6 +2528,17 @@ def test_real_dll_facts_v2_listing_rows_emit_api_calls(tmp_path: Path) -> None:
     assert api_calls[(0, 12)]["library"] == "exec.library"
     assert api_calls[(0, 12)]["function"] == "OpenLibrary"
     assert {item["name"] for item in api_calls[(0, 12)]["inputs"]} == {"libName", "version"}
+    assert api_calls[(0, 12)]["outputs"] == [
+        {
+            "name": "library",
+            "regs": ["D0"],
+            "type": "struct Library *",
+            "o_struct": "LIB",
+            "source": "parsed NDK",
+            "semantic_kind": None,
+            "value_domain": None,
+        }
+    ]
 
     combined = json.loads(
         c_backend._platform_file_text(
@@ -2655,8 +2841,9 @@ def test_real_dll_facts_v2_propagates_opendevice_instance_to_io_calls(tmp_path: 
     binary_path = tmp_path / "device_calls.bin"
     binary_path.write_bytes(
         bytes.fromhex(
-            "41f90000002c"
+            "41f900000032"
             "43ee0040"
+            "337c0009001c"
             "2c780004"
             "4eaefe44"
             "2c780004"
@@ -2683,10 +2870,62 @@ def test_real_dll_facts_v2_propagates_opendevice_instance_to_io_calls(tmp_path: 
     )
     calls = combined["analysis"]["sections"][0]["recovered_platform_calls"]
     by_function = {call["function_name"]: call for call in calls if call.get("function_name")}
+    typed_accesses = combined["analysis"]["sections"][0]["recovered_platform_typed_accesses"]
+    listing_rows = combined["listing"]["rows"]
 
     assert by_function["OpenDevice"]["device_name"] == "input.device"
     assert by_function["DoIO"]["device_name"] == "input.device"
     assert by_function["CloseDevice"]["device_name"] == "input.device"
+    assert any(access["field_name"] == "IO_COMMAND" and access["offset"] == 10 for access in typed_accesses)
+    assert any("IO_COMMAND(a1)" in row["text"] for row in listing_rows)
+    assert any(
+        access["field_name"] == "IO_COMMAND"
+        for row in listing_rows
+        for access in row.get("typed_accesses", [])
+    )
+
+
+def test_real_dll_facts_v2_propagates_typed_base_through_stack_storage(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "typed_stack.bin"
+    binary_path.write_bytes(
+        bytes.fromhex(
+            "41f90000002a"
+            "43ee0040"
+            "2f0e"
+            "2c780004"
+            "4eaefe44"
+            "2c5f"
+            "206e0054"
+            "2f480100"
+            "206f0100"
+            "0c6800240014"
+            "4e75"
+        )
+        + b"timer.device\0"
+    )
+
+    combined = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
+            "amiga-raw",
+            str(binary_path),
+            0,
+            "",
+            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
+            project_root=PROJECT_ROOT,
+        )
+    )
+    typed_accesses = combined["analysis"]["sections"][0]["recovered_platform_typed_accesses"]
+    listing_rows = combined["listing"]["rows"]
+
+    assert any(access["field_name"] == "LIB_VERSION" and access["offset"] == 34 for access in typed_accesses)
+    assert any("LIB_VERSION(a0)" in row["text"] for row in listing_rows)
+    assert any(
+        access["field_name"] == "LIB_VERSION"
+        for row in listing_rows
+        for access in row.get("typed_accesses", [])
+    )
 
 
 def test_project_source_raw_binary_passes_metadata_register_seeds(monkeypatch, tmp_path: Path) -> None:
@@ -2804,6 +3043,19 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
                         "citation": "test",
                     }
                 ],
+                "app_slot_regions": [
+                    {
+                        "offset": 0x22C,
+                        "symbol": "app_startup_options_buffer",
+                        "struct_name": None,
+                        "pointer_struct": None,
+                        "storage_kind": "pointer",
+                        "semantic_type": "source_text_buffer",
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "test",
+                    }
+                ],
                 "resident": {"name": "icon.library", "version": 40, "offset": 0, "hunk": 0},
             }
         ),
@@ -2823,6 +3075,7 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     assert generic_policy.runtime_ranges[0].size == 0x10
     assert generic_policy.runtime_ranges[0].runtime_address == 0x400
     assert generic_policy.structured_data_item_count == 0
+    assert generic_policy.app_slot_region_count == 0
     assert generic_policy.named_label_count == 1
     assert generic_policy.named_labels[0].offset == 0x24
     assert generic_policy.named_labels[0].name == b"stage_entry"
@@ -2837,6 +3090,10 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     ) == 0
     assert amiga_policy.register_seed_count == 1
     assert amiga_policy.structured_data_item_count > 0
+    assert amiga_policy.app_slot_region_count == 1
+    assert amiga_policy.app_slot_regions[0].offset == 0x22C
+    assert amiga_policy.app_slot_regions[0].symbol == b"app_startup_options_buffer"
+    assert amiga_policy.app_slot_regions[0].storage_kind == b"pointer"
     assert amiga_policy.named_label_count > 0
 
 
@@ -2918,6 +3175,45 @@ def test_real_dll_renders_genam() -> None:
     assert refs_by_text["subq.l #4,app_0234(a6)"] == (
         AppSlotRef("app_0234", 0x0234, "A6", 1, "read-write"),
     )
+
+
+def test_real_dll_genam_profile_exposes_c_app_slot_analysis() -> None:
+    _requires_c_backend_dlls()
+    _rows, _api_calls, profile, source_text = build_project_rows_generation_with_c_backend_profile_text(
+        "amiga_hunk_genam",
+        generation="full",
+        syntax="vasm",
+        project_root=PROJECT_ROOT,
+    )
+
+    analysis = profile["app_slot_analysis"]
+    assert isinstance(analysis, dict)
+    regions = [
+        region
+        for region in analysis["regions"]
+        if isinstance(region, dict) and region.get("source") == "platform_api_arg"
+    ]
+    struct_names = {region.get("struct_name") for region in regions}
+    field_names = {
+        field_ref.get("field_name")
+        for region in regions
+        for field_ref in region.get("field_refs", [])
+        if isinstance(field_ref, dict)
+    }
+    field_gap_coverages = {
+        gap.get("coverage")
+        for gap in analysis["field_gaps"]
+        if isinstance(gap, dict)
+    }
+
+    assert analysis["typed_region_count"] >= 3
+    assert analysis["gap_count"] >= 1
+    assert analysis["field_gap_count"] >= 1
+    assert {"TIMEVAL", "IO"} <= struct_names
+    assert {"TV_SECS", "TV_MICRO", "IO_DEVICE", "IO_ERROR", "IO_DATA"} <= field_names
+    assert field_gap_coverages == {"known_struct_field"}
+    assert isinstance(source_text, str)
+    assert "app_slot_analysis" not in source_text
 
 
 def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:

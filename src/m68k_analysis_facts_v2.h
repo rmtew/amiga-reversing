@@ -161,6 +161,9 @@ int m68k_facts_v2_render_asm_source_profile_alloc(const M68kObject *object, cons
 int m68k_facts_v2_render_asm_source_analysis_profile_alloc(const M68kObject *object,
   const M68kAnalysisPolicy *policy, char **out_source, M68kFactsV2Profile *out_profile,
   M68kSourceAnalysisIR *out_source_analysis, uint8_t fail_on_refused, M68kDiagSink diagnostics);
+int m68k_facts_v2_collect_source_analysis_profile(const M68kObject *object,
+  const M68kAnalysisPolicy *policy, M68kFactsV2Profile *out_profile,
+  M68kSourceAnalysisIR *out_source_analysis, M68kDiagSink diagnostics);
 void m68k_facts_v2_free_text(char *text);
 
 #endif

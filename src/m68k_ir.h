@@ -48,6 +48,7 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_ENTRY_POINT_LIMIT 64U
 #define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 256U
 #define M68K_ANALYSIS_NAMED_LABEL_LIMIT 128U
+#define M68K_ANALYSIS_APP_SLOT_REGION_LIMIT 128U
 #define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 128U
 
 typedef enum M68kAnalysisRegisterKind {
@@ -132,6 +133,17 @@ typedef struct M68kAnalysisEntryComment {
   char comment[192];
 } M68kAnalysisEntryComment;
 
+typedef struct M68kAnalysisAppSlotRegion {
+  uint32_t offset;
+  uint8_t size;
+  uint8_t reserved[3];
+  char symbol[64];
+  char struct_name[64];
+  char pointer_struct[64];
+  char storage_kind[32];
+  char semantic_type[64];
+} M68kAnalysisAppSlotRegion;
+
 #define M68K_ANALYSIS_RUNTIME_RANGE_LIMIT 64U
 #define M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT 64U
 
@@ -164,7 +176,7 @@ typedef struct M68kAnalysisPolicy {
   uint16_t entry_comment_count;
   uint16_t runtime_range_count;
   uint16_t runtime_entry_point_count;
-  uint16_t reserved1;
+  uint16_t app_slot_region_count;
   uint32_t entry_offset;
   M68kAnalysisRegisterSeed register_seeds[M68K_ANALYSIS_REGISTER_SEED_LIMIT];
   M68kAnalysisEntryPoint entry_points[M68K_ANALYSIS_ENTRY_POINT_LIMIT];
@@ -173,6 +185,7 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisEntryComment entry_comments[M68K_ANALYSIS_ENTRY_COMMENT_LIMIT];
   M68kAnalysisRuntimeRange runtime_ranges[M68K_ANALYSIS_RUNTIME_RANGE_LIMIT];
   M68kAnalysisRuntimeEntryPoint runtime_entry_points[M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT];
+  M68kAnalysisAppSlotRegion app_slot_regions[M68K_ANALYSIS_APP_SLOT_REGION_LIMIT];
 } M68kAnalysisPolicy;
 
 typedef struct M68kAnalysisFindings {
@@ -469,6 +482,33 @@ typedef struct M68kAppSlotRefIR {
   uint8_t access_kind;
 } M68kAppSlotRefIR;
 
+typedef struct M68kRecoveredPlatformTypedAccessIR {
+  uint32_t offset;
+  uint8_t operand_index;
+  uint8_t base_reg;
+  uint8_t inherited;
+  uint8_t nested;
+  int16_t displacement;
+  int16_t field_offset;
+  char *root_struct_name;
+  char *owner_struct_name;
+  char *field_name;
+  char *field_expr;
+  M68kPlatformNameRef root_struct_ref;
+  M68kPlatformNameRef owner_struct_ref;
+  M68kPlatformNameRef field_ref;
+} M68kRecoveredPlatformTypedAccessIR;
+
+typedef struct M68kRecoveredPlatformUnresolvedTypedAccessIR {
+  uint32_t offset;
+  uint8_t operand_index;
+  uint8_t base_reg;
+  int16_t displacement;
+  uint16_t struct_size;
+  char *root_struct_name;
+  M68kPlatformNameRef root_struct_ref;
+} M68kRecoveredPlatformUnresolvedTypedAccessIR;
+
 typedef enum M68kPlatformEffectKind {
   M68K_PLATFORM_EFFECT_NONE = 0,
   M68K_PLATFORM_EFFECT_SET_BASE_REG = 1,
@@ -476,7 +516,8 @@ typedef enum M68kPlatformEffectKind {
   M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG = 3,
   M68K_PLATFORM_EFFECT_SET_TYPED_REG = 4,
   M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT = 5,
-  M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT = 6
+  M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT = 6,
+  M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT = 7
 } M68kPlatformEffectKind;
 
 typedef struct M68kPlatformNamedBaseEffectPayloadIR {
@@ -664,6 +705,12 @@ typedef struct M68kSectionAnalysisIR {
   M68kAppSlotRefIR *app_slot_refs;
   size_t app_slot_ref_count;
   size_t app_slot_ref_capacity;
+  M68kRecoveredPlatformTypedAccessIR *recovered_platform_typed_accesses;
+  size_t recovered_platform_typed_access_count;
+  size_t recovered_platform_typed_access_capacity;
+  M68kRecoveredPlatformUnresolvedTypedAccessIR *recovered_platform_unresolved_typed_accesses;
+  size_t recovered_platform_unresolved_typed_access_count;
+  size_t recovered_platform_unresolved_typed_access_capacity;
   M68kRecoveredPlatformBaseSlotIR *recovered_platform_base_slots;
   size_t recovered_platform_base_slot_count;
   size_t recovered_platform_base_slot_capacity;
@@ -751,6 +798,13 @@ int m68k_ir_section_analysis_append_recovered_indirect_site(M68kSectionAnalysisI
     const M68kRecoveredIndirectSiteIR *site);
 int m68k_ir_section_analysis_append_app_slot_ref(M68kSectionAnalysisIR *section_analysis,
     const M68kAppSlotRefIR *ref);
+int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionAnalysisIR *section_analysis,
+    uint8_t platform_kind, uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
+    int16_t field_offset, const char *root_struct_name, const char *owner_struct_name, const char *field_name,
+    const char *field_expr, uint8_t inherited, uint8_t nested);
+int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
+    M68kSectionAnalysisIR *section_analysis, uint8_t platform_kind, uint32_t offset, uint8_t operand_index,
+    uint8_t base_reg, int16_t displacement, uint16_t struct_size, const char *root_struct_name);
 int m68k_ir_section_analysis_append_recovered_platform_base_slot(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, int16_t displacement, const char *base_name);
 int m68k_ir_section_analysis_append_recovered_platform_effect(M68kSectionAnalysisIR *section_analysis,
@@ -760,6 +814,10 @@ int m68k_ir_section_analysis_append_recovered_platform_effect(M68kSectionAnalysi
 int m68k_ir_section_analysis_append_recovered_platform_global_base_slot_effect(
     M68kSectionAnalysisIR *section_analysis, uint8_t platform_kind, uint32_t offset, size_t target_section_index,
     uint32_t target_offset, const char *base_name);
+int m68k_ir_section_analysis_append_recovered_platform_typed_global_slot_effect(
+    M68kSectionAnalysisIR *section_analysis, uint8_t platform_kind, uint32_t offset, size_t target_section_index,
+    uint32_t target_offset, const char *symbol_name, const char *type_name, const char *semantic_kind,
+    const char *value_domain_name);
 int m68k_ir_section_analysis_append_recovered_local_call_summary(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t target_offset, uint8_t effect_kind, uint8_t reg_kind, uint8_t reg_index,
     uint8_t success_reg_kind, uint8_t success_reg_index, uint8_t success_value_known, int32_t success_reg_value,

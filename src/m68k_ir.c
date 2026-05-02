@@ -36,6 +36,13 @@ static void *arena_grow_array(Arena *arena, void *items, size_t count, size_t *c
   return grown;
 }
 
+static int text_equal_nullable(const char *left, const char *right) {
+  if (left == NULL || left[0] == '\0') left = NULL;
+  if (right == NULL || right[0] == '\0') right = NULL;
+  if (left == NULL || right == NULL) return left == right;
+  return strcmp(left, right) == 0;
+}
+
 static void m68k_ir_section_init_shared(M68kSectionIR *section, Arena *arena) {
   memset(section, 0, sizeof(*section));
   section->arena = arena;
@@ -720,6 +727,145 @@ int m68k_ir_section_analysis_append_app_slot_ref(M68kSectionAnalysisIR *section_
   return 0;
 }
 
+int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionAnalysisIR *section_analysis,
+    uint8_t platform_kind, uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
+    int16_t field_offset, const char *root_struct_name, const char *owner_struct_name, const char *field_name,
+    const char *field_expr, uint8_t inherited, uint8_t nested) {
+  size_t index;
+  char *copy_root_struct_name, *copy_owner_struct_name, *copy_field_name, *copy_field_expr;
+  M68kPlatformNameRef root_struct_ref = {0};
+  M68kPlatformNameRef owner_struct_ref = {0};
+  M68kPlatformNameRef field_ref = {0};
+  if (section_analysis == NULL || section_analysis->arena == NULL || field_name == NULL || field_expr == NULL)
+    return -1;
+  root_struct_ref.platform_kind = platform_kind;
+  root_struct_ref.domain_kind = M68K_PLATFORM_NAME_STRUCT;
+  root_struct_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_STRUCT, root_struct_name);
+  owner_struct_ref.platform_kind = platform_kind;
+  owner_struct_ref.domain_kind = M68K_PLATFORM_NAME_STRUCT;
+  owner_struct_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_STRUCT, owner_struct_name);
+  field_ref.platform_kind = platform_kind;
+  field_ref.domain_kind = M68K_PLATFORM_NAME_FIELD;
+  field_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_FIELD, field_name);
+  for (index = 0; index < section_analysis->recovered_platform_typed_access_count; ++index) {
+    M68kRecoveredPlatformTypedAccessIR *existing = &section_analysis->recovered_platform_typed_accesses[index];
+    if (existing->offset == offset && existing->operand_index == operand_index &&
+        existing->base_reg == base_reg && existing->displacement == displacement &&
+        existing->field_offset == field_offset && existing->inherited == (uint8_t)(inherited != 0U) &&
+        existing->nested == (uint8_t)(nested != 0U) &&
+        m68k_platform_name_matches(&existing->root_struct_ref, existing->root_struct_name, &root_struct_ref,
+          root_struct_name) &&
+        m68k_platform_name_matches(&existing->owner_struct_ref, existing->owner_struct_name, &owner_struct_ref,
+          owner_struct_name) &&
+        m68k_platform_name_matches(&existing->field_ref, existing->field_name, &field_ref, field_name) &&
+        strcmp(existing->field_expr != NULL ? existing->field_expr : "", field_expr) == 0) {
+      return 0;
+    }
+  }
+  section_analysis->recovered_platform_typed_accesses =
+    (M68kRecoveredPlatformTypedAccessIR *)arena_grow_array(section_analysis->arena,
+      section_analysis->recovered_platform_typed_accesses,
+      section_analysis->recovered_platform_typed_access_count,
+      &section_analysis->recovered_platform_typed_access_capacity, 8U,
+      sizeof(*section_analysis->recovered_platform_typed_accesses));
+  if (section_analysis->recovered_platform_typed_accesses == NULL) return -1;
+  copy_root_struct_name = arena_strdup_if_unresolved_name(section_analysis->arena, &root_struct_ref, root_struct_name);
+  if (root_struct_name != NULL && !m68k_platform_name_ref_is_set(&root_struct_ref) && copy_root_struct_name == NULL)
+    return -1;
+  copy_owner_struct_name = arena_strdup_if_unresolved_name(section_analysis->arena, &owner_struct_ref,
+    owner_struct_name);
+  if (owner_struct_name != NULL && !m68k_platform_name_ref_is_set(&owner_struct_ref) &&
+      copy_owner_struct_name == NULL)
+    return -1;
+  copy_field_name = arena_strdup_if_unresolved_name(section_analysis->arena, &field_ref, field_name);
+  if (field_name != NULL && !m68k_platform_name_ref_is_set(&field_ref) && copy_field_name == NULL) return -1;
+  copy_field_expr = arena_strdup(section_analysis->arena, field_expr);
+  if (copy_field_expr == NULL) return -1;
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].offset =
+    offset;
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].operand_index =
+    operand_index;
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].base_reg =
+    base_reg;
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].inherited =
+    (uint8_t)(inherited != 0U);
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].nested =
+    (uint8_t)(nested != 0U);
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].displacement =
+    displacement;
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].field_offset =
+    field_offset;
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].root_struct_name =
+    copy_root_struct_name;
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].owner_struct_name =
+    copy_owner_struct_name;
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].field_name =
+    copy_field_name;
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].field_expr =
+    copy_field_expr;
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].root_struct_ref =
+    root_struct_ref;
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].owner_struct_ref =
+    owner_struct_ref;
+  section_analysis->recovered_platform_typed_accesses[section_analysis->recovered_platform_typed_access_count].field_ref =
+    field_ref;
+  section_analysis->recovered_platform_typed_access_count += 1U;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
+    M68kSectionAnalysisIR *section_analysis, uint8_t platform_kind, uint32_t offset, uint8_t operand_index,
+    uint8_t base_reg, int16_t displacement, uint16_t struct_size, const char *root_struct_name) {
+  size_t index;
+  char *copy_root_struct_name;
+  M68kPlatformNameRef root_struct_ref = {0};
+  if (section_analysis == NULL || section_analysis->arena == NULL ||
+      root_struct_name == NULL || root_struct_name[0] == '\0' ||
+      operand_index >= 4U || base_reg >= 8U) {
+    return -1;
+  }
+  root_struct_ref.platform_kind = platform_kind;
+  root_struct_ref.domain_kind = M68K_PLATFORM_NAME_STRUCT;
+  root_struct_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_STRUCT, root_struct_name);
+  for (index = 0; index < section_analysis->recovered_platform_unresolved_typed_access_count; ++index) {
+    M68kRecoveredPlatformUnresolvedTypedAccessIR *existing =
+      &section_analysis->recovered_platform_unresolved_typed_accesses[index];
+    if (existing->offset == offset && existing->operand_index == operand_index &&
+        existing->base_reg == base_reg && existing->displacement == displacement &&
+        existing->struct_size == struct_size &&
+        m68k_platform_name_matches(&existing->root_struct_ref, existing->root_struct_name, &root_struct_ref,
+          root_struct_name)) {
+      return 0;
+    }
+  }
+  section_analysis->recovered_platform_unresolved_typed_accesses =
+    (M68kRecoveredPlatformUnresolvedTypedAccessIR *)arena_grow_array(section_analysis->arena,
+      section_analysis->recovered_platform_unresolved_typed_accesses,
+      section_analysis->recovered_platform_unresolved_typed_access_count,
+      &section_analysis->recovered_platform_unresolved_typed_access_capacity, 8U,
+      sizeof(*section_analysis->recovered_platform_unresolved_typed_accesses));
+  if (section_analysis->recovered_platform_unresolved_typed_accesses == NULL) return -1;
+  copy_root_struct_name = arena_strdup_if_unresolved_name(section_analysis->arena, &root_struct_ref,
+    root_struct_name);
+  if (!m68k_platform_name_ref_is_set(&root_struct_ref) && copy_root_struct_name == NULL) return -1;
+  section_analysis->recovered_platform_unresolved_typed_accesses[
+    section_analysis->recovered_platform_unresolved_typed_access_count].offset = offset;
+  section_analysis->recovered_platform_unresolved_typed_accesses[
+    section_analysis->recovered_platform_unresolved_typed_access_count].operand_index = operand_index;
+  section_analysis->recovered_platform_unresolved_typed_accesses[
+    section_analysis->recovered_platform_unresolved_typed_access_count].base_reg = base_reg;
+  section_analysis->recovered_platform_unresolved_typed_accesses[
+    section_analysis->recovered_platform_unresolved_typed_access_count].displacement = displacement;
+  section_analysis->recovered_platform_unresolved_typed_accesses[
+    section_analysis->recovered_platform_unresolved_typed_access_count].struct_size = struct_size;
+  section_analysis->recovered_platform_unresolved_typed_accesses[
+    section_analysis->recovered_platform_unresolved_typed_access_count].root_struct_name = copy_root_struct_name;
+  section_analysis->recovered_platform_unresolved_typed_accesses[
+    section_analysis->recovered_platform_unresolved_typed_access_count].root_struct_ref = root_struct_ref;
+  section_analysis->recovered_platform_unresolved_typed_access_count += 1U;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_runtime_view(M68kSectionAnalysisIR *section_analysis,
     const M68kRuntimeViewIR *runtime_view) {
   size_t index;
@@ -832,7 +978,9 @@ int m68k_ir_section_analysis_append_recovered_platform_effect(M68kSectionAnalysi
         existing_symbol_name = existing->payload.code_ptr.field_symbol_name;
         existing_type_name = existing->payload.code_ptr.owner_type_name;
         existing_semantic_kind = existing->payload.code_ptr.semantic_kind;
-      } else if (existing->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || existing->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT) {
+      } else if (existing->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG ||
+          existing->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT ||
+          existing->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT) {
         existing_base_ref = &existing->payload.typed.context_ref;
         existing_symbol_ref = &existing->payload.typed.symbol_ref;
         existing_type_ref = &existing->payload.typed.type_ref;
@@ -908,7 +1056,8 @@ int m68k_ir_section_analysis_append_recovered_platform_effect(M68kSectionAnalysi
       type_ref;
     section_analysis->recovered_platform_effects[section_analysis->recovered_platform_effect_count].payload.code_ptr.semantic_kind_ref =
       semantic_kind_ref;
-  } else if (kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT) {
+  } else if (kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT ||
+      kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT) {
     section_analysis->recovered_platform_effects[section_analysis->recovered_platform_effect_count].payload.typed.symbol_name =
       copy_symbol_name;
     section_analysis->recovered_platform_effects[section_analysis->recovered_platform_effect_count].payload.typed.context_name =
@@ -972,6 +1121,50 @@ int m68k_ir_section_analysis_append_recovered_platform_global_base_slot_effect(
     existing_base_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.named_base.base_ref,
       effect->payload.named_base.base_name);
     if (existing_base_name == NULL || strcmp(existing_base_name, base_name) != 0) continue;
+    effect->target_section_index = target_section_index;
+    effect->target_offset = target_offset;
+    return 0;
+  }
+  return -1;
+}
+
+int m68k_ir_section_analysis_append_recovered_platform_typed_global_slot_effect(
+    M68kSectionAnalysisIR *section_analysis, uint8_t platform_kind, uint32_t offset, size_t target_section_index,
+    uint32_t target_offset, const char *symbol_name, const char *type_name, const char *semantic_kind,
+    const char *value_domain_name) {
+  size_t index;
+  if (section_analysis == NULL || target_section_index == SIZE_MAX || target_offset == UINT32_MAX ||
+      (type_name == NULL && symbol_name == NULL && semantic_kind == NULL && value_domain_name == NULL)) {
+    return -1;
+  }
+  for (index = 0; index < section_analysis->recovered_platform_effect_count; ++index) {
+    M68kRecoveredPlatformEffectIR *effect = &section_analysis->recovered_platform_effects[index];
+    const char *existing_type_name, *existing_symbol_name, *existing_semantic_kind, *existing_value_domain_name;
+    if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT || effect->offset != offset ||
+        effect->target_section_index != target_section_index || effect->target_offset != target_offset)
+      continue;
+    existing_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.symbol_ref,
+      effect->payload.typed.symbol_name);
+    existing_type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+      effect->payload.typed.type_name);
+    existing_semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.semantic_kind_ref,
+      effect->payload.typed.semantic_kind);
+    existing_value_domain_name = m68k_platform_name_ref_resolve_text_or_fallback(
+      &effect->payload.typed.value_domain_ref, effect->payload.typed.value_domain_name);
+    if (text_equal_nullable(existing_symbol_name, symbol_name) && text_equal_nullable(existing_type_name, type_name) &&
+        text_equal_nullable(existing_semantic_kind, semantic_kind) &&
+        text_equal_nullable(existing_value_domain_name, value_domain_name)) {
+      return 0;
+    }
+    return -1;
+  }
+  if (m68k_ir_section_analysis_append_recovered_platform_effect(section_analysis, platform_kind, offset,
+        M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT, 0U, 0U, INT16_MIN, INT16_MIN, NULL, symbol_name, type_name,
+        semantic_kind, value_domain_name, 0U, 0) != 0)
+    return -1;
+  for (index = section_analysis->recovered_platform_effect_count; index > 0U; --index) {
+    M68kRecoveredPlatformEffectIR *effect = &section_analysis->recovered_platform_effects[index - 1U];
+    if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT || effect->offset != offset) continue;
     effect->target_section_index = target_section_index;
     effect->target_offset = target_offset;
     return 0;
@@ -1466,6 +1659,47 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
       return -1;
     }
   }
+  for (index = 0; index < section_analysis->recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access =
+      &section_analysis->recovered_platform_typed_accesses[index];
+    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+      access->root_struct_name);
+    const char *owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->owner_struct_ref,
+      access->owner_struct_name);
+    const char *field_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->field_ref,
+      access->field_name);
+    uint8_t platform_kind = m68k_platform_kind_from_ref_or_text(&access->root_struct_ref,
+      M68K_PLATFORM_NAME_STRUCT, root_struct_name);
+    if (platform_kind == 0U) {
+      platform_kind = m68k_platform_kind_from_ref_or_text(&access->owner_struct_ref,
+        M68K_PLATFORM_NAME_STRUCT, owner_struct_name);
+    }
+    if (platform_kind == 0U) {
+      platform_kind = m68k_platform_kind_from_ref_or_text(&access->field_ref,
+        M68K_PLATFORM_NAME_FIELD, field_name);
+    }
+    if (m68k_ir_section_analysis_append_recovered_platform_typed_access(&copy, platform_kind,
+          access->offset, access->operand_index, access->base_reg, access->displacement,
+          access->field_offset, root_struct_name, owner_struct_name, field_name, access->field_expr,
+          access->inherited, access->nested) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->recovered_platform_unresolved_typed_access_count; ++index) {
+    const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
+      &section_analysis->recovered_platform_unresolved_typed_accesses[index];
+    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+      access->root_struct_name);
+    uint8_t platform_kind = m68k_platform_kind_from_ref_or_text(&access->root_struct_ref,
+      M68K_PLATFORM_NAME_STRUCT, root_struct_name);
+    if (m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(&copy, platform_kind,
+          access->offset, access->operand_index, access->base_reg, access->displacement,
+          access->struct_size, root_struct_name) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
   for (index = 0; index < section_analysis->runtime_view_count; ++index) {
     if (m68k_ir_section_analysis_append_runtime_view(&copy, &section_analysis->runtime_views[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
@@ -1546,27 +1780,32 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
         (effect->kind == M68K_PLATFORM_EFFECT_SET_BASE_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT ||
           effect->kind == M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT)
             ? base_name :
-            ((effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT)
+            ((effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT ||
+              effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT)
               ? typed_context_name : NULL),
           effect->kind == M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG ? symbol_name :
-              ((effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT)
+              ((effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT ||
+                effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT)
                 ? typed_symbol_name : NULL),
           (effect->kind == M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG) ? code_ptr_type_name :
-              ((effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT)
+              ((effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT ||
+                effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT)
                 ? typed_type_name : NULL),
           (effect->kind == M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG) ? code_ptr_semantic_kind :
-              ((effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT)
+              ((effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT ||
+                effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT)
                 ? typed_semantic_kind : NULL),
-          (effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT)
-              ? typed_value_domain_name : NULL,
-          (effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT)
-              ? effect->payload.typed.has_constant_value : 0U,
-          (effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT)
-              ? effect->payload.typed.constant_value : 0) != 0) {
+          (effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT ||
+            effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT) ? typed_value_domain_name : NULL,
+          (effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT ||
+            effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT) ? effect->payload.typed.has_constant_value : 0U,
+          (effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT ||
+            effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT) ? effect->payload.typed.constant_value : 0) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }
-    if (effect->kind == M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT) {
+    if (effect->kind == M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT ||
+        effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT) {
       copy.recovered_platform_effects[copy.recovered_platform_effect_count - 1U].target_section_index =
         effect->target_section_index;
       copy.recovered_platform_effects[copy.recovered_platform_effect_count - 1U].target_offset =

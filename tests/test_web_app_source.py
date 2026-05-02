@@ -132,3 +132,27 @@ def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None
     assert "listing-row-repro-issue" in app_js
     assert ".repro-panel" in styles_css
     assert ".project-badge-repro-exact" in styles_css
+
+
+def test_web_app_marks_typed_app_slot_refs_without_source_changes() -> None:
+    web_dir = Path(__file__).resolve().parent.parent / "amiga_reversing" / "web"
+    app_js = (web_dir / "app.js").read_text(encoding="utf-8")
+    styles_css = (web_dir / "styles.css").read_text(encoding="utf-8")
+
+    assert "function appSlotTypedInfoForSymbol(symbol)" in app_js
+    assert "function appSlotFieldPath(field, structName)" in app_js
+    assert "function appSlotTypedInfoTitle(info)" in app_js
+    assert "listing-app-slot-reference${typedClass}" in app_js
+    assert '["app-slot-field-gaps", "App Field Gaps"]' in app_js
+    assert "app_slot_field_path:" in app_js
+    assert "app_slot_region_source:" in app_js
+    assert '["app-slot-suggestions", "App Suggestions"]' in app_js
+    assert '["app-slot-api-args", "App API Args"]' in app_js
+    assert "untyped_api_arg_count" in app_js
+    assert "base_symbol" in app_js
+    assert "field_expr" in app_js
+    assert "suggestion_count" in app_js
+    assert "function navigationEntryHasJumpTarget(entry)" in app_js
+    assert "entry.navigable === false" in app_js
+    assert "if (await jumpToNavigationEntry(state.project, entry)) {" in app_js
+    assert ".listing-app-slot-typed" in styles_css
