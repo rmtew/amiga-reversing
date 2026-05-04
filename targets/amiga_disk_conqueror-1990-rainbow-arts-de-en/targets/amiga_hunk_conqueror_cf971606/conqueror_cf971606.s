@@ -64,7 +64,7 @@ loc_0_000000C8:
 	bclr.b #CIAB_DSKSEL1,_ciab+ciaprb.l
 	bset.b #CIAB_DSKSEL1,_ciab+ciaprb.l
 	lea.l loc_0_00000148.l,a0
-	lea.l abs_0_00000004.l,a1
+	lea.l $00000004.l,a1
 	move.w #$E,d0
 loc_0_0000012A:
 	move.b (a0)+,(a1)+
@@ -72,15 +72,12 @@ loc_0_0000012A:
 	lea.l loc_0_00000154.l,a0
 	lea.l abs_0_00000040.l,a1
 	move.l #$3A9,d0
-	jmp abs_0_00000004.l
+	jmp $00000004.l
 loc_0_00000148:
-    ORG $4
-abs_0_00000004:
 	move.l (a0)+,(a1)+
 	subq.l #1,d0
-	bne.b abs_0_00000004
+	bne.b loc_0_00000148
 	jmp abs_0_00000064.l
-    ORG $154
 loc_0_00000154:
     ORG $40
 abs_0_00000040:
