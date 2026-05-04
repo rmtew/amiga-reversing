@@ -20,6 +20,7 @@
 #define M68K_FACT_RUNTIME_ADDRESS_REF_NO_OPERAND UINT32_MAX
 #define M68K_FACTS_V2_TRACE_ABSOLUTE_SLOT_LIMIT 16U
 #define M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT 32U
+#define M68K_FACTS_V2_TRACE_STATE_VARIANT_LIMIT 2U
 #define M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT 0x1000
 #define M68K_FACTS_V2_EXTERNAL_RUNTIME_ADDRESS_MIN 0x1000U
 
@@ -267,6 +268,15 @@ static void trace_state_init_unknown(M68kFactsV2TraceState *state) {
   memset(state, 0, sizeof(*state));
 }
 
+static int trace_state_matches_queued(const M68kFactsV2TraceState *queued,
+    const M68kFactsV2TraceState *incoming) {
+  M68kFactsV2TraceState unknown;
+  if (queued == NULL) return incoming == NULL;
+  if (incoming != NULL) return memcmp(queued, incoming, sizeof(*queued)) == 0;
+  trace_state_init_unknown(&unknown);
+  return memcmp(queued, &unknown, sizeof(*queued)) == 0;
+}
+
 static int trace_value_is_target_set(const M68kFactsV2TraceValue *value) {
   return value != NULL && value->kind == M68K_FACTS_V2_TRACE_TARGET_SET && value->target_count != 0U;
 }
@@ -277,6 +287,8 @@ static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, ui
   M68kFactsV2WorkItem *grown;
   size_t next_capacity;
   size_t item_index;
+  size_t state_variant_count = 0U;
+  uint8_t saw_branch_merge_variant_anchor = 0U;
   uint8_t stateful = has_runtime_address;
   if (queue == NULL) return -1;
   if (!stateful && section_index < queue->section_count && queue->queued_confidence != NULL &&
@@ -293,8 +305,21 @@ static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, ui
         continue;
       }
       if (has_runtime_address && item->runtime_address != runtime_address) continue;
-      return 0;
+      ++state_variant_count;
+      if (trace_state_matches_queued(&item->trace_state, trace_state)) return 0;
+      if ((reason == M68K_FACT_CODE_START_REASON_FALLTHROUGH &&
+           item->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET) ||
+          (reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET &&
+           item->reason == M68K_FACT_CODE_START_REASON_FALLTHROUGH)) {
+        uint32_t source_delta = source_offset > item->source_offset
+          ? source_offset - item->source_offset
+          : item->source_offset - source_offset;
+        if (source_section_index == item->source_section_index && source_delta <= 32U)
+          saw_branch_merge_variant_anchor = 1U;
+      }
     }
+    if (state_variant_count != 0U && !saw_branch_merge_variant_anchor) return 0;
+    if (state_variant_count >= M68K_FACTS_V2_TRACE_STATE_VARIANT_LIMIT) return 0;
   }
   if (queue->count == queue->capacity) {
     next_capacity = queue->capacity == 0U ? 64U : queue->capacity * 2U;
@@ -3356,6 +3381,75 @@ static uint32_t resolve_required_label_invariants(const M68kDecodeIR *decode, ui
   return unresolved;
 }
 
+static int candidate_has_control_target_local(const M68kDecodeCandidate *candidate) {
+  size_t target_index;
+  if (candidate == NULL) return 0;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_CALL ||
+        target->kind == M68K_DECODE_TARGET_JUMP) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int replay_runtime_sink_provenance_fallthrough(const M68kObject *object, M68kDecodeIR *decode,
+    const M68kFactsV2RelocationLookup *relocation_lookup, M68kRuntimeAddressSpace *runtime_addresses,
+    M68kFactIR *facts, M68kFactsV2Profile *profile, size_t section_index, uint32_t offset,
+    const M68kFactsV2TraceState *initial_state, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    uint8_t max_cpu) {
+  const uint32_t replay_limit = 8U;
+  const M68kDecodeSectionIR *section;
+  M68kFactsV2TraceState state;
+  uint32_t cursor = offset;
+  uint32_t step;
+  if (object == NULL || decode == NULL || runtime_addresses == NULL || facts == NULL || profile == NULL ||
+      initial_state == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      section_index >= decode->section_count) {
+    return -1;
+  }
+  section = &decode->sections[section_index];
+  state = *initial_state;
+  for (step = 0U; step < replay_limit && cursor < section->size; ++step) {
+    const M68kDecodeCandidate *candidate = NULL;
+    M68kDecodeCandidate candidate_copy;
+    M68kFactsV2TraceState next_state;
+    uint32_t next_cursor;
+    if (!accepted_start[section_index][cursor]) return 0;
+    if (m68k_decode_ir_ensure_candidate_at(decode, section_index, cursor, max_cpu, &candidate,
+        m68k_diag_sink(NULL)) != 0) {
+      return -1;
+    }
+    if (candidate == NULL) return 0;
+    candidate_copy = *candidate;
+    candidate = &candidate_copy;
+    if (trace_state_record_runtime_copy(runtime_addresses, facts, profile, section_index, section, candidate,
+        &state) != 0) {
+      return -1;
+    }
+    if (trace_state_record_runtime_sink_ref(runtime_addresses, facts, object->platform_backend_kind,
+        section_index, section, accepted_start[section_index], accepted_bytes[section_index],
+        candidate, &state) != 0) {
+      return -1;
+    }
+    if (trace_state_record_runtime_storage_sink_ref(runtime_addresses, facts, object->platform_backend_kind,
+        section_index, section, candidate, &state) != 0) {
+      return -1;
+    }
+    trace_state_after_candidate(section_index, section, candidate, &state, relocation_lookup, facts,
+      runtime_addresses, &next_state);
+    if (!instruction_has_fallthrough(candidate->mnemonic_id) || candidate_has_control_target_local(candidate))
+      return 0;
+    if (candidate->byte_count > UINT32_MAX - cursor) return 0;
+    next_cursor = cursor + candidate->byte_count;
+    if (next_cursor <= cursor) return 0;
+    cursor = next_cursor;
+    state = next_state;
+  }
+  return 0;
+}
+
 static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *decode, M68kFactIR *facts,
     const M68kAnalysisPolicy *policy,
     const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
@@ -3408,36 +3502,42 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
     }
     candidate_copy = *candidate;
     candidate = &candidate_copy;
-    if (!already_accepted) {
-      phase_start = profile_phase_start_local(profile_reachable_phases);
-      validation_result = validate_reachable_candidate_for_acceptance(policy, facts, &item, section, candidate,
-        accepted_start, accepted_bytes, &accepted_count, profile);
-      profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_validate_seconds,
-        phase_start);
-      if (validation_result < 0) return -1;
-      if (validation_result > 0) continue;
-      phase_start = profile_phase_start_local(profile_reachable_phases);
-      if (mark_accepted_bytes(accepted_bytes[item.section_index], candidate, section->size) != 0) return -1;
-      accepted_start[item.section_index][item.offset] = 1U;
-      {
-        M68kFact fact;
-        memset(&fact, 0, sizeof(fact));
-        fact.kind = M68K_FACT_CODE_ACCEPTED;
-        fact.confidence = item.confidence;
-        fact.section_index = item.section_index;
-        fact.offset = item.offset;
-        fact.reason = item.reason;
-        fact.has_runtime_address = item.has_runtime_address;
-        fact.runtime_address = item.runtime_address;
-        fact.source_section_index = item.source_section_index;
-        fact.source_offset = item.source_offset;
-        fact.size = candidate->byte_count;
-        if (m68k_fact_ir_append(facts, &fact) != 0) return -1;
+    if (already_accepted) {
+      if (replay_runtime_sink_provenance_fallthrough(object, decode, relocation_lookup, runtime_addresses, facts,
+          profile, item.section_index, item.offset, &item.trace_state, accepted_start, accepted_bytes,
+          max_cpu) != 0) {
+        return -1;
       }
-      ++accepted_count;
-      profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_accept_seconds,
-        phase_start);
+      continue;
     }
+    phase_start = profile_phase_start_local(profile_reachable_phases);
+    validation_result = validate_reachable_candidate_for_acceptance(policy, facts, &item, section, candidate,
+      accepted_start, accepted_bytes, &accepted_count, profile);
+    profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_validate_seconds,
+      phase_start);
+    if (validation_result < 0) return -1;
+    if (validation_result > 0) continue;
+    phase_start = profile_phase_start_local(profile_reachable_phases);
+    if (mark_accepted_bytes(accepted_bytes[item.section_index], candidate, section->size) != 0) return -1;
+    accepted_start[item.section_index][item.offset] = 1U;
+    {
+      M68kFact fact;
+      memset(&fact, 0, sizeof(fact));
+      fact.kind = M68K_FACT_CODE_ACCEPTED;
+      fact.confidence = item.confidence;
+      fact.section_index = item.section_index;
+      fact.offset = item.offset;
+      fact.reason = item.reason;
+      fact.has_runtime_address = item.has_runtime_address;
+      fact.runtime_address = item.runtime_address;
+      fact.source_section_index = item.source_section_index;
+      fact.source_offset = item.source_offset;
+      fact.size = candidate->byte_count;
+      if (m68k_fact_ir_append(facts, &fact) != 0) return -1;
+    }
+    ++accepted_count;
+    profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_accept_seconds,
+      phase_start);
     if (trace_state_record_runtime_copy(runtime_addresses, facts, profile, item.section_index, section, candidate,
         &item.trace_state) != 0)
       return -1;
