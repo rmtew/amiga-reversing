@@ -1780,6 +1780,15 @@ static int format_amiga_display_register_comment(const AmigaOsHardwareRegisterIn
     snprintf(buf, buf_size, "bitplane modulo %d bytes", (int)modulo);
     return strlen(buf) + 1U < buf_size;
   }
+  if (strcmp(hardware_register->symbol_name, "bltsize") == 0) {
+    uint32_t height = (word >> 6) & 0x3FFU;
+    uint32_t width_words = word & 0x3FU;
+    if (height == 0U) height = 1024U;
+    if (width_words == 0U) width_words = 64U;
+    snprintf(buf, buf_size, "blitter size %u rows x %u words (%u bytes/row)",
+      (unsigned)height, (unsigned)width_words, (unsigned)(width_words * 2U));
+    return strlen(buf) + 1U < buf_size;
+  }
   return 0;
 }
 
@@ -2929,17 +2938,29 @@ static int amiga_bplcon0_symbolic_expr(uint32_t value, char *expr, size_t expr_s
   return expr[0] != '\0';
 }
 
+static int amiga_bltsize_symbolic_expr(uint32_t value, char *expr, size_t expr_size) {
+  uint32_t word = value & 0xFFFFU;
+  uint32_t encoded_height = (word >> 6) & 0x3FFU;
+  uint32_t encoded_width_words = word & 0x3FU;
+  if (expr == NULL || expr_size == 0U || word == 0U) return 0;
+  expr[0] = '\0';
+  snprintf(expr, expr_size, "(%u<<6)|%u", (unsigned)encoded_height, (unsigned)encoded_width_words);
+  return strlen(expr) + 1U < expr_size;
+}
+
 static int amiga_hardware_register_uses_custom_immediate_expr(const AmigaOsHardwareRegisterInfo *hardware_register,
     int use_bit_domain) {
   if (hardware_register == NULL || use_bit_domain) return 0;
-  return strcmp(hardware_register->base_symbol, "_custom") == 0 &&
-    strcmp(hardware_register->symbol_name, "bplcon0") == 0;
+  if (strcmp(hardware_register->base_symbol, "_custom") != 0) return 0;
+  return strcmp(hardware_register->symbol_name, "bplcon0") == 0 ||
+    strcmp(hardware_register->symbol_name, "bltsize") == 0;
 }
 
 int amiga_hardware_register_custom_immediate_expr(const AmigaOsHardwareRegisterInfo *hardware_register,
     uint32_t value, int use_bit_domain, char *expr, size_t expr_size) {
   if (amiga_hardware_register_uses_custom_immediate_expr(hardware_register, use_bit_domain)) {
-    return amiga_bplcon0_symbolic_expr(value, expr, expr_size);
+    if (strcmp(hardware_register->symbol_name, "bplcon0") == 0) return amiga_bplcon0_symbolic_expr(value, expr, expr_size);
+    if (strcmp(hardware_register->symbol_name, "bltsize") == 0) return amiga_bltsize_symbolic_expr(value, expr, expr_size);
   }
   return 0;
 }

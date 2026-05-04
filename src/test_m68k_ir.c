@@ -4737,6 +4737,10 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
     0x33u, 0xFCu, 0x42u, 0x00u, 0x00u, 0xDFu, 0xF1u, 0x00u,
     0x33u, 0xFCu, 0x00u, 0x24u, 0x00u, 0xDFu, 0xF1u, 0x04u,
     0x33u, 0xFCu, 0x00u, 0x20u, 0x00u, 0xDFu, 0xF1u, 0xDCu,
+    0x33u, 0xFCu, 0x1Eu, 0x12u, 0x00u, 0xDFu, 0xF0u, 0x58u,
+    0x31u, 0x7Cu, 0x1Eu, 0x12u, 0x00u, 0x58u,
+    0x33u, 0xFCu, 0x00u, 0x40u, 0x00u, 0xDFu, 0xF0u, 0x58u,
+    0x33u, 0xFCu, 0x00u, 0x01u, 0x00u, 0xDFu, 0xF0u, 0x58u,
     0x31u, 0x7Cu, 0x00u, 0x00u, 0x01u, 0x02u,
     0x31u, 0x7Cu, 0x44u, 0x89u, 0x00u, 0x7Eu,
     0x33u, 0xC0u, 0x00u, 0xDFu, 0xF0u, 0xA6u,
@@ -4800,6 +4804,14 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   M68K_C_ASSERT(strstr(source,
     "\tmove.w #BPLCON2_PF2P2|BPLCON2_PF1P2,_custom+bplcon2.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w #BEAMCON0_PAL,_custom+beamcon0.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w #(120<<6)|18,_custom+bltsize.l\t; blitter size 120 rows x 18 words (36 bytes/row)\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w #(120<<6)|18,bltsize(a0)\t; blitter size 120 rows x 18 words (36 bytes/row)\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w #(1<<6)|0,_custom+bltsize.l\t; blitter size 1 rows x 64 words (128 bytes/row)\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w #(0<<6)|1,_custom+bltsize.l\t; blitter size 1024 rows x 1 words (2 bytes/row)\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "\tmove.w #$0,bplcon1(a0)\t; display scroll pf1=0 pf2=0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w #$4489,dsksync(a0)\t; disk sync word $4489\n") != NULL);

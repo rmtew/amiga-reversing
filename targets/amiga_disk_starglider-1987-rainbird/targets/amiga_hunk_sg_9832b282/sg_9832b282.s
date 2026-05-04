@@ -3531,7 +3531,7 @@ loc_0_00003B6C:
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
 	move.w #$4,bltdmod(a5)
 	move.w d7,bltadat(a5)
-	move.w #$1E12,bltsize(a5)
+	move.w #(120<<6)|18,bltsize(a5)	; blitter size 120 rows x 18 words (36 bytes/row)
 	adda.w #$2000,a0
 loc_0_00003BA6:
 	move.w dmaconr(a5),d0
@@ -3544,7 +3544,7 @@ loc_0_00003BA6:
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
 	move.w #$4,bltdmod(a5)
 	move.w d7,bltadat(a5)
-	move.w #$1E12,bltsize(a5)
+	move.w #(120<<6)|18,bltsize(a5)	; blitter size 120 rows x 18 words (36 bytes/row)
 	adda.w #$2000,a0
 loc_0_00003BE0:
 	move.w dmaconr(a5),d0
@@ -3557,7 +3557,7 @@ loc_0_00003BE0:
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
 	move.w #$4,bltdmod(a5)
 	move.w d7,bltadat(a5)
-	move.w #$1E12,bltsize(a5)
+	move.w #(120<<6)|18,bltsize(a5)	; blitter size 120 rows x 18 words (36 bytes/row)
 	adda.w #$2000,a0
 loc_0_00003C1A:
 	move.w dmaconr(a5),d0
@@ -3570,7 +3570,7 @@ loc_0_00003C1A:
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
 	move.w #$4,bltdmod(a5)
 	move.w d7,bltadat(a5)
-	move.w #$1E12,bltsize(a5)
+	move.w #(120<<6)|18,bltsize(a5)	; blitter size 120 rows x 18 words (36 bytes/row)
 	adda.w #$2000,a0
 	rts
 loc_0_00003C56:
@@ -5832,7 +5832,7 @@ loc_0_00005D58:
 	dc.l loc_0_000061D8
 	dc.l loc_0_00006218
 loc_0_00005D98:
-	dc.l loc_0_00006218	; pointer_table
+	dc.l loc_0_00006218
 	dc.l loc_0_00006198
 	dc.l loc_0_00006118
 	dc.l loc_0_00006098
