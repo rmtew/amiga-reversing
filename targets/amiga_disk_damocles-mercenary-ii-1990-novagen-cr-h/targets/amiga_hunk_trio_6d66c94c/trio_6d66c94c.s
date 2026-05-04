@@ -523,7 +523,7 @@ loc_0_00000730:
 	move.w #$0,_custom+bltdmod.l
 	move.w #$F9F0,_custom+bltcon0.l
 	move.w #$0,_custom+bltcon1.l
-	move.w #$256,_custom+bltsize.l
+	move.w #(9<<6)|22,_custom+bltsize.l	; blitter size 9 rows x 22 words (44 bytes/row)
 	addq.w #1,loc_1_00002F20.l
 	andi.w #7,loc_1_00002F20.l
 	bne.w loc_0_000001BC
@@ -603,35 +603,35 @@ loc_0_0000086C:
 	move.w #$0,_custom+bltdmod.l
 	move.w #$0,_custom+bltcon1.l
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,_custom+bltcon0.l
-	move.w #$2001,_custom+bltsize.l
+	move.w #(128<<6)|1,_custom+bltsize.l	; blitter size 128 rows x 1 words (2 bytes/row)
 	bsr.w loc_0_00000048
 	move.l #loc_1_00000B32,_custom+bltapt.l	; blitter_source pointer $00000B32
 	move.l #loc_1_00000B32,_custom+bltdpt.l	; blitter_destination pointer $00000B32
 	move.w #$84,_custom+bltamod.l
 	move.w #$84,_custom+bltdmod.l
 	move.w #$19F0,_custom+bltcon0.l
-	move.w #$816,_custom+bltsize.l
+	move.w #(32<<6)|22,_custom+bltsize.l	; blitter size 32 rows x 22 words (44 bytes/row)
 	bsr.w loc_0_00000048
 	move.l #loc_1_00000B5E,_custom+bltapt.l	; blitter_source pointer $00000B5E
 	move.l #loc_1_00000B5E,_custom+bltdpt.l	; blitter_destination pointer $00000B5E
 	move.w #$84,_custom+bltamod.l
 	move.w #$84,_custom+bltdmod.l
 	move.w #$29F0,_custom+bltcon0.l
-	move.w #$816,_custom+bltsize.l
+	move.w #(32<<6)|22,_custom+bltsize.l	; blitter size 32 rows x 22 words (44 bytes/row)
 	bsr.w loc_0_00000048
 	move.l #loc_1_00000B8A,_custom+bltapt.l	; blitter_source pointer $00000B8A
 	move.l #loc_1_00000B8A,_custom+bltdpt.l	; blitter_destination pointer $00000B8A
 	move.w #$84,_custom+bltamod.l
 	move.w #$84,_custom+bltdmod.l
 	move.w #$39F0,_custom+bltcon0.l
-	move.w #$816,_custom+bltsize.l
+	move.w #(32<<6)|22,_custom+bltsize.l	; blitter size 32 rows x 22 words (44 bytes/row)
 	bsr.w loc_0_00000048
 	move.l #loc_1_00000BB6,_custom+bltapt.l	; blitter_source pointer $00000BB6
 	move.l #loc_1_00000BB6,_custom+bltdpt.l	; blitter_destination pointer $00000BB6
 	move.w #$84,_custom+bltamod.l
 	move.w #$84,_custom+bltdmod.l
 	move.w #$49F0,_custom+bltcon0.l
-	move.w #$816,_custom+bltsize.l
+	move.w #(32<<6)|22,_custom+bltsize.l	; blitter size 32 rows x 22 words (44 bytes/row)
 	movea.l #loc_1_00000B32,a0
 	movea.l #loc_2_00000000,a1
 loc_0_00000998:
