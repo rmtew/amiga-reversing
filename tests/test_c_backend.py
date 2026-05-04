@@ -3582,6 +3582,11 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "\tdc.l loc_0_0000C2EA\n"
         "loc_0_0000C286:\n"
     ) in source_text
+    assert "\tjsr loc_0_000008F2.w\n" in source_text
+    assert source_text.count("\tjsr loc_0_000041FA.w\n") == 2
+    assert "\tjsr $08F2.w\n" not in source_text
+    assert "\tjsr $41FA.w\n" not in source_text
+    assert "\tmove.b d0,loc_0_000005C9.w\n" in source_text
     assert (
         "loc_0_00007D44:\n"
         "\tdc.l loc_0_00007CA0,loc_0_00007CA6,$00000000,loc_0_00007CD6\t; lookup_table\n"

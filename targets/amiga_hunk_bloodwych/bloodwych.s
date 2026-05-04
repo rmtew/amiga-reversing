@@ -192,7 +192,7 @@ loc_0_000005CE:
 	move.b ciasdr(a0),d0
 	ror.b #1,d0
 	not.b d0
-	move.b d0,$05C9.w
+	move.b d0,loc_0_000005C9.w
 	ori.b #CIACRAF_SPMODE,ciacra(a0)
 	clr.b ciasdr(a0)
 	move.b ciaprb(a0),d1
@@ -203,7 +203,7 @@ loc_0_000005F6:
 	lea.l _ciaa.l,a0
 	move.b ciaicr(a0),d0
 	andi.b #CIACRAF_TODIN|CIACRAF_INMODE|CIACRAF_LOAD|CIACRAF_RUNMODE|CIACRAF_OUTMODE|CIACRAF_PBON|CIACRAF_START,ciacra(a0)
-	move.b d0,$05C8.w
+	move.b d0,loc_0_000005C8.w
 	movem.l (a7)+,d0-d1/a0
 	move.w #INTF_PORTS,_custom+intreq.l
 	rte
@@ -248,26 +248,26 @@ loc_0_0000065D:
 	dc.b $FC,$0A,$18,$28,$43,$29,$20,$4D,$49,$52,$52,$4F,$52,$53,$4F,$46
 	dc.b $54,$20,$31,$39,$38,$39,$FE,$06,$FF
 loc_0_00000746:
-	clr.w $0656.w
+	clr.w loc_0_00000656.w
 	clr.w loc_0_0000EE30.l
 	jsr loc_0_00008DA8.l
 	jsr loc_0_00008DA0.l
-	lea.l $065D.w,a6
-	tst.w $0658.w
+	lea.l loc_0_0000065D.w,a6
+	tst.w loc_0_00000658.w
 	bne.b loc_0_00000768
 	subq.w #3,a6
 loc_0_00000768:
 	lea.l loc_0_0000EE7C.l,a5
 	jsr loc_0_0000D0C6.l
 	jsr loc_0_00008CCA.l
-	tst.w $0658.w
+	tst.w loc_0_00000658.w
 	bne.b loc_0_0000078C
-	move.w #$FFFF,$0658.w
+	move.w #$FFFF,loc_0_00000658.w
 	jsr loc_0_00008878.l
 loc_0_0000078C:
-	clr.b $05C9.w
+	clr.b loc_0_000005C9.w
 loc_0_00000790:
-	move.b $05C9.w,d0
+	move.b loc_0_000005C9.w,d0
 	subi.b #80,d0
 	beq.w loc_0_00000822
 	subq.b #1,d0
@@ -290,7 +290,7 @@ loc_0_000007C0:
 	lea.l loc_0_000044E5.l,a6
 	jsr loc_0_0000D0C6.l
 	jsr loc_0_00008CCA.l
-	clr.b $05C9.w
+	clr.b loc_0_000005C9.w
 	bsr.w loc_0_00004406
 	bcs.w loc_0_00000746
 	bsr.w loc_0_00004422
@@ -298,7 +298,7 @@ loc_0_000007C0:
 	cmpi.b #255,loc_0_0000EB3B.l
 	beq.w loc_0_00000746
 	bsr.w loc_0_00000B68
-	move.w #$1,$0656.w
+	move.w #$1,loc_0_00000656.w
 	rts
 loc_0_00000822:
 	move.w #$FFFF,loc_0_0000EE30.l
@@ -308,7 +308,7 @@ loc_0_0000082C:
 	rts
 loc_0_00000834:
 	move.w #$FFFF,loc_0_0000EE30.l
-	move.w #$FFFF,$0656.w
+	move.w #$FFFF,loc_0_00000656.w
 	move.l #$E0503,$0018(a5)
 	move.l $0018(a5),$0026(a5)
 	clr.w $0006(a5)
@@ -1364,7 +1364,7 @@ loc_0_00001498:
 	beq.b loc_0_0000150C
 	bsr.w loc_0_00001842
 	bpl.w loc_0_00001BCE
-	tst.w $13C4.w
+	tst.w loc_0_000013C4.w
 	beq.w loc_0_0000175A
 	lea.l loc_0_00058828.l,a6
 	btst.b #0,(a5)
@@ -1404,7 +1404,7 @@ loc_0_00001526:
 loc_0_0000153A:
 	bsr.w loc_0_00001842
 	bpl.w loc_0_00001BCE
-	move.w $13C2.w,d1
+	move.w loc_0_000013C2.w,d1
 	cmp.b loc_0_0000EEB1.l,d1
 	beq.w loc_0_00001BD4
 	cmp.b loc_0_0000EF13.l,d1
@@ -1876,14 +1876,14 @@ loc_0_00001AB6:
 	movem.l (a7)+,d0-d1/a5
 	bra.w loc_0_00001984
 loc_0_00001AF0:
-	move.w $13C2.w,d1
+	move.w loc_0_000013C2.w,d1
 	cmp.b loc_0_0000EEB1.l,d1
 	beq.w loc_0_00001BD4
 	cmp.b loc_0_0000EF13.l,d1
 	beq.w loc_0_00001BD4
 	cmpi.w #0,d4
 	beq.b loc_0_00001B74
-	tst.w $13C4.w
+	tst.w loc_0_000013C4.w
 	beq.w loc_0_00001BB8
 	movem.w d0/d2,-(a7)
 	bsr.w loc_0_000098A4
@@ -2445,7 +2445,7 @@ loc_0_000020F8:
 loc_0_0000210A:
 	asl.w #3,d2
 	addi.w #100,d2
-	move.w $20F4.w,d0
+	move.w loc_0_000020F4.w,d0
 	add.w d0,d0
 	sub.w d0,d2
 	bpl.b loc_0_0000211C
@@ -2469,7 +2469,7 @@ loc_0_0000212E:
 	movem.l (a7)+,a4-a5
 	tst.w d3
 	bmi.b loc_0_0000216A
-	move.w #$FF80,$20F4.w
+	move.w #$FF80,loc_0_000020F4.w
 	move.w d3,-(a7)
 	bsr.b loc_0_0000216A
 	move.w (a7)+,d3
@@ -2477,7 +2477,7 @@ loc_0_0000212E:
 	addq.w #2,d3
 	asl.w #3,d3
 	neg.w d3
-	move.w d3,$20F4.w
+	move.w d3,loc_0_000020F4.w
 	lsr.w #2,d7
 	addq.w #1,d7
 loc_0_0000215E:
@@ -2654,7 +2654,7 @@ loc_0_00002316:
 	cmpi.w #16,d0
 	bcs.w loc_0_00002414
 loc_0_00002324:
-	tst.w $230A.w
+	tst.w loc_0_0000230A.w
 	beq.b loc_0_00002374
 	moveq.l #0,d1
 	move.b $000D(a1),d1
@@ -3187,7 +3187,7 @@ loc_0_0000292A:
 	move.w d7,-(a7)
 	bsr.w loc_0_00006660
 	moveq.l #22,d4
-	move.w #$FFFF,$13C4.w
+	move.w #$FFFF,loc_0_000013C4.w
 	bsr.w loc_0_000013C6
 	move.w (a7)+,d7
 	bra.b loc_0_0000296C
@@ -3454,7 +3454,7 @@ loc_0_00002BD8:
 	subi.w #10,d1
 	neg.w d1
 	add.w d1,d1
-	move.w d1,$20F4.w
+	move.w d1,loc_0_000020F4.w
 	bsr.w loc_0_00001F50
 	btst.b #5,$3(a1,d4.w)
 	beq.b loc_0_00002C3C
@@ -3895,7 +3895,7 @@ loc_0_00003242:
 	move.b d0,$0009(a4)
 	andi.w #127,d0
 	jsr loc_0_0000CEC4.l
-	lea.l $31D9.w,a6
+	lea.l loc_0_000031D9.w,a6
 	moveq.l #6,d2
 	ror.w #8,d1
 	cmpi.b #48,d1
@@ -3931,7 +3931,7 @@ loc_0_000032A8:
 	bcc.b loc_0_000032C0
 	lsr.w #1,d0
 loc_0_000032C0:
-	lea.l $3212.w,a0
+	lea.l loc_0_00003212.w,a0
 	move.b $0(a0,d0.w),$000C(a1)
 	move.b $0006(a1),d0
 	andi.w #127,d0
@@ -4606,7 +4606,7 @@ loc_0_00003EC0:
 	move.w $0058(a5),d0
 	cmp.w $0058(a1),d0
 	bne.w loc_0_00003F58
-	lea.l $3DC0.w,a6
+	lea.l loc_0_00003DC0.w,a6
 	move.b #$CA,(a6)+
 	move.b #$C4,(a6)+
 	move.l $001C(a1),d1
@@ -4643,7 +4643,7 @@ loc_0_00003F36:
 	addi.w #198,d3
 	move.b d3,(a6)+
 	move.b #$FF,(a6)
-	lea.l $3DC0.w,a6
+	lea.l loc_0_00003DC0.w,a6
 	move.l a5,-(a7)
 	movea.l a1,a5
 	jsr loc_0_0000D86A.l
@@ -4966,10 +4966,10 @@ loc_0_0000432A:
 	lea.l loc_0_000044C4.l,a6
 	jsr loc_0_0000D08E.l
 loc_0_00004376:
-	clr.b $05C9.w
+	clr.b loc_0_000005C9.w
 	bsr.w loc_0_00008CCA
 loc_0_0000437E:
-	move.b $05C9.w,d0
+	move.b loc_0_000005C9.w,d0
 	cmpi.b #80,d0
 	beq.b loc_0_000043A4
 	cmpi.b #81,d0
@@ -4978,7 +4978,7 @@ loc_0_0000437E:
 	bne.b loc_0_0000437E
 loc_0_00004396:
 	move.l (a7)+,loc_0_0000EE36.l
-	clr.b $05C9.w
+	clr.b loc_0_000005C9.w
 	bra.w loc_0_000042BA
 loc_0_000043A4:
 	moveq.l #0,d0
@@ -5014,10 +5014,10 @@ loc_0_000043E2:
 	lea.l loc_0_0000EEDE.l,a5
 loc_0_000043FC:
 	bsr.b loc_0_000043CC
-	clr.b $05C9.w
+	clr.b loc_0_000005C9.w
 	bsr.w loc_0_00008CCA
 loc_0_00004406:
-	move.b $05C9.w,d0
+	move.b loc_0_000005C9.w,d0
 	cmpi.b #68,d0
 	beq.b loc_0_00004422
 	cmpi.b #67,d0
@@ -5060,11 +5060,11 @@ loc_0_00004480:
 	beq.b loc_0_00004436
 	move.l loc_0_00008D36.l,loc_0_00008520.l
 	jsr loc_0_00008702.l
-	move.w $447E.w,d7
+	move.w loc_0_0000447E.w,d7
 	jsr loc_0_0000888E.l
 	lea.l loc_0_0000EB2A.l,a0
 	moveq.l #0,d0
-	move.w $447E.w,d0
+	move.w loc_0_0000447E.w,d0
 	moveq.l #0,d1
 	moveq.l #8,d7
 	jsr loc_0_00008524.l
@@ -5253,7 +5253,7 @@ loc_0_00004792:
 	move.b $18(a5,d0.w),d0
 	bsr.w loc_0_00006660
 	move.l $000C(a4),d7
-	lea.l $463E.w,a6
+	lea.l loc_0_0000463E.w,a6
 	move.w (a7),d1
 	asl.w #3,d1
 	adda.w d1,a6
@@ -5286,7 +5286,7 @@ loc_0_00004814:
 loc_0_0000481A:
 	bsr.w loc_0_000049AE
 	move.w (a7)+,d1
-	lea.l $463A.w,a6
+	lea.l loc_0_0000463A.w,a6
 	move.b $0(a6,d1.w),loc_0_0000D92B.l
 	movea.l loc_0_00008D36.l,a0
 	adda.w $000A(a5),a0
@@ -5353,7 +5353,7 @@ loc_0_000048AA:
 	jsr loc_0_0000DA68.l
 	move.b $0044(a5),d0
 	bsr.w loc_0_00006900
-	lea.l $463A.w,a6
+	lea.l loc_0_0000463A.w,a6
 	move.b $0(a6,d0.w),loc_0_0000D92B.l
 	addi.w #100,d0
 	movea.l loc_0_00008D36.l,a0
@@ -5547,7 +5547,7 @@ loc_0_00004BCE:
 	bsr.w loc_0_00000904
 	moveq.l #0,d2
 	move.b (a4),d2
-	lea.l $4B1A.w,a6
+	lea.l loc_0_00004B1A.w,a6
 	move.b $0(a6,d2.w),$001C(a4)
 	move.b $0002(a4),d1
 	lsr.b #4,d1
@@ -5687,7 +5687,7 @@ loc_0_00004D8C:
 	beq.b loc_0_00004DA8
 	clr.b $0014(a5)
 	move.b #$FF,$0053(a5)
-	lea.l $41ED.w,a6
+	lea.l loc_0_000041ED.w,a6
 	jmp loc_0_0000D86A.l
 loc_0_00004DA8:
 	rts
@@ -6213,12 +6213,12 @@ loc_0_0000533C:
 	bsr.w loc_0_00007A44
 	bcc.b loc_0_00005352
 	move.w (a7)+,d5
-	move.b #$FF,$505A.w
+	move.b #$FF,loc_0_0000505A.w
 	cmp.w d0,d2
 	bne.b loc_0_00005358
 	rts
 loc_0_00005352:
-	clr.b $505A.w
+	clr.b loc_0_0000505A.w
 	move.w (a7)+,d5
 loc_0_00005358:
 	bset.b #7,$1(a6,d2.w)
@@ -6243,7 +6243,7 @@ loc_0_0000537C:
 	swap.w d5
 	move.b loc_0_0000EE3E.l,$000C(a4)
 	move.b d4,$000B(a4)
-	move.b $505B.w,$0003(a4)
+	move.b loc_0_0000505B.w,$0003(a4)
 	clr.w $0008(a4)
 	clr.b $0005(a4)
 	move.b #$3,$000A(a4)
@@ -6277,7 +6277,7 @@ loc_0_000053FE:
 	beq.b loc_0_00005412
 	bset.b #7,$0006(a4)
 loc_0_00005412:
-	tst.b $505A.w
+	tst.b loc_0_0000505A.w
 	bne.w loc_0_00001D58
 	rts
 loc_0_0000541C:
@@ -6689,7 +6689,7 @@ loc_0_00005864:
 loc_0_0000587C:
 	moveq.l #34,d0
 	moveq.l #38,d2
-	lea.l $5864.w,a6
+	lea.l loc_0_00005864.w,a6
 	move.w #$FFFF,$000C(a5)
 	bra.w loc_0_00004DB4
 loc_0_0000588E:
@@ -7396,7 +7396,7 @@ loc_0_000061DA:
 	bsr.b loc_0_000061B6
 	bsr.w loc_0_0000641C
 	clr.w app_0000(a6)
-	clr.w $230A.w
+	clr.w loc_0_0000230A.w
 	bsr.w loc_0_000055B8
 	add.w app_0002(a6),d0
 	move.w d0,d2
@@ -7501,7 +7501,7 @@ loc_0_000062D6:
 	bsr.b loc_0_0000631E
 	bsr.w loc_0_00006382
 	bsr.w loc_0_00000924
-	tst.w $628A.w
+	tst.w loc_0_0000628A.w
 	bne.b loc_0_000062EA
 	move.b (a4),d0
 loc_0_000062EA:
@@ -7588,11 +7588,11 @@ loc_0_000063A2:
 	move.b (a0)+,d5
 	move.b (a0)+,d6
 	move.b (a0)+,d7
-	tst.w $628A.w
+	tst.w loc_0_0000628A.w
 	bne.b loc_0_000063C6
 	cmpi.b #8,d0
 	bcs.b loc_0_000063C6
-	move.w #$FFFF,$628A.w
+	move.w #$FFFF,loc_0_0000628A.w
 loc_0_000063C6:
 	cmpi.b #28,d0
 	bne.b loc_0_000063DA
@@ -7658,7 +7658,7 @@ loc_0_0000648C:
 	add.w d1,d0
 	move.b app_000B(a6),d1
 	add.w d1,d0
-	tst.w $628A.w
+	tst.w loc_0_0000628A.w
 	bne.b loc_0_000064A4
 	add.w d0,d0
 loc_0_000064A4:
@@ -8017,7 +8017,7 @@ loc_0_000068D0:
 loc_0_000068DC:
 	moveq.l #0,d0
 	move.b $0013(a4),d0
-	lea.l $685E.w,a0
+	lea.l loc_0_0000685E.w,a0
 	move.b $0(a0,d0.w),d0
 	addq.w #1,d0
 	add.w d0,d0
@@ -8489,7 +8489,7 @@ loc_0_00006E3E:
 	movem.l (a7)+,d0/a6
 	move.l a5,-(a7)
 	movea.l a5,a1
-	clr.w $20F4.w
+	clr.w loc_0_000020F4.w
 	bsr.w loc_0_0000248C
 	movea.l (a7)+,a5
 	rts
@@ -8527,7 +8527,7 @@ loc_0_00006EE8:
 	bsr.w loc_0_000084BA
 	move.w d1,d0
 	bsr.w loc_0_000084DA
-	lea.l $5794.w,a0
+	lea.l loc_0_00005794.w,a0
 	add.b $8(a0,d6.w),d7
 	add.b $8(a0,d6.w),d7
 	swap.w d7
@@ -8591,12 +8591,12 @@ loc_0_00006F9A:
 loc_0_00006FA8:
 	dc.b $FF,$FF
 loc_0_00006FAA:
-	move.w #$FFFF,$6FA8.w
+	move.w #$FFFF,loc_0_00006FA8.w
 	move.b $0(a6,d0.w),d1
 	andi.w #3,d1
 	subq.w #2,d1
 	bne.b loc_0_00006FC0
-	clr.w $6FA8.w
+	clr.w loc_0_00006FA8.w
 loc_0_00006FC0:
 	move.b $0(a6,d0.w),d1
 	andi.w #248,d1
@@ -8614,13 +8614,13 @@ loc_0_00006FC0:
 	cmpi.b #42,d2
 	bne.b loc_0_00006FF8
 loc_0_00006FF2:
-	move.w #$5,$6FA8.w
+	move.w #$5,loc_0_00006FA8.w
 loc_0_00006FF8:
 	lea.l loc_0_00007016.l,a0
 	adda.w loc_0_00007018(pc,d2.w),a0
 	movem.l d0/d7/a6,-(a7)
 	jsr (a0)
-	move.w $6FA8.w,d0
+	move.w loc_0_00006FA8.w,d0
 	bmi.b loc_0_00007012
 	bsr.w loc_0_000088BE
 loc_0_00007012:
@@ -8826,7 +8826,7 @@ loc_0_0000771A:
 loc_0_00007746:
 	bsr.w loc_0_00005D2E
 	bclr.b #0,$0(a6,d0.w)
-	move.w #$1,$6FA8.w
+	move.w #$1,loc_0_00006FA8.w
 	rts
 	dc.b $61,$00,$E5,$D4,$12,$36,$00,$00,$E4,$19,$1D,$81,$00,$00,$4E,$75
 	dc.b $61,$00,$E5,$A8,$61,$00,$E5,$C0,$1D,$BC,$00,$01,$00,$00,$0A,$36
@@ -8932,7 +8932,7 @@ loc_0_000078FA:
 	bsr.w loc_0_00001DBC
 	moveq.l #5,d0
 	bsr.w loc_0_000088BE
-	move.w #$FFFF,$6FA8.w
+	move.w #$FFFF,loc_0_00006FA8.w
 	moveq.l #3,d0
 loc_0_00007910:
 	tst.b $18(a5,d0.w)
@@ -9224,7 +9224,7 @@ loc_0_00007C87:
 loc_0_00007C93:
 	dc.b $5F,$5F,$5F,$5F,$58,$FF,$59,$FF,$5A,$FF,$5B,$FF,$00
 loc_0_00007CA0:
-	lea.l $7C0E.w,a6
+	lea.l loc_0_00007C0E.w,a6
 	rts
 loc_0_00007CA6:
 	bsr.b loc_0_00007D06
@@ -9265,7 +9265,7 @@ loc_0_00007D00:
 	dbf.w d1,loc_0_00007CDC
 	rts
 loc_0_00007D06:
-	lea.l $7C20.w,a6
+	lea.l loc_0_00007C20.w,a6
 	move.b #$FC,d0
 	moveq.l #8,d2
 loc_0_00007D10:
@@ -9275,22 +9275,22 @@ loc_0_00007D10:
 	move.l #$FFFFFFFF,(a6)
 	rts
 loc_0_00007D20:
-	lea.l $7C2C.w,a6
+	lea.l loc_0_00007C2C.w,a6
 	rts
 loc_0_00007D26:
-	lea.l $7C3A.w,a6
+	lea.l loc_0_00007C3A.w,a6
 	rts
 loc_0_00007D2C:
-	lea.l $7C4D.w,a6
+	lea.l loc_0_00007C4D.w,a6
 	rts
 loc_0_00007D32:
-	lea.l $7C6F.w,a6
+	lea.l loc_0_00007C6F.w,a6
 	rts
 loc_0_00007D38:
-	lea.l $7C87.w,a6
+	lea.l loc_0_00007C87.w,a6
 	rts
 loc_0_00007D3E:
-	lea.l $7C93.w,a6
+	lea.l loc_0_00007C93.w,a6
 	rts
 loc_0_00007D44:
 	dc.l loc_0_00007CA0,loc_0_00007CA6,$00000000,loc_0_00007CD6	; lookup_table
@@ -9872,7 +9872,7 @@ loc_0_0000847E:
 loc_0_00008482:
 	move.w $0020(a5),d0
 loc_0_00008486:
-	lea.l $5794.w,a0
+	lea.l loc_0_00005794.w,a0
 	add.b $8(a0,d0.w),d7
 	swap.w d7
 	add.b $0(a0,d0.w),d7
@@ -14230,7 +14230,7 @@ loc_0_0000C168:
 	bsr.w loc_0_0000C01E
 	move.w #$5,loc_0_0000EEC6.l
 	move.b #$1,loc_0_00008C1F.l
-	jsr $08F2.w
+	jsr loc_0_000008F2.w
 loc_0_0000C190:
 	move.w loc_0_0000EEF2.l,d1
 	lea.l loc_0_0000EE7C.l,a5
@@ -15456,7 +15456,7 @@ loc_0_0000D064:
 	movem.l a4-a5,-(a7)
 	movea.l a0,a5
 	move.b $0001(a4),d0
-	jsr $41FA.w
+	jsr loc_0_000041FA.w
 	tst.b $0005(a4)
 	bpl.b loc_0_0000D07C
 	move.b d0,$0000(a4)
@@ -15530,7 +15530,7 @@ loc_0_0000D12A:
 	bsr.b loc_0_0000D138
 	tst.l d0
 	beq.b loc_0_0000D128
-	lea.l $0C50.w,a0
+	lea.l loc_0_00000C50.w,a0
 	bra.w loc_0_00008DAE
 loc_0_0000D138:
 	movem.l a4-a6,-(a7)
@@ -15774,7 +15774,7 @@ loc_0_0000D846:
 	movem.l a4-a5,-(a7)
 	movea.l a0,a5
 	move.b $0001(a4),d0
-	jsr $41FA.w
+	jsr loc_0_000041FA.w
 	tst.b $0005(a4)
 	bpl.b loc_0_0000D85E
 	move.b d0,$0000(a4)

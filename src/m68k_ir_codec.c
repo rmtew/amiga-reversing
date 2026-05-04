@@ -508,10 +508,8 @@ static int append_symbolic_ea_text(char *out_text, size_t out_text_size, size_t 
     return append_format(out_text, out_text_size, inout_used, "#%s", name);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 4)
     return append_format(out_text, out_text_size, inout_used, "#%s", name);
-  if (operand->value.ea_mode == 7 && operand->value.ea_reg == 0) {
-    if (operand->symbol_ref.name_is_generated != 0U || operand->symbol_ref.has_section != 0) return -1;
+  if (operand->value.ea_mode == 7 && operand->value.ea_reg == 0)
     return append_format(out_text, out_text_size, inout_used, "%s.w", name);
-  }
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 1)
     return append_format(out_text, out_text_size, inout_used, "%s.l", name);
   if (operand->value.ea_mode == 5)

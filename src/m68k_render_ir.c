@@ -2357,6 +2357,12 @@ int operand_absolute_offset_local(const M68kOperandIR *operand, uint32_t *out_of
   return 0;
 }
 
+static int candidate_operand_is_absolute_word_local(const M68kDecodeCandidate *candidate, size_t operand_index) {
+  return candidate != NULL && operand_index < candidate->operand_count &&
+    candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_EA &&
+    candidate->operands[operand_index].ea_mode == 7U && candidate->operands[operand_index].ea_reg == 0U;
+}
+
 int reglist_contains_address_register_local(const M68kOperandIR *operand, uint8_t reg_index) {
   uint32_t mask;
   if (operand == NULL || operand->kind != M68K_ASM_OPERAND_REGLIST || reg_index >= 8U) return 0;
@@ -5601,15 +5607,55 @@ static int attach_symbolic_targets(const M68kRenderLookup *lookup, size_t source
   if (lookup == NULL || candidate == NULL || instruction == NULL) return -1;
   for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
     const M68kDecodeTarget *target = &candidate->targets[target_index];
+    M68kOperandIR *operand;
+    uint8_t symbol_kind;
     if (target->has_section == 0U || target->has_operand == 0U ||
         target->operand_index >= instruction->operand_count) {
       continue;
     }
     if (!lookup_has_renderable_label(lookup, target->section_index, target->offset)) continue;
-    if (symbol_ref_kind_for_operand(&instruction->operands[target->operand_index]) == M68K_IR_SYMBOL_REF_ABS)
+    operand = &instruction->operands[target->operand_index];
+    symbol_kind = symbol_ref_kind_for_operand(operand);
+    if (symbol_kind == M68K_IR_SYMBOL_REF_ABS &&
+        ((target->kind != M68K_DECODE_TARGET_CALL && target->kind != M68K_DECODE_TARGET_JUMP) ||
+         !candidate_operand_is_absolute_word_local(candidate, target->operand_index))) {
       continue;
+    }
     attach_operand_label_symbol(lookup, instruction, target->operand_index, source_section_index,
       candidate->offset, target->section_index, target->offset);
+  }
+  return 0;
+}
+
+static int attach_absolute_word_control_symbols(const M68kRenderLookup *lookup, size_t source_section_index,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  uint32_t section_size;
+  size_t operand_index;
+  if (lookup == NULL || lookup->object == NULL || candidate == NULL || instruction == NULL ||
+      source_section_index >= lookup->object->section_count) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL ||
+      (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_JUMP)) {
+    return 0;
+  }
+  section_size = lookup->object->sections[source_section_index].size;
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint32_t absolute = 0U;
+    uint32_t target_offset = 0U;
+    if (operand->symbol_ref.has_name != 0U || !candidate_operand_is_absolute_word_local(candidate, operand_index) ||
+        !operand_absolute_offset_local(operand, &absolute)) {
+      continue;
+    }
+    if (!lookup_exact_pointer_value_label_offset(lookup, source_section_index, section_size, absolute,
+        &target_offset)) {
+      continue;
+    }
+    attach_operand_label_symbol(lookup, instruction, operand_index, source_section_index, candidate->offset,
+      source_section_index, target_offset);
   }
   return 0;
 }
@@ -6138,6 +6184,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
       !attach_proven_instruction_relocations(preview, lookup, section->section_index, candidate, &instruction)) {
     return 0;
   }
+  (void)attach_absolute_word_control_symbols(lookup, section->section_index, candidate, &instruction);
   (void)attach_platform_pc_relative_synthetic_symbols(lookup, section->section_index, candidate, &instruction);
   if (!attach_runtime_address_ref_symbols(preview, lookup, section->section_index, candidate, &instruction)) return 0;
   platform_vector = attach_amiga_lvo_symbol_if_known(platform_state, &instruction);
