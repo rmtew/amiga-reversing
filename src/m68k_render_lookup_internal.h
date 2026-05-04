@@ -451,6 +451,11 @@ struct M68kRenderLookup {
   M68kAnalysisStructuredDataItem *auto_structured_data_items;
   size_t auto_structured_data_item_count;
   size_t auto_structured_data_item_capacity;
+  const M68kAnalysisStructuredDataItem ***structured_data_item_start_indices;
+  const M68kAnalysisStructuredDataItem ***structured_data_item_cover_indices;
+  uint32_t *structured_data_item_index_extents;
+  const M68kRenderStringSpan ***string_span_indices;
+  uint32_t *string_span_index_extents;
   size_t **instruction_comment_indices;
   uint32_t *instruction_comment_extents;
 };
