@@ -57,7 +57,9 @@ typedef struct M68kFactsV2TraceState {
   M68kFactsV2TraceValue d[8];
   M68kFactsV2TraceValue a[8];
   uint8_t d_low16_known[8];
+  uint8_t d_low16_has_origin[8];
   uint16_t d_low16[8];
+  uint32_t d_low16_origin_offset[8];
   M68kFactsV2AbsoluteSlot absolute_slots[M68K_FACTS_V2_TRACE_ABSOLUTE_SLOT_LIMIT];
   M68kFactsV2StackSlot stack_slots[M68K_FACTS_V2_TRACE_STACK_SLOT_LIMIT];
   uint8_t reglist_copy_valid;
@@ -321,6 +323,7 @@ static void trace_state_clear_data_register(M68kFactsV2TraceState *state, uint8_
   if (state == NULL || reg >= 8U) return;
   trace_value_set_unknown(&state->d[reg]);
   state->d_low16_known[reg] = 0U;
+  state->d_low16_has_origin[reg] = 0U;
 }
 
 static void trace_state_set_data_register_constant(M68kFactsV2TraceState *state, uint8_t reg,
@@ -328,6 +331,7 @@ static void trace_state_set_data_register_constant(M68kFactsV2TraceState *state,
   if (state == NULL || reg >= 8U) return;
   trace_value_set_constant(&state->d[reg], value);
   state->d_low16_known[reg] = 1U;
+  state->d_low16_has_origin[reg] = 0U;
   state->d_low16[reg] = (uint16_t)(value & 0xFFFFU);
 }
 
@@ -336,15 +340,19 @@ static void trace_state_set_data_register_constant_with_origin(M68kFactsV2TraceS
   if (state == NULL || reg >= 8U) return;
   trace_value_set_constant_with_origin(&state->d[reg], value, section_index, offset, operand_index);
   state->d_low16_known[reg] = 1U;
+  state->d_low16_has_origin[reg] = 1U;
   state->d_low16[reg] = (uint16_t)(value & 0xFFFFU);
+  state->d_low16_origin_offset[reg] = offset;
 }
 
 static void trace_state_set_data_register_low16(M68kFactsV2TraceState *state, uint8_t reg,
-    uint16_t value) {
+    uint16_t value, uint32_t origin_offset) {
   if (state == NULL || reg >= 8U) return;
   trace_value_set_unknown(&state->d[reg]);
   state->d_low16_known[reg] = 1U;
+  state->d_low16_has_origin[reg] = 1U;
   state->d_low16[reg] = value;
+  state->d_low16_origin_offset[reg] = origin_offset;
 }
 
 static int trace_state_matches_queued(const M68kFactsV2TraceState *queued,
@@ -1877,15 +1885,20 @@ static void trace_state_apply_move_value_copy(size_t section_index, const M68kDe
     after->d[reg] = value;
     if (value.kind == M68K_FACTS_V2_TRACE_CONSTANT) {
       after->d_low16_known[reg] = 1U;
+      after->d_low16_has_origin[reg] = 1U;
       after->d_low16[reg] = (uint16_t)(value.value & 0xFFFFU);
+      after->d_low16_origin_offset[reg] = candidate->offset;
     } else {
       uint8_t source_reg = 0U;
       if (operand_is_data_register_direct(&candidate->operands[metadata->source_operand_index], &source_reg) &&
           before->d_low16_known[source_reg]) {
         after->d_low16_known[reg] = 1U;
+        after->d_low16_has_origin[reg] = 1U;
         after->d_low16[reg] = before->d_low16[source_reg];
+        after->d_low16_origin_offset[reg] = candidate->offset;
       } else {
         after->d_low16_known[reg] = 0U;
+        after->d_low16_has_origin[reg] = 0U;
       }
     }
   } else if (operand_is_address_register_direct(&candidate->operands[metadata->dest_operand_index], &reg) &&
@@ -1895,10 +1908,20 @@ static void trace_state_apply_move_value_copy(size_t section_index, const M68kDe
 }
 
 static uint32_t trace_copy_size_from_state(const M68kFactsV2TraceState *state, uint32_t width,
+    uint32_t candidate_offset,
     uint32_t fallback_size) {
   uint32_t count;
   uint32_t size;
   if (state == NULL || width == 0U) return fallback_size;
+  if (state->d_low16_known[0] && state->d_low16_has_origin[0] &&
+      state->d_low16_origin_offset[0] < candidate_offset &&
+      candidate_offset - state->d_low16_origin_offset[0] <= 8U) {
+    count = (uint32_t)state->d_low16[0] + 1U;
+    if (count != 0U && count <= UINT32_MAX / width) {
+      size = count * width;
+      if (size != 0U && size < fallback_size) return size;
+    }
+  }
   if (state->d[0].kind != M68K_FACTS_V2_TRACE_CONSTANT || state->d[0].value == UINT32_MAX) return fallback_size;
   count = state->d[0].value + 1U;
   if (count != 0U && count <= UINT32_MAX / width) {
@@ -1940,7 +1963,7 @@ static int trace_state_record_runtime_copy(M68kRuntimeAddressSpace *space, M68kF
     return 0;
   }
   fallback_size = section->size - state->a[source_reg].value;
-  copy_size = trace_copy_size_from_state(state, width, fallback_size);
+  copy_size = trace_copy_size_from_state(state, width, candidate->offset, fallback_size);
   if (copy_size > fallback_size) copy_size = fallback_size;
   return runtime_address_space_add(space, section_index, state->a[source_reg].value,
     state->a[dest_reg].value, copy_size, M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY,
@@ -2493,7 +2516,7 @@ static void trace_state_apply_known_effects(size_t section_index, const M68kDeco
       candidate->operand_count == 2U &&
       operand_immediate_value(candidate->operand_kinds[0], &candidate->operands[0], &value) &&
       operand_is_data_register_direct(&candidate->operands[1], &reg)) {
-    trace_state_set_data_register_low16(state, reg, (uint16_t)(value & 0xFFFFU));
+    trace_state_set_data_register_low16(state, reg, (uint16_t)(value & 0xFFFFU), candidate->offset);
   }
   if (candidate_lea_pc_relative_data_target(candidate, section_index,
       section != NULL && section->size <= UINT32_MAX ? (uint32_t)section->size : 0U, &reg, &value)) {

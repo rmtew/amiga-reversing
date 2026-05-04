@@ -2963,8 +2963,9 @@ static int test_facts_v2_detects_runtime_copy_jump_target(void) {
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "runtime_") == NULL);
-  M68K_C_ASSERT(strstr(source, "\tjmp loc_0_00000100.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "    ORG $100\nloc_0_00000100:\n\tnop\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp abs_0_00000100.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $100\nabs_0_00000100:\n\tnop\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000104") == NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000020:\n\tdc.b $4E,$71,$4E,$75") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
@@ -2974,8 +2975,8 @@ static int test_facts_v2_detects_runtime_copy_jump_target(void) {
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "runtime_") == NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000100:\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tjmp loc_0_00000100.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000100:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp abs_0_00000100.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjmp $00000100.l\n") == NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
   for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
@@ -3473,8 +3474,8 @@ static int test_facts_v2_runtime_mapped_long_dispatch_promotes_table_targets(voi
   M68K_C_ASSERT(strstr(source, "\tjmp (a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmoveq.l #1,d0\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmoveq.l #2,d0\n\trts\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_00000114\t; pointer_table\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_00000118\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l abs_0_00000114\t; pointer_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l abs_0_00000118\n") != NULL);
   for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
       ++code_start_index) {
     const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
@@ -3694,7 +3695,7 @@ static int test_facts_v2_runtime_mapped_word_dispatch_renders_lookup_table(void)
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjmp (a1)\n") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tdc.w loc_0_00000116-loc_0_00000116,loc_0_0000011A-loc_0_00000116\t; lookup_table\n") != NULL);
+    "\tdc.w abs_0_00000116-abs_0_00000116,abs_0_0000011A-abs_0_00000116\t; lookup_table\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b $00,$00,$00,$04") == NULL);
   M68K_C_ASSERT(strstr(source, "\tmoveq.l #1,d0\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmoveq.l #2,d0\n\trts\n") != NULL);
@@ -3721,6 +3722,7 @@ static int test_facts_v2_runtime_mapped_word_dispatch_renders_lookup_table(void)
 static int test_facts_v2_amiga_execbase_load_does_not_use_runtime_alias(void) {
   M68kObject object;
   M68kSection section;
+  M68kFixup fixup;
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
@@ -3741,6 +3743,15 @@ static int test_facts_v2_amiga_execbase_load_does_not_use_runtime_alias(void) {
   section.data = bytes;
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
+  memset(&fixup, 0, sizeof(fixup));
+  fixup.section_index = 0U;
+  fixup.offset = 8U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.target_section_index = 0U;
+  fixup.has_target_section = 1;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
   policy.runtime_range_count = 1U;
   policy.runtime_ranges[0].has_section_index = 1U;
@@ -3757,9 +3768,11 @@ static int test_facts_v2_amiga_execbase_load_does_not_use_runtime_alias(void) {
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l $00000004.l,a6\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l loc_0_00000004.l,a6\n") == NULL);
-  M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000004.l,a1\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tjmp loc_0_00000004.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000018:\n    ORG $4\nloc_0_00000004:\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000018.l,a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l abs_0_00000004.l,a0\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l abs_0_00000004.l,a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp abs_0_00000004.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000018:\n    ORG $4\nabs_0_00000004:\n\trts\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -3858,12 +3871,12 @@ static int test_facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage(void
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000020(pc),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjmp $00000080.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000020:\n    ORG $100\nloc_0_00000100:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000020:\n    ORG $100\nabs_0_00000100:\n") != NULL);
   M68K_C_ASSERT(strstr(source, "    ORG $20\n") == NULL);
   M68K_C_ASSERT(strstr(source, "    ORG $80\n") == NULL);
   M68K_C_ASSERT(strstr(source, "src_0_") == NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000020 EQU") == NULL);
-  M68K_C_ASSERT(strstr(source, "    ORG $100\nloc_0_00000100:\n\tnop\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $100\nabs_0_00000100:\n\tnop\n\trts\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(1U, profile.asm_source_numeric_runtime_refs);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_numeric_runtime_ref_section);
@@ -3877,7 +3890,7 @@ static int test_facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage(void
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000020(pc),a0\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000020:\n    ORG $100\nloc_0_00000100:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000020:\n    ORG $100\nabs_0_00000100:\n") != NULL);
   M68K_C_ASSERT(strstr(source, "    ORG $20\n") == NULL);
   M68K_C_ASSERT(strstr(source, "    ORG $80\n") == NULL);
   M68K_C_ASSERT(strstr(source, "src_0_") == NULL);
@@ -4112,9 +4125,9 @@ static int test_facts_v2_maps_copied_runtime_vector_target_to_source_offset(void
   M68K_C_ASSERT(strstr(source, "runtime_") == NULL);
   M68K_C_ASSERT(strstr(source, "m68k_vector_level_2_interrupt_autovector\tEQU\t$68") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tmove.l #loc_0_00000110,m68k_vector_level_2_interrupt_autovector.w\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "    ORG $100\nloc_0_00000100:\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000110:\n\tnop\n\trte\n") != NULL);
+    "\tmove.l #abs_0_00000110,m68k_vector_level_2_interrupt_autovector.w\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $100\nabs_0_00000100:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000110:\n\tnop\n\trte\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000030:\n\tnop\n\trte\n") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
@@ -4157,9 +4170,9 @@ static int test_facts_v2_maps_copied_runtime_absolute_call_to_source_offset(void
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "runtime_") == NULL);
-  M68K_C_ASSERT(strstr(source, "\tjsr loc_0_00000110.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "    ORG $100\nloc_0_00000100:\n\tjsr loc_0_00000110.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000110:\n\tnop\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr abs_0_00000110.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $100\nabs_0_00000100:\n\tjsr abs_0_00000110.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000110:\n\tnop\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr $00000110.l\n") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
@@ -4204,9 +4217,9 @@ static int test_facts_v2_policy_runtime_entrypoint_maps_absolute_load(void) {
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "runtime_") == NULL);
-  M68K_C_ASSERT(strstr(source, "\tjsr loc_0_00000410.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "    ORG $400\nloc_0_00000400:\n\tjsr loc_0_00000410.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000410:\n\tnop\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr abs_0_00000410.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $400\nabs_0_00000400:\n\tjsr abs_0_00000410.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000410:\n\tnop\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr $00000410.l\n") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
@@ -4313,8 +4326,8 @@ static int test_facts_v2_pointer_table_storage_value_stays_numeric_under_runtime
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.l $00000010\t; pointer_table\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_00000080") == NULL);
-  M68K_C_ASSERT(strstr(source, "    ORG $80\nloc_0_00000080:\n\tnop\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l abs_0_00000080") == NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $80\nabs_0_00000080:\n\tnop\n\trts\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -4465,13 +4478,13 @@ static int test_facts_v2_policy_runtime_range_uses_first_class_labels(void) {
     &source, &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "runtime_") == NULL);
-  M68K_C_ASSERT(strstr(source, "\tjsr loc_0_00000410.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "    ORG $400\nloc_0_00000400:\n\tjsr loc_0_00000410.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000410:\n\tnop\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr abs_0_00000410.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $400\nabs_0_00000400:\n\tjsr abs_0_00000410.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000410:\n\tnop\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr $00000410.l\n") == NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000010+$") == NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000010+1024") == NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000410 EQU") == NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000410 EQU") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
   m68k_facts_v2_free_text(source);
@@ -4521,11 +4534,12 @@ static int test_facts_v2_runtime_alias_refs_emit_first_class_labels(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tjsr loc_0_00000410.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tjsr loc_0_00000810.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "    ORG $810\nloc_0_00000810:\n    ORG $410\nloc_0_00000410:\n\tnop\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr abs_0_00000410.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr abs_0_00000810.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000410:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $810\nabs_0_00000810:\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000010+$") == NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000810 EQU") == NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000810 EQU") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
@@ -4568,7 +4582,7 @@ static int test_facts_v2_policy_runtime_entrypoint_starts_inside_view(void) {
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "    ORG $400\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000410:\n\tnop\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000410:\n\tnop\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000010:\n\tnop\n\trts\n") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);

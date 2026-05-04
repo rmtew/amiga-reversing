@@ -595,7 +595,7 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
     source_text = combined["source_text"]
     assert "\tlea.l loc_0_00000020(pc),a0\n" in source_text
     assert "\tjmp $00000080.l\n" in source_text
-    assert "loc_0_00000020:\n    ORG $100\nloc_0_00000100:\n" in source_text
+    assert "loc_0_00000020:\n    ORG $100\nabs_0_00000100:\n" in source_text
     assert "    ORG $20\n" not in source_text
     assert "    ORG $80\n" not in source_text
     assert "src_0_" not in source_text
@@ -632,7 +632,7 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
     ref_index = next(index for index, text in enumerate(row_texts) if "lea.l loc_0_00000020(pc),a0" in text)
     storage_label_index = row_texts.index("loc_0_00000020:")
     org_index = row_texts.index("    ORG $100")
-    runtime_label_index = row_texts.index("loc_0_00000100:")
+    runtime_label_index = row_texts.index("abs_0_00000100:")
     assert ref_index < storage_label_index < org_index < runtime_label_index
     storage_row = rows[storage_label_index]
     runtime_row = rows[runtime_label_index]
@@ -687,7 +687,7 @@ def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
     assert facts_v2["asm_source_refused"] is False
     assert facts_v2["runtime_address_ranges"] >= 1
     assert "\tdc.b $73,$6B,$69,$70\n" in source_text
-    assert "    ORG $100\nloc_0_00000100:\n\trts\n" in source_text
+    assert "    ORG $100\nabs_0_00000100:\n\trts\n" in source_text
     assert "    ORG $18\n\tdc.b $74,$61,$69,$6C\n" in source_text
     assert any(
         ref.get("reason_name") == "control_target" and ref.get("runtime_address") == 0x100
@@ -2517,8 +2517,8 @@ def test_real_dll_raw_runtime_absolute_entry_uses_execution_view(tmp_path: Path)
         project_root=PROJECT_ROOT,
     )
 
-    assert "    ORG $400\nloc_0_00000400:\n\trts\n" in source
-    assert "loc_0_00000410:\n\trts\n" in source
+    assert "    ORG $400\nabs_0_00000400:\n\trts\n" in source
+    assert "abs_0_00000410:\n\trts\n" in source
     assert "loc_0_00000010:" not in source
 
 
@@ -2564,7 +2564,7 @@ def test_real_dll_runtime_org_is_visible_in_listing_rows(tmp_path: Path) -> None
     )["listing"]
     rows = rows_from_c_listing_json(payload)
     org_index = next(index for index, row in enumerate(rows) if row.text.strip() == "ORG $400")
-    label_index = next(index for index, row in enumerate(rows) if row.label == "loc_0_00000400")
+    label_index = next(index for index, row in enumerate(rows) if row.label == "abs_0_00000400")
 
     assert rows[org_index].kind == "directive"
     assert rows[org_index].opcode_or_directive == "ORG"
@@ -2956,15 +2956,15 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
         "boot_entry:"
         in source_text
     )
-    assert "\tlea.l loc_0_00070026(pc),a1\n" in source_text
+    assert "\tlea.l abs_0_00070026(pc),a1\n" in source_text
     assert "\tjsr _LVOFindResident(a6)\n" in source_text
     assert "\tmovea.l RT_INIT(a0),a0\n" in source_text
     assert 'INCLUDE "exec/resident.i"' in source_text
-    assert "loc_0_00070026:" in source_text
+    assert "abs_0_00070026:" in source_text
     assert '\tdc.b "dos.library",$00\n' in source_text
     assert "facts_v2 data bytes" not in source_text
-    assert any(row.kind == "instruction" and "loc_0_00070026(pc)" in row.text for row in rows)
-    assert any(row.kind == "label" and row.addr == 0x26 and row.text.strip() == "loc_0_00070026:" for row in rows)
+    assert any(row.kind == "instruction" and "abs_0_00070026(pc)" in row.text for row in rows)
+    assert any(row.kind == "label" and row.addr == 0x26 and row.text.strip() == "abs_0_00070026:" for row in rows)
     assert any(row.addr == 0 and row.data_class == "string" for row in rows)
 
 
@@ -3593,7 +3593,7 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
     copied_stage_rows = [
         row for row in rows if row.section_index == 0 and row.start_offset == 0x5C
     ]
-    assert any(row.kind == "label" and "loc_0_00000400:" in row.text for row in copied_stage_rows)
+    assert any(row.kind == "label" and "abs_0_00000400:" in row.text for row in copied_stage_rows)
     assert any(row.kind == "instruction" for row in copied_stage_rows)
     assert not any(row.kind == "data" for row in copied_stage_rows)
     assert any(
@@ -3731,8 +3731,10 @@ def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
     assert "\tmovea.l loc_0_00000004.l,a6\n" not in source_text
     assert source_text.count("\tmovea.l $00000004.l,a6\n") == 2
-    assert "\tlea.l loc_0_00000004.l,a1\n" in source_text
-    assert "\tjmp loc_0_00000004.l\n" in source_text
+    assert "\tlea.l loc_0_00000148.l,a0\n" in source_text
+    assert "\tlea.l abs_0_00000004.l,a0\n" not in source_text
+    assert "\tlea.l abs_0_00000004.l,a1\n" in source_text
+    assert "\tjmp abs_0_00000004.l\n" in source_text
     assert "\tclr.l spr1+sd_dataa(a6)\n" in source_text
     assert "\tclr.l app_014C(a6)\n" not in source_text
     assert "app_014C" not in source_text.split("    SECTION section_0,code\n", 1)[0]
@@ -3876,10 +3878,10 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert source_text.index('    INCLUDE "graphics/display.i"\n') < section_pos
     assert source_text.index("INTF_CLRALL\tEQU\t$7FFF\n") < section_pos
     assert "\nloc_0_00000000:\nINTF_CLRALL\tEQU" not in source_text
-    assert "loc_0_0000005C:\n    ORG $400\nloc_0_00000400:" in source_text
+    assert "loc_0_0000005C:\n    ORG $400\nabs_0_00000400:" in source_text
     assert "ORG $5C" not in source_text
     assert "loc_0_0000005C\tEQU" not in source_text
-    assert "\tmove.l #loc_0_00008E10,_custom+cop1lc.l\t; copper_list pointer\n" in source_text
+    assert "\tmove.l #abs_0_00008E10,_custom+cop1lc.l\t; copper_list pointer\n" in source_text
     assert (
         "\tmove.l a0,_custom+aud0+ac_ptr.l\t"
         "; source loc_0_00054452 + dynamic offset from loc_0_00008938 | sound_sample pointer\n"
@@ -3889,11 +3891,11 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "; audio sample length derived from -$0002(a0) header word\n"
     ) in source_text
     assert "\tmove.w #$40,_custom+aud0+ac_vol.l\t; audio volume 64\n" in source_text
-    assert "\tadda.w loc_0_00008938(pc,d0.w),a0\n" in source_text
-    assert "\tmove.w loc_0_0000893A(pc,d0.w),d0\n" in source_text
+    assert "\tadda.w abs_0_00008938(pc,d0.w),a0\n" in source_text
+    assert "\tmove.w abs_0_0000893A(pc,d0.w),d0\n" in source_text
     assert "\tmove.l a1,_custom+dskpt.l\t; disk_buffer pointer $00067D00\n" in source_text
     assert "disk_buffer_00067D00\tEQU\t$67D00\n" in source_text
-    assert "\tmove.l #disk_buffer_00067D00,loc_0_00008D36.l\n" in source_text
+    assert "\tmove.l #disk_buffer_00067D00,abs_0_00008D36.l\n" in source_text
     assert "bitmap_00060000\tEQU\t$60000\n" in source_text
     assert "\tmove.l #bitmap_00060000,d0\n" in source_text
     assert (
@@ -3912,63 +3914,63 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "; period from loc_0_0000893A transformed | audio period\n"
     ) in source_text
     assert "\tmove.w (a0),_custom+aud0+ac_dat.l\t; audio data word\n" in source_text
-    assert "loc_0_0000C484:\n\tdc.l loc_0_0000C938\t; pointer_table\n" in source_text
-    assert "\tdc.l loc_0_0000C852\n\tdc.l loc_0_0000CB28\n" in source_text
-    assert "loc_0_00008938:\n\tdc.w $0000\t; lookup_table\n" in source_text
+    assert "abs_0_0000C484:\n\tdc.l abs_0_0000C938\t; pointer_table\n" in source_text
+    assert "\tdc.l abs_0_0000C852\n\tdc.l abs_0_0000CB28\n" in source_text
+    assert "abs_0_00008938:\n\tdc.w $0000\t; lookup_table\n" in source_text
     assert (
-        "loc_0_0000893A:\n"
+        "abs_0_0000893A:\n"
         "\tdc.w $0028,$0000,$009B,$0084,$005D,$0646,$0028,$1ECE\t; lookup_table\n"
     ) in source_text
-    assert "\tdc.w $0049,$3684,$0049\t; lookup_table\nloc_0_00008950:\n" in source_text
+    assert "\tdc.w $0049,$3684,$0049\t; lookup_table\nabs_0_00008950:\n" in source_text
     assert (
-        "loc_0_000015AE:\n"
-        "\tdc.w loc_0_0000166A-loc_0_0000166A,loc_0_000015D6-loc_0_0000166A,"
-        "loc_0_0000175A-loc_0_0000166A,loc_0_000015B8-loc_0_0000166A\t; lookup_table\n"
-        "\tdc.w loc_0_00001664-loc_0_0000166A\t; lookup_table\n"
+        "abs_0_000015AE:\n"
+        "\tdc.w abs_0_0000166A-abs_0_0000166A,abs_0_000015D6-abs_0_0000166A,"
+        "abs_0_0000175A-abs_0_0000166A,abs_0_000015B8-abs_0_0000166A\t; lookup_table\n"
+        "\tdc.w abs_0_00001664-abs_0_0000166A\t; lookup_table\n"
     ) in source_text
     assert (
-        "loc_0_0000A73A:\n"
-        "\tdc.w loc_0_0000A50A-loc_0_0000A73A,loc_0_00009EFA-loc_0_0000A73A,"
-        "loc_0_0000A34C-loc_0_0000A73A,loc_0_0000A330-loc_0_0000A73A\t; lookup_table\n"
-        "\tdc.w loc_0_0000A53C-loc_0_0000A73A\t; lookup_table\n"
+        "abs_0_0000A73A:\n"
+        "\tdc.w abs_0_0000A50A-abs_0_0000A73A,abs_0_00009EFA-abs_0_0000A73A,"
+        "abs_0_0000A34C-abs_0_0000A73A,abs_0_0000A330-abs_0_0000A73A\t; lookup_table\n"
+        "\tdc.w abs_0_0000A53C-abs_0_0000A73A\t; lookup_table\n"
     ) in source_text
     assert (
-        "loc_0_00002E4A:\n"
-        "\tdc.w loc_0_00002E5C-loc_0_00002E5C,loc_0_00002E82-loc_0_00002E5C,"
-        "loc_0_00002EE4-loc_0_00002E5C,loc_0_00002E5C-loc_0_00002E5C\t; lookup_table\n"
+        "abs_0_00002E4A:\n"
+        "\tdc.w abs_0_00002E5C-abs_0_00002E5C,abs_0_00002E82-abs_0_00002E5C,"
+        "abs_0_00002EE4-abs_0_00002E5C,abs_0_00002E5C-abs_0_00002E5C\t; lookup_table\n"
     ) in source_text
     assert (
-        "loc_0_000033A0:\n"
-        "\tdc.w loc_0_000033B2-loc_0_000033B2,loc_0_000033EE-loc_0_000033B2,"
-        "loc_0_00004150-loc_0_000033B2,loc_0_000040E4-loc_0_000033B2\t; lookup_table\n"
-        "\tdc.w loc_0_00003F60-loc_0_000033B2,loc_0_00004144-loc_0_000033B2,"
-        "loc_0_00003F5C-loc_0_000033B2,loc_0_00003E9C-loc_0_000033B2\t; lookup_table\n"
-        "\tdc.w loc_0_000034CC-loc_0_000033B2\t; lookup_table\n"
+        "abs_0_000033A0:\n"
+        "\tdc.w abs_0_000033B2-abs_0_000033B2,abs_0_000033EE-abs_0_000033B2,"
+        "abs_0_00004150-abs_0_000033B2,abs_0_000040E4-abs_0_000033B2\t; lookup_table\n"
+        "\tdc.w abs_0_00003F60-abs_0_000033B2,abs_0_00004144-abs_0_000033B2,"
+        "abs_0_00003F5C-abs_0_000033B2,abs_0_00003E9C-abs_0_000033B2\t; lookup_table\n"
+        "\tdc.w abs_0_000034CC-abs_0_000033B2\t; lookup_table\n"
     ) in source_text
     assert (
         "\tlea.l $0000C262.l,a0\n"
         "\tmovea.l $0(a0,d0.w),a0\n"
         "\tjmp (a0)\n"
-        "\tdc.l loc_0_0000C53C\t; pointer_table\n"
-        "\tdc.l loc_0_0000C436\n"
-        "\tdc.l loc_0_0000C490\n"
-        "\tdc.l loc_0_0000C516\n"
-        "\tdc.l loc_0_0000C286\n"
-        "\tdc.l loc_0_0000C2EA\n"
-        "\tdc.l loc_0_0000C1F4\n"
-        "\tdc.l loc_0_0000C2EA\n"
-        "loc_0_0000C286:\n"
+        "\tdc.l abs_0_0000C53C\t; pointer_table\n"
+        "\tdc.l abs_0_0000C436\n"
+        "\tdc.l abs_0_0000C490\n"
+        "\tdc.l abs_0_0000C516\n"
+        "\tdc.l abs_0_0000C286\n"
+        "\tdc.l abs_0_0000C2EA\n"
+        "\tdc.l abs_0_0000C1F4\n"
+        "\tdc.l abs_0_0000C2EA\n"
+        "abs_0_0000C286:\n"
     ) in source_text
-    assert "\tjsr loc_0_000008F2.w\n" in source_text
-    assert source_text.count("\tjsr loc_0_000041FA.w\n") == 2
+    assert "\tjsr abs_0_000008F2.w\n" in source_text
+    assert source_text.count("\tjsr abs_0_000041FA.w\n") == 2
     assert "\tjsr $08F2.w\n" not in source_text
     assert "\tjsr $41FA.w\n" not in source_text
-    assert "\tmove.b d0,loc_0_000005C9.w\n" in source_text
+    assert "\tmove.b d0,abs_0_000005C9.w\n" in source_text
     assert (
-        "loc_0_00007D44:\n"
-        "\tdc.l loc_0_00007CA0,loc_0_00007CA6,$00000000,loc_0_00007CD6\t; lookup_table\n"
-        "\tdc.l loc_0_00007D20,loc_0_00007D26,loc_0_00007D2C,loc_0_00007D32\t; lookup_table\n"
-        "\tdc.l loc_0_00007D38,loc_0_00007D3E\t; lookup_table\n"
+        "abs_0_00007D44:\n"
+        "\tdc.l abs_0_00007CA0,abs_0_00007CA6,$00000000,abs_0_00007CD6\t; lookup_table\n"
+        "\tdc.l abs_0_00007D20,abs_0_00007D26,abs_0_00007D2C,abs_0_00007D32\t; lookup_table\n"
+        "\tdc.l abs_0_00007D38,abs_0_00007D3E\t; lookup_table\n"
     ) in source_text
     display_summary = (
         "    ; display layout 4 bitmap planes $00070000..$00076000 step $2000 | "
@@ -3980,7 +3982,7 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "bitmap_00070000_hi\tEQU\tbitmap_00070000/$10000\n" in source_text
     assert "bitmap_00070000_lo\tEQU\tbitmap_00070000-(bitmap_00070000_hi*$10000)\n" in source_text
     assert (
-        "loc_0_00008E10:\n"
+        "abs_0_00008E10:\n"
         f"{display_summary}"
         "\tdc.w bplpt,bitmap_00070000_hi\t; bitmap pointer $00070000\n"
     ) in source_text
@@ -3991,13 +3993,13 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "\tdc.w bplpt+$0A,bitmap_00074000_lo\n" in source_text
     assert "\tdc.w bplpt+$0C,bitmap_00076000_hi\t; bitmap pointer $00076000\n" in source_text
     assert "\tdc.w bplpt+$0E,bitmap_00076000_lo\n" in source_text
-    assert "loc_0_00008E30:\n\tdc.w sprpt,$0000\t; sprite pointer 0 disabled\n" in source_text
+    assert "abs_0_00008E30:\n\tdc.w sprpt,$0000\t; sprite pointer 0 disabled\n" in source_text
     assert "\tdc.w sprpt+$1E,$0000\n" in source_text
     assert "\tdc.w COPPER_WAIT|$9800,$FF00\t; copper wait v=$98 h=$00 mask $FF00\n" in source_text
     assert "\tdc.w COPPER_WAIT|$FF00,$FF00\t; copper wait v=$FF h=$00 mask $FF00\n" in source_text
     assert "\tdc.w intreq,INTF_SETCLR|INTF_COPER\n" in source_text
     assert "m68k_vector_level_3_interrupt_autovector\tEQU\t$6C" in source_text
-    assert "\tmove.l #loc_0_00008C20,m68k_vector_level_3_interrupt_autovector.w\n" in source_text
+    assert "\tmove.l #abs_0_00008C20,m68k_vector_level_3_interrupt_autovector.w\n" in source_text
     assert "$00DFF" not in source_text
     assert source_profile["facts_v2"]["asm_source_refused"] is False
     assert assembler_profile["rebuilt_bytes"] == len(rebuilt)
