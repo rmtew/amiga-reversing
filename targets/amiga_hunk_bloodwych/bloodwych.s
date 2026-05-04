@@ -8635,21 +8635,21 @@ loc_0_00008E10:
 	dc.w bplpt+$0C,$0007	; bitmap pointer $00076000
 	dc.w bplpt+$0E,$6000
 loc_0_00008E30:
-	dc.w sprpt,$0000
+	dc.w sprpt,$0000	; sprite pointer 0 disabled
 	dc.w sprpt+$02,$0000
-	dc.w sprpt+$04,$0000
+	dc.w sprpt+$04,$0000	; sprite pointer 1 disabled
 	dc.w sprpt+$06,$0000
-	dc.w sprpt+$08,$0000
+	dc.w sprpt+$08,$0000	; sprite pointer 2 disabled
 	dc.w sprpt+$0A,$0000
-	dc.w sprpt+$0C,$0000
+	dc.w sprpt+$0C,$0000	; sprite pointer 3 disabled
 	dc.w sprpt+$0E,$0000
-	dc.w sprpt+$10,$0000
+	dc.w sprpt+$10,$0000	; sprite pointer 4 disabled
 	dc.w sprpt+$12,$0000
-	dc.w sprpt+$14,$0000
+	dc.w sprpt+$14,$0000	; sprite pointer 5 disabled
 	dc.w sprpt+$16,$0000
-	dc.w sprpt+$18,$0000
+	dc.w sprpt+$18,$0000	; sprite pointer 6 disabled
 	dc.w sprpt+$1A,$0000
-	dc.w sprpt+$1C,$0000
+	dc.w sprpt+$1C,$0000	; sprite pointer 7 disabled
 	dc.w sprpt+$1E,$0000
 	dc.w COPPER_WAIT|$9800,$FF00
 	dc.w intreq,INTF_SETCLR|INTF_COPER

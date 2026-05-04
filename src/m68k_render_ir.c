@@ -1342,6 +1342,7 @@ static int format_copper_runtime_pointer_comment(const uint8_t *data, uint32_t o
     uint32_t size, uint16_t first, uint16_t second, char *buf, size_t buf_size) {
   const AmigaOsHardwareRegisterInfo *hardware_register;
   uint32_t register_offset = (uint32_t)(first & 0x01FEU);
+  uint32_t pointer_index;
   uint16_t next_first;
   uint16_t next_second;
   uint32_t pointer_address;
@@ -1356,10 +1357,15 @@ static int format_copper_runtime_pointer_comment(const uint8_t *data, uint32_t o
   next_first = m68k_read_u16be(data + offset + cursor + 4U);
   next_second = m68k_read_u16be(data + offset + cursor + 6U);
   if ((next_first & 1U) != 0U || (uint32_t)(next_first & 0x01FEU) != register_offset + 2U) return 0;
+  pointer_index = (register_offset - hardware_register->offset) / 4U;
   pointer_address = ((uint32_t)second << 16) | next_second;
-  if (pointer_address == 0U) return 0;
-  snprintf(buf, buf_size, "%s pointer $%08X", hardware_register->runtime_target_role,
-    (unsigned)pointer_address);
+  if (pointer_address == 0U) {
+    snprintf(buf, buf_size, "%s pointer %u disabled", hardware_register->runtime_target_role,
+      (unsigned)pointer_index);
+  } else {
+    snprintf(buf, buf_size, "%s pointer $%08X", hardware_register->runtime_target_role,
+      (unsigned)pointer_address);
+  }
   return strlen(buf) + 1U < buf_size;
 }
 

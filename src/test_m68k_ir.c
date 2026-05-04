@@ -8089,7 +8089,7 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   char *source = NULL;
-  uint8_t bytes[52] = {
+  uint8_t bytes[60] = {
     0x00u, 0x8Eu, 0x2Cu, 0x81u,
     0x00u, 0x90u, 0x2Cu, 0xC1u,
     0x00u, 0x92u, 0x00u, 0x38u,
@@ -8099,6 +8099,8 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
     0x00u, 0xE2u, 0x56u, 0x78u,
     0x01u, 0x08u, 0x00u, 0x00u,
     0x01u, 0x0Au, 0x00u, 0x28u,
+    0x01u, 0x20u, 0x00u, 0x00u,
+    0x01u, 0x22u, 0x00u, 0x00u,
     0x01u, 0x3Eu, 0x00u, 0x00u,
     0x00u, 0x9Cu, 0x80u, 0x10u,
     0x2Cu, 0x07u, 0xFFu, 0xFEu,
@@ -8155,6 +8157,7 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
   M68K_C_ASSERT(strstr(source, "\tdc.w bplpt+$02,$5678\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w bpl1mod,$0000\t; bitplane modulo 0 bytes\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w bpl2mod,$0028\t; bitplane modulo 40 bytes\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w sprpt,$0000\t; sprite pointer 0 disabled\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w sprpt+$1E,$0000\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w intreq,INTF_SETCLR|INTF_COPER\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w COPPER_WAIT|$2C06,$FFFE\n") != NULL);

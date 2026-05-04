@@ -3470,7 +3470,7 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "\tdc.w bplpt+$04,$0007\t; bitmap pointer $00072000\n" in source_text
     assert "\tdc.w bplpt+$08,$0007\t; bitmap pointer $00074000\n" in source_text
     assert "\tdc.w bplpt+$0C,$0007\t; bitmap pointer $00076000\n" in source_text
-    assert "loc_0_00008E30:\n\tdc.w sprpt,$0000\n" in source_text
+    assert "loc_0_00008E30:\n\tdc.w sprpt,$0000\t; sprite pointer 0 disabled\n" in source_text
     assert "\tdc.w sprpt+$1E,$0000\n" in source_text
     assert "\tdc.w COPPER_WAIT|$9800,$FF00\n" in source_text
     assert "\tdc.w intreq,INTF_SETCLR|INTF_COPER\n" in source_text
