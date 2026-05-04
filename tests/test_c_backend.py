@@ -2492,8 +2492,8 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
         copper_rows[0x0C].text.strip()
         == "dc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\t; display 4 bitplanes lores color"
     )
-    assert copper_rows[0x10].text.strip() == "dc.w bplpt,$1234\t; bitmap pointer $12345678"
-    assert copper_rows[0x14].text.strip() == "dc.w bplpt+$02,$5678"
+    assert copper_rows[0x10].text.strip() == "dc.w bplpt,bitmap_12345678_hi\t; bitmap pointer $12345678"
+    assert copper_rows[0x14].text.strip() == "dc.w bplpt+$02,bitmap_12345678_lo"
     assert copper_rows[0x18].text.strip() == "dc.w sprpt+$1E,$0000"
     assert copper_rows[0x1C].text.strip() == "dc.w intreq,INTF_SETCLR|INTF_COPER"
     assert (
@@ -3472,14 +3472,21 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "fetch $38..$D0 row 40 bytes/plane mod 0/0 span $1F40/plane\n"
     )
     assert display_summary in source_text
+    assert "bitmap_00070000\tEQU\t$70000\n" in source_text
+    assert "bitmap_00070000_hi\tEQU\tbitmap_00070000/$10000\n" in source_text
+    assert "bitmap_00070000_lo\tEQU\tbitmap_00070000-(bitmap_00070000_hi*$10000)\n" in source_text
     assert (
         "loc_0_00008E10:\n"
         f"{display_summary}"
-        "\tdc.w bplpt,$0007\t; bitmap pointer $00070000\n"
+        "\tdc.w bplpt,bitmap_00070000_hi\t; bitmap pointer $00070000\n"
     ) in source_text
-    assert "\tdc.w bplpt+$04,$0007\t; bitmap pointer $00072000\n" in source_text
-    assert "\tdc.w bplpt+$08,$0007\t; bitmap pointer $00074000\n" in source_text
-    assert "\tdc.w bplpt+$0C,$0007\t; bitmap pointer $00076000\n" in source_text
+    assert "\tdc.w bplpt+$02,bitmap_00070000_lo\n" in source_text
+    assert "\tdc.w bplpt+$04,bitmap_00072000_hi\t; bitmap pointer $00072000\n" in source_text
+    assert "\tdc.w bplpt+$06,bitmap_00072000_lo\n" in source_text
+    assert "\tdc.w bplpt+$08,bitmap_00074000_hi\t; bitmap pointer $00074000\n" in source_text
+    assert "\tdc.w bplpt+$0A,bitmap_00074000_lo\n" in source_text
+    assert "\tdc.w bplpt+$0C,bitmap_00076000_hi\t; bitmap pointer $00076000\n" in source_text
+    assert "\tdc.w bplpt+$0E,bitmap_00076000_lo\n" in source_text
     assert "loc_0_00008E30:\n\tdc.w sprpt,$0000\t; sprite pointer 0 disabled\n" in source_text
     assert "\tdc.w sprpt+$1E,$0000\n" in source_text
     assert "\tdc.w COPPER_WAIT|$9800,$FF00\t; copper wait v=$98 h=$00 mask $FF00\n" in source_text

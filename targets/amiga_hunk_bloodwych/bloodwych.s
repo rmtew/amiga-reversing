@@ -44,6 +44,18 @@ DMAF_CLRALL	EQU	$7FFF
     INCLUDE "hardware/intbits.i"
     INCLUDE "hardware/adkbits.i"
 _ciab	EQU	$BFD000
+bitmap_00070000	EQU	$70000
+bitmap_00070000_hi	EQU	bitmap_00070000/$10000
+bitmap_00070000_lo	EQU	bitmap_00070000-(bitmap_00070000_hi*$10000)
+bitmap_00072000	EQU	$72000
+bitmap_00072000_hi	EQU	bitmap_00072000/$10000
+bitmap_00072000_lo	EQU	bitmap_00072000-(bitmap_00072000_hi*$10000)
+bitmap_00074000	EQU	$74000
+bitmap_00074000_hi	EQU	bitmap_00074000/$10000
+bitmap_00074000_lo	EQU	bitmap_00074000-(bitmap_00074000_hi*$10000)
+bitmap_00076000	EQU	$76000
+bitmap_00076000_hi	EQU	bitmap_00076000/$10000
+bitmap_00076000_lo	EQU	bitmap_00076000-(bitmap_00076000_hi*$10000)
     INCLUDE "graphics/copper.i"
 m68k_vector_illegal_instruction	EQU	$10
 
@@ -10060,14 +10072,14 @@ loc_0_00008DD0:
 	dc.w $0000,$0E00,$0E83,$0EEE,$0000,$0000,$0000,$0000	; palette
 loc_0_00008E10:
     ; display layout 4 bitmap planes $00070000..$00076000 step $2000 | display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 rows 200 fetch $38..$D0 row 40 bytes/plane mod 0/0 span $1F40/plane
-	dc.w bplpt,$0007	; bitmap pointer $00070000
-	dc.w bplpt+$02,$0000
-	dc.w bplpt+$04,$0007	; bitmap pointer $00072000
-	dc.w bplpt+$06,$2000
-	dc.w bplpt+$08,$0007	; bitmap pointer $00074000
-	dc.w bplpt+$0A,$4000
-	dc.w bplpt+$0C,$0007	; bitmap pointer $00076000
-	dc.w bplpt+$0E,$6000
+	dc.w bplpt,bitmap_00070000_hi	; bitmap pointer $00070000
+	dc.w bplpt+$02,bitmap_00070000_lo
+	dc.w bplpt+$04,bitmap_00072000_hi	; bitmap pointer $00072000
+	dc.w bplpt+$06,bitmap_00072000_lo
+	dc.w bplpt+$08,bitmap_00074000_hi	; bitmap pointer $00074000
+	dc.w bplpt+$0A,bitmap_00074000_lo
+	dc.w bplpt+$0C,bitmap_00076000_hi	; bitmap pointer $00076000
+	dc.w bplpt+$0E,bitmap_00076000_lo
 loc_0_00008E30:
 	dc.w sprpt,$0000	; sprite pointer 0 disabled
 	dc.w sprpt+$02,$0000

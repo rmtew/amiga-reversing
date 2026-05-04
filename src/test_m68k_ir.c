@@ -8380,10 +8380,14 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
     "\tdc.w ddfstop,$00D0\t; display fetch stop $D0\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "\tdc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\t; display 4 bitplanes lores color\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "bitmap_12345678\tEQU\t$12345678\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "bitmap_12345678_hi\tEQU\tbitmap_12345678/$10000\n") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "copper_patch:\n\tdc.w bplpt,$1234\t; bitmap pointer $12345678\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.w bplpt,$1234\t; bitmap pointer $12345678\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.w bplpt+$02,$5678\n") != NULL);
+    "bitmap_12345678_lo\tEQU\tbitmap_12345678-(bitmap_12345678_hi*$10000)\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "copper_patch:\n\tdc.w bplpt,bitmap_12345678_hi\t; bitmap pointer $12345678\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w bplpt,bitmap_12345678_hi\t; bitmap pointer $12345678\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w bplpt+$02,bitmap_12345678_lo\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w bpl1mod,$0000\t; bitplane modulo 0 bytes\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w bpl2mod,$0028\t; bitplane modulo 40 bytes\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w sprpt,$0000\t; sprite pointer 0 disabled\n") != NULL);
@@ -8573,13 +8577,15 @@ static int test_facts_v2_copper_bitmap_pointers_render_display_layout_comment(vo
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "bitmap_00010000\tEQU\t$10000\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "bitmap_00012000\tEQU\t$12000\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "loc_0_0000000C:\n"
     "    ; display layout 2 bitmap planes $00010000..$00012000 step $2000\n"
-    "\tdc.w bplpt,$0001\t; bitmap pointer $00010000\n"
-    "\tdc.w bplpt+$02,$0000\n"
-    "\tdc.w bplpt+$04,$0001\t; bitmap pointer $00012000\n"
-    "\tdc.w bplpt+$06,$2000\n") != NULL);
+    "\tdc.w bplpt,bitmap_00010000_hi\t; bitmap pointer $00010000\n"
+    "\tdc.w bplpt+$02,bitmap_00010000_lo\n"
+    "\tdc.w bplpt+$04,bitmap_00012000_hi\t; bitmap pointer $00012000\n"
+    "\tdc.w bplpt+$06,bitmap_00012000_lo\n") != NULL);
   for (index = 0U; index < source_analysis.sections[0].runtime_address_ref_count; ++index) {
     const M68kRuntimeAddressRefIR *ref = &source_analysis.sections[0].runtime_address_refs[index];
     if (ref->data_class == NULL || strcmp(ref->data_class, "bitmap") != 0) continue;

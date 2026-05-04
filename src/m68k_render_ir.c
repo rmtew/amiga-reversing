@@ -371,6 +371,34 @@ static int render_asm_declare_symbol_hex_once(M68kRenderIRPreview *preview, cons
   return 1;
 }
 
+static int render_asm_declare_symbol_expr_once(M68kRenderIRPreview *preview, const char *symbol_name,
+    const char *expr) {
+  uint16_t index;
+  char line[192];
+  if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0' || expr == NULL || expr[0] == '\0')
+    return 1;
+  if (!asm_symbol_name_is_safe_local(symbol_name)) {
+    ++preview->asm_source_instruction_render_failures;
+    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+    return 0;
+  }
+  for (index = 0U; index < preview->asm_source_declaration_count; ++index) {
+    if (strcmp(preview->asm_source_declarations[index], symbol_name) == 0) return 1;
+  }
+  if (preview->asm_source_declaration_count >= M68K_RENDER_ASM_DECLARATION_LIMIT) {
+    ++preview->asm_source_instruction_render_failures;
+    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+    return 0;
+  }
+  snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
+    sizeof(preview->asm_source_declarations[preview->asm_source_declaration_count]), "%s", symbol_name);
+  ++preview->asm_source_declaration_count;
+  snprintf(line, sizeof(line), "%s\tEQU\t%s\n", symbol_name, expr);
+  hash_asm_text(preview, line);
+  ++preview->asm_source_lines;
+  return 1;
+}
+
 static int render_asm_define_amiga_lvo_symbol_once(M68kRenderIRPreview *preview, uint16_t symbol_id) {
   const char *symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, symbol_id);
   const AmigaOsLibraryVectorInfo *vector = amiga_os_find_library_vector_by_symbol_id(symbol_id);
@@ -1403,6 +1431,95 @@ static const AmigaOsHardwareRegisterInfo *copper_runtime_pointer_register(uint16
   return hardware_register;
 }
 
+static void format_runtime_address_symbol_name(const char *role, uint32_t address, const char *suffix,
+    char *buf, size_t buf_size) {
+  char prefix[40];
+  size_t used = 0U;
+  size_t index;
+  if (buf == NULL || buf_size == 0U) return;
+  if (role == NULL || role[0] == '\0') role = "memory";
+  for (index = 0U; role[index] != '\0' && used + 1U < sizeof(prefix); ++index) {
+    char ch = role[index];
+    if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+        (ch >= '0' && ch <= '9') || ch == '_') {
+      prefix[used++] = ch;
+    } else if (used != 0U && prefix[used - 1U] != '_') {
+      prefix[used++] = '_';
+    }
+  }
+  if (used == 0U) snprintf(prefix, sizeof(prefix), "memory");
+  else prefix[used] = '\0';
+  snprintf(buf, buf_size, "%s_%08X%s", prefix, (unsigned)address, suffix != NULL ? suffix : "");
+}
+
+static int render_asm_define_runtime_address_word_symbols_once(M68kRenderIRPreview *preview,
+    const char *role, uint32_t address, char *high_symbol, size_t high_symbol_size,
+    char *low_symbol, size_t low_symbol_size) {
+  char base_symbol[80];
+  char high_expr[112];
+  char low_expr[160];
+  if (high_symbol != NULL && high_symbol_size != 0U) high_symbol[0] = '\0';
+  if (low_symbol != NULL && low_symbol_size != 0U) low_symbol[0] = '\0';
+  if (preview == NULL || address == 0U) return 0;
+  format_runtime_address_symbol_name(role, address, "", base_symbol, sizeof(base_symbol));
+  format_runtime_address_symbol_name(role, address, "_hi", high_symbol, high_symbol_size);
+  format_runtime_address_symbol_name(role, address, "_lo", low_symbol, low_symbol_size);
+  if (high_symbol == NULL || high_symbol[0] == '\0' || low_symbol == NULL || low_symbol[0] == '\0') return 0;
+  snprintf(high_expr, sizeof(high_expr), "%s/$10000", base_symbol);
+  snprintf(low_expr, sizeof(low_expr), "%s-(%s*$10000)", base_symbol, high_symbol);
+  return render_asm_declare_symbol_hex_once(preview, base_symbol, address) &&
+    render_asm_declare_symbol_expr_once(preview, high_symbol, high_expr) &&
+    render_asm_declare_symbol_expr_once(preview, low_symbol, low_expr);
+}
+
+static int format_copper_runtime_pointer_value_expr(M68kRenderIRPreview *preview, const uint8_t *data,
+    uint32_t offset, uint32_t cursor, uint32_t size, uint16_t first, uint16_t second, char *buf,
+    size_t buf_size) {
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  uint32_t register_offset = (uint32_t)(first & 0x01FEU);
+  uint16_t pair_first;
+  uint16_t pair_second;
+  uint32_t pointer_address;
+  char high_symbol[80];
+  char low_symbol[80];
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (data == NULL || preview == NULL || (first & 1U) != 0U) return 0;
+  hardware_register = copper_runtime_pointer_register(first);
+  if (hardware_register != NULL && cursor + 8U <= size) {
+    pair_first = m68k_read_u16be(data + offset + cursor + 4U);
+    pair_second = m68k_read_u16be(data + offset + cursor + 6U);
+    if ((pair_first & 1U) == 0U && (uint32_t)(pair_first & 0x01FEU) == register_offset + 2U &&
+        register_offset >= hardware_register->offset &&
+        ((register_offset - hardware_register->offset) & 3U) == 0U) {
+      pointer_address = ((uint32_t)second << 16) | pair_second;
+      if (render_asm_define_runtime_address_word_symbols_once(preview, hardware_register->runtime_target_role,
+          pointer_address, high_symbol, sizeof(high_symbol), low_symbol, sizeof(low_symbol))) {
+        snprintf(buf, buf_size, "%s", high_symbol);
+        return 1;
+      }
+    }
+  }
+  if (cursor >= 4U) {
+    uint16_t prev_first = m68k_read_u16be(data + offset + cursor - 4U);
+    uint16_t prev_second = m68k_read_u16be(data + offset + cursor - 2U);
+    uint32_t prev_register_offset = (uint32_t)(prev_first & 0x01FEU);
+    hardware_register = copper_runtime_pointer_register(prev_first);
+    if (hardware_register != NULL && (prev_first & 1U) == 0U &&
+        register_offset == prev_register_offset + 2U &&
+        prev_register_offset >= hardware_register->offset &&
+        ((prev_register_offset - hardware_register->offset) & 3U) == 0U) {
+      pointer_address = ((uint32_t)prev_second << 16) | second;
+      if (render_asm_define_runtime_address_word_symbols_once(preview, hardware_register->runtime_target_role,
+          pointer_address, high_symbol, sizeof(high_symbol), low_symbol, sizeof(low_symbol))) {
+        snprintf(buf, buf_size, "%s", low_symbol);
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
 static int format_copper_runtime_pointer_comment(const uint8_t *data, uint32_t offset, uint32_t cursor,
     uint32_t size, uint16_t first, uint16_t second, char *buf, size_t buf_size) {
   const AmigaOsHardwareRegisterInfo *hardware_register;
@@ -1644,7 +1761,11 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
     } else {
       copper_move = 1;
     }
-    if (!copper_move || !format_copper_register_value_expr(first, second, right, sizeof(right))) {
+    if (copper_move &&
+        format_copper_runtime_pointer_value_expr(preview, data, offset, cursor, size, first, second,
+          right, sizeof(right))) {
+      ;
+    } else if (!copper_move || !format_copper_register_value_expr(first, second, right, sizeof(right))) {
       snprintf(right, sizeof(right), "$%04X", (unsigned)second);
     } else if (!render_asm_include_for_symbol_expr(preview, right)) {
       ++preview->asm_source_instruction_render_failures;
