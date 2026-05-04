@@ -3081,6 +3081,104 @@ static int enqueue_traced_indirect_control_target(M68kDecodeIR *decode, M68kFact
   return 0;
 }
 
+static uint8_t recovered_indirect_flow_kind_from_metadata(const M68kSimFormMetadata *metadata) {
+  if (metadata == NULL) return 0U;
+  if (metadata->flow_kind == M68K_SIM_FLOW_CALL) return M68K_RECOVERED_INDIRECT_FLOW_CALL;
+  if (metadata->flow_kind == M68K_SIM_FLOW_JUMP) return M68K_RECOVERED_INDIRECT_FLOW_JUMP;
+  return 0U;
+}
+
+static int candidate_has_decoded_control_target(const M68kDecodeCandidate *candidate) {
+  size_t target_index;
+  if (candidate == NULL) return 0;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_CALL ||
+        target->kind == M68K_DECODE_TARGET_JUMP) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static uint8_t recovered_indirect_shape_for_operand(const M68kDecodeCandidate *candidate,
+    const M68kSimFormMetadata *metadata, size_t operand_index) {
+  const M68kAsmOperandValue *operand;
+  int uses_index;
+  int uses_displacement;
+  if (candidate == NULL || metadata == NULL || operand_index >= candidate->operand_count ||
+      operand_index >= 4U) {
+    return 0U;
+  }
+  operand = &candidate->operands[operand_index];
+  if (candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_IND ||
+      candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_POSTINC ||
+      candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_PREDEC) {
+    return M68K_RECOVERED_INDIRECT_SHAPE_IND;
+  }
+  if (operand->kind != M68K_ASM_OPERAND_EA || operand->ea_reg >= 8U) return 0U;
+  uses_index = metadata->operand_ea_uses_index[operand_index] != 0U;
+  uses_displacement = metadata->operand_ea_uses_displacement[operand_index] != 0U;
+  if (!uses_index && !uses_displacement) return M68K_RECOVERED_INDIRECT_SHAPE_IND;
+  if (!uses_index && uses_displacement) return M68K_RECOVERED_INDIRECT_SHAPE_DISP;
+  if (operand->full_ext_iis != 0U) return M68K_RECOVERED_INDIRECT_SHAPE_INDEX_MEMIND;
+  if (operand->full_ext_base_disp_size != M68K_ASM_FULL_EXT_BD_RESERVED ||
+      operand->full_ext_outer_disp_size != 0U || operand->full_ext_base_suppress != 0U ||
+      operand->full_ext_index_suppress != 0U) {
+    return M68K_RECOVERED_INDIRECT_SHAPE_INDEX_FULL;
+  }
+  return M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF;
+}
+
+static int append_recovered_indirect_sites_for_accepted(const M68kDecodeIR *decode,
+    uint8_t **accepted_start, M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (decode == NULL || accepted_start == NULL || source_analysis == NULL ||
+      source_analysis->section_count < decode->section_count) {
+    return 0;
+  }
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    size_t candidate_index;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      M68kInstructionIR instruction;
+      const M68kSimFormMetadata *metadata;
+      uint8_t flow_kind;
+      size_t operand_index;
+      if (candidate->offset >= section->size || accepted_start[section_index][candidate->offset] == 0U)
+        continue;
+      if (candidate_has_decoded_control_target(candidate)) continue;
+      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+      metadata = m68k_sim_metadata_for_instruction(&instruction);
+      flow_kind = recovered_indirect_flow_kind_from_metadata(metadata);
+      if (flow_kind == 0U) continue;
+      for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
+           operand_index < instruction.operand_count; ++operand_index) {
+        M68kRecoveredIndirectSiteIR site;
+        uint8_t shape;
+        if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_BRANCH_TARGET ||
+            metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET) {
+          continue;
+        }
+        shape = recovered_indirect_shape_for_operand(candidate, metadata, operand_index);
+        if (shape == 0U) continue;
+        memset(&site, 0, sizeof(site));
+        site.offset = candidate->offset;
+        site.flow_kind = flow_kind;
+        site.shape = shape;
+        site.status = M68K_RECOVERED_INDIRECT_STATUS_UNRESOLVED;
+        site.detail = "accepted indirect control target";
+        if (m68k_ir_section_analysis_append_recovered_indirect_site(&source_analysis->sections[section_index],
+            &site) != 0) {
+          return -1;
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 static int candidate_indirect_control_uses_address_reg(const M68kDecodeCandidate *candidate, uint8_t reg) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
@@ -4209,6 +4307,10 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (m68k_render_ir_preview_build(object, &decode, &facts, policy, accepted_start, accepted_bytes,
       render_text_preview, render_asm_source, collect_asm_source_text, &render_preview,
       out_source_analysis) != 0) goto fail;
+  if (out_source_analysis != NULL &&
+      append_recovered_indirect_sites_for_accepted(&decode, accepted_start, out_source_analysis) != 0) {
+    goto fail;
+  }
   end = clock();
   out_profile->render_ir_seconds = elapsed_seconds_local(start, end);
   out_profile->render_ir_lookup_seconds = render_preview.lookup_seconds;
