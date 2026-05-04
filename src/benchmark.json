@@ -3,7 +3,7 @@
   "build": {
     "ok": true,
     "returncode": 0,
-    "seconds": 12.075
+    "seconds": 12.66
   },
   "corpus": {
     "by_cpu": {
@@ -46,7 +46,7 @@
         "no_tests_ran": false,
         "ok": true,
         "output": "No dead-code candidates found.\n",
-        "seconds": 2.123,
+        "seconds": 2.169,
         "skipped": 0,
         "tests_run": 0,
         "unexpected_successes": 0
@@ -56,7 +56,7 @@
     "expected_failures": 0,
     "failures": 0,
     "ok": true,
-    "seconds": 2.123,
+    "seconds": 2.169,
     "skipped": 0,
     "tests_run": 0,
     "timings": {
@@ -65,7 +65,7 @@
           "name": "find_dead_code_c",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 2.123,
+          "seconds": 2.169,
           "tests_run": 0
         }
       ]
@@ -81,8 +81,8 @@
         "name": "src.tests.test_c_style",
         "no_tests_ran": false,
         "ok": true,
-        "output": "...................\n----------------------------------------------------------------------\nRan 19 tests in 1.151s\n\nOK\n",
-        "seconds": 1.273,
+        "output": "...................\n----------------------------------------------------------------------\nRan 19 tests in 1.170s\n\nOK\n",
+        "seconds": 1.299,
         "skipped": 0,
         "tests_run": 19,
         "unexpected_successes": 0
@@ -95,7 +95,7 @@
         "no_tests_ran": false,
         "ok": true,
         "output": ".............\n----------------------------------------------------------------------\nRan 13 tests in 1.417s\n\nOK\n",
-        "seconds": 1.548,
+        "seconds": 1.57,
         "skipped": 0,
         "tests_run": 13,
         "unexpected_successes": 0
@@ -107,8 +107,8 @@
         "name": "src.tests.test_generate_c99_assembler_subset",
         "no_tests_ran": false,
         "ok": true,
-        "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 1.319s\n\nOK\n",
-        "seconds": 1.438,
+        "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 1.395s\n\nOK\n",
+        "seconds": 1.527,
         "skipped": 0,
         "tests_run": 3,
         "unexpected_successes": 0
@@ -120,8 +120,8 @@
         "name": "src.tests.test_generate_c99_disassembler_subset",
         "no_tests_ran": false,
         "ok": true,
-        "output": "......\n----------------------------------------------------------------------\nRan 6 tests in 3.957s\n\nOK\n",
-        "seconds": 4.084,
+        "output": "......\n----------------------------------------------------------------------\nRan 6 tests in 4.317s\n\nOK\n",
+        "seconds": 4.465,
         "skipped": 0,
         "tests_run": 6,
         "unexpected_successes": 0
@@ -133,8 +133,8 @@
         "name": "src.tests.test_generate_c99_simulator_subset",
         "no_tests_ran": false,
         "ok": true,
-        "output": ".........\n----------------------------------------------------------------------\nRan 9 tests in 0.325s\n\nOK\n",
-        "seconds": 0.448,
+        "output": ".........\n----------------------------------------------------------------------\nRan 9 tests in 0.342s\n\nOK\n",
+        "seconds": 0.477,
         "skipped": 0,
         "tests_run": 9,
         "unexpected_successes": 0
@@ -146,8 +146,8 @@
         "name": "src.tests.test_platform_format_codegen",
         "no_tests_ran": false,
         "ok": true,
-        "output": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.343s\n\nOK\n",
-        "seconds": 0.472,
+        "output": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.383s\n\nOK\n",
+        "seconds": 0.542,
         "skipped": 0,
         "tests_run": 6,
         "unexpected_successes": 0
@@ -159,8 +159,8 @@
         "name": "src.tests.test_static_m68k_runtime",
         "no_tests_ran": false,
         "ok": true,
-        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.107s\n\nOK\n",
-        "seconds": 0.227,
+        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.112s\n\nOK\n",
+        "seconds": 0.255,
         "skipped": 0,
         "tests_run": 4,
         "unexpected_successes": 0
@@ -170,7 +170,7 @@
     "expected_failures": 0,
     "failures": 0,
     "ok": true,
-    "seconds": 9.49,
+    "seconds": 10.135,
     "skipped": 0,
     "tests_run": 60,
     "timings": {
@@ -179,49 +179,49 @@
           "name": "src.tests.test_c_style",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 1.273,
+          "seconds": 1.299,
           "tests_run": 19
         },
         {
           "name": "src.tests.test_c99_assembler_codegen",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 1.548,
+          "seconds": 1.57,
           "tests_run": 13
         },
         {
           "name": "src.tests.test_generate_c99_assembler_subset",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 1.438,
+          "seconds": 1.527,
           "tests_run": 3
         },
         {
           "name": "src.tests.test_generate_c99_disassembler_subset",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 4.084,
+          "seconds": 4.465,
           "tests_run": 6
         },
         {
           "name": "src.tests.test_generate_c99_simulator_subset",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.448,
+          "seconds": 0.477,
           "tests_run": 9
         },
         {
           "name": "src.tests.test_platform_format_codegen",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.472,
+          "seconds": 0.542,
           "tests_run": 6
         },
         {
           "name": "src.tests.test_static_m68k_runtime",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.227,
+          "seconds": 0.255,
           "tests_run": 4
         }
       ]
@@ -237,8 +237,8 @@
         "name": "src.tests_integration.test_c99_assembler_corpus_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": ".........\n----------------------------------------------------------------------\nRan 9 tests in 0.780s\n\nOK\n",
-        "seconds": 0.933,
+        "output": ".........\n----------------------------------------------------------------------\nRan 9 tests in 0.813s\n\nOK\n",
+        "seconds": 0.992,
         "skipped": 0,
         "tests_run": 9,
         "unexpected_successes": 0
@@ -250,8 +250,8 @@
         "name": "src.tests_integration.test_c99_disassembler_corpus_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..............\n----------------------------------------------------------------------\nRan 14 tests in 3.626s\n\nOK\n",
-        "seconds": 4.058,
+        "output": "..............\n----------------------------------------------------------------------\nRan 14 tests in 3.662s\n\nOK\n",
+        "seconds": 4.15,
         "skipped": 0,
         "tests_run": 14,
         "unexpected_successes": 0
@@ -263,8 +263,8 @@
         "name": "src.tests.test_ir_policy_dll",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.169s\n\nOK\n",
-        "seconds": 0.315,
+        "output": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.175s\n\nOK\n",
+        "seconds": 0.348,
         "skipped": 0,
         "tests_run": 10,
         "unexpected_successes": 0
@@ -276,8 +276,8 @@
         "name": "src.tests_integration.test_m68k_simulator_oracle_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": ".......\n----------------------------------------------------------------------\nRan 7 tests in 1.285s\n\nOK\n",
-        "seconds": 1.451,
+        "output": ".......\n----------------------------------------------------------------------\nRan 7 tests in 1.326s\n\nOK\n",
+        "seconds": 1.493,
         "skipped": 0,
         "tests_run": 7,
         "unexpected_successes": 0
@@ -289,8 +289,8 @@
         "name": "src.tests_integration.test_platform_backends_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 2.975s\n\nOK\n",
-        "seconds": 3.138,
+        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 3.126s\n\nOK\n",
+        "seconds": 3.286,
         "skipped": 0,
         "tests_run": 4,
         "unexpected_successes": 0
@@ -302,8 +302,8 @@
         "name": "src.tests.test_platform_backends",
         "no_tests_ran": false,
         "ok": true,
-        "output": "...............\n----------------------------------------------------------------------\nRan 15 tests in 1.335s\n\nOK\n",
-        "seconds": 1.478,
+        "output": "...............\n----------------------------------------------------------------------\nRan 15 tests in 1.389s\n\nOK\n",
+        "seconds": 1.532,
         "skipped": 0,
         "tests_run": 15,
         "unexpected_successes": 0
@@ -315,8 +315,8 @@
         "name": "src.tests.test_platform_disk_cli",
         "no_tests_ran": false,
         "ok": true,
-        "output": "...........\n----------------------------------------------------------------------\nRan 11 tests in 0.354s\n\nOK\n",
-        "seconds": 0.499,
+        "output": "...........\n----------------------------------------------------------------------\nRan 11 tests in 0.392s\n\nOK\n",
+        "seconds": 0.547,
         "skipped": 0,
         "tests_run": 11,
         "unexpected_successes": 0
@@ -328,8 +328,8 @@
         "name": "src.tests.test_platform_file_manifest",
         "no_tests_ran": false,
         "ok": true,
-        "output": ".......\n----------------------------------------------------------------------\nRan 7 tests in 0.244s\n\nOK\n",
-        "seconds": 0.399,
+        "output": ".......\n----------------------------------------------------------------------\nRan 7 tests in 0.237s\n\nOK\n",
+        "seconds": 0.424,
         "skipped": 0,
         "tests_run": 7,
         "unexpected_successes": 0
@@ -341,8 +341,8 @@
         "name": "src.tests_integration.test_platform_manifest_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 1.106s\n\nOK\n",
-        "seconds": 1.263,
+        "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 1.240s\n\nOK\n",
+        "seconds": 1.415,
         "skipped": 0,
         "tests_run": 3,
         "unexpected_successes": 0
@@ -354,8 +354,8 @@
         "name": "src.tests_integration.test_target_usage_manifest_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 72.212s\n\nOK\n",
-        "seconds": 77.325,
+        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 77.778s\n\nOK\n",
+        "seconds": 83.239,
         "skipped": 0,
         "tests_run": 4,
         "unexpected_successes": 0
@@ -367,8 +367,8 @@
         "name": "src.tests_integration.test_vasm_mmu_oracle_integration",
         "no_tests_ran": false,
         "ok": true,
-        "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 0.519s\n\nOK\n",
-        "seconds": 0.646,
+        "output": "...\n----------------------------------------------------------------------\nRan 3 tests in 0.553s\n\nOK\n",
+        "seconds": 0.708,
         "skipped": 0,
         "tests_run": 3,
         "unexpected_successes": 0
@@ -378,7 +378,7 @@
     "expected_failures": 0,
     "failures": 0,
     "ok": true,
-    "seconds": 91.505,
+    "seconds": 98.134,
     "skipped": 0,
     "tests_run": 87,
     "timings": {
@@ -387,77 +387,77 @@
           "name": "src.tests_integration.test_c99_assembler_corpus_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.933,
+          "seconds": 0.992,
           "tests_run": 9
         },
         {
           "name": "src.tests_integration.test_c99_disassembler_corpus_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 4.058,
+          "seconds": 4.15,
           "tests_run": 14
         },
         {
           "name": "src.tests.test_ir_policy_dll",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.315,
+          "seconds": 0.348,
           "tests_run": 10
         },
         {
           "name": "src.tests_integration.test_m68k_simulator_oracle_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 1.451,
+          "seconds": 1.493,
           "tests_run": 7
         },
         {
           "name": "src.tests_integration.test_platform_backends_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 3.138,
+          "seconds": 3.286,
           "tests_run": 4
         },
         {
           "name": "src.tests.test_platform_backends",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 1.478,
+          "seconds": 1.532,
           "tests_run": 15
         },
         {
           "name": "src.tests.test_platform_disk_cli",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.499,
+          "seconds": 0.547,
           "tests_run": 11
         },
         {
           "name": "src.tests.test_platform_file_manifest",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.399,
+          "seconds": 0.424,
           "tests_run": 7
         },
         {
           "name": "src.tests_integration.test_platform_manifest_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 1.263,
+          "seconds": 1.415,
           "tests_run": 3
         },
         {
           "name": "src.tests_integration.test_target_usage_manifest_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 77.325,
+          "seconds": 83.239,
           "tests_run": 4
         },
         {
           "name": "src.tests_integration.test_vasm_mmu_oracle_integration",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.646,
+          "seconds": 0.708,
           "tests_run": 3
         }
       ]
@@ -465,8 +465,8 @@
     "unexpected_successes": 0
   },
   "status": "ok",
-  "timestamp": "2026-05-04T15:13:14+1200",
-  "total_seconds": 123.847,
+  "timestamp": "2026-05-04T15:37:21+1200",
+  "total_seconds": 131.975,
   "unit": {
     "_runs": [
       {
@@ -476,8 +476,8 @@
         "name": "native_c",
         "no_tests_ran": false,
         "ok": true,
-        "output": "m68k_parse_util\n  ok  sign_extend32\n  ok  popcount16\n  ok  parse_number_u32\n  ok  parse_cpu_name\n  ok  parse_section_spec\n  ok  parse_mnemonic_token\n  ok  parse_special_register_token\n  ok  parse_cache_selector_token\n  ok  parse_source_directive_token\n  ok  parse_data_directive_token\n  ok  parse_offset_directive_token\n  ok  normalize_pc_current_expr\n  ok  source_linear_expr_accepts_constant_or\n  ok  source_constant_expr_accepts_division\nm68k_parse_util: all 14 passed\nm68k_instruction_spec\n  ok  direct_register_detection\n  ok  decoded_ea_shape_and_target_kind\n  ok  decoded_ea_target_resolution\n  ok  instruction_spec_mnemonic_resolution\nm68k_instruction_spec: all 4 passed\nm68k_ir\n  ok  render_policy_defaults\n  ok  parse_syntax_mode_name\n  ok  generated_cpu_vector_metadata_marks_interrupt_autovectors\n  ok  generated_call_ea_metadata_marks_control_target\n  ok  render_index_scale_uses_scale_value_not_bits\n  ok  68030_pmmu_fc_forms_roundtrip_from_kb\n  ok  movec_control_register_cpu_mask_from_kb\n  ok  coprocessor_id_roundtrips_from_kb_id_field\n  ok  analysis_defaults_and_inits\n  ok  instruction_mnemonic_helpers_use_id\n  ok  section_append_statement_copies_data\n  ok  section_analysis_label_dedupes\n  ok  source_analysis_append_section_copies_recovered_dispatches\n  ok  source_analysis_append_section_rehydrates_platform_name_refs\n  ok  source_analysis_append_section_copies_ref_only_platform_names\n  ok  section_analysis_records_typed_global_slot_effects\n  ok  source_model_symbol_index_preserves_lookup_semantics\n  ok  section_many_interleaved_labels_and_data\n  ok  section_many_interleaved_labels_and_expr_data\n  ok  arena_mark_rewind_reuses_same_block_range\n  ok  arena_rewind_discards_later_blocks\n  ok  arena_reset_poisons_head_block_range\n  ok  decode_ir_decodes_aligned_candidates\n  ok  decode_ir_treats_cpu_policy_as_ceiling\n  ok  source_parse_treats_cpu_policy_as_ceiling\n  ok  source_fpu_directive_encodes_external_coprocessor_id\n  ok  source_fpu_directive_uses_external_id_under_cpu_ceiling\n  ok  source_fpu_zero_disables_fpu_alias_instruction\n  ok  source_org_sets_logical_pc_without_padding\n  ok  decode_ir_negative_cache_preserves_higher_cpu_decode\n  ok  decode_ir_records_branch_target_candidate\n  ok  decode_ir_branch_word_target_uses_opcode_pc\n  ok  decode_ir_records_pc_relative_data_target_candidate\n  ok  decode_ir_records_pc_index_data_target_candidate\n  ok  facts_v2_pc_index_data_target_auto_classifies_lookup_scalar\n  ok  facts_v2_pc_index_data_target_auto_classifies_lookup_span\n  ok  facts_v2_indexed_local_base_auto_classifies_pointer_table\n  ok  decode_ir_keeps_odd_branch_target_for_analysis\n  ok  fact_ir_label_creation_dedupes\n  ok  facts_v2_profile_collects_decode_and_label_facts\n  ok  facts_v2_implicit_entry_only_first_code_section\n  ok  facts_v2_implicit_entry_does_not_scan_to_later_code_section\n  ok  facts_v2_required_entry_without_decode_is_hard_failure\n  ok  facts_v2_work_queue_dedupes_same_confidence_starts\n  ok  facts_v2_records_mid_instruction_required_label\n  ok  facts_v2_odd_code_target_is_hard_failure\n  ok  facts_v2_direct_rebuild_profile_marks_source_refusal_without_rendering\n  ok  facts_v2_rejects_tool_inferred_interior_target_label\n  ok  facts_v2_materializes_required_data_boundary_label\n  ok  facts_v2_relocation_uses_payload_target_before_addend\n  ok  facts_v2_invalid_relocation_payload_records_violation\n  ok  facts_v2_atari_relocation_uses_platform_normalized_addend\n  ok  facts_v2_atari_bss_image_relocation_renders_symbolic_instruction\n  ok  facts_v2_render_asm_source_recovers_atari_trap_call\n  ok  facts_v2_atari_invalid_image_relocation_refuses_source\n  ok  facts_v2_asm_source_preserves_atari_program_flags\n  ok  facts_v2_classifies_hunk_positive_relocation_anchor\n  ok  facts_v2_classifies_hunk_positive_data_relocation_anchor\n  ok  facts_v2_classifies_hunk_negative_relocation_anchor\n  ok  facts_v2_asm_source_renders_valid_relocation_expr\n  ok  facts_v2_hunk_relocation_target_inside_relocation_payload_is_numeric\n  ok  amiga_hunk_writer_preserves_reloc32_group_shape\n  ok  facts_v2_asm_source_allows_demoted_interior_label\n  ok  facts_v2_asm_source_hashes_clean_byte_source\n  ok  facts_v2_render_asm_source_renders_symbolic_branch\n  ok  facts_v2_render_asm_source_renders_symbolic_pc_relative_data_target\n  ok  facts_v2_render_asm_source_accepts_reachable_68030_pmmu\n  ok  facts_v2_render_asm_source_keeps_unrelocated_abs_call_numeric\n  ok  facts_v2_prefers_lower_cpu_fallthrough_over_inferred_interior_target\n  ok  facts_v2_detects_runtime_copy_jump_target\n  ok  facts_v2_traced_indirect_call_promotes_known_target\n  ok  facts_v2_traced_indirect_jump_promotes_long_table_targets\n  ok  facts_v2_traced_indirect_jump_keeps_later_table_state\n  ok  facts_v2_runtime_mapped_long_dispatch_promotes_table_targets\n  ok  facts_v2_traced_indirect_jump_promotes_word_relative_table_targets\n  ok  facts_v2_runtime_mapped_word_dispatch_renders_lookup_table\n  ok  facts_v2_word_dispatch_renders_bounded_unaccepted_lookup_table\n  ok  facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage\n  ok  facts_v2_detects_interrupt_vector_store_target\n  ok  facts_v2_detects_interrupt_vector_fill_target\n  ok  facts_v2_maps_copied_runtime_vector_target_to_source_offset\n  ok  facts_v2_maps_copied_runtime_absolute_call_to_source_offset\n  ok  facts_v2_policy_runtime_entrypoint_maps_absolute_load\n  ok  facts_v2_runtime_ref_inside_accepted_instruction_stays_numeric\n  ok  facts_v2_pointer_table_storage_value_stays_numeric_under_runtime_org\n  ok  facts_v2_policy_runtime_range_uses_first_class_labels\n  ok  facts_v2_runtime_alias_refs_emit_first_class_labels\n  ok  facts_v2_policy_runtime_entrypoint_starts_inside_view\n  ok  facts_v2_runtime_range_conflict_fails_instead_of_last_map\n  ok  facts_v2_render_asm_source_preserves_exact_byte_immediate_word\n  ok  facts_v2_render_asm_source_preserves_move_byte_immediate_high_word\n  ok  facts_v2_render_asm_source_refuses_unmapped_code_relocation\n  ok  facts_v2_render_asm_source_maps_immediate_code_relocation\n  ok  facts_v2_render_asm_source_maps_relocation_after_imm_operand\n  ok  facts_v2_render_asm_source_maps_bss_relocation_label\n  ok  facts_v2_render_asm_source_renders_pure_bss_as_ds_reserve\n  ok  facts_v2_render_asm_source_symbols_amiga_loadseg_segment_link\n  ok  facts_v2_demotes_speculative_unencodable_instruction\n  ok  facts_v2_demotes_speculative_reserved_full_extension\n  ok  facts_v2_required_unencodable_instruction_is_hard_failure\n  ok  facts_v2_render_asm_source_reencodes_restricted_ea_instruction\n  ok  facts_v2_render_asm_source_renders_policy_entry_comment\n  ok  facts_v2_render_asm_source_renders_policy_register_seed_comment\n  ok  facts_v2_render_asm_source_renders_seeded_lvo_symbol\n  ok  facts_v2_render_asm_source_symbols_amiga_hardware_registers\n  ok  amiga_runtime_address_sinks_are_generated_from_hardware_metadata\n  ok  amiga_runtime_struct_id_none_is_zero_safe\n  ok  amiga_runtime_resolves_recursive_struct_fields\n  ok  listing_json_emits_app_slot_regions_from_platform_api_inputs\n  ok  listing_json_tracks_app_slot_address_through_lea_copy\n  ok  listing_json_reports_untyped_app_slot_api_args\n  ok  listing_json_tracks_app_slot_address_immediate_adjust\n  ok  listing_json_clears_app_slot_address_source_on_register_clobber\n  ok  facts_v2_render_asm_source_applies_entry_register_seed_without_seed_offset\n  ok  facts_v2_render_asm_source_defines_private_lvo_symbol\n  ok  facts_v2_render_asm_source_preserves_base_across_movem_save\n  ok  facts_v2_render_asm_source_uses_policy_label_for_branch\n  ok  facts_v2_render_asm_source_uses_policy_label_for_data_relocation\n  ok  facts_v2_relocation_backed_data_longs_auto_classify_pointer_table\n  ok  facts_v2_render_asm_source_uses_object_symbol_label\n  ok  facts_v2_render_asm_source_infers_lvo_from_object_base_symbol\n  ok  facts_v2_render_asm_source_infers_global_base_slot_from_lvo_set\n  ok  facts_v2_render_asm_source_app_slot_overlap_uses_equ_alias\n  ok  facts_v2_analysis_keeps_untyped_app_slot_untyped\n  ok  facts_v2_render_asm_source_uses_policy_app_slot_region_symbol\n  ok  facts_v2_render_asm_source_infers_lvo_from_base_field_slot\n  ok  facts_v2_render_asm_source_infers_openlibrary_base_field_slot\n  ok  facts_v2_render_asm_source_infers_openlibrary_unowned_base_slot\n  ok  facts_v2_render_asm_source_infers_openlibrary_helper_unowned_base_slot\n  ok  facts_v2_render_asm_source_infers_openlibrary_global_base_slot\n  ok  facts_v2_render_asm_source_infers_openlibrary_helper_output_global_base_slot\n  ok  facts_v2_render_asm_source_infers_opendevice_base_field_slot\n  ok  facts_v2_render_asm_source_renders_typed_app_slot_field_region\n  ok  facts_v2_render_asm_source_propagates_typed_base_through_stack_slot\n  ok  facts_v2_render_asm_source_propagates_typed_base_through_absolute_slot\n  ok  facts_v2_render_asm_source_propagates_api_output_type_to_access\n  ok  facts_v2_render_asm_source_uses_makelibrary_output_type\n  ok  facts_v2_analysis_records_unresolved_typed_field_without_rendering_field\n  ok  facts_v2_analysis_classifies_unique_prefix_extension_without_rendering_field\n  ok  facts_v2_analysis_refines_ambiguous_prefix_by_exact_access_size\n  ok  facts_v2_analysis_propagates_prefix_output_through_base_slot\n  ok  facts_v2_analysis_refines_prefix_storage_from_api_input\n  ok  facts_v2_analysis_promotes_unique_prefix_type_through_base_slot\n  ok  facts_v2_analysis_refines_rexxmsg_prefix_by_exact_field_size\n  ok  facts_v2_analysis_refines_textfont_common_prefix_by_exact_field_size\n  ok  facts_v2_render_asm_source_propagates_api_output_type_through_lea_copy\n  ok  facts_v2_analysis_propagates_api_output_type_through_global_slot\n  ok  facts_v2_analysis_propagates_global_slot_reload_through_data_register_copy\n  ok  facts_v2_analysis_reports_lookup_storage_write_site_provenance\n  ok  facts_v2_render_asm_source_propagates_api_output_type_through_base_slot\n  ok  facts_v2_render_asm_source_merges_api_output_base_slots_at_join\n  ok  facts_v2_render_asm_source_keeps_typed_base_only_across_platform_preserved_regs\n  ok  facts_v2_render_asm_source_propagates_local_helper_api_output_type\n  ok  facts_v2_render_asm_source_propagates_helper_return_alias_type\n  ok  facts_v2_render_asm_source_propagates_nested_helper_return_alias_type\n  ok  facts_v2_render_asm_source_propagates_api_output_type_through_app_slot\n  ok  facts_v2_render_asm_source_propagates_field_pointer_type_through_app_slot\n  ok  facts_v2_analysis_tracks_app_slot_address_through_data_register_copy\n  ok  facts_v2_analysis_propagates_direct_field_pointer_store_through_app_slot\n  ok  facts_v2_analysis_propagates_api_output_type_through_stack_slot\n  ok  facts_v2_analysis_propagates_direct_field_pointer_store_through_stack_and_global_slots\n  ok  facts_v2_analysis_propagates_lea_substructure_type_through_stack_slot\n  ok  facts_v2_analysis_propagates_api_output_type_through_data_base_slot_after_call\n  ok  facts_v2_typed_flow_node_visit_guard_preserves_source_rendering\n  ok  facts_v2_render_asm_source_conflicts_untyped_app_slot_write\n  ok  facts_v2_render_asm_source_conflicts_untyped_absolute_slot_write\n  ok  facts_v2_render_asm_source_unknown_call_clobbers_stack_slot_type\n  ok  facts_v2_render_asm_source_propagates_zero_offset_field_pointer_type\n  ok  facts_v2_render_asm_source_propagates_typed_base_across_branch_target\n  ok  facts_v2_render_asm_source_drops_conflicting_typed_base_at_branch_merge\n  ok  facts_v2_render_asm_source_infers_lvo_immediate_for_indexed_wrapper\n  ok  facts_v2_render_asm_source_ignores_ambiguous_wrapper_stack_arg\n  ok  facts_v2_render_asm_source_tracks_cross_section_local_wrapper_without_inline_comment\n  ok  facts_v2_render_asm_source_tracks_non_wrapper_local_helper_without_inline_comment\n  ok  facts_v2_render_asm_source_annotates_wrapper_stack_args_without_wrapper_comment\n  ok  facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target\n  ok  facts_v2_render_asm_source_renders_structured_data_comment\n  ok  facts_v2_render_asm_source_renders_copper_list_structured_data\n  ok  facts_v2_runtime_copper_pointer_auto_classifies_copper_list\n  ok  facts_v2_register_runtime_sink_auto_classifies_copper_list\n  ok  facts_v2_copper_bitmap_pointers_render_display_layout_comment\n  ok  facts_v2_copper_bitmap_memory_uses_are_commented\n  ok  facts_v2_palette_upload_auto_classifies_source_table\n  ok  facts_v2_genam_palette_upload_uses_runtime_translated_source_table\n  ok  facts_v2_palette_upload_uses_source_section_accepted_bytes\n  ok  facts_v2_copper_pointer_renders_combined_display_setup_comment\n  ok  facts_v2_audio_pointer_and_length_auto_classifies_sound_sample\n  ok  facts_v2_audio_length_register_source_comment\n  ok  facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance\n  ok  facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer\n  ok  facts_v2_external_runtime_sink_address_renders_pointer_comment\n  ok  facts_v2_dsklen_write_renders_dma_size_comment\n  ok  facts_v2_render_asm_source_marks_structured_data_code_overlap\n  ok  facts_v2_render_asm_source_renders_call_input_domain_immediate\n  ok  facts_v2_inline_return_string_call_skips_payload\n  ok  facts_v2_render_asm_source_scopes_external_fpu_coprocessor_id\n  ok  facts_v2_render_asm_source_uses_default_fpu_mnemonic\n  ok  facts_v2_demotes_opcode_relocation_to_data_expr\n  ok  facts_v2_render_asm_source_alloc_returns_text\n  ok  facts_v2_render_asm_source_collapses_repeated_present_data\n  ok  facts_v2_render_asm_source_alloc_fails_on_invalid_relocation\nm68k_ir: all 201 passed\nm68k_diagnostics\n  ok  zero_initialized_list_is_empty\n  ok  nil_sink_discards_diagnostics\n  ok  records_multiple_diagnostics\nm68k_diagnostics: all 3 passed\n",
-        "seconds": 0.497,
+        "output": "m68k_parse_util\n  ok  sign_extend32\n  ok  popcount16\n  ok  parse_number_u32\n  ok  parse_cpu_name\n  ok  parse_section_spec\n  ok  parse_mnemonic_token\n  ok  parse_special_register_token\n  ok  parse_cache_selector_token\n  ok  parse_source_directive_token\n  ok  parse_data_directive_token\n  ok  parse_offset_directive_token\n  ok  normalize_pc_current_expr\n  ok  source_linear_expr_accepts_constant_or\n  ok  source_constant_expr_accepts_division\nm68k_parse_util: all 14 passed\nm68k_instruction_spec\n  ok  direct_register_detection\n  ok  decoded_ea_shape_and_target_kind\n  ok  decoded_ea_target_resolution\n  ok  instruction_spec_mnemonic_resolution\nm68k_instruction_spec: all 4 passed\nm68k_ir\n  ok  render_policy_defaults\n  ok  parse_syntax_mode_name\n  ok  generated_cpu_vector_metadata_marks_interrupt_autovectors\n  ok  generated_call_ea_metadata_marks_control_target\n  ok  render_index_scale_uses_scale_value_not_bits\n  ok  68030_pmmu_fc_forms_roundtrip_from_kb\n  ok  movec_control_register_cpu_mask_from_kb\n  ok  coprocessor_id_roundtrips_from_kb_id_field\n  ok  analysis_defaults_and_inits\n  ok  instruction_mnemonic_helpers_use_id\n  ok  section_append_statement_copies_data\n  ok  section_analysis_label_dedupes\n  ok  source_analysis_append_section_copies_recovered_dispatches\n  ok  source_analysis_append_section_rehydrates_platform_name_refs\n  ok  source_analysis_append_section_copies_ref_only_platform_names\n  ok  section_analysis_records_typed_global_slot_effects\n  ok  source_model_symbol_index_preserves_lookup_semantics\n  ok  section_many_interleaved_labels_and_data\n  ok  section_many_interleaved_labels_and_expr_data\n  ok  arena_mark_rewind_reuses_same_block_range\n  ok  arena_rewind_discards_later_blocks\n  ok  arena_reset_poisons_head_block_range\n  ok  decode_ir_decodes_aligned_candidates\n  ok  decode_ir_treats_cpu_policy_as_ceiling\n  ok  source_parse_treats_cpu_policy_as_ceiling\n  ok  source_fpu_directive_encodes_external_coprocessor_id\n  ok  source_fpu_directive_uses_external_id_under_cpu_ceiling\n  ok  source_fpu_zero_disables_fpu_alias_instruction\n  ok  source_org_sets_logical_pc_without_padding\n  ok  decode_ir_negative_cache_preserves_higher_cpu_decode\n  ok  decode_ir_records_branch_target_candidate\n  ok  decode_ir_branch_word_target_uses_opcode_pc\n  ok  decode_ir_records_pc_relative_data_target_candidate\n  ok  decode_ir_records_pc_index_data_target_candidate\n  ok  facts_v2_pc_index_data_target_auto_classifies_lookup_scalar\n  ok  facts_v2_pc_index_data_target_auto_classifies_lookup_span\n  ok  facts_v2_indexed_local_base_auto_classifies_pointer_table\n  ok  decode_ir_keeps_odd_branch_target_for_analysis\n  ok  fact_ir_label_creation_dedupes\n  ok  facts_v2_profile_collects_decode_and_label_facts\n  ok  facts_v2_implicit_entry_only_first_code_section\n  ok  facts_v2_implicit_entry_does_not_scan_to_later_code_section\n  ok  facts_v2_required_entry_without_decode_is_hard_failure\n  ok  facts_v2_work_queue_dedupes_same_confidence_starts\n  ok  facts_v2_records_mid_instruction_required_label\n  ok  facts_v2_odd_code_target_is_hard_failure\n  ok  facts_v2_direct_rebuild_profile_marks_source_refusal_without_rendering\n  ok  facts_v2_rejects_tool_inferred_interior_target_label\n  ok  facts_v2_materializes_required_data_boundary_label\n  ok  facts_v2_relocation_uses_payload_target_before_addend\n  ok  facts_v2_invalid_relocation_payload_records_violation\n  ok  facts_v2_atari_relocation_uses_platform_normalized_addend\n  ok  facts_v2_atari_bss_image_relocation_renders_symbolic_instruction\n  ok  facts_v2_render_asm_source_recovers_atari_trap_call\n  ok  facts_v2_atari_invalid_image_relocation_refuses_source\n  ok  facts_v2_asm_source_preserves_atari_program_flags\n  ok  facts_v2_classifies_hunk_positive_relocation_anchor\n  ok  facts_v2_classifies_hunk_positive_data_relocation_anchor\n  ok  facts_v2_classifies_hunk_negative_relocation_anchor\n  ok  facts_v2_asm_source_renders_valid_relocation_expr\n  ok  facts_v2_hunk_relocation_target_inside_relocation_payload_is_numeric\n  ok  amiga_hunk_writer_preserves_reloc32_group_shape\n  ok  facts_v2_asm_source_allows_demoted_interior_label\n  ok  facts_v2_asm_source_hashes_clean_byte_source\n  ok  facts_v2_render_asm_source_renders_symbolic_branch\n  ok  facts_v2_render_asm_source_renders_symbolic_pc_relative_data_target\n  ok  facts_v2_render_asm_source_accepts_reachable_68030_pmmu\n  ok  facts_v2_render_asm_source_keeps_unrelocated_abs_call_numeric\n  ok  facts_v2_prefers_lower_cpu_fallthrough_over_inferred_interior_target\n  ok  facts_v2_detects_runtime_copy_jump_target\n  ok  facts_v2_traced_indirect_call_promotes_known_target\n  ok  facts_v2_traced_indirect_jump_promotes_long_table_targets\n  ok  facts_v2_traced_indirect_jump_keeps_later_table_state\n  ok  facts_v2_runtime_mapped_long_dispatch_promotes_table_targets\n  ok  facts_v2_traced_indirect_jump_promotes_word_relative_table_targets\n  ok  facts_v2_runtime_mapped_word_dispatch_renders_lookup_table\n  ok  facts_v2_word_dispatch_renders_bounded_unaccepted_lookup_table\n  ok  facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage\n  ok  facts_v2_detects_interrupt_vector_store_target\n  ok  facts_v2_detects_interrupt_vector_fill_target\n  ok  facts_v2_maps_copied_runtime_vector_target_to_source_offset\n  ok  facts_v2_maps_copied_runtime_absolute_call_to_source_offset\n  ok  facts_v2_policy_runtime_entrypoint_maps_absolute_load\n  ok  facts_v2_runtime_ref_inside_accepted_instruction_stays_numeric\n  ok  facts_v2_pointer_table_storage_value_stays_numeric_under_runtime_org\n  ok  facts_v2_policy_runtime_range_uses_first_class_labels\n  ok  facts_v2_runtime_alias_refs_emit_first_class_labels\n  ok  facts_v2_policy_runtime_entrypoint_starts_inside_view\n  ok  facts_v2_runtime_range_conflict_fails_instead_of_last_map\n  ok  facts_v2_render_asm_source_preserves_exact_byte_immediate_word\n  ok  facts_v2_render_asm_source_preserves_move_byte_immediate_high_word\n  ok  facts_v2_render_asm_source_refuses_unmapped_code_relocation\n  ok  facts_v2_render_asm_source_maps_immediate_code_relocation\n  ok  facts_v2_render_asm_source_maps_relocation_after_imm_operand\n  ok  facts_v2_render_asm_source_maps_bss_relocation_label\n  ok  facts_v2_render_asm_source_renders_pure_bss_as_ds_reserve\n  ok  facts_v2_render_asm_source_symbols_amiga_loadseg_segment_link\n  ok  facts_v2_demotes_speculative_unencodable_instruction\n  ok  facts_v2_demotes_speculative_reserved_full_extension\n  ok  facts_v2_required_unencodable_instruction_is_hard_failure\n  ok  facts_v2_render_asm_source_reencodes_restricted_ea_instruction\n  ok  facts_v2_render_asm_source_renders_policy_entry_comment\n  ok  facts_v2_render_asm_source_renders_policy_register_seed_comment\n  ok  facts_v2_render_asm_source_renders_seeded_lvo_symbol\n  ok  facts_v2_render_asm_source_symbols_amiga_hardware_registers\n  ok  amiga_runtime_address_sinks_are_generated_from_hardware_metadata\n  ok  amiga_runtime_struct_id_none_is_zero_safe\n  ok  amiga_runtime_resolves_recursive_struct_fields\n  ok  listing_json_emits_app_slot_regions_from_platform_api_inputs\n  ok  listing_json_tracks_app_slot_address_through_lea_copy\n  ok  listing_json_reports_untyped_app_slot_api_args\n  ok  listing_json_tracks_app_slot_address_immediate_adjust\n  ok  listing_json_clears_app_slot_address_source_on_register_clobber\n  ok  facts_v2_render_asm_source_applies_entry_register_seed_without_seed_offset\n  ok  facts_v2_render_asm_source_defines_private_lvo_symbol\n  ok  facts_v2_render_asm_source_preserves_base_across_movem_save\n  ok  facts_v2_render_asm_source_uses_policy_label_for_branch\n  ok  facts_v2_render_asm_source_uses_policy_label_for_data_relocation\n  ok  facts_v2_relocation_backed_data_longs_auto_classify_pointer_table\n  ok  facts_v2_render_asm_source_uses_object_symbol_label\n  ok  facts_v2_render_asm_source_infers_lvo_from_object_base_symbol\n  ok  facts_v2_render_asm_source_infers_global_base_slot_from_lvo_set\n  ok  facts_v2_render_asm_source_app_slot_overlap_uses_equ_alias\n  ok  facts_v2_analysis_keeps_untyped_app_slot_untyped\n  ok  facts_v2_render_asm_source_uses_policy_app_slot_region_symbol\n  ok  facts_v2_render_asm_source_infers_lvo_from_base_field_slot\n  ok  facts_v2_render_asm_source_infers_openlibrary_base_field_slot\n  ok  facts_v2_render_asm_source_infers_openlibrary_unowned_base_slot\n  ok  facts_v2_render_asm_source_infers_openlibrary_helper_unowned_base_slot\n  ok  facts_v2_render_asm_source_infers_openlibrary_global_base_slot\n  ok  facts_v2_render_asm_source_infers_openlibrary_helper_output_global_base_slot\n  ok  facts_v2_render_asm_source_infers_opendevice_base_field_slot\n  ok  facts_v2_render_asm_source_renders_typed_app_slot_field_region\n  ok  facts_v2_render_asm_source_propagates_typed_base_through_stack_slot\n  ok  facts_v2_render_asm_source_propagates_typed_base_through_absolute_slot\n  ok  facts_v2_render_asm_source_propagates_api_output_type_to_access\n  ok  facts_v2_render_asm_source_uses_makelibrary_output_type\n  ok  facts_v2_analysis_records_unresolved_typed_field_without_rendering_field\n  ok  facts_v2_analysis_classifies_unique_prefix_extension_without_rendering_field\n  ok  facts_v2_analysis_refines_ambiguous_prefix_by_exact_access_size\n  ok  facts_v2_analysis_propagates_prefix_output_through_base_slot\n  ok  facts_v2_analysis_refines_prefix_storage_from_api_input\n  ok  facts_v2_analysis_promotes_unique_prefix_type_through_base_slot\n  ok  facts_v2_analysis_refines_rexxmsg_prefix_by_exact_field_size\n  ok  facts_v2_analysis_refines_textfont_common_prefix_by_exact_field_size\n  ok  facts_v2_render_asm_source_propagates_api_output_type_through_lea_copy\n  ok  facts_v2_analysis_propagates_api_output_type_through_global_slot\n  ok  facts_v2_analysis_propagates_global_slot_reload_through_data_register_copy\n  ok  facts_v2_analysis_reports_lookup_storage_write_site_provenance\n  ok  facts_v2_render_asm_source_propagates_api_output_type_through_base_slot\n  ok  facts_v2_render_asm_source_merges_api_output_base_slots_at_join\n  ok  facts_v2_render_asm_source_keeps_typed_base_only_across_platform_preserved_regs\n  ok  facts_v2_render_asm_source_propagates_local_helper_api_output_type\n  ok  facts_v2_render_asm_source_propagates_helper_return_alias_type\n  ok  facts_v2_render_asm_source_propagates_nested_helper_return_alias_type\n  ok  facts_v2_render_asm_source_propagates_api_output_type_through_app_slot\n  ok  facts_v2_render_asm_source_propagates_field_pointer_type_through_app_slot\n  ok  facts_v2_analysis_tracks_app_slot_address_through_data_register_copy\n  ok  facts_v2_analysis_propagates_direct_field_pointer_store_through_app_slot\n  ok  facts_v2_analysis_propagates_api_output_type_through_stack_slot\n  ok  facts_v2_analysis_propagates_direct_field_pointer_store_through_stack_and_global_slots\n  ok  facts_v2_analysis_propagates_lea_substructure_type_through_stack_slot\n  ok  facts_v2_analysis_propagates_api_output_type_through_data_base_slot_after_call\n  ok  facts_v2_typed_flow_node_visit_guard_preserves_source_rendering\n  ok  facts_v2_render_asm_source_conflicts_untyped_app_slot_write\n  ok  facts_v2_render_asm_source_conflicts_untyped_absolute_slot_write\n  ok  facts_v2_render_asm_source_unknown_call_clobbers_stack_slot_type\n  ok  facts_v2_render_asm_source_propagates_zero_offset_field_pointer_type\n  ok  facts_v2_render_asm_source_propagates_typed_base_across_branch_target\n  ok  facts_v2_render_asm_source_drops_conflicting_typed_base_at_branch_merge\n  ok  facts_v2_render_asm_source_infers_lvo_immediate_for_indexed_wrapper\n  ok  facts_v2_render_asm_source_ignores_ambiguous_wrapper_stack_arg\n  ok  facts_v2_render_asm_source_tracks_cross_section_local_wrapper_without_inline_comment\n  ok  facts_v2_render_asm_source_tracks_non_wrapper_local_helper_without_inline_comment\n  ok  facts_v2_render_asm_source_annotates_wrapper_stack_args_without_wrapper_comment\n  ok  facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target\n  ok  facts_v2_render_asm_source_renders_structured_data_comment\n  ok  facts_v2_render_asm_source_renders_copper_list_structured_data\n  ok  facts_v2_runtime_copper_pointer_auto_classifies_copper_list\n  ok  facts_v2_register_runtime_sink_auto_classifies_copper_list\n  ok  facts_v2_copper_bitmap_pointers_render_display_layout_comment\n  ok  facts_v2_copper_bitmap_memory_uses_are_commented\n  ok  facts_v2_palette_upload_auto_classifies_source_table\n  ok  facts_v2_genam_palette_upload_uses_runtime_translated_source_table\n  ok  facts_v2_palette_upload_uses_source_section_accepted_bytes\n  ok  facts_v2_copper_pointer_renders_combined_display_setup_comment\n  ok  facts_v2_audio_pointer_and_length_auto_classifies_sound_sample\n  ok  facts_v2_audio_length_register_source_comment\n  ok  facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance\n  ok  facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer\n  ok  facts_v2_external_runtime_sink_address_renders_pointer_comment\n  ok  facts_v2_copper_storage_sink_origin_renders_bitmap_symbol\n  ok  facts_v2_copper_storage_sink_rejects_low_scalar_origin\n  ok  facts_v2_dsklen_write_renders_dma_size_comment\n  ok  facts_v2_render_asm_source_marks_structured_data_code_overlap\n  ok  facts_v2_render_asm_source_renders_call_input_domain_immediate\n  ok  facts_v2_inline_return_string_call_skips_payload\n  ok  facts_v2_render_asm_source_scopes_external_fpu_coprocessor_id\n  ok  facts_v2_render_asm_source_uses_default_fpu_mnemonic\n  ok  facts_v2_demotes_opcode_relocation_to_data_expr\n  ok  facts_v2_render_asm_source_alloc_returns_text\n  ok  facts_v2_render_asm_source_collapses_repeated_present_data\n  ok  facts_v2_render_asm_source_alloc_fails_on_invalid_relocation\nm68k_ir: all 203 passed\nm68k_diagnostics\n  ok  zero_initialized_list_is_empty\n  ok  nil_sink_discards_diagnostics\n  ok  records_multiple_diagnostics\nm68k_diagnostics: all 3 passed\n",
+        "seconds": 0.509,
         "skipped": 0,
         "tests_run": 0,
         "unexpected_successes": 0
@@ -489,8 +489,8 @@
         "name": "src.tests.test_c99_assembler_codegen",
         "no_tests_ran": false,
         "ok": true,
-        "output": "............\n----------------------------------------------------------------------\nRan 12 tests in 1.258s\n\nOK\n",
-        "seconds": 1.388,
+        "output": "............\n----------------------------------------------------------------------\nRan 12 tests in 1.301s\n\nOK\n",
+        "seconds": 1.432,
         "skipped": 0,
         "tests_run": 12,
         "unexpected_successes": 0
@@ -502,8 +502,8 @@
         "name": "src.tests.test_c99_assembler_corpus",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 0.055s\n\nOK\n",
-        "seconds": 0.195,
+        "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 0.065s\n\nOK\n",
+        "seconds": 0.22,
         "skipped": 0,
         "tests_run": 2,
         "unexpected_successes": 0
@@ -515,8 +515,8 @@
         "name": "src.tests.test_c99_disassembler_corpus",
         "no_tests_ran": false,
         "ok": true,
-        "output": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.087s\n\nOK\n",
-        "seconds": 0.224,
+        "output": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.097s\n\nOK\n",
+        "seconds": 0.256,
         "skipped": 0,
         "tests_run": 6,
         "unexpected_successes": 0
@@ -528,8 +528,8 @@
         "name": "src.tests.test_c_style",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..................\n----------------------------------------------------------------------\nRan 18 tests in 0.044s\n\nOK\n",
-        "seconds": 0.171,
+        "output": "..................\n----------------------------------------------------------------------\nRan 18 tests in 0.072s\n\nOK\n",
+        "seconds": 0.201,
         "skipped": 0,
         "tests_run": 18,
         "unexpected_successes": 0
@@ -541,8 +541,8 @@
         "name": "src.tests.test_generate_c99_assembler_subset",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 1.248s\n\nOK\n",
-        "seconds": 1.372,
+        "output": "..\n----------------------------------------------------------------------\nRan 2 tests in 1.301s\n\nOK\n",
+        "seconds": 1.437,
         "skipped": 0,
         "tests_run": 2,
         "unexpected_successes": 0
@@ -554,8 +554,8 @@
         "name": "src.tests.test_generate_c99_simulator_subset",
         "no_tests_ran": false,
         "ok": true,
-        "output": "........\n----------------------------------------------------------------------\nRan 8 tests in 0.128s\n\nOK\n",
-        "seconds": 0.257,
+        "output": "........\n----------------------------------------------------------------------\nRan 8 tests in 0.129s\n\nOK\n",
+        "seconds": 0.261,
         "skipped": 0,
         "tests_run": 8,
         "unexpected_successes": 0
@@ -567,8 +567,8 @@
         "name": "src.tests.test_m68k_simulator_abstract",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.229s\n\nOK\n",
-        "seconds": 0.363,
+        "output": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.215s\n\nOK\n",
+        "seconds": 0.35,
         "skipped": 0,
         "tests_run": 10,
         "unexpected_successes": 0
@@ -580,8 +580,8 @@
         "name": "src.tests.test_m68k_simulator_oracle",
         "no_tests_ran": false,
         "ok": true,
-        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.333s\n\nOK\n",
-        "seconds": 0.484,
+        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.362s\n\nOK\n",
+        "seconds": 0.52,
         "skipped": 0,
         "tests_run": 4,
         "unexpected_successes": 0
@@ -593,8 +593,8 @@
         "name": "src.tests.test_platform_amiga_disk",
         "no_tests_ran": false,
         "ok": true,
-        "output": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.099s\n\nOK\n",
-        "seconds": 0.235,
+        "output": "..........\n----------------------------------------------------------------------\nRan 10 tests in 0.083s\n\nOK\n",
+        "seconds": 0.221,
         "skipped": 0,
         "tests_run": 10,
         "unexpected_successes": 0
@@ -606,8 +606,8 @@
         "name": "src.tests.test_platform_atari_st_disk",
         "no_tests_ran": false,
         "ok": true,
-        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.042s\n\nOK\n",
-        "seconds": 0.178,
+        "output": "....\n----------------------------------------------------------------------\nRan 4 tests in 0.044s\n\nOK\n",
+        "seconds": 0.183,
         "skipped": 0,
         "tests_run": 4,
         "unexpected_successes": 0
@@ -619,8 +619,8 @@
         "name": "src.tests.test_platform_disk_lib",
         "no_tests_ran": false,
         "ok": true,
-        "output": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.090s\n\nOK\n",
-        "seconds": 0.232,
+        "output": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.089s\n\nOK\n",
+        "seconds": 0.23,
         "skipped": 0,
         "tests_run": 5,
         "unexpected_successes": 0
@@ -632,8 +632,8 @@
         "name": "src.tests.test_target_usage_manifest",
         "no_tests_ran": false,
         "ok": true,
-        "output": "Wrote C:\\Users\\richa\\AppData\\Local\\Temp\\tmpt7_d4h1c\\baseline.json\nWrote C:\\Users\\richa\\AppData\\Local\\Temp\\tmpw__n3obx\\snapshots\\before_api_output.jsonl\n..............................................\n----------------------------------------------------------------------\nRan 46 tests in 0.259s\n\nOK\n",
-        "seconds": 0.546,
+        "output": "Wrote C:\\Users\\richa\\AppData\\Local\\Temp\\tmpt4ig74jg\\baseline.json\nWrote C:\\Users\\richa\\AppData\\Local\\Temp\\tmpfnnzo4uz\\snapshots\\before_api_output.jsonl\n..............................................\n----------------------------------------------------------------------\nRan 46 tests in 0.237s\n\nOK\n",
+        "seconds": 0.545,
         "skipped": 0,
         "tests_run": 46,
         "unexpected_successes": 0
@@ -643,7 +643,7 @@
     "expected_failures": 0,
     "failures": 0,
     "ok": true,
-    "seconds": 6.142,
+    "seconds": 6.365,
     "skipped": 0,
     "tests_run": 127,
     "timings": {
@@ -652,91 +652,91 @@
           "name": "native_c",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.497,
+          "seconds": 0.509,
           "tests_run": 0
         },
         {
           "name": "src.tests.test_c99_assembler_codegen",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 1.388,
+          "seconds": 1.432,
           "tests_run": 12
         },
         {
           "name": "src.tests.test_c99_assembler_corpus",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.195,
+          "seconds": 0.22,
           "tests_run": 2
         },
         {
           "name": "src.tests.test_c99_disassembler_corpus",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.224,
+          "seconds": 0.256,
           "tests_run": 6
         },
         {
           "name": "src.tests.test_c_style",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.171,
+          "seconds": 0.201,
           "tests_run": 18
         },
         {
           "name": "src.tests.test_generate_c99_assembler_subset",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 1.372,
+          "seconds": 1.437,
           "tests_run": 2
         },
         {
           "name": "src.tests.test_generate_c99_simulator_subset",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.257,
+          "seconds": 0.261,
           "tests_run": 8
         },
         {
           "name": "src.tests.test_m68k_simulator_abstract",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.363,
+          "seconds": 0.35,
           "tests_run": 10
         },
         {
           "name": "src.tests.test_m68k_simulator_oracle",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.484,
+          "seconds": 0.52,
           "tests_run": 4
         },
         {
           "name": "src.tests.test_platform_amiga_disk",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.235,
+          "seconds": 0.221,
           "tests_run": 10
         },
         {
           "name": "src.tests.test_platform_atari_st_disk",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.178,
+          "seconds": 0.183,
           "tests_run": 4
         },
         {
           "name": "src.tests.test_platform_disk_lib",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.232,
+          "seconds": 0.23,
           "tests_run": 5
         },
         {
           "name": "src.tests.test_target_usage_manifest",
           "no_tests_ran": false,
           "ok": true,
-          "seconds": 0.546,
+          "seconds": 0.545,
           "tests_run": 46
         }
       ]

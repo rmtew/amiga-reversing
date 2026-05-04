@@ -45,6 +45,7 @@ DMAF_CLRALL	EQU	$7FFF
 disk_buffer_00067D00	EQU	$67D00
     INCLUDE "hardware/adkbits.i"
 _ciab	EQU	$BFD000
+bitmap_00060000	EQU	$60000
 bitmap_00070000	EQU	$70000
 bitmap_00070000_hi	EQU	bitmap_00070000/$10000
 bitmap_00070000_lo	EQU	bitmap_00070000-(bitmap_00070000_hi*$10000)
@@ -9991,7 +9992,7 @@ loc_0_00008CEC:
 	move.l #$67D00,loc_0_00008D3A.l
 loc_0_00008D00:
 	lea.l loc_0_00008E10.l,a0
-	move.l #$60000,d0
+	move.l #bitmap_00060000,d0
 	cmp.l loc_0_00008D36.l,d0
 	bne.b loc_0_00008D1A
 	move.l #$67D00,d0

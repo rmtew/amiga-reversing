@@ -3949,6 +3949,21 @@ static const AmigaOsHardwareRegisterInfo *external_runtime_address_ref_sink_regi
   return hardware_register;
 }
 
+static const char *external_runtime_address_ref_role(const M68kRenderLookup *lookup, const M68kFact *fact) {
+  const AmigaOsHardwareRegisterInfo *hardware_register = external_runtime_address_ref_sink_register(fact);
+  const M68kSection *section;
+  const char *role;
+  if (hardware_register != NULL) return hardware_register->runtime_target_role;
+  if (lookup == NULL || fact == NULL || lookup->object == NULL ||
+      fact->source_section_index >= lookup->object->section_count) {
+    return NULL;
+  }
+  section = &lookup->object->sections[fact->source_section_index];
+  role = platform_facts_v2_runtime_address_storage_sink_data_class(lookup->object->platform_backend_kind,
+    section->data, section->data_size, fact->source_offset);
+  return role != NULL && role[0] != '\0' ? role : NULL;
+}
+
 static int runtime_alias_label_seen_before(const M68kRenderLookup *lookup, size_t current_index,
     size_t section_index, uint32_t offset, uint32_t runtime_address) {
   size_t index;
@@ -5403,14 +5418,14 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
     fact = lookup_runtime_address_ref_for_operand(lookup, section_index, candidate->offset, operand_index);
     if (fact == NULL) continue;
     if (fact->target_section_index >= lookup->section_count) {
-      const AmigaOsHardwareRegisterInfo *hardware_register;
+      const char *role;
       uint32_t value = 0U;
       char symbol[80];
       if (!operand_is_immediate_value_local(operand, &value) || value != fact->runtime_address) continue;
-      hardware_register = external_runtime_address_ref_sink_register(fact);
-      if (hardware_register == NULL) continue;
-      if (!render_asm_define_runtime_address_symbol_once(preview, hardware_register->runtime_target_role,
-          fact->runtime_address, symbol, sizeof(symbol))) {
+      role = external_runtime_address_ref_role(lookup, fact);
+      if (role == NULL) continue;
+      if (!render_asm_define_runtime_address_symbol_once(preview, role, fact->runtime_address, symbol,
+          sizeof(symbol))) {
         return 0;
       }
       attach_amiga_platform_symbol(operand, symbol);
