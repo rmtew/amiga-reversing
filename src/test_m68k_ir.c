@@ -8350,56 +8350,6 @@ static int test_facts_v2_render_asm_source_renders_structured_data_comment(void)
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_hides_labels_inside_structured_data(void) {
-  M68kObject object;
-  M68kSection section;
-  M68kObjectAddResult added;
-  M68kAnalysisPolicy policy;
-  M68kFactsV2Profile profile;
-  char *source = NULL;
-  uint8_t bytes[4] = {0x12u, 0x34u, 0x56u, 0x78u};
-  memset(&section, 0, sizeof(section));
-  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
-  section.kind = M68K_SECTION_DATA;
-  section.size = sizeof(bytes);
-  section.data_size = sizeof(bytes);
-  section.data = bytes;
-  added = m68k_object_add_section(&object, &section);
-  M68K_C_ASSERT(added.ok);
-  m68k_analysis_policy_init_default(&policy);
-  policy.named_label_count = 2U;
-  policy.named_labels[0].has_section_index = 1U;
-  policy.named_labels[0].section_index = 0U;
-  policy.named_labels[0].offset = 0U;
-  snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "header");
-  policy.named_labels[1].has_section_index = 1U;
-  policy.named_labels[1].section_index = 0U;
-  policy.named_labels[1].offset = 2U;
-  snprintf(policy.named_labels[1].name, sizeof(policy.named_labels[1].name), "inner_label");
-  policy.structured_data_item_count = 1U;
-  policy.structured_data_items[0].has_section_index = 1U;
-  policy.structured_data_items[0].section_index = 0U;
-  policy.structured_data_items[0].offset = 0U;
-  policy.structured_data_items[0].size = 4U;
-  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
-  snprintf(policy.structured_data_items[0].struct_name, sizeof(policy.structured_data_items[0].struct_name),
-    "Header");
-  snprintf(policy.structured_data_items[0].field_name, sizeof(policy.structured_data_items[0].field_name),
-    "words");
-  snprintf(policy.structured_data_items[0].field_type, sizeof(policy.structured_data_items[0].field_type),
-    "UWORD");
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
-  M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "header:\t; STRUCT Header\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "inner_label:") == NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.w $1234,$5678\t; UWORD words\n") != NULL);
-  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
-  m68k_facts_v2_free_text(source);
-  m68k_object_destroy(&object);
-  return 0;
-}
-
 static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(void) {
   M68kObject object;
   M68kSection section;
@@ -10083,8 +10033,6 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target},
     {"facts_v2_render_asm_source_renders_structured_data_comment",
       test_facts_v2_render_asm_source_renders_structured_data_comment},
-    {"facts_v2_render_asm_source_hides_labels_inside_structured_data",
-      test_facts_v2_render_asm_source_hides_labels_inside_structured_data},
     {"facts_v2_render_asm_source_renders_copper_list_structured_data",
       test_facts_v2_render_asm_source_renders_copper_list_structured_data},
     {"facts_v2_runtime_copper_pointer_auto_classifies_copper_list",

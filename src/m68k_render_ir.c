@@ -3253,18 +3253,6 @@ static void render_lookup_destroy(M68kRenderLookup *lookup) {
     for (section_index = 0U; section_index < lookup->section_count; ++section_index)
       free(lookup->runtime_address_ref_indices[section_index]);
   }
-  if (lookup->structured_data_item_start_indices != NULL) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
-      free(lookup->structured_data_item_start_indices[section_index]);
-  }
-  if (lookup->structured_data_item_cover_indices != NULL) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
-      free(lookup->structured_data_item_cover_indices[section_index]);
-  }
-  if (lookup->string_span_indices != NULL) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
-      free(lookup->string_span_indices[section_index]);
-  }
   free(lookup->labels);
   free(lookup->object_symbol_labels);
   free(lookup->relocations);
@@ -3279,11 +3267,6 @@ static void render_lookup_destroy(M68kRenderLookup *lookup) {
   free(lookup->instruction_comment_extents);
   free(lookup->runtime_address_ref_indices);
   free(lookup->runtime_address_ref_index_extents);
-  free(lookup->structured_data_item_start_indices);
-  free(lookup->structured_data_item_cover_indices);
-  free(lookup->structured_data_item_index_extents);
-  free(lookup->string_span_indices);
-  free(lookup->string_span_index_extents);
   memset(lookup, 0, sizeof(*lookup));
 }
 
@@ -3362,12 +3345,6 @@ const M68kAnalysisStructuredDataItem *lookup_structured_data_item_at_offset(
     const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
   uint16_t index;
   const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
-  if (lookup != NULL && section_index < lookup->section_count &&
-      lookup->structured_data_item_start_indices != NULL && lookup->structured_data_item_index_extents != NULL &&
-      lookup->structured_data_item_start_indices[section_index] != NULL &&
-      offset < lookup->structured_data_item_index_extents[section_index]) {
-    return lookup->structured_data_item_start_indices[section_index][offset];
-  }
   if (policy != NULL) {
     for (index = 0U; index < policy->structured_data_item_count &&
          index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
@@ -3391,12 +3368,6 @@ const M68kAnalysisStructuredDataItem *lookup_structured_data_item_covering_offse
     const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
   uint16_t index;
   const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
-  if (lookup != NULL && section_index < lookup->section_count &&
-      lookup->structured_data_item_cover_indices != NULL && lookup->structured_data_item_index_extents != NULL &&
-      lookup->structured_data_item_cover_indices[section_index] != NULL &&
-      offset < lookup->structured_data_item_index_extents[section_index]) {
-    return lookup->structured_data_item_cover_indices[section_index][offset];
-  }
   if (policy != NULL) {
     for (index = 0U; index < policy->structured_data_item_count &&
          index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
@@ -3425,132 +3396,6 @@ const M68kAnalysisStructuredDataItem *lookup_structured_data_item_covering_offse
 static int lookup_has_structured_data_item_at_offset(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset) {
   return lookup_structured_data_item_at_offset(lookup, section_index, offset) != NULL;
-}
-
-static int render_lookup_index_structured_item(M68kRenderLookup *lookup,
-    const M68kAnalysisStructuredDataItem *item, size_t section_index) {
-  uint32_t end;
-  uint32_t cursor;
-  if (lookup == NULL || item == NULL || section_index >= lookup->section_count ||
-      lookup->structured_data_item_start_indices == NULL || lookup->structured_data_item_cover_indices == NULL ||
-      lookup->structured_data_item_index_extents == NULL ||
-      lookup->structured_data_item_start_indices[section_index] == NULL ||
-      lookup->structured_data_item_cover_indices[section_index] == NULL ||
-      item->size == 0U || !structured_item_matches_section(item, section_index)) {
-    return 0;
-  }
-  if (item->offset >= lookup->structured_data_item_index_extents[section_index]) return 0;
-  if (lookup->structured_data_item_start_indices[section_index][item->offset] == NULL)
-    lookup->structured_data_item_start_indices[section_index][item->offset] = item;
-  if (UINT32_MAX - item->offset < item->size) return 0;
-  end = item->offset + item->size;
-  if (end > lookup->structured_data_item_index_extents[section_index])
-    end = lookup->structured_data_item_index_extents[section_index];
-  for (cursor = item->offset; cursor < end; ++cursor) {
-    if (lookup->structured_data_item_cover_indices[section_index][cursor] == NULL)
-      lookup->structured_data_item_cover_indices[section_index][cursor] = item;
-  }
-  return 0;
-}
-
-static int render_lookup_rebuild_data_span_indices(M68kRenderLookup *lookup) {
-  size_t section_index;
-  size_t string_index;
-  size_t auto_index;
-  uint16_t policy_index;
-  size_t section_capacity;
-  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
-  if (lookup == NULL) return -1;
-  section_capacity = lookup->section_count != 0U ? lookup->section_count : 1U;
-  if (lookup->structured_data_item_start_indices == NULL) {
-    lookup->structured_data_item_start_indices =
-      (const M68kAnalysisStructuredDataItem ***)calloc(section_capacity,
-      sizeof(*lookup->structured_data_item_start_indices));
-  }
-  if (lookup->structured_data_item_cover_indices == NULL) {
-    lookup->structured_data_item_cover_indices =
-      (const M68kAnalysisStructuredDataItem ***)calloc(section_capacity,
-      sizeof(*lookup->structured_data_item_cover_indices));
-  }
-  if (lookup->structured_data_item_index_extents == NULL) {
-    lookup->structured_data_item_index_extents = (uint32_t *)calloc(section_capacity,
-      sizeof(*lookup->structured_data_item_index_extents));
-  }
-  if (lookup->string_span_indices == NULL) {
-    lookup->string_span_indices =
-      (const M68kRenderStringSpan ***)calloc(section_capacity, sizeof(*lookup->string_span_indices));
-  }
-  if (lookup->string_span_index_extents == NULL) {
-    lookup->string_span_index_extents =
-      (uint32_t *)calloc(section_capacity, sizeof(*lookup->string_span_index_extents));
-  }
-  if (lookup->structured_data_item_start_indices == NULL || lookup->structured_data_item_cover_indices == NULL ||
-      lookup->structured_data_item_index_extents == NULL || lookup->string_span_indices == NULL ||
-      lookup->string_span_index_extents == NULL) {
-    return -1;
-  }
-  for (section_index = 0U; section_index < lookup->section_count; ++section_index) {
-    uint32_t extent = lookup->label_extents != NULL ? lookup->label_extents[section_index] + 1U : 0U;
-    if (extent == 0U) continue;
-    if (lookup->structured_data_item_start_indices[section_index] == NULL) {
-      lookup->structured_data_item_start_indices[section_index] =
-        (const M68kAnalysisStructuredDataItem **)calloc(extent,
-          sizeof(*lookup->structured_data_item_start_indices[section_index]));
-    } else {
-      memset(lookup->structured_data_item_start_indices[section_index], 0,
-        extent * sizeof(*lookup->structured_data_item_start_indices[section_index]));
-    }
-    if (lookup->structured_data_item_cover_indices[section_index] == NULL) {
-      lookup->structured_data_item_cover_indices[section_index] =
-        (const M68kAnalysisStructuredDataItem **)calloc(extent,
-          sizeof(*lookup->structured_data_item_cover_indices[section_index]));
-    } else {
-      memset(lookup->structured_data_item_cover_indices[section_index], 0,
-        extent * sizeof(*lookup->structured_data_item_cover_indices[section_index]));
-    }
-    if (lookup->string_span_indices[section_index] == NULL) {
-      lookup->string_span_indices[section_index] =
-        (const M68kRenderStringSpan **)calloc(extent, sizeof(*lookup->string_span_indices[section_index]));
-    } else {
-      memset(lookup->string_span_indices[section_index], 0,
-        extent * sizeof(*lookup->string_span_indices[section_index]));
-    }
-    if (lookup->structured_data_item_start_indices[section_index] == NULL ||
-        lookup->structured_data_item_cover_indices[section_index] == NULL ||
-        lookup->string_span_indices[section_index] == NULL) {
-      return -1;
-    }
-    lookup->structured_data_item_index_extents[section_index] = extent;
-    lookup->string_span_index_extents[section_index] = extent;
-  }
-  if (policy != NULL) {
-    for (policy_index = 0U; policy_index < policy->structured_data_item_count &&
-         policy_index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++policy_index) {
-      for (section_index = 0U; section_index < lookup->section_count; ++section_index) {
-        if (render_lookup_index_structured_item(lookup, &policy->structured_data_items[policy_index],
-            section_index) != 0)
-          return -1;
-      }
-    }
-  }
-  for (auto_index = 0U; auto_index < lookup->auto_structured_data_item_count; ++auto_index) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index) {
-      if (render_lookup_index_structured_item(lookup, &lookup->auto_structured_data_items[auto_index],
-          section_index) != 0)
-        return -1;
-    }
-  }
-  for (string_index = 0U; string_index < lookup->string_span_count; ++string_index) {
-    M68kRenderStringSpan *span = &lookup->string_spans[string_index];
-    if (span->section_index >= lookup->section_count || span->size == 0U ||
-        lookup->string_span_indices[span->section_index] == NULL ||
-        span->offset >= lookup->string_span_index_extents[span->section_index]) {
-      continue;
-    }
-    if (lookup->string_span_indices[span->section_index][span->offset] == NULL)
-      lookup->string_span_indices[span->section_index][span->offset] = span;
-  }
-  return 0;
 }
 
 int structured_data_item_comment(const M68kAnalysisStructuredDataItem *item, char *comment,
@@ -6267,7 +6112,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
       m68k_analysis_render_lookup_append_auto_policy(out_source_analysis, &lookup) != 0) {
     goto cleanup;
   }
-  if (render_lookup_rebuild_data_span_indices(&lookup) != 0) goto cleanup;
   if (render_asm_source) {
     out_preview->platform_base_slot_count = (uint32_t)(lookup.global_base_slot_count + lookup.base_field_slot_count);
   }

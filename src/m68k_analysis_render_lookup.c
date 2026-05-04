@@ -4535,11 +4535,6 @@ const M68kRenderStringSpan *lookup_string_span_at_offset(const M68kRenderLookup 
     uint32_t offset) {
   size_t index;
   if (lookup == NULL) return NULL;
-  if (section_index < lookup->section_count && lookup->string_span_indices != NULL &&
-      lookup->string_span_index_extents != NULL && lookup->string_span_indices[section_index] != NULL &&
-      offset < lookup->string_span_index_extents[section_index]) {
-    return lookup->string_span_indices[section_index][offset];
-  }
   for (index = 0U; index < lookup->string_span_count; ++index) {
     const M68kRenderStringSpan *entry = &lookup->string_spans[index];
     if (entry->section_index == section_index && entry->offset == offset && entry->size != 0U) return entry;
