@@ -5805,14 +5805,14 @@ static int render_lookup_infer_amiga_audio_length_sources(M68kRenderLookup *look
 }
 
 static int candidate_immediate_audio_length_bytes(const M68kDecodeCandidate *candidate,
-    const char *audio_register_symbol, uint32_t *out_size) {
+    uint32_t audio_register_offset, uint32_t *out_size) {
   M68kInstructionIR instruction;
   const AmigaOsHardwareRegisterFieldInfo *hardware_field;
   uint32_t immediate = 0U;
   uint32_t dest_address = 0U;
   if (out_size != NULL) *out_size = 0U;
-  if (candidate == NULL || audio_register_symbol == NULL || out_size == NULL ||
-      candidate->mnemonic_id != M68K_ASM_MNEMONIC_MOVE || candidate->size_suffix != 'w' ||
+  if (candidate == NULL || out_size == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_MOVE ||
+      candidate->size_suffix != 'w' ||
       candidate->operand_count != 2U) {
     return 0;
   }
@@ -5822,8 +5822,8 @@ static int candidate_immediate_audio_length_bytes(const M68kDecodeCandidate *can
     return 0;
   }
   hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(dest_address);
-  if (hardware_field == NULL || hardware_field->register_symbol == NULL || hardware_field->field_symbol == NULL ||
-      strcmp(hardware_field->register_symbol, audio_register_symbol) != 0 ||
+  if (hardware_field == NULL || hardware_field->field_symbol == NULL ||
+      hardware_field->register_offset != audio_register_offset ||
       strcmp(hardware_field->field_symbol, "ac_len") != 0) {
     return 0;
   }
@@ -5855,7 +5855,7 @@ static uint32_t sound_sample_size_from_nearby_audio_length_write(const M68kDecod
     const M68kDecodeCandidate *candidate = find_candidate_at_offset_local(section, cursor);
     uint32_t size = 0U;
     if (candidate == NULL || candidate->byte_count == 0U) return 0U;
-    if (candidate_immediate_audio_length_bytes(candidate, hardware_register->symbol_name, &size)) return size;
+    if (candidate_immediate_audio_length_bytes(candidate, hardware_register->offset, &size)) return size;
     cursor += candidate->byte_count;
   }
   return 0U;

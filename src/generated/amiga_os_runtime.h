@@ -14748,7 +14748,15 @@ typedef struct AmigaOsHardwareRegisterFieldInfo {
   uint32_t field_offset;
   const char *field_symbol;
   const char *include_path;
+  const char *repeat_stride_symbol;
+  uint32_t repeat_stride;
+  const char *instance_symbol;
 } AmigaOsHardwareRegisterFieldInfo;
+
+typedef struct AmigaOsHardwareRegisterInstanceAliasInfo {
+  const char *symbol_name;
+  const char *expr;
+} AmigaOsHardwareRegisterInstanceAliasInfo;
 
 typedef struct AmigaOsHardwareRegisterRangeInfo {
   const char *base_symbol;
@@ -14817,6 +14825,8 @@ const AmigaOsResidentVectorPrefixInfo *amiga_os_resident_vector_prefix_at(size_t
 const AmigaOsResidentEntrySeedInfo *amiga_os_resident_entry_seed_at(size_t index);
 const AmigaOsHardwareRegisterInfo *amiga_os_hardware_register_at(size_t index);
 const AmigaOsHardwareRegisterFieldInfo *amiga_os_hardware_register_field_at(size_t index);
+const AmigaOsHardwareRegisterInstanceAliasInfo *amiga_os_hardware_register_instance_alias_at(size_t index);
+const char *amiga_os_find_hardware_register_instance_alias_expr(const char *symbol_name);
 const AmigaOsHardwareRegisterRangeInfo *amiga_os_hardware_register_range_at(size_t index);
 const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_cpu_address(uint32_t cpu_address);
 const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_offset(const char *base_symbol, uint32_t offset);
@@ -14847,6 +14857,7 @@ uint8_t amiga_os_lvo_slot_size(void);
 #define AMIGA_OS_RESIDENT_ENTRY_SEED_COUNT 6u
 #define AMIGA_OS_HARDWARE_REGISTER_COUNT 133u
 #define AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT 52u
+#define AMIGA_OS_HARDWARE_REGISTER_INSTANCE_ALIAS_COUNT 8u
 #define AMIGA_OS_HARDWARE_REGISTER_RANGE_COUNT 15u
 #define AMIGA_OS_DSKLEN_DMA_ENABLE_MASK 32768u
 #define AMIGA_OS_DSKLEN_WRITE_MASK 16384u

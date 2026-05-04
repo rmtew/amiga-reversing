@@ -5378,13 +5378,13 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
   M68K_C_ASSERT(intena != NULL);
   M68K_C_ASSERT(aud0_len != NULL);
   M68K_C_ASSERT(aud0_len_by_base == aud0_len);
-  M68K_C_ASSERT_STR("aud0", aud0_len->register_symbol);
+  M68K_C_ASSERT_STR("aud", aud0_len->register_symbol);
   M68K_C_ASSERT_STR("ac_len", aud0_len->field_symbol);
   M68K_C_ASSERT(spr1_dataa != NULL);
   M68K_C_ASSERT_STR("spr", spr1_dataa->register_symbol);
   M68K_C_ASSERT_STR("sd_dataa", spr1_dataa->field_symbol);
   M68K_C_ASSERT(format_amiga_hardware_register_field_symbol(spr1_dataa, 0, symbol_expr, sizeof(symbol_expr)));
-  M68K_C_ASSERT_STR("spr+sd_dataa+$08", symbol_expr);
+  M68K_C_ASSERT_STR("spr1+sd_dataa", symbol_expr);
   M68K_C_ASSERT(spr_range != NULL);
   M68K_C_ASSERT_STR("spr", spr_range->symbol_name);
   M68K_C_ASSERT(bplpt_tail != NULL);
@@ -10474,7 +10474,7 @@ static int test_facts_v2_audio_pointer_and_length_auto_classifies_sound_sample(v
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tmove.l #loc_0_00000014,_custom+aud0.l\t; sound_sample pointer\n") != NULL);
+    "\tmove.l #loc_0_00000014,_custom+aud0+ac_ptr.l\t; sound_sample pointer\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "\tmove.w #$4,_custom+aud0+ac_len.l\t; sound sample length 8 bytes\n") != NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
@@ -10580,7 +10580,7 @@ static int test_facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance
   M68K_C_ASSERT(strstr(source, "\tadda.w loc_0_00000028(pc,d0.w),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l $0030(a0),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tmove.l a0,_custom+aud0.l\t"
+    "\tmove.l a0,_custom+aud0+ac_ptr.l\t"
     "; source loc_0_00000060 + dynamic offset from loc_0_00000028 | sound_sample pointer\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "\tmove.w d0,_custom+aud0+ac_per.l\t; period from loc_0_0000002A transformed | audio period\n") != NULL);

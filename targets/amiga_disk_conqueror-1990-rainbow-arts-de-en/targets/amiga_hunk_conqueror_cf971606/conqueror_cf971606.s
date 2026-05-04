@@ -5,6 +5,8 @@
 
 _ciaa	EQU	$BFE001
 _custom	EQU	$DFF000
+spr0	EQU	spr
+spr1	EQU	spr+sd_SIZEOF
 _ciab	EQU	$BFD000
 
     SECTION section_0,code
@@ -53,8 +55,8 @@ loc_0_000000C8:
 	move.w #$7FFF,d0
 	move.w d0,intena(a6)
 	move.w d0,dmacon(a6)
-	clr.l spr+sd_dataa(a6)
-	clr.l spr+sd_dataa+$08(a6)
+	clr.l spr0+sd_dataa(a6)
+	clr.l spr1+sd_dataa(a6)
 	lea.l loc_0_00000040.l,a7
 	bset.b #CIAB_DSKMOTOR,_ciab+ciaprb.l
 	bclr.b #CIAB_DSKSEL0,_ciab+ciaprb.l

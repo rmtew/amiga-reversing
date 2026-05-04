@@ -10208,7 +10208,7 @@ loc_0_000088BE:
 	move.w -$0002(a0),d1
 	lsr.w #1,d1
 	asl.w #2,d0
-	move.l a0,_custom+aud0.l	; source loc_0_00054452 + dynamic offset from loc_0_00008938 | sound_sample pointer
+	move.l a0,_custom+aud0+ac_ptr.l	; source loc_0_00054452 + dynamic offset from loc_0_00008938 | sound_sample pointer
 	move.w d1,_custom+aud0+ac_len.l	; audio sample length derived from -$0002(a0) header word
 	move.w #$40,_custom+aud0+ac_vol.l	; audio volume 64
 	move.w d0,_custom+aud0+ac_per.l	; period from loc_0_0000893A transformed | audio period

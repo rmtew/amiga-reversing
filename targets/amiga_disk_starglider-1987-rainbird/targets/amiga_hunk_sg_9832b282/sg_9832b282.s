@@ -226,8 +226,6 @@ app_005E EQU $005E
 app_005F EQU $005F
 app_0061 EQU $0061
 app_0096 EQU $0096
-app_009A EQU $009A
-app_009E EQU $009E
 app_00DA EQU $00DA
 app_00DF EQU $00DF
 app_015A EQU $015A
@@ -357,6 +355,14 @@ _custom	EQU	$DFF000
 sound_sample_00068000	EQU	$68000
 sound_sample_00060000	EQU	$60000
 _ciaa	EQU	$BFE001
+spr0	EQU	spr
+spr1	EQU	spr+sd_SIZEOF
+spr2	EQU	spr+sd_SIZEOF*2
+spr3	EQU	spr+sd_SIZEOF*3
+spr4	EQU	spr+sd_SIZEOF*4
+spr5	EQU	spr+sd_SIZEOF*5
+spr6	EQU	spr+sd_SIZEOF*6
+spr7	EQU	spr+sd_SIZEOF*7
 m68k_vector_level_1_interrupt_autovector	EQU	$64
 m68k_vector_level_2_interrupt_autovector	EQU	$68
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
@@ -7736,14 +7742,14 @@ loc_0_00007D96:
 	move.w #$20,d0
 	move.w d0,dmacon(a5)
 	moveq.l #0,d0
-	move.w d0,spr+sd_ctl(a5)
-	move.w d0,$014A(a5)
-	move.w d0,$0152(a5)
-	move.w d0,$015A(a5)
-	move.w d0,$0162(a5)
-	move.w d0,$016A(a5)
-	move.w d0,$0172(a5)
-	move.w d0,$017A(a5)
+	move.w d0,spr0+sd_ctl(a5)
+	move.w d0,spr1+sd_ctl(a5)
+	move.w d0,spr2+sd_ctl(a5)
+	move.w d0,spr3+sd_ctl(a5)
+	move.w d0,spr4+sd_ctl(a5)
+	move.w d0,spr5+sd_ctl(a5)
+	move.w d0,spr6+sd_ctl(a5)
+	move.w d0,spr7+sd_ctl(a5)
 	move.w #$8020,d0
 	move.w d0,intena(a5)
 	move.w #$2000,d0
@@ -9968,7 +9974,7 @@ loc_0_0000ABE2:
 loc_0_0000ABEA:
 	move.w #INTF_SETCLR|INTF_AUD0,_custom+intena.l
 	clr.b loc_0_0000AF4B.l
-	move.l (a0)+,_custom+aud0.l	; sound_sample pointer
+	move.l (a0)+,_custom+aud0+ac_ptr.l	; sound_sample pointer
 	move.w (a0)+,_custom+aud0+ac_len.l
 	move.w #$40,d1
 	sub.w d2,d1
@@ -9984,7 +9990,7 @@ loc_0_0000AC18:
 	andi.w #127,d2
 	move.w #INTF_SETCLR|INTF_AUD1,_custom+intena.l
 	clr.b loc_0_0000AF48.l
-	move.l (a1)+,_custom+aud1.l	; sound_sample pointer
+	move.l (a1)+,_custom+aud1+ac_ptr.l	; sound_sample pointer
 	move.w (a1)+,_custom+aud1+ac_len.l
 	tst.b app_033D(a6)
 	beq.b loc_0_0000AC58
@@ -10000,7 +10006,7 @@ loc_0_0000AC58:
 loc_0_0000AC72:
 	move.w #INTF_SETCLR|INTF_AUD2,_custom+intena.l
 	clr.b loc_0_0000AF49.l
-	move.l (a1)+,_custom+aud2.l	; sound_sample pointer
+	move.l (a1)+,_custom+aud2+ac_ptr.l	; sound_sample pointer
 	move.w (a1)+,_custom+aud2+ac_len.l
 	tst.b app_033D(a6)
 	beq.b loc_0_0000AC9A
@@ -10016,7 +10022,7 @@ loc_0_0000AC9A:
 loc_0_0000ACB4:
 	move.w #INTF_SETCLR|INTF_AUD3,_custom+intena.l
 	clr.b loc_0_0000AF4A.l
-	move.l (a0)+,_custom+aud3.l	; sound_sample pointer
+	move.l (a0)+,_custom+aud3+ac_ptr.l	; sound_sample pointer
 	move.w (a0)+,_custom+aud3+ac_len.l
 	move.w #$40,d1
 	sub.w d2,d1
@@ -10055,7 +10061,7 @@ loc_0_0000AD38:
 	bne.w loc_0_0000AD62
 	move.b #$FF,loc_0_0000AF4A.l
 	lea.l loc_0_0000AF4C.l,a0
-	move.l a0,_custom+aud3.l	; source loc_0_0000AF4C | sound_sample pointer
+	move.l a0,_custom+aud3+ac_ptr.l	; source loc_0_0000AF4C | sound_sample pointer
 	move.w #$14,_custom+aud3+ac_len.l	; sound sample length 40 bytes
 	bra.w loc_0_0000AD1A
 loc_0_0000AD62:
@@ -10067,7 +10073,7 @@ loc_0_0000AD76:
 	bne.w loc_0_0000ADA0
 	move.b #$FF,loc_0_0000AF49.l
 	lea.l loc_0_0000AF4C.l,a0
-	move.l a0,_custom+aud2.l	; source loc_0_0000AF4C | sound_sample pointer
+	move.l a0,_custom+aud2+ac_ptr.l	; source loc_0_0000AF4C | sound_sample pointer
 	move.w #$14,_custom+aud2+ac_len.l	; sound sample length 40 bytes
 	bra.w loc_0_0000AD22
 loc_0_0000ADA0:
@@ -10079,7 +10085,7 @@ loc_0_0000ADB4:
 	bne.w loc_0_0000ADDE
 	move.b #$FF,loc_0_0000AF48.l
 	lea.l loc_0_0000AF4C.l,a0
-	move.l a0,_custom+aud1.l	; source loc_0_0000AF4C | sound_sample pointer
+	move.l a0,_custom+aud1+ac_ptr.l	; source loc_0_0000AF4C | sound_sample pointer
 	move.w #$14,_custom+aud1+ac_len.l	; sound sample length 40 bytes
 	bra.w loc_0_0000AD2A
 loc_0_0000ADDE:
@@ -10091,7 +10097,7 @@ loc_0_0000ADF2:
 	bne.w loc_0_0000AE1C
 	move.b #$FF,loc_0_0000AF4B.l
 	lea.l loc_0_0000AF4C.l,a0
-	move.l a0,_custom+aud0.l	; source loc_0_0000AF4C | sound_sample pointer
+	move.l a0,_custom+aud0+ac_ptr.l	; source loc_0_0000AF4C | sound_sample pointer
 	move.w #$14,_custom+aud0+ac_len.l	; sound sample length 40 bytes
 	bra.w loc_0_0000AD32
 loc_0_0000AE1C:
@@ -21564,7 +21570,7 @@ loc_0_00035CB0:
 	move.b (a0)+,d2
 	move.w d2,app_3622(a6)
 	move.l a0,app_364A(a6)
-	move.l app_365A(a6),_custom+aud0.l	; sound_sample pointer
+	move.l app_365A(a6),_custom+aud0+ac_ptr.l	; sound_sample pointer
 	move.w app_3632(a6),_custom+aud0+ac_len.l
 	move.w d0,_custom+aud0+ac_vol.l
 	move.w app_362A(a6),_custom+aud0+ac_per.l	; audio period
@@ -21638,7 +21644,7 @@ loc_0_00035DDE:
 	move.b (a0)+,d2
 	move.l a0,app_364E(a6)
 	move.w d2,app_3624(a6)
-	move.l app_365E(a6),_custom+aud1.l	; sound_sample pointer
+	move.l app_365E(a6),_custom+aud1+ac_ptr.l	; sound_sample pointer
 	move.w app_3634(a6),_custom+aud1+ac_len.l
 	move.w d0,_custom+aud1+ac_vol.l
 	move.w app_362C(a6),_custom+aud1+ac_per.l	; audio period
@@ -21712,7 +21718,7 @@ loc_0_00035F0C:
 	move.b (a0)+,d2
 	move.w d2,app_3626(a6)
 	move.l a0,app_3652(a6)
-	move.l app_3662(a6),_custom+aud2.l	; sound_sample pointer
+	move.l app_3662(a6),_custom+aud2+ac_ptr.l	; sound_sample pointer
 	move.w app_3636(a6),_custom+aud2+ac_len.l
 	move.w d0,_custom+aud2+ac_vol.l
 	move.w app_362E(a6),_custom+aud2+ac_per.l	; audio period
@@ -21786,7 +21792,7 @@ loc_0_0003603A:
 	move.b (a0)+,d2
 	move.l a0,app_3656(a6)
 	move.w d2,app_3628(a6)
-	move.l app_3666(a6),_custom+aud3.l	; sound_sample pointer
+	move.l app_3666(a6),_custom+aud3+ac_ptr.l	; sound_sample pointer
 	move.w app_3638(a6),_custom+aud3+ac_len.l
 	move.w d0,_custom+aud3+ac_vol.l
 	move.w app_3630(a6),_custom+aud3+ac_per.l	; audio period

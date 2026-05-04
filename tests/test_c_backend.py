@@ -3733,7 +3733,7 @@ def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
     assert source_text.count("\tmovea.l $00000004.l,a6\n") == 2
     assert "\tlea.l loc_0_00000004.l,a1\n" in source_text
     assert "\tjmp loc_0_00000004.l\n" in source_text
-    assert "\tclr.l spr+sd_dataa+$08(a6)\n" in source_text
+    assert "\tclr.l spr1+sd_dataa(a6)\n" in source_text
     assert "\tclr.l app_014C(a6)\n" not in source_text
     assert "app_014C" not in source_text.split("    SECTION section_0,code\n", 1)[0]
     assert "\tmove.l d0,loc_0_0000004E.l\n" in source_text
@@ -3881,7 +3881,7 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "loc_0_0000005C\tEQU" not in source_text
     assert "\tmove.l #loc_0_00008E10,_custom+cop1lc.l\t; copper_list pointer\n" in source_text
     assert (
-        "\tmove.l a0,_custom+aud0.l\t"
+        "\tmove.l a0,_custom+aud0+ac_ptr.l\t"
         "; source loc_0_00054452 + dynamic offset from loc_0_00008938 | sound_sample pointer\n"
     ) in source_text
     assert (

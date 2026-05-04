@@ -49,11 +49,12 @@ AMIGA_VALUE_DOMAIN_REMAINDER_ERROR = 1
 AMIGA_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK = 1
 
 CUSTOM_HARDWARE_REGISTER_FIELD_GROUPS: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
-    (("aud0", "aud1", "aud2", "aud3"), ("ac_ptr", "ac_len", "ac_per", "ac_vol", "ac_dat")),
+    (("aud",), ("ac_ptr", "ac_len", "ac_per", "ac_vol", "ac_dat")),
     (("spr",), ("sd_pos", "sd_ctl", "sd_dataa", "sd_dataB")),
 )
 
 CUSTOM_HARDWARE_REPEATED_FIELD_RANGES: tuple[tuple[str, str], ...] = (
+    ("aud", "ac_SIZEOF"),
     ("spr", "sd_SIZEOF"),
 )
 
@@ -994,10 +995,13 @@ def hardware_register_rows(payload: dict, merged_domains: dict[str, dict],
 
 def hardware_register_field_rows(
     hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
-                                 includes_payload: dict) -> list[tuple[str, int, int, str, int, str, str]]:
+                                 includes_payload: dict) -> tuple[
+    list[tuple[str, int, int, str, int, str, str, str | None, int, str | None]],
+    list[tuple[str, str]],
+]:
     constants = includes_payload.get("constants", {})
     if not isinstance(constants, dict):
-        return []
+        return [], []
     constant_values: dict[str, tuple[int, str]] = {}
     for symbol_name, info in constants.items():
         if not isinstance(symbol_name, str) or not isinstance(info, dict):
@@ -1012,13 +1016,44 @@ def hardware_register_field_rows(
         for base_symbol, base_address, offset, symbol_name, include_path, _, _, _, _ in hardware_rows
     }
     hardware_start_offsets = sorted({row[2] for row in hardware_rows})
-    rows: list[tuple[str, int, int, str, int, str, str]] = []
+    rows: list[tuple[str, int, int, str, int, str, str, str | None, int, str | None]] = []
+    alias_rows: dict[str, str] = {}
     for register_symbols, field_symbols in CUSTOM_HARDWARE_REGISTER_FIELD_GROUPS:
         for register_symbol in register_symbols:
             register = registers_by_symbol.get(register_symbol)
             if register is None:
+                register_constant = constant_values.get(register_symbol)
+                if register_constant is not None:
+                    register_offset, register_include_path = register_constant
+                    register = next(((base_symbol, base_address, offset, include_path)
+                                     for base_symbol, base_address, offset, _, include_path, _, _, _, _ in hardware_rows
+                                     if offset == register_offset and include_path == register_include_path), None)
+            if register is None:
                 continue
             base_symbol, base_address, register_offset, register_include_path = register
+            size_symbol = next((size for symbol, size in CUSTOM_HARDWARE_REPEATED_FIELD_RANGES
+                                if symbol == register_symbol), None)
+            size_value = constant_values.get(size_symbol) if size_symbol is not None else None
+            stride = size_value[0] if size_value is not None else 0
+            def instance_symbol_for_offset(offset: int) -> str | None:
+                alias_prefix = register_symbol.upper()
+                for constant_symbol, (constant_offset, _) in constant_values.items():
+                    if constant_offset != offset:
+                        continue
+                    suffix = constant_symbol[len(register_symbol):]
+                    if constant_symbol.upper().startswith(alias_prefix) and suffix.isdigit():
+                        return constant_symbol
+                if stride > 0 and offset >= register_offset and (offset - register_offset) % stride == 0:
+                    index = (offset - register_offset) // stride
+                    alias_symbol = f"{register_symbol}{index}"
+                    if index == 0:
+                        alias_rows.setdefault(alias_symbol, register_symbol)
+                    elif index == 1:
+                        alias_rows.setdefault(alias_symbol, f"{register_symbol}+{size_symbol}")
+                    else:
+                        alias_rows.setdefault(alias_symbol, f"{register_symbol}+{size_symbol}*{index}")
+                    return alias_symbol
+                return None
             for field_symbol in field_symbols:
                 field = constant_values.get(field_symbol)
                 if field is None:
@@ -1028,17 +1063,22 @@ def hardware_register_field_rows(
                     continue
                 include_path = field_include_path or register_include_path
                 rows.append((base_symbol, base_address, register_offset, register_symbol, field_offset,
-                             field_symbol, include_path))
-            size_symbol = next((size for symbol, size in CUSTOM_HARDWARE_REPEATED_FIELD_RANGES
-                                if symbol == register_symbol), None)
-            size_value = constant_values.get(size_symbol) if size_symbol is not None else None
+                             field_symbol, include_path, None, 0, instance_symbol_for_offset(register_offset)))
             next_hardware_offset = next((candidate for candidate in hardware_start_offsets
                                          if candidate > register_offset), None)
             if size_value is None or next_hardware_offset is None:
                 continue
-            stride, _ = size_value
             if stride <= 0:
                 continue
+            numbered_offsets = [offset for _, _, offset, symbol_name, _, _, _, _, _ in hardware_rows
+                                if symbol_name.upper().startswith(register_symbol.upper()) and
+                                len(symbol_name) > len(register_symbol) and
+                                symbol_name[len(register_symbol):len(register_symbol) + 1].isdigit()]
+            if len(numbered_offsets) >= 2 and min(numbered_offsets) == register_offset:
+                numbered_next_offset = next((candidate for candidate in hardware_start_offsets
+                                             if candidate > max(numbered_offsets)), None)
+                if numbered_next_offset is not None:
+                    next_hardware_offset = numbered_next_offset
             repeated_offset = register_offset + stride
             while repeated_offset < next_hardware_offset:
                 for field_symbol in field_symbols:
@@ -1050,9 +1090,13 @@ def hardware_register_field_rows(
                         continue
                     include_path = field_include_path or register_include_path
                     rows.append((base_symbol, base_address, repeated_offset, register_symbol, field_offset,
-                                 field_symbol, include_path))
+                                 field_symbol, include_path, size_symbol, stride,
+                                 instance_symbol_for_offset(repeated_offset)))
                 repeated_offset += stride
-    return sorted(set(rows), key=lambda row: (row[1], row[2] + row[4], row[2], row[3], row[4], row[5]))
+    return (
+        sorted(set(rows), key=lambda row: (row[1], row[2] + row[4], row[2], row[3], row[4], row[5])),
+        sorted(alias_rows.items()),
+    )
 
 
 def hardware_register_range_rows(
@@ -1694,7 +1738,8 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
                  struct_field_binding_rows: list[tuple[str, str, str | None, str]],
                  domain_constant_rows: list[tuple[str, int, str | None]],
                  hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
-                 hardware_field_rows: list[tuple[str, int, int, str, int, str, str]],
+                 hardware_field_rows: list[tuple[str, int, int, str, int, str, str, str | None, int, str | None]],
+                 hardware_instance_alias_rows: list[tuple[str, str]],
                  hardware_range_rows: list[tuple[str, int, int, int, str, str]],
                  compatibility_versions_data: list[str], include_min_versions_data: list[tuple[str, str]],
                  includes_payload: dict, other_payload: dict,
@@ -1947,7 +1992,15 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "  uint32_t field_offset;",
         "  const char *field_symbol;",
         "  const char *include_path;",
+        "  const char *repeat_stride_symbol;",
+        "  uint32_t repeat_stride;",
+        "  const char *instance_symbol;",
         "} AmigaOsHardwareRegisterFieldInfo;",
+        "",
+        "typedef struct AmigaOsHardwareRegisterInstanceAliasInfo {",
+        "  const char *symbol_name;",
+        "  const char *expr;",
+        "} AmigaOsHardwareRegisterInstanceAliasInfo;",
         "",
         "typedef struct AmigaOsHardwareRegisterRangeInfo {",
         "  const char *base_symbol;",
@@ -2016,6 +2069,8 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "const AmigaOsResidentEntrySeedInfo *amiga_os_resident_entry_seed_at(size_t index);",
         "const AmigaOsHardwareRegisterInfo *amiga_os_hardware_register_at(size_t index);",
         "const AmigaOsHardwareRegisterFieldInfo *amiga_os_hardware_register_field_at(size_t index);",
+        "const AmigaOsHardwareRegisterInstanceAliasInfo *amiga_os_hardware_register_instance_alias_at(size_t index);",
+        "const char *amiga_os_find_hardware_register_instance_alias_expr(const char *symbol_name);",
         "const AmigaOsHardwareRegisterRangeInfo *amiga_os_hardware_register_range_at(size_t index);",
         "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_cpu_address(uint32_t cpu_address);",
         "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_offset(const char *base_symbol, uint32_t offset);",
@@ -2046,6 +2101,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         f"#define AMIGA_OS_RESIDENT_ENTRY_SEED_COUNT {len(resident_seed_rows)}u",
         f"#define AMIGA_OS_HARDWARE_REGISTER_COUNT {len(hardware_rows)}u",
         f"#define AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT {len(hardware_field_rows)}u",
+        f"#define AMIGA_OS_HARDWARE_REGISTER_INSTANCE_ALIAS_COUNT {len(hardware_instance_alias_rows)}u",
         f"#define AMIGA_OS_HARDWARE_REGISTER_RANGE_COUNT {len(hardware_range_rows)}u",
         f"#define AMIGA_OS_DSKLEN_DMA_ENABLE_MASK {int(disk_constraints['bootloader_dsklen_dma_enable_mask'])}u",
         f"#define AMIGA_OS_DSKLEN_WRITE_MASK {int(disk_constraints['bootloader_dsklen_write_mask'])}u",
@@ -2066,7 +2122,8 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
                  struct_field_binding_rows: list[tuple[str, str, str | None, str]],
                  domain_constant_rows: list[tuple[str, int, str | None]],
                  hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
-                 hardware_field_rows: list[tuple[str, int, int, str, int, str, str]],
+                 hardware_field_rows: list[tuple[str, int, int, str, int, str, str, str | None, int, str | None]],
+                 hardware_instance_alias_rows: list[tuple[str, str]],
                  hardware_range_rows: list[tuple[str, int, int, int, str, str]],
                  compatibility_versions_data: list[str], include_min_versions_data: list[tuple[str, str]],
                  includes_payload: dict, other_payload: dict,
@@ -2511,15 +2568,28 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "static const AmigaOsHardwareRegisterFieldInfo g_amiga_os_hardware_register_fields[] = {",
         ]
     )
-    for base_symbol, base_address, register_offset, register_symbol, field_offset, field_symbol, include_path in hardware_field_rows:
-        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, \"%s\", 0x%04Xu, \"%s\", \"%s\" }," % (
+    for (base_symbol, base_address, register_offset, register_symbol, field_offset, field_symbol, include_path,
+         repeat_stride_symbol, repeat_stride, instance_symbol) in hardware_field_rows:
+        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, \"%s\", 0x%04Xu, \"%s\", \"%s\", %s, 0x%04Xu, %s }," % (
             c_string(base_symbol),
             base_address,
             register_offset,
             c_string(register_symbol),
             field_offset,
             c_string(field_symbol),
-            c_string(include_path)))
+            c_string(include_path),
+            "NULL" if repeat_stride_symbol is None else "\"%s\"" % c_string(repeat_stride_symbol),
+            repeat_stride,
+            "NULL" if instance_symbol is None else "\"%s\"" % c_string(instance_symbol)))
+    lines.extend(
+        [
+            "};",
+            "",
+            "static const AmigaOsHardwareRegisterInstanceAliasInfo g_amiga_os_hardware_register_instance_aliases[] = {",
+        ]
+    )
+    for symbol_name, expr in hardware_instance_alias_rows:
+        lines.append("  { \"%s\", \"%s\" }," % (c_string(symbol_name), c_string(expr)))
     lines.extend(
         [
             "};",
@@ -2609,6 +2679,21 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "const AmigaOsHardwareRegisterFieldInfo *amiga_os_hardware_register_field_at(size_t index) {",
             "  if (index >= AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT) return NULL;",
             "  return &g_amiga_os_hardware_register_fields[index];",
+            "}",
+            "",
+            "const AmigaOsHardwareRegisterInstanceAliasInfo *amiga_os_hardware_register_instance_alias_at(size_t index) {",
+            "  if (index >= AMIGA_OS_HARDWARE_REGISTER_INSTANCE_ALIAS_COUNT) return NULL;",
+            "  return &g_amiga_os_hardware_register_instance_aliases[index];",
+            "}",
+            "",
+            "const char *amiga_os_find_hardware_register_instance_alias_expr(const char *symbol_name) {",
+            "  size_t index;",
+            "  if (symbol_name == NULL || symbol_name[0] == '\\0') return NULL;",
+            "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_INSTANCE_ALIAS_COUNT; ++index) {",
+            "    const AmigaOsHardwareRegisterInstanceAliasInfo *entry = &g_amiga_os_hardware_register_instance_aliases[index];",
+            "    if (strcmp(entry->symbol_name, symbol_name) == 0) return entry->expr;",
+            "  }",
+            "  return NULL;",
             "}",
             "",
             "const AmigaOsHardwareRegisterRangeInfo *amiga_os_hardware_register_range_at(size_t index) {",
@@ -3226,7 +3311,7 @@ def main() -> None:
     compatibility_versions_data = compatibility_versions(includes_payload)
     include_min_versions_data = include_min_version_rows(includes_payload)
     hardware_rows = hardware_register_rows(hardware_payload, merged_domains, hardware_registers_payload)
-    hardware_field_rows = hardware_register_field_rows(hardware_rows, includes_payload)
+    hardware_field_rows, hardware_instance_alias_rows = hardware_register_field_rows(hardware_rows, includes_payload)
     hardware_range_rows = hardware_register_range_rows(hardware_rows, hardware_registers_payload, includes_payload)
     rows = library_rows(includes_payload, other_payload)
     field_rows = struct_field_rows(includes_payload,
@@ -3236,14 +3321,14 @@ def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     write_header(rows, field_rows, value_domain_rows_data, domain_member_rows, api_input_binding_rows,
                  struct_field_binding_rows, domain_constant_rows, hardware_rows, hardware_field_rows,
-                 hardware_range_rows, compatibility_versions_data, include_min_versions_data, includes_payload,
-                 other_payload, api_input_value_domains, api_input_semantic_kinds,
+                 hardware_instance_alias_rows, hardware_range_rows, compatibility_versions_data,
+                 include_min_versions_data, includes_payload, other_payload, api_input_value_domains, api_input_semantic_kinds,
                  api_input_type_overrides, api_output_type_overrides, calling_convention_masks,
                  naming_rules_payload)
     write_source(rows, field_rows, value_domain_rows_data, domain_member_rows, api_input_binding_rows,
                  struct_field_binding_rows, domain_constant_rows, hardware_rows, hardware_field_rows,
-                 hardware_range_rows, compatibility_versions_data, include_min_versions_data, includes_payload,
-                 other_payload, api_input_value_domains, api_input_semantic_kinds,
+                 hardware_instance_alias_rows, hardware_range_rows, compatibility_versions_data,
+                 include_min_versions_data, includes_payload, other_payload, api_input_value_domains, api_input_semantic_kinds,
                  api_input_type_overrides, api_output_type_overrides, calling_convention_masks,
                  naming_rules_payload)
 

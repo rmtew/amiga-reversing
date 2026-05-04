@@ -36361,58 +36361,69 @@ static const AmigaOsHardwareRegisterInfo g_amiga_os_hardware_registers[] = {
 };
 
 static const AmigaOsHardwareRegisterFieldInfo g_amiga_os_hardware_register_fields[] = {
-  { "_custom", 0x00DFF000u, 0x00A0u, "aud0", 0x0000u, "ac_ptr", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00A0u, "aud0", 0x0004u, "ac_len", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00A0u, "aud0", 0x0006u, "ac_per", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00A0u, "aud0", 0x0008u, "ac_vol", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00A0u, "aud0", 0x000Au, "ac_dat", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00B0u, "aud1", 0x0000u, "ac_ptr", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00B0u, "aud1", 0x0004u, "ac_len", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00B0u, "aud1", 0x0006u, "ac_per", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00B0u, "aud1", 0x0008u, "ac_vol", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00B0u, "aud1", 0x000Au, "ac_dat", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00C0u, "aud2", 0x0000u, "ac_ptr", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00C0u, "aud2", 0x0004u, "ac_len", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00C0u, "aud2", 0x0006u, "ac_per", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00C0u, "aud2", 0x0008u, "ac_vol", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00C0u, "aud2", 0x000Au, "ac_dat", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00D0u, "aud3", 0x0000u, "ac_ptr", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00D0u, "aud3", 0x0004u, "ac_len", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00D0u, "aud3", 0x0006u, "ac_per", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00D0u, "aud3", 0x0008u, "ac_vol", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00D0u, "aud3", 0x000Au, "ac_dat", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0140u, "spr", 0x0000u, "sd_pos", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0140u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0140u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0140u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0148u, "spr", 0x0000u, "sd_pos", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0148u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0148u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0148u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0150u, "spr", 0x0000u, "sd_pos", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0150u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0150u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0150u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0158u, "spr", 0x0000u, "sd_pos", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0158u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0158u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0158u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0160u, "spr", 0x0000u, "sd_pos", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0160u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0160u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0160u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0168u, "spr", 0x0000u, "sd_pos", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0168u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0168u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0168u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0170u, "spr", 0x0000u, "sd_pos", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0170u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0170u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0170u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0178u, "spr", 0x0000u, "sd_pos", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0178u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0178u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0178u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00A0u, "aud", 0x0000u, "ac_ptr", "hardware/custom.i", NULL, 0x0000u, "aud0" },
+  { "_custom", 0x00DFF000u, 0x00A0u, "aud", 0x0004u, "ac_len", "hardware/custom.i", NULL, 0x0000u, "aud0" },
+  { "_custom", 0x00DFF000u, 0x00A0u, "aud", 0x0006u, "ac_per", "hardware/custom.i", NULL, 0x0000u, "aud0" },
+  { "_custom", 0x00DFF000u, 0x00A0u, "aud", 0x0008u, "ac_vol", "hardware/custom.i", NULL, 0x0000u, "aud0" },
+  { "_custom", 0x00DFF000u, 0x00A0u, "aud", 0x000Au, "ac_dat", "hardware/custom.i", NULL, 0x0000u, "aud0" },
+  { "_custom", 0x00DFF000u, 0x00B0u, "aud", 0x0000u, "ac_ptr", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud1" },
+  { "_custom", 0x00DFF000u, 0x00B0u, "aud", 0x0004u, "ac_len", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud1" },
+  { "_custom", 0x00DFF000u, 0x00B0u, "aud", 0x0006u, "ac_per", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud1" },
+  { "_custom", 0x00DFF000u, 0x00B0u, "aud", 0x0008u, "ac_vol", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud1" },
+  { "_custom", 0x00DFF000u, 0x00B0u, "aud", 0x000Au, "ac_dat", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud1" },
+  { "_custom", 0x00DFF000u, 0x00C0u, "aud", 0x0000u, "ac_ptr", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud2" },
+  { "_custom", 0x00DFF000u, 0x00C0u, "aud", 0x0004u, "ac_len", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud2" },
+  { "_custom", 0x00DFF000u, 0x00C0u, "aud", 0x0006u, "ac_per", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud2" },
+  { "_custom", 0x00DFF000u, 0x00C0u, "aud", 0x0008u, "ac_vol", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud2" },
+  { "_custom", 0x00DFF000u, 0x00C0u, "aud", 0x000Au, "ac_dat", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud2" },
+  { "_custom", 0x00DFF000u, 0x00D0u, "aud", 0x0000u, "ac_ptr", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud3" },
+  { "_custom", 0x00DFF000u, 0x00D0u, "aud", 0x0004u, "ac_len", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud3" },
+  { "_custom", 0x00DFF000u, 0x00D0u, "aud", 0x0006u, "ac_per", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud3" },
+  { "_custom", 0x00DFF000u, 0x00D0u, "aud", 0x0008u, "ac_vol", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud3" },
+  { "_custom", 0x00DFF000u, 0x00D0u, "aud", 0x000Au, "ac_dat", "hardware/custom.i", "ac_SIZEOF", 0x0010u, "aud3" },
+  { "_custom", 0x00DFF000u, 0x0140u, "spr", 0x0000u, "sd_pos", "hardware/custom.i", NULL, 0x0000u, "spr0" },
+  { "_custom", 0x00DFF000u, 0x0140u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i", NULL, 0x0000u, "spr0" },
+  { "_custom", 0x00DFF000u, 0x0140u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i", NULL, 0x0000u, "spr0" },
+  { "_custom", 0x00DFF000u, 0x0140u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i", NULL, 0x0000u, "spr0" },
+  { "_custom", 0x00DFF000u, 0x0148u, "spr", 0x0000u, "sd_pos", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr1" },
+  { "_custom", 0x00DFF000u, 0x0148u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr1" },
+  { "_custom", 0x00DFF000u, 0x0148u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr1" },
+  { "_custom", 0x00DFF000u, 0x0148u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr1" },
+  { "_custom", 0x00DFF000u, 0x0150u, "spr", 0x0000u, "sd_pos", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr2" },
+  { "_custom", 0x00DFF000u, 0x0150u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr2" },
+  { "_custom", 0x00DFF000u, 0x0150u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr2" },
+  { "_custom", 0x00DFF000u, 0x0150u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr2" },
+  { "_custom", 0x00DFF000u, 0x0158u, "spr", 0x0000u, "sd_pos", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr3" },
+  { "_custom", 0x00DFF000u, 0x0158u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr3" },
+  { "_custom", 0x00DFF000u, 0x0158u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr3" },
+  { "_custom", 0x00DFF000u, 0x0158u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr3" },
+  { "_custom", 0x00DFF000u, 0x0160u, "spr", 0x0000u, "sd_pos", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr4" },
+  { "_custom", 0x00DFF000u, 0x0160u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr4" },
+  { "_custom", 0x00DFF000u, 0x0160u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr4" },
+  { "_custom", 0x00DFF000u, 0x0160u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr4" },
+  { "_custom", 0x00DFF000u, 0x0168u, "spr", 0x0000u, "sd_pos", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr5" },
+  { "_custom", 0x00DFF000u, 0x0168u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr5" },
+  { "_custom", 0x00DFF000u, 0x0168u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr5" },
+  { "_custom", 0x00DFF000u, 0x0168u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr5" },
+  { "_custom", 0x00DFF000u, 0x0170u, "spr", 0x0000u, "sd_pos", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr6" },
+  { "_custom", 0x00DFF000u, 0x0170u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr6" },
+  { "_custom", 0x00DFF000u, 0x0170u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr6" },
+  { "_custom", 0x00DFF000u, 0x0170u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr6" },
+  { "_custom", 0x00DFF000u, 0x0178u, "spr", 0x0000u, "sd_pos", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr7" },
+  { "_custom", 0x00DFF000u, 0x0178u, "spr", 0x0002u, "sd_ctl", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr7" },
+  { "_custom", 0x00DFF000u, 0x0178u, "spr", 0x0004u, "sd_dataa", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr7" },
+  { "_custom", 0x00DFF000u, 0x0178u, "spr", 0x0006u, "sd_dataB", "hardware/custom.i", "sd_SIZEOF", 0x0008u, "spr7" },
+};
+
+static const AmigaOsHardwareRegisterInstanceAliasInfo g_amiga_os_hardware_register_instance_aliases[] = {
+  { "spr0", "spr" },
+  { "spr1", "spr+sd_SIZEOF" },
+  { "spr2", "spr+sd_SIZEOF*2" },
+  { "spr3", "spr+sd_SIZEOF*3" },
+  { "spr4", "spr+sd_SIZEOF*4" },
+  { "spr5", "spr+sd_SIZEOF*5" },
+  { "spr6", "spr+sd_SIZEOF*6" },
+  { "spr7", "spr+sd_SIZEOF*7" },
 };
 
 static const AmigaOsHardwareRegisterRangeInfo g_amiga_os_hardware_register_ranges[] = {
@@ -36502,6 +36513,21 @@ const AmigaOsHardwareRegisterInfo *amiga_os_hardware_register_at(size_t index) {
 const AmigaOsHardwareRegisterFieldInfo *amiga_os_hardware_register_field_at(size_t index) {
   if (index >= AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT) return NULL;
   return &g_amiga_os_hardware_register_fields[index];
+}
+
+const AmigaOsHardwareRegisterInstanceAliasInfo *amiga_os_hardware_register_instance_alias_at(size_t index) {
+  if (index >= AMIGA_OS_HARDWARE_REGISTER_INSTANCE_ALIAS_COUNT) return NULL;
+  return &g_amiga_os_hardware_register_instance_aliases[index];
+}
+
+const char *amiga_os_find_hardware_register_instance_alias_expr(const char *symbol_name) {
+  size_t index;
+  if (symbol_name == NULL || symbol_name[0] == '\0') return NULL;
+  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_INSTANCE_ALIAS_COUNT; ++index) {
+    const AmigaOsHardwareRegisterInstanceAliasInfo *entry = &g_amiga_os_hardware_register_instance_aliases[index];
+    if (strcmp(entry->symbol_name, symbol_name) == 0) return entry->expr;
+  }
+  return NULL;
 }
 
 const AmigaOsHardwareRegisterRangeInfo *amiga_os_hardware_register_range_at(size_t index) {
