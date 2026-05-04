@@ -6,7 +6,6 @@
     RSSET 0
     RS.B 30
 app_001E RS.L 1
-app_0020 EQU $0020
     RS.B 2
 app_0024 RS.L 1
     RS.B 86
@@ -14,9 +13,10 @@ app_007E RS.L 1
     RS.B 20
 app_0096 RS.L 1
 app_009A RS.L 1
-app_009C EQU $009C
 app_009E RS.L 1
 app_SIZEOF EQU __RS
+app_0020 EQU $0020
+app_009C EQU $009C
 
 _custom	EQU	$DFF000
 INTF_CLRALL	EQU	$7FFF

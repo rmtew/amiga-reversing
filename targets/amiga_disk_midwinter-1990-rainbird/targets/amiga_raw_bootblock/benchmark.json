@@ -2,10 +2,10 @@
   "target": "amiga_disk_midwinter-1990-rainbird__amiga_raw_bootblock",
   "binary": "targets/amiga_disk_midwinter-1990-rainbird/targets/amiga_raw_bootblock/binary.bin",
   "command": "uv run amiga-benchmark-target amiga_disk_midwinter-1990-rainbird__amiga_raw_bootblock",
-  "measured_at": "2026-05-04T21:55:44+12:00",
+  "measured_at": "2026-05-05T02:36:55+12:00",
   "status": "ok",
   "elapsed_seconds": 0.01,
-  "benchmark_bytes": 6086,
+  "benchmark_bytes": 6088,
   "entities_bytes": 0,
   "disasm_bytes": 5665,
   "benchmark_version": 1,
@@ -74,7 +74,7 @@
     "fixed_point_invariant_seconds": 0.0,
     "render_ir_seconds": 0.005,
     "render_ir_lookup_seconds": 0.0,
-    "render_ir_platform_pass_seconds": 0.002,
+    "render_ir_platform_pass_seconds": 0.003,
     "render_ir_platform_base_slot_seconds": 0.0,
     "render_ir_platform_call_summary_seconds": 0.0,
     "render_ir_platform_typed_ref_seconds": 0.002,
@@ -82,9 +82,9 @@
     "render_ir_platform_app_slot_seconds": 0.0,
     "render_ir_platform_runtime_data_seconds": 0.0,
     "render_ir_platform_hardware_data_seconds": 0.0,
-    "render_ir_platform_generic_data_seconds": 0.0,
+    "render_ir_platform_generic_data_seconds": 0.001,
     "render_ir_header_seconds": 0.0,
-    "render_ir_walk_seconds": 0.003,
+    "render_ir_walk_seconds": 0.002,
     "render_ir_footer_seconds": 0.0,
     "source_render_seconds": 0.0,
     "decoded_candidates": 170,
@@ -181,6 +181,6 @@
     "asm_source_first_failure_section": 0,
     "asm_source_first_failure_offset": 0,
     "asm_source_first_failure_aux_offset": 0,
-    "asm_source_hash": "b6668a72650ad9c6"
+    "asm_source_hash": "1134f9aa907518a0"
   }
 }

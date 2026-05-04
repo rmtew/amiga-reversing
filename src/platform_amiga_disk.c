@@ -588,19 +588,24 @@ static int populate_bootloader_analysis(const DiskContext *ctx, AmigaDiskAnalysi
     }
     if (stage_end > materialized_stage_end) stage_end = materialized_stage_end;
     if (stage_end <= boot_block_bytes || stage_end > ctx->size) return 0;
+    if (!block_range_has_nonzero(ctx->data, boot_block_bytes, stage_end)) return 0;
     if (append_bootloader_stage(analysis, "stage_1", AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_STAGE_DEFAULT_LOAD_ADDRESS,
             AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_STAGE_DEFAULT_LOAD_ADDRESS, (uint32_t)boot_block_bytes,
             stage_end - (uint32_t)boot_block_bytes, 1U) != 0) {
         return -1;
     }
-    if (amiga_disk_analyze_bootloader_stage_bytes(analysis, &analysis->bootloader_stages[analysis->bootloader_stage_count - 1U],
-            ctx->data + boot_block_bytes, stage_end - boot_block_bytes) != 0 ||
-        amiga_disk_append_bootloader_read_setup(analysis, &analysis->bootloader_stages[analysis->bootloader_stage_count - 1U]) != 0) {
-        return -1;
-    }
-    if (populate_bootloader_decode_regions(ctx, analysis,
-            &analysis->bootloader_stages[analysis->bootloader_stage_count - 1U]) != 0) {
-        return -1;
+    {
+        AmigaDiskBootloaderStage *stage = &analysis->bootloader_stages[analysis->bootloader_stage_count - 1U];
+        if (amiga_disk_analyze_bootloader_stage_bytes(analysis, stage,
+                ctx->data + boot_block_bytes, stage_end - boot_block_bytes) != 0) {
+            return -1;
+        }
+        if (stage->reachable_instruction_count == 0U) {
+            analysis->bootloader_stage_count -= 1U;
+            return 0;
+        }
+        if (amiga_disk_append_bootloader_read_setup(analysis, stage) != 0) return -1;
+        if (populate_bootloader_decode_regions(ctx, analysis, stage) != 0) return -1;
     }
     return 0;
 }

@@ -328,7 +328,7 @@ class AmigaDiskTests(PlatformDiskTestCaseMixin, unittest.TestCase):
         self.assertEqual(actual["trackloader_analysis"]["candidate_code_tracks"], [0])
         stages = {stage["name"]: stage for stage in actual["bootloader_analysis"]["stages"]}
         self.assertIn("boot", stages)
-        self.assertEqual(stages["stage_1"]["disk_reads"][0]["disk_offset"], 1024)
+        self.assertNotIn("stage_1", stages)
 
     def test_classifies_dos_adf_with_invalid_root_pointer(self) -> None:
         actual = self.inspect_disk_buffer("amiga-disk", _make_dos_bad_root_pointer_adf())

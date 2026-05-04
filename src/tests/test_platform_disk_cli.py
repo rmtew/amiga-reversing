@@ -260,9 +260,7 @@ class PlatformDiskCliTests(unittest.TestCase):
         self.assertEqual(actual["trackloader_analysis"]["boot_ascii_strings"], ["BOOTCODE"])
         stages = {stage["name"]: stage for stage in actual["bootloader_analysis"]["stages"]}
         self.assertIn("boot", stages)
-        self.assertEqual(stages["stage_1"]["disk_reads"][0]["source_kind"], "logical_disk_offset")
-        self.assertEqual(stages["stage_1"]["import_target"]["entry_path"], "bootloader/stage_1")
-        self.assertEqual(stages["stage_1"]["import_target"]["local_target_id"], "amiga_raw_bootloader_stage_1")
+        self.assertNotIn("stage_1", stages)
 
     def test_inspect_disk_amiga_synthetic_stage_read_setup_json(self) -> None:
         actual = self._run_cli("amiga-disk", "disk.adf", self._make_non_dos_bootable_adf_with_stage())

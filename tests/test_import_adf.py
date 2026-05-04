@@ -556,6 +556,85 @@ def test_import_adf_creates_raw_target_for_bootloader_disk_stage(
     assert metadata["entry_register_seeds"][1]["register"] == "A1"
 
 
+def test_import_adf_does_not_create_raw_target_without_bootloader_stage_import(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"\x00" * 0x400)
+
+    def fake_analyze_adf(
+        adf_file: str | Path,
+        *,
+        extract_dir: str | Path | None = None,
+        include_tracks: bool = False,
+    ) -> AdfAnalysis:
+        assert Path(adf_file) == adf_path
+        assert extract_dir is None
+        assert include_tracks is True
+        return AdfAnalysis(
+            disk_info=DiskInfo(
+                path=Path(adf_file).name,
+                size=0x400,
+                variant="demo",
+                total_sectors=2,
+                sectors_per_track=1,
+                is_dos=False,
+            ),
+            boot_block=BootBlockInfo(
+                magic_ascii="DOS",
+                is_dos=True,
+                flags_byte=0,
+                fs_type="0",
+                fs_description="DOS\\0 - OFS",
+                checksum="0x00000000",
+                checksum_valid=True,
+                rootblock_ptr=0,
+                bootcode_size=1012,
+                bootcode_has_code=True,
+                bootcode_entropy=0.0,
+                import_target=_bootblock_import_target(),
+            ),
+            non_dos=NonDosInfo(
+                description="Custom format disk (non-AmigaDOS)",
+                bootcode_present=True,
+            ),
+            bootloader_analysis=BootloaderAnalysis(
+                stages=[
+                    BootloaderStage(
+                        name="boot",
+                        base_addr=0x0C,
+                        entry_addr=0x0C,
+                        size=1012,
+                        materialized=True,
+                        reachable_instruction_count=1,
+                        hardware_accesses=[],
+                        loads=[],
+                        disk_reads=[],
+                        memory_copies=[],
+                        read_setups=[],
+                        decode_outputs=[],
+                        decode_regions=[],
+                        derived_regions=[],
+                        handoffs=[],
+                        handoff_target=None,
+                    )
+                ],
+                memory_regions=[],
+                transfers=[],
+            ),
+        )
+
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert [target.target_type for target in manifest.imported_targets] == []
+    assert not (project_root / "targets" / "amiga_disk_demo" / "targets" / "amiga_raw_bootloader_stage_1").exists()
+
+
 def test_import_adf_ice_uses_c_bootloader_stage_materialization(tmp_path: Path) -> None:
     repo_root = Path(__file__).resolve().parent.parent
     source_adf = repo_root / "bin" / "Ice (1991-06-28)(The Silents).adf"
