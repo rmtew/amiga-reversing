@@ -6100,7 +6100,8 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   out_preview->lookup_seconds = elapsed_seconds_local(phase_start, phase_end);
   phase_start = clock();
   if (build_platform_analysis &&
-      m68k_analysis_render_lookup_run_platform_passes(&lookup, decode, accepted_start, accepted_bytes) != 0) {
+      m68k_analysis_render_lookup_run_platform_passes(&lookup, decode, accepted_start, accepted_bytes,
+        out_preview) != 0) {
     goto cleanup;
   }
   phase_end = clock();

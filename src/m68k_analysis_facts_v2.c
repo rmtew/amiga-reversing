@@ -3926,6 +3926,14 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   out_profile->render_ir_seconds = elapsed_seconds_local(start, end);
   out_profile->render_ir_lookup_seconds = render_preview.lookup_seconds;
   out_profile->render_ir_platform_pass_seconds = render_preview.platform_pass_seconds;
+  out_profile->render_ir_platform_base_slot_seconds = render_preview.platform_pass_base_slot_seconds;
+  out_profile->render_ir_platform_call_summary_seconds = render_preview.platform_pass_call_summary_seconds;
+  out_profile->render_ir_platform_typed_ref_seconds = render_preview.platform_pass_typed_ref_seconds;
+  out_profile->render_ir_platform_call_comment_seconds = render_preview.platform_pass_call_comment_seconds;
+  out_profile->render_ir_platform_app_slot_seconds = render_preview.platform_pass_app_slot_seconds;
+  out_profile->render_ir_platform_runtime_data_seconds = render_preview.platform_pass_runtime_data_seconds;
+  out_profile->render_ir_platform_hardware_data_seconds = render_preview.platform_pass_hardware_data_seconds;
+  out_profile->render_ir_platform_generic_data_seconds = render_preview.platform_pass_generic_data_seconds;
   out_profile->render_ir_header_seconds = render_preview.header_seconds;
   out_profile->render_ir_walk_seconds = render_preview.walk_seconds;
   out_profile->render_ir_footer_seconds = render_preview.footer_seconds;

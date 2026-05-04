@@ -53,6 +53,14 @@ typedef struct M68kFactsV2Profile {
   double render_ir_seconds;
   double render_ir_lookup_seconds;
   double render_ir_platform_pass_seconds;
+  double render_ir_platform_base_slot_seconds;
+  double render_ir_platform_call_summary_seconds;
+  double render_ir_platform_typed_ref_seconds;
+  double render_ir_platform_call_comment_seconds;
+  double render_ir_platform_app_slot_seconds;
+  double render_ir_platform_runtime_data_seconds;
+  double render_ir_platform_hardware_data_seconds;
+  double render_ir_platform_generic_data_seconds;
   double render_ir_header_seconds;
   double render_ir_walk_seconds;
   double render_ir_footer_seconds;

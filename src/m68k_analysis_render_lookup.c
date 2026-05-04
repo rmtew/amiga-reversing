@@ -1,6 +1,12 @@
 #include "m68k_render_lookup_internal.h"
 
+#include <time.h>
+
 /* Shared platform/source-analysis enrichment for M68kRenderLookup. */
+static double elapsed_seconds_local(clock_t start, clock_t end) {
+  return (double)(end - start) / (double)CLOCKS_PER_SEC;
+}
+
 static const char *amiga_input_type_or_struct_name(const AmigaOsCallInputInfo *input) {
   const char *name;
   if (input == NULL) return NULL;
@@ -7736,18 +7742,42 @@ int render_lookup_infer_amiga_call_input_comments(M68kRenderLookup *lookup, cons
 }
 
 int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-    uint8_t **accepted_start, uint8_t **accepted_bytes) {
+    uint8_t **accepted_start, uint8_t **accepted_bytes, M68kRenderIRPreview *preview) {
+  clock_t start;
+  clock_t end;
+  start = clock();
   if (render_lookup_seed_policy_app_slot_regions(lookup) != 0) return -1;
   if (render_lookup_infer_global_base_slots(lookup, decode, accepted_start) != 0) return -1;
+  end = clock();
+  if (preview != NULL) preview->platform_pass_base_slot_seconds = elapsed_seconds_local(start, end);
+  start = clock();
   if (render_lookup_infer_amiga_recovered_local_call_summaries(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_infer_amiga_recovered_function_args(lookup, decode, accepted_start) != 0) return -1;
+  end = clock();
+  if (preview != NULL) preview->platform_pass_call_summary_seconds = elapsed_seconds_local(start, end);
+  start = clock();
   if (render_lookup_analyze_amiga_typed_refs(lookup, decode, accepted_start) != 0) return -1;
+  end = clock();
+  if (preview != NULL) preview->platform_pass_typed_ref_seconds = elapsed_seconds_local(start, end);
+  start = clock();
   if (render_lookup_infer_amiga_call_input_comments(lookup, decode, accepted_start) != 0) return -1;
+  end = clock();
+  if (preview != NULL) preview->platform_pass_call_comment_seconds = elapsed_seconds_local(start, end);
+  start = clock();
   if (render_lookup_analyze_amiga_app_state_slots(lookup, decode, accepted_start) != 0) return -1;
+  end = clock();
+  if (preview != NULL) preview->platform_pass_app_slot_seconds = elapsed_seconds_local(start, end);
+  start = clock();
   if (render_lookup_infer_platform_runtime_structured_data(lookup, decode, accepted_start) != 0) return -1;
+  end = clock();
+  if (preview != NULL) preview->platform_pass_runtime_data_seconds = elapsed_seconds_local(start, end);
+  start = clock();
   if (render_lookup_infer_amiga_palette_uploads(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
   if (render_lookup_infer_amiga_bitmap_memory_uses(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_infer_amiga_audio_length_sources(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
+  end = clock();
+  if (preview != NULL) preview->platform_pass_hardware_data_seconds = elapsed_seconds_local(start, end);
+  start = clock();
   if (render_lookup_infer_relocation_pointer_tables(lookup, decode, accepted_bytes) != 0) return -1;
   if (render_lookup_infer_indexed_word_dispatch_tables(lookup, decode, accepted_start, accepted_bytes) != 0)
     return -1;
@@ -7755,6 +7785,8 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
     return -1;
   if (render_lookup_infer_pc_relative_lookup_scalars(lookup, decode, accepted_start, accepted_bytes) != 0)
     return -1;
+  end = clock();
+  if (preview != NULL) preview->platform_pass_generic_data_seconds = elapsed_seconds_local(start, end);
   return 0;
 }
 

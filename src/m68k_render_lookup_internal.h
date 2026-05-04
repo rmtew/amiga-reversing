@@ -658,7 +658,7 @@ void attach_operand_label_symbol(const M68kRenderLookup *lookup, M68kInstruction
   size_t operand_index, size_t source_section_index, uint32_t source_offset, size_t target_section_index,
   uint32_t target_offset);
 int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-  uint8_t **accepted_start, uint8_t **accepted_bytes);
+  uint8_t **accepted_start, uint8_t **accepted_bytes, M68kRenderIRPreview *preview);
 int m68k_analysis_render_lookup_append_auto_policy(M68kSourceAnalysisIR *source_analysis,
   M68kRenderLookup *lookup);
 int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
