@@ -254,6 +254,10 @@ static void trace_state_init_unknown(M68kFactsV2TraceState *state) {
   memset(state, 0, sizeof(*state));
 }
 
+static int trace_value_is_target_set(const M68kFactsV2TraceValue *value) {
+  return value != NULL && value->kind == M68K_FACTS_V2_TRACE_TARGET_SET && value->target_count != 0U;
+}
+
 static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, uint32_t offset,
     uint8_t confidence, uint32_t reason, size_t source_section_index, uint32_t source_offset,
     uint8_t has_runtime_address, uint32_t runtime_address, const M68kFactsV2TraceState *trace_state) {
@@ -1498,8 +1502,27 @@ static int trace_value_from_candidate_source(size_t section_index, const M68kDec
   return 0;
 }
 
-static int trace_value_to_section_offset(const M68kFactsV2TraceValue *value, size_t section_index,
-    uint32_t section_size, uint32_t *out_offset) {
+static int control_address_to_section_offset(const M68kRuntimeAddressSpace *runtime_addresses,
+    size_t section_index, uint32_t section_size, uint32_t address, uint32_t *out_offset) {
+  uint32_t mapped_offset = 0U;
+  if (out_offset != NULL) *out_offset = 0U;
+  if (out_offset == NULL) return 0;
+  if (runtime_address_space_translate(runtime_addresses, section_index, address, section_size,
+      &mapped_offset)) {
+    *out_offset = mapped_offset;
+    return 1;
+  }
+  if (address < section_size) {
+    *out_offset = address;
+    return 1;
+  }
+  return 0;
+}
+
+static int trace_value_to_table_storage_offset(const M68kFactsV2TraceValue *value,
+    const M68kRuntimeAddressSpace *runtime_addresses, size_t section_index, uint32_t section_size,
+    uint32_t *out_offset) {
+  uint32_t mapped_offset = 0U;
   if (out_offset != NULL) *out_offset = 0U;
   if (value == NULL || out_offset == NULL) return 0;
   if (value->kind == M68K_FACTS_V2_TRACE_SOURCE_OFFSET) {
@@ -1507,9 +1530,30 @@ static int trace_value_to_section_offset(const M68kFactsV2TraceValue *value, siz
     *out_offset = value->value;
     return 1;
   }
-  if ((value->kind == M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS ||
-       value->kind == M68K_FACTS_V2_TRACE_CONSTANT) && value->value < section_size) {
-    *out_offset = value->value;
+  if (value->kind == M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS ||
+      value->kind == M68K_FACTS_V2_TRACE_CONSTANT) {
+    if (!control_address_to_section_offset(runtime_addresses, section_index, section_size,
+        value->value, &mapped_offset)) {
+      return 0;
+    }
+    *out_offset = mapped_offset;
+    return 1;
+  }
+  return 0;
+}
+
+static int trace_value_to_table_base_address(const M68kFactsV2TraceValue *value, size_t section_index,
+    uint32_t section_size, uint32_t *out_address) {
+  if (out_address != NULL) *out_address = 0U;
+  if (value == NULL || out_address == NULL) return 0;
+  if (value->kind == M68K_FACTS_V2_TRACE_SOURCE_OFFSET) {
+    if (value->section_index != section_index || value->value >= section_size) return 0;
+    *out_address = value->value;
+    return 1;
+  }
+  if (value->kind == M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS ||
+      value->kind == M68K_FACTS_V2_TRACE_CONSTANT) {
+    *out_address = value->value;
     return 1;
   }
   return 0;
@@ -1534,7 +1578,7 @@ static int candidate_operand_data_target_offset(const M68kDecodeCandidate *candi
 
 static int trace_state_indexed_table_base_offset(const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, size_t operand_index, const M68kFactsV2TraceState *state,
-    uint32_t *out_offset) {
+    const M68kRuntimeAddressSpace *runtime_addresses, uint32_t *out_offset) {
   const M68kAsmOperandValue *operand;
   uint32_t base = 0U;
   uint32_t displacement = 0U;
@@ -1547,7 +1591,8 @@ static int trace_state_indexed_table_base_offset(const M68kDecodeSectionIR *sect
     return 1;
   operand = &candidate->operands[operand_index];
   if (candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA || operand->ea_reg >= 8U) return 0;
-  if (!trace_value_to_section_offset(&state->a[operand->ea_reg], section->section_index, section->size, &base))
+  if (!trace_value_to_table_storage_offset(&state->a[operand->ea_reg], runtime_addresses,
+      section->section_index, section->size, &base))
     return 0;
   displacement = operand->value;
   if (base > UINT32_MAX - displacement || base + displacement >= section->size) return 0;
@@ -1555,7 +1600,8 @@ static int trace_state_indexed_table_base_offset(const M68kDecodeSectionIR *sect
   return 1;
 }
 
-static uint32_t scan_long_control_target_table(const M68kDecodeSectionIR *section, uint32_t table_offset,
+static uint32_t scan_long_control_target_table(const M68kDecodeSectionIR *section,
+    const M68kRuntimeAddressSpace *runtime_addresses, uint32_t table_offset,
     uint32_t *targets, uint32_t target_limit) {
   uint32_t cursor;
   uint32_t target_count = 0U;
@@ -1565,37 +1611,53 @@ static uint32_t scan_long_control_target_table(const M68kDecodeSectionIR *sectio
   }
   for (cursor = table_offset; cursor + 4U <= section->size && target_count < target_limit; cursor += 4U) {
     uint32_t target = m68k_read_u32be(section->data + cursor);
-    if ((target & 1U) != 0U || target >= section->size) break;
+    uint32_t target_offset = 0U;
+    if ((target & 1U) != 0U || !control_address_to_section_offset(runtime_addresses,
+        section->section_index, section->size, target, &target_offset)) {
+      break;
+    }
     targets[target_count++] = target;
   }
   return target_count >= 2U ? target_count : 0U;
 }
 
 static uint32_t scan_word_relative_control_target_table(const M68kDecodeSectionIR *section,
-    uint32_t table_offset, uint32_t base_offset, uint32_t *targets, uint32_t target_limit) {
+    const M68kRuntimeAddressSpace *runtime_addresses, uint32_t table_offset, uint32_t base_address,
+    uint32_t *targets, uint32_t target_limit) {
   uint32_t cursor;
   uint32_t target_count = 0U;
   uint32_t first_forward_target = UINT32_MAX;
+  uint32_t base_source_offset = 0U;
   if (section == NULL || section->data == NULL || targets == NULL || target_limit == 0U ||
-      table_offset >= section->size || base_offset >= section->size) {
+      table_offset >= section->size || !control_address_to_section_offset(runtime_addresses,
+        section->section_index, section->size, base_address, &base_source_offset)) {
     return 0U;
   }
+  (void)base_source_offset;
   for (cursor = table_offset; cursor + 2U <= section->size && target_count < target_limit; cursor += 2U) {
     int32_t displacement = (int32_t)(int16_t)m68k_read_u16be(section->data + cursor);
-    int64_t target64 = (int64_t)(uint64_t)base_offset + (int64_t)displacement;
+    int64_t target64 = (int64_t)(uint64_t)base_address + (int64_t)displacement;
+    uint32_t target_address;
+    uint32_t target_offset = 0U;
     if (displacement < -M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT ||
         displacement > M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT) break;
-    if (target64 < 0 || target64 >= (int64_t)(uint64_t)section->size || ((uint32_t)target64 & 1U) != 0U) break;
-    targets[target_count++] = (uint32_t)target64;
-    if ((uint32_t)target64 > table_offset && (uint32_t)target64 < first_forward_target)
-      first_forward_target = (uint32_t)target64;
+    if (target64 < 0 || target64 > (int64_t)(uint64_t)UINT32_MAX) break;
+    target_address = (uint32_t)target64;
+    if ((target_address & 1U) != 0U || !control_address_to_section_offset(runtime_addresses,
+        section->section_index, section->size, target_address, &target_offset)) {
+      break;
+    }
+    targets[target_count++] = target_address;
+    if (target_offset > table_offset && target_offset < first_forward_target)
+      first_forward_target = target_offset;
     if (target_count >= 2U && first_forward_target != UINT32_MAX && cursor + 2U >= first_forward_target) break;
   }
   return target_count >= 2U ? target_count : 0U;
 }
 
 static int trace_state_candidate_loads_long_target_table(const M68kDecodeSectionIR *section,
-    const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before, uint8_t *out_dest_reg,
+    const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
+    const M68kRuntimeAddressSpace *runtime_addresses, uint8_t *out_dest_reg,
     M68kFactsV2TraceValue *out_value) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
@@ -1650,9 +1712,10 @@ static int trace_state_candidate_loads_long_target_table(const M68kDecodeSection
            candidate->operands[source_index].ea_reg == 3U))))) {
     return 0;
   }
-  if (!trace_state_indexed_table_base_offset(section, candidate, source_index, before, &table_offset))
+  if (!trace_state_indexed_table_base_offset(section, candidate, source_index, before,
+      runtime_addresses, &table_offset))
     return 0;
-  target_count = scan_long_control_target_table(section, table_offset, targets,
+  target_count = scan_long_control_target_table(section, runtime_addresses, table_offset, targets,
     M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
   if (target_count == 0U) return 0;
   *out_dest_reg = dest_reg;
@@ -1661,13 +1724,14 @@ static int trace_state_candidate_loads_long_target_table(const M68kDecodeSection
 }
 
 static int trace_state_candidate_adds_word_target_table(const M68kDecodeSectionIR *section,
-    const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before, uint8_t *out_dest_reg,
+    const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
+    const M68kRuntimeAddressSpace *runtime_addresses, uint8_t *out_dest_reg,
     M68kFactsV2TraceValue *out_value) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
   uint8_t dest_reg = 0U;
   uint32_t table_offset = 0U;
-  uint32_t base_offset = 0U;
+  uint32_t base_address = 0U;
   uint32_t targets[M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT];
   uint32_t target_count;
   size_t source_index = (size_t)-1;
@@ -1709,12 +1773,14 @@ static int trace_state_candidate_adds_word_target_table(const M68kDecodeSectionI
            candidate->operands[source_index].ea_reg == 3U))))) {
     return 0;
   }
-  if (!trace_value_to_section_offset(&before->a[dest_reg], section->section_index, section->size, &base_offset))
+  if (!trace_value_to_table_base_address(&before->a[dest_reg], section->section_index, section->size,
+      &base_address))
     return 0;
-  if (!trace_state_indexed_table_base_offset(section, candidate, source_index, before, &table_offset))
+  if (!trace_state_indexed_table_base_offset(section, candidate, source_index, before,
+      runtime_addresses, &table_offset))
     return 0;
-  target_count = scan_word_relative_control_target_table(section, table_offset, base_offset, targets,
-    M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
+  target_count = scan_word_relative_control_target_table(section, runtime_addresses, table_offset,
+    base_address, targets, M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
   if (target_count == 0U) return 0;
   *out_dest_reg = dest_reg;
   trace_value_set_target_set(out_value, section->section_index, targets, target_count);
@@ -1784,16 +1850,17 @@ static void trace_state_apply_known_effects(size_t section_index, const M68kDeco
 static void trace_state_after_candidate(size_t section_index, const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
     const M68kFactsV2RelocationLookup *relocation_lookup, const M68kFactIR *facts,
-    M68kFactsV2TraceState *after) {
+    const M68kRuntimeAddressSpace *runtime_addresses, M68kFactsV2TraceState *after) {
   uint8_t table_dest_reg = 0U;
   M68kFactsV2TraceValue table_targets;
   int has_table_targets = 0;
   if (after == NULL) return;
   trace_value_set_unknown(&table_targets);
-  has_table_targets = trace_state_candidate_loads_long_target_table(section, candidate, before,
+  has_table_targets = trace_state_candidate_loads_long_target_table(section, candidate, before, runtime_addresses,
     &table_dest_reg, &table_targets);
   if (!has_table_targets) {
     has_table_targets = trace_state_candidate_adds_word_target_table(section, candidate, before,
+      runtime_addresses,
       &table_dest_reg, &table_targets);
   }
   if (before != NULL) *after = *before;
@@ -2585,6 +2652,76 @@ static int enqueue_traced_indirect_control_target(M68kDecodeIR *decode, M68kFact
   return 0;
 }
 
+static int candidate_indirect_control_uses_address_reg(const M68kDecodeCandidate *candidate, uint8_t reg) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (candidate == NULL || reg >= 8U || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0)
+    return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL ||
+      (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_JUMP)) {
+    return 0;
+  }
+  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
+       operand_index < instruction.operand_count; ++operand_index) {
+    const M68kAsmOperandValue *operand = &candidate->operands[operand_index];
+    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_BRANCH_TARGET ||
+        metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET) {
+      continue;
+    }
+    if ((candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_IND ||
+         candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_POSTINC ||
+         candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_PREDEC) &&
+        operand->reg == reg) {
+      return 1;
+    }
+    if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_reg == reg &&
+        !metadata->operand_ea_uses_index[operand_index] &&
+        !metadata->operand_ea_uses_displacement[operand_index]) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int enqueue_immediate_indirect_target_set(M68kDecodeIR *decode, M68kFactIR *facts,
+    M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
+    const M68kRuntimeAddressSpace *runtime_addresses, const M68kFactsV2TraceState *trace_state) {
+  uint32_t next_offset;
+  const M68kDecodeCandidate *next_candidate = NULL;
+  uint8_t reg;
+  if (decode == NULL || facts == NULL || queue == NULL || section == NULL || candidate == NULL ||
+      trace_state == NULL || !instruction_has_fallthrough(candidate->mnemonic_id) ||
+      candidate->byte_count > UINT32_MAX - candidate->offset) {
+    return 0;
+  }
+  next_offset = candidate->offset + candidate->byte_count;
+  if (next_offset >= section->size) return 0;
+  if (m68k_decode_ir_ensure_candidate_at(decode, section_index, next_offset, max_cpu, &next_candidate,
+      m68k_diag_sink(NULL)) != 0)
+    return -1;
+  if (next_candidate == NULL) return 0;
+  for (reg = 0U; reg < 8U; ++reg) {
+    uint32_t target_index;
+    const M68kFactsV2TraceValue *value = &trace_state->a[reg];
+    if (!trace_value_is_target_set(value) || value->section_index != section_index ||
+        !candidate_indirect_control_uses_address_reg(next_candidate, reg)) {
+      continue;
+    }
+    for (target_index = 0U; target_index < value->target_count; ++target_index) {
+      if (enqueue_same_section_control_target(decode, facts, queue, accepted_start, accepted_bytes,
+          profile, max_cpu, section_index, next_candidate, value->targets[target_index],
+          M68K_FACT_CONFIDENCE_TOOL_INFERRED, runtime_addresses, NULL) != 0) {
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+
 static int enqueue_relocated_control_target(M68kDecodeIR *decode, M68kFactIR *facts,
     const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
     uint8_t **accepted_start, uint8_t **accepted_bytes,
@@ -3193,7 +3330,10 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
       return -1;
     }
     trace_state_after_candidate(item.section_index, section, candidate, &item.trace_state, relocation_lookup, facts,
-      &next_trace_state);
+      runtime_addresses, &next_trace_state);
+    if (enqueue_immediate_indirect_target_set(decode, facts, queue, accepted_start, accepted_bytes, profile,
+        max_cpu, item.section_index, section, candidate, runtime_addresses, &next_trace_state) != 0)
+      return -1;
     phase_start = profile_phase_start_local(profile_reachable_phases);
     for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
       const M68kDecodeTarget *target = &candidate->targets[target_index];

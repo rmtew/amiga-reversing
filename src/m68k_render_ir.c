@@ -294,6 +294,8 @@ static uint8_t format_storage_asm_label_with_generation(const M68kRenderLookup *
   return format_lookup_asm_label_with_generation(lookup, buf, buf_size, section_index, offset);
 }
 
+static int runtime_range_is_materialized(const M68kRenderLookup *lookup, const M68kFact *range);
+
 static int render_asm_include_once(M68kRenderIRPreview *preview, const char *include_path) {
   uint16_t index;
   char line[128];
@@ -1240,19 +1242,60 @@ static void render_asm_dc_l_values(M68kRenderIRPreview *preview, const uint8_t *
   if (cursor < size) render_asm_dc_b(preview, data, offset + cursor, size - cursor, comment);
 }
 
+static int lookup_exact_pointer_value_label_offset(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t section_size, uint32_t value, uint32_t *out_source_offset) {
+  size_t index;
+  uint32_t logical_address = 0U;
+  if (out_source_offset != NULL) *out_source_offset = 0U;
+  if (lookup == NULL) return 0;
+  if (value < section_size && lookup_has_renderable_label(lookup, section_index, value) &&
+      lookup_source_logical_address(lookup, section_index, value, &logical_address) &&
+      logical_address == value) {
+    if (out_source_offset != NULL) *out_source_offset = value;
+    return 1;
+  }
+  if (lookup->runtime_address_ranges == NULL) return 0;
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    const M68kFact *fact = lookup->runtime_address_ranges[index].fact;
+    uint32_t delta;
+    uint32_t source_offset;
+    logical_address = 0U;
+    if (!runtime_range_is_materialized(lookup, fact) || fact->section_index != section_index ||
+        !fact->has_runtime_address || value < fact->runtime_address) {
+      continue;
+    }
+    delta = value - fact->runtime_address;
+    if (delta >= fact->size || fact->offset > UINT32_MAX - delta) continue;
+    source_offset = fact->offset + delta;
+    if (source_offset >= section_size) continue;
+    if (!lookup_has_renderable_label(lookup, section_index, source_offset)) continue;
+    if (!lookup_source_logical_address(lookup, section_index, source_offset, &logical_address) ||
+        logical_address != value) {
+      continue;
+    }
+    if (out_source_offset != NULL) *out_source_offset = source_offset;
+    return 1;
+  }
+  return 0;
+}
+
 static int render_asm_pointer_table_raw_long(M68kRenderIRPreview *preview, const M68kDecodeSectionIR *section,
     const M68kRenderLookup *lookup, uint32_t offset, const char *comment) {
   char line[256];
   char name[64];
   uint32_t target;
+  uint32_t target_offset;
   if (preview == NULL || section == NULL || lookup == NULL || section->data == NULL ||
       offset > section->size || section->size - offset < 4U) {
     return 0;
   }
   target = m68k_read_u32be(section->data + offset);
-  if (target == 0U || target >= section->size) return 0;
-  if (!lookup_has_renderable_label(lookup, section->section_index, target)) return 0;
-  (void)format_rendered_asm_label_with_generation(lookup, name, sizeof(name), section->section_index, target);
+  if (target == 0U) return 0;
+  if (!lookup_exact_pointer_value_label_offset(lookup, section->section_index, section->size, target,
+      &target_offset)) {
+    return 0;
+  }
+  (void)format_rendered_asm_label_with_generation(lookup, name, sizeof(name), section->section_index, target_offset);
   if (comment != NULL && comment[0] != '\0')
     snprintf(line, sizeof(line), "\tdc.l %s\t; %s\n", name, comment);
   else

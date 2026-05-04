@@ -83,7 +83,9 @@ app_01A2 RS.L 1
 app_node_list_head RS.L 1
 app_current_node RS.L 1
 app_01AE RS.L 1
-    RS.B 78
+    RS.B 66
+app_01F4 RS.L 1
+    RS.B 8
 app_0200 RS.L 1
 app_0204 RS.L 1
 app_0208 RS.L 1
@@ -228,27 +230,21 @@ app_0DF6 EQU $0DF6
     RS.B 128
 app_0E78 RS.L 1
     RS.B 556
-app_10A8 RS.L 1
-    RS.B 4
-app_10B0 RS.L 1
-app_10B4 RS.L 1
-app_timer_device_iorequest RS.L 1
-    RS.B 16
-app_TimerBase RS.L 1
-    RS.B 7
-app_10D7 RS.B 1
-    RS.B 8
-app_10E0 RS.L 1
-    RS.B 4
+app_10A8 RS.B 8
+app_10B0 RS.B 8
+app_timer_device_iorequest RS.B 48
+app_TimerBase EQU $10CC
 app_10E8 RS.L 1
 app_SIZEOF EQU __RS
 
+    INCLUDE "exec/io.i"
     INCLUDE "exec/memory.i"
     INCLUDE "dos/dos_lib.i"
     INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/libraries.i"
     INCLUDE "devices/timer_lib.i"
     INCLUDE "dos/dos.i"
+    INCLUDE "devices/timer.i"
 
     SECTION section,code
 loc_0_00000000:
@@ -285,7 +281,7 @@ loc_0_00000064:
 	move.l a1,app_016A(a6)
 	bsr.w loc_0_00006E42
 	clr.b app_06C8(a6)
-	lea.l app_10E0(a6),a3
+	lea.l app_timer_device_iorequest+IO_DATA(a6),a3
 	bsr.w loc_0_00004668
 	lea.l app_0832(a6),a3
 	bsr.w loc_0_00004668
@@ -1412,9 +1408,12 @@ loc_0_00000E8B:
 	dc.b $00,$00,$00,$00,$04,$04,$16,$16,$14,$14,$14,$14,$14,$14,$12,$12
 	dc.b $12,$02,$02,$1D,$1E,$1E,$00
 loc_0_00000EA2:
-	dc.b $02,$38,$02,$56,$02,$7E,$02,$82,$02,$86,$02,$AE,$02,$B4,$02,$BA
-	dc.b $02,$C0,$02,$C6,$02,$72,$02,$76,$02,$7A,$01,$AE,$01,$F4,$02,$CC
-	dc.b $02,$D8,$02,$D6
+	andi.b #$256,$027E.w
+	andi.l #42336942,d2
+	andi.l #45744832,-$3A(a4,d0.w*2)
+	andi.w #630,$7A(a2,d0.w*2)
+	bclr.b d0,app_01F4(a6)
+	dc.b $02,$CC,$02,$D8,$02,$D6
 loc_0_00000EC6:
 	lea.l app_0628(a6),a0
 	move.w (a0),d0
@@ -1597,7 +1596,7 @@ loc_0_00001208:
 	moveq.l #0,d7
 	ext.w d1
 	bmi.b loc_0_00001232
-	move.b $42(pc,d1.w),d7
+	move.b loc_0_00001252(pc,d1.w),d7
 	beq.b loc_0_00001220
 	bpl.b loc_0_00001226
 	cmp.b #$FF,d7
@@ -1626,10 +1625,12 @@ loc_0_00001246:
 	move.l a4,-(a7)
 	moveq.l #0,d2
 	bra.w loc_0_00001324
-	dcb.b $21,$00
-	dc.b $EA,$F4,$00,$FE,$FA,$0E,$F4,$02,$03,$04,$11,$00,$12,$01,$05
-	dcb.b $A,$FF
-	dc.b $00,$00,$F2,$08,$EE,$00,$F8
+loc_0_00001252:
+	dcb.b $21,$00	; lookup_table
+	dc.b $EA,$F4,$00,$FE,$FA,$0E,$F4,$02,$03,$04,$11,$00,$12,$01,$05	; lookup_table
+	dcb.b $A,$FF	; lookup_table
+	dc.b $00,$00,$F2,$08,$EE,$00	; lookup_table
+	dc.b $F8
 	dcb.b $1A,$01
 	dc.b $00,$00,$00,$10,$01,$00
 	dcb.b $1A,$01
@@ -2649,7 +2650,7 @@ loc_0_00003BAC:
 	bcs.b loc_0_00003C02
 	add.b d1,d1
 	ext.w d1
-	lea.l $4E(pc,d1.w),a2
+	lea.l loc_0_00003C12(pc,d1.w),a2
 	adda.w (a2),a2
 	jmp (a2)
 loc_0_00003BCA:
@@ -2683,6 +2684,7 @@ loc_0_00003C02:
 	beq.w loc_0_00003C96
 loc_0_00003C0E:
 	bra.w loc_0_00003D00
+loc_0_00003C12:
 	dc.b $00,$EE,$00,$72,$00,$46,$00,$50,$01,$EC,$00,$E4,$00,$7E,$01,$48
 	dc.b $01,$28,$00,$DC,$00,$DA,$00,$88,$00,$56,$00,$D4,$01,$4A,$01,$8C
 	dc.b $00,$30,$00,$CC,$00,$14,$00,$CC,$00,$C6,$02,$5C,$01,$34,$00,$3A
@@ -2928,10 +2930,10 @@ loc_0_00004374:
 	bcc.b loc_0_00004398
 	ext.w d1
 	add.w d1,d1
-	move.w $18(pc,d1.w),d0
+	move.w loc_0_0000439E(pc,d1.w),d0
 	beq.b loc_0_00004398
 	move.b (a4)+,d1
-	jsr $10(pc,d0.w)
+	jsr loc_0_0000439E(pc,d0.w)
 loc_0_00004390:
 	cmp.b #$2C,d1
 	beq.b loc_0_00004334
@@ -2939,10 +2941,11 @@ loc_0_00004390:
 loc_0_00004398:
 	moveq.l #58,d0
 	bra.w loc_0_00008482
-	dc.b $00,$9A,$00,$00,$00,$C0,$00,$4E,$00,$AA,$00,$00,$00,$00,$00,$00
-	dc.b $00,$A2,$00,$00,$00,$00,$00,$F2,$00,$64,$00,$00,$01,$66,$00,$6C
-	dc.b $00,$00,$00,$00,$00,$82,$00,$5C,$00,$B2,$00,$00,$00,$8A,$00,$92
-	dc.b $00,$3A,$00,$00,$70,$40,$60,$00,$40,$B0,$10,$1C,$C1,$41,$B0,$3C
+loc_0_0000439E:
+	dc.w $009A,$0000,$00C0,$004E,$00AA,$0000,$0000,$0000	; lookup_table
+	dc.w $00A2,$0000,$0000,$00F2,$0064,$0000,$0166,$006C	; lookup_table
+	dc.w $0000,$0000,$0082,$005C,$00B2,$0000,$008A,$0092	; lookup_table
+	dc.w $003A,$0000,$7040,$6000,$40B0,$101C,$C141,$B03C	; lookup_table
 	dc.b $00,$2B,$67,$08,$B0,$3C,$00,$2D,$66,$B0,$4A,$00,$4E,$75,$61,$EA
 	dc.b $57,$C0,$02,$00,$00,$01,$1D,$40,$01,$04,$4E,$75,$61,$DC,$56,$EE
 	dc.b $01,$07,$4E,$75,$61,$D4,$57,$EE,$01,$17,$4E,$75,$B2,$3C,$00,$3D
@@ -4086,7 +4089,9 @@ loc_0_000071E8:
 	move.b #$30,(a1)+
 	bra.b loc_0_000071C4
 loc_0_000071F0:
-	dc.b $52,$04,$16,$C1,$4E,$75
+	addq.b #1,d4
+	move.b d1,(a3)+
+	rts
 loc_0_000071F6:
 	cmp.b #$F5,d2
 	bcc.w loc_0_00007120
@@ -5200,8 +5205,14 @@ loc_0_00008A06:
 	lea.l loc_0_00008A0E(pc),a2
 	bra.b loc_0_00008A26
 loc_0_00008A0E:
-	dc.b $24,$28,$00,$98,$67,$10,$42,$A8,$00,$98,$48,$E7,$00,$A0,$61,$00
-	dc.b $25,$9A,$4C,$DF,$05,$00,$4E,$75
+	move.l $0098(a0),d2
+	beq.b loc_0_00008A24
+	clr.l $0098(a0)
+	movem.l a0/a2,-(a7)
+	bsr.w loc_0_0000AFB8
+	movem.l (a7)+,a0/a2
+loc_0_00008A24:
+	rts
 loc_0_00008A26:
 	move.l app_0172(a6),d0
 	beq.b loc_0_00008A58
@@ -5313,21 +5324,82 @@ loc_0_00008B4C:
 	dc.b $52,$29,$00,$16,$4A,$2E,$01,$2A,$67,$0A,$72,$00,$32,$2A,$00,$12
 	dc.b $61,$00,$15,$40,$61,$00,$15,$44,$20,$6A,$00,$0E,$22,$2A,$00,$18
 	dc.b $48,$E7,$00,$60,$61,$00,$F8,$60,$4C,$DF,$06,$00,$61,$00,$15,$46
-	dc.b $20,$4A,$45,$FA,$FF,$7C,$4E,$75,$72,$00,$12,$29,$00,$16,$53,$01
-	dc.b $13,$41,$00,$16,$20,$01,$02,$00,$00,$03,$67,$06,$02,$01,$00,$FC
-	dc.b $58,$81,$D2,$AA,$00,$18,$E4,$89,$56,$81,$4A,$2E,$01,$2A,$67,$02
-	dc.b $52,$81,$4E,$75
+	dc.b $20,$4A,$45,$FA,$FF,$7C,$4E,$75
+loc_0_00008BD4:
+	moveq.l #0,d1
+	move.b $0016(a1),d1
+	subq.b #1,d1
+	move.b d1,$0016(a1)
+	move.l d1,d0
+	andi.b #3,d0
+	beq.b loc_0_00008BEE
+	andi.b #252,d1
+	addq.l #4,d1
+loc_0_00008BEE:
+	add.l $0018(a2),d1
+	lsr.l #2,d1
+	addq.l #3,d1
+	tst.b app_012A(a6)
+	beq.b loc_0_00008BFE
+	addq.l #1,d1
+loc_0_00008BFE:
+	rts
 loc_0_00008C00:
-	dc.b $24,$48,$61,$D0,$2F,$01,$54,$81,$D2,$81,$D2,$81,$70,$00,$61,$00
-	dc.b $21,$F2,$22,$17,$2E,$8C,$28,$48,$28,$FC,$00,$00,$03,$F1,$28,$C1
-	dc.b $4A,$2E,$01,$2A,$67,$3E,$28,$EB,$00,$08,$28,$FC,$48,$43,$4C,$4E
-	dc.b $61,$00,$11,$14,$52,$29,$00,$16,$72,$00,$32,$2A,$00,$12,$28,$C1
-	dc.b $20,$6A,$00,$0E,$22,$2A,$00,$18,$E4,$89,$53,$81,$28,$D8,$51,$C9
-	dc.b $FF,$FC,$04,$81,$00,$01,$00,$00,$64,$F2,$28,$5F,$20,$4A,$45,$FA
-	dc.b $FF,$A0,$4E,$75,$42,$9C,$28,$FC,$4C,$49,$4E,$45,$61,$00,$10,$D8
-	dc.b $52,$29,$00,$16,$20,$6A,$00,$0E,$22,$2A,$00,$18,$E6,$89,$53,$81
-	dc.b $24,$2B,$00,$08,$28,$D8,$20,$18,$D0,$82,$28,$C0,$51,$C9,$FF,$F6
-	dc.b $04,$81,$00,$01,$00,$00,$64,$EC,$60,$C0
+	movea.l a0,a2
+	bsr.b loc_0_00008BD4
+	move.l d1,-(a7)
+	addq.l #2,d1
+	add.l d1,d1
+	add.l d1,d1
+	moveq.l #0,d0
+	bsr.w loc_0_0000AE02
+	move.l (a7),d1
+	move.l a4,(a7)
+	movea.l a0,a4
+	move.l #$3F1,(a4)+
+	move.l d1,(a4)+
+	tst.b app_012A(a6)
+	beq.b loc_0_00008C64
+	move.l $0008(a3),(a4)+
+	move.l #$48434C4E,(a4)+
+	bsr.w loc_0_00009D46
+	addq.b #1,$0016(a1)
+	moveq.l #0,d1
+	move.w $0012(a2),d1
+	move.l d1,(a4)+
+	movea.l $000E(a2),a0
+	move.l $0018(a2),d1
+	lsr.l #2,d1
+	subq.l #1,d1
+loc_0_00008C4C:
+	move.l (a0)+,(a4)+
+	dbf.w d1,loc_0_00008C4C
+	subi.l #65536,d1
+	bcc.b loc_0_00008C4C
+loc_0_00008C5A:
+	movea.l (a7)+,a4
+	movea.l a2,a0
+	lea.l loc_0_00008C00(pc),a2
+	rts
+loc_0_00008C64:
+	clr.l (a4)+
+	move.l #$4C494E45,(a4)+
+	bsr.w loc_0_00009D46
+	addq.b #1,$0016(a1)
+	movea.l $000E(a2),a0
+	move.l $0018(a2),d1
+	lsr.l #3,d1
+	subq.l #1,d1
+	move.l $0008(a3),d2
+loc_0_00008C84:
+	move.l (a0)+,(a4)+
+	move.l (a0)+,d0
+	add.l d2,d0
+	move.l d0,(a4)+
+	dbf.w d1,loc_0_00008C84
+	subi.l #65536,d1
+	bcc.b loc_0_00008C84
+	bra.b loc_0_00008C5A
 loc_0_00008C9A:
 	movea.l app_057A(a6),a0
 	bsr.w loc_0_00008CDC
@@ -5405,8 +5477,13 @@ loc_0_00008D32:
 	movea.l (a7)+,a3
 	rts
 loc_0_00008D36:
-	dc.b $08,$29,$00,$05,$00,$0C,$67,$08,$BC,$29,$00,$0E,$66,$02,$4E,$93
-	dc.b $4E,$75
+	btst.b #5,$000C(a1)
+	beq.b loc_0_00008D46
+	cmp.b $000E(a1),d6
+	bne.b loc_0_00008D46
+	jsr (a3)
+loc_0_00008D46:
+	rts
 loc_0_00008D48:
 	tst.l $0010(a1)
 	beq.b loc_0_00008D6C
@@ -5509,9 +5586,10 @@ loc_0_00008EB6:
 	move.w (a7)+,d1
 loc_0_00008EBE:
 	andi.w #15,d1
-	move.b $4(pc,d1.w),d1
+	move.b loc_0_00008EC8(pc,d1.w),d1
 	bra.b loc_0_00008E98
-	dc.b $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
+loc_0_00008EC8:
+	dc.b $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46	; lookup_table
 loc_0_00008ED8:
 	moveq.l #6,d3
 	moveq.l #0,d2
@@ -5524,14 +5602,14 @@ loc_0_00008EDC:
 	beq.b loc_0_00008EF2
 loc_0_00008EEA:
 	st.b d2
-	move.b -$26(pc,d1.w),d1
+	move.b loc_0_00008EC8(pc,d1.w),d1
 	jsr (a2)
 loc_0_00008EF2:
 	move.l (a7)+,d1
 	dbf.w d3,loc_0_00008EDC
 	rol.l #4,d1
 	andi.w #15,d1
-	move.b -$38(pc,d1.w),d1
+	move.b loc_0_00008EC8(pc,d1.w),d1
 	jmp (a2)
 loc_0_00008F04:
 	lea.l loc_0_00008E98(pc),a2
@@ -5580,7 +5658,8 @@ loc_0_00008F60:
 loc_0_00008F80:
 	dc.b $0C,$2B,$00,$02,$00,$0D,$67,$08,$10,$2B,$00,$0E,$60,$00,$07,$F8
 loc_0_00008F90:
-	dc.b $61,$00,$FF,$04,$60,$00,$FE,$FC
+	bsr.w loc_0_00008E96
+	bra.w loc_0_00008E92
 loc_0_00008F98:
 	dc.b $48,$E7,$10,$A0,$2F,$08,$70,$15,$61,$00,$FE,$D8,$20,$57,$41,$E8
 	dc.b $00,$16,$14,$18,$12,$18,$61,$00,$FE,$E8,$53,$02,$6E,$F6,$61,$00
@@ -6555,11 +6634,34 @@ loc_0_00009D02:
 	dc.b $58,$81,$DE,$81,$50,$87,$4E,$75
 loc_0_00009D2A:
 	dc.b $BC,$29,$00,$0E,$66,$D0,$0C,$29,$00,$01,$00,$0D,$66,$C8,$61,$0C
-	dc.b $20,$29,$00,$08,$D0,$AB,$00,$08,$28,$C0,$4E,$75,$72,$00,$12,$29
-	dc.b $00,$16,$24,$01,$02,$02,$00,$03,$67,$06,$02,$01,$00,$FC,$58,$81
-	dc.b $E4,$89,$28,$C1,$41,$E9,$00,$16,$10,$18,$18,$D8,$53,$00,$66,$FA
-	dc.b $10,$29,$00,$16,$02,$00,$00,$03,$67,$0A,$42,$1C,$52,$00,$B0,$3C
-	dc.b $00,$04,$66,$F6,$4E,$75
+	dc.b $20,$29,$00,$08,$D0,$AB,$00,$08,$28,$C0,$4E,$75
+loc_0_00009D46:
+	moveq.l #0,d1
+	move.b $0016(a1),d1
+	move.l d1,d2
+	andi.b #3,d2
+	beq.b loc_0_00009D5A
+	andi.b #252,d1
+	addq.l #4,d1
+loc_0_00009D5A:
+	lsr.l #2,d1
+	move.l d1,(a4)+
+	lea.l $0016(a1),a0
+	move.b (a0)+,d0
+loc_0_00009D64:
+	move.b (a0)+,(a4)+
+	subq.b #1,d0
+	bne.b loc_0_00009D64
+	move.b $0016(a1),d0
+	andi.b #3,d0
+	beq.b loc_0_00009D7E
+loc_0_00009D74:
+	clr.b (a4)+
+	addq.b #1,d0
+	cmp.b #$4,d0
+	bne.b loc_0_00009D74
+loc_0_00009D7E:
+	rts
 loc_0_00009D80:
 	movem.l d6/a0-a2,-(a7)
 	movea.l $0004(a0),a0
@@ -6820,12 +6922,44 @@ loc_0_0000A04C:
 	dc.b $00,$04,$00,$0C,$66,$E8,$0C,$6E,$00,$03,$02,$1C,$67,$12,$4A,$2E
 	dc.b $01,$04,$6A,$08,$08,$29,$00,$05,$00,$0C,$67,$D2,$70,$00,$60,$C4
 	dc.b $30,$2B,$00,$12,$B0,$7C,$03,$EA,$67,$0C,$B0,$7C,$03,$E9,$66,$EC
-	dc.b $52,$AE,$02,$14,$60,$E6,$52,$AE,$02,$10,$60,$E0,$72,$00,$12,$29
-	dc.b $00,$16,$24,$01,$02,$02,$00,$03,$67,$06,$02,$01,$00,$FC,$58,$81
-	dc.b $E4,$89,$E0,$98,$82,$80,$61,$3A,$70,$04,$D0,$29,$00,$16,$B8,$40
-	dc.b $64,$02,$61,$36,$41,$E9,$00,$16,$10,$18,$18,$D8,$53,$44,$53,$00
-	dc.b $66,$F8,$10,$29,$00,$16,$02,$00,$00,$03,$67,$0C,$42,$1C,$52,$00
-	dc.b $53,$44,$B0,$3C,$00,$04,$66,$F4,$4E,$75
+	dc.b $52,$AE,$02,$14,$60,$E6,$52,$AE,$02,$10,$60,$E0
+loc_0_0000A098:
+	moveq.l #0,d1
+	move.b $0016(a1),d1
+	move.l d1,d2
+	andi.b #3,d2
+	beq.b loc_0_0000A0AC
+	andi.b #252,d1
+	addq.l #4,d1
+loc_0_0000A0AC:
+	lsr.l #2,d1
+	ror.l #8,d0
+	or.l d0,d1
+	bsr.b loc_0_0000A0EE
+	moveq.l #4,d0
+	add.b $0016(a1),d0
+	cmp.w d0,d4
+	bcc.b loc_0_0000A0C0
+	bsr.b loc_0_0000A0F6
+loc_0_0000A0C0:
+	lea.l $0016(a1),a0
+	move.b (a0)+,d0
+loc_0_0000A0C6:
+	move.b (a0)+,(a4)+
+	subq.w #1,d4
+	subq.b #1,d0
+	bne.b loc_0_0000A0C6
+	move.b $0016(a1),d0
+	andi.b #3,d0
+	beq.b loc_0_0000A0E4
+loc_0_0000A0D8:
+	clr.b (a4)+
+	addq.b #1,d0
+	subq.w #1,d4
+	cmp.b #$4,d0
+	bne.b loc_0_0000A0D8
+loc_0_0000A0E4:
+	rts
 loc_0_0000A0E6:
 	addq.w #4,d4
 	move.l d1,-(a7)
@@ -6849,11 +6983,37 @@ loc_0_0000A110:
 	move.w #$80,d4
 	rts
 loc_0_0000A11A:
-	dc.b $48,$E7,$00,$60,$7C,$02,$34,$29,$00,$14,$61,$16,$7C,$04,$61,$12
-	dc.b $7C,$05,$61,$0E,$7C,$07,$61,$0A,$7C,$08,$61,$06,$4C,$DF,$06,$00
-	dc.b $4E,$75,$61,$00,$00,$26,$67,$20,$48,$E7,$60,$00,$70,$7F,$D0,$06
-	dc.b $61,$00,$FF,$4C,$4C,$DF,$00,$06,$61,$9A,$61,$00,$00,$3C,$66,$08
-	dc.b $22,$28,$00,$04,$61,$8E,$60,$F2,$4E,$75
+	movem.l a1-a2,-(a7)
+	moveq.l #2,d6
+	move.w $0014(a1),d2
+	bsr.b loc_0_0000A13C
+	moveq.l #4,d6
+	bsr.b loc_0_0000A13C
+	moveq.l #5,d6
+	bsr.b loc_0_0000A13C
+	moveq.l #7,d6
+	bsr.b loc_0_0000A13C
+	moveq.l #8,d6
+	bsr.b loc_0_0000A13C
+	movem.l (a7)+,a1-a2
+	rts
+loc_0_0000A13C:
+	bsr.w loc_0_0000A164
+	beq.b loc_0_0000A162
+	movem.l d1-d2,-(a7)
+	moveq.l #127,d0
+	add.b d6,d0
+	bsr.w loc_0_0000A098
+	movem.l (a7)+,d1-d2
+	bsr.b loc_0_0000A0EE
+loc_0_0000A154:
+	bsr.w loc_0_0000A192
+	bne.b loc_0_0000A162
+	move.l $0004(a0),d1
+	bsr.b loc_0_0000A0EE
+	bra.b loc_0_0000A154
+loc_0_0000A162:
+	rts
 loc_0_0000A164:
 	moveq.l #0,d1
 	tst.l $0018(a3)
@@ -7431,7 +7591,7 @@ loc_0_0000ABC0:
 	bsr.w loc_0_00008F04
 	lea.l loc_0_0000AC70(pc),a0
 	bsr.w loc_0_00009292
-	tst.b app_10D7(a6)
+	tst.b app_timer_device_iorequest+IO_ERROR(a6)
 	bne.w loc_0_0000AC68
 	movea.l app_TimerBase(a6),a0
 	cmpi.w #36,LIB_VERSION(a0)
@@ -7460,7 +7620,7 @@ loc_0_0000ABC0:
 	move.w d0,-(a7)
 	lea.l $0006(a7),a3
 	lea.l loc_0_0000AC6C(pc),a2
-	move.l app_10B4(a6),d1
+	move.l app_10B0+TV_MICRO(a6),d1
 	bsr.w loc_0_00008F08
 	lea.l -$0006(a3),a0
 	bsr.w loc_0_00009292
@@ -7578,7 +7738,7 @@ loc_0_0000AD80:
 	move.w d4,d1
 	add.w d1,d1
 	add.w d4,d1
-	lea.l $51(pc,d1.w),a0
+	lea.l loc_0_0000ADDB(pc,d1.w),a0
 	move.w (a7)+,d1
 	move.b (a0)+,(a3)+
 	move.b (a0)+,(a3)+
@@ -7612,9 +7772,11 @@ loc_0_0000ADCA:
 	move.b d0,(a3)+
 	rts
 loc_0_0000ADD2:
-	dc.b $1F,$1C,$1F,$1E,$1F,$1E,$1F,$1F,$1E,$1F,$1E,$1F,$4A,$61,$6E,$46
-	dc.b $65,$62,$4D,$61,$72,$41,$70,$72,$4D,$61,$79,$4A,$75,$6E,$4A,$75
-	dc.b $6C,$41,$75,$67,$53,$65,$70,$4F,$63,$74,$4E,$6F,$76,$44,$65,$63
+	dc.b $1F,$1C,$1F,$1E,$1F,$1E,$1F,$1F,$1E
+loc_0_0000ADDB:
+	dc.b $1F,$1E,$1F,$4A,$61,$6E,$46,$65,$62,$4D,$61,$72,$41,$70,$72,$4D
+	dc.b $61,$79,$4A,$75,$6E,$4A,$75,$6C,$41,$75,$67,$53,$65,$70,$4F,$63
+	dc.b $74,$4E,$6F,$76,$44,$65,$63
 loc_0_0000AE02:
 	addq.l #8,d1
 	movem.l d1/a1,-(a7)
@@ -9236,7 +9398,7 @@ loc_0_0000FA7E:
 	moveq.l #0,d7
 	move.w d5,d1
 	add.w d1,d1
-	lea.l $5E(pc,d1.w),a1
+	lea.l loc_0_0000FAF2(pc,d1.w),a1
 	move.b (a1)+,d1
 	move.l d6,d0
 	lsl.l d1,d0
@@ -9282,11 +9444,13 @@ loc_0_0000FADE:
 	move.w (a7)+,d1
 loc_0_0000FAE8:
 	andi.w #15,d1
-	move.b $18(pc,d1.w),(a4)+
+	move.b loc_0_0000FB06(pc,d1.w),(a4)+
 	rts
+loc_0_0000FAF2:
 	dc.b $00,$02,$10,$02,$08,$03,$00,$04,$00,$01,$00,$01,$00,$01,$00,$04
-	dc.b $08,$03,$10,$02,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42
-	dc.b $43,$44,$45,$46
+	dc.b $08,$03,$10,$02
+loc_0_0000FB06:
+	dc.b $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46	; lookup_table
 loc_0_0000FB16:
 	bsr.w loc_0_000097A6
 	movea.l app_016A(a6),a1
@@ -9421,17 +9585,45 @@ loc_0_0000FC5E:
 loc_0_0000FC7A:
 	rts
 loc_0_0000FC7C:
-	dc.b $10,$29,$00,$0D,$01,$02,$67,$50,$B0,$3C,$00,$08,$67,$14,$B0,$3C
-	dc.b $00,$0B,$65,$32,$B0,$3C,$00,$0E,$64,$2C,$06,$81,$00,$00,$00,$B2
-	dc.b $4E,$75,$2F,$09,$06,$81,$00,$00,$00,$10,$22,$69,$00,$08,$D2,$A9
-	dc.b $00,$04,$92,$91,$20,$29,$00,$08,$67,$04,$22,$40,$60,$F0,$52,$81
-	dc.b $08,$81,$00,$00,$22,$5F,$70,$00,$10,$29,$00,$16,$06,$80,$00,$00
-	dc.b $00,$18,$08,$80,$00,$00,$D2,$80,$4E,$75
+	move.b $000D(a1),d0
+	btst d0,d2
+	beq.b loc_0_0000FCD4
+	cmp.b #$8,d0
+	beq.b loc_0_0000FC9E
+	cmp.b #$B,d0
+	bcs.b loc_0_0000FCC2
+	cmp.b #$E,d0
+	bcc.b loc_0_0000FCC2
+	addi.l #178,d1
+	rts
+loc_0_0000FC9E:
+	move.l a1,-(a7)
+	addi.l #16,d1
+	movea.l $0008(a1),a1
+loc_0_0000FCAA:
+	add.l $0004(a1),d1
+	sub.l (a1),d1
+	move.l $0008(a1),d0
+	beq.b loc_0_0000FCBA
+	movea.l d0,a1
+	bra.b loc_0_0000FCAA
+loc_0_0000FCBA:
+	addq.l #1,d1
+	bclr #0,d1
+	movea.l (a7)+,a1
+loc_0_0000FCC2:
+	moveq.l #0,d0
+	move.b $0016(a1),d0
+	addi.l #24,d0
+	bclr #0,d0
+	add.l d0,d1
+loc_0_0000FCD4:
+	rts
 loc_0_0000FCD6:
 	move.l d4,d3
 	bra.b loc_0_0000FD10
 loc_0_0000FCDA:
-	movea.l app_10E0(a6),a0
+	movea.l app_timer_device_iorequest+IO_DATA(a6),a0
 loc_0_0000FCDE:
 	tst.b (a0)
 	beq.b loc_0_0000FD02

@@ -3368,7 +3368,10 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
     facts_v2 = profile["facts_v2"]
     assert facts_v2["asm_source_refused"] is False
     assert facts_v2["required_instruction_failures"] == 0
-    assert facts_v2["unsupported_instruction_demotes"] == 0
+    assert facts_v2["unsupported_instruction_demotes"] == 1
+    assert facts_v2["first_unsupported_instruction_demote_reason"] == "fallthrough"
+    assert facts_v2["first_unsupported_instruction_demote_offset"] == 0x4B2A
+    assert facts_v2["first_unsupported_instruction_demote_source_offset"] == 0x4B24
     assert facts_v2["interior_conflicts_unresolved"] == 0
     copied_stage_rows = [
         row for row in rows if row.section_index == 0 and row.start_offset == 0x5C
@@ -3376,6 +3379,10 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
     assert any(row.kind == "label" and "loc_0_00000400:" in row.text for row in copied_stage_rows)
     assert any(row.kind == "instruction" for row in copied_stage_rows)
     assert not any(row.kind == "data" for row in copied_stage_rows)
+    assert any(
+        row.section_index == 0 and row.start_offset == 0x4B2A and row.kind == "data"
+        for row in rows
+    )
     bitmap_refs = [
         ref
         for row in rows
