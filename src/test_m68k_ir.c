@@ -7572,6 +7572,60 @@ static int test_facts_v2_typed_flow_node_visit_guard_preserves_source_rendering(
   return 0;
 }
 
+static int test_facts_v2_typed_flow_worklist_reaches_seed_after_untyped_root(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  const M68kSectionAnalysisIR *analysis_section;
+  size_t index;
+  int saw_typed_access = 0;
+  uint8_t bytes[12] = {
+    0x20u, 0x40u,
+    0x4eu, 0xaeu, 0xfdu, 0x66u,
+    0x20u, 0x40u,
+    0x4au, 0x28u, 0x00u, 0x0fu
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].entry_offset = 2U;
+  policy.register_seeds[0].section_index = 0U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "exec.library");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  analysis_section = &analysis.sections[0];
+  for (index = 0U; index < analysis_section->recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access =
+      &analysis_section->recovered_platform_typed_accesses[index];
+    if (access->offset == 8U && access->operand_index == 0U &&
+        access->field_expr != NULL && strcmp(access->field_expr, "MP_SIGBIT") == 0) {
+      saw_typed_access = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_typed_access);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_conflicts_untyped_app_slot_write(void) {
   M68kObject object;
   M68kSection section;
@@ -10007,6 +10061,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_propagates_api_output_type_through_data_base_slot_after_call},
     {"facts_v2_typed_flow_node_visit_guard_preserves_source_rendering",
       test_facts_v2_typed_flow_node_visit_guard_preserves_source_rendering},
+    {"facts_v2_typed_flow_worklist_reaches_seed_after_untyped_root",
+      test_facts_v2_typed_flow_worklist_reaches_seed_after_untyped_root},
     {"facts_v2_render_asm_source_conflicts_untyped_app_slot_write",
       test_facts_v2_render_asm_source_conflicts_untyped_app_slot_write},
     {"facts_v2_render_asm_source_conflicts_untyped_absolute_slot_write",

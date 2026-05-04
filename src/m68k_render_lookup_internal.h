@@ -256,6 +256,8 @@ typedef struct M68kRenderTypedFlowNode {
   M68kRenderTypedState typed_out;
   M68kRenderPlatformState platform_in;
   M68kRenderPlatformState platform_out;
+  size_t successors[5];
+  uint8_t successor_count;
   uint8_t is_root;
   uint8_t has_in;
 } M68kRenderTypedFlowNode;

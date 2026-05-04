@@ -2684,25 +2684,38 @@ static void typed_flow_graph_destroy(M68kRenderTypedFlowGraph *graph) {
   memset(graph, 0, sizeof(*graph));
 }
 
+static void typed_flow_build_successors_for_nodes(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    M68kRenderTypedFlowNode *nodes, size_t node_count, const size_t *node_by_offset,
+    uint32_t node_by_offset_count) {
+  size_t node_index;
+  if (section == NULL || accepted_start == NULL || nodes == NULL || node_by_offset == NULL) return;
+  for (node_index = 0U; node_index < node_count; ++node_index) {
+    int successor_count = typed_flow_successors_for_candidate(section, accepted_start, node_by_offset,
+      node_by_offset_count, nodes[node_index].candidate, nodes[node_index].successors,
+      sizeof(nodes[node_index].successors) / sizeof(nodes[node_index].successors[0]));
+    nodes[node_index].successor_count = (uint8_t)(successor_count > 0 ? successor_count : 0);
+  }
+}
+
 static int typed_flow_mark_roots(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     M68kRenderTypedFlowNode *nodes, size_t node_count, const size_t *node_by_offset,
     uint32_t node_by_offset_count) {
   uint16_t *incoming_counts = NULL;
   size_t node_index;
   int seeded_root = 0;
+  (void)section;
+  (void)accepted_start;
+  (void)node_by_offset;
+  (void)node_by_offset_count;
   if (node_count == 0U) return 0;
   incoming_counts = (uint16_t *)calloc(node_count, sizeof(*incoming_counts));
   if (incoming_counts == NULL) return -1;
   for (node_index = 0U; node_index < node_count; ++node_index) nodes[node_index].is_root = 0U;
   for (node_index = 0U; node_index < node_count; ++node_index) {
-    size_t successors[5];
-    int successor_count;
-    int successor_index;
-    successor_count = typed_flow_successors_for_candidate(section, accepted_start, node_by_offset,
-      node_by_offset_count, nodes[node_index].candidate, successors, sizeof(successors) / sizeof(successors[0]));
-    for (successor_index = 0; successor_index < successor_count; ++successor_index) {
-      if (successors[successor_index] < node_count && incoming_counts[successors[successor_index]] < UINT16_MAX)
-        ++incoming_counts[successors[successor_index]];
+    uint8_t successor_index;
+    for (successor_index = 0U; successor_index < nodes[node_index].successor_count; ++successor_index) {
+      size_t successor = nodes[node_index].successors[successor_index];
+      if (successor < node_count && incoming_counts[successor] < UINT16_MAX) ++incoming_counts[successor];
     }
   }
   for (node_index = 0U; node_index < node_count; ++node_index) {
@@ -2748,6 +2761,8 @@ static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, const M68kDec
       &graph->node_by_offset, &graph->node_by_offset_count) != 0) {
     return -1;
   }
+  typed_flow_build_successors_for_nodes(section, accepted_start, graph->nodes, graph->node_count,
+    graph->node_by_offset, graph->node_by_offset_count);
   if (typed_flow_initialize_roots(section, accepted_start, graph->nodes, graph->node_count,
       graph->node_by_offset, graph->node_by_offset_count) != 0) {
     typed_flow_graph_destroy(graph);
@@ -2777,65 +2792,102 @@ static size_t typed_flow_limit_from_env(const char *name, size_t default_value) 
   return value != 0U ? value : default_value;
 }
 
+static size_t typed_flow_min_size(size_t left, size_t right) {
+  return left < right ? left : right;
+}
+
+static size_t typed_flow_visit_limit(size_t node_count, size_t iteration_limit, size_t node_visit_limit) {
+  size_t effective_iterations;
+  if (node_count == 0U) return 0U;
+  effective_iterations = typed_flow_min_size(node_count + 8U, iteration_limit);
+  if (effective_iterations != 0U && node_count > SIZE_MAX / effective_iterations) return node_visit_limit;
+  return typed_flow_min_size(node_count * effective_iterations, node_visit_limit);
+}
+
+static int typed_flow_enqueue_node(size_t *queue, uint8_t *queued, size_t capacity, size_t *io_head,
+    size_t *io_count, size_t node_index) {
+  size_t slot;
+  if (queue == NULL || queued == NULL || io_head == NULL || io_count == NULL || node_index >= capacity) return 0;
+  if (queued[node_index]) return 0;
+  if (*io_count >= capacity) return -1;
+  slot = (*io_head + *io_count) % capacity;
+  queue[slot] = node_index;
+  queued[node_index] = 1U;
+  ++*io_count;
+  return 0;
+}
+
 static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start, const M68kDecodeSectionIR *section, M68kRenderTypedFlowGraph *graph,
     int final_pass, int *io_changed) {
-  size_t iteration = 0U;
-  size_t node_visit_count = 0U;
   size_t iteration_limit = typed_flow_limit_from_env("AMIGA_REVERSING_TYPED_FLOW_MAX_ITERATIONS",
     M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT);
   size_t node_visit_limit = typed_flow_limit_from_env("AMIGA_REVERSING_TYPED_FLOW_MAX_NODE_VISITS",
     M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT);
-  int state_changed = 1;
+  size_t max_visits, node_visit_count = 0U, queue_head = 0U, queue_count = 0U, node_index;
+  size_t *queue = NULL;
+  uint8_t *queued = NULL;
+  int result = -1;
   if (graph == NULL) return -1;
   typed_flow_reinitialize_roots(graph->nodes, graph->node_count);
-  while (state_changed && iteration < graph->node_count + 8U && iteration < iteration_limit &&
-      node_visit_count < node_visit_limit) {
-    size_t node_index;
-    state_changed = 0;
-    ++iteration;
-    for (node_index = 0U; node_index < graph->node_count; ++node_index) {
-      M68kRenderTypedState next_typed_state;
-      M68kRenderPlatformState next_platform_state;
-      size_t successors[5];
-      int successor_count, successor_index;
-      if (graph->nodes[node_index].has_in == 0U) continue;
-      if (++node_visit_count > node_visit_limit) break;
-      if (typed_flow_process_node(lookup, decode, accepted_start, section, &graph->nodes[node_index], !final_pass,
-          0, &next_typed_state, &next_platform_state, io_changed) != 0) {
-        return -1;
-      }
-      if (!typed_state_equal(&graph->nodes[node_index].typed_out, &next_typed_state) ||
-          !platform_states_equal(&graph->nodes[node_index].platform_out, &next_platform_state)) {
-        graph->nodes[node_index].typed_out = next_typed_state;
-        graph->nodes[node_index].platform_out = next_platform_state;
-        state_changed = 1;
-      }
-      successor_count = typed_flow_successors_for_candidate(section, accepted_start[section->section_index],
-        graph->node_by_offset, graph->node_by_offset_count, graph->nodes[node_index].candidate, successors,
-        sizeof(successors) / sizeof(successors[0]));
-      for (successor_index = 0; successor_index < successor_count; ++successor_index) {
-        if (successors[successor_index] >= graph->node_count) continue;
-        if (typed_flow_merge_input(&graph->nodes[successors[successor_index]], &next_typed_state,
-            &next_platform_state)) {
-          state_changed = 1;
-        }
+  if (graph->node_count == 0U) return 0;
+  queue = (size_t *)malloc(graph->node_count * sizeof(*queue));
+  queued = (uint8_t *)calloc(graph->node_count, sizeof(*queued));
+  if (queue == NULL || queued == NULL) goto cleanup;
+  max_visits = typed_flow_visit_limit(graph->node_count, iteration_limit, node_visit_limit);
+  for (node_index = 0U; node_index < graph->node_count; ++node_index) {
+    if (graph->nodes[node_index].has_in != 0U &&
+        typed_flow_enqueue_node(queue, queued, graph->node_count, &queue_head, &queue_count, node_index) != 0) {
+      goto cleanup;
+    }
+  }
+  while (queue_count != 0U && node_visit_count < max_visits) {
+    M68kRenderTypedState next_typed_state;
+    M68kRenderPlatformState next_platform_state;
+    M68kRenderTypedFlowNode *node;
+    uint8_t successor_index;
+    node_index = queue[queue_head];
+    queue_head = (queue_head + 1U) % graph->node_count;
+    --queue_count;
+    queued[node_index] = 0U;
+    node = &graph->nodes[node_index];
+    if (node->has_in == 0U) continue;
+    ++node_visit_count;
+    if (typed_flow_process_node(lookup, decode, accepted_start, section, node, !final_pass,
+        0, &next_typed_state, &next_platform_state, io_changed) != 0) {
+      goto cleanup;
+    }
+    if (!typed_state_equal(&node->typed_out, &next_typed_state) ||
+        !platform_states_equal(&node->platform_out, &next_platform_state)) {
+      node->typed_out = next_typed_state;
+      node->platform_out = next_platform_state;
+    }
+    for (successor_index = 0U; successor_index < node->successor_count; ++successor_index) {
+      size_t successor = node->successors[successor_index];
+      if (successor >= graph->node_count) continue;
+      if (typed_flow_merge_input(&graph->nodes[successor], &next_typed_state, &next_platform_state)) {
+        if (typed_flow_enqueue_node(queue, queued, graph->node_count, &queue_head, &queue_count, successor) != 0)
+          goto cleanup;
       }
     }
   }
   if (final_pass) {
-    size_t node_index;
     for (node_index = 0U; node_index < graph->node_count; ++node_index) {
       M68kRenderTypedState ignored_typed_state;
       M68kRenderPlatformState ignored_platform_state;
       if (graph->nodes[node_index].has_in == 0U) continue;
       if (typed_flow_process_node(lookup, decode, accepted_start, section, &graph->nodes[node_index], 0,
           1, &ignored_typed_state, &ignored_platform_state, NULL) != 0) {
-        return -1;
+        goto cleanup;
       }
     }
   }
-  return 0;
+  result = 0;
+
+cleanup:
+  free(queue);
+  free(queued);
+  return result;
 }
 
 static int amiga_vector_has_typed_flow_info(const AmigaOsLibraryVectorInfo *vector) {
