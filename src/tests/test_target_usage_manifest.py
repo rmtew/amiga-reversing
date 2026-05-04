@@ -2641,7 +2641,11 @@ class TargetUsageManifestTests(unittest.TestCase):
             _write_jsonl(disk_manifest, [disk_entry])
             _write_jsonl(file_manifest, [file_entry])
 
-            with mock.patch.object(usage, "analyze_executable_file", side_effect=RuntimeError("analysis failed")):
+            with mock.patch.object(
+                usage,
+                "analyze_executable_file",
+                side_effect=RuntimeError("exception: access violation reading 0x00000230950BC3B0"),
+            ):
                 rows = usage.build_usage_manifest(disk_manifest, file_manifest, root=tmpdir)
 
             ids = [row["id"] for row in rows]
@@ -2651,6 +2655,10 @@ class TargetUsageManifestTests(unittest.TestCase):
             self.assertEqual(counts["format:executable"], 1)
             self.assertEqual(counts["relocation:fixup"], 2)
             self.assertEqual(counts["diagnostic:analysis_error"], 1)
+            self.assertEqual(
+                file_row["feature_examples"]["diagnostic:analysis_error"],
+                [{"message": "exception: access violation reading <address>"}],
+            )
 
     def test_build_usage_outputs_includes_project_targets_with_effective_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

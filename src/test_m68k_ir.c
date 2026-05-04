@@ -2716,6 +2716,82 @@ static int test_facts_v2_runtime_mapped_long_dispatch_promotes_table_targets(voi
   return 0;
 }
 
+static void test_store_u32be(uint8_t *bytes, uint32_t offset, uint32_t value) {
+  bytes[offset] = (uint8_t)((value >> 24) & 0xFFU);
+  bytes[offset + 1U] = (uint8_t)((value >> 16) & 0xFFU);
+  bytes[offset + 2U] = (uint8_t)((value >> 8) & 0xFFU);
+  bytes[offset + 3U] = (uint8_t)(value & 0xFFU);
+}
+
+static int test_facts_v2_long_dispatch_promotes_targets_beyond_small_trace_set(void) {
+  enum {
+    ENTRY_COUNT = 40,
+    TABLE_OFFSET = 12,
+    TARGET_START = TABLE_OFFSET + (ENTRY_COUNT * 4),
+    TOTAL_SIZE = TARGET_START + (ENTRY_COUNT * 4)
+  };
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint32_t late_target = TARGET_START + (34U * 4U);
+  uint32_t saw_late_target = 0U;
+  size_t code_start_index;
+  uint32_t index;
+  uint8_t bytes[TOTAL_SIZE];
+  memset(bytes, 0, sizeof(bytes));
+  bytes[0] = 0x41U;
+  bytes[1] = 0xF9U;
+  test_store_u32be(bytes, 2U, TABLE_OFFSET);
+  bytes[6] = 0x20U;
+  bytes[7] = 0x70U;
+  bytes[8] = 0x00U;
+  bytes[9] = 0x00U;
+  bytes[10] = 0x4EU;
+  bytes[11] = 0xD0U;
+  for (index = 0U; index < ENTRY_COUNT; ++index) {
+    uint32_t target = TARGET_START + (index * 4U);
+    test_store_u32be(bytes, TABLE_OFFSET + (index * 4U), target);
+    bytes[target] = 0x70U;
+    bytes[target + 1U] = (uint8_t)index;
+    bytes[target + 2U] = 0x4EU;
+    bytes[target + 3U] = 0x75U;
+  }
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp (a0)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000134:\n\tmoveq.l #34,d0\n\trts\n") != NULL);
+  for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
+      ++code_start_index) {
+    const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
+    if (ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET && ref->source_offset == 0x0AU &&
+        ref->offset == late_target) {
+      saw_late_target = 1U;
+    }
+  }
+  M68K_C_ASSERT_U32(1U, saw_late_target);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_traced_indirect_jump_promotes_word_relative_table_targets(void) {
   M68kObject object;
   M68kSection section;
@@ -2724,6 +2800,7 @@ static int test_facts_v2_traced_indirect_jump_promotes_word_relative_table_targe
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint32_t saw_targets = 0U;
   size_t code_start_index;
   uint8_t bytes[30] = {
@@ -2749,11 +2826,18 @@ static int test_facts_v2_traced_indirect_jump_promotes_word_relative_table_targe
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjmp (a1)\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.w $0000,$0004\t; lookup_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tdc.w loc_0_00000016-loc_0_00000016,loc_0_0000001A-loc_0_00000016\t; lookup_table\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b $00,$00,$00,$04") == NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000016:\n\tmoveq.l #1,d0\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_0000001A:\n\tmoveq.l #2,d0\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b $70,$01,$4E,$75") == NULL);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"offset\":18,\"size\":4,\"kind\":2,\"semantic_role\":\"lookup_table\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"has_target\":true,\"target_section\":0,\"target_offset\":22") != NULL);
   for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
       ++code_start_index) {
     const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
@@ -2765,6 +2849,7 @@ static int test_facts_v2_traced_indirect_jump_promotes_word_relative_table_targe
   M68K_C_ASSERT_U32(3U, saw_targets);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -2820,7 +2905,8 @@ static int test_facts_v2_runtime_mapped_word_dispatch_renders_lookup_table(void)
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjmp (a1)\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.w $0000,$0004\t; lookup_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tdc.w loc_0_00000116-loc_0_00000116,loc_0_0000011A-loc_0_00000116\t; lookup_table\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b $00,$00,$00,$04") == NULL);
   M68K_C_ASSERT(strstr(source, "\tmoveq.l #1,d0\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmoveq.l #2,d0\n\trts\n") != NULL);
@@ -9938,6 +10024,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_traced_indirect_jump_keeps_later_table_state},
     {"facts_v2_runtime_mapped_long_dispatch_promotes_table_targets",
       test_facts_v2_runtime_mapped_long_dispatch_promotes_table_targets},
+    {"facts_v2_long_dispatch_promotes_targets_beyond_small_trace_set",
+      test_facts_v2_long_dispatch_promotes_targets_beyond_small_trace_set},
     {"facts_v2_traced_indirect_jump_promotes_word_relative_table_targets",
       test_facts_v2_traced_indirect_jump_promotes_word_relative_table_targets},
     {"facts_v2_runtime_mapped_word_dispatch_renders_lookup_table",

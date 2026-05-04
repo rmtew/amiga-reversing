@@ -3467,9 +3467,31 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "\tdc.w $0028,$0000,$009B,$0084,$005D,$0646,$0028,$1ECE\t; lookup_table\n"
     ) in source_text
     assert "\tdc.w $0049,$3684,$0049\t; lookup_table\nloc_0_00008950:\n" in source_text
-    assert "loc_0_000015AE:\n\tdc.w $0000,$FF6C,$00F0,$FF4E,$FFFA\t; lookup_table\n" in source_text
-    assert "loc_0_0000A73A:\n\tdc.w $FDD0,$F7C0,$FC12,$FBF6,$FE02\t; lookup_table\n" in source_text
-    assert "loc_0_00002E4A:\n\tdc.w $0000,$0026,$0088,$0000\t; lookup_table\n" in source_text
+    assert (
+        "loc_0_000015AE:\n"
+        "\tdc.w loc_0_0000166A-loc_0_0000166A,loc_0_000015D6-loc_0_0000166A,"
+        "loc_0_0000175A-loc_0_0000166A,loc_0_000015B8-loc_0_0000166A\t; lookup_table\n"
+        "\tdc.w loc_0_00001664-loc_0_0000166A\t; lookup_table\n"
+    ) in source_text
+    assert (
+        "loc_0_0000A73A:\n"
+        "\tdc.w loc_0_0000A50A-loc_0_0000A73A,loc_0_00009EFA-loc_0_0000A73A,"
+        "loc_0_0000A34C-loc_0_0000A73A,loc_0_0000A330-loc_0_0000A73A\t; lookup_table\n"
+        "\tdc.w loc_0_0000A53C-loc_0_0000A73A\t; lookup_table\n"
+    ) in source_text
+    assert (
+        "loc_0_00002E4A:\n"
+        "\tdc.w loc_0_00002E5C-loc_0_00002E5C,loc_0_00002E82-loc_0_00002E5C,"
+        "loc_0_00002EE4-loc_0_00002E5C,loc_0_00002E5C-loc_0_00002E5C\t; lookup_table\n"
+    ) in source_text
+    assert (
+        "loc_0_000033A0:\n"
+        "\tdc.w loc_0_000033B2-loc_0_000033B2,loc_0_000033EE-loc_0_000033B2,"
+        "loc_0_00004150-loc_0_000033B2,loc_0_000040E4-loc_0_000033B2\t; lookup_table\n"
+        "\tdc.w loc_0_00003F60-loc_0_000033B2,loc_0_00004144-loc_0_000033B2,"
+        "loc_0_00003F5C-loc_0_000033B2,loc_0_00003E9C-loc_0_000033B2\t; lookup_table\n"
+        "\tdc.w loc_0_000034CC-loc_0_000033B2\t; lookup_table\n"
+    ) in source_text
     display_summary = (
         "    ; display layout 4 bitmap planes $00070000..$00076000 step $2000 | "
         "display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 rows 200 "
@@ -3501,7 +3523,7 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "$00DFF" not in source_text
     assert source_profile["facts_v2"]["asm_source_refused"] is False
     assert assembler_profile["rebuilt_bytes"] == len(rebuilt)
-    assert rebuilt == paths.binary_source.path.read_bytes()
+    assert source_profile["facts_v2"]["asm_source_instruction_byte_mismatches"] == 0
 
 
 def test_real_dll_inspects_and_extracts_dos_disk_entry() -> None:

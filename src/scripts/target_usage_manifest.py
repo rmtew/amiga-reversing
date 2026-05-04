@@ -402,6 +402,10 @@ def collect_disk_usage_rows(disk_entries: list[dict[str, Any]]) -> list[dict[str
     return [_collect_disk_usage_row(entry) for entry in disk_entries]
 
 
+def _stable_analysis_error_message(message: str) -> str:
+    return re.sub(r"access violation reading 0x[0-9A-Fa-f]+", "access violation reading <address>", message)
+
+
 def collect_file_usage_row(
     entry: dict[str, Any],
     resolver: DiskFileResolver | None,
@@ -433,8 +437,8 @@ def collect_file_usage_catalog_entry(
             combined = analyze_executable_file(platform, file_bytes, tmp_dir, root=root)
             _add_executable_analysis_features(combined, bag, platform=platform, root=root)
         except Exception as exc:
-            analysis_error = str(exc)
-            bag.add("diagnostic:analysis_error", example={"message": str(exc)})
+            analysis_error = _stable_analysis_error_message(str(exc))
+            bag.add("diagnostic:analysis_error", example={"message": analysis_error})
     row = _base_row("platform_file_manifest", entry, bag)
     xrefs = _file_usage_xrefs(row, entry, combined, analysis_error)
     return row, xrefs, _snippet_rows_for_xrefs(row, combined, xrefs)
@@ -473,8 +477,8 @@ def collect_project_usage_catalog_entry(
             combined = analyze_project_hunk_file(platform, source.path, target_dir, root=root)
             _add_executable_analysis_features(combined, bag, platform=platform, root=root)
         except Exception as exc:
-            analysis_error = str(exc)
-            bag.add("diagnostic:analysis_error", example={"message": str(exc)})
+            analysis_error = _stable_analysis_error_message(str(exc))
+            bag.add("diagnostic:analysis_error", example={"message": analysis_error})
     row = _base_row("project_target", entry, bag)
     xrefs = _project_target_xrefs(row, entry, combined, analysis_error)
     return row, xrefs, _snippet_rows_for_xrefs(row, combined, xrefs)

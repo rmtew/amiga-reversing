@@ -1404,6 +1404,71 @@ static int structured_data_item_is_pointer_table(const M68kAnalysisStructuredDat
     strcmp(item->semantic_role, "pointer_table") == 0;
 }
 
+static int structured_data_item_is_word_relative_lookup_table(const M68kAnalysisStructuredDataItem *item) {
+  return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && item->has_target &&
+    strcmp(item->semantic_role, "lookup_table") == 0;
+}
+
+static int format_word_relative_lookup_table_expr(const M68kRenderLookup *lookup,
+    const M68kAnalysisStructuredDataItem *item, uint16_t raw_word, char *expr, size_t expr_size) {
+  int32_t displacement = (int32_t)(int16_t)raw_word;
+  int64_t target_offset = (int64_t)item->target_offset + displacement;
+  char target_name[96];
+  char base_name[96];
+  if (lookup == NULL || item == NULL || expr == NULL || expr_size == 0U ||
+      item->target_section >= lookup->section_count || target_offset < 0 ||
+      target_offset > UINT32_MAX) {
+    return 0;
+  }
+  expr[0] = '\0';
+  if (!lookup_has_renderable_label(lookup, item->target_section, item->target_offset) ||
+      !lookup_has_renderable_label(lookup, item->target_section, (uint32_t)target_offset)) {
+    return 0;
+  }
+  (void)format_rendered_asm_label_with_generation(lookup, base_name, sizeof(base_name),
+    item->target_section, item->target_offset);
+  (void)format_rendered_asm_label_with_generation(lookup, target_name, sizeof(target_name),
+    item->target_section, (uint32_t)target_offset);
+  snprintf(expr, expr_size, "%s-%s", target_name, base_name);
+  return strlen(expr) + 1U < expr_size;
+}
+
+static int render_asm_word_relative_lookup_table(M68kRenderIRPreview *preview,
+    const M68kDecodeSectionIR *section, const M68kRenderLookup *lookup,
+    const M68kAnalysisStructuredDataItem *item, uint32_t available, const char *comment) {
+  uint32_t cursor = 0U;
+  if (preview == NULL || section == NULL || lookup == NULL || item == NULL || section->data == NULL ||
+      item->offset >= section->size || (available & 1U) != 0U) {
+    return 0;
+  }
+  while (cursor + 2U <= available) {
+    uint32_t line_count = (available - cursor) / 2U;
+    uint32_t index;
+    if (line_count > 4U) line_count = 4U;
+    for (index = 0U; index < line_count; ++index) {
+      char expr[192];
+      uint16_t raw_word = m68k_read_u16be(section->data + item->offset + cursor + (index * 2U));
+      if (!format_word_relative_lookup_table_expr(lookup, item, raw_word, expr, sizeof(expr))) return 0;
+    }
+    hash_asm_text(preview, "\tdc.w ");
+    for (index = 0U; index < line_count; ++index) {
+      char expr[192];
+      uint16_t raw_word = m68k_read_u16be(section->data + item->offset + cursor + (index * 2U));
+      (void)format_word_relative_lookup_table_expr(lookup, item, raw_word, expr, sizeof(expr));
+      if (index != 0U) hash_asm_text(preview, ",");
+      hash_asm_text(preview, expr);
+    }
+    if (comment != NULL && comment[0] != '\0') {
+      hash_asm_text(preview, "\t; ");
+      hash_asm_text(preview, comment);
+    }
+    hash_asm_text(preview, "\n");
+    ++preview->asm_source_lines;
+    cursor += line_count * 2U;
+  }
+  return cursor == available;
+}
+
 static int format_copper_register_symbol(uint16_t copper_register_word, char *buf, size_t buf_size) {
   const AmigaOsHardwareRegisterInfo *hardware_register;
   const AmigaOsHardwareRegisterFieldInfo *hardware_field;
@@ -1887,6 +1952,10 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
       }
     }
     if (cursor < available) render_asm_dc_b(preview, section->data, item->offset + cursor, available - cursor, NULL);
+    return;
+  }
+  if (available == item->size && structured_data_item_is_word_relative_lookup_table(item) &&
+      render_asm_word_relative_lookup_table(preview, section, lookup, item, available, comment_text)) {
     return;
   }
   if (available == item->size &&
