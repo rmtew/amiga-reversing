@@ -1316,6 +1316,45 @@ static int test_facts_v2_work_queue_dedupes_same_confidence_starts(void) {
   return 0;
 }
 
+static int test_facts_v2_work_queue_dedupes_same_runtime_view_starts(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile single_profile;
+  M68kFactsV2Profile duplicate_profile;
+  uint8_t bytes[6] = {0x66u, 0x02u, 0x4eu, 0x71u, 0x4eu, 0x75u};
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  policy.runtime_entry_point_count = 1U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_profile(&object, &policy, &single_profile, m68k_diag_sink(NULL)));
+  policy.runtime_entry_point_count = 2U;
+  policy.runtime_entry_points[1] = policy.runtime_entry_points[0];
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_profile(&object, &policy, &duplicate_profile, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(single_profile.runtime_address_view_starts != 0U);
+  M68K_C_ASSERT_U32(single_profile.queue_iterations, duplicate_profile.queue_iterations);
+  M68K_C_ASSERT_U32(single_profile.accepted_instructions, duplicate_profile.accepted_instructions);
+  M68K_C_ASSERT_U32(single_profile.render_ir_hash, duplicate_profile.render_ir_hash);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_records_mid_instruction_required_label(void) {
   M68kObject object;
   M68kSection section;
@@ -9731,6 +9770,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_required_entry_without_decode_is_hard_failure},
     {"facts_v2_work_queue_dedupes_same_confidence_starts",
       test_facts_v2_work_queue_dedupes_same_confidence_starts},
+    {"facts_v2_work_queue_dedupes_same_runtime_view_starts",
+      test_facts_v2_work_queue_dedupes_same_runtime_view_starts},
     {"facts_v2_records_mid_instruction_required_label", test_facts_v2_records_mid_instruction_required_label},
     {"facts_v2_odd_code_target_is_hard_failure", test_facts_v2_odd_code_target_is_hard_failure},
     {"facts_v2_direct_rebuild_profile_marks_source_refusal_without_rendering",

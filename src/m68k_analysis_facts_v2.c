@@ -64,11 +64,14 @@ typedef struct M68kFactsV2WorkItem {
 
 typedef struct M68kFactsV2WorkQueue {
   M68kFactsV2WorkItem *items;
+  size_t *stateful_next;
   size_t count;
   size_t capacity;
+  size_t stateful_next_capacity;
   size_t cursor;
   size_t section_count;
   uint8_t **queued_confidence;
+  size_t **stateful_heads;
   uint32_t *extents;
 } M68kFactsV2WorkQueue;
 
@@ -234,7 +237,13 @@ static void work_queue_destroy(M68kFactsV2WorkQueue *queue) {
     for (section_index = 0U; section_index < queue->section_count; ++section_index)
       free(queue->queued_confidence[section_index]);
   }
+  if (queue->stateful_heads != NULL) {
+    for (section_index = 0U; section_index < queue->section_count; ++section_index)
+      free(queue->stateful_heads[section_index]);
+  }
   free(queue->queued_confidence);
+  free(queue->stateful_heads);
+  free(queue->stateful_next);
   free(queue->extents);
   free(queue->items);
   memset(queue, 0, sizeof(*queue));
@@ -247,9 +256,11 @@ static int work_queue_init_for_decode(M68kFactsV2WorkQueue *queue, const M68kDec
   queue->section_count = decode->section_count;
   queue->queued_confidence = (uint8_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*queue->queued_confidence));
+  queue->stateful_heads = (size_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+    sizeof(*queue->stateful_heads));
   queue->extents = (uint32_t *)calloc(decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*queue->extents));
-  if (queue->queued_confidence == NULL || queue->extents == NULL) goto fail;
+  if (queue->queued_confidence == NULL || queue->stateful_heads == NULL || queue->extents == NULL) goto fail;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     uint32_t extent = decode->sections[section_index].size;
     queue->extents[section_index] = extent;
@@ -277,6 +288,48 @@ static int trace_state_matches_queued(const M68kFactsV2TraceState *queued,
   return memcmp(queued, &unknown, sizeof(*queued)) == 0;
 }
 
+static size_t *work_queue_stateful_head_slot(M68kFactsV2WorkQueue *queue, size_t section_index,
+    uint32_t offset) {
+  if (queue == NULL || section_index >= queue->section_count || queue->stateful_heads == NULL ||
+      queue->extents == NULL || offset >= queue->extents[section_index]) {
+    return NULL;
+  }
+  if (queue->stateful_heads[section_index] == NULL) {
+    uint32_t extent = queue->extents[section_index];
+    queue->stateful_heads[section_index] = (size_t *)calloc(extent != 0U ? extent : 1U,
+      sizeof(*queue->stateful_heads[section_index]));
+  }
+  if (queue->stateful_heads[section_index] == NULL) return NULL;
+  return &queue->stateful_heads[section_index][offset];
+}
+
+static int work_queue_grow_items(M68kFactsV2WorkQueue *queue, size_t next_capacity) {
+  M68kFactsV2WorkItem *grown_items;
+  size_t *grown_next;
+  size_t old_capacity;
+  if (queue == NULL || next_capacity <= queue->capacity) return 0;
+  old_capacity = queue->capacity;
+  grown_items = (M68kFactsV2WorkItem *)realloc(queue->items, next_capacity * sizeof(*grown_items));
+  if (grown_items == NULL) return -1;
+  queue->items = grown_items;
+  grown_next = (size_t *)realloc(queue->stateful_next, next_capacity * sizeof(*grown_next));
+  if (grown_next == NULL) return -1;
+  queue->stateful_next = grown_next;
+  memset(queue->stateful_next + old_capacity, 0, (next_capacity - old_capacity) * sizeof(*queue->stateful_next));
+  queue->capacity = next_capacity;
+  queue->stateful_next_capacity = next_capacity;
+  return 0;
+}
+
+static int work_queue_existing_stateful_item_matches(const M68kFactsV2WorkItem *item, size_t section_index,
+    uint32_t offset, uint8_t confidence, uint32_t runtime_address) {
+  if (item == NULL || item->section_index != section_index || item->offset != offset ||
+      item->has_runtime_address == 0U || item->confidence < confidence) {
+    return 0;
+  }
+  return item->runtime_address == runtime_address;
+}
+
 static int trace_value_is_target_set(const M68kFactsV2TraceValue *value) {
   return value != NULL && value->kind == M68K_FACTS_V2_TRACE_TARGET_SET && value->target_count != 0U;
 }
@@ -284,27 +337,24 @@ static int trace_value_is_target_set(const M68kFactsV2TraceValue *value) {
 static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, uint32_t offset,
     uint8_t confidence, uint32_t reason, size_t source_section_index, uint32_t source_offset,
     uint8_t has_runtime_address, uint32_t runtime_address, const M68kFactsV2TraceState *trace_state) {
-  M68kFactsV2WorkItem *grown;
-  size_t next_capacity;
   size_t item_index;
   size_t state_variant_count = 0U;
   uint8_t saw_branch_merge_variant_anchor = 0U;
-  uint8_t stateful = has_runtime_address;
+  size_t *stateful_head_slot = NULL;
   if (queue == NULL) return -1;
-  if (!stateful && section_index < queue->section_count && queue->queued_confidence != NULL &&
+  if (has_runtime_address == 0U && section_index < queue->section_count && queue->queued_confidence != NULL &&
       queue->extents != NULL && queue->queued_confidence[section_index] != NULL &&
       offset < queue->extents[section_index]) {
     if (queue->queued_confidence[section_index][offset] >= confidence) return 0;
     queue->queued_confidence[section_index][offset] = confidence;
   }
-  if (stateful) {
-    for (item_index = 0U; item_index < queue->count; ++item_index) {
-      const M68kFactsV2WorkItem *item = &queue->items[item_index];
-      if (item->section_index != section_index || item->offset != offset ||
-          item->has_runtime_address != has_runtime_address || item->confidence < confidence) {
-        continue;
-      }
-      if (has_runtime_address && item->runtime_address != runtime_address) continue;
+  if (has_runtime_address != 0U) {
+    stateful_head_slot = work_queue_stateful_head_slot(queue, section_index, offset);
+    if (stateful_head_slot == NULL) return -1;
+    for (item_index = *stateful_head_slot; item_index != 0U; item_index = queue->stateful_next[item_index - 1U]) {
+      const M68kFactsV2WorkItem *item = &queue->items[item_index - 1U];
+      if (!work_queue_existing_stateful_item_matches(item, section_index, offset, confidence,
+          runtime_address)) continue;
       ++state_variant_count;
       if (trace_state_matches_queued(&item->trace_state, trace_state)) return 0;
       if ((reason == M68K_FACT_CODE_START_REASON_FALLTHROUGH &&
@@ -322,11 +372,8 @@ static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, ui
     if (state_variant_count >= M68K_FACTS_V2_TRACE_STATE_VARIANT_LIMIT) return 0;
   }
   if (queue->count == queue->capacity) {
-    next_capacity = queue->capacity == 0U ? 64U : queue->capacity * 2U;
-    grown = (M68kFactsV2WorkItem *)realloc(queue->items, next_capacity * sizeof(*grown));
-    if (grown == NULL) return -1;
-    queue->items = grown;
-    queue->capacity = next_capacity;
+    size_t next_capacity = queue->capacity == 0U ? 64U : queue->capacity * 2U;
+    if (work_queue_grow_items(queue, next_capacity) != 0) return -1;
   }
   queue->items[queue->count].section_index = section_index;
   queue->items[queue->count].offset = offset;
@@ -338,6 +385,13 @@ static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, ui
   queue->items[queue->count].runtime_address = runtime_address;
   if (trace_state != NULL) queue->items[queue->count].trace_state = *trace_state;
   else trace_state_init_unknown(&queue->items[queue->count].trace_state);
+  if (has_runtime_address != 0U) {
+    if (stateful_head_slot == NULL) return -1;
+    queue->stateful_next[queue->count] = *stateful_head_slot;
+    *stateful_head_slot = queue->count + 1U;
+  } else if (queue->stateful_next != NULL && queue->count < queue->stateful_next_capacity) {
+    queue->stateful_next[queue->count] = 0U;
+  }
   ++queue->count;
   return 0;
 }
