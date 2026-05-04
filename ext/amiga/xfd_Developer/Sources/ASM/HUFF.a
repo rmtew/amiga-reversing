@@ -1,0 +1,140 @@
+*******************************************************
+**    XFD external decruncher for HUFF Cruncher      **
+**        written by Mr. Larmer / Wanted Team        **
+**	   shortened and fixed by SDI in 2000  	     **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.0 (19.04.2000)
+; o Optimized register usage in DecrunchBuffer
+; o Reduced stack usage
+; o Decrunched size is checked to be non zero
+
+;;;		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE "lvo/exec_lib.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_HUFF		;first slave
+
+**************************************************
+
+		dc.b	"$VER: HUFF 2.0 (01.11.2002)",0
+N_HUFF		dc.b	"(HUFF) Data Cruncher",0
+		EVEN
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_HUFF		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_HUFF		;name
+		dc.w	XFDPFF_DATA
+		dc.w	0
+		dc.l	RB_HUFF		;recog buffer
+		dc.l	DB_HUFF		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	$408	* header, table, 1 long data
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_HUFF		MOVEQ	#0,D0
+		CMP.L	#"HUFF",(A0)
+		BNE.B	.Exit
+		MOVEQ	#1,D0
+.Exit		RTS
+
+;-------------------------------------------------
+
+;Decrunch buffer function: receives bufferinfo in a0
+
+DB_HUFF		MOVEM.L	D2-D7/A3-A6,-(SP)
+		MOVE.L	A0,A4
+
+		MOVE.L	xfdbi_SourceBufLen(A4),D3	; Crunched Size
+		MOVE.L	xfdbi_SourceBuffer(A4),A0	; Crunched Data
+		SUBA.L	A1,A1				; Decrunched Size counter
+		MOVEQ	#1,D2				; Test Mode
+		BSR.B	D_HUFF
+
+		MOVE.L	A1,D0				; Decrunched Size
+		BEQ.B	.Corrupt
+		MOVE.L	D0,xfdbi_TargetBufSaveLen(A4)
+		MOVE.L	D0,xfdbi_TargetBufLen(A4)
+		MOVE.L	xfdbi_TargetBufMemType(A4),D1
+		MOVE.L	xfdm_ExecBase(A6),A6
+		JSR	_LVOAllocMem(A6)
+		MOVE.L	D0,xfdbi_TargetBuffer(A4)
+		BEQ.B	.NoMemory
+
+		MOVE.L	xfdbi_SourceBufLen(A4),D3	; Crunched Size
+		MOVE.L	xfdbi_SourceBuffer(A4),A0	; Crunched Data
+		MOVE.L	D0,A1				; Decrunch Buffer
+		MOVEQ	#0,D2				; Decrunch Mode
+		BSR.S	D_HUFF
+
+		MOVEQ	#1,D0
+.Exit		MOVEM.L	(SP)+,D2-D7/A3-A6
+		RTS
+
+.Corrupt	MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A4)
+		BRA.S	.Exit				; D0 already set to 0
+
+.NoMemory	MOVE.W	#XFDERR_NOMEMORY,xfdbi_Error(A4)
+		BRA.S	.Exit				; D0 already set to 0
+
+
+**************************************************
+
+		* A0 = input buffer
+		* A1 = output buffer
+		* D2 = test mode
+		* D3 = input size
+
+; Uses: A0,A1,A5,(A6) + A3, D2,D3,D4,D5,D6,D7
+
+D_HUFF		;; MOVEM.L	D2-D7/A2-A6,-(SP)
+		LEA	4(A0),A3	* table data $404 byte
+		LEA	$404(A0),A0	* data start
+		SUB.L	#$404,D3	* size checks done in xfd structure!
+		MOVEQ	#0,D7
+		LEA	$200(A3),A5
+		MOVE.W	$1FE(A3),D4
+.mainloop	MOVE.W	D4,D5
+.lab1		DBRA	D7,.lab2
+		SUBQ.L	#4,D3
+		BMI.S	.end
+		MOVEQ	#31,D7
+		MOVE.L	(A0)+,D6
+.lab2		LSR.L	#1,D6
+		BCC.S	.lab3
+		MOVE.W	(A5,D5.W),D5
+		BPL.S	.lab1
+		BRA.S	.lab4
+.lab3		MOVE.W	(A3,D5.W),D5
+		BPL.S	.lab1
+.lab4		TST.L	D2
+		BNE.B	.testmode
+		MOVE.B	D5,(A1)+
+		BRA.S	.mainloop
+.testmode	ADDQ.L	#1,A1
+		BRA.B	.mainloop
+.end		;; MOVEM.L	(SP)+,D2-D7/A2-A6
+		RTS
+
+		END

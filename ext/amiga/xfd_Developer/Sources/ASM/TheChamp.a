@@ -1,0 +1,200 @@
+*******************************************************
+**             XFD external decruncher               **
+**             for The Champ cruncher                **
+**             adapted by Wanted Team                **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.0 (3 Oct 2002)
+; o Corrected recognition routine (solves some false detections)
+; o Increased minimum crunched size to 21
+; o Eliminated the 9800 bytes workspace
+; o Added overflow detection in the decruncher
+
+;;;	INCDIR	"dh2:Include/"
+	INCLUDE	"libraries/xfdmaster.i"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_Champ		;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support data scanning
+
+S_Champ		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_Champ		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_Champ	;recog buffer
+		dc.l	DB_Champ	;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	8+1+12
+
+		dc.b	"$VER: External The Champ decruncher v2.2",10
+		dc.b	"(09.10.2003) by Wanted Team",0
+N_Champ		dc.b	"The Champ data cruncher",0
+		even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_Champ
+	cmp.b	#$80,(A0)
+	bne.b	Exit
+	move.l	(A0)+,D1
+	tst.b	(A0)
+	bne.b	Exit
+	bclr	#31,D1
+	move.l	D1,D0
+	beq.b	Exit
+	andi.l	#$FFF80000,D0
+	bne.b	Exit
+	moveq	#20,D0
+	add.l	D1,D0
+	move.l	D0,xfdrr_MinSourceLen(A1)
+	move.l	(A0),D0
+	beq.b	Exit
+	andi.l	#$FFF80000,D0
+	bne.b	Exit
+	cmp.l	(A0),D1
+	bge.b	Exit
+	moveq	#12,D0
+	add.l	(A0),D0
+	move.l	D0,xfdrr_FinalTargetLen(A1)
+	move.l	D0,xfdrr_MinTargetLen(A1)
+	moveq	#1,D0
+	rts
+Exit
+	moveq	#0,D0
+	rts
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+DB_Champ
+	movem.l	D3/A2-A6,-(A7)
+	move.l	A0,A5
+	move.l	xfdbi_UserTargetBuf(A5),A3
+	move.l	xfdbi_MinSourceLen(A5),D0
+	move.l	xfdbi_SourceBuffer(A5),A0
+	move.l	xfdbi_UserTargetBufLen(A5),D1
+
+	; A0 -> Crunched data
+	; A1 -> End of crunched data
+	; A3 -> Decrunch buffer
+	; A2 -> End of decrunch buffer
+
+	LEA	(A3,D1.L),A2
+	LEA	(A0,D0.L),A1
+
+	bsr.b	D_Champ
+
+	TST.L	D0
+	BNE.S	.Exit
+
+	MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A5)
+
+.Exit	movem.l	(A7)+,D3/A2-A6
+	rts
+
+;-------------------------------------------------
+
+; Decruncher from game "The Champ" (c) 1988 Linel
+
+	; A0 -> Crunched data
+	; A1 -> End of crunched data
+	; A3 -> Decrunch buffer
+	; A2 -> End of decrunch buffer
+
+	; Return: D0 = 0 = Error
+
+	; Used registers: A0,A1,A2,A3,A4,A6, D0,D1,D3
+
+D_Champ
+	ADDQ.L	#8,A0		; Skip header
+	LEA	12(A3),A4	; Past uncrunched data
+
+lbC00299A	MOVE.B	-(A1),D0
+	BMI.L	lbC0029D0
+	BEQ.S	lbC0029F4
+	MOVEQ	#6,D1
+lbC0029A4	BTST	D1,D0
+	BEQ.S	lbC0029B0
+	MOVE.B	-(A1),-(A2)
+	DBRA	D1,lbC0029A4
+	BRA.S	lbC0029B6
+
+lbC0029B0	CLR.B	-(A2)
+	DBRA	D1,lbC0029A4
+
+lbC0029B6
+	CMP.L	A4,A2
+	BHI.S	lbC00299A
+
+	MOVE.L	(A0)+,(A3)+	; Copy uncrunched data
+	MOVE.L	(A0)+,(A3)+
+	MOVE.L	(A0)+,(A3)+
+
+	MOVEQ	#1,D0		; Success
+	RTS
+
+ErrorExit
+	MOVEQ	#0,D0		; Failure (overflow)
+	RTS
+
+lbC0029D0	BTST	#6,D0
+	BEQ.S	lbC0029E4
+	ANDI.W	#$3F,D0
+	ADDQ.W	#6,D0
+
+	MOVE.L	A2,A6
+	SUB.W	D0,A6
+	SUBQ.W	#1,A6
+	CMP.L	A3,A6
+	BLO.S	ErrorExit
+
+lbC0029DC	MOVE.B	-(A1),-(A2)
+	DBRA	D0,lbC0029DC
+	BRA.S	lbC0029B6
+
+lbC0029E4	ANDI.W	#$3F,D0
+	ADDQ.W	#6,D0
+
+	MOVE.L	A2,A6
+	SUB.W	D0,A6
+	SUBQ.W	#1,A6
+	CMP.L	A3,A6
+	BLO.S	ErrorExit
+
+	MOVEQ	#0,D3
+lbC0029EC	MOVE.B	D3,-(A2)
+	DBRA	D0,lbC0029EC
+	BRA.S	lbC0029B6
+
+lbC0029F4	MOVE.B	-(A1),D3
+	MOVEQ	#0,D0
+	MOVE.B	-(A1),D0
+	ADDQ.W	#6,D0
+
+	MOVE.L	A2,A6
+	SUB.W	D0,A6
+	SUBQ.W	#1,A6
+	CMP.L	A3,A6
+	BLO.S	ErrorExit
+
+lbC0029FC	MOVE.B	D3,-(A2)
+	DBRA	D0,lbC0029FC
+	BRA.S	lbC0029B6
+

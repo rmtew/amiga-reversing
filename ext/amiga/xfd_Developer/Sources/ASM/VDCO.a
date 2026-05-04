@@ -1,0 +1,140 @@
+*******************************************************
+**     XFD external decruncher for VDCO Cruncher     **
+**        written by Mr. Larmer / Wanted Team        **
+**	   shortened and fixed by SDI in 1999  	     **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.0 (26.07.1999)
+; o Crunched and decrunched size are checked to be non-zero
+; o Increased minimum crunched file size from 12 to 15
+
+;;;		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+;;;		INCLUDE	"lvo.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_VDCO		;first slave
+
+**************************************************
+
+		dc.b	"$VER: VDCO 2.1 (18.10.2002)",0
+N_VDCO		dc.b	"Virtual Dreams (VDCO) Data Cruncher",0
+		EVEN
+
+**************************************************
+
+S_VDCO		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_VDCO		;name
+		dc.w	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		dc.w	0
+		dc.l	RB_VDCO		;recog buffer
+		dc.l	DB_VDCO		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12+1+1+1
+
+;-------------------------------------------------
+
+RB_VDCO		MOVEQ	#0,D0
+		CMP.L	#"VDCO",(A0)
+		BNE.B	.Exit
+		TST.B	4(A0)
+		BNE.B	.Exit
+		TST.B	8(A0)
+		BNE.B	.Exit
+		TST.L	8(A0)
+		BEQ.B	.Exit
+		MOVE.L	4(A0),D0
+		BEQ.B	.Exit
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		MOVEQ	#12,D0
+		ADD.L	8(A0),D0		* most files are some bytes longer
+		MOVE.L	D0,xfdrr_MinSourceLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+;-------------------------------------------------
+
+DB_VDCO		MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVE.L	A0,A5
+		MOVE.L	xfdbi_UserTargetBuf(A5),A1
+		MOVE.L	A1,A3
+		ADDA.L	xfdbi_TargetBufSaveLen(A5),A3
+		MOVE.L	xfdbi_SourceBuffer(A5),A0
+
+; A0 -> Crunched Data (source)
+; A1 -> Decrunch buffer (destination)
+; A3 -> End of decrunch buffer
+
+		LEA	12(A0),A0	; Skip header
+		MOVEQ	#15,D7
+		MOVEQ	#4,D6
+		TST.B	(A0)+
+		BEQ.B	.vdco3
+		MOVEQ	#$1F,D7
+		MOVEQ	#3,D6
+		BRA.B	.vdco3
+
+.vdco2		LEA	8(A1),A4
+		CMP.L	A3,A4
+		BHI.B	.err
+		MOVE.B	(A0)+,(A1)+
+		MOVE.B	(A0)+,(A1)+
+		MOVE.B	(A0)+,(A1)+
+		MOVE.B	(A0)+,(A1)+
+		MOVE.B	(A0)+,(A1)+
+		MOVE.B	(A0)+,(A1)+
+		MOVE.B	(A0)+,(A1)+
+		MOVE.B	(A0)+,(A1)+
+.vdco3		MOVE.B	(A0)+,D0
+		BEQ.B	.vdco2
+		MOVEQ	#7,D1
+.vdco4		ADD.B	D0,D0
+		BCS.B	.vdco5
+		CMP.L	A3,A1
+		BEQ.B	.err
+		MOVE.B	(A0)+,(A1)+
+		DBRA	D1,.vdco4
+		BRA.B	.vdco3
+
+.vdco5		MOVEQ	#0,D2
+		MOVE.B	(A0)+,D2	; Terminator
+		BEQ.B	.end
+		MOVE.L	D7,D3
+		AND.W	D2,D3
+		LSL.W	D6,D2
+		MOVE.B	(A0)+,D2
+		MOVEA.L	A1,A2
+		SUBA.W	D2,A2
+		ADDQ.W	#1,D3
+		LEA	1(A1,D3.W),A4
+		CMP.L	A3,A4
+		BHI.B	.err
+.loop		MOVE.B	(A2)+,(A1)+
+		DBRA	D3,.loop
+		DBRA	D1,.vdco4
+		BRA.B	.vdco3
+
+.end		MOVEQ	#1,D0
+		CMP.L	A3,A1
+		BEQ.B	.ok
+.err		MOVEQ	#0,D0
+		MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A5)
+.ok		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+		END

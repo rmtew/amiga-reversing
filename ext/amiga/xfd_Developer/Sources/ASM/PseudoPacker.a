@@ -1,0 +1,189 @@
+* Programmheader
+*
+*	Name:		Pseudo
+*	Author:		SDI
+*	Distribution:	PD
+*	Description:	XFD external decruncher for Pseudo Packer 1.0
+*	Compileropts:	-
+*	Linkeropts:	-
+*
+* 1.0   05.06.99 : first version
+* 1.1   25.07.99 : added direct support for plain address files
+
+		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"lvo.i"
+
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE "exec/memory.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+ForeMan		MOVEQ	#-1,D0
+		RTS
+
+		DC.L	XFDF_ID
+		DC.W	1,0
+		DC.L	0,0,S_PseudoP
+
+		DC.B	"$VER: Pseudo 1.1 (25.07.1999) by SDI",0
+N_PseudoP	DC.B	'Pseudo Packer 1.0',0
+		EVEN
+
+S_PseudoP	DC.L	0		;no more slaves
+		DC.W	2		;version
+		DC.W	39		;master version
+		DC.L	N_PseudoP	;name
+		DC.W	XFDPFF_ADDR	;flags
+		DC.W	0
+		DC.L	RB_PseudoP	;recog buffer
+		DC.L	DB_PseudoP	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	$CC+26		;MinBufSize
+
+*************************************************************************
+*	Recog buffer function: receives buffer + length in A0/D0	*
+*************************************************************************
+
+RB_PseudoP	MOVEQ	#80,D0
+		CMP.W	#$FFFE,8-80(A0,D0)	* short header, no exe
+		BEQ.B	.Check
+		MOVEQ.L	#80+26,D0
+		CMP.W	#$FFFE,8-80(A0,D0)	* long header no exe
+		BEQ.B	.Check
+		ADDQ.L	#6,D0
+		CMP.W	#$FFFE,8-80(A0,D0)	* short header, exe
+		BEQ.B	.Check
+		ADDI.L	#26,D0
+		CMP.W	#$FFFE,8-80(A0,D0)	* long header, exe
+		BNE.B	.No
+.Check		CMP.L	#$FFFE41FA,8-80(A0,D0)
+		BNE.B	.No
+		CMP.L	#$4CDF7FFF,$48-80(A0,D0)
+		BNE.B	.No
+		CMP.L	#$B24667F6,$94-80(A0,D0)
+		BNE.B	.No
+		CMP.L	#$7007611A,$98-80(A0,D0)
+		BNE.B	.No
+		CMP.L	#$E28D6702,$A8-80(A0,D0)
+		BNE.B	.No
+		RTS
+
+.No		MOVEQ	#0,D0
+		RTS
+
+*************************************************************************
+*	Decrunch buffer function: receives xfdbiBufferInfo in A0	*
+*************************************************************************
+
+DB_PseudoP	MOVEM.L	D2-D6/A2-A6,-(A7)
+		MOVE.L	A0,A5
+		MOVE.W	#XFDERR_NOMEMORY,xfdbi_Error(A5)
+
+		MOVEA.L	xfdbi_SourceBuffer(A5),A4
+
+		MOVE.L	A4,A0
+		BSR.B	RB_PseudoP
+		LEA	-80(A4,D0),A4
+
+		MOVE.L	$28(A4),D0
+		SUB.L	$14(A4),D0
+		MOVE.L	D0,xfdbi_TargetBufLen(A5)
+		MOVE.L	D0,xfdbi_TargetBufSaveLen(A5)
+		MOVE.L	xfdbi_TargetBufMemType(A5),D1
+		BSET	#MEMB_CLEAR,D1
+		MOVEA.L	xfdm_ExecBase(A6),A6
+		JSR	_LVOAllocMem(A6)
+		MOVE.L	D0,xfdbi_TargetBuffer(A5)
+		BEQ.B	.NoMem
+
+		MOVE.L	$14(A4),xfdbi_DecrAddress(A5)
+		MOVE.L	$2(A4),xfdbi_JmpAddress(A5)
+
+		MOVE.L	D0,A3			* start of buffer
+		LEA	$110(A4),A0		* source buffer
+		ADD.L	$1A(A4),A0
+		LEA	PseudoData(PC),A4
+		CLR.W	xfdbi_Error(A5)
+		BSR.B	D_PseudoP
+.NoMem		MOVEM.L	(A7)+,D2-D6/A2-A6
+		RTS
+
+PseudoData	DC.L	$090A0C0D
+
+*************************************************************************
+*	decrunch routine - copied from file (a bit modified)		*
+*************************************************************************
+
+D_PseudoP	MOVEQ	#3,D6
+		MOVEQ	#7,D7
+		MOVEQ	#1,D5
+		MOVEA.L	A3,A2
+		MOVE.L	-(A0),D1
+		TST.B	D1
+		BEQ.B	.Decr1
+		BSR.B	.Decr5
+		SUBQ.B	#1,D1
+		LSR.L	D1,D5
+.Decr1		LSR.L	#8,D1
+		ADDA.L	D1,A3
+.Decr2		BSR.B	.Decr5
+		BCS.B	.Decr12
+		MOVEQ	#0,D2
+.Decr3		MOVEQ	#1,D0
+		BSR.B	.Decr8
+		ADD.W	D1,D2
+		CMP.W	D6,D1
+		BEQ.B	.Decr3
+.Decr4		MOVEQ	#7,D0
+		BSR.B	.Decr8
+		MOVE.B	D1,-(A3)
+		DBRA	D2,.Decr4
+		CMPA.L	A3,A2
+		BCS.B	.Decr12
+		RTS	
+.Decr5		LSR.L	#1,D5
+		BEQ.B	.Decr6
+		RTS	
+.Decr6		MOVE.L	-(A0),D5
+		ROXR.L	#1,D5
+		RTS	
+.Decr7		SUBQ.W	#1,D0
+.Decr8		MOVEQ	#0,D1
+.Decr9		LSR.L	#1,D5
+		BEQ.B	.Decr11
+.Decr10		ROXL.L	#1,D1
+		DBRA	D0,.Decr9
+		RTS	
+.Decr11		MOVE.L	-(A0),D5
+		ROXR.L	#1,D5
+		BRA.B	.Decr10
+.Decr12		MOVEQ	#1,D0
+		BSR.B	.Decr8
+		MOVEQ	#0,D0
+		MOVE.B	(A4,D1.W),D0
+		MOVE.W	D1,D2
+		CMP.W	D6,D2
+		BNE.B	.Decr15
+		BSR.B	.Decr5
+		BCS.B	.Decr13
+		MOVEQ	#7,D0
+.Decr13		BSR.B	.Decr7
+		MOVE.W	D1,D3
+.Decr14		MOVEQ	#2,D0
+		BSR.B	.Decr8
+		ADD.W	D1,D2
+		CMP.W	D7,D1
+		BEQ.B	.Decr14
+		BRA.B	.Decr16
+.Decr15		BSR.B	.Decr7
+		MOVE.W	D1,D3
+.Decr16		ADDQ.W	#1,D2
+.Decr17		MOVE.B	(A3,D3.W),-(A3)
+		DBRA	D2,.Decr17
+		CMPA.L	A3,A2
+		BCS.B	.Decr2
+		RTS	
+		END

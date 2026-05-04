@@ -1,0 +1,174 @@
+*******************************************************
+**      XFD external decruncher for CP Cruncher      **
+**        written by Mr. Larmer / Wanted Team        **
+**  fixed by Georg Hörmannn in 1998 and SDI in 1999  **
+*******************************************************
+
+		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE "lvo/exec_lib.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_4Vx		;first slave
+
+S_4Vx		DC.L	0
+		DC.W	2
+		DC.W	36
+		DC.L	N_4Vx
+		DC.W	XFDPFF_DATA
+		DC.W	0
+		DC.L	RB_4Vx
+		DC.L	DB_4Vx
+		DC.L	0
+		DC.L	0
+		DC.W	0,0
+		DC.L	12
+
+		DC.B	'$VER: 4Vx 1.2 (15.07.2001) by Psygore',0
+N_4Vx		DC.B	'(.4Vx) Cruncher',0
+
+		EVEN
+
+RB_4Vx		MOVEQ	#0,D0
+		TST.L	4(A0)		* AmigaMail files
+		BEQ.B	.end
+		CMPI.L	#$12345678,(A0)
+		BNE.B	.end
+		MOVEQ	#1,D0
+.end		RTS	
+
+DB_4Vx		MOVEM.L	D1-D7/A1-A6,-(A7)
+		MOVEA.L	A0,A5
+		MOVEA.L	xfdbi_SourceBuffer(A5),A0
+		ADDA.L	xfdbi_SourceBufLen(A5),A0
+		MOVE.L	-4(A0),D0
+		MOVE.L	D0,xfdbi_TargetBufSaveLen(A5)
+		MOVE.L	D0,xfdbi_TargetBufLen(A5)
+		MOVEA.L	xfdm_ExecBase(A6),A6
+		MOVE.L	xfdbi_TargetBufMemType(A5),D1
+		JSR	_LVOAllocMem(A6)
+		MOVE.W	#XFDERR_NOMEMORY,xfdbi_Error(A5)
+		MOVE.L	D0,xfdbi_TargetBuffer(A5)
+		BEQ.B	.err
+		MOVEA.L	xfdbi_SourceBuffer(A5),A0
+		MOVEA.L	D0,A1
+		MOVE.L	xfdbi_SourceBufLen(A5),D0
+		BSR.B	D_4Vx
+		CLR.W	xfdbi_Error(A5)
+		MOVEQ	#1,D0
+.err		MOVEM.L	(A7)+,D1-D7/A1-A6
+		RTS	
+
+D_4Vx		ADDA.L	D0,A0
+		MOVEA.L	-(A0),A2
+		ADDA.L	A1,A2
+		SUBQ.L	#4,A0
+		MOVE.L	-(A0),D0
+L_100		MOVEQ	#2,D1
+		BSR.W	L_1D4
+		TST.W	D2
+		BEQ.B	L_14C
+		CMPI.W	#7,D2
+		BNE.B	L_134
+		LSR.L	#1,D0
+		BNE.B	L_118
+		BSR.W	L_1CE
+L_118		BCC.B	L_12C
+		MOVEQ	#9,D1
+		BSR.W	L_1D4
+		TST.W	D2
+		BNE.B	L_134
+		MOVEQ	#$0011,D1
+		BSR.W	L_1D4
+		BRA.B	L_134
+L_12C		MOVEQ	#3,D1
+		BSR.W	L_1D4
+		ADDQ.W	#7,D2
+L_134		SUBQ.W	#1,D2
+L_136		MOVEQ	#7,D1
+L_138		LSR.L	#1,D0
+		BNE.B	L_140
+		MOVE.L	-(A0),D0
+		ROXR.L	#1,D0
+L_140		ADDX	D3,D3
+		DBRA	D1,L_138
+		MOVE.B	D3,-(A2)
+		DBRA	D2,L_136
+L_14C		CMPA.L	A2,A1
+		BGE.B	L_1CC
+		MOVEQ	#1,D1
+		BSR.W	L_1D4
+		MOVEQ	#2,D3
+		MOVEQ	#7,D1
+		TST.W	D2
+		BEQ.B	L_1BA
+		MOVEQ	#4,D3
+		CMPI.W	#2,D2
+		BEQ.B	L_1A4
+		MOVEQ	#3,D3
+		CMPI.W	#1,D2
+		BEQ.B	L_196
+		MOVEQ	#1,D1
+		BSR.B	L_1D4
+		CMPI.W	#3,D2
+		BEQ.B	L_18E
+		CMPI.W	#2,D2
+		BEQ.B	L_184
+		ADDQ.W	#5,D2
+		MOVE.W	D2,D3
+		BRA.B	L_1A4
+L_184		MOVEQ	#1,D1
+		BSR.B	L_1D4
+		ADDQ.W	#7,D2
+		MOVE.W	D2,D3
+		BRA.B	L_1A4
+L_18E		MOVEQ	#7,D1
+		BSR.B	L_1D4
+		MOVE.W	D2,D3
+		BRA.B	L_1A4
+L_196		MOVEQ	#7,D1
+		LSR.L	#1,D0
+		BNE.B	L_19E
+		BSR.B	L_1CE
+L_19E		BCS.B	L_1BA
+		MOVEQ	#$000D,D1
+		BRA.B	L_1BA
+L_1A4		MOVEQ	#$000F,D1
+		LSR.L	#1,D0
+		BNE.B	L_1AC
+		BSR.B	L_1CE
+L_1AC		BCC.B	L_1BA
+		MOVEQ	#7,D1
+		LSR.L	#1,D0
+		BNE.B	L_1B6
+		BSR.B	L_1CE
+L_1B6		BCS.B	L_1BA
+		MOVEQ	#$000B,D1
+L_1BA		BSR.B	L_1D4
+		SUBQ.W	#1,D3
+L_1BE		MOVE.B	-1(A2,D2.L),-(A2)
+		DBRA	D3,L_1BE
+		CMPA.L	A2,A1
+		BLT.W	L_100
+L_1CC		RTS	
+L_1CE		MOVE.L	-(A0),D0
+		ROXR.L	#1,D0
+		RTS	
+L_1D4		MOVEQ	#0,D2
+L_1D6		LSR.L	#1,D0
+		BNE.B	L_1DE
+		MOVE.L	-(A0),D0
+		ROXR.L	#1,D0
+L_1DE		ADDX	D2,D2
+		DBRA	D1,L_1D6
+		RTS

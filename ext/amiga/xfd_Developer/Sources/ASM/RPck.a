@@ -1,0 +1,97 @@
+*******************************************************
+**             XFD external decruncher               **
+**                for RPck cruncher                  **
+**             adapted by Wanted Team                **
+**              fixed by SDI in 2002                 **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.1 (14.08.2002)
+; o Decrunched size is checked to be non-zero
+
+;;;	INCLUDE	"AINCLUDE:IncDirs.i"
+	INCLUDE	"libraries/xfdmaster.i"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan
+	moveq	#-1,d0		;security
+	rts
+	dc.l	XFDF_ID		;id
+	dc.w	1		;version
+	dc.w	0
+	dc.l	0,0		;private
+	dc.l	S_RPck		;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support data scanning
+
+S_RPck
+	dc.l	0		;no more slaves
+	dc.w	2		;version
+	dc.w	39		;master version
+	dc.l	N_RPck		;name
+	dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+	dc.w	0
+	dc.l	RB_RPck		;recog buffer
+	dc.l	DB_RPck		;decrunch buffer
+	dc.l	0		;recog segment
+	dc.l	0		;decrunch segment
+	dc.w	0,0
+	dc.l	12+1+1
+
+	dc.b	"$VER: RPck 2.2 (06.09.2003) by Wanted Team",0
+N_RPck	dc.b	"RPck data cruncher",0
+	even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_RPck	MOVEQ	#0,D0
+	CMP.L	#"RPck",(A0)+
+	BNE.B	.Exit
+	TST.B	(A0)
+	BNE.B	.Exit
+	MOVE.L	(A0)+,D1
+	BEQ.B	.Exit
+	TST.B	(A0)
+	BNE.B	.Exit
+	MOVE.L	D1,xfdrr_FinalTargetLen(A1)
+	ADDI.L	#130,D1			; maximum expansion
+	MOVE.L	D1,xfdrr_MinTargetLen(A1)
+	MOVEQ	#1,D0
+.Exit	RTS
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+; Decruncher from game "The Cycles" (c) 1990 by Accolade
+DB_RPck	MOVEM.L	A2-A3,-(A7)
+	MOVE.L	xfdbi_UserTargetBuf(A0),A1
+	MOVE.L	xfdbi_SourceBuffer(A0),A2
+	LEA	12(A2),A3
+	ADDA.L	xfdbi_SourceBufLen(A0),A2
+
+.mainl	CMPA.L	A2,A3
+	BCC.S	.end
+	MOVEQ	#0,D0
+	MOVE.B	(A3)+,D0
+	BMI.S	.neg
+
+.pos	MOVE.B	(A3)+,D1
+.copyl	MOVE.B	D1,(A1)+
+	DBRA	D0,.copyl
+	BRA.S	.mainl
+
+.neg	NEG.B	D0
+	SUBQ.W	#1,D0
+.copyl2	MOVE.B	(A3)+,(A1)+
+	DBRA	D0,.copyl2
+	BRA.S	.mainl
+
+.end	MOVEQ	#1,D0
+	MOVEM.L	(A7)+,A2-A3
+	RTS
+

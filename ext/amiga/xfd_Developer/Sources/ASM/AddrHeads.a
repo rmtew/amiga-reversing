@@ -1,0 +1,324 @@
+* Programmheader
+*
+*	Name:		AddrHeads
+*	Author:		SDI
+*	Distribution:	PD
+*	Description:	XFD external for removing address crunch headers
+*	Compileropts:	-
+*	Linkeropts:	-
+*
+* 1.0   01.06.98 : first version
+* 1.1   04.06.98 : added ObjectMaster 1.0 data
+* 1.2   06.12.98 : added ObjectCreator1.0, uses cached SysBase
+* 2.0   14.12.98 : added PacMan 1.5, totally new shorter method
+* 2.1   15.12.98 : added TUC decruncher header
+* 2.2   21.12.98 : added unknown CopyMem header
+
+		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"lvo.i"
+
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE "exec/memory.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+ForeMan		MOVEQ	#-1,D0
+		RTS
+
+		DC.L	XFDF_ID
+		DC.W	1,0
+		DC.L	0,0,Slave1
+
+		DC.B	"$VER: AddrHeads 2.2 (21.12.1998) by SDI",0
+N_AddrHead	DC.B	'AddressHead',0
+		EVEN
+
+Slave1		DC.L	0		;no more slaves
+		DC.W	2		;version
+		DC.W	36		;master version
+		DC.L	N_AddrHead	;name
+		DC.W	XFDPFF_ADDR	;flags
+		DC.W	0
+		DC.L	RB_AddrHead	;recog buffer
+		DC.L	DB_AddrHead		;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	184		;MinBufSize
+
+*************************************************************************
+*			Recog and Decrunch data				*
+*************************************************************************
+
+ADRH_RC		MACRO
+		DC.B	\1,\3,\5,\7,\9		* offsets
+		DC.B	\F			* 1 == BCPL
+		DC.L	\2,\4,\6,\8,\A		* data
+		DC.W	\B			* decroffset
+		DC.W	\C			* jumpoffset
+		DC.W	\D			* data offset
+		DC.W	\E			* size offset
+		ENDM
+
+ADDRENTRIES	EQU	10
+
+RecogTable	ADRH_RC	032,$48E780C0,042,$41FA002C,060,$538066FA,068,$D3C02320,076,$4CDF0301,038,082,088,048,1
+		ADRH_RC	108,$FFEC224F,132,$76FF2C7A,168,$600E4CDF,172,$430F4EB9,180,$9EFC001C,088,176,320,094,0
+		ADRH_RC	108,$00886164,132,$FFBE223A,172,$9EFC001C,176,$227AFFA6,180,$203AFFA8,088,168,304,094,0
+		ADRH_RC	048,$43FA001E,060,$0100203C,072,$FFFC4EF9,084,$207C0000,132,$13D100DF,158,162,168,154,0
+		ADRH_RC	036,$41FA0030,054,$D1C1D3C1,058,$91FC0000,072,$B3C06600,076,$FFEE4280,042,082,086,050,0
+		ADRH_RC	036,$43FA006E,060,$4EAEFF34,072,$00582280,152,$5061634D,156,$616E2021,050,110,164,056,0
+		ADRH_RC	036,$43FA004A,048,$7E00303C,060,$009A3D40,116,$5061634D,120,$616E2021,080,108,124,086,1
+		ADRH_RC	032,$48E7C0C2,048,$2C780004,060,$DEFC0014,072,$FFDE203A,076,$FFE04EAE,038,088,092,044,0
+		ADRH_RC 032,$2C780004,036,$207C0000,040,$0020227C,054,$4EAEFD90,056,$FD904EB9,044,060,064,050,0
+		ADRH_RC 032,$2C780004,036,$207C0000,040,$0024227C,054,$4EAEFD90,064,$70004E75,044,060,068,050,0
+
+*************************************************************************
+*	Recog buffer function: receives buffer + length in A0/D0	*
+*************************************************************************
+
+RB_AddrHead	MOVEM.L	D2/D3,-(A7)
+
+		CMP.L	#$000003F3,(A0)
+		BNE.B	.No
+		MOVEQ	#1,D0
+		LEA	RecogTable(PC),A1
+.OuterLoop	MOVEQ	#4,D2
+.InnerLoop	MOVEQ	#0,D1
+		MOVE.B	(A1,D2.W),D1	* get offset
+		MOVE.L	(A0,D1.W),D1	* get data
+		MOVE.L	D2,D3
+		LSL.L	#2,D3
+		CMP.L	6(A1,D3.W),D1
+		DBNE.B	D2,.InnerLoop
+		TST.W	D2
+		BMI.B	.Exit		* we found it!
+		LEA	34(A1),A1	* next
+		ADDQ.L	#1,D0
+		MOVEQ	#ADDRENTRIES,D1
+		CMP.L	D1,D0
+		BLE.B	.OuterLoop
+
+.No		MOVEQ	#0,D0
+.Exit		MOVEM.L	(A7)+,D2/D3
+		RTS
+
+
+*************************************************************************
+*	Decrunch buffer function: receives xfdbiBufferInfo in A0	*
+*************************************************************************
+
+* D2 - destination size
+* A2 - destination start pointer
+* A3 - decrunch address
+* A4 - jump address
+
+DB_AddrHead	MOVEM.L	D2/A3-A6,-(A7)
+		MOVE.L	A0,A5
+
+		MOVEA.L	xfdbi_SourceBuffer(A5),A4
+		MOVE.L	A4,A0			* source
+		BSR.B	RB_AddrHead
+		MOVE.L	A1,A3			* data ptr
+		MOVE.L	xfdm_ExecBase(A6),A6
+		MOVE.W	32(A3),D0
+		MOVE.L	(A4,D0.W),D2
+		TST.B	5(A3)
+		BEQ.B	.skip
+		LSL.L	#2,D2			* is BCPL
+.skip		MOVE.L	D2,D0
+		MOVE.L	xfdbi_TargetBufMemType(A5),D1
+		JSR	_LVOAllocMem(A6)
+		MOVE.W	#XFDERR_NOMEMORY,xfdbi_Error(A5)
+		MOVE.L	D0,xfdbi_TargetBuffer(A5)
+		BEQ.B	.NoMem
+
+		MOVE.L	D2,xfdbi_TargetBufLen(A5)
+		MOVE.L	D2,xfdbi_TargetBufSaveLen(A5)
+		MOVE.W	26(A3),D1		* decr
+		MOVE.L	(A4,D1.W),xfdbi_DecrAddress(A5)
+		MOVE.W	28(A3),D1		* jmp
+		MOVE.L	(A4,D1.W),xfdbi_JmpAddress(A5)
+
+		MOVE.W	30(A3),D1		* data
+		LEA	(A4,D1.W),A0
+		MOVEA.L	D0,A1
+		MOVE.L	D2,D0
+		JSR	_LVOCopyMem(A6)
+
+		CLR.W	xfdbi_Error(A5)
+		MOVEQ	#1,D0
+.NoMem		MOVEM.L	(A7)+,D2/A3-A6
+		RTS
+
+
+****
+* 1 : xfdDecrunch simple header (V1.08)
+****
+* 00, 00, 03, F3, 00, 00, 00, 00, 00, 00, 00, 01,
+* 00, 00, 00, 00, 00, 00, 00, 00, HUNKSIZE______,
+* 00, 00, 03, E9, HUNKSIZE______, 48, E7, 80, C0,
+* 43, F9, DECRADDR______, 41, FA, 00, 2C, 20, 3C, 
+* BCPLSIZE______, B1, C9, 67, 14, 65, 08, 22, D8,
+* 53, 80, 66, FA, 60, 0A, D1, C0, D3, C0, 23, 20, 
+* 53, 80, 66, FA, 4C, DF, 03, 01, 4E, F9, JUMPADDR
+* ______, 00, 00
+
+****
+* 2 : xfdDecrunch professional header (V1.03)
+****
+* 00, 00, 03, F3, 00, 00, 00, 00, 00, 00, 00, 02,
+* 00, 00, 00, 00, 00, 00, 00, 01, 00, 00, 00, 43, 
+* 00, 00, 00, 00, 00, 00, 03, E9, 00, 00, 00, 43,
+* 60, 16, 00, 00, 00, 00, AB, CD, 00, 00, 00, 00, 
+* 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
+* 48, E7, F0, C2, 43, FA, 00, AC, 70, 25, 2C, 78, 
+* 00, 04, 4E, AE, FD, D8, 41, FA, FF, D4, 20, 80,
+* 67, 7A, 43, F9, DECRADDR______, 20, 3C, DECRSIZE
+* ______, 4E, AE, FF, 34, 4A, 80, 66, 10, 2F, 3A,
+* FF, EC, 22, 4F, 41, FA, 00, 88, 61, 62, 58, 4F, 
+* 60, 4E, 22, 3A, FF, B0, 24, 3C, 00, 00, 01, 40,
+* 76, FF, 2C, 7A, FF, 9C, 4E, AE, FF, BE, 22, 3A,
+* FF, 9C, 24, 3A, FF, C4, 26, 3A, FF, C6, 4E, AE,
+* FF, D6, B6, 80, 67, 08, 41, FA, 00, 76, 61, 30, 
+* 60, 0E, 4C, DF, 43, 0F, 4E, B9, JUMPADDR______,
+* 9E, FC, 00, 1C, 22, 7A, FF, 9E, 20, 3A, FF, A0, 
+* 2C, 78, 00, 04, 4E, AE, FF, 2E, 22, 7A, FF, 5A,
+* 4E, AE, FE, 62, DE, FC, 00, 1C, 70, 00, 4E, 75, 
+* 48, E7, 20, 02, 22, 08, 24, 09, 2C, 7A, FF, 42,
+* 4E, AE, FC, 46, 4C, DF, 40, 04, 4E, 75, 64, 6F, 
+* 73, 2E, 6C, 69, 62, 72, 61, 72, 79, 00, 4E, 6F,
+* 20, 6D, 65, 6D, 6F, 72, 79, 20, 61, 76, 61, 69, 
+* 6C, 61, 62, 6C, 65, 20, 61, 74, 20, 24, 25, 30,
+* 38, 6C, 78, 2E, 0A, 00, 45, 72, 72, 6F, 72, 20, 
+* 6C, 6F, 61, 64, 69, 6E, 67, 20, 64, 61, 74, 61,
+* 2E, 0A, 00, 00, 00, 00, 03, F2, 00, 00, 03, F5, 
+* 00, 00, 00, 00, 00, 00, 03, F6, 
+
+****
+* 3: xfdDecrunch professional header (V1.08)
+****
+* 00, 00, 03, F3, 00, 00, 00, 00, 00, 00, 00, 02,
+* 00, 00, 00, 00, 00, 00, 00, 01, 00, 00, 00, 3F,
+* 00, 00, 00, 00, 00, 00, 03, E9, 00, 00, 00, 3F,
+* 60, 16, 00, 00, 00, 00, AB, CD, 00, 00, 00, 00,
+* 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
+* 48, E7, F0, C2, 43, FA, 00, A6, 70, 21, 2C, 78,
+* 00, 04, 4E, AE, FD, D8, 41, FA, FF, D4, 20, 80,
+* 67, 76, 43, F9, DECRADDR______, 20, 3C, DECRSIZE 
+* ______, 4E, AE, FF, 34, 4A, 80, 66, 08, 41, FA,
+* 00, 88, 61, 64, 60, 4E, 22, 3A, FF, B8, 24, 3C, 
+* 00, 00, 01, 30, 76, FF, 2C, 7A, FF, A4, 4E, AE,
+* FF, BE, 22, 3A, FF, A4, 24, 3A, FF, CC, 26, 3A, 
+* FF, CE, 4E, AE, FF, D6, B6, 80, 67, 08, 41, FA,
+* 00, 6E, 61, 34, 60, 0E, 4C, DF, 43, 0F, 4E, B9,
+* JUMPADDR______, 9E, FC, 00, 1C, 22, 7A, FF, A6,
+* 20, 3A, FF, A8, 2C, 78, 00, 04, 4E, AE, FF, 2E,
+* 22, 7A, FF, 62, 2C, 78, 00, 04, 4E, AE, FE, 62,
+* DE, FC, 00, 1C, 70, 00, 4E, 75, 76, 00, 16, 18,
+* 24, 08, 2C, 7A, FF, 48, 4E, AE, FF, C4, 22, 00,
+* 4E, EE, FF, D0, 64, 6F, 73, 2E, 6C, 69, 62, 72,
+* 61, 72, 79, 00, 15, 4E, 6F, 20, 6D, 65, 6D, 6F,
+* 72, 79, 20, 61, 76, 61, 69, 6C, 61, 62, 6C, 65,
+* 2E, 0A, 14, 45, 72, 72, 6F, 72, 20, 6C, 6F, 61,
+* 64, 69, 6E, 67, 20, 64, 61, 74, 61, 2E, 0A, 00,
+* 00, 00, 03, F2, 00, 00, 03, F5, 00, 00, 00, 00,
+* 00, 00, 03, F6, 
+
+****
+* 4: ObjectMaster header (V1.0)
+****
+* 00, 00, 03, F3, 00, 00, 00, 00, 00, 00, 00, 02,
+* 00, 00, 00, 00, 00, 00, 00, 01, HUNKSIZE______,
+* 00, 00, 00, 01, 00, 00, 03, E9, HUNKSIZE______,
+* 41, FA, 00, 2A, 20, 08, 06, 80, 00, 00, 00, 58,
+* 43, FA, 00, 1E, 23, 40, 00, 06, 43, F9, 00, 00,
+* 01, 00, 20, 3C, 00, 00, 00, 20, 22, D8, 51, C8,
+* FF, FC, 4E, F9, 00, 00, 01, 00, 45, FA, 00, 48,
+* 20, 7C, 00, 00, 00, 00, D1, D2, 43, F9, 00, 07,
+* FF, FC, 20, 12, 13, 20, 13, D1, 00, DF, F1, 80,
+* 04, 80, 00, 00, 00, 01, 66, 00, FF, F0, D3, FC,
+* 00, 00, 00, 00, 20, 6A, 00, 04, 20, 12, 10, D9,
+* 13, D1, 00, DF, F1, 80, 04, 80, 00, 00, 00, 01,
+* 66, 00, FF, F0, 20, 6A, 00, 08, 4E, D0, DECRSIZE
+* ______, DECRADDR______, JUMPADDR______, 4E, 71,
+
+****
+* 5: ObjectCreator (V1.0)
+****
+* 00, 00, 03, F3, 00, 00, 00, 00, 00, 00, 00, 02,
+* 00, 00, 00, 00, 00, 00, 00, 01, HUNKSIZE______,
+* 00, 00, 00, 01, 00, 00, 03, E9, HUNKSIZE______,
+* 41, FA, 00, 30, 43, F9, DECRADDR______, 20, 09,
+* 22, 3C, DECRSIZE______, D1, C1, D3, C1, 91, FC,
+* 00, 00, 00, 01, 93, FC, 00, 00, 00, 01, 12, 90,
+* B3, C0, 66, 00, FF, EE, 42, 80, 4E, F9, JUMPADDR
+* ______,
+
+****
+* 6: PacMan Normal (V1.5)
+****
+* 00, 00, 03, F3, 00, 00, 00, 00, 00, 00, 00, 01,
+* 00, 00, 00, 00, 00, 00, 00, 00, HUNKSIZE______,
+* 00, 00, 03, E9, HUNKSIZE______, 48, E7, 80, 80,
+* 43, FA, 00, 6E, 22, 8E, 2C, 79, 00, 00, 00, 04,
+* 22, 7C, DECRADDR______, 20, 3C, DECRSIZE______,
+* 4E, AE, FF, 34, 4A, 80, 67, 00, 00, 46, 43, FA,
+* 00, 58, 22, 80, 41, FA, 00, 56, 26, 7C, DECRADDR
+* ______, 24, 3C, BCPLSIZE______, 26, D8, 51, CA,
+* FF, FC, 4C, DF, 01, 01, 43, FA, 00, 2C, 2C, 51,
+* 4E, B9, JMPADDR_______, 2C, 79, 00, 00, 00, 04,
+* 41, FA, 00, 26, 22, 50, 20, 3C, DECRSIZE______,
+* 4E, AE, FF, 2E, 4E, 75, DF, FC, 00, 00, 00, 08,
+* 4E, 75, 00, 00, 00, 00, 00, 00, 50, 61, 63, 4D,
+* 61, 6E, 20, 21, 00, 00, 00, 00,
+
+****
+* 7 : PacMan KillSys (V1.5)
+****
+* 00, 00, 03, F3, 00, 00, 00, 00, 00, 00, 00, 01,
+* 00, 00, 00, 00, 00, 00, 00, 00, HUNKSIZE______,
+* 00, 00, 03, E9, HUNKSIZE______, 48, E7, 80, 80,
+* 43, FA, 00, 4A, 22, 8E, 4D, F9, 00, DF, F0, 00,
+* 7E, 00, 30, 3C, 7F, FF, 3D, 40, 00, 96, 3D, 40,
+* 00, 9A, 3D, 40, 00, 9E, 13, FC, FF, 87, 00, BF,
+* D1, 00, 41, FA, 00, 30, 26, 7C, DECRADDR______,
+* 24, 3C, BCPLSIZE______, 26, D8, 51, CA, FF, FC,
+* 4C, DF, 01, 01, 43, FA, 00, 0A, 2C, 51, 4E, F9,
+* JMPADDR_______, 00, 00, 00, 00, 50, 61, 63, 4D,
+* 61, 6E, 20, 21,
+
+****
+* 8 : Addresshead of TUC-Decrunch slave (V1.1)
+****
+* 00, 00, 03, F3, 00, 00, 00, 00, 00, 00, 00, 01,
+* 00, 00, 00, 00, 00, 00, 00, 00, HUNKSIZE______,
+* 00, 00, 03, E9, HUNKSIZE______, 48, E7, C0, C2,
+* 43, F9, DECRADDR______, 20, 3C, DECRSIZE______,
+* 2C, 78, 00, 04, 4E, AE, FF, 34, 4A, 80, 66, 06,
+* DE, FC, 00, 14, 4E, 75, 41, FA, 00, 18, 22, 7A,
+* FF, DE, 20, 3A, FF, E0, 4E, AE, FD, 90, 4C, DF,
+* 43, 03, 4E, F9, JMPADDR_______,
+
+****
+* 9: ???
+****
+* 00, 00, 03, F3, 00, 00, 00, 00, 00, 00, 00, 01,
+* 00, 00, 00, 00, 00, 00, 00, 00, HUNKSIZE______,
+* 00, 00, 03, E9, HUNKSIZE______, 2C, 78, 00, 04,
+* 20, 7C, 00, 00, 00, 20, 22, 7C, DECRADDR______,
+* 20, 3C, DECRSIZE______, 4E, AE, FD, 90, 4E, B9,
+* JMPADDR_______,
+
+****
+* 10: ???
+****
+* 00, 00, 03, F3, 00, 00, 00, 00, 00, 00, 00, 01,
+* 00, 00, 00, 00, 00, 00, 00, 00, HUNKSIZE______,
+* 00, 00, 03, E9, HUNKSIZE______, 2C, 78, 00, 04,
+* 20, 7C, 00, 00, 00, 24, 22, 7C, DECRADDR______,
+* 20, 3C, DECRSIZE______, 4E, AE, FD, 90, 4E, B9,
+* JMPADDR_______, 70, 00, 4E, 75
+
+ 		END

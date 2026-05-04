@@ -1,0 +1,342 @@
+* Programmheader
+*
+*	Name:		COMatic
+*	Author:		SDI
+*	Distribution:	PD
+*	Description:	XFD external decruncher for Crunch-O-Matic
+*	Compileropts:	-
+*	Linkeropts:	-
+*
+* 1.0   09.11.98 : first version
+
+*************************************************************************
+*									*
+* This cruncher produces buggy files, most times in Packmode 2, but	*
+* the tested data was corrupt in mode 1 as well.			*
+*									*
+* I don't know if the cruncher or decruncher has this bug! As all files *
+* have same decrunch header I cannot test another one.			*
+*									*
+*************************************************************************
+
+		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"lvo.i"
+
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE "dos/doshunks.i"
+		INCLUDE "exec/memory.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+ForeMan		MOVEQ	#-1,D0
+		RTS
+
+		DC.L	XFDF_ID
+		DC.W	1,0
+		DC.L	0,0,Slave1
+
+		DC.B	"$VER: COMatic 1.0 (09.11.1998) by SDI",0
+N_COMaticE	DC.B	'Crunch-O-Matic 1.0',0
+N_COMaticD	DC.B	'Crunch-O-Matic 1.0 Data',0
+N_COMaticI	DC.B	'Crunch-O-Matic 1.0 IFF',0
+N_COMaticT	DC.B	'Crunch-O-Matic 1.0 Text',0
+N_COMaticM	DC.B	'Crunch-O-Matic 1.0 Module',0
+		EVEN
+
+Slave1		DC.L	Slave2		;no more slaves
+		DC.W	2		;version
+		DC.W	36		;master version
+		DC.L	N_COMaticE	;name
+		DC.W	XFDPFF_RELOC	;flags
+		DC.W	0
+		DC.L	RB_COMaticE	;recog buffer
+		DC.L	DB_COMaticE	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	$F4		;MinBufSize
+
+Slave2		DC.L	Slave3		;no more slaves
+		DC.W	2		;version
+		DC.W	36		;master version
+		DC.L	N_COMaticD	;name
+		DC.W	XFDPFF_DATA	;flags
+		DC.W	0
+		DC.L	RB_COMaticD	;recog buffer
+		DC.L	DB_COMaticD	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	4		;MinBufSize
+
+Slave3		DC.L	Slave4		;no more slaves
+		DC.W	2		;version
+		DC.W	38		;master version
+		DC.L	N_COMaticI	;name
+		DC.W	XFDPFF_DATA	;flags
+		DC.W	0
+		DC.L	RB_COMaticI	;recog buffer
+		DC.L	DB_COMaticI	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	$7C		;MinBufSize
+
+Slave4		DC.L	Slave5		;no more slaves
+		DC.W	2		;version
+		DC.W	38		;master version
+		DC.L	N_COMaticT	;name
+		DC.W	XFDPFF_DATA	;flags
+		DC.W	0
+		DC.L	RB_COMaticT	;recog buffer
+		DC.L	DB_COMaticT	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	$7C		;MinBufSize
+
+Slave5		DC.L	0		;no more slaves
+		DC.W	2		;version
+		DC.W	38		;master version
+		DC.L	N_COMaticM	;name
+		DC.W	XFDPFF_DATA	;flags
+		DC.W	0
+		DC.L	RB_COMaticM	;recog buffer
+		DC.L	DB_COMaticM	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	$7C		;MinBufSize
+
+*************************************************************************
+*	Recog buffer function: receives buffer + length in A0/D0	*
+*************************************************************************
+
+RB_COMaticE	MOVEQ	#0,D0			; False
+
+		CMP.L	#$000003F3,(A0)
+		BNE.B	.No
+		CMP.L	#$267AFFF6,$28(A0)
+		BNE.B	.No
+		CMP.L	#$245F2057,$64(A0)
+		BNE.B	.No
+		CMP.L	#$0800001E,$A0(A0)
+		BNE.B	.No
+		CMP.L	#$4A426706,$DC(A0)
+		BNE.B	.No
+		CMP.L	#$03E90002,$F0(A0)
+		BNE.B	.No
+		MOVEQ	#1,D0			; True
+.No		RTS
+
+RB_COMaticD	MOVEQ	#0,D0			; False
+
+		CMP.L	#$43BA4F4D,(A0)
+		BNE.B	.No
+		MOVEQ	#1,D0			; True
+.No		RTS
+
+RB_COMaticI	MOVEQ	#0,D0			; False
+		CMP.L	#$F8,$20(A0)
+		BEQ.B	CheckCOMData
+		RTS
+
+RB_COMaticT	MOVEQ	#0,D0			; False
+		CMP.L	#$86,$20(A0)
+		BEQ.B	CheckCOMData
+		RTS
+
+RB_COMaticM	MOVEQ	#0,D0			; False
+		CMP.L	#$224,$20(A0)
+		BEQ.B	CheckCOMData
+		RTS
+
+CheckCOMData	CMP.L	#$000003F3,(A0)
+		BNE.B	.No
+		CMP.L	#$D9CCD9CC,$28(A0)
+		BNE.B	.No
+		CMP.L	#$22402440,$50(A0)
+		BNE.B	.No
+		CMP.L	#$2F0B612E,$64(A0)
+		BNE.B	.No
+		CMP.L	#$0078612A,$78(A0)
+		BNE.B	.No
+		MOVEQ	#1,D0			; True
+.No		RTS
+
+*************************************************************************
+*	Decrunch buffer function: receives xfdbiBufferInfo in A0	*
+*************************************************************************
+
+DB_COMaticM	MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVEA.L	xfdbi_SourceBuffer(A0),A4
+		MOVE.L	$8BE(A4),D7
+		MOVE.L	$8C2(A4),D6
+		MOVE.W	$8C6(A4),D5
+		LEA	$8C8(A4),A3
+		BSR.B	DecrunchCOM
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+DB_COMaticT	MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVEA.L	xfdbi_SourceBuffer(A0),A4
+		MOVE.L	$246(A4),D7
+		MOVE.L	$24A(A4),D6
+		MOVE.W	$24E(A4),D5
+		LEA	$250(A4),A3
+		BSR.B	DecrunchCOM
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+DB_COMaticI	MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVEA.L	xfdbi_SourceBuffer(A0),A4
+		MOVE.L	$40E(A4),D7
+		MOVE.L	$412(A4),D6
+		MOVE.W	$416(A4),D5
+		LEA	$418(A4),A3
+		BSR.B	DecrunchCOM
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+DB_COMaticD	MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVEA.L	xfdbi_SourceBuffer(A0),A4
+		MOVE.L	4(A4),D7
+		MOVE.L	8(A4),D6
+		MOVE.W	12(A4),D5
+		LEA	14(A4),A3
+		BSR.B	DecrunchCOM
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+DB_COMaticE	MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVEA.L	xfdbi_SourceBuffer(A0),A4
+		MOVE.L	$C6(A4),D7
+		MOVE.L	$CA(A4),D6
+		MOVE.W	$CE(A4),D5
+		LEA	$27C(A4),A3
+		BSR.B	DecrunchCOM
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+DecrunchCOM	MOVE.L	A0,A5
+		MOVE.L	D7,D0		* get destination length
+		MOVE.L	D0,xfdbi_TargetBufSaveLen(A5)
+		ADD.L	#$1000,D0
+		MOVE.L	D0,xfdbi_TargetBufLen(A5)
+
+		MOVE.L	4.W,A6
+		MOVE.L	xfdbi_TargetBufMemType(A5),D1
+		JSR	_LVOAllocMem(A6)
+		MOVE.W	#XFDERR_NOMEMORY,xfdbi_Error(A5)
+		TST.L	D0
+		BEQ.B	.NoMem
+		MOVE.L	D0,xfdbi_TargetBuffer(A5)
+
+		MOVEA.L	A3,A0
+		MOVEA.L	D0,A1
+		LEA	(A1,D6.L),A2
+		BSR.B	Decrunch
+		CMP.L	D6,D7
+		BEQ.B	.ok
+		MOVEA.L	xfdbi_TargetBuffer(A5),A0
+		LEA	(A0,D7.L),A2
+		MOVE.L	D6,D1
+		MOVE.W	D5,D0
+		LEA	$1000(A2),A1
+		ADDA.L	D1,A0
+.loop		MOVE.B	-(A0),-(A1)
+		SUBQ.L	#1,D1
+		BNE.B	.loop
+		BSR.W	Decrunch2
+
+.ok		CLR.W	xfdbi_Error(A5)
+		MOVEQ	#1,D0				* set true
+.NoMem		RTS
+
+*************************************************************************
+*	decrunch routine - copied from file (a bit modified)		*
+*************************************************************************
+
+Decrunch	MOVEQ	#-$80,D3
+.Dec1		BSR.B	.DecS1
+		BCC.B	.Dec4
+		MOVEQ	#0,D2
+		BSR.B	.DecS1
+		BCC.B	.Dec3
+		MOVEQ	#3,D0
+		MOVEQ	#8,D2
+.Dec2		SUBQ.W	#2,D2
+		MOVE.B	.DecDat1(PC,D0.W),D4
+		BSR.B	.DecS2
+		CMP.W	.DecDat2(PC,D2.W),D1
+		DBNE	D0,.Dec2
+		MOVE.B	.DecDat3(PC,D0.W),D2
+		ADD.W	D1,D2
+.Dec3		MOVE.B	(A0)+,(A1)+
+		DBRA	D2,.Dec3
+		CMPA.L	A1,A2
+		BGT.B	.Dec4
+		RTS	
+
+.DecS1		ADD.B	D3,D3
+		BNE.B	.DecS1E
+		MOVE.B	(A0)+,D3
+		ADDX.B	D3,D3
+.DecS1E		RTS	
+.DecS2		MOVEQ	#0,D1
+.DecS2L		BSR.B	.DecS1
+		ADDX.W	D1,D1
+		SUBQ.B	#1,D4
+		BPL.B	.DecS2L
+		RTS	
+.Dec4		MOVEQ	#4,D0
+.Dec5L		BSR.B	.DecS1
+		BCC.B	.Dec6
+		SUBQ.W	#1,D0
+		BNE.B	.Dec5L
+.Dec6		CLR.W	D1
+		MOVE.B	.DecDat4(PC,D0.W),D4
+		BMI.B	.Dec7
+		BSR.B	.DecS2
+.Dec7		MOVE.B	.DecDat5(PC,D0.W),D0
+		ADD.W	D1,D0
+		MOVEQ	#2,D4
+		BSR.B	.DecS2
+		MOVE.L	D1,D2
+		MOVE.B	.DecDat6(PC,D2.W),D4
+		ADD.W	D2,D2
+		BSR.B	.DecS2
+		ADD.W	.DecDat7(PC,D2.W),D1
+		MOVEA.L	A1,A3
+		SUBA.L	D1,A3
+.Dec8L		MOVE.B	(A3)+,(A1)+
+		DBRA	D0,.Dec8L
+		CMPA.L	A1,A2
+		BGT.B	.Dec1
+		RTS	
+
+.DecDat1	DC.B	9,2,1,0
+.DecDat2	DC.W	$3FF,7,3,1
+.DecDat3	DC.B	$C,5,2,1
+.DecDat4	DC.B	9,1,0,-1,-1
+.DecDat5	DC.B	9,5,3,2,1
+.DecDat6	DC.B	3,5,5,6,7,8,9,10
+.DecDat7	DC.W	$1,$11,$51,$91,$111,$211,$411,$811
+
+Decrunch2	MOVEQ	#0,D1
+.Decr1		MOVE.B	(A1)+,D1
+		CMP.W	D0,D1
+		BNE.B	.Decr3
+		MOVEQ	#0,D2
+		MOVE.B	(A1)+,D2
+		BEQ.B	.Decr3
+		MOVE.B	(A1)+,D1
+.Decr2L 	MOVE.B	D1,(A0)+
+		DBRA	D2,.Decr2L
+		MOVE.B	D1,(A0)+
+.Decr3		MOVE.B	D1,(A0)+
+		CMPA.L	A0,A2
+		BGT.B	.Decr1
+		RTS	
+		END

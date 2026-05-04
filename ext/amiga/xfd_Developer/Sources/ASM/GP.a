@@ -1,0 +1,696 @@
+*******************************************************
+**      XFD external decruncher for GP Cruncher      **
+**        written by Mr. Larmer / Wanted Team        **
+**	   shortened and fixed by SDI in 1999  	     **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.1 (17.10.2000)
+; o Decrunched size is checked to be non-zero
+; o Added data scanning functions
+; o Solved some false detections
+
+;;;		INCLUDE	AINCLUDE:IncDirs.i
+		INCLUDE	"libraries/xfdmaster.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_GP		;first slave
+
+		dc.b	"$VER: GP 2.2 (20.09.2003)",0
+N_GP		dc.b	"(GP) Data Cruncher",0
+		EVEN
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_GP		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_GP		;name
+		dc.w	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		dc.w	0
+		dc.l	RB_GP		;recog buffer
+		dc.l	DB_GP		;decrunch buffer
+		dc.l	SD_GP		;recog segment / scan data
+		dc.l	VD_GP		;decrunch segment / verify data
+		dc.w	0,0
+		dc.l	12+2
+
+;-------------------------------------------------
+
+RB_GP		CMP.W	#"GP",(A0)
+		BNE.B	.Exit
+		TST.B	2(A0)
+		BNE.B	.Exit
+		MOVE.L	2(A0),D0
+		BEQ.B	.Exit
+
+		MOVE.W	6(A0),D1
+		AND.W	#7,D1		;Compression Flags
+		BNE.B	.Skip		;Is the data is compressed?
+		CMP.L	8(A0),D0	;No, compare crunched and decrunched size
+		BNE.B	.Exit
+
+.Skip		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		ADDI.L	#8192,D0	* post and pre buffer
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		MOVE.L	8(A0),D0
+		ADDI.L	#12,D0
+		MOVE.L	D0,xfdrr_MinSourceLen(A1)
+		MOVEQ	#1,D0
+		RTS
+
+.Exit		MOVEQ	#0,D0
+		RTS
+
+;-------------------------------------------------
+
+DB_GP		MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVE.L	xfdbi_UserTargetBuf(A0),A1
+		MOVE.L	xfdbi_SourceBuffer(A0),A0
+
+		MOVE.L	A1,A2
+		LEA	4096(A1),A1
+		BSR.B	D_GP
+		
+		MOVEQ	#1,D0
+.Exit		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+**************************************************
+
+;		A0 -> Crunched Data
+;		A1 -> Decrunch Buffer + 4096
+;		A2 -> Decrunch Buffer
+
+D_GP		MOVE.L	A2,-(A7)
+		ADDQ.L	#2,A0
+		MOVE.L	(A0)+,D0	* destination length
+		MOVE.W	(A0)+,D1
+		MOVE.L	(A0)+,D3	* source length
+		MOVE.W	D1,D2
+		ANDI.W	#7,D1		* Flags
+		LSR.W	#4,D2
+		ADD.W	D2,D2
+		MOVEA.L	A1,A6
+		SUBA.W	D2,A6
+		MOVEA.L	A6,A5		* A5 = early buffer start (A1-D2)
+		MOVEA.L	A1,A6		* real buffer start
+		ADDA.L	D0,A6		* A6 = real buffer end
+
+		btst	#2,D1
+		bne.s	.GP04
+		MOVEA.L	A0,A3		* current data start
+		MOVEA.L	A5,A4
+		BSR.W	GPmemcpy	* copy source to early start
+		MOVEA.L	A4,A1		* early start 
+		ADDA.L	D3,A1		* A1 = early source end
+		bra.s	.GP05
+
+.GP04		MOVEA.L	A5,A1
+		BSR.W	GPSub3
+
+.GP05		BTST	#1,D1
+		BNE.B	.GP06
+		MOVEA.L	A5,A3		* early start
+		MOVEA.L	A6,A4		* real buf end
+		SUBA.L	D3,A4
+		BSR.W	GPmemcpy	* copy source to end of real buffer
+		MOVEA.L	A4,A2		* A2 is source start
+		BRA.B	.GP07
+
+.GP06:		MOVEA.L	A1,A0
+		MOVEA.L	A5,A1
+		MOVEA.L	A2,A3		* A3 is GP stack
+		MOVEA.L	A6,A2
+		BSR.B	GPSub1
+.GP07:		BTST	#0,D1
+		BNE.B	.GP08
+		MOVEA.L	A2,A3
+		BRA.B	.GP09
+
+.GP08:		MOVEA.L	A2,A0
+		MOVEA.L	A5,A1
+		MOVEA.L	A6,A2
+		BSR.W	GPSub2
+		MOVEA.L	A5,A3
+.GP09:		MOVEA.L	(A7)+,A4
+		MOVE.L	D0,D3
+		BSR.W	GPmemcpy
+		RTS
+
+GPSub1:		MOVEM.L	D0-D2/A3/A5/A6,-(A7)
+		MOVEA.L	A3,A5
+		MOVEA.L	A5,A6
+		MOVEQ	#0,D7
+		LEA	.GPSub1_06(PC),A4
+.GPSub1_01:	MOVE.L	A4,(A6)+
+		SUBQ.B	#1,D7
+		BNE.B	.GPSub1_01
+		LEA	.GPData2(PC),A6
+		LEA	GPSub1(PC),A3
+		MOVEQ	#9,D7
+.GPSub1_02:	MOVEQ	#0,D6
+		MOVE.B	-(A0),D6
+		LSL.W	#2,D6
+		MOVE.W	(A6)+,D5
+		EXT.L	D5
+		ADD.L	A3,D5
+		MOVE.L	D5,(A5,D6.W)
+		DBF	D7,.GPSub1_02
+		LEA	.Mid2(PC),A3
+		MOVEQ	#15,D7
+.GPSub1_03:	MOVEQ	#0,D6
+		MOVE.B	-(A0),D6
+		LSL.W	#2,D6
+		MOVE.L	A3,(A5,D6.W)
+		ADDQ.L	#6,A3
+		DBF	D7,.GPSub1_03
+		MOVEQ	#0,D6
+		MOVE.B	-(A0),D6
+		LSL.W	#2,D6
+		LEA	.GPSub1_28(PC),A3
+		MOVE.L	A3,(A5,D6.W)
+		LEA	.Mid1(PC),A4
+.GPSub1_04:	CMPA.L	A1,A0
+		BLS.B	.End
+		MOVE.B	-(A0),D0
+		MOVEQ	#0,D1
+		MOVE.B	D0,D1
+		ADD.W	D1,D1
+		ADD.W	D1,D1
+		MOVEA.L	(A5,D1.W),A3
+.GPSub1_05:	JMP	(A3)
+.End		MOVEM.L	(A7)+,D0-D2/A3/A5/A6
+		RTS
+
+.GPSub1_06:	MOVE.B	D0,-(A2)
+		BRA.B	.GPSub1_04
+
+.GPSub1_07:	MOVEQ	#0,D1
+		MOVE.B	-(A0),D1
+		BEQ.B	.GPSub1_06
+		LEA	(A2,D1.W),A6
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+.Mid1:		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+		BRA.B	.GPSub1_04
+
+.GPSub1_08:	MOVE.B	-(A0),D1
+		MOVE.B	D1,D2
+		ANDI.W	#$FC,D1
+		BEQ.B	.GPSub1_06
+		LSR.W	#2,D1
+		ANDI.W	#3,D2
+		LEA	(A2,D1.W),A6
+		ADD.W	D2,D2
+		NEG.W	D2
+.GPSub1_09:	JMP	(A4,D2.W)
+
+.GPSub1_10:	MOVEQ	#0,D2
+		MOVE.B	-(A0),D2
+		BEQ.B	.GPSub1_06
+		MOVE.W	D2,D1
+		LSR.W	#2,D2
+		LSL.W	#8,D1
+		MOVE.B	-(A0),D1
+		ANDI.W	#$3FF,D1
+		LEA	1(A2,D1.W),A6
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+.GPSub1_11:	MOVE.B	-(A6),-(A2)
+		DBF	D2,.GPSub1_11
+		BRA.B	.GPSub1_04
+
+.GPSub1_12:	MOVEQ	#0,D1
+		MOVE.B	-(A0),D1
+		BEQ.B	.GPSub1_06
+		LSL.W	#8,D1
+		MOVE.B	-(A0),D1
+		CMP.W	#-$4000,D1
+		BCC.B	.GPSub1_13
+		LEA	(A2,D1.L),A6
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+		BRA.W	.GPSub1_04
+
+.GPSub1_13:	MOVE.W	#$0401,D3
+.GPSub1_14:	ANDI.W	#$3FFF,D1
+		MOVE.B	D1,D2
+		ANDI.W	#7,D2
+		LSR.W	#3,D1
+		ADD.W	D3,D1
+		LEA	(A2,D1.W),A6
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+.GPSub1_15:	MOVE.B	-(A6),-(A2)
+		DBF	D2,.GPSub1_15
+		BRA.W	.GPSub1_04
+
+.GPSub1_16:	MOVEQ	#0,D1
+		MOVE.B	-(A0),D1
+		BEQ.W	.GPSub1_06
+		LSL.W	#8,D1
+		MOVE.B	-(A0),D1
+		MOVE.W	#$2C01,D3
+		CMP.W	#-$4000,D1
+		BCC.B	.GPSub1_14
+		MOVEQ	#0,D2
+		MOVE.B	-(A0),D2
+		SUBQ.W	#1,D2
+		SUBI.W	#$100,D1
+		LEA	(A2,D1.L),A6
+.GPSub1_17:	MOVE.B	-(A6),-(A2)
+		DBF	D2,.GPSub1_17
+		BRA.W	.GPSub1_04
+
+.GPSub1_18:	MOVE.W	#$0C01,D3
+		BRA.B	.GPSub1_23
+
+.GPSub1_19:	MOVE.W	#$9401,D3
+		BRA.B	.GPSub1_23
+
+.GPSub1_20:	MOVE.W	#$7401,D3
+		BRA.B	.GPSub1_23
+
+.GPSub1_21:	MOVE.W	#$5401,D3
+		BRA.B	.GPSub1_23
+
+.GPSub1_22:	MOVE.W	#$3401,D3
+.GPSub1_23:	MOVEQ	#0,D2
+		MOVE.B	-(A0),D2
+		BEQ.W	.GPSub1_06
+		MOVE.L	D2,D1
+		LSR.W	#5,D2
+		LSL.W	#8,D1
+		MOVE.B	-(A0),D1
+		ANDI.W	#$1FFF,D1
+		ADD.W	D3,D1
+		LEA	(A2,D1.L),A6
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+.GPSub1_24:	MOVE.B	-(A6),-(A2)
+		DBF	D2,.GPSub1_24
+		BRA.W	.GPSub1_04
+
+.Mid2:		MOVE.W	#$003F,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$007E,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$00BD,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$00FC,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$013B,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$017A,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$01B9,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$01F8,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$0237,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$0276,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$02B5,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$02F4,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$0333,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$0372,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$03B1,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$03F0,D3
+		BRA.B	.GPSub1_25
+
+		MOVE.W	#$042F,D3
+.GPSub1_25:	MOVE.B	-(A0),D1
+		MOVE.B	D1,D2
+		ANDI.W	#$FC,D1
+		BEQ.W	.GPSub1_06
+		LSR.W	#2,D1
+.GPSub1_26:	ANDI.W	#3,D2
+		ADD.W	D3,D1
+		LEA	(A2,D1.W),A6
+		MOVE.B	-(A6),-(A2)
+		MOVE.B	-(A6),-(A2)
+.GPSub1_27:	MOVE.B	-(A6),-(A2)
+		DBF	D2,.GPSub1_27
+		BRA.W	.GPSub1_04
+
+.GPSub1_28:	MOVE.B	-(A0),D1
+		BEQ.W	.GPSub1_06
+		MOVE.B	D1,D2
+		ANDI.W	#$3F,D1
+		ROL.B	#2,D2
+		ANDI.W	#3,D2
+		ADD.W	D2,D2
+		LEA	.GPData(PC),A6
+		MOVE.W	(A6,D2.W),D3
+		EXT.L	D3
+		MOVE.B	-(A0),D4
+		ROR.L	#8,D4
+		MOVE.B	-(A0),D4
+		ROR.L	#8,D4
+		MOVE.B	-(A0),D4
+		ROR.L	#8,D4
+		MOVE.B	-(A0),D4
+		ROR.L	#8,D4
+.GPSub1_29:	MOVE.B	D4,-(A2)
+		ROR.L	#8,D4
+		MOVE.B	D4,-(A2)
+		ROR.L	#8,D4
+		MOVE.B	D4,-(A2)
+		ROR.L	#8,D4
+		MOVE.B	D4,-(A2)
+		ROR.L	#8,D4
+		MOVEQ	#0,D5
+		MOVE.B	-(A0),D5
+		ADD.L	D3,D5
+		SUB.L	D5,D4
+		DBF	D1,.GPSub1_29
+		ADDQ.L	#1,A0
+		BRA.W	.GPSub1_04
+
+.GPData:	DC.W	-$80,0,$100,$200
+.GPData2:	DC.W	.GPSub1_07-(GPSub1)
+		DC.W	.GPSub1_08-(GPSub1)
+		DC.W	.GPSub1_10-(GPSub1)
+		DC.W	.GPSub1_12-(GPSub1)
+		DC.W	.GPSub1_18-(GPSub1)
+		DC.W	.GPSub1_16-(GPSub1)
+		DC.W	.GPSub1_22-(GPSub1)
+		DC.W	.GPSub1_21-(GPSub1)
+		DC.W	.GPSub1_20-(GPSub1)
+		DC.W	.GPSub1_19-(GPSub1)
+
+GPSub2:		MOVEM.L	D0-D2/A3/A5/A6,-(A7)
+		MOVE.B	(A0)+,D5
+		MOVE.B	(A0)+,D6
+		MOVE.B	(A0)+,D7
+.GPSub2_01:	CMPA.L	A2,A0
+		BCC.W	.End
+		MOVE.B	(A0)+,D0
+		CMP.B	D5,D0
+		BEQ.B	.GPSub2_03
+		CMP.B	D6,D0
+		BEQ.B	.GPSub2_04
+		CMP.B	D7,D0
+		BEQ.B	.GPSub2_05
+.GPSub2_02:	MOVE.B	D0,(A1)+
+		BRA.B	.GPSub2_01
+
+.GPSub2_03:	MOVEQ	#0,D2
+		MOVE.B	(A0)+,D2
+		BEQ.B	.GPSub2_02
+		MOVEQ	#0,D1
+		BRA.B	.GPSub2_06
+
+.GPSub2_04:	MOVE.B	(A0)+,D1
+		BEQ.B	.GPSub2_02
+		MOVE.B	D1,(A1)+
+		MOVE.B	D1,(A1)+
+		MOVE.B	D1,(A1)+
+		BRA.B	.GPSub2_01
+
+.GPSub2_05:	MOVE.B	(A0)+,D1
+		BEQ.B	.GPSub2_02
+		MOVEQ	#0,D2
+		MOVE.B	(A0)+,D2
+.GPSub2_06:	SUBQ.B	#3,D2
+		BCS.B	.GPSub2_08
+		MOVE.B	D1,(A1)+
+		MOVE.B	D1,(A1)+
+.GPSub2_07:	MOVE.B	D1,(A1)+
+		DBF	D2,.GPSub2_07
+		BRA.B	.GPSub2_01
+
+.GPSub2_08:	ADDQ.B	#1,D2
+		BNE.B	.GPSub2_09
+		MOVE.B	(A0)+,D2
+		LSL.W	#8,D2
+		MOVE.B	(A0)+,D2
+		LSL.L	#8,D2
+.GPSub2_09:	MOVE.B	(A0)+,D2
+		LSL.L	#8,D2
+		MOVE.B	(A0)+,D2
+		SUBQ.L	#1,D2
+		MOVE.L	D2,D3
+		SWAP	D3
+.GPSub2_10:	MOVE.B	D1,(A1)+
+		DBF	D2,.GPSub2_10
+		DBF	D3,.GPSub2_10
+		BRA.B	.GPSub2_01
+.End		MOVEM.L	(A7)+,D0-D2/A3/A5/A6
+		RTS
+
+Data1		EQU	-2
+Data2		EQU	-4
+Data3		EQU	-6
+Data4		EQU	-8
+
+GPSub3:		MOVEM.L	D0-D2/D7/A2/A4-A6,-(A7)
+		LINK	A4,#-8
+		move.w	#$FF,Data1(A4)
+		moveq	#-2,D0
+		move.w	D0,Data2(A4)
+		move.w	D0,Data3(A4)
+		move.w	D0,Data4(A4)
+		move.b	(A0)+,D3
+		lsl.w	#8,D3
+		move.b	(A0)+,D3
+		lsl.l	#8,D3
+		move.b	(A0)+,D3
+		lsl.l	#8,D3
+		move.b	(A0)+,D3
+		subq.l	#1,D3
+		move.l	D3,D5
+		swap	D5
+		move.b	(A0)+,D4
+		lsl.w	#8,D4
+		move.b	(A0)+,D4
+		moveq	#0,D6
+		move.b	(A0)+,D6
+		movem.l	D3-D6,-(A7)
+		moveq	#2,D5
+		move.l	#$100,D6
+		moveq	#0,D7
+		moveq	#0,D0
+		move.b	(A0)+,D0
+		movea.l	A2,A6
+		move.l	D0,D1
+		add.l	D1,D1
+		lea	Data1(A4),A5
+.GPSub3_01:	moveq	#0,D2
+		moveq	#0,D4
+		move.b	(A0)+,D2
+		move.b	(A0)+,D4
+		add.w	D4,(A5)
+		add.w	D4,(A5)
+		add.w	D2,D4
+		move.w	D2,(A6)
+		adda.l	D1,A6
+		move.w	D4,(A6)
+		adda.l	D1,A6
+		move.w	D6,(A6)
+		add.w	D2,D2
+		sub.w	D2,(A6)
+		lsr.w	#1,D2
+		adda.l	D1,A6
+		move.w	D7,(A6)
+		sub.w	D4,(A6)
+		suba.l	D1,A6
+		suba.l	D1,A6
+		suba.l	D1,A6
+		addq.l	#2,A6
+		move.l	D5,D3
+		sub.l	D4,D3
+		add.l	D3,D7
+		sub.l	D2,D4
+		add.l	D4,D6
+		add.l	D4,D6
+		move.l	D2,D5
+		add.l	D5,D5
+		subq.w	#1,D0
+		bne.s	.GPSub3_01
+		add.w	D1,Data2(A4)
+		lea	Data3(A4),A5
+		add.w	D1,(A5)
+		add.w	D1,(A5)
+		add.w	D1,(A5)
+		lea	Data4(A4),A5
+		add.w	D1,(A5)
+		add.w	D1,(A5)
+		lsl.l	#2,D1
+		lea	(A2,D1.L),A6
+		movea.l	A6,A5
+		move.w	Data1(A4),D0
+.GPSub3_02:	move.b	(A0)+,(A5)+
+		dbra	D0,.GPSub3_02
+		movem.l	(A7)+,D3-D6
+		movea.l	A2,A5
+		adda.l	D6,A5
+		adda.l	D6,A5
+		subq.l	#2,A5
+		moveq	#0,D1
+.GPSub3_03:	cmp.w	D6,D1
+		bcs.s	.GPSub3_04
+		sub.w	D6,D1
+		rol.w	D6,D0
+		move.w	D0,D2
+		and.w	D4,D2
+		movea.l	A5,A3
+		bra.s	.GPSub3_06
+
+.GPSub3_04:	moveq	#0,D2
+		movea.l	A2,A3
+		dbra	D1,.GPSub3_05
+		move.b	(A0)+,D0
+		lsl.w	#8,D0
+		move.b	(A0)+,D0
+		moveq	#15,D1
+.GPSub3_05:	add.w	D0,D0
+		addx.w	D2,D2
+.GPSub3_06:	cmp.w	(A3)+,D2
+		dbcc	D1,.GPSub3_05
+		bcc.s	.GPSub3_07
+		move.b	(A0)+,D0
+		lsl.w	#8,D0
+		move.b	(A0)+,D0
+		moveq	#15,D1
+		bra.s	.GPSub3_05
+
+.GPSub3_07:	MOVE.W	Data2(A4),D7
+		CMP.W	(A3,D7.W),D2
+		bcs.s	.GPSub3_08
+		
+		MOVE.W	Data3(A4),D7
+		ADD.W	(A3,D7.W),D2
+		move.b	(A6,D2.W),(A1)+
+		dbra	D3,.GPSub3_03
+		dbra	D5,.GPSub3_03
+		BRA.B	.End
+
+.GPSub3_08:	MOVE.W	Data4(A4),D7
+		add.w	D2,D2
+		add.w	(A3,D7.W),D2
+		move.b	(A6,D2.W),(A1)+
+		move.b	1(A6,D2.W),(A1)+
+		subq.w	#2,D3
+		bcc.s	.GPSub3_03
+		dbra	D5,.GPSub3_03
+
+.End		UNLK	A4
+		MOVEM.L	(A7)+,D0-D2/D7/A2/A4-A6
+		RTS
+
+* D3 bytes to copy
+* A4 destination
+* A3 source
+GPmemcpy:	MOVEM.L	D1-D3/A2-A4,-(A7)
+		TST.L	D3
+		BEQ.B	.End
+		LEA	.forwards(PC),A2
+		CMPA.L	A3,A4
+		BCS.B	.noback
+		ADDA.L	D3,A3
+		ADDA.L	D3,A4
+		LEA	.backwards(PC),A2
+.noback:	MOVE.L	D3,D2
+		LSR.L	#3,D3
+		MOVE.L	D3,D1
+		SWAP	D1
+		ANDI.W	#7,D2
+		ADD.W	D2,D2
+		NEG.W	D2
+		JMP	(A2,D2.W)
+
+.forloop:	MOVE.B	(A3)+,(A4)+
+		MOVE.B	(A3)+,(A4)+
+		MOVE.B	(A3)+,(A4)+
+		MOVE.B	(A3)+,(A4)+
+		MOVE.B	(A3)+,(A4)+
+		MOVE.B	(A3)+,(A4)+
+		MOVE.B	(A3)+,(A4)+
+		MOVE.B	(A3)+,(A4)+
+.forwards:	DBRA	D3,.forloop
+		DBRA	D1,.forloop
+		BRA.B	.End
+
+.backloop:	MOVE.B	-(A3),-(A4)
+		MOVE.B	-(A3),-(A4)
+		MOVE.B	-(A3),-(A4)
+		MOVE.B	-(A3),-(A4)
+		MOVE.B	-(A3),-(A4)
+		MOVE.B	-(A3),-(A4)
+		MOVE.B	-(A3),-(A4)
+		MOVE.B	-(A3),-(A4)
+.backwards:	DBRA	D3,.backloop
+		DBRA	D1,.backloop
+.End:		MOVEM.L	(A7)+,D1-D3/A2-A4
+		RTS
+
+SD_GP		MOVEQ	#0,D0
+		CMP.W	#"GP",(A0)
+		BNE.B	.Exit
+		MOVEQ	#1,D0
+.Exit		RTS
+
+VD_GP		TST.B	2(A0)
+		BNE.B	.Exit
+		TST.L	2(A0)
+		BEQ.B	.Exit
+		TST.B	8(A0)
+		BNE.B	.Exit
+		MOVE.L	8(A0),D0
+
+		MOVE.W	6(A0),D1
+		AND.W	#7,D1		;Compression Flags
+		BNE.B	.Skip		;Is the data is compressed?
+		CMP.L	2(A0),D0	;No, compare crunched and decrunched size
+		BNE.B	.Exit
+
+.Skip		ADD.L	#12,D0
+		BEQ.B	.Exit
+		RTS
+
+.Exit		MOVEQ	#0,D0
+		RTS
+
+		END

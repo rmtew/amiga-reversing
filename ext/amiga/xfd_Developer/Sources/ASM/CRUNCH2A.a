@@ -1,0 +1,222 @@
+*******************************************************
+**             XFD external decruncher               **
+**              for CRUNCH2A cruncher                **
+**             adapted by Wanted Team                **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.1 (09.06.2001)
+; o Corrected the jump table offsets (broken in version 2.1)
+; o RecogBuffer no longer relies on the input buffer size
+; o Reduced stack usage
+; o Changed minimun crunched file size to 33
+; o Added data scanning functions
+; o Added write buffer overflow checks
+; o Minimum source length was 12 bytes too long
+
+; Problem:
+; The last decompression run and the crunched size stored in the header
+; is sometimes a little bit too long (about 11 bytes). This causes a
+; write overflow within the 100-byte security region.
+; A possible solution: (to be implemented)
+; For the decruncher add a read overflow check to stop the last
+; decompression run exactly when the write buffer is full
+; For VerifyData calculate the exact size required
+; For RecogBuffer remove MinSourceLen
+
+;;;		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_CRUNCH2A	;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support data scanning
+
+S_CRUNCH2A	dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_CRUNCH2A	;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_CRUNCH2A	;recog buffer
+		dc.l	DB_CRUNCH2A	;decrunch buffer
+		dc.l	SD_CRUNCH2A	;recog segment
+		dc.l	VD_CRUNCH2A	;decrunch segment
+		dc.w	0,0
+		dc.l	32+1
+
+		dc.b	"$VER: CRUNCH2A 2.2 (21.09.2003) by Wanted Team",0
+N_CRUNCH2A	dc.b	"CRUNCH2A data cruncher",0
+		even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_CRUNCH2A
+;;		btst	#0,D0
+;;		bne.b	Exit
+		cmp.l	#"CRUN",(A0)+
+		bne.b	Exit
+		cmp.l	#"CH2A",(A0)+
+		bne.b	Exit
+		move.l	$C-8(A0),D1
+		beq.b	Exit
+		move.l	D1,xfdrr_MinTargetLen(A1)
+		moveq	#100,D0
+		sub.l	D0,D1
+		move.l	D1,xfdrr_FinalTargetLen(A1)
+		move.l	$1C-8(A0),D1
+		beq.b	Exit
+		subq.l	#2,D1
+		move.l	D1,xfdrr_MinSourceLen(A1)
+		moveq	#1,D0
+		rts	
+Exit		moveq	#0,D0
+		rts
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+DB_CRUNCH2A	movem.l	D2-D3/A2-A6,-(SP)
+		move.l	A0,A5
+		move.l	xfdbi_UserTargetBuf(A5),A1
+		move.l	xfdbi_SourceBuffer(A5),A0
+		bsr.b	D_CRUNCH2A
+
+		tst.l	D0		; Error?
+		bne.b	.Exit
+		move.w	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A5)
+
+.Exit		movem.l	(SP)+,D2-D3/A2-A6
+		rts
+
+;-------------------------------------------------
+
+; Decruncher from "Street Gang" (c) 1987 by Time Warp/Rainbow Arts
+
+; Used registers: A0,A1,A2,A3,A4,A6 D0,D1,D2,D3
+
+;		A0 -> Source
+;		A1 -> Destination
+
+D_CRUNCH2A	MOVE.B	8(A0),D2
+		MOVE.B	9(A0),D3
+		MOVEA.L	$C(A0),D0			; depacked length
+
+		LEA	$20(A0),A0
+		LEA	(A1,D0.L),A6
+		LEA	-$64(A6),A4
+
+lbC001E22	CMPA.L	A1,A4
+		BLE.B	ExitOK
+		MOVEQ	#0,D0
+		MOVE.B	(A0)+,D0
+		TST.B	D0
+		BMI.S	lbC001E50
+		CMP.W	#$7F,D0
+		BEQ.S	lbC001E40
+		SUBQ.W	#1,D0
+
+		LEA	(A1,D0.W),A2			;Check for overflow
+		CMP.L	A2,A6
+		BLS.B	ExitError
+
+lbC001E38	MOVE.B	(A0)+,(A1)+
+		DBRA	D0,lbC001E38
+		BRA.S	lbC001E22
+
+lbC001E40	MOVE.B	(A0)+,D1
+		ROL.W	#8,D1
+		MOVE.B	(A0)+,D1
+		SUBQ.W	#1,D1
+
+		LEA	(A1,D1.W),A2
+		CMP.L	A2,A6
+		BLS.B	ExitError
+
+lbC001E48	MOVE.B	(A0)+,(A1)+
+		DBRA	D1,lbC001E48
+		BRA.S	lbC001E22
+
+lbC001E50	MOVE.W	D0,D1
+		ANDI.W	#$1F,D0
+		ROR.W	#4,D1
+		ANDI.W	#6,D1
+		LEA	lbW001E64(PC),A3
+		ADDA.W	lbW001E64(PC,D1.W),A3
+		JMP	(A3)
+
+lbW001E64	DC.W	lbC001E6C-lbW001E64
+		DC.W	lbC001E78-lbW001E64
+		DC.W	lbC001E84-lbW001E64
+		DC.W	lbC001E92-lbW001E64
+
+lbC001E6C	ADDQ.W	#1,D0
+
+		LEA	(A1,D0.W),A2			;Check for overflow
+		CMP.L	A2,A6
+		BLS.B	ExitError
+
+lbC001E6E	MOVE.B	D2,(A1)+
+		DBRA	D0,lbC001E6E
+		BRA.B	lbC001E22
+
+lbC001E78	ADDQ.W	#1,D0
+
+		LEA	(A1,D0.W),A2			;Check for overflow
+		CMP.L	A2,A6
+		BLS.B	ExitError
+
+lbC001E7A	MOVE.B	D3,(A1)+
+		DBRA	D0,lbC001E7A
+		BRA.B	lbC001E22
+
+lbC001E84	ADDQ.W	#1,D0
+		MOVE.B	(A0)+,D1
+
+		LEA	(A1,D0.W),A2			;Check for overflow
+		CMP.L	A2,A6
+		BLS.B	ExitError
+
+lbC001E88	MOVE.B	D1,(A1)+
+		DBRA	D0,lbC001E88
+		BRA.B	lbC001E22
+
+lbC001E92	LSL.W	#8,D0
+		MOVE.B	(A0)+,D0
+		ADDI.W	#$20,D0
+		BRA.B	lbC001E84
+
+ExitOK		MOVEQ	#1,D0
+		RTS
+
+ExitError	MOVEQ	#0,D0
+		RTS
+
+SD_CRUNCH2A	MOVEQ	#0,D0
+		CMP.L	#"CRUN",(A0)+
+		BNE.B	.Exit
+		CMP.L	#"CH2A",(A0)
+		BNE.B	.Exit
+		MOVEQ	#1,D0
+.Exit		RTS
+
+VD_CRUNCH2A	MOVEQ	#0,D0
+		TST.L	$C(A0)		;Decrunched size
+		BEQ.S	.Exit
+		MOVE.L	$1C(A0),D0	;Crunched size
+		BEQ.S	.Exit
+		SUBQ.L	#2,D0
+.Exit		RTS
+
+		END

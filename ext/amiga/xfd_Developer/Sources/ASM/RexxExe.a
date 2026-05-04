@@ -1,0 +1,413 @@
+		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_ExecRexx	;first slave
+
+		dc.b	"$VER: RexxExe 1.0 (01.01.2002)",0
+N_ExecRexx	dc.b	"ExecRexx",0
+N_RMS		dc.b	"RexxMasher",0
+		even
+
+**************************************************
+
+S_ExecRexx	dc.l	S_RMS		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_ExecRexx	;name
+		dc.w	XFDPFF_DATA|XFDPFF_RECOGLEN|XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_ExecRexx	;recog buffer
+		dc.l	DB_ExecRexx	;decrunch buffer
+		dc.l	0
+		dc.l	0
+		dc.w	0,0
+		dc.l	800
+
+RB_ExecRexx	MOVEQ	#0,D0
+		CMP.L	#$43FA02BB,$30(A0)
+		BNE.B	.Exit
+		CMP.L	#$2C6DFFF0,$60(A0)
+		BNE.B	.Exit
+		CMP.L	#$6022202D,$190(A0)
+		BNE.B	.Exit
+		CMP.L	#$00362C6D,$194(A0)
+		BNE.B	.Exit
+		MOVE.L	$30C(A0),D0
+		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		ADD.L	#$30c+4,D0
+		MOVE.L	D0,xfdrr_MinSourceLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+DB_ExecRexx	MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVE.L	xfdbi_UserTargetBuf(A0),A1
+		MOVE.L	xfdbi_SourceBuffer(A0),A0
+
+		LEA	$30C(A0),A0
+		MOVE.L	(A0)+,D0
+		BEQ.B	.end
+.loop1		MOVEQ	#7,D2
+.loop2		MOVEQ	#7,D1
+		SUB.B	D2,D1
+		BNE.B	.loop3
+		MOVEQ	#1,D1
+.loop3		MOVE.B	(A0)+,D3
+		ROL.B	D1,D3
+		MOVE.B	D3,(A1)+
+		SUBQ.L	#1,D0
+		DBEQ	D2,.loop2
+		BNE.B	.loop1
+.end		MOVEQ	#1,D0
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+;-------------------------------------------------
+
+S_RMS		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_RMS		;name
+		dc.w	XFDPFF_DATA|XFDPFF_RECOGLEN|XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_RMS		;recog buffer
+		dc.l	DB_RMS		;decrunch buffer
+		dc.l	0
+		dc.l	0
+		dc.w	0,0
+		dc.l	$458
+
+RB_RMS		MOVEQ	#0,D0
+		CMP.L	#$3F3E2400,$90(A0)
+		BNE.B	.TypeJRMS
+		CMP.L	#$67F012C3,$C0(A0)
+		BNE.B	.TypeJRMS
+		CMP.L	#$01C0203A,$5C(A0)
+		BNE.B	.TypeJRMS
+		CMP.L	#$4EAEFDD8,$100(A0)
+		BNE.B	.TypeJRMS
+		MOVE.L	$34(A0),D0
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		SUBQ.L	#4,D0
+		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		MOVE.L	#$458,D0
+		ADD.L	$30(A0),D0
+		MOVE.L	D0,xfdrr_MinSourceLen(A1)
+		MOVEQ	#1,D0
+		BRA.B	.Exit
+.TypeJRMS	
+		CMP.L	#$F09A4FEF,$190(A0)
+		BNE.B	.Exit
+		CMP.L	#$000C4E75,$194(A0)
+		BNE.B	.Exit
+		CMP.L	#$0280FFFF,$150(A0)
+		BNE.B	.Exit
+		CMP.L	#$782E7363,$110(A0)
+		BNE.B	.Exit
+		MOVE.L	$38(A0),D0
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		MOVE.L	#$458,D0
+		ADD.L	$34(A0),D0
+		MOVE.L	D0,xfdrr_MinSourceLen(A1)
+		MOVEQ	#2,D0
+.Exit		RTS
+
+DB_RMS		MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A0)
+		MOVE.L	xfdbi_UserTargetBuf(A0),A1
+		MOVE.L	xfdbi_SourceBuffer(A0),A0
+		BSR.B	RB_RMS	* A1 points to a large-enough buffer!
+		SUBQ.L	#1,D0
+		BNE.B	.TypeJRMS
+		MOVE.L	$30(A0),D0
+		MOVEQ	#1,D7		* crunched
+		LEA	$2C(A0),A2
+		LEA	$458(A0),A0
+		MOVE.L	#$64435321,D6
+		BRA.B	.DoIt
+.TypeJRMS	MOVE.L	$34(A0),D0
+		LEA	$30(A0),A2
+		MOVE.B	$49(A0),D7
+		LEA	$5C8(A0),A0
+		MOVE.L	#$ABB2F98F,D6
+	*	BRA.B	.DoIt
+
+.DoIt		; D7 = crunched???
+		; D0 = size, A2 = code, A0 = source, A1 = destination
+		MOVEM.L	D6-D7,-(A7)
+		MOVE.L	A1,A3
+		LEA	(A0,D0.L),A4
+		MOVEQ	#0,D6
+		MOVEQ	#0,D7
+		MOVEQ	#0,D1
+		MOVEQ	#0,D2
+		MOVE.B	(A2)+,D6
+		MOVE.B	(A2)+,D1
+		MOVE.B	(A2)+,D2
+		MOVE.B	(A2)+,D7
+		BSR.B	.resortkeys
+.decryptloop	CMPA.L	A0,A4
+		BEQ.B	.decrend
+		MOVE.B	(A0)+,D3
+		EOR.B	D6,D3
+		EOR.B	D1,D3
+		EOR.B	D2,D3
+		EOR.B	D7,D3
+		MOVE.B	D3,(A1)+
+		BSR.B	.resortkeys
+		BRA.B	.decryptloop
+.decrend	MOVE.L	A3,A0	; A0 = destination == source
+		MOVEM.L	(A7)+,D6-D7
+		TST.L	D7
+		BEQ.B	.ok
+		CMP.L	(A0),D6	; decrypt correct?
+		BNE.B	.err
+		BSR.B	D_FImp
+.ok		MOVEQ	#1,D0
+.end		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+.err		MOVEQ	#0,D0
+		BRA.B	.end
+
+.resortkeys	ADD.W	D7,D7
+		ADD.W	D6,D6
+		ADD.W	D2,D1
+		ADD.W	D2,D1
+		SWAP	D7
+		SWAP	D6
+		SWAP	D2
+		SWAP	D1
+		LSL.W	D2,D1
+		SWAP	D6
+		SWAP	D7
+		ADD.W	D1,D6
+		ADD.W	D1,D7
+		ADD.W	D6,D6
+		LSL.W	D2,D6
+		ADD.W	D1,D2
+		EXT.W	D1
+		LSL.W	#1,D1
+		SWAP	D6
+		SWAP	D1
+		SWAP	D2
+		ROXR.L	#3,D6
+		ROXR.L	#3,D1
+		ROXL.L	#3,D7
+		ROXR.L	#3,D2
+		NEG.W	D6
+		NEG.W	D1
+		NEG.W	D2
+		SWAP	D7
+		SWAP	D6
+		SWAP	D2
+		SWAP	D1
+		RTS
+	
+D_FImp		move.l	a0,a3
+		move.l	a0,a4
+		addq.w	#4,a0
+
+		add.l	(a0)+,a4
+		add.l	(a0)+,a3
+		move.l	a3,a2
+		move.l	(a2)+,-(a0)
+		move.l	(a2)+,-(a0)
+		move.l	(a2)+,-(a0)
+		move.l	(a2)+,d2
+
+		move.w	(a2)+,d3
+		bmi.s	.Fimp_1be
+		subq.w	#1,a3
+
+.Fimp_1be	lea	-28(a7),a7
+		move.l	a7,a1
+		moveq	#7-1,d0
+.Fimp_1c6	move.l	(a2)+,(a1)+
+		dbra	d0,.Fimp_1c6
+
+		move.l	a7,a1
+		moveq	#0,d4
+
+.Fimp_1d0	tst.l	d2
+		beq.s	.Fimp_1da
+.Fimp_1d4	cmp.l	a0,a4
+		beq.b	.err
+		move.b	-(a3),-(a4)
+		subq.l	#1,d2
+		bne.s	.Fimp_1d4
+.Fimp_1da	cmp.l	a4,a0
+		bcs.s	.Fimp_1f2
+
+		moveq	#1,d0
+		cmp.l	a3,a0
+		beq.b	.end
+.err		moveq	#0,d0
+.end		lea	28(a7),a7
+		rts
+
+.Fimp_1f2	add.b	d3,d3
+		bne.s	.Fimp_1fa
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_1fa	bcc.s	.Fimp_260
+
+		add.b	d3,d3
+		bne.s	.Fimp_204
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_204	bcc.s	.Fimp_25a
+
+		add.b	d3,d3
+		bne.s	.Fimp_20e
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_20e	bcc.s	.Fimp_254
+
+		add.b	d3,d3
+		bne.s	.Fimp_218
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_218	bcc.s	.Fimp_24e
+
+		add.b	d3,d3
+		bne.s	.Fimp_222
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_222	bcc.s	.Fimp_22a
+
+		move.b	-(a3),d4
+		moveq	#3,d0
+		bra.s	.Fimp_264
+
+.Fimp_22a	add.b	d3,d3
+		bne.s	.Fimp_232
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_232	addx.b	d4,d4
+
+		add.b	d3,d3
+		bne.s	.Fimp_23c
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_23c	addx.b	d4,d4
+
+		add.b	d3,d3
+		bne.s	.Fimp_246
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_246	addx.b	d4,d4
+
+		addq.b	#6,d4
+		moveq	#3,d0
+		bra.s	.Fimp_264
+
+.Fimp_24e	moveq	#5,d4
+		moveq	#3,d0
+		bra.s	.Fimp_264
+
+.Fimp_254	moveq	#4,d4
+		moveq	#2,d0
+		bra.s	.Fimp_264
+
+.Fimp_25a	moveq	#3,d4
+		moveq	#1,d0
+		bra.s	.Fimp_264
+
+.Fimp_260	moveq	#2,d4
+		moveq	#0,d0
+.Fimp_264	moveq	#0,d5
+		move.w	d0,d1
+
+		add.b	d3,d3
+		bne.s	.Fimp_270
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_270	bcc.s	.Fimp_288
+
+		add.b	d3,d3
+		bne.s	.Fimp_27a
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_27a	bcc.s	.Fimp_284
+
+		move.b	.Fimp_2e8(pc,d0.w),d5
+		addq.b	#8,d0
+		bra.s	.Fimp_288
+
+.Fimp_284	moveq	#2,d5
+		addq.b	#4,d0
+.Fimp_288	move.b	.Fimp_2ec(pc,d0.w),d0
+
+.Fimp_28c	add.b	d3,d3
+		bne.s	.Fimp_294
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_294	addx.w	d2,d2
+
+		subq.b	#1,d0
+		bne.s	.Fimp_28c
+
+		add.w	d5,d2
+		moveq	#0,d5
+		move.l	d5,a2
+		move.w	d1,d0
+
+		add.b	d3,d3
+		bne.s	.Fimp_2aa
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_2aa	bcc.s	.Fimp_2c6
+
+		add.w	d1,d1
+		add.b	d3,d3
+		bne.s	.Fimp_2b6
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_2b6	bcc.s	.Fimp_2c0
+
+		move.w	8(a1,d1.w),a2
+		addq.b	#8,d0
+		bra.s	.Fimp_2c6
+
+.Fimp_2c0	move.w	(a1,d1.w),a2
+		addq.b	#4,d0
+.Fimp_2c6	move.b	16(a1,d0.w),d0
+
+.Fimp_2ca	add.b	d3,d3
+		bne.s	.Fimp_2d2
+		move.b	-(a3),d3
+		addx.b	d3,d3
+.Fimp_2d2	addx.l	d5,d5
+
+		subq.b	#1,d0
+		bne.s	.Fimp_2ca
+
+		addq.w	#1,a2
+		add.l	d5,a2
+		add.l	a4,a2
+.Fimp_2de	cmp.l	a0,a4
+		beq.w	.err
+		move.b	-(a2),-(a4)
+		subq.b	#1,d4
+		bne.s	.Fimp_2de
+
+		bra	.Fimp_1d0
+
+.Fimp_2e8	dc.b	6,10,10,18
+.Fimp_2ec	dc.b	1,1,1,1
+		dc.b	2,3,3,4
+		dc.b	4,5,7,14
+
+		END

@@ -1,0 +1,213 @@
+* Objectheader
+*
+*	Name:		xfdExeHead.a
+*	Author:		SDI
+*	Version:	$VER: xfdExeHead.a 1.8 (31.12.2002) by SDI
+*	Distribution:	PD
+*	Description:	XFD external test header (program startup code)
+*	Compileropts:	-
+*	Linkeropts:	-
+*
+* 1.0   03.02.98 : first version
+* 1.1   04.02.98 : fixed a lot bugs
+* 1.2   09.08.98 : one little bug-fix
+* 1.3   09.12.98 : added ExecBase passing
+* 1.4   08.01.99 : added type output
+* 1.4   23.02.99 : added V39 autoallocation feature
+* 1.5   24.11.99 : added lvo lines
+* 1.6   18.06.00 : now prints number of saved bytes.
+* 1.7   13.08.02 : added MinSourceLen support
+* 1.8   31.12.02 : made all names local to avoid conflicts
+
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE	"exec/memory.i"
+		INCLUDE	"dos/dos.i"
+
+		INCLUDE	"lvo/exec_lib.i"
+		INCLUDE "lvo/dos_lib.i"
+
+		MOVEA.L	A0,A5
+		MOVE.L	D0,D7			* store them
+
+		* get dos library opened
+		MOVEQ	#33,D0
+		MOVEA.L	4.W,A6
+		LEA.L	.DosName(PC),A1
+		JSR	_LVOOpenLibrary(A6)
+		TST.L	D0
+		BEQ.W	.NoDos
+		MOVEA.L	D0,A4			* A4 is DosBase
+
+		* open source file
+		MOVEA.L	A4,A6
+		CLR.B	-1(A5,D7)		* clear return
+		MOVE.L	A5,D1
+		MOVE.L	#MODE_OLDFILE,D2
+		JSR	_LVOOpen(A6)
+		MOVE.L	D0,D6			* D6 is InFH
+		BEQ.W	.NoFH
+		MOVE.B	#'D',-1(A5,D7)		* create save name
+		CLR.B	(A5,D7)
+
+		* seek to end and back to start --> get file size
+		MOVE.L	D6,D1
+		MOVEQ	#0,D2
+		MOVEQ	#OFFSET_END,D3
+		JSR	_LVOSeek(A6)
+		MOVE.L	D6,D1
+		MOVEQ	#0,D2
+		MOVEQ	#OFFSET_BEGINNING,D3
+		JSR	_LVOSeek(A6)
+		MOVEA.L	A6,A4
+		MOVE.L	D0,.SourceSize
+
+		* allocate memory
+		MOVEA.L	4.W,A6
+		MOVEQ.L	#MEMF_ANY,D1
+		JSR	_LVOAllocMem(A6)
+		MOVEA.L	A4,A6
+		MOVE.L	D0,.SourceBuf
+		BEQ.W	.NoSourceBuf
+
+		* read in buffer
+		MOVE.L	D6,D1
+		MOVE.L	D0,D2
+		MOVE.L	.SourceSize(PC),D3
+		JSR	_LVORead(A6)
+		CMP.L	#-1,D0
+		BEQ.W	.noread
+
+		* call recog functions
+		LEA.L	ForeMan(PC),A2
+		MOVEA.L	xfdf_FirstSlave(A2),A2
+.recogloop	MOVE.L	A2,D0				* for test purpose
+		BEQ.W	.notfound
+		MOVE.L	.SourceSize(PC),D0
+		MOVEA.L	.SourceBuf(PC),A0
+		LEA	.xfdrr(PC),A1
+		MOVEA.L	xfds_RecogBuffer(A2),A3
+		JSR	(A3)
+		TST.L	D0
+		BNE.B	.found
+		MOVEA.L	xfds_Next(A2),A2
+		BRA.B	.recogloop
+.found		* call decrunch function
+		LEA	.FormatStr(PC),A0
+		MOVE.L	A0,D1
+		LEA	xfds_PackerName(A2),A0
+		MOVE.L	A0,D2
+		JSR	_LVOVPrintf(A6)
+
+		MOVE.W	xfds_PackerFlags(A2),D0
+		AND.W	#XFDPFF_USERTARGET,D0
+		BEQ.B	.CallDecr
+
+		MOVEQ	#-1,D0				* no allocation possible
+		CMP.L	.MinTargetLen(PC),D0
+		BEQ.B	.CallDecr
+
+		MOVE.L	.MinTargetLen(PC),D0
+		CLR.L	D1
+		MOVE.L	4.W,A6
+		JSR	_LVOAllocMem(A6)
+		MOVE.L	D0,.UserBuf
+		BEQ.W	.notfound
+		MOVE.L	D0,.TarBuf
+
+		MOVE.W	#XFDFF_USERTARGET|XFDFF_MASTERALLOC,.Flags
+		MOVE.L	.MinTargetLen(PC),.UserBufLen
+		MOVE.L	.MinTargetLen(PC),.TarLen
+		MOVE.L	.FinalTargetLen(PC),.TarSaveLen
+		MOVE.L	.MinSourceLen(PC),.MinSourceLen2
+
+.CallDecr	LEA	.xfdbi(PC),A0
+		MOVEA.L	xfds_DecrunchBuffer(A2),A3
+		MOVE.L	4.W,-(A7)
+		LEA	-$3A(A7),A6		* create ExeBase ptr
+
+		NOP
+		NOP	* for easier detection of jumpin in Debugger
+		NOP
+		NOP
+
+		JSR	(A3)
+		MOVE.L	(A7)+,A6		* correct stack
+		TST.L	D0
+		BEQ.B	.notfound
+		MOVE.W	#XFDERR_OK,.Error
+
+		* open destination file
+		MOVEA.L	A4,A6
+		MOVE.L	A5,D1
+		MOVE.L	#MODE_NEWFILE,D2
+		JSR	_LVOOpen(A6)
+		MOVE.L	D0,D5			* D5 is OutFH
+		BEQ.B	.NoOutFH
+
+		* write destination
+		MOVE.L	D5,D1
+		MOVE.L	.TarBuf(PC),D2
+		MOVE.L	.TarSaveLen(PC),D3
+		JSR	_LVOWrite(A6)
+
+		MOVE.L	D3,-(A7)
+		LEA	.Format2Str(PC),A0
+		MOVE.L	A0,D1
+		MOVE.L	A7,D2
+		JSR	_LVOVPrintf(A6)
+		ADDQ.L	#4,A7
+
+		* close destination
+		MOVE.L	D5,D1
+		JSR	_LVOClose(A6)
+.NoOutFH	MOVEA.L	4.W,A6			* free decrunch buffer
+		MOVE.L	.TarLen(PC),D0
+		MOVEA.L	.TarBuf(PC),A1
+		JSR	_LVOFreeMem(A6)
+		CLR.W	.Flags
+.notfound	TST.W	.Flags			* free own buffer when error
+		BEQ.B	.noread			* occured
+		MOVE.L	.UserBufLen(PC),D0
+		MOVEA.L	.UserBuf(PC),A1
+		JSR	_LVOFreeMem(A6)
+.noread		MOVEA.L	4.W,A6			* free source buffer
+		MOVEA.L	.SourceBuf(PC),A1
+		MOVE.L	.SourceSize(PC),D0
+		JSR	_LVOFreeMem(A6)
+.NoSourceBuf	MOVEA.L	A4,A6			* close input fh
+		MOVEA.L	D6,D1
+		JSR	_LVOClose(A6)
+.NoFH		MOVEA.L	A4,A1			* close dos
+		MOVEA.L	4.W,A6
+		JSR	_LVOCloseLibrary(A6)
+.NoDos		MOVE.W	.Error(PC),D0
+		RTS
+
+.xfdbi
+.SourceBuf	DC.L	0
+.SourceSize	DC.L	0
+		DC.L	0
+		DC.L	0
+		DC.W	XFDPFF_RELOC
+.Error		DC.W	XFDERR_OK
+.TarBuf		DC.L	0
+		DC.L	MEMF_ANY
+.TarLen		DC.L	0
+.TarSaveLen	DC.L	0
+		DC.L	0,0,0
+.Flags		DC.W	0
+		DC.W	0
+		DC.L	0,0
+.UserBuf	DC.L	0
+.UserBufLen	DC.L	0
+.MinSourceLen2	DC.L	0
+
+.xfdrr
+.MinTargetLen	DC.L	0
+.FinalTargetLen	DC.L	0
+.MinSourceLen	DC.L	0
+.DosName 	DC.B	"dos.library",0
+.FormatStr	DC.B	'Cruncher-Name: %s',10,0
+.Format2Str	DC.B	'Saved %ld bytes.',10,0
+		EVEN
+

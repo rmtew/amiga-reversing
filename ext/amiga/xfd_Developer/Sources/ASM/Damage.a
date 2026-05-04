@@ -1,0 +1,168 @@
+**********************************************************
+**       XFD external decruncher for Damage files       **
+**       Written and © 2000 by Codetapper/Action!       **
+**              Improved by Dirk Stoecker!              **
+**                                                      **
+**      This decrunches files in the game Damage.       **
+**                                                      **
+**          Contact me: codetapper@hotmail.com          **
+**      Visit the Action HQ: http://zap.to/action/      **
+**********************************************************
+
+		OUTPUT	"LIBS:xfd/Damage"
+
+DamageMinLen	equ	12		;Min. file length for header and data
+
+		SECTION	Damage,CODE
+
+		INCDIR	"sc:Include/"	;change this as you need it
+		INCLUDE	"libraries/xfdmaster.i"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+Foreman		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_Damage	;first slave
+
+		dc.b	"$VER: Damage 1.1 (14.10.00) Codetapper/Action!",13,10,0
+N_Damage	dc.b	'Damage Cruncher',0
+		cnop	0,4
+
+S_Damage	dc.l	0		;next slave
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_Damage	;name
+		dc.w	XFDPFF_DATA|XFDPFF_RECOGLEN|XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_Damage	;recog buffer
+		dc.l	DB_Damage	;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0		;slave/replace id
+		dc.l	DamageMinLen	;min. file length for header and data
+
+RB_Damage	moveq	#0,d0
+		cmp.l	#'DMG!',(a0)
+		bne.s	.Exit
+		move.l	4(a0),d1
+		and.l	#$ffffff,d1
+		cmp.l	#DamageMinLen,d1
+		blt.b	.Exit
+		move.l	d1,xfdrr_FinalTargetLen(a1)
+		move.l	d1,xfdrr_MinTargetLen(a1)
+		moveq	#1,d0
+.Exit		rts
+
+DB_Damage	movem.l	d2-d7/a2-a6,-(a7)
+		move.l	xfdbi_UserTargetBuf(a0),a1
+		move.l	xfdbi_SourceBuffer(a0),a0
+
+;---------------------------------------------------------
+; Damage decruncher (ripped from Damage)
+;
+; Inputs:
+; a0 = Source data
+; a1 = Destination address
+;
+; Returns:
+; None
+;---------------------------------------------------------
+		move.w	#7,d2
+		move.l	(a0)+,d0
+		move.l	(a0)+,d0
+		move.l	d0,d1
+		swap	d1
+		lsr.l	#8,d1
+		moveq	#1,d4
+		lsl.l	d1,d4
+		subq.l	#1,d4
+		movea.l	a1,a4
+		movea.l	a1,a3
+		andi.l	#$FFFFFF,d0
+		adda.l	d0,a3
+.mainloop	cmpa.l	a3,a1
+		bge.b	.end
+		moveq	#1,d1
+		bsr.b	DMGgetbits
+		tst.b	d0
+		bne.b	.parse
+		moveq	#8,d1
+		bsr.b	DMGgetbits
+		move.b	d0,(a1)+
+		bra.b	.mainloop
+
+.end		moveq	#1,d0
+		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+.parse		move.l	a1,d6
+		sub.l	a4,d6
+		cmp.l	d4,d6
+		ble.b	.bigbuffer
+		move.w	d4,d6
+.bigbuffer	lea	(DMGTable,pc),a6
+		moveq	#13,d5
+.parsetable	cmp.w	(a6)+,d6
+		bge.b	.leavetable
+		dbra	d5,.parsetable
+		moveq	#2,d5
+.leavetable	moveq	#8,d1
+		bsr.b	DMGgetbits
+		move.w	d0,d6
+		beq.b	.copystored
+		move.w	d5,d1
+		bsr.b	DMGgetbits
+		neg.w	d0
+		andi.w	#$FF,d6
+		addq.w	#1,d6
+.copybackloop	move.b	(a1,d0.w),(a1)+
+		dbra	d6,.copybackloop
+		bra.b	.mainloop
+
+.copystored	moveq	#12,d1
+		bsr.b	DMGgetbits
+		move.w	d0,d6
+		subq.w	#1,d6
+.copystoredloop	moveq	#8,d1
+		bsr.b	DMGgetbits
+		move.b	d0,(a1)+
+		dbra	d6,.copystoredloop
+		bra.b	.mainloop
+
+DMGgetbits	moveq	#0,d0
+		move.w	d1,d3
+		subq.w	#1,d1
+.loop		lsr.w	#1,d0
+		btst	d2,(a0)
+		beq.b	.nobit
+		bset	#15,d0
+.nobit		subq.w	#1,d2
+		bpl.b	.nonewbyte
+		moveq	#7,d2
+		addq.l	#1,a0
+.nonewbyte	dbra	d1,.loop
+		moveq	#$10,d1
+		sub.w	d3,d1
+		lsr.w	d1,d0
+		rts
+
+DMGTable	DC.W	$1000
+		DC.W	$800
+		DC.W	$400
+		DC.W	$200
+		DC.W	$100
+		DC.W	$80
+		DC.W	$40
+		DC.W	$20
+		DC.W	$10
+		DC.W	8
+		DC.W	4
+		DC.W	2
+		DC.W	1
+
+		DC.W	0			;Safety
+		END

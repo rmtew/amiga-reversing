@@ -1,0 +1,190 @@
+*******************************************************
+**      XFD external decruncher for CP Cruncher      **
+**        written by Mr. Larmer / Wanted Team        **
+**  fixed by Georg Hörmannn in 1998 and SDI in 1999  **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.0 (20.02.1999)
+; o Increased minimum crunched file size from 14 to 17
+; o Crunched and decrunched size are checked to be non-zero
+; o Improved detection routine
+; o Negative values on offsets 12 and 14 no longer cause corrupted output
+; o Added data scanning functions
+
+;;;		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_CP		;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support data scanning
+
+S_CP		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_CP		;name
+		dc.w	XFDPFF_DATA|XFDPFF_RECOGLEN|XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_CP		;recog buffer
+		dc.l	DB_CP		;decrunch buffer
+		dc.l	SD_CP		;recog segment / scan data
+		dc.l	VD_CP		;decrunch segment / verify data
+		dc.w	0,0
+		dc.l	$10+1		;minimum size
+
+		dc.b	"$VER: CP 2.1 (20.10.2002)",0
+N_CP		dc.b	"(CP) Data Cruncher",0
+		even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_CP		CMP.W	#"CP",(A0)
+		BNE.B	.Exit
+		TST.B	4(A0)
+		BNE.B	.Exit
+		MOVE.L	4(A0),D0	;Crunched size
+		CMP.L	#$10+1,D0	;Smaller than minimum?
+		BLO.B	.Exit
+		TST.B	8(A0)
+		BNE.B	.Exit
+		TST.L	8(A0)		;Decrunched size 0 ?
+		BEQ.B	.Exit
+
+		MOVEQ	#0,D1
+		MOVE.W	12(A0),D1	;$10 < Offset < CrunchedSize
+		CMP.L	#$10,D1
+		BLO.S	.Exit
+		CMP.L	D0,D1
+		BHI.S	.Exit
+		MOVE.W	14(A0),D1	;$10 < Offset < CrunchedSize
+		CMP.L	#$10,D1
+		BLO.S	.Exit
+		CMP.L	D0,D1
+		BHI.S	.Exit
+
+		MOVE.L	8(A0),xfdrr_FinalTargetLen(A1)
+		MOVE.L	8(A0),xfdrr_MinTargetLen(A1)
+		MOVE.L	D0,xfdrr_MinSourceLen(A1)
+		MOVEQ	#1,D0
+		RTS
+
+.Exit		MOVEQ	#0,D0
+		RTS
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+DB_CP		MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVEA.L	A0,A4
+		MOVE.L	xfdbi_UserTargetBuf(A4),A1
+		MOVEA.L	A1,A5
+		ADDA.L	xfdbi_TargetBufSaveLen(A4),A5
+		MOVE.L	xfdbi_SourceBuffer(A4),A0
+
+		MOVEQ	#0,D0
+		LEA	$10(A0),A2
+		move.l	8(A0),D1
+		move.w	12(A0),D0
+		lea	(A0,D0.L),A3	; W -> L
+		move.w	14(A0),D0
+		lea	(A0,D0.L),A0	; W -> L
+		move.b	#$80,D3
+.decr1		move.b	(A2),D0
+		and.b	D3,D0
+		bne.s	.decr4
+		CMPA.L	A5,A1		* overrun check
+		BEQ.B	.Err
+		move.b	(A0)+,(A1)+
+		subq.l	#1,D1
+.decr2		ror.b	#1,D3
+		bpl.s	.decr3
+		addq.l	#1,A2
+.decr3		tst.l	D1
+		bne.s	.decr1
+		MOVEQ	#1,D0
+.End		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+.Err		MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A4)
+		MOVEQ	#0,D0
+		BRA.B	.End
+
+.decr4		move.b	(A3)+,D6
+		lsl.w	#8,D6
+		move.b	(A3)+,D6
+		move.w	D6,D7
+		andi.w	#$F000,D7
+		eor.w	D7,D6
+		bne.s	.decr5
+		move.w	#$1000,D6
+.decr5		movea.l	A1,A6
+		suba.w	D6,A6
+		rol.w	#4,D7
+		cmpi.w	#15,D7
+		bcs.s	.decr7
+		andi.w	#$FF,D6
+.decr6		move.b	(A3)+,D6
+		add.w	D6,D7
+		cmpi.b	#$FF,D6
+		beq.s	.decr6
+.decr7		andi.l	#$FFFF,D7
+		sub.l	D7,D1
+
+		MOVE.L	A1,D6		* overrun check
+		ADD.L	D7,D6
+		CMPA.L	D6,A5
+		BLO.B	.Err
+
+		subq.w	#1,D7
+.decr8		move.b	(A6)+,(A1)+
+		dbra	D7,.decr8
+		bra.b	.decr2
+
+SD_CP		MOVEQ	#0,D0
+		CMP.W	#"CP",(A0)
+		BNE.B	.Exit
+		MOVEQ	#1,D0
+.Exit		RTS
+
+VD_CP		TST.B	4(A0)
+		BNE.B	.Exit
+		MOVE.L	4(A0),D0	;Crunched size
+		CMP.L	#$10+1,D0	;Smaller than minimum?
+		BLO.B	.Exit
+		TST.B	8(A0)
+		BNE.B	.Exit
+		TST.L	8(A0)		;Decrunched size 0 ?
+		BEQ.B	.Exit
+
+		MOVEQ	#0,D1
+		MOVE.W	12(A0),D1	;$10 < Offset < CrunchedSize
+		CMP.L	#$10,D1
+		BLO.S	.Exit
+		CMP.L	D0,D1
+		BHI.S	.Exit
+		MOVE.W	14(A0),D1	;$10 < Offset < CrunchedSize
+		CMP.L	#$10,D1
+		BLO.S	.Exit
+		CMP.L	D0,D1
+		BHI.S	.Exit
+		RTS
+
+.Exit		MOVEQ	#0,D0
+		RTS
+
+		END

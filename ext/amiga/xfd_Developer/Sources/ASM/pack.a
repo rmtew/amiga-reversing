@@ -1,0 +1,365 @@
+*******************************************************
+**     XFD external decruncher for pack Cruncher     **
+**        written by Mr. Larmer / Wanted Team        **
+**      shortened and fixed by SDI in 1999-2001      **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.1 (07.07.2001)
+; o Increased minimum crunched file size from 10 to 12
+; o Crunched size is checked to be non-zero
+; o MinSourceLen is no longer set because it is unknown
+; o The error code is now written to BufferInfo correctly
+; o Reduced stack space usage (was >3200 bytes)
+; o Improved detection (other crunchers with the ID "pack" exist!)
+
+
+;;;		INCLUDE	AINCLUDE:IncDirs.i
+		INCLUDE	"libraries/xfdmaster.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_pack		;first slave
+
+		dc.b	"$VER: pack 2.2 (20.10.2002)",0
+N_pack		dc.b	"(pack) Data Cruncher",0
+		EVEN
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_pack		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_pack		;name
+		dc.w	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		dc.w	0
+		dc.l	RB_pack		;recog buffer
+		dc.l	DB_pack		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12
+
+RB_pack		MOVEQ	#0,D0
+		CMP.L	#"pack",(A0)+
+		BNE.S	.Exit
+		TST.B	(A0)
+		BNE.S	.Exit
+		TST.L	(A0)		; Decrunched Size
+		BEQ.S	.Exit
+
+		MOVEM.L	A0-A1/A5-A6/D2-D7,-(SP)
+		BSR	TD_pack
+		MOVEM.L	(SP)+,A0-A1/A5-A6/D2-D7
+		TST.L	D0
+		BEQ.S	.Exit
+
+		MOVE.L	(A0),D0		; Decrunched Size
+		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		ADD.L	#$C80+1,D0	; Required Workspace
+		AND.B	#$FE,D0
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+
+; A0 -> Start of crunched data, past ID (source)
+; Return: D0 = 1: Data OK, D0 = 0: Data corrupt
+; Registers unchanged: A2/A3/A4
+
+TD_pack		lea	4(A0),A5	; Start of the crunched data
+		move.l	SP,A6		; End address of workspace
+		lea	-$80(SP),SP
+		move.l	SP,A0		; Start address of workspace
+
+		move.l	(A5)+,D6	; Crunched data
+		moveq	#$1F,D7
+;;;		moveq	#$20,D0
+		lea	(A0),A1
+		clr.l	(A1)+
+		moveq	#0,D1
+TlbC000144:	bsr.s	lbC000192
+		beq.s	TlbC00018A
+		moveq	#5,D5
+		bsr.s	lbC0001A2
+		move.w	D4,D3
+		move.w	D4,D5
+		bsr.s	lbC0001A2
+;;;		lea	(A0),A2
+		moveq	#0,D2
+		subq.w	#1,D3
+		beq.s	TlbC000176
+TlbC00015A:	btst	D3,D4
+		beq.s	TlbC000160
+		addq.w	#2,D2
+TlbC000160:	move.w	0(A0,D2.W),D5
+		bne.s	TlbC000170
+		move.l	A1,D5
+		sub.l	A0,D5
+		cmp.w	#$80-2,D2	; Overflow test for D2
+		bhi.s	TExitError
+		btst	#0,D2		; Alignment test for D2
+		bne.s	TExitError
+		move.w	D5,0(A0,D2.W)
+		cmp.l	A6,A1		; Overflow test for A1
+		bhs.s	TExitError
+		clr.l	(A1)+
+TlbC000170:	move.w	D5,D2
+		subq.w	#1,D3
+		bne.s	TlbC00015A
+TlbC000176:	btst	D3,D4
+		beq.s	TlbC00017C
+		addq.w	#2,D2
+TlbC00017C:	tst.w	0(A0,D2.W)	; Test from original decruncher
+		bne.s	TExitError
+		cmp.w	#$80-1,D2	; Overflow test for D2
+		bhs.s	TExitError
+		move.b	D1,1(A0,D2.W)
+		st	0(A0,D2.W)
+TlbC00018A:	addq.b	#1,D1
+		cmp.b	#$20,D1
+		bne.s	TlbC000144
+
+		moveq	#1,D0		; Set success status
+TExit		move.l	A6,SP		; Restore workspace
+		rts
+
+TExitError:	moveq	#0,D0		; Set error status
+		bra.s	TExit
+
+;-------------------------------------------------
+
+DB_pack		MOVEM.L	D2-D7/A2-A6,-(SP)
+		MOVE.L	xfdbi_UserTargetBuf(A0),A6	; Destination
+		MOVE.L	xfdbi_SourceBuffer(A0),A5	; Source
+		MOVE.L	xfdbi_FinalTargetLen(A0),D0
+		ADDQ.L	#1,D0
+		AND.B	#$FE,D0
+		LEA	(A6,D0.L),A3			; Workspace
+
+		MOVE.L	A0,-(SP)
+		BSR.B	D_pack
+		MOVE.L	(SP)+,A0
+
+		TST.L	D0
+		BNE.B	.Exit
+		MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A0)
+.Exit		MOVEM.L	(SP)+,D2-D7/A2-A6
+		RTS
+
+**************************************************
+
+; A3 -> Workspace, $C80 bytes
+; A5 -> Start of crunched data (source)
+; A6 -> Start of decrunch buffer (destination)
+
+; Uses: A0,A1,A2,A3,A4,A5,A6, D0,D1,D2,D3,D4,D5,D6,D7
+
+D_pack		addq.l  #4,A5		* skip ID
+		move.l	(A5)+,A4	* decrunched size
+		move.l	(A5)+,D6	* crunched data
+		moveq	#$1F,D7
+		moveq	#$20,D0
+		lea	(A3),A0
+		bsr.w	lbC00013E
+		moveq	#0,D0
+		lea	$80(A3),A0
+		bsr.w	lbC00013E
+		moveq	#0,D0
+		lea	$480(A3),A0
+		bsr.w	lbC00013E
+		moveq	#0,D0
+		lea	$880(A3),A0
+		bsr.w	lbC00013E
+		move.l	A4,D0		* decrunched size
+		moveq	#$1F,D5
+		sub.w	D7,D5
+		asl.l	D5,D6
+		lea	lbW0001D8(PC),A1
+		lea	lbL000214(PC),A2
+lbC00006E:	lea	$80(A3),A0
+		bsr.w	lbC00010A
+		moveq	#0,D4
+		move.b	D2,D4
+		cmpi.b	#$FF,D4
+		bcs.s	lbC00009C
+lbC000080:	moveq	#0,D2
+		moveq	#7,D3
+lbC000084:	add.l	D6,D6
+		addx.l	D2,D2
+		dbra	D7,lbC000090
+		move.l	(A5)+,D6
+		moveq	#$1F,D7
+lbC000090:	dbra	D3,lbC000084
+		add.w	D2,D4
+		cmpi.w	#$FF,D2
+		beq.s	lbC000080
+lbC00009C:	move.w	D4,D1
+		beq.s	lbC0000AC
+		lea	$880(A3),A0
+lbC0000A4:	bsr.s	lbC00010A
+		move.b	D2,(A6)+
+		subq.w	#1,D1
+		bne.s	lbC0000A4
+lbC0000AC:	sub.l	D4,D0
+		bmi.w	ExitError
+		beq.s	ExitSuccess
+		lea	(A3),A0
+		bsr.s	lbC00010A
+		moveq	#0,D1
+		moveq	#0,D3
+		move.b	D2,D3
+		add.w	D3,D3
+		move.w	0(A2,D3.W),D2
+		beq.s	lbC0000DA
+		subq.w	#1,D2
+lbC0000CA:	add.l	D6,D6
+		addx.l	D1,D1
+		dbra	D7,lbC0000D6
+		move.l	(A5)+,D6
+		moveq	#$1F,D7
+lbC0000D6:	dbra	D2,lbC0000CA
+lbC0000DA:	or.w	0(A1,D3.W),D1
+		lea	$480(A3),A0
+		bsr.b	lbC00010A
+		moveq	#0,D3
+		move.b	D2,D3
+		move.w	D3,D2
+		lea	(A6),A4
+		suba.w	D2,A4
+		suba.w	D1,A4
+		subq.w	#1,D2
+lbC0000F4:	move.b	(A4)+,(A6)+
+		dbra	D2,lbC0000F4
+		sub.l	D3,D0
+		bmi.w	ExitError
+		bne.w	lbC00006E
+ExitSuccess:	moveq	#1,D0
+		rts
+
+lbC00010A:	moveq	#0,D2
+lbC00010C:	moveq	#0,D3
+		add.l	D6,D6
+		addx.w	D3,D3
+		add.w	D3,D3
+		add.w	D3,D2
+		move.w	0(A0,D2.W),D2
+		bmi.s	lbC000134
+lbC00011C:	dbra	D7,lbC00010C
+		move.l	(A5)+,D6
+		moveq	#$1F,D7
+		moveq	#0,D3
+		add.l	D6,D6
+		addx.w	D3,D3
+		add.w	D3,D3
+		add.w	D3,D2
+		move.w	0(A0,D2.W),D2
+		bpl.s	lbC00011C
+lbC000134:	dbra	D7,lbC00013C
+		move.l	(A5)+,D6
+		moveq	#$1F,D7
+lbC00013C:	rts
+
+
+; This subroutine does not use A2-A4, A6
+
+lbC00013E:	lea	(A0),A1
+		clr.l	(A1)+
+		moveq	#0,D1
+lbC000144:	bsr.s	lbC000192
+		beq.s	lbC00018A
+		moveq	#5,D5
+		bsr.s	lbC0001A2
+		move.w	D4,D3
+		move.w	D4,D5
+		bsr.s	lbC0001A2
+;;;		lea	(A0),A2
+		moveq	#0,D2
+		subq.w	#1,D3
+		beq.s	lbC000176
+lbC00015A:	btst	D3,D4
+		beq.s	lbC000160
+		addq.w	#2,D2
+lbC000160:	move.w	0(A0,D2.W),D5
+		bne.s	lbC000170
+		move.l	A1,D5
+		sub.l	A0,D5
+		move.w	D5,0(A0,D2.W)
+		clr.l	(A1)+
+lbC000170:	move.w	D5,D2
+		subq.w	#1,D3
+		bne.s	lbC00015A
+lbC000176:	btst	D3,D4
+		beq.s	lbC00017C
+		addq.w	#2,D2
+lbC00017C:	tst.w	0(A0,D2.W)
+		bne.s	ExitErrorSP
+		move.b	D1,1(A0,D2.W)
+		st	0(A0,D2.W)
+lbC00018A:	addq.b	#1,D1
+		cmp.b	D0,D1
+		bne.s	lbC000144
+		rts
+
+
+; This subroutine does not use A0-A4, A6, D0-D3
+
+lbC000192:	move.w	D7,D4
+		move.l	D6,D5
+		dbra	D7,lbC00019E
+		moveq	#$1F,D7
+		move.l	(A5)+,D6
+lbC00019E:	btst	D4,D5
+		rts
+
+
+; This subroutine does not use A0-A4, A6, D0-D3
+
+lbC0001A2:	moveq	#0,D4
+		subq.w	#1,D5
+		bmi.s	lbC0001BA
+lbC0001A8:	btst	D7,D6
+		beq.s	lbC0001AE
+		bset	D5,D4
+lbC0001AE:	dbra	D7,lbC0001B6
+		moveq	#$1F,D7
+		move.l	(A5)+,D6
+lbC0001B6:	dbra	D5,lbC0001A8
+lbC0001BA:	rts
+
+ExitErrorSP:	addq.l	#4,SP		; Restore the Stack Pointer
+ExitError:	moveq	#0,D0
+		rts
+
+lbW0001D8:	dc.w	$0000,$0001,$0002,$0003,$0004,$0006,$0008,$000C
+		dc.w	$0010,$0018,$0020,$0030,$0040,$0060,$0080,$00C0
+		dc.w	$0100,$0180,$0200,$0300,$0400,$0600,$0800,$0C00
+		dc.w	$1000,$1800,$2000,$3000,$4000,$6000
+
+lbL000214:	dc.w	$0000,$0000
+		dc.w	$0000,$0000
+		dc.w	$0001,$0001
+		dc.w	$0002,$0002
+		dc.w	$0003,$0003
+		dc.w	$0004,$0004
+		dc.w	$0005,$0005
+		dc.w	$0006,$0006
+		dc.w	$0007,$0007
+		dc.w	$0008,$0008
+		dc.w	$0009,$0009
+		dc.w	$000A,$000A
+		dc.w	$000B,$000B
+		dc.w	$000C,$000C
+		dc.w	$000D,$000D
+
+		END

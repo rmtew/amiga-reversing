@@ -1,0 +1,422 @@
+*******************************************************
+**   XFD external decruncher for B6B2AFCB Cruncher   **
+**        written by Mr. Larmer / Wanted Team        **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 20.11.99
+; o Increased minimum crunched file size from 14 to 20
+; o Decrunched size is checked to be non-zero
+; o Implemented user-target support
+
+;		OUTPUT	LIBS:xfd/$B6B2AFCB
+
+		SECTION	B6B2AFCBDecrunch,CODE
+
+;;;		INCDIR	"dh2:Include/"	;change this as you need it
+		INCLUDE	"libraries/xfdmaster.i"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+F_B6B2AFCB		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_B6B2AFCB	;first slave
+
+		dc.b	"$VER: External Andromeda decruncher for xfdmaster.library "
+		dc.b	"by Mr.Larmer/Wanted Team (13.10.02)",0
+		cnop	0,4
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_B6B2AFCB	dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_B6B2AFCB	;name
+		dc.w	XFDPFF_DATA|XFDPFF_RECOGLEN|XFDPFF_USERTARGET	;flags
+		dc.w	0
+		dc.l	RB_B6B2AFCB	;recog buffer
+		dc.l	DB_B6B2AFCB	;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	20		;minimum size
+
+N_B6B2AFCB	dc.b	"Andromeda ($B6B2AFCB) Data Cruncher",0
+		even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_B6B2AFCB	cmp.l	#$B6B2AFCB,(a0)
+		bne.s	.Exit
+
+		move.l	16(A0),D0
+		lsl.l	#2,D0
+		beq.b	.Exit		;Should be non-zero
+
+		move.l	12(A0),D1
+		ble.b	.Exit		;Should be non-zero and positive
+
+		move.l	d0,xfdrr_FinalTargetLen(A1)
+		add.l	d1,d0
+		move.l	d0,xfdrr_MinTargetLen(A1)
+
+		moveq	#1,d0
+		rts
+
+.Exit		moveq	#0,d0
+		rts
+
+;-------------------------------------------------
+
+;Decrunch buffer function: receives bufferinfo in a0
+
+DB_B6B2AFCB	movem.l	d2-d7/a2-a6,-(a7)
+		move.l	a0,a5
+
+		move.l	xfdbi_SourceBuffer(a5),a0
+		move.l	xfdbi_UserTargetBuf(a5),a1
+
+		move.l	16(A0),D0
+		lsl.l	#2,D0
+		lea	(A1,D0.L),A2
+
+;		A0 -> Crunched data (source)
+;		A1 -> Decrunch buffer (destination)
+;		A2 -> Workspace
+
+		bsr.s	D_B6B2AFCB
+
+		moveq	#1,d0
+.Exit		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+**************************************************
+
+D_B6B2AFCB
+	addq.l	#4,A0
+	movem.l	(A0)+,D0/D1/D4
+	adda.l	D4,A2
+	suba.w	#$30,SP
+	lea	(SP),A4
+	bsr.b	lbC000018
+	adda.w	#$30,SP
+	rts
+
+lbC000018:
+	lea	8(A4),A5
+	move.l	#$60A0A12,(A5)+
+	move.l	#$2030304,(A5)+
+	move.l	#$4050700,(A5)+
+	move.w	D0,(A4)
+	clr.w	D0
+	rol.l	#4,D0
+	move.b	D0,-(A5)
+	clr.b	D0
+	rol.l	#4,D0
+	move.l	D0,2(A4)
+	move.l	D1,4(A4)
+	lea	lbL0002B4(PC),A3
+	mulu.w	#12,D0
+	adda.w	D0,A3
+	lea	$24(A4),A5
+	lea	(A5),A6
+	move.l	(A3)+,(A5)+
+	move.l	(A3)+,(A5)+
+	move.l	(A3),(A5)
+	lea	$14(A4),A5
+	moveq	#7,D1
+lbC00005E:
+	move.b	(A6)+,D0
+	bpl.b	lbC00006A
+	andi.b	#$7F,D0
+	addq.b	#8,D0
+lbC00006A:
+	moveq	#0,D2
+	bset	D0,D2
+	tst.l	4(A4)
+	bpl.b	lbC000078
+	subq.w	#1,D2
+lbC000078:
+	move.w	D2,(A5)+
+	dbra	D1,lbC00005E
+	lea	$14(A4),A6
+	lea	$1C(A4),A5
+	moveq	#3,D1
+lbC000088:
+	move.w	(A6)+,D0
+	add.w	D0,(A5)+
+	dbra	D1,lbC000088
+	andi.b	#$7F,4(A4)
+	lea	(A1),A3
+	lea	(A2),A6
+lbC00009A:
+	cmpa.l	A6,A2
+	bne.b	lbC0000A4
+	bsr.b	lbC0000F2
+lbC0000A4:
+	move.l	(A2)+,D0
+	bpl.b	lbC0000AC
+	rts
+
+lbC0000AC:
+	lea	(A3),A1
+lbC0000AE:
+	lea	-$20(A6),A6
+	movem.l	D1-D7/A0,-(SP)
+	subq.l	#8,D0
+	bmi.b	lbC0000D2
+lbC0000BC:
+	cmpa.l	A6,A2
+	bhi.b	lbC0000D2
+	movem.l	(A2)+,D1-D7/A0
+	movem.l	D1-D7/A0,(A1)
+	lea	$20(A1),A1
+	subq.l	#8,D0
+	bpl.s	lbC0000BC
+lbC0000D2:
+	movem.l	(SP)+,D1-D7/A0
+	lea	$20(A6),A6
+	addq.l	#8,D0
+	beq.s	lbC00009A
+lbC0000DE:
+	cmpa.l	A6,A2
+	beq.b	lbC0000EC
+	move.l	(A2)+,(A1)+
+	subq.l	#1,D0
+	bne.s	lbC0000DE
+	bra.s	lbC00009A
+
+lbC0000EC:
+	bsr.b	lbC0000F2
+	bra.s	lbC0000AE
+
+lbC0000F2:
+	suba.l	D4,A2
+	movem.l	D0/A3,-(SP)
+	lea	(A2),A3
+	move.w	D4,D5
+	move.w	(A4),D2
+	move.b	2(A4),D1
+	move.b	3(A4),D0
+	bne.w	lbC000262
+	bra.w	lbC000284
+
+lbC00010E:
+	add.b	D1,D1
+	bne.b	lbC000118
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC000118:
+	bcc.b	lbC0001A0
+	add.b	D1,D1
+	bne.b	lbC000126
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC000126:
+	bcc.b	lbC000198
+	add.b	D1,D1
+	bne.b	lbC000134
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC000134:
+	bcc.b	lbC000190
+	add.b	D1,D1
+	bne.b	lbC000142
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC000142:
+	bcc.b	lbC000188
+	add.b	D1,D1
+	bne.b	lbC000150
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC000150:
+	bcc.b	lbC00015C
+	move.b	(A0)+,D0
+	moveq	#3,D7
+	bra.b	lbC0001A4
+
+lbC00015C:
+	add.b	D1,D1
+	bne.b	lbC000166
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC000166:
+	addx.b	D0,D0
+	add.b	D1,D1
+	bne.b	lbC000172
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC000172:
+	addx.b	D0,D0
+	add.b	D1,D1
+	bne.b	lbC00017E
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC00017E:
+	addx.b	D0,D0
+	addq.b	#6,D0
+	moveq	#3,D7
+	bra.b	lbC0001A4
+
+lbC000188:
+	moveq	#5,D0
+	moveq	#3,D7
+	bra.b	lbC0001A4
+
+lbC000190:
+	moveq	#4,D0
+	moveq	#2,D7
+	bra.b	lbC0001A4
+
+lbC000198:
+	moveq	#3,D0
+	moveq	#1,D7
+	bra.b	lbC0001A4
+
+lbC0001A0:
+	moveq	#2,D0
+	moveq	#0,D7
+lbC0001A4:
+	move.w	D7,D3
+	add.b	D1,D1
+	bne.b	lbC0001B0
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC0001B0:
+	bcc.b	lbC0001CE
+	add.b	D1,D1
+	bne.b	lbC0001BE
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC0001BE:
+	bcc.b	lbC0001DE
+	moveq	#0,D6
+	move.b	8(A4,D7.W),D6
+	addq.b	#4,D7
+	bra.b	lbC0001E0
+
+lbC0001CE:
+	add.b	D1,D1
+	bne.b	lbC0001D8
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC0001D8:
+	addx.w	D2,D2
+	bra.b	lbC0001F6
+
+lbC0001DE:
+	moveq	#2,D6
+lbC0001E0:
+	move.b	12(A4,D7.W),D7
+lbC0001E4:
+	add.b	D1,D1
+	bne.b	lbC0001EE
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC0001EE:
+	addx.w	D2,D2
+	subq.b	#1,D7
+	bne.s	lbC0001E4
+	add.w	D6,D2
+lbC0001F6:
+	moveq	#0,D6
+	movea.w	D6,A5
+	move.w	D3,D7
+	add.b	D1,D1
+	bne.b	lbC000206
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC000206:
+	bcc.b	lbC00022A
+	add.w	D3,D3
+	add.b	D1,D1
+	bne.b	lbC000216
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC000216:
+	bcc.b	lbC000224
+	movea.w	$1C(A4,D3.W),A5
+	addq.b	#8,D7
+	bra.b	lbC00022A
+
+lbC000224:
+	movea.w	$14(A4,D3.W),A5
+	addq.b	#4,D7
+lbC00022A:
+	move.b	$24(A4,D7.W),D7
+	bpl.b	lbC00023C
+	move.b	(A0)+,D6
+	andi.b	#$7F,D7
+	beq.b	lbC00024C
+lbC00023C:
+	add.b	D1,D1
+	bne.b	lbC000246
+	move.b	(A0)+,D1
+	addx.b	D1,D1
+lbC000246:
+	addx.w	D6,D6
+	subq.b	#1,D7
+	bne.s	lbC00023C
+lbC00024C:
+	addq.w	#1,D6
+	add.w	A5,D6
+	lea	(A3),A5
+	suba.w	D6,A5
+	cmpa.l	A2,A5
+	bcc.b	lbC00025C
+	adda.w	D4,A5
+lbC00025C:
+	cmpa.l	A5,A6
+	beq.b	lbC00027A
+lbC000262:
+	subq.w	#1,D5
+	bmi.b	lbC0002A4
+lbC000268:
+	move.b	(A5)+,(A3)+
+	subq.b	#1,D0
+	beq.b	lbC000284
+	cmpa.l	A5,A6
+	dbeq	D5,lbC000268
+	bne.b	lbC0002A4
+lbC00027A:
+	lea	(A2),A5
+	dbra	D5,lbC000268
+	bra.b	lbC0002A4
+
+lbC000284:
+	tst.w	D2
+	beq.b	lbC00029C
+	subq.w	#1,D5
+	bmi.b	lbC0002A4
+lbC000290:
+	move.b	(A0)+,(A3)+
+	subq.w	#1,D2
+	dbeq	D5,lbC000290
+	bne.b	lbC0002A4
+lbC00029C:
+	subq.l	#1,4(A4)
+	bne.w	lbC00010E
+lbC0002A4:
+	move.b	D0,3(A4)
+	move.b	D1,2(A4)
+	move.w	D2,(A4)
+	movem.l	(SP)+,D0/A3
+	rts
+
+lbL0002B4:
+	dc.l	$5050505,$5050505,$6060606,$5060707,$6060606
+	dc.l	$7070606,$5060707,$7070707,$80808080,$5060780
+	dc.l	$7078080,$80818181,$6070780,$7808181,$80818282
+	dc.l	$6070780,$7818182,$80828383,$6070780,$7818182
+	dc.l	$80828484,$6070780,$7818282,$80838485,$6070780
+	dc.l	$7818283,$80838586
+
+		END

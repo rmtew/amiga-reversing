@@ -1,0 +1,436 @@
+TABLE OF CONTENTS
+
+xfdForeman/--Overview--
+xfdSlave/--Overview--
+xfdSlave/--HowToStart--
+xfdSlave/DecrunchBufferXYZ
+xfdSlave/DecrunchSegmentXYZ
+xfdSlave/RecogBufferXYZ
+xfdSlave/RecogSegmentXYZ
+xfdSlave/ScanDataXYZ
+xfdSlave/VerifyDataXYZ
+
+xfdForeman/--Overview--                               xfdForeman/--Overview--
+
+The xfdForeman structure is just some kind of header for external slaves.
+It protects the slaves from being executed accidentally by having a small
+piece of code (moveq #-1,d0 : rts) in the first 4 bytes.
+The master can identify a valid bunch of external slaves by checking the
+first few bytes of the file for the foreman identification.
+Finally, a foreman holds the pointer to a linked list of slaves and thus
+enables the master to work with these slaves.
+
+xfdSlave/--Overview--                                   xfdSlave/--Overview--
+
+The xfdSlave structure is the heart of the whole library system. Each slave
+enables the master to recognize and decrunch packed files. Additionally,
+slaves of the type XFDPFB_RELOC can recognize and decrunch segments.
+Slaves with XFDPFB_DATA flag set contain routines for data scanning and data
+verification.
+
+Therefore each slave contains 4 routines that are called from the master.
+Pointers to these are stored in xfds_RecogBuffer and xfds_DecrunchBuffer.
+XFDPFB_RELOC slaves have xfds_RecogSegment and xfds_DecrunchSegment
+initialized, XFDPFB_DATA slaves use xfds_ScanData and xfds_VerifyData.
+
+All routines have one thing in common: the CPU registers D0/D1/A0/A1 are
+so-called scratch registers, they may change during execution, all other
+registers must remain unchanged. CPU register A6 holds a pointer to the
+xfdMasterBase structure. See chapters below for a description of the slave
+routines.
+
+ALL SLAVE ROUTINES MUST BE REENTRANT! NEVER STORE ANY DATA IN STATIC MEMORY
+AREAS, USE THE STACK OR SOME ALLOCATED MEMORY INSTEAD! REMEMBER THAT THE
+ROUTINES MIGHT BE CALLED BY SEVERAL PROGRAMS AT THE SAME TIME!
+
+The name of the packer that is supported by the slave and the flags that
+describe the packer are stored in xfds_PackerName and xfds_PackerFlags.
+
+(V36) Internal slaves all have an unique ID value stored in xfds_SlaveID.
+This field should be set to NULL for external slaves.
+
+(V36) If you have written a slave that should replace an internal one
+because it's faster or otherwise enhanced, simply put the ID of the slave
+to be replaced in xfds_ReplaceID. The old slave will then be taken out of
+the list of used slaves. Otherwise, xfds_ReplaceID must be NULL.
+
+(V36) xfdRecogBuffer() usually only requires a quite small part of a file
+to recognize it properly. To avoid reading the whole file for recognition
+purposes, you may set xfds_MinBufferSize to the minimum amount of bytes
+that is required to recognize the crunched file correctly.
+Note that xfdRecogBuffer() uses this value internally to decide whether
+a file might be crunched with a packer or not, so you don't have to do
+an extra size comparison in your xfds_RecogBuffer function any more.
+For packer headers with non-constant sizes, simply set xfds_MinBufferSize
+to a value that will ensure correct recognition of all possible files.
+
+Whenever you intend to use features of the xfdmaster.library in your slaves
+that are marked (V34) or higher, make sure to set xfds_MasterVersion to
+the desired version number, otherwise an old library version might crash
+while using the new slave.
+
+xfdSlave/--HowToStart--                               xfdSlave/--HowToStart--
+
+Some notes how data slaves need to be designed (in assembler). There are
+2 different types of data slaves. The easy ones and the complicated ones.
+
+An example header for an easy slave (needs V39) may look like that:
+
+S_TEST		DC.L	0		;no more slaves
+		DC.W	2		;version
+		DC.W	39		;master version
+		DC.L	N_TEST		;name
+		DC.W	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		DC.W	0
+		DC.L	RB_TEST		;recog buffer
+		DC.L	DB_TEST		;decrunch buffer
+		DC.L	SD_TEST	; or 0
+		DC.L	VD_TEST	; or 0
+		DC.W	0,0
+		DC.L	12		;minimum size
+N_TEST		DC.B	"Test Cruncher",0
+
+The recognition function checks if the file is known and inserts the
+minimum and final buffer sizes into the recog structure. If possible
+also a minimum source size (normally the header size + crunched size)
+is entered, which is used for corruption checks.
+
+RB_TEST		MOVEQ	#0,D0
+		CMP.L	#"TEST",(A0)
+		BNE.B	.Exit
+		MOVE.L	4(A0),xfdrr_FinalTargetLen(A1)
+		MOVE.L	4(A0),xfdrr_MinTargetLen(A1)
+		MOVE.L	8(A0),D0
+		ADD.L	#12,D0
+		MOVE.L	D0,xfdrr_MinSourceLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+Now the decrunch function is really easy. It gets the buffers and
+starts the decruncher (size maybe taken from the structure also).
+
+DB_TEST		MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVE.L	xfdbi_UserTargetBuf(A0),A1	* destination
+		MOVE.L	xfdbi_SourceBuffer(A0),A0	* source
+	*	MOVE.L	xfdbi_TargetBufSaveLen(A4),D1   * destination size
+	*	MOVE.L	xfdbi_SourceBufLen(A0),D0	* source size
+	*	MOVE.L  xfdbi_UserTargetBufLen(A0),D2	* target buffersize
+
+		BSR.B	D_TEST 		* returns 0 (error) or 1
+
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+Keep in mind, that the decruncher is not allowed to use any global
+variables! If you have decrunch code using local variables, modify it
+to use the stack (e.g. using LINK command) or allocate your own
+buffers, if stack usage would exceed 1KB. The register A6 contains
+xfdMasterBase. To get ExecBase do not use
+	MOVEA.L	4.W,A6
+but use
+	MOVEA.L	xfdm_ExecBase(A6),A6
+Often it is not necessary to use stack, but instead optimizing the code
+and removing useless register moves allows to store all data in registers.
+Use the length variables given above. The target buffer length should not
+be necessary in most cases (only if final length is not minimum length).
+
+If possible also a scanner maybe added. This allows to use the scan data
+functions. This is not necessary, but if possible it can be done very
+easy.
+
+SD_TEST		MOVEQ	#0,D0
+		CMP.L	#"TEST",(A0)
+		BNE.B	.Exit
+		MOVEQ	#1,D0
+.Exit		RTS
+
+VD_TEST		MOVEQ	#12,D1
+		ADD.L	8(A0),D1	* crlen
+		CMP.L	D0,D1		* crlen > buflen ??
+		BGT.B	.Exit
+		MOVE.L	4(A0),D0
+		SUB.L	8(A0),D0	* cr > uncr ??
+		BMI.B	.Exit
+		MOVE.L	D1,D0		* return size
+		RTS
+.Exit		MOVEQ	#0,D0
+		RTS
+
+The second data client type is more complicated and for types, which do
+not allow to determine the destination size on recognition and need to
+allocate the buffers themself. See examples to find out how this is done.
+
+There are other slave types (address and executable slaves). These
+types always need to allocate their own buffers and are more complicated.
+Check the examples and the docs to learn more about them. Most of these
+slave types are internal.
+
+xfdSlave/DecrunchBufferXYZ                         xfdSlave/DecrunchBufferXYZ
+
+   NAME
+        DecrunchBufferXYZ -- Decrunch file from buffer to buffer.
+
+   SYNOPSIS
+        result = DecrunchBufferXYZ(bufferinfo)
+          D0                           A0
+
+        BOOL DecrunchBufferXYZ(struct xfdBufferInfo *);
+
+   FUNCTION
+        The typical steps of such a routine are:
+        - Get length of decrunched file (exactly or a bit too much).
+        - Allocate memory (with memtype from xfdbi_TargetBufMemType).
+        - Decrunch file from xfdbi_SourceBuffer to xfdbi_TargetBuffer.
+        - Initialize all necessary parts of the xfdBufferInfo structure.
+        - Set xfdbi_Error if an error occurs.
+
+        (V38) It's possible to support decrunching to user buffers.
+        This looks something like that:
+        - Decrunch file from xfdbi_SourceBuffer to xfdbi_UserTargetBuf.
+        - Initialize all necessary parts of the xfdBufferInfo structure.
+        - Set xfdbi_Error if an error occurs.
+        The XFDPFF_USERTARGET flag must be set in the xfdSlave structure if
+        it supports this feature. Whether to allocate an own buffer or use
+        the given buffer by the user is determined with XFDFF_USERTARGET in
+        the xfdBufferInfo structure.
+
+        (V39) xfdmaster.library automatically allocates the buffer when not
+        supplied by caller program. You need to set XFDPFF_USERTARGET to use
+        that feature. When the Recog function return buffer size -1 (no size
+        detection case), buffer allocation is skipped. If the slave returns
+        -1 in some cases, you still need to do self-allocation, when
+        XFDFF_USERTARGET is not set.
+
+   INPUTS
+        bufferinfo - A valid xfdBufferInfo structure that successfully went
+                     through a call to xfdRecogBuffer().
+
+   RESULT
+        result - TRUE if decrunching succeeded, FALSE if something went wrong.
+
+   NOTE
+        You have to initialize xfds_DecrunchBuffer with a pointer to your
+        DecrunchBufferXYZ routine.
+
+   SEE ALSO
+        Example sourcecodes.
+
+xfdSlave/DecrunchSegmentXYZ                       xfdSlave/DecrunchSegmentXYZ
+
+   NAME
+        DecrunchSegmentXYZ -- Decrunch segment list.
+
+   SYNOPSIS
+        result = DecrunchSegmentXYZ(segmentinfo)
+          D0                             A0
+
+        BOOL DecrunchSegmentXYZ(struct xfdSegmentInfo *);
+
+   FUNCTION
+        There are two possibilities how to decrunch a segment list. The
+        first one works like this:
+        - Modify decrunch header to make it return to the caller.
+        - Call decrunch header.
+        - dos.library/UnloadSeg() whole seglist and clear xfdsi_SegList
+          if an error occurs and the seglist has already been altered
+          in any way.
+        - Otherwise only release segments that are no longer necessary.
+        - Store BPTR to first hunk of decrunched segment list in
+          xfdsi_SegList.
+        - Set xfdsi_Error if an error occurs.
+
+        The second possibility works the same way as the first with
+        the difference that you don't jump to the original code, but you
+        include all necessary parts of it (decrunch routine, relocator)
+        in your own routine. The big advantage is that you can handle
+        error conditions much better because most of the standard decrunch
+        headers in executable files have problems with low memory etc.
+
+        (V34) If the decruncher allows it, always support XFDPFB_RELMODE.
+        That way the caller can determine the type of memory the segments
+        should be placed in by initializing xfdsi_RelMode with XFDREL_#?.
+
+        Many crunchers don't change the hunk structure of the crunched
+        data. If this is the case, you can simply call the decrunch code
+        in the segment list and then use xfdRelocate() (V34).
+
+   INPUTS
+        segmentinfo - A valid xfdSegmentInfo structure that successfully went
+                      through a call to xfdRecogSegment().
+
+   RESULT
+        result - TRUE if decrunching succeeded, FALSE if something went wrong.
+
+   NOTE
+        You have to initialize xfds_DecrunchSegment with a pointer to your
+        DecrunchSegmentXYZ routine.
+
+   SEE ALSO
+        Example sourcecodes.
+
+xfdSlave/RecogBufferXYZ                               xfdSlave/RecogBufferXYZ
+
+   NAME
+        RecogBufferXYZ -- Recognize crunched file in buffer.
+
+   SYNOPSIS
+        result = RecogBufferXYZ(buffer, length, rr(V38))
+          D0                      A0      D0    A1
+
+        BOOL RecogBufferXYZ(APTR, ULONG, struct xfdRecogResult * (V38));
+
+   FUNCTION
+        This routine should examine the buffer for a crunched file.
+        First thing is to check if the size of the file allows it to
+        be crunched with the packer in question. After that, simply
+        do some compares to figure out if the file has been crunched
+        or not.
+
+        (V36) You don't have to do any size comparisons if you set
+        xfds_MinBufferSize to the minimum amount of bytes that are
+        necessary for a file to be crunched with that packer.
+
+        (V38) If it's easily possible to determine the length of the
+        uncrunched file and the required memory for decrunching already
+        in crunched state (only within xfds_MinBufferSize bytes),
+        initialize the xfdRecogResult structure with the correct values.
+        Set the XFDPFF_RECOGLEN flag in your slave in that case.
+        If it's not sure that you can extract the correct lengths only
+        from within the given buffer (eg. PowerPacker data files), set
+        the flag, support xfdRecogResult and set xfdrr_MinTargetLen and
+        xfdrr_FinalTargetLen to -1.
+        
+        (V39) Set xfdrr_MinSourceLen to source length to allow buffer
+        truncation checks. The master library checks the source buffer
+        size against that value before calling the decrunch function.
+        Remember: the size includes header size!
+        Ignore that field if you do not know source data size.
+
+   INPUTS
+        buffer - Pointer to a buffer that holds the crunched file.
+        length - Length of that buffer.
+        rr     - (V38) Pointer to xfdRecogResult structure.
+
+   RESULT
+        result - TRUE if packer has been recognized, else FALSE.
+
+   NOTE
+        You have to initialize xfds_RecogBuffer with a pointer to your
+        RecogBufferXYZ routine.
+
+        (V38) The determined xfdrr_MinTargetLen value should be exactly
+        correct, otherwise the whole thing is quite meaningless.
+
+   SEE ALSO
+        Example sourcecodes.
+
+xfdSlave/RecogSegmentXYZ                             xfdSlave/RecogSegmentXYZ
+
+   NAME
+        RecogSegmentXYZ -- Recognize crunched segment list.
+
+   SYNOPSIS
+        result = RecogSegmentXYZ(seglist)
+          D0                       A0
+
+        BOOL RecogSegmentXYZ(BPTR);
+
+   FUNCTION
+        This routine should examine if a segment list is crunched.
+        You can check the whole segment list for correct lengths of hunks
+        and for contents of hunks if you like. There should be at least
+        3 comparations to determine the cruncher.
+
+   INPUTS
+        seglist - BPTR to first segment.
+
+   RESULT
+        result - TRUE if packer has been recognized, else FALSE.
+
+   NOTE
+        You have to initialize xfds_RecogSegment with a pointer to your
+        RecogSegmentXYZ routine.
+
+   SEE ALSO
+        Example sourcecodes.
+
+xfdSlave/ScanDataXYZ                                     xfdSlave/ScanDataXYZ
+
+   NAME
+        ScanDataXYZ -- Recognize crunched data in buffer.
+
+   SYNOPSIS
+        result = ScanDataXYZ(buffer, length)
+          D0                   A0      D0
+
+        BOOL ScanDataXYZ(APTR, ULONG);
+
+   FUNCTION
+        This routine should only test for the usual data ID at exactly the
+        address given as buffer. The length is the amount of bytes until
+        the end of the whole buffer and is of minor use in this context.
+        You may use it if the ID is several bytes long to test if buffer
+        is already at its end.
+
+   EXAMPLE
+        ScanDataS400    moveq   #0,d0
+                        cmp.l   #'S400',(a0)    ;StoneCracker Data ID
+                        bne.s   .Exit
+                        moveq   #1,d0
+        .Exit           rts
+
+   INPUTS
+        buffer - Pointer to a address to scan at.
+        length - Length of whole buffer.
+
+   RESULT
+        result - TRUE if crunched data has been recognized, else FALSE.
+
+   NOTE
+        You have to initialize xfds_ScanData with a pointer to your
+        ScanDataXYZ routine.
+
+xfdSlave/VerifyDataXYZ                                 xfdSlave/VerifyDataXYZ
+
+   NAME
+        VerifyDataXYZ -- Check crunched data and return length.
+
+   SYNOPSIS
+        length = VerifyDataXYZ(buffer, length)
+          D0                     A0      D0
+
+        ULONG VerifyDataXYZ(APTR, ULONG);
+
+   FUNCTION
+        This routine is called after ScanDataXYZ and first has to check if
+        the data ID found while scanning is part of a valid data file or
+        just some piece of code etc.
+
+        If it is a valid data file, it has to calculate the final length
+        of the data file starting at the ID until the end. This value will
+        then be used for the xfdScanNode structure.
+
+   EXAMPLE
+        VerifyDataS400  moveq   #$c,d1
+                        add.l   8(a0),d1        ;crlen
+                        cmp.l   d0,d1           ;crlen > buflen ??
+                        bgt.s   .Exit
+                        move.l  4(a0),d0
+                        sub.l   8(a0),d0        ;cr > uncr ??
+                        bmi.s   .Exit
+                        move.l  d1,d0
+                        rts
+        .Exit           moveq   #0,d0
+                        rts
+
+   INPUTS
+        buffer - Pointer to start address of possible data file.
+        length - Length of whole buffer.
+
+   RESULT
+        length - Final length of found data file, else NULL.
+
+   NOTE
+        You have to initialize xfds_VerifyData with a pointer to your
+        VerifyDataXYZ routine.
+

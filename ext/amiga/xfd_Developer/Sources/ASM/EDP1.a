@@ -1,0 +1,320 @@
+*******************************************************
+**             XFD external decruncher               **
+**                for EDP1 cruncher                  **
+**             adapted by Wanted Team                **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.0 (29 Aug 2000)
+; o Crunched and decrunched size are checked to be non-zero
+; o Added data scanning functions
+
+;;;	INCDIR	"dh2:Include/"
+	INCLUDE	"libraries/xfdmaster.i"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_EDP1		;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support data scanning
+
+S_EDP1		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_EDP1		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_EDP1		;recog buffer
+		dc.l	DB_EDP1		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12+2
+
+		dc.b	"$VER: EDP1 2.1 (13.10.2000) by Wanted Team",0
+N_EDP1		dc.b	"EDP1 data cruncher",0
+		even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_EDP1		MOVEQ	#0,D0
+		CMP.L	#"EDP1",(A0)+
+		BNE.B	.Exit
+		TST.B	(A0)
+		BNE.B	.Exit
+		MOVE.L	(A0),D0
+
+	move.l	D0,xfdrr_FinalTargetLen(A1)
+	btst	#0,D0
+	beq.b	.OK
+	addq.l	#1,D0
+.OK
+	add.l	#40204,D0			; static buffer
+
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+DB_EDP1		MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVEA.L	A0,A5
+		MOVE.L	xfdbi_UserTargetBuf(A5),A1
+		MOVE.L	xfdbi_SourceBuffer(A5),A0
+
+	move.l	4(A0),D0
+	btst	#0,D0
+	beq.b	.OK
+	addq.l	#1,D0
+.OK
+	move.l	A1,A2
+	add.l	D0,A2
+	move.l	A2,-(SP)
+	bsr.b	D_EDP1
+	addq.l	#4,A7
+	moveq	#1,D0
+
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+;-------------------------------------------------
+
+; Decruncher from game "Black Viper" (c) 1996 LightShock/NEO Software
+
+; Input
+; A0 = start of packed file
+; A1 = destination
+
+D_EDP1
+	MOVEM.L	D0-D7/A0-A6,-(SP)
+	MOVEA.L	A0,A6
+	MOVE.L	#0,D5
+	CMPI.L	#$45445031,(A0)+
+	BNE.S	lbC0032DC
+	MOVE.L	(A0)+,lbL00ACF4
+	MOVEQ	#0,D6
+	MOVE.W	(A0)+,D6
+	MOVE.L	D6,D0
+	ASL.L	#2,D0
+	ADDI.L	#10,D0
+	ADDA.L	D0,A6
+	SUBQ.L	#1,D6
+lbC0032CA	MOVE.L	(A0)+,D7
+	MOVE.L	A0,-(SP)
+	BSR.S	lbC00330C
+	MOVEA.L	(SP)+,A0
+	DBRA	D6,lbC0032CA
+;	MOVEM.L	(SP)+,D0-D7/A0-A6
+;	RTS
+
+lbC0032DC
+;	MOVE.W	#$FB0,D0
+;	BSR.S	lbC0032E8
+	MOVEM.L	(SP)+,D0-D7/A0-A6
+	RTS
+
+;lbC0032E8	MOVE.W	#$32,D7
+;lbC0032EC	CMPI.B	#$64,$DFF006
+;	BNE.S	lbC0032EC
+;lbC0032F6	CMPI.B	#$F4,$DFF006
+;	BNE.S	lbC0032F6
+;	MOVE.W	D0,$DFF180
+;	DBRA	D7,lbC0032EC
+;	RTS
+
+lbC00330C
+;	MOVEA.L	#lbL00ACF8,A0
+
+	move.l	72(SP),A0
+
+	MOVEQ	#0,D3
+	MOVEQ	#0,D4
+	MOVE.W	#9,(A0)
+	MOVE.W	#$100,6(A0)
+	MOVEA.L	A6,A2
+	MOVE.L	D5,D0
+	MOVE.L	D0,D1
+	ASR.L	#4,D0
+	ADDA.L	D0,A2
+	ADDA.L	D0,A2
+	ANDI.L	#15,D1
+	MOVEQ	#0,D0
+	MOVE.W	(A0),D0
+	MOVE.L	D0,D2
+	ADD.L	D0,D5
+	ADD.L	D0,D1
+	MOVE.L	(A2)+,D0
+	ROL.L	D1,D0
+	SUBI.L	#9,D2
+	MOVE.L	#$FF,D1
+lbC00334C	ROL.W	#1,D1
+	BSET	#0,D1
+	DBRA	D2,lbC00334C
+	AND.L	D1,D0
+	MOVE.W	D0,D3
+	MOVE.W	#1,$4008(A0)
+	MOVE.B	D0,8(A0)
+	MOVE.W	#1,$400A(A0)
+	MOVE.B	D0,$2008(A0)
+	MOVE.B	D0,2(A0)
+	MOVE.B	D0,(A1)+
+	SUBQ.L	#1,D7
+	MOVE.W	D3,D4
+lbC003378	MOVEA.L	A6,A2
+	MOVE.L	D5,D0
+	MOVE.L	D0,D1
+	ASR.L	#4,D0
+	ADDA.L	D0,A2
+	ADDA.L	D0,A2
+	ANDI.L	#15,D1
+	MOVEQ	#0,D0
+	MOVE.W	(A0),D0
+	MOVE.L	D0,D2
+	ADD.L	D0,D5
+	ADD.L	D0,D1
+	MOVE.L	(A2)+,D0
+	ROL.L	D1,D0
+	SUBI.L	#9,D2
+	MOVE.L	#$FF,D1
+lbC0033A4	ROL.W	#1,D1
+	BSET	#0,D1
+	DBRA	D2,lbC0033A4
+	AND.L	D1,D0
+	MOVE.W	D0,D3
+	CMP.W	6(A0),D0
+	BGE.L	lbC003448
+	CMPI.W	#$100,D3
+	BLT.S	lbC00342A
+	CLR.W	$400A(A0)
+;	MOVEA.L	#lbL00CD00,A4
+;	MOVEA.L	#lbL00AD00,A5
+
+	lea	$2008(A0),A4
+	lea	8(A0),A5
+
+lbC0033D0
+;	MOVEA.L	#lbL00EB04,A2
+;	MOVEA.L	#lbL012A04,A3
+
+	lea	$3E0C(A0),A2
+	lea	$7D0C(A0),A3
+
+	MOVE.B	0(A3,D0.L),(A4)+
+	ADDQ.W	#1,$400A(A0)
+	LSL.L	#1,D0
+	MOVE.W	0(A2,D0.L),D0
+	ANDI.L	#$FFFF,D0
+	CMPI.W	#$FF,D0
+	BGT.S	lbC0033D0
+	MOVE.B	D0,(A4)+
+	ADDQ.W	#1,$400A(A0)
+
+	move.l	A3,-(SP)
+	lea	$2008(A0),A3
+
+lbC0033FC	MOVE.B	-(A4),(A5)+
+;	CMPA.L	#lbL00CD00,A4
+
+	cmp.l	A3,A4
+
+	BGT.S	lbC0033FC
+
+	move.l	(SP)+,A3
+
+	MOVE.W	$400A(A0),$4008(A0)
+	MOVE.B	8(A0),2(A0)
+	MOVE.W	$4008(A0),D0
+	SUBQ.W	#1,D0
+;	MOVEA.L	#lbL00AD00,A5
+
+	lea	8(A0),A5
+
+lbC00341E	MOVE.B	(A5),(A4)+
+	MOVE.B	(A5)+,(A1)+
+	SUBQ.L	#1,D7
+	DBRA	D0,lbC00341E
+	BRA.S	lbC00346A
+
+lbC00342A	MOVE.B	D0,8(A0)
+	MOVE.B	D0,2(A0)
+	MOVE.B	D0,$2008(A0)
+	MOVE.B	D0,(A1)+
+	SUBQ.L	#1,D7
+	MOVE.W	#1,$4008(A0)
+	MOVE.W	#1,$400A(A0)
+	BRA.S	lbC00346A
+
+lbC003448
+;	MOVEA.L	#lbL00CD00,A2
+
+	lea	$2008(A0),A2
+
+	MOVE.W	$400A(A0),D0
+	SUBQ.W	#1,D0
+lbC003454	MOVE.B	(A2)+,(A1)+
+	SUBQ.L	#1,D7
+	DBRA	D0,lbC003454
+	MOVE.B	2(A0),(A1)+
+	SUBQ.L	#1,D7
+	MOVE.B	2(A0),(A2)+
+	ADDQ.W	#1,$400A(A0)
+lbC00346A
+;	MOVEA.L	#lbL00EB04,A2
+;	MOVEA.L	#lbL012A04,A3
+
+	lea	$3E0C(A0),A2
+	lea	$7D0C(A0),A3
+
+	MOVEQ	#0,D0
+	MOVE.W	6(A0),D0
+	MOVE.B	2(A0),0(A3,D0.L)
+	LSL.W	#1,D0
+	MOVE.W	D4,0(A2,D0.L)
+	ADDQ.W	#1,6(A0)
+	CMPI.W	#13,(A0)
+	BGE.S	lbC0034D2
+	MOVE.W	6(A0),D0
+	CMPI.L	#$200,D0
+	BGE.S	lbC0034A4
+	MOVE.W	#9,(A0)
+	BRA.S	lbC0034D2
+
+lbC0034A4	CMPI.L	#$400,D0
+	BGE.S	lbC0034B2
+	MOVE.W	#10,(A0)
+	BRA.S	lbC0034D2
+
+lbC0034B2	CMPI.L	#$800,D0
+	BGE.S	lbC0034C0
+	MOVE.W	#11,(A0)
+	BRA.S	lbC0034D2
+
+lbC0034C0	CMPI.L	#$1000,D0
+	BGE.S	lbC0034CE
+	MOVE.W	#12,(A0)
+	BRA.S	lbC0034D2
+
+lbC0034CE	MOVE.W	#13,(A0)
+lbC0034D2	MOVE.W	D3,D4
+	TST.L	D7
+	BGT.L	lbC003378
+	RTS
+
+lbL00ACF4	ds.l	1
+
+;lbL00ACF8	ds.l	2
+;lbL00AD00	ds.l	$800
+;lbL00CD00	ds.l	$781
+;lbL00EB04	ds.l	$FC0
+;lbL012A04	ds.l	$800

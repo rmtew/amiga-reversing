@@ -1,0 +1,593 @@
+* Programmheader
+*
+*	Name:		Crunch
+*	Author:		SDI
+*	Distribution:	PD
+*	Description:	XFD external decruncher for recognising Crunch1.x
+*	Compileropts:	-
+*	Linkeropts:	-
+*
+* 1.0   22.11.98 : first version
+* 1.1   09.12.98 : added normal reloc version
+* 1.2   11.12.98 : added SEG version
+* 1.3   29.12.98 : added BSS hunk support
+* 1.4   19.01.99 : added Data scan
+* 1.5   09.03.99 : enforcer hit fixed
+* 1.6   01.05.00 : fixed Enforcer hit
+* 1.8   18.08.00 : fixed little bug with BSS hunks
+
+		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"lvo/exec_lib.i"
+
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE	"exec/memory.i"
+		INCLUDE "dos/doshunks.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+ForeMan		MOVEQ	#-1,D0		;security
+		RTS
+
+		DC.L	XFDF_ID
+		DC.W	1,0
+		DC.L	0,0,S_Crunch
+
+		DC.B	"$VER: Crunch 1.7 (18.08.2000) by SDI",0
+N_Crunch	DC.B	"Crunch 1.3",0
+N_CrunchSeg	DC.B	"Crunch 1.3 Seg",0
+N_CrunchData	DC.B	"Crunch 1.3 Data",0
+		EVEN
+
+S_Crunch	DC.L	S_CrunchSeg	;next slave
+		DC.W	2		;version
+		DC.W	36		;master version
+		DC.L	N_Crunch	;name
+		DC.W	XFDPFF_RELOC
+		DC.W	0
+		DC.L	RB_Crunch	;recog buffer
+		DC.L	DB_Crunch	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	140		;MinBufSize
+
+S_CrunchSeg	DC.L	S_CrunchData	;next slave
+		DC.W	2		;version
+		DC.W	36		;master version
+		DC.L	N_CrunchSeg	;name
+		DC.W	XFDPFF_RELOC
+		DC.W	0
+		DC.L	RB_CrunchSeg	;recog buffer
+		DC.L	DB_CrunchSeg	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	140		;MinBufSize
+
+S_CrunchData	DC.L	0		;next slaves
+		DC.W	2		;version
+		DC.W	38		;master version
+		DC.L	N_CrunchData	;name
+		DC.W	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		DC.W	0
+		DC.L	RB_CrunchData	;recog buffer
+		DC.L	DB_CrunchData	;decrunch buffer
+		DC.L	SD_CrunchData	;recog segment
+		DC.L	VD_CrunchData	;decrunch segment
+		DC.W	0,0
+		DC.L	12		;MinBufSize
+
+RB_Crunch	CMP.L	#$000003F3,(A0)
+		BNE.B	.Exit
+		TST.L	4(A0)
+		BNE.B	.Exit
+		MOVE.L	8(A0),D1
+		LSL.L	#2,D1
+		CMP.L	D1,D0
+		BLO.B	.Exit
+		ADD.L	D1,A0
+		CMP.L	#$48E7FFFF,7*4(A0)
+		BNE.B	.Exit
+		CMP.L	#$70004E96,10*4(A0)
+		BNE.B	.Exit
+		CMP.L	#$584C4E75,20*4(A0)
+		BNE.B	.Exit
+		CMP.L	#$000003EB,21*4(A0)
+		BNE.B	.Exit
+		MOVEQ	#1,D0
+		RTS
+.Exit		MOVEQ	#0,D0
+		RTS
+
+RB_CrunchSeg	CMP.L	#$000003F3,(A0)
+		BNE.B	.Exit
+		TST.L	4(A0)
+		BNE.B	.Exit
+		MOVE.L	8(A0),D1
+		LSL.L	#2,D1
+		CMP.L	D1,D0
+		BLO.B	.Exit
+		ADD.L	D1,A0
+		CMP.L	#$48E7FFFF,7*4(A0)
+		BNE.B	.Exit
+		CMP.L	#$70006146,10*4(A0)
+		BNE.B	.Exit
+		CMP.L	#$202800AC,20*4(A0)
+		BNE.B	.Exit
+		CMP.L	#$6712E588,21*4(A0)
+		BNE.B	.Exit
+		MOVEQ	#1,D0
+		RTS
+.Exit		MOVEQ	#0,D0
+		RTS
+
+RB_CrunchData	MOVEQ	#0,D0
+		CMPI.L	#$43525561,(A0)
+		BNE.B	.Exit
+		MOVE.L	4(A0),xfdrr_FinalTargetLen(A1)
+		MOVE.L	4(A0),xfdrr_MinTargetLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+SD_CrunchData	MOVEQ	#0,D0
+		CMPI.L	#$43525561,(A0)
+		BNE.B	.Exit
+		MOVEQ	#1,D0
+.Exit		RTS
+
+VD_CrunchData	MOVEQ	#12,D1
+		ADD.L	8(a0),D1	;crlen
+		CMP.L	D0,D1		;crlen > buflen ??
+		BGT.B	.Exit
+		MOVE.L	4(A0),D0
+		SUB.L	8(A0),D0	;cr > uncr ??
+		BMI.B	.Exit
+		MOVE.L	D1,D0
+		RTS
+.Exit		MOVEQ	#0,D0
+		RTS
+
+DB_CrunchSeg	MOVEM.L	D7/A4-A6,-(A7)
+		MOVE.L	A0,A5
+		MOVE.W	#XFDERR_NOMEMORY,xfdbi_Error(A5)
+		MOVE.L	xfdm_ExecBase(A6),A6
+		MOVE.L	xfdbi_SourceBuffer(A5),A4
+
+		MOVE.L	8(A4),D7
+		SUBQ.L	#1,D7		* destination hunk numbers
+
+		MOVE.L	A4,A0
+		BSR.B	GetCruSegSize
+		MOVE.L	D0,xfdbi_TargetBufLen(A5)
+		MOVE.L	D0,xfdbi_TargetBufSaveLen(A5)
+		MOVE.L	xfdbi_TargetBufMemType(A5),D1
+		JSR	_LVOAllocMem(A6)
+		MOVE.L	D0,xfdbi_TargetBuffer(A5)
+		BEQ.B	.NoMem
+
+		MOVE.L	D0,A1
+		MOVE.L	A4,A0
+		BSR.W	DecrunchCruSeg
+
+		CLR.W	xfdbi_Error(A5)
+		MOVEQ	#1,D0
+.NoMem		MOVEM.L	(A7)+,D7/A4-A6
+		RTS
+
+		* A0 is buffer
+		* D7 is num of hunks
+GetCruSegSize	MOVE.L	D6,-(A7)
+		MOVE.L	D7,D1
+		LSL.L	#2,D1
+		MOVE.L	D1,D0
+		ADD.L	#$1D0,D1
+		LEA	(A0,D1.L),A0	* get first hunk pointer
+		ADD.L	#20,D0		* header size
+		MOVEQ	#0,D6
+.MainLoop	ADD.L	#12,D0		* hunk, size, HUNK_END
+		CMP.W	#HUNK_BSS,2(A0)
+		BEQ.B	.BSS
+		CMP.L	#'CRUa',8(A0)
+		BEQ.B	.crunched
+		MOVE.L	4(A0),D1
+		LSL.L	#2,D1
+		ADD.L	D1,D0
+		LEA	8(A0,D1.L),A0
+		BRA.B	.loopend
+.BSS		ADDQ.L	#8,A0
+		BRA.B	.loopend
+.crunched	ADD.L	12(A0),D0
+		MOVE.L	16(A0),D1
+		ADDQ.L	#3,D1
+		AND.L	#-4,D1
+		LEA	20(A0,D1.L),A0
+.loopend	BSR.B	.ParseReloc
+		ADDQ.L	#1,D6
+		CMP.B	D6,D7
+		BNE.B	.MainLoop
+		MOVE.L	(A7)+,D6
+		RTS
+
+.ParseReloc	CMP.L	#HUNK_RELOC32,(A0)
+		BNE.B	.end
+		ADDQ.L	#4,A0
+		ADDQ.L	#4,D0		* HUNK_RELOC
+.PRLoop		ADDQ.L	#4,D0
+		MOVE.L	(A0)+,D1
+		BEQ.B	.end
+		LSL.L	#2,D1
+		ADDQ.L	#4,D1		* related hunk
+		LEA	(A0,D1.L),A0
+		ADD.L	D1,D0
+		BRA.B	.PRLoop
+.end		RTS
+
+		* A0 is buffer
+		* A1 is destination
+		* A4 is source buffer
+		* D7 is num of hunks
+DecrunchCruSeg	MOVEM.L	D2-D6/A2,-(A7)	* hunk size == def size - 512
+		MOVE.L	D7,D0		* - reloc space
+		LSL.L	#2,D0
+		ADD.L	#$1D0,D0
+		LEA	(A0,D0.L),A0	* get first hunk pointer
+		MOVEQ	#0,D6
+		MOVE.L	#HUNK_HEADER,(A1)+
+		CLR.L	(A1)+
+		MOVE.L	D7,(A1)+	* numhunks
+		CLR.L	(A1)+		* starthunk
+		MOVE.L	D7,D0
+		SUBQ.L	#1,D0
+		MOVE.L	D0,(A1)+	* endhunk
+		MOVE.L	A1,A2		* start of hunk sizes
+		MOVE.L	D7,D0
+		LSL.L	#2,D0
+		LEA	(A1,D0.L),A1	* skip space
+.MainLoop	MOVE.L	(A0)+,(A1)+	* hunk type
+		MOVE.L	D6,D0
+		LSL.L	#2,D0
+		MOVE.L	24(A4,D0.L),D5
+		MOVE.L	D5,D4
+		AND.L	#$E0000000,D4	* only bits
+		AND.L	#$1FFFFFFF,D5	* strip bits
+		MOVEQ	#1,D3		* uncrunched
+		CMP.W	#HUNK_BSS,-2(A0)
+		BEQ.B	.BSS
+		CMP.L	#'CRUa',4(A0)
+		BEQ.B	.crunched
+		MOVE.L	(A0)+,D0
+		MOVE.L	D0,(A1)+
+.copyhunk	TST.L	D0
+		BEQ.B	.loopend
+		MOVE.L	(A0)+,(A1)+
+		SUBQ.L	#1,D0
+		BRA.B	.copyhunk
+.BSS		MOVE.L	(A0)+,(A1)+
+		BRA.B	.loopend
+.crunched	MOVEQ	#0,D3		* crunched
+		ADDQ.L	#4,A0
+		MOVE.L	4(A0),D0
+		LSR.L	#2,D0
+		MOVE.L	D0,(A1)+	* store size
+		MOVEM.L	A0-A1,-(A7)
+		BSR.W	DecrunchCru
+		MOVEM.L	(A7)+,A0-A1
+		ADD.L	4(A0),A1
+		MOVE.L	8(A0),D1
+		ADDQ.L	#3,D1
+		AND.L	#-4,D1
+		LEA	12(A0,D1.L),A0
+		SUB.L	#128,D5
+.loopend	BSR.B	.CopyReloc
+		OR.L	D4,D5		* copy bits
+		MOVE.L	D5,(A2)+	* store size
+		MOVE.L	#HUNK_END,(A1)+
+		ADDQ.L	#1,D6
+		CMP.B	D6,D7
+		BNE.W	.MainLoop
+		MOVEM.L	(A7)+,D2-D6/A2
+		RTS
+
+.CopyReloc	MOVE.L	A1,D0		* store pointer
+		CMP.L	#HUNK_RELOC32,(A0)
+		BNE.B	.end
+		MOVE.L	(A0)+,(A1)+
+.CRLoop		MOVE.L	(A0)+,D1
+		MOVE.L	D1,(A1)+
+		BEQ.B	.end
+		MOVE.L	(A0)+,D2
+		SUB.L	D3,D2		* subtract 1, when uncrunched
+		MOVE.L	D2,(A1)+	* copy hunkID
+.RCLoop		MOVE.L	(A0)+,(A1)+	* copy reloc
+		SUBQ.L	#1,D1
+		BNE.B	.RCLoop
+		BRA.B	.CRLoop
+.end		TST.L	D3
+		BNE.B	.endR
+		MOVE.L	A1,D1	* subtract
+		SUB.L	D0,D1	* reloc space
+		LSR.L	#2,D1	* from filesize
+		SUB.L	D1,D5
+.endR		RTS
+
+DB_Crunch	MOVEM.L	D5-D7/A2-A6,-(A7)
+		MOVE.L	A0,A5
+		MOVEQ	#0,D6				* return value
+		MOVE.W	#XFDERR_NOMEMORY,xfdbi_Error(A5)
+		MOVE.L	xfdm_ExecBase(A6),A6
+		MOVE.L	xfdbi_SourceBuffer(A5),A4
+
+		MOVE.L	8(A4),D7
+		SUBQ.L	#3,D7		* destination hunk numbers
+
+		MOVE.L	D7,D1
+		LSL.L	#2,D1
+		MOVE.L	D1,D0
+		LSL.L	#1,D0
+		ADD.L	D1,D0	* multiply with 12
+		ADD.L	#$1E4,D0
+
+		LEA.L	(A4,D0.L),A2
+		MOVE.L	4(A2),D5
+		MOVE.L	D5,D0
+		MOVEQ	#0,D1
+		JSR	_LVOAllocMem(A6)
+		TST.L	D0
+		BEQ.B	.NoMem
+		MOVE.L	D0,A3
+		
+		MOVE.L	D0,A1
+		MOVE.L	A2,A0
+		BSR.W	DecrunchCru
+
+		MOVE.L	A3,A0
+		BSR.W	CountCruSize
+
+		MOVE.L	D0,xfdbi_TargetBufLen(A5)
+		MOVE.L	D0,xfdbi_TargetBufSaveLen(A5)
+		MOVE.L	xfdbi_TargetBufMemType(A5),D1
+		JSR	_LVOAllocMem(A6)
+		MOVE.L	D0,xfdbi_TargetBuffer(A5)
+		BEQ.B	.NoMem2
+
+		MOVEA.L	A3,A0
+		MOVEA.L	D0,A1
+		BSR.W	MakeCruFile
+
+		CLR.W	xfdbi_Error(A5)
+		MOVEQ	#1,D6				* set true
+.NoMem2		MOVE.L	D5,D0
+		MOVE.L	A3,A1
+		JSR	_LVOFreeMem(A6)
+.NoMem		MOVE.L	D6,D0
+		MOVEM.L	(A7)+,D5-D7/A2-A6
+		RTS
+
+DB_CrunchData	MOVEM.L	A4-A6,-(A7)
+		MOVE.L	A0,A5
+		MOVE.L	xfdm_ExecBase(A6),A6
+		MOVE.L	xfdbi_SourceBuffer(A5),A4
+
+		MOVE.W	#XFDERR_NOMEMORY,xfdbi_Error(A5)
+		MOVE.L	4(A4),D0
+		MOVE.L	xfdbi_UserTargetBuf(A5),A1
+		MOVE.L	D0,xfdbi_TargetBufSaveLen(A5)
+
+		BTST.B	#XFDFB_USERTARGET,1+xfdbi_Flags(A5)
+		BNE.B	.Decrunch
+
+		MOVE.L	D0,xfdbi_TargetBufLen(A5)
+		MOVE.L	xfdbi_TargetBufMemType(A5),D1
+		JSR	_LVOAllocMem(A6)
+		MOVE.L	D0,xfdbi_TargetBuffer(A5)
+		BEQ.B	.End
+		MOVE.L	D0,A1
+.Decrunch	MOVEA.L	A4,A0
+		BSR.B	DecrunchCru
+		CLR.W	xfdbi_Error(A5)
+		MOVEQ	#1,D0
+.End		MOVEM.L	(A7)+,A4-A6
+		RTS
+
+DecrunchCru	MOVEM.L	D2-D6/A2-A4,-(A7)
+		MOVEA.L	A1,A2
+		ADDA.L	4(A0),A1
+		ADDQ.W	#8,A0
+		ADDA.L	(A0)+,A0
+		LEA	Sub1(PC),A3
+		MOVEQ	#8,D5
+		MOVE.W	#$00FF,D6
+		MOVE.B	-(A0),D4
+.Dec1		CMPA.L	A1,A2
+		BCS.B	.Dec2
+		MOVEM.L	(A7)+,D2-D6/A2-A4
+		RTS
+
+.Dec2		JSR	(A3)
+		BCS.B	.Dec3
+		MOVE.B	-(A0),-(A1)
+		BRA.B	.Dec1
+.Dec3		MOVEQ	#0,D0
+		MOVEQ	#0,D1
+		MOVEQ	#0,D2
+		JSR	(A3)
+		BCC.B	.Dec4
+		MOVEQ	#0,D1
+		MOVEQ	#2,D2
+		JSR	(A3)
+		BCC.B	.Dec4
+		MOVEQ	#1,D1
+		MOVEQ	#4,D2
+		JSR	(A3)
+		BCC.B	.Dec4
+		MOVEQ	#1,D1
+		MOVEQ	#8,D2
+		JSR	(A3)
+		BCC.B	.Dec4
+		MOVEQ	#2,D1
+		MOVEQ	#$000C,D2
+		JSR	(A3)
+		BCC.B	.Dec4
+		MOVEQ	#$0014,D2
+		MOVE.B	-(A0),D0
+		CMP.B	D6,D0
+		BNE.B	.Dec5
+		ADD.W	D0,D2
+		MOVE.B	-(A0),D0
+		ROR.W	#8,D0
+		MOVE.B	-(A0),D0
+		BRA.B	.Dec5
+.Dec4		JSR	(A3)
+		ADDX.B	D0,D0
+		DBRA	D1,.Dec4
+.Dec5		ADD.W	D0,D2
+		BNE.B	.Dec6
+		MOVEQ	#$0010,D1
+		JSR	(A3)
+		BCC.B	.Dec7
+		MOVEQ	#$0014,D1
+		JSR	(A3)
+		BCC.B	.Dec7
+		MOVEQ	#$0018,D1
+		JSR	(A3)
+		BCC.B	.Dec7
+		MOVEQ	#$001C,D1
+		BRA.B	.Dec7
+.Dec6		MOVEQ	#0,D1
+		JSR	(A3)
+		ADDX.B	D1,D1
+		JSR	(A3)
+		ADDX.B	D1,D1
+		LSL.B	#2,D1
+.Dec7		MOVEM.W	$A(A3,D1.W),D0/A4	* access data field, A3 points
+		MOVEQ	#0,D3			* to Sub1, which is $A bytes
+		CMP.W	D5,D0
+		BCS.B	.Dec8
+		MOVE.B	-(A0),D3
+		SUBQ.W	#8,D0
+.Dec8		JSR	(A3)
+		ADDX.W	D3,D3
+		DBRA	D0,.Dec8
+		ADDA.L	D3,A4
+		ADDA.L	A1,A4
+		MOVE.B	(A4),-(A1)
+.Dec9		MOVE.B	-(A4),-(A1)
+		DBRA	D2,.Dec9
+		BRA.W	.Dec1
+
+Sub1		ADD.B	D4,D4
+		BNE.B	.SubEnd
+		MOVE.B	-(A0),D4
+		ADDX.B	D4,D4
+.SubEnd		RTS
+		DC.W	06,$0000,09,$0080,12,$0480,13,$2480,05,$0000
+		DC.W	06,$0040,06,$00C0,06,$0140
+
+
+		* A0 is buffer
+		* D7 is num of hunks
+CountCruSize	MOVEM.L	D2/D6,-(A7)
+		MOVE.L	D7,D0
+		LSL.L	#4,D0		* size, HUNK_CODE, size, HUNK_END --> 4*4 bytes
+		ADD.L	#20,D0		* header hunk
+		MOVEQ	#0,D6		* hunk counter
+.MainLoop	MOVE.L	(A0)+,D1
+		MOVE.L	D1,D2
+		ANDI.L	#-4,D1		* last bits are CHIP/RELOC markers
+		ADD.L	D1,D0		* add that size
+		LEA	(A0,D1.L),A0	* skip that part
+		BTST	#1,D2		* no reloc hunks
+		BEQ.B	.LoopEnd
+		ADDQ.L	#4,D0		* place for HUNK_RELOC32
+.Reloc		MOVE.W	(A0)+,D1
+		ADDQ.L	#4,D0	* add size or empty place for last marker
+		TST.W	D1
+		BEQ.B	.LoopEnd
+		ADDQ.L	#8,D0		* add related hunk and first reloc
+		ADDQ.L	#6,A0
+		SUBQ.W	#2,D1
+		BMI.B	.Reloc
+.RelLoop	ADDQ.L	#4,D0
+		MOVE.W	(A0)+,D2	* normally we have word offsets
+		BNE.B	.Skip
+		MOVE.L	(A0)+,D2	* skip LONG offset
+.Skip		DBRA.B	D1,.RelLoop
+		BRA.B	.Reloc
+.LoopEnd	ADDQ.L	#1,D6		* next hunk
+		CMP.L	D6,D7
+		BNE.B	.MainLoop
+		MOVEM.L	(A7)+,D2/D6
+		RTS
+
+		* A0 is buffer
+		* A1 is destination
+		* A4 is source file (crunched)
+		* D7 is num of hunks
+MakeCruFile	MOVEM.L	D2/D6/A4,-(A7)
+		MOVE.L	#HUNK_HEADER,(A1)+
+		CLR.L	(A1)+
+		MOVE.L	D7,(A1)+	* numhunks
+		CLR.L	(A1)+		* starthunk
+		MOVE.L	D7,D0
+		SUBQ.L	#1,D0
+		MOVE.L	D0,(A1)+	* endhunk
+		LEA	24(A4),A4	* start of sizes
+.HeadLoop	MOVE.L	(A4)+,(A1)+	* copy sizes
+		DBRA	D0,.HeadLoop
+
+		MOVEQ	#0,D6
+.MainLoop	MOVE.L	(A0)+,D1
+		MOVE.L	D1,D2
+		LSR.L	#2,D1
+		BEQ.B	.BSS
+		MOVE.L	#HUNK_CODE,D0
+		BTST	#0,D2
+		BEQ.B	.Next
+		MOVE.L	#HUNK_DATA,D0
+.Next		MOVE.L	D0,(A1)+
+		MOVE.L	D1,(A1)+
+		BEQ.B	.DoRel
+		BRA.B	.CopyHunk
+.BSS		MOVE.L	#HUNK_BSS,(A1)+
+		MOVE.L	D6,D0
+		SUB.L	D7,D0
+		LSL.L	#2,D0
+		MOVE.L	(A4,D0.L),D0
+		AND.L	#$3FFFFFFF,D0
+		MOVE.L	D0,(A1)+
+		BRA.B	.DoRel
+.CopyHunk	MOVE.L	(A0)+,(A1)+
+		SUBQ.L	#1,D1
+		BNE.B	.CopyHunk
+.DoRel		BTST	#1,D2
+		BEQ.B	.LoopEnd
+		MOVE.L	#HUNK_RELOC32,(A1)+
+.Reloc		MOVEQ	#0,D1
+		MOVE.W	(A0)+,D1	* copy size
+		MOVE.L	D1,(A1)+
+		BEQ.B	.LoopEnd
+		MOVEQ	#0,D0
+		MOVE.W	(A0)+,D0
+		MOVE.L	D0,(A1)+	* move hunknum
+		MOVEQ	#0,D3
+		MOVE.L	(A0)+,D3
+		MOVE.L	D3,(A1)+
+		SUBQ.W	#2,D1
+		BMI.B	.Reloc
+.RelLoop	MOVEQ	#0,D0
+		MOVE.W	(A0)+,D0
+		BNE.B	.Skip
+		MOVE.L	(A0)+,D0
+.Skip		ADD.L	D0,D3
+		MOVE.L	D3,(A1)+
+		DBRA	D1,.RelLoop
+		BRA.B	.Reloc
+
+.LoopEnd	MOVE.L	#HUNK_END,(A1)+
+		ADDQ.W	#1,D6
+		CMP.W	D6,D7
+		BNE.B	.MainLoop
+		MOVEM.L	(A7)+,D2/D6/A4
+		RTS
+		END

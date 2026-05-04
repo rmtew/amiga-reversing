@@ -1,0 +1,244 @@
+*******************************************************
+**     XFD external decruncher for ATOM Cruncher     **
+**        written by Mr. Larmer / Wanted Team        **
+**		fixed by SDI in 1999		     **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version: 2.1 (15.05.1999)
+; o Crunched and decrunched size are checked to be non-zero
+; o Added data scanning functions
+
+;;;		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+;;;		INCLUDE	"lvo.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_ATOM		;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support data scanning
+
+S_ATOM		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_ATOM		;name
+		dc.w	XFDPFF_DATA|XFDPFF_RECOGLEN|XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_ATOM		;recog buffer
+		dc.l	DB_ATOM		;decrunch buffer
+		dc.l	SD_ATOM		;recog segment / scan data
+		dc.l	VD_ATOM		;decrunch segment / verify data
+		dc.w	0,0
+		dc.l	12+2
+
+		dc.b	"$VER: ATOM 2.2 (20.10.2002)",0
+N_ATOM		dc.b	"Atomik (ATOM) Cruncher 3.3",0
+		even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_ATOM		MOVEQ	#0,D0
+		CMP.L	#"ATOM",(A0)
+		BNE.B	.Exit
+		TST.B	4(A0)
+		BNE.B	.Exit
+		TST.B	8(A0)
+		BNE.B	.Exit
+		TST.L	8(A0)		;Crunched size 0 ?
+		BEQ.B	.Exit
+		MOVE.L	4(A0),D0	;Decrunched size 0 ?
+		BEQ.B	.Exit
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		SUBQ.L	#2,D0
+		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		MOVEQ	#12,D0
+		ADD.L	8(A0),D0
+		MOVE.L	D0,xfdrr_MinSourceLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+DB_ATOM		MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVEA.L	A0,A5
+		MOVE.L	xfdbi_UserTargetBuf(A5),A1
+		MOVE.L	xfdbi_SourceBuffer(A5),A0
+		BSR.B	D_ATOM
+		TST.L	D0
+		BNE.B	.Skip
+		MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A5)
+.Skip		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+;-------------------------------------------------
+
+D_ATOM		movem.l	D1-D7/A0-A6,-(SP)
+		move.l	(A0)+,D0	* skip header
+		movea.l	A1,A5
+		adda.l	(A0)+,A5
+		move.l	(A0)+,D0
+		lea	(A0,D0.L),A6
+		move.b	-(A6),D7
+		bra.w	lbC0000C4
+
+lbC00001E:	lea	Data3(PC),A4
+		moveq	#1,D6
+		bsr.s	Sub
+		bra.s	lbC000080
+lbC000028:	moveq	#6,D6
+lbC00002A:	add.b	D7,D7
+		beq.s	lbC000050
+lbC00002E:	dbcc	D6,lbC00002A
+		bcs.s	lbC00003A
+		moveq	#6,D5
+		sub.w	D6,D5
+		bra.s	lbC00005E
+lbC00003A:	moveq	#3,D6
+		bsr.s	Sub
+		beq.s	lbC000044
+		addq.w	#6,D5
+		bra.s	lbC00005E
+lbC000044:	moveq	#7,D6
+		bsr.s	Sub
+		beq.s	lbC000056
+		add.w	#$15,D5
+		bra.s	lbC00005E
+lbC000050:	move.b	-(A6),D7
+		addx.b	D7,D7
+		bra.s	lbC00002E
+lbC000056:	moveq	#13,D6
+		bsr.s	Sub
+		add.w	#$114,D5
+lbC00005E:	move.w	D5,-(SP)
+		bne.s	lbC00009C
+		lea	Data2(PC),A4
+		moveq	#2,D6
+		bsr.s	Sub
+		cmp.w	#5,D5
+		blt.s	lbC0000A4
+		addq.w	#2,SP
+		subq.w	#6,D5
+		bgt.s	lbC00001E
+		movea.l	A5,A4
+		blt.s	lbC00007C
+		addq.w	#4,A4
+lbC00007C:	moveq	#1,D6
+		bsr.s	Sub
+lbC000080:	cmp.l	A1,A5		* security
+		bls.w	Error
+		move.b	(A4,D5.W),-(A5)
+		bra.s	lbC0000C4
+
+Sub:		clr.w	D5
+.Sub1:		add.b	D7,D7
+		bne.b	.Sub2
+		move.b	-(A6),D7
+		addx.b	D7,D7
+.Sub2:		addx.w	D5,D5
+		dbra	D6,.Sub1
+		tst.w	D5
+		rts
+
+lbC00009C:	lea	Data1(PC),A4
+		moveq	#2,D6
+		bsr.s	Sub
+lbC0000A4:	move.w	D5,D4
+		move.b	14(A4,D4.W),D6
+		ext.w	D6
+		bsr.s	Sub
+		add.w	D4,D4
+		beq.s	lbC0000B6
+		add.w	-2(A4,D4.W),D5
+lbC0000B6:	lea	1(A5,D5.W),A4
+		move.w	(SP)+,D5
+		cmp.l	A1,A5		* security
+		bls.b	Error
+		move.b	-(A4),-(A5)
+lbC0000BE:	cmp.l	A1,A5		* security
+		bls.b	Error
+		move.b	-(A4),-(A5)
+		dbra	D5,lbC0000BE
+lbC0000C4:	moveq	#11,D6
+		moveq	#11,D5
+lbC0000C8:	add.b	D7,D7
+		bne.b	lbC0000CC
+		move.b	-(A6),D7
+		addx.b	D7,D7
+lbC0000CC:	dbcc	D6,lbC0000C8
+		bcs.s	lbC0000D6
+		sub.w	D6,D5
+		bra.s	lbC0000F0
+lbC0000D6:	moveq	#7,D6
+		bsr.s	Sub
+		beq.s	lbC0000E2
+		addq.w	#8,D5
+		addq.w	#3,D5
+		bra.s	lbC0000F0
+lbC0000E2:	moveq	#2,D6
+		bsr.s	Sub
+		swap	D5
+		moveq	#15,D6
+		bsr.b	Sub
+		addq.l	#8,D5
+		addq.l	#3,D5
+lbC0000F0:	subq.w	#1,D5
+		bmi.s	lbC000102
+		moveq	#1,D6
+		swap	D6
+lbC0000F8:	cmp.l	A1,A5		* security
+		bls.b	Error
+		move.b	-(A6),-(A5)
+		dbra	D5,lbC0000F8
+		sub.l	D6,D5
+		bpl.s	lbC0000F8
+lbC000102:	cmpa.l	A6,A0
+lbC000104:	bne.w	lbC000028
+		cmp.b	#$80,D7
+		bne.s	lbC000104
+
+		MOVEQ	#1,D0
+		CMPA.L	A1,A5		* destination pointer ok?
+		BEQ.B	Exit
+Error		MOVEQ	#0,D0
+Exit		MOVEM.L	(A7)+,D1-D7/A0-A6
+		RTS
+
+Data1:		dc.b	0,$20,0,$60,1,$60,3,$60,7,$60,15,$60,$1F,$60,4,5,7,8,9,10,11,12
+Data2:		dc.b	0,$20,0,$60,0,$E0,1,$E0,3,$E0,5,$E0,7,$E0,4,5,6,7,8,8
+Data3:		dc.b	$60,$20,$10,8
+
+SD_ATOM		MOVEQ	#0,D0
+		CMP.L	#"ATOM",(A0)
+		BNE.S	.Exit
+		MOVEQ	#1,D0
+.Exit		RTS
+
+VD_ATOM		MOVEQ	#0,D0
+		TST.B	4(A0)
+		BNE.B	.Exit
+		TST.L	4(A0)		;Decrunched size 0 ?
+		BEQ.B	.Exit
+		TST.B	8(A0)
+		BNE.B	.Exit
+		TST.L	8(A0)		;Crunched size 0 ?
+		BEQ.B	.Exit
+		MOVEQ	#12,D0
+		ADD.L	8(A0),D0
+.Exit		RTS
+
+		END

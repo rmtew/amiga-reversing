@@ -1,0 +1,479 @@
+*******************************************************
+**      XFD external decruncher for TRX-Cruncher     **
+**         written and © 2000 by Georg Hörmann       **
+*******************************************************
+**
+** 1.00	- Initial release.
+**
+*******************************************************
+**
+** NOTE: The RAW and RAWB formats will be transformed
+**	 to plain IFF-ILBM files (uncompressed!).
+**
+
+		OUTPUT	"LIBS:xfd/TRX"
+
+		INCDIR	"dh0:Include_Asm"	;change this as you need it
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE	"graphics/view.i"
+
+*******************************************************
+
+		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_TRX		;first slave
+
+		dc.b	"$VER: TRX 1.00 (08.01.2000)",0
+
+N_TRX		dc.b	"TRX-Cruncher",0
+		even
+
+*******************************************************
+
+S_TRX		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_TRX		;name
+		dc.w	XFDPFF_DATA|XFDPFF_RECOGLEN|XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_TRX		;recog buffer
+		dc.l	DB_TRX		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	$bc+2
+
+;-------------------------------------------------
+
+RB_TRX		moveq	#0,d0
+		cmp.l	#"TRX ",(a0)+
+		bne	.Exit
+		cmp.l	#"V2.5",(a0)+
+		bne.s	.Exit
+
+		bsr.s	.GetLong	;cr len
+		add.l	#$bc,d1
+		move.l	d1,xfdrr_MinSourceLen(a1)
+
+		bsr.s	.GetLong	;uncr len
+		move.l	d1,xfdrr_MinTargetLen(a1)
+		move.l	d1,xfdrr_FinalTargetLen(a1)
+
+		bsr.s	.GetLong	;type
+		cmp.l	#"CODE",d1
+		beq.s	.Ok
+		cmp.l	#"MOD ",d1
+		beq.s	.Ok
+		cmp.l	#"IFF ",d1
+		beq.s	.Ok
+		cmp.l	#"TEXT",d1
+		beq.s	.Ok
+		cmp.l	#"SND ",d1
+		beq.s	.Ok
+		cmp.l	#"SIN ",d1
+		beq.s	.Ok
+		cmp.l	#"LIST",d1
+		beq.s	.Ok
+
+		cmp.l	#"RAW ",d1
+		beq.s	.Raw
+		cmp.l	#"RAWB",d1
+		bne.s	.Exit
+.Raw		addq.w	#4,a0
+		bsr.s	.GetWord	;depth
+		cmp.w	#5,d1
+		ble.s	.DepthOk
+		moveq	#5,d1		;supports only 32 colours !!
+.DepthOk	moveq	#0,d0
+		bset	d1,d0
+		mulu	#3,d0	;length of CMAP chunk
+		add.w	#68,d0	;FORM,x,ILBM,BMHD,x,20 Bytes,CMAP,x,CAMG,x,4 Bytes,BODY,x
+		add.l	d0,xfdrr_MinTargetLen(a1)
+		add.l	d0,xfdrr_FinalTargetLen(a1)
+
+.Ok		moveq	#1,d0
+.Exit		rts
+
+.GetLong	move.b	(a0)+,d1
+		rol.b	#1,d1
+		lsl.w	#8,d1
+		move.b	(a0)+,d1
+		rol.b	#1,d1
+		lsl.l	#8,d1
+.GetWord	move.b	(a0)+,d1
+		rol.b	#1,d1
+		lsl.l	#8,d1
+		move.b	(a0)+,d1
+		rol.b	#1,d1
+		rts
+
+;-------------------------------------------------
+
+		rsreset
+TRX_CrLen	rs.l	1
+TRX_UncrLen	rs.l	1
+TRX_Type	rs.l	1
+TRX_Width	rs.w	1
+TRX_Height	rs.w	1
+TRX_Depth	rs.w	1
+TRX_Modulo	rs.w	1	;unused
+TRX_Resolution	rs.l	1
+TRX_InterlaceFlag rs.l	1
+TRX_HAMFlag	rs.l	1
+TRX_EHBFlag	rs.l	1
+TRX_Colors	rs.w	32
+TRX_SIZE	=	__RS
+
+DB_TRX		movem.l	d2-d7/a2-a6,-(a7)
+		sub.w	#TRX_SIZE,a7
+		move.l	a7,a4
+		move.l	a0,a5
+
+* extract information from header
+
+		move.l	xfdbi_SourceBuffer(a5),a0
+		move.l	a4,a1
+		addq.w	#8,a0
+		moveq	#20-1,d1
+.Copy1		move.b	(a0)+,d0
+		rol.b	#1,d0
+		move.b	d0,(a1)+
+		dbf	d1,.Copy1
+		add.w	#12,a0
+		moveq	#16-1,d1
+.Copy2		move.b	(a0)+,d0
+		rol.b	#1,d0
+		move.b	d0,(a1)+
+		dbf	d1,.Copy2
+		add.w	#64,a0
+		moveq	#64-1,d1
+.Copy4		move.b	(a0)+,d0
+		rol.b	#1,d0
+		move.b	d0,(a1)+
+		dbf	d1,.Copy4
+
+* create ILBM header if necessary
+
+		moveq	#0,d7		;no IFF header
+		cmp.l	#"RAW ",TRX_Type(a4)
+		beq.s	.Raw
+		cmp.l	#"RAWB",TRX_Type(a4)
+		bne	.PlainCrunched
+
+.Raw		moveq	#68,d7	;FORM,x,ILBM,BMHD,x,20 Bytes,CMAP,x,CAMG,x,4 Bytes,BODY,x
+		move.w	TRX_Depth(a4),d0
+		cmp.w	#5,d0
+		ble.s	.DepthOk
+		moveq	#5,d0
+.DepthOk	moveq	#0,d6
+		bset	d0,d6
+		mulu	#3,d6		;length of CMAP
+		add.l	d6,d7		;length of IFF header
+
+		move.l	xfdbi_UserTargetBuf(a5),a1
+		move.l	#"FORM",(a1)+
+		move.l	xfdbi_TargetBufSaveLen(a5),d0
+		subq.l	#8,d0
+		move.l	d0,(a1)+
+		move.l	#"ILBM",(a1)+
+
+		move.l	#"BMHD",(a1)+
+		move.l	#20,(a1)+
+		move.w	TRX_Width(a4),(a1)+
+		move.w	TRX_Height(a4),(a1)+
+		clr.l	(a1)+
+		moveq	#0,d0
+		move.w	TRX_Depth(a4),d0
+		ror.l	#8,d0
+		move.l	d0,(a1)+		;no compression!
+		clr.w	(a1)+
+		move.w	TRX_Width(a4),d0	;get aspect x,y
+		move.w	TRX_Height(a4),d1
+		cmp.w	#320,d0
+		bne.s	.Aspect640
+		move.w	#$0a0b,d2	;320x200
+		cmp.w	#200,d1
+		beq.s	.SetAspect
+		cmp.w	#256,d1
+		beq.s	.SetAspect
+		move.w	#$140b,d2	;320x400
+		cmp.w	#400,d1
+		beq.s	.SetAspect
+		cmp.w	#512,d1
+		beq.s	.SetAspect
+		bra.s	.NoAspect
+.Aspect640	cmp.w	#640,d0
+		bne.s	.NoAspect
+		move.w	#$050b,d2	;640x200
+		cmp.w	#200,d1
+		beq.s	.SetAspect
+		cmp.w	#256,d1
+		beq.s	.SetAspect
+		move.w	#$0a0b,d2	;640x400
+		cmp.w	#400,d1
+		beq.s	.SetAspect
+		cmp.w	#512,d1
+		beq.s	.SetAspect
+.NoAspect	moveq	#0,d2
+.SetAspect	move.w	d2,(a1)+
+		move.l	-16(a1),(a1)+
+
+		move.l	#"CMAP",(a1)+
+		move.l	d6,(a1)+
+		lea	TRX_Colors(a4),a0
+.NextColor	move.b	(a0)+,d0
+		lsl.b	#4,d0
+		move.b	d0,(a1)+
+		move.b	(a0),d0
+		and.b	#$f0,d0
+		move.b	d0,(a1)+
+		move.b	(a0)+,d0
+		lsl.b	#4,d0
+		move.b	d0,(a1)+
+		subq.w	#3,d6
+		bne.s	.NextColor
+
+		move.l	#"CAMG",(a1)+
+		move.l	#4,(a1)+
+		moveq	#0,d2
+		move.b	TRX_Resolution(a4),d0
+		cmp.b	#"L",d0
+		beq.s	.LoRes
+		cmp.b	#"H",d0
+		beq.s	.HiRes
+		or.w	#V_SUPERHIRES,d2
+		bra.s	.LoRes
+.HiRes		or.w	#V_EXTENDED_MODE|V_HIRES,d2
+.LoRes		cmp.w	#"ON",TRX_InterlaceFlag(a4)
+		bne.s	.NoLace
+		or.w	#V_LACE,d2
+.NoLace		cmp.w	#"ON",TRX_HAMFlag(a4)
+		bne.s	.NoHAM
+		or.w	#V_HAM,d2
+.NoHAM		cmp.w	#"ON",TRX_EHBFlag(a4)
+		bne.s	.NoEHB
+		or.w	#V_EXTRA_HALFBRITE,d2
+.NoEHB		move.l	d2,(a1)+
+
+		move.l	#"BODY",(a1)+
+		move.l	TRX_UncrLen(a4),(a1)
+
+* decrunch data
+
+.PlainCrunched	move.l	xfdbi_SourceBuffer(a5),a0
+		add.w	#$bc,a0
+		add.l	TRX_CrLen(a4),a0
+		move.l	-(a0),d0		;should be uncr len
+		cmp.l	TRX_UncrLen(a4),d0
+		beq.s	.Decr
+		move.w	#XFDERR_CORRUPTEDDATA,xfdbi_Error(a5)
+		moveq	#0,d0
+		bra.s	.Exit
+
+.Decr		move.l	xfdbi_UserTargetBuf(a5),a1
+		move.l	a1,a2
+		add.l	d7,a2
+		add.l	xfdbi_TargetBufSaveLen(a5),a1
+		bsr	Decr_TRX
+		tst.w	d0
+		beq.s	.Exit
+
+		cmp.l	#"RAW ",TRX_Type(a4)
+		bne.s	.Exit
+		bsr.s	Scramble_RAW
+
+.Exit		add.w	#TRX_SIZE,a7
+		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+* convert raw to iff format (= sorted by lines, not by planes)
+* -> needs second buffer, I have no idea how to avoid this :-(
+
+Scramble_RAW	move.l	xfdm_ExecBase(a6),a6
+		move.l	TRX_UncrLen(a4),d0
+		moveq	#1,d1
+		jsr	-198(a6)
+		tst.l	d0
+		beq.s	.Error
+		move.l	d0,a3
+
+		moveq	#0,d3
+		move.w	TRX_Width(a4),d3
+		lsr.w	#3,d3			;bytes per line
+
+		moveq	#0,d4
+		move.w	TRX_Height(a4),d4
+		mulu	d3,d4			;planesize
+
+		move.l	d4,d5
+		mulu	TRX_Depth(a4),d5
+		sub.l	d3,d5			;jump back after each line
+
+		move.l	xfdbi_UserTargetBuf(a5),a0
+		add.l	d7,a0			;start of data
+		move.l	a3,a1
+
+		move.w	TRX_Height(a4),d2
+		subq.w	#1,d2
+.AllLines	move.w	TRX_Depth(a4),d1
+		subq.w	#1,d1
+.CopyPlanes	move.w	d3,d0
+		subq.w	#1,d0
+.CopyLine	move.b	(a0)+,(a1)+
+		dbf	d0,.CopyLine
+		sub.w	d3,a0
+		add.l	d4,a0
+		dbf	d1,.CopyPlanes
+		sub.l	d5,a0
+		dbf	d2,.AllLines
+
+		move.l	a3,a0
+		move.l	xfdbi_UserTargetBuf(a5),a1
+		add.l	d7,a1
+		move.l	TRX_UncrLen(a4),d0
+		jsr	-624(a6)
+
+		move.l	a3,a1
+		move.l	TRX_UncrLen(a4),d0
+		jsr	-210(a6)
+		moveq	#1,d0
+		rts
+
+.Error		move.w	#XFDERR_NOMEMORY,xfdbi_Error(a5)
+		moveq	#0,d0
+		rts
+
+;=================================================
+
+* -> a0: end of source data
+* -> a1: end of target buffer
+* -> a2: start of target buffer
+* <- d0: result
+
+Decr_TRX	move.l	-(a0),d0
+.l6F92		moveq	#3,d1
+		bsr	.l70A6
+		tst.b	d2
+		beq.s	.l6FEC
+		cmp.w	#7,d2
+		bne.s	.l6FC6
+		lsr.l	#1,d0
+		bne.s	.l6FAA
+		move.l	-(a0),d0
+		roxr.l	#1,d0
+.l6FAA		bcc.s	.l6FBE
+		moveq	#10,d1
+		bsr.s	.l70A6
+		tst.b	d2
+		bne.s	.l6FC6
+		moveq	#$12,d1
+		bsr.s	.l70A6
+		bra.s	.l6FC6
+
+.l6FBE		moveq	#4,d1
+		bsr.s	.l70A6
+		addq.w	#7,d2
+.l6FC6		move.l	a1,a3		;security check !
+		sub.l	d2,a3		;
+		cmp.l	a2,a3		;
+		bcs	.Error		;
+		subq.l	#1,d2
+.l6FC8		moveq	#7,d1
+.l6FCA		lsr.l	#1,d0
+		bne.s	.l6FDC
+		move.l	-(a0),d0
+		roxr.l	#1,d0
+.l6FDC		roxl.b	#1,d3
+		dbra	d1,.l6FCA
+		move.b	d3,-(a1)
+		dbra	d2,.l6FC8
+
+.l6FEC		cmp.l	a2,a1
+		bne.s	.Cont
+		moveq	#1,d0
+		rts
+
+.Cont		moveq	#2,d1
+		bsr.s	.l70A6
+		moveq	#2,d3
+		moveq	#8,d1
+		tst.w	d2
+		beq.s	.l705C
+		moveq	#4,d3
+		cmp.w	#2,d2
+		beq.s	.l7046
+		moveq	#3,d3
+		cmp.w	#1,d2
+		beq.s	.l7038
+		moveq	#2,d1
+		bsr.s	.l70A6
+		cmp.w	#3,d2
+		beq.s	.l7030
+		cmp.w	#2,d2
+		beq.s	.l7026
+		addq.w	#5,d2
+		move.w	d2,d3
+		bra.s	.l7046
+
+.l70A6		subq.w	#1,d1
+		moveq	#0,d2
+.l70AA		lsr.l	#1,d0
+		bne.s	.l70B6
+		move.l	-(a0),d0
+		roxr.l	#1,d0
+.l70B6		roxl.w	#1,d2
+		dbra	d1,.l70AA
+		rts
+
+.l7026		moveq	#2,d1
+		bsr.s	.l70A6
+		addq.w	#7,d2
+		move.w	d2,d3
+		bra.s	.l7046
+
+.l7030		moveq	#8,d1
+		bsr.s	.l70A6
+		move.w	d2,d3
+		bra.s	.l7046
+
+.l7038		moveq	#8,d1
+		lsr.l	#1,d0
+		bne.s	.l7040
+		move.l	-(a0),d0
+		roxr.l	#1,d0
+.l7040		bcs.s	.l705C
+		moveq	#14,d1
+		bra.s	.l705C
+
+.l7046		moveq	#$10,d1
+		lsr.l	#1,d0
+		bne.s	.l704E
+		move.l	-(a0),d0
+		roxr.l	#1,d0
+.l704E		bcc.s	.l705C
+		moveq	#8,d1
+		lsr.l	#1,d0
+		bne.s	.l7058
+		move.l	-(a0),d0
+		roxr.l	#1,d0
+.l7058		bcs.s	.l705C
+		moveq	#12,d1
+.l705C		bsr.s	.l70A6
+		move.l	a1,a3		;security check !
+		sub.w	d3,a3		;
+		cmp.l	a2,a3		;
+		bcs.s	.Error		;
+		subq.w	#1,d3
+.l7060		move.b	-1(a1,d2.l),-(a1)
+		dbra	d3,.l7060
+		bra	.l6F92
+
+.Error		move.w	#XFDERR_CORRUPTEDDATA,xfdbi_Error(a5)
+		moveq	#0,d0
+		rts
+
+		END

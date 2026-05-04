@@ -1,0 +1,179 @@
+*******************************************************
+**             XFD external decruncher               **
+**                 for CNC cruncher                  **
+**             adapted by Wanted Team                **
+**            shortened and fixed by SDI             **
+*******************************************************
+
+	INCLUDE	"AINCLUDE:IncDirs.i"
+	INCLUDE	"libraries/xfdmaster.i"
+
+	* head function for tests
+*	INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan
+	moveq	#-1,d0		;security
+	rts
+	dc.l	XFDF_ID		;id
+	dc.w	1		;version
+	dc.w	0
+	dc.l	0,0		;private
+	dc.l	S_CNC		;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support data scanning
+
+S_CNC
+	dc.l	0		;no more slaves
+	dc.w	2		;version
+	dc.w	39		;master version
+	dc.l	N_CNC		;name
+	dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+	dc.w	0
+	dc.l	RB_CNC		;recog buffer
+	dc.l	DB_CNC		;decrunch buffer
+	dc.l	0		;recog segment
+	dc.l	0		;decrunch segment
+	dc.w	0,0
+	dc.l	2+4+3+10
+
+	dc.b	"$VER: CNC 2.2 (31.12.2002) by Wanted Team",0
+N_CNC	dc.b	"CNC data cruncher",0
+	even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_CNC		cmp.w	#$400,(A0)
+		beq.b	.Check
+		cmp.w	#$500,(A0)
+		bne.b	.Exit
+.Check		move.b	5(A0),D1
+		lsl.l	#8,D1
+		move.b	4(A0),D1
+		lsl.l	#8,D1
+		move.b	3(A0),D1
+		lsl.l	#8,D1
+		move.b	2(A0),D1
+		move.l	D1,D0
+		beq.b	.Exit
+		andi.l	#$FFF80000,D0
+		bne.b	.Exit
+		cmpi.l	#3,D1
+		bls.b	.Exit
+		move.l	D1,xfdrr_FinalTargetLen(A1)
+		move.l	D1,xfdrr_MinTargetLen(A1)
+		moveq	#1,D0
+		rts
+.Exit		moveq	#0,D0
+		rts
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+DB_CNC		movem.l	D2-D7/A2-A6,-(A7)
+		move.l	xfdbi_SourceBuffer(A0),A4
+		moveq	#7,D7
+		moveq	#5,D4
+		cmp.b	#5,(A4)
+		beq.b	.type5
+		addq.l	#2,D7
+		addq.l	#1,D4
+.type5		move.l	A4,A6
+		add.l	xfdbi_SourceBufLen(A0),A6
+		move.l	xfdbi_UserTargetBuf(A0),A5
+		move.l	A5,A3
+		move.l	A5,A2
+		add.l	xfdbi_TargetBufSaveLen(A0),A3
+		addq.l	#6,A4
+		moveq	#0,D6	; numbits
+		moveq	#0,D5	; bitbuf
+		move.b	(A4)+,(A5)+
+		move.b	(A4)+,(A5)+
+		move.b	(A4)+,(A5)+
+.mainloop:	moveq	#9,D3
+		bsr.w	.getbits
+		btst	#8,D0
+		bne.s	.lab1
+		move.b	D0,(A5)+
+		bra.s	.loopend
+.lab1:		btst	#7,D0
+		bne.s	.lab2
+		lsl.w	#1,D0
+		andi.w	#$FF,D0
+		move.w	D0,D2
+		moveq	#4,D3
+		bsr.b	.getbits
+		move.w	D0,D1
+		andi.w	#7,D1
+		addq.w	#2,D1
+		lsr.w	#3,D0
+		andi.w	#1,D0
+		or.w	D2,D0
+		bra.s	.lab4
+.lab2:		btst	#6,D0
+		bne.s	.lab3
+		andi.w	#$3F,D0
+		lsl.w	D4,D0
+		move.w	D0,D2
+		move.l	D4,D3
+		bsr.b	.getbits
+		or.w	D0,D2
+		moveq	#5,D3
+		bsr.b	.getbits
+		addq.w	#2,D0
+		move.w	D0,D1
+		move.w	D2,D0
+		bra.b	.lab4
+.lab3:		andi.w	#$3F,D0
+		lsl.w	D7,D0
+		move.w	D0,D2
+		move.l	D7,D3
+		bsr.b	.getbits
+		or.w	D0,D2
+		moveq	#7,D3
+		bsr.b	.getbits
+		addq.w	#2,D0
+		move.w	D0,D1
+		move.w	D2,D0
+.lab4:		lea	(A5,D1.W),A1
+		cmp.l	A1,A3
+		blo.b	.Error		; to many bytes
+		movea.l	A5,A1
+		suba.w	D0,A1
+		cmp.l	A1,A2
+		bhi.b	.Error		; offset to large, no data yet
+		subq.w	#1,D1
+.lab5:		move.b	(A1)+,(A5)+
+		dbra	D1,.lab5
+.loopend:	cmp.l	A5,A3
+		bne.w	.mainloop
+		moveq	#1,D0
+		bra.b	.Exit
+.Error		moveq	#0,D0
+		move.w	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A0)
+.Exit		movem.l	(A7)+,D2-D7/A2-A6
+		rts
+.Error2		addq.l	#4,A7	; the bsr return address
+		bra.b	.Error
+
+.getbits:	cmp.l	D6,D3
+		ble.b	.ok
+		lsl.w	#8,D5
+		cmpa.l	A4,A6
+		beq.b	.Error2
+		move.b	(A4)+,D5
+		addq.b	#8,D6
+		bra.b	.getbits
+.ok		sub.w	D3,D6
+		move.w	D5,D0
+		lsr.w	D6,D0
+		lsl.l	#1,D3
+		and.w	.mask-(4*2)(PC,D3),D0
+		rts
+.mask		dc.w	$f,$1f,$3f,$7f,$ff,$1ff

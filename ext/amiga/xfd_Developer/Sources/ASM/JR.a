@@ -1,0 +1,223 @@
+*******************************************************
+**      XFD external decruncher for JR Cruncher      **
+**        written by Mr. Larmer / Wanted Team        **
+**	   shortened and fixed by SDI in 1999  	     **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.0 (25.07.1999)
+; o Decreased minimum crunched file size from 14 to 9
+; o Decrunched size is checked to be non-zero
+
+;;;		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+;;;		INCLUDE	"lvo.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_JR		;first slave
+
+**************************************************
+
+		dc.b	"$VER: JR 2.1 (06.09.2003)",0
+N_JR		dc.b	"(JR) Data Cruncher",0
+		EVEN
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_JR		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_JR		;name
+		dc.w	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		dc.w	0
+		dc.l	RB_JR		;recog buffer
+		dc.l	DB_JR		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	8+1
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_JR		MOVEQ	#0,D0
+		CMP.W	#"JR",(A0)
+		BNE.B	.Exit
+		TST.B	4(A0)
+		BNE.B	.Exit
+		MOVE.L	4(A0),D0
+		BEQ.B	.Exit
+		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+;-------------------------------------------------
+
+;Decrunch buffer function: receives bufferinfo in a0
+
+* this functions uses D0-D2,A0-A5
+
+DB_JR		MOVEM.L	D2/A2-A5,-(A7)
+		MOVE.L	A0,A5
+		MOVE.L	xfdbi_UserTargetBuf(A5),A1
+		MOVE.L	xfdbi_SourceBuffer(A5),A0
+		MOVE.L	A1,A3
+		ADD.L	xfdbi_TargetBufSaveLen(A5),A3
+
+;;		moveq	#7,D2
+;; .JR_01		move.b	(A0)+,D1
+;;		dbra	D2,.JR_01
+
+		ADDQ.L	#8,A0		; Skip header
+
+		moveq	#-$80,D2
+		bra.w	.JR_18
+
+.JR_02		lsr.w	#1,D1
+		subq.w	#1,D1
+.JR_03		add.b	D2,D2
+		bne.b	.JR_04
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_04		addx.w	D0,D0
+		dbra	D1,.JR_03
+		moveq	#3,D1
+		add.w	D0,D1
+		add.w	D1,D1
+		LEA	(A1,D1.W),A4	*
+		ADD.W	D1,A4		*
+		CMP.L	A3,A4		*
+		BHI.W	.Err		* test copy
+		subq.w	#1,D1
+.JR_05		move.b	(A0)+,(A1)+
+		move.b	(A0)+,(A1)+
+		dbra	D1,.JR_05
+		bra.w	.JR_21
+
+.JR_06		add.b	D2,D2
+		bne.b	.JR_07
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_07		addx.w	D1,D1
+		add.b	D2,D2
+		bne.b	.JR_08
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_08		bcc.b	.JR_10
+		subq.w	#1,D1
+		add.b	D2,D2
+		bne.b	.JR_09
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_09		addx.w	D1,D1
+		cmpi.b	#9,D1
+		beq.b	.JR_02
+.JR_10		add.b	D2,D2
+		bne.b	.JR_11
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_11		bcc.b	.JR_16
+		add.b	D2,D2
+		bne.b	.JR_12
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_12		addx.w	D0,D0
+		add.b	D2,D2
+		bne.b	.JR_13
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_13		bcs.b	.JR_27
+		tst.w	D0
+		bne.b	.JR_16
+		addq.w	#1,D0
+.JR_14		add.b	D2,D2
+		bne.b	.JR_15
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_15		addx.w	D0,D0
+.JR_16		rol.w	#8,D0
+		move.b	(A0)+,D0
+		movea.l	A1,A2
+		suba.w	D0,A2
+		subq.w	#1,A2
+		LEA	(A1,D1.W),A4	*
+		CMP.L	A3,A4		* test copy
+		BHI.B	.Err
+		subq.w	#1,D1
+.JR_17		move.b	(A2)+,(A1)+
+		dbra	D1,.JR_17
+		bra.b	.JR_21
+
+.JR_18		add.b	D2,D2
+		bne.b	.JR_19
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_19		bcs.b	.JR_23
+.JR_20		CMP.L	A3,A1
+		BHS.B	.Err		* test copy
+		move.b	(A0)+,(A1)+
+.JR_21		add.b	D2,D2
+		bne.b	.JR_22
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_22		bcc.b	.JR_20
+.JR_23		moveq	#2,D1
+		moveq	#0,D0
+		add.b	D2,D2
+		bne.b	.JR_24
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_24		bcc.w	.JR_06
+		add.b	D2,D2
+		bne.b	.JR_25
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_25		bcc.b	.JR_16
+		addq.w	#1,D1
+		add.b	D2,D2
+		bne.b	.JR_26
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_26		bcc.w	.JR_10
+		move.b	(A0)+,D1
+		beq.b	.End
+		addq.w	#8,D1
+		bra.w	.JR_10
+
+.JR_27		add.b	D2,D2
+		bne.b	.JR_28
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_28		addx.w	D0,D0
+		ori.w	#4,D0
+		add.b	D2,D2
+		bne.b	.JR_29
+		move.b	(A0)+,D2
+		addx.b	D2,D2
+.JR_29		bcs.b	.JR_16
+		bra.w	.JR_14
+
+.End		CMP.L	A1,A3
+		BNE.B	.Err
+		MOVEQ	#1,D0
+.out		MOVEM.L	(A7)+,D2/A2-A5
+		RTS
+
+.Err		MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A5)
+		MOVEQ	#0,D0
+		BRA.B	.out
+
+		END

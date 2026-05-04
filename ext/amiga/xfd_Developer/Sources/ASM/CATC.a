@@ -1,0 +1,266 @@
+*******************************************************
+**             XFD external decruncher               **
+**          for Eldritch The Cat cruncher            **
+**             adapted by Wanted Team                **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.0 (21 Mar 2001)
+; o Increased minimum crunched file size from 14 to 20
+; o Decrunched size is checked to be non-zero
+; o The whole file does not have to be loaded anymore for recognition
+; o The input file size no longer has to be exact
+; o The EOR checksum is now verified before decrunching
+; o Reduced stack usage
+; o Added data scanning functions
+
+;;;	INCDIR	"dh2:Include/"
+	INCLUDE	"libraries/xfdmaster.i"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_CATC		;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support data scanning
+
+S_CATC		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_CATC		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_CATC		;recog buffer
+		dc.l	DB_CATC		;decrunch buffer
+		dc.l	SD_CATC		;scan data
+		dc.l	VD_CATC		;verify data
+		dc.w	0,0
+		dc.l	8+8+4
+
+		dc.b	"$VER: CATC 2.1 (06.09.2003) by Wanted Team",0
+N_CATC		dc.b	"Eldritch The Cat (CATC) data cruncher",0
+		even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_CATC
+;;	btst	#0,D0
+;;	bne.b	Exit
+	cmp.l	#"CATC",(A0)+
+	bne.b	Exit
+	tst.b	(A0)
+	bne.b	Exit
+	move.l	(A0),D1
+	beq.b	Exit
+;;	subq.l	#4,A0
+;;	add.l	D0,A0
+;;	cmp.l	-(A0),D1
+;;	bne.b	Exit
+	move.l	D1,xfdrr_FinalTargetLen(A1)
+	move.l	D1,xfdrr_MinTargetLen(A1)
+	moveq	#1,D0
+	rts	
+Exit
+	moveq	#0,D0
+	rts
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+
+DB_CATC		MOVEM.L	D2-D4/A2/A5,-(SP)
+		MOVE.L	A0,A5
+		MOVE.L	xfdbi_SourceBuffer(A5),A0
+		MOVE.L	xfdbi_SourceBufLen(A5),D0
+		MOVE.L	xfdbi_UserTargetBufLen(A5),D1
+		MOVE.L	xfdbi_UserTargetBuf(A5),A1
+		LEA	(A1,D1.L),A2
+
+		; Determine crunched size and verify EOR checksum
+
+		ADDQ.L	#8,A0		;Crunched file past header
+		AND.B	#$FC,D0		;Make the input size to a multiple of 4
+		SUBQ.L	#8,D0		;Buffer size without header
+
+		MOVEQ	#0,D2
+.Next		MOVE.L	(A0)+,D3
+		EOR.L	D3,D2		;EOR checksum is zero?
+		BNE.S	.Skip
+		CMP.L	D3,D1		;Last LONG equals Decrunched Size ?
+		BEQ.S	.Found
+.Skip		SUBQ.L	#4,D0
+		BMI.S	.Corrupt	;End of buffer reached
+		BRA.S	.Next
+
+.Found		; Decrunch the file
+
+		; A0 -> End of crunched data
+		; A1 -> Decrunch buffer
+		; A2 -> End of decrunch buffer
+
+		BSR.S	D_CATC
+		MOVEQ	#1,D0
+.Exit		MOVEM.L	(SP)+,D2-D4/A2/A5
+		RTS
+
+.Corrupt	MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A5)
+		MOVEQ	#0,D0			;Error
+		BRA.S	.Exit
+
+;-------------------------------------------------
+
+; Decruncher from "Crime Does Not Pay" (c) Titus
+
+;	LINK.W	A6,#0
+;	MOVEM.L	D0-D7/A0-A5,-(SP)
+;	MOVEA.L	8(A6),A0
+;	MOVEA.L	$10(A6),A1
+;	MOVEA.L	12(A6),A2
+;	BSR.S	lbC00AA7A
+;	MOVEM.L	(SP)+,D0-D7/A0-A5
+;	UNLK	A6
+;	RTS
+
+; Input:
+; A0 = start + length of file
+; A1 = destination
+; A2 = destination + depacked length
+
+; Used registers: A0, A1, A2, D0, D1, D2, D3, D4, (D5)
+
+D_CATC
+lbC00AA7A
+;;	MOVE.L	-(A0),-(SP)
+;;	MOVE.L	-(A0),D5
+	SUBQ.L	#8,A0		;Skip header
+	MOVE.L	-(A0),D0	;First crunched LONG
+;;	EOR.L	D0,D5
+lbC00AA82	LSR.L	#1,D0
+	BNE.S	lbC00AA8A
+	BSR.L	lbC00AB26
+lbC00AA8A	BCS.S	lbC00AAC8
+	MOVEQ	#8,D1
+	MOVEQ	#1,D3
+	LSR.L	#1,D0
+	BNE.S	lbC00AA98
+	BSR.L	lbC00AB26
+lbC00AA98	BCS.S	lbC00AAF4
+	MOVEQ	#3,D1
+	CLR.W	D4
+lbC00AA9E	BSR.L	lbC00AB32
+	MOVE.W	D2,D3
+	ADD.W	D4,D3
+lbC00AAA6	MOVEQ	#7,D1
+lbC00AAA8	LSR.L	#1,D0
+	BNE.S	lbC00AAB0
+	BSR.L	lbC00AB26
+lbC00AAB0	ROXL.L	#1,D2
+	DBRA	D1,lbC00AAA8
+	MOVE.B	D2,-(A2)
+	DBRA	D3,lbC00AAA6
+	BRA.L	lbC00AB02
+
+lbC00AAC0	MOVEQ	#8,D1
+	MOVEQ	#8,D4
+	BRA.L	lbC00AA9E
+
+lbC00AAC8	MOVEQ	#2,D1
+	BSR.L	lbC00AB32
+	CMP.B	#2,D2
+	BLT.S	lbC00AAEA
+	CMP.B	#3,D2
+	BEQ.S	lbC00AAC0
+	MOVEQ	#8,D1
+	BSR.L	lbC00AB32
+	MOVE.W	D2,D3
+	MOVE.W	#12,D1
+	BRA.L	lbC00AAF4
+
+lbC00AAEA	MOVE.W	#9,D1
+	ADD.W	D2,D1
+	ADDQ.W	#2,D2
+	MOVE.W	D2,D3
+lbC00AAF4	BSR.L	lbC00AB32
+lbC00AAF8	SUBQ.W	#1,A2
+	MOVE.B	0(A2,D2.W),(A2)
+	DBRA	D3,lbC00AAF8
+lbC00AB02	CMPA.L	A2,A1
+	BLT.L	lbC00AA82
+;;	MOVE.L	(SP)+,D0
+;;	EOR.L	D0,D5
+;;	BNE.S	lbC00AB10
+;;
+;;	moveq	#XFDERR_CORRUPTEDDATA,D0
+
+	RTS
+
+;; lbC00AB10
+;;
+;;	moveq	#XFDERR_OK,D0
+
+;	MOVE.L	#$FFFFFFFF,D0
+;lbC00AB16	MOVE.W	D0,$DFF180
+;	SUBI.L	#1,D0
+;	BNE.S	lbC00AB16
+;	RTS
+
+lbC00AB26	MOVE.L	-(A0),D0
+;;	EOR.L	D0,D5
+	MOVE.W	#$10,CCR
+	ROXR.L	#1,D0
+	RTS
+
+lbC00AB32	SUBQ.W	#1,D1
+	CLR.W	D2
+lbC00AB36	LSR.L	#1,D0
+	BNE.S	lbC00AB44
+	MOVE.L	-(A0),D0
+;;	EOR.L	D0,D5
+	MOVE.W	#$10,CCR
+	ROXR.L	#1,D0
+lbC00AB44	ROXL.L	#1,D2
+	DBRA	D1,lbC00AB36
+	RTS
+
+SD_CATC		MOVEQ	#0,D0
+		CMP.L	#"CATC",(A0)
+		BNE.S	.Exit
+		MOVEQ	#1,D0
+.Exit		RTS
+
+VD_CATC		MOVEM.L	D2/D3,-(SP)
+		MOVE.L	4(A0),D1	;Decrunched size
+		BEQ.S	.NotFound
+		MOVE.L	A0,A1		;Start of crunched file
+
+		ADDQ.L	#8,A0		;Crunched file past header
+		AND.B	#$FC,D0		;Make the input size to a multiple of 4
+		SUBQ.L	#8,D0		;Buffer size without header
+
+		MOVEQ	#0,D2
+.Next		MOVE.L	(A0)+,D3
+		EOR.L	D3,D2
+		BNE.S	.Skip
+		CMP.L	D3,D1
+		BEQ.S	.Found
+.Skip		SUBQ.L	#4,D0
+		BMI.S	.NotFound	;End of buffer reached
+		BRA.S	.Next
+
+.Found		MOVE.L	A0,D0		;End of crunched file
+		SUB.L	A1,D0		;Start of crunched file
+
+.Exit		MOVEM.L	(SP)+,D2/D3
+		RTS
+
+.NotFound	MOVEQ	#0,D0
+		BRA.S	.Exit

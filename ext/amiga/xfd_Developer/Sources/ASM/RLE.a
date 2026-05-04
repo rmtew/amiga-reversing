@@ -1,0 +1,120 @@
+*******************************************************
+**     XFD external decruncher for RLE Cruncher      **
+**        written by Mr. Larmer / Wanted Team        **
+**	   shortened and fixed by SDI in 2000  	     **
+*******************************************************
+
+		INCLUDE	AINCLUDE:IncDirs.i
+		INCLUDE	"libraries/xfdmaster.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_RLE		;first slave
+
+		dc.b	"$VER: RLE 2.0 (22.04.2000)",0
+N_RLE		dc.b	"(RLE) Data Cruncher",0
+		EVEN
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_RLE		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_RLE		;name
+		dc.w	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		dc.w	0
+		dc.l	RB_RLE
+		dc.l	DB_RLE
+		dc.l	SD_RLE
+		dc.l	VD_RLE
+		dc.w	0,0
+		dc.l	65
+
+;-------------------------------------------------
+
+RB_RLE		MOVEQ	#0,D0
+		CMP.L	#"RLE"<<8,(A0)
+		BNE.B	.Exit
+		TST.B	4(A0)
+		BNE.B	.Exit
+		MOVE.L	4(A0),D0
+		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		MOVE.L	8(A0),D0
+		ADDI.L	#64,D0
+		MOVE.L	D0,xfdrr_MinSourceLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+SD_RLE		MOVEQ	#0,D0
+		CMP.L	#"RLE"<<8,(A0)
+		BNE.B	.end
+		MOVEQ	#1,D0
+.end		RTS
+
+VD_RLE		MOVEQ	#64,D1
+		ADD.L	8(A0),D1	;crlen
+		CMP.L	D0,D1		;crlen > buflen ??
+		BGT.B	.Exit
+		MOVE.L	4(A0),D0
+		SUB.L	8(A0),D0	;cr > uncr ??
+		BMI.B	.Exit
+		MOVE.L	D1,D0
+		RTS
+.Exit		MOVEQ	#0,D0
+		RTS
+
+DB_RLE		MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVE.L	xfdbi_UserTargetBuf(A0),A1
+		MOVE.L	xfdbi_SourceBuffer(A0),A0
+
+		BSR.B	D_RLE
+		
+		MOVEQ	#1,D0
+.Exit		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+**************************************************
+
+D_RLE		MOVEA.L	A1,A4
+		ADDA.L	4(A0),A1	* A1 = destination end
+		MOVEA.L	A0,A2
+		ADDA.L	8(A0),A2	* A2 = source end - 64
+		MOVE.L	A2,D0
+		ADDQ.L	#1,D0
+		ANDI.B	#$FE,D0
+		MOVEA.L	D0,A3
+		MOVEQ	#15,D0
+.COPY		MOVE.L	(A3)+,(A4)+
+		DBRA	D0,.COPY
+
+.LBC000046:	MOVE.B	-(A2),D0
+		BPL.S	.LBC00005A
+		NEG.B	D0
+		BMI.S	.end
+		EXT.W	D0
+		MOVE.B	-(A2),D1
+.LBC000052:	CMP.L	A4,A1
+		BEQ.B	.end
+		MOVE.B	D1,-(A1)
+		DBRA	D0,.LBC000052
+		BRA.S	.LBC000046
+.LBC00005A:	EXT.W	D0
+.LBC00005C:	CMP.L	A4,A1
+		BEQ.B	.end
+		MOVE.B	-(A2),-(A1)
+		DBRA	D0,.LBC00005C
+		BRA.S	.LBC000046
+.end		RTS
+		END

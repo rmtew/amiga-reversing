@@ -1,0 +1,177 @@
+*******************************************************
+**     XFD external decruncher for D815 Cruncher     **
+**        written by Mr. Larmer / Wanted Team        **
+**	shortened and fixed by SDI in 1999/2001      **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.1 (01.01.2001)
+; o Crunched and decrunched size are checked to be non-zero
+; o Added data scanning functions
+
+;;;		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_D815		;first slave
+
+**************************************************
+
+		dc.b	"$VER: D815 2.2 (20.10.2002)",0
+N_D815		dc.b	"(0815) and (D815) Data Cruncher",0
+		even
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_D815		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_D815		;name
+		dc.w	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		dc.w	0
+		dc.l	RB_D815		;recog buffer
+		dc.l	DB_D815		;decrunch buffer
+		dc.l	SD_D815		;recog segment / scan data
+		dc.l	VD_D815		;decrunch segment / verify data
+		dc.w	0,0
+		dc.l	12+2
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_D815		MOVEQ	#0,D0
+		move.l	(A0),D1
+		and.l	#$FFFFFF,D1
+		cmp.l	#"815",D1
+		bne.s	.Exit
+		TST.B	4(A0)	; Changed to match XFD release version
+		BNE.B	.Exit
+		TST.L	4(A0)
+		BEQ.S	.Exit
+		TST.B	8(A0)	; Changed to match XFD release version
+		BNE.B	.Exit
+		TST.L	8(A0)
+		BEQ.S	.Exit
+		MOVE.L	4(A0),D0
+		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		ADD.L	#$1000,D0
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		MOVEQ	#12,D0
+		ADD.L	8(A0),D0
+		MOVE.L	D0,xfdrr_MinSourceLen(A1)
+		moveq	#1,d0
+.Exit		rts
+
+;-------------------------------------------------
+
+;Decrunch buffer function: receives bufferinfo in a0
+
+DB_D815		movem.l	d2-d7/a2-a6,-(a7)
+		MOVE.L	xfdbi_UserTargetBuf(a0),a1
+		MOVE.L	A1,A2
+		ADD.L	xfdbi_TargetBufSaveLen(a0),A2 * last $1000 bytes are table buffer
+		move.l	xfdbi_SourceBuffer(a0),a0
+
+		addq.l	#8,a0
+		move.l	(A0)+,D4
+		movea.l	A2,A3
+		move.w	#$FED,D0
+		moveq	#$20,D1
+lbC00000E:
+		move.b	D1,(A3)+
+		dbra	D0,lbC00000E
+		moveq	#0,D6
+		move.w	#$FF00,D7
+		movea.l	A0,A3
+		movea.l	A2,A5
+		lea	$1000(A2),A4
+		adda.w	#$FEE,A2
+lbC000026:
+		lsr.w	#1,D6
+		btst	#8,D6
+		bne.s	lbC000036
+		subq.l	#1,D4
+		bmi.s	lbC000088
+		move.w	D7,D6
+		move.b	(A3)+,D6
+lbC000036:
+		btst	#0,D6
+		beq.s	lbC00004E
+		subq.l	#1,D4
+		bmi.s	lbC000088
+		move.b	(A3)+,D0
+		move.b	D0,(A1)+
+		move.b	D0,(A2)+
+		cmpa.l	A2,A4
+		bne.s	lbC000026
+		movea.l	A5,A2
+		bra.s	lbC000026
+
+lbC00004E:
+		subq.l	#1,D4
+		bmi.s	lbC000088
+		moveq	#0,D1
+		move.b	(A3)+,D1
+		subq.l	#1,D4
+		bmi.s	lbC000088
+		move.b	(A3)+,D2
+		move.w	#$F0,D3
+		and.b	D2,D3
+		lsl.w	#4,D3
+		or.w	D3,D1
+		andi.w	#15,D2
+		addq.w	#2,D2
+		lea	0(A5,D1.W),A6
+lbC000070:
+		move.b	(A6)+,D0
+		cmpa.l	A6,A4
+		bne.s	lbC000078
+		movea.l	A5,A6
+lbC000078:
+		move.b	D0,(A1)+
+		move.b	D0,(A2)+
+		cmpa.l	A2,A4
+		bne.s	lbC000082
+		movea.l	A5,A2
+lbC000082:
+		dbra	D2,lbC000070
+		bra.s	lbC000026
+
+lbC000088:	moveq	#1,d0
+		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+SD_D815		MOVEQ	#0,D0
+		MOVE.L	(A0),D1
+		AND.L	#$FFFFFF,D1
+		CMP.L	#"815",D1
+		BNE.B	.Exit		
+		MOVEQ	#1,D0
+.Exit		RTS
+
+VD_D815		MOVEQ	#0,D0
+		TST.B	4(A0)
+		BNE.B	.Exit
+		TST.L	4(A0)
+		BEQ.S	.Exit
+		TST.B	8(A0)
+		BNE.B	.Exit
+		TST.L	8(A0)
+		BEQ.S	.Exit
+		MOVEQ	#12,D0
+		ADD.L	8(A0),D0
+.Exit		RTS
+
+		END

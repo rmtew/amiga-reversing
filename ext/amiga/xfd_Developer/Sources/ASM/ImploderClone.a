@@ -1,0 +1,113 @@
+***************************************************************
+**   XFD external decruncher for recognising the Imploder    **
+**	Hack as used on the PC Task executables.             **
+***************************************************************
+
+		SECTION	ImploderHack,CODE
+
+		INCLUDE	AINCLUDE:IncDirs.i
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE	lvo.i
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+F_ImploderHack	moveq	#-1,d0			;security
+		rts
+
+		dc.l	XFDF_ID			;id
+		dc.w	1			;version
+		dc.w	0
+		dc.l	0,0			;private
+		dc.l	S_ImploderHack		;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_ImploderHack	dc.l	0			;no more slaves
+		dc.w	1			;version
+		dc.w	33			;master version
+		dc.l	N_ImploderHack		;name
+		dc.w	XFDPFF_RELOC		;flags
+		dc.w	0
+		dc.l	RB_ImploderHack		;recog buffer
+		dc.l	DB_ImploderHack		;decrunch buffer
+		dc.l	0			;recog segment
+		dc.l	0			;decrunch segment
+
+N_ImploderHack	dc.b	'Imploder Clone',0
+		even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_ImploderHack	Moveq.l	#1,d0			; True
+		Cmp.l	#$3f3,(a0)+		; Is this an executable?
+		Bne.b	.No
+		TST.L	4(A0)
+		BNE.B	.No
+
+		Move.l	4(a0),d1
+		Add.l	d1,d1
+		Add.l	d1,d1			; x4
+		Add.l	d1,a0
+		Lea	4*4(a0),a0		; Skip the first/last hunk numbers,
+						; and 
+
+		Cmp.l	#$3e9,(a0)
+		bne.b	.No
+
+		Cmp.l	#$48e7ffff,8(a0)	; This is on all IMPLODER files
+		Bne.b	.No
+
+		Cmp.l	#$7cff4486,12(a0)	; Moveq.l #-1,d6
+		Bne.b	.No
+
+		Cmp.l	#$49fa005a,16(a0)	; Neg d6
+		Beq.b	.Yes
+
+
+.No		Moveq.l	#0,d0
+.Yes		rts
+
+;-------------------------------------------------
+
+;Decrunch buffer function: receives bufferinfo in a0
+
+DB_ImploderHack	MOVEM.L	d2-d7/a2-a6,-(A7)
+		move.l	a0,a5
+
+		Move.l	xfdbi_SourceBufLen(a5),d0
+		move.l	d0,xfdbi_TargetBufSaveLen(a5)
+		move.l	d0,xfdbi_TargetBufLen(a5)
+
+		move.l	xfdbi_TargetBufMemType(a5),d1
+		move.l	4.w,a6
+		JSR	_LVOAllocMem(A6)
+		moveq	#XFDERR_NOMEMORY,d1
+		Move.w	d1,xfdbi_Error(a5)
+		move.l	d0,xfdbi_TargetBuffer(a5)
+		beq.b	.NoMem
+
+		Clr.w	xfdbi_Error(a5)
+
+		Move.l	d0,a1
+		Move.l	xfdbi_SourceBuffer(a5),a0
+		Move.l	xfdbi_SourceBufLen(a5),d0
+		JSR	_LVOCopyMem(A6)
+
+		move.l	xfdbi_TargetBuffer(a5),a0
+.SeekStart	Cmp.l	#$3e9,(a0)+
+		Bne.b	.SeekStart
+
+		Move.l	#$49fa005e,8(a0)
+		Move.l	#$3c3c0002,12(a0)
+
+		Moveq.l	#1,d0		; True = Decrunched ok
+.NoMem		MOVEM.L	(A7)+,d2-d7/a2-a6
+		Rts
+
+**************************************************
+
+		END

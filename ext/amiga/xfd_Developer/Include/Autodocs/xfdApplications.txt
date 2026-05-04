@@ -1,0 +1,117 @@
+
+                     Using XFD In Own Applications
+                     -----------------------------
+
+This guide describes the usual way how to use xfdmaster.library from your
+own applications. Read the autodocs for further information.
+
+If you want to decrunch files from a buffer, do it like this:
+
+1.  Call xfdAllocObject() with XFDOBJ_BUFFERINFO (V36). If not successful,
+    go on with 12.
+2.  Get file size, allocate buffer with that size and load file to buffer.
+    If not successful, go on with 10.
+3.  Call xfdRecogBuffer() with xfdbi_SourceBuffer and xfdbi_SourceBufLen
+    initialized. You may also specify some flags in xfdbi_Flags (V37).
+    If not successful, file is not crunched and you may work with that
+    file as it is, release the used memory and go on with 10.
+4.  Check xfdbi_PackerFlags for XFDPFB_PASSWORD or XFDPFB_KEY16/32 (V35),
+    go on with 6. if not set.
+5.  Get password (maximum length is stored in xfdbi_MaxSpecialLen) or
+    the required 16/32 bit key and store a pointer to it in xfdbi_Special.
+    If xfdbi_MaxSpecialLen is -1 then password length is not limited.
+5a. Initialize xfdbi_TargetBufMemType.
+    or:
+5b. (V38) Allocate own buffer with xfdbi_MinTargetLen bytes and initialize
+    xfdbi_UserTargetBuf and xfdbi_UserTargetBufLen.
+6.  Call xfdDecrunchBuffer(). If not successful, work with crunched file,
+    release memory afterwards and go on with 10 or 9b (V38).
+7.  Release memory of xfdbi_SourceBuffer.
+8.  Work with decrunched file.
+9a. Release memory of xfdbi_TargetBuffer.
+    or:
+9b. (V38) Release memory of xfdbi_UserTargetBuf.
+10. If you have another file to decrunch, step back to 2.
+11. Call xfdFreeObject() (V36).
+12. Exit!
+
+If you want to decrunch a segment list, do it like this:
+
+1.  Call xfdAllocObject() with XFDOBJ_SEGMENTINFO (V36). If not successful,
+    go on with 11.
+2.  dos.library/LoadSeg() file. If not successful, go on with 9.
+3.  Call xfdRecogSegment() with xfdsi_SegList and optional xfdsi_Flags (V37)
+    initialized. If not successful, seglist isn't crunched and you may go
+    on with 7.
+4.  Check xfdsi_PackerFlags for XFDPFB_PASSWORD or XFDPFB_KEY16/32 (V35).
+    If set, get password (maximum length is stored in xfdsi_MaxSpecialLen)
+    or 16/32 bit key and store a pointer to it in xfdsi_Special.
+    If xfdsi_MaxSpecialLen is -1 then password length is not limited.
+5.  (V34) Check xfdsi_PackerFlags for XFDPFB_RELMODE. If set, init
+    xfdsi_RelMode with the desired value.
+6.  Call xfdDecrunchSegment(). If not successful, test xfdsi_SegList.
+    If this field contains NULL, no seglist is available anymore. You
+    have to dos.library/LoadSeg() the file again then.
+7.  Work with segment list.
+8.  dos.library/UnloadSeg() segment list.
+9.  If you have another segment list to decrunch, step back to 2.
+10. Call xfdFreeObject() (V36).
+11. Exit!
+
+If you only want to test if one or more files are crunched without
+decrunching it afterwards, here's a way to do this:
+
+1.  Call xfdAllocObject() with XFDOBJ_BUFFERINFO (V36). If not successful,
+    go on with 9.
+2.  Get minimum buffer size for recognition from xfdm_MinBufferSize (V36),
+    allocate buffer with that size and initialize xfdbi_SourceBuffer
+    and xfdbi_SourceBufLen. On error goto 8.
+3.  Read as many bytes from the file as fit in xfdbi_SourceBuffer.
+    If file is shorter than xfdm_MinBufferSize, set real length in
+    xfdbi_SourceBufLen. If reading fails, goto 6.
+4.  Call xfdRecogBuffer(). If not successful, file is not crunched.
+    Go on with 6 then.
+5.  Print information about cruncher or something similar.
+6.  If you have another file to test, step back to 3.
+7.  Release memory of xfdbi_SourceBuffer.
+8.  Call xfdFreeObject() (V36).
+9.  Exit!
+
+If you want to unlink two files, do it like this:
+
+1.  Call xfdAllocObject() with XFDOBJ_LINKERINFO (V36). If not successful,
+    go on with 9.
+2.  Get file size, allocate buffer with that size and load file to buffer.
+    If not successful, go on with 7.
+3.  Call xfdRecogLinker() with xfdli_Buffer and xfdli_BufLen initialized.
+    If not successful, file is not linked. Go on with 6 then.
+4.  Call xfdUnlink(). If not successful, go on with 6.
+5.  Do something with unlinked files.
+6.  Release memory of xfdli_Buffer.
+7.  If you have another file to unlink, step back to 2.
+8.  Call xfdFreeObject() (V36).
+9.  Exit!
+
+If you only want to test if a file is a linked one without unlinking
+it afterwards, here's a way to do this:
+
+1.  Call xfdAllocObject() with XFDOBJ_LINKERINFO (V36). If not successful,
+    go on with 9.
+2.  Get minimum buffer size for recognition from xfdm_MinLinkerSize (V36),
+    allocate buffer with that size and initialize xfdli_Buffer and
+    xfdli_BufLen. On error goto 8.
+3.  Read as many bytes from the file as fit in xfdli_Buffer.
+    If file is shorter than xfdm_MinLinkerSize, set real length in
+    xfdli_BufLen. If reading fails, goto 6.
+4.  Call xfdRecogLinker(). If not successful, file is not linked.
+    Go on with 6 then.
+5.  Print information about linker or something similar.
+6.  If you have another file to test, step back to 3.
+7.  Release memory of xfdli_Buffer.
+8.  Call xfdFreeObject() (V36).
+9.  Exit!
+
+Whenever you intend to use a feature of the xfdmaster.library that is
+marked (V34) or higher, make sure that you use this version number
+during the exec.library/OpenLibrary() call. Otherwise, if you try to
+use new features with an old library version, the system might crash.

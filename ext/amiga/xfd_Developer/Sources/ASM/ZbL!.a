@@ -1,0 +1,743 @@
+; Name		:	ZbL!
+; Description	:	XFD external slave for Zeeball`s filetypes
+; Author	:	Zbigniew `Zeeball` Trzcionkowski
+; Date		:	15.08.2002
+; Version	:	4.1
+; Supports	:	InBoot exeboot		(bootblocks)
+;			FileShield 1.0/1.1 	(executables)
+;			FileShield 1.2 or newer	(executables)
+;			WBGuruRemover		(executables)
+;			EasyAdverter		(texts)
+;			EasyReqtool		(texts)
+
+; In future	:	-
+; Disclaimer	:	The slave and this source are Public Domain.
+; Comment	:	Sorry for absolute offsets in the source.
+
+
+;;	include	"AINCLUDE:IncDirs.i"
+	include "libraries/xfdmaster.i"
+
+
+	section	ZbL!,code
+ZbL:
+	moveq	#-1,d0		;security
+	rts			;ender
+	dc.b	"XFDF"		;XFDF_ID
+	dc.w	1,0
+	dc.l	0,0,InBoot
+
+	dc.b	"$VER: ZbL filetypes 4.1 (15.08.02) by Zbigniew Trzcionkowski",10,0
+
+
+InBootName:	dc.b	"InBoot exeboot",0
+OldFSName:	dc.b	"FileShield 1.0",0
+FSName:		dc.b	"FileShield 1.x",0
+WBGRName:	dc.b	"WBGuruRemover",0
+ERName:		dc.b	"EasyReqtool",0
+EAName:		dc.b	"EasyAdverter",0
+	even
+InBoot:		dc.l	OldFileShield	;next slave
+		dc.w	1		;version
+		dc.w	38		;master version
+		dc.l	InBootName	;name
+		dc.w	XFDPFF_RELOC
+		dc.w	0
+		dc.l	RecogInBoot	;recog buffer
+		dc.l	ExtractInBoot	;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0		;slave/replace id
+		dc.l	1400		;min. file length for header and data
+
+OldFileShield:	dc.l	FileShield	;next slave
+		dc.w	1		;version
+		dc.w	38		;master version
+		dc.l	OldFSName	;name
+		dc.w	XFDPFF_RELOC
+		dc.w	0
+		dc.l	RecogOldFS	;recog buffer
+		dc.l	ExtractOldFS	;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0		;slave/replace id
+		dc.l	60	;; was 50	RvD	;min. file length for header and data
+
+FileShield:	dc.l	WBGuruRemover	;next slave
+		dc.w	1		;version
+		dc.w	38		;master version
+		dc.l	FSName		;name
+		dc.w	XFDPFF_RELOC
+		dc.w	0
+		dc.l	RecogFS		;recog buffer
+		dc.l	ExtractFS	;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0		;slave/replace id
+		dc.l	56	;; was 50	RvD	;min. file length for header and data
+
+WBGuruRemover:	dc.l	EasyReqtool	;next slave
+		dc.w	1		;version
+		dc.w	38		;master version
+		dc.l	WBGRName	;name
+		dc.w	XFDPFF_RELOC
+		dc.w	0
+		dc.l	RecogWBGR	;recog buffer
+		dc.l	ExtractWBGR	;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0		;slave/replace id
+		dc.l	100	;; was 50	RvD	;min. file length for header and data
+		
+EasyReqtool:	dc.l	EasyAdverter	;next slave
+		dc.w	1		;version
+		dc.w	38		;master version
+		dc.l	ERName		;name
+		dc.w	XFDPFF_RELOC
+		dc.w	0
+		dc.l	RecogEasyReqtool;recog buffer
+		dc.l	ExtractEasyReqtool;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0		;slave/replace id
+		dc.l	190		;min. file length for header and data
+
+EasyAdverter:	dc.l	0		;no more
+		dc.w	1		;version
+		dc.w	38		;master version
+		dc.l	EAName		;name
+		dc.w	XFDPFF_RELOC
+		dc.w	0
+		dc.l	RecogEasyAdverter	;recog buffer
+		dc.l	ExtractEasyAdverter	;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0		;slave/replace id
+		dc.l	190		;min. file length for header and data
+
+
+RecogInBoot:
+	cmp.l	#$000003f3,(a0)		;HunkHeader?
+	bne.b	.No
+
+	cmp.l	#"trac",298(a0)		;most characteristic at start!
+	bne.b	.No
+
+	cmp.l	#$08000001,128(a0)
+	bne.b	.No
+
+	cmp.l	#$dff000,180(a0)
+	bne.b	.No
+
+	cmp.l	#$155,28(a0)
+	bne.b	.No
+
+	moveq	#1,d0
+	rts
+.No
+	moveq	#0,d0
+	rts
+
+
+RecogOldFS:
+;;	moveq	#0,d0		;; RvD
+
+
+	cmp.l	#$3f3,(a0)
+	bne.b	.No
+	
+	move.l	8(a0),d1	;; RvD
+	lsl.l	#2,d1		;; RvD
+	lea.l	$14(a0,d1.l),a0	;; RvD
+
+	ADD.L	#$14+32+4,D1	;; RvD
+	CMP.L	D0,D1		;; RvD
+	BHI.S	.No		;; RvD
+
+	cmp.w	#$3ea,2(a0)			;DATA
+	beq.b	.oki
+	cmp.w	#$3e9,2(a0)			;CODE
+	bne.b	.No
+.oki	addq.l	#4,a0
+
+
+	cmp.l	#$4e754e75,12(a0)
+	bne.b	.No
+
+	cmp.l	#$00000003,(a0)
+	bne.b	.No
+	
+	cmp.l	#$48790000,4(a0)
+	bne.b	.No
+	
+	cmp.l	#$00004e75,8(a0)
+	bne.b	.No
+
+	cmp.l	#$000003ec,16(a0)
+	bne.b	.No
+
+	tst.l	32(a0)
+	bne.b	.No
+
+	moveq	#1,d0
+	rts
+.No
+	moveq	#0,d0
+	rts
+
+
+RecogFS:
+;;	moveq	#0,d0		;; RvD
+
+
+	cmp.l	#$3f3,(a0)
+	bne.b	.No
+	
+	move.l	8(a0),d1	;; RvD
+	lsl.l	#2,d1		;; RvD
+	lea.l	$14(a0,d1.l),a0	;; RvD
+
+	ADD.L	#$14+28+4,D1	;; RvD
+	CMP.L	D0,D1		;; RvD
+	BHI.S	.No		;; RvD
+
+	cmp.w	#$3ea,2(a0)			;DATA
+	beq.b	.oki
+	cmp.w	#$3e9,2(a0)			;CODE
+	bne.b	.No
+.oki	addq.l	#4,a0
+
+
+	cmp.l	#$000003f7,16(a0)
+	bne.b	.No
+
+	cmp.l	#$00000003,(a0)
+	bne.b	.No
+	
+	cmp.l	#$48790000,4(a0)
+	bne.b	.No
+	
+	cmp.l	#$00004e75,8(a0)
+	bne.b	.No
+
+	cmp.l	#$4e750000,12(a0)
+	bne.b	.No
+
+	cmp.l	#$00010001,20(a0)
+	bne.b	.No
+
+	cmp.l	#$00020000,24(a0)
+	bne.b	.No
+
+	tst.w	28(a0)
+	bne.b	.No
+	
+	moveq	#1,d0
+	rts
+.No	moveq	#0,d0
+	rts
+
+
+RecogWBGR:
+;;	moveq	#0,d0		;; RvD
+
+	cmp.l	#$3f3,(a0)
+	bne.b	.No
+	
+	move.l	8(a0),d1	;; RvD
+	lsl.l	#2,d1		;; RvD
+	lea.l	$14(a0,d1.l),a0	;; RvD
+
+	ADD.L	#$14+72+4,D1	;; RvD
+	CMP.L	D0,D1		;; RvD
+	BHI.S	.No		;; RvD
+
+	cmp.w	#$3ea,2(a0)			;DATA
+	beq.b	.oki
+	cmp.w	#$3e9,2(a0)			;CODE
+	bne.b	.No
+.oki	addq.l	#4,a0
+
+
+        cmp.l	#$12,(a0)
+	bne.b	.No
+	
+	cmp.l	#"ZbL!",72(a0)
+	bne.b	.No
+	
+	cmp.l	#$c14bc143,4(a0)
+	bne.b	.No
+
+	cmp.l	#$93c94eae,12(a0)
+	bne.b	.No
+
+	cmp.l	#$4eaeff7c,64(a0)
+	bne.b	.No
+
+	moveq	#1,d0
+	rts
+.No
+	moveq	#0,d0
+	rts
+
+
+RecogEasyReqtool:
+	cmp.l	#$000003f3,(a0)		;HunkHeader?
+	bne.b	.No
+
+	cmp.l	#"open",178(a0)		;most characteristic at start!
+	bne.b	.No
+
+	cmp.l	#$3f3,(a0)
+	bne.b	.No
+
+	cmp.l	#$4e7543fa,82(a0)
+	bne.b	.No
+
+	cmp.l	#$00666144,86(a0)
+	bne.b	.No
+
+	cmp.l	#$4e2c7800,31(a0)
+	bne.b	.No
+
+	moveq	#1,d0
+	rts
+.No
+	moveq	#0,d0
+	rts
+
+
+RecogEasyAdverter:
+	cmp.l	#$000003f3,(a0)		;HunkHeader?
+	bne.b	.No
+
+	cmp.l	#"dos.",110(a0)		;most characteristic at start!
+	bne.b	.No
+
+	cmp.l	#$008a2409,158(a0)
+	bne.b	.No
+
+	cmp.l	#$6600fffa,168(a0)
+	bne.b	.No
+
+	cmp.l	#$61000012,66(a0)
+	bne.b	.No
+
+	cmp.l	#$3f3,(a0)
+	bne.b	.No
+
+	moveq	#1,d0
+	rts
+.No
+	moveq	#0,d0
+	rts
+
+;--------------------------------------------------
+ExtractInBoot:
+	movem.l	d2-d7/a0-a6,-(sp)
+
+	move.l	4.w,a6		; execbase
+
+	move.l	(a0),a1	; xfdbi_SourceBuffer
+	
+	lea.l	372(a1),a5	; boot offset in file
+
+	move.l	#1024,d0	; boot length
+
+	move.l	d0,32(a0)	; xfdbi_TargetBufSaveLen
+
+	move.l	60(a0),a1	; xfdbi_UserTargetBuf
+
+	btst.b	#3,49(a0)	; XFDFB_USERTARGET,1+xfdbi_Flags
+	bne.b	.CopyMem
+
+	move.l	d0,28(a0)	; xfdbi_TargetBufLen
+	
+	move.w	#1,18(a0)	; XFDERR_NOMEMORY,xfdbi_Error
+	
+	move.l	24(a0),d1	; xfdbi_TargetBufMemType
+	move.l	a0,-(sp)
+	jsr	-198(a6)	; AllocMem
+	move.l	(sp)+,a0
+	move.l	d0,a1
+	move.l	d0,20(a0)	; xfdbi_TargetBuffer
+	beq.b	.Err
+.CopyMem
+	clr.w	18(a0)		; xfdbi_Error
+	
+	move.l	32(a0),d0	; xfdbi_TargetBufSaveLen
+	move.l	a5,a0
+	jsr	-624(a6)	; CopyMem
+	
+	moveq	#1,d0
+.Err
+	movem.l	(sp)+,d2-d7/a0-a6
+	rts
+	
+;--------------------------------------------------
+ExtractOldFS:
+	movem.l	d2-d7/a0-a6,-(sp)
+	moveq	#0,d0
+	move.l	4.w,a6		; execbase
+
+	move.l	(a0),a1	; xfdbi_SourceBuffer
+	move.l	4(a0),d7	; xfdbi_SourceBufLen
+	bsr.b	UnLinkOldFS
+	
+	move.l	4(a0),d0	; xfdbi_SourceBufLen
+	sub.l	#44,d0
+	
+	lea.l	44(a1),a5	; offset of original file data
+
+	move.l	d0,32(a0)	; xfdbi_TargetBufSaveLen
+
+	move.l	60(a0),a1	; xfdbi_UserTargetBuf
+
+	btst.b	#3,49(a0)	; XFDFB_USERTARGET,1+xfdbi_Flags
+	bne.b	.CopyMem
+
+	move.w	#1,18(a0)	; XFDERR_NOMEMORY,xfdbi_Error
+
+	move.l	d0,28(a0)	; xfdbi_TargetBufLen
+
+	
+	move.l	24(a0),d1	; xfdbi_TargetBufMemType
+	move.l	a0,-(sp)
+	jsr	-198(a6)	; AllocMem
+	move.l	(sp)+,a0
+	move.l	d0,a1
+	move.l	d0,20(a0)	; xfdbi_TargetBuffer
+	beq.b	.cant
+.CopyMem
+	clr.w	18(a0)		; xfdbi_Error
+	
+	move.l	32(a0),d0	; xfdbi_TargetBufSaveLen
+	move.l	a5,a0
+	jsr	-624(a6)	; CopyMem
+
+	moveq	#1,d0
+.cant
+	movem.l	(sp)+,d2-d7/a0-a6
+	rts
+
+
+UnLinkOldFS:
+;	a1	-	file addy
+;	d7	-	file length
+
+	movem.l	d1-a6,-(sp)
+	bsr.w	RemapHeader
+	
+	lea.l	4*9(a4),a5
+	bra.w	HunkCor
+;--------------------------------------------------
+ExtractFS:
+	movem.l	d2-d7/a0-a6,-(sp)
+	moveq	#0,d0
+
+	move.l	(a0),a1	; xfdbi_SourceBuffer
+	move.l	4(a0),d7	; xfdbi_SourceBufLen
+	bsr.b	UnLinkFS
+	
+	move.l	4(a0),d0	; xfdbi_SourceBufLen
+	sub.l	#36,d0
+	
+	lea.l	36(a1),a5	; offset of original file data
+
+	move.l	d0,32(a0)	; xfdbi_TargetBufSaveLen
+
+	move.l	60(a0),a1	; xfdbi_UserTargetBuf
+
+	btst.b	#3,49(a0)	; XFDFB_USERTARGET,1+xfdbi_Flags
+	bne.b	.CopyMem
+
+	move.w	#1,18(a0)	; XFDERR_NOMEMORY,xfdbi_Error
+
+	move.l	d0,28(a0)	; xfdbi_TargetBufLen
+
+	move.l	4.w,a6		; execbase
+	
+	move.l	24(a0),d1	; xfdbi_TargetBufMemType
+	move.l	a0,-(sp)
+	jsr	-198(a6)	; AllocMem
+	move.l	(sp)+,a0
+	move.l	d0,a1
+	move.l	d0,20(a0)	; xfdbi_TargetBuffer
+	beq.b	.cant
+.CopyMem
+	clr.w	18(a0)		; xfdbi_Error
+	
+	move.l	32(a0),d0	; xfdbi_TargetBufSaveLen
+	move.l	a5,a0
+	jsr	-624(a6)	; CopyMem
+
+	moveq	#1,d0
+.cant
+	movem.l	(sp)+,d2-d7/a0-a6
+	rts
+	
+UnLinkFS:
+;	a1	-	file addy
+;	d7	-	file length
+
+	movem.l	d1-a6,-(sp)
+	bsr.w	RemapHeader
+	lea.l	4*7(a4),a5
+	bra.w	HunkCor
+
+;--------------------------------------------------
+ExtractWBGR:
+	movem.l	d2-d7/a0-a6,-(sp)
+	moveq	#0,d0
+
+	move.l	(a0),a1	; xfdbi_SourceBuffer
+	move.l	4(a0),d7	; xfdbi_SourceBufLen
+	bsr.b	UnLinkWBGR
+	
+	move.l	4(a0),d0	; xfdbi_SourceBufLen
+	sub.l	#104,d0
+	
+	lea.l	104(a1),a5	; offset of original file data
+
+	move.l	d0,32(a0)	; xfdbi_TargetBufSaveLen
+
+	move.l	60(a0),a1	; xfdbi_UserTargetBuf
+
+	btst.b	#3,49(a0)	; XFDFB_USERTARGET,1+xfdbi_Flags
+	bne.b	.CopyMem
+
+	move.w	#1,18(a0)	; XFDERR_NOMEMORY,xfdbi_Error
+
+	move.l	d0,28(a0)	; xfdbi_TargetBufLen
+
+	move.l	4.w,a6		; execbase
+	
+	move.l	24(a0),d1	; xfdbi_TargetBufMemType
+	move.l	a0,-(sp)
+	jsr	-198(a6)	; AllocMem
+	move.l	(sp)+,a0
+	move.l	d0,a1
+	move.l	d0,20(a0)	; xfdbi_TargetBuffer
+	beq.b	.cant
+.CopyMem
+	clr.w	18(a0)		; xfdbi_Error
+	
+	move.l	32(a0),d0	; xfdbi_TargetBufSaveLen
+	move.l	a5,a0
+	jsr	-624(a6)	; CopyMem
+
+	moveq	#1,d0
+.cant
+	movem.l	(sp)+,d2-d7/a0-a6
+	rts
+	
+UnLinkWBGR:
+;	a1	-	file addy
+;	d7	-	file length
+
+	movem.l	d1-a6,-(sp)
+	bsr.w	RemapHeader
+	lea.l	4*24(a4),a5
+	bra.w	HunkCor
+;--------------------------------------------------
+ExtractEasyReqtool:
+	movem.l	d2-d7/a0-a6,-(sp)
+
+	move.l	4.w,a6		; execbase
+
+	move.l	(a0),a1	; xfdbi_SourceBuffer
+	
+	lea.l	272(a1),a5	; text offset in file
+	moveq	#-1,d0
+.loop
+	addq.l	#1,d0		;calculate text length
+	tst.b	(a5)+
+	bne.b	.loop
+	
+	lea.l	272(a1),a5	; text offset in file
+
+	move.l	d0,32(a0)	; xfdbi_TargetBufSaveLen
+
+	move.l	60(a0),a1	; xfdbi_UserTargetBuf
+
+	btst.b	#3,49(a0)	; XFDFB_USERTARGET,1+xfdbi_Flags
+	bne.b	.CopyMem
+
+	move.l	d0,28(a0)	; xfdbi_TargetBufLen
+	
+	move.w	#1,18(a0)	; XFDERR_NOMEMORY,xfdbi_Error
+
+	move.l	24(a0),d1	; xfdbi_TargetBufMemType
+	move.l	a0,-(sp)
+	jsr	-198(a6)	; AllocMem
+	move.l	(sp)+,a0
+	move.l	d0,a1
+	move.l	d0,20(a0)	; xfdbi_TargetBuffer
+	beq.b	.Err
+.CopyMem
+	clr.w	18(a0)		; xfdbi_Error
+	
+	move.l	32(a0),d0	; xfdbi_TargetBufSaveLen
+	move.l	a5,a0
+	jsr	-624(a6)	; CopyMem
+	
+	moveq	#1,d0	
+.Err
+	movem.l	(sp)+,d2-d7/a0-a6
+	rts
+;--------------------------------------------------
+ExtractEasyAdverter:
+	movem.l	d2-d7/a0-a6,-(sp)
+	move.l	4.w,a6		; execbase
+
+	move.l	(a0),a1	; xfdbi_SourceBuffer
+	
+	lea.l	296(a1),a5	; text offset in file
+	moveq	#-1,d0
+.loop
+	addq.l	#1,d0		;calculate text length
+	tst.b	(a5)+
+	bne.b	.loop
+	
+	lea.l	296(a1),a5	; text offset in file
+
+	move.l	d0,32(a0)	; xfdbi_TargetBufSaveLen
+
+	move.l	60(a0),a1	; xfdbi_UserTargetBuf
+
+	btst.b	#3,49(a0)	; XFDFB_USERTARGET,1+xfdbi_Flags
+	bne.b	.CopyMem
+
+	move.l	d0,28(a0)	; xfdbi_TargetBufLen
+	
+	move.w	#1,18(a0)	; XFDERR_NOMEMORY,xfdbi_Error
+
+	move.l	24(a0),d1	; xfdbi_TargetBufMemType
+	move.l	a0,-(sp)
+	jsr	-198(a6)	; AllocMem
+	move.l	(sp)+,a0
+	move.l	d0,a1
+	move.l	d0,20(a0)	; xfdbi_TargetBuffer
+	beq.b	.Err
+.CopyMem
+	clr.w	18(a0)		; xfdbi_Error
+	
+	move.l	32(a0),d0	; xfdbi_TargetBufSaveLen
+	move.l	a5,a0
+	jsr	-624(a6)	; CopyMem
+	
+	moveq	#1,d0
+.Err	
+	movem.l	(sp)+,d2-d7/a0-a6
+	rts
+
+;------------------------------------------------------------------------
+; shared things
+
+HunkReloc32		=	1004 ;$3ec
+HunkCode		=	1001 ;$3e9
+HunkData		=	1002 ;$3ea
+HunkBss			=	1003 ;$3eb
+HunkSymbol		=	1008 ;$3f0
+HunkDebug		=	1009 ;$3f1
+HunkEnd			=	1010 ;$3f2
+HunkHeader		=	1011 ;$3f3
+HunkReloc32Short	=	1015 ;$3f7
+
+;Copied from my original FileShield
+
+RemapHeader:
+	move.l	a1,a3		;File addy
+	
+	move.l	a3,a4
+	subq.l	#1,8(a3)
+	subq.l	#1,16(a3)
+
+	move.l	16(a3),20(a3)
+	move.l	12(a3),16(a3)
+	move.l	8(a3),12(a3)
+	move.l	4(a3),8(a3)
+	move.l	(a3),4(a3)
+
+.lop
+	cmp.l	#HunkCode,(a4)+
+	bne.b	.lop
+	rts
+
+HunkCor:
+	move.l	a5,a6
+	subq.l	#4,a4
+
+.lop2
+	move.l	-(a4),-(a5)
+	cmpa.l	a3,a4
+	bne.b	.lop2
+	move.l	-(a3),-(a5)
+	move.l	-(a3),-(a5)
+
+	move.l	a6,a4
+
+	subq.l	#4,a4
+.Recalc
+	addq.l	#4,a4
+.RecLoop
+	move.l	(a4)+,d6
+
+	cmp.w	#HunkReloc32,d6
+	bne.b	.Next
+.loop	move.l	(a4)+,d6
+	beq.b	.RecLoop
+	subq.l	#1,(a4)+
+	lsl.l	#2,d6
+	add.l	d6,a4
+	bra.b	.loop
+.Next
+
+	cmp.w	#HunkReloc32Short,d6
+	bne.b	.NextToShort
+.loop2	
+	moveq	#0,d6
+	move.w	(a4)+,d6
+	tst.l	d6
+	beq.b	.RecLoop
+	
+	subq.w	#$1,(a4)+
+	lsl.l	#1,d6
+	add.l	d6,a4
+	bra.b	.loop2
+.NextToShort
+
+	cmp.w	#HunkCode,d6
+	beq.b	.CodeDataDebug
+
+	cmp.w	#HunkData,d6
+	beq.b	.CodeDataDebug
+
+	cmp.w	#HunkBss,d6
+	beq.b	.Recalc
+
+	cmp.w	#HunkSymbol,d6
+	bne.b	.Next2
+.loop3
+	move.l	(a4)+,d6
+	beq.b	.RecLoop
+	addq.l	#1,d6
+	lsl.l	#2,d6
+	add.l	d6,a4
+	bra.b	.loop3
+	
+.Next2
+	cmp.w	#HunkDebug,d6
+	beq.b	.CodeDataDebug
+
+	cmp.w	#HunkEnd,d6
+	beq.b	.RecLoop
+
+	movem.l	(sp)+,d1-a6
+	rts
+
+.CodeDataDebug
+	move.l	(a4)+,d6
+	lsl.l	#2,d6
+	add.l	d6,a4
+	bra.b	.RecLoop

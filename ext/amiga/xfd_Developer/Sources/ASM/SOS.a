@@ -1,0 +1,504 @@
+;*---------------------------------------------------------------------------
+;  :Program.	SOS.asm
+;  :Contents.	Sanity Operating System Decruncher for XFDMaster.Library
+;  :Author.	Wepl
+;  :History.	04.10.99 created
+;  :Copyright.	Public Domain
+;  :Language.	68000 Assembler
+;  :Translator.	Barfly 2.9
+;---------------------------------------------------------------------------*
+;##########################################################################
+
+	INCDIR	Includes:
+	INCLUDE	lvo/exec.i
+	INCLUDE	libraries/xfdmaster.i
+	
+	OUTPUT	Libs:xfd/SOS
+
+MAXHUNKS	= 15		;files with more hunks wont recognized
+MAXHEADER	= 20 + (4*MAXHUNKS) + 8 + 4
+
+;##########################################################################
+;----------------------------------------
+; XFD-Library-Header
+
+		moveq	#-1,d0
+		rts	
+		dc.l	XFDF_ID		;id
+		dc.w	XFDF_VERSION	;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	_xfdSlave1	;first slave
+
+;----------------------------------------
+; version string
+
+		dc.b	'$VER: SOS 1.0 '
+	DOSCMD	"WDate >T:date"
+	INCBIN	T:date
+		dc.b	' by Wepl for xfdmaster.library',0
+	CNOP 0,4
+
+;----------------------------------------
+; xfdSlave-structure
+
+_xfdSlave1	dc.l	0		; next slave
+		dc.w	XFDS_VERSION	; structure version
+		dc.w	36		; req xfdmaster version
+		dc.l	_name1		; cruncher name
+	;	dc.w	XFDPFF_RELOC	; cruncher flags
+		dc.w	XFDPFF_DATA	; cruncher flags
+		dc.w	0		; max length of special info (passwd)
+		dc.l	_check1		; recog buffer routine
+		dc.l	_decrunch1	; decrunch buffer routine
+		dc.l	0		; segment recog routine
+		dc.l	0		; segment decrunch routine
+		dc.w	0		; slave ID
+		dc.w	0		; replace slave ID
+		dc.l	MAXHEADER	; min
+
+;----------------------------------------
+; name of packer
+
+_name1		dc.b	'SOS Executable (Sanity-Operating-System)',0
+	EVEN
+
+;----------------------------------------
+; code to check crunched
+; Übergabe :	D0 = ULONG data size
+;		A0 = APTR  data
+; Rückgabe :	D0 = BOOL  success
+
+_check1		addq.w	#8,a0		;id,name
+		move.l	(a0)+,d0	;amount of hunks
+		cmp.l	#MAXHUNKS,d0
+		bhi	.no
+		addq.w	#8,a0		;first,last hunk
+		lsl.l	#2,d0
+		add.l	d0,a0		;hunk sizes
+		cmp.l	#$4e9,(a0)
+		bne	.no
+		moveq	#-1,d0
+		rts
+
+.no		moveq	#0,d0
+		rts
+
+;----------------------------------------
+; code to decrunch the file
+; Übergabe :	A0 = APTR xfdBufferInfo
+; Rückgabe :	D0 = BOOL success
+
+_decrunch1	movem.l	a4-a6,-(a7)
+		move.l	a0,a5				;A5 = xfdbi
+		move.l	(xfdbi_SourceBufLen,a5),d0
+		move.l	(xfdbi_SourceBuffer,a5),a0
+		bsr	_calcsize
+		moveq	#XFDERR_CORRUPTEDDATA,d1
+		tst.l	d0
+		beq	.quit
+		move.l	d0,(xfdbi_TargetBufLen,a5)
+		move.l	d0,(xfdbi_TargetBufSaveLen,a5)
+		move.l	(xfdbi_TargetBufMemType,a5),d1
+		move.l	(4).w,a6
+		jsr	(_LVOAllocMem,a6)
+		move.l	d0,(xfdbi_TargetBuffer,a5)
+		bne	.memok
+		moveq	#XFDERR_NOMEMORY,d1
+		bra	.quit
+		
+.memok		move.l	d0,a1
+		move.l	(xfdbi_SourceBuffer,a5),a0
+		move.l	(xfdbi_SourceBufLen,a5),d0
+		move.l	(xfdbi_TargetBufLen,a5),d1
+		bsr	_decrunch
+		tst.l	d0
+		bne	.decok
+		move.l	(xfdbi_TargetBufLen,a5),d0
+		move.l	(xfdbi_TargetBuffer,a5),a1
+		jsr	(_LVOFreeMem,a6)
+		moveq	#0,d0
+		moveq	#XFDERR_CORRUPTEDDATA,d1
+		bra	.quit
+
+.decok	;	move.l	d0,(xfdbi_TargetBufSaveLen,a5)
+		moveq	#0,d1		;errcode
+		moveq	#-1,d0
+
+.quit		move.w	d1,(xfdbi_Error,a5)
+		movem.l	(a7)+,a4-a6
+		rts	
+
+;--------------------------------
+; Übergabe :	D0 = ULONG size of source
+;		A0 = APTR source
+; Rückgabe :	D0 = ULONG size decrunched
+
+_calcsize	movem.l	d0/d2,-(a7)
+
+		addq.l	#8,a0		;id,name
+		move.l	(a0)+,d1	;how many hunks
+		addq.l	#8,a0		;first,last
+		lsl.l	#2,d1
+		add.l	d1,a0
+		lsr.l	#2,d1
+		
+.nexthunk	move.l	(a0)+,d0
+		and.l	#$3fffffff,d0	;discard memory flags
+		cmp.l	#$3E9,d0	;code
+		beq	.addlws
+		cmp.l	#$4E9,d0	;code (Sanity Operating System)
+		beq	.addbytes
+		cmp.l	#$3EA,d0	;data
+		beq	.addlws
+		cmp.l	#$3EB,d0	;bss
+		bne	.n1
+		addq.l	#4,a0
+		bra	.nexthunk
+.n1		cmp.l	#$3EC,d0	;reloc32
+		beq	.relocs
+		cmp.l	#$3F2,d0	;end
+		bne	.err
+		subq.l	#1,d1		;d1 = hunk counter
+		beq	.end
+		bra	.nexthunk
+
+.corrupt
+.err		clr.l	(a7)
+.end		movem.l	(a7)+,_MOVEMREGS
+		rts
+
+.addbytes	move.l	(a0)+,d0
+		bmi	.corrupt
+		cmp.l	#"IMP!",(a0)
+		bne	.corrupt
+		addq.l	#3,d0
+		and.w	#$fffc,d0
+		move.l	(4,a0),d2	;unpacked imp! file
+		sub.l	d0,d2		;difference
+		add.l	d2,(a7)
+		add.l	d0,a0
+		bra	.nexthunk
+
+.addlws		move.l	(a0)+,d0
+		add.l	d0,d0
+		add.l	d0,d0
+		bmi	.corrupt
+		add.l	d0,a0
+		bra	.nexthunk
+
+.relocs		move.l	(a0)+,d0	;Anzahl der relocs
+		beq	.nexthunk
+		addq.l	#4,a0		;Hunk auf den sich relocs beziehen
+		add.l	d0,d0
+		add.l	d0,d0
+		bmi	.corrupt
+		add.l	d0,a0
+		bra	.relocs
+
+;--------------------------------
+; Defender of the crown
+; Übergabe :	D0 = ULONG size of source buffer
+;		D1 = ULONG size of destination buffer
+;		A0 = APTR source
+;		A1 = APTR destination
+; Rückgabe :	D0 = BOOL success
+
+chksrc		MACRO
+	cmp.l	a0,a5
+	bls	.bad
+		ENDM
+chkdst		MACRO
+	cmp.l	a1,a6
+	bls	.bad
+		ENDM
+
+_decrunch	movem.l	d2-d7/a2-a6,-(a7)
+		move.l	a1,a3			;A3 start of dest
+		move.l	a7,a4			;A4 saved sp
+		lea	(a0,d0.l),a5		;A5 end of source
+		lea	(a1,d1.l),a6		;A6 end of dest
+		move.l	(a0)+,(a1)+	;3f3
+		move.l	(a0)+,(a1)+	;name
+		bne	.bad
+		move.l	(a0)+,d7		;D7 amount hunks
+		move.l	d7,(a1)+
+		move.l	(a0)+,(a1)+	;first
+		move.l	(a0)+,(a1)+	;last
+		move.l	d7,d0
+.l1		move.l	(a0)+,(a1)+	;hunk lengths
+		subq.l	#1,d0
+		bne	.l1
+
+.nexthunk	chksrc
+		move.l	(a0)+,d0
+		chkdst
+		move.l	d0,(a1)+
+		and.l	#$3fffffff,d0	;discard memory flags
+		cmp.l	#$3E9,d0	;code
+		beq	.code
+		cmp.l	#$4E9,d0	;code (Sanity Operating System)
+		beq	.codesos
+		cmp.l	#$3EA,d0	;data
+		beq	.data
+		cmp.l	#$3EB,d0	;bss
+		beq	.bss
+		cmp.l	#$3EC,d0	;reloc32
+		beq	.reloc32
+		cmp.l	#$3F2,d0	;end
+		bne	.bad
+		subq.l	#1,d7		;d7 = hunk counter
+		bne	.nexthunk
+		
+		moveq	#-1,d0		;success
+
+.end		movem.l	(a7)+,_MOVEMREGS
+		rts
+
+.bad		moveq	#0,d0
+		bra	.end
+
+.codesos	sub.w	#$100,(-2,a1)
+		move.l	(a0)+,d2	;packed length in bytes
+		move.l	(4,a0),d3	;unpacked length
+		move.l	d3,d0
+		lsr.l	#2,d0
+		chkdst
+		move.l	d0,(a1)+
+		bsr	_IMP_Decrunch
+		tst.l	d0
+		beq	.bad
+		addq.l	#3,d2
+		and.w	#$fffc,d2
+		add.l	d2,a0
+		add.l	d3,a1
+		bra	.nexthunk
+
+.code
+.data		chksrc
+		move.l	(a0)+,d0
+		chkdst
+		move.l	d0,(a1)+
+		bmi	.bad
+		beq	.nexthunk
+.data1		chksrc
+		chkdst
+		move.l	(a0)+,(a1)+
+		subq.l	#1,d0
+		bne	.data1
+		bra	.nexthunk
+
+.bss		chksrc
+		chkdst
+		move.l	(a0)+,(a1)+
+		bra	.nexthunk
+
+.reloc32	chksrc
+		chkdst
+		move.l	(a0)+,d0	;Anzahl der relocs
+		move.l	d0,(a1)+
+		beq	.nexthunk
+		chksrc
+		chkdst
+		move.l	(a0)+,(a1)+	;Hunk auf den sich relocs beziehen
+.r1		chksrc
+		chkdst
+		move.l	(a0)+,(a1)+
+		subq.l	#1,d0
+		bne	.r1
+		bra	.reloc32
+
+;----------------------------------------
+;	Übergabe :	a0  =  APTR auf Source-Daten
+;			a1  =  APTR auf Dest-Speicher
+;	Rückgabe :	d0  =  ULONG success (NULL = Fehler)
+;
+;	Fileformat :	$0	dc.b	"ATN!"
+;			$4	ULONG	Length unpacked
+;			$8	ULONG	Length packed
+;			$A	Daten...
+
+_IMP_Decrunch	MOVEM.L	D1-A6,-(A7)
+		MOVEA.L	A0,A3
+		MOVEA.L	A1,A4
+		MOVEA.L	A1,A5
+		CMPI.L	#"IMP!",(A0)+
+		BNE.B	L_50
+		ADDA.L	(A0)+,A4
+		ADDA.L	(A0)+,A3
+		MOVEA.L	A3,A2
+		MOVE.L	(A2)+,-(A0)
+		MOVE.L	(A2)+,-(A0)
+		MOVE.L	(A2)+,-(A0)
+		MOVE.L	(A2)+,D2
+		MOVE.W	(A2)+,D3
+		BMI.B	L_26
+		SUBQ.L	#1,A3
+L_26		LEA	-$001C(A7),A7
+		MOVEA.L	A7,A1
+		MOVEQ	#6,D0
+L_2E		MOVE.L	(A2)+,(A1)+
+		DBRA	D0,L_2E
+		MOVEA.L	A7,A1
+		MOVEQ	#0,D4
+L_38		TST.L	D2
+		BEQ.B	L_42
+L_3C		MOVE.B	-(A3),-(A4)
+		SUBQ.L	#1,D2
+		BNE.B	L_3C
+L_42		CMPA.L	A4,A5
+		BCS.B	L_5A
+		LEA	$001C(A7),A7
+		MOVEQ	#-1,D0
+		CMPA.L	A3,A0
+		BEQ.B	L_52
+L_50		MOVEQ	#0,D0
+L_52		MOVEM.L	(A7)+,D1-A6
+		RTS
+
+L_5A		ADD.B	D3,D3
+		BNE.B	L_62
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_62		BCC.B	L_C8
+		ADD.B	D3,D3
+		BNE.B	L_6C
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_6C		BCC.B	L_C2
+		ADD.B	D3,D3
+		BNE.B	L_76
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_76		BCC.B	L_BC
+		ADD.B	D3,D3
+		BNE.B	L_80
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_80		BCC.B	L_B6
+		ADD.B	D3,D3
+		BNE.B	L_8A
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_8A		BCC.B	L_92
+		MOVE.B	-(A3),D4
+		MOVEQ	#3,D0
+		BRA.B	L_CC
+
+L_92		ADD.B	D3,D3
+		BNE.B	L_9A
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_9A		ADDX.b	D4,D4
+		ADD.B	D3,D3
+		BNE.B	L_A4
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_A4		ADDX.b	D4,D4
+		ADD.B	D3,D3
+		BNE.B	L_AE
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_AE		ADDX.b	D4,D4
+		ADDQ.B	#6,D4
+		MOVEQ	#3,D0
+		BRA.B	L_CC
+
+L_B6		MOVEQ	#5,D4
+		MOVEQ	#3,D0
+		BRA.B	L_CC
+
+L_BC		MOVEQ	#4,D4
+		MOVEQ	#2,D0
+		BRA.B	L_CC
+
+L_C2		MOVEQ	#3,D4
+		MOVEQ	#1,D0
+		BRA.B	L_CC
+
+L_C8		MOVEQ	#2,D4
+		MOVEQ	#0,D0
+L_CC		MOVEQ	#0,D5
+		MOVE.W	D0,D1
+		ADD.B	D3,D3
+		BNE.B	L_D8
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_D8		BCC.B	L_F0
+		ADD.B	D3,D3
+		BNE.B	L_E2
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_E2		BCC.B	L_EC
+		MOVE.B	L_150(PC,D0.W),D5
+		ADDQ.B	#8,D0
+		BRA.B	L_F0
+
+L_EC		MOVEQ	#2,D5
+		ADDQ.B	#4,D0
+L_F0		MOVE.B	L_154(PC,D0.W),D0
+L_F4		ADD.B	D3,D3
+		BNE.B	L_FC
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_FC		ADDX.w	D2,D2
+		SUBQ.B	#1,D0
+		BNE.B	L_F4
+		ADD.W	D5,D2
+		MOVEQ	#0,D5
+		MOVEA.L	D5,A2
+		MOVE.W	D1,D0
+		ADD.B	D3,D3
+		BNE.B	L_112
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_112		BCC.B	L_12E
+		ADD.W	D1,D1
+		ADD.B	D3,D3
+		BNE.B	L_11E
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_11E		BCC.B	L_128
+		MOVEA.W	8(A1,D1.W),A2
+		ADDQ.B	#8,D0
+		BRA.B	L_12E
+
+L_128		MOVEA.W	(A1,D1.W),A2
+		ADDQ.B	#4,D0
+L_12E		MOVE.B	$0010(A1,D0.W),D0
+L_132		ADD.B	D3,D3
+		BNE.B	L_13A
+		MOVE.B	-(A3),D3
+		ADDX.b	D3,D3
+L_13A		ADDX.l	D5,D5
+		SUBQ.B	#1,D0
+		BNE.B	L_132
+		ADDQ.W	#1,A2
+		ADDA.L	D5,A2
+		ADDA.L	A4,A2
+L_146		MOVE.B	-(A2),-(A4)
+		SUBQ.B	#1,D4
+		BNE.B	L_146
+		BRA.W	L_38
+
+L_150		DC.B	6
+		DC.B	$A
+		DC.B	$A
+		DC.B	$12
+L_154		DC.B	1
+		DC.B	1
+		DC.B	1
+		DC.B	1
+		DC.B	2
+		DC.B	3
+		DC.B	3
+		DC.B	4
+		DC.B	4
+		DC.B	5
+		DC.B	7
+		DC.B	$E
+
+;##########################################################################
+
+	END
+

@@ -1,0 +1,409 @@
+*******************************************************
+**      XFD external decruncher for XP10 Cruncher    **
+**        written by Mr. Larmer / Wanted Team        **
+**	   shortened and fixed by SDI in 1999  	     **
+*******************************************************
+
+		INCLUDE	AINCLUDE:IncDirs.i
+		INCLUDE	libraries/xfdmaster.i
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_XP10		;first slave
+
+		dc.b	"$VER: XP10 2.1 (23.12.2000)",0
+N_XP10		dc.b	"(XP10) Data Cruncher",0
+		EVEN
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_XP10		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_XP10		;name
+		dc.w	XFDPFF_DATA|XFDPFF_RECOGLEN|XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_XP10		;recog buffer
+		dc.l	DB_XP10		;decrunch buffer
+		dc.l	SD_XP10
+		dc.l	VD_XP10
+		dc.w	0,0
+		dc.l	20
+
+RB_XP10		MOVEQ	#0,D0
+		CMP.L	#"XP10",(A0)
+		BNE.B	.Exit
+		MOVE.L	4(A0),D0
+		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		ADD.L	#1024,D0
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		MOVEQ	#20,D0
+		ADD.L	16(A0),D0
+		MOVE.L	D0,xfdrr_MinSourceLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+SD_XP10		MOVEQ	#0,D0
+		CMP.L	#"XP10",(A0)
+		BNE.B	.end
+		MOVEQ	#1,D0
+.end		RTS
+
+VD_XP10		MOVEQ	#20,D1
+		ADD.L	16(A0),D1	;crlen
+		CMP.L	D0,D1		;crlen > buflen ??
+		BGT.B	.Exit
+		MOVE.L	4(A0),D0
+		SUB.L	16(A0),D0	;cr > uncr ??
+		BMI.B	.Exit
+		MOVE.L	D1,D0
+		RTS
+.Exit		MOVEQ	#0,D0
+		RTS
+
+;-------------------------------------------------
+
+;Decrunch buffer function: receives bufferinfo in a0
+
+DB_XP10		MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVE.L	A0,A5
+		LEA	-1024(A7),A7
+		MOVE.L	A7,A3
+
+		MOVE.L	xfdbi_SourceBuffer(A5),A2
+		ADDQ.L	#4,A2
+		MOVE.L	xfdbi_UserTargetBuf(A5),A0
+		MOVEM.L	(A2)+,D0-D3
+		MOVE.L	A0,A6
+		ADDA.L	D0,A6
+		ADDQ.L	#4,A6
+		MOVEA.L	A6,A1
+		SUBA.L	D1,A1
+		BSR.B	Sub1
+		MOVEA.L	A6,A2
+		BSR.W	Sub2
+		MOVEA.L	A6,A1
+		BSR.W	Sub3
+
+		LEA	1024(A7),A7
+		MOVEQ	#1,D0
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+Sub1		MOVE.L	D2,D6
+		SUBQ.L	#1,D6
+		MOVE.L	D6,D7
+		SWAP	D7
+		MOVEA.L	A3,A5
+		MOVEQ	#0,D0
+		MOVEQ	#0,D1
+		MOVEQ	#0,D2
+		MOVEQ	#0,D3
+		MOVEQ	#0,D4
+		MOVEQ	#$0010,D5
+.S1_01		MOVE.B	(A2)+,D0
+		MOVE.B	(A2)+,D1
+		ADD.W	D0,D2
+		ADD.W	D0,D3
+		ADD.W	D1,D4
+		MOVE.W	D2,$20(A5)
+		MOVE.W	D3,$40(A5)
+		SUB.W	D2,$40(A5)
+		ADD.W	D1,D2
+		MOVE.W	#$80,$60(A5)
+		ADD.W	D4,$60(A5)
+		SUB.W	D2,$60(A5)
+		MOVE.W	D2,(A5)+
+		ADD.W	D2,D2
+		SUBQ.W	#1,D5
+		BNE.B	.S1_01
+		LEA	$60(A5),A5
+		MOVEA.L	A5,A4
+		MOVE.W	D4,D2
+		ADD.W	#$80,D2
+.S1_02		MOVE.W	(A2)+,(A4)+
+		SUBQ.W	#1,D2
+		BNE.B	.S1_02
+		MOVEA.L	A3,A4
+		MOVE.W	(A2)+,D0
+		BRA.B	.S1_05
+
+.S1_03		MOVEA.L	A3,A4
+		MOVEQ	#0,D2
+		DBRA	D0,.S1_06
+.S1_04		MOVEQ	#$1F,D0
+.S1_05		MOVE.L	(A2)+,D1
+.S1_06		ADD.L	D1,D1
+		ADDX	D2,D2
+		CMP.W	(A4)+,D2
+		DBCS	D0,.S1_06
+		BCC.B	.S1_04
+		CMP.W	$1E(A4),D2
+		BCC.B	.S1_07
+		ADD.W	$3E(A4),D2
+		MOVE.B	(A5,D2.W),(A0)+
+		DBRA	D6,.S1_03
+		DBRA	D7,.S1_03
+		RTS	
+
+.S1_07		ADD.W	$005E(A4),D2
+		ADD.W	D2,D2
+		MOVE.B	(A5,D2.W),(A0)+
+		MOVE.B	1(A5,D2.W),(A0)+
+		SUBQ.W	#2,D6
+		BCC.B	.S1_03
+		DBRA	D7,.S1_03
+		RTS
+
+Sub2		MOVEQ	#0,D0
+		MOVEA.L	A3,A4
+.S2_01		CLR.W	(A4)+
+		ADDQ.B	#1,D0
+		BNE.B	.S2_01
+		LEA	.S2_FTab(PC),A4
+		MOVEQ	#4,D1
+.S2_02		MOVEQ	#0,D0
+		MOVE.B	-(A0),D0
+		ADD.W	D0,D0
+		MOVE.W	(A4)+,(A3,D0.W)
+		DBRA	D1,.S2_02
+		MOVE.W	#$70,D1
+		MOVEQ	#4,D2
+.S2_03		MOVEQ	#0,D0
+		MOVE.B	-(A0),D0
+		ADD.W	D0,D0
+		MOVE.W	D1,(A3,D0.W)
+		ADDQ.W	#6,D1
+		DBRA	D2,.S2_03
+		MOVE.W	#$A4,D1
+		MOVEQ	#$11,D2
+.S2_04		MOVEQ	#0,D0
+		MOVE.B	-(A0),D0
+		ADD.W	D0,D0
+		MOVE.W	D1,(A3,D0.W)
+		ADDQ.W	#6,D1
+		DBRA	D2,.S2_04
+.S2_05		MOVEQ	#0,D1
+		MOVEQ	#0,D2
+		MOVE.B	-(A0),D0
+		MOVE.B	D0,D2
+		ADD.W	D2,D2
+		MOVE.W	(A3,D2.W),D2
+		JMP	.S2_06(PC,D2.W)
+.S2_06		MOVE.B	D0,-(A2)
+.S2_07		CMPA.L	A2,A1
+		BCS.B	.S2_05
+		RTS	
+.S2_08		MOVE.B	-(A0),D1
+		BEQ.B	.S2_06
+		MOVEQ	#6,D2
+		BRA.W	.S2_15
+.S2_09		MOVE.B	-(A0),D1
+		BEQ.B	.S2_06
+		MOVE.W	D1,D2
+		LSL.W	#8,D1
+		MOVE.B	-(A0),D1
+		ANDI.W	#$3FF,D1
+		LSR.W	#2,D2
+		ADDQ.W	#3,D2
+		BRA.W	.S2_15
+.S2_10		MOVE.B	-(A0),D1
+		BEQ.B	.S2_06
+		LSL.W	#8,D1
+		MOVE.B	-(A0),D1
+		MOVEQ	#3,D2
+		CMPI.W	#-$4000,D1
+		BCS.W	.S2_15
+		MOVE.W	#$400,D3
+.S2_11		ANDI.W	#$3FFF,D1
+		MOVE.W	D1,D2
+		LSR.W	#3,D1
+		ADD.W	D3,D1
+		ANDI.W	#7,D2
+		ADDQ.W	#3,D2
+		BRA.W	.S2_15
+.S2_12		MOVE.B	-(A0),D1
+		BEQ.B	.S2_06
+		LSL.W	#8,D1
+		MOVE.B	-(A0),D1
+		MOVE.W	#$0C00,D3
+		CMPI.W	#-$4000,D1
+		BCC.B	.S2_11
+		SUBI.W	#$0100,D1
+		MOVEQ	#0,D2
+		MOVE.B	-(A0),D2
+		BRA.W	.S2_15
+		MOVE.W	#$1400,D3
+		BRA.B	.S2_13
+		MOVE.W	#$3400,D3
+		BRA.B	.S2_13
+		MOVE.W	#$5400,D3
+		BRA.B	.S2_13
+		MOVE.W	#$7400,D3
+		BRA.B	.S2_13
+		MOVE.W	#-$6C00,D3
+.S2_13		MOVE.B	-(A0),D1
+		BEQ.W	.S2_06
+		MOVE.W	D1,D2
+		LSL.W	#8,D1
+		MOVE.B	-(A0),D1
+		ANDI.W	#$1FFF,D1
+		ADD.W	D3,D1
+		LSR.W	#5,D2
+		ADDQ.W	#3,D2
+		BRA.B	.S2_15
+		MOVE.W	#0,D3
+		BRA.B	.S2_14
+		MOVE.W	#$003F,D3
+		BRA.B	.S2_14
+		MOVE.W	#$007E,D3
+		BRA.B	.S2_14
+		MOVE.W	#$00BD,D3
+		BRA.B	.S2_14
+		MOVE.W	#$00FC,D3
+		BRA.B	.S2_14
+		MOVE.W	#$013B,D3
+		BRA.B	.S2_14
+		MOVE.W	#$017A,D3
+		BRA.B	.S2_14
+		MOVE.W	#$01B9,D3
+		BRA.B	.S2_14
+		MOVE.W	#$01F8,D3
+		BRA.B	.S2_14
+		MOVE.W	#$0237,D3
+		BRA.B	.S2_14
+		MOVE.W	#$0276,D3
+		BRA.B	.S2_14
+		MOVE.W	#$02B5,D3
+		BRA.B	.S2_14
+		MOVE.W	#$02F4,D3
+		BRA.B	.S2_14
+		MOVE.W	#$0333,D3
+		BRA.B	.S2_14
+		MOVE.W	#$0372,D3
+		BRA.B	.S2_14
+		MOVE.W	#$03B1,D3
+		BRA.B	.S2_14
+		MOVE.W	#$03F0,D3
+		BRA.B	.S2_14
+		MOVE.W	#$042F,D3
+.S2_14		MOVE.B	-(A0),D1
+		BEQ.W	.S2_06
+		MOVE.W	D1,D2
+		LSR.W	#2,D1
+		ADD.W	D3,D1
+		ANDI.W	#3,D2
+		ADDQ.W	#2,D2
+.S2_15		LEA	(A2,D1.L),A5
+.S2_16		MOVE.B	-(A5),-(A2)
+		DBRA	D2,.S2_16
+		BRA.W	.S2_07
+.S2_17		MOVE.B	-(A0),D1
+		BEQ.W	.S2_06
+		MOVE.B	D1,D2
+		ANDI.B	#$003F,D1
+		LSR.B	#5,D2
+		ANDI.W	#6,D2
+		MOVE.W	.S2_Data(PC,D2.W),D2
+		EXT.L	D2
+		MOVE.B	-(A0),D3
+		LSL.W	#8,D3
+		MOVE.B	-(A0),D3
+		LSL.L	#8,D3
+		MOVE.B	-(A0),D3
+		LSL.L	#8,D3
+		MOVE.B	-(A0),D3
+.S2_18		MOVEQ	#0,D4
+		MOVE.B	-(A0),D4
+		MOVE.B	D3,-(A2)
+		ROR.L	#8,D3
+		MOVE.B	D3,-(A2)
+		ROR.L	#8,D3
+		MOVE.B	D3,-(A2)
+		ROR.L	#8,D3
+		MOVE.B	D3,-(A2)
+		ROR.L	#8,D3
+		ADD.L	D2,D4
+		SUB.L	D4,D3
+		DBRA	D1,.S2_18
+		ADDQ.L	#1,A0
+		BRA.W	.S2_07
+
+.S2_Data	DC.W	-$80
+		DC.W	0
+		DC.W	$100
+		DC.W	$200
+
+.S2_FTab	DC.W	.S2_08-.S2_06
+		DC.W	.S2_09-.S2_06
+		DC.W	.S2_10-.S2_06
+		DC.W	.S2_12-.S2_06
+		DC.W	.S2_17-.S2_06
+
+Sub3		MOVEA.L	A3,A4
+		MOVEQ	#0,D0
+.S3_01		CLR.B	(A4)+
+		ADDQ.B	#1,D0
+		BNE.B	.S3_01
+		MOVE.B	(A2)+,D0
+		MOVE.B	#8,(A3,D0.W)
+		MOVE.B	(A2)+,D0
+		MOVE.B	#$0014,(A3,D0.W)
+		MOVE.B	(A2)+,D0
+		MOVE.B	#$001C,(A3,D0.W)
+.S3_02		MOVEQ	#0,D1
+		MOVE.B	(A2)+,D0
+		MOVE.B	(A3,D0.W),D1
+		JMP	.S3_03(PC,D1.W)
+.S3_03		MOVE.B	D0,(A0)+
+.S3_04		CMPA.L	A1,A0
+		BCS.B	.S3_02
+		RTS	
+		MOVE.B	(A2)+,D1
+		BEQ.B	.S3_03
+		MOVE.B	D1,(A0)+
+		MOVE.B	D1,(A0)+
+		MOVE.B	D1,(A0)+
+		BRA.B	.S3_04
+		MOVE.B	(A2)+,D1
+		BEQ.B	.S3_03
+		MOVEQ	#0,D2
+		BRA.B	.S3_05
+		MOVE.B	(A2)+,D2
+		BEQ.B	.S3_03
+		MOVE.B	(A2)+,D1
+.S3_05		SUBQ.B	#3,D1
+		BCS.B	.S3_07
+		MOVE.B	D2,(A0)+
+		MOVE.B	D2,(A0)+
+.S3_06		MOVE.B	D2,(A0)+
+		DBRA	D1,.S3_06
+		BRA.B	.S3_04
+.S3_07		ADDQ.B	#1,D1
+		BNE.B	.S3_08
+		MOVE.B	(A2)+,D1
+		LSL.W	#8,D1
+		MOVE.B	(A2)+,D1
+		SWAP	D1
+.S3_08		MOVE.B	(A2)+,D1
+		LSL.W	#8,D1
+		MOVE.B	(A2)+,D1
+		MOVE.L	D1,D3
+		SWAP	D3
+.S3_09		MOVE.B	D2,(A0)+
+		DBRA	D1,.S3_09
+		DBRA	D3,.S3_09
+		BRA.B	.S3_04
+
+		END

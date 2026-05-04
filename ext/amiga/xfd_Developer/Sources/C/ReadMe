@@ -1,0 +1,35 @@
+This stuff was written to demonstarte how to make xfd slaves with C
+language (and because I had the source codes in C :-)
+
+These examples use SAS-C as compiler, but it should be possible to use
+any other C compiler as well.
+Some things are important, when you use another compiler: 
+- Either extheader.o or ExeHead.o must be linked as first file.
+- You have to link without startup code.
+- You should use global data model.
+- You may not use any functions, which require dos.library in xfd Slave
+  version (with extheader.o).
+- Maxon C for example does not support local library bases.
+
+There are two possible file types, which can be created:
+
+1) Three xfd Slaves called UNIX-Compress, GZip and LHA3. This is done by
+   linking extheader.o as first object.
+   Call 'smake' or 'smake XFD' to get this result.
+2) Three normal executables, which enables you to test your routines. This
+   is done by linking ExeHead.o as first object.
+   Call 'smake EXE' to get this result.
+   The executable can get two parameters: the infile and possibly an
+   outfile. When no outfile is given, then the save routine is skipped.
+3) Call 'smake All' to get both results.
+
+Object files are created in T: and thus need not to be deleted from
+source directory.
+
+The files extheader.c and ExeHead.c are made in a way which allows to use
+them for other slaves as well.
+
+Dirk Stöcker <stoecker@epost.de>
+
+14th July 1999
+

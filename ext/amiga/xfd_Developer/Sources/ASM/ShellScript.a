@@ -1,0 +1,80 @@
+* Programmheader
+*
+*	Name:		ShellScript
+*	Author:		SDI
+*	Distribution:	PD
+*	Description:	XFD external decruncher for Startup-Coder II
+*	Compileropts:	-
+*	Linkeropts:	-
+*
+* 1.0   11.02.01 : first version
+
+		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE	"exec/memory.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+ForeMan		MOVEQ	#-1,D0		;security
+		RTS
+
+		DC.L	XFDF_ID
+		DC.W	1,0
+		DC.L	0,0,S_ShellScript
+
+		DC.B	"$VER: ShellScript 1.0 (11.02.2001) by SDI",0
+N_ShellScript	DC.B	'ShellScript Exe',0
+		EVEN
+
+S_ShellScript	DC.L	0		;next slave
+		DC.W	2		;version
+		DC.W	39		;master version
+		DC.L	N_ShellScript	;name
+		DC.W	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		DC.W	0
+		DC.L	RB_ShellScript	;recog buffer
+		DC.L	DB_ShellScript	;decrunch buffer
+		DC.L	0
+		DC.L	0
+		DC.W	0,0
+		DC.L	$4B8		;MinBufSize
+
+RB_ShellScript	MOVEQ	#0,D0			; False
+
+		CMP.L	#$000003F3,(A0)
+		BNE.B	.No
+		CMP.L	#$4EF90000,$24(A0)
+		BNE.B	.No
+		CMP.L	#$247C0000,$50(A0)
+		BNE.B	.No
+		CMP.L	#$04B8303C,$54(A0)
+		BNE.B	.No
+		CMP.L	#$03FF1831,$58(A0)
+		BNE.B	.No
+		LEA	$B2(A0),A0
+		MOVEQ	#0,D0
+.loop		CMPI.B	#$80,(A0)+
+		BEQ.B	.ok
+		ADDQ.L	#1,D0
+		BRA.B	.loop
+.ok		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		MOVEQ	#1,D0
+.No		RTS
+
+
+DB_ShellScript	MOVE.L	xfdbi_SourceBuffer(A0),A1
+		LEA	$B2(A1),A1
+		MOVE.L	xfdbi_TargetBufSaveLen(A0),D0
+		MOVE.L	xfdbi_UserTargetBuf(A0),A0
+		SUBQ.W	#1,D0
+.loop		MOVE.B	(A1)+,D1
+		SUBI.B	#$80,D1
+		MOVE.B	D1,(A0)+
+		DBRA.B	D0,.loop
+		MOVEQ	#1,D0
+		RTS
+
+
+		END

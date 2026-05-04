@@ -1,0 +1,917 @@
+*******************************************************
+**     XFD external decruncher for CRUN Cruncher     **
+**        written by Mr. Larmer / Wanted Team        **
+**            fixed by SDI in 2000/2001		     **
+**    small changes by Don Adan/WT in 2000/2001	     **
+**       quick fix by Ronald van Dijk in 2002        **
+*******************************************************
+
+	SECTION	CRUNDecrunch,CODE
+
+	INCLUDE	"AINCLUDE:IncDirs.i"
+	INCLUDE	"libraries/xfdmaster.i"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+F_CRUN		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_CRUN		;first slave
+
+		dc.b	"$VER: ByteKillerClone 2.5 (11.08.2002) by Wanted Team",0
+N_CRUN		dc.b	"(CRUN) Data Cruncher",0			;done!
+N_CRND		dc.b	"(CRND) Data Cruncher",0			;done!
+N_MARC		dc.b	"Exploder Style Data File",0			;done!
+N_xVdg		dc.b	"(xVdg) Data Cruncher",0			;done!
+N_AMOS		dc.b	"AMOS Compiler Cruncher",0
+N_ARPF		dc.b	"Action Replay II (ARPF) Data Cruncher",0	;done!
+N_ARP3		dc.b	"Action Replay III (ARP3) Data Cruncher",0	;done!
+N_ACE		dc.b	"(ACE!) Data Cruncher",0			;done!
+N_Pepsi		dc.b	'PACK Data (Pepsi Game)',0			;done!
+		even
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_CRUN		dc.l	S_CRND		;more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_CRUN		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_CRUN		;recog buffer
+		dc.l	DB_CRUN		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12+2
+
+RB_CRUN		cmp.l	#'CRUN',(A0)+
+		bne.s	.Exit
+		tst.b	(A0)
+		bne.b	.Exit
+		move.l	(A0)+,D1
+		beq.b	.Exit
+		btst	#0,D1
+		bne.b	.Exit
+		moveq	#12,D0
+		add.l	D0,D1
+		move.l	D1,xfdrr_MinSourceLen(A1)
+		tst.b	(A0)
+		bne.b	.Exit
+		move.l	(A0),D1
+		beq.b	.Exit
+		bmi.b	.Exit
+		move.l	D1,xfdrr_MinTargetLen(A1)
+		move.l	D1,xfdrr_FinalTargetLen(A1)
+		moveq	#1,d0
+		rts
+.Exit		moveq	#0,d0
+		rts
+
+DB_CRUN		movem.l	d2-d7/a2-a6,-(a7)
+		move.l	a0,a5
+		move.l	xfdbi_UserTargetBuf(A5),A1
+		move.l	xfdbi_SourceBuffer(A5),A0
+		move.l	4(a0),d0
+		move.l	8(a0),d1
+		lea	12(a0),a0
+		movea.l	a1,a2
+		adda.l	d1,a2
+		adda.l	d0,a0
+		move.l	-(a0),d5
+		move.l	-(a0),d0
+		bsr.s	D_CRUN
+		tst.l	d0
+		bne.b	Error
+		moveq	#1,d0
+Exit		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+Error2		move.l	xfdbi_TargetBufLen(a5),d0
+		move.l	xfdbi_TargetBuffer(a5),a1
+		jsr	-210(a6)
+Error		move.w	#XFDERR_CORRUPTEDDATA,xfdbi_Error(a5)
+		moveq	#0,d0
+		bra.b	Exit
+
+**************************************************
+
+Eoruj		move.l	-(a0),d0
+		eor.l	d0,d5
+		move.w	#$0010,ccr
+		roxr.l	#1,d0
+		rts
+
+D_CRUN		movem.l	d0-d7/a0-a6,-(sp)
+		eor.l	d0,d5
+lbC000046:	lsr.l	#1,d0
+		bne.s	lbC000054
+		bsr.b	Eoruj
+lbC000054:	bcs.s	lbC0000B0
+		moveq	#8,d1
+		moveq	#1,d3
+		lsr.l	#1,d0
+		bne.s	lbC000068
+		bsr.b	Eoruj
+lbC000068:	bcs.w	lbC0000FE
+		moveq	#3,d1
+		clr.w	d4
+lbC000070:	subq.w	#1,d1
+		clr.w	d2
+lbC000074:	lsr.l	#1,d0
+		bne.s	lbC000082
+		move.l	-(a0),d0
+		eor.l	d0,d5
+		move.w	#$0010,ccr
+		roxr.l	#1,d0
+lbC000082:	roxl.l	#1,d2
+		dbra	d1,lbC000074
+		move.w	d2,d3
+		add.w	d4,d3
+lbC00008C:	moveq	#7,d1
+lbC00008E:	lsr.l	#1,d0
+		bne.s	lbC00009C
+		move.l	-(a0),d0
+		eor.l	d0,d5
+		move.w	#$0010,ccr
+		roxr.l	#1,d0
+lbC00009C:	roxl.l	#1,d2
+		dbra	d1,lbC00008E
+		cmpa.l	a1,a2
+		ble.w	lbC00013A
+		move.b	d2,-(a2)
+		dbra	d3,lbC00008C
+		bra.s	lbC000120
+lbC0000AA:	moveq	#8,d1
+		moveq	#8,d4
+		bra.s	lbC000070
+lbC0000B0:	moveq	#2,d1
+		subq.w	#1,d1
+		clr.w	d2
+lbC0000B6:	lsr.l	#1,d0
+		bne.s	lbC0000C4
+		move.l	-(a0),d0
+		eor.l	d0,d5
+		move.w	#$0010,ccr
+		roxr.l	#1,d0
+lbC0000C4:	roxl.l	#1,d2
+		dbra	d1,lbC0000B6
+		cmpi.b	#2,d2
+		blt.s	lbC0000F6
+		cmpi.b	#3,d2
+		beq.s	lbC0000AA
+		moveq	#8,d1
+		subq.w	#1,d1
+		clr.w	d2
+lbC0000DC:	lsr.l	#1,d0
+		bne.s	lbC0000EA
+		move.l	-(a0),d0
+		eor.l	d0,d5
+		move.w	#$0010,ccr
+		roxr.l	#1,d0
+lbC0000EA:	roxl.l	#1,d2
+		dbra	d1,lbC0000DC
+		move.w	d2,d3
+		moveq	#12,d1
+		bra.s	lbC0000FE
+lbC0000F6:	moveq	#9,d1
+		add.w	d2,d1
+		addq.w	#2,d2
+		move.w	d2,d3
+lbC0000FE:	subq.w	#1,d1
+		clr.w	d2
+lbC000102:	lsr.l	#1,d0
+		bne.s	lbC000110
+		move.l	-(a0),d0
+		eor.l	d0,d5
+		move.w	#$0010,ccr
+		roxr.l	#1,d0
+lbC000110:	roxl.l	#1,d2
+		dbra	d1,lbC000102
+lbC000116:	subq.w	#1,a2
+		cmpa.l	a1,a2
+		blt.s	lbC00013A
+		move.b	0(a2,d2.w),(a2)		;move.b -1(A2,D2.W),-(A2)
+		dbra	d3,lbC000116
+lbC000120:	cmpa.l	a2,a1
+		blt.w	lbC000046
+		tst.l	d5
+		bne.s	lbC00013A
+		movem.l	(sp)+,d0-d7/a0-a6
+		moveq	#0,d0
+		rts
+lbC00013A:	movem.l	(sp)+,d0-d7/a0-a6
+		moveq	#-1,d0
+		rts
+
+**************************************************
+
+S_CRND		dc.l	S_MARC		;more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_CRND		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_CRND		;recog buffer
+		dc.l	DB_CRND		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12+2
+
+RB_CRND		cmp.l	#"CRND",(A0)+
+		bne.s	.Exit
+		tst.b	(A0)
+		bne.b	.Exit
+		move.l	(A0),D1
+		beq.b	.Exit
+		btst	#0,D1
+		bne.b	.Exit
+		add.l	D1,A0
+		moveq	#20,D0
+		add.l	D0,D1
+		move.l	D1,xfdrr_MinSourceLen(A1)
+		move.l	(A0),D1
+		beq.b	.Exit
+		bmi.b	.Exit
+		move.l	D1,xfdrr_MinTargetLen(A1)
+		move.l	D1,xfdrr_FinalTargetLen(A1)
+		moveq	#1,d0
+		rts
+.Exit		moveq	#0,d0
+		rts
+
+DB_CRND		movem.l	d2-d7/a2-a6,-(a7)
+		move.l	a0,a5
+
+		move.l	xfdbi_UserTargetBuf(A5),A1
+		move.l	xfdbi_SourceBuffer(A5),A0
+		move.l	xfdbi_MinSourceLen(A5),D0
+
+		move.l	a0,a4
+		adda.l	D0,A0
+		movem.l	-8(a0),a2/a3
+		movem.l	a2/a3,(a4)
+		LEA	-16(A0),A0
+		movea.l	(A0),A2
+		adda.l	A1,A2
+
+		move.l	4(a0),d5
+		move.l	-(a0),d0
+
+		bsr.w	D_CRUN
+
+		tst.l	d0
+		bne.w	Error
+
+		moveq	#1,d0
+.Exit		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+**************************************************
+
+S_MARC		dc.l	S_xVdg		;more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_MARC		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_MARC		;recog buffer
+		dc.l	DB_MARC		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12+2
+
+RB_MARC		move.l	D2,-(A7)
+		btst	#0,D0
+		bne.b	.Exit
+		move.l	A0,D2
+		add.l	D0,A0
+.FindCos	cmp.l	D2,A0
+		beq.b	.Exit
+		tst.w	-(A0)
+		beq.b	.FindCos
+		subq.l	#2,A0
+		cmp.l	#'MARC',(A0)
+		beq.b	.OK
+		cmp.l	#'TMB!',(A0)
+		beq.b	.OK
+		cmp.l	#'TXIC',(A0)
+		beq.b	.OK
+		cmp.l	#'SCC!',(A0)
+		beq.b	.OK
+		cmp.l	#'ons ',(A0)
+		bne.b	.Exit
+		cmp.l	#' Sym',-(A0)
+		bne.b	.Exit
+		cmp.l	#'Gary',-(A0)
+		bne.b	.Exit
+.OK		move.l	-4(A0),D1
+		beq.b	.Exit
+		bmi.b	.Exit
+		move.l	D1,xfdrr_MinTargetLen(A1)
+		move.l	D1,xfdrr_FinalTargetLen(A1)
+		sub.l	D2,A0
+		addq.l	#4,A0
+		move.l	A0,xfdrr_MinSourceLen(A1)
+		move.l	(A7)+,D2
+		moveq	#1,d0
+		rts
+.Exit		move.l	(A7)+,D2
+		moveq	#0,d0
+		rts
+
+DB_MARC		movem.l	d2-d7/a2-a6,-(a7)
+		move.l	a0,a5
+
+		move.l	xfdbi_UserTargetBuf(A5),A1
+		move.l	xfdbi_SourceBuffer(A5),A0
+		move.l	xfdbi_MinSourceLen(A5),D0
+
+		adda.l	D0,A0
+		subq.l	#4,A0
+
+		movea.l	-(A0),A2
+		adda.l	A1,A2
+		move.l	-(a0),d5
+		move.l	-(a0),d0
+
+		bsr.w	D_CRUN
+
+		tst.l	d0
+		bne.w	Error
+
+		moveq	#1,d0
+.Exit		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+**************************************************
+
+S_xVdg		dc.l	S_AMOS		;more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_xVdg		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_xVdg		;recog buffer
+		dc.l	DB_xVdg		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12+2
+
+RB_xVdg		cmp.l	#'xVdg',(A0)+
+		bne.s	.Exit
+		tst.b	(A0)
+		bne.b	.Exit
+		move.l	(A0)+,D1
+		beq.b	.Exit
+		bmi.b	.Exit
+		moveq	#12,D0
+		move.l	D1,xfdrr_MinTargetLen(A1)
+		sub.l	D0,D1
+		move.l	D1,xfdrr_FinalTargetLen(A1)
+		tst.b	(A0)
+		bne.b	.Exit
+		move.l	(A0),D1
+		beq.b	.Exit
+		btst	#0,D1
+		bne.b	.Exit
+		add.l	D0,D1
+		move.l	D1,xfdrr_MinSourceLen(A1)
+		moveq	#1,d0
+		rts
+.Exit		moveq	#0,d0
+		rts
+
+DB_xVdg		movem.l	d2-d7/a2-a6,-(a7)
+		move.l	a0,a5
+		move.l	xfdbi_UserTargetBuf(A5),A1
+		move.l	xfdbi_SourceBuffer(A5),A0
+		move.l	xfdbi_MinSourceLen(A5),D0
+		adda.l	D0,A0
+		movea.l	-(A0),A2
+		adda.l	A1,A2
+		move.l	-(a0),d5
+		move.l	-(a0),d0
+		bsr.w	D_CRUN
+		tst.l	d0
+		bne.w	Error
+		moveq	#1,d0
+.Exit		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+**************************************************
+
+S_AMOS		dc.l	S_ARPF		;more slaves
+		dc.w	1		;version
+		dc.w	33		;master version
+		dc.l	N_AMOS		;name
+		dc.w	XFDPFF_RELOC	;flags
+		dc.w	0
+		dc.l	RB_AMOS		;recog buffer
+		dc.l	DB_AMOS		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+
+RB_AMOS		cmp.l	#4000,d0
+		ble.w	.Exit
+
+		cmp.l	#$3F3,(a0)
+		bne.w	.Exit
+
+		move.l	a0,-(a7)
+
+		move.l	8(a0),d1	;how much hunks
+		lsl.l	#2,d1		; * 4
+		CMP.L	D1,D0
+		BLO.W	.Ex
+		add.l	d1,a0
+		add.w	#$1c,a0
+
+		cmp.l	#'CmdL',$332-$22(a0)	; Amos Pro CLI
+		bne.b	.Ex1
+		cmp.l	#'CmdL',$3A0-$22(a0)
+		bne.b	.Ex1
+		cmp.l	#'CmdL',$490-$22(a0)
+		bne.b	.Ex1
+		cmp.l	#'xVdg',$8DE-$22(a0)
+		bne.b	.Ex1
+		bra.w	.Ok
+.Ex1
+		cmp.l	#'CmdL',$418-$22(a0)	; Amos Pro Wb
+		bne.b	.Ex2
+		cmp.l	#'CmdL',$486-$22(a0)
+		bne.b	.Ex2
+		cmp.l	#'CmdL',$576-$22(a0)
+		bne.b	.Ex2
+		cmp.l	#'xVdg',$9C4-$22(a0)
+		bne.b	.Ex2
+		bra.b	.Ok
+.Ex2
+		cmp.l	#'CmdL',$362-$22(a0)	; Amos Wb
+		bne.b	.Ex3
+		cmp.l	#'xVdg',$708-$22(a0)
+		bne.b	.Ex3
+		cmp.l	#'xVdg',$776-$22(a0)
+		bne.b	.Ex3
+		bra.b	.Ok
+.Ex3
+		cmp.l	#'CmdL',$262(a0)	; Amos Wb
+		bne.b	.Ex31
+		cmp.l	#'xVdg',$5BA(a0)
+		bne.b	.Ex31
+		cmp.l	#'xVdg',$628(a0)
+		bne.b	.Ex31
+		bra.b	.Ok
+.Ex31
+		cmp.l	#'CmdL',$2D0-$22(a0)	; Amos CLI
+		bne.b	.Ex
+		cmp.l	#'CmdL',$2F0-$22(a0)
+		bne.b	.Ex
+		cmp.l	#'CmdL',$540-$22(a0)
+		bne.b	.Ex
+		cmp.l	#'xVdg',$7B2-$22(a0)
+		bne.b	.Ex
+		cmp.l	#'xVdg',$820-$22(a0)
+		bne.b	.Ex
+
+.Ok		move.l	(a7)+,a0
+		move.l	8(a0),d1	;how much hunks
+		add.l	$14(a0),d1	;first hunk size
+		lsl.l	#2,d1		; * 4
+		add.l	#$1c+$c,d1
+		CMP.L	D1,D0
+		blo.b	.Exit	
+		add.l	d1,a0
+		cmp.l	#'xVdg',(a0)
+		bne.b	.Exit
+		moveq	#1,d0
+		rts
+.Ex		move.l	(a7)+,a0
+.Exit		moveq	#0,d0
+		rts
+
+DB_AMOS		movem.l	d2-d7/a2-a6,-(a7)
+		move.l	a0,a5
+		move.l	xfdbi_SourceBuffer(a5),a2
+
+		move.l	a2,a0
+		move.l	8(a0),d0	; how much hunks
+		move.l	d0,d1
+		lsl.l	#2,d1		; * 4
+		add.l	d1,a0
+		add.w	#$1c,a0
+		move.l	a0,a1
+		subq.l	#1,d0
+.Loop
+		cmpi.l	#'xVdg',(a0)
+		bne.b	.NotPacked
+
+		add.l	4(a0),a1	; unpack len
+		move.l	-4(a0),d1	; hunk size
+		lsl.l	#2,d1		; * 4
+		add.l	d1,a0
+		add.w	#$c,a0
+		dbf	d0,.Loop
+		bra.b	.Alloc
+.NotPacked
+		move.l	-4(a0),d1	; hunk size
+		lsl.l	#2,d1		; * 4
+		add.l	d1,a0
+		add.w	#$c,a0
+		add.l	d1,a1
+		add.w	#$c,a1
+		dbf	d0,.Loop
+.Alloc
+		sub.l	a2,a1
+		move.l	a1,d0
+
+		subq.l	#8,d0
+		move.l	d0,xfdbi_TargetBufSaveLen(a5)
+		addq.l	#8,d0
+		move.l	d0,xfdbi_TargetBufLen(a5)
+
+		move.l	xfdbi_TargetBufMemType(a5),d1
+		move.l	4.w,a6
+		jsr	-198(a6)
+		move.w	#XFDERR_NOMEMORY,xfdbi_Error(a5)
+		move.l	d0,xfdbi_TargetBuffer(a5)
+		beq.s	.Exit
+
+		movem.l	d1-a6,-(a7)
+
+		move.l	d0,a1
+		move.l	a2,a0
+		bsr.s	D_AMOS
+
+		movem.l	(a7)+,d1-a6
+
+		tst.l	d0
+		bne.w	Error2
+
+		moveq	#1,d0
+.Exit		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+**************************************************
+
+D_AMOS
+		lea	$14(a1),a2		;first hunk length
+		move.l	8(a0),d0		;how much hunks
+		move.l	d0,d1
+		lsl.l	#2,d1			; * 4
+		addi.w	#$1c-1,d1
+.Copy
+		move.b	(a0)+,(a1)+		;copy header to dest
+		dbf	d1,.Copy
+		subq.w	#1,d0
+.Loop
+		cmpi.l	#'xVdg',(a0)		;segment packed ?
+		bne.b	.NotPacked
+
+		move.l	4(a0),d1		;unpacked length
+		subi.w	#$c,d1
+		lsr.l	#2,d1			; / 4
+		move.l	d1,-4(a1)
+		and.l	#$ff000000,(a2)		; unpacked hunk len
+		add.l	d1,(a2)+
+
+		movem.l	d0-d7/a0-a6,-(a7)
+
+		bsr.b	.Decrunch
+		tst.l	d0
+		bne.b	.Corrupt
+
+		movem.l	(a7)+,d0-d7/a0-a6
+
+		add.l	4(a0),a1		; add unpacked len
+		sub.w	#$c,a1
+		move.l	-4(a0),d1
+		lsl.l	#2,d1			; * 4
+		add.l	d1,a0
+
+		moveq	#$b,d1
+.Copy1
+		move.b	(a0)+,(a1)+
+		dbf	d1,.Copy1
+
+		dbf	d0,.Loop
+		bra.b	.EndDecr
+.NotPacked
+		addq.w	#4,a2
+		move.l	-4(a0),d1
+
+		ADDQ.L	#$C/4,D1		; RvD
+.Copy2		MOVE.L	(A0)+,(A1)+		; RvD
+		SUBQ.L	#1,D1			; RvD
+		BNE.S	.Copy2			; RvD
+
+		dbf	d0,.Loop
+.EndDecr
+		moveq	#0,d0
+		rts
+
+.Corrupt
+		movem.l	(a7)+,d0-d7/a0-a6
+		moveq	#1,d0
+		rts
+
+.Decrunch
+		move.l	8(a0),d0
+		add.w	#12,D0
+
+		adda.l	D0,A0
+		movea.l	-(A0),A2
+		adda.l	A1,A2
+		move.l	-(a0),d5
+		move.l	-(a0),d0
+
+		bsr.w	D_CRUN
+		rts
+
+**************************************************
+
+S_ARPF		dc.l	S_ARP3		;more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_ARPF		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_ARPF		;recog buffer
+		dc.l	DB_ARPF		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12+2
+
+RB_ARPF		cmp.l	#"ARPF",(A0)+
+		bne.s	.Exit
+		tst.b	(A0)
+		bne.b	.Exit
+		move.l	(A0)+,D1
+		beq.b	.Exit
+		btst	#0,D1
+		bne.b	.Exit
+		add.l	D1,A0
+		moveq	#12,D0
+		add.l	D0,D1
+		move.l	D1,xfdrr_MinSourceLen(A1)
+		tst.b	(A0)
+		bne.b	.Exit
+		move.l	(A0),D1
+		beq.b	.Exit
+		bmi.b	.Exit
+		move.l	D1,xfdrr_MinTargetLen(A1)
+		move.l	D1,xfdrr_FinalTargetLen(A1)
+		moveq	#1,d0
+		rts
+.Exit		moveq	#0,d0
+		rts
+
+DB_ARPF		movem.l	d2-d7/a2-a6,-(a7)
+		move.l	a0,a5
+		move.l	xfdbi_UserTargetBuf(A5),A1
+		move.l	xfdbi_SourceBuffer(A5),A0
+		move.l	xfdbi_MinSourceLen(A5),D0
+		adda.l	D0,A0
+		movea.l	-(A0),A2
+		adda.l	A1,A2
+		move.l	-(a0),d5
+		move.l	-(a0),d0
+		bsr.w	D_CRUN
+		tst.l	d0
+		bne.w	Error
+		moveq	#1,d0
+.Exit		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+**************************************************
+
+S_ARP3		dc.l	S_ACE		;more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_ARP3		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_ARP3		;recog buffer
+		dc.l	DB_ARP3		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12+2
+
+RB_ARP3		movem.l	d2-d5,-(a7)
+		cmp.l	#'ARP3',(A0)+
+		bne.b	.Exit
+		tst.b	(A0)
+		bne.b	.Exit
+		move.l	(A0)+,D1
+		beq.b	.Exit
+		btst	#0,D1
+		bne.b	.Exit
+		move.l	(A0)+,D2
+		beq.b	.Skip1
+		btst	#0,D2
+		bne.b	.Exit
+		sub.l	#$C00000,D2
+.Skip1		move.l	(A0)+,D3
+		beq.b	.Skip2
+		btst	#0,D3
+		bne.b	.Exit
+		sub.l	#$200000,D3
+.Skip2		moveq	#16,D5
+		add.l	D5,D1
+		add.l	D1,A0
+		move.l	-(A0),D4
+		beq.b	.Exit
+		bmi.b	.Exit
+		tst.l	D2
+		beq.b	.NoSlow
+		add.l	D2,A0
+		add.l	(A0),D4
+		add.l	D2,D1
+.NoSlow		tst.l	D3
+		beq.b	.NoFast
+		add.l	D3,A0
+		add.l	(A0),D4
+		add.l	D3,D1
+.NoFast		add.l	D5,D1
+		move.l	D1,xfdrr_MinSourceLen(A1)
+		move.l	D4,xfdrr_FinalTargetLen(A1)
+		move.l	D4,xfdrr_MinTargetLen(A1)
+		moveq	#1,d0
+		bra.b	.End
+		rts
+.Exit		moveq	#0,d0
+.End		movem.l	(a7)+,d2-d5
+		rts
+
+DB_ARP3		movem.l	d2-d7/a2-a6,-(a7)
+		move.l	a0,a5
+		move.l	xfdbi_UserTargetBuf(A5),A1
+		move.l	xfdbi_SourceBuffer(A5),A0
+		move.l	4(a0),d0
+		adda.l	D0,A0
+		lea	$20(A0),A0
+		movea.l	-(A0),A2
+		adda.l	A1,A2
+		move.l	-(a0),d5
+		move.l	-(a0),d0
+		bsr.w	D_CRUN
+		tst.l	D0
+		bne.w	Error
+		move.l	xfdbi_SourceBuffer(a5),a2
+		tst.l	8(A2)
+		beq.b	.skip3
+		addq.l	#8,A0
+		add.l	(A0)+,A1
+		add.l	8(A2),A0
+		sub.l	#$C00000,A0
+		movea.l	-(A0),A2
+		adda.l	A1,A2
+		move.l	-(a0),d5
+		move.l	-(a0),d0
+		bsr.w	D_CRUN
+		tst.l	D0
+		bne.w	Error
+.skip3		move.l	xfdbi_SourceBuffer(a5),a2
+		tst.l	12(A2)
+		beq.b	.skip4
+		addq.l	#8,A0
+		add.l	(A0)+,A1
+		add.l	12(A2),A0
+		sub.l	#$200000,A0
+		movea.l	-(A0),A2
+		adda.l	A1,A2
+		move.l	-(a0),d5
+		move.l	-(a0),d0
+		bsr.w	D_CRUN
+.skip4		tst.l	d0
+		bne.w	Error
+		moveq	#1,d0
+.Exit		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+**************************************************
+
+S_ACE		dc.l	S_Pepsi		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_ACE		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_ACE		;recog buffer
+		dc.l	DB_ACE		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12+2
+
+RB_ACE		cmp.l	#"ACE!",(A0)+
+		bne.s	.Exit
+		tst.b	(A0)
+		bne.b	.Exit
+		move.l	(A0)+,D1
+		beq.b	.Exit
+		btst	#0,D1
+		bne.b	.Exit
+		moveq	#12,D0
+		add.l	D0,D1
+		move.l	D1,xfdrr_MinSourceLen(A1)
+		tst.b	(A0)
+		bne.b	.Exit
+		move.l	(A0),D1
+		beq.b	.Exit
+		bmi.b	.Exit
+		move.l	D1,xfdrr_MinTargetLen(A1)
+		move.l	D1,xfdrr_FinalTargetLen(A1)
+		moveq	#1,d0
+		rts
+.Exit		moveq	#0,d0
+		rts
+
+DB_ACE		movem.l	d2-d7/a2-a6,-(a7)
+		move.l	a0,a5
+		move.l	xfdbi_UserTargetBuf(A5),A1
+		move.l	xfdbi_SourceBuffer(A5),A0
+		move.l	xfdbi_MinSourceLen(A5),D0
+		move.l	8(a0),a2
+		move.l	12(a0),d5
+		adda.l	D0,A0
+		adda.l	A1,A2
+		move.l	-(a0),d0
+		bsr.w	D_CRUN
+		tst.l	d0
+		bne.w	Error
+		moveq	#1,d0
+.Exit		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+**************************************************
+
+S_Pepsi		DC.L	0		;next slave
+		DC.W	2		;version
+		DC.W	39		;master version
+		DC.L	N_Pepsi		;name
+		DC.W	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		DC.W	0
+		DC.L	RB_Pepsi	;recog buffer
+		DC.L	DB_Pepsi	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	$10		;MinBufSize
+
+PEP_SOURCELEN	EQU	4
+PEP_DESTLEN	EQU	8
+PEP_PACKMATCH	EQU	$025569EE
+
+RB_Pepsi	MOVEQ	#0,D0			; False
+
+		CMPI.L	#"PACK",(A0)
+		BNE.B	.No
+
+		MOVE.L	PEP_SOURCELEN(A0),D1
+		SUBI.L	#PEP_PACKMATCH,D1 ; must be greater than PACKMATCH
+		BLE.B	.No
+		CMP.L	#$C800000,D1	  ; should be shorter than 200MB
+		BGT.B	.No
+		ADD.L	#16,D1
+		MOVE.L	D1,xfdrr_MinSourceLen(A1)
+		MOVE.L	PEP_DESTLEN(A0),D1
+		CMP.L	PEP_SOURCELEN(A0),D1 ; source <= destination
+		BLE.B	.No
+		SUBI.L	#PEP_PACKMATCH,D1 ; must be greater than PACKMATCH
+		BLE.B	.No
+		CMP.L	#$C800000,D1	  ; should be shorter than 200MB
+		BGT.B	.No
+
+		MOVE.L	D1,xfdrr_FinalTargetLen(A1)
+		MOVE.L	D1,xfdrr_MinTargetLen(A1)
+		MOVEQ	#1,D0			; True
+.No		RTS
+
+DB_Pepsi	movem.l	d2-d7/a2-a6,-(a7)
+		move.l	a0,a5
+		move.l	xfdbi_UserTargetBuf(a5),a1
+		move.l	xfdbi_SourceBuffer(a5),a0
+		move.l	xfdbi_TargetBufSaveLen(a5),a2
+		move.l	xfdbi_MinSourceLen(a5),d0
+		move.l	12(a0),d5
+		adda.l	a1,a2
+		adda.l	d0,a0
+		move.l	-(a0),d0
+		bsr.w	D_CRUN
+		tst.l	d0
+		bne.w	Error
+		moveq	#1,d0
+		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+		END

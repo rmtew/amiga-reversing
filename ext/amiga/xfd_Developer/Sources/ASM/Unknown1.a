@@ -1,0 +1,291 @@
+* Programmheader
+*
+*	Name:		Unknown1
+*	Author:		SDI
+*	Distribution:	PD
+*	Description:	XFD external decruncher for Unknown Cruncher 1
+*	Compileropts:	-
+*	Linkeropts:	-
+*
+* 1.0   28.11.98 : first version
+
+		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"lvo.i"
+
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE "exec/memory.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+ForeMan		MOVEQ	#-1,D0
+		RTS
+
+		DC.L	XFDF_ID
+		DC.W	1,0
+		DC.L	0,0,Slave1
+
+		DC.B	"$VER: Unknown1 1.0 (28.11.1998) by SDI",0
+N_Unknown1	DC.B	'Unknown Cruncher 1',0
+		EVEN
+
+Slave1		DC.L	0		;no more slaves
+		DC.W	2		;version
+		DC.W	36		;master version
+		DC.L	N_Unknown1	;name
+		DC.W	XFDPFF_ADDR	;flags
+		DC.W	0
+		DC.L	RB_Unknown1	;recog buffer
+		DC.L	DB_Unknown1	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	$68		;MinBufSize
+
+*************************************************************************
+*	Recog buffer function: receives buffer + length in A0/D0	*
+*************************************************************************
+
+RB_Unknown1	MOVEQ	#0,D0			; False
+
+		CMP.L	#$000003F3,(A0)
+		BNE.B	.No
+		CMP.L	#$21CC0080,$28(A0)
+		BNE.B	.No
+		CMP.L	#$548F4CDB,$3C(A0)
+		BNE.B	.No
+		CMP.L	#$D10050D3,$50(A0)
+		BNE.B	.No
+		CMP.L	#$02130087,$54(A0)
+		BNE.B	.No
+		CMP.L	#$7FFFFF1A,$64(A0)
+		BNE.B	.No
+		MOVEQ	#1,D0			; True
+.No		RTS
+
+*************************************************************************
+*	Decrunch buffer function: receives xfdbiBufferInfo in A0	*
+*************************************************************************
+
+DB_Unknown1	MOVEM.L	D2-D6/A2-A6,-(A7)
+		MOVE.L	A0,A5
+		MOVE.W	#XFDERR_NOMEMORY,xfdbi_Error(A5)
+
+		MOVEA.L	xfdbi_SourceBuffer(A5),A4
+		MOVE.L	$212(A4),D0
+		SUB.L	$216(A4),D0
+		MOVE.L	D0,D6
+		MOVEQ	#0,D1			* MEMF_ANY
+		MOVEA.L	xfdm_ExecBase(A6),A6
+		JSR	_LVOAllocMem(A6)
+		MOVE.L	D0,xfdbi_TargetBuffer(A5)
+		BEQ.B	.NoMem
+
+		MOVE.W	$21E(A4),D5
+		MOVE.L	$220(A4),xfdbi_DecrAddress(A5)
+		MOVE.L	$224(A4),xfdbi_JmpAddress(A5)
+
+		MOVE.L	D0,A1			* start of buffer
+		LEA	(A1,D6.L),A0		* end of buffer
+		MOVE.L	$21A(A4),D0
+		LEA	$21E(A4),A4
+		LEA	(A4,D0.L),A2		* end of source
+
+		MOVE.L	A6,-(A7)
+		BSR.B	Decrunch
+		MOVEA.L	A1,A4
+		BSR.W	DecrSize
+		MOVEA.L	(A7)+,A6
+
+		MOVE.L	D0,xfdbi_TargetBufSaveLen(A5)
+		ADDQ.L	#1,D0
+		MOVE.L	D0,xfdbi_TargetBufLen(A5)
+		MOVE.L	xfdbi_TargetBufMemType(A5),D1
+		JSR	_LVOAllocMem(A6)
+		MOVE.W	#XFDERR_NOMEMORY,xfdbi_Error(A5)
+		MOVE.L	D0,xfdbi_TargetBuffer(A5)
+		BEQ.B	.NoMem2
+		MOVE.L	D0,A1
+		MOVEA.L	A4,A0
+		BSR.W	Decrunch2
+
+		CLR.W	xfdbi_Error(A5)
+
+.NoMem2		MOVEA.L	A4,A1
+		MOVE.L	D6,D0
+		JSR	_LVOFreeMem(A6)
+		
+		MOVE.W	xfdbi_Error(A5),D0
+		NOT.W	D0
+.NoMem		MOVEM.L	(A7)+,D2-D6/A2-A6
+		RTS
+
+
+*************************************************************************
+*	decrunch routine - copied from file (a bit modified)		*
+*************************************************************************
+
+Decrunch	MOVEQ	#$10,D4
+		MOVE	D4,CCR
+		LEA	SubJmp(PC),A4
+		LEA	.Decr12(PC),A3
+		MOVE.L	-(A2),D3
+.Decr1		MOVEQ	#2,D0
+		LEA	.Decr2(PC),A6
+		JMP	(A4)
+.Decr2		CMPI.W	#6,D1
+		BCS.B	.Decr8
+		BEQ.B	.Decr12
+		LSL.L	#1,D3
+		BNE.B	.Decr3
+		MOVE.L	-(A2),D3
+		MOVE	D4,CCR
+		ROXL.L	#1,D3
+.Decr3		BCC.B	.Decr6
+		MOVEQ	#9,D0
+		LEA	.Decr4(PC),A6
+		JMP	(A4)
+.Decr4		SUBQ.W	#1,D1
+		BCC.B	.Decr8
+		MOVEQ	#$000F,D0
+		LEA	.Decr5(PC),A6
+		JMP	(A4)
+.Decr5		LEA	.Decr11(PC),A3
+		BRA.B	.Decr8
+.Decr6		MOVEQ	#3,D0
+		LEA	.Decr7(PC),A6
+		JMP	(A4)
+.Decr7		ADDQ.W	#6,D1
+.Decr8		MOVEQ	#7,D0
+.Decr9		LSL.L	#1,D3
+		BEQ.B	.Decr10
+		ROXL.B	#1,D2
+		DBRA	D0,.Decr9
+		MOVE.B	D2,-(A0)
+		DBRA	D1,.Decr8
+		CMPA.L	A0,A1
+		BCC.W	Finished
+		JMP	(A3)
+.Decr10		MOVE.L	-(A2),D3
+		LSL.L	#1,D3
+		ROXL.B	#1,D2
+		ADDQ.B	#1,D3
+		DBRA	D0,.Decr9
+		MOVE.B	D2,-(A0)
+		DBRA	D1,.Decr8
+		CMPA.L	A0,A1
+		BCC.W	Finished
+		JMP	(A3)
+.Decr11		LEA	.Decr12(PC),A3
+		BRA.B	.Decr1
+.Decr12		MOVEQ	#1,D0
+		LEA	.Decr13(PC),A6
+		JMP	(A4)
+.Decr13		MOVEQ	#7,D0
+		MOVEQ	#1,D2
+		TST.W	D1
+		BEQ.B	.Decr25
+		MOVEQ	#3,D2
+		CMPI.W	#2,D1
+		BEQ.B	.Decr22
+		CMPI.W	#3,D1
+		BEQ.B	.Decr15
+		MOVEQ	#2,D2
+		LSL.L	#1,D3
+		BNE.B	.Decr14
+		MOVE.L	-(A2),D3
+		MOVE	D4,CCR
+		ROXL.L	#1,D3
+.Decr14		BCC.B	.Decr25
+		MOVEQ	#$000D,D0
+		BRA.B	.Decr25
+.Decr15		MOVEQ	#1,D0
+		LEA	.Decr16(PC),A6
+		JMP	(A4)
+.Decr16		CMPI.W	#2,D1
+		BCC.B	.Decr17
+		ADDQ.W	#4,D1
+		BRA.B	.Decr21
+.Decr17		CMPI.W	#3,D1
+		BEQ.B	.Decr19
+		MOVEQ	#1,D0
+		LEA	.Decr18(PC),A6
+		JMP	(A4)
+.Decr18		ADDQ.W	#6,D1
+		BRA.B	.Decr21
+.Decr19		MOVEQ	#7,D0
+		LEA	.Decr20(PC),A6
+		JMP	(A4)
+.Decr20		ADDI.W	#$000A,D1
+.Decr21		MOVE.W	D1,D2
+.Decr22		MOVEQ	#$000F,D0
+		LSL.L	#1,D3
+		BNE.B	.Decr23
+		MOVE.L	-(A2),D3
+		MOVE	D4,CCR
+		ROXL.L	#1,D3
+.Decr23		BCS.B	.Decr25
+		MOVEQ	#$000B,D0
+		LSL.L	#1,D3
+		BNE.B	.Decr24
+		MOVE.L	-(A2),D3
+		MOVE	D4,CCR
+		ROXL.L	#1,D3
+.Decr24		BCS.B	.Decr25
+		MOVEQ	#7,D0
+.Decr25		LEA	.Decr26(PC),A6
+		JMP	(A4)
+.Decr26		ADDQ.L	#1,D1
+.Decr27		MOVE.B	-1(A0,D1.L),-(A0)
+		DBRA	D2,.Decr27
+		CMPA.L	A0,A1
+		BCS.W	.Decr1
+Finished	RTS
+
+SubJmp		MOVEQ	#0,D1
+.SubLoop	LSL.L	#1,D3
+		BEQ.B	.Skip
+		ROXL.W	#1,D1
+		DBRA	D0,.SubLoop
+		JMP	(A6)
+.Skip		MOVE.L	-(A2),D3
+		LSL.L	#1,D3
+		ROXL.W	#1,D1
+		ADDQ.B	#1,D3
+		DBRA	D0,.SubLoop
+		JMP	(A6)
+
+DecrSize	MOVEQ	#0,D0
+.Size1		MOVE.B	(A0)+,D1
+		ADDQ.L	#1,D0
+		CMP.B	D5,D1
+		BNE.B	.Size1
+		MOVEQ	#0,D1
+		MOVE.B	(A0)+,D1
+		BEQ.B	.Size1		* char + 0 --> means char
+		SUBQ.L	#1,D0
+		CMPI.B	#1,D1		* char + 1 --> means end
+		BEQ.B	.End
+		ADDQ.L	#1,D1
+		ADD.L	D1,D0		* char + x + a --> means (x+1) * a
+		MOVE.B	(A0)+,D1
+		BRA.B	.Size1
+.End		RTS
+
+Decrunch2	
+.Dec1		MOVE.B	(A0)+,D1
+		MOVE.B	D1,(A1)+
+		CMP.B	D5,D1
+		BNE.B	.Dec1
+		MOVE.B	(A0)+,D1
+		BEQ.B	.Dec1
+		SUBQ.L	#1,A1
+		CMPI.B	#1,D1
+		BEQ.B	.End
+		ANDI.W	#$FF,D1
+		MOVE.B	(A0)+,D2
+.Dec2		MOVE.B	D2,(A1)+
+		DBRA	D1,.Dec2
+		BRA.B	.Dec1
+.End		RTS
+		END

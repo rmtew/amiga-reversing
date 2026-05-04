@@ -1,0 +1,98 @@
+* Objectheader
+*
+*	Name:		xfdSegHead.a
+*	Author:		SDI
+*	Distribution:	PD
+*	Description:	XFD external test header (program seglist startup)
+*	Compileropts:	-
+*	Linkeropts:	-
+*
+* 1.0   08.01.99 : first version
+
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE	"exec/memory.i"
+		INCLUDE	"dos/dos.i"
+		INCLUDE "dos/dosextens.i"
+
+		MOVEA.L	A0,A5
+		MOVE.L	D0,D7			* store them
+
+		* get dos library opened
+		MOVEQ	#33,D0
+		MOVEA.L	4.W,A6
+		LEA.L	DosName(PC),A1
+		JSR	_LVOOpenLibrary(A6)
+		TST.L	D0
+		BEQ.W	.NoDos
+		MOVEA.L	D0,A4			* A4 is DosBase
+
+		* open source file
+		MOVEA.L	A4,A6
+		CLR.B	-1(A5,D7)		* clear return
+		MOVE.L	A5,D1
+		JSR	_LVOLoadSeg(A6)
+		LEA	xfdsi(PC),A5		* A5 is xfdsi/SegList ptr
+		MOVE.L	D0,(A5)			* store SegList
+		BEQ.B	.NoSeg
+
+		* call recog functions
+		MOVEA.L	ForeMan+xfdf_FirstSlave(PC),A2
+.recogloop	MOVE.L	A2,D0				* for test purpose
+		BEQ.B	.notfound
+		MOVEA.L	(A5),A0			* SegList Argument
+		MOVEA.L	xfds_RecogSegment(A2),A3
+		MOVE.L	A3,D0
+		BEQ.B	.next
+		JSR	(A3)
+		TST.L	D0
+		BNE.B	.found
+.next		MOVEA.L	xfds_Next(A2),A2
+		BRA.B	.recogloop
+.found		* call decrunch function
+
+		LEA	FormatStr(PC),A0
+		MOVE.L	A0,D1
+		LEA	xfds_PackerName(A2),A0
+		MOVE.L	A0,D2
+		JSR	_LVOVPrintf(A6)
+
+		MOVEA.L	A5,A0
+		MOVEA.L	xfds_DecrunchSegment(A2),A3
+		LEA	-xfdMasterBase_SIZE(A7),A7
+		MOVE.L	4.W,xfdm_ExecBase(A7)
+		MOVE.L	A4,xfdm_DosBase(A7)
+		MOVE.L	A7,A6			* create ExeBase ptr
+		JSR	(A3)
+		LEA	xfdMasterBase_SIZE(A7),A7
+		MOVE.L	(A5),D1
+		BEQ.B	.NoSeg
+
+		MOVE.L	A4,A6			* set DOSBase
+
+		MOVE.L	#4096,D2		* stacksize
+		LEA	ArgStr(PC),A0
+		MOVE.L	A0,D3
+		MOVEQ	#1,D4
+		JSR	_LVORunCommand(A6)
+
+.notfound	MOVEA.L	SegList(PC),D1
+		JSR	_LVOUnLoadSeg(A6)
+.NoSeg		MOVEA.L	A4,A1			* close dos
+		MOVEA.L	4.W,A6
+		JSR	_LVOCloseLibrary(A6)
+.NoDos		RTS
+
+xfdsi
+SegList		DC.L	0
+		DC.L	0
+		DC.L	0
+		DC.W	XFDPFF_RELOC,XFDERR_OK
+		DC.L	0
+		DC.W	XFDREL_DEFAULT
+Flags		DC.W	0
+
+DosName 	DC.B	"dos.library",0
+FormatStr	DC.B	'Cruncher-Name: %s'
+ArgStr		DC.B	$A,0
+		EVEN
+

@@ -1,0 +1,886 @@
+TABLE OF CONTENTS
+
+xfdmaster.library/xfdAllocBufferInfo
+xfdmaster.library/xfdAllocObject
+xfdmaster.library/xfdAllocSegmentInfo
+xfdmaster.library/xfdDecrunchBuffer
+xfdmaster.library/xfdDecrunchSegment
+xfdmaster.library/xfdFreeBufferInfo
+xfdmaster.library/xfdFreeObject
+xfdmaster.library/xfdFreeScanList
+xfdmaster.library/xfdFreeSegmentInfo
+xfdmaster.library/xfdGetErrorText
+xfdmaster.library/xfdInitScanHook
+xfdmaster.library/xfdObjectType
+xfdmaster.library/xfdRecogBuffer
+xfdmaster.library/xfdRecogLinker
+xfdmaster.library/xfdRecogSegment
+xfdmaster.library/xfdRelocate
+xfdmaster.library/xfdScanData
+xfdmaster.library/xfdStripHunks
+xfdmaster.library/xfdTestHunkStructure
+xfdmaster.library/xfdTestHunkStructureFlags
+xfdmaster.library/xfdTestHunkStructureNew
+xfdmaster.library/xfdUnlink
+
+xfdmaster.library/xfdAllocBufferInfo     xfdmaster.library/xfdAllocBufferInfo
+
+   NAME
+        xfdAllocBufferInfo -- Allocate memory for BufferInfo structure.
+
+   SYNOPSIS
+        bufferinfo = xfdAllocBufferInfo()
+            D0              -30
+
+        struct xfdBufferInfo *xfdAllocBufferInfo(void);
+
+   FUNCTION
+        Allocates a memory block large enough to hold all information of
+        the xfdBufferInfo structure.
+
+        (V36) This function is obsolete and shouldn't be used with new
+        code any longer. Use xfdAllocObject() instead.
+
+   INPUTS
+        None.
+
+   RESULT
+        bufferinfo - Pointer to the xfdBufferInfo structure or NULL if
+                     there occured an error.
+
+   SEE ALSO
+        xfdFreeBufferInfo(), xfdFreeObject()
+
+xfdmaster.library/xfdAllocObject             xfdmaster.library/xfdAllocObject
+
+   NAME
+        xfdAllocObject -- Allocate memory for specified object. (V36)
+
+   SYNOPSIS
+        object = xfdAllocObject(objecttype)
+          D0          -114          D0
+
+        APTR xfdAllocObject(ULONG);
+
+   FUNCTION
+        Allocates a memory block for the specified object. Never do this in
+        any other way for compatibility with library updates.
+
+        Objecttype can be one of these:
+        XFDOBJ_BUFFERINFO     - allocate a xfdBufferInfo structure.
+        XFDOBJ_SEGMENTINFO    - allocate a xfdSegmentInfo structure.
+        XFDOBJ_LINKERINFO     - allocate a xfdLinkerInfo structure.
+        XFDOBJ_SCANNODE (V37) - allocate a xfdScanNode structure.
+
+   INPUTS
+        objecttype - One of the XFDOBJ_#? values.
+
+   RESULT
+        object - Pointer to the object or NULL if there occured an error.
+
+   SEE ALSO
+        xfdFreeObject()
+
+xfdmaster.library/xfdAllocSegmentInfo   xfdmaster.library/xfdAllocSegmentInfo
+
+   NAME
+        xfdAllocSegmentInfo -- Allocate memory for SegmentInfo structure.
+
+   SYNOPSIS
+        segmentinfo = xfdAllocSegmentInfo()
+            D0                -42
+
+        struct xfdSegmentInfo *xfdAllocSegmentInfo(void);
+
+   FUNCTION
+        Allocates a memory block large enough to hold all information of
+        the xfdSegmentInfo structure.
+
+        (V36) This function is obsolete and shouldn't be used with new
+        code any longer. Use xfdAllocObject() instead.
+
+   INPUTS
+        None.
+
+   RESULT
+        segmentinfo - Pointer to the xfdSegmentInfo structure or NULL if
+                      there occured an error.
+
+   SEE ALSO
+        xfdFreeSegmentInfo(), xfdFreeObject()
+
+xfdmaster.library/xfdDecrunchBuffer       xfdmaster.library/xfdDecrunchBuffer
+
+   NAME
+        xfdDecrunchBuffer -- Decrunch a file from buffer.
+
+   SYNOPSIS
+        success = xfdDecrunchBuffer(bufferinfo)
+          D0             -60            A0
+
+        BOOL xfdDecrunchBuffer(struct xfdBufferInfo *);
+
+   FUNCTION
+        Decrunches a file to a separate buffer. You have to call
+        xfdRecogBuffer() first, only if this call was successful,
+        you may call xfdDecrunchBuffer().
+
+        You have to pass the type of memory that should be used for
+        the target buffer in xfdbi_TargetBufMemType.
+
+        (V38) You can submit your own allocated target buffer instead
+        in xfdbi_UserTargetBuf and its length in xfdbi_UserTargetBufLen.
+        This is only supported if XFDPFB_USERTARGET in xfdbi_PackerFlags
+        is set. Make sure to allocate a buffer that is at least as large
+        as xfdbi_MinTargetLen.
+
+        Additionally you have to init the xfdbi_Special field with
+        a pointer to a special info buffer if any special flags are
+        set in the xfdbi_PackerFlags field:
+        XFDPFB_PASSWORD    - Buffer contains password (max. length of
+                             password is stored in xfdbi_MaxSpecialLen,
+                             if this is -1, password is not limited).
+        XFDPFB_KEY16 (V35) - xfdbi_Special points to an UWORD that holds
+                             a 16 bit key.
+        XFDPFB_KEY32 (V35) - xfdbi_Special points to an ULONG that holds
+                             a 32 bit key.
+
+        If the decrunching was successful, the following fields in
+        the xfdBufferInfo structure will be initialized:
+
+        xfdbi_TargetBuffer     - Pointer to decrunched file buffer.
+        xfdbi_TargetBufSaveLen - Length of decrunched file (for saving etc.).
+        xfdbi_TargetBufLen     - Total length of allocated buffer.
+        xfdbi_DecrAddress      - If XFDPFB_ADDR is set in xfdbi_PackerFlags,
+                                 this contains the address where the crunched
+                                 file has been relocated to.
+        xfdbi_JmpAddress       - If XFDPFB_ADDR is set in xfdbi_PackerFlags,
+                                 this contains the address where to jump at
+                                 in order to run the file.
+
+        (V38) If the xfdbi_UserTargetBuf field is used, xfdbi_TargetBuffer
+        and xfdbi_TargetBufSaveLen should nevertheless be used for further
+        work with the decrunched file, while the buffer itself should be
+        released afterwards with the values from xfdbi_UserTargetBuf and
+        xfdbi_UserTargetBufLen. This ensures total compatibility with all
+        weird slaves.
+
+   INPUTS
+        bufferinfo - Pointer to an initialized xfdBufferInfo structure:
+           xfdbi_TargetBufMemType - Type of memory for target buffer.
+           xfdbi_Special          - Pointer to special info if required.
+           xfdbi_UserTargetBuf    - Pointer to own target buffer.
+           xfdbi_UserTargetBufLen - Length of own target buffer.
+
+   RESULT
+        success - TRUE if decrunching was successful, FALSE if
+                  anything went wrong.
+
+   NOTE
+        The following two passages are only valid for the standard
+        method of decrunching files (without user target buffer):
+
+        xfdDecrunchBuffer() allocates a buffer for the decrunched file,
+        but it doesn't release this memory afterwards. That is because
+        you first have to work with the decrunched file (what else?).
+        Therefore you have to do a call to exec.library/FreeMem() after
+        you finished work. Use the following parameters:
+        xfdbi_TargetBufLen - Lenght of buffer.
+        xfdbi_TargetBuffer - Pointer to buffer.
+
+        Don't forget:
+        xfdbi_TargetBufLen contains the length of the allocated memory
+        area, xfdbi_TargetBufSaveLen the length of the decrunched file
+        in that buffer.
+
+        xfdDecrunchBuffer() never touches the buffer that contains the
+        crunched file. It's again your task to release this after
+        decrunching.
+
+   SEE ALSO
+        xfdRecogBuffer(), exec.library/FreeMem()
+
+xfdmaster.library/xfdDecrunchSegment     xfdmaster.library/xfdDecrunchSegment
+
+   NAME
+        xfdDecrunchSegment -- Decrunch a file from its segment list.
+
+   SYNOPSIS
+        success = xfdDecrunchSegment(segmentinfo)
+          D0             -72             A0
+
+        BOOL xfdDecrunchSegment(struct xfdSegmentInfo *);
+
+   FUNCTION
+        Decrunches a segment list. You have to call xfdRecogSegment()
+        first, only if this call was successful, you may call
+        xfdDecrunchSegment().
+
+        You have to init the xfdsi_Special field with a pointer to a
+        special info buffer if any special flags are set in the
+        xfdsi_PackerFlags field:
+        XFDPFB_PASSWORD    - Buffer contains password (max. length of
+                             password is stored in xfdsi_MaxSpecialLen,
+                             if this is -1, password is not limited).
+        XFDPFB_KEY16 (V35) - xfdsi_Special points to an UWORD that holds
+                             a 16 bit key.
+        XFDPFB_KEY32 (V35) - xfdsi_Special points to an ULONG that holds
+                             a 32 bit key.
+
+        (V34) Check xfdsi_Packerflags for XFDPFB_RELMODE. If set,
+        initialize xfdsi_RelMode with the desired XFDREL_#? value.
+
+        If decrunching was successful, xfdsi_SegList holds a BPTR to
+        the decrunched segment list. The old segment list has been
+        released and/or replaced by the new one (depends on cruncher).
+
+        If decrunching failed, xfdsi_SegList may be NULL. This happens
+        if an error occured after the seglist has already been changed
+        in any way. It then will be released.
+        Otherwise, if xfdsi_SegList is not NULL, it still contains a
+        valid BPTR to the crunched segment list.
+
+   INPUTS
+        segmentinfo - Pointer to an initialized xfdSegmentInfo structure:
+           xfdsi_Special - Pointer to special info if required.
+           xfdsi_RelMode - (V34) XFDREL_#? value if required.
+
+   RESULT
+        success - TRUE if decrunching was successful, FALSE if
+                  anything went wrong.
+
+   NOTE
+        If you no longer need the decrunched segment list, you may
+        release it by simply calling dos.library/UnloadSeg().
+
+   SEE ALSO
+        xfdRecogSegment(), dos.library/UnloadSeg()
+
+xfdmaster.library/xfdFreeBufferInfo       xfdmaster.library/xfdFreeBufferInfo
+
+   NAME
+        xfdFreeBufferInfo -- Free memory of xfdBufferInfo structure.
+
+   SYNOPSIS
+        xfdFreeBufferInfo(bufferinfo)
+               -36            A1
+
+        void xfdFreeBufferInfo(struct xfdBufferInfo *);
+
+   FUNCTION
+        Deallocates the memory reserved via xfdAllocBufferInfo().
+
+        (V36) This function is obsolete and shouldn't be used with new
+        code any longer. Use xfdFreeObject() instead.
+
+   INPUTS
+        bufferinfo - Pointer to xfdBufferInfo structure.
+
+   RESULT
+        None.
+
+   SEE ALSO
+        xfdAllocBufferInfo(), xfdAllocObject()
+
+xfdmaster.library/xfdFreeObject               xfdmaster.library/xfdFreeObject
+
+   NAME
+        xfdFreeObject -- Free memory of object. (V36)
+
+   SYNOPSIS
+        xfdFreeObject(object)
+            -120        A1
+
+        void xfdFreeObject(APTR);
+
+   FUNCTION
+        Deallocates the memory reserved via xfdAllocObject().
+
+   INPUTS
+        object - Pointer to object.
+
+   RESULT
+        None.
+
+   SEE ALSO
+        xfdAllocObject()
+
+xfdmaster.library/xfdFreeScanList           xfdmaster.library/xfdFreeScanList
+
+   NAME
+        xfdFreeScanList -- Free linked list of xfdScanNode structures. (V37)
+
+   SYNOPSIS
+        xfdFreeScanList(scannode)
+             -144          A1
+
+        void xfdFreeScanList(struct xfdScanNode *);
+
+   FUNCTION
+        Deallocates the memory of all xfdScanNode structures that have been
+        returned as result by xfdScanData().
+
+   INPUTS
+        scannode - Pointer to the first xfdScanNode structure.
+
+   RESULT
+        None.
+
+xfdmaster.library/xfdFreeSegmentInfo     xfdmaster.library/xfdFreeSegmentInfo
+
+   NAME
+        xfdFreeSegmentInfo -- Free memory of xfdSegmentInfo structure.
+
+   SYNOPSIS
+        xfdFreeSegmentInfo(segmentinfo)
+               -48             A1
+
+        void xfdFreeSegmentInfo(struct xfdSegmentInfo *);
+
+   FUNCTION
+        Deallocates the memory reserved via xfdAllocSegmentInfo().
+
+        (V36) This function is obsolete and shouldn't be used with new
+        code any longer. Use xfdFreeObject() instead.
+
+   INPUTS
+        segmentinfo - Pointer to xfdSegmentInfo structure.
+
+   RESULT
+        None.
+
+   SEE ALSO
+        xfdAllocSegmentInfo(), xfdAllocObject()
+
+xfdmaster.library/xfdGetErrorText           xfdmaster.library/xfdGetErrorText
+
+   NAME
+        xfdGetErrorText -- Get an ascii string from an error number.
+
+   SYNOPSIS
+        string = xfdGetErrorText(error)
+          D0           -78        D0.w
+
+        STRPTR xfdGetErrorText(UWORD);
+
+   FUNCTION
+        Whenever a library call fails, you receive an error number either
+        in the xfd#?_Error field or directly as a returncode. This function
+        gets the corresponding ascii string to the occured error.
+
+   INPUTS
+        error - Error number from xfd#?_Error or returncode.
+
+   RESULT
+        string - Pointer to an ascii string that describes the error.
+
+xfdmaster.library/xfdInitScanHook           xfdmaster.library/xfdInitScanHook
+
+   NAME
+        xfdInitScanHook -- Allocate and init xfdScanHook structure. (V37)
+
+   SYNOPSIS
+        scanhook = xfdInitScanHook(entry, data)
+           D0           -156         A0    A1
+
+        struct xfdScanHook *xfdInitScanHook(BOOL (*)(), APTR);
+
+   FUNCTION
+        Allocates a xfdScanHook structure and fills the xfdsh_Entry and
+        xfdsh_Data fields with the given arguments.
+        You may do these two steps by yourself using xfdAllocObject(), but
+        this method is just easier.
+
+   INPUTS
+        entry - The entrypoint of your hook code. Note that only registers
+                D0/D1/A0/A1 may be scratched, all others have to be saved.
+        data  - Pointer to some data that might be useful for the execution
+                of your hook code.
+
+   RESULT
+        scanhook - Pointer to the xfdScanHook structure or NULL if there
+                   occured an error.
+
+   NOTE
+        You have to release the memory of this structure if you don't
+        need it any longer with xfdFreeObject().
+
+   SEE ALSO
+        xfdAllocObject(), xfdFreeObject(), xfdScanData()
+
+xfdmaster.library/xfdObjectType               xfdmaster.library/xfdObjectType
+
+   NAME
+        xfdObjectType -- Determine type of object. (V37)
+
+   SYNOPSIS
+        objecttype = xfdObjectType(object)
+            D0            -150       A1
+
+        ULONG xfdObjectType(APTR);
+
+   FUNCTION
+        Checks if object points to a XFDOBJ_#? object and returns the type
+        of this object if possible.
+
+   INPUTS
+        object - Pointer to a possible XFDOBJ_#? object.
+
+   RESULT
+        objecttype - One of the XFDOBJ_#? values or NULL if not an object.
+
+   SEE ALSO
+        xfdAllocObject()
+
+xfdmaster.library/xfdRecogBuffer             xfdmaster.library/xfdRecogBuffer
+
+   NAME
+        xfdRecogBuffer -- Examine buffer for crunched file.
+
+   SYNOPSIS
+        success = xfdRecogBuffer(bufferinfo)
+          D0             -54         A0
+
+        BOOL xfdRecogBuffer(struct xfdBufferInfo *);
+
+   FUNCTION
+        Examines a file for known crunchers. You pass a pointer to
+        the file buffer in xfdbi_SourceBuffer and the length of the
+        buffer in xfdbi_SourceBufLen.
+
+        (V37) You may additionally set some flags in xfdbi_Flags:
+        XFDFB_RECOGEXTERN     - If this flag is set, the external slaves
+                                will be used for recognition, otherwise
+                                they will be ignored.
+        XFDFB_RECOGTARGETLEN  - (V38) If this flag is set, only slaves
+                                that support XFDPFB_RECOGLEN will be
+                                used for recognition.
+        XFDFB_RECOGUSERTARGET - (V38) If this flag is set, only slaves
+                                that support XFDPFB_USERTARGET will be
+                                used for recognition.
+
+        If a crunched file has been recognized, the following fields
+        in the xfdBufferInfo structure will be initialized:
+
+        xfdbi_PackerName     - Pointer to the name of the cruncher.
+        xfdbi_PackerFlags    - Contains the packer type and additional
+                               information (eg. password).
+        xfdbi_MaxSpecialLen  - Only used if any special flags are set.
+        xfdbi_MinTargetLen   - (V38) If XFDPFB_RECOGLEN is supported,
+                               this field holds the memory required to
+                               decrunch this file (or -1 if length
+                               couldn't be recognized correctly).
+        xfdbi_FinalTargetLen - (V38) If XFDPFB_RECOGLEN is supported,
+                               this field holds the final length of the
+                               file after decrunching (or -1 if length
+                               couldn't be recognized correctly).
+
+   INPUTS
+        bufferinfo - Pointer to an initialized xfdBufferInfo structure:
+           xfdbi_SourceBuffer - Pointer to file buffer.
+           xfdbi_SourceBufLen - Length of file buffer.
+           (V37) xfdbi_Flags  - Flags for recognition.
+
+   RESULT
+        success - TRUE if a cruncher has been recognized, FALSE if
+                  file is unknown.
+
+   SEE ALSO
+        xfdDecrunchBuffer()
+
+   NOTE
+        The behaviour concerning external slaves has changed for V37.
+        This was neccessary as there exist a lot of external slaves that
+        are not coded properly. The XFDFB_RECOGEXTERN flag has been
+        introduced to avoid problems unless the user really wants to use
+        external recognition.
+
+xfdmaster.library/xfdRecogLinker             xfdmaster.library/xfdRecogLinker
+
+   NAME
+        xfdRecogLinker -- Examine buffer for linked file. (V36)
+
+   SYNOPSIS
+        success = xfdRecogLinker(linkerinfo)
+          D0           -126          A0
+
+        BOOL xfdRecogLinker(struct xfdLinkerInfo *);
+
+   FUNCTION
+        Examines a file for known link mechanisms. You pass a pointer to
+        the file buffer in xfdli_Buffer and the length of the buffer in
+        xfdli_BufLen.
+
+        If a linked file has been recognized, the following fields
+        in the xfdLinkerInfo structure will be initialized:
+
+        xfdli_LinkerName - Pointer to the name of the linker.
+
+   INPUTS
+        linkerinfo - Pointer to an initialized xfdLinkerInfo structure:
+           xfdli_Buffer - Pointer to file buffer.
+           xfdli_BufLen - Length of file buffer.
+
+   RESULT
+        success - TRUE if a linker has been recognized, FALSE if
+                  file is unknown.
+
+   SEE ALSO
+        xfdUnlink()
+
+xfdmaster.library/xfdRecogSegment           xfdmaster.library/xfdRecogSegment
+
+   NAME
+        xfdRecogSegment -- Examine segment list for crunched file.
+
+   SYNOPSIS
+        success = xfdRecogSegment(segmentinfo)
+          D0             -66          A0
+
+        BOOL xfdRecogSegment(struct xfdSegmentInfo *);
+
+   FUNCTION
+        Examines a segment list for known crunchers. You pass a BPTR
+        to the segment list in xfdsi_SegList.
+
+        (V37) You may additionally set some flags in xfdsi_Flags:
+        XFDFB_RECOGEXTERN   - If this flag is set, the external slaves
+                              will be used for recognition, otherwise
+                              they will be ignored.
+
+        If a crunched segment list has been recognized, the following
+        fields in the xfdSegmentInfo structure will be initialized:
+
+        xfdsi_PackerName    - Pointer to the name of the cruncher.
+        xfdsi_PackerFlags   - Contains the packer type and additional
+                              information (eg. password).
+        xfdsi_MaxSpecialLen - Only used if any special flags are set.
+
+   INPUTS
+        segmentinfo - Pointer to an initialized xfdSegmentInfo structure:
+           xfdsi_SegList     - BPTR to segment list.
+           (V37) xfdsi_Flags - Flags for recognition.
+
+   RESULT
+        success - TRUE if a cruncher has been recognized, FALSE if
+                  segment list is unknown.
+
+   SEE ALSO
+        xfdDecrunchSegment()
+
+xfdmaster.library/xfdRelocate                   xfdmaster.library/xfdRelocate
+
+   NAME
+        xfdRelocate -- Create segment list from file buffer. (V34)
+
+   SYNOPSIS
+        error = xfdRelocate(buffer, length, result, mode)
+         D0.w       -96       A0      D0      A1    D1.w
+
+        UWORD xfdRelocate(APTR, ULONG, ULONG *, UWORD);
+
+   FUNCTION
+        Creates a relocated and fully executable segment list from
+        a file buffer. The result is a BPTR to the first segment,
+        similar to the result of a call to dos.library/LoadSeg().
+
+   INPUTS
+        buffer - Pointer to the file buffer that should be relocated.
+        length - Length of the file buffer.
+        result - Pointer to the longword that should hold the result.
+        mode   - Any XFDREL_#? relocation mode.
+
+   RESULT
+        error  - XFDERR_OK if no error occured, else XFDERR_#?.
+        result - Holds a BPTR to the first segment if error = XFDERR_OK.
+
+   NOTE
+        There is no need to call xfdTestHunkStructure[New|Flags]() before
+        relocation because xfdRelocate() does this already.
+
+        This routine supports the following hunk types:
+        - hunk_name         ($3e8) -> Skipped.
+        - hunk_code         ($3e9) -> Creates new code segment.
+        - hunk_data         ($3ea) -> Creates new data segment.
+        - hunk_bss          ($3eb) -> Creates new bss segment.
+        - hunk_reloc32      ($3ec) -> Used for relocation.
+        - hunk_symbol       ($3f0) -> Skipped.
+        - hunk_debug        ($3f1) -> Skipped.
+        - hunk_end          ($3f2) -> May be left out.
+        - hunk_header       ($3f3) -> Only at top of file.
+        - hunk_reloc32short ($3f7/$3fc) -> Used for relocation.
+        Any other hunk types create an error. There is no support for
+        hunk_overlay, because the main purpose of this routine is to
+        be called from xfds_DecrunchSegment. And in that case, the real
+        dos.library/LoadSeg() has already initialized the overlay header.
+
+xfdmaster.library/xfdScanData                   xfdmaster.library/xfdScanData
+
+   NAME
+        xfdScanData -- Scan buffer for crunched data areas. (V37)
+
+   SYNOPSIS
+        error = xfdScanData(buffer, length, result, flags, scanhook)
+         D0.w      -138       A0      D0      A1     D1.w     A2
+
+        UWORD xfdScanData(APTR, ULONG, ULONG *, UWORD, struct xfdScanHook *);
+
+   FUNCTION
+        Scans the buffer for any crunched data and returns a linked list
+        of xfdScanNode structures if one or more data files have been found.
+
+        Flags can be one or more of these:
+        XFDSDF_USEEXTERN - Use external slaves for scanning.
+        XFDSDF_SCANODD   - Scan at odd addresses (only if CPU = 68020+)
+
+        If you submit a xfdScanHook structure, you should initialize it
+        using xfdInitScanHook(). After every scanned byte (or word if
+        odd scanning is not used) your hook function will be called and
+        given an APTR to its own xfdScanHook structure in register A0.
+        You may or may not use any information from the structure in your
+        hook code and then set a returncode in D0 (TRUE to continue
+        scanning or FALSE to abort).
+        The xfdsh_ToDo field contains the amount of bytes that still have
+        to be scanned. The value is taken after a scan attempt has been
+        performed. Additionally, if the last scan attempt leaded to a
+        result, xfdsh_ScanNode contains a pointer to the respective
+        xfdScanNode structure.
+
+        You may use the hook for several things, eg. just to test for a
+        break signal or a pressed gadget, as a progress indicator or to
+        print detected data immediately instead of waiting until the end
+        of the scan.
+
+   INPUTS
+        buffer   - Pointer to the buffer that should be scanned.
+        length   - Length of the buffer.
+        result   - Pointer to the longword that should hold the pointer
+                   to the first xfdScanNode structure.
+        flags    - One or more XFDSDB_#? scan flags.
+        scanhook - Pointer to initialized xfdScanHook structure or NULL.
+
+   RESULT
+        error  - XFDERR_OK if no error occured,
+                 XFDERR_HOOKBREAK if hook returned FALSE,
+                 else XFDERR_#?.
+        result - Holds pointer to the first xfdScanNode structure or NULL
+                 if nothing was found. This is only valid if error is either
+                 XFDERR_OK or XFDERR_HOOKBREAK.
+
+   SEE ALSO
+        xfdInitScanHook()
+
+xfdmaster.library/xfdStripHunks               xfdmaster.library/xfdStripHunks
+
+   NAME
+        xfdStripHunks -- Remove annoying hunks from file buffer. (V36)
+
+   SYNOPSIS
+        error = xfdStripHunks(buffer, length, result, flags)
+         D0.w       -108        A0      D0      A1    D1.w
+
+        UWORD xfdStripHunks(APTR, ULONG, ULONG *, UWORD);
+
+   FUNCTION
+        Strips hunk_name, hunk_symbol and hunk_debug from file buffer.
+        This might be useful to shorten executables, but the main
+        purpose is to remove decrunch protections based on modified
+        hunk structures.
+
+   INPUTS
+        buffer - Pointer to the file buffer that should be stripped.
+        length - Length of the file buffer.
+        result - Pointer to the longword that should hold the new
+                 file length after stripping.
+        flags  - One or more XFDSHB_#? strip flags.
+
+   RESULT
+        error  - XFDERR_OK if no error occured, else XFDERR_#?.
+        result - Holds new length of file if error = XFDERR_OK.
+
+   NOTE
+        There is no need to call xfdTestHunkStructure[New|Flags]() before
+        stripping because xfdStripHunks() does this already.
+
+        Attention! The new file length given as a result may be used
+        to save the modified file to disk, but the length of the
+        buffer itself is still the same as it was before the call.
+
+        This routine supports the following hunk types:
+        - hunk_name         ($3e8) -> Stripped on XFDSHB_NAME.
+        - hunk_code         ($3e9) -> Skipped.
+        - hunk_data         ($3ea) -> Skipped.
+        - hunk_bss          ($3eb) -> Skipped.
+        - hunk_reloc32      ($3ec) -> Skipped.
+        - hunk_symbol       ($3f0) -> Stripped on XFDSHB_SYMBOL.
+        - hunk_debug        ($3f1) -> Stripped on XFDSHB_DEBUG.
+        - hunk_end          ($3f2) -> Skipped.
+        - hunk_header       ($3f3) -> Only at top of file.
+        - hunk_reloc32short ($3f7/$3fc) -> Skipped.
+        Any other hunk types create an error.
+
+xfdmaster.library/xfdTestHunkStructure xfdmaster.library/xfdTestHunkStructure
+
+   NAME
+        xfdTestHunkStructure -- Test hunks of executable file.
+
+   SYNOPSIS
+        success = xfdTestHunkStructure(buffer, length)
+          D0              -84            A0      D0
+
+        BOOL xfdTestHunkStructure(APTR, ULONG);
+
+   FUNCTION
+        Checks an executable file for a valid hunk structure.
+        This is important for decrunching files, because an incomplete
+        or damaged file may cause a system crash.
+
+   INPUTS
+        buffer - Pointer to the file buffer that should be checked.
+        length - Length of the file buffer.
+
+   RESULT
+        success - TRUE if file is ok, FALSE if file is damaged.
+
+   NOTE
+        It is recommended to use xfdTestHunkStructureNew() instead of
+        this routine for a more detailed error description. Internally
+        both calls use the same routines, this one is only left here
+        for downward compatibility.
+
+   SEE ALSO
+        xfdTestHunkStructureNew(), xfdTestHunkStructureFlags()
+
+xfdmaster.l/xfdTestHunkStructureFlags   xfdmaster.l/xfdTestHunkStructureFlags
+
+   NAME
+        xfdTestHunkStructureFlags -- Test hunks of executable file. (V36)
+
+   SYNOPSIS
+        error = xfdTestHunkStructureFlags(buffer, length, flags)
+         D0.w            -102               A0      D0     D1.w
+
+        UWORD xfdTestHunkStructureFlags(APTR, ULONG, UWORD);
+
+   FUNCTION
+        Checks an executable file for a valid hunk structure and reacts
+        on certain hunk types if special flags are given.
+        This is important for decrunching files, because an incomplete
+        or damaged file may cause a system crash.
+
+   INPUTS
+        buffer - Pointer to the file buffer that should be checked.
+        length - Length of the file buffer.
+        flags  - Flags to cause special actions on certain hunk types.
+                 These are:
+                 XFDTHB_NOOVERLAYS - forces error on hunk_overlay.
+
+   RESULT
+        error - XFDERR_OK if file is ok, XFDERR_#? if file is damaged
+                or special flags got activated.
+
+   NOTE
+        You don't have to call this function before trying to decrunch
+        a file, because xfdDecrunchBuffer() does this already.
+
+        This hunk checker supports the following hunk types:
+        - hunk_name         ($3e8)
+        - hunk_code         ($3e9)
+        - hunk_data         ($3ea)
+        - hunk_bss          ($3eb)
+        - hunk_reloc32      ($3ec)
+        - hunk_symbol       ($3f0)
+        - hunk_debug        ($3f1)
+        - hunk_end          ($3f2)
+        - hunk_header       ($3f3)
+        - hunk_overlay      ($3f5) -> forces error on XFDTHB_NOOVERLAYS
+        - hunk_break        ($3f6)
+        - hunk_reloc32short ($3f7/$3fc)
+        It recognizes the standard hunk_overlay ($3f5) format and some
+        user-defined overlay types too. Anyway, it may happen that some
+        weird overlay hunk causes problems because there isn't any real
+        definition for overlays.
+        The hunk structure of a non-overlayed file will nevertheless
+        be checked 100% correctly.
+
+   SEE ALSO
+        xfdTestHunkStructureNew()
+
+xfdmaster.lib/xfdTestHunkStructureNew   xfdmaster.lib/xfdTestHunkStructureNew
+
+   NAME
+        xfdTestHunkStructureNew -- Test hunks of executable file. (V34)
+
+   SYNOPSIS
+        error = xfdTestHunkStructureNew(buffer, length)
+         D0.w           -90               A0      D0
+
+        UWORD xfdTestHunkStructureNew(APTR, ULONG);
+
+   FUNCTION
+        Checks an executable file for a valid hunk structure.
+        This is important for decrunching files, because an incomplete
+        or damaged file may cause a system crash.
+
+   INPUTS
+        buffer - Pointer to the file buffer that should be checked.
+        length - Length of the file buffer.
+
+   RESULT
+        error - XFDERR_OK if file is ok, XFDERR_#? if file is damaged.
+
+   NOTE
+        This is actually just a call to xfdTestHunkStructureFlags()
+        with no flags set.
+
+   SEE ALSO
+        xfdTestHunkStructureFlags()
+
+xfdmaster.library/xfdUnlink                       xfdmaster.library/xfdUnlink
+
+   NAME
+        xfdUnlink -- Unlink two files inside the same buffer. (V36)
+
+   SYNOPSIS
+        success = xfdUnlink(linkerinfo)
+          D0        -132        A0
+
+        BOOL xfdUnlink(struct xfdLinkerInfo *);
+
+   FUNCTION
+        Unlinks two files that have been joined by some so-called
+        4EB9-Linkers or any other recogniced linker type. No new buffers are
+        created, unlinked files are both located inside source buffer. You
+        have to call xfdRecogLinker() first, only if this call was
+        successful, you may call xfdUnlink().
+
+        If unlinking was successful, the following fields in the
+        xfdLinkerInfo structure will be initialized:
+
+        xfdli_Save1    - Pointer to first unlinked file.
+        xfdli_Save2    - Pointer to second unlinked file.
+        xfdli_SaveLen1 - Length of first unlinked file.
+        xfdli_SaveLen2 - Length of second unlinked file.
+
+   INPUTS
+        linkerinfo - Pointer to an initialized xfdLinkerInfo structure
+                     as received by xfdRecogLinker().
+
+   RESULT
+        success - TRUE if unlinking was successful, FALSE if
+                  anything went wrong.
+
+   NOTE
+        After a call to xfdUnlink(), the contents of xfdli_Buffer are
+        under no circumstances valid any longer. The only way to make use
+        of the buffer contents is via xfdli_Save1 and xfdli_Save2.
+        But if you have finished work with the splitted files, you have
+        to release exactly the memory you have allocated for xfdli_Buffer.
+
+        There exist several programs that produce the same linker output.
+        Some of them are very badly programmed, so if unlinking fails or
+        produces non-executable files, don't blame xfdmaster.library.
+
+   SEE ALSO
+        xfdRecogLinker()
+

@@ -1,0 +1,43 @@
+This drawer contains the developer information of xfdmaster.library v38
+for AmigaE. It differs completly from the old (until 'xfd120.lha') development
+material which still contained the restrictions from version 1.X of AmigaE.
+The actual version is 3.3a and most limitations have been removed.
+
+Notes:
+
+   1. ** VERY IMPORTANT **: When using XFD from Amiga E, note that the
+      function calls like "xfdDecrunch" or "xfdRecogBuffer" are now called
+      "XfdDecrunch" and "XfdRecogBuffer" (with a capital "X"). This is due
+      to a restriction in the E compiler - all library calls must start with
+      an upper-case letter. Also note that the library base is called
+      "xfdmasterbase" in E, rather than "XFDMasterBase".
+      Everything else about XFD is exactly the same as in C or assembler
+      (such as constants, macros and so on). If you are confused in any way,
+      see the example "XfdTextView.e" source file. This should clarify
+      matters.
+
+   2. The included xfdtextview are written by DII and comes with the old
+      xfd-package. I could neither find the email-address of DII nor a
+      copyright notice. But I hope there are no problems with it.
+      I have modified xfdtextview to work with the new xfdmaster-modules and
+      added asl-support.
+      Note that it still doesn't display TABs properly, but that shouldn't
+      matter.
+      ** IMPORTANT **: The scrollwindow-class from the AmigaE v3.3
+      distribution always crashes my machine. I have included the old ones
+      in EModules/class. If you have problems you should install this files.
+
+   3. Please remember that BOTH the files called "xfdmaster.m" are necessary
+      for Amiga E to use XFD, and should both be included in any E XFD
+      distribution. "EModules/xfdmaster.m" contains the function pragmas,
+      while "EModules/libraries/xfdmaster.m" contains all the structures and
+      constants (like xfdmaster.i or xfdmaster.h).
+
+
+The original text was written by DII and slightly changed by Georg Hoermann.
+I reused some parts of it.
+
+
+Sven Steiniger, 1998
+e-Mail: ss37@inf.tu-dresden.de
+

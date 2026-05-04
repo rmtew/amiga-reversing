@@ -1,0 +1,55 @@
+SCOPTS = RESOPT NOSTACKCHECK STRINGMERGE UNSIGNEDCHARS\
+NOCHECKABORT OPTIMIZE OPTIMIZERTIME OPTIMIZERLOOP OPTINLOCAL NOICONS\
+MEMSIZE=HUGE DATA=FARONLY CODE=FAR DEBUG=LINE
+SLOPTS = SMALLDATA SMALLCODE NOICONS
+
+OBJDIR = T:
+
+XFD: UNIX-Compress GZip LHA3
+
+# ************* Same code as xfd-Modul, but is startable OS2.0 Exe File
+EXE: UNIX-CompressExe GZipExe LHA3Exe
+
+ALL: XFD EXE
+
+# ************* global header
+
+$(OBJDIR)extheader.o: extheader.c
+	sc $(SCOPTS) $? OBJNAME=$@
+
+$(OBJDIR)Exehead.o: ExeHead.c
+	sc $(SCOPTS) $? OBJNAME=$@
+
+# ************* UNIX-Compress
+
+UNIX-Compress: $(OBJDIR)extheader.o $(OBJDIR)UNIX-Compress.o
+	slink $(SLOPTS) FROM $(OBJDIR)extheader.o $(OBJDIR)UNIX-Compress.o STRIPDEBUG TO $@
+
+UNIX-CompressExe: $(OBJDIR)ExeHead.o $(OBJDIR)UNIX-Compress.o
+	slink $(SLOPTS) FROM $(OBJDIR)ExeHead.o $(OBJDIR)UNIX-Compress.o TO $@
+
+$(OBJDIR)UNIX-Compress.o: UNIX-Compress.c
+	sc $(SCOPTS) $? OBJNAME=$@
+
+# ************* GZip
+
+GZip: $(OBJDIR)extheader.o $(OBJDIR)GZip.o
+	slink $(SLOPTS) FROM $(OBJDIR)extheader.o $(OBJDIR)GZip.o STRIPDEBUG TO $@
+
+GZipExe: $(OBJDIR)ExeHead.o $(OBJDIR)GZip.o
+	slink $(SLOPTS) FROM $(OBJDIR)ExeHead.o $(OBJDIR)GZip.o TO $@
+
+$(OBJDIR)GZip.o: GZip.c
+	sc $(SCOPTS) $? OBJNAME=$@
+
+# ************* LHA3
+
+LHA3: $(OBJDIR)extheader.o $(OBJDIR)LHA3.o
+	slink $(SLOPTS) FROM $(OBJDIR)extheader.o $(OBJDIR)LHA3.o STRIPDEBUG TO $@
+
+LHA3Exe: $(OBJDIR)ExeHead.o $(OBJDIR)LHA3.o
+	slink $(SLOPTS) FROM $(OBJDIR)ExeHead.o $(OBJDIR)LHA3.o TO $@
+
+$(OBJDIR)LHA3.o: LHA3.c
+	sc $(SCOPTS) $? OBJNAME=$@
+

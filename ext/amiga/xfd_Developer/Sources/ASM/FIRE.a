@@ -1,0 +1,235 @@
+*******************************************************
+**     XFD external decruncher for FIRE Cruncher     **
+**           written by Dexter&Bartman/Abyss         **
+**             modified by Georg Hörmann             **
+**	   shortened and fixed by SDI in 2002  	     **
+*******************************************************
+
+		INCLUDE	AINCLUDE:IncDirs.i
+		INCLUDE	"libraries/xfdmaster.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_FIRE		;first slave
+
+		dc.b	"$VER: FIRE 2.0 (18.08.2002)",0
+N_FIRE		dc.b	'(FIRE) Cruncher',0
+		EVEN
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_FIRE		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_FIRE		;name
+		dc.w	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		dc.w	0
+		dc.l	RB_FIRE		;recog buffer
+		dc.l	DB_FIRE		;decrunch buffer
+		dc.l	SD_FIRE
+		dc.l	VD_FIRE
+		dc.w	0,0
+		dc.l	12+2
+
+RB_FIRE		MOVEQ	#0,D0
+		CMP.L	#"FIRE",(A0)
+		BNE.B	.Exit
+		TST.B	4(A0)
+		BNE.B	.Exit
+		TST.B	8(A0)
+		BNE.B	.Exit
+		MOVE.L	8(A0),xfdrr_FinalTargetLen(A1)
+		MOVE.L	8(A0),xfdrr_MinTargetLen(A1)
+		MOVE.L	4(A0),xfdrr_MinSourceLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+SD_FIRE		MOVEQ	#0,D0
+		CMP.L	#"FIRE",(A0)
+		BNE.B	.end
+		MOVEQ	#1,D0
+.end		RTS
+
+VD_FIRE		CMP.L	4(A0),D0	;crlen > buflen ??
+		BLS.B	.Exit
+		MOVE.L	4(A0),D1
+		CMP.L	8(A0),D1	;cr > uncr ??
+		BHS.B	.Exit
+		MOVE.L	D1,D0
+		RTS
+.Exit		MOVEQ	#0,D0
+		RTS
+
+DB_FIRE		MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVEA.L	xfdbi_UserTargetBuf(A0),A6
+		MOVEA.L	xfdbi_SourceBuffer(A0),A0
+
+		MOVEA.L	A0,A5
+		MOVEA.L	A6,A4
+		ADDA.L	8(A0),A6
+		ADDA.L	4(A0),A5
+		MOVE.B	-(A5),D7
+		MOVEQ	#1,D6
+		SWAP	D6
+		MOVEQ	#0,D5
+		MOVEQ	#-1,D4
+.decr01		BSR.B	.getbit
+		BCC.W	.decr04
+		MOVEQ	#0,D1
+		BSR.B	.getbit
+		BCC.B	.decr03
+		LEA	.datatable(PC),A0
+		MOVEQ	#3,D3
+.decr02		MOVE.L	-(A0),D0
+		BSR.B	.getbits
+		SWAP	D0
+		CMP.W	D0,D1
+		DBNE	D3,.decr02
+		ADD.L	$10(A0),D1
+.decr03		MOVE.B	-(A5),-(A6)
+		CMPA.L	A4,A6
+		DBEQ	D1,.decr03
+		CMP.W	D4,D1
+		BEQ.B	.decr04
+		BRA.W	.end
+
+		DC.W	$3FF,9
+		DC.W	7,2
+		DC.W	3,1
+		DC.W	3,1
+.datatable	DC.W	0,14
+		DC.W	0,7
+		DC.W	0,4
+		DC.W	0,1
+		DC.W	3,0
+		DC.W	7,16
+		DC.W	11,$110
+		DC.W	15,$1110
+		DC.W	3,5
+		DC.W	5,$15
+		DC.W	7,$55
+
+.getbit		ADD.B	D7,D7
+		BNE.B	.getbitend
+		MOVE.B	-(A5),D7
+		ADDX.B	D7,D7
+.getbitend	RTS
+
+.getbits	MOVEQ	#0,D1
+.getbitsloop	ADD.B	D7,D7
+		BNE.B	.onebit
+		MOVE.B	-(A5),D7
+		ADDX.B	D7,D7
+.onebit		ADDX.W	D1,D1
+		DBRA	D0,.getbitsloop
+		RTS
+
+.decr04		MOVEQ	#1,D0
+		BSR.B	.getbits
+		SUBQ.W	#1,D1
+		BMI.B	.decr08
+		BEQ.B	.decr10
+		SUBQ.W	#1,D1
+		BEQ.B	.decr11
+		BSR.B	.getbit
+		BCC.B	.decr09
+		BSR.B	.getbit
+		BCC.B	.decr12
+		BRA.B	.decr13
+.decr05		MOVEQ	#1,D0
+		BSR.B	.getbits
+		SUBQ.W	#1,D1
+		BPL.B	.decr07
+		MOVEQ	#0,D0
+		RTS
+
+.decr06		MOVEQ	#1,D0
+		BSR.B	.getbits
+.decr07		ADD.W	D1,D1
+		ADD.W	D1,D1
+		MOVEM.W	.datatable+$10(PC,D1.W),D0/D5
+		BSR.B	.getbits
+		ADD.L	D5,D1
+		RTS
+
+.decr08		MOVEQ	#1,D0
+		BSR.B	.getbits
+		SUBQ.W	#1,D1
+		BMI.B	.decr17
+		ADD.W	D1,D1
+		ADD.W	D1,D1
+		MOVEM.W	.datatable+$20(PC,D1.W),D0/D2
+		BSR.B	.getbits
+		ADD.W	D1,D2
+		BSR.B	.decr06
+		MOVE.W	D2,D0
+		BRA.B	.decr19
+.decr09		MOVEQ	#2,D0
+		BSR.B	.getbits
+		MOVEQ	#0,D0
+		BSET	D1,D0
+		BRA.B	.decr16
+.decr10		MOVEQ	#7,D0
+		BSR.B	.getbits
+		MOVEQ	#0,D0
+		BRA.B	.decr20
+.decr11		BSR.B	.decr05
+		TST.W	D0
+		BEQ.B	.decr16
+		MOVEQ	#1,D0
+		BRA.B	.decr20
+.decr12		BSR.B	.decr05
+		TST.W	D0
+		BEQ.B	.decr15
+		MOVEQ	#2,D0
+		BRA.B	.decr20
+.decr13		BSR.B	.decr05
+		TST.W	D0
+		BEQ.B	.decr14
+		MOVEQ	#3,D0
+		BRA.B	.decr20
+.decr14		MOVEQ	#-1,D0
+		BRA.B	.decr16
+.decr15		MOVE.B	(A6),D0
+.decr16		MOVE.B	D0,-(A6)
+		CMPA.L	A4,A6
+		BEQ.B	.end
+		BRA.W	.decr01
+.decr17		BSR.B	.decr06
+		BEQ.W	.decr01
+		MOVE.B	(A6),D0
+.decr18		MOVE.B	D0,-(A6)
+		CMPA.L	A4,A6
+		DBEQ	D1,.decr18
+		CMP.W	D4,D1
+		BNE.B	.end
+		SUB.L	D6,D1
+		BMI.W	.decr01
+		BRA.B	.decr18
+.decr19		SUBQ.W	#2,D0
+.decr20		LEA	2(A6,D1.L),A0
+		ADDA.W	D0,A0
+		MOVE.B	-(A0),-(A6)
+		CMPA.L	A4,A6
+		BEQ.B	.end
+.decr21		MOVE.B	-(A0),-(A6)
+		CMPA.L	A4,A6
+		DBEQ	D0,.decr21
+		CMP.W	D4,D0
+		BEQ.W	.decr01
+.end		MOVEQ	#1,D0
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+		END

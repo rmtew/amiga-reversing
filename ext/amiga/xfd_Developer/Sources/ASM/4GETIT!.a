@@ -1,0 +1,183 @@
+***************************************************************
+**   XFD external decruncher for recognising the Imploder    **
+**	Hack as used on the PC Task executables.             **
+***************************************************************
+
+		SECTION	ForgetIt,CODE
+
+		INCLUDE	AINCLUDE:IncDirs.i
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE	lvo.i
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+F_ForgetIt	moveq	#-1,d0			;security
+		rts
+
+		dc.l	XFDF_ID			;id
+		dc.w	1			;version
+		dc.w	0
+		dc.l	0,0			;private
+		dc.l	S_ForgetIt		;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_ForgetIt	dc.l	0			;no more slaves
+		dc.w	1			;version
+		dc.w	33			;master version
+		dc.l	N_ForgetIt		;name
+		dc.w	XFDPFF_RELOC		;flags
+		dc.w	0
+		dc.l	RB_ForgetIt		;recog buffer
+		dc.l	DB_ForgetIt		;decrunch buffer
+		dc.l	0			;recog segment
+		dc.l	0			;decrunch segment
+
+N_ForgetIt	dc.b	'4Get It! Encryptor',0
+		even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_ForgetIt	Moveq.l	#1,d0			; True
+		Cmp.l	#$3f3,(a0)+		; Is this an executable?
+		Bne.b	.No
+		TST.L	4(A0)
+		BNE.B	.No
+
+		Move.l	4(a0),d1
+		Add.l	d1,d1
+		Add.l	d1,d1			; x4
+		Add.l	d1,a0
+		Lea	4*4(a0),a0		; Skip the first/last hunk numbers,
+						; and 
+
+		Cmp.l	#$3e9,(a0)
+		bne.b	.No
+
+		Cmp.l	#$48e7c0e0,8(a0)	; 
+		Bne.b	.No
+
+		Cmp.l	#$41fa002a,12(a0)	; 
+		Bne.b	.No
+
+		Cmp.l	#$2018d098,16(a0)	; 
+		Bne.b	.No
+
+		Cmp.l	#"4GET",56(a0)
+		Bne.b	.No
+
+		Cmp.l	#" IT!",60(a0)
+		Beq.b	.Yes
+
+.No		Moveq.l	#0,d0
+.Yes		rts
+
+;-------------------------------------------------
+
+;Decrunch buffer function: receives bufferinfo in a0
+
+DB_ForgetIt	MOVEM.L	d2-d7/a2-a6,-(A7)
+		move.l	a0,a5
+
+		Move.l	xfdbi_SourceBufLen(a5),d0
+		move.l	d0,xfdbi_TargetBufSaveLen(a5)
+		move.l	d0,xfdbi_TargetBufLen(a5)
+
+		move.l	xfdbi_TargetBufMemType(a5),d1
+		move.l	4.w,a6
+		JSR	_LVOAllocMem(A6)
+		moveq	#XFDERR_NOMEMORY,d1
+		Move.w	d1,xfdbi_Error(a5)
+		move.l	d0,xfdbi_TargetBuffer(a5)
+		beq	.NoMem
+
+		Clr.w	xfdbi_Error(a5)
+
+		Move.l	d0,a1
+		Move.l	xfdbi_SourceBuffer(a5),a0
+		Move.l	xfdbi_SourceBufLen(a5),d0
+		JSR	_LVOCopyMem(A6)
+
+;*-------------------------------------------------------------------------
+;Read the size of encrypted data.
+;*-------------------------------------------------------------------------
+
+		move.l	xfdbi_TargetBuffer(a5),a0
+
+.SeekSize	Cmp.w	#$223c,(a0)+
+		Bne.b	.SeekSize
+
+		move.l	(a0)+,D1
+
+
+;*-------------------------------------------------------------------------
+;Find the encrypted data
+;*-------------------------------------------------------------------------
+
+.SeekData	Cmp.w	#' I',(a0)+
+		Bne.b	.SeekData
+		Cmp.w	#'T!',(a0)+
+		Bne.b	.SeekData
+
+;*-------------------------------------------------------------------------
+; This is the loop where the decryption is done.
+;*-------------------------------------------------------------------------
+
+		MOVEM.L	a0/d1,-(A7)		; a0-ptr to coded data
+						; d1-coded data size
+
+		Subq.l	#1,d1			; Correct for Dbra
+
+		move.l	#$54909975,D0		; "4GET" + " IT!" (Encryption val)
+
+.Decode		Eor.l	D0,(A0)+
+		dbra	d1,.Decode
+
+		MOVEM.L	(A7)+,a0/d1
+
+;*-------------------------------------------------------------------------
+; Move the rest of the file 14 longwords towards the beginning of the file.
+;*-------------------------------------------------------------------------
+
+		Sub.l	#14*4,xfdbi_TargetBufSaveLen(a5)	; Decryptor size
+
+		Move.l	xfdbi_TargetBufSaveLen(a5),d0
+
+		move.l	xfdbi_TargetBuffer(a5),a1
+.SeekStartCodeHunk
+		Subq.l	#4,d0			; decrease copysize
+		Cmp.l	#$3e9,(a1)+
+		Bne.b	.SeekStartCodeHunk
+
+		Addq.l	#4,a1
+		Subq.l	#4,d0
+
+		JSR	_LVOCopyMem(A6)
+
+
+;*-------------------------------------------------------------------------
+; Fix up the hunk sizes
+;*-------------------------------------------------------------------------
+		move.l	xfdbi_TargetBuffer(a5),a1
+		Sub.l	#14,20(a1)
+
+		Move.l	8(a1),d0
+		Addq.l	#6,d0
+		Add.l	d0,d0
+		Add.l	d0,d0	; x4
+		Add.l	d0,a1
+		Sub.l	#14,(a1)
+
+;*-------------------------------------------------------------------------
+
+		Moveq.l	#1,d0		; True = Decrunched ok
+.NoMem		MOVEM.L	(A7)+,d2-d7/a2-a6
+		Rts
+
+**************************************************
+
+		END

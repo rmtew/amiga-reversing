@@ -1,0 +1,200 @@
+*******************************************************
+**     XFD external decruncher for Vice Cruncher     **
+**        written by Mr. Larmer / Wanted Team        **
+**	   shortened and fixed by SDI in 1999  	     **
+**	   and fixed by Don Adan/WT in 2000  	     **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.1 (25.08.2000)
+; o Increased minimum crunched file size from 14 to 1032
+; o Changed register usage in DecrunchBuffer
+
+;		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_Vice		;first slave
+
+**************************************************
+
+		dc.b	"$VER: Vice 2.1 (01.11.2002)",0
+N_Vice		dc.b	"(Vice) Data Cruncher",0
+		even
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_Vice		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_Vice		;name
+		dc.w	XFDPFF_DATA!XFDPFF_USERTARGET!XFDPFF_RECOGLEN
+		dc.w	0
+		dc.l	RB_Vice		;recog buffer
+		dc.l	DB_Vice		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	4+$400+4
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_Vice		CMP.L	#'Vice',(A0)
+		BNE.B	.Exit
+		CMP.B	#$80,4(A0)
+		BNE.B	.Exit
+
+	move.l	#$80000,D1
+	cmp.l	#100000,D0
+	blt.b	.MinMem
+	cmp.l	D1,D0
+	bgt.b	.MaxMem
+.MinMem
+	lsr.l	#1,D1
+	add.l	D0,D1
+.MaxMem
+		MOVE.L	D1,xfdrr_MinTargetLen(A1)
+		MOVE.L	#-1,xfdrr_FinalTargetLen(A1)
+		MOVEQ	#1,D0
+	rts
+.Exit
+		MOVEQ	#0,D0
+		RTS
+
+;-------------------------------------------------
+
+;Decrunch buffer function: receives bufferinfo in a0
+
+DB_Vice		MOVEM.L	D2-D7/A2-A6,-(SP)
+		MOVEA.L	A0,A2
+		MOVE.L	xfdbi_SourceBuffer(A2),A6
+		MOVE.L	xfdbi_UserTargetBuf(A2),A3	; dest start
+		MOVEA.L	A6,A0
+		ADD.L	xfdbi_SourceBufLen(A2),A0	; source end
+		ADDQ.L	#4,A6				; source start
+		MOVE.L	A3,A1
+		ADD.L	xfdbi_UserTargetBufLen(A2),A1	; dest end
+
+		MOVE.L	A3,D2
+		BSR.B	D_Vice
+		MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A2)
+
+		SUBA.L	D2,A3
+		MOVE.L	A3,xfdbi_TargetBufSaveLen(A2)
+
+		; D0 already set
+		MOVEM.L	(SP)+,D2-D7/A2-A6
+		RTS
+
+; A6 -> Crunched data start, past header (source)
+; A0 -> Crunched data end (source)
+; A3 -> Decrunch buffer start (destination)
+; A1 -> Decrunch buffer end (destination)
+
+; Uses: A0,A1,A3,A4,A5,A6, D0,D1,D3,D4,D5,D6,D7
+
+D_Vice		LEA	$200(A6),A5
+		LEA	$400(A6),A4
+		MOVEQ	#1,D6
+		MOVE.W	$1FE(A6),D4
+		MOVEQ	#$1F,D7
+		MOVEQ	#7,D3
+
+.Vice01:	MOVEQ	#0,D1
+		BSR.S	.ViceSub
+		TST.B	D5
+		BEQ.S	.Error
+		MOVE.B	D5,D1
+		BPL.S	.Vice03
+		BCLR	D3,D1
+		SUBQ.B	#1,D1
+		BSR.S	.ViceSub
+.Vice02:	CMPA.L	A1,A3
+		BGE.B	.DestEnd
+		MOVE.B	D5,(A3)+
+		DBRA	D1,.Vice02
+		BRA.S	.Vice01
+.Vice03:	SUBQ.B	#1,D1
+.Vice04:	MOVE.W	D4,D5
+.Vice05:	LSR.L	#1,D6
+		BCC.S	.Vice08
+		BEQ.S	.Vice07
+.Vice06:	MOVE.W	(A5,D5.W),D5
+		BMI.S	.Vice09
+		LSR.L	#1,D6
+		BCC.S	.Vice08
+		BEQ.S	.Vice07
+		MOVE.W	(A5,D5.W),D5
+		BPL.S	.Vice05
+		CMPA.L	A1,A3
+		BGE.B	.DestEnd
+		MOVE.B	D5,(A3)+
+		DBRA	D1,.Vice04
+		BRA.S	.Vice01
+.Vice07:	MOVE.L	(A4)+,D6
+		CMPA.L	A0,A4
+		BGT.B	.SourceEnd
+		LSR.L	#1,D6
+		BSET	D7,D6
+		BCS.S	.Vice06
+.Vice08:	MOVE.W	(A6,D5.W),D5
+		BMI.S	.Vice09
+		LSR.L	#1,D6
+		BCC.S	.Vice08
+		BEQ.S	.Vice07
+		MOVE.W	(A5,D5.W),D5
+		BPL.S	.Vice05
+.Vice09:	CMPA.L	A1,A3
+		BGE.B	.DestEnd
+		MOVE.B	D5,(A3)+
+		DBRA	D1,.Vice04
+		BRA.S	.Vice01
+
+.DestEnd	MOVEQ	#0,D0
+		RTS
+
+.SourceEndSub	ADDQ.L	#4,SP
+.Error
+.SourceEnd	MOVEQ	#1,D0
+		RTS
+
+.ViceSub:	MOVE.W	D4,D5
+.ViceS1:	LSR.L	#1,D6
+		BCC.S	.ViceS4
+		BEQ.S	.ViceS3
+.ViceS2:	MOVE.W	(A5,D5.W),D5
+		BMI.S	.End
+		LSR.L	#1,D6
+		BCC.S	.ViceS4
+		BEQ.S	.ViceS3
+		MOVE.W	(A5,D5.W),D5
+		BPL.S	.ViceS1
+		RTS
+.ViceS3:	MOVE.L	(A4)+,D6
+		CMP.L	A0,A4
+		BGT.B	.SourceEndSub
+		LSR.L	#1,D6
+		BSET	D7,D6
+		BCS.S	.ViceS2
+.ViceS4:	MOVE.W	(A6,D5.W),D5
+		BMI.S	.End
+		LSR.L	#1,D6
+		BCC.S	.ViceS4
+		BEQ.S	.ViceS3
+		MOVE.W	(A5,D5.W),D5
+		BPL.S	.ViceS1
+.End:		RTS
+		END

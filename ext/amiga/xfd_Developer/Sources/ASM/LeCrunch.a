@@ -1,0 +1,453 @@
+* Programmheader
+*
+*	Name:		LeCrunch
+*	Author:		SDI
+*	Distribution:	PD
+*	Description:	XFD external decruncher for recognising LeCrunch
+*	Compileropts:	-
+*	Linkeropts:	-
+*
+* 1.0   02.02.98 : first tries
+* 1.1   17.08.98 : some more test
+* 1.2   06.12.98 : added Expand routine, reloc handling still missing
+* 1.3   08.12.98 : finally completed stuff, uses cached SysBase
+* 1.4   15.08.02 : added LeCrunch Data
+
+		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE "exec/memory.i"
+		INCLUDE "lvo/exec_lib.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+ForeMan		MOVEQ	#-1,D0
+		RTS
+
+		DC.L	XFDF_ID
+		DC.W	1,0
+		DC.L	0,0,S_LeCrunch
+
+		DC.B	"$VER: LeCrunch 1.4 (15.08.2002) by SDI",0
+N_LeCrunch	DC.B	'LeCrunch',0
+N_LeCrunchData	DC.B	'LeCrunch Data',0
+		EVEN
+
+S_LeCrunch	DC.L	S_LeCrunchData
+		DC.W	2		;version
+		DC.W	36		;master version
+		DC.L	N_LeCrunch	;name
+		DC.W	XFDPFF_RELOC	;flags
+		DC.W	0
+		DC.L	RB_LeCrunch	;recog buffer
+		DC.L	DB_LeCrunch	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	$278		;MinBufSize
+
+S_LeCrunchData	DC.L	0		;no more slaves
+		DC.W	2		;version
+		DC.W	39		;master version
+		DC.L	N_LeCrunchData	;name
+		DC.W	XFDPFF_DATA|XFDPFF_RECOGLEN|XFDPFF_USERTARGET
+		DC.W	0
+		DC.L	RB_LeCrunchData	;recog buffer
+		DC.L	DB_LeCrunchData	;decrunch buffer
+		DC.L	SD_LeCrunchData
+		DC.L	VD_LeCrunchData
+		DC.W	0,0
+		DC.L	50+2		;MinBufSize
+
+*************************************************************************
+*	Recog buffer function: receives buffer + length in A0/D0	*
+*************************************************************************
+
+RB_LeCrunch	MOVEQ	#0,D0			; False
+
+		CMP.L	#$000003F3,(A0)
+		BNE.B	.No
+		CMP.L	#$00EE2449,$44(A0)
+		BNE.B	.No
+		MOVE.L	#$4E750902,D1
+		CMP.L	$214(A0),D1
+		BEQ.B	.Next
+		SUBQ.L	#4,A0
+		CMP.L	$214(A0),D1
+		BNE.B	.No
+.Next		CMP.L	#$05030201,$22C(A0)
+		BNE.B	.No
+		CMP.L	#$00010011,$238(A0)
+		BNE.B	.No
+		CMP.L	#$00510091,$23C(A0)
+		BNE.B	.No
+		CMP.L	#$01110211,$240(A0)
+		BNE.B	.No
+		CMP.L	#$04110811,$244(A0)
+		BNE.B	.No
+		CMP.L	#'LEC2',$274(A0)
+		BNE.B	.No
+		MOVEQ	#1,D0			; True
+.No		RTS
+
+WORKSIZE	EQU	1024	* security buffer
+
+F1_DESTLEN2	EQU	$280	* offsets in source file
+F1_DESTLEN	EQU	$27C
+F1_SOURCELEN	EQU	$278
+F1_EXPCHAR	EQU	$284
+F1_SOURCE	EQU	$286
+
+*************************************************************************
+*	Decrunch buffer function: receives xfdbiBufferInfo in A0	*
+*************************************************************************
+
+DB_LeCrunch	MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVE.L	A0,A5
+		MOVEQ	#0,D6				* return value
+		MOVE.W	#XFDERR_NOMEMORY,xfdbi_Error(A5)
+		MOVEA.L	xfdbi_SourceBuffer(A5),A4
+		CMP.L	#'LEC2',$274(A4)
+		BEQ.B	.Next
+		SUBQ.L	#4,A4
+.Next		MOVE.L	F1_DESTLEN(A4),D5
+		ADD.L	#$100,D5
+		MOVE.L	D5,D0
+		MOVEQ	#0,D1
+		MOVE.L	xfdm_ExecBase(A6),A6
+		JSR	_LVOAllocMem(A6)
+		TST.L	D0
+		BEQ.B	.NoMem
+		MOVEA.L	D0,A3
+
+		LEA	$100(A3),A1
+		ADD.L	F1_DESTLEN(A4),A1	* unpack buffer end
+		MOVEA.L	A1,A2
+		SUBA.L	F1_DESTLEN2(A4),A2	* start of unpack buffer
+		MOVE.L	F1_SOURCELEN(A4),D0
+		ADD.L	#F1_SOURCE,D0
+		LEA	(A4,D0.L),A0		* decrunch buffer end
+		MOVE.L	A6,-(A7)
+		BSR.W	Decrunch
+		MOVE.L	(A7)+,A6
+
+		MOVE.W	F1_EXPCHAR(A4),D0
+		MOVEA.L	A2,A1
+		ADDA.L	F1_DESTLEN2(A4),A2
+		MOVEA.L	A3,A0
+		BSR.W	Expand
+
+		MOVE.L	A3,A0
+		BSR.W	GetFileSize	* returns destination size in D4
+		MOVE.L	D4,D0
+		MOVE.L	D4,xfdbi_TargetBufLen(A5)
+		MOVE.L	D4,xfdbi_TargetBufSaveLen(A5)
+		MOVE.L	xfdbi_TargetBufMemType(A5),D1
+		JSR	_LVOAllocMem(A6)
+		MOVE.L	D0,xfdbi_TargetBuffer(A5)
+		BEQ.B	.NoMem2
+
+		MOVEA.L	A3,A0
+		MOVEA.L	D0,A2
+		BSR.W	MakeFile
+
+		CLR.W	xfdbi_Error(A5)
+		MOVEQ	#1,D6				* set true
+.NoMem2		MOVE.L	D5,D0
+		MOVE.L	A3,A1
+		JSR	_LVOFreeMem(A6)
+.NoMem		MOVE.L	D6,D0
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+*************************************************************************
+*	The data slave                                                  *
+*************************************************************************
+
+RB_LeCrunchData	MOVEQ	#0,D0
+		CMP.L	#"LeCr",(A0)
+		BNE.B	.Exit
+		TST.B	4(A0)
+		BNE.B	.Exit
+		MOVE.L	8(A0),D0
+		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		ADDI.L	#$20,D0
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+		MOVE.L	4(A0),D0
+		ADDI.L	#50,D0
+		MOVE.L	D0,xfdrr_MinSourceLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+SD_LeCrunchData	MOVEQ	#0,D0
+		CMP.L	#"LeCr",(A0)
+		BNE.B	.end
+		MOVEQ	#1,D0
+.end		RTS
+
+VD_LeCrunchData	MOVEQ	#50,D1
+		ADD.L	4(A0),D1	;crlen
+		CMP.L	D0,D1		;crlen > buflen ??
+		BGT.B	.Exit
+		MOVE.L	8(A0),D0
+		SUB.L	4(A0),D0	;cr > uncr ??
+		BMI.B	.Exit
+		MOVE.L	D1,D0
+		RTS
+.Exit		MOVEQ	#0,D0
+		RTS
+
+DB_LeCrunchData	MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVE.L	A0,A5
+		MOVE.L	xfdbi_UserTargetBuf(A5),A2
+		ADDA.L	xfdbi_TargetBufSaveLen(A5),A2
+		LEA.L	$20(A2),A2
+		MOVE.L	A2,A1
+		MOVE.L	xfdbi_SourceBuffer(A5),A0
+		MOVE.L	12(A0),D6
+		SUBA.L	D6,A2
+		MOVE.W	16(A0),D7
+		ADDA.L	xfdbi_SourceBufLen(A5),A0
+		BSR.B	Decrunch
+		MOVE.L	xfdbi_UserTargetBuf(A5),A0
+		LEA.L	$20(A0),A1
+		MOVE.L	D7,D0
+		MOVEA.L	A2,A1
+		ADDA.L	D6,A2
+		MOVEA.L	xfdbi_UserTargetBuf(A5),A0
+		BSR.B	Expand
+		MOVEQ	#1,D0
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+*************************************************************************
+*	decrunch routine - copied from file (a bit modified)		*
+*									*
+*	gets following parameters:					*
+*		A0	end of source file				*
+*		A1	end of destination file				*
+*		A2	start of destination file			*
+*************************************************************************
+
+Expand		MOVEQ	#0,D1
+.exp1		MOVE.B	(A1)+,D1
+		CMP.W	D0,D1
+		BNE.B	.exp3
+		MOVEQ	#0,D2
+		MOVE.B	(A1)+,D2
+		BEQ.B	.exp3
+		MOVE.B	(A1)+,D1
+.exp2		MOVE.B	D1,(A0)+
+		DBRA	D2,.exp2
+		MOVE.B	D1,(A0)+
+.exp3		MOVE.B	D1,(A0)+
+		CMPA.L	A0,A2
+		BGT.B	.exp1
+		RTS	
+
+Decrunch	MOVEQ	#-$80,D3
+Decrunch2	BSR.B	Func1
+		BCC.B	Func3
+		BSR.B	Func1
+		BCC.B	.DecEnd
+		MOVEQ	#3,D0
+		MOVEQ	#8,D2
+.DecLoop	SUBQ.W	#2,D2
+		MOVE.B	Data1B(PC,D0.W),D4
+		BSR.B	Func2
+		CMP.W	Data2W(PC,D2.W),D1
+		DBNE	D0,.DecLoop
+		MOVE.B	Data3B(PC,D0.W),D2
+		ADD.W	D1,D2
+.DecLoop2	MOVE.B	-(A0),-(A1)
+		DBRA	D2,.DecLoop2
+.DecEnd		MOVE.B	-(A0),-(A1)
+		CMPA.L	A1,A2
+		BLE.B	Func3
+		RTS	
+
+Func1		ADD.B	D3,D3
+		BNE.B	.F1_1
+		MOVE.B	-(A0),D3
+		ADDX.B	D3,D3
+.F1_1		RTS	
+
+Func2		MOVEQ	#0,D1
+.F2_1		BSR.B	Func1
+		ADDX.W	D1,D1
+		SUBQ.B	#1,D4
+		BPL.B	.F2_1
+		RTS	
+
+Func3		MOVEQ	#4,D0
+.F3_1		BSR.B	Func1
+		BCC.B	.F3_2
+		SUBQ.W	#1,D0
+		BNE.B	.F3_1
+.F3_2		CLR.W	D1
+		MOVE.B	Data4B(PC,D0.W),D4
+		BMI.B	.F3_3
+		BSR.B	Func2
+.F3_3		MOVE.B	Data5B(PC,D0.W),D0
+		ADD.W	D1,D0
+		MOVEQ	#2,D4
+		BSR.B	Func2
+		MOVE.L	D1,D2
+		MOVE.B	Data6B(PC,D2.W),D4
+		ADD.W	D2,D2
+		BSR.B	Func2
+		ADD.W	Data7W(PC,D2.W),D1
+		MOVEA.L	A1,A6
+		ADDA.L	D1,A6
+.F3_4		MOVE.B	-(A6),-(A1)
+		DBRA	D0,.F3_4
+		CMPA.L	A1,A2
+		BLE.B	Decrunch2
+		RTS	
+
+Data1B		DC.B	9,2,1,0
+Data2W		DC.W	$3FF,7,3,1
+Data3B		DC.B	11,4,1,0
+Data4B		DC.B	9,1,0,-1,-1
+Data5B		DC.B	9,5,3,2,1
+Data6B		DC.B	3,5,5,6,7,8,9,10
+Data7W		DC.W	$001,$011,$051,$091,$111,$211,$411,$811
+
+		* gets target in A0
+GetFileSize	MOVEQ	#0,D3				* current hunk number
+		MOVE.L	8(A0),D7			* number of hunks
+		MOVE.L	D7,D4
+		LSL.L	#2,D4
+		ADD.L	#20,D4		* D4 holds size of destination file
+		LEA	(A0,D4.L),A0
+.MainLoop	MOVE.L	(A0)+,D0
+		ADDQ.L	#4,D4
+		CMP.W	#$03E9,D0
+		BEQ.B	.Code
+		CMP.W	#$03EA,D0
+		BEQ.B	.Code
+		CMP.W	#$03EB,D0
+		BEQ.B	.BSS
+		CMP.W	#$03EC,D0
+		BEQ.B	.Reloc
+		CMP.L	D3,D7
+		BGT.B	.MainLoop
+		RTS
+
+.Code		MOVE.L	(A0)+,D0
+		LSL.L	#2,D0
+		ADDQ.L	#4,D4
+		ADD.L	D0,D4			* update size
+		LEA	(A0,D0),A0		* skip data
+		ADDQ.L	#1,D3			* next hunk
+		BRA.B	.MainLoop
+
+.BSS		ADDQ.L	#1,D3			* next hunk
+		ADDQ.L	#4,A0			* skip size information
+		ADDQ.L	#4,D4			* update size
+		BRA.B	.MainLoop
+
+.Reloc		MOVE.B	(A0)+,D1
+		LSL.W	#8,D1
+		MOVE.B	(A0)+,D1
+		CMP.W	#-1,D1
+		BNE.B	.DoRelHunk
+		ADDQ.L	#4,D4	* add space for finishing 0 in destination
+		MOVE.L	A0,D0			* 0xFFFF the end of hunk list
+		ADDQ.L	#3,D0
+		ANDI.W	#-4,D0				* round to long
+		MOVEA.L	D0,A0
+		BRA.B	.MainLoop			* end the reloc work
+
+.DoRelHunk	MOVE.B	(A0)+,D0		* byte 4
+		LSL.W	#8,D0
+		MOVE.B	(A0)+,D0		* byte 3
+		SWAP	D0
+		MOVE.B	(A0)+,D0		* byte 2
+		LSL.W	#8,D0
+		MOVE.B	(A0)+,D0		* byte 1
+		ADD.L	#12,D4	* numrelocs, related hunk and one entry added
+.RLoop		MOVE.B	(A0)+,D0		* get next byte
+		BEQ.B	.Reloc		* zero --> finished that hunk, take next
+		CMP.B	#1,D0			* was == 01 ?
+		BEQ.B	.RLoop			* yes -> loop again
+		ADDQ.L	#4,D4				* added one entry more
+		BRA.B	.RLoop			* do next data
+
+		* gets source in A0
+		* gets destination in A2
+MakeFile	MOVE.L	8(A0),D7			* number of hunks
+		MOVEQ	#0,D3				* current hunk number
+		MOVE.L	D7,D0
+		ADDQ.L	#4,D0
+.CopyHead	MOVE.L	(A0)+,(A2)+
+		DBRA	D0,.CopyHead
+.MainLoop	MOVE.L	(A0)+,D0
+		MOVE.L	D0,(A2)+
+		CMP.W	#$03E9,D0
+		BEQ.B	.Code
+		CMP.W	#$03EA,D0
+		BEQ.B	.Code
+		CMP.W	#$03EB,D0
+		BEQ.B	.BSS
+		CMP.W	#$03EC,D0
+		BEQ.B	.Reloc
+		CMP.L	D3,D7
+		BGT.B	.MainLoop
+		RTS
+
+.Code		MOVE.L	(A0)+,D0
+		MOVE.L	D0,(A2)+
+		BEQ.B	.SkipCode
+.CopyCode	MOVE.L	(A0)+,(A2)+
+		SUBQ.L	#1,D0
+		BNE.B	.CopyCode
+.SkipCode	ADDQ.L	#1,D3				* next hunk
+		BRA.B	.MainLoop
+
+.BSS		ADDQ.L	#1,D3				* next hunk
+		MOVE.L	(A0)+,(A2)+
+		BRA.B	.MainLoop
+
+.Reloc		MOVEQ	#0,D1
+		MOVE.B	(A0)+,D1
+		LSL.W	#8,D1
+		MOVE.B	(A0)+,D1
+		CMP.W	#-1,D1
+		BNE.B	.DoRelHunk
+		CLR.L	(A2)+			* add finishing 0 in destination
+		MOVE.L	A0,D0			* 0xFFFF the end of hunk list
+		ADDQ.L	#3,D0
+		ANDI.W	#-4,D0				* round to long
+		MOVEA.L	D0,A0
+		BRA.B	.MainLoop			* end the reloc work
+
+.DoRelHunk	MOVE.B	(A0)+,D0		* byte 4
+		LSL.W	#8,D0
+		MOVE.B	(A0)+,D0		* byte 3
+		SWAP	D0
+		MOVE.B	(A0)+,D0		* byte 2
+		LSL.W	#8,D0
+		MOVE.B	(A0)+,D0		* byte 1
+		MOVE.L	A2,A4		* store pointer
+		ADDQ.L	#4,A2
+		MOVE.L	D1,(A2)+
+		MOVE.L	D0,(A2)+
+		MOVE.L	D0,D2
+		MOVEQ	#1,D1		* number of relocs
+.RLoop		MOVEQ	#0,D0
+		MOVE.B	(A0)+,D0		* get next byte
+		BEQ.B	.RelocEnd	* zero --> finished that hunk, take next
+		LSL.L	#1,D0			* double it
+		ADD.L	D0,D2			
+		CMP.W	#2,D0			* was == 01 ?
+		BNE.B	.StoreReloc			* no -> call store func
+		ADD.L	#$1FA,D2		* yes -> add 0x1FA
+		BRA.B	.RLoop			* and read next data
+.StoreReloc	MOVE.L	D2,(A2)+
+		ADDQ.L	#1,D1
+		BRA.B	.RLoop
+
+.RelocEnd	MOVE.L	D1,(A4)		* store numrelocs
+		BRA.B	.Reloc
+		END

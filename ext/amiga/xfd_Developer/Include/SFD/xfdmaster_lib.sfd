@@ -1,0 +1,35 @@
+==id $Id: xfdmaster_lib.sfd,v 39.0 2002/08/07 15:59:58 stoecker Exp $
+==base _xfdMasterBase
+==basetype struct xfdMasterBase *
+==libname xfdmaster.library
+==bias 30
+==public
+==include <libraries/xfdmaster.h>
+==version 33
+struct xfdBufferInfo * xfdAllocBufferInfo() ()
+void xfdFreeBufferInfo(struct xfdBufferInfo * bufferinfo) (a1)
+struct xfdSegmentInfo * xfdAllocSegmentInfo() ()
+void xfdFreeSegmentInfo(struct xfdSegmentInfo * segmentinfo) (a1)
+BOOL xfdRecogBuffer(struct xfdBufferInfo * bufferinfo) (a0)
+BOOL xfdDecrunchBuffer(struct xfdBufferInfo * bufferinfo) (a0)
+BOOL xfdRecogSegment(struct xfdSegmentInfo * segmentinfo) (a0)
+BOOL xfdDecrunchSegment(struct xfdSegmentInfo * segmentinfo) (a0)
+STRPTR xfdGetErrorText(UWORD error) (d0)
+BOOL xfdTestHunkStructure(APTR buffer, ULONG length) (a0,d0)
+==version 34
+UWORD xfdTestHunkStructureNew(APTR buffer, ULONG length) (a0,d0)
+UWORD xfdRelocate(APTR buffer, ULONG length, ULONG * result, UWORD mode) (a0,d0,a1,d1)
+==version 36
+UWORD xfdTestHunkStructureFlags(APTR buffer, ULONG length, UWORD flags) (a0,d0,d1)
+UWORD xfdStripHunks(APTR buffer, ULONG length, ULONG * result, UWORD flags) (a0,d0,a1,d1)
+APTR xfdAllocObject(ULONG objecttype) (d0)
+void xfdFreeObject(APTR object) (a1)
+BOOL xfdRecogLinker(struct xfdLinkerInfo * linkerinfo) (a0)
+BOOL xfdUnlink(struct xfdLinkerInfo * linkerinfo) (a0)
+==version 37
+UWORD xfdScanData(APTR buffer, ULONG length, ULONG * result, UWORD flags,
+	struct xfdScanHook * scanhook) (a0,d0,a1,d1,a2)
+void xfdFreeScanList(struct xfdScanNode * scannode) (a1)
+ULONG xfdObjectType(APTR object) (a1)
+struct xfdScanHook * xfdInitScanHook(BOOL (*entry)(), APTR data) (a0,a1)
+==end

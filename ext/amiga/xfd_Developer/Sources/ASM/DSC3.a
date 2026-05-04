@@ -1,0 +1,176 @@
+*******************************************************
+**             XFD external decruncher               **
+**                for DSC3 cruncher                  **
+**             adapted by Wanted Team                **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.0 (28 Aug 2000)
+; o Decrunched size is checked to be non-zero
+
+;;;	INCDIR	"dh2:Include/"
+	INCLUDE	"libraries/xfdmaster.i"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_DSC3		;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support data scanning
+
+S_DSC3		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_DSC3		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_DSC3		;recog buffer
+		dc.l	DB_DSC3		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12+2
+
+		dc.b	"$VER: DSC3 2.1 (13.10.2000) by Wanted Team",0
+N_DSC3		dc.b	"DSC3 data cruncher",0
+		even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_DSC3		MOVEQ	#0,D0
+		CMP.L	#"DSC3",(A0)+
+		BNE.B	.Exit
+		TST.B	(A0)
+		BNE.B	.Exit
+		TST.L	(A0)
+		BEQ.S	.Exit
+		MOVE.L	(A0),xfdrr_FinalTargetLen(A1)
+		MOVE.L	(A0),xfdrr_MinTargetLen(A1)
+		MOVEQ	#1,D0
+.Exit		RTS
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+DB_DSC3		MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVEA.L	A0,A5
+		MOVE.L	xfdbi_UserTargetBuf(A5),A1
+		MOVE.L	xfdbi_SourceBuffer(A5),A0
+		BSR.B	D_DSC3
+
+	moveq	#1,D0
+
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+;-------------------------------------------------
+
+; Decruncher from game "Black Viper" (c) 1996 LightShock/NEO Software
+
+;Input
+; A0 = start of packed file
+; A1 = destination pointer
+
+D_DSC3
+;	MOVEA.L	lbL000582(PC),A1
+;	ADDA.L	#$400,A1
+;	LEA	DSC3.MSG,A0
+	MOVEQ	#0,D7
+	MOVEQ	#$20,D0
+	BSR.S	lbC0003DC
+	CMPI.L	#$44534333,D1
+	BNE.S	lbC0003DA
+	MOVEQ	#$20,D0
+	BSR.S	lbC0003DC
+	MOVE.L	D1,D5
+	MOVEQ	#8,D0
+	BSR.L	lbC0003DC
+	MOVE.B	D1,(A1)+
+	MOVE.B	D1,D3
+	SUBQ.L	#1,D5
+	BNE.S	lbC00038E
+	RTS
+
+lbC00038E	MOVEQ	#1,D0
+	BSR.S	lbC0003DC
+	TST.B	D1
+	BEQ.S	lbC0003AC
+	MOVEQ	#1,D0
+	BSR.S	lbC0003DC
+	TST.B	D1
+	BEQ.S	lbC0003BC
+	MOVEQ	#8,D0
+	BSR.S	lbC0003DC
+	MOVE.B	D1,(A1)+
+	MOVE.B	D1,D3
+	SUBQ.L	#1,D5
+	BNE.S	lbC00038E
+	RTS
+
+lbC0003AC	MOVEQ	#4,D0
+	BSR.S	lbC0003DC
+	BTST	#3,D1
+	BEQ.S	lbC0003D0
+	ORI.B	#$F0,D1
+	BRA.S	lbC0003D0
+
+lbC0003BC	MOVEQ	#5,D0
+	BSR.S	lbC0003DC
+	BTST	#4,D1
+	BNE.S	lbC0003CA
+	ADDQ.B	#8,D1
+	BRA.S	lbC0003D0
+
+lbC0003CA	ORI.B	#$E0,D1
+	SUBQ.B	#8,D1
+lbC0003D0	ADD.B	D1,D3
+	MOVE.B	D3,(A1)+
+	SUBQ.L	#1,D5
+	BNE.S	lbC00038E
+	RTS
+
+lbC0003DA	BRA.S	lbC0003DA
+
+lbC0003DC	MOVEQ	#0,D1
+	TST.B	D7
+	BEQ.S	lbC0003F2
+	CMP.B	D7,D0
+	BLT.S	lbC000408
+	MOVE.B	D6,D1
+	ROL.B	D7,D1
+	SUB.B	D7,D0
+	MOVEQ	#0,D7
+	TST.L	D0
+	BEQ.S	lbC00041C
+lbC0003F2	CMPI.B	#8,D0
+	BLT.S	lbC000402
+	LSL.L	#8,D1
+	MOVE.B	(A0)+,D1
+	SUBQ.B	#8,D0
+	BNE.S	lbC0003F2
+	BRA.S	lbC00041C
+
+lbC000402	MOVE.B	(A0)+,D6
+	MOVEQ	#8,D7
+	LSL.L	D0,D1
+lbC000408	ROL.B	D0,D6
+	MOVE.B	D6,D2
+	MOVEQ	#0,D4
+	BSET	D0,D4
+	SUBQ.B	#1,D4
+	AND.B	D4,D2
+	OR.B	D2,D1
+	NOT.B	D4
+	AND.B	D4,D6
+	SUB.B	D0,D7
+lbC00041C	RTS
+

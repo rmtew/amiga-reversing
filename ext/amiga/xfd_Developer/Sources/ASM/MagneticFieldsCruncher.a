@@ -1,0 +1,2239 @@
+*******************************************************
+**             XFD external decruncher               **
+**          for Magnetic Fields Cruncher             **
+**             adapted by Wanted Team                **
+*******************************************************
+
+; Changes by Ronald van Dijk:	original version 2.1 (09.06.2001)
+; o Crunched size and decrunched size are checked to be non-zero
+; o Number of biplanes is checked to be >= 3 and <= 6
+; o SQ Compression Mode is checked to be >= 1 and <= 3
+; o Crunched size is tested to be a multiple of 4 when applicable
+; o Recalculated the minimum crunched size for each format
+; o Split up the DecrunchBuffer functions for SF and SQ
+; o The SF decruncher no longer modifies the crunched data buffer
+; o Reduced stack and memory usage where possible
+; o The RecogBuffer functions now test if enough of the file is loaded
+; o Added buffer overflow checks in SF and SQ decrunchers
+
+;;;	INCLUDE	"AINCLUDE:IncDirs.i"
+	INCLUDE	"libraries/xfdmaster.i"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_SQ		;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support data scanning
+
+S_SQ		dc.l	S_SP		;next slave
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_SQ		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_SQ		;recog buffer
+		dc.l	DB_SQ		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0
+		dc.w	XFDID_SACFPQCruncher
+		dc.l	10+4
+
+S_SP		dc.l	S_SF		;next slave
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_SP		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_SP		;recog buffer
+		dc.l	DB_SCSP		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0
+		dc.w	XFDID_SACFPQCruncher
+		dc.l	12+4
+
+S_SF		dc.l	S_SC		;next slave
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_SF		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_SF		;recog buffer
+		dc.l	DB_SF		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0
+		dc.w	XFDID_SACFPQCruncher
+		dc.l	10+1
+
+S_SC		dc.l	S_SA_1		;next slave
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_SC		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_SC		;recog buffer
+		dc.l	DB_SCSP		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0
+		dc.w	XFDID_SACFPQCruncher
+		dc.l	12+(8*2)+4
+
+S_SA_1		dc.l	S_SA_2		;next slave
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_SA_1		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_SA_1		;recog buffer
+		dc.l	DB_SA_1		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0
+		dc.w	XFDID_SACFPQCruncher
+		dc.l	12+4+16
+
+S_SA_2		dc.l	S_SA_3		;next slave
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_SA_2		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_SA_2		;recog buffer
+		dc.l	DB_SA_2		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0
+		dc.w	XFDID_SACFPQCruncher
+		dc.l	22
+
+S_SA_3		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_SA_3		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_SA_3		;recog buffer
+		dc.l	DB_SA_3		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0
+		dc.w	XFDID_SACFPQCruncher
+		dc.l	22
+
+	dc.b	"$VER: Magnetic Fields Cruncher 2.2 (26.10.2002) by Wanted Team",0
+N_SA_1	dc.b	"Magnetic Fields data cruncher (SA - anim mode 1)",0
+N_SA_2	dc.b	"Magnetic Fields data cruncher (SA - anim mode 2)",0
+N_SA_3	dc.b	"Magnetic Fields data cruncher (SA - anim mode 3)",0
+N_SC	dc.b	"Magnetic Fields data cruncher (SC - colours picture mode)",0
+N_SF	dc.b	"Magnetic Fields data cruncher (SF - data file mode)",0
+N_SP	dc.b	"Magnetic Fields data cruncher (SP - picture mode)",0
+N_SQ	dc.b	"Magnetic Fields data cruncher (SQ - sample mode)",0
+	even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_SQ	cmp.w	#"SQ",(A0)+
+	bne.b	.NoSQ
+	tst.b	(A0)
+	bne.b	.NoSQ
+	move.l	(A0)+,D0			; Decrunched Size
+	beq.b	.NoSQ
+	move.b	(A0),D1				; Compression Mode
+	beq.b	.NoSQ
+	cmp.b	#3,D1
+	bhi.b	.NoSQ
+	move.l	(A0),D1
+	and.l	#$00FFFFFF,D1			; Crunched Size
+	beq.b	.NoSQ
+	move.l	D0,xfdrr_FinalTargetLen(A1)
+	addq.l	#7,D0				; Round to the next multiple of 8
+	and.b	#$F8,D0
+	move.l	D0,xfdrr_MinTargetLen(A1)
+	moveq	#10,D0
+	asl.l	#2,D1
+	add.l	D1,D0
+	move.l	D0,xfdrr_MinSourceLen(A1)
+	moveq	#1,D0
+.exit	rts
+
+.NoSQ	moveq	#0,D0
+	bra.b	.exit
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_SP	cmp.w	#"SP",(A0)+
+	bne.b	.NoSP
+	move.w	(A0)+,D0			; Number of bitplanes
+	cmp.w	#3,D0
+	blo.b	.NoSP
+	cmp.w	#6,D0
+	bhi.b	.NoSP
+	tst.l	(A0)				; Decrunched Size of 1 bitplane
+	beq.b	.NoSP
+	move.l	4(A0),D1			; Crunched Size
+	beq.b	.NoSP
+	and.b	#$03,D1				; should be a multiple of 4
+	bne.b	.NoSP
+	subq.l	#1,D0
+	moveq	#0,D1
+.loop	add.l	(A0),D1				; Decrunched Size of 1 bitplane
+	dbf	D0,.loop
+	move.l	D1,xfdrr_FinalTargetLen(A1)
+	add.l	D1,D1
+	add.l	#64+16384+8256,D1		; extra buffer length
+	move.l	D1,xfdrr_MinTargetLen(A1)
+	moveq	#12,D0
+	add.l	4(A0),D0			; Crunched Size
+	move.l	D0,xfdrr_MinSourceLen(A1)
+	moveq	#1,D0
+.exit	rts
+
+.NoSP	moveq	#0,D0
+	bra.b	.exit
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_SF	cmp.w	#"SF",(A0)+
+	bne.b	.NoSF
+	tst.b	(A0)
+	bne.b	.NoSF
+	move.l	(A0)+,D1			; Decrunched Size
+	beq.b	.NoSF
+	tst.b	(A0)
+	bne.b	.NoSF
+	tst.l	(A0)				; Crunched Size
+	beq.b	.NoSF
+	move.l	D1,xfdrr_FinalTargetLen(A1)
+;;	moveq	#64,D0				; extra buffer length
+;;	add.l	D0,D1
+	move.l	D1,xfdrr_MinTargetLen(A1)
+	moveq	#10,D0
+	add.l	(A0),D0				; Crunched Size
+	move.l	D0,xfdrr_MinSourceLen(A1)
+	moveq	#1,D0
+.exit	rts
+
+.NoSF	moveq	#0,D0
+	bra.b	.exit
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_SC	cmp.w	#"SC",(A0)+
+	bne.b	.NoSC
+	move.w	(A0)+,D0			; Number of bitplanes
+	cmp.w	#3,D0
+	blo.b	.NoSC
+	cmp.w	#6,D0
+	bhi.b	.NoSC
+	tst.l	(A0)				; Decrunched size of 1 bitplane
+	beq.b	.NoSC
+	move.l	4(A0),D1			; Crunched size
+	beq.b	.NoSC
+	and.b	#$03,D1				; should be a multiple of 4
+	bne.b	.NoSC
+	subq.l	#1,D0
+	moveq	#0,D1
+.loop	add.l	(A0),D1				; Decrunched size of 1 bitplane
+	dbf	D0,.loop
+	move.l	D1,xfdrr_FinalTargetLen(A1)
+	add.l	D1,D1
+	add.l	#64+16384+8256,D1		; extra buffer length
+	move.l	D1,xfdrr_MinTargetLen(A1)
+	moveq	#12,D0
+	add.l	4(A0),D0
+	move.l	D0,xfdrr_MinSourceLen(A1)
+	moveq	#1,D0
+.exit	rts
+
+.NoSC	moveq	#0,D0
+	bra.b	.exit
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_SA_2	movem.l	D2-D4,-(SP)
+	cmp.w	#"SA",(A0)+
+	bne.b	.NoSA_2
+	move.w	(A0)+,D0			; Number of Bitplanes
+	cmp.w	#3,D0
+	blo.b	.NoSA_2
+	cmp.w	#6,D0
+	bhi.b	.NoSA_2
+	moveq	#0,D1
+	move.w	(A0)+,D1
+	tst.b	(A0)
+	bne.b	.NoSA_2
+	move.l	(A0)+,D2			; Decrunched Size
+	beq.b	.NoSA_2
+	move.l	(A0)+,D3
+	cmp.l	D3,D2
+	ble.b	.NoSA_2
+	asl.w	#3,D1
+	move.l	4(A0),D4
+	add.l	D1,A0
+	cmp.l	-4(A0),D4
+	bne.b	.NoSA_2
+	cmp.l	-12(A0),D4
+	bne.b	.NoSA_2
+	moveq	#14,D0
+	add.l	D1,D0
+	add.l	D3,D0
+	move.l	D2,xfdrr_FinalTargetLen(A1)
+	add.l	#30+16384,D2			; extra buffer length
+	move.l	D2,xfdrr_MinTargetLen(A1)
+	move.l	D0,xfdrr_MinSourceLen(A1)
+	moveq	#1,D0
+.exit	movem.l	(SP)+,D2-D4
+	rts
+
+.NoSA_2	moveq	#0,D0
+	bra.b	.exit
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_SA_3	movem.l	D2-D5/A2,-(SP)
+	move.l	A0,A2
+	cmp.w	#"SA",(A2)+
+	bne.w	.NoSA_3
+	move.w	(A2)+,D1			; Number of Bitplanes
+	cmp.w	#3,D1
+	blo.b	.NoSA_3
+	cmp.w	#6,D1
+	bhi.b	.NoSA_3
+;;	tst.b	(A2)
+;;	bne.b	.NoSA_3
+;;	addq.l	#2,A2
+	moveq	#0,D1
+	move.w	(A2)+,D1
+	tst.b	(A2)
+	bne.b	.NoSA_3
+	move.l	(A2)+,D2			; Decrunched Size
+	beq.b	.NoSA_3
+	move.l	(A2)+,D3
+	cmp.l	D3,D2
+	ble.b	.NoSA_3
+	asl.w	#3,D1
+	move.l	4(A2),D4
+
+	add.l	D1,A2
+	cmp.l	-4(A2),D4
+	bne.b	.ok
+	cmp.l	-12(A2),D4
+	beq.b	.NoSA_3
+.ok	move.l	D2,xfdrr_FinalTargetLen(A1)
+	add.l	#32+16384,D2			; extra buffer length
+	move.l	D2,xfdrr_MinTargetLen(A1)
+	move.l	A0,A2
+
+	ADD.L	A0,D0				; end address of loaded file
+	SUBQ.L	#4,D0
+
+	MOVE.W	4(A0),D4
+	ADDA.W	#14,A0
+	SUBQ.W	#1,D4
+.rbC0000CC	ADDQ.W	#4,A0
+
+	CMP.L	D0,A0				; still within loaded file?
+	BHI.B	.exitok				; no, skip further checking
+
+	MOVE.L	(A0)+,D2
+	SWAP	D2
+	LSR.W	#8,D2
+	MOVE.W	D2,D5
+	LSR.W	#2,D5
+	ANDI.W	#3,D2
+	BEQ.S	.rbC0000E8
+	CMPI.W	#3,D2
+	BEQ.S	.rbC0000E8
+	ADD.W	D2,D2
+	BRA.S	.rbC0000EA
+
+.rbC0000E8	MOVEQ	#0,D2
+.rbC0000EA	MOVEQ	#5,D1
+.rbC0000EC	LSR.W	#1,D5
+	BCC.S	.rbC0000F2
+	ADDQ.W	#4,D2
+.rbC0000F2	DBRA	D1,.rbC0000EC
+	ADDQ.W	#2,D2
+	ADDA.W	D2,A0
+	DBRA	D4,.rbC0000CC
+	sub.l	A2,A0
+	add.l	A0,D3
+	move.l	D3,xfdrr_MinSourceLen(A1)
+.exitok	moveq	#1,D0
+.exit	movem.l	(SP)+,D2-D5/A2
+	rts
+
+.NoSA_3	moveq	#0,D0
+	bra.b	.exit
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_SA_1	movem.l	D2-D4,-(SP)
+	cmp.w	#"SA",(A0)+
+	bne.b	.NoSA_1
+	move.w	(A0)+,D1			; Number of Bitplanes
+	cmp.w	#3,D1
+	blo.b	.NoSA_1
+	cmp.w	#6,D1
+	bhi.b	.NoSA_1
+	tst.b	(A0)
+	bne.b	.NoSA_1
+	move.l	(A0)+,D2			; Decrunched Size of 1 bitplane
+	beq.b	.NoSA_1
+	tst.b	(A0)
+	bne.b	.NoSA_1
+	move.l	(A0)+,D3			; Crunched Size
+	beq.b	.NoSA_1
+	move.b	D3,D4
+	and.b	#$03,D4				; should be a multiple of 4
+	bne.b	.NoSA_1
+
+; Further detection is only possible if the loaded part of the file
+; is >= 12+D3+12
+
+	sub.l	D3,D0
+	sub.l	#12+12,D0
+	bmi.b	.NoSA_1				; Not enough loaded
+
+	add.l	D3,A0
+	addq.l	#2,A0
+	cmp.w	(A0)+,D1			; Number of Bitplanes
+	bne.b	.NoSA_1
+	cmp.l	(A0)+,D2			; Decrunched Size of 1 bitplane
+	bne.b	.NoSA_1
+	tst.w	(A0)
+	bne.b	.NoSA_1
+	move.l	(A0),D0
+	beq.b	.NoSA_1
+	and.b	#$07,D0				; should be a multiple of 8
+	bne.b	.NoSA_1
+	moveq	#20,D0
+	add.l	(A0),D0
+	add.l	D3,D0
+	move.l	D0,xfdrr_MinSourceLen(A1)
+	subq.w	#1,D1
+	moveq	#8,D0
+.loop	add.l	D2,D0				; Decrunched Size of 1 bitplane
+	dbf	D1,.loop
+	add.l	(A0),D0
+	move.l	D0,xfdrr_FinalTargetLen(A1)
+	add.l	#56+16384+8256,D0		; extra buffer length
+	move.l	D0,xfdrr_MinTargetLen(A1)
+	moveq	#1,D0
+.exit	movem.l	(SP)+,D2-D4
+	rts
+
+.NoSA_1	moveq	#0,D0
+	bra.b	.exit
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+
+DB_SA_1	movem.l	D2-D7/A2-A6,-(SP)
+	move.l	A0,A5
+	move.l	xfdbi_UserTargetBuf(A5),A1
+	move.l	xfdbi_SourceBuffer(A5),A0
+	move.l	xfdbi_FinalTargetLen(A5),D3
+
+;;	btst	#0,D3
+;;	beq.b	even_1
+;;	addq.l	#1,D3
+;; even_1
+
+	addq.l	#1,D3
+	and.b	#$FE,D3
+
+	lea	0(A1,D3.L),A3
+
+	move.l	xfdbi_MinSourceLen(A5),$828-$7FC(A3)
+
+	lea	56(A3),A2
+	lea	16384(A2),A5
+
+; A0 -> Crunched data (source)
+; A1 -> Decrunch buffer (destination)
+; A2 -> Workspace (16k bytes)
+; A3 -> Workspace (56 bytes)
+; A5 -> Workspace (8256 bytes)
+; $2C(A3) = Crunched data size
+
+	bsr.w	D_SASP_1
+	moveq	#1,D0
+	movem.l	(SP)+,D2-D7/A2-A6
+	rts
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+
+DB_SA_2	movem.l	D2-D7/A2-A6,-(SP)
+	move.l	A0,A5
+	move.l	xfdbi_UserTargetBuf(A5),A1
+	move.l	xfdbi_SourceBuffer(A5),A0
+	move.l	xfdbi_FinalTargetLen(A5),D3
+
+;;	btst	#0,D3
+;;	beq.b	even_2
+;;	addq.l	#1,D3
+;;even_2
+
+	addq.l	#1,D3
+	and.b	#$FE,D3
+
+	lea	0(A1,D3.L),A3
+	lea	30(A3),A2
+;;;	move.l	xfdbi_MinSourceLen(A5),12(A3)
+
+; A0 -> Crunched data (source)
+; A1 -> Decrunch buffer (destination)
+; A2 -> Workspace (16k bytes)
+; A3 -> Workspace (30 bytes)
+;;; ; $C(A3) = Crunched data size
+
+	bsr.w	D_SA_2
+	moveq	#1,D0
+	movem.l	(SP)+,D2-D7/A2-A6
+	rts
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+
+DB_SA_3	movem.l	D2-D7/A2-A6,-(SP)
+	move.l	A0,A5
+	move.l	xfdbi_UserTargetBuf(A5),A1
+	move.l	xfdbi_SourceBuffer(A5),A0
+	move.l	xfdbi_FinalTargetLen(A5),D3
+
+;;	btst	#0,D3
+;;	beq.b	even_3
+;;	addq.l	#1,D3
+;;even_3
+
+	addq.l	#1,D3
+	and.b	#$FE,D3
+
+	lea	0(A1,D3.L),A3
+	lea	32(A3),A2
+;;;	move.l	xfdbi_MinSourceLen(A5),12(A3)
+
+; A0 -> Crunched data (source)
+; A1 -> Decrunch buffer (destination)
+; A2 -> Workspace (16k bytes)
+; A3 -> Workspace (32 bytes)
+;;; ; $C(A3) = Crunched data size
+
+	bsr.w	D_SA_3
+	moveq	#1,D0
+	movem.l	(SP)+,D2-D7/A2-A6
+	rts
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+
+DB_SF	MOVEM.L	D2-D7/A2/A4-A6,-(SP)
+	MOVE.L	A0,A5
+	MOVE.L	xfdbi_UserTargetBuf(A5),A1
+	MOVE.L	xfdbi_SourceBuffer(A5),A0
+
+; A0 -> Crunched data (source)
+; A1 -> Decrunch buffer (destination)
+
+	BSR	D_SF
+
+	TST.L	D0
+	BNE.S	.exit
+
+	MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A5)
+
+.exit	MOVEM.L	(SP)+,D2-D7/A2/A4-A6
+	RTS
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+
+DB_SQ	MOVEM.L	D2-D7/A2-A3/A5,-(SP)
+	MOVE.L	A0,A5
+	MOVE.L	xfdbi_UserTargetBuf(A5),A1
+	MOVE.L	xfdbi_SourceBuffer(A5),A0
+
+; A0 -> Crunched data (source)
+; A1 -> Decrunch buffer (destination)
+
+	BSR	D_SQ
+	TST.L	D0
+	BNE.S	.exit
+
+	MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A5)
+
+.exit	MOVEM.L	(SP)+,D2-D7/A2-A3/A5
+	RTS
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+
+DB_SCSP	movem.l	D2-D7/A2-A6,-(SP)
+	move.l	A0,A4
+	move.l	xfdbi_UserTargetBuf(A4),A1
+	move.l	xfdbi_SourceBuffer(A4),A0
+;;;	move.l	xfdbi_MinSourceLen(A4),D0
+	move.l	xfdbi_TargetBufSaveLen(A4),D3
+	add.l	D3,D3
+	lea	0(A1,D3.L),A3
+	lea	64(A3),A2
+	lea	16384(A2),A5
+;;;	move.l	D0,12(A3)
+	lsr.l	#1,D3
+
+	movem.l	D0-A6,-(SP)
+
+; A0 -> Crunched data (source)
+; A1 -> Decrunch buffer, 1st half (destination)
+; A2 -> Workspace (16k bytes)
+; A3 -> Workspace (24 bytes)
+; A5 -> Workspace (8256 bytes)
+;;; ; $C(A3) = Crunched data size
+
+	bsr.w	D_SCSP_2
+	movem.l	(SP)+,D0-A6
+
+	lea	0(A1,D3.L),A1
+;;;	move.l	D0,12(A3)
+
+	movem.l	D0-A6,-(SP)
+
+; A0 -> Crunched data (source)
+; A1 -> Decrunch buffer, 2nd half (destination)
+; A2 -> Workspace (16k bytes)
+; A3 -> Workspace (24 bytes)
+; A5 -> Workspace (8256 bytes)
+;;; ; $C(A3) = Crunched data size
+
+	bsr.w	D_SCSP_2
+	movem.l	(SP)+,D0-A6
+
+	movem.l	D0-A6,-(SP)
+	move.l	A1,A2
+	sub.l	D3,A1
+	move.l	A2,A0
+CheckData
+	cmp.l	A1,A0
+	beq.b	FileOK
+	move.b	(A2)+,D0
+	cmp.b	(A1)+,D0
+	bne.b	Old_Mode
+	bra.b	CheckData
+FileOK
+	cmp.l	#640,D3
+	bne.b	NoExcept1
+	cmp.l	#'KKK@',154(A0)				; exception 1
+	beq.b	Old_Mode
+	bra.b	Correct
+NoExcept1
+	cmp.l	#40000,D3
+	bne.b	Correct
+	cmp.l	#'DDDD',16188(A0)			; exception 2
+	beq.b	Old_Mode
+Correct
+	movem.l	(SP)+,D0-A6
+back
+	moveq	#1,D0
+	movem.l	(SP)+,D2-D7/A2-A6
+	rts
+Old_Mode
+	movem.l	(SP)+,D0-A6
+;;;	move.l	D0,$828-$7FC(A3)
+	sub.l	D3,A1
+
+; A0 -> Crunched data (source)
+; A1 -> Decrunch buffer (destination)
+; A2 -> Workspace (16k bytes)
+; A3 -> Workspace (56 bytes)
+; A5 -> Workspace (8256 bytes)
+;;; ; $2C(A3) = Crunched data size
+
+	bsr.w	D_SASCSP_1
+	bra.b	back
+
+;-------------------------------------------------
+
+; Decruncher from game "Crystal Dragon" (c) 1994 by Magnetic Fields
+
+*****************************************
+*					*
+* descrunch any file			*
+*					*
+* from a0 to a1				*
+* if pic, 16k buffer needed at a2	*
+* if colrs stored palette goes to d1	*
+* initial size of file in d0      	*
+* 					*
+* first word 				*
+* 					*
+* "SA" sout crunched anim file		*
+* "SP" sout crunched pic file		*
+* "SC" sout crunched pic file + colrs	*
+* "SF" sout crunched data file		*
+*					*
+* returns length descrunched to in d0.l *
+*					*
+*****************************************
+
+;	MOVEA.L	#lbL06439C,A2
+;	MOVE.L	#lbL06839C,D1
+
+;	MOVEM.L	D1-D7/A0-A6,-(SP)
+;	LEA	lbL00070E,A3
+;	MOVE.L	D0,12(A3)
+;	MOVE.W	(A0),D0
+;	CMP.W	#'SQ',D0
+;	BEQ.L	D_SQ
+;	CMP.W	#'SA',D0
+;	BEQ.S	D_SA_3
+;	CMP.W	#'SP',D0
+;	BEQ.L	D_SP_2
+;	CMP.W	#'SC',D0
+;	BEQ.L	D_SC_2
+;	CMP.W	#'SF',D0
+;	BEQ.L	D_SF
+;	MOVE.L	12(A3),D7
+;	BEQ.S	lbC000046
+;lbC000040	MOVE.B	(A0)+,(A1)+
+;	SUBQ.L	#1,D7
+;	BNE.S	lbC000040
+;lbC000046	MOVE.L	12(A3),D0
+;	MOVEM.L	(SP)+,D1-D7/A0-A6
+;	RTS
+
+; SA_3 decruncher:
+; Input: A0 -> Crunched Data (source)
+;        A1 -> Decrunch Buffer (destination)
+;        A2 -> Workspace (16k bytes)
+;        A3 -> Workspace (32 bytes)
+;;; ;        $C(A3) = Crunched data size
+; Used registers: All
+
+; A3 data structure:
+; $00(A3) LONG Decrunch Buffer destination
+; $04(A3) LONG Decrunched Size	[Removed]
+; $08(A3) LONG ????
+; $0C(A3) LONG Crunched Size	[Unused]
+; $10(A3) WORD Number of Bitplanes
+; $12(A3) WORD ???? (Value 4 or 3)
+; $14(A3) WORD ???? (Value 7, 5 or 4)
+; $16(A3) ?			[Unused]
+; $18(A3) WORD ????
+; $1A(A3) WORD ????
+; $1C(A3) WORD ????
+; $1E(A3) WORD ????
+; $20(A3) End of table, in total 32 bytes are required
+
+
+lbW00006A	DC.W	7,5,4,4
+		DC.W	4,4,3,3
+
+D_SA_3	MOVEM.L	D1-D7/A0-A6,-(SP)
+
+	MOVEA.L	A1,A4				; Decrunch Buffer
+	MOVE.L	A1,(A3)
+	MOVE.W	2(A0),D0			; Number of Bitplanes
+	MOVE.W	D0,$10(A3)
+	MOVE.W	4(A0),$18(A3)
+	MOVE.L	6(A0),D1			; Decrunched Size
+;;;;	MOVE.L	D1,4(A3)
+	ADD.W	D0,D0
+	LEA	lbW00006A(PC),A1
+	MOVE.W	-6(A1,D0.W),$14(A3)
+	MOVE.W	8-6(A1,D0.W),$12(A3)
+	MOVE.L	10(A0),D0			; Crunched Size
+	ADDA.W	#14,A0
+	MOVE.W	$18(A3),D4
+	SUBQ.W	#1,D4
+	MOVE.L	D0,-(SP)
+lbC0000CC	ADDQ.W	#4,A0
+	MOVE.L	(A0)+,D2
+	SWAP	D2
+	LSR.W	#8,D2
+	MOVE.W	D2,D5
+	LSR.W	#2,D5
+	ANDI.W	#3,D2
+	BEQ.S	lbC0000E8
+	CMPI.W	#3,D2
+	BEQ.S	lbC0000E8
+	ADD.W	D2,D2
+	BRA.S	lbC0000EA
+
+lbC0000E8	MOVEQ	#0,D2
+lbC0000EA	MOVEQ	#5,D0
+lbC0000EC	LSR.W	#1,D5
+	BCC.S	lbC0000F2
+	ADDQ.W	#4,D2
+lbC0000F2	DBRA	D0,lbC0000EC
+	ADDQ.W	#2,D2
+	ADDA.W	D2,A0
+	DBRA	D4,lbC0000CC
+	MOVE.L	(SP)+,D0
+	MOVEA.L	A0,A1
+	ADDA.L	D0,A0
+	MOVE.W	$10(A3),(A4)
+	ADDA.L	D1,A4				; End of Decrunch Buffer
+	CLR.W	$1A(A3)
+	SUBQ.W	#1,$10(A3)
+	MOVEQ	#0,D2
+	MOVE.W	#$4000,D4
+	MOVE.W	#$4000,D5
+	MOVE.L	-(A0),D0
+lbC00011E	MOVE.W	-(A1),D1
+	BPL.S	lbC000124
+	MOVEQ	#0,D1
+lbC000124	ADDQ.W	#8,D1
+	SUBA.W	D1,A1
+	MOVE.L	A1,-(SP)
+	MOVEM.L	D0-D7,-(SP)
+	MOVE.L	A1,-(SP)
+	MOVE.W	(A1),D1
+	MOVE.W	2(A1),D2
+	MOVE.W	D1,D3
+	ADDI.W	#15,D3
+	LSR.W	#4,D3
+	MULU.W	D2,D3
+	ADD.W	D3,D3
+	EXT.L	D3
+	MOVE.L	D3,8(A3)
+	MOVE.L	4(A1),D7
+	MOVE.L	D7,D6
+	BSR.W	lbC000252
+	MOVE.W	D7,$1C(A3)
+	MOVEA.L	A4,A1
+	MOVE.W	$1C(A3),D4
+	MOVE.L	8(A3),D5
+	MULU.W	D5,D4
+	SUBA.L	D4,A1
+	MOVEA.L	A1,A4
+	ADDA.L	8(A3),A4
+	MOVE.L	(SP)+,D0
+	MOVEM.L	A1/A4,-(SP)
+	MOVEA.L	D0,A4
+	ADDQ.W	#8,A4
+	MOVE.L	D6,D0
+	SWAP	D0
+	LSR.W	#8,D0
+	MOVE.W	D0,-(SP)
+	ANDI.W	#3,D0
+	BEQ.S	lbC00018E
+	CMPI.W	#3,D0
+	BEQ.S	lbC00018C
+	ADD.W	D0,D0
+	BRA.S	lbC00018E
+
+lbC00018C	MOVEQ	#0,D0
+lbC00018E	MOVE.W	D0,$1E(A3)
+		MOVE.W	(SP)+,D0
+		LSR.W	#2,D0
+		MOVE.W	#6,-(SP)
+lbC00019A	LSR.W	#1,D0
+	BCC.S	lbC0001A2
+	ADDQ.W	#4,$1E(A3)
+lbC0001A2	SUBQ.W	#1,(SP)
+	BNE.S	lbC00019A
+	ADDQ.W	#2,SP
+	MOVE.W	$1E(A3),D0
+	ADDA.W	D0,A4
+	TST.W	D0
+	BEQ.S	lbC0001B8
+lbC0001B2	MOVE.W	-(A4),-(A1)
+	SUBQ.W	#2,D0
+	BNE.S	lbC0001B2
+lbC0001B8	MOVE.L	D6,-(A1)
+	MOVE.W	D3,-(A1)
+	MOVE.W	D2,-(A1)
+	MOVE.W	D1,-(A1)
+	MOVEA.L	(A3),A4
+	MOVE.W	$18(A3),D4
+	SUB.W	$1A(A3),D4
+	SUBQ.W	#1,D4
+	LSL.W	#2,D4
+	MOVE.L	A1,D5
+	SUB.L	A4,D5
+	MOVE.L	D5,2(A4,D4.W)
+	MOVEM.L	(SP)+,A1/A4
+	MOVEM.L	(SP)+,D0-D7
+	MOVE.W	$1C(A3),D7
+	BNE.S	lbC0001EA
+	MOVEA.L	A1,A4
+	BRA.S	lbC00022C
+
+lbC0001EA	ADD.W	D7,D7
+	ADD.W	D7,D7
+	LEA	lbW000498(PC),A6
+	ADDA.L	(A6,D7.W),A6
+lbC0001F6	MOVEQ	#4,D1
+	BSR.W	lbC0003A0
+	ADD.W	D7,D7
+	ADD.W	D7,D7
+	MOVE.L	A1,-(SP)
+	LEA	lbL000360(PC),A1
+	ADDA.L	(A1,D7.W),A1
+	JSR	(A1)
+	MOVEA.L	(SP)+,A1
+lbC00020E	CMPA.L	A4,A1
+	BEQ.S	lbC00022C
+	CMP.W	#$10,D2
+	BCS.S	lbC0001F6
+	SUBI.W	#$10,D5
+	ANDI.W	#$3FF0,D5
+	LEA	(A2,D5.W),A5
+	SUBI.W	#$10,D2
+	JSR	(A6)
+	BRA.S	lbC00020E
+
+lbC00022C	MOVE.W	$1E(A3),D1
+	SUBA.W	D1,A4
+	SUBA.W	#10,A4
+	MOVEA.L	(SP)+,A1
+	ADDQ.W	#1,$1A(A3)
+	MOVE.W	$1A(A3),D1
+	CMP.W	$18(A3),D1
+	BNE.W	lbC00011E
+;;;;	MOVE.L	4(A3),D0
+	MOVEM.L	(SP)+,D1-D7/A0-A6
+	RTS
+
+lbC000252	MOVEM.L	D0-D6/A2,-(SP)
+	MOVEQ	#1,D2
+	MOVE.L	D7,D1
+	CLR.W	D1
+	ROL.L	#8,D1
+	MOVE.W	D1,D3
+	LSR.W	#3,D1
+	ANDI.W	#7,D3
+	BEQ.S	lbC00026A
+	SUBQ.W	#1,D2
+lbC00026A	MOVEQ	#-1,D0
+	MOVEQ	#5,D6
+lbC00026E	MOVE.W	D7,D4
+	ANDI.W	#15,D4
+	CMP.W	#7,D4
+	BPL.S	lbC000286
+	CMP.W	D0,D4
+	BLE.S	lbC000286
+	MOVE.W	D4,D0
+	LSR.W	#1,D1
+	BCS.S	lbC000286
+	ADDQ.W	#1,D2
+lbC000286	LSR.L	#4,D7
+	DBRA	D6,lbC00026E
+	MOVEQ	#0,D7
+	MOVE.W	D2,D7
+	MOVEM.L	(SP)+,D0-D6/A2
+	RTS
+
+; SC_2, SP_2 Decruncher
+; A0 -> Crunched data (source)
+; A1 -> Decrunch buffer, 1st half (destination)
+; A2 -> Workspace (16k bytes)
+; A3 -> Workspace (24 bytes)
+; A5 -> Workspace (8256 bytes)
+;;; ; $C(A3) = Crunched data size
+
+; A3 data structure:
+; $00(A3) 4 BYTEs		[Unused]
+; $04(A3) LONG Decrunched Size	[Removed]
+; $08(A3) LONG ????
+; $0C(A3) LONG Crunched Size	[Unused]
+; $10(A3) WORD Number of Bitplanes
+; $12(A3) WORD ???? (Value 4 or 3)
+; $14(A3) WORD ???? (Value 7, 5 or 4)
+; $16(A3) WORD ????
+; $18(A3) End of table, in total 24 bytes are required
+
+lbC000050	MOVE.W	$10(A3),D1
+	MOVEQ	#0,D7
+.lbC000056	ADD.L	D0,D0
+	BNE.S	.lbC000062
+	MOVE.L	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.L	D0,D0
+.lbC000062	ROXR.B	#1,D7
+	DBRA	D1,.lbC000056
+	RTS
+
+D_SCSP_2
+	movem.l	D1-D7/A0-A6,-(SP)
+	cmp.w	#'SC',(A0)
+	beq.b	D_SC_2
+
+D_SP_2	CLR.W	$16(A3)
+	BRA.S	lbC0002A2
+
+D_SC_2	MOVE.W	#1,$16(A3)
+lbC0002A2
+;	MOVEA.L	D1,A5
+	MOVEA.L	A1,A4
+	ADDQ.W	#2,A0
+	MOVE.W	(A0)+,$10(A3)			; Number of bitplanes
+	MOVE.L	(A0)+,8(A3)			; Decrunched Size of 1 bitplane
+	MOVE.W	$10(A3),D0
+	ADD.W	D0,D0
+	LEA	lbW00006A(PC),A1
+	MOVE.W	-6(A1,D0.W),$14(A3)
+	MOVE.W	8-6(A1,D0.W),$12(A3)
+	MOVE.L	(A0)+,D0			; Crunched size
+	TST.W	$16(A3)
+	BEQ.S	lbC0002E2
+	MOVEQ	#0,D1
+	MOVE.W	$10(A3),D2
+	BSET	D2,D1
+	SUBQ.W	#1,D1
+lbC0002DC	MOVE.W	(A0)+,(A5)+
+	DBRA	D1,lbC0002DC
+lbC0002E2	ADDA.L	D0,A0			; End of crunched data
+;;;;	CLR.L	4(A3)
+	MOVEA.L	A4,A1
+	ADDA.L	8(A3),A4
+	MOVE.W	$10(A3),D7
+	MOVEQ	#0,D0
+lbC0002F4	ADD.L	8(A3),D0
+	SUBQ.W	#1,D7
+	BNE.S	lbC0002F4
+;;;;	ADD.L	D0,4(A3)
+	SUBQ.W	#1,$10(A3)
+	MOVE.W	$10(A3),D7
+	ADDQ.W	#1,D7
+	ADD.W	D7,D7
+	ADD.W	D7,D7
+	LEA	lbW000498(PC),A6
+	ADDA.L	0(A6,D7.W),A6
+	MOVEQ	#0,D2
+	MOVE.W	#$4000,D4
+	MOVE.W	#$4000,D5
+	MOVE.L	-(A0),D0
+lbC000322	MOVEQ	#4,D1
+	BSR.S	lbC0003A0
+	ADD.W	D7,D7
+	ADD.W	D7,D7
+	MOVE.L	A1,-(SP)
+	LEA	lbL000360(PC),A1
+	ADDA.L	0(A1,D7.W),A1
+	JSR	(A1)
+	MOVEA.L	(SP)+,A1
+lbC000338	CMPA.L	A4,A1
+	BEQ.S	lbC000356
+	CMP.W	#$10,D2
+	BCS.S	lbC000322
+	SUBI.W	#$10,D5
+	ANDI.W	#$3FF0,D5
+	LEA	0(A2,D5.W),A5
+	SUBI.W	#$10,D2
+	JSR	(A6)
+	BRA.S	lbC000338
+
+lbC000356	MOVEM.L	(SP)+,D1-D7/A0-A6
+;;;;	MOVE.L	4(A3),D0
+	RTS
+
+lbL000360	dc.l	Label_1-lbL000360
+	dc.l	Label_2-lbL000360
+	dc.l	Label_3-lbL000360
+	dc.l	Label_4-lbL000360
+	dc.l	Label_5-lbL000360
+	dc.l	Label_6-lbL000360
+	dc.l	Label_7-lbL000360
+	dc.l	Label_8-lbL000360
+	dc.l	Label_9-lbL000360
+	dc.l	Label_10-lbL000360
+	dc.l	Label_11-lbL000360
+	dc.l	Label_12-lbL000360
+	dc.l	Label_13-lbL000360
+	dc.l	Label_14-lbL000360
+	dc.l	Label_15-lbL000360
+	dc.l	Label_16-lbL000360
+
+lbC0003A0	SUBQ.W	#1,D1
+	MOVEQ	#0,D7
+.lbC0003A4	ADD.L	D0,D0
+	BNE.S	.lbC0003B0
+	MOVE.L	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.L	D0,D0
+.lbC0003B0	ADDX.W	D7,D7
+	DBRA	D1,.lbC0003A4
+	RTS
+
+Label_1
+	MOVEQ	#0,D6
+	BRA.S	lbC00040A
+Label_2
+	MOVEQ	#1,D6
+	BRA.S	lbC00040A
+Label_3
+	MOVEQ	#2,D6
+	BRA.S	lbC00040A
+Label_4
+	MOVEQ	#3,D6
+	BRA.S	lbC00040A
+Label_5
+	MOVEQ	#4,D6
+	BRA.S	lbC00040A
+Label_6
+	MOVEQ	#5,D6
+	BRA.S	lbC00040A
+Label_7
+	MOVEQ	#1,D1
+	BSR.S	lbC0003A0
+	MOVEQ	#6,D6
+	ADD.W	D7,D6
+	BRA.S	lbC00040A
+Label_8
+	MOVEQ	#1,D1
+	BSR.S	lbC0003A0
+	MOVEQ	#8,D6
+	ADD.W	D7,D6
+	BRA.S	lbC00040A
+Label_9
+	MOVEQ	#2,D1
+	BSR.S	lbC0003A0
+	MOVEQ	#10,D6
+	ADD.W	D7,D6
+	BRA.S	lbC00040A
+Label_10
+	MOVEQ	#3,D1
+	BSR.S	lbC0003A0
+	MOVEQ	#14,D6
+	ADD.W	D7,D6
+	BRA.S	lbC00040A
+Label_11
+	MOVEQ	#5,D1
+	BSR.S	lbC0003A0
+	MOVEQ	#$16,D6
+	ADD.W	D7,D6
+	BRA.S	lbC00040A
+Label_12
+	MOVEQ	#8,D1
+	BSR.S	lbC0003A0
+	MOVEQ	#$36,D6
+	ADD.W	D7,D6
+lbC00040A	ADD.W	$14(A3),D6
+	MOVEQ	#1,D1
+	BSR.S	lbC0003A0
+	MOVEQ	#14,D1
+	TST.W	D7
+	BNE.S	lbC00041A
+	MOVEQ	#9,D1
+lbC00041A	BSR.S	lbC0003A0
+	ADD.W	D4,D7
+	MOVE.W	D7,D3
+	ANDI.W	#$3FFF,D3
+	SUBQ.W	#1,D6
+lbC000426	SUBQ.W	#1,D3
+	ANDI.W	#$3FFF,D3
+	MOVE.B	0(A2,D3.W),D7
+	SUBQ.W	#1,D4
+	ANDI.W	#$3FFF,D4
+	MOVE.B	D7,0(A2,D4.W)
+	ADDQ.L	#1,D2
+	DBRA	D6,lbC000426
+	RTS
+Label_13
+	MOVEQ	#4,D1
+	BSR.W	lbC0003A0
+	MOVE.W	D7,D6
+	BRA.S	lbC000456
+Label_14
+	MOVEQ	#8,D1
+	BSR.W	lbC0003A0
+	MOVEQ	#$10,D6
+	ADD.W	D7,D6
+lbC000456	ADD.W	$12(A3),D6
+	BSR.W	lbC000050
+	SUBQ.W	#1,D6
+lbC000460	SUBQ.W	#1,D4
+	ANDI.W	#$3FFF,D4
+	MOVE.B	D7,0(A2,D4.W)
+	ADDQ.L	#1,D2
+	DBRA	D6,lbC000460
+	RTS
+Label_15
+	MOVEQ	#1,D6
+	BRA.S	lbC000480
+Label_16
+	MOVEQ	#3,D1
+	BSR.W	lbC0003A0
+	MOVEQ	#2,D6
+	ADD.W	D7,D6
+lbC000480	SUBQ.W	#1,D6
+lbC000482	BSR.W	lbC000050
+	SUBQ.W	#1,D4
+	ANDI.W	#$3FFF,D4
+	MOVE.B	D7,0(A2,D4.W)
+	ADDQ.L	#1,D2
+	DBRA	D6,lbC000482
+	RTS
+
+lbW000498
+	dc.l	Label_23-lbW000498
+	dc.l	Label_22-lbW000498
+	dc.l	Label_21-lbW000498
+	dc.l	Label_20-lbW000498
+	dc.l	Label_19-lbW000498
+	dc.l	Label_18-lbW000498
+	dc.l	Label_17-lbW000498
+
+Label_17
+	MOVEM.L	D0/D2/D4/D5,-(SP)
+	MOVEQ	#15,D0
+.lbC0004BA	MOVE.B	(A5)+,D1
+	ADD.B	D1,D1
+	ADDX.W	D2,D2
+	ADD.B	D1,D1
+	ADDX.W	D3,D3
+	ADD.B	D1,D1
+	ADDX.W	D4,D4
+	ADD.B	D1,D1
+	ADDX.W	D5,D5
+	ADD.B	D1,D1
+	ADDX.W	D6,D6
+	ADD.B	D1,D1
+	ADDX.W	D7,D7
+	DBRA	D0,.lbC0004BA
+	MOVE.L	8(A3),D1
+	MOVE.W	D2,-(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D3,(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D4,(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D5,(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D6,(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D7,(A4)
+	SUBA.L	D1,A4
+	SUBA.L	D1,A4
+	SUBA.L	D1,A4
+	SUBA.L	D1,A4
+	SUBA.L	D1,A4
+	MOVEM.L	(SP)+,D0/D2/D4/D5
+	RTS
+
+Label_18
+	MOVEM.L	D0/D2/D4/D5,-(SP)
+	MOVEQ	#15,D0
+.lbC000508	MOVE.B	(A5)+,D1
+	ADD.B	D1,D1
+	ADDX.W	D2,D2
+	ADD.B	D1,D1
+	ADDX.W	D3,D3
+	ADD.B	D1,D1
+	ADDX.W	D4,D4
+	ADD.B	D1,D1
+	ADDX.W	D5,D5
+	ADD.B	D1,D1
+	ADDX.W	D6,D6
+	DBRA	D0,.lbC000508
+	MOVE.L	8(A3),D1
+	MOVE.W	D2,-(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D3,(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D4,(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D5,(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D6,(A4)
+	SUBA.L	D1,A4
+	SUBA.L	D1,A4
+	SUBA.L	D1,A4
+	SUBA.L	D1,A4
+	MOVEM.L	(SP)+,D0/D2/D4/D5
+	RTS
+
+Label_19
+	MOVEM.L	D0/D2/D4/D5,-(SP)
+	MOVEQ	#15,D0
+.lbC00054C	MOVE.B	(A5)+,D1
+	ADD.B	D1,D1
+	ADDX.W	D2,D2
+	ADD.B	D1,D1
+	ADDX.W	D3,D3
+	ADD.B	D1,D1
+	ADDX.W	D4,D4
+	ADD.B	D1,D1
+	ADDX.W	D5,D5
+	DBRA	D0,.lbC00054C
+	MOVE.L	8(A3),D1
+	MOVE.W	D2,-(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D3,(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D4,(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D5,(A4)
+	SUBA.L	D1,A4
+	SUBA.L	D1,A4
+	SUBA.L	D1,A4
+	MOVEM.L	(SP)+,D0/D2/D4/D5
+	RTS
+
+Label_20
+	MOVEM.L	D0/D2/D4,-(SP)
+	MOVEQ	#15,D0
+.lbC000586	MOVE.B	(A5)+,D1
+	ADD.B	D1,D1
+	ADDX.W	D2,D2
+	ADD.B	D1,D1
+	ADDX.W	D3,D3
+	ADD.B	D1,D1
+	ADDX.W	D4,D4
+	DBRA	D0,.lbC000586
+	MOVE.L	8(A3),D1
+	MOVE.W	D2,-(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D3,(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D4,(A4)
+	SUBA.L	D1,A4
+	SUBA.L	D1,A4
+	MOVEM.L	(SP)+,D0/D2/D4
+	RTS
+
+Label_21
+	MOVEM.L	D0/D2/D4,-(SP)
+	MOVEQ	#15,D0
+.lbC0005B6	MOVE.B	(A5)+,D1
+	ADD.B	D1,D1
+	ADDX.W	D2,D2
+	ADD.B	D1,D1
+	ADDX.W	D3,D3
+	DBRA	D0,.lbC0005B6
+	MOVE.L	8(A3),D1
+	MOVE.W	D2,-(A4)
+	ADDA.L	D1,A4
+	MOVE.W	D3,(A4)
+	SUBA.L	D1,A4
+	MOVEM.L	(SP)+,D0/D2/D4
+	RTS
+
+Label_22
+	MOVEM.L	D0/D2,-(SP)	; D4 is not changed
+	MOVEQ	#15,D0
+.lbC0005DC	MOVE.B	(A5)+,D1
+	ADD.B	D1,D1
+	ADDX.W	D2,D2
+	DBRA	D0,.lbC0005DC
+	MOVE.L	8(A3),D1
+	MOVE.W	D2,-(A4)
+	MOVEM.L	(SP)+,D0/D2	; /D4 is not changed
+Label_23
+	RTS
+
+
+; Modified SA decruncher from game "Kid Chaos" (c) 1993 by Magnetic Fields
+
+; A0 -> Crunched data (source)
+; A1 -> Decrunch buffer (destination)
+; A2 -> Workspace (16k bytes)
+; A3 -> Workspace (30 bytes)
+;;; ; $C(A3) = Crunched data size
+
+; A3 data structure:
+; $00(A3) LONG Decrunch Buffer destination
+; $04(A3) LONG Decrunched Size	[Removed]
+; $08(A3) LONG ????
+; $0C(A3) LONG Crunched Size	[Unused]
+; $10(A3) WORD Number of Bitplanes
+; $12(A3) WORD ???? (Value 4 or 3)
+; $14(A3) WORD ???? (Value 7, 5 or 4)
+; $16(A3) ?			[Unused]
+; $18(A3) WORD ????
+; $1A(A3) WORD ????
+; $1C(A3) WORD ????
+; $1E(A3) End of table, in total 30 bytes are required
+
+D_SA_2	movem.l	D1-D7/A0-A6,-(SP)
+
+	MOVEA.L	A1,A4
+	MOVE.L	A1,(A3)
+	MOVE.W	2(A0),$10(A3)			; Number of Bitplanes
+	MOVE.W	4(A0),$18(A3)
+	MOVE.L	6(A0),D1			; Decrunched Size
+;;;;	MOVE.L	D1,4(A3)
+	MOVE.W	$10(A3),D0			; Number of Bitplanes
+	ADD.W	D0,D0
+	LEA	lbW00006A(PC),A1
+	MOVE.W	-6(A1,D0.W),$14(A3)
+	MOVE.W	8-6(A1,D0.W),$12(A3)
+	MOVE.L	10(A0),D0
+	ADDA.W	#14,A0
+	MOVE.W	$18(A3),D2
+	ASL.W	#3,D2
+	ADDA.W	D2,A0
+	MOVEA.L	A0,A1
+	ADDA.L	D0,A0
+	MOVE.W	$10(A3),(A4)
+	ADDA.L	D1,A4
+	CLR.W	$1A(A3)
+	SUBQ.W	#1,$10(A3)
+	MOVEQ	#0,D2
+	MOVE.W	#$4000,D4
+	MOVE.W	#$4000,D5
+	MOVE.L	-(A0),D0
+abC001A36	SUBQ.L	#8,A1
+	MOVE.L	A1,-(SP)
+	MOVEM.L	D0-D7,-(SP)
+	MOVE.W	(A1),D1
+	MOVE.W	2(A1),D2
+	MOVE.W	D1,D3
+	ADDI.W	#15,D3
+	LSR.W	#4,D3
+	MULU.W	D2,D3
+	ADD.W	D3,D3
+	EXT.L	D3
+	MOVE.L	D3,8(A3)
+	MOVE.L	4(A1),D7
+	MOVE.L	D7,D6
+	BSR.W	abC001B0A
+	MOVE.W	D7,$1C(A3)
+	MOVEA.L	A4,A1
+	MOVE.W	$1C(A3),D4
+	MOVE.L	8(A3),D5
+	MULU.W	D5,D4
+	SUBA.L	D4,A1
+	MOVEA.L	A1,A4
+	ADDA.L	8(A3),A4
+	SUBA.W	#10,A1
+	MOVE.L	A4,-(SP)
+	MOVEA.L	(A3),A4
+	MOVE.W	$18(A3),D4
+	SUB.W	$1A(A3),D4
+	SUBQ.W	#1,D4
+	LSL.W	#2,D4
+	MOVE.L	A1,D5
+	SUB.L	A4,D5
+	MOVE.L	D5,2(A4,D4.W)
+	MOVEA.L	(SP)+,A4
+	MOVE.W	D1,(A1)+
+	MOVE.W	D2,(A1)+
+	MOVE.W	D3,(A1)+
+	MOVE.L	D6,(A1)+
+	MOVEM.L	(SP)+,D0-D7
+	MOVE.W	$1C(A3),D7
+	ADD.W	D7,D7
+	ADD.W	D7,D7
+	LEA	lbW000498(PC),A6
+	ADDA.L	0(A6,D7.W),A6
+abC001AB4	MOVEQ	#4,D1
+	BSR.W	lbC0003A0
+	ADD.W	D7,D7
+	ADD.W	D7,D7
+	MOVE.L	A1,-(SP)
+	LEA	lbL000360(PC),A1
+	ADDA.L	0(A1,D7.W),A1
+	JSR	(A1)
+	MOVEA.L	(SP)+,A1
+abC001ACC	CMPA.L	A4,A1
+	BEQ.S	abC001AEA
+	CMP.W	#$10,D2
+	BCS.S	abC001AB4
+	SUBI.W	#$10,D5
+	ANDI.W	#$3FF0,D5
+	LEA	0(A2,D5.W),A5
+	SUBI.W	#$10,D2
+	JSR	(A6)
+	BRA.S	abC001ACC
+
+abC001AEA	SUBA.W	#10,A4
+	MOVEA.L	(SP)+,A1
+	ADDQ.W	#1,$1A(A3)
+	MOVE.W	$1A(A3),D1
+	CMP.W	$18(A3),D1
+	BNE.W	abC001A36
+	MOVEM.L	(SP)+,D1-D7/A0-A6
+;;;;	MOVE.L	4(A3),D0
+	RTS
+
+abC001B0A	MOVEM.L	D0-D6/A2,-(SP)
+	MOVE.W	$10(A3),D6
+	MOVEQ	#-1,D2
+abC001B14	MOVE.L	D7,D0
+	ANDI.W	#15,D0
+	CMP.W	#7,D0
+	BPL.S	abC001B26
+	CMP.W	D2,D0
+	BMI.S	abC001B26
+	MOVE.W	D0,D2
+abC001B26	LSR.L	#4,D7
+	SUBQ.W	#1,D6
+	BNE.S	abC001B14
+	ADDQ.W	#1,D2
+	ADDQ.W	#1,D2
+	MOVE.W	D2,D7
+	MOVEM.L	(SP)+,D0-D6/A2
+	RTS
+
+; Decruncher from game "Lotus 2" (c) 1991 by Magnetic Fields
+
+;	MOVEA.L	#lbL06439C,A2
+;	MOVE.L	#lbL06839C,D1
+;	lea	Extra,A3
+;	CLR.W	$7FC-$7FC(A3)
+;	MOVE.L	D0,$828-$7FC(A3)
+;	MOVEA.L	D1,A5
+;	MOVE.W	(A0),D0
+;	CMPI.W	#'SA',D0
+;	BEQ.S	D_SASP_1
+;	CMPI.W	#'SP',D0
+;	BEQ.S	D_SASP_1
+;	CMPI.W	#'SC',D0
+;	BEQ.S	D_SC_1
+;	CMPI.W	#'SF',D0
+;	BEQ.L	nlC000A66
+;	MOVE.L	$828-$7FC(A3),D7
+;	BEQ.S	nlC00070E
+;nlC000708	MOVE.B	(A0)+,(A1)+
+;	SUBQ.L	#1,D7
+;	BNE.S	nlC000708
+;nlC00070E	MOVE.L	$828-$7FC(A3),D0
+;	RTS
+
+; SA_1, SC_1 and SP_1 decruncher
+; A0 -> Crunched data (source)
+; A1 -> Decrunch buffer (destination)
+; A2 -> Workspace (16k bytes)
+; A3 -> Workspace (56 bytes)
+; A5 -> Workspace (8256 bytes)
+;;; ; $2C(A3) = Crunched data size
+
+; A3 data structure:
+; $00(A3)                 8 BYTEs		[Unused]
+; $08(A3)                 LONG ????
+; $0C(A3)                 $18 BYTEs		[Unused]
+; $820-$7FC(A3) = $24(A3) WORD ????
+; $822-$7FC(A3) = $26(A3) WORD ????
+; $824-$7FC(A3) = $28(A3) WORD ???? (Value 7, 5 or 4)
+; $826-$7FC(A3) = $2A(A3) WORD ???? (Value 4 or 3)
+; $828-$7FC(A3) = $2C(A3) LONG Crunched Size	[Unused]
+; $82C-$7FC(A3) = $30(A3) 4 BYTEs		[Unused]
+; $830-$7FC(A3) = $34(A3) LONG Decrunched Size	[Unused]
+; $38(A3) End of table, in total 56 bytes are required
+
+nlC000714	MOVE.W	$820-$7FC(A3),D1
+	MOVEQ	#0,D7
+.nlC00071A	ADD.L	D0,D0
+	BNE.S	.nlC000726
+	MOVE.L	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.L	D0,D0
+.nlC000726	ROXR.B	#1,D7
+	DBRA	D1,.nlC00071A
+	RTS
+
+; nlW00072E	dc.b	7,5,4,4,4,4,3,3
+
+D_SASCSP_1
+	cmp.w	#'SC',(A0)
+	beq.b	D_SC_1
+D_SASP_1
+	CLR.W	$822-$7FC(A3)
+	BRA.S	nlC000742
+
+D_SC_1	MOVE.W	#1,$822-$7FC(A3)
+nlC000742	MOVEM.L	D1-D7/A0-A6,-(SP)
+;	MOVEA.L	D1,A5
+	MOVEA.L	A1,A4
+	MOVEQ	#0,D7
+	CMPI.W	#'SA',(A0)+
+	BNE.S	nlC000754
+	MOVEQ	#-1,D7
+nlC000754	MOVE.W	(A0)+,$820-$7FC(A3)
+;	MOVE.L	(A0)+,$82C-$7FC(A3)
+
+;	D7 =	$822-$7FC(A3) =
+; SA :	-1	0
+; SC :	0	1
+; SP :	0	0
+
+	move.l	(A0)+,8(A3)
+
+	MOVE.W	$820-$7FC(A3),D0
+
+;	LEA	nlW00072E(PC),A1
+;	CLR.B	$824-$7FC(A3)
+;	CLR.B	$826-$7FC(A3)
+;	MOVE.B	-3(A1,D0.W),$825-$7FC(A3)
+;	MOVE.B	1(A1,D0.W),$827-$7FC(A3)
+
+	ADD.W	D0,D0
+	LEA	lbW00006A(PC),A1
+	MOVE.W	-6(A1,D0.W),$824-$7FC(A3)
+	MOVE.W	8-6(A1,D0.W),$826-$7FC(A3)
+
+	MOVE.L	(A0)+,D0
+	TST.W	$822-$7FC(A3)
+	BEQ.S	nlC000790
+	MOVEQ	#0,D1
+	MOVE.W	$820-$7FC(A3),D2
+	BSET	D2,D1
+	SUBQ.W	#1,D1
+nlC00078A	MOVE.W	(A0)+,(A5)+
+	DBRA	D1,nlC00078A
+nlC000790	ADDA.L	D0,A0
+;;;;	CLR.L	$830-$7FC(A3)
+	TST.L	D7
+	BEQ.S	nlC0007AC
+	MOVEA.L	A0,A1
+	MOVE.L	8(A1),D0
+	ADDQ.L	#8,D0
+;;;;	MOVE.L	D0,$830-$7FC(A3)
+nlC0007A6	MOVE.B	(A1)+,(A4)+
+	SUBQ.L	#1,D0
+	BNE.S	nlC0007A6
+nlC0007AC	MOVEA.L	A4,A1
+;	ADDA.L	$82C-$7FC(A3),A4
+
+	add.l	8(A3),A4
+
+	MOVE.W	$820-$7FC(A3),D7
+	MOVEQ	#0,D0
+nlC0007B8
+;	ADD.L	$82C-$7FC(A3),D0
+
+	add.l	8(A3),D0
+
+	SUBQ.W	#1,D7
+	BNE.S	nlC0007B8
+;;;;	ADD.L	D0,$830-$7FC(A3)
+	SUBQ.W	#1,$820-$7FC(A3)
+	MOVE.W	$820-$7FC(A3),D7
+	ADD.W	D7,D7
+	ADD.W	D7,D7
+	LEA	nlC00095x-8(PC),A6
+	ADDA.L	0(A6,D7.W),A6
+	ADDQ.L	#8,A6
+	MOVEQ	#0,D2
+	MOVE.W	#$4000,D4
+	MOVE.W	#$4000,D5
+	MOVE.L	-(A0),D0
+nlC0007E6
+;	TST.W	$7FC-$7FC(A3)
+;	BNE.L	nlC000BA0
+	MOVEQ	#4,D1
+	BSR.S	nlC00086C
+	ADD.W	D7,D7
+	ADD.W	D7,D7
+	MOVE.L	A1,-(SP)
+	LEA	nlL00082C(PC),A1
+	ADDA.L	0(A1,D7.W),A1
+	JSR	(A1)
+	MOVEA.L	(SP)+,A1
+nlC000804	CMPA.L	A4,A1
+	BEQ.S	nlC000822
+	CMPI.W	#$10,D2
+	BCS.S	nlC0007E6
+	SUBI.W	#$10,D5
+	ANDI.W	#$3FF0,D5
+	LEA	0(A2,D5.W),A5
+	SUBI.W	#$10,D2
+	JSR	(A6)
+	BRA.S	nlC000804
+
+nlC000822	MOVEM.L	(SP)+,D1-D7/A0-A6
+;;;;	MOVE.L	$830-$7FC(A3),D0		; Decrunched Size
+	RTS
+
+nlL00082C	dc.l	Label24-nlL00082C
+	dc.l	Label25-nlL00082C
+	dc.l	Label26-nlL00082C
+	dc.l	Label27-nlL00082C
+	dc.l	Label28-nlL00082C
+	dc.l	Label29-nlL00082C
+	dc.l	Label30-nlL00082C
+	dc.l	Label31-nlL00082C
+	dc.l	Label32-nlL00082C
+	dc.l	Label33-nlL00082C
+	dc.l	Label34-nlL00082C
+	dc.l	Label35-nlL00082C
+	dc.l	Label36-nlL00082C
+	dc.l	Label37-nlL00082C
+	dc.l	Label38-nlL00082C
+	dc.l	Label39-nlL00082C
+
+nlC00086C	SUBQ.W	#1,D1
+	MOVEQ	#0,D7
+.nlC000870	ADD.L	D0,D0
+	BNE.S	.nlC00087C
+	MOVE.L	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.L	D0,D0
+.nlC00087C	ADDX.W	D7,D7
+	DBRA	D1,.nlC000870
+	RTS
+
+Label24
+	MOVEQ	#0,D6
+	BRA.S	nlC0008D6
+Label25
+	MOVEQ	#1,D6
+	BRA.S	nlC0008D6
+Label26
+	MOVEQ	#2,D6
+	BRA.S	nlC0008D6
+Label27
+	MOVEQ	#3,D6
+	BRA.S	nlC0008D6
+Label28
+	MOVEQ	#4,D6
+	BRA.S	nlC0008D6
+Label29
+	MOVEQ	#5,D6
+	BRA.S	nlC0008D6
+Label30
+	MOVEQ	#1,D1
+	BSR.S	nlC00086C
+	MOVEQ	#6,D6
+	ADD.W	D7,D6
+	BRA.S	nlC0008D6
+Label31
+	MOVEQ	#1,D1
+	BSR.S	nlC00086C
+	MOVEQ	#8,D6
+	ADD.W	D7,D6
+	BRA.S	nlC0008D6
+Label32
+	MOVEQ	#2,D1
+	BSR.S	nlC00086C
+	MOVEQ	#10,D6
+	ADD.W	D7,D6
+	BRA.S	nlC0008D6
+Label33
+	MOVEQ	#3,D1
+	BSR.S	nlC00086C
+	MOVEQ	#14,D6
+	ADD.W	D7,D6
+	BRA.S	nlC0008D6
+Label34
+	MOVEQ	#5,D1
+	BSR.S	nlC00086C
+	MOVEQ	#$16,D6
+	ADD.W	D7,D6
+	BRA.S	nlC0008D6
+Label35
+	MOVEQ	#8,D1
+	BSR.S	nlC00086C
+	MOVEQ	#$36,D6
+	ADD.W	D7,D6
+nlC0008D6	ADD.W	$824-$7FC(A3),D6
+	MOVEQ	#14,D1
+	BSR.S	nlC00086C
+	ADD.W	D4,D7
+	MOVE.W	D7,D3
+	ANDI.W	#$3FFF,D3
+	SUBQ.W	#1,D6
+nlC0008E8	SUBQ.W	#1,D3
+	ANDI.W	#$3FFF,D3
+	MOVE.B	0(A2,D3.W),D7
+	SUBQ.W	#1,D4
+	ANDI.W	#$3FFF,D4
+	MOVE.B	D7,0(A2,D4.W)
+	ADDQ.L	#1,D2
+	DBRA	D6,nlC0008E8
+	RTS
+Label36
+	MOVEQ	#4,D1
+	BSR.W	nlC00086C
+	MOVE.W	D7,D6
+	BRA.S	nlC000918
+Label37
+	MOVEQ	#8,D1
+	BSR.W	nlC00086C
+	MOVEQ	#$10,D6
+	ADD.W	D7,D6
+nlC000918	ADD.W	$826-$7FC(A3),D6
+	BSR.W	nlC000714
+	SUBQ.W	#1,D6
+nlC000922	SUBQ.W	#1,D4
+	ANDI.W	#$3FFF,D4
+	MOVE.B	D7,0(A2,D4.W)
+	ADDQ.L	#1,D2
+	DBRA	D6,nlC000922
+	RTS
+Label38
+	MOVEQ	#1,D6
+	BRA.S	nlC000942
+Label39
+	MOVEQ	#3,D1
+	BSR.W	nlC00086C
+	MOVEQ	#2,D6
+	ADD.W	D7,D6
+nlC000942	SUBQ.W	#1,D6
+nlC000944	BSR.W	nlC000714
+	SUBQ.W	#1,D4
+	ANDI.W	#$3FFF,D4
+	MOVE.B	D7,0(A2,D4.W)
+	ADDQ.L	#1,D2
+	DBRA	D6,nlC000944
+	RTS
+
+nlC00095x
+;	dc.l	Label43-nlC00095x
+;	dc.l	Label42-nlC00095x
+;	dc.l	Label41-nlC00095x
+;	dc.l	Label40-nlC00095x
+
+	dc.l	Label_20-nlC00095x
+	dc.l	Label_19-nlC00095x
+	dc.l	Label_18-nlC00095x
+	dc.l	Label_17-nlC00095x
+
+;Label40
+;	MOVEM.L	D0/D2/D4/D5,-(SP)
+;	MOVEQ	#15,D0
+;nlC000970	MOVE.B	(A5)+,D1
+;	ADD.B	D1,D1
+;	ADDX.W	D2,D2
+;	ADD.B	D1,D1
+;	ADDX.W	D3,D3
+;	ADD.B	D1,D1
+;	ADDX.W	D4,D4
+;	ADD.B	D1,D1
+;	ADDX.W	D5,D5
+;	ADD.B	D1,D1
+;	ADDX.W	D6,D6
+;	ADD.B	D1,D1
+;	ADDX.W	D7,D7
+;	DBRA	D0,nlC000970
+;	MOVE.L	$82C-$7FC(A3),D1
+;	MOVE.W	D2,-(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D3,(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D4,(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D5,(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D6,(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D7,(A4)
+;	SUBA.L	D1,A4
+;	SUBA.L	D1,A4
+;	SUBA.L	D1,A4
+;	SUBA.L	D1,A4
+;	SUBA.L	D1,A4
+;	MOVEM.L	(SP)+,D0/D2/D4/D5
+;	RTS
+
+;Label41
+;	MOVEM.L	D0/D2/D4/D5,-(SP)
+;	MOVEQ	#15,D0
+;nlC0009BE	MOVE.B	(A5)+,D1
+;	ADD.B	D1,D1
+;	ADDX.W	D2,D2
+;	ADD.B	D1,D1
+;	ADDX.W	D3,D3
+;	ADD.B	D1,D1
+;	ADDX.W	D4,D4
+;	ADD.B	D1,D1
+;	ADDX.W	D5,D5
+;	ADD.B	D1,D1
+;	ADDX.W	D6,D6
+;	DBRA	D0,nlC0009BE
+;	MOVE.L	$82C-$7FC(A3),D1
+;	MOVE.W	D2,-(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D3,(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D4,(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D5,(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D6,(A4)
+;	SUBA.L	D1,A4
+;	SUBA.L	D1,A4
+;	SUBA.L	D1,A4
+;	SUBA.L	D1,A4
+;	MOVEM.L	(SP)+,D0/D2/D4/D5
+;	RTS
+
+;Label42
+;	MOVEM.L	D0/D2/D4/D5,-(SP)
+;	MOVEQ	#15,D0
+;nlC000A02	MOVE.B	(A5)+,D1
+;	ADD.B	D1,D1
+;	ADDX.W	D2,D2
+;	ADD.B	D1,D1
+;	ADDX.W	D3,D3
+;	ADD.B	D1,D1
+;	ADDX.W	D4,D4
+;	ADD.B	D1,D1
+;	ADDX.W	D5,D5
+;	DBRA	D0,nlC000A02
+;	MOVE.L	$82C-$7FC(A3),D1
+;	MOVE.W	D2,-(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D3,(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D4,(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D5,(A4)
+;	SUBA.L	D1,A4
+;	SUBA.L	D1,A4
+;	SUBA.L	D1,A4
+;	MOVEM.L	(SP)+,D0/D2/D4/D5
+;	RTS
+
+;Label43
+;	MOVEM.L	D0/D2/D4,-(SP)
+;	MOVEQ	#15,D0
+;nlC000A3C	MOVE.B	(A5)+,D1
+;	ADD.B	D1,D1
+;	ADDX.W	D2,D2
+;	ADD.B	D1,D1
+;	ADDX.W	D3,D3
+;	ADD.B	D1,D1
+;	ADDX.W	D4,D4
+;	DBRA	D0,nlC000A3C
+;	MOVE.L	$82C-$7FC(A3),D1
+;	MOVE.W	D2,-(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D3,(A4)
+;	ADDA.L	D1,A4
+;	MOVE.W	D4,(A4)
+;	SUBA.L	D1,A4
+;	SUBA.L	D1,A4
+;	MOVEM.L	(SP)+,D0/D2/D4
+;	RTS
+
+
+;;; D_SFSQ
+;;;	movem.l	D1-D7/A0-A6,-(SP)
+;;;	cmp.w	#'SQ',(A0)
+;;;	beq.w	D_SQ
+
+; SF decruncher:
+; Input: A0 -> Crunched Data (source)
+;        A1 -> Decrunch Buffer (destination)
+; Used registers: A0,A1,A2,A4 + A6, D0,D1,D2,D3,D4,D5,D6,D7
+
+D_SF
+;;;	MOVEM.L	D1-D7/A0-A6,-(SP)
+;	MOVEA.L	A1,A4				; -> Decrunch Buffer
+;	MOVEA.L	A0,A2				; -> Crunched Data (header)
+;	LEA	10(A2),A1			; -> Crunched Data (past header)
+;	MOVEA.L	A4,A5				; -> Decrunch Buffer
+;	MOVE.L	2(A0),D0			; Decrunched Size
+;;;	MOVEA.L	D0,A6
+;	ADDA.L	D0,A4				; -> End of Decrunch Buffer
+;	MOVE.L	6(A0),D2			; Crunched Size
+;	ADDA.L	D2,A0				; -> End of Crunched Data
+;	MOVE.L	D2,D7				; Crunched Size
+;	ADDQ.L	#3,D7
+;	LSR.L	#2,D7
+;	SUBQ.L	#1,D7
+; lbC000612	MOVE.L	(A1)+,(A2)+		; Move crunched data
+;	DBRA	D7,lbC000612
+
+	ADDQ.L	#2,A0				; Skip ID
+	MOVEA.L	A1,A4				; -> Decrunch Buffer
+	ADD.L	(A0)+,A4			; -> End of Decrunch Buffer
+	MOVE.L	(A0)+,D0			; Crunched Size
+	MOVE.L	A0,A6				; -> Begin of Crunched Data
+	ADD.L	D0,A0				; -> End of Cruched Data
+
+; A0 -> End of Crunched Data
+; A1 -> Begin of Decrunch Buffer
+; A4 -> End of Decrunch Buffer
+; A6 -> Begin of Crunched Data
+
+	MOVE.B	-(A0),D0			; Compressed Data
+lbC00061A	ADD.B	D0,D0
+	BNE.S	lbC000626
+	MOVE.B	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.B	D0,D0
+lbC000626	BCC.W	lbC0006CC
+	ADD.B	D0,D0
+	BNE.S	lbC000636
+	MOVE.B	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.B	D0,D0
+lbC000636	BCC.S	lbC000698
+	ADD.B	D0,D0
+	BNE.S	lbC000644
+	MOVE.B	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.B	D0,D0
+lbC000644	BCC.S	lbC00069E
+	ADD.B	D0,D0
+	BNE.S	lbC000652
+	MOVE.B	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.B	D0,D0
+lbC000652	BCC.S	lbC0006A4
+	ADD.B	D0,D0
+	BNE.S	lbC000660
+	MOVE.B	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.B	D0,D0
+lbC000660	BCC.S	lbC000666
+	MOVEQ	#9,D4
+	BRA.S	lbC000668
+
+lbC000666	MOVEQ	#14,D4
+lbC000668	MOVEQ	#1,D2
+	MOVEQ	#1,D3
+	MOVEQ	#5,D5
+lbC00066E	MOVE.W	D2,D1
+	SUBQ.W	#1,D1
+	MOVEQ	#0,D7
+lbC000674	ADD.B	D0,D0
+	BNE.S	lbC000680
+
+	CMP.L	A6,A0				; Check read pointer
+	BLS	SF_Error
+
+	MOVE.B	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.B	D0,D0
+lbC000680	ADDX.W	D7,D7
+	DBRA	D1,lbC000674
+	ADD.W	D7,D5
+	CMP.W	D3,D7
+	BNE.S	lbC000694
+	ADDQ.W	#1,D2
+	ADD.W	D3,D3
+	ADDQ.W	#1,D3
+	BRA.S	lbC00066E
+
+lbC000694	MOVE.W	D4,D1
+	BRA.S	lbC0006A8
+
+lbC000698	MOVEQ	#9,D1
+	MOVEQ	#2,D5
+	BRA.S	lbC0006A8
+
+lbC00069E	MOVEQ	#10,D1
+	MOVEQ	#3,D5
+	BRA.S	lbC0006A8
+
+lbC0006A4	MOVEQ	#12,D1
+	MOVEQ	#4,D5
+lbC0006A8	SUBQ.W	#1,D1
+	MOVEQ	#0,D7
+lbC0006AC	ADD.B	D0,D0
+	BNE.S	lbC0006B8
+
+	CMP.L	A6,A0				; Check read pointer
+	BLS	SF_Error
+
+	MOVE.B	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.B	D0,D0
+lbC0006B8	ADDX.W	D7,D7
+	DBRA	D1,lbC0006AC
+	LEA	0(A4,D7.W),A2
+	SUBQ.W	#1,D5
+lbC0006C4	
+	CMP.L	A1,A4				; Check write pointer
+	BLS	SF_Error
+
+	MOVE.B	-(A2),-(A4)
+	DBRA	D5,lbC0006C4
+	BRA.S	lbC000700
+
+lbC0006CC	MOVEQ	#1,D2
+	MOVEQ	#1,D3
+	MOVEQ	#1,D6
+lbC0006D2	MOVE.W	D2,D1
+	SUBQ.W	#1,D1
+	MOVEQ	#0,D7
+lbC0006D8	ADD.B	D0,D0
+	BNE.S	lbC0006E4
+
+	CMP.L	A6,A0				; Check read pointer
+	BLS	SF_Error
+
+	MOVE.B	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.B	D0,D0
+lbC0006E4	ADDX.W	D7,D7
+	DBRA	D1,lbC0006D8
+	ADD.W	D7,D6
+	CMP.W	D3,D7
+	BNE.S	lbC0006F8
+	ADDQ.W	#1,D2
+	ADD.W	D3,D3
+	ADDQ.W	#1,D3
+	BRA.S	lbC0006D2
+
+lbC0006F8	SUBQ.W	#1,D6
+lbC0006FA
+	CMP.L	A1,A4				; Check write pointer
+	BLS	SF_Error
+
+	MOVE.B	-(A0),-(A4)
+	DBRA	D6,lbC0006FA
+lbC000700	CMPA.L	A1,A4
+	BNE.W	lbC00061A
+;;;	MOVE.L	A6,D0
+;;;	MOVEM.L	(SP)+,D1-D7/A0-A6
+	MOVEQ	#1,D0				; Success
+	RTS
+
+SF_Error
+	MOVEQ	#0,D0				; Error
+	RTS
+
+; SQ decruncher:
+; Input: A0 -> Crunched Data (source)
+;        A1 -> Decrunch Buffer (destination)
+; Used registers: A0,A1,A2 + A3, D0,D1,D4,D5,D6,D7 + D3 + D2
+
+lbC00072E	SUBQ.W	#1,D1
+	MOVEQ	#0,D7
+.lbC000732	ADD.L	D0,D0
+	BNE.S	.lbC00073E
+	MOVE.L	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.L	D0,D0
+.lbC00073E	ADDX.W	D7,D7
+	DBRA	D1,.lbC000732
+	RTS
+
+D_SQ	MOVEA.L	A1,A2
+	ADDQ.L	#2,A0				; Skip ID
+	MOVE.L	(A0)+,D0			; Decrunched Size
+	MOVE.L	D0,D3
+	ADDQ.L	#7,D0				; Round up to the next multiple of 8
+	ANDI.B	#$F8,D0
+	ADDA.L	D0,A1				; End of Decrunch buffer
+	MOVE.B	(A0),D2				; Compression Mode
+	MOVE.L	(A0)+,D0			; Crunched Size/4
+;;	MOVE.L	D0,D1
+	ANDI.L	#$FFFFFF,D0
+	LSL.L	#2,D0				; Crunched Size
+	MOVE.L	A0,A3				; Begin of crunched Data
+	ADDA.L	D0,A0				; End of crunched Data
+	MOVE.L	-(A0),D0			; Compressed Data
+;;	LSR.L	#8,D1
+;;	SWAP	D1
+;;	MOVE.W	D1,D2				; Compression Mode
+	MOVEQ	#3,D1
+	BSR.S	lbC00072E
+	MOVE.W	D7,D6
+	ADDQ.W	#1,D6
+lbC000776	MOVE.W	#8-1,D5
+lbC00077A	MOVE.W	D6,D1
+
+	CMP.L	A3,A0				; Check read pointer
+	BLO	SQ_Error
+
+	BSR.S	lbC00072E
+
+	CMP.L	A2,A1				; Check write pointer
+	BLS	SQ_Error
+
+	MOVE.B	D7,-(A1)			; Write Data
+	DBRA	D5,lbC00077A
+	MOVEQ	#0,D4
+lbC000786	ADD.L	D0,D0
+	BNE.S	lbC000792
+
+	CMP.L	A3,A0				; Check read pointer
+	BLS	SQ_Error
+
+	MOVE.L	-(A0),D0
+	MOVE.W	#$FFFF,CCR
+	ADDX.L	D0,D0
+lbC000792	BCC.S	lbC000798
+	ADDQ.W	#1,D4
+	BRA.S	lbC000786
+
+lbC000798	ADDQ.W	#1,D4
+	LSR.W	#1,D4
+	BCS.S	lbC0007A0
+	NEG.W	D4
+lbC0007A0	SUB.W	D4,D6
+	CMPA.L	A2,A1
+	BNE.S	lbC000776
+
+	MOVE.L	D3,D0				; Decrunched Size
+	CMP.B	#1,D2				; Compression Mode = 1
+	BEQ.S	lbC0007F8
+	CMP.B	#2,D2				; Compression Mode = 2
+	BEQ.S	lbC0007BC
+	CMP.B	#3,D2				; Compression Mode = 3
+	BEQ.S	lbC0007D8
+lbC0007BC	MOVEQ	#0,D4
+lbC0007BE	MOVE.B	(A2),D1
+	LSR.B	#1,D1
+	BCC.S	lbC0007C8
+	NEG.B	D1
+	SUBQ.B	#1,D1
+lbC0007C8	ADD.B	D1,D4
+	MOVE.B	D4,(A2)+
+	SUBQ.L	#1,D0
+	BNE.S	lbC0007BE
+;;;	MOVE.L	(SP)+,D0
+;;;	MOVEM.L	(SP)+,D1-D7/A0-A6
+	MOVEQ	#1,D0				; Success
+	RTS
+
+lbC0007D8	MOVEQ	#0,D4
+	MOVEQ	#0,D5
+lbC0007DC	MOVE.B	(A2),D1
+	LSR.B	#1,D1
+	BCC.S	lbC0007E6
+	NEG.B	D1
+	SUBQ.B	#1,D1
+lbC0007E6	ADD.B	D1,D4
+	ADD.B	D4,D5
+	MOVE.B	D5,(A2)+
+	SUBQ.L	#1,D0
+	BNE.S	lbC0007DC
+;;;	MOVE.L	(SP)+,D0
+;;;	MOVEM.L	(SP)+,D1-D7/A0-A6
+	MOVEQ	#1,D0				; Success
+	RTS
+
+lbC0007F8	MOVEQ	#0,D4
+lbC0007FA	MOVE.B	(A2),D1
+	LSR.B	#1,D1
+	BCC.S	lbC000804
+	NEG.B	D1
+	SUBQ.B	#1,D1
+lbC000804	MOVE.B	D1,(A2)+
+	SUBQ.L	#1,D0
+	BNE.S	lbC0007FA
+;;;	MOVE.L	(SP)+,D0
+;;;	MOVEM.L	(SP)+,D1-D7/A0-A6
+	MOVEQ	#1,D0				; Success
+	RTS
+
+SQ_Error
+	MOVEQ	#0,D0				; Error
+	RTS
+
+	END

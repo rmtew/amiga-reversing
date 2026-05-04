@@ -1,0 +1,193 @@
+;*---------------------------------------------------------------------------
+;  :Program.    TPWM.asm
+;  :Contents.   Decruncher for XFDMaster.Library
+;  :Author.     WEPL
+;  :History.    V 0.9 29-Oct-94
+;		V 1.0 19-Nov-94 angepaßt auf orginal includes
+;				msdos-tpwm support added
+;		1.1	12.01.96 memory protection read/write
+;				 memory freeing after error
+;		1.2	08.03.00 problems with "moon of chromos" files fixed
+;				 x86-support removed
+;  :Copyright.  Public Domain
+;  :Language.   68000 Assembler
+;  :Translator. Barfly 1.130
+;---------------------------------------------------------------------------*
+;##########################################################################
+
+	INCDIR	Includes:
+	INCLUDE	lvo/exec.i
+	INCLUDE	libraries/xfdmaster.i
+	
+	OUTPUT	libs:xfd/TPWM
+
+;##########################################################################
+;----------------------------------------
+; XFD-Library-Header
+
+		moveq	#-1,d0
+		rts	
+
+		dc.l	XFDF_ID		;id
+		dc.w	XFDF_VERSION	;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	_xfdSlave1	;first slave
+
+;----------------------------------------
+; version string
+
+		dc.b	'$VER: TPWM 1.2 '
+	DOSCMD	"WDate >T:date"
+	INCBIN	T:date
+		dc.b	' by WEPL for xfdmaster.library',0
+	CNOP 0,4
+
+;----------------------------------------
+; xfdSlave-structure
+
+_xfdSlave1	dc.l	0		; next slave
+		dc.w	1		; structure version
+		dc.w	33		; req xfdmaster version
+		dc.l	_name1		; cruncher name
+		dc.w	XFDPFF_DATA	; cruncher flags
+		dc.w	0		; max length of special info (passwd)
+		dc.l	_check1		; check routine
+		dc.l	_decrunch1	; decrunch routine
+		dc.l	0		; segment recog routine
+		dc.l	0		; segment decrunch routine
+
+;----------------------------------------
+; name of packer
+
+_name1		dc.b	'TPWM Cruncher',0
+	EVEN
+
+;----------------------------------------
+; code to check crunched
+; Übergabe :	D0 = ULONG data size
+;		A0 = APTR  data
+; Rückgabe :	D0 = BOOL  success
+
+_check1		moveq	#12,d1		;minimum 12 bytes
+		cmp.l	d1,d0
+		blo	.no
+		cmp.l	#"TPWM",(a0)
+		beq	.yes
+.no		moveq	#0,d0
+		rts
+
+.yes		moveq	#-1,d0
+		rts
+
+;----------------------------------------
+; code to decrunch the file
+; Übergabe :	A0 = APTR xfdBufferInfo
+; Rückgabe :	D0 = BOOL success
+
+_decrunch1	movem.l	a4-a6,-(a7)
+		move.l	a0,a5				;A5 = xfdbi
+		move.l	(xfdbi_SourceBuffer,a5),a4	;A4 = source
+		move.l	(4,a4),d0
+		move.l	d0,(xfdbi_TargetBufLen,a5)
+		move.l	d0,(xfdbi_TargetBufSaveLen,a5)
+		move.l	(xfdbi_TargetBufMemType,a5),d1
+		move.l	(4).w,a6
+		jsr	(_LVOAllocMem,a6)
+		move.l	d0,(xfdbi_TargetBuffer,a5)
+		bne	.memok
+		moveq	#XFDERR_NOMEMORY,d1
+		bra	.quit
+		
+.memok		move.l	d0,a1
+		move.l	a4,a0
+		move.l	(xfdbi_SourceBufLen,a5),d0
+		move.l	(xfdbi_TargetBufLen,a5),d1
+		bsr	_TPWM
+		bne	.decok
+		move.l	(xfdbi_TargetBufLen,a5),d0
+		move.l	(xfdbi_TargetBuffer,a5),a1
+		jsr	(_LVOFreeMem,a6)
+		moveq	#0,d0
+		moveq	#XFDERR_CORRUPTEDDATA,d1
+		bra	.quit
+		
+.decok		moveq	#-1,d0
+		moveq	#0,d1
+
+.quit		move.w	d1,(xfdbi_Error,a5)
+		movem.l	(a7)+,a4-a6
+		rts
+
+;----------------------------------------
+;	Battle Isle
+;	History Line
+;	Turrican 3
+;	Moon of Chromos
+;
+; Format :	$0	dc.b	"TPWM"
+;		$4	ULONG	size unpacked (MSDOS: little endian)
+;		$8		Daten...
+;
+; Übergabe :	D0 = ULONG size of source buffer
+;		D1 = ULONG size of dest buffer
+;		A0 = APTR source
+;		A1 = APTR destination
+; Rückgabe :	D0 = BOOL success
+
+_TPWM		movem.l	d2-d7/a2-a4,-(a7)
+		lea	(a0,d0.l),a3		;A3 = end of source
+		lea	(a1,d1.l),a4		;A4 = end of destination
+		addq.l	#8,a0
+
+ChkSrc	MACRO
+		cmp.l	a0,a3
+		beq	.fail
+	ENDM
+ChkDestOK	MACRO
+		cmp.l	a1,a4
+		beq	.ok
+	ENDM
+		
+.370	ChkDestOK
+	ChkSrc
+		MOVE.B	(A0)+,D0
+		MOVEQ	#7,D5
+.376		ADD.B	D0,D0
+		BCS.B	.394
+	cmp.l	a1,a4
+	beq	.ok			;last unused bits are cleared
+	ChkSrc
+		MOVE.B	(A0)+,(A1)+
+.38A		DBRA	D5,.376
+		BRA.B	.370
+
+.394	ChkSrc
+		MOVE.B	(A0)+,D7
+		MOVEQ	#0,D2
+		MOVE.B	D7,D2
+		LSL.W	#4,D2
+.3A2	ChkSrc
+		MOVE.B	(A0)+,D2
+		ANDI.W	#$000F,D7
+		ADDQ.W	#2,D7
+		MOVEA.L	A1,A2
+		SUBA.W	D2,A2
+.3B0
+	cmp.l	a1,a4
+	beq	.ok			;required for Moon of Chromos
+		MOVE.B	(A2)+,(A1)+
+		DBRA	D7,.3B0
+		BRA.B	.38A
+
+.ok		moveq	#-1,d0
+.end		movem.l	(a7)+,d2-d7/a2-a4
+		RTS
+
+.fail		moveq	#0,d0
+		bra	.end
+
+;##########################################################################
+
+	END
+

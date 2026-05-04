@@ -1,0 +1,189 @@
+*******************************************************
+**             XFD external decruncher               **
+**      for PowerPacker (sample mode) cruncher       **
+**             adapted by Wanted Team                **
+*******************************************************
+
+	INCLUDE	"AINCLUDE:IncDirs.i"
+	INCLUDE	"libraries/xfdmaster.i"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_PP2S		;first slave
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support data scanning
+
+S_PP2S		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_PP2S		;name
+		dc.w	XFDPFF_DATA!XFDPFF_RECOGLEN!XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_PP2S		;recog buffer
+		dc.l	DB_PP2S		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12+2
+
+		dc.b	"$VER: PP2S 2.1 (09.06.2001) by Wanted Team",0
+N_PP2S		dc.b	"PowerPacker data cruncher (sample mode)",0
+		even
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_PP2S
+	btst	#0,D0
+	bne.b	Exit
+	cmp.l	#"PP2S",(A0)+
+	bne.b	Exit
+	cmp.l	#$09090909,(A0)			; Fast
+	beq.b	OK
+	cmp.l	#$090A0A0A,(A0)			; Mediocre
+	beq.b	OK
+	cmp.l	#$090A0B0B,(A0)			; Good
+	beq.b	OK
+	cmp.l	#$090A0C0C,(A0)			; Very good
+	beq.b	OK
+	cmp.l	#$090A0C0D,(A0)			; Best
+	bne.b	Exit
+OK
+	subq.l	#4,A0
+	add.l	D0,A0
+	moveq	#1,D5
+	move.l	D5,-(a7)
+	move.l	-(A0),D1
+	tst.b	D1
+	beq.b	Podziel
+	bsr.w	lbC0105BE
+	subq.b	#1,D1
+	lsr.l	D1,D5
+Podziel
+	lsr.l	#8,D1
+	move.l	D1,xfdrr_FinalTargetLen(A1)
+	move.l	D1,xfdrr_MinTargetLen(A1)
+	moveq	#1,D0
+	move.l	(A7)+,D5
+	rts	
+Exit
+	moveq	#0,D0
+	rts
+
+;-------------------------------------------------
+
+; Decrunch buffer function: receives bufferinfo in a0
+; This style requires xfdmaster.library V39
+DB_PP2S	
+	movem.l	D2-D7/A2-A6,-(A7)
+	move.l	A0,A5
+	move.l	xfdbi_UserTargetBuf(A5),A1
+	move.l	xfdbi_SourceBuffer(A5),A0
+	move.l	xfdbi_SourceBufLen(A5),D0
+	lea	4(A0),A3
+	add.l	D0,A0
+	bsr.b	D_PP2S
+	moveq	#1,D0
+	movem.l	(A7)+,D2-D7/A2-A6
+	rts
+
+;-------------------------------------------------
+
+; Decruncher from EaglePlayer 1.54
+
+; Input
+; A0 = Start + size of loaded file
+; A1 = destination 
+
+D_PP2S		BSR.B	lbC010586
+		move.l	xfdbi_UserTargetBuf(A5),A0
+		move.l	xfdbi_FinalTargetLen(A5),D0
+		SUBQ.L	#1,D0
+		MOVE.B	(A0)+,D1
+lbC010570	MOVE.B	(A0),D2
+		ADD.B	D1,D2
+		MOVE.B	D2,(A0)+
+		MOVE.B	D2,D1
+		SUBQ.L	#1,D0
+		BNE.S	lbC010570
+		RTS
+lbC010586	MOVEA.L	A1,A2
+		MOVEQ	#3,D6
+		MOVEQ	#7,D7
+		MOVEQ	#1,D5
+		MOVE.L	-(A0),D1
+		TST.B	D1
+		BEQ.S	lbC01059A
+		BSR.S	lbC0105BE
+		SUBQ.B	#1,D1
+		LSR.L	D1,D5
+lbC01059A	LSR.L	#8,D1
+		ADDA.L	D1,A2
+lbC01059E	BSR.S	lbC0105BE
+		BCS.S	lbC0105E0
+		MOVEQ	#0,D2
+lbC0105A4	MOVEQ	#1,D0
+		BSR.S	lbC0105CC
+		ADD.W	D1,D2
+		CMP.W	D6,D1
+		BEQ.S	lbC0105A4
+lbC0105AE	MOVEQ	#7,D0
+		BSR.S	lbC0105CC
+		MOVE.B	D1,-(A2)
+		DBRA	D2,lbC0105AE
+		CMPA.L	A2,A1
+		BCS.S	lbC0105E0
+		RTS
+lbC0105BE	LSR.L	#1,D5
+		BEQ.S	lbC0105C4
+		RTS
+lbC0105C4	MOVE.L	-(A0),D5
+		ROXR.L	#1,D5
+		RTS
+lbC0105CA	SUBQ.W	#1,D0
+lbC0105CC	MOVEQ	#0,D1
+lbC0105CE	LSR.L	#1,D5
+		BEQ.S	lbC0105DA
+lbC0105D2	ROXL.L	#1,D1
+		DBRA	D0,lbC0105CE
+		RTS
+lbC0105DA	MOVE.L	-(A0),D5
+		ROXR.L	#1,D5
+		BRA.S	lbC0105D2
+lbC0105E0	MOVEQ	#1,D0
+		BSR.S	lbC0105CC
+		MOVEQ	#0,D0
+		MOVE.B	0(A3,D1.W),D0
+		MOVE.W	D1,D2
+		CMP.W	D6,D2
+		BNE.S	lbC010606
+		BSR.S	lbC0105BE
+		BCS.S	lbC0105F6
+		MOVEQ	#7,D0
+lbC0105F6	BSR.S	lbC0105CA
+		MOVE.W	D1,D3
+lbC0105FA	MOVEQ	#2,D0
+		BSR.S	lbC0105CC
+		ADD.W	D1,D2
+		CMP.W	D7,D1
+		BEQ.S	lbC0105FA
+		BRA.S	lbC01060A
+lbC010606	BSR.S	lbC0105CA
+		MOVE.W	D1,D3
+lbC01060A	ADDQ.W	#1,D2
+lbC01060C	MOVE.B	0(A2,D3.W),-(A2)
+		DBRA	D2,lbC01060C
+lbC010620	CMPA.L	A2,A1
+		BCS.B	lbC01059E
+		RTS
+		
+		END

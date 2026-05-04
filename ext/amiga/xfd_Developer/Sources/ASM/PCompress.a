@@ -1,0 +1,630 @@
+* Programmheader
+*
+*	Name:		PCompress
+*	Author:		SDI
+*	Distribution:	PD
+*	Description:	XFD external decruncher for recognising PCompress
+*	Compileropts:	-
+*	Linkeropts:	-
+*
+* 1.0   03.02.98 : first version
+* 1.1   04.02.98 : shortend decrunch code a lot, added Anim, Text and Pic
+* 1.2   12.02.98 : fixed S-Pic error - uncrunched files got 4 Byte to short
+* 1.3   28.02.98 : recog only, when source <= destination
+* 1.4   08.08.98 : added CRC check
+* 1.5   17.08.98 : added S-Text 1.1 and S-Anim5 1.1 checks
+* 1.6   02.11.98 : optimizations
+* 1.7   28.11.98 : one check more to prevent bugs
+* 1.8   28.01.99 : S-Text bugfix
+* 1.9   25.11.01 : "text"-LHa fixes
+
+		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+		INCLUDE	"exec/memory.i"
+		INCLUDE "lvo/exec_lib.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+ForeMan		MOVEQ	#-1,D0		;security
+		RTS
+
+		DC.L	XFDF_ID
+		DC.W	1,0
+		DC.L	0,0,Slave_PCompLH
+
+		DC.B	"$VER: PCompress 1.9 (15.11.2001) by SDI",0
+N_PCompressLH	DC.B	'PCompress LH Data',0
+N_S_Exec	DC.B	'S-Exec Cruncher',0
+N_S_Anim	DC.B	'S-Anim5',0
+N_S_Text	DC.B	'S-Text',0
+N_S_Pic		DC.B	'S-Pic',0
+		EVEN
+
+Slave_PCompLH	DC.L	Slave_S_Exec	;next slave
+		DC.W	2		;version
+		DC.W	39		;master version
+		DC.L	N_PCompressLH	;name
+		DC.W	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		DC.W	0
+		DC.L	RB_PCompressLH	;recog buffer
+		DC.L	DB_PCompressLH	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	14		;MinBufSize
+
+Slave_S_Exec	DC.L	Slave_S_Anim	;next slaves
+		DC.W	2		;version
+		DC.W	39		;master version
+		DC.L	N_S_Exec	;name
+		DC.W	XFDPFF_RELOC|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		DC.W	0
+		DC.L	RB_S_Exec	;recog buffer
+		DC.L	DB_S_Exec	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	$4F2		;MinBufSize
+
+Slave_S_Anim	DC.L	Slave_S_Text	;next slave
+		DC.W	2		;version
+		DC.W	39		;master version
+		DC.L	N_S_Anim	;name
+		DC.W	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		DC.W	0
+		DC.L	RB_S_Anim	;recog buffer
+		DC.L	DB_S_Anim	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	$16DC		;MinBufSize
+
+Slave_S_Text	DC.L	Slave_S_Pic	;next slave
+		DC.W	2		;version
+		DC.W	39		;master version
+		DC.L	N_S_Text	;name
+		DC.W	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		DC.W	0
+		DC.L	RB_S_Text	;recog buffer
+		DC.L	DB_S_Text	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	$3DC		;MinBufSize
+
+Slave_S_Pic	DC.L	0		;next slave
+		DC.W	2		;version
+		DC.W	39		;master version
+		DC.L	N_S_Pic		;name
+		DC.W	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		DC.W	0
+		DC.L	RB_S_Pic	;recog buffer
+		DC.L	DB_S_Pic	;decrunch buffer
+		DC.L	0		;recog segment
+		DC.L	0		;decrunch segment
+		DC.W	0,0
+		DC.L	$3CD		;MinBufSize
+
+*************************************************************************
+*	Recog buffer function: receives buffer + length in A0/D0	*
+*	and receives pointer to struct RecogResult in A1		*
+*************************************************************************
+
+DATAPOS_EXEC	EQU	$4EC
+DATAPOS_ANIM	EQU	$11F4
+DATAPOS_ANIM1	EQU	$16D8
+DATAPOS_TEXT	EQU	$7CC
+DATAPOS_PIC	EQU	$706
+
+F_ORIGLEN	EQU	2
+F_CRNDLEN	EQU	6
+F_CHECKSUM	EQU	10
+F_DATA		EQU	14
+
+RB_PCompressLH	MOVEQ	#0,D0			; False
+
+* optional	DC.L	'PRE',byte-num
+* file format:	DC.B	'LH'
+*		DC.L	original length
+*		DC.L	destination length
+*		DC.L	checksum
+
+		CMP.W	#"PR",(A0)
+		BNE.B	.normal
+		CMP.B	#'E',2(A0)
+		BNE.B	.No
+		ADDQ.L	#4,A0
+.normal		CMP.W	#"LH",(A0)
+		BNE.B	.No
+		TST.B	2(A0)		* too large
+		BNE.B	.No
+		MOVE.L	F_ORIGLEN(A0),D1
+		CMP.L	F_CRNDLEN(A0),D1 * source greater than destination
+		BLE.B	.No
+		MOVE.L	D1,xfdrr_FinalTargetLen(A1)
+		MOVE.L	D1,xfdrr_MinTargetLen(A1)
+		MOVEQ	#1,D0			; True
+.No		RTS
+
+RB_S_Exec	MOVEQ	#0,D0			; False
+
+		CMP.L	#$000003F3,(A0)
+		BNE.B	.No
+		CMP.L	#$204C7200,$F4(A0)
+		BNE.B	.No
+		CMP.L	#$204C43EC,$168(A0)
+		BNE.B	.No
+		CMP.L	#$5BCDFFE0,$208(A0)
+		BNE.B	.No
+		CMP.L	#$04F06700,$21C(A0)
+		BNE.B	.No
+		CMP.L	#$32330000,$244(A0)
+		BNE.B	.No
+		CMP.W	#"LH",DATAPOS_EXEC(A0)
+		BNE.B	.No
+		MOVE.L	DATAPOS_EXEC+F_ORIGLEN(A0),D1
+		MOVE.L	D1,xfdrr_FinalTargetLen(A1)
+		MOVE.L	D1,xfdrr_MinTargetLen(A1)
+		MOVEQ	#1,D0			; True
+.No		RTS
+
+RB_S_Anim	MOVEQ	#0,D0			; False
+
+		CMP.L	#$000003F3,(A0)
+		BNE.B	.No
+		CMP.L	#$67504A6A,$3C0(A0)
+		BNE.B	.Next
+		CMP.L	#'BODY',$628(A0)
+		BNE.B	.No
+		CMP.L	#$4E757022,$F3C(A0)
+		BNE.B	.No
+		CMP.L	#'Anim',$119C(A0)
+		BNE.B	.No
+		CMP.W	#"LH",DATAPOS_ANIM(A0)
+		BNE.B	.No
+		MOVE.L	DATAPOS_ANIM+F_ORIGLEN(A0),D1
+.ok		MOVE.L	D1,xfdrr_FinalTargetLen(A1)
+		MOVE.L	D1,xfdrr_MinTargetLen(A1)
+		MOVEQ	#1,D0			; True
+.No		RTS
+.Next		CMP.L	#$675A4A6A,$3C8(A0)
+		BNE.B	.No
+		CMP.L	#'BODY',$692(A0)
+		BNE.B	.No
+		CMP.L	#$4E757022,$FF6(A0)
+		BNE.B	.No
+		CMP.L	#'Anim',$1680(A0)
+		BNE.B	.No
+		CMP.W	#"LH",DATAPOS_ANIM1(A0)
+		BNE.B	.No
+		MOVE.L	DATAPOS_ANIM1+F_ORIGLEN(A0),D1
+		BRA.B	.ok
+
+RB_S_Text	MOVEQ	#0,D0			; False
+
+		CMP.L	#$000003F3,(A0)
+		BNE.B	.No
+		CMP.L	#$93C92C78,$2C(A0)
+		BNE.B	.No
+		CMP.L	#$4AAC00AC,$38(A0)
+		BNE.B	.No
+		CMP.L	#$2C780004,$78(A0)
+		BNE.B	.No
+		CMP.L	#$2B40FFE8,$80(A0)
+		BNE.B	.No
+		MOVEQ	#1,D0			; True
+		CMP.B	#$FC,$2B(A0)
+		BNE.B	.crunched
+		MOVE.L	$3D8(A0),xfdrr_FinalTargetLen(A1)
+		MOVE.L	$3D8(A0),xfdrr_MinTargetLen(A1)
+		RTS
+.crunched	CMP.L	#$74787400,DATAPOS_TEXT-4(A0)
+		BEQ.B	.do
+		SUBQ.L	#4,A0
+.do		MOVE.L	DATAPOS_TEXT+F_ORIGLEN(A0),xfdrr_FinalTargetLen(A1)
+		MOVE.L	DATAPOS_TEXT+F_ORIGLEN(A0),xfdrr_MinTargetLen(A1)
+.No		RTS
+
+RB_S_Pic	MOVEQ	#0,D0			; False
+
+		CMP.L	#$000003F3,(A0)
+		BNE.B	.No
+		CMP.L	#$42ADFFFC,$28(A0)
+		BNE.B	.No
+		CMP.L	#$00000004,$68(A0)
+		BNE.B	.No
+		CMP.L	#$201F4E5D,$78(A0)
+		BNE.B	.No
+		CMP.L	#$4E7543FA,$7C(A0)
+		BNE.B	.No
+		MOVEQ	#1,D0			; True
+		CMP.B	#$F8,$23(A0)
+		BNE.B	.crunched
+		MOVE.L	$32A(A0),D1
+		ADDQ.L	#8,D1	
+		MOVE.L	D1,xfdrr_FinalTargetLen(A1)
+		MOVE.L	D1,xfdrr_MinTargetLen(A1)
+		RTS
+.crunched	MOVE.L	DATAPOS_PIC+F_ORIGLEN(A0),xfdrr_FinalTargetLen(A1)
+		MOVE.L	DATAPOS_PIC+F_ORIGLEN(A0),xfdrr_MinTargetLen(A1)
+.No		RTS
+
+*************************************************************************
+*		Copy buffer function for uncrunched files		*
+*    receives xfdbiBufferInfo in A0, bufferpos in A4 and size in D0	*
+*************************************************************************
+
+DoCopy		MOVEM.L	A5-A6,-(A7)
+		MOVE.L	xfdm_ExecBase(A6),A6
+		MOVE.L	xfdbi_UserTargetBuf(A0),A1
+.copy		MOVE.L	xfdbi_TargetBufSaveLen(A0),D0
+		MOVE.L	A4,A0
+		JSR	_LVOCopyMem(A6)
+		MOVEQ	#1,D0
+.End		MOVEM.L	(A7)+,A5-A6
+		RTS
+
+*************************************************************************
+*	Decrunch buffer functions: receives xfdbiBufferInfo in A0	*
+*************************************************************************
+
+DB_S_Pic	MOVE.L	xfdbi_SourceBuffer(A0),A1
+		CMP.B	#$F8,$23(A1)
+		BNE.B	.crunched
+
+		MOVE.L	A4,-(A7)
+		LEA	$326(A1),A4	* source buffer
+		MOVE.L	$32A(A1),D0
+		ADDQ.L	#8,D0		* source size
+		BSR.B	DoCopy
+		MOVE.L	(A7)+,A4
+		RTS
+.crunched	LEA.L	DATAPOS_PIC(A1),A1
+		BSR.B	DecLH
+		RTS
+
+DB_S_Text	MOVE.L	xfdbi_SourceBuffer(A0),A1
+		CMP.B	#$FC,$2B(A1)
+		BNE.B	.crunched
+
+		MOVE.L	A4,-(A7)
+		LEA	$3DC(A1),A4	* source buffer
+		MOVE.L	$3D8(A1),D0	* source size
+		BSR.B	DoCopy
+		MOVE.L	(A7)+,A4
+		RTS
+.crunched	LEA.L	DATAPOS_TEXT(A1),A1
+		CMP.L	#$74787400,-4(A1)
+		BEQ.B	.do
+		SUBQ.L	#4,A1
+.do		BSR.B	DecLH
+		RTS
+
+DB_PCompressLH	MOVE.L	xfdbi_SourceBuffer(A0),A1
+		BSR.B	DecLH
+		RTS
+
+DB_S_Exec	MOVE.L	xfdbi_SourceBuffer(A0),A1
+		LEA.L	DATAPOS_EXEC(A1),A1
+		BSR.B	DecLH
+		RTS
+
+DB_S_Anim	MOVE.L	xfdbi_SourceBuffer(A0),A1
+		LEA	DATAPOS_ANIM(A1),A1
+		CMP.L	#$41495400,-4(A1)
+		BEQ.B	.do
+		LEA.L	DATAPOS_ANIM1-DATAPOS_ANIM(A1),A1
+.do		BSR.B	DecLH
+		RTS
+
+*************************************************************************
+*	    real decrunch buffer function for uncrunched files		*
+*           receives xfdbiBufferInfo in A0 and bufferpos in A1		*
+*************************************************************************
+
+DecLH		MOVEM.L	D3/A3-A6,-(A7)
+		MOVE.L	A0,A5
+		MOVE.L	A1,A4
+
+		CMP.W	#"PR",(A4)		* skip PRE0 or PRE1 header
+		BNE.B	.calldecr
+		ADDQ.L	#4,A4
+
+.calldecr	MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A5)
+		LEA	F_DATA(A4),A3
+		MOVE.L	F_CRNDLEN(A4),D3
+		MOVE.L	xfdbi_SourceBufLen(A5),D0
+		CMP.L	D0,D3			* crnd size > buffer
+		BGE.B	.Err
+		
+		BSR.W	GetCheckSum
+		CMP.L	F_CHECKSUM(A4),D0
+		BNE.B	.Err
+
+		MOVE.L	F_ORIGLEN(A4),D0
+		MOVE.L	xfdbi_UserTargetBuf(A5),A3
+.Decrunch	BSR.B	DecompLH
+
+		TST.L	D0
+		BNE.B	.ok
+.Err		MOVEQ	#0,D0
+		MOVE.W	#XFDERR_CORRUPTEDDATA,xfdbi_Error(A5)
+		BRA.B	.End
+.ok		CLR.W	xfdbi_Error(A5)
+		MOVEQ	#1,D0
+.End		MOVEM.L	(A7)+,D3/A3-A6
+		RTS
+
+*************************************************************************
+*		   decrunch routine for LH data				*
+*									*
+* This is made of reassembled code from PCompress decomp object code	*
+* and S-Exec decrunch header. I removed a lot of obsolete stuff and     *
+* made the routine really mem to mem decrunching. Thus it should be a   *
+* lot shorter and faster. I hope I catched all the stuff and did not    *
+* miss any obsolete code.						*
+*									*
+*	gets following parameters:					*
+*		A4	source buffer					*
+*		A3	destination buffer				*
+*	returns D0: 0 = error						*
+*************************************************************************
+
+outbuf		EQU	$4
+
+DecompLH	MOVEM.L	D2-D7/A2-A6,-(A7)
+		MOVEA.L	xfdm_ExecBase(A6),A6
+		MOVE.L	A6,-(A7)
+		MOVE.L	#$13EC,D0
+		MOVE.L	#MEMF_CLEAR,D1
+		JSR	_LVOAllocMem(A6)
+		MOVE.L	D0,A6			* table buffer in A6
+		TST.L	D0
+		BEQ.B	EndDecompLH
+
+		MOVE.L	A3,-(A7)		* outbuf in 4(A7)
+		MOVE.L	F_ORIGLEN(A4),-(A7)	* uncrndsize in (A7)
+		LEA	F_DATA(A4),A5		* input buffer in A5
+		BRA.B	DecrLH
+EndDecrLH	ADDQ.L	#8,A7
+
+		MOVEA.L	A6,A1			* free 13EC buffer
+		MOVE.L	#$13EC,D0
+		MOVEA.L	(A7),A6
+		JSR	_LVOFreeMem(A6)
+		MOVEQ	#1,D0				* return value
+
+EndDecompLH	ADDQ.L	#4,A7
+		MOVEM.L	(A7)+,D2-D7/A2-A6
+		RTS
+
+DecrLH		MOVEA.L	A6,A0
+		MOVEQ	#0,D1
+		LEA	$11D4(A6),A1
+		MOVEQ	#2,D3
+		MOVE.W	#$F,D4
+		MOVE.W	#1,D2
+		BSR.W	SubLH
+		MOVE.W	#7,D3
+		MOVE.W	#7,D4
+		MOVEQ	#2,D2
+		BSR.W	SubLH
+		MOVE.W	#$B,D3
+		MOVEQ	#3,D4
+		MOVEQ	#3,D2
+		BSR.W	SubLH
+		MOVE.W	#$17,D3
+		MOVEQ	#1,D4
+		MOVEQ	#4,D2
+		BSR.W	SubLH
+		MOVE.W	#$F,D3
+		CLR.W	D4
+		MOVEQ	#5,D2
+		BSR.W	SubLH
+		LEA	$C60(A6),A1
+		LEA	$76E(A6),A2
+		MOVEQ	#-2,D0
+		MOVEQ	#0,D3
+		MOVEQ	#1,D1
+		MOVEQ	#2,D2
+		MOVE.W	#$013C,D7
+L_12E		MOVE.W	D1,(A0)+
+		MOVE.W	D0,(A1)+
+		MOVE.W	D3,-(A2)
+		SUB.W	D2,D0
+		ADD.W	D2,D3
+		DBRA	D7,L_12E
+		MOVEQ	#0,D6
+		MOVE.L	#$27A,D7
+		MOVEA.L	A6,A0
+		LEA	$27A(A6),A1
+		LEA	$EDA(A6),A2
+		LEA	$76E(A6),A3
+		MOVEQ	#4,D4
+		MOVEQ	#2,D2
+		MOVE.W	#$13B,D1
+L_15A		MOVE.W	(A0)+,D0
+		ADD.W	(A0)+,D0
+		MOVE.W	D0,(A1)+
+		MOVE.W	D6,(A2)+
+		MOVE.W	D7,(A3)+
+		MOVE.W	D7,(A3)+
+		ADD.W	D4,D6
+		ADD.W	D2,D7
+		DBRA	D1,L_15A
+		MOVE.W	D1,(A1)
+		CLR.W	$0C5E(A6)
+		MOVEA.L	outbuf(A7),A1
+		LEA	$076E(A6),A4
+		LEA	$0C60(A6),A3
+		MOVEQ	#1,D4
+		MOVEQ	#$F,D5
+		MOVE.W	(A5)+,D6	* get data
+		BRA.B	L_1C2
+L_198		NEG.W	D7
+		LSR.W	D4,D7
+		SUB.W	D4,D7
+		MOVE.B	D7,(A1)+
+L_1B2		SUBQ.L	#1,(A7)		* uncrndsize
+		BEQ.W	EndDecrLH
+L_1C2		MOVE.W	$04F0(A3),D7
+L_1C6		ADD.W	D6,D6
+		BCC.B	L_1E0
+		MOVE.W	2(A3,D7.W),D7
+		DBMI	D5,L_1C6
+		BMI.B	L_1EA
+L_1D8		MOVEQ	#$000F,D5
+		MOVE.W	(A5)+,D6	* get data
+		BRA.B	L_1C6
+L_1E0		MOVE.W	(A3,D7.W),D7
+		DBMI	D5,L_1C6
+		BPL.B	L_1D8
+L_1EA		DBRA	D5,L_1F4
+		MOVE.W	(A5)+,D6	* get data
+		MOVEQ	#$F,D5
+L_1F4		CMPI.W	#-$8000,$4F0(A6)
+		BEQ.B	L_252
+		MOVE.W	(A4,D7.W),D0
+L_202		LEA	(A6,D0.W),A2
+		MOVE.W	(A2),D1
+		ADD.W	D4,D1
+		MOVE.W	D1,(A2)+
+		CMP.W	(A2)+,D1
+		BLS.B	L_24C
+L_210		CMP.W	(A2)+,D1
+		BHI.B	L_210
+		SUBQ.L	#4,A2
+		MOVE.L	A2,D2
+		SUB.L	A6,D2
+		MOVE.W	(A2),(A6,D0.W)
+		MOVE.W	D1,(A2)
+		MOVE.W	(A3,D0.W),D1
+		BMI.B	L_22A
+		MOVE.W	D2,2(A4,D1.W)
+L_22A		MOVE.W	D2,(A4,D1.W)
+		MOVE.W	(A3,D2.W),D3
+		BMI.B	L_238
+		MOVE.W	D0,2(A4,D3.W)
+L_238		MOVE.W	D1,(A3,D2.W)
+		MOVE.W	D0,(A4,D3.W)
+		MOVE.W	D3,(A3,D0.W)
+		MOVE.W	(A4,D2.W),D0
+		BNE.B	L_202
+		BRA.B	L_252
+L_24C		MOVE.W	(A4,D0.W),D0
+		BNE.B	L_202
+L_252		CMPI.W	#-$200,D7
+		BGE.W	L_198
+		CMPI.W	#-$27A,D7
+		BLE.W	EndDecrLH
+L_266		ROL.W	#8,D6
+		SUBQ.W	#7,D5
+		BCC.B	L_28E
+		MOVEQ	#0,D3
+		MOVE.W	(A5)+,D3	* get data
+		SWAP	D3
+		NEG.W	D5
+		ROL.L	D5,D3
+		MOVE.W	D3,D1
+		OR.B	D6,D1
+		SWAP	D3
+		MOVE.W	D3,D6
+		NEG.W	D5
+		MOVEQ	#$F,D2
+		ADD.W	D2,D5
+		BRA.B	L_29E
+
+L_28E		MOVEQ	#0,D1
+		MOVE.B	D6,D1
+		CLR.B	D6
+		DBRA	D5,L_29E
+		MOVE.W	(A5)+,D6	* get data
+		MOVEQ	#$F,D5
+L_29E		MOVE.W	D1,D3
+		ADD.W	D3,D3
+		LEA	$1194(A6),A2
+		MOVE.W	(A2,D3.W),D3
+		CLR.W	D2
+		MOVE.B	D3,D2
+		CLR.B	D3
+		LSR.W	#2,D3
+L_2BA		ADD.W	D6,D6
+		ADDX	D1,D1
+		DBRA	D5,L_2C8
+		MOVEQ	#$F,D5
+		MOVE.W	(A5)+,D6	* get data
+L_2C8		DBRA	D2,L_2BA
+		ANDI.W	#$3F,D1
+		OR.W	D3,D1
+		MOVEA.L	A1,A2
+		SUBA.L	D1,A2
+		CLR.L	D3
+		MOVE.W	D7,D3
+		ADDI.L	#$202,D3
+		BEQ.W	L_1C2
+		NEG.W	D3
+		ROR.W	#1,D3
+L_2FE		MOVE.B	(A2)+,(A1)+
+		SUBQ.L	#1,(A7)		* uncrndsize
+		BEQ.W	EndDecrLH
+		DBRA	D3,L_2FE
+		BRA.W	L_1C2
+
+SubLH		ADDQ.W	#1,D1
+		MOVE.W	D4,D0
+.SubLH_1	MOVE.B	D1,(A1)+
+		MOVE.B	D2,(A1)+
+		DBRA	D0,.SubLH_1
+		DBRA	D3,SubLH
+		RTS	
+
+*************************************************************************
+*		 checksum calculation routine 				*
+*									*
+* This is made of reassembled code from PCompress.			*
+*									*
+*	gets following parameters:					*
+*		A3	buffer						*
+*	        D3	buffersize					*
+*	returns D0:	checksum					*
+*************************************************************************
+
+GetCheckSum	MOVEM.L	D2-D5/A3,-(A7)
+		LEA	-$400(A7),A7		* get work buffer
+
+		MOVEQ	#0,D1
+		ST	D1
+.Loop1		MOVEQ	#0,D2
+		MOVE.L	D1,D5
+		ADD.L	D5,D5
+		MOVEQ	#7,D4
+.Loop2		ASR.L	#1,D5
+		MOVE.L	D5,D0
+		EOR.L	D2,D0
+		BTST	#0,D0
+		BEQ.B	.Skip
+		LSR.L	#1,D2
+		EORI.L	#$EDB88320,D2
+		BRA.B	.Loop2End
+.Skip		LSR.L	#1,D2
+.Loop2End	DBRA.B	D4,.Loop2
+		MOVE.W	D1,D0
+		LSL.W	#2,D0
+		MOVE.L	D2,(A7,D0.W)
+		DBRA	D1,.Loop1
+
+		MOVEQ	#0,D0
+.SumLoop	MOVEQ	#0,D1
+		MOVE.B	(A3)+,D1
+		EOR.B	D0,D1
+		LSL.W	#2,D1
+		LSR.L	#8,D0
+		MOVE.L	(A7,D1.W),D1
+		EOR.L	D1,D0
+		SUBQ.L	#1,D3
+		BNE.B	.SumLoop
+		LEA	$400(A7),A7			* free work buffer
+		MOVEM.L	(A7)+,D2-D5/A3
+		RTS
+		END

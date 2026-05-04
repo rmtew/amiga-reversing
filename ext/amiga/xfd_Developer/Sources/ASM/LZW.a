@@ -1,0 +1,250 @@
+**********************************************************
+**  XFD external decruncher for LZW (compress.library)  **
+**          written and © 2000 by Georg Hörmann         **
+**********************************************************
+**
+** 1.00	- Initial release.
+**
+**********************************************************
+**
+** NOTE: Supports files from "KOE-II-Vikings" (with extra
+**	 header) and plain files created by compress.library.
+**
+
+		OUTPUT	"LIBS:xfd/LZW"
+
+		INCDIR	"dh0:Include_Asm"	;change this as you need it
+		INCLUDE	"libraries/xfdmaster.i"
+
+*******************************************************
+
+		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_LZW		;first slave
+
+		dc.b	"$VER: LZW 1.00 (11.01.2000)",0
+
+N_LZW		dc.b	"LZW (compress.library)",0
+		even
+
+*******************************************************
+
+S_LZW		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_LZW		;name
+		dc.w	XFDPFF_DATA|XFDPFF_RECOGLEN|XFDPFF_USERTARGET
+		dc.w	0
+		dc.l	RB_LZW		;recog buffer
+		dc.l	DB_LZW		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	$16+2
+
+;-------------------------------------------------
+
+RB_LZW		move.l	10(a0),d1	;files from "KOE-II-Vikings"
+		bsr.s	.CheckID
+		tst.w	d0
+		beq.s	.TestPlain
+		move.l	14(a0),xfdrr_MinTargetLen(a1)
+		move.l	14(a0),xfdrr_FinalTargetLen(a1)
+		moveq	#10,d1
+		add.l	(a0),d1
+		move.l	d1,xfdrr_MinSourceLen(a1)
+		rts
+
+.TestPlain	move.l	(a0),d1		;basic compress.library files
+		bsr.s	.CheckID
+		tst.w	d0
+		beq.s	.Exit
+		move.l	4(a0),xfdrr_MinTargetLen(a1)
+		move.l	4(a0),xfdrr_FinalTargetLen(a1)
+		;no MinSourceLen possible here !!
+.Exit		rts
+
+.CheckID	moveq	#0,d0
+		move.b	d1,d0
+		and.l	#$ffffff00,d1
+		cmp.l	#("LZW"<<8),d1
+		bne.s	.CID_Exit
+		cmp.b	#"A",d0
+		blt.s	.CID_Exit
+		cmp.b	#"G",d0
+		bgt.s	.CID_Exit
+		rts
+.CID_Exit	moveq	#0,d0
+		rts
+
+;-------------------------------------------------
+
+DB_LZW		movem.l	d2-d7/a2-a6,-(a7)
+		move.l	a0,a5
+		move.l	xfdbi_SourceBuffer(a5),a4
+
+		cmp.w	#"LZ",(a4)
+		beq.s	.Plain
+		add.w	#10,a4
+.Plain		move.b	3(a4),d1
+		sub.b	#$38,d1
+		moveq	#3,d6
+		lsl.l	d1,d6
+		add.l	8(a4),d6
+
+		move.l	d6,d0
+		moveq	#1,d1
+		move.l	xfdm_ExecBase(a6),a6
+		jsr	-198(a6)
+		tst.l	d0
+		bne.s	.MemOk
+		move.w	#XFDERR_NOMEMORY,xfdbi_Error(a5)
+		moveq	#0,d0
+		bra.s	.Exit
+
+.MemOk		move.l	d0,a2
+		move.l	a4,a0
+		move.l	xfdbi_UserTargetBuf(a5),a1
+
+		movem.l	d6/a2/a5/a6,-(a7)
+		bsr.s	Decr_LZW
+		movem.l	(a7)+,d6/a2/a5/a6
+
+		exg	d0,d6
+		move.l	a2,a1
+		jsr	-210(a6)
+		move.l	d6,d0
+		bne.s	.Exit
+		move.w	#XFDERR_CORRUPTEDDATA,xfdbi_Error(a5)
+
+.Exit		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+;=================================================
+
+* -> a0: source data
+* -> a1: target buffer
+* -> a2: lzw buffer
+
+Decr_LZW	subq.w	#4,a7		;exchange buffer
+		move.l	4(a0),-(a7)	;decrunched length
+
+		add.l	8(a0),a2
+		move.l	a2,a5
+		move.b	3(a0),d1
+		sub.b	#$38,d1
+		moveq	#0,d0
+		bset	d1,d0
+		add.l	d0,a2
+		move.l	a2,a6
+		move.l	a5,a3
+		move.l	a6,a4
+		move.l	#$00010203,d0
+		move.l	#$04040404,d3
+		move.w	#$40,d7
+		moveq	#-1,d2
+.l05D0		move.l	d0,(a3)+
+		add.l	d3,d0
+		move.l	d2,(a4)+
+		move.l	d2,(a4)+
+		dbra	d7,.l05D0
+
+		moveq	#$20,d0
+		swap	d0
+		bset	d1,d0
+		swap	d0
+		add.w	#12,a0
+		move.l	(a0)+,d1
+		move.l	a5,a4
+		moveq	#0,d7
+.l05F2		moveq	#9,d3
+		move.l	d3,a2
+		moveq	#0,d2
+		bset	d3,d2
+		subq.l	#1,d2
+		move.l	#$103,d3
+		bsr.s	.l065E
+		move.l	d5,d4
+		move.l	d5,d6
+		subq.l	#1,(a7)		;security check
+		bmi	.Error		;
+		move.b	d5,(a1)+
+.l060C		sub.w	a2,d0
+		bpl.s	.l0618
+		swap	d1
+		move.w	(a0)+,d1
+		addq.w	#8,d0
+		addq.w	#8,d0
+.l0618		move.l	d1,d5
+		lsr.l	d0,d5
+		and.l	d2,d5
+		move.l	d5,a3
+		cmp.l	d3,d5
+		blt.s	.l0628
+		move.b	d6,-(a4)
+		move.l	d4,d5
+.l0628		move.b	(a5,d5.l),-(a4)
+		add.l	d5,d5
+		move.w	(a6,d5.l),d7
+		exg	d5,d7
+		bpl.s	.l0628
+		sub.w	#$200,d7
+		bcc.s	.l067A
+		move.b	(a4),d6
+
+		add.l	(a7),a4		;
+		sub.l	a5,a4		;
+		bcs.s	.Error		;
+		move.l	a4,4(a7)	;security check
+		add.l	a5,a4		;
+		sub.l	(a7),a4		;
+		move.l	4(a7),(a7)	;
+
+.l063E		move.b	(a4)+,(a1)+
+		cmp.l	a4,a5
+		bne.s	.l063E
+		swap	d0
+		cmp.w	d3,d0
+		beq.s	.l0658
+		addq.l	#1,d3
+		move.b	d6,-1(a5,d3.l)
+		add.l	d3,d3
+		move.w	d4,-2(a6,d3.l)
+		lsr.l	#1,d3
+.l0658		swap	d0
+		move.l	a3,d4
+		bra.s	.l060C
+
+.l065E		sub.w	a2,d0
+		bpl.s	.l066A
+		swap	d1
+		move.w	(a0)+,d1
+		addq.w	#8,d0
+		addq.w	#8,d0
+.l066A		move.l	d1,d5
+		lsr.l	d0,d5
+		and.l	d2,d5
+		rts
+
+.l0672		addq.w	#1,a2
+		lsl.l	#1,d2
+		addq.l	#1,d2
+		bra.s	.l060C
+
+.l067A		move.l	a5,a4
+		subq.l	#2,d7
+		bhi.s	.l0672
+		beq	.l05F2
+
+		moveq	#1,d0
+		tst.l	(a7)
+		beq.s	.l0692
+.Error		moveq	#0,d0
+.l0692		addq.w	#8,a7
+		rts
+
+		END

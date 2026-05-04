@@ -1,0 +1,188 @@
+;External decruncher for xfdmaster.library
+;It decrunches PCR4 packed files.
+;31.8.1997
+	INCLUDE	AINCLUDE:IncDirs.i
+	INCLUDE	libraries/xfdmaster.i
+	INCLUDe	lvo.i
+;	include	"dh0:asm/newincl/values/xfdmaster.i"
+;	include	"dh0:asm/newincl/offsets/libs.offsets"
+
+;	opt	x-,o-,w-
+	moveq	#-1,d0
+	rts
+	dc.l	XFDF_ID		;'XFDF' identifier
+	dc.w	1		;XFDF version
+	dc.w	$0000		;must be null
+	dc.l	0		;private
+	dc.l	0		;private
+	dc.l	pcr4slave		;first slave
+	dc.b	'$VER: External PCR4 decruncher for xfdmaster.library by TTL (31.08.97)'
+	dc.b	10,0
+	even
+pcr4slave
+	dc.l	0		;no next slave
+	dc.w	2		;xfds version
+	dc.w	36		;minimum xfdM version required
+	dc.l	pcr4name	;name of packer
+	dc.w	XFDPFF_DATA	;packer flags
+				;=data file packer
+	dc.w	0		;max. lenght of special info
+	dc.l	pcr4test	;ptr to recognition buffer
+	dc.l	unpack		;ptr to buffer decrunch code
+	dc.l	0		;ptr to segment recognition code
+	dc.l	0		;ptr to segment decrunch code
+	dc.l	0
+	dc.l	0
+	dc.l	12
+
+pcr4name	dc.b	'(PCR4) Data Cruncher',0
+	even
+pcr4test
+;from xfdmaster	in:	a0=buffer
+;			d0=length
+
+	cmp.l	#'PCR4',(a0)
+	bne.s	.err		;bad identifier
+;these tests are from original PCR4 depack
+	move.l	4(a0),d1	* fixed
+	bmi.s	.err
+	cmp.l	#$1800000,d1	* fixed
+	bgt.s	.err
+	tst.l	8(a0)
+	ble.s	.err
+.ok	moveq	#1,d0		;ok, I hope it is right packed data
+	rts
+.err	moveq	#0,d0		;error
+	rts
+
+;in: A0-adr of xfd buffer info
+unpack		movem.l	d2-d7/a2-a6,-(sp)
+	move.l	a0,a5
+	move.l	xfdbi_SourceBuffer(a5),a2	;adr of PCR4 packed data
+	move.l	4(a2),d0			;get decrunched lenght
+	move.l	d0,xfdbi_TargetBufSaveLen(a5)
+	move.l	d0,xfdbi_TargetBufLen(a5)
+	move.l	xfdbi_TargetBufMemType(a5),d1	;get memf
+	move.l	4.w,a6				;execbase
+	jsr	_LVOAllocMem(a6)		;allocmem
+	move.w	#XFDERR_NOMEMORY,xfdbi_Error(a5)
+	move.l	d0,xfdbi_TargetBuffer(a5)
+	beq.s	.err				;no memory
+	move.w	#XFDERR_OK,xfdbi_Error(a5)	;memory ok
+	move.l	d0,a1				;adr of decrunched data
+	move.l	a2,a0				;adr of crunched data
+
+	bsr.s	PCR4UNPACK
+	beq.s	.ok
+	move.w	#XFDERR_CORRUPTEDDATA,xfdbi_Error(a5)
+	moveq	#0,d0		;unpack error
+	bra.s	.err
+.ok	moveq	#1,d0		;all ok
+.err	movem.l	(sp)+,d2-d7/a2-a6
+	rts
+
+;PCR4 unpack from game onEscapee
+;in: a0-source, a1-destination
+PCR4UNPACK
+		movem.l	d0-d7/a0-a2,-(a7)
+		cmpi.l	#$50435234,(a0)+
+		bne	l782832A4		;test it again
+;		move.l	(a0),d6
+;		bmi	l782832A4
+;		cmp.l	#$1800000,d6
+;		bgt	l782832A4
+;		tst.l	4(a0)
+;		ble	l782832A4
+		move.l	a1,d6
+		add.l	(a0)+,d6
+		move.l	(a0)+,d7
+l782831DC	moveq	#0,d2
+l782831DE	moveq	#0,d0
+		moveq	#0,d1
+		subq.l	#1,d7
+		bmi	l7828329A
+		move.b	(a0)+,d0
+		btst	#0,d0
+		bne.s	l78283204
+		tst.b	d0
+		bpl.s	l78283242
+		ror.l	#7,d0
+		move.b	(a0)+,d0
+		bpl.s	l7828323C
+		ror.l	#7,d0
+		move.b	(a0)+,d0
+		swap	d0
+		ror.l	#2,d0
+		bra.s	l78283242
+l78283204	move.b	(a0)+,d1
+		lsr.b	#2,d0
+		bcs.s	l78283222
+		subq.w	#1,d0
+		bmi.s	l78283214
+l7828320E	move.b	(a0)+,(a1)+
+		dbf	d0,l7828320E
+l78283214	addq.w	#3,d1
+		movea.l	a1,a2
+		suba.w	d1,a2
+		move.b	(a2)+,(a1)+
+		move.b	(a2)+,(a1)+
+		move.b	(a2),(a1)+
+		bra.s	l782831DE
+l78283222	subq.w	#1,d0
+		bmi.s	l7828322C
+l78283226	move.b	(a0)+,(a1)+
+		dbf	d0,l78283226
+l7828322C	addq.w	#4,d1
+		movea.l	a1,a2
+		suba.w	d1,a2
+		move.b	(a2)+,(a1)+
+		move.b	(a2)+,(a1)+
+		move.b	(a2)+,(a1)+
+		move.b	(a2),(a1)+
+		bra.s	l782831DE
+l7828323C	andi.b	#$7F,d0
+		rol.l	#7,d0
+l78283242	lsr.l	#1,d0
+		move.b	(a0)+,d2
+		beq.s	l78283282
+		bpl.s	l78283250
+		ror.w	#7,d2
+		move.b	(a0)+,d2
+		rol.w	#7,d2
+l78283250	move.b	(a0)+,d1
+		bpl.s	l7828325A
+		ror.w	#7,d1
+		move.b	(a0)+,d1
+		rol.w	#7,d1
+l7828325A	subq.l	#1,d0
+		bmi.s	l7828326E
+		bra.s	l78283262
+l78283260	swap	d0
+l78283262	move.b	(a0)+,(a1)+
+		dbf	d0,l78283262
+		swap	d0
+		dbf	d0,l78283260
+l7828326E	addq.w	#3,d2
+		add.w	d2,d1
+		addq.w	#1,d1
+		movea.l	a1,a2
+		suba.w	d1,a2
+l78283278	move.b	(a2)+,(a1)+
+		dbf	d2,l78283278
+		bra	l782831DC
+l78283282	subq.l	#1,d0
+		bmi.s	l7828329A
+		bra.s	l7828328A
+l78283288	swap	d0
+l7828328A	move.b	(a0)+,(a1)+
+		dbf	d0,l7828328A
+		swap	d0
+		dbf	d0,l78283288
+		bra	l782831DC
+l7828329A	cmp.l	a1,d6
+		moveq	#0,d0
+pcr4end		tst.l	d0
+		movem.l	(a7)+,d0-d7/a0-a2
+		rts
+l782832A4	moveq	#-1,d0
+		bra.s	pcr4end

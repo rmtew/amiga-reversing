@@ -1,0 +1,231 @@
+*******************************************************
+**      XFD external decruncher for Silm Cruncher    **
+**        written by Mok and Wanted Team             **
+**	    fixed by SDI in 1999-2001		     **
+*******************************************************
+
+
+		INCLUDE	"AINCLUDE:IncDirs.i"
+		INCLUDE	"libraries/xfdmaster.i"
+
+		* head function for tests
+*		INCLUDE	"xfdExeHead.a"
+
+; xfdForeman structure MUST be first thing in all external decrunchers
+
+ForeMan		moveq	#-1,d0		;security
+		rts
+		dc.l	XFDF_ID		;id
+		dc.w	1		;version
+		dc.w	0
+		dc.l	0,0		;private
+		dc.l	S_Silm		;first slave
+
+		dc.b	"$VER: Silmarils 1.3 (09.06.2001) by Mok and Wanted Team",0
+N_Silm		dc.b	"Silmarils Data Cruncher",0
+		even
+
+**************************************************
+
+; xfdSlave structure: this one doesn't support segment decrunching
+
+S_Silm		dc.l	0		;no more slaves
+		dc.w	2		;version
+		dc.w	39		;master version
+		dc.l	N_Silm		;name
+		dc.w	XFDPFF_DATA|XFDPFF_USERTARGET|XFDPFF_RECOGLEN
+		dc.w	0
+		dc.l	RB_Silm		;recog buffer
+		dc.l	DB_Silm		;decrunch buffer
+		dc.l	0		;recog segment
+		dc.l	0		;decrunch segment
+		dc.w	0,0
+		dc.l	12+2
+
+
+;-------------------------------------------------
+
+; Recog buffer function: receives buffer + length in a0/d0
+
+RB_Silm		CMP.L	#$8087010B,(A0)	* BSD executable
+		BEQ.B	.Exit
+		CMP.L	#$8103010B,(A0) * SUN executable
+		BEQ.B	.Exit
+
+		cmp.b	#$A1,(a0)
+		beq.s	.Check1
+		cmp.b	#$C0,(A0)
+		beq.s	.Check2
+		cmp.b	#$C1,(A0)
+		beq.s	.Check2
+		cmp.b	#$80,(A0)
+		beq.s	.Check2
+		cmp.b	#$81,(A0)
+		beq.b	.Check2
+		bra.b	.Exit
+.Check1
+		cmp.l	#$0B090A0B,6(A0)
+		bne.b	.Check3
+		cmp.l	#$07050607,10(A0)
+		bne.b	.Check3
+.Check2
+		cmp.w	#$0001,4(A0)
+		beq.b	.Check4
+.Check3
+		tst.w	4(A0)
+		bne.b	.Exit
+		cmp.l	#$003D0900,10(A0)
+		bne.b	.Exit
+
+.Check4		move.l	(a0),d0			*** added by SDI
+		and.l	#$FFFFFF,d0
+		tst.b	6(A0)
+		bne.b	.No
+		subq.l	#8,D0
+		subq.l	#8,D0
+.No		subq.l	#6,D0
+		ble.b	.Exit
+
+		MOVE.L	D0,xfdrr_FinalTargetLen(A1)
+		ADDI.L	#$1000,D0
+		MOVE.L	D0,xfdrr_MinTargetLen(A1)
+
+		moveq	#1,d0
+		rts
+
+.Exit		moveq	#0,d0
+		rts
+
+;-------------------------------------------------
+
+;Decrunch buffer function: receives bufferinfo in a0
+
+DB_Silm		movem.l	d2-d7/a2-a6,-(a7)
+		move.l	xfdbi_UserTargetBuf(A0),A1
+		move.l	xfdbi_SourceBuffer(A0),A0
+		move.l	(a0),d1
+		and.l	#$FFFFFF,d1
+		move.b	(a0),d2
+		subq.l	#6,d1
+		addq.l	#6,a0
+		tst.b	(a0)
+		bne.s	.silm1
+		lea	$10(a0),a0
+		subq.l	#8,d1
+		subq.l	#8,d1
+.silm1		cmp.b	#$A1,d2
+		bne.b	.silm2
+		bsr.b	D_Silm
+		bra.b	.end
+.silm2		bsr.b	D_Silm2
+.end		moveq	#1,d0
+		movem.l	(a7)+,d2-d7/a2-a6
+		rts
+
+**************************************************
+
+D_Silm2	move.l	d1,d6
+	move.l	a1,a5
+	add.l	a1,d6
+	move.l	d6,a6
+	move.l	a0,a3
+	moveq	#1,d3
+.silm2	tst.w	d3
+	bmi.b	.end
+	move.b	(a3)+,d0
+	move.b	d0,d4
+	bmi.b	.silm4
+	ext.w	d4
+	subq.w	#1,d4
+.silm3	move.b	(a3)+,d0
+	bsr.b	sub2
+	dbra	d4,.silm3
+	bra.s	.silm2
+.silm4	and.w	#$7F,d4
+	subq.w	#1,d4
+	move.b	(a3)+,d0
+.silm5	bsr.b	sub2
+	dbra	d4,.silm5
+	bra.s	.silm2
+.end	rts
+
+sub2	cmp.l	d6,a6
+	bge.b	.s2b
+.s2a	move.b	d0,(a6)+
+	rts
+.s2b	move.l	a5,a6
+	addq.w	#1,a6
+	sub.w	d3,a6
+	subq.w	#1,d3
+	bpl.s	.s2a
+	clr.w	d4
+	rts
+
+D_Silm	move.l	a1,a2
+	add.l	d1,a2
+	subq.l	#1,a2
+	subq.l	#8,a7
+	move.l	(a0)+,(a7)
+	move.l	(a0)+,4(a7)
+	clr.w	d7
+.silm2	cmp.l	a2,a1
+	bgt.s	.end
+	moveq	#1,d0
+	bsr.s	sub1b
+	tst.b	d5
+	beq.s	.silm5
+	moveq	#0,d2
+.silm3	moveq	#2,d0
+	bsr.s	sub1b
+	add.w	d5,d2
+	cmp.w	#3,d5
+	beq.s	.silm3
+.silm4	moveq	#8,d0
+	bsr.s	sub1b
+	move.b	d5,(a1)+
+	dbf	d2,.silm4
+	cmp.l	a2,a1
+	bgt.s	.end
+.silm5	bsr.s	sub1
+	clr.w	d0
+	move.b	0(a7,d5.w),d0
+	and.w	#3,d5
+	beq.b	.silm8
+	move.w	d5,d2
+	bsr.s	sub1b
+.silm6	neg.w	d5
+.silm7	move.b	-1(a1,d5.w),(a1)+
+	dbf	d2,.silm7
+	bra.s	.silm2
+.end	addq.l	#8,a7
+	rts
+
+.silm8	bsr.b	sub1b
+	move.w	d5,d3
+	clr.w	d2
+.silm9	bsr.s	sub1
+	add.w	d5,d2
+	cmp.w	#7,d5
+	beq.s	.silm9
+	move.w	d3,d5
+	addq.w	#4,d2
+	bra.s	.silm6
+
+sub1	moveq	#3,d0
+sub1b	sub.b	d0,d7
+	bmi.s	.s1a
+	clr.w	d5
+	rol.l	d0,d5
+	rts
+.s1a	add.b	d0,d7
+	clr.w	d5
+	rol.l	d7,d5
+	swap	d5
+	move.w	(a0)+,d5
+	swap	d5
+	sub.b	d7,d0
+	moveq	#$10,d7
+	rol.l	d0,d5
+	sub.b	d0,d7
+	rts
+
