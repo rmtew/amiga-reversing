@@ -1551,6 +1551,54 @@ static void trace_state_kill_register_writes(const M68kDecodeCandidate *candidat
   }
 }
 
+static int trace_state_move_copy_source_is_tracked_value(const M68kDecodeCandidate *candidate,
+    size_t operand_index, const M68kFactsV2TraceState *state) {
+  uint8_t reg = 0U;
+  uint32_t value = 0U;
+  if (candidate == NULL || state == NULL || operand_index >= candidate->operand_count) return 0;
+  if (operand_is_data_register_direct(&candidate->operands[operand_index], &reg) ||
+      operand_is_address_register_direct(&candidate->operands[operand_index], &reg) ||
+      operand_is_stack_postincrement(&candidate->operands[operand_index])) {
+    return 1;
+  }
+  if (operand_immediate_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+      &value)) {
+    return 1;
+  }
+  return operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+      &value) && trace_state_find_absolute_slot_const(state, value) != NULL;
+}
+
+static void trace_state_apply_move_value_copy(size_t section_index, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
+    M68kFactsV2TraceState *after) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  M68kFactsV2TraceValue value;
+  uint8_t reg = 0U;
+  if (section == NULL || candidate == NULL || before == NULL || after == NULL ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || metadata->operation_type != M68K_SIM_OP_MOVE ||
+      metadata->source_operand_index >= candidate->operand_count ||
+      metadata->dest_operand_index >= candidate->operand_count) {
+    return;
+  }
+  if (!trace_state_move_copy_source_is_tracked_value(candidate, metadata->source_operand_index, before)) return;
+  if (!trace_value_from_candidate_source(section_index, section, candidate, metadata->source_operand_index,
+      before, &value)) {
+    return;
+  }
+  if (operand_is_data_register_direct(&candidate->operands[metadata->dest_operand_index], &reg)) {
+    after->d[reg] = value;
+  } else if (operand_is_address_register_direct(&candidate->operands[metadata->dest_operand_index], &reg) &&
+             reg != 7U) {
+    after->a[reg] = value;
+  }
+}
+
 static uint32_t trace_copy_size_from_state(const M68kFactsV2TraceState *state, uint32_t width,
     uint32_t fallback_size) {
   uint32_t count;
@@ -2240,6 +2288,7 @@ static void trace_state_after_candidate(size_t section_index, const M68kDecodeSe
   if (before != NULL) *after = *before;
   else trace_state_init_unknown(after);
   trace_state_kill_register_writes(candidate, after);
+  trace_state_apply_move_value_copy(section_index, section, candidate, before, after);
   trace_state_apply_known_effects(section_index, section, candidate, relocation_lookup, facts, after);
   if (has_table_targets && table_dest_reg < 8U) after->a[table_dest_reg] = table_targets;
 }

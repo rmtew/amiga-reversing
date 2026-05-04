@@ -21,7 +21,7 @@ loc_0_00000000:
 	move.l #loc_0_00000310,d1
 	move.l #MODE_OLDFILE,d2
 	jsr _LVOOpen(a6)
-	move.l d0,h0dl_DOSBase.l
+	move.l d0,loc_0_00000304.l
 	move.l d0,d1
 	move.l #loc_0_0000034D,d2
 	move.l #$2D3,d3
@@ -71,7 +71,7 @@ loc_0_0000013E:
 	tst.w loc_0_00000628.l
 	beq.w loc_0_0000013E
 	move.l loc_0_0000030C.l,m68k_vector_level_4_interrupt_autovector.l
-	move.l h0dl_DOSBase.l,d1
+	move.l loc_0_00000304.l,d1
 	movea.l h0dl_DOSBase.l,a6
 	jsr _LVOClose(a6)
 	movea.l loc_0_000002FC.l,a1
@@ -166,7 +166,7 @@ loc_0_000002FC:
 	dc.b $00,$00,$00,$00
 loc_0_00000300:
 	dc.b $00,$00,$00,$00
-h0dl_DOSBase:
+loc_0_00000304:
 	dc.b $00,$00,$00,$00
 loc_0_00000308:
 	dc.b $00,$00,$00,$00

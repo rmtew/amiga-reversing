@@ -6619,7 +6619,8 @@ loc_0_00009D80:
 	tst.l d0
 	rts
 loc_0_00009DA2:
-	dc.b $52,$80,$4E,$75
+	addq.l #1,d0
+	rts
 loc_0_00009DA6:
 	tst.l app_019A(a6)
 	bne.w loc_0_00009C44

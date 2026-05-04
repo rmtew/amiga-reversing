@@ -3912,6 +3912,45 @@ static int test_facts_v2_detects_traced_register_interrupt_vector_store_target(v
   return 0;
 }
 
+static int test_facts_v2_detects_register_copied_interrupt_vector_store_target(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[28] = {
+    0x22u, 0x3cu, 0x00u, 0x00u, 0x00u, 0x18u,
+    0x24u, 0x01u,
+    0x23u, 0xc2u, 0x00u, 0x00u, 0x00u, 0x10u,
+    0x4eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0x71u, 0x4eu, 0x73u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l #$18,d1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l d2,m68k_vector_illegal_instruction.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000018:\n\tnop\n\trte\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000018:\n\tdc.b $4E,$71,$4E,$73") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_traced_interrupt_vector_bad_target_does_not_refuse_source(void) {
   M68kObject object;
   M68kSection section;
@@ -11234,6 +11273,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_detects_interrupt_vector_store_target},
     {"facts_v2_detects_traced_register_interrupt_vector_store_target",
       test_facts_v2_detects_traced_register_interrupt_vector_store_target},
+    {"facts_v2_detects_register_copied_interrupt_vector_store_target",
+      test_facts_v2_detects_register_copied_interrupt_vector_store_target},
     {"facts_v2_traced_interrupt_vector_bad_target_does_not_refuse_source",
       test_facts_v2_traced_interrupt_vector_bad_target_does_not_refuse_source},
     {"facts_v2_detects_interrupt_vector_fill_target",

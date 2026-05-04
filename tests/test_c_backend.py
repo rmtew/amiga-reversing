@@ -3531,6 +3531,69 @@ def test_real_dll_platform_calls_are_not_unresolved_indirect_sites() -> None:
             assert unresolved_indirect_offsets.isdisjoint(platform_call_offsets)
 
 
+def test_real_dll_genam_register_copied_code_target_promotes_code() -> None:
+    _requires_c_backend_dlls()
+
+    paths = resolve_project_paths(
+        "amiga_hunk_genam",
+        project_root=PROJECT_ROOT,
+        require_entities=False,
+    )
+    source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "loc_0_00009DA2:\n\taddq.l #1,d0\n\trts\n" in source_text
+    assert "loc_0_00009DA2:\n\tdc.b $52,$80,$4E,$75" not in source_text
+
+
+def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -> None:
+    _requires_c_backend_dlls()
+
+    paths = resolve_project_paths(
+        "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620",
+        project_root=PROJECT_ROOT,
+        require_entities=False,
+    )
+    source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert (
+        "loc_2_0000006A:\n"
+        "\tmoveq.l #-83,d7\n"
+        "\tlea.l $00001000.l,a0\n"
+        "\tlea.l $0007FFFF.l,a2\n"
+    ) in source_text
+    assert "loc_2_0000006A:\n\tdc.b $7E,$AD,$41,$F9" not in source_text
+
+
+def test_real_dll_starglider_loader_file_handle_slot_stays_untyped() -> None:
+    _requires_c_backend_dlls()
+
+    paths = resolve_project_paths(
+        "amiga_disk_starglider-1987-rainbird__amiga_hunk_sgload_ee6b361e",
+        project_root=PROJECT_ROOT,
+        require_entities=False,
+    )
+    source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "\tmove.l d0,loc_0_00000304.l\n" in source_text
+    assert "\tmove.l loc_0_00000304.l,d1\n" in source_text
+    assert source_text.count("\tmove.l d0,h0dl_DOSBase.l\n") == 1
+
+
 def test_real_dll_openlibrary_d0_to_a6_resolves_followup_calls() -> None:
     _requires_c_backend_dlls()
 
