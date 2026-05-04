@@ -2971,29 +2971,31 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
   return attached;
 }
 
-static const M68kRecoveredPlatformTypedAccessIR *section_analysis_typed_access_for_operand(
-    const M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t operand_index) {
+static const M68kRenderTypedAccess *lookup_typed_access_for_operand(
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, uint8_t operand_index) {
   size_t index;
-  if (section_analysis == NULL) return NULL;
-  for (index = 0U; index < section_analysis->recovered_platform_typed_access_count; ++index) {
-    const M68kRecoveredPlatformTypedAccessIR *access =
-      &section_analysis->recovered_platform_typed_accesses[index];
-    if (access->offset == offset && access->operand_index == operand_index) return access;
+  if (lookup == NULL) return NULL;
+  for (index = 0U; index < lookup->typed_access_count; ++index) {
+    const M68kRenderTypedAccess *access = &lookup->typed_accesses[index];
+    if (access->section_index == section_index && access->offset == offset &&
+        access->operand_index == operand_index) {
+      return access;
+    }
   }
   return NULL;
 }
 
-static int attach_amiga_typed_struct_field_symbols(const M68kSectionAnalysisIR *section_analysis,
+static int attach_amiga_typed_struct_field_symbols(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, M68kInstructionIR *instruction) {
   size_t operand_index;
   int attached = 0;
-  if (section_analysis == NULL || instruction == NULL) return 0;
+  if (lookup == NULL || instruction == NULL) return 0;
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     M68kOperandIR *operand = &instruction->operands[operand_index];
-    const M68kRecoveredPlatformTypedAccessIR *access;
+    const M68kRenderTypedAccess *access;
     if (operand->symbol_ref.has_name != 0U) continue;
-    access = section_analysis_typed_access_for_operand(section_analysis, offset, (uint8_t)operand_index);
-    if (access == NULL || access->field_expr == NULL || access->field_expr[0] == '\0') continue;
+    access = lookup_typed_access_for_operand(lookup, section_index, offset, (uint8_t)operand_index);
+    if (access == NULL || access->field_expr[0] == '\0') continue;
     m68k_ir_symbol_ref_init(&operand->symbol_ref);
     operand->symbol_ref.has_name = 1U;
     operand->symbol_ref.name_is_generated = 0U;
@@ -5945,7 +5947,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   (void)attach_amiga_hardware_register_symbols(platform_state, &instruction, &instruction);
   (void)attach_amiga_hardware_register_immediate_symbols(platform_state, &instruction);
   (void)attach_amiga_app_base_slot_symbols(lookup, platform_state, &instruction);
-  (void)attach_amiga_typed_struct_field_symbols(section_analysis, candidate->offset, &instruction);
+  (void)attach_amiga_typed_struct_field_symbols(lookup, section->section_index, candidate->offset, &instruction);
   (void)attach_m68k_cpu_vector_symbols(&instruction);
   if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return 0;
   attach_amiga_runtime_sink_comment_for_render(platform_state, lookup, section->section_index, candidate->offset,
@@ -6132,7 +6134,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
     size_t render_candidate_index = 0U;
     out_preview->structural_hash = hash_step(out_preview->structural_hash, section_index);
     out_preview->structural_hash = hash_step(out_preview->structural_hash, render_extent);
-    if (out_source_analysis != NULL || render_asm_source) {
+    if (out_source_analysis != NULL) {
       if (m68k_ir_section_analysis_create(&section_analysis) != 0) goto cleanup;
       section_analysis_live = 1;
       section_analysis.section_index = section->section_index;
