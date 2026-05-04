@@ -3864,10 +3864,16 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       accepted_start, accepted_bytes, &facts) != 0) {
     goto fail;
   }
+  end = clock();
+  add_elapsed_seconds_local(&out_profile->fixed_point_runtime_address_ref_seconds, start, end);
+  start = clock();
   if (materialize_safe_required_labels(&decode, accepted_start, accepted_bytes, &facts, &label_lookup) != 0)
     goto fail;
   end = clock();
-  add_elapsed_seconds_local(&out_profile->fixed_point_materialize_labels_seconds, start, end);
+  add_elapsed_seconds_local(&out_profile->fixed_point_required_label_materialize_seconds, start, end);
+  out_profile->fixed_point_materialize_labels_seconds =
+    out_profile->fixed_point_runtime_address_ref_seconds +
+    out_profile->fixed_point_required_label_materialize_seconds;
   start = clock();
   out_profile->data_spans = count_data_spans_and_append_facts(&decode, accepted_bytes, &facts);
   end = clock();
@@ -3918,6 +3924,11 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       out_source_analysis) != 0) goto fail;
   end = clock();
   out_profile->render_ir_seconds = elapsed_seconds_local(start, end);
+  out_profile->render_ir_lookup_seconds = render_preview.lookup_seconds;
+  out_profile->render_ir_platform_pass_seconds = render_preview.platform_pass_seconds;
+  out_profile->render_ir_header_seconds = render_preview.header_seconds;
+  out_profile->render_ir_walk_seconds = render_preview.walk_seconds;
+  out_profile->render_ir_footer_seconds = render_preview.footer_seconds;
   out_profile->render_ir_statements = render_preview.statement_count;
   out_profile->render_ir_labels = render_preview.label_statement_count;
   out_profile->render_ir_instructions = render_preview.instruction_statement_count;

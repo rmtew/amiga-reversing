@@ -18,6 +18,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
+static double elapsed_seconds_local(clock_t start, clock_t end) {
+  return (double)(end - start) / (double)CLOCKS_PER_SEC;
+}
 
 char ascii_lower_local(char c) {
   return (c >= 'A' && c <= 'Z') ? (char)(c - 'A' + 'a') : c;
@@ -6068,6 +6073,8 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
     int render_asm_source, int collect_asm_source_text, M68kRenderIRPreview *out_preview,
     M68kSourceAnalysisIR *out_source_analysis) {
   size_t section_index;
+  clock_t phase_start;
+  clock_t phase_end;
   M68kRenderLookup lookup;
   M68kRenderPlatformState platform_state;
   M68kSectionAnalysisIR section_analysis;
@@ -6087,11 +6094,17 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
     out_source_analysis->file_kind = object->platform_file_kind;
     if (policy != NULL) out_source_analysis->policy = *policy;
   }
+  phase_start = clock();
   if (render_lookup_build(&lookup, object, decode, facts, policy) != 0) goto cleanup;
+  phase_end = clock();
+  out_preview->lookup_seconds = elapsed_seconds_local(phase_start, phase_end);
+  phase_start = clock();
   if (build_platform_analysis &&
       m68k_analysis_render_lookup_run_platform_passes(&lookup, decode, accepted_start, accepted_bytes) != 0) {
     goto cleanup;
   }
+  phase_end = clock();
+  out_preview->platform_pass_seconds = elapsed_seconds_local(phase_start, phase_end);
   if (out_source_analysis != NULL &&
       m68k_analysis_render_lookup_append_auto_policy(out_source_analysis, &lookup) != 0) {
     goto cleanup;
@@ -6101,10 +6114,14 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   }
   out_preview->collect_asm_source_text = render_asm_source && collect_asm_source_text ? 1U : 0U;
   out_preview->collect_asm_source_hash = out_preview->collect_asm_source_text;
+  phase_start = clock();
   if (render_asm_source) {
     render_asm_platform_header(out_preview, object);
     render_asm_app_extension_rs(out_preview, &lookup, decode);
   }
+  phase_end = clock();
+  out_preview->header_seconds = elapsed_seconds_local(phase_start, phase_end);
+  phase_start = clock();
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     M68kSectionAnalysisIR *current_section_analysis = NULL;
@@ -6351,12 +6368,17 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
       section_analysis_live = 0;
     }
   }
+  phase_end = clock();
+  out_preview->walk_seconds = elapsed_seconds_local(phase_start, phase_end);
   if (out_preview->asm_source_allocation_failed) goto cleanup;
+  phase_start = clock();
   if (render_asm_source && collect_asm_source_text &&
       !hoist_asm_source_header_directives(out_preview)) {
     out_preview->asm_source_allocation_failed = 1U;
     goto cleanup;
   }
+  phase_end = clock();
+  out_preview->footer_seconds = elapsed_seconds_local(phase_start, phase_end);
   result = 0;
 cleanup:
   if (section_analysis_live) {

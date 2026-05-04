@@ -46,9 +46,16 @@ typedef struct M68kFactsV2Profile {
   double fixed_point_rebuild_accepted_seconds;
   double fixed_point_relocation_anchor_seconds;
   double fixed_point_materialize_labels_seconds;
+  double fixed_point_runtime_address_ref_seconds;
+  double fixed_point_required_label_materialize_seconds;
   double fixed_point_data_span_seconds;
   double fixed_point_invariant_seconds;
   double render_ir_seconds;
+  double render_ir_lookup_seconds;
+  double render_ir_platform_pass_seconds;
+  double render_ir_header_seconds;
+  double render_ir_walk_seconds;
+  double render_ir_footer_seconds;
   double source_render_seconds;
   uint32_t decoded_candidates;
   uint32_t accepted_instructions;

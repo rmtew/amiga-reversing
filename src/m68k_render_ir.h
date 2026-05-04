@@ -32,6 +32,11 @@ typedef struct M68kRenderIRPreview {
   uint32_t label_statement_count;
   uint32_t instruction_statement_count;
   uint32_t data_statement_count;
+  double lookup_seconds;
+  double platform_pass_seconds;
+  double header_seconds;
+  double walk_seconds;
+  double footer_seconds;
   uint64_t structural_hash;
   uint64_t text_hash;
   uint32_t text_bytes;

@@ -2713,9 +2713,16 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     "\"fixed_point_rebuild_accepted_seconds\":%.6f,"
     "\"fixed_point_relocation_anchor_seconds\":%.6f,"
     "\"fixed_point_materialize_labels_seconds\":%.6f,"
+    "\"fixed_point_runtime_address_ref_seconds\":%.6f,"
+    "\"fixed_point_required_label_materialize_seconds\":%.6f,"
     "\"fixed_point_data_span_seconds\":%.6f,"
     "\"fixed_point_invariant_seconds\":%.6f,"
     "\"render_ir_seconds\":%.6f,"
+    "\"render_ir_lookup_seconds\":%.6f,"
+    "\"render_ir_platform_pass_seconds\":%.6f,"
+    "\"render_ir_header_seconds\":%.6f,"
+    "\"render_ir_walk_seconds\":%.6f,"
+    "\"render_ir_footer_seconds\":%.6f,"
     "\"source_render_seconds\":%.6f,"
     "\"decoded_candidates\":%u,"
     "\"accepted_instructions\":%u,"
@@ -2829,9 +2836,16 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     profile->fixed_point_rebuild_accepted_seconds,
     profile->fixed_point_relocation_anchor_seconds,
     profile->fixed_point_materialize_labels_seconds,
+    profile->fixed_point_runtime_address_ref_seconds,
+    profile->fixed_point_required_label_materialize_seconds,
     profile->fixed_point_data_span_seconds,
     profile->fixed_point_invariant_seconds,
     profile->render_ir_seconds,
+    profile->render_ir_lookup_seconds,
+    profile->render_ir_platform_pass_seconds,
+    profile->render_ir_header_seconds,
+    profile->render_ir_walk_seconds,
+    profile->render_ir_footer_seconds,
     profile->source_render_seconds,
     (unsigned)profile->decoded_candidates,
     (unsigned)profile->accepted_instructions,
