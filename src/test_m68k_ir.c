@@ -2547,6 +2547,60 @@ static int test_facts_v2_traced_indirect_call_promotes_known_target(void) {
   return 0;
 }
 
+static int test_facts_v2_stack_stored_callback_vector_promotes_target(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  size_t code_start_index;
+  int saw_vector_target = 0;
+  uint8_t bytes[22] = {
+    0x48u, 0x7au, 0x00u, 0x10u,
+    0x23u, 0xdfu, 0x00u, 0x00u, 0x00u, 0x10u,
+    0x4au, 0xfcu,
+    0xd5u, 0x03u, 0xffu, 0xe1u, 0x60u, 0x1eu,
+    0x70u, 0x01u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tpea.l loc_0_00000012(pc)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l (a7)+,m68k_vector_illegal_instruction.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\taddx.b d3,d2\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $D5,$03,$FF,$E1,$60,$1E") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000012:\n\tmoveq.l #1,d0\n\trts\n") != NULL);
+  for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
+      ++code_start_index) {
+    const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
+    if (ref->offset == 0x12U && ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET &&
+        ref->source_offset == 0x04U) {
+      saw_vector_target = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_vector_target);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_traced_indirect_jump_promotes_long_table_targets(void) {
   M68kObject object;
   M68kSection section;
@@ -10018,6 +10072,8 @@ int m68k_c_ir_tests(void) {
     {"facts_v2_detects_runtime_copy_jump_target", test_facts_v2_detects_runtime_copy_jump_target},
     {"facts_v2_traced_indirect_call_promotes_known_target",
       test_facts_v2_traced_indirect_call_promotes_known_target},
+    {"facts_v2_stack_stored_callback_vector_promotes_target",
+      test_facts_v2_stack_stored_callback_vector_promotes_target},
     {"facts_v2_traced_indirect_jump_promotes_long_table_targets",
       test_facts_v2_traced_indirect_jump_promotes_long_table_targets},
     {"facts_v2_traced_indirect_jump_keeps_later_table_state",
