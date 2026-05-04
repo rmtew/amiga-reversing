@@ -128,6 +128,11 @@ typedef struct M68kRenderRuntimeAddressRef {
   const M68kFact *fact;
 } M68kRenderRuntimeAddressRef;
 
+typedef struct M68kRenderRuntimeAddressRefIndex {
+  const M68kFact *operand_refs[M68K_DECODE_IR_MAX_OPERANDS];
+  const M68kFact *external_ref;
+} M68kRenderRuntimeAddressRefIndex;
+
 typedef struct M68kRenderInferredRuntimeAddressRef {
   size_t section_index;
   M68kRuntimeAddressRefIR ref;
@@ -396,6 +401,8 @@ struct M68kRenderLookup {
   M68kRenderRuntimeAddressRef *runtime_address_refs;
   size_t runtime_address_ref_count;
   size_t runtime_address_ref_capacity;
+  M68kRenderRuntimeAddressRefIndex **runtime_address_ref_indices;
+  uint32_t *runtime_address_ref_index_extents;
   M68kRenderInferredRuntimeAddressRef *inferred_runtime_address_refs;
   size_t inferred_runtime_address_ref_count;
   size_t inferred_runtime_address_ref_capacity;

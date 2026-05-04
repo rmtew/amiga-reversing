@@ -3242,6 +3242,10 @@ static void render_lookup_destroy(M68kRenderLookup *lookup) {
     for (section_index = 0U; section_index < lookup->section_count; ++section_index)
       free(lookup->instruction_comment_indices[section_index]);
   }
+  if (lookup->runtime_address_ref_indices != NULL) {
+    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
+      free(lookup->runtime_address_ref_indices[section_index]);
+  }
   free(lookup->labels);
   free(lookup->object_symbol_labels);
   free(lookup->relocations);
@@ -3254,6 +3258,8 @@ static void render_lookup_destroy(M68kRenderLookup *lookup) {
   free(lookup->block_start_extents);
   free(lookup->instruction_comment_indices);
   free(lookup->instruction_comment_extents);
+  free(lookup->runtime_address_ref_indices);
+  free(lookup->runtime_address_ref_index_extents);
   memset(lookup, 0, sizeof(*lookup));
 }
 
@@ -3592,24 +3598,31 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
     (size_t **)calloc(decode->section_count, sizeof(*lookup->instruction_comment_indices));
   lookup->instruction_comment_extents =
     (uint32_t *)calloc(decode->section_count, sizeof(*lookup->instruction_comment_extents));
+  lookup->runtime_address_ref_indices =
+    (M68kRenderRuntimeAddressRefIndex **)calloc(decode->section_count,
+      sizeof(*lookup->runtime_address_ref_indices));
+  lookup->runtime_address_ref_index_extents =
+    (uint32_t *)calloc(decode->section_count, sizeof(*lookup->runtime_address_ref_index_extents));
   if (lookup->labels == NULL || lookup->object_symbol_labels == NULL || lookup->relocations == NULL ||
       lookup->anchors == NULL || lookup->block_starts == NULL || lookup->label_extents == NULL ||
       lookup->object_symbol_label_extents == NULL || lookup->relocation_extents == NULL ||
       lookup->anchor_extents == NULL || lookup->block_start_extents == NULL ||
-      lookup->instruction_comment_indices == NULL || lookup->instruction_comment_extents == NULL)
+      lookup->instruction_comment_indices == NULL || lookup->instruction_comment_extents == NULL ||
+      lookup->runtime_address_ref_indices == NULL || lookup->runtime_address_ref_index_extents == NULL)
     goto oom;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     uint32_t label_extent = render_section_extent(&decode->sections[section_index]);
+    uint32_t block_start_extent = label_extent;
     uint32_t relocation_extent = decode->sections[section_index].size;
-    uint32_t anchor_extent = decode->sections[section_index].size;
-    uint32_t block_start_extent = render_section_extent(&decode->sections[section_index]);
-    uint32_t comment_extent = decode->sections[section_index].size;
+    uint32_t anchor_extent = relocation_extent, comment_extent = relocation_extent;
+    uint32_t runtime_ref_extent = relocation_extent;
     lookup->label_extents[section_index] = label_extent;
     lookup->object_symbol_label_extents[section_index] = label_extent;
     lookup->relocation_extents[section_index] = relocation_extent;
     lookup->anchor_extents[section_index] = anchor_extent;
     lookup->block_start_extents[section_index] = block_start_extent;
     lookup->instruction_comment_extents[section_index] = comment_extent;
+    lookup->runtime_address_ref_index_extents[section_index] = runtime_ref_extent;
     lookup->labels[section_index] =
       (uint8_t *)calloc((size_t)label_extent + 1U, sizeof(*lookup->labels[section_index]));
     lookup->object_symbol_labels[section_index] =
@@ -3630,11 +3643,17 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
       lookup->instruction_comment_indices[section_index] =
         (size_t *)calloc(comment_extent, sizeof(*lookup->instruction_comment_indices[section_index]));
     }
+    if (runtime_ref_extent != 0U) {
+      lookup->runtime_address_ref_indices[section_index] =
+        (M68kRenderRuntimeAddressRefIndex *)calloc(runtime_ref_extent,
+          sizeof(*lookup->runtime_address_ref_indices[section_index]));
+    }
     if (lookup->labels[section_index] == NULL || lookup->object_symbol_labels[section_index] == NULL ||
         (relocation_extent != 0U && lookup->relocations[section_index] == NULL) ||
         (anchor_extent != 0U && lookup->anchors[section_index] == NULL) ||
         (block_start_extent != 0U && lookup->block_starts[section_index] == NULL) ||
-        (comment_extent != 0U && lookup->instruction_comment_indices[section_index] == NULL))
+        (comment_extent != 0U && lookup->instruction_comment_indices[section_index] == NULL) ||
+        (runtime_ref_extent != 0U && lookup->runtime_address_ref_indices[section_index] == NULL))
       goto oom;
   }
   if (object != NULL) {
@@ -3898,6 +3917,12 @@ static const M68kFact *lookup_runtime_address_ref_for_operand(const M68kRenderLo
     size_t section_index, uint32_t offset, size_t operand_index) {
   size_t index;
   if (lookup == NULL || operand_index > UINT32_MAX) return NULL;
+  if (operand_index < M68K_DECODE_IR_MAX_OPERANDS && section_index < lookup->section_count &&
+      lookup->runtime_address_ref_indices != NULL && lookup->runtime_address_ref_index_extents != NULL &&
+      offset < lookup->runtime_address_ref_index_extents[section_index] &&
+      lookup->runtime_address_ref_indices[section_index] != NULL) {
+    return lookup->runtime_address_ref_indices[section_index][offset].operand_refs[operand_index];
+  }
   for (index = lookup->runtime_address_ref_count; index > 0U; --index) {
     const M68kFact *fact = lookup->runtime_address_refs[index - 1U].fact;
     if (fact == NULL) continue;
@@ -3913,6 +3938,12 @@ static const M68kFact *lookup_external_runtime_address_ref_for_instruction(const
     size_t section_index, uint32_t offset) {
   size_t index;
   if (lookup == NULL) return NULL;
+  if (section_index < lookup->section_count && lookup->runtime_address_ref_indices != NULL &&
+      lookup->runtime_address_ref_index_extents != NULL &&
+      offset < lookup->runtime_address_ref_index_extents[section_index] &&
+      lookup->runtime_address_ref_indices[section_index] != NULL) {
+    return lookup->runtime_address_ref_indices[section_index][offset].external_ref;
+  }
   for (index = lookup->runtime_address_ref_count; index > 0U; --index) {
     const M68kFact *fact = lookup->runtime_address_refs[index - 1U].fact;
     if (fact == NULL) continue;

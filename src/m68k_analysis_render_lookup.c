@@ -2789,6 +2789,82 @@ cleanup:
   return result;
 }
 
+static int amiga_vector_has_typed_flow_info(const AmigaOsLibraryVectorInfo *vector) {
+  const AmigaOsCallInputInfo *inputs;
+  size_t input_count = 0U;
+  size_t index;
+  if (vector == NULL) return 0;
+  if (amiga_output_has_typed_info(&vector->output)) return 1;
+  inputs = amiga_os_library_vector_inputs(vector, &input_count);
+  if (inputs == NULL) return 0;
+  for (index = 0U; index < input_count; ++index) {
+    if (inputs[index].struct_id != AMIGA_OS_STRUCT_ID_NONE) return 1;
+  }
+  return 0;
+}
+
+static int policy_has_typed_flow_metadata(const M68kAnalysisPolicy *policy) {
+  if (policy == NULL) return 0;
+  return policy->register_seed_count != 0U || policy->app_slot_region_count != 0U ||
+    policy->structured_data_item_count != 0U;
+}
+
+static int decode_has_library_base_operand_use(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    uint8_t **accepted_start) {
+  size_t section_index;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    M68kRenderPlatformState state;
+    uint8_t seen_library_base[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    size_t candidate_index;
+    memset(&state, 0, sizeof(state));
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      M68kInstructionIR instruction;
+      size_t operand_index;
+      if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
+      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+      platform_state_apply_policy_register_seeds(&state, lookup->policy, section->section_index,
+        candidate->offset);
+      for (operand_index = 0U; operand_index < instruction.operand_count; ++operand_index) {
+        uint8_t base_reg = 0U;
+        int16_t displacement = 0;
+        if (operand_is_address_displacement_local(&instruction.operands[operand_index], &base_reg,
+            &displacement) && base_reg < 8U && (state.address_base_known[base_reg] ||
+            seen_library_base[base_reg])) {
+          return 1;
+        }
+      }
+      platform_state_update_d0_lvo_after_instruction(&state, &instruction);
+      platform_state_update_after_instruction(&state, lookup, &instruction);
+      for (operand_index = 0U; operand_index < 8U; ++operand_index)
+        if (state.address_base_known[operand_index]) seen_library_base[operand_index] = 1U;
+    }
+  }
+  return 0;
+}
+
+static int render_lookup_has_typed_flow_sources(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    uint8_t **accepted_start) {
+  size_t index;
+  if (lookup == NULL) return 0;
+  if (lookup->typed_app_slot_count != 0U || lookup->typed_storage_slot_count != 0U ||
+      lookup->typed_slot_effect_count != 0U || lookup->base_field_slot_count != 0U ||
+      lookup->indexed_vector_wrapper_count != 0U || policy_has_typed_flow_metadata(lookup->policy) ||
+      (lookup->object != NULL && lookup->object->symbol_count != 0U) ||
+      decode_has_library_base_operand_use(lookup, decode, accepted_start)) {
+    return 1;
+  }
+  for (index = 0U; index < lookup->global_base_slot_count; ++index) {
+    if (lookup->global_base_slots[index].library_name[0] != '\0') return 1;
+  }
+  for (index = 0U; index < lookup->recovered_local_call_summary_count; ++index) {
+    if (amiga_vector_has_typed_flow_info(lookup->recovered_local_call_summaries[index].vector)) return 1;
+  }
+  return 0;
+}
+
 static int render_lookup_analyze_amiga_typed_refs(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start) {
   int pass;
@@ -2797,6 +2873,7 @@ static int render_lookup_analyze_amiga_typed_refs(M68kRenderLookup *lookup,
       lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
     return 0;
   }
+  if (!render_lookup_has_typed_flow_sources(lookup, decode, accepted_start)) return 0;
   for (pass = 0; pass < 5; ++pass) {
     int final_pass = pass == 4;
     size_t section_index;
@@ -3600,6 +3677,19 @@ int render_lookup_add_runtime_address_ref(M68kRenderLookup *lookup, const M68kFa
   }
   lookup->runtime_address_refs[lookup->runtime_address_ref_count].fact = fact;
   ++lookup->runtime_address_ref_count;
+  if (fact->section_index < lookup->section_count && lookup->runtime_address_ref_indices != NULL &&
+      lookup->runtime_address_ref_index_extents != NULL &&
+      fact->offset < lookup->runtime_address_ref_index_extents[fact->section_index] &&
+      lookup->runtime_address_ref_indices[fact->section_index] != NULL) {
+    M68kRenderRuntimeAddressRefIndex *entry =
+      &lookup->runtime_address_ref_indices[fact->section_index][fact->offset];
+    if (fact->reason < M68K_DECODE_IR_MAX_OPERANDS) {
+      entry->operand_refs[fact->reason] = fact;
+    }
+    if (fact->target_section_index >= lookup->section_count) {
+      entry->external_ref = fact;
+    }
+  }
   return 0;
 }
 
