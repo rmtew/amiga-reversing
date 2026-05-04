@@ -1,7 +1,5 @@
 # Decompression
 
-This document should be ignored until it is completed.
-
 A nuance to executable target files are that they may not contain the real data, instead they may have been compressed
 and running them possibly decompresses a data payload to an absolute address, then jumps to an entrypoint within the
 decompressed data range which may or may not be the start address.
@@ -63,7 +61,7 @@ Knowing that the decompressed payload of a compressed file is the actual desired
 both be able to see that they are working on the decompressed payload, but see perhaps the compression-related code and
 data it came from if they really want to. The benefit of understanding that 
 
-To be updated as decompression integration is added.
+To be updated as decompression integration formalised.
 
 ## Corpus integration
 
@@ -71,4 +69,4 @@ We tag files in the corpus based on analysis. Knowing that the decompressed payl
 actual desired target to reverse, the value is perhaps in tagging it is compressed, tagging what compressor was used
 at the least. Then processing the decompressed payload as the analysed corpus data.
 
-To be updated as decompression integration is added.
+To be updated as decompression integration formalised.
