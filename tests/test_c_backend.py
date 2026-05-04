@@ -644,6 +644,58 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
     assert runtime_row.runtime_view_id == 1
 
 
+def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    source = (
+        "    SECTION section,code\n"
+        "    lea.l stub(pc),a0\n"
+        "    movem.w (a0),d0\n"
+        "    lea.l $100.w,a1\n"
+        "    movem.w d0,(a1)\n"
+        "    jmp (a1)\n"
+        "    dc.b \"skip\"\n"
+        "stub:\n"
+        "    rts\n"
+        "    dc.b \"tail\"\n"
+    )
+    rebuilt, _ = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source,
+        project_root=PROJECT_ROOT,
+    )
+    path = tmp_path / "reglist_stub.hunk"
+    path.write_bytes(rebuilt)
+
+    combined = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_listing_rows_with_analysis_and_text_path_json_alloc",
+            "amiga-hunk",
+            str(path),
+            "",
+            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
+            project_root=PROJECT_ROOT,
+        )
+    )
+    source_text = combined["source_text"]
+    facts_v2 = combined["profile"]["facts_v2"]
+    stub_rows = [
+        row
+        for row in combined["listing"]["rows"]
+        if row.get("kind") == "instruction" and row.get("opcode_or_directive") == "rts"
+    ]
+
+    assert facts_v2["asm_source_refused"] is False
+    assert facts_v2["runtime_address_ranges"] >= 1
+    assert "\tdc.b $73,$6B,$69,$70\n" in source_text
+    assert "    ORG $100\nloc_0_00000100:\n\trts\n" in source_text
+    assert "    ORG $18\n\tdc.b $74,$61,$69,$6C\n" in source_text
+    assert any(
+        ref.get("reason_name") == "control_target" and ref.get("runtime_address") == 0x100
+        for row in stub_rows
+        for ref in row.get("code_start_refs", [])
+    )
+
+
 def test_facts_v2_listing_rejects_invalid_platform_metadata(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     path = tmp_path / "sample.exe"

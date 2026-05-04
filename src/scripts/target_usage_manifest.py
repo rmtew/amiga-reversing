@@ -954,6 +954,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
                 bag.add(f"runtime:view_kind:{kind}")
             if storage is not None and runtime is not None and storage != runtime:
                 bag.add("runtime:copied_code")
+                if storage < 0x200 and runtime < 0x1000:
+                    bag.add("runtime:copied_entry_stub")
         violation_count = _int_value(section.get("violation_count"), 0)
         if violation_count > 0:
             bag.add("diagnostic:analysis_violation", violation_count)
@@ -1861,6 +1863,8 @@ def _analysis_xrefs(
                 xrefs.append(_xref(row, f"runtime:view_kind:{kind}", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=kind, text=row_text or f"runtime view kind {kind}"))
             if storage is not None and runtime is not None and storage != runtime:
                 xrefs.append(_xref(row, "runtime:copied_code", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or f"copied code ${runtime:04X}"))
+                if storage < 0x200 and runtime < 0x1000:
+                    xrefs.append(_xref(row, "runtime:copied_entry_stub", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or f"copied entry stub ${runtime:04X}"))
         violations = _dict_items(section.get("violations"))
         if violations:
             for index, violation in enumerate(violations):

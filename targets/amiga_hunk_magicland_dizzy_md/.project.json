@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-05-04T18:36:47.788620+00:00",
+  "origin": {
+    "filename": "MagiclandDizzy_MD_f26cb8133afe",
+    "kind": "workspace_file",
+    "label": "Magicland Dizzy MD",
+    "platform": "amiga-hunk",
+    "sha256": "f26cb8133afe589cac0259471a9eb2c94d96817520f91739a609af2f09a6c622",
+    "size": 46016,
+    "source_path": "bin/MagiclandDizzy_MD_f26cb8133afe"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-04T18:36:47.788620+00:00"
+}
