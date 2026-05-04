@@ -3134,6 +3134,7 @@ static uint8_t recovered_indirect_shape_for_operand(const M68kDecodeCandidate *c
     return M68K_RECOVERED_INDIRECT_SHAPE_IND;
   }
   if (operand->kind != M68K_ASM_OPERAND_EA || operand->ea_reg >= 8U) return 0U;
+  if (operand->ea_mode == 7U && (operand->ea_reg == 0U || operand->ea_reg == 1U)) return 0U;
   uses_index = metadata->operand_ea_uses_index[operand_index] != 0U;
   uses_displacement = metadata->operand_ea_uses_displacement[operand_index] != 0U;
   if (!uses_index && !uses_displacement) return M68K_RECOVERED_INDIRECT_SHAPE_IND;

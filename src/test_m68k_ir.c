@@ -2855,6 +2855,7 @@ static int test_facts_v2_render_asm_source_symbolizes_local_abs_word_call(void) 
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
   uint8_t bytes[6] = {0x4eu, 0xb8u, 0x00u, 0x04u, 0x4eu, 0x75u};
   memset(&section, 0, sizeof(section));
@@ -2870,16 +2871,19 @@ static int test_facts_v2_render_asm_source_symbolizes_local_abs_word_call(void) 
   policy.entry_points[0].has_section_index = 1U;
   policy.entry_points[0].section_index = 0U;
   policy.entry_points[0].offset = 4U;
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy,
+    &source, &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000004:") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr loc_0_00000004.w\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr $0004.w\n") == NULL);
+  M68K_C_ASSERT_U32(0U, (uint32_t)source_analysis.sections[0].recovered_indirect_site_count);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_relocation_failures);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }
