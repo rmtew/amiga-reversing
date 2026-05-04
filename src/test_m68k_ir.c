@@ -8676,7 +8676,8 @@ static int test_facts_v2_copper_pointer_renders_combined_display_setup_comment(v
   M68K_C_ASSERT(strstr(source,
     "display layout 2 bitmap planes $00070000..$00072000 step $2000") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 fetch $38..$D0 mod 0/0") != NULL);
+    "display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 rows 200 "
+    "fetch $38..$D0 row 40 bytes/plane mod 0/0 span $1F40/plane") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);

@@ -8625,7 +8625,7 @@ loc_0_00008DD0:
 	dc.w $0000,$0000,$0000,$0000,$0000,$022E,$048E,$0EEE	; palette
 	dc.w $0000,$0E00,$0E83,$0EEE,$0000,$0000,$0000,$0000	; palette
 loc_0_00008E10:
-    ; display layout 4 bitmap planes $00070000..$00076000 step $2000 | display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 fetch $38..$D0 mod 0/0
+    ; display layout 4 bitmap planes $00070000..$00076000 step $2000 | display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 rows 200 fetch $38..$D0 row 40 bytes/plane mod 0/0 span $1F40/plane
 	dc.w bplpt,$0007	; bitmap pointer $00070000
 	dc.w bplpt+$02,$0000
 	dc.w bplpt+$04,$0007	; bitmap pointer $00072000

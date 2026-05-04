@@ -5194,6 +5194,8 @@ static int collect_display_setup_before_offset(const M68kDecodeSectionIR *sectio
 static int format_display_setup_comment(const M68kRenderDisplaySetup *setup, char *comment,
     size_t comment_size) {
   uint32_t plane_count;
+  uint32_t fetch_bytes_per_row = 0U;
+  uint32_t visible_rows = 0U;
   const char *resolution;
   const char *color;
   int written;
@@ -5207,20 +5209,41 @@ static int format_display_setup_comment(const M68kRenderDisplaySetup *setup, cha
     (unsigned)plane_count, resolution, color);
   if (written <= 0 || (size_t)written >= comment_size) return 0;
   if (setup->has_diwstrt && setup->has_diwstop) {
+    uint32_t start_v = ((uint32_t)setup->diwstrt >> 8) & 0xFFU;
+    uint32_t stop_v = ((uint32_t)setup->diwstop >> 8) & 0xFFU;
     written = snprintf(comment + strlen(comment), comment_size - strlen(comment),
       " window v=$%02X..$%02X h=$%02X..$%02X",
-      (unsigned)((setup->diwstrt >> 8) & 0xFFU), (unsigned)((setup->diwstop >> 8) & 0xFFU),
+      (unsigned)start_v, (unsigned)stop_v,
       (unsigned)(setup->diwstrt & 0xFFU), (unsigned)(setup->diwstop & 0xFFU));
     if (written <= 0 || (size_t)written >= comment_size - strlen(comment)) return 0;
+    if (stop_v > start_v) {
+      visible_rows = stop_v - start_v;
+      written = snprintf(comment + strlen(comment), comment_size - strlen(comment),
+        " rows %u", (unsigned)visible_rows);
+      if (written <= 0 || (size_t)written >= comment_size - strlen(comment)) return 0;
+    }
   }
   if (setup->has_ddfstrt && setup->has_ddfstop) {
+    uint32_t start_fetch = (uint32_t)setup->ddfstrt & 0xFFU;
+    uint32_t stop_fetch = (uint32_t)setup->ddfstop & 0xFFU;
     written = snprintf(comment + strlen(comment), comment_size - strlen(comment),
-      " fetch $%02X..$%02X", (unsigned)(setup->ddfstrt & 0xFFU), (unsigned)(setup->ddfstop & 0xFFU));
+      " fetch $%02X..$%02X", (unsigned)start_fetch, (unsigned)stop_fetch);
     if (written <= 0 || (size_t)written >= comment_size - strlen(comment)) return 0;
+    if (stop_fetch >= start_fetch) {
+      fetch_bytes_per_row = (((stop_fetch - start_fetch) >> 3) + 1U) * 2U;
+      written = snprintf(comment + strlen(comment), comment_size - strlen(comment),
+        " row %u bytes/plane", (unsigned)fetch_bytes_per_row);
+      if (written <= 0 || (size_t)written >= comment_size - strlen(comment)) return 0;
+    }
   }
   if (setup->has_bpl1mod && setup->has_bpl2mod) {
     written = snprintf(comment + strlen(comment), comment_size - strlen(comment),
       " mod %d/%d", (int)setup->bpl1mod, (int)setup->bpl2mod);
+    if (written <= 0 || (size_t)written >= comment_size - strlen(comment)) return 0;
+  }
+  if (fetch_bytes_per_row != 0U && visible_rows != 0U) {
+    written = snprintf(comment + strlen(comment), comment_size - strlen(comment),
+      " span $%X/plane", (unsigned)(fetch_bytes_per_row * visible_rows));
     if (written <= 0 || (size_t)written >= comment_size - strlen(comment)) return 0;
   }
   return 1;

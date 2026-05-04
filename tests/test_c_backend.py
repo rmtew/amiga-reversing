@@ -3458,7 +3458,8 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "loc_0_00002E4A:\n\tdc.w $0000,$0026,$0088,$0000\t; lookup_table\n" in source_text
     display_summary = (
         "    ; display layout 4 bitmap planes $00070000..$00076000 step $2000 | "
-        "display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 fetch $38..$D0 mod 0/0\n"
+        "display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 rows 200 "
+        "fetch $38..$D0 row 40 bytes/plane mod 0/0 span $1F40/plane\n"
     )
     assert display_summary in source_text
     assert (
