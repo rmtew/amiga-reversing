@@ -6307,7 +6307,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   {
     uint8_t loaded_address_reg = 0U;
     char loaded_library_name[64];
-    if (candidate_lea_known_amiga_name_to_address_reg(section, candidate, &loaded_address_reg,
+    if (candidate_lea_known_amiga_name_to_address_reg(lookup, section, candidate, &loaded_address_reg,
         loaded_library_name, sizeof(loaded_library_name))) {
       platform_state_set_register_library(platform_state, loaded_address_reg, loaded_library_name);
     }

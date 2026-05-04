@@ -531,8 +531,9 @@ int operand_address_register_index_local(const M68kOperandIR *operand, uint8_t *
 uint8_t app_slot_access_kind_from_instruction(const M68kInstructionIR *instruction, size_t operand_index);
 int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uint8_t base_reg,
   int16_t displacement);
-int candidate_lea_known_amiga_name_to_address_reg(const M68kDecodeSectionIR *section,
-  const M68kDecodeCandidate *candidate, uint8_t *out_reg, char *out_name, size_t out_size);
+int candidate_lea_known_amiga_name_to_address_reg(const M68kRenderLookup *lookup,
+  const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate, uint8_t *out_reg, char *out_name,
+  size_t out_size);
 int reglist_contains_data_register_local(const M68kOperandIR *operand, uint8_t reg_index);
 int reglist_contains_address_register_local(const M68kOperandIR *operand, uint8_t reg_index);
 int accepted_start_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t offset);

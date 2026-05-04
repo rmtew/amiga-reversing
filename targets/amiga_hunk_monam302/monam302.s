@@ -1,4 +1,6 @@
     INCLUDE "devices/console_lib.i"
+    INCLUDE "dos/dos.i"
+    INCLUDE "dos/dos_lib.i"
     INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/memory.i"
     INCLUDE "exec/ports.i"
@@ -30,7 +32,7 @@ app_00B2 RS.L 1
 app_00B6 RS.L 1
     RS.B 4
 app_IntuitionBase RS.L 1
-    RS.B 4
+app_DOSBase RS.L 1
 app_GfxBase RS.L 1
 app_00CA RS.L 1
 app_00CE RS.L 1
@@ -254,7 +256,7 @@ loc_0_000000D0:
 	movea.l $0004.w,a6
 	jsr _LVOOpenLibrary(a6)
 	movea.l (a7)+,a6
-	move.l d0,$00C2(a6)
+	move.l d0,app_DOSBase(a6)
 	bne.b loc_0_0000012E
 loc_0_00000128:
 	moveq.l #122,d4
@@ -275,8 +277,8 @@ loc_0_0000012E:
 	movea.l $0004.w,a6
 	jsr _LVOFindTask(a6)
 	movea.l (a7)+,a6
-	move.l d0,h0dl_DOSBase.l
-	move.l d0,$0122(a6)
+	move.l d0,loc_0_00008956.l
+	move.l d0,app_0112+MP_SIGTASK(a6)
 	moveq.l #-1,d0
 	move.l a6,-(a7)
 	movea.l $0004.w,a6
@@ -508,7 +510,7 @@ loc_0_00000400:
 loc_0_00000446:
 	moveq.l #0,d4
 loc_0_00000448:
-	move.l $00C2(a6),d0
+	move.l app_DOSBase(a6),d0
 	bsr.b loc_0_00000472
 	move.l app_GfxBase(a6),d0
 	bsr.b loc_0_00000472
@@ -1685,8 +1687,8 @@ loc_0_00001AF0:
 	rts
 loc_0_00001AF8:
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0084(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOIoErr(a6)
 	movea.l (a7)+,a6
 loc_0_00001B04:
 	move.l a4,-(a7)
@@ -2793,8 +2795,8 @@ loc_0_0000446C:
 	tst.l app_015E(a6)
 	bne.b loc_0_00004494
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$009C(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOUnLoadSeg(a6)
 	movea.l (a7)+,a6
 loc_0_00004494:
 	rts
@@ -2962,7 +2964,7 @@ loc_0_00004C26:
 	lea.l loc_0_00004CB3(pc),a5
 	bsr.w loc_0_000073E2
 	beq.b loc_0_00004C4E
-	movea.l h0dl_DOSBase.l,a0
+	movea.l loc_0_00008956.l,a0
 	moveq.l #-1,d0
 	move.l d0,$00B8(a0)
 	lea.l loc_0_00004CA8(pc),a5
@@ -2976,7 +2978,7 @@ loc_0_00004C4E:
 	move.b loc_0_00000024(pc),d0
 	beq.b loc_0_00004CA6
 loc_0_00004C62:
-	movea.l h0dl_DOSBase.l,a0
+	movea.l loc_0_00008956.l,a0
 	clr.l $00B8(a0)
 	lea.l loc_0_00000025(pc),a0
 	move.b (a0)+,app_0148(a6)
@@ -3159,8 +3161,8 @@ loc_0_0000554E:
 	bsr.w loc_0_00007740
 	move.l a3,d1
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0096(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOLoadSeg(a6)
 	movea.l (a7)+,a6
 	tst.l d0
 	beq.w loc_0_00001AF8
@@ -3212,7 +3214,7 @@ loc_0_000055C6:
 	move.w #$4EF9,(a1)+
 	move.l (a1),loc_0_000088FC.l
 	move.l #loc_0_000013B0,(a1)
-	movea.l h0dl_DOSBase(pc),a0
+	movea.l loc_0_00008956(pc),a0
 	move.l $00AC(a0),d0
 	add.l d0,d0
 	add.l d0,d0
@@ -3228,14 +3230,14 @@ loc_0_0000560E:
 	move.l loc_0_000088F6(pc),loc_0_00001484.l
 	move.l a3,d1
 	moveq.l #0,d2
-	movea.l h0dl_DOSBase(pc),a0
+	movea.l loc_0_00008956(pc),a0
 	move.b $0009(a0),d2
 	move.l loc_0_000088F6(pc),d3
 	moveq.l #80,d4
 	add.l app_00B2(a6),d4
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$008A(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOCreateProc(a6)
 	movea.l (a7)+,a6
 	move.l d0,app_010A(a6)
 	beq.b loc_0_0000565C
@@ -4905,14 +4907,14 @@ loc_0_000073B0:
 	dc.b $22,$08,$24,$3C,$00,$00,$03,$EE
 loc_0_000073BE:
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$001E(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOOpen(a6)
 	movea.l (a7)+,a6
 	move.l d0,d3
 	bne.b loc_0_000073DC
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0084(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOIoErr(a6)
 	movea.l (a7)+,a6
 	moveq.l #0,d0
 loc_0_000073DC:
@@ -4926,25 +4928,25 @@ loc_0_000073EC:
 	move.l d3,-(a7)
 	move.l d3,d1
 	moveq.l #0,d2
-	moveq.l #1,d3
+	moveq.l #OFFSET_END,d3
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0042(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOSeek(a6)
 	movea.l (a7)+,a6
 	move.l (a7),d1
 	moveq.l #0,d2
-	moveq.l #0,d3
+	moveq.l #OFFSET_CURRENT,d3
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0042(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOSeek(a6)
 	movea.l (a7)+,a6
 	move.l d0,d4
 	move.l (a7),d1
 	moveq.l #0,d2
-	moveq.l #-1,d3
+	moveq.l #OFFSET_BEGINNING,d3
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0042(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOSeek(a6)
 	movea.l (a7)+,a6
 	move.l (a7)+,d3
 	rts
@@ -4954,8 +4956,8 @@ loc_0_0000742A:
 	move.l a0,d2
 	move.l d4,d3
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$002A(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVORead(a6)
 	movea.l (a7)+,a6
 	move.l (a7)+,d3
 	rts
@@ -4965,15 +4967,15 @@ loc_0_00007442:
 	move.l a0,d2
 	move.l d4,d3
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0030(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOWrite(a6)
 	movea.l (a7)+,a6
 	move.l (a7)+,d3
 	tst.l d0
 	bge.b loc_0_00007470
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0084(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOIoErr(a6)
 	movea.l (a7)+,a6
 	move.w d0,-(a7)
 	bsr.b loc_0_00007474
@@ -4985,8 +4987,8 @@ loc_0_00007470:
 loc_0_00007474:
 	move.l d3,d1
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0024(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOClose(a6)
 	movea.l (a7)+,a6
 	rts
 	dc.b $2D,$43,$01,$74
@@ -5029,17 +5031,17 @@ loc_0_000074EC:
 	move.l a0,-(a7)
 	bsr.b loc_0_0000752C
 	move.l (a7),d1
-	move.l #$3EE,d2
+	move.l #MODE_NEWFILE,d2
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$001E(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOOpen(a6)
 	movea.l (a7)+,a6
 	tst.l d0
 	bne.b loc_0_0000751A
 	addq.l #4,a7
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0084(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOIoErr(a6)
 	movea.l (a7)+,a6
 	tst.l d0
 	rts
@@ -5056,8 +5058,8 @@ loc_0_0000752C:
 	move.l app_0190(a6),d1
 	beq.b loc_0_00007542
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0024(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOClose(a6)
 	movea.l (a7)+,a6
 	clr.l app_0190(a6)
 loc_0_00007542:
@@ -5090,8 +5092,8 @@ loc_0_00007570:
 	move.l a7,d2
 	moveq.l #1,d3
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0030(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOWrite(a6)
 	movea.l (a7)+,a6
 	move.b (a7)+,d1
 	subq.l #1,d0
@@ -5293,8 +5295,8 @@ loc_0_00007740:
 	cmp.l loc_0_00000018(pc),d1
 	beq.b loc_0_0000775A
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$009C(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOUnLoadSeg(a6)
 	movea.l (a7)+,a6
 loc_0_0000775A:
 	clr.l app_00AE(a6)
@@ -5319,10 +5321,10 @@ loc_0_00007780:
 	suba.l a4,a4
 	lea.l loc_0_000088F6(pc),a5
 	move.l (a7)+,d1
-	move.l #$3ED,d2
+	move.l #MODE_OLDFILE,d2
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$001E(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOOpen(a6)
 	movea.l (a7)+,a6
 	move.l d0,d4
 	beq.w loc_0_0000784E
@@ -5360,8 +5362,8 @@ loc_0_000077E6:
 	bne.b loc_0_000077E6
 	move.l d4,d1
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0024(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOClose(a6)
 	movea.l (a7)+,a6
 	rts
 loc_0_00007822:
@@ -5377,16 +5379,16 @@ loc_0_00007822:
 loc_0_00007840:
 	move.l d4,d1
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0024(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOClose(a6)
 	movea.l (a7)+,a6
 loc_0_0000784E:
 	rts
 loc_0_00007850:
 	move.l d4,d1
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0024(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOClose(a6)
 	movea.l (a7)+,a6
 	rts
 loc_0_00007860:
@@ -5461,8 +5463,8 @@ loc_0_000078F0:
 	addq.l #4,d2
 	move.l d6,d3
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$002A(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVORead(a6)
 	movea.l (a7)+,a6
 	move.l a4,d0
 loc_0_00007914:
@@ -5683,8 +5685,8 @@ loc_0_00007B3E:
 	move.l a0,d2
 	move.l #$200,d3
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$002A(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVORead(a6)
 	movea.l (a7)+,a6
 	tst.l d0
 	bge.b loc_0_00007B64
@@ -5726,20 +5728,20 @@ loc_0_00007B98:
 	move.l a0,d2
 	moveq.l #4,d3
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$002A(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVORead(a6)
 	movea.l (a7)+,a6
 	move.l d0,d1
 	move.l app_09A8(a6),d0
 	rts
 loc_0_00007BB6:
 	moveq.l #0,d2
-	moveq.l #0,d3
+	moveq.l #OFFSET_CURRENT,d3
 loc_0_00007BBA:
 	move.l d4,d1
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0042(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOSeek(a6)
 	movea.l (a7)+,a6
 	rts
 loc_0_00007BCA:
@@ -5782,10 +5784,10 @@ loc_0_00007C4C:
 	tst.l app_015E(a6)
 	bne.b loc_0_00007C84
 	move.l #loc_0_0000136D,d1
-	move.l #$3ED,d2
+	move.l #MODE_OLDFILE,d2
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$001E(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOOpen(a6)
 	movea.l (a7)+,a6
 	move.l d0,d4
 	beq.w loc_0_00007D62
@@ -5827,8 +5829,8 @@ loc_0_00007CBC:
 	move.l d4,d1
 	move.l a0,d2
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$002A(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVORead(a6)
 	movea.l (a7)+,a6
 	movea.l d2,a0
 	bsr.w loc_0_00007D9E
@@ -5839,8 +5841,8 @@ loc_0_00007D10:
 	move.l d4,d1
 	move.l a4,d2
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$002A(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVORead(a6)
 	movea.l (a7)+,a6
 	move.l $0034(a2),d0
 	move.l $0030(a2),d1
@@ -5857,8 +5859,8 @@ loc_0_00007D36:
 	bne.b loc_0_00007D4A
 	move.l d4,d1
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0024(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOClose(a6)
 	movea.l (a7)+,a6
 loc_0_00007D4A:
 	movea.l a3,a0
@@ -5869,8 +5871,8 @@ loc_0_00007D4E:
 loc_0_00007D54:
 	move.l d4,d1
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0024(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOClose(a6)
 	movea.l (a7)+,a6
 loc_0_00007D62:
 	movea.l a3,a0
@@ -6090,17 +6092,17 @@ loc_0_00007FE0:
 	moveq.l #27,d1
 	bsr.w loc_0_00006A5A
 	move.l #loc_0_000081CB,d1
-	move.l #$3ED,d2
+	move.l #MODE_OLDFILE,d2
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$001E(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOOpen(a6)
 	movea.l (a7)+,a6
 	move.l d0,d4
 	bne.b loc_0_0000801A
 	move.l #loc_0_000081C6,d1
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$001E(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOOpen(a6)
 	movea.l (a7)+,a6
 	move.l d0,d4
 	beq.w loc_0_000080AA
@@ -6112,8 +6114,8 @@ loc_0_0000801A:
 	move.l a0,d2
 	moveq.l #8,d3
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$002A(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVORead(a6)
 	movea.l (a7)+,a6
 	subq.l #8,d0
 	bne.w loc_0_0000809A
@@ -6135,8 +6137,8 @@ loc_0_0000801A:
 	move.l a4,d2
 	move.l app_013A(a6),d3
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$002A(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVORead(a6)
 	movea.l (a7)+,a6
 loc_0_0000807C:
 	move.l (a4)+,d1
@@ -6156,8 +6158,8 @@ loc_0_0000809A:
 	move.l d4,d1
 	beq.b loc_0_000080AA
 	move.l a6,-(a7)
-	movea.l $00C2(a6),a6
-	jsr -$0024(a6)
+	movea.l app_DOSBase(a6),a6
+	jsr _LVOClose(a6)
 	movea.l (a7)+,a6
 loc_0_000080AA:
 	rts
@@ -6403,7 +6405,7 @@ loc_0_0000891A:
 	dcb.b $34,$00
 loc_0_0000894E:
 	dc.l $00000000,$00000000	; lookup_table
-h0dl_DOSBase:
+loc_0_00008956:
 	dc.l $00000000	; lookup_table
 loc_0_0000895A:
 	dc.l $00000000	; lookup_table

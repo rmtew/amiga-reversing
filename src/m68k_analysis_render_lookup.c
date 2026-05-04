@@ -7352,6 +7352,41 @@ static int read_library_name_string_at(const M68kDecodeSectionIR *section, uint3
   return 0;
 }
 
+static int read_library_name_string_from_object(const M68kObject *object, size_t section_index, uint32_t offset,
+    char *out_name, size_t out_size) {
+  size_t index = 0U;
+  const M68kSection *section;
+  if (object == NULL || section_index >= object->section_count || out_name == NULL || out_size == 0U) return 0;
+  section = &object->sections[section_index];
+  if (section->data == NULL || offset >= section->data_size) return 0;
+  while (offset + index < section->data_size && index + 1U < out_size) {
+    uint8_t value = section->data[offset + index];
+    if (value == 0U) {
+      out_name[index] = '\0';
+      return index != 0U && amiga_os_find_library_base_name(out_name) != NULL;
+    }
+    if (value < 0x20U || value > 0x7EU) return 0;
+    out_name[index++] = (char)value;
+  }
+  return 0;
+}
+
+static int candidate_lea_relocated_library_name_to_address_reg(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate, char *out_name, size_t out_size) {
+  uint32_t relocation_offset, relocation_end;
+  if (lookup == NULL || section == NULL || candidate == NULL || out_name == NULL || out_size == 0U) return 0;
+  relocation_end = candidate->offset + candidate->byte_count;
+  for (relocation_offset = candidate->offset; relocation_offset < relocation_end; ++relocation_offset) {
+    const M68kFact *relocation = lookup_relocation_at(lookup, section->section_index, relocation_offset);
+    size_t operand_index = 0U;
+    if (relocation == NULL) continue;
+    if (!find_unique_relocation_operand(candidate, relocation, &operand_index) || operand_index != 0U) continue;
+    return read_library_name_string_from_object(lookup->object, relocation->target_section_index,
+      relocation->target_offset, out_name, out_size);
+  }
+  return 0;
+}
+
 static int format_lower_symbol_component(const char *text, char *out, size_t out_size) {
   size_t in_index;
   size_t out_index = 0U;
@@ -7446,8 +7481,9 @@ static int format_open_device_app_iorequest_slot_name(const char *device_name, c
   return written > 0 && (size_t)written < symbol_name_size;
 }
 
-int candidate_lea_known_amiga_name_to_address_reg(const M68kDecodeSectionIR *section,
-    const M68kDecodeCandidate *candidate, uint8_t *out_reg, char *out_name, size_t out_size) {
+int candidate_lea_known_amiga_name_to_address_reg(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate, uint8_t *out_reg, char *out_name,
+    size_t out_size) {
   M68kInstructionIR instruction;
   uint32_t absolute_offset = 0U;
   uint8_t dest_reg = 0U;
@@ -7467,7 +7503,10 @@ int candidate_lea_known_amiga_name_to_address_reg(const M68kDecodeSectionIR *sec
     return 1;
   }
   if (operand_absolute_offset_local(&instruction.operands[0], &absolute_offset)) {
-    if (!read_library_name_string_at(section, absolute_offset, out_name, out_size)) return 0;
+    if (!read_library_name_string_at(section, absolute_offset, out_name, out_size) &&
+        !candidate_lea_relocated_library_name_to_address_reg(lookup, section, candidate, out_name, out_size)) {
+      return 0;
+    }
     if (out_reg != NULL) *out_reg = dest_reg;
     return 1;
   }
@@ -7922,6 +7961,7 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
       int16_t local_displacement = 0, app_address_displacement = 0, named_app_slot_displacement = 0;
       char loaded_library_name[64], named_app_slot_symbol[64];
       int16_t lvo = 0, wrapper_lvo = 0;
+      int candidate_sets_d0_library = 0;
       if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
       if (have_expected_offset && candidate->offset != expected_offset) {
         current_segment_valid = 0;
@@ -7932,7 +7972,7 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
       }
       trace_state_apply_policy_register_seeds(&trace_state, lookup->policy, section->section_index,
         candidate->offset);
-      if (candidate_lea_known_amiga_name_to_address_reg(section, candidate, &loaded_address_reg,
+      if (candidate_lea_known_amiga_name_to_address_reg(lookup, section, candidate, &loaded_address_reg,
           loaded_library_name, sizeof(loaded_library_name))) {
         trace_addr_reg_set_name(&trace_state, loaded_address_reg, loaded_library_name);
       }
@@ -7941,6 +7981,7 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
       }
       if (candidate_is_exec_open_library_call(&trace_state, candidate) && trace_state.addr_regs[1].known) {
         trace_reg_set(&trace_state.data_regs[0], trace_state.addr_regs[1].name);
+        candidate_sets_d0_library = 1;
         if (render_lookup_add_open_library_result_app_base_slots(lookup, section, accepted_start[section_index],
             candidate->offset + candidate->byte_count, trace_state.addr_regs[1].name) < 0) {
           goto cleanup;
@@ -7950,6 +7991,7 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
         candidate);
       if (amiga_vector_is_open_library(helper_vector) && trace_state.addr_regs[1].known) {
         trace_reg_set(&trace_state.data_regs[0], trace_state.addr_regs[1].name);
+        candidate_sets_d0_library = 1;
         if (render_lookup_add_open_library_result_app_base_slots(lookup, section, accepted_start[section_index],
             candidate->offset + candidate->byte_count, trace_state.addr_regs[1].name) < 0) {
           goto cleanup;
@@ -8058,6 +8100,8 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
         current_segment_valid = 0;
         trace_state_reset(&trace_state);
       } else {
+        if (!candidate_sets_d0_library && candidate_writes_d0_unknown(candidate))
+          trace_reg_clear(&trace_state.data_regs[0]);
         trace_state_update_register_names_after_candidate(&trace_state, lookup, candidate);
       }
       expected_offset = candidate->offset + candidate->byte_count;

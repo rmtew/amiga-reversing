@@ -3562,6 +3562,60 @@ def test_real_dll_openlibrary_d0_to_a6_resolves_followup_calls() -> None:
             assert offset not in unresolved_offsets
 
 
+def test_real_dll_cross_section_openlibrary_name_resolves_followup_calls() -> None:
+    _requires_c_backend_dlls()
+
+    combined = _facts_v2_listing_analysis_for_project(
+        "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_trio_6d66c94c"
+    )
+    calls_by_offset = {
+        call["offset"]: call["symbol_name"]
+        for section in combined["analysis"]["sections"]
+        for call in section["recovered_platform_calls"]
+    }
+    unresolved_offsets = {
+        site["offset"]
+        for section in combined["analysis"]["sections"]
+        for site in section["recovered_indirect_sites"]
+        if site["status"] == "unresolved"
+    }
+    assert calls_by_offset[0x76] == "_LVOOpen"
+    assert calls_by_offset[0x94] == "_LVORead"
+    assert calls_by_offset[0xF6] == "_LVOClose"
+    assert calls_by_offset[0xA2E] == "_LVOExecute"
+    assert not unresolved_offsets
+
+
+def test_real_dll_monam_openlibrary_app_slot_resolves_dos_calls() -> None:
+    _requires_c_backend_dlls()
+
+    combined = _facts_v2_listing_analysis_for_project("amiga_hunk_monam302")
+    calls_by_offset = {
+        call["offset"]: call["symbol_name"]
+        for section in combined["analysis"]["sections"]
+        for call in section["recovered_platform_calls"]
+    }
+    unresolved_offsets = {
+        site["offset"]
+        for section in combined["analysis"]["sections"]
+        for site in section["recovered_indirect_sites"]
+        if site["status"] == "unresolved"
+    }
+    expected_calls = {
+        0x1AFE: "_LVOIoErr",
+        0x448E: "_LVOUnLoadSeg",
+        0x555E: "_LVOLoadSeg",
+        0x5646: "_LVOCreateProc",
+        0x73C4: "_LVOOpen",
+        0x7438: "_LVORead",
+        0x7450: "_LVOWrite",
+        0x747C: "_LVOClose",
+    }
+    for offset, symbol_name in expected_calls.items():
+        assert calls_by_offset[offset] == symbol_name
+        assert offset not in unresolved_offsets
+
+
 def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     paths = resolve_project_paths(

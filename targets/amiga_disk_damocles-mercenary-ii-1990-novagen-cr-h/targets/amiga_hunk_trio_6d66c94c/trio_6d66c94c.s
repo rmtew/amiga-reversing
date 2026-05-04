@@ -1,4 +1,7 @@
+    INCLUDE "dos/dos.i"
+    INCLUDE "dos/dos_lib.i"
     INCLUDE "exec/exec_lib.i"
+    INCLUDE "graphics/gfxbase.i"
     INCLUDE "hardware/blit.i"
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"
@@ -32,36 +35,36 @@ loc_0_00000054:
 	movea.l $0004.w,a6
 	lea.l loc_1_00000000.l,a1
 	jsr _LVOOldOpenLibrary(a6)
-	move.l d0,loc_1_0000000C.l
+	move.l d0,h1dl_DOSBase.l
 	movea.l d0,a6
 	move.l #loc_1_00000010,d1
-	move.l #$3ED,d2
-	jsr -$001E(a6)
+	move.l #MODE_OLDFILE,d2
+	jsr _LVOOpen(a6)
 	tst.l d0
 	beq.w loc_0_000001BC
 	move.l d0,loc_1_0000001C.l
 	move.l d0,d1
 	move.l #loc_2_00006F00,d2
 	move.l #$B00,d3
-	jsr -$002A(a6)
+	jsr _LVORead(a6)
 	move.l loc_1_0000001C.l,d1
 	move.l #loc_2_00007A00,d2
 	move.l #$A00,d3
-	jsr -$002A(a6)
+	jsr _LVORead(a6)
 	move.l loc_1_0000001C.l,d1
 	move.l #loc_2_00008400,d2
 	move.l #$2,d3
-	jsr -$002A(a6)
+	jsr _LVORead(a6)
 	move.l loc_1_0000001C.l,d1
 	move.l #loc_2_00008402,d2
 	move.l #$2C,d3
-	jsr -$002A(a6)
+	jsr _LVORead(a6)
 	move.l loc_1_0000001C.l,d1
 	move.l #loc_2_0000842E,d2
 	move.l #$800,d3
-	jsr -$002A(a6)
+	jsr _LVORead(a6)
 	move.l loc_1_0000001C.l,d1
-	jsr -$0024(a6)
+	jsr _LVOClose(a6)
 	lea.l loc_2_00006F00.l,a0
 loc_0_00000100:
 	eori.w #65535,(a0)+
@@ -664,13 +667,13 @@ loc_0_000009E4:
 	lea.l loc_1_00000020.l,a1
 	jsr _LVOOldOpenLibrary(a6)
 	movea.l d0,a1
-	move.l $0026(a1),_custom+cop1lc.l	; copper_list pointer
+	move.l gb_copinit(a1),_custom+cop1lc.l	; copper_list pointer
 	move.w #DMAF_SETCLR|DMAF_SPRITE,_custom+dmacon.l
 	movea.l $0004.w,a6
 	jsr _LVOCloseLibrary(a6)
 	rts
 loc_0_00000A0E:
-	movea.l loc_1_0000000C.l,a6
+	movea.l h1dl_DOSBase.l,a6
 	move.w loc_1_00002F0E.l,d0
 	addq.w #4,d0
 	lsr.w #3,d0
@@ -679,16 +682,16 @@ loc_0_00000A0E:
 	move.l d0,d1
 	clr.l d2
 	clr.l d3
-	jsr -$00DE(a6)
+	jsr _LVOExecute(a6)
 	movea.l $0004.w,a6
-	movea.l loc_1_0000000C.l,a1
+	movea.l h1dl_DOSBase.l,a1
 	jsr _LVOCloseLibrary(a6)
 	rts
 	dc.b $00,$00
     SECTION section_1,data
 loc_1_00000000:
 	dc.b "dos.library",$00
-loc_1_0000000C:
+h1dl_DOSBase:
 	dc.b $00,$00,$00,$00
 loc_1_00000010:
 	dc.b $3A,$73,$2F,$4D,$65,$6E,$75,$44,$61,$74,$61,$00
