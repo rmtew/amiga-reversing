@@ -9085,7 +9085,7 @@ static int test_facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer(void) 
   M68kFactsV2Profile profile;
   char *source = NULL;
   uint8_t bytes[56] = {
-    0x23u, 0xF9u, 0x00u, 0x00u, 0x00u, 0x34u, 0x00u, 0x00u, 0x00u, 0x30u,
+    0x23u, 0xFCu, 0x00u, 0x06u, 0x7Du, 0x00u, 0x00u, 0x00u, 0x00u, 0x30u,
     0x22u, 0x79u, 0x00u, 0x00u, 0x00u, 0x30u,
     0x23u, 0xC9u, 0x00u, 0xDFu, 0xF0u, 0x20u,
     0x4Eu, 0x75u,
@@ -9108,10 +9108,10 @@ static int test_facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer(void) 
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.l $00000034.l,$00000030.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "disk_buffer_00067D00\tEQU\t$67D00\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l #disk_buffer_00067D00,$00000030.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l $00000030.l,a1\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.l a1,_custom+dskpt.l\t; disk_buffer pointer\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000034:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l a1,_custom+dskpt.l\t; disk_buffer pointer $00067D00\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -9143,7 +9143,9 @@ static int test_facts_v2_external_runtime_sink_address_renders_pointer_comment(v
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.l #$67D00,_custom+dskpt.l\t; disk_buffer pointer $00067D00\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "disk_buffer_00067D00\tEQU\t$67D00\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.l #disk_buffer_00067D00,_custom+dskpt.l\t; disk_buffer pointer $00067D00\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);

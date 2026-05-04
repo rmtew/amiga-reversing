@@ -1472,6 +1472,15 @@ static int render_asm_define_runtime_address_word_symbols_once(M68kRenderIRPrevi
     render_asm_declare_symbol_expr_once(preview, low_symbol, low_expr);
 }
 
+static int render_asm_define_runtime_address_symbol_once(M68kRenderIRPreview *preview,
+    const char *role, uint32_t address, char *symbol, size_t symbol_size) {
+  if (symbol != NULL && symbol_size != 0U) symbol[0] = '\0';
+  if (preview == NULL || symbol == NULL || symbol_size == 0U || address == 0U) return 0;
+  format_runtime_address_symbol_name(role, address, "", symbol, symbol_size);
+  if (symbol[0] == '\0') return 0;
+  return render_asm_declare_symbol_hex_once(preview, symbol, address);
+}
+
 static int format_copper_runtime_pointer_value_expr(M68kRenderIRPreview *preview, const uint8_t *data,
     uint32_t offset, uint32_t cursor, uint32_t size, uint16_t first, uint16_t second, char *buf,
     size_t buf_size) {
@@ -3915,6 +3924,31 @@ static const M68kFact *lookup_external_runtime_address_ref_for_instruction(const
   return NULL;
 }
 
+static const AmigaOsHardwareRegisterInfo *external_runtime_address_ref_sink_register(const M68kFact *fact) {
+  const AmigaOsHardwareRegisterInfo *hardware_register;
+  const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+  if (fact == NULL || fact->target_section_index != (size_t)-1 || fact->target_offset == 0U) return NULL;
+  hardware_register = amiga_os_find_hardware_register_by_cpu_address(fact->target_offset);
+  if (hardware_register == NULL) {
+    hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(fact->target_offset);
+    if (hardware_range != NULL)
+      hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", hardware_range->offset);
+  }
+  if (hardware_register == NULL)
+    hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", fact->target_offset);
+  if (hardware_register == NULL) {
+    hardware_range = amiga_os_find_hardware_register_range_by_base_offset("_custom", fact->target_offset);
+    if (hardware_range != NULL)
+      hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", hardware_range->offset);
+  }
+  if (hardware_register == NULL ||
+      (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
+      hardware_register->runtime_target_role == NULL || hardware_register->runtime_target_role[0] == '\0') {
+    return NULL;
+  }
+  return hardware_register;
+}
+
 static int runtime_alias_label_seen_before(const M68kRenderLookup *lookup, size_t current_index,
     size_t section_index, uint32_t offset, uint32_t runtime_address) {
   size_t index;
@@ -5368,6 +5402,20 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
     if (operand->symbol_ref.has_name != 0U) continue;
     fact = lookup_runtime_address_ref_for_operand(lookup, section_index, candidate->offset, operand_index);
     if (fact == NULL) continue;
+    if (fact->target_section_index >= lookup->section_count) {
+      const AmigaOsHardwareRegisterInfo *hardware_register;
+      uint32_t value = 0U;
+      char symbol[80];
+      if (!operand_is_immediate_value_local(operand, &value) || value != fact->runtime_address) continue;
+      hardware_register = external_runtime_address_ref_sink_register(fact);
+      if (hardware_register == NULL) continue;
+      if (!render_asm_define_runtime_address_symbol_once(preview, hardware_register->runtime_target_role,
+          fact->runtime_address, symbol, sizeof(symbol))) {
+        return 0;
+      }
+      attach_amiga_platform_symbol(operand, symbol);
+      continue;
+    }
     if (!lookup_source_has_materialized_runtime_address(lookup, fact->target_section_index, fact->target_offset,
         fact->runtime_address)) {
       record_numeric_runtime_ref(preview, fact);

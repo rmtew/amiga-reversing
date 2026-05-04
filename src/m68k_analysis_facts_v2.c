@@ -24,9 +24,12 @@
 
 typedef struct M68kFactsV2TraceValue {
   uint8_t kind;
-  uint8_t reserved[3];
+  uint8_t has_origin;
+  uint16_t origin_operand_index;
   size_t section_index;
   uint32_t value;
+  size_t origin_section_index;
+  uint32_t origin_offset;
   uint32_t target_count;
   uint32_t targets[M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT];
 } M68kFactsV2TraceValue;
@@ -124,7 +127,8 @@ static int append_violation_fact_with_reason(M68kFactIR *facts, size_t section_i
 static int append_runtime_address_ref_fact(M68kFactIR *facts, size_t section_index, uint32_t source_offset,
   size_t operand_index, uint32_t target_offset, uint32_t runtime_address, uint8_t confidence);
 static int append_external_runtime_address_ref_fact(M68kFactIR *facts, size_t section_index,
-  uint32_t source_offset, size_t operand_index, uint32_t runtime_address, uint8_t confidence);
+  uint32_t source_offset, size_t operand_index, uint32_t runtime_address, uint32_t sink_address,
+  uint8_t confidence);
 static int append_relocation_anchor_fact(M68kFactIR *facts, const M68kFixup *fixup,
   const M68kFactsV2RelocationFailure *anchor);
 static int enqueue_code_start_runtime(M68kFactIR *facts, M68kFactsV2WorkQueue *queue,
@@ -1234,6 +1238,16 @@ static void trace_value_set_runtime_address(M68kFactsV2TraceValue *value, uint32
   value->value = address;
 }
 
+static void trace_value_set_runtime_address_with_origin(M68kFactsV2TraceValue *value, uint32_t address,
+    size_t section_index, uint32_t offset, size_t operand_index) {
+  trace_value_set_runtime_address(value, address);
+  if (value == NULL || operand_index > UINT16_MAX) return;
+  value->has_origin = 1U;
+  value->origin_section_index = section_index;
+  value->origin_offset = offset;
+  value->origin_operand_index = (uint16_t)operand_index;
+}
+
 static void trace_value_set_target_set(M68kFactsV2TraceValue *value, size_t section_index,
     const uint32_t *targets, uint32_t target_count) {
   uint32_t index;
@@ -1444,8 +1458,15 @@ static int trace_state_record_runtime_sink_ref(const M68kRuntimeAddressSpace *ru
     if (value->kind == M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS ||
         value->kind == M68K_FACTS_V2_TRACE_CONSTANT) {
       ref_result = append_external_runtime_address_ref_fact(facts, section_index, candidate->offset,
-        M68K_FACT_RUNTIME_ADDRESS_REF_NO_OPERAND, value->value, M68K_FACT_CONFIDENCE_TOOL_INFERRED);
+        M68K_FACT_RUNTIME_ADDRESS_REF_NO_OPERAND, value->value, sink_address,
+        M68K_FACT_CONFIDENCE_TOOL_INFERRED);
       if (ref_result < 0) return -1;
+      if (value->has_origin) {
+        ref_result = append_external_runtime_address_ref_fact(facts, value->origin_section_index,
+          value->origin_offset, value->origin_operand_index, value->value, sink_address,
+          M68K_FACT_CONFIDENCE_TOOL_INFERRED);
+        if (ref_result < 0) return -1;
+      }
     }
     return 0;
   }
@@ -1496,7 +1517,7 @@ static int trace_value_from_candidate_source(size_t section_index, const M68kDec
   }
   if (operand_immediate_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
       &value)) {
-    trace_value_set_runtime_address(out_value, value);
+    trace_value_set_runtime_address_with_origin(out_value, value, section_index, candidate->offset, operand_index);
     return 1;
   }
   return 0;
@@ -2031,7 +2052,8 @@ static int append_runtime_address_ref_fact(M68kFactIR *facts, size_t section_ind
 }
 
 static int append_external_runtime_address_ref_fact(M68kFactIR *facts, size_t section_index,
-    uint32_t source_offset, size_t operand_index, uint32_t runtime_address, uint8_t confidence) {
+    uint32_t source_offset, size_t operand_index, uint32_t runtime_address, uint32_t sink_address,
+    uint8_t confidence) {
   M68kFact fact;
   size_t fact_index;
   if (facts == NULL || operand_index > UINT32_MAX) return -1;
@@ -2040,7 +2062,7 @@ static int append_external_runtime_address_ref_fact(M68kFactIR *facts, size_t se
     if (existing->kind == M68K_FACT_RUNTIME_ADDRESS_REF && existing->section_index == section_index &&
         existing->offset == source_offset && existing->reason == (uint32_t)operand_index &&
         existing->target_section_index == (size_t)-1 && existing->has_runtime_address &&
-        existing->runtime_address == runtime_address) {
+        existing->runtime_address == runtime_address && existing->target_offset == sink_address) {
       return 0;
     }
   }
@@ -2053,6 +2075,7 @@ static int append_external_runtime_address_ref_fact(M68kFactIR *facts, size_t se
   fact.has_runtime_address = 1U;
   fact.runtime_address = runtime_address;
   fact.target_section_index = (size_t)-1;
+  fact.target_offset = sink_address;
   return m68k_fact_ir_append(facts, &fact) == 0 ? 1 : -1;
 }
 
@@ -2290,8 +2313,10 @@ static int append_runtime_address_refs_for_accepted(const M68kDecodeIR *decode, 
         if (!runtime_address_space_translate(runtime_addresses, section_index, runtime_address, section->size,
             &target_offset)) {
           if (candidate_operand_feeds_runtime_address_sink(candidate, operand_index, platform_kind)) {
+            uint32_t sink_address = 0U;
+            (void)operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &sink_address);
             ref_result = append_external_runtime_address_ref_fact(facts, section_index, candidate->offset,
-              operand_index, runtime_address, M68K_FACT_CONFIDENCE_TOOL_INFERRED);
+              operand_index, runtime_address, sink_address, M68K_FACT_CONFIDENCE_TOOL_INFERRED);
             if (ref_result < 0) return -1;
           }
           continue;

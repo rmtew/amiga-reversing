@@ -3442,6 +3442,8 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "\tadda.w loc_0_00008938(pc,d0.w),a0\n" in source_text
     assert "\tmove.w loc_0_0000893A(pc,d0.w),d0\n" in source_text
     assert "\tmove.l a1,_custom+dskpt.l\t; disk_buffer pointer $00067D00\n" in source_text
+    assert "disk_buffer_00067D00\tEQU\t$67D00\n" in source_text
+    assert "\tmove.l #disk_buffer_00067D00,loc_0_00008D36.l\n" in source_text
     assert (
         "\tmove.w #(4<<PLNCNTSHFT)|COLORON,_custom+bplcon0.l\t"
         "; display 4 bitplanes lores color\n"

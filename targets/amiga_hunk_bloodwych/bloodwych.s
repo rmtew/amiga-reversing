@@ -42,6 +42,7 @@ _ciaa	EQU	$BFE001
 DMAF_CLRALL	EQU	$7FFF
     INCLUDE "hardware/dmabits.i"
     INCLUDE "hardware/intbits.i"
+disk_buffer_00067D00	EQU	$67D00
     INCLUDE "hardware/adkbits.i"
 _ciab	EQU	$BFD000
 bitmap_00070000	EQU	$70000
@@ -274,7 +275,7 @@ loc_0_00000790:
 	bne.b loc_0_00000790
 	move.w #$FFFF,loc_0_0000EE30.l
 loc_0_000007C0:
-	move.l #$67D00,loc_0_00008D36.l
+	move.l #disk_buffer_00067D00,loc_0_00008D36.l
 	move.l #$60000,loc_0_00008D3A.l
 	jsr loc_0_00008DA8.l
 	movea.l loc_0_00008D36.l,a0
@@ -4680,7 +4681,7 @@ loc_0_0000430A:
 loc_0_0000432A:
 	move.l loc_0_0000EE36.l,-(a7)
 	clr.w loc_0_00008C1E.l
-	move.l #$67D00,loc_0_00008D36.l
+	move.l #disk_buffer_00067D00,loc_0_00008D36.l
 	move.l #$60000,loc_0_00008D3A.l
 	lea.l loc_0_0000EE7C.l,a5
 	lea.l loc_0_000044C4.l,a6
