@@ -696,6 +696,70 @@ def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
     )
 
 
+def test_facts_v2_traces_predecrement_copied_entry_source(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    source = (
+        "    SECTION section,code\n"
+        "    lea.l payload_end(pc),a0\n"
+        "    lea.l -$80(a7),a1\n"
+        "    move.w #3,d0\n"
+        "copy_loop:\n"
+        "    move.b -(a0),-(a1)\n"
+        "    dbf.w d0,copy_loop\n"
+        "    jmp (a1)\n"
+        "    dc.b \"skip\"\n"
+        "payload:\n"
+        "    moveq.l #2,d0\n"
+        "    rts\n"
+        "payload_end:\n"
+    )
+    rebuilt, _ = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source,
+        project_root=PROJECT_ROOT,
+    )
+    path = tmp_path / "predecrement_stub.hunk"
+    path.write_bytes(rebuilt)
+
+    combined = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_listing_rows_with_analysis_and_text_path_json_alloc",
+            "amiga-hunk",
+            str(path),
+            "",
+            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
+            project_root=PROJECT_ROOT,
+        )
+    )
+
+    source_text = combined["source_text"]
+    sites = combined["analysis"]["sections"][0]["recovered_indirect_sites"]
+    payload_rows = [
+        row
+        for row in combined["listing"]["rows"]
+        if row.get("section_index") == 0 and row.get("start_offset") == 0x18
+    ]
+
+    assert "\tdc.b $73,$6B,$69,$70\nloc_0_00000018:\n\tmoveq.l #2,d0\n\trts\n" in source_text
+    assert not any(site["status"] == "unresolved" for site in sites)
+    assert sites == [
+        {
+            "offset": 0x12,
+            "flow": "jump",
+            "shape": "ind",
+            "status": "backward_slice",
+            "detail": "accepted traced indirect control target",
+            "target": 0x18,
+            "target_count": 1,
+        }
+    ]
+    assert any(
+        ref.get("reason_name") == "control_target" and ref.get("source_offset") == 0x12
+        for row in payload_rows
+        for ref in row.get("code_start_refs", [])
+    )
+
+
 def test_facts_v2_listing_rejects_invalid_platform_metadata(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     path = tmp_path / "sample.exe"
@@ -3624,6 +3688,51 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -
         "\tlea.l $0007FFFF.l,a2\n"
     ) in source_text
     assert "loc_2_0000006A:\n\tdc.b $7E,$AD,$41,$F9" not in source_text
+
+
+def test_real_dll_carrier_predecrement_copied_entry_promotes_loader_code() -> None:
+    _requires_c_backend_dlls()
+
+    combined = _facts_v2_listing_analysis_for_project(
+        "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_carrier_91b0ba24"
+    )
+    section = combined["analysis"]["sections"][0]
+    sites_by_offset = {site["offset"]: site for site in section["recovered_indirect_sites"]}
+    rows = combined["listing"]["rows"]
+
+    assert sites_by_offset[0x360]["status"] == "backward_slice"
+    assert sites_by_offset[0x360]["target"] == 0x362
+    assert any(
+        row.get("kind") == "instruction"
+        and row.get("start_offset") == 0x362
+        and row.get("text") == "\tlea.l $00077400.l,a1\n"
+        for row in rows
+    )
+    assert not any(
+        row.get("kind") == "data" and row.get("start_offset") == 0x362
+        for row in rows
+    )
+
+
+def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
+    _requires_c_backend_dlls()
+
+    paths = resolve_project_paths(
+        "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
+        project_root=PROJECT_ROOT,
+        require_entities=False,
+    )
+    source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "\tmove.l d0,loc_0_0000004E.l\n" in source_text
+    assert "\tmove.l d0,loc_0_00000052.l\n" in source_text
+    assert "\tmove.l loc_0_0000004E.l,d1\n" in source_text
+    assert source_text.count("h0dl_DOSBase:") == 1
 
 
 def test_real_dll_starglider_loader_file_handle_slot_stays_untyped() -> None:

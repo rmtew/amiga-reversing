@@ -25,11 +25,11 @@ loc_0_00000000:
 	move.l d0,h0dl_DOSBase.l
 	movea.l d0,a6
 	jsr _LVOOutput(a6)
-	move.l d0,h0dl_DOSBase.l
+	move.l d0,loc_0_0000004E.l
 	jsr _LVOInput(a6)
-	move.l d0,h0dl_DOSBase.l
+	move.l d0,loc_0_00000052.l
 	movea.l h0dl_DOSBase.l,a6
-	move.l h0dl_DOSBase.l,d1
+	move.l loc_0_0000004E.l,d1
 	lea.l loc_0_00000066(pc),a0
 	move.l a0,d2
 	moveq.l #98,d3
@@ -38,9 +38,9 @@ loc_0_00000042:
 	btst.b #CIAB_GAMEPORT0,_ciaa+ciapra.l
 	bne.b loc_0_00000042
 	bra.b loc_0_000000C8
-h0dl_DOSBase:
+loc_0_0000004E:
 	dc.b $00,$00,$00,$00
-h0dl_DOSBase:
+loc_0_00000052:
 	dc.b $00,$00,$00,$00
 h0dl_DOSBase:
 	dc.b $00,$00,$00,$00

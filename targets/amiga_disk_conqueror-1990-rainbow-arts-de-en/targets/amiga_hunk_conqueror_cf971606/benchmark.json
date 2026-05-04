@@ -2,28 +2,28 @@
   "target": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
   "binary": "bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf::CONQUEROR",
   "command": "uv run amiga-benchmark-target amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
-  "measured_at": "2026-05-05T05:29:22+12:00",
+  "measured_at": "2026-05-05T07:53:06+12:00",
   "status": "ok",
   "elapsed_seconds": 0.02,
-  "benchmark_bytes": 6074,
+  "benchmark_bytes": 6076,
   "entities_bytes": 0,
-  "disasm_bytes": 19812,
+  "disasm_bytes": 19822,
   "benchmark_version": 1,
   "platform": "amiga-hunk",
   "timing": {
     "total_seconds": 0.008,
     "decode_seconds": 0.0,
     "seed_seconds": 0.0,
-    "fixed_point_seconds": 0.002,
-    "render_ir_seconds": 0.006,
+    "fixed_point_seconds": 0.001,
+    "render_ir_seconds": 0.007,
     "source_render_seconds": 0.0,
-    "analysis_seconds": 0.002,
-    "ir_build_seconds": 0.006,
+    "analysis_seconds": 0.001,
+    "ir_build_seconds": 0.007,
     "render_seconds": 0.0
   },
   "file": null,
   "analysis": {
-    "recovered_platform_base_slot_count": 7,
+    "recovered_platform_base_slot_count": 5,
     "recovered_platform_call_count": 5,
     "recovered_platform_effect_count": 9
   },
@@ -37,7 +37,7 @@
     "instruction_statement_count": 126,
     "data_statement_count": 11,
     "symbolic_instruction_count": 126,
-    "text_bytes": 19391
+    "text_bytes": 19401
   },
   "sections": null,
   "entities": {
@@ -54,8 +54,8 @@
   "facts_v2": {
     "decode_seconds": 0.0,
     "seed_seconds": 0.0,
-    "fixed_point_seconds": 0.002,
-    "fixed_point_reachable_seconds": 0.002,
+    "fixed_point_seconds": 0.001,
+    "fixed_point_reachable_seconds": 0.001,
     "fixed_point_reachable_decode_seconds": 0.0,
     "fixed_point_reachable_validate_seconds": 0.0,
     "fixed_point_reachable_accept_seconds": 0.0,
@@ -72,8 +72,8 @@
     "fixed_point_required_label_materialize_seconds": 0.0,
     "fixed_point_data_span_seconds": 0.0,
     "fixed_point_invariant_seconds": 0.0,
-    "render_ir_seconds": 0.006,
-    "render_ir_lookup_seconds": 0.0,
+    "render_ir_seconds": 0.007,
+    "render_ir_lookup_seconds": 0.001,
     "render_ir_platform_pass_seconds": 0.002,
     "render_ir_platform_base_slot_seconds": 0.0,
     "render_ir_platform_call_summary_seconds": 0.0,
@@ -84,7 +84,7 @@
     "render_ir_platform_hardware_data_seconds": 0.0,
     "render_ir_platform_generic_data_seconds": 0.0,
     "render_ir_header_seconds": 0.0,
-    "render_ir_walk_seconds": 0.003,
+    "render_ir_walk_seconds": 0.004,
     "render_ir_footer_seconds": 0.0,
     "source_render_seconds": 0.0,
     "decoded_candidates": 126,
@@ -157,7 +157,7 @@
     "preview_source_hash": "14650fb0739d0383",
     "asm_source_enabled": true,
     "asm_source_refused": false,
-    "asm_source_bytes": 19391,
+    "asm_source_bytes": 19401,
     "asm_source_lines": 421,
     "asm_source_relocation_exprs": 0,
     "asm_source_symbolic_instructions": 126,
@@ -167,7 +167,7 @@
     "asm_source_first_numeric_runtime_ref_target_section": 0,
     "asm_source_first_numeric_runtime_ref_target_offset": 0,
     "asm_source_first_numeric_runtime_ref_runtime_address": 0,
-    "platform_base_slot_count": 7,
+    "platform_base_slot_count": 5,
     "platform_call_count": 5,
     "platform_effect_count": 9,
     "asm_source_lossy_numeric_hunk_relocations": 0,
@@ -181,6 +181,6 @@
     "asm_source_first_failure_section": 0,
     "asm_source_first_failure_offset": 0,
     "asm_source_first_failure_aux_offset": 0,
-    "asm_source_hash": "65ac0e5377f16b72"
+    "asm_source_hash": "87c5e982a3142f15"
   }
 }
