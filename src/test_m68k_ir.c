@@ -3135,6 +3135,49 @@ static int test_facts_v2_resolved_platform_call_not_unresolved_indirect_site(voi
   return 0;
 }
 
+static int test_facts_v2_open_library_d0_movea_promotes_a6_base(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[] = {
+    0x2cu, 0x78u, 0x00u, 0x04u,
+    0x43u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x16u,
+    0x4eu, 0xaeu, 0xfeu, 0x68u,
+    0x2cu, 0x40u,
+    0x4eu, 0xaeu, 0xffu, 0xc4u,
+    0x4eu, 0x75u,
+    'd', 'o', 's', '.', 'l', 'i', 'b', 'r', 'a', 'r', 'y', 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr _LVOOldOpenLibrary(a6)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l d0,a6\n\tjsr _LVOOutput(a6)\n") != NULL);
+  M68K_C_ASSERT_U32(2U, (uint32_t)source_analysis.sections[0].recovered_platform_call_count);
+  M68K_C_ASSERT_U32(0U, (uint32_t)source_analysis.sections[0].recovered_indirect_site_count);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_stack_stored_callback_vector_promotes_target(void) {
   M68kObject object;
   M68kSection section;
@@ -11091,6 +11134,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_records_unresolved_indirect_jump_site},
     {"facts_v2_resolved_platform_call_not_unresolved_indirect_site",
       test_facts_v2_resolved_platform_call_not_unresolved_indirect_site},
+    {"facts_v2_open_library_d0_movea_promotes_a6_base",
+      test_facts_v2_open_library_d0_movea_promotes_a6_base},
     {"facts_v2_stack_stored_callback_vector_promotes_target",
       test_facts_v2_stack_stored_callback_vector_promotes_target},
     {"facts_v2_traced_indirect_jump_promotes_long_table_targets",

@@ -79,16 +79,29 @@ def _amiga_hunk_section_hexes(path: Path) -> list[str]:
 
 def _facts_v2_listing_analysis_for_project(target_name: str) -> dict[str, object]:
     paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
-    include_dir = PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"
     with effective_metadata_file(paths.target_dir) as metadata_path:
-        combined_text = c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
-            "amiga-hunk",
-            str(paths.binary_source.path),
-            str(metadata_path) if metadata_path is not None else "",
-            str(include_dir),
-            project_root=PROJECT_ROOT,
-        )
+        metadata_text = str(metadata_path) if metadata_path is not None else ""
+        with c_backend._source_file_for_c_backend(paths.binary_source, project_root=PROJECT_ROOT) as source_file:
+            include_dir = c_backend._platform_include_dir_for_listing(source_file.platform_name, PROJECT_ROOT)
+            if source_file.entry_offset is None:
+                combined_text = c_backend._platform_file_text(
+                    "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
+                    source_file.platform_name,
+                    str(source_file.path),
+                    metadata_text,
+                    str(include_dir),
+                    project_root=PROJECT_ROOT,
+                )
+            else:
+                combined_text = c_backend._platform_file_text(
+                    "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
+                    source_file.platform_name,
+                    str(source_file.path),
+                    source_file.entry_offset,
+                    metadata_text,
+                    str(include_dir),
+                    project_root=PROJECT_ROOT,
+                )
     payload = json.loads(combined_text)
     assert isinstance(payload, dict)
     return payload
@@ -3516,6 +3529,37 @@ def test_real_dll_platform_calls_are_not_unresolved_indirect_sites() -> None:
                 if site["status"] == "unresolved"
             }
             assert unresolved_indirect_offsets.isdisjoint(platform_call_offsets)
+
+
+def test_real_dll_openlibrary_d0_to_a6_resolves_followup_calls() -> None:
+    _requires_c_backend_dlls()
+
+    cases = {
+        "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606": {
+            0x16: "_LVOOutput",
+            0x20: "_LVOInput",
+        },
+        "amiga_disk_starglider-1987-rainbird__amiga_hunk_sgload_ee6b361e": {
+            0x24: "_LVOOpen",
+            0x42: "_LVOWrite",
+        },
+    }
+    for target_name, expected_calls in cases.items():
+        combined = _facts_v2_listing_analysis_for_project(target_name)
+        calls_by_offset = {
+            call["offset"]: call["symbol_name"]
+            for section in combined["analysis"]["sections"]
+            for call in section["recovered_platform_calls"]
+        }
+        unresolved_offsets = {
+            site["offset"]
+            for section in combined["analysis"]["sections"]
+            for site in section["recovered_indirect_sites"]
+            if site["status"] == "unresolved"
+        }
+        for offset, symbol_name in expected_calls.items():
+            assert calls_by_offset[offset] == symbol_name
+            assert offset not in unresolved_offsets
 
 
 def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> None:

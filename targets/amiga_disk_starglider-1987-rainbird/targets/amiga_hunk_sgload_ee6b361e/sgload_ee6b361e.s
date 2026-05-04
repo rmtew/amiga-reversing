@@ -19,8 +19,8 @@ loc_0_00000000:
 	move.l d0,h0dl_DOSBase.l
 	movea.l d0,a6
 	move.l #loc_0_00000310,d1
-	move.l #$3ED,d2
-	jsr -$001E(a6)
+	move.l #MODE_OLDFILE,d2
+	jsr _LVOOpen(a6)
 	move.l d0,h0dl_DOSBase.l
 	move.l d0,d1
 	move.l #loc_0_0000034D,d2

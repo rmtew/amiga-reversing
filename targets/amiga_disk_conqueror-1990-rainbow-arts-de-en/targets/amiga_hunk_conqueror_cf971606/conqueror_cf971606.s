@@ -24,9 +24,9 @@ loc_0_00000000:
 	jsr _LVOOldOpenLibrary(a6)
 	move.l d0,h0dl_DOSBase.l
 	movea.l d0,a6
-	jsr -$003C(a6)
+	jsr _LVOOutput(a6)
 	move.l d0,h0dl_DOSBase.l
-	jsr -$0036(a6)
+	jsr _LVOInput(a6)
 	move.l d0,h0dl_DOSBase.l
 	movea.l h0dl_DOSBase.l,a6
 	move.l h0dl_DOSBase.l,d1

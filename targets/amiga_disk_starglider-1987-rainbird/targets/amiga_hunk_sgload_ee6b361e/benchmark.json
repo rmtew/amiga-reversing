@@ -2,30 +2,30 @@
   "target": "amiga_disk_starglider-1987-rainbird__amiga_hunk_sgload_ee6b361e",
   "binary": "bin/Starglider (1987)(Rainbird).adf::SGload",
   "command": "uv run amiga-benchmark-target amiga_disk_starglider-1987-rainbird__amiga_hunk_sgload_ee6b361e",
-  "measured_at": "2026-05-05T05:15:37+12:00",
+  "measured_at": "2026-05-05T05:29:22+12:00",
   "status": "ok",
   "elapsed_seconds": 0.02,
-  "benchmark_bytes": 6050,
+  "benchmark_bytes": 6056,
   "entities_bytes": 0,
-  "disasm_bytes": 7710,
+  "disasm_bytes": 7720,
   "benchmark_version": 1,
   "platform": "amiga-hunk",
   "timing": {
     "total_seconds": 0.01,
     "decode_seconds": 0.0,
     "seed_seconds": 0.0,
-    "fixed_point_seconds": 0.002,
+    "fixed_point_seconds": 0.001,
     "render_ir_seconds": 0.008,
     "source_render_seconds": 0.0,
-    "analysis_seconds": 0.002,
+    "analysis_seconds": 0.001,
     "ir_build_seconds": 0.008,
     "render_seconds": 0.0
   },
   "file": null,
   "analysis": {
     "recovered_platform_base_slot_count": 2,
-    "recovered_platform_call_count": 9,
-    "recovered_platform_effect_count": 24
+    "recovered_platform_call_count": 10,
+    "recovered_platform_effect_count": 27
   },
   "render": {
     "symbol_ref_count": 0,
@@ -37,7 +37,7 @@
     "instruction_statement_count": 128,
     "data_statement_count": 19,
     "symbolic_instruction_count": 128,
-    "text_bytes": 7474
+    "text_bytes": 7484
   },
   "sections": null,
   "entities": {
@@ -54,8 +54,8 @@
   "facts_v2": {
     "decode_seconds": 0.0,
     "seed_seconds": 0.0,
-    "fixed_point_seconds": 0.002,
-    "fixed_point_reachable_seconds": 0.002,
+    "fixed_point_seconds": 0.001,
+    "fixed_point_reachable_seconds": 0.001,
     "fixed_point_reachable_decode_seconds": 0.0,
     "fixed_point_reachable_validate_seconds": 0.0,
     "fixed_point_reachable_accept_seconds": 0.0,
@@ -74,17 +74,17 @@
     "fixed_point_invariant_seconds": 0.0,
     "render_ir_seconds": 0.008,
     "render_ir_lookup_seconds": 0.0,
-    "render_ir_platform_pass_seconds": 0.003,
+    "render_ir_platform_pass_seconds": 0.004,
     "render_ir_platform_base_slot_seconds": 0.0,
-    "render_ir_platform_call_summary_seconds": 0.0,
-    "render_ir_platform_typed_ref_seconds": 0.003,
+    "render_ir_platform_call_summary_seconds": 0.001,
+    "render_ir_platform_typed_ref_seconds": 0.002,
     "render_ir_platform_call_comment_seconds": 0.0,
     "render_ir_platform_app_slot_seconds": 0.0,
     "render_ir_platform_runtime_data_seconds": 0.0,
     "render_ir_platform_hardware_data_seconds": 0.0,
-    "render_ir_platform_generic_data_seconds": 0.0,
+    "render_ir_platform_generic_data_seconds": 0.001,
     "render_ir_header_seconds": 0.0,
-    "render_ir_walk_seconds": 0.005,
+    "render_ir_walk_seconds": 0.004,
     "render_ir_footer_seconds": 0.0,
     "source_render_seconds": 0.0,
     "decoded_candidates": 128,
@@ -157,7 +157,7 @@
     "preview_source_hash": "14650fb0739d0383",
     "asm_source_enabled": true,
     "asm_source_refused": false,
-    "asm_source_bytes": 7474,
+    "asm_source_bytes": 7484,
     "asm_source_lines": 236,
     "asm_source_relocation_exprs": 1,
     "asm_source_symbolic_instructions": 128,
@@ -168,8 +168,8 @@
     "asm_source_first_numeric_runtime_ref_target_offset": 0,
     "asm_source_first_numeric_runtime_ref_runtime_address": 0,
     "platform_base_slot_count": 2,
-    "platform_call_count": 9,
-    "platform_effect_count": 24,
+    "platform_call_count": 10,
+    "platform_effect_count": 27,
     "asm_source_lossy_numeric_hunk_relocations": 0,
     "asm_source_instruction_render_failures": 0,
     "asm_source_instruction_byte_mismatches": 0,
@@ -181,6 +181,6 @@
     "asm_source_first_failure_section": 0,
     "asm_source_first_failure_offset": 0,
     "asm_source_first_failure_aux_offset": 0,
-    "asm_source_hash": "cb302d49c43fdf22"
+    "asm_source_hash": "a167423572c6b6ac"
   }
 }

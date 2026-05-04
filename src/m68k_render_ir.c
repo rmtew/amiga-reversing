@@ -2556,9 +2556,9 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
   platform_state_update_library_slots_after_instruction(state, instruction);
   if (instruction->operand_count >= 2U && operand_is_address_register_local(&instruction->operands[1], 6U)) {
     uint32_t absolute_offset = 0U;
-    const char *library_name = instruction->operands[0].symbol_ref.has_name
-      ? amiga_library_name_from_base_symbol_name(instruction->operands[0].symbol_ref.name)
-      : NULL;
+    const char *library_name = platform_state_operand_library(state, &instruction->operands[0]);
+    if (library_name == NULL && instruction->operands[0].symbol_ref.has_name)
+      library_name = amiga_library_name_from_base_symbol_name(instruction->operands[0].symbol_ref.name);
     if (library_name == NULL && instruction->operands[0].symbol_ref.has_section &&
         operand_absolute_offset_local(&instruction->operands[0], &absolute_offset)) {
       library_name = lookup_global_base_slot_library(lookup, instruction->operands[0].symbol_ref.section_index,
