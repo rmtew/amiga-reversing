@@ -964,6 +964,65 @@ int m68k_ir_section_analysis_append_runtime_view(M68kSectionAnalysisIR *section_
   return 0;
 }
 
+int m68k_ir_section_analysis_append_runtime_address_ref(M68kSectionAnalysisIR *section_analysis,
+    const M68kRuntimeAddressRefIR *runtime_address_ref) {
+  size_t index;
+  M68kRuntimeAddressRefIR copy;
+  if (section_analysis == NULL || runtime_address_ref == NULL) return -1;
+  if (section_analysis->arena == NULL) return -1;
+  for (index = 0; index < section_analysis->runtime_address_ref_count; ++index) {
+    const M68kRuntimeAddressRefIR *existing = &section_analysis->runtime_address_refs[index];
+    if (existing->offset == runtime_address_ref->offset &&
+        existing->operand_index == runtime_address_ref->operand_index &&
+        existing->has_target == runtime_address_ref->has_target &&
+        existing->target_section_index == runtime_address_ref->target_section_index &&
+        existing->target_offset == runtime_address_ref->target_offset &&
+        existing->has_runtime_address == runtime_address_ref->has_runtime_address &&
+        existing->runtime_address == runtime_address_ref->runtime_address &&
+        existing->size == runtime_address_ref->size) {
+      return 0;
+    }
+  }
+  copy = *runtime_address_ref;
+  copy.data_class = NULL;
+  if (runtime_address_ref->data_class != NULL) {
+    copy.data_class = arena_strdup(section_analysis->arena, runtime_address_ref->data_class);
+    if (copy.data_class == NULL) return -1;
+  }
+  section_analysis->runtime_address_refs = (M68kRuntimeAddressRefIR *)arena_grow_array(section_analysis->arena,
+    section_analysis->runtime_address_refs, section_analysis->runtime_address_ref_count,
+    &section_analysis->runtime_address_ref_capacity, 8U, sizeof(*section_analysis->runtime_address_refs));
+  if (section_analysis->runtime_address_refs == NULL) return -1;
+  section_analysis->runtime_address_refs[section_analysis->runtime_address_ref_count] = copy;
+  section_analysis->runtime_address_ref_count += 1U;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *section_analysis,
+    const M68kCodeStartRefIR *code_start_ref) {
+  size_t index;
+  if (section_analysis == NULL || code_start_ref == NULL) return -1;
+  if (section_analysis->arena == NULL) return -1;
+  for (index = 0; index < section_analysis->code_start_ref_count; ++index) {
+    const M68kCodeStartRefIR *existing = &section_analysis->code_start_refs[index];
+    if (existing->offset == code_start_ref->offset &&
+        existing->reason == code_start_ref->reason &&
+        existing->source_section_index == code_start_ref->source_section_index &&
+        existing->source_offset == code_start_ref->source_offset &&
+        existing->has_runtime_address == code_start_ref->has_runtime_address &&
+        existing->runtime_address == code_start_ref->runtime_address) {
+      return 0;
+    }
+  }
+  section_analysis->code_start_refs = (M68kCodeStartRefIR *)arena_grow_array(section_analysis->arena,
+    section_analysis->code_start_refs, section_analysis->code_start_ref_count,
+    &section_analysis->code_start_ref_capacity, 8U, sizeof(*section_analysis->code_start_refs));
+  if (section_analysis->code_start_refs == NULL) return -1;
+  section_analysis->code_start_refs[section_analysis->code_start_ref_count] = *code_start_ref;
+  section_analysis->code_start_ref_count += 1U;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_recovered_platform_base_slot(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, int16_t displacement, const char *base_name) {
   size_t index;
@@ -1785,6 +1844,20 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   }
   for (index = 0; index < section_analysis->runtime_view_count; ++index) {
     if (m68k_ir_section_analysis_append_runtime_view(&copy, &section_analysis->runtime_views[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->runtime_address_ref_count; ++index) {
+    if (m68k_ir_section_analysis_append_runtime_address_ref(&copy,
+          &section_analysis->runtime_address_refs[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->code_start_ref_count; ++index) {
+    if (m68k_ir_section_analysis_append_code_start_ref(&copy,
+          &section_analysis->code_start_refs[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

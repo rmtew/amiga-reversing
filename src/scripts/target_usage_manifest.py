@@ -993,6 +993,9 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
             text, copper_row=bool(data_class == "copper_list")
         ):
             bag.add(feature, example=example)
+        comment_text = _string_value(row.get("comment_text")) or ""
+        if "bitmap memory plane" in comment_text:
+            bag.add("display:bitmap_memory_use", example=example)
         for operand in _dict_items(row.get("operand_parts")):
             segment_addr = _int_value(operand.get("segment_addr"))
             if segment_addr is not None:
@@ -1016,6 +1019,17 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
             access = _string_value(app_ref.get("access")) or "unknown"
             bag.add("app_slot:any", example=example)
             bag.add(f"app_slot:{_safe_part(access)}", example=example)
+        for runtime_ref in _dict_items(row.get("runtime_address_refs")):
+            runtime_class = _string_value(runtime_ref.get("data_class"))
+            runtime_address = _int_value(runtime_ref.get("runtime_address"))
+            runtime_example = dict(example)
+            if runtime_address is not None:
+                runtime_example["runtime_address"] = runtime_address
+            if runtime_class:
+                bag.add(f"data:{_safe_part(runtime_class)}", example=runtime_example)
+                bag.add("runtime:external_data_ref", example=runtime_example)
+                if runtime_class == "bitmap":
+                    bag.add("display:bitmap_memory", example=runtime_example)
         for access in _dict_items(row.get("typed_accesses")):
             _add_platform_typed_access_features(bag, access, example=example)
         for access in _dict_items(row.get("unresolved_typed_accesses")):
@@ -1903,6 +1917,9 @@ def _listing_xrefs(row: dict[str, object], listing: dict[str, Any]) -> list[dict
             text, copper_row=bool(data_class == "copper_list")
         ):
             xrefs.append(_xref(row, feature, "display_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, text=text.strip()))
+        comment_text = _string_value(listing_row.get("comment_text")) or ""
+        if "bitmap memory plane" in comment_text:
+            xrefs.append(_xref(row, "display:bitmap_memory_use", "display_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, text=text.strip()))
         for operand in _dict_items(listing_row.get("operand_parts")):
             operand_text = _string_value(operand.get("text")) or text.strip()
             segment_addr = _int_value(operand.get("segment_addr"))
@@ -1929,6 +1946,14 @@ def _listing_xrefs(row: dict[str, object], listing: dict[str, Any]) -> list[dict
             displacement = _int_value(app_ref.get("displacement"))
             xrefs.append(_xref(row, "app_slot:any", "app_slot_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, access=access, value=displacement, text=text.strip()))
             xrefs.append(_xref(row, f"app_slot:{_safe_part(access)}", "app_slot_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, access=access, value=displacement, text=text.strip()))
+        for runtime_ref in _dict_items(listing_row.get("runtime_address_refs")):
+            runtime_class = _string_value(runtime_ref.get("data_class"))
+            runtime_address = _int_value(runtime_ref.get("runtime_address"))
+            if runtime_class:
+                xrefs.append(_xref(row, f"data:{_safe_part(runtime_class)}", "runtime_data_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=runtime_class, value=runtime_address, text=text.strip()))
+                xrefs.append(_xref(row, "runtime:external_data_ref", "runtime_data_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=runtime_class, value=runtime_address, text=text.strip()))
+                if runtime_class == "bitmap":
+                    xrefs.append(_xref(row, "display:bitmap_memory", "display_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=runtime_class, value=runtime_address, text=text.strip()))
         for access in _dict_items(listing_row.get("typed_accesses")):
             xrefs.extend(
                 _platform_typed_access_xrefs(

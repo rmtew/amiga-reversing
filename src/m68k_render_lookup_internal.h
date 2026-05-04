@@ -128,9 +128,23 @@ typedef struct M68kRenderRuntimeAddressRef {
   const M68kFact *fact;
 } M68kRenderRuntimeAddressRef;
 
+typedef struct M68kRenderInferredRuntimeAddressRef {
+  size_t section_index;
+  M68kRuntimeAddressRefIR ref;
+  char data_class[64];
+} M68kRenderInferredRuntimeAddressRef;
+
 typedef struct M68kRenderRuntimeAddressRange {
   const M68kFact *fact;
 } M68kRenderRuntimeAddressRange;
+
+typedef struct M68kRenderCodeStartRef {
+  const M68kFact *fact;
+} M68kRenderCodeStartRef;
+
+typedef struct M68kRenderViolationRef {
+  const M68kFact *fact;
+} M68kRenderViolationRef;
 
 typedef struct M68kRenderXref {
   size_t section_index;
@@ -301,8 +315,12 @@ typedef struct M68kRenderTypedStorageSlot {
 
 typedef struct M68kRenderDataPointerValue {
   uint8_t known;
+  uint8_t exact;
+  uint8_t dynamic_offset_known;
   size_t section_index;
   uint32_t offset;
+  size_t dynamic_offset_section_index;
+  uint32_t dynamic_offset_offset;
 } M68kRenderDataPointerValue;
 
 typedef struct M68kRenderDataPointerState {
@@ -378,9 +396,18 @@ struct M68kRenderLookup {
   M68kRenderRuntimeAddressRef *runtime_address_refs;
   size_t runtime_address_ref_count;
   size_t runtime_address_ref_capacity;
+  M68kRenderInferredRuntimeAddressRef *inferred_runtime_address_refs;
+  size_t inferred_runtime_address_ref_count;
+  size_t inferred_runtime_address_ref_capacity;
   M68kRenderRuntimeAddressRange *runtime_address_ranges;
   size_t runtime_address_range_count;
   size_t runtime_address_range_capacity;
+  M68kRenderCodeStartRef *code_start_refs;
+  size_t code_start_ref_count;
+  size_t code_start_ref_capacity;
+  M68kRenderViolationRef *violation_refs;
+  size_t violation_ref_count;
+  size_t violation_ref_capacity;
   M68kRenderXref *xrefs;
   size_t xref_count;
   size_t xref_capacity;
@@ -510,6 +537,8 @@ int render_lookup_add_indexed_vector_wrapper(M68kRenderLookup *lookup, size_t se
   const char *library_name);
 int render_lookup_add_runtime_address_ref(M68kRenderLookup *lookup, const M68kFact *fact);
 int render_lookup_add_runtime_address_range(M68kRenderLookup *lookup, const M68kFact *fact);
+int render_lookup_add_code_start_ref(M68kRenderLookup *lookup, const M68kFact *fact);
+int render_lookup_add_violation_ref(M68kRenderLookup *lookup, const M68kFact *fact);
 int render_lookup_add_storage_xref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
   size_t target_section_index, uint32_t target_offset);
 int render_lookup_add_pc_relative_xrefs(M68kRenderLookup *lookup, const M68kDecodeIR *decode);
@@ -622,10 +651,11 @@ void attach_operand_label_symbol(const M68kRenderLookup *lookup, M68kInstruction
   size_t operand_index, size_t source_section_index, uint32_t source_offset, size_t target_section_index,
   uint32_t target_offset);
 int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-  uint8_t **accepted_start);
+  uint8_t **accepted_start, uint8_t **accepted_bytes);
 int m68k_analysis_render_lookup_append_auto_policy(M68kSourceAnalysisIR *source_analysis,
   M68kRenderLookup *lookup);
-int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, M68kSectionAnalysisIR *section_analysis);
+int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+  M68kSectionAnalysisIR *section_analysis);
 int instruction_operand_writes_register_from_metadata(const M68kInstructionIR *instruction,
   size_t operand_index);
 #endif

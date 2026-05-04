@@ -11,6 +11,7 @@ CORRECTIONS_PATH = ROOT / "knowledge" / "amiga_ndk_corrections.json"
 NAMING_RULES_PATH = ROOT / "knowledge" / "naming_rules.json"
 HW_SYMBOLS_PATH = ROOT / "knowledge" / "amiga_hw_symbols.json"
 HW_REGISTERS_PATH = ROOT / "knowledge" / "amiga_hw_registers.json"
+DISK_FILE_PATH = ROOT / "knowledge" / "amiga_disk_file.json"
 OUTPUT_DIR = ROOT / "src" / "generated"
 HEADER_PATH = OUTPUT_DIR / "amiga_os_runtime.h"
 SOURCE_PATH = OUTPUT_DIR / "amiga_os_runtime.c"
@@ -925,6 +926,18 @@ def hardware_register_runtime_target_role(manual_row: dict | None) -> str | None
         return None
     if "coprocessor" in function and "location" in function:
         return "copper_list"
+    if "disk pointer" in function:
+        return "disk_buffer"
+    if "blitter pointer" in function and "destination" in function:
+        return "blitter_destination"
+    if "blitter pointer" in function and "source" in function:
+        return "blitter_source"
+    if "bitplane" in function and "pointer" in function:
+        return "bitmap"
+    if "sprite" in function and "pointer" in function:
+        return "sprite"
+    if "audio channel" in function and "location" in function:
+        return "sound_sample"
     return None
 
 
@@ -1633,6 +1646,8 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
                  api_output_type_overrides: dict[tuple[str, str], dict[str, str]],
                  calling_convention_masks: dict[str, int],
                  naming_rules_payload: dict) -> None:
+    disk_payload = json.loads(DISK_FILE_PATH.read_text(encoding="utf-8"))
+    disk_constraints = disk_payload["constraints"]
     io_device_offset = struct_field_offset(includes_payload, "IO", "IO_DEVICE")
     symbol_include_rows_data = symbol_include_rows(
         includes_payload, rows, field_rows, domain_constant_rows,
@@ -1974,6 +1989,10 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         f"#define AMIGA_OS_HARDWARE_REGISTER_COUNT {len(hardware_rows)}u",
         f"#define AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT {len(hardware_field_rows)}u",
         f"#define AMIGA_OS_HARDWARE_REGISTER_RANGE_COUNT {len(hardware_range_rows)}u",
+        f"#define AMIGA_OS_DSKLEN_DMA_ENABLE_MASK {int(disk_constraints['bootloader_dsklen_dma_enable_mask'])}u",
+        f"#define AMIGA_OS_DSKLEN_WRITE_MASK {int(disk_constraints['bootloader_dsklen_write_mask'])}u",
+        f"#define AMIGA_OS_DSKLEN_LENGTH_MASK {int(disk_constraints['bootloader_dsklen_length_mask'])}u",
+        f"#define AMIGA_OS_DSKLEN_LENGTH_UNIT_BYTES {int(disk_constraints['bootloader_dsklen_length_unit_bytes'])}u",
     ])
     if io_device_offset is not None:
         lines.append(f"#define AMIGA_OS_STRUCT_IO_FIELD_IO_DEVICE_OFFSET {io_device_offset}u")

@@ -111,6 +111,30 @@ class AppSlotRef:
 
 
 @dataclass(frozen=True, slots=True)
+class RuntimeAddressRef:
+    offset: int
+    operand_index: int | None
+    target_section_index: int | None
+    target_offset: int | None
+    runtime_address: int | None
+    confidence: int
+    data_class: str | None = None
+    size: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class CodeStartRef:
+    offset: int
+    reason: int
+    reason_name: str | None
+    confidence: int
+    source_section_index: int
+    source_offset: int
+    runtime_address: int | None
+    size: int
+
+
+@dataclass(frozen=True, slots=True)
 class PlatformTypedAccess:
     operand_index: int
     base_register: str
@@ -167,6 +191,8 @@ class ListingRow:
     operand_accesses: tuple[str, ...] = ()
     operand_registers: tuple[str | None, ...] = ()
     app_slot_refs: tuple[AppSlotRef, ...] = ()
+    runtime_address_refs: tuple[RuntimeAddressRef, ...] = ()
+    code_start_refs: tuple[CodeStartRef, ...] = ()
     typed_accesses: tuple[PlatformTypedAccess, ...] = ()
     unresolved_typed_accesses: tuple[PlatformUnresolvedTypedAccess, ...] = ()
     operand_text: str = ""

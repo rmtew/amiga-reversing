@@ -669,6 +669,32 @@ typedef struct M68kRuntimeViewIR {
   uint8_t reserved[2];
 } M68kRuntimeViewIR;
 
+typedef struct M68kRuntimeAddressRefIR {
+  uint32_t offset;
+  uint32_t operand_index;
+  uint32_t size;
+  uint8_t has_target;
+  uint8_t has_runtime_address;
+  uint8_t confidence;
+  uint8_t reserved;
+  size_t target_section_index;
+  uint32_t target_offset;
+  uint32_t runtime_address;
+  char *data_class;
+} M68kRuntimeAddressRefIR;
+
+typedef struct M68kCodeStartRefIR {
+  uint32_t offset;
+  uint32_t reason;
+  uint8_t confidence;
+  uint8_t has_runtime_address;
+  uint8_t reserved[2];
+  size_t source_section_index;
+  uint32_t source_offset;
+  uint32_t runtime_address;
+  uint32_t size;
+} M68kCodeStartRefIR;
+
 typedef struct M68kSectionAnalysisIR {
   size_t section_index;
   char *section_name;
@@ -765,6 +791,12 @@ typedef struct M68kSectionAnalysisIR {
   M68kRuntimeViewIR *runtime_views;
   size_t runtime_view_count;
   size_t runtime_view_capacity;
+  M68kRuntimeAddressRefIR *runtime_address_refs;
+  size_t runtime_address_ref_count;
+  size_t runtime_address_ref_capacity;
+  M68kCodeStartRefIR *code_start_refs;
+  size_t code_start_ref_count;
+  size_t code_start_ref_capacity;
   uint8_t recovered_direct_section_calls_indexed;
   Arena *arena;
   uint8_t owns_arena;
@@ -875,6 +907,10 @@ int m68k_ir_section_analysis_append_recovered_direct_section_call(M68kSectionAna
     uint32_t offset, size_t target_section_index, uint32_t target_offset);
 int m68k_ir_section_analysis_append_runtime_view(M68kSectionAnalysisIR *section_analysis,
     const M68kRuntimeViewIR *runtime_view);
+int m68k_ir_section_analysis_append_runtime_address_ref(M68kSectionAnalysisIR *section_analysis,
+    const M68kRuntimeAddressRefIR *runtime_address_ref);
+int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *section_analysis,
+    const M68kCodeStartRefIR *code_start_ref);
 int m68k_ir_source_analysis_create(M68kSourceAnalysisIR *source_analysis);
 void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis);
 int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis);

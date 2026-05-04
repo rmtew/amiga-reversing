@@ -939,6 +939,128 @@ static int test_decode_ir_records_pc_relative_data_target_candidate(void) {
   return 0;
 }
 
+static int test_decode_ir_records_pc_index_data_target_candidate(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  uint8_t bytes[10] = {0xd0u, 0xfbu, 0x00u, 0x06u, 0x4eu, 0x75u, 0x00u, 0x00u, 0xdeu, 0xadu};
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_decode_ir_init(&decode);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_ADDA, decode.sections[0].candidates[0].mnemonic_id);
+  M68K_C_ASSERT_INT(1, decode.sections[0].candidates[0].target_count);
+  M68K_C_ASSERT_INT(M68K_DECODE_TARGET_DATA, decode.sections[0].candidates[0].targets[0].kind);
+  M68K_C_ASSERT_INT(1, decode.sections[0].candidates[0].targets[0].has_operand);
+  M68K_C_ASSERT_U32(0U, decode.sections[0].candidates[0].targets[0].operand_index);
+  M68K_C_ASSERT_U32(8U, decode.sections[0].candidates[0].targets[0].offset);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_pc_index_data_target_auto_classifies_lookup_scalar(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  char *source = NULL;
+  uint16_t index;
+  uint8_t bytes[10] = {0xd0u, 0xfbu, 0x00u, 0x06u, 0x4eu, 0x75u, 0x00u, 0x00u, 0xdeu, 0xadu};
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tadda.w loc_0_00000008(pc,d0.w),a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000008:\n\tdc.w $DEAD\t; lookup_table\n") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 8U &&
+        strcmp(item->semantic_role, "lookup_table") == 0) {
+      auto_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32(2U, auto_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_WORDS, auto_item->kind);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_pc_index_data_target_auto_classifies_lookup_span(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  char *source = NULL;
+  uint16_t index;
+  uint8_t bytes[16] = {
+    0xd0u, 0xfbu, 0x00u, 0x06u,
+    0x60u, 0x08u,
+    0x4eu, 0x71u,
+    0x00u, 0x00u, 0xdeu, 0xadu, 0x12u, 0x34u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tadda.w loc_0_00000008(pc,d0.w),a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000008:\n\tdc.w $0000,$DEAD,$1234\t; lookup_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000000E:\n\trts\n") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 8U &&
+        strcmp(item->semantic_role, "lookup_table") == 0) {
+      auto_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32(6U, auto_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_WORDS, auto_item->kind);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_decode_ir_keeps_odd_branch_target_for_analysis(void) {
   M68kObject object;
   M68kSection section;
@@ -2212,6 +2334,9 @@ static int test_facts_v2_detects_runtime_copy_jump_target(void) {
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
+  char *analysis_json = NULL;
+  size_t code_start_index;
+  int saw_runtime_entry = 0;
   char *source = NULL;
   uint8_t bytes[36] = {
     0x41u, 0xfau, 0x00u, 0x1eu,
@@ -2253,6 +2378,293 @@ static int test_facts_v2_detects_runtime_copy_jump_target(void) {
   M68K_C_ASSERT(strstr(source, "loc_0_00000100:\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjmp loc_0_00000100.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjmp $00000100.l\n") == NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
+      ++code_start_index) {
+    const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
+    if (ref->offset == 32U && ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET &&
+        ref->has_runtime_address && ref->runtime_address == 0x100U) {
+      saw_runtime_entry = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_runtime_entry);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"reason_name\":\"control_target\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address\":256") != NULL);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_traced_indirect_call_promotes_known_target(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  size_t code_start_index;
+  int saw_indirect_target = 0;
+  uint8_t bytes[14] = {
+    0x41u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x0au,
+    0x4eu, 0x90u,
+    0x4eu, 0x75u,
+    0x70u, 0x01u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000000A:\n\tmoveq.l #1,d0\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr (a0)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $70,$01,$4E,$75") == NULL);
+  for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
+      ++code_start_index) {
+    const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
+    if (ref->offset == 0x0AU && ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET &&
+        ref->source_offset == 0x06U) {
+      saw_indirect_target = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_indirect_target);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_traced_indirect_jump_promotes_long_table_targets(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint32_t saw_targets = 0U;
+  size_t code_start_index;
+  uint8_t bytes[28] = {
+    0x41u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x0cu,
+    0x20u, 0x70u, 0x00u, 0x00u,
+    0x4eu, 0xd0u,
+    0x00u, 0x00u, 0x00u, 0x14u,
+    0x00u, 0x00u, 0x00u, 0x18u,
+    0x70u, 0x01u, 0x4eu, 0x75u,
+    0x70u, 0x02u, 0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp (a0)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000014:\n\tmoveq.l #1,d0\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000018:\n\tmoveq.l #2,d0\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $70,$01,$4E,$75") == NULL);
+  for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
+      ++code_start_index) {
+    const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
+    if (ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET && ref->source_offset == 0x0AU) {
+      if (ref->offset == 0x14U) saw_targets |= 1U;
+      if (ref->offset == 0x18U) saw_targets |= 2U;
+    }
+  }
+  M68K_C_ASSERT_U32(3U, saw_targets);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_traced_indirect_jump_promotes_word_relative_table_targets(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint32_t saw_targets = 0U;
+  size_t code_start_index;
+  uint8_t bytes[30] = {
+    0x43u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x16u,
+    0x41u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x12u,
+    0xd2u, 0xf0u, 0x10u, 0x00u,
+    0x4eu, 0xd1u,
+    0x00u, 0x00u, 0x00u, 0x04u,
+    0x70u, 0x01u, 0x4eu, 0x75u,
+    0x70u, 0x02u, 0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp (a1)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w $0000,$0004\t; lookup_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $00,$00,$00,$04") == NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000016:\n\tmoveq.l #1,d0\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000001A:\n\tmoveq.l #2,d0\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $70,$01,$4E,$75") == NULL);
+  for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
+      ++code_start_index) {
+    const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
+    if (ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET && ref->source_offset == 0x10U) {
+      if (ref->offset == 0x16U) saw_targets |= 1U;
+      if (ref->offset == 0x1AU) saw_targets |= 2U;
+    }
+  }
+  M68K_C_ASSERT_U32(3U, saw_targets);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_runtime_mapped_word_dispatch_renders_lookup_table(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint32_t saw_runtime_refs = 0U;
+  size_t index;
+  uint8_t bytes[30] = {
+    0x43u, 0xf9u, 0x00u, 0x00u, 0x01u, 0x16u,
+    0x41u, 0xf9u, 0x00u, 0x00u, 0x01u, 0x12u,
+    0xd2u, 0xf0u, 0x10u, 0x00u,
+    0x4eu, 0xd1u,
+    0x00u, 0x00u, 0x00u, 0x04u,
+    0x70u, 0x01u, 0x4eu, 0x75u,
+    0x70u, 0x02u, 0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  policy.runtime_entry_point_count = 3U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 0x100U;
+  policy.runtime_entry_points[1].has_section_index = 1U;
+  policy.runtime_entry_points[1].section_index = 0U;
+  policy.runtime_entry_points[1].runtime_address = 0x116U;
+  policy.runtime_entry_points[2].has_section_index = 1U;
+  policy.runtime_entry_points[2].section_index = 0U;
+  policy.runtime_entry_points[2].runtime_address = 0x11AU;
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp (a1)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w $0000,$0004\t; lookup_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $00,$00,$00,$04") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tmoveq.l #1,d0\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmoveq.l #2,d0\n\trts\n") != NULL);
+  for (index = 0U; index < source_analysis.sections[0].runtime_address_ref_count; ++index) {
+    const M68kRuntimeAddressRefIR *ref = &source_analysis.sections[0].runtime_address_refs[index];
+    if (ref->offset == 0U && ref->operand_index == 0U && ref->target_offset == 0x16U &&
+        ref->has_runtime_address && ref->runtime_address == 0x116U) {
+      saw_runtime_refs |= 1U;
+    }
+    if (ref->offset == 6U && ref->operand_index == 0U && ref->target_offset == 0x12U &&
+        ref->has_runtime_address && ref->runtime_address == 0x112U) {
+      saw_runtime_refs |= 2U;
+    }
+  }
+  M68K_C_ASSERT_U32(3U, saw_runtime_refs);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_word_dispatch_renders_bounded_unaccepted_lookup_table(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[22] = {
+    0x43u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x0eu,
+    0xd4u, 0x42u,
+    0xd2u, 0xf1u, 0x20u, 0x00u,
+    0x4eu, 0xd1u,
+    0x00u, 0x04u, 0x00u, 0x06u,
+    0x12u, 0x34u, 0x56u, 0x78u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp (a1)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w $0004,$0006\t; lookup_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $00,$04,$00,$06") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.unsupported_instruction_demotes);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -2345,6 +2757,7 @@ static int test_facts_v2_detects_interrupt_vector_store_target(void) {
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
   uint8_t bytes[20] = {
     0x21u, 0xfcu, 0x00u, 0x00u, 0x00u, 0x10u, 0x00u, 0x68u,
@@ -2362,8 +2775,8 @@ static int test_facts_v2_detects_interrupt_vector_store_target(void) {
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000010:\n\tnop\n\trte\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000010:\n\tdc.b $4E,$71,$4E,$73") == NULL);
@@ -3101,6 +3514,8 @@ static int test_facts_v2_demotes_speculative_unencodable_instruction(void) {
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
   uint8_t bytes[6] = {0x4eu, 0x71u, 0xf0u, 0x9cu, 0x4eu, 0x75u};
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
@@ -3111,9 +3526,9 @@ static int test_facts_v2_demotes_speculative_unencodable_instruction(void) {
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  _putenv_s("AMIGA_REVERSING_FACTS_V2_ASM_SOURCE", "1");
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_profile(&object, &policy, &profile, m68k_diag_sink(NULL)));
-  _putenv_s("AMIGA_REVERSING_FACTS_V2_ASM_SOURCE", "");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT_U32(1U, profile.accepted_instructions);
   M68K_C_ASSERT_U32(1U, profile.unsupported_instruction_demotes);
   M68K_C_ASSERT_U32(0U, profile.first_unsupported_instruction_demote_section);
@@ -3127,6 +3542,13 @@ static int test_facts_v2_demotes_speculative_unencodable_instruction(void) {
   M68K_C_ASSERT_U32(0U, profile.required_instruction_failures);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  M68K_C_ASSERT_U32(1U, source_analysis.sections[0].violation_count);
+  M68K_C_ASSERT_U32(2U, source_analysis.sections[0].violations[0].offset);
+  M68K_C_ASSERT_U32(M68K_VIOLATION_DECODE_FAILED_REACHABLE, source_analysis.sections[0].violations[0].kind);
+  M68K_C_ASSERT(strstr(source_analysis.sections[0].violations[0].message,
+    "fallthrough code candidate at $0002 rejected after source $0000; emitted as data") != NULL);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -3346,7 +3768,7 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   const char *section_line;
   const char *custom_include_line;
   const char *intf_decl_line;
-  uint8_t bytes[86] = {
+  uint8_t bytes[] = {
     0x41u, 0xF9u, 0x00u, 0xDFu, 0xF0u, 0x00u,
     0x31u, 0x7Cu, 0x7Fu, 0xFFu, 0x00u, 0x9Au,
     0x31u, 0x7Cu, 0xC0u, 0x00u, 0x00u, 0x9Au,
@@ -3354,8 +3776,18 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
     0x31u, 0x7Cu, 0x7Fu, 0xFFu, 0x00u, 0x96u,
     0x31u, 0x7Cu, 0x7Fu, 0xFFu, 0x00u, 0x9Eu,
     0x31u, 0x7Cu, 0x00u, 0x40u, 0x00u, 0xA4u,
+    0x31u, 0x7Cu, 0x01u, 0x23u, 0x00u, 0xA6u,
+    0x31u, 0x7Cu, 0x00u, 0x40u, 0x00u, 0xA8u,
     0x33u, 0xFCu, 0x12u, 0x34u, 0x00u, 0xDFu, 0xF0u, 0xA4u,
     0x33u, 0xFCu, 0x42u, 0x00u, 0x00u, 0xDFu, 0xF1u, 0x00u,
+    0x31u, 0x7Cu, 0x00u, 0x00u, 0x01u, 0x02u,
+    0x31u, 0x7Cu, 0x44u, 0x89u, 0x00u, 0x7Eu,
+    0x33u, 0xC0u, 0x00u, 0xDFu, 0xF0u, 0xA6u,
+    0x33u, 0xD0u, 0x00u, 0xDFu, 0xF0u, 0xAAu,
+    0x30u, 0x39u, 0x00u, 0xDFu, 0xF0u, 0x0Au,
+    0x30u, 0x39u, 0x00u, 0xDFu, 0xF0u, 0x0Cu,
+    0x30u, 0x39u, 0x00u, 0xDFu, 0xF0u, 0x1Eu,
+    0x23u, 0xC8u, 0x00u, 0xDFu, 0xF1u, 0x80u,
     0x21u, 0xFCu, 0x12u, 0x34u, 0x56u, 0x78u, 0x00u, 0x6Cu,
     0x33u, 0xC0u, 0x00u, 0xDFu, 0xF1u, 0x9Eu,
     0x31u, 0x40u, 0x00u, 0xE2u,
@@ -3398,12 +3830,25 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   M68K_C_ASSERT(strstr(source, "\tmove.w #DMAF_SETCLR|DMAF_MASTER,dmacon(a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w #DMAF_CLRALL,dmacon(a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w #ADKF_CLRALL,adkcon(a0)\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.w #$40,aud0+ac_len(a0)\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.w #$1234,_custom+aud0+ac_len.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.w #(4<<PLNCNTSHFT)|COLORON,_custom+bplcon0.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #$40,aud0+ac_len(a0)\t; sound sample length 128 bytes\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #$123,aud0+ac_per(a0)\t; audio period 291\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #$40,aud0+ac_vol(a0)\t; audio volume 64\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w #$1234,_custom+aud0+ac_len.l\t; sound sample length 9320 bytes\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w #(4<<PLNCNTSHFT)|COLORON,_custom+bplcon0.l\t; display 4 bitplanes lores color\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w #$0,bplcon1(a0)\t; display scroll pf1=0 pf2=0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #$4489,dsksync(a0)\t; disk sync word $4489\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w d0,_custom+aud0+ac_per.l\t; audio period\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w (a0),_custom+aud0+ac_dat.l\t; audio data word\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "\tmove.l #$12345678,m68k_vector_level_3_interrupt_autovector.w\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.w d0,_custom+color+$1E.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w d0,_custom+color+$1E.l\t; palette color 15\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l a0,_custom+color.l\t; palette colors 0-1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w _custom+joy0dat.l,d0\t; joystick/mouse port 0 data\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w _custom+joy1dat.l,d0\t; joystick/mouse port 1 data\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w _custom+intreqr.l,d0\t; interrupt request state\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,bplpt+$02(a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,sprpt+$1E(a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l $0004.w,a6\n") != NULL);
@@ -3422,6 +3867,16 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
     amiga_os_find_hardware_register_by_cpu_address(0x00DFF09AU);
   const AmigaOsHardwareRegisterInfo *dskpt =
     amiga_os_find_hardware_register_by_cpu_address(0x00DFF020U);
+  const AmigaOsHardwareRegisterInfo *bltcpt =
+    amiga_os_find_hardware_register_by_cpu_address(0x00DFF048U);
+  const AmigaOsHardwareRegisterInfo *bltdpt =
+    amiga_os_find_hardware_register_by_cpu_address(0x00DFF054U);
+  const AmigaOsHardwareRegisterInfo *aud0 =
+    amiga_os_find_hardware_register_by_cpu_address(0x00DFF0A0U);
+  const AmigaOsHardwareRegisterInfo *bplpt =
+    amiga_os_find_hardware_register_by_cpu_address(0x00DFF0E0U);
+  const AmigaOsHardwareRegisterInfo *sprpt =
+    amiga_os_find_hardware_register_by_cpu_address(0x00DFF120U);
   const AmigaOsHardwareRegisterFieldInfo *aud0_len =
     amiga_os_find_hardware_register_field_by_cpu_address(0x00DFF0A4U);
   const AmigaOsHardwareRegisterFieldInfo *aud0_len_by_base =
@@ -3438,6 +3893,11 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
     amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x00A4U);
   M68K_C_ASSERT(cop1lc != NULL);
   M68K_C_ASSERT(dskpt != NULL);
+  M68K_C_ASSERT(bltcpt != NULL);
+  M68K_C_ASSERT(bltdpt != NULL);
+  M68K_C_ASSERT(aud0 != NULL);
+  M68K_C_ASSERT(bplpt != NULL);
+  M68K_C_ASSERT(sprpt != NULL);
   M68K_C_ASSERT(intena != NULL);
   M68K_C_ASSERT(aud0_len != NULL);
   M68K_C_ASSERT(aud0_len_by_base == aud0_len);
@@ -3451,13 +3911,34 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
   M68K_C_ASSERT(sprpt_past_end == NULL);
   M68K_C_ASSERT(aud0_len_as_range == NULL);
   M68K_C_ASSERT_STR("copper_list", cop1lc->runtime_target_role);
+  M68K_C_ASSERT_STR("disk_buffer", dskpt->runtime_target_role);
+  M68K_C_ASSERT_STR("blitter_source", bltcpt->runtime_target_role);
+  M68K_C_ASSERT_STR("blitter_destination", bltdpt->runtime_target_role);
+  M68K_C_ASSERT_STR("sound_sample", aud0->runtime_target_role);
+  M68K_C_ASSERT_STR("bitmap", bplpt->runtime_target_role);
+  M68K_C_ASSERT_STR("sprite", sprpt->runtime_target_role);
   M68K_C_ASSERT((cop1lc->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U);
   M68K_C_ASSERT((dskpt->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U);
+  M68K_C_ASSERT((bltcpt->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U);
+  M68K_C_ASSERT((bltdpt->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U);
+  M68K_C_ASSERT((aud0->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U);
+  M68K_C_ASSERT((bplpt->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U);
+  M68K_C_ASSERT((sprpt->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U);
   M68K_C_ASSERT((intena->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U);
   M68K_C_ASSERT_STR("copper_list",
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF080U));
-  M68K_C_ASSERT(platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
-    0x00DFF020U) == NULL);
+  M68K_C_ASSERT_STR("disk_buffer",
+    platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF020U));
+  M68K_C_ASSERT_STR("blitter_source",
+    platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF048U));
+  M68K_C_ASSERT_STR("blitter_destination",
+    platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF054U));
+  M68K_C_ASSERT_STR("sound_sample",
+    platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0A0U));
+  M68K_C_ASSERT_STR("bitmap",
+    platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0E0U));
+  M68K_C_ASSERT_STR("sprite",
+    platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF120U));
   M68K_C_ASSERT(platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF080U));
   M68K_C_ASSERT(platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF020U));
   M68K_C_ASSERT(!platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF09AU));
@@ -4073,6 +4554,68 @@ static int test_facts_v2_render_asm_source_uses_policy_label_for_data_relocation
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(1U, profile.asm_source_relocation_exprs);
   m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_relocation_backed_data_longs_auto_classify_pointer_table(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kFixup fixup;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  char *source = NULL;
+  uint16_t index;
+  uint8_t bytes[16] = {
+    0x00u, 0x00u, 0x00u, 0x08u,
+    0x00u, 0x00u, 0x00u, 0x0Cu,
+    0xDEu, 0xADu, 0xBEu, 0xEFu,
+    0xCAu, 0xFEu, 0xBAu, 0xBEu
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  memset(&fixup, 0, sizeof(fixup));
+  fixup.section_index = 0U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.target_section_index = 0U;
+  fixup.has_target_section = 1;
+  fixup.offset = 0U;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  fixup.offset = 4U;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_00000008\t; pointer_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_0000000C\n") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 0U &&
+        strcmp(item->semantic_role, "pointer_table") == 0) {
+      auto_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32(8U, auto_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_LONGS, auto_item->kind);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -7546,10 +8089,16 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   char *source = NULL;
-  uint8_t bytes[28] = {
+  uint8_t bytes[52] = {
+    0x00u, 0x8Eu, 0x2Cu, 0x81u,
+    0x00u, 0x90u, 0x2Cu, 0xC1u,
+    0x00u, 0x92u, 0x00u, 0x38u,
+    0x00u, 0x94u, 0x00u, 0xD0u,
     0x01u, 0x00u, 0x42u, 0x00u,
     0x00u, 0xE0u, 0x12u, 0x34u,
     0x00u, 0xE2u, 0x56u, 0x78u,
+    0x01u, 0x08u, 0x00u, 0x00u,
+    0x01u, 0x0Au, 0x00u, 0x28u,
     0x01u, 0x3Eu, 0x00u, 0x00u,
     0x00u, 0x9Cu, 0x80u, 0x10u,
     0x2Cu, 0x07u, 0xFFu, 0xFEu,
@@ -7572,7 +8121,7 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
   snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "copper_list");
   policy.named_labels[1].has_section_index = 1U;
   policy.named_labels[1].section_index = 0U;
-  policy.named_labels[1].offset = 4U;
+  policy.named_labels[1].offset = 20U;
   snprintf(policy.named_labels[1].name, sizeof(policy.named_labels[1].name), "copper_patch");
   policy.structured_data_item_count = 1U;
   policy.structured_data_items[0].has_section_index = 1U;
@@ -7590,10 +8139,22 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
   M68K_C_ASSERT(strstr(source, "INCLUDE \"graphics/display.i\"") != NULL);
   M68K_C_ASSERT(strstr(source, "INCLUDE \"hardware/intbits.i\"") != NULL);
   M68K_C_ASSERT(strstr(source, "copper_list:\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "copper_patch:\n\tdc.w bplpt,$1234\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.w bplpt,$1234\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tdc.w diwstrt,$2C81\t; display window start v=$2C h=$81\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tdc.w diwstop,$2CC1\t; display window stop v=$2C h=$C1\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tdc.w ddfstrt,$0038\t; display fetch start $38\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tdc.w ddfstop,$00D0\t; display fetch stop $D0\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tdc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\t; display 4 bitplanes lores color\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "copper_patch:\n\tdc.w bplpt,$1234\t; bitmap pointer $12345678\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w bplpt,$1234\t; bitmap pointer $12345678\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w bplpt+$02,$5678\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w bpl1mod,$0000\t; bitplane modulo 0 bytes\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w bpl2mod,$0028\t; bitplane modulo 40 bytes\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w sprpt+$1E,$0000\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w intreq,INTF_SETCLR|INTF_COPER\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w COPPER_WAIT|$2C06,$FFFE\n") != NULL);
@@ -7642,9 +8203,11 @@ static int test_facts_v2_runtime_copper_pointer_auto_classifies_copper_list(void
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.l #loc_0_0000000C,_custom+cop1lc.l\n") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "loc_0_0000000C:\n\tdc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\n\tdc.w bplpt,$1234\n"
+    "\tmove.l #loc_0_0000000C,_custom+cop1lc.l\t; copper_list pointer\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "loc_0_0000000C:\n\tdc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\t; display 4 bitplanes lores color\n"
+    "\tdc.w bplpt,$1234\n"
     "\tdc.w $FFFF,$FFFE\n") != NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
@@ -7660,6 +8223,722 @@ static int test_facts_v2_runtime_copper_pointer_auto_classifies_copper_list(void
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_register_runtime_sink_auto_classifies_copper_list(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint16_t index;
+  uint8_t bytes[26] = {
+    0x20u, 0x3Cu, 0x00u, 0x00u, 0x00u, 0x0Eu,
+    0x23u, 0xC0u, 0x00u, 0xDFu, 0xF0u, 0x80u,
+    0x4Eu, 0x75u,
+    0x01u, 0x00u, 0x42u, 0x00u,
+    0x00u, 0xE0u, 0x12u, 0x34u,
+    0xFFu, 0xFFu, 0xFFu, 0xFEu
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l d0,_custom+cop1lc.l\t; copper_list pointer\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "loc_0_0000000E:\n\tdc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\t; display 4 bitplanes lores color\n"
+    "\tdc.w bplpt,$1234\n"
+    "\tdc.w $FFFF,$FFFE\n") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 0x0EU &&
+        strcmp(item->semantic_role, "copper_list") == 0) {
+      auto_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32(12U, auto_item->size);
+  M68K_C_ASSERT_U32(1U, source_analysis.sections[0].runtime_address_ref_count);
+  M68K_C_ASSERT_U32(6U, source_analysis.sections[0].runtime_address_refs[0].offset);
+  M68K_C_ASSERT_U32(UINT32_MAX, source_analysis.sections[0].runtime_address_refs[0].operand_index);
+  M68K_C_ASSERT_U32(14U, source_analysis.sections[0].runtime_address_refs[0].target_offset);
+  M68K_C_ASSERT_U32(14U, source_analysis.sections[0].runtime_address_refs[0].runtime_address);
+  M68K_C_ASSERT_STR("copper_list", source_analysis.sections[0].runtime_address_refs[0].data_class);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address_ref_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"offset\":6,\"operand_index\":null,\"target_section_index\":0,\"target_offset\":14,"
+    "\"runtime_address\":14,\"confidence\":2,\"data_class\":\"copper_list\"") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_copper_bitmap_pointers_render_display_layout_comment(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  const M68kRuntimeAddressRefIR *first_bitmap = NULL;
+  const M68kRuntimeAddressRefIR *second_bitmap = NULL;
+  size_t index;
+  uint8_t bytes[32] = {
+    0x23u, 0xFCu, 0x00u, 0x00u, 0x00u, 0x0Cu, 0x00u, 0xDFu, 0xF0u, 0x80u,
+    0x4Eu, 0x75u,
+    0x00u, 0xE0u, 0x00u, 0x01u,
+    0x00u, 0xE2u, 0x00u, 0x00u,
+    0x00u, 0xE4u, 0x00u, 0x01u,
+    0x00u, 0xE6u, 0x20u, 0x00u,
+    0xFFu, 0xFFu, 0xFFu, 0xFEu
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "loc_0_0000000C:\n"
+    "    ; display layout 2 bitmap planes $00010000..$00012000 step $2000\n"
+    "\tdc.w bplpt,$0001\t; bitmap pointer $00010000\n"
+    "\tdc.w bplpt+$02,$0000\n"
+    "\tdc.w bplpt+$04,$0001\t; bitmap pointer $00012000\n"
+    "\tdc.w bplpt+$06,$2000\n") != NULL);
+  for (index = 0U; index < source_analysis.sections[0].runtime_address_ref_count; ++index) {
+    const M68kRuntimeAddressRefIR *ref = &source_analysis.sections[0].runtime_address_refs[index];
+    if (ref->data_class == NULL || strcmp(ref->data_class, "bitmap") != 0) continue;
+    if (ref->offset == 0x0CU) first_bitmap = ref;
+    if (ref->offset == 0x14U) second_bitmap = ref;
+  }
+  M68K_C_ASSERT(first_bitmap != NULL);
+  M68K_C_ASSERT_U32(0x10000U, first_bitmap->runtime_address);
+  M68K_C_ASSERT_U32(0x2000U, first_bitmap->size);
+  M68K_C_ASSERT_U32(0U, first_bitmap->has_target);
+  M68K_C_ASSERT(second_bitmap != NULL);
+  M68K_C_ASSERT_U32(0x12000U, second_bitmap->runtime_address);
+  M68K_C_ASSERT_U32(0x2000U, second_bitmap->size);
+  M68K_C_ASSERT_U32(0U, second_bitmap->has_target);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_copper_bitmap_memory_uses_are_commented(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint32_t bitmap_use_refs = 0U;
+  size_t index;
+  uint8_t bytes[40] = {
+    0x23u, 0xFCu, 0x00u, 0x00u, 0x00u, 0x14u, 0x00u, 0xDFu, 0xF0u, 0x80u,
+    0x41u, 0xF9u, 0x00u, 0x01u, 0x00u, 0x10u,
+    0x30u, 0x10u,
+    0x4Eu, 0x75u,
+    0x00u, 0xE0u, 0x00u, 0x01u,
+    0x00u, 0xE2u, 0x00u, 0x00u,
+    0x00u, 0xE4u, 0x00u, 0x01u,
+    0x00u, 0xE6u, 0x20u, 0x00u,
+    0xFFu, 0xFFu, 0xFFu, 0xFEu
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tlea.l $00010010.l,a0\t; bitmap memory plane 0 +$10 ($00010010)\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w (a0),d0\t; bitmap memory plane 0 +$10 ($00010010)\n") != NULL);
+  for (index = 0U; index < source_analysis.sections[0].runtime_address_ref_count; ++index) {
+    const M68kRuntimeAddressRefIR *ref = &source_analysis.sections[0].runtime_address_refs[index];
+    if (ref->data_class != NULL && strcmp(ref->data_class, "bitmap") == 0 &&
+        ref->has_runtime_address && ref->runtime_address == 0x10010U) {
+      ++bitmap_use_refs;
+      M68K_C_ASSERT_U32(0U, ref->size);
+    }
+  }
+  M68K_C_ASSERT_U32(2U, bitmap_use_refs);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_palette_upload_auto_classifies_source_table(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  char *source = NULL;
+  size_t index;
+  uint8_t bytes[80] = {
+    0x43u, 0xF9u, 0x00u, 0xDFu, 0xF1u, 0x80u,
+    0x41u, 0xF9u, 0x00u, 0x00u, 0x00u, 0x10u,
+    0x32u, 0xD8u,
+    0x4Eu, 0x75u,
+    0x00u, 0x00u, 0x01u, 0x11u, 0x02u, 0x22u, 0x03u, 0x33u,
+    0x04u, 0x44u, 0x05u, 0x55u, 0x06u, 0x66u, 0x07u, 0x77u,
+    0x08u, 0x88u, 0x09u, 0x99u, 0x0Au, 0xAAu, 0x0Bu, 0xBBu,
+    0x0Cu, 0xCCu, 0x0Du, 0xDDu, 0x0Eu, 0xEEu, 0x0Fu, 0xFFu,
+    0x00u, 0x10u, 0x01u, 0x20u, 0x02u, 0x30u, 0x03u, 0x40u,
+    0x04u, 0x50u, 0x05u, 0x60u, 0x06u, 0x70u, 0x07u, 0x80u,
+    0x08u, 0x90u, 0x09u, 0xA0u, 0x0Au, 0xB0u, 0x0Bu, 0xC0u,
+    0x0Cu, 0xD0u, 0x0Du, 0xE0u, 0x0Eu, 0xF0u, 0x0Fu, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w (a0)+,(a1)+\t; palette upload 32 colors\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w $0000,$0111,$0222,$0333") != NULL);
+  M68K_C_ASSERT(strstr(source, "\t; palette\n") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 16U &&
+        strcmp(item->semantic_role, "palette") == 0) {
+      auto_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32(64U, auto_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_WORDS, auto_item->kind);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_genam_palette_upload_uses_runtime_translated_source_table(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  char *source = NULL;
+  size_t index;
+  uint8_t bytes[80] = {
+    0x43u, 0xF9u, 0x00u, 0xDFu, 0xF1u, 0x80u,
+    0x41u, 0xF9u, 0x00u, 0x00u, 0x10u, 0x10u,
+    0x32u, 0xD8u,
+    0x4Eu, 0x75u,
+    0x00u, 0x00u, 0x01u, 0x11u, 0x02u, 0x22u, 0x03u, 0x33u,
+    0x04u, 0x44u, 0x05u, 0x55u, 0x06u, 0x66u, 0x07u, 0x77u,
+    0x08u, 0x88u, 0x09u, 0x99u, 0x0Au, 0xAAu, 0x0Bu, 0xBBu,
+    0x0Cu, 0xCCu, 0x0Du, 0xDDu, 0x0Eu, 0xEEu, 0x0Fu, 0xFFu,
+    0x00u, 0x10u, 0x01u, 0x20u, 0x02u, 0x30u, 0x03u, 0x40u,
+    0x04u, 0x50u, 0x05u, 0x60u, 0x06u, 0x70u, 0x07u, 0x80u,
+    0x08u, 0x90u, 0x09u, 0xA0u, 0x0Au, 0xB0u, 0x0Bu, 0xC0u,
+    0x0Cu, 0xD0u, 0x0Du, 0xE0u, 0x0Eu, 0xF0u, 0x0Fu, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x1000U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w (a0)+,(a1)+\t; palette upload 32 colors\n") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 16U &&
+        strcmp(item->semantic_role, "palette") == 0) {
+      auto_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32(64U, auto_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_WORDS, auto_item->kind);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_palette_upload_uses_source_section_accepted_bytes(void) {
+  M68kObject object;
+  M68kSection code_section;
+  M68kSection data_section;
+  M68kObjectAddResult added;
+  M68kFixup fixup;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  char *source = NULL;
+  size_t index;
+  uint8_t code_bytes[16] = {
+    0x43u, 0xF9u, 0x00u, 0xDFu, 0xF1u, 0x80u,
+    0x41u, 0xF9u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x32u, 0xD8u,
+    0x4Eu, 0x75u
+  };
+  uint8_t data_bytes[64] = {
+    0x4Eu, 0x75u, 0x01u, 0x11u, 0x02u, 0x22u, 0x03u, 0x33u,
+    0x04u, 0x44u, 0x05u, 0x55u, 0x06u, 0x66u, 0x07u, 0x77u,
+    0x08u, 0x88u, 0x09u, 0x99u, 0x0Au, 0xAAu, 0x0Bu, 0xBBu,
+    0x0Cu, 0xCCu, 0x0Du, 0xDDu, 0x0Eu, 0xEEu, 0x0Fu, 0xFFu,
+    0x00u, 0x10u, 0x01u, 0x20u, 0x02u, 0x30u, 0x03u, 0x40u,
+    0x04u, 0x50u, 0x05u, 0x60u, 0x06u, 0x70u, 0x07u, 0x80u,
+    0x08u, 0x90u, 0x09u, 0xA0u, 0x0Au, 0xB0u, 0x0Bu, 0xC0u,
+    0x0Cu, 0xD0u, 0x0Du, 0xE0u, 0x0Eu, 0xF0u, 0x0Fu, 0x00u
+  };
+  memset(&code_section, 0, sizeof(code_section));
+  memset(&data_section, 0, sizeof(data_section));
+  memset(&fixup, 0, sizeof(fixup));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  code_section.kind = M68K_SECTION_CODE;
+  code_section.size = sizeof(code_bytes);
+  code_section.data_size = sizeof(code_bytes);
+  code_section.data = code_bytes;
+  added = m68k_object_add_section(&object, &code_section);
+  M68K_C_ASSERT(added.ok);
+  data_section.kind = M68K_SECTION_DATA;
+  data_section.size = sizeof(data_bytes);
+  data_section.data_size = sizeof(data_bytes);
+  data_section.data = data_bytes;
+  added = m68k_object_add_section(&object, &data_section);
+  M68K_C_ASSERT(added.ok);
+  fixup.section_index = 0U;
+  fixup.offset = 8U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.target_section_index = 1U;
+  fixup.has_target_section = 1;
+  fixup.platform_relocation_record_kind = AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELOC32;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w (a0)+,(a1)+\t; palette upload 32 colors\n") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 1U && item->offset == 0U &&
+        strcmp(item->semantic_role, "palette") == 0) {
+      auto_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32(64U, auto_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_WORDS, auto_item->kind);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_copper_pointer_renders_combined_display_setup_comment(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[88] = {
+    0x33u, 0xFCu, 0x42u, 0x00u, 0x00u, 0xDFu, 0xF1u, 0x00u,
+    0x33u, 0xFCu, 0x00u, 0x00u, 0x00u, 0xDFu, 0xF1u, 0x08u,
+    0x33u, 0xFCu, 0x00u, 0x00u, 0x00u, 0xDFu, 0xF1u, 0x0Au,
+    0x33u, 0xFCu, 0x00u, 0x38u, 0x00u, 0xDFu, 0xF0u, 0x92u,
+    0x33u, 0xFCu, 0x00u, 0xD0u, 0x00u, 0xDFu, 0xF0u, 0x94u,
+    0x33u, 0xFCu, 0x37u, 0x81u, 0x00u, 0xDFu, 0xF0u, 0x8Eu,
+    0x33u, 0xFCu, 0xFFu, 0xC1u, 0x00u, 0xDFu, 0xF0u, 0x90u,
+    0x23u, 0xFCu, 0x00u, 0x00u, 0x00u, 0x44u, 0x00u, 0xDFu, 0xF0u, 0x80u,
+    0x4Eu, 0x75u,
+    0x00u, 0xE0u, 0x00u, 0x07u,
+    0x00u, 0xE2u, 0x00u, 0x00u,
+    0x00u, 0xE4u, 0x00u, 0x07u,
+    0x00u, 0xE6u, 0x20u, 0x00u,
+    0xFFu, 0xFFu, 0xFFu, 0xFEu
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "display layout 2 bitmap planes $00070000..$00072000 step $2000") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 fetch $38..$D0 mod 0/0") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_audio_pointer_and_length_auto_classifies_sound_sample(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  char *source = NULL;
+  uint16_t index;
+  uint8_t bytes[28] = {
+    0x23u, 0xFCu, 0x00u, 0x00u, 0x00u, 0x14u, 0x00u, 0xDFu, 0xF0u, 0xA0u,
+    0x33u, 0xFCu, 0x00u, 0x04u, 0x00u, 0xDFu, 0xF0u, 0xA4u,
+    0x4Eu, 0x75u,
+    0x11u, 0x22u, 0x33u, 0x44u, 0x55u, 0x66u, 0x77u, 0x88u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.l #loc_0_00000014,_custom+aud0.l\t; sound_sample pointer\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w #$4,_custom+aud0+ac_len.l\t; sound sample length 8 bytes\n") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 0x14U &&
+        strcmp(item->semantic_role, "sound_sample") == 0) {
+      auto_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32(8U, auto_item->size);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_audio_length_register_source_comment(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[14] = {
+    0x32u, 0x28u, 0xFFu, 0xFEu,
+    0xE2u, 0x49u,
+    0x33u, 0xC1u, 0x00u, 0xDFu, 0xF0u, 0xA4u,
+    0x4Eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w d1,_custom+aud0+ac_len.l\t; audio sample length derived from -$0002(a0) header word\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[112];
+  memset(bytes, 0, sizeof(bytes));
+  bytes[0] = 0x41u; bytes[1] = 0xF9u; bytes[2] = 0x00u; bytes[3] = 0x00u;
+  bytes[4] = 0x00u; bytes[5] = 0x30u;
+  bytes[6] = 0xD0u; bytes[7] = 0xFBu; bytes[8] = 0x00u; bytes[9] = 0x20u;
+  bytes[10] = 0x30u; bytes[11] = 0x3Bu; bytes[12] = 0x00u; bytes[13] = 0x1Eu;
+  bytes[14] = 0x41u; bytes[15] = 0xE8u; bytes[16] = 0x00u; bytes[17] = 0x30u;
+  bytes[18] = 0xE5u; bytes[19] = 0x80u;
+  bytes[20] = 0x23u; bytes[21] = 0xC8u; bytes[22] = 0x00u; bytes[23] = 0xDFu;
+  bytes[24] = 0xF0u; bytes[25] = 0xA0u;
+  bytes[26] = 0x33u; bytes[27] = 0xC0u; bytes[28] = 0x00u; bytes[29] = 0xDFu;
+  bytes[30] = 0xF0u; bytes[31] = 0xA6u;
+  bytes[32] = 0x4Eu; bytes[33] = 0x75u;
+  bytes[40] = 0x00u; bytes[41] = 0x04u;
+  bytes[42] = 0x01u; bytes[43] = 0x23u;
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tadda.w loc_0_00000028(pc,d0.w),a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l $0030(a0),a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.l a0,_custom+aud0.l\t"
+    "; source loc_0_00000060 + dynamic offset from loc_0_00000028 | sound_sample pointer\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.w d0,_custom+aud0+ac_per.l\t; period from loc_0_0000002A transformed | audio period\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[56] = {
+    0x23u, 0xF9u, 0x00u, 0x00u, 0x00u, 0x34u, 0x00u, 0x00u, 0x00u, 0x30u,
+    0x22u, 0x79u, 0x00u, 0x00u, 0x00u, 0x30u,
+    0x23u, 0xC9u, 0x00u, 0xDFu, 0xF0u, 0x20u,
+    0x4Eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u,
+    0xDEu, 0xADu, 0xBEu, 0xEFu
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l $00000034.l,$00000030.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l $00000030.l,a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l a1,_custom+dskpt.l\t; disk_buffer pointer\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000034:\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_external_runtime_sink_address_renders_pointer_comment(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[12] = {
+    0x23u, 0xFCu, 0x00u, 0x06u, 0x7Du, 0x00u, 0x00u, 0xDFu, 0xF0u, 0x20u,
+    0x4Eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l #$67D00,_custom+dskpt.l\t; disk_buffer pointer $00067D00\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_dsklen_write_renders_dma_size_comment(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[10] = {
+    0x33u, 0xFCu, 0x9Fu, 0x40u, 0x00u, 0xDFu, 0xF0u, 0x24u,
+    0x4Eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #$9F40,_custom+dsklen.l\t; disk DMA read 16000 bytes\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -8070,6 +9349,12 @@ int m68k_c_ir_tests(void) {
     {"decode_ir_branch_word_target_uses_opcode_pc", test_decode_ir_branch_word_target_uses_opcode_pc},
     {"decode_ir_records_pc_relative_data_target_candidate",
       test_decode_ir_records_pc_relative_data_target_candidate},
+    {"decode_ir_records_pc_index_data_target_candidate",
+      test_decode_ir_records_pc_index_data_target_candidate},
+    {"facts_v2_pc_index_data_target_auto_classifies_lookup_scalar",
+      test_facts_v2_pc_index_data_target_auto_classifies_lookup_scalar},
+    {"facts_v2_pc_index_data_target_auto_classifies_lookup_span",
+      test_facts_v2_pc_index_data_target_auto_classifies_lookup_span},
     {"decode_ir_keeps_odd_branch_target_for_analysis", test_decode_ir_keeps_odd_branch_target_for_analysis},
     {"fact_ir_label_creation_dedupes", test_fact_ir_label_creation_dedupes},
     {"facts_v2_profile_collects_decode_and_label_facts", test_facts_v2_profile_collects_decode_and_label_facts},
@@ -8128,6 +9413,16 @@ int m68k_c_ir_tests(void) {
     {"facts_v2_prefers_lower_cpu_fallthrough_over_inferred_interior_target",
       test_facts_v2_prefers_lower_cpu_fallthrough_over_inferred_interior_target},
     {"facts_v2_detects_runtime_copy_jump_target", test_facts_v2_detects_runtime_copy_jump_target},
+    {"facts_v2_traced_indirect_call_promotes_known_target",
+      test_facts_v2_traced_indirect_call_promotes_known_target},
+    {"facts_v2_traced_indirect_jump_promotes_long_table_targets",
+      test_facts_v2_traced_indirect_jump_promotes_long_table_targets},
+    {"facts_v2_traced_indirect_jump_promotes_word_relative_table_targets",
+      test_facts_v2_traced_indirect_jump_promotes_word_relative_table_targets},
+    {"facts_v2_runtime_mapped_word_dispatch_renders_lookup_table",
+      test_facts_v2_runtime_mapped_word_dispatch_renders_lookup_table},
+    {"facts_v2_word_dispatch_renders_bounded_unaccepted_lookup_table",
+      test_facts_v2_word_dispatch_renders_bounded_unaccepted_lookup_table},
     {"facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage",
       test_facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage},
     {"facts_v2_detects_interrupt_vector_store_target",
@@ -8208,6 +9503,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_uses_policy_label_for_branch},
     {"facts_v2_render_asm_source_uses_policy_label_for_data_relocation",
       test_facts_v2_render_asm_source_uses_policy_label_for_data_relocation},
+    {"facts_v2_relocation_backed_data_longs_auto_classify_pointer_table",
+      test_facts_v2_relocation_backed_data_longs_auto_classify_pointer_table},
     {"facts_v2_render_asm_source_uses_object_symbol_label",
       test_facts_v2_render_asm_source_uses_object_symbol_label},
     {"facts_v2_render_asm_source_infers_lvo_from_object_base_symbol",
@@ -8328,6 +9625,32 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_renders_copper_list_structured_data},
     {"facts_v2_runtime_copper_pointer_auto_classifies_copper_list",
       test_facts_v2_runtime_copper_pointer_auto_classifies_copper_list},
+    {"facts_v2_register_runtime_sink_auto_classifies_copper_list",
+      test_facts_v2_register_runtime_sink_auto_classifies_copper_list},
+    {"facts_v2_copper_bitmap_pointers_render_display_layout_comment",
+      test_facts_v2_copper_bitmap_pointers_render_display_layout_comment},
+    {"facts_v2_copper_bitmap_memory_uses_are_commented",
+      test_facts_v2_copper_bitmap_memory_uses_are_commented},
+    {"facts_v2_palette_upload_auto_classifies_source_table",
+      test_facts_v2_palette_upload_auto_classifies_source_table},
+    {"facts_v2_genam_palette_upload_uses_runtime_translated_source_table",
+      test_facts_v2_genam_palette_upload_uses_runtime_translated_source_table},
+    {"facts_v2_palette_upload_uses_source_section_accepted_bytes",
+      test_facts_v2_palette_upload_uses_source_section_accepted_bytes},
+    {"facts_v2_copper_pointer_renders_combined_display_setup_comment",
+      test_facts_v2_copper_pointer_renders_combined_display_setup_comment},
+    {"facts_v2_audio_pointer_and_length_auto_classifies_sound_sample",
+      test_facts_v2_audio_pointer_and_length_auto_classifies_sound_sample},
+    {"facts_v2_audio_length_register_source_comment",
+      test_facts_v2_audio_length_register_source_comment},
+    {"facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance",
+      test_facts_v2_genam_audio_pointer_preserves_dynamic_source_provenance},
+    {"facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer",
+      test_facts_v2_absolute_slot_reload_tracks_runtime_sink_pointer},
+    {"facts_v2_external_runtime_sink_address_renders_pointer_comment",
+      test_facts_v2_external_runtime_sink_address_renders_pointer_comment},
+    {"facts_v2_dsklen_write_renders_dma_size_comment",
+      test_facts_v2_dsklen_write_renders_dma_size_comment},
     {"facts_v2_render_asm_source_marks_structured_data_code_overlap",
       test_facts_v2_render_asm_source_marks_structured_data_code_overlap},
     {"facts_v2_render_asm_source_renders_call_input_domain_immediate",

@@ -71,6 +71,49 @@ def test_structured_prefix_entities_only_emit_when_requested() -> None:
     }]
 
 
+def test_structured_prefix_entities_project_genam_c_semantic_roles() -> None:
+    module = _load_build_entities_module()
+    effective_policy = {
+        "analysis_policy": {
+            "structured_data_items": [
+                {
+                    "section_index": 0,
+                    "offset": 0x20,
+                    "size": 0x40,
+                    "semantic_role": "palette",
+                },
+                {
+                    "section_index": 0,
+                    "offset": 0x60,
+                    "size": 0x20,
+                    "semantic_role": "copper_list",
+                },
+            ]
+        }
+    }
+
+    payloads = module._structured_prefix_entities(effective_policy, 0, include_structure=True)
+
+    assert payloads == [
+        {
+            "addr": "0x0020",
+            "end": "0x0060",
+            "type": "data",
+            "subtype": "palette",
+            "confidence": "tool-inferred",
+            "hunk": 0,
+        },
+        {
+            "addr": "0x0060",
+            "end": "0x0080",
+            "type": "data",
+            "subtype": "copper_list",
+            "confidence": "tool-inferred",
+            "hunk": 0,
+        },
+    ]
+
+
 def test_apply_seeded_entities_merges_name_and_inserts_data_range() -> None:
     module = _load_build_entities_module()
 
@@ -318,6 +361,7 @@ def _c_analysis_section(
     entity_hints: list[dict[str, object]] | None = None,
     indirect_sites: list[dict[str, object]] | None = None,
     string_refs: list[dict[str, object]] | None = None,
+    code_start_refs: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     return {
         "section_index": section_index,
@@ -325,6 +369,7 @@ def _c_analysis_section(
         "section_size": section_size,
         "blocks": [] if blocks is None else blocks,
         "edges": [] if edges is None else edges,
+        "code_start_refs": [] if code_start_refs is None else code_start_refs,
         "entity_hints": [] if entity_hints is None else entity_hints,
         "recovered_platform_calls": [] if calls is None else calls,
         "recovered_platform_effects": [] if effects is None else effects,
@@ -806,6 +851,82 @@ def test_build_entities_passes_seeded_code_entrypoints_as_additive_hunk_seeds(
     assert seeded_entity["name"] == "seeded_entry"
 
 
+def test_build_entities_unions_genam_c_code_start_refs_with_policy_and_seeded_roots(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_build_entities_module()
+    target_dir = tmp_path / "targets" / "amiga_hunk_genam"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "GenAm"
+    binary_path.write_bytes(b"fake")
+    output_path = target_dir / "entities.jsonl"
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_code_entrypoints=(
+                SeededCodeEntrypointMetadata(
+                    addr=0x30,
+                    name="seeded_genam_entry",
+                    hunk=0,
+                    seed_origin="manual_analysis",
+                    review_status="seeded",
+                    citation="fixture:genam-entry",
+                ),
+            ),
+        ),
+    )
+    fake_analysis = {
+        "sections": [
+            _c_analysis_section(
+                section_size=0x40,
+                blocks=[
+                    {"start_offset": 0x10, "end_offset": 0x12, "certainty": 1, "edge_start": 0, "edge_count": 0},
+                    {"start_offset": 0x20, "end_offset": 0x22, "certainty": 1, "edge_start": 0, "edge_count": 0},
+                    {"start_offset": 0x30, "end_offset": 0x32, "certainty": 1, "edge_start": 0, "edge_count": 0},
+                ],
+                code_start_refs=[
+                    {
+                        "offset": 0x10,
+                        "reason": 3,
+                        "reason_name": "control_target",
+                        "confidence": 2,
+                    },
+                    {
+                        "offset": 0x22,
+                        "reason": 5,
+                        "reason_name": "fallthrough",
+                        "confidence": 2,
+                    },
+                ],
+            )
+        ]
+    }
+
+    monkeypatch.setattr(module, "analyze_project_source_with_c_backend", lambda *args, **kwargs: fake_analysis)
+    _stub_effective_policy(
+        monkeypatch,
+        module,
+        {"analysis_policy": {"entrypoints": [{"section_index": 0, "offset": 0x20}]}},
+    )
+
+    result = module.build_entities(str(binary_path), str(output_path))
+
+    assert result == 0
+    payloads = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    code_addrs = {payload["addr"] for payload in payloads if payload["type"] == "code"}
+    assert {"0x0010", "0x0020", "0x0030"} <= code_addrs
+    assert "0x0022" not in code_addrs
+    seeded_entity = next(payload for payload in payloads if payload["addr"] == "0x0030")
+    assert seeded_entity["name"] == "seeded_genam_entry"
+
+
 def test_build_entities_names_from_c_os_calls(
     monkeypatch: MonkeyPatch,
     tmp_path: Path,
@@ -1007,6 +1128,52 @@ def test_build_entities_prefers_c_entity_hints_for_app_slots(
             "named_base": "DOSBase",
         }
     ]
+
+
+def test_build_entities_projects_genam_c_structured_data_roles(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_build_entities_module()
+    binary_path = tmp_path / "program.bin"
+    output_path = tmp_path / "entities.jsonl"
+    binary_path.write_bytes(b"\x4e\x75" + (b"\0" * 0x1E))
+    fake_analysis = {
+        "analysis_policy": {
+            "structured_data_items": [
+                {
+                    "section_index": 0,
+                    "offset": 0x10,
+                    "size": 0x10,
+                    "semantic_role": "palette",
+                }
+            ]
+        },
+        "sections": [
+            _c_analysis_section(
+                section_size=0x20,
+                blocks=[{"start_offset": 0, "end_offset": 2}],
+            )
+        ],
+    }
+    monkeypatch.setattr(module, "analyze_project_source_with_c_backend", lambda *args, **kwargs: fake_analysis)
+    _stub_effective_policy(monkeypatch, module)
+
+    result = module.build_entities(str(binary_path), str(output_path))
+
+    assert result == 0
+    payloads = [
+        json.loads(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert any(
+        payload["type"] == "data"
+        and payload["subtype"] == "palette"
+        and payload["addr"] == "0x0010"
+        and payload["end"] == "0x0020"
+        for payload in payloads
+    )
 
 
 def test_build_entities_projects_c_platform_calls_to_indirect_sites(

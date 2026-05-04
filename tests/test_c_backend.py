@@ -40,9 +40,11 @@ from amiga_reversing.disasm.facts_v2_source_refusal import FactsV2SourceRefused
 from amiga_reversing.disasm.listing_types import (
     AppSlotRef,
     BlockRowContext,
+    CodeStartRef,
     HeaderRowContext,
     PlatformTypedAccess,
     PlatformUnresolvedTypedAccess,
+    RuntimeAddressRef,
     SymbolOperandMetadata,
 )
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
@@ -311,6 +313,29 @@ def test_rows_from_c_listing_json_uses_emitted_metadata() -> None:
                             "access": "read",
                         }
                     ],
+                    "runtime_address_refs": [
+                        {
+                            "offset": 32,
+                            "operand_index": None,
+                            "target_section_index": 0,
+                            "target_offset": 0x40,
+                            "runtime_address": 0x40040,
+                            "confidence": 2,
+                            "data_class": "copper_list",
+                        }
+                    ],
+                    "code_start_refs": [
+                        {
+                            "offset": 32,
+                            "reason": 4,
+                            "reason_name": "control_target",
+                            "confidence": 2,
+                            "source_section_index": 0,
+                            "source_offset": 16,
+                            "runtime_address": None,
+                            "size": 6,
+                        }
+                    ],
                     "typed_accesses": [
                         {
                             "operand_index": 0,
@@ -372,6 +397,29 @@ def test_rows_from_c_listing_json_uses_emitted_metadata() -> None:
     assert rows[1].source_context == BlockRowContext(kind="c-instruction", hunk_index=0)
     assert rows[1].data_class == "copper_list"
     assert rows[1].app_slot_refs == (AppSlotRef("app_0234", 0x0234, "A6", 0, "read"),)
+    assert rows[1].runtime_address_refs == (
+        RuntimeAddressRef(
+            offset=32,
+            operand_index=None,
+            target_section_index=0,
+            target_offset=0x40,
+            runtime_address=0x40040,
+            confidence=2,
+            data_class="copper_list",
+        ),
+    )
+    assert rows[1].code_start_refs == (
+        CodeStartRef(
+            offset=32,
+            reason=4,
+            reason_name="control_target",
+            confidence=2,
+            source_section_index=0,
+            source_offset=16,
+            runtime_address=None,
+            size=6,
+        ),
+    )
     assert rows[1].typed_accesses == (
         PlatformTypedAccess(
             operand_index=0,
@@ -2411,15 +2459,65 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
     )["listing"]
     rows = rows_from_c_listing_json(payload)
     copper_rows = {row.addr: row for row in rows if row.kind == "data" and row.addr is not None}
+    pointer_row = next(row for row in rows if row.addr == 0 and row.kind == "instruction")
 
+    assert pointer_row.runtime_address_refs == (
+        RuntimeAddressRef(
+            offset=0,
+            operand_index=0,
+            target_section_index=0,
+            target_offset=0x0C,
+            runtime_address=0x0C,
+            confidence=2,
+            data_class="copper_list",
+        ),
+    )
+    assert pointer_row.code_start_refs == (
+            CodeStartRef(
+                offset=0,
+                reason=2,
+                reason_name="policy_entry_offset",
+            confidence=3,
+            source_section_index=0,
+            source_offset=0,
+            runtime_address=None,
+            size=10,
+        ),
+    )
     assert copper_rows[0x0C].data_class == "copper_list"
-    assert copper_rows[0x0C].text.strip() == "dc.w bplcon0,(4<<PLNCNTSHFT)|COLORON"
-    assert copper_rows[0x10].text.strip() == "dc.w bplpt,$1234"
+    assert copper_rows[0x10].data_class == "copper_list"
+    assert copper_rows[0x10].structured_data is not None
+    assert copper_rows[0x10].structured_data["semantic_role"] == "copper_list"
+    assert (
+        copper_rows[0x0C].text.strip()
+        == "dc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\t; display 4 bitplanes lores color"
+    )
+    assert copper_rows[0x10].text.strip() == "dc.w bplpt,$1234\t; bitmap pointer $12345678"
     assert copper_rows[0x14].text.strip() == "dc.w bplpt+$02,$5678"
     assert copper_rows[0x18].text.strip() == "dc.w sprpt+$1E,$0000"
     assert copper_rows[0x1C].text.strip() == "dc.w intreq,INTF_SETCLR|INTF_COPER"
     assert copper_rows[0x20].text.strip() == "dc.w COPPER_WAIT|$2C06,$FFFE"
     assert copper_rows[0x24].text.strip() == "dc.w $FFFF,$FFFE"
+
+    analysis = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_analysis_raw_path_json_alloc",
+            "amiga-raw",
+            str(binary_path),
+            0,
+            str(metadata_path),
+            "",
+            project_root=PROJECT_ROOT,
+        )
+    )
+    structured_items = analysis["analysis_policy"]["structured_data_items"]
+    assert any(
+        item["section_index"] == 0
+        and item["offset"] == 0x0C
+        and item["size"] == 28
+        and item["semantic_role"] == "copper_list"
+        for item in structured_items
+    )
 
 
 def test_real_dll_facts_v2_basic_listing_rows_use_basic_api_without_source_directives(tmp_path: Path) -> None:
@@ -3275,6 +3373,18 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
     assert any(row.kind == "label" and "loc_0_00000400:" in row.text for row in copied_stage_rows)
     assert any(row.kind == "instruction" for row in copied_stage_rows)
     assert not any(row.kind == "data" for row in copied_stage_rows)
+    bitmap_refs = [
+        ref
+        for row in rows
+        if row.kind == "data" and row.text.startswith("\tdc.w bplpt") and row.runtime_address_refs
+        for ref in row.runtime_address_refs
+    ]
+    assert [(ref.runtime_address, ref.size, ref.data_class) for ref in bitmap_refs] == [
+        (0x70000, 0x2000, "bitmap"),
+        (0x72000, 0x2000, "bitmap"),
+        (0x74000, 0x2000, "bitmap"),
+        (0x76000, 0x2000, "bitmap"),
+    ]
 
 
 def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> None:
@@ -3309,8 +3419,56 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "loc_0_0000005C:\n    ORG $400\nloc_0_00000400:" in source_text
     assert "ORG $5C" not in source_text
     assert "loc_0_0000005C\tEQU" not in source_text
-    assert "\tmove.l #loc_0_00008E10,_custom+cop1lc.l\n" in source_text
-    assert "loc_0_00008E10:\n\tdc.w bplpt,$0007\n\tdc.w bplpt+$02,$0000\n" in source_text
+    assert "\tmove.l #loc_0_00008E10,_custom+cop1lc.l\t; copper_list pointer\n" in source_text
+    assert (
+        "\tmove.l a0,_custom+aud0.l\t"
+        "; source loc_0_00054452 + dynamic offset from loc_0_00008938 | sound_sample pointer\n"
+    ) in source_text
+    assert (
+        "\tmove.w d1,_custom+aud0+ac_len.l\t"
+        "; audio sample length derived from -$0002(a0) header word\n"
+    ) in source_text
+    assert "\tmove.w #$40,_custom+aud0+ac_vol.l\t; audio volume 64\n" in source_text
+    assert "\tadda.w loc_0_00008938(pc,d0.w),a0\n" in source_text
+    assert "\tmove.w loc_0_0000893A(pc,d0.w),d0\n" in source_text
+    assert "\tmove.l a1,_custom+dskpt.l\t; disk_buffer pointer $00067D00\n" in source_text
+    assert (
+        "\tmove.w #(4<<PLNCNTSHFT)|COLORON,_custom+bplcon0.l\t"
+        "; display 4 bitplanes lores color\n"
+    ) in source_text
+    assert "\tmove.w #$0,_custom+bplcon1.l\t; display scroll pf1=0 pf2=0\n" in source_text
+    assert "\tmove.w #$3781,_custom+diwstrt.l\t; display window start v=$37 h=$81\n" in source_text
+    assert "\tmove.w #$38,_custom+ddfstrt.l\t; display fetch start $38\n" in source_text
+    assert "\tmove.w #$0,_custom+bpl1mod.l\t; bitplane modulo 0 bytes\n" in source_text
+    assert "\tmove.w #$4489,_custom+dsksync.l\t; disk sync word $4489\n" in source_text
+    assert "\tmove.w #$9F40,_custom+dsklen.l\t; disk DMA read 16000 bytes\n" in source_text
+    assert (
+        "\tmove.w d0,_custom+aud0+ac_per.l\t"
+        "; period from loc_0_0000893A transformed | audio period\n"
+    ) in source_text
+    assert "\tmove.w (a0),_custom+aud0+ac_dat.l\t; audio data word\n" in source_text
+    assert "loc_0_00008938:\n\tdc.w $0000\t; lookup_table\n" in source_text
+    assert (
+        "loc_0_0000893A:\n"
+        "\tdc.w $0028,$0000,$009B,$0084,$005D,$0646,$0028,$1ECE\t; lookup_table\n"
+    ) in source_text
+    assert "\tdc.w $0049,$3684,$0049\t; lookup_table\nloc_0_00008950:\n" in source_text
+    assert "loc_0_000015AE:\n\tdc.w $0000,$FF6C,$00F0,$FF4E,$FFFA\t; lookup_table\n" in source_text
+    assert "loc_0_0000A73A:\n\tdc.w $FDD0,$F7C0,$FC12,$FBF6,$FE02\t; lookup_table\n" in source_text
+    assert "loc_0_00002E4A:\n\tdc.w $0000,$0026,$0088,$0000\t; lookup_table\n" in source_text
+    display_summary = (
+        "    ; display layout 4 bitmap planes $00070000..$00076000 step $2000 | "
+        "display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 fetch $38..$D0 mod 0/0\n"
+    )
+    assert display_summary in source_text
+    assert (
+        "loc_0_00008E10:\n"
+        f"{display_summary}"
+        "\tdc.w bplpt,$0007\t; bitmap pointer $00070000\n"
+    ) in source_text
+    assert "\tdc.w bplpt+$04,$0007\t; bitmap pointer $00072000\n" in source_text
+    assert "\tdc.w bplpt+$08,$0007\t; bitmap pointer $00074000\n" in source_text
+    assert "\tdc.w bplpt+$0C,$0007\t; bitmap pointer $00076000\n" in source_text
     assert "loc_0_00008E30:\n\tdc.w sprpt,$0000\n" in source_text
     assert "\tdc.w sprpt+$1E,$0000\n" in source_text
     assert "\tdc.w COPPER_WAIT|$9800,$FF00\n" in source_text

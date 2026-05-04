@@ -81,6 +81,7 @@ int m68k_instruction_operand_supports_decoded_ea_target(const M68kOperandIR *ope
 uint8_t m68k_instruction_operand_decoded_ea_shape(const M68kOperandIR *operand) {
   if (!m68k_instruction_operand_supports_decoded_ea_target(operand)) return M68K_SIM_EA_SHAPE_NONE;
   if (operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) {
+    if (operand->value.ea_mode == 6U) return M68K_SIM_EA_SHAPE_INDEX;
     if (operand->value.ea_mode == 7U && operand->value.ea_reg == 0U) return M68K_SIM_EA_SHAPE_ABSOLUTE_WORD;
     if (operand->value.ea_mode == 7U && operand->value.ea_reg == 1U) return M68K_SIM_EA_SHAPE_ABSOLUTE_LONG;
     if (operand->value.ea_mode == 7U && operand->value.ea_reg == 2U) return M68K_SIM_EA_SHAPE_PC_DISPLACEMENT;

@@ -3,6 +3,7 @@
 #include "m68k_assembler.h"
 #include "m68k_disassembler.h"
 #include "m68k_instruction_spec.h"
+#include "m68k_simulator.h"
 #include "platform_common.h"
 
 #include <stdlib.h>
@@ -187,15 +188,17 @@ static void collect_pc_relative_ea_targets(M68kDecodeCandidate *candidate, size_
     uint32_t pc_base;
     uint32_t target_offset = 0U;
     uint8_t target_kind = M68K_DECODE_TARGET_DATA;
-    if (m68k_instruction_decoded_ea_target_kind(operand, shape, 0) != 2U) continue;
+    if (m68k_instruction_decoded_ea_target_kind(operand, shape, 1) != 2U) continue;
     relative_base = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, layout_operands,
       candidate->operand_count, candidate->size_suffix, operand_index, 0);
     if (relative_base > UINT32_MAX - candidate->offset) continue;
     pc_base = candidate->offset + (uint32_t)relative_base;
-    if (!m68k_instruction_decoded_ea_target(operand, shape, pc_base, section_size, 0, &target_offset))
+    if (!m68k_instruction_decoded_ea_target(operand, shape, pc_base, section_size, 1, &target_offset))
       continue;
-    if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_JSR) target_kind = M68K_DECODE_TARGET_CALL;
-    else if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_JMP) target_kind = M68K_DECODE_TARGET_JUMP;
+    if (shape != M68K_SIM_EA_SHAPE_PC_INDEX) {
+      if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_JSR) target_kind = M68K_DECODE_TARGET_CALL;
+      else if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_JMP) target_kind = M68K_DECODE_TARGET_JUMP;
+    }
     (void)append_target(candidate, target_kind, section_index, target_offset, 1U, (uint8_t)operand_index);
   }
 }

@@ -86,41 +86,101 @@ def _structured_prefix_entities(
     policy = effective_policy.get("analysis_policy") if effective_policy is not None else None
     if not isinstance(policy, dict):
         return []
-    items = [
-        item
-        for item in policy.get("structured_data_items", [])
-        if isinstance(item, dict)
-        and isinstance(item.get("offset"), int)
-        and isinstance(item.get("size"), int)
-        and item.get("size", 0) > 0
-        and any(isinstance(item.get(key), str) and item.get(key) for key in ("struct_name", "label", "comment"))
-        and (item.get("section_index") == hunk_idx or (item.get("section_index") is None and hunk_idx == 0))
-    ]
+    structured_roles = {
+        "bitmap",
+        "blitter_destination",
+        "blitter_source",
+        "copper_list",
+        "disk_buffer",
+        "palette",
+        "pointer_table",
+        "sound_sample",
+        "sprite",
+    }
+    items = []
+    for item in policy.get("structured_data_items", []):
+        if not isinstance(item, dict):
+            continue
+        role = item.get("semantic_role")
+        has_role = isinstance(role, str) and role in structured_roles
+        has_named_shape = any(
+            isinstance(item.get(key), str) and item.get(key)
+            for key in ("struct_name", "label", "comment")
+        )
+        if (
+            isinstance(item.get("offset"), int)
+            and isinstance(item.get("size"), int)
+            and item.get("size", 0) > 0
+            and (has_role or has_named_shape)
+            and (item.get("section_index") == hunk_idx or (item.get("section_index") is None and hunk_idx == 0))
+        ):
+            items.append(item)
     items.sort(key=lambda item: (cast(int, item["offset"]), str(item.get("struct_name") or "")))
     regions: list[tuple[int, int, str | None]] = []
     for item in items:
         start = cast(int, item["offset"])
         end = start + cast(int, item["size"])
-        struct_name = cast(str | None, item.get("struct_name")) or None
-        if regions and regions[-1][2] == struct_name and start <= regions[-1][1]:
+        subtype = cast(str | None, item.get("semantic_role")) or None
+        if subtype not in structured_roles:
+            subtype = "struct_instance"
+        if regions and regions[-1][2] == subtype and start <= regions[-1][1]:
             prev_start, prev_end, prev_struct = regions[-1]
             regions[-1] = (prev_start, max(prev_end, end), prev_struct)
         else:
-            regions.append((start, end, struct_name))
+            regions.append((start, end, subtype))
     entities: list[JsonDict] = []
-    for start, end, struct_name in regions:
+    for start, end, subtype in regions:
         payload: JsonDict = {
             "addr": fmt_addr(start),
             "end": fmt_addr(end),
             "type": "data",
-            "subtype": "struct_instance",
+            "subtype": subtype,
             "confidence": "tool-inferred",
             "hunk": hunk_idx,
         }
-        if struct_name is not None:
-            payload["struct"] = struct_name
+        if subtype == "struct_instance":
+            struct_name = next(
+                (
+                    cast(str, item.get("struct_name"))
+                    for item in items
+                    if cast(int, item["offset"]) == start and isinstance(item.get("struct_name"), str)
+                ),
+                None,
+            )
+            if struct_name is not None:
+                payload["struct"] = struct_name
         entities.append(payload)
     return entities
+
+
+def _combined_structured_policy(
+    effective_policy: JsonDict | None,
+    analysis: JsonDict,
+) -> JsonDict:
+    items: list[JsonDict] = []
+    seen: set[tuple[object, object, object, object, object]] = set()
+    for source in (effective_policy, analysis):
+        policy = source.get("analysis_policy") if isinstance(source, dict) else None
+        if not isinstance(policy, dict):
+            continue
+        structured_items = policy.get("structured_data_items")
+        if not isinstance(structured_items, list):
+            continue
+        for item in structured_items:
+            if not isinstance(item, dict):
+                continue
+            key = (
+                item.get("section_index"),
+                item.get("offset"),
+                item.get("size"),
+                item.get("semantic_role"),
+                item.get("struct_name"),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            items.append(item)
+    return {"analysis_policy": {"structured_data_items": items}}
 
 
 def _entity_range(entity: JsonDict) -> tuple[int, int]:
@@ -503,6 +563,25 @@ def _c_call_targets(section: JsonDict) -> set[int]:
     }
 
 
+def _c_section_code_entry_points(section: JsonDict) -> set[int]:
+    entries: set[int] = set()
+    refs = section.get("code_start_refs")
+    if not isinstance(refs, list):
+        return entries
+    for ref in refs:
+        if not isinstance(ref, dict):
+            continue
+        offset = ref.get("offset")
+        reason = ref.get("reason")
+        reason_name = ref.get("reason_name")
+        if not isinstance(offset, int):
+            continue
+        if reason_name == "fallthrough" or reason == 5:
+            continue
+        entries.add(offset)
+    return entries
+
+
 def _effective_policy_entries(effective_policy: JsonDict | None, section_index: int) -> set[int]:
     if effective_policy is None:
         return set()
@@ -559,6 +638,7 @@ def _effective_policy_has_explicit_section(effective_policy: JsonDict | None, se
 
 
 def _c_section_entry_points(
+    section: JsonDict,
     binary_source: BinarySource,
     target_metadata: TargetMetadata | None,
     section_index: int,
@@ -567,7 +647,7 @@ def _c_section_entry_points(
     blocks: list[JsonDict],
     effective_policy: JsonDict | None = None,
 ) -> set[int]:
-    entry_points: set[int] = set()
+    entry_points = _c_section_code_entry_points(section)
     if binary_source.kind == "raw_binary":
         entry_points.add(binary_source.local_entrypoint)
     elif include_structure:
@@ -1269,6 +1349,7 @@ def _build_entities_from_c_analysis(
         blocks = _c_section_blocks(section)
         print(f"\nAnalyzing section #{section_index} ({section_size} bytes)...")
         entry_points = _c_section_entry_points(
+            section,
             binary_source,
             target_metadata,
             section_index,
@@ -1359,7 +1440,7 @@ def _build_entities_from_c_analysis(
 
         hunk_entities.extend(
             _structured_prefix_entities(
-                effective_policy,
+                _combined_structured_policy(effective_policy, analysis),
                 section_index,
                 include_structure=include_structure,
             )
@@ -1465,21 +1546,32 @@ def build_entities(binary_path: str, output_path: str | None = None,
 
 
 def _remove_overlapping(entities: list[JsonDict]) -> list[JsonDict]:
-    """Remove entities that overlap with earlier ones (sorted by addr)."""
+    """Remove overlapping entities, preserving accepted code over data."""
     entities.sort(key=lambda e: int(e["addr"], 16))
     result: list[JsonDict] = []
     for ent in entities:
         addr = int(ent["addr"], 16)
         end = int(ent["end"], 16)
-        # Check against all existing
-        overlap = False
-        for existing in result:
+        overlapping_indexes: list[int] = []
+        blocked = False
+        for index, existing in enumerate(result):
             ex_addr = int(existing["addr"], 16)
             ex_end = int(existing["end"], 16)
             if addr < ex_end and end > ex_addr:
-                overlap = True
-                break
-        if not overlap:
+                if existing.get("type") == "code" or ent.get("type") != "code":
+                    blocked = True
+                    break
+                overlapping_indexes.append(index)
+        if blocked:
+            continue
+        for index in reversed(overlapping_indexes):
+            del result[index]
+        if overlapping_indexes:
+            insert_at = 0
+            while insert_at < len(result) and int(result[insert_at]["addr"], 16) <= addr:
+                insert_at += 1
+            result.insert(insert_at, ent)
+        else:
             result.append(ent)
     return result
 

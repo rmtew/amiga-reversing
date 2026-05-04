@@ -38,8 +38,10 @@ from amiga_reversing.disasm.listing_types import (
     BlockRowContext,
     HeaderRowContext,
     ListingRow,
+    CodeStartRef,
     PlatformTypedAccess,
     PlatformUnresolvedTypedAccess,
+    RuntimeAddressRef,
     SemanticOperand,
     SymbolOperandMetadata,
 )
@@ -670,6 +672,8 @@ def rows_from_c_listing_json(payload: dict[str, object]) -> list[ListingRow]:
         structured_data = raw_row.get("structured_data")
         source_context = _source_context_from_c_json(raw_row.get("source_context"))
         app_slot_refs = _app_slot_refs_from_c_json(raw_row.get("app_slot_refs"))
+        runtime_address_refs = _runtime_address_refs_from_c_json(raw_row.get("runtime_address_refs"))
+        code_start_refs = _code_start_refs_from_c_json(raw_row.get("code_start_refs"))
         typed_accesses = _typed_accesses_from_c_json(raw_row.get("typed_accesses"))
         unresolved_typed_accesses = _unresolved_typed_accesses_from_c_json(raw_row.get("unresolved_typed_accesses"))
         operand_parts = _operand_parts_from_c_json(raw_row.get("operand_parts"), operand_text)
@@ -706,6 +710,8 @@ def rows_from_c_listing_json(payload: dict[str, object]) -> list[ListingRow]:
                 operand_accesses=operand_accesses,
                 operand_registers=operand_registers,
                 app_slot_refs=app_slot_refs,
+                runtime_address_refs=runtime_address_refs,
+                code_start_refs=code_start_refs,
                 typed_accesses=typed_accesses,
                 unresolved_typed_accesses=unresolved_typed_accesses,
                 operand_text=operand_text if isinstance(operand_text, str) else "",
@@ -729,6 +735,77 @@ def _nullable_string_tuple_from_c_json(value: object) -> tuple[str | None, ...]:
     if not isinstance(value, list):
         return ()
     return tuple(item if isinstance(item, str) else None for item in value)
+
+
+def _runtime_address_refs_from_c_json(value: object) -> tuple[RuntimeAddressRef, ...]:
+    if not isinstance(value, list):
+        return ()
+    refs: list[RuntimeAddressRef] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        offset = item.get("offset")
+        confidence = item.get("confidence")
+        if not isinstance(offset, int) or not isinstance(confidence, int):
+            continue
+        operand_index = item.get("operand_index")
+        target_section_index = item.get("target_section_index")
+        target_offset = item.get("target_offset")
+        runtime_address = item.get("runtime_address")
+        data_class = item.get("data_class")
+        size = item.get("size")
+        refs.append(
+            RuntimeAddressRef(
+                offset=offset,
+                operand_index=operand_index if isinstance(operand_index, int) else None,
+                target_section_index=target_section_index if isinstance(target_section_index, int) else None,
+                target_offset=target_offset if isinstance(target_offset, int) else None,
+                runtime_address=runtime_address if isinstance(runtime_address, int) else None,
+                confidence=confidence,
+                data_class=data_class if isinstance(data_class, str) else None,
+                size=size if isinstance(size, int) else None,
+            )
+        )
+    return tuple(refs)
+
+
+def _code_start_refs_from_c_json(value: object) -> tuple[CodeStartRef, ...]:
+    if not isinstance(value, list):
+        return ()
+    refs: list[CodeStartRef] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        offset = item.get("offset")
+        reason = item.get("reason")
+        confidence = item.get("confidence")
+        source_section_index = item.get("source_section_index")
+        source_offset = item.get("source_offset")
+        size = item.get("size")
+        if (
+            not isinstance(offset, int)
+            or not isinstance(reason, int)
+            or not isinstance(confidence, int)
+            or not isinstance(source_section_index, int)
+            or not isinstance(source_offset, int)
+            or not isinstance(size, int)
+        ):
+            continue
+        reason_name = item.get("reason_name")
+        runtime_address = item.get("runtime_address")
+        refs.append(
+            CodeStartRef(
+                offset=offset,
+                reason=reason,
+                reason_name=reason_name if isinstance(reason_name, str) else None,
+                confidence=confidence,
+                source_section_index=source_section_index,
+                source_offset=source_offset,
+                runtime_address=runtime_address if isinstance(runtime_address, int) else None,
+                size=size,
+            )
+        )
+    return tuple(refs)
 
 
 def _operand_parts_from_c_json(value: object, operand_text: object) -> tuple[SemanticOperand, ...]:
