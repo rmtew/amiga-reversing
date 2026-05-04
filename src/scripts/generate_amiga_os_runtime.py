@@ -791,11 +791,24 @@ def build_domain_member_rows(merged_domains: dict[str, dict], constant_rows: lis
         members = domain_info.get("members", [])
         if not isinstance(members, list):
             continue
-        for member_name in members:
-            if not isinstance(member_name, str) or not member_name:
+        for member in members:
+            explicit_value: int | None = None
+            if isinstance(member, str):
+                member_name = member
+            elif isinstance(member, dict):
+                raw_name = member.get("name")
+                if not isinstance(raw_name, str):
+                    continue
+                member_name = raw_name
+                raw_value = member.get("value")
+                if isinstance(raw_value, int):
+                    explicit_value = raw_value
+            else:
                 continue
-            member_value = constant_values.get(member_name)
-            include_path = constant_includes.get(member_name)
+            if not member_name:
+                continue
+            member_value = explicit_value if explicit_value is not None else constant_values.get(member_name)
+            include_path = None if explicit_value is not None else constant_includes.get(member_name)
             rows.append((domain_name, member_name, member_value, include_path))
             if member_value is not None:
                 used_constants[member_name] = (member_value, include_path)

@@ -5,6 +5,7 @@ from typing import cast
 from src.scripts.generate_amiga_os_runtime import (
     build_api_input_value_domain_map,
     build_calling_convention_mask_map,
+    build_domain_member_rows,
     build_api_output_type_override_map,
     build_merged_value_domains,
     input_rows,
@@ -805,6 +806,31 @@ def test_generate_runtime_derives_alert_input_value_domain_from_alerts_include()
     assert bindings[("exec.library", "Alert", "alertNum")] == "exec.alert.number"
 
 
+def test_generate_runtime_accepts_explicit_value_domain_member_values() -> None:
+    domains = {
+        "hardware.custom.test.flags": {
+            "kind": "flags",
+            "members": [
+                {"name": "TEST_FLAG_HIGH", "value": 0x20},
+                {"name": "TEST_FLAG_LOW", "value": 0x04},
+            ],
+            "composition": "bit_or",
+            "remainder_policy": "error",
+        }
+    }
+
+    members, constants = build_domain_member_rows(domains, [])
+
+    assert members == [
+        ("hardware.custom.test.flags", "TEST_FLAG_HIGH", 0x20, None),
+        ("hardware.custom.test.flags", "TEST_FLAG_LOW", 0x04, None),
+    ]
+    assert constants == [
+        ("TEST_FLAG_HIGH", 0x20, None),
+        ("TEST_FLAG_LOW", 0x04, None),
+    ]
+
+
 def test_corrections_json_exposes_explicit_api_value_bindings() -> None:
     corrections = load_json_payload(AMIGA_OS_REFERENCE_CORRECTIONS_JSON)
     calling_convention = corrections["_meta"]["calling_convention"]
@@ -944,6 +970,42 @@ def test_corrections_json_exposes_explicit_api_value_bindings() -> None:
                 "ACTION_REMOVE_NOTIFY",
             ],
             "exact_match_policy": "error",
+        },
+        "hardware.custom.beamcon0.flags": {
+            "kind": "flags",
+            "members": [
+                {"name": "BEAMCON0_HARDDIS", "value": 16384},
+                {"name": "BEAMCON0_LPENDIS", "value": 8192},
+                {"name": "BEAMCON0_VARVBEN", "value": 4096},
+                {"name": "BEAMCON0_LOLDIS", "value": 2048},
+                {"name": "BEAMCON0_CSCBEN", "value": 1024},
+                {"name": "BEAMCON0_VARVSYEN", "value": 512},
+                {"name": "BEAMCON0_VARHSYEN", "value": 256},
+                {"name": "BEAMCON0_VARBEAMEN", "value": 128},
+                {"name": "BEAMCON0_DUAL", "value": 64},
+                {"name": "BEAMCON0_PAL", "value": 32},
+                {"name": "BEAMCON0_VARCSYEN", "value": 16},
+                {"name": "BEAMCON0_BLANKEN", "value": 8},
+                {"name": "BEAMCON0_CSYTRUE", "value": 4},
+                {"name": "BEAMCON0_VSYTRUE", "value": 2},
+                {"name": "BEAMCON0_HSYTRUE", "value": 1},
+            ],
+            "composition": "bit_or",
+            "remainder_policy": "error",
+        },
+        "hardware.custom.bplcon2.flags": {
+            "kind": "flags",
+            "members": [
+                {"name": "BPLCON2_PF2PRI", "value": 64},
+                {"name": "BPLCON2_PF2P2", "value": 32},
+                {"name": "BPLCON2_PF2P1", "value": 16},
+                {"name": "BPLCON2_PF2P0", "value": 8},
+                {"name": "BPLCON2_PF1P2", "value": 4},
+                {"name": "BPLCON2_PF1P1", "value": 2},
+                {"name": "BPLCON2_PF1P0", "value": 1},
+            ],
+            "composition": "bit_or",
+            "remainder_policy": "error",
         },
     }
     assert bindings == [

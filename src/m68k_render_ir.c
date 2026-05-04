@@ -1440,6 +1440,60 @@ static int structured_data_item_is_word_relative_lookup_table(const M68kAnalysis
     strcmp(item->semantic_role, "lookup_table") == 0;
 }
 
+static int structured_data_item_is_absolute_long_lookup_table(const M68kAnalysisStructuredDataItem *item) {
+  return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
+    strcmp(item->semantic_role, "lookup_table") == 0;
+}
+
+static int format_absolute_long_lookup_table_expr(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, uint32_t raw_long, char *expr, size_t expr_size) {
+  uint32_t target_offset = 0U;
+  if (lookup == NULL || section == NULL || expr == NULL || expr_size == 0U) return 0;
+  expr[0] = '\0';
+  if (raw_long == 0U) {
+    snprintf(expr, expr_size, "$00000000");
+    return strlen(expr) + 1U < expr_size;
+  }
+  if (!lookup_exact_pointer_value_label_offset(lookup, section->section_index, section->size, raw_long,
+      &target_offset)) {
+    return 0;
+  }
+  (void)format_rendered_asm_label_with_generation(lookup, expr, expr_size, section->section_index, target_offset);
+  return expr[0] != '\0' && strlen(expr) + 1U < expr_size;
+}
+
+static int render_asm_absolute_long_lookup_table(M68kRenderIRPreview *preview,
+    const M68kDecodeSectionIR *section, const M68kRenderLookup *lookup,
+    const M68kAnalysisStructuredDataItem *item, uint32_t available, const char *comment) {
+  uint32_t cursor = 0U;
+  if (preview == NULL || section == NULL || lookup == NULL || item == NULL || section->data == NULL ||
+      item->offset >= section->size || (available & 3U) != 0U) {
+    return 0;
+  }
+  while (cursor + 4U <= available) {
+    uint32_t line_count = (available - cursor) / 4U;
+    uint32_t index;
+    if (line_count > 4U) line_count = 4U;
+    hash_asm_text(preview, "\tdc.l ");
+    for (index = 0U; index < line_count; ++index) {
+      char expr[96];
+      uint32_t raw_long = m68k_read_u32be(section->data + item->offset + cursor + (index * 4U));
+      if (!format_absolute_long_lookup_table_expr(lookup, section, raw_long, expr, sizeof(expr)))
+        snprintf(expr, sizeof(expr), "$%08X", (unsigned)raw_long);
+      if (index != 0U) hash_asm_text(preview, ",");
+      hash_asm_text(preview, expr);
+    }
+    if (comment != NULL && comment[0] != '\0') {
+      hash_asm_text(preview, "\t; ");
+      hash_asm_text(preview, comment);
+    }
+    hash_asm_text(preview, "\n");
+    ++preview->asm_source_lines;
+    cursor += line_count * 4U;
+  }
+  return cursor == available;
+}
+
 static int format_word_relative_lookup_table_expr(const M68kRenderLookup *lookup,
     const M68kAnalysisStructuredDataItem *item, uint16_t raw_word, char *expr, size_t expr_size) {
   int32_t displacement = (int32_t)(int16_t)raw_word;
@@ -1476,16 +1530,12 @@ static int render_asm_word_relative_lookup_table(M68kRenderIRPreview *preview,
     uint32_t line_count = (available - cursor) / 2U;
     uint32_t index;
     if (line_count > 4U) line_count = 4U;
-    for (index = 0U; index < line_count; ++index) {
-      char expr[192];
-      uint16_t raw_word = m68k_read_u16be(section->data + item->offset + cursor + (index * 2U));
-      if (!format_word_relative_lookup_table_expr(lookup, item, raw_word, expr, sizeof(expr))) return 0;
-    }
     hash_asm_text(preview, "\tdc.w ");
     for (index = 0U; index < line_count; ++index) {
       char expr[192];
       uint16_t raw_word = m68k_read_u16be(section->data + item->offset + cursor + (index * 2U));
-      (void)format_word_relative_lookup_table_expr(lookup, item, raw_word, expr, sizeof(expr));
+      if (!format_word_relative_lookup_table_expr(lookup, item, raw_word, expr, sizeof(expr)))
+        snprintf(expr, sizeof(expr), "$%04X", (unsigned)raw_word);
       if (index != 0U) hash_asm_text(preview, ",");
       hash_asm_text(preview, expr);
     }
@@ -1992,6 +2042,10 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   }
   if (available == item->size && structured_data_item_is_word_relative_lookup_table(item) &&
       render_asm_word_relative_lookup_table(preview, section, lookup, item, available, comment_text)) {
+    return;
+  }
+  if (available == item->size && structured_data_item_is_absolute_long_lookup_table(item) &&
+      render_asm_absolute_long_lookup_table(preview, section, lookup, item, available, comment_text)) {
     return;
   }
   if (available == item->size &&

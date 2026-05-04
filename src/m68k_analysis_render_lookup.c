@@ -6419,6 +6419,39 @@ static int candidate_indexed_read_from_known_local_base(const M68kDecodeSectionI
   return 0;
 }
 
+static int runtime_pointer_value_to_accepted_source_offset(const M68kRenderLookup *lookup,
+    const uint8_t *accepted_start, size_t section_index, uint32_t section_size, uint32_t value,
+    uint32_t *out_source_offset) {
+  size_t range_index;
+  if (out_source_offset != NULL) *out_source_offset = 0U;
+  if (lookup == NULL || accepted_start == NULL || value == 0U) return 0;
+  if (value < section_size && accepted_start[value]) {
+    if (out_source_offset != NULL) *out_source_offset = value;
+    return 1;
+  }
+  for (range_index = 0U; range_index < lookup->runtime_address_range_count; ++range_index) {
+    const M68kFact *range = lookup->runtime_address_ranges[range_index].fact;
+    uint32_t delta;
+    uint32_t source_offset;
+    uint32_t logical_address = 0U;
+    if (range == NULL || range->section_index != section_index || !range->has_runtime_address ||
+        value < range->runtime_address) {
+      continue;
+    }
+    delta = value - range->runtime_address;
+    if (delta >= range->size || range->offset > UINT32_MAX - delta) continue;
+    source_offset = range->offset + delta;
+    if (source_offset >= section_size || !accepted_start[source_offset]) continue;
+    if (!lookup_source_logical_address(lookup, section_index, source_offset, &logical_address) ||
+        logical_address != value) {
+      continue;
+    }
+    if (out_source_offset != NULL) *out_source_offset = source_offset;
+    return 1;
+  }
+  return 0;
+}
+
 static uint32_t scan_indexed_local_pointer_table_span(const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes,
     size_t table_section_index, uint32_t table_offset) {
@@ -6439,9 +6472,9 @@ static uint32_t scan_indexed_local_pointer_table_span(const M68kRenderLookup *lo
     if (lookup_range_has_interior_label(lookup, table_section_index, cursor, 4U)) break;
     if (accepted_range_has_code_byte(accepted_bytes[table_section_index], section->size, cursor, 4U)) break;
     target = m68k_read_u32be(section->data + cursor);
-    if (target == 0U || target >= section->size || (target & 1U) != 0U) break;
-    if (!lookup_has_label(lookup, table_section_index, target) &&
-        !accepted_start[table_section_index][target]) {
+    if ((target & 1U) != 0U ||
+        !runtime_pointer_value_to_accepted_source_offset(lookup, accepted_start[table_section_index],
+          table_section_index, section->size, target, NULL)) {
       break;
     }
     ++count;

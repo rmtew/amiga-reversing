@@ -313,6 +313,108 @@
           "OFFSET_END"
         ]
       },
+      "hardware.custom.beamcon0.flags": {
+        "composition": "bit_or",
+        "kind": "flags",
+        "members": [
+          {
+            "name": "BEAMCON0_HARDDIS",
+            "value": 16384
+          },
+          {
+            "name": "BEAMCON0_LPENDIS",
+            "value": 8192
+          },
+          {
+            "name": "BEAMCON0_VARVBEN",
+            "value": 4096
+          },
+          {
+            "name": "BEAMCON0_LOLDIS",
+            "value": 2048
+          },
+          {
+            "name": "BEAMCON0_CSCBEN",
+            "value": 1024
+          },
+          {
+            "name": "BEAMCON0_VARVSYEN",
+            "value": 512
+          },
+          {
+            "name": "BEAMCON0_VARHSYEN",
+            "value": 256
+          },
+          {
+            "name": "BEAMCON0_VARBEAMEN",
+            "value": 128
+          },
+          {
+            "name": "BEAMCON0_DUAL",
+            "value": 64
+          },
+          {
+            "name": "BEAMCON0_PAL",
+            "value": 32
+          },
+          {
+            "name": "BEAMCON0_VARCSYEN",
+            "value": 16
+          },
+          {
+            "name": "BEAMCON0_BLANKEN",
+            "value": 8
+          },
+          {
+            "name": "BEAMCON0_CSYTRUE",
+            "value": 4
+          },
+          {
+            "name": "BEAMCON0_VSYTRUE",
+            "value": 2
+          },
+          {
+            "name": "BEAMCON0_HSYTRUE",
+            "value": 1
+          }
+        ],
+        "remainder_policy": "error"
+      },
+      "hardware.custom.bplcon2.flags": {
+        "composition": "bit_or",
+        "kind": "flags",
+        "members": [
+          {
+            "name": "BPLCON2_PF2PRI",
+            "value": 64
+          },
+          {
+            "name": "BPLCON2_PF2P2",
+            "value": 32
+          },
+          {
+            "name": "BPLCON2_PF2P1",
+            "value": 16
+          },
+          {
+            "name": "BPLCON2_PF2P0",
+            "value": 8
+          },
+          {
+            "name": "BPLCON2_PF1P2",
+            "value": 4
+          },
+          {
+            "name": "BPLCON2_PF1P1",
+            "value": 2
+          },
+          {
+            "name": "BPLCON2_PF1P0",
+            "value": 1
+          }
+        ],
+        "remainder_policy": "error"
+      },
       "exec.allocmem.attributes": {
         "composition": "bit_or",
         "exact_match_policy": "error",

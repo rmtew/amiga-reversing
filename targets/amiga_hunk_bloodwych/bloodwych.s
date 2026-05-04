@@ -40,6 +40,8 @@ app_0012 EQU $0012
 INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
 m68k_vector_trap_0_instruction_vector	EQU	$80
+BPLCON2_PF2P2	EQU	$20
+BPLCON2_PF1P2	EQU	$4
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 m68k_vector_level_2_interrupt_autovector	EQU	$68
 m68k_vector_level_4_interrupt_autovector	EQU	$70
@@ -125,7 +127,7 @@ loc_0_00000492:
 	jsr loc_0_00008DBA.l
 	move.w #(4<<PLNCNTSHFT)|COLORON,_custom+bplcon0.l	; display 4 bitplanes lores color
 	move.w #$0,_custom+bplcon1.l	; display scroll pf1=0 pf2=0
-	move.w #$24,_custom+bplcon2.l
+	move.w #BPLCON2_PF2P2|BPLCON2_PF1P2,_custom+bplcon2.l
 	move.w #$0,_custom+bpl1mod.l	; bitplane modulo 0 bytes
 	move.w #$0,_custom+bpl2mod.l	; bitplane modulo 0 bytes
 	move.w #$38,_custom+ddfstrt.l	; display fetch start $38
@@ -5678,8 +5680,8 @@ loc_0_00004D4E:
 	movea.l loc_0_00004D78(pc,d0.w),a0
 	jmp (a0)
 loc_0_00004D78:
-	dc.l $00004DAA,$000057A4,$00004DEA,$00005628	; lookup_table
-	dc.l $000057A4	; lookup_table
+	dc.l loc_0_00004DAA,loc_0_000057A4,loc_0_00004DEA,loc_0_00005628	; lookup_table
+	dc.l loc_0_000057A4	; lookup_table
 loc_0_00004D8C:
 	bclr.b #7,$0001(a5)
 	beq.b loc_0_00004DA8
@@ -6656,15 +6658,26 @@ loc_0_000057BA:
 loc_0_000057CE:
 	dc.l loc_0_00006684	; pointer_table
 	dc.l loc_0_00006616
-	dc.b $00,$00,$64,$AA,$00,$00,$6B,$F0,$00,$00,$5F,$9E,$00,$00,$5F,$94
-	dc.b $00,$00,$65,$B2,$00,$00,$65,$B2,$00,$00,$65,$B2,$00,$00,$65,$B2
-	dc.b $00,$00,$6D,$EE,$00,$00,$6D,$F2,$00,$00,$6D,$F6,$00,$00,$6D,$FA
-	dc.b $00,$00,$6F,$5A,$00,$00,$6F,$68,$00,$00,$58,$8E,$00,$00,$6C,$0A
-	dc.b $00,$00,$6A,$46,$00,$00,$69,$14,$00,$00,$58,$62,$00,$00,$4E,$7A
-	dc.b $00,$00,$55,$E0,$00,$00,$C2,$EA,$00,$00,$57,$A4,$00,$00,$C2,$EA
-	dc.b $00,$00,$42,$0C,$00,$00,$58,$62,$00,$00,$42,$5E,$00,$00,$43,$2A
-	dc.b $00,$00,$45,$36,$00,$00,$32,$DE,$00,$00,$4C,$10,$00,$00,$33,$6A
-	dc.b $00,$00,$5D,$3E,$00,$00,$58,$94,$00,$00,$64,$D0
+	dc.l loc_0_000064AA
+	dc.l loc_0_00006BF0
+	dc.l loc_0_00005F9E
+	dc.l loc_0_00005F94
+	dc.l loc_0_000065B2
+	dc.l loc_0_000065B2
+	dc.l loc_0_000065B2
+	dc.l loc_0_000065B2
+	dc.l loc_0_00006DEE
+	dc.l loc_0_00006DF2
+	dc.l loc_0_00006DF6
+	dc.l loc_0_00006DFA
+	dc.l loc_0_00006F5A
+	dc.l loc_0_00006F68
+	dc.b $00,$00,$58,$8E,$00,$00,$6C,$0A,$00,$00,$6A,$46,$00,$00,$69,$14
+	dc.b $00,$00,$58,$62,$00,$00,$4E,$7A,$00,$00,$55,$E0,$00,$00,$C2,$EA
+	dc.b $00,$00,$57,$A4,$00,$00,$C2,$EA,$00,$00,$42,$0C,$00,$00,$58,$62
+	dc.b $00,$00,$42,$5E,$00,$00,$43,$2A,$00,$00,$45,$36,$00,$00,$32,$DE
+	dc.b $00,$00,$4C,$10,$00,$00,$33,$6A,$00,$00,$5D,$3E,$00,$00,$58,$94
+	dc.b $00,$00,$64,$D0
 loc_0_00005862:
 	rts
 loc_0_00005864:
@@ -6896,7 +6909,7 @@ loc_0_00005B66:
 	rts
 loc_0_00005B68:
 	dc.w loc_0_00005B66-loc_0_00005B66,loc_0_00005D12-loc_0_00005B66,loc_0_00005CFC-loc_0_00005B66,loc_0_00007746-loc_0_00005B66	; lookup_table
-	dc.w $0000,$01AC,$0196,$1BE0,$1B4E,$1C06,$1C02,$1BF2	; lookup_table
+	dc.w $1B4E,$1C06,$1C02,$1BF2	; lookup_table
 loc_0_00005B78:
 	dc.b $00,$00,$00,$00,$02,$00,$01,$08,$02,$00,$11,$01,$02,$00,$06,$07
 	dc.b $02,$00,$02,$0C,$02,$00,$01,$09,$04,$00,$09,$01
@@ -9277,9 +9290,9 @@ loc_0_00007D3E:
 	lea.l $7C93.w,a6
 	rts
 loc_0_00007D44:
-	dc.l $00007CA0,$00007CA6,$00000000,$00007CD6	; lookup_table
-	dc.l $00007D20,$00007D26,$00007D2C,$00007D32	; lookup_table
-	dc.l $00007D38,$00007D3E	; lookup_table
+	dc.l loc_0_00007CA0,loc_0_00007CA6,$00000000,loc_0_00007CD6	; lookup_table
+	dc.l loc_0_00007D20,loc_0_00007D26,loc_0_00007D2C,loc_0_00007D32	; lookup_table
+	dc.l loc_0_00007D38,loc_0_00007D3E	; lookup_table
 loc_0_00007D6C:
 	ori.b #1,$0054(a5)
 	move.w $0044(a5),d0
@@ -14446,7 +14459,9 @@ loc_0_0000C43E:
 loc_0_0000C482:
 	rts
 loc_0_0000C484:
-	dc.b $00,$00,$C9,$38,$00,$00,$C8,$52,$00,$00,$CB,$28
+	dc.l loc_0_0000C938	; pointer_table
+	dc.l loc_0_0000C852
+	dc.l loc_0_0000CB28
 loc_0_0000C490:
 	clr.w loc_0_0000EEC8.l
 	movea.l loc_0_00008D36.l,a0

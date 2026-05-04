@@ -62,6 +62,20 @@ def _requires_c_backend_dlls() -> None:
         pytest.skip("C backend DLLs are missing; run cmd /c src\\build.bat")
 
 
+def _amiga_hunk_section_hexes(path: Path) -> list[str]:
+    inspector = PROJECT_ROOT / "src" / "build" / "platform_file_cli.exe"
+    result = subprocess.run(
+        [str(inspector), "inspect-file", "amiga-hunk", str(path)],
+        cwd=PROJECT_ROOT,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return [section["data_hex"] for section in json.loads(result.stdout)["sections"]]
+
+
 def _make_cross_section_call_hunkexe(second_code: bytes, target_offset: int) -> bytes:
     hunk_header = 1011
     hunk_code = 1001
@@ -3451,6 +3465,7 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "; display 4 bitplanes lores color\n"
     ) in source_text
     assert "\tmove.w #$0,_custom+bplcon1.l\t; display scroll pf1=0 pf2=0\n" in source_text
+    assert "\tmove.w #BPLCON2_PF2P2|BPLCON2_PF1P2,_custom+bplcon2.l\n" in source_text
     assert "\tmove.w #$3781,_custom+diwstrt.l\t; display window start v=$37 h=$81\n" in source_text
     assert "\tmove.w #$38,_custom+ddfstrt.l\t; display fetch start $38\n" in source_text
     assert "\tmove.w #$0,_custom+bpl1mod.l\t; bitplane modulo 0 bytes\n" in source_text
@@ -3461,6 +3476,8 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "; period from loc_0_0000893A transformed | audio period\n"
     ) in source_text
     assert "\tmove.w (a0),_custom+aud0+ac_dat.l\t; audio data word\n" in source_text
+    assert "loc_0_0000C484:\n\tdc.l loc_0_0000C938\t; pointer_table\n" in source_text
+    assert "\tdc.l loc_0_0000C852\n\tdc.l loc_0_0000CB28\n" in source_text
     assert "loc_0_00008938:\n\tdc.w $0000\t; lookup_table\n" in source_text
     assert (
         "loc_0_0000893A:\n"
@@ -3491,6 +3508,12 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "\tdc.w loc_0_00003F60-loc_0_000033B2,loc_0_00004144-loc_0_000033B2,"
         "loc_0_00003F5C-loc_0_000033B2,loc_0_00003E9C-loc_0_000033B2\t; lookup_table\n"
         "\tdc.w loc_0_000034CC-loc_0_000033B2\t; lookup_table\n"
+    ) in source_text
+    assert (
+        "loc_0_00007D44:\n"
+        "\tdc.l loc_0_00007CA0,loc_0_00007CA6,$00000000,loc_0_00007CD6\t; lookup_table\n"
+        "\tdc.l loc_0_00007D20,loc_0_00007D26,loc_0_00007D2C,loc_0_00007D32\t; lookup_table\n"
+        "\tdc.l loc_0_00007D38,loc_0_00007D3E\t; lookup_table\n"
     ) in source_text
     display_summary = (
         "    ; display layout 4 bitmap planes $00070000..$00076000 step $2000 | "
@@ -3523,6 +3546,9 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "$00DFF" not in source_text
     assert source_profile["facts_v2"]["asm_source_refused"] is False
     assert assembler_profile["rebuilt_bytes"] == len(rebuilt)
+    assert _amiga_hunk_section_hexes(tmp_path / "bloodwych_generated_source.hunk") == _amiga_hunk_section_hexes(
+        paths.binary_source.path
+    )
     assert source_profile["facts_v2"]["asm_source_instruction_byte_mismatches"] == 0
 
 
