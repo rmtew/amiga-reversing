@@ -2945,6 +2945,12 @@ static int test_facts_v2_traced_indirect_jump_promotes_long_table_targets(void) 
     }
   }
   M68K_C_ASSERT_U32(3U, saw_targets);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_indirect_site_count);
+  M68K_C_ASSERT_U32(0x0AU, source_analysis.sections[0].recovered_indirect_sites[0].offset);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE,
+    source_analysis.sections[0].recovered_indirect_sites[0].status);
+  M68K_C_ASSERT_U32(1U, source_analysis.sections[0].recovered_indirect_sites[0].has_target_count);
+  M68K_C_ASSERT_U32(2U, source_analysis.sections[0].recovered_indirect_sites[0].target_count);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -2999,6 +3005,12 @@ static int test_facts_v2_traced_indirect_jump_keeps_later_table_state(void) {
     }
   }
   M68K_C_ASSERT_U32(3U, saw_targets);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_indirect_site_count);
+  M68K_C_ASSERT_U32(0x0CU, source_analysis.sections[0].recovered_indirect_sites[0].offset);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE,
+    source_analysis.sections[0].recovered_indirect_sites[0].status);
+  M68K_C_ASSERT_U32(1U, source_analysis.sections[0].recovered_indirect_sites[0].has_target_count);
+  M68K_C_ASSERT_U32(2U, source_analysis.sections[0].recovered_indirect_sites[0].target_count);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -3061,6 +3073,12 @@ static int test_facts_v2_runtime_mapped_long_dispatch_promotes_table_targets(voi
     }
   }
   M68K_C_ASSERT_U32(3U, saw_targets);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_indirect_site_count);
+  M68K_C_ASSERT_U32(0x0AU, source_analysis.sections[0].recovered_indirect_sites[0].offset);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE,
+    source_analysis.sections[0].recovered_indirect_sites[0].status);
+  M68K_C_ASSERT_U32(1U, source_analysis.sections[0].recovered_indirect_sites[0].has_target_count);
+  M68K_C_ASSERT_U32(2U, source_analysis.sections[0].recovered_indirect_sites[0].target_count);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -3200,6 +3218,12 @@ static int test_facts_v2_traced_indirect_jump_promotes_word_relative_table_targe
     }
   }
   M68K_C_ASSERT_U32(3U, saw_targets);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_indirect_site_count);
+  M68K_C_ASSERT_U32(0x10U, source_analysis.sections[0].recovered_indirect_sites[0].offset);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE,
+    source_analysis.sections[0].recovered_indirect_sites[0].status);
+  M68K_C_ASSERT_U32(1U, source_analysis.sections[0].recovered_indirect_sites[0].has_target_count);
+  M68K_C_ASSERT_U32(2U, source_analysis.sections[0].recovered_indirect_sites[0].target_count);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   free(analysis_json);

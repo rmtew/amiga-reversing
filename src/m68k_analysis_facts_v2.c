@@ -3130,6 +3130,33 @@ static uint8_t recovered_indirect_shape_for_operand(const M68kDecodeCandidate *c
   return M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF;
 }
 
+static void recovered_indirect_site_apply_code_start_refs(M68kRecoveredIndirectSiteIR *site,
+    const M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  uint32_t count = 0U;
+  uint32_t first_target = 0U;
+  if (site == NULL || section_analysis == NULL) return;
+  for (index = 0U; index < section_analysis->code_start_ref_count; ++index) {
+    const M68kCodeStartRefIR *ref = &section_analysis->code_start_refs[index];
+    if (ref->source_section_index != section_analysis->section_index ||
+        ref->source_offset != site->offset ||
+        ref->reason != M68K_FACT_CODE_START_REASON_CONTROL_TARGET) {
+      continue;
+    }
+    if (count == 0U) first_target = ref->offset;
+    if (count != UINT32_MAX) ++count;
+  }
+  if (count == 0U) return;
+  site->has_target = 1U;
+  site->target = first_target;
+  site->has_target_count = 1U;
+  site->target_count = count;
+  site->status = count > 1U ? M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE :
+    M68K_RECOVERED_INDIRECT_STATUS_BACKWARD_SLICE;
+  site->detail = count > 1U ? "accepted indirect jump table targets" :
+    "accepted traced indirect control target";
+}
+
 static int append_recovered_indirect_sites_for_accepted(const M68kDecodeIR *decode,
     uint8_t **accepted_start, M68kSourceAnalysisIR *source_analysis) {
   size_t section_index;
@@ -3169,6 +3196,7 @@ static int append_recovered_indirect_sites_for_accepted(const M68kDecodeIR *deco
         site.shape = shape;
         site.status = M68K_RECOVERED_INDIRECT_STATUS_UNRESOLVED;
         site.detail = "accepted indirect control target";
+        recovered_indirect_site_apply_code_start_refs(&site, &source_analysis->sections[section_index]);
         if (m68k_ir_section_analysis_append_recovered_indirect_site(&source_analysis->sections[section_index],
             &site) != 0) {
           return -1;
