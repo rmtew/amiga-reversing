@@ -1,0 +1,27 @@
+{
+  "absolute_code_labels": [],
+  "app_slot_regions": [],
+  "bootblock": null,
+  "custom_structs": [],
+  "entry_register_seeds": [],
+  "execution_views": [],
+  "library": null,
+  "resident": {
+    "auto_init": false,
+    "autoinit": null,
+    "flags": 1,
+    "id_string": "parallel 34.9 (18 Apr 1988)\r\n",
+    "init_offset": 988,
+    "matchword": 19196,
+    "name": "parallel.device",
+    "node_type_name": "device",
+    "offset": 4,
+    "priority": 60,
+    "version": 34
+  },
+  "seeded_code_entrypoints": [],
+  "seeded_code_labels": [],
+  "seeded_entities": [],
+  "suppressed_seeded_items": [],
+  "target_type": "device"
+}
