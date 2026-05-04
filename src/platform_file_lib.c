@@ -1162,6 +1162,20 @@ static int append_metadata_resident_rt_structure_local(const char *resident_star
   return append_metadata_kb_struct_instance_local(policy, hunk, resident_offset, "RT", "resident");
 }
 
+static int policy_set_structured_field_target_local(M68kAnalysisPolicy *policy, uint32_t hunk,
+    const char *struct_name, const char *field_name, uint32_t target_hunk, uint32_t target_offset) {
+  uint16_t index;
+  if (policy == NULL || struct_name == NULL || field_name == NULL) return 0;
+  for (index = 0U; index < policy->structured_data_item_count &&
+       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+    M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
+    if (!item->has_section_index || item->section_index != hunk) continue;
+    if (strcmp(item->struct_name, struct_name) != 0 || strcmp(item->field_name, field_name) != 0) continue;
+    return policy_set_structured_data_item_target_local(policy, index, target_hunk, target_offset);
+  }
+  return 1;
+}
+
 static int policy_add_autoinit_structured_item_local(M68kAnalysisPolicy *policy, uint32_t hunk, uint32_t offset,
     const char *label, uint8_t is_pointer, uint8_t has_target, uint32_t target_offset) {
   uint16_t item_index;
@@ -1601,9 +1615,11 @@ static int append_metadata_resident_structure_local(const char *text, M68kAnalys
   char target_type[32];
   char library_name[64];
   uint32_t resident_offset = 0U;
+  uint32_t init_offset = 0U;
   uint32_t hunk = 0U;
   uint32_t library_version = 0U;
   int has_resident_offset = 0;
+  int has_init_offset = 0;
   int has_hunk = 0;
   int has_library_version = 0;
   target_type[0] = '\0';
@@ -1611,6 +1627,7 @@ static int append_metadata_resident_structure_local(const char *text, M68kAnalys
   if (resident_start == NULL) return 1;
   policy->disable_implicit_entry_points = 1U;
   if (!json_number_field_local(resident_start, resident_end, "offset", &resident_offset, &has_resident_offset) ||
+      !json_number_field_local(resident_start, resident_end, "init_offset", &init_offset, &has_init_offset) ||
       !json_number_field_local(resident_start, resident_end, "hunk", &hunk, &has_hunk) ||
       !json_optional_string_field_local(text, text_end, "target_type", target_type, sizeof(target_type)) ||
       !json_optional_string_field_local(resident_start, resident_end, "name", library_name, sizeof(library_name)) ||
@@ -1625,6 +1642,13 @@ static int append_metadata_resident_structure_local(const char *text, M68kAnalys
   if (autoinit_start != NULL &&
       !append_metadata_resident_autoinit_structure_local(autoinit_start, autoinit_end, policy, has_hunk ? hunk : 0U,
         target_type, library_name, has_library_version ? library_version : 0U)) {
+    return 0;
+  }
+  if (autoinit_start == NULL && has_init_offset &&
+      (!policy_add_entry_point_local(policy, has_hunk ? hunk : 0U, init_offset) ||
+        !policy_add_named_label_local(policy, has_hunk ? hunk : 0U, init_offset, "resident_init") ||
+        !policy_set_structured_field_target_local(policy, has_hunk ? hunk : 0U, "RT", "RT_INIT",
+          has_hunk ? hunk : 0U, init_offset))) {
     return 0;
   }
   return 1;

@@ -3887,6 +3887,52 @@ def test_structural_label_at_zero_does_not_rewrite_absolute_short(tmp_path: Path
     assert "resident.w,a6" not in rendered
 
 
+def test_non_autoinit_resident_init_offset_seeds_entrypoint(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    resident = (
+        bytes([0x4A, 0xFC])
+        + (0).to_bytes(4, "big")
+        + (0x22).to_bytes(4, "big")
+        + bytes([0x00, 1, 0, 0])
+        + (0).to_bytes(4, "big")
+        + (0).to_bytes(4, "big")
+        + (0x1C).to_bytes(4, "big")
+    )
+    code = resident + b"\x00\x00" + bytes.fromhex("2c7800044e75")
+    binary_path = tmp_path / "resident_non_autoinit_init.exe"
+    metadata_path = tmp_path / "target_metadata.json"
+    binary_path.write_bytes(make_synthetic_hunkexe(code_data=code))
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "device",
+                "resident": {
+                    "name": "test.device",
+                    "version": 1,
+                    "offset": 0,
+                    "hunk": 0,
+                    "init_offset": 0x1C,
+                    "autoinit": None,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "analysis.json",
+    )
+
+    rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
+
+    assert "resident:\t; STRUCT RT" in rendered
+    assert "\tdc.l $0000001C\t; APTR RT_INIT" in rendered
+    assert "resident_init:\n\tmovea.l $0004.w,a6\n\trts" in rendered
+    assert "\tdc.b $2C,$78,$00,$04,$4E,$75" not in rendered
+
+
 def test_symbolic_zero_address_displacement_preserves_instruction_width(tmp_path: Path) -> None:
     assembler = PROJECT_ROOT / "src" / "build" / "m68k_assembler_app.exe"
     inspector = PROJECT_ROOT / "src" / "build" / "platform_file_cli.exe"
