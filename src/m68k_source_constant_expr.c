@@ -45,6 +45,7 @@ static int parse_constant_expression_primary(const char **cursor, M68kSourceCons
     && (*cursor)[length] != '+'
     && (*cursor)[length] != '-'
     && (*cursor)[length] != '*'
+    && (*cursor)[length] != '/'
     && (*cursor)[length] != '('
     && (*cursor)[length] != ')'
     && (*cursor)[length] != '|'
@@ -77,10 +78,17 @@ static int parse_constant_expression_mul(const char **cursor, M68kSourceConstant
   while (1) {
     int32_t rhs = 0;
     skip_expression_spaces(cursor);
-    if (**cursor != '*') break;
+    int op;
+    if (**cursor != '*' && **cursor != '/') break;
+    op = **cursor;
     ++(*cursor);
     if (!parse_constant_expression_primary(cursor, lookup, user_data, &rhs)) return 0;
-    value *= rhs;
+    if (op == '*') {
+      value *= rhs;
+    } else {
+      if (rhs == 0) return 0;
+      value /= rhs;
+    }
   }
   *out_value = value;
   return 1;

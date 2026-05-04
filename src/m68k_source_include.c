@@ -107,6 +107,16 @@ static int parse_structure_builtin(const M68kSourceIncludeContext *context,
   return context->set_constant("SOFFSET", value.value, 1, context->user_data);
 }
 
+static char *normalize_struct_size_expression(char *text) {
+  char *expr = m68k_trim_in_place(text);
+  size_t length = strlen(expr);
+  if (length >= 2U && expr[0] == '<' && expr[length - 1U] == '>') {
+    expr[length - 1U] = '\0';
+    expr = m68k_trim_in_place(expr + 1);
+  }
+  return expr;
+}
+
 static int parse_struct_builtin(const M68kSourceIncludeContext *context,
                                 char *rest) {
   char *comma = strchr(rest, ',');
@@ -122,7 +132,7 @@ static int parse_struct_builtin(const M68kSourceIncludeContext *context,
   }
   if (!context->set_constant(m68k_trim_in_place(rest), current_offset, 0, context->user_data))
     return 0;
-  value = context->parse_constant(m68k_trim_in_place(comma + 1), context->user_data);
+  value = context->parse_constant(normalize_struct_size_expression(comma + 1), context->user_data);
   if (!value.ok)
     return 0;
   return context->set_constant("SOFFSET", current_offset + value.value, 1,
@@ -355,10 +365,10 @@ static int process_include_line(const M68kSourceIncludeContext *context,
     }
     if (state->inside_macro_definition)
       return 1;
-    if (directive0 == M68K_SOURCE_DIRECTIVE_IFND) {
+    if (directive0 == M68K_SOURCE_DIRECTIVE_IFD || directive0 == M68K_SOURCE_DIRECTIVE_IFND) {
       M68kSourceLookupResult lookup_result = context->lookup_defined(m68k_trim_in_place(rest), 0, context->user_data);
-      return push_conditional(state,
-                              !lookup_result.ok || !lookup_result.defined);
+      int defined = lookup_result.ok && lookup_result.defined;
+      return push_conditional(state, (directive0 == M68K_SOURCE_DIRECTIVE_IFD) ? defined : !defined);
     }
     if (directive0 == M68K_SOURCE_DIRECTIVE_IFC || directive0 == M68K_SOURCE_DIRECTIVE_IFNC) {
       char left[64];

@@ -17,31 +17,39 @@ char *m68k_trim_in_place(char *text) {
 
 void m68k_strip_comment_in_place(char *line) {
   size_t index;
+  size_t dst = 0U;
   int in_string = 0;
   char string_quote = '\0';
   for (index = 0; line[index] != '\0'; ++index) {
     if (in_string) {
       if (line[index] == string_quote) in_string = 0;
+      line[dst++] = line[index];
       continue;
     }
     if (line[index] == '"' || line[index] == '\'') {
       in_string = 1;
       string_quote = line[index];
+      line[dst++] = line[index];
       continue;
     }
-    if (line[index] == ';') {
-      line[index] = '\0';
-      break;
+    if (line[index] == '/' && line[index + 1U] == '*') {
+      index += 2U;
+      while (line[index] != '\0' && !(line[index] == '*' && line[index + 1U] == '/')) ++index;
+      if (line[index] == '\0') break;
+      ++index;
+      continue;
     }
+    if (line[index] == ';') break;
     if (line[index] == '*'
       && index > 0U
       && isspace((unsigned char)line[index - 1U])
       && (line[index + 1U] == '\0'
         || isspace((unsigned char)line[index + 1U]))) {
-      line[index] = '\0';
       break;
     }
+    line[dst++] = line[index];
   }
+  line[dst] = '\0';
 }
 
 size_t m68k_split_delimited_in_place(char *text, char delimiter, char **parts, size_t max_parts) {

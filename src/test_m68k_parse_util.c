@@ -1,5 +1,6 @@
 #include "m68k_c_unit_test.h"
 #include "m68k_parse_util.h"
+#include "m68k_source_constant_expr.h"
 #include "m68k_source_expr.h"
 #include "m68k_source_text_util.h"
 
@@ -103,6 +104,7 @@ static int test_parse_cache_selector_token(void) {
 
 static int test_parse_source_directive_token(void) {
   M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_INCLUDE, m68k_parse_source_directive_token("include"));
+  M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_IFD, m68k_parse_source_directive_token("IFD"));
   M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_SECTION, m68k_parse_source_directive_token("SECTION"));
   M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_DCB_W, m68k_parse_source_directive_token("dcb.w"));
   M68K_C_ASSERT_INT(M68K_SOURCE_DIRECTIVE_DS_W, m68k_parse_source_directive_token("ds.w"));
@@ -182,6 +184,25 @@ static int test_source_linear_expr_accepts_constant_or(void) {
   return 0;
 }
 
+static M68kSourceConstantResult test_constant_expr_lookup(const char *name, void *user_data) {
+  M68kSourceConstantResult result = {0};
+  (void)user_data;
+  if (strcmp(name, "PMB_AWM") == 0) {
+    result.ok = 1U;
+    result.value = 1U;
+  }
+  return result;
+}
+
+static int test_source_constant_expr_accepts_division(void) {
+  M68kSourceConstantResult result =
+    m68k_source_parse_constant_expression("(PMB_AWM+7)/8", test_constant_expr_lookup, NULL);
+  M68K_C_ASSERT(result.ok);
+  M68K_C_ASSERT_U32(1U, result.value);
+  M68K_C_ASSERT(!m68k_source_parse_constant_expression("8/0", test_constant_expr_lookup, NULL).ok);
+  return 0;
+}
+
 int m68k_c_parse_util_tests(void) {
   static const M68kCTestCase cases[] = {
     {"sign_extend32", test_sign_extend32},
@@ -197,6 +218,7 @@ int m68k_c_parse_util_tests(void) {
     {"parse_offset_directive_token", test_parse_offset_directive_token},
     {"normalize_pc_current_expr", test_normalize_pc_current_expr},
     {"source_linear_expr_accepts_constant_or", test_source_linear_expr_accepts_constant_or},
+    {"source_constant_expr_accepts_division", test_source_constant_expr_accepts_division},
   };
   return m68k_c_test_run_suite("m68k_parse_util", cases, sizeof(cases) / sizeof(cases[0]));
 }

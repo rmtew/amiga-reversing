@@ -131,6 +131,90 @@ start:
         self.assertIn("move.l #$40,d6", render.stdout)
         self.assertIn("move.l #$32,d7", render.stdout)
 
+    def test_amiga_include_preprocessor_supports_angle_wrapped_struct_sizes(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            include_root = Path(tmp) / "include"
+            include_root.mkdir(parents=True)
+            (include_root / "angle_struct.i").write_text(
+                """\
+FIELD_MAX EQU 17
+STRUCTURE Demo,0
+    STRUCT demo_bits,<(FIELD_MAX+7)/8>
+    ALIGNWORD
+    LABEL Demo_SIZEOF
+""",
+                encoding="utf-8",
+            )
+            render = self._render_source_text(
+                """\
+INCLUDE "angle_struct.i"
+
+    SECTION section,code
+start:
+    move.l #demo_bits,d0
+    move.l #Demo_SIZEOF,d1
+    rts
+""",
+                include_root,
+            )
+        self.assertEqual(render.returncode, 0, render.stderr)
+        self.assertIn("move.l #$0,d0", render.stdout)
+        self.assertIn("move.l #$4,d1", render.stdout)
+
+    def test_include_preprocessor_strips_inline_block_comments_from_constants(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            include_root = Path(tmp) / "include"
+            include_root.mkdir(parents=True)
+            (include_root / "block_comment.i").write_text(
+                "MASK_VALUE EQU $3f\t      /* 2^6 -- 1 */\n",
+                encoding="utf-8",
+            )
+            render = self._render_source_text(
+                """\
+INCLUDE "block_comment.i"
+
+    SECTION section,code
+start:
+    move.l #MASK_VALUE,d0
+    rts
+""",
+                include_root,
+            )
+        self.assertEqual(render.returncode, 0, render.stderr)
+        self.assertIn("move.l #$3F,d0", render.stdout)
+
+    def test_amiga_include_preprocessor_supports_ifd_blocks(self) -> None:
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            include_root = Path(tmp) / "include"
+            include_root.mkdir(parents=True)
+            (include_root / "conditionals.i").write_text(
+                """\
+DEFINED_FLAG SET 1
+    IFD DEFINED_FLAG
+IFD_VALUE EQU $11
+    ENDC
+    IFND MISSING_FLAG
+IFND_VALUE EQU $22
+    ENDC
+""",
+                encoding="utf-8",
+            )
+            render = self._render_source_text(
+                """\
+INCLUDE "conditionals.i"
+
+    SECTION section,code
+start:
+    move.l #IFD_VALUE,d0
+    move.l #IFND_VALUE,d1
+    rts
+""",
+                include_root,
+            )
+        self.assertEqual(render.returncode, 0, render.stderr)
+        self.assertIn("move.l #$11,d0", render.stdout)
+        self.assertIn("move.l #$22,d1", render.stdout)
+
     def test_amiga_include_preprocessor_parses_dosextens_bptr_aliases(self) -> None:
         render = self._render_source_text(
             """\
