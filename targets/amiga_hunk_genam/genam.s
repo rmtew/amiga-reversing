@@ -10,62 +10,27 @@
     RSSET 0
     RS.B 254
 app_00FE RS.L 1
-app_00FF EQU $00FF
-app_0100 EQU $0100
-app_0101 EQU $0101
 app_0102 RS.L 1
-app_0103 EQU $0103
-app_0104 EQU $0104
-app_0105 EQU $0105
 app_0106 RS.L 1
-app_0107 EQU $0107
-app_0108 EQU $0108
-app_0109 EQU $0109
 app_010A RS.L 1
-app_010B EQU $010B
-app_010C EQU $010C
-app_010D EQU $010D
 app_010E RS.L 1
-app_0110 EQU $0110
 app_0112 RS.L 1
-app_0113 EQU $0113
-app_0114 EQU $0114
-app_0115 EQU $0115
 app_0116 RS.L 1
-app_0117 EQU $0117
-app_0118 EQU $0118
-app_0119 EQU $0119
     RS.B 1
 app_011B RS.B 1
 app_011C RS.L 1
-app_011D EQU $011D
-app_011E EQU $011E
-app_011F EQU $011F
     RS.B 1
 app_0121 RS.B 1
 app_0122 RS.L 1
-app_0123 EQU $0123
-app_0124 EQU $0124
-app_0125 EQU $0125
 app_0126 RS.L 1
-app_0127 EQU $0127
-app_0128 EQU $0128
-app_0129 EQU $0129
 app_012A RS.L 1
-app_012C EQU $012C
-app_012D EQU $012D
 app_012E RS.L 1
-app_012F EQU $012F
-app_0130 EQU $0130
 app_0132 RS.L 1
-app_0133 EQU $0133
-app_0134 EQU $0134
 app_0136 RS.L 1
 app_013A RS.L 1
 app_013E RS.L 1
 app_0142 RS.L 1
 app_0146 RS.L 1
-app_0148 EQU $0148
     RS.B 10
 app_0154 RS.L 1
     RS.B 2
@@ -84,7 +49,6 @@ app_0186 RS.L 1
 app_018A RS.L 1
 app_018E RS.L 1
 app_0192 RS.L 1
-app_0194 EQU $0194
 app_0196 RS.L 1
 app_019A RS.L 1
 app_019E RS.L 1
@@ -102,11 +66,7 @@ app_020C RS.L 1
 app_0210 RS.L 1
 app_0214 RS.L 1
 app_0218 RS.L 1
-app_021A EQU $021A
-app_021B EQU $021B
 app_021C RS.L 1
-app_021D EQU $021D
-app_021E EQU $021E
 app_0220 RS.L 1
 app_0224 RS.L 1
 app_option_source_buffer RS.L 1
@@ -114,11 +74,7 @@ app_startup_options_buffer RS.L 1
 app_input_source_buffer RS.L 1
 app_0234 RS.L 1
 app_0238 RS.L 1
-app_0239 EQU $0239
-app_023A EQU $023A
-app_023B EQU $023B
 app_023C RS.L 1
-app_023F EQU $023F
 app_0240 RS.L 1
 app_0244 RS.L 1
 app_0248 RS.L 1
@@ -140,7 +96,6 @@ app_04FA RS.L 1
     RS.B 124
 app_057A RS.L 1
 app_057E RS.L 1
-app_057F EQU $057F
     RS.B 38
 app_05A8 RS.L 1
     RS.B 18
@@ -163,15 +118,9 @@ app_07E0 RS.L 1
 app_0832 RS.L 1
     RS.B 4
 app_083A RS.L 1
-app_083B EQU $083B
-app_083C EQU $083C
     RS.B 2
 app_0840 RS.L 1
-app_0841 EQU $0841
-app_0842 EQU $0842
-app_0843 EQU $0843
 app_0844 RS.L 1
-app_0846 EQU $0846
     RS.B 2
 app_084A RS.L 1
     RS.B 14
@@ -182,15 +131,12 @@ app_086C RS.L 1
 app_0872 RS.L 1
     RS.B 8
 app_087E RS.L 1
-app_0880 EQU $0880
 app_0882 RS.L 1
 app_0886 RS.L 1
-app_0888 EQU $0888
     RS.B 6
 app_0890 RS.L 1
 app_0894 RS.L 1
 app_0898 RS.L 1
-app_089A EQU $089A
 app_089C RS.L 1
 app_08A0 RS.L 1
     RS.B 156
@@ -200,19 +146,14 @@ app_0948 RS.L 1
 app_094C RS.L 1
 app_0950 RS.L 1
 app_0954 RS.L 1
-app_0955 EQU $0955
-app_0956 EQU $0956
     RS.B 2
 app_095A RS.L 1
     RS.B 508
 app_0B5A RS.L 1
 app_0B5E RS.L 1
 app_0B62 RS.L 1
-app_0B64 EQU $0B64
 app_0B66 RS.L 1
-app_0B68 EQU $0B68
 app_0B6A RS.L 1
-app_0B6C EQU $0B6C
 app_0B6E RS.L 1
     RS.B 16
 app_0B82 RS.L 1
@@ -220,7 +161,6 @@ app_0B82 RS.L 1
 app_0BD3 RS.B 1
     RS.B 80
 app_0C24 RS.L 1
-app_0C26 EQU $0C26
     RS.B 4
 app_0C2C RS.L 1
 app_0C30 RS.L 1
@@ -232,19 +172,79 @@ app_0CE2 RS.L 1
     RS.B 260
 app_0DEA RS.L 1
 app_0DEE RS.L 1
-app_0DF0 EQU $0DF0
     RS.B 2
 app_0DF4 RS.L 1
-app_0DF6 EQU $0DF6
     RS.B 128
 app_0E78 RS.L 1
     RS.B 556
 app_10A8 RS.B 8
 app_10B0 RS.B 8
 app_timer_device_iorequest RS.B 48
-app_TimerBase EQU $10CC
 app_10E8 RS.L 1
 app_SIZEOF EQU __RS
+app_00FF EQU $00FF
+app_0100 EQU $0100
+app_0101 EQU $0101
+app_0103 EQU $0103
+app_0104 EQU $0104
+app_0105 EQU $0105
+app_0107 EQU $0107
+app_0108 EQU $0108
+app_0109 EQU $0109
+app_010B EQU $010B
+app_010C EQU $010C
+app_010D EQU $010D
+app_0110 EQU $0110
+app_0113 EQU $0113
+app_0114 EQU $0114
+app_0115 EQU $0115
+app_0117 EQU $0117
+app_0118 EQU $0118
+app_0119 EQU $0119
+app_011D EQU $011D
+app_011E EQU $011E
+app_011F EQU $011F
+app_0123 EQU $0123
+app_0124 EQU $0124
+app_0125 EQU $0125
+app_0127 EQU $0127
+app_0128 EQU $0128
+app_0129 EQU $0129
+app_012C EQU $012C
+app_012D EQU $012D
+app_012F EQU $012F
+app_0130 EQU $0130
+app_0133 EQU $0133
+app_0134 EQU $0134
+app_0148 EQU $0148
+app_0194 EQU $0194
+app_021A EQU $021A
+app_021B EQU $021B
+app_021D EQU $021D
+app_021E EQU $021E
+app_0239 EQU $0239
+app_023A EQU $023A
+app_023B EQU $023B
+app_023F EQU $023F
+app_057F EQU $057F
+app_083B EQU $083B
+app_083C EQU $083C
+app_0841 EQU $0841
+app_0842 EQU $0842
+app_0843 EQU $0843
+app_0846 EQU $0846
+app_0880 EQU $0880
+app_0888 EQU $0888
+app_089A EQU $089A
+app_0955 EQU $0955
+app_0956 EQU $0956
+app_0B64 EQU $0B64
+app_0B68 EQU $0B68
+app_0B6C EQU $0B6C
+app_0C26 EQU $0C26
+app_0DF0 EQU $0DF0
+app_0DF6 EQU $0DF6
+app_TimerBase EQU $10CC
 
 
     SECTION section,code

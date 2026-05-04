@@ -23,7 +23,6 @@ app_0050 RS.L 1
     RS.B 3
 app_0057 RS.B 1
 app_0058 RS.L 1
-app_005A EQU $005A
     RS.B 78
 app_00AA RS.L 1
 app_00AE RS.L 1
@@ -37,47 +36,28 @@ app_00CA RS.L 1
 app_00CE RS.L 1
 app_00D2 RS.L 1
 app_00D6 RS.L 1
-app_00D8 EQU $00D8
 app_00DA RS.L 1
-app_00DC EQU $00DC
 app_00DE RS.L 1
 app_00E2 RS.L 1
-app_00E4 EQU $00E4
-app_00E5 EQU $00E5
 app_00E6 RS.L 1
-app_00E8 EQU $00E8
 app_00EA RS.L 1
-app_00EC EQU $00EC
 app_00EE RS.L 1
-app_00F0 EQU $00F0
 app_00F2 RS.L 1
-app_00F4 EQU $00F4
 app_00F6 RS.L 1
-app_00F8 EQU $00F8
 app_00FA RS.L 1
-app_00FC EQU $00FC
 app_00FE RS.L 1
-app_0100 EQU $0100
 app_0102 RS.L 1
-app_0104 EQU $0104
     RS.B 4
 app_010A RS.L 1
     RS.B 4
 app_0112 RS.B 34
 app_0134 RS.L 1
-app_0135 EQU $0135
-app_0136 EQU $0136
     RS.B 2
 app_013A RS.L 1
 app_013E RS.L 1
     RS.B 4
 app_0146 RS.L 1
-app_0147 EQU $0147
-app_0148 EQU $0148
-app_0149 EQU $0149
 app_014A RS.L 1
-app_014B EQU $014B
-app_014C EQU $014C
     RS.B 8
 app_0156 RS.L 1
 app_015A RS.L 1
@@ -95,15 +75,12 @@ app_019E RS.L 1
     RS.B 566
 app_03D8 RS.L 1
 app_03DC RS.L 1
-app_03DE EQU $03DE
     RS.B 368
 app_0550 RS.L 1
     RS.B 10
 app_055E RS.L 1
-app_0560 EQU $0560
     RS.B 2
 app_0564 RS.L 1
-app_0567 EQU $0567
 app_0568 RS.L 1
 app_056C RS.L 1
 app_0570 RS.L 1
@@ -112,9 +89,6 @@ app_0578 RS.L 1
 app_057C RS.L 1
 app_0580 RS.L 1
 app_0584 RS.L 1
-app_0585 EQU $0585
-app_0586 EQU $0586
-app_0587 EQU $0587
 app_0588 RS.L 1
 app_058C RS.L 1
     RS.B 1
@@ -153,10 +127,7 @@ app_07EC RS.L 1
 app_0800 RS.L 1
     RS.B 16
 app_0814 RS.L 1
-app_0815 EQU $0815
-app_0816 EQU $0816
 app_console_device_iorequest RS.B 48
-app_ConsoleDevice EQU $082C
 app_0848 RS.L 1
     RS.B 26
 app_0866 RS.L 1
@@ -179,10 +150,39 @@ app_0B10 RS.L 1
 app_0C08 RS.L 1
     RS.B 96
 app_0C6C RS.L 1
-app_0C6E EQU $0C6E
     RS.B 408
 app_0E08 RS.L 1
 app_SIZEOF EQU __RS
+app_005A EQU $005A
+app_00D8 EQU $00D8
+app_00DC EQU $00DC
+app_00E4 EQU $00E4
+app_00E5 EQU $00E5
+app_00E8 EQU $00E8
+app_00EC EQU $00EC
+app_00F0 EQU $00F0
+app_00F4 EQU $00F4
+app_00F8 EQU $00F8
+app_00FC EQU $00FC
+app_0100 EQU $0100
+app_0104 EQU $0104
+app_0135 EQU $0135
+app_0136 EQU $0136
+app_0147 EQU $0147
+app_0148 EQU $0148
+app_0149 EQU $0149
+app_014B EQU $014B
+app_014C EQU $014C
+app_03DE EQU $03DE
+app_0560 EQU $0560
+app_0567 EQU $0567
+app_0585 EQU $0585
+app_0586 EQU $0586
+app_0587 EQU $0587
+app_0815 EQU $0815
+app_0816 EQU $0816
+app_ConsoleDevice EQU $082C
+app_0C6E EQU $0C6E
 
 
     SECTION section_0,code

@@ -4529,6 +4529,7 @@ int lookup_app_base_field_slot_symbol_name(const M68kRenderLookup *lookup, int16
 typedef struct M68kRenderAppRsSlot {
   int32_t displacement;
   int32_t size;
+  uint8_t alias;
   char name[64];
 } M68kRenderAppRsSlot;
 
@@ -4701,8 +4702,8 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       cursor = slots[index].displacement;
     }
     if (slots[index].displacement < cursor) {
-      snprintf(line, sizeof(line), "%s EQU $%04X\n", slots[index].name,
-        (unsigned)((uint32_t)slots[index].displacement & 0xFFFFU));
+      slots[index].alias = 1U;
+      continue;
     } else if (slots[index].size == 4) {
       snprintf(line, sizeof(line), "%s RS.L 1\n", slots[index].name);
       cursor += 4;
@@ -4722,8 +4723,16 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     hash_asm_text(preview, line);
     ++preview->asm_source_lines;
   }
-  hash_asm_text(preview, "app_SIZEOF EQU __RS\n\n");
+  hash_asm_text(preview, "app_SIZEOF EQU __RS\n");
   ++preview->asm_source_lines;
+  for (index = 0U; index < slot_count; ++index) {
+    if (slots[index].alias == 0U) continue;
+    snprintf(line, sizeof(line), "%s EQU $%04X\n", slots[index].name,
+      (unsigned)((uint32_t)slots[index].displacement & 0xFFFFU));
+    hash_asm_text(preview, line);
+    ++preview->asm_source_lines;
+  }
+  hash_asm_text(preview, "\n");
   free(slots);
 }
 

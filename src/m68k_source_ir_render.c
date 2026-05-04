@@ -856,9 +856,7 @@ static int append_needed_amiga_app_extension_rs(JsonBuilder *builder, RenderEqua
       cursor = slots[index].value;
     }
     if (slots[index].value < cursor) {
-      char value_text[32];
-      format_render_equate_value(slots[index].value, value_text, sizeof(value_text));
-      if (json_builder_appendf(builder, "%s EQU %s\n", slots[index].name, value_text) != 0) return -1;
+      slots[index].consumed = 2U;
     } else if (slot_size == 4 && (cursor & 1) == 0) {
       if (json_builder_appendf(builder, "%s RS.L 1\n", slots[index].name) != 0) return -1;
       cursor += slot_size;
@@ -878,7 +876,14 @@ static int append_needed_amiga_app_extension_rs(JsonBuilder *builder, RenderEqua
       if (append_exact_rs_byte_gap(builder, gap, directive_prefix) != 0) return -1;
     }
   }
-  if (json_builder_append(builder, "app_SIZEOF EQU __RS\n\n") != 0) return -1;
+  if (json_builder_append(builder, "app_SIZEOF EQU __RS\n") != 0) return -1;
+  for (index = 0U; index < slot_count; ++index) {
+    char value_text[32];
+    if (slots[index].consumed != 2U) continue;
+    format_render_equate_value(slots[index].value, value_text, sizeof(value_text));
+    if (json_builder_appendf(builder, "%s EQU %s\n", slots[index].name, value_text) != 0) return -1;
+  }
+  if (json_builder_append(builder, "\n") != 0) return -1;
   return 0;
 }
 
