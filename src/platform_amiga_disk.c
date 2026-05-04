@@ -176,6 +176,26 @@ static int read_bcpl_name(const unsigned char *block, size_t len_offset, size_t 
     return 0;
 }
 
+static int disk_has_valid_dos_filesystem(const DiskContext *ctx) {
+    uint32_t root_block_index;
+    size_t root_offset = 0U;
+    const unsigned char *root_block;
+    char volume_name[AMIGA_DISK_FILE_CONSTRAINTS_ROOT_NAME_MAX_LENGTH + 1U];
+    if (ctx == NULL || ctx->data == NULL || ctx->size < AMIGA_DISK_FILE_BOOT_BLOCK_FIELD_ROOT_BLOCK_OFFSET + 4U)
+        return 0;
+    if (memcmp(ctx->data + AMIGA_DISK_FILE_BOOT_BLOCK_FIELD_MAGIC_OFFSET, "DOS", 3) != 0) return 0;
+    root_block_index = read_u32be(ctx->data, AMIGA_DISK_FILE_BOOT_BLOCK_FIELD_ROOT_BLOCK_OFFSET);
+    if (block_offset(ctx, root_block_index, &root_offset) != 0) return 0;
+    root_block = ctx->data + root_offset;
+    return read_u32be(root_block, 0) == AMIGA_DISK_FILE_BLOCK_TYPE_T_HEADER &&
+        read_u32be(root_block, AMIGA_DISK_FILE_CONSTRAINTS_ROOT_SEC_TYPE_OFFSET) ==
+            AMIGA_DISK_FILE_CONSTRAINTS_SEC_TYPE_ROOT &&
+        read_u32be(root_block, AMIGA_DISK_FILE_CONSTRAINTS_ROOT_HASH_TABLE_SIZE_OFFSET) ==
+            AMIGA_DISK_FILE_CONSTRAINTS_ROOT_HASH_TABLE_ENTRIES &&
+        read_bcpl_name(root_block, AMIGA_DISK_FILE_CONSTRAINTS_ROOT_NAME_LEN_OFFSET,
+            AMIGA_DISK_FILE_CONSTRAINTS_ROOT_NAME_MAX_LENGTH, volume_name, sizeof(volume_name)) == 0;
+}
+
 static int append_extent(AmigaDiskAnalysis *analysis, AmigaDiskEntry *entry, uint32_t block_index, uint32_t image_offset,
     uint32_t byte_size) {
     AmigaDiskExtent *grown = (AmigaDiskExtent *)analysis_grow_array(analysis, entry->extents, entry->extent_count,
@@ -588,6 +608,7 @@ static int populate_bootloader_analysis(const DiskContext *ctx, AmigaDiskAnalysi
     }
     if (stage_end > materialized_stage_end) stage_end = materialized_stage_end;
     if (stage_end <= boot_block_bytes || stage_end > ctx->size) return 0;
+    if (disk_has_valid_dos_filesystem(ctx)) return 0;
     if (!block_range_has_nonzero(ctx->data, boot_block_bytes, stage_end)) return 0;
     if (append_bootloader_stage(analysis, "stage_1", AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_STAGE_DEFAULT_LOAD_ADDRESS,
             AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_STAGE_DEFAULT_LOAD_ADDRESS, (uint32_t)boot_block_bytes,

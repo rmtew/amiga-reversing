@@ -2,7 +2,7 @@
   "target": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__serial.device_ddfdac2b",
   "binary": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::devs/serial.device",
   "command": "uv run amiga-benchmark-target amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__serial.device_ddfdac2b",
-  "measured_at": "2026-05-05T03:04:21+12:00",
+  "measured_at": "2026-05-05T03:24:11+12:00",
   "status": "ok",
   "elapsed_seconds": 0.01,
   "benchmark_bytes": 6080,

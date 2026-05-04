@@ -131,6 +131,13 @@ def _make_ofs_adf() -> bytes:
     return b"".join(bytes(block) for block in blocks)
 
 
+def _make_dos_adf_with_bootcode_and_post_boot_bytes() -> bytes:
+    image = bytearray(_make_ofs_adf())
+    image[32:40] = b"BOOTCODE"
+    image[1024:1032] = b"STAGEDAT"
+    return bytes(image)
+
+
 def _make_ffs_adf_with_extension() -> bytes:
     data_block_indices = list(range(910, 983))
     blocks = [bytearray(BLOCK_SIZE) for _ in range(TOTAL_BLOCKS)]
@@ -282,6 +289,15 @@ class AmigaDiskTests(PlatformDiskTestCaseMixin, unittest.TestCase):
         self.assertEqual(actual["entries"][1]["name"], "README")
         self.assertEqual(actual["entries"][1]["kind_name"], "file")
         self.assertEqual(actual["entries"][1]["data_blocks"], [910, 911])
+
+    def test_valid_dos_bootcode_does_not_materialize_post_boot_stage(self) -> None:
+        actual = self.inspect_disk_buffer("amiga-disk", _make_dos_adf_with_bootcode_and_post_boot_bytes())
+        self.assertEqual(actual["format_kind"], "dos")
+        self.assertEqual(actual["boot_block"]["bootcode_has_code"], 1)
+        self.assertNotIn(
+            "stage_1",
+            {stage["name"] for stage in actual["bootloader_analysis"]["stages"]},
+        )
 
     def test_analyze_ffs_adf_with_extension_blocks(self) -> None:
         actual = self.inspect_disk_buffer("amiga-disk", _make_ffs_adf_with_extension())

@@ -2,7 +2,7 @@
   "target": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menued_2c2c9e6a",
   "binary": "bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf::MenuEd",
   "command": "uv run amiga-benchmark-target amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menued_2c2c9e6a",
-  "measured_at": "2026-05-05T03:11:52+12:00",
+  "measured_at": "2026-05-05T03:24:12+12:00",
   "status": "ok",
   "elapsed_seconds": 0.02,
   "benchmark_bytes": 6083,

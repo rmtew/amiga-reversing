@@ -2,7 +2,7 @@
   "target": "amiga_disk_mercenary-iii-the-dion-crisis-1991-novagen__amiga_hunk_crystal_4d67d97c",
   "binary": "bin/Mercenary III - The Dion Crisis (1991)(Novagen)[cr CSL].adf::Crystal",
   "command": "uv run amiga-benchmark-target amiga_disk_mercenary-iii-the-dion-crisis-1991-novagen__amiga_hunk_crystal_4d67d97c",
-  "measured_at": "2026-05-05T02:15:24+12:00",
+  "measured_at": "2026-05-05T03:24:12+12:00",
   "status": "ok",
   "elapsed_seconds": 0.01,
   "benchmark_bytes": 6066,
