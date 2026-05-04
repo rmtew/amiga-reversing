@@ -3294,6 +3294,65 @@ def test_real_dll_assembles_source_text_with_profile(tmp_path: Path) -> None:
     assert profile["total_seconds"] >= 0
 
 
+def test_project_source_facts_v2_biased_absolute_long_dispatch_table_roundtrips(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "biased_dispatch.hunk"
+    code = bytearray()
+    code += bytes.fromhex("302d000c")
+    code += bytes.fromhex("672a")
+    code += bytes.fromhex("e540")
+    code += bytes.fromhex("41f900000010")
+    code += bytes.fromhex("20700000")
+    code += bytes.fromhex("4ed0")
+    assert len(code) == 0x14
+    code += u32(0x30)
+    code += u32(0x36)
+    code += b"\x00" * (0x30 - len(code))
+    code += bytes.fromhex("4e75")
+    code += b"\x00" * (0x36 - len(code))
+    code += bytes.fromhex("4e75")
+    binary_path.write_bytes(make_synthetic_hunkexe(code_data=bytes(code)))
+    source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "biased_dispatch.analysis",
+    )
+
+    rendered, profile = facts_v2_asm_source_project_source_with_c_backend_profile(source, project_root=PROJECT_ROOT)
+    rebuilt, source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+        source,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert "\tlea.l $00000010.l,a0\n\tmovea.l $0(a0,d0.w),a0\n\tjmp (a0)\n" in rendered
+    assert "\tdc.l loc_0_00000030\t; pointer_table\n\tdc.l loc_0_00000036\n" in rendered
+    assert "loc_0_00000010:\n" not in rendered
+    assert "dc.b $00,$00,$00,$30,$00,$00,$00,$36" not in rendered
+    assert profile["facts_v2"]["asm_source_refused"] is False
+    assert profile["facts_v2"]["code_start_control_targets"] >= 2
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert direct_profile["direct_rebuild_refused"] is False
+    assert rebuilt == binary_path.read_bytes()
+
+
+@pytest.mark.parametrize("target_name", ["amiga_hunk_genam", "amiga_hunk_monam302"])
+def test_project_source_facts_v2_indexed_pointer_table_comparators_stay_clean(target_name: str) -> None:
+    _requires_c_backend_dlls()
+    _rows, _api_calls, profile = build_project_rows_generation_with_c_backend_profile(
+        target_name,
+        generation="full",
+        project_root=PROJECT_ROOT,
+    )
+
+    facts_v2 = profile["facts_v2"]
+    assert facts_v2["asm_source_refused"] is False
+    assert facts_v2["required_instruction_failures"] == 0
+    assert facts_v2["unsupported_instruction_demotes"] == 0
+    assert facts_v2["interior_conflicts_unresolved"] == 0
+    assert facts_v2["unresolved_labels"] == 0
+
+
 def test_real_dll_renders_genam() -> None:
     _requires_c_backend_dlls()
     rendered = render_binary_source_with_c_backend(PROJECT_ROOT / "bin" / "GenAm", syntax="vasm")
@@ -3382,10 +3441,7 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
     facts_v2 = profile["facts_v2"]
     assert facts_v2["asm_source_refused"] is False
     assert facts_v2["required_instruction_failures"] == 0
-    assert facts_v2["unsupported_instruction_demotes"] == 1
-    assert facts_v2["first_unsupported_instruction_demote_reason"] == "fallthrough"
-    assert facts_v2["first_unsupported_instruction_demote_offset"] == 0x4B2A
-    assert facts_v2["first_unsupported_instruction_demote_source_offset"] == 0x4B24
+    assert facts_v2["unsupported_instruction_demotes"] == 0
     assert facts_v2["interior_conflicts_unresolved"] == 0
     copied_stage_rows = [
         row for row in rows if row.section_index == 0 and row.start_offset == 0x5C
@@ -3394,7 +3450,10 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
     assert any(row.kind == "instruction" for row in copied_stage_rows)
     assert not any(row.kind == "data" for row in copied_stage_rows)
     assert any(
-        row.section_index == 0 and row.start_offset == 0x4B2A and row.kind == "data"
+        row.section_index == 0
+        and row.start_offset == 0x4B2A
+        and row.kind == "instruction"
+        and "\tclr.b $0011(a4)" in row.text
         for row in rows
     )
     bitmap_refs = [
@@ -3508,6 +3567,20 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "\tdc.w loc_0_00003F60-loc_0_000033B2,loc_0_00004144-loc_0_000033B2,"
         "loc_0_00003F5C-loc_0_000033B2,loc_0_00003E9C-loc_0_000033B2\t; lookup_table\n"
         "\tdc.w loc_0_000034CC-loc_0_000033B2\t; lookup_table\n"
+    ) in source_text
+    assert (
+        "\tlea.l $0000C262.l,a0\n"
+        "\tmovea.l $0(a0,d0.w),a0\n"
+        "\tjmp (a0)\n"
+        "\tdc.l loc_0_0000C53C\t; pointer_table\n"
+        "\tdc.l loc_0_0000C436\n"
+        "\tdc.l loc_0_0000C490\n"
+        "\tdc.l loc_0_0000C516\n"
+        "\tdc.l loc_0_0000C286\n"
+        "\tdc.l loc_0_0000C2EA\n"
+        "\tdc.l loc_0_0000C1F4\n"
+        "\tdc.l loc_0_0000C2EA\n"
+        "loc_0_0000C286:\n"
     ) in source_text
     assert (
         "loc_0_00007D44:\n"

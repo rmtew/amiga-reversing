@@ -5803,10 +5803,9 @@ loc_0_00004EBE:
 	clr.b $0007(a4)
 loc_0_00004EC8:
 	move.b #$F,$001B(a4)
-	dc.b $42,$2C
-loc_0_00004ED0:
-	ori.b #$6100,(a1)
-	move.b $122C.w,$9(a4,d0.w)
+	clr.b $0011(a4)
+	bsr.w loc_0_0000688C
+	move.b $0009(a4),d1
 	sub.b d0,d1
 	bcs.w loc_0_00004FD6
 	move.b d1,$0009(a4)
@@ -14295,8 +14294,14 @@ loc_0_0000C252:
 	lea.l $0000C262.l,a0
 	movea.l $0(a0,d0.w),a0
 	jmp (a0)
-	dc.b $00,$00,$C5,$3C,$00,$00,$C4,$36,$00,$00,$C4,$90,$00,$00,$C5,$16
-	dc.b $00,$00,$C2,$86,$00,$00,$C2,$EA,$00,$00,$C1,$F4,$00,$00,$C2,$EA
+	dc.l loc_0_0000C53C	; pointer_table
+	dc.l loc_0_0000C436
+	dc.l loc_0_0000C490
+	dc.l loc_0_0000C516
+	dc.l loc_0_0000C286
+	dc.l loc_0_0000C2EA
+	dc.l loc_0_0000C1F4
+	dc.l loc_0_0000C2EA
 loc_0_0000C286:
 	bsr.w loc_0_0000C2AC
 	bpl.b loc_0_0000C298
