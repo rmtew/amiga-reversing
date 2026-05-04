@@ -978,6 +978,8 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
             bag.add("label:any", example=example)
             bag.add("label:definition", example=example)
         data_class = _string_value(row.get("data_class"))
+        copper_row = bool(data_class == "copper_list")
+        hardware_symbol_refs: list[tuple[str, str]] = []
         row_hardware_group_features: set[str] = set()
         if data_class:
             bag.add(f"data:{_safe_part(data_class)}", example=example)
@@ -988,14 +990,13 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
             for base in amiga_hardware_usage.HARDWARE_BASES:
                 if base in text:
                     bag.add(f"hardware:{base.removeprefix('_')}", example=example)
-            for base, symbol in amiga_hardware_usage.symbol_refs_from_listing_text(text, copper_row=bool(data_class == "copper_list")):
+            hardware_symbol_refs = amiga_hardware_usage.symbol_refs_from_listing_text(text, copper_row=copper_row)
+            for base, symbol in hardware_symbol_refs:
                 bag.add(f"hardware_register:{_safe_part(symbol)}", example=example)
-                row_hardware_group_features.update(amiga_hardware_usage.group_features(base, symbol, copper_row=bool(data_class == "copper_list")))
+                row_hardware_group_features.update(amiga_hardware_usage.group_features(base, symbol, copper_row=copper_row))
         for feature in sorted(row_hardware_group_features):
             bag.add(feature, example=example)
-        for feature in amiga_hardware_usage.display_features_from_listing_text(
-            text, copper_row=bool(data_class == "copper_list")
-        ):
+        for feature in amiga_hardware_usage.display_features_from_symbol_refs(text, hardware_symbol_refs, copper_row=copper_row):
             bag.add(feature, example=example)
         comment_text = _string_value(row.get("comment_text")) or ""
         if "bitmap memory plane" in comment_text:
@@ -1892,6 +1893,8 @@ def _listing_xrefs(row: dict[str, object], listing: dict[str, Any]) -> list[dict
         offset = listing_row.get("start_offset") if isinstance(listing_row.get("start_offset"), int) else listing_row.get("addr")
         stable_key = _string_value(listing_row.get("stable_key"))
         data_class = _string_value(listing_row.get("data_class"))
+        copper_row = bool(data_class == "copper_list")
+        hardware_symbol_refs: list[tuple[str, str]] = []
         seen_group_features: set[str] = set()
         label_symbol = _listing_row_label_symbol(listing_row)
         if label_symbol:
@@ -1909,17 +1912,16 @@ def _listing_xrefs(row: dict[str, object], listing: dict[str, Any]) -> list[dict
             for base in amiga_hardware_usage.HARDWARE_BASES:
                 if base in text:
                     xrefs.append(_xref(row, f"hardware:{base.removeprefix('_')}", "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=base, text=text.strip()))
-            for base, symbol in amiga_hardware_usage.symbol_refs_from_listing_text(text, copper_row=bool(data_class == "copper_list")):
+            hardware_symbol_refs = amiga_hardware_usage.symbol_refs_from_listing_text(text, copper_row=copper_row)
+            for base, symbol in hardware_symbol_refs:
                 xrefs.append(_xref(row, f"hardware_register:{_safe_part(symbol)}", "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=text.strip()))
                 if data_class == "copper_list":
                     xrefs.append(_xref(row, f"copper_register:{_safe_part(symbol)}", "copper_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=text.strip()))
-                for feature in amiga_hardware_usage.group_features(base, symbol, copper_row=bool(data_class == "copper_list")):
+                for feature in amiga_hardware_usage.group_features(base, symbol, copper_row=copper_row):
                     if feature not in seen_group_features:
                         seen_group_features.add(feature)
                         xrefs.append(_xref(row, feature, "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=text.strip()))
-        for feature in amiga_hardware_usage.display_features_from_listing_text(
-            text, copper_row=bool(data_class == "copper_list")
-        ):
+        for feature in amiga_hardware_usage.display_features_from_symbol_refs(text, hardware_symbol_refs, copper_row=copper_row):
             xrefs.append(_xref(row, feature, "display_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, text=text.strip()))
         comment_text = _string_value(listing_row.get("comment_text")) or ""
         if "bitmap memory plane" in comment_text:
@@ -2535,15 +2537,27 @@ def read_type_flow_baseline(path: Path = DEFAULT_TYPE_FLOW_BASELINE) -> dict[str
     return payload if isinstance(payload, dict) else {}
 
 
+_TYPE_FLOW_NUMERIC_ADDRESS_BASE_RE = re.compile(r"\$[0-9A-Fa-f]{2,8}(?:\.[wlWL])?\([aA]([0-7])\)")
+_TYPE_FLOW_NUMERIC_ADDRESS_DISPLACEMENT_RE = re.compile(r"(-?)\$([0-9A-Fa-f]{2,8})(?:\.[wlWL])?\([aA][0-7]\)")
+_TYPE_FLOW_APP_SLOT_RE = re.compile(r"\b(app_[0-9A-Fa-f]+|app_[A-Za-z0-9_]+)\s*\([aA]6\)")
+_TYPE_FLOW_ASSIGNMENT_RE = re.compile(r"^\s*(?:movea?|lea)\.[bwlBWL]\s+(.+?),\s*([dDaA][0-7])\b", re.IGNORECASE)
+_TYPE_FLOW_STORE_RE = re.compile(r"^\s*move\.([bwlBWL])\s+([dDaA][0-7]),\s*(.+?)(?:\s*;.*)?$")
+_TYPE_FLOW_REGISTER_RE = re.compile(r"([dDaA][0-7])")
+_TYPE_FLOW_ADDRESS_BASE_RE = re.compile(r"\([aA]([0-7])\)")
+_TYPE_FLOW_CALL_LIKE_RE = re.compile(r"^\s*(?:jsr|bsr|jmp|trap)\b", re.IGNORECASE)
+_TYPE_FLOW_ADDRESS_EXPR_RE = re.compile(r"\([aA][0-7]\)")
+_TYPE_FLOW_GLOBAL_OR_BASE_RE = re.compile(r"\$[0-9a-f]{4,8}(?:\.[wl])?$")
+
+
 def _type_flow_numeric_address_base_reg(text: str) -> int | None:
-    match = re.search(r"\$[0-9A-Fa-f]{2,8}(?:\.[wlWL])?\([aA]([0-7])\)", text)
+    match = _TYPE_FLOW_NUMERIC_ADDRESS_BASE_RE.search(text)
     if match is None:
         return None
     return int(match.group(1))
 
 
 def _type_flow_numeric_address_displacement(text: str) -> int | None:
-    match = re.search(r"(-?)\$([0-9A-Fa-f]{2,8})(?:\.[wlWL])?\([aA][0-7]\)", text)
+    match = _TYPE_FLOW_NUMERIC_ADDRESS_DISPLACEMENT_RE.search(text)
     if match is None:
         return None
     value = int(match.group(2), 16)
@@ -2558,7 +2572,7 @@ def _type_flow_app_slot_subaccess(trace: dict[str, object]) -> dict[str, object]
     text = _string_value(trace.get("text"))
     if source is None or text is None:
         return None
-    slot_match = re.search(r"\b(app_[0-9A-Fa-f]+|app_[A-Za-z0-9_]+)\s*\([aA]6\)", source)
+    slot_match = _TYPE_FLOW_APP_SLOT_RE.search(source)
     if slot_match is None:
         return None
     displacement = _type_flow_numeric_address_displacement(text)
@@ -2572,23 +2586,21 @@ def _type_flow_app_slot_subaccess(trace: dict[str, object]) -> dict[str, object]
 
 
 def _type_flow_assignment_source_for_reg(text: str, base_reg: int) -> str | None:
-    pattern = rf"^\s*(?:movea?|lea)\.[bwlBWL]\s+(.+?),\s*[aA]{base_reg}\b"
-    match = re.search(pattern, text)
-    if match is None:
+    match = _TYPE_FLOW_ASSIGNMENT_RE.search(text)
+    if match is None or match.group(2).upper() != f"A{base_reg}":
         return None
     return match.group(1).strip()
 
 
 def _type_flow_assignment_source_for_named_reg(text: str, reg_name: str) -> str | None:
-    pattern = rf"^\s*(?:movea?|lea)\.[bwlBWL]\s+(.+?),\s*{re.escape(reg_name)}\b"
-    match = re.search(pattern, text, re.IGNORECASE)
-    if match is None:
+    match = _TYPE_FLOW_ASSIGNMENT_RE.search(text)
+    if match is None or match.group(2).upper() != reg_name.upper():
         return None
     return match.group(1).strip()
 
 
 def _type_flow_store_to_memory(text: str) -> tuple[str, str] | None:
-    match = re.search(r"^\s*move\.([bwlBWL])\s+([dDaA][0-7]),\s*(.+?)(?:\s*;.*)?$", text)
+    match = _TYPE_FLOW_STORE_RE.search(text)
     if match is None:
         return None
     if match.group(1).lower() != "l":
@@ -2605,18 +2617,18 @@ def _type_flow_normalized_operand_expr(text: str) -> str:
 
 
 def _type_flow_operand_is_register(text: str) -> bool:
-    return re.fullmatch(r"[dDaA][0-7]", text.strip()) is not None
+    return _TYPE_FLOW_REGISTER_RE.fullmatch(text.strip()) is not None
 
 
 def _type_flow_register_name(text: str) -> str | None:
-    match = re.fullmatch(r"([dDaA][0-7])", text.strip())
+    match = _TYPE_FLOW_REGISTER_RE.fullmatch(text.strip())
     if match is None:
         return None
     return match.group(1).upper()
 
 
 def _type_flow_address_base_register_name(text: str) -> str | None:
-    match = re.search(r"\([aA]([0-7])\)", text)
+    match = _TYPE_FLOW_ADDRESS_BASE_RE.search(text)
     if match is None:
         return None
     return f"A{match.group(1)}"
@@ -2624,7 +2636,7 @@ def _type_flow_address_base_register_name(text: str) -> str | None:
 
 def _type_flow_row_is_call_like(row: dict[str, Any]) -> bool:
     text = _string_value(row.get("text")) if isinstance(row, dict) else None
-    return text is not None and re.search(r"^\s*(?:jsr|bsr|jmp|trap)\b", text, re.IGNORECASE) is not None
+    return text is not None and _TYPE_FLOW_CALL_LIKE_RE.search(text) is not None
 
 
 def _type_flow_storage_kind(assignment_source: str, assignment_row: dict[str, Any] | None) -> str:
@@ -2664,7 +2676,7 @@ def _type_flow_register_copy_from_call_output(
         if assigned is None:
             continue
         assigned_reg = assigned.upper()
-        if not re.fullmatch(r"[DA][0-7]", assigned_reg):
+        if not _TYPE_FLOW_REGISTER_RE.fullmatch(assigned_reg):
             return None
         os_call = _type_flow_nearby_os_call(target_id, row_index - 8, row_index, xrefs_by_row, rows_by_index)
         output_regs = os_call.get("output_regs") if os_call is not None else None
@@ -2776,17 +2788,26 @@ def _type_flow_find_assignment_to_reg(
     row_index: int,
     reg_name: str,
     rows_by_index: dict[int, dict[str, Any]] | None = None,
+    assignment_cache: dict[tuple[int, str, int], tuple[int, dict[str, Any], str] | None] | None = None,
     window: int = 64,
 ) -> tuple[int, dict[str, Any], str] | None:
     reg_name = reg_name.upper()
     if rows_by_index is not None:
+        cache_key = (row_index, reg_name, window)
+        if assignment_cache is not None and cache_key in assignment_cache:
+            return assignment_cache[cache_key]
         for candidate_index in range(row_index - 1, max(0, row_index - window) - 1, -1):
             candidate_row = rows_by_index.get(candidate_index)
             if not isinstance(candidate_row, dict) or candidate_row.get("kind") != "instruction":
                 continue
             source = _type_flow_assignment_source_for_named_reg(_string_value(candidate_row.get("text")) or "", reg_name)
             if source is not None:
-                return candidate_index, candidate_row, source
+                result = (candidate_index, candidate_row, source)
+                if assignment_cache is not None:
+                    assignment_cache[cache_key] = result
+                return result
+        if assignment_cache is not None:
+            assignment_cache[cache_key] = None
         return None
     for candidate in reversed(rows):
         candidate_index = candidate.get("row_index")
@@ -2829,11 +2850,11 @@ def _type_flow_pointer_chain_source_kind(
         if isinstance(output_regs, list) and source_reg in output_regs:
             return "api_output_register"
         return "register"
-    if re.search(r"\([aA][0-7]\)", assignment_source):
+    if _TYPE_FLOW_ADDRESS_EXPR_RE.search(assignment_source):
         return "memory_indirect"
     if source_lower.startswith("#"):
         return "immediate"
-    if source_lower.startswith("$") or re.search(r"\$[0-9a-f]{4,8}(?:\.[wl])?$", source_lower):
+    if source_lower.startswith("$") or _TYPE_FLOW_GLOBAL_OR_BASE_RE.search(source_lower):
         return "global_or_base_slot"
     return "unknown"
 
@@ -2846,6 +2867,7 @@ def _type_flow_pointer_chain_trace(
     rows_by_index: dict[int, dict[str, Any]],
     xrefs_by_row: dict[tuple[str, int], list[dict[str, Any]]],
     *,
+    assignment_cache: dict[tuple[int, str, int], tuple[int, dict[str, Any], str] | None] | None = None,
     max_hops: int = 6,
 ) -> dict[str, object]:
     cursor_reg = f"A{base_reg}"
@@ -2861,7 +2883,11 @@ def _type_flow_pointer_chain_trace(
             break
         seen.add(key)
         assignment = _type_flow_find_assignment_to_reg(
-            rows, row_index=cursor_row_index, reg_name=cursor_reg, rows_by_index=rows_by_index
+            rows,
+            row_index=cursor_row_index,
+            reg_name=cursor_reg,
+            rows_by_index=rows_by_index,
+            assignment_cache=assignment_cache,
         )
         if assignment is None:
             root_kind = "unknown"
@@ -3039,7 +3065,7 @@ def _type_flow_numeric_source_kind(
         return "app_slot_load"
     if "(a7)" in source_lower or "(sp)" in source_lower:
         return "stack_slot_load"
-    if re.fullmatch(r"[da][0-7]", source_lower):
+    if _TYPE_FLOW_REGISTER_RE.fullmatch(source_lower):
         os_call = _type_flow_nearby_os_call(
             target_id, assignment_row_index - 8, assignment_row_index, xrefs_by_row, rows_by_index
         )
@@ -3050,9 +3076,9 @@ def _type_flow_numeric_source_kind(
             if isinstance(output_regs, list) and output_regs:
                 return "post_call_register_copy"
             return "api_output_nearby_unknown_output"
-    if re.search(r"\([aA][0-7]\)", assignment_source):
+    if _TYPE_FLOW_ADDRESS_EXPR_RE.search(assignment_source):
         return "unknown_pointer_chain"
-    if source_lower.startswith("$") or re.search(r"\$[0-9a-f]{4,8}(?:\.[wl])?$", source_lower):
+    if source_lower.startswith("$") or _TYPE_FLOW_GLOBAL_OR_BASE_RE.search(source_lower):
         return "global_or_base_slot_load"
     return "global_or_base_slot_load"
 
@@ -3063,6 +3089,10 @@ def _type_flow_numeric_access_trace(
     rows_by_target: dict[str, list[dict[str, Any]]],
     xrefs_by_row: dict[tuple[str, int], list[dict[str, Any]]],
     rows_by_index_by_target: dict[str, dict[int, dict[str, Any]]] | None = None,
+    assignment_cache_by_target: dict[
+        str,
+        dict[tuple[int, str, int], tuple[int, dict[str, Any], str] | None],
+    ] | None = None,
 ) -> dict[str, object]:
     row = snippet.get("row")
     text = _string_value(row.get("text")) if isinstance(row, dict) else None
@@ -3090,13 +3120,31 @@ def _type_flow_numeric_access_trace(
         if rows_by_index_by_target is not None
         else _type_flow_rows_by_index(rows_by_target, target_id)
     )
-    pointer_chain = _type_flow_pointer_chain_trace(target_id, base_reg, row_index, rows, rows_by_index, xrefs_by_row)
+    assignment_cache = (
+        assignment_cache_by_target.setdefault(target_id, {})
+        if assignment_cache_by_target is not None
+        else None
+    )
+    pointer_chain = _type_flow_pointer_chain_trace(
+        target_id,
+        base_reg,
+        row_index,
+        rows,
+        rows_by_index,
+        xrefs_by_row,
+        assignment_cache=assignment_cache,
+    )
     trace["pointer_chain"] = pointer_chain
     assignment_source: str | None = None
     assignment_row_index = row_index
     assignment_row: dict[str, Any] | None = None
     assignment = _type_flow_find_assignment_to_reg(
-        rows, row_index=row_index, reg_name=f"A{base_reg}", rows_by_index=rows_by_index, window=16
+        rows,
+        row_index=row_index,
+        reg_name=f"A{base_reg}",
+        rows_by_index=rows_by_index,
+        assignment_cache=assignment_cache,
+        window=16,
     )
     if assignment is not None:
         assignment_row_index, assignment_row, assignment_source = assignment
@@ -3890,6 +3938,7 @@ def build_type_flow_report(
         target_id: _type_flow_rows_by_index(rows_by_target, target_id)
         for target_id in rows_by_target
     }
+    assignment_cache_by_target: dict[str, dict[tuple[int, str, int], tuple[int, dict[str, Any], str] | None]] = {}
     xrefs_by_row = _type_flow_xrefs_by_target_row(xrefs)
     for snippet in snippet_rows:
         target_id = _string_value(snippet.get("target_id"))
@@ -3905,7 +3954,12 @@ def build_type_flow_report(
             continue
         report = report_for(target_id)
         trace = _type_flow_numeric_access_trace(
-            target_id, snippet, rows_by_target, xrefs_by_row, rows_by_index_by_target
+            target_id,
+            snippet,
+            rows_by_target,
+            xrefs_by_row,
+            rows_by_index_by_target,
+            assignment_cache_by_target,
         )
         cause = str(trace.get("cause", "unknown_pointer_chain"))
         propagation_chain = trace.get("propagation_chain")

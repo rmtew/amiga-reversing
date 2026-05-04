@@ -10,10 +10,31 @@ from src.scripts.kb.paths import AMIGA_HW_REGISTERS_JSON, AMIGA_HW_SYMBOLS_JSON
 
 HARDWARE_BASES = ("_custom", "_ciaa", "_ciab")
 
+_CUSTOM_REF_RE = re.compile(r"_custom\+([A-Za-z_][A-Za-z0-9_]*(?:\+[A-Za-z_][A-Za-z0-9_]*)*)")
+_CIA_REF_RE = re.compile(r"_(ciaa|ciab)\+([A-Za-z_][A-Za-z0-9_]*)")
+_COPPER_SYMBOL_RE = re.compile(r"\s*dc\.w\s+([A-Za-z_][A-Za-z0-9_]*)(?:[,+]|$)")
+_COPPER_NUMERIC_RE = re.compile(r"\s*dc\.w\s+\$([0-9A-Fa-f]{1,4})(?:[,+]|$)")
+_BPLCON0_VALUE_RE = re.compile(r"BPLCON0\s*,\s*\$([0-9A-Fa-f]{1,4})")
+_CUSTOM_BPLCON0_VALUE_RE = re.compile(r"_CUSTOM\+BPLCON0(?:\.\w+)?\s*,?\s*#?\$([0-9A-Fa-f]{1,4})")
+_VALUE_CUSTOM_BPLCON0_RE = re.compile(r"#?\$([0-9A-Fa-f]{1,4})\s*,\s*_CUSTOM\+BPLCON0")
+_COPPER_SECOND_WORD_RE = re.compile(r"\s*dc\.w\s+[^,]+,\s*\$([0-9A-Fa-f]{1,4})(?:\s|;|$)")
+
 
 def display_features_from_listing_text(text: str, *, copper_row: bool) -> list[str]:
+    return display_features_from_symbol_refs(
+        text,
+        symbol_refs_from_listing_text(text, copper_row=copper_row),
+        copper_row=copper_row,
+    )
+
+
+def display_features_from_symbol_refs(
+    text: str,
+    refs: list[tuple[str, str]] | tuple[tuple[str, str], ...],
+    *,
+    copper_row: bool,
+) -> list[str]:
     features: set[str] = set()
-    refs = symbol_refs_from_listing_text(text, copper_row=copper_row)
     symbols = {symbol.split("+", 1)[0].casefold() for base, symbol in refs if base == "_custom"}
     if "bplcon0" in symbols:
         bitplanes = _bplcon0_bitplanes(text)
@@ -43,17 +64,17 @@ def display_features_from_listing_text(text: str, *, copper_row: bool) -> list[s
 
 def symbol_refs_from_listing_text(text: str, *, copper_row: bool) -> list[tuple[str, str]]:
     refs: set[tuple[str, str]] = set()
-    for match in re.finditer(r"_custom\+([A-Za-z_][A-Za-z0-9_]*(?:\+[A-Za-z_][A-Za-z0-9_]*)*)", text):
+    for match in _CUSTOM_REF_RE.finditer(text):
         symbol = match.group(1)
         refs.add(("_custom", symbol))
         refs.add(("_custom", symbol.split("+", 1)[0]))
-    for match in re.finditer(r"_(ciaa|ciab)\+([A-Za-z_][A-Za-z0-9_]*)", text):
+    for match in _CIA_REF_RE.finditer(text):
         refs.add((f"_{match.group(1)}", match.group(2)))
     if copper_row:
-        match = re.match(r"\s*dc\.w\s+([A-Za-z_][A-Za-z0-9_]*)(?:[,+]|$)", text)
+        match = _COPPER_SYMBOL_RE.match(text)
         if match:
             refs.add(("_custom", match.group(1)))
-        numeric = re.match(r"\s*dc\.w\s+\$([0-9A-Fa-f]{1,4})(?:[,+]|$)", text)
+        numeric = _COPPER_NUMERIC_RE.match(text)
         if numeric:
             symbol = _custom_symbol_for_copper_register_word(int(numeric.group(1), 16))
             if symbol:
@@ -97,18 +118,18 @@ def _bplcon0_bitplanes(text: str) -> int | None:
         if "BPU2" in upper:
             value |= 4
         return value
-    match = re.search(r"BPLCON0\s*,\s*\$([0-9A-Fa-f]{1,4})", text)
+    match = _BPLCON0_VALUE_RE.search(text)
     if not match:
-        match = re.search(r"_CUSTOM\+BPLCON0(?:\.\w+)?\s*,?\s*#?\$([0-9A-Fa-f]{1,4})", upper)
+        match = _CUSTOM_BPLCON0_VALUE_RE.search(upper)
     if not match:
-        match = re.search(r"#?\$([0-9A-Fa-f]{1,4})\s*,\s*_CUSTOM\+BPLCON0", upper)
+        match = _VALUE_CUSTOM_BPLCON0_RE.search(upper)
     if not match:
         return None
     return (int(match.group(1), 16) >> 12) & 0x7
 
 
 def _copper_row_second_word(text: str) -> int | None:
-    match = re.match(r"\s*dc\.w\s+[^,]+,\s*\$([0-9A-Fa-f]{1,4})(?:\s|;|$)", text)
+    match = _COPPER_SECOND_WORD_RE.match(text)
     if not match:
         return None
     return int(match.group(1), 16)
