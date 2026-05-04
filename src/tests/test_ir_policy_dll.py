@@ -99,7 +99,10 @@ M68K_ANALYSIS_REGISTER_SEED_LIMIT = 64
 M68K_ANALYSIS_ENTRY_POINT_LIMIT = 64
 M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT = 256
 M68K_ANALYSIS_NAMED_LABEL_LIMIT = 128
+M68K_ANALYSIS_APP_SLOT_REGION_LIMIT = 128
 M68K_ANALYSIS_ENTRY_COMMENT_LIMIT = 128
+M68K_ANALYSIS_RUNTIME_RANGE_LIMIT = 64
+M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT = 64
 
 
 class M68kAnalysisRegisterSeed(ctypes.Structure):
@@ -175,17 +178,54 @@ class M68kAnalysisEntryComment(ctypes.Structure):
     ]
 
 
+class M68kAnalysisRuntimeRange(ctypes.Structure):
+    _fields_ = [
+        ("has_section_index", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+        ("runtime_address", ctypes.c_uint32),
+        ("name", ctypes.c_char * 64),
+    ]
+
+
+class M68kAnalysisRuntimeEntryPoint(ctypes.Structure):
+    _fields_ = [
+        ("has_section_index", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+        ("section_index", ctypes.c_uint32),
+        ("runtime_address", ctypes.c_uint32),
+    ]
+
+
+class M68kAnalysisAppSlotRegion(ctypes.Structure):
+    _fields_ = [
+        ("offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 3),
+        ("symbol", ctypes.c_char * 64),
+        ("struct_name", ctypes.c_char * 64),
+        ("pointer_struct", ctypes.c_char * 64),
+        ("storage_kind", ctypes.c_char * 32),
+        ("semantic_type", ctypes.c_char * 64),
+    ]
+
+
 class M68kAnalysisPolicy(ctypes.Structure):
     _fields_ = [
         ("max_cpu", ctypes.c_uint8),
         ("has_entry_offset", ctypes.c_uint8),
-        ("reserved0", ctypes.c_uint8 * 2),
+        ("disable_implicit_entry_points", ctypes.c_uint8),
+        ("reserved0", ctypes.c_uint8 * 1),
         ("register_seed_count", ctypes.c_uint16),
         ("entry_point_count", ctypes.c_uint16),
         ("structured_data_item_count", ctypes.c_uint16),
         ("named_label_count", ctypes.c_uint16),
         ("entry_comment_count", ctypes.c_uint16),
-        ("reserved1", ctypes.c_uint16),
+        ("runtime_range_count", ctypes.c_uint16),
+        ("runtime_entry_point_count", ctypes.c_uint16),
+        ("app_slot_region_count", ctypes.c_uint16),
         ("entry_offset", ctypes.c_uint32),
         ("register_seeds", M68kAnalysisRegisterSeed * M68K_ANALYSIS_REGISTER_SEED_LIMIT),
         ("entry_points", M68kAnalysisEntryPoint * M68K_ANALYSIS_ENTRY_POINT_LIMIT),
@@ -195,6 +235,9 @@ class M68kAnalysisPolicy(ctypes.Structure):
         ),
         ("named_labels", M68kAnalysisNamedLabel * M68K_ANALYSIS_NAMED_LABEL_LIMIT),
         ("entry_comments", M68kAnalysisEntryComment * M68K_ANALYSIS_ENTRY_COMMENT_LIMIT),
+        ("runtime_ranges", M68kAnalysisRuntimeRange * M68K_ANALYSIS_RUNTIME_RANGE_LIMIT),
+        ("runtime_entry_points", M68kAnalysisRuntimeEntryPoint * M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT),
+        ("app_slot_regions", M68kAnalysisAppSlotRegion * M68K_ANALYSIS_APP_SLOT_REGION_LIMIT),
     ]
 
 

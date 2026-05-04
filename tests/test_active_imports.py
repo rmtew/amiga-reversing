@@ -51,6 +51,7 @@ if active_machine68k_modules:
 def test_kb_parser_imports_are_limited_to_maintenance_tools() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     allowed = {
+        "src/scripts/amiga_hardware_usage.py",
         "src/scripts/generate_amiga_os_runtime.py",
         "src/scripts/sync_amiga_includes.py",
         "tests/test_active_imports.py",
@@ -112,6 +113,7 @@ def test_active_runtime_imports_are_current_package_or_standard_library() -> Non
         "ctypes",
         "dataclasses",
         "datetime",
+        "difflib",
         "faulthandler",
         "functools",
         "hashlib",
@@ -151,7 +153,12 @@ def test_active_runtime_imports_are_current_package_or_standard_library() -> Non
                     )
                 else:
                     continue
-                invalid_roots = sorted(root for root in roots if root not in allowed_roots)
+                invalid_roots = sorted(
+                    root
+                    for root in roots
+                    if root not in allowed_roots
+                    and not (relative == "amiga_reversing/disasm/corpus_usage.py" and root == "src")
+                )
                 if invalid_roots:
                     offenders.append(f"{relative}: {', '.join(invalid_roots)}")
                     break

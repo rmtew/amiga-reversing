@@ -1,0 +1,236 @@
+    INCLUDE "dos/dos.i"
+    INCLUDE "dos/dos_lib.i"
+    INCLUDE "exec/exec_lib.i"
+    INCLUDE "exec/memory.i"
+    INCLUDE "hardware/custom.i"
+    INCLUDE "hardware/dmabits.i"
+    INCLUDE "hardware/intbits.i"
+
+sound_sample_00032000	EQU	$32000
+m68k_vector_level_4_interrupt_autovector	EQU	$70
+_custom	EQU	$DFF000
+
+    SECTION section,code_c
+loc_0_00000000:
+	movea.l $00000004.l,a6
+	lea.l loc_0_000002EC(pc),a1
+	clr.l d0
+	jsr _LVOOpenLibrary(a6)
+	move.l d0,h0dl_DOSBase.l
+	movea.l d0,a6
+	move.l #loc_0_00000310,d1
+	move.l #$3ED,d2
+	jsr -$001E(a6)
+	move.l d0,h0dl_DOSBase.l
+	move.l d0,d1
+	move.l #loc_0_0000034D,d2
+	move.l #$2D3,d3
+	movea.l h0dl_DOSBase.l,a6
+	jsr _LVOWrite(a6)
+	movea.l $00000004.l,a6
+	move.l #sound_sample_00032000,d0
+	move.l #MEMF_CHIP,d1
+	jsr _LVOAllocMem(a6)
+	move.l d0,loc_0_000002FC.l
+	move.l #loc_0_00000341,d1
+	move.l #MODE_OLDFILE,d2
+	movea.l h0dl_DOSBase.l,a6
+	jsr _LVOOpen(a6)
+	move.l d0,loc_0_00000308.l
+	move.l d0,d1
+	move.l loc_0_000002FC.l,d2
+	move.l #$32000,d3
+	movea.l h0dl_DOSBase.l,a6
+	jsr _LVORead(a6)
+	move.l d0,loc_0_00000300.l
+	move.l loc_0_00000308.l,d1
+	movea.l h0dl_DOSBase.l,a6
+	jsr _LVOClose(a6)
+	move.l $00000070.l,loc_0_0000030C.l
+	move.l #loc_0_00000196,m68k_vector_level_4_interrupt_autovector.l
+	move.w #INTF_SETCLR|INTF_AUD1,_custom+intena.l
+	clr.b loc_0_00000622.l
+	move.l loc_0_000002FC.l,d0
+	move.l d0,_custom+aud1.l	; sound_sample pointer $00032000
+	move.w #$FFFF,_custom+aud1+ac_len.l	; sound sample length 131070 bytes
+	move.w #$40,_custom+aud1+ac_vol.l	; audio volume 64
+	move.w #$166,_custom+aud1+ac_per.l	; audio period 358
+	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_AUD1,_custom+dmacon.l
+	move.w #INTF_SETCLR|INTF_AUD0,_custom+intena.l
+	clr.b loc_0_00000625.l
+	move.l loc_0_000002FC.l,d0
+	move.l d0,_custom+aud0.l	; sound_sample pointer $00032000
+	move.w #$FFFF,_custom+aud0+ac_len.l	; sound sample length 131070 bytes
+	move.w #$40,_custom+aud0+ac_vol.l	; audio volume 64
+	move.w #$166,_custom+aud0+ac_per.l	; audio period 358
+	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_AUD0,_custom+dmacon.l
+loc_0_00000134:
+	tst.w loc_0_00000626.l
+	beq.w loc_0_00000134
+loc_0_0000013E:
+	tst.w loc_0_00000628.l
+	beq.w loc_0_0000013E
+	move.l loc_0_0000030C.l,m68k_vector_level_4_interrupt_autovector.l
+	move.l h0dl_DOSBase.l,d1
+	movea.l h0dl_DOSBase.l,a6
+	jsr _LVOClose(a6)
+	movea.l loc_0_000002FC.l,a1
+	move.l #$32000,d0
+	movea.l $00000004.l,a6
+	jsr _LVOFreeMem(a6)
+	movea.l h0dl_DOSBase.l,a1
+	movea.l $00000004.l,a6
+	jsr _LVOCloseLibrary(a6)
+	rts
+	dc.b $2C,$79
+	dc.l h0dl_DOSBase
+	dc.b $72,$00,$4E,$EE,$FF,$70
+loc_0_00000196:
+	movem.l d0/a0,-(a7)
+	move.w _custom+intreqr.l,d0	; interrupt request state
+	btst #10,d0
+	bne.w loc_0_000001D0
+loc_0_000001A8:
+	btst #9,d0
+	bne.w loc_0_000001FA
+loc_0_000001B0:
+	btst #8,d0
+	bne.w loc_0_00000224
+loc_0_000001B8:
+	btst #7,d0
+	bne.w loc_0_00000288
+loc_0_000001C0:
+	andi.w #32767,d0
+	move.w d0,_custom+intreq.l
+	movem.l (a7)+,d0/a0
+	rte
+loc_0_000001D0:
+	tst.b loc_0_00000624.l
+	bne.w loc_0_000001E6
+	move.b #$FF,loc_0_00000624.l
+	bra.w loc_0_000001A8
+loc_0_000001E6:
+	move.w #DMAF_AUD3,_custom+dmacon.l
+	move.w #INTF_AUD3,_custom+intena.l
+	bra.w loc_0_000001A8
+loc_0_000001FA:
+	tst.b loc_0_00000623.l
+	bne.w loc_0_00000210
+	move.b #$FF,loc_0_00000623.l
+	bra.w loc_0_000001B0
+loc_0_00000210:
+	move.w #DMAF_AUD2,_custom+dmacon.l
+	move.w #INTF_AUD2,_custom+intena.l
+	bra.w loc_0_000001B0
+loc_0_00000224:
+	tst.b loc_0_00000622.l
+	bne.w loc_0_00000252
+	movea.l loc_0_000002FC.l,a0
+	adda.l #$1FFFE,a0
+	move.l a0,_custom+aud1.l	; sound_sample pointer
+	move.w #$5C32,_custom+aud1+ac_len.l	; sound sample length 47204 bytes
+	addq.b #1,loc_0_00000622.l
+	bra.w loc_0_000001B8
+loc_0_00000252:
+	addq.b #1,loc_0_00000622.l
+	cmpi.b #3,loc_0_00000622.l
+	bne.w loc_0_000001B8
+	move.w #$1,_custom+aud1+ac_per.l	; audio period 1
+	move.w #DMAF_AUD1,_custom+dmacon.l
+	move.w #INTF_AUD1,_custom+intena.l
+	move.w #$FFFF,loc_0_00000628.l
+	bra.w loc_0_000001B8
+loc_0_00000288:
+	tst.b loc_0_00000625.l
+	bne.w loc_0_000002B6
+	movea.l loc_0_000002FC.l,a0
+	adda.l #$1FFFE,a0
+	move.l a0,_custom+aud0.l	; sound_sample pointer
+	move.w #$5C32,_custom+aud0+ac_len.l	; sound sample length 47204 bytes
+	addq.b #1,loc_0_00000625.l
+	bra.w loc_0_000001C0
+loc_0_000002B6:
+	addq.b #1,loc_0_00000625.l
+	cmpi.b #3,loc_0_00000625.l
+	bne.w loc_0_000001C0
+	move.w #$1,_custom+aud0+ac_per.l	; audio period 1
+	move.w #DMAF_AUD0,_custom+dmacon.l
+	move.w #INTF_AUD0,_custom+intena.l
+	move.w #$FFFF,loc_0_00000626.l
+	bra.w loc_0_000001C0
+loc_0_000002EC:
+	dc.b "dos.library",$00
+h0dl_DOSBase:
+	dc.b $00,$00,$00,$00
+loc_0_000002FC:
+	dc.b $00,$00,$00,$00
+loc_0_00000300:
+	dc.b $00,$00,$00,$00
+h0dl_DOSBase:
+	dc.b $00,$00,$00,$00
+loc_0_00000308:
+	dc.b $00,$00,$00,$00
+loc_0_0000030C:
+	dc.b $00,$00,$00,$00
+loc_0_00000310:
+	dc.b "CON:0/12/639/187/Argonaut Software - StarGlider.",$00	; string
+loc_0_00000341:
+	dc.b $73,$67,$6C,$69,$64,$65,$72,$2E,$73,$6E,$64,$00
+loc_0_0000034D:
+	dc.b $0D,$20,$20,$20,$53,$74,$61,$72,$47,$6C,$69,$64,$65,$72,$20,$A9
+	dc.b $20,$31,$39,$38,$36,$2C,$31,$39,$38,$37,$20,$41,$72,$67,$6F,$6E
+	dc.b $61,$75,$74,$20,$53,$6F,$66,$74,$77,$61,$72,$65,$20,$4C,$69,$6D
+	dc.b $69,$74,$65,$64,$2E,$0D,$0A,$0A
+	dcb.b $13,$20
+	dc.b $43,$72,$65,$61,$74,$65,$64,$20,$62,$79,$20,$4A,$65,$7A,$20,$53
+	dc.b $61,$6E,$2E,$0D,$0A,$0A,$20,$20,$20,$52,$65,$61,$6C,$69,$7A,$65
+	dc.b $64,$20,$62,$79,$20,$4A,$65,$7A,$20,$28,$32,$20,$77,$65,$65,$6B
+	dc.b $73,$29,$20,$53,$61,$6E,$20,$26,$20,$52,$69,$63,$68,$20,$28,$70
+	dc.b $6F,$6F,$72,$29,$20,$43,$6C,$75,$63,$61,$73,$2E,$0D,$0A,$0A,$20
+	dc.b $20,$20,$54,$69,$74,$6C,$65,$20,$6D,$75,$73,$69,$63,$20,$42,$79
+	dc.b $20,$44,$61,$76,$65,$20,$4C,$6F,$77,$65,$2C,$20,$64,$65,$76,$65
+	dc.b $6C,$6F,$70,$65,$64,$20,$6F,$6E,$20,$74,$68,$65,$20,$5A,$58,$20
+	dc.b $53,$70,$65,$63,$74,$72,$75,$6D,$20,$34,$38,$6B,$2E,$0D,$0A,$0A
+	dc.b $20,$20,$20,$50,$75,$62,$6C,$69,$73,$68,$65,$64,$20,$69,$6E,$20
+	dc.b $45,$75,$72,$6F,$70,$65,$20,$62,$79,$20,$20,$52,$61,$69,$6E,$62
+	dc.b $69,$72,$64,$20,$53,$6F,$66,$74,$77,$61,$72,$65,$2C,$0D,$0A
+	dcb.b $1B,$20
+	dc.b $46,$69,$72,$73,$74,$20,$46,$6C,$6F,$6F,$72,$2C,$0D,$0A
+	dcb.b $1B,$20
+	dc.b $37,$34,$2C,$20,$4E,$65,$77,$20,$4F,$78,$66,$6F,$72,$64,$20,$53
+	dc.b $74,$72,$65,$65,$74,$2C,$0D,$0A
+	dcb.b $1B,$20
+	dc.b $4C,$4F,$4E,$44,$4F,$4E,$2C,$20,$20,$57,$43,$31,$41,$20,$31,$50
+	dc.b $53,$2E,$0D,$0A
+	dcb.b $1B,$20
+	dc.b $54,$65,$6C,$65,$70,$68,$6F,$6E,$65,$20,$28,$30,$31,$29,$20,$32
+	dc.b $34,$30,$2D,$38,$38,$33,$38,$2E,$0A,$0A,$0D,$00,$20,$20,$20,$61
+	dc.b $6E,$64,$20,$69,$6E,$20,$74,$68,$65,$20,$55,$53,$41,$20,$62,$79
+	dc.b $20,$20,$20,$20,$20,$20,$20,$46,$69,$72,$65,$62,$69,$72,$64,$20
+	dc.b $4C,$69,$63,$65,$6E,$63,$65,$65,$73,$2C,$20,$49,$6E,$63,$2E,$0D
+	dc.b $0A
+	dcb.b $1B,$20
+	dc.b $37,$34,$2C,$20,$4E,$6F,$72,$74,$68,$20,$43,$65,$6E,$74,$72,$61
+	dc.b $6C,$20,$41,$76,$65,$6E,$75,$65,$2C,$0D,$0A
+	dcb.b $1B,$20
+	dc.b $52,$61,$6D,$73,$65,$79,$2C,$20,$4E,$2E,$4A,$2E,$20,$20,$30,$37
+	dc.b $34,$34,$36,$0D,$0A
+	dcb.b $1B,$20
+	dc.b $54,$65,$6C,$65,$70,$68,$6F,$6E,$65,$20,$28,$32,$30,$31,$29,$20
+	dc.b $39,$33,$34,$2D,$37,$33,$37,$33,$2E,$0D,$0A,$0A,$20,$20,$20,$50
+	dc.b $6C,$65,$61,$73,$65,$20,$42,$41,$43,$4B,$55,$50,$20,$74,$68,$69
+	dc.b $73,$20,$64,$69,$73,$6B,$20,$61,$6E,$64,$20,$4F,$4E,$4C,$59,$20
+	dc.b $55,$53,$45,$20,$54,$48,$45,$20,$42,$41,$43,$4B,$55,$50,$21,$0D
+	dc.b $0A,$0A,$00
+loc_0_00000622:
+	dc.b $00
+loc_0_00000623:
+	dc.b $00
+loc_0_00000624:
+	dc.b $00
+loc_0_00000625:
+	dc.b $00
+loc_0_00000626:
+	dc.b $00,$00
+loc_0_00000628:
+	dc.b $00,$00,$00,$00

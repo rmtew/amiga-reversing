@@ -2540,6 +2540,10 @@ static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t sect
       uint64_t new_source = (uint64_t)source_offset + (overlap_start - new_start);
       if (existing_source != new_source) {
         if (profile != NULL) ++profile->runtime_address_range_conflicts;
+        if (existing->confidence < M68K_FACT_CONFIDENCE_REQUIRED &&
+            confidence < M68K_FACT_CONFIDENCE_REQUIRED) {
+          return 0;
+        }
         return -1;
       }
     }
@@ -2929,7 +2933,7 @@ static int enqueue_interrupt_vector_store_target(M68kDecodeIR *decode, M68kFactI
   if (candidate_stores_trace_to_callback_vector(section_index, section, candidate, platform_kind, trace_state,
       &target_value)) {
     return enqueue_same_section_control_trace_target(decode, facts, queue, accepted_start, accepted_bytes,
-      profile, max_cpu, section_index, candidate, &target_value, M68K_FACT_CONFIDENCE_REQUIRED,
+      profile, max_cpu, section_index, candidate, &target_value, M68K_FACT_CONFIDENCE_TOOL_INFERRED,
       runtime_addresses, trace_state);
   }
   return 0;

@@ -1238,6 +1238,37 @@ static void render_asm_dc_b_string(M68kRenderIRPreview *preview, const uint8_t *
   ++preview->asm_source_lines;
 }
 
+static void render_asm_dc_b_length_prefixed_string(M68kRenderIRPreview *preview, const uint8_t *data,
+    uint32_t offset, uint32_t size, const char *comment) {
+  char token[16];
+  uint32_t cursor;
+  if (preview == NULL || data == NULL || size == 0U) return;
+  snprintf(token, sizeof(token), "\tdc.b $%02X", (unsigned)data[offset]);
+  hash_asm_text(preview, token);
+  if (size > 1U) {
+    hash_asm_text(preview, ",\"");
+    for (cursor = 1U; cursor < size && byte_is_quoted_string_safe(data[offset + cursor]); ++cursor) {
+      char byte_text[2];
+      byte_text[0] = (char)data[offset + cursor];
+      byte_text[1] = '\0';
+      hash_asm_text(preview, byte_text);
+    }
+    hash_asm_text(preview, "\"");
+    if (cursor < size) {
+      for (; cursor < size; ++cursor) {
+        snprintf(token, sizeof(token), ",$%02X", (unsigned)data[offset + cursor]);
+        hash_asm_text(preview, token);
+      }
+    }
+  }
+  if (comment != NULL && comment[0] != '\0') {
+    hash_asm_text(preview, "\t; ");
+    hash_asm_text(preview, comment);
+  }
+  hash_asm_text(preview, "\n");
+  ++preview->asm_source_lines;
+}
+
 static void render_asm_ds_b(M68kRenderIRPreview *preview, uint32_t size, const char *comment) {
   char line[96];
   if (preview == NULL || size == 0U) return;
@@ -1926,6 +1957,11 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   }
   available = section->size - item->offset;
   if (available > item->size) available = item->size;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING && available == item->size &&
+      strcmp(item->semantic_role, "length_prefixed_string") == 0) {
+    render_asm_dc_b_length_prefixed_string(preview, section->data, item->offset, available, comment_text);
+    return;
+  }
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING && available == item->size) {
     render_asm_dc_b_string(preview, section->data, item->offset, available, comment_text);
     return;

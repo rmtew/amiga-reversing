@@ -2989,8 +2989,9 @@ loc_0_0000270E:
 	lea.l loc_0_0000271C.l,a6
 	jmp loc_0_0000D0C6.l
 loc_0_0000271C:
-	dc.b $FC,$12,$04,$FE,$04,$FD,$00,$54,$48,$4F,$55,$FC,$10,$06,$41,$52
-	dc.b $54,$20,$44,$45,$41,$44,$FF,$00
+	dc.b $FC,$12,$04,$FE,$04,$FD,$00,$54,$48,$4F,$55,$FC,$10,$06
+	dc.b "ART DEAD",$FF	; string
+	dc.b $00
 loc_0_00002734:
 	ori.b #64,$0054(a5)
 	moveq.l #0,d3
@@ -3850,30 +3851,21 @@ loc_0_000030D2:
 	moveq.l #11,d1
 	bra.w loc_0_00002DA8
 loc_0_00003100:
-	dc.b $54,$48,$59,$20,$50,$41,$52,$54,$59,$20,$49,$53,$20,$46,$55,$4C
-	dc.b $4C,$FF
+	dc.b "THY PARTY IS FULL",$FF	; string
 loc_0_00003112:
-	dc.b $57,$4F,$55,$4C,$44,$53,$54,$20,$54,$48,$4F,$55,$20,$52,$49,$50
-	dc.b $20,$4D,$45,$20,$4F,$46,$46,$3F,$FF
+	dc.b "WOULDST THOU RIP ME OFF?",$FF	; string
 loc_0_0000312B:
-	dc.b $49,$20,$4E,$45,$56,$45,$52,$20,$54,$52,$55,$53,$54,$20,$54,$48
-	dc.b $45,$20,$55,$4E,$4E,$41,$54,$55,$52,$41,$4C,$FF
+	dc.b "I NEVER TRUST THE UNNATURAL",$FF	; string
 loc_0_00003147:
-	dc.b $4B,$45,$45,$50,$20,$54,$41,$4C,$4B,$49,$4E,$47,$20,$41,$4E,$44
-	dc.b $20,$57,$45,$27,$4C,$4C,$20,$53,$45,$45,$FF
+	dc.b "KEEP TALKING AND WE'LL SEE",$FF	; string
 loc_0_00003162:
-	dc.b $49,$20,$54,$48,$49,$4E,$4B,$20,$4E,$4F,$54,$20,$4D,$59,$20,$46
-	dc.b $52,$49,$45,$4E,$44,$FF
+	dc.b "I THINK NOT MY FRIEND",$FF	; string
 loc_0_00003178:
-	dc.b $4D,$59,$20,$4E,$41,$4D,$45,$20,$49,$53,$20,$4E,$4F,$54,$20,$49
-	dc.b $4D,$50,$4F,$52,$54,$41,$4E,$54,$FF
+	dc.b "MY NAME IS NOT IMPORTANT",$FF	; string
 loc_0_00003191:
-	dc.b $49,$20,$41,$4D,$20,$5A,$45,$4E,$44,$49,$4B,$20,$54,$48,$45,$20
-	dc.b $4D,$41,$53,$54,$45,$52,$20,$4F,$46,$20,$43,$52,$45,$41,$54,$49
-	dc.b $4F,$4E,$FF
+	dc.b "I AM ZENDIK THE MASTER OF CREATION",$FF	; string
 loc_0_000031B4:
-	dc.b $4D,$45,$54,$48,$49,$4E,$4B,$53,$20,$54,$48,$4F,$55,$20,$41,$52
-	dc.b $54,$20,$54,$4F,$4F,$20,$47,$52,$45,$45,$44,$59,$21,$FF
+	dc.b "METHINKS THOU ART TOO GREEDY!",$FF	; string
 loc_0_000031D2:
 	dc.b $1A,$19,$61,$8D,$B1,$51,$FF
 loc_0_000031D9:
@@ -4278,8 +4270,7 @@ loc_0_000036FC:
 	lea.l loc_0_00003708.l,a6
 	jmp loc_0_0000D03A.l
 loc_0_00003708:
-	dc.b $57,$48,$41,$54,$20,$42,$45,$20,$54,$48,$59,$20,$42,$55,$53,$49
-	dc.b $4E,$45,$53,$53,$3F,$FF
+	dc.b "WHAT BE THY BUSINESS?",$FF	; string
 loc_0_0000371E:
 	lea.l loc_0_00003DAA.l,a6
 	move.b $0003(a4),d1
@@ -4314,20 +4305,13 @@ loc_0_00003796:
 	lea.l loc_0_00003809.l,a6
 	jmp loc_0_0000D03A.l
 loc_0_000037A2:
-	dc.b $48,$41,$53,$54,$20,$54,$48,$4F,$55,$20,$48,$45,$41,$52,$44,$20
-	dc.b $41,$4E,$59,$20,$4C,$45,$47,$45,$4E,$44,$53,$3F,$FF
+	dc.b "HAST THOU HEARD ANY LEGENDS?",$FF	; string
 loc_0_000037BF:
-	dc.b $4B,$4E,$4F,$57,$45,$53,$54,$20,$54,$48,$4F,$55,$20,$4F,$46,$20
-	dc.b $41,$4E,$59,$20,$45,$4E,$43,$48,$41,$4E,$54,$45,$44,$20,$49,$54
-	dc.b $45,$4D,$53,$3F,$FF
+	dc.b "KNOWEST THOU OF ANY ENCHANTED ITEMS?",$FF	; string
 loc_0_000037E4:
-	dc.b $4B,$4E,$4F,$57,$45,$53,$54,$20,$54,$48,$4F,$55,$20,$4F,$46,$20
-	dc.b $41,$4E,$59,$20,$57,$45,$41,$50,$4F,$4E,$53,$20,$4F,$46,$20,$4E
-	dc.b $4F,$54,$45,$3F,$FF
+	dc.b "KNOWEST THOU OF ANY WEAPONS OF NOTE?",$FF	; string
 loc_0_00003809:
-	dc.b $48,$41,$53,$54,$20,$48,$45,$41,$52,$44,$20,$4F,$46,$20,$41,$4E
-	dc.b $59,$20,$50,$4F,$57,$45,$52,$46,$55,$4C,$20,$42,$45,$49,$4E,$47
-	dc.b $53,$3F,$FF
+	dc.b "HAST HEARD OF ANY POWERFUL BEINGS?",$FF	; string
 loc_0_0000382C:
 	move.w $002E(a5),d0
 	move.b d0,$000A(a4)
@@ -4528,54 +4512,41 @@ loc_0_00003A8C:
 	dc.w $00BB,$00BC,$00BD,$00DB,$00FD,$011A,$013D,$014D	; lookup_table
 	dc.w $016C,$0187,$019C,$019D,$01C4,$01DE,$01DF	; lookup_table
 loc_0_00003ABA:
-	dc.b $54,$48,$41,$54,$27,$53,$20,$56,$45,$52,$59,$20,$50,$4F,$53,$53
-	dc.b $49,$42,$4C,$45,$FF,$49,$20,$43,$41,$4E,$4E,$4F,$54,$20,$42,$55
-	dc.b $54,$20,$41,$47,$52,$45,$45,$FF,$54,$48,$41,$54,$20,$53,$45,$45
-	dc.b $4D,$53,$20,$56,$45,$52,$59,$20,$4C,$49,$4B,$45,$4C,$59,$FF,$49
-	dc.b $27,$4D,$20,$4E,$4F,$54,$20,$41,$42,$4F,$55,$54,$20,$54,$4F,$20
-	dc.b $41,$52,$47,$55,$45,$20,$57,$49,$54,$48,$20,$54,$48,$45,$45,$FF
+	dc.b "THAT'S VERY POSSIBLE",$FF	; string
+	dc.b "I CANNOT BUT AGREE",$FF	; string
+	dc.b "THAT SEEMS VERY LIKELY",$FF	; string
+	dc.b "I'M NOT ABOUT TO ARGUE WITH THEE",$FF	; string
 loc_0_00003B1A:
-	dc.b $49,$20,$44,$4F,$4E,$27,$54,$20,$4B,$45,$45,$50,$20,$43,$4F,$4D
-	dc.b $50,$41,$4E,$59,$20,$57,$49,$54,$48,$20,$4D,$41,$47,$47,$4F,$54
-	dc.b $53,$FF,$4C,$4F,$4F,$4B,$20,$54,$4F,$20,$54,$48,$45,$20,$54,$4F
-	dc.b $57,$45,$52,$53,$20,$4D,$59,$20,$46,$52,$49,$45,$4E,$44,$FF,$FF
-	dc.b $49,$4E,$44,$45,$45,$44,$20,$4E,$4F,$54,$FF,$4D,$41,$4B,$45,$20
-	dc.b $4D,$45,$20,$54,$48,$59,$20,$4F,$46,$46,$45,$52,$FF,$50,$49,$43
-	dc.b $4B,$20,$4F,$4E,$20,$53,$4F,$4D,$45,$4F,$4E,$45,$20,$54,$48,$59
-	dc.b $20,$4F,$57,$4E,$20,$53,$49,$5A,$45,$20,$54,$48,$4F,$55,$20,$53
-	dc.b $4C,$55,$47,$FF,$49,$20,$41,$4D,$20,$54,$48,$59,$20,$57,$4F,$52
-	dc.b $53,$54,$20,$4E,$49,$47,$48,$54,$4D,$41,$52,$45,$FF,$4E,$4F,$4E
-	dc.b $45,$20,$4F,$46,$20,$54,$48,$59,$20,$42,$55,$53,$49,$4E,$45,$53
-	dc.b $53,$20,$49,$27,$4D,$20,$53,$55,$52,$45,$FF,$FF,$FF,$4E,$45,$57
-	dc.b $53,$20,$49,$53,$20,$53,$43,$41,$52,$43,$45,$20,$49,$4E,$20,$54
-	dc.b $48,$45,$53,$45,$20,$50,$41,$52,$54,$53,$FF,$49,$20,$48,$45,$41
-	dc.b $52,$20,$43,$52,$59,$53,$54,$41,$4C,$53,$20,$41,$52,$45,$20,$57
-	dc.b $4F,$52,$54,$48,$20,$53,$45,$45,$4B,$49,$4E,$47,$FF,$57,$48,$4F
-	dc.b $20,$43,$41,$4E,$20,$53,$41,$59,$20,$57,$48,$41,$54,$20,$49,$53
-	dc.b $20,$4F,$46,$20,$4E,$4F,$54,$45,$3F,$FF,$49,$20,$48,$45,$41,$52
-	dc.b $20,$5A,$45,$4E,$44,$49,$4B,$20,$49,$53,$20,$4E,$4F,$54,$20,$57
-	dc.b $48,$4F,$4C,$4C,$59,$20,$41,$20,$57,$4F,$52,$4D,$FF,$47,$49,$56
-	dc.b $45,$20,$4D,$45,$20,$41,$20,$42,$52,$45,$41,$4B,$FF,$54,$48,$59
-	dc.b $20,$43,$4F,$49,$4E,$41,$47,$45,$20,$49,$53,$20,$57,$4F,$52,$54
-	dc.b $48,$4C,$45,$53,$53,$20,$54,$4F,$20,$4D,$45,$FF,$49,$20,$44,$4F
-	dc.b $20,$4E,$4F,$54,$20,$54,$52,$41,$44,$45,$20,$49,$4E,$20,$54,$52
-	dc.b $49,$4E,$4B,$45,$54,$53,$FF,$49,$20,$4E,$45,$45,$44,$20,$4E,$4F
-	dc.b $54,$20,$54,$48,$59,$20,$54,$52,$41,$53,$48,$FF,$FF,$4D,$41,$59
-	dc.b $42,$45,$20,$54,$52,$55,$45,$20,$42,$55,$54,$20,$54,$48,$4F,$55
-	dc.b $20,$53,$48,$4F,$55,$4C,$44,$20,$42,$45,$20,$53,$4F,$20,$4C,$55
-	dc.b $43,$4B,$59,$FF,$49,$20,$54,$52,$55,$53,$54,$20,$54,$48,$49,$53
-	dc.b $20,$50,$4C,$45,$41,$53,$45,$53,$20,$54,$48,$45,$45,$FF,$FF,$57
-	dc.b $48,$59,$20,$44,$4F,$53,$54,$20,$42,$55,$52,$44,$45,$4E,$20,$4D
-	dc.b $45,$20,$57,$49,$54,$48,$20,$54,$48,$59,$20,$43,$4F,$4D,$50,$41
-	dc.b $4E,$59,$3F,$FF,$4D,$F9,$00,$00,$3D,$C0,$1C,$BC,$00,$33,$1D,$7C
-	dc.b $00,$5F,$00,$01,$1D,$7C,$00,$FE,$00,$02,$74,$03,$32,$2D,$00,$06
-	dc.b $E9,$41,$41,$F9,$00,$00,$ED,$2A,$12,$30,$10,$00,$66,$0A,$1D,$BC
-	dc.b $00,$44,$20,$00,$52,$42,$60,$22,$41,$F9,$00,$00,$E4,$C4,$D2,$41
-	dc.b $D2,$41,$D0,$C1,$1D,$98,$20,$00,$52,$42,$10,$10,$6B,$0C,$1D,$BC
-	dc.b $00,$FE,$20,$00,$1D,$80,$20,$01,$54,$42,$1D,$BC,$00,$35,$20,$00
-	dc.b $61,$00,$18,$30,$02,$40,$00,$07,$06,$40,$00,$7C,$1D,$80,$20,$01
-	dc.b $1D,$BC,$00,$FF,$20,$02,$4E,$B9,$00,$00,$D8,$1C,$3B,$7C,$00,$06
-	dc.b $00,$44
+	dc.b "I DON'T KEEP COMPANY WITH MAGGOTS",$FF	; string
+	dc.b "LOOK TO THE TOWERS MY FRIEND",$FF	; string
+	dc.b $FF
+	dc.b "INDEED NOT",$FF	; string
+	dc.b "MAKE ME THY OFFER",$FF	; string
+	dc.b "PICK ON SOMEONE THY OWN SIZE THOU SLUG",$FF	; string
+	dc.b "I AM THY WORST NIGHTMARE",$FF	; string
+	dc.b "NONE OF THY BUSINESS I'M SURE",$FF	; string
+	dc.b $FF,$FF
+	dc.b "NEWS IS SCARCE IN THESE PARTS",$FF	; string
+	dc.b "I HEAR CRYSTALS ARE WORTH SEEKING",$FF	; string
+	dc.b "WHO CAN SAY WHAT IS OF NOTE?",$FF	; string
+	dc.b "I HEAR ZENDIK IS NOT WHOLLY A WORM",$FF	; string
+	dc.b "GIVE ME A BREAK",$FF	; string
+	dc.b "THY COINAGE IS WORTHLESS TO ME",$FF	; string
+	dc.b "I DO NOT TRADE IN TRINKETS",$FF	; string
+	dc.b "I NEED NOT THY TRASH",$FF	; string
+	dc.b $FF
+	dc.b "MAYBE TRUE BUT THOU SHOULD BE SO LUCKY",$FF	; string
+	dc.b "I TRUST THIS PLEASES THEE",$FF	; string
+	dc.b $FF
+	dc.b "WHY DOST BURDEN ME WITH THY COMPANY?",$FF	; string
+	dc.b $4D,$F9,$00,$00,$3D,$C0,$1C,$BC,$00,$33,$1D,$7C,$00,$5F,$00,$01
+	dc.b $1D,$7C,$00,$FE,$00,$02,$74,$03,$32,$2D,$00,$06,$E9,$41,$41,$F9
+	dc.b $00,$00,$ED,$2A,$12,$30,$10,$00,$66,$0A,$1D,$BC,$00,$44,$20,$00
+	dc.b $52,$42,$60,$22,$41,$F9,$00,$00,$E4,$C4,$D2,$41,$D2,$41,$D0,$C1
+	dc.b $1D,$98,$20,$00,$52,$42,$10,$10,$6B,$0C,$1D,$BC,$00,$FE,$20,$00
+	dc.b $1D,$80,$20,$01,$54,$42,$1D,$BC,$00,$35,$20,$00,$61,$00,$18,$30
+	dc.b $02,$40,$00,$07,$06,$40,$00,$7C,$1D,$80,$20,$01,$1D,$BC,$00,$FF
+	dc.b $20,$02,$4E,$B9,$00,$00,$D8,$1C,$3B,$7C,$00,$06,$00,$44
 loc_0_00003D9C:
 	move.w #$8,$0042(a5)
 	bsr.w loc_0_00003344
@@ -4604,9 +4575,7 @@ loc_0_00003E15:
 loc_0_00003E26:
 	dc.b $CC,$1A,$1D,$2F,$43,$CD,$FA,$3F,$FF
 loc_0_00003E2F:
-	dc.b $57,$48,$45,$52,$45,$20,$49,$53,$20,$54,$48,$49,$53,$20,$4F,$46
-	dc.b $20,$57,$48,$49,$43,$48,$20,$54,$48,$4F,$55,$20,$48,$41,$53,$54
-	dc.b $20,$53,$50,$4F,$4B,$45,$4E,$3F,$FF
+	dc.b "WHERE IS THIS OF WHICH THOU HAST SPOKEN?",$FF	; string
 loc_0_00003E58:
 	dc.b $2D,$5F,$FB,$FA,$45,$00,$25,$FA,$45,$2F,$FB,$CB,$FF
 loc_0_00003E65:
@@ -4616,8 +4585,8 @@ loc_0_00003E70:
 loc_0_00003E7B:
 	dc.b $27,$1A,$60,$1C,$57,$FA,$3F,$FF
 loc_0_00003E83:
-	dc.b $43,$4F,$4D,$45,$20,$4A,$4F,$49,$4E,$20,$4D,$59,$20,$4D,$45,$52
-	dc.b $52,$59,$20,$42,$41,$4E,$44,$FF,$00
+	dc.b "COME JOIN MY MERRY BAND",$FF	; string
+	dc.b $00
 loc_0_00003E9C:
 	lea.l loc_0_000041D4.l,a6
 	jsr loc_0_0000D86A.l
@@ -5101,17 +5070,12 @@ loc_0_00004480:
 	moveq.l #0,d0
 	rts
 loc_0_000044C4:
-	dc.b $46,$31,$20,$2D,$20,$4C,$4F,$41,$44,$2C,$20,$46,$32,$20,$2D,$20
-	dc.b $53,$41,$56,$45,$2C,$20,$46,$31,$30,$20,$2D,$20,$45,$58,$49,$54
-	dc.b $FF
+	dc.b "F1 - LOAD, F2 - SAVE, F10 - EXIT",$FF	; string
 loc_0_000044E5:
-	dc.b $49,$4E,$53,$45,$52,$54,$20,$4C,$4F,$41,$44,$20,$44,$49,$53,$4B
-	dc.b $20,$41,$4E,$44,$20,$52,$45,$54,$55,$52,$4E,$2C,$20,$46,$31,$30
-	dc.b $20,$2D,$20,$45,$58,$49,$54,$FF
+	dc.b "INSERT LOAD DISK AND RETURN, F10 - EXIT",$FF	; string
 loc_0_0000450D:
-	dc.b $49,$4E,$53,$45,$52,$54,$20,$53,$41,$56,$45,$20,$44,$49,$53,$4B
-	dc.b $20,$41,$4E,$44,$20,$52,$45,$54,$55,$52,$4E,$2C,$20,$46,$31,$30
-	dc.b $20,$2D,$20,$45,$58,$49,$54,$FF,$00
+	dc.b "INSERT SAVE DISK AND RETURN, F10 - EXIT",$FF	; string
+	dc.b $00
 loc_0_00004536:
 	move.b #$3,$004F(a5)
 	clr.w $0014(a5)
@@ -5490,14 +5454,12 @@ loc_0_00004A84:
 	dc.b $20,$4D,$41,$59,$20,$42,$55,$59,$20,$41,$20,$53,$50,$45,$4C,$4C
 	dc.b $2D,$50,$49,$43,$4B,$20,$41,$20,$43,$4C,$41,$53,$53,$FF
 loc_0_00004AA2:
-	dc.b $53,$45,$4C,$45,$43,$54,$20,$54,$48,$59,$20,$4E,$45,$57,$20,$53
-	dc.b $50,$45,$4C,$4C,$2C,$20,$FF
+	dc.b "SELECT THY NEW SPELL, ",$FF	; string
 loc_0_00004AB9:
-	dc.b $54,$48,$4F,$55,$20,$48,$41,$53,$54,$20,$41,$4C,$4C,$20,$49,$20
-	dc.b $47,$49,$56,$45,$2C,$20,$FF
+	dc.b "THOU HAST ALL I GIVE, ",$FF	; string
 loc_0_00004AD0:
-	dc.b $49,$20,$46,$49,$4E,$44,$20,$54,$48,$45,$45,$20,$41,$20,$50,$41
-	dc.b $55,$50,$45,$52,$2C,$20,$FF,$00
+	dc.b "I FIND THEE A PAUPER, ",$FF	; string
+	dc.b $00
 loc_0_00004AE8:
 	moveq.l #0,d0
 	move.b (a6),d0
@@ -5936,14 +5898,15 @@ loc_0_00004FEE:
 	move.w #$8,loc_0_0000D92A.l
 	bra.b loc_0_00004FBE
 loc_0_00004FFE:
-	dc.b $53,$50,$45,$4C,$4C,$20,$46,$49,$5A,$5A,$4C,$45,$44,$FF
+	dc.b "SPELL FIZZLED",$FF	; string
 loc_0_0000500C:
 	dc.b $00,$00,$00,$22,$00,$2A,$00,$32,$00,$62,$00,$66,$00,$DA,$00,$F6
 	dc.b $00,$FC,$01,$06,$01,$0C,$01,$14,$01,$74,$01,$7C,$01,$82,$01,$88
 	dc.b $01,$CA,$01,$D0,$02,$22,$02,$58,$02,$98,$02,$A0,$02,$A6,$02,$AC
 	dc.b $02,$B2,$02,$C0,$03,$C0,$04,$12,$04,$1A,$04,$8A,$04,$90,$04,$9E
 loc_0_0000504C:
-	dc.b $53,$50,$45,$4C,$4C,$20,$46,$41,$49,$4C,$45,$44,$FF,$00
+	dc.b "SPELL FAILED",$FF	; string
+	dc.b $00
 loc_0_0000505A:
 	dc.b $00
 loc_0_0000505B:
@@ -7364,9 +7327,11 @@ loc_0_00006134:
 loc_0_0000613C:
 	dc.b $00,$07,$0E,$15,$21,$29	; lookup_table
 loc_0_00006142:
-	dc.b $4D,$49,$53,$53,$45,$53,$FF,$53,$48,$4F,$4F,$54,$53,$FF,$43,$48
-	dc.b $41,$4E,$54,$53,$FF,$43,$41,$53,$54,$53,$20,$53,$50,$45,$4C,$4C
-	dc.b $FF,$44,$45,$46,$45,$4E,$44,$53,$FF
+	dc.b "MISSES",$FF	; string
+	dc.b "SHOOTS",$FF	; string
+	dc.b "CHANTS",$FF	; string
+	dc.b "CASTS SPELL",$FF	; string
+	dc.b "DEFENDS",$FF	; string
 loc_0_0000616B:
 	dc.b $48,$49,$54,$53,$20,$46,$4F,$52,$20
 loc_0_00006174:
@@ -7766,8 +7731,8 @@ loc_0_00006594:
 	lea.l loc_0_0000659E.l,a6
 	bra.w loc_0_0000D088
 loc_0_0000659E:
-	dc.b $54,$48,$45,$20,$44,$4F,$4F,$52,$20,$49,$53,$20,$4C,$4F,$43,$4B
-	dc.b $45,$44,$FF,$00
+	dc.b "THE DOOR IS LOCKED",$FF	; string
+	dc.b $00
 loc_0_000065B2:
 	lsr.w #2,d0
 	subq.w #6,d0
@@ -16180,145 +16145,291 @@ loc_0_0000DC54:
 	lsr.w #3,d0
 	rts
 loc_0_0000DC64:
-	dc.b $07,$42,$4C,$4F,$44,$57,$59,$4E,$07,$4D,$55,$52,$4C,$4F,$43,$4B
-	dc.b $07,$45,$4C,$45,$41,$4E,$4F,$52,$07,$52,$4F,$53,$41,$4E,$4E,$45
-	dc.b $07,$41,$53,$54,$52,$4F,$54,$48,$06,$5A,$4F,$54,$48,$45,$4E,$08
-	dc.b $42,$41,$4C,$44,$52,$49,$43,$4B,$06,$45,$4C,$46,$52,$49,$43,$0A
-	dc.b $53,$49,$52,$20,$45,$44,$57,$41,$52,$44,$06,$4D,$45,$47,$52,$49
-	dc.b $4D,$06,$53,$45,$54,$48,$52,$41,$07,$4D,$52,$2E,$46,$4C,$41,$59
-	dc.b $06,$55,$4C,$52,$49,$43,$48,$07,$5A,$41,$53,$54,$41,$50,$48,$07
-	dc.b $48,$45,$4E,$47,$49,$53,$54,$0A,$54,$48,$41,$49,$20,$43,$48,$41
-	dc.b $4E,$47,$0B,$43,$4F,$4D,$4D,$55,$4E,$49,$43,$41,$54,$45,$07,$43
-	dc.b $4F,$4D,$4D,$45,$4E,$44,$04,$56,$49,$45,$57,$04,$57,$41,$49,$54
-	dc.b $07,$43,$4F,$52,$52,$45,$43,$54,$07,$44,$49,$53,$4D,$49,$53,$53
-	dc.b $04,$43,$41,$4C,$4C,$06,$55,$4E,$41,$42,$4C,$45,$03,$57,$48,$4F
-	dc.b $04,$44,$4F,$53,$54,$04,$54,$48,$4F,$55,$04,$57,$49,$53,$48,$02
-	dc.b $54,$4F,$06,$41,$43,$43,$45,$50,$54,$03,$54,$48,$59,$06,$48,$4F
-	dc.b $4E,$4F,$55,$52,$08,$45,$56,$45,$52,$59,$4F,$4E,$45,$09,$41,$50
-	dc.b $4F,$4C,$4F,$47,$49,$53,$45,$03,$46,$4F,$52,$06,$42,$52,$45,$41
-	dc.b $54,$48,$05,$4C,$45,$41,$56,$45,$03,$54,$48,$45,$05,$50,$41,$52
-	dc.b $54,$59,$04,$48,$41,$53,$54,$04,$4E,$4F,$4E,$45,$02,$42,$45,$03
-	dc.b $4F,$55,$54,$06,$47,$41,$49,$4E,$45,$44,$05,$4C,$45,$56,$45,$4C
-	dc.b $03,$4C,$45,$54,$04,$47,$49,$56,$45,$04,$53,$4F,$4D,$45,$06,$44
-	dc.b $45,$50,$41,$52,$54,$02,$47,$4F,$07,$52,$45,$4A,$4F,$49,$4E,$53
-	dc.b $05,$54,$52,$55,$4C,$59,$07,$54,$48,$52,$4F,$55,$47,$48,$02,$49
-	dc.b $53,$07,$50,$52,$45,$53,$45,$4E,$54,$06,$4E,$4F,$52,$4D,$41,$4C
-	dc.b $08,$52,$45,$53,$54,$4F,$52,$45,$44,$05,$54,$48,$45,$52,$45,$04
-	dc.b $42,$4F,$44,$59,$04,$48,$45,$52,$45,$07,$52,$45,$43,$52,$55,$49
-	dc.b $54,$02,$4E,$4F,$08,$49,$44,$45,$4E,$54,$49,$46,$59,$07,$49,$4E
-	dc.b $51,$55,$49,$52,$59,$05,$57,$48,$45,$52,$45,$06,$41,$42,$4F,$55
-	dc.b $54,$53,$04,$54,$52,$41,$44,$05,$53,$4D,$41,$4C,$4C,$04,$54,$41
-	dc.b $4C,$4B,$05,$59,$45,$53,$20,$20,$06,$20,$20,$20,$20,$4E,$4F,$05
-	dc.b $42,$52,$49,$42,$45,$06,$54,$48,$52,$45,$41,$54,$05,$47,$52,$45
-	dc.b $45,$54,$03,$49,$4E,$47,$04,$4E,$41,$4D,$45,$04,$53,$45,$4C,$46
-	dc.b $06,$52,$45,$56,$45,$41,$4C,$04,$46,$4F,$4C,$4B,$04,$4C,$4F,$52
-	dc.b $45,$05,$4D,$41,$47,$49,$43,$04,$49,$54,$45,$4D,$06,$4F,$42,$4A
-	dc.b $45,$43,$54,$06,$50,$45,$52,$53,$4F,$4E,$04,$47,$4F,$4C,$44,$08
-	dc.b $50,$55,$52,$43,$48,$41,$53,$45,$08,$45,$58,$43,$48,$41,$4E,$47
-	dc.b $45,$04,$53,$45,$4C,$4C,$06,$50,$52,$41,$49,$53,$45,$05,$43,$55
-	dc.b $52,$53,$45,$05,$42,$4F,$41,$53,$54,$06,$52,$45,$54,$4F,$52,$54
-	dc.b $06,$57,$49,$5A,$41,$52,$44,$0A,$41,$44,$56,$45,$4E,$54,$55,$52
-	dc.b $45,$52,$08,$43,$55,$54,$50,$55,$52,$53,$45,$02,$4D,$59,$05,$41
-	dc.b $55,$47,$48,$54,$05,$4F,$46,$46,$45,$52,$02,$4F,$52,$04,$41,$57
-	dc.b $41,$59,$0B,$53,$54,$4F,$4E,$45,$4D,$41,$49,$44,$45,$4E,$09,$44
-	dc.b $41,$52,$4B,$48,$45,$41,$52,$54,$09,$4F,$46,$20,$41,$56,$41,$4C
-	dc.b $4F,$4E,$09,$53,$57,$49,$46,$54,$48,$41,$4E,$44,$09,$53,$4C,$41
-	dc.b $45,$4D,$57,$4F,$52,$54,$0A,$52,$55,$4E,$45,$43,$41,$53,$54,$45
-	dc.b $52,$08,$54,$48,$45,$20,$44,$55,$4E,$47,$09,$46,$41,$4C,$41,$45
-	dc.b $4E,$44,$4F,$52,$04,$4C,$49,$4F,$4E,$0B,$4F,$46,$20,$4D,$4F,$4F
-	dc.b $4E,$57,$59,$43,$48,$09,$42,$48,$4F,$41,$47,$48,$41,$49,$4C,$0A
-	dc.b $53,$45,$50,$55,$4C,$43,$52,$41,$53,$54,$08,$53,$54,$45,$52,$4E
-	dc.b $41,$58,$45,$07,$4D,$41,$4E,$54,$52,$49,$43,$09,$4D,$45,$4C,$44
-	dc.b $41,$4E,$41,$53,$48,$07,$4F,$46,$20,$59,$49,$4E,$4E,$07,$43,$4F
-	dc.b $55,$52,$41,$47,$45,$08,$53,$54,$52,$45,$4E,$47,$54,$48,$07,$50
-	dc.b $52,$4F,$57,$45,$53,$53,$08,$41,$4E,$43,$45,$53,$54,$52,$59,$04
-	dc.b $46,$41,$4D,$45,$07,$41,$42,$49,$4C,$49,$54,$59,$09,$4B,$4E,$4F
-	dc.b $57,$4C,$45,$44,$47,$45,$05,$53,$50,$45,$45,$44,$0B,$55,$4E,$53
-	dc.b $55,$52,$50,$41,$53,$53,$45,$44,$09,$55,$4E,$52,$49,$56,$41,$4C
-	dc.b $45,$44,$0A,$49,$4E,$43,$52,$45,$44,$49,$42,$4C,$45,$0A,$53,$54
-	dc.b $55,$50,$45,$4E,$44,$4F,$55,$53,$07,$47,$4F,$44,$4C,$49,$4B,$45
-	dc.b $0A,$55,$4E,$44,$49,$53,$50,$55,$54,$45,$44,$0A,$55,$4E,$45,$51
-	dc.b $55,$41,$4C,$4C,$45,$44,$08,$52,$45,$4E,$4F,$57,$4E,$45,$44,$05
-	dc.b $46,$49,$47,$48,$54,$04,$54,$41,$4C,$4B,$05,$53,$4F,$55,$4E,$44
-	dc.b $06,$42,$45,$48,$41,$56,$45,$04,$4C,$4F,$4F,$4B,$06,$41,$50,$50
-	dc.b $45,$41,$52,$04,$53,$45,$45,$4D,$03,$41,$52,$54,$04,$4C,$49,$4B
-	dc.b $45,$01,$41,$04,$56,$45,$52,$59,$09,$53,$54,$52,$41,$4E,$47,$45
-	dc.b $4C,$59,$08,$4D,$49,$47,$48,$54,$49,$4C,$59,$06,$48,$55,$47,$45
-	dc.b $4C,$59,$0A,$49,$4E,$43,$52,$45,$44,$49,$42,$4C,$59,$0A,$45,$53
-	dc.b $50,$45,$43,$49,$41,$4C,$4C,$59,$09,$49,$4D,$4D,$45,$4E,$53,$45
-	dc.b $4C,$59,$05,$4F,$44,$44,$4C,$59,$06,$53,$54,$52,$4F,$4E,$47,$05
-	dc.b $42,$52,$41,$56,$45,$08,$50,$4F,$57,$45,$52,$46,$55,$4C,$05,$4E
-	dc.b $4F,$42,$4C,$45,$04,$57,$49,$53,$45,$04,$46,$49,$4E,$45,$08,$53
-	dc.b $50,$4C,$45,$4E,$44,$49,$44,$07,$41,$57,$45,$53,$4F,$4D,$45,$07
-	dc.b $57,$41,$52,$52,$49,$4F,$52,$04,$53,$41,$47,$45,$04,$48,$45,$52
-	dc.b $4F,$06,$4C,$45,$41,$44,$45,$52,$06,$4D,$41,$53,$54,$45,$52,$06
-	dc.b $46,$52,$49,$45,$4E,$44,$07,$53,$43,$48,$4F,$4C,$41,$52,$06,$45
-	dc.b $58,$50,$45,$52,$54,$0C,$44,$49,$53,$47,$55,$53,$54,$49,$4E,$47
-	dc.b $4C,$59,$0B,$47,$52,$4F,$54,$45,$53,$51,$55,$45,$4C,$59,$0B,$53
-	dc.b $49,$43,$4B,$45,$4E,$49,$4E,$47,$4C,$59,$07,$55,$54,$54,$45,$52
-	dc.b $4C,$59,$0C,$55,$4E,$42,$45,$4C,$49,$45,$56,$41,$42,$4C,$59,$0B
-	dc.b $41,$42,$48,$4F,$52,$52,$45,$4E,$54,$4C,$59,$0B,$41,$50,$50,$41
-	dc.b $4C,$4C,$49,$4E,$47,$4C,$59,$0D,$49,$4E,$44,$45,$53,$43,$52,$49
-	dc.b $42,$41,$42,$4C,$59,$06,$53,$4D,$45,$4C,$4C,$59,$05,$47,$52,$4F
-	dc.b $53,$53,$06,$53,$54,$55,$50,$49,$44,$08,$50,$41,$54,$48,$45,$54
-	dc.b $49,$43,$08,$47,$4F,$52,$4D,$4C,$45,$53,$53,$06,$46,$45,$45,$42
-	dc.b $4C,$45,$05,$57,$41,$52,$54,$59,$04,$55,$47,$4C,$59,$04,$53,$4C
-	dc.b $55,$47,$04,$54,$4F,$41,$44,$04,$43,$4C,$4F,$44,$06,$4D,$41,$47
-	dc.b $47,$4F,$54,$06,$43,$4F,$57,$41,$52,$44,$06,$5A,$4F,$4D,$42,$49
-	dc.b $45,$0A,$42,$55,$4D,$42,$4C,$45,$46,$4F,$4F,$54,$03,$4F,$41,$46
-	dc.b $04,$53,$54,$45,$50,$05,$41,$53,$49,$44,$45,$06,$53,$55,$46,$46
-	dc.b $45,$52,$03,$44,$49,$45,$05,$53,$4F,$52,$52,$59,$03,$4F,$4E,$45
-	dc.b $04,$48,$45,$41,$52,$07,$44,$49,$53,$54,$41,$4E,$54,$05,$46,$52
-	dc.b $4F,$4E,$54,$04,$4C,$45,$46,$54,$04,$52,$45,$41,$52,$05,$52,$49
-	dc.b $47,$48,$54,$03,$59,$4F,$55,$05,$54,$48,$49,$4E,$47,$04,$57,$49
-	dc.b $4C,$54,$05,$54,$4F,$4B,$45,$4E,$01,$49
+	dc.b $07,"BLODWYN"	; length_prefixed_string
+	dc.b $07,"MURLOCK"	; length_prefixed_string
+	dc.b $07,"ELEANOR"	; length_prefixed_string
+	dc.b $07,"ROSANNE"	; length_prefixed_string
+	dc.b $07,"ASTROTH"	; length_prefixed_string
+	dc.b $06,"ZOTHEN"	; length_prefixed_string
+	dc.b $08,"BALDRICK"	; length_prefixed_string
+	dc.b $06,"ELFRIC"	; length_prefixed_string
+	dc.b $0A,"SIR EDWARD"	; length_prefixed_string
+	dc.b $06,"MEGRIM"	; length_prefixed_string
+	dc.b $06,"SETHRA"	; length_prefixed_string
+	dc.b $07,"MR.FLAY"	; length_prefixed_string
+	dc.b $06,"ULRICH"	; length_prefixed_string
+	dc.b $07,"ZASTAPH"	; length_prefixed_string
+	dc.b $07,"HENGIST"	; length_prefixed_string
+	dc.b $0A,"THAI CHANG"	; length_prefixed_string
+	dc.b $0B,"COMMUNICATE"	; length_prefixed_string
+	dc.b $07,"COMMEND"	; length_prefixed_string
+	dc.b $04,"VIEW"	; length_prefixed_string
+	dc.b $04,"WAIT"	; length_prefixed_string
+	dc.b $07,"CORRECT"	; length_prefixed_string
+	dc.b $07,"DISMISS"	; length_prefixed_string
+	dc.b $04,"CALL"	; length_prefixed_string
+	dc.b $06,"UNABLE"	; length_prefixed_string
+	dc.b $03,$57,$48,$4F
+	dc.b $04,"DOST"	; length_prefixed_string
+	dc.b $04,"THOU"	; length_prefixed_string
+	dc.b $04,"WISH"	; length_prefixed_string
+	dc.b $02,$54,$4F,$06,$41,$43,$43,$45,$50,$54,$03,$54,$48,$59
+	dc.b $06,"HONOUR"	; length_prefixed_string
+	dc.b $08,"EVERYONE"	; length_prefixed_string
+	dc.b $09,"APOLOGISE"	; length_prefixed_string
+	dc.b $03,$46,$4F,$52,$06,$42,$52,$45,$41,$54,$48,$05,$4C,$45,$41,$56
+	dc.b $45,$03,$54,$48,$45
+	dc.b $05,"PARTY"	; length_prefixed_string
+	dc.b $04,"HAST"	; length_prefixed_string
+	dc.b $04,"NONE"	; length_prefixed_string
+	dc.b $02,$42,$45,$03,$4F,$55,$54,$06,$47,$41,$49,$4E,$45,$44,$05,$4C
+	dc.b $45,$56,$45,$4C,$03,$4C,$45,$54
+	dc.b $04,"GIVE"	; length_prefixed_string
+	dc.b $04,"SOME"	; length_prefixed_string
+	dc.b $06,"DEPART"	; length_prefixed_string
+	dc.b $02,$47,$4F
+	dc.b $07,"REJOINS"	; length_prefixed_string
+	dc.b $05,"TRULY"	; length_prefixed_string
+	dc.b $07,"THROUGH"	; length_prefixed_string
+	dc.b $02,$49,$53
+	dc.b $07,"PRESENT"	; length_prefixed_string
+	dc.b $06,"NORMAL"	; length_prefixed_string
+	dc.b $08,"RESTORED"	; length_prefixed_string
+	dc.b $05,"THERE"	; length_prefixed_string
+	dc.b $04,"BODY"	; length_prefixed_string
+	dc.b $04,"HERE"	; length_prefixed_string
+	dc.b $07,"RECRUIT"	; length_prefixed_string
+	dc.b $02,$4E,$4F
+	dc.b $08,"IDENTIFY"	; length_prefixed_string
+	dc.b $07,"INQUIRY"	; length_prefixed_string
+	dc.b $05,"WHERE"	; length_prefixed_string
+	dc.b $06,"ABOUTS"	; length_prefixed_string
+	dc.b $04,"TRAD"	; length_prefixed_string
+	dc.b $05,"SMALL"	; length_prefixed_string
+	dc.b $04,"TALK"	; length_prefixed_string
+	dc.b $05,"YES  "	; length_prefixed_string
+	dc.b $06,$20,$20,$20,$20,$4E,$4F
+	dc.b $05,"BRIBE"	; length_prefixed_string
+	dc.b $06,"THREAT"	; length_prefixed_string
+	dc.b $05,"GREET"	; length_prefixed_string
+	dc.b $03,$49,$4E,$47
+	dc.b $04,"NAME"	; length_prefixed_string
+	dc.b $04,"SELF"	; length_prefixed_string
+	dc.b $06,"REVEAL"	; length_prefixed_string
+	dc.b $04,"FOLK"	; length_prefixed_string
+	dc.b $04,"LORE"	; length_prefixed_string
+	dc.b $05,"MAGIC"	; length_prefixed_string
+	dc.b $04,"ITEM"	; length_prefixed_string
+	dc.b $06,"OBJECT"	; length_prefixed_string
+	dc.b $06,"PERSON"	; length_prefixed_string
+	dc.b $04,"GOLD"	; length_prefixed_string
+	dc.b $08,"PURCHASE"	; length_prefixed_string
+	dc.b $08,"EXCHANGE"	; length_prefixed_string
+	dc.b $04,"SELL"	; length_prefixed_string
+	dc.b $06,"PRAISE"	; length_prefixed_string
+	dc.b $05,"CURSE"	; length_prefixed_string
+	dc.b $05,"BOAST"	; length_prefixed_string
+	dc.b $06,"RETORT"	; length_prefixed_string
+	dc.b $06,"WIZARD"	; length_prefixed_string
+	dc.b $0A,"ADVENTURER"	; length_prefixed_string
+	dc.b $08,"CUTPURSE"	; length_prefixed_string
+	dc.b $02,$4D,$59,$05,$41,$55,$47,$48,$54,$05,$4F,$46,$46,$45,$52,$02
+	dc.b $4F,$52
+	dc.b $04,"AWAY"	; length_prefixed_string
+	dc.b $0B,"STONEMAIDEN"	; length_prefixed_string
+	dc.b $09,"DARKHEART"	; length_prefixed_string
+	dc.b $09,"OF AVALON"	; length_prefixed_string
+	dc.b $09,"SWIFTHAND"	; length_prefixed_string
+	dc.b $09,"SLAEMWORT"	; length_prefixed_string
+	dc.b $0A,"RUNECASTER"	; length_prefixed_string
+	dc.b $08,"THE DUNG"	; length_prefixed_string
+	dc.b $09,"FALAENDOR"	; length_prefixed_string
+	dc.b $04,"LION"	; length_prefixed_string
+	dc.b $0B,"OF MOONWYCH"	; length_prefixed_string
+	dc.b $09,"BHOAGHAIL"	; length_prefixed_string
+	dc.b $0A,"SEPULCRAST"	; length_prefixed_string
+	dc.b $08,"STERNAXE"	; length_prefixed_string
+	dc.b $07,"MANTRIC"	; length_prefixed_string
+	dc.b $09,"MELDANASH"	; length_prefixed_string
+	dc.b $07,"OF YINN"	; length_prefixed_string
+	dc.b $07,"COURAGE"	; length_prefixed_string
+	dc.b $08,"STRENGTH"	; length_prefixed_string
+	dc.b $07,"PROWESS"	; length_prefixed_string
+	dc.b $08,"ANCESTRY"	; length_prefixed_string
+	dc.b $04,"FAME"	; length_prefixed_string
+	dc.b $07,"ABILITY"	; length_prefixed_string
+	dc.b $09,"KNOWLEDGE"	; length_prefixed_string
+	dc.b $05,"SPEED"	; length_prefixed_string
+	dc.b $0B,"UNSURPASSED"	; length_prefixed_string
+	dc.b $09,"UNRIVALED"	; length_prefixed_string
+	dc.b $0A,"INCREDIBLE"	; length_prefixed_string
+	dc.b $0A,"STUPENDOUS"	; length_prefixed_string
+	dc.b $07,"GODLIKE"	; length_prefixed_string
+	dc.b $0A,"UNDISPUTED"	; length_prefixed_string
+	dc.b $0A,"UNEQUALLED"	; length_prefixed_string
+	dc.b $08,"RENOWNED"	; length_prefixed_string
+	dc.b $05,"FIGHT"	; length_prefixed_string
+	dc.b $04,"TALK"	; length_prefixed_string
+	dc.b $05,"SOUND"	; length_prefixed_string
+	dc.b $06,"BEHAVE"	; length_prefixed_string
+	dc.b $04,"LOOK"	; length_prefixed_string
+	dc.b $06,"APPEAR"	; length_prefixed_string
+	dc.b $04,"SEEM"	; length_prefixed_string
+	dc.b $03,$41,$52,$54,$04,$4C,$49,$4B,$45,$01,$41
+	dc.b $04,"VERY"	; length_prefixed_string
+	dc.b $09,"STRANGELY"	; length_prefixed_string
+	dc.b $08,"MIGHTILY"	; length_prefixed_string
+	dc.b $06,"HUGELY"	; length_prefixed_string
+	dc.b $0A,"INCREDIBLY"	; length_prefixed_string
+	dc.b $0A,"ESPECIALLY"	; length_prefixed_string
+	dc.b $09,"IMMENSELY"	; length_prefixed_string
+	dc.b $05,"ODDLY"	; length_prefixed_string
+	dc.b $06,"STRONG"	; length_prefixed_string
+	dc.b $05,"BRAVE"	; length_prefixed_string
+	dc.b $08,"POWERFUL"	; length_prefixed_string
+	dc.b $05,"NOBLE"	; length_prefixed_string
+	dc.b $04,"WISE"	; length_prefixed_string
+	dc.b $04,"FINE"	; length_prefixed_string
+	dc.b $08,"SPLENDID"	; length_prefixed_string
+	dc.b $07,"AWESOME"	; length_prefixed_string
+	dc.b $07,"WARRIOR"	; length_prefixed_string
+	dc.b $04,"SAGE"	; length_prefixed_string
+	dc.b $04,"HERO"	; length_prefixed_string
+	dc.b $06,"LEADER"	; length_prefixed_string
+	dc.b $06,"MASTER"	; length_prefixed_string
+	dc.b $06,"FRIEND"	; length_prefixed_string
+	dc.b $07,"SCHOLAR"	; length_prefixed_string
+	dc.b $06,"EXPERT"	; length_prefixed_string
+	dc.b $0C,"DISGUSTINGLY"	; length_prefixed_string
+	dc.b $0B,"GROTESQUELY"	; length_prefixed_string
+	dc.b $0B,"SICKENINGLY"	; length_prefixed_string
+	dc.b $07,"UTTERLY"	; length_prefixed_string
+	dc.b $0C,"UNBELIEVABLY"	; length_prefixed_string
+	dc.b $0B,"ABHORRENTLY"	; length_prefixed_string
+	dc.b $0B,"APPALLINGLY"	; length_prefixed_string
+	dc.b $0D,"INDESCRIBABLY"	; length_prefixed_string
+	dc.b $06,"SMELLY"	; length_prefixed_string
+	dc.b $05,"GROSS"	; length_prefixed_string
+	dc.b $06,"STUPID"	; length_prefixed_string
+	dc.b $08,"PATHETIC"	; length_prefixed_string
+	dc.b $08,"GORMLESS"	; length_prefixed_string
+	dc.b $06,"FEEBLE"	; length_prefixed_string
+	dc.b $05,"WARTY"	; length_prefixed_string
+	dc.b $04,"UGLY"	; length_prefixed_string
+	dc.b $04,"SLUG"	; length_prefixed_string
+	dc.b $04,"TOAD"	; length_prefixed_string
+	dc.b $04,"CLOD"	; length_prefixed_string
+	dc.b $06,"MAGGOT"	; length_prefixed_string
+	dc.b $06,"COWARD"	; length_prefixed_string
+	dc.b $06,"ZOMBIE"	; length_prefixed_string
+	dc.b $0A,"BUMBLEFOOT"	; length_prefixed_string
+	dc.b $03,$4F,$41,$46
+	dc.b $04,"STEP"	; length_prefixed_string
+	dc.b $05,"ASIDE"	; length_prefixed_string
+	dc.b $06,"SUFFER"	; length_prefixed_string
+	dc.b $03,$44,$49,$45,$05,$53,$4F,$52,$52,$59,$03,$4F,$4E,$45
+	dc.b $04,"HEAR"	; length_prefixed_string
+	dc.b $07,"DISTANT"	; length_prefixed_string
+	dc.b $05,"FRONT"	; length_prefixed_string
+	dc.b $04,"LEFT"	; length_prefixed_string
+	dc.b $04,"REAR"	; length_prefixed_string
+	dc.b $05,"RIGHT"	; length_prefixed_string
+	dc.b $03,$59,$4F,$55
+	dc.b $05,"THING"	; length_prefixed_string
+	dc.b $04,"WILT"	; length_prefixed_string
+	dc.b $05,"TOKEN"	; length_prefixed_string
+	dc.b $01,$49
 loc_0_0000E21E:
-	dc.b $05,$45,$4D,$50,$54,$59,$04,$53,$4C,$4F,$54,$07,$43,$4F,$49,$4E
-	dc.b $41,$47,$45,$06,$43,$4F,$4D,$4D,$4F,$4E,$04,$4B,$45,$59,$53,$03
-	dc.b $45,$4C,$46,$06,$41,$52,$52,$4F,$57,$53,$07,$43,$52,$59,$53,$54
-	dc.b $41,$4C,$05,$4E,$27,$45,$47,$47,$04,$47,$52,$41,$59,$07,$53,$45
-	dc.b $52,$50,$45,$4E,$54,$05,$43,$48,$41,$4F,$53,$06,$44,$52,$41,$47
-	dc.b $4F,$4E,$04,$4D,$4F,$4F,$4E,$04,$46,$4F,$4F,$44,$05,$44,$52,$49
-	dc.b $4E,$4B,$05,$53,$4C,$49,$4D,$45,$09,$42,$52,$49,$4D,$53,$54,$4F
-	dc.b $4E,$45,$05,$42,$52,$4F,$54,$48,$03,$41,$4C,$45,$04,$4D,$4F,$4F
-	dc.b $4E,$06,$45,$4C,$49,$58,$49,$52,$03,$4B,$45,$59,$06,$42,$41,$54
-	dc.b $54,$4C,$45,$05,$53,$54,$41,$46,$46,$04,$57,$41,$4E,$44,$04,$52
-	dc.b $55,$4E,$45,$06,$53,$48,$49,$45,$4C,$44,$07,$4C,$45,$41,$54,$48
-	dc.b $45,$52,$07,$42,$55,$43,$4B,$4C,$45,$52,$05,$4C,$41,$52,$47,$45
-	dc.b $03,$57,$41,$52,$06,$41,$52,$4D,$4F,$55,$52,$05,$43,$48,$41,$49
-	dc.b $4E,$04,$4D,$41,$49,$4C,$07,$4D,$49,$54,$48,$52,$49,$4C,$07,$41
-	dc.b $44,$41,$4D,$41,$4E,$54,$05,$50,$4C,$41,$54,$45,$06,$42,$52,$4F
-	dc.b $4E,$5A,$45,$06,$47,$4C,$4F,$56,$45,$53,$06,$44,$41,$47,$47,$45
-	dc.b $52,$04,$49,$52,$4F,$4E,$09,$43,$48,$52,$4F,$4D,$41,$54,$49,$43
-	dc.b $07,$53,$54,$45,$41,$4C,$54,$48,$05,$42,$4C,$41,$44,$45,$04,$48
-	dc.b $45,$41,$4C,$06,$50,$45,$52,$4D,$49,$54,$05,$50,$4F,$57,$45,$52
-	dc.b $05,$53,$48,$4F,$52,$54,$05,$53,$57,$4F,$52,$44,$07,$62,$6C,$61
-	dc.b $6E,$6B,$35,$30,$04,$4C,$4F,$4E,$47,$04,$42,$4F,$4F,$4B,$09,$46
-	dc.b $4C,$45,$53,$48,$42,$41,$4E,$45,$05,$44,$45,$4D,$4F,$4E,$0D,$41
-	dc.b $43,$45,$20,$4F,$46,$20,$53,$57,$4F,$52,$44,$53,$05,$46,$52,$4F
-	dc.b $53,$54,$03,$41,$58,$45,$07,$54,$52,$4F,$4C,$4C,$27,$53,$0C,$44
-	dc.b $45,$41,$54,$48,$42,$52,$49,$4E,$47,$45,$52,$0A,$42,$52,$41,$49
-	dc.b $4E,$42,$49,$54,$45,$52,$03,$42,$4F,$57,$05,$43,$52,$4F,$53,$53
-	dc.b $04,$52,$49,$4E,$47,$05,$28,$52,$49,$50,$29,$05,$53,$43,$41,$4C
-	dc.b $45,$04,$4D,$45,$41,$44,$05,$57,$41,$54,$45,$52,$04,$46,$49,$53
-	dc.b $54,$07,$42,$4C,$4F,$44,$57,$59,$4E,$07,$4D,$55,$52,$4C,$4F,$43
-	dc.b $4B,$07,$45,$4C,$45,$41,$4E,$4F,$52,$07,$52,$4F,$53,$41,$4E,$4E
-	dc.b $45,$07,$41,$53,$54,$52,$4F,$54,$48,$06,$5A,$4F,$54,$48,$45,$4E
-	dc.b $08,$42,$41,$4C,$44,$52,$49,$43,$4B,$06,$45,$4C,$46,$52,$49,$43
-	dc.b $0A,$53,$49,$52,$20,$45,$44,$57,$41,$52,$44,$06,$4D,$45,$47,$52
-	dc.b $49,$4D,$06,$53,$45,$54,$48,$52,$41,$07,$4D,$52,$2E,$46,$4C,$41
-	dc.b $59,$06,$55,$4C,$52,$49,$43,$48,$07,$5A,$41,$53,$54,$41,$50,$48
-	dc.b $07,$48,$45,$4E,$47,$49,$53,$54,$0A,$54,$48,$41,$49,$20,$43,$48
-	dc.b $41,$4E,$47,$09,$4F,$46,$20,$53,$4B,$55,$4C,$4C,$53,$06,$42,$4C
-	dc.b $55,$49,$53,$48,$05,$42,$52,$4F,$57,$4E,$03,$54,$41,$4E,$03,$47
-	dc.b $45,$4D
+	dc.b $05,"EMPTY"	; length_prefixed_string
+	dc.b $04,"SLOT"	; length_prefixed_string
+	dc.b $07,"COINAGE"	; length_prefixed_string
+	dc.b $06,"COMMON"	; length_prefixed_string
+	dc.b $04,"KEYS"	; length_prefixed_string
+	dc.b $03,$45,$4C,$46
+	dc.b $06,"ARROWS"	; length_prefixed_string
+	dc.b $07,"CRYSTAL"	; length_prefixed_string
+	dc.b $05,"N'EGG"	; length_prefixed_string
+	dc.b $04,"GRAY"	; length_prefixed_string
+	dc.b $07,"SERPENT"	; length_prefixed_string
+	dc.b $05,"CHAOS"	; length_prefixed_string
+	dc.b $06,"DRAGON"	; length_prefixed_string
+	dc.b $04,"MOON"	; length_prefixed_string
+	dc.b $04,"FOOD"	; length_prefixed_string
+	dc.b $05,"DRINK"	; length_prefixed_string
+	dc.b $05,"SLIME"	; length_prefixed_string
+	dc.b $09,"BRIMSTONE"	; length_prefixed_string
+	dc.b $05,"BROTH"	; length_prefixed_string
+	dc.b $03,$41,$4C,$45,$04,$4D,$4F,$4F,$4E,$06,$45,$4C,$49,$58,$49,$52
+	dc.b $03,$4B,$45,$59
+	dc.b $06,"BATTLE"	; length_prefixed_string
+	dc.b $05,"STAFF"	; length_prefixed_string
+	dc.b $04,"WAND"	; length_prefixed_string
+	dc.b $04,"RUNE"	; length_prefixed_string
+	dc.b $06,"SHIELD"	; length_prefixed_string
+	dc.b $07,"LEATHER"	; length_prefixed_string
+	dc.b $07,"BUCKLER"	; length_prefixed_string
+	dc.b $05,"LARGE"	; length_prefixed_string
+	dc.b $03,$57,$41,$52
+	dc.b $06,"ARMOUR"	; length_prefixed_string
+	dc.b $05,"CHAIN"	; length_prefixed_string
+	dc.b $04,"MAIL"	; length_prefixed_string
+	dc.b $07,"MITHRIL"	; length_prefixed_string
+	dc.b $07,"ADAMANT"	; length_prefixed_string
+	dc.b $05,"PLATE"	; length_prefixed_string
+	dc.b $06,"BRONZE"	; length_prefixed_string
+	dc.b $06,"GLOVES"	; length_prefixed_string
+	dc.b $06,"DAGGER"	; length_prefixed_string
+	dc.b $04,"IRON"	; length_prefixed_string
+	dc.b $09,"CHROMATIC"	; length_prefixed_string
+	dc.b $07,"STEALTH"	; length_prefixed_string
+	dc.b $05,"BLADE"	; length_prefixed_string
+	dc.b $04,"HEAL"	; length_prefixed_string
+	dc.b $06,"PERMIT"	; length_prefixed_string
+	dc.b $05,"POWER"	; length_prefixed_string
+	dc.b $05,"SHORT"	; length_prefixed_string
+	dc.b $05,"SWORD"	; length_prefixed_string
+	dc.b $07,"blank50"	; length_prefixed_string
+	dc.b $04,"LONG"	; length_prefixed_string
+	dc.b $04,"BOOK"	; length_prefixed_string
+	dc.b $09,"FLESHBANE"	; length_prefixed_string
+	dc.b $05,"DEMON"	; length_prefixed_string
+	dc.b $0D,"ACE OF SWORDS"	; length_prefixed_string
+	dc.b $05,"FROST"	; length_prefixed_string
+	dc.b $03,$41,$58,$45
+	dc.b $07,"TROLL'S"	; length_prefixed_string
+	dc.b $0C,"DEATHBRINGER"	; length_prefixed_string
+	dc.b $0A,"BRAINBITER"	; length_prefixed_string
+	dc.b $03,$42,$4F,$57,$05,$43,$52,$4F,$53,$53,$04,$52,$49,$4E,$47,$05
+	dc.b $28,$52,$49,$50,$29
+	dc.b $05,"SCALE"	; length_prefixed_string
+	dc.b $04,"MEAD"	; length_prefixed_string
+	dc.b $05,"WATER"	; length_prefixed_string
+	dc.b $04,"FIST"	; length_prefixed_string
+	dc.b $07,"BLODWYN"	; length_prefixed_string
+	dc.b $07,"MURLOCK"	; length_prefixed_string
+	dc.b $07,"ELEANOR"	; length_prefixed_string
+	dc.b $07,"ROSANNE"	; length_prefixed_string
+	dc.b $07,"ASTROTH"	; length_prefixed_string
+	dc.b $06,"ZOTHEN"	; length_prefixed_string
+	dc.b $08,"BALDRICK"	; length_prefixed_string
+	dc.b $06,"ELFRIC"	; length_prefixed_string
+	dc.b $0A,"SIR EDWARD"	; length_prefixed_string
+	dc.b $06,"MEGRIM"	; length_prefixed_string
+	dc.b $06,"SETHRA"	; length_prefixed_string
+	dc.b $07,"MR.FLAY"	; length_prefixed_string
+	dc.b $06,"ULRICH"	; length_prefixed_string
+	dc.b $07,"ZASTAPH"	; length_prefixed_string
+	dc.b $07,"HENGIST"	; length_prefixed_string
+	dc.b $0A,"THAI CHANG"	; length_prefixed_string
+	dc.b $09,"OF SKULLS"	; length_prefixed_string
+	dc.b $06,"BLUISH"	; length_prefixed_string
+	dc.b $05,"BROWN"	; length_prefixed_string
+	dc.b $03,$54,$41,$4E,$03,$47,$45,$4D
 loc_0_0000E480:
-	dc.b $50,$4C,$45,$41,$53,$45,$20,$53,$45,$4C,$45,$43,$54,$20,$59,$4F
-	dc.b $55,$52,$20,$43,$48,$41,$4D,$50,$49,$4F,$4E,$53,$2E,$2E,$2E,$FF
+	dc.b "PLEASE SELECT YOUR CHAMPIONS...",$FF	; string
 loc_0_0000E4A0:
-	dc.b $50,$4C,$41,$59,$45,$52,$20,$30,$20,$53,$45,$4C,$45,$43,$54,$20
-	dc.b $54,$48,$59,$20,$43,$48,$41,$4D,$50,$49,$4F,$4E,$2E,$2E,$2E,$2E
-	dc.b $FF,$00
+	dc.b "PLAYER 0 SELECT THY CHAMPION....",$FF	; string
+	dc.b $00
 loc_0_0000E4C2:
 	dc.b $00
 loc_0_0000E4C3:
@@ -16419,7 +16530,8 @@ loc_0_0000E9A8:
 	dc.b $FC,$1E,$03,$FE,$0D,$FD,$03,$50,$4C,$41,$59,$45,$52,$20,$30,$FC
 	dc.b $1E,$04,$FE,$00,$54,$48,$4F,$55,$20,$41,$52,$54,$FC,$1E,$05,$4E
 	dc.b $4F,$57,$20,$52,$45,$41,$44,$59,$FC,$1E,$06,$54,$4F,$20,$42,$45
-	dc.b $47,$49,$4E,$FC,$1E,$07,$54,$48,$59,$20,$51,$55,$45,$53,$54,$FF
+	dc.b $47,$49,$4E,$FC,$1E,$07
+	dc.b "THY QUEST",$FF	; string
 loc_0_0000E9E8:
 	dc.b $FC,$20,$08,$FE,$0D,$46,$4F,$4F,$44,$FC,$1E,$09,$FE,$04,$02,$20
 	dc.b $20,$20,$20,$20,$20,$03,$FF,$00
@@ -16439,7 +16551,8 @@ loc_0_0000EA4C:
 	dc.b $FE,$0D,$43,$41,$53,$54,$20,$25,$20,$FE,$04,$02,$20,$20,$20,$20
 	dc.b $20,$20,$03,$20,$FF,$00
 loc_0_0000EA62:
-	dc.b $FE,$0C,$43,$4F,$53,$54,$20,$54,$4F,$4F,$20,$48,$49,$47,$48,$FF
+	dc.b $FE,$0C
+	dc.b "COST TOO HIGH",$FF	; string
 loc_0_0000EA72:
 	dc.b $00,$E2,$01,$06,$00,$21,$00,$36,$01,$09,$01,$1E,$00,$21,$00,$36
 	dc.b $01,$21,$01,$2E,$00,$22,$00,$2F,$01,$31,$01,$3F,$00,$22,$00,$2F
@@ -19439,80 +19552,46 @@ loc_0_00019BFE:
 	dc.b $03
 	dcb.b $E,$00
 loc_0_00019E8E:
-	dc.b $41,$52,$4D,$4F,$55,$52,$20,$20,$54,$45,$52,$52,$4F,$52,$20,$20
-	dc.b $56,$49,$54,$41,$4C,$49,$53,$45,$42,$45,$47,$55,$49,$4C,$45,$20
-	dc.b $44,$45,$46,$4C,$45,$43,$54,$20,$4D,$41,$47,$45,$4C,$4F,$43,$4B
-	dc.b $43,$4F,$4E,$43,$45,$41,$4C,$20,$57,$41,$52,$50,$4F,$57,$45,$52
-	dc.b $4D,$49,$53,$53,$49,$4C,$45,$20,$56,$41,$4E,$49,$53,$48,$20,$20
-	dc.b $50,$41,$52,$41,$4C,$59,$5A,$45,$41,$4C,$43,$48,$45,$4D,$59,$20
-	dc.b $43,$4F,$4E,$46,$55,$53,$45,$20,$4C,$45,$56,$49,$54,$41,$54,$45
-	dc.b $41,$4E,$54,$49,$4D,$41,$47,$45,$52,$45,$43,$48,$41,$52,$47,$45
-	dc.b $54,$52,$55,$45,$56,$49,$45,$57,$52,$45,$4E,$45,$57,$20,$20,$20
-	dc.b $56,$49,$56,$49,$46,$59,$20,$20,$44,$49,$53,$50,$45,$4C,$4C,$20
-	dc.b $46,$49,$52,$45,$50,$41,$54,$48,$49,$4C,$4C,$55,$53,$49,$4F,$4E
-	dc.b $43,$4F,$4D,$50,$41,$53,$53,$20,$53,$50,$45,$4C,$4C,$54,$41,$50
-	dc.b $44,$49,$53,$52,$55,$50,$54,$20,$46,$49,$52,$45,$42,$41,$4C,$4C
-	dc.b $57,$59,$43,$48,$57,$49,$4E,$44,$41,$52,$43,$20,$42,$4F,$4C,$54
-	dc.b $46,$4F,$52,$4D,$57,$41,$4C,$4C,$53,$55,$4D,$4D,$4F,$4E,$20,$20
-	dc.b $42,$4C,$41,$5A,$45,$20,$20,$20,$4D,$49,$4E,$44,$52,$4F,$43,$4B
+	dc.b $41,$52
+	dc.b $4D,"OUR  TERROR  VITALISEBEGUILE DEFLECT MAGELOCKCONCEAL WARPOWERMISSILE VANISH  "	; length_prefixed_string
+	dc.b $50,"ARALYZEALCHEMY CONFUSE LEVITATEANTIMAGERECHARGETRUEVIEWRENEW   VIVIFY  DISPELL F"	; length_prefixed_string
+	dc.b $49,"REPATHILLUSIONCOMPASS SPELLTAPDISRUPT FIREBALLWYCHWINDARC BOLTFORMWALLSUM"	; length_prefixed_string
+	dc.b $4D,$4F,$4E,$20,$20,$42,$4C,$41,$5A,$45,$20,$20,$20,$4D,$49,$4E
+	dc.b $44,$52,$4F,$43,$4B
 loc_0_00019F8E:
-	dc.b $1A,$57,$45,$41,$52,$20,$54,$48,$49,$53,$20,$53,$50,$45,$4C,$4C
-	dc.b $20,$57,$49,$54,$48,$20,$50,$52,$49,$44,$45,$04,$42,$4F,$4F,$21
-	dc.b $19,$59,$4F,$55,$27,$4C,$4C,$20,$4E,$45,$56,$45,$52,$20,$46,$45
-	dc.b $45,$4C,$20,$53,$4F,$20,$47,$4F,$4F,$44,$1B,$43,$4F,$41,$54,$20
-	dc.b $54,$48,$59,$20,$54,$4F,$4E,$47,$55,$45,$20,$57,$49,$54,$48,$20
-	dc.b $53,$49,$4C,$56,$45,$52,$21,$41,$20,$53,$50,$45,$4C,$4C,$20,$41
-	dc.b $20,$44,$41,$59,$20,$4B,$45,$45,$50,$53,$20,$41,$4E,$20,$41,$52
-	dc.b $52,$4F,$57,$20,$41,$57,$41,$59,$25,$57,$48,$59,$20,$42,$4F,$54
-	dc.b $48,$45,$52,$20,$57,$49,$54,$48,$20,$41,$4C,$4C,$20,$54,$48,$4F
-	dc.b $53,$45,$20,$53,$49,$4C,$4C,$59,$20,$4B,$45,$59,$53,$3F,$24,$57
-	dc.b $48,$41,$54,$20,$43,$41,$4E,$4E,$4F,$54,$20,$42,$45,$20,$53,$45
-	dc.b $45,$4E,$20,$43,$41,$4E,$4E,$4F,$54,$20,$42,$45,$20,$53,$54,$4F
-	dc.b $4C,$45,$4E,$24,$59,$4F,$55,$20,$54,$4F,$4F,$20,$43,$41,$4E,$20
-	dc.b $48,$41,$56,$45,$20,$54,$48,$45,$20,$53,$54,$52,$45,$4E,$47,$54
-	dc.b $48,$20,$4F,$46,$20,$54,$45,$4E,$1A,$4F,$4E,$45,$20,$49,$4E,$20
-	dc.b $54,$48,$45,$20,$45,$59,$45,$20,$46,$4F,$52,$20,$41,$52,$43,$48
-	dc.b $45,$52,$53,$1E,$4E,$4F,$57,$20,$59,$4F,$55,$20,$53,$45,$45,$20
-	dc.b $4D,$45,$2E,$2E,$2E,$4E,$4F,$57,$20,$59,$4F,$55,$20,$44,$4F,$4E
-	dc.b $27,$54,$25,$41,$20,$46,$52,$4F,$5A,$45,$4E,$20,$4C,$49,$46,$45
-	dc.b $20,$4D,$41,$59,$20,$57,$45,$4C,$4C,$20,$42,$45,$20,$41,$20,$53
-	dc.b $48,$4F,$52,$54,$20,$4F,$4E,$45,$11,$54,$48,$45,$20,$48,$41,$4E
-	dc.b $44,$20,$4F,$46,$20,$4D,$49,$44,$41,$53,$1D,$54,$48,$45,$59,$20
-	dc.b $57,$4F,$4E,$27,$54,$20,$4B,$4E,$4F,$57,$20,$57,$48,$41,$54,$20
-	dc.b $48,$49,$54,$20,$54,$48,$45,$4D,$17,$41,$20,$47,$45,$4E,$55,$49
-	dc.b $4E,$45,$4C,$59,$20,$4C,$49,$47,$48,$54,$20,$53,$50,$45,$4C,$4C
-	dc.b $22,$4E,$45,$56,$45,$52,$4D,$4F,$52,$45,$20,$57,$4F,$52,$52,$59
-	dc.b $20,$41,$42,$4F,$55,$54,$20,$53,$50,$45,$4C,$4C,$43,$41,$53,$54
-	dc.b $45,$52,$53,$1C,$42,$4F,$4F,$53,$54,$53,$20,$54,$48,$45,$20,$46
-	dc.b $4C,$41,$54,$54,$45,$53,$54,$20,$4F,$46,$20,$52,$49,$4E,$47,$53
-	dc.b $21,$4E,$45,$56,$45,$52,$20,$41,$47,$41,$49,$4E,$20,$4C,$4F,$53
-	dc.b $45,$20,$41,$54,$20,$48,$49,$44,$45,$20,$41,$4E,$44,$20,$53,$45
-	dc.b $45,$4B,$1D,$43,$55,$52,$45,$53,$20,$45,$56,$45,$52,$59,$54,$48
-	dc.b $49,$4E,$47,$20,$45,$58,$43,$45,$50,$54,$20,$43,$52,$41,$4D,$50
-	dc.b $25,$4D,$41,$4B,$45,$53,$20,$44,$45,$41,$54,$48,$20,$42,$55,$54
-	dc.b $20,$41,$20,$4D,$49,$4E,$4F,$52,$20,$49,$4E,$43,$4F,$4E,$56,$45
-	dc.b $4E,$49,$45,$4E,$43,$45,$23,$57,$48,$41,$54,$20,$4D,$41,$47,$49
-	dc.b $43,$20,$4D,$41,$4B,$45,$53,$2C,$20,$4D,$41,$47,$49,$43,$20,$43
-	dc.b $41,$4E,$20,$44,$45,$53,$54,$52,$4F,$59,$17,$4C,$41,$59,$20,$44
-	dc.b $4F,$57,$4E,$20,$54,$48,$45,$20,$52,$45,$44,$20,$43,$41,$52,$50
-	dc.b $45,$54,$14,$52,$45,$41,$4C,$20,$45,$4E,$4F,$55,$47,$48,$20,$54
-	dc.b $4F,$20,$48,$55,$52,$54,$21,$14,$4E,$45,$56,$45,$52,$20,$47,$45
-	dc.b $54,$20,$4C,$4F,$53,$54,$20,$41,$47,$41,$49,$4E,$1B,$54,$48,$45
-	dc.b $20,$42,$41,$4E,$45,$20,$4F,$46,$20,$41,$4C,$4C,$20,$4D,$41,$47
-	dc.b $49,$43,$20,$55,$53,$45,$52,$53,$1C,$4B,$4E,$4F,$57,$4E,$20,$54
-	dc.b $4F,$20,$53,$4F,$4D,$45,$20,$41,$53,$20,$44,$45,$41,$54,$48,$53
-	dc.b $54,$52,$49,$4B,$45,$12,$41,$20,$42,$4C,$41,$53,$54,$20,$41,$54
-	dc.b $20,$50,$41,$52,$54,$49,$45,$53,$13,$4A,$55,$53,$54,$20,$42,$4C
-	dc.b $4F,$57,$20,$54,$48,$45,$4D,$20,$41,$57,$41,$59,$1A,$41,$4E,$20
-	dc.b $45,$4C,$45,$43,$54,$52,$49,$46,$59,$49,$4E,$47,$20,$45,$58,$50
-	dc.b $45,$52,$49,$45,$4E,$43,$45,$18,$46,$4F,$52,$20,$54,$48,$4F,$53
-	dc.b $45,$20,$57,$48,$4F,$20,$4C,$4F,$56,$45,$20,$57,$41,$4C,$4C,$53
-	dc.b $17,$59,$4F,$55,$27,$4C,$4C,$20,$4E,$45,$56,$45,$52,$20,$57,$41
-	dc.b $4C,$4B,$20,$41,$4C,$4F,$4E,$45,$20,$4E,$4F,$4E,$45,$20,$53,$48
-	dc.b $41,$4C,$4C,$20,$50,$41,$53,$53,$20,$54,$48,$49,$53,$20,$46,$49
-	dc.b $45,$52,$59,$20,$42,$4C,$41,$53,$54,$23,$46,$4F,$52,$20,$54,$48
-	dc.b $4F,$53,$45,$20,$57,$48,$4F,$20,$54,$48,$49,$4E,$4B,$20,$54,$48
-	dc.b $45,$59,$20,$4C,$4F,$56,$45,$20,$57,$41,$4C,$4C,$53,$00
+	dc.b $1A,"WEAR THIS SPELL WITH PRIDE"	; length_prefixed_string
+	dc.b $04,"BOO!"	; length_prefixed_string
+	dc.b $19,"YOU'LL NEVER FEEL SO GOOD"	; length_prefixed_string
+	dc.b $1B,"COAT THY TONGUE WITH SILVER"	; length_prefixed_string
+	dc.b $21,"A SPELL A DAY KEEPS AN ARROW AWAY"	; length_prefixed_string
+	dc.b $25,"WHY BOTHER WITH ALL THOSE SILLY KEYS?"	; length_prefixed_string
+	dc.b $24,"WHAT CANNOT BE SEEN CANNOT BE STOLEN"	; length_prefixed_string
+	dc.b $24,"YOU TOO CAN HAVE THE STRENGTH OF TEN"	; length_prefixed_string
+	dc.b $1A,"ONE IN THE EYE FOR ARCHERS"	; length_prefixed_string
+	dc.b $1E,"NOW YOU SEE ME...NOW YOU DON'T"	; length_prefixed_string
+	dc.b $25,"A FROZEN LIFE MAY WELL BE A SHORT ONE"	; length_prefixed_string
+	dc.b $11,"THE HAND OF MIDAS"	; length_prefixed_string
+	dc.b $1D,"THEY WON'T KNOW WHAT HIT THEM"	; length_prefixed_string
+	dc.b $17,"A GENUINELY LIGHT SPELL"	; length_prefixed_string
+	dc.b $22,"NEVERMORE WORRY ABOUT SPELLCASTERS"	; length_prefixed_string
+	dc.b $1C,"BOOSTS THE FLATTEST OF RINGS"	; length_prefixed_string
+	dc.b $21,"NEVER AGAIN LOSE AT HIDE AND SEEK"	; length_prefixed_string
+	dc.b $1D,"CURES EVERYTHING EXCEPT CRAMP"	; length_prefixed_string
+	dc.b $25,"MAKES DEATH BUT A MINOR INCONVENIENCE"	; length_prefixed_string
+	dc.b $23,"WHAT MAGIC MAKES, MAGIC CAN DESTROY"	; length_prefixed_string
+	dc.b $17,"LAY DOWN THE RED CARPET"	; length_prefixed_string
+	dc.b $14,"REAL ENOUGH TO HURT!"	; length_prefixed_string
+	dc.b $14,"NEVER GET LOST AGAIN"	; length_prefixed_string
+	dc.b $1B,"THE BANE OF ALL MAGIC USERS"	; length_prefixed_string
+	dc.b $1C,"KNOWN TO SOME AS DEATHSTRIKE"	; length_prefixed_string
+	dc.b $12,"A BLAST AT PARTIES"	; length_prefixed_string
+	dc.b $13,"JUST BLOW THEM AWAY"	; length_prefixed_string
+	dc.b $1A,"AN ELECTRIFYING EXPERIENCE"	; length_prefixed_string
+	dc.b $18,"FOR THOSE WHO LOVE WALLS"	; length_prefixed_string
+	dc.b $17,"YOU'LL NEVER WALK ALONE"	; length_prefixed_string
+	dc.b $20,"NONE SHALL PASS THIS FIERY BLAST"	; length_prefixed_string
+	dc.b $23,"FOR THOSE WHO THINK THEY LOVE WALLS"	; length_prefixed_string
+	dc.b $00
 loc_0_0001A31C:
 	dc.b $00,$00,$00,$26,$00,$4E,$00,$8A,$00,$B3,$00,$CC,$00,$DE,$01,$27
 	dc.b $01,$45,$01,$80,$01,$9B,$01,$B4,$02,$07,$02,$20,$02,$52,$02,$69
@@ -19531,201 +19610,212 @@ loc_0_0001A31C:
 	dc.b $FC,$1E,$04,$4D,$59,$20,$4B,$45,$59,$20,$49,$FC,$1E,$05,$42,$45
 	dc.b $53,$54,$4F,$57,$20,$54,$4F,$FC,$1E,$06,$54,$48,$4F,$53,$45,$20
 	dc.b $57,$48,$4F,$FC,$1E,$07,$43,$41,$4E,$20,$53,$4F,$4C,$56,$45,$FC
-	dc.b $1E,$08,$54,$48,$49,$53,$20,$4D,$41,$5A,$45,$FF,$FC,$1F,$04,$41
-	dc.b $20,$53,$57,$4F,$52,$44,$FC,$20,$05,$41,$20,$42,$4F,$57,$FC,$1E
-	dc.b $06,$54,$48,$49,$53,$20,$57,$41,$4C,$4C,$FC,$1F,$07,$4D,$55,$53
-	dc.b $54,$20,$47,$4F,$FF,$FC,$1F,$05,$52,$45,$46,$4F,$52,$47,$45,$FC
-	dc.b $21,$06,$54,$48,$59,$FC,$20,$07,$42,$4F,$4E,$45,$53,$FF,$FC,$1F
-	dc.b $05,$57,$45,$4C,$43,$4F,$4D,$45,$FC,$20,$06,$42,$41,$43,$4B,$FF
-	dc.b $FC,$1E,$03,$42,$52,$49,$4E,$47,$20,$54,$48,$45,$FC,$1E,$04,$43
-	dc.b $52,$59,$53,$54,$41,$4C,$53,$2C,$FC,$1E,$05,$46,$49,$4E,$44,$20
-	dc.b $54,$48,$45,$4D,$FC,$1E,$06,$41,$4C,$4C,$2C,$20,$4F,$4E,$4C,$59
-	dc.b $FC,$1E,$07,$54,$48,$45,$4E,$20,$57,$49,$4C,$4C,$FC,$1E,$08,$45
-	dc.b $56,$49,$4C,$20,$46,$41,$4C,$4C,$FF,$FC,$1F,$04,$42,$45,$59,$4F
-	dc.b $4E,$44,$FC,$20,$05,$4C,$49,$45,$53,$FC,$20,$06,$54,$48,$45,$FC
-	dc.b $20,$07,$4B,$45,$45,$50,$FF,$FC,$1F,$03,$50,$4F,$54,$49,$4F,$4E
-	dc.b $53,$FC,$1E,$05,$41,$4C,$45,$20,$20,$20,$20,$20,$38,$FC,$1E,$06
-	dc.b $53,$4C,$49,$4D,$45,$20,$20,$31,$30,$FC,$1E,$07,$45,$4C,$49,$58
-	dc.b $49,$52,$20,$31,$32,$FC,$1E,$08,$42,$52,$4F,$54,$48,$20,$20,$31
-	dc.b $35,$FF,$FC,$21,$04,$41,$4C,$4C,$FC,$1F,$05,$4D,$4F,$52,$54,$41
-	dc.b $4C,$53,$FC,$1F,$06,$42,$45,$57,$41,$52,$45,$21,$FF,$FC,$1E,$05
-	dc.b $48,$45,$52,$45,$20,$4C,$49,$45,$53,$FC,$1E,$06,$54,$48,$45,$20
-	dc.b $43,$52,$59,$50,$54,$FF,$FC,$1E,$03,$45,$59,$45,$20,$4F,$46,$20
-	dc.b $41,$FC,$1E,$04,$4E,$45,$57,$54,$2C,$57,$49,$4E,$47,$FC,$1E,$05
-	dc.b $4F,$46,$20,$41,$20,$42,$41,$54,$2C,$FC,$1E,$06,$54,$4F,$45,$20
-	dc.b $4F,$46,$20,$41,$FC,$1E,$07,$53,$4C,$4F,$54,$48,$2C,$20,$4F,$52
-	dc.b $FC,$1E,$08,$53,$4F,$4D,$45,$54,$48,$49,$4E,$47,$FC,$1E,$09,$4C
-	dc.b $49,$4B,$45,$20,$54,$48,$41,$54,$FF,$FC,$21,$04,$54,$48,$45,$FC
-	dc.b $1F,$05,$53,$45,$52,$50,$45,$4E,$54,$FC,$20,$06,$54,$4F,$57,$45
-	dc.b $52,$FF,$FC,$1F,$04,$5A,$45,$4E,$44,$49,$4B,$FC,$1E,$05,$57,$49
-	dc.b $4C,$4C,$20,$4E,$4F,$54,$FC,$1F,$06,$53,$55,$46,$46,$45,$52,$FC
-	dc.b $1F,$07,$41,$4E,$59,$20,$54,$4F,$FC,$1E,$08,$54,$52,$45,$53,$50
-	dc.b $41,$53,$53,$FF,$FC,$21,$04,$54,$48,$45,$FC,$20,$05,$43,$48,$41
-	dc.b $4F,$53,$FC,$20,$06,$54,$4F,$57,$45,$52,$FF,$FC,$20,$04,$54,$48
-	dc.b $45,$FC,$1F,$05,$54,$4F,$57,$45,$52,$FC,$1F,$06,$4F,$46,$20,$54
-	dc.b $48,$45,$FC,$1F,$07,$44,$52,$41,$47,$4F,$4E,$FF,$FC,$20,$04,$54
-	dc.b $48,$45,$FC,$1F,$05,$54,$4F,$57,$45,$52,$FC,$1F,$06,$4F,$46,$20
-	dc.b $54,$48,$45,$FC,$1F,$07,$4D,$4F,$4F,$4E,$FF,$FC,$21,$04,$54,$48
-	dc.b $45,$FC,$1E,$05,$4D,$45,$4E,$41,$47,$45,$52,$49,$45,$FC,$1E,$07
-	dc.b $41,$50,$50,$52,$4F,$41,$43,$48,$FC,$1E,$08,$57,$49,$54,$48,$20
-	dc.b $43,$41,$52,$45,$FF,$FC,$20,$05,$46,$41,$53,$54,$FC,$20,$06,$52
-	dc.b $4F,$55,$54,$45,$FC,$20,$07,$44,$4F,$57,$4E,$21,$FF,$FC,$1E,$03
-	dc.b $44,$41,$47,$47,$45,$52,$20,$20,$35,$FC,$1E,$04,$4C,$53,$48,$49
-	dc.b $45,$4C,$44,$20,$36,$FC,$1E,$05,$53,$57,$4F,$52,$44,$53,$20,$31
-	dc.b $30,$FC,$1E,$06,$53,$54,$41,$56,$45,$53,$20,$20,$38,$FC,$1E,$07
-	dc.b $4C,$45,$41,$54,$48,$45,$52,$20,$37,$FC,$1E,$08,$43,$48,$41,$49
-	dc.b $4E,$20,$20,$31,$32,$FC,$1E,$09,$53,$48,$49,$45,$4C,$44,$20,$31
-	dc.b $30,$FF,$FC,$1F,$03,$41,$52,$4D,$4F,$55,$52,$59,$FC,$1E,$05,$47
-	dc.b $4C,$4F,$56,$45,$53,$20,$31,$30,$FC,$1E,$06,$41,$58,$45,$20,$20
-	dc.b $20,$20,$31,$32,$FC,$1E,$07,$53,$48,$49,$45,$4C,$44,$20,$31,$35
-	dc.b $FC,$1E,$08,$50,$4C,$41,$54,$45,$20,$20,$31,$36,$FF,$FC,$1E,$04
-	dc.b $47,$52,$45,$45,$54,$49,$4E,$47,$53,$FC,$1F,$05,$54,$4F,$20,$54
-	dc.b $48,$45,$45,$FC,$1F,$06,$46,$4F,$4F,$4C,$49,$53,$48,$FC,$1E,$07
-	dc.b $49,$4E,$54,$52,$55,$44,$45,$52,$53,$FF,$FC,$20,$04,$4C,$4F,$4F
-	dc.b $4B,$FC,$1F,$05,$42,$45,$48,$49,$4E,$44,$FC,$20,$06,$59,$4F,$55
-	dc.b $21,$FF,$FC,$1E,$04,$54,$48,$45,$20,$50,$52,$49,$5A,$45,$FC,$1E
-	dc.b $05,$59,$4F,$55,$20,$53,$45,$45,$4B,$FC,$1F,$06,$49,$53,$20,$46
-	dc.b $41,$52,$FC,$20,$07,$41,$42,$4F,$56,$45,$FF,$FC,$21,$04,$41,$4C
-	dc.b $4C,$FC,$1E,$05,$42,$45,$4C,$49,$45,$56,$45,$52,$53,$FC,$21,$06
-	dc.b $41,$52,$45,$FC,$1F,$07,$57,$45,$4C,$43,$4F,$4D,$45,$FF,$FC,$1E
-	dc.b $04,$50,$4C,$41,$43,$45,$20,$54,$48,$45,$FC,$1F,$05,$47,$45,$4D
-	dc.b $20,$49,$4E,$FC,$1E,$06,$54,$48,$45,$20,$48,$4F,$4C,$45,$FC,$1E
-	dc.b $07,$54,$4F,$20,$52,$45,$41,$43,$48,$FC,$1E,$08,$59,$4F,$55,$52
-	dc.b $20,$47,$4F,$41,$4C,$FF,$FC,$1F,$04,$59,$4F,$55,$20,$43,$41,$4E
-	dc.b $FC,$1E,$05,$52,$45,$41,$43,$48,$20,$54,$48,$45,$FC,$1E,$06,$50
-	dc.b $52,$49,$5A,$45,$20,$42,$55,$54,$FC,$1E,$07,$57,$49,$4C,$4C,$20
-	dc.b $59,$4F,$55,$FC,$1F,$08,$45,$53,$43,$41,$50,$45,$3F,$FF,$FC,$1E
-	dc.b $04,$46,$41,$52,$45,$20,$54,$48,$45,$45,$FC,$1F,$05,$57,$45,$4C
-	dc.b $4C,$20,$4D,$59,$FC,$1F,$06,$46,$52,$49,$45,$4E,$44,$53,$FF,$FC
-	dc.b $1F,$04,$54,$48,$45,$20,$47,$45,$4D,$FC,$1F,$05,$49,$4E,$20,$54
-	dc.b $48,$45,$FC,$1E,$06,$4B,$45,$45,$50,$20,$57,$49,$4C,$4C,$FC,$1E
-	dc.b $07,$53,$48,$4F,$57,$20,$59,$4F,$55,$FC,$1E,$08,$54,$48,$45,$20
-	dc.b $4D,$4F,$4F,$4E,$FF,$FC,$1E,$04,$54,$48,$4F,$53,$45,$20,$57,$48
-	dc.b $4F,$FC,$1E,$05,$53,$45,$45,$4B,$20,$54,$48,$45,$FC,$1E,$06,$45
-	dc.b $59,$45,$20,$53,$48,$41,$4C,$4C,$FC,$1F,$07,$50,$45,$52,$49,$53
-	dc.b $48,$FF,$FC,$20,$04,$54,$48,$45,$FC,$1E,$05,$43,$52,$59,$53,$54
-	dc.b $41,$4C,$53,$FC,$1E,$06,$43,$41,$47,$45,$20,$54,$48,$45,$FC,$1F
-	dc.b $07,$50,$4F,$57,$45,$52,$FF,$FC,$1E,$04,$41,$53,$43,$45,$4E,$44
-	dc.b $20,$54,$4F,$FC,$1F,$05,$54,$48,$45,$20,$45,$59,$45,$FC,$1F,$06
-	dc.b $4F,$46,$20,$54,$48,$45,$FC,$1F,$07,$53,$45,$52,$50,$45,$4E,$54
-	dc.b $FF,$FC,$1F,$05,$4E,$4F,$57,$20,$59,$4F,$55,$FC,$1F,$06,$41,$52
-	dc.b $45,$20,$49,$4E,$FC,$1F,$07,$54,$52,$4F,$55,$42,$4C,$45,$FF,$FC
-	dc.b $1F,$04,$50,$41,$52,$54,$49,$4E,$47,$FC,$1F,$05,$49,$53,$20,$53
-	dc.b $55,$43,$48,$FC,$1F,$06,$53,$57,$45,$45,$54,$FC,$1F,$07,$53,$4F
-	dc.b $52,$52,$4F,$57,$FF,$FC,$1F,$04,$57,$45,$20,$53,$45,$4C,$4C,$FC
-	dc.b $1E,$05,$54,$48,$45,$20,$42,$45,$53,$54,$FC,$1F,$06,$54,$48,$41
-	dc.b $54,$FC,$1F,$07,$4D,$4F,$4E,$45,$59,$FC,$1E,$08,$43,$41,$4E,$20
-	dc.b $42,$55,$59,$FF,$FC,$1F,$03,$46,$4F,$52,$20,$54,$48,$45,$FC,$1F
-	dc.b $04,$46,$49,$52,$53,$54,$20,$FC,$1F,$05,$59,$4F,$55,$20,$52,$49
-	dc.b $53,$45,$FC,$1F,$07,$46,$4F,$52,$20,$54,$48,$45,$FC,$1F,$08,$53
-	dc.b $45,$43,$4F,$4E,$44,$FC,$1F,$09,$42,$45,$20,$57,$49,$53,$45,$FF
-	dc.b $FC,$1E,$03,$54,$48,$45,$20,$52,$49,$4E,$47,$53,$FC,$1E,$04,$57
-	dc.b $45,$52,$45,$20,$4D,$41,$44,$45,$FC,$1E,$05,$46,$52,$4F,$4D,$20
-	dc.b $54,$48,$45,$FC,$1E,$06,$53,$48,$41,$52,$44,$53,$20,$4F,$46,$FC
-	dc.b $1E,$07,$50,$55,$52,$45,$53,$54,$FC,$1E,$08,$43,$52,$59,$53,$54
-	dc.b $41,$4C,$53,$FF,$FC,$1F,$04,$42,$45,$57,$41,$52,$45,$FC,$20,$05
-	dc.b $54,$48,$45,$FC,$1F,$06,$50,$53,$59,$43,$48,$49,$43,$FC,$1F,$07
-	dc.b $42,$41,$52,$52,$49,$45,$52,$53,$FF,$FC,$1F,$05,$52,$55,$4E,$20
-	dc.b $54,$48,$45,$FC,$1E,$06,$47,$41,$55,$4E,$54,$4C,$45,$54,$21,$FF
-	dc.b $FC,$1E,$04,$54,$48,$45,$20,$47,$52,$45,$41,$54,$FC,$1E,$05,$42
-	dc.b $45,$41,$53,$54,$20,$44,$49,$44,$FC,$1E,$06,$43,$4F,$4D,$45,$20
-	dc.b $46,$52,$4F,$4D,$FC,$1E,$07,$54,$48,$45,$20,$4F,$54,$48,$45,$52
-	dc.b $FC,$20,$08,$57,$4F,$52,$4C,$44,$FF,$FC,$1E,$05,$4C,$4F,$4F,$4B
-	dc.b $20,$48,$41,$52,$44,$FC,$1E,$06,$41,$4E,$44,$20,$54,$48,$4F,$55
-	dc.b $FC,$1E,$07,$53,$48,$41,$4C,$54,$20,$53,$45,$45,$FF,$FC,$1F,$04
-	dc.b $54,$4F,$20,$50,$41,$53,$53,$FC,$1E,$05,$54,$48,$45,$20,$4C,$4F
-	dc.b $43,$4B,$FC,$1E,$06,$4A,$55,$53,$54,$20,$54,$55,$52,$4E,$FC,$1E
-	dc.b $07,$54,$48,$45,$20,$42,$4C,$4F,$43,$4B,$FF,$FC,$1E,$04,$4F,$4E
-	dc.b $57,$41,$52,$44,$53,$FC,$1E,$05,$54,$4F,$20,$54,$48,$59,$FC,$1E
-	dc.b $06,$47,$52,$45,$41,$54,$45,$52,$FC,$1E,$07,$47,$4C,$4F,$52,$49
-	dc.b $45,$53,$FF,$FC,$1F,$03,$54,$48,$45,$20,$4F,$4C,$44,$FC,$1E,$04
-	dc.b $4F,$4E,$45,$53,$20,$57,$41,$52,$44,$FC,$1E,$05,$54,$48,$45,$20
-	dc.b $4C,$41,$49,$52,$FC,$1F,$06,$4F,$46,$20,$54,$48,$45,$FC,$1E,$07
-	dc.b $44,$52,$41,$47,$4F,$4E,$27,$53,$FC,$1F,$08,$48,$45,$41,$52,$54
-	dc.b $FF,$FC,$1E,$04,$59,$4F,$55,$20,$57,$49,$4C,$4C,$FC,$1F,$05,$4E
-	dc.b $45,$56,$45,$52,$FC,$1F,$06,$44,$45,$46,$45,$41,$54,$FC,$1E,$07
-	dc.b $5A,$45,$4E,$44,$49,$4B,$20,$49,$4E,$FC,$1E,$08,$48,$49,$53,$20
-	dc.b $4C,$41,$49,$52,$FF,$FC,$1F,$03,$47,$4F,$49,$4E,$47,$FC,$1F,$04
-	dc.b $46,$55,$52,$54,$48,$45,$52,$FC,$20,$05,$57,$49,$4C,$4C,$FC,$1F
-	dc.b $06,$45,$4E,$53,$55,$52,$45,$FC,$20,$07,$59,$4F,$55,$52,$FC,$1F
-	dc.b $08,$44,$45,$41,$54,$48,$53,$FF,$FC,$1F,$04,$57,$49,$54,$48,$49
-	dc.b $4E,$FC,$20,$05,$54,$48,$45,$FC,$1F,$06,$44,$52,$41,$47,$4F,$4E
-	dc.b $FC,$1E,$07,$4C,$49,$45,$53,$20,$54,$48,$45,$FC,$1F,$08,$50,$4F
-	dc.b $57,$45,$52,$FF,$FC,$1E,$04,$4E,$4F,$52,$54,$48,$57,$41,$52,$44
-	dc.b $FC,$1E,$05,$59,$4F,$55,$20,$4D,$55,$53,$54,$FC,$1E,$06,$54,$52
-	dc.b $41,$56,$45,$4C,$FC,$1E,$07,$54,$4F,$20,$43,$41,$47,$45,$FC,$1E
-	dc.b $08,$54,$48,$45,$20,$41,$52,$43,$FF,$FC,$20,$04,$54,$48,$45,$FC
-	dc.b $1F,$05,$44,$52,$41,$47,$4F,$4E,$FC,$1F,$06,$48,$45,$41,$52,$54
-	dc.b $FC,$1F,$07,$41,$57,$41,$4B,$45,$53,$FF,$FC,$1E,$05,$54,$48,$45
-	dc.b $20,$4C,$4F,$52,$44,$53,$FC,$1E,$06,$4F,$46,$20,$43,$48,$41,$4F
-	dc.b $53,$FC,$1E,$07,$41,$57,$41,$49,$54,$20,$59,$4F,$55,$FF,$FC,$1E
-	dc.b $04,$43,$48,$41,$4F,$53,$FC,$1E,$05,$43,$41,$4E,$20,$4E,$4F,$54
-	dc.b $FC,$1E,$06,$42,$45,$20,$52,$55,$4C,$45,$44,$FC,$1E,$07,$42,$59
-	dc.b $20,$4D,$41,$4E,$FF,$FC,$21,$05,$54,$48,$45,$FC,$20,$06,$47,$52
-	dc.b $45,$41,$54,$FC,$20,$07,$42,$4C,$41,$44,$45,$FF,$FC,$1E,$04,$59
-	dc.b $4F,$55,$20,$4D,$55,$53,$54,$FC,$20,$05,$52,$49,$53,$45,$FC,$1F
-	dc.b $06,$42,$45,$46,$4F,$52,$45,$FC,$1E,$07,$59,$4F,$55,$20,$46,$41
-	dc.b $4C,$4C,$FF,$FC,$1E,$03,$4F,$4E,$4C,$59,$20,$54,$48,$45,$59,$FC
-	dc.b $1E,$04,$57,$49,$54,$48,$20,$54,$48,$45,$FC,$1E,$05,$51,$55,$49
-	dc.b $43,$4B,$45,$53,$54,$FC,$1E,$06,$48,$41,$4E,$44,$20,$41,$4E,$44
-	dc.b $FC,$1E,$07,$4B,$45,$45,$4E,$45,$53,$54,$FC,$1E,$08,$45,$59,$45
-	dc.b $20,$57,$49,$4C,$4C,$FC,$1E,$09,$50,$52,$45,$56,$41,$49,$4C,$FF
-	dc.b $FC,$1E,$05,$42,$45,$20,$42,$52,$41,$56,$45,$FC,$1E,$06,$41,$4E
-	dc.b $44,$20,$50,$52,$45,$53,$53,$FC,$1E,$07,$4F,$4E,$57,$41,$52,$44
-	dc.b $53,$FF,$FC,$1E,$04,$59,$4F,$55,$20,$48,$41,$56,$45,$FC,$1E,$05
-	dc.b $44,$4F,$4E,$45,$20,$57,$45,$4C,$4C,$FC,$1F,$07,$4E,$4F,$57,$20
-	dc.b $54,$48,$45,$FC,$1E,$08,$43,$48,$41,$4C,$4C,$45,$4E,$47,$45,$FC
-	dc.b $1F,$09,$42,$45,$47,$49,$4E,$53,$FF,$FC,$1E,$05,$5A,$45,$4E,$44
-	dc.b $49,$4B,$FC,$1E,$06,$48,$41,$53,$20,$4C,$4F,$53,$54,$FC,$1E,$07
-	dc.b $43,$4F,$4E,$54,$52,$4F,$4C,$FF,$FC,$1F,$04,$50,$52,$45,$50,$41
-	dc.b $52,$45,$FC,$1F,$05,$54,$4F,$20,$44,$49,$45,$FC,$1E,$06,$41,$43
-	dc.b $43,$55,$52,$53,$45,$44,$FC,$1E,$07,$44,$45,$46,$49,$4C,$45,$52
-	dc.b $53,$FF,$FC,$1F,$03,$50,$4F,$54,$49,$4F,$4E,$53,$FC,$1E,$05,$41
-	dc.b $4C,$45,$20,$20,$20,$20,$20,$38,$FC,$1E,$06,$53,$4C,$49,$4D,$45
-	dc.b $20,$20,$31,$30,$FC,$1E,$07,$45,$4C,$49,$58,$49,$52,$20,$31,$32
-	dc.b $FC,$1E,$08,$42,$52,$4F,$54,$48,$20,$20,$31,$35,$FF,$FC,$1F,$05
-	dc.b $5A,$45,$4E,$44,$49,$4B,$FC,$1E,$06,$42,$49,$44,$53,$20,$54,$48
-	dc.b $45,$45,$FC,$1F,$07,$45,$4E,$54,$45,$52,$FF,$FC,$20,$05,$4E,$4F
-	dc.b $4E,$45,$FC,$20,$06,$53,$48,$41,$4C,$4C,$FC,$20,$07,$50,$41,$53
-	dc.b $53,$FF,$FC,$20,$04,$54,$48,$45,$FC,$1F,$05,$4D,$41,$53,$54,$45
-	dc.b $52,$FC,$1F,$06,$49,$53,$20,$4E,$4F,$57,$FC,$20,$07,$54,$48,$45
-	dc.b $FC,$1F,$08,$53,$4C,$41,$56,$45,$FF,$FC,$1E,$03,$54,$48,$45,$20
-	dc.b $41,$43,$45,$FC,$1E,$04,$48,$41,$53,$20,$4E,$4F,$FC,$1E,$05,$50
-	dc.b $4F,$57,$45,$52,$FC,$1E,$06,$57,$49,$54,$48,$4F,$55,$54,$FC,$1E
-	dc.b $07,$54,$48,$45,$20,$43,$48,$41,$4F,$53,$FC,$1E,$08,$47,$4C,$4F
-	dc.b $56,$45,$53,$FF,$FC,$1E,$03,$54,$48,$45,$20,$44,$41,$52,$4B,$FC
-	dc.b $1F,$04,$4F,$4E,$45,$20,$48,$41,$53,$FC,$1F,$05,$45,$53,$43,$41
-	dc.b $50,$45,$44,$FC,$1E,$06,$48,$49,$53,$20,$42,$4F,$4E,$44,$53,$FC
-	dc.b $1F,$07,$41,$4E,$44,$20,$4E,$4F,$57,$FC,$1F,$08,$52,$41,$56,$41
-	dc.b $47,$45,$53,$FC,$1E,$09,$54,$48,$45,$20,$4C,$41,$4E,$44,$FF,$FC
-	dc.b $1F,$04,$48,$45,$52,$45,$49,$4E,$FC,$1F,$05,$44,$57,$45,$4C,$4C
-	dc.b $53,$FC,$1E,$06,$54,$48,$45,$20,$4C,$4F,$52,$44,$FC,$1F,$07,$5A
-	dc.b $45,$4E,$44,$49,$4B,$FF,$FC,$1E,$04,$59,$4F,$55,$20,$4D,$55,$53
-	dc.b $54,$FC,$1E,$05,$50,$4C,$41,$43,$45,$20,$54,$48,$45,$FC,$1E,$06
-	dc.b $43,$52,$59,$53,$54,$41,$4C,$53,$FC,$1F,$07,$45,$41,$43,$48,$20
-	dc.b $49,$4E,$FC,$1E,$08,$53,$45,$51,$55,$45,$4E,$43,$45,$FF,$FC,$1E
-	dc.b $04,$55,$53,$49,$4E,$47,$20,$54,$48,$45,$FC,$1E,$05,$4D,$4F,$4F
-	dc.b $4E,$20,$57,$49,$4C,$4C,$FC,$1E,$06,$4F,$50,$45,$4E,$20,$54,$48
-	dc.b $45,$FC,$20,$07,$54,$4F,$4D,$42,$FF,$FC,$1F,$04,$44,$52,$41,$47
-	dc.b $4F,$4E,$FC,$1E,$05,$54,$4F,$20,$43,$48,$41,$4F,$53,$FC,$1E,$06
-	dc.b $41,$4E,$44,$20,$54,$48,$45,$4E,$FC,$1E,$07,$54,$48,$45,$20,$4C
-	dc.b $41,$53,$54,$FF,$FC,$20,$04,$57,$49,$54,$48,$FC,$1F,$05,$53,$45
-	dc.b $52,$50,$45,$4E,$54,$FC,$20,$06,$52,$41,$47,$45,$FC,$1F,$07,$45
-	dc.b $4E,$54,$45,$52,$FC,$1E,$08,$54,$48,$45,$20,$43,$41,$47,$45,$FF
-	dc.b $FC,$1E,$04,$47,$4F,$44,$53,$20,$4D,$41,$59,$FC,$1E,$05,$4B,$49
-	dc.b $4C,$4C,$20,$41,$4E,$44,$FC,$1E,$06,$4D,$4F,$52,$54,$41,$4C,$53
-	dc.b $FC,$1E,$07,$4D,$41,$59,$20,$46,$45,$41,$52,$FF,$FC,$1F,$03,$20
-	dc.b $54,$48,$45,$FC,$1E,$04,$43,$52,$59,$53,$54,$41,$4C,$FC,$1E,$05
-	dc.b $4F,$46,$20,$43,$48,$41,$4F,$53,$FC,$1E,$06,$53,$48,$41,$4C,$4C
-	dc.b $FC,$1E,$07,$53,$55,$4D,$4D,$4F,$4E,$FC,$1E,$08,$49,$54,$20,$4E
-	dc.b $45,$41,$52,$FF,$FC,$1F,$04,$42,$45,$57,$41,$52,$45,$FC,$20,$05
-	dc.b $54,$48,$45,$FC,$1F,$06,$4C,$45,$47,$49,$4F,$4E,$FC,$1F,$07,$4F
-	dc.b $46,$20,$54,$48,$45,$FC,$1F,$08,$55,$4E,$44,$45,$41,$44,$FF,$FC
-	dc.b $1E,$03,$54,$48,$59,$20,$51,$55,$45,$53,$54,$FC,$1E,$04,$48,$41
-	dc.b $53,$20,$43,$4F,$4D,$45,$FC,$1E,$05,$54,$4F,$20,$41,$4E,$20,$45
-	dc.b $4E,$44,$FC,$21,$06,$2D,$2D,$FC,$1E,$07,$42,$4C,$4F,$4F,$44,$57
-	dc.b $59,$43,$48,$FC,$21,$08,$49,$53,$FC,$1E,$09,$52,$45,$53,$54,$4F
-	dc.b $52,$45,$44,$FF
+	dc.b $1E,$08
+	dc.b "THIS MAZE",$FF	; string
+	dc.b $FC,$1F,$04,$41,$20,$53,$57,$4F,$52,$44,$FC,$20,$05,$41,$20,$42
+	dc.b $4F,$57,$FC,$1E,$06,$54,$48,$49,$53,$20,$57,$41,$4C,$4C,$FC,$1F
+	dc.b $07,$4D,$55,$53,$54,$20,$47,$4F,$FF,$FC,$1F,$05,$52,$45,$46,$4F
+	dc.b $52,$47,$45,$FC,$21,$06,$54,$48,$59,$FC,$20,$07,$42,$4F,$4E,$45
+	dc.b $53,$FF,$FC,$1F,$05,$57,$45,$4C,$43,$4F,$4D,$45,$FC,$20,$06,$42
+	dc.b $41,$43,$4B,$FF,$FC,$1E,$03,$42,$52,$49,$4E,$47,$20,$54,$48,$45
+	dc.b $FC,$1E,$04,$43,$52,$59,$53,$54,$41,$4C,$53,$2C,$FC,$1E,$05,$46
+	dc.b $49,$4E,$44,$20,$54,$48,$45,$4D,$FC,$1E,$06,$41,$4C,$4C,$2C,$20
+	dc.b $4F,$4E,$4C,$59,$FC,$1E,$07,$54,$48,$45,$4E,$20,$57,$49,$4C,$4C
+	dc.b $FC,$1E,$08
+	dc.b "EVIL FALL",$FF	; string
+	dc.b $FC,$1F,$04,$42,$45,$59,$4F,$4E,$44,$FC,$20,$05,$4C,$49,$45,$53
+	dc.b $FC,$20,$06,$54,$48,$45,$FC,$20,$07,$4B,$45,$45,$50,$FF,$FC,$1F
+	dc.b $03,$50,$4F,$54,$49,$4F,$4E,$53,$FC,$1E,$05,$41,$4C,$45,$20,$20
+	dc.b $20,$20,$20,$38,$FC,$1E,$06,$53,$4C,$49,$4D,$45,$20,$20,$31,$30
+	dc.b $FC,$1E,$07,$45,$4C,$49,$58,$49,$52,$20,$31,$32,$FC,$1E,$08
+	dc.b "BROTH  15",$FF	; string
+	dc.b $FC,$21,$04,$41,$4C,$4C,$FC,$1F,$05,$4D,$4F,$52,$54,$41,$4C,$53
+	dc.b $FC,$1F,$06,$42,$45,$57,$41,$52,$45,$21,$FF,$FC,$1E,$05,$48,$45
+	dc.b $52,$45,$20,$4C,$49,$45,$53,$FC,$1E,$06
+	dc.b "THE CRYPT",$FF	; string
+	dc.b $FC,$1E,$03,$45,$59,$45,$20,$4F,$46,$20,$41,$FC,$1E,$04,$4E,$45
+	dc.b $57,$54,$2C,$57,$49,$4E,$47,$FC,$1E,$05,$4F,$46,$20,$41,$20,$42
+	dc.b $41,$54,$2C,$FC,$1E,$06,$54,$4F,$45,$20,$4F,$46,$20,$41,$FC,$1E
+	dc.b $07,$53,$4C,$4F,$54,$48,$2C,$20,$4F,$52,$FC,$1E,$08,$53,$4F,$4D
+	dc.b $45,$54,$48,$49,$4E,$47,$FC,$1E,$09,$4C,$49,$4B,$45,$20,$54,$48
+	dc.b $41,$54,$FF,$FC,$21,$04,$54,$48,$45,$FC,$1F,$05,$53,$45,$52,$50
+	dc.b $45,$4E,$54,$FC,$20,$06,$54,$4F,$57,$45,$52,$FF,$FC,$1F,$04,$5A
+	dc.b $45,$4E,$44,$49,$4B,$FC,$1E,$05,$57,$49,$4C,$4C,$20,$4E,$4F,$54
+	dc.b $FC,$1F,$06,$53,$55,$46,$46,$45,$52,$FC,$1F,$07,$41,$4E,$59,$20
+	dc.b $54,$4F,$FC,$1E,$08,$54,$52,$45,$53,$50,$41,$53,$53,$FF,$FC,$21
+	dc.b $04,$54,$48,$45,$FC,$20,$05,$43,$48,$41,$4F,$53,$FC,$20,$06,$54
+	dc.b $4F,$57,$45,$52,$FF,$FC,$20,$04,$54,$48,$45,$FC,$1F,$05,$54,$4F
+	dc.b $57,$45,$52,$FC,$1F,$06,$4F,$46,$20,$54,$48,$45,$FC,$1F,$07,$44
+	dc.b $52,$41,$47,$4F,$4E,$FF,$FC,$20,$04,$54,$48,$45,$FC,$1F,$05,$54
+	dc.b $4F,$57,$45,$52,$FC,$1F,$06,$4F,$46,$20,$54,$48,$45,$FC,$1F,$07
+	dc.b $4D,$4F,$4F,$4E,$FF,$FC,$21,$04,$54,$48,$45,$FC,$1E,$05,$4D,$45
+	dc.b $4E,$41,$47,$45,$52,$49,$45,$FC,$1E,$07,$41,$50,$50,$52,$4F,$41
+	dc.b $43,$48,$FC,$1E,$08
+	dc.b "WITH CARE",$FF	; string
+	dc.b $FC,$20,$05,$46,$41,$53,$54,$FC,$20,$06,$52,$4F,$55,$54,$45,$FC
+	dc.b $20,$07,$44,$4F,$57,$4E,$21,$FF,$FC,$1E,$03,$44,$41,$47,$47,$45
+	dc.b $52,$20,$20,$35,$FC,$1E,$04,$4C,$53,$48,$49,$45,$4C,$44,$20,$36
+	dc.b $FC,$1E,$05,$53,$57,$4F,$52,$44,$53,$20,$31,$30,$FC,$1E,$06,$53
+	dc.b $54,$41,$56,$45,$53,$20,$20,$38,$FC,$1E,$07,$4C,$45,$41,$54,$48
+	dc.b $45,$52,$20,$37,$FC,$1E,$08,$43,$48,$41,$49,$4E,$20,$20,$31,$32
+	dc.b $FC,$1E,$09,$53,$48,$49,$45,$4C,$44,$20,$31,$30,$FF,$FC,$1F,$03
+	dc.b $41,$52,$4D,$4F,$55,$52,$59,$FC,$1E,$05,$47,$4C,$4F,$56,$45,$53
+	dc.b $20,$31,$30,$FC,$1E,$06,$41,$58,$45,$20,$20,$20,$20,$31,$32,$FC
+	dc.b $1E,$07,$53,$48,$49,$45,$4C,$44,$20,$31,$35,$FC,$1E,$08
+	dc.b "PLATE  16",$FF	; string
+	dc.b $FC,$1E,$04,$47,$52,$45,$45,$54,$49,$4E,$47,$53,$FC,$1F,$05,$54
+	dc.b $4F,$20,$54,$48,$45,$45,$FC,$1F,$06,$46,$4F,$4F,$4C,$49,$53,$48
+	dc.b $FC,$1E,$07,$49,$4E,$54,$52,$55,$44,$45,$52,$53,$FF,$FC,$20,$04
+	dc.b $4C,$4F,$4F,$4B,$FC,$1F,$05,$42,$45,$48,$49,$4E,$44,$FC,$20,$06
+	dc.b $59,$4F,$55,$21,$FF,$FC,$1E,$04,$54,$48,$45,$20,$50,$52,$49,$5A
+	dc.b $45,$FC,$1E,$05,$59,$4F,$55,$20,$53,$45,$45,$4B,$FC,$1F,$06,$49
+	dc.b $53,$20,$46,$41,$52,$FC,$20,$07,$41,$42,$4F,$56,$45,$FF,$FC,$21
+	dc.b $04,$41,$4C,$4C,$FC,$1E,$05,$42,$45,$4C,$49,$45,$56,$45,$52,$53
+	dc.b $FC,$21,$06,$41,$52,$45,$FC,$1F,$07,$57,$45,$4C,$43,$4F,$4D,$45
+	dc.b $FF,$FC,$1E,$04,$50,$4C,$41,$43,$45,$20,$54,$48,$45,$FC,$1F,$05
+	dc.b $47,$45,$4D,$20,$49,$4E,$FC,$1E,$06,$54,$48,$45,$20,$48,$4F,$4C
+	dc.b $45,$FC,$1E,$07,$54,$4F,$20,$52,$45,$41,$43,$48,$FC,$1E,$08
+	dc.b "YOUR GOAL",$FF	; string
+	dc.b $FC,$1F,$04,$59,$4F,$55,$20,$43,$41,$4E,$FC,$1E,$05,$52,$45,$41
+	dc.b $43,$48,$20,$54,$48,$45,$FC,$1E,$06,$50,$52,$49,$5A,$45,$20,$42
+	dc.b $55,$54,$FC,$1E,$07,$57,$49,$4C,$4C,$20,$59,$4F,$55,$FC,$1F,$08
+	dc.b $45,$53,$43,$41,$50,$45,$3F,$FF,$FC,$1E,$04,$46,$41,$52,$45,$20
+	dc.b $54,$48,$45,$45,$FC,$1F,$05,$57,$45,$4C,$4C,$20,$4D,$59,$FC,$1F
+	dc.b $06,$46,$52,$49,$45,$4E,$44,$53,$FF,$FC,$1F,$04,$54,$48,$45,$20
+	dc.b $47,$45,$4D,$FC,$1F,$05,$49,$4E,$20,$54,$48,$45,$FC,$1E,$06,$4B
+	dc.b $45,$45,$50,$20,$57,$49,$4C,$4C,$FC,$1E,$07,$53,$48,$4F,$57,$20
+	dc.b $59,$4F,$55,$FC,$1E,$08,$54,$48,$45,$20,$4D,$4F,$4F,$4E,$FF,$FC
+	dc.b $1E,$04,$54,$48,$4F,$53,$45,$20,$57,$48,$4F,$FC,$1E,$05,$53,$45
+	dc.b $45,$4B,$20,$54,$48,$45,$FC,$1E,$06,$45,$59,$45,$20,$53,$48,$41
+	dc.b $4C,$4C,$FC,$1F,$07,$50,$45,$52,$49,$53,$48,$FF,$FC,$20,$04,$54
+	dc.b $48,$45,$FC,$1E,$05,$43,$52,$59,$53,$54,$41,$4C,$53,$FC,$1E,$06
+	dc.b $43,$41,$47,$45,$20,$54,$48,$45,$FC,$1F,$07,$50,$4F,$57,$45,$52
+	dc.b $FF,$FC,$1E,$04,$41,$53,$43,$45,$4E,$44,$20,$54,$4F,$FC,$1F,$05
+	dc.b $54,$48,$45,$20,$45,$59,$45,$FC,$1F,$06,$4F,$46,$20,$54,$48,$45
+	dc.b $FC,$1F,$07,$53,$45,$52,$50,$45,$4E,$54,$FF,$FC,$1F,$05,$4E,$4F
+	dc.b $57,$20,$59,$4F,$55,$FC,$1F,$06,$41,$52,$45,$20,$49,$4E,$FC,$1F
+	dc.b $07,$54,$52,$4F,$55,$42,$4C,$45,$FF,$FC,$1F,$04,$50,$41,$52,$54
+	dc.b $49,$4E,$47,$FC,$1F,$05,$49,$53,$20,$53,$55,$43,$48,$FC,$1F,$06
+	dc.b $53,$57,$45,$45,$54,$FC,$1F,$07,$53,$4F,$52,$52,$4F,$57,$FF,$FC
+	dc.b $1F,$04,$57,$45,$20,$53,$45,$4C,$4C,$FC,$1E,$05,$54,$48,$45,$20
+	dc.b $42,$45,$53,$54,$FC,$1F,$06,$54,$48,$41,$54,$FC,$1F,$07,$4D,$4F
+	dc.b $4E,$45,$59,$FC,$1E,$08,$43,$41,$4E,$20,$42,$55,$59,$FF,$FC,$1F
+	dc.b $03,$46,$4F,$52,$20,$54,$48,$45,$FC,$1F,$04,$46,$49,$52,$53,$54
+	dc.b $20,$FC,$1F,$05,$59,$4F,$55,$20,$52,$49,$53,$45,$FC,$1F,$07,$46
+	dc.b $4F,$52,$20,$54,$48,$45,$FC,$1F,$08,$53,$45,$43,$4F,$4E,$44,$FC
+	dc.b $1F,$09,$42,$45,$20,$57,$49,$53,$45,$FF,$FC,$1E,$03,$54,$48,$45
+	dc.b $20,$52,$49,$4E,$47,$53,$FC,$1E,$04,$57,$45,$52,$45,$20,$4D,$41
+	dc.b $44,$45,$FC,$1E,$05,$46,$52,$4F,$4D,$20,$54,$48,$45,$FC,$1E,$06
+	dc.b $53,$48,$41,$52,$44,$53,$20,$4F,$46,$FC,$1E,$07,$50,$55,$52,$45
+	dc.b $53,$54,$FC,$1E,$08,$43,$52,$59,$53,$54,$41,$4C,$53,$FF,$FC,$1F
+	dc.b $04,$42,$45,$57,$41,$52,$45,$FC,$20,$05,$54,$48,$45,$FC,$1F,$06
+	dc.b $50,$53,$59,$43,$48,$49,$43,$FC,$1F,$07,$42,$41,$52,$52,$49,$45
+	dc.b $52,$53,$FF,$FC,$1F,$05,$52,$55,$4E,$20,$54,$48,$45,$FC,$1E,$06
+	dc.b $47,$41,$55,$4E,$54,$4C,$45,$54,$21,$FF,$FC,$1E,$04,$54,$48,$45
+	dc.b $20,$47,$52,$45,$41,$54,$FC,$1E,$05,$42,$45,$41,$53,$54,$20,$44
+	dc.b $49,$44,$FC,$1E,$06,$43,$4F,$4D,$45,$20,$46,$52,$4F,$4D,$FC,$1E
+	dc.b $07,$54,$48,$45,$20,$4F,$54,$48,$45,$52,$FC,$20,$08,$57,$4F,$52
+	dc.b $4C,$44,$FF,$FC,$1E,$05,$4C,$4F,$4F,$4B,$20,$48,$41,$52,$44,$FC
+	dc.b $1E,$06,$41,$4E,$44,$20,$54,$48,$4F,$55,$FC,$1E,$07
+	dc.b "SHALT SEE",$FF	; string
+	dc.b $FC,$1F,$04,$54,$4F,$20,$50,$41,$53,$53,$FC,$1E,$05,$54,$48,$45
+	dc.b $20,$4C,$4F,$43,$4B,$FC,$1E,$06,$4A,$55,$53,$54,$20,$54,$55,$52
+	dc.b $4E,$FC,$1E,$07
+	dc.b "THE BLOCK",$FF	; string
+	dc.b $FC,$1E,$04,$4F,$4E,$57,$41,$52,$44,$53,$FC,$1E,$05,$54,$4F,$20
+	dc.b $54,$48,$59,$FC,$1E,$06,$47,$52,$45,$41,$54,$45,$52,$FC,$1E,$07
+	dc.b $47,$4C,$4F,$52,$49,$45,$53,$FF,$FC,$1F,$03,$54,$48,$45,$20,$4F
+	dc.b $4C,$44,$FC,$1E,$04,$4F,$4E,$45,$53,$20,$57,$41,$52,$44,$FC,$1E
+	dc.b $05,$54,$48,$45,$20,$4C,$41,$49,$52,$FC,$1F,$06,$4F,$46,$20,$54
+	dc.b $48,$45,$FC,$1E,$07,$44,$52,$41,$47,$4F,$4E,$27,$53,$FC,$1F,$08
+	dc.b $48,$45,$41,$52,$54,$FF,$FC,$1E,$04,$59,$4F,$55,$20,$57,$49,$4C
+	dc.b $4C,$FC,$1F,$05,$4E,$45,$56,$45,$52,$FC,$1F,$06,$44,$45,$46,$45
+	dc.b $41,$54,$FC,$1E,$07,$5A,$45,$4E,$44,$49,$4B,$20,$49,$4E,$FC,$1E
+	dc.b $08,$48,$49,$53,$20,$4C,$41,$49,$52,$FF,$FC,$1F,$03,$47,$4F,$49
+	dc.b $4E,$47,$FC,$1F,$04,$46,$55,$52,$54,$48,$45,$52,$FC,$20,$05,$57
+	dc.b $49,$4C,$4C,$FC,$1F,$06,$45,$4E,$53,$55,$52,$45,$FC,$20,$07,$59
+	dc.b $4F,$55,$52,$FC,$1F,$08,$44,$45,$41,$54,$48,$53,$FF,$FC,$1F,$04
+	dc.b $57,$49,$54,$48,$49,$4E,$FC,$20,$05,$54,$48,$45,$FC,$1F,$06,$44
+	dc.b $52,$41,$47,$4F,$4E,$FC,$1E,$07,$4C,$49,$45,$53,$20,$54,$48,$45
+	dc.b $FC,$1F,$08,$50,$4F,$57,$45,$52,$FF,$FC,$1E,$04,$4E,$4F,$52,$54
+	dc.b $48,$57,$41,$52,$44,$FC,$1E,$05,$59,$4F,$55,$20,$4D,$55,$53,$54
+	dc.b $FC,$1E,$06,$54,$52,$41,$56,$45,$4C,$FC,$1E,$07,$54,$4F,$20,$43
+	dc.b $41,$47,$45,$FC,$1E,$08,$54,$48,$45,$20,$41,$52,$43,$FF,$FC,$20
+	dc.b $04,$54,$48,$45,$FC,$1F,$05,$44,$52,$41,$47,$4F,$4E,$FC,$1F,$06
+	dc.b $48,$45,$41,$52,$54,$FC,$1F,$07,$41,$57,$41,$4B,$45,$53,$FF,$FC
+	dc.b $1E,$05,$54,$48,$45,$20,$4C,$4F,$52,$44,$53,$FC,$1E,$06,$4F,$46
+	dc.b $20,$43,$48,$41,$4F,$53,$FC,$1E,$07
+	dc.b "AWAIT YOU",$FF	; string
+	dc.b $FC,$1E,$04,$43,$48,$41,$4F,$53,$FC,$1E,$05,$43,$41,$4E,$20,$4E
+	dc.b $4F,$54,$FC,$1E,$06,$42,$45,$20,$52,$55,$4C,$45,$44,$FC,$1E,$07
+	dc.b $42,$59,$20,$4D,$41,$4E,$FF,$FC,$21,$05,$54,$48,$45,$FC,$20,$06
+	dc.b $47,$52,$45,$41,$54,$FC,$20,$07,$42,$4C,$41,$44,$45,$FF,$FC,$1E
+	dc.b $04,$59,$4F,$55,$20,$4D,$55,$53,$54,$FC,$20,$05,$52,$49,$53,$45
+	dc.b $FC,$1F,$06,$42,$45,$46,$4F,$52,$45,$FC,$1E,$07
+	dc.b "YOU FALL",$FF	; string
+	dc.b $FC,$1E,$03,$4F,$4E,$4C,$59,$20,$54,$48,$45,$59,$FC,$1E,$04,$57
+	dc.b $49,$54,$48,$20,$54,$48,$45,$FC,$1E,$05,$51,$55,$49,$43,$4B,$45
+	dc.b $53,$54,$FC,$1E,$06,$48,$41,$4E,$44,$20,$41,$4E,$44,$FC,$1E,$07
+	dc.b $4B,$45,$45,$4E,$45,$53,$54,$FC,$1E,$08,$45,$59,$45,$20,$57,$49
+	dc.b $4C,$4C,$FC,$1E,$09,$50,$52,$45,$56,$41,$49,$4C,$FF,$FC,$1E,$05
+	dc.b $42,$45,$20,$42,$52,$41,$56,$45,$FC,$1E,$06,$41,$4E,$44,$20,$50
+	dc.b $52,$45,$53,$53,$FC,$1E,$07,$4F,$4E,$57,$41,$52,$44,$53,$FF,$FC
+	dc.b $1E,$04,$59,$4F,$55,$20,$48,$41,$56,$45,$FC,$1E,$05,$44,$4F,$4E
+	dc.b $45,$20,$57,$45,$4C,$4C,$FC,$1F,$07,$4E,$4F,$57,$20,$54,$48,$45
+	dc.b $FC,$1E,$08,$43,$48,$41,$4C,$4C,$45,$4E,$47,$45,$FC,$1F,$09,$42
+	dc.b $45,$47,$49,$4E,$53,$FF,$FC,$1E,$05,$5A,$45,$4E,$44,$49,$4B,$FC
+	dc.b $1E,$06,$48,$41,$53,$20,$4C,$4F,$53,$54,$FC,$1E,$07,$43,$4F,$4E
+	dc.b $54,$52,$4F,$4C,$FF,$FC,$1F,$04,$50,$52,$45,$50,$41,$52,$45,$FC
+	dc.b $1F,$05,$54,$4F,$20,$44,$49,$45,$FC,$1E,$06,$41,$43,$43,$55,$52
+	dc.b $53,$45,$44,$FC,$1E,$07,$44,$45,$46,$49,$4C,$45,$52,$53,$FF,$FC
+	dc.b $1F,$03,$50,$4F,$54,$49,$4F,$4E,$53,$FC,$1E,$05,$41,$4C,$45,$20
+	dc.b $20,$20,$20,$20,$38,$FC,$1E,$06,$53,$4C,$49,$4D,$45,$20,$20,$31
+	dc.b $30,$FC,$1E,$07,$45,$4C,$49,$58,$49,$52,$20,$31,$32,$FC,$1E,$08
+	dc.b "BROTH  15",$FF	; string
+	dc.b $FC,$1F,$05,$5A,$45,$4E,$44,$49,$4B,$FC,$1E,$06,$42,$49,$44,$53
+	dc.b $20,$54,$48,$45,$45,$FC,$1F,$07,$45,$4E,$54,$45,$52,$FF,$FC,$20
+	dc.b $05,$4E,$4F,$4E,$45,$FC,$20,$06,$53,$48,$41,$4C,$4C,$FC,$20,$07
+	dc.b $50,$41,$53,$53,$FF,$FC,$20,$04,$54,$48,$45,$FC,$1F,$05,$4D,$41
+	dc.b $53,$54,$45,$52,$FC,$1F,$06,$49,$53,$20,$4E,$4F,$57,$FC,$20,$07
+	dc.b $54,$48,$45,$FC,$1F,$08,$53,$4C,$41,$56,$45,$FF,$FC,$1E,$03,$54
+	dc.b $48,$45,$20,$41,$43,$45,$FC,$1E,$04,$48,$41,$53,$20,$4E,$4F,$FC
+	dc.b $1E,$05,$50,$4F,$57,$45,$52,$FC,$1E,$06,$57,$49,$54,$48,$4F,$55
+	dc.b $54,$FC,$1E,$07,$54,$48,$45,$20,$43,$48,$41,$4F,$53,$FC,$1E,$08
+	dc.b $47,$4C,$4F,$56,$45,$53,$FF,$FC,$1E,$03,$54,$48,$45,$20,$44,$41
+	dc.b $52,$4B,$FC,$1F,$04,$4F,$4E,$45,$20,$48,$41,$53,$FC,$1F,$05,$45
+	dc.b $53,$43,$41,$50,$45,$44,$FC,$1E,$06,$48,$49,$53,$20,$42,$4F,$4E
+	dc.b $44,$53,$FC,$1F,$07,$41,$4E,$44,$20,$4E,$4F,$57,$FC,$1F,$08,$52
+	dc.b $41,$56,$41,$47,$45,$53,$FC,$1E,$09
+	dc.b "THE LAND",$FF	; string
+	dc.b $FC,$1F,$04,$48,$45,$52,$45,$49,$4E,$FC,$1F,$05,$44,$57,$45,$4C
+	dc.b $4C,$53,$FC,$1E,$06,$54,$48,$45,$20,$4C,$4F,$52,$44,$FC,$1F,$07
+	dc.b $5A,$45,$4E,$44,$49,$4B,$FF,$FC,$1E,$04,$59,$4F,$55,$20,$4D,$55
+	dc.b $53,$54,$FC,$1E,$05,$50,$4C,$41,$43,$45,$20,$54,$48,$45,$FC,$1E
+	dc.b $06,$43,$52,$59,$53,$54,$41,$4C,$53,$FC,$1F,$07,$45,$41,$43,$48
+	dc.b $20,$49,$4E,$FC,$1E,$08,$53,$45,$51,$55,$45,$4E,$43,$45,$FF,$FC
+	dc.b $1E,$04,$55,$53,$49,$4E,$47,$20,$54,$48,$45,$FC,$1E,$05,$4D,$4F
+	dc.b $4F,$4E,$20,$57,$49,$4C,$4C,$FC,$1E,$06,$4F,$50,$45,$4E,$20,$54
+	dc.b $48,$45,$FC,$20,$07,$54,$4F,$4D,$42,$FF,$FC,$1F,$04,$44,$52,$41
+	dc.b $47,$4F,$4E,$FC,$1E,$05,$54,$4F,$20,$43,$48,$41,$4F,$53,$FC,$1E
+	dc.b $06,$41,$4E,$44,$20,$54,$48,$45,$4E,$FC,$1E,$07
+	dc.b "THE LAST",$FF	; string
+	dc.b $FC,$20,$04,$57,$49,$54,$48,$FC,$1F,$05,$53,$45,$52,$50,$45,$4E
+	dc.b $54,$FC,$20,$06,$52,$41,$47,$45,$FC,$1F,$07,$45,$4E,$54,$45,$52
+	dc.b $FC,$1E,$08,$54,$48,$45,$20,$43,$41,$47,$45,$FF,$FC,$1E,$04,$47
+	dc.b $4F,$44,$53,$20,$4D,$41,$59,$FC,$1E,$05,$4B,$49,$4C,$4C,$20,$41
+	dc.b $4E,$44,$FC,$1E,$06,$4D,$4F,$52,$54,$41,$4C,$53,$FC,$1E,$07
+	dc.b "MAY FEAR",$FF	; string
+	dc.b $FC,$1F,$03,$20,$54,$48,$45,$FC,$1E,$04,$43,$52,$59,$53,$54,$41
+	dc.b $4C,$FC,$1E,$05,$4F,$46,$20,$43,$48,$41,$4F,$53,$FC,$1E,$06,$53
+	dc.b $48,$41,$4C,$4C,$FC,$1E,$07,$53,$55,$4D,$4D,$4F,$4E,$FC,$1E,$08
+	dc.b $49,$54,$20,$4E,$45,$41,$52,$FF,$FC,$1F,$04,$42,$45,$57,$41,$52
+	dc.b $45,$FC,$20,$05,$54,$48,$45,$FC,$1F,$06,$4C,$45,$47,$49,$4F,$4E
+	dc.b $FC,$1F,$07,$4F,$46,$20,$54,$48,$45,$FC,$1F,$08,$55,$4E,$44,$45
+	dc.b $41,$44,$FF,$FC,$1E,$03,$54,$48,$59,$20,$51,$55,$45,$53,$54,$FC
+	dc.b $1E,$04,$48,$41,$53,$20,$43,$4F,$4D,$45,$FC,$1E,$05,$54,$4F,$20
+	dc.b $41,$4E,$20,$45,$4E,$44,$FC,$21,$06,$2D,$2D,$FC,$1E,$07,$42,$4C
+	dc.b $4F,$4F,$44,$57,$59,$43,$48,$FC,$21,$08,$49,$53,$FC,$1E,$09,$52
+	dc.b $45,$53,$54,$4F,$52,$45,$44,$FF
 loc_0_0001B050:
 	dc.b $00,$0F,$00,$0F,$00,$0F,$00,$0F,$F7,$FF,$00,$0F,$00,$0F,$00,$0F
 	dc.b $D7,$3F,$20,$CF,$00,$0F,$00,$0F,$00,$0F,$00,$0F,$00,$0F,$00,$0F
