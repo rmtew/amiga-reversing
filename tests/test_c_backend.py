@@ -3729,6 +3729,13 @@ def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
     )
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "\tmovea.l loc_0_00000004.l,a6\n" not in source_text
+    assert source_text.count("\tmovea.l $00000004.l,a6\n") == 2
+    assert "\tlea.l loc_0_00000004.l,a1\n" in source_text
+    assert "\tjmp loc_0_00000004.l\n" in source_text
+    assert "\tclr.l spr+sd_dataa+$08(a6)\n" in source_text
+    assert "\tclr.l app_014C(a6)\n" not in source_text
+    assert "app_014C" not in source_text.split("    SECTION section_0,code\n", 1)[0]
     assert "\tmove.l d0,loc_0_0000004E.l\n" in source_text
     assert "\tmove.l d0,loc_0_00000052.l\n" in source_text
     assert "\tmove.l loc_0_0000004E.l,d1\n" in source_text

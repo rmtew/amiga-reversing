@@ -8,6 +8,7 @@
 #include "m68k_object.h"
 #include "m68k_plain_parse.h"
 #include "m68k_render_ir.h"
+#include "m68k_render_lookup_internal.h"
 #include "m68k_simulator.h"
 #include "m68k_source_model.h"
 #include "m68k_source_pipeline.h"
@@ -3717,6 +3718,55 @@ static int test_facts_v2_runtime_mapped_word_dispatch_renders_lookup_table(void)
   return 0;
 }
 
+static int test_facts_v2_amiga_execbase_load_does_not_use_runtime_alias(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[26] = {
+    0x2cu, 0x79u, 0x00u, 0x00u, 0x00u, 0x04u,
+    0x41u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x18u,
+    0x43u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x04u,
+    0x4eu, 0xf9u, 0x00u, 0x00u, 0x00u, 0x04u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0x18U;
+  policy.runtime_ranges[0].size = 2U;
+  policy.runtime_ranges[0].runtime_address = 4U;
+  policy.runtime_entry_point_count = 1U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 4U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l $00000004.l,a6\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l loc_0_00000004.l,a6\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000004.l,a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp loc_0_00000004.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000018:\n    ORG $4\nloc_0_00000004:\n\trts\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_word_dispatch_renders_bounded_unaccepted_lookup_table(void) {
   M68kObject object;
   M68kSection section;
@@ -5283,6 +5333,7 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
 }
 
 static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata(void) {
+  char symbol_expr[64];
   const AmigaOsHardwareRegisterInfo *cop1lc =
     amiga_os_find_hardware_register_by_cpu_address(0x00DFF080U);
   const AmigaOsHardwareRegisterInfo *intena =
@@ -5303,6 +5354,10 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
     amiga_os_find_hardware_register_field_by_cpu_address(0x00DFF0A4U);
   const AmigaOsHardwareRegisterFieldInfo *aud0_len_by_base =
     amiga_os_find_hardware_register_field_by_base_offset("_custom", 0x00A4U);
+  const AmigaOsHardwareRegisterFieldInfo *spr1_dataa =
+    amiga_os_find_hardware_register_field_by_base_offset("_custom", 0x014CU);
+  const AmigaOsHardwareRegisterRangeInfo *spr_range =
+    amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x014CU);
   const AmigaOsHardwareRegisterRangeInfo *bplpt_tail =
     amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x00E2U);
   const AmigaOsHardwareRegisterRangeInfo *bplpt_past_end =
@@ -5325,12 +5380,20 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
   M68K_C_ASSERT(aud0_len_by_base == aud0_len);
   M68K_C_ASSERT_STR("aud0", aud0_len->register_symbol);
   M68K_C_ASSERT_STR("ac_len", aud0_len->field_symbol);
+  M68K_C_ASSERT(spr1_dataa != NULL);
+  M68K_C_ASSERT_STR("spr", spr1_dataa->register_symbol);
+  M68K_C_ASSERT_STR("sd_dataa", spr1_dataa->field_symbol);
+  M68K_C_ASSERT(format_amiga_hardware_register_field_symbol(spr1_dataa, 0, symbol_expr, sizeof(symbol_expr)));
+  M68K_C_ASSERT_STR("spr+sd_dataa+$08", symbol_expr);
+  M68K_C_ASSERT(spr_range != NULL);
+  M68K_C_ASSERT_STR("spr", spr_range->symbol_name);
   M68K_C_ASSERT(bplpt_tail != NULL);
   M68K_C_ASSERT(sprpt_tail != NULL);
   M68K_C_ASSERT_STR("bplpt", bplpt_tail->symbol_name);
   M68K_C_ASSERT_STR("sprpt", sprpt_tail->symbol_name);
   M68K_C_ASSERT(bplpt_past_end == NULL);
-  M68K_C_ASSERT(sprpt_past_end == NULL);
+  M68K_C_ASSERT(sprpt_past_end != NULL);
+  M68K_C_ASSERT_STR("spr", sprpt_past_end->symbol_name);
   M68K_C_ASSERT(aud0_len_as_range == NULL);
   M68K_C_ASSERT_STR("copper_list", cop1lc->runtime_target_role);
   M68K_C_ASSERT_STR("disk_buffer", dskpt->runtime_target_role);
@@ -11265,6 +11328,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_traced_indirect_jump_promotes_word_relative_table_targets},
     {"facts_v2_runtime_mapped_word_dispatch_renders_lookup_table",
       test_facts_v2_runtime_mapped_word_dispatch_renders_lookup_table},
+    {"facts_v2_amiga_execbase_load_does_not_use_runtime_alias",
+      test_facts_v2_amiga_execbase_load_does_not_use_runtime_alias},
     {"facts_v2_word_dispatch_renders_bounded_unaccepted_lookup_table",
       test_facts_v2_word_dispatch_renders_bounded_unaccepted_lookup_table},
     {"facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage",

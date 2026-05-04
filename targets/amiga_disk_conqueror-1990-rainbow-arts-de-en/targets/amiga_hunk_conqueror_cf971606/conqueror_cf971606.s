@@ -3,23 +3,13 @@
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"
 
-    RSSET 0
-    RS.B 150
-app_0096 RS.L 1
-app_009A RS.L 1
-    RS.B 166
-app_0144 RS.L 1
-    RS.B 4
-app_014C RS.L 1
-app_SIZEOF EQU __RS
-
 _ciaa	EQU	$BFE001
 _custom	EQU	$DFF000
 _ciab	EQU	$BFD000
 
     SECTION section_0,code
 loc_0_00000000:
-	movea.l loc_0_00000004.l,a6
+	movea.l $00000004.l,a6
 	lea.l loc_0_0000005A(pc),a1
 	jsr _LVOOldOpenLibrary(a6)
 	move.l d0,h0dl_DOSBase.l
@@ -57,14 +47,14 @@ loc_0_00000066:
 	dc.b $74,$61,$72,$74,$20,$43,$4F,$4E,$51,$55,$45,$52,$4F,$52,$20,$21
 	dc.b $20
 loc_0_000000C8:
-	movea.l loc_0_00000004.l,a6
+	movea.l $00000004.l,a6
 	jsr _LVOSuperState(a6)
 	lea.l _custom.l,a6
 	move.w #$7FFF,d0
 	move.w d0,intena(a6)
 	move.w d0,dmacon(a6)
 	clr.l spr+sd_dataa(a6)
-	clr.l app_014C(a6)
+	clr.l spr+sd_dataa+$08(a6)
 	lea.l loc_0_00000040.l,a7
 	bset.b #CIAB_DSKMOTOR,_ciab+ciaprb.l
 	bclr.b #CIAB_DSKSEL0,_ciab+ciaprb.l

@@ -53,6 +53,10 @@ CUSTOM_HARDWARE_REGISTER_FIELD_GROUPS: tuple[tuple[tuple[str, ...], tuple[str, .
     (("spr",), ("sd_pos", "sd_ctl", "sd_dataa", "sd_dataB")),
 )
 
+CUSTOM_HARDWARE_REPEATED_FIELD_RANGES: tuple[tuple[str, str], ...] = (
+    ("spr", "sd_SIZEOF"),
+)
+
 HARDWARE_CLEAR_ALL_CONSTANT_ROWS: tuple[tuple[str, int, str | None], ...] = (
     ("ADKF_CLRALL", 0x7FFF, None),
     ("DMAF_CLRALL", 0x7FFF, None),
@@ -1007,6 +1011,7 @@ def hardware_register_field_rows(
         symbol_name: (base_symbol, base_address, offset, include_path)
         for base_symbol, base_address, offset, symbol_name, include_path, _, _, _, _ in hardware_rows
     }
+    hardware_start_offsets = sorted({row[2] for row in hardware_rows})
     rows: list[tuple[str, int, int, str, int, str, str]] = []
     for register_symbols, field_symbols in CUSTOM_HARDWARE_REGISTER_FIELD_GROUPS:
         for register_symbol in register_symbols:
@@ -1024,17 +1029,50 @@ def hardware_register_field_rows(
                 include_path = field_include_path or register_include_path
                 rows.append((base_symbol, base_address, register_offset, register_symbol, field_offset,
                              field_symbol, include_path))
+            size_symbol = next((size for symbol, size in CUSTOM_HARDWARE_REPEATED_FIELD_RANGES
+                                if symbol == register_symbol), None)
+            size_value = constant_values.get(size_symbol) if size_symbol is not None else None
+            next_hardware_offset = next((candidate for candidate in hardware_start_offsets
+                                         if candidate > register_offset), None)
+            if size_value is None or next_hardware_offset is None:
+                continue
+            stride, _ = size_value
+            if stride <= 0:
+                continue
+            repeated_offset = register_offset + stride
+            while repeated_offset < next_hardware_offset:
+                for field_symbol in field_symbols:
+                    field = constant_values.get(field_symbol)
+                    if field is None:
+                        continue
+                    field_offset, field_include_path = field
+                    if field_offset < 0:
+                        continue
+                    include_path = field_include_path or register_include_path
+                    rows.append((base_symbol, base_address, repeated_offset, register_symbol, field_offset,
+                                 field_symbol, include_path))
+                repeated_offset += stride
     return sorted(set(rows), key=lambda row: (row[1], row[2] + row[4], row[2], row[3], row[4], row[5]))
 
 
 def hardware_register_range_rows(
     hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
     manual_payload: dict,
+    includes_payload: dict,
 ) -> list[tuple[str, int, int, int, str, str]]:
     manual_registers = manual_payload.get("registers", [])
     if not isinstance(manual_registers, list):
         return []
     rows: list[tuple[str, int, int, int, str, str]] = []
+    constants = includes_payload.get("constants", {})
+    constant_values: dict[str, int] = {}
+    if isinstance(constants, dict):
+        for symbol_name, info in constants.items():
+            if not isinstance(symbol_name, str) or not isinstance(info, dict):
+                continue
+            value = info.get("value")
+            if isinstance(value, int):
+                constant_values[symbol_name] = value
     manual_by_offset: dict[int, dict] = {}
     for item in manual_registers:
         if not isinstance(item, dict):
@@ -1068,6 +1106,13 @@ def hardware_register_range_rows(
         if len(numbered_offsets) >= 2 and min(numbered_offsets) == offset:
             size = max(numbered_offsets) + 2 - offset
             if size > 0:
+                rows.append((base_symbol, base_address, offset, size, symbol_name, include_path))
+        repeated_size_symbol = next((size for symbol, size in CUSTOM_HARDWARE_REPEATED_FIELD_RANGES
+                                     if symbol == symbol_name), None)
+        repeated_stride = constant_values.get(repeated_size_symbol) if repeated_size_symbol is not None else None
+        if repeated_stride is not None and repeated_stride > 0 and next_hardware_offset is not None:
+            size = next_hardware_offset - offset
+            if size > repeated_stride:
                 rows.append((base_symbol, base_address, offset, size, symbol_name, include_path))
         if not bool(manual_by_offset.get(offset, {}).get("pointer_pair")):
             continue
@@ -3182,7 +3227,7 @@ def main() -> None:
     include_min_versions_data = include_min_version_rows(includes_payload)
     hardware_rows = hardware_register_rows(hardware_payload, merged_domains, hardware_registers_payload)
     hardware_field_rows = hardware_register_field_rows(hardware_rows, includes_payload)
-    hardware_range_rows = hardware_register_range_rows(hardware_rows, hardware_registers_payload)
+    hardware_range_rows = hardware_register_range_rows(hardware_rows, hardware_registers_payload, includes_payload)
     rows = library_rows(includes_payload, other_payload)
     field_rows = struct_field_rows(includes_payload,
                                    referenced_struct_names(rows, includes_payload, other_payload,

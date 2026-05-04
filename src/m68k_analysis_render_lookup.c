@@ -7875,6 +7875,7 @@ uint8_t app_slot_access_kind_from_instruction(const M68kInstructionIR *instructi
 int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uint8_t base_reg,
     int16_t displacement) {
   if (state == NULL || base_reg >= 8U) return 0;
+  if (state->address_hardware_base_known[base_reg]) return 0;
   if (state->address_app_base_known[base_reg]) return 1;
   if (state->address_base_known[base_reg])
     return library_base_can_use_app_extension_slot(state->address_base_library[base_reg], displacement);

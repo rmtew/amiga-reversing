@@ -2690,8 +2690,35 @@ static int attach_m68k_cpu_vector_symbols(M68kInstructionIR *instruction) {
   return attached;
 }
 
+static int amiga_hardware_register_field_instance_delta(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
+    uint32_t *out_delta) {
+  size_t index;
+  uint32_t canonical_offset = UINT32_MAX;
+  if (out_delta != NULL) *out_delta = 0U;
+  if (hardware_field == NULL || hardware_field->base_symbol == NULL ||
+      hardware_field->register_symbol == NULL || out_delta == NULL) {
+    return 0;
+  }
+  for (index = 0U;; ++index) {
+    const AmigaOsHardwareRegisterInfo *register_info = amiga_os_hardware_register_at(index);
+    if (register_info == NULL) break;
+    if (register_info->base_symbol == NULL || register_info->symbol_name == NULL) continue;
+    if (strcmp(register_info->base_symbol, hardware_field->base_symbol) != 0 ||
+        strcmp(register_info->symbol_name, hardware_field->register_symbol) != 0) {
+      continue;
+    }
+    if (canonical_offset == UINT32_MAX || register_info->offset < canonical_offset)
+      canonical_offset = register_info->offset;
+  }
+  if (canonical_offset == UINT32_MAX || hardware_field->register_offset < canonical_offset) return 0;
+  *out_delta = hardware_field->register_offset - canonical_offset;
+  return 1;
+}
+
 int format_amiga_hardware_register_field_symbol(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
     int include_hardware_base, char *buf, size_t buf_size) {
+  uint32_t instance_delta = 0U;
+  char delta_text[16];
   int written;
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
@@ -2699,10 +2726,23 @@ int format_amiga_hardware_register_field_symbol(const AmigaOsHardwareRegisterFie
       hardware_field->register_symbol[0] == '\0' || hardware_field->field_symbol[0] == '\0') {
     return 0;
   }
+  if (!amiga_hardware_register_field_instance_delta(hardware_field, &instance_delta)) instance_delta = 0U;
+  snprintf(delta_text, sizeof(delta_text), instance_delta < 0x100U ? "$%02X" : "$%X",
+    (unsigned)instance_delta);
   if (include_hardware_base) {
     if (hardware_field->base_symbol == NULL || hardware_field->base_symbol[0] == '\0') return 0;
+    if (instance_delta != 0U) {
+      written = snprintf(buf, buf_size, "%s+%s+%s+%s", hardware_field->base_symbol,
+        hardware_field->register_symbol, hardware_field->field_symbol, delta_text);
+      return written > 0 && (size_t)written < buf_size;
+    }
     written = snprintf(buf, buf_size, "%s+%s+%s", hardware_field->base_symbol, hardware_field->register_symbol,
       hardware_field->field_symbol);
+    return written > 0 && (size_t)written < buf_size;
+  }
+  if (instance_delta != 0U) {
+    written = snprintf(buf, buf_size, "%s+%s+%s", hardware_field->register_symbol, hardware_field->field_symbol,
+      delta_text);
     return written > 0 && (size_t)written < buf_size;
   }
   written = snprintf(buf, buf_size, "%s+%s", hardware_field->register_symbol, hardware_field->field_symbol);
@@ -3140,6 +3180,7 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     int32_t field_offset = 0;
     if (operand->symbol_ref.has_name != 0U) continue;
     if (!operand_is_address_displacement_local(operand, &base_reg, &displacement)) continue;
+    if (state->address_hardware_base_known[base_reg]) continue;
     if (state->address_app_base_known[base_reg]) {
       if (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),
           field_expr, sizeof(field_expr), &field_offset) &&
@@ -5704,6 +5745,20 @@ static int attach_platform_pc_relative_synthetic_symbols(const M68kRenderLookup 
   return 0;
 }
 
+static int amiga_abs_exec_base_load_should_stay_absolute(const M68kRenderLookup *lookup,
+    const M68kInstructionIR *instruction, size_t operand_index, const M68kOperandIR *operand,
+    const M68kFact *fact) {
+  uint32_t absolute = 0U;
+  if (lookup == NULL || lookup->object == NULL || instruction == NULL || operand == NULL || fact == NULL) return 0;
+  if (lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
+  if (fact->runtime_address != 4U || operand_index != 0U || instruction->operand_count < 2U) return 0;
+  if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE &&
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEA) {
+    return 0;
+  }
+  return operand_absolute_offset_local(operand, &absolute) && absolute == 4U;
+}
+
 static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     size_t section_index,
     const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
@@ -5733,6 +5788,10 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
     }
     if (!lookup_source_has_materialized_runtime_address(lookup, fact->target_section_index, fact->target_offset,
         fact->runtime_address)) {
+      record_numeric_runtime_ref(preview, fact);
+      continue;
+    }
+    if (amiga_abs_exec_base_load_should_stay_absolute(lookup, instruction, operand_index, operand, fact)) {
       record_numeric_runtime_ref(preview, fact);
       continue;
     }
