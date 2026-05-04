@@ -1240,6 +1240,28 @@ static void render_asm_dc_l_values(M68kRenderIRPreview *preview, const uint8_t *
   if (cursor < size) render_asm_dc_b(preview, data, offset + cursor, size - cursor, comment);
 }
 
+static int render_asm_pointer_table_raw_long(M68kRenderIRPreview *preview, const M68kDecodeSectionIR *section,
+    const M68kRenderLookup *lookup, uint32_t offset, const char *comment) {
+  char line[256];
+  char name[64];
+  uint32_t target;
+  if (preview == NULL || section == NULL || lookup == NULL || section->data == NULL ||
+      offset > section->size || section->size - offset < 4U) {
+    return 0;
+  }
+  target = m68k_read_u32be(section->data + offset);
+  if (target == 0U || target >= section->size) return 0;
+  if (!lookup_has_renderable_label(lookup, section->section_index, target)) return 0;
+  (void)format_rendered_asm_label_with_generation(lookup, name, sizeof(name), section->section_index, target);
+  if (comment != NULL && comment[0] != '\0')
+    snprintf(line, sizeof(line), "\tdc.l %s\t; %s\n", name, comment);
+  else
+    snprintf(line, sizeof(line), "\tdc.l %s\n", name);
+  hash_asm_text(preview, line);
+  ++preview->asm_source_lines;
+  return 1;
+}
+
 static void render_asm_dc_symbol_expr(M68kRenderIRPreview *preview, uint32_t size, const char *expr,
     const char *comment) {
   const char *directive = size == 4U ? "dc.l" : size == 2U ? "dc.w" : "dc.b";
@@ -1652,6 +1674,9 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
       const M68kFact *relocation = lookup_relocation_at(lookup, section->section_index, item->offset + cursor);
       if (relocation != NULL && relocation->size == 4U) {
         render_asm_relocation_expr(preview, lookup, relocation);
+      } else if (render_asm_pointer_table_raw_long(preview, section, lookup, item->offset + cursor,
+          cursor == 0U ? comment_text : NULL)) {
+        ;
       } else {
         render_asm_dc_l_values(preview, section->data, item->offset + cursor, 4U,
           cursor == 0U ? comment_text : NULL);

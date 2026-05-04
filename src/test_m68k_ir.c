@@ -1061,6 +1061,65 @@ static int test_facts_v2_pc_index_data_target_auto_classifies_lookup_span(void) 
   return 0;
 }
 
+static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) {
+  AsmSourceFile parsed_source;
+  M68kObject object;
+  M68kDiagList diagnostics;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  char *source = NULL;
+  uint16_t index;
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "start:\n"
+    "\tbsr.s target0\n"
+    "\tbsr.s target1\n"
+    "\tlea.l table.l,a0\n"
+    "\tmove.l $0(a0,d0.w),d1\n"
+    "\trts\n"
+    "target0:\n"
+    "\trts\n"
+    "target1:\n"
+    "\trts\n"
+    "table:\n"
+    "\tdc.l $00000010,$00000012\n"
+    "after:\n"
+    "\trts\n";
+  memset(&parsed_source, 0, sizeof(parsed_source));
+  memset(&object, 0, sizeof(object));
+  m68k_diag_list_reset(&diagnostics);
+  parsed_source.target_cpu = M68K_ASM_CPU_68000;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&parsed_source, source_text,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(1, m68k_source_pipeline_emit_object(&parsed_source, &object, m68k_diag_sink(&diagnostics)));
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l $0(a0,d0.w),d1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_00000010\t; pointer_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_00000012\n") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && strcmp(item->semantic_role, "pointer_table") == 0) {
+      auto_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32(8U, auto_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_LONGS, auto_item->kind);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  m68k_source_model_free(&parsed_source);
+  return 0;
+}
+
 static int test_decode_ir_keeps_odd_branch_target_for_analysis(void) {
   M68kObject object;
   M68kSection section;
@@ -9360,6 +9419,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_pc_index_data_target_auto_classifies_lookup_scalar},
     {"facts_v2_pc_index_data_target_auto_classifies_lookup_span",
       test_facts_v2_pc_index_data_target_auto_classifies_lookup_span},
+    {"facts_v2_indexed_local_base_auto_classifies_pointer_table",
+      test_facts_v2_indexed_local_base_auto_classifies_pointer_table},
     {"decode_ir_keeps_odd_branch_target_for_analysis", test_decode_ir_keeps_odd_branch_target_for_analysis},
     {"fact_ir_label_creation_dedupes", test_fact_ir_label_creation_dedupes},
     {"facts_v2_profile_collects_decode_and_label_facts", test_facts_v2_profile_collects_decode_and_label_facts},
