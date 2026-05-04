@@ -8651,9 +8651,9 @@ loc_0_00008E30:
 	dc.w sprpt+$1A,$0000
 	dc.w sprpt+$1C,$0000	; sprite pointer 7 disabled
 	dc.w sprpt+$1E,$0000
-	dc.w COPPER_WAIT|$9800,$FF00
+	dc.w COPPER_WAIT|$9800,$FF00	; copper wait v=$98 h=$00 mask $FF00
 	dc.w intreq,INTF_SETCLR|INTF_COPER
-	dc.w COPPER_WAIT|$FF00,$FF00
+	dc.w COPPER_WAIT|$FF00,$FF00	; copper wait v=$FF h=$00 mask $FF00
 	dc.w intreq,INTF_SETCLR|INTF_COPER
 	dc.w $FFFF,$FFFE
 loc_0_00008E84:

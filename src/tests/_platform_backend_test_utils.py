@@ -397,12 +397,10 @@ def reconstruct_corpus_file_bytes(entry: dict[str, object]) -> bytes:
 def _find_corpus_file_entry_cached(display_name: str, in_image_path: str) -> dict[str, object]:
     for entry in load_file_manifest():
         origin = entry["origin"]
-        if (
-            entry["platform"] == "amiga-hunk"
-            and origin["display_name"] == display_name
-            and origin["in_image_path"] == in_image_path
-            and entry["expect"]["status"] == "ok"
-        ):
+        origins = [origin, *origin.get("alternate_origins", [])]
+        if entry["platform"] != "amiga-hunk" or entry["expect"]["status"] != "ok":
+            continue
+        if any(item["display_name"] == display_name and item["in_image_path"] == in_image_path for item in origins):
             return entry
     raise AssertionError(f"Missing amiga-hunk corpus entry: {display_name} :: {in_image_path}")
 

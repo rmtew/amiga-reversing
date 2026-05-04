@@ -8160,7 +8160,8 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
   M68K_C_ASSERT(strstr(source, "\tdc.w sprpt,$0000\t; sprite pointer 0 disabled\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w sprpt+$1E,$0000\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w intreq,INTF_SETCLR|INTF_COPER\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.w COPPER_WAIT|$2C06,$FFFE\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tdc.w COPPER_WAIT|$2C06,$FFFE\t; copper wait v=$2C h=$06 mask $FFFE\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w $FFFF,$FFFE\n") != NULL);
   M68K_C_ASSERT(strstr(source, "; copper_list") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);

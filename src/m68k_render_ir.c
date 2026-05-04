@@ -1534,6 +1534,15 @@ static int format_copper_display_register_comment(uint16_t first, uint16_t secon
   return format_amiga_display_register_comment(hardware_register, (uint32_t)second, buf, buf_size);
 }
 
+static int format_copper_wait_comment(uint16_t first, uint16_t second, char *buf, size_t buf_size) {
+  uint32_t wait_word = (uint32_t)(first & 0xFFFEU);
+  if (buf == NULL || buf_size == 0U || (first & 1U) == 0U || (second & 1U) != 0U) return 0;
+  buf[0] = '\0';
+  snprintf(buf, buf_size, "copper wait v=$%02X h=$%02X mask $%04X",
+    (unsigned)((wait_word >> 8) & 0xFFU), (unsigned)(wait_word & 0xFEU), (unsigned)second);
+  return strlen(buf) + 1U < buf_size;
+}
+
 static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *data, uint32_t offset, uint32_t size,
     const char *comment, uint32_t *io_logical_pc) {
@@ -1547,6 +1556,7 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
     uint16_t first = m68k_read_u16be(data + offset + cursor);
     uint16_t second = m68k_read_u16be(data + offset + cursor + 2U);
     int copper_move = 0;
+    int copper_wait = 0;
     if (cursor != 0U && lookup_has_renderable_label(lookup, section->section_index, offset + cursor)) {
       render_asm_label(preview, lookup, section->section_index, offset + cursor, io_logical_pc);
     }
@@ -1559,6 +1569,7 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
         record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, offset + cursor, 0U);
         return;
       }
+      copper_wait = 1;
     } else if (!format_copper_register_symbol(first, left, sizeof(left))) {
       snprintf(left, sizeof(left), "$%04X", (unsigned)first);
     } else if (!render_asm_include_for_symbol_expr(preview, left)) {
@@ -1576,7 +1587,9 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
       return;
     }
     row_comment[0] = '\0';
-    if (copper_move &&
+    if (copper_wait) {
+      (void)format_copper_wait_comment(first, second, row_comment, sizeof(row_comment));
+    } else if (copper_move &&
         !format_copper_display_register_comment(first, second, row_comment, sizeof(row_comment)))
       (void)format_copper_runtime_pointer_comment(data, offset, cursor, size, first, second,
         row_comment, sizeof(row_comment));

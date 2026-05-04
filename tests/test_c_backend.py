@@ -2496,7 +2496,10 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
     assert copper_rows[0x14].text.strip() == "dc.w bplpt+$02,$5678"
     assert copper_rows[0x18].text.strip() == "dc.w sprpt+$1E,$0000"
     assert copper_rows[0x1C].text.strip() == "dc.w intreq,INTF_SETCLR|INTF_COPER"
-    assert copper_rows[0x20].text.strip() == "dc.w COPPER_WAIT|$2C06,$FFFE"
+    assert (
+        copper_rows[0x20].text.strip()
+        == "dc.w COPPER_WAIT|$2C06,$FFFE\t; copper wait v=$2C h=$06 mask $FFFE"
+    )
     assert copper_rows[0x24].text.strip() == "dc.w $FFFF,$FFFE"
 
     analysis = json.loads(
@@ -3472,7 +3475,8 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "\tdc.w bplpt+$0C,$0007\t; bitmap pointer $00076000\n" in source_text
     assert "loc_0_00008E30:\n\tdc.w sprpt,$0000\t; sprite pointer 0 disabled\n" in source_text
     assert "\tdc.w sprpt+$1E,$0000\n" in source_text
-    assert "\tdc.w COPPER_WAIT|$9800,$FF00\n" in source_text
+    assert "\tdc.w COPPER_WAIT|$9800,$FF00\t; copper wait v=$98 h=$00 mask $FF00\n" in source_text
+    assert "\tdc.w COPPER_WAIT|$FF00,$FF00\t; copper wait v=$FF h=$00 mask $FF00\n" in source_text
     assert "\tdc.w intreq,INTF_SETCLR|INTF_COPER\n" in source_text
     assert "m68k_vector_level_3_interrupt_autovector\tEQU\t$6C" in source_text
     assert "\tmove.l #loc_0_00008C20,m68k_vector_level_3_interrupt_autovector.w\n" in source_text
