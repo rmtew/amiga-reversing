@@ -17,7 +17,9 @@ void platform_facts_v2_resolved_call_init(PlatformFactsV2ResolvedCall *info) {
 }
 
 static int amiga_is_callback_vector_slot(uint32_t address) {
-  return m68k_cpu_exception_vector_address_has_kind(address, M68K_CPU_VECTOR_KIND_INTERRUPT);
+  return m68k_cpu_exception_vector_address_has_kind(address, M68K_CPU_VECTOR_KIND_EXCEPTION) ||
+    m68k_cpu_exception_vector_address_has_kind(address, M68K_CPU_VECTOR_KIND_INTERRUPT) ||
+    m68k_cpu_exception_vector_address_has_kind(address, M68K_CPU_VECTOR_KIND_TRAP);
 }
 
 static int facts_v2_accepted_start_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,

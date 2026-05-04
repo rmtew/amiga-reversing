@@ -1,3 +1,12 @@
+    INCLUDE "devices/timer.i"
+    INCLUDE "devices/timer_lib.i"
+    INCLUDE "dos/dos.i"
+    INCLUDE "dos/dos_lib.i"
+    INCLUDE "exec/exec_lib.i"
+    INCLUDE "exec/io.i"
+    INCLUDE "exec/libraries.i"
+    INCLUDE "exec/memory.i"
+
     RSSET 0
     RS.B 254
 app_00FE RS.L 1
@@ -237,14 +246,6 @@ app_TimerBase EQU $10CC
 app_10E8 RS.L 1
 app_SIZEOF EQU __RS
 
-    INCLUDE "exec/io.i"
-    INCLUDE "exec/memory.i"
-    INCLUDE "dos/dos_lib.i"
-    INCLUDE "exec/exec_lib.i"
-    INCLUDE "exec/libraries.i"
-    INCLUDE "devices/timer_lib.i"
-    INCLUDE "dos/dos.i"
-    INCLUDE "devices/timer.i"
 
     SECTION section,code
 loc_0_00000000:

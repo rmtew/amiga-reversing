@@ -178,9 +178,14 @@ static int asm_source_line_is_equate(const char *line, size_t length) {
       line[index + 3U] == '\r' || line[index + 3U] == '\n');
 }
 
-static int asm_source_line_is_hoistable_header_directive(const char *line, size_t length) {
-  return asm_source_line_starts_with(line, length, "    INCLUDE \"") ||
-    asm_source_line_is_equate(line, length);
+static int asm_source_line_is_include(const char *line, size_t length) {
+  return asm_source_line_starts_with(line, length, "    INCLUDE \"");
+}
+
+static int compare_asm_source_include_lines(const void *left, const void *right) {
+  const char *const *left_line = (const char *const *)left;
+  const char *const *right_line = (const char *const *)right;
+  return strcmp(*left_line, *right_line);
 }
 
 static int append_source_bytes(char *dest, size_t capacity, size_t *used, const char *source, size_t length) {
@@ -208,9 +213,12 @@ static void recompute_asm_source_text_metrics(M68kRenderIRPreview *preview) {
 
 static int hoist_asm_source_header_directives(M68kRenderIRPreview *preview) {
   const char *text, *cursor, *first_section = NULL;
-  char *hoisted = NULL, *rewritten = NULL;
-  size_t length, hoisted_used = 0U, rewritten_used = 0U;
+  char *equates = NULL, *prefix = NULL, *body = NULL, *rewritten = NULL;
+  char *include_lines[M68K_RENDER_ASM_INCLUDE_LIMIT];
+  size_t include_count = 0U;
+  size_t length, equates_used = 0U, prefix_used = 0U, body_used = 0U, rewritten_used = 0U;
   int result = 0;
+  memset(include_lines, 0, sizeof(include_lines));
   if (preview == NULL || preview->asm_source_text == NULL) return 1;
   text = preview->asm_source_text;
   length = strlen(text);
@@ -226,47 +234,65 @@ static int hoist_asm_source_header_directives(M68kRenderIRPreview *preview) {
     cursor = line + line_length;
   }
   if (first_section == NULL) return 1;
-  hoisted = (char *)malloc(length + 1U);
-  rewritten = (char *)malloc(length + 2U);
-  if (hoisted == NULL || rewritten == NULL) goto cleanup;
-  cursor = first_section;
+  equates = (char *)malloc(length + 1U);
+  prefix = (char *)malloc(length + 1U);
+  body = (char *)malloc(length + 1U);
+  rewritten = (char *)malloc(length + 4U);
+  if (equates == NULL || prefix == NULL || body == NULL || rewritten == NULL) goto cleanup;
+  cursor = text;
   while (*cursor != '\0') {
     const char *line = cursor;
     const char *line_end = strchr(line, '\n');
     size_t line_length = line_end != NULL ? (size_t)(line_end - line + 1) : strlen(line);
-    if (asm_source_line_is_hoistable_header_directive(line, line_length)) {
-      if (!append_source_bytes(hoisted, length + 1U, &hoisted_used, line, line_length)) goto cleanup;
+    if (asm_source_line_is_include(line, line_length)) {
+      if (include_count >= M68K_RENDER_ASM_INCLUDE_LIMIT) goto cleanup;
+      include_lines[include_count] = (char *)malloc(line_length + 1U);
+      if (include_lines[include_count] == NULL) goto cleanup;
+      memcpy(include_lines[include_count], line, line_length);
+      include_lines[include_count][line_length] = '\0';
+      ++include_count;
+    } else if (line < first_section) {
+      if (!append_source_bytes(prefix, length + 1U, &prefix_used, line, line_length)) goto cleanup;
+    } else if (asm_source_line_is_equate(line, line_length)) {
+      if (!append_source_bytes(equates, length + 1U, &equates_used, line, line_length)) goto cleanup;
+    } else {
+      if (!append_source_bytes(body, length + 1U, &body_used, line, line_length)) goto cleanup;
     }
     cursor = line + line_length;
   }
-  if (hoisted_used == 0U) {
+  if (include_count == 0U && equates_used == 0U) {
     result = 1;
     goto cleanup;
   }
-  if (!append_source_bytes(rewritten, length + 2U, &rewritten_used, text, (size_t)(first_section - text)) ||
-      !append_source_bytes(rewritten, length + 2U, &rewritten_used, hoisted, hoisted_used) ||
-      !append_source_bytes(rewritten, length + 2U, &rewritten_used, "\n", 1U)) {
-    goto cleanup;
-  }
-  cursor = first_section;
-  while (*cursor != '\0') {
-    const char *line = cursor;
-    const char *line_end = strchr(line, '\n');
-    size_t line_length = line_end != NULL ? (size_t)(line_end - line + 1) : strlen(line);
-    if (!asm_source_line_is_hoistable_header_directive(line, line_length)) {
-      if (!append_source_bytes(rewritten, length + 2U, &rewritten_used, line, line_length)) goto cleanup;
+  qsort(include_lines, include_count, sizeof(include_lines[0]), compare_asm_source_include_lines);
+  {
+    size_t include_index;
+    for (include_index = 0U; include_index < include_count; ++include_index) {
+      if (!append_source_bytes(rewritten, length + 4U, &rewritten_used, include_lines[include_index],
+          strlen(include_lines[include_index]))) goto cleanup;
     }
-    cursor = line + line_length;
   }
+  if (include_count != 0U && !append_source_bytes(rewritten, length + 4U, &rewritten_used, "\n", 1U))
+    goto cleanup;
+  if (!append_source_bytes(rewritten, length + 4U, &rewritten_used, prefix, prefix_used) ||
+      !append_source_bytes(rewritten, length + 4U, &rewritten_used, equates, equates_used) ||
+      !append_source_bytes(rewritten, length + 4U, &rewritten_used, "\n", 1U) ||
+      !append_source_bytes(rewritten, length + 4U, &rewritten_used, body, body_used)) goto cleanup;
   rewritten[rewritten_used] = '\0';
   free(preview->asm_source_text);
   preview->asm_source_text = rewritten;
-  preview->asm_source_text_capacity = length + 2U;
+  preview->asm_source_text_capacity = length + 4U;
   rewritten = NULL;
   recompute_asm_source_text_metrics(preview);
   result = 1;
 cleanup:
-  free(hoisted);
+  {
+    size_t include_index;
+    for (include_index = 0U; include_index < include_count; ++include_index) free(include_lines[include_index]);
+  }
+  free(equates);
+  free(prefix);
+  free(body);
   free(rewritten);
   return result;
 }

@@ -1,3 +1,14 @@
+    INCLUDE "devices/console_lib.i"
+    INCLUDE "exec/exec_lib.i"
+    INCLUDE "exec/memory.i"
+    INCLUDE "exec/ports.i"
+    INCLUDE "graphics/gfxbase.i"
+    INCLUDE "graphics/graphics_lib.i"
+    INCLUDE "intuition/intuition.i"
+    INCLUDE "intuition/intuition_lib.i"
+    INCLUDE "intuition/screens.i"
+    INCLUDE "resources/disk.i"
+
     RSSET 0
     RS.B 8
 app_0008 RS.L 1
@@ -173,16 +184,6 @@ app_0C6E EQU $0C6E
 app_0E08 RS.L 1
 app_SIZEOF EQU __RS
 
-    INCLUDE "exec/memory.i"
-    INCLUDE "exec/exec_lib.i"
-    INCLUDE "exec/ports.i"
-    INCLUDE "intuition/intuition_lib.i"
-    INCLUDE "graphics/gfxbase.i"
-    INCLUDE "intuition/screens.i"
-    INCLUDE "intuition/intuition.i"
-    INCLUDE "devices/console_lib.i"
-    INCLUDE "resources/disk.i"
-    INCLUDE "graphics/graphics_lib.i"
 
     SECTION section_0,code
 loc_0_00000000:

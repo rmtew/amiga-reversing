@@ -3001,6 +3001,44 @@ static int test_facts_v2_detects_interrupt_vector_store_target(void) {
   return 0;
 }
 
+static int test_facts_v2_detects_traced_register_interrupt_vector_store_target(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[24] = {
+    0x41u, 0xfau, 0x00u, 0x12u,
+    0x4eu, 0x71u,
+    0x23u, 0xc8u, 0x00u, 0x00u, 0x00u, 0x10u,
+    0x4eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0x71u, 0x4eu, 0x73u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l a0,m68k_vector_illegal_instruction.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000014:\n\tnop\n\trte\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000014:\n\tdc.b $4E,$71,$4E,$73") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_detects_interrupt_vector_fill_target(void) {
   M68kObject object;
   M68kSection section;
@@ -5631,10 +5669,12 @@ static int test_facts_v2_render_asm_source_renders_typed_app_slot_field_region(v
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   char *source = NULL;
-  uint8_t bytes[14] = {
+  const char *timer_include, *custom_include, *rsset_line, *app_sizeof_line, *intf_equ_line, *section_line;
+  uint8_t bytes[22] = {
     0x41u, 0xecu, 0x01u, 0x00u,
     0x4eu, 0xaeu, 0xffu, 0xbeu,
     0x20u, 0x2cu, 0x01u, 0x04u,
+    0x33u, 0xfcu, 0x7fu, 0xffu, 0x00u, 0xdfu, 0xf0u, 0x9au,
     0x4eu, 0x75u
   };
   memset(&section, 0, sizeof(section));
@@ -5668,12 +5708,29 @@ static int test_facts_v2_render_asm_source_renders_typed_app_slot_field_region(v
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "INCLUDE \"devices/timer.i\"\n") != NULL);
+  timer_include = strstr(source, "    INCLUDE \"devices/timer.i\"\n");
+  custom_include = strstr(source, "    INCLUDE \"hardware/custom.i\"\n");
+  rsset_line = strstr(source, "    RSSET ");
+  app_sizeof_line = strstr(source, "app_SIZEOF EQU __RS\n");
+  intf_equ_line = strstr(source, "INTF_CLRALL\tEQU\t$7FFF\n");
+  section_line = strstr(source, "    SECTION ");
+  M68K_C_ASSERT(timer_include != NULL);
+  M68K_C_ASSERT(custom_include != NULL);
+  M68K_C_ASSERT(rsset_line != NULL);
+  M68K_C_ASSERT(app_sizeof_line != NULL);
+  M68K_C_ASSERT(intf_equ_line != NULL);
+  M68K_C_ASSERT(section_line != NULL);
+  M68K_C_ASSERT(timer_include < custom_include);
+  M68K_C_ASSERT(custom_include < rsset_line);
+  M68K_C_ASSERT(rsset_line < app_sizeof_line);
+  M68K_C_ASSERT(app_sizeof_line < intf_equ_line);
+  M68K_C_ASSERT(intf_equ_line < section_line);
   M68K_C_ASSERT(strstr(source, "app_0100 RS.B 8\n") != NULL);
   M68K_C_ASSERT(strstr(source, "app_0104") == NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l app_0100(a4),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOGetSysTime(a6)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l app_0100+TV_MICRO(a4),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #INTF_CLRALL,_custom+intena.l\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
@@ -9891,6 +9948,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage},
     {"facts_v2_detects_interrupt_vector_store_target",
       test_facts_v2_detects_interrupt_vector_store_target},
+    {"facts_v2_detects_traced_register_interrupt_vector_store_target",
+      test_facts_v2_detects_traced_register_interrupt_vector_store_target},
     {"facts_v2_detects_interrupt_vector_fill_target",
       test_facts_v2_detects_interrupt_vector_fill_target},
     {"facts_v2_maps_copied_runtime_vector_target_to_source_offset",
