@@ -3898,6 +3898,7 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
         fact->reason != M68K_FACT_CODE_START_REASON_FALLTHROUGH &&
         fact->offset < lookup->block_start_extents[fact->section_index]) {
       lookup->block_starts[fact->section_index][fact->offset] = 1U;
+      if (render_lookup_add_code_start_ref(lookup, fact) != 0) goto oom;
     } else if (fact->kind == M68K_FACT_RELOCATION_REF &&
         fact->offset < lookup->relocation_extents[fact->section_index] && fact->size != 0U) {
       lookup->relocations[fact->section_index][fact->offset] = fact;

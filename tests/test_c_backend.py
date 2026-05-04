@@ -37,6 +37,7 @@ from amiga_reversing.disasm.c_backend import (
     validate_amiga_hunk_executable_with_c_backend,
 )
 from amiga_reversing.disasm.facts_v2_source_refusal import FactsV2SourceRefused
+from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.listing_types import (
     AppSlotRef,
     BlockRowContext,
@@ -74,6 +75,23 @@ def _amiga_hunk_section_hexes(path: Path) -> list[str]:
     )
     assert result.returncode == 0, result.stderr
     return [section["data_hex"] for section in json.loads(result.stdout)["sections"]]
+
+
+def _facts_v2_listing_analysis_for_project(target_name: str) -> dict[str, object]:
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    include_dir = PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"
+    with effective_metadata_file(paths.target_dir) as metadata_path:
+        combined_text = c_backend._platform_file_text(
+            "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
+            "amiga-hunk",
+            str(paths.binary_source.path),
+            str(metadata_path) if metadata_path is not None else "",
+            str(include_dir),
+            project_root=PROJECT_ROOT,
+        )
+    payload = json.loads(combined_text)
+    assert isinstance(payload, dict)
+    return payload
 
 
 def _make_cross_section_call_hunkexe(second_code: bytes, target_offset: int) -> bytes:
@@ -3468,6 +3486,19 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
         (0x74000, 0x2000, "bitmap"),
         (0x76000, 0x2000, "bitmap"),
     ]
+    combined = _facts_v2_listing_analysis_for_project("amiga_hunk_bloodwych")
+    section = combined["analysis"]["sections"][0]
+    sites_by_offset = {site["offset"]: site for site in section["recovered_indirect_sites"]}
+    assert sites_by_offset[0x79D8]["status"] == "jump_table"
+    assert sites_by_offset[0x79D8]["target_count"] == 9
+    assert sites_by_offset[0xA394]["status"] == "jump_table"
+    assert sites_by_offset[0xA394]["target_count"] == 5
+    refs_by_source = [
+        ref
+        for ref in section["code_start_refs"]
+        if ref["source_offset"] in {0x79D8, 0xA394}
+    ]
+    assert len(refs_by_source) == 14
 
 
 def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> None:

@@ -3931,7 +3931,8 @@ int render_lookup_add_code_start_ref(M68kRenderLookup *lookup, const M68kFact *f
   M68kRenderCodeStartRef *grown;
   size_t next_capacity;
   size_t index;
-  if (lookup == NULL || fact == NULL || fact->kind != M68K_FACT_CODE_ACCEPTED ||
+  if (lookup == NULL || fact == NULL ||
+      (fact->kind != M68K_FACT_CODE_ACCEPTED && fact->kind != M68K_FACT_CODE_START) ||
       fact->reason == M68K_FACT_CODE_START_REASON_FALLTHROUGH) {
     return 0;
   }
@@ -3942,6 +3943,7 @@ int render_lookup_add_code_start_ref(M68kRenderLookup *lookup, const M68kFact *f
         existing->reason == fact->reason && existing->source_section_index == fact->source_section_index &&
         existing->source_offset == fact->source_offset && existing->has_runtime_address == fact->has_runtime_address &&
         existing->runtime_address == fact->runtime_address) {
+      if (existing->size == 0U && fact->size != 0U) lookup->code_start_refs[index].fact = fact;
       return 0;
     }
   }

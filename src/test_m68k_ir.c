@@ -3160,12 +3160,14 @@ static int test_facts_v2_traced_indirect_jump_promotes_long_table_targets(void) 
   char *source = NULL;
   uint32_t saw_targets = 0U;
   size_t code_start_index;
-  uint8_t bytes[28] = {
+  uint8_t bytes[36] = {
     0x41u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x0cu,
     0x20u, 0x70u, 0x00u, 0x00u,
     0x4eu, 0xd0u,
-    0x00u, 0x00u, 0x00u, 0x14u,
-    0x00u, 0x00u, 0x00u, 0x18u,
+    0x00u, 0x00u, 0x00u, 0x1cu,
+    0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x20u,
+    0x4eu, 0x71u, 0x4eu, 0x71u,
     0x70u, 0x01u, 0x4eu, 0x75u,
     0x70u, 0x02u, 0x4eu, 0x75u
   };
@@ -3183,15 +3185,15 @@ static int test_facts_v2_traced_indirect_jump_promotes_long_table_targets(void) 
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjmp (a0)\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000014:\n\tmoveq.l #1,d0\n\trts\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000018:\n\tmoveq.l #2,d0\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000001C:\n\tmoveq.l #1,d0\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000020:\n\tmoveq.l #2,d0\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b $70,$01,$4E,$75") == NULL);
   for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
       ++code_start_index) {
     const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
     if (ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET && ref->source_offset == 0x0AU) {
-      if (ref->offset == 0x14U) saw_targets |= 1U;
-      if (ref->offset == 0x18U) saw_targets |= 2U;
+      if (ref->offset == 0x1CU) saw_targets |= 1U;
+      if (ref->offset == 0x20U) saw_targets |= 2U;
     }
   }
   M68K_C_ASSERT_U32(3U, saw_targets);

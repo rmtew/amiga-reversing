@@ -1932,6 +1932,7 @@ static uint32_t scan_long_control_target_table(const M68kDecodeSectionIR *sectio
     uint32_t target = m68k_read_u32be(section->data + cursor);
     uint32_t target_offset = 0U;
     if (accepted_range_has_code_byte_local(accepted_bytes, section->size, cursor, 4U)) break;
+    if (target == 0U) continue;
     if ((target & 1U) != 0U || !control_address_to_section_offset(runtime_addresses,
         section->section_index, section->size, target, &target_offset)) {
       break;
@@ -3295,6 +3296,152 @@ static int enqueue_immediate_indirect_target_set(M68kDecodeIR *decode, M68kFactI
   return 0;
 }
 
+static const M68kDecodeCandidate *find_accepted_candidate_ending_at(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint32_t end_offset) {
+  size_t candidate_index;
+  if (section == NULL || accepted_start == NULL) return NULL;
+  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+    if (candidate->offset > end_offset || candidate->byte_count > end_offset - candidate->offset) continue;
+    if (candidate->offset + candidate->byte_count == end_offset && accepted_start[candidate->offset])
+      return candidate;
+  }
+  return NULL;
+}
+
+static int candidate_indirect_control_address_register(const M68kDecodeCandidate *candidate, uint8_t *out_reg) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (out_reg != NULL) *out_reg = 0U;
+  if (candidate == NULL || out_reg == NULL || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0)
+    return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL ||
+      (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_JUMP)) {
+    return 0;
+  }
+  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
+       operand_index < instruction.operand_count; ++operand_index) {
+    const M68kAsmOperandValue *operand = &candidate->operands[operand_index];
+    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_BRANCH_TARGET ||
+        metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET) {
+      continue;
+    }
+    if ((candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_IND ||
+         candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_POSTINC ||
+         candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_PREDEC) &&
+        operand->reg < 8U) {
+      *out_reg = operand->reg;
+      return 1;
+    }
+    if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_reg < 8U &&
+        !metadata->operand_ea_uses_index[operand_index] &&
+        !metadata->operand_ea_uses_displacement[operand_index]) {
+      *out_reg = operand->ea_reg;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int enqueue_target_set_for_indirect_site(M68kDecodeIR *decode, M68kFactIR *facts,
+    M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
+    const M68kDecodeCandidate *site_candidate, const M68kFactsV2TraceValue *targets,
+    const M68kRuntimeAddressSpace *runtime_addresses) {
+  M68kFactsV2TraceState unknown_state;
+  uint32_t index;
+  if (!trace_value_is_target_set(targets)) return 0;
+  trace_state_init_unknown(&unknown_state);
+  for (index = 0U; index < targets->target_count; ++index) {
+    if (enqueue_same_section_control_target(decode, facts, queue, accepted_start, accepted_bytes,
+        profile, max_cpu, section_index, site_candidate, targets->targets[index],
+        M68K_FACT_CONFIDENCE_TOOL_INFERRED, runtime_addresses, &unknown_state) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int enqueue_backward_sliced_indirect_table_targets(M68kDecodeIR *decode, M68kFactIR *facts,
+    const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
+    uint8_t **accepted_start, uint8_t **accepted_bytes, M68kFactsV2Profile *profile,
+    uint8_t max_cpu, size_t section_index, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *site_candidate, const M68kRuntimeAddressSpace *runtime_addresses) {
+  enum { BACKWARD_SLICE_LIMIT = 6 };
+  const M68kDecodeCandidate *previous[BACKWARD_SLICE_LIMIT];
+  const M68kDecodeCandidate *cursor_candidate;
+  M68kFactsV2TraceState state;
+  M68kFactsV2TraceValue targets;
+  uint32_t cursor;
+  uint8_t control_reg = 0U;
+  uint8_t dest_reg = 0U;
+  size_t count = 0U;
+  size_t index;
+  if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      profile == NULL || section == NULL || site_candidate == NULL || runtime_addresses == NULL ||
+      !candidate_indirect_control_address_register(site_candidate, &control_reg)) {
+    return 0;
+  }
+  cursor = site_candidate->offset;
+  while (count < BACKWARD_SLICE_LIMIT) {
+    cursor_candidate = find_accepted_candidate_ending_at(section, accepted_start[section_index], cursor);
+    if (cursor_candidate == NULL) break;
+    previous[count++] = cursor_candidate;
+    cursor = cursor_candidate->offset;
+    if (cursor == 0U) break;
+  }
+  if (count == 0U) return 0;
+  trace_state_init_unknown(&state);
+  for (index = count; index > 1U; --index) {
+    const M68kDecodeCandidate *candidate = previous[index - 1U];
+    M68kFactsV2TraceState next_state;
+    trace_state_after_candidate(section_index, section, candidate, &state, relocation_lookup, facts,
+      runtime_addresses, accepted_bytes[section_index], &next_state);
+    state = next_state;
+  }
+  trace_value_set_unknown(&targets);
+  cursor_candidate = previous[0];
+  if (trace_state_candidate_loads_long_target_table(section, cursor_candidate, &state, runtime_addresses,
+      accepted_bytes[section_index], &dest_reg, &targets) && dest_reg == control_reg) {
+    return enqueue_target_set_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
+      profile, max_cpu, section_index, site_candidate, &targets, runtime_addresses);
+  }
+  if (trace_state_candidate_adds_word_target_table(section, cursor_candidate, &state, runtime_addresses,
+      &dest_reg, &targets) && dest_reg == control_reg) {
+    return enqueue_target_set_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
+      profile, max_cpu, section_index, site_candidate, &targets, runtime_addresses);
+  }
+  return 0;
+}
+
+static int append_backward_sliced_indirect_table_targets_for_accepted(M68kDecodeIR *decode, M68kFactIR *facts,
+    const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
+    uint8_t **accepted_start, uint8_t **accepted_bytes, M68kFactsV2Profile *profile,
+    uint8_t max_cpu, const M68kRuntimeAddressSpace *runtime_addresses) {
+  size_t section_index;
+  if (decode == NULL || facts == NULL || relocation_lookup == NULL || queue == NULL || accepted_start == NULL ||
+      accepted_bytes == NULL || profile == NULL || runtime_addresses == NULL) {
+    return -1;
+  }
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    size_t candidate_index;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      if (candidate->offset >= section->size || accepted_start[section_index][candidate->offset] == 0U)
+        continue;
+      if (candidate_has_decoded_control_target(candidate)) continue;
+      if (enqueue_backward_sliced_indirect_table_targets(decode, facts, relocation_lookup, queue, accepted_start,
+          accepted_bytes, profile, max_cpu, section_index, section, candidate, runtime_addresses) != 0) {
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+
 static int enqueue_relocated_control_target(M68kDecodeIR *decode, M68kFactIR *facts,
     const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
     uint8_t **accepted_start, uint8_t **accepted_bytes,
@@ -3907,7 +4054,6 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
     section = &decode->sections[item.section_index];
     if (item.offset >= section->size) continue;
     already_accepted = accepted_start[item.section_index][item.offset] != 0U;
-    if (already_accepted && !item.has_runtime_address) continue;
     phase_start = profile_phase_start_local(profile_reachable_phases);
     if (m68k_decode_ir_ensure_candidate_at(decode, item.section_index, item.offset, max_cpu, &candidate,
         m68k_diag_sink(NULL)) != 0) {
@@ -3934,9 +4080,15 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
     candidate_copy = *candidate;
     candidate = &candidate_copy;
     if (already_accepted) {
-      if (replay_runtime_sink_provenance_fallthrough(object, decode, relocation_lookup, runtime_addresses, facts,
-          profile, item.section_index, item.offset, &item.trace_state, accepted_start, accepted_bytes,
-          max_cpu) != 0) {
+      if (item.has_runtime_address) {
+        if (replay_runtime_sink_provenance_fallthrough(object, decode, relocation_lookup, runtime_addresses, facts,
+            profile, item.section_index, item.offset, &item.trace_state, accepted_start, accepted_bytes,
+            max_cpu) != 0) {
+          return -1;
+        }
+      }
+      if (enqueue_backward_sliced_indirect_table_targets(decode, facts, relocation_lookup, queue, accepted_start,
+          accepted_bytes, profile, max_cpu, item.section_index, section, candidate, runtime_addresses) != 0) {
         return -1;
       }
       continue;
@@ -4043,6 +4195,10 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
         profile, max_cpu, item.section_index, candidate, runtime_addresses, &next_trace_state) != 0) return -1;
     if (enqueue_traced_indirect_control_target(decode, facts, queue, accepted_start, accepted_bytes,
         profile, max_cpu, item.section_index, candidate, runtime_addresses, &item.trace_state) != 0) return -1;
+    if (enqueue_backward_sliced_indirect_table_targets(decode, facts, relocation_lookup, queue, accepted_start,
+        accepted_bytes, profile, max_cpu, item.section_index, section, candidate, runtime_addresses) != 0) {
+      return -1;
+    }
     if (enqueue_interrupt_vector_store_target(decode, facts, queue, accepted_start, accepted_bytes,
         profile, max_cpu, object->platform_backend_kind, item.section_index, candidate, runtime_addresses,
         &item.trace_state) != 0) return -1;
@@ -4297,6 +4453,10 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   }
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_runtime_address_ref_seconds, start, end);
+  if (append_backward_sliced_indirect_table_targets_for_accepted(&decode, &facts, &relocation_lookup, &queue,
+      accepted_start, accepted_bytes, out_profile, max_cpu, &runtime_addresses) != 0) {
+    goto fail;
+  }
   start = clock();
   if (materialize_safe_required_labels(&decode, accepted_start, accepted_bytes, &facts, &label_lookup) != 0)
     goto fail;
