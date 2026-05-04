@@ -1,0 +1,9 @@
+{
+  "address_model": "runtime_absolute",
+  "code_start_offset": 0,
+  "entrypoint": 262144,
+  "kind": "raw_binary",
+  "load_address": 262144,
+  "parent_disk_id": "epic-1992-ocean-disk-1",
+  "path": "targets/amiga_disk_epic-1992-ocean-disk-1/targets/amiga_raw_bootloader_stage_1/binary.bin"
+}

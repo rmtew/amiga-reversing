@@ -3501,6 +3501,23 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
     assert len(refs_by_source) == 14
 
 
+def test_real_dll_platform_calls_are_not_unresolved_indirect_sites() -> None:
+    _requires_c_backend_dlls()
+
+    for target_name in ["amiga_hunk_genam", "amiga_hunk_monam302"]:
+        combined = _facts_v2_listing_analysis_for_project(target_name)
+        for section in combined["analysis"]["sections"]:
+            platform_call_offsets = {
+                call["offset"] for call in section["recovered_platform_calls"]
+            }
+            unresolved_indirect_offsets = {
+                site["offset"]
+                for site in section["recovered_indirect_sites"]
+                if site["status"] == "unresolved"
+            }
+            assert unresolved_indirect_offsets.isdisjoint(platform_call_offsets)
+
+
 def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     paths = resolve_project_paths(

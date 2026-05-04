@@ -3176,6 +3176,16 @@ static void recovered_indirect_site_apply_code_start_refs(M68kRecoveredIndirectS
     "accepted traced indirect control target";
 }
 
+static int section_analysis_has_platform_call_at_offset(const M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset) {
+  size_t index;
+  if (section_analysis == NULL) return 0;
+  for (index = 0U; index < section_analysis->recovered_platform_call_count; ++index) {
+    if (section_analysis->recovered_platform_calls[index].offset == offset) return 1;
+  }
+  return 0;
+}
+
 static int append_recovered_indirect_sites_for_accepted(const M68kDecodeIR *decode,
     uint8_t **accepted_start, M68kSourceAnalysisIR *source_analysis) {
   size_t section_index;
@@ -3205,6 +3215,10 @@ static int append_recovered_indirect_sites_for_accepted(const M68kDecodeIR *deco
         uint8_t shape;
         if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_BRANCH_TARGET ||
             metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET) {
+          continue;
+        }
+        if (section_analysis_has_platform_call_at_offset(&source_analysis->sections[section_index],
+            candidate->offset)) {
           continue;
         }
         shape = recovered_indirect_shape_for_operand(candidate, metadata, operand_index);

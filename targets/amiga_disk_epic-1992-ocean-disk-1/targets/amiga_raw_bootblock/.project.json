@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-05-04T09:24:37.177483+00:00",
+  "origin": {
+    "kind": "disk_child",
+    "parent_disk_id": "epic-1992-ocean-disk-1",
+    "source_path": "bin/Epic (1992)(Ocean)(Disk 1 of 3)[cr FSN - BST].adf",
+    "target_role": "bootblock",
+    "target_type": "bootblock"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-04T09:24:37.187206+00:00"
+}

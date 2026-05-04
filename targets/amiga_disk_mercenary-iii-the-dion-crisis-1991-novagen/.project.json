@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-04T09:24:38.161439+00:00",
+  "origin": {
+    "filename": "Mercenary III - The Dion Crisis (1991)(Novagen)[cr CSL].adf",
+    "kind": "user_upload",
+    "platform": "amiga-disk",
+    "sha256": "b16217fc4c7bca632c1fbd0401f712959046c2c89c92c11227de4f3f67017b57",
+    "size": 901120,
+    "source_path": "bin/Mercenary III - The Dion Crisis (1991)(Novagen)[cr CSL].adf"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-04T09:24:38.220431+00:00"
+}

@@ -1,0 +1,34 @@
+{
+  "absolute_code_labels": [],
+  "app_slot_regions": [],
+  "bootblock": null,
+  "custom_structs": [],
+  "entry_register_seeds": [
+    {
+      "context_name": null,
+      "entry_offset": null,
+      "kind": "library_base",
+      "library_name": "exec.library",
+      "note": "ExecBase",
+      "register": "A6",
+      "struct_name": "LIB"
+    },
+    {
+      "context_name": "trackdisk.device",
+      "entry_offset": null,
+      "kind": "struct_ptr",
+      "library_name": null,
+      "note": "IOStdReq (open trackdisk.device)",
+      "register": "A1",
+      "struct_name": "IO"
+    }
+  ],
+  "execution_views": [],
+  "library": null,
+  "resident": null,
+  "seeded_code_entrypoints": [],
+  "seeded_code_labels": [],
+  "seeded_entities": [],
+  "suppressed_seeded_items": [],
+  "target_type": "bootloader_stage"
+}

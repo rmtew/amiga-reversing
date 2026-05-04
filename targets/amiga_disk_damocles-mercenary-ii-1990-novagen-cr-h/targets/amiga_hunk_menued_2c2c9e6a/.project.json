@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-04T09:24:36.839405+00:00",
+  "origin": {
+    "entry_path": "MenuEd",
+    "kind": "disk_child",
+    "parent_disk_id": "damocles-mercenary-ii-1990-novagen-cr-h",
+    "source_path": "bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf",
+    "target_role": "disk_entry",
+    "target_type": "program"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-04T09:24:36.846845+00:00"
+}

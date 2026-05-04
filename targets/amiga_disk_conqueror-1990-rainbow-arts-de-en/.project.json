@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-04T09:24:02.508294+00:00",
+  "origin": {
+    "filename": "Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf",
+    "kind": "user_upload",
+    "platform": "amiga-disk",
+    "sha256": "24c6421e8d69780faf2d89351c5a6c2b28fd9b1069a0cc0f27ec28bc1bcbd015",
+    "size": 901120,
+    "source_path": "bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-04T09:24:02.601912+00:00"
+}
