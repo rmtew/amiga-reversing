@@ -2590,6 +2590,73 @@ def test_project_rows_basic_generation_uses_facts_v2_listing_api(
     ]
 
 
+def test_project_rows_basic_generation_with_profile_text_stays_basic(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    binary_path = tmp_path / "boot.bin"
+    binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
+    target_dir = tmp_path / "targets" / "raw_demo"
+    target_dir.mkdir(parents=True)
+    (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "path": str(binary_path),
+                "address_model": "local_offset",
+                "load_address": 0,
+                "entrypoint": 0,
+                "code_start_offset": 0,
+            }
+        ),
+        encoding="utf-8",
+    )
+    calls: list[tuple[object, ...]] = []
+
+    def fake_file_run(function_name: str, *args: object, project_root: Path) -> str:
+        calls.append((function_name, *args))
+        return json.dumps(
+            {
+                "listing": {
+                    "rows": [
+                        {
+                            "row_id": "f:0",
+                            "kind": "directive",
+                            "text": "    SECTION section,code\n",
+                            "analysis_generation": "basic",
+                        }
+                    ]
+                },
+                "analysis": {},
+                "profile": {"generation": "facts_v2_basic_listing", "analysis_backend": "facts_v2"},
+            }
+        )
+
+    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
+
+    rows, api_calls, profile, source_text = build_project_rows_generation_with_c_backend_profile_text(
+        "raw_demo",
+        generation="basic",
+        project_root=tmp_path,
+    )
+
+    assert [row.text for row in rows] == ["    SECTION section,code\n"]
+    assert api_calls == {}
+    assert profile["generation"] == "facts_v2_basic_listing"
+    assert source_text is None
+    assert calls == [
+        (
+            "platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc",
+            "amiga-raw",
+            str(binary_path),
+            0,
+            "",
+            str(tmp_path / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
+        )
+    ]
+
+
 def test_real_dll_facts_v2_listing_rows_parse_sectioned_source(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "boot.bin"

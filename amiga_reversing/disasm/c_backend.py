@@ -601,11 +601,11 @@ def _build_project_rows_generation_from_source(
         include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
         if source_file.entry_offset is None:
             function_name = (
-                "platform_file_facts_v2_listing_rows_with_analysis_and_text_path_json_alloc"
-                if include_source_text
+                "platform_file_facts_v2_basic_listing_rows_path_json_alloc"
+                if generation == "basic"
                 else (
-                    "platform_file_facts_v2_basic_listing_rows_path_json_alloc"
-                    if generation == "basic"
+                    "platform_file_facts_v2_listing_rows_with_analysis_and_text_path_json_alloc"
+                    if include_source_text
                     else "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc"
                 )
             )
@@ -619,11 +619,11 @@ def _build_project_rows_generation_from_source(
             )
         else:
             function_name = (
-                "platform_file_facts_v2_listing_rows_with_analysis_and_text_raw_path_json_alloc"
-                if include_source_text
+                "platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc"
+                if generation == "basic"
                 else (
-                    "platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc"
-                    if generation == "basic"
+                    "platform_file_facts_v2_listing_rows_with_analysis_and_text_raw_path_json_alloc"
+                    if include_source_text
                     else "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc"
                 )
             )
