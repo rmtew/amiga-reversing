@@ -4708,13 +4708,9 @@ static int listing_should_keep_source_only_body_row(const char *row_kind, const 
     (text_starts_with_ci(stripped, "FPU ") || text_first_token_equals_ci(stripped, "ORG"));
 }
 
-static int collect_listing_source_header_rows(const M68kSourceFileIR *source_file, const char *rendered_text,
-    ListingSourceHeaderRows *header_rows, int use_rendered_line_count) {
+static int collect_listing_source_header_rows(const char *rendered_text, ListingSourceHeaderRows *header_rows) {
   const char *cursor = rendered_text;
-  int active_section_index = -1;
-  size_t statement_index = 0U;
-  size_t data_lines_left = 0U;
-  if (source_file == NULL || rendered_text == NULL || header_rows == NULL) return -1;
+  if (rendered_text == NULL || header_rows == NULL) return -1;
   while (*cursor != '\0') {
     const char *line_start = cursor;
     size_t line_length;
@@ -4723,7 +4719,6 @@ static int collect_listing_source_header_rows(const M68kSourceFileIR *source_fil
     char operand[1024];
     char comment[512];
     const char *row_kind;
-    const M68kStatementIR *stmt = NULL;
     while (*cursor != '\0' && *cursor != '\n') ++cursor;
     if (*cursor == '\n') ++cursor;
     line_length = (size_t)(cursor - line_start);
@@ -4732,20 +4727,11 @@ static int collect_listing_source_header_rows(const M68kSourceFileIR *source_fil
     row_kind = listing_row_kind_for_line(stripped);
     if (strcmp(row_kind, "blank") == 0 && comment[0] != '\0') row_kind = "comment";
     if (strcmp(row_kind, "directive") == 0 && text_starts_with_ci(stripped, "SECTION ")) {
-      ++active_section_index;
-      statement_index = 0U;
-      data_lines_left = 0U;
-      continue;
+      break;
     }
-    if (active_section_index >= 0) {
-      stmt = listing_statement_for_line(source_file, NULL, (size_t)active_section_index, &statement_index,
-        &data_lines_left, row_kind, use_rendered_line_count, 0);
-    }
-    if (stmt == NULL && !listing_should_keep_source_only_body_row(row_kind, stripped, active_section_index) &&
-        listing_should_hoist_source_header_row(row_kind, stripped)) {
+    if (listing_should_hoist_source_header_row(row_kind, stripped)) {
       int group = listing_source_header_group(row_kind, stripped);
-      if (listing_source_header_rows_append(header_rows, line_start, line_length, row_kind, active_section_index,
-          group) != 0)
+      if (listing_source_header_rows_append(header_rows, line_start, line_length, row_kind, -1, group) != 0)
         return -1;
     }
   }
@@ -4926,8 +4912,7 @@ int source_file_listing_rows_to_json(const M68kSourceFileIR *source_file, const 
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
     return -1;
   }
-  if (!include_source_only_rows &&
-      collect_listing_source_header_rows(source_file, rendered_text, &header_rows, use_rendered_line_count) != 0)
+  if (!include_source_only_rows && collect_listing_source_header_rows(rendered_text, &header_rows) != 0)
     goto oom;
   if (listing_app_slot_analysis_init(&app_slot_analysis, source_file, source_analysis) != 0) goto oom;
   if (json_builder_create(&builder) != 0) goto oom;

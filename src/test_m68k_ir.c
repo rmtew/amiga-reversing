@@ -5749,6 +5749,42 @@ static int test_append_parsed_instruction(M68kSectionIR *section, uint32_t offse
   return m68k_ir_section_append_statement(section, &stmt);
 }
 
+static int test_listing_json_header_collection_stops_at_first_section(void) {
+  M68kSourceFileIR source_file;
+  M68kSectionIR section;
+  char *rows_json = NULL;
+  const char source_text[] =
+    "    INCLUDE \"hardware/custom.i\"\n"
+    "\n"
+    "    SECTION section_0,code\n"
+    "\trts\n"
+    "    INCLUDE \"hardware/dmabits.i\"\n"
+    "\trts\n";
+
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_create(&source_file));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_create(&section));
+  source_file.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  source_file.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = 4U;
+  M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 0U, "rts", 0U, NULL));
+  M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 2U, "rts", 0U, NULL));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
+
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_to_json(&source_file, source_text, NULL, NULL, "full",
+    0, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(rows_json != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "hardware/custom.i") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "hardware/dmabits.i") == NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"start_offset\":0") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"start_offset\":2") != NULL);
+
+  free(rows_json);
+  m68k_ir_section_destroy(&section);
+  m68k_ir_source_file_destroy(&source_file);
+  return 0;
+}
+
 static int test_listing_json_emits_app_slot_regions_from_platform_api_inputs(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
@@ -11837,6 +11873,8 @@ int m68k_c_ir_tests(void) {
       test_amiga_runtime_struct_id_none_is_zero_safe},
     {"amiga_runtime_resolves_recursive_struct_fields",
       test_amiga_runtime_resolves_recursive_struct_fields},
+    {"listing_json_header_collection_stops_at_first_section",
+      test_listing_json_header_collection_stops_at_first_section},
     {"listing_json_emits_app_slot_regions_from_platform_api_inputs",
       test_listing_json_emits_app_slot_regions_from_platform_api_inputs},
     {"listing_json_tracks_app_slot_address_through_lea_copy",
