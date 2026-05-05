@@ -277,8 +277,11 @@ Current retained output:
 7. Partly done: Carrier RNC discovery is emitted from C analysis records.
    Runtime load address and entrypoint are still target metadata/manual
    materialisation, so child target creation is not fully C-record driven.
-8. Add isolated C tests for provider result acceptance, code-overlap rejection,
-   and parent/child relationship output.
+8. Partly done: provider result acceptance and parent/child materialisation are
+   covered by C-backend and disk-import tests. Code-overlap rejection now has a
+   synthetic C-backend regression proving an RNC-looking candidate inside
+   accepted code does not become a payload. A narrower pure-C relationship test
+   is still useful before promoting records to `materializable`.
 9. Done: add Python access to C section-range decompression.
 10. Done: include nested disk project targets in corpus usage indexing.
 11. Done: index retained decompressed child provenance from `decompression.json`.

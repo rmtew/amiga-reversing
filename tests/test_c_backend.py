@@ -130,6 +130,22 @@ def test_listing_analysis_json_includes_empty_decompression_fact_arrays(tmp_path
     assert combined["analysis"]["derived_target_suggestions"] == []
 
 
+def test_analysis_decompression_skips_candidate_overlapping_accepted_code(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "overlap_hunk.bin"
+    code = bytearray(b"\x4e\x71")
+    code += b"RNC\x01"
+    code += b"\x00" * 14
+    binary.write_bytes(make_synthetic_hunkexe(code_data=bytes(code)))
+
+    analysis = analyze_binary_source_with_c_backend(binary)
+
+    assert analysis["sections"][0]["blocks"][0]["start_offset"] == 0
+    assert analysis["sections"][0]["blocks"][0]["end_offset"] == 4
+    assert analysis["packed_payloads"] == []
+    assert analysis["derived_target_suggestions"] == []
+
+
 def test_decompression_c_backend_section_range_reports_unknown_payload(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary = tmp_path / "plain_hunk.bin"
