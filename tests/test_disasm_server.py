@@ -1447,7 +1447,7 @@ def test_route_listing_returns_cached_window(monkeypatch: pytest.MonkeyPatch) ->
     assert payload["ok"] is True
     assert data["anchor_addr"] == 0x10
     assert rows_data[0]["row_id"] == "r0"
-    assert rows_data[0]["view_annotations"] == []
+    assert "view_annotations" not in rows_data[0]
     assert rows_data[0]["structured_data"] == {
         "struct_name": "RT",
         "field_name": "RT_MATCHWORD",
@@ -2192,7 +2192,7 @@ def test_project_listing_cache_key_includes_renderer_tool_stamps(
     assert first != second
 
 
-def test_route_listing_keeps_view_annotations_empty_for_monam(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_route_listing_omits_empty_view_annotations_for_monam(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id="r0", kind="label", text="setpointer_pointer:\n", addr=0x0008),
         ListingRow(row_id="r1", kind="instruction", text="movea.l #memtask,a0\n", addr=0x0298),
@@ -2215,9 +2215,9 @@ def test_route_listing_keeps_view_annotations_empty_for_monam(monkeypatch: pytes
     rows_data = cast(list[dict[str, object]], data["rows"])
 
     assert payload["ok"] is True
-    assert rows_data[0]["view_annotations"] == []
-    assert rows_data[1]["view_annotations"] == []
-    assert rows_data[2]["view_annotations"] == []
+    assert "view_annotations" not in rows_data[0]
+    assert "view_annotations" not in rows_data[1]
+    assert "view_annotations" not in rows_data[2]
 
 
 def test_route_listing_hydrates_entity_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -2367,7 +2367,7 @@ def test_route_listing_does_not_attach_api_call_metadata_to_label_rows(
     data = cast(dict[str, object], payload["data"])
     rows_data = cast(list[dict[str, object]], data["rows"])
 
-    assert rows_data[0]["api_call"] is None
+    assert "api_call" not in rows_data[0]
     assert rows_data[1]["api_call"] == {
         "library": "intuition.library",
         "function": "SetPointer",
@@ -2414,7 +2414,7 @@ def test_route_listing_does_not_cross_apply_api_call_metadata_between_hunks(
     data = cast(dict[str, object], payload["data"])
     rows_data = cast(list[dict[str, object]], data["rows"])
 
-    assert rows_data[0]["api_call"] is None
+    assert "api_call" not in rows_data[0]
     assert rows_data[1]["api_call"] == {
         "library": "exec.library",
         "function": "OpenLibrary",

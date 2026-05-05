@@ -240,7 +240,7 @@ def serialize_unresolved_typed_access(access: PlatformUnresolvedTypedAccess) -> 
 
 
 def serialize_row(row: ListingRow) -> SerializedRow:
-    return {
+    serialized: dict[str, object] = {
         "row_id": row.row_id,
         "kind": row.kind,
         "text": row.text,
@@ -255,30 +255,44 @@ def serialize_row(row: ListingRow) -> SerializedRow:
         "runtime_view_id": row.runtime_view_id,
         "addr": row.addr,
         "entity_addr": row.entity_addr,
-        "verified_state": row.verified_state,
-        "bytes": row.bytes.hex() if row.bytes is not None else None,
-        "label": row.label,
-        "opcode_or_directive": row.opcode_or_directive,
-        "operation_type": row.operation_type,
-        "operand_parts": [serialize_operand(op) for op in row.operand_parts],
-        "operand_accesses": list(row.operand_accesses),
-        "operand_registers": list(row.operand_registers),
-        "app_slot_refs": [serialize_app_slot_ref(ref) for ref in row.app_slot_refs],
-        "typed_accesses": [serialize_typed_access(access) for access in row.typed_accesses],
-        "unresolved_typed_accesses": [
+        "source_context": _row_source_context_dict(row.source_context),
+    }
+    if row.verified_state is not None:
+        serialized["verified_state"] = row.verified_state
+    if row.bytes is not None:
+        serialized["bytes"] = row.bytes.hex()
+    if row.label is not None:
+        serialized["label"] = row.label
+    if row.opcode_or_directive is not None:
+        serialized["opcode_or_directive"] = row.opcode_or_directive
+    if row.operation_type is not None:
+        serialized["operation_type"] = row.operation_type
+    if row.operand_parts:
+        serialized["operand_parts"] = [serialize_operand(op) for op in row.operand_parts]
+    if row.operand_accesses:
+        serialized["operand_accesses"] = list(row.operand_accesses)
+    if row.operand_registers:
+        serialized["operand_registers"] = list(row.operand_registers)
+    if row.app_slot_refs:
+        serialized["app_slot_refs"] = [serialize_app_slot_ref(ref) for ref in row.app_slot_refs]
+    if row.typed_accesses:
+        serialized["typed_accesses"] = [serialize_typed_access(access) for access in row.typed_accesses]
+    if row.unresolved_typed_accesses:
+        serialized["unresolved_typed_accesses"] = [
             serialize_unresolved_typed_access(access)
             for access in row.unresolved_typed_accesses
-        ],
-        "operand_text": row.operand_text,
-        "comment_parts": list(row.comment_parts),
-        "comment_text": row.comment_text,
-        "source_context": _row_source_context_dict(row.source_context),
-        "data_class": row.data_class,
-        "structured_data": cast(dict[str, object] | None, row.structured_data),
-        "entity": None,
-        "view_annotations": [],
-        "api_call": None,
-    }
+        ]
+    if row.operand_text:
+        serialized["operand_text"] = row.operand_text
+    if row.comment_parts:
+        serialized["comment_parts"] = list(row.comment_parts)
+    if row.comment_text:
+        serialized["comment_text"] = row.comment_text
+    if row.data_class is not None:
+        serialized["data_class"] = row.data_class
+    if row.structured_data is not None:
+        serialized["structured_data"] = cast(dict[str, object], row.structured_data)
+    return cast(SerializedRow, serialized)
 
 
 def session_metadata(session: Any) -> SessionMetadata:

@@ -271,12 +271,14 @@ def _annotate_listing_payload(
         row_issues = repro_issues.get(window_start + relative_index, [])
         if row_issues:
             annotations.append("REPRO: " + str(row_issues[0].get("summary") or row_issues[0].get("message") or "issue"))
-        annotated_rows.append({
-            **row,
-            "entity": entity_payload,
-            "view_annotations": annotations,
-            "repro_issues": row_issues,
-        })
+        annotated_row = dict(row)
+        if entity_payload is not None:
+            annotated_row["entity"] = entity_payload
+        if annotations:
+            annotated_row["view_annotations"] = annotations
+        if row_issues:
+            annotated_row["repro_issues"] = row_issues
+        annotated_rows.append(cast(SerializedRow, annotated_row))
     payload = {
         **payload,
         "rows": annotated_rows,
