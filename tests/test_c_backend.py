@@ -2764,6 +2764,31 @@ def test_real_dll_runtime_absolute_target_decode_does_not_invalidate_source_cand
     assert any(row.kind == "instruction" and row.start_offset == 0x50 for row in rows)
 
 
+def test_real_dll_analysis_api_exposes_source_free_render_index_profile(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "analysis-index.bin"
+    binary_path.write_bytes(bytes.fromhex("4eb9000000084e714e75"))
+
+    analysis = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_analysis_raw_path_json_alloc",
+            "amiga-raw",
+            str(binary_path),
+            0,
+            "",
+            "",
+            project_root=PROJECT_ROOT,
+        )
+    )
+
+    facts_v2 = analysis["profile"]["facts_v2"]
+    assert analysis["profile"]["generation"] == "facts_v2_analysis"
+    assert facts_v2["asm_source_enabled"] is False
+    assert facts_v2["asm_source_bytes"] == 0
+    assert facts_v2["render_ir_statements"] >= 3
+    assert facts_v2["accepted_instructions"] >= 2
+
+
 def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_pointer(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "copper.bin"

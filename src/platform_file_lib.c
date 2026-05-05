@@ -36,6 +36,7 @@ static int load_object_from_path(const M68kBackend *backend, const char *path, M
     M68kDiagSink diagnostics);
 static int load_raw_object_from_path(const char *platform_name, const char *path, M68kObject *object,
     M68kDiagSink diagnostics);
+static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68kFactsV2Profile *profile);
 
 static char *duplicate_text_local(const char *text) {
   size_t length;
@@ -846,8 +847,8 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
   return json_builder_append(builder, "]");
 }
 
-static int append_analysis_json_with_decompression(JsonBuilder *builder, const char *base_json,
-    const M68kObject *object, const M68kSourceAnalysisIR *analysis) {
+static int append_analysis_json_with_decompression_profile(JsonBuilder *builder, const char *base_json,
+    const M68kObject *object, const M68kSourceAnalysisIR *analysis, const M68kFactsV2Profile *profile) {
   size_t base_len;
   if (builder == NULL || base_json == NULL || object == NULL || analysis == NULL) return -1;
   base_len = strlen(base_json);
@@ -856,7 +857,19 @@ static int append_analysis_json_with_decompression(JsonBuilder *builder, const c
     return -1;
   if (append_object_decompression_analysis_json(builder, object, analysis) != 0)
     return -1;
+  if (profile != NULL) {
+    if (json_builder_append(builder,
+        ",\"profile\":{\"generation\":\"facts_v2_analysis\",\"analysis_backend\":\"facts_v2\",\"facts_v2\":") != 0 ||
+        json_builder_append_facts_v2_profile(builder, profile) != 0 ||
+        json_builder_append(builder, "}") != 0)
+      return -1;
+  }
   return json_builder_append(builder, "}");
+}
+
+static int append_analysis_json_with_decompression(JsonBuilder *builder, const char *base_json,
+    const M68kObject *object, const M68kSourceAnalysisIR *analysis) {
+  return append_analysis_json_with_decompression_profile(builder, base_json, object, analysis, NULL);
 }
 
 static void make_policy_symbol_label_local(char *out, size_t out_size, const char *symbol) {
@@ -3672,7 +3685,7 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *ob
   json_result = source_analysis_to_json(&analysis, &base_json, m68k_diag_sink(&result.diagnostics));
   if (json_result == 0) {
     if (json_builder_create(&builder) != 0 ||
-        append_analysis_json_with_decompression(&builder, base_json, object, &analysis) != 0) {
+        append_analysis_json_with_decompression_profile(&builder, base_json, object, &analysis, &profile) != 0) {
       json_result = -1;
     } else {
       result.text = json_builder_build(&builder);
