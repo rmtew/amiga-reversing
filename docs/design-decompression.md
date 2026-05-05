@@ -92,6 +92,8 @@ A first C decompression provider layer now exists:
 - Imported disk projects now also refresh an existing generated decompressed
   child from a matching C `materializable` record instead of silently skipping
   it, so stale provenance can be reconciled without deleting the child first.
+- `amiga_reversing.tools.import_adf --refresh-decompressed --disk-id <id>` can
+  apply new C materialisation records to an existing disk project.
 - Carrier's retained-child RNC stream is identified both as an extracted range
   file and in the original parent file at offset `$4C40`. Parent analysis also
   identifies a smaller RNC stream at `$05E4`; it remains conservative because no
@@ -109,8 +111,10 @@ A first C decompression provider layer now exists:
   source view. Carrier uses this for the `$4C40 -> $4000` packed stream copy:
   it is useful decompression evidence, but it is not an ORG/source alias.
 
-This is not yet clean general support. Discovery, acceptance, extraction, and
-child materialisation are not yet driven end-to-end by C-emitted records.
+Discovery, acceptance, extraction, and imported child materialisation are now
+driven by C-emitted records. Corpus indexing remains deliberately non-mutating:
+it reports C facts and retained child targets, while import/refresh commands
+create or update project files.
 
 ## Target Architecture
 
@@ -206,7 +210,8 @@ also be visibly synthetic and linked back to the packed parent.
 ## Corpus Integration
 
 Corpus indexing should run the same C decompression discovery used for imported
-projects.
+projects. It must not create or modify targets; when it finds a materializable
+payload, users apply that record through disk import or refresh.
 
 Useful tags:
 
@@ -317,12 +322,13 @@ Current retained output:
    tags/xrefs for later target selection.
 6. Done: make listing-with-analysis JSON carry the same decompression fields as
    analysis-only JSON.
-7. Partly done: Carrier RNC discovery is emitted from C analysis records.
+7. Done: Carrier RNC discovery is emitted from C analysis records.
    Runtime-copy evidence is now emitted for matching packed streams, including
    Carrier's conflicting `$4C40 -> $4000` copy. The `$4C40` child can now be
    promoted from C records by validating the decompressed image's initial
    control target against that runtime load base. The smaller `$05E4` stream
-   still lacks enough load/entry evidence.
+   remains non-materialising because it decompresses to data-like bytes and
+   lacks load/entry evidence.
 8. Done: provider result acceptance and parent/child materialisation are
    covered by C-backend and disk-import tests. Code-overlap rejection now has a
    synthetic C-backend regression proving an RNC-looking candidate inside
@@ -332,9 +338,9 @@ Current retained output:
 9. Done: add Python access to C section-range decompression.
 10. Done: include nested disk project targets in corpus usage indexing.
 11. Done: index retained decompressed child provenance from `decompression.json`.
-12. Partly done: imported disk projects can materialise or refresh child
-   targets from complete C records. Corpus indexing still indexes retained
-   children and C facts, but does not create new child targets.
+12. Done: imported disk projects can materialise or refresh child targets from
+   complete C records. Corpus indexing indexes retained children and C facts,
+   but target creation remains an explicit import/refresh operation.
 13. Done: add a non-Carrier comparator regression using the Voodoo Nightmare
    `Trainer` RNC1 payload from the corpus resources.
 14. Done: raw decompressed child reproduction assembles C-rendered raw source
@@ -364,6 +370,9 @@ Current retained output:
 24. Done: refresh an existing imported decompressed child target from the C
    materialisation record instead of leaving stale generated provenance in
    place.
+25. Done: expose decompressed-child refresh through the import CLI so existing
+   disk projects can apply new C materialisation records without deleting the
+   project.
 
 ## Current Corpus Query Proof
 

@@ -42,9 +42,9 @@ from amiga_reversing.amiga_disk.models import (
     TrackSpan,
 )
 from amiga_reversing.amiga_disk.project import (
-    _materialize_decompressed_payload_children,
     create_disk_project,
     import_adf,
+    refresh_decompressed_payload_children,
 )
 from amiga_reversing.disasm.target_metadata import TargetMetadata
 from amiga_reversing.tools.analyze_disk import print_summary
@@ -374,6 +374,7 @@ def test_import_adf_help_loads_cleanly() -> None:
     )
     assert result.returncode == 0, result.stderr
     assert "Import an ADF into bin/imported and targets/" in result.stdout
+    assert "--refresh-decompressed" in result.stdout
 
 
 def test_derive_disk_id_normalizes_filename() -> None:
@@ -692,34 +693,16 @@ def test_import_adf_refreshes_existing_c_decompressed_child(
         fake_decompress,
     )
 
-    disk_children_root = project_root / "targets" / "amiga_disk_demo" / "targets"
-    disk_children_root.mkdir(parents=True)
-    _, first_children, _ = _materialize_decompressed_payload_children(
-        adf_file=adf_path,
-        disk_id="demo",
-        disk_children_root=disk_children_root,
-        parent_local_target_id="amiga_hunk_c__run_dcce9fe5",
-        parent_target_name="amiga_disk_demo__amiga_hunk_c__run_dcce9fe5",
-        parent_entry_path="c/Run",
-        project_root=project_root,
-    )
-    child = first_children[0]
+    first_manifest = import_adf(adf_path, project_root=project_root)
+    child = next(target for target in first_manifest.imported_targets if target.target_type == "raw_binary")
     child_dir = project_root / child.target_path
     assert (child_dir / "binary.bin").read_bytes() == expected_bytes
 
     expected_packed_size = 12
     expected_bytes = b"\x60\x00\x00\x02"
     expected_hash = "33" * 32
-    _, second_children, _ = _materialize_decompressed_payload_children(
-        adf_file=adf_path,
-        disk_id="demo",
-        disk_children_root=disk_children_root,
-        parent_local_target_id="amiga_hunk_c__run_dcce9fe5",
-        parent_target_name="amiga_disk_demo__amiga_hunk_c__run_dcce9fe5",
-        parent_entry_path="c/Run",
-        project_root=project_root,
-    )
-    refreshed = second_children[0]
+    second_manifest = refresh_decompressed_payload_children("demo", project_root=project_root)
+    refreshed = next(target for target in second_manifest.imported_targets if target.target_type == "raw_binary")
     assert refreshed.target_name == child.target_name
     assert (child_dir / "binary.bin").read_bytes() == expected_bytes
     decompression = json.loads((child_dir / "decompression.json").read_text(encoding="utf-8"))

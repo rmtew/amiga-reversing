@@ -7,14 +7,14 @@ import json
 import sys
 
 from amiga_reversing.amiga_disk.adf import DiskAnalysisError
-from amiga_reversing.amiga_disk.project import import_adf
+from amiga_reversing.amiga_disk.project import import_adf, refresh_decompressed_payload_children
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Import an ADF into bin/imported and targets/"
     )
-    parser.add_argument("adf_file", help="Path to ADF file")
+    parser.add_argument("adf_file", nargs="?", help="Path to ADF file")
     parser.add_argument(
         "--disk-id",
         help="Stable disk id (default: derived from filename)",
@@ -25,10 +25,22 @@ def main() -> int:
         default="summary",
         help="Output format (default: summary)",
     )
+    parser.add_argument(
+        "--refresh-decompressed",
+        action="store_true",
+        help="Refresh decompressed child targets for an existing disk project",
+    )
     args = parser.parse_args()
 
     try:
-        manifest = import_adf(args.adf_file, disk_id=args.disk_id)
+        if args.refresh_decompressed:
+            if args.disk_id is None:
+                parser.error("--refresh-decompressed requires --disk-id")
+            manifest = refresh_decompressed_payload_children(args.disk_id)
+        else:
+            if args.adf_file is None:
+                parser.error("adf_file is required unless --refresh-decompressed is used")
+            manifest = import_adf(args.adf_file, disk_id=args.disk_id)
     except DiskAnalysisError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1

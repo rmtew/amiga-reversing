@@ -622,6 +622,79 @@ def create_disk_project(
         raise
 
 
+def refresh_decompressed_payload_children(
+    disk_id: str,
+    *,
+    project_root: Path = PROJECT_ROOT,
+) -> DiskManifest:
+    from amiga_reversing.disasm.projects import mark_project_updated
+
+    disk_target_root = disk_project_root(project_root, disk_id)
+    manifest_path = disk_target_root / "manifest.json"
+    if not manifest_path.exists():
+        raise DiskAnalysisError(f"Disk manifest does not exist: {manifest_path}")
+    manifest = DiskManifest.load(manifest_path)
+    adf_file = Path(manifest.source_path)
+    if not adf_file.is_absolute():
+        adf_file = project_root / adf_file
+    if not adf_file.exists():
+        raise DiskAnalysisError(f"Disk source does not exist: {adf_file}")
+    imported_by_name = {target.target_name: target for target in manifest.imported_targets}
+    disk_children_root = disk_project_targets_dir(project_root, disk_id)
+    refreshed_by_parent: dict[str, list[dict[str, object]]] = {}
+    refreshed_children: dict[str, ImportedTarget] = {}
+    for target in manifest.imported_targets:
+        if target.derived_from is not None or not _target_type_may_contain_packed_payload(target.target_type):
+            continue
+        local_target_id = Path(target.target_path).name
+        parent_derived, child_targets, _ = _materialize_decompressed_payload_children(
+            adf_file=adf_file,
+            disk_id=disk_id,
+            disk_children_root=disk_children_root,
+            parent_local_target_id=local_target_id,
+            parent_target_name=target.target_name,
+            parent_entry_path=target.entry_path,
+            project_root=project_root,
+        )
+        if parent_derived:
+            refreshed_by_parent[target.target_name] = parent_derived
+        for child in child_targets:
+            refreshed_children[child.target_name] = child
+    for child in refreshed_children.values():
+        imported_by_name[child.target_name] = child
+    refreshed_targets: list[ImportedTarget] = []
+    for target in imported_by_name.values():
+        parent_derived = refreshed_by_parent.get(target.target_name)
+        if parent_derived is not None:
+            refreshed_targets.append(
+                ImportedTarget(
+                    target_name=target.target_name,
+                    target_path=target.target_path,
+                    entry_path=target.entry_path,
+                    binary_path=target.binary_path,
+                    target_type=target.target_type,
+                    derived_from=target.derived_from,
+                    derived_targets=parent_derived,
+                )
+            )
+        else:
+            refreshed_targets.append(target)
+    refreshed_targets.sort(key=lambda target: target.entry_path)
+    refreshed_manifest = DiskManifest(
+        schema_version=manifest.schema_version,
+        disk_id=manifest.disk_id,
+        source_path=manifest.source_path,
+        source_sha256=manifest.source_sha256,
+        analysis=manifest.analysis,
+        imported_targets=refreshed_targets,
+        bootblock_target_name=manifest.bootblock_target_name,
+        bootblock_target_path=manifest.bootblock_target_path,
+    )
+    _write_text(manifest_path, json.dumps(refreshed_manifest.to_dict(), indent=2, sort_keys=True) + "\n")
+    mark_project_updated(disk_target_root)
+    return refreshed_manifest
+
+
 def import_adf(
     adf_path: str | Path,
     *,
