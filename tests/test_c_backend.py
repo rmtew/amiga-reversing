@@ -3839,6 +3839,28 @@ def test_real_dll_carrier_predecrement_copied_entry_promotes_loader_code() -> No
     )
 
 
+def test_real_dll_carrier_decompression_suggestion_requires_runtime_metadata() -> None:
+    _requires_c_backend_dlls()
+
+    combined = _facts_v2_listing_analysis_for_project(
+        "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_carrier_91b0ba24"
+    )
+    payloads = combined["analysis"]["packed_payloads"]
+    suggestions = combined["analysis"]["derived_target_suggestions"]
+
+    assert len(payloads) == 1
+    assert payloads[0]["provider_id"] == "ancient-cli"
+    assert payloads[0]["codec_id"] == "rnc1-old"
+    assert payloads[0]["source_section"] == 0
+    assert payloads[0]["source_section_offset"] == 0x4C40
+    assert payloads[0]["decompressed_size"] == 359600
+    assert len(suggestions) == 1
+    assert suggestions[0]["status"] == "needs_runtime_metadata"
+    assert suggestions[0]["source_section_offset"] == 0x4C40
+    assert "load_address" not in suggestions[0]
+    assert "entrypoint" not in suggestions[0]
+
+
 def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
     _requires_c_backend_dlls()
 

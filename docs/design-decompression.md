@@ -71,9 +71,13 @@ A first C decompression provider layer now exists:
   `status: "materializable"` plus concrete source section, packed size,
   decompressed size, load address, and entrypoint metadata.
 - Carrier's RNC stream is identified both as an extracted range file and in the
-  original parent file at offset `$4C60`.
+  original parent file at offset `$4C40`.
 - The C-decompressed Carrier output hash matches the existing derived child
   binary.
+- Carrier's parent analysis intentionally still emits `needs_runtime_metadata`
+  for the derived target suggestion: the observed `$4000` jump is also an
+  in-section absolute source address, so it must not be promoted to load/entry
+  metadata until copied-runtime evidence proves that relationship.
 
 This is not yet clean general support. Discovery, acceptance, extraction, and
 child materialisation are not yet driven end-to-end by C-emitted records.
