@@ -2716,6 +2716,54 @@ def test_real_dll_runtime_org_is_visible_in_listing_rows(tmp_path: Path) -> None
     assert org_index < label_index
 
 
+def test_real_dll_runtime_absolute_target_decode_does_not_invalidate_source_candidate(
+    tmp_path: Path,
+) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "runtime-target.bin"
+    # The 32nd decoded candidate is an absolute control transfer into the same
+    # runtime view. Decoding that target grows the candidate array.
+    binary_path.write_bytes(
+        (b"\x4e\x71" * 31)
+        + bytes.fromhex("4eb900004050")
+        + (b"\x4e\x71" * ((0x50 - 0x44) // 2))
+        + b"\x4e\x75"
+    )
+    metadata_path = tmp_path / "target_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "execution_views": [
+                    {
+                        "source_start": 0,
+                        "source_end": binary_path.stat().st_size,
+                        "base_addr": 0x4000,
+                        "name": "loaded_stage",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
+            "amiga-raw",
+            str(binary_path),
+            0,
+            str(metadata_path),
+            "",
+            project_root=PROJECT_ROOT,
+        )
+    )["listing"]
+    rows = rows_from_c_listing_json(payload)
+
+    assert any(row.kind == "instruction" and row.start_offset == 0x3E for row in rows)
+    assert any(row.kind == "instruction" and row.start_offset == 0x50 for row in rows)
+
+
 def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_pointer(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "copper.bin"
