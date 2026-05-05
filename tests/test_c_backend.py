@@ -2682,6 +2682,8 @@ def test_real_dll_facts_v2_listing_rows_parse_sectioned_source(tmp_path: Path) -
     assert api_calls == {}
     assert profile["generation"] == "facts_v2_listing"
     assert profile["analysis_backend"] == "facts_v2"
+    assert profile["timing"]["source_model_seconds"] >= 0.0
+    assert profile["timing"]["rows_emit_seconds"] >= 0.0
     assert any(row.kind == "directive" and row.text.lstrip().startswith("SECTION ") for row in rows)
     assert any(row.kind == "instruction" and row.opcode_or_directive == "rts" and row.bytes == b"\x4e\x75" for row in rows)
 

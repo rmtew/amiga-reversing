@@ -62,6 +62,9 @@ been removed, so there is no separate raw source-text row loop to maintain.
 Header collection for filtered listing rows now stops at the first section
 directive instead of scanning the whole render plan before the row-emission
 pass.
+Full listing timing now separates the remaining source-model rebuild
+(`source_model_seconds`) from render-plan row JSON emission
+(`rows_emit_seconds`), so the next refactor can target the real leftover cost.
 
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.

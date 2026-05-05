@@ -4354,10 +4354,16 @@ cleanup:
 
 static int facts_v2_listing_rows_from_source_text(const M68kObject *object, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *source_text, const M68kRenderPlan *render_plan,
-    const char *include_dir, int include_source_only_rows, char **out_rows_json, M68kDiagSink diagnostics) {
+    const char *include_dir, int include_source_only_rows, char **out_rows_json, double *out_source_model_seconds,
+    double *out_rows_emit_seconds, M68kDiagSink diagnostics) {
   AsmSourceFile source_model;
   M68kSourceFileIR source_ir;
+  clock_t phase_start;
+  clock_t source_model_end;
+  clock_t rows_emit_end;
   int result = -1;
+  if (out_source_model_seconds != NULL) *out_source_model_seconds = 0.0;
+  if (out_rows_emit_seconds != NULL) *out_rows_emit_seconds = 0.0;
   if (object == NULL || analysis_policy == NULL || source_text == NULL || render_plan == NULL ||
       out_rows_json == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT,
@@ -4370,6 +4376,7 @@ static int facts_v2_listing_rows_from_source_text(const M68kObject *object, cons
   source_model.target_cpu = analysis_policy->max_cpu != 0U ? analysis_policy->max_cpu : M68K_ASM_CPU_68060;
   source_model.platform_backend_kind = object->platform_backend_kind;
   source_model.file_kind = object->platform_file_kind;
+  phase_start = clock();
   if (!m68k_source_pipeline_parse_text_and_layout(&source_model, source_text, diagnostics) ||
       !m68k_source_pipeline_build_ir(&source_model, &source_ir, diagnostics)) {
     goto cleanup;
@@ -4377,10 +4384,16 @@ static int facts_v2_listing_rows_from_source_text(const M68kObject *object, cons
   source_ir.platform_backend_kind = object->platform_backend_kind;
   source_ir.file_kind = object->platform_file_kind;
   facts_v2_listing_fill_source_bytes_from_object(&source_ir, object);
+  source_model_end = clock();
   if (source_file_listing_rows_from_render_plan_to_json(&source_ir, render_plan, analysis_policy,
       source_analysis, "full", include_source_only_rows, out_rows_json, diagnostics) != 0) {
     goto cleanup;
   }
+  rows_emit_end = clock();
+  if (out_source_model_seconds != NULL)
+    *out_source_model_seconds = elapsed_seconds(phase_start, source_model_end);
+  if (out_rows_emit_seconds != NULL)
+    *out_rows_emit_seconds = elapsed_seconds(source_model_end, rows_emit_end);
   result = 0;
 
 cleanup:
@@ -4404,6 +4417,8 @@ static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *back
   clock_t source_end;
   clock_t rows_end;
   clock_t total_end;
+  double source_model_seconds = 0.0;
+  double rows_emit_seconds = 0.0;
   memset(&result, 0, sizeof(result));
   memset(&source_analysis, 0, sizeof(source_analysis));
   m68k_render_plan_init(&source_plan);
@@ -4419,7 +4434,7 @@ static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *back
   }
   source_end = clock();
   if (facts_v2_listing_rows_from_source_text(object, &source_analysis.policy, &source_analysis, source, &source_plan,
-      include_dir, 0, &rows_json,
+      include_dir, 0, &rows_json, &source_model_seconds, &rows_emit_seconds,
       m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "facts_v2 listing row source parse failed");
@@ -4451,8 +4466,10 @@ static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *back
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
       json_builder_append_facts_v2_profile(&builder, &profile) != 0 ||
       json_builder_appendf(&builder,
-        ",\"timing\":{\"source_seconds\":%.6f,\"rows_json_seconds\":%.6f,\"total_seconds\":%.6f}}}",
+        ",\"timing\":{\"source_seconds\":%.6f,\"rows_json_seconds\":%.6f,"
+        "\"source_model_seconds\":%.6f,\"rows_emit_seconds\":%.6f,\"total_seconds\":%.6f}}}",
         elapsed_seconds(total_start, source_end), elapsed_seconds(source_end, rows_end),
+        source_model_seconds, rows_emit_seconds,
         elapsed_seconds(total_start, total_end)) != 0) {
     platform_file_add_error(&result.diagnostics, "out of memory");
     goto cleanup;
