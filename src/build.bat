@@ -20,6 +20,8 @@ set DISK_DLL=%OUTDIR%\platform_disk_lib.dll
 set FILE_EXE=%OUTDIR%\platform_file_cli.exe
 set FILE_DLL=%OUTDIR%\platform_file_lib.dll
 set ANCIENT_EXE=ext\tools\ancient\Ancient.exe
+set ANCIENT_SRC_DIR=resources\clone_common\ancient
+set ANCIENT_BUILD_EXE=%ANCIENT_SRC_DIR%\src\build\Ancient.exe
 set CFLAGS=/nologo /W4 /WX /std:c11 /D_CRT_SECURE_NO_WARNINGS /I src
 set LDFLAGS=/nologo
 if /I "%AMIGA_BUILD_CONFIG%"=="debug" (
@@ -30,6 +32,7 @@ if /I "%AMIGA_BUILD_CONFIG%"=="debug" (
 )
 
 if not exist %OUTDIR% mkdir %OUTDIR%
+if /I "%~1"=="build-ancient-provider" goto :build_ancient_provider
 if not exist "%ANCIENT_EXE%" (
     echo Missing Ancient decompression provider: %ANCIENT_EXE%
     exit /b 1
@@ -587,9 +590,27 @@ if "%CMD%"=="disassemble-file" (
     %FILE_EXE% %*
     exit /b %errorlevel%
 )
+if "%CMD%"=="build-ancient-provider" goto :build_ancient_provider
 
 echo unknown command: %CMD% 1>&2
 exit /b 2
+
+:build_ancient_provider
+if not exist "%ANCIENT_SRC_DIR%\build.bat" (
+    echo Missing local Ancient source clone: %ANCIENT_SRC_DIR%
+    exit /b 1
+)
+call "%ANCIENT_SRC_DIR%\build.bat" Release
+if errorlevel 1 exit /b %errorlevel%
+if not exist "%ANCIENT_BUILD_EXE%" (
+    echo Ancient build did not produce %ANCIENT_BUILD_EXE%
+    exit /b 1
+)
+if not exist "ext\tools\ancient" mkdir "ext\tools\ancient"
+copy /Y "%ANCIENT_BUILD_EXE%" "%ANCIENT_EXE%" >nul
+if errorlevel 1 exit /b %errorlevel%
+echo Updated %ANCIENT_EXE%
+exit /b 0
 
 :lock_wrap
 set "PYTHON_EXE=%~dp0..\.venv\Scripts\python.exe"

@@ -46,6 +46,9 @@ A first C decompression provider layer now exists:
 - Ancient is staged at `ext/tools/ancient/Ancient.exe`.
 - `src/build.bat` fails fast if the staged Ancient provider binary is missing,
   so provider-backed decompression cannot silently disappear from a local build.
+- `src/build.bat build-ancient-provider` rebuilds the local Ancient clone at
+  `resources/clone_common/ancient` and refreshes the staged binary in
+  `ext/tools/ancient/Ancient.exe` when that ignored source checkout is present.
 - The C provider default resolves the staged Ancient path relative to the loaded
   module on Windows, so DLL callers do not depend on the process current
   directory. `AMIGA_ANCIENT_EXE` remains an explicit override.
@@ -340,6 +343,8 @@ Current retained output:
    validation. This keeps explicit range decompression available but prevents
    tiny or non-expanding provider-valid micro-streams, especially weak
    `C: Compact` hits, from becoming automatic `packed_payloads[]`.
+21. Done: add a build command for refreshing the staged Ancient provider binary
+   from the local Ancient clone: `cmd /c src\build.bat build-ancient-provider`.
 
 ## Current Corpus Query Proof
 
