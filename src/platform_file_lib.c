@@ -4353,8 +4353,8 @@ cleanup:
 }
 
 static int facts_v2_listing_rows_from_source_text(const M68kObject *object, const M68kAnalysisPolicy *analysis_policy,
-    const M68kSourceAnalysisIR *source_analysis, const char *source_text, const char *include_dir,
-    int include_source_only_rows, char **out_rows_json, M68kDiagSink diagnostics) {
+    const M68kSourceAnalysisIR *source_analysis, const char *source_text, const M68kRenderPlan *render_plan,
+    const char *include_dir, int include_source_only_rows, char **out_rows_json, M68kDiagSink diagnostics) {
   AsmSourceFile source_model;
   M68kSourceFileIR source_ir;
   int result = -1;
@@ -4376,9 +4376,14 @@ static int facts_v2_listing_rows_from_source_text(const M68kObject *object, cons
   source_ir.platform_backend_kind = object->platform_backend_kind;
   source_ir.file_kind = object->platform_file_kind;
   facts_v2_listing_fill_source_bytes_from_object(&source_ir, object);
-  if (source_file_listing_rows_to_json(&source_ir, source_text, analysis_policy, source_analysis, "full",
-      include_source_only_rows, out_rows_json, diagnostics) != 0)
+  if (render_plan != NULL) {
+    if (source_file_listing_rows_from_render_plan_to_json(&source_ir, render_plan, analysis_policy,
+        source_analysis, "full", include_source_only_rows, out_rows_json, diagnostics) != 0)
+      goto cleanup;
+  } else if (source_file_listing_rows_to_json(&source_ir, source_text, analysis_policy, source_analysis, "full",
+      include_source_only_rows, out_rows_json, diagnostics) != 0) {
     goto cleanup;
+  }
   result = 0;
 
 cleanup:
@@ -4392,6 +4397,7 @@ static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *back
   PlatformFileTextResult result;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
+  M68kRenderPlan source_plan;
   JsonBuilder builder = {0};
   char *source = NULL;
   char *rows_json = NULL;
@@ -4403,19 +4409,20 @@ static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *back
   clock_t total_end;
   memset(&result, 0, sizeof(result));
   memset(&source_analysis, 0, sizeof(source_analysis));
+  m68k_render_plan_init(&source_plan);
   if (backend_name == NULL || path == NULL || object == NULL || analysis_policy == NULL) {
     platform_file_add_error(&result.diagnostics, "invalid facts_v2 listing rows request");
     return result;
   }
-  if (m68k_facts_v2_render_asm_source_analysis_profile_alloc(object, analysis_policy, &source, &profile,
-      &source_analysis, 1U, m68k_diag_sink(&result.diagnostics)) != 0) {
+  if (m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(object, analysis_policy, &source, &source_plan,
+      &profile, &source_analysis, 1U, m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "facts_v2 asm source render failed");
     goto cleanup;
   }
   source_end = clock();
-  if (facts_v2_listing_rows_from_source_text(object, &source_analysis.policy, &source_analysis, source, include_dir,
-      0, &rows_json,
+  if (facts_v2_listing_rows_from_source_text(object, &source_analysis.policy, &source_analysis, source, &source_plan,
+      include_dir, 0, &rows_json,
       m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "facts_v2 listing row source parse failed");
@@ -4466,6 +4473,7 @@ cleanup:
   platform_file_free_text(json);
   platform_file_free_text(analysis_json);
   platform_file_free_text(rows_json);
+  m68k_render_plan_destroy(&source_plan);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   return result;

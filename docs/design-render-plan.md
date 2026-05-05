@@ -38,8 +38,9 @@ row and subline index. This keeps compatibility with the current web listing
 shape without forcing source text reparsing.
 
 The facts_v2 basic listing JSON path now builds its rows from a render plan
-instead of duplicating a statement-render-and-split loop. Full listing still
-uses the old full-source text parse path.
+instead of duplicating a statement-render-and-split loop. The production
+facts_v2 full listing path now also consumes the captured source render plan
+for row emission instead of walking the full source text as the row stream.
 
 Render plans now have a row-builder API for renderers that naturally emit a row
 in fragments. This is intended for migrating facts_v2 source rendering without
@@ -49,9 +50,14 @@ facts_v2 source rendering now records a bridge render plan for the final emitted
 source text after current header hoisting. The profile exposes
 `asm_source_plan_rows`, `asm_source_plan_lines`, and `asm_source_plan_bytes`,
 and C tests assert that plan lines/bytes match the emitted source. This is still
-a bridge: full listing JSON has not yet switched to consuming that plan, and the
-plan is rebuilt after the legacy header rewrite rather than being the
-authoritative source structure.
+a bridge: the full listing path still parses the emitted source text to rebuild
+`M68kSourceFileIR` statement metadata before row JSON is emitted, and the plan
+is rebuilt after the legacy header rewrite rather than being the authoritative
+source structure.
+
+An isolated C parity test now proves that full listing JSON emitted from a
+text-line render plan matches the legacy source-text row path for the same
+source model. The production DLL path uses the same plan-backed row emitter.
 
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
@@ -279,8 +285,10 @@ proves line accounting and window emission. Do not start by rewriting the whole
 renderer.
 
 This first step now exists. A GenAm-style source-IR fixture now proves direct
-body-row plan construction. The next step should use the same model in a real
-listing/source path before Bloodwych is used as the pressure target.
+body-row plan construction, and facts_v2 basic plus full listing rows now use
+render-plan line streams. The next step is to stop rebuilding `M68kSourceFileIR`
+from emitted source text for the full listing path by carrying statement
+provenance in the authoritative plan or source analysis.
 
 ## Required Tests
 

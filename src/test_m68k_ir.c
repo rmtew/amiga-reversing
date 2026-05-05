@@ -5812,6 +5812,55 @@ static int test_listing_json_header_collection_stops_at_first_section(void) {
   return 0;
 }
 
+static int test_listing_json_render_plan_matches_source_text_path(void) {
+  M68kSourceFileIR source_file;
+  M68kSectionIR section;
+  M68kStatementIR data_stmt;
+  M68kRenderPlan render_plan;
+  char *source_rows_json = NULL;
+  char *plan_rows_json = NULL;
+  uint8_t data_bytes[2] = {0x12U, 0x34U};
+  const char source_text[] =
+    "    INCLUDE \"hardware/custom.i\"\n"
+    "\n"
+    "    SECTION section_0,code\n"
+    "\trts\n"
+    "loc_0_00000002:\n"
+    "\tdc.b $12,$34\n";
+
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_create(&source_file));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_create(&section));
+  m68k_render_plan_init(&render_plan);
+  source_file.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  source_file.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = 4U;
+  M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 0U, "rts", 0U, NULL));
+  m68k_ir_statement_init(&data_stmt);
+  data_stmt.kind = M68K_STATEMENT_DATA;
+  data_stmt.offset = 2U;
+  data_stmt.u.data.kind = M68K_DATA_ITEM_BYTES;
+  data_stmt.u.data.data = data_bytes;
+  data_stmt.u.data.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &data_stmt));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
+
+  M68K_C_ASSERT_INT(0, m68k_render_plan_build_text_lines(source_text, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 0U,
+    &render_plan));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_to_json(&source_file, source_text, NULL, NULL, "full",
+    0, &source_rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL, NULL,
+    "full", 0, &plan_rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_STR(source_rows_json, plan_rows_json);
+
+  free(source_rows_json);
+  free(plan_rows_json);
+  m68k_render_plan_destroy(&render_plan);
+  m68k_ir_section_destroy(&section);
+  m68k_ir_source_file_destroy(&source_file);
+  return 0;
+}
+
 static int test_listing_json_emits_app_slot_regions_from_platform_api_inputs(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
@@ -11902,6 +11951,8 @@ int m68k_c_ir_tests(void) {
       test_amiga_runtime_resolves_recursive_struct_fields},
     {"listing_json_header_collection_stops_at_first_section",
       test_listing_json_header_collection_stops_at_first_section},
+    {"listing_json_render_plan_matches_source_text_path",
+      test_listing_json_render_plan_matches_source_text_path},
     {"listing_json_emits_app_slot_regions_from_platform_api_inputs",
       test_listing_json_emits_app_slot_regions_from_platform_api_inputs},
     {"listing_json_tracks_app_slot_address_through_lea_copy",

@@ -12,6 +12,7 @@
 #include "m68k_object.h"
 #include "m68k_parse_util.h"
 #include "m68k_plain_parse.h"
+#include "m68k_render_plan.h"
 #include "m68k_simulator.h"
 #include "m68k_source_ir_render.h"
 #include "platform_atari_st.h"
@@ -130,6 +131,10 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
 int source_file_listing_rows_to_json(const M68kSourceFileIR *source_file, const char *rendered_text,
     const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
     const char *analysis_generation, int include_source_only_rows, char **out_json, M68kDiagSink diagnostics);
+int source_file_listing_rows_from_render_plan_to_json(const M68kSourceFileIR *source_file,
+    const M68kRenderPlan *render_plan, const M68kAnalysisPolicy *analysis_policy,
+    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
+    char **out_json, M68kDiagSink diagnostics);
 int source_file_basic_listing_rows_to_json(const M68kSourceFileIR *source_file,
     const M68kAnalysisPolicy *analysis_policy, char **out_json, M68kDiagSink diagnostics);
 int platform_type_catalog_to_json(const char *backend_name, char **out_json, M68kDiagSink diagnostics);
