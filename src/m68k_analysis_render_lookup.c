@@ -6347,6 +6347,15 @@ static int auto_string_start_byte(uint8_t value) {
     (value >= '0' && value <= '9') || value == '$' || value == '.' || value == '#';
 }
 
+static int auto_string_candidate_start(const M68kDecodeSectionIR *section, uint32_t offset) {
+  uint8_t value;
+  if (section == NULL || section->data == NULL || offset >= section->size) return 0;
+  value = section->data[offset];
+  if (byte_is_quoted_string_safe(value) && auto_string_start_byte(value)) return 1;
+  return value >= 4U && value <= 80U && offset + 1U < section->size &&
+    auto_string_start_byte(section->data[offset + 1U]);
+}
+
 static int auto_string_lowercase_byte(uint8_t value) {
   return value >= 'a' && value <= 'z';
 }
@@ -6547,6 +6556,7 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
     while (offset < section->size) {
       uint32_t span;
       if ((accepted_bytes[section_index] != NULL && accepted_bytes[section_index][offset] != 0U) ||
+          !auto_string_candidate_start(section, offset) ||
           lookup_structured_data_item_covering_offset(lookup, section_index, offset) != NULL) {
         ++offset;
         continue;
