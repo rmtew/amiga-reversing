@@ -52,5 +52,6 @@ int m68k_c_parse_util_tests(void);
 int m68k_c_instruction_spec_tests(void);
 int m68k_c_ir_tests(void);
 int m68k_c_diagnostics_tests(void);
+int m68k_c_platform_decompression_tests(void);
 
 #endif

@@ -14,6 +14,7 @@
 #include "m68k_source_ir_render.h"
 #include "platform_atari_st.h"
 #include "platform_common.h"
+#include "platform_file_decompression.h"
 #include "util_arena.h"
 #include "generated/amiga_hunk_file_runtime.h"
 
@@ -4983,4 +4984,16 @@ int platform_file_api_input_struct_json_alloc(const char *backend_name, const ch
   PlatformFileTextResult result = platform_file_api_input_struct_json(backend_name, library_name, function_name,
     input_name, struct_name);
   return text_result_to_alloc(&result, out_text);
+}
+
+int platform_file_decompression_identify_path_range_json_alloc(const char *provider_id, const char *provider_path,
+    const char *path, uint32_t offset, uint32_t size, char **out_text) {
+  return platform_decompression_identify_path_range_json_alloc(provider_id, provider_path, path, offset, size,
+    out_text);
+}
+
+int platform_file_decompression_decompress_path_range_json_alloc(const char *provider_id, const char *provider_path,
+    const char *path, uint32_t offset, uint32_t size, const char *output_path, char **out_text) {
+  return platform_decompression_decompress_path_range_json_alloc(provider_id, provider_path, path, offset, size,
+    output_path, out_text);
 }

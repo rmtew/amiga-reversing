@@ -1347,6 +1347,8 @@ class ImportedTarget:
     entry_path: str
     binary_path: str
     target_type: str
+    derived_from: dict[str, object] | None = None
+    derived_targets: list[dict[str, object]] | None = None
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> ImportedTarget:
@@ -1355,17 +1357,26 @@ class ImportedTarget:
         entry_path = payload["entry_path"]
         binary_path = payload["binary_path"]
         target_type = payload["target_type"]
+        derived_from = payload.get("derived_from")
+        derived_targets = payload.get("derived_targets")
         assert isinstance(target_name, str)
         assert isinstance(target_path, str)
         assert isinstance(entry_path, str)
         assert isinstance(binary_path, str)
         assert isinstance(target_type, str)
+        assert derived_from is None or isinstance(derived_from, dict)
+        assert derived_targets is None or isinstance(derived_targets, list)
         return cls(
             target_name=target_name,
             target_path=target_path,
             entry_path=entry_path,
             binary_path=binary_path,
             target_type=target_type,
+            derived_from=None if derived_from is None else dict(derived_from),
+            derived_targets=(
+                None if derived_targets is None
+                else [dict(_json_object(item)) for item in derived_targets]
+            ),
         )
 
     def to_dict(self) -> dict[str, object]:

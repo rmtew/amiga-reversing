@@ -6,5 +6,6 @@ int main(void) {
   failures += m68k_c_instruction_spec_tests();
   failures += m68k_c_ir_tests();
   failures += m68k_c_diagnostics_tests();
+  failures += m68k_c_platform_decompression_tests();
   return failures == 0 ? 0 : 1;
 }

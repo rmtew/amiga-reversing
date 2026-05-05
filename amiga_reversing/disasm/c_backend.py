@@ -164,6 +164,48 @@ def extract_disk_entry_with_c_backend(
     )
 
 
+def identify_packed_range_with_c_backend(
+    path: str | Path,
+    offset: int,
+    size: int,
+    *,
+    provider_path: str | Path = "",
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    text = _platform_file_text(
+        "platform_file_decompression_identify_path_range_json_alloc",
+        "ancient-cli",
+        str(provider_path),
+        str(path),
+        offset,
+        size,
+        project_root=project_root,
+    )
+    return cast(dict[str, object], json.loads(text))
+
+
+def decompress_packed_range_with_c_backend(
+    path: str | Path,
+    offset: int,
+    size: int,
+    output_path: str | Path,
+    *,
+    provider_path: str | Path = "",
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    text = _platform_file_text(
+        "platform_file_decompression_decompress_path_range_json_alloc",
+        "ancient-cli",
+        str(provider_path),
+        str(path),
+        offset,
+        size,
+        str(output_path),
+        project_root=project_root,
+    )
+    return cast(dict[str, object], json.loads(text))
+
+
 def render_project_source_with_c_backend(
     binary_source: BinarySource,
     *,
@@ -1490,6 +1532,25 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     _configure_text_function(dll, "platform_file_naming_catalog_json_alloc", 1)
     _configure_text_function(dll, "platform_file_os_metadata_catalog_json_alloc", 1)
     _configure_text_function(dll, "platform_file_api_input_struct_json_alloc", 5)
+    dll.platform_file_decompression_identify_path_range_json_alloc.argtypes = [
+        c_char_p,
+        c_char_p,
+        c_char_p,
+        c_uint32,
+        c_uint32,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_decompression_identify_path_range_json_alloc.restype = c_int
+    dll.platform_file_decompression_decompress_path_range_json_alloc.argtypes = [
+        c_char_p,
+        c_char_p,
+        c_char_p,
+        c_uint32,
+        c_uint32,
+        c_char_p,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_decompression_decompress_path_range_json_alloc.restype = c_int
     dll.platform_file_assemble_source_path_bytes_profile_alloc.argtypes = [
         c_char_p,
         c_char_p,
@@ -1614,7 +1675,7 @@ def _source_file_for_c_backend(
                 temp_path.unlink(missing_ok=True)
         return
     if isinstance(binary_source, RawBinarySource):
-        yield _CBackendSourceFile(binary_source.path, "amiga-raw", binary_source.analysis_entrypoint)
+        yield _CBackendSourceFile(binary_source.path, "amiga-raw", binary_source.local_entrypoint)
         return
     raise UnsupportedCBackendProject(f"C backend does not support binary source: {binary_source.display_path}")
 

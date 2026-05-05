@@ -4772,6 +4772,50 @@ static int test_facts_v2_tool_inferred_runtime_copy_conflict_does_not_abort(void
   return 0;
 }
 
+static int test_facts_v2_policy_runtime_range_wins_over_inferred_copy_conflict(void) {
+  AsmSourceFile parsed_source;
+  M68kDiagList diagnostics;
+  M68kObject object;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "\tlea payload(pc),a0\n"
+    "\tmovea.l #$400,a1\n"
+    "\tmoveq #1,d0\n"
+    "\tmove.l (a0)+,(a1)+\n"
+    "\trts\n"
+    "payload:\n"
+    "\tdc.l $11111111,$22222222\n";
+  memset(&parsed_source, 0, sizeof(parsed_source));
+  memset(&object, 0, sizeof(object));
+  m68k_diag_list_reset(&diagnostics);
+  parsed_source.target_cpu = M68K_ASM_CPU_68000;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&parsed_source, source_text,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(1, m68k_source_pipeline_emit_object(&parsed_source, &object,
+    m68k_diag_sink(&diagnostics)));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)object.sections[0].size;
+  policy.runtime_ranges[0].runtime_address = 0x400U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(1U, profile.runtime_address_range_conflicts);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  m68k_source_model_free(&parsed_source);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_preserves_exact_byte_immediate_word(void) {
   M68kObject object;
   M68kSection section;
@@ -11673,6 +11717,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_runtime_range_conflict_fails_instead_of_last_map},
     {"facts_v2_tool_inferred_runtime_copy_conflict_does_not_abort",
       test_facts_v2_tool_inferred_runtime_copy_conflict_does_not_abort},
+    {"facts_v2_policy_runtime_range_wins_over_inferred_copy_conflict",
+      test_facts_v2_policy_runtime_range_wins_over_inferred_copy_conflict},
     {"facts_v2_render_asm_source_preserves_exact_byte_immediate_word",
       test_facts_v2_render_asm_source_preserves_exact_byte_immediate_word},
     {"facts_v2_render_asm_source_preserves_move_byte_immediate_high_word",

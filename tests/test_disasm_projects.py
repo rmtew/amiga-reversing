@@ -666,6 +666,52 @@ def test_list_projects_includes_disk_project(tmp_path: Path) -> None:
     assert projects[0].disk_type == "DOS"
 
 
+def test_disk_manifest_preserves_decompressed_target_relationship(tmp_path: Path) -> None:
+    disk_dir = tmp_path / "targets" / "amiga_disk_demo_disk"
+    disk_dir.mkdir(parents=True)
+    payload = _disk_manifest_payload()
+    payload["imported_targets"][0]["derived_targets"] = [
+        {
+            "kind": "decompressed_payload",
+            "target_name": "amiga_disk_demo_disk__amiga_raw_run_rnc_00001000",
+            "packed_file_offset": 0x1020,
+            "packed_section_offset": 0x1000,
+        }
+    ]
+    payload["imported_targets"].append(
+        {
+            "target_name": "amiga_disk_demo_disk__amiga_raw_run_rnc_00001000",
+            "target_path": "targets/amiga_disk_demo_disk/targets/amiga_raw_run_rnc_00001000",
+            "entry_path": "c/Run::rnc_00001000",
+            "binary_path": "targets/amiga_disk_demo_disk/targets/amiga_raw_run_rnc_00001000/binary.bin",
+            "target_type": "raw_binary",
+            "derived_from": {
+                "kind": "decompressed_payload",
+                "parent_target": "amiga_disk_demo_disk__amiga_hunk_run_12345678",
+                "parent_entry_path": "c/Run",
+                "packed_file_offset": 0x1020,
+                "packed_section_offset": 0x1000,
+                "compressor": "RNC1: Rob Northen RNC1 Compressor (old)",
+                "load_address": 0x4000,
+                "entrypoint": 0x4000,
+            },
+        }
+    )
+    manifest_path = disk_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    from amiga_reversing.amiga_disk.models import DiskManifest
+
+    manifest = DiskManifest.load(manifest_path)
+    manifest_dict = manifest.to_dict()
+
+    parent = manifest_dict["imported_targets"][0]
+    child = manifest_dict["imported_targets"][1]
+    assert parent["derived_targets"][0]["target_name"] == "amiga_disk_demo_disk__amiga_raw_run_rnc_00001000"
+    assert child["derived_from"]["parent_target"] == "amiga_disk_demo_disk__amiga_hunk_run_12345678"
+    assert child["derived_from"]["packed_section_offset"] == 0x1000
+
+
 def test_list_projects_hides_imported_disk_child_targets(tmp_path: Path) -> None:
     project_root = tmp_path
     disk_dir = project_root / "targets" / "amiga_disk_demo_disk"

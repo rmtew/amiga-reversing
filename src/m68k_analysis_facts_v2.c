@@ -2937,7 +2937,7 @@ static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t sect
       uint64_t new_source = (uint64_t)source_offset + (overlap_start - new_start);
       if (existing_source != new_source) {
         if (profile != NULL) ++profile->runtime_address_range_conflicts;
-        if (existing->confidence < M68K_FACT_CONFIDENCE_REQUIRED &&
+        if (existing->confidence < M68K_FACT_CONFIDENCE_REQUIRED ||
             confidence < M68K_FACT_CONFIDENCE_REQUIRED) {
           return 0;
         }
@@ -4510,12 +4510,15 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
     const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
     M68kRuntimeAddressSpace *runtime_addresses,
     uint8_t **accepted_start, uint8_t **accepted_bytes,
-    uint32_t *out_accepted_count, M68kFactsV2Profile *profile, uint8_t max_cpu) {
+    uint32_t *out_accepted_count, M68kFactsV2Profile *profile, uint8_t max_cpu,
+    M68kDiagSink diagnostics) {
   M68kFactsV2WorkItem item;
   uint32_t accepted_count = 0U;
   int profile_reachable_phases = reachable_profile_enabled_local();
   if (object == NULL || decode == NULL || facts == NULL || queue == NULL || runtime_addresses == NULL ||
       accepted_start == NULL || accepted_bytes == NULL || out_accepted_count == NULL || profile == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "reachable fixed point received invalid arguments");
     return -1;
   }
   while (work_queue_pop(queue, &item)) {
@@ -4536,6 +4539,8 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
         m68k_diag_sink(NULL)) != 0) {
       profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_decode_seconds,
         phase_start);
+      m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_DECODE_FAILED,
+        "reachable fixed point decode failed at %u:%08X", (unsigned)item.section_index, (unsigned)item.offset);
       return -1;
     }
     profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_decode_seconds,
@@ -4575,10 +4580,20 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
       accepted_start, accepted_bytes, &accepted_count, profile);
     profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_validate_seconds,
       phase_start);
-    if (validation_result < 0) return -1;
+    if (validation_result < 0) {
+      m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "reachable fixed point validation failed at %u:%08X", (unsigned)item.section_index,
+        (unsigned)item.offset);
+      return -1;
+    }
     if (validation_result > 0) continue;
     phase_start = profile_phase_start_local(profile_reachable_phases);
-    if (mark_accepted_bytes(accepted_bytes[item.section_index], candidate, section->size) != 0) return -1;
+    if (mark_accepted_bytes(accepted_bytes[item.section_index], candidate, section->size) != 0) {
+      m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "reachable fixed point accepted-byte marking failed at %u:%08X", (unsigned)item.section_index,
+        (unsigned)item.offset);
+      return -1;
+    }
     accepted_start[item.section_index][item.offset] = 1U;
     {
       M68kFact fact;
@@ -4593,14 +4608,24 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
       fact.source_section_index = item.source_section_index;
       fact.source_offset = item.source_offset;
       fact.size = candidate->byte_count;
-      if (m68k_fact_ir_append(facts, &fact) != 0) return -1;
+      if (m68k_fact_ir_append(facts, &fact) != 0) {
+        m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+          "reachable fixed point code fact append failed at %u:%08X", (unsigned)item.section_index,
+          (unsigned)item.offset);
+        return -1;
+      }
     }
     ++accepted_count;
     profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_accept_seconds,
       phase_start);
     if (trace_state_record_runtime_copy(runtime_addresses, facts, profile, item.section_index, section, candidate,
         &item.trace_state) != 0)
+    {
+      m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "reachable fixed point runtime-copy recording failed at %u:%08X", (unsigned)item.section_index,
+        (unsigned)item.offset);
       return -1;
+    }
     if (trace_state_record_runtime_sink_ref(runtime_addresses, facts, object->platform_backend_kind,
         item.section_index, section, accepted_start[item.section_index], accepted_bytes[item.section_index],
         candidate, &item.trace_state) != 0) {
@@ -4855,6 +4880,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   uint8_t **accepted_bytes = NULL;
   clock_t start, end;
   uint8_t max_cpu;
+  const char *fail_stage = "initialization";
   if (object == NULL || policy == NULL || out_profile == NULL) return -1;
   if (out_asm_source != NULL) *out_asm_source = NULL;
   if (out_source_analysis != NULL) memset(out_source_analysis, 0, sizeof(*out_source_analysis));
@@ -4871,31 +4897,41 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   render_asm_source = force_asm_source || (allow_env_asm_source && asm_source_enabled_local());
   max_cpu = policy->max_cpu != 0U ? policy->max_cpu : M68K_ASM_CPU_68060;
   start = clock();
+  fail_stage = "decode";
   if (m68k_decode_ir_build_object_sections(&decode, object, diagnostics) != 0) goto fail;
   end = clock();
   out_profile->decode_seconds = elapsed_seconds_local(start, end);
+  fail_stage = "work queue initialization";
   if (work_queue_init_for_decode(&queue, &decode) != 0) goto fail;
+  fail_stage = "accepted map allocation";
   if (allocate_section_maps(&decode, &accepted_start, &accepted_bytes) != 0) goto fail;
   start = clock();
+  fail_stage = "label lookup build";
   if (label_lookup_build(&label_lookup, &decode) != 0) goto fail;
+  fail_stage = "fact seeding";
   if (seed_facts_from_object(object, policy, &facts, &label_lookup, &queue, &runtime_addresses,
       out_profile) != 0) goto fail;
+  fail_stage = "relocation lookup build";
   if (relocation_lookup_build(&relocation_lookup, &decode, &facts) != 0) goto fail;
   end = clock();
   out_profile->seed_seconds = elapsed_seconds_local(start, end);
   start = clock();
+  fail_stage = "reachable fixed point";
   if (run_reachable_fixed_point(object, &decode, &facts, policy, &relocation_lookup, &queue, &runtime_addresses,
-      accepted_start, accepted_bytes, &out_profile->accepted_instructions, out_profile, max_cpu) != 0) goto fail;
+      accepted_start, accepted_bytes, &out_profile->accepted_instructions, out_profile, max_cpu,
+      diagnostics) != 0) goto fail;
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_reachable_seconds, start, end);
   out_profile->decoded_candidates = decode.decoded_candidate_count;
   start = clock();
+  fail_stage = "accepted index build";
   if (accepted_candidate_index_build(&accepted_index, &decode, accepted_start) != 0) goto fail;
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_index_seconds, start, end);
   {
     uint32_t demoted_interior_conflicts = 0U;
     start = clock();
+    fail_stage = "required label conflict demotion";
     if (demote_required_label_conflicts(&decode, &accepted_index, accepted_start, accepted_bytes, &facts,
         &label_lookup, &out_profile->accepted_instructions, &demoted_interior_conflicts) != 0) goto fail;
     end = clock();
@@ -4904,6 +4940,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   }
   {
     start = clock();
+    fail_stage = "opcode relocation conflict demotion";
     if (demote_opcode_relocation_conflicts(&decode, &accepted_index, accepted_start, accepted_bytes, &facts,
         &out_profile->accepted_instructions, out_profile) != 0) goto fail;
     end = clock();
@@ -4911,32 +4948,38 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   }
   accepted_candidate_index_destroy(&accepted_index);
   start = clock();
+  fail_stage = "accepted byte rebuild";
   if (rebuild_accepted_bytes_from_starts(&decode, accepted_start, accepted_bytes,
       &out_profile->accepted_instructions) != 0) goto fail;
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_rebuild_accepted_seconds, start, end);
   start = clock();
+  fail_stage = "accepted index rebuild";
   if (accepted_candidate_index_build(&accepted_index, &decode, accepted_start) != 0) goto fail;
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_index_seconds, start, end);
   start = clock();
+  fail_stage = "relocation anchor classification";
   if (classify_relocation_anchor_contexts(&decode, &accepted_index, accepted_start, accepted_bytes, &facts,
       out_profile) != 0) goto fail;
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_relocation_anchor_seconds, start, end);
   accepted_candidate_index_destroy(&accepted_index);
   start = clock();
+  fail_stage = "runtime address reference append";
   if (append_runtime_address_refs_for_accepted(&decode, object->platform_backend_kind, &runtime_addresses,
       accepted_start, accepted_bytes, &facts) != 0) {
     goto fail;
   }
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_runtime_address_ref_seconds, start, end);
+  fail_stage = "backward sliced indirect table append";
   if (append_backward_sliced_indirect_table_targets_for_accepted(&decode, &facts, &relocation_lookup, &queue,
       accepted_start, accepted_bytes, out_profile, max_cpu, &runtime_addresses) != 0) {
     goto fail;
   }
   start = clock();
+  fail_stage = "required label materialization";
   if (materialize_safe_required_labels(&decode, accepted_start, accepted_bytes, &facts, &label_lookup) != 0)
     goto fail;
   end = clock();
@@ -4945,6 +4988,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     out_profile->fixed_point_runtime_address_ref_seconds +
     out_profile->fixed_point_required_label_materialize_seconds;
   start = clock();
+  fail_stage = "data span classification";
   out_profile->data_spans = count_data_spans_and_append_facts(&decode, accepted_bytes, &facts);
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_data_span_seconds, start, end);
@@ -4960,6 +5004,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   {
     uint32_t invariant_interior_conflicts = 0U;
     start = clock();
+    fail_stage = "required label invariant resolution";
     out_profile->unresolved_labels = resolve_required_label_invariants(&decode, accepted_start, accepted_bytes,
       &facts, &facts, &label_lookup, &invariant_interior_conflicts);
     end = clock();
@@ -4989,11 +5034,18 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   out_profile->labels_referenced = facts.label_required_count;
   out_profile->queue_iterations = (uint32_t)queue.cursor;
   start = clock();
+  fail_stage = "render preview build";
   if (m68k_render_ir_preview_build(object, &decode, &facts, policy, accepted_start, accepted_bytes,
       render_text_preview, render_asm_source, collect_asm_source_text, &render_preview,
-      out_source_analysis) != 0) goto fail;
+      out_source_analysis) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "facts_v2 render preview build failed");
+    goto fail;
+  }
   if (out_source_analysis != NULL &&
       append_recovered_indirect_sites_for_accepted(&decode, accepted_start, out_source_analysis) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "facts_v2 accepted indirect site append failed");
     goto fail;
   }
   end = clock();
@@ -5084,6 +5136,10 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   m68k_decode_ir_destroy(&decode);
   return 0;
 fail:
+  if (!m68k_diag_has_errors(diagnostics.list)) {
+    m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "facts_v2 failed during %s", fail_stage);
+  }
   if (out_source_analysis != NULL) m68k_ir_source_analysis_destroy(out_source_analysis);
   m68k_render_ir_preview_destroy(&render_preview);
   accepted_candidate_index_destroy(&accepted_index);

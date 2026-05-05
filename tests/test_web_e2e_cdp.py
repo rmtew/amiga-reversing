@@ -961,12 +961,12 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
 
     def build_rows(
         project_name: str, generation: str
-    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]]]:
+    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]], dict[str, object]]:
         if generation == "full":
             full_started.set()
             assert release_full.wait(timeout=15.0)
-            return full_rows, {}
-        return basic_rows, {}
+            return full_rows, {}, {}
+        return basic_rows, {}, {}
 
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
@@ -977,7 +977,7 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "stable-cache")
-    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend", build_rows)
+    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", build_rows)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -1085,12 +1085,12 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
 
     def build_rows(
         project_name: str, generation: str
-    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]]]:
+    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]], dict[str, object]]:
         if generation == "full":
             full_started.set()
             assert release_full.wait(timeout=15.0)
-            return full_rows, {}
-        return basic_rows, {}
+            return full_rows, {}, {}
+        return basic_rows, {}, {}
 
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
@@ -1101,7 +1101,7 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "stable-cache")
-    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend", build_rows)
+    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", build_rows)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -1896,6 +1896,38 @@ def test_brave_cdp_disk_project_browsing_and_target_listing(
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_disk_project_shows_decompressed_child_target(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _skip_without_c_backend()
+    disk_project_id = "amiga_disk_carrier-command-1994-kixx-budget"
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._ASYNC_JOBS.clear()
+    monkeypatch.setattr(
+        disasm_server,
+        "mark_project_opened",
+        lambda project_name: project_store.get_project(project_name),
+    )
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{disk_project_id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression(
+            """
+            Array.from(document.querySelectorAll('.disk-target-button'))
+              .some((button) => button.textContent.includes('Carrier::rnc_00004c60')
+                && button.textContent.includes('decompressed')
+                && button.textContent.includes('RNC1')
+                && button.textContent.includes('$4C60')
+                && button.textContent.includes('$4000'))
+            """,
+            timeout=15.0,
+        )
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_dos_disk_icon_library_target(monkeypatch: pytest.MonkeyPatch) -> None:
     _skip_without_c_backend()
     disk_project_id = "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5"
@@ -2077,9 +2109,9 @@ def test_brave_cdp_api_edit_modal_applies_struct_override(
 
     def build_updated_rows(
         project_name: str, generation: str = "full"
-    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]]]:
+    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]], dict[str, object]]:
         if generation == "basic":
-            return updated_rows, {}
+            return updated_rows, {}, {}
         return updated_rows, {
             (0, 0x10): {
                 "library": "intuition.library",
@@ -2094,9 +2126,9 @@ def test_brave_cdp_api_edit_modal_applies_struct_override(
                     }
                 ],
             }
-        }
+        }, {}
 
-    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend", build_updated_rows)
+    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", build_updated_rows)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -2213,6 +2245,8 @@ def test_brave_cdp_real_annotation_edit_round_trip(
     project_root = tmp_path / "project_root"
     project_id = "amiga_hunk_genam"
     rows, api_calls = build_project_rows_with_c_backend(project_id, project_root=PROJECT_ROOT)
+    edit_row_index = next(index for index, row in enumerate(rows) if row.addr is not None)
+    edit_addr = cast(int, rows[edit_row_index].addr)
     shutil.copytree(PROJECT_ROOT / "targets" / project_id, project_root / "targets" / project_id)
     for stale in (project_root / "targets" / project_id).glob("overrides.json*"):
         stale.unlink()
@@ -2234,11 +2268,17 @@ def test_brave_cdp_real_annotation_edit_round_trip(
             f"detail.projectId === {json.dumps(project_id)}",
             timeout=45.0,
         )
-        page.wait_for_selector("[data-annotation-edit='1']", timeout=45.0)
+        page.wait_for_app_event_after_js(
+            "amiga:listing-window-rendered",
+            f"jumpToListingIndex({json.dumps(project_id)}, {edit_row_index}, {edit_addr})",
+            f"detail.start <= {edit_row_index} && detail.end > {edit_row_index}",
+            timeout=10.0,
+        )
+        page.wait_for_selector(f"[data-row-index='{edit_row_index}'] [data-annotation-edit='1']", timeout=45.0)
         page.wait_for_app_event_after_js(
             "amiga:annotation-edit-dialog-opened",
-            "document.querySelector('[data-row-addr=\"0\"] [data-annotation-edit=\"1\"]').click()",
-            "detail.addr === 0",
+            f"document.querySelector('[data-row-index=\"{edit_row_index}\"] [data-annotation-edit=\"1\"]').click()",
+            f"detail.addr === {edit_addr}",
             timeout=10.0,
         )
         page.evaluate(
@@ -2259,6 +2299,7 @@ def test_brave_cdp_real_annotation_edit_round_trip(
         page.assert_no_errors()
 
     overrides = json.loads((project_root / "targets" / project_id / "overrides.json").read_text(encoding="utf-8"))
-    assert overrides["entities"]["0x0000"]["name"] == "cdp_entry"
-    assert overrides["entities"]["0x0000"]["comment"] == "real c-backed annotation"
-    assert overrides["entities"]["0x0000"]["confidence"] == "verified"
+    entity_key = f"0x{edit_addr:04x}"
+    assert overrides["entities"][entity_key]["name"] == "cdp_entry"
+    assert overrides["entities"][entity_key]["comment"] == "real c-backed annotation"
+    assert overrides["entities"][entity_key]["confidence"] == "verified"

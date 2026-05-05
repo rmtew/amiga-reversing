@@ -1,4 +1,5 @@
 #include "platform_file_lib.h"
+#include "platform_file_decompression.h"
 #include "m68k_parse_util.h"
 
 #include <stdio.h>
@@ -87,6 +88,36 @@ static int api_input_struct_to_stdout(const char *platform_name, const char *lib
   }
   puts(result.text);
   platform_file_free_text(result.text);
+  return 0;
+}
+
+static int identify_packed_range_to_stdout(const char *provider_id, const char *provider_path,
+    const char *path, uint32_t offset, uint32_t size) {
+  char *text = NULL;
+  int result = platform_decompression_identify_path_range_json_alloc(provider_id, provider_path, path, offset, size,
+    &text);
+  if (result != 0) {
+    fprintf(stderr, "%s\n", text != NULL ? text : "failed identifying packed range");
+    platform_decompression_free_text(text);
+    return 1;
+  }
+  puts(text);
+  platform_decompression_free_text(text);
+  return 0;
+}
+
+static int decompress_packed_range_to_stdout(const char *provider_id, const char *provider_path,
+    const char *path, uint32_t offset, uint32_t size, const char *output_path) {
+  char *text = NULL;
+  int result = platform_decompression_decompress_path_range_json_alloc(provider_id, provider_path, path, offset, size,
+    output_path, &text);
+  if (result != 0) {
+    fprintf(stderr, "%s\n", text != NULL ? text : "failed decompressing packed range");
+    platform_decompression_free_text(text);
+    return 1;
+  }
+  puts(text);
+  platform_decompression_free_text(text);
   return 0;
 }
 
@@ -299,6 +330,45 @@ int main(int argc, char **argv) {
   if (argc == 3 && strcmp(argv[1], "os-metadata-catalog") == 0) return os_metadata_catalog_to_stdout(argv[2]);
   if (argc == 7 && strcmp(argv[1], "api-input-struct") == 0)
     return api_input_struct_to_stdout(argv[2], argv[3], argv[4], argv[5], argv[6]);
+  if ((argc == 5 || argc == 7) && strcmp(argv[1], "identify-packed-range") == 0) {
+    const char *provider_id = "ancient-cli", *provider_path = "", *path;
+    uint32_t offset, size;
+    int base_arg = 2;
+    if (argc == 7) {
+      if (strcmp(argv[2], "--provider") != 0) {
+        fprintf(stderr, "expected --provider\n");
+        return 2;
+      }
+      provider_path = argv[3];
+      base_arg = 4;
+    }
+    path = argv[base_arg];
+    if (!parse_u32_arg(argv[base_arg + 1], &offset) || !parse_u32_arg(argv[base_arg + 2], &size)) {
+      fprintf(stderr, "bad packed range\n");
+      return 2;
+    }
+    return identify_packed_range_to_stdout(provider_id, provider_path, path, offset, size);
+  }
+  if ((argc == 6 || argc == 8) && strcmp(argv[1], "decompress-packed-range") == 0) {
+    const char *provider_id = "ancient-cli", *provider_path = "", *path, *output_path;
+    uint32_t offset, size;
+    int base_arg = 2;
+    if (argc == 8) {
+      if (strcmp(argv[2], "--provider") != 0) {
+        fprintf(stderr, "expected --provider\n");
+        return 2;
+      }
+      provider_path = argv[3];
+      base_arg = 4;
+    }
+    path = argv[base_arg];
+    output_path = argv[base_arg + 3];
+    if (!parse_u32_arg(argv[base_arg + 1], &offset) || !parse_u32_arg(argv[base_arg + 2], &size)) {
+      fprintf(stderr, "bad packed range\n");
+      return 2;
+    }
+    return decompress_packed_range_to_stdout(provider_id, provider_path, path, offset, size, output_path);
+  }
   analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*analysis_policy));
   if (analysis_policy == NULL) {
     fprintf(stderr, "out of memory\n");

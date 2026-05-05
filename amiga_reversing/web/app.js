@@ -3497,7 +3497,7 @@ function renderListingRows(rows, globalStart = 0) {
       <span class="listing-offset">${escapeHtml(formatRowOffset(row.addr))}</span>
       <span class="listing-bytes">${escapeHtml(formatRowBytes(row.bytes))}</span>
       <span class="listing-code">${renderListingCodeHtml(row, globalStart + rowIndex)}</span>
-      <span class="listing-comment">${escapeHtml(renderListingComment(row))}${renderListingComment(row) && renderListingAnnotations(row) ? " " : ""}${renderListingAnnotations(row)}${renderReproIssueBadges(row)}${renderApiTypeBadges(row)}${renderUnresolvedTypedAccessBadges(row)}${(renderListingAnnotations(row) || renderReproIssueBadges(row) || renderApiTypeBadges(row) || renderUnresolvedTypedAccessBadges(row)) ? " " : ""}${renderApiEditButton(row, rowIndex)}${renderAnnotationEditButton(row, rowIndex)}</span>
+      <span class="listing-comment">${escapeHtml(renderListingComment(row))}${renderListingComment(row) && renderListingAnnotations(row) ? " " : ""}${renderListingAnnotations(row)}${renderReproIssueBadges(row)}${renderApiTypeBadges(row)}${renderUnresolvedTypedAccessBadges(row)}${(renderListingAnnotations(row) || renderReproIssueBadges(row) || renderApiTypeBadges(row) || renderUnresolvedTypedAccessBadges(row)) ? " " : ""}${renderApiEditButton(row, globalStart + rowIndex)}${renderAnnotationEditButton(row, globalStart + rowIndex)}</span>
       <span class="listing-column-resizer listing-column-resizer-offset" data-listing-column-resize="offset" aria-hidden="true"></span>
       <span class="listing-column-resizer listing-column-resizer-bytes" data-listing-column-resize="bytes" aria-hidden="true"></span>
       <span class="listing-column-resizer listing-column-resizer-code" data-listing-column-resize="code" aria-hidden="true"></span>
@@ -4554,7 +4554,9 @@ function navigationSummaryText(entries) {
     const gaps = Number(analysis.gap_count || 0);
     const suggestions = Number(analysis.suggestion_count || 0);
     const untyped = Number(analysis.untyped_api_arg_count || 0);
-    return `${slots} slots, ${refs} refs, ${typed} typed regions, ${gaps} gaps, ${suggestions} suggestions, ${untyped} untyped API args`;
+    if (slots || refs || typed || gaps || suggestions || untyped) {
+      return `${slots} slots, ${refs} refs, ${typed} typed regions, ${gaps} gaps, ${suggestions} suggestions, ${untyped} untyped API args`;
+    }
   }
   return `${entries.length} entries`;
 }
@@ -5413,6 +5415,19 @@ function renderBootBlockTarget(bootBlock, filesystem, bootblockTargetName) {
 }
 
 function renderDiskTargetMetadata(target, entry) {
+  if (target.derived_from && target.derived_from.kind === "decompressed_payload") {
+    const origin = target.derived_from;
+    const details = [];
+    if (origin.compressor) details.push(origin.compressor);
+    if (origin.parent_entry_path) details.push(`from ${origin.parent_entry_path}`);
+    if (origin.packed_file_offset !== null && origin.packed_file_offset !== undefined) {
+      details.push(`packed @ $${Number(origin.packed_file_offset).toString(16).toUpperCase()}`);
+    }
+    if (origin.load_address !== null && origin.load_address !== undefined) {
+      details.push(`loads @ $${Number(origin.load_address).toString(16).toUpperCase()}`);
+    }
+    return `${renderInlineBadges(["decompressed", formatTargetTypeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`;
+  }
   if (!entry && String(target.entry_path || "").startsWith("bootloader/")) {
     return `${renderInlineBadges([formatTargetTypeLabel(target.target_type)])} ${escapeHtml(target.binary_path || target.entry_path)}`;
   }

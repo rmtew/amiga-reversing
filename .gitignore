@@ -16,6 +16,7 @@ ext/*.lha
 *.o
 *.obj
 *.exe
+!ext/tools/ancient/Ancient.exe
 *.pyc
 __pycache__/
 *.prof

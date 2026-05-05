@@ -63,6 +63,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\test_m68k_instruction_spec.c ^
     src\test_m68k_ir.c ^
     src\test_m68k_diagnostics.c ^
+    src\test_platform_decompression.c ^
     src\test_m68k_c_main.c ^
     src\m68k_source_ir_render.c ^
     src\m68k_source_model.c ^
@@ -91,6 +92,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\platform_file_atari_st.c ^
     src\platform_file_platform.c ^
     src\platform_file_json.c ^
+    src\platform_file_decompression.c ^
     src\json_builder.c ^
     src\m68k_object.c ^
     src\platform_amiga_hunk.c ^
@@ -167,6 +169,7 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\test_m68k_instruction_spec.obj ^
     %OUTDIR%\test_m68k_ir.obj ^
     %OUTDIR%\test_m68k_diagnostics.obj ^
+    %OUTDIR%\test_platform_decompression.obj ^
     %OUTDIR%\m68k_c_unit_test.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
@@ -204,6 +207,7 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\platform_file_atari_st.obj ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
+    %OUTDIR%\platform_file_decompression.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
     %OUTDIR%\platform_atari_st.obj ^
@@ -291,6 +295,7 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\platform_file_atari_st.obj ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
+    %OUTDIR%\platform_file_decompression.obj ^
     %OUTDIR%\platform_common.obj ^
     %OUTDIR%\platform_facts_v2.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
@@ -356,6 +361,7 @@ link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\platform_file_atari_st.obj ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
+    %OUTDIR%\platform_file_decompression.obj ^
     %OUTDIR%\platform_common.obj ^
     %OUTDIR%\platform_facts_v2.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
@@ -421,6 +427,7 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\platform_file_atari_st.obj ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
+    %OUTDIR%\platform_file_decompression.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\m68k_source_ir_api_dll.obj ^
     %OUTDIR%\m68k_assembler_api.obj ^
@@ -480,6 +487,7 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
     %OUTDIR%\platform_file_atari_st.obj ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
+    %OUTDIR%\platform_file_decompression.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\m68k_source_ir_api_dll.obj ^
     %OUTDIR%\m68k_assembler_api.obj ^

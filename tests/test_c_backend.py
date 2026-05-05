@@ -25,12 +25,14 @@ from amiga_reversing.disasm.c_backend import (
     build_project_rows_generation_with_c_backend,
     build_project_rows_generation_with_c_backend_profile,
     build_project_rows_generation_with_c_backend_profile_text,
+    decompress_packed_range_with_c_backend,
     extract_disk_entry_with_c_backend,
     facts_v2_asm_source_project_source_with_c_backend,
     facts_v2_asm_source_project_source_with_c_backend_profile,
     facts_v2_direct_rebuild_project_source_with_c_backend_profile,
     facts_v2_render_assemble_project_source_with_c_backend_profile,
     inspect_disk_with_c_backend,
+    identify_packed_range_with_c_backend,
     render_binary_source_with_c_backend,
     render_project_source_with_c_backend,
     rows_from_c_listing_json,
@@ -75,6 +77,24 @@ def _amiga_hunk_section_hexes(path: Path) -> list[str]:
     )
     assert result.returncode == 0, result.stderr
     return [section["data_hex"] for section in json.loads(result.stdout)["sections"]]
+
+
+def test_decompression_c_backend_reports_unknown_payload(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    payload = tmp_path / "unknown.bin"
+    output = tmp_path / "unknown.out"
+    payload.write_bytes(b"not packed")
+
+    identified = identify_packed_range_with_c_backend(payload, 0, payload.stat().st_size)
+    assert identified["status"] == "ok"
+    packed_payload = identified["packed_payloads"][0]
+    assert packed_payload["found"] is False
+    assert len(packed_payload["source_sha256"]) == 64
+
+    decompressed = decompress_packed_range_with_c_backend(payload, 0, payload.stat().st_size, output)
+    assert decompressed["status"] == "ok"
+    assert decompressed["packed_payloads"][0]["found"] is False
+    assert not output.exists()
 
 
 def _facts_v2_listing_analysis_for_project(target_name: str) -> dict[str, object]:
@@ -1488,6 +1508,36 @@ def test_project_source_raw_binary_uses_raw_dll_with_local_entrypoint(monkeypatc
     ]
 
 
+def test_project_source_runtime_absolute_raw_binary_uses_local_entry_offset(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    binary_path = tmp_path / "decompressed.bin"
+    binary_path.write_bytes(b"\x4e\xf9\x00\x00\x9b\x3a")
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="runtime_absolute",
+        load_address=0x4000,
+        entrypoint=0x4000,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    calls: list[tuple[object, ...]] = []
+
+    def fake_file_run(function_name: str, *args: object, project_root: Path) -> str:
+        calls.append((function_name, *args))
+        return '{"sections":[]}'
+
+    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
+
+    assert analyze_project_source_with_c_backend(source, project_root=tmp_path) == {"sections": []}
+    assert calls == [
+        ("platform_file_facts_v2_analysis_raw_path_json_alloc", "amiga-raw", str(binary_path), 0, "", ""),
+    ]
+
+
 def test_project_source_benchmark_uses_facts_v2(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1631,7 +1681,7 @@ def test_project_source_facts_v2_asm_source_uses_dedicated_c_api(monkeypatch, tm
     ]
 
 
-def test_project_source_runtime_absolute_raw_binary_passes_runtime_entrypoint(
+def test_project_source_runtime_absolute_raw_binary_passes_local_entry_offset(
     monkeypatch, tmp_path: Path
 ) -> None:
     binary_path = tmp_path / "stage.bin"
@@ -1657,7 +1707,7 @@ def test_project_source_runtime_absolute_raw_binary_passes_runtime_entrypoint(
     facts_v2_asm_source_project_source_with_c_backend(source, project_root=tmp_path)
 
     assert calls == [
-        ("platform_file_facts_v2_asm_source_raw_path_text_alloc", "amiga-raw", str(binary_path), 0x400, ""),
+        ("platform_file_facts_v2_asm_source_raw_path_text_alloc", "amiga-raw", str(binary_path), 0, ""),
     ]
 
 
