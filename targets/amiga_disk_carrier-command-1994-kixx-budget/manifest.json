@@ -16037,7 +16037,7 @@
           "load_address": 16384,
           "packed_file_offset": 19552,
           "packed_section_offset": 19520,
-          "packed_size": 168397,
+          "packed_size": 168391,
           "parent_entry_path": "Carrier",
           "parent_target": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_carrier_91b0ba24"
         }
@@ -16059,7 +16059,7 @@
         "load_address": 16384,
         "packed_file_offset": 19552,
         "packed_section_offset": 19520,
-        "packed_size": 168397,
+        "packed_size": 168391,
         "parent_entry_path": "Carrier",
         "parent_target": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_carrier_91b0ba24"
       },
