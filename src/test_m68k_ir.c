@@ -5907,6 +5907,42 @@ static int test_listing_json_uses_render_plan_statement_provenance(void) {
   return 0;
 }
 
+static int test_listing_json_uses_render_plan_source_range_provenance(void) {
+  M68kSourceFileIR source_file;
+  M68kSectionIR section;
+  M68kRenderPlan render_plan;
+  M68kRenderPlanRow *row = NULL;
+  char *rows_json = NULL;
+
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_create(&source_file));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_create(&section));
+  m68k_render_plan_init(&render_plan);
+  source_file.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  source_file.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = 2U;
+  M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 0U, "rts", 0U, NULL));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
+
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan,
+    M68K_RENDER_PLAN_ROW_INSTRUCTION, 0U, "\trts\n", &row));
+  m68k_render_plan_row_set_source_range(row, 0U, 0U, 2U);
+
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
+    NULL, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(rows_json != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"kind\":\"instruction\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"section_index\":0") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"start_offset\":0") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"end_offset\":2") != NULL);
+
+  free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
+  m68k_ir_section_destroy(&section);
+  m68k_ir_source_file_destroy(&source_file);
+  return 0;
+}
+
 static int test_listing_json_emits_app_slot_regions_from_platform_api_inputs(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
@@ -12016,6 +12052,8 @@ int m68k_c_ir_tests(void) {
       test_listing_json_text_plan_emits_expected_rows},
     {"listing_json_uses_render_plan_statement_provenance",
       test_listing_json_uses_render_plan_statement_provenance},
+    {"listing_json_uses_render_plan_source_range_provenance",
+      test_listing_json_uses_render_plan_source_range_provenance},
     {"listing_json_emits_app_slot_regions_from_platform_api_inputs",
       test_listing_json_emits_app_slot_regions_from_platform_api_inputs},
     {"listing_json_tracks_app_slot_address_through_lea_copy",

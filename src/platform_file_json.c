@@ -4767,12 +4767,30 @@ static int listing_section_index_for_plan_row(const M68kRenderPlanRow *row) {
 static const M68kStatementIR *listing_statement_for_plan_row(const M68kSourceFileIR *source_file,
     const M68kRenderPlanRow *row) {
   const M68kSectionIR *section;
+  size_t statement_index;
   if (source_file == NULL || row == NULL || !row->has_statement ||
       row->source_section_index >= source_file->section_count)
-    return NULL;
+    goto source_range_lookup;
   section = &source_file->sections[row->source_section_index];
   if (row->statement_index >= section->statement_count) return NULL;
   return &section->statements[row->statement_index];
+
+source_range_lookup:
+  if (source_file == NULL || row == NULL || !row->has_source_range ||
+      row->source_section_index >= source_file->section_count)
+    return NULL;
+  section = &source_file->sections[row->source_section_index];
+  for (statement_index = 0U; statement_index < section->statement_count; ++statement_index) {
+    const M68kStatementIR *stmt = &section->statements[statement_index];
+    if (stmt->offset != row->source_offset) continue;
+    if ((row->kind == M68K_RENDER_PLAN_ROW_LABEL && stmt->kind == M68K_STATEMENT_LABEL) ||
+        (row->kind == M68K_RENDER_PLAN_ROW_INSTRUCTION && stmt->kind == M68K_STATEMENT_INSTRUCTION) ||
+        ((row->kind == M68K_RENDER_PLAN_ROW_DATA || row->kind == M68K_RENDER_PLAN_ROW_RESERVE) &&
+          (stmt->kind == M68K_STATEMENT_DATA || stmt->kind == M68K_STATEMENT_RESERVE))) {
+      return stmt;
+    }
+  }
+  return NULL;
 }
 
 static int append_basic_listing_render_plan_line(const M68kRenderPlanRow *row, uint32_t subline, uint32_t line,
@@ -4972,7 +4990,7 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
     section_index = context->active_section_index;
     context->statement_index = 0U;
     context->data_lines_left = 0U;
-  } else if (row != NULL && row->has_statement) {
+  } else if (row != NULL && (row->has_statement || row->has_source_range)) {
     stmt = listing_statement_for_plan_row(context->source_file, row);
     if (section_index >= 0) context->active_section_index = section_index;
   } else if (context->active_section_index >= 0) {

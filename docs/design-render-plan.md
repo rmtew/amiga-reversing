@@ -69,6 +69,9 @@ The full listing row emitter now consumes render-plan statement provenance when
 available instead of depending only on section-line matching. The production
 facts_v2 bridge still needs authoritative statement provenance added to its
 captured plan before the source-model rebuild can be removed.
+It can also resolve rows from plan-owned source section/offset ranges, which is
+the lighter provenance shape the facts_v2 render walk can emit before exact
+source-file statement indexes exist.
 
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
