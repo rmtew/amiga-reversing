@@ -169,6 +169,13 @@ fail:
 #endif
 }
 
+static void fill_provider_metadata_local(PlatformDecompressionIdentifyResult *result, const char *provider_path) {
+  if (result == NULL) return;
+  if (provider_path == NULL) provider_path = "";
+  snprintf(result->provider_path, sizeof(result->provider_path), "%s", provider_path);
+  if (provider_path[0] != '\0') (void)file_sha256_hex_local(provider_path, NULL, result->provider_sha256);
+}
+
 static int write_file_range_local(const char *path, uint32_t offset, uint32_t size, char *temp_path,
     size_t temp_path_size, char *error, size_t error_size) {
   FILE *input = NULL;
@@ -487,7 +494,7 @@ int platform_decompression_identify_path_range(const char *provider_id, const ch
     return -1;
   }
   snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", actual_provider_id);
-  snprintf(out_result->provider_path, sizeof(out_result->provider_path), "%s", actual_provider_path);
+  fill_provider_metadata_local(out_result, actual_provider_path);
   out_result->source_offset = offset;
   out_result->packed_size = size;
   temp_path[0] = '\0';
@@ -515,7 +522,7 @@ int platform_decompression_identify_buffer_range(const char *provider_id, const 
     return -1;
   }
   snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", actual_provider_id);
-  snprintf(out_result->provider_path, sizeof(out_result->provider_path), "%s", actual_provider_path);
+  fill_provider_metadata_local(out_result, actual_provider_path);
   out_result->source_offset = offset;
   out_result->packed_size = size;
   temp_path[0] = '\0';
@@ -552,7 +559,7 @@ int platform_decompression_decompress_path_range(const char *provider_id, const 
     return -1;
   }
   snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", actual_provider_id);
-  snprintf(out_result->provider_path, sizeof(out_result->provider_path), "%s", actual_provider_path);
+  fill_provider_metadata_local(out_result, actual_provider_path);
   snprintf(out_result->decompressed_path, sizeof(out_result->decompressed_path), "%s", output_path);
   out_result->source_offset = offset;
   out_result->packed_size = size;
@@ -597,7 +604,7 @@ int platform_decompression_decompress_buffer_range(const char *provider_id, cons
     return -1;
   }
   snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", actual_provider_id);
-  snprintf(out_result->provider_path, sizeof(out_result->provider_path), "%s", actual_provider_path);
+  fill_provider_metadata_local(out_result, actual_provider_path);
   snprintf(out_result->decompressed_path, sizeof(out_result->decompressed_path), "%s", output_path);
   out_result->source_offset = offset;
   out_result->packed_size = size;
@@ -633,6 +640,10 @@ int platform_decompression_append_result_json(JsonBuilder *builder,
   if (json_builder_append_json_string(builder, result->provider_id) != 0) return -1;
   if (json_builder_append(builder, ",\"provider_path\":") != 0) return -1;
   if (json_builder_append_json_string(builder, result->provider_path) != 0) return -1;
+  if (result->provider_sha256[0] != '\0') {
+    if (json_builder_append(builder, ",\"provider_sha256\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, result->provider_sha256) != 0) return -1;
+  }
   if (json_builder_appendf(builder, ",\"found\":%s", result->found ? "true" : "false") != 0) return -1;
   if (json_builder_appendf(builder, ",\"source_offset\":%u,\"packed_size\":%u",
       (unsigned)result->source_offset, (unsigned)result->packed_size) != 0) return -1;

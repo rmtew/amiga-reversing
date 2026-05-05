@@ -10,6 +10,7 @@ typedef struct PlatformDecompressionIdentifyResult {
   int found;
   char provider_id[32];
   char provider_path[512];
+  char provider_sha256[65];
   char codec_id[64];
   char codec_name[160];
   char confidence[32];

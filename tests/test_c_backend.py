@@ -92,6 +92,7 @@ def test_decompression_c_backend_reports_unknown_payload(tmp_path: Path) -> None
     assert identified["status"] == "ok"
     packed_payload = identified["packed_payloads"][0]
     assert packed_payload["found"] is False
+    assert len(packed_payload["provider_sha256"]) == 64
     assert len(packed_payload["source_sha256"]) == 64
 
     decompressed = decompress_packed_range_with_c_backend(payload, 0, payload.stat().st_size, output)

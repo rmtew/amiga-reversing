@@ -32,6 +32,7 @@ static int test_decompression_identify_reports_unknown_payload_without_failure(v
     path, 0U, 10U, &result, error, sizeof(error)));
   M68K_C_ASSERT_U32(0U, result.found);
   M68K_C_ASSERT_STR("ancient-cli", result.provider_id);
+  M68K_C_ASSERT_U32(64U, (uint32_t)strlen(result.provider_sha256));
   M68K_C_ASSERT_U32(64U, (uint32_t)strlen(result.source_sha256));
   remove(path);
   return 0;

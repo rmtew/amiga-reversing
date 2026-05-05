@@ -55,6 +55,8 @@ A first C decompression provider layer now exists:
 - `platform_file_cli identify-packed-range` can identify an explicit byte range.
 - `platform_file_cli decompress-packed-range` can materialise provider output
   and report packed/decompressed SHA-256 and decompressed size.
+- Provider records include the staged provider path and executable SHA-256, so
+  decompression provenance is tied to the exact Ancient binary used.
 - The same identify/decompress records are exported through
   `platform_file_lib.dll` for the Python C backend wrapper.
 - Facts-v2 analysis JSON now includes top-level `packed_payloads[]` and
@@ -326,6 +328,7 @@ Current retained output:
 17. Done: align the C RNC candidate scanner with the local Ancient RNC detector
    headers, adding RNC2 and `...\1` candidate support while keeping provider
    identify/decompress as the authority.
+18. Done: include provider executable SHA-256 in C provider JSON records.
 
 ## Current Corpus Query Proof
 
