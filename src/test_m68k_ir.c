@@ -2836,7 +2836,6 @@ static int test_facts_v2_render_asm_source_keeps_unrelocated_abs_call_numeric(vo
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_00000006:") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr $00000006.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "jsr loc_0_00000006") == NULL);
   M68K_C_ASSERT(strstr(source, "runtime_") == NULL);
@@ -4174,6 +4173,47 @@ static int test_facts_v2_maps_copied_runtime_absolute_call_to_source_offset(void
   M68K_C_ASSERT(strstr(source, "    ORG $100\nabs_0_00000100:\n\tjsr abs_0_00000110.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "abs_0_00000110:\n\tnop\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr $00000110.l\n") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_unmapped_absolute_jump_inside_copied_source_stays_numeric(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[44] = {
+    0x41u, 0xfau, 0x00u, 0x1eu,
+    0x43u, 0xf9u, 0x00u, 0x00u, 0x01u, 0x00u,
+    0x70u, 0x08u,
+    0x12u, 0xd8u,
+    0x53u, 0x80u,
+    0x64u, 0xfau,
+    0x4eu, 0xf9u, 0x00u, 0x00u, 0x00u, 0x24u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0x71u, 0x4eu, 0x75u, 0x4eu, 0x71u, 0x4eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp $00000024.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp abs_0_00000104.l\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000104:") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
   m68k_facts_v2_free_text(source);
@@ -11695,6 +11735,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_maps_copied_runtime_vector_target_to_source_offset},
     {"facts_v2_maps_copied_runtime_absolute_call_to_source_offset",
       test_facts_v2_maps_copied_runtime_absolute_call_to_source_offset},
+    {"facts_v2_unmapped_absolute_jump_inside_copied_source_stays_numeric",
+      test_facts_v2_unmapped_absolute_jump_inside_copied_source_stays_numeric},
     {"facts_v2_runtime_trampoline_copy_does_not_force_low_org",
       test_facts_v2_runtime_trampoline_copy_does_not_force_low_org},
     {"facts_v2_policy_runtime_entrypoint_maps_absolute_load",

@@ -33,7 +33,44 @@ void platform_decompression_identify_result_init(PlatformDecompressionIdentifyRe
 
 static const char *default_ancient_path_local(void) {
   const char *env = getenv("AMIGA_ANCIENT_EXE");
+#ifdef _WIN32
+  static char resolved_path[MAX_PATH];
+  HMODULE module = NULL;
+  DWORD length;
+  char *cursor;
+  DWORD attrs;
+#endif
   if (env != NULL && env[0] != '\0') return env;
+#ifdef _WIN32
+  if (resolved_path[0] != '\0') return resolved_path;
+  if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+        GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        (LPCSTR)&default_ancient_path_local, &module) &&
+      module != NULL) {
+    length = GetModuleFileNameA(module, resolved_path, sizeof(resolved_path));
+    if (length != 0U && length < sizeof(resolved_path)) {
+      cursor = strrchr(resolved_path, '\\');
+      if (cursor != NULL) {
+        *cursor = '\0';
+        cursor = strrchr(resolved_path, '\\');
+      }
+      if (cursor != NULL) {
+        *cursor = '\0';
+        cursor = strrchr(resolved_path, '\\');
+      }
+      if (cursor != NULL) {
+        *cursor = '\0';
+        if (strlen(resolved_path) + strlen("\\ext\\tools\\ancient\\Ancient.exe") < sizeof(resolved_path)) {
+          strcat(resolved_path, "\\ext\\tools\\ancient\\Ancient.exe");
+          attrs = GetFileAttributesA(resolved_path);
+          if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0U)
+            return resolved_path;
+        }
+      }
+    }
+  }
+  resolved_path[0] = '\0';
+#endif
   return "ext\\tools\\ancient\\Ancient.exe";
 }
 
@@ -59,12 +96,30 @@ static int quote_arg_local(char *out, size_t out_size, const char *arg) {
 }
 
 static int make_temp_path_local(char *out, size_t out_size) {
+#ifdef _WIN32
+  char temp_dir[MAX_PATH];
+  char temp_file[MAX_PATH];
+  DWORD dir_len;
+#else
   const char *dir = getenv("TEMP");
   uint32_t pid = (uint32_t)_getpid();
   uint32_t tick = (uint32_t)clock();
+#endif
   if (out == NULL || out_size == 0U) return 0;
+#ifdef _WIN32
+  dir_len = GetTempPathA(sizeof(temp_dir), temp_dir);
+  if (dir_len == 0U || dir_len >= sizeof(temp_dir)) return 0;
+  if (GetTempFileNameA(temp_dir, "agr", 0U, temp_file) == 0U) return 0;
+  if (strlen(temp_file) + 1U > out_size) {
+    DeleteFileA(temp_file);
+    return 0;
+  }
+  strcpy(out, temp_file);
+  return 1;
+#else
   if (dir == NULL || dir[0] == '\0') dir = ".";
   return snprintf(out, out_size, "%s\\amiga_depack_%u_%u.bin", dir, (unsigned)pid, (unsigned)tick) > 0;
+#endif
 }
 
 static int file_sha256_hex_local(const char *path, uint32_t *out_size, char out_hex[65]) {
@@ -365,6 +420,7 @@ int platform_decompression_identify_buffer_range(const char *provider_id, const 
   const char *actual_provider_id;
   const char *actual_provider_path;
   int result;
+  uint32_t candidate_size = 0U;
   if (out_result == NULL) return -1;
   platform_decompression_identify_result_init(out_result);
   actual_provider_id = (provider_id != NULL && provider_id[0] != '\0') ? provider_id : "ancient-cli";
@@ -382,6 +438,10 @@ int platform_decompression_identify_buffer_range(const char *provider_id, const 
     return -1;
   (void)file_sha256_hex_local(temp_path, NULL, out_result->source_sha256);
   result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
+  if (result == 0 && !out_result->found &&
+      ancient_rnc1_candidate_size_local(data, data_size, offset, &candidate_size) && candidate_size == size) {
+    result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
+  }
   remove(temp_path);
   return result;
 }
@@ -437,6 +497,7 @@ int platform_decompression_decompress_buffer_range(const char *provider_id, cons
   const char *actual_provider_id;
   const char *actual_provider_path;
   int result;
+  uint32_t candidate_size = 0U;
   if (out_result == NULL) return -1;
   platform_decompression_identify_result_init(out_result);
   if (output_path == NULL || output_path[0] == '\0') {
@@ -459,6 +520,10 @@ int platform_decompression_decompress_buffer_range(const char *provider_id, cons
     return -1;
   (void)file_sha256_hex_local(temp_path, NULL, out_result->source_sha256);
   result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
+  if (result == 0 && !out_result->found &&
+      ancient_rnc1_candidate_size_local(data, data_size, offset, &candidate_size) && candidate_size == size) {
+    result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
+  }
   if (result == 0 && !out_result->found) {
     remove(temp_path);
     return 0;

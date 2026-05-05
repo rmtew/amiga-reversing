@@ -20,11 +20,13 @@ complete.
 
 ## Current Status
 
-Carrier Command proves the concept for one RNC1 payload:
+Carrier Command proves the concept for RNC1 payload discovery and one retained
+decompressed child:
 
 - Parent target:
   `amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_carrier_91b0ba24`
-- Packed stream:
+- Packed streams:
+  hunk section offsets `$05E4` and `$4C40`; the retained child corresponds to
   file offset `$4C60`, hunk section offset `$4C40`
 - Provider used:
   Ancient CLI, `RNC1: Rob Northen RNC1 Compressor (old)`
@@ -44,6 +46,9 @@ A first C decompression provider layer now exists:
 - Ancient is staged at `ext/tools/ancient/Ancient.exe`.
 - `src/build.bat` fails fast if the staged Ancient provider binary is missing,
   so provider-backed decompression cannot silently disappear from a local build.
+- The C provider default resolves the staged Ancient path relative to the loaded
+  module on Windows, so DLL callers do not depend on the process current
+  directory. `AMIGA_ANCIENT_EXE` remains an explicit override.
 - `platform_file_cli identify-packed-range` can identify an explicit byte range.
 - `platform_file_cli decompress-packed-range` can materialise provider output
   and report packed/decompressed SHA-256 and decompressed size.
@@ -70,14 +75,18 @@ A first C decompression provider layer now exists:
   targets from C `derived_target_suggestions[]`, but only when the C record has
   `status: "materializable"` plus concrete source section, packed size,
   decompressed size, load address, and entrypoint metadata.
-- Carrier's RNC stream is identified both as an extracted range file and in the
-  original parent file at offset `$4C40`.
+- Carrier's retained-child RNC stream is identified both as an extracted range
+  file and in the original parent file at offset `$4C40`. Parent analysis also
+  identifies a smaller RNC stream at `$05E4`; it remains conservative because no
+  load/entry metadata is proven for it.
 - The C-decompressed Carrier output hash matches the existing derived child
   binary.
 - Carrier's parent analysis intentionally still emits `needs_runtime_metadata`
-  for the derived target suggestion: the observed `$4000` jump is also an
+  for both derived target suggestions: the observed `$4000` jump is also an
   in-section absolute source address, so it must not be promoted to load/entry
-  metadata until copied-runtime evidence proves that relationship.
+  metadata until copied-runtime evidence proves that relationship. Source
+  rendering now keeps that jump numeric and does not create false source labels
+  at `$4000`/`$4004`.
 
 This is not yet clean general support. Discovery, acceptance, extraction, and
 child materialisation are not yet driven end-to-end by C-emitted records.
@@ -229,6 +238,9 @@ Current retained output:
 - Facts-v2 analysis of the Carrier parent hunk emits a packed payload at section
   offset `$4C40`, packed size 168397, decompressed size 359600, and the same
   decompressed SHA-256.
+- Facts-v2 analysis also emits Carrier's smaller RNC stream at section offset
+  `$05E4`, packed size 18018, decompressed size 32032. It is deliberately not
+  materialised without runtime metadata.
 - Corpus usage indexing can tag that record as `compressed-payload`,
   `compressed:rnc1-old`, `decompression:provider:ancient-cli`, and
   `derived-decompressed-target`.
@@ -277,6 +289,8 @@ Current retained output:
    `Trainer` RNC1 payload from the corpus resources.
 14. Done: raw decompressed child reproduction assembles C-rendered raw source
    to payload bytes and compares against the decompressed binary.
+15. Done: make the C Ancient provider default path independent of the caller's
+   current working directory and cover it with the Voodoo comparator test.
 
 ## Current Corpus Query Proof
 

@@ -3840,30 +3840,62 @@ def test_real_dll_carrier_predecrement_copied_entry_promotes_loader_code() -> No
     )
 
 
-def test_real_dll_carrier_decompression_suggestion_requires_runtime_metadata() -> None:
+def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -> None:
     _requires_c_backend_dlls()
 
-    combined = _facts_v2_listing_analysis_for_project(
-        "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_carrier_91b0ba24"
+    target_name = "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_carrier_91b0ba24"
+    combined = _facts_v2_listing_analysis_for_project(target_name)
+    paths = resolve_project_paths(
+        target_name,
+        project_root=PROJECT_ROOT,
+        require_entities=False,
     )
     payloads = combined["analysis"]["packed_payloads"]
     suggestions = combined["analysis"]["derived_target_suggestions"]
+    payloads_by_offset = {payload["source_section_offset"]: payload for payload in payloads}
+    suggestions_by_offset = {suggestion["source_section_offset"]: suggestion for suggestion in suggestions}
 
-    assert len(payloads) == 1
-    assert payloads[0]["provider_id"] == "ancient-cli"
-    assert payloads[0]["codec_id"] == "rnc1-old"
-    assert payloads[0]["source_section"] == 0
-    assert payloads[0]["source_section_offset"] == 0x4C40
-    assert payloads[0]["decompressed_size"] == 359600
-    assert len(suggestions) == 1
-    assert suggestions[0]["status"] == "needs_runtime_metadata"
-    assert suggestions[0]["source_section_offset"] == 0x4C40
-    assert "load_address" not in suggestions[0]
-    assert "entrypoint" not in suggestions[0]
+    assert set(payloads_by_offset) == {0x05E4, 0x4C40}
+    assert payloads_by_offset[0x05E4]["provider_id"] == "ancient-cli"
+    assert payloads_by_offset[0x05E4]["codec_id"] == "rnc1-old"
+    assert payloads_by_offset[0x05E4]["source_section"] == 0
+    assert payloads_by_offset[0x05E4]["decompressed_size"] == 32032
+    assert payloads_by_offset[0x4C40]["provider_id"] == "ancient-cli"
+    assert payloads_by_offset[0x4C40]["codec_id"] == "rnc1-old"
+    assert payloads_by_offset[0x4C40]["source_section"] == 0
+    assert payloads_by_offset[0x4C40]["decompressed_size"] == 359600
+    assert set(suggestions_by_offset) == {0x05E4, 0x4C40}
+    for suggestion in suggestions:
+        assert suggestion["status"] == "needs_runtime_metadata"
+        assert "load_address" not in suggestion
+        assert "entrypoint" not in suggestion
+
+    source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "\tjmp $00004000.l\n" in source_text
+    assert "loc_0_00004000:" not in source_text
+    assert "loc_0_00004004:" not in source_text
+
+    rebuilt, direct_source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        compare_original=True,
+        project_root=PROJECT_ROOT,
+    )
+    assert len(rebuilt) == 188240
+    assert direct_source_profile["facts_v2"]["asm_source_refused"] is False
+    assert direct_profile["direct_rebuild_exact"] is True
 
 
-def test_real_dll_voodoo_trainer_decompression_comparator(tmp_path: Path) -> None:
+def test_real_dll_voodoo_trainer_decompression_comparator(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     _requires_c_backend_dlls()
+    monkeypatch.chdir(tmp_path)
 
     archive = PROJECT_ROOT / "resources" / "platform_amiga" / (
         "Voodoo Nightmare (1990)(Palace)[cr CLS][t +13 Flashtro].zip"

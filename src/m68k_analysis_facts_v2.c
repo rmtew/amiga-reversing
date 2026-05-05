@@ -1295,6 +1295,32 @@ static int operand_is_postincrement_address_register(uint8_t kind, const M68kAsm
   return 0;
 }
 
+static int operand_is_plain_address_register_indirect(uint8_t kind, const M68kAsmOperandValue *operand,
+    uint8_t *out_reg) {
+  if (operand == NULL) return 0;
+  if (kind == M68K_ASM_OPERAND_IND) {
+    if (out_reg != NULL) *out_reg = operand->reg;
+    return operand->reg < 8U;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 2U && operand->ea_reg < 8U) {
+    if (out_reg != NULL) *out_reg = operand->ea_reg;
+    return 1;
+  }
+  return 0;
+}
+
+static int operand_is_control_address_register_indirect(uint8_t kind, const M68kAsmOperandValue *operand,
+    uint8_t *out_reg) {
+  if (operand == NULL) return 0;
+  if (kind == M68K_ASM_OPERAND_IND || kind == M68K_ASM_OPERAND_POSTINC ||
+      kind == M68K_ASM_OPERAND_PREDEC) {
+    if (operand->reg >= 8U) return 0;
+    if (out_reg != NULL) *out_reg = operand->reg;
+    return 1;
+  }
+  return operand_is_plain_address_register_indirect(kind, operand, out_reg);
+}
+
 static int operand_absolute_value(uint8_t kind, const M68kAsmOperandValue *operand, uint32_t *out_value) {
   if (operand == NULL || out_value == NULL) return 0;
   if (kind == M68K_ASM_OPERAND_ABSL ||
@@ -3431,18 +3457,9 @@ static int trace_state_control_target_operand_address(const M68kDecodeCandidate 
     return 0;
   }
   operand = &candidate->operands[operand_index];
-  if (candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_IND ||
-      candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_POSTINC ||
-      candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_PREDEC) {
-    if (operand->reg >= 8U) return 0;
-    reg = operand->reg;
-  } else if (operand->kind == M68K_ASM_OPERAND_EA) {
-    if (operand->ea_reg >= 8U || metadata->operand_ea_uses_index[operand_index] ||
-        metadata->operand_ea_uses_displacement[operand_index]) {
-      return 0;
-    }
-    reg = operand->ea_reg;
-  } else {
+  if (!operand_is_control_address_register_indirect(candidate->operand_kinds[operand_index], operand, &reg)) return 0;
+  if (operand->kind == M68K_ASM_OPERAND_EA &&
+      (metadata->operand_ea_uses_index[operand_index] || metadata->operand_ea_uses_displacement[operand_index])) {
     return 0;
   }
   value = trace_state->a[reg];
@@ -3481,16 +3498,8 @@ static int enqueue_traced_indirect_control_target(M68kDecodeIR *decode, M68kFact
         &target_address)) {
       const M68kAsmOperandValue *operand = &candidate->operands[operand_index];
       const M68kFactsV2TraceValue *value = NULL;
-      if (candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_IND ||
-          candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_POSTINC ||
-          candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_PREDEC) {
-        if (operand->reg >= 8U) continue;
-        reg = operand->reg;
-      } else if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_reg < 8U) {
-        reg = operand->ea_reg;
-      } else {
+      if (!operand_is_control_address_register_indirect(candidate->operand_kinds[operand_index], operand, &reg))
         continue;
-      }
       value = &trace_state->a[reg];
       if (value->kind != M68K_FACTS_V2_TRACE_TARGET_SET || value->section_index != section_index)
         continue;
@@ -3542,18 +3551,7 @@ static int enqueue_traced_copied_entry_control_target(M68kDecodeIR *decode, M68k
       continue;
     }
     operand = &candidate->operands[operand_index];
-    if (candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_IND ||
-        candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_POSTINC ||
-        candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_PREDEC) {
-      if (operand->reg >= 8U) continue;
-      reg = operand->reg;
-    } else if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_reg < 8U &&
-        !metadata->operand_ea_uses_index[operand_index] &&
-        !metadata->operand_ea_uses_displacement[operand_index]) {
-      reg = operand->ea_reg;
-    } else {
-      continue;
-    }
+    if (!operand_is_control_address_register_indirect(candidate->operand_kinds[operand_index], operand, &reg)) continue;
     if (reg != trace_state->copied_entry_dest_reg) continue;
     return enqueue_same_section_control_resolved_target(decode, facts, queue, accepted_start, accepted_bytes,
       profile, max_cpu, section_index, candidate, trace_state->copied_entry_source_offset, 0U, 0U,
@@ -3727,10 +3725,12 @@ static int candidate_indirect_control_uses_address_reg(const M68kDecodeCandidate
         operand->reg == reg) {
       return 1;
     }
-    if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_reg == reg &&
-        !metadata->operand_ea_uses_index[operand_index] &&
-        !metadata->operand_ea_uses_displacement[operand_index]) {
-      return 1;
+    {
+      uint8_t indirect_reg = 0U;
+      if (operand_is_plain_address_register_indirect(candidate->operand_kinds[operand_index],
+          operand, &indirect_reg) && indirect_reg == reg) {
+        return 1;
+      }
     }
   }
   return 0;
@@ -3805,19 +3805,8 @@ static int candidate_indirect_control_address_register(const M68kDecodeCandidate
         metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET) {
       continue;
     }
-    if ((candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_IND ||
-         candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_POSTINC ||
-         candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_PREDEC) &&
-        operand->reg < 8U) {
-      *out_reg = operand->reg;
+    if (operand_is_control_address_register_indirect(candidate->operand_kinds[operand_index], operand, out_reg))
       return 1;
-    }
-    if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_reg < 8U &&
-        !metadata->operand_ea_uses_index[operand_index] &&
-        !metadata->operand_ea_uses_displacement[operand_index]) {
-      *out_reg = operand->ea_reg;
-      return 1;
-    }
   }
   return 0;
 }
@@ -4650,9 +4639,11 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
       if (target->kind != M68K_DECODE_TARGET_DATA) {
         uint32_t runtime_address = 0U;
         uint32_t mapped_offset = 0U;
-        if (candidate_absolute_control_address(candidate, &runtime_address) &&
-            runtime_address_space_translate(runtime_addresses, item.section_index, runtime_address, section->size,
-              &mapped_offset)) {
+        if (candidate_absolute_control_address(candidate, &runtime_address)) {
+          if (!runtime_address_space_translate(runtime_addresses, item.section_index, runtime_address,
+              section->size, &mapped_offset)) {
+            continue;
+          }
           target_offset = mapped_offset;
           target_has_runtime = 1U;
           target_runtime = runtime_address;
