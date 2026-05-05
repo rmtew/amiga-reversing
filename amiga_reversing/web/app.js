@@ -190,14 +190,6 @@ const CORPUS_GROUP_PREFIXES = {
 };
 
 const JOB_PHASE_LABELS = {
-  listing: {
-    queued: "Queued",
-    build_session: "Building session",
-    build_c_rows: "Building C-backed rows",
-    emit_rows: "Rendering listing",
-    done: "Done",
-    error: "Failed",
-  },
   basic_listing: {
     queued: "Queued",
     build_session: "Opening file",
@@ -604,7 +596,7 @@ function renderProgressOverlay(job, titleOverride = null) {
 }
 
 function analysisStatusTextForJob(job) {
-  if (!job || !job.job_kind || !["basic_listing", "full_listing", "listing"].includes(job.job_kind)) {
+  if (!job || !job.job_kind || !["basic_listing", "full_listing"].includes(job.job_kind)) {
     return "";
   }
   if (job.status === "failed") {
@@ -618,7 +610,7 @@ function analysisStatusTextForJob(job) {
   if (job.job_kind === "full_listing") {
     return `Analyzing full listing: ${phase}`;
   }
-  return `Analyzing listing: ${phase}`;
+  return "";
 }
 
 function renderAnalysisStatus() {
@@ -1150,7 +1142,7 @@ function renderErrorOverlay(message) {
 
 function loadingRowsOverlay() {
   return renderProgressOverlay({
-    job_kind: "listing",
+    job_kind: "full_listing",
     phase_id: "emit_rows",
     progress_mode: "indeterminate",
     progress_current: 0,
@@ -1219,7 +1211,7 @@ function waitForAsyncJobEvents(job, token, renderOverlay) {
         settle(reject, new Error("stale"));
         return;
       }
-      const isListingJob = ["basic_listing", "full_listing", "listing"].includes(jobState.job_kind);
+      const isListingJob = ["basic_listing", "full_listing"].includes(jobState.job_kind);
       updateAnalysisStatusFromJob(jobState);
       if (
         isListingJob
@@ -5683,7 +5675,7 @@ async function renderProject(projectId) {
       <div class="project-workspace">
         <div class="listing-viewport" id="listing-viewport" tabindex="0">
           ${renderProgressOverlay({
-            job_kind: "listing",
+            job_kind: "full_listing",
             phase_id: "build_session",
             progress_mode: "indeterminate",
             progress_current: 0,

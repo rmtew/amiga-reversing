@@ -1487,7 +1487,7 @@ def test_route_listing_returns_index_window(monkeypatch: pytest.MonkeyPatch) -> 
     assert [row["row_id"] for row in rows_data] == ["r2", "r3"]
 
 
-def test_route_listing_index_window_clamps_past_end(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_route_listing_window_clamps_past_end(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
         for index in range(5)
@@ -2541,7 +2541,7 @@ def test_start_listing_job_ignores_stale_ready_job_without_rows(
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["stale-job"] = {
         "job_id": "stale-job",
-        "job_kind": "listing",
+        "job_kind": "full_listing",
         "project_id": "bloodwych",
         "result_project_id": "bloodwych",
         "status": "ready",

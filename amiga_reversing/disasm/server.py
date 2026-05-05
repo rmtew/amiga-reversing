@@ -1096,7 +1096,7 @@ def _cancel_listing_jobs(project_name: str | None = None) -> None:
         stale_job_ids = [
             job_id
             for job_id, job in _ASYNC_JOBS.items()
-            if job["job_kind"] in {"listing", "basic_listing", "full_listing"}
+            if job["job_kind"] in {"basic_listing", "full_listing"}
             and (project_name is None or job["project_id"] == project_name)
         ]
         for job_id in stale_job_ids:
@@ -2251,7 +2251,7 @@ def route_request(
                         AsyncJobPayload,
                         {
                             "job_id": f"cached-empty-{project_name}",
-                            "job_kind": "listing",
+                            "job_kind": "full_listing",
                             "project_id": project_name,
                             "result_project_id": project_name,
                             "status": "ready",
