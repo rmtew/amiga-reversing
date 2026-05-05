@@ -29,6 +29,7 @@ typedef struct PlatformDecompressionIdentifyResult {
 typedef struct PlatformDecompressionCandidate {
   uint32_t offset;
   uint32_t packed_size;
+  uint32_t decompressed_size;
   char codec_hint[32];
 } PlatformDecompressionCandidate;
 

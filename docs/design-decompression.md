@@ -117,10 +117,12 @@ Use provider-backed decompression:
 - Ancient is the first provider because it already supports many formats.
 - XFD is useful reference material, but should not be broadly integrated until a
   real target requires it.
-- Current automatic scanning is intentionally narrower than Ancient's full
-  decompressor list. It proposes RNC candidates using the RNC headers accepted
-  by the local Ancient source (`RNC\1`, `RNC\2`, and `...\1`), then lets Ancient
-  validate and identify the actual stream.
+- Current automatic scanning delegates candidate discovery to Ancient
+  `scan-json`. C still applies source-analysis acceptance gates after provider
+  validation: candidates must not overlap accepted code and must have sane
+  packed/raw sizes with useful expansion before they become `packed_payloads[]`.
+  Explicit range identify/decompress remains available for small or ambiguous
+  payloads that a user selects directly.
 
 The boundary is:
 
@@ -164,6 +166,8 @@ Accept a packed payload only when:
   understood as data embedded in an accepted instruction stream.
 - The provider validates the stream strongly enough for the codec.
 - Packed and decompressed sizes are bounded and sane for the containing target.
+  Automatic scan records reject micro-payloads and non-expanding ranges; explicit
+  provider range calls can still inspect them.
 - The parent source range, decompressed output, and hashes are recorded.
 - The result does not suppress exact reproduction of the packed parent.
 
@@ -332,6 +336,10 @@ Current retained output:
 18. Done: include provider executable SHA-256 in C provider JSON records.
 19. Done: copy the rebuilt Ancient provider binary with `scan-json` support into
    `ext/tools/ancient/Ancient.exe` and route C candidate discovery through it.
+20. Done: add a generic C-side automatic-scan usefulness gate after provider
+   validation. This keeps explicit range decompression available but prevents
+   tiny or non-expanding provider-valid micro-streams, especially weak
+   `C: Compact` hits, from becoming automatic `packed_payloads[]`.
 
 ## Current Corpus Query Proof
 
@@ -342,6 +350,10 @@ After rebuilding `corpus/target_usage_manifest.jsonl`:
 - `compressed-payload` also finds comparator RNC1 targets, including
   `3D Construction Kit II` `EditFile/runner.exe`, `3DEDIT`, `3DSOUND`,
   `3DMAKE`, and `Voodoo Nightmare` `Trainer`.
+- Automatic provider scanning currently reports these unique codec tags:
+  `rnc1`, `f`, `bk`, `c` (`C: Compact`), `rnc1-old`, `s310`, and `lsd`.
+  The post-provider usefulness gate reduced `compressed:c` from 208 weak
+  provider-valid micro-hits to 7 larger expanding candidates.
 - `compressed:rnc2` has no current corpus hits after enabling provider-owned
   scanning; isolated C regressions assert that RNC-looking bytes are not accepted
   without provider validation.

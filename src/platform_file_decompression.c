@@ -299,10 +299,11 @@ static int parse_scan_json_line_local(const char *line, PlatformDecompressionCan
   memset(candidate, 0, sizeof(*candidate));
   if (!parse_json_u32_field_local(line, "offset", &candidate->offset) ||
       !parse_json_u32_field_local(line, "packed_size", &candidate->packed_size) ||
+      !parse_json_u32_field_local(line, "raw_size", &candidate->decompressed_size) ||
       !parse_json_string_field_local(line, "codec_id", candidate->codec_hint, sizeof(candidate->codec_hint))) {
     return 0;
   }
-  return candidate->packed_size != 0U;
+  return candidate->packed_size != 0U && candidate->decompressed_size != 0U;
 }
 
 static int ancient_scan_temp_file_local(const char *ancient_path, const char *temp_path,

@@ -636,6 +636,13 @@ static const M68kRuntimeViewIR *find_decompression_runtime_copy_view(const M68kS
   return best;
 }
 
+static int automatic_decompression_candidate_is_useful(const PlatformDecompressionCandidate *candidate) {
+  if (candidate == NULL) return 0;
+  if (candidate->packed_size < 16U || candidate->decompressed_size < 16U) return 0;
+  if (candidate->decompressed_size <= candidate->packed_size + 15U) return 0;
+  return 1;
+}
+
 static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
     const PlatformDecompressionIdentifyResult *result, const M68kRuntimeViewIR *runtime_copy_view) {
   if (json_builder_append(builder, "{\"kind\":\"decompressed_payload\",\"status\":\"needs_runtime_metadata\"") != 0)
@@ -691,6 +698,7 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
       char output_path[512];
       char error[256];
       error[0] = '\0';
+      if (!automatic_decompression_candidate_is_useful(candidate)) continue;
       if (analysis_range_overlaps_accepted_code(section_analysis, candidate->offset, candidate->packed_size))
         continue;
       if (make_temp_output_path(output_path, sizeof(output_path)) != 0) return -1;
