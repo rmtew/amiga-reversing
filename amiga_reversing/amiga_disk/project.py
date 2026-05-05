@@ -18,11 +18,18 @@ from amiga_reversing.amiga_disk.models import (
     ImportedTarget,
 )
 from amiga_reversing.disasm.binary_source import write_source_descriptor
+from amiga_reversing.disasm.c_backend import (
+    analyze_binary_source_with_c_backend,
+    decompress_packed_section_range_with_c_backend,
+    extract_disk_entry_with_c_backend,
+)
 from amiga_reversing.disasm.project_ids import (
     disk_child_project_id,
     disk_child_target_relpath,
     disk_project_root,
     disk_project_targets_dir,
+    raw_target_id,
+    target_output_stem,
 )
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
@@ -83,6 +90,243 @@ def _write_text(path: Path, text: str) -> None:
 def _write_bytes(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
+
+
+def _int_field(payload: dict[str, object], key: str) -> int | None:
+    value = payload.get(key)
+    return value if isinstance(value, int) else None
+
+
+def _str_field(payload: dict[str, object], key: str) -> str | None:
+    value = payload.get(key)
+    return value if isinstance(value, str) and value else None
+
+
+def _decompressed_payload_child_local_id(
+    parent_local_target_id: str,
+    suggestion: dict[str, object],
+) -> str:
+    codec_raw = _str_field(suggestion, "codec_id") or "packed"
+    codec = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in codec_raw)
+    codec = codec.strip("._-").replace("-", "_") or "packed"
+    section = _int_field(suggestion, "source_section") or 0
+    offset = _int_field(suggestion, "source_section_offset") or 0
+    stem = target_output_stem(parent_local_target_id)
+    candidate = f"{stem}_{codec}_{section:02x}_{offset:08x}"
+    if len(candidate) > 71:
+        candidate = candidate[:71].rstrip("._-")
+    return raw_target_id(candidate)
+
+
+def _materializable_decompression_suggestions(analysis: dict[str, object]) -> list[dict[str, object]]:
+    suggestions = analysis.get("derived_target_suggestions")
+    if not isinstance(suggestions, list):
+        return []
+    materializable: list[dict[str, object]] = []
+    for item in suggestions:
+        if not isinstance(item, dict):
+            continue
+        if item.get("kind") != "decompressed_payload":
+            continue
+        if item.get("status") == "needs_runtime_metadata":
+            continue
+        if _int_field(item, "source_section") is None:
+            continue
+        if _int_field(item, "source_section_offset") is None:
+            continue
+        if _int_field(item, "packed_size") is None:
+            continue
+        if _int_field(item, "decompressed_size") is None:
+            continue
+        if _int_field(item, "load_address") is None:
+            continue
+        if _int_field(item, "entrypoint") is None:
+            continue
+        materializable.append(dict(item))
+    return materializable
+
+
+def _target_type_may_contain_packed_payload(target_type: str) -> bool:
+    return target_type in {"program", "library"}
+
+
+def _materialize_decompressed_payload_children(
+    *,
+    adf_file: Path,
+    disk_id: str,
+    disk_children_root: Path,
+    parent_local_target_id: str,
+    parent_target_name: str,
+    parent_entry_path: str,
+    project_root: Path,
+) -> tuple[list[dict[str, object]], list[ImportedTarget], list[Path]]:
+    from amiga_reversing.disasm.projects import create_project_at_path, mark_project_updated
+
+    try:
+        parent_bytes = extract_disk_entry_with_c_backend(adf_file, parent_entry_path, project_root=project_root)
+    except Exception:
+        return [], [], []
+    parent_temp_path = disk_children_root / f".{parent_local_target_id}.decompression-parent.bin"
+    created_dirs: list[Path] = []
+    parent_derived: list[dict[str, object]] = []
+    child_targets: list[ImportedTarget] = []
+    _write_bytes(parent_temp_path, parent_bytes)
+    try:
+        try:
+            analysis = analyze_binary_source_with_c_backend(parent_temp_path, project_root=project_root)
+        except Exception:
+            return [], [], []
+        for suggestion in _materializable_decompression_suggestions(analysis):
+            source_section = _int_field(suggestion, "source_section")
+            source_section_offset = _int_field(suggestion, "source_section_offset")
+            packed_size = _int_field(suggestion, "packed_size")
+            decompressed_size = _int_field(suggestion, "decompressed_size")
+            load_address = _int_field(suggestion, "load_address")
+            entrypoint = _int_field(suggestion, "entrypoint")
+            assert source_section is not None
+            assert source_section_offset is not None
+            assert packed_size is not None
+            assert decompressed_size is not None
+            assert load_address is not None
+            assert entrypoint is not None
+            local_target_id = _decompressed_payload_child_local_id(parent_local_target_id, suggestion)
+            target_name = disk_child_project_id(disk_id, local_target_id)
+            target_dir = disk_children_root / local_target_id
+            if target_dir.exists():
+                continue
+            child_entry_path = (
+                f"{parent_entry_path}::{_str_field(suggestion, 'codec_id') or 'decompressed'}_"
+                f"{source_section_offset:08x}"
+            )
+            create_project_at_path(
+                disk_child_target_relpath(disk_id, local_target_id).as_posix(),
+                project_root=project_root,
+                origin={
+                    "kind": "derived_decompressed_payload",
+                    "parent_disk_id": disk_id,
+                    "parent_target": parent_target_name,
+                    "parent_entry_path": parent_entry_path,
+                    "child_entry_path": child_entry_path,
+                    "target_role": "decompressed_payload",
+                    "target_type": "raw_binary",
+                    "codec_id": _str_field(suggestion, "codec_id"),
+                    "codec_name": _str_field(suggestion, "codec_name"),
+                    "packed_section_offset": source_section_offset,
+                    "packed_size": packed_size,
+                    "decompressed_size": decompressed_size,
+                    "load_address": load_address,
+                    "entrypoint": entrypoint,
+                },
+            )
+            created_dirs.append(target_dir)
+            output_path = target_dir / "binary.bin"
+            result = decompress_packed_section_range_with_c_backend(
+                "amiga-hunk",
+                parent_temp_path,
+                source_section,
+                source_section_offset,
+                packed_size,
+                output_path,
+                project_root=project_root,
+            )
+            packed_payloads = result.get("packed_payloads")
+            packed_payload = packed_payloads[0] if isinstance(packed_payloads, list) and packed_payloads else {}
+            if not isinstance(packed_payload, dict) or packed_payload.get("found") is not True:
+                raise DiskAnalysisError(f"C decompression did not materialise {child_entry_path}")
+            source_sha256 = _str_field(packed_payload, "source_sha256") or _str_field(suggestion, "source_sha256")
+            decompressed_sha256 = (
+                _str_field(packed_payload, "decompressed_sha256")
+                or _str_field(suggestion, "decompressed_sha256")
+            )
+            write_source_descriptor(
+                target_dir,
+                {
+                    "kind": "raw_binary",
+                    "address_model": "runtime_absolute",
+                    "path": output_path.relative_to(project_root).as_posix(),
+                    "load_address": load_address,
+                    "entrypoint": entrypoint,
+                    "code_start_offset": _int_field(suggestion, "code_start_offset") or 0,
+                    "parent_disk_id": disk_id,
+                },
+            )
+            write_target_metadata(target_dir, TargetMetadata(target_type="raw_binary", entry_register_seeds=()))
+            relationship = {
+                "kind": "decompressed_payload",
+                "parent_target": parent_target_name,
+                "parent_entry_path": parent_entry_path,
+                "child_target": target_name,
+                "child_entry_path": child_entry_path,
+                "packed_section_offset": source_section_offset,
+                "packed_size": packed_size,
+                "decompressed_size": decompressed_size,
+                "load_address": load_address,
+                "entrypoint": entrypoint,
+                "codec_id": _str_field(suggestion, "codec_id"),
+                "codec_name": _str_field(suggestion, "codec_name"),
+            }
+            decompression_record = {
+                "schema_version": 1,
+                "parent_target_id": parent_target_name,
+                "child_target_id": target_name,
+                "parent_entry_path": parent_entry_path,
+                "child_entry_path": child_entry_path,
+                "compressor": {
+                    "id": _str_field(suggestion, "codec_id"),
+                    "name": _str_field(suggestion, "codec_name"),
+                    "confidence": _str_field(packed_payload, "confidence") or "provider-identified",
+                },
+                "packed": {
+                    "section_offset": source_section_offset,
+                    "size": packed_size,
+                    "sha256": source_sha256,
+                },
+                "decompressed": {
+                    "size": decompressed_size,
+                    "sha256": decompressed_sha256,
+                    "load_address": load_address,
+                    "entrypoint": entrypoint,
+                },
+                "extraction": {
+                    "method": _str_field(packed_payload, "provider_id") or "ancient-cli",
+                    "tool": _str_field(packed_payload, "provider_path"),
+                },
+                "relationship": relationship,
+            }
+            _write_text(
+                target_dir / "decompression.json",
+                json.dumps(decompression_record, indent=2, sort_keys=True) + "\n",
+            )
+            mark_project_updated(target_dir)
+            parent_derived.append(
+                {
+                    "kind": "decompressed_payload",
+                    "target_name": target_name,
+                    "packed_section_offset": source_section_offset,
+                    "packed_size": packed_size,
+                    "codec_id": _str_field(suggestion, "codec_id"),
+                }
+            )
+            child_targets.append(
+                ImportedTarget(
+                    target_name=target_name,
+                    target_path=disk_child_target_relpath(disk_id, local_target_id).as_posix(),
+                    entry_path=child_entry_path,
+                    binary_path=output_path.relative_to(project_root).as_posix(),
+                    target_type="raw_binary",
+                    derived_from=relationship,
+                )
+            )
+    except Exception:
+        for target_dir in reversed(created_dirs):
+            shutil.rmtree(target_dir, ignore_errors=True)
+        raise
+    finally:
+        try:
+            parent_temp_path.unlink()
+        except FileNotFoundError:
+            pass
+    return parent_derived, child_targets, created_dirs
 
 
 def _has_dos_filesystem(analysis: AdfAnalysis) -> bool:
@@ -318,6 +562,20 @@ def create_disk_project(
                 )
                 write_target_metadata(target_dir, TargetMetadata.from_dict(import_target.target_metadata))
                 mark_project_updated(target_dir)
+                parent_derived: list[dict[str, object]] = []
+                child_targets: list[ImportedTarget] = []
+                child_dirs: list[Path] = []
+                if _target_type_may_contain_packed_payload(import_target.target_type):
+                    parent_derived, child_targets, child_dirs = _materialize_decompressed_payload_children(
+                        adf_file=adf_file,
+                        disk_id=resolved_disk_id,
+                        disk_children_root=disk_children_root,
+                        parent_local_target_id=local_target_name,
+                        parent_target_name=target_name,
+                        parent_entry_path=entry_path,
+                        project_root=project_root,
+                    )
+                created_target_dirs.extend(child_dirs)
                 imported_targets.append(
                     ImportedTarget(
                         target_name=target_name,
@@ -325,8 +583,10 @@ def create_disk_project(
                         entry_path=entry_path,
                         binary_path=f"{adf_file.as_posix()}::{entry_path}",
                         target_type=import_target.target_type,
+                        derived_targets=parent_derived or None,
                     )
                 )
+                imported_targets.extend(child_targets)
 
         if progress_fn is not None:
             progress_fn("write_manifest", 4, 4)

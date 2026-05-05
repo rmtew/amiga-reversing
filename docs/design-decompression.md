@@ -64,6 +64,10 @@ A first C decompression provider layer now exists:
 - A C backend section-range decompression API can materialise bytes from a
   packed section offset emitted by analysis, so Python does not parse hunk
   section bytes to extract payloads.
+- Imported disk project targets can now materialise decompressed raw child
+  targets from C `derived_target_suggestions[]`, but only when the C record has
+  concrete source section, packed size, decompressed size, load address, and
+  entrypoint metadata.
 - Carrier's RNC stream is identified both as an extracted range file and in the
   original parent file at offset `$4C60`.
 - The C-decompressed Carrier output hash matches the existing derived child
@@ -232,8 +236,10 @@ Current retained output:
 - Python can call the C decompression provider through the C backend wrapper;
   tests cover unknown payload handling without Python-side identification.
 - Python can also ask C to decompress a provider-backed packed section range
-  from a platform file. Child target materialisation still needs to consume this
-  path automatically.
+  from a platform file.
+- Python disk import consumes C materialisation records conservatively:
+  `needs_runtime_metadata` records, missing load/entry records, failed
+  extraction, or failed C analysis leave only the packed parent target.
 
 ## Work Plan
 
@@ -252,12 +258,12 @@ Current retained output:
    materialisation, so child target creation is not fully C-record driven.
 8. Add isolated C tests for provider result acceptance, code-overlap rejection,
    and parent/child relationship output.
-9. Partly done: add Python access to C section-range decompression. Still
-   missing automatic child materialisation from C records only.
+9. Done: add Python access to C section-range decompression.
 10. Done: include nested disk project targets in corpus usage indexing.
 11. Done: index retained decompressed child provenance from `decompression.json`.
-12. Apply automatic child materialisation to corpus indexing and imported
-   project targets.
+12. Partly done: imported disk projects can materialise child targets from
+   complete C records. Corpus indexing still indexes retained children and C
+   facts, but does not create new child targets.
 13. Add comparator targets for at least one non-Carrier packed payload before
    broadening policy.
 14. Wire raw decompressed child reproduction so source can be assembled and

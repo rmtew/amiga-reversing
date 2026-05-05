@@ -268,6 +268,86 @@ def _raw_span_import_target(*, byte_offset: int, byte_size: int) -> FileImportTa
     )
 
 
+def _single_program_disk_analysis(adf_file: str | Path) -> AdfAnalysis:
+    return AdfAnalysis(
+        disk_info=DiskInfo(
+            path=Path(adf_file).name,
+            size=901120,
+            variant="DD",
+            total_sectors=1760,
+            sectors_per_track=11,
+            is_dos=True,
+        ),
+        boot_block=BootBlockInfo(
+            magic_ascii="DOS",
+            is_dos=True,
+            flags_byte=1,
+            fs_type="FFS",
+            fs_description="DOS\\1 - Fast File System",
+            checksum="0x00000000",
+            checksum_valid=True,
+            rootblock_ptr=880,
+            bootcode_size=1012,
+            bootcode_has_code=True,
+            bootcode_entropy=1.0,
+            import_target=_bootblock_import_target(),
+        ),
+        root_block=RootBlockInfo(
+            block_num=880,
+            hash_table=[],
+            checksum_valid=True,
+            bm_flag=0,
+            bm_pages=[],
+            volume_name="DemoDisk",
+            root_date="1978-01-01 00:00:00",
+            volume_date="1978-01-01 00:00:00",
+            creation_date="1978-01-01 00:00:00",
+        ),
+        filesystem=FilesystemInfo(
+            type="FFS",
+            volume_name="DemoDisk",
+            directories=1,
+            files=1,
+            total_file_size=4,
+        ),
+        files=[
+            DiskFileEntry(
+                block_num=10,
+                name="Run",
+                full_path="c/Run",
+                size=4,
+                protection="----rwed",
+                comment=None,
+                date="1978-01-01 00:00:00",
+                hash_chain=0,
+                parent=0,
+                extension_blocks=[],
+                data_blocks=[11],
+                data_block_count=1,
+                checksum_valid=True,
+                content=FileContentInfo(
+                    kind="amiga_hunk_executable",
+                    size=4,
+                    sha256="deadbeef",
+                    is_executable=True,
+                    hunk_count=1,
+                    target_type="program",
+                    import_target=_program_import_target(),
+                ),
+            )
+        ],
+        directories=[],
+        bitmap=BitmapInfo(
+            checksum_valid=True,
+            free_blocks=1,
+            allocated_blocks=10,
+            total_blocks=11,
+            percent_used=90.9,
+        ),
+        block_usage=BlockUsageInfo(summary={"boot": 2}, orphan_blocks=[]),
+    )
+
+
 def test_analyze_disk_help_loads_cleanly() -> None:
     result = subprocess.run(
         [sys.executable, "-m", "amiga_reversing.tools.analyze_disk", "--help"],
@@ -430,6 +510,154 @@ def test_import_adf_creates_hidden_disk_manifest_and_targets(
     assert manifest.imported_targets[0].target_type == "program"
     target_metadata = json.loads((target_dir / "target_metadata.json").read_text(encoding="utf-8"))
     assert target_metadata["target_type"] == "program"
+
+
+def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
+        lambda adf_file, entry_path, *, project_root: b"packed-parent",
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
+        lambda source_path, *, project_root: {
+            "derived_target_suggestions": [
+                {
+                    "kind": "decompressed_payload",
+                    "status": "materializable",
+                    "source_section": 0,
+                    "source_section_offset": 0x1000,
+                    "packed_size": 10,
+                    "decompressed_size": 4,
+                    "load_address": 0x4000,
+                    "entrypoint": 0x4000,
+                    "codec_id": "rnc1-old",
+                    "codec_name": "RNC1: Rob Northen RNC1 Compressor (old)",
+                    "source_sha256": "11" * 32,
+                    "decompressed_sha256": "22" * 32,
+                }
+            ]
+        },
+    )
+
+    def fake_decompress(
+        source_kind: str,
+        source_path: str | Path,
+        section_index: int,
+        section_offset: int,
+        packed_size: int,
+        output_path: str | Path,
+        *,
+        project_root: Path,
+    ) -> dict[str, object]:
+        assert source_kind == "amiga-hunk"
+        assert section_index == 0
+        assert section_offset == 0x1000
+        assert packed_size == 10
+        Path(output_path).write_bytes(b"\x4E\x75\x4E\x75")
+        return {
+            "packed_payloads": [
+                {
+                    "found": True,
+                    "provider_id": "ancient-cli",
+                    "provider_path": "ext/tools/ancient/Ancient.exe",
+                    "confidence": "provider-identified",
+                    "source_sha256": "11" * 32,
+                    "decompressed_sha256": "22" * 32,
+                }
+            ]
+        }
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.decompress_packed_section_range_with_c_backend",
+        fake_decompress,
+    )
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    parent = next(target for target in manifest.imported_targets if target.entry_path == "c/Run")
+    child = next(target for target in manifest.imported_targets if target.target_type == "raw_binary")
+    assert parent.derived_targets == [
+        {
+            "kind": "decompressed_payload",
+            "target_name": child.target_name,
+            "packed_section_offset": 0x1000,
+            "packed_size": 10,
+            "codec_id": "rnc1-old",
+        }
+    ]
+    assert child.derived_from is not None
+    assert child.derived_from["parent_target"] == parent.target_name
+    assert child.derived_from["load_address"] == 0x4000
+
+    child_dir = project_root / child.target_path
+    assert (child_dir / "binary.bin").read_bytes() == b"\x4E\x75\x4E\x75"
+    source = json.loads((child_dir / "source_binary.json").read_text(encoding="utf-8"))
+    assert source["kind"] == "raw_binary"
+    assert source["address_model"] == "runtime_absolute"
+    assert source["load_address"] == 0x4000
+    assert source["entrypoint"] == 0x4000
+    metadata = json.loads((child_dir / "target_metadata.json").read_text(encoding="utf-8"))
+    assert metadata["target_type"] == "raw_binary"
+    decompression = json.loads((child_dir / "decompression.json").read_text(encoding="utf-8"))
+    assert decompression["compressor"]["id"] == "rnc1-old"
+    assert decompression["packed"]["section_offset"] == 0x1000
+    assert decompression["decompressed"]["sha256"] == "22" * 32
+
+
+def test_import_adf_does_not_materialize_decompressed_child_without_runtime_metadata(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
+        lambda adf_file, entry_path, *, project_root: b"packed-parent",
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
+        lambda source_path, *, project_root: {
+            "derived_target_suggestions": [
+                {
+                    "kind": "decompressed_payload",
+                    "status": "needs_runtime_metadata",
+                    "source_section": 0,
+                    "source_section_offset": 0x1000,
+                    "packed_size": 10,
+                    "decompressed_size": 4,
+                    "codec_id": "rnc1-old",
+                }
+            ]
+        },
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.decompress_packed_section_range_with_c_backend",
+        lambda *args, **kwargs: pytest.fail("weak decompression suggestion was materialized"),
+    )
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert [target.entry_path for target in manifest.imported_targets] == ["c/Run"]
+    assert manifest.imported_targets[0].derived_targets is None
 
 
 def test_import_adf_creates_raw_target_for_bootloader_disk_stage(
