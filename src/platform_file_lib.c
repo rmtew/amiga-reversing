@@ -4382,8 +4382,7 @@ cleanup:
 }
 
 static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *backend_name, const char *path,
-    const M68kObject *object, const M68kAnalysisPolicy *analysis_policy, const char *include_dir,
-    int include_source_text) {
+    const M68kObject *object, const M68kAnalysisPolicy *analysis_policy, const char *include_dir) {
   PlatformFileTextResult result;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
@@ -4410,7 +4409,7 @@ static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *back
   }
   source_end = clock();
   if (facts_v2_listing_rows_from_source_text(object, &source_analysis.policy, &source_analysis, source, include_dir,
-      include_source_text, &rows_json,
+      0, &rows_json,
       m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "facts_v2 listing row source parse failed");
@@ -4434,13 +4433,6 @@ static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *back
       append_analysis_json_with_decompression(&builder, analysis_json, object, &source_analysis) != 0) {
     platform_file_add_error(&result.diagnostics, "out of memory");
     goto cleanup;
-  }
-  if (include_source_text) {
-    if (json_builder_append(&builder, ",\"source_text\":") != 0 ||
-        json_builder_append_json_string(&builder, source != NULL ? source : "") != 0) {
-      platform_file_add_error(&result.diagnostics, "out of memory");
-      goto cleanup;
-    }
   }
   if (json_builder_append(&builder, ",\"profile\":{\"generation\":\"facts_v2_listing\",\"backend\":") != 0 ||
       json_builder_append_json_string(&builder, backend_name) != 0 ||
@@ -5089,7 +5081,7 @@ int platform_file_facts_v2_direct_rebuild_compare_buffer_bytes_profile_alloc(con
 }
 
 static int platform_file_facts_v2_listing_rows_path_json_alloc_local(const char *backend_name, const char *path,
-    const char *metadata_path, const char *include_dir, int include_source_text, char **out_text) {
+    const char *metadata_path, const char *include_dir, char **out_text) {
   M68kAnalysisPolicy *analysis_policy;
   PlatformFileTextResult result;
   M68kObject object;
@@ -5122,8 +5114,7 @@ static int platform_file_facts_v2_listing_rows_path_json_alloc_local(const char 
     free(analysis_policy);
     return text_result_to_alloc(&result, out_text);
   }
-  result = facts_v2_listing_rows_object_json(backend_name, path, &object, analysis_policy, include_dir,
-    include_source_text);
+  result = facts_v2_listing_rows_object_json(backend_name, path, &object, analysis_policy, include_dir);
   m68k_object_destroy(&object);
   free(analysis_policy);
   return text_result_to_alloc(&result, out_text);
@@ -5132,13 +5123,7 @@ static int platform_file_facts_v2_listing_rows_path_json_alloc_local(const char 
 int platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc(const char *backend_name, const char *path,
     const char *metadata_path, const char *include_dir, char **out_text) {
   return platform_file_facts_v2_listing_rows_path_json_alloc_local(backend_name, path, metadata_path, include_dir,
-    0, out_text);
-}
-
-int platform_file_facts_v2_listing_rows_with_analysis_and_text_path_json_alloc(const char *backend_name,
-    const char *path, const char *metadata_path, const char *include_dir, char **out_text) {
-  return platform_file_facts_v2_listing_rows_path_json_alloc_local(backend_name, path, metadata_path, include_dir,
-    1, out_text);
+    out_text);
 }
 
 int platform_file_facts_v2_basic_listing_rows_path_json_alloc(const char *backend_name, const char *path,
@@ -5183,8 +5168,7 @@ int platform_file_facts_v2_basic_listing_rows_path_json_alloc(const char *backen
 }
 
 static int platform_file_facts_v2_listing_rows_raw_path_json_alloc_local(const char *platform_name, const char *path,
-    uint32_t entry_offset, const char *metadata_path, const char *include_dir, int include_source_text,
-    char **out_text) {
+    uint32_t entry_offset, const char *metadata_path, const char *include_dir, char **out_text) {
   M68kAnalysisPolicy *analysis_policy;
   PlatformFileTextResult result;
   M68kObject object;
@@ -5215,8 +5199,7 @@ static int platform_file_facts_v2_listing_rows_raw_path_json_alloc_local(const c
     free(analysis_policy);
     return text_result_to_alloc(&result, out_text);
   }
-  result = facts_v2_listing_rows_object_json(platform_name, path, &object, analysis_policy, include_dir,
-    include_source_text);
+  result = facts_v2_listing_rows_object_json(platform_name, path, &object, analysis_policy, include_dir);
   m68k_object_destroy(&object);
   free(analysis_policy);
   return text_result_to_alloc(&result, out_text);
@@ -5225,13 +5208,7 @@ static int platform_file_facts_v2_listing_rows_raw_path_json_alloc_local(const c
 int platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc(const char *platform_name,
     const char *path, uint32_t entry_offset, const char *metadata_path, const char *include_dir, char **out_text) {
   return platform_file_facts_v2_listing_rows_raw_path_json_alloc_local(platform_name, path, entry_offset,
-    metadata_path, include_dir, 0, out_text);
-}
-
-int platform_file_facts_v2_listing_rows_with_analysis_and_text_raw_path_json_alloc(const char *platform_name,
-    const char *path, uint32_t entry_offset, const char *metadata_path, const char *include_dir, char **out_text) {
-  return platform_file_facts_v2_listing_rows_raw_path_json_alloc_local(platform_name, path, entry_offset,
-    metadata_path, include_dir, 1, out_text);
+    metadata_path, include_dir, out_text);
 }
 
 int platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc(const char *platform_name,

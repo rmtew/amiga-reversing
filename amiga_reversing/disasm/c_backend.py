@@ -553,37 +553,13 @@ def build_project_rows_generation_with_c_backend_profile(
     paths = resolve_project_paths(project_name, project_root=project_root)
     with effective_metadata_file(paths.target_dir) as metadata_path:
         metadata_text = _metadata_path_text(metadata_path)
-        rows, api_calls, profile, _ = _build_project_rows_generation_from_source(
+        rows, api_calls, profile = _build_project_rows_generation_from_source(
             paths.binary_source,
             metadata_text=metadata_text,
             generation=generation,
-            syntax="canonical",
-            include_source_text=False,
             project_root=project_root,
         )
         return rows, api_calls, profile
-
-
-def build_project_rows_generation_with_c_backend_profile_text(
-    project_name: str,
-    *,
-    generation: str,
-    syntax: str = "canonical",
-    project_root: Path = PROJECT_ROOT,
-) -> tuple[list[ListingRow], dict[ApiCallRowKey, dict[str, object]], dict[str, object], str | None]:
-    if generation not in {"basic", "full"}:
-        raise ValueError(f"Unsupported listing generation: {generation}")
-    paths = resolve_project_paths(project_name, project_root=project_root)
-    with effective_metadata_file(paths.target_dir) as metadata_path:
-        metadata_text = _metadata_path_text(metadata_path)
-        return _build_project_rows_generation_from_source(
-            paths.binary_source,
-            metadata_text=metadata_text,
-            generation=generation,
-            syntax=syntax,
-            include_source_text=True,
-            project_root=project_root,
-        )
 
 
 def _build_project_rows_generation_from_source(
@@ -591,23 +567,16 @@ def _build_project_rows_generation_from_source(
     *,
     metadata_text: str,
     generation: str,
-    syntax: str,
-    include_source_text: bool,
     project_root: Path,
-) -> tuple[list[ListingRow], dict[ApiCallRowKey, dict[str, object]], dict[str, object], str | None]:
+) -> tuple[list[ListingRow], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
     profile: dict[str, object] = {}
-    source_text: str | None = None
     with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
         include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
         if source_file.entry_offset is None:
             function_name = (
                 "platform_file_facts_v2_basic_listing_rows_path_json_alloc"
                 if generation == "basic"
-                else (
-                    "platform_file_facts_v2_listing_rows_with_analysis_and_text_path_json_alloc"
-                    if include_source_text
-                    else "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc"
-                )
+                else "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc"
             )
             combined_text = _platform_file_text(
                 function_name,
@@ -621,11 +590,7 @@ def _build_project_rows_generation_from_source(
             function_name = (
                 "platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc"
                 if generation == "basic"
-                else (
-                    "platform_file_facts_v2_listing_rows_with_analysis_and_text_raw_path_json_alloc"
-                    if include_source_text
-                    else "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc"
-                )
+                else "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc"
             )
             combined_text = _platform_file_text(
                 function_name,
@@ -646,9 +611,7 @@ def _build_project_rows_generation_from_source(
         type_flow_analysis = listing_rows.get("type_flow_analysis")
         if isinstance(type_flow_analysis, dict):
             profile["type_flow_analysis"] = type_flow_analysis
-        rendered_source_text = combined.get("source_text")
-        source_text = rendered_source_text if isinstance(rendered_source_text, str) else None
-    return rows_from_c_listing_json(listing_rows), api_calls_from_c_analysis(analysis), profile, source_text
+    return rows_from_c_listing_json(listing_rows), api_calls_from_c_analysis(analysis), profile
 
 
 def type_catalog_from_c_backend(
@@ -1546,10 +1509,8 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     ]
     dll.platform_file_facts_v2_direct_rebuild_compare_buffer_bytes_profile_alloc.restype = c_int
     _configure_text_function(dll, "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc", 4)
-    _configure_text_function(dll, "platform_file_facts_v2_listing_rows_with_analysis_and_text_path_json_alloc", 4)
     _configure_text_function(dll, "platform_file_facts_v2_basic_listing_rows_path_json_alloc", 4)
     _configure_text_function(dll, "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc", 5)
-    _configure_text_function(dll, "platform_file_facts_v2_listing_rows_with_analysis_and_text_raw_path_json_alloc", 5)
     _configure_text_function(dll, "platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc", 5)
     _configure_text_function(dll, "platform_file_type_catalog_json_alloc", 1)
     _configure_text_function(dll, "platform_file_naming_catalog_json_alloc", 1)

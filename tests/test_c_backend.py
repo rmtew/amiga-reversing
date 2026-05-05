@@ -26,7 +26,6 @@ from amiga_reversing.disasm.c_backend import (
     benchmark_project_source_with_text_from_c_backend,
     build_project_rows_generation_with_c_backend,
     build_project_rows_generation_with_c_backend_profile,
-    build_project_rows_generation_with_c_backend_profile_text,
     decompress_packed_range_with_c_backend,
     decompress_packed_section_range_with_c_backend,
     extract_disk_entry_with_c_backend,
@@ -705,9 +704,24 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
         encoding="utf-8",
     )
 
+    binary_source = RawBinarySource(
+        kind="raw_binary",
+        path=path,
+        address_model="local_offset",
+        load_address=0,
+        entrypoint=0,
+        code_start_offset=0,
+        display_path=str(path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    source_text, source_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+        binary_source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )
     combined = json.loads(
         c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_and_text_raw_path_json_alloc",
+            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
             "amiga-raw",
             str(path),
             0,
@@ -716,7 +730,6 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
             project_root=PROJECT_ROOT,
         )
     )
-    source_text = combined["source_text"]
     assert "\tlea.l loc_0_00000020(pc),a0\n" in source_text
     assert "\tjmp $00000080.l\n" in source_text
     assert "loc_0_00000020:\n    ORG $100\nabs_0_00000100:\n" in source_text
@@ -724,7 +737,7 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
     assert "    ORG $80\n" not in source_text
     assert "src_0_" not in source_text
     assert "loc_0_00000020 EQU" not in source_text
-    facts_v2 = combined["profile"]["facts_v2"]
+    facts_v2 = source_profile["facts_v2"]
     assert facts_v2["asm_source_numeric_runtime_refs"] == 1
     assert facts_v2["asm_source_first_numeric_runtime_ref_offset"] == 4
     assert facts_v2["asm_source_first_numeric_runtime_ref_target_offset"] == 0x10
@@ -790,9 +803,19 @@ def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
     path = tmp_path / "reglist_stub.hunk"
     path.write_bytes(rebuilt)
 
+    binary_source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=path,
+        display_path=str(path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    source_text, source_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+        binary_source,
+        project_root=PROJECT_ROOT,
+    )
     combined = json.loads(
         c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_and_text_path_json_alloc",
+            "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
             "amiga-hunk",
             str(path),
             "",
@@ -800,8 +823,7 @@ def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
             project_root=PROJECT_ROOT,
         )
     )
-    source_text = combined["source_text"]
-    facts_v2 = combined["profile"]["facts_v2"]
+    facts_v2 = source_profile["facts_v2"]
     stub_rows = [
         row
         for row in combined["listing"]["rows"]
@@ -845,9 +867,19 @@ def test_facts_v2_traces_predecrement_copied_entry_source(tmp_path: Path) -> Non
     path = tmp_path / "predecrement_stub.hunk"
     path.write_bytes(rebuilt)
 
+    binary_source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=path,
+        display_path=str(path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    source_text, _source_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+        binary_source,
+        project_root=PROJECT_ROOT,
+    )
     combined = json.loads(
         c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_and_text_path_json_alloc",
+            "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
             "amiga-hunk",
             str(path),
             "",
@@ -856,7 +888,6 @@ def test_facts_v2_traces_predecrement_copied_entry_source(tmp_path: Path) -> Non
         )
     )
 
-    source_text = combined["source_text"]
     sites = combined["analysis"]["sections"][0]["recovered_indirect_sites"]
     payload_rows = [
         row
@@ -2517,7 +2548,7 @@ def test_project_rows_facts_v2_uses_dedicated_listing_api(monkeypatch, tmp_path:
     ]
 
 
-def test_project_rows_facts_v2_profile_text_returns_source(monkeypatch, tmp_path: Path) -> None:
+def test_project_rows_facts_v2_profile_uses_full_listing_api(monkeypatch, tmp_path: Path) -> None:
     binary_path = tmp_path / "boot.bin"
     binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
     target_dir = tmp_path / "targets" / "raw_demo"
@@ -2542,14 +2573,13 @@ def test_project_rows_facts_v2_profile_text_returns_source(monkeypatch, tmp_path
             {
                 "listing": {"rows": [{"row_id": "r0", "kind": "directive", "text": "SECTION code,code\n"}]},
                 "analysis": {"sections": []},
-                "source_text": "SECTION code,code\n",
                 "profile": {"generation": "facts_v2_listing", "analysis_backend": "facts_v2"},
             }
         )
 
     monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
 
-    rows, api_calls, profile, source_text = build_project_rows_generation_with_c_backend_profile_text(
+    rows, api_calls, profile = build_project_rows_generation_with_c_backend_profile(
         "raw_demo",
         generation="full",
         project_root=tmp_path,
@@ -2558,7 +2588,6 @@ def test_project_rows_facts_v2_profile_text_returns_source(monkeypatch, tmp_path
     assert [row.text for row in rows] == ["SECTION code,code\n"]
     assert api_calls == {}
     assert profile["analysis_backend"] == "facts_v2"
-    assert source_text == "SECTION code,code\n"
 
 
 def test_project_rows_basic_generation_uses_facts_v2_listing_api(
@@ -2600,7 +2629,6 @@ def test_project_rows_basic_generation_uses_facts_v2_listing_api(
                     ]
                 },
                 "analysis": {},
-                "source_text": "    SECTION section,code\n",
                 "profile": {"generation": "facts_v2_basic_listing", "analysis_backend": "facts_v2"},
             }
         )
@@ -2629,73 +2657,6 @@ def test_project_rows_basic_generation_uses_facts_v2_listing_api(
     ]
 
 
-def test_project_rows_basic_generation_with_profile_text_stays_basic(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    binary_path = tmp_path / "boot.bin"
-    binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
-    target_dir = tmp_path / "targets" / "raw_demo"
-    target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
-    (target_dir / "source_binary.json").write_text(
-        json.dumps(
-            {
-                "kind": "raw_binary",
-                "path": str(binary_path),
-                "address_model": "local_offset",
-                "load_address": 0,
-                "entrypoint": 0,
-                "code_start_offset": 0,
-            }
-        ),
-        encoding="utf-8",
-    )
-    calls: list[tuple[object, ...]] = []
-
-    def fake_file_run(function_name: str, *args: object, project_root: Path) -> str:
-        calls.append((function_name, *args))
-        return json.dumps(
-            {
-                "listing": {
-                    "rows": [
-                        {
-                            "row_id": "f:0",
-                            "kind": "directive",
-                            "text": "    SECTION section,code\n",
-                            "analysis_generation": "basic",
-                        }
-                    ]
-                },
-                "analysis": {},
-                "profile": {"generation": "facts_v2_basic_listing", "analysis_backend": "facts_v2"},
-            }
-        )
-
-    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
-
-    rows, api_calls, profile, source_text = build_project_rows_generation_with_c_backend_profile_text(
-        "raw_demo",
-        generation="basic",
-        project_root=tmp_path,
-    )
-
-    assert [row.text for row in rows] == ["    SECTION section,code\n"]
-    assert api_calls == {}
-    assert profile["generation"] == "facts_v2_basic_listing"
-    assert source_text is None
-    assert calls == [
-        (
-            "platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc",
-            "amiga-raw",
-            str(binary_path),
-            0,
-            "",
-            str(tmp_path / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
-        )
-    ]
-
-
 def test_real_dll_facts_v2_listing_rows_parse_sectioned_source(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "boot.bin"
@@ -2711,19 +2672,16 @@ def test_real_dll_facts_v2_listing_rows_parse_sectioned_source(tmp_path: Path) -
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    rows, api_calls, profile, source_text = c_backend._build_project_rows_generation_from_source(
+    rows, api_calls, profile = c_backend._build_project_rows_generation_from_source(
         source,
         metadata_text="",
         generation="full",
-        syntax="canonical",
-        include_source_text=True,
         project_root=PROJECT_ROOT,
     )
 
     assert api_calls == {}
     assert profile["generation"] == "facts_v2_listing"
     assert profile["analysis_backend"] == "facts_v2"
-    assert isinstance(source_text, str) and source_text.lstrip().startswith("SECTION ")
     assert any(row.kind == "directive" and row.text.lstrip().startswith("SECTION ") for row in rows)
     assert any(row.kind == "instruction" and row.opcode_or_directive == "rts" and row.bytes == b"\x4e\x75" for row in rows)
 
@@ -3021,12 +2979,10 @@ def test_real_dll_facts_v2_basic_listing_rows_use_basic_api_without_source_direc
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    rows, api_calls, profile, source_text = c_backend._build_project_rows_generation_from_source(
+    rows, api_calls, profile = c_backend._build_project_rows_generation_from_source(
         source,
         metadata_text="",
         generation="basic",
-        syntax="canonical",
-        include_source_text=False,
         project_root=PROJECT_ROOT,
     )
 
@@ -3034,7 +2990,6 @@ def test_real_dll_facts_v2_basic_listing_rows_use_basic_api_without_source_direc
     assert profile["generation"] == "facts_v2_basic_listing"
     assert "source_ir_seconds" in profile["timing"]
     assert "render_seconds" not in profile["timing"]
-    assert source_text is None
     assert rows
     assert all(row.analysis_generation == "basic" for row in rows)
     assert any(row.kind == "directive" and row.text.lstrip().startswith("SECTION ") for row in rows)
@@ -3077,18 +3032,15 @@ def test_real_dll_facts_v2_listing_rows_exclude_source_only_directives_without_s
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    rows, api_calls, profile, source_text = c_backend._build_project_rows_generation_from_source(
+    rows, api_calls, profile = c_backend._build_project_rows_generation_from_source(
         source,
         metadata_text=str(metadata_path),
         generation="full",
-        syntax="canonical",
-        include_source_text=False,
         project_root=PROJECT_ROOT,
     )
 
     assert api_calls[(0, 6)]["function"] == "OpenLibrary"
     assert profile["generation"] == "facts_v2_listing"
-    assert source_text is None
     assert rows
     first_label_index = next(index for index, row in enumerate(rows) if row.kind == "label")
     header_texts = [row.text.lstrip() for row in rows[:first_label_index]]
@@ -3136,12 +3088,15 @@ def test_real_dll_facts_v2_listing_rows_emit_api_calls(tmp_path: Path) -> None:
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    rows, api_calls, profile, source_text = c_backend._build_project_rows_generation_from_source(
+    source_text, _source_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+        source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )
+    rows, api_calls, profile = c_backend._build_project_rows_generation_from_source(
         source,
         metadata_text=str(metadata_path),
         generation="full",
-        syntax="canonical",
-        include_source_text=True,
         project_root=PROJECT_ROOT,
     )
 
@@ -3165,7 +3120,7 @@ def test_real_dll_facts_v2_listing_rows_emit_api_calls(tmp_path: Path) -> None:
 
     combined = json.loads(
         c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_and_text_raw_path_json_alloc",
+            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
             "amiga-raw",
             str(binary_path),
             12,
@@ -3263,12 +3218,15 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    rows, api_calls, profile, source_text = c_backend._build_project_rows_generation_from_source(
+    source_text, _source_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+        source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )
+    rows, api_calls, profile = c_backend._build_project_rows_generation_from_source(
         source,
         metadata_text=str(metadata_path),
         generation="full",
-        syntax="canonical",
-        include_source_text=True,
         project_root=PROJECT_ROOT,
     )
 
@@ -3861,10 +3819,9 @@ def test_real_dll_renders_genam() -> None:
 
 def test_real_dll_genam_profile_exposes_c_app_slot_analysis() -> None:
     _requires_c_backend_dlls()
-    _rows, _api_calls, profile, source_text = build_project_rows_generation_with_c_backend_profile_text(
+    _rows, _api_calls, profile = build_project_rows_generation_with_c_backend_profile(
         "amiga_hunk_genam",
         generation="full",
-        syntax="vasm",
         project_root=PROJECT_ROOT,
     )
 
@@ -3896,8 +3853,6 @@ def test_real_dll_genam_profile_exposes_c_app_slot_analysis() -> None:
     assert field_gap_coverages == {"known_struct_field"}
     assert profile["timing"]["total_seconds"] < 30.0
     assert profile["facts_v2"]["queue_iterations"] < 10000
-    assert isinstance(source_text, str)
-    assert "app_slot_analysis" not in source_text
 
 
 def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
