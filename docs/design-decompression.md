@@ -190,6 +190,10 @@ Useful tags:
 
 - `compressed-payload`
 - compressor-specific tags such as `compressed:rnc1`
+- `decompression:runtime_copy`
+- `decompression:runtime_copy_conflicting`
+- `decompression:runtime_copy_non_conflicting`
+- copy-shape tags such as `decompression:runtime_copy_short`
 - `decompression-stub`
 - `absolute-depack-dest`
 - `decompressed-entrypoint`
@@ -256,6 +260,10 @@ Current retained output:
 - Corpus usage indexing can tag that record as `compressed-payload`,
   `compressed:rnc1-old`, `decompression:provider:ancient-cli`, and
   `derived-decompressed-target`.
+- Corpus usage indexing also preserves the C runtime-copy evidence as searchable
+  tags and xrefs, including `decompression:runtime_copy`,
+  `decompression:runtime_copy_conflicting`, and
+  `decompression:runtime_copy_short` for the `$4C40` stream.
 - Rebuilt corpus usage output finds the Carrier parent both as the file
   manifest target `amiga-hunk/5855d79d8920` and as the nested project target
   `amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_carrier_91b0ba24`.
@@ -308,6 +316,9 @@ Current retained output:
    to payload bytes and compares against the decompressed binary.
 15. Done: make the C Ancient provider default path independent of the caller's
    current working directory and cover it with the Voodoo comparator test.
+16. Done: index decompression runtime-copy evidence and conflict shape as corpus
+   tags/xrefs so Carrier-like parent/child reconciliation work can be selected
+   by evidence, not by target name.
 
 ## Current Corpus Query Proof
 
@@ -320,5 +331,8 @@ After rebuilding `corpus/target_usage_manifest.jsonl`:
   `3DMAKE`, and `Voodoo Nightmare` `Trainer`.
 - `decompression:child` finds the retained Carrier decompressed raw child and
   exposes the existing load/entry metadata.
+- `decompression:runtime_copy` finds Carrier parent evidence where C analysis
+  associated packed streams with runtime copy ranges, including the conflicting
+  `$4C40 -> $4000` copy.
 - These matches come from C `packed_payloads[]` records, not Python compression
   scanning, or from retained child provenance already written by the project.

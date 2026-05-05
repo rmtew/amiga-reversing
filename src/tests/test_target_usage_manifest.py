@@ -42,6 +42,11 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "status": "needs_runtime_metadata",
                             "source_section": 0,
                             "source_section_offset": 0x4C40,
+                            "packed_size": 168397,
+                            "runtime_copy_address": 0x4000,
+                            "runtime_copy_size": 168396,
+                            "runtime_copy_kind": 3,
+                            "runtime_copy_conflicting": True,
                         }
                     ],
                     "sections": [
@@ -346,6 +351,10 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["derived_target_suggestion:decompressed_payload"], 1)
         self.assertEqual(counts["derived_target_suggestion_status:needs_runtime_metadata"], 1)
         self.assertEqual(counts["derived-decompressed-target"], 1)
+        self.assertEqual(counts["decompression:runtime_copy"], 1)
+        self.assertEqual(counts["decompression:runtime_copy_kind:3"], 1)
+        self.assertEqual(counts["decompression:runtime_copy_conflicting"], 1)
+        self.assertEqual(counts["decompression:runtime_copy_short"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
         self.assertEqual(counts["hardware:custom"], 2)
         self.assertEqual(counts["hardware:custom/audio"], 1)
@@ -370,6 +379,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn("compressed:rnc1-old", tags)
         self.assertEqual(examples["os:exec.library/AllocMem"][0]["offset"], 0x20)
         self.assertEqual(examples["compressed-payload"][0]["offset"], 0x4C40)
+        self.assertEqual(examples["decompression:runtime_copy"][0]["runtime_copy_address"], 0x4000)
+        self.assertTrue(examples["decompression:runtime_copy"][0]["runtime_copy_conflicting"])
 
     def test_device_features_use_resolved_device_names_for_all_io_calls(self) -> None:
         bag = usage.FeatureBag()
@@ -533,6 +544,11 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "status": "needs_runtime_metadata",
                         "source_section": 0,
                         "source_section_offset": 0x4C40,
+                        "packed_size": 168397,
+                        "runtime_copy_address": 0x4000,
+                        "runtime_copy_size": 168396,
+                        "runtime_copy_kind": 3,
+                        "runtime_copy_conflicting": True,
                     }
                 ],
                 "sections": [
@@ -730,6 +746,10 @@ class TargetUsageManifestTests(unittest.TestCase):
             by_feature,
         )
         self.assertIn(("derived-decompressed-target", "derived_target_suggestion", 0x4C40, 6), by_feature)
+        self.assertIn(("decompression:runtime_copy", "derived_target_suggestion", 0x4C40, 6), by_feature)
+        self.assertIn(("decompression:runtime_copy_kind:3", "derived_target_suggestion", 0x4C40, 6), by_feature)
+        self.assertIn(("decompression:runtime_copy_conflicting", "derived_target_suggestion", 0x4C40, 6), by_feature)
+        self.assertIn(("decompression:runtime_copy_short", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("data:copper_list", "data_class", 0x50, 4), by_feature)
         self.assertIn(("copper_register:bplcon0", "copper_ref", 0x50, 4), by_feature)
         self.assertIn(("hardware:custom", "hardware_ref", 0x50, 4), by_feature)
@@ -742,6 +762,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         payload_xref = next(item for item in xrefs if item["feature"] == "compressed:rnc1-old")
         self.assertEqual(payload_xref["stable_key"], "row-rnc")
         self.assertEqual(payload_xref["value"], 359600)
+        copy_xref = next(item for item in xrefs if item["feature"] == "decompression:runtime_copy")
+        self.assertEqual(copy_xref["value"], 0x4000)
         ids = [xref["id"] for xref in xrefs]
         self.assertEqual(len(ids), len(set(ids)))
         self.assertEqual([row["row_index"] for row in snippets], [0, 1, 2, 3, 4, 5, 6])

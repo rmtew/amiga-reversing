@@ -1105,6 +1105,17 @@ def _decompression_example(record: dict[str, Any]) -> dict[str, object]:
     decompressed_size = _int_value(record.get("decompressed_size"))
     if decompressed_size is not None:
         example["decompressed_size"] = decompressed_size
+    runtime_copy_address = _int_value(record.get("runtime_copy_address"))
+    if runtime_copy_address is not None:
+        example["runtime_copy_address"] = runtime_copy_address
+    runtime_copy_size = _int_value(record.get("runtime_copy_size"))
+    if runtime_copy_size is not None:
+        example["runtime_copy_size"] = runtime_copy_size
+    runtime_copy_kind = _int_value(record.get("runtime_copy_kind"))
+    if runtime_copy_kind is not None:
+        example["runtime_copy_kind"] = runtime_copy_kind
+    if isinstance(record.get("runtime_copy_conflicting"), bool):
+        example["runtime_copy_conflicting"] = bool(record["runtime_copy_conflicting"])
     return example
 
 
@@ -1137,6 +1148,25 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         status = _string_value(suggestion.get("status"))
         if status:
             bag.add(f"derived_target_suggestion_status:{_safe_part(status)}", example=example)
+        runtime_copy_address = _int_value(suggestion.get("runtime_copy_address"))
+        if runtime_copy_address is not None:
+            bag.add("decompression:runtime_copy", example=example)
+            runtime_copy_kind = _int_value(suggestion.get("runtime_copy_kind"))
+            if runtime_copy_kind is not None:
+                bag.add(f"decompression:runtime_copy_kind:{runtime_copy_kind}", example=example)
+            if suggestion.get("runtime_copy_conflicting") is True:
+                bag.add("decompression:runtime_copy_conflicting", example=example)
+            else:
+                bag.add("decompression:runtime_copy_non_conflicting", example=example)
+            runtime_copy_size = _int_value(suggestion.get("runtime_copy_size"))
+            packed_size = _int_value(suggestion.get("packed_size"))
+            if runtime_copy_size is not None and packed_size is not None:
+                if runtime_copy_size == packed_size:
+                    bag.add("decompression:runtime_copy_exact_size", example=example)
+                elif runtime_copy_size < packed_size:
+                    bag.add("decompression:runtime_copy_short", example=example)
+                else:
+                    bag.add("decompression:runtime_copy_oversize", example=example)
 
 
 def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
@@ -1981,6 +2011,25 @@ def _decompression_analysis_xrefs(
             features.append("derived-decompressed-target")
         if status:
             features.append(f"derived_target_suggestion_status:{_safe_part(status)}")
+        runtime_copy_address = _int_value(suggestion.get("runtime_copy_address"))
+        runtime_copy_size = _int_value(suggestion.get("runtime_copy_size"))
+        packed_size = _int_value(suggestion.get("packed_size"))
+        runtime_copy_kind = _int_value(suggestion.get("runtime_copy_kind"))
+        if runtime_copy_address is not None:
+            features.append("decompression:runtime_copy")
+            if runtime_copy_kind is not None:
+                features.append(f"decompression:runtime_copy_kind:{runtime_copy_kind}")
+            if suggestion.get("runtime_copy_conflicting") is True:
+                features.append("decompression:runtime_copy_conflicting")
+            else:
+                features.append("decompression:runtime_copy_non_conflicting")
+            if runtime_copy_size is not None and packed_size is not None:
+                if runtime_copy_size == packed_size:
+                    features.append("decompression:runtime_copy_exact_size")
+                elif runtime_copy_size < packed_size:
+                    features.append("decompression:runtime_copy_short")
+                else:
+                    features.append("decompression:runtime_copy_oversize")
         for feature in features:
             xrefs.append(
                 _xref(
@@ -1992,7 +2041,7 @@ def _decompression_analysis_xrefs(
                     row_index=row_index,
                     stable_key=stable_key,
                     symbol=kind,
-                    value=status,
+                    value=runtime_copy_address if feature.startswith("decompression:runtime_copy") else status,
                     text=text,
                 )
             )
