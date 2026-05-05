@@ -39,11 +39,14 @@ class TargetUsageManifestTests(unittest.TestCase):
                     "derived_target_suggestions": [
                         {
                             "kind": "decompressed_payload",
-                            "status": "needs_runtime_metadata",
-                            "reason": "runtime_copy_conflicting",
+                            "status": "materializable",
+                            "reason": "initial_control_target_validated_runtime_copy",
                             "source_section": 0,
                             "source_section_offset": 0x4C40,
                             "packed_size": 168391,
+                            "load_address": 0x4000,
+                            "entrypoint": 0x4000,
+                            "initial_control_target": 0x9B3A,
                             "runtime_copy_address": 0x4000,
                             "runtime_copy_size": 168396,
                             "runtime_copy_kind": 3,
@@ -350,9 +353,11 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["decompression:has_output_size"], 1)
         self.assertEqual(counts["decompression:has_output_hash"], 1)
         self.assertEqual(counts["derived_target_suggestion:decompressed_payload"], 1)
-        self.assertEqual(counts["derived_target_suggestion_status:needs_runtime_metadata"], 1)
-        self.assertEqual(counts["derived_target_suggestion_reason:runtime_copy_conflicting"], 1)
+        self.assertEqual(counts["derived_target_suggestion_status:materializable"], 1)
+        self.assertEqual(counts["derived_target_suggestion_reason:initial_control_target_validated_runtime_copy"], 1)
         self.assertEqual(counts["derived-decompressed-target"], 1)
+        self.assertEqual(counts["absolute-depack-dest"], 1)
+        self.assertEqual(counts["decompressed-entrypoint"], 1)
         self.assertEqual(counts["decompression:runtime_copy"], 1)
         self.assertEqual(counts["decompression:runtime_copy_kind:3"], 1)
         self.assertEqual(counts["decompression:runtime_copy_conflicting"], 1)
@@ -383,6 +388,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["compressed-payload"][0]["offset"], 0x4C40)
         self.assertEqual(examples["decompression:runtime_copy"][0]["runtime_copy_address"], 0x4000)
         self.assertTrue(examples["decompression:runtime_copy"][0]["runtime_copy_conflicting"])
+        self.assertEqual(examples["absolute-depack-dest"][0]["load_address"], 0x4000)
+        self.assertEqual(examples["decompressed-entrypoint"][0]["entrypoint"], 0x4000)
+        self.assertEqual(examples["decompressed-entrypoint"][0]["initial_control_target"], 0x9B3A)
 
     def test_device_features_use_resolved_device_names_for_all_io_calls(self) -> None:
         bag = usage.FeatureBag()
@@ -543,11 +551,14 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "derived_target_suggestions": [
                     {
                         "kind": "decompressed_payload",
-                        "status": "needs_runtime_metadata",
-                        "reason": "runtime_copy_conflicting",
+                        "status": "materializable",
+                        "reason": "initial_control_target_validated_runtime_copy",
                         "source_section": 0,
                         "source_section_offset": 0x4C40,
                         "packed_size": 168391,
+                        "load_address": 0x4000,
+                        "entrypoint": 0x4000,
+                        "initial_control_target": 0x9B3A,
                         "runtime_copy_address": 0x4000,
                         "runtime_copy_size": 168396,
                         "runtime_copy_kind": 3,
@@ -751,13 +762,15 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("derived-decompressed-target", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(
             (
-                "derived_target_suggestion_reason:runtime_copy_conflicting",
+                "derived_target_suggestion_reason:initial_control_target_validated_runtime_copy",
                 "derived_target_suggestion",
                 0x4C40,
                 6,
             ),
             by_feature,
         )
+        self.assertIn(("absolute-depack-dest", "derived_target_suggestion", 0x4C40, 6), by_feature)
+        self.assertIn(("decompressed-entrypoint", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("decompression:runtime_copy", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("decompression:runtime_copy_kind:3", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("decompression:runtime_copy_conflicting", "derived_target_suggestion", 0x4C40, 6), by_feature)

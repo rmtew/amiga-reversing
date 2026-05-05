@@ -67,6 +67,10 @@ A first C decompression provider layer now exists:
   sections. Non-materialising suggestions include a `reason` field so callers
   can distinguish missing runtime evidence, conflicting runtime copies, copy
   size mismatch, and missing decompressed load/entry metadata.
+- C can now promote a suggestion to `status: "materializable"` when a runtime
+  copy/load address candidate is validated against the decompressed output's
+  first decoded absolute control transfer. This uses generated M68K decode and
+  effect metadata, not byte-pattern matching.
 - Facts-v2 listing-with-analysis JSON uses the same decorated analysis object,
   so corpus indexing no longer loses decompression facts when it asks C for
   listing rows.
@@ -91,12 +95,12 @@ A first C decompression provider layer now exists:
   load/entry metadata is proven for it.
 - The C-decompressed Carrier output hash matches the existing derived child
   binary.
-- Carrier's parent analysis intentionally still emits `needs_runtime_metadata`
-  for both derived target suggestions: the observed `$4000` jump is also an
-  in-section absolute source address, so it must not be promoted to load/entry
-  metadata until copied-runtime evidence proves that relationship. Source
-  rendering now keeps that jump numeric and does not create false source labels
-  at `$4000`/`$4004`.
+- Carrier's parent analysis now promotes the retained-child `$4C40` stream to
+  `materializable`: runtime-copy evidence supplies load address `$4000`, and
+  the decompressed output's first decoded absolute jump targets `$9B3A`, inside
+  the decompressed image under that load base. Source rendering still keeps the
+  parent stub jump numeric and does not create false source labels at
+  `$4000`/`$4004`.
 - Facts-v2 now preserves a separate non-materialising runtime-copy evidence
   record when a discovered copy conflicts with an already accepted runtime
   source view. Carrier uses this for the `$4C40 -> $4000` packed stream copy:
@@ -266,10 +270,10 @@ Current retained output:
   offset `$4C40`, packed size 168391, decompressed size 359600, and the same
   decompressed SHA-256.
 - The same C suggestion now includes runtime-copy evidence for `$4C40` copied to
-  `$4000`, with copy size 168396 and `runtime_copy_conflicting: true`. This is
-  deliberately not enough to mark the record `materializable`: the copied byte
-  count overshoots the provider-validated range, and the copy conflicts with
-  another accepted runtime source view.
+  `$4000`, with copy size 168396 and `runtime_copy_conflicting: true`. It is
+  now promoted to `materializable` only because the decompressed output's first
+  decoded absolute jump targets `$9B3A`, inside the decompressed image when
+  loaded at `$4000`.
 - Facts-v2 analysis also emits Carrier's smaller RNC stream at section offset
   `$05E4`, packed size 18012, decompressed size 32032. It is deliberately not
   materialised without runtime metadata.
@@ -312,14 +316,16 @@ Current retained output:
    analysis-only JSON.
 7. Partly done: Carrier RNC discovery is emitted from C analysis records.
    Runtime-copy evidence is now emitted for matching packed streams, including
-   Carrier's conflicting `$4C40 -> $4000` copy. Runtime load address and
-   entrypoint are still target metadata/manual materialisation, so child target
-   creation is not fully C-record driven.
-8. Partly done: provider result acceptance and parent/child materialisation are
+   Carrier's conflicting `$4C40 -> $4000` copy. The `$4C40` child can now be
+   promoted from C records by validating the decompressed image's initial
+   control target against that runtime load base. The smaller `$05E4` stream
+   still lacks enough load/entry evidence.
+8. Done: provider result acceptance and parent/child materialisation are
    covered by C-backend and disk-import tests. Code-overlap rejection now has a
    synthetic C-backend regression proving an RNC-looking candidate inside
-   accepted code does not become a payload. A narrower pure-C relationship test
-   is still useful before promoting records to `materializable`.
+   accepted code does not become a payload. Carrier now has a real C-backend
+   regression for promotion to `materializable` from runtime load evidence plus
+   generated decode of the decompressed output.
 9. Done: add Python access to C section-range decompression.
 10. Done: include nested disk project targets in corpus usage indexing.
 11. Done: index retained decompressed child provenance from `decompression.json`.
@@ -347,8 +353,11 @@ Current retained output:
    `C: Compact` hits, from becoming automatic `packed_payloads[]`.
 21. Done: add a build command for refreshing the staged Ancient provider binary
    from the local Ancient clone: `cmd /c src\build.bat build-ancient-provider`.
-22. Done: add C-emitted non-materialisation reasons to
+22. Done: add C-emitted non-materialisation/materialisation reasons to
    `derived_target_suggestions[]` and index them as corpus tags/xrefs.
+23. Done: infer a materializable decompressed raw child when C analysis has a
+   runtime load candidate and generated M68K decode proves the decompressed
+   image's initial absolute jump stays inside that runtime image.
 
 ## Current Corpus Query Proof
 
@@ -374,8 +383,9 @@ After rebuilding `corpus/target_usage_manifest.jsonl`:
 - `decompression:runtime_copy_oversize` finds both Carrier parent streams:
   `$05E4` is copied as 18016 bytes over a 18012-byte provider range, and
   `$4C40` is copied as 168396 bytes over a 168391-byte provider range.
-- `derived_target_suggestion_reason:runtime_copy_oversize` and
-  `derived_target_suggestion_reason:runtime_copy_conflicting` separate the two
-  Carrier blockers instead of leaving both as opaque `needs_runtime_metadata`.
+- `derived_target_suggestion_status:materializable`,
+  `absolute-depack-dest`, and `decompressed-entrypoint` now find Carrier's
+  `$4C40` stream from C analysis. The smaller `$05E4` stream remains
+  `needs_runtime_metadata` with `runtime_copy_oversize`.
 - These matches come from C `packed_payloads[]` records, not Python compression
   scanning, or from retained child provenance already written by the project.

@@ -696,6 +696,10 @@ def _add_project_target_metadata_features(entry: dict[str, Any], bag: FeatureBag
         codec = _project_decompression_codec(entry)
         if codec:
             bag.add(f"decompression:codec:{_safe_part(codec)}", example=example)
+        if _int_value(example.get("load_address")) is not None:
+            bag.add("absolute-depack-dest", example=example)
+        if _int_value(example.get("entrypoint")) is not None:
+            bag.add("decompressed-entrypoint", example=example)
 
 
 def _collect_disk_usage_row(entry: dict[str, Any]) -> dict[str, object]:
@@ -1116,6 +1120,15 @@ def _decompression_example(record: dict[str, Any]) -> dict[str, object]:
         example["runtime_copy_kind"] = runtime_copy_kind
     if isinstance(record.get("runtime_copy_conflicting"), bool):
         example["runtime_copy_conflicting"] = bool(record["runtime_copy_conflicting"])
+    load_address = _int_value(record.get("load_address"))
+    if load_address is not None:
+        example["load_address"] = load_address
+    entrypoint = _int_value(record.get("entrypoint"))
+    if entrypoint is not None:
+        example["entrypoint"] = entrypoint
+    initial_control_target = _int_value(record.get("initial_control_target"))
+    if initial_control_target is not None:
+        example["initial_control_target"] = initial_control_target
     return example
 
 
@@ -1151,6 +1164,10 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         reason = _string_value(suggestion.get("reason"))
         if reason:
             bag.add(f"derived_target_suggestion_reason:{_safe_part(reason)}", example=example)
+        if _int_value(suggestion.get("load_address")) is not None:
+            bag.add("absolute-depack-dest", example=example)
+        if _int_value(suggestion.get("entrypoint")) is not None:
+            bag.add("decompressed-entrypoint", example=example)
         runtime_copy_address = _int_value(suggestion.get("runtime_copy_address"))
         if runtime_copy_address is not None:
             bag.add("decompression:runtime_copy", example=example)
@@ -1331,6 +1348,10 @@ def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]
         text = _string_value(example.get("text")) or "decompressed payload"
         for feature in ("derived-decompressed-target", "derived_target:decompressed_payload", "decompression:child"):
             xrefs.append(_xref(row, feature, "derived_target", offset=offset, symbol=codec, text=text))
+        if _int_value(example.get("load_address")) is not None:
+            xrefs.append(_xref(row, "absolute-depack-dest", "derived_target", offset=offset, symbol=codec, text=text))
+        if _int_value(example.get("entrypoint")) is not None:
+            xrefs.append(_xref(row, "decompressed-entrypoint", "derived_target", offset=offset, symbol=codec, text=text))
         if codec:
             xrefs.append(
                 _xref(
@@ -2017,6 +2038,10 @@ def _decompression_analysis_xrefs(
         reason = _string_value(suggestion.get("reason"))
         if reason:
             features.append(f"derived_target_suggestion_reason:{_safe_part(reason)}")
+        if _int_value(suggestion.get("load_address")) is not None:
+            features.append("absolute-depack-dest")
+        if _int_value(suggestion.get("entrypoint")) is not None:
+            features.append("decompressed-entrypoint")
         runtime_copy_address = _int_value(suggestion.get("runtime_copy_address"))
         runtime_copy_size = _int_value(suggestion.get("runtime_copy_size"))
         packed_size = _int_value(suggestion.get("packed_size"))

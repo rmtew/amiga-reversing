@@ -22,7 +22,11 @@ typedef struct PlatformDecompressionIdentifyResult {
   uint32_t source_section_offset;
   uint32_t packed_size;
   uint32_t decompressed_size;
+  uint32_t decompressed_load_address;
+  uint32_t decompressed_entrypoint;
+  uint32_t decompressed_initial_control_target;
   uint8_t has_source_section;
+  uint8_t has_decompressed_load_entry;
   int decompressed;
 } PlatformDecompressionIdentifyResult;
 

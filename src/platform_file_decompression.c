@@ -767,6 +767,13 @@ int platform_decompression_append_result_json(JsonBuilder *builder,
         if (json_builder_append(builder, ",\"decompressed_path\":") != 0) return -1;
         if (json_builder_append_json_string(builder, result->decompressed_path) != 0) return -1;
       }
+      if (result->has_decompressed_load_entry) {
+        if (json_builder_appendf(builder,
+            ",\"load_address\":%u,\"entrypoint\":%u,\"initial_control_target\":%u",
+            (unsigned)result->decompressed_load_address, (unsigned)result->decompressed_entrypoint,
+            (unsigned)result->decompressed_initial_control_target) != 0)
+          return -1;
+      }
     }
   }
   return json_builder_append(builder, "}");

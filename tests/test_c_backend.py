@@ -3891,11 +3891,14 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     assert suggestions_by_offset[0x4C40]["runtime_copy_size"] == 168396
     assert suggestions_by_offset[0x4C40]["runtime_copy_kind"] == 3
     assert suggestions_by_offset[0x4C40]["runtime_copy_conflicting"] is True
-    assert suggestions_by_offset[0x4C40]["reason"] == "runtime_copy_conflicting"
-    for suggestion in suggestions:
-        assert suggestion["status"] == "needs_runtime_metadata"
-        assert "load_address" not in suggestion
-        assert "entrypoint" not in suggestion
+    assert suggestions_by_offset[0x4C40]["reason"] == "initial_control_target_validated_runtime_copy"
+    assert suggestions_by_offset[0x4C40]["status"] == "materializable"
+    assert suggestions_by_offset[0x4C40]["load_address"] == 0x4000
+    assert suggestions_by_offset[0x4C40]["entrypoint"] == 0x4000
+    assert suggestions_by_offset[0x4C40]["initial_control_target"] == 0x9B3A
+    assert suggestions_by_offset[0x05E4]["status"] == "needs_runtime_metadata"
+    assert "load_address" not in suggestions_by_offset[0x05E4]
+    assert "entrypoint" not in suggestions_by_offset[0x05E4]
 
     source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
         paths.binary_source,

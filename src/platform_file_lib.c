@@ -5,6 +5,7 @@
 #include "m68k_assembler_app.h"
 #include "m68k_assembler.h"
 #include "m68k_backend.h"
+#include "m68k_decode_ir.h"
 #include "m68k_fact_ir.h"
 #include "m68k_instruction_spec.h"
 #include "m68k_ir_codec.h"
@@ -636,6 +637,77 @@ static const M68kRuntimeViewIR *find_decompression_runtime_copy_view(const M68kS
   return best;
 }
 
+static size_t read_file_prefix_local(const char *path, uint8_t *buffer, size_t buffer_size) {
+  FILE *file;
+  size_t read_count;
+  if (path == NULL || buffer == NULL || buffer_size == 0U) return 0U;
+  file = fopen(path, "rb");
+  if (file == NULL) return 0U;
+  read_count = fread(buffer, 1U, buffer_size, file);
+  fclose(file);
+  return read_count;
+}
+
+static int infer_decompressed_load_entry_from_initial_control_local(const char *path, uint8_t max_cpu,
+    uint32_t load_address, uint32_t decompressed_size, uint32_t *out_entrypoint,
+    uint32_t *out_initial_control_target) {
+  uint8_t prefix[32];
+  size_t prefix_size;
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult add_result;
+  M68kDecodeIR decode;
+  const M68kDecodeCandidate *candidate = NULL;
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  uint64_t runtime_start = load_address;
+  uint64_t runtime_end = runtime_start + (uint64_t)decompressed_size;
+  int inferred = 0;
+  memset(&object, 0, sizeof(object));
+  memset(&decode, 0, sizeof(decode));
+  if (out_entrypoint != NULL) *out_entrypoint = 0U;
+  if (out_initial_control_target != NULL) *out_initial_control_target = 0U;
+  if (decompressed_size == 0U || runtime_end <= runtime_start) return 0;
+  prefix_size = read_file_prefix_local(path, prefix, sizeof(prefix));
+  if (prefix_size == 0U || prefix_size > UINT32_MAX) return 0;
+  if (m68k_object_create(&object) != 0) return 0;
+  memset(&section, 0, sizeof(section));
+  section.kind = M68K_SECTION_CODE;
+  section.size = (uint32_t)prefix_size;
+  section.data_size = (uint32_t)prefix_size;
+  add_result = m68k_object_add_section(&object, &section);
+  if (!add_result.ok ||
+      m68k_object_set_section_data(&object, add_result.index, prefix, (uint32_t)prefix_size) != 0 ||
+      m68k_decode_ir_build_object_sections(&decode, &object, m68k_diag_sink(NULL)) != 0 ||
+      m68k_decode_ir_ensure_candidate_at(&decode, 0U, 0U, max_cpu, &candidate, m68k_diag_sink(NULL)) != 0 ||
+      candidate == NULL ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    goto cleanup;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || metadata->flow_kind != M68K_SIM_FLOW_JUMP) goto cleanup;
+  for (operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction.operands[operand_index];
+    uint8_t shape;
+    uint32_t target;
+    if (metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET) continue;
+    shape = m68k_instruction_operand_decoded_ea_shape(operand);
+    if (m68k_instruction_decoded_ea_target_kind(operand, shape, 0) != 1U) continue;
+    target = operand->value.value;
+    if ((uint64_t)target < runtime_start || (uint64_t)target >= runtime_end) continue;
+    if (out_entrypoint != NULL) *out_entrypoint = load_address;
+    if (out_initial_control_target != NULL) *out_initial_control_target = target;
+    inferred = 1;
+    break;
+  }
+
+cleanup:
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return inferred;
+}
+
 static int automatic_decompression_candidate_is_useful(const PlatformDecompressionCandidate *candidate) {
   if (candidate == NULL) return 0;
   if (candidate->packed_size < 16U || candidate->decompressed_size < 16U) return 0;
@@ -646,6 +718,7 @@ static int automatic_decompression_candidate_is_useful(const PlatformDecompressi
 static const char *decompression_suggestion_reason_local(const PlatformDecompressionIdentifyResult *result,
     const M68kRuntimeViewIR *runtime_copy_view) {
   if (result == NULL) return "invalid_record";
+  if (result->has_decompressed_load_entry) return "initial_control_target_validated_runtime_copy";
   if (runtime_copy_view == NULL) return "missing_runtime_copy_evidence";
   if (runtime_copy_view->kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY)
     return "runtime_copy_conflicting";
@@ -657,7 +730,10 @@ static const char *decompression_suggestion_reason_local(const PlatformDecompres
 static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
     const PlatformDecompressionIdentifyResult *result, const M68kRuntimeViewIR *runtime_copy_view) {
   const char *reason = decompression_suggestion_reason_local(result, runtime_copy_view);
-  if (json_builder_append(builder, "{\"kind\":\"decompressed_payload\",\"status\":\"needs_runtime_metadata\"") != 0 ||
+  const char *status = result != NULL && result->has_decompressed_load_entry ? "materializable" :
+    "needs_runtime_metadata";
+  if (json_builder_append(builder, "{\"kind\":\"decompressed_payload\",\"status\":") != 0 ||
+      json_builder_append_json_string(builder, status) != 0 ||
       json_builder_append(builder, ",\"reason\":") != 0 ||
       json_builder_append_json_string(builder, reason) != 0)
     return -1;
@@ -673,6 +749,13 @@ static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
         (unsigned)runtime_copy_view->runtime_address, (unsigned)runtime_copy_view->size,
         (unsigned)runtime_copy_view->kind,
         runtime_copy_view->kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY ? "true" : "false") != 0)
+      return -1;
+  }
+  if (result->has_decompressed_load_entry) {
+    if (json_builder_appendf(builder,
+        ",\"load_address\":%u,\"entrypoint\":%u,\"initial_control_target\":%u",
+        (unsigned)result->decompressed_load_address, (unsigned)result->decompressed_entrypoint,
+        (unsigned)result->decompressed_initial_control_target) != 0)
       return -1;
   }
   if (json_builder_append(builder, ",\"codec_id\":") != 0 ||
@@ -721,14 +804,32 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
         remove(output_path);
         continue;
       }
-      remove(output_path);
-      if (!result.found || !result.decompressed) continue;
+      if (!result.found || !result.decompressed) {
+        remove(output_path);
+        continue;
+      }
       result.has_source_section = 1U;
       result.source_section_index = (uint32_t)section_index;
       result.source_section_offset = candidate->offset;
       result.source_offset = candidate->offset;
+      {
+        const M68kRuntimeViewIR *runtime_copy_view =
+          find_decompression_runtime_copy_view(analysis, &result);
+        uint32_t entrypoint = 0U;
+        uint32_t initial_control_target = 0U;
+        if (runtime_copy_view != NULL &&
+            infer_decompressed_load_entry_from_initial_control_local(output_path, analysis->policy.max_cpu,
+              runtime_copy_view->runtime_address, result.decompressed_size, &entrypoint,
+              &initial_control_target)) {
+          result.has_decompressed_load_entry = 1U;
+          result.decompressed_load_address = runtime_copy_view->runtime_address;
+          result.decompressed_entrypoint = entrypoint;
+          result.decompressed_initial_control_target = initial_control_target;
+        }
+      }
       result.decompressed_path[0] = '\0';
       results[result_count++] = result;
+      remove(output_path);
     }
   }
   if (json_builder_append(builder, ",\"packed_payloads\":[") != 0) return -1;
