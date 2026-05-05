@@ -9,7 +9,12 @@ import tempfile
 from pathlib import Path
 from typing import Any, cast
 
-from amiga_reversing.disasm.binary_source import HunkFileBinarySource, resolve_target_binary_source
+from amiga_reversing.disasm.binary_source import (
+    DiskEntryBinarySource,
+    HunkFileBinarySource,
+    RawBinarySource,
+    resolve_target_binary_source,
+)
 from amiga_reversing.disasm import c_backend
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from src.scripts import amiga_hardware_usage
@@ -93,6 +98,14 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     ),
     "symbols": ("label:", "xref:label", "xref:segment"),
     "data": ("data:", "xref:data"),
+    "compression": (
+        "compressed-payload",
+        "compressed:",
+        "decompression:",
+        "derived_target_suggestion:",
+        "derived-decompressed-target",
+        "unsupported-compressor",
+    ),
     "diagnostics": ("diagnostic:",),
 }
 
@@ -448,11 +461,19 @@ def _project_target_dirs(root: Path = ROOT) -> list[Path]:
     targets_dir = root / "targets"
     if not targets_dir.exists():
         return []
-    return [
-        target_dir
-        for target_dir in sorted(targets_dir.iterdir(), key=lambda item: item.name)
-        if target_dir.is_dir() and (target_dir / "source_binary.json").exists()
-    ]
+    return sorted(
+        {source_binary.parent for source_binary in targets_dir.rglob("source_binary.json")},
+        key=lambda item: item.relative_to(targets_dir).as_posix(),
+    )
+
+
+def _project_target_source_id(target_dir: Path, *, root: Path = ROOT) -> str:
+    targets_dir = root / "targets"
+    try:
+        relpath = target_dir.relative_to(targets_dir).as_posix()
+    except ValueError:
+        return target_dir.name
+    return target_dir.name if "/" not in relpath else relpath
 
 
 def collect_project_usage_catalog_entry(
@@ -479,6 +500,13 @@ def collect_project_usage_catalog_entry(
         except Exception as exc:
             analysis_error = _stable_analysis_error_message(str(exc))
             bag.add("diagnostic:analysis_error", example={"message": analysis_error})
+    elif _status(entry) == "ok" and isinstance(source, DiskEntryBinarySource) and platform == "amiga-hunk":
+        try:
+            combined = analyze_executable_file(platform, source.read_bytes(), tmp_dir, root=root)
+            _add_executable_analysis_features(combined, bag, platform=platform, root=root)
+        except Exception as exc:
+            analysis_error = _stable_analysis_error_message(str(exc))
+            bag.add("diagnostic:analysis_error", example={"message": analysis_error})
     row = _base_row("project_target", entry, bag)
     xrefs = _project_target_xrefs(row, entry, combined, analysis_error)
     return row, xrefs, _snippet_rows_for_xrefs(row, combined, xrefs)
@@ -494,8 +522,11 @@ def _project_target_manifest_entry(target_dir: Path, *, root: Path = ROOT) -> tu
         source = None
         source_error = str(exc)
     platform = _string_value(project_origin.get("platform"))
-    if platform is None and isinstance(source, HunkFileBinarySource):
-        platform = "amiga-hunk"
+    if platform is None:
+        if isinstance(source, (HunkFileBinarySource, DiskEntryBinarySource)):
+            platform = "amiga-hunk"
+        elif isinstance(source, RawBinarySource):
+            platform = "raw-binary"
     status = "ok" if source is not None and platform is not None else ("error" if source_error else "unsupported")
     origin = {
         "display_name": target_dir.name,
@@ -504,8 +535,9 @@ def _project_target_manifest_entry(target_dir: Path, *, root: Path = ROOT) -> tu
     filename = _string_value(project_origin.get("filename"))
     if filename:
         origin["member_name"] = filename
+    source_id = _project_target_source_id(target_dir, root=root)
     entry: dict[str, Any] = {
-        "id": target_dir.name,
+        "id": source_id,
         "platform": platform or "unknown",
         "status": status,
         "origin": origin,
@@ -865,6 +897,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         violation_count = findings.get("cpu_violation_count")
         if isinstance(violation_count, int) and violation_count > 0:
             bag.add("diagnostic:cpu_violation", violation_count)
+    _add_decompression_analysis_features(analysis, bag)
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):
@@ -965,6 +998,61 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         string_ref_count = _int_value(section.get("recovered_string_ref_count"), 0)
         if string_ref_count > 0:
             bag.add("data:string_ref", string_ref_count)
+
+
+def _decompression_example(record: dict[str, Any]) -> dict[str, object]:
+    section_index = _int_value(record.get("source_section"))
+    if section_index is None:
+        section_index = _int_value(record.get("source_section_index"))
+    offset = _int_value(record.get("source_section_offset"))
+    if offset is None:
+        offset = _int_value(record.get("source_offset"))
+    text = (
+        _string_value(record.get("codec_id"))
+        or _string_value(record.get("codec_name"))
+        or _string_value(record.get("kind"))
+        or _string_value(record.get("status"))
+        or "packed payload"
+    )
+    example = _offset_example(section_index, offset, text)
+    packed_size = _int_value(record.get("packed_size"))
+    if packed_size is not None:
+        example["packed_size"] = packed_size
+    decompressed_size = _int_value(record.get("decompressed_size"))
+    if decompressed_size is not None:
+        example["decompressed_size"] = decompressed_size
+    return example
+
+
+def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
+    for payload in _dict_items(analysis.get("packed_payloads")):
+        example = _decompression_example(payload)
+        found = payload.get("found")
+        if found is False or found == 0:
+            bag.add("unsupported-compressor", example=example)
+            continue
+        bag.add("compressed-payload", example=example)
+        codec_id = _string_value(payload.get("codec_id"))
+        if codec_id:
+            bag.add(f"compressed:{_safe_part(codec_id)}", example=example)
+        provider_id = _string_value(payload.get("provider_id"))
+        if provider_id:
+            bag.add(f"decompression:provider:{_safe_part(provider_id)}", example=example)
+        if _int_value(payload.get("decompressed_size")) is not None:
+            bag.add("decompression:has_output_size", example=example)
+        if _string_value(payload.get("decompressed_sha256")):
+            bag.add("decompression:has_output_hash", example=example)
+        if _string_value(payload.get("diagnostic")):
+            bag.add("decompression:diagnostic", example=example)
+    for suggestion in _dict_items(analysis.get("derived_target_suggestions")):
+        example = _decompression_example(suggestion)
+        kind = _string_value(suggestion.get("kind")) or "unknown"
+        bag.add(f"derived_target_suggestion:{_safe_part(kind)}", example=example)
+        if kind == "decompressed_payload":
+            bag.add("derived-decompressed-target", example=example)
+        status = _string_value(suggestion.get("status"))
+        if status:
+            bag.add(f"derived_target_suggestion_status:{_safe_part(status)}", example=example)
 
 
 def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
@@ -1711,6 +1799,88 @@ def _platform_unresolved_typed_access_xrefs(
     return xrefs
 
 
+def _decompression_analysis_xrefs(
+    row: dict[str, object],
+    analysis: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+) -> list[dict[str, object]]:
+    xrefs: list[dict[str, object]] = []
+    for payload in _dict_items(analysis.get("packed_payloads")):
+        section_index = _int_value(payload.get("source_section"))
+        if section_index is None:
+            section_index = _int_value(payload.get("source_section_index"))
+        offset = _int_value(payload.get("source_section_offset"))
+        if offset is None:
+            offset = _int_value(payload.get("source_offset"))
+        row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
+        codec_id = _string_value(payload.get("codec_id"))
+        provider_id = _string_value(payload.get("provider_id"))
+        packed_size = _int_value(payload.get("packed_size"))
+        decompressed_size = _int_value(payload.get("decompressed_size"))
+        text = row_text or codec_id or _string_value(payload.get("codec_name")) or "packed payload"
+        features = ["compressed-payload"]
+        if codec_id:
+            features.append(f"compressed:{_safe_part(codec_id)}")
+        if provider_id:
+            features.append(f"decompression:provider:{_safe_part(provider_id)}")
+        if decompressed_size is not None:
+            features.append("decompression:has_output_size")
+        if _string_value(payload.get("decompressed_sha256")):
+            features.append("decompression:has_output_hash")
+        if _string_value(payload.get("diagnostic")):
+            features.append("decompression:diagnostic")
+        if payload.get("found") is False or payload.get("found") == 0:
+            features = ["unsupported-compressor"]
+        for feature in features:
+            xrefs.append(
+                _xref(
+                    row,
+                    feature,
+                    "packed_payload",
+                    section=section_index,
+                    offset=offset,
+                    row_index=row_index,
+                    stable_key=stable_key,
+                    symbol=codec_id,
+                    access=provider_id,
+                    value=decompressed_size if decompressed_size is not None else packed_size,
+                    text=text,
+                )
+            )
+    for suggestion in _dict_items(analysis.get("derived_target_suggestions")):
+        section_index = _int_value(suggestion.get("source_section"))
+        if section_index is None:
+            section_index = _int_value(suggestion.get("source_section_index"))
+        offset = _int_value(suggestion.get("source_section_offset"))
+        if offset is None:
+            offset = _int_value(suggestion.get("source_offset"))
+        row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
+        kind = _string_value(suggestion.get("kind")) or "unknown"
+        status = _string_value(suggestion.get("status"))
+        text = row_text or kind
+        features = [f"derived_target_suggestion:{_safe_part(kind)}"]
+        if kind == "decompressed_payload":
+            features.append("derived-decompressed-target")
+        if status:
+            features.append(f"derived_target_suggestion_status:{_safe_part(status)}")
+        for feature in features:
+            xrefs.append(
+                _xref(
+                    row,
+                    feature,
+                    "derived_target_suggestion",
+                    section=section_index,
+                    offset=offset,
+                    row_index=row_index,
+                    stable_key=stable_key,
+                    symbol=kind,
+                    value=status,
+                    text=text,
+                )
+            )
+    return xrefs
+
+
 def _analysis_xrefs(
     row: dict[str, object],
     analysis: dict[str, Any],
@@ -1726,6 +1896,7 @@ def _analysis_xrefs(
         if isinstance(violation_count, int) and violation_count > 0:
             for index in range(violation_count):
                 xrefs.append(_xref(row, "diagnostic:cpu_violation", "diagnostic", value=index, text="CPU violation"))
+    xrefs.extend(_decompression_analysis_xrefs(row, analysis, row_locations))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):

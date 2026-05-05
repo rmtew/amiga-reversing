@@ -24,6 +24,26 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "profile": {"generation": "facts_v2_full_listing"},
                 "analysis": {
                     "findings": {"required_cpu": 2, "cpu_violation_count": 1},
+                    "packed_payloads": [
+                        {
+                            "found": True,
+                            "provider_id": "ancient-cli",
+                            "codec_id": "rnc1-old",
+                            "source_section": 0,
+                            "source_section_offset": 0x4C40,
+                            "packed_size": 168397,
+                            "decompressed_size": 359600,
+                            "decompressed_sha256": "d37ec7db83012eba179956026b0677cfd46763d585722154f761bd6f6d2b5748",
+                        }
+                    ],
+                    "derived_target_suggestions": [
+                        {
+                            "kind": "decompressed_payload",
+                            "status": "needs_runtime_metadata",
+                            "source_section": 0,
+                            "source_section_offset": 0x4C40,
+                        }
+                    ],
                     "sections": [
                         {
                             "section_index": 0,
@@ -318,6 +338,14 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["runtime:view_kind:2"], 1)
         self.assertEqual(counts["analysis:indirect_site"], 3)
         self.assertEqual(counts["data:string_ref"], 4)
+        self.assertEqual(counts["compressed-payload"], 1)
+        self.assertEqual(counts["compressed:rnc1-old"], 1)
+        self.assertEqual(counts["decompression:provider:ancient-cli"], 1)
+        self.assertEqual(counts["decompression:has_output_size"], 1)
+        self.assertEqual(counts["decompression:has_output_hash"], 1)
+        self.assertEqual(counts["derived_target_suggestion:decompressed_payload"], 1)
+        self.assertEqual(counts["derived_target_suggestion_status:needs_runtime_metadata"], 1)
+        self.assertEqual(counts["derived-decompressed-target"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
         self.assertEqual(counts["hardware:custom"], 2)
         self.assertEqual(counts["hardware:custom/audio"], 1)
@@ -339,7 +367,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertNotIn("coprocessor:fpu", counts)
         self.assertNotIn("coprocessor:fpu_id:3", counts)
         self.assertIn("os:exec.library/AllocMem", tags)
+        self.assertIn("compressed:rnc1-old", tags)
         self.assertEqual(examples["os:exec.library/AllocMem"][0]["offset"], 0x20)
+        self.assertEqual(examples["compressed-payload"][0]["offset"], 0x4C40)
 
     def test_device_features_use_resolved_device_names_for_all_io_calls(self) -> None:
         bag = usage.FeatureBag()
@@ -368,6 +398,48 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["device_call_function:DoIO"], 1)
         self.assertEqual(counts["device:trackdisk.device"], 1)
         self.assertEqual(counts["device_call:trackdisk.device/DoIO"], 1)
+
+    def test_project_target_dirs_include_nested_disk_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            top = root / "targets" / "amiga_hunk_top"
+            nested = root / "targets" / "amiga_disk_demo" / "targets" / "amiga_hunk_child"
+            unrelated = root / "targets" / "amiga_disk_demo" / "targets" / "not_a_target"
+            top.mkdir(parents=True)
+            nested.mkdir(parents=True)
+            unrelated.mkdir(parents=True)
+            (top / "source_binary.json").write_text("{}", encoding="utf-8")
+            (nested / "source_binary.json").write_text("{}", encoding="utf-8")
+
+            target_dirs = usage._project_target_dirs(root=root)
+
+        self.assertEqual([path.name for path in target_dirs], ["amiga_hunk_child", "amiga_hunk_top"])
+        self.assertEqual(
+            [usage._project_target_source_id(path, root=root) for path in target_dirs],
+            ["amiga_disk_demo/targets/amiga_hunk_child", "amiga_hunk_top"],
+        )
+
+    def test_project_target_manifest_infers_disk_entry_hunk_platform(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target_dir = root / "targets" / "disk" / "targets" / "child"
+            target_dir.mkdir(parents=True)
+            source = usage.DiskEntryBinarySource(
+                kind="disk_entry",
+                disk_id="disk",
+                adf_path=root / "disk.adf",
+                entry_path="Carrier",
+                display_path="disk.adf::Carrier",
+                analysis_cache_path=target_dir / "binary.analysis",
+                project_root=root,
+            )
+            with mock.patch.object(usage, "resolve_target_binary_source", return_value=source):
+                entry, resolved_source = usage._project_target_manifest_entry(target_dir, root=root)
+
+        self.assertIs(resolved_source, source)
+        self.assertEqual(entry["id"], "disk/targets/child")
+        self.assertEqual(entry["platform"], "amiga-hunk")
+        self.assertEqual(entry["status"], "ok")
 
     def test_numeric_copper_register_rows_use_hardware_metadata(self) -> None:
         bag = usage.FeatureBag()
@@ -403,6 +475,26 @@ class TargetUsageManifestTests(unittest.TestCase):
         combined = {
             "analysis": {
                 "findings": {"required_cpu": 2, "cpu_violation_count": 1},
+                "packed_payloads": [
+                    {
+                        "found": True,
+                        "provider_id": "ancient-cli",
+                        "codec_id": "rnc1-old",
+                        "source_section": 0,
+                        "source_section_offset": 0x4C40,
+                        "packed_size": 168397,
+                        "decompressed_size": 359600,
+                        "decompressed_sha256": "d37ec7db83012eba179956026b0677cfd46763d585722154f761bd6f6d2b5748",
+                    }
+                ],
+                "derived_target_suggestions": [
+                    {
+                        "kind": "decompressed_payload",
+                        "status": "needs_runtime_metadata",
+                        "source_section": 0,
+                        "source_section_offset": 0x4C40,
+                    }
+                ],
                 "sections": [
                     {
                         "section_index": 0,
@@ -537,6 +629,13 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "start_offset": 0x60,
                         "stable_key": "row-hw",
                     },
+                    {
+                        "kind": "data",
+                        "text": "\tdc.b $52,$4E,$43,$01\n",
+                        "section_index": 0,
+                        "start_offset": 0x4C40,
+                        "stable_key": "row-rnc",
+                    },
                 ],
             },
         }
@@ -584,6 +683,13 @@ class TargetUsageManifestTests(unittest.TestCase):
             by_feature,
         )
         self.assertIn(("runtime:copied_code", "runtime_view", 0x40, 3), by_feature)
+        self.assertIn(("compressed-payload", "packed_payload", 0x4C40, 6), by_feature)
+        self.assertIn(("compressed:rnc1-old", "packed_payload", 0x4C40, 6), by_feature)
+        self.assertIn(
+            ("derived_target_suggestion:decompressed_payload", "derived_target_suggestion", 0x4C40, 6),
+            by_feature,
+        )
+        self.assertIn(("derived-decompressed-target", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("data:copper_list", "data_class", 0x50, 4), by_feature)
         self.assertIn(("copper_register:bplcon0", "copper_ref", 0x50, 4), by_feature)
         self.assertIn(("hardware:custom", "hardware_ref", 0x50, 4), by_feature)
@@ -593,9 +699,12 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("display:color", "display_ref", 0x50, 4), by_feature)
         self.assertIn(("hardware:custom/audio", "hardware_ref", 0x60, 5), by_feature)
         self.assertIn(("hardware_register:aud0+ac_len", "hardware_ref", 0x60, 5), by_feature)
+        payload_xref = next(item for item in xrefs if item["feature"] == "compressed:rnc1-old")
+        self.assertEqual(payload_xref["stable_key"], "row-rnc")
+        self.assertEqual(payload_xref["value"], 359600)
         ids = [xref["id"] for xref in xrefs]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual([row["row_index"] for row in snippets], [0, 1, 2, 3, 4, 5])
+        self.assertEqual([row["row_index"] for row in snippets], [0, 1, 2, 3, 4, 5, 6])
         self.assertEqual(snippets[1]["row"]["stable_key"], "row-os")
         self.assertEqual(snippets[2]["row"]["typed_accesses"][0]["field_name"], "LIB_VERSION")
         self.assertEqual(snippets[5]["row"]["stable_key"], "row-hw")

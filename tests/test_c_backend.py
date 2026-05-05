@@ -110,6 +110,25 @@ def test_analysis_json_includes_empty_decompression_fact_arrays(tmp_path: Path) 
     assert analysis["derived_target_suggestions"] == []
 
 
+def test_listing_analysis_json_includes_empty_decompression_fact_arrays(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "plain_hunk.bin"
+    binary.write_bytes(_make_cross_section_call_hunkexe(bytes.fromhex("4e75"), 0))
+
+    combined_text = c_backend._platform_file_text(
+        "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
+        "amiga-hunk",
+        str(binary),
+        "",
+        "",
+        project_root=PROJECT_ROOT,
+    )
+    combined = json.loads(combined_text)
+
+    assert combined["analysis"]["packed_payloads"] == []
+    assert combined["analysis"]["derived_target_suggestions"] == []
+
+
 def test_decompression_c_backend_section_range_reports_unknown_payload(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary = tmp_path / "plain_hunk.bin"

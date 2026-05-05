@@ -690,6 +690,19 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
   return json_builder_append(builder, "]");
 }
 
+static int append_analysis_json_with_decompression(JsonBuilder *builder, const char *base_json,
+    const M68kObject *object, const M68kSourceAnalysisIR *analysis) {
+  size_t base_len;
+  if (builder == NULL || base_json == NULL || object == NULL || analysis == NULL) return -1;
+  base_len = strlen(base_json);
+  if (base_len == 0U || base_json[base_len - 1U] != '}') return -1;
+  if (json_builder_appendf(builder, "%.*s", (int)(base_len - 1U), base_json) != 0)
+    return -1;
+  if (append_object_decompression_analysis_json(builder, object, analysis) != 0)
+    return -1;
+  return json_builder_append(builder, "}");
+}
+
 static void make_policy_symbol_label_local(char *out, size_t out_size, const char *symbol) {
   size_t used = 0U;
   char previous = '\0';
@@ -3473,11 +3486,8 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *ob
   }
   json_result = source_analysis_to_json(&analysis, &base_json, m68k_diag_sink(&result.diagnostics));
   if (json_result == 0) {
-    size_t base_len = strlen(base_json);
-    if (base_len == 0U || base_json[base_len - 1U] != '}' || json_builder_create(&builder) != 0 ||
-        json_builder_appendf(&builder, "%.*s", (int)(base_len - 1U), base_json) != 0 ||
-        append_object_decompression_analysis_json(&builder, object, &analysis) != 0 ||
-        json_builder_append(&builder, "}") != 0) {
+    if (json_builder_create(&builder) != 0 ||
+        append_analysis_json_with_decompression(&builder, base_json, object, &analysis) != 0) {
       json_result = -1;
     } else {
       result.text = json_builder_build(&builder);
@@ -4228,8 +4238,12 @@ static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *back
   if (json_builder_create(&builder) != 0 ||
       json_builder_append(&builder, "{\"listing\":") != 0 ||
       json_builder_append(&builder, rows_json != NULL ? rows_json : "{\"rows\":[]}") != 0 ||
-      json_builder_append(&builder, ",\"analysis\":") != 0 ||
-      json_builder_append(&builder, analysis_json != NULL ? analysis_json : "{\"sections\":[]}") != 0) {
+      json_builder_append(&builder, ",\"analysis\":") != 0) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  if (analysis_json == NULL ||
+      append_analysis_json_with_decompression(&builder, analysis_json, object, &source_analysis) != 0) {
     platform_file_add_error(&result.diagnostics, "out of memory");
     goto cleanup;
   }

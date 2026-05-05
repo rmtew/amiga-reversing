@@ -50,6 +50,14 @@ A first C decompression provider layer now exists:
 - Facts-v2 analysis JSON now includes top-level `packed_payloads[]` and
   `derived_target_suggestions[]` from C provider scanning of loaded target
   sections.
+- Facts-v2 listing-with-analysis JSON uses the same decorated analysis object,
+  so corpus indexing no longer loses decompression facts when it asks C for
+  listing rows.
+- Corpus usage indexing now turns those C-emitted records into searchable
+  compression and derived-target feature tags/xrefs.
+- Corpus usage indexing also walks nested disk project targets, so retained
+  parent/child outputs under `targets/<disk>/targets/` are visible to corpus
+  searches.
 - A C backend section-range decompression API can materialise bytes from a
   packed section offset emitted by analysis, so Python does not parse hunk
   section bytes to extract payloads.
@@ -108,7 +116,7 @@ C emits provider-backed records through platform analysis JSON as:
 
 - `packed_payloads[]`
 - `derived_target_suggestions[]`
-- corpus tags
+- corpus tags and xrefs derived from those records
 
 The C side decides whether a provider result is accepted. Provider confidence
 alone is not enough.
@@ -209,6 +217,12 @@ Current retained output:
 - Facts-v2 analysis of the Carrier parent hunk emits a packed payload at section
   offset `$4C40`, packed size 168397, decompressed size 359600, and the same
   decompressed SHA-256.
+- Corpus usage indexing can tag that record as `compressed-payload`,
+  `compressed:rnc1-old`, `decompression:provider:ancient-cli`, and
+  `derived-decompressed-target`.
+- Rebuilt corpus usage output finds the Carrier parent both as the file
+  manifest target `amiga-hunk/5855d79d8920` and as the nested project target
+  `amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_carrier_91b0ba24`.
 - Python can call the C decompression provider through the C backend wrapper;
   tests cover unknown payload handling without Python-side identification.
 - Python can also ask C to decompress a provider-backed packed section range
@@ -223,15 +237,33 @@ Current retained output:
 3. Done: add provider decompression output, size, and hash reporting.
 4. Done: expose provider `packed_payloads[]` JSON through CLI, DLL, and
    facts-v2 analysis JSON.
-5. Partly done: Carrier RNC discovery is emitted from C analysis records.
+5. Done: expose packed payload and derived target records as corpus usage
+   tags/xrefs for later target selection.
+6. Done: make listing-with-analysis JSON carry the same decompression fields as
+   analysis-only JSON.
+7. Partly done: Carrier RNC discovery is emitted from C analysis records.
    Runtime load address and entrypoint are still target metadata/manual
    materialisation, so child target creation is not fully C-record driven.
-6. Add isolated C tests for provider result acceptance, code-overlap rejection,
+8. Add isolated C tests for provider result acceptance, code-overlap rejection,
    and parent/child relationship output.
-7. Partly done: add Python access to C section-range decompression. Still
+9. Partly done: add Python access to C section-range decompression. Still
    missing automatic child materialisation from C records only.
-8. Apply the pipeline to corpus indexing and imported project targets.
-9. Add comparator targets for at least one non-Carrier packed payload before
+10. Done: include nested disk project targets in corpus usage indexing.
+11. Apply automatic child materialisation to corpus indexing and imported
+   project targets.
+12. Add comparator targets for at least one non-Carrier packed payload before
    broadening policy.
-10. Wire raw decompressed child reproduction so source can be assembled and
+13. Wire raw decompressed child reproduction so source can be assembled and
    compared to the decompressed bytes.
+
+## Current Corpus Query Proof
+
+After rebuilding `corpus/target_usage_manifest.jsonl`:
+
+- `compressed:rnc1-old` finds Carrier in both the file manifest and nested disk
+  project target views.
+- `compressed-payload` also finds comparator RNC1 targets, including
+  `3D Construction Kit II` `EditFile/runner.exe`, `3DEDIT`, `3DSOUND`,
+  `3DMAKE`, and `Voodoo Nightmare` `Trainer`.
+- These matches come from C `packed_payloads[]` records, not Python compression
+  scanning.
