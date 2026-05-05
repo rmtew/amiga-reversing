@@ -28,6 +28,8 @@ typedef struct M68kRenderPlanRow {
   uint32_t region_id;
   uint32_t start_line;
   uint32_t line_count;
+  size_t start_byte;
+  size_t byte_count;
   uint32_t source_section_index;
   uint32_t source_offset;
   uint32_t source_size;
@@ -44,6 +46,7 @@ typedef struct M68kRenderPlan {
   size_t row_capacity;
   uint32_t next_row_id;
   uint32_t total_lines;
+  size_t total_bytes;
 } M68kRenderPlan;
 
 void m68k_render_plan_init(M68kRenderPlan *plan);

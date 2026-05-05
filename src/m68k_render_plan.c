@@ -74,10 +74,13 @@ int m68k_render_plan_append_text_row(M68kRenderPlan *plan, uint32_t kind, uint32
     const char *text, M68kRenderPlanRow **out_row) {
   M68kRenderPlanRow *row;
   uint32_t line_count = render_plan_count_lines(text);
+  size_t byte_count;
   char *text_copy;
   if (out_row != NULL) *out_row = NULL;
   if (plan == NULL || line_count == 0U || !render_plan_text_has_complete_lines(text)) return -1;
   if (UINT32_MAX - plan->total_lines < line_count) return -1;
+  byte_count = strlen(text);
+  if (((size_t)-1) - plan->total_bytes < byte_count) return -1;
   text_copy = render_plan_strdup(text);
   if (text_copy == NULL) return -1;
   if (render_plan_reserve_rows(plan, plan->row_count + 1U) != 0) {
@@ -91,9 +94,12 @@ int m68k_render_plan_append_text_row(M68kRenderPlan *plan, uint32_t kind, uint32
   row->region_id = region_id;
   row->start_line = plan->total_lines;
   row->line_count = line_count;
+  row->start_byte = plan->total_bytes;
+  row->byte_count = byte_count;
   row->source_section_index = M68K_RENDER_PLAN_NO_SECTION;
   row->text = text_copy;
   plan->total_lines += line_count;
+  plan->total_bytes += byte_count;
   if (out_row != NULL) *out_row = row;
   return 0;
 }

@@ -21,11 +21,14 @@ static int test_render_plan_line_counts_and_order(void) {
 
   M68K_C_ASSERT_U32(6U, (uint32_t)plan.row_count);
   M68K_C_ASSERT_U32(6U, plan.total_lines);
+  M68K_C_ASSERT_U32(81U, (uint32_t)plan.total_bytes);
   row = m68k_render_plan_row_at(&plan, 4U);
   M68K_C_ASSERT(row != NULL);
   M68K_C_ASSERT_U32(M68K_RENDER_PLAN_ROW_SECTION, row->kind);
   M68K_C_ASSERT_U32(4U, row->start_line);
   M68K_C_ASSERT_U32(1U, row->line_count);
+  M68K_C_ASSERT_U32(56U, (uint32_t)row->start_byte);
+  M68K_C_ASSERT_U32(24U, (uint32_t)row->byte_count);
 
   m68k_render_plan_destroy(&plan);
   return 0;
@@ -101,6 +104,7 @@ static int test_render_plan_rejects_rows_without_complete_lines(void) {
   M68K_C_ASSERT_INT(-1, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_INCLUDE, 1U,
     "missing newline", NULL));
   M68K_C_ASSERT_U32(0U, (uint32_t)plan.row_count);
+  M68K_C_ASSERT_U32(0U, (uint32_t)plan.total_bytes);
   m68k_render_plan_destroy(&plan);
   return 0;
 }

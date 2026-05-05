@@ -25,8 +25,8 @@ The first retained implementation step is an isolated C render-plan module:
 
 This module is not yet wired into the production `.s` renderer or web listing
 API. It proves the basic mechanics first: ordered rows, explicit line counts,
-line lookup, source-offset lookup, runtime-address lookup, and full/window
-emission from the same row text.
+byte offsets, line lookup, source-offset lookup, runtime-address lookup, and
+full/window emission from the same row text.
 
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
@@ -104,6 +104,7 @@ Suggested top-level types:
   - Optional runtime address range.
   - Exact physical line count.
   - Cumulative start line.
+  - Cumulative start byte and byte count.
   - Render payload.
   - Analysis provenance and dependencies.
 
