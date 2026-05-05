@@ -42,6 +42,8 @@ A first C decompression provider layer now exists:
 
 - `platform_file_decompression.c/.h` define the provider-facing identify path.
 - Ancient is staged at `ext/tools/ancient/Ancient.exe`.
+- `src/build.bat` fails fast if the staged Ancient provider binary is missing,
+  so provider-backed decompression cannot silently disappear from a local build.
 - `platform_file_cli identify-packed-range` can identify an explicit byte range.
 - `platform_file_cli decompress-packed-range` can materialise provider output
   and report packed/decompressed SHA-256 and decompressed size.

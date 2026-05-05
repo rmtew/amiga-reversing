@@ -19,6 +19,7 @@ set DISK_EXE=%OUTDIR%\platform_disk_cli.exe
 set DISK_DLL=%OUTDIR%\platform_disk_lib.dll
 set FILE_EXE=%OUTDIR%\platform_file_cli.exe
 set FILE_DLL=%OUTDIR%\platform_file_lib.dll
+set ANCIENT_EXE=ext\tools\ancient\Ancient.exe
 set CFLAGS=/nologo /W4 /WX /std:c11 /D_CRT_SECURE_NO_WARNINGS /I src
 set LDFLAGS=/nologo
 if /I "%AMIGA_BUILD_CONFIG%"=="debug" (
@@ -29,6 +30,10 @@ if /I "%AMIGA_BUILD_CONFIG%"=="debug" (
 )
 
 if not exist %OUTDIR% mkdir %OUTDIR%
+if not exist "%ANCIENT_EXE%" (
+    echo Missing Ancient decompression provider: %ANCIENT_EXE%
+    exit /b 1
+)
 
 cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\generated\m68k_asm_tables.c ^
