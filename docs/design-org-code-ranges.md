@@ -1,138 +1,113 @@
 # ORG code ranges
 
-TODO: Check and update this document for lacking detail or incorrectness.
+This document is for implementers, including junior programmers learning this
+part of the project. It describes how analysis should discover runtime-copied
+absolute code ranges and how rendering should decide whether an `ORG` view is
+legitimate.
 
-The goal of reversing a target is to obtain the code and data in a form that the
-user will be able to use like the original developers. This will use a
-combination of analysis and rendering to produce that reformalised code and
-data.
+The goal is not to make prettier comments. The goal is to recover source that a
+user can work with like original Amiga game source: code ranges, labels, tables,
+hardware accesses, and copied runtime code should be formalised when the binary
+evidence supports it, while exact reproduction remains unchanged.
 
-Where this relates to ORG code ranges is that some of these targets contain code
-written to run at a fixed absolute address. Sometimes that code was originally
-assembled with `ORG`. Sometimes it is stored elsewhere in the file, copied to
-the absolute address at runtime, and then entered there. The renderer should
-recover the form that is most useful as source while still reproducing the
-original binary exactly.
+## Non-negotiable rules
 
-It is not guaranteed that the runtime entrypoint is the base address of the
-runtime range.
-
-## ORG usage nuances
-
-A label reference from before the ORG section will be converted to the relevant
-absolute address within the ORG section. Here `local_payload_START` stays a
-local PC-relative reference to the current segment's data. `absolute_START` is
-replaced by its ORG value, in this case $400.
-
-This loop shape is intentionally preserved from a real Bloodwych bootstrap style
-example. It is not an idealized copy loop. The design needs to cover what games
-actually shipped, including awkward loop bounds and trampoline code.
-
-```
-	lea.l local_payload_START(pc),a6
-local_bootstrap:
-	move.l #absolute_END-absolute_START,d0
-	lea.l absolute_START.l,a0
-loc_0_00000046:
-	move.b (a6)+,(a0)+
-	subq.l #1,d0
-	bcc.b loc_0_00000046
-
-	jmp absolute_START.l
-	dc.b $00,$00
-local_payload_START:
-    ORG $400
-absolute_START:
-	move.w #INTF_CLRALL,_custom+intena.l
-  ....
-absolute_END
-```
-
-It is not generally valid to use multiple ORG sections just because the runtime
-analysis found multiple copied ranges. We are not rewriting the program into a
-new layout. We are trying to recover source that resembles the original
-developer's layout and still reproduces exactly.
-
-Multiple ORGs can assemble, but they can also change the meaning of cross-range
-references. A copied low-memory trampoline can be a means of reaching a larger
-absolute payload, not source that should be rendered as a first-class ORG range.
-In those cases the low runtime address should remain numeric or become an
-external absolute symbol, while the larger payload can become the rendered ORG
-view.
-
-Multiple ORGs are valid when analysis can prove that they represent independent
-absolute code ranges from the original source, and that the assembler's `ORG`
-semantics preserve the intended references between and around those ranges. In
-that case the extra ORGs are evidence of understanding the source layout and the
-tool constraint, not a workaround.
-
-The implicit requirement is that each materialized ORG must represent a stable
-runtime view of source bytes, not every transient copied address.
-
-```
-	lea.l local_bootstrap(pc),a0
-	lea.l $00000090.l,a1
-	moveq.l #40,d0
-copy_trap0:
-	move.b (a0)+,(a1)+
-	dbf.w d0,copy_trap0
-
-	lea.l local_payload_START(pc),a6
-	move.l #$90,$80.l ; Trap 0 instruction vector
-	trap #0
-
-local_bootstrap:
-	move.l #absolute_END-absolute_START,d0
-	lea.l absolute_START.l,a0
-loc_0_00000046:
-	move.b (a6)+,(a0)+
-	subq.l #1,d0
-	bcc.b loc_0_00000046
-
-	jmp absolute_START.l
-	dc.b $00,$00
-local_payload_START:
-    ORG $400
-absolute_START:
-	move.w #INTF_CLRALL,_custom+intena.l
-  ....
-absolute_END
-```
+- C analysis is authoritative. Python wrappers and renderers may consume facts,
+  but they must not own the analysis.
+- Do not hardcode M68K instruction knowledge. Use generated decode/effect data
+  and generic value-flow/backtracking.
+- Generic behavior belongs in typed flow/analysis. Amiga behavior belongs in
+  platform facts, generated platform metadata, platform file handling, or Amiga
+  runtime/platform code.
+- Target metadata is allowed only for fixture-backed target-local facts.
+- Do not add an `ORG`, label, or EQU just to work around missing analysis.
+- Preserve direct source correctness and exact binary reproduction.
+- A rendering change is only useful if the analysed source code improves.
+  Comments are only a side benefit.
 
 ## Address spaces
 
-ORG rendering has to keep these address spaces separate:
+ORG handling must keep three addresses separate:
 
 - Storage address: where bytes appear in the loaded hunk or file payload.
 - Runtime address: where copied code executes after the program moves it.
-- Rendered logical PC: the assembler's address after an `ORG` directive.
+- Rendered logical PC: the assembler address after an `ORG` directive.
 
-Labels before an ORG are storage/source labels. Labels inside a materialized ORG
-are runtime labels. Rendering must not let a storage label accidentally become a
-runtime label with the same text, or let a weak runtime address suppress the
-stronger source label needed to describe the copy source.
+An absolute address is not automatically a source label. Address `$4`, vector
+address `$80`, custom chip address `$DFF000`, and a copied payload address are
+different kinds of facts.
 
-Label prefix policy:
+Runtime entrypoints do not have to equal the base of the runtime range. A range
+can start at `$400` while the first proven instruction entered is `$45C`.
+Analysis must keep the range base, entrypoint, and labels separate.
 
-- `loc_` labels name storage/source offsets in the current section.
-- `abs_` labels name materialized runtime addresses inside an accepted ORG view.
-- Non-materialized absolute addresses remain numeric or use explicit EQU symbols.
-- A storage label and runtime label must not share the same visible name unless
-  they truly name the same logical source location.
+## Evidence model
 
-Runtime entrypoints do not have to equal the base of the ORG range. For example,
-an accepted range can start at `$400` while the first reached instruction is
-`$45C`. The renderer should still model the range base, interior entrypoint,
-and labels separately.
+Each discovered runtime code range should have a fact record with:
 
-## Observed variations
+- Source storage range: section, offset, and size when known.
+- Runtime destination range: absolute base and size when known.
+- Entrypoints: explicit control-transfer targets into the runtime range.
+- Provenance: copy loop, vector install, trap/vector dispatch, jump table,
+  policy seed, metadata seed, or fallback seed.
+- Confidence: strong, medium, or weak.
+- Conflict state: overlaps accepted code, overlaps another runtime view, or has
+  no conflict.
+- Reproduction status: whether direct binary reproduction and source reassembly
+  still pass.
+- Corpus tags: pattern tags used to find comparator targets later.
 
-Observed examples should be kept here so the implementation is tested against
-real targets, not simplified patterns.
+`code_start_refs` must stay provenance-first, but they must not suppress
+explicit policy, target metadata, or fallback seeds. The entity model should use
+the union:
+
+```
+entry_points = set(_c_section_code_entry_points(section))
+entry_points.update(policy_metadata_and_fallback_seeds)
+```
+
+Then use reason and confidence to avoid weak fallthrough noise.
+
+## Strong and weak ranges
+
+A strong runtime code range usually has:
+
+- A concrete source address.
+- A concrete destination address.
+- A bounded size.
+- Accepted code at the source bytes.
+- A control transfer into the runtime destination.
+- No incompatible overlap with accepted code.
+
+A weak runtime range usually has only partial evidence. Common examples are
+small low-memory trampolines, vector stubs, or copied fragments that immediately
+enter a larger runtime payload.
+
+Do not materialize an `ORG` for every weak range. Weak ranges should remain
+numeric or become explicit absolute symbols unless they are proven to be
+independent source-level ORG ranges.
+
+Multiple ORGs are valid only when analysis proves they represent independent
+absolute code ranges from the original source and the assembler's `ORG`
+semantics preserve intended references between and around those ranges.
+
+## Real target examples
+
+Keep these examples tied to real corpus targets. They are requirements, not
+simplified illustrations.
 
 ### Bloodwych
 
 Target: `targets/amiga_hunk_bloodwych/bloodwych.s`
+
+External manually disassembled, human-prettied references:
+
+- `resources/clone_amiga/Bloodwych-68k/asm/BLOODWYCH439_relabel_data.asm`
+- `resources/clone_amiga/Bloodwych-68k/asm/Bloodwych439.asm`
+
+These external sources are inspiration only. They can show what a human found
+useful, but the project must prove its own facts through analysis and
+reproduction.
 
 Observed pattern:
 
@@ -141,31 +116,60 @@ Observed pattern:
 - The trap routine copies the main payload to `$400`.
 - Execution jumps to `$400`.
 
+Representative shape:
+
+```
+	lea.l local_payload_START(pc),a6
+local_bootstrap:
+	move.l #absolute_END-absolute_START,d0
+	lea.l absolute_START.l,a0
+loc_0_00000046:
+	move.b (a6)+,(a0)+
+	subq.l #1,d0
+	bcc.b loc_0_00000046
+
+	jmp absolute_START.l
+	dc.b $00,$00
+local_payload_START:
+	ORG $400
+absolute_START:
+	move.w #INTF_CLRALL,_custom+intena.l
+	...
+absolute_END:
+```
+
 Rendering implication:
 
-- The `$90` trap routine is a trampoline/control mechanism.
-- The `$400` payload is the meaningful ORG code range.
-- References from before the payload to payload bytes must preserve the storage
-  source where needed and runtime absolute labels where appropriate.
+- `$90` is a trampoline/control mechanism.
+- `$400` is the meaningful ORG payload if source bytes and reproduction prove
+  it.
+- References before the ORG may need storage labels for copy-source bytes.
+- References inside the ORG should use runtime labels.
+- The copy loop shape must be handled as shipped, including awkward bounds and
+  trampoline code.
 
 ### Conqueror
 
 Target:
 `targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_hunk_conqueror_cf971606/conqueror_cf971606.s`
 
-Observed pattern:
+Observed problems:
 
-- A small copied runtime routine is reached through address `$4`.
-- That routine enters a larger copied runtime range around `$40/$64`.
-- Rendering a separate `ORG $4` created confusing duplicate/cross-range labels.
+- A copied routine was reached through address `$4`.
+- A larger runtime range around `$40/$64` was also present.
+- Rendering `ORG $4` caused duplicate or confusing cross-range labels.
+- Address `$4` was conflated with a location label.
+- Hardware base `_custom` offsets were incorrectly rendered as app slots.
 
 Rendering implication:
 
-- A weak low-memory trampoline should not force its own ORG view when it exits
-  into a larger accepted runtime range.
-- The low address can remain numeric.
-- The larger runtime range can be materialized if it is backed by accepted source
-  bytes and reproduces exactly.
+- A weak low-memory trampoline should not force its own ORG when it exits into a
+  larger accepted runtime range.
+- Address `$4` can remain numeric or become an explicit absolute symbol.
+- The larger runtime range can be materialized only if backed by accepted source
+  bytes and exact reproduction.
+- `_custom`, `_ciaa`, `_ciab`, audio, sprite, and display accesses must resolve
+  through Amiga platform metadata, not app-slot inference.
 
 ### Carrier Command
 
@@ -176,75 +180,202 @@ Observed pattern:
 
 - Early code copies routines to low absolute addresses such as `$00C0` and
   `$0100`.
-- Later output currently shows ORG-like runtime views around `$5000` and `$328`.
-- The target also appears to involve packed or transformed payload data, so it
-  may not be a clean comparator for every ORG rule.
+- Other runtime views appear around `$5000` and `$328`.
+- The target also contains packed or transformed payloads.
 
 Rendering implication:
 
-- This is useful as a stress target, but ORG decisions here need reproduction
-  checks and probably packed-data awareness before being treated as a clean
-  policy example.
+- Carrier is useful as a stress target.
+- Packed-data awareness and reproduction checks are required before using it as
+  a clean ORG policy comparator.
 
-## Rendering rules
+## Analysis requirements
 
-- Only materialize an ORG for a strong accepted runtime range.
-- A strong accepted runtime range needs concrete evidence: copied source,
-  destination, and size where possible; accepted code at the mapped source bytes;
-  and a concrete control transfer into the runtime destination.
-- A weak trampoline is usually short copied code, often at a low/vector address,
-  with little meaningful internal structure and an exit into a larger runtime
-  range.
-- Do not materialize an ORG for weak trampoline ranges that only reach a larger
-  runtime range.
-- Multiple ORGs are allowed only when the ranges are proven independent and the
-  rendered references still match the recovered source intent.
-- Do not materialize overlapping or conflicting runtime ranges.
-- Do not materialize a runtime range that is not backed by accepted source bytes.
-- Do not let runtime labels overlap accepted code in another incompatible view.
-- Keep external absolute memory as numeric operands or explicit absolute EQU
-  symbols unless there is enough evidence for a runtime code view.
-- When pre-ORG code refers to copied bytes as source data, prefer storage labels.
-- When code inside a materialized ORG branches or calls within the runtime view,
-  prefer runtime labels.
-- Copied data mixed with copied code should not force an ORG by itself. Render it
-  as part of the same ORG only when it belongs to the recovered source layout and
-  reproduction remains exact.
-- Preserve exact binary reproduction first. Source readability improvements are
-  only retained when reproduction remains exact.
+Runtime range discovery should come from C analysis:
 
-Direct reproduction of the original bytes is mandatory. Reassembling rendered
-source back to exactly the same binary is also expected for targets where source
-reassembly is supported. ORG changes should not make source reassembly worse.
+- Use generated instruction decode and generic value-flow/backtracking.
+- Track copy source, destination, and length through registers, stack slots,
+  app/global/base slots, and reloads where evidence is strong.
+- Recognise vector installs by backtracking stored values, not by fixed adjacent
+  instruction pairs.
+- Promote explicit policy, metadata, and fallback seeds even when no
+  `code_start_ref` found them.
+- Queue installed interrupt/vector handlers as code when their targets are
+  proven.
+- Identify abstract indirect jumps first, then work backward to classify jump
+  tables, lookup tables, relative offsets, and absolute targets.
+- Use "must not overlap accepted code" gates before auto-classifying data,
+  tables, or copied payloads.
 
-## Test requirements
+Do not solve this in Python. Python may render, index, or materialize facts that
+C has already produced.
 
-ORG range changes should have isolated tests plus corpus proof where possible:
+## Rendering requirements
+
+The rendered source should have this order:
+
+1. Include region, alphabetically sorted.
+2. RSSET regions.
+3. EQU/symbol region.
+4. Sections and code/data.
+
+Label namespace policy:
+
+- `loc_` labels name storage/source offsets in the current section.
+- `abs_` labels name materialized runtime addresses inside an accepted ORG view.
+- Non-materialized absolute addresses remain numeric or use explicit EQU
+  symbols.
+- Storage labels and runtime labels must not share visible names unless they
+  truly name the same logical source location.
+
+Reference policy:
+
+- Pre-ORG references to copied bytes as source data should use storage labels.
+- Branches/calls inside a materialized ORG should use runtime labels.
+- Cross-range references must remain correct under assembler `ORG` semantics.
+- External absolute memory should not be converted into runtime code labels.
+
+Hardware/platform policy:
+
+- Custom chip, CIA, audio, sprite, copper, display, and interrupt accesses
+  should use platform metadata.
+- App-slot inference must not claim offsets from known hardware bases.
+- Useful aliases should exist where they match the hardware layout, for example
+  audio channels and sprite register blocks.
+
+Known useful platform aliases:
+
+```
+aud   EQU $0A0
+aud0  EQU $0A0
+aud1  EQU $0B0
+aud2  EQU $0C0
+aud3  EQU $0D0
+
+sprpt EQU $120
+spr   EQU $140
+
+sd_pos    EQU $00
+sd_ctl    EQU $02
+sd_dataa  EQU $04
+sd_dataB  EQU $06
+sd_SIZEOF EQU $08
+```
+
+## Implementation workflow
+
+Implement ORG support as a pipeline. Do not skip directly to rendering.
+
+1. Discover code normally from all accepted entry seeds.
+2. Run C value-flow/backtracking to find copy, vector, and indirect-control
+   evidence.
+3. Build runtime-copy candidate facts with source, destination, size,
+   entrypoint, confidence, and provenance.
+4. Reject candidates that overlap accepted code or conflict with a stronger
+   runtime view.
+5. Classify the remaining candidates as materialized ORG range, suppressed weak
+   trampoline, absolute symbol, or unresolved problem.
+6. Render only accepted facts. The renderer should not invent analysis facts.
+7. Reassemble and binary-diff the rendered source where supported.
+8. Index tags and annotations so later corpus scans can find the pattern again.
+
+For a junior implementer, the important separation is:
+
+- Analysis answers "what does the binary prove?"
+- Policy answers "is this evidence strong enough to materialize?"
+- Rendering answers "how do we express accepted facts as source?"
+- Reproduction answers "did the expression preserve the binary?"
+
+## Table requirements
+
+Jump and lookup tables should be rendered according to how the program computes
+the target:
+
+- Absolute relocated entries should use target labels when relocation evidence
+  proves them.
+- Absolute non-relocated entries should remain absolute or use explicit absolute
+  symbols.
+- Relative entries should be rendered relative to the correct base label when
+  the calculation proves the base.
+- Unresolved table targets should be emitted as analysis problems, not hidden by
+  guessed labels.
+
+Corpus indexing should tag indirect jump/table shapes so later heuristic changes
+can be tested across all matching targets.
+
+## Required annotations
+
+For every accepted ORG/materialized runtime range, record:
+
+- `runtime-copied-code`
+- `trap-vector-bootstrap` when applicable.
+- `multi-runtime-range` when applicable.
+- `materialized-org-range`
+- Source storage section/offset/range.
+- Runtime base/range.
+- Entrypoint addresses and provenance.
+- Copy-loop/vector/jump-table evidence.
+- Conflict and overlap result.
+- Reproduction result.
+- Comparator targets used, if any.
+
+For rejected or suppressed candidates, record why:
+
+- `suppressed-weak-org-range`
+- `low-vector-trampoline`
+- `overlaps-accepted-code`
+- `conflicts-with-runtime-range`
+- `source-bytes-not-accepted-code`
+- `packed-or-transformed-payload`
+
+These annotations should be available through corpus indexing so future work can
+search for real examples instead of rediscovering them manually.
+
+## Regression cases
+
+Known bad outputs that must stay guarded:
+
+- Includes mixed into EQU or RSSET regions.
+- Conqueror-style `ORG $4` for a weak trampoline.
+- Duplicate labels such as storage `loc_0_00000004` and runtime
+  `loc_0_00000004`.
+- Address `$4` rendered as a normal code location label when it is an absolute
+  vector/address.
+- `_custom` offsets rendered as app slots.
+- Installed illegal/interrupt/vector handlers not queued as code.
+- Fixed adjacent move/store matching instead of value backtracking.
+- Jump tables emitted as raw values when the base/target calculation is known.
+- Data/table classification overlapping accepted code.
+
+## Tests and acceptance
+
+ORG range changes need isolated tests plus corpus proof where possible:
 
 - Bloodwych-style trap/vector trampoline to a larger ORG payload.
 - Conqueror-style low trampoline suppressed in favor of the larger runtime view.
-- A comparator target using similar runtime copied code.
-- Direct reproduction exactness.
-- Source reassembly exactness where that target supports it.
-- No duplicate label names across storage and runtime namespaces.
-- No ORG range that overlaps accepted code in an incompatible view.
+- At least one GenAm/MonAm or other non-Bloodwych comparator for each generalized
+  heuristic.
+- Direct binary reproduction exactness.
+- Source reassembly exactness where supported.
+- No duplicate label names across storage/runtime namespaces.
+- No ORG range overlapping accepted code in an incompatible view.
+- Corpus tags proving the target patterns are indexed.
 
-Known bad outputs should stay as regression examples:
+Before retaining a change:
 
-- Conqueror-style `ORG $4` for a weak trampoline.
-- Duplicate or conflicting `loc_0_00000004` and `abs_0_00000004` style labels.
-- Cross-range references that switch from source storage labels to the wrong
-  runtime labels.
+1. Add isolated regression tests.
+2. Rebuild relevant corpus targets.
+3. Compare Bloodwych and comparator before/after output.
+4. Keep only source-code analysis/rendering gains, not comment-only churn.
+5. Run reproduction/source reassembly checks.
+6. Run the project precommit when the implementation is ready.
 
-## Corpus tags
+## Open implementation questions
 
-Targets with ORG/runtime-copy patterns should be tagged so later analysis work
-can find real comparators. Useful tags include:
-
-- `runtime-copied-code`
-- `low-vector-trampoline`
-- `trap-vector-bootstrap`
-- `multi-runtime-range`
-- `materialized-org-range`
-- `suppressed-weak-org-range`
-- `packed-or-transformed-payload`
+- How should the facts schema represent multiple proven independent ORGs in one
+  source section?
+- Should weak absolute symbols be emitted as EQU values or left numeric until a
+  UI problem list can surface them?
+- What exact confidence thresholds should allow table target labelisation?
+- Which existing corpus targets besides Bloodwych, Conqueror, and Carrier are
+  clean non-packed comparators for each pattern?
