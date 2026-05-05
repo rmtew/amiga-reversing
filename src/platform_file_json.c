@@ -4500,10 +4500,11 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
   uint32_t byte_count = 0U;
   const M68kRuntimeViewIR *runtime_view = NULL;
   uint32_t runtime_address = 0U;
-  copy_trimmed(text, sizeof(text), line_start, line_length);
   if (line_length + 1U < sizeof(text)) {
     memcpy(text, line_start, line_length);
     text[line_length] = '\0';
+  } else {
+    copy_trimmed(text, sizeof(text), line_start, line_length);
   }
   if (stmt != NULL) {
     has_addr = 1;
