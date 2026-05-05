@@ -36,9 +36,11 @@ typedef struct M68kRenderPlanRow {
   uint32_t source_section_index;
   uint32_t source_offset;
   uint32_t source_size;
+  uint32_t statement_index;
   uint32_t runtime_address;
   uint32_t runtime_size;
   uint8_t has_source_range;
+  uint8_t has_statement;
   uint8_t has_runtime_range;
   char *text;
 } M68kRenderPlanRow;

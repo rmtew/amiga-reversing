@@ -325,6 +325,8 @@ int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file,
       }
       source_size = render_plan_statement_source_size(stmt);
       m68k_render_plan_row_set_source_range(row, (uint32_t)section_index, stmt->offset, source_size);
+      row->has_statement = 1U;
+      row->statement_index = (uint32_t)statement_index;
       free(stmt_text);
     }
   }

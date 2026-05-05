@@ -37,6 +37,10 @@ Multi-line rows can now be visited as physical lines while preserving the owner
 row and subline index. This keeps compatibility with the current web listing
 shape without forcing source text reparsing.
 
+The facts_v2 basic listing JSON path now builds its rows from a render plan
+instead of duplicating a statement-render-and-split loop. Full listing still
+uses the old full-source text parse path.
+
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
 

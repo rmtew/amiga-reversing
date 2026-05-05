@@ -133,6 +133,7 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_render_plan.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_plain_parse.obj ^
@@ -317,6 +318,7 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_render_plan.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_ir.obj ^
@@ -383,6 +385,7 @@ link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_render_plan.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_ir.obj ^
@@ -478,6 +481,7 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_render_plan.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
@@ -538,6 +542,7 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
     %OUTDIR%\m68k_render_ir.obj ^
+    %OUTDIR%\m68k_render_plan.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
