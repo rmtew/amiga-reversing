@@ -4741,16 +4741,30 @@ typedef struct BasicListingRenderPlanContext {
   size_t row_index;
 } BasicListingRenderPlanContext;
 
-static const char *basic_listing_row_kind_for_plan_row(const M68kRenderPlanRow *row) {
+static const char *listing_row_kind_for_plan_row(const M68kRenderPlanRow *row) {
   if (row == NULL) return "unknown";
+  if (row->kind == M68K_RENDER_PLAN_ROW_INCLUDE) return "directive";
+  if (row->kind == M68K_RENDER_PLAN_ROW_RSSET) return "directive";
+  if (row->kind == M68K_RENDER_PLAN_ROW_RS_FIELD) return "directive";
+  if (row->kind == M68K_RENDER_PLAN_ROW_EQUATE) return "directive";
+  if (row->kind == M68K_RENDER_PLAN_ROW_SECTION) return "directive";
+  if (row->kind == M68K_RENDER_PLAN_ROW_ORG) return "directive";
   if (row->kind == M68K_RENDER_PLAN_ROW_LABEL) return "label";
   if (row->kind == M68K_RENDER_PLAN_ROW_INSTRUCTION) return "instruction";
   if (row->kind == M68K_RENDER_PLAN_ROW_DATA) return "data";
+  if (row->kind == M68K_RENDER_PLAN_ROW_RESERVE) return "data";
   if (row->kind == M68K_RENDER_PLAN_ROW_BLANK) return "blank";
-  return "directive";
+  if (row->kind == M68K_RENDER_PLAN_ROW_PLATFORM_DIRECTIVE) return "directive";
+  return NULL;
 }
 
-static const M68kStatementIR *basic_listing_statement_for_plan_row(const M68kSourceFileIR *source_file,
+static int listing_section_index_for_plan_row(const M68kRenderPlanRow *row) {
+  if (row == NULL || row->source_section_index == M68K_RENDER_PLAN_NO_SECTION) return -1;
+  if (row->source_section_index > (uint32_t)INT32_MAX) return -1;
+  return (int)row->source_section_index;
+}
+
+static const M68kStatementIR *listing_statement_for_plan_row(const M68kSourceFileIR *source_file,
     const M68kRenderPlanRow *row) {
   const M68kSectionIR *section;
   if (source_file == NULL || row == NULL || !row->has_statement ||
@@ -4764,18 +4778,20 @@ static const M68kStatementIR *basic_listing_statement_for_plan_row(const M68kSou
 static int append_basic_listing_render_plan_line(const M68kRenderPlanRow *row, uint32_t subline, uint32_t line,
     const char *line_start, size_t line_length, void *user) {
   BasicListingRenderPlanContext *context = (BasicListingRenderPlanContext *)user;
-  const char *row_kind = basic_listing_row_kind_for_plan_row(row);
+  const char *row_kind = listing_row_kind_for_plan_row(row);
   const M68kStatementIR *stmt;
+  int section_index = listing_section_index_for_plan_row(row);
   (void)subline;
   (void)line;
   if (context == NULL || context->builder == NULL) return -1;
-  stmt = basic_listing_statement_for_plan_row(context->source_file, row);
+  if (row_kind == NULL) row_kind = "directive";
+  stmt = listing_statement_for_plan_row(context->source_file, row);
   if (context->row_index != 0U && json_builder_append(context->builder, ",") != 0) return -1;
   if (append_listing_row_json(context->builder, context->row_index, line_start, line_length, row_kind,
-      row != NULL ? (int)row->source_section_index : -1, stmt, context->analysis_policy, NULL, "basic") != 0)
+      section_index, stmt, context->analysis_policy, NULL, "basic") != 0)
     return -1;
   if (listing_app_slot_analysis_observe_row(context->app_slot_analysis, context->row_index, row_kind,
-      row != NULL ? (int)row->source_section_index : -1, stmt, NULL) != 0)
+      section_index, stmt, NULL) != 0)
     return -1;
   ++context->row_index;
   return 0;
@@ -4931,29 +4947,39 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
     const char *line_start, size_t line_length, void *user) {
   ListingRenderPlanJsonContext *context = (ListingRenderPlanJsonContext *)user;
   int is_section_directive = 0;
+  int section_index = -1;
   char stripped[1024];
   char opcode[128];
   char operand[1024];
   char comment[512];
   const char *row_kind;
   const M68kStatementIR *stmt = NULL;
-  (void)row;
   (void)subline;
   (void)line;
   if (context == NULL || context->builder == NULL) return -1;
   split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
     sizeof(operand), comment, sizeof(comment));
-  row_kind = listing_row_kind_for_line(stripped);
-  if (strcmp(row_kind, "blank") == 0 && comment[0] != '\0') row_kind = "comment";
+  row_kind = listing_row_kind_for_plan_row(row);
+  if (row_kind == NULL) {
+    row_kind = listing_row_kind_for_line(stripped);
+    if (strcmp(row_kind, "blank") == 0 && comment[0] != '\0') row_kind = "comment";
+  }
   is_section_directive = strcmp(row_kind, "directive") == 0 && text_starts_with_ci(stripped, "SECTION ");
+  section_index = listing_section_index_for_plan_row(row);
   if (is_section_directive) {
-    ++context->active_section_index;
+    if (section_index >= 0) context->active_section_index = section_index;
+    else ++context->active_section_index;
+    section_index = context->active_section_index;
     context->statement_index = 0U;
     context->data_lines_left = 0U;
+  } else if (row != NULL && row->has_statement) {
+    stmt = listing_statement_for_plan_row(context->source_file, row);
+    if (section_index >= 0) context->active_section_index = section_index;
   } else if (context->active_section_index >= 0) {
     stmt = listing_statement_for_line(context->source_file, context->analysis_policy,
       (size_t)context->active_section_index, &context->statement_index, &context->data_lines_left, row_kind,
       context->use_rendered_line_count, strcmp(row_kind, "data") == 0 && strchr(stripped, '-') != NULL);
+    section_index = context->active_section_index;
   }
   if (!context->include_source_only_rows && !context->preamble_emitted && is_section_directive) {
     if (append_listing_source_header_rows(context->builder, context->header_rows, &context->row_index,
@@ -4967,11 +4993,11 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
   }
   if (context->row_index != 0U && json_builder_append(context->builder, ",") != 0) return -1;
   if (append_listing_row_json_parsed(context->builder, context->row_index, line_start, line_length, row_kind,
-        stripped, opcode, operand, comment, context->active_section_index, stmt, context->analysis_policy,
+        stripped, opcode, operand, comment, section_index, stmt, context->analysis_policy,
         context->source_analysis, context->analysis_generation) != 0)
     return -1;
   if (listing_app_slot_analysis_observe_row(context->app_slot_analysis, context->row_index, row_kind,
-      context->active_section_index, stmt, context->source_analysis) != 0)
+      section_index, stmt, context->source_analysis) != 0)
     return -1;
   ++context->row_index;
   return 0;

@@ -65,6 +65,10 @@ pass.
 Full listing timing now separates the remaining source-model rebuild
 (`source_model_seconds`) from render-plan row JSON emission
 (`rows_emit_seconds`), so the next refactor can target the real leftover cost.
+The full listing row emitter now consumes render-plan statement provenance when
+available instead of depending only on section-line matching. The production
+facts_v2 bridge still needs authoritative statement provenance added to its
+captured plan before the source-model rebuild can be removed.
 
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
