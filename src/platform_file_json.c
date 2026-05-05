@@ -4883,6 +4883,33 @@ static int collect_listing_source_header_plan_line(const M68kRenderPlanRow *row,
   return 0;
 }
 
+static int collect_listing_source_header_rows_from_plan(const M68kRenderPlan *render_plan,
+    ListingSourceHeaderRows *header_rows) {
+  ListingRenderPlanHeaderContext context;
+  size_t row_index;
+  memset(&context, 0, sizeof(context));
+  if (render_plan == NULL || header_rows == NULL) return -1;
+  context.header_rows = header_rows;
+  for (row_index = 0U; row_index < render_plan->row_count && !context.stopped; ++row_index) {
+    const M68kRenderPlanRow *row = &render_plan->rows[row_index];
+    const char *cursor = row->text;
+    uint32_t subline = 0U;
+    if (cursor == NULL) continue;
+    while (*cursor != '\0' && !context.stopped) {
+      const char *line_start = cursor;
+      size_t line_length;
+      while (*cursor != '\0' && *cursor != '\n') ++cursor;
+      if (*cursor == '\n') ++cursor;
+      line_length = (size_t)(cursor - line_start);
+      if (collect_listing_source_header_plan_line(row, subline, row->start_line + subline, line_start,
+          line_length, &context) != 0)
+        return -1;
+      ++subline;
+    }
+  }
+  return 0;
+}
+
 typedef struct ListingRenderPlanJsonContext {
   JsonBuilder *builder;
   ListingSourceHeaderRows *header_rows;
@@ -4957,19 +4984,14 @@ int source_file_listing_rows_from_render_plan_to_json(const M68kSourceFileIR *so
   JsonBuilder builder = {0};
   ListingSourceHeaderRows header_rows = {0};
   ListingAppSlotAnalysisBuilder app_slot_analysis = {0};
-  ListingRenderPlanHeaderContext header_context;
   ListingRenderPlanJsonContext context;
-  memset(&header_context, 0, sizeof(header_context));
   memset(&context, 0, sizeof(context));
   if (source_file == NULL || render_plan == NULL || out_json == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
     return -1;
   }
   if (!include_source_only_rows) {
-    header_context.header_rows = &header_rows;
-    if (m68k_render_plan_visit_row_lines(render_plan, 0U, render_plan->row_count,
-        collect_listing_source_header_plan_line, &header_context) != 0)
-      goto oom;
+    if (collect_listing_source_header_rows_from_plan(render_plan, &header_rows) != 0) goto oom;
   }
   if (listing_app_slot_analysis_init(&app_slot_analysis, source_file, source_analysis) != 0) goto oom;
   if (json_builder_create(&builder) != 0) goto oom;

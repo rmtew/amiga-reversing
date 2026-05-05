@@ -59,6 +59,9 @@ An isolated C test now proves that full listing JSON emitted from a text-line
 render plan remains stable for the same source model. The production DLL path
 uses the same plan-backed row emitter. The old full listing source-text API has
 been removed, so there is no separate raw source-text row loop to maintain.
+Header collection for filtered listing rows now stops at the first section
+directive instead of scanning the whole render plan before the row-emission
+pass.
 
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
