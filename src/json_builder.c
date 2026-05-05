@@ -130,17 +130,30 @@ int json_builder_appendf(JsonBuilder *builder, const char *fmt, ...) {
 
 int json_builder_append_json_string(JsonBuilder *builder, const char *text) {
     const unsigned char *p = (const unsigned char *)text;
+    const unsigned char *span_start = p;
     if (json_builder_append(builder, "\"") != 0) return -1;
     while (*p != 0U) {
         if (*p == '\\' || *p == '"') {
-            if (json_builder_appendf(builder, "\\%c", *p) != 0) return -1;
+            char escaped[2];
+            if (p > span_start && append_bytes(builder, (const char *)span_start, (size_t)(p - span_start)) != 0)
+                return -1;
+            escaped[0] = '\\';
+            escaped[1] = (char)*p;
+            if (append_bytes(builder, escaped, sizeof(escaped)) != 0) return -1;
+            ++p;
+            span_start = p;
+            continue;
         } else if (*p < 0x20U) {
+            if (p > span_start && append_bytes(builder, (const char *)span_start, (size_t)(p - span_start)) != 0)
+                return -1;
             if (json_builder_appendf(builder, "\\u%04X", *p) != 0) return -1;
-        } else {
-            if (json_builder_append_char(builder, (char)*p) != 0) return -1;
+            ++p;
+            span_start = p;
+            continue;
         }
         ++p;
     }
+    if (p > span_start && append_bytes(builder, (const char *)span_start, (size_t)(p - span_start)) != 0) return -1;
     return json_builder_append(builder, "\"");
 }
 

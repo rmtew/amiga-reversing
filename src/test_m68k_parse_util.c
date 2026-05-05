@@ -1,10 +1,12 @@
 #include "m68k_c_unit_test.h"
+#include "json_builder.h"
 #include "m68k_parse_util.h"
 #include "m68k_source_constant_expr.h"
 #include "m68k_source_expr.h"
 #include "m68k_source_text_util.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 static int test_sign_extend32(void) {
   M68K_C_ASSERT_U32(0xFFFFFFFFu, m68k_sign_extend32(0xFFu, 8));
@@ -203,6 +205,19 @@ static int test_source_constant_expr_accepts_division(void) {
   return 0;
 }
 
+static int test_json_builder_escapes_string_spans(void) {
+  JsonBuilder builder = {0};
+  char *text = NULL;
+  M68K_C_ASSERT_INT(0, json_builder_create(&builder));
+  M68K_C_ASSERT_INT(0, json_builder_append_json_string(&builder, "plain \"quote\" \\ slash\n\x01 end"));
+  text = json_builder_build(&builder);
+  M68K_C_ASSERT(text != NULL);
+  M68K_C_ASSERT_STR("\"plain \\\"quote\\\" \\\\ slash\\u000A\\u0001 end\"", text);
+  free(text);
+  json_builder_destroy(&builder);
+  return 0;
+}
+
 int m68k_c_parse_util_tests(void) {
   static const M68kCTestCase cases[] = {
     {"sign_extend32", test_sign_extend32},
@@ -219,6 +234,7 @@ int m68k_c_parse_util_tests(void) {
     {"normalize_pc_current_expr", test_normalize_pc_current_expr},
     {"source_linear_expr_accepts_constant_or", test_source_linear_expr_accepts_constant_or},
     {"source_constant_expr_accepts_division", test_source_constant_expr_accepts_division},
+    {"json_builder_escapes_string_spans", test_json_builder_escapes_string_spans},
   };
   return m68k_c_test_run_suite("m68k_parse_util", cases, sizeof(cases) / sizeof(cases[0]));
 }
