@@ -24,6 +24,7 @@ from amiga_reversing.disasm.c_backend import (
     assemble_platform_source_path_with_c_backend,
     assemble_platform_source_text_with_c_backend,
     benchmark_project_source_with_text_from_c_backend,
+    build_project_listing_index_with_c_backend,
     build_project_rows_generation_with_c_backend,
     build_project_rows_generation_with_c_backend_profile,
     build_project_rows_generation_with_c_backend_profile_text,
@@ -36,6 +37,7 @@ from amiga_reversing.disasm.c_backend import (
     facts_v2_render_assemble_project_source_with_c_backend_profile,
     inspect_disk_with_c_backend,
     identify_packed_range_with_c_backend,
+    listing_index_from_c_analysis,
     render_binary_source_with_c_backend,
     render_project_source_with_c_backend,
     rows_from_c_listing_json,
@@ -2787,6 +2789,40 @@ def test_real_dll_analysis_api_exposes_source_free_render_index_profile(tmp_path
     assert facts_v2["asm_source_bytes"] == 0
     assert facts_v2["render_ir_statements"] >= 3
     assert facts_v2["accepted_instructions"] >= 2
+
+
+def test_listing_index_from_c_analysis_uses_source_free_profile() -> None:
+    index = listing_index_from_c_analysis(
+        {
+            "sections": [],
+            "profile": {
+                "generation": "facts_v2_analysis",
+                "analysis_backend": "facts_v2",
+                "facts_v2": {
+                    "render_ir_statements": 7,
+                    "asm_source_enabled": False,
+                    "asm_source_bytes": 0,
+                },
+            },
+        }
+    )
+
+    assert index["analysis_generation"] == "full"
+    assert index["analysis_backend"] == "facts_v2"
+    assert index["total_rows"] == 7
+    assert index["profile"]["facts_v2"]["asm_source_enabled"] is False
+
+
+def test_project_listing_index_with_c_backend_uses_analysis_profile() -> None:
+    _requires_c_backend_dlls()
+
+    index = build_project_listing_index_with_c_backend("amiga_hunk_bloodwych")
+
+    facts_v2 = index["profile"]["facts_v2"]
+    assert index["total_rows"] == facts_v2["render_ir_statements"]
+    assert facts_v2["asm_source_enabled"] is False
+    assert facts_v2["asm_source_bytes"] == 0
+    assert index["total_rows"] > 1000
 
 
 def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_pointer(tmp_path: Path) -> None:
