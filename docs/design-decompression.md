@@ -199,7 +199,8 @@ Useful tags:
 - `decompression:runtime_copy`
 - `decompression:runtime_copy_conflicting`
 - `decompression:runtime_copy_non_conflicting`
-- copy-shape tags such as `decompression:runtime_copy_short`
+- copy-shape tags such as `decompression:runtime_copy_short` and
+  `decompression:runtime_copy_oversize`
 - `decompression-stub`
 - `absolute-depack-dest`
 - `decompressed-entrypoint`
@@ -248,20 +249,20 @@ Current retained output:
 - Child `decompression.json` has packed/decompressed hashes and provider info.
 - Disk CDP test verifies the child is shown as a decompressed RNC target.
 - C CLI identifies the parent range:
-  `platform_file_cli identify-packed-range <parent> 19552 168397`.
+  `platform_file_cli identify-packed-range <parent> 19552 168391`.
 - C CLI decompresses the parent range to 359600 bytes with SHA-256
   `d37ec7db83012eba179956026b0677cfd46763d585722154f761bd6f6d2b5748`,
   matching the retained child `binary.bin`.
 - Facts-v2 analysis of the Carrier parent hunk emits a packed payload at section
-  offset `$4C40`, packed size 168397, decompressed size 359600, and the same
+  offset `$4C40`, packed size 168391, decompressed size 359600, and the same
   decompressed SHA-256.
 - The same C suggestion now includes runtime-copy evidence for `$4C40` copied to
   `$4000`, with copy size 168396 and `runtime_copy_conflicting: true`. This is
   deliberately not enough to mark the record `materializable`: the copied byte
-  count does not exactly cover the provider range, and the copy conflicts with
+  count overshoots the provider-validated range, and the copy conflicts with
   another accepted runtime source view.
 - Facts-v2 analysis also emits Carrier's smaller RNC stream at section offset
-  `$05E4`, packed size 18018, decompressed size 32032. It is deliberately not
+  `$05E4`, packed size 18012, decompressed size 32032. It is deliberately not
   materialised without runtime metadata.
 - Corpus usage indexing can tag that record as `compressed-payload`,
   `compressed:rnc1-old`, `decompression:provider:ancient-cli`, and
@@ -269,7 +270,7 @@ Current retained output:
 - Corpus usage indexing also preserves the C runtime-copy evidence as searchable
   tags and xrefs, including `decompression:runtime_copy`,
   `decompression:runtime_copy_conflicting`, and
-  `decompression:runtime_copy_short` for the `$4C40` stream.
+  `decompression:runtime_copy_oversize` for the `$4C40` stream.
 - Rebuilt corpus usage output finds the Carrier parent both as the file
   manifest target `amiga-hunk/5855d79d8920` and as the nested project target
   `amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_carrier_91b0ba24`.
@@ -325,10 +326,12 @@ Current retained output:
 16. Done: index decompression runtime-copy evidence and conflict shape as corpus
    tags/xrefs so Carrier-like parent/child reconciliation work can be selected
    by evidence, not by target name.
-17. Done: align the C RNC candidate scanner with the local Ancient RNC detector
-   headers, adding RNC2 and `...\1` candidate support while keeping provider
-   identify/decompress as the authority.
+17. Superseded: local RNC header scanning was removed from analysis. Candidate
+   discovery is provider-owned through Ancient `scan-json`; unvalidated
+   header-shaped bytes produce no candidates.
 18. Done: include provider executable SHA-256 in C provider JSON records.
+19. Done: copy the rebuilt Ancient provider binary with `scan-json` support into
+   `ext/tools/ancient/Ancient.exe` and route C candidate discovery through it.
 
 ## Current Corpus Query Proof
 
@@ -339,13 +342,16 @@ After rebuilding `corpus/target_usage_manifest.jsonl`:
 - `compressed-payload` also finds comparator RNC1 targets, including
   `3D Construction Kit II` `EditFile/runner.exe`, `3DEDIT`, `3DSOUND`,
   `3DMAKE`, and `Voodoo Nightmare` `Trainer`.
-- `compressed:rnc2` has no current corpus hits after enabling the scanner path;
-  the isolated C regression covers the Ancient-compatible header detection until
-  a real target appears.
+- `compressed:rnc2` has no current corpus hits after enabling provider-owned
+  scanning; isolated C regressions assert that RNC-looking bytes are not accepted
+  without provider validation.
 - `decompression:child` finds the retained Carrier decompressed raw child and
   exposes the existing load/entry metadata.
 - `decompression:runtime_copy` finds Carrier parent evidence where C analysis
   associated packed streams with runtime copy ranges, including the conflicting
   `$4C40 -> $4000` copy.
+- `decompression:runtime_copy_oversize` finds both Carrier parent streams:
+  `$05E4` is copied as 18016 bytes over a 18012-byte provider range, and
+  `$4C40` is copied as 168396 bytes over a 168391-byte provider range.
 - These matches come from C `packed_payloads[]` records, not Python compression
   scanning, or from retained child provenance already written by the project.

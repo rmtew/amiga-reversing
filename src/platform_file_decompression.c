@@ -3,6 +3,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <process.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -255,49 +256,154 @@ static int write_buffer_range_local(const uint8_t *data, uint32_t data_size, uin
   return 0;
 }
 
-static uint32_t read_u32be_local(const uint8_t *data) {
-  return ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) | ((uint32_t)data[2] << 8) | (uint32_t)data[3];
+static void trim_line_local(char *text);
+
+static int parse_json_u32_field_local(const char *line, const char *field, uint32_t *out_value) {
+  char needle[64];
+  const char *cursor;
+  char *endptr;
+  uintmax_t value;
+  if (line == NULL || field == NULL || out_value == NULL) return 0;
+  snprintf(needle, sizeof(needle), "\"%s\":", field);
+  cursor = strstr(line, needle);
+  if (cursor == NULL) return 0;
+  cursor += strlen(needle);
+  errno = 0;
+  value = strtoumax(cursor, &endptr, 10);
+  if (cursor == endptr || errno != 0 || value > UINT32_MAX) return 0;
+  *out_value = (uint32_t)value;
+  return 1;
 }
 
-static int ancient_rnc_candidate_size_local(const uint8_t *data, uint32_t data_size, uint32_t offset,
-    uint32_t *out_size, char *codec_hint, size_t codec_hint_size) {
-  uint32_t packed_payload_size;
-  if (out_size != NULL) *out_size = 0U;
-  if (data == NULL || out_size == NULL || offset > data_size || data_size - offset < 18U) return 0;
-  if (memcmp(data + offset, "RNC\001", 4U) == 0) {
-    if (codec_hint != NULL && codec_hint_size != 0U) snprintf(codec_hint, codec_hint_size, "rnc1");
-  } else if (memcmp(data + offset, "RNC\002", 4U) == 0) {
-    if (codec_hint != NULL && codec_hint_size != 0U) snprintf(codec_hint, codec_hint_size, "rnc2");
-  } else if (memcmp(data + offset, "...\001", 4U) == 0) {
-    if (codec_hint != NULL && codec_hint_size != 0U) snprintf(codec_hint, codec_hint_size, "rnc1");
-  } else {
+static int parse_json_string_field_local(const char *line, const char *field, char *out, size_t out_size) {
+  char needle[64];
+  const char *cursor;
+  size_t used = 0U;
+  if (line == NULL || field == NULL || out == NULL || out_size == 0U) return 0;
+  snprintf(needle, sizeof(needle), "\"%s\":\"", field);
+  cursor = strstr(line, needle);
+  if (cursor == NULL) return 0;
+  cursor += strlen(needle);
+  while (*cursor != '\0' && *cursor != '"') {
+    if (*cursor == '\\' && cursor[1] != '\0') ++cursor;
+    if (used + 1U >= out_size) return 0;
+    out[used++] = *cursor++;
+  }
+  if (*cursor != '"') return 0;
+  out[used] = '\0';
+  return 1;
+}
+
+static int parse_scan_json_line_local(const char *line, PlatformDecompressionCandidate *candidate) {
+  if (candidate == NULL) return 0;
+  memset(candidate, 0, sizeof(*candidate));
+  if (!parse_json_u32_field_local(line, "offset", &candidate->offset) ||
+      !parse_json_u32_field_local(line, "packed_size", &candidate->packed_size) ||
+      !parse_json_string_field_local(line, "codec_id", candidate->codec_hint, sizeof(candidate->codec_hint))) {
     return 0;
   }
-  packed_payload_size = read_u32be_local(data + offset + 8U);
-  if (packed_payload_size > UINT32_MAX - 18U || packed_payload_size + 18U > data_size - offset) return 0;
-  *out_size = packed_payload_size + 18U;
-  return 1;
+  return candidate->packed_size != 0U;
+}
+
+static int ancient_scan_temp_file_local(const char *ancient_path, const char *temp_path,
+    PlatformDecompressionCandidate *out_candidates, size_t candidate_capacity, size_t *out_count) {
+  char quoted_exe[640];
+  char quoted_input[640];
+  char command[1400];
+  char line[512];
+  size_t count = 0U;
+#ifdef _WIN32
+  char quoted_output[640];
+  char output_path[512];
+  FILE *output;
+  STARTUPINFOA startup;
+  PROCESS_INFORMATION process;
+  DWORD wait_result;
+  DWORD exit_code = 1U;
+#else
+  FILE *pipe;
+  int status;
+#endif
+  if (out_count != NULL) *out_count = 0U;
+  if (ancient_path == NULL || temp_path == NULL || out_count == NULL) return -1;
+  if (!quote_arg_local(quoted_exe, sizeof(quoted_exe), ancient_path) ||
+      !quote_arg_local(quoted_input, sizeof(quoted_input), temp_path)) {
+    return -1;
+  }
+#ifdef _WIN32
+  if (!make_temp_path_local(output_path, sizeof(output_path))) return -1;
+  if (!quote_arg_local(quoted_output, sizeof(quoted_output), output_path)) {
+    remove(output_path);
+    return -1;
+  }
+  snprintf(command, sizeof(command), "cmd.exe /d /c \"%s scan-json %s > %s 2>NUL\"", quoted_exe, quoted_input,
+    quoted_output);
+  memset(&startup, 0, sizeof(startup));
+  memset(&process, 0, sizeof(process));
+  startup.cb = sizeof(startup);
+  if (!CreateProcessA(NULL, command, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &startup, &process)) {
+    remove(output_path);
+    return -1;
+  }
+  wait_result = WaitForSingleObject(process.hProcess, 30000U);
+  if (wait_result == WAIT_OBJECT_0) (void)GetExitCodeProcess(process.hProcess, &exit_code);
+  else (void)TerminateProcess(process.hProcess, 1U);
+  CloseHandle(process.hThread);
+  CloseHandle(process.hProcess);
+  if (wait_result != WAIT_OBJECT_0 || exit_code != 0U) {
+    remove(output_path);
+    return -1;
+  }
+  output = fopen(output_path, "rb");
+  if (output == NULL) {
+    remove(output_path);
+    return -1;
+  }
+  while (fgets(line, sizeof(line), output) != NULL) {
+    PlatformDecompressionCandidate candidate;
+    trim_line_local(line);
+    if (!parse_scan_json_line_local(line, &candidate)) continue;
+    if (count < candidate_capacity && out_candidates != NULL) out_candidates[count] = candidate;
+    ++count;
+  }
+  fclose(output);
+  remove(output_path);
+#else
+  snprintf(command, sizeof(command), "%s scan-json %s 2>/dev/null", quoted_exe, quoted_input);
+  pipe = PLATFORM_POPEN(command, "r");
+  if (pipe == NULL) return -1;
+  while (fgets(line, sizeof(line), pipe) != NULL) {
+    PlatformDecompressionCandidate candidate;
+    trim_line_local(line);
+    if (!parse_scan_json_line_local(line, &candidate)) continue;
+    if (count < candidate_capacity && out_candidates != NULL) out_candidates[count] = candidate;
+    ++count;
+  }
+  status = PLATFORM_PCLOSE(pipe);
+  if (status != 0) return -1;
+#endif
+  *out_count = count;
+  return 0;
 }
 
 size_t platform_decompression_find_candidates_in_buffer(const char *provider_id, const uint8_t *data,
     uint32_t data_size, PlatformDecompressionCandidate *out_candidates, size_t candidate_capacity) {
   const char *actual_provider_id = (provider_id != NULL && provider_id[0] != '\0') ? provider_id : "ancient-cli";
-  size_t count = 0U;
-  uint32_t offset;
+  const char *actual_provider_path = default_ancient_path_local();
+  char temp_path[512];
+  size_t scanned_count = 0U;
   if (strcmp(actual_provider_id, "ancient-cli") != 0 || data == NULL) return 0U;
-  for (offset = 0U; offset < data_size; ++offset) {
-    uint32_t packed_size;
-    PlatformDecompressionCandidate candidate;
-    if (!ancient_rnc_candidate_size_local(data, data_size, offset, &packed_size, NULL, 0U)) continue;
-    memset(&candidate, 0, sizeof(candidate));
-    candidate.offset = offset;
-    candidate.packed_size = packed_size;
-    (void)ancient_rnc_candidate_size_local(data, data_size, offset, &packed_size, candidate.codec_hint,
-      sizeof(candidate.codec_hint));
-    if (count < candidate_capacity && out_candidates != NULL) out_candidates[count] = candidate;
-    ++count;
+  temp_path[0] = '\0';
+  if (data_size != 0U &&
+      write_buffer_range_local(data, data_size, 0U, data_size, temp_path, sizeof(temp_path), NULL, 0U) == 0) {
+    if (ancient_scan_temp_file_local(actual_provider_path, temp_path, out_candidates, candidate_capacity,
+        &scanned_count) == 0) {
+      remove(temp_path);
+      return scanned_count;
+    }
+    remove(temp_path);
   }
-  return count;
+  return 0U;
 }
 
 static void trim_line_local(char *text) {
@@ -512,7 +618,6 @@ int platform_decompression_identify_buffer_range(const char *provider_id, const 
   const char *actual_provider_id;
   const char *actual_provider_path;
   int result;
-  uint32_t candidate_size = 0U;
   if (out_result == NULL) return -1;
   platform_decompression_identify_result_init(out_result);
   actual_provider_id = (provider_id != NULL && provider_id[0] != '\0') ? provider_id : "ancient-cli";
@@ -530,11 +635,6 @@ int platform_decompression_identify_buffer_range(const char *provider_id, const 
     return -1;
   (void)file_sha256_hex_local(temp_path, NULL, out_result->source_sha256);
   result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
-  if (result == 0 && !out_result->found &&
-      ancient_rnc_candidate_size_local(data, data_size, offset, &candidate_size, NULL, 0U) &&
-      candidate_size == size) {
-    result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
-  }
   remove(temp_path);
   return result;
 }
@@ -590,7 +690,6 @@ int platform_decompression_decompress_buffer_range(const char *provider_id, cons
   const char *actual_provider_id;
   const char *actual_provider_path;
   int result;
-  uint32_t candidate_size = 0U;
   if (out_result == NULL) return -1;
   platform_decompression_identify_result_init(out_result);
   if (output_path == NULL || output_path[0] == '\0') {
@@ -613,11 +712,6 @@ int platform_decompression_decompress_buffer_range(const char *provider_id, cons
     return -1;
   (void)file_sha256_hex_local(temp_path, NULL, out_result->source_sha256);
   result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
-  if (result == 0 && !out_result->found &&
-      ancient_rnc_candidate_size_local(data, data_size, offset, &candidate_size, NULL, 0U) &&
-      candidate_size == size) {
-    result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
-  }
   if (result == 0 && !out_result->found) {
     remove(temp_path);
     return 0;

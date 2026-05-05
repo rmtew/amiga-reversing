@@ -31,7 +31,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "codec_id": "rnc1-old",
                             "source_section": 0,
                             "source_section_offset": 0x4C40,
-                            "packed_size": 168397,
+                            "packed_size": 168391,
                             "decompressed_size": 359600,
                             "decompressed_sha256": "d37ec7db83012eba179956026b0677cfd46763d585722154f761bd6f6d2b5748",
                         }
@@ -42,7 +42,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "status": "needs_runtime_metadata",
                             "source_section": 0,
                             "source_section_offset": 0x4C40,
-                            "packed_size": 168397,
+                            "packed_size": 168391,
                             "runtime_copy_address": 0x4000,
                             "runtime_copy_size": 168396,
                             "runtime_copy_kind": 3,
@@ -354,7 +354,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["decompression:runtime_copy"], 1)
         self.assertEqual(counts["decompression:runtime_copy_kind:3"], 1)
         self.assertEqual(counts["decompression:runtime_copy_conflicting"], 1)
-        self.assertEqual(counts["decompression:runtime_copy_short"], 1)
+        self.assertEqual(counts["decompression:runtime_copy_oversize"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
         self.assertEqual(counts["hardware:custom"], 2)
         self.assertEqual(counts["hardware:custom/audio"], 1)
@@ -463,7 +463,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             "target_type": "raw_binary",
             "decompression": {
                 "compressor": {"id": "rnc1-old", "name": "RNC1"},
-                "packed": {"section_offset": 0x4C40, "file_offset": 0x4C60, "size": 168397},
+                "packed": {"section_offset": 0x4C40, "file_offset": 0x4C60, "size": 168391},
                 "decompressed": {"size": 359600, "load_address": 0x4000, "entrypoint": 0x4000},
             },
         }
@@ -533,7 +533,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "codec_id": "rnc1-old",
                         "source_section": 0,
                         "source_section_offset": 0x4C40,
-                        "packed_size": 168397,
+                        "packed_size": 168391,
                         "decompressed_size": 359600,
                         "decompressed_sha256": "d37ec7db83012eba179956026b0677cfd46763d585722154f761bd6f6d2b5748",
                     }
@@ -544,7 +544,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "status": "needs_runtime_metadata",
                         "source_section": 0,
                         "source_section_offset": 0x4C40,
-                        "packed_size": 168397,
+                        "packed_size": 168391,
                         "runtime_copy_address": 0x4000,
                         "runtime_copy_size": 168396,
                         "runtime_copy_kind": 3,
@@ -749,7 +749,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("decompression:runtime_copy", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("decompression:runtime_copy_kind:3", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("decompression:runtime_copy_conflicting", "derived_target_suggestion", 0x4C40, 6), by_feature)
-        self.assertIn(("decompression:runtime_copy_short", "derived_target_suggestion", 0x4C40, 6), by_feature)
+        self.assertIn(("decompression:runtime_copy_oversize", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("data:copper_list", "data_class", 0x50, 4), by_feature)
         self.assertIn(("copper_register:bplcon0", "copper_ref", 0x50, 4), by_feature)
         self.assertIn(("hardware:custom", "hardware_ref", 0x50, 4), by_feature)

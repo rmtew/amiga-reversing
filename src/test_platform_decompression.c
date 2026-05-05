@@ -63,7 +63,7 @@ static int test_decompression_does_not_write_unknown_payload(void) {
   return 0;
 }
 
-static int test_decompression_candidate_scan_uses_provider_header_size(void) {
+static int test_decompression_candidate_scan_rejects_header_guess(void) {
   uint8_t data[40];
   PlatformDecompressionCandidate candidates[2];
   size_t count;
@@ -72,14 +72,11 @@ static int test_decompression_candidate_scan_uses_provider_header_size(void) {
   data[11] = 5U;
   count = platform_decompression_find_candidates_in_buffer("ancient-cli", data, sizeof(data), candidates,
     sizeof(candidates) / sizeof(candidates[0]));
-  M68K_C_ASSERT_U32(1U, (uint32_t)count);
-  M68K_C_ASSERT_U32(0U, candidates[0].offset);
-  M68K_C_ASSERT_U32(23U, candidates[0].packed_size);
-  M68K_C_ASSERT_STR("rnc1", candidates[0].codec_hint);
+  M68K_C_ASSERT_U32(0U, (uint32_t)count);
   return 0;
 }
 
-static int test_decompression_candidate_scan_matches_ancient_rnc_headers(void) {
+static int test_decompression_candidate_scan_requires_provider_validation(void) {
   uint8_t data[96];
   PlatformDecompressionCandidate candidates[4];
   size_t count;
@@ -90,13 +87,7 @@ static int test_decompression_candidate_scan_matches_ancient_rnc_headers(void) {
   data[59] = 9U;
   count = platform_decompression_find_candidates_in_buffer("ancient-cli", data, sizeof(data), candidates,
     sizeof(candidates) / sizeof(candidates[0]));
-  M68K_C_ASSERT_U32(2U, (uint32_t)count);
-  M68K_C_ASSERT_U32(4U, candidates[0].offset);
-  M68K_C_ASSERT_U32(25U, candidates[0].packed_size);
-  M68K_C_ASSERT_STR("rnc2", candidates[0].codec_hint);
-  M68K_C_ASSERT_U32(48U, candidates[1].offset);
-  M68K_C_ASSERT_U32(27U, candidates[1].packed_size);
-  M68K_C_ASSERT_STR("rnc1", candidates[1].codec_hint);
+  M68K_C_ASSERT_U32(0U, (uint32_t)count);
   return 0;
 }
 
@@ -106,10 +97,10 @@ int m68k_c_platform_decompression_tests(void) {
     {"decompression_identify_reports_unknown_payload_without_failure",
       test_decompression_identify_reports_unknown_payload_without_failure},
     {"decompression_does_not_write_unknown_payload", test_decompression_does_not_write_unknown_payload},
-    {"decompression_candidate_scan_uses_provider_header_size",
-      test_decompression_candidate_scan_uses_provider_header_size},
-    {"decompression_candidate_scan_matches_ancient_rnc_headers",
-      test_decompression_candidate_scan_matches_ancient_rnc_headers},
+    {"decompression_candidate_scan_rejects_header_guess",
+      test_decompression_candidate_scan_rejects_header_guess},
+    {"decompression_candidate_scan_requires_provider_validation",
+      test_decompression_candidate_scan_requires_provider_validation},
   };
   return m68k_c_test_run_suite("platform_decompression", cases, sizeof(cases) / sizeof(cases[0]));
 }
