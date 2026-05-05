@@ -614,6 +614,37 @@ def test_full_listing_data_rows_expose_source_bytes(tmp_path: Path) -> None:
     assert any(row.addr == 14 and row.bytes == b"ABC\0" for row in data_rows)
 
 
+def test_full_listing_rows_omit_empty_optional_c_fields(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "raw.bin"
+    path.write_bytes(b"\x4e\x75")
+
+    payload = json.loads(
+        c_backend._platform_file_text(
+            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
+            "amiga-raw",
+            str(path),
+            0,
+            "",
+            "",
+            project_root=PROJECT_ROOT,
+        )
+    )["listing"]
+    raw_rows = payload["rows"]
+    hydrated_rows = rows_from_c_listing_json(payload)
+    instruction = next(row for row in raw_rows if row["kind"] == "instruction")
+    hydrated_instruction = next(row for row in hydrated_rows if row.kind == "instruction")
+
+    assert "app_slot_refs" not in instruction
+    assert "typed_accesses" not in instruction
+    assert "unresolved_typed_accesses" not in instruction
+    assert "comment_text" not in instruction
+    assert hydrated_instruction.app_slot_refs == ()
+    assert hydrated_instruction.typed_accesses == ()
+    assert hydrated_instruction.unresolved_typed_accesses == ()
+    assert hydrated_instruction.comment_text == ""
+
+
 def test_full_listing_instruction_rows_expose_symbol_operand_parts(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     path = tmp_path / "raw.bin"

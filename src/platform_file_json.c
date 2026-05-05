@@ -2804,14 +2804,11 @@ static const char *listing_operation_type_name(uint8_t operation_type) {
   }
 }
 
-static int append_listing_operation_type_json(JsonBuilder *builder, const M68kStatementIR *stmt) {
+static const char *listing_statement_operation_type(const M68kStatementIR *stmt) {
   const M68kSimFormMetadata *metadata;
-  const char *operation_type = NULL;
-  if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION) {
-    metadata = instruction_sim_metadata(&stmt->u.instruction);
-    if (metadata != NULL) operation_type = listing_operation_type_name(metadata->operation_type);
-  }
-  return json_builder_append_nullable_string(builder, operation_type);
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return NULL;
+  metadata = instruction_sim_metadata(&stmt->u.instruction);
+  return metadata != NULL ? listing_operation_type_name(metadata->operation_type) : NULL;
 }
 
 static int append_listing_operand_accesses_json(JsonBuilder *builder, const M68kStatementIR *stmt) {
@@ -4407,6 +4404,87 @@ static const M68kRuntimeViewIR *listing_runtime_view_for_storage_offset(
   return NULL;
 }
 
+static int listing_stmt_has_symbol_operand_parts(const M68kStatementIR *stmt) {
+  size_t operand_index;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return 0;
+  for (operand_index = 0U; operand_index < stmt->u.instruction.operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &stmt->u.instruction.operands[operand_index];
+    if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name[0] != '\0') return 1;
+  }
+  return 0;
+}
+
+static int listing_stmt_has_operand_metadata(const M68kStatementIR *stmt) {
+  return stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION && stmt->u.instruction.operand_count != 0U;
+}
+
+static int listing_stmt_has_app_slot_refs(const M68kStatementIR *stmt,
+    const M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return 0;
+  if (section_analysis != NULL) {
+    for (index = 0U; index < section_analysis->app_slot_ref_count; ++index)
+      if (section_analysis->app_slot_refs[index].offset == stmt->offset) return 1;
+    return 0;
+  }
+  return listing_stmt_has_symbol_operand_parts(stmt);
+}
+
+static int listing_stmt_has_runtime_address_refs(const M68kStatementIR *stmt,
+    const M68kSectionAnalysisIR *section_analysis, const char *comment) {
+  size_t index;
+  uint32_t comment_runtime_address = 0U;
+  if (stmt == NULL ||
+      (stmt->kind != M68K_STATEMENT_INSTRUCTION && stmt->kind != M68K_STATEMENT_DATA) ||
+      section_analysis == NULL)
+    return 0;
+  if (listing_comment_runtime_pointer_address(comment, &comment_runtime_address)) {
+    for (index = 0U; index < section_analysis->runtime_address_ref_count; ++index) {
+      const M68kRuntimeAddressRefIR *ref = &section_analysis->runtime_address_refs[index];
+      if (ref->has_runtime_address && ref->runtime_address == comment_runtime_address &&
+          ref->data_class != NULL && comment != NULL && strstr(comment, ref->data_class) != NULL)
+        return 1;
+    }
+  }
+  for (index = 0U; index < section_analysis->runtime_address_ref_count; ++index)
+    if (section_analysis->runtime_address_refs[index].offset == stmt->offset) return 1;
+  return 0;
+}
+
+static int listing_stmt_has_code_start_refs(const M68kStatementIR *stmt,
+    const M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION || section_analysis == NULL) return 0;
+  for (index = 0U; index < section_analysis->code_start_ref_count; ++index)
+    if (section_analysis->code_start_refs[index].offset == stmt->offset) return 1;
+  return 0;
+}
+
+static int listing_stmt_has_typed_accesses(const M68kStatementIR *stmt,
+    const M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION || section_analysis == NULL) return 0;
+  for (index = 0U; index < section_analysis->recovered_platform_typed_access_count; ++index)
+    if (section_analysis->recovered_platform_typed_accesses[index].offset == stmt->offset) return 1;
+  return 0;
+}
+
+static int listing_stmt_has_unresolved_typed_accesses(const M68kStatementIR *stmt,
+    const M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION || section_analysis == NULL) return 0;
+  for (index = 0U; index < section_analysis->recovered_platform_unresolved_typed_access_count; ++index)
+    if (section_analysis->recovered_platform_unresolved_typed_accesses[index].offset == stmt->offset) return 1;
+  return 0;
+}
+
+static int listing_structured_data_item_has_json(const M68kAnalysisStructuredDataItem *item) {
+  return item != NULL && !(item->label[0] == '\0' && item->struct_name[0] == '\0' &&
+    item->field_name[0] == '\0' && item->field_type[0] == '\0' && item->c_type[0] == '\0' &&
+    item->pointer_struct[0] == '\0' && item->value_domain[0] == '\0' && item->constant_name[0] == '\0' &&
+    item->semantic_role[0] == '\0' && !item->has_constant_value && !item->is_pointer && !item->has_target);
+}
+
 static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const char *line_start, size_t line_length,
     const char *row_kind, int section_index, const M68kStatementIR *stmt, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation) {
@@ -4463,100 +4541,102 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
   if (section_index >= 0) {
     if (json_builder_appendf(builder, "%d", section_index) != 0) return -1;
   } else if (json_builder_append(builder, "null") != 0) return -1;
-  if (json_builder_append(builder, ",\"start_offset\":") != 0) return -1;
   if (has_addr) {
+    if (json_builder_append(builder, ",\"start_offset\":") != 0) return -1;
     if (json_builder_appendf(builder, "%u", (unsigned)addr) != 0) return -1;
-  } else if (json_builder_append(builder, "null") != 0) return -1;
-  if (json_builder_append(builder, ",\"end_offset\":") != 0) return -1;
-  if (has_addr) {
+    if (json_builder_append(builder, ",\"end_offset\":") != 0) return -1;
     if (json_builder_appendf(builder, "%u", (unsigned)end_offset) != 0) return -1;
-  } else if (json_builder_append(builder, "null") != 0) return -1;
-  if (json_builder_append(builder, ",\"storage_address\":") != 0) return -1;
-  if (has_addr) {
+    if (json_builder_append(builder, ",\"storage_address\":") != 0) return -1;
     if (json_builder_appendf(builder, "%u", (unsigned)addr) != 0) return -1;
-  } else if (json_builder_append(builder, "null") != 0) return -1;
-  if (json_builder_append(builder, ",\"runtime_address\":") != 0) return -1;
+  }
   if (runtime_view != NULL) {
+    if (json_builder_append(builder, ",\"runtime_address\":") != 0) return -1;
     if (json_builder_appendf(builder, "%u", (unsigned)runtime_address) != 0) return -1;
-  } else if (json_builder_append(builder, "null") != 0) return -1;
-  if (json_builder_append(builder, ",\"runtime_view_id\":") != 0) return -1;
-  if (runtime_view != NULL) {
+    if (json_builder_append(builder, ",\"runtime_view_id\":") != 0) return -1;
     if (json_builder_appendf(builder, "%u", (unsigned)runtime_view->runtime_view_id) != 0) return -1;
-  } else if (json_builder_append(builder, "null") != 0) return -1;
+  }
   if (json_builder_append(builder, ",\"text\":") != 0) return -1;
   if (json_builder_append_json_string(builder, text) != 0) return -1;
-  if (json_builder_append(builder, ",\"bytes\":") != 0) return -1;
   if (stmt != NULL && stmt->source_byte_count != 0U) {
+    if (json_builder_append(builder, ",\"bytes\":") != 0) return -1;
     if (json_builder_append_char(builder, '"') != 0) return -1;
     if (json_builder_append_hex_bytes(builder, stmt->source_bytes, stmt->source_byte_count) != 0) return -1;
     if (json_builder_append_char(builder, '"') != 0) return -1;
-  } else if (json_builder_append(builder, "null") != 0) return -1;
-  if (json_builder_append(builder, ",\"addr\":") != 0) return -1;
-  if (has_addr) {
+    if (json_builder_append(builder, ",\"addr\":") != 0) return -1;
     if (json_builder_appendf(builder, "%u", (unsigned)addr) != 0) return -1;
-  } else if (json_builder_append(builder, "null") != 0) return -1;
-  if (json_builder_append(builder, ",\"entity_addr\":") != 0) return -1;
-  if (has_addr) {
+    if (json_builder_append(builder, ",\"entity_addr\":") != 0) return -1;
     if (json_builder_appendf(builder, "%u", (unsigned)addr) != 0) return -1;
-  } else if (json_builder_append(builder, "null") != 0) return -1;
-  if (json_builder_append(builder, ",\"label\":") != 0) return -1;
-  if (json_builder_append_nullable_string(builder, label) != 0) return -1;
-  if (json_builder_append(builder, ",\"opcode_or_directive\":") != 0) return -1;
+  }
+  if (label != NULL) {
+    if (json_builder_append(builder, ",\"label\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, label) != 0) return -1;
+  }
   if (opcode[0] != '\0' && strcmp(row_kind, "label") != 0 && strcmp(row_kind, "blank") != 0 &&
       strcmp(row_kind, "comment") != 0) {
+    if (json_builder_append(builder, ",\"opcode_or_directive\":") != 0) return -1;
     if (json_builder_append_json_string(builder, opcode) != 0) return -1;
-  } else if (json_builder_append(builder, "null") != 0) return -1;
-  if (json_builder_append(builder, ",\"operation_type\":") != 0) return -1;
-  if (append_listing_operation_type_json(builder, stmt) != 0) return -1;
-  if (json_builder_append(builder, ",\"operand_text\":") != 0) return -1;
-  if (json_builder_append_json_string(builder, operand) != 0) return -1;
-  if (json_builder_append(builder, ",\"operand_parts\":") != 0) return -1;
-  if (append_listing_operand_parts_json(builder, stmt) != 0) return -1;
-  if (json_builder_append(builder, ",\"operand_accesses\":") != 0) return -1;
-  if (append_listing_operand_accesses_json(builder, stmt) != 0) return -1;
-  if (json_builder_append(builder, ",\"operand_registers\":") != 0) return -1;
-  if (append_listing_operand_registers_json(builder, stmt) != 0) return -1;
-  if (json_builder_append(builder, ",\"comment_text\":") != 0) return -1;
-  if (json_builder_append_json_string(builder, comment) != 0) return -1;
+  }
+  if (listing_statement_operation_type(stmt) != NULL) {
+    if (json_builder_append(builder, ",\"operation_type\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, listing_statement_operation_type(stmt)) != 0) return -1;
+  }
+  if (operand[0] != '\0') {
+    if (json_builder_append(builder, ",\"operand_text\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, operand) != 0) return -1;
+  }
+  if (listing_stmt_has_symbol_operand_parts(stmt)) {
+    if (json_builder_append(builder, ",\"operand_parts\":") != 0) return -1;
+    if (append_listing_operand_parts_json(builder, stmt) != 0) return -1;
+  }
+  if (listing_stmt_has_operand_metadata(stmt)) {
+    if (json_builder_append(builder, ",\"operand_accesses\":") != 0) return -1;
+    if (append_listing_operand_accesses_json(builder, stmt) != 0) return -1;
+    if (json_builder_append(builder, ",\"operand_registers\":") != 0) return -1;
+    if (append_listing_operand_registers_json(builder, stmt) != 0) return -1;
+  }
+  if (comment[0] != '\0') {
+    if (json_builder_append(builder, ",\"comment_text\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, comment) != 0) return -1;
+  }
   if (json_builder_append(builder, ",\"source_context\":") != 0) return -1;
   if (stmt != NULL) {
     if (append_listing_source_context(builder, row_kind, section_index) != 0) return -1;
   } else if (append_listing_source_context(builder, NULL, -1) != 0) return -1;
-  if (json_builder_append(builder, ",\"app_slot_refs\":") != 0) return -1;
-  if (append_listing_app_slot_refs_json(builder, stmt,
+  {
+    const M68kSectionAnalysisIR *section_analysis =
       source_analysis != NULL && section_index >= 0 && (size_t)section_index < source_analysis->section_count
         ? &source_analysis->sections[section_index]
-        : NULL) != 0)
-    return -1;
-  if (json_builder_append(builder, ",\"runtime_address_refs\":") != 0) return -1;
-  if (append_listing_runtime_address_refs_json(builder, stmt,
-      source_analysis != NULL && section_index >= 0 && (size_t)section_index < source_analysis->section_count
-        ? &source_analysis->sections[section_index]
-        : NULL, comment) != 0)
-    return -1;
-  if (json_builder_append(builder, ",\"code_start_refs\":") != 0) return -1;
-  if (append_listing_code_start_refs_json(builder, stmt,
-      source_analysis != NULL && section_index >= 0 && (size_t)section_index < source_analysis->section_count
-        ? &source_analysis->sections[section_index]
-        : NULL) != 0)
-    return -1;
-  if (json_builder_append(builder, ",\"typed_accesses\":") != 0) return -1;
-  if (append_listing_typed_accesses_json(builder, stmt,
-      source_analysis != NULL && section_index >= 0 && (size_t)section_index < source_analysis->section_count
-        ? &source_analysis->sections[section_index]
-        : NULL) != 0)
-    return -1;
-  if (json_builder_append(builder, ",\"unresolved_typed_accesses\":") != 0) return -1;
-  if (append_listing_unresolved_typed_accesses_json(builder, stmt,
-      source_analysis != NULL && section_index >= 0 && (size_t)section_index < source_analysis->section_count
-        ? &source_analysis->sections[section_index]
-        : NULL) != 0)
-    return -1;
-  if (json_builder_append(builder, ",\"structured_data\":") != 0) return -1;
-  if (append_listing_structured_data_json(builder, structured_item) != 0) return -1;
-  if (json_builder_append(builder, ",\"data_class\":") != 0) return -1;
-  if (json_builder_append_nullable_string(builder, listing_data_class_for_structured_item(structured_item)) != 0)
-    return -1;
+        : NULL;
+    if (listing_stmt_has_app_slot_refs(stmt, section_analysis)) {
+      if (json_builder_append(builder, ",\"app_slot_refs\":") != 0) return -1;
+      if (append_listing_app_slot_refs_json(builder, stmt, section_analysis) != 0) return -1;
+    }
+    if (listing_stmt_has_runtime_address_refs(stmt, section_analysis, comment)) {
+      if (json_builder_append(builder, ",\"runtime_address_refs\":") != 0) return -1;
+      if (append_listing_runtime_address_refs_json(builder, stmt, section_analysis, comment) != 0) return -1;
+    }
+    if (listing_stmt_has_code_start_refs(stmt, section_analysis)) {
+      if (json_builder_append(builder, ",\"code_start_refs\":") != 0) return -1;
+      if (append_listing_code_start_refs_json(builder, stmt, section_analysis) != 0) return -1;
+    }
+    if (listing_stmt_has_typed_accesses(stmt, section_analysis)) {
+      if (json_builder_append(builder, ",\"typed_accesses\":") != 0) return -1;
+      if (append_listing_typed_accesses_json(builder, stmt, section_analysis) != 0) return -1;
+    }
+    if (listing_stmt_has_unresolved_typed_accesses(stmt, section_analysis)) {
+      if (json_builder_append(builder, ",\"unresolved_typed_accesses\":") != 0) return -1;
+      if (append_listing_unresolved_typed_accesses_json(builder, stmt, section_analysis) != 0) return -1;
+    }
+  }
+  if (listing_structured_data_item_has_json(structured_item)) {
+    if (json_builder_append(builder, ",\"structured_data\":") != 0) return -1;
+    if (append_listing_structured_data_json(builder, structured_item) != 0) return -1;
+  }
+  if (listing_data_class_for_structured_item(structured_item) != NULL) {
+    if (json_builder_append(builder, ",\"data_class\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, listing_data_class_for_structured_item(structured_item)) != 0)
+      return -1;
+  }
   return json_builder_append(builder, "}");
 }
 
