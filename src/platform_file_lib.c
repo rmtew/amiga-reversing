@@ -599,6 +599,97 @@ static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolic
   return 0;
 }
 
+static int analysis_range_overlaps_accepted_code(const M68kSectionAnalysisIR *section, uint32_t start,
+    uint32_t size) {
+  uint32_t end;
+  size_t block_index;
+  if (section == NULL || size == 0U || start > UINT32_MAX - size) return 1;
+  end = start + size;
+  for (block_index = 0U; block_index < section->block_count; ++block_index) {
+    const M68kCfgBlockIR *block = &section->blocks[block_index];
+    if (block->certainty != M68K_CODE_CERTAIN) continue;
+    if (start < block->end_offset && end > block->start_offset) return 1;
+  }
+  return 0;
+}
+
+static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
+    const PlatformDecompressionIdentifyResult *result) {
+  if (json_builder_append(builder, "{\"kind\":\"decompressed_payload\",\"status\":\"needs_runtime_metadata\"") != 0)
+    return -1;
+  if (json_builder_appendf(builder,
+      ",\"source_section\":%u,\"source_section_offset\":%u,\"packed_size\":%u,\"decompressed_size\":%u",
+      (unsigned)result->source_section_index, (unsigned)result->source_section_offset,
+      (unsigned)result->packed_size, (unsigned)result->decompressed_size) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"codec_id\":") != 0 ||
+      json_builder_append_json_string(builder, result->codec_id) != 0 ||
+      json_builder_append(builder, ",\"codec_name\":") != 0 ||
+      json_builder_append_json_string(builder, result->codec_name) != 0 ||
+      json_builder_append(builder, ",\"source_sha256\":") != 0 ||
+      json_builder_append_json_string(builder, result->source_sha256) != 0 ||
+      json_builder_append(builder, ",\"decompressed_sha256\":") != 0 ||
+      json_builder_append_json_string(builder, result->decompressed_sha256) != 0)
+    return -1;
+  return json_builder_append(builder, "}");
+}
+
+static int append_object_decompression_analysis_json(JsonBuilder *builder, const M68kObject *object,
+    const M68kSourceAnalysisIR *analysis) {
+  PlatformDecompressionIdentifyResult results[32];
+  size_t result_count = 0U;
+  size_t section_index;
+  if (object == NULL || analysis == NULL) return -1;
+  memset(results, 0, sizeof(results));
+  for (section_index = 0U; section_index < object->section_count; ++section_index) {
+    const M68kSection *section = &object->sections[section_index];
+    const M68kSectionAnalysisIR *section_analysis;
+    PlatformDecompressionCandidate candidates[16];
+    size_t candidate_count, candidate_index;
+    if (section->data == NULL || section->data_size == 0U || section_index >= analysis->section_count) continue;
+    section_analysis = &analysis->sections[section_index];
+    candidate_count = platform_decompression_find_candidates_in_buffer("ancient-cli", section->data,
+      section->data_size, candidates, sizeof(candidates) / sizeof(candidates[0]));
+    if (candidate_count > sizeof(candidates) / sizeof(candidates[0]))
+      candidate_count = sizeof(candidates) / sizeof(candidates[0]);
+    for (candidate_index = 0U; candidate_index < candidate_count && result_count < sizeof(results) / sizeof(results[0]);
+        ++candidate_index) {
+      const PlatformDecompressionCandidate *candidate = &candidates[candidate_index];
+      PlatformDecompressionIdentifyResult result;
+      char output_path[512];
+      char error[256];
+      error[0] = '\0';
+      if (analysis_range_overlaps_accepted_code(section_analysis, candidate->offset, candidate->packed_size))
+        continue;
+      if (make_temp_output_path(output_path, sizeof(output_path)) != 0) return -1;
+      if (platform_decompression_decompress_buffer_range("ancient-cli", "", section->data, section->data_size,
+          candidate->offset, candidate->packed_size, output_path, &result, error, sizeof(error)) != 0) {
+        remove(output_path);
+        continue;
+      }
+      remove(output_path);
+      if (!result.found || !result.decompressed) continue;
+      result.has_source_section = 1U;
+      result.source_section_index = (uint32_t)section_index;
+      result.source_section_offset = candidate->offset;
+      result.source_offset = candidate->offset;
+      result.decompressed_path[0] = '\0';
+      results[result_count++] = result;
+    }
+  }
+  if (json_builder_append(builder, ",\"packed_payloads\":[") != 0) return -1;
+  for (section_index = 0U; section_index < result_count; ++section_index) {
+    if (section_index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (platform_decompression_append_result_json(builder, &results[section_index]) != 0) return -1;
+  }
+  if (json_builder_append(builder, "],\"derived_target_suggestions\":[") != 0) return -1;
+  for (section_index = 0U; section_index < result_count; ++section_index) {
+    if (section_index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (append_derived_decompression_suggestion_json(builder, &results[section_index]) != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
 static void make_policy_symbol_label_local(char *out, size_t out_size, const char *symbol) {
   size_t used = 0U;
   char previous = '\0';
@@ -3359,9 +3450,11 @@ void platform_file_free_bytes(unsigned char *data) { free(data); }
 static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *object,
     const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
+  JsonBuilder builder = {0};
   M68kAnalysisPolicy local_policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR analysis;
+  char *base_json = NULL;
   int json_result;
   memset(&result, 0, sizeof(result));
   memset(&profile, 0, sizeof(profile));
@@ -3378,7 +3471,21 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *ob
       platform_file_add_error(&result.diagnostics, "failed building facts_v2 source analysis");
     return result;
   }
-  json_result = source_analysis_to_json(&analysis, &result.text, m68k_diag_sink(&result.diagnostics));
+  json_result = source_analysis_to_json(&analysis, &base_json, m68k_diag_sink(&result.diagnostics));
+  if (json_result == 0) {
+    size_t base_len = strlen(base_json);
+    if (base_len == 0U || base_json[base_len - 1U] != '}' || json_builder_create(&builder) != 0 ||
+        json_builder_appendf(&builder, "%.*s", (int)(base_len - 1U), base_json) != 0 ||
+        append_object_decompression_analysis_json(&builder, object, &analysis) != 0 ||
+        json_builder_append(&builder, "}") != 0) {
+      json_result = -1;
+    } else {
+      result.text = json_builder_build(&builder);
+      if (result.text == NULL) json_result = -1;
+    }
+  }
+  json_builder_destroy(&builder);
+  platform_file_free_text(base_json);
   m68k_ir_source_analysis_destroy(&analysis);
   if (json_result != 0 && !m68k_diag_has_errors(&result.diagnostics))
     platform_file_add_error(&result.diagnostics, "failed building analysis json");

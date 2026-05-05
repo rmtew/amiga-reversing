@@ -62,12 +62,30 @@ static int test_decompression_does_not_write_unknown_payload(void) {
   return 0;
 }
 
+static int test_decompression_candidate_scan_uses_provider_header_size(void) {
+  uint8_t data[40];
+  PlatformDecompressionCandidate candidates[2];
+  size_t count;
+  memset(data, 0, sizeof(data));
+  memcpy(data, "RNC\001", 4U);
+  data[11] = 5U;
+  count = platform_decompression_find_candidates_in_buffer("ancient-cli", data, sizeof(data), candidates,
+    sizeof(candidates) / sizeof(candidates[0]));
+  M68K_C_ASSERT_U32(1U, (uint32_t)count);
+  M68K_C_ASSERT_U32(0U, candidates[0].offset);
+  M68K_C_ASSERT_U32(23U, candidates[0].packed_size);
+  M68K_C_ASSERT_STR("rnc1", candidates[0].codec_hint);
+  return 0;
+}
+
 int m68k_c_platform_decompression_tests(void) {
   static const M68kCTestCase cases[] = {
     {"decompression_identify_rejects_unknown_provider", test_decompression_identify_rejects_unknown_provider},
     {"decompression_identify_reports_unknown_payload_without_failure",
       test_decompression_identify_reports_unknown_payload_without_failure},
     {"decompression_does_not_write_unknown_payload", test_decompression_does_not_write_unknown_payload},
+    {"decompression_candidate_scan_uses_provider_header_size",
+      test_decompression_candidate_scan_uses_provider_header_size},
   };
   return m68k_c_test_run_suite("platform_decompression", cases, sizeof(cases) / sizeof(cases[0]));
 }

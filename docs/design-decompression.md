@@ -47,6 +47,9 @@ A first C decompression provider layer now exists:
   and report packed/decompressed SHA-256 and decompressed size.
 - The same identify/decompress records are exported through
   `platform_file_lib.dll` for the Python C backend wrapper.
+- Facts-v2 analysis JSON now includes top-level `packed_payloads[]` and
+  `derived_target_suggestions[]` from C provider scanning of loaded target
+  sections.
 - Carrier's RNC stream is identified both as an extracted range file and in the
   original parent file at offset `$4C60`.
 - The C-decompressed Carrier output hash matches the existing derived child
@@ -98,7 +101,7 @@ Provider result records should include:
 - evidence records linking code to the packed stream where available
 - diagnostics for unsupported or ambiguous streams
 
-C should next emit these records through platform analysis JSON as:
+C emits provider-backed records through platform analysis JSON as:
 
 - `packed_payloads[]`
 - `derived_target_suggestions[]`
@@ -200,6 +203,9 @@ Current retained output:
 - C CLI decompresses the parent range to 359600 bytes with SHA-256
   `d37ec7db83012eba179956026b0677cfd46763d585722154f761bd6f6d2b5748`,
   matching the retained child `binary.bin`.
+- Facts-v2 analysis of the Carrier parent hunk emits a packed payload at section
+  offset `$4C40`, packed size 168397, decompressed size 359600, and the same
+  decompressed SHA-256.
 - Python can call the C decompression provider through the C backend wrapper;
   tests cover unknown payload handling without Python-side identification.
 
@@ -209,11 +215,11 @@ Current retained output:
 2. Done: wrap Ancient as the first provider for explicit range
    identification.
 3. Done: add provider decompression output, size, and hash reporting.
-4. Partly done: expose provider `packed_payloads[]` JSON through CLI and DLL.
-   Still missing platform analysis JSON integration and
-   `derived_target_suggestions[]`.
-5. Move Carrier RNC discovery from manual materialisation into C-emitted
-   records.
+4. Done: expose provider `packed_payloads[]` JSON through CLI, DLL, and
+   facts-v2 analysis JSON.
+5. Partly done: Carrier RNC discovery is emitted from C analysis records.
+   Runtime load address and entrypoint are still target metadata/manual
+   materialisation, so child target creation is not fully C-record driven.
 6. Add isolated C tests for provider result acceptance, code-overlap rejection,
    and parent/child relationship output.
 7. Add Python materialisation from C records only.

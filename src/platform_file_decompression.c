@@ -166,6 +166,69 @@ static int write_file_range_local(const char *path, uint32_t offset, uint32_t si
   return 0;
 }
 
+static int write_buffer_range_local(const uint8_t *data, uint32_t data_size, uint32_t offset, uint32_t size,
+    char *temp_path, size_t temp_path_size, char *error, size_t error_size) {
+  FILE *output;
+  if (data == NULL || temp_path == NULL || size == 0U || offset > data_size || size > data_size - offset ||
+      !make_temp_path_local(temp_path, temp_path_size)) {
+    set_error_local(error, error_size, "invalid decompression buffer range");
+    return -1;
+  }
+  output = fopen(temp_path, "wb");
+  if (output == NULL) {
+    set_error_local(error, error_size, "failed creating temporary range file");
+    return -1;
+  }
+  if (fwrite(data + offset, 1U, size, output) != size) {
+    fclose(output);
+    remove(temp_path);
+    set_error_local(error, error_size, "failed writing temporary range file");
+    return -1;
+  }
+  if (fclose(output) != 0) {
+    remove(temp_path);
+    set_error_local(error, error_size, "failed closing temporary range file");
+    return -1;
+  }
+  return 0;
+}
+
+static uint32_t read_u32be_local(const uint8_t *data) {
+  return ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) | ((uint32_t)data[2] << 8) | (uint32_t)data[3];
+}
+
+static int ancient_rnc1_candidate_size_local(const uint8_t *data, uint32_t data_size, uint32_t offset,
+    uint32_t *out_size) {
+  uint32_t packed_payload_size;
+  if (out_size != NULL) *out_size = 0U;
+  if (data == NULL || out_size == NULL || offset > data_size || data_size - offset < 18U) return 0;
+  if (memcmp(data + offset, "RNC\001", 4U) != 0) return 0;
+  packed_payload_size = read_u32be_local(data + offset + 8U);
+  if (packed_payload_size > UINT32_MAX - 18U || packed_payload_size + 18U > data_size - offset) return 0;
+  *out_size = packed_payload_size + 18U;
+  return 1;
+}
+
+size_t platform_decompression_find_candidates_in_buffer(const char *provider_id, const uint8_t *data,
+    uint32_t data_size, PlatformDecompressionCandidate *out_candidates, size_t candidate_capacity) {
+  const char *actual_provider_id = (provider_id != NULL && provider_id[0] != '\0') ? provider_id : "ancient-cli";
+  size_t count = 0U;
+  uint32_t offset;
+  if (strcmp(actual_provider_id, "ancient-cli") != 0 || data == NULL) return 0U;
+  for (offset = 0U; offset < data_size; ++offset) {
+    uint32_t packed_size;
+    PlatformDecompressionCandidate candidate;
+    if (!ancient_rnc1_candidate_size_local(data, data_size, offset, &packed_size)) continue;
+    memset(&candidate, 0, sizeof(candidate));
+    candidate.offset = offset;
+    candidate.packed_size = packed_size;
+    snprintf(candidate.codec_hint, sizeof(candidate.codec_hint), "rnc1");
+    if (count < candidate_capacity && out_candidates != NULL) out_candidates[count] = candidate;
+    ++count;
+  }
+  return count;
+}
+
 static void trim_line_local(char *text) {
   size_t length;
   char *start = text;
@@ -295,6 +358,34 @@ int platform_decompression_identify_path_range(const char *provider_id, const ch
   return result;
 }
 
+int platform_decompression_identify_buffer_range(const char *provider_id, const char *provider_path,
+    const uint8_t *data, uint32_t data_size, uint32_t offset, uint32_t size,
+    PlatformDecompressionIdentifyResult *out_result, char *error, size_t error_size) {
+  char temp_path[512];
+  const char *actual_provider_id;
+  const char *actual_provider_path;
+  int result;
+  if (out_result == NULL) return -1;
+  platform_decompression_identify_result_init(out_result);
+  actual_provider_id = (provider_id != NULL && provider_id[0] != '\0') ? provider_id : "ancient-cli";
+  actual_provider_path = (provider_path != NULL && provider_path[0] != '\0') ? provider_path : default_ancient_path_local();
+  if (strcmp(actual_provider_id, "ancient-cli") != 0) {
+    set_error_local(error, error_size, "unsupported decompression provider");
+    return -1;
+  }
+  snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", actual_provider_id);
+  snprintf(out_result->provider_path, sizeof(out_result->provider_path), "%s", actual_provider_path);
+  out_result->source_offset = offset;
+  out_result->packed_size = size;
+  temp_path[0] = '\0';
+  if (write_buffer_range_local(data, data_size, offset, size, temp_path, sizeof(temp_path), error, error_size) != 0)
+    return -1;
+  (void)file_sha256_hex_local(temp_path, NULL, out_result->source_sha256);
+  result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
+  remove(temp_path);
+  return result;
+}
+
 int platform_decompression_decompress_path_range(const char *provider_id, const char *provider_path,
     const char *path, uint32_t offset, uint32_t size, const char *output_path,
     PlatformDecompressionIdentifyResult *out_result, char *error, size_t error_size) {
@@ -339,7 +430,53 @@ int platform_decompression_decompress_path_range(const char *provider_id, const 
   return 0;
 }
 
-static int append_result_json_local(JsonBuilder *builder, const PlatformDecompressionIdentifyResult *result) {
+int platform_decompression_decompress_buffer_range(const char *provider_id, const char *provider_path,
+    const uint8_t *data, uint32_t data_size, uint32_t offset, uint32_t size, const char *output_path,
+    PlatformDecompressionIdentifyResult *out_result, char *error, size_t error_size) {
+  char temp_path[512];
+  const char *actual_provider_id;
+  const char *actual_provider_path;
+  int result;
+  if (out_result == NULL) return -1;
+  platform_decompression_identify_result_init(out_result);
+  if (output_path == NULL || output_path[0] == '\0') {
+    set_error_local(error, error_size, "invalid decompression output path");
+    return -1;
+  }
+  actual_provider_id = (provider_id != NULL && provider_id[0] != '\0') ? provider_id : "ancient-cli";
+  actual_provider_path = (provider_path != NULL && provider_path[0] != '\0') ? provider_path : default_ancient_path_local();
+  if (strcmp(actual_provider_id, "ancient-cli") != 0) {
+    set_error_local(error, error_size, "unsupported decompression provider");
+    return -1;
+  }
+  snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", actual_provider_id);
+  snprintf(out_result->provider_path, sizeof(out_result->provider_path), "%s", actual_provider_path);
+  snprintf(out_result->decompressed_path, sizeof(out_result->decompressed_path), "%s", output_path);
+  out_result->source_offset = offset;
+  out_result->packed_size = size;
+  temp_path[0] = '\0';
+  if (write_buffer_range_local(data, data_size, offset, size, temp_path, sizeof(temp_path), error, error_size) != 0)
+    return -1;
+  (void)file_sha256_hex_local(temp_path, NULL, out_result->source_sha256);
+  result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
+  if (result == 0 && !out_result->found) {
+    remove(temp_path);
+    return 0;
+  }
+  if (result == 0) result = ancient_decompress_temp_file_local(actual_provider_path, temp_path, output_path,
+    error, error_size);
+  remove(temp_path);
+  if (result != 0) return result;
+  if (file_sha256_hex_local(output_path, &out_result->decompressed_size, out_result->decompressed_sha256) != 0) {
+    set_error_local(error, error_size, "failed hashing decompressed output");
+    return -1;
+  }
+  out_result->decompressed = 1;
+  return 0;
+}
+
+int platform_decompression_append_result_json(JsonBuilder *builder,
+    const PlatformDecompressionIdentifyResult *result) {
   if (json_builder_append(builder, "{\"provider_id\":") != 0) return -1;
   if (json_builder_append_json_string(builder, result->provider_id) != 0) return -1;
   if (json_builder_append(builder, ",\"provider_path\":") != 0) return -1;
@@ -347,6 +484,11 @@ static int append_result_json_local(JsonBuilder *builder, const PlatformDecompre
   if (json_builder_appendf(builder, ",\"found\":%s", result->found ? "true" : "false") != 0) return -1;
   if (json_builder_appendf(builder, ",\"source_offset\":%u,\"packed_size\":%u",
       (unsigned)result->source_offset, (unsigned)result->packed_size) != 0) return -1;
+  if (result->has_source_section) {
+    if (json_builder_appendf(builder, ",\"source_section\":%u,\"source_section_offset\":%u",
+        (unsigned)result->source_section_index, (unsigned)result->source_section_offset) != 0)
+      return -1;
+  }
   if (result->source_sha256[0] != '\0') {
     if (json_builder_append(builder, ",\"source_sha256\":") != 0) return -1;
     if (json_builder_append_json_string(builder, result->source_sha256) != 0) return -1;
@@ -363,8 +505,10 @@ static int append_result_json_local(JsonBuilder *builder, const PlatformDecompre
         return -1;
       if (json_builder_append(builder, ",\"decompressed_sha256\":") != 0) return -1;
       if (json_builder_append_json_string(builder, result->decompressed_sha256) != 0) return -1;
-      if (json_builder_append(builder, ",\"decompressed_path\":") != 0) return -1;
-      if (json_builder_append_json_string(builder, result->decompressed_path) != 0) return -1;
+      if (result->decompressed_path[0] != '\0') {
+        if (json_builder_append(builder, ",\"decompressed_path\":") != 0) return -1;
+        if (json_builder_append_json_string(builder, result->decompressed_path) != 0) return -1;
+      }
     }
   }
   return json_builder_append(builder, "}");
@@ -392,7 +536,7 @@ int platform_decompression_identify_path_range_json_alloc(const char *provider_i
     }
   } else {
     if (json_builder_append(&builder, "{\"status\":\"ok\",\"packed_payloads\":[") != 0 ||
-        append_result_json_local(&builder, &result) != 0 ||
+        platform_decompression_append_result_json(&builder, &result) != 0 ||
         json_builder_append(&builder, "]}") != 0) {
       json_builder_destroy(&builder);
       return -1;
@@ -427,7 +571,7 @@ int platform_decompression_decompress_path_range_json_alloc(const char *provider
     }
   } else {
     if (json_builder_append(&builder, "{\"status\":\"ok\",\"packed_payloads\":[") != 0 ||
-        append_result_json_local(&builder, &result) != 0 ||
+        platform_decompression_append_result_json(&builder, &result) != 0 ||
         json_builder_append(&builder, "]}") != 0) {
       json_builder_destroy(&builder);
       return -1;

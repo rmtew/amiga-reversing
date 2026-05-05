@@ -17,6 +17,7 @@ from amiga_reversing.disasm.c_backend import (
     FactsV2DirectRebuildRefused,
     amiga_naming_catalog_with_c_backend,
     amiga_os_metadata_catalog_with_c_backend,
+    analyze_binary_source_with_c_backend,
     analyze_project_source_with_c_backend,
     api_calls_from_c_analysis,
     assemble_platform_source_path_with_c_backend,
@@ -95,6 +96,17 @@ def test_decompression_c_backend_reports_unknown_payload(tmp_path: Path) -> None
     assert decompressed["status"] == "ok"
     assert decompressed["packed_payloads"][0]["found"] is False
     assert not output.exists()
+
+
+def test_analysis_json_includes_empty_decompression_fact_arrays(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "plain_hunk.bin"
+    binary.write_bytes(_make_cross_section_call_hunkexe(bytes.fromhex("4e75"), 0))
+
+    analysis = analyze_binary_source_with_c_backend(binary)
+
+    assert analysis["packed_payloads"] == []
+    assert analysis["derived_target_suggestions"] == []
 
 
 def _facts_v2_listing_analysis_for_project(target_name: str) -> dict[str, object]:
