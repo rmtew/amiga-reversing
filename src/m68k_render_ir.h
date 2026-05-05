@@ -4,6 +4,7 @@
 
 #include "m68k_decode_ir.h"
 #include "m68k_fact_ir.h"
+#include "m68k_render_plan.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -51,6 +52,9 @@ typedef struct M68kRenderIRPreview {
   uint64_t asm_source_hash;
   uint32_t asm_source_bytes;
   uint32_t asm_source_lines;
+  uint32_t asm_source_plan_rows;
+  uint32_t asm_source_plan_lines;
+  uint32_t asm_source_plan_bytes;
   uint32_t asm_source_relocation_exprs;
   uint32_t asm_source_symbolic_instructions;
   uint32_t asm_source_numeric_runtime_refs;
@@ -72,6 +76,7 @@ typedef struct M68kRenderIRPreview {
   uint32_t asm_source_first_failure_aux_offset;
   char *asm_source_text;
   size_t asm_source_text_capacity;
+  M68kRenderPlan asm_source_plan;
   char asm_source_includes[M68K_RENDER_ASM_INCLUDE_LIMIT][M68K_RENDER_ASM_INCLUDE_PATH_SIZE];
   char asm_source_declarations[M68K_RENDER_ASM_DECLARATION_LIMIT][M68K_RENDER_ASM_SYMBOL_NAME_SIZE];
   uint16_t asm_source_include_count;

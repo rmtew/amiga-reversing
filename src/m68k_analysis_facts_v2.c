@@ -5104,6 +5104,9 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (out_profile->asm_source_refused == 0U) out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;
   out_profile->asm_source_bytes = render_preview.asm_source_bytes;
   out_profile->asm_source_lines = render_preview.asm_source_lines;
+  out_profile->asm_source_plan_rows = render_preview.asm_source_plan_rows;
+  out_profile->asm_source_plan_lines = render_preview.asm_source_plan_lines;
+  out_profile->asm_source_plan_bytes = render_preview.asm_source_plan_bytes;
   out_profile->asm_source_relocation_exprs = render_preview.asm_source_relocation_exprs;
   out_profile->asm_source_symbolic_instructions = render_preview.asm_source_symbolic_instructions;
   out_profile->asm_source_numeric_runtime_refs = render_preview.asm_source_numeric_runtime_refs;

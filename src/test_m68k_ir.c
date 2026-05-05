@@ -2761,6 +2761,9 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68K_C_ASSERT(strstr(source, "bra") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000004") != NULL);
   M68K_C_ASSERT(strstr(source, "facts_v2 instruction bytes") == NULL);
+  M68K_C_ASSERT_U32(profile.asm_source_lines, profile.asm_source_plan_rows);
+  M68K_C_ASSERT_U32(profile.asm_source_lines, profile.asm_source_plan_lines);
+  M68K_C_ASSERT_U32(profile.asm_source_bytes, profile.asm_source_plan_bytes);
   M68K_C_ASSERT_U32(2U, profile.asm_source_symbolic_instructions);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_render_failures);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);

@@ -157,10 +157,16 @@ int m68k_render_plan_row_builder_append(M68kRenderPlanRowBuilder *builder, const
   size_t length;
   if (builder == NULL || !builder->active || text == NULL) return -1;
   length = strlen(text);
+  return m68k_render_plan_row_builder_append_span(builder, text, length);
+}
+
+int m68k_render_plan_row_builder_append_span(M68kRenderPlanRowBuilder *builder, const char *text, size_t length) {
+  if (builder == NULL || !builder->active || (text == NULL && length != 0U)) return -1;
   if (length > ((size_t)-1) - builder->size - 1U) return -1;
   if (render_plan_row_builder_reserve(builder, builder->size + length + 1U) != 0) return -1;
-  memcpy(builder->text + builder->size, text, length + 1U);
+  if (length != 0U) memcpy(builder->text + builder->size, text, length);
   builder->size += length;
+  builder->text[builder->size] = '\0';
   return 0;
 }
 
@@ -333,6 +339,37 @@ int m68k_render_plan_visit_row_lines(const M68kRenderPlan *plan, size_t first_ro
       ++subline;
     }
   }
+  return 0;
+}
+
+int m68k_render_plan_build_text_lines(const char *text, uint32_t kind, uint32_t region_id,
+    M68kRenderPlan *out_plan) {
+  const char *cursor;
+  M68kRenderPlanRowBuilder builder;
+  if (text == NULL || out_plan == NULL) return -1;
+  m68k_render_plan_init(out_plan);
+  m68k_render_plan_row_builder_init(&builder);
+  cursor = text;
+  while (*cursor != '\0') {
+    const char *line_start = cursor;
+    size_t line_length;
+    while (*cursor != '\0' && *cursor != '\n') ++cursor;
+    if (*cursor != '\n') {
+      m68k_render_plan_row_builder_destroy(&builder);
+      m68k_render_plan_destroy(out_plan);
+      return -1;
+    }
+    ++cursor;
+    line_length = (size_t)(cursor - line_start);
+    if (m68k_render_plan_row_builder_begin(&builder, out_plan, kind, region_id) != 0 ||
+        m68k_render_plan_row_builder_append_span(&builder, line_start, line_length) != 0 ||
+        m68k_render_plan_row_builder_commit(&builder, NULL) != 0) {
+      m68k_render_plan_row_builder_destroy(&builder);
+      m68k_render_plan_destroy(out_plan);
+      return -1;
+    }
+  }
+  m68k_render_plan_row_builder_destroy(&builder);
   return 0;
 }
 

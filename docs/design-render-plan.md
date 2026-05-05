@@ -45,6 +45,14 @@ Render plans now have a row-builder API for renderers that naturally emit a row
 in fragments. This is intended for migrating facts_v2 source rendering without
 rebuilding large temporary source text just to discover row boundaries.
 
+facts_v2 source rendering now records a bridge render plan for the final emitted
+source text after current header hoisting. The profile exposes
+`asm_source_plan_rows`, `asm_source_plan_lines`, and `asm_source_plan_bytes`,
+and C tests assert that plan lines/bytes match the emitted source. This is still
+a bridge: full listing JSON has not yet switched to consuming that plan, and the
+plan is rebuilt after the legacy header rewrite rather than being the
+authoritative source structure.
+
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
 

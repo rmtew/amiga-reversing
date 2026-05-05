@@ -137,6 +137,9 @@ typedef struct M68kFactsV2Profile {
   uint32_t asm_source_refused;
   uint32_t asm_source_bytes;
   uint32_t asm_source_lines;
+  uint32_t asm_source_plan_rows;
+  uint32_t asm_source_plan_lines;
+  uint32_t asm_source_plan_bytes;
   uint32_t asm_source_relocation_exprs;
   uint32_t asm_source_symbolic_instructions;
   uint32_t asm_source_numeric_runtime_refs;

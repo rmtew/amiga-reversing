@@ -76,6 +76,7 @@ void m68k_render_plan_row_builder_destroy(M68kRenderPlanRowBuilder *builder);
 int m68k_render_plan_row_builder_begin(M68kRenderPlanRowBuilder *builder, M68kRenderPlan *plan,
   uint32_t kind, uint32_t region_id);
 int m68k_render_plan_row_builder_append(M68kRenderPlanRowBuilder *builder, const char *text);
+int m68k_render_plan_row_builder_append_span(M68kRenderPlanRowBuilder *builder, const char *text, size_t length);
 int m68k_render_plan_row_builder_appendf(M68kRenderPlanRowBuilder *builder, const char *format, ...);
 int m68k_render_plan_row_builder_commit(M68kRenderPlanRowBuilder *builder, M68kRenderPlanRow **out_row);
 void m68k_render_plan_row_builder_cancel(M68kRenderPlanRowBuilder *builder);
@@ -94,6 +95,8 @@ int m68k_render_plan_emit_rows_alloc(const M68kRenderPlan *plan, size_t first_ro
 int m68k_render_plan_emit_all_alloc(const M68kRenderPlan *plan, char **out_text);
 int m68k_render_plan_visit_row_lines(const M68kRenderPlan *plan, size_t first_row, size_t row_count,
   M68kRenderPlanLineVisitor visitor, void *user);
+int m68k_render_plan_build_text_lines(const char *text, uint32_t kind, uint32_t region_id,
+  M68kRenderPlan *out_plan);
 int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,
   M68kRenderPlan *out_plan, M68kDiagSink diagnostics);
 void m68k_render_plan_free_text(char *text);

@@ -6581,11 +6581,13 @@ void m68k_render_ir_preview_init(M68kRenderIRPreview *preview) {
   preview->structural_hash = 1469598103934665603ULL;
   preview->text_hash = 1469598103934665603ULL;
   preview->asm_source_hash = 1469598103934665603ULL;
+  m68k_render_plan_init(&preview->asm_source_plan);
 }
 
 void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview) {
   if (preview == NULL) return;
   free(preview->asm_source_text);
+  m68k_render_plan_destroy(&preview->asm_source_plan);
   memset(preview, 0, sizeof(*preview));
 }
 
@@ -6903,6 +6905,15 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
     out_preview->asm_source_allocation_failed = 1U;
     goto cleanup;
   }
+  if (render_asm_source && collect_asm_source_text &&
+      m68k_render_plan_build_text_lines(out_preview->asm_source_text, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 0U,
+        &out_preview->asm_source_plan) != 0) {
+    out_preview->asm_source_allocation_failed = 1U;
+    goto cleanup;
+  }
+  out_preview->asm_source_plan_rows = (uint32_t)out_preview->asm_source_plan.row_count;
+  out_preview->asm_source_plan_lines = out_preview->asm_source_plan.total_lines;
+  out_preview->asm_source_plan_bytes = (uint32_t)out_preview->asm_source_plan.total_bytes;
   phase_end = clock();
   out_preview->footer_seconds = elapsed_seconds_local(phase_start, phase_end);
   result = 0;

@@ -83,7 +83,8 @@ static int test_render_plan_row_builder_commits_fragmented_row(void) {
   m68k_render_plan_row_builder_init(&builder);
   M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_begin(&builder, &plan, M68K_RENDER_PLAN_ROW_INSTRUCTION, 2U));
   M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_append(&builder, "    moveq.l "));
-  M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_appendf(&builder, "#%u,d0\n", 7U));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_append_span(&builder, "#", 1U));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_appendf(&builder, "%u,d0\n", 7U));
   M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_commit(&builder, &row));
   M68K_C_ASSERT(row != NULL);
   M68K_C_ASSERT_U32(M68K_RENDER_PLAN_ROW_INSTRUCTION, row->kind);
@@ -94,6 +95,22 @@ static int test_render_plan_row_builder_commits_fragmented_row(void) {
   m68k_render_plan_free_text(full_text);
   m68k_render_plan_row_builder_destroy(&builder);
   m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
+static int test_render_plan_builds_text_line_rows(void) {
+  M68kRenderPlan plan;
+  char *full_text = NULL;
+  M68K_C_ASSERT_INT(0, m68k_render_plan_build_text_lines("A\nB\n", M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 9U, &plan));
+  M68K_C_ASSERT_U32(2U, (uint32_t)plan.row_count);
+  M68K_C_ASSERT_U32(2U, plan.total_lines);
+  M68K_C_ASSERT_U32(4U, (uint32_t)plan.total_bytes);
+  M68K_C_ASSERT_U32(9U, plan.rows[1].region_id);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&plan, &full_text));
+  M68K_C_ASSERT_STR("A\nB\n", full_text);
+  m68k_render_plan_free_text(full_text);
+  m68k_render_plan_destroy(&plan);
+  M68K_C_ASSERT_INT(-1, m68k_render_plan_build_text_lines("A\nB", M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 9U, &plan));
   return 0;
 }
 
@@ -242,6 +259,7 @@ int m68k_c_render_plan_tests(void) {
     {"line_counts_and_order", test_render_plan_line_counts_and_order},
     {"line_and_address_lookup", test_render_plan_line_and_address_lookup},
     {"row_builder_commits_fragmented_row", test_render_plan_row_builder_commits_fragmented_row},
+    {"builds_text_line_rows", test_render_plan_builds_text_line_rows},
     {"window_emission_matches_full_slice", test_render_plan_window_emission_matches_full_slice},
     {"visits_physical_lines_with_owner_row", test_render_plan_visits_physical_lines_with_owner_row},
     {"rejects_rows_without_complete_lines", test_render_plan_rejects_rows_without_complete_lines},

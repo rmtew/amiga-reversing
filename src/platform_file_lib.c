@@ -3102,6 +3102,9 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     "\"asm_source_refused\":%s,"
     "\"asm_source_bytes\":%u,"
     "\"asm_source_lines\":%u,"
+    "\"asm_source_plan_rows\":%u,"
+    "\"asm_source_plan_lines\":%u,"
+    "\"asm_source_plan_bytes\":%u,"
     "\"asm_source_relocation_exprs\":%u,"
     "\"asm_source_symbolic_instructions\":%u,"
     "\"asm_source_numeric_runtime_refs\":%u,"
@@ -3233,6 +3236,9 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     profile->asm_source_refused != 0U ? "true" : "false",
     (unsigned)profile->asm_source_bytes,
     (unsigned)profile->asm_source_lines,
+    (unsigned)profile->asm_source_plan_rows,
+    (unsigned)profile->asm_source_plan_lines,
+    (unsigned)profile->asm_source_plan_bytes,
     (unsigned)profile->asm_source_relocation_exprs,
     (unsigned)profile->asm_source_symbolic_instructions,
     (unsigned)profile->asm_source_numeric_runtime_refs,
