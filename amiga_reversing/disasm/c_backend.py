@@ -470,39 +470,6 @@ def analyze_project_source_with_c_backend(
     return cast(dict[str, object], json.loads(analysis_text))
 
 
-def listing_index_from_c_analysis(analysis: dict[str, object]) -> dict[str, object]:
-    profile = analysis.get("profile")
-    if not isinstance(profile, dict):
-        raise ValueError("C analysis did not include a source-free listing profile")
-    facts_v2 = profile.get("facts_v2")
-    if not isinstance(facts_v2, dict):
-        raise ValueError("C analysis profile did not include facts_v2 data")
-    total_rows = facts_v2.get("render_ir_statements")
-    if not isinstance(total_rows, int):
-        raise ValueError("C analysis profile did not include render_ir_statements")
-    return {
-        "analysis_generation": "full",
-        "analysis_backend": profile.get("analysis_backend") if isinstance(profile.get("analysis_backend"), str) else "facts_v2",
-        "total_rows": total_rows,
-        "profile": profile,
-    }
-
-
-def build_project_listing_index_with_c_backend(
-    project_name: str,
-    *,
-    project_root: Path = PROJECT_ROOT,
-) -> dict[str, object]:
-    paths = resolve_project_paths(project_name, project_root=project_root)
-    with effective_metadata_file(paths.target_dir) as metadata_path:
-        analysis = analyze_project_source_with_c_backend(
-            paths.binary_source,
-            metadata_path=metadata_path,
-            project_root=project_root,
-        )
-    return listing_index_from_c_analysis(analysis)
-
-
 def effective_policy_project_source_with_c_backend(
     binary_source: BinarySource,
     *,
