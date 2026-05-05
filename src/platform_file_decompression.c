@@ -252,12 +252,20 @@ static uint32_t read_u32be_local(const uint8_t *data) {
   return ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) | ((uint32_t)data[2] << 8) | (uint32_t)data[3];
 }
 
-static int ancient_rnc1_candidate_size_local(const uint8_t *data, uint32_t data_size, uint32_t offset,
-    uint32_t *out_size) {
+static int ancient_rnc_candidate_size_local(const uint8_t *data, uint32_t data_size, uint32_t offset,
+    uint32_t *out_size, char *codec_hint, size_t codec_hint_size) {
   uint32_t packed_payload_size;
   if (out_size != NULL) *out_size = 0U;
   if (data == NULL || out_size == NULL || offset > data_size || data_size - offset < 18U) return 0;
-  if (memcmp(data + offset, "RNC\001", 4U) != 0) return 0;
+  if (memcmp(data + offset, "RNC\001", 4U) == 0) {
+    if (codec_hint != NULL && codec_hint_size != 0U) snprintf(codec_hint, codec_hint_size, "rnc1");
+  } else if (memcmp(data + offset, "RNC\002", 4U) == 0) {
+    if (codec_hint != NULL && codec_hint_size != 0U) snprintf(codec_hint, codec_hint_size, "rnc2");
+  } else if (memcmp(data + offset, "...\001", 4U) == 0) {
+    if (codec_hint != NULL && codec_hint_size != 0U) snprintf(codec_hint, codec_hint_size, "rnc1");
+  } else {
+    return 0;
+  }
   packed_payload_size = read_u32be_local(data + offset + 8U);
   if (packed_payload_size > UINT32_MAX - 18U || packed_payload_size + 18U > data_size - offset) return 0;
   *out_size = packed_payload_size + 18U;
@@ -273,11 +281,12 @@ size_t platform_decompression_find_candidates_in_buffer(const char *provider_id,
   for (offset = 0U; offset < data_size; ++offset) {
     uint32_t packed_size;
     PlatformDecompressionCandidate candidate;
-    if (!ancient_rnc1_candidate_size_local(data, data_size, offset, &packed_size)) continue;
+    if (!ancient_rnc_candidate_size_local(data, data_size, offset, &packed_size, NULL, 0U)) continue;
     memset(&candidate, 0, sizeof(candidate));
     candidate.offset = offset;
     candidate.packed_size = packed_size;
-    snprintf(candidate.codec_hint, sizeof(candidate.codec_hint), "rnc1");
+    (void)ancient_rnc_candidate_size_local(data, data_size, offset, &packed_size, candidate.codec_hint,
+      sizeof(candidate.codec_hint));
     if (count < candidate_capacity && out_candidates != NULL) out_candidates[count] = candidate;
     ++count;
   }
@@ -515,7 +524,8 @@ int platform_decompression_identify_buffer_range(const char *provider_id, const 
   (void)file_sha256_hex_local(temp_path, NULL, out_result->source_sha256);
   result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
   if (result == 0 && !out_result->found &&
-      ancient_rnc1_candidate_size_local(data, data_size, offset, &candidate_size) && candidate_size == size) {
+      ancient_rnc_candidate_size_local(data, data_size, offset, &candidate_size, NULL, 0U) &&
+      candidate_size == size) {
     result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
   }
   remove(temp_path);
@@ -597,7 +607,8 @@ int platform_decompression_decompress_buffer_range(const char *provider_id, cons
   (void)file_sha256_hex_local(temp_path, NULL, out_result->source_sha256);
   result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
   if (result == 0 && !out_result->found &&
-      ancient_rnc1_candidate_size_local(data, data_size, offset, &candidate_size) && candidate_size == size) {
+      ancient_rnc_candidate_size_local(data, data_size, offset, &candidate_size, NULL, 0U) &&
+      candidate_size == size) {
     result = ancient_identify_temp_file_local(actual_provider_path, temp_path, out_result, error, error_size);
   }
   if (result == 0 && !out_result->found) {

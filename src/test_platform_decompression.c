@@ -78,6 +78,27 @@ static int test_decompression_candidate_scan_uses_provider_header_size(void) {
   return 0;
 }
 
+static int test_decompression_candidate_scan_matches_ancient_rnc_headers(void) {
+  uint8_t data[96];
+  PlatformDecompressionCandidate candidates[4];
+  size_t count;
+  memset(data, 0, sizeof(data));
+  memcpy(data + 4U, "RNC\002", 4U);
+  data[15] = 7U;
+  memcpy(data + 48U, "...\001", 4U);
+  data[59] = 9U;
+  count = platform_decompression_find_candidates_in_buffer("ancient-cli", data, sizeof(data), candidates,
+    sizeof(candidates) / sizeof(candidates[0]));
+  M68K_C_ASSERT_U32(2U, (uint32_t)count);
+  M68K_C_ASSERT_U32(4U, candidates[0].offset);
+  M68K_C_ASSERT_U32(25U, candidates[0].packed_size);
+  M68K_C_ASSERT_STR("rnc2", candidates[0].codec_hint);
+  M68K_C_ASSERT_U32(48U, candidates[1].offset);
+  M68K_C_ASSERT_U32(27U, candidates[1].packed_size);
+  M68K_C_ASSERT_STR("rnc1", candidates[1].codec_hint);
+  return 0;
+}
+
 int m68k_c_platform_decompression_tests(void) {
   static const M68kCTestCase cases[] = {
     {"decompression_identify_rejects_unknown_provider", test_decompression_identify_rejects_unknown_provider},
@@ -86,6 +107,8 @@ int m68k_c_platform_decompression_tests(void) {
     {"decompression_does_not_write_unknown_payload", test_decompression_does_not_write_unknown_payload},
     {"decompression_candidate_scan_uses_provider_header_size",
       test_decompression_candidate_scan_uses_provider_header_size},
+    {"decompression_candidate_scan_matches_ancient_rnc_headers",
+      test_decompression_candidate_scan_matches_ancient_rnc_headers},
   };
   return m68k_c_test_run_suite("platform_decompression", cases, sizeof(cases) / sizeof(cases[0]));
 }

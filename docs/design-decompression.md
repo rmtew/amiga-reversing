@@ -115,6 +115,10 @@ Use provider-backed decompression:
 - Ancient is the first provider because it already supports many formats.
 - XFD is useful reference material, but should not be broadly integrated until a
   real target requires it.
+- Current automatic scanning is intentionally narrower than Ancient's full
+  decompressor list. It proposes RNC candidates using the RNC headers accepted
+  by the local Ancient source (`RNC\1`, `RNC\2`, and `...\1`), then lets Ancient
+  validate and identify the actual stream.
 
 The boundary is:
 
@@ -319,6 +323,9 @@ Current retained output:
 16. Done: index decompression runtime-copy evidence and conflict shape as corpus
    tags/xrefs so Carrier-like parent/child reconciliation work can be selected
    by evidence, not by target name.
+17. Done: align the C RNC candidate scanner with the local Ancient RNC detector
+   headers, adding RNC2 and `...\1` candidate support while keeping provider
+   identify/decompress as the authority.
 
 ## Current Corpus Query Proof
 
@@ -329,6 +336,9 @@ After rebuilding `corpus/target_usage_manifest.jsonl`:
 - `compressed-payload` also finds comparator RNC1 targets, including
   `3D Construction Kit II` `EditFile/runner.exe`, `3DEDIT`, `3DSOUND`,
   `3DMAKE`, and `Voodoo Nightmare` `Trainer`.
+- `compressed:rnc2` has no current corpus hits after enabling the scanner path;
+  the isolated C regression covers the Ancient-compatible header detection until
+  a real target appears.
 - `decompression:child` finds the retained Carrier decompressed raw child and
   exposes the existing load/entry metadata.
 - `decompression:runtime_copy` finds Carrier parent evidence where C analysis
