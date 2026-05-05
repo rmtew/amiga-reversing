@@ -3390,6 +3390,35 @@ static int platform_file_assemble_source_common_alloc(const char *backend_name, 
     *out_profile_json = assembler_profile_json_alloc_local(&profile);
     return -1;
   }
+  if (backend_name != NULL &&
+      (strcmp(backend_name, "amiga-raw") == 0 || strcmp(backend_name, "atari-st-raw") == 0)) {
+    if (source_text == NULL) {
+      *out_error = duplicate_text_local("raw output backend requires source text");
+      *out_profile_json = assembler_profile_json_alloc_local(&profile);
+      return -1;
+    }
+    result = m68k_assemble_platform_source_text_to_raw_buffer_alloc(backend_name,
+      include_dir != NULL ? include_dir : "", source_text, output_path != NULL ? output_path : "",
+      cpu_result.cpu, enable_vasm_compat_rewrites, out_data, out_size, &profile, m68k_diag_sink(&diagnostics));
+    *out_profile_json = assembler_profile_json_alloc_local(&profile);
+    if (*out_profile_json == NULL) {
+      free(*out_data);
+      *out_data = NULL;
+      *out_size = 0U;
+      *out_error = duplicate_text_local("out of memory");
+      return -1;
+    }
+    if (result != 0) {
+      message = m68k_diag_first_message(&diagnostics);
+      if (message == NULL || message[0] == '\0') message = "raw platform assembler failed";
+      free(*out_data);
+      *out_data = NULL;
+      *out_size = 0U;
+      *out_error = duplicate_text_local(message);
+      return -1;
+    }
+    return 0;
+  }
   if (source_text != NULL) {
     if (output_path != NULL && output_path[0] != '\0')
       result = m68k_assemble_platform_source_text_to_output_buffer_alloc(backend_name,

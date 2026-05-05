@@ -182,21 +182,11 @@ def run_reproduction(
                 "issues": [_issue("tool", f"unsupported reproduction source syntax: {source_syntax}", None)],
             }
             return _write_reproduction_report(paths.target_dir, report)
-        if backend == "amiga-raw":
-            report = {
-                **base_report,
-                "status": "unsupported",
-                "tool_error": "raw binary reproduction needs a raw output backend",
-                "finished_at": time.time(),
-            }
-            return _write_reproduction_report(paths.target_dir, report)
-
-        use_facts_v2_native_reproduction = (
-            source_text is None
-            and backend != "amiga-raw"
-        )
+        use_facts_v2_native_reproduction = source_text is None
         use_facts_v2_direct_rebuild = (
-            use_facts_v2_native_reproduction and facts_v2_direct_reproduction_enabled()
+            use_facts_v2_native_reproduction
+            and backend != "amiga-raw"
+            and facts_v2_direct_reproduction_enabled()
         )
         use_facts_v2_direct_compare = use_facts_v2_direct_rebuild and facts_v2_direct_compare_enabled()
         use_facts_v2_render_assemble = (
@@ -1764,7 +1754,7 @@ def _platform_file_lib_path(project_root: Path) -> Path:
 
 
 def _include_dir_for_backend(backend: str, project_root: Path) -> Path | None:
-    if backend == "amiga-hunk":
+    if backend in {"amiga-hunk", "amiga-raw"}:
         return project_root / "ext" / "amiga_includes" / "ndk_2.0" / "include"
     if backend == "atari-st":
         return project_root / "ext" / "atarist_includes" / "devpac_3_10" / "include"

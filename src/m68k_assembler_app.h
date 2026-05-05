@@ -35,6 +35,9 @@ int m68k_assemble_platform_source_text_to_buffer_alloc(const char *backend_name,
 int m68k_assemble_platform_source_text_to_output_buffer_alloc(const char *backend_name, const char *include_dir,
   const char *source_text, const char *output_path, uint8_t target_cpu, int enable_vasm_compat_rewrites,
   unsigned char **out_data, size_t *out_size, M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics);
+int m68k_assemble_platform_source_text_to_raw_buffer_alloc(const char *backend_name, const char *include_dir,
+  const char *source_text, const char *output_path, uint8_t target_cpu, int enable_vasm_compat_rewrites,
+  unsigned char **out_data, size_t *out_size, M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics);
 int m68k_render_source_file_to_stdout(const char *input_path, const char *include_dir, uint8_t target_cpu,
   int enable_vasm_compat_rewrites, const M68kRenderPolicy *policy);
 

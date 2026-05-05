@@ -1847,6 +1847,34 @@ def test_project_source_facts_v2_render_assemble_uses_combined_c_api(monkeypatch
     ]
 
 
+def test_real_dll_raw_render_assemble_returns_raw_payload(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "raw.bin"
+    output_path = tmp_path / "rebuilt.bin"
+    binary_path.write_bytes(b"\x4E\x75")
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="runtime_absolute",
+        load_address=0x4000,
+        entrypoint=0x4000,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+
+    rebuilt, source_profile, assembler_profile = facts_v2_render_assemble_project_source_with_c_backend_profile(
+        source,
+        output_path=output_path,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert rebuilt == b"\x4E\x75"
+    assert output_path.read_bytes() == b"\x4E\x75"
+    assert source_profile["backend"] == "amiga-raw"
+    assert assembler_profile["rebuilt_bytes"] == 2
+
+
 def test_project_source_facts_v2_direct_rebuild_uses_direct_c_api(monkeypatch, tmp_path: Path) -> None:
     binary_path = tmp_path / "sample"
     output_path = tmp_path / "rebuilt.bin"

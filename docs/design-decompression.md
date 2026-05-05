@@ -188,9 +188,8 @@ or decompressed child views.
 - Extraction metadata must make the decompressed bytes reproducible from the
   packed target and selected provider.
 
-Raw binary reproduction is still a gap for the Carrier child. The child renders
-and benchmarks, but reproduction currently reports unsupported because raw output
-assembly is not wired as an exact reproduction backend.
+Raw binary reproduction is now wired through C render/assemble. Raw targets
+assemble to the single section payload bytes rather than a hunk container.
 
 ## Observed Examples
 
@@ -240,6 +239,9 @@ Current retained output:
 - Python disk import consumes C materialisation records conservatively:
   `needs_runtime_metadata` records, missing load/entry records, failed
   extraction, or failed C analysis leave only the packed parent target.
+- The retained Carrier decompressed child passes exact raw reproduction:
+  359600 rebuilt bytes, SHA-256
+  `d37ec7db83012eba179956026b0677cfd46763d585722154f761bd6f6d2b5748`.
 
 ## Work Plan
 
@@ -266,8 +268,8 @@ Current retained output:
    facts, but does not create new child targets.
 13. Add comparator targets for at least one non-Carrier packed payload before
    broadening policy.
-14. Wire raw decompressed child reproduction so source can be assembled and
-   compared to the decompressed bytes.
+14. Done: raw decompressed child reproduction assembles C-rendered raw source
+   to payload bytes and compares against the decompressed binary.
 
 ## Current Corpus Query Proof
 

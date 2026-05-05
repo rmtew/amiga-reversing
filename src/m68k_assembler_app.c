@@ -37,6 +37,14 @@ static M68kPlatformBackendKind platform_backend_kind_for_name(const char *backen
   return M68K_PLATFORM_BACKEND_UNKNOWN;
 }
 
+static M68kPlatformBackendKind raw_platform_backend_kind_for_name(const char *backend_name) {
+  if (backend_name != NULL && strcmp(backend_name, "amiga-raw") == 0)
+    return M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  if (backend_name != NULL && strcmp(backend_name, "atari-st-raw") == 0)
+    return M68K_PLATFORM_BACKEND_ATARI_ST;
+  return platform_backend_kind_for_name(backend_name);
+}
+
 static uint32_t file_size_u32(const char *path) {
   FILE *input;
   int64_t size;
@@ -464,6 +472,103 @@ int m68k_assemble_platform_source_text_to_output_buffer_alloc(const char *backen
   }
   return assemble_platform_source_to_output_buffer_alloc_impl(backend_name, include_dir, NULL, source_text,
     output_path, 0, target_cpu, enable_vasm_compat_rewrites, out_data, out_size, out_profile, diagnostics);
+}
+
+int m68k_assemble_platform_source_text_to_raw_buffer_alloc(const char *backend_name, const char *include_dir,
+    const char *source_text, const char *output_path, uint8_t target_cpu, int enable_vasm_compat_rewrites,
+    unsigned char **out_data, size_t *out_size, M68kPlatformAssembleProfile *out_profile,
+    M68kDiagSink diagnostics) {
+  M68kPlatformAssembleProfile profile;
+  M68kPlatformBackendKind platform_backend_kind;
+  M68kObject object;
+  const M68kSection *section;
+  clock_t total_start;
+  clock_t phase_start;
+  memset(&profile, 0, sizeof(profile));
+  memset(&object, 0, sizeof(object));
+  if (out_data == NULL || out_size == NULL || source_text == NULL) {
+    assembler_add_error(diagnostics, "bad arguments");
+    return -1;
+  }
+  *out_data = NULL;
+  *out_size = 0U;
+  total_start = clock();
+  profile.source_bytes = strlen(source_text) > 0xFFFFFFFFUL ? 0xFFFFFFFFU : (uint32_t)strlen(source_text);
+  platform_backend_kind = raw_platform_backend_kind_for_name(backend_name);
+  if (platform_backend_kind == M68K_PLATFORM_BACKEND_UNKNOWN) {
+    assembler_add_error(diagnostics, "raw backend unavailable");
+    if (out_profile != NULL) {
+      profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+      *out_profile = profile;
+    }
+    return -1;
+  }
+  if (!assemble_platform_source_text_to_object(source_text, include_dir != NULL ? include_dir : "", target_cpu,
+      enable_vasm_compat_rewrites, platform_backend_kind, &object, &profile, diagnostics)) {
+    if (out_profile != NULL) {
+      profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+      *out_profile = profile;
+    }
+    return -1;
+  }
+  if (object.section_count != 1U) {
+    m68k_object_destroy(&object);
+    assembler_add_error(diagnostics, "raw output requires exactly one section");
+    if (out_profile != NULL) {
+      profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+      *out_profile = profile;
+    }
+    return -1;
+  }
+  section = &object.sections[0];
+  if (section->size != section->data_size || (section->size != 0U && section->data == NULL)) {
+    m68k_object_destroy(&object);
+    assembler_add_error(diagnostics, "raw output cannot contain uninitialised section bytes");
+    if (out_profile != NULL) {
+      profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+      *out_profile = profile;
+    }
+    return -1;
+  }
+  phase_start = clock();
+  if (section->data_size != 0U) {
+    *out_data = (unsigned char *)malloc(section->data_size);
+    if (*out_data == NULL) {
+      m68k_object_destroy(&object);
+      assembler_add_error(diagnostics, "out of memory");
+      if (out_profile != NULL) {
+        profile.write_buffer_seconds += assembler_elapsed_seconds(phase_start, clock());
+        profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+        *out_profile = profile;
+      }
+      return -1;
+    }
+    memcpy(*out_data, section->data, section->data_size);
+  }
+  *out_size = section->data_size;
+  profile.write_buffer_seconds += assembler_elapsed_seconds(phase_start, clock());
+  m68k_object_destroy(&object);
+  if (output_path != NULL && output_path[0] != '\0') {
+    remove(output_path);
+    phase_start = clock();
+    if (write_binary_file(output_path, *out_data, *out_size, diagnostics) != 0) {
+      remove(output_path);
+      free(*out_data);
+      *out_data = NULL;
+      *out_size = 0U;
+      if (out_profile != NULL) {
+        profile.write_file_seconds += assembler_elapsed_seconds(phase_start, clock());
+        profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+        *out_profile = profile;
+      }
+      return -1;
+    }
+    profile.write_file_seconds += assembler_elapsed_seconds(phase_start, clock());
+  }
+  profile.rebuilt_bytes = *out_size > 0xFFFFFFFFU ? 0xFFFFFFFFU : (uint32_t)*out_size;
+  profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
+  if (out_profile != NULL) *out_profile = profile;
+  return 0;
 }
 
 int m68k_render_source_file_to_stdout(const char *input_path, const char *include_dir, uint8_t target_cpu,

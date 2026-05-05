@@ -11,6 +11,7 @@ from amiga_reversing.disasm import reproduction
 from amiga_reversing.disasm.binary_source import (
     DiskEntryBinarySource,
     HunkFileBinarySource,
+    RawBinarySource,
     write_source_descriptor,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_text
@@ -629,6 +630,65 @@ def test_run_reproduction_uses_facts_v2_render_assemble_fast_path(
     assert cast(dict[str, object], report["profile"])["render_assemble_c_api"] == 1.0
     assert calls[0]["kwargs"]["output_path"] == tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin"
     assert not (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
+
+
+def test_run_reproduction_uses_facts_v2_render_assemble_for_raw_binary(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv(reproduction.REPRODUCTION_SOURCE_ARTIFACT_ENV, "never")
+    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_path = tmp_path / "demo.bin"
+    original = b"\x4E\x75"
+    binary_path.write_bytes(original)
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="runtime_absolute",
+        load_address=0x4000,
+        entrypoint=0x4000,
+        code_start_offset=0,
+        display_path="demo.bin",
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    monkeypatch.setattr(
+        reproduction,
+        "resolve_project_paths",
+        lambda target, project_root, require_entities=False: SimpleNamespace(
+            target_dir=target_dir,
+            binary_source=source,
+        ),
+    )
+    monkeypatch.setattr(
+        reproduction,
+        "facts_v2_direct_rebuild_project_source_with_c_backend_profile",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("raw direct rebuild should not run")),
+    )
+    calls: list[dict[str, object]] = []
+
+    def combined(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
+        calls.append({"args": args, "kwargs": kwargs})
+        output_path = kwargs.get("output_path")
+        if isinstance(output_path, Path):
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(original)
+        return (
+            original,
+            {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}},
+            {"assemble_c_api": True, "total_seconds": 0.02},
+        )
+
+    monkeypatch.setattr(reproduction, "facts_v2_render_assemble_project_source_with_c_backend_profile", combined)
+
+    report = run_reproduction("demo", project_root=tmp_path, profile=True)
+
+    assert report["status"] == "exact"
+    assert report["backend"] == "amiga-raw"
+    profile = cast(dict[str, object], report["profile"])
+    assert profile["render_assemble_c_api"] == 1.0
+    assert "facts_v2_direct_rebuild_c_api" not in profile
+    assert calls[0]["kwargs"]["output_path"] == tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin"
 
 
 def test_facts_v2_direct_reproduction_defaults_on(monkeypatch: pytest.MonkeyPatch) -> None:
