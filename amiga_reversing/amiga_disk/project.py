@@ -128,7 +128,7 @@ def _materializable_decompression_suggestions(analysis: dict[str, object]) -> li
             continue
         if item.get("kind") != "decompressed_payload":
             continue
-        if item.get("status") == "needs_runtime_metadata":
+        if item.get("status") != "materializable":
             continue
         if _int_field(item, "source_section") is None:
             continue

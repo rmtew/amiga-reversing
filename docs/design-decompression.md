@@ -66,8 +66,8 @@ A first C decompression provider layer now exists:
   section bytes to extract payloads.
 - Imported disk project targets can now materialise decompressed raw child
   targets from C `derived_target_suggestions[]`, but only when the C record has
-  concrete source section, packed size, decompressed size, load address, and
-  entrypoint metadata.
+  `status: "materializable"` plus concrete source section, packed size,
+  decompressed size, load address, and entrypoint metadata.
 - Carrier's RNC stream is identified both as an extracted range file and in the
   original parent file at offset `$4C60`.
 - The C-decompressed Carrier output hash matches the existing derived child
@@ -237,8 +237,9 @@ Current retained output:
 - Python can also ask C to decompress a provider-backed packed section range
   from a platform file.
 - Python disk import consumes C materialisation records conservatively:
-  `needs_runtime_metadata` records, missing load/entry records, failed
-  extraction, or failed C analysis leave only the packed parent target.
+  anything other than explicit `status: "materializable"`, missing load/entry
+  records, failed extraction, or failed C analysis leaves only the packed parent
+  target.
 - The retained Carrier decompressed child passes exact raw reproduction:
   359600 rebuilt bytes, SHA-256
   `d37ec7db83012eba179956026b0677cfd46763d585722154f761bd6f6d2b5748`.

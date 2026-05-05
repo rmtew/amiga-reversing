@@ -660,6 +660,52 @@ def test_import_adf_does_not_materialize_decompressed_child_without_runtime_meta
     assert manifest.imported_targets[0].derived_targets is None
 
 
+def test_import_adf_does_not_materialize_non_materializable_decompressed_status(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
+        lambda adf_file, entry_path, *, project_root: b"packed-parent",
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
+        lambda source_path, *, project_root: {
+            "derived_target_suggestions": [
+                {
+                    "kind": "decompressed_payload",
+                    "status": "ambiguous",
+                    "source_section": 0,
+                    "source_section_offset": 0x1000,
+                    "packed_size": 10,
+                    "decompressed_size": 4,
+                    "load_address": 0x4000,
+                    "entrypoint": 0x4000,
+                    "codec_id": "rnc1-old",
+                }
+            ]
+        },
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.decompress_packed_section_range_with_c_backend",
+        lambda *args, **kwargs: pytest.fail("ambiguous decompression suggestion was materialized"),
+    )
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert [target.entry_path for target in manifest.imported_targets] == ["c/Run"]
+    assert manifest.imported_targets[0].derived_targets is None
+
+
 def test_import_adf_creates_raw_target_for_bootloader_disk_stage(
     monkeypatch: MonkeyPatch, tmp_path: Path
 ) -> None:
