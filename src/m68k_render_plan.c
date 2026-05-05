@@ -213,6 +213,30 @@ int m68k_render_plan_emit_all_alloc(const M68kRenderPlan *plan, char **out_text)
   return m68k_render_plan_emit_rows_alloc(plan, 0U, plan->row_count, out_text);
 }
 
+int m68k_render_plan_visit_row_lines(const M68kRenderPlan *plan, size_t first_row, size_t row_count,
+    M68kRenderPlanLineVisitor visitor, void *user) {
+  size_t row_index;
+  size_t end_row;
+  if (plan == NULL || visitor == NULL || first_row > plan->row_count) return -1;
+  end_row = first_row + row_count;
+  if (end_row < first_row || end_row > plan->row_count) end_row = plan->row_count;
+  for (row_index = first_row; row_index < end_row; ++row_index) {
+    const M68kRenderPlanRow *row = &plan->rows[row_index];
+    const char *cursor = row->text;
+    uint32_t subline = 0U;
+    while (*cursor != '\0') {
+      const char *line_start = cursor;
+      size_t line_length;
+      while (*cursor != '\0' && *cursor != '\n') ++cursor;
+      if (*cursor == '\n') ++cursor;
+      line_length = (size_t)(cursor - line_start);
+      if (visitor(row, subline, row->start_line + subline, line_start, line_length, user) != 0) return -1;
+      ++subline;
+    }
+  }
+  return 0;
+}
+
 void m68k_render_plan_free_text(char *text) {
   free(text);
 }

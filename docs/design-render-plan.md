@@ -33,6 +33,10 @@ and statements. This is intentionally limited to section/body rows for now; it
 does not yet own include, RS/app-slot, equate, or full facts_v2 header
 generation.
 
+Multi-line rows can now be visited as physical lines while preserving the owner
+row and subline index. This keeps compatibility with the current web listing
+shape without forcing source text reparsing.
+
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
 

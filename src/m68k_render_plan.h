@@ -52,6 +52,9 @@ typedef struct M68kRenderPlan {
   size_t total_bytes;
 } M68kRenderPlan;
 
+typedef int (*M68kRenderPlanLineVisitor)(const M68kRenderPlanRow *row, uint32_t subline, uint32_t line,
+  const char *line_start, size_t line_length, void *user);
+
 void m68k_render_plan_init(M68kRenderPlan *plan);
 void m68k_render_plan_destroy(M68kRenderPlan *plan);
 int m68k_render_plan_append_text_row(M68kRenderPlan *plan, uint32_t kind, uint32_t region_id,
@@ -69,6 +72,8 @@ const M68kRenderPlanRow *m68k_render_plan_find_row_for_runtime_address(const M68
 int m68k_render_plan_emit_rows_alloc(const M68kRenderPlan *plan, size_t first_row, size_t row_count,
   char **out_text);
 int m68k_render_plan_emit_all_alloc(const M68kRenderPlan *plan, char **out_text);
+int m68k_render_plan_visit_row_lines(const M68kRenderPlan *plan, size_t first_row, size_t row_count,
+  M68kRenderPlanLineVisitor visitor, void *user);
 int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,
   M68kRenderPlan *out_plan, M68kDiagSink diagnostics);
 void m68k_render_plan_free_text(char *text);

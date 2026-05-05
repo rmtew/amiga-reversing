@@ -98,6 +98,48 @@ static int test_render_plan_window_emission_matches_full_slice(void) {
   return 0;
 }
 
+typedef struct RenderPlanLineVisitCapture {
+  uint32_t count;
+  uint32_t lines[4];
+  uint32_t sublines[4];
+  uint32_t kinds[4];
+  char text[64];
+} RenderPlanLineVisitCapture;
+
+static int capture_render_plan_line(const M68kRenderPlanRow *row, uint32_t subline, uint32_t line,
+    const char *line_start, size_t line_length, void *user) {
+  RenderPlanLineVisitCapture *capture = (RenderPlanLineVisitCapture *)user;
+  if (capture->count >= 4U) return -1;
+  capture->lines[capture->count] = line;
+  capture->sublines[capture->count] = subline;
+  capture->kinds[capture->count] = row->kind;
+  if (strlen(capture->text) + line_length + 1U >= sizeof(capture->text)) return -1;
+  strncat(capture->text, line_start, line_length);
+  ++capture->count;
+  return 0;
+}
+
+static int test_render_plan_visits_physical_lines_with_owner_row(void) {
+  M68kRenderPlan plan;
+  RenderPlanLineVisitCapture capture;
+  memset(&capture, 0, sizeof(capture));
+  m68k_render_plan_init(&plan);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_SECTION, 1U, "A\n", NULL));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_DATA, 1U, "B1\nB2\n", NULL));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_visit_row_lines(&plan, 0U, plan.row_count,
+    capture_render_plan_line, &capture));
+  M68K_C_ASSERT_U32(3U, capture.count);
+  M68K_C_ASSERT_U32(0U, capture.lines[0]);
+  M68K_C_ASSERT_U32(1U, capture.lines[1]);
+  M68K_C_ASSERT_U32(2U, capture.lines[2]);
+  M68K_C_ASSERT_U32(0U, capture.sublines[1]);
+  M68K_C_ASSERT_U32(1U, capture.sublines[2]);
+  M68K_C_ASSERT_U32(M68K_RENDER_PLAN_ROW_DATA, capture.kinds[2]);
+  M68K_C_ASSERT_STR("A\nB1\nB2\n", capture.text);
+  m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
 static int test_render_plan_rejects_rows_without_complete_lines(void) {
   M68kRenderPlan plan;
   m68k_render_plan_init(&plan);
@@ -177,6 +219,7 @@ int m68k_c_render_plan_tests(void) {
     {"line_counts_and_order", test_render_plan_line_counts_and_order},
     {"line_and_address_lookup", test_render_plan_line_and_address_lookup},
     {"window_emission_matches_full_slice", test_render_plan_window_emission_matches_full_slice},
+    {"visits_physical_lines_with_owner_row", test_render_plan_visits_physical_lines_with_owner_row},
     {"rejects_rows_without_complete_lines", test_render_plan_rejects_rows_without_complete_lines},
     {"builds_source_file_body_genam_fixture", test_render_plan_builds_source_file_body_genam_fixture}
   };
