@@ -2503,16 +2503,14 @@ def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
         "get_project",
         lambda project_name: _binary_project(project_name, ready=True),
     )
-    starts: list[tuple[str, str]] = []
     monkeypatch.setattr(
         disasm_server,
-        "_start_listing_job",
-        lambda project_name, generation="full": starts.append((project_name, generation))
-        or {
-            "job_id": f"job-{generation}",
+        "_start_progressive_listing_jobs",
+        lambda project_name: {
+            "job_id": "job-full",
             "project_id": project_name,
             "status": "queued",
-            "target_generation": generation,
+            "target_generation": "full",
         },
     )
 
@@ -2520,46 +2518,12 @@ def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
         "POST",
         "/api/projects/bloodwych/listing/open",
         {},
-    )
-    data = cast(dict[str, object], payload["data"])
-
-    assert payload["ok"] is True
-    assert data["job_id"] == "job-basic"
-    assert data["target_generation"] == "basic"
-    assert starts == [("bloodwych", "basic")]
-
-
-def test_route_listing_open_accepts_full_generation(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        disasm_server,
-        "get_project",
-        lambda project_name: _binary_project(project_name, ready=True),
-    )
-    starts: list[tuple[str, str]] = []
-    monkeypatch.setattr(
-        disasm_server,
-        "_start_listing_job",
-        lambda project_name, generation="full": starts.append((project_name, generation))
-        or {
-            "job_id": f"job-{generation}",
-            "project_id": project_name,
-            "status": "queued",
-            "target_generation": generation,
-        },
-    )
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/listing/open",
-        {},
-        {"generation": "full"},
     )
     data = cast(dict[str, object], payload["data"])
 
     assert payload["ok"] is True
     assert data["job_id"] == "job-full"
     assert data["target_generation"] == "full"
-    assert starts == [("bloodwych", "full")]
 
 
 def test_start_listing_job_ignores_stale_ready_job_without_rows(

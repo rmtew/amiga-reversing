@@ -375,10 +375,10 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
     )
     monkeypatch.setattr(
         disasm_server,
-        "_start_listing_job",
-        lambda project_name, generation="basic": {
+        "_start_progressive_listing_jobs",
+        lambda project_name: {
             "job_id": "cached-listing",
-            "job_kind": f"{generation}_listing",
+            "job_kind": "full_listing",
             "project_id": project_name,
             "result_project_id": project_name,
             "status": "ready",
@@ -393,8 +393,6 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
             "error": None,
             "created_at": 1.0,
             "finished_at": 1.0,
-            "visible_generation": generation,
-            "target_generation": generation,
         },
     )
 

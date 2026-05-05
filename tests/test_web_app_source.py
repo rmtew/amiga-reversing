@@ -99,13 +99,7 @@ def test_web_app_shows_non_occluding_analysis_status() -> None:
 
     assert 'id="analysis-status" aria-live="polite"' in app_js
     assert "function updateAnalysisStatusFromJob(job)" in app_js
-    assert "async function openListingJob(projectId, generation = \"basic\")" in app_js
-    assert "body: JSON.stringify({generation})" in app_js
-    assert 'id="run-full-analysis"' in app_js
-    assert 'const job = await openListingJob(projectId, "basic");' in app_js
-    assert 'const job = await openListingJob(projectId, "full");' in app_js
     assert 'setAnalysisStatus("Applying full analysis", "running")' in app_js
-    assert 'setAnalysisStatus("Initial listing ready", "ready", 2000)' in app_js
     assert 'setAnalysisStatus("Full analysis ready", "ready", 2000)' in app_js
     assert ".analysis-status" in styles_css
     assert ".listing-viewport .analysis-status" not in styles_css

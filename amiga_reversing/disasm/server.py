@@ -1463,6 +1463,10 @@ def _start_listing_job(project_name: str, generation: str = "full") -> AsyncJobP
     return _job_payload(job_id)
 
 
+def _start_progressive_listing_jobs(project_name: str) -> AsyncJobPayload:
+    return _start_listing_job(project_name, generation="full")
+
+
 def _reproduction_cache_key(project_name: str) -> str:
     try:
         stamp = reproduction_input_stamp(project_name, project_root=PROJECT_ROOT)
@@ -2247,7 +2251,7 @@ def route_request(
                         AsyncJobPayload,
                         {
                             "job_id": f"cached-empty-{project_name}",
-                            "job_kind": "basic_listing",
+                            "job_kind": "full_listing",
                             "project_id": project_name,
                             "result_project_id": project_name,
                             "status": "ready",
@@ -2262,17 +2266,10 @@ def route_request(
                             "error": None,
                             "created_at": time.time(),
                             "finished_at": time.time(),
-                            "visible_generation": "basic",
-                            "target_generation": "basic",
                         },
                     ),
                 }
-            generation = body.get("generation") if isinstance(body, dict) else None
-            if generation is None:
-                generation = "basic"
-            if generation not in {"basic", "full"}:
-                raise ValueError(f"Unsupported listing generation: {generation}")
-            return {"ok": True, "data": _start_listing_job(project_name, generation=cast(str, generation))}
+            return {"ok": True, "data": _start_progressive_listing_jobs(project_name)}
         if (
             method == "GET"
             and len(parts) == 5
