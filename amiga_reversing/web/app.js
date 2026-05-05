@@ -1142,13 +1142,21 @@ function renderErrorOverlay(message) {
 
 function loadingRowsOverlay() {
   return renderProgressOverlay({
-    job_kind: "full_listing",
+    job_kind: "basic_listing",
     phase_id: "emit_rows",
     progress_mode: "indeterminate",
     progress_current: 0,
     progress_total: 0,
     progress_percent: 0,
   }, "Loading rows");
+}
+
+async function openListingJob(projectId, generation = "basic") {
+  return fetchJson(`/api/projects/${encodeURIComponent(projectId)}/listing/open`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({generation}),
+  });
 }
 
 function setViewportOverlay(html) {
@@ -3827,10 +3835,7 @@ async function handleListingGenerationReady(payload, token = null) {
     }
     setAnalysisStatus("Loading initial listing", "running");
     await loadInitialListingWindow(state.project);
-    if (token !== null && token !== state.loadingToken) {
-      return;
-    }
-    setAnalysisStatus("Analyzing full listing", "running");
+    setAnalysisStatus("Initial listing ready", "ready", 2000);
     return;
   }
   if (payload.generation === state.virtualListing.generation) {
@@ -3900,6 +3905,31 @@ function scheduleListingWindowForScroll(projectId, viewport) {
   if (!state.virtualListing.inFlightWindow) {
     void flushPendingListingWindow();
   }
+}
+
+async function runFullListingAnalysis(projectId, token = null) {
+  const job = await openListingJob(projectId, "full");
+  const jobState = await waitForAsyncJob(
+    (jobId) => `/api/projects/${encodeURIComponent(projectId)}/listing/status?job_id=${encodeURIComponent(jobId)}`,
+    job,
+    token,
+    (currentJob) => setViewportOverlay(renderProgressOverlay(currentJob, "Analyzing full listing")),
+  );
+  if (token !== null && token !== state.loadingToken) {
+    return jobState;
+  }
+  if (state.virtualListing.generation && state.virtualListing.generation !== "full") {
+    await refreshListingAtCurrentAddressAnchor(projectId, token);
+  } else if (state.virtualListing.generation !== "full") {
+    setViewportOverlay(loadingRowsOverlay());
+    await loadInitialListingWindow(projectId);
+  }
+  await loadNavigationEntries(projectId);
+  if (jobState.visible_generation === "full") {
+    void pollReproductionReport(projectId, token);
+    setAnalysisStatus("Full analysis ready", "ready", 2000);
+  }
+  return jobState;
 }
 
 async function flushPendingListingWindow() {
@@ -4994,17 +5024,7 @@ function renderApiEditDialog(projectId, row) {
 
 async function refreshListingAfterApiEdit(projectId, addr) {
   state.navigation.overlayOpen = false;
-  const job = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/listing/open`, {
-    method: "POST",
-  });
-  const jobState = await waitForAsyncJob(
-    (jobId) => `/api/projects/${encodeURIComponent(projectId)}/listing/status?job_id=${encodeURIComponent(jobId)}`,
-    job,
-    null,
-    (currentJob) => setViewportOverlay(renderProgressOverlay(currentJob, "Refreshing listing")),
-  );
-  setViewportOverlay(loadingRowsOverlay());
-  await loadInitialListingWindow(projectId);
+  await runFullListingAnalysis(projectId);
   await loadNavigationEntries(projectId);
   if (addr !== null && addr !== undefined) {
     await jumpToListingAddr(projectId, addr);
@@ -5669,6 +5689,7 @@ async function renderProject(projectId) {
           <button id="open-navigation" type="button" title="Navigate">Navigate</button>
           <button id="open-stats" type="button" title="Stats">Stats</button>
           <button id="open-repro" type="button" title="Repro">Repro</button>
+          <button id="run-full-analysis" type="button" title="Full analysis">Analyze</button>
           <button id="exit-project" type="button">Project</button>
         </div>
       </div>
@@ -5681,7 +5702,7 @@ async function renderProject(projectId) {
             progress_current: 0,
             progress_total: 0,
             progress_percent: 0,
-          }, "Loading project")}
+          }, "Opening project")}
         </div>
       </div>
     </section>
@@ -5763,6 +5784,9 @@ async function renderProject(projectId) {
     document.getElementById("open-repro")?.addEventListener("click", () => {
       void openReproPanel();
     });
+    document.getElementById("run-full-analysis")?.addEventListener("click", () => {
+      void runFullListingAnalysis(projectId, state.loadingToken);
+    });
     document.getElementById("navigation-back")?.addEventListener("click", () => {
       void navigateHistory("back");
     });
@@ -5781,9 +5805,7 @@ async function renderProject(projectId) {
       return;
     }
 
-    const job = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/listing/open`, {
-      method: "POST",
-    });
+    const job = await openListingJob(projectId, "basic");
     if (token !== state.loadingToken) {
       return;
     }
@@ -5794,9 +5816,9 @@ async function renderProject(projectId) {
       token,
       (currentJob) => setViewportOverlay(renderProgressOverlay(currentJob)),
     );
-    if (state.virtualListing.generation && state.virtualListing.generation !== "full") {
+    if (state.virtualListing.generation) {
       await refreshListingAtCurrentAddressAnchor(projectId, token);
-    } else if (state.virtualListing.generation !== "full") {
+    } else {
       setViewportOverlay(loadingRowsOverlay());
       await loadInitialListingWindow(projectId);
     }
@@ -5812,10 +5834,11 @@ async function renderProject(projectId) {
       analysis_generation: state.virtualListing.generation,
     }, true);
     await focusPendingCorpusExample(projectId);
-    if (jobState.visible_generation === "full") {
-      void pollReproductionReport(projectId, token);
-      setAnalysisStatus("Full analysis ready", "ready", 2000);
-    }
+    setAnalysisStatus(
+      jobState.visible_generation === "full" ? "Full analysis ready" : "Initial listing ready",
+      "ready",
+      2000,
+    );
     dispatchAppEvent("amiga:project-rendered", {
       projectId,
       generation: state.virtualListing.generation,
