@@ -4722,36 +4722,6 @@ static int listing_should_keep_source_only_body_row(const char *row_kind, const 
     (text_starts_with_ci(stripped, "FPU ") || text_first_token_equals_ci(stripped, "ORG"));
 }
 
-static int collect_listing_source_header_rows(const char *rendered_text, ListingSourceHeaderRows *header_rows) {
-  const char *cursor = rendered_text;
-  if (rendered_text == NULL || header_rows == NULL) return -1;
-  while (*cursor != '\0') {
-    const char *line_start = cursor;
-    size_t line_length;
-    char stripped[1024];
-    char opcode[128];
-    char operand[1024];
-    char comment[512];
-    const char *row_kind;
-    while (*cursor != '\0' && *cursor != '\n') ++cursor;
-    if (*cursor == '\n') ++cursor;
-    line_length = (size_t)(cursor - line_start);
-    split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
-      sizeof(operand), comment, sizeof(comment));
-    row_kind = listing_row_kind_for_line(stripped);
-    if (strcmp(row_kind, "blank") == 0 && comment[0] != '\0') row_kind = "comment";
-    if (strcmp(row_kind, "directive") == 0 && text_starts_with_ci(stripped, "SECTION ")) {
-      break;
-    }
-    if (listing_should_hoist_source_header_row(row_kind, stripped)) {
-      int group = listing_source_header_group(row_kind, stripped);
-      if (listing_source_header_rows_append(header_rows, line_start, line_length, row_kind, -1, group) != 0)
-        return -1;
-    }
-  }
-  return 0;
-}
-
 static int append_listing_blank_row(JsonBuilder *builder, size_t *row_index, const char *analysis_generation) {
   static const char blank_line[] = "\n";
   if (builder == NULL || row_index == NULL) return -1;
@@ -5038,85 +5008,20 @@ oom:
 int source_file_listing_rows_to_json(const M68kSourceFileIR *source_file, const char *rendered_text,
     const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
     const char *analysis_generation, int include_source_only_rows, char **out_json, M68kDiagSink diagnostics) {
-  JsonBuilder builder = {0};
-  ListingSourceHeaderRows header_rows = {0};
-  ListingAppSlotAnalysisBuilder app_slot_analysis = {0};
-  const char *cursor = rendered_text;
-  size_t row_index = 0U;
-  int active_section_index = -1;
-  int preamble_emitted = 0;
-  int use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
-  size_t statement_index = 0U;
-  size_t data_lines_left = 0U;
+  M68kRenderPlan render_plan;
+  int result;
+  m68k_render_plan_init(&render_plan);
   if (source_file == NULL || rendered_text == NULL || out_json == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
     return -1;
   }
-  if (!include_source_only_rows && collect_listing_source_header_rows(rendered_text, &header_rows) != 0)
-    goto oom;
-  if (listing_app_slot_analysis_init(&app_slot_analysis, source_file, source_analysis) != 0) goto oom;
-  if (json_builder_create(&builder) != 0) goto oom;
-  if (json_builder_append(&builder, "{\"rows\":[") != 0) goto oom;
-  while (*cursor != '\0') {
-    const char *line_start = cursor;
-    size_t line_length;
-    int is_section_directive = 0;
-    char stripped[1024];
-    char opcode[128];
-    char operand[1024];
-    char comment[512];
-    const char *row_kind;
-    const M68kStatementIR *stmt = NULL;
-    while (*cursor != '\0' && *cursor != '\n') ++cursor;
-    if (*cursor == '\n') ++cursor;
-    line_length = (size_t)(cursor - line_start);
-    split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
-      sizeof(operand), comment, sizeof(comment));
-    row_kind = listing_row_kind_for_line(stripped);
-    if (strcmp(row_kind, "blank") == 0 && comment[0] != '\0') row_kind = "comment";
-    is_section_directive = strcmp(row_kind, "directive") == 0 && text_starts_with_ci(stripped, "SECTION ");
-    if (is_section_directive) {
-      ++active_section_index;
-      statement_index = 0U;
-      data_lines_left = 0U;
-    } else if (active_section_index >= 0) {
-      stmt = listing_statement_for_line(source_file, analysis_policy, (size_t)active_section_index,
-        &statement_index, &data_lines_left, row_kind, use_rendered_line_count,
-        strcmp(row_kind, "data") == 0 && strchr(stripped, '-') != NULL);
-    }
-    if (!include_source_only_rows && !preamble_emitted && is_section_directive) {
-      if (append_listing_source_header_rows(&builder, &header_rows, &row_index, analysis_policy,
-            source_analysis, analysis_generation) != 0)
-        goto oom;
-      preamble_emitted = 1;
-    }
-    if (!include_source_only_rows && stmt == NULL && !is_section_directive &&
-        !listing_should_keep_source_only_body_row(row_kind, stripped, active_section_index)) {
-      continue;
-    }
-    if (row_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
-    if (append_listing_row_json_parsed(&builder, row_index, line_start, line_length, row_kind, stripped, opcode,
-          operand, comment, active_section_index, stmt, analysis_policy, source_analysis, analysis_generation) != 0)
-      goto oom;
-    if (listing_app_slot_analysis_observe_row(&app_slot_analysis, row_index, row_kind, active_section_index, stmt,
-        source_analysis) != 0)
-      goto oom;
-    ++row_index;
+  if (m68k_render_plan_build_text_lines(rendered_text, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 0U, &render_plan) != 0) {
+    m68k_render_plan_destroy(&render_plan);
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+    return -1;
   }
-  if (json_builder_append(&builder, "],\"app_slot_analysis\":") != 0) goto oom;
-  if (append_listing_app_slot_analysis_json(&builder, &app_slot_analysis) != 0) goto oom;
-  if (json_builder_append(&builder, "}") != 0) goto oom;
-  *out_json = json_builder_build(&builder);
-  if (*out_json == NULL) goto oom;
-  json_builder_destroy(&builder);
-  listing_app_slot_analysis_destroy(&app_slot_analysis);
-  listing_source_header_rows_destroy(&header_rows);
-  return 0;
-
-oom:
-  json_builder_destroy(&builder);
-  listing_app_slot_analysis_destroy(&app_slot_analysis);
-  listing_source_header_rows_destroy(&header_rows);
-  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
-  return -1;
+  result = source_file_listing_rows_from_render_plan_to_json(source_file, &render_plan, analysis_policy,
+    source_analysis, analysis_generation, include_source_only_rows, out_json, diagnostics);
+  m68k_render_plan_destroy(&render_plan);
+  return result;
 }
