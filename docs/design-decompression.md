@@ -58,6 +58,9 @@ A first C decompression provider layer now exists:
 - Corpus usage indexing also walks nested disk project targets, so retained
   parent/child outputs under `targets/<disk>/targets/` are visible to corpus
   searches.
+- Retained decompressed child targets now expose their existing
+  `decompression.json` provenance as usage tags, including codec, packed
+  offset, load address, and entrypoint.
 - A C backend section-range decompression API can materialise bytes from a
   packed section offset emitted by analysis, so Python does not parse hunk
   section bytes to extract payloads.
@@ -223,6 +226,9 @@ Current retained output:
 - Rebuilt corpus usage output finds the Carrier parent both as the file
   manifest target `amiga-hunk/5855d79d8920` and as the nested project target
   `amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_carrier_91b0ba24`.
+- The retained decompressed child target is searchable as `decompression:child`
+  and `decompression:codec:rnc1-old`, with packed section offset `$4C40`,
+  load address `$4000`, and entrypoint `$4000` from its provenance file.
 - Python can call the C decompression provider through the C backend wrapper;
   tests cover unknown payload handling without Python-side identification.
 - Python can also ask C to decompress a provider-backed packed section range
@@ -249,11 +255,12 @@ Current retained output:
 9. Partly done: add Python access to C section-range decompression. Still
    missing automatic child materialisation from C records only.
 10. Done: include nested disk project targets in corpus usage indexing.
-11. Apply automatic child materialisation to corpus indexing and imported
+11. Done: index retained decompressed child provenance from `decompression.json`.
+12. Apply automatic child materialisation to corpus indexing and imported
    project targets.
-12. Add comparator targets for at least one non-Carrier packed payload before
+13. Add comparator targets for at least one non-Carrier packed payload before
    broadening policy.
-13. Wire raw decompressed child reproduction so source can be assembled and
+14. Wire raw decompressed child reproduction so source can be assembled and
    compared to the decompressed bytes.
 
 ## Current Corpus Query Proof
@@ -265,5 +272,7 @@ After rebuilding `corpus/target_usage_manifest.jsonl`:
 - `compressed-payload` also finds comparator RNC1 targets, including
   `3D Construction Kit II` `EditFile/runner.exe`, `3DEDIT`, `3DSOUND`,
   `3DMAKE`, and `Voodoo Nightmare` `Trainer`.
+- `decompression:child` finds the retained Carrier decompressed raw child and
+  exposes the existing load/entry metadata.
 - These matches come from C `packed_payloads[]` records, not Python compression
-  scanning.
+  scanning, or from retained child provenance already written by the project.

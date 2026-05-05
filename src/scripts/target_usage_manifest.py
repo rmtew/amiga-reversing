@@ -102,6 +102,7 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
         "compressed-payload",
         "compressed:",
         "decompression:",
+        "derived_target:",
         "derived_target_suggestion:",
         "derived-decompressed-target",
         "unsupported-compressor",
@@ -488,6 +489,7 @@ def collect_project_usage_catalog_entry(
     platform = str(entry.get("platform", "unknown"))
     if source is not None:
         bag.add(f"format:{_safe_part(source.kind)}")
+    _add_project_target_metadata_features(entry, bag)
     if _status(entry) != "ok":
         expect = entry.get("expect") if isinstance(entry.get("expect"), dict) else {}
         bag.add("diagnostic:manifest_error", example={"message": expect.get("error") if isinstance(expect, dict) else None})
@@ -542,6 +544,19 @@ def _project_target_manifest_entry(target_dir: Path, *, root: Path = ROOT) -> tu
         "status": status,
         "origin": origin,
     }
+    for source_key, entry_key in (
+        ("kind", "project_origin_kind"),
+        ("target_role", "target_role"),
+        ("target_type", "target_type"),
+        ("compressor", "compressor"),
+        ("parent_target", "parent_target"),
+    ):
+        value = project_origin.get(source_key)
+        if isinstance(value, (str, int, bool)):
+            entry[entry_key] = value
+    decompression = _read_json_object(target_dir / "decompression.json")
+    if decompression:
+        entry["decompression"] = decompression
     if source_error:
         entry["expect"] = {"status": "error", "error": source_error}
     sha_value = _string_value(project_origin.get("sha256"))
@@ -612,6 +627,75 @@ def _include_dir_for_platform(platform: str, root: Path) -> Path | str:
     if platform.startswith("amiga"):
         return root / "ext" / "amiga_includes" / "ndk_2.0" / "include"
     return ""
+
+
+def _project_decompression_codec(entry: dict[str, Any]) -> str | None:
+    decompression = entry.get("decompression")
+    if isinstance(decompression, dict):
+        compressor = decompression.get("compressor")
+        if isinstance(compressor, dict):
+            codec = _string_value(compressor.get("id")) or _string_value(compressor.get("name"))
+            if codec:
+                return codec
+        relationship = decompression.get("relationship")
+        if isinstance(relationship, dict):
+            codec = _string_value(relationship.get("compressor"))
+            if codec:
+                return codec
+    return _string_value(entry.get("compressor"))
+
+
+def _project_decompression_example(entry: dict[str, Any]) -> dict[str, object]:
+    decompression = entry.get("decompression")
+    if not isinstance(decompression, dict):
+        return {}
+    packed = decompression.get("packed")
+    decompressed = decompression.get("decompressed")
+    example: dict[str, object] = {}
+    if isinstance(packed, dict):
+        section_offset = _int_value(packed.get("section_offset"))
+        file_offset = _int_value(packed.get("file_offset"))
+        packed_size = _int_value(packed.get("size"))
+        if section_offset is not None:
+            example["offset"] = section_offset
+        if file_offset is not None:
+            example["file_offset"] = file_offset
+        if packed_size is not None:
+            example["packed_size"] = packed_size
+    if isinstance(decompressed, dict):
+        decompressed_size = _int_value(decompressed.get("size"))
+        load_address = _int_value(decompressed.get("load_address"))
+        entrypoint = _int_value(decompressed.get("entrypoint"))
+        if decompressed_size is not None:
+            example["decompressed_size"] = decompressed_size
+        if load_address is not None:
+            example["load_address"] = load_address
+        if entrypoint is not None:
+            example["entrypoint"] = entrypoint
+    codec = _project_decompression_codec(entry)
+    if codec:
+        example["text"] = codec
+    return example
+
+
+def _add_project_target_metadata_features(entry: dict[str, Any], bag: FeatureBag) -> None:
+    origin_kind = _string_value(entry.get("project_origin_kind"))
+    target_role = _string_value(entry.get("target_role"))
+    target_type = _string_value(entry.get("target_type"))
+    if origin_kind:
+        bag.add(f"project_origin:{_safe_part(origin_kind)}")
+    if target_role:
+        bag.add(f"project_target_role:{_safe_part(target_role)}")
+    if target_type:
+        bag.add(f"project_target_type:{_safe_part(target_type)}")
+    if origin_kind == "derived_decompressed_payload" or target_role == "decompressed_payload":
+        example = _project_decompression_example(entry)
+        bag.add("derived-decompressed-target", example=example)
+        bag.add("derived_target:decompressed_payload", example=example)
+        bag.add("decompression:child", example=example)
+        codec = _project_decompression_codec(entry)
+        if codec:
+            bag.add(f"decompression:codec:{_safe_part(codec)}", example=example)
 
 
 def _collect_disk_usage_row(entry: dict[str, Any]) -> dict[str, object]:
@@ -1195,6 +1279,39 @@ def _file_usage_xrefs(
     return _dedupe_xrefs(xrefs)
 
 
+def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]) -> list[dict[str, object]]:
+    xrefs: list[dict[str, object]] = []
+    origin_kind = _string_value(entry.get("project_origin_kind"))
+    target_role = _string_value(entry.get("target_role"))
+    target_type = _string_value(entry.get("target_type"))
+    for value, prefix, kind in (
+        (origin_kind, "project_origin", "project_target_metadata"),
+        (target_role, "project_target_role", "project_target_metadata"),
+        (target_type, "project_target_type", "project_target_metadata"),
+    ):
+        if value:
+            xrefs.append(_xref(row, f"{prefix}:{_safe_part(value)}", kind, symbol=value, text=value))
+    if origin_kind == "derived_decompressed_payload" or target_role == "decompressed_payload":
+        codec = _project_decompression_codec(entry)
+        example = _project_decompression_example(entry)
+        offset = _int_value(example.get("offset"))
+        text = _string_value(example.get("text")) or "decompressed payload"
+        for feature in ("derived-decompressed-target", "derived_target:decompressed_payload", "decompression:child"):
+            xrefs.append(_xref(row, feature, "derived_target", offset=offset, symbol=codec, text=text))
+        if codec:
+            xrefs.append(
+                _xref(
+                    row,
+                    f"decompression:codec:{_safe_part(codec)}",
+                    "derived_target",
+                    offset=offset,
+                    symbol=codec,
+                    text=text,
+                )
+            )
+    return xrefs
+
+
 def _project_target_xrefs(
     row: dict[str, object],
     entry: dict[str, Any],
@@ -1203,6 +1320,7 @@ def _project_target_xrefs(
 ) -> list[dict[str, object]]:
     xrefs = [
         _xref(row, "project_target:any", "project_target", text=str(row.get("source_id") or "")),
+        *_project_target_metadata_xrefs(row, entry),
         *_file_usage_xrefs(row, entry, combined, analysis_error),
     ]
     return _dedupe_xrefs(xrefs)

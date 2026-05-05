@@ -441,6 +441,46 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(entry["platform"], "amiga-hunk")
         self.assertEqual(entry["status"], "ok")
 
+    def test_project_target_metadata_features_include_decompressed_child(self) -> None:
+        entry = {
+            "id": "child",
+            "platform": "raw-binary",
+            "status": "ok",
+            "origin": {},
+            "project_origin_kind": "derived_decompressed_payload",
+            "target_role": "decompressed_payload",
+            "target_type": "raw_binary",
+            "decompression": {
+                "compressor": {"id": "rnc1-old", "name": "RNC1"},
+                "packed": {"section_offset": 0x4C40, "file_offset": 0x4C60, "size": 168397},
+                "decompressed": {"size": 359600, "load_address": 0x4000, "entrypoint": 0x4000},
+            },
+        }
+        bag = usage.FeatureBag()
+
+        usage._add_project_target_metadata_features(entry, bag)
+        counts, examples, _tags = bag.row_features()
+        xrefs = usage._project_target_metadata_xrefs(
+            {
+                "id": "project_target:child",
+                "source_id": "child",
+                "platform": "raw-binary",
+                "origin": {},
+            },
+            entry,
+        )
+
+        self.assertEqual(counts["project_origin:derived_decompressed_payload"], 1)
+        self.assertEqual(counts["project_target_role:decompressed_payload"], 1)
+        self.assertEqual(counts["project_target_type:raw_binary"], 1)
+        self.assertEqual(counts["derived-decompressed-target"], 1)
+        self.assertEqual(counts["derived_target:decompressed_payload"], 1)
+        self.assertEqual(counts["decompression:child"], 1)
+        self.assertEqual(counts["decompression:codec:rnc1-old"], 1)
+        self.assertEqual(examples["derived-decompressed-target"][0]["offset"], 0x4C40)
+        self.assertEqual(examples["derived-decompressed-target"][0]["load_address"], 0x4000)
+        self.assertIn("decompression:codec:rnc1-old", {xref["feature"] for xref in xrefs})
+
     def test_numeric_copper_register_rows_use_hardware_metadata(self) -> None:
         bag = usage.FeatureBag()
         usage._add_listing_features(
