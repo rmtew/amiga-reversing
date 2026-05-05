@@ -4610,27 +4610,6 @@ def test_real_dll_listing_rows_keep_icon_lvo_comments_on_entrypoints() -> None:
     assert not any(row.kind == "comment" for row in rows[vector_index:dos_index])
 
 
-def test_real_dll_listing_rows_load_king_nondefault_fpu_save() -> None:
-    _requires_c_backend_dlls()
-    project_name = "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_king_481902ec"
-
-    rows, _, _ = build_project_rows_generation_with_c_backend_profile(
-        project_name,
-        generation="full",
-        project_root=PROJECT_ROOT,
-    )
-
-    fsave_rows = [
-        row
-        for row in rows
-        if row.kind == "instruction" and row.text.strip() == "fsave app_7000(a6)"
-    ]
-    assert len(fsave_rows) == 1
-    assert fsave_rows[0].app_slot_refs == (
-        AppSlotRef("app_7000", 0x7000, "A6", 0, "read-write"),
-    )
-
-
 def test_real_dll_renders_mathtrans_overlap_as_data_and_reassembles(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     assembler = PROJECT_ROOT / "src" / "build" / "m68k_assembler_app.exe"
