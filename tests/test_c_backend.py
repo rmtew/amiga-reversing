@@ -3881,6 +3881,14 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     assert payloads_by_offset[0x4C40]["source_section"] == 0
     assert payloads_by_offset[0x4C40]["decompressed_size"] == 359600
     assert set(suggestions_by_offset) == {0x05E4, 0x4C40}
+    assert suggestions_by_offset[0x05E4]["runtime_copy_address"] == 0x77400
+    assert suggestions_by_offset[0x05E4]["runtime_copy_size"] == 18016
+    assert suggestions_by_offset[0x05E4]["runtime_copy_kind"] == 2
+    assert suggestions_by_offset[0x05E4]["runtime_copy_conflicting"] is False
+    assert suggestions_by_offset[0x4C40]["runtime_copy_address"] == 0x4000
+    assert suggestions_by_offset[0x4C40]["runtime_copy_size"] == 168396
+    assert suggestions_by_offset[0x4C40]["runtime_copy_kind"] == 3
+    assert suggestions_by_offset[0x4C40]["runtime_copy_conflicting"] is True
     for suggestion in suggestions:
         assert suggestion["status"] == "needs_runtime_metadata"
         assert "load_address" not in suggestion
@@ -3905,6 +3913,26 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     assert len(rebuilt) == 188240
     assert direct_source_profile["facts_v2"]["asm_source_refused"] is False
     assert direct_profile["direct_rebuild_exact"] is True
+
+
+def test_real_dll_carrier_decompressed_child_raw_reproduction() -> None:
+    _requires_c_backend_dlls()
+
+    paths = resolve_project_paths(
+        "amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_carrier_rnc_00004c60",
+        project_root=PROJECT_ROOT,
+        require_entities=False,
+    )
+
+    rebuilt, source_profile, _assembler_profile = facts_v2_render_assemble_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert len(rebuilt) == 359600
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert rebuilt == paths.binary_source.read_bytes()
 
 
 def test_real_dll_voodoo_trainer_decompression_comparator(

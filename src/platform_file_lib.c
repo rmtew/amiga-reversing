@@ -5,6 +5,7 @@
 #include "m68k_assembler_app.h"
 #include "m68k_assembler.h"
 #include "m68k_backend.h"
+#include "m68k_fact_ir.h"
 #include "m68k_instruction_spec.h"
 #include "m68k_ir_codec.h"
 #include "m68k_object.h"
@@ -613,8 +614,30 @@ static int analysis_range_overlaps_accepted_code(const M68kSectionAnalysisIR *se
   return 0;
 }
 
-static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
+static const M68kRuntimeViewIR *find_decompression_runtime_copy_view(const M68kSourceAnalysisIR *analysis,
     const PlatformDecompressionIdentifyResult *result) {
+  const M68kSectionAnalysisIR *section;
+  size_t view_index;
+  const M68kRuntimeViewIR *best = NULL;
+  if (analysis == NULL || result == NULL || !result->has_source_section ||
+      result->source_section_index >= analysis->section_count) {
+    return NULL;
+  }
+  section = &analysis->sections[result->source_section_index];
+  for (view_index = 0U; view_index < section->runtime_view_count; ++view_index) {
+    const M68kRuntimeViewIR *view = &section->runtime_views[view_index];
+    if (view->storage_offset != result->source_section_offset) continue;
+    if (view->kind != M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY &&
+        view->kind != M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY) {
+      continue;
+    }
+    if (best == NULL || view->size > best->size) best = view;
+  }
+  return best;
+}
+
+static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
+    const PlatformDecompressionIdentifyResult *result, const M68kRuntimeViewIR *runtime_copy_view) {
   if (json_builder_append(builder, "{\"kind\":\"decompressed_payload\",\"status\":\"needs_runtime_metadata\"") != 0)
     return -1;
   if (json_builder_appendf(builder,
@@ -622,6 +645,15 @@ static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
       (unsigned)result->source_section_index, (unsigned)result->source_section_offset,
       (unsigned)result->packed_size, (unsigned)result->decompressed_size) != 0)
     return -1;
+  if (runtime_copy_view != NULL) {
+    if (json_builder_appendf(builder,
+        ",\"runtime_copy_address\":%u,\"runtime_copy_size\":%u,\"runtime_copy_kind\":%u,"
+        "\"runtime_copy_conflicting\":%s",
+        (unsigned)runtime_copy_view->runtime_address, (unsigned)runtime_copy_view->size,
+        (unsigned)runtime_copy_view->kind,
+        runtime_copy_view->kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY ? "true" : "false") != 0)
+      return -1;
+  }
   if (json_builder_append(builder, ",\"codec_id\":") != 0 ||
       json_builder_append_json_string(builder, result->codec_id) != 0 ||
       json_builder_append(builder, ",\"codec_name\":") != 0 ||
@@ -685,7 +717,8 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
   if (json_builder_append(builder, "],\"derived_target_suggestions\":[") != 0) return -1;
   for (section_index = 0U; section_index < result_count; ++section_index) {
     if (section_index != 0U && json_builder_append(builder, ",") != 0) return -1;
-    if (append_derived_decompression_suggestion_json(builder, &results[section_index]) != 0) return -1;
+    if (append_derived_decompression_suggestion_json(builder, &results[section_index],
+        find_decompression_runtime_copy_view(analysis, &results[section_index])) != 0) return -1;
   }
   return json_builder_append(builder, "]");
 }

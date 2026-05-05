@@ -2965,6 +2965,12 @@ static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t sect
         if (profile != NULL) ++profile->runtime_address_range_conflicts;
         if (existing->confidence < M68K_FACT_CONFIDENCE_REQUIRED ||
             confidence < M68K_FACT_CONFIDENCE_REQUIRED) {
+          if (kind == M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY &&
+              confidence < M68K_FACT_CONFIDENCE_REQUIRED &&
+              append_runtime_address_range_fact(facts, section_index, source_offset, runtime_address, size,
+                M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY, confidence) != 0) {
+            return -1;
+          }
           return 0;
         }
         return -1;

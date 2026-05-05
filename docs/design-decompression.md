@@ -49,6 +49,9 @@ A first C decompression provider layer now exists:
 - The C provider default resolves the staged Ancient path relative to the loaded
   module on Windows, so DLL callers do not depend on the process current
   directory. `AMIGA_ANCIENT_EXE` remains an explicit override.
+- Windows provider calls launch Ancient without inheriting pytest or UI process
+  capture handles. Both identify and decompress paths redirect output through
+  explicit temporary files or `NUL`, and timed-out children are terminated.
 - `platform_file_cli identify-packed-range` can identify an explicit byte range.
 - `platform_file_cli decompress-packed-range` can materialise provider output
   and report packed/decompressed SHA-256 and decompressed size.
@@ -87,6 +90,10 @@ A first C decompression provider layer now exists:
   metadata until copied-runtime evidence proves that relationship. Source
   rendering now keeps that jump numeric and does not create false source labels
   at `$4000`/`$4004`.
+- Facts-v2 now preserves a separate non-materialising runtime-copy evidence
+  record when a discovered copy conflicts with an already accepted runtime
+  source view. Carrier uses this for the `$4C40 -> $4000` packed stream copy:
+  it is useful decompression evidence, but it is not an ORG/source alias.
 
 This is not yet clean general support. Discovery, acceptance, extraction, and
 child materialisation are not yet driven end-to-end by C-emitted records.
@@ -238,6 +245,11 @@ Current retained output:
 - Facts-v2 analysis of the Carrier parent hunk emits a packed payload at section
   offset `$4C40`, packed size 168397, decompressed size 359600, and the same
   decompressed SHA-256.
+- The same C suggestion now includes runtime-copy evidence for `$4C40` copied to
+  `$4000`, with copy size 168396 and `runtime_copy_conflicting: true`. This is
+  deliberately not enough to mark the record `materializable`: the copied byte
+  count does not exactly cover the provider range, and the copy conflicts with
+  another accepted runtime source view.
 - Facts-v2 analysis also emits Carrier's smaller RNC stream at section offset
   `$05E4`, packed size 18018, decompressed size 32032. It is deliberately not
   materialised without runtime metadata.
@@ -275,8 +287,10 @@ Current retained output:
 6. Done: make listing-with-analysis JSON carry the same decompression fields as
    analysis-only JSON.
 7. Partly done: Carrier RNC discovery is emitted from C analysis records.
-   Runtime load address and entrypoint are still target metadata/manual
-   materialisation, so child target creation is not fully C-record driven.
+   Runtime-copy evidence is now emitted for matching packed streams, including
+   Carrier's conflicting `$4C40 -> $4000` copy. Runtime load address and
+   entrypoint are still target metadata/manual materialisation, so child target
+   creation is not fully C-record driven.
 8. Partly done: provider result acceptance and parent/child materialisation are
    covered by C-backend and disk-import tests. Code-overlap rejection now has a
    synthetic C-backend regression proving an RNC-looking candidate inside

@@ -4774,7 +4774,10 @@ static int test_facts_v2_tool_inferred_runtime_copy_conflict_does_not_abort(void
   M68kObject object;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  size_t runtime_view_index;
+  int found_conflicting_copy = 0;
   const char *source_text =
     "SECTION section_0,code\n"
     "\tlea source1(pc),a0\n"
@@ -4801,11 +4804,26 @@ static int test_facts_v2_tool_inferred_runtime_copy_conflict_does_not_abort(void
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
   m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT_U32(1U, profile.runtime_address_range_conflicts);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, profile.runtime_address_range_conflicts);
+  M68K_C_ASSERT(source_analysis.section_count == 1U);
+  for (runtime_view_index = 0U; runtime_view_index < source_analysis.sections[0].runtime_view_count;
+       ++runtime_view_index) {
+    const M68kRuntimeViewIR *view = &source_analysis.sections[0].runtime_views[runtime_view_index];
+    if (view->kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY &&
+        view->runtime_address == 0x400U && view->size == 8U) {
+      found_conflicting_copy = 1;
+    }
+  }
+  M68K_C_ASSERT(found_conflicting_copy);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   m68k_source_model_free(&parsed_source);

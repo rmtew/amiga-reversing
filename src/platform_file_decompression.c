@@ -329,18 +329,65 @@ static int ancient_identify_temp_file_local(const char *ancient_path, const char
   char quoted_input[640];
   char command[1400];
   char line[512];
+#ifdef _WIN32
+  char quoted_output[640];
+  char output_path[512];
+  FILE *output;
+  STARTUPINFOA startup;
+  PROCESS_INFORMATION process;
+  DWORD wait_result;
+#else
   FILE *pipe;
   int status;
+#endif
   if (!quote_arg_local(quoted_exe, sizeof(quoted_exe), ancient_path) ||
       !quote_arg_local(quoted_input, sizeof(quoted_input), temp_path)) {
     set_error_local(error, error_size, "failed quoting Ancient command");
     return -1;
   }
 #ifdef _WIN32
-  snprintf(command, sizeof(command), "\"%s identify %s\" 2>nul", quoted_exe, quoted_input);
+  if (!make_temp_path_local(output_path, sizeof(output_path))) {
+    set_error_local(error, error_size, "failed creating Ancient identify output path");
+    return -1;
+  }
+  if (!quote_arg_local(quoted_output, sizeof(quoted_output), output_path)) {
+    remove(output_path);
+    set_error_local(error, error_size, "failed quoting Ancient identify output path");
+    return -1;
+  }
+  snprintf(command, sizeof(command), "cmd.exe /d /c \"%s identify %s > %s 2>NUL\"", quoted_exe, quoted_input,
+    quoted_output);
+  memset(&startup, 0, sizeof(startup));
+  memset(&process, 0, sizeof(process));
+  startup.cb = sizeof(startup);
+  if (!CreateProcessA(NULL, command, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &startup, &process)) {
+    remove(output_path);
+    set_error_local(error, error_size, "failed running Ancient identify");
+    return -1;
+  }
+  wait_result = WaitForSingleObject(process.hProcess, 30000U);
+  if (wait_result != WAIT_OBJECT_0) (void)TerminateProcess(process.hProcess, 1U);
+  CloseHandle(process.hThread);
+  CloseHandle(process.hProcess);
+  if (wait_result != WAIT_OBJECT_0) {
+    remove(output_path);
+    set_error_local(error, error_size, "Ancient identify timed out");
+    return -1;
+  }
+  output = fopen(output_path, "rb");
+  if (output == NULL) {
+    remove(output_path);
+    set_error_local(error, error_size, "failed reading Ancient identify output");
+    return -1;
+  }
+  while (fgets(line, sizeof(line), output) != NULL) {
+    trim_line_local(line);
+    (void)ancient_parse_identify_output_local(line, out_result);
+  }
+  fclose(output);
+  remove(output_path);
 #else
   snprintf(command, sizeof(command), "%s identify %s 2>/dev/null", quoted_exe, quoted_input);
-#endif
   pipe = PLATFORM_POPEN(command, "r");
   if (pipe == NULL) {
     set_error_local(error, error_size, "failed running Ancient identify");
@@ -352,6 +399,7 @@ static int ancient_identify_temp_file_local(const char *ancient_path, const char
   }
   status = PLATFORM_PCLOSE(pipe);
   (void)status;
+#endif
   return 0;
 }
 
@@ -361,7 +409,14 @@ static int ancient_decompress_temp_file_local(const char *ancient_path, const ch
   char quoted_input[640];
   char quoted_output[640];
   char command[2050];
+#ifdef _WIN32
+  STARTUPINFOA startup;
+  PROCESS_INFORMATION process;
+  DWORD wait_result;
+  DWORD exit_code = 1U;
+#else
   int status;
+#endif
   if (!quote_arg_local(quoted_exe, sizeof(quoted_exe), ancient_path) ||
       !quote_arg_local(quoted_input, sizeof(quoted_input), temp_path) ||
       !quote_arg_local(quoted_output, sizeof(quoted_output), output_path)) {
@@ -369,16 +424,37 @@ static int ancient_decompress_temp_file_local(const char *ancient_path, const ch
     return -1;
   }
 #ifdef _WIN32
-  snprintf(command, sizeof(command), "\"%s decompress %s %s\" >nul 2>nul", quoted_exe, quoted_input, quoted_output);
+  snprintf(command, sizeof(command), "cmd.exe /d /c \"%s decompress %s %s >NUL 2>NUL\"", quoted_exe, quoted_input,
+    quoted_output);
+  memset(&startup, 0, sizeof(startup));
+  memset(&process, 0, sizeof(process));
+  startup.cb = sizeof(startup);
+  if (!CreateProcessA(NULL, command, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &startup, &process)) {
+    set_error_local(error, error_size, "failed running Ancient decompression");
+    return -1;
+  }
+  wait_result = WaitForSingleObject(process.hProcess, 30000U);
+  if (wait_result == WAIT_OBJECT_0) (void)GetExitCodeProcess(process.hProcess, &exit_code);
+  else (void)TerminateProcess(process.hProcess, 1U);
+  CloseHandle(process.hThread);
+  CloseHandle(process.hProcess);
+  if (wait_result != WAIT_OBJECT_0) {
+    set_error_local(error, error_size, "Ancient decompression timed out");
+    return -1;
+  }
+  if (exit_code != 0U) {
+    set_error_local(error, error_size, "Ancient decompression failed");
+    return -1;
+  }
 #else
   snprintf(command, sizeof(command), "%s decompress %s %s >/dev/null 2>/dev/null", quoted_exe, quoted_input,
     quoted_output);
-#endif
   status = system(command);
   if (status != 0) {
     set_error_local(error, error_size, "Ancient decompression failed");
     return -1;
   }
+#endif
   return 0;
 }
 

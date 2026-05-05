@@ -4216,6 +4216,7 @@ static int runtime_range_is_exited_to_larger_runtime_range(const M68kRenderLooku
 static int runtime_range_is_materialized(const M68kRenderLookup *lookup, const M68kFact *range) {
   size_t index;
   if (lookup == NULL || range == NULL) return 0;
+  if (range->runtime_kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY) return 0;
   if (runtime_range_is_crossed_by_storage_xref(lookup, range)) return 0;
   if (runtime_range_is_exited_to_larger_runtime_range(lookup, range)) return 0;
   if (runtime_range_contains_policy_entry_point(lookup, range)) return 1;
