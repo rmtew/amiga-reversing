@@ -27,6 +27,7 @@ from amiga_reversing.disasm.c_backend import (
     build_project_rows_generation_with_c_backend_profile,
     build_project_rows_generation_with_c_backend_profile_text,
     decompress_packed_range_with_c_backend,
+    decompress_packed_section_range_with_c_backend,
     extract_disk_entry_with_c_backend,
     facts_v2_asm_source_project_source_with_c_backend,
     facts_v2_asm_source_project_source_with_c_backend_profile,
@@ -107,6 +108,21 @@ def test_analysis_json_includes_empty_decompression_fact_arrays(tmp_path: Path) 
 
     assert analysis["packed_payloads"] == []
     assert analysis["derived_target_suggestions"] == []
+
+
+def test_decompression_c_backend_section_range_reports_unknown_payload(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "plain_hunk.bin"
+    output = tmp_path / "plain.out"
+    binary.write_bytes(_make_cross_section_call_hunkexe(bytes.fromhex("4e75"), 0))
+
+    decompressed = decompress_packed_section_range_with_c_backend("amiga-hunk", binary, 0, 0, 8, output)
+
+    assert decompressed["status"] == "ok"
+    assert decompressed["packed_payloads"][0]["found"] is False
+    assert decompressed["packed_payloads"][0]["source_section"] == 0
+    assert decompressed["packed_payloads"][0]["source_section_offset"] == 0
+    assert not output.exists()
 
 
 def _facts_v2_listing_analysis_for_project(target_name: str) -> dict[str, object]:

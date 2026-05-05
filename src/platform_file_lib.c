@@ -5104,3 +5104,55 @@ int platform_file_decompression_decompress_path_range_json_alloc(const char *pro
   return platform_decompression_decompress_path_range_json_alloc(provider_id, provider_path, path, offset, size,
     output_path, out_text);
 }
+
+PLATFORM_FILE_API int platform_file_decompression_decompress_section_range_json_alloc(const char *backend_name,
+    const char *path, uint32_t section_index, uint32_t offset, uint32_t size, const char *output_path,
+    char **out_text) {
+  PlatformDecompressionIdentifyResult result;
+  JsonBuilder builder = {0};
+  M68kObject object;
+  const M68kBackend *backend = m68k_backend_by_name(backend_name);
+  char error[256];
+  int decompress_result = -1;
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  memset(&object, 0, sizeof(object));
+  error[0] = '\0';
+  if (load_object_from_path(backend, path, &object, m68k_diag_sink(NULL)) == 0 &&
+      section_index < object.section_count &&
+      object.sections[section_index].data != NULL &&
+      offset <= object.sections[section_index].data_size &&
+      size <= object.sections[section_index].data_size - offset) {
+    decompress_result = platform_decompression_decompress_buffer_range("ancient-cli", "",
+      object.sections[section_index].data, object.sections[section_index].data_size, offset, size,
+      output_path, &result, error, sizeof(error));
+    result.has_source_section = 1U;
+    result.source_section_index = section_index;
+    result.source_section_offset = offset;
+  } else {
+    snprintf(error, sizeof(error), "invalid decompression section range");
+  }
+  if (json_builder_create(&builder) != 0) {
+    m68k_object_destroy(&object);
+    return -1;
+  }
+  if (decompress_result != 0) {
+    if (json_builder_append(&builder, "{\"status\":\"error\",\"error\":") != 0 ||
+        json_builder_append_json_string(&builder, error[0] != '\0' ? error : "section decompression failed") != 0 ||
+        json_builder_append(&builder, "}") != 0) {
+      json_builder_destroy(&builder);
+      m68k_object_destroy(&object);
+      return -1;
+    }
+  } else if (json_builder_append(&builder, "{\"status\":\"ok\",\"packed_payloads\":[") != 0 ||
+      platform_decompression_append_result_json(&builder, &result) != 0 ||
+      json_builder_append(&builder, "]}") != 0) {
+    json_builder_destroy(&builder);
+    m68k_object_destroy(&object);
+    return -1;
+  }
+  *out_text = json_builder_build(&builder);
+  json_builder_destroy(&builder);
+  m68k_object_destroy(&object);
+  return *out_text == NULL ? -1 : decompress_result;
+}

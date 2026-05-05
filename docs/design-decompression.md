@@ -50,6 +50,9 @@ A first C decompression provider layer now exists:
 - Facts-v2 analysis JSON now includes top-level `packed_payloads[]` and
   `derived_target_suggestions[]` from C provider scanning of loaded target
   sections.
+- A C backend section-range decompression API can materialise bytes from a
+  packed section offset emitted by analysis, so Python does not parse hunk
+  section bytes to extract payloads.
 - Carrier's RNC stream is identified both as an extracted range file and in the
   original parent file at offset `$4C60`.
 - The C-decompressed Carrier output hash matches the existing derived child
@@ -208,6 +211,9 @@ Current retained output:
   decompressed SHA-256.
 - Python can call the C decompression provider through the C backend wrapper;
   tests cover unknown payload handling without Python-side identification.
+- Python can also ask C to decompress a provider-backed packed section range
+  from a platform file. Child target materialisation still needs to consume this
+  path automatically.
 
 ## Work Plan
 
@@ -222,7 +228,8 @@ Current retained output:
    materialisation, so child target creation is not fully C-record driven.
 6. Add isolated C tests for provider result acceptance, code-overlap rejection,
    and parent/child relationship output.
-7. Add Python materialisation from C records only.
+7. Partly done: add Python access to C section-range decompression. Still
+   missing automatic child materialisation from C records only.
 8. Apply the pipeline to corpus indexing and imported project targets.
 9. Add comparator targets for at least one non-Carrier packed payload before
    broadening policy.
