@@ -632,9 +632,17 @@ def test_full_listing_rows_omit_empty_optional_c_fields(tmp_path: Path) -> None:
     )["listing"]
     raw_rows = payload["rows"]
     hydrated_rows = rows_from_c_listing_json(payload)
+    label = next(row for row in raw_rows if row["kind"] == "label")
+    hydrated_label = next(row for row in hydrated_rows if row.kind == "label")
     instruction = next(row for row in raw_rows if row["kind"] == "instruction")
     hydrated_instruction = next(row for row in hydrated_rows if row.kind == "instruction")
 
+    assert label["addr"] == 0
+    assert label["entity_addr"] == 0
+    assert "bytes" not in label
+    assert hydrated_label.addr == 0
+    assert hydrated_label.entity_addr == 0
+    assert hydrated_label.bytes is None
     assert "app_slot_refs" not in instruction
     assert "typed_accesses" not in instruction
     assert "unresolved_typed_accesses" not in instruction

@@ -4562,6 +4562,8 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
     if (json_builder_append_char(builder, '"') != 0) return -1;
     if (json_builder_append_hex_bytes(builder, stmt->source_bytes, stmt->source_byte_count) != 0) return -1;
     if (json_builder_append_char(builder, '"') != 0) return -1;
+  }
+  if (has_addr) {
     if (json_builder_append(builder, ",\"addr\":") != 0) return -1;
     if (json_builder_appendf(builder, "%u", (unsigned)addr) != 0) return -1;
     if (json_builder_append(builder, ",\"entity_addr\":") != 0) return -1;
