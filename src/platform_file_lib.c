@@ -4292,13 +4292,11 @@ static PlatformFileTextResult facts_v2_basic_listing_rows_object_json(const char
     const M68kObject *object, const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
   M68kSourceFileIR source_ir;
-  M68kRenderPolicy render_policy;
   JsonBuilder builder = {0};
-  char *source_text = NULL;
   char *rows_json = NULL;
   char *json = NULL;
   clock_t total_start = clock();
-  clock_t render_end;
+  clock_t source_ir_end;
   clock_t rows_end;
   memset(&result, 0, sizeof(result));
   memset(&source_ir, 0, sizeof(source_ir));
@@ -4309,15 +4307,8 @@ static PlatformFileTextResult facts_v2_basic_listing_rows_object_json(const char
   if (facts_v2_basic_listing_build_source_file(object, analysis_policy, &source_ir,
       m68k_diag_sink(&result.diagnostics)) != 0)
     goto cleanup;
-  m68k_render_policy_init_default(&render_policy);
-  if (m68k_source_ir_render_text_with_policy(&source_ir, &render_policy, &source_text,
-      m68k_diag_sink(&result.diagnostics)) != 0) {
-    if (!m68k_diag_has_errors(&result.diagnostics))
-      platform_file_add_error(&result.diagnostics, "facts_v2 basic listing render failed");
-    goto cleanup;
-  }
-  render_end = clock();
-  if (source_file_listing_rows_to_json(&source_ir, source_text, analysis_policy, NULL, "basic", 0, &rows_json,
+  source_ir_end = clock();
+  if (source_file_basic_listing_rows_to_json(&source_ir, analysis_policy, &rows_json,
       m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "facts_v2 basic listing row json failed");
@@ -4333,8 +4324,8 @@ static PlatformFileTextResult facts_v2_basic_listing_rows_object_json(const char
       json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
       json_builder_append_json_string(&builder, path) != 0 ||
       json_builder_appendf(&builder,
-        ",\"timing\":{\"render_seconds\":%.6f,\"rows_json_seconds\":%.6f,\"total_seconds\":%.6f}}}",
-        elapsed_seconds(total_start, render_end), elapsed_seconds(render_end, rows_end),
+        ",\"timing\":{\"source_ir_seconds\":%.6f,\"rows_json_seconds\":%.6f,\"total_seconds\":%.6f}}}",
+        elapsed_seconds(total_start, source_ir_end), elapsed_seconds(source_ir_end, rows_end),
         elapsed_seconds(total_start, rows_end)) != 0) {
     platform_file_add_error(&result.diagnostics, "out of memory");
     goto cleanup;
@@ -4351,7 +4342,6 @@ cleanup:
   json_builder_destroy(&builder);
   platform_file_free_text(json);
   platform_file_free_text(rows_json);
-  platform_file_free_text(source_text);
   m68k_ir_source_file_destroy(&source_ir);
   return result;
 }

@@ -2962,6 +2962,8 @@ def test_real_dll_facts_v2_basic_listing_rows_use_basic_api_without_source_direc
 
     assert api_calls == {}
     assert profile["generation"] == "facts_v2_basic_listing"
+    assert "source_ir_seconds" in profile["timing"]
+    assert "render_seconds" not in profile["timing"]
     assert source_text is None
     assert rows
     assert all(row.analysis_generation == "basic" for row in rows)

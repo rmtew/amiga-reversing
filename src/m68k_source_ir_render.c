@@ -17,6 +17,8 @@
 #define M68K_RENDER_COMMENT_COLUMN 40U
 #define M68K_RENDER_STRING_CHUNK_BYTES 128U
 
+static void render_error(M68kDiagSink diagnostics, const char *message);
+
 static int byte_is_quoted_string_char(unsigned char ch) {
   return ch >= 32U && ch <= 126U && ch != '"' && ch != '\\';
 }
@@ -170,6 +172,89 @@ static int append_statement_comment(JsonBuilder *builder, const M68kStatementIR 
   }
   return json_builder_appendf(builder,
     line_start == builder->size ? "; VIOLATION: %s\n" : " ; VIOLATION: %s\n", stmt->comment);
+}
+
+int m68k_source_ir_render_statement_text_with_policy(const M68kStatementIR *stmt, const M68kRenderPolicy *policy,
+    char **out_text, M68kDiagSink diagnostics) {
+  JsonBuilder builder = {0};
+  const M68kRenderPolicy *active_policy = policy;
+  M68kRenderPolicy default_policy;
+  size_t line_start;
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (stmt == NULL) {
+    render_error(diagnostics, "missing source statement");
+    return -1;
+  }
+  if (active_policy == NULL) {
+    m68k_render_policy_init_default(&default_policy);
+    active_policy = &default_policy;
+  }
+  if (json_builder_create(&builder) != 0) goto oom;
+  if (stmt->kind == M68K_STATEMENT_LABEL) {
+    if (stmt->comment != NULL && stmt->comment[0] != '\0' && strncmp(stmt->comment, "STRUCT ", 7) != 0 &&
+        json_builder_appendf(&builder, "    ; %s\n", stmt->comment) != 0)
+      goto oom;
+    line_start = builder.size;
+    if (json_builder_appendf(&builder, "%s:", stmt->label_name != NULL ? stmt->label_name : "label") != 0)
+      goto oom;
+    if (stmt->comment != NULL && strncmp(stmt->comment, "STRUCT ", 7) == 0) {
+      if (append_statement_comment(&builder, stmt, line_start) != 0) goto oom;
+    } else if (json_builder_append(&builder, "\n") != 0) goto oom;
+  } else if (stmt->kind == M68K_STATEMENT_ALIGN) {
+    if (json_builder_append(&builder, "    EVEN\n") != 0) goto oom;
+  } else if (stmt->kind == M68K_STATEMENT_RESERVE) {
+    line_start = builder.size;
+    if (json_builder_appendf(&builder, "    DS.B    $%X", (unsigned)stmt->u.reserve_size) != 0) goto oom;
+    if (append_statement_comment(&builder, stmt, line_start) != 0) goto oom;
+  } else if (stmt->kind == M68K_STATEMENT_INSTRUCTION) {
+    M68kInstructionIR rendered_instruction = stmt->u.instruction;
+    M68kDiagList render_diagnostics;
+    M68kIrRenderResult rendered;
+    m68k_diag_list_reset(&render_diagnostics);
+    if (m68k_instruction_is_fpu_id_alias_instruction(&rendered_instruction)) {
+      if (!m68k_instruction_make_fpu_id_render_instruction(&rendered_instruction, &rendered_instruction)) {
+        render_error(diagnostics, "unable to render coprocessor instruction");
+        json_builder_destroy(&builder);
+        return -1;
+      }
+      if (m68k_instruction_needs_fpu_id_directive(&stmt->u.instruction) &&
+          json_builder_appendf(&builder, "    FPU     %u\n",
+            (unsigned)stmt->u.instruction.coprocessor_id) != 0)
+        goto oom;
+      m68k_diag_list_reset(&render_diagnostics);
+    }
+    rendered = m68k_ir_render_one_at_with_policy(&rendered_instruction, stmt->offset, active_policy,
+      m68k_diag_sink(&render_diagnostics));
+    if (m68k_diag_has_errors(&render_diagnostics)) {
+      render_error(diagnostics, m68k_diag_first_message(&render_diagnostics));
+      json_builder_destroy(&builder);
+      return -1;
+    }
+    line_start = builder.size;
+    if (json_builder_appendf(&builder, "    %s", rendered.text) != 0) goto oom;
+    if (append_statement_comment(&builder, stmt, line_start) != 0) goto oom;
+    if (m68k_instruction_needs_fpu_id_directive(&stmt->u.instruction) &&
+        json_builder_append(&builder, "    FPU     1\n") != 0)
+      goto oom;
+  } else if (stmt->kind == M68K_STATEMENT_DATA) {
+    line_start = builder.size;
+    if (append_rendered_data_stmt(&builder, &stmt->u.data, active_policy) != 0) goto oom;
+    if (append_statement_comment(&builder, stmt, line_start) != 0) goto oom;
+  } else {
+    render_error(diagnostics, "unsupported source statement");
+    json_builder_destroy(&builder);
+    return -1;
+  }
+  *out_text = json_builder_build(&builder);
+  if (*out_text == NULL) goto oom;
+  json_builder_destroy(&builder);
+  return 0;
+
+oom:
+  json_builder_destroy(&builder);
+  render_error(diagnostics, "out of memory rendering source statement");
+  return -1;
 }
 
 typedef struct RenderLabelIndex {

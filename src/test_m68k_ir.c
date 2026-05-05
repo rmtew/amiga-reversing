@@ -37,6 +37,25 @@ static int test_render_policy_defaults(void) {
   return 0;
 }
 
+static int test_source_statement_renderer_renders_single_statement(void) {
+  M68kStatementIR stmt;
+  uint8_t bytes[3] = {0x41u, 0x42u, 0x00u};
+  char *text = NULL;
+  m68k_ir_statement_init(&stmt);
+  stmt.kind = M68K_STATEMENT_DATA;
+  stmt.offset = 0x20U;
+  stmt.u.data.kind = M68K_DATA_ITEM_BYTES;
+  stmt.u.data.data = bytes;
+  stmt.u.data.size = sizeof(bytes);
+  M68K_C_ASSERT_INT(0, m68k_source_ir_render_statement_text_with_policy(&stmt, NULL, &text,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(text != NULL);
+  M68K_C_ASSERT(strstr(text, "DC.B") != NULL);
+  M68K_C_ASSERT(strstr(text, "$41,$42,$00") != NULL);
+  free(text);
+  return 0;
+}
+
 static int test_parse_syntax_mode_name(void) {
   uint8_t mode = 0xFFu;
   M68K_C_ASSERT(m68k_ir_parse_syntax_mode_name("canonical", &mode));
@@ -11587,6 +11606,7 @@ static int test_facts_v2_render_asm_source_alloc_fails_on_invalid_relocation(voi
 int m68k_c_ir_tests(void) {
   static const M68kCTestCase cases[] = {
     {"render_policy_defaults", test_render_policy_defaults},
+    {"source_statement_renderer_renders_single_statement", test_source_statement_renderer_renders_single_statement},
     {"parse_syntax_mode_name", test_parse_syntax_mode_name},
     {"generated_cpu_vector_metadata_marks_interrupt_autovectors",
       test_generated_cpu_vector_metadata_marks_interrupt_autovectors},

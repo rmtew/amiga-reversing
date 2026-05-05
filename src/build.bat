@@ -208,6 +208,7 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
+    %OUTDIR%\m68k_source_ir_render.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\m68k_object.obj ^
     %OUTDIR%\platform_file_core.obj ^

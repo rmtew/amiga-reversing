@@ -9,5 +9,7 @@
 
 int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,
     char **out_text, M68kDiagSink diagnostics);
+int m68k_source_ir_render_statement_text_with_policy(const M68kStatementIR *stmt, const M68kRenderPolicy *policy,
+    char **out_text, M68kDiagSink diagnostics);
 
 #endif

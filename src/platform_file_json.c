@@ -1,6 +1,7 @@
 /* Internal JSON/inspection implementation for platform_file_lib. */
 #include "platform_file_internal.h"
 #include "m68k_fact_ir.h"
+#include "m68k_source_text_util.h"
 
 static int json_builder_append_nullable_string(JsonBuilder *builder, const char *text);
 static void amiga_struct_catalog_info(uint16_t struct_id, const char **out_source, int16_t *out_size);
@@ -4678,6 +4679,124 @@ static int append_listing_blank_row(JsonBuilder *builder, size_t *row_index, con
     return -1;
   ++*row_index;
   return 0;
+}
+
+static const char *listing_source_section_name(const M68kSourceFileIR *source_file, size_t section_index,
+    char *buffer, size_t buffer_size) {
+  const M68kSectionIR *section;
+  if (buffer != NULL && buffer_size != 0U) buffer[0] = '\0';
+  if (source_file == NULL || section_index >= source_file->section_count) return "section";
+  section = &source_file->sections[section_index];
+  if (section->name != NULL && section->name[0] != '\0') return section->name;
+  if (source_file->section_count <= 1U) return "section";
+  snprintf(buffer, buffer_size, "section_%u", (unsigned)section_index);
+  return buffer;
+}
+
+static int append_basic_listing_section_row(JsonBuilder *builder, const M68kSourceFileIR *source_file,
+    size_t section_index, size_t *row_index) {
+  const M68kSectionIR *section;
+  char section_name[96];
+  char section_kind[32];
+  char line[192];
+  const char *name;
+  if (builder == NULL || source_file == NULL || row_index == NULL || section_index >= source_file->section_count)
+    return -1;
+  section = &source_file->sections[section_index];
+  name = listing_source_section_name(source_file, section_index, section_name, sizeof(section_name));
+  if (!m68k_format_section_spec(section->kind, section->platform_mem_type, section->platform_mem_attrs,
+      section_kind, sizeof(section_kind)))
+    return -1;
+  if (section->size != section->data_size) {
+    snprintf(line, sizeof(line), "    SECTION %s,%s,$%X\n", name, section_kind, (unsigned)section->size);
+  } else {
+    snprintf(line, sizeof(line), "    SECTION %s,%s\n", name, section_kind);
+  }
+  if (*row_index != 0U && json_builder_append(builder, ",") != 0) return -1;
+  if (append_listing_row_json(builder, *row_index, line, strlen(line), "directive", (int)section_index, NULL,
+      NULL, NULL, "basic") != 0)
+    return -1;
+  ++*row_index;
+  return 0;
+}
+
+static const char *basic_listing_row_kind_for_statement(const M68kStatementIR *stmt) {
+  if (stmt == NULL) return "unknown";
+  if (stmt->kind == M68K_STATEMENT_LABEL) return "label";
+  if (stmt->kind == M68K_STATEMENT_INSTRUCTION) return "instruction";
+  if (stmt->kind == M68K_STATEMENT_DATA) return "data";
+  return "directive";
+}
+
+static int append_basic_listing_statement_rows(JsonBuilder *builder, size_t section_index,
+    const M68kStatementIR *stmt, const M68kAnalysisPolicy *analysis_policy, size_t *row_index,
+    ListingAppSlotAnalysisBuilder *app_slot_analysis, M68kDiagSink diagnostics) {
+  char *text = NULL;
+  const char *cursor;
+  const char *row_kind = basic_listing_row_kind_for_statement(stmt);
+  int result = -1;
+  if (builder == NULL || stmt == NULL || row_index == NULL) return -1;
+  if (m68k_source_ir_render_statement_text_with_policy(stmt, NULL, &text, diagnostics) != 0) return -1;
+  cursor = text;
+  while (*cursor != '\0') {
+    const char *line_start = cursor;
+    size_t line_length;
+    while (*cursor != '\0' && *cursor != '\n') ++cursor;
+    if (*cursor == '\n') ++cursor;
+    line_length = (size_t)(cursor - line_start);
+    if (*row_index != 0U && json_builder_append(builder, ",") != 0) goto cleanup;
+    if (append_listing_row_json(builder, *row_index, line_start, line_length, row_kind, (int)section_index, stmt,
+        analysis_policy, NULL, "basic") != 0)
+      goto cleanup;
+    if (listing_app_slot_analysis_observe_row(app_slot_analysis, *row_index, row_kind, (int)section_index, stmt,
+        NULL) != 0)
+      goto cleanup;
+    ++*row_index;
+  }
+  result = 0;
+
+cleanup:
+  free(text);
+  return result;
+}
+
+int source_file_basic_listing_rows_to_json(const M68kSourceFileIR *source_file,
+    const M68kAnalysisPolicy *analysis_policy, char **out_json, M68kDiagSink diagnostics) {
+  JsonBuilder builder = {0};
+  ListingAppSlotAnalysisBuilder app_slot_analysis = {0};
+  size_t row_index = 0U;
+  size_t section_index;
+  if (source_file == NULL || out_json == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    return -1;
+  }
+  if (listing_app_slot_analysis_init(&app_slot_analysis, source_file, NULL) != 0) goto oom;
+  if (json_builder_create(&builder) != 0) goto oom;
+  if (json_builder_append(&builder, "{\"rows\":[") != 0) goto oom;
+  for (section_index = 0U; section_index < source_file->section_count; ++section_index) {
+    const M68kSectionIR *section = &source_file->sections[section_index];
+    size_t statement_index;
+    if (append_basic_listing_section_row(&builder, source_file, section_index, &row_index) != 0) goto oom;
+    for (statement_index = 0U; statement_index < section->statement_count; ++statement_index) {
+      if (append_basic_listing_statement_rows(&builder, section_index, &section->statements[statement_index],
+          analysis_policy, &row_index, &app_slot_analysis, diagnostics) != 0)
+        goto oom;
+    }
+  }
+  if (json_builder_append(&builder, "],\"app_slot_analysis\":") != 0) goto oom;
+  if (append_listing_app_slot_analysis_json(&builder, &app_slot_analysis) != 0) goto oom;
+  if (json_builder_append(&builder, "}") != 0) goto oom;
+  *out_json = json_builder_build(&builder);
+  if (*out_json == NULL) goto oom;
+  json_builder_destroy(&builder);
+  listing_app_slot_analysis_destroy(&app_slot_analysis);
+  return 0;
+
+oom:
+  json_builder_destroy(&builder);
+  listing_app_slot_analysis_destroy(&app_slot_analysis);
+  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+  return -1;
 }
 
 static int append_listing_source_header_rows(JsonBuilder *builder, const ListingSourceHeaderRows *header_rows,
