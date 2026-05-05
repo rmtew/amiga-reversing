@@ -4485,14 +4485,13 @@ static int listing_structured_data_item_has_json(const M68kAnalysisStructuredDat
     item->semantic_role[0] == '\0' && !item->has_constant_value && !item->is_pointer && !item->has_target);
 }
 
-static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const char *line_start, size_t line_length,
-    const char *row_kind, int section_index, const M68kStatementIR *stmt, const M68kAnalysisPolicy *analysis_policy,
-    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation) {
+static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index, const char *line_start,
+    size_t line_length, const char *row_kind, const char *stripped, const char *opcode, const char *operand,
+    const char *comment, int section_index, const M68kStatementIR *stmt,
+    const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
+    const char *analysis_generation) {
   char text[1200];
-  char stripped[1024];
-  char opcode[128];
-  char operand[1024];
-  char comment[512];
+  char label_text[1024];
   const char *label = NULL;
   const M68kAnalysisStructuredDataItem *structured_item = NULL;
   int has_addr = 0;
@@ -4506,8 +4505,6 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
     memcpy(text, line_start, line_length);
     text[line_length] = '\0';
   }
-  split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
-    sizeof(operand), comment, sizeof(comment));
   if (stmt != NULL) {
     has_addr = 1;
     addr = stmt->offset;
@@ -4518,9 +4515,11 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
     structured_item = listing_structured_data_item_at_offset(analysis_policy, section_index, addr);
     runtime_view = listing_runtime_view_for_storage_offset(source_analysis, section_index, addr, &runtime_address);
   } else if (strcmp(row_kind, "label") == 0) {
-    size_t stripped_length = strlen(stripped);
-    if (stripped_length != 0U && stripped[stripped_length - 1U] == ':') stripped[stripped_length - 1U] = '\0';
-    label = stripped;
+    size_t stripped_length;
+    snprintf(label_text, sizeof(label_text), "%s", stripped != NULL ? stripped : "");
+    stripped_length = strlen(label_text);
+    if (stripped_length != 0U && label_text[stripped_length - 1U] == ':') label_text[stripped_length - 1U] = '\0';
+    label = label_text;
   }
   if (json_builder_appendf(builder, "{\"row_id\":\"c:%u\",\"kind\":", (unsigned)row_index) != 0) return -1;
   if (json_builder_append_json_string(builder, row_kind) != 0) return -1;
@@ -4573,7 +4572,7 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
     if (json_builder_append(builder, ",\"label\":") != 0) return -1;
     if (json_builder_append_json_string(builder, label) != 0) return -1;
   }
-  if (opcode[0] != '\0' && strcmp(row_kind, "label") != 0 && strcmp(row_kind, "blank") != 0 &&
+  if (opcode != NULL && opcode[0] != '\0' && strcmp(row_kind, "label") != 0 && strcmp(row_kind, "blank") != 0 &&
       strcmp(row_kind, "comment") != 0) {
     if (json_builder_append(builder, ",\"opcode_or_directive\":") != 0) return -1;
     if (json_builder_append_json_string(builder, opcode) != 0) return -1;
@@ -4582,7 +4581,7 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
     if (json_builder_append(builder, ",\"operation_type\":") != 0) return -1;
     if (json_builder_append_json_string(builder, listing_statement_operation_type(stmt)) != 0) return -1;
   }
-  if (operand[0] != '\0') {
+  if (operand != NULL && operand[0] != '\0') {
     if (json_builder_append(builder, ",\"operand_text\":") != 0) return -1;
     if (json_builder_append_json_string(builder, operand) != 0) return -1;
   }
@@ -4596,7 +4595,7 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
     if (json_builder_append(builder, ",\"operand_registers\":") != 0) return -1;
     if (append_listing_operand_registers_json(builder, stmt) != 0) return -1;
   }
-  if (comment[0] != '\0') {
+  if (comment != NULL && comment[0] != '\0') {
     if (json_builder_append(builder, ",\"comment_text\":") != 0) return -1;
     if (json_builder_append_json_string(builder, comment) != 0) return -1;
   }
@@ -4640,6 +4639,19 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
       return -1;
   }
   return json_builder_append(builder, "}");
+}
+
+static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const char *line_start, size_t line_length,
+    const char *row_kind, int section_index, const M68kStatementIR *stmt, const M68kAnalysisPolicy *analysis_policy,
+    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation) {
+  char stripped[1024];
+  char opcode[128];
+  char operand[1024];
+  char comment[512];
+  split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
+    sizeof(operand), comment, sizeof(comment));
+  return append_listing_row_json_parsed(builder, row_index, line_start, line_length, row_kind, stripped, opcode,
+    operand, comment, section_index, stmt, analysis_policy, source_analysis, analysis_generation);
 }
 
 typedef struct ListingSourceHeaderRow {
@@ -4955,8 +4967,8 @@ int source_file_listing_rows_to_json(const M68kSourceFileIR *source_file, const 
       continue;
     }
     if (row_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
-    if (append_listing_row_json(&builder, row_index, line_start, line_length, row_kind, active_section_index, stmt,
-          analysis_policy, source_analysis, analysis_generation) != 0)
+    if (append_listing_row_json_parsed(&builder, row_index, line_start, line_length, row_kind, stripped, opcode,
+          operand, comment, active_section_index, stmt, analysis_policy, source_analysis, analysis_generation) != 0)
       goto oom;
     if (listing_app_slot_analysis_observe_row(&app_slot_analysis, row_index, row_kind, active_section_index, stmt,
         source_analysis) != 0)
