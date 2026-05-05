@@ -54,6 +54,16 @@ typedef struct M68kRenderPlan {
   size_t total_bytes;
 } M68kRenderPlan;
 
+typedef struct M68kRenderPlanRowBuilder {
+  M68kRenderPlan *plan;
+  char *text;
+  size_t size;
+  size_t capacity;
+  uint32_t kind;
+  uint32_t region_id;
+  uint8_t active;
+} M68kRenderPlanRowBuilder;
+
 typedef int (*M68kRenderPlanLineVisitor)(const M68kRenderPlanRow *row, uint32_t subline, uint32_t line,
   const char *line_start, size_t line_length, void *user);
 
@@ -61,6 +71,14 @@ void m68k_render_plan_init(M68kRenderPlan *plan);
 void m68k_render_plan_destroy(M68kRenderPlan *plan);
 int m68k_render_plan_append_text_row(M68kRenderPlan *plan, uint32_t kind, uint32_t region_id,
   const char *text, M68kRenderPlanRow **out_row);
+void m68k_render_plan_row_builder_init(M68kRenderPlanRowBuilder *builder);
+void m68k_render_plan_row_builder_destroy(M68kRenderPlanRowBuilder *builder);
+int m68k_render_plan_row_builder_begin(M68kRenderPlanRowBuilder *builder, M68kRenderPlan *plan,
+  uint32_t kind, uint32_t region_id);
+int m68k_render_plan_row_builder_append(M68kRenderPlanRowBuilder *builder, const char *text);
+int m68k_render_plan_row_builder_appendf(M68kRenderPlanRowBuilder *builder, const char *format, ...);
+int m68k_render_plan_row_builder_commit(M68kRenderPlanRowBuilder *builder, M68kRenderPlanRow **out_row);
+void m68k_render_plan_row_builder_cancel(M68kRenderPlanRowBuilder *builder);
 void m68k_render_plan_row_set_source_range(M68kRenderPlanRow *row, uint32_t section_index,
   uint32_t offset, uint32_t size);
 void m68k_render_plan_row_set_runtime_range(M68kRenderPlanRow *row, uint32_t address, uint32_t size);

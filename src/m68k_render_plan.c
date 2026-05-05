@@ -3,6 +3,7 @@
 #include "m68k_source_ir_render.h"
 #include "m68k_source_text_util.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,6 +50,23 @@ static int render_plan_reserve_rows(M68kRenderPlan *plan, size_t needed) {
   if (rows == NULL) return -1;
   plan->rows = rows;
   plan->row_capacity = capacity;
+  return 0;
+}
+
+static int render_plan_row_builder_reserve(M68kRenderPlanRowBuilder *builder, size_t needed) {
+  char *text;
+  size_t capacity;
+  if (builder == NULL) return -1;
+  if (needed <= builder->capacity) return 0;
+  capacity = builder->capacity != 0U ? builder->capacity : 128U;
+  while (capacity < needed) {
+    if (capacity > ((size_t)-1) / 2U) return -1;
+    capacity *= 2U;
+  }
+  text = (char *)realloc(builder->text, capacity);
+  if (text == NULL) return -1;
+  builder->text = text;
+  builder->capacity = capacity;
   return 0;
 }
 
@@ -106,6 +124,87 @@ int m68k_render_plan_append_text_row(M68kRenderPlan *plan, uint32_t kind, uint32
   plan->total_bytes += byte_count;
   if (out_row != NULL) *out_row = row;
   return 0;
+}
+
+void m68k_render_plan_row_builder_init(M68kRenderPlanRowBuilder *builder) {
+  if (builder == NULL) return;
+  memset(builder, 0, sizeof(*builder));
+}
+
+void m68k_render_plan_row_builder_destroy(M68kRenderPlanRowBuilder *builder) {
+  if (builder == NULL) return;
+  free(builder->text);
+  memset(builder, 0, sizeof(*builder));
+}
+
+int m68k_render_plan_row_builder_begin(M68kRenderPlanRowBuilder *builder, M68kRenderPlan *plan,
+    uint32_t kind, uint32_t region_id) {
+  if (builder == NULL || plan == NULL || builder->active) return -1;
+  builder->plan = plan;
+  builder->kind = kind;
+  builder->region_id = region_id;
+  builder->size = 0U;
+  builder->active = 1U;
+  if (render_plan_row_builder_reserve(builder, 1U) != 0) {
+    builder->active = 0U;
+    return -1;
+  }
+  builder->text[0] = '\0';
+  return 0;
+}
+
+int m68k_render_plan_row_builder_append(M68kRenderPlanRowBuilder *builder, const char *text) {
+  size_t length;
+  if (builder == NULL || !builder->active || text == NULL) return -1;
+  length = strlen(text);
+  if (length > ((size_t)-1) - builder->size - 1U) return -1;
+  if (render_plan_row_builder_reserve(builder, builder->size + length + 1U) != 0) return -1;
+  memcpy(builder->text + builder->size, text, length + 1U);
+  builder->size += length;
+  return 0;
+}
+
+int m68k_render_plan_row_builder_appendf(M68kRenderPlanRowBuilder *builder, const char *format, ...) {
+  va_list args;
+  va_list copy;
+  int needed;
+  if (builder == NULL || !builder->active || format == NULL) return -1;
+  va_start(args, format);
+  va_copy(copy, args);
+  needed = vsnprintf(NULL, 0U, format, copy);
+  va_end(copy);
+  if (needed < 0 || (size_t)needed > ((size_t)-1) - builder->size - 1U) {
+    va_end(args);
+    return -1;
+  }
+  if (render_plan_row_builder_reserve(builder, builder->size + (size_t)needed + 1U) != 0) {
+    va_end(args);
+    return -1;
+  }
+  vsnprintf(builder->text + builder->size, builder->capacity - builder->size, format, args);
+  va_end(args);
+  builder->size += (size_t)needed;
+  return 0;
+}
+
+int m68k_render_plan_row_builder_commit(M68kRenderPlanRowBuilder *builder, M68kRenderPlanRow **out_row) {
+  int result;
+  if (out_row != NULL) *out_row = NULL;
+  if (builder == NULL || !builder->active || builder->plan == NULL) return -1;
+  result = m68k_render_plan_append_text_row(builder->plan, builder->kind, builder->region_id, builder->text, out_row);
+  builder->active = 0U;
+  builder->plan = NULL;
+  builder->size = 0U;
+  if (builder->text != NULL) builder->text[0] = '\0';
+  return result;
+}
+
+void m68k_render_plan_row_builder_cancel(M68kRenderPlanRowBuilder *builder) {
+  if (builder == NULL) return;
+  builder->active = 0U;
+  builder->plan = NULL;
+  builder->size = 0U;
+  if (builder->text != NULL) builder->text[0] = '\0';
 }
 
 void m68k_render_plan_row_set_source_range(M68kRenderPlanRow *row, uint32_t section_index,

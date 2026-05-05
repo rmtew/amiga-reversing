@@ -41,6 +41,10 @@ The facts_v2 basic listing JSON path now builds its rows from a render plan
 instead of duplicating a statement-render-and-split loop. Full listing still
 uses the old full-source text parse path.
 
+Render plans now have a row-builder API for renderers that naturally emit a row
+in fragments. This is intended for migrating facts_v2 source rendering without
+rebuilding large temporary source text just to discover row boundaries.
+
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
 
