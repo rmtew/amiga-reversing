@@ -4358,7 +4358,8 @@ static int facts_v2_listing_rows_from_source_text(const M68kObject *object, cons
   AsmSourceFile source_model;
   M68kSourceFileIR source_ir;
   int result = -1;
-  if (object == NULL || analysis_policy == NULL || source_text == NULL || out_rows_json == NULL) {
+  if (object == NULL || analysis_policy == NULL || source_text == NULL || render_plan == NULL ||
+      out_rows_json == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT,
       "invalid facts_v2 listing rows request");
     return -1;
@@ -4376,12 +4377,8 @@ static int facts_v2_listing_rows_from_source_text(const M68kObject *object, cons
   source_ir.platform_backend_kind = object->platform_backend_kind;
   source_ir.file_kind = object->platform_file_kind;
   facts_v2_listing_fill_source_bytes_from_object(&source_ir, object);
-  if (render_plan != NULL) {
-    if (source_file_listing_rows_from_render_plan_to_json(&source_ir, render_plan, analysis_policy,
-        source_analysis, "full", include_source_only_rows, out_rows_json, diagnostics) != 0)
-      goto cleanup;
-  } else if (source_file_listing_rows_to_json(&source_ir, source_text, analysis_policy, source_analysis, "full",
-      include_source_only_rows, out_rows_json, diagnostics) != 0) {
+  if (source_file_listing_rows_from_render_plan_to_json(&source_ir, render_plan, analysis_policy,
+      source_analysis, "full", include_source_only_rows, out_rows_json, diagnostics) != 0) {
     goto cleanup;
   }
   result = 0;

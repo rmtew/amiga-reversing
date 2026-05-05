@@ -5004,24 +5004,3 @@ oom:
   m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
   return -1;
 }
-
-int source_file_listing_rows_to_json(const M68kSourceFileIR *source_file, const char *rendered_text,
-    const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
-    const char *analysis_generation, int include_source_only_rows, char **out_json, M68kDiagSink diagnostics) {
-  M68kRenderPlan render_plan;
-  int result;
-  m68k_render_plan_init(&render_plan);
-  if (source_file == NULL || rendered_text == NULL || out_json == NULL) {
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
-    return -1;
-  }
-  if (m68k_render_plan_build_text_lines(rendered_text, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 0U, &render_plan) != 0) {
-    m68k_render_plan_destroy(&render_plan);
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
-    return -1;
-  }
-  result = source_file_listing_rows_from_render_plan_to_json(source_file, &render_plan, analysis_policy,
-    source_analysis, analysis_generation, include_source_only_rows, out_json, diagnostics);
-  m68k_render_plan_destroy(&render_plan);
-  return result;
-}

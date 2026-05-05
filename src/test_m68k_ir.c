@@ -5776,9 +5776,16 @@ static int test_append_parsed_instruction(M68kSectionIR *section, uint32_t offse
   return m68k_ir_section_append_statement(section, &stmt);
 }
 
+static int test_build_text_line_render_plan(const char *source_text, M68kRenderPlan *render_plan) {
+  if (render_plan == NULL) return -1;
+  m68k_render_plan_init(render_plan);
+  return m68k_render_plan_build_text_lines(source_text, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 0U, render_plan);
+}
+
 static int test_listing_json_header_collection_stops_at_first_section(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
+  M68kRenderPlan render_plan;
   char *rows_json = NULL;
   const char source_text[] =
     "    INCLUDE \"hardware/custom.i\"\n"
@@ -5798,8 +5805,9 @@ static int test_listing_json_header_collection_stops_at_first_section(void) {
   M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 2U, "rts", 0U, NULL));
   M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
 
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_to_json(&source_file, source_text, NULL, NULL, "full",
-    0, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL, NULL,
+    "full", 0, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "hardware/custom.i") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "hardware/dmabits.i") == NULL);
@@ -5807,18 +5815,18 @@ static int test_listing_json_header_collection_stops_at_first_section(void) {
   M68K_C_ASSERT(strstr(rows_json, "\"start_offset\":2") != NULL);
 
   free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
   m68k_ir_section_destroy(&section);
   m68k_ir_source_file_destroy(&source_file);
   return 0;
 }
 
-static int test_listing_json_render_plan_matches_source_text_path(void) {
+static int test_listing_json_text_plan_emits_expected_rows(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
   M68kStatementIR data_stmt;
   M68kRenderPlan render_plan;
-  char *source_rows_json = NULL;
-  char *plan_rows_json = NULL;
+  char *rows_json = NULL;
   uint8_t data_bytes[2] = {0x12U, 0x34U};
   const char source_text[] =
     "    INCLUDE \"hardware/custom.i\"\n"
@@ -5845,16 +5853,16 @@ static int test_listing_json_render_plan_matches_source_text_path(void) {
   M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &data_stmt));
   M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
 
-  M68K_C_ASSERT_INT(0, m68k_render_plan_build_text_lines(source_text, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 0U,
-    &render_plan));
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_to_json(&source_file, source_text, NULL, NULL, "full",
-    0, &source_rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
   M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL, NULL,
-    "full", 0, &plan_rows_json, m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_STR(source_rows_json, plan_rows_json);
+    "full", 0, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(strstr(rows_json, "hardware/custom.i") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"kind\":\"instruction\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"kind\":\"data\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"start_offset\":0") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"start_offset\":2") != NULL);
 
-  free(source_rows_json);
-  free(plan_rows_json);
+  free(rows_json);
   m68k_render_plan_destroy(&render_plan);
   m68k_ir_section_destroy(&section);
   m68k_ir_source_file_destroy(&source_file);
@@ -5867,6 +5875,7 @@ static int test_listing_json_emits_app_slot_regions_from_platform_api_inputs(voi
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
   M68kAppSlotRefIR ref;
+  M68kRenderPlan render_plan;
   char *rows_json = NULL;
   const char source_text[] =
     "SECTION section_0,CODE\n"
@@ -5918,8 +5927,9 @@ static int test_listing_json_emits_app_slot_regions_from_platform_api_inputs(voi
     NULL, NULL));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_to_json(&source_file, source_text, NULL, &source_analysis, "full",
-    1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
+    &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"slot_count\":3") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"typed_region_count\":1") != NULL);
@@ -5937,6 +5947,7 @@ static int test_listing_json_emits_app_slot_regions_from_platform_api_inputs(voi
   M68K_C_ASSERT(strstr(rows_json, "\"semantic_type\":\"platform_api_buffer\"") != NULL);
 
   free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_ir_section_destroy(&section);
@@ -5950,6 +5961,7 @@ static int test_listing_json_tracks_app_slot_address_through_lea_copy(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
   M68kAppSlotRefIR ref;
+  M68kRenderPlan render_plan;
   char *rows_json = NULL;
   const char source_text[] =
     "SECTION section_0,CODE\n"
@@ -5989,14 +6001,16 @@ static int test_listing_json_tracks_app_slot_address_through_lea_copy(void) {
     NULL, NULL));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_to_json(&source_file, source_text, NULL, &source_analysis, "full",
-    1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
+    &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"typed_region_count\":1") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"struct_name\":\"InputEvent\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"source_via_register\":\"A1\"") != NULL);
 
   free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_ir_section_destroy(&section);
@@ -6010,6 +6024,7 @@ static int test_listing_json_reports_untyped_app_slot_api_args(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
   M68kAppSlotRefIR ref;
+  M68kRenderPlan render_plan;
   char *rows_json = NULL;
   const char source_text[] =
     "SECTION section_0,CODE\n"
@@ -6047,8 +6062,9 @@ static int test_listing_json_reports_untyped_app_slot_api_args(void) {
     NULL, NULL));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_to_json(&source_file, source_text, NULL, &source_analysis, "full",
-    1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
+    &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"typed_region_count\":0") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"untyped_api_arg_count\":1") != NULL);
@@ -6061,6 +6077,7 @@ static int test_listing_json_reports_untyped_app_slot_api_args(void) {
   M68K_C_ASSERT(strstr(rows_json, "\"source_stable_key\":\"s0:00000000:instruction:1\"") != NULL);
 
   free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_ir_section_destroy(&section);
@@ -6074,6 +6091,7 @@ static int test_listing_json_tracks_app_slot_address_immediate_adjust(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
   M68kAppSlotRefIR ref;
+  M68kRenderPlan render_plan;
   char *rows_json = NULL;
   const char source_text[] =
     "SECTION section_0,CODE\n"
@@ -6113,8 +6131,9 @@ static int test_listing_json_tracks_app_slot_address_immediate_adjust(void) {
     NULL, NULL));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_to_json(&source_file, source_text, NULL, &source_analysis, "full",
-    1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
+    &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"untyped_api_arg_count\":1") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"id\":\"app_slot_api_arg_0104_RawKeyConvert_A1\"") != NULL);
@@ -6125,6 +6144,7 @@ static int test_listing_json_tracks_app_slot_address_immediate_adjust(void) {
   M68K_C_ASSERT(strstr(rows_json, "\"source_stable_key\":\"s0:00000000:instruction:1\"") != NULL);
 
   free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_ir_section_destroy(&section);
@@ -6138,6 +6158,7 @@ static int test_listing_json_clears_app_slot_address_source_on_register_clobber(
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
   M68kAppSlotRefIR ref;
+  M68kRenderPlan render_plan;
   char *rows_json = NULL;
   const char source_text[] =
     "SECTION section_0,CODE\n"
@@ -6177,8 +6198,9 @@ static int test_listing_json_clears_app_slot_address_source_on_register_clobber(
     NULL, NULL));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_to_json(&source_file, source_text, NULL, &source_analysis, "full",
-    1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
+    &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"slot_count\":1") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"typed_region_count\":0") != NULL);
@@ -6186,6 +6208,7 @@ static int test_listing_json_clears_app_slot_address_source_on_register_clobber(
   M68K_C_ASSERT(strstr(rows_json, "\"source\":\"platform_api_arg\"") == NULL);
 
   free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_ir_section_destroy(&section);
@@ -11951,8 +11974,8 @@ int m68k_c_ir_tests(void) {
       test_amiga_runtime_resolves_recursive_struct_fields},
     {"listing_json_header_collection_stops_at_first_section",
       test_listing_json_header_collection_stops_at_first_section},
-    {"listing_json_render_plan_matches_source_text_path",
-      test_listing_json_render_plan_matches_source_text_path},
+    {"listing_json_text_plan_emits_expected_rows",
+      test_listing_json_text_plan_emits_expected_rows},
     {"listing_json_emits_app_slot_regions_from_platform_api_inputs",
       test_listing_json_emits_app_slot_regions_from_platform_api_inputs},
     {"listing_json_tracks_app_slot_address_through_lea_copy",

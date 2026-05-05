@@ -128,9 +128,6 @@ int section_analysis_context_init(SectionAnalysisContext *ctx, const M68kObject 
 int inspect_object_json(const M68kBackend *backend, const M68kObject *object, char **out_json);
 int object_target_metadata_json(const M68kBackend *backend, const M68kObject *object, char **out_json);
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics);
-int source_file_listing_rows_to_json(const M68kSourceFileIR *source_file, const char *rendered_text,
-    const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
-    const char *analysis_generation, int include_source_only_rows, char **out_json, M68kDiagSink diagnostics);
 int source_file_listing_rows_from_render_plan_to_json(const M68kSourceFileIR *source_file,
     const M68kRenderPlan *render_plan, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
