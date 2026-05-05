@@ -2742,7 +2742,10 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kRenderPlan source_plan;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *plan_source = NULL;
   uint8_t bytes[6] = {0x60u, 0x02u, 0x4eu, 0x71u, 0x4eu, 0x75u};
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
@@ -2753,9 +2756,11 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&object, &policy, &source,
+    &source_plan, &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&source_plan, &plan_source));
+  M68K_C_ASSERT_STR(source, plan_source);
   M68K_C_ASSERT(strstr(source, "    SECTION section,code") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000004:") != NULL);
   M68K_C_ASSERT(strstr(source, "bra") != NULL);
@@ -2768,6 +2773,9 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_render_failures);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_relocation_failures);
+  m68k_render_plan_free_text(plan_source);
+  m68k_render_plan_destroy(&source_plan);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;
@@ -3747,7 +3755,10 @@ static int test_facts_v2_amiga_execbase_load_does_not_use_runtime_alias(void) {
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kRenderPlan source_plan;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *plan_source = NULL;
   uint8_t bytes[26] = {
     0x2cu, 0x79u, 0x00u, 0x00u, 0x00u, 0x04u,
     0x41u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x18u,
@@ -3784,9 +3795,11 @@ static int test_facts_v2_amiga_execbase_load_does_not_use_runtime_alias(void) {
   policy.runtime_entry_points[0].has_section_index = 1U;
   policy.runtime_entry_points[0].section_index = 0U;
   policy.runtime_entry_points[0].runtime_address = 4U;
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&object, &policy, &source,
+    &source_plan, &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&source_plan, &plan_source));
+  M68K_C_ASSERT_STR(source, plan_source);
   M68K_C_ASSERT(strstr(source, "\tmovea.l $00000004.l,a6\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l loc_0_00000004.l,a6\n") == NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000018.l,a0\n") != NULL);
@@ -3796,6 +3809,9 @@ static int test_facts_v2_amiga_execbase_load_does_not_use_runtime_alias(void) {
   M68K_C_ASSERT(strstr(source, "loc_0_00000018:\n    ORG $4\nabs_0_00000004:\n\trts\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_render_plan_free_text(plan_source);
+  m68k_render_plan_destroy(&source_plan);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;
@@ -4208,7 +4224,10 @@ static int test_facts_v2_unmapped_absolute_jump_inside_copied_source_stays_numer
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kRenderPlan source_plan;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *plan_source = NULL;
   uint8_t bytes[44] = {
     0x41u, 0xfau, 0x00u, 0x1eu,
     0x43u, 0xf9u, 0x00u, 0x00u, 0x01u, 0x00u,
@@ -4230,14 +4249,19 @@ static int test_facts_v2_unmapped_absolute_jump_inside_copied_source_stays_numer
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&object, &policy, &source,
+    &source_plan, &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&source_plan, &plan_source));
+  M68K_C_ASSERT_STR(source, plan_source);
   M68K_C_ASSERT(strstr(source, "\tjmp $00000024.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjmp abs_0_00000104.l\n") == NULL);
   M68K_C_ASSERT(strstr(source, "abs_0_00000104:") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
+  m68k_render_plan_free_text(plan_source);
+  m68k_render_plan_destroy(&source_plan);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;
