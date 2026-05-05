@@ -2558,7 +2558,7 @@ def test_start_listing_job_ignores_stale_ready_job_without_rows(
         "finished_at": 1.0,
     }
 
-    payload = disasm_server._start_listing_job("bloodwych", generation="full")
+    payload = disasm_server._start_listing_job("bloodwych")
 
     assert payload["job_id"] != "stale-job"
     assert payload["status"] in {"queued", "building"}
@@ -2595,7 +2595,7 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
         or (rows, {(0, 0): {"library": "exec.library"}}, {}),
     )
 
-    disasm_server._build_rows_job("job-1", "bloodwych", generation="full")
+    disasm_server._build_rows_job("job-1", "bloodwych")
 
     assert disasm_server._PROJECT_ROW_CACHE["bloodwych"] == rows
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
@@ -2639,7 +2639,7 @@ def test_build_rows_job_reports_unsupported_c_backend(
 
     monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", fail)
 
-    disasm_server._build_rows_job("job-1", "bloodwych", generation="full")
+    disasm_server._build_rows_job("job-1", "bloodwych")
 
     assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
     assert disasm_server._ASYNC_JOBS["job-1"]["status"] == "failed"
@@ -2650,16 +2650,16 @@ def test_build_rows_job_stops_if_job_was_cleared() -> None:
     disasm_server._ASYNC_JOBS.clear()
 
     assert disasm_server._set_job_state("missing", status="building") is False
-    disasm_server._build_rows_job("missing", "bloodwych", generation="basic")
+    disasm_server._build_rows_job("missing", "bloodwych")
 
 
 def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPatch) -> None:
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._ASYNC_JOBS["job-basic"] = {
-        "job_id": "job-basic",
-        "job_kind": "basic_listing",
+    disasm_server._ASYNC_JOBS["job-full"] = {
+        "job_id": "job-full",
+        "job_kind": "full_listing",
         "project_id": "bloodwych",
         "result_project_id": "bloodwych",
         "status": "queued",
@@ -2674,19 +2674,19 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
         "error": None,
         "created_at": 1.0,
         "finished_at": None,
-        "target_generation": "basic",
+        "target_generation": "full",
     }
 
     def canceled_build(
         project_name: str,
         generation: str,
     ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]], dict[str, object]]:
-        del disasm_server._ASYNC_JOBS["job-basic"]
+        del disasm_server._ASYNC_JOBS["job-full"]
         return [ListingRow(row_id="stale", kind="instruction", text="nop\n")], {}, {}
 
     monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", canceled_build)
 
-    disasm_server._build_rows_job("job-basic", "bloodwych", generation="basic")
+    disasm_server._build_rows_job("job-full", "bloodwych")
 
     assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
     assert "bloodwych" not in disasm_server._PROJECT_ROW_GENERATION_CACHE
@@ -2742,7 +2742,7 @@ def test_full_listing_replaces_basic_rows(monkeypatch: pytest.MonkeyPatch) -> No
         "finished_at": None,
         "target_generation": "full",
     }
-    disasm_server._build_rows_job("job-full", "bloodwych", generation="full")
+    disasm_server._build_rows_job("job-full", "bloodwych")
 
     assert disasm_server._PROJECT_ROW_CACHE["bloodwych"] == full_rows
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
@@ -2973,7 +2973,7 @@ def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -
         },
     )
 
-    disasm_server._build_rows_job("job-1", "bloodwych", generation="full")
+    disasm_server._build_rows_job("job-1", "bloodwych")
 
     assert queued == ["bloodwych"]
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
@@ -3001,7 +3001,7 @@ def test_cached_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyP
         lambda project_name: queued.append(project_name),
     )
 
-    payload = disasm_server._start_listing_job("bloodwych", generation="full")
+    payload = disasm_server._start_listing_job("bloodwych")
 
     assert payload["status"] == "ready"
     assert queued == ["bloodwych"]

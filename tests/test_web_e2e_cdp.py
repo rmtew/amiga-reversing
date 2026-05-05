@@ -53,6 +53,11 @@ def _binary_project(project_name: str) -> ProjectRecord:
     )
 
 
+def _cache_full_project_rows(project_id: str, rows: list[ListingRow]) -> None:
+    disasm_server._PROJECT_ROW_CACHE[project_id] = rows
+    disasm_server._PROJECT_ROW_GENERATION_CACHE[project_id] = "full"
+
+
 def _temp_project_accessors(monkeypatch: pytest.MonkeyPatch, project_root: Path) -> None:
     monkeypatch.setattr(disasm_server, "PROJECT_ROOT", project_root)
     monkeypatch.setattr(
@@ -142,7 +147,7 @@ def test_brave_cdp_can_open_project_and_render_listing(monkeypatch: pytest.Monke
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
+    _cache_full_project_rows(project.id, rows)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -501,7 +506,7 @@ def test_brave_cdp_app_slot_navigation_drills_to_refs(monkeypatch: pytest.Monkey
             app_slot_refs=(AppSlotRef("app_0234", 0x0234, "A6", 0, "address"),),
         ),
     ]
-    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
+    _cache_full_project_rows(project.id, rows)
     disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
@@ -607,8 +612,8 @@ def test_brave_cdp_virtual_listing_scrolls_and_navigation_uses_global_index(
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "basic"
+    _cache_full_project_rows(project.id, rows)
+    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -692,8 +697,8 @@ def test_brave_cdp_virtual_listing_pagedown_fetches_low_latency(
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "basic"
+    _cache_full_project_rows(project.id, rows)
+    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -867,8 +872,8 @@ def test_brave_cdp_stats_overlay_shows_fetch_latency(monkeypatch: pytest.MonkeyP
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "basic"
+    _cache_full_project_rows(project.id, rows)
+    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -1167,7 +1172,7 @@ def test_brave_cdp_navigation_overlay_opens_on_listing(
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
+    _cache_full_project_rows(project.id, rows)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -1224,7 +1229,7 @@ def test_brave_cdp_navigation_overlay_list_scrolls_with_many_entries(
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
+    _cache_full_project_rows(project.id, rows)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -1309,7 +1314,7 @@ def test_brave_cdp_api_navigation_uses_row_index_for_duplicate_offsets(
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
+    _cache_full_project_rows(project.id, rows)
     disasm_server._PROJECT_API_CALL_CACHE[project.id] = {
         (1, 0x10): {
             "library": "intuition.library",
@@ -1435,7 +1440,7 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
+    _cache_full_project_rows(project.id, rows)
     disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
@@ -1571,7 +1576,7 @@ def test_brave_cdp_listing_layout_aligns_globals_and_shows_bytes(
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
+    _cache_full_project_rows(project.id, rows)
     disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
@@ -1696,7 +1701,7 @@ def test_brave_cdp_navigation_buttons_move_history(monkeypatch: pytest.MonkeyPat
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
+    _cache_full_project_rows(project.id, rows)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -1809,6 +1814,7 @@ def test_brave_cdp_upload_import_success(
         ListingRow(row_id="r0", kind="label", text="uploaded_start:\n", addr=0),
         ListingRow(row_id="r1", kind="instruction", text="rts\n", addr=0),
     ]
+    disasm_server._PROJECT_ROW_GENERATION_CACHE[expected_project_id] = "full"
     monkeypatch.setattr(
         disasm_server,
         "validate_amiga_hunk_executable_with_c_backend",
@@ -2058,6 +2064,7 @@ def test_brave_cdp_api_edit_modal_applies_struct_override(
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._PROJECT_ROW_CACHE[project.id] = initial_rows
+    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     disasm_server._PROJECT_API_CALL_CACHE[project.id] = {
         (0, 0x10): {
             "library": "intuition.library",
@@ -2183,7 +2190,7 @@ def test_brave_cdp_annotation_edit_modal_patches_entity(monkeypatch: pytest.Monk
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project.id] = rows
+    _cache_full_project_rows(project.id, rows)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)

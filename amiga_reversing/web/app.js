@@ -190,14 +190,6 @@ const CORPUS_GROUP_PREFIXES = {
 };
 
 const JOB_PHASE_LABELS = {
-  basic_listing: {
-    queued: "Queued",
-    build_session: "Opening file",
-    build_c_rows: "Building initial rows",
-    emit_rows: "Rendering listing",
-    done: "Done",
-    error: "Failed",
-  },
   full_listing: {
     queued: "Queued",
     build_session: "Opening file",
@@ -596,7 +588,7 @@ function renderProgressOverlay(job, titleOverride = null) {
 }
 
 function analysisStatusTextForJob(job) {
-  if (!job || !job.job_kind || !["basic_listing", "full_listing"].includes(job.job_kind)) {
+  if (!job || job.job_kind !== "full_listing") {
     return "";
   }
   if (job.status === "failed") {
@@ -604,13 +596,7 @@ function analysisStatusTextForJob(job) {
   }
   const labels = JOB_PHASE_LABELS[job.job_kind] || {};
   const phase = labels[job.phase_id] || labels[job.status] || "Analyzing";
-  if (job.job_kind === "basic_listing") {
-    return `Loading initial listing: ${phase}`;
-  }
-  if (job.job_kind === "full_listing") {
-    return `Analyzing full listing: ${phase}`;
-  }
-  return "";
+  return `Analyzing full listing: ${phase}`;
 }
 
 function renderAnalysisStatus() {
@@ -1211,7 +1197,7 @@ function waitForAsyncJobEvents(job, token, renderOverlay) {
         settle(reject, new Error("stale"));
         return;
       }
-      const isListingJob = ["basic_listing", "full_listing"].includes(jobState.job_kind);
+      const isListingJob = jobState.job_kind === "full_listing";
       updateAnalysisStatusFromJob(jobState);
       if (
         isListingJob

@@ -1019,7 +1019,7 @@ def _job_payload(job_id: str) -> AsyncJobPayload:
     with _JOB_LOCK:
         job = dict(_ASYNC_JOBS[job_id])
         project_id = job.get("project_id")
-        if isinstance(project_id, str) and job.get("job_kind") in {"basic_listing", "full_listing"}:
+        if isinstance(project_id, str) and job.get("job_kind") == "full_listing":
             job["visible_generation"] = _PROJECT_ROW_GENERATION_CACHE.get(project_id) or (
                 "full" if project_id in _PROJECT_ROW_CACHE else None
             )
@@ -1096,7 +1096,7 @@ def _cancel_listing_jobs(project_name: str | None = None) -> None:
         stale_job_ids = [
             job_id
             for job_id, job in _ASYNC_JOBS.items()
-            if job["job_kind"] in {"basic_listing", "full_listing"}
+            if job["job_kind"] == "full_listing"
             and (project_name is None or job["project_id"] == project_name)
         ]
         for job_id in stale_job_ids:
@@ -1216,10 +1216,6 @@ def _project_create_phase_count(filename: str) -> int:
     )
 
 
-def _listing_job_kind(generation: str) -> str:
-    return f"{generation}_listing"
-
-
 def _file_cache_stamp(path: Path) -> str:
     try:
         stat = path.stat()
@@ -1257,24 +1253,27 @@ def _project_listing_cache_key(project_name: str) -> str:
     return "|".join(parts)
 
 
-def _cache_satisfies_generation(project_name: str, generation: str, cache_key: str) -> bool:
+def _cache_satisfies_full_generation(project_name: str, cache_key: str) -> bool:
     if project_name not in _PROJECT_ROW_CACHE_KEY:
-        return project_name in _PROJECT_ROW_CACHE
+        return (
+            project_name in _PROJECT_ROW_CACHE
+            and _PROJECT_ROW_GENERATION_CACHE.get(project_name) == "full"
+        )
     if _PROJECT_ROW_CACHE_KEY.get(project_name) != cache_key:
         return False
     cached_generation = _PROJECT_ROW_GENERATION_CACHE.get(project_name)
-    return cached_generation == generation or (generation == "basic" and cached_generation == "full")
+    return cached_generation == "full"
 
 
-def _build_rows_job(job_id: str, project_name: str, generation: str = "full") -> None:
+def _build_rows_job(job_id: str, project_name: str) -> None:
     phase_count = _LISTING_PHASE_COUNT
     rows: list[ListingRow] = []
     try:
         cache_key = _project_listing_cache_key(project_name)
-        _log_event("listing_job start", job_id=job_id, project=project_name, generation=generation)
+        _log_event("listing_job start", job_id=job_id, project=project_name, generation="full")
         if not _set_job_state(job_id, status="building"):
             return
-        generations = ["basic", "full"] if generation == "full" else [generation]
+        generations = ["basic", "full"]
         for generation_index, active_generation in enumerate(generations):
             build_phase = "build_basic_rows" if active_generation == "basic" else "build_c_rows"
             emit_phase = "emit_basic_rows" if active_generation == "basic" else "emit_rows"
@@ -1348,7 +1347,7 @@ def _build_rows_job(job_id: str, project_name: str, generation: str = "full") ->
                 job_id,
                 total_rows=len(rows),
                 visible_generation=active_generation,
-                target_generation=generation,
+                target_generation="full",
             ):
                 return
             if generation_index + 1 >= len(generations):
@@ -1357,7 +1356,7 @@ def _build_rows_job(job_id: str, project_name: str, generation: str = "full") ->
             "listing_job done",
             job_id=job_id,
             project=project_name,
-            generation=generation,
+            generation="full",
             total_rows=len(rows),
         )
         _set_job_state(
@@ -1372,11 +1371,10 @@ def _build_rows_job(job_id: str, project_name: str, generation: str = "full") ->
             progress_percent=100,
             total_rows=len(rows),
             visible_generation=_PROJECT_ROW_GENERATION_CACHE.get(project_name),
-            target_generation=generation,
+            target_generation="full",
             finished_at=time.time(),
         )
-        if generation == "full":
-            _start_reproduction_job_if_needed(project_name)
+        _start_reproduction_job_if_needed(project_name)
     except Exception as exc:  # pragma: no cover
         _log_event(
             "listing_job failed", job_id=job_id, project=project_name, error=str(exc)
@@ -1390,14 +1388,14 @@ def _build_rows_job(job_id: str, project_name: str, generation: str = "full") ->
         )
 
 
-def _start_listing_job(project_name: str, generation: str = "full") -> AsyncJobPayload:
+def _start_listing_job(project_name: str) -> AsyncJobPayload:
     cache_key = _project_listing_cache_key(project_name)
     cached_rows = _PROJECT_ROW_CACHE.get(project_name)
-    if cached_rows is not None and _cache_satisfies_generation(project_name, generation, cache_key):
-        job_id = f"cached-{generation}-{project_name}"
+    if cached_rows is not None and _cache_satisfies_full_generation(project_name, cache_key):
+        job_id = f"cached-full-{project_name}"
         payload: AsyncJobPayload = {
             "job_id": job_id,
-            "job_kind": _listing_job_kind(generation),
+            "job_kind": "full_listing",
             "project_id": project_name,
             "result_project_id": project_name,
             "status": "ready",
@@ -1413,19 +1411,18 @@ def _start_listing_job(project_name: str, generation: str = "full") -> AsyncJobP
             "created_at": time.time(),
             "finished_at": time.time(),
             "visible_generation": _PROJECT_ROW_GENERATION_CACHE.get(project_name) or "full",
-            "target_generation": generation,
+            "target_generation": "full",
             "cache_key": cache_key,
         }
         with _JOB_LOCK:
             _ASYNC_JOBS[job_id] = payload
-        if payload.get("visible_generation") == "full":
-            _start_reproduction_job_if_needed(project_name)
+        _start_reproduction_job_if_needed(project_name)
         return payload
 
     with _JOB_LOCK:
         for _existing_id, job in _ASYNC_JOBS.items():
             if (
-                job["job_kind"] == _listing_job_kind(generation)
+                job["job_kind"] == "full_listing"
                 and job["project_id"] == project_name
                 and job.get("cache_key") == cache_key
                 and job["status"] in {"queued", "building"}
@@ -1434,7 +1431,7 @@ def _start_listing_job(project_name: str, generation: str = "full") -> AsyncJobP
         job_id = str(uuid.uuid4())
         _ASYNC_JOBS[job_id] = {
             "job_id": job_id,
-            "job_kind": _listing_job_kind(generation),
+            "job_kind": "full_listing",
             "project_id": project_name,
             "result_project_id": project_name,
             "status": "queued",
@@ -1450,13 +1447,13 @@ def _start_listing_job(project_name: str, generation: str = "full") -> AsyncJobP
             "created_at": time.time(),
             "finished_at": None,
             "visible_generation": _PROJECT_ROW_GENERATION_CACHE.get(project_name),
-            "target_generation": generation,
+            "target_generation": "full",
             "cache_key": cache_key,
         }
 
     worker = threading.Thread(
         target=_build_rows_job,
-        args=(job_id, project_name, generation),
+        args=(job_id, project_name),
         daemon=True,
     )
     worker.start()
@@ -1464,7 +1461,7 @@ def _start_listing_job(project_name: str, generation: str = "full") -> AsyncJobP
 
 
 def _start_progressive_listing_jobs(project_name: str) -> AsyncJobPayload:
-    return _start_listing_job(project_name, generation="full")
+    return _start_listing_job(project_name)
 
 
 def _reproduction_cache_key(project_name: str) -> str:
