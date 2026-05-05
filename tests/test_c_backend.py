@@ -3886,10 +3886,12 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     assert suggestions_by_offset[0x05E4]["runtime_copy_size"] == 18016
     assert suggestions_by_offset[0x05E4]["runtime_copy_kind"] == 2
     assert suggestions_by_offset[0x05E4]["runtime_copy_conflicting"] is False
+    assert suggestions_by_offset[0x05E4]["reason"] == "runtime_copy_oversize"
     assert suggestions_by_offset[0x4C40]["runtime_copy_address"] == 0x4000
     assert suggestions_by_offset[0x4C40]["runtime_copy_size"] == 168396
     assert suggestions_by_offset[0x4C40]["runtime_copy_kind"] == 3
     assert suggestions_by_offset[0x4C40]["runtime_copy_conflicting"] is True
+    assert suggestions_by_offset[0x4C40]["reason"] == "runtime_copy_conflicting"
     for suggestion in suggestions:
         assert suggestion["status"] == "needs_runtime_metadata"
         assert "load_address" not in suggestion

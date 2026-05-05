@@ -1148,6 +1148,9 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         status = _string_value(suggestion.get("status"))
         if status:
             bag.add(f"derived_target_suggestion_status:{_safe_part(status)}", example=example)
+        reason = _string_value(suggestion.get("reason"))
+        if reason:
+            bag.add(f"derived_target_suggestion_reason:{_safe_part(reason)}", example=example)
         runtime_copy_address = _int_value(suggestion.get("runtime_copy_address"))
         if runtime_copy_address is not None:
             bag.add("decompression:runtime_copy", example=example)
@@ -2011,6 +2014,9 @@ def _decompression_analysis_xrefs(
             features.append("derived-decompressed-target")
         if status:
             features.append(f"derived_target_suggestion_status:{_safe_part(status)}")
+        reason = _string_value(suggestion.get("reason"))
+        if reason:
+            features.append(f"derived_target_suggestion_reason:{_safe_part(reason)}")
         runtime_copy_address = _int_value(suggestion.get("runtime_copy_address"))
         runtime_copy_size = _int_value(suggestion.get("runtime_copy_size"))
         packed_size = _int_value(suggestion.get("packed_size"))

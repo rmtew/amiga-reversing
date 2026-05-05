@@ -643,9 +643,23 @@ static int automatic_decompression_candidate_is_useful(const PlatformDecompressi
   return 1;
 }
 
+static const char *decompression_suggestion_reason_local(const PlatformDecompressionIdentifyResult *result,
+    const M68kRuntimeViewIR *runtime_copy_view) {
+  if (result == NULL) return "invalid_record";
+  if (runtime_copy_view == NULL) return "missing_runtime_copy_evidence";
+  if (runtime_copy_view->kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY)
+    return "runtime_copy_conflicting";
+  if (runtime_copy_view->size < result->packed_size) return "runtime_copy_short";
+  if (runtime_copy_view->size > result->packed_size) return "runtime_copy_oversize";
+  return "missing_decompressed_load_entry";
+}
+
 static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
     const PlatformDecompressionIdentifyResult *result, const M68kRuntimeViewIR *runtime_copy_view) {
-  if (json_builder_append(builder, "{\"kind\":\"decompressed_payload\",\"status\":\"needs_runtime_metadata\"") != 0)
+  const char *reason = decompression_suggestion_reason_local(result, runtime_copy_view);
+  if (json_builder_append(builder, "{\"kind\":\"decompressed_payload\",\"status\":\"needs_runtime_metadata\"") != 0 ||
+      json_builder_append(builder, ",\"reason\":") != 0 ||
+      json_builder_append_json_string(builder, reason) != 0)
     return -1;
   if (json_builder_appendf(builder,
       ",\"source_section\":%u,\"source_section_offset\":%u,\"packed_size\":%u,\"decompressed_size\":%u",

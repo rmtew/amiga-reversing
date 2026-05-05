@@ -40,6 +40,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         {
                             "kind": "decompressed_payload",
                             "status": "needs_runtime_metadata",
+                            "reason": "runtime_copy_conflicting",
                             "source_section": 0,
                             "source_section_offset": 0x4C40,
                             "packed_size": 168391,
@@ -350,6 +351,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["decompression:has_output_hash"], 1)
         self.assertEqual(counts["derived_target_suggestion:decompressed_payload"], 1)
         self.assertEqual(counts["derived_target_suggestion_status:needs_runtime_metadata"], 1)
+        self.assertEqual(counts["derived_target_suggestion_reason:runtime_copy_conflicting"], 1)
         self.assertEqual(counts["derived-decompressed-target"], 1)
         self.assertEqual(counts["decompression:runtime_copy"], 1)
         self.assertEqual(counts["decompression:runtime_copy_kind:3"], 1)
@@ -542,6 +544,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                     {
                         "kind": "decompressed_payload",
                         "status": "needs_runtime_metadata",
+                        "reason": "runtime_copy_conflicting",
                         "source_section": 0,
                         "source_section_offset": 0x4C40,
                         "packed_size": 168391,
@@ -746,6 +749,15 @@ class TargetUsageManifestTests(unittest.TestCase):
             by_feature,
         )
         self.assertIn(("derived-decompressed-target", "derived_target_suggestion", 0x4C40, 6), by_feature)
+        self.assertIn(
+            (
+                "derived_target_suggestion_reason:runtime_copy_conflicting",
+                "derived_target_suggestion",
+                0x4C40,
+                6,
+            ),
+            by_feature,
+        )
         self.assertIn(("decompression:runtime_copy", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("decompression:runtime_copy_kind:3", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("decompression:runtime_copy_conflicting", "derived_target_suggestion", 0x4C40, 6), by_feature)

@@ -64,7 +64,9 @@ A first C decompression provider layer now exists:
   `platform_file_lib.dll` for the Python C backend wrapper.
 - Facts-v2 analysis JSON now includes top-level `packed_payloads[]` and
   `derived_target_suggestions[]` from C provider scanning of loaded target
-  sections.
+  sections. Non-materialising suggestions include a `reason` field so callers
+  can distinguish missing runtime evidence, conflicting runtime copies, copy
+  size mismatch, and missing decompressed load/entry metadata.
 - Facts-v2 listing-with-analysis JSON uses the same decorated analysis object,
   so corpus indexing no longer loses decompression facts when it asks C for
   listing rows.
@@ -345,6 +347,8 @@ Current retained output:
    `C: Compact` hits, from becoming automatic `packed_payloads[]`.
 21. Done: add a build command for refreshing the staged Ancient provider binary
    from the local Ancient clone: `cmd /c src\build.bat build-ancient-provider`.
+22. Done: add C-emitted non-materialisation reasons to
+   `derived_target_suggestions[]` and index them as corpus tags/xrefs.
 
 ## Current Corpus Query Proof
 
@@ -370,5 +374,8 @@ After rebuilding `corpus/target_usage_manifest.jsonl`:
 - `decompression:runtime_copy_oversize` finds both Carrier parent streams:
   `$05E4` is copied as 18016 bytes over a 18012-byte provider range, and
   `$4C40` is copied as 168396 bytes over a 168391-byte provider range.
+- `derived_target_suggestion_reason:runtime_copy_oversize` and
+  `derived_target_suggestion_reason:runtime_copy_conflicting` separate the two
+  Carrier blockers instead of leaving both as opaque `needs_runtime_metadata`.
 - These matches come from C `packed_payloads[]` records, not Python compression
   scanning, or from retained child provenance already written by the project.
