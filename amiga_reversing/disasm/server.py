@@ -31,6 +31,7 @@ from amiga_reversing.disasm.api import (
 )
 from amiga_reversing.disasm.binary_source import write_source_descriptor
 from amiga_reversing.disasm.c_backend import (
+    build_project_listing_index_with_c_backend,
     build_project_rows_generation_with_c_backend_profile,
     extract_disk_entry_with_c_backend,
     type_catalog_from_c_backend,
@@ -2213,6 +2214,31 @@ def route_request(
             return {
                 "ok": True,
                 "data": _annotate_listing_payload(project_name, payload),
+            }
+        if (
+            method == "GET"
+            and len(parts) == 5
+            and parts[3] == "listing"
+            and parts[4] == "index"
+        ):
+            project = get_project(project_name)
+            if project.kind != "binary":
+                raise ValueError(
+                    f"Project {project_name} does not expose a disassembly listing"
+                )
+            if not project.ready:
+                return {
+                    "ok": True,
+                    "data": {
+                        "analysis_generation": None,
+                        "analysis_backend": None,
+                        "total_rows": 0,
+                        "profile": {},
+                    },
+                }
+            return {
+                "ok": True,
+                "data": build_project_listing_index_with_c_backend(project_name),
             }
         if (
             method == "GET"

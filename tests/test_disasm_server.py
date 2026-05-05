@@ -111,6 +111,58 @@ def test_route_listing_anchor_code_returns_window_at_non_address_row(
     assert window_rows[0]["text"].strip() == "SECTION section,code"
 
 
+def test_route_listing_index_uses_source_free_backend(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: list[str] = []
+
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "build_project_listing_index_with_c_backend",
+        lambda project_name: captured.append(project_name)
+        or {
+            "analysis_generation": "full",
+            "analysis_backend": "facts_v2",
+            "total_rows": 123,
+            "profile": {"facts_v2": {"asm_source_enabled": False}},
+        },
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing/index",
+        {},
+    )
+
+    assert captured == ["bloodwych"]
+    assert payload["data"]["total_rows"] == 123
+    assert payload["data"]["profile"]["facts_v2"]["asm_source_enabled"] is False
+
+
+def test_route_listing_index_returns_empty_for_unready_project(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=False),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing/index",
+        {},
+    )
+
+    assert payload["data"]["total_rows"] == 0
+    assert payload["data"]["profile"] == {}
+
+
 def _disk_manifest_payload() -> dict[str, object]:
     return {
         "schema_version": 1,
