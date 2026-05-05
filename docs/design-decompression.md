@@ -273,8 +273,8 @@ Current retained output:
 12. Partly done: imported disk projects can materialise child targets from
    complete C records. Corpus indexing still indexes retained children and C
    facts, but does not create new child targets.
-13. Add comparator targets for at least one non-Carrier packed payload before
-   broadening policy.
+13. Done: add a non-Carrier comparator regression using the Voodoo Nightmare
+   `Trainer` RNC1 payload from the corpus resources.
 14. Done: raw decompressed child reproduction assembles C-rendered raw source
    to payload bytes and compares against the decompressed binary.
 

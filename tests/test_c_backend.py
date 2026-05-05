@@ -4,6 +4,7 @@ import ctypes
 import json
 import subprocess
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 
@@ -3859,6 +3860,39 @@ def test_real_dll_carrier_decompression_suggestion_requires_runtime_metadata() -
     assert suggestions[0]["source_section_offset"] == 0x4C40
     assert "load_address" not in suggestions[0]
     assert "entrypoint" not in suggestions[0]
+
+
+def test_real_dll_voodoo_trainer_decompression_comparator(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+
+    archive = PROJECT_ROOT / "resources" / "platform_amiga" / (
+        "Voodoo Nightmare (1990)(Palace)[cr CLS][t +13 Flashtro].zip"
+    )
+    member = "Voodoo Nightmare (1990)(Palace)[cr CLS][t +13 Flashtro].adf"
+    if not archive.exists():
+        pytest.skip("Voodoo Nightmare comparator archive is missing")
+
+    adf_path = tmp_path / "voodoo.adf"
+    with ZipFile(archive) as zip_file:
+        adf_path.write_bytes(zip_file.read(member))
+    trainer_path = tmp_path / "trainer"
+    trainer_path.write_bytes(extract_disk_entry_with_c_backend(adf_path, "Trainer", project_root=PROJECT_ROOT))
+
+    analysis = analyze_binary_source_with_c_backend(trainer_path, project_root=PROJECT_ROOT)
+    payloads = analysis["packed_payloads"]
+    suggestions = analysis["derived_target_suggestions"]
+
+    assert len(payloads) == 1
+    assert payloads[0]["provider_id"] == "ancient-cli"
+    assert payloads[0]["codec_id"] == "rnc1"
+    assert payloads[0]["source_section"] == 1
+    assert payloads[0]["source_section_offset"] == 8
+    assert payloads[0]["packed_size"] == 11406
+    assert payloads[0]["decompressed_size"] == 84980
+    assert len(suggestions) == 1
+    assert suggestions[0]["status"] == "needs_runtime_metadata"
+    assert suggestions[0]["source_section"] == 1
+    assert suggestions[0]["source_section_offset"] == 8
 
 
 def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
