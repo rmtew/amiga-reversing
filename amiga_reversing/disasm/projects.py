@@ -151,6 +151,19 @@ def mark_project_updated(project_dir: Path, *, timestamp: datetime | None = None
     )
 
 
+def set_project_origin(project_dir: Path, *, origin: dict[str, object], timestamp: datetime | None = None) -> None:
+    metadata = _load_project_metadata(project_dir)
+    _save_project_metadata(
+        project_dir,
+        ProjectMetadata(
+            schema_version=metadata.schema_version,
+            created_at=metadata.created_at,
+            updated_at=(timestamp or datetime.now(UTC)).isoformat(),
+            origin=dict(origin),
+        ),
+    )
+
+
 def _load_state(project_root: Path) -> BrowserState:
     state_path = _state_path(project_root)
     if not state_path.exists():

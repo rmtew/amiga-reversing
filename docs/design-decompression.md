@@ -89,6 +89,9 @@ A first C decompression provider layer now exists:
   targets from C `derived_target_suggestions[]`, but only when the C record has
   `status: "materializable"` plus concrete source section, packed size,
   decompressed size, load address, and entrypoint metadata.
+- Imported disk projects now also refresh an existing generated decompressed
+  child from a matching C `materializable` record instead of silently skipping
+  it, so stale provenance can be reconciled without deleting the child first.
 - Carrier's retained-child RNC stream is identified both as an extracted range
   file and in the original parent file at offset `$4C40`. Parent analysis also
   identifies a smaller RNC stream at `$05E4`; it remains conservative because no
@@ -329,9 +332,9 @@ Current retained output:
 9. Done: add Python access to C section-range decompression.
 10. Done: include nested disk project targets in corpus usage indexing.
 11. Done: index retained decompressed child provenance from `decompression.json`.
-12. Partly done: imported disk projects can materialise child targets from
-   complete C records. Corpus indexing still indexes retained children and C
-   facts, but does not create new child targets.
+12. Partly done: imported disk projects can materialise or refresh child
+   targets from complete C records. Corpus indexing still indexes retained
+   children and C facts, but does not create new child targets.
 13. Done: add a non-Carrier comparator regression using the Voodoo Nightmare
    `Trainer` RNC1 payload from the corpus resources.
 14. Done: raw decompressed child reproduction assembles C-rendered raw source
@@ -358,6 +361,9 @@ Current retained output:
 23. Done: infer a materializable decompressed raw child when C analysis has a
    runtime load candidate and generated M68K decode proves the decompressed
    image's initial absolute jump stays inside that runtime image.
+24. Done: refresh an existing imported decompressed child target from the C
+   materialisation record instead of leaving stale generated provenance in
+   place.
 
 ## Current Corpus Query Proof
 

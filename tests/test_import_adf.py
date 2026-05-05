@@ -41,7 +41,11 @@ from amiga_reversing.amiga_disk.models import (
     TrackloaderAnalysis,
     TrackSpan,
 )
-from amiga_reversing.amiga_disk.project import create_disk_project, import_adf
+from amiga_reversing.amiga_disk.project import (
+    _materialize_decompressed_payload_children,
+    create_disk_project,
+    import_adf,
+)
 from amiga_reversing.disasm.target_metadata import TargetMetadata
 from amiga_reversing.tools.analyze_disk import print_summary
 from src.tests.test_platform_amiga_disk import (
@@ -614,6 +618,115 @@ def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
     assert decompression["compressor"]["id"] == "rnc1-old"
     assert decompression["packed"]["section_offset"] == 0x1000
     assert decompression["decompressed"]["sha256"] == "22" * 32
+
+
+def test_import_adf_refreshes_existing_c_decompressed_child(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+    expected_packed_size = 10
+    expected_bytes = b"\x4E\x75\x4E\x75"
+    expected_hash = "22" * 32
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
+        lambda adf_file, entry_path, *, project_root: b"packed-parent",
+    )
+
+    def fake_analysis(source_path: str | Path, *, project_root: Path) -> dict[str, object]:
+        return {
+            "derived_target_suggestions": [
+                {
+                    "kind": "decompressed_payload",
+                    "status": "materializable",
+                    "source_section": 0,
+                    "source_section_offset": 0x1000,
+                    "packed_size": expected_packed_size,
+                    "decompressed_size": len(expected_bytes),
+                    "load_address": 0x4000,
+                    "entrypoint": 0x4000,
+                    "codec_id": "rnc1-old",
+                    "codec_name": "RNC1: Rob Northen RNC1 Compressor (old)",
+                    "source_sha256": "11" * 32,
+                    "decompressed_sha256": expected_hash,
+                }
+            ]
+        }
+
+    def fake_decompress(
+        source_kind: str,
+        source_path: str | Path,
+        section_index: int,
+        section_offset: int,
+        packed_size: int,
+        output_path: str | Path,
+        *,
+        project_root: Path,
+    ) -> dict[str, object]:
+        assert packed_size == expected_packed_size
+        Path(output_path).write_bytes(expected_bytes)
+        return {
+            "packed_payloads": [
+                {
+                    "found": True,
+                    "provider_id": "ancient-cli",
+                    "provider_path": "ext/tools/ancient/Ancient.exe",
+                    "confidence": "provider-identified",
+                    "source_sha256": "11" * 32,
+                    "decompressed_sha256": expected_hash,
+                }
+            ]
+        }
+
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend", fake_analysis)
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.decompress_packed_section_range_with_c_backend",
+        fake_decompress,
+    )
+
+    disk_children_root = project_root / "targets" / "amiga_disk_demo" / "targets"
+    disk_children_root.mkdir(parents=True)
+    _, first_children, _ = _materialize_decompressed_payload_children(
+        adf_file=adf_path,
+        disk_id="demo",
+        disk_children_root=disk_children_root,
+        parent_local_target_id="amiga_hunk_c__run_dcce9fe5",
+        parent_target_name="amiga_disk_demo__amiga_hunk_c__run_dcce9fe5",
+        parent_entry_path="c/Run",
+        project_root=project_root,
+    )
+    child = first_children[0]
+    child_dir = project_root / child.target_path
+    assert (child_dir / "binary.bin").read_bytes() == expected_bytes
+
+    expected_packed_size = 12
+    expected_bytes = b"\x60\x00\x00\x02"
+    expected_hash = "33" * 32
+    _, second_children, _ = _materialize_decompressed_payload_children(
+        adf_file=adf_path,
+        disk_id="demo",
+        disk_children_root=disk_children_root,
+        parent_local_target_id="amiga_hunk_c__run_dcce9fe5",
+        parent_target_name="amiga_disk_demo__amiga_hunk_c__run_dcce9fe5",
+        parent_entry_path="c/Run",
+        project_root=project_root,
+    )
+    refreshed = second_children[0]
+    assert refreshed.target_name == child.target_name
+    assert (child_dir / "binary.bin").read_bytes() == expected_bytes
+    decompression = json.loads((child_dir / "decompression.json").read_text(encoding="utf-8"))
+    assert decompression["packed"]["size"] == 12
+    assert decompression["decompressed"]["sha256"] == "33" * 32
+    project = json.loads((child_dir / ".project.json").read_text(encoding="utf-8"))
+    assert project["origin"]["packed_size"] == 12
 
 
 def test_import_adf_does_not_materialize_decompressed_child_without_runtime_metadata(

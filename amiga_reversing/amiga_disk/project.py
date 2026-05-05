@@ -160,7 +160,7 @@ def _materialize_decompressed_payload_children(
     parent_entry_path: str,
     project_root: Path,
 ) -> tuple[list[dict[str, object]], list[ImportedTarget], list[Path]]:
-    from amiga_reversing.disasm.projects import create_project_at_path, mark_project_updated
+    from amiga_reversing.disasm.projects import create_project_at_path, mark_project_updated, set_project_origin
 
     try:
         parent_bytes = extract_disk_entry_with_c_backend(adf_file, parent_entry_path, project_root=project_root)
@@ -192,47 +192,58 @@ def _materialize_decompressed_payload_children(
             local_target_id = _decompressed_payload_child_local_id(parent_local_target_id, suggestion)
             target_name = disk_child_project_id(disk_id, local_target_id)
             target_dir = disk_children_root / local_target_id
-            if target_dir.exists():
-                continue
             child_entry_path = (
                 f"{parent_entry_path}::{_str_field(suggestion, 'codec_id') or 'decompressed'}_"
                 f"{source_section_offset:08x}"
             )
-            create_project_at_path(
-                disk_child_target_relpath(disk_id, local_target_id).as_posix(),
-                project_root=project_root,
-                origin={
-                    "kind": "derived_decompressed_payload",
-                    "parent_disk_id": disk_id,
-                    "parent_target": parent_target_name,
-                    "parent_entry_path": parent_entry_path,
-                    "child_entry_path": child_entry_path,
-                    "target_role": "decompressed_payload",
-                    "target_type": "raw_binary",
-                    "codec_id": _str_field(suggestion, "codec_id"),
-                    "codec_name": _str_field(suggestion, "codec_name"),
-                    "packed_section_offset": source_section_offset,
-                    "packed_size": packed_size,
-                    "decompressed_size": decompressed_size,
-                    "load_address": load_address,
-                    "entrypoint": entrypoint,
-                },
-            )
-            created_dirs.append(target_dir)
+            origin = {
+                "kind": "derived_decompressed_payload",
+                "parent_disk_id": disk_id,
+                "parent_target": parent_target_name,
+                "parent_entry_path": parent_entry_path,
+                "child_entry_path": child_entry_path,
+                "target_role": "decompressed_payload",
+                "target_type": "raw_binary",
+                "codec_id": _str_field(suggestion, "codec_id"),
+                "codec_name": _str_field(suggestion, "codec_name"),
+                "packed_section_offset": source_section_offset,
+                "packed_size": packed_size,
+                "decompressed_size": decompressed_size,
+                "load_address": load_address,
+                "entrypoint": entrypoint,
+            }
+            if target_dir.exists() and not target_dir.is_dir():
+                continue
+            if not target_dir.exists():
+                create_project_at_path(
+                    disk_child_target_relpath(disk_id, local_target_id).as_posix(),
+                    project_root=project_root,
+                    origin=origin,
+                )
+                created_dirs.append(target_dir)
             output_path = target_dir / "binary.bin"
-            result = decompress_packed_section_range_with_c_backend(
-                "amiga-hunk",
-                parent_temp_path,
-                source_section,
-                source_section_offset,
-                packed_size,
-                output_path,
-                project_root=project_root,
-            )
-            packed_payloads = result.get("packed_payloads")
-            packed_payload = packed_payloads[0] if isinstance(packed_payloads, list) and packed_payloads else {}
-            if not isinstance(packed_payload, dict) or packed_payload.get("found") is not True:
-                raise DiskAnalysisError(f"C decompression did not materialise {child_entry_path}")
+            temp_output_path = target_dir / ".decompression-output.tmp"
+            try:
+                result = decompress_packed_section_range_with_c_backend(
+                    "amiga-hunk",
+                    parent_temp_path,
+                    source_section,
+                    source_section_offset,
+                    packed_size,
+                    temp_output_path,
+                    project_root=project_root,
+                )
+                packed_payloads = result.get("packed_payloads")
+                packed_payload = packed_payloads[0] if isinstance(packed_payloads, list) and packed_payloads else {}
+                if not isinstance(packed_payload, dict) or packed_payload.get("found") is not True:
+                    raise DiskAnalysisError(f"C decompression did not materialise {child_entry_path}")
+                temp_output_path.replace(output_path)
+            finally:
+                try:
+                    temp_output_path.unlink()
+                except FileNotFoundError:
+                    pass
+            set_project_origin(target_dir, origin=origin)
             source_sha256 = _str_field(packed_payload, "source_sha256") or _str_field(suggestion, "source_sha256")
             decompressed_sha256 = (
                 _str_field(packed_payload, "decompressed_sha256")
