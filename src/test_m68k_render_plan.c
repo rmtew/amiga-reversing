@@ -109,12 +109,76 @@ static int test_render_plan_rejects_rows_without_complete_lines(void) {
   return 0;
 }
 
+static int test_render_plan_builds_source_file_body_genam_fixture(void) {
+  M68kSourceFileIR source_file;
+  M68kSectionIR section;
+  M68kStatementIR stmt;
+  M68kRenderPolicy policy;
+  M68kRenderPlan plan;
+  M68kRenderPlanRow *row;
+  const M68kRenderPlanRow *found;
+  char *full_text = NULL;
+  uint8_t bytes[3] = {0x01U, 0x02U, 0x03U};
+  const char *expected =
+    "    SECTION section_0,code,$7\n"
+    "start:\n"
+    "    DC.B    $01,$02,$03\n"
+    "    DS.B    $4\n";
+  m68k_ir_source_file_create(&source_file);
+  m68k_ir_section_create(&section);
+  m68k_render_policy_init_for_syntax(&policy, M68K_IR_SYNTAX_GENAM);
+  M68K_C_ASSERT_INT(0, m68k_ir_section_set_name(&section, "section_0"));
+  section.kind = M68K_SECTION_CODE;
+  section.size = 7U;
+  section.data_size = 3U;
+
+  m68k_ir_statement_init(&stmt);
+  stmt.kind = M68K_STATEMENT_LABEL;
+  stmt.offset = 0U;
+  stmt.label_name = "start";
+  M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &stmt));
+
+  m68k_ir_statement_init(&stmt);
+  stmt.kind = M68K_STATEMENT_DATA;
+  stmt.offset = 0U;
+  stmt.u.data.kind = M68K_DATA_ITEM_BYTES;
+  stmt.u.data.data = bytes;
+  stmt.u.data.size = sizeof(bytes);
+  M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &stmt));
+
+  m68k_ir_statement_init(&stmt);
+  stmt.kind = M68K_STATEMENT_RESERVE;
+  stmt.offset = 3U;
+  stmt.u.reserve_size = 4U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &stmt));
+
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
+  m68k_ir_section_destroy(&section);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_build_source_file_body(&source_file, &policy, &plan, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&plan, &full_text));
+  M68K_C_ASSERT_STR(expected, full_text);
+  M68K_C_ASSERT_U32(4U, (uint32_t)plan.row_count);
+  row = &plan.rows[2];
+  M68K_C_ASSERT_U32(M68K_RENDER_PLAN_ROW_DATA, row->kind);
+  M68K_C_ASSERT_U32(0U, row->source_offset);
+  M68K_C_ASSERT_U32(3U, row->source_size);
+  found = m68k_render_plan_find_row_for_source_offset(&plan, 0U, 2U);
+  M68K_C_ASSERT(found != NULL);
+  M68K_C_ASSERT_U32(M68K_RENDER_PLAN_ROW_DATA, found->kind);
+
+  m68k_render_plan_free_text(full_text);
+  m68k_render_plan_destroy(&plan);
+  m68k_ir_source_file_destroy(&source_file);
+  return 0;
+}
+
 int m68k_c_render_plan_tests(void) {
   static const M68kCTestCase cases[] = {
     {"line_counts_and_order", test_render_plan_line_counts_and_order},
     {"line_and_address_lookup", test_render_plan_line_and_address_lookup},
     {"window_emission_matches_full_slice", test_render_plan_window_emission_matches_full_slice},
-    {"rejects_rows_without_complete_lines", test_render_plan_rejects_rows_without_complete_lines}
+    {"rejects_rows_without_complete_lines", test_render_plan_rejects_rows_without_complete_lines},
+    {"builds_source_file_body_genam_fixture", test_render_plan_builds_source_file_body_genam_fixture}
   };
   return m68k_c_test_run_suite("m68k_render_plan", cases, sizeof(cases) / sizeof(cases[0]));
 }

@@ -28,6 +28,11 @@ API. It proves the basic mechanics first: ordered rows, explicit line counts,
 byte offsets, line lookup, source-offset lookup, runtime-address lookup, and
 full/window emission from the same row text.
 
+The module can also build body rows directly from `M68kSourceFileIR` sections
+and statements. This is intentionally limited to section/body rows for now; it
+does not yet own include, RS/app-slot, equate, or full facts_v2 header
+generation.
+
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
 
@@ -253,8 +258,9 @@ The first retained step should be small: a synthetic render-plan fixture that
 proves line accounting and window emission. Do not start by rewriting the whole
 renderer.
 
-This first step now exists. The next step should attach the plan to a small real
-GenAm or MonAm fixture before Bloodwych is used as the pressure target.
+This first step now exists. A GenAm-style source-IR fixture now proves direct
+body-row plan construction. The next step should use the same model in a real
+listing/source path before Bloodwych is used as the pressure target.
 
 ## Required Tests
 

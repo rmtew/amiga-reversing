@@ -1,5 +1,9 @@
 #include "m68k_render_plan.h"
 
+#include "m68k_source_ir_render.h"
+#include "m68k_source_text_util.h"
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -211,4 +215,94 @@ int m68k_render_plan_emit_all_alloc(const M68kRenderPlan *plan, char **out_text)
 
 void m68k_render_plan_free_text(char *text) {
   free(text);
+}
+
+static const char *render_plan_section_name(const M68kSectionIR *section, size_t section_index,
+    size_t section_count, char *buffer, size_t buffer_size) {
+  const char *name = section != NULL && section->name != NULL && section->name[0] != '\0' ? section->name : "section";
+  if (buffer != NULL && buffer_size != 0U) buffer[0] = '\0';
+  if ((section == NULL || section->name == NULL || section->name[0] == '\0') && section_count > 1U) {
+    if (buffer == NULL || buffer_size == 0U) return name;
+    snprintf(buffer, buffer_size, "%s_%u", name, (unsigned)section_index);
+    return buffer;
+  }
+  return name;
+}
+
+static uint32_t render_plan_row_kind_for_statement(const M68kStatementIR *stmt) {
+  if (stmt == NULL) return M68K_RENDER_PLAN_ROW_DIAGNOSTIC;
+  if (stmt->kind == M68K_STATEMENT_LABEL) return M68K_RENDER_PLAN_ROW_LABEL;
+  if (stmt->kind == M68K_STATEMENT_INSTRUCTION) return M68K_RENDER_PLAN_ROW_INSTRUCTION;
+  if (stmt->kind == M68K_STATEMENT_DATA) return M68K_RENDER_PLAN_ROW_DATA;
+  if (stmt->kind == M68K_STATEMENT_RESERVE) return M68K_RENDER_PLAN_ROW_RESERVE;
+  return M68K_RENDER_PLAN_ROW_PLATFORM_DIRECTIVE;
+}
+
+static uint32_t render_plan_statement_source_size(const M68kStatementIR *stmt) {
+  if (stmt == NULL) return 0U;
+  if (stmt->source_byte_count != 0U) return stmt->source_byte_count;
+  if (stmt->kind == M68K_STATEMENT_INSTRUCTION) return (uint32_t)stmt->u.instruction.byte_count;
+  if (stmt->kind == M68K_STATEMENT_DATA) return (uint32_t)stmt->u.data.size;
+  if (stmt->kind == M68K_STATEMENT_RESERVE) return stmt->u.reserve_size;
+  return 0U;
+}
+
+int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,
+    M68kRenderPlan *out_plan, M68kDiagSink diagnostics) {
+  size_t section_index;
+  if (source_file == NULL || out_plan == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT,
+      "bad source file render plan request");
+    return -1;
+  }
+  m68k_render_plan_init(out_plan);
+  for (section_index = 0U; section_index < source_file->section_count; ++section_index) {
+    const M68kSectionIR *section = &source_file->sections[section_index];
+    size_t statement_index;
+    M68kRenderPlanRow *row;
+    char section_name_buffer[96];
+    char section_kind_buffer[32];
+    char section_line[160];
+    const char *section_name = render_plan_section_name(section, section_index, source_file->section_count,
+      section_name_buffer, sizeof(section_name_buffer));
+    if (!m68k_format_section_spec(section->kind, section->platform_mem_type, section->platform_mem_attrs,
+        section_kind_buffer, sizeof(section_kind_buffer))) {
+      m68k_render_plan_destroy(out_plan);
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "failed formatting source section");
+      return -1;
+    }
+    if (section->size != section->data_size)
+      snprintf(section_line, sizeof(section_line), "    SECTION %s,%s,$%X\n", section_name, section_kind_buffer,
+        (unsigned)section->size);
+    else
+      snprintf(section_line, sizeof(section_line), "    SECTION %s,%s\n", section_name, section_kind_buffer);
+    if (m68k_render_plan_append_text_row(out_plan, M68K_RENDER_PLAN_ROW_SECTION, (uint32_t)section_index,
+        section_line, &row) != 0) {
+      m68k_render_plan_destroy(out_plan);
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+      return -1;
+    }
+    m68k_render_plan_row_set_source_range(row, (uint32_t)section_index, 0U, 0U);
+    for (statement_index = 0U; statement_index < section->statement_count; ++statement_index) {
+      const M68kStatementIR *stmt = &section->statements[statement_index];
+      char *stmt_text = NULL;
+      uint32_t source_size;
+      if (m68k_source_ir_render_statement_text_with_policy(stmt, policy, &stmt_text, diagnostics) != 0) {
+        m68k_render_plan_destroy(out_plan);
+        return -1;
+      }
+      if (m68k_render_plan_append_text_row(out_plan, render_plan_row_kind_for_statement(stmt),
+          (uint32_t)section_index, stmt_text, &row) != 0) {
+        free(stmt_text);
+        m68k_render_plan_destroy(out_plan);
+        m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+        return -1;
+      }
+      source_size = render_plan_statement_source_size(stmt);
+      m68k_render_plan_row_set_source_range(row, (uint32_t)section_index, stmt->offset, source_size);
+      free(stmt_text);
+    }
+  }
+  return 0;
 }

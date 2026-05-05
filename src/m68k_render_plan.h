@@ -1,6 +1,9 @@
 #ifndef M68K_RENDER_PLAN_H
 #define M68K_RENDER_PLAN_H
 
+#include "m68k_diagnostics.h"
+#include "m68k_ir.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -66,6 +69,8 @@ const M68kRenderPlanRow *m68k_render_plan_find_row_for_runtime_address(const M68
 int m68k_render_plan_emit_rows_alloc(const M68kRenderPlan *plan, size_t first_row, size_t row_count,
   char **out_text);
 int m68k_render_plan_emit_all_alloc(const M68kRenderPlan *plan, char **out_text);
+int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,
+  M68kRenderPlan *out_plan, M68kDiagSink diagnostics);
 void m68k_render_plan_free_text(char *text);
 
 #endif
