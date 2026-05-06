@@ -54,7 +54,7 @@ typedef struct M68kRenderPlanRow {
 
 typedef struct M68kRenderPlan {
   M68kRenderPlanRow *rows;
-  Arena *text_arena;
+  Arena *arena;
   size_t row_count;
   size_t row_capacity;
   uint32_t next_row_id;

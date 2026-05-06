@@ -1,6 +1,7 @@
 #include "m68k_c_unit_test.h"
 #include "m68k_render_plan.h"
 
+#include <stdio.h>
 #include <string.h>
 
 static int test_render_plan_line_counts_and_order(void) {
@@ -267,6 +268,31 @@ static int test_render_plan_move_transfers_arena_owned_rows(void) {
   return 0;
 }
 
+static int test_render_plan_arena_owned_rows_survive_growth(void) {
+  M68kRenderPlan plan;
+  char line[32];
+  size_t index;
+  char *full_text = NULL;
+  m68k_render_plan_init(&plan);
+
+  for (index = 0U; index < 40U; ++index) {
+    snprintf(line, sizeof(line), "row_%02u\n", (unsigned)index);
+    M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_DATA, 0U, line, NULL));
+  }
+
+  M68K_C_ASSERT_U32(40U, (uint32_t)plan.row_count);
+  M68K_C_ASSERT_U32(40U, plan.total_lines);
+  M68K_C_ASSERT_STR("row_00\n", plan.rows[0].text);
+  M68K_C_ASSERT_STR("row_39\n", plan.rows[39].text);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&plan, &full_text));
+  M68K_C_ASSERT(strstr(full_text, "row_00\nrow_01\n") == full_text);
+  M68K_C_ASSERT(strstr(full_text, "row_38\nrow_39\n") != NULL);
+
+  m68k_render_plan_free_text(full_text);
+  m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
 static int test_render_plan_builds_source_file_body_genam_fixture(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
@@ -341,6 +367,7 @@ int m68k_c_render_plan_tests(void) {
     {"rejects_rows_without_complete_lines", test_render_plan_rejects_rows_without_complete_lines},
     {"hoists_typed_header_rows", test_render_plan_hoists_typed_header_rows},
     {"move_transfers_arena_owned_rows", test_render_plan_move_transfers_arena_owned_rows},
+    {"arena_owned_rows_survive_growth", test_render_plan_arena_owned_rows_survive_growth},
     {"builds_source_file_body_genam_fixture", test_render_plan_builds_source_file_body_genam_fixture}
   };
   return m68k_c_test_run_suite("m68k_render_plan", cases, sizeof(cases) / sizeof(cases[0]));

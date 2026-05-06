@@ -9,13 +9,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-static char *render_plan_strdup(M68kRenderPlan *plan, const char *text) {
-  if (text == NULL) return NULL;
-  if (plan->text_arena == NULL) {
-    plan->text_arena = arena_create(4096U);
-    if (plan->text_arena == NULL) return NULL;
+static Arena *render_plan_arena(M68kRenderPlan *plan) {
+  if (plan == NULL) return NULL;
+  if (plan->arena == NULL) {
+    plan->arena = arena_create(4096U);
+    if (plan->arena == NULL) return NULL;
   }
-  return arena_strdup(plan->text_arena, text);
+  return plan->arena;
+}
+
+static char *render_plan_strdup(M68kRenderPlan *plan, const char *text) {
+  Arena *arena;
+  if (text == NULL) return NULL;
+  arena = render_plan_arena(plan);
+  if (arena == NULL) return NULL;
+  return arena_strdup(arena, text);
 }
 
 static uint32_t render_plan_count_lines(const char *text) {
@@ -36,16 +44,24 @@ static int render_plan_text_has_complete_lines(const char *text) {
 }
 
 static int render_plan_reserve_rows(M68kRenderPlan *plan, size_t needed) {
+  Arena *arena;
   M68kRenderPlanRow *rows;
   size_t capacity;
+  size_t old_size;
+  size_t new_size;
   if (plan == NULL) return -1;
   if (needed <= plan->row_capacity) return 0;
+  arena = render_plan_arena(plan);
+  if (arena == NULL) return -1;
   capacity = plan->row_capacity != 0U ? plan->row_capacity : 8U;
   while (capacity < needed) {
     if (capacity > ((size_t)-1) / 2U) return -1;
     capacity *= 2U;
   }
-  rows = (M68kRenderPlanRow *)realloc(plan->rows, capacity * sizeof(*rows));
+  if (capacity > ((size_t)-1) / sizeof(*rows)) return -1;
+  old_size = plan->row_count * sizeof(*rows);
+  new_size = capacity * sizeof(*rows);
+  rows = (M68kRenderPlanRow *)arena_realloc_copy(arena, plan->rows, old_size, new_size);
   if (rows == NULL) return -1;
   plan->rows = rows;
   plan->row_capacity = capacity;
@@ -85,8 +101,7 @@ void m68k_render_plan_init(M68kRenderPlan *plan) {
 
 void m68k_render_plan_destroy(M68kRenderPlan *plan) {
   if (plan == NULL) return;
-  arena_destroy(plan->text_arena);
-  free(plan->rows);
+  arena_destroy(plan->arena);
   memset(plan, 0, sizeof(*plan));
 }
 
@@ -448,13 +463,19 @@ static void render_plan_recompute_layout(M68kRenderPlan *plan) {
 }
 
 int m68k_render_plan_hoist_header_rows(M68kRenderPlan *plan) {
+  Arena *arena;
+  ArenaMark mark;
   M68kRenderPlanRow *ordered;
   size_t out_index = 0U;
   size_t row_index;
   int group;
   if (plan == NULL) return -1;
   if (plan->row_count == 0U) return 0;
-  ordered = (M68kRenderPlanRow *)malloc(plan->row_count * sizeof(*ordered));
+  if (plan->row_count > ((size_t)-1) / sizeof(*ordered)) return -1;
+  arena = render_plan_arena(plan);
+  if (arena == NULL) return -1;
+  mark = arena_mark(arena);
+  ordered = (M68kRenderPlanRow *)arena_alloc(arena, plan->row_count * sizeof(*ordered));
   if (ordered == NULL) return -1;
   for (group = 0; group <= 2; ++group) {
     if (group == 0) {
@@ -485,11 +506,11 @@ int m68k_render_plan_hoist_header_rows(M68kRenderPlan *plan) {
       ordered[out_index++] = plan->rows[row_index];
   }
   if (out_index != plan->row_count) {
-    free(ordered);
+    arena_rewind(arena, mark);
     return -1;
   }
   memcpy(plan->rows, ordered, plan->row_count * sizeof(*ordered));
-  free(ordered);
+  arena_rewind(arena, mark);
   render_plan_recompute_layout(plan);
   return 0;
 }

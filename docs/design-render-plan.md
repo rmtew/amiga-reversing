@@ -81,12 +81,12 @@ The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.
 
-Render plans now own row text through a plan-local arena. The rows array remains
-heap-resizable because row indexes and lookup structures need stable contiguous
-storage during construction, while row text has one lifetime: the plan. Emitted
-full-source and window strings remain separately heap-owned API return buffers.
-Arena-backed plans must be transferred with `m68k_render_plan_move`, not raw
-struct assignment.
+Render plans now own rows and row text through a plan-local arena. The row
+array remains contiguous, but growth uses arena allocate-and-copy instead of
+heap realloc/free churn. Returned row pointers are immediate-use handles; code
+must keep row indexes for long-lived references. Emitted full-source and window
+strings remain separately heap-owned API return buffers. Arena-backed plans
+must be transferred with `m68k_render_plan_move`, not raw struct assignment.
 
 facts_v2 source capture no longer builds a parallel full-source text buffer
 while rows are being captured. Source fragments must be emitted inside an active
@@ -190,8 +190,11 @@ hidden formatting side effects.
 
 Arena use should follow real lifetime boundaries:
 
-- A render plan owns row text in a plan-local arena.
-- Render-plan row arrays remain explicitly resizable and owned by the plan.
+- A render plan owns rows and row text in a plan-local arena.
+- Render-plan row arrays remain contiguous, but growth is arena
+  allocate-and-copy. Old growth buffers die with the plan.
+- Row pointers returned while appending are transient. Store row indexes, not
+  row pointers, when a reference must survive later appends.
 - Row-builder scratch remains reusable heap storage outside the plan arena.
 - Header/listing scratch that lives for one JSON emission pass should be owned
   by the listing builder arena.
