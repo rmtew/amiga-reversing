@@ -107,6 +107,12 @@ same render-plan row walk instead of being rediscovered from Python
 `ListingRow` objects. The server still overlays project/session concerns such
 as reproduction issues and entity annotations, because those are not facts
 owned by the C analysis artifact.
+The full listing job no longer materializes and caches full Python
+`ListingRow` objects after the full C artifact is available. Basic rows are
+still emitted for progress/fallback display, but full-generation windows and
+navigation are served from the retained artifact. Analysis JSON is exposed from
+the same artifact so Python can keep API-call metadata without forcing full row
+JSON emission.
 The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.

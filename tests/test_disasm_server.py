@@ -2814,15 +2814,17 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
     )
     monkeypatch.setattr(
         disasm_server,
-        "build_project_rows_generation_with_c_listing_artifact_profile",
+        "build_project_listing_artifact_generation_profile",
         lambda project_name, generation: build_calls.append((project_name, generation))
-        or (rows, {(0, 0): {"library": "exec.library"}}, {}, artifact),
+        or (1, {(0, 0): {"library": "exec.library"}}, {}, artifact),
     )
 
     disasm_server._build_rows_job("job-1", "bloodwych")
 
     assert disasm_server._PROJECT_ROW_CACHE["bloodwych"] == rows
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
+    assert disasm_server._PROJECT_ROW_CACHE_GENERATION_CACHE["bloodwych"] == "basic"
+    assert disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE["bloodwych"] == 1
     assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
         (0, 0): {"library": "exec.library"}
     }
@@ -2918,20 +2920,8 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
     assert "bloodwych" not in disasm_server._PROJECT_ROW_GENERATION_CACHE
 
 
-def test_full_listing_replaces_basic_rows(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pytest.MonkeyPatch) -> None:
     basic_rows = [ListingRow(row_id="basic", kind="instruction", text="nop\n", analysis_generation="basic")]
-    full_rows = [
-        ListingRow(
-            row_id="full",
-            kind="instruction",
-            text="rts\n",
-            analysis_generation="full",
-            section_index=0,
-            start_offset=4,
-            end_offset=6,
-            addr=4,
-        )
-    ]
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
@@ -2952,8 +2942,8 @@ def test_full_listing_replaces_basic_rows(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", fake_build)
     monkeypatch.setattr(
         disasm_server,
-        "build_project_rows_generation_with_c_listing_artifact_profile",
-        lambda project_name, generation: (full_rows, {(0, 4): {"library": "exec.library"}}, {}, artifact),
+        "build_project_listing_artifact_generation_profile",
+        lambda project_name, generation: (1, {(0, 4): {"library": "exec.library"}}, {}, artifact),
     )
     disasm_server._ASYNC_JOBS["job-full"] = {
         "job_id": "job-full",
@@ -2976,8 +2966,10 @@ def test_full_listing_replaces_basic_rows(monkeypatch: pytest.MonkeyPatch) -> No
     }
     disasm_server._build_rows_job("job-full", "bloodwych")
 
-    assert disasm_server._PROJECT_ROW_CACHE["bloodwych"] == full_rows
+    assert disasm_server._PROJECT_ROW_CACHE["bloodwych"] == basic_rows
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
+    assert disasm_server._PROJECT_ROW_CACHE_GENERATION_CACHE["bloodwych"] == "basic"
+    assert disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE["bloodwych"] == 1
     assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
         (0, 4): {"library": "exec.library"}
     }
@@ -2999,7 +2991,7 @@ def test_full_listing_replaces_basic_rows(monkeypatch: pytest.MonkeyPatch) -> No
             "project_id": "bloodwych",
             "generation": "full",
             "total_rows": 1,
-            "changed_ranges": [{"section_index": 0, "start_offset": 4, "end_offset": 6}],
+            "changed_ranges": [],
         }
     ]
 
@@ -3186,9 +3178,9 @@ def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -
     )
     monkeypatch.setattr(
         disasm_server,
-        "build_project_rows_generation_with_c_listing_artifact_profile",
+        "build_project_listing_artifact_generation_profile",
         lambda project_name, generation: (
-            [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)],
+            1,
             {},
             {},
             artifact,

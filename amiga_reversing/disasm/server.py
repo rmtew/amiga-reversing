@@ -32,7 +32,7 @@ from amiga_reversing.disasm.api import (
 from amiga_reversing.disasm.binary_source import write_source_descriptor
 from amiga_reversing.disasm.c_backend import (
     CListingArtifact,
-    build_project_rows_generation_with_c_listing_artifact_profile,
+    build_project_listing_artifact_generation_profile,
     build_project_rows_generation_with_c_backend_profile,
     extract_disk_entry_with_c_backend,
     type_catalog_from_c_backend,
@@ -129,6 +129,8 @@ _MISSING = object()
 _PROJECT_ROW_CACHE: dict[str, list[ListingRow]] = {}
 _PROJECT_C_LISTING_ARTIFACT_CACHE: dict[str, CListingArtifact] = {}
 _PROJECT_ROW_GENERATION_CACHE: dict[str, str] = {}
+_PROJECT_ROW_CACHE_GENERATION_CACHE: dict[str, str] = {}
+_PROJECT_LISTING_TOTAL_ROWS_CACHE: dict[str, int] = {}
 _PROJECT_ROW_CACHE_KEY: dict[str, str] = {}
 _PROJECT_APP_SLOT_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
 _PROJECT_TYPE_FLOW_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
@@ -245,6 +247,8 @@ def _write_api_input_type_override(
         artifact.close()
     _PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     _PROJECT_ROW_GENERATION_CACHE.clear()
+    _PROJECT_ROW_CACHE_GENERATION_CACHE.clear()
+    _PROJECT_LISTING_TOTAL_ROWS_CACHE.clear()
     _PROJECT_ROW_CACHE_KEY.clear()
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
     _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.clear()
@@ -1041,6 +1045,8 @@ def _clear_project_listing_cache(project_name: str) -> None:
     if artifact is not None:
         artifact.close()
     _PROJECT_ROW_GENERATION_CACHE.pop(project_name, None)
+    _PROJECT_ROW_CACHE_GENERATION_CACHE.pop(project_name, None)
+    _PROJECT_LISTING_TOTAL_ROWS_CACHE.pop(project_name, None)
     _PROJECT_ROW_CACHE_KEY.pop(project_name, None)
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
     _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
@@ -1116,9 +1122,13 @@ def _job_payload(job_id: str) -> AsyncJobPayload:
             job["visible_generation"] = _PROJECT_ROW_GENERATION_CACHE.get(project_id) or (
                 "full" if project_id in _PROJECT_ROW_CACHE else None
             )
-            rows = _PROJECT_ROW_CACHE.get(project_id)
-            if rows is not None:
-                job["total_rows"] = len(rows)
+            total_rows = _PROJECT_LISTING_TOTAL_ROWS_CACHE.get(project_id)
+            if total_rows is not None:
+                job["total_rows"] = total_rows
+            else:
+                rows = _PROJECT_ROW_CACHE.get(project_id)
+                if rows is not None:
+                    job["total_rows"] = len(rows)
     return cast(AsyncJobPayload, job)
 
 
@@ -1169,7 +1179,7 @@ def _listing_changed_ranges(rows: list[ListingRow]) -> list[dict[str, int]]:
 
 
 def _publish_listing_generation_ready_event(
-    job_id: str, project_name: str, generation: str, rows: list[ListingRow]
+    job_id: str, project_name: str, generation: str, total_rows: int, rows: list[ListingRow]
 ) -> None:
     _publish_job_event_payload(
         job_id,
@@ -1177,7 +1187,7 @@ def _publish_listing_generation_ready_event(
             "_event_type": "listing_generation_ready",
             "project_id": project_name,
             "generation": generation,
-            "total_rows": len(rows),
+            "total_rows": total_rows,
             "changed_ranges": _listing_changed_ranges(rows),
         },
     )
@@ -1349,18 +1359,21 @@ def _project_listing_cache_key(project_name: str) -> str:
 def _cache_satisfies_full_generation(project_name: str, cache_key: str) -> bool:
     if project_name not in _PROJECT_ROW_CACHE_KEY:
         return (
-            project_name in _PROJECT_ROW_CACHE
+            (project_name in _PROJECT_ROW_CACHE or project_name in _PROJECT_C_LISTING_ARTIFACT_CACHE)
             and _PROJECT_ROW_GENERATION_CACHE.get(project_name) == "full"
         )
     if _PROJECT_ROW_CACHE_KEY.get(project_name) != cache_key:
         return False
     cached_generation = _PROJECT_ROW_GENERATION_CACHE.get(project_name)
-    return cached_generation == "full"
+    return cached_generation == "full" and (
+        project_name in _PROJECT_ROW_CACHE or project_name in _PROJECT_C_LISTING_ARTIFACT_CACHE
+    )
 
 
 def _build_rows_job(job_id: str, project_name: str) -> None:
     phase_count = _LISTING_PHASE_COUNT
     rows: list[ListingRow] = []
+    total_rows = 0
     try:
         cache_key = _project_listing_cache_key(project_name)
         _log_event("listing_job start", job_id=job_id, project=project_name, generation="full")
@@ -1388,8 +1401,8 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                 phase=build_phase,
             )
             if active_generation == "full":
-                rows, api_calls, profile, listing_artifact = (
-                    build_project_rows_generation_with_c_listing_artifact_profile(
+                total_rows, api_calls, profile, listing_artifact = (
+                    build_project_listing_artifact_generation_profile(
                         project_name,
                         generation=active_generation,
                     )
@@ -1399,6 +1412,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                     project_name,
                     generation=active_generation,
                 )
+                total_rows = len(rows)
             app_slot_analysis = profile.get("app_slot_analysis")
             type_flow_analysis = profile.get("type_flow_analysis")
             if not _set_job_phase(
@@ -1426,8 +1440,11 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                     if listing_artifact is not None:
                         listing_artifact.close()
                     return
-                _PROJECT_ROW_CACHE[project_name] = rows
+                if active_generation != "full":
+                    _PROJECT_ROW_CACHE[project_name] = rows
+                    _PROJECT_ROW_CACHE_GENERATION_CACHE[project_name] = active_generation
                 _PROJECT_ROW_GENERATION_CACHE[project_name] = active_generation
+                _PROJECT_LISTING_TOTAL_ROWS_CACHE[project_name] = total_rows
                 _PROJECT_ROW_CACHE_KEY[project_name] = cache_key
                 if active_generation == "full":
                     old_artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
@@ -1460,12 +1477,12 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                 job_id=job_id,
                 project=project_name,
                 generation=active_generation,
-                total_rows=len(rows),
+                total_rows=total_rows,
             )
-            _publish_listing_generation_ready_event(job_id, project_name, active_generation, rows)
+            _publish_listing_generation_ready_event(job_id, project_name, active_generation, total_rows, rows)
             if not _set_job_state(
                 job_id,
-                total_rows=len(rows),
+                total_rows=total_rows,
                 visible_generation=active_generation,
                 target_generation="full",
             ):
@@ -1481,7 +1498,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             job_id=job_id,
             project=project_name,
             generation="full",
-            total_rows=len(rows),
+            total_rows=total_rows,
         )
         _set_job_state(
             job_id,
@@ -1493,7 +1510,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             progress_current=phase_count,
             progress_total=phase_count,
             progress_percent=100,
-            total_rows=len(rows),
+            total_rows=total_rows,
             visible_generation=_PROJECT_ROW_GENERATION_CACHE.get(project_name),
             target_generation="full",
             finished_at=time.time(),
@@ -1515,7 +1532,10 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
 def _start_listing_job(project_name: str) -> AsyncJobPayload:
     cache_key = _project_listing_cache_key(project_name)
     cached_rows = _PROJECT_ROW_CACHE.get(project_name)
-    if cached_rows is not None and _cache_satisfies_full_generation(project_name, cache_key):
+    if _cache_satisfies_full_generation(project_name, cache_key):
+        total_rows = _PROJECT_LISTING_TOTAL_ROWS_CACHE.get(project_name)
+        if total_rows is None and cached_rows is not None:
+            total_rows = len(cached_rows)
         job_id = f"cached-full-{project_name}"
         payload: AsyncJobPayload = {
             "job_id": job_id,
@@ -1530,7 +1550,7 @@ def _start_listing_job(project_name: str) -> AsyncJobPayload:
             "progress_current": _LISTING_PHASE_COUNT,
             "progress_total": _LISTING_PHASE_COUNT,
             "progress_percent": 100,
-            "total_rows": len(cached_rows),
+            "total_rows": total_rows,
             "error": None,
             "created_at": time.time(),
             "finished_at": time.time(),
@@ -1606,7 +1626,7 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
         if not _set_job_phase(job_id, phase_id="prepare", phase_index=1, phase_count=phase_count):
             return
         rows = _cached_project_rows(project_name)
-        if _PROJECT_ROW_GENERATION_CACHE.get(project_name) != "full":
+        if _PROJECT_ROW_CACHE_GENERATION_CACHE.get(project_name) != "full":
             rows = None
         if not _set_job_phase(job_id, phase_id="assemble", phase_index=2, phase_count=phase_count):
             return
@@ -2304,8 +2324,9 @@ def route_request(
                 )
             if not project.ready:
                 return {"ok": True, "data": _empty_listing_payload(None)}
+            listing_artifact = _valid_c_listing_artifact(project_name)
             rows = _cached_project_rows(project_name)
-            if rows is None:
+            if rows is None and listing_artifact is None:
                 raise ValueError(
                     f"Canonical rows not loaded for project: {project_name}"
                 )
@@ -2314,25 +2335,29 @@ def route_request(
             anchor_code_values = query.get("anchor_code")
             anchor_code = anchor_code_values[0].strip() if anchor_code_values else ""
             if anchor_code:
+                if rows is None:
+                    raise ValueError(
+                        f"Canonical rows not loaded for project: {project_name}"
+                    )
                 payload = listing_index_window_payload(
                     rows,
                     _listing_anchor_code_start(rows, anchor_code),
                     count or 240,
                 )
             elif start is not None or count is not None:
-                listing_artifact = _valid_c_listing_artifact(project_name)
                 if listing_artifact is not None:
                     payload, _ = listing_artifact.window_payload(start=start or 0, count=count or 240)
                 else:
+                    assert rows is not None
                     payload = listing_index_window_payload(rows, start or 0, count or 240)
             else:
                 addr = _parse_int_arg(query, "addr")
                 before = _parse_int_arg(query, "before", 80) or 80
                 after = _parse_int_arg(query, "after", 200) or 200
-                listing_artifact = _valid_c_listing_artifact(project_name)
                 if listing_artifact is not None:
                     payload, _ = listing_artifact.addr_window_payload(addr=addr, before=before, after=after)
                 else:
+                    assert rows is not None
                     payload = listing_window_payload(rows, addr, before, after)
             payload = cast(
                 ListingWindowPayload,
@@ -2356,18 +2381,19 @@ def route_request(
                 raise ValueError(
                     f"Project {project_name} does not expose a disassembly listing"
                 )
+            listing_artifact = _valid_c_listing_artifact(project_name)
             rows = _cached_project_rows(project_name)
-            if rows is None:
+            if rows is None and listing_artifact is None:
                 raise ValueError(
                     f"Canonical rows not loaded for project: {project_name}"
                 )
-            listing_artifact = _valid_c_listing_artifact(project_name)
             if listing_artifact is not None:
                 navigation_payload, _ = listing_artifact.navigation_payload()
                 return {
                     "ok": True,
                     "data": _overlay_listing_navigation_payload(project_name, navigation_payload, rows),
                 }
+            assert rows is not None
             return {"ok": True, "data": _listing_navigation_payload(project_name, rows)}
         if (
             method == "POST"

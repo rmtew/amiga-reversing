@@ -5646,6 +5646,68 @@ cleanup:
   return text_result_to_alloc(&result, out_text);
 }
 
+int platform_file_facts_v2_listing_artifact_analysis_json_alloc(PlatformFileListingArtifact *artifact,
+    char **out_text) {
+  PlatformFileTextResult result;
+  JsonBuilder builder = {0};
+  char *analysis_json = NULL;
+  char *json = NULL;
+  clock_t analysis_start;
+  clock_t analysis_end;
+  memset(&result, 0, sizeof(result));
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (artifact == NULL) {
+    platform_file_add_error(&result.diagnostics, "invalid listing artifact");
+    return text_result_to_alloc(&result, out_text);
+  }
+  analysis_start = clock();
+  if (source_analysis_to_json(&artifact->source_analysis, &analysis_json, m68k_diag_sink(&result.diagnostics)) != 0) {
+    if (!m68k_diag_has_errors(&result.diagnostics))
+      platform_file_add_error(&result.diagnostics, "facts_v2 source analysis json failed");
+    goto cleanup;
+  }
+  analysis_end = clock();
+  if (json_builder_create(&builder) != 0 ||
+      json_builder_append(&builder, "{\"analysis\":") != 0) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  if (analysis_json == NULL ||
+      append_analysis_json_with_decompression(&builder, analysis_json, &artifact->object,
+        &artifact->source_analysis) != 0) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  if (json_builder_append(&builder, ",\"profile\":{\"generation\":\"facts_v2_listing_artifact_analysis\","
+        "\"backend\":") != 0 ||
+      json_builder_append_json_string(&builder, artifact->backend_name) != 0 ||
+      json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
+      json_builder_append_json_string(&builder, artifact->path) != 0 ||
+      json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
+      json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"timing\":{\"source_seconds\":%.6f,\"analysis_json_seconds\":%.6f,\"total_seconds\":%.6f}}}",
+        artifact->source_seconds, elapsed_seconds(analysis_start, analysis_end),
+        artifact->source_seconds + elapsed_seconds(analysis_start, analysis_end)) != 0) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  json = json_builder_build(&builder);
+  if (json == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  result.text = json;
+  json = NULL;
+
+cleanup:
+  json_builder_destroy(&builder);
+  platform_file_free_text(json);
+  platform_file_free_text(analysis_json);
+  return text_result_to_alloc(&result, out_text);
+}
+
 int platform_file_facts_v2_listing_artifact_navigation_json_alloc(PlatformFileListingArtifact *artifact,
     char **out_text) {
   PlatformFileTextResult result;

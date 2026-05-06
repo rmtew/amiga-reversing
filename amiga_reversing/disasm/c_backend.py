@@ -587,12 +587,12 @@ def build_project_listing_window_generation_with_c_backend_profile(
         return payload, profile
 
 
-def build_project_rows_generation_with_c_listing_artifact_profile(
+def build_project_listing_artifact_generation_profile(
     project_name: str,
     *,
     generation: str,
     project_root: Path = PROJECT_ROOT,
-) -> tuple[list[ListingRow], dict[ApiCallRowKey, dict[str, object]], dict[str, object], CListingArtifact]:
+) -> tuple[int, dict[ApiCallRowKey, dict[str, object]], dict[str, object], CListingArtifact]:
     if generation != "full":
         raise ValueError(f"Unsupported listing artifact generation: {generation}")
     paths = resolve_project_paths(project_name, project_root=project_root)
@@ -607,22 +607,21 @@ def build_project_rows_generation_with_c_listing_artifact_profile(
                 project_root=project_root,
             )
             try:
-                combined = cast(dict[str, object], json.loads(artifact.rows_json()))
-                listing_rows = cast(dict[str, object], combined.get("listing", {}))
-                analysis = cast(dict[str, object], combined.get("analysis", {}))
-                profile = cast(dict[str, object], combined.get("profile", {}))
-                app_slot_analysis = listing_rows.get("app_slot_analysis")
+                navigation, navigation_profile = artifact.navigation_payload()
+                analysis, analysis_profile = artifact.analysis_payload()
+                profile: dict[str, object] = {**analysis_profile, **navigation_profile}
+                app_slot_analysis = navigation.get("app_slot_analysis")
                 if isinstance(app_slot_analysis, dict):
                     profile["app_slot_analysis"] = app_slot_analysis
-                type_flow_analysis = listing_rows.get("type_flow_analysis")
+                type_flow_analysis = navigation.get("type_flow_analysis")
                 if isinstance(type_flow_analysis, dict):
                     profile["type_flow_analysis"] = type_flow_analysis
-                rows = rows_from_c_listing_json(listing_rows)
+                total_rows = navigation.get("total_rows", 0)
                 api_calls = api_calls_from_c_analysis(analysis)
             except Exception:
                 artifact.close()
                 raise
-            return rows, api_calls, profile, artifact
+            return int(total_rows) if isinstance(total_rows, int) else 0, api_calls, profile, artifact
 
 
 def _build_project_rows_generation_from_source(
@@ -1694,6 +1693,11 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_rows_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_analysis_json_alloc.argtypes = [
+        c_void_p,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_analysis_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_navigation_json_alloc.argtypes = [
         c_void_p,
         POINTER(c_void_p),
@@ -1885,6 +1889,19 @@ class CListingArtifact:
         return self._text_from_artifact_call(
             self._dll.platform_file_facts_v2_listing_artifact_rows_json_alloc,
         )
+
+    def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+        combined = cast(
+            dict[str, object],
+            json.loads(
+                self._text_from_artifact_call(
+                    self._dll.platform_file_facts_v2_listing_artifact_analysis_json_alloc,
+                )
+            ),
+        )
+        analysis = cast(dict[str, object], combined.get("analysis", {}))
+        profile = cast(dict[str, object], combined.get("profile", {}))
+        return analysis, profile
 
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         combined = cast(

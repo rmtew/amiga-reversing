@@ -384,6 +384,11 @@ def _file_library():
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_facts_v2_listing_artifact_rows_json_alloc.restype = ctypes.c_int
+    library.platform_file_facts_v2_listing_artifact_analysis_json_alloc.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_facts_v2_listing_artifact_analysis_json_alloc.restype = ctypes.c_int
     library.platform_file_facts_v2_listing_artifact_navigation_json_alloc.argtypes = [
         ctypes.c_void_p,
         ctypes.POINTER(ctypes.c_void_p),
@@ -702,6 +707,7 @@ class IrPolicyDllTests(unittest.TestCase):
                 self.assertEqual(create_result, 0, error_text)
                 self.assertTrue(artifact.value)
                 artifact_rows = ctypes.c_void_p()
+                artifact_analysis = ctypes.c_void_p()
                 first_window = ctypes.c_void_p()
                 second_window = ctypes.c_void_p()
                 addr_window = ctypes.c_void_p()
@@ -710,6 +716,10 @@ class IrPolicyDllTests(unittest.TestCase):
                     artifact_rows_result = library.platform_file_facts_v2_listing_artifact_rows_json_alloc(
                         artifact,
                         ctypes.byref(artifact_rows),
+                    )
+                    artifact_analysis_result = library.platform_file_facts_v2_listing_artifact_analysis_json_alloc(
+                        artifact,
+                        ctypes.byref(artifact_analysis),
                     )
                     first_result = library.platform_file_facts_v2_listing_artifact_window_json_alloc(
                         artifact,
@@ -738,11 +748,17 @@ class IrPolicyDllTests(unittest.TestCase):
                     artifact_rows_text = (
                         ctypes.string_at(artifact_rows.value).decode("utf-8") if artifact_rows.value else ""
                     )
+                    artifact_analysis_text = (
+                        ctypes.string_at(artifact_analysis.value).decode("utf-8")
+                        if artifact_analysis.value
+                        else ""
+                    )
                     first_text = ctypes.string_at(first_window).decode("utf-8") if first_window.value else ""
                     second_text = ctypes.string_at(second_window).decode("utf-8") if second_window.value else ""
                     addr_text = ctypes.string_at(addr_window).decode("utf-8") if addr_window.value else ""
                     navigation_text = ctypes.string_at(navigation).decode("utf-8") if navigation.value else ""
                     self.assertEqual(artifact_rows_result, 0, artifact_rows_text)
+                    self.assertEqual(artifact_analysis_result, 0, artifact_analysis_text)
                     self.assertEqual(first_result, 0, first_text)
                     self.assertEqual(second_result, 0, second_text)
                     self.assertEqual(addr_result, 0, addr_text)
@@ -750,6 +766,8 @@ class IrPolicyDllTests(unittest.TestCase):
                 finally:
                     if artifact_rows.value:
                         library.platform_file_free_text(artifact_rows)
+                    if artifact_analysis.value:
+                        library.platform_file_free_text(artifact_analysis)
                     if first_window.value:
                         library.platform_file_free_text(first_window)
                     if second_window.value:
@@ -767,7 +785,13 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(listing_result, 0, listing_text)
         full_rows = json.loads(listing_text)["listing"]["rows"]
         artifact_rows_payload = json.loads(artifact_rows_text)
+        artifact_analysis_payload = json.loads(artifact_analysis_text)
         self.assertEqual(artifact_rows_payload["profile"]["generation"], "facts_v2_listing_artifact")
+        self.assertEqual(
+            artifact_analysis_payload["profile"]["generation"],
+            "facts_v2_listing_artifact_analysis",
+        )
+        self.assertIn("sections", artifact_analysis_payload["analysis"])
         self.assertEqual(
             [row["row_id"] for row in artifact_rows_payload["listing"]["rows"]],
             [row["row_id"] for row in full_rows],
