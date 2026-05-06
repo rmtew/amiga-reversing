@@ -112,6 +112,10 @@ open now has one useful target: build the authoritative C analysis/render-plan
 artifact, then serve windows and navigation from it. Analysis JSON is exposed
 from the same artifact so Python can keep API-call metadata without forcing
 full row JSON emission.
+Rows-only Python caches no longer satisfy a full-generation listing cache; a
+valid full cache requires the retained C artifact. This keeps legacy row lists
+as a narrow fallback/progress representation instead of a second full rendering
+model.
 The retained artifact now computes the displayed listing row count once during
 artifact creation. Row-index window requests reuse that count and only perform
 the emission pass for the requested window. The artifact also owns a compact
@@ -506,7 +510,8 @@ requests no longer need a second Python row database or a full C anchor/count
 pass. The old direct DLL/Python API that rebuilt full analysis for a single
 window has been removed; full-generation windows must come through the retained
 artifact. The dataclass row path remains only for fallback when a full C
-artifact is unavailable.
+artifact is unavailable, and rows-only caches do not satisfy full-generation
+cache reuse.
 Retained artifact row windows now reuse the artifact's displayed-row index as
 row-to-plan provenance. For ordinary body windows this avoids replaying the
 whole render plan on every viewport request; synthetic header rows deliberately

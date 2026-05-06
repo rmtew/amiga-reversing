@@ -3195,13 +3195,13 @@ def test_cached_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyP
     queued: list[str] = []
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_ROW_CACHE_KEY.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = [
-        ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)
-    ]
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _FakeCListingArtifact()
     disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
     disasm_server._PROJECT_ROW_CACHE_KEY["bloodwych"] = "cache"
+    disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE["bloodwych"] = 1
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
     monkeypatch.setattr(
         disasm_server,
@@ -3214,6 +3214,27 @@ def test_cached_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyP
     assert payload["status"] == "ready"
     assert queued == ["bloodwych"]
     disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE.clear()
+
+
+def test_full_generation_cache_requires_c_artifact(monkeypatch: pytest.MonkeyPatch) -> None:
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = [
+        ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)
+    ]
+    disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
+    disasm_server._PROJECT_ROW_CACHE_KEY["bloodwych"] = "cache"
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+
+    assert not disasm_server._cache_satisfies_full_generation("bloodwych", "cache")
+
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_ROW_CACHE_KEY.clear()

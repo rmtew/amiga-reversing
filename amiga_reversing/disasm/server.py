@@ -1116,15 +1116,11 @@ def _job_payload(job_id: str) -> AsyncJobPayload:
         project_id = job.get("project_id")
         if isinstance(project_id, str) and job.get("job_kind") == "full_listing":
             job["visible_generation"] = _PROJECT_ROW_GENERATION_CACHE.get(project_id) or (
-                "full" if project_id in _PROJECT_ROW_CACHE else None
+                "full" if project_id in _PROJECT_C_LISTING_ARTIFACT_CACHE else None
             )
             total_rows = _PROJECT_LISTING_TOTAL_ROWS_CACHE.get(project_id)
             if total_rows is not None:
                 job["total_rows"] = total_rows
-            else:
-                rows = _PROJECT_ROW_CACHE.get(project_id)
-                if rows is not None:
-                    job["total_rows"] = len(rows)
     return cast(AsyncJobPayload, job)
 
 
@@ -1355,15 +1351,13 @@ def _project_listing_cache_key(project_name: str) -> str:
 def _cache_satisfies_full_generation(project_name: str, cache_key: str) -> bool:
     if project_name not in _PROJECT_ROW_CACHE_KEY:
         return (
-            (project_name in _PROJECT_ROW_CACHE or project_name in _PROJECT_C_LISTING_ARTIFACT_CACHE)
+            project_name in _PROJECT_C_LISTING_ARTIFACT_CACHE
             and _PROJECT_ROW_GENERATION_CACHE.get(project_name) == "full"
         )
     if _PROJECT_ROW_CACHE_KEY.get(project_name) != cache_key:
         return False
     cached_generation = _PROJECT_ROW_GENERATION_CACHE.get(project_name)
-    return cached_generation == "full" and (
-        project_name in _PROJECT_ROW_CACHE or project_name in _PROJECT_C_LISTING_ARTIFACT_CACHE
-    )
+    return cached_generation == "full" and project_name in _PROJECT_C_LISTING_ARTIFACT_CACHE
 
 
 def _build_rows_job(job_id: str, project_name: str) -> None:
@@ -1490,11 +1484,8 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
 
 def _start_listing_job(project_name: str) -> AsyncJobPayload:
     cache_key = _project_listing_cache_key(project_name)
-    cached_rows = _PROJECT_ROW_CACHE.get(project_name)
     if _cache_satisfies_full_generation(project_name, cache_key):
         total_rows = _PROJECT_LISTING_TOTAL_ROWS_CACHE.get(project_name)
-        if total_rows is None and cached_rows is not None:
-            total_rows = len(cached_rows)
         job_id = f"cached-full-{project_name}"
         payload: AsyncJobPayload = {
             "job_id": job_id,
