@@ -96,7 +96,8 @@ The full `.s` text is allocated once from the assembled plan at the API boundary
 Full-listing header rows and app-slot listing analysis scratch data now use
 builder-local arenas. These structures are created for one JSON emission pass,
 share one lifetime, and no longer maintain nested heap/free ownership inside
-the row walk.
+the row walk. App-slot summary, interval, field-reference, and header-row
+scratch also uses the same arena with marks for per-region temporary data.
 Render lookup owns its lookup-table and lookup-result arrays through a
 lookup-local arena. Short-lived typed-flow graph scratch remains separately
 owned because it is reset per analysis pass, not retained with the lookup.

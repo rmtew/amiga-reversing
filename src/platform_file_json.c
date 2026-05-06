@@ -2937,13 +2937,13 @@ typedef struct ListingAppSlotAnalysisBuilder {
   size_t source_section_count;
 } ListingAppSlotAnalysisBuilder;
 
-static void *listing_arena_grow_array(Arena *arena, const void *old_items, size_t old_capacity,
+static void *listing_arena_grow_array(Arena *arena, const void *old_items, size_t old_count,
     size_t new_capacity, size_t item_size) {
   size_t old_size;
   size_t new_size;
   if (arena == NULL || item_size == 0U || new_capacity == 0U) return NULL;
-  if (old_capacity > ((size_t)-1) / item_size || new_capacity > ((size_t)-1) / item_size) return NULL;
-  old_size = old_capacity * item_size;
+  if (old_count > ((size_t)-1) / item_size || new_capacity > ((size_t)-1) / item_size) return NULL;
+  old_size = old_count * item_size;
   new_size = new_capacity * item_size;
   return arena_realloc_copy(arena, old_items, old_size, new_size);
 }
@@ -3072,7 +3072,7 @@ static int listing_app_slot_analysis_append_ref(ListingAppSlotAnalysisBuilder *a
   if (analysis->ref_count == analysis->ref_capacity) {
     next_capacity = analysis->ref_capacity == 0U ? 64U : analysis->ref_capacity * 2U;
     grown = (ListingAppSlotRefRecord *)listing_arena_grow_array(analysis->arena, analysis->refs,
-      analysis->ref_capacity, next_capacity, sizeof(*grown));
+      analysis->ref_count, next_capacity, sizeof(*grown));
     if (grown == NULL) return -1;
     analysis->refs = grown;
     analysis->ref_capacity = next_capacity;
@@ -3095,7 +3095,7 @@ static ListingAppSlotTypedRegion *listing_app_slot_analysis_region_for(ListingAp
   if (analysis->region_count == analysis->region_capacity) {
     next_capacity = analysis->region_capacity == 0U ? 8U : analysis->region_capacity * 2U;
     grown = (ListingAppSlotTypedRegion *)listing_arena_grow_array(analysis->arena, analysis->regions,
-      analysis->region_capacity, next_capacity, sizeof(*grown));
+      analysis->region_count, next_capacity, sizeof(*grown));
     if (grown == NULL) return NULL;
     analysis->regions = grown;
     analysis->region_capacity = next_capacity;
@@ -3126,7 +3126,7 @@ static int listing_app_slot_analysis_append_evidence(ListingAppSlotAnalysisBuild
   if (region->evidence_count == region->evidence_capacity) {
     next_capacity = region->evidence_capacity == 0U ? 2U : region->evidence_capacity * 2U;
     grown = (ListingAppSlotEvidence *)listing_arena_grow_array(analysis->arena, region->evidence,
-      region->evidence_capacity, next_capacity, sizeof(*grown));
+      region->evidence_count, next_capacity, sizeof(*grown));
     if (grown == NULL) return -1;
     region->evidence = grown;
     region->evidence_capacity = next_capacity;
@@ -3154,7 +3154,7 @@ static int listing_app_slot_analysis_append_untyped_api_arg(ListingAppSlotAnalys
   if (analysis->untyped_api_arg_count == analysis->untyped_api_arg_capacity) {
     next_capacity = analysis->untyped_api_arg_capacity == 0U ? 8U : analysis->untyped_api_arg_capacity * 2U;
     grown = (ListingAppSlotApiArgCandidate *)listing_arena_grow_array(analysis->arena, analysis->untyped_api_args,
-      analysis->untyped_api_arg_capacity, next_capacity, sizeof(*grown));
+      analysis->untyped_api_arg_count, next_capacity, sizeof(*grown));
     if (grown == NULL) return -1;
     analysis->untyped_api_args = grown;
     analysis->untyped_api_arg_capacity = next_capacity;
@@ -3587,11 +3587,9 @@ static ListingAppSlotSummary *listing_app_slot_build_summaries(const ListingAppS
       size_t next_capacity;
       if (summary_count == summary_capacity) {
         next_capacity = summary_capacity == 0U ? 32U : summary_capacity * 2U;
-        grown = (ListingAppSlotSummary *)realloc(summaries, next_capacity * sizeof(*grown));
-        if (grown == NULL) {
-          free(summaries);
-          return NULL;
-        }
+        grown = (ListingAppSlotSummary *)listing_arena_grow_array(analysis->arena, summaries, summary_count,
+          next_capacity, sizeof(*grown));
+        if (grown == NULL) return NULL;
         summaries = grown;
         summary_capacity = next_capacity;
       }
@@ -3730,11 +3728,9 @@ static ListingAppSlotFieldRefSummary *listing_app_slot_build_field_refs(
       size_t next_capacity;
       if (field_count == field_capacity) {
         next_capacity = field_capacity == 0U ? 8U : field_capacity * 2U;
-        grown = (ListingAppSlotFieldRefSummary *)realloc(fields, next_capacity * sizeof(*grown));
-        if (grown == NULL) {
-          free(fields);
-          return NULL;
-        }
+        grown = (ListingAppSlotFieldRefSummary *)listing_arena_grow_array(analysis->arena, fields, field_count,
+          next_capacity, sizeof(*grown));
+        if (grown == NULL) return NULL;
         fields = grown;
         field_capacity = next_capacity;
       }
@@ -3904,14 +3900,15 @@ static int append_listing_app_slot_regions_json(JsonBuilder *builder, const List
   for (index = 0U; index < analysis->region_count; ++index) {
     const ListingAppSlotTypedRegion *region = &analysis->regions[index];
     ListingAppSlotFieldRefSummary *fields;
+    ArenaMark mark = arena_mark(analysis->arena);
     size_t field_count = 0U;
     fields = listing_app_slot_build_field_refs(analysis, region, &field_count);
     if (emitted && json_builder_append(builder, ",") != 0) {
-      free(fields);
+      arena_rewind(analysis->arena, mark);
       return -1;
     }
     if (json_builder_append(builder, "{\"id\":") != 0) {
-      free(fields);
+      arena_rewind(analysis->arena, mark);
       return -1;
     }
     if (json_builder_append_json_string(builder, region->id) != 0 ||
@@ -3933,10 +3930,10 @@ static int append_listing_app_slot_regions_json(JsonBuilder *builder, const List
         json_builder_append(builder, ",\"field_refs\":") != 0 ||
         append_listing_field_refs_json(builder, analysis, region, fields, field_count) != 0 ||
         json_builder_append(builder, "}") != 0) {
-      free(fields);
+      arena_rewind(analysis->arena, mark);
       return -1;
     }
-    free(fields);
+    arena_rewind(analysis->arena, mark);
     emitted = 1;
   }
   for (index = 0U; index < summary_count; ++index) {
@@ -3978,7 +3975,8 @@ static ListingAppSlotInterval *listing_app_slot_build_intervals(const ListingApp
   size_t index, count = 0U;
   if (out_count != NULL) *out_count = 0U;
   if (analysis == NULL || (analysis->region_count + summary_count) == 0U) return NULL;
-  intervals = (ListingAppSlotInterval *)calloc(analysis->region_count + summary_count, sizeof(*intervals));
+  intervals = (ListingAppSlotInterval *)arena_calloc(analysis->arena, analysis->region_count + summary_count,
+    sizeof(*intervals));
   if (intervals == NULL) return NULL;
   for (index = 0U; index < analysis->region_count; ++index) {
     intervals[count].offset = analysis->regions[index].offset;
@@ -4160,6 +4158,7 @@ static int append_listing_app_slot_field_gaps_json(JsonBuilder *builder,
   for (region_index = 0U; region_index < analysis->region_count; ++region_index) {
     const ListingAppSlotTypedRegion *region = &analysis->regions[region_index];
     ListingAppSlotFieldRefSummary *fields;
+    ArenaMark mark = arena_mark(analysis->arena);
     size_t field_count = 0U;
     int16_t intervals[128][2];
     size_t interval_count = 0U;
@@ -4196,7 +4195,7 @@ static int append_listing_app_slot_field_gaps_json(JsonBuilder *builder,
       if (start > cursor) {
         if (append_listing_app_slot_field_gap_segments_json(builder, region, cursor, start, &emitted,
             &gap_count) != 0) {
-          free(fields);
+          arena_rewind(analysis->arena, mark);
           return -1;
         }
       }
@@ -4205,11 +4204,11 @@ static int append_listing_app_slot_field_gaps_json(JsonBuilder *builder,
     if (cursor < region->size && interval_count != 0U) {
       if (append_listing_app_slot_field_gap_segments_json(builder, region, cursor, region->size, &emitted,
           &gap_count) != 0) {
-        free(fields);
+        arena_rewind(analysis->arena, mark);
         return -1;
       }
     }
-    free(fields);
+    arena_rewind(analysis->arena, mark);
   }
   if (out_field_gap_count != NULL) *out_field_gap_count = gap_count;
   return json_builder_append(builder, "]");
@@ -4221,6 +4220,7 @@ static size_t listing_app_slot_field_gap_count(const ListingAppSlotAnalysisBuild
   for (region_index = 0U; region_index < analysis->region_count; ++region_index) {
     const ListingAppSlotTypedRegion *region = &analysis->regions[region_index];
     ListingAppSlotFieldRefSummary *fields;
+    ArenaMark mark = arena_mark(analysis->arena);
     size_t field_count = 0U;
     int16_t intervals[128][2];
     size_t interval_count = 0U;
@@ -4259,7 +4259,7 @@ static size_t listing_app_slot_field_gap_count(const ListingAppSlotAnalysisBuild
     }
     if (cursor < region->size && interval_count != 0U)
       gap_count += listing_app_slot_count_field_gap_segments(region, cursor, region->size);
-    free(fields);
+    arena_rewind(analysis->arena, mark);
   }
   return gap_count;
 }
@@ -4393,8 +4393,6 @@ static int append_listing_app_slot_analysis_json(JsonBuilder *builder,
   result = 0;
 
 cleanup:
-  free(summaries);
-  free(intervals);
   return result;
 }
 
@@ -4706,7 +4704,7 @@ static int listing_source_header_rows_append(ListingSourceHeaderRows *rows, cons
   if (rows == NULL || line_start == NULL || row_kind == NULL) return -1;
   if (rows->count == rows->capacity) {
     new_capacity = rows->capacity == 0U ? 16U : rows->capacity * 2U;
-    new_items = (ListingSourceHeaderRow *)listing_arena_grow_array(rows->arena, rows->items, rows->capacity,
+    new_items = (ListingSourceHeaderRow *)listing_arena_grow_array(rows->arena, rows->items, rows->count,
       new_capacity, sizeof(*new_items));
     if (new_items == NULL) return -1;
     rows->items = new_items;
