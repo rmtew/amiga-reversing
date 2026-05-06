@@ -1197,18 +1197,6 @@ function waitForAsyncJobEvents(job, token, renderOverlay) {
       }
       const isListingJob = jobState.job_kind === "full_listing";
       updateAnalysisStatusFromJob(jobState);
-      if (
-        isListingJob
-        && jobState.visible_generation === "basic"
-        && jobState.project_id
-        && jobState.visible_generation !== state.virtualListing.generation
-      ) {
-        void handleListingGenerationReady({
-          project_id: jobState.project_id,
-          generation: jobState.visible_generation,
-          total_rows: jobState.total_rows || 0,
-        }, token);
-      }
       const hasVisibleListingRows = Boolean(
         state.virtualListing.generation
         && document.querySelector("#listing-viewport .listing-row")
@@ -3803,18 +3791,6 @@ async function handleListingGenerationReady(payload, token = null) {
     return;
   }
   if (token !== null && token !== state.loadingToken) {
-    return;
-  }
-  if (payload.generation === "basic") {
-    if (state.virtualListing.generation === "basic" || state.virtualListing.generation === "full") {
-      return;
-    }
-    setAnalysisStatus("Loading initial listing", "running");
-    await loadInitialListingWindow(state.project);
-    if (token !== null && token !== state.loadingToken) {
-      return;
-    }
-    setAnalysisStatus("Analyzing full listing", "running");
     return;
   }
   if (payload.generation === state.virtualListing.generation) {
