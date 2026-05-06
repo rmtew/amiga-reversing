@@ -119,7 +119,6 @@ def _run_one_target(
         source_syntax = input_stamp.get("source_syntax")
         if not isinstance(source_syntax, str) or not source_syntax:
             source_syntax = REPRODUCTION_SOURCE_SYNTAX
-        rows = []
         source_text: str | None = None
         listing_profile: dict[str, object] = {}
         source_refused = False
@@ -143,7 +142,6 @@ def _run_one_target(
                 "phase": "reproduction_prepare",
                 "updated_at": time.time(),
                 "elapsed_seconds": round(analyzed_at - started_at, 4),
-                "row_count": len(rows),
                 "listing_profile": listing_profile,
                 "analysis_backend": input_stamp.get("analysis_backend"),
                 "source_size": len(source_text.encode("utf-8")) if source_text is not None else None,
@@ -163,14 +161,12 @@ def _run_one_target(
         else:
             report = run_reproduction(
                 target_name,
-                rows=rows,
                 project_root=project_root,
                 pre_rendered_source_text=source_text,
                 progress_callback=lambda event: _write_progress(
                     progress_path,
                     {
                         **event,
-                        "row_count": len(rows),
                         "listing_profile": listing_profile,
                         "analysis_backend": input_stamp.get("analysis_backend"),
                         "source_sha256": source_sha256,
@@ -194,7 +190,6 @@ def _run_one_target(
             {
                 "status": "ok",
                 "report": report,
-                "row_count": len(rows),
                 "duration_seconds": total_seconds,
                 "timings": {
                     "analysis_seconds": round(analyzed_at - started_at, 4),
@@ -212,7 +207,6 @@ def _run_one_target(
                 "phase": "done",
                 "updated_at": time.time(),
                 "elapsed_seconds": total_seconds,
-                "row_count": len(rows),
                 "status": report.get("status"),
                 "analysis_backend": input_stamp.get("analysis_backend"),
             },

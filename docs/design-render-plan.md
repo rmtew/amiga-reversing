@@ -129,6 +129,9 @@ The old `ListingRow` serializer is now test fixture code only. Production API
 payload types no longer import the Python row dataclasses.
 The Python `ListingRow` dataclasses themselves have also moved to test
 fixtures; production code consumes C artifact rows as serialized dictionaries.
+`run_reproduction()` no longer accepts Python row objects. Production
+reproduction either uses direct C rebuild or source text emitted from the
+retained artifact/backend; row mapping helpers remain isolated utilities.
 The superseded full-listing rows-with-analysis API has now been excised from
 the Python C backend wrapper, C DLL exports, and CLI. Corpus usage indexing and
 tests that need whole-listing rows materialize them through the retained C

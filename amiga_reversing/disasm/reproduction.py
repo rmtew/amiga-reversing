@@ -94,7 +94,6 @@ def rebuilt_target_dir(target_name: str, *, project_root: Path = PROJECT_ROOT) -
 def run_reproduction(
     target_name: str,
     *,
-    rows: Sequence[Mapping[str, object]] | None = None,
     project_root: Path = PROJECT_ROOT,
     assembler: str = "our",
     progress_callback: Callable[[dict[str, object]], None] | None = None,
@@ -445,7 +444,7 @@ def run_reproduction(
                                 project_root=project_root,
                             )
                             source_size = _write_source_artifact(source_path, source_text, profile_timings)
-                        diagnostics = parse_assembler_diagnostics(assembler_stderr, rows=rows)
+                        diagnostics = parse_assembler_diagnostics(assembler_stderr)
                         report = {
                             **base_report,
                             "status": "assembler_error",
@@ -552,7 +551,7 @@ def run_reproduction(
                 _record_profile_timing(profile_timings, "assemble_seconds", phase_started_at)
                 if source_artifact_policy == "on_failure":
                     source_size = _write_source_artifact(source_path, source_text, profile_timings)
-                diagnostics = parse_assembler_diagnostics(assembler_stderr, rows=rows)
+                diagnostics = parse_assembler_diagnostics(assembler_stderr)
                 report = {
                     **base_report,
                     "status": "assembler_error",
@@ -566,7 +565,7 @@ def run_reproduction(
                     report["profile"] = _profile_payload(profile_timings, profile_started_at)
                 return _write_reproduction_report(paths.target_dir, report)
             _record_profile_timing(profile_timings, "assemble_seconds", phase_started_at)
-        diagnostics = parse_assembler_diagnostics(assembler_stdout + "\n" + assembler_stderr, rows=rows)
+        diagnostics = parse_assembler_diagnostics(assembler_stdout + "\n" + assembler_stderr)
 
         phase = "diff"
         phase_started_at = time.perf_counter()
@@ -626,7 +625,7 @@ def run_reproduction(
             file_layout = file_layout_for_binary_source(paths.binary_source, backend=backend, data=original)
             _record_profile_timing(profile_timings, "file_layout_seconds", layout_started_at)
             row_mapping_started_at = time.perf_counter()
-            row_issues = diff_issues_for_rows(diff_ranges, rows or [], file_layout=file_layout)
+            row_issues = diff_issues_for_rows(diff_ranges, [], file_layout=file_layout)
             _record_profile_timing(profile_timings, "row_mapping_seconds", row_mapping_started_at)
             file_shape_diagnostics = file_shape_diagnostics_for_mismatch(
                 original,

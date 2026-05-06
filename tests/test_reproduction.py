@@ -513,11 +513,12 @@ def test_run_reproduction_captures_assembler_failure(monkeypatch: pytest.MonkeyP
         fail_render_assemble,
     )
 
-    report = run_reproduction("demo", rows=_rows(ListingRow(row_id="r0", kind="instruction", text="bad\n", addr=0)))
+    report = run_reproduction("demo")
 
     assert report["status"] == "assembler_error"
     assert calls[0]["kwargs"]["target_cpu"] == "any"
     assert cast(list[dict[str, object]], report["assembler_diagnostics"])[0]["message"] == "demo.s:1: bad operand"
+    assert cast(list[dict[str, object]], report["assembler_diagnostics"])[0]["row_index"] is None
     assert (target_dir / "reproduction.json").exists()
 
 
