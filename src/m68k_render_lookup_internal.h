@@ -373,6 +373,7 @@ typedef struct M68kRenderBaseTraceState {
 } M68kRenderBaseTraceState;
 
 struct M68kRenderLookup {
+  Arena *arena;
   uint8_t **labels;
   const char ***object_symbol_labels;
   const M68kFact ***relocations;
@@ -457,6 +458,11 @@ struct M68kRenderLookup {
   size_t **instruction_comment_indices;
   uint32_t *instruction_comment_extents;
 };
+
+Arena *render_lookup_arena(M68kRenderLookup *lookup);
+void *render_lookup_calloc(M68kRenderLookup *lookup, size_t count, size_t size);
+void *render_lookup_grow_array(M68kRenderLookup *lookup, const void *old_items, size_t old_count,
+  size_t item_size, size_t new_capacity);
 
 void format_numeric_value(char *buffer, size_t buffer_size, uint32_t size, uint32_t value);
 uint8_t format_lookup_asm_label_with_generation(const M68kRenderLookup *lookup, char *buf, size_t buf_size,

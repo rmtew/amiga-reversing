@@ -3555,7 +3555,8 @@ static int render_lookup_add_global_base_slot(M68kRenderLookup *lookup, size_t s
   }
   if (lookup->global_base_slot_count == lookup->global_base_slot_capacity) {
     next_capacity = lookup->global_base_slot_capacity == 0U ? 8U : lookup->global_base_slot_capacity * 2U;
-    grown = (M68kRenderGlobalBaseSlot *)realloc(lookup->global_base_slots, next_capacity * sizeof(*grown));
+    grown = (M68kRenderGlobalBaseSlot *)render_lookup_grow_array(lookup, lookup->global_base_slots,
+      lookup->global_base_slot_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->global_base_slots = grown;
     lookup->global_base_slot_capacity = next_capacity;
@@ -3623,7 +3624,8 @@ static int render_lookup_add_base_field_slot_with_symbol(M68kRenderLookup *looku
   }
   if (lookup->base_field_slot_count == lookup->base_field_slot_capacity) {
     next_capacity = lookup->base_field_slot_capacity == 0U ? 8U : lookup->base_field_slot_capacity * 2U;
-    grown = (M68kRenderBaseFieldSlot *)realloc(lookup->base_field_slots, next_capacity * sizeof(*grown));
+    grown = (M68kRenderBaseFieldSlot *)render_lookup_grow_array(lookup, lookup->base_field_slots,
+      lookup->base_field_slot_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->base_field_slots = grown;
     lookup->base_field_slot_capacity = next_capacity;
@@ -3708,7 +3710,8 @@ static int render_lookup_add_device_instance(M68kRenderLookup *lookup, int16_t i
   }
   if (lookup->device_instance_count == lookup->device_instance_capacity) {
     next_capacity = lookup->device_instance_capacity == 0U ? 8U : lookup->device_instance_capacity * 2U;
-    grown = (M68kRenderDeviceInstance *)realloc(lookup->device_instances, next_capacity * sizeof(*grown));
+    grown = (M68kRenderDeviceInstance *)render_lookup_grow_array(lookup, lookup->device_instances,
+      lookup->device_instance_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->device_instances = grown;
     lookup->device_instance_capacity = next_capacity;
@@ -3749,7 +3752,8 @@ static int render_lookup_add_device_call(M68kRenderLookup *lookup, size_t sectio
   }
   if (lookup->device_call_count == lookup->device_call_capacity) {
     next_capacity = lookup->device_call_capacity == 0U ? 8U : lookup->device_call_capacity * 2U;
-    grown = (M68kRenderDeviceCall *)realloc(lookup->device_calls, next_capacity * sizeof(*grown));
+    grown = (M68kRenderDeviceCall *)render_lookup_grow_array(lookup, lookup->device_calls,
+      lookup->device_call_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->device_calls = grown;
     lookup->device_call_capacity = next_capacity;
@@ -3795,7 +3799,8 @@ static int render_lookup_add_app_access_ref(M68kRenderLookup *lookup, size_t sec
   }
   if (lookup->app_slot_ref_count == lookup->app_slot_ref_capacity) {
     next_capacity = lookup->app_slot_ref_capacity == 0U ? 32U : lookup->app_slot_ref_capacity * 2U;
-    grown = (M68kRenderAppSlotRef *)realloc(lookup->app_slot_refs, next_capacity * sizeof(*grown));
+    grown = (M68kRenderAppSlotRef *)render_lookup_grow_array(lookup, lookup->app_slot_refs,
+      lookup->app_slot_ref_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->app_slot_refs = grown;
     lookup->app_slot_ref_capacity = next_capacity;
@@ -3833,8 +3838,8 @@ int render_lookup_add_runtime_address_ref(M68kRenderLookup *lookup, const M68kFa
   if (lookup->runtime_address_ref_count == lookup->runtime_address_ref_capacity) {
     next_capacity = lookup->runtime_address_ref_capacity == 0U ? 32U :
       lookup->runtime_address_ref_capacity * 2U;
-    grown = (M68kRenderRuntimeAddressRef *)realloc(lookup->runtime_address_refs,
-      next_capacity * sizeof(*grown));
+    grown = (M68kRenderRuntimeAddressRef *)render_lookup_grow_array(lookup, lookup->runtime_address_refs,
+      lookup->runtime_address_ref_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->runtime_address_refs = grown;
     lookup->runtime_address_ref_capacity = next_capacity;
@@ -3875,8 +3880,9 @@ static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *look
   if (lookup->inferred_runtime_address_ref_count == lookup->inferred_runtime_address_ref_capacity) {
     next_capacity = lookup->inferred_runtime_address_ref_capacity == 0U ? 16U :
       lookup->inferred_runtime_address_ref_capacity * 2U;
-    grown = (M68kRenderInferredRuntimeAddressRef *)realloc(lookup->inferred_runtime_address_refs,
-      next_capacity * sizeof(*grown));
+    grown = (M68kRenderInferredRuntimeAddressRef *)render_lookup_grow_array(lookup,
+      lookup->inferred_runtime_address_refs, lookup->inferred_runtime_address_ref_count, sizeof(*grown),
+      next_capacity);
     if (grown == NULL) return -1;
     lookup->inferred_runtime_address_refs = grown;
     lookup->inferred_runtime_address_ref_capacity = next_capacity;
@@ -3916,8 +3922,8 @@ int render_lookup_add_runtime_address_range(M68kRenderLookup *lookup, const M68k
   if (lookup->runtime_address_range_count == lookup->runtime_address_range_capacity) {
     next_capacity = lookup->runtime_address_range_capacity == 0U ? 16U :
       lookup->runtime_address_range_capacity * 2U;
-    grown = (M68kRenderRuntimeAddressRange *)realloc(lookup->runtime_address_ranges,
-      next_capacity * sizeof(*grown));
+    grown = (M68kRenderRuntimeAddressRange *)render_lookup_grow_array(lookup, lookup->runtime_address_ranges,
+      lookup->runtime_address_range_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->runtime_address_ranges = grown;
     lookup->runtime_address_range_capacity = next_capacity;
@@ -3949,7 +3955,8 @@ int render_lookup_add_code_start_ref(M68kRenderLookup *lookup, const M68kFact *f
   }
   if (lookup->code_start_ref_count == lookup->code_start_ref_capacity) {
     next_capacity = lookup->code_start_ref_capacity == 0U ? 32U : lookup->code_start_ref_capacity * 2U;
-    grown = (M68kRenderCodeStartRef *)realloc(lookup->code_start_refs, next_capacity * sizeof(*grown));
+    grown = (M68kRenderCodeStartRef *)render_lookup_grow_array(lookup, lookup->code_start_refs,
+      lookup->code_start_ref_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->code_start_refs = grown;
     lookup->code_start_ref_capacity = next_capacity;
@@ -3975,7 +3982,8 @@ int render_lookup_add_violation_ref(M68kRenderLookup *lookup, const M68kFact *fa
   }
   if (lookup->violation_ref_count == lookup->violation_ref_capacity) {
     next_capacity = lookup->violation_ref_capacity == 0U ? 16U : lookup->violation_ref_capacity * 2U;
-    grown = (M68kRenderViolationRef *)realloc(lookup->violation_refs, next_capacity * sizeof(*grown));
+    grown = (M68kRenderViolationRef *)render_lookup_grow_array(lookup, lookup->violation_refs,
+      lookup->violation_ref_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->violation_refs = grown;
     lookup->violation_ref_capacity = next_capacity;
@@ -4003,8 +4011,9 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
   if (lookup->auto_structured_data_item_count == lookup->auto_structured_data_item_capacity) {
     next_capacity = lookup->auto_structured_data_item_capacity == 0U ? 16U :
       lookup->auto_structured_data_item_capacity * 2U;
-    grown = (M68kAnalysisStructuredDataItem *)realloc(lookup->auto_structured_data_items,
-      next_capacity * sizeof(*grown));
+    grown = (M68kAnalysisStructuredDataItem *)render_lookup_grow_array(lookup,
+      lookup->auto_structured_data_items, lookup->auto_structured_data_item_count, sizeof(*grown),
+      next_capacity);
     if (grown == NULL) return -1;
     lookup->auto_structured_data_items = grown;
     lookup->auto_structured_data_item_capacity = next_capacity;
@@ -4051,7 +4060,8 @@ int render_lookup_add_storage_xref(M68kRenderLookup *lookup, size_t section_inde
   }
   if (lookup->xref_count == lookup->xref_capacity) {
     next_capacity = lookup->xref_capacity == 0U ? 64U : lookup->xref_capacity * 2U;
-    grown = (M68kRenderXref *)realloc(lookup->xrefs, next_capacity * sizeof(*grown));
+    grown = (M68kRenderXref *)render_lookup_grow_array(lookup, lookup->xrefs, lookup->xref_count,
+      sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->xrefs = grown;
     lookup->xref_capacity = next_capacity;
@@ -4112,8 +4122,8 @@ int render_lookup_add_indexed_vector_wrapper(M68kRenderLookup *lookup, size_t se
   if (lookup->indexed_vector_wrapper_count == lookup->indexed_vector_wrapper_capacity) {
     next_capacity = lookup->indexed_vector_wrapper_capacity == 0U ? 8U :
       lookup->indexed_vector_wrapper_capacity * 2U;
-    grown = (M68kRenderIndexedVectorWrapper *)realloc(lookup->indexed_vector_wrappers,
-      next_capacity * sizeof(*grown));
+    grown = (M68kRenderIndexedVectorWrapper *)render_lookup_grow_array(lookup,
+      lookup->indexed_vector_wrappers, lookup->indexed_vector_wrapper_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->indexed_vector_wrappers = grown;
     lookup->indexed_vector_wrapper_capacity = next_capacity;
@@ -4191,7 +4201,8 @@ int render_lookup_add_instruction_comment(M68kRenderLookup *lookup, size_t secti
   }
   if (lookup->instruction_comment_count == lookup->instruction_comment_capacity) {
     next_capacity = lookup->instruction_comment_capacity == 0U ? 32U : lookup->instruction_comment_capacity * 2U;
-    grown = (M68kRenderInstructionComment *)realloc(lookup->instruction_comments, next_capacity * sizeof(*grown));
+    grown = (M68kRenderInstructionComment *)render_lookup_grow_array(lookup, lookup->instruction_comments,
+      lookup->instruction_comment_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->instruction_comments = grown;
     lookup->instruction_comment_capacity = next_capacity;
@@ -4225,8 +4236,8 @@ int render_lookup_add_recovered_function_arg(M68kRenderLookup *lookup, size_t se
   if (lookup->recovered_function_arg_count == lookup->recovered_function_arg_capacity) {
     next_capacity = lookup->recovered_function_arg_capacity == 0U ? 16U :
       lookup->recovered_function_arg_capacity * 2U;
-    grown = (M68kRenderRecoveredFunctionArg *)realloc(lookup->recovered_function_args,
-      next_capacity * sizeof(*grown));
+    grown = (M68kRenderRecoveredFunctionArg *)render_lookup_grow_array(lookup,
+      lookup->recovered_function_args, lookup->recovered_function_arg_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->recovered_function_args = grown;
     lookup->recovered_function_arg_capacity = next_capacity;
@@ -4259,8 +4270,9 @@ int render_lookup_add_recovered_local_call_summary(M68kRenderLookup *lookup, siz
   if (lookup->recovered_local_call_summary_count == lookup->recovered_local_call_summary_capacity) {
     next_capacity = lookup->recovered_local_call_summary_capacity == 0U ? 16U :
       lookup->recovered_local_call_summary_capacity * 2U;
-    grown = (M68kRenderRecoveredLocalCallSummary *)realloc(lookup->recovered_local_call_summaries,
-      next_capacity * sizeof(*grown));
+    grown = (M68kRenderRecoveredLocalCallSummary *)render_lookup_grow_array(lookup,
+      lookup->recovered_local_call_summaries, lookup->recovered_local_call_summary_count, sizeof(*grown),
+      next_capacity);
     if (grown == NULL) return -1;
     lookup->recovered_local_call_summaries = grown;
     lookup->recovered_local_call_summary_capacity = next_capacity;
@@ -4293,7 +4305,8 @@ int render_lookup_add_typed_slot_effect(M68kRenderLookup *lookup, size_t section
   }
   if (lookup->typed_slot_effect_count == lookup->typed_slot_effect_capacity) {
     next_capacity = lookup->typed_slot_effect_capacity == 0U ? 16U : lookup->typed_slot_effect_capacity * 2U;
-    grown = (M68kRenderTypedSlotEffect *)realloc(lookup->typed_slot_effects, next_capacity * sizeof(*grown));
+    grown = (M68kRenderTypedSlotEffect *)render_lookup_grow_array(lookup, lookup->typed_slot_effects,
+      lookup->typed_slot_effect_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->typed_slot_effects = grown;
     lookup->typed_slot_effect_capacity = next_capacity;
@@ -4408,7 +4421,8 @@ int render_lookup_add_typed_storage_slot(M68kRenderLookup *lookup, uint8_t kind,
   }
   if (lookup->typed_storage_slot_count == lookup->typed_storage_slot_capacity) {
     next_capacity = lookup->typed_storage_slot_capacity == 0U ? 16U : lookup->typed_storage_slot_capacity * 2U;
-    grown = (M68kRenderTypedStorageSlot *)realloc(lookup->typed_storage_slots, next_capacity * sizeof(*grown));
+    grown = (M68kRenderTypedStorageSlot *)render_lookup_grow_array(lookup, lookup->typed_storage_slots,
+      lookup->typed_storage_slot_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->typed_storage_slots = grown;
     lookup->typed_storage_slot_capacity = next_capacity;
@@ -4497,7 +4511,8 @@ static int render_lookup_add_typed_app_slot_internal(M68kRenderLookup *lookup, i
   }
   if (lookup->typed_app_slot_count == lookup->typed_app_slot_capacity) {
     next_capacity = lookup->typed_app_slot_capacity == 0U ? 16U : lookup->typed_app_slot_capacity * 2U;
-    grown = (M68kRenderTypedAppSlot *)realloc(lookup->typed_app_slots, next_capacity * sizeof(*grown));
+    grown = (M68kRenderTypedAppSlot *)render_lookup_grow_array(lookup, lookup->typed_app_slots,
+      lookup->typed_app_slot_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->typed_app_slots = grown;
     lookup->typed_app_slot_capacity = next_capacity;
@@ -4552,7 +4567,8 @@ int render_lookup_add_typed_access(M68kRenderLookup *lookup, size_t section_inde
   }
   if (lookup->typed_access_count == lookup->typed_access_capacity) {
     next_capacity = lookup->typed_access_capacity == 0U ? 32U : lookup->typed_access_capacity * 2U;
-    grown = (M68kRenderTypedAccess *)realloc(lookup->typed_accesses, next_capacity * sizeof(*grown));
+    grown = (M68kRenderTypedAccess *)render_lookup_grow_array(lookup, lookup->typed_accesses,
+      lookup->typed_access_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->typed_accesses = grown;
     lookup->typed_access_capacity = next_capacity;
@@ -4613,8 +4629,8 @@ int render_lookup_add_unresolved_typed_access(M68kRenderLookup *lookup, size_t s
     next_capacity = lookup->unresolved_typed_access_capacity == 0U
       ? 16U
       : lookup->unresolved_typed_access_capacity * 2U;
-    grown = (M68kRenderUnresolvedTypedAccess *)realloc(lookup->unresolved_typed_accesses,
-      next_capacity * sizeof(*grown));
+    grown = (M68kRenderUnresolvedTypedAccess *)render_lookup_grow_array(lookup,
+      lookup->unresolved_typed_accesses, lookup->unresolved_typed_access_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->unresolved_typed_accesses = grown;
     lookup->unresolved_typed_access_capacity = next_capacity;
@@ -4676,7 +4692,8 @@ int render_lookup_add_string_span(M68kRenderLookup *lookup, size_t section_index
   }
   if (lookup->string_span_count == lookup->string_span_capacity) {
     next_capacity = lookup->string_span_capacity == 0U ? 16U : lookup->string_span_capacity * 2U;
-    grown = (M68kRenderStringSpan *)realloc(lookup->string_spans, next_capacity * sizeof(*grown));
+    grown = (M68kRenderStringSpan *)render_lookup_grow_array(lookup, lookup->string_spans,
+      lookup->string_span_count, sizeof(*grown), next_capacity);
     if (grown == NULL) return -1;
     lookup->string_spans = grown;
     lookup->string_span_capacity = next_capacity;

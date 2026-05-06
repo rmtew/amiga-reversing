@@ -97,6 +97,9 @@ Full-listing header rows and app-slot listing analysis scratch data now use
 builder-local arenas. These structures are created for one JSON emission pass,
 share one lifetime, and no longer maintain nested heap/free ownership inside
 the row walk.
+Render lookup owns its lookup-table and lookup-result arrays through a
+lookup-local arena. Short-lived typed-flow graph scratch remains separately
+owned because it is reset per analysis pass, not retained with the lookup.
 
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
@@ -198,6 +201,9 @@ Arena use should follow real lifetime boundaries:
 - Row-builder scratch remains reusable heap storage outside the plan arena.
 - Header/listing scratch that lives for one JSON emission pass should be owned
   by the listing builder arena.
+- Lookup-owned indexes and render-enrichment arrays should be owned by the
+  lookup arena. Per-pass analysis scratch with a shorter lifetime should stay
+  outside that arena.
 - Analysis facts and source/object IR are authoritative inputs and must not be
   copied into render arenas unless the render path needs immutable row-local
   provenance.

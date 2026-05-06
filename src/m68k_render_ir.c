@@ -3582,72 +3582,38 @@ uint32_t render_section_extent(const M68kDecodeSectionIR *section) {
   return section->allocation_size > section->size ? section->allocation_size : section->size;
 }
 
+Arena *render_lookup_arena(M68kRenderLookup *lookup) {
+  if (lookup == NULL) return NULL;
+  if (lookup->arena == NULL) {
+    lookup->arena = arena_create(16384U);
+    if (lookup->arena == NULL) return NULL;
+  }
+  return lookup->arena;
+}
+
+void *render_lookup_calloc(M68kRenderLookup *lookup, size_t count, size_t size) {
+  Arena *arena = render_lookup_arena(lookup);
+  if (arena == NULL) return NULL;
+  return arena_calloc(arena, count, size);
+}
+
+void *render_lookup_grow_array(M68kRenderLookup *lookup, const void *old_items, size_t old_count,
+    size_t item_size, size_t new_capacity) {
+  Arena *arena;
+  size_t old_size;
+  size_t new_size;
+  if (item_size == 0U || new_capacity == 0U) return NULL;
+  if (old_count > ((size_t)-1) / item_size || new_capacity > ((size_t)-1) / item_size) return NULL;
+  arena = render_lookup_arena(lookup);
+  if (arena == NULL) return NULL;
+  old_size = old_count * item_size;
+  new_size = new_capacity * item_size;
+  return arena_realloc_copy(arena, old_items, old_size, new_size);
+}
+
 static void render_lookup_destroy(M68kRenderLookup *lookup) {
-  size_t section_index;
   if (lookup == NULL) return;
-  if (lookup->labels != NULL) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index) free(lookup->labels[section_index]);
-  }
-  if (lookup->object_symbol_labels != NULL) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
-      free(lookup->object_symbol_labels[section_index]);
-  }
-  if (lookup->relocations != NULL) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
-      free(lookup->relocations[section_index]);
-  }
-  if (lookup->anchors != NULL) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
-      free(lookup->anchors[section_index]);
-  }
-  if (lookup->block_starts != NULL) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
-      free(lookup->block_starts[section_index]);
-  }
-  free(lookup->global_base_slots);
-  free(lookup->base_field_slots);
-  free(lookup->app_slot_refs);
-  free(lookup->device_instances);
-  free(lookup->device_calls);
-  free(lookup->runtime_address_refs);
-  free(lookup->inferred_runtime_address_refs);
-  free(lookup->runtime_address_ranges);
-  free(lookup->code_start_refs);
-  free(lookup->violation_refs);
-  free(lookup->xrefs);
-  free(lookup->indexed_vector_wrappers);
-  free(lookup->recovered_function_args);
-  free(lookup->recovered_local_call_summaries);
-  free(lookup->typed_slot_effects);
-  free(lookup->typed_accesses);
-  free(lookup->unresolved_typed_accesses);
-  free(lookup->typed_app_slots);
-  free(lookup->typed_storage_slots);
-  free(lookup->instruction_comments);
-  free(lookup->string_spans);
-  free(lookup->auto_structured_data_items);
-  if (lookup->instruction_comment_indices != NULL) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
-      free(lookup->instruction_comment_indices[section_index]);
-  }
-  if (lookup->runtime_address_ref_indices != NULL) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
-      free(lookup->runtime_address_ref_indices[section_index]);
-  }
-  free(lookup->labels);
-  free(lookup->object_symbol_labels);
-  free(lookup->relocations);
-  free(lookup->anchors);
-  free(lookup->block_starts);
-  free(lookup->label_extents);
-  free(lookup->object_symbol_label_extents);
-  free(lookup->relocation_extents);
-  free(lookup->anchor_extents);
-  free(lookup->block_start_extents);
-  free(lookup->instruction_comment_indices);
-  free(lookup->instruction_comment_extents);
-  free(lookup->runtime_address_ref_indices);
-  free(lookup->runtime_address_ref_index_extents);
+  arena_destroy(lookup->arena);
   memset(lookup, 0, sizeof(*lookup));
 }
 
@@ -3970,27 +3936,35 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
   lookup->section_count = decode->section_count;
   lookup->object = object;
   lookup->policy = policy;
-  lookup->labels = (uint8_t **)calloc(decode->section_count, sizeof(*lookup->labels));
+  lookup->labels = (uint8_t **)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->labels));
   lookup->object_symbol_labels =
-    (const char ***)calloc(decode->section_count, sizeof(*lookup->object_symbol_labels));
-  lookup->relocations = (const M68kFact ***)calloc(decode->section_count, sizeof(*lookup->relocations));
-  lookup->anchors = (const M68kFact ***)calloc(decode->section_count, sizeof(*lookup->anchors));
-  lookup->block_starts = (uint8_t **)calloc(decode->section_count, sizeof(*lookup->block_starts));
-  lookup->label_extents = (uint32_t *)calloc(decode->section_count, sizeof(*lookup->label_extents));
+    (const char ***)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->object_symbol_labels));
+  lookup->relocations = (const M68kFact ***)render_lookup_calloc(lookup, decode->section_count,
+    sizeof(*lookup->relocations));
+  lookup->anchors = (const M68kFact ***)render_lookup_calloc(lookup, decode->section_count,
+    sizeof(*lookup->anchors));
+  lookup->block_starts = (uint8_t **)render_lookup_calloc(lookup, decode->section_count,
+    sizeof(*lookup->block_starts));
+  lookup->label_extents = (uint32_t *)render_lookup_calloc(lookup, decode->section_count,
+    sizeof(*lookup->label_extents));
   lookup->object_symbol_label_extents =
-    (uint32_t *)calloc(decode->section_count, sizeof(*lookup->object_symbol_label_extents));
-  lookup->relocation_extents = (uint32_t *)calloc(decode->section_count, sizeof(*lookup->relocation_extents));
-  lookup->anchor_extents = (uint32_t *)calloc(decode->section_count, sizeof(*lookup->anchor_extents));
-  lookup->block_start_extents = (uint32_t *)calloc(decode->section_count, sizeof(*lookup->block_start_extents));
+    (uint32_t *)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->object_symbol_label_extents));
+  lookup->relocation_extents = (uint32_t *)render_lookup_calloc(lookup, decode->section_count,
+    sizeof(*lookup->relocation_extents));
+  lookup->anchor_extents = (uint32_t *)render_lookup_calloc(lookup, decode->section_count,
+    sizeof(*lookup->anchor_extents));
+  lookup->block_start_extents = (uint32_t *)render_lookup_calloc(lookup, decode->section_count,
+    sizeof(*lookup->block_start_extents));
   lookup->instruction_comment_indices =
-    (size_t **)calloc(decode->section_count, sizeof(*lookup->instruction_comment_indices));
+    (size_t **)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->instruction_comment_indices));
   lookup->instruction_comment_extents =
-    (uint32_t *)calloc(decode->section_count, sizeof(*lookup->instruction_comment_extents));
+    (uint32_t *)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->instruction_comment_extents));
   lookup->runtime_address_ref_indices =
-    (M68kRenderRuntimeAddressRefIndex **)calloc(decode->section_count,
+    (M68kRenderRuntimeAddressRefIndex **)render_lookup_calloc(lookup, decode->section_count,
       sizeof(*lookup->runtime_address_ref_indices));
   lookup->runtime_address_ref_index_extents =
-    (uint32_t *)calloc(decode->section_count, sizeof(*lookup->runtime_address_ref_index_extents));
+    (uint32_t *)render_lookup_calloc(lookup, decode->section_count,
+      sizeof(*lookup->runtime_address_ref_index_extents));
   if (lookup->labels == NULL || lookup->object_symbol_labels == NULL || lookup->relocations == NULL ||
       lookup->anchors == NULL || lookup->block_starts == NULL || lookup->label_extents == NULL ||
       lookup->object_symbol_label_extents == NULL || lookup->relocation_extents == NULL ||
@@ -4012,28 +3986,31 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
     lookup->instruction_comment_extents[section_index] = comment_extent;
     lookup->runtime_address_ref_index_extents[section_index] = runtime_ref_extent;
     lookup->labels[section_index] =
-      (uint8_t *)calloc((size_t)label_extent + 1U, sizeof(*lookup->labels[section_index]));
+      (uint8_t *)render_lookup_calloc(lookup, (size_t)label_extent + 1U, sizeof(*lookup->labels[section_index]));
     lookup->object_symbol_labels[section_index] =
-      (const char **)calloc((size_t)label_extent + 1U, sizeof(*lookup->object_symbol_labels[section_index]));
+      (const char **)render_lookup_calloc(lookup, (size_t)label_extent + 1U,
+        sizeof(*lookup->object_symbol_labels[section_index]));
     if (relocation_extent != 0U) {
       lookup->relocations[section_index] =
-        (const M68kFact **)calloc(relocation_extent, sizeof(*lookup->relocations[section_index]));
+        (const M68kFact **)render_lookup_calloc(lookup, relocation_extent,
+          sizeof(*lookup->relocations[section_index]));
     }
     if (anchor_extent != 0U) {
       lookup->anchors[section_index] =
-        (const M68kFact **)calloc(anchor_extent, sizeof(*lookup->anchors[section_index]));
+        (const M68kFact **)render_lookup_calloc(lookup, anchor_extent, sizeof(*lookup->anchors[section_index]));
     }
     if (block_start_extent != 0U) {
       lookup->block_starts[section_index] =
-        (uint8_t *)calloc(block_start_extent, sizeof(*lookup->block_starts[section_index]));
+        (uint8_t *)render_lookup_calloc(lookup, block_start_extent, sizeof(*lookup->block_starts[section_index]));
     }
     if (comment_extent != 0U) {
       lookup->instruction_comment_indices[section_index] =
-        (size_t *)calloc(comment_extent, sizeof(*lookup->instruction_comment_indices[section_index]));
+        (size_t *)render_lookup_calloc(lookup, comment_extent,
+          sizeof(*lookup->instruction_comment_indices[section_index]));
     }
     if (runtime_ref_extent != 0U) {
       lookup->runtime_address_ref_indices[section_index] =
-        (M68kRenderRuntimeAddressRefIndex *)calloc(runtime_ref_extent,
+        (M68kRenderRuntimeAddressRefIndex *)render_lookup_calloc(lookup, runtime_ref_extent,
           sizeof(*lookup->runtime_address_ref_indices[section_index]));
     }
     if (lookup->labels[section_index] == NULL || lookup->object_symbol_labels[section_index] == NULL ||
