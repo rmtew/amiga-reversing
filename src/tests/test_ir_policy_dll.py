@@ -812,6 +812,8 @@ class IrPolicyDllTests(unittest.TestCase):
             [row["row_id"] for row in full_rows[addr_anchor:addr_anchor + 3]],
         )
         self.assertEqual(addr_payload["profile"]["generation"], "facts_v2_listing_artifact_addr_window")
+        self.assertEqual(addr_payload["profile"]["listing_total_rows"], len(full_rows))
+        self.assertGreaterEqual(addr_payload["profile"]["listing_addr_block_count"], 1)
         self.assertEqual(second_payload["profile"]["generation"], "facts_v2_listing_artifact_window")
         self.assertEqual(second_payload["profile"]["listing_total_rows"], len(full_rows))
         navigation_payload = json.loads(navigation_text)

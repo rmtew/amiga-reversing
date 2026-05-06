@@ -6064,10 +6064,16 @@ static int test_listing_json_window_matches_full_render_plan_slice(void) {
   char *full_json = NULL;
   char *window_json = NULL;
   char *addr_window_json = NULL;
+  char *indexed_addr_window_json = NULL;
+  PlatformListingRowIndex row_index;
+  Arena *index_arena = NULL;
   const uint8_t bytes[2] = {0x4eU, 0x75U};
   M68kInstructionIR instruction;
 
+  memset(&row_index, 0, sizeof(row_index));
   m68k_render_plan_init(&render_plan);
+  index_arena = arena_create(4096U);
+  M68K_C_ASSERT(index_arena != NULL);
   instruction = m68k_plain_parse_instruction_to_ir("rts", M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
   M68K_C_ASSERT(instruction.mnemonic_id != M68K_ASM_MNEMONIC_NONE);
   M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_SECTION, 0U,
@@ -6093,9 +6099,25 @@ static int test_listing_json_window_matches_full_render_plan_slice(void) {
   M68K_C_ASSERT_INT(0, source_file_listing_addr_window_from_render_plan_to_json(NULL, &render_plan,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, 1, 1U, 1U, 0U, &addr_window_json,
     m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_row_index_from_render_plan(NULL, &render_plan,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, 2U, index_arena, &row_index,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_addr_window_from_render_plan_with_index_to_json(NULL, &render_plan,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &row_index, 1, 1U, 1U, 0U,
+    &indexed_addr_window_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(full_json != NULL);
   M68K_C_ASSERT(window_json != NULL);
   M68K_C_ASSERT(addr_window_json != NULL);
+  M68K_C_ASSERT(indexed_addr_window_json != NULL);
+  M68K_C_ASSERT_U32(4U, row_index.row_count);
+  M68K_C_ASSERT_U32(2U, row_index.block_count);
+  M68K_C_ASSERT(row_index.entries[0].has_addr == 0U);
+  M68K_C_ASSERT(row_index.entries[1].has_addr != 0U);
+  M68K_C_ASSERT_U32(0U, row_index.entries[1].addr);
+  M68K_C_ASSERT(row_index.blocks[0].has_addr != 0U);
+  M68K_C_ASSERT_U32(0U, row_index.blocks[0].max_addr);
+  M68K_C_ASSERT(row_index.blocks[1].has_addr != 0U);
+  M68K_C_ASSERT_U32(2U, row_index.blocks[1].max_addr);
   M68K_C_ASSERT(strstr(full_json, "\"row_id\":\"c:1\"") != NULL);
   M68K_C_ASSERT(strstr(full_json, "\"row_id\":\"c:2\"") != NULL);
   M68K_C_ASSERT(strstr(window_json, "\"start\":1") != NULL);
@@ -6110,10 +6132,17 @@ static int test_listing_json_window_matches_full_render_plan_slice(void) {
   M68K_C_ASSERT(strstr(addr_window_json, "\"row_id\":\"c:1\"") == NULL);
   M68K_C_ASSERT(strstr(addr_window_json, "\"row_id\":\"c:2\"") != NULL);
   M68K_C_ASSERT(strstr(addr_window_json, "\"row_id\":\"c:3\"") != NULL);
+  M68K_C_ASSERT(strstr(indexed_addr_window_json, "\"start\":2") != NULL);
+  M68K_C_ASSERT(strstr(indexed_addr_window_json, "\"end\":4") != NULL);
+  M68K_C_ASSERT(strstr(indexed_addr_window_json, "\"anchor_addr\":1") != NULL);
+  M68K_C_ASSERT(strstr(indexed_addr_window_json, "\"row_id\":\"c:2\"") != NULL);
+  M68K_C_ASSERT(strstr(indexed_addr_window_json, "\"row_id\":\"c:3\"") != NULL);
 
   free(full_json);
   free(window_json);
   free(addr_window_json);
+  free(indexed_addr_window_json);
+  arena_destroy(index_arena);
   m68k_render_plan_destroy(&render_plan);
   return 0;
 }

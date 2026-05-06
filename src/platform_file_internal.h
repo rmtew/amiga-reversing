@@ -122,6 +122,24 @@ typedef const void *(*PlatformStackWrapperResolveCallFn)(void *user_ctx, const S
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, const M68kInstructionIR *instruction,
     const uint16_t addr_reg_base_ids[8]);
 
+typedef struct PlatformListingRowIndexEntry {
+  uint8_t has_addr;
+  uint32_t addr;
+} PlatformListingRowIndexEntry;
+
+typedef struct PlatformListingRowIndexBlock {
+  uint8_t has_addr;
+  uint32_t max_addr;
+} PlatformListingRowIndexBlock;
+
+typedef struct PlatformListingRowIndex {
+  PlatformListingRowIndexEntry *entries;
+  PlatformListingRowIndexBlock *blocks;
+  size_t row_count;
+  size_t block_count;
+  size_t block_size;
+} PlatformListingRowIndex;
+
 int section_analysis_context_init(SectionAnalysisContext *ctx, const M68kObject *object, size_t section_index,
     const M68kSection *section, const M68kSectionAnalysisIR *prior_section_analyses,
     size_t prior_section_analysis_count, const M68kAnalysisPolicy *analysis_policy, Arena *arena);
@@ -144,10 +162,19 @@ int source_file_listing_total_rows_from_render_plan(const M68kSourceFileIR *sour
     const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
     size_t *out_total_rows, M68kDiagSink diagnostics);
+int source_file_listing_row_index_from_render_plan(const M68kSourceFileIR *source_file,
+    const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
+    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
+    size_t block_size, Arena *arena, PlatformListingRowIndex *out_index, M68kDiagSink diagnostics);
 int source_file_listing_addr_window_from_render_plan_to_json(const M68kSourceFileIR *source_file,
   const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
   const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
   int has_addr, uint32_t addr, size_t before, size_t after, char **out_json, M68kDiagSink diagnostics);
+int source_file_listing_addr_window_from_render_plan_with_index_to_json(const M68kSourceFileIR *source_file,
+  const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
+  const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
+  const PlatformListingRowIndex *row_index, int has_addr, uint32_t addr, size_t before, size_t after,
+  char **out_json, M68kDiagSink diagnostics);
 int source_file_listing_navigation_from_render_plan_to_json(const M68kSourceFileIR *source_file,
   const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
   const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,

@@ -4359,6 +4359,8 @@ struct PlatformFileListingArtifact {
   M68kSourceAnalysisIR source_analysis;
   M68kRenderPlan source_plan;
   M68kFactsV2Profile profile;
+  Arena *listing_index_arena;
+  PlatformListingRowIndex listing_row_index;
   size_t listing_total_rows;
   double source_seconds;
 };
@@ -4388,6 +4390,12 @@ static PlatformFileListingArtifact *listing_artifact_alloc_base(const char *back
     return NULL;
   }
   m68k_render_plan_init(&artifact->source_plan);
+  artifact->listing_index_arena = arena_create(4096U);
+  if (artifact->listing_index_arena == NULL) {
+    platform_file_add_error(diagnostics, "out of memory");
+    platform_file_facts_v2_listing_artifact_destroy(artifact);
+    return NULL;
+  }
   return artifact;
 }
 
@@ -4406,13 +4414,15 @@ static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact
     return -1;
   }
   source_end = clock();
-  if (source_file_listing_total_rows_from_render_plan(NULL, &artifact->source_plan,
+  if (source_file_listing_row_index_from_render_plan(NULL, &artifact->source_plan,
       artifact->object.platform_backend_kind, &artifact->source_analysis.policy, &artifact->source_analysis,
-      "full", 0, &artifact->listing_total_rows, m68k_diag_sink(diagnostics)) != 0) {
+      "full", 0, 256U, artifact->listing_index_arena, &artifact->listing_row_index,
+      m68k_diag_sink(diagnostics)) != 0) {
     if (!m68k_diag_has_errors(diagnostics))
-      platform_file_add_error(diagnostics, "facts_v2 listing row count failed");
+      platform_file_add_error(diagnostics, "facts_v2 listing row index failed");
     return -1;
   }
+  artifact->listing_total_rows = artifact->listing_row_index.row_count;
   artifact->source_seconds = elapsed_seconds(source_start, source_end);
   return 0;
 }
@@ -5541,9 +5551,10 @@ int platform_file_facts_v2_listing_artifact_addr_window_json_alloc(PlatformFileL
     return text_result_to_alloc(&result, out_text);
   }
   window_start = clock();
-  if (source_file_listing_addr_window_from_render_plan_to_json(NULL, &artifact->source_plan,
+  if (source_file_listing_addr_window_from_render_plan_with_index_to_json(NULL, &artifact->source_plan,
       artifact->object.platform_backend_kind, &artifact->source_analysis.policy, &artifact->source_analysis,
-      "full", 0, has_addr, addr, before, after, &window_json, m68k_diag_sink(&result.diagnostics)) != 0) {
+      "full", 0, &artifact->listing_row_index, has_addr, addr, before, after, &window_json,
+      m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "facts_v2 listing address window render-plan emission failed");
     goto cleanup;
@@ -5560,7 +5571,9 @@ int platform_file_facts_v2_listing_artifact_addr_window_json_alloc(PlatformFileL
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
       json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
       json_builder_appendf(&builder,
-        ",\"timing\":{\"source_seconds\":%.6f,\"window_json_seconds\":%.6f,\"total_seconds\":%.6f}}}",
+        ",\"listing_total_rows\":%u,\"listing_addr_block_count\":%u,"
+        "\"timing\":{\"source_seconds\":%.6f,\"window_json_seconds\":%.6f,\"total_seconds\":%.6f}}}",
+        (unsigned)artifact->listing_total_rows, (unsigned)artifact->listing_row_index.block_count,
         artifact->source_seconds, elapsed_seconds(window_start, window_end),
         elapsed_seconds(window_start, window_end)) != 0) {
     platform_file_add_error(&result.diagnostics, "out of memory");
@@ -5780,6 +5793,7 @@ void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact
   m68k_render_plan_destroy(&artifact->source_plan);
   m68k_ir_source_analysis_destroy(&artifact->source_analysis);
   m68k_object_destroy(&artifact->object);
+  arena_destroy(artifact->listing_index_arena);
   free(artifact->backend_name);
   free(artifact->path);
   memset(artifact, 0, sizeof(*artifact));

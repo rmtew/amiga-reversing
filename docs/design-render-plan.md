@@ -115,9 +115,12 @@ the same artifact so Python can keep API-call metadata without forcing full row
 JSON emission.
 The retained artifact now computes the displayed listing row count once during
 artifact creation. Row-index window requests reuse that count and only perform
-the emission pass for the requested window. Address-anchored windows still need
-an anchor search pass; solving that cleanly requires a retained address-to-row
-index, not another Python-side cache.
+the emission pass for the requested window. The artifact also owns a compact
+displayed-row index: one arena-owned entry per listing row plus address block
+maxima. Address-anchored windows use that retained C index to find the first
+displayed row whose address is greater than or equal to the requested address,
+preserving display-order semantics without replaying a full anchor/count render
+pass and without restoring a Python-side serialized row cache.
 The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.
@@ -455,9 +458,9 @@ reparsing the emitted source text. Listing-only requests capture the plan
 without producing the full-source API buffer; source-producing requests still
 emit the `.s` text from the same plan.
 Direct C listing-window JSON emission now exists and has a raw-binary
-regression proving parity with a full render-plan row slice. This is not yet the
-web route standard because the current DLL boundary does not preserve the built
-plan between requests.
+regression proving parity with a full render-plan row slice. The web route uses
+this through the retained artifact once full analysis has completed; it should
+not rebuild analysis per scroll request.
 An opaque C listing artifact API now preserves that built state across multiple
 window calls for both normal platform files and raw-binary targets. Real-DLL
 regressions prove that repeated windows from one artifact match full listing row
@@ -467,23 +470,21 @@ Address-window emission now also has a C artifact API using the displayed
 listing-row stream for anchor selection, preserving the web rule of choosing
 the first displayed row whose address is greater than or equal to the requested
 address.
-As an interim step, full listing jobs cache serialized row artifacts once and
-indexed/address-anchored web windows slice that cache when it matches the
-current project cache key. Address windows also cache display-order address
-block maxima, preserving existing first-row-at-or-after semantics while reducing
-per-scroll search work.
-The next architectural migration is to replace that interim Python serialized
-cache with a C-owned analysis/render-plan artifact. The artifact must be built
-once per effective cache key and then serve full source, row windows,
-address-anchored windows, row counts, and navigation from the same C state.
-Index-window and address-window serving now use the retained C listing artifact
-when it is valid; navigation still uses Python rows until the C artifact grows a
-navigation API.
+The transitional Python serialized-row cache has been removed. Full listing jobs
+now retain a C-owned analysis/render-plan artifact keyed by the effective target
+inputs. That artifact serves row windows, address-anchored windows, row counts,
+analysis JSON, and navigation from one retained C state. Address windows use the
+artifact's arena-owned displayed-row index and address block maxima, so scroll
+requests no longer need a second Python row database or a full C anchor/count
+pass. The dataclass row path remains only for basic progress display and for
+fallback when a full C artifact is unavailable.
 
 ## Required Tests
 
 - C unit tests for row ordering and line counts.
 - C unit tests for line, row, address, and offset mapping.
+- C unit tests proving retained row-index address anchoring matches full
+  render-plan address-window semantics.
 - C unit tests for header ordering:
   includes, RS/app slots, equates, sections.
 - C unit tests proving window emission matches full-source slices.
@@ -508,20 +509,17 @@ navigation API.
 
 ## Current Anti-Pattern To Remove
 
-The web listing path should stop relying on full source text as the row model.
-The intended replacement is:
+The web listing path must not rely on full source text as the row model. The
+current standard path is:
 
 ```
 C analysis artifact -> C render plan -> JSON rows
 ```
 
-The remaining web-path design issue is lifetime. Calling the C listing-window
-function directly from `GET /listing` would be correct row emission but poor
-product behaviour, because each scroll would rebuild analysis. The next clean
-step is therefore a cacheable C analysis/render-plan artifact served by the
-route. The current Python row and serialized-row caches are compatibility
-bridges only; they should be removed once C can preserve and invalidate that
-artifact cleanly.
+The key lifetime issue is now handled by `PlatformFileListingArtifact`. The web
+route may use Python rows only for progress/fallback display. Any new full
+listing behaviour should be implemented on the retained C artifact, with compact
+artifact-owned indexes for repeated navigation rather than Python-side caches.
 
 Full source output remains available:
 
