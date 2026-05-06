@@ -2920,6 +2920,67 @@ class TargetUsageManifestTests(unittest.TestCase):
             self.assertIn("project_target:any", {xref["feature"] for xref in xrefs})
             self.assertEqual(snippets, [])
 
+    def test_build_usage_outputs_parallel_matches_serial_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            disk_manifest = tmpdir / "disk.jsonl"
+            file_manifest = tmpdir / "file.jsonl"
+            _write_jsonl(disk_manifest, [])
+            _write_jsonl(file_manifest, [])
+            for name in ("alpha", "beta"):
+                binary_path = tmpdir / f"{name}.hunk"
+                binary_path.write_bytes(b"\0\0\3\xf3")
+                target_dir = tmpdir / "targets" / name
+                target_dir.mkdir(parents=True)
+                (target_dir / "source_binary.json").write_text(
+                    json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+                    encoding="utf-8",
+                )
+                (target_dir / ".project.json").write_text(
+                    json.dumps(
+                        {
+                            "schema_version": 2,
+                            "origin": {
+                                "filename": name,
+                                "platform": "amiga-hunk",
+                                "sha256": sha256(binary_path.read_bytes()),
+                                "size": binary_path.stat().st_size,
+                            },
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+            @contextlib.contextmanager
+            def fake_effective_metadata_file(_target: Path):
+                yield None
+
+            def fake_platform_file_text(function_name: str, *args: object, project_root: Path) -> str:
+                self.assertEqual(function_name, "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc")
+                path = Path(str(args[1]))
+                return json.dumps(
+                    {
+                        "profile": {"generation": "facts_v2_full_listing"},
+                        "analysis": {"sections": []},
+                        "listing": {
+                            "rows": [
+                                {
+                                    "kind": "instruction",
+                                    "text": f"\tjsr {path.stem}\n",
+                                    "row_index": 0,
+                                }
+                            ]
+                        },
+                    }
+                )
+
+            with mock.patch.object(usage, "effective_metadata_file", fake_effective_metadata_file):
+                with mock.patch.object(usage.c_backend, "_platform_file_text", fake_platform_file_text):
+                    serial = usage.build_usage_outputs(disk_manifest, file_manifest, root=tmpdir, max_workers=1)
+                    parallel = usage.build_usage_outputs(disk_manifest, file_manifest, root=tmpdir, max_workers=2)
+
+            self.assertEqual(parallel, serial)
+
     def test_non_executable_file_rows_use_format_tags_without_analysis(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             row = usage.collect_file_usage_row(

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import functools
 import hashlib
 import json
+import os
 import re
 import tempfile
+import threading
 from pathlib import Path
 from typing import Any, cast
 
@@ -37,6 +40,7 @@ DEFAULT_TYPE_FLOW_REPORT_OUTPUT = ROOT / "corpus" / "target_type_flow_report.jso
 DEFAULT_UNRESOLVED_TYPED_FIELD_REPORT_OUTPUT = ROOT / "corpus" / "target_unresolved_typed_fields.jsonl"
 DEFAULT_TYPE_FLOW_SNAPSHOT_DIR = ROOT / "corpus" / "type_flow_snapshots"
 DEFAULT_TYPE_FLOW_BASELINE = ROOT / "src" / "tests" / "fixtures" / "type_flow_baseline.json"
+TARGET_USAGE_WORKERS_ENV = "AMIGA_TARGET_USAGE_WORKERS"
 MAX_EXAMPLES = 5
 CPU_NAMES = {
     0: "68000",
@@ -137,6 +141,7 @@ class DiskFileResolver:
         self.root = root
         self.by_id = {str(entry.get("id")): entry for entry in disk_entries if isinstance(entry.get("id"), str)}
         self.image_cache: dict[str, bytes] = {}
+        self._lock = threading.Lock()
 
     def file_bytes(self, file_entry: dict[str, Any]) -> bytes:
         file_ref = file_entry.get("file_ref")
@@ -151,13 +156,14 @@ class DiskFileResolver:
         if disk_entry is None:
             raise RuntimeError(f"Missing disk manifest row for {disk_id}")
         disk_platform = str(disk_entry.get("platform"))
-        image_bytes = self.image_cache.get(disk_id)
-        if image_bytes is None:
-            disk_origin = disk_entry.get("origin")
-            if not isinstance(disk_origin, dict):
-                raise RuntimeError("Disk manifest row has no origin")
-            image_bytes = load_disk_image_bytes(disk_origin, root=self.root)
-            self.image_cache[disk_id] = image_bytes
+        with self._lock:
+            image_bytes = self.image_cache.get(disk_id)
+            if image_bytes is None:
+                disk_origin = disk_entry.get("origin")
+                if not isinstance(disk_origin, dict):
+                    raise RuntimeError("Disk manifest row has no origin")
+                image_bytes = load_disk_image_bytes(disk_origin, root=self.root)
+                self.image_cache[disk_id] = image_bytes
         candidate = _find_disk_file_entry(disk_entry, image_path)
         return reconstruct_file_bytes(disk_platform, candidate, image_bytes)
 
@@ -237,6 +243,7 @@ def build_usage_outputs(
     file_manifest_path: Path = DEFAULT_FILE_MANIFEST,
     *,
     root: Path = ROOT,
+    max_workers: int | None = None,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
     disk_entries = read_jsonl_manifest(disk_manifest_path)
     file_entries = read_jsonl_manifest(file_manifest_path)
@@ -250,15 +257,30 @@ def build_usage_outputs(
         xrefs.extend(_disk_usage_xrefs(row, entry))
     build_dir = root / "src" / "build"
     build_dir.mkdir(parents=True, exist_ok=True)
+    worker_count = _target_usage_worker_count(max_workers)
     with tempfile.TemporaryDirectory(dir=build_dir) as tmp:
         tmp_dir = Path(tmp)
-        for entry in file_entries:
-            row, row_xrefs, row_snippets = collect_file_usage_catalog_entry(entry, resolver, tmp_dir, root=root)
+        file_tasks = list(enumerate(file_entries))
+
+        def collect_file_task(task: tuple[int, dict[str, Any]]) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
+            index, entry = task
+            task_tmp_dir = tmp_dir / f"file_{index:06d}"
+            task_tmp_dir.mkdir()
+            return collect_file_usage_catalog_entry(entry, resolver, task_tmp_dir, root=root)
+
+        for row, row_xrefs, row_snippets in _run_usage_tasks(file_tasks, collect_file_task, worker_count):
             rows.append(row)
             xrefs.extend(row_xrefs)
             snippet_rows.extend(row_snippets)
-        for target_dir in _project_target_dirs(root):
-            row, row_xrefs, row_snippets = collect_project_usage_catalog_entry(target_dir, tmp_dir, root=root)
+        project_tasks = list(enumerate(_project_target_dirs(root)))
+
+        def collect_project_task(task: tuple[int, Path]) -> tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]:
+            index, target_dir = task
+            task_tmp_dir = tmp_dir / f"project_{index:06d}"
+            task_tmp_dir.mkdir()
+            return collect_project_usage_catalog_entry(target_dir, task_tmp_dir, root=root)
+
+        for row, row_xrefs, row_snippets in _run_usage_tasks(project_tasks, collect_project_task, worker_count):
             rows.append(row)
             xrefs.extend(row_xrefs)
             snippet_rows.extend(row_snippets)
@@ -283,6 +305,34 @@ def build_usage_outputs(
         ),
     )
     return rows, xrefs, snippet_rows
+
+
+def _target_usage_worker_count(max_workers: int | None) -> int:
+    if max_workers is None:
+        env_value = os.environ.get(TARGET_USAGE_WORKERS_ENV)
+        if env_value:
+            try:
+                max_workers = int(env_value)
+            except ValueError:
+                max_workers = 1
+        else:
+            max_workers = min(8, os.cpu_count() or 1)
+    return max(1, max_workers)
+
+
+def _run_usage_tasks(
+    tasks: list[Any],
+    collect: Any,
+    max_workers: int,
+) -> list[tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]]]:
+    if max_workers <= 1 or len(tasks) <= 1:
+        return [collect(task) for task in tasks]
+    results: list[tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]] | None] = [None] * len(tasks)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(collect, task): index for index, task in enumerate(tasks)}
+        for future in concurrent.futures.as_completed(futures):
+            results[futures[future]] = future.result()
+    return [cast(tuple[dict[str, object], list[dict[str, object]], list[dict[str, object]]], result) for result in results]
 
 
 def build_variant_index(
@@ -6178,6 +6228,8 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--type-flow-report-output", type=Path, default=DEFAULT_TYPE_FLOW_REPORT_OUTPUT)
     build.add_argument("--unresolved-typed-field-report-output", type=Path,
         default=DEFAULT_UNRESOLVED_TYPED_FIELD_REPORT_OUTPUT)
+    build.add_argument("--workers", type=int, default=None,
+        help=f"Target analysis workers; default uses {TARGET_USAGE_WORKERS_ENV} or up to 8")
 
     list_features = subparsers.add_parser("list-features")
     list_features.add_argument("--manifest", type=Path, default=DEFAULT_OUTPUT)
@@ -6310,7 +6362,7 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     if args.command == "build":
-        rows, xrefs, snippet_rows = build_usage_outputs(args.disk_manifest, args.file_manifest)
+        rows, xrefs, snippet_rows = build_usage_outputs(args.disk_manifest, args.file_manifest, max_workers=args.workers)
         variant_rows = build_variant_index(args.file_manifest)
         type_flow_rows = build_type_flow_report(rows, xrefs, snippet_rows)
         unresolved_typed_field_rows = build_unresolved_typed_field_report(rows, xrefs, snippet_rows)
