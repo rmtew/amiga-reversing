@@ -28,6 +28,7 @@ from amiga_reversing.disasm.api import (
     SerializedRow,
     listing_index_window_payload,
     listing_window_payload,
+    serialize_row,
 )
 from amiga_reversing.disasm.binary_source import write_source_descriptor
 from amiga_reversing.disasm.c_backend import (
@@ -125,6 +126,7 @@ class StaticResponse(TypedDict):
 
 _MISSING = object()
 _PROJECT_ROW_CACHE: dict[str, list[ListingRow]] = {}
+_PROJECT_SERIALIZED_ROW_CACHE: dict[str, list[SerializedRow]] = {}
 _PROJECT_ROW_GENERATION_CACHE: dict[str, str] = {}
 _PROJECT_ROW_CACHE_KEY: dict[str, str] = {}
 _PROJECT_APP_SLOT_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
@@ -185,6 +187,28 @@ def _type_catalog_payload(project_name: str) -> list[dict[str, object]]:
     return type_catalog_from_c_backend(project_name)
 
 
+def _serialized_listing_index_window_payload(
+    rows: list[SerializedRow], start: int, count: int
+) -> ListingWindowPayload:
+    safe_count = max(0, count)
+    if safe_count == 0 or not rows:
+        safe_start = 0
+    else:
+        max_start = max(0, len(rows) - safe_count)
+        safe_start = max(0, min(start, max_start))
+    end = min(len(rows), safe_start + safe_count)
+    anchor_addr = rows[safe_start].get("addr") if safe_start < len(rows) else None
+    return {
+        "anchor_addr": anchor_addr if isinstance(anchor_addr, int) else None,
+        "start": safe_start,
+        "end": end,
+        "has_more_before": safe_start > 0,
+        "has_more_after": end < len(rows),
+        "total_rows": len(rows),
+        "rows": rows[safe_start:end],
+    }
+
+
 def _write_api_input_type_override(
     *, library: str, function: str, input_name: str, struct_name: str
 ) -> None:
@@ -226,6 +250,7 @@ def _write_api_input_type_override(
         json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     _PROJECT_ROW_CACHE.clear()
+    _PROJECT_SERIALIZED_ROW_CACHE.clear()
     _PROJECT_ROW_GENERATION_CACHE.clear()
     _PROJECT_ROW_CACHE_KEY.clear()
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
@@ -947,6 +972,7 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
 
 def _clear_project_listing_cache(project_name: str) -> None:
     _PROJECT_ROW_CACHE.pop(project_name, None)
+    _PROJECT_SERIALIZED_ROW_CACHE.pop(project_name, None)
     _PROJECT_ROW_GENERATION_CACHE.pop(project_name, None)
     _PROJECT_ROW_CACHE_KEY.pop(project_name, None)
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
@@ -1319,6 +1345,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                 if job_cache_key is not None and job_cache_key != cache_key:
                     return
                 _PROJECT_ROW_CACHE[project_name] = rows
+                _PROJECT_SERIALIZED_ROW_CACHE[project_name] = [serialize_row(row) for row in rows]
                 _PROJECT_ROW_GENERATION_CACHE[project_name] = active_generation
                 _PROJECT_ROW_CACHE_KEY[project_name] = cache_key
                 if active_generation == "full":
@@ -2196,7 +2223,16 @@ def route_request(
                     count or 240,
                 )
             elif start is not None or count is not None:
-                payload = listing_index_window_payload(rows, start or 0, count or 240)
+                serialized_rows = _PROJECT_SERIALIZED_ROW_CACHE.get(project_name)
+                if (
+                    serialized_rows is not None
+                    and len(serialized_rows) == len(rows)
+                    and project_name in _PROJECT_ROW_CACHE_KEY
+                    and _PROJECT_ROW_CACHE_KEY.get(project_name) == _project_listing_cache_key(project_name)
+                ):
+                    payload = _serialized_listing_index_window_payload(serialized_rows, start or 0, count or 240)
+                else:
+                    payload = listing_index_window_payload(rows, start or 0, count or 240)
             else:
                 addr = _parse_int_arg(query, "addr")
                 before = _parse_int_arg(query, "before", 80) or 80
