@@ -16,7 +16,7 @@ import pytest
 
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
-from amiga_reversing.disasm.api import ListingWindowPayload, serialize_row
+from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.c_backend import build_project_listing_artifact_generation_profile
 from amiga_reversing.disasm.listing_types import (
     AppSlotRef,
@@ -27,6 +27,7 @@ from amiga_reversing.disasm.listing_types import (
 )
 from amiga_reversing.disasm.projects import ProjectRecord
 from tests.cdp_brave import brave_cdp_requested, brave_cdp_skip_reason, brave_page
+from tests.listing_row_fixtures import serialize_row
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 pytestmark = pytest.mark.skipif(not brave_cdp_requested(), reason=brave_cdp_skip_reason())

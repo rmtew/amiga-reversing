@@ -13,7 +13,7 @@ from typing import cast
 import pytest
 
 from amiga_reversing.disasm import server as disasm_server
-from amiga_reversing.disasm.api import ListingWindowPayload, serialize_row
+from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
 from amiga_reversing.disasm.listing_types import (
     AppSlotRef,
@@ -25,6 +25,7 @@ from amiga_reversing.disasm.listing_types import (
     SymbolOperandMetadata,
 )
 from amiga_reversing.disasm.projects import ProjectRecord
+from tests.listing_row_fixtures import serialize_row
 
 
 def _free_tcp_port() -> int:

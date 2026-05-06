@@ -125,6 +125,8 @@ test support for assertions that inspect typed row metadata; production callers
 must use the retained C artifact API or source/rebuild APIs.
 The row-hydration code itself has been removed; tests now assert the raw
 serialized row dictionaries emitted by the retained artifact.
+The old `ListingRow` serializer is now test fixture code only. Production API
+payload types no longer import the Python row dataclasses.
 The superseded full-listing rows-with-analysis API has now been excised from
 the Python C backend wrapper, C DLL exports, and CLI. Corpus usage indexing and
 tests that need whole-listing rows materialize them through the retained C
