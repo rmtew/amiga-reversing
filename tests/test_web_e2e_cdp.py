@@ -17,7 +17,6 @@ import pytest
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload, serialize_row
-from amiga_reversing.disasm.c_backend import build_project_rows_generation_with_c_backend
 from amiga_reversing.disasm.listing_types import (
     AppSlotRef,
     BlockRowContext,
@@ -26,6 +25,7 @@ from amiga_reversing.disasm.listing_types import (
     SymbolOperandMetadata,
 )
 from amiga_reversing.disasm.projects import ProjectRecord
+from tests.c_backend_listing_rows import build_project_rows_generation_with_c_backend
 from tests.cdp_brave import brave_cdp_requested, brave_cdp_skip_reason, brave_page
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent

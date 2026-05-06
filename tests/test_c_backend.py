@@ -24,8 +24,6 @@ from amiga_reversing.disasm.c_backend import (
     assemble_platform_source_path_with_c_backend,
     assemble_platform_source_text_with_c_backend,
     benchmark_project_source_with_text_from_c_backend,
-    build_project_rows_generation_with_c_backend,
-    build_project_rows_generation_with_c_backend_profile,
     decompress_packed_range_with_c_backend,
     decompress_packed_section_range_with_c_backend,
     extract_disk_entry_with_c_backend,
@@ -39,6 +37,11 @@ from amiga_reversing.disasm.c_backend import (
     render_project_source_with_c_backend,
     rows_from_c_listing_json,
     validate_amiga_hunk_executable_with_c_backend,
+)
+from tests.c_backend_listing_rows import (
+    build_project_rows_generation_from_source,
+    build_project_rows_generation_with_c_backend,
+    build_project_rows_generation_with_c_backend_profile,
 )
 from amiga_reversing.disasm.facts_v2_source_refusal import FactsV2SourceRefused
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
@@ -2782,7 +2785,7 @@ def test_real_dll_facts_v2_listing_rows_use_plan_metadata_without_source_model(t
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    rows, api_calls, profile = c_backend._build_project_rows_generation_from_source(
+    rows, api_calls, profile = build_project_rows_generation_from_source(
         source,
         metadata_text="",
         generation="full",
@@ -3118,7 +3121,7 @@ def test_real_dll_facts_v2_listing_rows_exclude_source_only_directives_without_s
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    rows, api_calls, profile = c_backend._build_project_rows_generation_from_source(
+    rows, api_calls, profile = build_project_rows_generation_from_source(
         source,
         metadata_text=str(metadata_path),
         generation="full",
@@ -3179,7 +3182,7 @@ def test_real_dll_facts_v2_listing_rows_emit_api_calls(tmp_path: Path) -> None:
         metadata_path=metadata_path,
         project_root=PROJECT_ROOT,
     )
-    rows, api_calls, profile = c_backend._build_project_rows_generation_from_source(
+    rows, api_calls, profile = build_project_rows_generation_from_source(
         source,
         metadata_text=str(metadata_path),
         generation="full",
@@ -3309,7 +3312,7 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
         metadata_path=metadata_path,
         project_root=PROJECT_ROOT,
     )
-    rows, api_calls, profile = c_backend._build_project_rows_generation_from_source(
+    rows, api_calls, profile = build_project_rows_generation_from_source(
         source,
         metadata_text=str(metadata_path),
         generation="full",

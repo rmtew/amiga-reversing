@@ -518,40 +518,6 @@ def benchmark_project_source_with_text_from_c_backend(
     return _benchmark_from_facts_v2_asm_source_profile(profile), source_text
 
 
-def build_project_rows_generation_with_c_backend(
-    project_name: str,
-    *,
-    generation: str,
-    project_root: Path = PROJECT_ROOT,
-) -> tuple[list[ListingRow], dict[ApiCallRowKey, dict[str, object]]]:
-    rows, api_calls, _ = build_project_rows_generation_with_c_backend_profile(
-        project_name,
-        generation=generation,
-        project_root=project_root,
-    )
-    return rows, api_calls
-
-
-def build_project_rows_generation_with_c_backend_profile(
-    project_name: str,
-    *,
-    generation: str,
-    project_root: Path = PROJECT_ROOT,
-) -> tuple[list[ListingRow], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
-    if generation != "full":
-        raise ValueError(f"Unsupported listing generation: {generation}")
-    paths = resolve_project_paths(project_name, project_root=project_root)
-    with effective_metadata_file(paths.target_dir) as metadata_path:
-        metadata_text = _metadata_path_text(metadata_path)
-        rows, api_calls, profile = _build_project_rows_generation_from_source(
-            paths.binary_source,
-            metadata_text=metadata_text,
-            generation=generation,
-            project_root=project_root,
-        )
-        return rows, api_calls, profile
-
-
 def build_project_listing_artifact_generation_profile(
     project_name: str,
     *,
@@ -594,48 +560,6 @@ def _profile_platform_call_count(profile: dict[str, object]) -> int | None:
         return None
     value = facts_v2.get("platform_call_count")
     return value if isinstance(value, int) else None
-
-
-def _build_project_rows_generation_from_source(
-    binary_source: BinarySource,
-    *,
-    metadata_text: str,
-    generation: str,
-    project_root: Path,
-) -> tuple[list[ListingRow], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
-    profile: dict[str, object] = {}
-    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
-        include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
-        if source_file.entry_offset is None:
-            combined_text = _platform_file_text(
-                "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
-                source_file.platform_name,
-                str(source_file.path),
-                metadata_text,
-                str(include_dir),
-                project_root=project_root,
-            )
-        else:
-            combined_text = _platform_file_text(
-                "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-                source_file.platform_name,
-                str(source_file.path),
-                source_file.entry_offset,
-                metadata_text,
-                str(include_dir),
-                project_root=project_root,
-            )
-        combined = cast(dict[str, object], json.loads(combined_text))
-        listing_rows = cast(dict[str, object], combined.get("listing", {}))
-        analysis = cast(dict[str, object], combined.get("analysis", {}))
-        profile = cast(dict[str, object], combined.get("profile", {}))
-        app_slot_analysis = listing_rows.get("app_slot_analysis")
-        if isinstance(app_slot_analysis, dict):
-            profile["app_slot_analysis"] = app_slot_analysis
-        type_flow_analysis = listing_rows.get("type_flow_analysis")
-        if isinstance(type_flow_analysis, dict):
-            profile["type_flow_analysis"] = type_flow_analysis
-    return rows_from_c_listing_json(listing_rows), api_calls_from_c_analysis(analysis), profile
 
 
 def type_catalog_from_c_backend(

@@ -119,6 +119,10 @@ full row JSON emission.
 Artifact window payloads now keep the C JSON row dictionaries as the web
 payload rows instead of converting them to Python `ListingRow` objects and
 serializing them back.
+The production Python helpers that built complete `ListingRow` arrays from the
+C full-listing rows API have been removed. Row-object hydration remains only in
+test support for assertions that inspect typed row metadata; production callers
+must use the retained C artifact API or source/rebuild APIs.
 Rows-only Python caches no longer satisfy a full-generation listing cache; a
 valid full cache requires the retained C artifact. Ready-project listing and
 navigation routes fail closed if that artifact is missing or stale instead of
@@ -519,7 +523,9 @@ a fresh window around the anchor.
 9. Make full `.s` source output use the same plan where practical.
 10. Remove superseded legacy listing paths after parity tests pass. The
     production Python row-window and text-anchor helpers are removed; test-only
-    fake artifacts keep local slicing helpers.
+    fake artifacts keep local slicing helpers. The production Python full-row
+    wrapper is also removed; full-row hydration is scoped to test support while
+    production serves listing windows from the retained C artifact.
 
 The first retained step should be small: a synthetic render-plan fixture that
 proves line accounting and window emission. Do not start by rewriting the whole
