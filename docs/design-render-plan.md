@@ -513,11 +513,11 @@ Address windows use the artifact's arena-owned displayed-row index and address
 block maxima, and text-anchor windows use a C pass over the same displayed-row
 stream to find the matching row before emitting a bounded window. Scroll and
 anchor requests no longer need a second Python row database or a full C
-anchor/count pass. The old direct DLL/Python API that rebuilt full analysis for
-a single window has been removed; full-generation windows must come through the
-retained artifact. The dataclass row path remains only for fallback when a full
-C artifact is unavailable, and rows-only caches do not satisfy full-generation
-cache reuse.
+anchor/count pass. Artifact-backed navigation also avoids reading the Python row
+cache. The old direct DLL/Python API that rebuilt full analysis for a single
+window has been removed; full-generation windows must come through the retained
+artifact. The dataclass row path remains only for fallback when a full C artifact
+is unavailable, and rows-only caches do not satisfy full-generation cache reuse.
 Retained artifact row windows now reuse the artifact's displayed-row index as
 row-to-plan provenance. For ordinary body windows this avoids replaying the
 whole render plan on every viewport request; synthetic header rows deliberately

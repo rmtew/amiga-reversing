@@ -1793,13 +1793,11 @@ def test_route_listing_navigation_uses_all_cached_rows(monkeypatch: pytest.Monke
 
 
 def test_route_listing_navigation_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [ListingRow(row_id="r0", kind="label", text="python_label:\n", addr=0, label="python_label")]
     artifact = _FakeCListingArtifact()
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_ROW_CACHE_KEY.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
     monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "bloodwych", artifact)
     monkeypatch.setitem(disasm_server._PROJECT_ROW_GENERATION_CACHE, "bloodwych", "full")
     monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "bloodwych", "cache")
@@ -1813,6 +1811,11 @@ def test_route_listing_navigation_uses_c_artifact_cache(monkeypatch: pytest.Monk
         disasm_server,
         "_listing_navigation_payload",
         lambda project_name, rows: pytest.fail("Python row-derived navigation path should not be used"),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "_cached_project_rows",
+        lambda project_name: pytest.fail("artifact navigation should not read the row cache"),
     )
 
     payload = disasm_server.route_request(

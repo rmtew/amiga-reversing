@@ -2334,17 +2334,17 @@ def route_request(
                     f"Project {project_name} does not expose a disassembly listing"
                 )
             listing_artifact = _valid_c_listing_artifact(project_name)
-            rows = _cached_project_rows(project_name)
-            if rows is None and listing_artifact is None:
-                raise ValueError(
-                    f"Canonical rows not loaded for project: {project_name}"
-                )
             if listing_artifact is not None:
                 navigation_payload, _ = listing_artifact.navigation_payload()
                 return {
                     "ok": True,
-                    "data": _overlay_listing_navigation_payload(project_name, navigation_payload, rows),
+                    "data": _overlay_listing_navigation_payload(project_name, navigation_payload),
                 }
+            rows = _cached_project_rows(project_name)
+            if rows is None:
+                raise ValueError(
+                    f"Canonical rows not loaded for project: {project_name}"
+                )
             assert rows is not None
             return {"ok": True, "data": _listing_navigation_payload(project_name, rows)}
         if (
