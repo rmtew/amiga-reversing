@@ -217,6 +217,7 @@ static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRende
   if (dest == NULL || source == NULL) return 0;
   if (m68k_render_plan_append_text_row(dest, source->kind, source->region_id, source->text, &row) != 0)
     return 0;
+  row->directive_line_mask = source->directive_line_mask;
   if (source->has_source_range)
     m68k_render_plan_row_set_source_range(row, source->source_section_index, source->source_offset,
       source->source_size);
@@ -1078,6 +1079,8 @@ void render_asm_org(M68kRenderIRPreview *preview, uint32_t logical_address) {
   char line[64];
   if (preview == NULL) return;
   snprintf(line, sizeof(line), "    ORG $%X\n", (unsigned)logical_address);
+  if (preview->asm_source_row_builder.active)
+    m68k_render_plan_row_builder_mark_current_line_directive(&preview->asm_source_row_builder);
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
 }

@@ -6058,6 +6058,29 @@ static int test_listing_json_uses_plan_statement_metadata_without_source_file(vo
   return 0;
 }
 
+static int test_listing_json_classifies_org_subline_as_directive(void) {
+  M68kRenderPlan render_plan;
+  M68kRenderPlanRow *row = NULL;
+  char *rows_json = NULL;
+
+  m68k_render_plan_init(&render_plan);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_LABEL, 0U,
+    "    ORG $400\nabs_0_00000400:\n", &row));
+  row->directive_line_mask = 1U;
+  m68k_render_plan_row_set_source_range(row, 0U, 0U, 0U);
+  m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_LABEL, NULL, NULL, 0U);
+
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(NULL, &render_plan,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(rows_json != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"row_id\":\"c:0\",\"kind\":\"directive\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"row_id\":\"c:1\",\"kind\":\"label\"") != NULL);
+
+  free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
+  return 0;
+}
+
 static int test_listing_json_window_matches_full_render_plan_slice(void) {
   M68kRenderPlan render_plan;
   M68kRenderPlanRow *row = NULL;
@@ -12251,6 +12274,7 @@ int m68k_c_ir_tests(void) {
       test_listing_json_uses_render_plan_source_range_provenance},
     {"listing_json_uses_plan_statement_metadata_without_source_file",
       test_listing_json_uses_plan_statement_metadata_without_source_file},
+    {"listing_json_classifies_org_subline_as_directive", test_listing_json_classifies_org_subline_as_directive},
     {"listing_json_window_matches_full_render_plan_slice",
       test_listing_json_window_matches_full_render_plan_slice},
     {"listing_json_emits_app_slot_regions_from_platform_api_inputs",

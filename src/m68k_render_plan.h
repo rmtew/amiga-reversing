@@ -41,6 +41,7 @@ typedef struct M68kRenderPlanRow {
   uint32_t statement_index;
   uint32_t runtime_address;
   uint32_t runtime_size;
+  uint32_t directive_line_mask;
   M68kInstructionIR statement_instruction;
   uint8_t statement_kind;
   uint8_t source_byte_count;
@@ -69,6 +70,8 @@ typedef struct M68kRenderPlanRowBuilder {
   size_t capacity;
   uint32_t kind;
   uint32_t region_id;
+  uint32_t current_line;
+  uint32_t directive_line_mask;
   uint8_t active;
 } M68kRenderPlanRowBuilder;
 
@@ -87,6 +90,7 @@ int m68k_render_plan_row_builder_begin(M68kRenderPlanRowBuilder *builder, M68kRe
 int m68k_render_plan_row_builder_append(M68kRenderPlanRowBuilder *builder, const char *text);
 int m68k_render_plan_row_builder_append_span(M68kRenderPlanRowBuilder *builder, const char *text, size_t length);
 int m68k_render_plan_row_builder_appendf(M68kRenderPlanRowBuilder *builder, const char *format, ...);
+void m68k_render_plan_row_builder_mark_current_line_directive(M68kRenderPlanRowBuilder *builder);
 int m68k_render_plan_row_builder_commit(M68kRenderPlanRowBuilder *builder, M68kRenderPlanRow **out_row);
 void m68k_render_plan_row_builder_cancel(M68kRenderPlanRowBuilder *builder);
 void m68k_render_plan_row_set_source_range(M68kRenderPlanRow *row, uint32_t section_index,

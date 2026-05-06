@@ -4800,6 +4800,11 @@ static const char *listing_row_kind_for_plan_row(const M68kRenderPlanRow *row) {
   return NULL;
 }
 
+static int listing_plan_subline_is_directive(const M68kRenderPlanRow *row, uint32_t subline) {
+  if (row == NULL || subline >= 32U) return 0;
+  return (row->directive_line_mask & (1U << subline)) != 0U;
+}
+
 static int listing_section_index_for_plan_row(const M68kRenderPlanRow *row) {
   if (row == NULL || row->source_section_index == M68K_RENDER_PLAN_NO_SECTION) return -1;
   if (row->source_section_index > (uint32_t)INT32_MAX) return -1;
@@ -5077,6 +5082,7 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
     const char *line_start, size_t line_length, void *user) {
   ListingRenderPlanJsonContext *context = (ListingRenderPlanJsonContext *)user;
   int is_section_directive = 0;
+  int is_plan_directive_subline = listing_plan_subline_is_directive(row, subline);
   int section_index = -1;
   char stripped[1024];
   char opcode[128];
@@ -5096,6 +5102,7 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
     row_kind = listing_row_kind_for_line(stripped);
     if (strcmp(row_kind, "blank") == 0 && comment[0] != '\0') row_kind = "comment";
   }
+  if (is_plan_directive_subline) row_kind = "directive";
   is_section_directive = strcmp(row_kind, "directive") == 0 && text_starts_with_ci(stripped, "SECTION ");
   section_index = listing_section_index_for_plan_row(row);
   if (is_section_directive) {
@@ -5104,7 +5111,7 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
     section_index = context->active_section_index;
     context->statement_index = 0U;
     context->data_lines_left = 0U;
-  } else if (row != NULL && (row->has_statement || row->has_source_range)) {
+  } else if (!is_plan_directive_subline && row != NULL && (row->has_statement || row->has_source_range)) {
     stmt = listing_statement_for_plan_row(context->source_file, row);
     if (stmt == NULL && listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
     if (section_index >= 0) context->active_section_index = section_index;
