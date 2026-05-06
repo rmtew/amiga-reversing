@@ -6058,6 +6058,54 @@ static int test_listing_json_uses_plan_statement_metadata_without_source_file(vo
   return 0;
 }
 
+static int test_listing_json_window_matches_full_render_plan_slice(void) {
+  M68kRenderPlan render_plan;
+  M68kRenderPlanRow *row = NULL;
+  char *full_json = NULL;
+  char *window_json = NULL;
+  const uint8_t bytes[2] = {0x4eU, 0x75U};
+  M68kInstructionIR instruction;
+
+  m68k_render_plan_init(&render_plan);
+  instruction = m68k_plain_parse_instruction_to_ir("rts", M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
+  M68K_C_ASSERT(instruction.mnemonic_id != M68K_ASM_MNEMONIC_NONE);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_SECTION, 0U,
+    "    SECTION section_0,code\n", NULL));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_LABEL, 0U,
+    "loc_0_00000000:\n", &row));
+  m68k_render_plan_row_set_source_range(row, 0U, 0U, 0U);
+  m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_LABEL, NULL, NULL, 0U);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_INSTRUCTION, 0U,
+    "\trts\n", &row));
+  m68k_render_plan_row_set_source_range(row, 0U, 0U, 2U);
+  m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_INSTRUCTION, &instruction, bytes,
+    sizeof(bytes));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_DATA, 0U,
+    "\tdc.b $00,$01\n", &row));
+  m68k_render_plan_row_set_source_range(row, 0U, 2U, 2U);
+  m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL, NULL, 0U);
+
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(NULL, &render_plan,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &full_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_window_from_render_plan_to_json(NULL, &render_plan,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, 1U, 2U, &window_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(full_json != NULL);
+  M68K_C_ASSERT(window_json != NULL);
+  M68K_C_ASSERT(strstr(full_json, "\"row_id\":\"c:1\"") != NULL);
+  M68K_C_ASSERT(strstr(full_json, "\"row_id\":\"c:2\"") != NULL);
+  M68K_C_ASSERT(strstr(window_json, "\"start\":1") != NULL);
+  M68K_C_ASSERT(strstr(window_json, "\"end\":3") != NULL);
+  M68K_C_ASSERT(strstr(window_json, "\"total_rows\":4") != NULL);
+  M68K_C_ASSERT(strstr(window_json, "\"row_id\":\"c:1\"") != NULL);
+  M68K_C_ASSERT(strstr(window_json, "\"row_id\":\"c:2\"") != NULL);
+  M68K_C_ASSERT(strstr(window_json, "\"row_id\":\"c:3\"") == NULL);
+
+  free(full_json);
+  free(window_json);
+  m68k_render_plan_destroy(&render_plan);
+  return 0;
+}
+
 static int test_listing_json_emits_app_slot_regions_from_platform_api_inputs(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
@@ -12174,6 +12222,8 @@ int m68k_c_ir_tests(void) {
       test_listing_json_uses_render_plan_source_range_provenance},
     {"listing_json_uses_plan_statement_metadata_without_source_file",
       test_listing_json_uses_plan_statement_metadata_without_source_file},
+    {"listing_json_window_matches_full_render_plan_slice",
+      test_listing_json_window_matches_full_render_plan_slice},
     {"listing_json_emits_app_slot_regions_from_platform_api_inputs",
       test_listing_json_emits_app_slot_regions_from_platform_api_inputs},
     {"listing_json_tracks_app_slot_address_through_lea_copy",

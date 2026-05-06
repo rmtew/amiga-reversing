@@ -8,9 +8,9 @@ to parse that text back into rows.
 The desired model is:
 
 ```
-analysis facts -> render plan -> source emission
-                              -> windowed web rows
-                              -> line/address/row mapping
+C-owned analysis artifact -> render plan -> source emission
+                                      -> windowed web rows
+                                      -> line/address/row mapping
 ```
 
 This document is the work-in-progress plan for that model.
@@ -84,7 +84,8 @@ would redo full analysis on scroll; the route needs a cacheable plan or compact
 row-window artifact lifetime first.
 The C listing-window emitter streams selected rows directly into the final JSON
 builder; it does not allocate a temporary rows JSON string and copy it into the
-payload.
+payload. An isolated C regression now covers listing-window JSON parity with a
+full render-plan row slice.
 The full listing job now caches serialized row artifacts alongside the Python
 row objects. Indexed and address-anchored web windows can be served from that
 compact artifact after the job finishes, avoiding repeated dataclass-to-JSON
@@ -92,6 +93,11 @@ row serialization on scroll while still avoiding on-demand C analysis.
 Address-anchored serialized windows use a display-order block-max index so the
 lookup avoids a full-row scan without changing behaviour for non-monotonic ORG
 or runtime-address layouts.
+This Python-side serialized row cache is transitional. The intended endpoint is
+not more server cache layers; it is a C-owned analysis/render-plan artifact,
+keyed by the same effective target inputs, that can answer listing-window and
+navigation requests without rebuilding analysis and without Python retaining a
+parallel row model.
 The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.
@@ -153,6 +159,9 @@ web API.
 - Know the line count of every row before emission.
 - Map line number to row, row to line number, and address or offset to row.
 - Support fast windowed rendering without emitting unrelated source text.
+- Cache the C-level analysis/render-plan artifact for the web route, so
+  repeated listing windows reuse authoritative C state instead of rebuilding
+  analysis or growing Python-side row caches.
 - Make header ordering deterministic:
   includes first, then RS/app-slot regions, then equate/symbol regions, then
   sections.
@@ -178,6 +187,24 @@ web API.
 ## Core Model
 
 The C backend should build a `RenderPlan`.
+
+The server should not need to keep a second authoritative model of rendered
+rows. For interactive use, the C backend should expose either an opaque
+analysis/render-plan session handle or a persisted listing artifact:
+
+```
+create artifact(binary, metadata, policy, effective cache key)
+listing window by row/index/artifact
+listing window by address/artifact
+navigation and row count/artifact
+destroy or invalidate artifact
+```
+
+The artifact owns the C analysis facts, render plan, row indexes, and
+line/address/navigation indexes needed by the web route. It is invalidated when
+the binary, metadata, policy, backend DLL/tool stamps, or effective target
+cache key changes. Python may hold the opaque handle or artifact id, but must
+not rebuild its own long-lived row database once this API exists.
 
 A render plan is an ordered collection of regions. Each region contains ordered
 rows. Rows own their source line count and can emit their source text on demand.
@@ -416,6 +443,10 @@ indexed/address-anchored web windows slice that cache when it matches the
 current project cache key. Address windows also cache display-order address
 block maxima, preserving existing first-row-at-or-after semantics while reducing
 per-scroll search work.
+The next architectural migration is to replace that interim Python serialized
+cache with a C-owned analysis/render-plan artifact. The artifact must be built
+once per effective cache key and then serve full source, row windows,
+address-anchored windows, row counts, and navigation from the same C state.
 
 ## Required Tests
 
@@ -449,19 +480,21 @@ The web listing path should stop relying on full source text as the row model.
 The intended replacement is:
 
 ```
-C analysis facts -> C render plan -> JSON rows
+C analysis artifact -> C render plan -> JSON rows
 ```
 
 The remaining web-path design issue is lifetime. Calling the C listing-window
 function directly from `GET /listing` would be correct row emission but poor
 product behaviour, because each scroll would rebuild analysis. The next clean
-step is therefore a cacheable C render-plan/listing-window artifact or a compact
-row-window artifact produced by the full listing job, then served by the route.
+step is therefore a cacheable C analysis/render-plan artifact served by the
+route. The current Python row and serialized-row caches are compatibility
+bridges only; they should be removed once C can preserve and invalidate that
+artifact cleanly.
 
 Full source output remains available:
 
 ```
-C analysis facts -> C render plan -> .s source
+C analysis artifact -> C render plan -> .s source
 ```
 
 Both outputs must stay byte-for-byte consistent for the rows they share.
