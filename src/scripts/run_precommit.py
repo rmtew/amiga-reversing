@@ -27,6 +27,7 @@ DEAD_CODE_C_CHECKS = (
     "c-local-typedefs",
     "c-local-macros",
 )
+STYLE_MODULES = ("src.tests.test_c_style",)
 
 
 def _load_module(path: Path, name: str):
@@ -294,7 +295,16 @@ def _run_unit_stage() -> dict[str, object]:
     runs = [_run_native_c_unit()]
     if runs[0]["ok"]:
         for module in _parse_variable_modules(TEST_BAT, "UNIT_MODULES"):
+            if module in STYLE_MODULES:
+                continue
             runs.append(_run_unittest_module(module))
+    summary = _summarize_stage_runs(runs)
+    summary["_runs"] = runs
+    return summary
+
+
+def _run_style_stage() -> dict[str, object]:
+    runs = [_run_unittest_module(module) for module in STYLE_MODULES]
     summary = _summarize_stage_runs(runs)
     summary["_runs"] = runs
     return summary
@@ -311,12 +321,15 @@ def _run_module_stage(
     batch_path: Path,
     variable_name: str | None = None,
     extra_env: dict[str, str] | None = None,
+    skip_modules: tuple[str, ...] = (),
 ) -> dict[str, object]:
     modules = (
         _parse_variable_modules(batch_path, variable_name)
         if variable_name is not None
         else _parse_direct_unittest_modules(batch_path)
     )
+    if skip_modules:
+        modules = [module for module in modules if module not in skip_modules]
     runs = [_run_unittest_module(module, extra_env) for module in modules]
     summary = _summarize_stage_runs(runs)
     summary["_runs"] = runs
@@ -353,10 +366,35 @@ def main() -> int:
     os.chdir(ROOT)
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
+    style = _run_style_stage()
+    if not style["ok"]:
+        benchmark: dict[str, object] = {
+            "benchmark_version": 2,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+            "style": {key: value for key, value in style.items() if key != "output"},
+            "build": {"ok": False, "returncode": 0, "seconds": 0.0},
+            "corpus": {"seconds": 0.0},
+            "dead_code": {"ok": False, "timings": {"runs": []}},
+            "unit": {"ok": False, "timings": {"runs": []}},
+            "integration": {"ok": False, "timings": {"runs": []}},
+            "explicit": {"ok": False, "timings": {"runs": []}},
+            "total_seconds": float(style["seconds"]),
+            "status": "style_failed",
+        }
+        _write_benchmark(benchmark)
+        _print_stage_summary("style", style)
+        _print_failed_stage_details("style", style)
+        sys.stdout.write("build: skipped because style checks failed\n")
+        sys.stdout.write("dead_code: skipped because style checks failed\n")
+        sys.stdout.write("unit: skipped because style checks failed\n")
+        sys.stdout.write("integration: skipped because style checks failed\n")
+        sys.stdout.write("explicit: skipped because style checks failed\n")
+        return 1
     build = _run_build()
-    benchmark: dict[str, object] = {
+    benchmark = {
         "benchmark_version": 2,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "style": {key: value for key, value in style.items() if key != "output"},
         "build": {key: value for key, value in build.items() if key not in {"stdout", "stderr"}},
         "corpus": _collect_corpus_stats(),
     }
@@ -365,9 +403,13 @@ def main() -> int:
         benchmark["unit"] = {"ok": False, "timings": {"runs": []}}
         benchmark["integration"] = {"ok": False, "timings": {"runs": []}}
         benchmark["explicit"] = {"ok": False, "timings": {"runs": []}}
-        benchmark["total_seconds"] = round(float(build["seconds"]) + float(benchmark["corpus"]["seconds"]), 3)
+        benchmark["total_seconds"] = round(
+            float(style["seconds"]) + float(build["seconds"]) + float(benchmark["corpus"]["seconds"]),
+            3,
+        )
         benchmark["status"] = "build_failed"
         _write_benchmark(benchmark)
+        _print_stage_summary("style", style)
         sys.stdout.write(build["stdout"])
         sys.stderr.write(build["stderr"])
         return int(build["returncode"])
@@ -410,7 +452,12 @@ def main() -> int:
             "_runs": [],
         }
     if dead_code["ok"] and unit["ok"] and integration["ok"]:
-        explicit = _run_module_stage(TEST_EXPLICIT_BAT, None, {"AMIGA_INCLUDE_EXPLICIT_TESTS": "1"})
+        explicit = _run_module_stage(
+            TEST_EXPLICIT_BAT,
+            None,
+            {"AMIGA_INCLUDE_EXPLICIT_TESTS": "1"},
+            skip_modules=STYLE_MODULES,
+        )
     else:
         explicit = {
             "seconds": 0.0,
@@ -431,7 +478,8 @@ def main() -> int:
     benchmark["integration"] = {key: value for key, value in integration.items() if key != "output"}
     benchmark["explicit"] = {key: value for key, value in explicit.items() if key != "output"}
     benchmark["total_seconds"] = round(
-        float(build["seconds"])
+        float(style["seconds"])
+        + float(build["seconds"])
         + float(benchmark["corpus"]["seconds"])
         + float(dead_code["seconds"])
         + float(unit["seconds"])
@@ -450,6 +498,7 @@ def main() -> int:
 
     sys.stdout.write(build["stdout"])
     sys.stderr.write(build["stderr"])
+    _print_stage_summary("style", style)
     _print_stage_summary("dead_code", dead_code)
     if dead_code["ok"]:
         _print_stage_summary("unit", unit)
