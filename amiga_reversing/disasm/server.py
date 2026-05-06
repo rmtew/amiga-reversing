@@ -416,16 +416,6 @@ def _listing_row_code(row: ListingRow) -> str:
     return row.text.strip()
 
 
-def _listing_anchor_code_start(rows: list[ListingRow], anchor_code: str) -> int:
-    wanted = anchor_code.strip()
-    if not wanted:
-        return 0
-    for index, row in enumerate(rows):
-        if _listing_row_code(row).strip() == wanted:
-            return index
-    return 0
-
-
 def _listing_row_has_segment_reference(row: ListingRow) -> bool:
     return any(operand.segment_addr is not None for operand in row.operand_parts)
 

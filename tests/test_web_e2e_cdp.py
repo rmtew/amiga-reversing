@@ -16,7 +16,7 @@ import pytest
 
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
-from amiga_reversing.disasm.api import listing_index_window_payload, listing_window_payload
+from amiga_reversing.disasm.api import ListingWindowPayload, serialize_row
 from amiga_reversing.disasm.c_backend import build_project_rows_with_c_backend
 from amiga_reversing.disasm.listing_types import (
     AppSlotRef,
@@ -75,14 +75,14 @@ class _FakeCListingArtifact:
     def window_payload(
         self, *, start: int, count: int, generation: str = "full"
     ) -> tuple[dict[str, object], dict[str, object]]:
-        payload = dict(listing_index_window_payload(self.rows, start, count))
+        payload = dict(_test_listing_index_window_payload(self.rows, start, count))
         payload["analysis_generation"] = generation
         return payload, {}
 
     def addr_window_payload(
         self, *, addr: int | None, before: int, after: int, generation: str = "full"
     ) -> tuple[dict[str, object], dict[str, object]]:
-        payload = dict(listing_window_payload(self.rows, addr, before=before, after=after))
+        payload = dict(_test_listing_addr_window_payload(self.rows, addr, before=before, after=after))
         payload["analysis_generation"] = generation
         return payload, {}
 
@@ -95,7 +95,7 @@ class _FakeCListingArtifact:
             if row.text.strip() == needle:
                 start = index
                 break
-        payload = dict(listing_index_window_payload(self.rows, start, count))
+        payload = dict(_test_listing_index_window_payload(self.rows, start, count))
         payload["analysis_generation"] = generation
         return payload, {}
 
@@ -124,6 +124,52 @@ def _temp_project_accessors(monkeypatch: pytest.MonkeyPatch, project_root: Path)
             project_name, project_root=project_root
         ),
     )
+
+
+def _test_listing_addr_window_payload(
+    rows: list[ListingRow],
+    addr: int | None,
+    *,
+    before: int = 80,
+    after: int = 160,
+) -> ListingWindowPayload:
+    anchor_index = 0
+    if addr is not None:
+        anchor_index = max(0, len(rows) - 1)
+        for index, row in enumerate(rows):
+            if row.addr is not None and row.addr >= addr:
+                anchor_index = index
+                break
+    start = max(0, anchor_index - before)
+    end = min(len(rows), anchor_index + after + 1)
+    return {
+        "anchor_addr": addr,
+        "start": start,
+        "end": end,
+        "has_more_before": start > 0,
+        "has_more_after": end < len(rows),
+        "total_rows": len(rows),
+        "rows": [serialize_row(row) for row in rows[start:end]],
+    }
+
+
+def _test_listing_index_window_payload(rows: list[ListingRow], start: int, count: int) -> ListingWindowPayload:
+    safe_count = max(0, count)
+    if safe_count == 0 or not rows:
+        safe_start = 0
+    else:
+        max_start = max(0, len(rows) - safe_count)
+        safe_start = max(0, min(start, max_start))
+    end = min(len(rows), safe_start + safe_count)
+    return {
+        "anchor_addr": rows[safe_start].addr if safe_start < len(rows) else None,
+        "start": safe_start,
+        "end": end,
+        "has_more_before": safe_start > 0,
+        "has_more_after": end < len(rows),
+        "total_rows": len(rows),
+        "rows": [serialize_row(row) for row in rows[safe_start:end]],
+    }
 
 
 def _skip_without_c_backend() -> None:

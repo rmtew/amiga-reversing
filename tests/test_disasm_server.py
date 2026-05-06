@@ -13,10 +13,7 @@ from typing import cast
 import pytest
 
 from amiga_reversing.disasm import server as disasm_server
-from amiga_reversing.disasm.api import (
-    listing_index_window_payload,
-    listing_window_payload,
-)
+from amiga_reversing.disasm.api import ListingWindowPayload, serialize_row
 from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
 from amiga_reversing.disasm.listing_types import (
     AppSlotRef,
@@ -124,14 +121,14 @@ class _RowsCListingArtifact:
         self.closed = True
 
     def window_payload(self, *, start: int, count: int):
-        return listing_index_window_payload(self.rows, start, count), {}
+        return _test_listing_index_window_payload(self.rows, start, count), {}
 
     def addr_window_payload(self, *, addr: int | None, before: int, after: int):
-        return listing_window_payload(self.rows, addr, before=before, after=after), {}
+        return _test_listing_addr_window_payload(self.rows, addr, before=before, after=after), {}
 
     def anchor_window_payload(self, *, anchor_code: str, count: int):
-        start = disasm_server._listing_anchor_code_start(self.rows, anchor_code)
-        return listing_index_window_payload(self.rows, start, count), {}
+        start = _test_listing_anchor_code_start(self.rows, anchor_code)
+        return _test_listing_index_window_payload(self.rows, start, count), {}
 
     def navigation_payload(self):
         return disasm_server._listing_navigation_payload(self.project_name, self.rows), {}
@@ -151,6 +148,70 @@ def _seed_c_listing_artifact(
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda requested: "cache")
 
 
+def _test_listing_row_code(row: ListingRow) -> str:
+    if row.label:
+        return row.label
+    if row.opcode_or_directive:
+        return " ".join(part for part in (row.opcode_or_directive, row.operand_text) if part).strip()
+    return row.text.strip()
+
+
+def _test_listing_anchor_code_start(rows: list[ListingRow], anchor_code: str) -> int:
+    wanted = anchor_code.strip()
+    if not wanted:
+        return 0
+    for index, row in enumerate(rows):
+        if _test_listing_row_code(row).strip() == wanted:
+            return index
+    return 0
+
+
+def _test_listing_addr_window_payload(
+    rows: list[ListingRow],
+    addr: int | None,
+    *,
+    before: int = 80,
+    after: int = 160,
+) -> ListingWindowPayload:
+    anchor_index = 0
+    if addr is not None:
+        anchor_index = max(0, len(rows) - 1)
+        for index, row in enumerate(rows):
+            if row.addr is not None and row.addr >= addr:
+                anchor_index = index
+                break
+    start = max(0, anchor_index - before)
+    end = min(len(rows), anchor_index + after + 1)
+    return {
+        "anchor_addr": addr,
+        "start": start,
+        "end": end,
+        "has_more_before": start > 0,
+        "has_more_after": end < len(rows),
+        "total_rows": len(rows),
+        "rows": [serialize_row(row) for row in rows[start:end]],
+    }
+
+
+def _test_listing_index_window_payload(rows: list[ListingRow], start: int, count: int) -> ListingWindowPayload:
+    safe_count = max(0, count)
+    if safe_count == 0 or not rows:
+        safe_start = 0
+    else:
+        max_start = max(0, len(rows) - safe_count)
+        safe_start = max(0, min(start, max_start))
+    end = min(len(rows), safe_start + safe_count)
+    return {
+        "anchor_addr": rows[safe_start].addr if safe_start < len(rows) else None,
+        "start": safe_start,
+        "end": end,
+        "has_more_before": safe_start > 0,
+        "has_more_after": end < len(rows),
+        "total_rows": len(rows),
+        "rows": [serialize_row(row) for row in rows[safe_start:end]],
+    }
+
+
 def test_listing_anchor_code_start_matches_non_address_row() -> None:
     rows = [
         ListingRow(row_id="include", kind="directive", text='INCLUDE "exec/io.i"\n'),
@@ -165,7 +226,7 @@ def test_listing_anchor_code_start_matches_non_address_row() -> None:
         ),
     ]
 
-    assert disasm_server._listing_anchor_code_start(rows, "SECTION section,code") == 1
+    assert _test_listing_anchor_code_start(rows, "SECTION section,code") == 1
 
 
 def test_route_listing_anchor_code_returns_window_at_non_address_row(

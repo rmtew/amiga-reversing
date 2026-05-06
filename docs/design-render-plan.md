@@ -87,9 +87,9 @@ full render-plan row slice.
 The earlier transitional Python serialized-row cache has been removed from the
 production full-listing route. Indexed, address-anchored, text-anchor, and
 navigation web requests now require the retained C listing artifact once the
-project is ready. Python row helpers remain only for isolated tests and
-standalone algorithms; they are not a production fallback for full listing
-display.
+project is ready. The old production Python row-window helpers have been
+removed; tests that need fake artifacts keep their row slicing local to the
+test code.
 The intended endpoint is still a C-owned analysis/render-plan artifact, keyed
 by the same effective target inputs, that can answer listing-window and
 navigation requests without rebuilding analysis and without Python retaining a
@@ -512,7 +512,9 @@ a fresh window around the anchor.
 7. Use Bloodwych as the pressure target after the generic fixture passes.
 8. Replace the web listing source-reparse path with render-plan row emission.
 9. Make full `.s` source output use the same plan where practical.
-10. Remove superseded legacy listing paths after parity tests pass.
+10. Remove superseded legacy listing paths after parity tests pass. The
+    production Python row-window and text-anchor helpers are removed; test-only
+    fake artifacts keep local slicing helpers.
 
 The first retained step should be small: a synthetic render-plan fixture that
 proves line accounting and window emission. Do not start by rewriting the whole

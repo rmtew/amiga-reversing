@@ -15,7 +15,6 @@ from amiga_reversing.disasm.listing_types import (
     SemanticOperand,
     SemanticOperandMetadata,
 )
-from amiga_reversing.disasm.text import listing_window
 
 type _RowSourceContextDataclass = HeaderRowContext | BlockRowContext | AddressRowContext
 
@@ -321,35 +320,3 @@ def session_metadata(session: Any) -> SessionMetadata:
     }
 
 
-def listing_window_payload(rows: list[ListingRow], addr: int | None,
-                           before: int = 80, after: int = 160) -> ListingWindowPayload:
-    window = listing_window(rows, addr, before=before, after=after)
-    return {
-        "anchor_addr": window["anchor_addr"],
-        "start": window["start"],
-        "end": window["end"],
-        "has_more_before": window["has_more_before"],
-        "has_more_after": window["has_more_after"],
-        "total_rows": window["total_rows"],
-        "rows": [serialize_row(row) for row in window["rows"]],
-    }
-
-
-def listing_index_window_payload(rows: list[ListingRow], start: int,
-                                 count: int) -> ListingWindowPayload:
-    safe_count = max(0, count)
-    if safe_count == 0 or not rows:
-        safe_start = 0
-    else:
-        max_start = max(0, len(rows) - safe_count)
-        safe_start = max(0, min(start, max_start))
-    end = min(len(rows), safe_start + safe_count)
-    return {
-        "anchor_addr": rows[safe_start].addr if safe_start < len(rows) else None,
-        "start": safe_start,
-        "end": end,
-        "has_more_before": safe_start > 0,
-        "has_more_after": end < len(rows),
-        "total_rows": len(rows),
-        "rows": [serialize_row(row) for row in rows[safe_start:end]],
-    }
