@@ -112,8 +112,11 @@ void *arena_alloc(Arena *arena, size_t size) {
 }
 
 void *arena_calloc(Arena *arena, size_t count, size_t size) {
-  size_t total = count * size;
-  void *ptr = arena_alloc(arena, total);
+  size_t total;
+  void *ptr;
+  if (count != 0U && size > ((size_t)-1) / count) return NULL;
+  total = count * size;
+  ptr = arena_alloc(arena, total);
   if (ptr != NULL) memset(ptr, 0, total);
   return ptr;
 }
@@ -144,6 +147,7 @@ void *arena_realloc_copy(Arena *arena, const void *old_data, size_t old_size, si
 char *arena_strndup(Arena *arena, const char *text, size_t length) {
   char *copy;
   if (arena == NULL || text == NULL) return NULL;
+  if (length == (size_t)-1) return NULL;
   copy = (char *)arena_alloc(arena, length + 1U);
   if (copy == NULL) return NULL;
   memcpy(copy, text, length);

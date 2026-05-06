@@ -3,6 +3,7 @@
 #include "m68k_fact_ir.h"
 #include "m68k_render_plan.h"
 #include "m68k_source_text_util.h"
+#include "util_arena.h"
 
 static int json_builder_append_nullable_string(JsonBuilder *builder, const char *text);
 static void amiga_struct_catalog_info(uint16_t struct_id, const char **out_source, int16_t *out_size);
@@ -2921,6 +2922,7 @@ typedef struct ListingAppSlotTypedRegion {
 } ListingAppSlotTypedRegion;
 
 typedef struct ListingAppSlotAnalysisBuilder {
+  Arena *arena;
   uint8_t enabled;
   ListingAppSlotRefRecord *refs;
   size_t ref_count;
@@ -2934,6 +2936,17 @@ typedef struct ListingAppSlotAnalysisBuilder {
   ListingAppSlotSource *sources;
   size_t source_section_count;
 } ListingAppSlotAnalysisBuilder;
+
+static void *listing_arena_grow_array(Arena *arena, const void *old_items, size_t old_capacity,
+    size_t new_capacity, size_t item_size) {
+  size_t old_size;
+  size_t new_size;
+  if (arena == NULL || item_size == 0U || new_capacity == 0U) return NULL;
+  if (old_capacity > ((size_t)-1) / item_size || new_capacity > ((size_t)-1) / item_size) return NULL;
+  old_size = old_capacity * item_size;
+  new_size = new_capacity * item_size;
+  return arena_realloc_copy(arena, old_items, old_size, new_size);
+}
 
 typedef struct ListingAppSlotSummary {
   char symbol[64];
@@ -3021,12 +3034,16 @@ static int listing_app_slot_analysis_init(ListingAppSlotAnalysisBuilder *analysi
     const M68kSourceFileIR *source_file, const M68kSourceAnalysisIR *source_analysis) {
   if (analysis == NULL) return -1;
   memset(analysis, 0, sizeof(*analysis));
+  analysis->arena = arena_create(4096U);
+  if (analysis->arena == NULL) return -1;
   if (source_file == NULL || source_analysis == NULL ||
       source_file->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK ||
       source_analysis->section_count == 0U) {
     return 0;
   }
-  analysis->sources = (ListingAppSlotSource *)calloc(source_analysis->section_count * 8U, sizeof(*analysis->sources));
+  if (source_analysis->section_count > ((size_t)-1) / 8U) return -1;
+  analysis->sources = (ListingAppSlotSource *)arena_calloc(analysis->arena, source_analysis->section_count * 8U,
+    sizeof(*analysis->sources));
   if (analysis->sources == NULL) return -1;
   analysis->source_section_count = source_analysis->section_count;
   analysis->enabled = 1U;
@@ -3034,15 +3051,8 @@ static int listing_app_slot_analysis_init(ListingAppSlotAnalysisBuilder *analysi
 }
 
 static void listing_app_slot_analysis_destroy(ListingAppSlotAnalysisBuilder *analysis) {
-  size_t index;
   if (analysis == NULL) return;
-  for (index = 0U; index < analysis->region_count; ++index) {
-    free(analysis->regions[index].evidence);
-  }
-  free(analysis->regions);
-  free(analysis->untyped_api_args);
-  free(analysis->refs);
-  free(analysis->sources);
+  arena_destroy(analysis->arena);
   memset(analysis, 0, sizeof(*analysis));
 }
 
@@ -3062,7 +3072,8 @@ static int listing_app_slot_analysis_append_ref(ListingAppSlotAnalysisBuilder *a
   if (analysis == NULL || ref == NULL || !analysis->enabled) return 0;
   if (analysis->ref_count == analysis->ref_capacity) {
     next_capacity = analysis->ref_capacity == 0U ? 64U : analysis->ref_capacity * 2U;
-    grown = (ListingAppSlotRefRecord *)realloc(analysis->refs, next_capacity * sizeof(*grown));
+    grown = (ListingAppSlotRefRecord *)listing_arena_grow_array(analysis->arena, analysis->refs,
+      analysis->ref_capacity, next_capacity, sizeof(*grown));
     if (grown == NULL) return -1;
     analysis->refs = grown;
     analysis->ref_capacity = next_capacity;
@@ -3084,7 +3095,8 @@ static ListingAppSlotTypedRegion *listing_app_slot_analysis_region_for(ListingAp
   }
   if (analysis->region_count == analysis->region_capacity) {
     next_capacity = analysis->region_capacity == 0U ? 8U : analysis->region_capacity * 2U;
-    grown = (ListingAppSlotTypedRegion *)realloc(analysis->regions, next_capacity * sizeof(*grown));
+    grown = (ListingAppSlotTypedRegion *)listing_arena_grow_array(analysis->arena, analysis->regions,
+      analysis->region_capacity, next_capacity, sizeof(*grown));
     if (grown == NULL) return NULL;
     analysis->regions = grown;
     analysis->region_capacity = next_capacity;
@@ -3106,14 +3118,16 @@ static ListingAppSlotTypedRegion *listing_app_slot_analysis_region_for(ListingAp
   return region;
 }
 
-static int listing_app_slot_analysis_append_evidence(ListingAppSlotTypedRegion *region,
+static int listing_app_slot_analysis_append_evidence(ListingAppSlotAnalysisBuilder *analysis,
+    ListingAppSlotTypedRegion *region,
     const ListingAppSlotEvidence *evidence) {
   ListingAppSlotEvidence *grown;
   size_t next_capacity;
-  if (region == NULL || evidence == NULL) return -1;
+  if (analysis == NULL || region == NULL || evidence == NULL) return -1;
   if (region->evidence_count == region->evidence_capacity) {
     next_capacity = region->evidence_capacity == 0U ? 2U : region->evidence_capacity * 2U;
-    grown = (ListingAppSlotEvidence *)realloc(region->evidence, next_capacity * sizeof(*grown));
+    grown = (ListingAppSlotEvidence *)listing_arena_grow_array(analysis->arena, region->evidence,
+      region->evidence_capacity, next_capacity, sizeof(*grown));
     if (grown == NULL) return -1;
     region->evidence = grown;
     region->evidence_capacity = next_capacity;
@@ -3140,7 +3154,8 @@ static int listing_app_slot_analysis_append_untyped_api_arg(ListingAppSlotAnalys
   }
   if (analysis->untyped_api_arg_count == analysis->untyped_api_arg_capacity) {
     next_capacity = analysis->untyped_api_arg_capacity == 0U ? 8U : analysis->untyped_api_arg_capacity * 2U;
-    grown = (ListingAppSlotApiArgCandidate *)realloc(analysis->untyped_api_args, next_capacity * sizeof(*grown));
+    grown = (ListingAppSlotApiArgCandidate *)listing_arena_grow_array(analysis->arena, analysis->untyped_api_args,
+      analysis->untyped_api_arg_capacity, next_capacity, sizeof(*grown));
     if (grown == NULL) return -1;
     analysis->untyped_api_args = grown;
     analysis->untyped_api_arg_capacity = next_capacity;
@@ -3393,7 +3408,7 @@ static int listing_app_slot_analysis_add_api_regions(ListingAppSlotAnalysisBuild
       region = listing_app_slot_analysis_region_for(analysis, source->displacement, end, input->struct_id,
         source->symbol, source->symbol_displacement);
       if (region == NULL) return -1;
-      if (listing_app_slot_analysis_append_evidence(region, &evidence) != 0) return -1;
+      if (listing_app_slot_analysis_append_evidence(analysis, region, &evidence) != 0) return -1;
     }
   }
   return 0;
@@ -4665,17 +4680,23 @@ typedef struct ListingSourceHeaderRow {
 } ListingSourceHeaderRow;
 
 typedef struct ListingSourceHeaderRows {
+  Arena *arena;
   ListingSourceHeaderRow *items;
   size_t count;
   size_t capacity;
 } ListingSourceHeaderRows;
 
+static int listing_source_header_rows_init(ListingSourceHeaderRows *rows) {
+  if (rows == NULL) return -1;
+  memset(rows, 0, sizeof(*rows));
+  rows->arena = arena_create(4096U);
+  return rows->arena != NULL ? 0 : -1;
+}
+
 static void listing_source_header_rows_destroy(ListingSourceHeaderRows *rows) {
   if (rows == NULL) return;
-  free(rows->items);
-  rows->items = NULL;
-  rows->count = 0U;
-  rows->capacity = 0U;
+  arena_destroy(rows->arena);
+  memset(rows, 0, sizeof(*rows));
 }
 
 static int listing_source_header_rows_append(ListingSourceHeaderRows *rows, const char *line_start, size_t line_length,
@@ -4685,7 +4706,8 @@ static int listing_source_header_rows_append(ListingSourceHeaderRows *rows, cons
   if (rows == NULL || line_start == NULL || row_kind == NULL) return -1;
   if (rows->count == rows->capacity) {
     new_capacity = rows->capacity == 0U ? 16U : rows->capacity * 2U;
-    new_items = (ListingSourceHeaderRow *)realloc(rows->items, new_capacity * sizeof(*new_items));
+    new_items = (ListingSourceHeaderRow *)listing_arena_grow_array(rows->arena, rows->items, rows->capacity,
+      new_capacity, sizeof(*new_items));
     if (new_items == NULL) return -1;
     rows->items = new_items;
     rows->capacity = new_capacity;
@@ -5056,6 +5078,7 @@ int source_file_listing_rows_from_render_plan_to_json(const M68kSourceFileIR *so
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
     return -1;
   }
+  if (listing_source_header_rows_init(&header_rows) != 0) goto oom;
   if (!include_source_only_rows) {
     if (collect_listing_source_header_rows_from_plan(render_plan, &header_rows) != 0) goto oom;
   }

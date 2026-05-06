@@ -99,6 +99,11 @@ while rows are being captured. Source fragments must be emitted inside an active
 render-plan row; unplanned source text is treated as a source-render failure.
 The full `.s` text is allocated once from the assembled plan at the API boundary.
 
+Full-listing header rows and app-slot listing analysis scratch data now use
+builder-local arenas. These structures are created for one JSON emission pass,
+share one lifetime, and no longer maintain nested heap/free ownership inside
+the row walk.
+
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
 
@@ -186,6 +191,29 @@ Suggested top-level types:
 
 Blank lines should be rows or explicit row-owned line counts. They should not be
 hidden formatting side effects.
+
+## Arena Ownership
+
+Arena use should follow real lifetime boundaries:
+
+- A render plan owns row text in a plan-local arena.
+- Render-plan row arrays remain explicitly resizable and owned by the plan.
+- Row-builder scratch remains reusable heap storage outside the plan arena.
+- Header/listing scratch that lives for one JSON emission pass should be owned
+  by the listing builder arena.
+- Analysis facts and source/object IR are authoritative inputs and must not be
+  copied into render arenas unless the render path needs immutable row-local
+  provenance.
+- API return values such as full `.s` text and JSON strings remain heap-owned
+  because callers free them after the C boundary.
+
+Arena-backed objects must not be transferred by raw struct assignment. If an
+owner crosses a boundary, provide a move function that destroys the destination
+owner and reinitializes the source owner.
+
+Do not add per-entry heap allocation for same-lifetime row/listing state. If a
+structure currently cannot use an arena cleanly, refactor the ownership boundary
+first instead of adding another local allocation convention.
 
 ## Row Kinds
 

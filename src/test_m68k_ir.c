@@ -644,6 +644,15 @@ static int test_arena_reset_poisons_head_block_range(void) {
   return 0;
 }
 
+static int test_arena_rejects_overflow_allocations(void) {
+  Arena *arena = arena_create(64U);
+  M68K_C_ASSERT(arena != NULL);
+  M68K_C_ASSERT(arena_calloc(arena, (((size_t)-1) / 2U) + 1U, 2U) == NULL);
+  M68K_C_ASSERT(arena_strndup(arena, "x", (size_t)-1) == NULL);
+  arena_destroy(arena);
+  return 0;
+}
+
 static int test_decode_ir_decodes_aligned_candidates(void) {
   M68kObject object;
   M68kSection section;
@@ -11902,6 +11911,7 @@ int m68k_c_ir_tests(void) {
     {"arena_mark_rewind_reuses_same_block_range", test_arena_mark_rewind_reuses_same_block_range},
     {"arena_rewind_discards_later_blocks", test_arena_rewind_discards_later_blocks},
     {"arena_reset_poisons_head_block_range", test_arena_reset_poisons_head_block_range},
+    {"arena_rejects_overflow_allocations", test_arena_rejects_overflow_allocations},
     {"decode_ir_decodes_aligned_candidates", test_decode_ir_decodes_aligned_candidates},
     {"decode_ir_treats_cpu_policy_as_ceiling", test_decode_ir_treats_cpu_policy_as_ceiling},
     {"source_parse_treats_cpu_policy_as_ceiling", test_source_parse_treats_cpu_policy_as_ceiling},
