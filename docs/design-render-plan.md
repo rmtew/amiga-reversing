@@ -126,6 +126,10 @@ rows that came from a concrete plan row. Retained artifact row-window requests
 use that provenance to bound the render-plan visit to the small span that can
 produce the requested displayed rows, falling back to a full visit only for
 synthetic header/fallback rows without plan provenance.
+Header preamble emission is now an explicit row-emission policy. Full listing,
+navigation, counting, and index-building passes emit the synthetic preamble;
+bounded artifact windows do not reinsert it because their displayed-row start
+already includes the post-preamble row numbering.
 The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.

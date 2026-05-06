@@ -4769,6 +4769,7 @@ typedef struct ListingRenderPlanJsonContext {
   uint32_t current_subline;
   int active_section_index;
   int preamble_emitted;
+  int emit_preamble_headers;
   int include_source_only_rows;
   int use_rendered_line_count;
   int count_only;
@@ -4996,6 +4997,7 @@ static int append_listing_source_header_rows(ListingRenderPlanJsonContext *conte
   size_t index;
   int group;
   int emitted_any = 0;
+  int result = -1;
   if (context == NULL || context->header_rows == NULL) return -1;
   saved_plan_row = context->current_plan_row;
   saved_subline = context->current_subline;
@@ -5005,21 +5007,24 @@ static int append_listing_source_header_rows(ListingRenderPlanJsonContext *conte
       const ListingSourceHeaderRow *row = &context->header_rows->items[index];
       if (row->group != group) continue;
       if (emitted_any && !emitted_group) {
-        if (append_listing_render_plan_blank_row(context) != 0) return -1;
+        if (append_listing_render_plan_blank_row(context) != 0) goto done;
       }
       context->current_plan_row = NULL;
       context->current_subline = 0U;
       if (append_listing_render_plan_json_row(context, row->line_start, row->line_length, row->row_kind,
           NULL, NULL, NULL, NULL, row->section_index, NULL) != 0)
-        return -1;
+        goto done;
       emitted_group = 1;
       emitted_any = 1;
     }
   }
-  if (emitted_any && append_listing_render_plan_blank_row(context) != 0) return -1;
+  if (emitted_any && append_listing_render_plan_blank_row(context) != 0) goto done;
+  result = 0;
+
+done:
   context->current_plan_row = saved_plan_row;
   context->current_subline = saved_subline;
-  return 0;
+  return result;
 }
 
 typedef struct ListingRenderPlanHeaderContext {
@@ -5149,7 +5154,8 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
       context->use_rendered_line_count, strcmp(row_kind, "data") == 0 && strchr(stripped, '-') != NULL);
     section_index = context->active_section_index;
   }
-  if (!context->include_source_only_rows && !context->preamble_emitted && is_section_directive) {
+  if (context->emit_preamble_headers && !context->include_source_only_rows &&
+      !context->preamble_emitted && is_section_directive) {
     if (append_listing_source_header_rows(context) != 0)
       return -1;
     context->preamble_emitted = 1;
@@ -5193,6 +5199,7 @@ int source_file_listing_rows_from_render_plan_to_json(const M68kSourceFileIR *so
   context.source_analysis = source_analysis;
   context.analysis_generation = analysis_generation;
   context.active_section_index = -1;
+  context.emit_preamble_headers = 1;
   context.include_source_only_rows = include_source_only_rows;
   context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
   if (m68k_render_plan_visit_row_lines(render_plan, 0U, render_plan->row_count,
@@ -5914,6 +5921,7 @@ int source_file_listing_navigation_from_render_plan_to_json(const M68kSourceFile
   context.source_analysis = source_analysis;
   context.analysis_generation = analysis_generation;
   context.active_section_index = -1;
+  context.emit_preamble_headers = 1;
   context.include_source_only_rows = include_source_only_rows;
   context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
   context.count_only = 1;
@@ -5975,6 +5983,7 @@ int source_file_listing_total_rows_from_render_plan(const M68kSourceFileIR *sour
   count_context.source_analysis = source_analysis;
   count_context.analysis_generation = analysis_generation;
   count_context.active_section_index = -1;
+  count_context.emit_preamble_headers = 1;
   count_context.include_source_only_rows = include_source_only_rows;
   count_context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
   count_context.count_only = 1;
@@ -6045,6 +6054,7 @@ int source_file_listing_row_index_from_render_plan(const M68kSourceFileIR *sourc
   index_context.source_analysis = source_analysis;
   index_context.analysis_generation = analysis_generation;
   index_context.active_section_index = -1;
+  index_context.emit_preamble_headers = 1;
   index_context.include_source_only_rows = include_source_only_rows;
   index_context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
   index_context.count_only = 1;
@@ -6094,6 +6104,7 @@ static int source_file_listing_window_range_from_render_plan_to_json(const M68kS
   size_t visit_first_row = 0U;
   size_t visit_row_count = render_plan != NULL ? render_plan->row_count : 0U;
   size_t display_row_base = 0U;
+  int bounded_by_row_index = 0;
   memset(&emit_context, 0, sizeof(emit_context));
   if (out_json != NULL) *out_json = NULL;
   if (render_plan == NULL || out_json == NULL) {
@@ -6101,12 +6112,6 @@ static int source_file_listing_window_range_from_render_plan_to_json(const M68kS
     return -1;
   }
   if (listing_source_header_rows_init(&header_rows) != 0) goto oom;
-  if (!include_source_only_rows) {
-    if (collect_listing_source_header_rows_from_plan(render_plan, &header_rows) != 0) {
-      failure = "listing window header collection failed";
-      goto oom;
-    }
-  }
   if (source_file != NULL) platform_backend_kind = source_file->platform_backend_kind;
   (void)platform_backend_kind;
   if (json_builder_create(&builder) != 0 ||
@@ -6132,9 +6137,16 @@ static int source_file_listing_window_range_from_render_plan_to_json(const M68kS
       visit_first_row = first_plan_row;
       visit_row_count = (size_t)last_plan_row - (size_t)first_plan_row + 1U;
       display_row_base = first_entry;
+      bounded_by_row_index = 1;
     }
   } else if (safe_start == end) {
     visit_row_count = 0U;
+  }
+  if (!include_source_only_rows && !bounded_by_row_index && visit_row_count != 0U) {
+    if (collect_listing_source_header_rows_from_plan(render_plan, &header_rows) != 0) {
+      failure = "listing window header collection failed";
+      goto oom;
+    }
   }
   emit_context.builder = &builder;
   emit_context.header_rows = &header_rows;
@@ -6144,6 +6156,7 @@ static int source_file_listing_window_range_from_render_plan_to_json(const M68kS
   emit_context.source_analysis = source_analysis;
   emit_context.analysis_generation = analysis_generation;
   emit_context.active_section_index = -1;
+  emit_context.emit_preamble_headers = !bounded_by_row_index;
   emit_context.include_source_only_rows = include_source_only_rows;
   emit_context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
   emit_context.row_index = display_row_base;
