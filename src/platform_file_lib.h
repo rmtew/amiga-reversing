@@ -24,6 +24,8 @@ typedef struct PlatformFileBufferResult {
   M68kDiagList diagnostics;
 } PlatformFileBufferResult;
 
+typedef struct PlatformFileListingArtifact PlatformFileListingArtifact;
+
 PLATFORM_FILE_API PlatformFileTextResult platform_file_inspect_path_json(const char *backend_name, const char *path);
 PLATFORM_FILE_API PlatformFileTextResult platform_file_inspect_buffer_json(const char *backend_name,
   const unsigned char *data, size_t size);
@@ -100,6 +102,15 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_rows_with_analysis_raw_path
 PLATFORM_FILE_API int platform_file_facts_v2_listing_window_raw_path_json_alloc(const char *platform_name,
     const char *path, uint32_t entry_offset, const char *metadata_path, const char *include_dir, uint32_t start,
     uint32_t count, char **out_text);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_path_create(const char *backend_name,
+    const char *path, const char *metadata_path, const char *include_dir,
+    PlatformFileListingArtifact **out_artifact, char **out_error);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_raw_path_create(const char *platform_name,
+    const char *path, uint32_t entry_offset, const char *metadata_path, const char *include_dir,
+    PlatformFileListingArtifact **out_artifact, char **out_error);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_window_json_alloc(
+    PlatformFileListingArtifact *artifact, uint32_t start, uint32_t count, char **out_text);
+PLATFORM_FILE_API void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact);
 PLATFORM_FILE_API int platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc(const char *platform_name,
     const char *path, uint32_t entry_offset, const char *metadata_path,
     const char *include_dir, char **out_text);

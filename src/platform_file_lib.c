@@ -4351,6 +4351,64 @@ static int facts_v2_listing_rows_from_render_plan(const M68kObject *object, cons
   return 0;
 }
 
+struct PlatformFileListingArtifact {
+  char *backend_name;
+  char *path;
+  M68kObject object;
+  M68kAnalysisPolicy policy;
+  M68kSourceAnalysisIR source_analysis;
+  M68kRenderPlan source_plan;
+  M68kFactsV2Profile profile;
+  double source_seconds;
+};
+
+static int listing_artifact_set_error(char **out_error, const M68kDiagList *diagnostics,
+    const char *fallback) {
+  const char *message;
+  if (out_error == NULL) return -1;
+  message = m68k_diag_first_message(diagnostics);
+  if (message == NULL || message[0] == '\0') message = fallback != NULL ? fallback : "listing artifact failed";
+  *out_error = duplicate_text_local(message);
+  return -1;
+}
+
+static PlatformFileListingArtifact *listing_artifact_alloc_base(const char *backend_name, const char *path,
+    M68kDiagList *diagnostics) {
+  PlatformFileListingArtifact *artifact = (PlatformFileListingArtifact *)calloc(1U, sizeof(*artifact));
+  if (artifact == NULL) {
+    platform_file_add_error(diagnostics, "out of memory");
+    return NULL;
+  }
+  artifact->backend_name = duplicate_text_local(backend_name);
+  artifact->path = duplicate_text_local(path);
+  if (artifact->backend_name == NULL || artifact->path == NULL) {
+    platform_file_add_error(diagnostics, "out of memory");
+    platform_file_facts_v2_listing_artifact_destroy(artifact);
+    return NULL;
+  }
+  m68k_render_plan_init(&artifact->source_plan);
+  return artifact;
+}
+
+static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact, M68kDiagList *diagnostics) {
+  clock_t source_start;
+  clock_t source_end;
+  if (artifact == NULL) {
+    platform_file_add_error(diagnostics, "invalid listing artifact");
+    return -1;
+  }
+  source_start = clock();
+  if (m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&artifact->object, &artifact->policy, NULL,
+      &artifact->source_plan, &artifact->profile, &artifact->source_analysis, 1U, m68k_diag_sink(diagnostics)) != 0) {
+    if (!m68k_diag_has_errors(diagnostics))
+      platform_file_add_error(diagnostics, "facts_v2 asm source render failed");
+    return -1;
+  }
+  source_end = clock();
+  artifact->source_seconds = elapsed_seconds(source_start, source_end);
+  return 0;
+}
+
 static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *backend_name, const char *path,
     const M68kObject *object, const M68kAnalysisPolicy *analysis_policy, const char *include_dir) {
   PlatformFileTextResult result;
@@ -5334,6 +5392,137 @@ int platform_file_facts_v2_listing_window_raw_path_json_alloc(const char *platfo
   m68k_object_destroy(&object);
   free(analysis_policy);
   return text_result_to_alloc(&result, out_text);
+}
+
+int platform_file_facts_v2_listing_artifact_path_create(const char *backend_name, const char *path,
+    const char *metadata_path, const char *include_dir, PlatformFileListingArtifact **out_artifact,
+    char **out_error) {
+  M68kDiagList diagnostics = {0};
+  PlatformFileListingArtifact *artifact = NULL;
+  const M68kBackend *backend = m68k_backend_by_name(backend_name);
+  (void)include_dir;
+  if (out_artifact != NULL) *out_artifact = NULL;
+  if (out_error != NULL) *out_error = NULL;
+  if (out_artifact == NULL || out_error == NULL || backend_name == NULL || path == NULL) {
+    if (out_error != NULL) *out_error = duplicate_text_local("invalid listing artifact request");
+    return -1;
+  }
+  artifact = listing_artifact_alloc_base(backend_name, path, &diagnostics);
+  if (artifact == NULL) goto fail;
+  if (configure_analysis_policy_for_alloc(&artifact->policy, backend_name, metadata_path, NULL, &diagnostics) != 0)
+    goto fail;
+  if (load_object_from_path(backend, path, &artifact->object, m68k_diag_sink(&diagnostics)) != 0) goto fail;
+  if (enrich_policy_from_object_target_info_local(&artifact->policy, backend, &artifact->object, NULL, 0U,
+      &diagnostics) != 0) {
+    goto fail;
+  }
+  enrich_policy_pointer_targets_from_object_local(&artifact->policy, &artifact->object);
+  if (!validate_effective_policy_against_object_local(&diagnostics, &artifact->object, &artifact->policy)) goto fail;
+  if (listing_artifact_build_analysis(artifact, &diagnostics) != 0) goto fail;
+  *out_artifact = artifact;
+  return 0;
+
+fail:
+  platform_file_facts_v2_listing_artifact_destroy(artifact);
+  return listing_artifact_set_error(out_error, &diagnostics, "listing artifact create failed");
+}
+
+int platform_file_facts_v2_listing_artifact_raw_path_create(const char *platform_name, const char *path,
+    uint32_t entry_offset, const char *metadata_path, const char *include_dir,
+    PlatformFileListingArtifact **out_artifact, char **out_error) {
+  M68kDiagList diagnostics = {0};
+  PlatformFileListingArtifact *artifact = NULL;
+  (void)include_dir;
+  if (out_artifact != NULL) *out_artifact = NULL;
+  if (out_error != NULL) *out_error = NULL;
+  if (out_artifact == NULL || out_error == NULL || platform_name == NULL || path == NULL) {
+    if (out_error != NULL) *out_error = duplicate_text_local("invalid listing artifact request");
+    return -1;
+  }
+  artifact = listing_artifact_alloc_base(platform_name, path, &diagnostics);
+  if (artifact == NULL) goto fail;
+  if (configure_analysis_policy_for_alloc(&artifact->policy, platform_name, metadata_path, NULL, &diagnostics) != 0)
+    goto fail;
+  if (load_raw_object_from_path(platform_name, path, &artifact->object, m68k_diag_sink(&diagnostics)) != 0)
+    goto fail;
+  if (!policy_set_raw_entry_address_local(&artifact->policy, &artifact->object, entry_offset, &diagnostics))
+    goto fail;
+  enrich_policy_pointer_targets_from_object_local(&artifact->policy, &artifact->object);
+  if (!validate_effective_policy_against_object_local(&diagnostics, &artifact->object, &artifact->policy)) goto fail;
+  if (listing_artifact_build_analysis(artifact, &diagnostics) != 0) goto fail;
+  *out_artifact = artifact;
+  return 0;
+
+fail:
+  platform_file_facts_v2_listing_artifact_destroy(artifact);
+  return listing_artifact_set_error(out_error, &diagnostics, "listing artifact create failed");
+}
+
+int platform_file_facts_v2_listing_artifact_window_json_alloc(PlatformFileListingArtifact *artifact,
+    uint32_t start, uint32_t count, char **out_text) {
+  PlatformFileTextResult result;
+  JsonBuilder builder = {0};
+  char *window_json = NULL;
+  char *json = NULL;
+  clock_t window_start;
+  clock_t window_end;
+  memset(&result, 0, sizeof(result));
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (artifact == NULL) {
+    platform_file_add_error(&result.diagnostics, "invalid listing artifact");
+    return text_result_to_alloc(&result, out_text);
+  }
+  window_start = clock();
+  if (source_file_listing_window_from_render_plan_to_json(NULL, &artifact->source_plan,
+      artifact->object.platform_backend_kind, &artifact->source_analysis.policy, &artifact->source_analysis,
+      "full", 0, start, count, &window_json, m68k_diag_sink(&result.diagnostics)) != 0) {
+    if (!m68k_diag_has_errors(&result.diagnostics))
+      platform_file_add_error(&result.diagnostics, "facts_v2 listing window render-plan emission failed");
+    goto cleanup;
+  }
+  window_end = clock();
+  if (json_builder_create(&builder) != 0 ||
+      json_builder_append(&builder, "{\"listing\":") != 0 ||
+      json_builder_append(&builder, window_json != NULL ? window_json : "{\"rows\":[]}") != 0 ||
+      json_builder_append(&builder, ",\"profile\":{\"generation\":\"facts_v2_listing_artifact_window\","
+        "\"backend\":") != 0 ||
+      json_builder_append_json_string(&builder, artifact->backend_name) != 0 ||
+      json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
+      json_builder_append_json_string(&builder, artifact->path) != 0 ||
+      json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
+      json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"timing\":{\"source_seconds\":%.6f,\"window_json_seconds\":%.6f,\"total_seconds\":%.6f}}}",
+        artifact->source_seconds, elapsed_seconds(window_start, window_end),
+        elapsed_seconds(window_start, window_end)) != 0) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  json = json_builder_build(&builder);
+  if (json == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  result.text = json;
+  json = NULL;
+
+cleanup:
+  json_builder_destroy(&builder);
+  platform_file_free_text(json);
+  platform_file_free_text(window_json);
+  return text_result_to_alloc(&result, out_text);
+}
+
+void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact) {
+  if (artifact == NULL) return;
+  m68k_render_plan_destroy(&artifact->source_plan);
+  m68k_ir_source_analysis_destroy(&artifact->source_analysis);
+  m68k_object_destroy(&artifact->object);
+  free(artifact->backend_name);
+  free(artifact->path);
+  memset(artifact, 0, sizeof(*artifact));
+  free(artifact);
 }
 
 int platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc(const char *platform_name,

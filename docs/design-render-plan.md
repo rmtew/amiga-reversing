@@ -98,6 +98,11 @@ not more server cache layers; it is a C-owned analysis/render-plan artifact,
 keyed by the same effective target inputs, that can answer listing-window and
 navigation requests without rebuilding analysis and without Python retaining a
 parallel row model.
+The first C artifact boundary now exists as an opaque
+`PlatformFileListingArtifact`: path and raw-binary create APIs build and retain
+the loaded object, effective policy, source analysis, facts_v2 profile, and
+render plan, and repeated window calls emit from that retained C state. This is
+not yet wired into the server route cache.
 The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.
@@ -438,6 +443,10 @@ Direct C listing-window JSON emission now exists and has a raw-binary
 regression proving parity with a full render-plan row slice. This is not yet the
 web route standard because the current DLL boundary does not preserve the built
 plan between requests.
+An opaque C listing artifact API now preserves that built state across multiple
+window calls for both normal platform files and raw-binary targets. Real-DLL
+regressions prove that repeated windows from one artifact match full listing row
+slices and that raw-binary targets can use the same artifact boundary.
 As an interim step, full listing jobs cache serialized row artifacts once and
 indexed/address-anchored web windows slice that cache when it matches the
 current project cache key. Address windows also cache display-order address

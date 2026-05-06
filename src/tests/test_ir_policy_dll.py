@@ -344,6 +344,34 @@ def _file_library():
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc.restype = ctypes.c_int
+    library.platform_file_facts_v2_listing_artifact_path_create.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_void_p),
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_facts_v2_listing_artifact_path_create.restype = ctypes.c_int
+    library.platform_file_facts_v2_listing_artifact_raw_path_create.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_uint32,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_void_p),
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_facts_v2_listing_artifact_raw_path_create.restype = ctypes.c_int
+    library.platform_file_facts_v2_listing_artifact_window_json_alloc.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_facts_v2_listing_artifact_window_json_alloc.restype = ctypes.c_int
+    library.platform_file_facts_v2_listing_artifact_destroy.argtypes = [ctypes.c_void_p]
+    library.platform_file_facts_v2_listing_artifact_destroy.restype = None
     library.platform_file_free_text.argtypes = [ctypes.c_void_p]
     library.platform_file_free_text.restype = None
     library.platform_file_free_bytes.argtypes = [ctypes.c_void_p]
@@ -624,6 +652,117 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(addressed_rows[0]["entity_addr"], addressed_rows[0]["addr"])
         self.assertEqual(render_result, 0, render_text)
         self.assertIn("SECTION", render_text)
+
+    def test_platform_file_listing_artifact_reuses_c_analysis_for_windows(self) -> None:
+        library = _file_library()
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.hunk"
+            path.write_bytes(make_synthetic_hunkexe())
+            encoded_path = str(path).encode("utf-8")
+
+            listing_result, listing_text = _file_alloc_text(
+                library,
+                "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
+                b"amiga-hunk",
+                encoded_path,
+                b"",
+                b"",
+            )
+            artifact = ctypes.c_void_p()
+            error = ctypes.c_void_p()
+            create_result = library.platform_file_facts_v2_listing_artifact_path_create(
+                b"amiga-hunk",
+                encoded_path,
+                b"",
+                b"",
+                ctypes.byref(artifact),
+                ctypes.byref(error),
+            )
+            try:
+                error_text = ctypes.string_at(error).decode("utf-8") if error.value else ""
+                self.assertEqual(create_result, 0, error_text)
+                self.assertTrue(artifact.value)
+                first_window = ctypes.c_void_p()
+                second_window = ctypes.c_void_p()
+                try:
+                    first_result = library.platform_file_facts_v2_listing_artifact_window_json_alloc(
+                        artifact,
+                        1,
+                        2,
+                        ctypes.byref(first_window),
+                    )
+                    second_result = library.platform_file_facts_v2_listing_artifact_window_json_alloc(
+                        artifact,
+                        2,
+                        2,
+                        ctypes.byref(second_window),
+                    )
+                    first_text = ctypes.string_at(first_window).decode("utf-8") if first_window.value else ""
+                    second_text = ctypes.string_at(second_window).decode("utf-8") if second_window.value else ""
+                    self.assertEqual(first_result, 0, first_text)
+                    self.assertEqual(second_result, 0, second_text)
+                finally:
+                    if first_window.value:
+                        library.platform_file_free_text(first_window)
+                    if second_window.value:
+                        library.platform_file_free_text(second_window)
+            finally:
+                if error.value:
+                    library.platform_file_free_text(error)
+                if artifact.value:
+                    library.platform_file_facts_v2_listing_artifact_destroy(artifact)
+
+        self.assertEqual(listing_result, 0, listing_text)
+        full_rows = json.loads(listing_text)["listing"]["rows"]
+        first_rows = json.loads(first_text)["listing"]["rows"]
+        second_payload = json.loads(second_text)
+        second_rows = second_payload["listing"]["rows"]
+        self.assertEqual([row["row_id"] for row in first_rows], [row["row_id"] for row in full_rows[1:3]])
+        self.assertEqual([row["row_id"] for row in second_rows], [row["row_id"] for row in full_rows[2:4]])
+        self.assertEqual(second_payload["profile"]["generation"], "facts_v2_listing_artifact_window")
+
+    def test_platform_file_listing_artifact_supports_raw_binary_targets(self) -> None:
+        library = _file_library()
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.bin"
+            path.write_bytes(b"\x4e\x75")
+            artifact = ctypes.c_void_p()
+            error = ctypes.c_void_p()
+            create_result = library.platform_file_facts_v2_listing_artifact_raw_path_create(
+                b"amiga-raw",
+                str(path).encode("utf-8"),
+                0,
+                b"",
+                b"",
+                ctypes.byref(artifact),
+                ctypes.byref(error),
+            )
+            try:
+                error_text = ctypes.string_at(error).decode("utf-8") if error.value else ""
+                self.assertEqual(create_result, 0, error_text)
+                self.assertTrue(artifact.value)
+                window = ctypes.c_void_p()
+                try:
+                    window_result = library.platform_file_facts_v2_listing_artifact_window_json_alloc(
+                        artifact,
+                        0,
+                        4,
+                        ctypes.byref(window),
+                    )
+                    window_text = ctypes.string_at(window).decode("utf-8") if window.value else ""
+                    self.assertEqual(window_result, 0, window_text)
+                finally:
+                    if window.value:
+                        library.platform_file_free_text(window)
+            finally:
+                if error.value:
+                    library.platform_file_free_text(error)
+                if artifact.value:
+                    library.platform_file_facts_v2_listing_artifact_destroy(artifact)
+
+        payload = json.loads(window_text)
+        self.assertEqual(payload["profile"]["generation"], "facts_v2_listing_artifact_window")
+        self.assertTrue(payload["listing"]["rows"])
 
     def test_platform_file_analysis_keeps_fallthrough_after_trap(self) -> None:
         library = _file_library()
