@@ -4328,29 +4328,6 @@ cleanup:
   return result;
 }
 
-static int facts_v2_listing_rows_from_render_plan(const M68kObject *object, const M68kAnalysisPolicy *analysis_policy,
-    const M68kSourceAnalysisIR *source_analysis, const M68kRenderPlan *render_plan,
-    int include_source_only_rows, char **out_rows_json, double *out_rows_emit_seconds, M68kDiagSink diagnostics) {
-  clock_t phase_start;
-  clock_t rows_emit_end;
-  if (out_rows_emit_seconds != NULL) *out_rows_emit_seconds = 0.0;
-  if (object == NULL || analysis_policy == NULL || render_plan == NULL || out_rows_json == NULL) {
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT,
-      "invalid facts_v2 listing rows request");
-    return -1;
-  }
-  phase_start = clock();
-  if (source_file_listing_rows_from_render_plan_to_json(NULL, render_plan, object->platform_backend_kind,
-      analysis_policy,
-      source_analysis, "full", include_source_only_rows, out_rows_json, diagnostics) != 0) {
-    return -1;
-  }
-  rows_emit_end = clock();
-  if (out_rows_emit_seconds != NULL)
-    *out_rows_emit_seconds = elapsed_seconds(phase_start, rows_emit_end);
-  return 0;
-}
-
 struct PlatformFileListingArtifact {
   char *backend_name;
   char *path;
@@ -4425,93 +4402,6 @@ static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact
   artifact->listing_total_rows = artifact->listing_row_index.row_count;
   artifact->source_seconds = elapsed_seconds(source_start, source_end);
   return 0;
-}
-
-static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *backend_name, const char *path,
-    const M68kObject *object, const M68kAnalysisPolicy *analysis_policy, const char *include_dir) {
-  PlatformFileTextResult result;
-  M68kFactsV2Profile profile;
-  M68kSourceAnalysisIR source_analysis;
-  M68kRenderPlan source_plan;
-  JsonBuilder builder = {0};
-  char *rows_json = NULL;
-  char *analysis_json = NULL;
-  char *json = NULL;
-  clock_t total_start = clock();
-  clock_t source_end;
-  clock_t rows_end;
-  clock_t total_end;
-  double rows_emit_seconds = 0.0;
-  memset(&result, 0, sizeof(result));
-  memset(&source_analysis, 0, sizeof(source_analysis));
-  m68k_render_plan_init(&source_plan);
-  if (backend_name == NULL || path == NULL || object == NULL || analysis_policy == NULL) {
-    platform_file_add_error(&result.diagnostics, "invalid facts_v2 listing rows request");
-    return result;
-  }
-  if (m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(object, analysis_policy, NULL, &source_plan,
-      &profile, &source_analysis, 1U, m68k_diag_sink(&result.diagnostics)) != 0) {
-    if (!m68k_diag_has_errors(&result.diagnostics))
-      platform_file_add_error(&result.diagnostics, "facts_v2 asm source render failed");
-    goto cleanup;
-  }
-  source_end = clock();
-  (void)include_dir;
-  if (facts_v2_listing_rows_from_render_plan(object, &source_analysis.policy, &source_analysis, &source_plan,
-      0, &rows_json, &rows_emit_seconds, m68k_diag_sink(&result.diagnostics)) != 0) {
-    if (!m68k_diag_has_errors(&result.diagnostics))
-      platform_file_add_error(&result.diagnostics, "facts_v2 listing row render-plan emission failed");
-    goto cleanup;
-  }
-  rows_end = clock();
-  if (source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(&result.diagnostics)) != 0) {
-    if (!m68k_diag_has_errors(&result.diagnostics))
-      platform_file_add_error(&result.diagnostics, "facts_v2 source analysis json failed");
-    goto cleanup;
-  }
-  total_end = clock();
-  if (json_builder_create(&builder) != 0 ||
-      json_builder_append(&builder, "{\"listing\":") != 0 ||
-      json_builder_append(&builder, rows_json != NULL ? rows_json : "{\"rows\":[]}") != 0 ||
-      json_builder_append(&builder, ",\"analysis\":") != 0) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    goto cleanup;
-  }
-  if (analysis_json == NULL ||
-      append_analysis_json_with_decompression(&builder, analysis_json, object, &source_analysis) != 0) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    goto cleanup;
-  }
-  if (json_builder_append(&builder, ",\"profile\":{\"generation\":\"facts_v2_listing\",\"backend\":") != 0 ||
-      json_builder_append_json_string(&builder, backend_name) != 0 ||
-      json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
-      json_builder_append_json_string(&builder, path) != 0 ||
-      json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
-      json_builder_append_facts_v2_profile(&builder, &profile) != 0 ||
-      json_builder_appendf(&builder,
-        ",\"timing\":{\"source_seconds\":%.6f,\"rows_json_seconds\":%.6f,"
-        "\"rows_emit_seconds\":%.6f,\"total_seconds\":%.6f}}}",
-        elapsed_seconds(total_start, source_end), elapsed_seconds(source_end, rows_end),
-        rows_emit_seconds, elapsed_seconds(total_start, total_end)) != 0) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    goto cleanup;
-  }
-  json = json_builder_build(&builder);
-  if (json == NULL) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    goto cleanup;
-  }
-  result.text = json;
-  json = NULL;
-
-cleanup:
-  json_builder_destroy(&builder);
-  platform_file_free_text(json);
-  platform_file_free_text(analysis_json);
-  platform_file_free_text(rows_json);
-  m68k_render_plan_destroy(&source_plan);
-  m68k_ir_source_analysis_destroy(&source_analysis);
-  return result;
 }
 
 int platform_file_facts_v2_asm_source_path_json_alloc(const char *backend_name, const char *path,
@@ -5129,52 +5019,6 @@ int platform_file_facts_v2_direct_rebuild_compare_buffer_bytes_profile_alloc(con
     display_path, output_path, out_data, out_size, out_source_profile_json, out_direct_profile_json, out_error, 1);
 }
 
-static int platform_file_facts_v2_listing_rows_path_json_alloc_local(const char *backend_name, const char *path,
-    const char *metadata_path, const char *include_dir, char **out_text) {
-  M68kAnalysisPolicy *analysis_policy;
-  PlatformFileTextResult result;
-  M68kObject object;
-  const M68kBackend *backend = m68k_backend_by_name(backend_name);
-  memset(&result, 0, sizeof(result));
-  memset(&object, 0, sizeof(object));
-  analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*analysis_policy));
-  if (analysis_policy == NULL) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    return text_result_to_alloc(&result, out_text);
-  }
-  if (configure_analysis_policy_for_alloc(analysis_policy, backend_name, metadata_path, NULL,
-        &result.diagnostics) != 0) {
-    free(analysis_policy);
-    return text_result_to_alloc(&result, out_text);
-  }
-  if (load_object_from_path(backend, path, &object, m68k_diag_sink(&result.diagnostics)) != 0) {
-    free(analysis_policy);
-    return text_result_to_alloc(&result, out_text);
-  }
-  if (enrich_policy_from_object_target_info_local(analysis_policy, backend, &object, NULL, 0U,
-      &result.diagnostics) != 0) {
-    m68k_object_destroy(&object);
-    free(analysis_policy);
-    return text_result_to_alloc(&result, out_text);
-  }
-  enrich_policy_pointer_targets_from_object_local(analysis_policy, &object);
-  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, analysis_policy)) {
-    m68k_object_destroy(&object);
-    free(analysis_policy);
-    return text_result_to_alloc(&result, out_text);
-  }
-  result = facts_v2_listing_rows_object_json(backend_name, path, &object, analysis_policy, include_dir);
-  m68k_object_destroy(&object);
-  free(analysis_policy);
-  return text_result_to_alloc(&result, out_text);
-}
-
-int platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc(const char *backend_name, const char *path,
-    const char *metadata_path, const char *include_dir, char **out_text) {
-  return platform_file_facts_v2_listing_rows_path_json_alloc_local(backend_name, path, metadata_path, include_dir,
-    out_text);
-}
-
 int platform_file_facts_v2_basic_listing_rows_path_json_alloc(const char *backend_name, const char *path,
     const char *metadata_path, const char *include_dir, char **out_text) {
   M68kAnalysisPolicy *analysis_policy;
@@ -5214,50 +5058,6 @@ int platform_file_facts_v2_basic_listing_rows_path_json_alloc(const char *backen
   m68k_object_destroy(&object);
   free(analysis_policy);
   return text_result_to_alloc(&result, out_text);
-}
-
-static int platform_file_facts_v2_listing_rows_raw_path_json_alloc_local(const char *platform_name, const char *path,
-    uint32_t entry_offset, const char *metadata_path, const char *include_dir, char **out_text) {
-  M68kAnalysisPolicy *analysis_policy;
-  PlatformFileTextResult result;
-  M68kObject object;
-  memset(&result, 0, sizeof(result));
-  memset(&object, 0, sizeof(object));
-  analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*analysis_policy));
-  if (analysis_policy == NULL) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    return text_result_to_alloc(&result, out_text);
-  }
-  if (configure_analysis_policy_for_alloc(analysis_policy, platform_name, metadata_path, NULL,
-        &result.diagnostics) != 0) {
-    free(analysis_policy);
-    return text_result_to_alloc(&result, out_text);
-  }
-  if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&result.diagnostics)) != 0) {
-    free(analysis_policy);
-    return text_result_to_alloc(&result, out_text);
-  }
-  if (!policy_set_raw_entry_address_local(analysis_policy, &object, entry_offset, &result.diagnostics)) {
-    m68k_object_destroy(&object);
-    free(analysis_policy);
-    return text_result_to_alloc(&result, out_text);
-  }
-  enrich_policy_pointer_targets_from_object_local(analysis_policy, &object);
-  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, analysis_policy)) {
-    m68k_object_destroy(&object);
-    free(analysis_policy);
-    return text_result_to_alloc(&result, out_text);
-  }
-  result = facts_v2_listing_rows_object_json(platform_name, path, &object, analysis_policy, include_dir);
-  m68k_object_destroy(&object);
-  free(analysis_policy);
-  return text_result_to_alloc(&result, out_text);
-}
-
-int platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc(const char *platform_name,
-    const char *path, uint32_t entry_offset, const char *metadata_path, const char *include_dir, char **out_text) {
-  return platform_file_facts_v2_listing_rows_raw_path_json_alloc_local(platform_name, path, entry_offset,
-    metadata_path, include_dir, out_text);
 }
 
 int platform_file_facts_v2_listing_artifact_path_create(const char *backend_name, const char *path,

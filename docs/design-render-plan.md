@@ -123,6 +123,13 @@ The production Python helpers that built complete `ListingRow` arrays from the
 C full-listing rows API have been removed. Row-object hydration remains only in
 test support for assertions that inspect typed row metadata; production callers
 must use the retained C artifact API or source/rebuild APIs.
+The row-hydration code itself has been removed; tests now assert the raw
+serialized row dictionaries emitted by the retained artifact.
+The superseded full-listing rows-with-analysis API has now been excised from
+the Python C backend wrapper, C DLL exports, and CLI. Corpus usage indexing and
+tests that need whole-listing rows materialize them through the retained C
+listing artifact by requesting a bounded window for the artifact's known total
+row count.
 Rows-only Python caches no longer satisfy a full-generation listing cache; a
 valid full cache requires the retained C artifact. Ready-project listing and
 navigation routes fail closed if that artifact is missing or stale instead of

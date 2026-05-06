@@ -505,92 +505,6 @@ int main(int argc, char **argv) {
     if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
     return facts_v2_analysis_raw_to_stdout(platform_name, path, entry_offset, analysis_policy);
   }
-  if (argc >= 4 && strcmp(argv[1], "listing-rows-file") == 0) {
-    const char *platform_name = NULL;
-    const char *path = NULL;
-    const char *metadata_path = NULL;
-    char *text = NULL;
-    int result;
-    m68k_analysis_policy_init_default(analysis_policy);
-    for (argi = 2; argi < argc; ++argi) {
-      int policy_result = parse_analysis_policy_option(argc, argv, &argi, analysis_policy, &metadata_path);
-      if (policy_result < 0) return 2;
-      if (policy_result > 0) continue;
-      if (platform_name == NULL) {
-        platform_name = argv[argi];
-        continue;
-      }
-      if (path == NULL) {
-        path = argv[argi];
-        continue;
-      }
-      fprintf(stderr, "unexpected argument: %s\n", argv[argi]);
-      return 2;
-    }
-    if (platform_name == NULL || path == NULL) {
-      fprintf(stderr, "missing platform/file\n");
-      return 2;
-    }
-    if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
-    result = platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc(platform_name, path,
-      metadata_path != NULL ? metadata_path : "", "", &text);
-    if (result != 0) {
-      fprintf(stderr, "%s\n", text != NULL ? text : "failed building listing rows");
-      platform_file_free_text(text);
-      return 1;
-    }
-    puts(text);
-    platform_file_free_text(text);
-    return 0;
-  }
-  if (argc >= 5 && strcmp(argv[1], "listing-rows-raw") == 0) {
-    const char *platform_name = NULL;
-    const char *path = NULL;
-    const char *metadata_path = NULL;
-    uint32_t entry_offset = 0U;
-    int have_entry_offset = 0;
-    char *text = NULL;
-    int result;
-    m68k_analysis_policy_init_default(analysis_policy);
-    for (argi = 2; argi < argc; ++argi) {
-      int policy_result = parse_analysis_policy_option(argc, argv, &argi, analysis_policy, &metadata_path);
-      if (policy_result < 0) return 2;
-      if (policy_result > 0) continue;
-      if (platform_name == NULL) {
-        platform_name = argv[argi];
-        continue;
-      }
-      if (path == NULL) {
-        path = argv[argi];
-        continue;
-      }
-      if (!have_entry_offset) {
-        if (!parse_u32_arg(argv[argi], &entry_offset)) {
-          fprintf(stderr, "bad entry offset: %s\n", argv[argi]);
-          return 2;
-        }
-        have_entry_offset = 1;
-        continue;
-      }
-      fprintf(stderr, "unexpected argument: %s\n", argv[argi]);
-      return 2;
-    }
-    if (platform_name == NULL || path == NULL || !have_entry_offset) {
-      fprintf(stderr, "missing platform/file/entry-offset\n");
-      return 2;
-    }
-    if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
-    result = platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc(platform_name, path, entry_offset,
-      metadata_path != NULL ? metadata_path : "", "", &text);
-    if (result != 0) {
-      fprintf(stderr, "%s\n", text != NULL ? text : "failed building listing rows");
-      platform_file_free_text(text);
-      return 1;
-    }
-    puts(text);
-    platform_file_free_text(text);
-    return 0;
-  }
   if (argc >= 4 && strcmp(argv[1], "analyze-file") == 0) {
     const char *platform_name = NULL;
     const char *path = NULL;
@@ -743,8 +657,6 @@ int main(int argc, char **argv) {
     "<amiga-hunk|atari-st> <file>\n", argv[0]);
   fprintf(stderr, "   or: %s effective-policy-raw [--target-metadata file] [--entry-offset offset] "
     "<amiga-raw|atari-st-raw> <file> <entry-offset>\n", argv[0]);
-  fprintf(stderr, "   or: %s listing-rows-file <amiga-hunk|atari-st> <file>\n", argv[0]);
-  fprintf(stderr, "   or: %s listing-rows-raw <amiga-raw|atari-st-raw> <file> <entry-offset>\n", argv[0]);
   fprintf(stderr, "   or: %s analyze-raw <amiga-raw|atari-st-raw> <file> <entry-offset>\n", argv[0]);
   fprintf( stderr, "   or: %s analyze-file [--max-cpu " "<68000|68010|68020|68030|68040|68060>] <amiga-hunk|atari-st> "
     "<file>\n", argv[0]);

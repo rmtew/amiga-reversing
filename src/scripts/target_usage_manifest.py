@@ -648,18 +648,13 @@ def _read_json_object(path: Path) -> dict[str, Any]:
 def analyze_project_hunk_file(platform: str, path: Path, target_dir: Path, *, root: Path = ROOT) -> dict[str, Any]:
     include_dir = _include_dir_for_platform(platform, root)
     with effective_metadata_file(target_dir) as metadata_path:
-        combined_text = c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
+        return _analyze_file_with_listing_artifact(
             platform,
-            str(path),
+            path,
             str(metadata_path) if metadata_path is not None else "",
             str(include_dir),
-            project_root=root,
+            root=root,
         )
-    payload = json.loads(combined_text)
-    if not isinstance(payload, dict):
-        raise RuntimeError("C backend returned non-object project usage analysis")
-    return payload
 
 
 def analyze_executable_file(platform: str, file_bytes: bytes, tmp_dir: Path, *, root: Path = ROOT) -> dict[str, Any]:
@@ -667,18 +662,50 @@ def analyze_executable_file(platform: str, file_bytes: bytes, tmp_dir: Path, *, 
     path = tmp_dir / f"usage_{platform.replace('-', '_')}_{sha256(file_bytes)[:12]}{suffix}"
     path.write_bytes(file_bytes)
     include_dir = _include_dir_for_platform(platform, root)
-    combined_text = c_backend._platform_file_text(
-        "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
+    return _analyze_file_with_listing_artifact(
         platform,
-        str(path),
+        path,
         "",
         str(include_dir),
+        root=root,
+    )
+
+
+def _analyze_file_with_listing_artifact(
+    platform: str,
+    path: Path,
+    metadata_text: str,
+    include_dir: str,
+    *,
+    root: Path,
+) -> dict[str, Any]:
+    artifact = c_backend.CListingArtifact.create(
+        c_backend._CBackendSourceFile(path, platform),
+        metadata_text=metadata_text,
+        include_dir=include_dir,
         project_root=root,
     )
-    payload = json.loads(combined_text)
-    if not isinstance(payload, dict):
-        raise RuntimeError("C backend returned non-object usage analysis")
-    return payload
+    try:
+        summary, summary_profile = artifact.summary_payload()
+        analysis, analysis_profile = artifact.analysis_payload()
+        navigation, navigation_profile = artifact.navigation_payload()
+        total_rows = summary.get("total_rows", 0)
+        listing, listing_profile = artifact.window_payload(start=0, count=total_rows if isinstance(total_rows, int) else 0)
+    finally:
+        artifact.close()
+    profile = {**summary_profile, **analysis_profile, **navigation_profile, **listing_profile}
+    result: dict[str, Any] = {
+        "analysis": analysis,
+        "listing": {"rows": list(listing["rows"])},
+        "profile": profile,
+    }
+    app_slot_analysis = navigation.get("app_slot_analysis")
+    if isinstance(app_slot_analysis, dict):
+        result["listing"]["app_slot_analysis"] = app_slot_analysis
+    type_flow_analysis = navigation.get("type_flow_analysis")
+    if isinstance(type_flow_analysis, dict):
+        result["listing"]["type_flow_analysis"] = type_flow_analysis
+    return result
 
 
 def _include_dir_for_platform(platform: str, root: Path) -> Path | str:

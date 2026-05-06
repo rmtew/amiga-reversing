@@ -2914,29 +2914,24 @@ class TargetUsageManifestTests(unittest.TestCase):
                 self.assertEqual(target, target_dir)
                 yield metadata_path
 
-            def fake_platform_file_text(function_name: str, *args: object, project_root: Path) -> str:
-                calls.append((function_name, *args, project_root))
-                return json.dumps(
-                    {
-                        "profile": {"generation": "facts_v2_full_listing"},
-                        "analysis": {"sections": []},
-                        "listing": {"rows": []},
-                    }
-                )
+            def fake_analyze_project_hunk_file(
+                platform: str, path: Path, target: Path, *, root: Path
+            ) -> dict[str, object]:
+                calls.append((platform, path, target, root))
+                return {
+                    "profile": {"generation": "facts_v2_listing_artifact_window"},
+                    "analysis": {"sections": []},
+                    "listing": {"rows": []},
+                }
 
             with mock.patch.object(usage, "effective_metadata_file", fake_effective_metadata_file):
-                with mock.patch.object(usage.c_backend, "_platform_file_text", fake_platform_file_text):
+                with mock.patch.object(usage, "analyze_project_hunk_file", fake_analyze_project_hunk_file):
                     rows, xrefs, snippets = usage.build_usage_outputs(disk_manifest, file_manifest, root=tmpdir)
 
             self.assertEqual([row["id"] for row in rows], ["project_target:demo_project"])
             self.assertEqual(rows[0]["feature_counts"]["project_target:any"], 1)
             self.assertEqual(rows[0]["feature_counts"]["analysis:facts_v2"], 1)
-            self.assertEqual(calls[0][0], "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc")
-            self.assertEqual(
-                calls[0][1:5],
-                ("amiga-hunk", str(binary_path), str(metadata_path), str(tmpdir / "ext" / "amiga_includes" / "ndk_2.0" / "include")),
-            )
-            self.assertEqual(calls[0][5], tmpdir)
+            self.assertEqual(calls[0], ("amiga-hunk", binary_path, target_dir, tmpdir))
             self.assertIn("project_target:any", {xref["feature"] for xref in xrefs})
             self.assertEqual(snippets, [])
 
@@ -2975,27 +2970,25 @@ class TargetUsageManifestTests(unittest.TestCase):
             def fake_effective_metadata_file(_target: Path):
                 yield None
 
-            def fake_platform_file_text(function_name: str, *args: object, project_root: Path) -> str:
-                self.assertEqual(function_name, "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc")
-                path = Path(str(args[1]))
-                return json.dumps(
-                    {
-                        "profile": {"generation": "facts_v2_full_listing"},
-                        "analysis": {"sections": []},
-                        "listing": {
-                            "rows": [
-                                {
-                                    "kind": "instruction",
-                                    "text": f"\tjsr {path.stem}\n",
-                                    "row_index": 0,
-                                }
-                            ]
-                        },
-                    }
-                )
+            def fake_analyze_project_hunk_file(
+                _platform: str, path: Path, _target: Path, *, root: Path
+            ) -> dict[str, object]:
+                return {
+                    "profile": {"generation": "facts_v2_listing_artifact_window"},
+                    "analysis": {"sections": []},
+                    "listing": {
+                        "rows": [
+                            {
+                                "kind": "instruction",
+                                "text": f"\tjsr {path.stem}\n",
+                                "row_index": 0,
+                            }
+                        ]
+                    },
+                }
 
             with mock.patch.object(usage, "effective_metadata_file", fake_effective_metadata_file):
-                with mock.patch.object(usage.c_backend, "_platform_file_text", fake_platform_file_text):
+                with mock.patch.object(usage, "analyze_project_hunk_file", fake_analyze_project_hunk_file):
                     serial = usage.build_usage_outputs(disk_manifest, file_manifest, root=tmpdir, max_workers=1)
                     parallel = usage.build_usage_outputs(disk_manifest, file_manifest, root=tmpdir, max_workers=2)
 

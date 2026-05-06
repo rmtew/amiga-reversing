@@ -17,6 +17,7 @@ import pytest
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload, serialize_row
+from amiga_reversing.disasm.c_backend import build_project_listing_artifact_generation_profile
 from amiga_reversing.disasm.listing_types import (
     AppSlotRef,
     BlockRowContext,
@@ -25,7 +26,6 @@ from amiga_reversing.disasm.listing_types import (
     SymbolOperandMetadata,
 )
 from amiga_reversing.disasm.projects import ProjectRecord
-from tests.c_backend_listing_rows import build_project_rows_generation_with_c_backend
 from tests.cdp_brave import brave_cdp_requested, brave_cdp_skip_reason, brave_page
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -2289,22 +2289,27 @@ def test_brave_cdp_real_annotation_edit_round_trip(
     _skip_without_c_backend()
     project_root = tmp_path / "project_root"
     project_id = "amiga_hunk_genam"
-    rows, api_calls = build_project_rows_generation_with_c_backend(
-        project_id,
-        generation="full",
-        project_root=PROJECT_ROOT,
-    )
-    edit_row_index = next(index for index, row in enumerate(rows) if row.addr is not None)
-    edit_addr = cast(int, rows[edit_row_index].addr)
     shutil.copytree(PROJECT_ROOT / "targets" / project_id, project_root / "targets" / project_id)
     for stale in (project_root / "targets" / project_id).glob("overrides.json*"):
         stale.unlink()
     _temp_project_accessors(monkeypatch, project_root)
+    total_rows, api_calls, _profile, artifact = build_project_listing_artifact_generation_profile(
+        project_id,
+        generation="full",
+        project_root=PROJECT_ROOT,
+    )
+    payload, _ = artifact.window_payload(start=0, count=total_rows)
+    rows = payload["rows"]
+    edit_row_index = next(index for index, row in enumerate(rows) if row["addr"] is not None)
+    edit_addr = cast(int, rows[edit_row_index]["addr"])
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    _cache_full_project_rows(project_id, rows)
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE[project_id] = artifact
+    disasm_server._PROJECT_ROW_GENERATION_CACHE[project_id] = "full"
+    disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE[project_id] = total_rows
+    disasm_server._PROJECT_LISTING_CACHE_KEY[project_id] = disasm_server._project_listing_cache_key(project_id)
     disasm_server._PROJECT_API_CALL_CACHE[project_id] = api_calls
 
     with _live_server() as base_url, brave_page() as page:

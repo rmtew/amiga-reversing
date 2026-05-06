@@ -336,14 +336,6 @@ def _file_library():
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_facts_v2_analysis_path_json_alloc.restype = ctypes.c_int
-    library.platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc.argtypes = [
-        ctypes.c_char_p,
-        ctypes.c_char_p,
-        ctypes.c_char_p,
-        ctypes.c_char_p,
-        ctypes.POINTER(ctypes.c_void_p),
-    ]
-    library.platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc.restype = ctypes.c_int
     library.platform_file_facts_v2_listing_artifact_path_create.argtypes = [
         ctypes.c_char_p,
         ctypes.c_char_p,
@@ -660,14 +652,17 @@ class IrPolicyDllTests(unittest.TestCase):
                 encoded_metadata_path,
                 b"",
             )
-            listing_result, listing_text = _file_alloc_text(
-                library,
-                "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
+            artifact = ctypes.c_void_p()
+            error = ctypes.c_void_p()
+            listing_result = library.platform_file_facts_v2_listing_artifact_path_create(
                 b"amiga-hunk",
                 encoded_path,
                 encoded_metadata_path,
                 b"",
+                ctypes.byref(artifact),
+                ctypes.byref(error),
             )
+            listing_text = ctypes.string_at(error).decode("utf-8") if error.value else ""
             render_result, render_text = _file_alloc_text(
                 library,
                 "platform_file_facts_v2_asm_source_path_text_alloc",
@@ -675,6 +670,33 @@ class IrPolicyDllTests(unittest.TestCase):
                 encoded_path,
                 encoded_metadata_path,
             )
+            if error.value:
+                library.platform_file_free_text(error)
+            if artifact.value:
+                window = ctypes.c_void_p()
+                summary = ctypes.c_void_p()
+                try:
+                    summary_result = library.platform_file_facts_v2_listing_artifact_summary_json_alloc(
+                        artifact,
+                        ctypes.byref(summary),
+                    )
+                    summary_text = ctypes.string_at(summary).decode("utf-8") if summary.value else ""
+                    self.assertEqual(summary_result, 0, summary_text)
+                    total_rows = json.loads(summary_text)["summary"]["total_rows"]
+                    window_result = library.platform_file_facts_v2_listing_artifact_window_json_alloc(
+                        artifact,
+                        0,
+                        total_rows,
+                        ctypes.byref(window),
+                    )
+                    listing_text = ctypes.string_at(window).decode("utf-8") if window.value else ""
+                    self.assertEqual(window_result, 0, listing_text)
+                finally:
+                    if summary.value:
+                        library.platform_file_free_text(summary)
+                    if window.value:
+                        library.platform_file_free_text(window)
+                    library.platform_file_facts_v2_listing_artifact_destroy(artifact)
 
         self.assertEqual(analyze_result, 0, analyze_text)
         self.assertEqual(json.loads(analyze_text)["section_count"], 2)
@@ -694,14 +716,6 @@ class IrPolicyDllTests(unittest.TestCase):
             path.write_bytes(make_synthetic_hunkexe())
             encoded_path = str(path).encode("utf-8")
 
-            listing_result, listing_text = _file_alloc_text(
-                library,
-                "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
-                b"amiga-hunk",
-                encoded_path,
-                b"",
-                b"",
-            )
             artifact = ctypes.c_void_p()
             error = ctypes.c_void_p()
             create_result = library.platform_file_facts_v2_listing_artifact_path_create(
@@ -722,6 +736,7 @@ class IrPolicyDllTests(unittest.TestCase):
                 addr_window = ctypes.c_void_p()
                 source_text = ctypes.c_void_p()
                 summary = ctypes.c_void_p()
+                all_window = ctypes.c_void_p()
                 api_calls = ctypes.c_void_p()
                 navigation = ctypes.c_void_p()
                 try:
@@ -775,6 +790,14 @@ class IrPolicyDllTests(unittest.TestCase):
                     addr_text = ctypes.string_at(addr_window).decode("utf-8") if addr_window.value else ""
                     artifact_source_text = ctypes.string_at(source_text).decode("utf-8") if source_text.value else ""
                     summary_text = ctypes.string_at(summary).decode("utf-8") if summary.value else ""
+                    total_rows = json.loads(summary_text)["summary"]["total_rows"] if summary_text else 0
+                    all_result = library.platform_file_facts_v2_listing_artifact_window_json_alloc(
+                        artifact,
+                        0,
+                        total_rows,
+                        ctypes.byref(all_window),
+                    )
+                    all_text = ctypes.string_at(all_window).decode("utf-8") if all_window.value else ""
                     api_calls_text = ctypes.string_at(api_calls).decode("utf-8") if api_calls.value else ""
                     navigation_text = ctypes.string_at(navigation).decode("utf-8") if navigation.value else ""
                     self.assertEqual(artifact_analysis_result, 0, artifact_analysis_text)
@@ -783,6 +806,7 @@ class IrPolicyDllTests(unittest.TestCase):
                     self.assertEqual(addr_result, 0, addr_text)
                     self.assertEqual(source_result, 0, artifact_source_text)
                     self.assertEqual(summary_result, 0, summary_text)
+                    self.assertEqual(all_result, 0, all_text)
                     self.assertEqual(api_calls_result, 0, api_calls_text)
                     self.assertEqual(navigation_result, 0, navigation_text)
                 finally:
@@ -798,6 +822,8 @@ class IrPolicyDllTests(unittest.TestCase):
                         library.platform_file_free_text(source_text)
                     if summary.value:
                         library.platform_file_free_text(summary)
+                    if all_window.value:
+                        library.platform_file_free_text(all_window)
                     if api_calls.value:
                         library.platform_file_free_text(api_calls)
                     if navigation.value:
@@ -808,8 +834,6 @@ class IrPolicyDllTests(unittest.TestCase):
                 if artifact.value:
                     library.platform_file_facts_v2_listing_artifact_destroy(artifact)
 
-        self.assertEqual(listing_result, 0, listing_text)
-        full_rows = json.loads(listing_text)["listing"]["rows"]
         self.assertIn("SECTION", artifact_source_text)
         artifact_analysis_payload = json.loads(artifact_analysis_text)
         self.assertEqual(
@@ -822,6 +846,9 @@ class IrPolicyDllTests(unittest.TestCase):
         second_rows = second_payload["listing"]["rows"]
         addr_payload = json.loads(addr_text)
         addr_rows = addr_payload["listing"]["rows"]
+        summary_payload = json.loads(summary_text)
+        all_rows_payload = json.loads(all_text)
+        full_rows = all_rows_payload["listing"]["rows"]
         addr_anchor = next(
             (index for index, row in enumerate(full_rows) if isinstance(row.get("addr"), int) and row["addr"] >= 0),
             max(0, len(full_rows) - 1),
@@ -837,7 +864,6 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertGreaterEqual(addr_payload["profile"]["listing_addr_block_count"], 1)
         self.assertEqual(second_payload["profile"]["generation"], "facts_v2_listing_artifact_window")
         self.assertEqual(second_payload["profile"]["listing_total_rows"], len(full_rows))
-        summary_payload = json.loads(summary_text)
         self.assertEqual(summary_payload["profile"]["generation"], "facts_v2_listing_artifact_summary")
         self.assertEqual(summary_payload["summary"]["total_rows"], len(full_rows))
         api_calls_payload = json.loads(api_calls_text)

@@ -35,26 +35,17 @@ from amiga_reversing.disasm.c_backend import (
     identify_packed_range_with_c_backend,
     render_binary_source_with_c_backend,
     render_project_source_with_c_backend,
-    rows_from_c_listing_json,
     validate_amiga_hunk_executable_with_c_backend,
 )
 from tests.c_backend_listing_rows import (
-    build_project_rows_generation_from_source,
-    build_project_rows_generation_with_c_backend,
-    build_project_rows_generation_with_c_backend_profile,
+    analyze_project_with_c_artifact,
+    analyze_source_with_c_artifact,
+    build_project_listing_rows_from_source_with_c_artifact,
+    build_project_listing_rows_profile_with_c_artifact,
+    build_project_listing_rows_with_c_artifact,
 )
 from amiga_reversing.disasm.facts_v2_source_refusal import FactsV2SourceRefused
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
-from amiga_reversing.disasm.listing_types import (
-    AppSlotRef,
-    BlockRowContext,
-    CodeStartRef,
-    HeaderRowContext,
-    PlatformTypedAccess,
-    PlatformUnresolvedTypedAccess,
-    RuntimeAddressRef,
-    SymbolOperandMetadata,
-)
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from src.tests._platform_backend_test_utils import (
     M68kDiagList,
@@ -119,15 +110,16 @@ def test_listing_analysis_json_includes_empty_decompression_fact_arrays(tmp_path
     binary = tmp_path / "plain_hunk.bin"
     binary.write_bytes(_make_cross_section_call_hunkexe(bytes.fromhex("4e75"), 0))
 
-    combined_text = c_backend._platform_file_text(
-        "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
-        "amiga-hunk",
-        str(binary),
-        "",
-        "",
+    combined = analyze_source_with_c_artifact(
+        HunkFileBinarySource(
+            kind="hunk_file",
+            path=binary,
+            display_path=str(binary),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
         project_root=PROJECT_ROOT,
     )
-    combined = json.loads(combined_text)
 
     assert combined["analysis"]["packed_payloads"] == []
     assert combined["analysis"]["derived_target_suggestions"] == []
@@ -165,31 +157,7 @@ def test_decompression_c_backend_section_range_reports_unknown_payload(tmp_path:
 
 
 def _facts_v2_listing_analysis_for_project(target_name: str) -> dict[str, object]:
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
-    with effective_metadata_file(paths.target_dir) as metadata_path:
-        metadata_text = str(metadata_path) if metadata_path is not None else ""
-        with c_backend._source_file_for_c_backend(paths.binary_source, project_root=PROJECT_ROOT) as source_file:
-            include_dir = c_backend._platform_include_dir_for_listing(source_file.platform_name, PROJECT_ROOT)
-            if source_file.entry_offset is None:
-                combined_text = c_backend._platform_file_text(
-                    "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
-                    source_file.platform_name,
-                    str(source_file.path),
-                    metadata_text,
-                    str(include_dir),
-                    project_root=PROJECT_ROOT,
-                )
-            else:
-                combined_text = c_backend._platform_file_text(
-                    "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-                    source_file.platform_name,
-                    str(source_file.path),
-                    source_file.entry_offset,
-                    metadata_text,
-                    str(include_dir),
-                    project_root=PROJECT_ROOT,
-                )
-    payload = json.loads(combined_text)
+    payload = analyze_project_with_c_artifact(target_name, project_root=PROJECT_ROOT)
     assert isinstance(payload, dict)
     return payload
 
@@ -390,230 +358,29 @@ class _M68kAnalysisPolicy(ctypes.Structure):
     ]
 
 
-def test_rows_from_c_listing_json_uses_emitted_metadata() -> None:
-    rows = rows_from_c_listing_json(
-        {
-            "rows": [
-                {
-                    "row_id": "c:0",
-                    "kind": "directive",
-                    "text": "    SECTION section,code\n",
-                    "addr": None,
-                    "label": None,
-                    "opcode_or_directive": "SECTION",
-                    "operand_text": "section,code",
-                    "comment_text": "",
-                    "source_context": {"section": "c-backend"},
-                },
-                {
-                    "row_id": "c:1",
-                    "kind": "instruction",
-                    "text": "    jsr target.l\n",
-                    "stable_key": "s0:00000020:instruction:1",
-                    "analysis_generation": "basic",
-                    "analysis_phase": "entrypoint-code",
-                    "section_index": 0,
-                    "start_offset": 32,
-                    "end_offset": 38,
-                    "addr": 32,
-                    "entity_addr": 32,
-                    "bytes": "4eb900000040",
-                    "label": None,
-                    "opcode_or_directive": "jsr",
-                    "operand_text": "target.l",
-                    "operand_parts": [
-                        {
-                            "kind": "symbol",
-                            "text": "target",
-                            "value": None,
-                            "register": None,
-                            "base_register": None,
-                            "displacement": None,
-                            "segment_addr": None,
-                            "metadata": {"symbol": "target"},
-                        }
-                    ],
-                    "comment_text": "",
-                    "data_class": "copper_list",
-                    "source_context": {"kind": "c-instruction", "hunk_index": 0},
-                    "app_slot_refs": [
-                        {
-                            "symbol": "app_0234",
-                            "displacement": 0x0234,
-                            "base_register": "A6",
-                            "operand_index": 0,
-                            "access": "read",
-                        }
-                    ],
-                    "runtime_address_refs": [
-                        {
-                            "offset": 32,
-                            "operand_index": None,
-                            "target_section_index": 0,
-                            "target_offset": 0x40,
-                            "runtime_address": 0x40040,
-                            "confidence": 2,
-                            "data_class": "copper_list",
-                        }
-                    ],
-                    "code_start_refs": [
-                        {
-                            "offset": 32,
-                            "reason": 4,
-                            "reason_name": "control_target",
-                            "confidence": 2,
-                            "source_section_index": 0,
-                            "source_offset": 16,
-                            "runtime_address": None,
-                            "size": 6,
-                        }
-                    ],
-                    "typed_accesses": [
-                        {
-                            "operand_index": 0,
-                            "base_register": "A0",
-                            "displacement": 20,
-                            "field_offset": 20,
-                            "root_struct_name": "Library",
-                            "owner_struct_name": "Library",
-                            "field_name": "LIB_VERSION",
-                            "field_expr": "LIB_VERSION",
-                            "inherited": False,
-                            "nested": False,
-                        }
-                    ],
-                    "unresolved_typed_accesses": [
-                        {
-                            "operand_index": 1,
-                            "base_register": "A0",
-                            "displacement": 36,
-                            "struct_size": 34,
-                            "root_struct_name": "InputEvent",
-                            "classification": "prefix_extension",
-                            "container_candidate_count": 3,
-                            "container_struct_name": "SyntheticEvent",
-                            "container_field_expr": "se_Field",
-                            "refinement_applied": True,
-                            "refined_struct_name": "SyntheticEvent",
-                            "type_provenance_kind": "api_output",
-                            "type_provenance_section": 0,
-                            "type_provenance_offset": 32,
-                        }
-                    ],
-                    "structured_data": {
-                        "struct_name": "RT",
-                        "field_name": "RT_MATCHWORD",
-                        "c_type": "UWORD",
-                        "value_domain": "exec.resident.matchword",
-                        "constant_name": "RTC_MATCHWORD",
-                    },
-                },
-            ]
-        }
-    )
-
-    assert rows[0].source_context == HeaderRowContext(section="c-backend")
-    assert rows[1].addr == 32
-    assert rows[1].entity_addr == 32
-    assert rows[1].stable_key == "s0:00000020:instruction:1"
-    assert rows[1].analysis_generation == "basic"
-    assert rows[1].analysis_phase == "entrypoint-code"
-    assert rows[1].section_index == 0
-    assert rows[1].start_offset == 32
-    assert rows[1].end_offset == 38
-    assert rows[1].opcode_or_directive == "jsr"
-    assert rows[1].bytes == bytes.fromhex("4eb900000040")
-    assert rows[1].operand_parts[0].kind == "symbol"
-    assert rows[1].operand_parts[0].text == "target"
-    assert rows[1].operand_parts[0].metadata == SymbolOperandMetadata(symbol="target")
-    assert rows[1].source_context == BlockRowContext(kind="c-instruction", hunk_index=0)
-    assert rows[1].data_class == "copper_list"
-    assert rows[1].app_slot_refs == (AppSlotRef("app_0234", 0x0234, "A6", 0, "read"),)
-    assert rows[1].runtime_address_refs == (
-        RuntimeAddressRef(
-            offset=32,
-            operand_index=None,
-            target_section_index=0,
-            target_offset=0x40,
-            runtime_address=0x40040,
-            confidence=2,
-            data_class="copper_list",
-        ),
-    )
-    assert rows[1].code_start_refs == (
-        CodeStartRef(
-            offset=32,
-            reason=4,
-            reason_name="control_target",
-            confidence=2,
-            source_section_index=0,
-            source_offset=16,
-            runtime_address=None,
-            size=6,
-        ),
-    )
-    assert rows[1].typed_accesses == (
-        PlatformTypedAccess(
-            operand_index=0,
-            base_register="A0",
-            displacement=20,
-            field_offset=20,
-            root_struct_name="Library",
-            owner_struct_name="Library",
-            field_name="LIB_VERSION",
-            field_expr="LIB_VERSION",
-            inherited=False,
-            nested=False,
-        ),
-    )
-    assert rows[1].unresolved_typed_accesses == (
-        PlatformUnresolvedTypedAccess(
-            operand_index=1,
-            base_register="A0",
-            displacement=36,
-            struct_size=34,
-            root_struct_name="InputEvent",
-            classification="prefix_extension",
-            container_candidate_count=3,
-            container_struct_name="SyntheticEvent",
-            container_field_expr="se_Field",
-            refinement_applied=True,
-            refined_struct_name="SyntheticEvent",
-            type_provenance_kind="api_output",
-            type_provenance_section=0,
-            type_provenance_offset=32,
-        ),
-    )
-    assert rows[1].structured_data == {
-        "struct_name": "RT",
-        "field_name": "RT_MATCHWORD",
-        "c_type": "UWORD",
-        "value_domain": "exec.resident.matchword",
-        "constant_name": "RTC_MATCHWORD",
-    }
-
-
 def test_full_listing_data_rows_expose_source_bytes(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     path = tmp_path / "raw.bin"
     path.write_bytes(b"\0" * 12 + b"\x4e\x75" + b"ABC\0")
 
-    payload = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(path),
-            12,
-            "",
-            "",
-            project_root=PROJECT_ROOT,
-        )
-    )["listing"]
-    rows = rows_from_c_listing_json(payload)
-    data_rows = [row for row in rows if row.kind == "data"]
+    rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
+        RawBinarySource(
+            kind="raw_binary",
+            path=path,
+            address_model="local_offset",
+            load_address=0,
+            entrypoint=12,
+            code_start_offset=12,
+            display_path=str(path),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
+    )
+    data_rows = [row for row in rows if row["kind"] == "data"]
 
-    assert any(row.addr == 0 and row.bytes == b"\0" * 12 for row in data_rows)
-    assert any(row.addr == 14 and row.bytes == b"ABC\0" for row in data_rows)
+    assert any(row["addr"] == 0 and row["bytes"] == "000000000000000000000000" for row in data_rows)
+    assert any(row["addr"] == 14 and row["bytes"] == "41424300" for row in data_rows)
 
 
 def test_full_listing_rows_omit_empty_optional_c_fields(tmp_path: Path) -> None:
@@ -621,38 +388,30 @@ def test_full_listing_rows_omit_empty_optional_c_fields(tmp_path: Path) -> None:
     path = tmp_path / "raw.bin"
     path.write_bytes(b"\x4e\x75")
 
-    payload = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(path),
-            0,
-            "",
-            "",
-            project_root=PROJECT_ROOT,
-        )
-    )["listing"]
-    raw_rows = payload["rows"]
-    hydrated_rows = rows_from_c_listing_json(payload)
+    raw_rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
+        RawBinarySource(
+            kind="raw_binary",
+            path=path,
+            address_model="local_offset",
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=str(path),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
+    )
     label = next(row for row in raw_rows if row["kind"] == "label")
-    hydrated_label = next(row for row in hydrated_rows if row.kind == "label")
     instruction = next(row for row in raw_rows if row["kind"] == "instruction")
-    hydrated_instruction = next(row for row in hydrated_rows if row.kind == "instruction")
 
     assert label["addr"] == 0
     assert label["entity_addr"] == 0
-    assert "bytes" not in label
-    assert hydrated_label.addr == 0
-    assert hydrated_label.entity_addr == 0
-    assert hydrated_label.bytes is None
-    assert "app_slot_refs" not in instruction
-    assert "typed_accesses" not in instruction
-    assert "unresolved_typed_accesses" not in instruction
-    assert "comment_text" not in instruction
-    assert hydrated_instruction.app_slot_refs == ()
-    assert hydrated_instruction.typed_accesses == ()
-    assert hydrated_instruction.unresolved_typed_accesses == ()
-    assert hydrated_instruction.comment_text == ""
+    assert label.get("bytes") is None
+    assert instruction.get("app_slot_refs", []) == []
+    assert instruction.get("typed_accesses", []) == []
+    assert instruction.get("unresolved_typed_accesses", []) == []
+    assert instruction.get("comment_text", "") == ""
 
 
 def test_full_listing_instruction_rows_expose_symbol_operand_parts(tmp_path: Path) -> None:
@@ -660,24 +419,26 @@ def test_full_listing_instruction_rows_expose_symbol_operand_parts(tmp_path: Pat
     path = tmp_path / "raw.bin"
     path.write_bytes(bytes.fromhex("60024e754e75"))
 
-    payload = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(path),
-            0,
-            "",
-            "",
-            project_root=PROJECT_ROOT,
-        )
-    )["listing"]
-    rows = rows_from_c_listing_json(payload)
-    branch = next(row for row in rows if row.kind == "instruction" and row.addr == 0)
+    rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
+        RawBinarySource(
+            kind="raw_binary",
+            path=path,
+            address_model="local_offset",
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=str(path),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
+    )
+    branch = next(row for row in rows if row["kind"] == "instruction" and row["addr"] == 0)
 
-    assert branch.operand_text == "loc_0_00000004"
-    assert branch.operand_parts[0].kind == "symbol"
-    assert branch.operand_parts[0].text == "loc_0_00000004"
-    assert branch.operand_parts[0].metadata == SymbolOperandMetadata(symbol="loc_0_00000004")
+    assert branch["operand_text"] == "loc_0_00000004"
+    assert branch["operand_parts"][0]["kind"] == "symbol"
+    assert branch["operand_parts"][0]["text"] == "loc_0_00000004"
+    assert branch["operand_parts"][0]["metadata"] == {"symbol": "loc_0_00000004"}
 
 
 def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: Path) -> None:
@@ -722,17 +483,7 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
         metadata_path=metadata_path,
         project_root=PROJECT_ROOT,
     )
-    combined = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(path),
-            0,
-            str(metadata_path),
-            "",
-            project_root=PROJECT_ROOT,
-        )
-    )
+    combined = analyze_source_with_c_artifact(binary_source, metadata_text=str(metadata_path), project_root=PROJECT_ROOT)
     assert "\tlea.l loc_0_00000020(pc),a0\n" in source_text
     assert "\tjmp $00000080.l\n" in source_text
     assert "loc_0_00000020:\n    ORG $100\nabs_0_00000100:\n" in source_text
@@ -767,8 +518,8 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
         },
     ]
 
-    rows = rows_from_c_listing_json(combined["listing"])
-    row_texts = [row.text.rstrip("\n") for row in rows]
+    rows = combined["listing"]["rows"]
+    row_texts = [str(row["text"]).rstrip("\n") for row in rows]
     ref_index = next(index for index, text in enumerate(row_texts) if "lea.l loc_0_00000020(pc),a0" in text)
     storage_label_index = row_texts.index("loc_0_00000020:")
     org_index = row_texts.index("    ORG $100")
@@ -776,12 +527,12 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
     assert ref_index < storage_label_index < org_index < runtime_label_index
     storage_row = rows[storage_label_index]
     runtime_row = rows[runtime_label_index]
-    assert storage_row.storage_address == 0x20
-    assert storage_row.runtime_address == 0x100
-    assert storage_row.runtime_view_id == 1
-    assert runtime_row.storage_address == 0x20
-    assert runtime_row.runtime_address == 0x100
-    assert runtime_row.runtime_view_id == 1
+    assert storage_row["storage_address"] == 0x20
+    assert storage_row["runtime_address"] == 0x100
+    assert storage_row["runtime_view_id"] == 1
+    assert runtime_row["storage_address"] == 0x20
+    assert runtime_row["runtime_address"] == 0x100
+    assert runtime_row["runtime_view_id"] == 1
 
 
 def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
@@ -816,16 +567,7 @@ def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
         binary_source,
         project_root=PROJECT_ROOT,
     )
-    combined = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
-            "amiga-hunk",
-            str(path),
-            "",
-            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
-            project_root=PROJECT_ROOT,
-        )
-    )
+    combined = analyze_source_with_c_artifact(binary_source, metadata_text="", project_root=PROJECT_ROOT)
     facts_v2 = source_profile["facts_v2"]
     stub_rows = [
         row
@@ -880,16 +622,7 @@ def test_facts_v2_traces_predecrement_copied_entry_source(tmp_path: Path) -> Non
         binary_source,
         project_root=PROJECT_ROOT,
     )
-    combined = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
-            "amiga-hunk",
-            str(path),
-            "",
-            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
-            project_root=PROJECT_ROOT,
-        )
-    )
+    combined = analyze_source_with_c_artifact(binary_source, metadata_text="", project_root=PROJECT_ROOT)
 
     sites = combined["analysis"]["sections"][0]["recovered_indirect_sites"]
     payload_rows = [
@@ -929,12 +662,14 @@ def test_facts_v2_listing_rejects_invalid_platform_metadata(tmp_path: Path) -> N
     )
 
     with pytest.raises(RuntimeError, match="target metadata range is out of range"):
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
-            "amiga-hunk",
-            str(path),
-            str(metadata_path),
-            "",
+        analyze_source_with_c_artifact(
+            HunkFileBinarySource(
+                kind="hunk_file",
+                path=path,
+                display_path=str(path),
+                analysis_cache_path=tmp_path / "binary.analysis",
+            ),
+            metadata_text=str(metadata_path),
             project_root=PROJECT_ROOT,
         )
 
@@ -2494,105 +2229,6 @@ def test_atari_symbolic_relocation_materializes_image_relative_payload(tmp_path:
     assert rebuilt[28 + 14 : 28 + 20] == u32(4) + b"\x06\0"
 
 
-def test_project_rows_facts_v2_uses_dedicated_listing_api(monkeypatch, tmp_path: Path) -> None:
-    binary_path = tmp_path / "boot.bin"
-    binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
-    target_dir = tmp_path / "targets" / "raw_demo"
-    target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
-    (target_dir / "source_binary.json").write_text(
-        json.dumps(
-            {
-                "kind": "raw_binary",
-                "path": str(binary_path),
-                "address_model": "local_offset",
-                "load_address": 0x70000,
-                "entrypoint": 0x7000C,
-                "code_start_offset": 0x0C,
-            }
-        ),
-        encoding="utf-8",
-    )
-    calls: list[tuple[object, ...]] = []
-
-    def fake_file_run(function_name: str, *args: object, project_root: Path) -> str:
-        calls.append((function_name, *args))
-        return json.dumps(
-            {
-                "listing": {"rows": []},
-                "analysis": {"sections": []},
-                "profile": {
-                    "generation": "facts_v2_listing",
-                    "analysis_backend": "facts_v2",
-                    "facts_v2": {"asm_source_refused": False},
-                },
-            }
-        )
-
-    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
-
-    rows, api_calls = build_project_rows_generation_with_c_backend(
-        "raw_demo",
-        generation="full",
-        project_root=tmp_path,
-    )
-
-    assert rows == []
-    assert api_calls == {}
-    assert calls == [
-        (
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(binary_path),
-            12,
-            "",
-            str(tmp_path / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
-        )
-    ]
-
-
-def test_project_rows_facts_v2_profile_uses_full_listing_api(monkeypatch, tmp_path: Path) -> None:
-    binary_path = tmp_path / "boot.bin"
-    binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
-    target_dir = tmp_path / "targets" / "raw_demo"
-    target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
-    (target_dir / "source_binary.json").write_text(
-        json.dumps(
-            {
-                "kind": "raw_binary",
-                "path": str(binary_path),
-                "address_model": "local_offset",
-                "load_address": 0x70000,
-                "entrypoint": 0x7000C,
-                "code_start_offset": 0x0C,
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    def fake_file_run(function_name: str, *args: object, project_root: Path) -> str:
-        return json.dumps(
-            {
-                "listing": {"rows": [{"row_id": "r0", "kind": "directive", "text": "SECTION code,code\n"}]},
-                "analysis": {"sections": []},
-                "profile": {"generation": "facts_v2_listing", "analysis_backend": "facts_v2"},
-            }
-        )
-
-    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
-
-    rows, api_calls, profile = build_project_rows_generation_with_c_backend_profile(
-        "raw_demo",
-        generation="full",
-        project_root=tmp_path,
-    )
-
-    assert [row.text for row in rows] == ["SECTION code,code\n"]
-    assert api_calls == {}
-    assert profile["analysis_backend"] == "facts_v2"
-
-
 def test_project_listing_artifact_skips_analysis_json_when_no_platform_calls(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -2785,20 +2421,19 @@ def test_real_dll_facts_v2_listing_rows_use_plan_metadata_without_source_model(t
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    rows, api_calls, profile = build_project_rows_generation_from_source(
+    rows, api_calls, profile = build_project_listing_rows_from_source_with_c_artifact(
         source,
         metadata_text="",
-        generation="full",
         project_root=PROJECT_ROOT,
     )
 
     assert api_calls == {}
-    assert profile["generation"] == "facts_v2_listing"
-    assert profile["analysis_backend"] == "facts_v2"
     assert "source_model_seconds" not in profile["timing"]
-    assert profile["timing"]["rows_emit_seconds"] >= 0.0
-    assert any(row.kind == "directive" and row.text.lstrip().startswith("SECTION ") for row in rows)
-    assert any(row.kind == "instruction" and row.opcode_or_directive == "rts" and row.bytes == b"\x4e\x75" for row in rows)
+    assert any(row["kind"] == "directive" and str(row["text"]).lstrip().startswith("SECTION ") for row in rows)
+    assert any(
+        row["kind"] == "instruction" and row["opcode_or_directive"] == "rts" and row["bytes"] == "4e75"
+        for row in rows
+    )
 
 
 def test_real_dll_raw_runtime_absolute_entry_uses_execution_view(tmp_path: Path) -> None:
@@ -2873,25 +2508,27 @@ def test_real_dll_runtime_org_is_visible_in_listing_rows(tmp_path: Path) -> None
         encoding="utf-8",
     )
 
-    payload = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(binary_path),
-            0x410,
-            str(metadata_path),
-            "",
-            project_root=PROJECT_ROOT,
-        )
-    )["listing"]
-    rows = rows_from_c_listing_json(payload)
-    org_index = next(index for index, row in enumerate(rows) if row.text.strip() == "ORG $400")
-    label_index = next(index for index, row in enumerate(rows) if row.label == "abs_0_00000400")
+    rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
+        RawBinarySource(
+            kind="raw_binary",
+            path=binary_path,
+            address_model="local_offset",
+            load_address=0,
+            entrypoint=0x410,
+            code_start_offset=0x410,
+            display_path=str(binary_path),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text=str(metadata_path),
+        project_root=PROJECT_ROOT,
+    )
+    org_index = next(index for index, row in enumerate(rows) if str(row["text"]).strip() == "ORG $400")
+    label_index = next(index for index, row in enumerate(rows) if row.get("label") == "abs_0_00000400")
 
-    assert rows[org_index].kind == "directive"
-    assert rows[org_index].opcode_or_directive == "ORG"
-    assert rows[org_index].operand_text == "$400"
-    assert rows[org_index].addr is None
+    assert rows[org_index]["kind"] == "directive"
+    assert rows[org_index]["opcode_or_directive"] == "ORG"
+    assert rows[org_index]["operand_text"] == "$400"
+    assert rows[org_index]["addr"] is None
     assert org_index < label_index
 
 
@@ -2926,21 +2563,23 @@ def test_real_dll_runtime_absolute_target_decode_does_not_invalidate_source_cand
         encoding="utf-8",
     )
 
-    payload = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(binary_path),
-            0,
-            str(metadata_path),
-            "",
-            project_root=PROJECT_ROOT,
-        )
-    )["listing"]
-    rows = rows_from_c_listing_json(payload)
+    rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
+        RawBinarySource(
+            kind="raw_binary",
+            path=binary_path,
+            address_model="local_offset",
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=str(binary_path),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text=str(metadata_path),
+        project_root=PROJECT_ROOT,
+    )
 
-    assert any(row.kind == "instruction" and row.start_offset == 0x3E for row in rows)
-    assert any(row.kind == "instruction" and row.start_offset == 0x50 for row in rows)
+    assert any(row["kind"] == "instruction" and row["start_offset"] == 0x3E for row in rows)
+    assert any(row["kind"] == "instruction" and row["start_offset"] == 0x50 for row in rows)
 
 
 def test_real_dll_analysis_api_exposes_source_free_render_index_profile(tmp_path: Path) -> None:
@@ -3002,48 +2641,51 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
         encoding="utf-8",
     )
 
-    payload = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(binary_path),
-            0,
-            str(metadata_path),
-            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
-            project_root=PROJECT_ROOT,
-        )
-    )["listing"]
-    rows = rows_from_c_listing_json(payload)
-    copper_rows = [row for row in rows if row.kind == "data" and row.data_class == "copper_list"]
-    pointer_row = next(row for row in rows if row.addr == 0 and row.kind == "instruction")
+    combined = analyze_source_with_c_artifact(
+        RawBinarySource(
+            kind="raw_binary",
+            path=binary_path,
+            address_model="local_offset",
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=str(binary_path),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text=str(metadata_path),
+        project_root=PROJECT_ROOT,
+    )
+    rows = combined["listing"]["rows"]
+    copper_rows = [row for row in rows if row["kind"] == "data" and row["data_class"] == "copper_list"]
+    pointer_row = next(row for row in rows if row["addr"] == 0 and row["kind"] == "instruction")
 
-    assert pointer_row.runtime_address_refs == (
-        RuntimeAddressRef(
-            offset=0,
-            operand_index=0,
-            target_section_index=0,
-            target_offset=0x0C,
-            runtime_address=0x0C,
-            confidence=2,
-            data_class="copper_list",
-        ),
-    )
-    assert pointer_row.code_start_refs == (
-            CodeStartRef(
-                offset=0,
-                reason=2,
-                reason_name="policy_entry_offset",
-            confidence=3,
-            source_section_index=0,
-            source_offset=0,
-            runtime_address=None,
-            size=10,
-        ),
-    )
-    assert all(row.addr == 0x0C for row in copper_rows)
-    assert all(row.structured_data is not None for row in copper_rows)
-    assert all(row.structured_data["semantic_role"] == "copper_list" for row in copper_rows)
-    assert [row.text.strip() for row in copper_rows] == [
+    assert pointer_row["runtime_address_refs"] == [
+        {
+            "offset": 0,
+            "operand_index": 0,
+            "target_section_index": 0,
+            "target_offset": 0x0C,
+            "runtime_address": 0x0C,
+            "confidence": 2,
+            "data_class": "copper_list",
+        }
+    ]
+    assert pointer_row["code_start_refs"] == [
+        {
+            "offset": 0,
+            "reason": 2,
+            "reason_name": "policy_entry_offset",
+            "confidence": 3,
+            "source_section_index": 0,
+            "source_offset": 0,
+            "runtime_address": None,
+            "size": 10,
+        }
+    ]
+    assert all(row["addr"] == 0x0C for row in copper_rows)
+    assert all(row["structured_data"] is not None for row in copper_rows)
+    assert all(row["structured_data"]["semantic_role"] == "copper_list" for row in copper_rows)
+    assert [str(row["text"]).strip() for row in copper_rows] == [
         "; display layout 1 bitmap plane $12345678",
         "dc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\t; display 4 bitplanes lores color",
         "dc.w bplpt,bitmap_12345678_hi\t; bitmap pointer $12345678",
@@ -3053,18 +2695,18 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
         "dc.w COPPER_WAIT|$2C06,$FFFE\t; copper wait v=$2C h=$06 mask $FFFE",
         "dc.w $FFFF,$FFFE",
     ]
-    assert copper_rows[2].runtime_address_refs == (
-        RuntimeAddressRef(
-            offset=0x10,
-            operand_index=None,
-            target_section_index=None,
-            target_offset=None,
-            runtime_address=0x12345678,
-            confidence=2,
-            data_class="bitmap",
-        ),
-    )
-    assert all(not row.runtime_address_refs for row in copper_rows[3:])
+    assert copper_rows[2]["runtime_address_refs"] == [
+        {
+            "offset": 0x10,
+            "operand_index": None,
+            "target_section_index": None,
+            "target_offset": None,
+            "runtime_address": 0x12345678,
+            "confidence": 2,
+            "data_class": "bitmap",
+        }
+    ]
+    assert all(not row.get("runtime_address_refs") for row in copper_rows[3:])
 
     analysis = json.loads(
         c_backend._platform_file_text(
@@ -3121,26 +2763,24 @@ def test_real_dll_facts_v2_listing_rows_exclude_source_only_directives_without_s
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    rows, api_calls, profile = build_project_rows_generation_from_source(
+    rows, api_calls, profile = build_project_listing_rows_from_source_with_c_artifact(
         source,
         metadata_text=str(metadata_path),
-        generation="full",
         project_root=PROJECT_ROOT,
     )
 
     assert api_calls[(0, 6)]["function"] == "OpenLibrary"
-    assert profile["generation"] == "facts_v2_listing"
     assert rows
-    first_label_index = next(index for index, row in enumerate(rows) if row.kind == "label")
-    header_texts = [row.text.lstrip() for row in rows[:first_label_index]]
+    first_label_index = next(index for index, row in enumerate(rows) if row["kind"] == "label")
+    header_texts = [str(row["text"]).lstrip() for row in rows[:first_label_index]]
     section_header_index = next(index for index, text in enumerate(header_texts) if text.startswith("SECTION "))
     assert any(text.startswith("INCLUDE ") for text in header_texts[:section_header_index])
-    assert rows[section_header_index - 1].kind == "blank"
-    known_index = next(index for index, row in enumerate(rows) if row.text.lstrip().startswith("; KNOWN:"))
+    assert rows[section_header_index - 1]["kind"] == "blank"
+    known_index = next(index for index, row in enumerate(rows) if str(row["text"]).lstrip().startswith("; KNOWN:"))
     assert known_index == first_label_index - 1
-    assert all(row.addr is None for row in rows[:first_label_index])
-    assert not any(row.text.lstrip().startswith("INCLUDE ") for row in rows[first_label_index:])
-    assert any(row.kind == "instruction" and row.opcode_or_directive == "jsr" for row in rows)
+    assert all(row["addr"] is None for row in rows[:first_label_index])
+    assert not any(str(row["text"]).lstrip().startswith("INCLUDE ") for row in rows[first_label_index:])
+    assert any(row["kind"] == "instruction" and row["opcode_or_directive"] == "jsr" for row in rows)
 
 
 def test_real_dll_facts_v2_listing_rows_emit_api_calls(tmp_path: Path) -> None:
@@ -3182,14 +2822,13 @@ def test_real_dll_facts_v2_listing_rows_emit_api_calls(tmp_path: Path) -> None:
         metadata_path=metadata_path,
         project_root=PROJECT_ROOT,
     )
-    rows, api_calls, profile = build_project_rows_generation_from_source(
+    rows, api_calls, profile = build_project_listing_rows_from_source_with_c_artifact(
         source,
         metadata_text=str(metadata_path),
-        generation="full",
         project_root=PROJECT_ROOT,
     )
 
-    assert any(row.kind == "instruction" and row.opcode_or_directive == "jsr" for row in rows)
+    assert any(row["kind"] == "instruction" and row["opcode_or_directive"] == "jsr" for row in rows)
     assert "_LVOOpenLibrary" in source_text
     assert profile["facts_v2"]["platform_call_count"] == 1
     assert api_calls[(0, 12)]["library"] == "exec.library"
@@ -3207,17 +2846,7 @@ def test_real_dll_facts_v2_listing_rows_emit_api_calls(tmp_path: Path) -> None:
         }
     ]
 
-    combined = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(binary_path),
-            12,
-            str(metadata_path),
-            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
-            project_root=PROJECT_ROOT,
-        )
-    )
+    combined = analyze_source_with_c_artifact(source, metadata_text=str(metadata_path), project_root=PROJECT_ROOT)
     effects = combined["analysis"]["sections"][0]["recovered_platform_effects"]
     assert effects == [
         {
@@ -3312,14 +2941,12 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
         metadata_path=metadata_path,
         project_root=PROJECT_ROOT,
     )
-    rows, api_calls, profile = build_project_rows_generation_from_source(
+    rows, api_calls, profile = build_project_listing_rows_from_source_with_c_artifact(
         source,
         metadata_text=str(metadata_path),
-        generation="full",
         project_root=PROJECT_ROOT,
     )
 
-    assert profile["generation"] == "facts_v2_listing"
     assert api_calls[(0, 16)]["function"] == "FindResident"
     assert "boot_entry:" in source_text
     assert (
@@ -3334,9 +2961,12 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
     assert "abs_0_00070026:" in source_text
     assert '\tdc.b "dos.library",$00\n' in source_text
     assert "facts_v2 data bytes" not in source_text
-    assert any(row.kind == "instruction" and "abs_0_00070026(pc)" in row.text for row in rows)
-    assert any(row.kind == "label" and row.addr == 0x26 and row.text.strip() == "abs_0_00070026:" for row in rows)
-    assert any(row.addr == 0 and row.data_class == "string" for row in rows)
+    assert any(row["kind"] == "instruction" and "abs_0_00070026(pc)" in str(row["text"]) for row in rows)
+    assert any(
+        row["kind"] == "label" and row["addr"] == 0x26 and str(row["text"]).strip() == "abs_0_00070026:"
+        for row in rows
+    )
+    assert any(row["addr"] == 0 and row["data_class"] == "string" for row in rows)
 
 
 def test_real_dll_facts_v2_listing_rows_emit_base_slot_effects(tmp_path: Path) -> None:
@@ -3361,16 +2991,19 @@ def test_real_dll_facts_v2_listing_rows_emit_base_slot_effects(tmp_path: Path) -
         )
     )
 
-    combined = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(binary_path),
-            0,
-            "",
-            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
-            project_root=PROJECT_ROOT,
-        )
+    combined = analyze_source_with_c_artifact(
+        RawBinarySource(
+            kind="raw_binary",
+            path=binary_path,
+            address_model="local_offset",
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=str(binary_path),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
     )
     facts = combined["profile"]["facts_v2"]
     effects = combined["analysis"]["sections"][0]["recovered_platform_effects"]
@@ -3412,16 +3045,19 @@ def test_real_dll_facts_v2_listing_rows_emit_wrapper_function_args(tmp_path: Pat
         )
     )
 
-    combined = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(binary_path),
-            0,
-            "",
-            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
-            project_root=PROJECT_ROOT,
-        )
+    combined = analyze_source_with_c_artifact(
+        RawBinarySource(
+            kind="raw_binary",
+            path=binary_path,
+            address_model="local_offset",
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=str(binary_path),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
     )
     args = combined["analysis"]["sections"][0]["recovered_function_args"]
     summaries = combined["analysis"]["sections"][0]["recovered_local_call_summaries"]
@@ -3527,16 +3163,19 @@ def test_real_dll_facts_v2_propagates_opendevice_instance_to_io_calls(tmp_path: 
         + b"input.device\0"
     )
 
-    combined = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(binary_path),
-            0,
-            "",
-            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
-            project_root=PROJECT_ROOT,
-        )
+    combined = analyze_source_with_c_artifact(
+        RawBinarySource(
+            kind="raw_binary",
+            path=binary_path,
+            address_model="local_offset",
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=str(binary_path),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
     )
     calls = combined["analysis"]["sections"][0]["recovered_platform_calls"]
     by_function = {call["function_name"]: call for call in calls if call.get("function_name")}
@@ -3575,16 +3214,19 @@ def test_real_dll_facts_v2_propagates_typed_base_through_stack_storage(tmp_path:
         + b"timer.device\0"
     )
 
-    combined = json.loads(
-        c_backend._platform_file_text(
-            "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
-            "amiga-raw",
-            str(binary_path),
-            0,
-            "",
-            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
-            project_root=PROJECT_ROOT,
-        )
+    combined = analyze_source_with_c_artifact(
+        RawBinarySource(
+            kind="raw_binary",
+            path=binary_path,
+            address_model="local_offset",
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=str(binary_path),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
     )
     typed_accesses = combined["analysis"]["sections"][0]["recovered_platform_typed_accesses"]
     listing_rows = combined["listing"]["rows"]
@@ -3857,9 +3499,8 @@ def test_project_source_facts_v2_biased_absolute_long_dispatch_table_roundtrips(
 @pytest.mark.parametrize("target_name", ["amiga_hunk_genam", "amiga_hunk_monam302"])
 def test_project_source_facts_v2_indexed_pointer_table_comparators_stay_clean(target_name: str) -> None:
     _requires_c_backend_dlls()
-    _rows, _api_calls, profile = build_project_rows_generation_with_c_backend_profile(
+    _rows, _api_calls, profile = build_project_listing_rows_profile_with_c_artifact(
         target_name,
-        generation="full",
         project_root=PROJECT_ROOT,
     )
 
@@ -3880,13 +3521,12 @@ def test_real_dll_renders_genam() -> None:
     assert "app_0234 RS." in rendered
     assert "app_0234(a6)" in rendered
 
-    rows, _ = build_project_rows_generation_with_c_backend(
+    rows, _api_calls, _profile = build_project_listing_rows_with_c_artifact(
         "amiga_hunk_genam",
-        generation="full",
         project_root=PROJECT_ROOT,
     )
-    refs = [ref for row in rows for ref in row.app_slot_refs]
-    symbols = {ref.symbol for ref in refs}
+    refs = [ref for row in rows for ref in row.get("app_slot_refs", [])]
+    symbols = {ref["symbol"] for ref in refs}
     fallback_symbols = [
         symbol
         for symbol in symbols
@@ -3894,23 +3534,28 @@ def test_real_dll_renders_genam() -> None:
         and len(symbol) == 8
         and all(ch in "0123456789ABCDEF" for ch in symbol[4:])
     ]
-    refs_by_text = {row.text.strip(): row.app_slot_refs for row in rows if row.app_slot_refs}
+    refs_by_text = {str(row["text"]).strip(): row["app_slot_refs"] for row in rows if row.get("app_slot_refs")}
 
     assert len(refs) > 500
     assert len(fallback_symbols) > 100
-    assert refs_by_text["move.l a7,app_0234(a6)"] == (
-        AppSlotRef("app_0234", 0x0234, "A6", 1, "write"),
-    )
-    assert refs_by_text["subq.l #4,app_0234(a6)"] == (
-        AppSlotRef("app_0234", 0x0234, "A6", 1, "read-write"),
-    )
+    assert refs_by_text["move.l a7,app_0234(a6)"] == [
+        {"symbol": "app_0234", "displacement": 0x0234, "base_register": "A6", "operand_index": 1, "access": "write"}
+    ]
+    assert refs_by_text["subq.l #4,app_0234(a6)"] == [
+        {
+            "symbol": "app_0234",
+            "displacement": 0x0234,
+            "base_register": "A6",
+            "operand_index": 1,
+            "access": "read-write",
+        }
+    ]
 
 
 def test_real_dll_genam_profile_exposes_c_app_slot_analysis() -> None:
     _requires_c_backend_dlls()
-    _rows, _api_calls, profile = build_project_rows_generation_with_c_backend_profile(
+    _rows, _api_calls, profile = build_project_listing_rows_profile_with_c_artifact(
         "amiga_hunk_genam",
-        generation="full",
         project_root=PROJECT_ROOT,
     )
 
@@ -3946,38 +3591,36 @@ def test_real_dll_genam_profile_exposes_c_app_slot_analysis() -> None:
 
 def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
     _requires_c_backend_dlls()
-    rows, _, profile = build_project_rows_generation_with_c_backend_profile(
+    rows, _, profile = build_project_listing_rows_profile_with_c_artifact(
         "amiga_hunk_bloodwych",
-        generation="full",
         project_root=PROJECT_ROOT,
     )
 
-    assert profile["analysis_backend"] == "facts_v2"
     facts_v2 = profile["facts_v2"]
     assert facts_v2["asm_source_refused"] is False
     assert facts_v2["required_instruction_failures"] == 0
     assert facts_v2["unsupported_instruction_demotes"] == 0
     assert facts_v2["interior_conflicts_unresolved"] == 0
     copied_stage_rows = [
-        row for row in rows if row.section_index == 0 and row.start_offset == 0x5C
+        row for row in rows if row["section_index"] == 0 and row["start_offset"] == 0x5C
     ]
-    assert any(row.kind == "label" and "abs_0_00000400:" in row.text for row in copied_stage_rows)
-    assert any(row.kind == "instruction" for row in copied_stage_rows)
-    assert not any(row.kind == "data" for row in copied_stage_rows)
+    assert any(row["kind"] == "label" and "abs_0_00000400:" in str(row["text"]) for row in copied_stage_rows)
+    assert any(row["kind"] == "instruction" for row in copied_stage_rows)
+    assert not any(row["kind"] == "data" for row in copied_stage_rows)
     assert any(
-        row.section_index == 0
-        and row.start_offset == 0x4B2A
-        and row.kind == "instruction"
-        and "\tclr.b $0011(a4)" in row.text
+        row["section_index"] == 0
+        and row["start_offset"] == 0x4B2A
+        and row["kind"] == "instruction"
+        and "\tclr.b $0011(a4)" in str(row["text"])
         for row in rows
     )
     bitmap_refs = [
         ref
         for row in rows
-        if row.kind == "data" and row.text.startswith("\tdc.w bplpt") and row.runtime_address_refs
-        for ref in row.runtime_address_refs
+        if row["kind"] == "data" and str(row["text"]).startswith("\tdc.w bplpt") and row.get("runtime_address_refs")
+        for ref in row["runtime_address_refs"]
     ]
-    assert [(ref.runtime_address, ref.size, ref.data_class) for ref in bitmap_refs] == [
+    assert [(ref["runtime_address"], ref["size"], ref["data_class"]) for ref in bitmap_refs] == [
         (0x70000, 0x2000, "bitmap"),
         (0x72000, 0x2000, "bitmap"),
         (0x74000, 0x2000, "bitmap"),
@@ -4603,18 +4246,17 @@ def test_real_dll_renders_icon_library_resident_structure() -> None:
     assert "hunk1_0092 EQU" not in rendered
     assert "hunk1_00BC EQU" not in rendered
 
-    rows, _ = build_project_rows_generation_with_c_backend(
+    rows, _api_calls, _profile = build_project_listing_rows_with_c_artifact(
         "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_libs__icon.library_8bc90c0c",
-        generation="full",
         project_root=PROJECT_ROOT,
     )
-    refs_by_text = {row.text.strip(): row.app_slot_refs for row in rows if row.app_slot_refs}
-    assert refs_by_text["move.l a6,app_ExecBase(a2)"] == (
-        AppSlotRef("app_ExecBase", 34, "A2", 1, "write"),
-    )
-    assert refs_by_text["move.l app_DOSBase(a2),h0dl_DOSBase.l"] == (
-        AppSlotRef("app_DOSBase", 38, "A2", 0, "read"),
-    )
+    refs_by_text = {str(row["text"]).strip(): row["app_slot_refs"] for row in rows if row.get("app_slot_refs")}
+    assert refs_by_text["move.l a6,app_ExecBase(a2)"] == [
+        {"symbol": "app_ExecBase", "displacement": 34, "base_register": "A2", "operand_index": 1, "access": "write"}
+    ]
+    assert refs_by_text["move.l app_DOSBase(a2),h0dl_DOSBase.l"] == [
+        {"symbol": "app_DOSBase", "displacement": 38, "base_register": "A2", "operand_index": 0, "access": "read"}
+    ]
     assert "get_disk_object:" in rendered
     assert "\tlink a6,#-80" in rendered
     assert "jsr hunk3_0768.l ; CANDIDATE: indirect_call" not in rendered
@@ -4636,22 +4278,21 @@ def test_real_dll_listing_rows_keep_icon_lvo_comments_on_entrypoints() -> None:
         "amiga_hunk_libs__icon.library_8bc90c0c"
     )
 
-    rows, _, _ = build_project_rows_generation_with_c_backend_profile(
+    rows, _, _ = build_project_listing_rows_profile_with_c_artifact(
         project_name,
-        generation="full",
         project_root=PROJECT_ROOT,
     )
 
-    vector_index = next(index for index, row in enumerate(rows) if row.text.strip() == "resident_vectors:")
-    dos_index = next(index for index, row in enumerate(rows) if row.text.strip() == 'dc.b "dos.library",$00')
-    open_index = next(index for index, row in enumerate(rows) if row.text.strip() == "icon_lib_open:")
+    vector_index = next(index for index, row in enumerate(rows) if str(row["text"]).strip() == "resident_vectors:")
+    dos_index = next(index for index, row in enumerate(rows) if str(row["text"]).strip() == 'dc.b "dos.library",$00')
+    open_index = next(index for index, row in enumerate(rows) if str(row["text"]).strip() == "icon_lib_open:")
 
-    assert rows[vector_index].addr == 0x58
-    assert rows[dos_index].addr == 0xD0
-    assert rows[open_index].addr == 0xDC
-    assert rows[open_index - 1].kind == "comment"
-    assert "KNOWN: base A6=icon.library:LIB" in rows[open_index - 1].text
-    assert not any(row.kind == "comment" for row in rows[vector_index:dos_index])
+    assert rows[vector_index]["addr"] == 0x58
+    assert rows[dos_index]["addr"] == 0xD0
+    assert rows[open_index]["addr"] == 0xDC
+    assert rows[open_index - 1]["kind"] == "comment"
+    assert "KNOWN: base A6=icon.library:LIB" in str(rows[open_index - 1]["text"])
+    assert not any(row["kind"] == "comment" for row in rows[vector_index:dos_index])
 
 
 def test_real_dll_renders_mathtrans_overlap_as_data_and_reassembles(tmp_path: Path) -> None:
