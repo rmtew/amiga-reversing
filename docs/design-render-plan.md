@@ -208,6 +208,12 @@ Reproduction jobs no longer pass cached Python rows into source reproduction.
 When a retained C artifact can emit source for the target form, reproduction
 uses that source; otherwise it calls the normal reproduction path by project
 identity and trusts the backend/source renderer there.
+Reproduction mismatch row mapping now uses the retained C artifact as a
+source-offset lookup service. The artifact resolves a `(section_index,
+section_offset)` through the render plan, translates the owning plan row through
+the displayed-row index, and emits the single C row needed for diagnostics.
+Production no longer exposes a Python row-list diff mapping path; tests that
+need fixture rows keep that conversion in test code only.
 Corpus usage indexing is generated local data, not source. It should consume
 compact analysis/listing evidence and retain row-backed xrefs only for useful
 navigation/report evidence. Aggregate target features such as label counts may
@@ -316,6 +322,7 @@ create artifact(binary, metadata, policy, effective cache key)
 artifact summary/profile
 listing window by row/index/artifact
 listing window by address/artifact
+row lookup by section offset/artifact
 navigation and row count/artifact
 destroy or invalidate artifact
 ```

@@ -15,11 +15,10 @@ from amiga_reversing.disasm.binary_source import (
     write_source_descriptor,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_text
-from tests.listing_types_fixtures import ListingRow
 from amiga_reversing.disasm.reproduction import (
     compare_amiga_hunk_relocation_groups,
     compare_atari_st_file_shape,
-    diff_issues_for_rows,
+    diff_issues_for_lookup,
     first_diff,
     grouped_diff_ranges,
     match_amiga_hunk_relocation_order,
@@ -31,10 +30,44 @@ from amiga_reversing.disasm.reproduction import (
 )
 from amiga_reversing.disasm.target_ui_edits import append_target_ui_edit
 from tests.listing_row_fixtures import serialize_row
+from tests.listing_types_fixtures import ListingRow
 
 
 def _rows(*rows: ListingRow) -> list[dict[str, object]]:
     return [dict(serialize_row(row)) for row in rows]
+
+
+def _row_for_section_offset(
+    rows: list[dict[str, object]],
+    section_index: int | None,
+    offset: int,
+) -> dict[str, object] | None:
+    for row_index, row in enumerate(rows):
+        start_offset = row.get("start_offset")
+        end_offset = row.get("end_offset")
+        if not isinstance(start_offset, int) or not isinstance(end_offset, int):
+            continue
+        row_section_index = row.get("section_index")
+        if section_index is not None and isinstance(row_section_index, int) and row_section_index != section_index:
+            continue
+        if start_offset <= offset < end_offset:
+            payload = dict(row)
+            payload["row_index"] = row_index
+            return payload
+    return None
+
+
+def _diff_issues_for_rows(
+    diff_ranges: list[dict[str, object]],
+    rows: list[dict[str, object]],
+    *,
+    file_layout: list[dict[str, object]] | None = None,
+) -> list[dict[str, object]]:
+    return diff_issues_for_lookup(
+        diff_ranges,
+        lambda section_index, offset: _row_for_section_offset(rows, section_index, offset),
+        file_layout=file_layout,
+    )
 
 
 def _u16(value: int) -> bytes:
@@ -355,7 +388,7 @@ def test_reproduction_diff_maps_ranges_to_rows() -> None:
         )
     )
 
-    issues = diff_issues_for_rows([{"start": 1, "end": 3, "length": 2}], rows)
+    issues = _diff_issues_for_rows([{"start": 1, "end": 3, "length": 2}], rows)
 
     assert issues[0]["row_index"] == 0
     assert issues[0]["addr"] == 0x100
@@ -389,13 +422,54 @@ def test_reproduction_diff_uses_file_layout_before_mapping_rows(tmp_path: Path) 
     )
 
     layout = reproduction.file_layout_for_binary_source(source, backend="atari-st")
-    issues = diff_issues_for_rows([{"start": 30, "end": 31, "length": 1}], rows, file_layout=layout)
+    issues = _diff_issues_for_rows([{"start": 30, "end": 31, "length": 1}], rows, file_layout=layout)
 
     assert issues[0]["row_index"] == 1
     assert issues[0]["addr"] == 0x200
     assert issues[0]["section_index"] == 1
     assert issues[0]["hunk"] == 1
     assert issues[0]["section_offset"] == 0
+
+
+def test_reproduction_diff_uses_artifact_row_lookup(tmp_path: Path) -> None:
+    binary_path = tmp_path / "demo"
+    binary_path.write_bytes(
+        _u32(1011)
+        + _u32(0)
+        + _u32(1)
+        + _u32(0)
+        + _u32(0)
+        + _u32(1)
+        + _u32(1001)
+        + _u32(1)
+        + b"\x4e\x75\x00\x00"
+        + _u32(1010)
+    )
+    source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    layout = reproduction.file_layout_for_binary_source(source, backend="amiga-hunk")
+
+    def lookup(section_index: int | None, offset: int) -> dict[str, object] | None:
+        assert section_index == 0
+        assert offset == 0
+        return {
+            "row_index": 7,
+            "addr": 0,
+            "section_index": 0,
+            "start_offset": 0,
+            "end_offset": 2,
+            "stable_key": "s0:00000000:instruction:7",
+        }
+
+    issues = diff_issues_for_lookup([{"start": 32, "end": 33, "length": 1}], lookup, file_layout=layout)
+
+    assert issues[0]["kind"] == "diff"
+    assert issues[0]["row_index"] == 7
+    assert issues[0]["stable_key"] == "s0:00000000:instruction:7"
 
 
 def test_reproduction_diff_reports_header_ranges_without_row(tmp_path: Path) -> None:
@@ -419,7 +493,7 @@ def test_reproduction_diff_reports_header_ranges_without_row(tmp_path: Path) -> 
     )
 
     layout = reproduction.file_layout_for_binary_source(source, backend="atari-st")
-    issues = diff_issues_for_rows([{"start": 2, "end": 3, "length": 1}], [], file_layout=layout)
+    issues = diff_issues_for_lookup([{"start": 2, "end": 3, "length": 1}], None, file_layout=layout)
 
     assert issues[0]["kind"] == "diff_header"
     assert issues[0]["row_index"] is None
@@ -459,7 +533,7 @@ def test_reproduction_diff_maps_amiga_hunk_payload_after_header(tmp_path: Path) 
     )
 
     layout = reproduction.file_layout_for_binary_source(source, backend="amiga-hunk")
-    issues = diff_issues_for_rows([{"start": 32, "end": 33, "length": 1}], rows, file_layout=layout)
+    issues = _diff_issues_for_rows([{"start": 32, "end": 33, "length": 1}], rows, file_layout=layout)
 
     assert issues[0]["row_index"] == 0
     assert issues[0]["section_offset"] == 0

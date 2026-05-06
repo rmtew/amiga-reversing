@@ -371,6 +371,14 @@ def _file_library():
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_facts_v2_listing_artifact_addr_window_json_alloc.restype = ctypes.c_int
+    library.platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc.restype = ctypes.c_int
     library.platform_file_facts_v2_listing_artifact_source_text_alloc.argtypes = [
         ctypes.c_void_p,
         ctypes.POINTER(ctypes.c_void_p),
@@ -856,6 +864,54 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(navigation_payload["profile"]["generation"], "facts_v2_listing_artifact_navigation")
         self.assertEqual(navigation_payload["navigation"]["analysis_generation"], "full")
         self.assertIn("labels", navigation_payload["navigation"]["groups"])
+
+    def test_platform_file_listing_artifact_maps_source_offset_to_c_row(self) -> None:
+        library = _file_library()
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.bin"
+            path.write_bytes(b"\x4e\x75\x4e\x75")
+            artifact = ctypes.c_void_p()
+            error = ctypes.c_void_p()
+            create_result = library.platform_file_facts_v2_listing_artifact_raw_path_create(
+                b"amiga-raw",
+                str(path).encode("utf-8"),
+                0,
+                b"",
+                b"",
+                ctypes.byref(artifact),
+                ctypes.byref(error),
+            )
+            try:
+                error_text = ctypes.string_at(error).decode("utf-8") if error.value else ""
+                self.assertEqual(create_result, 0, error_text)
+                self.assertTrue(artifact.value)
+                row = ctypes.c_void_p()
+                try:
+                    row_result = library.platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc(
+                        artifact,
+                        1,
+                        0,
+                        0,
+                        ctypes.byref(row),
+                    )
+                    row_text = ctypes.string_at(row).decode("utf-8") if row.value else ""
+                    self.assertEqual(row_result, 0, row_text)
+                finally:
+                    if row.value:
+                        library.platform_file_free_text(row)
+            finally:
+                if error.value:
+                    library.platform_file_free_text(error)
+                if artifact.value:
+                    library.platform_file_facts_v2_listing_artifact_destroy(artifact)
+
+        payload = json.loads(row_text)
+        self.assertTrue(payload["found"])
+        self.assertIsInstance(payload["row_index"], int)
+        rows = payload["listing"]["rows"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["start_offset"], 0)
+        self.assertEqual(payload["profile"]["generation"], "facts_v2_listing_artifact_source_offset_row")
 
     def test_platform_file_listing_artifact_supports_raw_binary_targets(self) -> None:
         library = _file_library()

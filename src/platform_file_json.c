@@ -6144,6 +6144,34 @@ int source_file_listing_addr_window_from_render_plan_with_index_to_json(const M6
     1, has_addr, addr, row_index, out_json, diagnostics);
 }
 
+int source_file_listing_source_offset_row_from_render_plan_with_index(const M68kRenderPlan *render_plan,
+    const PlatformListingRowIndex *row_index, uint32_t section_index, uint32_t offset, size_t *out_row,
+    int *out_found, M68kDiagSink diagnostics) {
+  const M68kRenderPlanRow *plan_row;
+  size_t plan_row_index;
+  size_t index;
+  if (out_row != NULL) *out_row = 0U;
+  if (out_found != NULL) *out_found = 0;
+  if (render_plan == NULL || row_index == NULL || row_index->entries == NULL || out_row == NULL ||
+      out_found == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    return -1;
+  }
+  plan_row = m68k_render_plan_find_row_for_source_offset(render_plan, section_index, offset);
+  if (plan_row == NULL || plan_row < render_plan->rows || plan_row >= render_plan->rows + render_plan->row_count)
+    return 0;
+  plan_row_index = (size_t)(plan_row - render_plan->rows);
+  for (index = 0U; index < row_index->row_count; ++index) {
+    const PlatformListingRowIndexEntry *entry = &row_index->entries[index];
+    if (entry->has_plan_row && (size_t)entry->plan_row_index == plan_row_index) {
+      *out_row = index;
+      *out_found = 1;
+      return 0;
+    }
+  }
+  return 0;
+}
+
 static int listing_plan_row_subline_span(const M68kRenderPlanRow *row, uint32_t wanted_subline,
     const char **out_line_start, size_t *out_line_length) {
   const char *cursor;

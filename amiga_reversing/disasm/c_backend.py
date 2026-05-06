@@ -21,6 +21,7 @@ from functools import cache
 from pathlib import Path
 from typing import cast
 
+from amiga_reversing.disasm.api import ListingWindowPayload, SerializedRow
 from amiga_reversing.disasm.binary_source import (
     BinarySource,
     DiskEntryBinarySource,
@@ -32,7 +33,6 @@ from amiga_reversing.disasm.facts_v2_source_refusal import (
     FactsV2SourceRefused,
     facts_v2_source_refused,
 )
-from amiga_reversing.disasm.api import ListingWindowPayload, SerializedRow
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 
 type ApiCallRowKey = tuple[int, int]
@@ -1116,6 +1116,14 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_addr_window_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc.argtypes = [
+        c_void_p,
+        c_int,
+        c_uint32,
+        c_uint32,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_anchor_window_json_alloc.argtypes = [
         c_void_p,
         c_char_p,
@@ -1394,6 +1402,34 @@ class CListingArtifact:
             ),
             generation=generation,
         )
+
+    def row_for_source_offset(
+        self, *, section_index: int | None, offset: int, generation: str = "full"
+    ) -> dict[str, object] | None:
+        if section_index is None:
+            return None
+        combined = cast(
+            dict[str, object],
+            json.loads(
+                self._text_from_artifact_call(
+                    self._dll.platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc,
+                    1,
+                    max(0, section_index),
+                    max(0, offset),
+                )
+            ),
+        )
+        if combined.get("found") is not True:
+            return None
+        listing_window = cast(dict[str, object], combined.get("listing", {}))
+        rows = _serialized_c_listing_rows(listing_window.get("rows", []), generation=generation)
+        if not rows:
+            return None
+        row = dict(rows[0])
+        row_index = combined.get("row_index")
+        if isinstance(row_index, int):
+            row["row_index"] = row_index
+        return row
 
     def anchor_window_payload(
         self, *, anchor_code: str, count: int, generation: str = "full"

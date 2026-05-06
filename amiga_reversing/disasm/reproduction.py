@@ -99,6 +99,7 @@ def run_reproduction(
     progress_callback: Callable[[dict[str, object]], None] | None = None,
     profile: bool = False,
     pre_rendered_source_text: str | None = None,
+    row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
 ) -> dict[str, object]:
     started_at = time.time()
     profile_started_at = time.perf_counter()
@@ -625,7 +626,11 @@ def run_reproduction(
             file_layout = file_layout_for_binary_source(paths.binary_source, backend=backend, data=original)
             _record_profile_timing(profile_timings, "file_layout_seconds", layout_started_at)
             row_mapping_started_at = time.perf_counter()
-            row_issues = diff_issues_for_rows(diff_ranges, [], file_layout=file_layout)
+            row_issues = diff_issues_for_lookup(
+                diff_ranges,
+                row_for_section_offset,
+                file_layout=file_layout,
+            )
             _record_profile_timing(profile_timings, "row_mapping_seconds", row_mapping_started_at)
             file_shape_diagnostics = file_shape_diagnostics_for_mismatch(
                 original,
@@ -1507,16 +1512,16 @@ def grouped_diff_ranges(
     return ranges
 
 
-def diff_issues_for_rows(
+def diff_issues_for_lookup(
     diff_ranges: list[dict[str, object]],
-    rows: Sequence[Mapping[str, object]],
+    row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None,
     *,
     file_layout: list[dict[str, object]] | None = None,
 ) -> list[dict[str, object]]:
     issues: list[dict[str, object]] = []
     for diff_range in diff_ranges:
         if not file_layout:
-            row = _row_for_section_offset(rows, None, _required_int(diff_range.get("start")))
+            row = _row_ref_for_lookup(row_for_section_offset, None, _required_int(diff_range.get("start")))
             issues.append(_issue("diff", _diff_summary(diff_range), row, diff_range=diff_range))
             continue
         for issue_range, layout_range in _split_diff_range_by_layout(diff_range, file_layout):
@@ -1530,7 +1535,7 @@ def diff_issues_for_rows(
                 file_start = _required_int(layout_range.get("file_start"))
                 section_offset_start = _required_int(layout_range.get("section_offset_start") or 0)
                 section_offset = section_offset_start + _required_int(issue_range.get("start")) - file_start
-                row = _row_for_section_offset(rows, section_index, section_offset)
+                row = _row_ref_for_lookup(row_for_section_offset, section_index, section_offset)
                 issue_kind = "diff" if row is not None else "diff_payload"
             issues.append(
                 _issue(
@@ -1545,6 +1550,22 @@ def diff_issues_for_rows(
                 )
             )
     return issues
+
+
+def _row_ref_for_lookup(
+    row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None,
+    section_index: int | None,
+    offset: int,
+) -> tuple[int, Mapping[str, object]] | None:
+    if row_for_section_offset is None:
+        return None
+    row = row_for_section_offset(section_index, offset)
+    if row is None:
+        return None
+    row_index = _row_int(row, "row_index")
+    if row_index is None:
+        return None
+    return row_index, row
 
 
 def parse_assembler_diagnostics(
@@ -1652,24 +1673,6 @@ def _write_source_artifact(path: Path, text: str, profile_timings: dict[str, obj
     profile_timings["source_file_rewritten"] = 1.0 if source_written else 0.0
     _record_profile_timing(profile_timings, "write_source_seconds", started_at)
     return source_size
-
-
-def _row_for_section_offset(
-    rows: Sequence[Mapping[str, object]],
-    section_index: int | None,
-    offset: int,
-) -> tuple[int, Mapping[str, object]] | None:
-    for row_index, row in enumerate(rows):
-        start_offset = _row_int(row, "start_offset")
-        end_offset = _row_int(row, "end_offset")
-        if start_offset is None or end_offset is None:
-            continue
-        row_section_index = _row_int(row, "section_index")
-        if section_index is not None and row_section_index is not None and row_section_index != section_index:
-            continue
-        if start_offset <= offset < end_offset:
-            return row_index, row
-    return None
 
 
 def _issue(

@@ -17,6 +17,7 @@ from urllib.parse import parse_qs, urlparse
 
 from amiga_reversing.amiga_disk.models import DiskManifest
 from amiga_reversing.amiga_disk.project import create_disk_project
+from amiga_reversing.disasm import corpus_usage, disk_browser
 from amiga_reversing.disasm.annotations import (
     AnnotationPatchInput,
     get_entities_by_int_addr,
@@ -36,7 +37,6 @@ from amiga_reversing.disasm.c_backend import (
     validate_amiga_hunk_executable_with_c_backend,
     validate_api_input_struct_with_c_backend,
 )
-from amiga_reversing.disasm import corpus_usage, disk_browser
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
 from amiga_reversing.disasm.project_ids import derive_disk_id_from_stem, disk_project_id
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
@@ -1035,6 +1035,7 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
     try:
         cache_key = _reproduction_cache_key(project_name)
         pre_rendered_source_text: str | None = None
+        row_for_section_offset = None
         _log_event("reproduction_job start", job_id=job_id, project=project_name)
         if not _set_job_state(job_id, status="building"):
             return
@@ -1042,6 +1043,14 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
             return
         listing_artifact = _valid_c_listing_artifact(project_name)
         if listing_artifact is not None:
+            artifact_row_lookup = getattr(listing_artifact, "row_for_source_offset", None)
+            if artifact_row_lookup is not None:
+                row_for_section_offset = (
+                    lambda section_index, offset: artifact_row_lookup(
+                        section_index=section_index,
+                        offset=offset,
+                    )
+                )
             try:
                 paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
                 if paths.binary_source.kind == "raw_binary":
@@ -1055,14 +1064,22 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
                 )
         if not _set_job_phase(job_id, phase_id="assemble", phase_index=2, phase_count=phase_count):
             return
+        reproduction_kwargs: dict[str, object] = {}
+        if row_for_section_offset is not None:
+            reproduction_kwargs["row_for_section_offset"] = row_for_section_offset
         if pre_rendered_source_text is not None:
             report = run_reproduction(
                 project_name,
                 project_root=PROJECT_ROOT,
                 pre_rendered_source_text=pre_rendered_source_text,
+                **reproduction_kwargs,
             )
         else:
-            report = run_reproduction(project_name, project_root=PROJECT_ROOT)
+            report = run_reproduction(
+                project_name,
+                project_root=PROJECT_ROOT,
+                **reproduction_kwargs,
+            )
         if not _set_job_phase(job_id, phase_id="diff", phase_index=3, phase_count=phase_count):
             return
         if _reproduction_cache_key(project_name) != cache_key:

@@ -4972,6 +4972,81 @@ cleanup:
   return text_result_to_alloc(&result, out_text);
 }
 
+int platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc(PlatformFileListingArtifact *artifact,
+    int has_section, uint32_t section_index, uint32_t offset, char **out_text) {
+  PlatformFileTextResult result;
+  JsonBuilder builder = {0};
+  char *window_json = NULL;
+  char *json = NULL;
+  size_t row_index = 0U;
+  int found = 0;
+  clock_t lookup_start;
+  clock_t lookup_end;
+  memset(&result, 0, sizeof(result));
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (artifact == NULL || !has_section) {
+    platform_file_add_error(&result.diagnostics, "invalid listing artifact source-offset lookup request");
+    return text_result_to_alloc(&result, out_text);
+  }
+  lookup_start = clock();
+  if (source_file_listing_source_offset_row_from_render_plan_with_index(&artifact->source_plan,
+      &artifact->listing_row_index, section_index, offset, &row_index, &found,
+      m68k_diag_sink(&result.diagnostics)) != 0) {
+    if (!m68k_diag_has_errors(&result.diagnostics))
+      platform_file_add_error(&result.diagnostics, "facts_v2 listing source-offset lookup failed");
+    goto cleanup;
+  }
+  if (found) {
+    if (source_file_listing_window_from_render_plan_with_index_to_json(NULL, &artifact->source_plan,
+        artifact->object.platform_backend_kind, &artifact->source_analysis.policy, &artifact->source_analysis,
+        "full", 0, &artifact->listing_row_index, row_index, 1U, &window_json,
+        m68k_diag_sink(&result.diagnostics)) != 0) {
+      if (!m68k_diag_has_errors(&result.diagnostics))
+        platform_file_add_error(&result.diagnostics, "facts_v2 listing source-offset row emission failed");
+      goto cleanup;
+    }
+  }
+  lookup_end = clock();
+  if (json_builder_create(&builder) != 0 ||
+      json_builder_append(&builder, "{\"found\":") != 0 ||
+      json_builder_append(&builder, found ? "true" : "false") != 0 ||
+      json_builder_append(&builder, ",\"row_index\":") != 0)
+    goto oom;
+  if (found) {
+    if (json_builder_appendf(&builder, "%u", (unsigned)row_index) != 0) goto oom;
+  } else if (json_builder_append(&builder, "null") != 0) goto oom;
+  if (json_builder_append(&builder, ",\"listing\":") != 0) goto oom;
+  if (window_json != NULL) {
+    if (json_builder_append(&builder, window_json) != 0) goto oom;
+  } else if (json_builder_append(&builder, "{\"rows\":[]}") != 0) goto oom;
+  if (json_builder_append(&builder, ",\"profile\":{\"generation\":\"facts_v2_listing_artifact_source_offset_row\","
+        "\"backend\":") != 0 ||
+      json_builder_append_json_string(&builder, artifact->backend_name) != 0 ||
+      json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
+      json_builder_append_json_string(&builder, artifact->path) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,\"lookup_json_seconds\":%.6f,"
+        "\"total_seconds\":%.6f}}}",
+        (unsigned)artifact->listing_total_rows, artifact->source_seconds, elapsed_seconds(lookup_start, lookup_end),
+        elapsed_seconds(lookup_start, lookup_end)) != 0)
+    goto oom;
+  json = json_builder_build(&builder);
+  if (json == NULL) goto oom;
+  result.text = json;
+  json = NULL;
+  goto cleanup;
+
+oom:
+  platform_file_add_error(&result.diagnostics, "out of memory");
+
+cleanup:
+  json_builder_destroy(&builder);
+  platform_file_free_text(json);
+  platform_file_free_text(window_json);
+  return text_result_to_alloc(&result, out_text);
+}
+
 int platform_file_facts_v2_listing_artifact_anchor_window_json_alloc(PlatformFileListingArtifact *artifact,
     const char *anchor_code, uint32_t count, char **out_text) {
   PlatformFileTextResult result;
