@@ -32,7 +32,7 @@ from amiga_reversing.disasm.facts_v2_source_refusal import (
     FactsV2SourceRefused,
     facts_v2_source_refused,
 )
-from amiga_reversing.disasm.api import ListingWindowPayload, serialize_row
+from amiga_reversing.disasm.api import ListingWindowPayload, SerializedRow
 from amiga_reversing.disasm.listing_types import (
     AddressRowContext,
     AppSlotRef,
@@ -1916,7 +1916,7 @@ class CListingArtifact:
         )
         listing_window = cast(dict[str, object], combined.get("listing", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))
-        rows = rows_from_c_listing_json(listing_window)
+        rows = _serialized_c_listing_rows(listing_window.get("rows", []), generation=generation)
         payload = cast(
             ListingWindowPayload,
             {
@@ -1927,7 +1927,7 @@ class CListingArtifact:
                 "has_more_after": listing_window.get("has_more_after", False),
                 "total_rows": listing_window.get("total_rows", 0),
                 "analysis_generation": generation,
-                "rows": [serialize_row(row) for row in rows],
+                "rows": rows,
             },
         )
         return payload, profile
@@ -1954,6 +1954,30 @@ class CListingArtifact:
 
     def __del__(self) -> None:
         self.close()
+
+
+def _serialized_c_listing_rows(raw_rows: object, *, generation: str) -> list[SerializedRow]:
+    if not isinstance(raw_rows, list):
+        return []
+    rows: list[SerializedRow] = []
+    for raw_row in raw_rows:
+        if not isinstance(raw_row, dict):
+            continue
+        row = dict(raw_row)
+        row.setdefault("stable_key", None)
+        row.setdefault("analysis_generation", generation)
+        row.setdefault("analysis_phase", generation)
+        row.setdefault("section_index", None)
+        row.setdefault("start_offset", None)
+        row.setdefault("end_offset", None)
+        row.setdefault("storage_address", None)
+        row.setdefault("runtime_address", None)
+        row.setdefault("runtime_view_id", None)
+        row.setdefault("addr", None)
+        row.setdefault("entity_addr", None)
+        row.setdefault("source_context", {})
+        rows.append(cast(SerializedRow, row))
+    return rows
 
 
 @contextmanager

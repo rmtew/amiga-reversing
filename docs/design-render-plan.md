@@ -116,6 +116,9 @@ open now has one useful target: build the authoritative C analysis/render-plan
 artifact, then serve windows and navigation from it. Analysis JSON is exposed
 from the same artifact so Python can keep API-call metadata without forcing
 full row JSON emission.
+Artifact window payloads now keep the C JSON row dictionaries as the web
+payload rows instead of converting them to Python `ListingRow` objects and
+serializing them back.
 Rows-only Python caches no longer satisfy a full-generation listing cache; a
 valid full cache requires the retained C artifact. Ready-project listing and
 navigation routes fail closed if that artifact is missing or stale instead of
