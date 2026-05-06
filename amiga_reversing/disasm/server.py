@@ -32,6 +32,8 @@ from amiga_reversing.disasm.api import (
 )
 from amiga_reversing.disasm.binary_source import write_source_descriptor
 from amiga_reversing.disasm.c_backend import (
+    CListingArtifact,
+    build_project_rows_generation_with_c_listing_artifact_profile,
     build_project_rows_generation_with_c_backend_profile,
     extract_disk_entry_with_c_backend,
     type_catalog_from_c_backend,
@@ -129,6 +131,7 @@ _SERIALIZED_ADDR_BLOCK_SIZE = 128
 _PROJECT_ROW_CACHE: dict[str, list[ListingRow]] = {}
 _PROJECT_SERIALIZED_ROW_CACHE: dict[str, list[SerializedRow]] = {}
 _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE: dict[str, list[int | None]] = {}
+_PROJECT_C_LISTING_ARTIFACT_CACHE: dict[str, CListingArtifact] = {}
 _PROJECT_ROW_GENERATION_CACHE: dict[str, str] = {}
 _PROJECT_ROW_CACHE_KEY: dict[str, str] = {}
 _PROJECT_APP_SLOT_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
@@ -280,6 +283,18 @@ def _valid_serialized_listing_rows_and_addr_blocks(
     return None
 
 
+def _valid_c_listing_artifact(project_name: str) -> CListingArtifact | None:
+    artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
+    if (
+        artifact is not None
+        and _PROJECT_ROW_GENERATION_CACHE.get(project_name) == "full"
+        and project_name in _PROJECT_ROW_CACHE_KEY
+        and _PROJECT_ROW_CACHE_KEY.get(project_name) == _project_listing_cache_key(project_name)
+    ):
+        return artifact
+    return None
+
+
 def _write_api_input_type_override(
     *, library: str, function: str, input_name: str, struct_name: str
 ) -> None:
@@ -323,6 +338,9 @@ def _write_api_input_type_override(
     _PROJECT_ROW_CACHE.clear()
     _PROJECT_SERIALIZED_ROW_CACHE.clear()
     _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE.clear()
+    for artifact in _PROJECT_C_LISTING_ARTIFACT_CACHE.values():
+        artifact.close()
+    _PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     _PROJECT_ROW_GENERATION_CACHE.clear()
     _PROJECT_ROW_CACHE_KEY.clear()
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
@@ -1046,6 +1064,9 @@ def _clear_project_listing_cache(project_name: str) -> None:
     _PROJECT_ROW_CACHE.pop(project_name, None)
     _PROJECT_SERIALIZED_ROW_CACHE.pop(project_name, None)
     _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE.pop(project_name, None)
+    artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.pop(project_name, None)
+    if artifact is not None:
+        artifact.close()
     _PROJECT_ROW_GENERATION_CACHE.pop(project_name, None)
     _PROJECT_ROW_CACHE_KEY.pop(project_name, None)
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
@@ -1374,6 +1395,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             return
         generations = ["basic", "full"]
         for generation_index, active_generation in enumerate(generations):
+            listing_artifact: CListingArtifact | None = None
             build_phase = "build_basic_rows" if active_generation == "basic" else "build_c_rows"
             emit_phase = "emit_basic_rows" if active_generation == "basic" else "emit_rows"
             build_phase_index = 1 if active_generation == "basic" else 3
@@ -1392,17 +1414,29 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                 generation=active_generation,
                 phase=build_phase,
             )
-            rows, api_calls, profile = build_project_rows_generation_with_c_backend_profile(
-                project_name,
-                generation=active_generation,
-            )
+            if active_generation == "full":
+                rows, api_calls, profile, listing_artifact = (
+                    build_project_rows_generation_with_c_listing_artifact_profile(
+                        project_name,
+                        generation=active_generation,
+                    )
+                )
+            else:
+                rows, api_calls, profile = build_project_rows_generation_with_c_backend_profile(
+                    project_name,
+                    generation=active_generation,
+                )
             app_slot_analysis = profile.get("app_slot_analysis")
             type_flow_analysis = profile.get("type_flow_analysis")
             if not _set_job_phase(
                 job_id, phase_id=emit_phase, phase_index=emit_phase_index, phase_count=phase_count
             ):
+                if listing_artifact is not None:
+                    listing_artifact.close()
                 return
             if _project_listing_cache_key(project_name) != cache_key:
+                if listing_artifact is not None:
+                    listing_artifact.close()
                 _set_job_state(
                     job_id,
                     status="failed",
@@ -1416,6 +1450,8 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                     return
                 job_cache_key = _ASYNC_JOBS[job_id].get("cache_key")
                 if job_cache_key is not None and job_cache_key != cache_key:
+                    if listing_artifact is not None:
+                        listing_artifact.close()
                     return
                 _PROJECT_ROW_CACHE[project_name] = rows
                 serialized_rows = [serialize_row(row) for row in rows]
@@ -1426,6 +1462,15 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                 _PROJECT_ROW_GENERATION_CACHE[project_name] = active_generation
                 _PROJECT_ROW_CACHE_KEY[project_name] = cache_key
                 if active_generation == "full":
+                    old_artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
+                    if listing_artifact is not None:
+                        _PROJECT_C_LISTING_ARTIFACT_CACHE[project_name] = listing_artifact
+                        listing_artifact = None
+                    if (
+                        old_artifact is not None
+                        and old_artifact is not _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
+                    ):
+                        old_artifact.close()
                     _PROJECT_API_CALL_CACHE[project_name] = api_calls
                     if isinstance(app_slot_analysis, dict):
                         _PROJECT_APP_SLOT_ANALYSIS_CACHE[project_name] = app_slot_analysis
@@ -1436,6 +1481,9 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                     else:
                         _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
                 elif project_name not in _PROJECT_API_CALL_CACHE:
+                    old_artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.pop(project_name, None)
+                    if old_artifact is not None:
+                        old_artifact.close()
                     _PROJECT_API_CALL_CACHE[project_name] = {}
                     _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
                     _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
@@ -1453,9 +1501,13 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                 visible_generation=active_generation,
                 target_generation="full",
             ):
+                if listing_artifact is not None:
+                    listing_artifact.close()
                 return
             if generation_index + 1 >= len(generations):
                 break
+            if listing_artifact is not None:
+                listing_artifact.close()
         _log_event(
             "listing_job done",
             job_id=job_id,
@@ -2300,12 +2352,16 @@ def route_request(
                     count or 240,
                 )
             elif start is not None or count is not None:
-                serialized_cache = _valid_serialized_listing_rows_and_addr_blocks(project_name, rows)
-                if serialized_cache is not None:
-                    serialized_rows, _ = serialized_cache
-                    payload = _serialized_listing_index_window_payload(serialized_rows, start or 0, count or 240)
+                listing_artifact = _valid_c_listing_artifact(project_name)
+                if listing_artifact is not None:
+                    payload, _ = listing_artifact.window_payload(start=start or 0, count=count or 240)
                 else:
-                    payload = listing_index_window_payload(rows, start or 0, count or 240)
+                    serialized_cache = _valid_serialized_listing_rows_and_addr_blocks(project_name, rows)
+                    if serialized_cache is not None:
+                        serialized_rows, _ = serialized_cache
+                        payload = _serialized_listing_index_window_payload(serialized_rows, start or 0, count or 240)
+                    else:
+                        payload = listing_index_window_payload(rows, start or 0, count or 240)
             else:
                 addr = _parse_int_arg(query, "addr")
                 before = _parse_int_arg(query, "before", 80) or 80

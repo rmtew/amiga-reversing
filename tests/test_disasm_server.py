@@ -59,6 +59,14 @@ def _binary_project(project_name: str, *, ready: bool) -> ProjectRecord:
     )
 
 
+class _FakeCListingArtifact:
+    def __init__(self) -> None:
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
+
+
 def test_listing_anchor_code_start_matches_non_address_row() -> None:
     rows = [
         ListingRow(row_id="include", kind="directive", text='INCLUDE "exec/io.i"\n'),
@@ -1583,6 +1591,74 @@ def test_route_listing_index_window_uses_serialized_cache(monkeypatch: pytest.Mo
     assert [row["row_id"] for row in rows_data] == ["r2", "r3"]
 
 
+def test_route_listing_index_window_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
+        for index in range(5)
+    ]
+    calls: list[tuple[int, int]] = []
+
+    class FakeArtifact:
+        def window_payload(self, *, start: int, count: int):
+            calls.append((start, count))
+            return (
+                {
+                    "anchor_addr": None,
+                    "start": start,
+                    "end": start + count,
+                    "has_more_before": start > 0,
+                    "has_more_after": True,
+                    "total_rows": 5,
+                    "analysis_generation": "full",
+                    "rows": [
+                        disasm_server.serialize_row(
+                            ListingRow(row_id="from-c", kind="instruction", text="\trts\n")
+                        )
+                    ],
+                },
+                {},
+            )
+
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_SERIALIZED_ROW_CACHE.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "bloodwych", FakeArtifact())
+    monkeypatch.setitem(disasm_server._PROJECT_ROW_GENERATION_CACHE, "bloodwych", "full")
+    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "bloodwych", "cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "_serialized_listing_index_window_payload",
+        lambda rows, start, count: pytest.fail("serialized window path should not be used"),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "listing_index_window_payload",
+        lambda rows, start, count: pytest.fail("dataclass window path should not be used"),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing",
+        {"start": ["2"], "count": ["2"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
+
+    assert payload["ok"] is True
+    assert calls == [(2, 2)]
+    assert rows_data[0]["row_id"] == "from-c"
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+
+
 def test_route_listing_window_clamps_past_end(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
@@ -2663,8 +2739,10 @@ def test_start_listing_job_ignores_stale_ready_job_without_rows(
 def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [ListingRow(row_id="c:0", kind="instruction", text="nop\n", addr=0)]
     build_calls: list[tuple[str, str, str | None]] = []
+    artifact = _FakeCListingArtifact()
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["job-1"] = {
         "job_id": "job-1",
@@ -2688,7 +2766,13 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
         disasm_server,
         "build_project_rows_generation_with_c_backend_profile",
         lambda project_name, generation: build_calls.append((project_name, generation))
-        or (rows, {(0, 0): {"library": "exec.library"}}, {}),
+        or (rows, {}, {}),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "build_project_rows_generation_with_c_listing_artifact_profile",
+        lambda project_name, generation: build_calls.append((project_name, generation))
+        or (rows, {(0, 0): {"library": "exec.library"}}, {}, artifact),
     )
 
     disasm_server._build_rows_job("job-1", "bloodwych")
@@ -2698,6 +2782,8 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
     assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
         (0, 0): {"library": "exec.library"}
     }
+    assert disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] is artifact
+    assert artifact.closed is False
     assert build_calls == [("bloodwych", "basic"), ("bloodwych", "full")]
     assert disasm_server._ASYNC_JOBS["job-1"]["status"] == "ready"
 
@@ -2805,20 +2891,26 @@ def test_full_listing_replaces_basic_rows(monkeypatch: pytest.MonkeyPatch) -> No
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
     subscriber: queue.Queue[dict[str, object]] = queue.Queue()
     disasm_server._JOB_EVENT_SUBSCRIBERS["job-full"] = [subscriber]
+    artifact = _FakeCListingArtifact()
 
     def fake_build(
         project_name: str,
         generation: str,
     ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]], dict[str, object]]:
-        if generation == "basic":
-            return basic_rows, {}, {}
-        return full_rows, {(0, 4): {"library": "exec.library"}}, {}
+        assert generation == "basic"
+        return basic_rows, {}, {}
 
     monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", fake_build)
+    monkeypatch.setattr(
+        disasm_server,
+        "build_project_rows_generation_with_c_listing_artifact_profile",
+        lambda project_name, generation: (full_rows, {(0, 4): {"library": "exec.library"}}, {}, artifact),
+    )
     disasm_server._ASYNC_JOBS["job-full"] = {
         "job_id": "job-full",
         "job_kind": "full_listing",
@@ -2845,6 +2937,7 @@ def test_full_listing_replaces_basic_rows(monkeypatch: pytest.MonkeyPatch) -> No
     assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
         (0, 4): {"library": "exec.library"}
     }
+    assert disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] is artifact
     events: list[dict[str, object]] = []
     while not subscriber.empty():
         events.append(subscriber.get_nowait())
@@ -3035,6 +3128,8 @@ def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    artifact = _FakeCListingArtifact()
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
     monkeypatch.setattr(
         disasm_server,
@@ -3043,6 +3138,16 @@ def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -
             [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)],
             {},
             {},
+        ),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "build_project_rows_generation_with_c_listing_artifact_profile",
+        lambda project_name, generation: (
+            [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)],
+            {},
+            {},
+            artifact,
         ),
     )
     monkeypatch.setattr(disasm_server, "_start_reproduction_job_if_needed", lambda project_name: queued.append(project_name))

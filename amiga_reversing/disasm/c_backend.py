@@ -587,6 +587,44 @@ def build_project_listing_window_generation_with_c_backend_profile(
         return payload, profile
 
 
+def build_project_rows_generation_with_c_listing_artifact_profile(
+    project_name: str,
+    *,
+    generation: str,
+    project_root: Path = PROJECT_ROOT,
+) -> tuple[list[ListingRow], dict[ApiCallRowKey, dict[str, object]], dict[str, object], CListingArtifact]:
+    if generation != "full":
+        raise ValueError(f"Unsupported listing artifact generation: {generation}")
+    paths = resolve_project_paths(project_name, project_root=project_root)
+    with effective_metadata_file(paths.target_dir) as metadata_path:
+        metadata_text = _metadata_path_text(metadata_path)
+        with _source_file_for_c_backend(paths.binary_source, project_root=project_root) as source_file:
+            include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
+            artifact = CListingArtifact.create(
+                source_file,
+                metadata_text=metadata_text,
+                include_dir=str(include_dir),
+                project_root=project_root,
+            )
+            try:
+                combined = cast(dict[str, object], json.loads(artifact.rows_json()))
+                listing_rows = cast(dict[str, object], combined.get("listing", {}))
+                analysis = cast(dict[str, object], combined.get("analysis", {}))
+                profile = cast(dict[str, object], combined.get("profile", {}))
+                app_slot_analysis = listing_rows.get("app_slot_analysis")
+                if isinstance(app_slot_analysis, dict):
+                    profile["app_slot_analysis"] = app_slot_analysis
+                type_flow_analysis = listing_rows.get("type_flow_analysis")
+                if isinstance(type_flow_analysis, dict):
+                    profile["type_flow_analysis"] = type_flow_analysis
+                rows = rows_from_c_listing_json(listing_rows)
+                api_calls = api_calls_from_c_analysis(analysis)
+            except Exception:
+                artifact.close()
+                raise
+            return rows, api_calls, profile, artifact
+
+
 def _build_project_rows_generation_from_source(
     binary_source: BinarySource,
     *,
@@ -1642,6 +1680,11 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_window_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_rows_json_alloc.argtypes = [
+        c_void_p,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_rows_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_destroy.argtypes = [c_void_p]
     dll.platform_file_facts_v2_listing_artifact_destroy.restype = None
     _configure_text_function(dll, "platform_file_type_catalog_json_alloc", 1)
@@ -1777,6 +1820,111 @@ class _CBackendSourceFile:
         self.path = path
         self.platform_name = platform_name
         self.entry_offset = entry_offset
+
+
+class CListingArtifact:
+    def __init__(self, dll: CDLL, handle: c_void_p) -> None:
+        self._dll = dll
+        self._handle = handle
+
+    @classmethod
+    def create(
+        cls,
+        source_file: _CBackendSourceFile,
+        *,
+        metadata_text: str,
+        include_dir: str,
+        project_root: Path,
+    ) -> CListingArtifact:
+        dll = _platform_file_dll(project_root)
+        artifact = c_void_p()
+        error = c_void_p()
+        if source_file.entry_offset is None:
+            result = dll.platform_file_facts_v2_listing_artifact_path_create(
+                _c_arg(source_file.platform_name),
+                _c_arg(str(source_file.path)),
+                _c_arg(metadata_text),
+                _c_arg(include_dir),
+                byref(artifact),
+                byref(error),
+            )
+        else:
+            result = dll.platform_file_facts_v2_listing_artifact_raw_path_create(
+                _c_arg(source_file.platform_name),
+                _c_arg(str(source_file.path)),
+                _c_arg(source_file.entry_offset),
+                _c_arg(metadata_text),
+                _c_arg(include_dir),
+                byref(artifact),
+                byref(error),
+            )
+        try:
+            error_text = string_at(error.value).decode("utf-8", errors="replace") if error.value else ""
+            if result != 0 or not artifact.value:
+                raise RuntimeError(f"C backend DLL failed: {error_text}")
+            return cls(dll, artifact)
+        finally:
+            if error.value:
+                dll.platform_file_free_text(error)
+
+    def rows_json(self) -> str:
+        return self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_rows_json_alloc,
+        )
+
+    def window_payload(
+        self, *, start: int, count: int, generation: str = "full"
+    ) -> tuple[ListingWindowPayload, dict[str, object]]:
+        combined = cast(
+            dict[str, object],
+            json.loads(
+                self._text_from_artifact_call(
+                    self._dll.platform_file_facts_v2_listing_artifact_window_json_alloc,
+                    max(0, start),
+                    max(0, count),
+                )
+            ),
+        )
+        listing_window = cast(dict[str, object], combined.get("listing", {}))
+        profile = cast(dict[str, object], combined.get("profile", {}))
+        rows = rows_from_c_listing_json(listing_window)
+        payload = cast(
+            ListingWindowPayload,
+            {
+                "anchor_addr": listing_window.get("anchor_addr"),
+                "start": listing_window.get("start", 0),
+                "end": listing_window.get("end", 0),
+                "has_more_before": listing_window.get("has_more_before", False),
+                "has_more_after": listing_window.get("has_more_after", False),
+                "total_rows": listing_window.get("total_rows", 0),
+                "analysis_generation": generation,
+                "rows": [serialize_row(row) for row in rows],
+            },
+        )
+        return payload, profile
+
+    def close(self) -> None:
+        if self._handle.value:
+            self._dll.platform_file_facts_v2_listing_artifact_destroy(self._handle)
+            self._handle = c_void_p()
+
+    def _text_from_artifact_call(self, function: object, *args: object) -> str:
+        if not self._handle.value:
+            raise RuntimeError("C listing artifact is closed")
+        out_text = c_void_p()
+        c_args = [_c_arg(arg) for arg in args]
+        result = function(self._handle, *c_args, byref(out_text))
+        try:
+            text = string_at(out_text.value).decode("utf-8", errors="replace") if out_text.value else ""
+            if result != 0:
+                raise RuntimeError(f"C backend DLL failed: {text}")
+            return text
+        finally:
+            if out_text.value:
+                self._dll.platform_file_free_text(out_text)
+
+    def __del__(self) -> None:
+        self.close()
 
 
 @contextmanager

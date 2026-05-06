@@ -370,6 +370,11 @@ def _file_library():
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_facts_v2_listing_artifact_window_json_alloc.restype = ctypes.c_int
+    library.platform_file_facts_v2_listing_artifact_rows_json_alloc.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_facts_v2_listing_artifact_rows_json_alloc.restype = ctypes.c_int
     library.platform_file_facts_v2_listing_artifact_destroy.argtypes = [ctypes.c_void_p]
     library.platform_file_facts_v2_listing_artifact_destroy.restype = None
     library.platform_file_free_text.argtypes = [ctypes.c_void_p]
@@ -682,9 +687,14 @@ class IrPolicyDllTests(unittest.TestCase):
                 error_text = ctypes.string_at(error).decode("utf-8") if error.value else ""
                 self.assertEqual(create_result, 0, error_text)
                 self.assertTrue(artifact.value)
+                artifact_rows = ctypes.c_void_p()
                 first_window = ctypes.c_void_p()
                 second_window = ctypes.c_void_p()
                 try:
+                    artifact_rows_result = library.platform_file_facts_v2_listing_artifact_rows_json_alloc(
+                        artifact,
+                        ctypes.byref(artifact_rows),
+                    )
                     first_result = library.platform_file_facts_v2_listing_artifact_window_json_alloc(
                         artifact,
                         1,
@@ -697,11 +707,17 @@ class IrPolicyDllTests(unittest.TestCase):
                         2,
                         ctypes.byref(second_window),
                     )
+                    artifact_rows_text = (
+                        ctypes.string_at(artifact_rows.value).decode("utf-8") if artifact_rows.value else ""
+                    )
                     first_text = ctypes.string_at(first_window).decode("utf-8") if first_window.value else ""
                     second_text = ctypes.string_at(second_window).decode("utf-8") if second_window.value else ""
+                    self.assertEqual(artifact_rows_result, 0, artifact_rows_text)
                     self.assertEqual(first_result, 0, first_text)
                     self.assertEqual(second_result, 0, second_text)
                 finally:
+                    if artifact_rows.value:
+                        library.platform_file_free_text(artifact_rows)
                     if first_window.value:
                         library.platform_file_free_text(first_window)
                     if second_window.value:
@@ -714,6 +730,12 @@ class IrPolicyDllTests(unittest.TestCase):
 
         self.assertEqual(listing_result, 0, listing_text)
         full_rows = json.loads(listing_text)["listing"]["rows"]
+        artifact_rows_payload = json.loads(artifact_rows_text)
+        self.assertEqual(artifact_rows_payload["profile"]["generation"], "facts_v2_listing_artifact")
+        self.assertEqual(
+            [row["row_id"] for row in artifact_rows_payload["listing"]["rows"]],
+            [row["row_id"] for row in full_rows],
+        )
         first_rows = json.loads(first_text)["listing"]["rows"]
         second_payload = json.loads(second_text)
         second_rows = second_payload["listing"]["rows"]
