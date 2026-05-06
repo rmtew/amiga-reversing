@@ -89,7 +89,9 @@ production full-listing route. Indexed, address-anchored, text-anchor, and
 navigation web requests now require the retained C listing artifact once the
 project is ready. The old production Python row-window helpers have been
 removed; tests that need fake artifacts keep their row slicing local to the
-test code.
+test code. The redundant no-argument `build_project_rows_with_c_backend`
+wrapper was also removed; callers that still need full serialized rows for
+tests must state the generation explicitly or use the retained artifact API.
 The intended endpoint is still a C-owned analysis/render-plan artifact, keyed
 by the same effective target inputs, that can answer listing-window and
 navigation requests without rebuilding analysis and without Python retaining a

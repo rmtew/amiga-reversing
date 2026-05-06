@@ -17,7 +17,7 @@ import pytest
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload, serialize_row
-from amiga_reversing.disasm.c_backend import build_project_rows_with_c_backend
+from amiga_reversing.disasm.c_backend import build_project_rows_generation_with_c_backend
 from amiga_reversing.disasm.listing_types import (
     AppSlotRef,
     BlockRowContext,
@@ -2289,7 +2289,11 @@ def test_brave_cdp_real_annotation_edit_round_trip(
     _skip_without_c_backend()
     project_root = tmp_path / "project_root"
     project_id = "amiga_hunk_genam"
-    rows, api_calls = build_project_rows_with_c_backend(project_id, project_root=PROJECT_ROOT)
+    rows, api_calls = build_project_rows_generation_with_c_backend(
+        project_id,
+        generation="full",
+        project_root=PROJECT_ROOT,
+    )
     edit_row_index = next(index for index, row in enumerate(rows) if row.addr is not None)
     edit_addr = cast(int, rows[edit_row_index].addr)
     shutil.copytree(PROJECT_ROOT / "targets" / project_id, project_root / "targets" / project_id)

@@ -518,17 +518,6 @@ def benchmark_project_source_with_text_from_c_backend(
     return _benchmark_from_facts_v2_asm_source_profile(profile), source_text
 
 
-def build_project_rows_with_c_backend(
-    project_name: str,
-    project_root: Path = PROJECT_ROOT,
-) -> tuple[list[ListingRow], dict[ApiCallRowKey, dict[str, object]]]:
-    return build_project_rows_generation_with_c_backend(
-        project_name,
-        generation="full",
-        project_root=project_root,
-    )
-
-
 def build_project_rows_generation_with_c_backend(
     project_name: str,
     *,
