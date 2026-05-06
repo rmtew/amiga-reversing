@@ -699,6 +699,78 @@ static int append_entity_platform_call_hint_json(JsonBuilder *builder, const M68
   return json_builder_append(builder, "}}");
 }
 
+static int append_recovered_platform_call_json(JsonBuilder *builder, const M68kRecoveredPlatformCallIR *call) {
+  const char *resolved_lvo_symbol_name = NULL;
+  const AmigaOsLibraryVectorInfo *amiga_vector;
+  const char *library_name;
+  if (builder == NULL || call == NULL) return -1;
+  amiga_vector = resolve_amiga_call_vector_for_json(call, &resolved_lvo_symbol_name);
+  library_name = resolve_amiga_call_library_name_for_json(call, amiga_vector);
+  if (json_builder_appendf(builder, "{\"offset\":%u,\"kind\":%u,\"symbol_name\":",
+        (unsigned)call->offset, (unsigned)call->kind) != 0)
+    return -1;
+  if (json_builder_append_nullable_string(builder,
+        m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name)) != 0)
+    return -1;
+  if (json_builder_appendf(builder, ",\"note_kind\":%u,\"note_base_name\":",
+        (unsigned)call->note_kind) != 0)
+    return -1;
+  if (json_builder_append_nullable_string(builder,
+        m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name)) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"note_symbol_name\":") != 0)
+    return -1;
+  if (json_builder_append_nullable_string(builder,
+        m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name)) != 0)
+    return -1;
+  if (json_builder_appendf(builder,
+        ",\"note_reg\":%u,\"note_disp\":%d,\"note_field_disp\":%d,\"note_stack_cleanup_known\":%u,"
+        "\"note_stack_cleanup_bytes\":%u,\"note_return_kind\":%u,\"available_since\":",
+        (unsigned)call->note_reg, (int)call->note_disp, (int)call->note_field_disp,
+        (unsigned)call->note_stack_cleanup_known, (unsigned)call->note_stack_cleanup_bytes,
+        (unsigned)call->note_return_kind) != 0)
+    return -1;
+  if (json_builder_append_nullable_string(builder, call->available_since) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"fd_version\":") != 0)
+    return -1;
+  if (json_builder_append_nullable_string(builder, call->fd_version) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"device_name\":") != 0)
+    return -1;
+  if (json_builder_append_nullable_string(builder, call->device_name) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"library_name\":") != 0)
+    return -1;
+  if (json_builder_append_nullable_string(builder, library_name) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"function_name\":") != 0)
+    return -1;
+  if (json_builder_append_nullable_string(builder,
+        amiga_vector != NULL ? amiga_os_name(3U, amiga_vector->function_id) : NULL) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"lvo_symbol_name\":") != 0)
+    return -1;
+  if (json_builder_append_nullable_string(builder, resolved_lvo_symbol_name) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"inputs\":") != 0)
+    return -1;
+  if (append_amiga_call_inputs_json(builder, amiga_vector) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"outputs\":") != 0)
+    return -1;
+  if (amiga_vector != NULL) {
+    if (append_amiga_call_outputs_json(builder, amiga_vector) != 0)
+      return -1;
+  } else if (call->note_symbol_ref.platform_kind == M68K_PLATFORM_BACKEND_ATARI_ST) {
+    if (append_atari_call_outputs_json(builder, call) != 0)
+      return -1;
+  } else if (json_builder_append(builder, "[]") != 0) {
+    return -1;
+  }
+  return json_builder_append(builder, "}");
+}
+
 static const char *recovered_indirect_flow_name(uint8_t flow) {
   if (flow == M68K_RECOVERED_INDIRECT_FLOW_CALL) return "call";
   if (flow == M68K_RECOVERED_INDIRECT_FLOW_JUMP) return "jump";
@@ -1894,76 +1966,9 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       goto oom;
     for (call_index = 0; call_index < section->recovered_platform_call_count; ++call_index) {
       const M68kRecoveredPlatformCallIR *call = &section->recovered_platform_calls[call_index];
-      const char *resolved_lvo_symbol_name = NULL;
-      const AmigaOsLibraryVectorInfo *amiga_vector = resolve_amiga_call_vector_for_json(call, &resolved_lvo_symbol_name);
-      const char *library_name = resolve_amiga_call_library_name_for_json(call, amiga_vector);
       if (call_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
-      if (json_builder_appendf(&builder,
-            "{\"offset\":%u,\"kind\":%u,\"symbol_name\":",
-            (unsigned)call->offset, (unsigned)call->kind) != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder,
-            m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name)) != 0)
-        goto oom;
-      if (json_builder_appendf(&builder,
-            ",\"note_kind\":%u,\"note_base_name\":",
-            (unsigned)call->note_kind) != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder,
-            m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name)) != 0)
-        goto oom;
-      if (json_builder_append(&builder, ",\"note_symbol_name\":") != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder,
-            m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name)) != 0)
-        goto oom;
-      if (json_builder_appendf(&builder,
-            ",\"note_reg\":%u,\"note_disp\":%d,\"note_field_disp\":%d,\"note_stack_cleanup_known\":%u,"
-            "\"note_stack_cleanup_bytes\":%u,\"note_return_kind\":%u,\"available_since\":",
-            (unsigned)call->note_reg, (int)call->note_disp, (int)call->note_field_disp,
-            (unsigned)call->note_stack_cleanup_known, (unsigned)call->note_stack_cleanup_bytes,
-            (unsigned)call->note_return_kind) != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder, call->available_since) != 0)
-        goto oom;
-      if (json_builder_append(&builder, ",\"fd_version\":") != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder, call->fd_version) != 0)
-        goto oom;
-      if (json_builder_append(&builder, ",\"device_name\":") != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder, call->device_name) != 0)
-        goto oom;
-      if (json_builder_append(&builder, ",\"library_name\":") != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder, library_name) != 0)
-        goto oom;
-      if (json_builder_append(&builder, ",\"function_name\":") != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder,
-            amiga_vector != NULL ? amiga_os_name(3U, amiga_vector->function_id) : NULL) != 0)
-        goto oom;
-      if (json_builder_append(&builder, ",\"lvo_symbol_name\":") != 0)
-        goto oom;
-      if (json_builder_append_nullable_string(&builder, resolved_lvo_symbol_name) != 0)
-        goto oom;
-      if (json_builder_append(&builder, ",\"inputs\":") != 0)
-        goto oom;
-      if (append_amiga_call_inputs_json(&builder, amiga_vector) != 0)
-        goto oom;
-      if (json_builder_append(&builder, ",\"outputs\":") != 0)
-        goto oom;
-      if (amiga_vector != NULL) {
-        if (append_amiga_call_outputs_json(&builder, amiga_vector) != 0)
-          goto oom;
-      } else if (call->note_symbol_ref.platform_kind == M68K_PLATFORM_BACKEND_ATARI_ST) {
-        if (append_atari_call_outputs_json(&builder, call) != 0)
-          goto oom;
-      } else if (json_builder_append(&builder, "[]") != 0) {
-        goto oom;
-      }
-      if (json_builder_append(&builder, "}") != 0)
+      if (append_recovered_platform_call_json(&builder, call) != 0)
         goto oom;
     }
     if (json_builder_appendf(&builder, "],\"recovered_string_ref_count\":%u,\"recovered_string_refs\":[",
@@ -2025,6 +2030,53 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     }
     if (json_builder_append(&builder, "]}") != 0)
       goto oom;
+  }
+  if (json_builder_append(&builder, "]}") != 0)
+    goto oom;
+  *out_json = json_builder_build(&builder);
+  if (*out_json == NULL) goto oom;
+  json_builder_destroy(&builder);
+  return 0;
+
+oom:
+  json_builder_destroy(&builder);
+  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+  return -1;
+}
+
+int source_analysis_platform_calls_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json,
+    M68kDiagSink diagnostics) {
+  JsonBuilder builder = {0};
+  size_t section_index;
+  size_t call_index;
+  int first_call = 1;
+  if (out_json == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    return -1;
+  }
+  *out_json = NULL;
+  if (source_analysis == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    return -1;
+  }
+  if (json_builder_create(&builder) != 0 ||
+      json_builder_append(&builder, "{\"platform_calls\":[") != 0)
+    goto oom;
+  for (section_index = 0; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    for (call_index = 0; call_index < section->recovered_platform_call_count; ++call_index) {
+      const M68kRecoveredPlatformCallIR *call = &section->recovered_platform_calls[call_index];
+      if (!first_call && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, "{\"section_index\":%u,\"call\":",
+          (unsigned)section->section_index) != 0)
+        goto oom;
+      if (append_recovered_platform_call_json(&builder, call) != 0)
+        goto oom;
+      if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+      first_call = 0;
+    }
   }
   if (json_builder_append(&builder, "]}") != 0)
     goto oom;

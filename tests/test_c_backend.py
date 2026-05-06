@@ -2631,6 +2631,9 @@ def test_project_listing_artifact_skips_analysis_json_when_no_platform_calls(
         def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
             raise AssertionError("navigation JSON should not be requested while building the artifact cache")
 
+        def api_calls_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            raise AssertionError("API-call JSON should not be requested when the C profile has no platform calls")
+
         def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
             raise AssertionError("analysis JSON should not be requested when the C profile has no platform calls")
 
@@ -2650,6 +2653,116 @@ def test_project_listing_artifact_skips_analysis_json_when_no_platform_calls(
     assert total_rows == 1
     assert api_calls == {}
     assert profile["facts_v2"] == {"platform_call_count": 0}
+    assert returned_artifact is artifact
+    assert artifact.closed is False
+
+
+def test_project_listing_artifact_uses_compact_api_call_json(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    binary_path = tmp_path / "boot.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    target_dir = tmp_path / "targets" / "raw_demo"
+    target_dir.mkdir(parents=True)
+    (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "path": str(binary_path),
+                "address_model": "local_offset",
+                "load_address": 0,
+                "entrypoint": 0,
+                "code_start_offset": 0,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeArtifact:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+        def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            return (
+                {"total_rows": 1},
+                {
+                    "generation": "facts_v2_listing_artifact_summary",
+                    "facts_v2": {"platform_call_count": 1},
+                },
+            )
+
+        def api_calls_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            return (
+                {
+                    "platform_calls": [
+                        {
+                            "section_index": 2,
+                            "call": {
+                                "offset": 0x40,
+                                "kind": 4,
+                                "note_kind": 0,
+                                "library_name": "exec.library",
+                                "function_name": "OpenLibrary",
+                                "symbol_name": "_LVOOpenLibrary",
+                                "note_symbol_name": "_LVOOpenLibrary",
+                                "inputs": [{"name": "libName", "regs": ["A1"]}],
+                                "outputs": [{"name": "library", "regs": ["D0"]}],
+                            },
+                        }
+                    ]
+                },
+                {"generation": "facts_v2_listing_artifact_api_calls"},
+            )
+
+        def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            raise AssertionError("navigation JSON should not be requested while building the artifact cache")
+
+        def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            raise AssertionError("full analysis JSON should not be requested for API calls")
+
+    artifact = FakeArtifact()
+    monkeypatch.setattr(
+        c_backend.CListingArtifact,
+        "create",
+        classmethod(lambda cls, source_file, *, metadata_text, include_dir, project_root: artifact),
+    )
+
+    total_rows, api_calls, profile, returned_artifact = c_backend.build_project_listing_artifact_generation_profile(
+        "raw_demo",
+        generation="full",
+        project_root=tmp_path,
+    )
+
+    assert total_rows == 1
+    assert api_calls[(2, 0x40)]["library"] == "exec.library"
+    assert api_calls[(2, 0x40)]["function"] == "OpenLibrary"
+    assert api_calls[(2, 0x40)]["inputs"] == [
+        {
+            "name": "libName",
+            "regs": ["A1"],
+            "type": None,
+            "i_struct": None,
+            "source": "parsed NDK",
+            "semantic_kind": None,
+            "value_domain": None,
+        }
+    ]
+    assert api_calls[(2, 0x40)]["outputs"] == [
+        {
+            "name": "library",
+            "regs": ["D0"],
+            "type": None,
+            "o_struct": None,
+            "source": "parsed NDK",
+            "semantic_kind": None,
+            "value_domain": None,
+        }
+    ]
+    assert profile["generation"] == "facts_v2_listing_artifact_summary"
     assert returned_artifact is artifact
     assert artifact.closed is False
 

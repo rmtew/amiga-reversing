@@ -589,8 +589,8 @@ def build_project_listing_artifact_generation_profile(
                     analysis_profile: dict[str, object] = {}
                     api_calls: dict[ApiCallRowKey, dict[str, object]] = {}
                 else:
-                    analysis, analysis_profile = artifact.analysis_payload()
-                    api_calls = api_calls_from_c_analysis(analysis)
+                    api_calls_payload, analysis_profile = artifact.api_calls_payload()
+                    api_calls = api_calls_from_c_platform_calls(api_calls_payload)
                 profile: dict[str, object] = {**analysis_profile, **summary_profile}
                 total_rows = summary.get("total_rows", 0)
             except Exception:
@@ -1060,6 +1060,35 @@ def api_calls_from_c_analysis(analysis: dict[str, object]) -> dict[ApiCallRowKey
                 "inputs": _api_call_inputs(call),
                 "outputs": _api_call_outputs(call),
             }
+    return result
+
+
+def api_calls_from_c_platform_calls(payload: dict[str, object]) -> dict[ApiCallRowKey, dict[str, object]]:
+    result: dict[ApiCallRowKey, dict[str, object]] = {}
+    for item in cast(list[dict[str, object]], payload.get("platform_calls", [])):
+        section_index_value = item.get("section_index", 0)
+        section_index = section_index_value if isinstance(section_index_value, int) else 0
+        call = item.get("call")
+        if not isinstance(call, dict):
+            continue
+        symbol = call.get("function_name") or call.get("symbol_name") or call.get("note_symbol_name")
+        if not isinstance(symbol, str) or symbol == "":
+            continue
+        offset = call.get("offset")
+        if not isinstance(offset, int):
+            continue
+        library = _api_call_library_name(cast(dict[str, object], call))
+        function = symbol.removeprefix("_LVO")
+        result[(section_index, offset)] = {
+            "library": library,
+            "function": function,
+            "note_kind": call.get("note_kind"),
+            "call_kind": call.get("kind"),
+            "symbol_name": call.get("symbol_name"),
+            "note_symbol_name": call.get("note_symbol_name"),
+            "inputs": _api_call_inputs(cast(dict[str, object], call)),
+            "outputs": _api_call_outputs(cast(dict[str, object], call)),
+        }
     return result
 
 
@@ -1597,6 +1626,11 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_summary_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_api_calls_json_alloc.argtypes = [
+        c_void_p,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_api_calls_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_analysis_json_alloc.argtypes = [
         c_void_p,
         POINTER(c_void_p),
@@ -1819,6 +1853,19 @@ class CListingArtifact:
         summary = cast(dict[str, object], combined.get("summary", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))
         return summary, profile
+
+    def api_calls_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+        combined = cast(
+            dict[str, object],
+            json.loads(
+                self._text_from_artifact_call(
+                    self._dll.platform_file_facts_v2_listing_artifact_api_calls_json_alloc,
+                )
+            ),
+        )
+        api_calls = cast(dict[str, object], combined.get("api_calls", {}))
+        profile = cast(dict[str, object], combined.get("profile", {}))
+        return api_calls, profile
 
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         combined = cast(
