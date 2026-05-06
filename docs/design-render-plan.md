@@ -133,10 +133,11 @@ then emits the bounded window from the retained row index.
 The displayed-row index also records render-plan row/subline provenance for
 rows that came from a concrete plan row. Retained artifact row-window requests
 use that provenance to bound the render-plan visit to the small span that can
-produce the requested displayed rows, falling back to a full visit only for
-mixed synthetic/body spans or fallback rows without plan provenance. Windows
-wholly inside the synthetic header preamble are emitted directly from the
-collected header rows, so they do not replay the body render plan.
+produce the requested displayed rows. Windows wholly inside the synthetic
+header preamble are emitted directly from the collected header rows; windows
+that cross from synthetic headers into body rows emit the requested header
+prefix and then visit only the indexed body plan span. Full visits remain only
+for fallback rows without enough provenance.
 Header preamble emission is now an explicit row-emission policy. Full listing,
 navigation, counting, and index-building passes emit the synthetic preamble;
 bounded artifact windows do not reinsert it because their displayed-row start
@@ -556,8 +557,8 @@ Retained artifact row windows now reuse the artifact's displayed-row index as
 row-to-plan provenance. For ordinary body windows this avoids replaying the
 whole render plan on every viewport request; synthetic header rows deliberately
 remain unprovenanced. Header-only windows are emitted from the collected header
-rows, while mixed synthetic/body spans still use the conservative full-visit
-fallback.
+rows. Mixed synthetic/body windows reuse the first indexed body row and the
+last requested indexed row to bound the body render-plan visit.
 
 ## Required Tests
 

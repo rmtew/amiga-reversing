@@ -6252,6 +6252,8 @@ static int test_listing_json_indexed_window_does_not_reemit_headers(void) {
   char *indexed_window_json = NULL;
   char *header_window_json = NULL;
   char *indexed_header_window_json = NULL;
+  char *mixed_window_json = NULL;
+  char *indexed_mixed_window_json = NULL;
   const uint8_t bytes[2] = {0x4eU, 0x75U};
   M68kInstructionIR instruction;
 
@@ -6293,17 +6295,33 @@ static int test_listing_json_indexed_window_does_not_reemit_headers(void) {
   M68K_C_ASSERT_INT(0, source_file_listing_window_from_render_plan_with_index_to_json(NULL, &render_plan,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 0, &row_index, 0U, 2U,
     &indexed_header_window_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_window_from_render_plan_to_json(NULL, &render_plan,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 0, 1U, 3U, &mixed_window_json,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_window_from_render_plan_with_index_to_json(NULL, &render_plan,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 0, &row_index, 1U, 3U,
+    &indexed_mixed_window_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(window_json != NULL);
   M68K_C_ASSERT(indexed_window_json != NULL);
   M68K_C_ASSERT(header_window_json != NULL);
   M68K_C_ASSERT(indexed_header_window_json != NULL);
+  M68K_C_ASSERT(mixed_window_json != NULL);
+  M68K_C_ASSERT(indexed_mixed_window_json != NULL);
   M68K_C_ASSERT(strcmp(window_json, indexed_window_json) == 0);
   M68K_C_ASSERT(strcmp(header_window_json, indexed_header_window_json) == 0);
+  M68K_C_ASSERT(strcmp(mixed_window_json, indexed_mixed_window_json) == 0);
   M68K_C_ASSERT(strstr(indexed_header_window_json, "\"start\":0") != NULL);
   M68K_C_ASSERT(strstr(indexed_header_window_json, "\"end\":2") != NULL);
   M68K_C_ASSERT(strstr(indexed_header_window_json, "\"row_id\":\"c:0\"") != NULL);
   M68K_C_ASSERT(strstr(indexed_header_window_json, "hardware/custom.i") != NULL);
   M68K_C_ASSERT(strstr(indexed_header_window_json, "SECTION section_0,code") == NULL);
+  M68K_C_ASSERT(strstr(indexed_mixed_window_json, "\"start\":1") != NULL);
+  M68K_C_ASSERT(strstr(indexed_mixed_window_json, "\"end\":4") != NULL);
+  M68K_C_ASSERT(strstr(indexed_mixed_window_json, "\"row_id\":\"c:1\"") != NULL);
+  M68K_C_ASSERT(strstr(indexed_mixed_window_json, "\"row_id\":\"c:2\"") != NULL);
+  M68K_C_ASSERT(strstr(indexed_mixed_window_json, "\"row_id\":\"c:3\"") != NULL);
+  M68K_C_ASSERT(strstr(indexed_mixed_window_json, "hardware/custom.i") == NULL);
+  M68K_C_ASSERT(strstr(indexed_mixed_window_json, "SECTION section_0,code") != NULL);
   M68K_C_ASSERT(strstr(indexed_window_json, "\"start\":2") != NULL);
   M68K_C_ASSERT(strstr(indexed_window_json, "\"end\":4") != NULL);
   M68K_C_ASSERT(strstr(indexed_window_json, "\"row_id\":\"c:2\"") != NULL);
@@ -6314,6 +6332,8 @@ static int test_listing_json_indexed_window_does_not_reemit_headers(void) {
   free(indexed_window_json);
   free(header_window_json);
   free(indexed_header_window_json);
+  free(mixed_window_json);
+  free(indexed_mixed_window_json);
   arena_destroy(index_arena);
   m68k_render_plan_destroy(&render_plan);
   return 0;

@@ -6236,13 +6236,27 @@ static int source_file_listing_window_range_from_render_plan_to_json(const M68kS
     visit_row_count = 0U;
   }
   if (!include_source_only_rows && !bounded_by_row_index && visit_row_count != 0U) {
+    size_t preamble_count;
     if (collect_listing_source_header_rows_from_plan(render_plan, &header_rows) != 0) {
       failure = "listing window header collection failed";
       goto oom;
     }
-    if (end <= listing_source_header_rows_extra_count(&header_rows)) {
+    preamble_count = listing_source_header_rows_extra_count(&header_rows);
+    if (end <= preamble_count) {
       header_only_window = 1;
       visit_row_count = 0U;
+    } else if (row_index != NULL && safe_start < end && end <= row_index->row_count &&
+        row_index->entries != NULL && safe_start < preamble_count && preamble_count < end &&
+        row_index->entries[preamble_count].has_plan_row &&
+        row_index->entries[end - 1U].has_plan_row) {
+      size_t first_body_entry = preamble_count;
+      uint32_t first_plan_row = row_index->entries[first_body_entry].plan_row_index;
+      uint32_t last_plan_row = row_index->entries[end - 1U].plan_row_index;
+      if ((size_t)first_plan_row < render_plan->row_count && (size_t)last_plan_row < render_plan->row_count &&
+          first_plan_row <= last_plan_row) {
+        visit_first_row = first_plan_row;
+        visit_row_count = (size_t)last_plan_row - (size_t)first_plan_row + 1U;
+      }
     }
   }
   emit_context.builder = &builder;
