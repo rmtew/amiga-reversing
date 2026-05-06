@@ -2276,8 +2276,7 @@ static void split_listing_line(const char *line_start, size_t line_length, char 
 
 static const M68kStatementIR *listing_statement_for_line(const M68kSourceFileIR *source_file,
     const M68kAnalysisPolicy *analysis_policy, size_t section_index, size_t *inout_statement_index,
-    size_t *inout_data_lines_left, const char *row_kind, int use_rendered_line_count,
-    int allow_structured_line_count_override) {
+    size_t *inout_data_lines_left, const char *row_kind, int allow_structured_line_count_override) {
   const M68kSectionIR *section;
   const M68kStatementIR *stmt;
   if (source_file == NULL || inout_statement_index == NULL || inout_data_lines_left == NULL) return NULL;
@@ -2285,7 +2284,7 @@ static const M68kStatementIR *listing_statement_for_line(const M68kSourceFileIR 
   section = &source_file->sections[section_index];
   if (*inout_statement_index >= section->statement_count) return NULL;
   stmt = &section->statements[*inout_statement_index];
-  if (use_rendered_line_count && *inout_data_lines_left != 0U) {
+  if (*inout_data_lines_left != 0U) {
     --*inout_data_lines_left;
     if (*inout_data_lines_left == 0U) ++*inout_statement_index;
     return stmt;
@@ -2298,9 +2297,7 @@ static const M68kStatementIR *listing_statement_for_line(const M68kSourceFileIR 
       stmt->kind == M68K_STATEMENT_DATA
         ? listing_structured_data_item_at_offset(analysis_policy, (int)section_index, stmt->offset)
         : NULL;
-    if (use_rendered_line_count ||
-        (allow_structured_line_count_override &&
-          structured_data_item_needs_listing_line_count_override(structured_item))) {
+    if (allow_structured_line_count_override && structured_data_item_needs_listing_line_count_override(structured_item)) {
       size_t line_count = source_statement_rendered_line_count(stmt, NULL, structured_item);
       if (stmt->kind == M68K_STATEMENT_DATA && line_count > 1U) *inout_data_lines_left = line_count - 1U;
       else ++*inout_statement_index;
@@ -4832,7 +4829,6 @@ typedef struct ListingRenderPlanJsonContext {
   int preamble_emitted;
   int emit_preamble_headers;
   int include_source_only_rows;
-  int use_rendered_line_count;
   int count_only;
   int window_enabled;
   int has_anchor_addr;
@@ -5168,7 +5164,7 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
   } else if (context->active_section_index >= 0) {
     stmt = listing_statement_for_line(context->source_file, context->analysis_policy,
       (size_t)context->active_section_index, &context->statement_index, &context->data_lines_left, row_kind,
-      context->use_rendered_line_count, strcmp(row_kind, "data") == 0 && strchr(stripped, '-') != NULL);
+      strcmp(row_kind, "data") == 0 && strchr(stripped, '-') != NULL);
     section_index = context->active_section_index;
   }
   if (context->emit_preamble_headers && !context->include_source_only_rows &&
@@ -5218,7 +5214,6 @@ int source_file_listing_rows_from_render_plan_to_json(const M68kSourceFileIR *so
   context.active_section_index = -1;
   context.emit_preamble_headers = 1;
   context.include_source_only_rows = include_source_only_rows;
-  context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
   if (m68k_render_plan_visit_row_lines(render_plan, 0U, render_plan->row_count,
       append_full_listing_render_plan_line, &context) != 0)
     goto oom;
@@ -5940,7 +5935,6 @@ int source_file_listing_navigation_from_render_plan_to_json(const M68kSourceFile
   context.active_section_index = -1;
   context.emit_preamble_headers = 1;
   context.include_source_only_rows = include_source_only_rows;
-  context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
   context.count_only = 1;
   if (m68k_render_plan_visit_row_lines(render_plan, 0U, render_plan->row_count,
       append_full_listing_render_plan_line, &context) != 0)
@@ -6002,7 +5996,6 @@ int source_file_listing_total_rows_from_render_plan(const M68kSourceFileIR *sour
   count_context.active_section_index = -1;
   count_context.emit_preamble_headers = 1;
   count_context.include_source_only_rows = include_source_only_rows;
-  count_context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
   count_context.count_only = 1;
   if (m68k_render_plan_visit_row_lines(render_plan, 0U, render_plan->row_count,
       append_full_listing_render_plan_line, &count_context) != 0) {
@@ -6070,7 +6063,6 @@ int source_file_listing_row_index_from_render_plan(const M68kSourceFileIR *sourc
   index_context.active_section_index = -1;
   index_context.emit_preamble_headers = 1;
   index_context.include_source_only_rows = include_source_only_rows;
-  index_context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
   index_context.count_only = 1;
   index_context.row_index_entries = entries;
   index_context.row_index_entry_count = entry_capacity;
@@ -6198,7 +6190,6 @@ static int source_file_listing_window_range_from_render_plan_to_json(const M68kS
   emit_context.active_section_index = -1;
   emit_context.emit_preamble_headers = !bounded_by_row_index;
   emit_context.include_source_only_rows = include_source_only_rows;
-  emit_context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
   emit_context.row_index = display_row_base;
   emit_context.window_enabled = 1;
   emit_context.window_start = safe_start;
@@ -6389,7 +6380,7 @@ static int listing_row_code_matches_anchor(const M68kSourceFileIR *source_file,
   M68kStatementIR plan_stmt;
   size_t statement_index = 0U;
   size_t data_lines_left = 0U;
-  int use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
+  (void)analysis_generation;
   if (line_start == NULL || wanted == NULL) return 0;
   m68k_ir_statement_init(&plan_stmt);
   split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
@@ -6405,7 +6396,7 @@ static int listing_row_code_matches_anchor(const M68kSourceFileIR *source_file,
     if (stmt == NULL && listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
   } else if (active_section_index >= 0) {
     stmt = listing_statement_for_line(source_file, analysis_policy, (size_t)active_section_index, &statement_index,
-      &data_lines_left, row_kind, use_rendered_line_count, strcmp(row_kind, "data") == 0 && strchr(stripped, '-') != NULL);
+      &data_lines_left, row_kind, strcmp(row_kind, "data") == 0 && strchr(stripped, '-') != NULL);
   }
   (void)source_analysis;
   listing_navigation_row_code(row_code, sizeof(row_code), row_kind, stripped, opcode, operand, stmt);

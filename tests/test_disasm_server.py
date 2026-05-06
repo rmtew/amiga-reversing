@@ -131,7 +131,7 @@ class _RowsCListingArtifact:
         return _test_listing_index_window_payload(self.rows, start, count), {}
 
     def navigation_payload(self):
-        return disasm_server._listing_navigation_payload(self.project_name, self.rows), {}
+        return _test_listing_navigation_payload(self.project_name, self.rows), {}
 
 
 def _seed_c_listing_artifact(
@@ -154,6 +154,250 @@ def _test_listing_row_code(row: ListingRow) -> str:
     if row.opcode_or_directive:
         return " ".join(part for part in (row.opcode_or_directive, row.operand_text) if part).strip()
     return row.text.strip()
+
+
+def _test_empty_navigation_groups() -> dict[str, list[dict[str, object]]]:
+    return {
+        "repro-issues": [],
+        "typed-data": [],
+        "typed-gaps": [],
+        "relocations": [],
+        "api-calls": [],
+        "app-slots": [],
+        "app-slot-regions": [],
+        "app-slot-gaps": [],
+        "app-slot-field-gaps": [],
+        "app-slot-suggestions": [],
+        "app-slot-api-args": [],
+        "labels": [],
+        "comments": [],
+    }
+
+
+def _test_navigation_entry(row: ListingRow, row_index: int, summary: str | None = None) -> dict[str, object]:
+    assert row.addr is not None
+    entry: dict[str, object] = {
+        "addr": row.addr,
+        "row_index": row_index,
+        "summary": summary or _test_listing_row_code(row),
+        "match_text": _test_listing_row_code(row),
+        "stable_key": row.stable_key,
+    }
+    if row.section_index is not None:
+        entry["section_index"] = row.section_index
+    if isinstance(row.source_context, BlockRowContext):
+        entry["hunk_index"] = row.source_context.hunk_index
+    return entry
+
+
+def _test_signed_hex_offset(value: int) -> str:
+    sign = "-" if value < 0 else ""
+    return f"{sign}${abs(value):04X}"
+
+
+def _test_unresolved_typed_access_summary(access: PlatformUnresolvedTypedAccess) -> str:
+    root = access.root_struct_name or "typed base"
+    displacement = _test_signed_hex_offset(access.displacement)
+    joiner = "" if access.displacement < 0 else "+"
+    if access.classification == "prefix_extension":
+        if access.refinement_applied and access.refined_struct_name:
+            return f"{root}{joiner}{displacement} refines to {access.refined_struct_name}"
+        if access.container_struct_name and access.container_field_expr:
+            return f"{root}{joiner}{displacement} prefix extension: {access.container_struct_name}.{access.container_field_expr}"
+        if access.container_struct_name:
+            return f"{root}{joiner}{displacement} prefix extension: {access.container_struct_name}"
+        if access.container_candidate_count:
+            return f"{root}{joiner}{displacement} prefix extension ({access.container_candidate_count} candidate types)"
+        return f"{root}{joiner}{displacement} prefix extension"
+    if access.classification == "custom_tail_or_mistyped_base":
+        return f"{root}{joiner}{displacement} unknown extension"
+    return f"{root}{joiner}{displacement} field metadata gap"
+
+
+def _test_api_call_is_navigation_target(
+    api_calls: dict[tuple[int, int], dict[str, object]],
+    hunk_index: int,
+    offset: int,
+    api_call: dict[str, object],
+) -> bool:
+    if api_call.get("note_kind") == 3:
+        return False
+    if api_call.get("note_kind") == 1:
+        for probe_offset in range(max(0, offset - 8), offset):
+            candidate = api_calls.get((hunk_index, probe_offset))
+            if (
+                candidate is not None
+                and candidate.get("note_kind") == 0
+                and candidate.get("library") == api_call.get("library")
+                and candidate.get("function") == api_call.get("function")
+            ):
+                return False
+    return True
+
+
+def _test_listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> dict[str, object]:
+    groups = _test_empty_navigation_groups()
+    label_entries: dict[str, dict[str, object]] = {}
+    api_calls = disasm_server._PROJECT_API_CALL_CACHE.get(project_name, {})
+    repro_report = disasm_server._active_reproduction_report(project_name)
+    if repro_report is not None:
+        groups["repro-issues"] = disasm_server.reproduction_navigation_entries(repro_report)
+    app_slot_analysis = disasm_server._PROJECT_APP_SLOT_ANALYSIS_CACHE.get(
+        project_name,
+        {
+            "slot_count": 0,
+            "ref_count": 0,
+            "typed_region_count": 0,
+            "gap_count": 0,
+            "field_gap_count": 0,
+            "suggestion_count": 0,
+            "untyped_api_arg_count": 0,
+            "slots": [],
+            "regions": [],
+            "gaps": [],
+            "field_gaps": [],
+            "suggestions": [],
+            "untyped_api_args": [],
+        },
+    )
+    for row_index, row in enumerate(rows):
+        if row.addr is None:
+            continue
+        code = _test_listing_row_code(row)
+        if row.label or code.endswith(":"):
+            symbol = (row.label or code).rstrip(":")
+            entry = _test_navigation_entry(row, row_index, f"{symbol}:")
+            entry.update({"symbol": symbol, "ref_count": 1, "access_counts": {"definition": 1}, "refs": []})
+            cast(list[dict[str, object]], entry["refs"]).append(
+                {**_test_navigation_entry(row, row_index, f"{symbol}:"), "symbol": symbol, "access": "definition"}
+            )
+            label_entries[symbol] = entry
+        if row.typed_accesses or (row.kind not in {"instruction", "label"} and (row.comment_text or row.structured_data)):
+            summary = row.comment_text or row.kind
+            if row.typed_accesses:
+                access = row.typed_accesses[0]
+                summary = ".".join(part for part in (access.owner_struct_name or access.root_struct_name, access.field_expr or access.field_name) if part)
+            groups["typed-data"].append(_test_navigation_entry(row, row_index, summary))
+        for access in row.unresolved_typed_accesses:
+            entry = _test_navigation_entry(row, row_index, _test_unresolved_typed_access_summary(access))
+            entry.update(
+                {
+                    "root_struct_name": access.root_struct_name,
+                    "base_register": access.base_register,
+                    "operand_index": access.operand_index,
+                    "displacement": access.displacement,
+                    "struct_size": access.struct_size,
+                    "classification": access.classification,
+                    "container_candidate_count": access.container_candidate_count,
+                    "container_struct_name": access.container_struct_name,
+                    "container_field_expr": access.container_field_expr,
+                    "refinement_applied": access.refinement_applied,
+                    "refined_struct_name": access.refined_struct_name,
+                    "type_provenance_kind": access.type_provenance_kind,
+                    "type_provenance_section": access.type_provenance_section,
+                    "type_provenance_offset": access.type_provenance_offset,
+                }
+            )
+            groups["typed-gaps"].append(entry)
+        if any(operand.segment_addr is not None for operand in row.operand_parts):
+            groups["relocations"].append(_test_navigation_entry(row, row_index))
+        if isinstance(row.source_context, BlockRowContext):
+            api_call = api_calls.get((row.source_context.hunk_index, row.addr))
+            if (
+                api_call is not None
+                and row.kind == "instruction"
+                and _test_api_call_is_navigation_target(api_calls, row.source_context.hunk_index, row.addr, api_call)
+            ):
+                summary = f"{api_call.get('function', '')} ({api_call.get('library', '')})".strip()
+                groups["api-calls"].append(_test_navigation_entry(row, row_index, summary))
+        for ref in row.app_slot_refs:
+            slot = next((entry for entry in groups["app-slots"] if entry.get("symbol") == ref.symbol), None)
+            if slot is None:
+                slot = {
+                    "symbol": ref.symbol,
+                    "summary": ref.symbol,
+                    "match_text": ref.symbol,
+                    "displacement": ref.displacement,
+                    "ref_count": 0,
+                    "access_counts": {},
+                    "refs": [],
+                }
+                groups["app-slots"].append(slot)
+            refs = cast(list[dict[str, object]], slot["refs"])
+            refs.append({**_test_navigation_entry(row, row_index), "symbol": ref.symbol, "access": ref.access})
+            slot["ref_count"] = cast(int, slot["ref_count"]) + 1
+            access_counts = cast(dict[str, int], slot["access_counts"])
+            access_counts[ref.access] = access_counts.get(ref.access, 0) + 1
+        if row.comment_text:
+            groups["comments"].append(_test_navigation_entry(row, row_index, row.comment_text))
+    for row_index, row in enumerate(rows):
+        if row.addr is None:
+            continue
+        for operand in row.operand_parts:
+            symbol = operand.metadata.symbol if isinstance(operand.metadata, SymbolOperandMetadata) else None
+            if not symbol or symbol not in label_entries:
+                continue
+            label_entry = label_entries[symbol]
+            refs = cast(list[dict[str, object]], label_entry["refs"])
+            refs.append({**_test_navigation_entry(row, row_index), "symbol": symbol, "access": "reference"})
+            label_entry["ref_count"] = cast(int, label_entry["ref_count"]) + 1
+            access_counts = cast(dict[str, int], label_entry["access_counts"])
+            access_counts["reference"] = access_counts.get("reference", 0) + 1
+    for label_entry in label_entries.values():
+        cast(list[dict[str, object]], label_entry["refs"]).sort(
+            key=lambda entry: cast(int, entry.get("row_index", -1))
+        )
+    app_slot_summaries = {
+        cast(str, slot["symbol"]): slot
+        for slot in cast(list[dict[str, object]], app_slot_analysis.get("slots", []))
+        if isinstance(slot.get("symbol"), str)
+    }
+    for slot_entry in groups["app-slots"]:
+        slot_summary = app_slot_summaries.get(cast(str, slot_entry.get("symbol", "")))
+        if slot_summary is None:
+            continue
+        for key in (
+            "base_registers",
+            "width_counts",
+            "observed_size",
+            "observed_end",
+            "first_row_index",
+            "last_row_index",
+            "first_addr",
+            "last_addr",
+            "containing_regions",
+        ):
+            if key in slot_summary:
+                slot_entry[key] = slot_summary[key]
+    groups["labels"] = sorted(label_entries.values(), key=lambda entry: cast(int, entry.get("row_index", -1)))
+    groups["app-slot-regions"] = [
+        disasm_server._app_slot_region_navigation_entry(region)
+        for region in cast(list[dict[str, object]], app_slot_analysis.get("regions", []))
+        if region.get("source") == "platform_api_arg"
+    ]
+    groups["app-slot-gaps"] = [
+        disasm_server._app_slot_gap_navigation_entry(gap)
+        for gap in cast(list[dict[str, object]], app_slot_analysis.get("gaps", []))
+    ]
+    groups["app-slot-field-gaps"] = [
+        disasm_server._app_slot_field_gap_navigation_entry(gap)
+        for gap in cast(list[dict[str, object]], app_slot_analysis.get("field_gaps", []))
+    ]
+    groups["app-slot-suggestions"] = [
+        disasm_server._app_slot_suggestion_navigation_entry(suggestion)
+        for suggestion in cast(list[dict[str, object]], app_slot_analysis.get("suggestions", []))
+    ]
+    groups["app-slot-api-args"] = [
+        disasm_server._app_slot_untyped_api_arg_navigation_entry(arg)
+        for arg in cast(list[dict[str, object]], app_slot_analysis.get("untyped_api_args", []))
+    ]
+    return {
+        "analysis_generation": disasm_server._PROJECT_ROW_GENERATION_CACHE.get(project_name),
+        "total_rows": len(rows),
+        "groups": groups,
+        "app_slot_analysis": app_slot_analysis,
+        "type_flow_analysis": disasm_server._PROJECT_TYPE_FLOW_ANALYSIS_CACHE.get(project_name, {}),
+    }
 
 
 def _test_listing_anchor_code_start(rows: list[ListingRow], anchor_code: str) -> int:
@@ -1825,12 +2069,12 @@ def test_listing_navigation_payload_uses_all_rows(monkeypatch: pytest.MonkeyPatc
         ListingRow(row_id="r1", kind="instruction", text="rts\n", addr=2),
         ListingRow(row_id="r2", kind="label", text="far_target:\n", addr=2000, label="far_target:"),
     ]
-    disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "basic"
+    disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
 
-    data = disasm_server._listing_navigation_payload("bloodwych", rows)
+    data = _test_listing_navigation_payload("bloodwych", rows)
     groups = cast(dict[str, list[dict[str, object]]], data["groups"])
 
-    assert data["analysis_generation"] == "basic"
+    assert data["analysis_generation"] == "full"
     assert data["total_rows"] == 3
     assert [entry["summary"] for entry in groups["labels"]] == ["start:", "far_target:"]
     assert groups["labels"][1]["addr"] == 2000
@@ -1850,12 +2094,6 @@ def test_route_listing_navigation_uses_c_artifact_cache(monkeypatch: pytest.Monk
         "get_project",
         lambda project_name: _binary_project(project_name, ready=True),
     )
-    monkeypatch.setattr(
-        disasm_server,
-        "_listing_navigation_payload",
-        lambda project_name, rows: pytest.fail("Python row-derived navigation path should not be used"),
-    )
-
     payload = disasm_server.route_request(
         "GET",
         "/api/projects/bloodwych/listing/navigation",
@@ -1894,7 +2132,7 @@ def test_listing_navigation_indexes_instruction_typed_accesses(monkeypatch: pyte
         )
     ]
 
-    payload = disasm_server._listing_navigation_payload("bloodwych", rows)
+    payload = _test_listing_navigation_payload("bloodwych", rows)
     groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
 
     assert groups["typed-data"] == [
@@ -1939,7 +2177,7 @@ def test_listing_navigation_indexes_unresolved_typed_accesses(monkeypatch: pytes
         )
     ]
 
-    payload = disasm_server._listing_navigation_payload("bloodwych", rows)
+    payload = _test_listing_navigation_payload("bloodwych", rows)
     groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
 
     assert groups["typed-gaps"] == [
@@ -2022,49 +2260,6 @@ def test_route_listing_navigation_indexes_label_definition_and_refs(monkeypatch:
     assert [(ref["access"], ref["row_index"]) for ref in refs] == [("reference", 1), ("definition", 4)]
 
 
-def test_route_listing_navigation_includes_entity_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [
-        ListingRow(
-            row_id="r0",
-            kind="label",
-            text="loc_0010:\n",
-            addr=0x10,
-            entity_addr=0x10,
-        )
-    ]
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    monkeypatch.setattr(
-        disasm_server,
-        "get_project",
-        lambda project_name: _binary_project(project_name, ready=True),
-    )
-    monkeypatch.setattr(
-        disasm_server,
-        "get_entities_by_int_addr",
-        lambda project_name, project_root=None: {
-            0x10: {
-                "addr": "0x0010",
-                "type": "code",
-                "name": "main_entry",
-                "comment": "validated entry",
-                "confidence": "verified",
-            }
-        },
-    )
-
-    payload = disasm_server.route_request(
-        "GET",
-        "/api/projects/bloodwych/listing/navigation",
-        {},
-    )
-    groups = cast(dict[str, list[dict[str, object]]], cast(dict[str, object], payload["data"])["groups"])
-
-    assert [entry["summary"] for entry in groups["comments"]] == [
-        "main_entry; validated entry; code; verified"
-    ]
-
-
 def test_listing_navigation_api_calls_use_instruction_row_and_hunk_context() -> None:
     rows = [
         ListingRow(
@@ -2136,7 +2331,7 @@ def test_listing_navigation_api_calls_use_instruction_row_and_hunk_context() -> 
     }
 
     try:
-        payload = disasm_server._listing_navigation_payload("bloodwych", rows)
+        payload = _test_listing_navigation_payload("bloodwych", rows)
         groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
 
         assert groups["api-calls"] == [
@@ -2224,7 +2419,7 @@ def test_listing_navigation_groups_app_slot_refs_by_symbol(monkeypatch: pytest.M
         "suggestions": [],
     }
     try:
-        payload = disasm_server._listing_navigation_payload("bloodwych", rows)
+        payload = _test_listing_navigation_payload("bloodwych", rows)
         groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
         app_slots = groups["app-slots"]
         app_slot_analysis = cast(dict[str, object], payload["app_slot_analysis"])
@@ -2260,7 +2455,7 @@ def test_listing_navigation_exposes_type_flow_analysis_metadata(monkeypatch: pyt
         "chains": [{"kind": "register_to_app_slot_reload", "count": 2}],
     }
     try:
-        payload = disasm_server._listing_navigation_payload("bloodwych", [])
+        payload = _test_listing_navigation_payload("bloodwych", [])
 
         assert payload["type_flow_analysis"] == {
             "schema_version": 1,
@@ -2379,7 +2574,7 @@ def test_listing_navigation_exposes_app_slot_regions_and_gaps(monkeypatch: pytes
     }
 
     try:
-        payload = disasm_server._listing_navigation_payload("input-demo", rows)
+        payload = _test_listing_navigation_payload("input-demo", rows)
         groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
 
         assert groups["app-slot-regions"] == [
@@ -2456,7 +2651,7 @@ def test_route_listing_navigation_rejects_stale_cache(monkeypatch: pytest.Monkey
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _RowsCListingArtifact(
         [ListingRow(row_id="r0", kind="label", text="stale:\n", addr=0, label="stale:")]
     )
-    disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "basic"
+    disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
     disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "old-cache"
     monkeypatch.setattr(
         disasm_server,
@@ -3484,7 +3679,7 @@ def test_listing_navigation_includes_repro_issues(monkeypatch: pytest.MonkeyPatc
     )
     monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
 
-    payload = disasm_server._listing_navigation_payload("bloodwych", rows)
+    payload = _test_listing_navigation_payload("bloodwych", rows)
     groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
 
     assert groups["repro-issues"][0]["summary"] == "Diff at file offset 0x20"

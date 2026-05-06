@@ -137,6 +137,11 @@ Rows-only Python caches no longer satisfy a full-generation listing cache; a
 valid full cache requires the retained C artifact. Ready-project listing and
 navigation routes fail closed if that artifact is missing or stale instead of
 serving a second, weaker Python row model.
+The production Python row-list navigation builder has also been removed.
+Navigation payloads come from the retained C artifact and the server only
+overlays project/session groups such as reproduction issues and app-slot
+metadata already supplied by analysis caches. Tests that need fake artifacts
+construct fixture navigation payloads locally.
 The retained artifact now computes the displayed listing row count once during
 artifact creation. Row-index window requests reuse that count and only perform
 the emission pass for the requested window. The artifact also owns a compact
@@ -534,8 +539,9 @@ a fresh window around the anchor.
 10. Remove superseded legacy listing paths after parity tests pass. The
     production Python row-window and text-anchor helpers are removed; test-only
     fake artifacts keep local slicing helpers. The production Python full-row
-    wrapper, row hydration, C full-row API, and C basic-row API are removed;
-    production serves listing windows from the retained C artifact.
+    wrapper, row hydration, C full-row API, C basic-row API, and production
+    Python row-list navigation builder are removed; production serves listing
+    windows and navigation from the retained C artifact.
 
 The first retained step should be small: a synthetic render-plan fixture that
 proves line accounting and window emission. Do not start by rewriting the whole

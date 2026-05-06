@@ -63,6 +63,123 @@ def _cache_full_project_rows(project_id: str, rows: list[ListingRow]) -> None:
     disasm_server._PROJECT_LISTING_CACHE_KEY[project_id] = "test-cache"
 
 
+def _test_row_code(row: ListingRow) -> str:
+    if row.label:
+        return row.label
+    if row.opcode_or_directive:
+        return " ".join(part for part in (row.opcode_or_directive, row.operand_text) if part).strip()
+    return row.text.strip()
+
+
+def _test_navigation_payload(project_name: str, rows: list[ListingRow]) -> dict[str, object]:
+    groups: dict[str, list[dict[str, object]]] = {
+        "repro-issues": [],
+        "typed-data": [],
+        "typed-gaps": [],
+        "relocations": [],
+        "api-calls": [],
+        "app-slots": [],
+        "app-slot-regions": [],
+        "app-slot-gaps": [],
+        "app-slot-field-gaps": [],
+        "app-slot-suggestions": [],
+        "app-slot-api-args": [],
+        "labels": [],
+        "comments": [],
+    }
+    app_slots: dict[str, dict[str, object]] = {}
+    labels: dict[str, dict[str, object]] = {}
+    api_calls = disasm_server._PROJECT_API_CALL_CACHE.get(project_name, {})
+    for row_index, row in enumerate(rows):
+        if row.addr is None:
+            continue
+        code = _test_row_code(row)
+        base_entry: dict[str, object] = {
+            "addr": row.addr,
+            "row_index": row_index,
+            "summary": code,
+            "match_text": code,
+            "stable_key": row.stable_key,
+        }
+        if isinstance(row.source_context, BlockRowContext):
+            base_entry["hunk_index"] = row.source_context.hunk_index
+        if row.label or code.endswith(":"):
+            symbol = (row.label or code).rstrip(":")
+            label_entry = {
+                **base_entry,
+                "summary": f"{symbol}:",
+                "symbol": symbol,
+                "ref_count": 1,
+                "access_counts": {"definition": 1},
+                "refs": [{**base_entry, "summary": f"{symbol}:", "symbol": symbol, "access": "definition"}],
+            }
+            labels[symbol] = label_entry
+        if isinstance(row.source_context, BlockRowContext):
+            api_call = api_calls.get((row.source_context.hunk_index, row.addr))
+            if api_call is not None and row.kind == "instruction":
+                groups["api-calls"].append(
+                    {
+                        **base_entry,
+                        "summary": f"{api_call.get('function', '')} ({api_call.get('library', '')})".strip(),
+                    }
+                )
+        for ref in row.app_slot_refs:
+            slot = app_slots.setdefault(
+                ref.symbol,
+                {
+                    "symbol": ref.symbol,
+                    "summary": ref.symbol,
+                    "match_text": ref.symbol,
+                    "displacement": ref.displacement,
+                    "ref_count": 0,
+                    "access_counts": {},
+                    "refs": [],
+                },
+            )
+            cast(list[dict[str, object]], slot["refs"]).append({**base_entry, "symbol": ref.symbol, "access": ref.access})
+            slot["ref_count"] = cast(int, slot["ref_count"]) + 1
+            access_counts = cast(dict[str, int], slot["access_counts"])
+            access_counts[ref.access] = access_counts.get(ref.access, 0) + 1
+    for row_index, row in enumerate(rows):
+        if row.addr is None:
+            continue
+        code = _test_row_code(row)
+        base_entry: dict[str, object] = {
+            "addr": row.addr,
+            "row_index": row_index,
+            "summary": code,
+            "match_text": code,
+            "stable_key": row.stable_key,
+        }
+        if isinstance(row.source_context, BlockRowContext):
+            base_entry["hunk_index"] = row.source_context.hunk_index
+        for operand in row.operand_parts:
+            symbol = operand.metadata.symbol if isinstance(operand.metadata, SymbolOperandMetadata) else None
+            if not symbol or symbol not in labels:
+                continue
+            label_entry = labels[symbol]
+            cast(list[dict[str, object]], label_entry["refs"]).append(
+                {**base_entry, "symbol": symbol, "access": "reference"}
+            )
+            label_entry["ref_count"] = cast(int, label_entry["ref_count"]) + 1
+            access_counts = cast(dict[str, int], label_entry["access_counts"])
+            access_counts["reference"] = access_counts.get("reference", 0) + 1
+    for label_entry in labels.values():
+        cast(list[dict[str, object]], label_entry["refs"]).sort(
+            key=lambda entry: cast(int, entry.get("row_index", -1))
+        )
+    groups["app-slots"] = list(app_slots.values())
+    groups["labels"] = sorted(labels.values(), key=lambda entry: cast(int, entry.get("row_index", -1)))
+    app_slot_analysis = disasm_server._PROJECT_APP_SLOT_ANALYSIS_CACHE.get(project_name, {})
+    return {
+        "analysis_generation": disasm_server._PROJECT_ROW_GENERATION_CACHE.get(project_name),
+        "total_rows": len(rows),
+        "groups": groups,
+        "app_slot_analysis": app_slot_analysis,
+        "type_flow_analysis": disasm_server._PROJECT_TYPE_FLOW_ANALYSIS_CACHE.get(project_name, {}),
+    }
+
+
 class _FakeCListingArtifact:
     def __init__(self, rows: list[ListingRow], *, project_name: str = "test_project") -> None:
         self.rows = rows
@@ -100,7 +217,7 @@ class _FakeCListingArtifact:
         return payload, {}
 
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
-        return disasm_server._listing_navigation_payload(self.project_name, self.rows), {}
+        return _test_navigation_payload(self.project_name, self.rows), {}
 
 
 def _temp_project_accessors(monkeypatch: pytest.MonkeyPatch, project_root: Path) -> None:
@@ -682,7 +799,7 @@ def test_brave_cdp_virtual_listing_scrolls_and_navigation_uses_global_index(
             text="start:\n",
             addr=0,
             label="start:",
-            analysis_generation="basic",
+            analysis_generation="full",
         )
     ]
     for index in range(1, 899):
@@ -693,7 +810,7 @@ def test_brave_cdp_virtual_listing_scrolls_and_navigation_uses_global_index(
                 text="rts\n",
                 addr=index * 2,
                 opcode_or_directive="rts",
-                analysis_generation="basic",
+                analysis_generation="full",
             )
         )
     rows.append(
@@ -703,7 +820,7 @@ def test_brave_cdp_virtual_listing_scrolls_and_navigation_uses_global_index(
             text="far_target:\n",
             addr=1798,
             label="far_target:",
-            analysis_generation="basic",
+            analysis_generation="full",
         )
     )
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
@@ -786,7 +903,7 @@ def test_brave_cdp_virtual_listing_pagedown_fetches_low_latency(
             text="rts\n",
             addr=index * 2,
             opcode_or_directive="rts",
-            analysis_generation="basic",
+            analysis_generation="full",
         )
         for index in range(1000)
     ]
@@ -958,7 +1075,7 @@ def test_brave_cdp_stats_overlay_shows_fetch_latency(monkeypatch: pytest.MonkeyP
             text="rts\n",
             addr=index * 2,
             opcode_or_directive="rts",
-            analysis_generation="basic",
+            analysis_generation="full",
         )
         for index in range(400)
     ]
