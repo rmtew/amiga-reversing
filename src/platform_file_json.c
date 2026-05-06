@@ -4757,6 +4757,8 @@ typedef struct ListingRenderPlanJsonContext {
   const M68kAnalysisPolicy *analysis_policy;
   const M68kSourceAnalysisIR *source_analysis;
   const char *analysis_generation;
+  const M68kRenderPlan *render_plan;
+  const M68kRenderPlanRow *current_plan_row;
   PlatformListingRowIndexEntry *row_index_entries;
   size_t row_index_entry_count;
   size_t row_index;
@@ -4764,6 +4766,7 @@ typedef struct ListingRenderPlanJsonContext {
   size_t window_start;
   size_t window_end;
   uint32_t anchor_addr;
+  uint32_t current_subline;
   int active_section_index;
   int preamble_emitted;
   int include_source_only_rows;
@@ -4932,6 +4935,17 @@ static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *con
   }
   if (context->row_index_entries != NULL && context->row_index < context->row_index_entry_count) {
     PlatformListingRowIndexEntry *entry = &context->row_index_entries[context->row_index];
+    if (context->current_plan_row != NULL && context->render_plan != NULL &&
+        context->current_plan_row >= context->render_plan->rows &&
+        context->current_plan_row < context->render_plan->rows + context->render_plan->row_count) {
+      entry->has_plan_row = 1U;
+      entry->plan_row_index = (uint32_t)(context->current_plan_row - context->render_plan->rows);
+      entry->subline = context->current_subline;
+    } else {
+      entry->has_plan_row = 0U;
+      entry->plan_row_index = 0U;
+      entry->subline = 0U;
+    }
     if (stmt != NULL) {
       entry->has_addr = 1U;
       entry->addr = stmt->offset;
@@ -4969,14 +4983,22 @@ static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *con
 
 static int append_listing_render_plan_blank_row(ListingRenderPlanJsonContext *context) {
   static const char blank_line[] = "\n";
+  if (context != NULL) {
+    context->current_plan_row = NULL;
+    context->current_subline = 0U;
+  }
   return append_listing_render_plan_json_row(context, blank_line, 1U, "blank", NULL, NULL, NULL, NULL, -1, NULL);
 }
 
 static int append_listing_source_header_rows(ListingRenderPlanJsonContext *context) {
+  const M68kRenderPlanRow *saved_plan_row;
+  uint32_t saved_subline;
   size_t index;
   int group;
   int emitted_any = 0;
   if (context == NULL || context->header_rows == NULL) return -1;
+  saved_plan_row = context->current_plan_row;
+  saved_subline = context->current_subline;
   for (group = 0; group <= 2; ++group) {
     int emitted_group = 0;
     for (index = 0U; index < context->header_rows->count; ++index) {
@@ -4985,6 +5007,8 @@ static int append_listing_source_header_rows(ListingRenderPlanJsonContext *conte
       if (emitted_any && !emitted_group) {
         if (append_listing_render_plan_blank_row(context) != 0) return -1;
       }
+      context->current_plan_row = NULL;
+      context->current_subline = 0U;
       if (append_listing_render_plan_json_row(context, row->line_start, row->line_length, row->row_kind,
           NULL, NULL, NULL, NULL, row->section_index, NULL) != 0)
         return -1;
@@ -4993,6 +5017,8 @@ static int append_listing_source_header_rows(ListingRenderPlanJsonContext *conte
     }
   }
   if (emitted_any && append_listing_render_plan_blank_row(context) != 0) return -1;
+  context->current_plan_row = saved_plan_row;
+  context->current_subline = saved_subline;
   return 0;
 }
 
@@ -5095,6 +5121,8 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
   (void)line;
   m68k_ir_statement_init(&plan_stmt);
   if (context == NULL) return -1;
+  context->current_plan_row = row;
+  context->current_subline = subline;
   split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
     sizeof(operand), comment, sizeof(comment));
   row_kind = listing_row_kind_for_plan_row(row);
@@ -6011,6 +6039,7 @@ int source_file_listing_row_index_from_render_plan(const M68kSourceFileIR *sourc
   if (source_file != NULL) platform_backend_kind = source_file->platform_backend_kind;
   (void)platform_backend_kind;
   index_context.header_rows = &header_rows;
+  index_context.render_plan = render_plan;
   index_context.source_file = source_file;
   index_context.analysis_policy = analysis_policy;
   index_context.source_analysis = source_analysis;
@@ -6056,11 +6085,15 @@ static int source_file_listing_window_range_from_render_plan_to_json(const M68kS
     const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
     size_t total_rows, size_t safe_start, size_t end, int anchor_override_enabled, int anchor_override_has_addr,
-    uint32_t anchor_override_addr, char **out_json, M68kDiagSink diagnostics) {
+    uint32_t anchor_override_addr, const PlatformListingRowIndex *row_index, char **out_json,
+    M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
   ListingSourceHeaderRows header_rows = {0};
   ListingRenderPlanJsonContext emit_context;
   const char *failure = "out of memory";
+  size_t visit_first_row = 0U;
+  size_t visit_row_count = render_plan != NULL ? render_plan->row_count : 0U;
+  size_t display_row_base = 0U;
   memset(&emit_context, 0, sizeof(emit_context));
   if (out_json != NULL) *out_json = NULL;
   if (render_plan == NULL || out_json == NULL) {
@@ -6082,8 +6115,30 @@ static int source_file_listing_window_range_from_render_plan_to_json(const M68kS
         (unsigned)safe_start, (unsigned)end, safe_start > 0U ? "true" : "false",
         end < total_rows ? "true" : "false", (unsigned)total_rows) != 0)
     goto oom;
+  if (row_index != NULL && safe_start < end && end <= row_index->row_count &&
+      row_index->entries != NULL && row_index->entries[safe_start].has_plan_row &&
+      row_index->entries[end - 1U].has_plan_row) {
+    size_t first_entry = safe_start;
+    size_t last_entry = end - 1U;
+    uint32_t first_plan_row;
+    uint32_t last_plan_row;
+    while (first_entry > 0U && row_index->entries[first_entry - 1U].has_plan_row &&
+        row_index->entries[first_entry - 1U].plan_row_index == row_index->entries[safe_start].plan_row_index)
+      --first_entry;
+    first_plan_row = row_index->entries[first_entry].plan_row_index;
+    last_plan_row = row_index->entries[last_entry].plan_row_index;
+    if ((size_t)first_plan_row < render_plan->row_count && (size_t)last_plan_row < render_plan->row_count &&
+        first_plan_row <= last_plan_row) {
+      visit_first_row = first_plan_row;
+      visit_row_count = (size_t)last_plan_row - (size_t)first_plan_row + 1U;
+      display_row_base = first_entry;
+    }
+  } else if (safe_start == end) {
+    visit_row_count = 0U;
+  }
   emit_context.builder = &builder;
   emit_context.header_rows = &header_rows;
+  emit_context.render_plan = render_plan;
   emit_context.source_file = source_file;
   emit_context.analysis_policy = analysis_policy;
   emit_context.source_analysis = source_analysis;
@@ -6091,10 +6146,11 @@ static int source_file_listing_window_range_from_render_plan_to_json(const M68kS
   emit_context.active_section_index = -1;
   emit_context.include_source_only_rows = include_source_only_rows;
   emit_context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
+  emit_context.row_index = display_row_base;
   emit_context.window_enabled = 1;
   emit_context.window_start = safe_start;
   emit_context.window_end = end;
-  if (m68k_render_plan_visit_row_lines(render_plan, 0U, render_plan->row_count,
+  if (m68k_render_plan_visit_row_lines(render_plan, visit_first_row, visit_row_count,
       append_full_listing_render_plan_line, &emit_context) != 0) {
     failure = "listing window emit pass failed";
     goto oom;
@@ -6140,7 +6196,33 @@ int source_file_listing_window_from_render_plan_with_total_to_json(const M68kSou
   if (end < safe_start || end > total_rows) end = total_rows;
   return source_file_listing_window_range_from_render_plan_to_json(source_file, render_plan, platform_backend_kind,
     analysis_policy, source_analysis, analysis_generation, include_source_only_rows, total_rows, safe_start, end,
-    0, 0, 0U, out_json, diagnostics);
+    0, 0, 0U, NULL, out_json, diagnostics);
+}
+
+int source_file_listing_window_from_render_plan_with_index_to_json(const M68kSourceFileIR *source_file,
+    const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
+    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
+    const PlatformListingRowIndex *row_index, size_t start, size_t count, char **out_json,
+    M68kDiagSink diagnostics) {
+  size_t total_rows;
+  size_t safe_start;
+  size_t end;
+  if (row_index == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    return -1;
+  }
+  total_rows = row_index->row_count;
+  if (count == 0U || total_rows == 0U) {
+    safe_start = 0U;
+  } else {
+    size_t max_start = total_rows > count ? total_rows - count : 0U;
+    safe_start = start < max_start ? start : max_start;
+  }
+  end = safe_start + count;
+  if (end < safe_start || end > total_rows) end = total_rows;
+  return source_file_listing_window_range_from_render_plan_to_json(source_file, render_plan, platform_backend_kind,
+    analysis_policy, source_analysis, analysis_generation, include_source_only_rows, total_rows, safe_start, end,
+    0, 0, 0U, row_index, out_json, diagnostics);
 }
 
 int source_file_listing_window_from_render_plan_to_json(const M68kSourceFileIR *source_file,
@@ -6206,5 +6288,5 @@ int source_file_listing_addr_window_from_render_plan_with_index_to_json(const M6
   }
   return source_file_listing_window_range_from_render_plan_to_json(source_file, render_plan, platform_backend_kind,
     analysis_policy, source_analysis, analysis_generation, include_source_only_rows, total_rows, safe_start, end,
-    1, has_addr, addr, out_json, diagnostics);
+    1, has_addr, addr, row_index, out_json, diagnostics);
 }

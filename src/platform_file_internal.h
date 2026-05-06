@@ -124,7 +124,10 @@ typedef const void *(*PlatformStackWrapperResolveCallFn)(void *user_ctx, const S
 
 typedef struct PlatformListingRowIndexEntry {
   uint8_t has_addr;
+  uint8_t has_plan_row;
   uint32_t addr;
+  uint32_t plan_row_index;
+  uint32_t subline;
 } PlatformListingRowIndexEntry;
 
 typedef struct PlatformListingRowIndexBlock {
@@ -158,6 +161,11 @@ int source_file_listing_window_from_render_plan_with_total_to_json(const M68kSou
     const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
     size_t total_rows, size_t start, size_t count, char **out_json, M68kDiagSink diagnostics);
+int source_file_listing_window_from_render_plan_with_index_to_json(const M68kSourceFileIR *source_file,
+    const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
+    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
+    const PlatformListingRowIndex *row_index, size_t start, size_t count, char **out_json,
+    M68kDiagSink diagnostics);
 int source_file_listing_total_rows_from_render_plan(const M68kSourceFileIR *source_file,
     const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,

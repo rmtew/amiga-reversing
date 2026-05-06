@@ -5340,9 +5340,9 @@ int platform_file_facts_v2_listing_artifact_window_json_alloc(PlatformFileListin
     return text_result_to_alloc(&result, out_text);
   }
   window_start = clock();
-  if (source_file_listing_window_from_render_plan_with_total_to_json(NULL, &artifact->source_plan,
+  if (source_file_listing_window_from_render_plan_with_index_to_json(NULL, &artifact->source_plan,
       artifact->object.platform_backend_kind, &artifact->source_analysis.policy, &artifact->source_analysis,
-      "full", 0, artifact->listing_total_rows, start, count, &window_json,
+      "full", 0, &artifact->listing_row_index, start, count, &window_json,
       m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "facts_v2 listing window render-plan emission failed");

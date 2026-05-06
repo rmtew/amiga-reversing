@@ -121,9 +121,18 @@ maxima. Address-anchored windows use that retained C index to find the first
 displayed row whose address is greater than or equal to the requested address,
 preserving display-order semantics without replaying a full anchor/count render
 pass and without restoring a Python-side serialized row cache.
+The displayed-row index also records render-plan row/subline provenance for
+rows that came from a concrete plan row. Retained artifact row-window requests
+use that provenance to bound the render-plan visit to the small span that can
+produce the requested displayed rows, falling back to a full visit only for
+synthetic header/fallback rows without plan provenance.
 The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.
+Assembler directives that are emitted from inside a mixed render row, such as
+`ORG`, are flagged by the directive emission path while the row is built. The
+listing path consumes that row/subline metadata. It must not rediscover ORG
+rows by comparing final source text.
 
 Render plans now own rows and row text through a plan-local arena. The row
 array remains contiguous, but growth uses arena allocate-and-copy instead of
@@ -421,6 +430,9 @@ a fresh window around the anchor.
 - Render-plan provenance must be assigned when the renderer knows the row's
   semantic origin. Do not recover provenance later by classifying final emitted
   text lines.
+- Assembler-specific directive emission must mark directive rows/sublines at
+  emission time. ORG handling is metadata-driven; text comparison is a
+  regression.
 - Header ordering must be a render-plan transform over typed rows, not a text
   rewrite followed by row reclassification.
 - No M68K instruction facts are hardcoded in the render plan.
@@ -480,6 +492,10 @@ pass. The old direct DLL/Python API that rebuilt full analysis for a single
 window has been removed; full-generation windows must come through the retained
 artifact. The dataclass row path remains only for basic progress display and
 for fallback when a full C artifact is unavailable.
+Retained artifact row windows now reuse the artifact's displayed-row index as
+row-to-plan provenance. For ordinary body windows this avoids replaying the
+whole render plan on every viewport request; synthetic header rows deliberately
+remain unprovenanced and use the conservative full-visit fallback.
 
 ## Required Tests
 
