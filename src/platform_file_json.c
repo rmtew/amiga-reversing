@@ -4889,6 +4889,15 @@ typedef struct ListingRenderPlanHeaderContext {
   int stopped;
 } ListingRenderPlanHeaderContext;
 
+static int listing_source_header_group_for_plan_row(const M68kRenderPlanRow *row) {
+  if (row == NULL) return -1;
+  if (row->kind == M68K_RENDER_PLAN_ROW_INCLUDE) return 1;
+  if (row->kind == M68K_RENDER_PLAN_ROW_RSSET || row->kind == M68K_RENDER_PLAN_ROW_RS_FIELD ||
+      row->kind == M68K_RENDER_PLAN_ROW_EQUATE)
+    return 2;
+  return -1;
+}
+
 static int collect_listing_source_header_plan_line(const M68kRenderPlanRow *row, uint32_t subline, uint32_t line,
     const char *line_start, size_t line_length, void *user) {
   ListingRenderPlanHeaderContext *context = (ListingRenderPlanHeaderContext *)user;
@@ -4897,10 +4906,23 @@ static int collect_listing_source_header_plan_line(const M68kRenderPlanRow *row,
   char operand[1024];
   char comment[512];
   const char *row_kind;
-  (void)row;
   (void)subline;
   (void)line;
   if (context == NULL || context->header_rows == NULL || context->stopped) return 0;
+  if (row != NULL && row->kind == M68K_RENDER_PLAN_ROW_SECTION) {
+    context->stopped = 1;
+    return 0;
+  }
+  if (row != NULL && row->kind != M68K_RENDER_PLAN_ROW_DIAGNOSTIC) {
+    int group = listing_source_header_group_for_plan_row(row);
+    row_kind = listing_row_kind_for_plan_row(row);
+    if (group >= 0 && row_kind != NULL) {
+      if (listing_source_header_rows_append(context->header_rows, line_start, line_length, row_kind, -1,
+          group) != 0)
+        return -1;
+    }
+    return 0;
+  }
   split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
     sizeof(operand), comment, sizeof(comment));
   row_kind = listing_row_kind_for_line(stripped);

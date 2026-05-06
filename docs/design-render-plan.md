@@ -74,6 +74,10 @@ the lighter provenance shape the facts_v2 render walk can emit before exact
 source-file statement indexes exist.
 Render plans now have a typed header-hoist transform that orders include rows,
 RS rows, and equate rows before body rows without parsing final source text.
+Filtered full-listing header collection now also prefers typed render-plan row
+kinds for include/RS/equate rows and first-section stop detection. The legacy
+text classifier remains only for diagnostic/text-line bridge rows that do not
+yet have semantic row kinds.
 
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
