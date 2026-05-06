@@ -4771,10 +4771,6 @@ typedef struct ListingRenderPlanJsonContext {
   int count_only;
   int window_enabled;
   int has_anchor_addr;
-  int anchor_search_enabled;
-  int has_anchor_row_index;
-  uint32_t anchor_search_addr;
-  size_t anchor_row_index;
   size_t statement_index;
   size_t data_lines_left;
 } ListingRenderPlanJsonContext;
@@ -4928,11 +4924,6 @@ static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *con
   if (stmt != NULL && !context->has_anchor_addr && context->row_index == context->window_start) {
     context->anchor_addr = stmt->offset;
     context->has_anchor_addr = 1;
-  }
-  if (stmt != NULL && context->anchor_search_enabled && !context->has_anchor_row_index &&
-      stmt->offset >= context->anchor_search_addr) {
-    context->anchor_row_index = context->row_index;
-    context->has_anchor_row_index = 1;
   }
   if (context->row_index_entries != NULL && context->row_index < context->row_index_entry_count) {
     PlatformListingRowIndexEntry *entry = &context->row_index_entries[context->row_index];
@@ -6157,74 +6148,6 @@ int source_file_listing_window_from_render_plan_to_json(const M68kSourceFileIR *
   return source_file_listing_window_from_render_plan_with_total_to_json(source_file, render_plan,
     platform_backend_kind, analysis_policy, source_analysis, analysis_generation, include_source_only_rows,
     total_rows, start, count, out_json, diagnostics);
-}
-
-int source_file_listing_addr_window_from_render_plan_to_json(const M68kSourceFileIR *source_file,
-    const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
-    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
-    int has_addr, uint32_t addr, size_t before, size_t after, char **out_json, M68kDiagSink diagnostics) {
-  ListingSourceHeaderRows header_rows = {0};
-  ListingRenderPlanJsonContext count_context;
-  const char *failure = "out of memory";
-  size_t total_rows;
-  size_t anchor_index;
-  size_t safe_start;
-  size_t end;
-  memset(&count_context, 0, sizeof(count_context));
-  if (render_plan == NULL || out_json == NULL) {
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
-    return -1;
-  }
-  if (listing_source_header_rows_init(&header_rows) != 0) goto oom;
-  if (!include_source_only_rows) {
-    if (collect_listing_source_header_rows_from_plan(render_plan, &header_rows) != 0) {
-      failure = "listing address window header collection failed";
-      goto oom;
-    }
-  }
-  if (source_file != NULL) platform_backend_kind = source_file->platform_backend_kind;
-  (void)platform_backend_kind;
-  count_context.header_rows = &header_rows;
-  count_context.source_file = source_file;
-  count_context.analysis_policy = analysis_policy;
-  count_context.source_analysis = source_analysis;
-  count_context.analysis_generation = analysis_generation;
-  count_context.active_section_index = -1;
-  count_context.include_source_only_rows = include_source_only_rows;
-  count_context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
-  count_context.count_only = 1;
-  count_context.anchor_search_enabled = has_addr ? 1 : 0;
-  count_context.anchor_search_addr = addr;
-  if (m68k_render_plan_visit_row_lines(render_plan, 0U, render_plan->row_count,
-      append_full_listing_render_plan_line, &count_context) != 0) {
-    failure = "listing address window count pass failed";
-    goto oom;
-  }
-  total_rows = count_context.row_index;
-  if (total_rows == 0U) {
-    anchor_index = 0U;
-  } else if (!has_addr) {
-    anchor_index = 0U;
-  } else if (count_context.has_anchor_row_index) {
-    anchor_index = count_context.anchor_row_index;
-  } else {
-    anchor_index = total_rows - 1U;
-  }
-  safe_start = anchor_index > before ? anchor_index - before : 0U;
-  if (after > ((size_t)-1) - anchor_index - 1U) end = total_rows;
-  else {
-    end = anchor_index + after + 1U;
-    if (end > total_rows) end = total_rows;
-  }
-  listing_source_header_rows_destroy(&header_rows);
-  return source_file_listing_window_range_from_render_plan_to_json(source_file, render_plan, platform_backend_kind,
-    analysis_policy, source_analysis, analysis_generation, include_source_only_rows, total_rows, safe_start, end,
-    1, has_addr, addr, out_json, diagnostics);
-
-oom:
-  listing_source_header_rows_destroy(&header_rows);
-  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, failure);
-  return -1;
 }
 
 static size_t listing_row_index_find_anchor(const PlatformListingRowIndex *row_index, int has_addr,

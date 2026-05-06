@@ -91,17 +91,11 @@ PLATFORM_FILE_API int platform_file_facts_v2_direct_rebuild_compare_buffer_bytes
     char **out_source_profile_json, char **out_direct_profile_json, char **out_error);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc(const char *backend_name,
     const char *path, const char *metadata_path, const char *include_dir, char **out_text);
-PLATFORM_FILE_API int platform_file_facts_v2_listing_window_path_json_alloc(const char *backend_name,
-    const char *path, const char *metadata_path, const char *include_dir, uint32_t start, uint32_t count,
-    char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_basic_listing_rows_path_json_alloc(const char *backend_name,
     const char *path, const char *metadata_path, const char *include_dir, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc(const char *platform_name,
     const char *path, uint32_t entry_offset, const char *metadata_path,
     const char *include_dir, char **out_text);
-PLATFORM_FILE_API int platform_file_facts_v2_listing_window_raw_path_json_alloc(const char *platform_name,
-    const char *path, uint32_t entry_offset, const char *metadata_path, const char *include_dir, uint32_t start,
-    uint32_t count, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_path_create(const char *backend_name,
     const char *path, const char *metadata_path, const char *include_dir,
     PlatformFileListingArtifact **out_artifact, char **out_error);

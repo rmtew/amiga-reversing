@@ -2688,44 +2688,6 @@ def test_real_dll_facts_v2_listing_rows_use_plan_metadata_without_source_model(t
     assert any(row.kind == "instruction" and row.opcode_or_directive == "rts" and row.bytes == b"\x4e\x75" for row in rows)
 
 
-def test_real_dll_facts_v2_listing_window_matches_full_render_plan_slice(tmp_path: Path) -> None:
-    _requires_c_backend_dlls()
-    binary_path = tmp_path / "window.bin"
-    binary_path.write_bytes(b"\x70\x00\x4e\x75\x4e\x75")
-    source = RawBinarySource(
-        kind="raw_binary",
-        path=binary_path,
-        address_model="local_offset",
-        load_address=0,
-        entrypoint=0,
-        code_start_offset=0,
-        display_path=str(binary_path),
-        analysis_cache_path=tmp_path / "binary.analysis",
-    )
-
-    rows, _, _ = c_backend._build_project_rows_generation_from_source(
-        source,
-        metadata_text="",
-        generation="full",
-        project_root=PROJECT_ROOT,
-    )
-    window, profile = c_backend._build_project_listing_window_generation_from_source(
-        source,
-        metadata_text="",
-        generation="full",
-        start=1,
-        count=3,
-        project_root=PROJECT_ROOT,
-    )
-
-    assert profile["generation"] == "facts_v2_listing_window"
-    assert window["total_rows"] == len(rows)
-    assert window["start"] == 1
-    assert window["end"] == 4
-    assert [row["row_id"] for row in window["rows"]] == [row.row_id for row in rows[1:4]]
-    assert [row["text"] for row in window["rows"]] == [row.text for row in rows[1:4]]
-
-
 def test_real_dll_raw_runtime_absolute_entry_uses_execution_view(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "stage.bin"

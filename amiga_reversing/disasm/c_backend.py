@@ -563,30 +563,6 @@ def build_project_rows_generation_with_c_backend_profile(
         return rows, api_calls, profile
 
 
-def build_project_listing_window_generation_with_c_backend_profile(
-    project_name: str,
-    *,
-    generation: str,
-    start: int,
-    count: int,
-    project_root: Path = PROJECT_ROOT,
-) -> tuple[ListingWindowPayload, dict[str, object]]:
-    if generation != "full":
-        raise ValueError(f"Unsupported render-plan listing window generation: {generation}")
-    paths = resolve_project_paths(project_name, project_root=project_root)
-    with effective_metadata_file(paths.target_dir) as metadata_path:
-        metadata_text = _metadata_path_text(metadata_path)
-        payload, profile = _build_project_listing_window_generation_from_source(
-            paths.binary_source,
-            metadata_text=metadata_text,
-            generation=generation,
-            start=start,
-            count=count,
-            project_root=project_root,
-        )
-        return payload, profile
-
-
 def build_project_listing_artifact_generation_profile(
     project_name: str,
     *,
@@ -674,64 +650,6 @@ def _build_project_rows_generation_from_source(
         if isinstance(type_flow_analysis, dict):
             profile["type_flow_analysis"] = type_flow_analysis
     return rows_from_c_listing_json(listing_rows), api_calls_from_c_analysis(analysis), profile
-
-
-def _build_project_listing_window_generation_from_source(
-    binary_source: BinarySource,
-    *,
-    metadata_text: str,
-    generation: str,
-    start: int,
-    count: int,
-    project_root: Path,
-) -> tuple[ListingWindowPayload, dict[str, object]]:
-    if generation != "full":
-        raise ValueError(f"Unsupported render-plan listing window generation: {generation}")
-    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
-        include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
-        safe_start = max(0, start)
-        safe_count = max(0, count)
-        if source_file.entry_offset is None:
-            combined_text = _platform_file_text(
-                "platform_file_facts_v2_listing_window_path_json_alloc",
-                source_file.platform_name,
-                str(source_file.path),
-                metadata_text,
-                str(include_dir),
-                safe_start,
-                safe_count,
-                project_root=project_root,
-            )
-        else:
-            combined_text = _platform_file_text(
-                "platform_file_facts_v2_listing_window_raw_path_json_alloc",
-                source_file.platform_name,
-                str(source_file.path),
-                source_file.entry_offset,
-                metadata_text,
-                str(include_dir),
-                safe_start,
-                safe_count,
-                project_root=project_root,
-            )
-        combined = cast(dict[str, object], json.loads(combined_text))
-        listing_window = cast(dict[str, object], combined.get("listing", {}))
-        profile = cast(dict[str, object], combined.get("profile", {}))
-        rows = rows_from_c_listing_json(listing_window)
-        payload = cast(
-            ListingWindowPayload,
-            {
-                "anchor_addr": listing_window.get("anchor_addr"),
-                "start": listing_window.get("start", 0),
-                "end": listing_window.get("end", 0),
-                "has_more_before": listing_window.get("has_more_before", False),
-                "has_more_after": listing_window.get("has_more_after", False),
-                "total_rows": listing_window.get("total_rows", 0),
-                "analysis_generation": generation,
-                "rows": [serialize_row(row) for row in rows],
-            },
-        )
-        return payload, profile
 
 
 def type_catalog_from_c_backend(
@@ -1632,27 +1550,6 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     _configure_text_function(dll, "platform_file_facts_v2_basic_listing_rows_path_json_alloc", 4)
     _configure_text_function(dll, "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc", 5)
     _configure_text_function(dll, "platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc", 5)
-    dll.platform_file_facts_v2_listing_window_path_json_alloc.argtypes = [
-        c_char_p,
-        c_char_p,
-        c_char_p,
-        c_char_p,
-        c_uint32,
-        c_uint32,
-        POINTER(c_void_p),
-    ]
-    dll.platform_file_facts_v2_listing_window_path_json_alloc.restype = c_int
-    dll.platform_file_facts_v2_listing_window_raw_path_json_alloc.argtypes = [
-        c_char_p,
-        c_char_p,
-        c_uint32,
-        c_char_p,
-        c_char_p,
-        c_uint32,
-        c_uint32,
-        POINTER(c_void_p),
-    ]
-    dll.platform_file_facts_v2_listing_window_raw_path_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_path_create.argtypes = [
         c_char_p,
         c_char_p,

@@ -476,8 +476,10 @@ inputs. That artifact serves row windows, address-anchored windows, row counts,
 analysis JSON, and navigation from one retained C state. Address windows use the
 artifact's arena-owned displayed-row index and address block maxima, so scroll
 requests no longer need a second Python row database or a full C anchor/count
-pass. The dataclass row path remains only for basic progress display and for
-fallback when a full C artifact is unavailable.
+pass. The old direct DLL/Python API that rebuilt full analysis for a single
+window has been removed; full-generation windows must come through the retained
+artifact. The dataclass row path remains only for basic progress display and
+for fallback when a full C artifact is unavailable.
 
 ## Required Tests
 
