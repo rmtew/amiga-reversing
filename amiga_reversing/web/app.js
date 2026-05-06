@@ -193,10 +193,8 @@ const JOB_PHASE_LABELS = {
   full_listing: {
     queued: "Queued",
     build_session: "Opening file",
-    build_basic_rows: "Building initial rows",
-    emit_basic_rows: "Showing initial listing",
-    build_c_rows: "Enriching analysis",
-    emit_rows: "Updating listing",
+    build_c_rows: "Building analysis",
+    emit_rows: "Showing listing",
     done: "Done",
     error: "Failed",
   },
@@ -5215,7 +5213,13 @@ function bindListingEditors(projectId, rows) {
 async function loadListingWindow(projectId, addr = null, before = 24, after = 80, options = {}) {
   const requestSeq = ++state.virtualListing.requestSeq;
   if (options.abortPrevious && state.virtualListing.fetchAbortController) {
-    state.virtualListing.fetchAbortController.abort();
+    try {
+      state.virtualListing.fetchAbortController.abort();
+    } catch (error) {
+      if (!isAbortError(error)) {
+        throw error;
+      }
+    }
   }
   const abortController = new AbortController();
   state.virtualListing.fetchAbortController = abortController;
@@ -5242,10 +5246,18 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
       `/api/projects/${encodeURIComponent(projectId)}/listing?${params.toString()}`,
       {signal: abortController.signal},
     );
+  } catch (error) {
+    if (isAbortError(error)) {
+      return null;
+    }
+    throw error;
   } finally {
     if (state.virtualListing.fetchAbortController === abortController) {
       state.virtualListing.fetchAbortController = null;
     }
+  }
+  if (!listing) {
+    return null;
   }
   const fetchedAt = performance.now();
   const fetchMs = fetchedAt - startedAt;

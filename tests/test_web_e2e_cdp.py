@@ -16,6 +16,7 @@ import pytest
 
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
+from amiga_reversing.disasm.api import listing_index_window_payload, listing_window_payload
 from amiga_reversing.disasm.c_backend import build_project_rows_with_c_backend
 from amiga_reversing.disasm.listing_types import (
     AppSlotRef,
@@ -56,6 +57,55 @@ def _binary_project(project_name: str) -> ProjectRecord:
 def _cache_full_project_rows(project_id: str, rows: list[ListingRow]) -> None:
     disasm_server._PROJECT_ROW_CACHE[project_id] = rows
     disasm_server._PROJECT_ROW_GENERATION_CACHE[project_id] = "full"
+
+
+class _FakeCListingArtifact:
+    def __init__(self, rows: list[ListingRow]) -> None:
+        self.rows = rows
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
+
+    def window_payload(
+        self, *, start: int, count: int, generation: str = "full"
+    ) -> tuple[dict[str, object], dict[str, object]]:
+        payload = dict(listing_index_window_payload(self.rows, start, count))
+        payload["analysis_generation"] = generation
+        return payload, {}
+
+    def addr_window_payload(
+        self, *, addr: int | None, before: int, after: int, generation: str = "full"
+    ) -> tuple[dict[str, object], dict[str, object]]:
+        payload = dict(listing_window_payload(self.rows, addr, before=before, after=after))
+        payload["analysis_generation"] = generation
+        return payload, {}
+
+    def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+        return (
+            {
+                "analysis_generation": "full",
+                "total_rows": len(self.rows),
+                "groups": {
+                    "repro-issues": [],
+                    "typed-data": [],
+                    "typed-gaps": [],
+                    "relocations": [],
+                    "api-calls": [],
+                    "app-slots": [],
+                    "app-slot-regions": [],
+                    "app-slot-gaps": [],
+                    "app-slot-field-gaps": [],
+                    "app-slot-suggestions": [],
+                    "app-slot-api-args": [],
+                    "labels": [],
+                    "comments": [],
+                },
+                "app_slot_analysis": {},
+                "type_flow_analysis": {},
+            },
+            {},
+        )
 
 
 def _temp_project_accessors(monkeypatch: pytest.MonkeyPatch, project_root: Path) -> None:
@@ -380,7 +430,7 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
     )
     monkeypatch.setattr(
         disasm_server,
-        "_start_progressive_listing_jobs",
+        "_start_listing_job",
         lambda project_name: {
             "job_id": "cached-listing",
             "job_kind": "full_listing",
@@ -388,11 +438,11 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
             "result_project_id": project_name,
             "status": "ready",
             "phase_id": "done",
-            "phase_index": 4,
-            "phase_count": 4,
+            "phase_index": 2,
+            "phase_count": 2,
             "progress_mode": "determinate",
-            "progress_current": 4,
-            "progress_total": 4,
+            "progress_current": 2,
+            "progress_total": 2,
             "progress_percent": 100,
             "total_rows": 2,
             "error": None,
@@ -953,7 +1003,6 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
         )
         return rows
 
-    basic_rows = make_rows("basic", "far_basic")
     full_rows = [
         ListingRow(row_id="full-comment", kind="comment", text="; full header\n", analysis_generation="full"),
         ListingRow(row_id="full-equ", kind="directive", text="app_SIZEOF EQU __RS\n", analysis_generation="full"),
@@ -964,14 +1013,13 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
     full_started = threading.Event()
     release_full = threading.Event()
 
-    def build_rows(
+    def build_artifact(
         project_name: str, generation: str
-    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]], dict[str, object]]:
-        if generation == "full":
-            full_started.set()
-            assert release_full.wait(timeout=15.0)
-            return full_rows, {}, {}
-        return basic_rows, {}, {}
+    ) -> tuple[int, dict[tuple[int, int], dict[str, object]], dict[str, object], _FakeCListingArtifact]:
+        assert generation == "full"
+        full_started.set()
+        assert release_full.wait(timeout=15.0)
+        return len(full_rows), {}, {}, _FakeCListingArtifact(full_rows)
 
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
@@ -982,15 +1030,18 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "stable-cache")
-    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", build_rows)
+    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", build_artifact)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
+        assert full_started.wait(timeout=10.0)
+        release_full.set()
         page.wait_for_expression(
-            "document.querySelector('.listing-row')?.dataset.analysisGeneration === 'basic'",
-            timeout=10.0,
+            "document.querySelector('.listing-row')?.dataset.analysisGeneration === 'full'",
+            timeout=15.0,
         )
+        before_scroll = page.evaluate("document.querySelector('#listing-viewport').scrollTop")
         page.wait_for_app_event_after_js(
             "amiga:listing-window-rendered",
             """
@@ -999,18 +1050,10 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
               return true;
             })()
             """,
-            "detail.start > 0 && detail.generation === 'basic'",
+            "detail.start > 0 && detail.generation === 'full'",
             timeout=10.0,
         )
-        assert page.evaluate("document.body.textContent.includes('far_basic:')")
-        before_scroll = page.evaluate("document.querySelector('#listing-viewport').scrollTop")
-        assert full_started.wait(timeout=10.0)
-        release_full.set()
-        page.wait_for_expression(
-            "document.body.textContent.includes('far_full:') && document.querySelector('.listing-row')?.dataset.analysisGeneration === 'full'",
-            timeout=15.0,
-        )
-        assert not page.evaluate("document.body.textContent.includes('far_basic:')")
+        assert page.evaluate("document.body.textContent.includes('far_full:')")
         assert page.evaluate(
             "Array.from(document.querySelectorAll('.listing-row')).every((row) => row.dataset.analysisGeneration === 'full')"
         )
@@ -1047,23 +1090,6 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     project = _binary_project("amiga_hunk_section_anchor")
-    basic_rows = [
-        ListingRow(
-            row_id="basic-section",
-            kind="directive",
-            text="    SECTION section,code\n",
-            analysis_generation="basic",
-        ),
-        ListingRow(
-            row_id="basic-data",
-            kind="data",
-            text='DC.B $60,$34\n',
-            addr=0,
-            opcode_or_directive="DC.B",
-            operand_text="$60,$34",
-            analysis_generation="basic",
-        ),
-    ]
     full_rows = [
         ListingRow(row_id="include", kind="directive", text='INCLUDE "exec/io.i"\n', analysis_generation="full"),
         ListingRow(row_id="rsset", kind="directive", text="RSSET 0\n", analysis_generation="full"),
@@ -1088,14 +1114,13 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
     full_started = threading.Event()
     release_full = threading.Event()
 
-    def build_rows(
+    def build_artifact(
         project_name: str, generation: str
-    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]], dict[str, object]]:
-        if generation == "full":
-            full_started.set()
-            assert release_full.wait(timeout=15.0)
-            return full_rows, {}, {}
-        return basic_rows, {}, {}
+    ) -> tuple[int, dict[tuple[int, int], dict[str, object]], dict[str, object], _FakeCListingArtifact]:
+        assert generation == "full"
+        full_started.set()
+        assert release_full.wait(timeout=15.0)
+        return len(full_rows), {}, {}, _FakeCListingArtifact(full_rows)
 
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
@@ -1106,31 +1131,17 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "stable-cache")
-    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", build_rows)
+    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", build_artifact)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
-        page.wait_for_expression(
-            "document.querySelector('.listing-row')?.dataset.rowCode.trim() === 'SECTION section,code'",
-            timeout=10.0,
-        )
-        before_top_code = page.evaluate(
-            "document.querySelector('.listing-row')?.dataset.rowCode.trim()"
-        )
-        assert before_top_code == "SECTION section,code"
-        assert page.evaluate(
-            "document.querySelector('.listing-row-data .listing-code')?.textContent === '    DC.B $60,$34'"
-        )
         assert full_started.wait(timeout=10.0)
         release_full.set()
         page.wait_for_expression(
             "document.querySelector('.listing-row')?.dataset.analysisGeneration === 'full'",
-            timeout=15.0,
+            timeout=10.0,
         )
-        assert page.evaluate(
-            "document.querySelector('.listing-row')?.dataset.rowCode.trim()"
-        ) == "SECTION section,code"
         page.wait_for_app_event_after_js(
             "amiga:listing-window-rendered",
             """
@@ -1775,6 +1786,12 @@ def test_brave_cdp_real_c_backend_listing_smoke(monkeypatch: pytest.MonkeyPatch)
     _skip_without_c_backend()
     project_id = "amiga_hunk_genam"
     disasm_server._PROJECT_ROW_CACHE.clear()
+    for artifact in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.values():
+        artifact.close()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(
@@ -1787,12 +1804,11 @@ def test_brave_cdp_real_c_backend_listing_smoke(monkeypatch: pytest.MonkeyPatch)
         page.call("Page.navigate", {"url": f"{base_url}/{project_id}"})
         page.wait_for_event("Page.loadEventFired")
         page.wait_for_expression(
-            "document.querySelectorAll('.listing-row-instruction').length > 0",
+            "document.querySelector('.listing-row')?.dataset.analysisGeneration === 'full'",
             timeout=45.0,
         )
         assert page.text_content("#project-title") == project_id
-        assert page.evaluate("document.querySelectorAll('.listing-row-label').length > 0")
-        assert page.evaluate("document.querySelectorAll('.listing-row-instruction').length > 0")
+        assert page.evaluate("document.querySelectorAll('.listing-row').length > 0")
         page.assert_no_errors()
 
 
@@ -2114,12 +2130,11 @@ def test_brave_cdp_api_edit_modal_applies_struct_override(
         },
     )
 
-    def build_updated_rows(
+    def build_updated_artifact(
         project_name: str, generation: str = "full"
-    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]], dict[str, object]]:
-        if generation == "basic":
-            return updated_rows, {}, {}
-        return updated_rows, {
+    ) -> tuple[int, dict[tuple[int, int], dict[str, object]], dict[str, object], _FakeCListingArtifact]:
+        assert generation == "full"
+        return len(updated_rows), {
             (0, 0x10): {
                 "library": "intuition.library",
                 "function": "SetPointer",
@@ -2133,9 +2148,9 @@ def test_brave_cdp_api_edit_modal_applies_struct_override(
                     }
                 ],
             }
-        }, {}
+        }, {}, _FakeCListingArtifact(updated_rows)
 
-    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", build_updated_rows)
+    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", build_updated_artifact)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})

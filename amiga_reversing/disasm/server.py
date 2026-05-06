@@ -33,7 +33,6 @@ from amiga_reversing.disasm.binary_source import write_source_descriptor
 from amiga_reversing.disasm.c_backend import (
     CListingArtifact,
     build_project_listing_artifact_generation_profile,
-    build_project_rows_generation_with_c_backend_profile,
     extract_disk_entry_with_c_backend,
     type_catalog_from_c_backend,
     validate_amiga_hunk_executable_with_c_backend,
@@ -129,7 +128,6 @@ _MISSING = object()
 _PROJECT_ROW_CACHE: dict[str, list[ListingRow]] = {}
 _PROJECT_C_LISTING_ARTIFACT_CACHE: dict[str, CListingArtifact] = {}
 _PROJECT_ROW_GENERATION_CACHE: dict[str, str] = {}
-_PROJECT_ROW_CACHE_GENERATION_CACHE: dict[str, str] = {}
 _PROJECT_LISTING_TOTAL_ROWS_CACHE: dict[str, int] = {}
 _PROJECT_ROW_CACHE_KEY: dict[str, str] = {}
 _PROJECT_APP_SLOT_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
@@ -142,7 +140,7 @@ _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
 _JOB_LOCK = threading.Lock()
 
-_LISTING_PHASE_COUNT = 4
+_LISTING_PHASE_COUNT = 2
 _REPRODUCTION_PHASE_COUNT = 4
 _PROJECT_CREATE_EXECUTABLE_PHASE_COUNT = 4
 _PROJECT_CREATE_DISK_PHASE_COUNT = 5
@@ -247,7 +245,6 @@ def _write_api_input_type_override(
         artifact.close()
     _PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     _PROJECT_ROW_GENERATION_CACHE.clear()
-    _PROJECT_ROW_CACHE_GENERATION_CACHE.clear()
     _PROJECT_LISTING_TOTAL_ROWS_CACHE.clear()
     _PROJECT_ROW_CACHE_KEY.clear()
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
@@ -1045,7 +1042,6 @@ def _clear_project_listing_cache(project_name: str) -> None:
     if artifact is not None:
         artifact.close()
     _PROJECT_ROW_GENERATION_CACHE.pop(project_name, None)
-    _PROJECT_ROW_CACHE_GENERATION_CACHE.pop(project_name, None)
     _PROJECT_LISTING_TOTAL_ROWS_CACHE.pop(project_name, None)
     _PROJECT_ROW_CACHE_KEY.pop(project_name, None)
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
@@ -1374,125 +1370,86 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
     phase_count = _LISTING_PHASE_COUNT
     rows: list[ListingRow] = []
     total_rows = 0
+    listing_artifact: CListingArtifact | None = None
     try:
         cache_key = _project_listing_cache_key(project_name)
         _log_event("listing_job start", job_id=job_id, project=project_name, generation="full")
         if not _set_job_state(job_id, status="building"):
             return
-        generations = ["basic", "full"]
-        for generation_index, active_generation in enumerate(generations):
-            listing_artifact: CListingArtifact | None = None
-            build_phase = "build_basic_rows" if active_generation == "basic" else "build_c_rows"
-            emit_phase = "emit_basic_rows" if active_generation == "basic" else "emit_rows"
-            build_phase_index = 1 if active_generation == "basic" else 3
-            emit_phase_index = 2 if active_generation == "basic" else 4
-            if not _set_job_phase(
-                job_id,
-                phase_id=build_phase,
-                phase_index=build_phase_index,
-                phase_count=phase_count,
-            ):
-                return
-            _log_event(
-                "listing_job phase",
-                job_id=job_id,
-                project=project_name,
-                generation=active_generation,
-                phase=build_phase,
-            )
-            if active_generation == "full":
-                total_rows, api_calls, profile, listing_artifact = (
-                    build_project_listing_artifact_generation_profile(
-                        project_name,
-                        generation=active_generation,
-                    )
-                )
-            else:
-                rows, api_calls, profile = build_project_rows_generation_with_c_backend_profile(
-                    project_name,
-                    generation=active_generation,
-                )
-                total_rows = len(rows)
-            app_slot_analysis = profile.get("app_slot_analysis")
-            type_flow_analysis = profile.get("type_flow_analysis")
-            if not _set_job_phase(
-                job_id, phase_id=emit_phase, phase_index=emit_phase_index, phase_count=phase_count
-            ):
-                if listing_artifact is not None:
-                    listing_artifact.close()
-                return
-            if _project_listing_cache_key(project_name) != cache_key:
-                if listing_artifact is not None:
-                    listing_artifact.close()
-                _set_job_state(
-                    job_id,
-                    status="failed",
-                    phase_id="stale",
-                    error="project changed while listing job was building",
-                    finished_at=time.time(),
-                )
-                return
-            with _JOB_LOCK:
-                if job_id not in _ASYNC_JOBS:
-                    return
-                job_cache_key = _ASYNC_JOBS[job_id].get("cache_key")
-                if job_cache_key is not None and job_cache_key != cache_key:
-                    if listing_artifact is not None:
-                        listing_artifact.close()
-                    return
-                if active_generation != "full":
-                    _PROJECT_ROW_CACHE[project_name] = rows
-                    _PROJECT_ROW_CACHE_GENERATION_CACHE[project_name] = active_generation
-                _PROJECT_ROW_GENERATION_CACHE[project_name] = active_generation
-                _PROJECT_LISTING_TOTAL_ROWS_CACHE[project_name] = total_rows
-                _PROJECT_ROW_CACHE_KEY[project_name] = cache_key
-                if active_generation == "full":
-                    old_artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
-                    if listing_artifact is not None:
-                        _PROJECT_C_LISTING_ARTIFACT_CACHE[project_name] = listing_artifact
-                        listing_artifact = None
-                    if (
-                        old_artifact is not None
-                        and old_artifact is not _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
-                    ):
-                        old_artifact.close()
-                    _PROJECT_API_CALL_CACHE[project_name] = api_calls
-                    if isinstance(app_slot_analysis, dict):
-                        _PROJECT_APP_SLOT_ANALYSIS_CACHE[project_name] = app_slot_analysis
-                    else:
-                        _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
-                    if isinstance(type_flow_analysis, dict):
-                        _PROJECT_TYPE_FLOW_ANALYSIS_CACHE[project_name] = type_flow_analysis
-                    else:
-                        _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
-                elif project_name not in _PROJECT_API_CALL_CACHE:
-                    old_artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.pop(project_name, None)
-                    if old_artifact is not None:
-                        old_artifact.close()
-                    _PROJECT_API_CALL_CACHE[project_name] = {}
-                    _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
-                    _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
-            _log_event(
-                "listing_job generation_ready",
-                job_id=job_id,
-                project=project_name,
-                generation=active_generation,
-                total_rows=total_rows,
-            )
-            _publish_listing_generation_ready_event(job_id, project_name, active_generation, total_rows, rows)
-            if not _set_job_state(
-                job_id,
-                total_rows=total_rows,
-                visible_generation=active_generation,
-                target_generation="full",
-            ):
-                if listing_artifact is not None:
-                    listing_artifact.close()
-                return
-            if generation_index + 1 >= len(generations):
-                break
+        if not _set_job_phase(job_id, phase_id="build_c_rows", phase_index=1, phase_count=phase_count):
+            return
+        _log_event(
+            "listing_job phase",
+            job_id=job_id,
+            project=project_name,
+            generation="full",
+            phase="build_c_rows",
+        )
+        total_rows, api_calls, profile, listing_artifact = build_project_listing_artifact_generation_profile(
+            project_name,
+            generation="full",
+        )
+        app_slot_analysis = profile.get("app_slot_analysis")
+        type_flow_analysis = profile.get("type_flow_analysis")
+        if not _set_job_phase(job_id, phase_id="emit_rows", phase_index=2, phase_count=phase_count):
             if listing_artifact is not None:
                 listing_artifact.close()
+            return
+        if _project_listing_cache_key(project_name) != cache_key:
+            if listing_artifact is not None:
+                listing_artifact.close()
+            _set_job_state(
+                job_id,
+                status="failed",
+                phase_id="stale",
+                error="project changed while listing job was building",
+                finished_at=time.time(),
+            )
+            return
+        with _JOB_LOCK:
+            if job_id not in _ASYNC_JOBS:
+                return
+            job_cache_key = _ASYNC_JOBS[job_id].get("cache_key")
+            if job_cache_key is not None and job_cache_key != cache_key:
+                if listing_artifact is not None:
+                    listing_artifact.close()
+                return
+            _PROJECT_ROW_GENERATION_CACHE[project_name] = "full"
+            _PROJECT_LISTING_TOTAL_ROWS_CACHE[project_name] = total_rows
+            _PROJECT_ROW_CACHE_KEY[project_name] = cache_key
+            old_artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
+            if listing_artifact is not None:
+                _PROJECT_C_LISTING_ARTIFACT_CACHE[project_name] = listing_artifact
+                listing_artifact = None
+            if old_artifact is not None and old_artifact is not _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name):
+                old_artifact.close()
+            _PROJECT_ROW_CACHE.pop(project_name, None)
+            _PROJECT_API_CALL_CACHE[project_name] = api_calls
+            if isinstance(app_slot_analysis, dict):
+                _PROJECT_APP_SLOT_ANALYSIS_CACHE[project_name] = app_slot_analysis
+            else:
+                _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
+            if isinstance(type_flow_analysis, dict):
+                _PROJECT_TYPE_FLOW_ANALYSIS_CACHE[project_name] = type_flow_analysis
+            else:
+                _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
+        _log_event(
+            "listing_job generation_ready",
+            job_id=job_id,
+            project=project_name,
+            generation="full",
+            total_rows=total_rows,
+        )
+        _publish_listing_generation_ready_event(job_id, project_name, "full", total_rows, rows)
+        if not _set_job_state(
+            job_id,
+            total_rows=total_rows,
+            visible_generation="full",
+            target_generation="full",
+        ):
+            if listing_artifact is not None:
+                listing_artifact.close()
+            return
         _log_event(
             "listing_job done",
             job_id=job_id,
@@ -1517,6 +1474,8 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
         )
         _start_reproduction_job_if_needed(project_name)
     except Exception as exc:  # pragma: no cover
+        if listing_artifact is not None:
+            listing_artifact.close()
         _log_event(
             "listing_job failed", job_id=job_id, project=project_name, error=str(exc)
         )
@@ -1604,10 +1563,6 @@ def _start_listing_job(project_name: str) -> AsyncJobPayload:
     return _job_payload(job_id)
 
 
-def _start_progressive_listing_jobs(project_name: str) -> AsyncJobPayload:
-    return _start_listing_job(project_name)
-
-
 def _reproduction_cache_key(project_name: str) -> str:
     try:
         stamp = reproduction_input_stamp(project_name, project_root=PROJECT_ROOT)
@@ -1626,7 +1581,7 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
         if not _set_job_phase(job_id, phase_id="prepare", phase_index=1, phase_count=phase_count):
             return
         rows = _cached_project_rows(project_name)
-        if _PROJECT_ROW_CACHE_GENERATION_CACHE.get(project_name) != "full":
+        if _PROJECT_ROW_GENERATION_CACHE.get(project_name) != "full":
             rows = None
         if not _set_job_phase(job_id, phase_id="assemble", phase_index=2, phase_count=phase_count):
             return
@@ -2431,7 +2386,7 @@ def route_request(
                         },
                     ),
                 }
-            return {"ok": True, "data": _start_progressive_listing_jobs(project_name)}
+            return {"ok": True, "data": _start_listing_job(project_name)}
         if (
             method == "GET"
             and len(parts) == 5

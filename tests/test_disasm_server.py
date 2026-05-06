@@ -2726,7 +2726,7 @@ def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(
         disasm_server,
-        "_start_progressive_listing_jobs",
+        "_start_listing_job",
         lambda project_name: {
             "job_id": "job-full",
             "project_id": project_name,
@@ -2786,8 +2786,7 @@ def test_start_listing_job_ignores_stale_ready_job_without_rows(
 
 
 def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [ListingRow(row_id="c:0", kind="instruction", text="nop\n", addr=0)]
-    build_calls: list[tuple[str, str, str | None]] = []
+    build_calls: list[tuple[str, str]] = []
     artifact = _FakeCListingArtifact()
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
@@ -2813,12 +2812,6 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
     }
     monkeypatch.setattr(
         disasm_server,
-        "build_project_rows_generation_with_c_backend_profile",
-        lambda project_name, generation: build_calls.append((project_name, generation))
-        or (rows, {}, {}),
-    )
-    monkeypatch.setattr(
-        disasm_server,
         "build_project_listing_artifact_generation_profile",
         lambda project_name, generation: build_calls.append((project_name, generation))
         or (1, {(0, 0): {"library": "exec.library"}}, {}, artifact),
@@ -2826,16 +2819,15 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
 
     disasm_server._build_rows_job("job-1", "bloodwych")
 
-    assert disasm_server._PROJECT_ROW_CACHE["bloodwych"] == rows
+    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
-    assert disasm_server._PROJECT_ROW_CACHE_GENERATION_CACHE["bloodwych"] == "basic"
     assert disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE["bloodwych"] == 1
     assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
         (0, 0): {"library": "exec.library"}
     }
     assert disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] is artifact
     assert artifact.closed is False
-    assert build_calls == [("bloodwych", "basic"), ("bloodwych", "full")]
+    assert build_calls == [("bloodwych", "full")]
     assert disasm_server._ASYNC_JOBS["job-1"]["status"] == "ready"
 
 
@@ -2867,10 +2859,10 @@ def test_build_rows_job_reports_unsupported_c_backend(
     def fail(
         project_name: str,
         generation: str,
-    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]], dict[str, object]]:
+    ) -> tuple[int, dict[tuple[int, int], dict[str, object]], dict[str, object], _FakeCListingArtifact]:
         raise UnsupportedCBackendProject("unsupported project")
 
-    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", fail)
+    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", fail)
 
     disasm_server._build_rows_job("job-1", "bloodwych")
 
@@ -2913,11 +2905,11 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
     def canceled_build(
         project_name: str,
         generation: str,
-    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]], dict[str, object]]:
+    ) -> tuple[int, dict[tuple[int, int], dict[str, object]], dict[str, object], _FakeCListingArtifact]:
         del disasm_server._ASYNC_JOBS["job-full"]
-        return [ListingRow(row_id="stale", kind="instruction", text="nop\n")], {}, {}
+        return 1, {}, {}, _FakeCListingArtifact()
 
-    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", canceled_build)
+    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", canceled_build)
 
     disasm_server._build_rows_job("job-full", "bloodwych")
 
@@ -2926,7 +2918,6 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
 
 
 def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pytest.MonkeyPatch) -> None:
-    basic_rows = [ListingRow(row_id="basic", kind="instruction", text="nop\n", analysis_generation="basic")]
     disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
@@ -2937,14 +2928,6 @@ def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pyt
     disasm_server._JOB_EVENT_SUBSCRIBERS["job-full"] = [subscriber]
     artifact = _FakeCListingArtifact()
 
-    def fake_build(
-        project_name: str,
-        generation: str,
-    ) -> tuple[list[ListingRow], dict[tuple[int, int], dict[str, object]], dict[str, object]]:
-        assert generation == "basic"
-        return basic_rows, {}, {}
-
-    monkeypatch.setattr(disasm_server, "build_project_rows_generation_with_c_backend_profile", fake_build)
     monkeypatch.setattr(
         disasm_server,
         "build_project_listing_artifact_generation_profile",
@@ -2958,10 +2941,10 @@ def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pyt
         "status": "queued",
         "phase_id": "queued",
         "phase_index": 0,
-        "phase_count": 4,
+        "phase_count": 2,
         "progress_mode": "determinate",
         "progress_current": 0,
-        "progress_total": 4,
+        "progress_total": 2,
         "progress_percent": 0,
         "total_rows": None,
         "error": None,
@@ -2971,9 +2954,8 @@ def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pyt
     }
     disasm_server._build_rows_job("job-full", "bloodwych")
 
-    assert disasm_server._PROJECT_ROW_CACHE["bloodwych"] == basic_rows
+    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
-    assert disasm_server._PROJECT_ROW_CACHE_GENERATION_CACHE["bloodwych"] == "basic"
     assert disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE["bloodwych"] == 1
     assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
         (0, 4): {"library": "exec.library"}
@@ -2984,13 +2966,6 @@ def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pyt
         events.append(subscriber.get_nowait())
     generation_events = [event for event in events if event.get("_event_type") == "listing_generation_ready"]
     assert generation_events == [
-        {
-            "_event_type": "listing_generation_ready",
-            "project_id": "bloodwych",
-            "generation": "basic",
-            "total_rows": 1,
-            "changed_ranges": [],
-        },
         {
             "_event_type": "listing_generation_ready",
             "project_id": "bloodwych",
@@ -3172,15 +3147,6 @@ def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     artifact = _FakeCListingArtifact()
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
-    monkeypatch.setattr(
-        disasm_server,
-        "build_project_rows_generation_with_c_backend_profile",
-        lambda project_name, generation: (
-            [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)],
-            {},
-            {},
-        ),
-    )
     monkeypatch.setattr(
         disasm_server,
         "build_project_listing_artifact_generation_profile",

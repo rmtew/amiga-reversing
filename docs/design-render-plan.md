@@ -108,11 +108,12 @@ same render-plan row walk instead of being rediscovered from Python
 as reproduction issues and entity annotations, because those are not facts
 owned by the C analysis artifact.
 The full listing job no longer materializes and caches full Python
-`ListingRow` objects after the full C artifact is available. Basic rows are
-still emitted for progress/fallback display, but full-generation windows and
-navigation are served from the retained artifact. Analysis JSON is exposed from
-the same artifact so Python can keep API-call metadata without forcing full row
-JSON emission.
+`ListingRow` objects after the full C artifact is available. It also no longer
+builds an intermediate basic listing before the retained C artifact. Listing
+open now has one useful target: build the authoritative C analysis/render-plan
+artifact, then serve windows and navigation from it. Analysis JSON is exposed
+from the same artifact so Python can keep API-call metadata without forcing
+full row JSON emission.
 The retained artifact now computes the displayed listing row count once during
 artifact creation. Row-index window requests reuse that count and only perform
 the emission pass for the requested window. The artifact also owns a compact
