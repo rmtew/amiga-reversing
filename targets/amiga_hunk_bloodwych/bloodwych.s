@@ -113,7 +113,7 @@ abs_0_00000400:
 	bra.w abs_0_00000BA6
 abs_0_00000456:
 	jsr abs_0_0000C0FA.l
-	move.b $0000EE83.l,abs_0_0000EE94.l
+	move.b abs_0_0000EE83.l,abs_0_0000EE94.l
 	move.b abs_0_0000EEE5.l,abs_0_0000EEF6.l
 	move.l abs_0_0000EE94.l,abs_0_0000EEA2.l
 	move.l abs_0_0000EEF6.l,abs_0_0000EF04.l
@@ -3873,15 +3873,9 @@ abs_0_000031D2:
 abs_0_000031D9:
 	dc.b $CC,$1A,$1D,$FA,$20,$FA,$00,$00,$00,$00,$00,$00,$00
 abs_0_000031E6:
-	subi.b #$60A,d4
-	movep.w $0C07(a0),d7
-	cmpi.b #$1419,(a0)
-	move.l -(a7),d0
-	move.l $A(a2,d0.w*8),-(a5)
-	move.b a7,-(a4)
-	move.b (a6)+,d2
-	dc.b $28,$FF,$0A,$12,$1B,$23,$05,$14,$0A,$0A,$0F,$FF,$FF,$5A,$0C,$14
-	dc.b $19,$FF,$FF,$08,$0F,$FF
+	dc.b $04,$04,$06,$0A,$0F,$08,$0C,$07,$0C,$10,$14,$19,$20,$27,$2B,$32
+	dc.b $06,$0A,$19,$0F,$14,$1E,$28,$FF,$0A,$12,$1B,$23,$05,$14,$0A,$0A
+	dc.b $0F,$FF,$FF,$5A,$0C,$14,$19,$FF,$FF,$08,$0F,$FF
 abs_0_00003212:
 	dc.b $3D,$33,$24,$25,$30,$1B,$1C,$32,$2C,$27,$38,$1D,$2C,$27,$38,$1D
 	dc.b $2D,$14,$34,$1E,$39,$39,$34,$2D,$3E,$1E,$1F,$15,$1F,$16,$3E,$1F
@@ -4909,13 +4903,13 @@ abs_0_0000425E:
 	move.w #$400,(a0)
 	move.w #$400,$001E(a0)
 abs_0_0000427C:
-	move.b $0000EE7D.l,d0
+	move.b abs_0_0000EE7D.l,d0
 	or.b abs_0_0000EEDF.l,d0
 	bpl.b abs_0_0000427C
 	clr.w (a0)
 	clr.w $001E(a0)
 	move.l d1,abs_0_0000EE36.l
-	andi.b #127,$0000EE7D.l
+	andi.b #127,abs_0_0000EE7D.l
 	andi.b #127,abs_0_0000EEDF.l
 	clr.b abs_0_0000EED2.l
 	clr.b abs_0_0000EF34.l
@@ -14207,9 +14201,9 @@ abs_0_0000C0D4:
 abs_0_0000C0FA:
 	moveq.l #-1,d0
 	move.w d0,abs_0_0000C514.l
-	move.b d0,$0000EE83.l
+	move.b d0,abs_0_0000EE83.l
 	move.b d0,abs_0_0000EEE5.l
-	move.l #$B00040,$0000EE7E.l
+	move.l #$B00040,abs_0_0000EE7E.l
 	move.l #$B00078,abs_0_0000EEE0.l
 	clr.b abs_0_0000EECE.l
 	move.w #$BA02,d0
@@ -14221,7 +14215,7 @@ abs_0_0000C0FA:
 	move.w #$FFFF,abs_0_0000EEF2.l
 	move.l #$D80000,abs_0_0000EEE0.l
 	move.w #$26,abs_0_0000EE84.l
-	move.w #$5F0,$0000EE86.l
+	move.w #$5F0,abs_0_0000EE86.l
 abs_0_0000C168:
 	bsr.w abs_0_0000CD8C
 	bsr.w abs_0_0000C01E
@@ -14731,7 +14725,7 @@ abs_0_0000C780:
 	bcc.b abs_0_0000C7C2
 	cmp.w abs_0_0000EEE4.l,d2
 	beq.b abs_0_0000C7C4
-	cmp.w $0000EE82.l,d2
+	cmp.w abs_0_0000EE82.l,d2
 	beq.b abs_0_0000C7C4
 	move.l a5,d0
 	eori.l #61052,d0
@@ -16692,13 +16686,19 @@ abs_0_0000EE76:
 abs_0_0000EE78:
 	dc.b $00,$00,$EF,$78
 abs_0_0000EE7C:
-	ori.b #0,d0
-	ori.b #0,d0
+	dc.b $00
+abs_0_0000EE7D:
+	dc.b $00
+abs_0_0000EE7E:
+	dc.b $00,$00,$00,$00
+abs_0_0000EE82:
+	dc.b $00
+abs_0_0000EE83:
+	dc.b $00
 abs_0_0000EE84:
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #8,d7
-	ori.b #$FFFF,d0
+	dc.b $00,$00
+abs_0_0000EE86:
+	dc.b $00,$00,$00,$00,$00,$00,$00,$07,$00,$08,$00,$00,$FF,$FF
 abs_0_0000EE94:
 	dc.b $FF,$FF,$FF,$FF
 abs_0_0000EE98:
