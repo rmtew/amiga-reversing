@@ -163,6 +163,9 @@ allocates a safe arena-backed upper bound from render-plan line counts plus
 synthetic header rows, and records the actual row count after the single pass.
 Measured best-of-three artifact builds were about 1.24s for Bloodwych, 0.36s
 for MonAm, and 0.48s for GenAm after this cleanup.
+The full-listing job no longer carries an empty Python `ListingRow` list through
+the ready event. The build phases are named for the retained artifact path:
+build the C artifact, then cache the artifact.
 Corpus usage indexing is generated local data, not source. It should consume
 compact analysis/listing evidence and retain row-backed xrefs only for useful
 navigation/report evidence. Aggregate target features such as label counts may

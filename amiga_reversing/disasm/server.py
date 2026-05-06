@@ -1147,31 +1147,8 @@ def _publish_job_event(job_id: str) -> None:
         _publish_job_event_payload(job_id, payload)
 
 
-def _listing_changed_ranges(rows: list[ListingRow]) -> list[dict[str, int]]:
-    ranges_by_section: dict[int, list[int]] = {}
-    for row in rows:
-        section_index = row.section_index
-        start_offset = row.start_offset
-        end_offset = row.end_offset
-        if section_index is None and isinstance(row.source_context, BlockRowContext):
-            section_index = row.source_context.hunk_index
-        if start_offset is None:
-            start_offset = row.addr
-        if end_offset is None:
-            end_offset = start_offset
-        if section_index is None or start_offset is None or end_offset is None:
-            continue
-        current = ranges_by_section.setdefault(section_index, [start_offset, end_offset])
-        current[0] = min(current[0], start_offset)
-        current[1] = max(current[1], end_offset)
-    return [
-        {"section_index": section_index, "start_offset": values[0], "end_offset": values[1]}
-        for section_index, values in sorted(ranges_by_section.items())
-    ]
-
-
 def _publish_listing_generation_ready_event(
-    job_id: str, project_name: str, generation: str, total_rows: int, rows: list[ListingRow]
+    job_id: str, project_name: str, generation: str, total_rows: int
 ) -> None:
     _publish_job_event_payload(
         job_id,
@@ -1180,7 +1157,7 @@ def _publish_listing_generation_ready_event(
             "project_id": project_name,
             "generation": generation,
             "total_rows": total_rows,
-            "changed_ranges": _listing_changed_ranges(rows),
+            "changed_ranges": [],
         },
     )
 
@@ -1362,7 +1339,6 @@ def _cache_satisfies_full_generation(project_name: str, cache_key: str) -> bool:
 
 def _build_rows_job(job_id: str, project_name: str) -> None:
     phase_count = _LISTING_PHASE_COUNT
-    rows: list[ListingRow] = []
     total_rows = 0
     listing_artifact: CListingArtifact | None = None
     try:
@@ -1370,14 +1346,14 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
         _log_event("listing_job start", job_id=job_id, project=project_name, generation="full")
         if not _set_job_state(job_id, status="building"):
             return
-        if not _set_job_phase(job_id, phase_id="build_c_rows", phase_index=1, phase_count=phase_count):
+        if not _set_job_phase(job_id, phase_id="build_c_artifact", phase_index=1, phase_count=phase_count):
             return
         _log_event(
             "listing_job phase",
             job_id=job_id,
             project=project_name,
             generation="full",
-            phase="build_c_rows",
+            phase="build_c_artifact",
         )
         total_rows, api_calls, profile, listing_artifact = build_project_listing_artifact_generation_profile(
             project_name,
@@ -1385,7 +1361,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
         )
         app_slot_analysis = profile.get("app_slot_analysis")
         type_flow_analysis = profile.get("type_flow_analysis")
-        if not _set_job_phase(job_id, phase_id="emit_rows", phase_index=2, phase_count=phase_count):
+        if not _set_job_phase(job_id, phase_id="cache_artifact", phase_index=2, phase_count=phase_count):
             if listing_artifact is not None:
                 listing_artifact.close()
             return
@@ -1434,7 +1410,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             generation="full",
             total_rows=total_rows,
         )
-        _publish_listing_generation_ready_event(job_id, project_name, "full", total_rows, rows)
+        _publish_listing_generation_ready_event(job_id, project_name, "full", total_rows)
         if not _set_job_state(
             job_id,
             total_rows=total_rows,

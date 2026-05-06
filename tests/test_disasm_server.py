@@ -3047,7 +3047,7 @@ def test_route_listing_status_returns_job(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(
         disasm_server,
         "_job_payload",
-        lambda job_id: {"job_id": job_id, "status": "building", "phase_id": "emit_rows"},
+        lambda job_id: {"job_id": job_id, "status": "building", "phase_id": "cache_artifact"},
     )
 
     payload = disasm_server.route_request(
@@ -3059,7 +3059,7 @@ def test_route_listing_status_returns_job(monkeypatch: pytest.MonkeyPatch) -> No
 
     assert payload["ok"] is True
     assert data["status"] == "building"
-    assert data["phase_id"] == "emit_rows"
+    assert data["phase_id"] == "cache_artifact"
 
 
 def test_job_state_update_publishes_event() -> None:
@@ -3111,7 +3111,7 @@ def test_cancel_listing_job_publishes_failed_event() -> None:
         "project_id": "bloodwych",
         "result_project_id": "bloodwych",
         "status": "building",
-        "phase_id": "build_c_rows",
+        "phase_id": "build_c_artifact",
         "phase_index": 1,
         "phase_count": 2,
         "progress_mode": "determinate",
