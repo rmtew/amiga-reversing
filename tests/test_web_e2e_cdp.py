@@ -764,9 +764,7 @@ def test_brave_cdp_virtual_listing_pagedown_fetches_low_latency(
         page.evaluate(
             """
             (() => {
-              for (let index = 0; index < 4; index += 1) {
-                scrollListingViewport(state.project, "down");
-              }
+              scrollListingViewport(state.project, "end");
               return true;
             })()
             """

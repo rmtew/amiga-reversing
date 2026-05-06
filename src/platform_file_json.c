@@ -6197,6 +6197,7 @@ static int source_file_listing_window_range_from_render_plan_to_json(const M68kS
   size_t visit_row_count = render_plan != NULL ? render_plan->row_count : 0U;
   size_t display_row_base = 0U;
   int bounded_by_row_index = 0;
+  int header_only_window = 0;
   memset(&emit_context, 0, sizeof(emit_context));
   if (out_json != NULL) *out_json = NULL;
   if (render_plan == NULL || out_json == NULL) {
@@ -6239,6 +6240,10 @@ static int source_file_listing_window_range_from_render_plan_to_json(const M68kS
       failure = "listing window header collection failed";
       goto oom;
     }
+    if (end <= listing_source_header_rows_extra_count(&header_rows)) {
+      header_only_window = 1;
+      visit_row_count = 0U;
+    }
   }
   emit_context.builder = &builder;
   emit_context.header_rows = &header_rows;
@@ -6255,10 +6260,17 @@ static int source_file_listing_window_range_from_render_plan_to_json(const M68kS
   emit_context.window_enabled = 1;
   emit_context.window_start = safe_start;
   emit_context.window_end = end;
-  if (m68k_render_plan_visit_row_lines(render_plan, visit_first_row, visit_row_count,
-      append_full_listing_render_plan_line, &emit_context) != 0) {
-    failure = "listing window emit pass failed";
-    goto oom;
+  if (header_only_window) {
+    if (append_listing_source_header_rows(&emit_context) != 0) {
+      failure = "listing window header emit failed";
+      goto oom;
+    }
+  } else {
+    if (m68k_render_plan_visit_row_lines(render_plan, visit_first_row, visit_row_count,
+        append_full_listing_render_plan_line, &emit_context) != 0) {
+      failure = "listing window emit pass failed";
+      goto oom;
+    }
   }
   if (json_builder_append(&builder, "],\"anchor_addr\":") != 0) goto oom;
   if (anchor_override_enabled && anchor_override_has_addr) {
