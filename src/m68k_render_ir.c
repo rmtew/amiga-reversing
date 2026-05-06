@@ -119,35 +119,10 @@ static void hash_asm_text(M68kRenderIRPreview *preview, const char *text) {
   if (preview == NULL || text == NULL) return;
   length = strlen(text);
   if (preview->collect_asm_source_text) {
-    size_t used = (size_t)preview->asm_source_bytes;
-    size_t needed;
-    if (used >= (size_t)UINT32_MAX || length > (size_t)UINT32_MAX - used) {
+    if (length > (size_t)UINT32_MAX - (size_t)preview->asm_source_bytes) {
       preview->asm_source_allocation_failed = 1U;
-    } else {
-      needed = used + length + 1U;
-      if (needed > preview->asm_source_text_capacity) {
-        size_t next_capacity = preview->asm_source_text_capacity == 0U ? 4096U : preview->asm_source_text_capacity;
-        char *grown;
-        while (next_capacity < needed) {
-          if (next_capacity > ((size_t)-1) / 2U) {
-            preview->asm_source_allocation_failed = 1U;
-            break;
-          }
-          next_capacity *= 2U;
-        }
-        if (!preview->asm_source_allocation_failed) {
-          grown = (char *)realloc(preview->asm_source_text, next_capacity);
-          if (grown == NULL) preview->asm_source_allocation_failed = 1U;
-          else {
-            preview->asm_source_text = grown;
-            preview->asm_source_text_capacity = next_capacity;
-          }
-        }
-      }
-      if (!preview->asm_source_allocation_failed) {
-        memcpy(preview->asm_source_text + used, text, length);
-        preview->asm_source_text[used + length] = '\0';
-      }
+    } else if (!preview->asm_source_row_builder.active) {
+      preview->asm_source_allocation_failed = 1U;
     }
   }
   if (preview->collect_asm_source_hash) {

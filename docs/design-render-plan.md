@@ -94,6 +94,11 @@ full-source and window strings remain separately heap-owned API return buffers.
 Arena-backed plans must be transferred with `m68k_render_plan_move`, not raw
 struct assignment.
 
+facts_v2 source capture no longer builds a parallel full-source text buffer
+while rows are being captured. Source fragments must be emitted inside an active
+render-plan row; unplanned source text is treated as a source-render failure.
+The full `.s` text is allocated once from the assembled plan at the API boundary.
+
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
 
