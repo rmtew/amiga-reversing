@@ -8,7 +8,7 @@ loc_0_00000000:
 	move.w #$0,_custom+dmacon.l
 	move.l #$B33C,d7
 	lea.l loc_0_0000005C(pc),a4
-	lea.l loc_0_0005BFF0.l,a5
+	lea.l abs_0_0005BFF0.l,a5
 	lea.l $00080000.l,a7
 	pea.l $000000C0.l
 	movem.w loc_0_00000052(pc),d0-d4
@@ -31,7 +31,7 @@ loc_0_0000005A:
 	rts
 loc_0_0000005C:
     ORG $5BFF0
-loc_0_0005BFF0:
+abs_0_0005BFF0:
 	dc.b $41,$FA,$00,$12,$21,$C8,$00,$80,$4E,$40,$00,$8C,$00,$05,$C0,$A4
 	dc.b $00,$05,$C0,$00,$41,$F9,$00,$06,$44,$46,$4C,$D8,$7E,$FF,$91,$C8
 	dc.b $4F,$F9,$00,$05,$C0,$00,$4D,$F9,$00,$DF,$F0,$00,$42,$6E,$01,$80

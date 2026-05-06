@@ -17,21 +17,20 @@ This document is the work-in-progress plan for that model.
 
 ## Current Status
 
-The first retained implementation step is an isolated C render-plan module:
+The retained implementation started as an isolated C render-plan module:
 
 - `src/m68k_render_plan.h`
 - `src/m68k_render_plan.c`
 - `src/test_m68k_render_plan.c`
 
-This module is not yet wired into the production `.s` renderer or web listing
-API. It proves the basic mechanics first: ordered rows, explicit line counts,
-byte offsets, line lookup, source-offset lookup, runtime-address lookup, and
-full/window emission from the same row text.
+This module now proves the basic mechanics and is wired into the production
+facts_v2 source/listing path: ordered rows, explicit line counts, byte offsets,
+line lookup, source-offset lookup, runtime-address lookup, and full/window
+emission from the same row text.
 
 The module can also build body rows directly from `M68kSourceFileIR` sections
-and statements. This is intentionally limited to section/body rows for now; it
-does not yet own include, RS/app-slot, equate, or full facts_v2 header
-generation.
+and statements. Production facts_v2 rendering now owns include, RS/app-slot,
+equate, and body rows through the captured render plan.
 
 Multi-line rows can now be visited as physical lines while preserving the owner
 row and subline index. This keeps compatibility with the current web listing
@@ -46,14 +45,16 @@ Render plans now have a row-builder API for renderers that naturally emit a row
 in fragments. This is intended for migrating facts_v2 source rendering without
 rebuilding large temporary source text just to discover row boundaries.
 
-facts_v2 source rendering now records a bridge render plan for the final emitted
-source text after current header hoisting. The profile exposes
-`asm_source_plan_rows`, `asm_source_plan_lines`, and `asm_source_plan_bytes`,
-and C tests assert that plan lines/bytes match the emitted source. This is still
-a bridge: the full listing path still parses the emitted source text to rebuild
-`M68kSourceFileIR` statement metadata before row JSON is emitted, and the plan
-is rebuilt after the legacy header rewrite rather than being the authoritative
-source structure.
+facts_v2 source rendering now captures source rows during the C render walk.
+The captured plan owns typed rows for sections, labels, instructions, data,
+reserve spans, diagnostics, RS/header material, includes, and equates, and full
+source text is emitted back from that plan. The profile exposes
+`asm_source_plan_rows`, `asm_source_plan_lines`, and `asm_source_plan_bytes`;
+Bloodwych now has fewer plan rows than physical source lines because multi-line
+data spans stay attached to one analysis row. The full listing path still parses
+the emitted source text to rebuild `M68kSourceFileIR` statement metadata before
+row JSON is emitted, so the remaining bridge is the source-model rebuild, not
+the source-plan construction.
 
 An isolated C test now proves that full listing JSON emitted from a text-line
 render plan remains stable for the same source model. The production DLL path
@@ -82,9 +83,9 @@ Render plans can now emit physical line windows directly from row ownership
 metadata, including windows that start inside a multi-line row. This is the
 generic primitive the web listing path needs before it can stop requesting a
 whole source file for viewport-sized output.
-The source-producing facts_v2 path is being moved away from final-text header
-rewrites. Header material such as includes and equates should be captured as
-source regions during rendering, then assembled with the body deterministically.
+The source-producing facts_v2 path has moved away from final-text header
+rewrites. Header material such as includes and equates is captured as typed
+source rows, then assembled with the body deterministically.
 
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
@@ -321,9 +322,11 @@ renderer.
 
 This first step now exists. A GenAm-style source-IR fixture now proves direct
 body-row plan construction, and facts_v2 basic plus full listing rows now use
-render-plan line streams. The next step is to stop rebuilding `M68kSourceFileIR`
-from emitted source text for the full listing path by carrying statement
-provenance in the authoritative plan or source analysis.
+render-plan line streams. Production facts_v2 source rendering now captures a
+semantic source plan during rendering and emits the final `.s` source from that
+plan. The next step is to stop rebuilding `M68kSourceFileIR` from emitted
+source text for the full listing path by carrying enough statement/source
+metadata in the authoritative plan or source analysis.
 
 ## Required Tests
 

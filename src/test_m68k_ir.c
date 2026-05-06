@@ -2746,6 +2746,10 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
   char *plan_source = NULL;
+  size_t row_index;
+  int saw_section_row = 0;
+  int saw_label_row = 0;
+  int saw_instruction_source_row = 0;
   uint8_t bytes[6] = {0x60u, 0x02u, 0x4eu, 0x71u, 0x4eu, 0x75u};
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
@@ -2766,6 +2770,18 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68K_C_ASSERT(strstr(source, "bra") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000004") != NULL);
   M68K_C_ASSERT(strstr(source, "facts_v2 instruction bytes") == NULL);
+  for (row_index = 0U; row_index < source_plan.row_count; ++row_index) {
+    const M68kRenderPlanRow *row = &source_plan.rows[row_index];
+    M68K_C_ASSERT_U32(0U, row->kind == M68K_RENDER_PLAN_ROW_DIAGNOSTIC ? 1U : 0U);
+    if (row->kind == M68K_RENDER_PLAN_ROW_SECTION) saw_section_row = 1;
+    if (row->kind == M68K_RENDER_PLAN_ROW_LABEL && row->has_source_range) saw_label_row = 1;
+    if (row->kind == M68K_RENDER_PLAN_ROW_INSTRUCTION && row->has_source_range &&
+        row->source_offset == 0U && row->source_size == 2U)
+      saw_instruction_source_row = 1;
+  }
+  M68K_C_ASSERT(saw_section_row);
+  M68K_C_ASSERT(saw_label_row);
+  M68K_C_ASSERT(saw_instruction_source_row);
   M68K_C_ASSERT_U32(profile.asm_source_lines, profile.asm_source_plan_rows);
   M68K_C_ASSERT_U32(profile.asm_source_lines, profile.asm_source_plan_lines);
   M68K_C_ASSERT_U32(profile.asm_source_bytes, profile.asm_source_plan_bytes);
