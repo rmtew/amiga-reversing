@@ -4841,14 +4841,6 @@ typedef struct ListingRenderPlanJsonContext {
   size_t data_lines_left;
 } ListingRenderPlanJsonContext;
 
-typedef struct BasicListingRenderPlanContext {
-  JsonBuilder *builder;
-  ListingAppSlotAnalysisBuilder *app_slot_analysis;
-  const M68kSourceFileIR *source_file;
-  const M68kAnalysisPolicy *analysis_policy;
-  size_t row_index;
-} BasicListingRenderPlanContext;
-
 static const char *listing_row_kind_for_plan_row(const M68kRenderPlanRow *row) {
   if (row == NULL) return "unknown";
   if (row->kind == M68K_RENDER_PLAN_ROW_INCLUDE) return "directive";
@@ -4925,69 +4917,6 @@ static int listing_statement_from_plan_row_metadata(const M68kRenderPlanRow *row
     stmt->u.reserve_size = row->source_size;
   }
   return 1;
-}
-
-static int append_basic_listing_render_plan_line(const M68kRenderPlanRow *row, uint32_t subline, uint32_t line,
-    const char *line_start, size_t line_length, void *user) {
-  BasicListingRenderPlanContext *context = (BasicListingRenderPlanContext *)user;
-  const char *row_kind = listing_row_kind_for_plan_row(row);
-  const M68kStatementIR *stmt;
-  int section_index = listing_section_index_for_plan_row(row);
-  (void)subline;
-  (void)line;
-  if (context == NULL) return -1;
-  if (row_kind == NULL) row_kind = "directive";
-  stmt = listing_statement_for_plan_row(context->source_file, row);
-  if (context->row_index != 0U && json_builder_append(context->builder, ",") != 0) return -1;
-  if (append_listing_row_json(context->builder, context->row_index, line_start, line_length, row_kind,
-      section_index, stmt, context->analysis_policy, NULL, "basic") != 0)
-    return -1;
-  if (listing_app_slot_analysis_observe_row(context->app_slot_analysis, context->row_index, row_kind,
-      section_index, stmt, NULL) != 0)
-    return -1;
-  ++context->row_index;
-  return 0;
-}
-
-int source_file_basic_listing_rows_to_json(const M68kSourceFileIR *source_file,
-    const M68kAnalysisPolicy *analysis_policy, char **out_json, M68kDiagSink diagnostics) {
-  JsonBuilder builder = {0};
-  ListingAppSlotAnalysisBuilder app_slot_analysis = {0};
-  M68kRenderPlan render_plan;
-  BasicListingRenderPlanContext context;
-  memset(&render_plan, 0, sizeof(render_plan));
-  memset(&context, 0, sizeof(context));
-  if (source_file == NULL || out_json == NULL) {
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
-    return -1;
-  }
-  if (m68k_render_plan_build_source_file_body(source_file, NULL, &render_plan, diagnostics) != 0) goto oom;
-  if (listing_app_slot_analysis_init(&app_slot_analysis, source_file->platform_backend_kind, NULL) != 0) goto oom;
-  if (json_builder_create(&builder) != 0) goto oom;
-  if (json_builder_append(&builder, "{\"rows\":[") != 0) goto oom;
-  context.builder = &builder;
-  context.app_slot_analysis = &app_slot_analysis;
-  context.source_file = source_file;
-  context.analysis_policy = analysis_policy;
-  if (m68k_render_plan_visit_row_lines(&render_plan, 0U, render_plan.row_count,
-      append_basic_listing_render_plan_line, &context) != 0)
-    goto oom;
-  if (json_builder_append(&builder, "],\"app_slot_analysis\":") != 0) goto oom;
-  if (append_listing_app_slot_analysis_json(&builder, &app_slot_analysis) != 0) goto oom;
-  if (json_builder_append(&builder, "}") != 0) goto oom;
-  *out_json = json_builder_build(&builder);
-  if (*out_json == NULL) goto oom;
-  json_builder_destroy(&builder);
-  listing_app_slot_analysis_destroy(&app_slot_analysis);
-  m68k_render_plan_destroy(&render_plan);
-  return 0;
-
-oom:
-  json_builder_destroy(&builder);
-  listing_app_slot_analysis_destroy(&app_slot_analysis);
-  m68k_render_plan_destroy(&render_plan);
-  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
-  return -1;
 }
 
 static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *context, const char *line_start,

@@ -130,6 +130,9 @@ the Python C backend wrapper, C DLL exports, and CLI. Corpus usage indexing and
 tests that need whole-listing rows materialize them through the retained C
 listing artifact by requesting a bounded window for the artifact's known total
 row count.
+The older C basic-listing row API and its private pseudo-source builder have
+also been removed. Progress/opening state now uses the job state only; listing
+rows come from the authoritative retained C analysis/render-plan artifact.
 Rows-only Python caches no longer satisfy a full-generation listing cache; a
 valid full cache requires the retained C artifact. Ready-project listing and
 navigation routes fail closed if that artifact is missing or stale instead of
@@ -531,7 +534,7 @@ a fresh window around the anchor.
 10. Remove superseded legacy listing paths after parity tests pass. The
     production Python row-window and text-anchor helpers are removed; test-only
     fake artifacts keep local slicing helpers. The production Python full-row
-    wrapper is also removed; full-row hydration is scoped to test support while
+    wrapper, row hydration, C full-row API, and C basic-row API are removed;
     production serves listing windows from the retained C artifact.
 
 The first retained step should be small: a synthetic render-plan fixture that

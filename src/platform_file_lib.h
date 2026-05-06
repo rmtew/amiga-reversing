@@ -89,8 +89,6 @@ PLATFORM_FILE_API int platform_file_facts_v2_direct_rebuild_compare_buffer_bytes
     const unsigned char *data, size_t size, const char *metadata_path,
     const char *display_path, const char *output_path, unsigned char **out_data, size_t *out_size,
     char **out_source_profile_json, char **out_direct_profile_json, char **out_error);
-PLATFORM_FILE_API int platform_file_facts_v2_basic_listing_rows_path_json_alloc(const char *backend_name,
-    const char *path, const char *metadata_path, const char *include_dir, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_path_create(const char *backend_name,
     const char *path, const char *metadata_path, const char *include_dir,
     PlatformFileListingArtifact **out_artifact, char **out_error);
@@ -115,9 +113,6 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_analysis_json_allo
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_navigation_json_alloc(
     PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact);
-PLATFORM_FILE_API int platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc(const char *platform_name,
-    const char *path, uint32_t entry_offset, const char *metadata_path,
-    const char *include_dir, char **out_text);
 PLATFORM_FILE_API int platform_file_type_catalog_json_alloc(const char *backend_name, char **out_text);
 PLATFORM_FILE_API int platform_file_naming_catalog_json_alloc(const char *backend_name, char **out_text);
 PLATFORM_FILE_API int platform_file_os_metadata_catalog_json_alloc(const char *backend_name, char **out_text);
