@@ -118,8 +118,10 @@ static int test_render_plan_window_emission_matches_full_slice(void) {
   M68kRenderPlan plan;
   char *full_text = NULL;
   char *window_text = NULL;
+  char *line_window_text = NULL;
   const char *expected_full = "A\nB1\nB2\nC\n";
   const char *expected_window = "B1\nB2\n";
+  const char *expected_line_window = "B2\nC\n";
   m68k_render_plan_init(&plan);
 
   M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_INCLUDE, 1U, "A\n", NULL));
@@ -128,12 +130,16 @@ static int test_render_plan_window_emission_matches_full_slice(void) {
 
   M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&plan, &full_text));
   M68K_C_ASSERT_INT(0, m68k_render_plan_emit_rows_alloc(&plan, 1U, 1U, &window_text));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_emit_line_window_alloc(&plan, 2U, 2U, &line_window_text));
   M68K_C_ASSERT_STR(expected_full, full_text);
   M68K_C_ASSERT_STR(expected_window, window_text);
+  M68K_C_ASSERT_STR(expected_line_window, line_window_text);
   M68K_C_ASSERT(strstr(full_text, window_text) == full_text + 2U);
+  M68K_C_ASSERT(strstr(full_text, line_window_text) == full_text + 5U);
 
   m68k_render_plan_free_text(full_text);
   m68k_render_plan_free_text(window_text);
+  m68k_render_plan_free_text(line_window_text);
   m68k_render_plan_destroy(&plan);
   return 0;
 }

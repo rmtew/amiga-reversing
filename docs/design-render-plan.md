@@ -78,6 +78,10 @@ Filtered full-listing header collection now also prefers typed render-plan row
 kinds for include/RS/equate rows and first-section stop detection. The legacy
 text classifier remains only for diagnostic/text-line bridge rows that do not
 yet have semantic row kinds.
+Render plans can now emit physical line windows directly from row ownership
+metadata, including windows that start inside a multi-line row. This is the
+generic primitive the web listing path needs before it can stop requesting a
+whole source file for viewport-sized output.
 
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.

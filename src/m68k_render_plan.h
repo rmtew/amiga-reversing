@@ -92,6 +92,8 @@ const M68kRenderPlanRow *m68k_render_plan_find_row_for_runtime_address(const M68
   uint32_t address);
 int m68k_render_plan_emit_rows_alloc(const M68kRenderPlan *plan, size_t first_row, size_t row_count,
   char **out_text);
+int m68k_render_plan_emit_line_window_alloc(const M68kRenderPlan *plan, uint32_t first_line,
+  uint32_t line_count, char **out_text);
 int m68k_render_plan_emit_all_alloc(const M68kRenderPlan *plan, char **out_text);
 int m68k_render_plan_hoist_header_rows(M68kRenderPlan *plan);
 int m68k_render_plan_visit_row_lines(const M68kRenderPlan *plan, size_t first_row, size_t row_count,

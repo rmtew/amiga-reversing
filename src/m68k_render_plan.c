@@ -313,6 +313,88 @@ int m68k_render_plan_emit_rows_alloc(const M68kRenderPlan *plan, size_t first_ro
   return 0;
 }
 
+static uint32_t render_plan_min_u32(uint32_t left, uint32_t right) {
+  return left < right ? left : right;
+}
+
+static int render_plan_alloc_empty_text(char **out_text) {
+  char *text;
+  if (out_text == NULL) return -1;
+  text = (char *)malloc(1U);
+  if (text == NULL) return -1;
+  text[0] = '\0';
+  *out_text = text;
+  return 0;
+}
+
+int m68k_render_plan_emit_line_window_alloc(const M68kRenderPlan *plan, uint32_t first_line,
+    uint32_t line_count, char **out_text) {
+  const M68kRenderPlanRow *first_row;
+  size_t row_index;
+  uint32_t end_line;
+  size_t total_size = 1U;
+  char *text;
+  char *out_cursor;
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (plan == NULL || first_line > plan->total_lines) return -1;
+  if (line_count == 0U || first_line == plan->total_lines) return render_plan_alloc_empty_text(out_text);
+  if (line_count > UINT32_MAX - first_line) end_line = plan->total_lines;
+  else end_line = render_plan_min_u32(first_line + line_count, plan->total_lines);
+  first_row = m68k_render_plan_find_row_for_line(plan, first_line, NULL);
+  if (first_row == NULL) return -1;
+  for (row_index = (size_t)(first_row - plan->rows); row_index < plan->row_count; ++row_index) {
+    const M68kRenderPlanRow *row = &plan->rows[row_index];
+    const char *cursor;
+    uint32_t subline = 0U;
+    if (row->start_line + row->line_count <= first_line) continue;
+    if (row->start_line >= end_line) break;
+    cursor = row->text;
+    while (*cursor != '\0') {
+      const char *line_start = cursor;
+      size_t line_length;
+      uint32_t physical_line;
+      while (*cursor != '\0' && *cursor != '\n') ++cursor;
+      if (*cursor == '\n') ++cursor;
+      line_length = (size_t)(cursor - line_start);
+      physical_line = row->start_line + subline;
+      if (physical_line >= first_line && physical_line < end_line) {
+        if (total_size > ((size_t)-1) - line_length) return -1;
+        total_size += line_length;
+      }
+      ++subline;
+    }
+  }
+  text = (char *)malloc(total_size);
+  if (text == NULL) return -1;
+  out_cursor = text;
+  for (row_index = (size_t)(first_row - plan->rows); row_index < plan->row_count; ++row_index) {
+    const M68kRenderPlanRow *row = &plan->rows[row_index];
+    const char *cursor;
+    uint32_t subline = 0U;
+    if (row->start_line + row->line_count <= first_line) continue;
+    if (row->start_line >= end_line) break;
+    cursor = row->text;
+    while (*cursor != '\0') {
+      const char *line_start = cursor;
+      size_t line_length;
+      uint32_t physical_line;
+      while (*cursor != '\0' && *cursor != '\n') ++cursor;
+      if (*cursor == '\n') ++cursor;
+      line_length = (size_t)(cursor - line_start);
+      physical_line = row->start_line + subline;
+      if (physical_line >= first_line && physical_line < end_line) {
+        memcpy(out_cursor, line_start, line_length);
+        out_cursor += line_length;
+      }
+      ++subline;
+    }
+  }
+  *out_cursor = '\0';
+  *out_text = text;
+  return 0;
+}
+
 int m68k_render_plan_emit_all_alloc(const M68kRenderPlan *plan, char **out_text) {
   if (plan == NULL) return -1;
   return m68k_render_plan_emit_rows_alloc(plan, 0U, plan->row_count, out_text);
