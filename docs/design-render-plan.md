@@ -86,16 +86,12 @@ The C listing-window emitter streams selected rows directly into the final JSON
 builder; it does not allocate a temporary rows JSON string and copy it into the
 payload. An isolated C regression now covers listing-window JSON parity with a
 full render-plan row slice.
-The full listing job now caches serialized row artifacts alongside the Python
-row objects. Indexed and address-anchored web windows can be served from that
-compact artifact after the job finishes, avoiding repeated dataclass-to-JSON
-row serialization on scroll while still avoiding on-demand C analysis.
-Address-anchored serialized windows use a display-order block-max index so the
-lookup avoids a full-row scan without changing behaviour for non-monotonic ORG
-or runtime-address layouts.
-This Python-side serialized row cache is transitional. The intended endpoint is
-not more server cache layers; it is a C-owned analysis/render-plan artifact,
-keyed by the same effective target inputs, that can answer listing-window and
+The earlier transitional Python serialized-row cache has been removed. Indexed
+and address-anchored web windows now use the retained C listing artifact when a
+full analysis artifact is available. The dataclass row path remains only as a
+fallback/progress path, not as a second long-lived serialized listing database.
+The intended endpoint is still a C-owned analysis/render-plan artifact, keyed
+by the same effective target inputs, that can answer listing-window and
 navigation requests without rebuilding analysis and without Python retaining a
 parallel row model.
 The first C artifact boundary now exists as an opaque

@@ -1505,61 +1505,6 @@ def test_route_listing_returns_cached_window(monkeypatch: pytest.MonkeyPatch) ->
     }
 
 
-def test_route_listing_addr_window_uses_serialized_cache(monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [
-        ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 4)
-        for index in range(5)
-    ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_SERIALIZED_ROW_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
-    monkeypatch.setitem(
-        disasm_server._PROJECT_SERIALIZED_ROW_CACHE,
-        "bloodwych",
-        [disasm_server.serialize_row(row) for row in rows],
-    )
-    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "bloodwych", "cache")
-    monkeypatch.setattr(
-        disasm_server,
-        "get_project",
-        lambda project_name: _binary_project(project_name, ready=True),
-    )
-    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
-    monkeypatch.setattr(
-        disasm_server,
-        "listing_window_payload",
-        lambda rows, addr, before, after: pytest.fail("dataclass address window path should not be used"),
-    )
-
-    payload = disasm_server.route_request(
-        "GET",
-        "/api/projects/bloodwych/listing",
-        {"addr": ["8"], "before": ["1"], "after": ["1"]},
-    )
-    data = cast(dict[str, object], payload["data"])
-    rows_data = cast(list[dict[str, object]], data["rows"])
-
-    assert payload["ok"] is True
-    assert data["anchor_addr"] == 8
-    assert data["start"] == 1
-    assert data["end"] == 4
-    assert [row["row_id"] for row in rows_data] == ["r1", "r2", "r3"]
-
-
-def test_serialized_listing_anchor_index_preserves_display_order() -> None:
-    rows = [
-        {"row_id": "r0", "kind": "instruction", "text": "nop\n", "addr": 100},
-        {"row_id": "r1", "kind": "instruction", "text": "nop\n", "addr": 4},
-        {"row_id": "r2", "kind": "instruction", "text": "nop\n", "addr": 20},
-    ]
-    serialized_rows = cast(list[disasm_server.SerializedRow], rows)
-    block_maxes = disasm_server._serialized_listing_addr_block_maxes(serialized_rows)
-
-    assert disasm_server._serialized_listing_anchor_index(serialized_rows, 10, block_maxes) == 0
-    assert disasm_server._serialized_listing_anchor_index(serialized_rows, 101, block_maxes) == 2
-
-
 def test_route_listing_returns_index_window(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
@@ -1590,47 +1535,6 @@ def test_route_listing_returns_index_window(monkeypatch: pytest.MonkeyPatch) -> 
     assert [row["row_id"] for row in rows_data] == ["r2", "r3"]
 
 
-def test_route_listing_index_window_uses_serialized_cache(monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [
-        ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
-        for index in range(5)
-    ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_SERIALIZED_ROW_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
-    monkeypatch.setitem(
-        disasm_server._PROJECT_SERIALIZED_ROW_CACHE,
-        "bloodwych",
-        [disasm_server.serialize_row(row) for row in rows],
-    )
-    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "bloodwych", "cache")
-    monkeypatch.setattr(
-        disasm_server,
-        "get_project",
-        lambda project_name: _binary_project(project_name, ready=True),
-    )
-    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
-    monkeypatch.setattr(
-        disasm_server,
-        "listing_index_window_payload",
-        lambda rows, start, count: pytest.fail("dataclass window path should not be used"),
-    )
-
-    payload = disasm_server.route_request(
-        "GET",
-        "/api/projects/bloodwych/listing",
-        {"start": ["2"], "count": ["2"]},
-    )
-    data = cast(dict[str, object], payload["data"])
-    rows_data = cast(list[dict[str, object]], data["rows"])
-
-    assert payload["ok"] is True
-    assert data["start"] == 2
-    assert data["end"] == 4
-    assert [row["row_id"] for row in rows_data] == ["r2", "r3"]
-
-
 def test_route_listing_index_window_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
@@ -1651,16 +1555,19 @@ def test_route_listing_index_window_uses_c_artifact_cache(monkeypatch: pytest.Mo
                     "total_rows": 5,
                     "analysis_generation": "full",
                     "rows": [
-                        disasm_server.serialize_row(
-                            ListingRow(row_id="from-c", kind="instruction", text="\trts\n")
-                        )
+                        {
+                            "row_id": "from-c",
+                            "kind": "instruction",
+                            "text": "\trts\n",
+                            "addr": 4,
+                            "source_context": {"kind": "core-block", "hunk_index": 0},
+                        }
                     ],
                 },
                 {},
             )
 
     disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_SERIALIZED_ROW_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_ROW_CACHE_KEY.clear()
@@ -1674,11 +1581,6 @@ def test_route_listing_index_window_uses_c_artifact_cache(monkeypatch: pytest.Mo
         lambda project_name: _binary_project(project_name, ready=True),
     )
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
-    monkeypatch.setattr(
-        disasm_server,
-        "_serialized_listing_index_window_payload",
-        lambda rows, start, count: pytest.fail("serialized window path should not be used"),
-    )
     monkeypatch.setattr(
         disasm_server,
         "listing_index_window_payload",
@@ -1719,16 +1621,19 @@ def test_route_listing_addr_window_uses_c_artifact_cache(monkeypatch: pytest.Mon
                     "total_rows": 5,
                     "analysis_generation": "full",
                     "rows": [
-                        disasm_server.serialize_row(
-                            ListingRow(row_id="from-c-addr", kind="instruction", text="\trts\n", addr=4)
-                        )
+                        {
+                            "row_id": "from-c-addr",
+                            "kind": "instruction",
+                            "text": "\trts\n",
+                            "addr": 4,
+                            "source_context": {"kind": "core-block", "hunk_index": 0},
+                        }
                     ],
                 },
                 {},
             )
 
     disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_SERIALIZED_ROW_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_ROW_CACHE_KEY.clear()
@@ -1742,11 +1647,6 @@ def test_route_listing_addr_window_uses_c_artifact_cache(monkeypatch: pytest.Mon
         lambda project_name: _binary_project(project_name, ready=True),
     )
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
-    monkeypatch.setattr(
-        disasm_server,
-        "_serialized_listing_window_payload",
-        lambda rows, addr, before, after, block_maxes: pytest.fail("serialized window path should not be used"),
-    )
     monkeypatch.setattr(
         disasm_server,
         "listing_window_payload",

@@ -28,7 +28,6 @@ from amiga_reversing.disasm.api import (
     SerializedRow,
     listing_index_window_payload,
     listing_window_payload,
-    serialize_row,
 )
 from amiga_reversing.disasm.binary_source import write_source_descriptor
 from amiga_reversing.disasm.c_backend import (
@@ -127,10 +126,7 @@ class StaticResponse(TypedDict):
 
 
 _MISSING = object()
-_SERIALIZED_ADDR_BLOCK_SIZE = 128
 _PROJECT_ROW_CACHE: dict[str, list[ListingRow]] = {}
-_PROJECT_SERIALIZED_ROW_CACHE: dict[str, list[SerializedRow]] = {}
-_PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE: dict[str, list[int | None]] = {}
 _PROJECT_C_LISTING_ARTIFACT_CACHE: dict[str, CListingArtifact] = {}
 _PROJECT_ROW_GENERATION_CACHE: dict[str, str] = {}
 _PROJECT_ROW_CACHE_KEY: dict[str, str] = {}
@@ -192,97 +188,6 @@ def _type_catalog_payload(project_name: str) -> list[dict[str, object]]:
     return type_catalog_from_c_backend(project_name)
 
 
-def _serialized_listing_index_window_payload(
-    rows: list[SerializedRow], start: int, count: int
-) -> ListingWindowPayload:
-    safe_count = max(0, count)
-    if safe_count == 0 or not rows:
-        safe_start = 0
-    else:
-        max_start = max(0, len(rows) - safe_count)
-        safe_start = max(0, min(start, max_start))
-    end = min(len(rows), safe_start + safe_count)
-    anchor_addr = rows[safe_start].get("addr") if safe_start < len(rows) else None
-    return {
-        "anchor_addr": anchor_addr if isinstance(anchor_addr, int) else None,
-        "start": safe_start,
-        "end": end,
-        "has_more_before": safe_start > 0,
-        "has_more_after": end < len(rows),
-        "total_rows": len(rows),
-        "rows": rows[safe_start:end],
-    }
-
-
-def _serialized_listing_addr_block_maxes(rows: list[SerializedRow]) -> list[int | None]:
-    block_maxes: list[int | None] = []
-    for block_start in range(0, len(rows), _SERIALIZED_ADDR_BLOCK_SIZE):
-        block_max: int | None = None
-        for row in rows[block_start:block_start + _SERIALIZED_ADDR_BLOCK_SIZE]:
-            row_addr = row.get("addr")
-            if isinstance(row_addr, int) and (block_max is None or row_addr > block_max):
-                block_max = row_addr
-        block_maxes.append(block_max)
-    return block_maxes
-
-
-def _serialized_listing_anchor_index(
-    rows: list[SerializedRow], addr: int | None, block_maxes: list[int | None] | None = None
-) -> int:
-    if addr is None:
-        return 0
-    if not rows:
-        return 0
-    if block_maxes is None:
-        block_maxes = _serialized_listing_addr_block_maxes(rows)
-    for block_index, block_max in enumerate(block_maxes):
-        if block_max is None or block_max < addr:
-            continue
-        block_start = block_index * _SERIALIZED_ADDR_BLOCK_SIZE
-        block_end = min(len(rows), block_start + _SERIALIZED_ADDR_BLOCK_SIZE)
-        for index in range(block_start, block_end):
-            row_addr = rows[index].get("addr")
-            if isinstance(row_addr, int) and row_addr >= addr:
-                return index
-    return max(0, len(rows) - 1)
-
-
-def _serialized_listing_window_payload(
-    rows: list[SerializedRow], addr: int | None, before: int = 80, after: int = 160,
-    block_maxes: list[int | None] | None = None
-) -> ListingWindowPayload:
-    anchor_index = _serialized_listing_anchor_index(rows, addr, block_maxes)
-    start = max(0, anchor_index - before)
-    end = min(len(rows), anchor_index + after + 1)
-    return {
-        "anchor_addr": addr,
-        "start": start,
-        "end": end,
-        "has_more_before": start > 0,
-        "has_more_after": end < len(rows),
-        "total_rows": len(rows),
-        "rows": rows[start:end],
-    }
-
-
-def _valid_serialized_listing_rows_and_addr_blocks(
-    project_name: str, canonical_rows: list[ListingRow]
-) -> tuple[list[SerializedRow], list[int | None]] | None:
-    serialized_rows = _PROJECT_SERIALIZED_ROW_CACHE.get(project_name)
-    if (
-        serialized_rows is not None
-        and len(serialized_rows) == len(canonical_rows)
-        and project_name in _PROJECT_ROW_CACHE_KEY
-        and _PROJECT_ROW_CACHE_KEY.get(project_name) == _project_listing_cache_key(project_name)
-    ):
-        block_maxes = _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE.get(project_name)
-        if block_maxes is None:
-            block_maxes = _serialized_listing_addr_block_maxes(serialized_rows)
-            _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE[project_name] = block_maxes
-        return serialized_rows, block_maxes
-    return None
-
-
 def _valid_c_listing_artifact(project_name: str) -> CListingArtifact | None:
     artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
     if (
@@ -336,8 +241,6 @@ def _write_api_input_type_override(
         json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     _PROJECT_ROW_CACHE.clear()
-    _PROJECT_SERIALIZED_ROW_CACHE.clear()
-    _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE.clear()
     for artifact in _PROJECT_C_LISTING_ARTIFACT_CACHE.values():
         artifact.close()
     _PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
@@ -1134,8 +1037,6 @@ def _overlay_listing_navigation_payload(
 
 def _clear_project_listing_cache(project_name: str) -> None:
     _PROJECT_ROW_CACHE.pop(project_name, None)
-    _PROJECT_SERIALIZED_ROW_CACHE.pop(project_name, None)
-    _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE.pop(project_name, None)
     artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.pop(project_name, None)
     if artifact is not None:
         artifact.close()
@@ -1526,11 +1427,6 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                         listing_artifact.close()
                     return
                 _PROJECT_ROW_CACHE[project_name] = rows
-                serialized_rows = [serialize_row(row) for row in rows]
-                _PROJECT_SERIALIZED_ROW_CACHE[project_name] = serialized_rows
-                _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE[project_name] = (
-                    _serialized_listing_addr_block_maxes(serialized_rows)
-                )
                 _PROJECT_ROW_GENERATION_CACHE[project_name] = active_generation
                 _PROJECT_ROW_CACHE_KEY[project_name] = cache_key
                 if active_generation == "full":
@@ -2428,12 +2324,7 @@ def route_request(
                 if listing_artifact is not None:
                     payload, _ = listing_artifact.window_payload(start=start or 0, count=count or 240)
                 else:
-                    serialized_cache = _valid_serialized_listing_rows_and_addr_blocks(project_name, rows)
-                    if serialized_cache is not None:
-                        serialized_rows, _ = serialized_cache
-                        payload = _serialized_listing_index_window_payload(serialized_rows, start or 0, count or 240)
-                    else:
-                        payload = listing_index_window_payload(rows, start or 0, count or 240)
+                    payload = listing_index_window_payload(rows, start or 0, count or 240)
             else:
                 addr = _parse_int_arg(query, "addr")
                 before = _parse_int_arg(query, "before", 80) or 80
@@ -2442,12 +2333,7 @@ def route_request(
                 if listing_artifact is not None:
                     payload, _ = listing_artifact.addr_window_payload(addr=addr, before=before, after=after)
                 else:
-                    serialized_cache = _valid_serialized_listing_rows_and_addr_blocks(project_name, rows)
-                    if serialized_cache is not None:
-                        serialized_rows, block_maxes = serialized_cache
-                        payload = _serialized_listing_window_payload(serialized_rows, addr, before, after, block_maxes)
-                    else:
-                        payload = listing_window_payload(rows, addr, before, after)
+                    payload = listing_window_payload(rows, addr, before, after)
             payload = cast(
                 ListingWindowPayload,
                 {
