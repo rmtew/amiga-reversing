@@ -499,8 +499,9 @@ not rebuild analysis per scroll request.
 An opaque C listing artifact API now preserves that built state across multiple
 window calls for both normal platform files and raw-binary targets. Real-DLL
 regressions prove that repeated windows from one artifact match full listing row
-slices, that full rows can be emitted from the same artifact, and that
-raw-binary targets can use the same artifact boundary.
+slices and that raw-binary targets can use the same artifact boundary. The
+artifact no longer exposes a full-row JSON export; callers must use bounded
+window, anchor, navigation, or analysis APIs.
 Address-window emission now also has a C artifact API using the displayed
 listing-row stream for anchor selection, preserving the web rule of choosing
 the first displayed row whose address is greater than or equal to the requested
