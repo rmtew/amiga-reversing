@@ -119,8 +119,6 @@ _MISSING = object()
 _PROJECT_C_LISTING_ARTIFACT_CACHE: dict[str, CListingArtifact] = {}
 _PROJECT_ROW_GENERATION_CACHE: dict[str, str] = {}
 _PROJECT_LISTING_CACHE_KEY: dict[str, str] = {}
-_PROJECT_APP_SLOT_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
-_PROJECT_TYPE_FLOW_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
 _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
 _JOB_LOCK = threading.Lock()
@@ -219,8 +217,6 @@ def _write_api_input_type_override(
     _PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     _PROJECT_ROW_GENERATION_CACHE.clear()
     _PROJECT_LISTING_CACHE_KEY.clear()
-    _PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
-    _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.clear()
     _cancel_listing_jobs()
 
 
@@ -560,7 +556,7 @@ def _overlay_listing_navigation_payload(
     if "analysis_generation" not in payload or payload.get("analysis_generation") is None:
         payload["analysis_generation"] = _PROJECT_ROW_GENERATION_CACHE.get(project_name)
     if "type_flow_analysis" not in payload or not isinstance(payload.get("type_flow_analysis"), dict):
-        payload["type_flow_analysis"] = _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.get(project_name, {})
+        payload["type_flow_analysis"] = {}
     payload["groups"] = groups
     return payload
 
@@ -571,8 +567,6 @@ def _clear_project_listing_cache(project_name: str) -> None:
         artifact.close()
     _PROJECT_ROW_GENERATION_CACHE.pop(project_name, None)
     _PROJECT_LISTING_CACHE_KEY.pop(project_name, None)
-    _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
-    _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
 
 
 def _json_bytes(payload: object) -> bytes:
@@ -866,12 +860,10 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             generation="full",
             phase="build_c_artifact",
         )
-        total_rows, profile, listing_artifact = build_project_listing_artifact_generation_profile(
+        total_rows, _profile, listing_artifact = build_project_listing_artifact_generation_profile(
             project_name,
             generation="full",
         )
-        app_slot_analysis = profile.get("app_slot_analysis")
-        type_flow_analysis = profile.get("type_flow_analysis")
         if not _set_job_phase(job_id, phase_id="cache_artifact", phase_index=2, phase_count=phase_count):
             if listing_artifact is not None:
                 listing_artifact.close()
@@ -903,14 +895,6 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                 listing_artifact = None
             if old_artifact is not None and old_artifact is not _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name):
                 old_artifact.close()
-            if isinstance(app_slot_analysis, dict):
-                _PROJECT_APP_SLOT_ANALYSIS_CACHE[project_name] = app_slot_analysis
-            else:
-                _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
-            if isinstance(type_flow_analysis, dict):
-                _PROJECT_TYPE_FLOW_ANALYSIS_CACHE[project_name] = type_flow_analysis
-            else:
-                _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
         _log_event(
             "listing_job generation_ready",
             job_id=job_id,

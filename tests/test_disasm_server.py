@@ -121,10 +121,14 @@ class _RowsCListingArtifact:
         *,
         project_name: str = "bloodwych",
         api_calls_by_row_id: dict[str, dict[str, object]] | None = None,
+        app_slot_analysis: dict[str, object] | None = None,
+        type_flow_analysis: dict[str, object] | None = None,
     ) -> None:
         self.rows = rows
         self.project_name = project_name
         self.api_calls_by_row_id = api_calls_by_row_id or {}
+        self.app_slot_analysis = app_slot_analysis or {}
+        self.type_flow_analysis = type_flow_analysis or {}
         self.closed = False
 
     def close(self) -> None:
@@ -144,7 +148,13 @@ class _RowsCListingArtifact:
         return _test_listing_index_window_payload(self.rows, start, count, self.api_calls_by_row_id), {}
 
     def navigation_payload(self):
-        return _test_listing_navigation_payload(self.project_name, self.rows, self.api_calls_by_row_id), {}
+        return _test_listing_navigation_payload(
+            self.project_name,
+            self.rows,
+            self.api_calls_by_row_id,
+            app_slot_analysis=self.app_slot_analysis,
+            type_flow_analysis=self.type_flow_analysis,
+        ), {}
 
 
 def _seed_c_listing_artifact(
@@ -252,6 +262,9 @@ def _test_listing_navigation_payload(
     project_name: str,
     rows: list[ListingRow],
     api_calls_by_row_id: dict[str, dict[str, object]] | None = None,
+    *,
+    app_slot_analysis: dict[str, object] | None = None,
+    type_flow_analysis: dict[str, object] | None = None,
 ) -> dict[str, object]:
     groups = _test_empty_navigation_groups()
     label_entries: dict[str, dict[str, object]] = {}
@@ -265,9 +278,8 @@ def _test_listing_navigation_payload(
     repro_report = disasm_server._active_reproduction_report(project_name)
     if repro_report is not None:
         groups["repro-issues"] = disasm_server.reproduction_navigation_entries(repro_report)
-    app_slot_analysis = disasm_server._PROJECT_APP_SLOT_ANALYSIS_CACHE.get(
-        project_name,
-        {
+    if app_slot_analysis is None:
+        app_slot_analysis = {
             "slot_count": 0,
             "ref_count": 0,
             "typed_region_count": 0,
@@ -281,8 +293,7 @@ def _test_listing_navigation_payload(
             "field_gaps": [],
             "suggestions": [],
             "untyped_api_args": [],
-        },
-    )
+        }
     for row_index, row in enumerate(rows):
         if row.addr is None:
             continue
@@ -419,7 +430,7 @@ def _test_listing_navigation_payload(
         "total_rows": len(rows),
         "groups": groups,
         "app_slot_analysis": app_slot_analysis,
-        "type_flow_analysis": disasm_server._PROJECT_TYPE_FLOW_ANALYSIS_CACHE.get(project_name, {}),
+        "type_flow_analysis": type_flow_analysis or {},
     }
 
 
@@ -2427,7 +2438,7 @@ def test_listing_navigation_groups_app_slot_refs_by_symbol(monkeypatch: pytest.M
         ),
     ]
 
-    disasm_server._PROJECT_APP_SLOT_ANALYSIS_CACHE["bloodwych"] = {
+    app_slot_analysis = {
         "gap_count": 1,
         "slots": [
             {
@@ -2458,53 +2469,47 @@ def test_listing_navigation_groups_app_slot_refs_by_symbol(monkeypatch: pytest.M
         "field_gaps": [],
         "suggestions": [],
     }
-    try:
-        payload = _test_listing_navigation_payload("bloodwych", rows)
-        groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
-        app_slots = groups["app-slots"]
-        app_slot_analysis = cast(dict[str, object], payload["app_slot_analysis"])
+    payload = _test_listing_navigation_payload("bloodwych", rows, app_slot_analysis=app_slot_analysis)
+    groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
+    app_slots = groups["app-slots"]
+    app_slot_analysis_payload = cast(dict[str, object], payload["app_slot_analysis"])
 
-        assert [entry["symbol"] for entry in app_slots] == ["app_DOSBase", "app_0234"]
-        assert app_slots[0]["ref_count"] == 1
-        assert app_slots[0]["access_counts"] == {"read": 1}
-        assert app_slots[0]["width_counts"] == {"long": 1}
-        assert app_slots[0]["observed_end"] == 0x2A
-        assert app_slots[1]["ref_count"] == 2
-        assert app_slots[1]["access_counts"] == {"write": 1, "address": 1}
-        assert app_slots[1]["width_counts"] == {"long": 1}
-        assert app_slots[1]["first_row_index"] == 1
-        assert app_slots[1]["last_row_index"] == 2
-        assert app_slot_analysis["gap_count"] == 1
-        refs = cast(list[dict[str, object]], app_slots[1]["refs"])
-        assert [(ref["row_index"], ref["access"], ref["stable_key"]) for ref in refs] == [
-            (1, "write", "app-write"),
-            (2, "address", "app-address"),
-        ]
-        assert refs[0]["summary"] == "move.l d0,app_0234(a6)"
-    finally:
-        disasm_server._PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
+    assert [entry["symbol"] for entry in app_slots] == ["app_DOSBase", "app_0234"]
+    assert app_slots[0]["ref_count"] == 1
+    assert app_slots[0]["access_counts"] == {"read": 1}
+    assert app_slots[0]["width_counts"] == {"long": 1}
+    assert app_slots[0]["observed_end"] == 0x2A
+    assert app_slots[1]["ref_count"] == 2
+    assert app_slots[1]["access_counts"] == {"write": 1, "address": 1}
+    assert app_slots[1]["width_counts"] == {"long": 1}
+    assert app_slots[1]["first_row_index"] == 1
+    assert app_slots[1]["last_row_index"] == 2
+    assert app_slot_analysis_payload["gap_count"] == 1
+    refs = cast(list[dict[str, object]], app_slots[1]["refs"])
+    assert [(ref["row_index"], ref["access"], ref["stable_key"]) for ref in refs] == [
+        (1, "write", "app-write"),
+        (2, "address", "app-address"),
+    ]
+    assert refs[0]["summary"] == "move.l d0,app_0234(a6)"
 
 
 def test_listing_navigation_exposes_type_flow_analysis_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "_active_reproduction_report", lambda project_name: None)
     monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
-    disasm_server._PROJECT_TYPE_FLOW_ANALYSIS_CACHE["bloodwych"] = {
+    type_flow_analysis = {
         "schema_version": 1,
         "target_id": "project_target:bloodwych",
         "pointer_chain_root_counts": {"app_slot": 2},
         "chains": [{"kind": "register_to_app_slot_reload", "count": 2}],
     }
-    try:
-        payload = _test_listing_navigation_payload("bloodwych", [])
+    payload = _test_listing_navigation_payload("bloodwych", [], type_flow_analysis=type_flow_analysis)
 
-        assert payload["type_flow_analysis"] == {
-            "schema_version": 1,
-            "target_id": "project_target:bloodwych",
-            "pointer_chain_root_counts": {"app_slot": 2},
-            "chains": [{"kind": "register_to_app_slot_reload", "count": 2}],
-        }
-    finally:
-        disasm_server._PROJECT_TYPE_FLOW_ANALYSIS_CACHE.clear()
+    assert payload["type_flow_analysis"] == {
+        "schema_version": 1,
+        "target_id": "project_target:bloodwych",
+        "pointer_chain_root_counts": {"app_slot": 2},
+        "chains": [{"kind": "register_to_app_slot_reload", "count": 2}],
+    }
 
 
 def test_listing_navigation_exposes_app_slot_regions_and_gaps(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -2544,7 +2549,7 @@ def test_listing_navigation_exposes_app_slot_regions_and_gaps(monkeypatch: pytes
             app_slot_refs=(AppSlotRef("app_after_event", 0x120, "A6", 0, "read"),),
         ),
     ]
-    disasm_server._PROJECT_APP_SLOT_ANALYSIS_CACHE["input-demo"] = {
+    app_slot_analysis = {
         "regions": [
             {
                 "source": "platform_api_arg",
@@ -2613,75 +2618,72 @@ def test_listing_navigation_exposes_app_slot_regions_and_gaps(monkeypatch: pytes
         ],
     }
 
-    try:
-        payload = _test_listing_navigation_payload("input-demo", rows)
-        groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
+    payload = _test_listing_navigation_payload("input-demo", rows, app_slot_analysis=app_slot_analysis)
+    groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
 
-        assert groups["app-slot-regions"] == [
-            {
-                "summary": "app_input_event: InputEvent $0100-$0116",
-                "match_text": "app_input_event",
-                "symbol": "app_input_event",
-                "offset": 0x100,
-                "end": 0x116,
-                "size": 22,
-                "source": "platform_api_arg",
-                "confidence": "tool-inferred",
-                "struct_name": "InputEvent",
-                "field_ref_count": 1,
-                "field_paths": ["InputEvent.ie_Code"],
-                "row_index": 1,
-                "addr": 0x14,
-                "hunk_index": 0,
-            }
-        ]
-        assert groups["app-slot-gaps"] == [
-            {
-                "summary": "Gap $0116-$0120 (10 bytes)",
-                "match_text": "",
-                "navigable": False,
-                "start": 0x116,
-                "end": 0x120,
-                "size": 10,
-                "after": "app_slot_region_0100_InputEvent",
-                "before": "app_slot_observed_app_after_event",
-                "coverage": "unknown_app_slot_space",
-            }
-        ]
-        assert groups["app-slot-field-gaps"] == [
-            {
-                "summary": "Field gap $0108-$010A (2 bytes) InputEvent.ie_Qualifier",
-                "match_text": "InputEvent.ie_Qualifier",
-                "navigable": False,
-                "start": 0x108,
-                "end": 0x10A,
-                "size": 2,
-                "coverage": "known_struct_field",
-                "field_path": ["ie_Qualifier"],
-                "region_id": "app_slot_region_0100_InputEvent",
-                "symbol": "app_input_event",
-                "struct_name": "InputEvent",
-            }
-        ]
-        suggestions = groups["app-slot-suggestions"]
-        assert len(suggestions) == 1
-        assert suggestions[0]["action"] == "add_target_metadata"
-        assert suggestions[0]["symbol"] == "app_input_event"
-        assert suggestions[0]["offset"] == 0x100
-        assert suggestions[0]["struct_name"] == "InputEvent"
-        assert suggestions[0]["row_index"] == 1
-        assert cast(dict[str, object], suggestions[0]["metadata"])["storage_kind"] == "struct_instance"
-        api_args = groups["app-slot-api-args"]
-        assert len(api_args) == 1
-        assert api_args[0]["summary"] == "app_key_buffer -> RawKeyConvert buffer A1 (missing_struct_metadata)"
-        assert api_args[0]["symbol"] == "app_key_buffer"
-        assert api_args[0]["register"] == "A1"
-        assert api_args[0]["type_name"] == "STRPTR"
-        assert api_args[0]["row_index"] == 1
-        assert api_args[0]["stable_key"] == "call-row"
-        assert api_args[0]["source_stable_key"] == "lea-row"
-    finally:
-        disasm_server._PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
+    assert groups["app-slot-regions"] == [
+        {
+            "summary": "app_input_event: InputEvent $0100-$0116",
+            "match_text": "app_input_event",
+            "symbol": "app_input_event",
+            "offset": 0x100,
+            "end": 0x116,
+            "size": 22,
+            "source": "platform_api_arg",
+            "confidence": "tool-inferred",
+            "struct_name": "InputEvent",
+            "field_ref_count": 1,
+            "field_paths": ["InputEvent.ie_Code"],
+            "row_index": 1,
+            "addr": 0x14,
+            "hunk_index": 0,
+        }
+    ]
+    assert groups["app-slot-gaps"] == [
+        {
+            "summary": "Gap $0116-$0120 (10 bytes)",
+            "match_text": "",
+            "navigable": False,
+            "start": 0x116,
+            "end": 0x120,
+            "size": 10,
+            "after": "app_slot_region_0100_InputEvent",
+            "before": "app_slot_observed_app_after_event",
+            "coverage": "unknown_app_slot_space",
+        }
+    ]
+    assert groups["app-slot-field-gaps"] == [
+        {
+            "summary": "Field gap $0108-$010A (2 bytes) InputEvent.ie_Qualifier",
+            "match_text": "InputEvent.ie_Qualifier",
+            "navigable": False,
+            "start": 0x108,
+            "end": 0x10A,
+            "size": 2,
+            "coverage": "known_struct_field",
+            "field_path": ["ie_Qualifier"],
+            "region_id": "app_slot_region_0100_InputEvent",
+            "symbol": "app_input_event",
+            "struct_name": "InputEvent",
+        }
+    ]
+    suggestions = groups["app-slot-suggestions"]
+    assert len(suggestions) == 1
+    assert suggestions[0]["action"] == "add_target_metadata"
+    assert suggestions[0]["symbol"] == "app_input_event"
+    assert suggestions[0]["offset"] == 0x100
+    assert suggestions[0]["struct_name"] == "InputEvent"
+    assert suggestions[0]["row_index"] == 1
+    assert cast(dict[str, object], suggestions[0]["metadata"])["storage_kind"] == "struct_instance"
+    api_args = groups["app-slot-api-args"]
+    assert len(api_args) == 1
+    assert api_args[0]["summary"] == "app_key_buffer -> RawKeyConvert buffer A1 (missing_struct_metadata)"
+    assert api_args[0]["symbol"] == "app_key_buffer"
+    assert api_args[0]["register"] == "A1"
+    assert api_args[0]["type_name"] == "STRPTR"
+    assert api_args[0]["row_index"] == 1
+    assert api_args[0]["stable_key"] == "call-row"
+    assert api_args[0]["source_stable_key"] == "lea-row"
 
 
 def test_route_listing_navigation_rejects_stale_cache(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -180,6 +180,10 @@ forcing navigation JSON during artifact creation. Navigation remains an
 on-demand query against the same C artifact. The former Python API-call cache
 and compact API-call artifact endpoint have been removed; row windows and
 navigation both consume API-call facts from C-owned row metadata.
+The server no longer keeps separate Python app-slot or type-flow analysis
+caches for listing navigation. Those payloads are owned by the retained C
+artifact navigation response; Python only overlays project/session concerns
+such as reproduction issues.
 The retained displayed-row index is now built in one render-plan pass. The
 previous path counted listing rows with a full pass, then walked the same rows
 again to populate the index. The index builder now collects header rows once,
@@ -187,9 +191,9 @@ allocates a safe arena-backed upper bound from render-plan line counts plus
 synthetic header rows, and records the actual row count after the single pass.
 Measured best-of-three artifact builds were about 1.24s for Bloodwych, 0.36s
 for MonAm, and 0.48s for GenAm after this cleanup.
-The full-listing job no longer carries an empty Python `ListingRow` list through
-the ready event. The build phases are named for the retained artifact path:
-build the C artifact, then cache the artifact.
+The full-listing job no longer carries an empty Python `ListingRow` list or
+analysis side caches through the ready event. The build phases are named for
+the retained artifact path: build the C artifact, then cache the artifact.
 The server also no longer keeps a separate Python total-row cache for full
 listings. Cached ready jobs read the displayed row count from the retained C
 artifact summary, so row count ownership stays with the artifact.
@@ -303,7 +307,6 @@ analysis/render-plan session handle or a persisted listing artifact:
 ```
 create artifact(binary, metadata, policy, effective cache key)
 artifact summary/profile
-compact API-call payload
 listing window by row/index/artifact
 listing window by address/artifact
 navigation and row count/artifact

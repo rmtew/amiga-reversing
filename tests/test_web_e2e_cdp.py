@@ -59,11 +59,15 @@ def _cache_full_project_rows(
     rows: list[ListingRow],
     *,
     api_calls_by_row_id: dict[str, dict[str, object]] | None = None,
+    app_slot_analysis: dict[str, object] | None = None,
+    type_flow_analysis: dict[str, object] | None = None,
 ) -> None:
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE[project_id] = _FakeCListingArtifact(
         rows,
         project_name=project_id,
         api_calls_by_row_id=api_calls_by_row_id,
+        app_slot_analysis=app_slot_analysis,
+        type_flow_analysis=type_flow_analysis,
     )
     disasm_server._PROJECT_ROW_GENERATION_CACHE[project_id] = "full"
     disasm_server._PROJECT_LISTING_CACHE_KEY[project_id] = "test-cache"
@@ -81,6 +85,9 @@ def _test_navigation_payload(
     project_name: str,
     rows: list[ListingRow],
     api_calls_by_row_id: dict[str, dict[str, object]] | None = None,
+    *,
+    app_slot_analysis: dict[str, object] | None = None,
+    type_flow_analysis: dict[str, object] | None = None,
 ) -> dict[str, object]:
     groups: dict[str, list[dict[str, object]]] = {
         "repro-issues": [],
@@ -179,13 +186,12 @@ def _test_navigation_payload(
         )
     groups["app-slots"] = list(app_slots.values())
     groups["labels"] = sorted(labels.values(), key=lambda entry: cast(int, entry.get("row_index", -1)))
-    app_slot_analysis = disasm_server._PROJECT_APP_SLOT_ANALYSIS_CACHE.get(project_name, {})
     return {
         "analysis_generation": disasm_server._PROJECT_ROW_GENERATION_CACHE.get(project_name),
         "total_rows": len(rows),
         "groups": groups,
-        "app_slot_analysis": app_slot_analysis,
-        "type_flow_analysis": disasm_server._PROJECT_TYPE_FLOW_ANALYSIS_CACHE.get(project_name, {}),
+        "app_slot_analysis": app_slot_analysis or {},
+        "type_flow_analysis": type_flow_analysis or {},
     }
 
 
@@ -196,10 +202,14 @@ class _FakeCListingArtifact:
         *,
         project_name: str = "test_project",
         api_calls_by_row_id: dict[str, dict[str, object]] | None = None,
+        app_slot_analysis: dict[str, object] | None = None,
+        type_flow_analysis: dict[str, object] | None = None,
     ) -> None:
         self.rows = rows
         self.project_name = project_name
         self.api_calls_by_row_id = api_calls_by_row_id or {}
+        self.app_slot_analysis = app_slot_analysis or {}
+        self.type_flow_analysis = type_flow_analysis or {}
         self.closed = False
 
     def close(self) -> None:
@@ -241,7 +251,13 @@ class _FakeCListingArtifact:
         return payload, {}
 
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
-        return _test_navigation_payload(self.project_name, self.rows, self.api_calls_by_row_id), {}
+        return _test_navigation_payload(
+            self.project_name,
+            self.rows,
+            self.api_calls_by_row_id,
+            app_slot_analysis=self.app_slot_analysis,
+            type_flow_analysis=self.type_flow_analysis,
+        ), {}
 
 
 def _temp_project_accessors(monkeypatch: pytest.MonkeyPatch, project_root: Path) -> None:
