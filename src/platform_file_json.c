@@ -5909,22 +5909,16 @@ oom:
   return -1;
 }
 
-int source_file_listing_window_from_render_plan_to_json(const M68kSourceFileIR *source_file,
+int source_file_listing_total_rows_from_render_plan(const M68kSourceFileIR *source_file,
     const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
-    size_t start, size_t count, char **out_json, M68kDiagSink diagnostics) {
-  JsonBuilder builder = {0};
+    size_t *out_total_rows, M68kDiagSink diagnostics) {
   ListingSourceHeaderRows header_rows = {0};
   ListingRenderPlanJsonContext count_context;
-  ListingRenderPlanJsonContext emit_context;
   const char *failure = "out of memory";
-  size_t total_rows;
-  size_t safe_count;
-  size_t safe_start;
-  size_t end;
   memset(&count_context, 0, sizeof(count_context));
-  memset(&emit_context, 0, sizeof(emit_context));
-  if (render_plan == NULL || out_json == NULL) {
+  if (out_total_rows != NULL) *out_total_rows = 0U;
+  if (render_plan == NULL || out_total_rows == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
     return -1;
   }
@@ -5948,10 +5942,44 @@ int source_file_listing_window_from_render_plan_to_json(const M68kSourceFileIR *
   count_context.count_only = 1;
   if (m68k_render_plan_visit_row_lines(render_plan, 0U, render_plan->row_count,
       append_full_listing_render_plan_line, &count_context) != 0) {
-    failure = "listing window count pass failed";
+    failure = "listing row count pass failed";
     goto oom;
   }
-  total_rows = count_context.row_index;
+  *out_total_rows = count_context.row_index;
+  listing_source_header_rows_destroy(&header_rows);
+  return 0;
+
+oom:
+  listing_source_header_rows_destroy(&header_rows);
+  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, failure);
+  return -1;
+}
+
+int source_file_listing_window_from_render_plan_with_total_to_json(const M68kSourceFileIR *source_file,
+    const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
+    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
+    size_t total_rows, size_t start, size_t count, char **out_json, M68kDiagSink diagnostics) {
+  JsonBuilder builder = {0};
+  ListingSourceHeaderRows header_rows = {0};
+  ListingRenderPlanJsonContext emit_context;
+  const char *failure = "out of memory";
+  size_t safe_count;
+  size_t safe_start;
+  size_t end;
+  memset(&emit_context, 0, sizeof(emit_context));
+  if (render_plan == NULL || out_json == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    return -1;
+  }
+  if (listing_source_header_rows_init(&header_rows) != 0) goto oom;
+  if (!include_source_only_rows) {
+    if (collect_listing_source_header_rows_from_plan(render_plan, &header_rows) != 0) {
+      failure = "listing window header collection failed";
+      goto oom;
+    }
+  }
+  if (source_file != NULL) platform_backend_kind = source_file->platform_backend_kind;
+  (void)platform_backend_kind;
   safe_count = count;
   if (safe_count == 0U || total_rows == 0U) {
     safe_start = 0U;
@@ -6003,6 +6031,20 @@ oom:
   listing_source_header_rows_destroy(&header_rows);
   m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, failure);
   return -1;
+}
+
+int source_file_listing_window_from_render_plan_to_json(const M68kSourceFileIR *source_file,
+    const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
+    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
+    size_t start, size_t count, char **out_json, M68kDiagSink diagnostics) {
+  size_t total_rows = 0U;
+  if (source_file_listing_total_rows_from_render_plan(source_file, render_plan, platform_backend_kind,
+      analysis_policy, source_analysis, analysis_generation, include_source_only_rows, &total_rows,
+      diagnostics) != 0)
+    return -1;
+  return source_file_listing_window_from_render_plan_with_total_to_json(source_file, render_plan,
+    platform_backend_kind, analysis_policy, source_analysis, analysis_generation, include_source_only_rows,
+    total_rows, start, count, out_json, diagnostics);
 }
 
 int source_file_listing_addr_window_from_render_plan_to_json(const M68kSourceFileIR *source_file,

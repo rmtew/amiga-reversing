@@ -4359,6 +4359,7 @@ struct PlatformFileListingArtifact {
   M68kSourceAnalysisIR source_analysis;
   M68kRenderPlan source_plan;
   M68kFactsV2Profile profile;
+  size_t listing_total_rows;
   double source_seconds;
 };
 
@@ -4405,6 +4406,13 @@ static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact
     return -1;
   }
   source_end = clock();
+  if (source_file_listing_total_rows_from_render_plan(NULL, &artifact->source_plan,
+      artifact->object.platform_backend_kind, &artifact->source_analysis.policy, &artifact->source_analysis,
+      "full", 0, &artifact->listing_total_rows, m68k_diag_sink(diagnostics)) != 0) {
+    if (!m68k_diag_has_errors(diagnostics))
+      platform_file_add_error(diagnostics, "facts_v2 listing row count failed");
+    return -1;
+  }
   artifact->source_seconds = elapsed_seconds(source_start, source_end);
   return 0;
 }
@@ -5474,9 +5482,10 @@ int platform_file_facts_v2_listing_artifact_window_json_alloc(PlatformFileListin
     return text_result_to_alloc(&result, out_text);
   }
   window_start = clock();
-  if (source_file_listing_window_from_render_plan_to_json(NULL, &artifact->source_plan,
+  if (source_file_listing_window_from_render_plan_with_total_to_json(NULL, &artifact->source_plan,
       artifact->object.platform_backend_kind, &artifact->source_analysis.policy, &artifact->source_analysis,
-      "full", 0, start, count, &window_json, m68k_diag_sink(&result.diagnostics)) != 0) {
+      "full", 0, artifact->listing_total_rows, start, count, &window_json,
+      m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "facts_v2 listing window render-plan emission failed");
     goto cleanup;
@@ -5493,7 +5502,9 @@ int platform_file_facts_v2_listing_artifact_window_json_alloc(PlatformFileListin
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
       json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
       json_builder_appendf(&builder,
-        ",\"timing\":{\"source_seconds\":%.6f,\"window_json_seconds\":%.6f,\"total_seconds\":%.6f}}}",
+        ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,\"window_json_seconds\":%.6f,"
+        "\"total_seconds\":%.6f}}}",
+        (unsigned)artifact->listing_total_rows,
         artifact->source_seconds, elapsed_seconds(window_start, window_end),
         elapsed_seconds(window_start, window_end)) != 0) {
     platform_file_add_error(&result.diagnostics, "out of memory");

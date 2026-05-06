@@ -113,6 +113,11 @@ still emitted for progress/fallback display, but full-generation windows and
 navigation are served from the retained artifact. Analysis JSON is exposed from
 the same artifact so Python can keep API-call metadata without forcing full row
 JSON emission.
+The retained artifact now computes the displayed listing row count once during
+artifact creation. Row-index window requests reuse that count and only perform
+the emission pass for the requested window. Address-anchored windows still need
+an anchor search pass; solving that cleanly requires a retained address-to-row
+index, not another Python-side cache.
 The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.
