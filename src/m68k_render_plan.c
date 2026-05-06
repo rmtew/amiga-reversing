@@ -318,6 +318,83 @@ int m68k_render_plan_emit_all_alloc(const M68kRenderPlan *plan, char **out_text)
   return m68k_render_plan_emit_rows_alloc(plan, 0U, plan->row_count, out_text);
 }
 
+static int render_plan_row_header_group(const M68kRenderPlanRow *row) {
+  if (row == NULL) return -1;
+  if (row->kind == M68K_RENDER_PLAN_ROW_INCLUDE) return 0;
+  if (row->kind == M68K_RENDER_PLAN_ROW_RSSET || row->kind == M68K_RENDER_PLAN_ROW_RS_FIELD) return 1;
+  if (row->kind == M68K_RENDER_PLAN_ROW_EQUATE) return 2;
+  return -1;
+}
+
+static int render_plan_compare_include_rows(const M68kRenderPlanRow *left, const M68kRenderPlanRow *right) {
+  const char *left_text = left != NULL && left->text != NULL ? left->text : "";
+  const char *right_text = right != NULL && right->text != NULL ? right->text : "";
+  return strcmp(left_text, right_text);
+}
+
+static void render_plan_recompute_layout(M68kRenderPlan *plan) {
+  size_t index;
+  uint32_t total_lines = 0U;
+  size_t total_bytes = 0U;
+  if (plan == NULL) return;
+  for (index = 0U; index < plan->row_count; ++index) {
+    M68kRenderPlanRow *row = &plan->rows[index];
+    row->start_line = total_lines;
+    row->start_byte = total_bytes;
+    total_lines += row->line_count;
+    total_bytes += row->byte_count;
+  }
+  plan->total_lines = total_lines;
+  plan->total_bytes = total_bytes;
+}
+
+int m68k_render_plan_hoist_header_rows(M68kRenderPlan *plan) {
+  M68kRenderPlanRow *ordered;
+  size_t out_index = 0U;
+  size_t row_index;
+  int group;
+  if (plan == NULL) return -1;
+  if (plan->row_count == 0U) return 0;
+  ordered = (M68kRenderPlanRow *)malloc(plan->row_count * sizeof(*ordered));
+  if (ordered == NULL) return -1;
+  for (group = 0; group <= 2; ++group) {
+    if (group == 0) {
+      size_t include_start = out_index;
+      size_t scan;
+      for (row_index = 0U; row_index < plan->row_count; ++row_index) {
+        if (render_plan_row_header_group(&plan->rows[row_index]) == group)
+          ordered[out_index++] = plan->rows[row_index];
+      }
+      for (row_index = include_start + 1U; row_index < out_index; ++row_index) {
+        M68kRenderPlanRow row = ordered[row_index];
+        scan = row_index;
+        while (scan > include_start && render_plan_compare_include_rows(&ordered[scan - 1U], &row) > 0) {
+          ordered[scan] = ordered[scan - 1U];
+          --scan;
+        }
+        ordered[scan] = row;
+      }
+    } else {
+      for (row_index = 0U; row_index < plan->row_count; ++row_index) {
+        if (render_plan_row_header_group(&plan->rows[row_index]) == group)
+          ordered[out_index++] = plan->rows[row_index];
+      }
+    }
+  }
+  for (row_index = 0U; row_index < plan->row_count; ++row_index) {
+    if (render_plan_row_header_group(&plan->rows[row_index]) < 0)
+      ordered[out_index++] = plan->rows[row_index];
+  }
+  if (out_index != plan->row_count) {
+    free(ordered);
+    return -1;
+  }
+  memcpy(plan->rows, ordered, plan->row_count * sizeof(*ordered));
+  free(ordered);
+  render_plan_recompute_layout(plan);
+  return 0;
+}
+
 int m68k_render_plan_visit_row_lines(const M68kRenderPlan *plan, size_t first_row, size_t row_count,
     M68kRenderPlanLineVisitor visitor, void *user) {
   size_t row_index;

@@ -191,6 +191,53 @@ static int test_render_plan_rejects_rows_without_complete_lines(void) {
   return 0;
 }
 
+static int test_render_plan_hoists_typed_header_rows(void) {
+  M68kRenderPlan plan;
+  M68kRenderPlanRow *row = NULL;
+  const M68kRenderPlanRow *found = NULL;
+  char *full_text = NULL;
+  const char *expected =
+    "    INCLUDE \"hardware/cia.i\"\n"
+    "    INCLUDE \"hardware/custom.i\"\n"
+    "    RSSET 0\n"
+    "app_0000 RS.L 1\n"
+    "_custom EQU $DFF000\n"
+    "    SECTION section_0,code\n"
+    "loc_0_00000000:\n"
+    "\trts\n";
+  m68k_render_plan_init(&plan);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_SECTION, 0U,
+    "    SECTION section_0,code\n", NULL));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_LABEL, 0U,
+    "loc_0_00000000:\n", NULL));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_INCLUDE, 0U,
+    "    INCLUDE \"hardware/custom.i\"\n", NULL));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_EQUATE, 0U,
+    "_custom EQU $DFF000\n", NULL));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_INCLUDE, 0U,
+    "    INCLUDE \"hardware/cia.i\"\n", NULL));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_RSSET, 0U,
+    "    RSSET 0\n", NULL));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_RS_FIELD, 0U,
+    "app_0000 RS.L 1\n", NULL));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_INSTRUCTION, 0U,
+    "\trts\n", &row));
+  m68k_render_plan_row_set_source_range(row, 0U, 0U, 2U);
+
+  M68K_C_ASSERT_INT(0, m68k_render_plan_hoist_header_rows(&plan));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&plan, &full_text));
+  M68K_C_ASSERT_STR(expected, full_text);
+  M68K_C_ASSERT_U32(0U, plan.rows[0].start_line);
+  M68K_C_ASSERT_U32(5U, plan.rows[5].start_line);
+  found = m68k_render_plan_find_row_for_source_offset(&plan, 0U, 0U);
+  M68K_C_ASSERT(found != NULL);
+  M68K_C_ASSERT_U32(M68K_RENDER_PLAN_ROW_INSTRUCTION, found->kind);
+
+  m68k_render_plan_free_text(full_text);
+  m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
 static int test_render_plan_builds_source_file_body_genam_fixture(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
@@ -263,6 +310,7 @@ int m68k_c_render_plan_tests(void) {
     {"window_emission_matches_full_slice", test_render_plan_window_emission_matches_full_slice},
     {"visits_physical_lines_with_owner_row", test_render_plan_visits_physical_lines_with_owner_row},
     {"rejects_rows_without_complete_lines", test_render_plan_rejects_rows_without_complete_lines},
+    {"hoists_typed_header_rows", test_render_plan_hoists_typed_header_rows},
     {"builds_source_file_body_genam_fixture", test_render_plan_builds_source_file_body_genam_fixture}
   };
   return m68k_c_test_run_suite("m68k_render_plan", cases, sizeof(cases) / sizeof(cases[0]));

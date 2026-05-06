@@ -72,6 +72,8 @@ captured plan before the source-model rebuild can be removed.
 It can also resolve rows from plan-owned source section/offset ranges, which is
 the lighter provenance shape the facts_v2 render walk can emit before exact
 source-file statement indexes exist.
+Render plans now have a typed header-hoist transform that orders include rows,
+RS rows, and equate rows before body rows without parsing final source text.
 
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
