@@ -51,10 +51,7 @@ reserve spans, diagnostics, RS/header material, includes, and equates, and full
 source text is emitted back from that plan. The profile exposes
 `asm_source_plan_rows`, `asm_source_plan_lines`, and `asm_source_plan_bytes`;
 Bloodwych now has fewer plan rows than physical source lines because multi-line
-data spans stay attached to one analysis row. The full listing path still parses
-the emitted source text to rebuild `M68kSourceFileIR` statement metadata before
-row JSON is emitted, so the remaining bridge is the source-model rebuild, not
-the source-plan construction.
+data spans stay attached to one analysis row.
 
 An isolated C test now proves that full listing JSON emitted from a text-line
 render plan remains stable for the same source model. The production DLL path
@@ -63,16 +60,14 @@ been removed, so there is no separate raw source-text row loop to maintain.
 Header collection for filtered listing rows now stops at the first section
 directive instead of scanning the whole render plan before the row-emission
 pass.
-Full listing timing now separates the remaining source-model rebuild
-(`source_model_seconds`) from render-plan row JSON emission
-(`rows_emit_seconds`), so the next refactor can target the real leftover cost.
-The full listing row emitter now consumes render-plan statement provenance when
-available instead of depending only on section-line matching. The production
-facts_v2 bridge still needs authoritative statement provenance added to its
-captured plan before the source-model rebuild can be removed.
-It can also resolve rows from plan-owned source section/offset ranges, which is
-the lighter provenance shape the facts_v2 render walk can emit before exact
-source-file statement indexes exist.
+Full listing row JSON now consumes render-plan statement metadata directly for
+the production facts_v2 path. Source-plan rows carry statement kind,
+instruction metadata, source range, and original source bytes where the render
+walk already has them. The full listing API no longer parses emitted `.s` text
+back into `M68kSourceFileIR` before row JSON emission; `source_model_seconds`
+is retained as a zero-valued compatibility timing while downstream consumers
+settle. The remaining listing cost is JSON row emission plus the still-existing
+full-source allocation used to obtain the plan.
 Render plans now have a typed header-hoist transform that orders include rows,
 RS rows, and equate rows before body rows without parsing final source text.
 Filtered full-listing header collection now also prefers typed render-plan row
@@ -365,10 +360,11 @@ renderer.
 This first step now exists. A GenAm-style source-IR fixture now proves direct
 body-row plan construction, and facts_v2 basic plus full listing rows now use
 render-plan line streams. Production facts_v2 source rendering now captures a
-semantic source plan during rendering and emits the final `.s` source from that
-plan. The next step is to stop rebuilding `M68kSourceFileIR` from emitted
-source text for the full listing path by carrying enough statement/source
-metadata in the authoritative plan or source analysis.
+semantic source plan during rendering, emits the final `.s` source from that
+plan, and emits full listing rows from plan-owned statement metadata without
+reparsing the emitted source text. The next step is to stop allocating full
+source text for listing-only requests by allowing source-plan capture without
+API source emission.
 
 ## Required Tests
 

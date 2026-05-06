@@ -5831,8 +5831,8 @@ static int test_listing_json_header_collection_stops_at_first_section(void) {
   M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
 
   M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL, NULL,
-    "full", 0, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, NULL, "full", 0, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "hardware/custom.i") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "hardware/dmabits.i") == NULL);
@@ -5873,8 +5873,8 @@ static int test_listing_json_header_collection_uses_typed_plan_rows(void) {
   M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_INSTRUCTION, 0U,
     "\trts\n", NULL));
 
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL, NULL,
-    "full", 0, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, NULL, "full", 0, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "hardware/custom.i") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "_custom") != NULL);
@@ -5921,8 +5921,8 @@ static int test_listing_json_text_plan_emits_expected_rows(void) {
   M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
 
   M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL, NULL,
-    "full", 0, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, NULL, "full", 0, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(strstr(rows_json, "hardware/custom.i") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"kind\":\"instruction\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"kind\":\"data\"") != NULL);
@@ -5959,8 +5959,8 @@ static int test_listing_json_uses_render_plan_statement_provenance(void) {
   row->has_statement = 1U;
   row->statement_index = 0U;
 
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
-    NULL, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, NULL, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"kind\":\"instruction\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"section_index\":0") != NULL);
@@ -5995,13 +5995,51 @@ static int test_listing_json_uses_render_plan_source_range_provenance(void) {
     M68K_RENDER_PLAN_ROW_INSTRUCTION, 0U, "\trts\n", &row));
   m68k_render_plan_row_set_source_range(row, 0U, 0U, 2U);
 
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
-    NULL, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, NULL, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"kind\":\"instruction\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"section_index\":0") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"start_offset\":0") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"end_offset\":2") != NULL);
+
+  free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
+  m68k_ir_section_destroy(&section);
+  m68k_ir_source_file_destroy(&source_file);
+  return 0;
+}
+
+static int test_listing_json_uses_plan_statement_metadata_without_source_file(void) {
+  M68kSourceFileIR source_file;
+  M68kSectionIR section;
+  M68kRenderPlan render_plan;
+  M68kRenderPlanRow *row = NULL;
+  char *rows_json = NULL;
+  const uint8_t bytes[2] = {0x4eU, 0x75U};
+
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_create(&source_file));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_create(&section));
+  m68k_render_plan_init(&render_plan);
+  source_file.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  source_file.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = 2U;
+  M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 0U, "rts", 0U, NULL));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
+
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan,
+    M68K_RENDER_PLAN_ROW_INSTRUCTION, 0U, "\trts\n", &row));
+  m68k_render_plan_row_set_source_range(row, 0U, 0U, 2U);
+  m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_INSTRUCTION,
+    &source_file.sections[0].statements[0].u.instruction, bytes, sizeof(bytes));
+
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(NULL, &render_plan,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(rows_json != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"kind\":\"instruction\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"start_offset\":0") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"bytes\":\"4e75\"") != NULL);
 
   free(rows_json);
   m68k_render_plan_destroy(&render_plan);
@@ -6069,8 +6107,8 @@ static int test_listing_json_emits_app_slot_regions_from_platform_api_inputs(voi
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
   M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
-    &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"slot_count\":3") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"typed_region_count\":1") != NULL);
@@ -6143,8 +6181,8 @@ static int test_listing_json_tracks_app_slot_address_through_lea_copy(void) {
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
   M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
-    &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"typed_region_count\":1") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"struct_name\":\"InputEvent\"") != NULL);
@@ -6204,8 +6242,8 @@ static int test_listing_json_reports_untyped_app_slot_api_args(void) {
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
   M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
-    &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"typed_region_count\":0") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"untyped_api_arg_count\":1") != NULL);
@@ -6273,8 +6311,8 @@ static int test_listing_json_tracks_app_slot_address_immediate_adjust(void) {
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
   M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
-    &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"untyped_api_arg_count\":1") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"id\":\"app_slot_api_arg_0104_RawKeyConvert_A1\"") != NULL);
@@ -6340,8 +6378,8 @@ static int test_listing_json_clears_app_slot_address_source_on_register_clobber(
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
   M68K_C_ASSERT_INT(0, test_build_text_line_render_plan(source_text, &render_plan));
-  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan, NULL,
-    &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_rows_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"slot_count\":1") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"typed_region_count\":0") != NULL);
@@ -12124,6 +12162,8 @@ int m68k_c_ir_tests(void) {
       test_listing_json_uses_render_plan_statement_provenance},
     {"listing_json_uses_render_plan_source_range_provenance",
       test_listing_json_uses_render_plan_source_range_provenance},
+    {"listing_json_uses_plan_statement_metadata_without_source_file",
+      test_listing_json_uses_plan_statement_metadata_without_source_file},
     {"listing_json_emits_app_slot_regions_from_platform_api_inputs",
       test_listing_json_emits_app_slot_regions_from_platform_api_inputs},
     {"listing_json_tracks_app_slot_address_through_lea_copy",

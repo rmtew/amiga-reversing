@@ -231,6 +231,21 @@ void m68k_render_plan_row_set_runtime_range(M68kRenderPlanRow *row, uint32_t add
   row->runtime_size = size;
 }
 
+void m68k_render_plan_row_set_statement_metadata(M68kRenderPlanRow *row, uint8_t statement_kind,
+    const M68kInstructionIR *instruction, const uint8_t *source_bytes, size_t source_byte_count) {
+  size_t byte_count;
+  if (row == NULL) return;
+  row->has_statement_metadata = 1U;
+  row->statement_kind = statement_kind;
+  if (instruction != NULL) row->statement_instruction = *instruction;
+  byte_count = source_byte_count;
+  if (byte_count > M68K_STATEMENT_SOURCE_BYTES_MAX) byte_count = M68K_STATEMENT_SOURCE_BYTES_MAX;
+  if (source_bytes != NULL && byte_count != 0U) {
+    memcpy(row->source_bytes, source_bytes, byte_count);
+    row->source_byte_count = (uint8_t)byte_count;
+  }
+}
+
 const M68kRenderPlanRow *m68k_render_plan_row_at(const M68kRenderPlan *plan, size_t row_index) {
   if (plan == NULL || row_index >= plan->row_count) return NULL;
   return &plan->rows[row_index];
@@ -624,6 +639,9 @@ int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file,
       m68k_render_plan_row_set_source_range(row, (uint32_t)section_index, stmt->offset, source_size);
       row->has_statement = 1U;
       row->statement_index = (uint32_t)statement_index;
+      m68k_render_plan_row_set_statement_metadata(row, stmt->kind,
+        stmt->kind == M68K_STATEMENT_INSTRUCTION ? &stmt->u.instruction : NULL,
+        stmt->source_bytes, stmt->source_byte_count);
       free(stmt_text);
     }
   }

@@ -129,7 +129,7 @@ int inspect_object_json(const M68kBackend *backend, const M68kObject *object, ch
 int object_target_metadata_json(const M68kBackend *backend, const M68kObject *object, char **out_json);
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics);
 int source_file_listing_rows_from_render_plan_to_json(const M68kSourceFileIR *source_file,
-    const M68kRenderPlan *render_plan, const M68kAnalysisPolicy *analysis_policy,
+    const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
     char **out_json, M68kDiagSink diagnostics);
 int source_file_basic_listing_rows_to_json(const M68kSourceFileIR *source_file,

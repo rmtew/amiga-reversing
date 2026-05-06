@@ -4099,30 +4099,6 @@ static int facts_v2_asm_source_text_profile_error_to_alloc(const M68kDiagList *d
   return -1;
 }
 
-static void facts_v2_listing_fill_source_bytes_from_object(M68kSourceFileIR *source_file,
-    const M68kObject *object) {
-  size_t section_index;
-  if (source_file == NULL || object == NULL) return;
-  for (section_index = 0U; section_index < source_file->section_count && section_index < object->section_count;
-       ++section_index) {
-    M68kSectionIR *source_section = &source_file->sections[section_index];
-    const M68kSection *object_section = &object->sections[section_index];
-    size_t statement_index;
-    if (object_section->data == NULL || object_section->data_size == 0U) continue;
-    for (statement_index = 0U; statement_index < source_section->statement_count; ++statement_index) {
-      M68kStatementIR *stmt = &source_section->statements[statement_index];
-      size_t byte_count = 0U;
-      if (stmt->kind == M68K_STATEMENT_INSTRUCTION) byte_count = stmt->u.instruction.byte_count;
-      else if (stmt->kind == M68K_STATEMENT_DATA) byte_count = stmt->u.data.size;
-      if (byte_count == 0U || stmt->offset >= object_section->data_size) continue;
-      if (byte_count > object_section->data_size - stmt->offset) byte_count = object_section->data_size - stmt->offset;
-      if (byte_count > M68K_STATEMENT_SOURCE_BYTES_MAX) byte_count = M68K_STATEMENT_SOURCE_BYTES_MAX;
-      memcpy(stmt->source_bytes, object_section->data + stmt->offset, byte_count);
-      stmt->source_byte_count = (uint8_t)byte_count;
-    }
-  }
-}
-
 #define FACTS_V2_BASIC_LISTING_DATA_CHUNK 4096U
 
 static int basic_listing_policy_entry_matches(const M68kAnalysisPolicy *policy, size_t section_index,
@@ -4352,54 +4328,29 @@ cleanup:
   return result;
 }
 
-static int facts_v2_listing_rows_from_source_text(const M68kObject *object, const M68kAnalysisPolicy *analysis_policy,
-    const M68kSourceAnalysisIR *source_analysis, const char *source_text, const M68kRenderPlan *render_plan,
-    const char *include_dir, int include_source_only_rows, char **out_rows_json, double *out_source_model_seconds,
+static int facts_v2_listing_rows_from_render_plan(const M68kObject *object, const M68kAnalysisPolicy *analysis_policy,
+    const M68kSourceAnalysisIR *source_analysis, const M68kRenderPlan *render_plan,
+    int include_source_only_rows, char **out_rows_json, double *out_source_model_seconds,
     double *out_rows_emit_seconds, M68kDiagSink diagnostics) {
-  AsmSourceFile source_model;
-  M68kSourceFileIR source_ir;
   clock_t phase_start;
-  clock_t source_model_end;
   clock_t rows_emit_end;
-  int result = -1;
   if (out_source_model_seconds != NULL) *out_source_model_seconds = 0.0;
   if (out_rows_emit_seconds != NULL) *out_rows_emit_seconds = 0.0;
-  if (object == NULL || analysis_policy == NULL || source_text == NULL || render_plan == NULL ||
-      out_rows_json == NULL) {
+  if (object == NULL || analysis_policy == NULL || render_plan == NULL || out_rows_json == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT,
       "invalid facts_v2 listing rows request");
     return -1;
   }
-  memset(&source_model, 0, sizeof(source_model));
-  memset(&source_ir, 0, sizeof(source_ir));
-  snprintf(source_model.include_dir, sizeof(source_model.include_dir), "%s", include_dir != NULL ? include_dir : "");
-  source_model.target_cpu = analysis_policy->max_cpu != 0U ? analysis_policy->max_cpu : M68K_ASM_CPU_68060;
-  source_model.platform_backend_kind = object->platform_backend_kind;
-  source_model.file_kind = object->platform_file_kind;
   phase_start = clock();
-  if (!m68k_source_pipeline_parse_text_and_layout(&source_model, source_text, diagnostics) ||
-      !m68k_source_pipeline_build_ir(&source_model, &source_ir, diagnostics)) {
-    goto cleanup;
-  }
-  source_ir.platform_backend_kind = object->platform_backend_kind;
-  source_ir.file_kind = object->platform_file_kind;
-  facts_v2_listing_fill_source_bytes_from_object(&source_ir, object);
-  source_model_end = clock();
-  if (source_file_listing_rows_from_render_plan_to_json(&source_ir, render_plan, analysis_policy,
+  if (source_file_listing_rows_from_render_plan_to_json(NULL, render_plan, object->platform_backend_kind,
+      analysis_policy,
       source_analysis, "full", include_source_only_rows, out_rows_json, diagnostics) != 0) {
-    goto cleanup;
+    return -1;
   }
   rows_emit_end = clock();
-  if (out_source_model_seconds != NULL)
-    *out_source_model_seconds = elapsed_seconds(phase_start, source_model_end);
   if (out_rows_emit_seconds != NULL)
-    *out_rows_emit_seconds = elapsed_seconds(source_model_end, rows_emit_end);
-  result = 0;
-
-cleanup:
-  m68k_ir_source_file_destroy(&source_ir);
-  m68k_source_model_free(&source_model);
-  return result;
+    *out_rows_emit_seconds = elapsed_seconds(phase_start, rows_emit_end);
+  return 0;
 }
 
 static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *backend_name, const char *path,
@@ -4433,11 +4384,12 @@ static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *back
     goto cleanup;
   }
   source_end = clock();
-  if (facts_v2_listing_rows_from_source_text(object, &source_analysis.policy, &source_analysis, source, &source_plan,
-      include_dir, 0, &rows_json, &source_model_seconds, &rows_emit_seconds,
+  (void)include_dir;
+  if (facts_v2_listing_rows_from_render_plan(object, &source_analysis.policy, &source_analysis, &source_plan,
+      0, &rows_json, &source_model_seconds, &rows_emit_seconds,
       m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
-      platform_file_add_error(&result.diagnostics, "facts_v2 listing row source parse failed");
+      platform_file_add_error(&result.diagnostics, "facts_v2 listing row render-plan emission failed");
     goto cleanup;
   }
   rows_end = clock();

@@ -41,8 +41,13 @@ typedef struct M68kRenderPlanRow {
   uint32_t statement_index;
   uint32_t runtime_address;
   uint32_t runtime_size;
+  M68kInstructionIR statement_instruction;
+  uint8_t statement_kind;
+  uint8_t source_byte_count;
+  uint8_t source_bytes[M68K_STATEMENT_SOURCE_BYTES_MAX];
   uint8_t has_source_range;
   uint8_t has_statement;
+  uint8_t has_statement_metadata;
   uint8_t has_runtime_range;
   char *text;
 } M68kRenderPlanRow;
@@ -87,6 +92,8 @@ void m68k_render_plan_row_builder_cancel(M68kRenderPlanRowBuilder *builder);
 void m68k_render_plan_row_set_source_range(M68kRenderPlanRow *row, uint32_t section_index,
   uint32_t offset, uint32_t size);
 void m68k_render_plan_row_set_runtime_range(M68kRenderPlanRow *row, uint32_t address, uint32_t size);
+void m68k_render_plan_row_set_statement_metadata(M68kRenderPlanRow *row, uint8_t statement_kind,
+  const M68kInstructionIR *instruction, const uint8_t *source_bytes, size_t source_byte_count);
 const M68kRenderPlanRow *m68k_render_plan_row_at(const M68kRenderPlan *plan, size_t row_index);
 const M68kRenderPlanRow *m68k_render_plan_find_row_for_line(const M68kRenderPlan *plan, uint32_t line,
   uint32_t *out_subline);

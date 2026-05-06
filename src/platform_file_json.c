@@ -3031,13 +3031,12 @@ static void listing_app_slot_ref_width(const M68kStatementIR *stmt, char *width_
 }
 
 static int listing_app_slot_analysis_init(ListingAppSlotAnalysisBuilder *analysis,
-    const M68kSourceFileIR *source_file, const M68kSourceAnalysisIR *source_analysis) {
+    uint8_t platform_backend_kind, const M68kSourceAnalysisIR *source_analysis) {
   if (analysis == NULL) return -1;
   memset(analysis, 0, sizeof(*analysis));
   analysis->arena = arena_create(4096U);
   if (analysis->arena == NULL) return -1;
-  if (source_file == NULL || source_analysis == NULL ||
-      source_file->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK ||
+  if (source_analysis == NULL || platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK ||
       source_analysis->section_count == 0U) {
     return 0;
   }
@@ -4531,7 +4530,8 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     label = stmt->label_name;
     structured_item = listing_structured_data_item_at_offset(analysis_policy, section_index, addr);
     runtime_view = listing_runtime_view_for_storage_offset(source_analysis, section_index, addr, &runtime_address);
-  } else if (strcmp(row_kind, "label") == 0) {
+  }
+  if (label == NULL && strcmp(row_kind, "label") == 0) {
     size_t stripped_length;
     snprintf(label_text, sizeof(label_text), "%s", stripped != NULL ? stripped : "");
     stripped_length = strlen(label_text);
@@ -4815,6 +4815,24 @@ source_range_lookup:
   return NULL;
 }
 
+static int listing_statement_from_plan_row_metadata(const M68kRenderPlanRow *row, M68kStatementIR *stmt) {
+  if (row == NULL || stmt == NULL || !row->has_statement_metadata || !row->has_source_range) return 0;
+  m68k_ir_statement_init(stmt);
+  stmt->kind = row->statement_kind;
+  stmt->offset = row->source_offset;
+  stmt->source_byte_count = row->source_byte_count;
+  if (row->source_byte_count != 0U) memcpy(stmt->source_bytes, row->source_bytes, row->source_byte_count);
+  if (row->statement_kind == M68K_STATEMENT_INSTRUCTION) {
+    stmt->u.instruction = row->statement_instruction;
+  } else if (row->statement_kind == M68K_STATEMENT_DATA) {
+    stmt->u.data.kind = M68K_DATA_ITEM_BYTES;
+    stmt->u.data.size = row->source_size;
+  } else if (row->statement_kind == M68K_STATEMENT_RESERVE) {
+    stmt->u.reserve_size = row->source_size;
+  }
+  return 1;
+}
+
 static int append_basic_listing_render_plan_line(const M68kRenderPlanRow *row, uint32_t subline, uint32_t line,
     const char *line_start, size_t line_length, void *user) {
   BasicListingRenderPlanContext *context = (BasicListingRenderPlanContext *)user;
@@ -4850,7 +4868,7 @@ int source_file_basic_listing_rows_to_json(const M68kSourceFileIR *source_file,
     return -1;
   }
   if (m68k_render_plan_build_source_file_body(source_file, NULL, &render_plan, diagnostics) != 0) goto oom;
-  if (listing_app_slot_analysis_init(&app_slot_analysis, source_file, NULL) != 0) goto oom;
+  if (listing_app_slot_analysis_init(&app_slot_analysis, source_file->platform_backend_kind, NULL) != 0) goto oom;
   if (json_builder_create(&builder) != 0) goto oom;
   if (json_builder_append(&builder, "{\"rows\":[") != 0) goto oom;
   context.builder = &builder;
@@ -5016,8 +5034,10 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
   char comment[512];
   const char *row_kind;
   const M68kStatementIR *stmt = NULL;
+  M68kStatementIR plan_stmt;
   (void)subline;
   (void)line;
+  m68k_ir_statement_init(&plan_stmt);
   if (context == NULL || context->builder == NULL) return -1;
   split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
     sizeof(operand), comment, sizeof(comment));
@@ -5036,6 +5056,7 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
     context->data_lines_left = 0U;
   } else if (row != NULL && (row->has_statement || row->has_source_range)) {
     stmt = listing_statement_for_plan_row(context->source_file, row);
+    if (stmt == NULL && listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
     if (section_index >= 0) context->active_section_index = section_index;
   } else if (context->active_section_index >= 0) {
     stmt = listing_statement_for_line(context->source_file, context->analysis_policy,
@@ -5066,7 +5087,7 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
 }
 
 int source_file_listing_rows_from_render_plan_to_json(const M68kSourceFileIR *source_file,
-    const M68kRenderPlan *render_plan, const M68kAnalysisPolicy *analysis_policy,
+    const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
     char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
@@ -5074,7 +5095,7 @@ int source_file_listing_rows_from_render_plan_to_json(const M68kSourceFileIR *so
   ListingAppSlotAnalysisBuilder app_slot_analysis = {0};
   ListingRenderPlanJsonContext context;
   memset(&context, 0, sizeof(context));
-  if (source_file == NULL || render_plan == NULL || out_json == NULL) {
+  if (render_plan == NULL || out_json == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
     return -1;
   }
@@ -5082,7 +5103,8 @@ int source_file_listing_rows_from_render_plan_to_json(const M68kSourceFileIR *so
   if (!include_source_only_rows) {
     if (collect_listing_source_header_rows_from_plan(render_plan, &header_rows) != 0) goto oom;
   }
-  if (listing_app_slot_analysis_init(&app_slot_analysis, source_file, source_analysis) != 0) goto oom;
+  if (source_file != NULL) platform_backend_kind = source_file->platform_backend_kind;
+  if (listing_app_slot_analysis_init(&app_slot_analysis, platform_backend_kind, source_analysis) != 0) goto oom;
   if (json_builder_create(&builder) != 0) goto oom;
   if (json_builder_append(&builder, "{\"rows\":[") != 0) goto oom;
   context.builder = &builder;

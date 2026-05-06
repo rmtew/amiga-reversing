@@ -144,26 +144,40 @@ static void begin_asm_source_plan_row(M68kRenderIRPreview *preview, uint32_t kin
   }
 }
 
-static void finish_asm_source_plan_row(M68kRenderIRPreview *preview, size_t section_index,
+static M68kRenderPlanRow *finish_asm_source_plan_row(M68kRenderIRPreview *preview, size_t section_index,
     uint32_t source_offset, uint32_t source_size, int has_source_range) {
   M68kRenderPlanRow *row = NULL;
-  if (preview == NULL || !preview->asm_source_row_builder.active) return;
+  if (preview == NULL || !preview->asm_source_row_builder.active) return NULL;
   if (preview->asm_source_row_builder.size == 0U) {
     m68k_render_plan_row_builder_cancel(&preview->asm_source_row_builder);
-    return;
+    return NULL;
   }
   if (m68k_render_plan_row_builder_commit(&preview->asm_source_row_builder, &row) != 0) {
     preview->asm_source_allocation_failed = 1U;
-    return;
+    return NULL;
   }
   if (has_source_range && row != NULL) {
     m68k_render_plan_row_set_source_range(row, (uint32_t)section_index, source_offset, source_size);
   }
+  return row;
 }
 
 static void cancel_asm_source_plan_row(M68kRenderIRPreview *preview) {
   if (preview == NULL || !preview->asm_source_row_builder.active) return;
   m68k_render_plan_row_builder_cancel(&preview->asm_source_row_builder);
+}
+
+static void set_asm_source_plan_row_statement_from_section(M68kRenderPlanRow *row, uint8_t statement_kind,
+    const M68kInstructionIR *instruction, const M68kDecodeSectionIR *section, uint32_t offset, uint32_t size) {
+  const uint8_t *source_bytes = NULL;
+  size_t source_byte_count = 0U;
+  if (row == NULL) return;
+  if (section != NULL && section->data != NULL && size != 0U && offset < section->size) {
+    source_byte_count = size;
+    if (source_byte_count > section->size - offset) source_byte_count = section->size - offset;
+    source_bytes = section->data + offset;
+  }
+  m68k_render_plan_row_set_statement_metadata(row, statement_kind, instruction, source_bytes, source_byte_count);
 }
 
 static int store_asm_source_declaration_line(M68kRenderIRPreview *preview, const char *line) {
@@ -202,6 +216,11 @@ static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRende
   if (source->has_statement) {
     row->has_statement = 1U;
     row->statement_index = source->statement_index;
+  }
+  if (source->has_statement_metadata) {
+    m68k_render_plan_row_set_statement_metadata(row, source->statement_kind,
+      source->statement_kind == M68K_STATEMENT_INSTRUCTION ? &source->statement_instruction : NULL,
+      source->source_bytes, source->source_byte_count);
   }
   return 1;
 }
@@ -6415,7 +6434,7 @@ static int amiga_vector_is_open_library_result(const AmigaOsLibraryVectorInfo *v
 static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode, uint8_t **accepted_start_all,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
-    M68kSectionAnalysisIR *section_analysis) {
+    M68kSectionAnalysisIR *section_analysis, M68kInstructionIR *out_listing_instruction) {
   M68kInstructionIR instruction;
   M68kInstructionIR render_instruction;
   M68kRenderPolicy policy;
@@ -6553,6 +6572,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
   ++preview->asm_source_symbolic_instructions;
+  if (out_listing_instruction != NULL) *out_listing_instruction = render_instruction;
   chosen_vector = platform_vector != NULL ? platform_vector :
     (direct_wrapper_vector != NULL ? direct_wrapper_vector :
     (wrapper_call_vector != NULL ? wrapper_call_vector :
@@ -6707,9 +6727,11 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
         }
         if (render_text_preview) render_text_line(out_preview, 'L', section->section_index, offset, 0U, 0U);
         if (render_asm_source) {
+          M68kRenderPlanRow *row;
           begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_LABEL, (uint32_t)section_index);
           render_asm_label(out_preview, &lookup, section->section_index, offset, &asm_logical_pc);
-          finish_asm_source_plan_row(out_preview, section->section_index, offset, 0U, 1);
+          row = finish_asm_source_plan_row(out_preview, section->section_index, offset, 0U, 1);
+          set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_LABEL, NULL, section, offset, 0U);
         }
       }
       if (accepted_start_at(section, accepted_start[section_index], offset)) {
@@ -6730,11 +6752,20 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
         if (render_text_preview) render_text_line(out_preview, 'I', section->section_index, offset,
           candidate->byte_count, candidate->mnemonic_id);
         if (render_asm_source) {
+          M68kRenderPlanRow *row;
+          M68kInstructionIR listing_instruction;
+          int rendered_instruction;
+          m68k_ir_instruction_init(&listing_instruction);
           begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_INSTRUCTION, (uint32_t)section_index);
           render_asm_sync_logical_pc(out_preview, &lookup, section->section_index, offset, &asm_logical_pc);
-          (void)render_asm_instruction(out_preview, &lookup, &platform_state, decode,
-            accepted_start, section, accepted_start[section_index], candidate, current_section_analysis);
-          finish_asm_source_plan_row(out_preview, section->section_index, offset, candidate->byte_count, 1);
+          rendered_instruction = render_asm_instruction(out_preview, &lookup, &platform_state, decode,
+            accepted_start, section, accepted_start[section_index], candidate, current_section_analysis,
+            &listing_instruction);
+          row = finish_asm_source_plan_row(out_preview, section->section_index, offset, candidate->byte_count, 1);
+          if (rendered_instruction) {
+            set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_INSTRUCTION, &listing_instruction,
+              section, offset, candidate->byte_count);
+          }
           asm_logical_pc += candidate->byte_count;
         }
         offset += candidate->byte_count;
@@ -6750,12 +6781,15 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
           if (render_text_preview) render_text_line(out_preview, 'A', section->section_index, offset,
             anchor->size, anchor->target_offset);
           if (render_asm_source) {
+            M68kRenderPlanRow *row;
             begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DATA, (uint32_t)section_index);
             render_asm_sync_logical_pc(out_preview, &lookup, section->section_index, offset, &asm_logical_pc);
             render_asm_comment_line(out_preview,
               lookup_instruction_comment(&lookup, section->section_index, offset));
             render_asm_lossy_hunk_relocation(out_preview, &lookup, anchor);
-            finish_asm_source_plan_row(out_preview, section->section_index, offset, anchor->size, 1);
+            row = finish_asm_source_plan_row(out_preview, section->section_index, offset, anchor->size, 1);
+            set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,
+              anchor->size);
             asm_logical_pc += anchor->size;
           }
           offset += anchor->size;
@@ -6768,12 +6802,15 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
           if (render_text_preview) render_text_line(out_preview, 'R', section->section_index, offset,
             relocation->size, relocation->target_offset);
           if (render_asm_source) {
+            M68kRenderPlanRow *row;
             begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DATA, (uint32_t)section_index);
             render_asm_sync_logical_pc(out_preview, &lookup, section->section_index, offset, &asm_logical_pc);
             render_asm_comment_line(out_preview,
               lookup_instruction_comment(&lookup, section->section_index, offset));
             render_asm_relocation_expr(out_preview, &lookup, relocation);
-            finish_asm_source_plan_row(out_preview, section->section_index, offset, relocation->size, 1);
+            row = finish_asm_source_plan_row(out_preview, section->section_index, offset, relocation->size, 1);
+            set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,
+              relocation->size);
             asm_logical_pc += relocation->size;
           }
           offset += relocation->size;
@@ -6814,6 +6851,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
             if (render_text_preview) render_text_line(out_preview, 'S', section->section_index, offset,
               structured_item->size, structured_item->kind);
             if (render_asm_source) {
+              M68kRenderPlanRow *row;
               int structured_item_updated_pc = 0;
               begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DATA, (uint32_t)section_index);
               render_asm_sync_logical_pc(out_preview, &lookup, section->section_index, offset, &asm_logical_pc);
@@ -6821,7 +6859,10 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
                 lookup_instruction_comment(&lookup, section->section_index, offset));
               render_asm_structured_data_item(out_preview, section, &lookup, structured_item, &asm_logical_pc,
                 &structured_item_updated_pc);
-              finish_asm_source_plan_row(out_preview, section->section_index, offset, structured_item->size, 1);
+              row = finish_asm_source_plan_row(out_preview, section->section_index, offset, structured_item->size,
+                1);
+              set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,
+                structured_item->size);
               if (!structured_item_updated_pc) asm_logical_pc += structured_item->size;
             }
             offset += structured_item->size;
@@ -6852,12 +6893,15 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
               if (render_text_preview) render_text_line(out_preview, 'D', section->section_index, offset,
                 string_span->size, 0U);
               if (render_asm_source) {
+                M68kRenderPlanRow *row;
                 begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DATA, (uint32_t)section_index);
                 render_asm_sync_logical_pc(out_preview, &lookup, section->section_index, offset, &asm_logical_pc);
                 render_asm_comment_line(out_preview,
                   lookup_instruction_comment(&lookup, section->section_index, offset));
                 render_asm_dc_b_string(out_preview, section->data, offset, string_span->size, NULL);
-                finish_asm_source_plan_row(out_preview, section->section_index, offset, string_span->size, 1);
+                row = finish_asm_source_plan_row(out_preview, section->section_index, offset, string_span->size, 1);
+                set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,
+                  string_span->size);
                 asm_logical_pc += string_span->size;
               }
               offset += string_span->size;
@@ -6886,6 +6930,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
               if (render_text_preview) render_text_line(out_preview, 'D', section->section_index, start,
                 offset - start, 0U);
               if (render_asm_source) {
+                M68kRenderPlanRow *row;
                 begin_asm_source_plan_row(out_preview,
                   initialized_span ? M68K_RENDER_PLAN_ROW_DATA : M68K_RENDER_PLAN_ROW_RESERVE,
                   (uint32_t)section_index);
@@ -6894,7 +6939,10 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
                   lookup_instruction_comment(&lookup, section->section_index, start));
                 if (initialized_span) render_asm_dc_b(out_preview, section->data, start, offset - start, NULL);
                 else render_asm_ds_best_fit(out_preview, start, offset - start);
-                finish_asm_source_plan_row(out_preview, section->section_index, start, offset - start, 1);
+                row = finish_asm_source_plan_row(out_preview, section->section_index, start, offset - start, 1);
+                set_asm_source_plan_row_statement_from_section(row,
+                  initialized_span ? M68K_STATEMENT_DATA : M68K_STATEMENT_RESERVE, NULL, section, start,
+                  offset - start);
                 asm_logical_pc += offset - start;
               }
               }
@@ -6919,9 +6967,12 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
       }
       if (render_text_preview) render_text_line(out_preview, 'L', section->section_index, render_extent, 0U, 0U);
       if (render_asm_source) {
+        M68kRenderPlanRow *row;
         begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_LABEL, (uint32_t)section_index);
         render_asm_label(out_preview, &lookup, section->section_index, render_extent, &asm_logical_pc);
-        finish_asm_source_plan_row(out_preview, section->section_index, render_extent, 0U, 1);
+        row = finish_asm_source_plan_row(out_preview, section->section_index, render_extent, 0U, 1);
+        set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_LABEL, NULL, section, render_extent,
+          0U);
       }
     }
     if (out_source_analysis != NULL) {
