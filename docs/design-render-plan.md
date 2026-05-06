@@ -64,10 +64,9 @@ Full listing row JSON now consumes render-plan statement metadata directly for
 the production facts_v2 path. Source-plan rows carry statement kind,
 instruction metadata, source range, and original source bytes where the render
 walk already has them. The full listing API no longer parses emitted `.s` text
-back into `M68kSourceFileIR` before row JSON emission; `source_model_seconds`
-is retained as a zero-valued compatibility timing while downstream consumers
-settle. Listing-only requests now capture the source plan without allocating
-the full `.s` API string.
+back into `M68kSourceFileIR` before row JSON emission, and the obsolete
+`source_model_seconds` profile field has been removed. Listing-only requests
+now capture the source plan without allocating the full `.s` API string.
 Render plans now have a typed header-hoist transform that orders include rows,
 RS rows, and equate rows before body rows without parsing final source text.
 Filtered full-listing header collection now also prefers typed render-plan row
