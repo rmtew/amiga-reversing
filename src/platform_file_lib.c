@@ -4360,7 +4360,6 @@ static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *back
   M68kSourceAnalysisIR source_analysis;
   M68kRenderPlan source_plan;
   JsonBuilder builder = {0};
-  char *source = NULL;
   char *rows_json = NULL;
   char *analysis_json = NULL;
   char *json = NULL;
@@ -4377,7 +4376,7 @@ static PlatformFileTextResult facts_v2_listing_rows_object_json(const char *back
     platform_file_add_error(&result.diagnostics, "invalid facts_v2 listing rows request");
     return result;
   }
-  if (m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(object, analysis_policy, &source, &source_plan,
+  if (m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(object, analysis_policy, NULL, &source_plan,
       &profile, &source_analysis, 1U, m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "facts_v2 asm source render failed");
@@ -4441,7 +4440,6 @@ cleanup:
   platform_file_free_text(rows_json);
   m68k_render_plan_destroy(&source_plan);
   m68k_ir_source_analysis_destroy(&source_analysis);
-  m68k_facts_v2_free_text(source);
   return result;
 }
 

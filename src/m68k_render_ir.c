@@ -201,7 +201,7 @@ static int compare_asm_source_include_paths(const void *left, const void *right)
   return strcmp(*left_path, *right_path);
 }
 
-static void recompute_asm_source_text_metrics(M68kRenderIRPreview *preview);
+static void recompute_asm_source_plan_metrics(M68kRenderIRPreview *preview, const M68kRenderPlan *plan);
 
 static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRenderPlanRow *source) {
   M68kRenderPlanRow *row = NULL;
@@ -225,7 +225,7 @@ static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRende
   return 1;
 }
 
-static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview) {
+static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int emit_source_text) {
   M68kRenderPlan final_plan;
   char *include_paths[M68K_RENDER_ASM_INCLUDE_LIMIT];
   char *source_text = NULL;
@@ -280,30 +280,38 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview) {
       return 0;
     }
   }
-  if (m68k_render_plan_emit_all_alloc(&final_plan, &source_text) != 0) {
-    m68k_render_plan_destroy(&final_plan);
-    return 0;
-  }
   free(preview->asm_source_text);
-  preview->asm_source_text = source_text;
-  preview->asm_source_text_capacity = final_plan.total_bytes + 1U;
-  recompute_asm_source_text_metrics(preview);
+  preview->asm_source_text = NULL;
+  preview->asm_source_text_capacity = 0U;
+  if (emit_source_text) {
+    if (m68k_render_plan_emit_all_alloc(&final_plan, &source_text) != 0) {
+      m68k_render_plan_destroy(&final_plan);
+      return 0;
+    }
+    preview->asm_source_text = source_text;
+    preview->asm_source_text_capacity = final_plan.total_bytes + 1U;
+  }
+  recompute_asm_source_plan_metrics(preview, &final_plan);
   m68k_render_plan_move(&preview->asm_source_plan, &final_plan);
   return 1;
 }
 
-static void recompute_asm_source_text_metrics(M68kRenderIRPreview *preview) {
-  size_t index;
-  size_t length;
-  if (preview == NULL || preview->asm_source_text == NULL) return;
-  length = strlen(preview->asm_source_text);
-  preview->asm_source_bytes = (uint32_t)length;
+static void recompute_asm_source_plan_metrics(M68kRenderIRPreview *preview, const M68kRenderPlan *plan) {
+  size_t row_index;
+  if (preview == NULL || plan == NULL) return;
+  preview->asm_source_bytes = 0U;
   preview->asm_source_lines = 0U;
   preview->asm_source_hash = 1469598103934665603ULL;
-  for (index = 0U; index < length; ++index) {
-    if (preview->collect_asm_source_hash)
-      preview->asm_source_hash = hash_step(preview->asm_source_hash, (unsigned char)preview->asm_source_text[index]);
-    if (preview->asm_source_text[index] == '\n') ++preview->asm_source_lines;
+  for (row_index = 0U; row_index < plan->row_count; ++row_index) {
+    const char *cursor = plan->rows[row_index].text;
+    if (cursor == NULL) continue;
+    while (*cursor != '\0') {
+      if (preview->collect_asm_source_hash)
+        preview->asm_source_hash = hash_step(preview->asm_source_hash, (unsigned char)*cursor);
+      if (*cursor == '\n') ++preview->asm_source_lines;
+      ++preview->asm_source_bytes;
+      ++cursor;
+    }
   }
 }
 
@@ -6623,8 +6631,8 @@ void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview) {
 
 int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *decode, const M68kFactIR *facts,
     const M68kAnalysisPolicy *policy, uint8_t **accepted_start, uint8_t **accepted_bytes, int render_text_preview,
-    int render_asm_source, int collect_asm_source_text, M68kRenderIRPreview *out_preview,
-    M68kSourceAnalysisIR *out_source_analysis) {
+    int render_asm_source, int collect_asm_source_text, int emit_asm_source_text,
+    M68kRenderIRPreview *out_preview, M68kSourceAnalysisIR *out_source_analysis) {
   size_t section_index;
   clock_t phase_start;
   clock_t phase_end;
@@ -6993,7 +7001,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   if (out_preview->asm_source_allocation_failed) goto cleanup;
   phase_start = clock();
   if (render_asm_source && collect_asm_source_text &&
-      !assemble_asm_source_plan_regions(out_preview)) {
+      !assemble_asm_source_plan_regions(out_preview, emit_asm_source_text)) {
     out_preview->asm_source_allocation_failed = 1U;
     goto cleanup;
   }

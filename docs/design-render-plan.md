@@ -66,8 +66,8 @@ instruction metadata, source range, and original source bytes where the render
 walk already has them. The full listing API no longer parses emitted `.s` text
 back into `M68kSourceFileIR` before row JSON emission; `source_model_seconds`
 is retained as a zero-valued compatibility timing while downstream consumers
-settle. The remaining listing cost is JSON row emission plus the still-existing
-full-source allocation used to obtain the plan.
+settle. Listing-only requests now capture the source plan without allocating
+the full `.s` API string.
 Render plans now have a typed header-hoist transform that orders include rows,
 RS rows, and equate rows before body rows without parsing final source text.
 Filtered full-listing header collection now also prefers typed render-plan row
@@ -362,9 +362,9 @@ body-row plan construction, and facts_v2 basic plus full listing rows now use
 render-plan line streams. Production facts_v2 source rendering now captures a
 semantic source plan during rendering, emits the final `.s` source from that
 plan, and emits full listing rows from plan-owned statement metadata without
-reparsing the emitted source text. The next step is to stop allocating full
-source text for listing-only requests by allowing source-plan capture without
-API source emission.
+reparsing the emitted source text. Listing-only requests capture the plan
+without producing the full-source API buffer; source-producing requests still
+emit the `.s` text from the same plan.
 
 ## Required Tests
 

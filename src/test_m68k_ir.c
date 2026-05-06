@@ -2752,9 +2752,12 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kRenderPlan source_plan;
+  M68kRenderPlan listing_plan;
   M68kSourceAnalysisIR source_analysis;
+  M68kSourceAnalysisIR listing_analysis;
   char *source = NULL;
   char *plan_source = NULL;
+  M68kFactsV2Profile listing_profile;
   size_t row_index;
   int saw_section_row = 0;
   int saw_label_row = 0;
@@ -2798,6 +2801,13 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_render_failures);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_relocation_failures);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&object, &policy, NULL,
+    &listing_plan, &listing_profile, &listing_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(listing_plan.row_count != 0U);
+  M68K_C_ASSERT_U32(listing_profile.asm_source_bytes, listing_profile.asm_source_plan_bytes);
+  M68K_C_ASSERT_U32(listing_profile.asm_source_lines, listing_profile.asm_source_plan_lines);
+  m68k_render_plan_destroy(&listing_plan);
+  m68k_ir_source_analysis_destroy(&listing_analysis);
   m68k_render_plan_free_text(plan_source);
   m68k_render_plan_destroy(&source_plan);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -4380,7 +4390,7 @@ static int test_facts_v2_runtime_trampoline_copy_does_not_force_low_org(void) {
   fact.runtime_address = 0x64U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
   M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, NULL,
-    accepted_start, accepted_bytes, 0, 1, 1, &preview, NULL));
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $4\n") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "loc_0_00000010:\n\tjmp abs_0_00000064.l\n") != NULL);

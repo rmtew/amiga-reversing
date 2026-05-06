@@ -5067,7 +5067,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   start = clock();
   fail_stage = "render preview build";
   if (m68k_render_ir_preview_build(object, &decode, &facts, policy, accepted_start, accepted_bytes,
-      render_text_preview, render_asm_source, collect_asm_source_text, &render_preview,
+      render_text_preview, render_asm_source, collect_asm_source_text, out_asm_source != NULL, &render_preview,
       out_source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 render preview build failed");
@@ -5241,8 +5241,8 @@ int m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(const M68kObject
     M68kDiagSink diagnostics) {
   M68kFactsV2Profile local_profile;
   M68kFactsV2Profile *profile = out_profile != NULL ? out_profile : &local_profile;
-  if (out_source == NULL || out_source_plan == NULL || out_source_analysis == NULL) return -1;
-  *out_source = NULL;
+  if (out_source_plan == NULL || out_source_analysis == NULL) return -1;
+  if (out_source != NULL) *out_source = NULL;
   memset(out_source_analysis, 0, sizeof(*out_source_analysis));
   m68k_render_plan_init(out_source_plan);
   return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, fail_on_refused != 0U, 0,
