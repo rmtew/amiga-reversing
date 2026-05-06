@@ -195,6 +195,15 @@ static int store_asm_source_declaration_line(M68kRenderIRPreview *preview, const
   return 1;
 }
 
+static Arena *render_preview_scratch_arena(M68kRenderIRPreview *preview) {
+  if (preview == NULL) return NULL;
+  if (preview->scratch_arena == NULL) {
+    preview->scratch_arena = arena_create(4096U);
+    if (preview->scratch_arena == NULL) return NULL;
+  }
+  return preview->scratch_arena;
+}
+
 static int compare_asm_source_include_paths(const void *left, const void *right) {
   const char *const *left_path = (const char *const *)left;
   const char *const *right_path = (const char *const *)right;
@@ -4896,6 +4905,8 @@ static int render_app_rs_resident_sizeof_value(const M68kRenderLookup *lookup, c
 
 void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode) {
+  Arena *scratch_arena;
+  ArenaMark scratch_mark;
   M68kRenderAppRsSlot *slots = NULL;
   size_t slot_count = 0U;
   size_t slot_capacity = 0U;
@@ -4907,17 +4918,22 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
   char line[160];
   if (preview == NULL || lookup == NULL) return;
   slot_capacity = lookup->base_field_slot_count != 0U ? lookup->base_field_slot_count : 1U;
-  slots = (M68kRenderAppRsSlot *)calloc(slot_capacity, sizeof(*slots));
-  if (slots == NULL) {
+  scratch_arena = render_preview_scratch_arena(preview);
+  if (scratch_arena == NULL) {
     preview->asm_source_allocation_failed = 1U;
     return;
+  }
+  scratch_mark = arena_mark(scratch_arena);
+  slots = (M68kRenderAppRsSlot *)arena_calloc(scratch_arena, slot_capacity, sizeof(*slots));
+  if (slots == NULL) {
+    preview->asm_source_allocation_failed = 1U;
+    goto cleanup;
   }
   has_resident_context = lookup_has_amiga_resident_library_context(lookup);
   has_app_sizeof_value = render_app_rs_resident_sizeof_value(lookup, decode, &app_sizeof_value);
   if (has_resident_context) {
     if (!amiga_os_find_constant_value("LIB_SIZE", &lib_size) || lib_size <= 0) {
-      free(slots);
-      return;
+      goto cleanup;
     }
     base_offset = lib_size;
   }
@@ -4961,16 +4977,14 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     if (extent_end > inferred_sizeof) inferred_sizeof = extent_end;
   }
   if (slot_count == 0U && has_app_sizeof_value == 0) {
-    free(slots);
-    return;
+    goto cleanup;
   }
   qsort(slots, slot_count, sizeof(slots[0]), render_app_rs_slot_compare);
   if (has_resident_context) {
     if (!render_asm_include_for_amiga_symbol(preview, "LIB_SIZE")) {
       ++preview->asm_source_instruction_render_failures;
       record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
-      free(slots);
-      return;
+      goto cleanup;
     }
     hash_asm_text(preview, "    RSSET LIB_SIZE\n");
   } else {
@@ -5017,7 +5031,9 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     ++preview->asm_source_lines;
   }
   hash_asm_text(preview, "\n");
-  free(slots);
+
+cleanup:
+  arena_rewind(scratch_arena, scratch_mark);
 }
 
 const char *lookup_indexed_vector_wrapper_library(const M68kRenderLookup *lookup, size_t section_index,
@@ -5250,15 +5266,18 @@ static int render_cfg_build_block_start_map(const M68kRenderLookup *lookup, cons
 }
 
 static int render_analysis_append_cfg_for_section(const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start, const uint8_t *accepted_bytes, M68kSectionAnalysisIR *section_analysis) {
+    const uint8_t *accepted_start, const uint8_t *accepted_bytes, Arena *scratch_arena,
+    M68kSectionAnalysisIR *section_analysis) {
+  ArenaMark scratch_mark;
   uint32_t render_extent;
   uint8_t *block_starts = NULL;
   uint32_t offset = 0U;
   int result = -1;
-  if (section == NULL || section_analysis == NULL) return -1;
+  if (section == NULL || scratch_arena == NULL || section_analysis == NULL) return -1;
   render_extent = render_section_extent(section);
   if (render_extent == 0U) return 0;
-  block_starts = (uint8_t *)calloc(render_extent, sizeof(*block_starts));
+  scratch_mark = arena_mark(scratch_arena);
+  block_starts = (uint8_t *)arena_calloc(scratch_arena, render_extent, sizeof(*block_starts));
   if (block_starts == NULL) return -1;
   if (render_cfg_build_block_start_map(lookup, section, accepted_start, accepted_bytes, block_starts,
       render_extent) != 0) {
@@ -5336,7 +5355,7 @@ static int render_analysis_append_cfg_for_section(const M68kRenderLookup *lookup
   result = 0;
 
 cleanup:
-  free(block_starts);
+  arena_rewind(scratch_arena, scratch_mark);
   return result;
 }
 
@@ -6600,6 +6619,7 @@ void m68k_render_ir_preview_init(M68kRenderIRPreview *preview) {
 void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview) {
   if (preview == NULL) return;
   arena_destroy(preview->asm_source_header_arena);
+  arena_destroy(preview->scratch_arena);
   free(preview->asm_source_text);
   m68k_render_plan_row_builder_destroy(&preview->asm_source_row_builder);
   m68k_render_plan_destroy(&preview->asm_source_plan);
@@ -6616,6 +6636,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   M68kRenderLookup lookup;
   M68kRenderPlatformState platform_state;
   M68kSectionAnalysisIR section_analysis;
+  Arena *scratch_arena = NULL;
   int section_analysis_live = 0;
   int build_source_analysis = out_source_analysis != NULL;
   int build_platform_analysis = render_asm_source || build_source_analysis;
@@ -6961,8 +6982,10 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
       }
     }
     if (out_source_analysis != NULL) {
+      scratch_arena = render_preview_scratch_arena(out_preview);
+      if (scratch_arena == NULL) goto cleanup;
       if (render_analysis_append_cfg_for_section(&lookup, section, accepted_start[section_index],
-          accepted_bytes[section_index], current_section_analysis) != 0) {
+          accepted_bytes[section_index], scratch_arena, current_section_analysis) != 0) {
         goto cleanup;
       }
       if (m68k_ir_source_analysis_append_section(out_source_analysis, current_section_analysis) != 0) goto cleanup;

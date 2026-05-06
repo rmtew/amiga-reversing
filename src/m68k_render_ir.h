@@ -81,6 +81,7 @@ typedef struct M68kRenderIRPreview {
   M68kRenderPlan asm_source_plan;
   M68kRenderPlanRowBuilder asm_source_row_builder;
   Arena *asm_source_header_arena;
+  Arena *scratch_arena;
   char asm_source_includes[M68K_RENDER_ASM_INCLUDE_LIMIT][M68K_RENDER_ASM_INCLUDE_PATH_SIZE];
   char asm_source_declarations[M68K_RENDER_ASM_DECLARATION_LIMIT][M68K_RENDER_ASM_SYMBOL_NAME_SIZE];
   char *asm_source_declaration_lines[M68K_RENDER_ASM_DECLARATION_LIMIT];

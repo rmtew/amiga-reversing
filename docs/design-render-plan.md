@@ -204,6 +204,10 @@ Arena use should follow real lifetime boundaries:
 - Row-builder scratch remains reusable heap storage outside the plan arena.
 - Header/listing scratch that lives for one JSON emission pass should be owned
   by the listing builder arena.
+- Render-preview scratch that lives only while building one preview should use
+  the preview scratch arena with mark/rewind scopes. This covers temporary
+  tables such as app-slot RS sorting buffers and per-section CFG block-start
+  maps; they must not allocate per invocation on the heap.
 - Lookup-owned indexes and render-enrichment arrays should be owned by the
   lookup arena. Per-pass analysis scratch with a shorter lifetime should stay
   outside that arena.
@@ -220,6 +224,18 @@ owner and reinitializes the source owner.
 Do not add per-entry heap allocation for same-lifetime row/listing state. If a
 structure currently cannot use an arena cleanly, refactor the ownership boundary
 first instead of adding another local allocation convention.
+
+The intended ownership map is:
+
+- plan arena: durable rows and row text until the plan is destroyed or moved.
+- lookup arena: indexes derived from facts/analysis for one render pass.
+- preview scratch arena: temporary render-analysis buffers inside one preview
+  build, always released with mark/rewind when the local phase ends.
+- listing builder arena: JSON/listing enrichment scratch for one API emission.
+- row-builder heap buffer: reusable mutable text staging before copying into the
+  plan arena.
+- API heap strings: caller-owned C boundary results freed by exported free
+  functions.
 
 ## Row Kinds
 
