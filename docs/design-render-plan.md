@@ -77,6 +77,11 @@ Render plans can now emit physical line windows directly from row ownership
 metadata, including windows that start inside a multi-line row. This is the
 generic primitive the web listing path needs before it can stop requesting a
 whole source file for viewport-sized output.
+facts_v2 now also exposes direct C listing-window JSON emission from the render
+plan, with a regression proving the window matches the same slice from full
+listing rows. The web route is not switched to call it per request because that
+would redo full analysis on scroll; the route needs a cacheable plan or compact
+row-window artifact lifetime first.
 The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.
@@ -392,6 +397,10 @@ plan, and emits full listing rows from plan-owned statement metadata without
 reparsing the emitted source text. Listing-only requests capture the plan
 without producing the full-source API buffer; source-producing requests still
 emit the `.s` text from the same plan.
+Direct C listing-window JSON emission now exists and has a raw-binary
+regression proving parity with a full render-plan row slice. This is not yet the
+web route standard because the current DLL boundary does not preserve the built
+plan between requests.
 
 ## Required Tests
 
@@ -427,6 +436,12 @@ The intended replacement is:
 ```
 C analysis facts -> C render plan -> JSON rows
 ```
+
+The remaining web-path design issue is lifetime. Calling the C listing-window
+function directly from `GET /listing` would be correct row emission but poor
+product behaviour, because each scroll would rebuild analysis. The next clean
+step is therefore a cacheable C render-plan/listing-window artifact or a compact
+row-window artifact produced by the full listing job, then served by the route.
 
 Full source output remains available:
 

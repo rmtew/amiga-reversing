@@ -132,6 +132,10 @@ int source_file_listing_rows_from_render_plan_to_json(const M68kSourceFileIR *so
     const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
     char **out_json, M68kDiagSink diagnostics);
+int source_file_listing_window_from_render_plan_to_json(const M68kSourceFileIR *source_file,
+    const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
+    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
+    size_t start, size_t count, char **out_json, M68kDiagSink diagnostics);
 int source_file_basic_listing_rows_to_json(const M68kSourceFileIR *source_file,
     const M68kAnalysisPolicy *analysis_policy, char **out_json, M68kDiagSink diagnostics);
 int platform_type_catalog_to_json(const char *backend_name, char **out_json, M68kDiagSink diagnostics);
