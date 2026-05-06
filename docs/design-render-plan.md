@@ -127,6 +127,8 @@ The row-hydration code itself has been removed; tests now assert the raw
 serialized row dictionaries emitted by the retained artifact.
 The old `ListingRow` serializer is now test fixture code only. Production API
 payload types no longer import the Python row dataclasses.
+The Python `ListingRow` dataclasses themselves have also moved to test
+fixtures; production code consumes C artifact rows as serialized dictionaries.
 The superseded full-listing rows-with-analysis API has now been excised from
 the Python C backend wrapper, C DLL exports, and CLI. Corpus usage indexing and
 tests that need whole-listing rows materialize them through the retained C

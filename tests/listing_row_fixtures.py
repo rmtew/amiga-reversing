@@ -10,7 +10,7 @@ from amiga_reversing.disasm.api import (
     SerializedTypedAccess,
     SerializedUnresolvedTypedAccess,
 )
-from amiga_reversing.disasm.listing_types import (
+from tests.listing_types_fixtures import (
     AddressRowContext,
     AppSlotRef,
     BlockRowContext,

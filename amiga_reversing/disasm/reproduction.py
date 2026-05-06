@@ -5,7 +5,7 @@ import json
 import os
 import re
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import cast
 
@@ -30,7 +30,6 @@ from amiga_reversing.disasm.effective_metadata import (
 from amiga_reversing.disasm.facts_v2_source_refusal import (
     FactsV2SourceRefused,
 )
-from amiga_reversing.disasm.listing_types import ListingRow
 from amiga_reversing.disasm.project_paths import (
     PROJECT_ROOT,
     resolve_project_dir,
@@ -95,7 +94,7 @@ def rebuilt_target_dir(target_name: str, *, project_root: Path = PROJECT_ROOT) -
 def run_reproduction(
     target_name: str,
     *,
-    rows: list[ListingRow] | None = None,
+    rows: Sequence[Mapping[str, object]] | None = None,
     project_root: Path = PROJECT_ROOT,
     assembler: str = "our",
     progress_callback: Callable[[dict[str, object]], None] | None = None,
@@ -1511,7 +1510,7 @@ def grouped_diff_ranges(
 
 def diff_issues_for_rows(
     diff_ranges: list[dict[str, object]],
-    rows: list[ListingRow],
+    rows: Sequence[Mapping[str, object]],
     *,
     file_layout: list[dict[str, object]] | None = None,
 ) -> list[dict[str, object]]:
@@ -1552,7 +1551,7 @@ def diff_issues_for_rows(
 def parse_assembler_diagnostics(
     text: str,
     *,
-    rows: list[ListingRow] | None = None,
+    rows: Sequence[Mapping[str, object]] | None = None,
 ) -> list[dict[str, object]]:
     diagnostics: list[dict[str, object]] = []
     for line in text.splitlines():
@@ -1657,16 +1656,19 @@ def _write_source_artifact(path: Path, text: str, profile_timings: dict[str, obj
 
 
 def _row_for_section_offset(
-    rows: list[ListingRow],
+    rows: Sequence[Mapping[str, object]],
     section_index: int | None,
     offset: int,
-) -> tuple[int, ListingRow] | None:
+) -> tuple[int, Mapping[str, object]] | None:
     for row_index, row in enumerate(rows):
-        if row.start_offset is None or row.end_offset is None:
+        start_offset = _row_int(row, "start_offset")
+        end_offset = _row_int(row, "end_offset")
+        if start_offset is None or end_offset is None:
             continue
-        if section_index is not None and row.section_index is not None and row.section_index != section_index:
+        row_section_index = _row_int(row, "section_index")
+        if section_index is not None and row_section_index is not None and row_section_index != section_index:
             continue
-        if row.start_offset <= offset < row.end_offset:
+        if start_offset <= offset < end_offset:
             return row_index, row
     return None
 
@@ -1674,7 +1676,7 @@ def _row_for_section_offset(
 def _issue(
     kind: str,
     message: str,
-    row_ref: tuple[int, ListingRow] | None,
+    row_ref: tuple[int, Mapping[str, object]] | None,
     *,
     diff_range: dict[str, object] | None = None,
     layout_range: dict[str, object] | None = None,
@@ -1683,11 +1685,11 @@ def _issue(
     hunk: int | None = None,
 ) -> dict[str, object]:
     row_index: int | None = None
-    row: ListingRow | None = None
+    row: Mapping[str, object] | None = None
     if row_ref is not None:
         row_index, row = row_ref
     if row is not None and section_index is None:
-        section_index = row.section_index
+        section_index = _row_int(row, "section_index")
     if hunk is None:
         hunk = section_index
     payload: dict[str, object] = {
@@ -1695,11 +1697,11 @@ def _issue(
         "message": message,
         "summary": message,
         "row_index": row_index,
-        "addr": row.addr if row is not None else None,
+        "addr": _row_int(row, "addr") if row is not None else None,
         "section_index": section_index,
         "section_offset": section_offset,
         "hunk": hunk,
-        "stable_key": row.stable_key if row is not None else None,
+        "stable_key": _row_str(row, "stable_key") if row is not None else None,
         "match_text": _row_match_text(row) if row is not None else None,
     }
     if diff_range is not None:
@@ -1710,12 +1712,25 @@ def _issue(
     return payload
 
 
-def _row_match_text(row: ListingRow) -> str:
-    if row.label:
-        return str(row.label)
-    if row.opcode_or_directive:
-        return " ".join(str(part) for part in (row.opcode_or_directive, row.operand_text) if part).strip()
-    return str(row.text).strip()
+def _row_match_text(row: Mapping[str, object]) -> str:
+    label = _row_str(row, "label")
+    if label:
+        return label
+    opcode = _row_str(row, "opcode_or_directive")
+    if opcode:
+        operand_text = _row_str(row, "operand_text") or ""
+        return " ".join(part for part in (opcode, operand_text) if part).strip()
+    return str(row.get("text") or "").strip()
+
+
+def _row_int(row: Mapping[str, object], key: str) -> int | None:
+    value = row.get(key)
+    return value if isinstance(value, int) else None
+
+
+def _row_str(row: Mapping[str, object], key: str) -> str | None:
+    value = row.get(key)
+    return value if isinstance(value, str) else None
 
 
 def _diff_range(start: int, end: int, original: bytes, rebuilt: bytes) -> dict[str, object]:

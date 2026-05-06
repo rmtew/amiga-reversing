@@ -15,7 +15,7 @@ from amiga_reversing.disasm.binary_source import (
     write_source_descriptor,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_text
-from amiga_reversing.disasm.listing_types import ListingRow
+from tests.listing_types_fixtures import ListingRow
 from amiga_reversing.disasm.reproduction import (
     compare_amiga_hunk_relocation_groups,
     compare_atari_st_file_shape,
@@ -30,6 +30,11 @@ from amiga_reversing.disasm.reproduction import (
     run_reproduction,
 )
 from amiga_reversing.disasm.target_ui_edits import append_target_ui_edit
+from tests.listing_row_fixtures import serialize_row
+
+
+def _rows(*rows: ListingRow) -> list[dict[str, object]]:
+    return [dict(serialize_row(row)) for row in rows]
 
 
 def _u16(value: int) -> bytes:
@@ -336,7 +341,7 @@ def test_amiga_hunk_relocation_order_keeps_different_fixup_sets() -> None:
 
 
 def test_reproduction_diff_maps_ranges_to_rows() -> None:
-    rows = [
+    rows = _rows(
         ListingRow(
             row_id="r0",
             kind="data",
@@ -348,7 +353,7 @@ def test_reproduction_diff_maps_ranges_to_rows() -> None:
             opcode_or_directive="DC.B",
             operand_text="$01,$02",
         )
-    ]
+    )
 
     issues = diff_issues_for_rows([{"start": 1, "end": 3, "length": 2}], rows)
 
@@ -378,10 +383,10 @@ def test_reproduction_diff_uses_file_layout_before_mapping_rows(tmp_path: Path) 
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
     )
-    rows = [
+    rows = _rows(
         ListingRow(row_id="text", kind="instruction", text="rts\n", section_index=0, start_offset=0, end_offset=2, addr=0),
         ListingRow(row_id="data", kind="data", text="dc.w 1\n", section_index=1, start_offset=0, end_offset=2, addr=0x200),
-    ]
+    )
 
     layout = reproduction.file_layout_for_binary_source(source, backend="atari-st")
     issues = diff_issues_for_rows([{"start": 30, "end": 31, "length": 1}], rows, file_layout=layout)
@@ -441,7 +446,7 @@ def test_reproduction_diff_maps_amiga_hunk_payload_after_header(tmp_path: Path) 
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
     )
-    rows = [
+    rows = _rows(
         ListingRow(
             row_id="code",
             kind="instruction",
@@ -451,7 +456,7 @@ def test_reproduction_diff_maps_amiga_hunk_payload_after_header(tmp_path: Path) 
             end_offset=2,
             addr=0,
         )
-    ]
+    )
 
     layout = reproduction.file_layout_for_binary_source(source, backend="amiga-hunk")
     issues = diff_issues_for_rows([{"start": 32, "end": 33, "length": 1}], rows, file_layout=layout)
@@ -461,10 +466,10 @@ def test_reproduction_diff_maps_amiga_hunk_payload_after_header(tmp_path: Path) 
 
 
 def test_reproduction_assembler_diagnostics_map_to_rows() -> None:
-    rows = [
+    rows = _rows(
         ListingRow(row_id="r0", kind="directive", text="section\n"),
         ListingRow(row_id="r1", kind="instruction", text="bad\n", addr=0x20),
-    ]
+    )
 
     diagnostics = parse_assembler_diagnostics("demo.s:2: bad operand", rows=rows)
 
@@ -508,7 +513,7 @@ def test_run_reproduction_captures_assembler_failure(monkeypatch: pytest.MonkeyP
         fail_render_assemble,
     )
 
-    report = run_reproduction("demo", rows=[ListingRow(row_id="r0", kind="instruction", text="bad\n", addr=0)])
+    report = run_reproduction("demo", rows=_rows(ListingRow(row_id="r0", kind="instruction", text="bad\n", addr=0)))
 
     assert report["status"] == "assembler_error"
     assert calls[0]["kwargs"]["target_cpu"] == "any"

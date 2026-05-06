@@ -18,7 +18,7 @@ from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.c_backend import build_project_listing_artifact_generation_profile
-from amiga_reversing.disasm.listing_types import (
+from tests.listing_types_fixtures import (
     AppSlotRef,
     BlockRowContext,
     ListingRow,
