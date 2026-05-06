@@ -328,17 +328,15 @@ int m68k_render_plan_emit_rows_alloc(const M68kRenderPlan *plan, size_t first_ro
   end_row = first_row + row_count;
   if (end_row < first_row || end_row > plan->row_count) end_row = plan->row_count;
   for (index = first_row; index < end_row; ++index) {
-    size_t length = strlen(plan->rows[index].text);
-    if (total_size > ((size_t)-1) - length) return -1;
-    total_size += length;
+    if (total_size > ((size_t)-1) - plan->rows[index].byte_count) return -1;
+    total_size += plan->rows[index].byte_count;
   }
   text = (char *)malloc(total_size);
   if (text == NULL) return -1;
   cursor = text;
   for (index = first_row; index < end_row; ++index) {
-    size_t length = strlen(plan->rows[index].text);
-    memcpy(cursor, plan->rows[index].text, length);
-    cursor += length;
+    memcpy(cursor, plan->rows[index].text, plan->rows[index].byte_count);
+    cursor += plan->rows[index].byte_count;
   }
   *cursor = '\0';
   *out_text = text;

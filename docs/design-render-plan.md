@@ -87,6 +87,8 @@ heap realloc/free churn. Returned row pointers are immediate-use handles; code
 must keep row indexes for long-lived references. Emitted full-source and window
 strings remain separately heap-owned API return buffers. Arena-backed plans
 must be transferred with `m68k_render_plan_move`, not raw struct assignment.
+Full-source emission uses stored row byte counts rather than rediscovering row
+lengths from text.
 
 facts_v2 source capture no longer builds a parallel full-source text buffer
 while rows are being captured. Source fragments must be emitted inside an active
