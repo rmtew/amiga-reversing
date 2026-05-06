@@ -82,6 +82,9 @@ plan, with a regression proving the window matches the same slice from full
 listing rows. The web route is not switched to call it per request because that
 would redo full analysis on scroll; the route needs a cacheable plan or compact
 row-window artifact lifetime first.
+The C listing-window emitter streams selected rows directly into the final JSON
+builder; it does not allocate a temporary rows JSON string and copy it into the
+payload.
 The full listing job now caches serialized row artifacts alongside the Python
 row objects. Indexed and address-anchored web windows can be served from that
 compact artifact after the job finishes, avoiding repeated dataclass-to-JSON

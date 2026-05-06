@@ -5162,12 +5162,10 @@ int source_file_listing_window_from_render_plan_to_json(const M68kSourceFileIR *
     const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
     size_t start, size_t count, char **out_json, M68kDiagSink diagnostics) {
-  JsonBuilder rows_builder = {0};
   JsonBuilder builder = {0};
   ListingSourceHeaderRows header_rows = {0};
   ListingRenderPlanJsonContext count_context;
   ListingRenderPlanJsonContext emit_context;
-  char *rows_json = NULL;
   const char *failure = "out of memory";
   size_t total_rows;
   size_t safe_count;
@@ -5212,8 +5210,13 @@ int source_file_listing_window_from_render_plan_to_json(const M68kSourceFileIR *
   }
   end = safe_start + safe_count;
   if (end < safe_start || end > total_rows) end = total_rows;
-  if (json_builder_create(&rows_builder) != 0) goto oom;
-  emit_context.builder = &rows_builder;
+  if (json_builder_create(&builder) != 0 ||
+      json_builder_appendf(&builder,
+        "{\"start\":%u,\"end\":%u,\"has_more_before\":%s,\"has_more_after\":%s,\"total_rows\":%u,\"rows\":[",
+        (unsigned)safe_start, (unsigned)end, safe_start > 0U ? "true" : "false",
+        end < total_rows ? "true" : "false", (unsigned)total_rows) != 0)
+    goto oom;
+  emit_context.builder = &builder;
   emit_context.header_rows = &header_rows;
   emit_context.source_file = source_file;
   emit_context.analysis_policy = analysis_policy;
@@ -5230,38 +5233,21 @@ int source_file_listing_window_from_render_plan_to_json(const M68kSourceFileIR *
     failure = "listing window emit pass failed";
     goto oom;
   }
-  rows_json = json_builder_build(&rows_builder);
-  if (rows_json == NULL) {
-    failure = "listing window rows build failed";
-    goto oom;
-  }
-  if (json_builder_create(&builder) != 0 ||
-      json_builder_append(&builder, "{\"anchor_addr\":") != 0)
-    goto oom;
+  if (json_builder_append(&builder, "],\"anchor_addr\":") != 0) goto oom;
   if (emit_context.has_anchor_addr) {
     if (json_builder_appendf(&builder, "%u", (unsigned)emit_context.anchor_addr) != 0) goto oom;
   } else if (json_builder_append(&builder, "null") != 0) goto oom;
-  if (json_builder_appendf(&builder,
-      ",\"start\":%u,\"end\":%u,\"has_more_before\":%s,\"has_more_after\":%s,\"total_rows\":%u,\"rows\":[",
-      (unsigned)safe_start, (unsigned)end, safe_start > 0U ? "true" : "false",
-      end < total_rows ? "true" : "false", (unsigned)total_rows) != 0 ||
-      json_builder_append(&builder, rows_json) != 0 ||
-      json_builder_append(&builder, "]}") != 0)
-    goto oom;
+  if (json_builder_append(&builder, "}") != 0) goto oom;
   *out_json = json_builder_build(&builder);
   if (*out_json == NULL) {
     failure = "listing window payload build failed";
     goto oom;
   }
-  free(rows_json);
-  json_builder_destroy(&rows_builder);
   json_builder_destroy(&builder);
   listing_source_header_rows_destroy(&header_rows);
   return 0;
 
 oom:
-  free(rows_json);
-  json_builder_destroy(&rows_builder);
   json_builder_destroy(&builder);
   listing_source_header_rows_destroy(&header_rows);
   m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, failure);
