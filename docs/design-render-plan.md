@@ -272,6 +272,11 @@ a fresh window around the anchor.
 
 - C analysis remains authoritative.
 - Source text is an output, not an intermediate analysis database.
+- Render-plan provenance must be assigned when the renderer knows the row's
+  semantic origin. Do not recover provenance later by classifying final emitted
+  text lines.
+- Header ordering must be a render-plan transform over typed rows, not a text
+  rewrite followed by row reclassification.
 - No M68K instruction facts are hardcoded in the render plan.
 - Instruction rendering continues to use generated M68K knowledge.
 - Amiga hardware and OS names come from platform metadata or platform code.
