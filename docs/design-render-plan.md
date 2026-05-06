@@ -156,6 +156,13 @@ of parsing full source-analysis JSON. The payload reuses the same C platform
 call JSON fields as full analysis, but only emits section indexes and recovered
 platform calls. Comparator timings improved from about 0.59s to 0.38s for
 MonAm and from about 0.80s to 0.50s for GenAm.
+The retained displayed-row index is now built in one render-plan pass. The
+previous path counted listing rows with a full pass, then walked the same rows
+again to populate the index. The index builder now collects header rows once,
+allocates a safe arena-backed upper bound from render-plan line counts plus
+synthetic header rows, and records the actual row count after the single pass.
+Measured best-of-three artifact builds were about 1.24s for Bloodwych, 0.36s
+for MonAm, and 0.48s for GenAm after this cleanup.
 Corpus usage indexing is generated local data, not source. It should consume
 compact analysis/listing evidence and retain row-backed xrefs only for useful
 navigation/report evidence. Aggregate target features such as label counts may

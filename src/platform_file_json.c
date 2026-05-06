@@ -5101,6 +5101,20 @@ done:
   return result;
 }
 
+static size_t listing_source_header_rows_extra_count(const ListingSourceHeaderRows *header_rows) {
+  int groups_seen[3] = {0, 0, 0};
+  size_t group_count = 0U;
+  size_t index;
+  if (header_rows == NULL || header_rows->count == 0U) return 0U;
+  for (index = 0U; index < header_rows->count; ++index) {
+    int group = header_rows->items[index].group;
+    if (group < 0 || group > 2 || groups_seen[group]) continue;
+    groups_seen[group] = 1;
+    ++group_count;
+  }
+  return group_count != 0U ? header_rows->count + group_count : 0U;
+}
+
 typedef struct ListingRenderPlanHeaderContext {
   ListingSourceHeaderRows *header_rows;
   int stopped;
@@ -6086,7 +6100,7 @@ int source_file_listing_row_index_from_render_plan(const M68kSourceFileIR *sourc
   PlatformListingRowIndexBlock *blocks = NULL;
   ArenaMark mark;
   const char *failure = "out of memory";
-  size_t total_rows = 0U;
+  size_t entry_capacity = 0U;
   size_t block_count = 0U;
   size_t index;
   memset(&index_context, 0, sizeof(index_context));
@@ -6097,27 +6111,24 @@ int source_file_listing_row_index_from_render_plan(const M68kSourceFileIR *sourc
   }
   mark = arena_mark(arena);
   if (block_size == 0U) block_size = 256U;
-  if (source_file_listing_total_rows_from_render_plan(source_file, render_plan, platform_backend_kind,
-      analysis_policy, source_analysis, analysis_generation, include_source_only_rows, &total_rows,
-      diagnostics) != 0)
-    return -1;
-  if (total_rows != 0U) {
-    if (total_rows > ((size_t)-1) / sizeof(*entries)) goto oom;
-    entries = (PlatformListingRowIndexEntry *)arena_alloc(arena, total_rows * sizeof(*entries));
-    if (entries == NULL) goto oom;
-    memset(entries, 0, total_rows * sizeof(*entries));
-    block_count = (total_rows + block_size - 1U) / block_size;
-    if (block_count > ((size_t)-1) / sizeof(*blocks)) goto oom;
-    blocks = (PlatformListingRowIndexBlock *)arena_alloc(arena, block_count * sizeof(*blocks));
-    if (blocks == NULL) goto oom;
-    memset(blocks, 0, block_count * sizeof(*blocks));
-  }
   if (listing_source_header_rows_init(&header_rows) != 0) goto oom;
   if (!include_source_only_rows) {
     if (collect_listing_source_header_rows_from_plan(render_plan, &header_rows) != 0) {
       failure = "listing row index header collection failed";
       goto oom;
     }
+  }
+  entry_capacity = (size_t)render_plan->total_lines;
+  if (!include_source_only_rows) {
+    size_t header_extra = listing_source_header_rows_extra_count(&header_rows);
+    if (entry_capacity > ((size_t)-1) - header_extra) goto oom;
+    entry_capacity += header_extra;
+  }
+  if (entry_capacity != 0U) {
+    if (entry_capacity > ((size_t)-1) / sizeof(*entries)) goto oom;
+    entries = (PlatformListingRowIndexEntry *)arena_alloc(arena, entry_capacity * sizeof(*entries));
+    if (entries == NULL) goto oom;
+    memset(entries, 0, entry_capacity * sizeof(*entries));
   }
   if (source_file != NULL) platform_backend_kind = source_file->platform_backend_kind;
   (void)platform_backend_kind;
@@ -6133,17 +6144,24 @@ int source_file_listing_row_index_from_render_plan(const M68kSourceFileIR *sourc
   index_context.use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
   index_context.count_only = 1;
   index_context.row_index_entries = entries;
-  index_context.row_index_entry_count = total_rows;
+  index_context.row_index_entry_count = entry_capacity;
   if (m68k_render_plan_visit_row_lines(render_plan, 0U, render_plan->row_count,
       append_full_listing_render_plan_line, &index_context) != 0) {
     failure = "listing row index pass failed";
     goto oom;
   }
-  if (index_context.row_index != total_rows) {
-    failure = "listing row index count mismatch";
+  if (index_context.row_index > entry_capacity) {
+    failure = "listing row index capacity exceeded";
     goto oom;
   }
-  for (index = 0U; index < total_rows; ++index) {
+  if (index_context.row_index != 0U) {
+    block_count = (index_context.row_index + block_size - 1U) / block_size;
+    if (block_count > ((size_t)-1) / sizeof(*blocks)) goto oom;
+    blocks = (PlatformListingRowIndexBlock *)arena_alloc(arena, block_count * sizeof(*blocks));
+    if (blocks == NULL) goto oom;
+    memset(blocks, 0, block_count * sizeof(*blocks));
+  }
+  for (index = 0U; index < index_context.row_index; ++index) {
     size_t block_index = index / block_size;
     PlatformListingRowIndexBlock *block = &blocks[block_index];
     if (!entries[index].has_addr) continue;
@@ -6152,7 +6170,7 @@ int source_file_listing_row_index_from_render_plan(const M68kSourceFileIR *sourc
   }
   out_index->entries = entries;
   out_index->blocks = blocks;
-  out_index->row_count = total_rows;
+  out_index->row_count = index_context.row_index;
   out_index->block_count = block_count;
   out_index->block_size = block_size;
   listing_source_header_rows_destroy(&header_rows);
