@@ -6190,12 +6190,12 @@ static int test_listing_json_window_matches_full_render_plan_slice(void) {
   M68K_C_ASSERT_INT(0, source_file_listing_window_from_render_plan_with_index_to_json(NULL, &render_plan,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &row_index, 1U, 2U, &indexed_window_json,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, source_file_listing_anchor_code_row_from_render_plan(NULL, &render_plan,
-    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, "SECTION section_0,code", &anchor_row,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_anchor_code_row_from_render_plan_with_index(NULL, &render_plan,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &row_index, "SECTION section_0,code",
+    &anchor_row, m68k_diag_sink(NULL)));
   M68K_C_ASSERT_U32(0U, (uint32_t)anchor_row);
-  M68K_C_ASSERT_INT(0, source_file_listing_anchor_code_row_from_render_plan(NULL, &render_plan,
-    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, "loc_0_00000000", &anchor_row,
+  M68K_C_ASSERT_INT(0, source_file_listing_anchor_code_row_from_render_plan_with_index(NULL, &render_plan,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &row_index, "loc_0_00000000", &anchor_row,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT_U32(1U, (uint32_t)anchor_row);
   M68K_C_ASSERT(full_json != NULL);
