@@ -142,6 +142,13 @@ compact analysis/listing evidence and retain row-backed xrefs only for useful
 navigation/report evidence. Aggregate target features such as label counts may
 remain in the manifest without materializing every label definition/reference
 as a row-backed xref and snippet driver.
+Its stability check belongs to the explicit corpus-index command
+`cmd /c src\test_corpus_index.bat`, not mandatory precommit, because it
+validates ignored generated data under `corpus/`.
+Large row-context payloads should not be stored as repeated JSONL text. Snippet
+rows are stored as one compressed block per target plus a small offset index,
+so target-specific UI reads can seek and decompress one block instead of
+loading the entire corpus row cache.
 
 Render plans now own rows and row text through a plan-local arena. The row
 array remains contiguous, but growth uses arena allocate-and-copy instead of

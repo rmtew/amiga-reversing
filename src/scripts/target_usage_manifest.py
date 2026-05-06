@@ -9,6 +9,7 @@ import os
 import re
 import tempfile
 import threading
+import zlib
 from pathlib import Path
 from typing import Any, cast
 
@@ -34,7 +35,7 @@ DEFAULT_DISK_MANIFEST = ROOT / "corpus" / "platform_disk_manifest.jsonl"
 DEFAULT_FILE_MANIFEST = ROOT / "corpus" / "platform_file_manifest.jsonl"
 DEFAULT_OUTPUT = ROOT / "corpus" / "target_usage_manifest.jsonl"
 DEFAULT_XREF_OUTPUT = ROOT / "corpus" / "target_usage_xrefs.jsonl"
-DEFAULT_SNIPPET_ROWS_OUTPUT = ROOT / "corpus" / "target_usage_snippet_rows.jsonl"
+DEFAULT_SNIPPET_ROWS_OUTPUT = ROOT / "corpus" / "target_usage_snippet_rows"
 DEFAULT_VARIANT_OUTPUT = ROOT / "corpus" / "target_variant_index.jsonl"
 DEFAULT_TYPE_FLOW_REPORT_OUTPUT = ROOT / "corpus" / "target_type_flow_report.jsonl"
 DEFAULT_UNRESOLVED_TYPED_FIELD_REPORT_OUTPUT = ROOT / "corpus" / "target_unresolved_typed_fields.jsonl"
@@ -2945,7 +2946,40 @@ def write_usage_xrefs(path: Path, rows: list[dict[str, object]]) -> None:
 
 
 def write_usage_snippet_rows(path: Path, rows: list[dict[str, object]]) -> None:
-    write_jsonl_manifest(path, rows)
+    index_path = snippet_rows_index_path(path)
+    blob_path = snippet_rows_blob_path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rows_by_target: dict[str, list[dict[str, object]]] = {}
+    index_rows: list[dict[str, object]] = []
+    compressed_offset = 0
+    for row in rows:
+        target_id = str(row.get("target_id"))
+        rows_by_target.setdefault(target_id, []).append(row)
+    with blob_path.open("wb") as blob:
+        for target_id in sorted(rows_by_target):
+            target_rows = sorted(rows_by_target[target_id], key=lambda item: _sort_int(item.get("row_index")))
+            raw_text = "".join(
+                json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n"
+                for row in target_rows
+            )
+            raw_bytes = raw_text.encode("utf-8")
+            compressed = zlib.compress(raw_bytes, level=6)
+            blob.write(compressed)
+            index_rows.append(
+                {
+                    "schema_version": 1,
+                    "target_id": target_id,
+                    "row_count": len(target_rows),
+                    "raw_size": len(raw_bytes),
+                    "compressed_offset": compressed_offset,
+                    "compressed_size": len(compressed),
+                    "compression": "zlib",
+                }
+            )
+            compressed_offset += len(compressed)
+    write_jsonl_manifest(index_path, index_rows)
+    if path.exists():
+        path.unlink()
 
 
 def write_variant_index(path: Path, rows: list[dict[str, object]]) -> None:
@@ -2997,8 +3031,52 @@ def read_usage_xrefs(path: Path = DEFAULT_XREF_OUTPUT) -> list[dict[str, Any]]:
     return read_jsonl_manifest(path)
 
 
+def snippet_rows_index_path(path: Path = DEFAULT_SNIPPET_ROWS_OUTPUT) -> Path:
+    return path.with_name(f"{path.stem}.index.jsonl")
+
+
+def snippet_rows_blob_path(path: Path = DEFAULT_SNIPPET_ROWS_OUTPUT) -> Path:
+    return path.with_name(f"{path.stem}.blob")
+
+
+def _read_compressed_snippet_block(blob_path: Path, entry: dict[str, Any]) -> list[dict[str, Any]]:
+    offset = _int_value(entry.get("compressed_offset"))
+    size = _int_value(entry.get("compressed_size"))
+    if offset is None or size is None or offset < 0 or size < 0:
+        return []
+    with blob_path.open("rb") as blob:
+        blob.seek(offset)
+        compressed = blob.read(size)
+    raw_text = zlib.decompress(compressed).decode("utf-8")
+    rows: list[dict[str, Any]] = []
+    for line in raw_text.splitlines():
+        if not line:
+            continue
+        payload = json.loads(line)
+        if isinstance(payload, dict):
+            rows.append(payload)
+    return rows
+
+
 def read_usage_snippet_rows(path: Path = DEFAULT_SNIPPET_ROWS_OUTPUT) -> list[dict[str, Any]]:
-    return read_jsonl_manifest(path)
+    index_path = snippet_rows_index_path(path)
+    blob_path = snippet_rows_blob_path(path)
+    rows: list[dict[str, Any]] = []
+    for entry in read_jsonl_manifest(index_path):
+        rows.extend(_read_compressed_snippet_block(blob_path, entry))
+    return rows
+
+
+def read_usage_snippet_rows_for_target(
+    target_id: str,
+    path: Path = DEFAULT_SNIPPET_ROWS_OUTPUT,
+) -> list[dict[str, Any]]:
+    index_path = snippet_rows_index_path(path)
+    blob_path = snippet_rows_blob_path(path)
+    for entry in read_jsonl_manifest(index_path):
+        if _string_value(entry.get("target_id")) == target_id:
+            return _read_compressed_snippet_block(blob_path, entry)
+    return []
 
 
 def read_variant_index(path: Path = DEFAULT_VARIANT_OUTPUT) -> list[dict[str, Any]]:
@@ -6439,7 +6517,8 @@ def main(argv: list[str] | None = None) -> int:
         write_unresolved_typed_field_report(args.unresolved_typed_field_report_output, unresolved_typed_field_rows)
         print(f"Wrote {args.output}")
         print(f"Wrote {args.xrefs_output}")
-        print(f"Wrote {args.snippet_rows_output}")
+        print(f"Wrote {snippet_rows_index_path(args.snippet_rows_output)}")
+        print(f"Wrote {snippet_rows_blob_path(args.snippet_rows_output)}")
         print(f"Wrote {args.variants_output}")
         print(f"Wrote {args.type_flow_report_output}")
         print(f"Wrote {args.unresolved_typed_field_report_output}")

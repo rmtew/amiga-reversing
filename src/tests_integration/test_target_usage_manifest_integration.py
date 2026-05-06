@@ -9,7 +9,7 @@ from src.scripts import target_usage_manifest
 ROOT = Path(__file__).resolve().parents[2]
 TARGET_USAGE_MANIFEST_PATH = ROOT / "corpus" / "target_usage_manifest.jsonl"
 TARGET_USAGE_XREFS_PATH = ROOT / "corpus" / "target_usage_xrefs.jsonl"
-TARGET_USAGE_SNIPPET_ROWS_PATH = ROOT / "corpus" / "target_usage_snippet_rows.jsonl"
+TARGET_USAGE_SNIPPET_ROWS_BASE = ROOT / "corpus" / "target_usage_snippet_rows"
 
 
 class TargetUsageManifestIntegrationTests(unittest.TestCase):
@@ -36,13 +36,15 @@ class TargetUsageManifestIntegrationTests(unittest.TestCase):
         self.assertLessEqual(xref_target_ids, manifest_ids)
 
     def test_checked_in_target_usage_snippet_rows_are_stable_and_consistent(self) -> None:
-        before = TARGET_USAGE_SNIPPET_ROWS_PATH.read_text(encoding="utf-8")
+        before = self._jsonl_text(target_usage_manifest.read_usage_snippet_rows(TARGET_USAGE_SNIPPET_ROWS_BASE))
         after = self._jsonl_text(self.snippet_rows)
         manifest_ids = {str(row["id"]) for row in self.rows}
         snippet_target_ids = {str(row["target_id"]) for row in self.snippet_rows}
         self.assertEqual(after, before)
         self.assertTrue(self.snippet_rows)
         self.assertLessEqual(snippet_target_ids, manifest_ids)
+        self.assertTrue(target_usage_manifest.snippet_rows_index_path(TARGET_USAGE_SNIPPET_ROWS_BASE).exists())
+        self.assertTrue(target_usage_manifest.snippet_rows_blob_path(TARGET_USAGE_SNIPPET_ROWS_BASE).exists())
 
     def test_checked_in_target_usage_manifest_has_queryable_features(self) -> None:
         rows = target_usage_manifest.read_usage_manifest(TARGET_USAGE_MANIFEST_PATH)

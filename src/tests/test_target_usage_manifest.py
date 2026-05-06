@@ -845,6 +845,29 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual({xref["source_stable_key"] for xref in api_xrefs}, {"source-row"})
         self.assertEqual([snippet["row"]["stable_key"] for snippet in snippets], ["call-row"])
 
+    def test_usage_snippet_rows_write_compressed_target_blocks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "snippets"
+            rows = [
+                {"target_id": "target-b", "row_index": 1, "row": {"text": "b1"}},
+                {"target_id": "target-a", "row_index": 2, "row": {"text": "a2"}},
+                {"target_id": "target-a", "row_index": 1, "row": {"text": "a1"}},
+            ]
+
+            usage.write_usage_snippet_rows(path, rows)
+
+            self.assertFalse(path.exists())
+            self.assertTrue(usage.snippet_rows_index_path(path).exists())
+            self.assertTrue(usage.snippet_rows_blob_path(path).exists())
+            self.assertEqual(
+                [row["row_index"] for row in usage.read_usage_snippet_rows_for_target("target-a", path)],
+                [1, 2],
+            )
+            self.assertEqual(
+                [(row["target_id"], row["row_index"]) for row in usage.read_usage_snippet_rows(path)],
+                [("target-a", 1), ("target-a", 2), ("target-b", 1)],
+            )
+
     def test_type_flow_report_summarizes_resolved_and_open_opportunities(self) -> None:
         manifest_rows = [
             {
@@ -1291,7 +1314,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             tmp_path = Path(tmp)
             manifest_path = tmp_path / "manifest.jsonl"
             xrefs_path = tmp_path / "xrefs.jsonl"
-            snippets_path = tmp_path / "snippets.jsonl"
+            snippets_path = tmp_path / "snippets"
             output_path = tmp_path / "report.jsonl"
             _write_jsonl(manifest_path, [{"id": "platform_file_manifest:demo", "platform": "amiga-hunk"}])
             _write_jsonl(
@@ -1309,7 +1332,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                     }
                 ],
             )
-            _write_jsonl(
+            usage.write_usage_snippet_rows(
                 snippets_path,
                 [
                     {
@@ -2366,7 +2389,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             tmpdir = Path(tmp)
             type_flow = tmpdir / "type_flow.jsonl"
             xrefs = tmpdir / "xrefs.jsonl"
-            snippets = tmpdir / "snippets.jsonl"
+            snippets = tmpdir / "snippets"
             output = tmpdir / "storage_gaps.json"
             _write_jsonl(type_flow, [{"target_id": "demo", "platform": "amiga-hunk"}])
             _write_jsonl(
@@ -2409,7 +2432,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                     },
                 ],
             )
-            _write_jsonl(snippets, [])
+            usage.write_usage_snippet_rows(snippets, [])
 
             result = usage.main(
                 [

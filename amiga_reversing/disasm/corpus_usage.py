@@ -23,13 +23,13 @@ from src.scripts.platform_manifest_io import (
 
 MANIFEST_PATH = ROOT / "corpus" / "target_usage_manifest.jsonl"
 XREFS_PATH = ROOT / "corpus" / "target_usage_xrefs.jsonl"
-SNIPPET_ROWS_PATH = ROOT / "corpus" / "target_usage_snippet_rows.jsonl"
+SNIPPET_ROWS_PATH = ROOT / "corpus" / "target_usage_snippet_rows"
 VARIANTS_PATH = ROOT / "corpus" / "target_variant_index.jsonl"
 DISK_MANIFEST_PATH = ROOT / "corpus" / "platform_disk_manifest.jsonl"
 FILE_MANIFEST_PATH = ROOT / "corpus" / "platform_file_manifest.jsonl"
 
 _JSONL_CACHE: dict[Path, tuple[int, int, list[dict[str, Any]]]] = {}
-_SNIPPET_TARGET_CACHE: dict[str, tuple[int, int, list[dict[str, Any]]]] = {}
+_SNIPPET_TARGET_CACHE: dict[str, tuple[tuple[int, int] | tuple[int, int, int, int], list[dict[str, Any]]]] = {}
 LOW_VALUE_FEATURE_PREFIXES = (
     "analysis:",
     "analysis_generation:",
@@ -62,25 +62,25 @@ def read_xrefs() -> list[dict[str, Any]]:
 
 
 def read_snippet_rows() -> list[dict[str, Any]]:
-    return _read_jsonl_cached(SNIPPET_ROWS_PATH)
+    return usage.read_usage_snippet_rows(SNIPPET_ROWS_PATH)
 
 
 def read_snippet_rows_for_target(target_id: str) -> list[dict[str, Any]]:
-    stat = SNIPPET_ROWS_PATH.stat()
+    stamp = _snippet_rows_storage_stamp()
     cached = _SNIPPET_TARGET_CACHE.get(target_id)
-    if cached is not None and cached[0] == stat.st_mtime_ns and cached[1] == stat.st_size:
-        return list(cached[2])
-    needle = f'"target_id": "{target_id}"'
-    rows: list[dict[str, Any]] = []
-    with SNIPPET_ROWS_PATH.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            if needle not in line:
-                continue
-            payload = json.loads(line)
-            if isinstance(payload, dict):
-                rows.append(payload)
-    _SNIPPET_TARGET_CACHE[target_id] = (stat.st_mtime_ns, stat.st_size, rows)
+    if cached is not None and cached[0] == stamp:
+        return list(cached[1])
+    rows = usage.read_usage_snippet_rows_for_target(target_id, SNIPPET_ROWS_PATH)
+    _SNIPPET_TARGET_CACHE[target_id] = (stamp, rows)
     return list(rows)
+
+
+def _snippet_rows_storage_stamp() -> tuple[int, int] | tuple[int, int, int, int]:
+    index_path = usage.snippet_rows_index_path(SNIPPET_ROWS_PATH)
+    blob_path = usage.snippet_rows_blob_path(SNIPPET_ROWS_PATH)
+    index_stat = index_path.stat()
+    blob_stat = blob_path.stat()
+    return (index_stat.st_mtime_ns, index_stat.st_size, blob_stat.st_mtime_ns, blob_stat.st_size)
 
 
 def read_variants() -> list[dict[str, Any]]:
