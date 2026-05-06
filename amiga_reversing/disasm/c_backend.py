@@ -507,7 +507,7 @@ def build_project_listing_artifact_generation_profile(
     *,
     generation: str,
     project_root: Path = PROJECT_ROOT,
-) -> tuple[int, dict[ApiCallRowKey, dict[str, object]], dict[str, object], CListingArtifact]:
+) -> tuple[int, dict[str, object], CListingArtifact]:
     if generation != "full":
         raise ValueError(f"Unsupported listing artifact generation: {generation}")
     paths = resolve_project_paths(project_name, project_root=project_root)
@@ -523,27 +523,11 @@ def build_project_listing_artifact_generation_profile(
             )
             try:
                 summary, summary_profile = artifact.summary_payload()
-                platform_call_count = _profile_platform_call_count(summary_profile)
-                if platform_call_count == 0:
-                    analysis_profile: dict[str, object] = {}
-                    api_calls: dict[ApiCallRowKey, dict[str, object]] = {}
-                else:
-                    api_calls_payload, analysis_profile = artifact.api_calls_payload()
-                    api_calls = api_calls_from_c_platform_calls(api_calls_payload)
-                profile: dict[str, object] = {**analysis_profile, **summary_profile}
                 total_rows = summary.get("total_rows", 0)
             except Exception:
                 artifact.close()
                 raise
-            return int(total_rows) if isinstance(total_rows, int) else 0, api_calls, profile, artifact
-
-
-def _profile_platform_call_count(profile: dict[str, object]) -> int | None:
-    facts_v2 = profile.get("facts_v2")
-    if not isinstance(facts_v2, dict):
-        return None
-    value = facts_v2.get("platform_call_count")
-    return value if isinstance(value, int) else None
+            return int(total_rows) if isinstance(total_rows, int) else 0, summary_profile, artifact
 
 
 def type_catalog_from_c_backend(
@@ -610,54 +594,32 @@ def api_calls_from_c_analysis(analysis: dict[str, object]) -> dict[ApiCallRowKey
         section_index_value = section.get("section_index", 0)
         section_index = section_index_value if isinstance(section_index_value, int) else 0
         for call in cast(list[dict[str, object]], section.get("recovered_platform_calls", [])):
-            symbol = call.get("function_name") or call.get("symbol_name") or call.get("note_symbol_name")
-            if not isinstance(symbol, str) or symbol == "":
-                continue
-            offset = call.get("offset")
-            if not isinstance(offset, int):
-                continue
-            library = _api_call_library_name(call)
-            function = symbol.removeprefix("_LVO")
-            result[(section_index, offset)] = {
-                "library": library,
-                "function": function,
-                "note_kind": call.get("note_kind"),
-                "call_kind": call.get("kind"),
-                "symbol_name": call.get("symbol_name"),
-                "note_symbol_name": call.get("note_symbol_name"),
-                "inputs": _api_call_inputs(call),
-                "outputs": _api_call_outputs(call),
-            }
+            converted = api_call_from_c_call(call)
+            if converted is not None:
+                result[(section_index, converted[0])] = converted[1]
     return result
 
 
-def api_calls_from_c_platform_calls(payload: dict[str, object]) -> dict[ApiCallRowKey, dict[str, object]]:
-    result: dict[ApiCallRowKey, dict[str, object]] = {}
-    for item in cast(list[dict[str, object]], payload.get("platform_calls", [])):
-        section_index_value = item.get("section_index", 0)
-        section_index = section_index_value if isinstance(section_index_value, int) else 0
-        call = item.get("call")
-        if not isinstance(call, dict):
-            continue
-        symbol = call.get("function_name") or call.get("symbol_name") or call.get("note_symbol_name")
-        if not isinstance(symbol, str) or symbol == "":
-            continue
-        offset = call.get("offset")
-        if not isinstance(offset, int):
-            continue
-        library = _api_call_library_name(cast(dict[str, object], call))
-        function = symbol.removeprefix("_LVO")
-        result[(section_index, offset)] = {
-            "library": library,
-            "function": function,
+def api_call_from_c_call(call: dict[str, object]) -> tuple[int, dict[str, object]] | None:
+    symbol = call.get("function_name") or call.get("symbol_name") or call.get("note_symbol_name")
+    if not isinstance(symbol, str) or symbol == "":
+        return None
+    offset = call.get("offset")
+    if not isinstance(offset, int):
+        return None
+    return (
+        offset,
+        {
+            "library": _api_call_library_name(call),
+            "function": symbol.removeprefix("_LVO"),
             "note_kind": call.get("note_kind"),
             "call_kind": call.get("kind"),
             "symbol_name": call.get("symbol_name"),
             "note_symbol_name": call.get("note_symbol_name"),
-            "inputs": _api_call_inputs(cast(dict[str, object], call)),
-            "outputs": _api_call_outputs(cast(dict[str, object], call)),
-        }
-    return result
+            "inputs": _api_call_inputs(call),
+            "outputs": _api_call_outputs(call),
+        },
+    )
 
 
 def _api_call_library_name(call: dict[str, object]) -> str:
@@ -1171,11 +1133,6 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_summary_json_alloc.restype = c_int
-    dll.platform_file_facts_v2_listing_artifact_api_calls_json_alloc.argtypes = [
-        c_void_p,
-        POINTER(c_void_p),
-    ]
-    dll.platform_file_facts_v2_listing_artifact_api_calls_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_analysis_json_alloc.argtypes = [
         c_void_p,
         POINTER(c_void_p),
@@ -1399,19 +1356,6 @@ class CListingArtifact:
         profile = cast(dict[str, object], combined.get("profile", {}))
         return summary, profile
 
-    def api_calls_payload(self) -> tuple[dict[str, object], dict[str, object]]:
-        combined = cast(
-            dict[str, object],
-            json.loads(
-                self._text_from_artifact_call(
-                    self._dll.platform_file_facts_v2_listing_artifact_api_calls_json_alloc,
-                )
-            ),
-        )
-        api_calls = cast(dict[str, object], combined.get("api_calls", {}))
-        profile = cast(dict[str, object], combined.get("profile", {}))
-        return api_calls, profile
-
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         combined = cast(
             dict[str, object],
@@ -1520,6 +1464,11 @@ def _serialized_c_listing_rows(raw_rows: object, *, generation: str) -> list[Ser
         if not isinstance(raw_row, dict):
             continue
         row = dict(raw_row)
+        platform_call = row.pop("platform_call", None)
+        if isinstance(platform_call, dict):
+            converted = api_call_from_c_call(cast(dict[str, object], platform_call))
+            if converted is not None:
+                row.setdefault("api_call", converted[1])
         row.setdefault("stable_key", None)
         row.setdefault("analysis_generation", generation)
         row.setdefault("analysis_phase", generation)

@@ -6,7 +6,7 @@ from typing import cast
 from amiga_reversing.disasm import c_backend
 from amiga_reversing.disasm.api import SerializedRow
 from amiga_reversing.disasm.binary_source import BinarySource
-from amiga_reversing.disasm.c_backend import ApiCallRowKey, api_calls_from_c_platform_calls
+from amiga_reversing.disasm.c_backend import ApiCallRowKey
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 
@@ -16,7 +16,7 @@ def build_project_listing_rows_with_c_artifact(
     *,
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[list[SerializedRow], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
-    total_rows, api_calls, profile, artifact = c_backend.build_project_listing_artifact_generation_profile(
+    total_rows, profile, artifact = c_backend.build_project_listing_artifact_generation_profile(
         project_name,
         generation="full",
         project_root=project_root,
@@ -31,7 +31,8 @@ def build_project_listing_rows_with_c_artifact(
         type_flow_analysis = navigation.get("type_flow_analysis")
         if isinstance(type_flow_analysis, dict):
             merged_profile["type_flow_analysis"] = type_flow_analysis
-        return list(payload["rows"]), api_calls, merged_profile
+        rows = list(payload["rows"])
+        return rows, _api_calls_from_rows(rows), merged_profile
     finally:
         artifact.close()
 
@@ -60,18 +61,34 @@ def build_project_listing_rows_from_source_with_c_artifact(
     try:
         summary, summary_profile = artifact.summary_payload()
         total_rows = summary.get("total_rows", 0)
-        api_calls_payload, api_profile = artifact.api_calls_payload()
         payload, window_profile = artifact.window_payload(
             start=0,
             count=total_rows if isinstance(total_rows, int) else 0,
         )
+        rows = list(payload["rows"])
         return (
-            list(payload["rows"]),
-            api_calls_from_c_platform_calls(api_calls_payload),
-            {**summary_profile, **api_profile, **window_profile},
+            rows,
+            _api_calls_from_rows(rows),
+            {**summary_profile, **window_profile},
         )
     finally:
         artifact.close()
+
+
+def _api_calls_from_rows(rows: list[SerializedRow]) -> dict[ApiCallRowKey, dict[str, object]]:
+    api_calls: dict[ApiCallRowKey, dict[str, object]] = {}
+    for row in rows:
+        api_call = row.get("api_call")
+        if not isinstance(api_call, dict):
+            continue
+        source_context = row.get("source_context")
+        if not isinstance(source_context, dict):
+            continue
+        hunk_index = source_context.get("hunk_index")
+        addr = row.get("addr")
+        if isinstance(hunk_index, int) and isinstance(addr, int):
+            api_calls[(hunk_index, addr)] = cast(dict[str, object], api_call)
+    return api_calls
 
 
 def analyze_project_with_c_artifact(

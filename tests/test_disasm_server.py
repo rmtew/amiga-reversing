@@ -115,29 +115,36 @@ class _FakeCListingArtifact:
 
 
 class _RowsCListingArtifact:
-    def __init__(self, rows: list[ListingRow], *, project_name: str = "bloodwych") -> None:
+    def __init__(
+        self,
+        rows: list[ListingRow],
+        *,
+        project_name: str = "bloodwych",
+        api_calls_by_row_id: dict[str, dict[str, object]] | None = None,
+    ) -> None:
         self.rows = rows
         self.project_name = project_name
+        self.api_calls_by_row_id = api_calls_by_row_id or {}
         self.closed = False
 
     def close(self) -> None:
         self.closed = True
 
     def window_payload(self, *, start: int, count: int):
-        return _test_listing_index_window_payload(self.rows, start, count), {}
+        return _test_listing_index_window_payload(self.rows, start, count, self.api_calls_by_row_id), {}
 
     def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         return {"total_rows": len(self.rows)}, {"generation": "fake"}
 
     def addr_window_payload(self, *, addr: int | None, before: int, after: int):
-        return _test_listing_addr_window_payload(self.rows, addr, before=before, after=after), {}
+        return _test_listing_addr_window_payload(self.rows, addr, before=before, after=after, api_calls_by_row_id=self.api_calls_by_row_id), {}
 
     def anchor_window_payload(self, *, anchor_code: str, count: int):
         start = _test_listing_anchor_code_start(self.rows, anchor_code)
-        return _test_listing_index_window_payload(self.rows, start, count), {}
+        return _test_listing_index_window_payload(self.rows, start, count, self.api_calls_by_row_id), {}
 
     def navigation_payload(self):
-        return _test_listing_navigation_payload(self.project_name, self.rows), {}
+        return _test_listing_navigation_payload(self.project_name, self.rows, self.api_calls_by_row_id), {}
 
 
 def _seed_c_listing_artifact(
@@ -241,10 +248,20 @@ def _test_api_call_is_navigation_target(
     return True
 
 
-def _test_listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> dict[str, object]:
+def _test_listing_navigation_payload(
+    project_name: str,
+    rows: list[ListingRow],
+    api_calls_by_row_id: dict[str, dict[str, object]] | None = None,
+) -> dict[str, object]:
     groups = _test_empty_navigation_groups()
     label_entries: dict[str, dict[str, object]] = {}
-    api_calls = disasm_server._PROJECT_API_CALL_CACHE.get(project_name, {})
+    api_calls_by_row_id = api_calls_by_row_id or {}
+    api_calls: dict[tuple[int, int], dict[str, object]] = {}
+    for row in rows:
+        api_call = api_calls_by_row_id.get(row.row_id)
+        if api_call is None or not isinstance(row.source_context, BlockRowContext) or row.addr is None:
+            continue
+        api_calls[(row.source_context.hunk_index, row.addr)] = api_call
     repro_report = disasm_server._active_reproduction_report(project_name)
     if repro_report is not None:
         groups["repro-issues"] = disasm_server.reproduction_navigation_entries(repro_report)
@@ -422,6 +439,7 @@ def _test_listing_addr_window_payload(
     *,
     before: int = 80,
     after: int = 160,
+    api_calls_by_row_id: dict[str, dict[str, object]] | None = None,
 ) -> ListingWindowPayload:
     anchor_index = 0
     if addr is not None:
@@ -439,11 +457,16 @@ def _test_listing_addr_window_payload(
         "has_more_before": start > 0,
         "has_more_after": end < len(rows),
         "total_rows": len(rows),
-        "rows": [serialize_row(row) for row in rows[start:end]],
+        "rows": _test_serialize_rows(rows[start:end], api_calls_by_row_id),
     }
 
 
-def _test_listing_index_window_payload(rows: list[ListingRow], start: int, count: int) -> ListingWindowPayload:
+def _test_listing_index_window_payload(
+    rows: list[ListingRow],
+    start: int,
+    count: int,
+    api_calls_by_row_id: dict[str, dict[str, object]] | None = None,
+) -> ListingWindowPayload:
     safe_count = max(0, count)
     if safe_count == 0 or not rows:
         safe_start = 0
@@ -458,8 +481,23 @@ def _test_listing_index_window_payload(rows: list[ListingRow], start: int, count
         "has_more_before": safe_start > 0,
         "has_more_after": end < len(rows),
         "total_rows": len(rows),
-        "rows": [serialize_row(row) for row in rows[safe_start:end]],
+        "rows": _test_serialize_rows(rows[safe_start:end], api_calls_by_row_id),
     }
+
+
+def _test_serialize_rows(
+    rows: list[ListingRow],
+    api_calls_by_row_id: dict[str, dict[str, object]] | None = None,
+) -> list[dict[str, object]]:
+    api_calls_by_row_id = api_calls_by_row_id or {}
+    serialized_rows: list[dict[str, object]] = []
+    for row in rows:
+        serialized = dict(serialize_row(row))
+        api_call = api_calls_by_row_id.get(row.row_id)
+        if api_call is not None:
+            serialized["api_call"] = api_call
+        serialized_rows.append(serialized)
+    return serialized_rows
 
 
 def test_listing_anchor_code_start_matches_non_address_row() -> None:
@@ -2311,23 +2349,22 @@ def test_listing_navigation_api_calls_use_instruction_row_and_hunk_context() -> 
             source_context=BlockRowContext(kind="core-block", hunk_index=1),
         ),
     ]
-    disasm_server._PROJECT_API_CALL_CACHE.clear()
-    disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] = {
-        (1, 0x10): {
+    api_calls_by_row_id = {
+        "r2": {
             "library": "intuition.library",
             "function": "SetPointer",
             "note_kind": 3,
             "call_kind": 1,
             "inputs": [],
         },
-        (1, 0x12): {
+        "r3": {
             "library": "intuition.library",
             "function": "SetPointer",
             "note_kind": 0,
             "call_kind": 1,
             "inputs": [],
         },
-        (1, 0x14): {
+        "r4": {
             "library": "intuition.library",
             "function": "SetPointer",
             "note_kind": 1,
@@ -2336,22 +2373,19 @@ def test_listing_navigation_api_calls_use_instruction_row_and_hunk_context() -> 
         },
     }
 
-    try:
-        payload = _test_listing_navigation_payload("bloodwych", rows)
-        groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
+    payload = _test_listing_navigation_payload("bloodwych", rows, api_calls_by_row_id)
+    groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
 
-        assert groups["api-calls"] == [
-            {
-                "addr": 0x12,
-                "row_index": 3,
-                "summary": "SetPointer (intuition.library)",
-                "match_text": "moveq.l #_LVOSetPointer,d0",
-                "stable_key": None,
-                "hunk_index": 1,
-            }
-        ]
-    finally:
-        disasm_server._PROJECT_API_CALL_CACHE.clear()
+    assert groups["api-calls"] == [
+        {
+            "addr": 0x12,
+            "row_index": 3,
+            "summary": "SetPointer (intuition.library)",
+            "match_text": "moveq.l #_LVOSetPointer,d0",
+            "stable_key": None,
+            "hunk_index": 1,
+        }
+    ]
 
 
 def test_listing_navigation_groups_app_slot_refs_by_symbol(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -2653,7 +2687,6 @@ def test_listing_navigation_exposes_app_slot_regions_and_gaps(monkeypatch: pytes
 def test_route_listing_navigation_rejects_stale_cache(monkeypatch: pytest.MonkeyPatch) -> None:
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _RowsCListingArtifact(
         [ListingRow(row_id="r0", kind="label", text="stale:\n", addr=0, label="stale:")]
     )
@@ -2754,7 +2787,6 @@ def test_route_listing_hydrates_entity_annotations(monkeypatch: pytest.MonkeyPat
             entity_addr=0x10,
         )
     ]
-    disasm_server._PROJECT_API_CALL_CACHE.clear()
     _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     monkeypatch.setattr(
         disasm_server,
@@ -2808,23 +2840,28 @@ def test_route_listing_adds_api_call_metadata(monkeypatch: pytest.MonkeyPatch) -
             source_context=BlockRowContext(kind="core-block", hunk_index=0),
         )
     ]
-    disasm_server._PROJECT_API_CALL_CACHE.clear()
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] = {
-        (0, 0x814E): {
-            "library": "intuition.library",
-            "function": "SetPointer",
-            "inputs": [
-                {
-                    "name": "pointer",
-                    "regs": ["A1"],
-                    "type": "UWORD *",
-                    "i_struct": None,
-                    "source": "parsed NDK",
+    _seed_c_listing_artifact(
+        monkeypatch,
+        "bloodwych",
+        _RowsCListingArtifact(
+            rows,
+            api_calls_by_row_id={
+                "r0": {
+                    "library": "intuition.library",
+                    "function": "SetPointer",
+                    "inputs": [
+                        {
+                            "name": "pointer",
+                            "regs": ["A1"],
+                            "type": "UWORD *",
+                            "i_struct": None,
+                            "source": "parsed NDK",
+                        }
+                    ],
                 }
-            ],
-        }
-    }
+            },
+        ),
+    )
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -2869,15 +2906,20 @@ def test_route_listing_does_not_attach_api_call_metadata_to_label_rows(
             source_context=BlockRowContext(kind="core-block", hunk_index=0),
         ),
     ]
-    disasm_server._PROJECT_API_CALL_CACHE.clear()
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] = {
-        (0, 0x10): {
-            "library": "intuition.library",
-            "function": "SetPointer",
-            "inputs": [],
-        }
-    }
+    _seed_c_listing_artifact(
+        monkeypatch,
+        "bloodwych",
+        _RowsCListingArtifact(
+            rows,
+            api_calls_by_row_id={
+                "r1": {
+                    "library": "intuition.library",
+                    "function": "SetPointer",
+                    "inputs": [],
+                }
+            },
+        ),
+    )
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -2915,15 +2957,20 @@ def test_route_listing_does_not_cross_apply_api_call_metadata_between_hunks(
             source_context=BlockRowContext(kind="core-block", hunk_index=3),
         ),
     ]
-    disasm_server._PROJECT_API_CALL_CACHE.clear()
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] = {
-        (3, 0x10): {
-            "library": "exec.library",
-            "function": "OpenLibrary",
-            "inputs": [],
-        }
-    }
+    _seed_c_listing_artifact(
+        monkeypatch,
+        "bloodwych",
+        _RowsCListingArtifact(
+            rows,
+            api_calls_by_row_id={
+                "r1": {
+                    "library": "exec.library",
+                    "function": "OpenLibrary",
+                    "inputs": [],
+                }
+            },
+        ),
+    )
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -3086,7 +3133,6 @@ def test_start_listing_job_ignores_stale_ready_job_without_rows(
 def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> None:
     build_calls: list[tuple[str, str]] = []
     artifact = _FakeCListingArtifact()
-    disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["job-1"] = {
@@ -3111,15 +3157,12 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
         disasm_server,
         "build_project_listing_artifact_generation_profile",
         lambda project_name, generation: build_calls.append((project_name, generation))
-        or (1, {(0, 0): {"library": "exec.library"}}, {}, artifact),
+        or (1, {}, artifact),
     )
 
     disasm_server._build_rows_job("job-1", "bloodwych")
 
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
-    assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
-        (0, 0): {"library": "exec.library"}
-    }
     assert disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] is artifact
     assert artifact.closed is False
     assert build_calls == [("bloodwych", "full")]
@@ -3129,7 +3172,6 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
 def test_build_rows_job_reports_unsupported_c_backend(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["job-1"] = {
         "job_id": "job-1",
@@ -3153,7 +3195,7 @@ def test_build_rows_job_reports_unsupported_c_backend(
     def fail(
         project_name: str,
         generation: str,
-    ) -> tuple[int, dict[tuple[int, int], dict[str, object]], dict[str, object], _FakeCListingArtifact]:
+    ) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
         raise UnsupportedCBackendProject("unsupported project")
 
     monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", fail)
@@ -3197,9 +3239,9 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
     def canceled_build(
         project_name: str,
         generation: str,
-    ) -> tuple[int, dict[tuple[int, int], dict[str, object]], dict[str, object], _FakeCListingArtifact]:
+    ) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
         del disasm_server._ASYNC_JOBS["job-full"]
-        return 1, {}, {}, _FakeCListingArtifact()
+        return 1, {}, _FakeCListingArtifact()
 
     monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", canceled_build)
 
@@ -3210,7 +3252,6 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
 
 def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pytest.MonkeyPatch) -> None:
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
@@ -3221,7 +3262,7 @@ def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pyt
     monkeypatch.setattr(
         disasm_server,
         "build_project_listing_artifact_generation_profile",
-        lambda project_name, generation: (1, {(0, 4): {"library": "exec.library"}}, {}, artifact),
+        lambda project_name, generation: (1, {}, artifact),
     )
     disasm_server._ASYNC_JOBS["job-full"] = {
         "job_id": "job-full",
@@ -3245,9 +3286,6 @@ def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pyt
     disasm_server._build_rows_job("job-full", "bloodwych")
 
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
-    assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
-        (0, 4): {"library": "exec.library"}
-    }
     assert disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] is artifact
     events: list[dict[str, object]] = []
     while not subscriber.empty():
@@ -3439,7 +3477,6 @@ def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -
         "build_project_listing_artifact_generation_profile",
         lambda project_name, generation: (
             1,
-            {},
             {},
             artifact,
         ),

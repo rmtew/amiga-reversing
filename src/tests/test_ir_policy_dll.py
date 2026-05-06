@@ -381,11 +381,6 @@ def _file_library():
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_facts_v2_listing_artifact_summary_json_alloc.restype = ctypes.c_int
-    library.platform_file_facts_v2_listing_artifact_api_calls_json_alloc.argtypes = [
-        ctypes.c_void_p,
-        ctypes.POINTER(ctypes.c_void_p),
-    ]
-    library.platform_file_facts_v2_listing_artifact_api_calls_json_alloc.restype = ctypes.c_int
     library.platform_file_facts_v2_listing_artifact_analysis_json_alloc.argtypes = [
         ctypes.c_void_p,
         ctypes.POINTER(ctypes.c_void_p),
@@ -737,7 +732,6 @@ class IrPolicyDllTests(unittest.TestCase):
                 source_text = ctypes.c_void_p()
                 summary = ctypes.c_void_p()
                 all_window = ctypes.c_void_p()
-                api_calls = ctypes.c_void_p()
                 navigation = ctypes.c_void_p()
                 try:
                     artifact_analysis_result = library.platform_file_facts_v2_listing_artifact_analysis_json_alloc(
@@ -772,10 +766,6 @@ class IrPolicyDllTests(unittest.TestCase):
                         artifact,
                         ctypes.byref(summary),
                     )
-                    api_calls_result = library.platform_file_facts_v2_listing_artifact_api_calls_json_alloc(
-                        artifact,
-                        ctypes.byref(api_calls),
-                    )
                     navigation_result = library.platform_file_facts_v2_listing_artifact_navigation_json_alloc(
                         artifact,
                         ctypes.byref(navigation),
@@ -798,7 +788,6 @@ class IrPolicyDllTests(unittest.TestCase):
                         ctypes.byref(all_window),
                     )
                     all_text = ctypes.string_at(all_window).decode("utf-8") if all_window.value else ""
-                    api_calls_text = ctypes.string_at(api_calls).decode("utf-8") if api_calls.value else ""
                     navigation_text = ctypes.string_at(navigation).decode("utf-8") if navigation.value else ""
                     self.assertEqual(artifact_analysis_result, 0, artifact_analysis_text)
                     self.assertEqual(first_result, 0, first_text)
@@ -807,7 +796,6 @@ class IrPolicyDllTests(unittest.TestCase):
                     self.assertEqual(source_result, 0, artifact_source_text)
                     self.assertEqual(summary_result, 0, summary_text)
                     self.assertEqual(all_result, 0, all_text)
-                    self.assertEqual(api_calls_result, 0, api_calls_text)
                     self.assertEqual(navigation_result, 0, navigation_text)
                 finally:
                     if artifact_analysis.value:
@@ -824,8 +812,6 @@ class IrPolicyDllTests(unittest.TestCase):
                         library.platform_file_free_text(summary)
                     if all_window.value:
                         library.platform_file_free_text(all_window)
-                    if api_calls.value:
-                        library.platform_file_free_text(api_calls)
                     if navigation.value:
                         library.platform_file_free_text(navigation)
             finally:
@@ -866,9 +852,6 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(second_payload["profile"]["listing_total_rows"], len(full_rows))
         self.assertEqual(summary_payload["profile"]["generation"], "facts_v2_listing_artifact_summary")
         self.assertEqual(summary_payload["summary"]["total_rows"], len(full_rows))
-        api_calls_payload = json.loads(api_calls_text)
-        self.assertEqual(api_calls_payload["profile"]["generation"], "facts_v2_listing_artifact_api_calls")
-        self.assertIn("platform_calls", api_calls_payload["api_calls"])
         navigation_payload = json.loads(navigation_text)
         self.assertEqual(navigation_payload["profile"]["generation"], "facts_v2_listing_artifact_navigation")
         self.assertEqual(navigation_payload["navigation"]["analysis_generation"], "full")

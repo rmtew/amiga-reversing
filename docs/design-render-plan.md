@@ -113,9 +113,9 @@ The full listing job no longer materializes and caches full Python
 `ListingRow` objects after the full C artifact is available. It also no longer
 builds an intermediate basic listing before the retained C artifact. Listing
 open now has one useful target: build the authoritative C analysis/render-plan
-artifact, then serve windows and navigation from it. Analysis JSON is exposed
-from the same artifact so Python can keep API-call metadata without forcing
-full row JSON emission.
+artifact, then serve windows and navigation from it. API-call display metadata
+is emitted on the owning instruction rows by the retained C artifact; Python no
+longer keeps a separate API-call overlay cache.
 Artifact window payloads now keep the C JSON row dictionaries as the web
 payload rows instead of converting them to Python `ListingRow` objects and
 serializing them back.
@@ -177,16 +177,9 @@ listing path consumes that row/subline metadata. It must not rediscover ORG
 rows by comparing final source text.
 Full listing jobs now request a small retained-artifact summary instead of
 forcing navigation JSON during artifact creation. Navigation remains an
-on-demand query against the same C artifact. The Python wrapper also trusts the
-C facts_v2 `platform_call_count`: when it is zero, Python does not request and
-parse full analysis JSON just to construct an empty API-call cache. On
-Bloodwych this reduced measured full artifact build time from about 2.94s to
-about 1.39s while keeping exact reproduction at about 0.50s.
-Targets with API calls now use a compact C artifact API-call payload instead
-of parsing full source-analysis JSON. The payload reuses the same C platform
-call JSON fields as full analysis, but only emits section indexes and recovered
-platform calls. Comparator timings improved from about 0.59s to 0.38s for
-MonAm and from about 0.80s to 0.50s for GenAm.
+on-demand query against the same C artifact. The former Python API-call cache
+and compact API-call artifact endpoint have been removed; row windows and
+navigation both consume API-call facts from C-owned row metadata.
 The retained displayed-row index is now built in one render-plan pass. The
 previous path counted listing rows with a full pass, then walked the same rows
 again to populate the index. The index builder now collects header rows once,

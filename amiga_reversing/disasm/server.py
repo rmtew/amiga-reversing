@@ -121,10 +121,6 @@ _PROJECT_ROW_GENERATION_CACHE: dict[str, str] = {}
 _PROJECT_LISTING_CACHE_KEY: dict[str, str] = {}
 _PROJECT_APP_SLOT_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
 _PROJECT_TYPE_FLOW_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
-type ApiCallRowKey = tuple[int, int]
-
-
-_PROJECT_API_CALL_CACHE: dict[str, dict[ApiCallRowKey, dict[str, object]]] = {}
 _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
 _JOB_LOCK = threading.Lock()
@@ -141,32 +137,6 @@ _OS_CORRECTIONS_PATH = (
 def _os_corrections_payload() -> dict[str, object]:
     with open(_OS_CORRECTIONS_PATH, encoding="utf-8") as handle:
         return cast(dict[str, object], json.load(handle))
-
-
-def _annotate_api_calls(
-    project_name: str, payload: ListingWindowPayload
-) -> ListingWindowPayload:
-    call_rows = _PROJECT_API_CALL_CACHE.get(project_name, {})
-    rows: list[SerializedRow] = []
-    for row in payload["rows"]:
-        addr = row["addr"]
-        source_context = row["source_context"]
-        hunk_index = source_context.get("hunk_index")
-        if (
-            row["kind"] == "instruction"
-            and isinstance(hunk_index, int)
-            and isinstance(addr, int)
-            and (hunk_index, addr) in call_rows
-        ):
-            rows.append(
-                cast(
-                    SerializedRow,
-                    {**row, "api_call": call_rows[(hunk_index, addr)]},
-                )
-            )
-        else:
-            rows.append(row)
-    return {**payload, "rows": rows}
 
 
 def _type_catalog_payload(project_name: str) -> list[dict[str, object]]:
@@ -251,7 +221,6 @@ def _write_api_input_type_override(
     _PROJECT_LISTING_CACHE_KEY.clear()
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
     _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.clear()
-    _PROJECT_API_CALL_CACHE.clear()
     _cancel_listing_jobs()
 
 
@@ -304,7 +273,7 @@ def _annotate_listing_payload(
         **payload,
         "rows": annotated_rows,
     }
-    return _annotate_api_calls(project_name, payload)
+    return payload
 
 
 def _active_reproduction_report(project_name: str) -> dict[str, object] | None:
@@ -604,7 +573,6 @@ def _clear_project_listing_cache(project_name: str) -> None:
     _PROJECT_LISTING_CACHE_KEY.pop(project_name, None)
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
     _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
-    _PROJECT_API_CALL_CACHE.pop(project_name, None)
 
 
 def _json_bytes(payload: object) -> bytes:
@@ -898,7 +866,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             generation="full",
             phase="build_c_artifact",
         )
-        total_rows, api_calls, profile, listing_artifact = build_project_listing_artifact_generation_profile(
+        total_rows, profile, listing_artifact = build_project_listing_artifact_generation_profile(
             project_name,
             generation="full",
         )
@@ -935,7 +903,6 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                 listing_artifact = None
             if old_artifact is not None and old_artifact is not _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name):
                 old_artifact.close()
-            _PROJECT_API_CALL_CACHE[project_name] = api_calls
             if isinstance(app_slot_analysis, dict):
                 _PROJECT_APP_SLOT_ANALYSIS_CACHE[project_name] = app_slot_analysis
             else:

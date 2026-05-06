@@ -4369,6 +4369,16 @@ static int listing_stmt_has_unresolved_typed_accesses(const M68kStatementIR *stm
   return 0;
 }
 
+static const M68kRecoveredPlatformCallIR *listing_platform_call_at_offset(
+    const M68kSectionAnalysisIR *section_analysis, uint32_t offset) {
+  size_t index;
+  if (section_analysis == NULL) return NULL;
+  for (index = 0U; index < section_analysis->recovered_platform_call_count; ++index)
+    if (section_analysis->recovered_platform_calls[index].offset == offset)
+      return &section_analysis->recovered_platform_calls[index];
+  return NULL;
+}
+
 static int listing_structured_data_item_has_json(const M68kAnalysisStructuredDataItem *item) {
   return item != NULL && !(item->label[0] == '\0' && item->struct_name[0] == '\0' &&
     item->field_name[0] == '\0' && item->field_type[0] == '\0' && item->c_type[0] == '\0' &&
@@ -4525,6 +4535,13 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     if (listing_stmt_has_unresolved_typed_accesses(stmt, section_analysis)) {
       if (json_builder_append(builder, ",\"unresolved_typed_accesses\":") != 0) return -1;
       if (append_listing_unresolved_typed_accesses_json(builder, stmt, section_analysis) != 0) return -1;
+    }
+    if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION) {
+      const M68kRecoveredPlatformCallIR *call = listing_platform_call_at_offset(section_analysis, stmt->offset);
+      if (call != NULL) {
+        if (json_builder_append(builder, ",\"platform_call\":") != 0) return -1;
+        if (append_recovered_platform_call_json(builder, call) != 0) return -1;
+      }
     }
   }
   if (listing_structured_data_item_has_json(structured_item)) {
