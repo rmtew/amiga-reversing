@@ -6327,6 +6327,21 @@ static int test_listing_json_indexed_window_does_not_reemit_headers(void) {
   M68K_C_ASSERT(strstr(indexed_window_json, "\"row_id\":\"c:2\"") != NULL);
   M68K_C_ASSERT(strstr(indexed_window_json, "\"row_id\":\"c:3\"") != NULL);
   M68K_C_ASSERT(strstr(indexed_window_json, "hardware/custom.i") == NULL);
+  {
+    size_t anchor_row = 99U;
+    M68K_C_ASSERT_INT(0, source_file_listing_anchor_code_row_from_render_plan_with_index(NULL, &render_plan,
+      M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 0, &row_index, "INCLUDE \"hardware/custom.i\"",
+      &anchor_row, m68k_diag_sink(NULL)));
+    M68K_C_ASSERT_U32(0U, (uint32_t)anchor_row);
+    M68K_C_ASSERT_INT(0, source_file_listing_anchor_code_row_from_render_plan_with_index(NULL, &render_plan,
+      M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 0, &row_index, "SECTION section_0,code",
+      &anchor_row, m68k_diag_sink(NULL)));
+    M68K_C_ASSERT_U32(2U, (uint32_t)anchor_row);
+    M68K_C_ASSERT_INT(0, source_file_listing_anchor_code_row_from_render_plan_with_index(NULL, &render_plan,
+      M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 0, &row_index, "loc_0_00000000", &anchor_row,
+      m68k_diag_sink(NULL)));
+    M68K_C_ASSERT_U32(3U, (uint32_t)anchor_row);
+  }
 
   free(window_json);
   free(indexed_window_json);

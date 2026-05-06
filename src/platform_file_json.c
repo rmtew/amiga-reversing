@@ -6422,6 +6422,153 @@ int source_file_listing_addr_window_from_render_plan_with_index_to_json(const M6
     1, has_addr, addr, row_index, out_json, diagnostics);
 }
 
+static int listing_plan_row_subline_span(const M68kRenderPlanRow *row, uint32_t wanted_subline,
+    const char **out_line_start, size_t *out_line_length) {
+  const char *cursor;
+  uint32_t subline = 0U;
+  if (out_line_start != NULL) *out_line_start = NULL;
+  if (out_line_length != NULL) *out_line_length = 0U;
+  if (row == NULL || row->text == NULL || out_line_start == NULL || out_line_length == NULL) return 0;
+  cursor = row->text;
+  while (*cursor != '\0') {
+    const char *line_start = cursor;
+    size_t line_length;
+    while (*cursor != '\0' && *cursor != '\n') ++cursor;
+    if (*cursor == '\n') ++cursor;
+    line_length = (size_t)(cursor - line_start);
+    if (subline == wanted_subline) {
+      *out_line_start = line_start;
+      *out_line_length = line_length;
+      return 1;
+    }
+    ++subline;
+  }
+  return 0;
+}
+
+static int listing_row_code_matches_anchor(const M68kSourceFileIR *source_file,
+    const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
+    const char *analysis_generation, int active_section_index, const M68kRenderPlanRow *row, uint32_t subline,
+    const char *line_start, size_t line_length, const char *wanted) {
+  char stripped[1024];
+  char opcode[128];
+  char operand[1024];
+  char comment[512];
+  char row_code[1024];
+  const char *row_kind;
+  const M68kStatementIR *stmt = NULL;
+  M68kStatementIR plan_stmt;
+  size_t statement_index = 0U;
+  size_t data_lines_left = 0U;
+  int use_rendered_line_count = analysis_generation != NULL && strcmp(analysis_generation, "basic") == 0;
+  if (line_start == NULL || wanted == NULL) return 0;
+  m68k_ir_statement_init(&plan_stmt);
+  split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
+    sizeof(operand), comment, sizeof(comment));
+  row_kind = listing_row_kind_for_plan_row(row);
+  if (row_kind == NULL) {
+    row_kind = listing_row_kind_for_line(stripped);
+    if (strcmp(row_kind, "blank") == 0 && comment[0] != '\0') row_kind = "comment";
+  }
+  if (listing_plan_subline_is_directive(row, subline)) row_kind = "directive";
+  if (row != NULL && (row->has_statement || row->has_source_range)) {
+    stmt = listing_statement_for_plan_row(source_file, row);
+    if (stmt == NULL && listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
+  } else if (active_section_index >= 0) {
+    stmt = listing_statement_for_line(source_file, analysis_policy, (size_t)active_section_index, &statement_index,
+      &data_lines_left, row_kind, use_rendered_line_count, strcmp(row_kind, "data") == 0 && strchr(stripped, '-') != NULL);
+  }
+  (void)source_analysis;
+  listing_navigation_row_code(row_code, sizeof(row_code), row_kind, stripped, opcode, operand, stmt);
+  return strcmp(row_code, wanted) == 0;
+}
+
+static int listing_header_anchor_row(const ListingSourceHeaderRows *header_rows, const char *wanted,
+    size_t *row_index, size_t *out_row) {
+  int group;
+  int emitted_any = 0;
+  if (row_index == NULL || out_row == NULL) return -1;
+  if (header_rows == NULL || wanted == NULL) return 0;
+  for (group = 0; group <= 2; ++group) {
+    int emitted_group = 0;
+    size_t index;
+    for (index = 0U; index < header_rows->count; ++index) {
+      const ListingSourceHeaderRow *row = &header_rows->items[index];
+      if (row->group != group) continue;
+      if (emitted_any && !emitted_group) {
+        ++*row_index;
+      }
+      if (listing_row_code_matches_anchor(NULL, NULL, NULL, NULL, -1, NULL, 0U, row->line_start,
+          row->line_length, wanted)) {
+        *out_row = *row_index;
+        return 1;
+      }
+      ++*row_index;
+      emitted_group = 1;
+      emitted_any = 1;
+    }
+  }
+  if (emitted_any) ++*row_index;
+  return 0;
+}
+
+int source_file_listing_anchor_code_row_from_render_plan_with_index(const M68kSourceFileIR *source_file,
+    const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
+    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
+    const PlatformListingRowIndex *row_index, const char *anchor_code, size_t *out_row,
+    M68kDiagSink diagnostics) {
+  ListingSourceHeaderRows header_rows = {0};
+  char wanted[1024];
+  const char *failure = "out of memory";
+  size_t display_row = 0U;
+  size_t index;
+  if (out_row != NULL) *out_row = 0U;
+  if (render_plan == NULL || row_index == NULL || row_index->entries == NULL || anchor_code == NULL ||
+      out_row == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    return -1;
+  }
+  copy_trimmed(wanted, sizeof(wanted), anchor_code, strlen(anchor_code));
+  if (wanted[0] == '\0') return 0;
+  if (listing_source_header_rows_init(&header_rows) != 0) goto oom;
+  if (!include_source_only_rows) {
+    int header_result;
+    if (collect_listing_source_header_rows_from_plan(render_plan, &header_rows) != 0) {
+      failure = "listing anchor header collection failed";
+      goto oom;
+    }
+    header_result = listing_header_anchor_row(&header_rows, wanted, &display_row, out_row);
+    if (header_result < 0) goto oom;
+    if (header_result > 0) {
+      listing_source_header_rows_destroy(&header_rows);
+      return 0;
+    }
+  }
+  if (source_file != NULL) platform_backend_kind = source_file->platform_backend_kind;
+  (void)platform_backend_kind;
+  for (index = display_row; index < row_index->row_count; ++index) {
+    const PlatformListingRowIndexEntry *entry = &row_index->entries[index];
+    const M68kRenderPlanRow *row;
+    const char *line_start = NULL;
+    size_t line_length = 0U;
+    if (!entry->has_plan_row || (size_t)entry->plan_row_index >= render_plan->row_count) continue;
+    row = &render_plan->rows[entry->plan_row_index];
+    if (!listing_plan_row_subline_span(row, entry->subline, &line_start, &line_length)) continue;
+    if (listing_row_code_matches_anchor(source_file, analysis_policy, source_analysis, analysis_generation, -1,
+        row, entry->subline, line_start, line_length, wanted)) {
+      *out_row = index;
+      break;
+    }
+  }
+  listing_source_header_rows_destroy(&header_rows);
+  return 0;
+
+oom:
+  listing_source_header_rows_destroy(&header_rows);
+  m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, failure);
+  return -1;
+}
+
 int source_file_listing_anchor_code_row_from_render_plan(const M68kSourceFileIR *source_file,
     const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,

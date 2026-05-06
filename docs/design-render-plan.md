@@ -127,9 +127,10 @@ displayed row whose address is greater than or equal to the requested address,
 preserving display-order semantics without replaying a full anchor/count render
 pass and without restoring a Python-side serialized row cache.
 Text anchor windows, such as jumping to a visible `SECTION` line, are also
-resolved by the retained C artifact. The artifact scans the same displayed-row
-stream used for normal listing output, resolves the first matching row code, and
-then emits the bounded window from the retained row index.
+resolved by the retained C artifact. The artifact uses the retained displayed-row
+index to scan row codes for concrete plan rows, handles synthetic header rows
+from collected header metadata, and then emits the bounded window from the same
+row index.
 The displayed-row index also records render-plan row/subline provenance for
 rows that came from a concrete plan row. Retained artifact row-window requests
 use that provenance to bound the render-plan visit to the small span that can
@@ -545,14 +546,15 @@ analysis/render-plan artifact keyed by the effective target inputs. That
 artifact serves row windows, address-anchored windows, row counts, text-anchor
 windows, analysis JSON, and navigation from one retained C state.
 Address windows use the artifact's arena-owned displayed-row index and address
-block maxima, and text-anchor windows use a C pass over the same displayed-row
-stream to find the matching row before emitting a bounded window. Scroll and
-anchor requests no longer need a second Python row database or a full C
-anchor/count pass. Artifact-backed navigation also avoids reading the Python row
-cache. The old direct DLL/Python API that rebuilt full analysis for a single
-window has been removed; full-generation windows must come through the retained
-artifact. If the artifact is missing or stale for a ready project, listing and
-navigation requests report that rather than falling back to cached Python rows.
+block maxima. Text-anchor windows use the same retained index: synthetic header
+rows are matched from collected header metadata and concrete rows are matched
+from indexed render-plan row/subline provenance. Scroll and anchor requests no
+longer need a second Python row database or a full C anchor/count pass.
+Artifact-backed navigation also avoids reading the Python row cache. The old
+direct DLL/Python API that rebuilt full analysis for a single window has been
+removed; full-generation windows must come through the retained artifact. If
+the artifact is missing or stale for a ready project, listing and navigation
+requests report that rather than falling back to cached Python rows.
 Retained artifact row windows now reuse the artifact's displayed-row index as
 row-to-plan provenance. For ordinary body windows this avoids replaying the
 whole render plan on every viewport request; synthetic header rows deliberately
