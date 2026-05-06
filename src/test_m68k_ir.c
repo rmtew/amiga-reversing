@@ -6063,6 +6063,7 @@ static int test_listing_json_window_matches_full_render_plan_slice(void) {
   M68kRenderPlanRow *row = NULL;
   char *full_json = NULL;
   char *window_json = NULL;
+  char *addr_window_json = NULL;
   const uint8_t bytes[2] = {0x4eU, 0x75U};
   M68kInstructionIR instruction;
 
@@ -6089,8 +6090,12 @@ static int test_listing_json_window_matches_full_render_plan_slice(void) {
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &full_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT_INT(0, source_file_listing_window_from_render_plan_to_json(NULL, &render_plan,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, 1U, 2U, &window_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, source_file_listing_addr_window_from_render_plan_to_json(NULL, &render_plan,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, 1, 1U, 1U, 0U, &addr_window_json,
+    m68k_diag_sink(NULL)));
   M68K_C_ASSERT(full_json != NULL);
   M68K_C_ASSERT(window_json != NULL);
+  M68K_C_ASSERT(addr_window_json != NULL);
   M68K_C_ASSERT(strstr(full_json, "\"row_id\":\"c:1\"") != NULL);
   M68K_C_ASSERT(strstr(full_json, "\"row_id\":\"c:2\"") != NULL);
   M68K_C_ASSERT(strstr(window_json, "\"start\":1") != NULL);
@@ -6099,9 +6104,16 @@ static int test_listing_json_window_matches_full_render_plan_slice(void) {
   M68K_C_ASSERT(strstr(window_json, "\"row_id\":\"c:1\"") != NULL);
   M68K_C_ASSERT(strstr(window_json, "\"row_id\":\"c:2\"") != NULL);
   M68K_C_ASSERT(strstr(window_json, "\"row_id\":\"c:3\"") == NULL);
+  M68K_C_ASSERT(strstr(addr_window_json, "\"start\":2") != NULL);
+  M68K_C_ASSERT(strstr(addr_window_json, "\"end\":4") != NULL);
+  M68K_C_ASSERT(strstr(addr_window_json, "\"anchor_addr\":1") != NULL);
+  M68K_C_ASSERT(strstr(addr_window_json, "\"row_id\":\"c:1\"") == NULL);
+  M68K_C_ASSERT(strstr(addr_window_json, "\"row_id\":\"c:2\"") != NULL);
+  M68K_C_ASSERT(strstr(addr_window_json, "\"row_id\":\"c:3\"") != NULL);
 
   free(full_json);
   free(window_json);
+  free(addr_window_json);
   m68k_render_plan_destroy(&render_plan);
   return 0;
 }

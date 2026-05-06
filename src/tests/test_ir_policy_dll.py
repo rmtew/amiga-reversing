@@ -370,6 +370,15 @@ def _file_library():
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_facts_v2_listing_artifact_window_json_alloc.restype = ctypes.c_int
+    library.platform_file_facts_v2_listing_artifact_addr_window_json_alloc.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_facts_v2_listing_artifact_addr_window_json_alloc.restype = ctypes.c_int
     library.platform_file_facts_v2_listing_artifact_rows_json_alloc.argtypes = [
         ctypes.c_void_p,
         ctypes.POINTER(ctypes.c_void_p),
@@ -690,6 +699,7 @@ class IrPolicyDllTests(unittest.TestCase):
                 artifact_rows = ctypes.c_void_p()
                 first_window = ctypes.c_void_p()
                 second_window = ctypes.c_void_p()
+                addr_window = ctypes.c_void_p()
                 try:
                     artifact_rows_result = library.platform_file_facts_v2_listing_artifact_rows_json_alloc(
                         artifact,
@@ -707,14 +717,24 @@ class IrPolicyDllTests(unittest.TestCase):
                         2,
                         ctypes.byref(second_window),
                     )
+                    addr_result = library.platform_file_facts_v2_listing_artifact_addr_window_json_alloc(
+                        artifact,
+                        1,
+                        0,
+                        0,
+                        2,
+                        ctypes.byref(addr_window),
+                    )
                     artifact_rows_text = (
                         ctypes.string_at(artifact_rows.value).decode("utf-8") if artifact_rows.value else ""
                     )
                     first_text = ctypes.string_at(first_window).decode("utf-8") if first_window.value else ""
                     second_text = ctypes.string_at(second_window).decode("utf-8") if second_window.value else ""
+                    addr_text = ctypes.string_at(addr_window).decode("utf-8") if addr_window.value else ""
                     self.assertEqual(artifact_rows_result, 0, artifact_rows_text)
                     self.assertEqual(first_result, 0, first_text)
                     self.assertEqual(second_result, 0, second_text)
+                    self.assertEqual(addr_result, 0, addr_text)
                 finally:
                     if artifact_rows.value:
                         library.platform_file_free_text(artifact_rows)
@@ -722,6 +742,8 @@ class IrPolicyDllTests(unittest.TestCase):
                         library.platform_file_free_text(first_window)
                     if second_window.value:
                         library.platform_file_free_text(second_window)
+                    if addr_window.value:
+                        library.platform_file_free_text(addr_window)
             finally:
                 if error.value:
                     library.platform_file_free_text(error)
@@ -739,8 +761,19 @@ class IrPolicyDllTests(unittest.TestCase):
         first_rows = json.loads(first_text)["listing"]["rows"]
         second_payload = json.loads(second_text)
         second_rows = second_payload["listing"]["rows"]
+        addr_payload = json.loads(addr_text)
+        addr_rows = addr_payload["listing"]["rows"]
+        addr_anchor = next(
+            (index for index, row in enumerate(full_rows) if isinstance(row.get("addr"), int) and row["addr"] >= 0),
+            max(0, len(full_rows) - 1),
+        )
         self.assertEqual([row["row_id"] for row in first_rows], [row["row_id"] for row in full_rows[1:3]])
         self.assertEqual([row["row_id"] for row in second_rows], [row["row_id"] for row in full_rows[2:4]])
+        self.assertEqual(
+            [row["row_id"] for row in addr_rows],
+            [row["row_id"] for row in full_rows[addr_anchor:addr_anchor + 3]],
+        )
+        self.assertEqual(addr_payload["profile"]["generation"], "facts_v2_listing_artifact_addr_window")
         self.assertEqual(second_payload["profile"]["generation"], "facts_v2_listing_artifact_window")
 
     def test_platform_file_listing_artifact_supports_raw_binary_targets(self) -> None:

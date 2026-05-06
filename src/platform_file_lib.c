@@ -5514,6 +5514,62 @@ cleanup:
   return text_result_to_alloc(&result, out_text);
 }
 
+int platform_file_facts_v2_listing_artifact_addr_window_json_alloc(PlatformFileListingArtifact *artifact,
+    int has_addr, uint32_t addr, uint32_t before, uint32_t after, char **out_text) {
+  PlatformFileTextResult result;
+  JsonBuilder builder = {0};
+  char *window_json = NULL;
+  char *json = NULL;
+  clock_t window_start;
+  clock_t window_end;
+  memset(&result, 0, sizeof(result));
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (artifact == NULL) {
+    platform_file_add_error(&result.diagnostics, "invalid listing artifact");
+    return text_result_to_alloc(&result, out_text);
+  }
+  window_start = clock();
+  if (source_file_listing_addr_window_from_render_plan_to_json(NULL, &artifact->source_plan,
+      artifact->object.platform_backend_kind, &artifact->source_analysis.policy, &artifact->source_analysis,
+      "full", 0, has_addr, addr, before, after, &window_json, m68k_diag_sink(&result.diagnostics)) != 0) {
+    if (!m68k_diag_has_errors(&result.diagnostics))
+      platform_file_add_error(&result.diagnostics, "facts_v2 listing address window render-plan emission failed");
+    goto cleanup;
+  }
+  window_end = clock();
+  if (json_builder_create(&builder) != 0 ||
+      json_builder_append(&builder, "{\"listing\":") != 0 ||
+      json_builder_append(&builder, window_json != NULL ? window_json : "{\"rows\":[]}") != 0 ||
+      json_builder_append(&builder, ",\"profile\":{\"generation\":\"facts_v2_listing_artifact_addr_window\","
+        "\"backend\":") != 0 ||
+      json_builder_append_json_string(&builder, artifact->backend_name) != 0 ||
+      json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
+      json_builder_append_json_string(&builder, artifact->path) != 0 ||
+      json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
+      json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"timing\":{\"source_seconds\":%.6f,\"window_json_seconds\":%.6f,\"total_seconds\":%.6f}}}",
+        artifact->source_seconds, elapsed_seconds(window_start, window_end),
+        elapsed_seconds(window_start, window_end)) != 0) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  json = json_builder_build(&builder);
+  if (json == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  result.text = json;
+  json = NULL;
+
+cleanup:
+  json_builder_destroy(&builder);
+  platform_file_free_text(json);
+  platform_file_free_text(window_json);
+  return text_result_to_alloc(&result, out_text);
+}
+
 int platform_file_facts_v2_listing_artifact_rows_json_alloc(PlatformFileListingArtifact *artifact, char **out_text) {
   PlatformFileTextResult result;
   JsonBuilder builder = {0};

@@ -1680,6 +1680,15 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_window_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_addr_window_json_alloc.argtypes = [
+        c_void_p,
+        c_int,
+        c_uint32,
+        c_uint32,
+        c_uint32,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_addr_window_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_rows_json_alloc.argtypes = [
         c_void_p,
         POINTER(c_void_p),
@@ -1875,15 +1884,35 @@ class CListingArtifact:
     def window_payload(
         self, *, start: int, count: int, generation: str = "full"
     ) -> tuple[ListingWindowPayload, dict[str, object]]:
+        return self._window_payload_from_text(
+            self._text_from_artifact_call(
+                self._dll.platform_file_facts_v2_listing_artifact_window_json_alloc,
+                max(0, start),
+                max(0, count),
+            ),
+            generation=generation,
+        )
+
+    def addr_window_payload(
+        self, *, addr: int | None, before: int, after: int, generation: str = "full"
+    ) -> tuple[ListingWindowPayload, dict[str, object]]:
+        return self._window_payload_from_text(
+            self._text_from_artifact_call(
+                self._dll.platform_file_facts_v2_listing_artifact_addr_window_json_alloc,
+                1 if addr is not None else 0,
+                0 if addr is None else max(0, addr),
+                max(0, before),
+                max(0, after),
+            ),
+            generation=generation,
+        )
+
+    def _window_payload_from_text(
+        self, text: str, *, generation: str
+    ) -> tuple[ListingWindowPayload, dict[str, object]]:
         combined = cast(
             dict[str, object],
-            json.loads(
-                self._text_from_artifact_call(
-                    self._dll.platform_file_facts_v2_listing_artifact_window_json_alloc,
-                    max(0, start),
-                    max(0, count),
-                )
-            ),
+            json.loads(text),
         )
         listing_window = cast(dict[str, object], combined.get("listing", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))

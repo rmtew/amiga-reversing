@@ -2366,12 +2366,16 @@ def route_request(
                 addr = _parse_int_arg(query, "addr")
                 before = _parse_int_arg(query, "before", 80) or 80
                 after = _parse_int_arg(query, "after", 200) or 200
-                serialized_cache = _valid_serialized_listing_rows_and_addr_blocks(project_name, rows)
-                if serialized_cache is not None:
-                    serialized_rows, block_maxes = serialized_cache
-                    payload = _serialized_listing_window_payload(serialized_rows, addr, before, after, block_maxes)
+                listing_artifact = _valid_c_listing_artifact(project_name)
+                if listing_artifact is not None:
+                    payload, _ = listing_artifact.addr_window_payload(addr=addr, before=before, after=after)
                 else:
-                    payload = listing_window_payload(rows, addr, before, after)
+                    serialized_cache = _valid_serialized_listing_rows_and_addr_blocks(project_name, rows)
+                    if serialized_cache is not None:
+                        serialized_rows, block_maxes = serialized_cache
+                        payload = _serialized_listing_window_payload(serialized_rows, addr, before, after, block_maxes)
+                    else:
+                        payload = listing_window_payload(rows, addr, before, after)
             payload = cast(
                 ListingWindowPayload,
                 {

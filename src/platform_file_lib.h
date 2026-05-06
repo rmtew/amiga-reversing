@@ -110,6 +110,9 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_raw_path_create(co
     PlatformFileListingArtifact **out_artifact, char **out_error);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_window_json_alloc(
     PlatformFileListingArtifact *artifact, uint32_t start, uint32_t count, char **out_text);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_addr_window_json_alloc(
+    PlatformFileListingArtifact *artifact, int has_addr, uint32_t addr, uint32_t before, uint32_t after,
+    char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_rows_json_alloc(
     PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact);

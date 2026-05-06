@@ -449,6 +449,10 @@ window calls for both normal platform files and raw-binary targets. Real-DLL
 regressions prove that repeated windows from one artifact match full listing row
 slices, that full rows can be emitted from the same artifact, and that
 raw-binary targets can use the same artifact boundary.
+Address-window emission now also has a C artifact API using the displayed
+listing-row stream for anchor selection, preserving the web rule of choosing
+the first displayed row whose address is greater than or equal to the requested
+address.
 As an interim step, full listing jobs cache serialized row artifacts once and
 indexed/address-anchored web windows slice that cache when it matches the
 current project cache key. Address windows also cache display-order address
@@ -458,9 +462,9 @@ The next architectural migration is to replace that interim Python serialized
 cache with a C-owned analysis/render-plan artifact. The artifact must be built
 once per effective cache key and then serve full source, row windows,
 address-anchored windows, row counts, and navigation from the same C state.
-Index-window serving now uses the retained C listing artifact when it is valid;
-address-anchored windows and navigation still use Python row/serialized caches
-until the C artifact grows address/navigation APIs.
+Index-window and address-window serving now use the retained C listing artifact
+when it is valid; navigation still uses Python rows until the C artifact grows a
+navigation API.
 
 ## Required Tests
 

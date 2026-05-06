@@ -1659,6 +1659,74 @@ def test_route_listing_index_window_uses_c_artifact_cache(monkeypatch: pytest.Mo
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 
+def test_route_listing_addr_window_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
+        for index in range(5)
+    ]
+    calls: list[tuple[int | None, int, int]] = []
+
+    class FakeArtifact:
+        def addr_window_payload(self, *, addr: int | None, before: int, after: int):
+            calls.append((addr, before, after))
+            return (
+                {
+                    "anchor_addr": addr,
+                    "start": 1,
+                    "end": 3,
+                    "has_more_before": True,
+                    "has_more_after": True,
+                    "total_rows": 5,
+                    "analysis_generation": "full",
+                    "rows": [
+                        disasm_server.serialize_row(
+                            ListingRow(row_id="from-c-addr", kind="instruction", text="\trts\n", addr=4)
+                        )
+                    ],
+                },
+                {},
+            )
+
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_SERIALIZED_ROW_CACHE.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "bloodwych", FakeArtifact())
+    monkeypatch.setitem(disasm_server._PROJECT_ROW_GENERATION_CACHE, "bloodwych", "full")
+    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "bloodwych", "cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "_serialized_listing_window_payload",
+        lambda rows, addr, before, after, block_maxes: pytest.fail("serialized window path should not be used"),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "listing_window_payload",
+        lambda rows, addr, before, after: pytest.fail("dataclass window path should not be used"),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing",
+        {"addr": ["4"], "before": ["1"], "after": ["1"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
+
+    assert payload["ok"] is True
+    assert calls == [(4, 1, 1)]
+    assert rows_data[0]["row_id"] == "from-c-addr"
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+
+
 def test_route_listing_window_clamps_past_end(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
