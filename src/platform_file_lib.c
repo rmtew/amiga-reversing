@@ -5527,6 +5527,57 @@ int platform_file_facts_v2_listing_artifact_source_text_alloc(PlatformFileListin
   return text_result_to_alloc(&result, out_text);
 }
 
+int platform_file_facts_v2_listing_artifact_summary_json_alloc(PlatformFileListingArtifact *artifact,
+    char **out_text) {
+  PlatformFileTextResult result;
+  JsonBuilder builder = {0};
+  char *json = NULL;
+  clock_t summary_start;
+  clock_t summary_end;
+  memset(&result, 0, sizeof(result));
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (artifact == NULL) {
+    platform_file_add_error(&result.diagnostics, "invalid listing artifact");
+    return text_result_to_alloc(&result, out_text);
+  }
+  summary_start = clock();
+  if (json_builder_create(&builder) != 0 ||
+      json_builder_append(&builder, "{\"summary\":{\"total_rows\":") != 0 ||
+      json_builder_appendf(&builder, "%u", (unsigned)artifact->listing_total_rows) != 0 ||
+      json_builder_append(&builder, "},\"profile\":{\"generation\":\"facts_v2_listing_artifact_summary\","
+        "\"backend\":") != 0 ||
+      json_builder_append_json_string(&builder, artifact->backend_name) != 0 ||
+      json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
+      json_builder_append_json_string(&builder, artifact->path) != 0 ||
+      json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
+      json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"timing\":{\"source_seconds\":%.6f,\"summary_json_seconds\":",
+        artifact->source_seconds) != 0) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  summary_end = clock();
+  if (json_builder_appendf(&builder, "%.6f,\"total_seconds\":%.6f}}}",
+      elapsed_seconds(summary_start, summary_end), elapsed_seconds(summary_start, summary_end)) != 0) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  json = json_builder_build(&builder);
+  if (json == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  result.text = json;
+  json = NULL;
+
+cleanup:
+  free(json);
+  json_builder_destroy(&builder);
+  return text_result_to_alloc(&result, out_text);
+}
+
 int platform_file_facts_v2_listing_artifact_analysis_json_alloc(PlatformFileListingArtifact *artifact,
     char **out_text) {
   PlatformFileTextResult result;

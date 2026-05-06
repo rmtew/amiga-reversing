@@ -144,6 +144,13 @@ Assembler directives that are emitted from inside a mixed render row, such as
 `ORG`, are flagged by the directive emission path while the row is built. The
 listing path consumes that row/subline metadata. It must not rediscover ORG
 rows by comparing final source text.
+Full listing jobs now request a small retained-artifact summary instead of
+forcing navigation JSON during artifact creation. Navigation remains an
+on-demand query against the same C artifact. The Python wrapper also trusts the
+C facts_v2 `platform_call_count`: when it is zero, Python does not request and
+parse full analysis JSON just to construct an empty API-call cache. On
+Bloodwych this reduced measured full artifact build time from about 2.94s to
+about 1.39s while keeping exact reproduction at about 0.50s.
 Corpus usage indexing is generated local data, not source. It should consume
 compact analysis/listing evidence and retain row-backed xrefs only for useful
 navigation/report evidence. Aggregate target features such as label counts may
@@ -249,6 +256,7 @@ analysis/render-plan session handle or a persisted listing artifact:
 
 ```
 create artifact(binary, metadata, policy, effective cache key)
+artifact summary/profile
 listing window by row/index/artifact
 listing window by address/artifact
 navigation and row count/artifact

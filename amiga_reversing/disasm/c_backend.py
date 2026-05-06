@@ -583,21 +583,28 @@ def build_project_listing_artifact_generation_profile(
                 project_root=project_root,
             )
             try:
-                navigation, navigation_profile = artifact.navigation_payload()
-                analysis, analysis_profile = artifact.analysis_payload()
-                profile: dict[str, object] = {**analysis_profile, **navigation_profile}
-                app_slot_analysis = navigation.get("app_slot_analysis")
-                if isinstance(app_slot_analysis, dict):
-                    profile["app_slot_analysis"] = app_slot_analysis
-                type_flow_analysis = navigation.get("type_flow_analysis")
-                if isinstance(type_flow_analysis, dict):
-                    profile["type_flow_analysis"] = type_flow_analysis
-                total_rows = navigation.get("total_rows", 0)
-                api_calls = api_calls_from_c_analysis(analysis)
+                summary, summary_profile = artifact.summary_payload()
+                platform_call_count = _profile_platform_call_count(summary_profile)
+                if platform_call_count == 0:
+                    analysis_profile: dict[str, object] = {}
+                    api_calls: dict[ApiCallRowKey, dict[str, object]] = {}
+                else:
+                    analysis, analysis_profile = artifact.analysis_payload()
+                    api_calls = api_calls_from_c_analysis(analysis)
+                profile: dict[str, object] = {**analysis_profile, **summary_profile}
+                total_rows = summary.get("total_rows", 0)
             except Exception:
                 artifact.close()
                 raise
             return int(total_rows) if isinstance(total_rows, int) else 0, api_calls, profile, artifact
+
+
+def _profile_platform_call_count(profile: dict[str, object]) -> int | None:
+    facts_v2 = profile.get("facts_v2")
+    if not isinstance(facts_v2, dict):
+        return None
+    value = facts_v2.get("platform_call_count")
+    return value if isinstance(value, int) else None
 
 
 def _build_project_rows_generation_from_source(
@@ -1585,6 +1592,11 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_source_text_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_summary_json_alloc.argtypes = [
+        c_void_p,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_summary_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_analysis_json_alloc.argtypes = [
         c_void_p,
         POINTER(c_void_p),
@@ -1794,6 +1806,19 @@ class CListingArtifact:
         return self._text_from_artifact_call(
             self._dll.platform_file_facts_v2_listing_artifact_source_text_alloc,
         )
+
+    def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+        combined = cast(
+            dict[str, object],
+            json.loads(
+                self._text_from_artifact_call(
+                    self._dll.platform_file_facts_v2_listing_artifact_summary_json_alloc,
+                )
+            ),
+        )
+        summary = cast(dict[str, object], combined.get("summary", {}))
+        profile = cast(dict[str, object], combined.get("profile", {}))
+        return summary, profile
 
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         combined = cast(

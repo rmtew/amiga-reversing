@@ -2590,6 +2590,70 @@ def test_project_rows_facts_v2_profile_uses_full_listing_api(monkeypatch, tmp_pa
     assert profile["analysis_backend"] == "facts_v2"
 
 
+def test_project_listing_artifact_skips_analysis_json_when_no_platform_calls(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    binary_path = tmp_path / "boot.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    target_dir = tmp_path / "targets" / "raw_demo"
+    target_dir.mkdir(parents=True)
+    (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "path": str(binary_path),
+                "address_model": "local_offset",
+                "load_address": 0,
+                "entrypoint": 0,
+                "code_start_offset": 0,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeArtifact:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+        def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            return (
+                {"total_rows": 1},
+                {
+                    "generation": "facts_v2_listing_artifact_summary",
+                    "facts_v2": {"platform_call_count": 0},
+                },
+            )
+
+        def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            raise AssertionError("navigation JSON should not be requested while building the artifact cache")
+
+        def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            raise AssertionError("analysis JSON should not be requested when the C profile has no platform calls")
+
+    artifact = FakeArtifact()
+    monkeypatch.setattr(
+        c_backend.CListingArtifact,
+        "create",
+        classmethod(lambda cls, source_file, *, metadata_text, include_dir, project_root: artifact),
+    )
+
+    total_rows, api_calls, profile, returned_artifact = c_backend.build_project_listing_artifact_generation_profile(
+        "raw_demo",
+        generation="full",
+        project_root=tmp_path,
+    )
+
+    assert total_rows == 1
+    assert api_calls == {}
+    assert profile["facts_v2"] == {"platform_call_count": 0}
+    assert returned_artifact is artifact
+    assert artifact.closed is False
+
+
 def test_real_dll_facts_v2_listing_rows_use_plan_metadata_without_source_model(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "boot.bin"
