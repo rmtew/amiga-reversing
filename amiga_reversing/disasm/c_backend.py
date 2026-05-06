@@ -1573,6 +1573,13 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_addr_window_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_anchor_window_json_alloc.argtypes = [
+        c_void_p,
+        c_char_p,
+        c_uint32,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_anchor_window_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_rows_json_alloc.argtypes = [
         c_void_p,
         POINTER(c_void_p),
@@ -1823,6 +1830,18 @@ class CListingArtifact:
                 0 if addr is None else max(0, addr),
                 max(0, before),
                 max(0, after),
+            ),
+            generation=generation,
+        )
+
+    def anchor_window_payload(
+        self, *, anchor_code: str, count: int, generation: str = "full"
+    ) -> tuple[ListingWindowPayload, dict[str, object]]:
+        return self._window_payload_from_text(
+            self._text_from_artifact_call(
+                self._dll.platform_file_facts_v2_listing_artifact_anchor_window_json_alloc,
+                anchor_code,
+                max(0, count),
             ),
             generation=generation,
         )

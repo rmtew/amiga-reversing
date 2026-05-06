@@ -1606,6 +1606,67 @@ def test_route_listing_index_window_uses_c_artifact_cache(monkeypatch: pytest.Mo
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 
+def test_route_listing_anchor_code_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[str, int]] = []
+
+    class FakeArtifact:
+        def anchor_window_payload(self, *, anchor_code: str, count: int):
+            calls.append((anchor_code, count))
+            return (
+                {
+                    "anchor_addr": None,
+                    "start": 3,
+                    "end": 5,
+                    "has_more_before": True,
+                    "has_more_after": True,
+                    "total_rows": 8,
+                    "analysis_generation": "full",
+                    "rows": [
+                        {
+                            "row_id": "from-c-anchor",
+                            "kind": "directive",
+                            "text": "    SECTION section,code\n",
+                            "addr": None,
+                            "source_context": {},
+                        }
+                    ],
+                },
+                {},
+            )
+
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "bloodwych", FakeArtifact())
+    monkeypatch.setitem(disasm_server._PROJECT_ROW_GENERATION_CACHE, "bloodwych", "full")
+    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "bloodwych", "cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "listing_index_window_payload",
+        lambda rows, start, count: pytest.fail("dataclass anchor path should not be used"),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing",
+        {"anchor_code": ["SECTION section,code"], "count": ["2"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
+
+    assert payload["ok"] is True
+    assert calls == [("SECTION section,code", 2)]
+    assert rows_data[0]["row_id"] == "from-c-anchor"
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+
+
 def test_route_listing_addr_window_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)

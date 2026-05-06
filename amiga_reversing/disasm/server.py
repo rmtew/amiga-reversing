@@ -2281,15 +2281,21 @@ def route_request(
             anchor_code_values = query.get("anchor_code")
             anchor_code = anchor_code_values[0].strip() if anchor_code_values else ""
             if anchor_code:
-                if rows is None:
+                if listing_artifact is not None:
+                    payload, _ = listing_artifact.anchor_window_payload(
+                        anchor_code=anchor_code,
+                        count=count or 240,
+                    )
+                elif rows is None:
                     raise ValueError(
                         f"Canonical rows not loaded for project: {project_name}"
                     )
-                payload = listing_index_window_payload(
-                    rows,
-                    _listing_anchor_code_start(rows, anchor_code),
-                    count or 240,
-                )
+                else:
+                    payload = listing_index_window_payload(
+                        rows,
+                        _listing_anchor_code_start(rows, anchor_code),
+                        count or 240,
+                    )
             elif start is not None or count is not None:
                 if listing_artifact is not None:
                     payload, _ = listing_artifact.window_payload(start=start or 0, count=count or 240)
