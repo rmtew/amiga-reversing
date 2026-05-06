@@ -5511,6 +5511,22 @@ cleanup:
   return text_result_to_alloc(&result, out_text);
 }
 
+int platform_file_facts_v2_listing_artifact_source_text_alloc(PlatformFileListingArtifact *artifact,
+    char **out_text) {
+  PlatformFileTextResult result;
+  memset(&result, 0, sizeof(result));
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  if (artifact == NULL) {
+    platform_file_add_error(&result.diagnostics, "invalid listing artifact");
+    return text_result_to_alloc(&result, out_text);
+  }
+  if (m68k_render_plan_emit_all_alloc(&artifact->source_plan, &result.text) != 0) {
+    platform_file_add_error(&result.diagnostics, "facts_v2 listing artifact source emission failed");
+  }
+  return text_result_to_alloc(&result, out_text);
+}
+
 int platform_file_facts_v2_listing_artifact_analysis_json_alloc(PlatformFileListingArtifact *artifact,
     char **out_text) {
   PlatformFileTextResult result;

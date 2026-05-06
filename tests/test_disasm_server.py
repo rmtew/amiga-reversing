@@ -67,6 +67,9 @@ class _FakeCListingArtifact:
     def close(self) -> None:
         self.closed = True
 
+    def source_text(self) -> str:
+        return "    SECTION section,code\n    rts\n"
+
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         self.navigation_calls += 1
         return (
@@ -3354,6 +3357,67 @@ def test_reproduction_job_does_not_use_stale_cached_rows(
     assert disasm_server._ASYNC_JOBS["repro-job"]["status"] == "ready"
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+
+
+def test_reproduction_job_reuses_raw_artifact_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_source: list[str | None] = []
+    artifact = _FakeCListingArtifact()
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "carrier-raw", artifact)
+    monkeypatch.setitem(disasm_server._PROJECT_ROW_GENERATION_CACHE, "carrier-raw", "full")
+    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "carrier-raw", "listing-cache")
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "listing-cache")
+    monkeypatch.setattr(disasm_server, "_reproduction_cache_key", lambda project_name: "repro-cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root: SimpleNamespace(
+            binary_source=SimpleNamespace(kind="raw_binary")
+        ),
+    )
+
+    def fake_run_reproduction(project_name, rows, project_root, pre_rendered_source_text=None):
+        captured_source.append(pre_rendered_source_text)
+        return {"status": "exact"}
+
+    monkeypatch.setattr(disasm_server, "run_reproduction", fake_run_reproduction)
+    disasm_server._ASYNC_JOBS["repro-job"] = cast(
+        disasm_server.AsyncJobPayload,
+        {
+            "job_id": "repro-job",
+            "job_kind": "reproduction",
+            "project_id": "carrier-raw",
+            "result_project_id": "carrier-raw",
+            "status": "queued",
+            "phase_id": "queued",
+            "phase_index": 0,
+            "phase_count": 4,
+            "progress_mode": "determinate",
+            "progress_current": 0,
+            "progress_total": 4,
+            "progress_percent": 0,
+            "total_rows": None,
+            "error": None,
+            "created_at": 1.0,
+            "finished_at": None,
+            "cache_key": "repro-cache",
+        },
+    )
+
+    disasm_server._build_reproduction_job("repro-job", "carrier-raw")
+
+    assert captured_source == ["    SECTION section,code\n    rts\n"]
+    assert disasm_server._ASYNC_JOBS["repro-job"]["status"] == "ready"
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_ROW_CACHE_KEY.clear()
 

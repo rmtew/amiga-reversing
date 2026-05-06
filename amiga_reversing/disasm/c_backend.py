@@ -1580,6 +1580,11 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_anchor_window_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_source_text_alloc.argtypes = [
+        c_void_p,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_source_text_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_analysis_json_alloc.argtypes = [
         c_void_p,
         POINTER(c_void_p),
@@ -1784,6 +1789,11 @@ class CListingArtifact:
         analysis = cast(dict[str, object], combined.get("analysis", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))
         return analysis, profile
+
+    def source_text(self) -> str:
+        return self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_source_text_alloc,
+        )
 
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         combined = cast(

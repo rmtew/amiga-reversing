@@ -572,4 +572,9 @@ Full source output remains available:
 C analysis artifact -> C render plan -> .s source
 ```
 
+The retained listing artifact can emit `.s` source text from its stored render
+plan without re-running analysis. The web reproduction job uses that path for
+raw-binary targets, where direct C rebuild is not available, while normal hunk
+targets keep the direct rebuild path.
+
 Both outputs must stay byte-for-byte consistent for the rows they share.

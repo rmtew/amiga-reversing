@@ -1566,6 +1566,7 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
     phase_count = _REPRODUCTION_PHASE_COUNT
     try:
         cache_key = _reproduction_cache_key(project_name)
+        pre_rendered_source_text: str | None = None
         _log_event("reproduction_job start", job_id=job_id, project=project_name)
         if not _set_job_state(job_id, status="building"):
             return
@@ -1574,9 +1575,30 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
         rows = _cached_project_rows(project_name)
         if _PROJECT_ROW_GENERATION_CACHE.get(project_name) != "full":
             rows = None
+        listing_artifact = _valid_c_listing_artifact(project_name)
+        if listing_artifact is not None:
+            try:
+                paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+                if paths.binary_source.kind == "raw_binary":
+                    pre_rendered_source_text = listing_artifact.source_text()
+            except Exception as exc:
+                _log_event(
+                    "reproduction_job artifact_source_unavailable",
+                    job_id=job_id,
+                    project=project_name,
+                    error=exc,
+                )
         if not _set_job_phase(job_id, phase_id="assemble", phase_index=2, phase_count=phase_count):
             return
-        report = run_reproduction(project_name, rows=rows, project_root=PROJECT_ROOT)
+        if pre_rendered_source_text is not None:
+            report = run_reproduction(
+                project_name,
+                rows=rows,
+                project_root=PROJECT_ROOT,
+                pre_rendered_source_text=pre_rendered_source_text,
+            )
+        else:
+            report = run_reproduction(project_name, rows=rows, project_root=PROJECT_ROOT)
         if not _set_job_phase(job_id, phase_id="diff", phase_index=3, phase_count=phase_count):
             return
         if _reproduction_cache_key(project_name) != cache_key:

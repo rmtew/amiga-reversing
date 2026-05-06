@@ -111,7 +111,7 @@ def run_reproduction(
     canonical_rebuilt_path = out_dir / "rebuilt.canonical.bin"
     target_dir: Path | None = None
     source_text: str | None = pre_rendered_source_text
-    source_size = 0
+    source_size = len(source_text.encode("utf-8")) if source_text is not None else 0
     rebuilt_bytes: bytes | None = None
     assembled_source_for_reproduction = False
     direct_source_report: dict[str, object] | None = None
