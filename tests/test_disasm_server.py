@@ -1499,6 +1499,19 @@ def test_route_listing_addr_window_uses_serialized_cache(monkeypatch: pytest.Mon
     assert [row["row_id"] for row in rows_data] == ["r1", "r2", "r3"]
 
 
+def test_serialized_listing_anchor_index_preserves_display_order() -> None:
+    rows = [
+        {"row_id": "r0", "kind": "instruction", "text": "nop\n", "addr": 100},
+        {"row_id": "r1", "kind": "instruction", "text": "nop\n", "addr": 4},
+        {"row_id": "r2", "kind": "instruction", "text": "nop\n", "addr": 20},
+    ]
+    serialized_rows = cast(list[disasm_server.SerializedRow], rows)
+    block_maxes = disasm_server._serialized_listing_addr_block_maxes(serialized_rows)
+
+    assert disasm_server._serialized_listing_anchor_index(serialized_rows, 10, block_maxes) == 0
+    assert disasm_server._serialized_listing_anchor_index(serialized_rows, 101, block_maxes) == 2
+
+
 def test_route_listing_returns_index_window(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)

@@ -125,8 +125,10 @@ class StaticResponse(TypedDict):
 
 
 _MISSING = object()
+_SERIALIZED_ADDR_BLOCK_SIZE = 128
 _PROJECT_ROW_CACHE: dict[str, list[ListingRow]] = {}
 _PROJECT_SERIALIZED_ROW_CACHE: dict[str, list[SerializedRow]] = {}
+_PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE: dict[str, list[int | None]] = {}
 _PROJECT_ROW_GENERATION_CACHE: dict[str, str] = {}
 _PROJECT_ROW_CACHE_KEY: dict[str, str] = {}
 _PROJECT_APP_SLOT_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
@@ -209,17 +211,44 @@ def _serialized_listing_index_window_payload(
     }
 
 
-def _serialized_listing_window_payload(
-    rows: list[SerializedRow], addr: int | None, before: int = 80, after: int = 160
-) -> ListingWindowPayload:
-    anchor_index = 0
-    if addr is not None:
-        anchor_index = max(0, len(rows) - 1)
-        for index, row in enumerate(rows):
+def _serialized_listing_addr_block_maxes(rows: list[SerializedRow]) -> list[int | None]:
+    block_maxes: list[int | None] = []
+    for block_start in range(0, len(rows), _SERIALIZED_ADDR_BLOCK_SIZE):
+        block_max: int | None = None
+        for row in rows[block_start:block_start + _SERIALIZED_ADDR_BLOCK_SIZE]:
             row_addr = row.get("addr")
+            if isinstance(row_addr, int) and (block_max is None or row_addr > block_max):
+                block_max = row_addr
+        block_maxes.append(block_max)
+    return block_maxes
+
+
+def _serialized_listing_anchor_index(
+    rows: list[SerializedRow], addr: int | None, block_maxes: list[int | None] | None = None
+) -> int:
+    if addr is None:
+        return 0
+    if not rows:
+        return 0
+    if block_maxes is None:
+        block_maxes = _serialized_listing_addr_block_maxes(rows)
+    for block_index, block_max in enumerate(block_maxes):
+        if block_max is None or block_max < addr:
+            continue
+        block_start = block_index * _SERIALIZED_ADDR_BLOCK_SIZE
+        block_end = min(len(rows), block_start + _SERIALIZED_ADDR_BLOCK_SIZE)
+        for index in range(block_start, block_end):
+            row_addr = rows[index].get("addr")
             if isinstance(row_addr, int) and row_addr >= addr:
-                anchor_index = index
-                break
+                return index
+    return max(0, len(rows) - 1)
+
+
+def _serialized_listing_window_payload(
+    rows: list[SerializedRow], addr: int | None, before: int = 80, after: int = 160,
+    block_maxes: list[int | None] | None = None
+) -> ListingWindowPayload:
+    anchor_index = _serialized_listing_anchor_index(rows, addr, block_maxes)
     start = max(0, anchor_index - before)
     end = min(len(rows), anchor_index + after + 1)
     return {
@@ -233,9 +262,9 @@ def _serialized_listing_window_payload(
     }
 
 
-def _valid_serialized_listing_rows(
+def _valid_serialized_listing_rows_and_addr_blocks(
     project_name: str, canonical_rows: list[ListingRow]
-) -> list[SerializedRow] | None:
+) -> tuple[list[SerializedRow], list[int | None]] | None:
     serialized_rows = _PROJECT_SERIALIZED_ROW_CACHE.get(project_name)
     if (
         serialized_rows is not None
@@ -243,7 +272,11 @@ def _valid_serialized_listing_rows(
         and project_name in _PROJECT_ROW_CACHE_KEY
         and _PROJECT_ROW_CACHE_KEY.get(project_name) == _project_listing_cache_key(project_name)
     ):
-        return serialized_rows
+        block_maxes = _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE.get(project_name)
+        if block_maxes is None:
+            block_maxes = _serialized_listing_addr_block_maxes(serialized_rows)
+            _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE[project_name] = block_maxes
+        return serialized_rows, block_maxes
     return None
 
 
@@ -289,6 +322,7 @@ def _write_api_input_type_override(
     )
     _PROJECT_ROW_CACHE.clear()
     _PROJECT_SERIALIZED_ROW_CACHE.clear()
+    _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE.clear()
     _PROJECT_ROW_GENERATION_CACHE.clear()
     _PROJECT_ROW_CACHE_KEY.clear()
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
@@ -1011,6 +1045,7 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
 def _clear_project_listing_cache(project_name: str) -> None:
     _PROJECT_ROW_CACHE.pop(project_name, None)
     _PROJECT_SERIALIZED_ROW_CACHE.pop(project_name, None)
+    _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE.pop(project_name, None)
     _PROJECT_ROW_GENERATION_CACHE.pop(project_name, None)
     _PROJECT_ROW_CACHE_KEY.pop(project_name, None)
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
@@ -1383,7 +1418,11 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                 if job_cache_key is not None and job_cache_key != cache_key:
                     return
                 _PROJECT_ROW_CACHE[project_name] = rows
-                _PROJECT_SERIALIZED_ROW_CACHE[project_name] = [serialize_row(row) for row in rows]
+                serialized_rows = [serialize_row(row) for row in rows]
+                _PROJECT_SERIALIZED_ROW_CACHE[project_name] = serialized_rows
+                _PROJECT_SERIALIZED_ROW_ADDR_BLOCK_MAX_CACHE[project_name] = (
+                    _serialized_listing_addr_block_maxes(serialized_rows)
+                )
                 _PROJECT_ROW_GENERATION_CACHE[project_name] = active_generation
                 _PROJECT_ROW_CACHE_KEY[project_name] = cache_key
                 if active_generation == "full":
@@ -2261,8 +2300,9 @@ def route_request(
                     count or 240,
                 )
             elif start is not None or count is not None:
-                serialized_rows = _valid_serialized_listing_rows(project_name, rows)
-                if serialized_rows is not None:
+                serialized_cache = _valid_serialized_listing_rows_and_addr_blocks(project_name, rows)
+                if serialized_cache is not None:
+                    serialized_rows, _ = serialized_cache
                     payload = _serialized_listing_index_window_payload(serialized_rows, start or 0, count or 240)
                 else:
                     payload = listing_index_window_payload(rows, start or 0, count or 240)
@@ -2270,9 +2310,10 @@ def route_request(
                 addr = _parse_int_arg(query, "addr")
                 before = _parse_int_arg(query, "before", 80) or 80
                 after = _parse_int_arg(query, "after", 200) or 200
-                serialized_rows = _valid_serialized_listing_rows(project_name, rows)
-                if serialized_rows is not None:
-                    payload = _serialized_listing_window_payload(serialized_rows, addr, before, after)
+                serialized_cache = _valid_serialized_listing_rows_and_addr_blocks(project_name, rows)
+                if serialized_cache is not None:
+                    serialized_rows, block_maxes = serialized_cache
+                    payload = _serialized_listing_window_payload(serialized_rows, addr, before, after, block_maxes)
                 else:
                     payload = listing_window_payload(rows, addr, before, after)
             payload = cast(

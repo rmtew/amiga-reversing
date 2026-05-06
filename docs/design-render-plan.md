@@ -89,6 +89,9 @@ The full listing job now caches serialized row artifacts alongside the Python
 row objects. Indexed and address-anchored web windows can be served from that
 compact artifact after the job finishes, avoiding repeated dataclass-to-JSON
 row serialization on scroll while still avoiding on-demand C analysis.
+Address-anchored serialized windows use a display-order block-max index so the
+lookup avoids a full-row scan without changing behaviour for non-monotonic ORG
+or runtime-address layouts.
 The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.
@@ -410,7 +413,9 @@ web route standard because the current DLL boundary does not preserve the built
 plan between requests.
 As an interim step, full listing jobs cache serialized row artifacts once and
 indexed/address-anchored web windows slice that cache when it matches the
-current project cache key.
+current project cache key. Address windows also cache display-order address
+block maxima, preserving existing first-row-at-or-after semantics while reducing
+per-scroll search work.
 
 ## Required Tests
 
