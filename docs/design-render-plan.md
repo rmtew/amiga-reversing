@@ -84,10 +84,12 @@ The C listing-window emitter streams selected rows directly into the final JSON
 builder; it does not allocate a temporary rows JSON string and copy it into the
 payload. An isolated C regression now covers listing-window JSON parity with a
 full render-plan row slice.
-The earlier transitional Python serialized-row cache has been removed. Indexed
-and address-anchored web windows now use the retained C listing artifact when a
-full analysis artifact is available. The dataclass row path remains only as a
-fallback/progress path, not as a second long-lived serialized listing database.
+The earlier transitional Python serialized-row cache has been removed from the
+production full-listing route. Indexed, address-anchored, text-anchor, and
+navigation web requests now require the retained C listing artifact once the
+project is ready. Python row helpers remain only for isolated tests and
+standalone algorithms; they are not a production fallback for full listing
+display.
 The intended endpoint is still a C-owned analysis/render-plan artifact, keyed
 by the same effective target inputs, that can answer listing-window and
 navigation requests without rebuilding analysis and without Python retaining a
@@ -113,9 +115,9 @@ artifact, then serve windows and navigation from it. Analysis JSON is exposed
 from the same artifact so Python can keep API-call metadata without forcing
 full row JSON emission.
 Rows-only Python caches no longer satisfy a full-generation listing cache; a
-valid full cache requires the retained C artifact. This keeps legacy row lists
-as a narrow fallback/progress representation instead of a second full rendering
-model.
+valid full cache requires the retained C artifact. Ready-project listing and
+navigation routes fail closed if that artifact is missing or stale instead of
+serving a second, weaker Python row model.
 The retained artifact now computes the displayed listing row count once during
 artifact creation. Row-index window requests reuse that count and only perform
 the emission pass for the requested window. The artifact also owns a compact
@@ -166,6 +168,10 @@ for MonAm, and 0.48s for GenAm after this cleanup.
 The full-listing job no longer carries an empty Python `ListingRow` list through
 the ready event. The build phases are named for the retained artifact path:
 build the C artifact, then cache the artifact.
+Reproduction jobs no longer pass cached Python rows into source reproduction.
+When a retained C artifact can emit source for the target form, reproduction
+uses that source; otherwise it calls the normal reproduction path by project
+identity and trusts the backend/source renderer there.
 Corpus usage indexing is generated local data, not source. It should consume
 compact analysis/listing evidence and retain row-backed xrefs only for useful
 navigation/report evidence. Aggregate target features such as label counts may
@@ -530,10 +536,11 @@ Address-window emission now also has a C artifact API using the displayed
 listing-row stream for anchor selection, preserving the web rule of choosing
 the first displayed row whose address is greater than or equal to the requested
 address.
-The transitional Python serialized-row cache has been removed. Full listing jobs
-now retain a C-owned analysis/render-plan artifact keyed by the effective target
-inputs. That artifact serves row windows, address-anchored windows, row counts,
-text-anchor windows, analysis JSON, and navigation from one retained C state.
+The transitional Python serialized-row cache has been removed from the
+production listing route. Full listing jobs now retain a C-owned
+analysis/render-plan artifact keyed by the effective target inputs. That
+artifact serves row windows, address-anchored windows, row counts, text-anchor
+windows, analysis JSON, and navigation from one retained C state.
 Address windows use the artifact's arena-owned displayed-row index and address
 block maxima, and text-anchor windows use a C pass over the same displayed-row
 stream to find the matching row before emitting a bounded window. Scroll and
@@ -541,8 +548,8 @@ anchor requests no longer need a second Python row database or a full C
 anchor/count pass. Artifact-backed navigation also avoids reading the Python row
 cache. The old direct DLL/Python API that rebuilt full analysis for a single
 window has been removed; full-generation windows must come through the retained
-artifact. The dataclass row path remains only for fallback when a full C artifact
-is unavailable, and rows-only caches do not satisfy full-generation cache reuse.
+artifact. If the artifact is missing or stale for a ready project, listing and
+navigation requests report that rather than falling back to cached Python rows.
 Retained artifact row windows now reuse the artifact's displayed-row index as
 row-to-plan provenance. For ordinary body windows this avoids replaying the
 whole render plan on every viewport request; synthetic header rows deliberately
@@ -586,9 +593,10 @@ C analysis artifact -> C render plan -> JSON rows
 ```
 
 The key lifetime issue is now handled by `PlatformFileListingArtifact`. The web
-route may use Python rows only for progress/fallback display. Any new full
-listing behaviour should be implemented on the retained C artifact, with compact
-artifact-owned indexes for repeated navigation rather than Python-side caches.
+route must use the retained C artifact for ready-project full listing display.
+Any new full listing behaviour should be implemented on that artifact, with
+compact artifact-owned indexes for repeated navigation rather than Python-side
+caches.
 
 Full source output remains available:
 

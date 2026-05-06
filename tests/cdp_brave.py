@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import atexit
 import hashlib
 import json
 import os
@@ -24,6 +25,16 @@ _CDP_TEST_FILE = "test_web_e2e_cdp.py"
 _CDP_TEST_MODULE = "tests.test_web_e2e_cdp"
 
 type AllowedHttpFailure = tuple[str, int]
+
+
+class _BraveSession:
+    def __init__(self, process: subprocess.Popen[bytes], profile_dir: tempfile.TemporaryDirectory[str], ws: CdpWebSocket) -> None:
+        self.process = process
+        self.profile_dir = profile_dir
+        self.ws = ws
+
+
+_BRAVE_SESSION: _BraveSession | None = None
 
 
 def _free_port() -> int:
@@ -612,41 +623,97 @@ class CdpWebSocket:
 def brave_page() -> Iterator[CdpWebSocket]:
     if not brave_cdp_requested():
         pytest.skip(brave_cdp_skip_reason())
+    ws = _shared_brave_session().ws
+    _reset_page(ws)
+    try:
+        yield ws
+    finally:
+        _reset_page(ws)
+
+
+def _shared_brave_session() -> _BraveSession:
+    global _BRAVE_SESSION
+    if _BRAVE_SESSION is not None and _BRAVE_SESSION.process.poll() is None:
+        return _BRAVE_SESSION
+    _close_brave_session()
     brave = find_brave()
     port = _free_port()
-    with tempfile.TemporaryDirectory(prefix="amiga-reversing-brave-", ignore_cleanup_errors=True) as profile_dir:
-        process = subprocess.Popen(
-            [
-                str(brave),
-                f"--remote-debugging-port={port}",
-                f"--user-data-dir={profile_dir}",
-                "--no-first-run",
-                "--disable-default-apps",
-                "--disable-background-networking",
-                "--disable-sync",
-                "--disable-extensions",
-                "about:blank",
-            ]
-        )
+    profile_dir = tempfile.TemporaryDirectory(
+        prefix="amiga-reversing-brave-",
+        ignore_cleanup_errors=True,
+    )
+    process: subprocess.Popen[bytes] = subprocess.Popen(
+        [
+            str(brave),
+            f"--remote-debugging-port={port}",
+            f"--user-data-dir={profile_dir.name}",
+            "--headless=new",
+            "--no-first-run",
+            "--disable-default-apps",
+            "--disable-background-networking",
+            "--disable-sync",
+            "--disable-extensions",
+            "about:blank",
+        ]
+    )
+    try:
+        target = _new_target(port)
+        ws = CdpWebSocket.connect(str(target["webSocketDebuggerUrl"]))
+        ws.call("Runtime.enable")
+        ws.call("Page.enable")
+        ws.call("Log.enable")
+        ws.call("Network.enable")
+        ws.call("DOM.enable")
+    except Exception:
+        process.terminate()
         try:
-            target = _new_target(port)
-            ws = CdpWebSocket.connect(str(target["webSocketDebuggerUrl"]))
-            try:
-                ws.call("Runtime.enable")
-                ws.call("Page.enable")
-                ws.call("Log.enable")
-                ws.call("Network.enable")
-                ws.call("DOM.enable")
-                yield ws
-            finally:
-                ws.close()
-        finally:
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait(timeout=5)
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
+        profile_dir.cleanup()
+        raise
+    _BRAVE_SESSION = _BraveSession(process, profile_dir, ws)
+    return _BRAVE_SESSION
+
+
+def _reset_page(ws: CdpWebSocket) -> None:
+    ws.drain_events(timeout=0.05)
+    ws.events.clear()
+    ws.call("Page.navigate", {"url": "about:blank"}, timeout=5.0)
+    try:
+        ws.wait_for_event("Page.loadEventFired", timeout=5.0)
+    except TimeoutError:
+        pass
+    ws.drain_events(timeout=0.05)
+    ws.events.clear()
+
+
+def _close_brave_session() -> None:
+    global _BRAVE_SESSION
+    session = _BRAVE_SESSION
+    _BRAVE_SESSION = None
+    if session is None:
+        return
+    session.ws.close()
+    if sys.platform == "win32":
+        subprocess.run(
+            ["taskkill", "/PID", str(session.process.pid), "/T", "/F"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    else:
+        session.process.terminate()
+        try:
+            session.process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            session.process.kill()
+            session.process.wait(timeout=5)
+    session.profile_dir.cleanup()
+
+
+atexit.register(_close_brave_session)
 
 
 def _new_target(port: int) -> dict[str, Any]:

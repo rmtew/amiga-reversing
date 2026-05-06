@@ -192,9 +192,8 @@ const CORPUS_GROUP_PREFIXES = {
 const JOB_PHASE_LABELS = {
   full_listing: {
     queued: "Queued",
-    build_session: "Opening file",
-    build_c_rows: "Building analysis",
-    emit_rows: "Showing listing",
+    build_c_artifact: "Building analysis",
+    cache_artifact: "Caching listing",
     done: "Done",
     error: "Failed",
   },
@@ -1127,7 +1126,7 @@ function renderErrorOverlay(message) {
 function loadingRowsOverlay() {
   return renderProgressOverlay({
     job_kind: "full_listing",
-    phase_id: "emit_rows",
+    phase_id: "cache_artifact",
     progress_mode: "indeterminate",
     progress_current: 0,
     progress_total: 0,
@@ -5650,7 +5649,7 @@ async function renderProject(projectId) {
         <div class="listing-viewport" id="listing-viewport" tabindex="0">
           ${renderProgressOverlay({
             job_kind: "full_listing",
-            phase_id: "build_session",
+            phase_id: "build_c_artifact",
             progress_mode: "indeterminate",
             progress_current: 0,
             progress_total: 0,

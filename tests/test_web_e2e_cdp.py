@@ -55,13 +55,18 @@ def _binary_project(project_name: str) -> ProjectRecord:
 
 
 def _cache_full_project_rows(project_id: str, rows: list[ListingRow]) -> None:
-    disasm_server._PROJECT_ROW_CACHE[project_id] = rows
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE[project_id] = _FakeCListingArtifact(
+        rows,
+        project_name=project_id,
+    )
     disasm_server._PROJECT_ROW_GENERATION_CACHE[project_id] = "full"
+    disasm_server._PROJECT_LISTING_CACHE_KEY[project_id] = "test-cache"
 
 
 class _FakeCListingArtifact:
-    def __init__(self, rows: list[ListingRow]) -> None:
+    def __init__(self, rows: list[ListingRow], *, project_name: str = "test_project") -> None:
         self.rows = rows
+        self.project_name = project_name
         self.closed = False
 
     def close(self) -> None:
@@ -81,31 +86,21 @@ class _FakeCListingArtifact:
         payload["analysis_generation"] = generation
         return payload, {}
 
+    def anchor_window_payload(
+        self, *, anchor_code: str, count: int, generation: str = "full"
+    ) -> tuple[dict[str, object], dict[str, object]]:
+        start = 0
+        needle = anchor_code.strip()
+        for index, row in enumerate(self.rows):
+            if row.text.strip() == needle:
+                start = index
+                break
+        payload = dict(listing_index_window_payload(self.rows, start, count))
+        payload["analysis_generation"] = generation
+        return payload, {}
+
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
-        return (
-            {
-                "analysis_generation": "full",
-                "total_rows": len(self.rows),
-                "groups": {
-                    "repro-issues": [],
-                    "typed-data": [],
-                    "typed-gaps": [],
-                    "relocations": [],
-                    "api-calls": [],
-                    "app-slots": [],
-                    "app-slot-regions": [],
-                    "app-slot-gaps": [],
-                    "app-slot-field-gaps": [],
-                    "app-slot-suggestions": [],
-                    "app-slot-api-args": [],
-                    "labels": [],
-                    "comments": [],
-                },
-                "app_slot_analysis": {},
-                "type_flow_analysis": {},
-            },
-            {},
-        )
+        return disasm_server._listing_navigation_payload(self.project_name, self.rows), {}
 
 
 def _temp_project_accessors(monkeypatch: pytest.MonkeyPatch, project_root: Path) -> None:
@@ -156,17 +151,26 @@ class _QuietThreadingHTTPServer(ThreadingHTTPServer):
 
 
 @pytest.fixture(autouse=True)
-def _clear_disasm_server_listing_state() -> Iterator[None]:
-    disasm_server._PROJECT_ROW_CACHE.clear()
+def _clear_disasm_server_listing_state(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    original_cache_key = disasm_server._project_listing_cache_key
+
+    def project_listing_cache_key(project_name: str) -> str:
+        cached = disasm_server._PROJECT_LISTING_CACHE_KEY.get(project_name)
+        if cached is not None:
+            return cached
+        return original_cache_key(project_name)
+
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", project_listing_cache_key)
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
     yield
-    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
@@ -194,7 +198,6 @@ def test_brave_cdp_can_open_project_and_render_listing(monkeypatch: pytest.Monke
         ListingRow(row_id="r1", kind="instruction", text="moveq #0,d0\n", addr=0),
         ListingRow(row_id="r2", kind="instruction", text="rts\n", addr=2),
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     _cache_full_project_rows(project.id, rows)
@@ -219,11 +222,10 @@ def test_brave_cdp_can_open_project_and_render_listing(monkeypatch: pytest.Monke
 @pytest.mark.web_e2e
 def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_corpus_demo")
-    disasm_server._PROJECT_ROW_CACHE[project.id] = [
+    _cache_full_project_rows(project.id, [
         ListingRow(row_id="r0", kind="label", text="imported_start:\n", addr=0),
         ListingRow(row_id="r1", kind="instruction", text="rts\n", addr=0),
-    ]
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
+    ])
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -658,7 +660,6 @@ def test_brave_cdp_virtual_listing_scrolls_and_navigation_uses_global_index(
             analysis_generation="basic",
         )
     )
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
@@ -743,7 +744,6 @@ def test_brave_cdp_virtual_listing_pagedown_fetches_low_latency(
         )
         for index in range(1000)
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
@@ -918,7 +918,6 @@ def test_brave_cdp_stats_overlay_shows_fetch_latency(monkeypatch: pytest.MonkeyP
         )
         for index in range(400)
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
@@ -1019,11 +1018,10 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
         assert generation == "full"
         full_started.set()
         assert release_full.wait(timeout=15.0)
-        return len(full_rows), {}, {}, _FakeCListingArtifact(full_rows)
+        return len(full_rows), {}, {}, _FakeCListingArtifact(full_rows, project_name=project_name)
 
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
@@ -1120,11 +1118,10 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
         assert generation == "full"
         full_started.set()
         assert release_full.wait(timeout=15.0)
-        return len(full_rows), {}, {}, _FakeCListingArtifact(full_rows)
+        return len(full_rows), {}, {}, _FakeCListingArtifact(full_rows, project_name=project_name)
 
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
@@ -1180,7 +1177,6 @@ def test_brave_cdp_navigation_overlay_opens_on_listing(
         ListingRow(row_id="r2", kind="label", text="sub_0008:\n", addr=8),
         ListingRow(row_id="r3", kind="instruction", text="rts\n", addr=8),
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     _cache_full_project_rows(project.id, rows)
@@ -1237,7 +1233,6 @@ def test_brave_cdp_navigation_overlay_list_scrolls_with_many_entries(
         )
         for index in range(40)
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     _cache_full_project_rows(project.id, rows)
@@ -1322,7 +1317,6 @@ def test_brave_cdp_api_navigation_uses_row_index_for_duplicate_offsets(
             source_context=BlockRowContext(kind="core-block", hunk_index=1),
         ),
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     _cache_full_project_rows(project.id, rows)
@@ -1447,7 +1441,6 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
         )
     rows.append(ListingRow(row_id="target", kind="label", text="target:\n", addr=400, label="target"))
 
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
@@ -1583,7 +1576,6 @@ def test_brave_cdp_listing_layout_aligns_globals_and_shows_bytes(
             opcode_or_directive="rts",
         ),
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
@@ -1709,7 +1701,6 @@ def test_brave_cdp_navigation_buttons_move_history(monkeypatch: pytest.MonkeyPat
         ListingRow(row_id="r2", kind="label", text="sub_0008:\n", addr=8),
         ListingRow(row_id="r3", kind="instruction", text="rts\n", addr=8),
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     _cache_full_project_rows(project.id, rows)
@@ -1748,7 +1739,6 @@ def test_brave_cdp_project_delete_confirms_and_removes_project(monkeypatch: pyte
     project = _binary_project("amiga_hunk_demo")
     projects = [project]
     removed_projects: list[str] = []
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(disasm_server, "list_projects", lambda: list(projects))
@@ -1785,12 +1775,11 @@ def test_brave_cdp_project_delete_confirms_and_removes_project(monkeypatch: pyte
 def test_brave_cdp_real_c_backend_listing_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
     _skip_without_c_backend()
     project_id = "amiga_hunk_genam"
-    disasm_server._PROJECT_ROW_CACHE.clear()
     for artifact in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.values():
         artifact.close()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
@@ -1823,14 +1812,12 @@ def test_brave_cdp_upload_import_success(
     upload_path = tmp_path / "DemoHunk"
     upload_path.write_bytes((PROJECT_ROOT / "bin" / "GenAm").read_bytes())
     expected_project_id = "amiga_hunk_demohunk"
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[expected_project_id] = [
+    _cache_full_project_rows(expected_project_id, [
         ListingRow(row_id="r0", kind="label", text="uploaded_start:\n", addr=0),
         ListingRow(row_id="r1", kind="instruction", text="rts\n", addr=0),
-    ]
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[expected_project_id] = "full"
+    ])
     monkeypatch.setattr(
         disasm_server,
         "validate_amiga_hunk_executable_with_c_backend",
@@ -1860,7 +1847,6 @@ def test_brave_cdp_upload_import_failure_shows_error(
     _temp_project_accessors(monkeypatch, project_root)
     upload_path = tmp_path / "NotAHunk"
     upload_path.write_bytes(b"not an amiga executable")
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(
@@ -1892,7 +1878,6 @@ def test_brave_cdp_disk_project_browsing_and_target_listing(
 ) -> None:
     _skip_without_c_backend()
     disk_project_id = "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5"
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(
@@ -1923,7 +1908,6 @@ def test_brave_cdp_disk_project_shows_decompressed_child_target(
 ) -> None:
     _skip_without_c_backend()
     disk_project_id = "amiga_disk_carrier-command-1994-kixx-budget"
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(
@@ -1953,7 +1937,6 @@ def test_brave_cdp_disk_project_shows_decompressed_child_target(
 def test_brave_cdp_dos_disk_icon_library_target(monkeypatch: pytest.MonkeyPatch) -> None:
     _skip_without_c_backend()
     disk_project_id = "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5"
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(
@@ -1999,7 +1982,6 @@ def test_brave_cdp_non_dos_disk_bootblock_and_bootloader_targets(
 ) -> None:
     _skip_without_c_backend()
     disk_project_id = "amiga_disk_ice-1991-06-28-the-silents"
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(
@@ -2076,11 +2058,9 @@ def test_brave_cdp_api_edit_modal_applies_struct_override(
             source_context=BlockRowContext(kind="core-block", hunk_index=0),
         ),
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project.id] = initial_rows
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
+    _cache_full_project_rows(project.id, initial_rows)
     disasm_server._PROJECT_API_CALL_CACHE[project.id] = {
         (0, 0x10): {
             "library": "intuition.library",
@@ -2148,7 +2128,7 @@ def test_brave_cdp_api_edit_modal_applies_struct_override(
                     }
                 ],
             }
-        }, {}, _FakeCListingArtifact(updated_rows)
+        }, {}, _FakeCListingArtifact(updated_rows, project_name=project_name)
 
     monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", build_updated_artifact)
 
@@ -2202,7 +2182,6 @@ def test_brave_cdp_annotation_edit_modal_patches_entity(monkeypatch: pytest.Monk
         "confidence": "tool-inferred",
     }
     patches: list[dict[str, object]] = []
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     _cache_full_project_rows(project.id, rows)
@@ -2273,13 +2252,11 @@ def test_brave_cdp_real_annotation_edit_round_trip(
     for stale in (project_root / "targets" / project_id).glob("overrides.json*"):
         stale.unlink()
     _temp_project_accessors(monkeypatch, project_root)
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE[project_id] = rows
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project_id] = "full"
+    _cache_full_project_rows(project_id, rows)
     disasm_server._PROJECT_API_CALL_CACHE[project_id] = api_calls
 
     with _live_server() as base_url, brave_page() as page:

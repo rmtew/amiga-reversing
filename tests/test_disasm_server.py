@@ -13,6 +13,10 @@ from typing import cast
 import pytest
 
 from amiga_reversing.disasm import server as disasm_server
+from amiga_reversing.disasm.api import (
+    listing_index_window_payload,
+    listing_window_payload,
+)
 from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
 from amiga_reversing.disasm.listing_types import (
     AppSlotRef,
@@ -110,6 +114,43 @@ class _FakeCListingArtifact:
         )
 
 
+class _RowsCListingArtifact:
+    def __init__(self, rows: list[ListingRow], *, project_name: str = "bloodwych") -> None:
+        self.rows = rows
+        self.project_name = project_name
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
+
+    def window_payload(self, *, start: int, count: int):
+        return listing_index_window_payload(self.rows, start, count), {}
+
+    def addr_window_payload(self, *, addr: int | None, before: int, after: int):
+        return listing_window_payload(self.rows, addr, before=before, after=after), {}
+
+    def anchor_window_payload(self, *, anchor_code: str, count: int):
+        start = disasm_server._listing_anchor_code_start(self.rows, anchor_code)
+        return listing_index_window_payload(self.rows, start, count), {}
+
+    def navigation_payload(self):
+        return disasm_server._listing_navigation_payload(self.project_name, self.rows), {}
+
+
+def _seed_c_listing_artifact(
+    monkeypatch: pytest.MonkeyPatch,
+    project_name: str,
+    artifact: object,
+) -> None:
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, project_name, artifact)
+    monkeypatch.setitem(disasm_server._PROJECT_ROW_GENERATION_CACHE, project_name, "full")
+    monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, project_name, "cache")
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda requested: "cache")
+
+
 def test_listing_anchor_code_start_matches_non_address_row() -> None:
     rows = [
         ListingRow(row_id="include", kind="directive", text='INCLUDE "exec/io.i"\n'),
@@ -142,8 +183,7 @@ def test_route_listing_anchor_code_returns_window_at_non_address_row(
             operand_text="h0_0036",
         ),
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -376,11 +416,7 @@ def test_route_reproduction_stale_full_listing_exposes_background_job(
 ) -> None:
     started: list[tuple[str, bool]] = []
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = [
-        ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)
-    ]
     disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
     monkeypatch.setattr(
         disasm_server,
@@ -434,7 +470,6 @@ def test_route_reproduction_stale_full_listing_exposes_background_job(
     assert data["stale"] is True
     assert data["refreshing"] is True
     assert active_job["job_id"] == "repro-bg"
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
 
 
@@ -1457,14 +1492,14 @@ def test_route_listing_returns_empty_payload_for_unready_project(monkeypatch: py
     assert data["rows"] == []
 
 
-def test_route_listing_raises_if_rows_not_loaded(monkeypatch: pytest.MonkeyPatch) -> None:
-    disasm_server._PROJECT_ROW_CACHE.clear()
+def test_route_listing_raises_if_c_artifact_not_loaded(monkeypatch: pytest.MonkeyPatch) -> None:
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     monkeypatch.setattr(
         disasm_server,
         "get_project",
         lambda project_name: _binary_project(project_name, ready=True),
     )
-    with pytest.raises(ValueError, match="Canonical rows not loaded"):
+    with pytest.raises(ValueError, match="C listing artifact not loaded"):
         disasm_server.route_request("GET", "/api/projects/bloodwych/listing", {})
 
 
@@ -1484,8 +1519,7 @@ def test_route_listing_returns_cached_window(monkeypatch: pytest.MonkeyPatch) ->
             },
         )
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -1518,8 +1552,7 @@ def test_route_listing_returns_index_window(monkeypatch: pytest.MonkeyPatch) -> 
         ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
         for index in range(5)
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -1575,24 +1608,11 @@ def test_route_listing_index_window_uses_c_artifact_cache(monkeypatch: pytest.Mo
                 {},
             )
 
-    disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
-    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "bloodwych", FakeArtifact())
-    monkeypatch.setitem(disasm_server._PROJECT_ROW_GENERATION_CACHE, "bloodwych", "full")
-    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "bloodwych", "cache")
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", FakeArtifact())
     monkeypatch.setattr(
         disasm_server,
         "get_project",
         lambda project_name: _binary_project(project_name, ready=True),
-    )
-    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
-    monkeypatch.setattr(
-        disasm_server,
-        "listing_index_window_payload",
-        lambda rows, start, count: pytest.fail("dataclass window path should not be used"),
     )
 
     payload = disasm_server.route_request(
@@ -1637,23 +1657,11 @@ def test_route_listing_anchor_code_uses_c_artifact_cache(monkeypatch: pytest.Mon
                 {},
             )
 
-    disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
-    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "bloodwych", FakeArtifact())
-    monkeypatch.setitem(disasm_server._PROJECT_ROW_GENERATION_CACHE, "bloodwych", "full")
-    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "bloodwych", "cache")
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", FakeArtifact())
     monkeypatch.setattr(
         disasm_server,
         "get_project",
         lambda project_name: _binary_project(project_name, ready=True),
-    )
-    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
-    monkeypatch.setattr(
-        disasm_server,
-        "listing_index_window_payload",
-        lambda rows, start, count: pytest.fail("dataclass anchor path should not be used"),
     )
 
     payload = disasm_server.route_request(
@@ -1702,24 +1710,11 @@ def test_route_listing_addr_window_uses_c_artifact_cache(monkeypatch: pytest.Mon
                 {},
             )
 
-    disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
-    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "bloodwych", FakeArtifact())
-    monkeypatch.setitem(disasm_server._PROJECT_ROW_GENERATION_CACHE, "bloodwych", "full")
-    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "bloodwych", "cache")
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", FakeArtifact())
     monkeypatch.setattr(
         disasm_server,
         "get_project",
         lambda project_name: _binary_project(project_name, ready=True),
-    )
-    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
-    monkeypatch.setattr(
-        disasm_server,
-        "listing_window_payload",
-        lambda rows, addr, before, after: pytest.fail("dataclass window path should not be used"),
     )
 
     payload = disasm_server.route_request(
@@ -1741,8 +1736,7 @@ def test_route_listing_window_clamps_past_end(monkeypatch: pytest.MonkeyPatch) -
         ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
         for index in range(5)
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -1764,31 +1758,17 @@ def test_route_listing_window_clamps_past_end(monkeypatch: pytest.MonkeyPatch) -
     assert [row["row_id"] for row in rows_data] == ["r3", "r4"]
 
 
-def test_route_listing_navigation_uses_all_cached_rows(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_listing_navigation_payload_uses_all_rows(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id="r0", kind="label", text="start:\n", addr=0, label="start:"),
         ListingRow(row_id="r1", kind="instruction", text="rts\n", addr=2),
         ListingRow(row_id="r2", kind="label", text="far_target:\n", addr=2000, label="far_target:"),
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
     disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "basic"
-    monkeypatch.setattr(
-        disasm_server,
-        "get_project",
-        lambda project_name: _binary_project(project_name, ready=True),
-    )
 
-    payload = disasm_server.route_request(
-        "GET",
-        "/api/projects/bloodwych/listing/navigation",
-        {},
-    )
-    data = cast(dict[str, object], payload["data"])
+    data = disasm_server._listing_navigation_payload("bloodwych", rows)
     groups = cast(dict[str, list[dict[str, object]]], data["groups"])
 
-    assert payload["ok"] is True
     assert data["analysis_generation"] == "basic"
     assert data["total_rows"] == 3
     assert [entry["summary"] for entry in groups["labels"]] == ["start:", "far_target:"]
@@ -1797,13 +1777,12 @@ def test_route_listing_navigation_uses_all_cached_rows(monkeypatch: pytest.Monke
 
 def test_route_listing_navigation_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
     artifact = _FakeCListingArtifact()
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "bloodwych", artifact)
     monkeypatch.setitem(disasm_server._PROJECT_ROW_GENERATION_CACHE, "bloodwych", "full")
-    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "bloodwych", "cache")
+    monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, "bloodwych", "cache")
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
     monkeypatch.setattr(
         disasm_server,
@@ -1814,11 +1793,6 @@ def test_route_listing_navigation_uses_c_artifact_cache(monkeypatch: pytest.Monk
         disasm_server,
         "_listing_navigation_payload",
         lambda project_name, rows: pytest.fail("Python row-derived navigation path should not be used"),
-    )
-    monkeypatch.setattr(
-        disasm_server,
-        "_cached_project_rows",
-        lambda project_name: pytest.fail("artifact navigation should not read the row cache"),
     )
 
     payload = disasm_server.route_request(
@@ -1963,9 +1937,8 @@ def test_route_listing_navigation_indexes_label_definition_and_refs(monkeypatch:
         ),
         ListingRow(row_id="r4", kind="label", text="target:\n", addr=10, label="target"),
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -1998,9 +1971,8 @@ def test_route_listing_navigation_includes_entity_annotations(monkeypatch: pytes
             entity_addr=0x10,
         )
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -2417,15 +2389,14 @@ def test_listing_navigation_exposes_app_slot_regions_and_gaps(monkeypatch: pytes
 
 
 def test_route_listing_navigation_rejects_stale_cache(monkeypatch: pytest.MonkeyPatch) -> None:
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = [
-        ListingRow(row_id="r0", kind="label", text="stale:\n", addr=0, label="stale:")
-    ]
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _RowsCListingArtifact(
+        [ListingRow(row_id="r0", kind="label", text="stale:\n", addr=0, label="stale:")]
+    )
     disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "basic"
-    disasm_server._PROJECT_ROW_CACHE_KEY["bloodwych"] = "old-cache"
+    disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "old-cache"
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -2437,16 +2408,16 @@ def test_route_listing_navigation_rejects_stale_cache(monkeypatch: pytest.Monkey
         lambda project_name: "new-cache",
     )
 
-    with pytest.raises(ValueError, match="Canonical rows not loaded"):
+    with pytest.raises(ValueError, match="C listing artifact not loaded"):
         disasm_server.route_request(
             "GET",
             "/api/projects/bloodwych/listing/navigation",
             {},
         )
 
-    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
+    assert "bloodwych" not in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE
     assert "bloodwych" not in disasm_server._PROJECT_ROW_GENERATION_CACHE
-    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE_KEY
+    assert "bloodwych" not in disasm_server._PROJECT_LISTING_CACHE_KEY
 
 
 def test_project_listing_cache_key_includes_renderer_tool_stamps(
@@ -2486,8 +2457,11 @@ def test_route_listing_omits_empty_view_annotations_for_monam(monkeypatch: pytes
         ListingRow(row_id="r1", kind="instruction", text="movea.l #memtask,a0\n", addr=0x0298),
         ListingRow(row_id="r2", kind="label", text="call_setpointer:\n", addr=0x8146),
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["amiga_hunk_monam302"] = rows
+    _seed_c_listing_artifact(
+        monkeypatch,
+        "amiga_hunk_monam302",
+        _RowsCListingArtifact(rows, project_name="amiga_hunk_monam302"),
+    )
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -2518,9 +2492,8 @@ def test_route_listing_hydrates_entity_annotations(monkeypatch: pytest.MonkeyPat
             entity_addr=0x10,
         )
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -2573,9 +2546,8 @@ def test_route_listing_adds_api_call_metadata(monkeypatch: pytest.MonkeyPatch) -
             source_context=BlockRowContext(kind="core-block", hunk_index=0),
         )
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] = {
         (0, 0x814E): {
             "library": "intuition.library",
@@ -2635,9 +2607,8 @@ def test_route_listing_does_not_attach_api_call_metadata_to_label_rows(
             source_context=BlockRowContext(kind="core-block", hunk_index=0),
         ),
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] = {
         (0, 0x10): {
             "library": "intuition.library",
@@ -2682,9 +2653,8 @@ def test_route_listing_does_not_cross_apply_api_call_metadata_between_hunks(
             source_context=BlockRowContext(kind="core-block", hunk_index=3),
         ),
     ]
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] = {
         (3, 0x10): {
             "library": "exec.library",
@@ -2825,7 +2795,6 @@ def test_start_listing_job_ignores_stale_ready_job_without_rows(
             pass
 
     monkeypatch.setattr(disasm_server.threading, "Thread", FakeThread)
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["stale-job"] = {
         "job_id": "stale-job",
@@ -2855,7 +2824,6 @@ def test_start_listing_job_ignores_stale_ready_job_without_rows(
 def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> None:
     build_calls: list[tuple[str, str]] = []
     artifact = _FakeCListingArtifact()
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
@@ -2886,7 +2854,6 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
 
     disasm_server._build_rows_job("job-1", "bloodwych")
 
-    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
     assert disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE["bloodwych"] == 1
     assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
@@ -2901,7 +2868,6 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
 def test_build_rows_job_reports_unsupported_c_backend(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["job-1"] = {
@@ -2933,7 +2899,6 @@ def test_build_rows_job_reports_unsupported_c_backend(
 
     disasm_server._build_rows_job("job-1", "bloodwych")
 
-    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
     assert disasm_server._ASYNC_JOBS["job-1"]["status"] == "failed"
     assert disasm_server._ASYNC_JOBS["job-1"]["error"] == "unsupported project"
 
@@ -2946,7 +2911,6 @@ def test_build_rows_job_stops_if_job_was_cleared() -> None:
 
 
 def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPatch) -> None:
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["job-full"] = {
@@ -2980,12 +2944,10 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
 
     disasm_server._build_rows_job("job-full", "bloodwych")
 
-    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
     assert "bloodwych" not in disasm_server._PROJECT_ROW_GENERATION_CACHE
 
 
 def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pytest.MonkeyPatch) -> None:
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
@@ -3021,7 +2983,6 @@ def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pyt
     }
     disasm_server._build_rows_job("job-full", "bloodwych")
 
-    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
     assert disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE["bloodwych"] == 1
     assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
@@ -3208,9 +3169,8 @@ def test_route_patch_entity_updates_annotations(monkeypatch: pytest.MonkeyPatch)
 def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -> None:
     queued: list[str] = []
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     artifact = _FakeCListingArtifact()
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
@@ -3253,21 +3213,19 @@ def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -
     assert queued == ["bloodwych"]
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
 
 
 def test_cached_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -> None:
     queued: list[str] = []
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _FakeCListingArtifact()
     disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
-    disasm_server._PROJECT_ROW_CACHE_KEY["bloodwych"] = "cache"
+    disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "cache"
     disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE["bloodwych"] = 1
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
     monkeypatch.setattr(
@@ -3281,51 +3239,41 @@ def test_cached_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyP
     assert payload["status"] == "ready"
     assert queued == ["bloodwych"]
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE.clear()
 
 
 def test_full_generation_cache_requires_c_artifact(monkeypatch: pytest.MonkeyPatch) -> None:
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = [
-        ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)
-    ]
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
-    disasm_server._PROJECT_ROW_CACHE_KEY["bloodwych"] = "cache"
+    disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "cache"
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
 
     assert not disasm_server._cache_satisfies_full_generation("bloodwych", "cache")
 
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
 
 
 def test_reproduction_job_does_not_use_stale_cached_rows(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    captured_rows: list[list[ListingRow] | None] = []
+    calls: list[dict[str, object]] = []
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = [
-        ListingRow(row_id="stale", kind="instruction", text="nop\n", addr=0)
-    ]
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
-    disasm_server._PROJECT_ROW_CACHE_KEY["bloodwych"] = "old-cache"
+    disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "old-cache"
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "fresh-cache")
     monkeypatch.setattr(disasm_server, "_reproduction_cache_key", lambda project_name: "repro-cache")
     monkeypatch.setattr(
         disasm_server,
         "run_reproduction",
-        lambda project_name, rows, project_root: captured_rows.append(rows) or {"status": "exact"},
+        lambda *args, **kwargs: calls.append({"args": args, "kwargs": kwargs}) or {"status": "exact"},
     )
     disasm_server._ASYNC_JOBS["repro-job"] = cast(
         disasm_server.AsyncJobPayload,
@@ -3352,13 +3300,12 @@ def test_reproduction_job_does_not_use_stale_cached_rows(
 
     disasm_server._build_reproduction_job("repro-job", "bloodwych")
 
-    assert captured_rows == [None]
-    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
+    assert len(calls) == 1
+    assert "rows" not in calls[0]["kwargs"]
     assert disasm_server._ASYNC_JOBS["repro-job"]["status"] == "ready"
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
 
 
 def test_reproduction_job_reuses_raw_artifact_source(
@@ -3367,13 +3314,12 @@ def test_reproduction_job_reuses_raw_artifact_source(
     captured_source: list[str | None] = []
     artifact = _FakeCListingArtifact()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_ROW_CACHE.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "carrier-raw", artifact)
     monkeypatch.setitem(disasm_server._PROJECT_ROW_GENERATION_CACHE, "carrier-raw", "full")
-    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "carrier-raw", "listing-cache")
+    monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, "carrier-raw", "listing-cache")
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "listing-cache")
     monkeypatch.setattr(disasm_server, "_reproduction_cache_key", lambda project_name: "repro-cache")
     monkeypatch.setattr(
@@ -3384,7 +3330,7 @@ def test_reproduction_job_reuses_raw_artifact_source(
         ),
     )
 
-    def fake_run_reproduction(project_name, rows, project_root, pre_rendered_source_text=None):
+    def fake_run_reproduction(project_name, project_root, pre_rendered_source_text=None):
         captured_source.append(pre_rendered_source_text)
         return {"status": "exact"}
 
@@ -3419,7 +3365,7 @@ def test_reproduction_job_reuses_raw_artifact_source(
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
-    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
 
 
 def test_metadata_edit_route_invalidates_listing_and_reproduction(
@@ -3428,9 +3374,9 @@ def test_metadata_edit_route_invalidates_listing_and_reproduction(
     target_dir = tmp_path / "target"
     target_dir.mkdir()
     canceled: list[str] = []
-    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = []
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _RowsCListingArtifact([])
     disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
-    disasm_server._PROJECT_ROW_CACHE_KEY["bloodwych"] = "cache"
+    disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "cache"
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -3454,7 +3400,7 @@ def test_metadata_edit_route_invalidates_listing_and_reproduction(
     )
 
     assert cast(dict[str, object], cast(dict[str, object], payload["data"])["edit"])["kind"] == "entrypoint"
-    assert "bloodwych" not in disasm_server._PROJECT_ROW_CACHE
+    assert "bloodwych" not in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE
     assert canceled == ["listing:bloodwych", "repro:bloodwych"]
 
 
