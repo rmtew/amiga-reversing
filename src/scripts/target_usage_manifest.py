@@ -201,8 +201,7 @@ def _base_row(source_manifest: str, entry: dict[str, Any], bag: FeatureBag) -> d
     status = _status(entry)
     bag.add(f"platform:{platform}")
     bag.add(f"status:{status}")
-    counts, examples, tags = bag.row_features()
-    return {
+    row = {
         "schema_version": 1,
         "id": f"{source_manifest}:{source_id}",
         "source_manifest": source_manifest,
@@ -212,10 +211,16 @@ def _base_row(source_manifest: str, entry: dict[str, Any], bag: FeatureBag) -> d
         "size": entry.get("size") if isinstance(entry.get("size"), int) else None,
         "status": status,
         "origin": _origin_summary(entry),
-        "feature_counts": counts,
-        "feature_examples": examples,
-        "tags": tags,
     }
+    _finalize_row_features(row, bag)
+    return row
+
+
+def _finalize_row_features(row: dict[str, object], bag: FeatureBag) -> None:
+    counts, examples, tags = bag.row_features()
+    row["feature_counts"] = counts
+    row["feature_examples"] = examples
+    row["tags"] = tags
 
 
 def build_usage_manifest(
@@ -499,12 +504,13 @@ def collect_file_usage_catalog_entry(
                 raise RuntimeError("No disk resolver supplied")
             file_bytes = resolver.file_bytes(entry)
             combined = analyze_executable_file(platform, file_bytes, tmp_dir, root=root)
-            _add_executable_analysis_features(combined, bag, platform=platform, root=root)
+            _add_executable_analysis_features(combined, bag, platform=platform, root=root, include_listing=False)
         except Exception as exc:
             analysis_error = _stable_analysis_error_message(str(exc))
             bag.add("diagnostic:analysis_error", example={"message": analysis_error})
     row = _base_row("platform_file_manifest", entry, bag)
-    xrefs = _file_usage_xrefs(row, entry, combined, analysis_error)
+    xrefs = _file_usage_xrefs(row, entry, combined, analysis_error, listing_feature_bag=bag)
+    _finalize_row_features(row, bag)
     return row, xrefs, _snippet_rows_for_xrefs(row, combined, xrefs)
 
 
@@ -548,19 +554,20 @@ def collect_project_usage_catalog_entry(
     if _status(entry) == "ok" and isinstance(source, HunkFileBinarySource) and platform == "amiga-hunk":
         try:
             combined = analyze_project_hunk_file(platform, source.path, target_dir, root=root)
-            _add_executable_analysis_features(combined, bag, platform=platform, root=root)
+            _add_executable_analysis_features(combined, bag, platform=platform, root=root, include_listing=False)
         except Exception as exc:
             analysis_error = _stable_analysis_error_message(str(exc))
             bag.add("diagnostic:analysis_error", example={"message": analysis_error})
     elif _status(entry) == "ok" and isinstance(source, DiskEntryBinarySource) and platform == "amiga-hunk":
         try:
             combined = analyze_executable_file(platform, source.read_bytes(), tmp_dir, root=root)
-            _add_executable_analysis_features(combined, bag, platform=platform, root=root)
+            _add_executable_analysis_features(combined, bag, platform=platform, root=root, include_listing=False)
         except Exception as exc:
             analysis_error = _stable_analysis_error_message(str(exc))
             bag.add("diagnostic:analysis_error", example={"message": analysis_error})
     row = _base_row("project_target", entry, bag)
-    xrefs = _project_target_xrefs(row, entry, combined, analysis_error)
+    xrefs = _project_target_xrefs(row, entry, combined, analysis_error, listing_feature_bag=bag)
+    _finalize_row_features(row, bag)
     return row, xrefs, _snippet_rows_for_xrefs(row, combined, xrefs)
 
 
@@ -825,6 +832,7 @@ def _add_executable_analysis_features(
     *,
     platform: str,
     root: Path,
+    include_listing: bool = True,
 ) -> None:
     analysis = combined.get("analysis")
     listing = combined.get("listing")
@@ -836,7 +844,7 @@ def _add_executable_analysis_features(
     if isinstance(analysis, dict):
         bag.add("analysis:facts_v2")
         _add_analysis_features(analysis, bag)
-    if isinstance(listing, dict):
+    if include_listing and isinstance(listing, dict):
         _add_listing_features(listing, bag)
     app_slot_analysis = _app_slot_layout_analysis(combined, platform=platform, root=root)
     if app_slot_analysis is not None:
@@ -1354,6 +1362,8 @@ def _file_usage_xrefs(
     entry: dict[str, Any],
     combined: dict[str, Any] | None,
     analysis_error: str | None,
+    *,
+    listing_feature_bag: FeatureBag | None = None,
 ) -> list[dict[str, object]]:
     xrefs: list[dict[str, object]] = []
     xrefs.extend(_file_manifest_xrefs(row, entry))
@@ -1372,7 +1382,7 @@ def _file_usage_xrefs(
             xrefs.append(_xref(row, "analysis:facts_v2", "analysis_profile", text="facts_v2"))
             xrefs.extend(_analysis_xrefs(row, analysis, row_locations))
         if isinstance(listing, dict):
-            xrefs.extend(_listing_xrefs(row, listing))
+            xrefs.extend(_listing_xrefs(row, listing, feature_bag=listing_feature_bag))
         app_slot_analysis = combined.get("app_slot_analysis")
         if isinstance(app_slot_analysis, dict):
             xrefs.extend(_app_slot_layout_xrefs(row, app_slot_analysis))
@@ -1421,11 +1431,13 @@ def _project_target_xrefs(
     entry: dict[str, Any],
     combined: dict[str, Any] | None,
     analysis_error: str | None,
+    *,
+    listing_feature_bag: FeatureBag | None = None,
 ) -> list[dict[str, object]]:
     xrefs = [
         _xref(row, "project_target:any", "project_target", text=str(row.get("source_id") or "")),
         *_project_target_metadata_xrefs(row, entry),
-        *_file_usage_xrefs(row, entry, combined, analysis_error),
+        *_file_usage_xrefs(row, entry, combined, analysis_error, listing_feature_bag=listing_feature_bag),
     ]
     return _dedupe_xrefs(xrefs)
 
@@ -2306,10 +2318,16 @@ def _analysis_xrefs(
     return xrefs
 
 
-def _listing_xrefs(row: dict[str, object], listing: dict[str, Any]) -> list[dict[str, object]]:
+def _listing_xrefs(
+    row: dict[str, object],
+    listing: dict[str, Any],
+    *,
+    feature_bag: FeatureBag | None = None,
+) -> list[dict[str, object]]:
     xrefs: list[dict[str, object]] = []
     for row_index, listing_row in enumerate(_dict_items(listing.get("rows"))):
         text = _string_value(listing_row.get("text")) or ""
+        stripped_text = text.strip()
         opcode_or_directive = (_string_value(listing_row.get("opcode_or_directive")) or "").upper()
         is_equate = bool(re.search(r"(^|\s)EQU(\s|$)", text))
         section_index = _int_value(listing_row.get("section_index"), -1)
@@ -2319,44 +2337,74 @@ def _listing_xrefs(row: dict[str, object], listing: dict[str, Any]) -> list[dict
         copper_row = bool(data_class == "copper_list")
         hardware_symbol_refs: list[tuple[str, str]] = []
         seen_group_features: set[str] = set()
+        example = _offset_example(section_index, offset, stripped_text[:160])
+        example["row_index"] = row_index
         label_symbol = _listing_row_label_symbol(listing_row)
         if label_symbol:
-            xrefs.append(_xref(row, "label:any", "label_definition", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=label_symbol, text=text.strip()))
-            xrefs.append(_xref(row, "label:definition", "label_definition", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=label_symbol, text=text.strip()))
+            if feature_bag is not None:
+                feature_bag.add("label:any", example=example)
+                feature_bag.add("label:definition", example=example)
+            xrefs.append(_xref(row, "label:any", "label_definition", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=label_symbol, text=stripped_text))
+            xrefs.append(_xref(row, "label:definition", "label_definition", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=label_symbol, text=stripped_text))
         if data_class:
-            xrefs.append(_xref(row, f"data:{_safe_part(data_class)}", "data_class", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=data_class, text=text.strip()))
+            data_feature = f"data:{_safe_part(data_class)}"
+            if feature_bag is not None:
+                feature_bag.add(data_feature, example=example)
+            xrefs.append(_xref(row, data_feature, "data_class", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=data_class, text=stripped_text))
             if data_class == "copper_list":
-                xrefs.append(_xref(row, "hardware:custom", "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol="_custom", text=text.strip()))
+                if feature_bag is not None:
+                    feature_bag.add("hardware:custom", example=example)
+                xrefs.append(_xref(row, "hardware:custom", "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol="_custom", text=stripped_text))
                 for feature in amiga_hardware_usage.group_features("_custom", "copper", copper_row=True):
                     if feature not in seen_group_features:
                         seen_group_features.add(feature)
-                        xrefs.append(_xref(row, feature, "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol="copper", text=text.strip()))
+                        if feature_bag is not None:
+                            feature_bag.add(feature, example=example)
+                        xrefs.append(_xref(row, feature, "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol="copper", text=stripped_text))
         if not is_equate:
             for base in amiga_hardware_usage.HARDWARE_BASES:
                 if base in text:
-                    xrefs.append(_xref(row, f"hardware:{base.removeprefix('_')}", "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=base, text=text.strip()))
+                    feature = f"hardware:{base.removeprefix('_')}"
+                    if feature_bag is not None:
+                        feature_bag.add(feature, example=example)
+                    xrefs.append(_xref(row, feature, "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=base, text=stripped_text))
             hardware_symbol_refs = amiga_hardware_usage.symbol_refs_from_listing_text(text, copper_row=copper_row)
             for base, symbol in hardware_symbol_refs:
-                xrefs.append(_xref(row, f"hardware_register:{_safe_part(symbol)}", "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=text.strip()))
+                feature = f"hardware_register:{_safe_part(symbol)}"
+                if feature_bag is not None:
+                    feature_bag.add(feature, example=example)
+                xrefs.append(_xref(row, feature, "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=stripped_text))
                 if data_class == "copper_list":
-                    xrefs.append(_xref(row, f"copper_register:{_safe_part(symbol)}", "copper_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=text.strip()))
+                    feature = f"copper_register:{_safe_part(symbol)}"
+                    xrefs.append(_xref(row, feature, "copper_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=stripped_text))
                 for feature in amiga_hardware_usage.group_features(base, symbol, copper_row=copper_row):
                     if feature not in seen_group_features:
                         seen_group_features.add(feature)
-                        xrefs.append(_xref(row, feature, "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=text.strip()))
+                        if feature_bag is not None:
+                            feature_bag.add(feature, example=example)
+                        xrefs.append(_xref(row, feature, "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=stripped_text))
         for feature in amiga_hardware_usage.display_features_from_symbol_refs(text, hardware_symbol_refs, copper_row=copper_row):
-            xrefs.append(_xref(row, feature, "display_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, text=text.strip()))
+            if feature_bag is not None:
+                feature_bag.add(feature, example=example)
+            xrefs.append(_xref(row, feature, "display_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, text=stripped_text))
         comment_text = _string_value(listing_row.get("comment_text")) or ""
         if "bitmap memory plane" in comment_text:
-            xrefs.append(_xref(row, "display:bitmap_memory_use", "display_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, text=text.strip()))
+            if feature_bag is not None:
+                feature_bag.add("display:bitmap_memory_use", example=example)
+            xrefs.append(_xref(row, "display:bitmap_memory_use", "display_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, text=stripped_text))
         for operand in _dict_items(listing_row.get("operand_parts")):
-            operand_text = _string_value(operand.get("text")) or text.strip()
+            operand_text = _string_value(operand.get("text")) or stripped_text
             segment_addr = _int_value(operand.get("segment_addr"))
             symbol = _operand_symbol(operand)
             if symbol:
-                xrefs.append(_xref(row, "label:reference", "label_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=text.strip()))
+                if feature_bag is not None:
+                    feature_bag.add("label:reference", example=example)
+                xrefs.append(_xref(row, "label:reference", "label_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=stripped_text))
             if segment_addr is not None:
                 ref_feature = "xref:data_ref" if listing_row.get("kind") == "data" else "xref:code_ref"
+                if feature_bag is not None:
+                    feature_bag.add("xref:segment_ref", example=example)
+                    feature_bag.add(ref_feature, example=example)
                 xrefs.append(_xref(row, "xref:segment_ref", "segment_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, value=segment_addr, text=operand_text))
                 xrefs.append(_xref(row, ref_feature, "segment_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, value=segment_addr, text=operand_text))
             metadata = operand.get("metadata")
@@ -2368,22 +2416,40 @@ def _listing_xrefs(row: dict[str, object], listing: dict[str, Any]) -> list[dict
                 ):
                     value = _string_value(metadata.get(key))
                     if value:
-                        xrefs.append(_xref(row, f"{prefix}:{_safe_part(value)}", kind, section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, value=value, text=text.strip()))
+                        feature = f"{prefix}:{_safe_part(value)}"
+                        if feature_bag is not None:
+                            feature_bag.add(feature, example=example)
+                        xrefs.append(_xref(row, feature, kind, section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, value=value, text=stripped_text))
         for app_ref in _dict_items(listing_row.get("app_slot_refs")):
             access = _string_value(app_ref.get("access")) or "unknown"
             symbol = _string_value(app_ref.get("symbol")) or _app_slot_symbol(app_ref.get("displacement"))
             displacement = _int_value(app_ref.get("displacement"))
-            xrefs.append(_xref(row, "app_slot:any", "app_slot_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, access=access, value=displacement, text=text.strip()))
-            xrefs.append(_xref(row, f"app_slot:{_safe_part(access)}", "app_slot_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, access=access, value=displacement, text=text.strip()))
+            access_feature = f"app_slot:{_safe_part(access)}"
+            if feature_bag is not None:
+                feature_bag.add("app_slot:any", example=example)
+                feature_bag.add(access_feature, example=example)
+            xrefs.append(_xref(row, "app_slot:any", "app_slot_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, access=access, value=displacement, text=stripped_text))
+            xrefs.append(_xref(row, access_feature, "app_slot_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, access=access, value=displacement, text=stripped_text))
         for runtime_ref in _dict_items(listing_row.get("runtime_address_refs")):
             runtime_class = _string_value(runtime_ref.get("data_class"))
             runtime_address = _int_value(runtime_ref.get("runtime_address"))
+            runtime_example = dict(example)
+            if runtime_address is not None:
+                runtime_example["runtime_address"] = runtime_address
             if runtime_class:
-                xrefs.append(_xref(row, f"data:{_safe_part(runtime_class)}", "runtime_data_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=runtime_class, value=runtime_address, text=text.strip()))
-                xrefs.append(_xref(row, "runtime:external_data_ref", "runtime_data_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=runtime_class, value=runtime_address, text=text.strip()))
+                data_feature = f"data:{_safe_part(runtime_class)}"
+                if feature_bag is not None:
+                    feature_bag.add(data_feature, example=runtime_example)
+                    feature_bag.add("runtime:external_data_ref", example=runtime_example)
+                xrefs.append(_xref(row, data_feature, "runtime_data_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=runtime_class, value=runtime_address, text=stripped_text))
+                xrefs.append(_xref(row, "runtime:external_data_ref", "runtime_data_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=runtime_class, value=runtime_address, text=stripped_text))
                 if runtime_class == "bitmap":
-                    xrefs.append(_xref(row, "display:bitmap_memory", "display_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=runtime_class, value=runtime_address, text=text.strip()))
+                    if feature_bag is not None:
+                        feature_bag.add("display:bitmap_memory", example=runtime_example)
+                    xrefs.append(_xref(row, "display:bitmap_memory", "display_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=runtime_class, value=runtime_address, text=stripped_text))
         for access in _dict_items(listing_row.get("typed_accesses")):
+            if feature_bag is not None:
+                _add_platform_typed_access_features(feature_bag, access, example=example)
             xrefs.extend(
                 _platform_typed_access_xrefs(
                     row,
@@ -2392,10 +2458,12 @@ def _listing_xrefs(row: dict[str, object], listing: dict[str, Any]) -> list[dict
                     offset=_int_value(offset),
                     row_index=row_index,
                     stable_key=stable_key,
-                    row_text=text.strip(),
+                    row_text=stripped_text,
                 )
             )
         for access in _dict_items(listing_row.get("unresolved_typed_accesses")):
+            if feature_bag is not None:
+                _add_platform_unresolved_typed_access_features(feature_bag, access, example=example)
             xrefs.extend(
                 _platform_unresolved_typed_access_xrefs(
                     row,
@@ -2404,7 +2472,7 @@ def _listing_xrefs(row: dict[str, object], listing: dict[str, Any]) -> list[dict
                     offset=_int_value(offset),
                     row_index=row_index,
                     stable_key=stable_key,
-                    row_text=text.strip(),
+                    row_text=stripped_text,
                 )
             )
     return xrefs
