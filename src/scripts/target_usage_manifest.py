@@ -2344,8 +2344,6 @@ def _listing_xrefs(
             if feature_bag is not None:
                 feature_bag.add("label:any", example=example)
                 feature_bag.add("label:definition", example=example)
-            xrefs.append(_xref(row, "label:any", "label_definition", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=label_symbol, text=stripped_text))
-            xrefs.append(_xref(row, "label:definition", "label_definition", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=label_symbol, text=stripped_text))
         if data_class:
             data_feature = f"data:{_safe_part(data_class)}"
             if feature_bag is not None:
@@ -2399,7 +2397,6 @@ def _listing_xrefs(
             if symbol:
                 if feature_bag is not None:
                     feature_bag.add("label:reference", example=example)
-                xrefs.append(_xref(row, "label:reference", "label_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=stripped_text))
             if segment_addr is not None:
                 ref_feature = "xref:data_ref" if listing_row.get("kind") == "data" else "xref:code_ref"
                 if feature_bag is not None:

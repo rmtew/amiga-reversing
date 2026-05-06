@@ -137,6 +137,11 @@ Assembler directives that are emitted from inside a mixed render row, such as
 `ORG`, are flagged by the directive emission path while the row is built. The
 listing path consumes that row/subline metadata. It must not rediscover ORG
 rows by comparing final source text.
+Corpus usage indexing is generated local data, not source. It should consume
+compact analysis/listing evidence and retain row-backed xrefs only for useful
+navigation/report evidence. Aggregate target features such as label counts may
+remain in the manifest without materializing every label definition/reference
+as a row-backed xref and snippet driver.
 
 Render plans now own rows and row text through a plan-local arena. The row
 array remains contiguous, but growth uses arena allocate-and-copy instead of
