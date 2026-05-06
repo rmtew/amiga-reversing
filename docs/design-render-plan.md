@@ -83,9 +83,9 @@ listing rows. The web route is not switched to call it per request because that
 would redo full analysis on scroll; the route needs a cacheable plan or compact
 row-window artifact lifetime first.
 The full listing job now caches serialized row artifacts alongside the Python
-row objects. Indexed web windows can be served from that compact artifact after
-the job finishes, avoiding repeated dataclass-to-JSON row serialization on
-scroll while still avoiding on-demand C analysis.
+row objects. Indexed and address-anchored web windows can be served from that
+compact artifact after the job finishes, avoiding repeated dataclass-to-JSON
+row serialization on scroll while still avoiding on-demand C analysis.
 The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.
@@ -406,8 +406,8 @@ regression proving parity with a full render-plan row slice. This is not yet the
 web route standard because the current DLL boundary does not preserve the built
 plan between requests.
 As an interim step, full listing jobs cache serialized row artifacts once and
-indexed web windows slice that cache when it matches the current project cache
-key.
+indexed/address-anchored web windows slice that cache when it matches the
+current project cache key.
 
 ## Required Tests
 

@@ -1457,6 +1457,48 @@ def test_route_listing_returns_cached_window(monkeypatch: pytest.MonkeyPatch) ->
     }
 
 
+def test_route_listing_addr_window_uses_serialized_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 4)
+        for index in range(5)
+    ]
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_SERIALIZED_ROW_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    monkeypatch.setitem(
+        disasm_server._PROJECT_SERIALIZED_ROW_CACHE,
+        "bloodwych",
+        [disasm_server.serialize_row(row) for row in rows],
+    )
+    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "bloodwych", "cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "listing_window_payload",
+        lambda rows, addr, before, after: pytest.fail("dataclass address window path should not be used"),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing",
+        {"addr": ["8"], "before": ["1"], "after": ["1"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
+
+    assert payload["ok"] is True
+    assert data["anchor_addr"] == 8
+    assert data["start"] == 1
+    assert data["end"] == 4
+    assert [row["row_id"] for row in rows_data] == ["r1", "r2", "r3"]
+
+
 def test_route_listing_returns_index_window(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)

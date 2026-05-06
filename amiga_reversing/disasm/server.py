@@ -209,6 +209,44 @@ def _serialized_listing_index_window_payload(
     }
 
 
+def _serialized_listing_window_payload(
+    rows: list[SerializedRow], addr: int | None, before: int = 80, after: int = 160
+) -> ListingWindowPayload:
+    anchor_index = 0
+    if addr is not None:
+        anchor_index = max(0, len(rows) - 1)
+        for index, row in enumerate(rows):
+            row_addr = row.get("addr")
+            if isinstance(row_addr, int) and row_addr >= addr:
+                anchor_index = index
+                break
+    start = max(0, anchor_index - before)
+    end = min(len(rows), anchor_index + after + 1)
+    return {
+        "anchor_addr": addr,
+        "start": start,
+        "end": end,
+        "has_more_before": start > 0,
+        "has_more_after": end < len(rows),
+        "total_rows": len(rows),
+        "rows": rows[start:end],
+    }
+
+
+def _valid_serialized_listing_rows(
+    project_name: str, canonical_rows: list[ListingRow]
+) -> list[SerializedRow] | None:
+    serialized_rows = _PROJECT_SERIALIZED_ROW_CACHE.get(project_name)
+    if (
+        serialized_rows is not None
+        and len(serialized_rows) == len(canonical_rows)
+        and project_name in _PROJECT_ROW_CACHE_KEY
+        and _PROJECT_ROW_CACHE_KEY.get(project_name) == _project_listing_cache_key(project_name)
+    ):
+        return serialized_rows
+    return None
+
+
 def _write_api_input_type_override(
     *, library: str, function: str, input_name: str, struct_name: str
 ) -> None:
@@ -2223,13 +2261,8 @@ def route_request(
                     count or 240,
                 )
             elif start is not None or count is not None:
-                serialized_rows = _PROJECT_SERIALIZED_ROW_CACHE.get(project_name)
-                if (
-                    serialized_rows is not None
-                    and len(serialized_rows) == len(rows)
-                    and project_name in _PROJECT_ROW_CACHE_KEY
-                    and _PROJECT_ROW_CACHE_KEY.get(project_name) == _project_listing_cache_key(project_name)
-                ):
+                serialized_rows = _valid_serialized_listing_rows(project_name, rows)
+                if serialized_rows is not None:
                     payload = _serialized_listing_index_window_payload(serialized_rows, start or 0, count or 240)
                 else:
                     payload = listing_index_window_payload(rows, start or 0, count or 240)
@@ -2237,7 +2270,11 @@ def route_request(
                 addr = _parse_int_arg(query, "addr")
                 before = _parse_int_arg(query, "before", 80) or 80
                 after = _parse_int_arg(query, "after", 200) or 200
-                payload = listing_window_payload(rows, addr, before, after)
+                serialized_rows = _valid_serialized_listing_rows(project_name, rows)
+                if serialized_rows is not None:
+                    payload = _serialized_listing_window_payload(serialized_rows, addr, before, after)
+                else:
+                    payload = listing_window_payload(rows, addr, before, after)
             payload = cast(
                 ListingWindowPayload,
                 {
