@@ -758,7 +758,12 @@ def test_corpus_snippet_payload_preserves_explicit_row_indexes(monkeypatch: pyte
     monkeypatch.setattr(
         disasm_server.corpus_usage,
         "read_snippet_rows",
-        lambda: [
+        lambda: (_ for _ in ()).throw(AssertionError("snippet payload should load one target block")),
+    )
+    monkeypatch.setattr(
+        disasm_server.corpus_usage,
+        "read_snippet_rows_for_target",
+        lambda target_id: [
             {"target_id": "target-1", "row_index": 9, "row": {"text": "before"}},
             {"target_id": "target-1", "row_index": 10, "row": {"text": "hit"}},
             {"target_id": "target-1", "row_index": 12, "row": {"text": "sparse"}},

@@ -390,8 +390,8 @@ def snippet_payload(xref_id: str, *, before: int = 20, after: int = 20) -> dict[
         raise ValueError(f"Corpus xref {xref_id} has no listing row")
     snippet_rows = [
         row
-        for row in read_snippet_rows()
-        if row.get("target_id") == target_id and isinstance(row.get("row_index"), int)
+        for row in read_snippet_rows_for_target(target_id)
+        if isinstance(row.get("row_index"), int)
     ]
     start = max(0, row_index - max(0, before))
     end = row_index + max(0, after) + 1
