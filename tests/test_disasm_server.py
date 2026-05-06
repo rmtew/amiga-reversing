@@ -71,6 +71,9 @@ class _FakeCListingArtifact:
     def source_text(self) -> str:
         return "    SECTION section,code\n    rts\n"
 
+    def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+        return {"total_rows": 1}, {"generation": "fake"}
+
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         self.navigation_calls += 1
         return (
@@ -122,6 +125,9 @@ class _RowsCListingArtifact:
 
     def window_payload(self, *, start: int, count: int):
         return _test_listing_index_window_payload(self.rows, start, count), {}
+
+    def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+        return {"total_rows": len(self.rows)}, {"generation": "fake"}
 
     def addr_window_payload(self, *, addr: int | None, before: int, after: int):
         return _test_listing_addr_window_payload(self.rows, addr, before=before, after=after), {}
@@ -3111,7 +3117,6 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
     disasm_server._build_rows_job("job-1", "bloodwych")
 
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
-    assert disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE["bloodwych"] == 1
     assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
         (0, 0): {"library": "exec.library"}
     }
@@ -3240,7 +3245,6 @@ def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pyt
     disasm_server._build_rows_job("job-full", "bloodwych")
 
     assert disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] == "full"
-    assert disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE["bloodwych"] == 1
     assert disasm_server._PROJECT_API_CALL_CACHE["bloodwych"] == {
         (0, 4): {"library": "exec.library"}
     }
@@ -3482,7 +3486,6 @@ def test_cached_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyP
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _FakeCListingArtifact()
     disasm_server._PROJECT_ROW_GENERATION_CACHE["bloodwych"] = "full"
     disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "cache"
-    disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE["bloodwych"] = 1
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
     monkeypatch.setattr(
         disasm_server,
@@ -3493,12 +3496,12 @@ def test_cached_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyP
     payload = disasm_server._start_listing_job("bloodwych")
 
     assert payload["status"] == "ready"
+    assert payload["total_rows"] == 1
     assert queued == ["bloodwych"]
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE.clear()
 
 
 def test_full_generation_cache_requires_c_artifact(monkeypatch: pytest.MonkeyPatch) -> None:

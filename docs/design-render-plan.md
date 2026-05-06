@@ -197,6 +197,9 @@ for MonAm, and 0.48s for GenAm after this cleanup.
 The full-listing job no longer carries an empty Python `ListingRow` list through
 the ready event. The build phases are named for the retained artifact path:
 build the C artifact, then cache the artifact.
+The server also no longer keeps a separate Python total-row cache for full
+listings. Cached ready jobs read the displayed row count from the retained C
+artifact summary, so row count ownership stays with the artifact.
 Reproduction jobs no longer pass cached Python rows into source reproduction.
 When a retained C artifact can emit source for the target form, reproduction
 uses that source; otherwise it calls the normal reproduction path by project

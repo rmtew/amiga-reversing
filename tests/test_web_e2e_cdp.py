@@ -1941,7 +1941,6 @@ def test_brave_cdp_real_c_backend_listing_smoke(monkeypatch: pytest.MonkeyPatch)
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE.clear()
     disasm_server._PROJECT_API_CALL_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(
@@ -2425,7 +2424,6 @@ def test_brave_cdp_real_annotation_edit_round_trip(
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE[project_id] = artifact
     disasm_server._PROJECT_ROW_GENERATION_CACHE[project_id] = "full"
-    disasm_server._PROJECT_LISTING_TOTAL_ROWS_CACHE[project_id] = total_rows
     disasm_server._PROJECT_LISTING_CACHE_KEY[project_id] = disasm_server._project_listing_cache_key(project_id)
     disasm_server._PROJECT_API_CALL_CACHE[project_id] = api_calls
 

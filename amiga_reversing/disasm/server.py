@@ -118,7 +118,6 @@ class StaticResponse(TypedDict):
 _MISSING = object()
 _PROJECT_C_LISTING_ARTIFACT_CACHE: dict[str, CListingArtifact] = {}
 _PROJECT_ROW_GENERATION_CACHE: dict[str, str] = {}
-_PROJECT_LISTING_TOTAL_ROWS_CACHE: dict[str, int] = {}
 _PROJECT_LISTING_CACHE_KEY: dict[str, str] = {}
 _PROJECT_APP_SLOT_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
 _PROJECT_TYPE_FLOW_ANALYSIS_CACHE: dict[str, dict[str, object]] = {}
@@ -193,6 +192,18 @@ def _valid_c_listing_artifact(project_name: str) -> CListingArtifact | None:
     return None
 
 
+def _c_listing_artifact_total_rows(project_name: str) -> int | None:
+    artifact = _valid_c_listing_artifact(project_name)
+    if artifact is None:
+        return None
+    try:
+        summary, _ = artifact.summary_payload()
+    except Exception:
+        return None
+    total_rows = summary.get("total_rows")
+    return total_rows if isinstance(total_rows, int) else None
+
+
 def _write_api_input_type_override(
     *, library: str, function: str, input_name: str, struct_name: str
 ) -> None:
@@ -237,7 +248,6 @@ def _write_api_input_type_override(
         artifact.close()
     _PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     _PROJECT_ROW_GENERATION_CACHE.clear()
-    _PROJECT_LISTING_TOTAL_ROWS_CACHE.clear()
     _PROJECT_LISTING_CACHE_KEY.clear()
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.clear()
     _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.clear()
@@ -591,7 +601,6 @@ def _clear_project_listing_cache(project_name: str) -> None:
     if artifact is not None:
         artifact.close()
     _PROJECT_ROW_GENERATION_CACHE.pop(project_name, None)
-    _PROJECT_LISTING_TOTAL_ROWS_CACHE.pop(project_name, None)
     _PROJECT_LISTING_CACHE_KEY.pop(project_name, None)
     _PROJECT_APP_SLOT_ANALYSIS_CACHE.pop(project_name, None)
     _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.pop(project_name, None)
@@ -655,9 +664,6 @@ def _job_payload(job_id: str) -> AsyncJobPayload:
             job["visible_generation"] = _PROJECT_ROW_GENERATION_CACHE.get(project_id) or (
                 "full" if project_id in _PROJECT_C_LISTING_ARTIFACT_CACHE else None
             )
-            total_rows = _PROJECT_LISTING_TOTAL_ROWS_CACHE.get(project_id)
-            if total_rows is not None:
-                job["total_rows"] = total_rows
     return cast(AsyncJobPayload, job)
 
 
@@ -922,7 +928,6 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                     listing_artifact.close()
                 return
             _PROJECT_ROW_GENERATION_CACHE[project_name] = "full"
-            _PROJECT_LISTING_TOTAL_ROWS_CACHE[project_name] = total_rows
             _PROJECT_LISTING_CACHE_KEY[project_name] = cache_key
             old_artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
             if listing_artifact is not None:
@@ -997,7 +1002,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
 def _start_listing_job(project_name: str) -> AsyncJobPayload:
     cache_key = _project_listing_cache_key(project_name)
     if _cache_satisfies_full_generation(project_name, cache_key):
-        total_rows = _PROJECT_LISTING_TOTAL_ROWS_CACHE.get(project_name)
+        total_rows = _c_listing_artifact_total_rows(project_name)
         job_id = f"cached-full-{project_name}"
         payload: AsyncJobPayload = {
             "job_id": job_id,
