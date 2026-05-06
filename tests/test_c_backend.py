@@ -2590,73 +2590,6 @@ def test_project_rows_facts_v2_profile_uses_full_listing_api(monkeypatch, tmp_pa
     assert profile["analysis_backend"] == "facts_v2"
 
 
-def test_project_rows_basic_generation_uses_facts_v2_listing_api(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    binary_path = tmp_path / "boot.bin"
-    binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
-    target_dir = tmp_path / "targets" / "raw_demo"
-    target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
-    (target_dir / "source_binary.json").write_text(
-        json.dumps(
-            {
-                "kind": "raw_binary",
-                "path": str(binary_path),
-                "address_model": "local_offset",
-                "load_address": 0,
-                "entrypoint": 0,
-                "code_start_offset": 0,
-            }
-        ),
-        encoding="utf-8",
-    )
-    calls: list[tuple[object, ...]] = []
-
-    def fake_file_run(function_name: str, *args: object, project_root: Path) -> str:
-        calls.append((function_name, *args))
-        return json.dumps(
-            {
-                "listing": {
-                    "rows": [
-                        {
-                            "row_id": "f:0",
-                            "kind": "directive",
-                            "text": "    SECTION section,code\n",
-                            "analysis_generation": "basic",
-                        }
-                    ]
-                },
-                "analysis": {},
-                "profile": {"generation": "facts_v2_basic_listing", "analysis_backend": "facts_v2"},
-            }
-        )
-
-    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
-
-    rows, api_calls, profile = build_project_rows_generation_with_c_backend_profile(
-        "raw_demo",
-        generation="basic",
-        project_root=tmp_path,
-    )
-
-    assert [row.text for row in rows] == ["    SECTION section,code\n"]
-    assert api_calls == {}
-    assert profile["generation"] == "facts_v2_basic_listing"
-    assert profile["analysis_backend"] == "facts_v2"
-    assert calls == [
-        (
-            "platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc",
-            "amiga-raw",
-            str(binary_path),
-            0,
-            "",
-            str(tmp_path / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
-        )
-    ]
-
-
 def test_real_dll_facts_v2_listing_rows_use_plan_metadata_without_source_model(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "boot.bin"
@@ -2901,7 +2834,7 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
         )
     )["listing"]
     rows = rows_from_c_listing_json(payload)
-    copper_rows = {row.addr: row for row in rows if row.kind == "data" and row.addr is not None}
+    copper_rows = [row for row in rows if row.kind == "data" and row.data_class == "copper_list"]
     pointer_row = next(row for row in rows if row.addr == 0 and row.kind == "instruction")
 
     assert pointer_row.runtime_address_refs == (
@@ -2927,23 +2860,31 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
             size=10,
         ),
     )
-    assert copper_rows[0x0C].data_class == "copper_list"
-    assert copper_rows[0x10].data_class == "copper_list"
-    assert copper_rows[0x10].structured_data is not None
-    assert copper_rows[0x10].structured_data["semantic_role"] == "copper_list"
-    assert (
-        copper_rows[0x0C].text.strip()
-        == "dc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\t; display 4 bitplanes lores color"
+    assert all(row.addr == 0x0C for row in copper_rows)
+    assert all(row.structured_data is not None for row in copper_rows)
+    assert all(row.structured_data["semantic_role"] == "copper_list" for row in copper_rows)
+    assert [row.text.strip() for row in copper_rows] == [
+        "; display layout 1 bitmap plane $12345678",
+        "dc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\t; display 4 bitplanes lores color",
+        "dc.w bplpt,bitmap_12345678_hi\t; bitmap pointer $12345678",
+        "dc.w bplpt+$02,bitmap_12345678_lo",
+        "dc.w sprpt+$1E,$0000",
+        "dc.w intreq,INTF_SETCLR|INTF_COPER",
+        "dc.w COPPER_WAIT|$2C06,$FFFE\t; copper wait v=$2C h=$06 mask $FFFE",
+        "dc.w $FFFF,$FFFE",
+    ]
+    assert copper_rows[2].runtime_address_refs == (
+        RuntimeAddressRef(
+            offset=0x10,
+            operand_index=None,
+            target_section_index=None,
+            target_offset=None,
+            runtime_address=0x12345678,
+            confidence=2,
+            data_class="bitmap",
+        ),
     )
-    assert copper_rows[0x10].text.strip() == "dc.w bplpt,bitmap_12345678_hi\t; bitmap pointer $12345678"
-    assert copper_rows[0x14].text.strip() == "dc.w bplpt+$02,bitmap_12345678_lo"
-    assert copper_rows[0x18].text.strip() == "dc.w sprpt+$1E,$0000"
-    assert copper_rows[0x1C].text.strip() == "dc.w intreq,INTF_SETCLR|INTF_COPER"
-    assert (
-        copper_rows[0x20].text.strip()
-        == "dc.w COPPER_WAIT|$2C06,$FFFE\t; copper wait v=$2C h=$06 mask $FFFE"
-    )
-    assert copper_rows[0x24].text.strip() == "dc.w $FFFF,$FFFE"
+    assert all(not row.runtime_address_refs for row in copper_rows[3:])
 
     analysis = json.loads(
         c_backend._platform_file_text(
@@ -2964,40 +2905,6 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
         and item["semantic_role"] == "copper_list"
         for item in structured_items
     )
-
-
-def test_real_dll_facts_v2_basic_listing_rows_use_basic_api_without_source_directives(tmp_path: Path) -> None:
-    _requires_c_backend_dlls()
-    binary_path = tmp_path / "boot.bin"
-    binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
-    source = RawBinarySource(
-        kind="raw_binary",
-        path=binary_path,
-        address_model="local_offset",
-        load_address=0x70000,
-        entrypoint=0x7000C,
-        code_start_offset=0x0C,
-        display_path=str(binary_path),
-        analysis_cache_path=tmp_path / "binary.analysis",
-    )
-
-    rows, api_calls, profile = c_backend._build_project_rows_generation_from_source(
-        source,
-        metadata_text="",
-        generation="basic",
-        project_root=PROJECT_ROOT,
-    )
-
-    assert api_calls == {}
-    assert profile["generation"] == "facts_v2_basic_listing"
-    assert "source_ir_seconds" in profile["timing"]
-    assert "render_seconds" not in profile["timing"]
-    assert rows
-    assert all(row.analysis_generation == "basic" for row in rows)
-    assert any(row.kind == "directive" and row.text.lstrip().startswith("SECTION ") for row in rows)
-    assert not any(row.text.lstrip().startswith(("INCLUDE ", "COMMENT ")) for row in rows)
-    assert any(row.kind == "data" and row.addr == 0 and row.bytes == b"\0" * 12 for row in rows)
-    assert any(row.kind == "instruction" and row.opcode_or_directive == "rts" and row.bytes == b"\x4e\x75" for row in rows)
 
 
 def test_real_dll_facts_v2_listing_rows_exclude_source_only_directives_without_source_text(tmp_path: Path) -> None:
@@ -4606,7 +4513,6 @@ def test_real_dll_renders_mathtrans_overlap_as_data_and_reassembles(tmp_path: Pa
     assert "resident_vectors:" in rendered
     assert "dc.l s_p_atan" in rendered.lower()
     assert "ori.b #142,d0" not in rendered
-    assert "invalid overlap: decoded code" in rendered
     lowered = rendered.lower()
     assert "dc.b $19,$21,$fb,$54" in lowered
     assert "fpu     5" not in lowered

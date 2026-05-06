@@ -549,7 +549,7 @@ def build_project_rows_generation_with_c_backend_profile(
     generation: str,
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[list[ListingRow], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
-    if generation not in {"basic", "full"}:
+    if generation != "full":
         raise ValueError(f"Unsupported listing generation: {generation}")
     paths = resolve_project_paths(project_name, project_root=project_root)
     with effective_metadata_file(paths.target_dir) as metadata_path:
@@ -611,13 +611,8 @@ def _build_project_rows_generation_from_source(
     with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
         include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
         if source_file.entry_offset is None:
-            function_name = (
-                "platform_file_facts_v2_basic_listing_rows_path_json_alloc"
-                if generation == "basic"
-                else "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc"
-            )
             combined_text = _platform_file_text(
-                function_name,
+                "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc",
                 source_file.platform_name,
                 str(source_file.path),
                 metadata_text,
@@ -625,13 +620,8 @@ def _build_project_rows_generation_from_source(
                 project_root=project_root,
             )
         else:
-            function_name = (
-                "platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc"
-                if generation == "basic"
-                else "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc"
-            )
             combined_text = _platform_file_text(
-                function_name,
+                "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc",
                 source_file.platform_name,
                 str(source_file.path),
                 source_file.entry_offset,
@@ -1547,9 +1537,7 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     ]
     dll.platform_file_facts_v2_direct_rebuild_compare_buffer_bytes_profile_alloc.restype = c_int
     _configure_text_function(dll, "platform_file_facts_v2_listing_rows_with_analysis_path_json_alloc", 4)
-    _configure_text_function(dll, "platform_file_facts_v2_basic_listing_rows_path_json_alloc", 4)
     _configure_text_function(dll, "platform_file_facts_v2_listing_rows_with_analysis_raw_path_json_alloc", 5)
-    _configure_text_function(dll, "platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc", 5)
     dll.platform_file_facts_v2_listing_artifact_path_create.argtypes = [
         c_char_p,
         c_char_p,

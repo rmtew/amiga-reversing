@@ -2557,7 +2557,7 @@ static int append_listing_runtime_address_ref_json(JsonBuilder *builder, const M
 }
 
 static int append_listing_runtime_address_refs_json(JsonBuilder *builder, const M68kStatementIR *stmt,
-    const M68kSectionAnalysisIR *section_analysis, const char *comment) {
+    const M68kSectionAnalysisIR *section_analysis, const char *comment, int suppress_offset_fallback) {
   size_t index;
   int emitted = 0;
   uint32_t comment_runtime_address = 0U;
@@ -2578,6 +2578,7 @@ static int append_listing_runtime_address_refs_json(JsonBuilder *builder, const 
     }
     if (emitted) return json_builder_append(builder, "]");
   }
+  if (suppress_offset_fallback) return json_builder_append(builder, "]");
   for (index = 0U; index < section_analysis->runtime_address_ref_count; ++index) {
     const M68kRuntimeAddressRefIR *ref = &section_analysis->runtime_address_refs[index];
     if (ref->offset != stmt->offset) continue;
@@ -4444,7 +4445,7 @@ static int listing_stmt_has_app_slot_refs(const M68kStatementIR *stmt,
 }
 
 static int listing_stmt_has_runtime_address_refs(const M68kStatementIR *stmt,
-    const M68kSectionAnalysisIR *section_analysis, const char *comment) {
+    const M68kSectionAnalysisIR *section_analysis, const char *comment, int suppress_offset_fallback) {
   size_t index;
   uint32_t comment_runtime_address = 0U;
   if (stmt == NULL ||
@@ -4459,6 +4460,7 @@ static int listing_stmt_has_runtime_address_refs(const M68kStatementIR *stmt,
         return 1;
     }
   }
+  if (suppress_offset_fallback) return 0;
   for (index = 0U; index < section_analysis->runtime_address_ref_count; ++index)
     if (section_analysis->runtime_address_refs[index].offset == stmt->offset) return 1;
   return 0;
@@ -4513,6 +4515,7 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
   uint32_t byte_count = 0U;
   const M68kRuntimeViewIR *runtime_view = NULL;
   uint32_t runtime_address = 0U;
+  int suppress_offset_runtime_refs = 0;
   if (line_length + 1U < sizeof(text)) {
     memcpy(text, line_start, line_length);
     text[line_length] = '\0';
@@ -4527,6 +4530,8 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     end_offset = addr + byte_count;
     label = stmt->label_name;
     structured_item = listing_structured_data_item_at_offset(analysis_policy, section_index, addr);
+    suppress_offset_runtime_refs =
+      structured_item != NULL && stmt->kind == M68K_STATEMENT_DATA && byte_count > 4U;
     runtime_view = listing_runtime_view_for_storage_offset(source_analysis, section_index, addr, &runtime_address);
   }
   if (label == NULL && strcmp(row_kind, "label") == 0) {
@@ -4627,9 +4632,11 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
       if (json_builder_append(builder, ",\"app_slot_refs\":") != 0) return -1;
       if (append_listing_app_slot_refs_json(builder, stmt, section_analysis) != 0) return -1;
     }
-    if (listing_stmt_has_runtime_address_refs(stmt, section_analysis, comment)) {
+    if (listing_stmt_has_runtime_address_refs(stmt, section_analysis, comment, suppress_offset_runtime_refs)) {
       if (json_builder_append(builder, ",\"runtime_address_refs\":") != 0) return -1;
-      if (append_listing_runtime_address_refs_json(builder, stmt, section_analysis, comment) != 0) return -1;
+      if (append_listing_runtime_address_refs_json(builder, stmt, section_analysis, comment,
+          suppress_offset_runtime_refs) != 0)
+        return -1;
     }
     if (listing_stmt_has_code_start_refs(stmt, section_analysis)) {
       if (json_builder_append(builder, ",\"code_start_refs\":") != 0) return -1;
@@ -5651,7 +5658,7 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
           row_kind, summary, match_text, access) != 0)
         return -1;
     }
-    if (listing_stmt_has_runtime_address_refs(stmt, section, comment)) {
+    if (listing_stmt_has_runtime_address_refs(stmt, section, comment, 0)) {
       if (navigation->relocations_count++ != 0U && json_builder_append(&navigation->relocations, ",") != 0)
         return -1;
       if (append_listing_navigation_entry(&navigation->relocations, stmt, row_index, section_index, row_kind,

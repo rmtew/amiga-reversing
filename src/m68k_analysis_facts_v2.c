@@ -3485,6 +3485,11 @@ static int trace_state_control_target_operand_address(const M68kDecodeCandidate 
     return 0;
   }
   operand = &candidate->operands[operand_index];
+  if (candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_EA && operand->ea_reg < 8U &&
+      (operand->ea_mode == 2U || operand->ea_mode == 5U) &&
+      trace_state_operand_runtime_address(trace_state, candidate, operand_index, out_address)) {
+    return 1;
+  }
   if (!operand_is_control_address_register_indirect(candidate->operand_kinds[operand_index], operand, &reg)) return 0;
   if (operand->kind == M68K_ASM_OPERAND_EA &&
       (metadata->operand_ea_uses_index[operand_index] || metadata->operand_ea_uses_displacement[operand_index])) {

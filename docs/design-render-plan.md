@@ -36,10 +36,8 @@ Multi-line rows can now be visited as physical lines while preserving the owner
 row and subline index. This keeps compatibility with the current web listing
 shape without forcing source text reparsing.
 
-The facts_v2 basic listing JSON path now builds its rows from a render plan
-instead of duplicating a statement-render-and-split loop. The production
-facts_v2 full listing path now also consumes the captured source render plan
-for row emission instead of walking the full source text as the row stream.
+The production facts_v2 full listing path consumes the captured source render
+plan for row emission instead of walking the full source text as the row stream.
 
 Render plans now have a row-builder API for renderers that naturally emit a row
 in fragments. This is intended for migrating facts_v2 source rendering without
@@ -479,8 +477,8 @@ proves line accounting and window emission. Do not start by rewriting the whole
 renderer.
 
 This first step now exists. A GenAm-style source-IR fixture now proves direct
-body-row plan construction, and facts_v2 basic plus full listing rows now use
-render-plan line streams. Production facts_v2 source rendering now captures a
+body-row plan construction, and facts_v2 full listing rows now use render-plan
+line streams. Production facts_v2 source rendering now captures a
 semantic source plan during rendering, emits the final `.s` source from that
 plan, and emits full listing rows from plan-owned statement metadata without
 reparsing the emitted source text. Listing-only requests capture the plan
@@ -507,8 +505,8 @@ artifact's arena-owned displayed-row index and address block maxima, so scroll
 requests no longer need a second Python row database or a full C anchor/count
 pass. The old direct DLL/Python API that rebuilt full analysis for a single
 window has been removed; full-generation windows must come through the retained
-artifact. The dataclass row path remains only for basic progress display and
-for fallback when a full C artifact is unavailable.
+artifact. The dataclass row path remains only for fallback when a full C
+artifact is unavailable.
 Retained artifact row windows now reuse the artifact's displayed-row index as
 row-to-plan provenance. For ordinary body windows this avoids replaying the
 whole render plan on every viewport request; synthetic header rows deliberately
