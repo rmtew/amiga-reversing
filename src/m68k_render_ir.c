@@ -294,8 +294,7 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview) {
   preview->asm_source_text = source_text;
   preview->asm_source_text_capacity = final_plan.total_bytes + 1U;
   recompute_asm_source_text_metrics(preview);
-  m68k_render_plan_destroy(&preview->asm_source_plan);
-  preview->asm_source_plan = final_plan;
+  m68k_render_plan_move(&preview->asm_source_plan, &final_plan);
   return 1;
 }
 

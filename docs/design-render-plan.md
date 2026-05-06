@@ -87,6 +87,13 @@ The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.
 
+Render plans now own row text through a plan-local arena. The rows array remains
+heap-resizable because row indexes and lookup structures need stable contiguous
+storage during construction, while row text has one lifetime: the plan. Emitted
+full-source and window strings remain separately heap-owned API return buffers.
+Arena-backed plans must be transferred with `m68k_render_plan_move`, not raw
+struct assignment.
+
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
 
@@ -132,6 +139,8 @@ web API.
 - Keep memory ownership simple and explicit. Avoid per-row or per-line heap
   churn; use arenas for same-lifetime transient render data where suitable, and
   refactor ownership boundaries when that is needed to make arena use clean.
+  Render-plan row text is same-lifetime data and is arena-owned; row-builder
+  scratch and API output strings remain outside that arena.
 
 ## Non-Goals
 

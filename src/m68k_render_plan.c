@@ -2,21 +2,20 @@
 
 #include "m68k_source_ir_render.h"
 #include "m68k_source_text_util.h"
+#include "util_arena.h"
 
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-static char *render_plan_strdup(const char *text) {
-  size_t size;
-  char *copy;
+static char *render_plan_strdup(M68kRenderPlan *plan, const char *text) {
   if (text == NULL) return NULL;
-  size = strlen(text) + 1U;
-  copy = (char *)malloc(size);
-  if (copy == NULL) return NULL;
-  memcpy(copy, text, size);
-  return copy;
+  if (plan->text_arena == NULL) {
+    plan->text_arena = arena_create(4096U);
+    if (plan->text_arena == NULL) return NULL;
+  }
+  return arena_strdup(plan->text_arena, text);
 }
 
 static uint32_t render_plan_count_lines(const char *text) {
@@ -85,11 +84,17 @@ void m68k_render_plan_init(M68kRenderPlan *plan) {
 }
 
 void m68k_render_plan_destroy(M68kRenderPlan *plan) {
-  size_t index;
   if (plan == NULL) return;
-  for (index = 0U; index < plan->row_count; ++index) free(plan->rows[index].text);
+  arena_destroy(plan->text_arena);
   free(plan->rows);
   memset(plan, 0, sizeof(*plan));
+}
+
+void m68k_render_plan_move(M68kRenderPlan *dest, M68kRenderPlan *src) {
+  if (dest == NULL || src == NULL || dest == src) return;
+  m68k_render_plan_destroy(dest);
+  *dest = *src;
+  m68k_render_plan_init(src);
 }
 
 int m68k_render_plan_append_text_row(M68kRenderPlan *plan, uint32_t kind, uint32_t region_id,
@@ -103,12 +108,9 @@ int m68k_render_plan_append_text_row(M68kRenderPlan *plan, uint32_t kind, uint32
   if (UINT32_MAX - plan->total_lines < line_count) return -1;
   byte_count = strlen(text);
   if (((size_t)-1) - plan->total_bytes < byte_count) return -1;
-  text_copy = render_plan_strdup(text);
+  if (render_plan_reserve_rows(plan, plan->row_count + 1U) != 0) return -1;
+  text_copy = render_plan_strdup(plan, text);
   if (text_copy == NULL) return -1;
-  if (render_plan_reserve_rows(plan, plan->row_count + 1U) != 0) {
-    free(text_copy);
-    return -1;
-  }
   row = &plan->rows[plan->row_count++];
   memset(row, 0, sizeof(*row));
   row->id = plan->next_row_id++;

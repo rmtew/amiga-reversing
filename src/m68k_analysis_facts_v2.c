@@ -5160,9 +5160,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     render_preview.asm_source_text = NULL;
   }
   if (out_asm_source_plan != NULL && !facts_v2_has_asm_source_failures(out_profile)) {
-    m68k_render_plan_destroy(out_asm_source_plan);
-    *out_asm_source_plan = render_preview.asm_source_plan;
-    m68k_render_plan_init(&render_preview.asm_source_plan);
+    m68k_render_plan_move(out_asm_source_plan, &render_preview.asm_source_plan);
   }
   m68k_render_ir_preview_destroy(&render_preview);
   accepted_candidate_index_destroy(&accepted_index);

@@ -9,6 +9,8 @@
 
 #define M68K_RENDER_PLAN_NO_SECTION UINT32_MAX
 
+typedef struct Arena Arena;
+
 typedef enum M68kRenderPlanRowKind {
   M68K_RENDER_PLAN_ROW_INCLUDE = 1,
   M68K_RENDER_PLAN_ROW_BLANK = 2,
@@ -47,6 +49,7 @@ typedef struct M68kRenderPlanRow {
 
 typedef struct M68kRenderPlan {
   M68kRenderPlanRow *rows;
+  Arena *text_arena;
   size_t row_count;
   size_t row_capacity;
   uint32_t next_row_id;
@@ -69,6 +72,7 @@ typedef int (*M68kRenderPlanLineVisitor)(const M68kRenderPlanRow *row, uint32_t 
 
 void m68k_render_plan_init(M68kRenderPlan *plan);
 void m68k_render_plan_destroy(M68kRenderPlan *plan);
+void m68k_render_plan_move(M68kRenderPlan *dest, M68kRenderPlan *src);
 int m68k_render_plan_append_text_row(M68kRenderPlan *plan, uint32_t kind, uint32_t region_id,
   const char *text, M68kRenderPlanRow **out_row);
 void m68k_render_plan_row_builder_init(M68kRenderPlanRowBuilder *builder);

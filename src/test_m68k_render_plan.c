@@ -242,6 +242,31 @@ static int test_render_plan_hoists_typed_header_rows(void) {
   return 0;
 }
 
+static int test_render_plan_move_transfers_arena_owned_rows(void) {
+  M68kRenderPlan source;
+  M68kRenderPlan dest;
+  char *full_text = NULL;
+  m68k_render_plan_init(&source);
+  m68k_render_plan_init(&dest);
+
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&source, M68K_RENDER_PLAN_ROW_SECTION, 0U,
+    "    SECTION section_0,code\n", NULL));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&source, M68K_RENDER_PLAN_ROW_INSTRUCTION, 0U,
+    "\trts\n", NULL));
+  m68k_render_plan_move(&dest, &source);
+
+  M68K_C_ASSERT_U32(0U, (uint32_t)source.row_count);
+  M68K_C_ASSERT_U32(0U, source.total_lines);
+  M68K_C_ASSERT_U32(2U, (uint32_t)dest.row_count);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&dest, &full_text));
+  M68K_C_ASSERT_STR("    SECTION section_0,code\n\trts\n", full_text);
+
+  m68k_render_plan_free_text(full_text);
+  m68k_render_plan_destroy(&source);
+  m68k_render_plan_destroy(&dest);
+  return 0;
+}
+
 static int test_render_plan_builds_source_file_body_genam_fixture(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
@@ -315,6 +340,7 @@ int m68k_c_render_plan_tests(void) {
     {"visits_physical_lines_with_owner_row", test_render_plan_visits_physical_lines_with_owner_row},
     {"rejects_rows_without_complete_lines", test_render_plan_rejects_rows_without_complete_lines},
     {"hoists_typed_header_rows", test_render_plan_hoists_typed_header_rows},
+    {"move_transfers_arena_owned_rows", test_render_plan_move_transfers_arena_owned_rows},
     {"builds_source_file_body_genam_fixture", test_render_plan_builds_source_file_body_genam_fixture}
   };
   return m68k_c_test_run_suite("m68k_render_plan", cases, sizeof(cases) / sizeof(cases[0]));
