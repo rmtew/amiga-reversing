@@ -115,6 +115,8 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_addr_window_json_a
     char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_rows_json_alloc(
     PlatformFileListingArtifact *artifact, char **out_text);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_navigation_json_alloc(
+    PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact);
 PLATFORM_FILE_API int platform_file_facts_v2_basic_listing_rows_raw_path_json_alloc(const char *platform_name,
     const char *path, uint32_t entry_offset, const char *metadata_path,

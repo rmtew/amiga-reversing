@@ -1060,6 +1060,78 @@ def _listing_navigation_payload(project_name: str, rows: list[ListingRow]) -> di
     }
 
 
+def _overlay_listing_navigation_payload(
+    project_name: str,
+    payload: dict[str, object],
+    rows: list[ListingRow] | None = None,
+) -> dict[str, object]:
+    groups = cast(dict[str, list[dict[str, object]]], payload.setdefault("groups", {}))
+    for group_name in (
+        "repro-issues",
+        "typed-data",
+        "typed-gaps",
+        "relocations",
+        "api-calls",
+        "app-slots",
+        "app-slot-regions",
+        "app-slot-gaps",
+        "app-slot-field-gaps",
+        "app-slot-suggestions",
+        "app-slot-api-args",
+        "labels",
+        "comments",
+    ):
+        groups.setdefault(group_name, [])
+    repro_report = _active_reproduction_report(project_name)
+    if repro_report is not None:
+        groups["repro-issues"] = reproduction_navigation_entries(repro_report)
+    if rows is not None:
+        try:
+            entities_by_addr = get_entities_by_int_addr(project_name, project_root=PROJECT_ROOT)
+        except (FileNotFoundError, ValueError, AssertionError):
+            entities_by_addr = {}
+        for row_index, row in enumerate(rows):
+            if row.addr is None:
+                continue
+            entity = entities_by_addr.get(row.entity_addr) if isinstance(row.entity_addr, int) else None
+            annotations = _entity_annotation_values(cast(dict[str, object] | None, entity))
+            if annotations:
+                groups["comments"].append(_navigation_entry(row, row_index, "comments", annotations=annotations))
+    app_slot_analysis = cast(dict[str, object], payload.get("app_slot_analysis") or {})
+    if not groups["app-slot-regions"]:
+        groups["app-slot-regions"] = [
+            _app_slot_region_navigation_entry(region)
+            for region in cast(list[dict[str, object]], app_slot_analysis.get("regions", []))
+            if region.get("source") == "platform_api_arg"
+        ]
+    if not groups["app-slot-gaps"]:
+        groups["app-slot-gaps"] = [
+            _app_slot_gap_navigation_entry(gap)
+            for gap in cast(list[dict[str, object]], app_slot_analysis.get("gaps", []))
+        ]
+    if not groups["app-slot-field-gaps"]:
+        groups["app-slot-field-gaps"] = [
+            _app_slot_field_gap_navigation_entry(gap)
+            for gap in cast(list[dict[str, object]], app_slot_analysis.get("field_gaps", []))
+        ]
+    if not groups["app-slot-suggestions"]:
+        groups["app-slot-suggestions"] = [
+            _app_slot_suggestion_navigation_entry(suggestion)
+            for suggestion in cast(list[dict[str, object]], app_slot_analysis.get("suggestions", []))
+        ]
+    if not groups["app-slot-api-args"]:
+        groups["app-slot-api-args"] = [
+            _app_slot_untyped_api_arg_navigation_entry(arg)
+            for arg in cast(list[dict[str, object]], app_slot_analysis.get("untyped_api_args", []))
+        ]
+    if "analysis_generation" not in payload or payload.get("analysis_generation") is None:
+        payload["analysis_generation"] = _PROJECT_ROW_GENERATION_CACHE.get(project_name)
+    if "type_flow_analysis" not in payload or not isinstance(payload.get("type_flow_analysis"), dict):
+        payload["type_flow_analysis"] = _PROJECT_TYPE_FLOW_ANALYSIS_CACHE.get(project_name, {})
+    payload["groups"] = groups
+    return payload
+
+
 def _clear_project_listing_cache(project_name: str) -> None:
     _PROJECT_ROW_CACHE.pop(project_name, None)
     _PROJECT_SERIALIZED_ROW_CACHE.pop(project_name, None)
@@ -2403,6 +2475,13 @@ def route_request(
                 raise ValueError(
                     f"Canonical rows not loaded for project: {project_name}"
                 )
+            listing_artifact = _valid_c_listing_artifact(project_name)
+            if listing_artifact is not None:
+                navigation_payload, _ = listing_artifact.navigation_payload()
+                return {
+                    "ok": True,
+                    "data": _overlay_listing_navigation_payload(project_name, navigation_payload, rows),
+                }
             return {"ok": True, "data": _listing_navigation_payload(project_name, rows)}
         if (
             method == "POST"

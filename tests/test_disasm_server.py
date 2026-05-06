@@ -62,9 +62,49 @@ def _binary_project(project_name: str, *, ready: bool) -> ProjectRecord:
 class _FakeCListingArtifact:
     def __init__(self) -> None:
         self.closed = False
+        self.navigation_calls = 0
 
     def close(self) -> None:
         self.closed = True
+
+    def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+        self.navigation_calls += 1
+        return (
+            {
+                "analysis_generation": "full",
+                "total_rows": 1,
+                "groups": {
+                    "repro-issues": [],
+                    "typed-data": [],
+                    "typed-gaps": [],
+                    "relocations": [],
+                    "api-calls": [],
+                    "app-slots": [],
+                    "app-slot-regions": [],
+                    "app-slot-gaps": [],
+                    "app-slot-field-gaps": [],
+                    "app-slot-suggestions": [],
+                    "app-slot-api-args": [],
+                    "labels": [
+                        {
+                            "addr": 0,
+                            "row_index": 0,
+                            "summary": "from_c:",
+                            "match_text": "from_c",
+                            "stable_key": "c-label",
+                            "symbol": "from_c",
+                            "ref_count": 1,
+                            "access_counts": {"definition": 1},
+                            "refs": [],
+                        }
+                    ],
+                    "comments": [],
+                },
+                "app_slot_analysis": {},
+                "type_flow_analysis": {},
+            },
+            {"generation": "fake"},
+        )
 
 
 def test_listing_anchor_code_start_matches_non_address_row() -> None:
@@ -1784,6 +1824,42 @@ def test_route_listing_navigation_uses_all_cached_rows(monkeypatch: pytest.Monke
     assert data["total_rows"] == 3
     assert [entry["summary"] for entry in groups["labels"]] == ["start:", "far_target:"]
     assert groups["labels"][1]["addr"] == 2000
+
+
+def test_route_listing_navigation_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [ListingRow(row_id="r0", kind="label", text="python_label:\n", addr=0, label="python_label")]
+    artifact = _FakeCListingArtifact()
+    disasm_server._PROJECT_ROW_CACHE.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
+    disasm_server._PROJECT_ROW_CACHE_KEY.clear()
+    disasm_server._PROJECT_ROW_CACHE["bloodwych"] = rows
+    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "bloodwych", artifact)
+    monkeypatch.setitem(disasm_server._PROJECT_ROW_GENERATION_CACHE, "bloodwych", "full")
+    monkeypatch.setitem(disasm_server._PROJECT_ROW_CACHE_KEY, "bloodwych", "cache")
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "_listing_navigation_payload",
+        lambda project_name, rows: pytest.fail("Python row-derived navigation path should not be used"),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing/navigation",
+        {},
+    )
+    groups = cast(dict[str, list[dict[str, object]]], cast(dict[str, object], payload["data"])["groups"])
+
+    assert payload["ok"] is True
+    assert artifact.navigation_calls == 1
+    assert [entry["summary"] for entry in groups["labels"]] == ["from_c:"]
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 
 def test_listing_navigation_indexes_instruction_typed_accesses(monkeypatch: pytest.MonkeyPatch) -> None:

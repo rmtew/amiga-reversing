@@ -1694,6 +1694,11 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_rows_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_navigation_json_alloc.argtypes = [
+        c_void_p,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_navigation_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_destroy.argtypes = [c_void_p]
     dll.platform_file_facts_v2_listing_artifact_destroy.restype = None
     _configure_text_function(dll, "platform_file_type_catalog_json_alloc", 1)
@@ -1880,6 +1885,19 @@ class CListingArtifact:
         return self._text_from_artifact_call(
             self._dll.platform_file_facts_v2_listing_artifact_rows_json_alloc,
         )
+
+    def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+        combined = cast(
+            dict[str, object],
+            json.loads(
+                self._text_from_artifact_call(
+                    self._dll.platform_file_facts_v2_listing_artifact_navigation_json_alloc,
+                )
+            ),
+        )
+        navigation = cast(dict[str, object], combined.get("navigation", {}))
+        profile = cast(dict[str, object], combined.get("profile", {}))
+        return navigation, profile
 
     def window_payload(
         self, *, start: int, count: int, generation: str = "full"

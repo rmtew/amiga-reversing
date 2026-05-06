@@ -104,6 +104,13 @@ the loaded object, effective policy, source analysis, facts_v2 profile, and
 render plan, and repeated window calls emit from that retained C state. This is
 now wired into full-listing generation so the server can keep the C artifact
 for later index-window requests after the full listing job completes.
+The retained C artifact now also emits the row-derived listing navigation
+payload. Labels, typed accesses/gaps, relocation-like runtime references,
+platform API calls, comments, and app-slot references are collected during the
+same render-plan row walk instead of being rediscovered from Python
+`ListingRow` objects. The server still overlays project/session concerns such
+as reproduction issues and entity annotations, because those are not facts
+owned by the C analysis artifact.
 The source-producing facts_v2 path has moved away from final-text header
 rewrites. Header material such as includes and equates is captured as typed
 source rows, then assembled with the body deterministically.

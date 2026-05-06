@@ -384,6 +384,11 @@ def _file_library():
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_facts_v2_listing_artifact_rows_json_alloc.restype = ctypes.c_int
+    library.platform_file_facts_v2_listing_artifact_navigation_json_alloc.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_facts_v2_listing_artifact_navigation_json_alloc.restype = ctypes.c_int
     library.platform_file_facts_v2_listing_artifact_destroy.argtypes = [ctypes.c_void_p]
     library.platform_file_facts_v2_listing_artifact_destroy.restype = None
     library.platform_file_free_text.argtypes = [ctypes.c_void_p]
@@ -700,6 +705,7 @@ class IrPolicyDllTests(unittest.TestCase):
                 first_window = ctypes.c_void_p()
                 second_window = ctypes.c_void_p()
                 addr_window = ctypes.c_void_p()
+                navigation = ctypes.c_void_p()
                 try:
                     artifact_rows_result = library.platform_file_facts_v2_listing_artifact_rows_json_alloc(
                         artifact,
@@ -725,16 +731,22 @@ class IrPolicyDllTests(unittest.TestCase):
                         2,
                         ctypes.byref(addr_window),
                     )
+                    navigation_result = library.platform_file_facts_v2_listing_artifact_navigation_json_alloc(
+                        artifact,
+                        ctypes.byref(navigation),
+                    )
                     artifact_rows_text = (
                         ctypes.string_at(artifact_rows.value).decode("utf-8") if artifact_rows.value else ""
                     )
                     first_text = ctypes.string_at(first_window).decode("utf-8") if first_window.value else ""
                     second_text = ctypes.string_at(second_window).decode("utf-8") if second_window.value else ""
                     addr_text = ctypes.string_at(addr_window).decode("utf-8") if addr_window.value else ""
+                    navigation_text = ctypes.string_at(navigation).decode("utf-8") if navigation.value else ""
                     self.assertEqual(artifact_rows_result, 0, artifact_rows_text)
                     self.assertEqual(first_result, 0, first_text)
                     self.assertEqual(second_result, 0, second_text)
                     self.assertEqual(addr_result, 0, addr_text)
+                    self.assertEqual(navigation_result, 0, navigation_text)
                 finally:
                     if artifact_rows.value:
                         library.platform_file_free_text(artifact_rows)
@@ -744,6 +756,8 @@ class IrPolicyDllTests(unittest.TestCase):
                         library.platform_file_free_text(second_window)
                     if addr_window.value:
                         library.platform_file_free_text(addr_window)
+                    if navigation.value:
+                        library.platform_file_free_text(navigation)
             finally:
                 if error.value:
                     library.platform_file_free_text(error)
@@ -775,6 +789,10 @@ class IrPolicyDllTests(unittest.TestCase):
         )
         self.assertEqual(addr_payload["profile"]["generation"], "facts_v2_listing_artifact_addr_window")
         self.assertEqual(second_payload["profile"]["generation"], "facts_v2_listing_artifact_window")
+        navigation_payload = json.loads(navigation_text)
+        self.assertEqual(navigation_payload["profile"]["generation"], "facts_v2_listing_artifact_navigation")
+        self.assertEqual(navigation_payload["navigation"]["analysis_generation"], "full")
+        self.assertIn("labels", navigation_payload["navigation"]["groups"])
 
     def test_platform_file_listing_artifact_supports_raw_binary_targets(self) -> None:
         library = _file_library()
