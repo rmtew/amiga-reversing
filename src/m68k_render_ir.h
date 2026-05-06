@@ -14,6 +14,8 @@
 #define M68K_RENDER_ASM_DECLARATION_LIMIT 1024U
 #define M68K_RENDER_ASM_SYMBOL_NAME_SIZE 64U
 
+typedef struct Arena Arena;
+
 typedef enum M68kRenderIRAsmSourceFailureKind {
   M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE = 0,
   M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER = 1,
@@ -77,8 +79,11 @@ typedef struct M68kRenderIRPreview {
   char *asm_source_text;
   size_t asm_source_text_capacity;
   M68kRenderPlan asm_source_plan;
+  Arena *asm_source_header_arena;
   char asm_source_includes[M68K_RENDER_ASM_INCLUDE_LIMIT][M68K_RENDER_ASM_INCLUDE_PATH_SIZE];
   char asm_source_declarations[M68K_RENDER_ASM_DECLARATION_LIMIT][M68K_RENDER_ASM_SYMBOL_NAME_SIZE];
+  char *asm_source_declaration_lines[M68K_RENDER_ASM_DECLARATION_LIMIT];
+  uint32_t asm_source_body_start_byte;
   uint16_t asm_source_include_count;
   uint16_t asm_source_declaration_count;
   uint8_t platform_backend_kind;

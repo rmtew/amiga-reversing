@@ -10,6 +10,7 @@
 #include "m68k_source_text_util.h"
 #include "platform_atari_st.h"
 #include "platform_common.h"
+#include "util_arena.h"
 #include "generated/amiga_hunk_file_runtime.h"
 #include "generated/m68k_cpu_runtime.h"
 #include "generated/amiga_os_runtime.h"
@@ -156,36 +157,25 @@ static void hash_asm_text(M68kRenderIRPreview *preview, const char *text) {
   preview->asm_source_bytes += (uint32_t)length;
 }
 
-static int asm_source_line_starts_with(const char *line, size_t length, const char *prefix) {
-  size_t prefix_length;
-  if (line == NULL || prefix == NULL) return 0;
-  prefix_length = strlen(prefix);
-  return length >= prefix_length && memcmp(line, prefix, prefix_length) == 0;
-}
-
-static int asm_source_line_is_equate(const char *line, size_t length) {
-  size_t index = 0U;
-  if (line == NULL || length == 0U) return 0;
-  if (line[0] == ' ' || line[0] == '\t' || line[0] == ';') return 0;
-  while (index < length && line[index] != '\n' && line[index] != '\r' &&
-      line[index] != ' ' && line[index] != '\t') {
-    if (line[index] == ':') return 0;
-    ++index;
+static int store_asm_source_declaration_line(M68kRenderIRPreview *preview, const char *line) {
+  char *copy;
+  if (preview == NULL || line == NULL ||
+      preview->asm_source_declaration_count >= M68K_RENDER_ASM_DECLARATION_LIMIT)
+    return 0;
+  if (preview->asm_source_header_arena == NULL) {
+    preview->asm_source_header_arena = arena_create(4096U);
+    if (preview->asm_source_header_arena == NULL) return 0;
   }
-  while (index < length && (line[index] == ' ' || line[index] == '\t')) ++index;
-  return index + 3U <= length && memcmp(line + index, "EQU", 3U) == 0 &&
-    (index + 3U == length || line[index + 3U] == ' ' || line[index + 3U] == '\t' ||
-      line[index + 3U] == '\r' || line[index + 3U] == '\n');
+  copy = arena_strdup(preview->asm_source_header_arena, line);
+  if (copy == NULL) return 0;
+  preview->asm_source_declaration_lines[preview->asm_source_declaration_count] = copy;
+  return 1;
 }
 
-static int asm_source_line_is_include(const char *line, size_t length) {
-  return asm_source_line_starts_with(line, length, "    INCLUDE \"");
-}
-
-static int compare_asm_source_include_lines(const void *left, const void *right) {
-  const char *const *left_line = (const char *const *)left;
-  const char *const *right_line = (const char *const *)right;
-  return strcmp(*left_line, *right_line);
+static int compare_asm_source_include_paths(const void *left, const void *right) {
+  const char *const *left_path = (const char *const *)left;
+  const char *const *right_path = (const char *const *)right;
+  return strcmp(*left_path, *right_path);
 }
 
 static int append_source_bytes(char *dest, size_t capacity, size_t *used, const char *source, size_t length) {
@@ -211,90 +201,68 @@ static void recompute_asm_source_text_metrics(M68kRenderIRPreview *preview) {
   }
 }
 
-static int hoist_asm_source_header_directives(M68kRenderIRPreview *preview) {
-  const char *text, *cursor, *first_section = NULL;
-  char *equates = NULL, *prefix = NULL, *body = NULL, *rewritten = NULL;
-  char *include_lines[M68K_RENDER_ASM_INCLUDE_LIMIT];
-  size_t include_count = 0U;
-  size_t length, equates_used = 0U, prefix_used = 0U, body_used = 0U, rewritten_used = 0U;
-  int result = 0;
-  memset(include_lines, 0, sizeof(include_lines));
+static int assemble_asm_source_header_regions(M68kRenderIRPreview *preview) {
+  const char *text;
+  char *include_paths[M68K_RENDER_ASM_INCLUDE_LIMIT];
+  char *rewritten;
+  size_t index, length, prefix_length, body_length, capacity;
+  size_t used = 0U;
   if (preview == NULL || preview->asm_source_text == NULL) return 1;
+  if (preview->asm_source_include_count == 0U && preview->asm_source_declaration_count == 0U) return 1;
   text = preview->asm_source_text;
   length = strlen(text);
-  cursor = text;
-  while (*cursor != '\0') {
-    const char *line = cursor;
-    const char *line_end = strchr(line, '\n');
-    size_t line_length = line_end != NULL ? (size_t)(line_end - line + 1) : strlen(line);
-    if (asm_source_line_starts_with(line, line_length, "    SECTION ")) {
-      first_section = line;
-      break;
-    }
-    cursor = line + line_length;
+  if ((size_t)preview->asm_source_body_start_byte > length) return 0;
+  prefix_length = (size_t)preview->asm_source_body_start_byte;
+  body_length = length - prefix_length;
+  capacity = length + 4U;
+  for (index = 0U; index < preview->asm_source_include_count; ++index) {
+    include_paths[index] = preview->asm_source_includes[index];
+    capacity += strlen(preview->asm_source_includes[index]) + 16U;
   }
-  if (first_section == NULL) return 1;
-  equates = (char *)malloc(length + 1U);
-  prefix = (char *)malloc(length + 1U);
-  body = (char *)malloc(length + 1U);
-  rewritten = (char *)malloc(length + 4U);
-  if (equates == NULL || prefix == NULL || body == NULL || rewritten == NULL) goto cleanup;
-  cursor = text;
-  while (*cursor != '\0') {
-    const char *line = cursor;
-    const char *line_end = strchr(line, '\n');
-    size_t line_length = line_end != NULL ? (size_t)(line_end - line + 1) : strlen(line);
-    if (asm_source_line_is_include(line, line_length)) {
-      if (include_count >= M68K_RENDER_ASM_INCLUDE_LIMIT) goto cleanup;
-      include_lines[include_count] = (char *)malloc(line_length + 1U);
-      if (include_lines[include_count] == NULL) goto cleanup;
-      memcpy(include_lines[include_count], line, line_length);
-      include_lines[include_count][line_length] = '\0';
-      ++include_count;
-    } else if (line < first_section) {
-      if (!append_source_bytes(prefix, length + 1U, &prefix_used, line, line_length)) goto cleanup;
-    } else if (asm_source_line_is_equate(line, line_length)) {
-      if (!append_source_bytes(equates, length + 1U, &equates_used, line, line_length)) goto cleanup;
-    } else {
-      if (!append_source_bytes(body, length + 1U, &body_used, line, line_length)) goto cleanup;
-    }
-    cursor = line + line_length;
-  }
-  if (include_count == 0U && equates_used == 0U) {
-    result = 1;
-    goto cleanup;
-  }
-  qsort(include_lines, include_count, sizeof(include_lines[0]), compare_asm_source_include_lines);
-  {
-    size_t include_index;
-    for (include_index = 0U; include_index < include_count; ++include_index) {
-      if (!append_source_bytes(rewritten, length + 4U, &rewritten_used, include_lines[include_index],
-          strlen(include_lines[include_index]))) goto cleanup;
+  for (index = 0U; index < preview->asm_source_declaration_count; ++index)
+    capacity += strlen(preview->asm_source_declaration_lines[index]);
+  rewritten = (char *)malloc(capacity);
+  if (rewritten == NULL) return 0;
+  qsort(include_paths, preview->asm_source_include_count, sizeof(include_paths[0]), compare_asm_source_include_paths);
+  for (index = 0U; index < preview->asm_source_include_count; ++index) {
+    char line[128];
+    int line_length = snprintf(line, sizeof(line), "    INCLUDE \"%s\"\n", include_paths[index]);
+    if (line_length <= 0 || (size_t)line_length >= sizeof(line) ||
+        !append_source_bytes(rewritten, capacity, &used, line, (size_t)line_length)) {
+      free(rewritten);
+      return 0;
     }
   }
-  if (include_count != 0U && !append_source_bytes(rewritten, length + 4U, &rewritten_used, "\n", 1U))
-    goto cleanup;
-  if (!append_source_bytes(rewritten, length + 4U, &rewritten_used, prefix, prefix_used) ||
-      !append_source_bytes(rewritten, length + 4U, &rewritten_used, equates, equates_used) ||
-      !append_source_bytes(rewritten, length + 4U, &rewritten_used, "\n", 1U) ||
-      !append_source_bytes(rewritten, length + 4U, &rewritten_used, body, body_used)) goto cleanup;
-  rewritten[rewritten_used] = '\0';
+  if (preview->asm_source_include_count != 0U &&
+      !append_source_bytes(rewritten, capacity, &used, "\n", 1U)) {
+    free(rewritten);
+    return 0;
+  }
+  if (!append_source_bytes(rewritten, capacity, &used, text, prefix_length)) {
+    free(rewritten);
+    return 0;
+  }
+  for (index = 0U; index < preview->asm_source_declaration_count; ++index) {
+    const char *line = preview->asm_source_declaration_lines[index];
+    if (!append_source_bytes(rewritten, capacity, &used, line, strlen(line))) {
+      free(rewritten);
+      return 0;
+    }
+  }
+  if (!append_source_bytes(rewritten, capacity, &used, "\n", 1U) ||
+      !append_source_bytes(rewritten, capacity, &used, text + prefix_length, body_length)) {
+    free(rewritten);
+    return 0;
+  }
+  if (!append_source_bytes(rewritten, capacity, &used, "\0", 1U)) {
+    free(rewritten);
+    return 0;
+  }
   free(preview->asm_source_text);
   preview->asm_source_text = rewritten;
-  preview->asm_source_text_capacity = length + 4U;
-  rewritten = NULL;
+  preview->asm_source_text_capacity = capacity;
   recompute_asm_source_text_metrics(preview);
-  result = 1;
-cleanup:
-  {
-    size_t include_index;
-    for (include_index = 0U; include_index < include_count; ++include_index) free(include_lines[include_index]);
-  }
-  free(equates);
-  free(prefix);
-  free(body);
-  free(rewritten);
-  return result;
+  return 1;
 }
 
 static void format_asm_label(char *buf, size_t buf_size, size_t section_index, uint32_t offset) {
@@ -347,6 +315,7 @@ static int render_asm_include_once(M68kRenderIRPreview *preview, const char *inc
     sizeof(preview->asm_source_includes[preview->asm_source_include_count]), "%s", include_path);
   ++preview->asm_source_include_count;
   snprintf(line, sizeof(line), "    INCLUDE \"%s\"\n", include_path);
+  if (preview->collect_asm_source_text) return 1;
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
   return 1;
@@ -372,8 +341,13 @@ static int render_asm_declare_symbol_once(M68kRenderIRPreview *preview, const ch
   }
   snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
     sizeof(preview->asm_source_declarations[preview->asm_source_declaration_count]), "%s", symbol_name);
-  ++preview->asm_source_declaration_count;
   snprintf(line, sizeof(line), "%s\tEQU\t%d\n", symbol_name, (int)value);
+  if (preview->collect_asm_source_text) {
+    if (!store_asm_source_declaration_line(preview, line)) return 0;
+    ++preview->asm_source_declaration_count;
+    return 1;
+  }
+  ++preview->asm_source_declaration_count;
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
   return 1;
@@ -398,8 +372,13 @@ static int render_asm_declare_symbol_hex_once(M68kRenderIRPreview *preview, cons
   }
   snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
     sizeof(preview->asm_source_declarations[preview->asm_source_declaration_count]), "%s", symbol_name);
-  ++preview->asm_source_declaration_count;
   snprintf(line, sizeof(line), "%s\tEQU\t$%X\n", symbol_name, (unsigned)value);
+  if (preview->collect_asm_source_text) {
+    if (!store_asm_source_declaration_line(preview, line)) return 0;
+    ++preview->asm_source_declaration_count;
+    return 1;
+  }
+  ++preview->asm_source_declaration_count;
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
   return 1;
@@ -426,8 +405,13 @@ static int render_asm_declare_symbol_expr_once(M68kRenderIRPreview *preview, con
   }
   snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
     sizeof(preview->asm_source_declarations[preview->asm_source_declaration_count]), "%s", symbol_name);
-  ++preview->asm_source_declaration_count;
   snprintf(line, sizeof(line), "%s\tEQU\t%s\n", symbol_name, expr);
+  if (preview->collect_asm_source_text) {
+    if (!store_asm_source_declaration_line(preview, line)) return 0;
+    ++preview->asm_source_declaration_count;
+    return 1;
+  }
+  ++preview->asm_source_declaration_count;
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
   return 1;
@@ -6586,6 +6570,7 @@ void m68k_render_ir_preview_init(M68kRenderIRPreview *preview) {
 
 void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview) {
   if (preview == NULL) return;
+  arena_destroy(preview->asm_source_header_arena);
   free(preview->asm_source_text);
   m68k_render_plan_destroy(&preview->asm_source_plan);
   memset(preview, 0, sizeof(*preview));
@@ -6642,6 +6627,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   if (render_asm_source) {
     render_asm_platform_header(out_preview, object);
     render_asm_app_extension_rs(out_preview, &lookup, decode);
+    out_preview->asm_source_body_start_byte = out_preview->asm_source_bytes;
   }
   phase_end = clock();
   out_preview->header_seconds = elapsed_seconds_local(phase_start, phase_end);
@@ -6901,7 +6887,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   if (out_preview->asm_source_allocation_failed) goto cleanup;
   phase_start = clock();
   if (render_asm_source && collect_asm_source_text &&
-      !hoist_asm_source_header_directives(out_preview)) {
+      !assemble_asm_source_header_regions(out_preview)) {
     out_preview->asm_source_allocation_failed = 1U;
     goto cleanup;
   }

@@ -56,9 +56,7 @@ app_01A2 RS.L 1
 app_node_list_head RS.L 1
 app_current_node RS.L 1
 app_01AE RS.L 1
-    RS.B 66
-app_01F4 RS.L 1
-    RS.B 8
+    RS.B 78
 app_0200 RS.L 1
 app_0204 RS.L 1
 app_0208 RS.L 1
@@ -1409,12 +1407,9 @@ loc_0_00000E8B:
 	dc.b $00,$00,$00,$00,$04,$04,$16,$16,$14,$14,$14,$14,$14,$14,$12,$12
 	dc.b $12,$02,$02,$1D,$1E,$1E,$00
 loc_0_00000EA2:
-	andi.b #$256,$027E.w
-	andi.l #42336942,d2
-	andi.l #45744832,-$3A(a4,d0.w*2)
-	andi.w #630,$7A(a2,d0.w*2)
-	bclr.b d0,app_01F4(a6)
-	dc.b $02,$CC,$02,$D8,$02,$D6
+	dc.b $02,$38,$02,$56,$02,$7E,$02,$82,$02,$86,$02,$AE,$02,$B4,$02,$BA
+	dc.b $02,$C0,$02,$C6,$02,$72,$02,$76,$02,$7A,$01,$AE,$01,$F4,$02,$CC
+	dc.b $02,$D8,$02,$D6
 loc_0_00000EC6:
 	lea.l app_0628(a6),a0
 	move.w (a0),d0

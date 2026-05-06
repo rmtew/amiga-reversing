@@ -82,6 +82,9 @@ Render plans can now emit physical line windows directly from row ownership
 metadata, including windows that start inside a multi-line row. This is the
 generic primitive the web listing path needs before it can stop requesting a
 whole source file for viewport-sized output.
+The source-producing facts_v2 path is being moved away from final-text header
+rewrites. Header material such as includes and equates should be captured as
+source regions during rendering, then assembled with the body deterministically.
 
 C line numbers in this module are zero-based. User-facing UI code may translate
 to one-based display line numbers at the boundary.
@@ -125,6 +128,9 @@ web API.
 - Keep generic behaviour in generic C analysis/rendering.
 - Keep Amiga behaviour in Amiga platform metadata or platform code.
 - Do not hardcode M68K instruction knowledge in the renderer.
+- Keep memory ownership simple and explicit. Avoid per-row or per-line heap
+  churn; use arenas for same-lifetime transient render data where suitable, and
+  refactor ownership boundaries when that is needed to make arena use clean.
 
 ## Non-Goals
 

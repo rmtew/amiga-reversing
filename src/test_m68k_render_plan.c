@@ -116,9 +116,7 @@ static int test_render_plan_builds_text_line_rows(void) {
 
 static int test_render_plan_window_emission_matches_full_slice(void) {
   M68kRenderPlan plan;
-  char *full_text = NULL;
-  char *window_text = NULL;
-  char *line_window_text = NULL;
+  char *full_text = NULL, *window_text = NULL, *line_window_text = NULL;
   const char *expected_full = "A\nB1\nB2\nC\n";
   const char *expected_window = "B1\nB2\n";
   const char *expected_line_window = "B2\nC\n";
