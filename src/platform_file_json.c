@@ -2091,52 +2091,6 @@ oom:
   return -1;
 }
 
-static int json_data_string_is_plain_renderable(const uint8_t *data, size_t size) {
-  size_t index;
-  for (index = 0; index < size; ++index) {
-    unsigned char ch = data[index];
-    if (ch == '"' || ch == '\\') return 0;
-  }
-  return 1;
-}
-
-static const M68kAnalysisStructuredDataItem *listing_structured_data_item_at_offset(
-    const M68kAnalysisPolicy *policy, int section_index, uint32_t offset);
-
-static size_t source_statement_rendered_line_count(const M68kStatementIR *stmt, const M68kRenderPolicy *policy,
-    const M68kAnalysisStructuredDataItem *structured_item) {
-  size_t step;
-  size_t items_per_line;
-  if (stmt == NULL) return 0U;
-  if (stmt->kind != M68K_STATEMENT_DATA) return 1U;
-  if (stmt->u.data.size == 0U) return 1U;
-  if (stmt->u.data.expr_text != NULL && stmt->u.data.expr_text[0] != '\0') return 1U;
-  if (structured_item != NULL && structured_item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS &&
-      structured_item->has_target && strcmp(structured_item->semantic_role, "lookup_table") == 0) {
-    return (((stmt->u.data.size + 1U) / 2U) + 3U) / 4U;
-  }
-  if (stmt->u.data.kind == M68K_DATA_ITEM_STRING && (policy == NULL || policy->presentation.prefer_strings != 0U) &&
-      json_data_string_is_plain_renderable(stmt->u.data.data, stmt->u.data.size)) {
-    return 1U;
-  }
-  step = (stmt->u.data.kind == M68K_DATA_ITEM_WORDS) ? 2U : (stmt->u.data.kind == M68K_DATA_ITEM_LONGS) ? 4U : 1U;
-  items_per_line = (stmt->u.data.kind == M68K_DATA_ITEM_LONGS) ? 8U : (stmt->u.data.kind == M68K_DATA_ITEM_WORDS) ? 12U : 16U;
-  if (stmt->u.data.kind == M68K_DATA_ITEM_STRING) {
-    step = 1U;
-    items_per_line = 16U;
-  }
-  if (stmt->u.data.kind == M68K_DATA_ITEM_LONGS && policy != NULL && policy->presentation.prefer_long_data == 0U) {
-    step = 1U;
-    items_per_line = 16U;
-  }
-  return ((stmt->u.data.size + step - 1U) / step + items_per_line - 1U) / items_per_line;
-}
-
-static int structured_data_item_needs_listing_line_count_override(const M68kAnalysisStructuredDataItem *structured_item) {
-  return structured_item != NULL && structured_item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS &&
-    structured_item->has_target && strcmp(structured_item->semantic_role, "lookup_table") == 0;
-}
-
 static void copy_trimmed(char *dst, size_t dst_size, const char *start, size_t length) {
   size_t out_length;
   while (length != 0U && (*start == ' ' || *start == '\t' || *start == '\r' || *start == '\n')) {
@@ -2152,98 +2106,6 @@ static void copy_trimmed(char *dst, size_t dst_size, const char *start, size_t l
   out_length = length < dst_size - 1U ? length : dst_size - 1U;
   if (out_length != 0U) memcpy(dst, start, out_length);
   dst[out_length] = '\0';
-}
-
-static int text_starts_with_ci(const char *text, const char *prefix) {
-  while (*prefix != '\0') {
-    char a = *text++;
-    char b = *prefix++;
-    if (a >= 'a' && a <= 'z') a = (char)(a - 'a' + 'A');
-    if (b >= 'a' && b <= 'z') b = (char)(b - 'a' + 'A');
-    if (a != b) return 0;
-  }
-  return 1;
-}
-
-static int text_contains_equ(const char *text) {
-  const char *cursor = text;
-  while (*cursor != '\0') {
-    if ((cursor[0] == ' ' || cursor[0] == '\t') &&
-        (cursor[1] == 'E' || cursor[1] == 'e') &&
-        (cursor[2] == 'Q' || cursor[2] == 'q') &&
-        (cursor[3] == 'U' || cursor[3] == 'u') &&
-        (cursor[4] == ' ' || cursor[4] == '\t')) {
-      return 1;
-    }
-    ++cursor;
-  }
-  return 0;
-}
-
-static int text_token_equals_ci(const char *text, size_t length, const char *expected) {
-  size_t index;
-  if (text == NULL || expected == NULL) return 0;
-  if (strlen(expected) != length) return 0;
-  for (index = 0U; index < length; ++index) {
-    char a = text[index];
-    char b = expected[index];
-    if (a >= 'a' && a <= 'z') a = (char)(a - 'a' + 'A');
-    if (b >= 'a' && b <= 'z') b = (char)(b - 'a' + 'A');
-    if (a != b) return 0;
-  }
-  return 1;
-}
-
-static int text_token_is_rs_directive(const char *text, size_t length) {
-  return text_token_equals_ci(text, length, "RSSET") ||
-    text_token_equals_ci(text, length, "RSRESET") ||
-    text_token_equals_ci(text, length, "RS.B") ||
-    text_token_equals_ci(text, length, "RS.W") ||
-    text_token_equals_ci(text, length, "RS.L");
-}
-
-static int text_first_token_equals_ci(const char *text, const char *expected) {
-  const char *cursor = text;
-  const char *token_start;
-  size_t token_length;
-  if (cursor == NULL) return 0;
-  while (*cursor == ' ' || *cursor == '\t') ++cursor;
-  token_start = cursor;
-  while (*cursor != '\0' && *cursor != ' ' && *cursor != '\t') ++cursor;
-  token_length = (size_t)(cursor - token_start);
-  return token_length != 0U && text_token_equals_ci(token_start, token_length, expected);
-}
-
-static int text_contains_rs_directive_token(const char *text) {
-  const char *cursor = text;
-  if (cursor == NULL) return 0;
-  while (*cursor != '\0') {
-    const char *token_start;
-    size_t token_length;
-    while (*cursor == ' ' || *cursor == '\t') ++cursor;
-    token_start = cursor;
-    while (*cursor != '\0' && *cursor != ' ' && *cursor != '\t') ++cursor;
-    token_length = (size_t)(cursor - token_start);
-    if (token_length != 0U && text_token_is_rs_directive(token_start, token_length)) return 1;
-  }
-  return 0;
-}
-
-static const char *listing_row_kind_for_line(const char *stripped) {
-  size_t length;
-  if (stripped == NULL || stripped[0] == '\0') return "blank";
-  if (stripped[0] == ';') return "comment";
-  length = strlen(stripped);
-  if (length != 0U && stripped[length - 1U] == ':') return "label";
-  if (text_starts_with_ci(stripped, "DC.") || text_starts_with_ci(stripped, "DCB.") ||
-      text_starts_with_ci(stripped, "DS.")) return "data";
-  if (text_starts_with_ci(stripped, "INCLUDE ") || text_starts_with_ci(stripped, "SECTION ") ||
-      text_starts_with_ci(stripped, "COMMENT ") || text_starts_with_ci(stripped, "EVEN") ||
-      text_starts_with_ci(stripped, "FPU ") || text_first_token_equals_ci(stripped, "ORG") ||
-      text_contains_equ(stripped) || text_contains_rs_directive_token(stripped)) {
-    return "directive";
-  }
-  return "instruction";
 }
 
 static void split_listing_line(const char *line_start, size_t line_length, char *stripped, size_t stripped_size,
@@ -2272,41 +2134,6 @@ static void split_listing_line(const char *line_start, size_t line_length, char 
     copy_trimmed(opcode, opcode_size, body, token_length);
     copy_trimmed(operand, operand_size, body + token_length, strlen(body + token_length));
   }
-}
-
-static const M68kStatementIR *listing_statement_for_line(const M68kSourceFileIR *source_file,
-    const M68kAnalysisPolicy *analysis_policy, size_t section_index, size_t *inout_statement_index,
-    size_t *inout_data_lines_left, const char *row_kind, int allow_structured_line_count_override) {
-  const M68kSectionIR *section;
-  const M68kStatementIR *stmt;
-  if (source_file == NULL || inout_statement_index == NULL || inout_data_lines_left == NULL) return NULL;
-  if (section_index >= source_file->section_count) return NULL;
-  section = &source_file->sections[section_index];
-  if (*inout_statement_index >= section->statement_count) return NULL;
-  stmt = &section->statements[*inout_statement_index];
-  if (*inout_data_lines_left != 0U) {
-    --*inout_data_lines_left;
-    if (*inout_data_lines_left == 0U) ++*inout_statement_index;
-    return stmt;
-  }
-  if ((stmt->kind == M68K_STATEMENT_LABEL && strcmp(row_kind, "label") == 0) ||
-      (stmt->kind == M68K_STATEMENT_INSTRUCTION && strcmp(row_kind, "instruction") == 0) ||
-      (stmt->kind == M68K_STATEMENT_ALIGN && strcmp(row_kind, "directive") == 0) ||
-      (stmt->kind == M68K_STATEMENT_DATA && strcmp(row_kind, "data") == 0)) {
-    const M68kAnalysisStructuredDataItem *structured_item =
-      stmt->kind == M68K_STATEMENT_DATA
-        ? listing_structured_data_item_at_offset(analysis_policy, (int)section_index, stmt->offset)
-        : NULL;
-    if (allow_structured_line_count_override && structured_data_item_needs_listing_line_count_override(structured_item)) {
-      size_t line_count = source_statement_rendered_line_count(stmt, NULL, structured_item);
-      if (stmt->kind == M68K_STATEMENT_DATA && line_count > 1U) *inout_data_lines_left = line_count - 1U;
-      else ++*inout_statement_index;
-    } else {
-      ++*inout_statement_index;
-    }
-    return stmt;
-  }
-  return NULL;
 }
 
 static int append_listing_source_context(JsonBuilder *builder, const char *kind, int section_index) {
@@ -4781,27 +4608,12 @@ static int listing_source_header_rows_append(ListingSourceHeaderRows *rows, cons
   return 0;
 }
 
-static int listing_source_header_group(const char *row_kind, const char *stripped) {
-  if (row_kind == NULL) return -1;
-  if (strcmp(row_kind, "comment") == 0) return 0;
-  if (stripped == NULL || stripped[0] == '\0') return -1;
-  if (strcmp(row_kind, "directive") != 0) return -1;
-  if (text_starts_with_ci(stripped, "COMMENT ")) return 0;
-  if (text_starts_with_ci(stripped, "INCLUDE ")) return 1;
-  if (text_contains_equ(stripped) || text_contains_rs_directive_token(stripped)) return 2;
-  return -1;
-}
-
-static int listing_should_hoist_source_header_row(const char *row_kind, const char *stripped) {
-  return listing_source_header_group(row_kind, stripped) >= 0;
-}
-
-static int listing_should_keep_source_only_body_row(const char *row_kind, const char *stripped,
-    int active_section_index) {
-  if (active_section_index < 0 || row_kind == NULL) return 0;
+static int listing_should_keep_source_only_body_row(const M68kRenderPlanRow *row, const char *row_kind,
+    int active_section_index, int is_plan_directive_subline) {
+  if (active_section_index < 0 || row_kind == NULL || row == NULL) return 0;
   if (strcmp(row_kind, "comment") == 0) return 1;
-  return strcmp(row_kind, "directive") == 0 &&
-    (text_starts_with_ci(stripped, "FPU ") || text_first_token_equals_ci(stripped, "ORG"));
+  if (is_plan_directive_subline) return 1;
+  return row->kind == M68K_RENDER_PLAN_ROW_ORG || row->kind == M68K_RENDER_PLAN_ROW_PLATFORM_DIRECTIVE;
 }
 
 typedef struct ListingRenderPlanJsonContext {
@@ -4833,8 +4645,6 @@ typedef struct ListingRenderPlanJsonContext {
   int window_enabled;
   int has_anchor_addr;
   int has_anchor_code_row;
-  size_t statement_index;
-  size_t data_lines_left;
 } ListingRenderPlanJsonContext;
 
 static const char *listing_row_kind_for_plan_row(const M68kRenderPlanRow *row) {
@@ -4851,7 +4661,8 @@ static const char *listing_row_kind_for_plan_row(const M68kRenderPlanRow *row) {
   if (row->kind == M68K_RENDER_PLAN_ROW_RESERVE) return "data";
   if (row->kind == M68K_RENDER_PLAN_ROW_BLANK) return "blank";
   if (row->kind == M68K_RENDER_PLAN_ROW_PLATFORM_DIRECTIVE) return "directive";
-  return NULL;
+  if (row->kind == M68K_RENDER_PLAN_ROW_DIAGNOSTIC) return "comment";
+  return "unknown";
 }
 
 static int listing_plan_subline_is_directive(const M68kRenderPlanRow *row, uint32_t subline) {
@@ -5047,6 +4858,7 @@ typedef struct ListingRenderPlanHeaderContext {
 
 static int listing_source_header_group_for_plan_row(const M68kRenderPlanRow *row) {
   if (row == NULL) return -1;
+  if (row->kind == M68K_RENDER_PLAN_ROW_DIAGNOSTIC) return 0;
   if (row->kind == M68K_RENDER_PLAN_ROW_INCLUDE) return 1;
   if (row->kind == M68K_RENDER_PLAN_ROW_RSSET || row->kind == M68K_RENDER_PLAN_ROW_RS_FIELD ||
       row->kind == M68K_RENDER_PLAN_ROW_EQUATE)
@@ -5057,10 +4869,6 @@ static int listing_source_header_group_for_plan_row(const M68kRenderPlanRow *row
 static int collect_listing_source_header_plan_line(const M68kRenderPlanRow *row, uint32_t subline, uint32_t line,
     const char *line_start, size_t line_length, void *user) {
   ListingRenderPlanHeaderContext *context = (ListingRenderPlanHeaderContext *)user;
-  char stripped[1024];
-  char opcode[128];
-  char operand[1024];
-  char comment[512];
   const char *row_kind;
   (void)subline;
   (void)line;
@@ -5069,28 +4877,15 @@ static int collect_listing_source_header_plan_line(const M68kRenderPlanRow *row,
     context->stopped = 1;
     return 0;
   }
-  if (row != NULL && row->kind != M68K_RENDER_PLAN_ROW_DIAGNOSTIC) {
+  if (row != NULL) {
     int group = listing_source_header_group_for_plan_row(row);
     row_kind = listing_row_kind_for_plan_row(row);
-    if (group >= 0 && row_kind != NULL) {
+    if (group >= 0) {
       if (listing_source_header_rows_append(context->header_rows, line_start, line_length, row_kind, -1,
           group) != 0)
         return -1;
     }
     return 0;
-  }
-  split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
-    sizeof(operand), comment, sizeof(comment));
-  row_kind = listing_row_kind_for_line(stripped);
-  if (strcmp(row_kind, "blank") == 0 && comment[0] != '\0') row_kind = "comment";
-  if (strcmp(row_kind, "directive") == 0 && text_starts_with_ci(stripped, "SECTION ")) {
-    context->stopped = 1;
-    return 0;
-  }
-  if (listing_should_hoist_source_header_row(row_kind, stripped)) {
-    int group = listing_source_header_group(row_kind, stripped);
-    if (listing_source_header_rows_append(context->header_rows, line_start, line_length, row_kind, -1, group) != 0)
-      return -1;
   }
   return 0;
 }
@@ -5144,28 +4939,17 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
   split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
     sizeof(operand), comment, sizeof(comment));
   row_kind = listing_row_kind_for_plan_row(row);
-  if (row_kind == NULL) {
-    row_kind = listing_row_kind_for_line(stripped);
-    if (strcmp(row_kind, "blank") == 0 && comment[0] != '\0') row_kind = "comment";
-  }
   if (is_plan_directive_subline) row_kind = "directive";
-  is_section_directive = strcmp(row_kind, "directive") == 0 && text_starts_with_ci(stripped, "SECTION ");
+  is_section_directive = row != NULL && row->kind == M68K_RENDER_PLAN_ROW_SECTION;
   section_index = listing_section_index_for_plan_row(row);
   if (is_section_directive) {
     if (section_index >= 0) context->active_section_index = section_index;
     else ++context->active_section_index;
     section_index = context->active_section_index;
-    context->statement_index = 0U;
-    context->data_lines_left = 0U;
   } else if (!is_plan_directive_subline && row != NULL && (row->has_statement || row->has_source_range)) {
     stmt = listing_statement_for_plan_row(context->source_file, row);
     if (stmt == NULL && listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
     if (section_index >= 0) context->active_section_index = section_index;
-  } else if (context->active_section_index >= 0) {
-    stmt = listing_statement_for_line(context->source_file, context->analysis_policy,
-      (size_t)context->active_section_index, &context->statement_index, &context->data_lines_left, row_kind,
-      strcmp(row_kind, "data") == 0 && strchr(stripped, '-') != NULL);
-    section_index = context->active_section_index;
   }
   if (context->emit_preamble_headers && !context->include_source_only_rows &&
       !context->preamble_emitted && is_section_directive) {
@@ -5174,7 +4958,8 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
     context->preamble_emitted = 1;
   }
   if (!context->include_source_only_rows && stmt == NULL && !is_section_directive &&
-      !listing_should_keep_source_only_body_row(row_kind, stripped, context->active_section_index)) {
+      !listing_should_keep_source_only_body_row(row, row_kind, context->active_section_index,
+        is_plan_directive_subline)) {
     return 0;
   }
   if (append_listing_render_plan_json_row(context, line_start, line_length, row_kind, stripped, opcode, operand,
@@ -6366,41 +6151,40 @@ static int listing_plan_row_subline_span(const M68kRenderPlanRow *row, uint32_t 
   return 0;
 }
 
-static int listing_row_code_matches_anchor(const M68kSourceFileIR *source_file,
-    const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
-    const char *analysis_generation, int active_section_index, const M68kRenderPlanRow *row, uint32_t subline,
+static int listing_row_code_matches_anchor_with_kind(const M68kStatementIR *stmt, const char *row_kind,
     const char *line_start, size_t line_length, const char *wanted) {
   char stripped[1024];
   char opcode[128];
   char operand[1024];
   char comment[512];
   char row_code[1024];
+  if (line_start == NULL || wanted == NULL || row_kind == NULL) return 0;
+  split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
+    sizeof(operand), comment, sizeof(comment));
+  listing_navigation_row_code(row_code, sizeof(row_code), row_kind, stripped, opcode, operand, stmt);
+  return strcmp(row_code, wanted) == 0;
+}
+
+static int listing_row_code_matches_anchor(const M68kSourceFileIR *source_file,
+    const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
+    const char *analysis_generation, int active_section_index, const M68kRenderPlanRow *row, uint32_t subline,
+    const char *line_start, size_t line_length, const char *wanted) {
   const char *row_kind;
   const M68kStatementIR *stmt = NULL;
   M68kStatementIR plan_stmt;
-  size_t statement_index = 0U;
-  size_t data_lines_left = 0U;
   (void)analysis_generation;
+  (void)analysis_policy;
+  (void)active_section_index;
   if (line_start == NULL || wanted == NULL) return 0;
   m68k_ir_statement_init(&plan_stmt);
-  split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
-    sizeof(operand), comment, sizeof(comment));
   row_kind = listing_row_kind_for_plan_row(row);
-  if (row_kind == NULL) {
-    row_kind = listing_row_kind_for_line(stripped);
-    if (strcmp(row_kind, "blank") == 0 && comment[0] != '\0') row_kind = "comment";
-  }
   if (listing_plan_subline_is_directive(row, subline)) row_kind = "directive";
   if (row != NULL && (row->has_statement || row->has_source_range)) {
     stmt = listing_statement_for_plan_row(source_file, row);
     if (stmt == NULL && listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
-  } else if (active_section_index >= 0) {
-    stmt = listing_statement_for_line(source_file, analysis_policy, (size_t)active_section_index, &statement_index,
-      &data_lines_left, row_kind, strcmp(row_kind, "data") == 0 && strchr(stripped, '-') != NULL);
   }
   (void)source_analysis;
-  listing_navigation_row_code(row_code, sizeof(row_code), row_kind, stripped, opcode, operand, stmt);
-  return strcmp(row_code, wanted) == 0;
+  return listing_row_code_matches_anchor_with_kind(stmt, row_kind, line_start, line_length, wanted);
 }
 
 static int listing_header_anchor_row(const ListingSourceHeaderRows *header_rows, const char *wanted,
@@ -6418,8 +6202,8 @@ static int listing_header_anchor_row(const ListingSourceHeaderRows *header_rows,
       if (emitted_any && !emitted_group) {
         ++*row_index;
       }
-      if (listing_row_code_matches_anchor(NULL, NULL, NULL, NULL, -1, NULL, 0U, row->line_start,
-          row->line_length, wanted)) {
+      if (listing_row_code_matches_anchor_with_kind(NULL, row->row_kind, row->line_start, row->line_length,
+          wanted)) {
         *out_row = *row_index;
         return 1;
       }

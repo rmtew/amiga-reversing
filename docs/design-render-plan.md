@@ -51,10 +51,10 @@ source text is emitted back from that plan. The profile exposes
 Bloodwych now has fewer plan rows than physical source lines because multi-line
 data spans stay attached to one analysis row.
 
-An isolated C test now proves that full listing JSON emitted from a text-line
-render plan remains stable for the same source model. The production DLL path
-uses the same plan-backed row emitter. The old full listing source-text API has
-been removed, so there is no separate raw source-text row loop to maintain.
+Isolated C tests now prove that full listing JSON is emitted from typed
+render-plan rows for the same source model. The production DLL path uses the
+same plan-backed row emitter. The old full listing source-text API has been
+removed, so there is no separate raw source-text row loop to maintain.
 Header collection for filtered listing rows now stops at the first section
 directive instead of scanning the whole render plan before the row-emission
 pass.
@@ -67,10 +67,10 @@ back into `M68kSourceFileIR` before row JSON emission, and the obsolete
 now capture the source plan without allocating the full `.s` API string.
 Render plans now have a typed header-hoist transform that orders include rows,
 RS rows, and equate rows before body rows without parsing final source text.
-Filtered full-listing header collection now also prefers typed render-plan row
-kinds for include/RS/equate rows and first-section stop detection. The legacy
-text classifier remains only for diagnostic/text-line bridge rows that do not
-yet have semantic row kinds.
+Filtered full-listing header collection now uses render-plan row kinds for
+include/RS/equate rows and first-section stop detection. The legacy emitted
+text classifier has been removed; diagnostic rows are comments, and semantic
+listing rows must carry semantic render-plan kinds/provenance.
 Render plans can now emit physical line windows directly from row ownership
 metadata, including windows that start inside a multi-line row. This is the
 generic primitive the web listing path needs before it can stop requesting a
@@ -161,8 +161,9 @@ use that provenance to bound the render-plan visit to the small span that can
 produce the requested displayed rows. Windows wholly inside the synthetic
 header preamble are emitted directly from the collected header rows; windows
 that cross from synthetic headers into body rows emit the requested header
-prefix and then visit only the indexed body plan span. Full visits remain only
-for fallback rows without enough provenance.
+prefix and then visit only the indexed body plan span. Concrete body rows must
+carry render-plan row/subline provenance; missing provenance is a render-plan
+construction defect, not a second listing path.
 Header preamble emission is now an explicit row-emission policy. Full listing,
 navigation, counting, and index-building passes emit the synthetic preamble;
 bounded artifact windows do not reinsert it because their displayed-row start
@@ -540,8 +541,9 @@ a fresh window around the anchor.
     production Python row-window and text-anchor helpers are removed; test-only
     fake artifacts keep local slicing helpers. The production Python full-row
     wrapper, row hydration, C full-row API, C basic-row API, and production
-    Python row-list navigation builder are removed; production serves listing
-    windows and navigation from the retained C artifact.
+    Python row-list navigation builder are removed. The legacy C emitted-text
+    row classifier is removed; production serves listing windows and navigation
+    from typed render-plan rows in the retained C artifact.
 
 The first retained step should be small: a synthetic render-plan fixture that
 proves line accounting and window emission. Do not start by rewriting the whole
