@@ -116,7 +116,7 @@ def test_benchmark_binary_target_uses_c_analysis_and_render(
     )
     monkeypatch.setattr(
         "amiga_reversing.tools.benchmark_target.benchmark_project_source_with_text_from_c_backend",
-        lambda source, syntax, metadata_path, project_root: (
+        lambda source, metadata_path, project_root: (
             {"analysis": {"violation_count": 1}, "analysis_backend": "facts_v2"},
             "; demo\n",
         ),

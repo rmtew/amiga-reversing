@@ -689,7 +689,7 @@ def test_relocation_backed_entry_splits_speculative_decode(tmp_path: Path) -> No
         )
     )
 
-    source = render_binary_source_with_c_backend(path, syntax="genam")
+    source = render_binary_source_with_c_backend(path)
     source_path.write_text(source, encoding="ascii")
 
     assert "jsr loc_1_00000004.l" in source
@@ -753,7 +753,7 @@ def test_stale_resident_vector_metadata_repaired_to_hunk_entries(tmp_path: Path)
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "mathtrans.analysis",
     )
-    source = render_project_source_with_c_backend(binary_source, syntax="genam", metadata_path=metadata_path)
+    source = render_project_source_with_c_backend(binary_source, metadata_path=metadata_path)
     source_path.write_text(source, encoding="utf-8")
 
     assert "dc.l s_p_atan" in source.lower()
@@ -798,7 +798,7 @@ def test_pc_relative_relocation_backed_entry_splits_speculative_decode(tmp_path:
         )
     )
 
-    source = render_binary_source_with_c_backend(path, syntax="genam")
+    source = render_binary_source_with_c_backend(path)
     source_path.write_text(source, encoding="ascii")
 
     assert "jsr loc_1_00000004(pc)" in source
@@ -1007,11 +1007,10 @@ def test_render_binary_source_uses_facts_v2_source(monkeypatch, tmp_path: Path) 
     calls: list[dict[str, object]] = []
     binary_path = tmp_path / "demo"
 
-    def fake_render_project_source(source, *, syntax: str, project_root: Path) -> str:
+    def fake_render_project_source(source, *, project_root: Path) -> str:
         calls.append(
             {
                 "source": source,
-                "syntax": syntax,
                 "project_root": project_root,
             }
         )
@@ -1022,12 +1021,10 @@ def test_render_binary_source_uses_facts_v2_source(monkeypatch, tmp_path: Path) 
     assert (
         render_binary_source_with_c_backend(
             binary_path,
-            syntax="genam",
             project_root=tmp_path,
         )
         == "SECTION section_0,code\n"
     )
-    assert calls[0]["syntax"] == "genam"
     assert calls[0]["project_root"] == tmp_path
     assert calls[0]["source"].path == binary_path
 
@@ -1459,7 +1456,6 @@ def test_project_source_benchmark_uses_facts_v2(
 
     benchmark, text = benchmark_project_source_with_text_from_c_backend(
         source,
-        syntax="genam",
         project_root=tmp_path,
     )
 
@@ -3469,7 +3465,7 @@ def test_project_source_facts_v2_indexed_pointer_table_comparators_stay_clean(ta
 
 def test_real_dll_renders_genam() -> None:
     _requires_c_backend_dlls()
-    rendered = render_binary_source_with_c_backend(PROJECT_ROOT / "bin" / "GenAm", syntax="vasm")
+    rendered = render_binary_source_with_c_backend(PROJECT_ROOT / "bin" / "GenAm")
 
     assert "SECTION" in rendered
     assert "move" in rendered.lower() or "jsr" in rendered.lower()
@@ -4280,7 +4276,6 @@ def test_real_dll_renders_mathtrans_overlap_as_data_and_reassembles(tmp_path: Pa
 
     rendered = render_project_source_with_c_backend(
         source,
-        syntax="genam",
         metadata_path=metadata_path,
         project_root=PROJECT_ROOT,
     )
@@ -4339,7 +4334,6 @@ def test_real_dll_renders_pmove_form_specific_control_register_and_reassembles(t
 
     rendered = render_project_source_with_c_backend(
         source,
-        syntax="genam",
         project_root=PROJECT_ROOT,
     )
     source_path.write_text(rendered, encoding="ascii")

@@ -68,7 +68,6 @@ class FactsV2DirectRebuildRefused(RuntimeError):
 def render_binary_source_with_c_backend(
     binary_path: str | Path,
     *,
-    syntax: str = "vasm",
     project_root: Path = PROJECT_ROOT,
 ) -> str:
     path = Path(binary_path)
@@ -80,7 +79,6 @@ def render_binary_source_with_c_backend(
     )
     return render_project_source_with_c_backend(
         source,
-        syntax=syntax,
         project_root=project_root,
     )
 
@@ -217,7 +215,6 @@ def decompress_packed_section_range_with_c_backend(
 def render_project_source_with_c_backend(
     binary_source: BinarySource,
     *,
-    syntax: str = "vasm",
     metadata_path: Path | None = None,
     project_root: Path = PROJECT_ROOT,
 ) -> str:
@@ -490,7 +487,6 @@ def effective_policy_project_source_with_c_backend(
 def benchmark_project_source_with_text_from_c_backend(
     binary_source: BinarySource,
     *,
-    syntax: str = "vasm",
     metadata_path: Path | None = None,
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[dict[str, object], str]:

@@ -34,12 +34,6 @@ class StageTimer:
                 for name, elapsed in self.samples]
 
 
-def _c_syntax_for_assembler_profile(assembler_profile_name: str) -> str:
-    if assembler_profile_name == "devpac":
-        return "genam"
-    return assembler_profile_name
-
-
 def gen_disasm(binary_path: str, entities_path: str, output_path: str,
                base_addr: int = 0, code_start: int = 0,
                assembler_profile_name: str = "vasm",
@@ -53,10 +47,7 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
     try:
         print(f"Rendering {output_path}...")
         with stage_timer.measure("render_text"):
-            text = render_binary_source_with_c_backend(
-                binary_path,
-                syntax=_c_syntax_for_assembler_profile(assembler_profile_name),
-            )
+            text = render_binary_source_with_c_backend(binary_path)
         assembler_profile = load_assembler_profile(assembler_profile_name)
         newline = "\n" if assembler_profile.render.line_ending == "lf" else "\r\n"
 

@@ -156,12 +156,6 @@ def _assembler_profile_for_target(target_dir: Path) -> str:
     return "vasm"
 
 
-def _c_syntax_for_assembler_profile(assembler_profile_name: str) -> str:
-    if assembler_profile_name == "devpac":
-        return "genam"
-    return assembler_profile_name
-
-
 def _benchmark_binary_target(
     target: str,
     *,
@@ -178,11 +172,9 @@ def _benchmark_binary_target(
     assembler_profile_name = _assembler_profile_for_target(target_dir)
     c_benchmark: dict[str, object] | None = None
     try:
-        c_syntax = _c_syntax_for_assembler_profile(assembler_profile_name)
         with effective_metadata_file(target_dir) as metadata_path:
             c_benchmark, rendered_text = benchmark_project_source_with_text_from_c_backend(
                 paths.binary_source,
-                syntax=c_syntax,
                 metadata_path=metadata_path,
                 project_root=ROOT,
             )

@@ -250,6 +250,10 @@ The remaining late source-render fallback inside `run_reproduction()` has also
 been removed. With no pre-rendered artifact source, reproduction uses direct C
 rebuild or the combined C render-assemble path; it does not render source and
 then call a separate assemble step as a second production path.
+The Python source-render helper API no longer accepts a `syntax` parameter.
+That argument was ignored by the facts_v2 C source path and implied a
+nonexistent alternate render mode. Source syntax selection belongs in the C
+render policy/source path, not in a stale Python wrapper parameter.
 Reproduction mismatch row mapping now uses the retained C artifact as a
 source-offset lookup service. The artifact resolves a `(section_index,
 section_offset)` through the render plan, translates the owning plan row through
