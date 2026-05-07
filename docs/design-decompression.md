@@ -174,8 +174,11 @@ Use project-owned decompression:
   unrelated scratch or hardware writes do not widen the payload hash. The
   simulator seed now also honours C policy runtime ranges/execution views, so
   absolute source reads are supported when the source mapping is explicit.
-  Simulated output records include a SHA-256 hash. Wider inferred memory-map
-  seeding and materialisation are still pending.
+  Simulated decruncher runs use a generic memory-policy callback for external
+  writes; the Amiga platform supplies generated hardware-register metadata so
+  progress/color/DMA side-effect writes do not abort extraction or become payload
+  bytes. Simulated output records include a SHA-256 hash. Wider inferred
+  memory-map seeding and materialisation are still pending.
 
 The boundary is:
 

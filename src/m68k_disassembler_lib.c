@@ -55,7 +55,7 @@ M68kSimConcreteRunResult m68k_simulate_one_concrete_for_cpu(const uint8_t *data,
   memset(&result, 0, sizeof(result));
   instruction = m68k_ir_decode_one(data, size, target_cpu, m68k_diag_sink(&result.diagnostics));
   if (m68k_diag_has_errors(&result.diagnostics) || instruction.byte_count == 0U) return result;
-  m68k_simulate_step_concrete(&instruction, target_cpu, data, size, memory, memory_size, io_state, NULL,
+  m68k_simulate_step_concrete(&instruction, target_cpu, data, size, memory, memory_size, io_state, NULL, NULL,
     m68k_diag_sink(&result.diagnostics));
   return result;
 }

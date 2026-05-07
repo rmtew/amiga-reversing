@@ -19,6 +19,7 @@
 #include "platform_file_decompression.h"
 #include "util_arena.h"
 #include "generated/amiga_hunk_file_runtime.h"
+#include "generated/amiga_os_runtime.h"
 
 #include <inttypes.h>
 #include <stdarg.h>
@@ -1036,6 +1037,28 @@ static int observed_writes_cover_target_local(const PlatformRuntimeWriteObservat
   return 1;
 }
 
+static int platform_self_decrunch_external_write_allowed_local(void *user, uint32_t address, uint8_t width) {
+  const M68kObject *object = (const M68kObject *)user;
+  const AmigaOsHardwareRegisterRangeInfo *range;
+  uint32_t range_start, range_end;
+  if (object == NULL || object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK || width == 0U ||
+      address > UINT32_MAX - width) {
+    return 0;
+  }
+  if (amiga_os_find_hardware_register_by_cpu_address(address) != NULL ||
+      amiga_os_find_hardware_register_field_by_cpu_address(address) != NULL) {
+    return 1;
+  }
+  range = amiga_os_find_hardware_register_range_by_cpu_address(address);
+  if (range == NULL || range->base_address > UINT32_MAX - range->offset ||
+      range->base_address + range->offset > UINT32_MAX - range->size) {
+    return 0;
+  }
+  range_start = range->base_address + range->offset;
+  range_end = range_start + range->size;
+  return address >= range_start && address + width <= range_end;
+}
+
 static int simulate_self_decrunch_output_local(const M68kObject *object, const M68kSourceAnalysisIR *analysis,
     const M68kDecodeSectionIR *section, const PlatformSelfDecrunchEvent *event,
     PlatformSelfDecrunchEvent *out_event) {
@@ -1044,6 +1067,7 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
   size_t memory_size, range_index, write_range_index;
   uint32_t output_start = 0U, output_end = 0U;
   M68kSimConcreteState state;
+  M68kSimConcreteMemoryPolicy memory_policy;
   M68kSimConcreteRunTraceResult result;
   int ok = 0;
   if (out_event != NULL && event != NULL) *out_event = *event;
@@ -1086,11 +1110,14 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
     memcpy(memory + range->runtime_address, source_section->data + range->offset, range->size);
   }
   memset(&state, 0, sizeof(state));
+  memset(&memory_policy, 0, sizeof(memory_policy));
   memset(&result, 0, sizeof(result));
+  memory_policy.external_write_allowed = platform_self_decrunch_external_write_allowed_local;
+  memory_policy.user = (void *)object;
   state.pc = event->decompressor_entry_offset;
   state.a[7] = (uint32_t)memory_size;
   if (m68k_simulate_run_concrete(analysis->policy.max_cpu, memory, memory_size, &state, 4096U, event->entrypoint,
-      event->entrypoint + 16U, &result) != 0 ||
+      event->entrypoint + 16U, &memory_policy, &result) != 0 ||
       result.stop_reason != M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE) {
     goto cleanup;
   }

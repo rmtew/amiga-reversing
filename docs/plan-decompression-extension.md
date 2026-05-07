@@ -270,6 +270,10 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   the output range containing the transfer target, rather than the broad min/max
   span. This keeps unrelated scratch or hardware writes out of simulated payload
   hashes.
+- Simulator-backed decrunch runs now have a generic external-write policy. The
+  Amiga platform uses generated hardware-register metadata for that policy, so
+  hardware side-effect writes can be allowed without treating them as payload
+  memory and without hardcoding Amiga addresses in the simulator.
 - The next implementation step is extending simulator-backed output capture for
   real unsupported events with inferred memory-map seeding where justified and
   conservative materialisation gates.

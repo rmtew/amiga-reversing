@@ -493,6 +493,13 @@ typedef struct M68kSimConcreteWriteTrace {
   M68kSimConcreteWriteRange memory_write_ranges[M68K_SIM_CONCRETE_WRITE_RANGE_LIMIT];
 } M68kSimConcreteWriteTrace;
 
+typedef int (*M68kSimConcreteExternalWriteAllowedFn)(void *user, uint32_t address, uint8_t width);
+
+typedef struct M68kSimConcreteMemoryPolicy {
+  M68kSimConcreteExternalWriteAllowedFn external_write_allowed;
+  void *user;
+} M68kSimConcreteMemoryPolicy;
+
 typedef enum M68kSimConcreteRunStopReason {
   M68K_SIM_CONCRETE_RUN_STOP_NONE = 0,
   M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE = 1,
@@ -536,10 +543,11 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
   uint32_t offset, const M68kInstructionIR *instruction, const M68kSimCpuState *state,
   const M68kSimMemoryState *memory_state, M68kSimStepResult *out_result);
 int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t target_cpu,
-  const uint8_t *code, size_t code_size, uint8_t *memory, size_t memory_size, M68kSimConcreteState *io_state,
-  M68kSimConcreteWriteTrace *write_trace, M68kDiagSink diagnostics);
+    const uint8_t *code, size_t code_size, uint8_t *memory, size_t memory_size, M68kSimConcreteState *io_state,
+    M68kSimConcreteWriteTrace *write_trace, const M68kSimConcreteMemoryPolicy *memory_policy,
+    M68kDiagSink diagnostics);
 int m68k_simulate_run_concrete(uint8_t target_cpu, uint8_t *memory, size_t memory_size,
-  M68kSimConcreteState *io_state, size_t max_steps, uint32_t stop_pc_start, uint32_t stop_pc_end,
-  M68kSimConcreteRunTraceResult *out_result);
+    M68kSimConcreteState *io_state, size_t max_steps, uint32_t stop_pc_start, uint32_t stop_pc_end,
+    const M68kSimConcreteMemoryPolicy *memory_policy, M68kSimConcreteRunTraceResult *out_result);
 
 #endif
