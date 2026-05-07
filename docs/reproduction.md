@@ -77,7 +77,7 @@ project. The stamp includes:
 ```text
 original binary sha256 and size
 effective metadata sha256
-renderer id and source syntax
+renderer id and tool stamps
 platform_file_lib.dll and platform_disk_lib.dll stamps
 assembler path and file stamp
 backend
