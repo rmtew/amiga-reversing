@@ -1,6 +1,6 @@
 {
   "absolute_code_labels": [],
-  "app_slot_regions": [],
+  "rsset_layout_regions": [],
   "bootblock": {
     "bootcode_offset": 12,
     "bootcode_size": 1012,

@@ -48,7 +48,7 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_ENTRY_POINT_LIMIT 64U
 #define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 256U
 #define M68K_ANALYSIS_NAMED_LABEL_LIMIT 128U
-#define M68K_ANALYSIS_APP_SLOT_REGION_LIMIT 128U
+#define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT 128U
 #define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 128U
 
 typedef enum M68kAnalysisRegisterKind {
@@ -133,7 +133,7 @@ typedef struct M68kAnalysisEntryComment {
   char comment[192];
 } M68kAnalysisEntryComment;
 
-typedef struct M68kAnalysisAppSlotRegion {
+typedef struct M68kAnalysisRssetLayoutRegion {
   uint32_t offset;
   uint8_t size;
   uint8_t reserved[3];
@@ -145,7 +145,7 @@ typedef struct M68kAnalysisAppSlotRegion {
   char pointer_struct[64];
   char storage_kind[32];
   char semantic_type[64];
-} M68kAnalysisAppSlotRegion;
+} M68kAnalysisRssetLayoutRegion;
 
 #define M68K_ANALYSIS_RUNTIME_RANGE_LIMIT 64U
 #define M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT 64U
@@ -179,7 +179,7 @@ typedef struct M68kAnalysisPolicy {
   uint16_t entry_comment_count;
   uint16_t runtime_range_count;
   uint16_t runtime_entry_point_count;
-  uint16_t app_slot_region_count;
+  uint16_t rsset_layout_region_count;
   uint32_t entry_offset;
   M68kAnalysisRegisterSeed register_seeds[M68K_ANALYSIS_REGISTER_SEED_LIMIT];
   M68kAnalysisEntryPoint entry_points[M68K_ANALYSIS_ENTRY_POINT_LIMIT];
@@ -188,7 +188,7 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisEntryComment entry_comments[M68K_ANALYSIS_ENTRY_COMMENT_LIMIT];
   M68kAnalysisRuntimeRange runtime_ranges[M68K_ANALYSIS_RUNTIME_RANGE_LIMIT];
   M68kAnalysisRuntimeEntryPoint runtime_entry_points[M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT];
-  M68kAnalysisAppSlotRegion app_slot_regions[M68K_ANALYSIS_APP_SLOT_REGION_LIMIT];
+  M68kAnalysisRssetLayoutRegion rsset_layout_regions[M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT];
 } M68kAnalysisPolicy;
 
 typedef struct M68kAnalysisFindings {

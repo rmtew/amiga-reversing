@@ -61,7 +61,7 @@
         },
         "target_metadata": {
           "absolute_code_labels": [],
-          "app_slot_regions": [],
+          "rsset_layout_regions": [],
           "bootblock": {
             "bootcode_offset": 12,
             "bootcode_size": 1012,
@@ -165,7 +165,7 @@
             },
             "target_metadata": {
               "absolute_code_labels": [],
-              "app_slot_regions": [],
+              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [
@@ -966,7 +966,7 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "app_slot_regions": [],
+              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],

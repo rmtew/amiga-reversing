@@ -109,7 +109,7 @@ static int policy_add_runtime_range_local(M68kAnalysisPolicy *policy, uint32_t s
   uint32_t source_start, uint32_t source_end, uint32_t base_addr, const char *name);
 static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index,
   uint32_t runtime_address);
-static int policy_add_app_slot_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
+static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
   const char *struct_name, const char *pointer_struct, const char *storage_kind, const char *semantic_type);
 static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
@@ -455,7 +455,7 @@ static int append_metadata_absolute_code_label_local(const char *object_start, c
   return 1;
 }
 
-static uint8_t app_slot_region_size_from_storage_kind_local(const char *storage_kind) {
+static uint8_t rsset_layout_region_size_from_storage_kind_local(const char *storage_kind) {
   if (storage_kind == NULL || storage_kind[0] == '\0') return 4U;
   if (strcmp(storage_kind, "struct_instance") == 0 ||
       strcmp(storage_kind, "struct_pointer") == 0 ||
@@ -466,7 +466,7 @@ static uint8_t app_slot_region_size_from_storage_kind_local(const char *storage_
   return 4U;
 }
 
-static int append_metadata_app_slot_region_local(const char *object_start, const char *object_end,
+static int append_metadata_rsset_layout_region_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
   uint32_t offset = 0U;
   uint32_t explicit_size = 0U;
@@ -507,8 +507,8 @@ static int append_metadata_app_slot_region_local(const char *object_start, const
   }
   if (!has_offset) return 1;
   if (has_size && (explicit_size == 0U || explicit_size > 255U)) return 0;
-  return policy_add_app_slot_region_local(policy, offset,
-    has_size ? (uint8_t)explicit_size : app_slot_region_size_from_storage_kind_local(storage_kind),
+  return policy_add_rsset_layout_region_local(policy, offset,
+    has_size ? (uint8_t)explicit_size : rsset_layout_region_size_from_storage_kind_local(storage_kind),
     layout_name, base_symbol, sizeof_symbol, symbol, struct_name, pointer_struct, storage_kind, semantic_type);
 }
 
@@ -571,19 +571,19 @@ static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint
   return 1;
 }
 
-static int policy_add_app_slot_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
-    const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
-    const char *struct_name, const char *pointer_struct, const char *storage_kind, const char *semantic_type) {
-  M68kAnalysisAppSlotRegion *slot;
+static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
+  const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
+  const char *struct_name, const char *pointer_struct, const char *storage_kind, const char *semantic_type) {
+  M68kAnalysisRssetLayoutRegion *slot;
   uint16_t index;
   const char *effective_layout = layout_name != NULL && layout_name[0] != '\0' ? layout_name : "app";
   const char *effective_base = base_symbol != NULL && base_symbol[0] != '\0' ? base_symbol : "__amiga_app_base__";
   if (policy == NULL || offset > 0x7FFFU || size == 0U ||
-      policy->app_slot_region_count >= M68K_ANALYSIS_APP_SLOT_REGION_LIMIT) {
+      policy->rsset_layout_region_count >= M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT) {
     return 0;
   }
-  for (index = 0U; index < policy->app_slot_region_count; ++index) {
-    const M68kAnalysisAppSlotRegion *existing = &policy->app_slot_regions[index];
+  for (index = 0U; index < policy->rsset_layout_region_count; ++index) {
+    const M68kAnalysisRssetLayoutRegion *existing = &policy->rsset_layout_regions[index];
     const char *existing_layout = existing->layout_name[0] != '\0' ? existing->layout_name : "app";
     const char *existing_base = existing->base_symbol[0] != '\0' ? existing->base_symbol : "__amiga_app_base__";
     if (existing->offset == offset && strcmp(existing_layout, effective_layout) == 0 &&
@@ -591,7 +591,7 @@ static int policy_add_app_slot_region_local(M68kAnalysisPolicy *policy, uint32_t
       return 1;
     }
   }
-  slot = &policy->app_slot_regions[policy->app_slot_region_count];
+  slot = &policy->rsset_layout_regions[policy->rsset_layout_region_count];
   memset(slot, 0, sizeof(*slot));
   slot->offset = offset;
   slot->size = size;
@@ -606,7 +606,7 @@ static int policy_add_app_slot_region_local(M68kAnalysisPolicy *policy, uint32_t
     memset(slot, 0, sizeof(*slot));
     return 0;
   }
-  policy->app_slot_region_count += 1U;
+  policy->rsset_layout_region_count += 1U;
   return 1;
 }
 
@@ -2033,13 +2033,13 @@ static int append_metadata_amiga_policy_text_local(const char *text, M68kAnalysi
     append_metadata_resident_parse_issue_local(text, policy);
     platform_file_add_warning(diagnostics.list, "failed parsing target metadata resident structure");
   }
-  cursor = json_find_array_local(text, "app_slot_regions", &array_end);
+  cursor = json_find_array_local(text, "rsset_layout_regions", &array_end);
   while (cursor != NULL && cursor < array_end) {
     const char *object_end;
     const char *object_start = json_next_object_local(cursor, array_end, &object_end);
     if (object_start == NULL) break;
-    if (!append_metadata_app_slot_region_local(object_start, object_end, policy)) {
-      platform_file_add_error(diagnostics.list, "failed parsing target metadata app slot region");
+    if (!append_metadata_rsset_layout_region_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata RSSET layout region");
       return -1;
     }
     cursor = object_end;
@@ -2060,7 +2060,7 @@ static int metadata_text_has_amiga_policy_local(const char *text) {
   char target_type[32];
   if (text == NULL) return 0;
   if (json_find_object_field_local(text, "resident", &resident_end) != NULL) return 1;
-  array_start = json_find_array_local(text, "app_slot_regions", &array_end);
+  array_start = json_find_array_local(text, "rsset_layout_regions", &array_end);
   if (array_start != NULL && json_next_object_local(array_start, array_end, NULL) != NULL) return 1;
   text_end = text + strlen(text);
   target_type[0] = '\0';
@@ -2503,12 +2503,12 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
         "\"analysis_policy\":{\"max_cpu\":%u,\"implicit_entry_points\":%s,"
         "\"entry_point_count\":%u,\"register_seed_count\":%u,"
         "\"structured_data_item_count\":%u,\"named_label_count\":%u,\"entry_comment_count\":%u,"
-        "\"runtime_range_count\":%u,\"runtime_entry_point_count\":%u,\"app_slot_region_count\":%u",
+        "\"runtime_range_count\":%u,\"runtime_entry_point_count\":%u,\"rsset_layout_region_count\":%u",
         (unsigned)policy->max_cpu, policy->disable_implicit_entry_points ? "false" : "true",
         (unsigned)policy->entry_point_count, (unsigned)policy->register_seed_count,
         (unsigned)policy->structured_data_item_count, (unsigned)policy->named_label_count,
         (unsigned)policy->entry_comment_count, (unsigned)policy->runtime_range_count,
-        (unsigned)policy->runtime_entry_point_count, (unsigned)policy->app_slot_region_count) != 0)
+        (unsigned)policy->runtime_entry_point_count, (unsigned)policy->rsset_layout_region_count) != 0)
     return -1;
   if (json_builder_append(builder, ",\"entrypoints\":[") != 0) return -1;
   for (index = 0U; index < policy->entry_point_count && index < M68K_ANALYSIS_ENTRY_POINT_LIMIT; ++index) {
@@ -2588,9 +2588,9 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (append_nullable_u32_json_local(builder, item->has_target, item->target_offset) != 0) return -1;
     if (json_builder_append(builder, "}") != 0) return -1;
   }
-  if (json_builder_append(builder, "],\"app_slot_regions\":[") != 0) return -1;
-  for (index = 0U; index < policy->app_slot_region_count && index < M68K_ANALYSIS_APP_SLOT_REGION_LIMIT; ++index) {
-    const M68kAnalysisAppSlotRegion *slot = &policy->app_slot_regions[index];
+  if (json_builder_append(builder, "],\"rsset_layout_regions\":[") != 0) return -1;
+  for (index = 0U; index < policy->rsset_layout_region_count && index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
+    const M68kAnalysisRssetLayoutRegion *slot = &policy->rsset_layout_regions[index];
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder, "{\"offset\":%u,\"size\":%u,\"layout_name\":",
           (unsigned)slot->offset, (unsigned)slot->size) != 0)
@@ -3695,41 +3695,50 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *ob
     const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
   JsonBuilder builder = {0};
-  M68kAnalysisPolicy local_policy;
-  M68kFactsV2Profile profile;
-  M68kSourceAnalysisIR analysis;
+  M68kAnalysisPolicy *local_policy = NULL;
+  M68kFactsV2Profile *profile = NULL;
+  M68kSourceAnalysisIR *analysis = NULL;
   char *base_json = NULL;
   int json_result;
   memset(&result, 0, sizeof(result));
-  memset(&profile, 0, sizeof(profile));
-  memset(&analysis, 0, sizeof(analysis));
   if (object == NULL) {
     platform_file_add_error(&result.diagnostics, "invalid facts_v2 analysis request");
     return result;
   }
-  if (analysis_policy != NULL) local_policy = *analysis_policy;
-  else m68k_analysis_policy_init_default(&local_policy);
-  if (m68k_facts_v2_collect_source_analysis_profile(object, &local_policy, &profile, &analysis,
+  local_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*local_policy));
+  profile = (M68kFactsV2Profile *)calloc(1U, sizeof(*profile));
+  analysis = (M68kSourceAnalysisIR *)calloc(1U, sizeof(*analysis));
+  if (local_policy == NULL || profile == NULL || analysis == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
+  }
+  if (analysis_policy != NULL) *local_policy = *analysis_policy;
+  else m68k_analysis_policy_init_default(local_policy);
+  if (m68k_facts_v2_collect_source_analysis_profile(object, local_policy, profile, analysis,
       m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "failed building facts_v2 source analysis");
-    return result;
+    goto cleanup;
   }
-  json_result = source_analysis_to_json(&analysis, &base_json, m68k_diag_sink(&result.diagnostics));
+  json_result = source_analysis_to_json(analysis, &base_json, m68k_diag_sink(&result.diagnostics));
   if (json_result == 0) {
     if (json_builder_create(&builder) != 0 ||
-        append_analysis_json_with_decompression_profile(&builder, base_json, object, &analysis, &profile) != 0) {
+        append_analysis_json_with_decompression_profile(&builder, base_json, object, analysis, profile) != 0) {
       json_result = -1;
     } else {
       result.text = json_builder_build(&builder);
       if (result.text == NULL) json_result = -1;
     }
   }
-  json_builder_destroy(&builder);
-  platform_file_free_text(base_json);
-  m68k_ir_source_analysis_destroy(&analysis);
   if (json_result != 0 && !m68k_diag_has_errors(&result.diagnostics))
     platform_file_add_error(&result.diagnostics, "failed building analysis json");
+cleanup:
+  json_builder_destroy(&builder);
+  platform_file_free_text(base_json);
+  if (analysis != NULL) m68k_ir_source_analysis_destroy(analysis);
+  free(analysis);
+  free(profile);
+  free(local_policy);
   return result;
 }
 
@@ -3738,24 +3747,28 @@ PlatformFileTextResult platform_file_facts_v2_analysis_path_json(const char *bac
   PlatformFileTextResult result;
   M68kObject object;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
-  M68kAnalysisPolicy active_analysis_policy;
+  M68kAnalysisPolicy *active_analysis_policy = NULL;
   memset(&result, 0, sizeof(result));
   memset(&object, 0, sizeof(object));
-  if (analysis_policy != NULL) active_analysis_policy = *analysis_policy;
-  else m68k_analysis_policy_init_default(&active_analysis_policy);
-  if (load_object_from_path(backend, path, &object, m68k_diag_sink(&result.diagnostics)) != 0) return result;
-  if (enrich_policy_from_object_target_info_local(&active_analysis_policy, backend, &object, NULL, 0U,
+  active_analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*active_analysis_policy));
+  if (active_analysis_policy == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    return result;
+  }
+  if (analysis_policy != NULL) *active_analysis_policy = *analysis_policy;
+  else m68k_analysis_policy_init_default(active_analysis_policy);
+  if (load_object_from_path(backend, path, &object, m68k_diag_sink(&result.diagnostics)) != 0) goto cleanup;
+  if (enrich_policy_from_object_target_info_local(active_analysis_policy, backend, &object, NULL, 0U,
       &result.diagnostics) != 0) {
-    m68k_object_destroy(&object);
-    return result;
+    goto cleanup;
   }
-  enrich_policy_pointer_targets_from_object_local(&active_analysis_policy, &object);
-  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, &active_analysis_policy)) {
-    m68k_object_destroy(&object);
-    return result;
-  }
-  result = facts_v2_analysis_object_json(&object, &active_analysis_policy);
+  enrich_policy_pointer_targets_from_object_local(active_analysis_policy, &object);
+  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, active_analysis_policy))
+    goto cleanup;
+  result = facts_v2_analysis_object_json(&object, active_analysis_policy);
+cleanup:
   m68k_object_destroy(&object);
+  free(active_analysis_policy);
   return result;
 }
 
@@ -3763,23 +3776,27 @@ PlatformFileTextResult platform_file_facts_v2_analysis_raw_path_json(const char 
     uint32_t entry_offset, const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
   M68kObject object;
-  M68kAnalysisPolicy raw_analysis_policy;
+  M68kAnalysisPolicy *raw_analysis_policy = NULL;
   memset(&result, 0, sizeof(result));
   memset(&object, 0, sizeof(object));
-  if (analysis_policy != NULL) raw_analysis_policy = *analysis_policy;
-  else m68k_analysis_policy_init_default(&raw_analysis_policy);
-  if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&result.diagnostics)) != 0) return result;
-  if (!policy_set_raw_entry_address_local(&raw_analysis_policy, &object, entry_offset, &result.diagnostics)) {
-    m68k_object_destroy(&object);
+  raw_analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*raw_analysis_policy));
+  if (raw_analysis_policy == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
     return result;
   }
-  enrich_policy_pointer_targets_from_object_local(&raw_analysis_policy, &object);
-  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, &raw_analysis_policy)) {
-    m68k_object_destroy(&object);
-    return result;
-  }
-  result = facts_v2_analysis_object_json(&object, &raw_analysis_policy);
+  if (analysis_policy != NULL) *raw_analysis_policy = *analysis_policy;
+  else m68k_analysis_policy_init_default(raw_analysis_policy);
+  if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&result.diagnostics)) != 0)
+    goto cleanup;
+  if (!policy_set_raw_entry_address_local(raw_analysis_policy, &object, entry_offset, &result.diagnostics))
+    goto cleanup;
+  enrich_policy_pointer_targets_from_object_local(raw_analysis_policy, &object);
+  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, raw_analysis_policy))
+    goto cleanup;
+  result = facts_v2_analysis_object_json(&object, raw_analysis_policy);
+cleanup:
   m68k_object_destroy(&object);
+  free(raw_analysis_policy);
   return result;
 }
 
@@ -3788,24 +3805,29 @@ PlatformFileTextResult platform_file_facts_v2_analysis_buffer_json(const char *b
   PlatformFileTextResult result;
   M68kObject object;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
-  M68kAnalysisPolicy active_analysis_policy;
+  M68kAnalysisPolicy *active_analysis_policy = NULL;
   memset(&result, 0, sizeof(result));
   memset(&object, 0, sizeof(object));
-  if (analysis_policy != NULL) active_analysis_policy = *analysis_policy;
-  else m68k_analysis_policy_init_default(&active_analysis_policy);
-  if (load_object_from_buffer(backend, data, size, &object, m68k_diag_sink(&result.diagnostics)) != 0) return result;
-  if (enrich_policy_from_object_target_info_local(&active_analysis_policy, backend, &object, NULL, 0U,
+  active_analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*active_analysis_policy));
+  if (active_analysis_policy == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    return result;
+  }
+  if (analysis_policy != NULL) *active_analysis_policy = *analysis_policy;
+  else m68k_analysis_policy_init_default(active_analysis_policy);
+  if (load_object_from_buffer(backend, data, size, &object, m68k_diag_sink(&result.diagnostics)) != 0)
+    goto cleanup;
+  if (enrich_policy_from_object_target_info_local(active_analysis_policy, backend, &object, NULL, 0U,
       &result.diagnostics) != 0) {
-    m68k_object_destroy(&object);
-    return result;
+    goto cleanup;
   }
-  enrich_policy_pointer_targets_from_object_local(&active_analysis_policy, &object);
-  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, &active_analysis_policy)) {
-    m68k_object_destroy(&object);
-    return result;
-  }
-  result = facts_v2_analysis_object_json(&object, &active_analysis_policy);
+  enrich_policy_pointer_targets_from_object_local(active_analysis_policy, &object);
+  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, active_analysis_policy))
+    goto cleanup;
+  result = facts_v2_analysis_object_json(&object, active_analysis_policy);
+cleanup:
   m68k_object_destroy(&object);
+  free(active_analysis_policy);
   return result;
 }
 

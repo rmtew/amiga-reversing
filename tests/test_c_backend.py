@@ -318,7 +318,7 @@ class _M68kAnalysisRuntimeEntryPoint(ctypes.Structure):
     ]
 
 
-class _M68kAnalysisAppSlotRegion(ctypes.Structure):
+class _M68kAnalysisRssetLayoutRegion(ctypes.Structure):
     _fields_ = [
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint8),
@@ -338,7 +338,8 @@ class _M68kAnalysisPolicy(ctypes.Structure):
     _fields_ = [
         ("max_cpu", ctypes.c_uint8),
         ("has_entry_offset", ctypes.c_uint8),
-        ("reserved0", ctypes.c_uint8 * 2),
+        ("disable_implicit_entry_points", ctypes.c_uint8),
+        ("reserved0", ctypes.c_uint8 * 1),
         ("register_seed_count", ctypes.c_uint16),
         ("entry_point_count", ctypes.c_uint16),
         ("structured_data_item_count", ctypes.c_uint16),
@@ -346,7 +347,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("entry_comment_count", ctypes.c_uint16),
         ("runtime_range_count", ctypes.c_uint16),
         ("runtime_entry_point_count", ctypes.c_uint16),
-        ("app_slot_region_count", ctypes.c_uint16),
+        ("rsset_layout_region_count", ctypes.c_uint16),
         ("entry_offset", ctypes.c_uint32),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
         ("entry_points", _M68kAnalysisEntryPoint * 64),
@@ -355,7 +356,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("entry_comments", _M68kAnalysisEntryComment * 128),
         ("runtime_ranges", _M68kAnalysisRuntimeRange * 64),
         ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
-        ("app_slot_regions", _M68kAnalysisAppSlotRegion * 128),
+        ("rsset_layout_regions", _M68kAnalysisRssetLayoutRegion * 128),
     ]
 
 
@@ -2319,7 +2320,7 @@ def test_real_dll_raw_runtime_absolute_entry_uses_execution_view(tmp_path: Path)
                 "resident": None,
                 "library": None,
                 "custom_structs": [],
-                "app_slot_regions": [],
+                "rsset_layout_regions": [],
                 "execution_views": [
                     {
                         "source_start": 0,
@@ -2364,7 +2365,7 @@ def test_real_dll_runtime_org_is_visible_in_listing_rows(tmp_path: Path) -> None
                 "resident": None,
                 "library": None,
                 "custom_structs": [],
-                "app_slot_regions": [],
+                "rsset_layout_regions": [],
                 "execution_views": [
                     {
                         "source_start": 0,
@@ -3232,7 +3233,7 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
                         "citation": "test",
                     }
                 ],
-                "app_slot_regions": [
+                "rsset_layout_regions": [
                     {
                         "offset": 0x22C,
                         "symbol": "app_startup_options_buffer",
@@ -3279,7 +3280,7 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     assert generic_policy.runtime_ranges[0].size == 0x10
     assert generic_policy.runtime_ranges[0].runtime_address == 0x400
     assert generic_policy.structured_data_item_count == 0
-    assert generic_policy.app_slot_region_count == 0
+    assert generic_policy.rsset_layout_region_count == 0
     assert generic_policy.named_label_count == 1
     assert generic_policy.named_labels[0].offset == 0x24
     assert generic_policy.named_labels[0].name == b"stage_entry"
@@ -3294,18 +3295,18 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     ) == 0
     assert amiga_policy.register_seed_count == 1
     assert amiga_policy.structured_data_item_count > 0
-    assert amiga_policy.app_slot_region_count == 2
-    assert amiga_policy.app_slot_regions[0].offset == 0x22C
-    assert amiga_policy.app_slot_regions[0].layout_name == b"app"
-    assert amiga_policy.app_slot_regions[0].base_symbol == b"__amiga_app_base__"
-    assert amiga_policy.app_slot_regions[0].symbol == b"app_startup_options_buffer"
-    assert amiga_policy.app_slot_regions[0].storage_kind == b"pointer"
-    assert amiga_policy.app_slot_regions[1].offset == 0x04
-    assert amiga_policy.app_slot_regions[1].size == 2
-    assert amiga_policy.app_slot_regions[1].layout_name == b"work"
-    assert amiga_policy.app_slot_regions[1].base_symbol == b"__game_work_base__"
-    assert amiga_policy.app_slot_regions[1].sizeof_symbol == b"work_SIZEOF"
-    assert amiga_policy.app_slot_regions[1].symbol == b"work_counter"
+    assert amiga_policy.rsset_layout_region_count == 2
+    assert amiga_policy.rsset_layout_regions[0].offset == 0x22C
+    assert amiga_policy.rsset_layout_regions[0].layout_name == b"app"
+    assert amiga_policy.rsset_layout_regions[0].base_symbol == b"__amiga_app_base__"
+    assert amiga_policy.rsset_layout_regions[0].symbol == b"app_startup_options_buffer"
+    assert amiga_policy.rsset_layout_regions[0].storage_kind == b"pointer"
+    assert amiga_policy.rsset_layout_regions[1].offset == 0x04
+    assert amiga_policy.rsset_layout_regions[1].size == 2
+    assert amiga_policy.rsset_layout_regions[1].layout_name == b"work"
+    assert amiga_policy.rsset_layout_regions[1].base_symbol == b"__game_work_base__"
+    assert amiga_policy.rsset_layout_regions[1].sizeof_symbol == b"work_SIZEOF"
+    assert amiga_policy.rsset_layout_regions[1].symbol == b"work_counter"
     assert amiga_policy.named_label_count > 0
 
 
@@ -3323,7 +3324,7 @@ def test_real_dll_metadata_named_rsset_layout_preserves_explicit_size(tmp_path: 
                 "resident": None,
                 "library": None,
                 "custom_structs": [],
-                "app_slot_regions": [
+                "rsset_layout_regions": [
                     {
                         "offset": 2,
                         "size": 2,
@@ -3388,7 +3389,7 @@ def test_real_dll_metadata_named_rsset_layout_symbols_seeded_base_access(tmp_pat
                 "resident": None,
                 "library": None,
                 "custom_structs": [],
-                "app_slot_regions": [
+                "rsset_layout_regions": [
                     {
                         "offset": 4,
                         "size": 2,

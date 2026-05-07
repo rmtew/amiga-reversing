@@ -361,7 +361,7 @@ static int json_string_field_equals(const char *json, const char *key, const cha
 }
 
 static int append_empty_target_metadata_arrays_json(JsonBuilder *builder) {
-    if (json_builder_append(builder, ",\"custom_structs\":[],\"app_slot_regions\":[],\"seeded_entities\":[]") != 0)
+    if (json_builder_append(builder, ",\"custom_structs\":[],\"rsset_layout_regions\":[],\"seeded_entities\":[]") != 0)
         return -1;
     if (json_builder_append(builder, ",\"seeded_code_labels\":[],\"seeded_code_entrypoints\":[]") != 0) return -1;
     if (json_builder_append(builder, ",\"absolute_code_labels\":[],\"execution_views\":[]") != 0) return -1;

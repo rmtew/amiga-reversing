@@ -222,7 +222,7 @@
   },
   "target_type": "library",
   "custom_structs": [],
-  "app_slot_regions": [],
+  "rsset_layout_regions": [],
   "reproduction": {
     "file_shape": {
       "relocation_order": "match_original"

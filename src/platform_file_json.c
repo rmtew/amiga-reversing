@@ -3824,7 +3824,7 @@ static int append_listing_app_slot_region_evidence_json(JsonBuilder *builder,
   return json_builder_append(builder, "]");
 }
 
-static int append_listing_app_slot_regions_json(JsonBuilder *builder, const ListingAppSlotAnalysisBuilder *analysis,
+static int append_listing_rsset_layout_regions_json(JsonBuilder *builder, const ListingAppSlotAnalysisBuilder *analysis,
     const ListingAppSlotSummary *summaries, size_t summary_count) {
   size_t index;
   int emitted = 0;
@@ -4312,7 +4312,7 @@ static int append_listing_app_slot_analysis_json(JsonBuilder *builder,
     goto cleanup;
   if (append_listing_app_slot_slots_json(builder, summaries, summary_count) != 0) goto cleanup;
   if (json_builder_append(builder, ",\"regions\":") != 0) goto cleanup;
-  if (append_listing_app_slot_regions_json(builder, analysis, summaries, summary_count) != 0) goto cleanup;
+  if (append_listing_rsset_layout_regions_json(builder, analysis, summaries, summary_count) != 0) goto cleanup;
   if (json_builder_append(builder, ",\"gaps\":") != 0) goto cleanup;
   if (append_listing_app_slot_gaps_json(builder, intervals, interval_count, NULL) != 0) goto cleanup;
   if (json_builder_append(builder, ",\"field_gaps\":") != 0) goto cleanup;

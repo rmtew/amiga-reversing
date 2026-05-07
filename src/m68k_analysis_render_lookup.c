@@ -2912,7 +2912,7 @@ static int amiga_vector_has_typed_flow_info(const AmigaOsLibraryVectorInfo *vect
 
 static int policy_has_typed_flow_metadata(const M68kAnalysisPolicy *policy) {
   if (policy == NULL) return 0;
-  return policy->register_seed_count != 0U || policy->app_slot_region_count != 0U ||
+  return policy->register_seed_count != 0U || policy->rsset_layout_region_count != 0U ||
     policy->structured_data_item_count != 0U;
 }
 
@@ -3688,15 +3688,15 @@ static int render_lookup_add_app_access_slot(M68kRenderLookup *lookup, int16_t d
     M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS, observed_access_size, source_section_index, source_offset);
 }
 
-static int render_lookup_seed_policy_app_slot_regions(M68kRenderLookup *lookup) {
+static int render_lookup_seed_policy_rsset_layout_regions(M68kRenderLookup *lookup) {
   uint16_t index;
   const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
   if (lookup == NULL || policy == NULL || lookup->object == NULL ||
       lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
     return 0;
   }
-  for (index = 0U; index < policy->app_slot_region_count && index < M68K_ANALYSIS_APP_SLOT_REGION_LIMIT; ++index) {
-    const M68kAnalysisAppSlotRegion *slot = &policy->app_slot_regions[index];
+  for (index = 0U; index < policy->rsset_layout_region_count && index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
+    const M68kAnalysisRssetLayoutRegion *slot = &policy->rsset_layout_regions[index];
     const char *base_symbol = slot->base_symbol[0] != '\0' ? slot->base_symbol : "__amiga_app_base__";
     if (slot->symbol[0] == '\0' || slot->offset > 0x7FFFU) continue;
     if (render_lookup_add_named_layout_field_slot(lookup, base_symbol, (int16_t)slot->offset, slot->symbol, SIZE_MAX,
@@ -8628,7 +8628,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   clock_t start;
   clock_t end;
   start = clock();
-  if (render_lookup_seed_policy_app_slot_regions(lookup) != 0) return -1;
+  if (render_lookup_seed_policy_rsset_layout_regions(lookup) != 0) return -1;
   if (render_lookup_infer_global_base_slots(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
   if (preview != NULL) preview->platform_pass_base_slot_seconds = elapsed_seconds_local(start, end);

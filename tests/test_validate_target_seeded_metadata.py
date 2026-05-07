@@ -18,7 +18,7 @@ def test_validate_target_seeded_metadata_script_normalizes_seeded_file(tmp_path:
                 "resident": None,
                 "library": None,
                 "custom_structs": [],
-                "app_slot_regions": [],
+                "rsset_layout_regions": [],
                 "seeded_entities": [
                     {
                         "addr": 256,
@@ -91,7 +91,7 @@ def test_validate_target_seeded_metadata_script_rejects_bootblock_payload(tmp_pa
                 "resident": None,
                 "library": None,
                 "custom_structs": [],
-                "app_slot_regions": [],
+                "rsset_layout_regions": [],
                 "seeded_entities": [],
                 "seeded_code_entrypoints": [],
             }
@@ -122,7 +122,7 @@ def test_validate_target_seeded_metadata_script_rejects_missing_source_locator(t
                 "resident": None,
                 "library": None,
                 "custom_structs": [],
-                "app_slot_regions": [],
+                "rsset_layout_regions": [],
                 "seeded_entities": [
                     {
                         "addr": 256,

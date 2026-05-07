@@ -6449,7 +6449,7 @@ static int test_listing_json_indexed_window_does_not_reemit_headers(void) {
   return 0;
 }
 
-static int test_listing_json_emits_app_slot_regions_from_platform_api_inputs(void) {
+static int test_listing_json_emits_rsset_layout_regions_from_platform_api_inputs(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
   M68kSourceAnalysisIR source_analysis;
@@ -7389,7 +7389,7 @@ static int test_facts_v2_analysis_keeps_untyped_app_slot_untyped(void) {
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_uses_policy_app_slot_region_symbol(void) {
+static int test_facts_v2_render_asm_source_uses_policy_rsset_layout_region_symbol(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -7421,12 +7421,12 @@ static int test_facts_v2_render_asm_source_uses_policy_app_slot_region_symbol(vo
   policy.register_seeds[0].entry_offset = 0U;
   policy.register_seeds[0].section_index = 0U;
   snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "__amiga_app_base__");
-  policy.app_slot_region_count = 1U;
-  policy.app_slot_regions[0].offset = 0x022CU;
-  policy.app_slot_regions[0].size = 4U;
-  snprintf(policy.app_slot_regions[0].symbol, sizeof(policy.app_slot_regions[0].symbol),
+  policy.rsset_layout_region_count = 1U;
+  policy.rsset_layout_regions[0].offset = 0x022CU;
+  policy.rsset_layout_regions[0].size = 4U;
+  snprintf(policy.rsset_layout_regions[0].symbol, sizeof(policy.rsset_layout_regions[0].symbol),
     "app_startup_options_buffer");
-  snprintf(policy.app_slot_regions[0].storage_kind, sizeof(policy.app_slot_regions[0].storage_kind), "pointer");
+  snprintf(policy.rsset_layout_regions[0].storage_kind, sizeof(policy.rsset_layout_regions[0].storage_kind), "pointer");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
@@ -7459,21 +7459,21 @@ static int test_facts_v2_render_asm_source_supports_named_rsset_layouts(void) {
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  policy.app_slot_region_count = 2U;
-  policy.app_slot_regions[0].offset = 0x0004U;
-  policy.app_slot_regions[0].size = 4U;
-  snprintf(policy.app_slot_regions[0].layout_name, sizeof(policy.app_slot_regions[0].layout_name), "app");
-  snprintf(policy.app_slot_regions[0].base_symbol, sizeof(policy.app_slot_regions[0].base_symbol),
+  policy.rsset_layout_region_count = 2U;
+  policy.rsset_layout_regions[0].offset = 0x0004U;
+  policy.rsset_layout_regions[0].size = 4U;
+  snprintf(policy.rsset_layout_regions[0].layout_name, sizeof(policy.rsset_layout_regions[0].layout_name), "app");
+  snprintf(policy.rsset_layout_regions[0].base_symbol, sizeof(policy.rsset_layout_regions[0].base_symbol),
     "__amiga_app_base__");
-  snprintf(policy.app_slot_regions[0].symbol, sizeof(policy.app_slot_regions[0].symbol), "app_Window");
-  snprintf(policy.app_slot_regions[1].layout_name, sizeof(policy.app_slot_regions[1].layout_name), "work");
-  snprintf(policy.app_slot_regions[1].base_symbol, sizeof(policy.app_slot_regions[1].base_symbol),
+  snprintf(policy.rsset_layout_regions[0].symbol, sizeof(policy.rsset_layout_regions[0].symbol), "app_Window");
+  snprintf(policy.rsset_layout_regions[1].layout_name, sizeof(policy.rsset_layout_regions[1].layout_name), "work");
+  snprintf(policy.rsset_layout_regions[1].base_symbol, sizeof(policy.rsset_layout_regions[1].base_symbol),
     "__game_work_base__");
-  snprintf(policy.app_slot_regions[1].sizeof_symbol, sizeof(policy.app_slot_regions[1].sizeof_symbol),
+  snprintf(policy.rsset_layout_regions[1].sizeof_symbol, sizeof(policy.rsset_layout_regions[1].sizeof_symbol),
     "work_SIZEOF");
-  policy.app_slot_regions[1].offset = 0x0002U;
-  policy.app_slot_regions[1].size = 2U;
-  snprintf(policy.app_slot_regions[1].symbol, sizeof(policy.app_slot_regions[1].symbol), "work_flags");
+  policy.rsset_layout_regions[1].offset = 0x0002U;
+  policy.rsset_layout_regions[1].size = 2U;
+  snprintf(policy.rsset_layout_regions[1].symbol, sizeof(policy.rsset_layout_regions[1].symbol), "work_flags");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
@@ -12689,8 +12689,8 @@ int m68k_c_ir_tests(void) {
       test_listing_json_window_matches_full_render_plan_slice},
     {"listing_json_indexed_window_does_not_reemit_headers",
       test_listing_json_indexed_window_does_not_reemit_headers},
-    {"listing_json_emits_app_slot_regions_from_platform_api_inputs",
-      test_listing_json_emits_app_slot_regions_from_platform_api_inputs},
+    {"listing_json_emits_rsset_layout_regions_from_platform_api_inputs",
+      test_listing_json_emits_rsset_layout_regions_from_platform_api_inputs},
     {"listing_json_tracks_app_slot_address_through_lea_copy",
       test_listing_json_tracks_app_slot_address_through_lea_copy},
     {"listing_json_reports_untyped_app_slot_api_args",
@@ -12723,8 +12723,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_uses_observed_app_slot_widths},
     {"facts_v2_analysis_keeps_untyped_app_slot_untyped",
       test_facts_v2_analysis_keeps_untyped_app_slot_untyped},
-    {"facts_v2_render_asm_source_uses_policy_app_slot_region_symbol",
-      test_facts_v2_render_asm_source_uses_policy_app_slot_region_symbol},
+    {"facts_v2_render_asm_source_uses_policy_rsset_layout_region_symbol",
+      test_facts_v2_render_asm_source_uses_policy_rsset_layout_region_symbol},
     {"facts_v2_render_asm_source_supports_named_rsset_layouts",
       test_facts_v2_render_asm_source_supports_named_rsset_layouts},
     {"facts_v2_render_asm_source_infers_lvo_from_base_field_slot",

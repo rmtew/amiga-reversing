@@ -86,7 +86,7 @@ def _empty_metadata() -> dict[str, object]:
         "resident": None,
         "library": None,
         "custom_structs": [],
-        "app_slot_regions": [],
+        "rsset_layout_regions": [],
         "seeded_entities": [],
         "seeded_code_labels": [],
         "seeded_code_entrypoints": [],

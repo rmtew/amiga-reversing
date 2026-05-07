@@ -99,7 +99,7 @@ M68K_ANALYSIS_REGISTER_SEED_LIMIT = 64
 M68K_ANALYSIS_ENTRY_POINT_LIMIT = 64
 M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT = 256
 M68K_ANALYSIS_NAMED_LABEL_LIMIT = 128
-M68K_ANALYSIS_APP_SLOT_REGION_LIMIT = 128
+M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT = 128
 M68K_ANALYSIS_ENTRY_COMMENT_LIMIT = 128
 M68K_ANALYSIS_RUNTIME_RANGE_LIMIT = 64
 M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT = 64
@@ -199,7 +199,7 @@ class M68kAnalysisRuntimeEntryPoint(ctypes.Structure):
     ]
 
 
-class M68kAnalysisAppSlotRegion(ctypes.Structure):
+class M68kAnalysisRssetLayoutRegion(ctypes.Structure):
     _fields_ = [
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint8),
@@ -228,7 +228,7 @@ class M68kAnalysisPolicy(ctypes.Structure):
         ("entry_comment_count", ctypes.c_uint16),
         ("runtime_range_count", ctypes.c_uint16),
         ("runtime_entry_point_count", ctypes.c_uint16),
-        ("app_slot_region_count", ctypes.c_uint16),
+        ("rsset_layout_region_count", ctypes.c_uint16),
         ("entry_offset", ctypes.c_uint32),
         ("register_seeds", M68kAnalysisRegisterSeed * M68K_ANALYSIS_REGISTER_SEED_LIMIT),
         ("entry_points", M68kAnalysisEntryPoint * M68K_ANALYSIS_ENTRY_POINT_LIMIT),
@@ -240,7 +240,7 @@ class M68kAnalysisPolicy(ctypes.Structure):
         ("entry_comments", M68kAnalysisEntryComment * M68K_ANALYSIS_ENTRY_COMMENT_LIMIT),
         ("runtime_ranges", M68kAnalysisRuntimeRange * M68K_ANALYSIS_RUNTIME_RANGE_LIMIT),
         ("runtime_entry_points", M68kAnalysisRuntimeEntryPoint * M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT),
-        ("app_slot_regions", M68kAnalysisAppSlotRegion * M68K_ANALYSIS_APP_SLOT_REGION_LIMIT),
+        ("rsset_layout_regions", M68kAnalysisRssetLayoutRegion * M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT),
     ]
 
 

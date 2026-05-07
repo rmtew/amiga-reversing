@@ -295,7 +295,7 @@ class CustomStructMetadata:
         )
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class AppSlotRegionMetadata:
+class RssetLayoutRegionMetadata:
     offset: int
     seed_origin: str
     review_status: str
@@ -314,7 +314,7 @@ class AppSlotRegionMetadata:
     parse_order: int | None = None
 
     @classmethod
-    def from_dict(cls, payload: dict[str, object]) -> AppSlotRegionMetadata:
+    def from_dict(cls, payload: dict[str, object]) -> RssetLayoutRegionMetadata:
         offset = payload["offset"]
         seed_origin = payload["seed_origin"]
         review_status = payload["review_status"]
@@ -639,7 +639,7 @@ class TargetMetadata:
     resident: ResidentTargetMetadata | None = None
     library: LibraryTargetMetadata | None = None
     custom_structs: tuple[CustomStructMetadata, ...] = ()
-    app_slot_regions: tuple[AppSlotRegionMetadata, ...] = ()
+    rsset_layout_regions: tuple[RssetLayoutRegionMetadata, ...] = ()
     seeded_entities: tuple[SeededEntityMetadata, ...] = ()
     seeded_code_labels: tuple[SeededCodeLabelMetadata, ...] = ()
     seeded_code_entrypoints: tuple[SeededCodeEntrypointMetadata, ...] = ()
@@ -655,7 +655,7 @@ class TargetMetadata:
         resident = payload["resident"]
         library = payload["library"]
         custom_structs = payload["custom_structs"]
-        app_slot_regions = payload["app_slot_regions"]
+        rsset_layout_regions = payload["rsset_layout_regions"]
         seeded_entities = payload.get("seeded_entities", [])
         seeded_code_labels = payload.get("seeded_code_labels", [])
         seeded_code_entrypoints = payload.get("seeded_code_entrypoints", [])
@@ -677,9 +677,9 @@ class TargetMetadata:
                 CustomStructMetadata.from_dict(_json_object(struct_payload))
                 for struct_payload in _json_list(custom_structs)
             ),
-            app_slot_regions=tuple(
-                AppSlotRegionMetadata.from_dict(_json_object(slot_payload))
-                for slot_payload in _json_list(app_slot_regions)
+            rsset_layout_regions=tuple(
+                RssetLayoutRegionMetadata.from_dict(_json_object(slot_payload))
+                for slot_payload in _json_list(rsset_layout_regions)
             ),
             seeded_entities=tuple(
                 SeededEntityMetadata.from_dict(_json_object(entity_payload))
@@ -843,8 +843,8 @@ def validate_target_corrections_metadata(metadata: TargetMetadata) -> TargetMeta
         raise ValueError("target_corrections.json must not contain entry_register_seeds")
     if metadata.custom_structs:
         raise ValueError("target_corrections.json must not contain custom_structs")
-    if metadata.app_slot_regions:
-        raise ValueError("target_corrections.json must not contain app_slot_regions")
+    if metadata.rsset_layout_regions:
+        raise ValueError("target_corrections.json must not contain rsset_layout_regions")
     return metadata
 
 
@@ -862,7 +862,7 @@ def _apply_suppressed_seeded_items(
         resident=seeded.resident,
         library=seeded.library,
         custom_structs=seeded.custom_structs,
-        app_slot_regions=seeded.app_slot_regions,
+        rsset_layout_regions=seeded.rsset_layout_regions,
         seeded_entities=tuple(
             entity
             for entity in seeded.seeded_entities
@@ -1060,11 +1060,11 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
             key=lambda struct: struct.name,
             what="custom struct",
         ),
-        app_slot_regions=_merge_unique_by_key(
-            manual.app_slot_regions,
-            seeded.app_slot_regions,
+        rsset_layout_regions=_merge_unique_by_key(
+            manual.rsset_layout_regions,
+            seeded.rsset_layout_regions,
             key=lambda region: (region.layout_name or "app", region.base_symbol or "__amiga_app_base__", region.offset),
-            what="app slot region",
+            what="RSSET layout region",
         ),
         seeded_entities=_merge_seeded_entities(manual.seeded_entities, seeded.seeded_entities),
         seeded_code_labels=_merge_seeded_code_labels(manual.seeded_code_labels, seeded.seeded_code_labels),

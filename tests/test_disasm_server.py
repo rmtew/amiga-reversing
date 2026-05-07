@@ -2661,7 +2661,7 @@ def test_listing_navigation_exposes_type_flow_analysis_metadata(monkeypatch: pyt
     }
 
 
-def test_listing_navigation_exposes_app_slot_regions_and_gaps(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_listing_navigation_exposes_rsset_layout_regions_and_gaps(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "_active_reproduction_report", lambda project_name: None)
     monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
     rows = [

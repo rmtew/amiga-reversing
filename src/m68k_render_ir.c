@@ -827,8 +827,8 @@ int platform_state_name_is_app_base(const char *name) {
 static int policy_has_layout_base_symbol(const M68kAnalysisPolicy *policy, const char *name) {
   uint16_t index;
   if (policy == NULL || name == NULL || name[0] == '\0') return 0;
-  for (index = 0U; index < policy->app_slot_region_count && index < M68K_ANALYSIS_APP_SLOT_REGION_LIMIT; ++index) {
-    const M68kAnalysisAppSlotRegion *region = &policy->app_slot_regions[index];
+  for (index = 0U; index < policy->rsset_layout_region_count && index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
+    const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[index];
     const char *base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : "__amiga_app_base__";
     if (strcmp(base_symbol, name) == 0) return 1;
   }
@@ -5071,7 +5071,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
   char line[160];
   if (preview == NULL || lookup == NULL) return;
   slot_capacity = lookup->base_field_slot_count +
-    (lookup->policy != NULL ? lookup->policy->app_slot_region_count : 0U);
+    (lookup->policy != NULL ? lookup->policy->rsset_layout_region_count : 0U);
   if (slot_capacity == 0U) slot_capacity = 1U;
   scratch_arena = render_preview_scratch_arena(preview);
   if (scratch_arena == NULL) {
@@ -5138,8 +5138,8 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
   }
   if (lookup->policy != NULL) {
     const M68kAnalysisPolicy *policy = lookup->policy;
-    for (index = 0U; index < policy->app_slot_region_count && index < M68K_ANALYSIS_APP_SLOT_REGION_LIMIT; ++index) {
-      const M68kAnalysisAppSlotRegion *region = &policy->app_slot_regions[index];
+    for (index = 0U; index < policy->rsset_layout_region_count && index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
+      const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[index];
       const char *layout_name = region->layout_name[0] != '\0' ? region->layout_name : "app";
       const char *base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : "__amiga_app_base__";
       int conflict = 0;

@@ -4908,7 +4908,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   M68kFactsV2LabelLookup label_lookup;
   M68kAcceptedCandidateIndex accepted_index;
   M68kRuntimeAddressSpace runtime_addresses;
-  M68kRenderIRPreview render_preview;
+  M68kRenderIRPreview *render_preview = NULL;
   int render_text_preview;
   int render_asm_source;
   uint8_t **accepted_start = NULL;
@@ -4923,7 +4923,12 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   m68k_facts_v2_profile_init(out_profile);
   m68k_decode_ir_init(&decode);
   m68k_fact_ir_init(&facts);
-  m68k_render_ir_preview_init(&render_preview);
+  render_preview = (M68kRenderIRPreview *)calloc(1U, sizeof(*render_preview));
+  if (render_preview == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+    goto fail;
+  }
+  m68k_render_ir_preview_init(render_preview);
   memset(&queue, 0, sizeof(queue));
   memset(&relocation_lookup, 0, sizeof(relocation_lookup));
   memset(&label_lookup, 0, sizeof(label_lookup));
@@ -5072,7 +5077,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   start = clock();
   fail_stage = "render preview build";
   if (m68k_render_ir_preview_build(object, &decode, &facts, policy, accepted_start, accepted_bytes,
-      render_text_preview, render_asm_source, collect_asm_source_text, out_asm_source != NULL, &render_preview,
+      render_text_preview, render_asm_source, collect_asm_source_text, out_asm_source != NULL, render_preview,
       out_source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 render preview build failed");
@@ -5086,62 +5091,62 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   }
   end = clock();
   out_profile->render_ir_seconds = elapsed_seconds_local(start, end);
-  out_profile->render_ir_lookup_seconds = render_preview.lookup_seconds;
-  out_profile->render_ir_platform_pass_seconds = render_preview.platform_pass_seconds;
-  out_profile->render_ir_platform_base_slot_seconds = render_preview.platform_pass_base_slot_seconds;
-  out_profile->render_ir_platform_call_summary_seconds = render_preview.platform_pass_call_summary_seconds;
-  out_profile->render_ir_platform_typed_ref_seconds = render_preview.platform_pass_typed_ref_seconds;
-  out_profile->render_ir_platform_call_comment_seconds = render_preview.platform_pass_call_comment_seconds;
-  out_profile->render_ir_platform_app_slot_seconds = render_preview.platform_pass_app_slot_seconds;
-  out_profile->render_ir_platform_runtime_data_seconds = render_preview.platform_pass_runtime_data_seconds;
-  out_profile->render_ir_platform_hardware_data_seconds = render_preview.platform_pass_hardware_data_seconds;
-  out_profile->render_ir_platform_generic_data_seconds = render_preview.platform_pass_generic_data_seconds;
-  out_profile->render_ir_header_seconds = render_preview.header_seconds;
-  out_profile->render_ir_walk_seconds = render_preview.walk_seconds;
-  out_profile->render_ir_footer_seconds = render_preview.footer_seconds;
-  out_profile->render_ir_statements = render_preview.statement_count;
-  out_profile->render_ir_labels = render_preview.label_statement_count;
-  out_profile->render_ir_instructions = render_preview.instruction_statement_count;
-  out_profile->render_ir_data_spans = render_preview.data_statement_count;
-  out_profile->render_ir_hash = render_preview.structural_hash;
+  out_profile->render_ir_lookup_seconds = render_preview->lookup_seconds;
+  out_profile->render_ir_platform_pass_seconds = render_preview->platform_pass_seconds;
+  out_profile->render_ir_platform_base_slot_seconds = render_preview->platform_pass_base_slot_seconds;
+  out_profile->render_ir_platform_call_summary_seconds = render_preview->platform_pass_call_summary_seconds;
+  out_profile->render_ir_platform_typed_ref_seconds = render_preview->platform_pass_typed_ref_seconds;
+  out_profile->render_ir_platform_call_comment_seconds = render_preview->platform_pass_call_comment_seconds;
+  out_profile->render_ir_platform_app_slot_seconds = render_preview->platform_pass_app_slot_seconds;
+  out_profile->render_ir_platform_runtime_data_seconds = render_preview->platform_pass_runtime_data_seconds;
+  out_profile->render_ir_platform_hardware_data_seconds = render_preview->platform_pass_hardware_data_seconds;
+  out_profile->render_ir_platform_generic_data_seconds = render_preview->platform_pass_generic_data_seconds;
+  out_profile->render_ir_header_seconds = render_preview->header_seconds;
+  out_profile->render_ir_walk_seconds = render_preview->walk_seconds;
+  out_profile->render_ir_footer_seconds = render_preview->footer_seconds;
+  out_profile->render_ir_statements = render_preview->statement_count;
+  out_profile->render_ir_labels = render_preview->label_statement_count;
+  out_profile->render_ir_instructions = render_preview->instruction_statement_count;
+  out_profile->render_ir_data_spans = render_preview->data_statement_count;
+  out_profile->render_ir_hash = render_preview->structural_hash;
   out_profile->preview_source_enabled = render_text_preview ? 1U : 0U;
-  out_profile->preview_source_bytes = render_preview.text_bytes;
-  out_profile->preview_source_hash = render_preview.text_hash;
+  out_profile->preview_source_bytes = render_preview->text_bytes;
+  out_profile->preview_source_hash = render_preview->text_hash;
   if (out_profile->asm_source_refused == 0U) out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;
-  out_profile->asm_source_bytes = render_preview.asm_source_bytes;
-  out_profile->asm_source_lines = render_preview.asm_source_lines;
-  out_profile->asm_source_plan_rows = render_preview.asm_source_plan_rows;
-  out_profile->asm_source_plan_lines = render_preview.asm_source_plan_lines;
-  out_profile->asm_source_plan_bytes = render_preview.asm_source_plan_bytes;
-  out_profile->asm_source_relocation_exprs = render_preview.asm_source_relocation_exprs;
-  out_profile->asm_source_symbolic_instructions = render_preview.asm_source_symbolic_instructions;
-  out_profile->asm_source_numeric_runtime_refs = render_preview.asm_source_numeric_runtime_refs;
+  out_profile->asm_source_bytes = render_preview->asm_source_bytes;
+  out_profile->asm_source_lines = render_preview->asm_source_lines;
+  out_profile->asm_source_plan_rows = render_preview->asm_source_plan_rows;
+  out_profile->asm_source_plan_lines = render_preview->asm_source_plan_lines;
+  out_profile->asm_source_plan_bytes = render_preview->asm_source_plan_bytes;
+  out_profile->asm_source_relocation_exprs = render_preview->asm_source_relocation_exprs;
+  out_profile->asm_source_symbolic_instructions = render_preview->asm_source_symbolic_instructions;
+  out_profile->asm_source_numeric_runtime_refs = render_preview->asm_source_numeric_runtime_refs;
   out_profile->asm_source_first_numeric_runtime_ref_section =
-    render_preview.asm_source_first_numeric_runtime_ref_section;
+    render_preview->asm_source_first_numeric_runtime_ref_section;
   out_profile->asm_source_first_numeric_runtime_ref_offset =
-    render_preview.asm_source_first_numeric_runtime_ref_offset;
+    render_preview->asm_source_first_numeric_runtime_ref_offset;
   out_profile->asm_source_first_numeric_runtime_ref_target_section =
-    render_preview.asm_source_first_numeric_runtime_ref_target_section;
+    render_preview->asm_source_first_numeric_runtime_ref_target_section;
   out_profile->asm_source_first_numeric_runtime_ref_target_offset =
-    render_preview.asm_source_first_numeric_runtime_ref_target_offset;
+    render_preview->asm_source_first_numeric_runtime_ref_target_offset;
   out_profile->asm_source_first_numeric_runtime_ref_runtime_address =
-    render_preview.asm_source_first_numeric_runtime_ref_runtime_address;
-  out_profile->platform_base_slot_count = render_preview.platform_base_slot_count;
-  out_profile->platform_call_count = render_preview.platform_call_count;
-  out_profile->platform_effect_count = render_preview.platform_effect_count;
+    render_preview->asm_source_first_numeric_runtime_ref_runtime_address;
+  out_profile->platform_base_slot_count = render_preview->platform_base_slot_count;
+  out_profile->platform_call_count = render_preview->platform_call_count;
+  out_profile->platform_effect_count = render_preview->platform_effect_count;
   out_profile->asm_source_lossy_numeric_hunk_relocations =
-    render_preview.asm_source_lossy_numeric_hunk_relocations;
-  out_profile->asm_source_instruction_render_failures = render_preview.asm_source_instruction_render_failures;
-  out_profile->asm_source_instruction_byte_mismatches = render_preview.asm_source_instruction_byte_mismatches;
+    render_preview->asm_source_lossy_numeric_hunk_relocations;
+  out_profile->asm_source_instruction_render_failures = render_preview->asm_source_instruction_render_failures;
+  out_profile->asm_source_instruction_byte_mismatches = render_preview->asm_source_instruction_byte_mismatches;
   out_profile->asm_source_instruction_relocation_failures =
-    render_preview.asm_source_instruction_relocation_failures;
+    render_preview->asm_source_instruction_relocation_failures;
   if (out_profile->asm_source_first_failure_kind == M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE) {
-    out_profile->asm_source_first_failure_kind = render_preview.asm_source_first_failure_kind;
-    out_profile->asm_source_first_failure_section = render_preview.asm_source_first_failure_section;
-    out_profile->asm_source_first_failure_offset = render_preview.asm_source_first_failure_offset;
-    out_profile->asm_source_first_failure_aux_offset = render_preview.asm_source_first_failure_aux_offset;
+    out_profile->asm_source_first_failure_kind = render_preview->asm_source_first_failure_kind;
+    out_profile->asm_source_first_failure_section = render_preview->asm_source_first_failure_section;
+    out_profile->asm_source_first_failure_offset = render_preview->asm_source_first_failure_offset;
+    out_profile->asm_source_first_failure_aux_offset = render_preview->asm_source_first_failure_aux_offset;
   }
-  out_profile->asm_source_hash = render_preview.asm_source_hash;
+  out_profile->asm_source_hash = render_preview->asm_source_hash;
   if (render_asm_source && (out_profile->relocation_anchor_instruction_bytes != 0U ||
       out_profile->relocation_anchor_unknown_contexts != 0U)) {
     out_profile->asm_source_enabled = 1U;
@@ -5160,14 +5165,15 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     }
   }
   if (out_asm_source != NULL && !facts_v2_has_asm_source_failures(out_profile) &&
-      render_preview.asm_source_text != NULL) {
-    *out_asm_source = render_preview.asm_source_text;
-    render_preview.asm_source_text = NULL;
+      render_preview->asm_source_text != NULL) {
+    *out_asm_source = render_preview->asm_source_text;
+    render_preview->asm_source_text = NULL;
   }
   if (out_asm_source_plan != NULL && !facts_v2_has_asm_source_failures(out_profile)) {
-    m68k_render_plan_move(out_asm_source_plan, &render_preview.asm_source_plan);
+    m68k_render_plan_move(out_asm_source_plan, &render_preview->asm_source_plan);
   }
-  m68k_render_ir_preview_destroy(&render_preview);
+  m68k_render_ir_preview_destroy(render_preview);
+  free(render_preview);
   accepted_candidate_index_destroy(&accepted_index);
   free_section_maps(&decode, accepted_start, accepted_bytes);
   label_lookup_destroy(&label_lookup);
@@ -5183,7 +5189,10 @@ fail:
       "facts_v2 failed during %s", fail_stage);
   }
   if (out_source_analysis != NULL) m68k_ir_source_analysis_destroy(out_source_analysis);
-  m68k_render_ir_preview_destroy(&render_preview);
+  if (render_preview != NULL) {
+    m68k_render_ir_preview_destroy(render_preview);
+    free(render_preview);
+  }
   accepted_candidate_index_destroy(&accepted_index);
   free_section_maps(&decode, accepted_start, accepted_bytes);
   label_lookup_destroy(&label_lookup);

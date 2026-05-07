@@ -17,7 +17,7 @@ from amiga_reversing.disasm.projects import (
     mark_project_opened,
 )
 from amiga_reversing.disasm.target_metadata import (
-    AppSlotRegionMetadata,
+    RssetLayoutRegionMetadata,
     EntryRegisterSeedMetadata,
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
@@ -271,8 +271,8 @@ def test_load_target_metadata_preserves_extended_app_slot_metadata(tmp_path: Pat
         TargetMetadata(
             target_type="program",
             entry_register_seeds=(),
-            app_slot_regions=(
-                AppSlotRegionMetadata(
+            rsset_layout_regions=(
+                RssetLayoutRegionMetadata(
                     offset=552,
                     seed_origin="manual_analysis",
                     review_status="seeded",
@@ -295,15 +295,15 @@ def test_load_target_metadata_preserves_extended_app_slot_metadata(tmp_path: Pat
     loaded = load_target_metadata(target_dir)
 
     assert loaded is not None
-    assert loaded.app_slot_regions[0].size == 2
-    assert loaded.app_slot_regions[0].layout_name == "work"
-    assert loaded.app_slot_regions[0].base_symbol == "__game_work_base__"
-    assert loaded.app_slot_regions[0].sizeof_symbol == "work_SIZEOF"
-    assert loaded.app_slot_regions[0].storage_kind == "pointer"
-    assert loaded.app_slot_regions[0].semantic_type == "source_text_buffer"
-    assert loaded.app_slot_regions[0].parser_role == "option_source"
-    assert loaded.app_slot_regions[0].parser_routine == "sub_ab00"
-    assert loaded.app_slot_regions[0].parse_order == 0
+    assert loaded.rsset_layout_regions[0].size == 2
+    assert loaded.rsset_layout_regions[0].layout_name == "work"
+    assert loaded.rsset_layout_regions[0].base_symbol == "__game_work_base__"
+    assert loaded.rsset_layout_regions[0].sizeof_symbol == "work_SIZEOF"
+    assert loaded.rsset_layout_regions[0].storage_kind == "pointer"
+    assert loaded.rsset_layout_regions[0].semantic_type == "source_text_buffer"
+    assert loaded.rsset_layout_regions[0].parser_role == "option_source"
+    assert loaded.rsset_layout_regions[0].parser_routine == "sub_ab00"
+    assert loaded.rsset_layout_regions[0].parse_order == 0
 
 
 def test_load_target_metadata_applies_corrections_over_generated_seeded(tmp_path: Path) -> None:
@@ -406,7 +406,7 @@ def test_load_target_metadata_rejects_non_string_target_type(tmp_path: Path) -> 
                 "resident": None,
                 "library": None,
                 "custom_structs": [],
-                "app_slot_regions": [],
+                "rsset_layout_regions": [],
             }
         ),
         encoding="utf-8",
