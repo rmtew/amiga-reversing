@@ -21,7 +21,6 @@ from amiga_reversing.disasm.c_backend import (
     assemble_platform_source_text_with_c_backend,
     facts_v2_direct_rebuild_project_source_with_c_backend_profile,
     facts_v2_render_assemble_project_source_with_c_backend_profile,
-    render_project_source_with_c_backend,
 )
 from amiga_reversing.disasm.effective_metadata import (
     effective_metadata_file,
@@ -446,39 +445,6 @@ def run_reproduction(
             source_size = _facts_v2_profile_source_bytes(listing_profile)
             profile_timings["source_file_rewritten"] = 0.0
             profile_timings["write_source_seconds"] = 0.0
-        elif source_text is None and rebuilt_bytes is None:
-            phase = "render"
-            phase_started_at = time.perf_counter()
-            _emit_progress(
-                progress_callback,
-                target_name=target_name,
-                phase=phase,
-                started_at=profile_started_at,
-                backend=backend,
-            )
-            with effective_metadata_file(paths.target_dir) as metadata_path:
-                try:
-                    source_text = render_project_source_with_c_backend(
-                        paths.binary_source,
-                        syntax=source_syntax,
-                        metadata_path=metadata_path,
-                        project_root=project_root,
-                    )
-                except FactsV2SourceRefused as exc:
-                    message = str(exc)
-                    _record_profile_timing(profile_timings, "render_seconds", phase_started_at)
-                    report = {
-                        **base_report,
-                        "status": "render_error",
-                        "finished_at": time.time(),
-                        "tool_error": message,
-                        "issues": [_issue("renderer", message, None)],
-                        "listing_profile": exc.listing_profile,
-                    }
-                    if profile:
-                        report["profile"] = _profile_payload(profile_timings, profile_started_at)
-                    return _write_reproduction_report(paths.target_dir, report)
-            _record_profile_timing(profile_timings, "render_seconds", phase_started_at)
         elif source_text is not None:
             profile_timings["render_seconds"] = 0.0
             profile_timings["reused_source_text"] = 1.0
@@ -1725,22 +1691,6 @@ def _include_dir_for_backend(backend: str, project_root: Path) -> Path | None:
     if backend == "atari-st":
         return project_root / "ext" / "atarist_includes" / "devpac_3_10" / "include"
     return None
-
-
-def _render_reproduction_source(
-    binary_source: BinarySource,
-    target_dir: Path,
-    *,
-    source_syntax: str,
-    project_root: Path,
-) -> str:
-    with effective_metadata_file(target_dir) as metadata_path:
-        return render_project_source_with_c_backend(
-            binary_source,
-            syntax=source_syntax,
-            metadata_path=metadata_path,
-            project_root=project_root,
-        )
 
 
 def _file_stamp(path: Path) -> str:

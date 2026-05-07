@@ -246,6 +246,10 @@ now writes `source.s` only when source text is already the path being assembled
 or has been supplied by the retained artifact. It does not perform a second
 late source render on mismatch or assembler failure just to materialize a
 diagnostic artifact.
+The remaining late source-render fallback inside `run_reproduction()` has also
+been removed. With no pre-rendered artifact source, reproduction uses direct C
+rebuild or the combined C render-assemble path; it does not render source and
+then call a separate assemble step as a second production path.
 Reproduction mismatch row mapping now uses the retained C artifact as a
 source-offset lookup service. The artifact resolves a `(section_index,
 section_offset)` through the render plan, translates the owning plan row through

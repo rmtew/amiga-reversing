@@ -675,11 +675,6 @@ def test_run_reproduction_uses_facts_v2_render_assemble_fast_path(
     )
     monkeypatch.setattr(
         reproduction,
-        "render_project_source_with_c_backend",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("separate render should not run")),
-    )
-    monkeypatch.setattr(
-        reproduction,
         "assemble_platform_source_text_with_c_backend",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("separate assemble should not run")),
     )
@@ -1131,11 +1126,6 @@ def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
             target_dir=target_dir,
             binary_source=source,
         ),
-    )
-    monkeypatch.setattr(
-        reproduction,
-        "render_project_source_with_c_backend",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("late source render should not run")),
     )
     monkeypatch.setattr(
         reproduction,
