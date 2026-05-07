@@ -95,6 +95,10 @@ instead of building heap strings for each group and then copying them into the
 final navigation payload.
 Artifact window profiles name these timings as emit times, not `window_json`
 materialization times, so profile data matches the retained append path.
+Artifact navigation responses now use the same append approach. The retained C
+artifact emits the navigation payload directly into the profiled response and
+reports `navigation_emit_seconds`, so the profile no longer describes an
+intermediate `navigation_json` materialization.
 The earlier transitional Python serialized-row cache has been removed from the
 production full-listing route. Indexed, address-anchored, text-anchor, and
 navigation web requests now require the retained C listing artifact once the

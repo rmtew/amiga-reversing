@@ -6014,22 +6014,20 @@ fail:
   return -1;
 }
 
-int source_file_listing_navigation_from_render_plan_to_json(const M68kSourceFileIR *source_file,
+int source_file_listing_navigation_from_render_plan_append_json(JsonBuilder *builder,
+    const M68kSourceFileIR *source_file,
     const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
-    char **out_json, M68kDiagSink diagnostics) {
-  JsonBuilder builder = {0};
+    M68kDiagSink diagnostics) {
   ListingSourceHeaderRows header_rows = {0};
   ListingNavigationJsonContext navigation;
   ListingRenderPlanJsonContext context;
-  char *json = NULL;
   memset(&navigation, 0, sizeof(navigation));
   memset(&context, 0, sizeof(context));
-  if (render_plan == NULL || out_json == NULL) {
+  if (builder == NULL || render_plan == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
     return -1;
   }
-  *out_json = NULL;
   if (listing_source_header_rows_init(&header_rows) != 0) goto oom;
   if (!include_source_only_rows && collect_listing_source_header_rows_from_plan(render_plan, &header_rows) != 0)
     goto oom;
@@ -6048,31 +6046,53 @@ int source_file_listing_navigation_from_render_plan_to_json(const M68kSourceFile
   if (m68k_render_plan_visit_row_lines(render_plan, 0U, render_plan->row_count,
       append_full_listing_render_plan_line, &context) != 0)
     goto oom;
-  if (json_builder_create(&builder) != 0 ||
-      json_builder_append(&builder, "{\"analysis_generation\":") != 0 ||
-      json_builder_append_json_string(&builder, analysis_generation != NULL ? analysis_generation : "full") != 0 ||
-      json_builder_appendf(&builder, ",\"total_rows\":%u,\"groups\":{", (unsigned)context.row_index) != 0 ||
-      append_listing_navigation_groups_json(&builder, &navigation) != 0 ||
-      json_builder_append(&builder, "},\"app_slot_analysis\":") != 0 ||
-      append_listing_app_slot_analysis_json(&builder, &navigation.app_slot_analysis) != 0 ||
-      json_builder_append(&builder, ",\"type_flow_analysis\":{}}") != 0)
+  if (json_builder_append(builder, "{\"analysis_generation\":") != 0 ||
+      json_builder_append_json_string(builder, analysis_generation != NULL ? analysis_generation : "full") != 0 ||
+      json_builder_appendf(builder, ",\"total_rows\":%u,\"groups\":{", (unsigned)context.row_index) != 0 ||
+      append_listing_navigation_groups_json(builder, &navigation) != 0 ||
+      json_builder_append(builder, "},\"app_slot_analysis\":") != 0 ||
+      append_listing_app_slot_analysis_json(builder, &navigation.app_slot_analysis) != 0 ||
+      json_builder_append(builder, ",\"type_flow_analysis\":{}}") != 0)
     goto oom;
-  json = json_builder_build(&builder);
-  if (json == NULL) goto oom;
-  *out_json = json;
-  json = NULL;
-  json_builder_destroy(&builder);
   listing_navigation_destroy(&navigation);
   listing_source_header_rows_destroy(&header_rows);
   return 0;
 
 oom:
-  json_builder_destroy(&builder);
-  free(json);
   listing_navigation_destroy(&navigation);
   listing_source_header_rows_destroy(&header_rows);
   m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
   return -1;
+}
+
+int source_file_listing_navigation_from_render_plan_to_json(const M68kSourceFileIR *source_file,
+    const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
+    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
+    char **out_json, M68kDiagSink diagnostics) {
+  JsonBuilder builder = {0};
+  int result;
+  if (out_json != NULL) *out_json = NULL;
+  if (out_json == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
+    return -1;
+  }
+  if (json_builder_create(&builder) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+    return -1;
+  }
+  result = source_file_listing_navigation_from_render_plan_append_json(&builder, source_file, render_plan,
+    platform_backend_kind, analysis_policy, source_analysis, analysis_generation, include_source_only_rows,
+    diagnostics);
+  if (result == 0) {
+    *out_json = json_builder_build(&builder);
+    if (*out_json == NULL) {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY,
+        "listing navigation payload build failed");
+      result = -1;
+    }
+  }
+  json_builder_destroy(&builder);
+  return result;
 }
 
 int source_file_listing_row_index_from_render_plan(const M68kSourceFileIR *source_file,
