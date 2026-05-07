@@ -8237,7 +8237,7 @@ static int test_facts_v2_render_asm_source_infers_global_base_slot_from_lvo_set(
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_app_slot_overlap_uses_equ_alias(void) {
+static int test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -8273,7 +8273,8 @@ static int test_facts_v2_render_asm_source_app_slot_overlap_uses_equ_alias(void)
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "app_000C RS.L 1\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "app_000E EQU $000E\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    RSSET $000E\napp_000E RS.B 1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "app_000E EQU $000E\n") == NULL);
   M68K_C_ASSERT(strstr(source, "RS.B 0") == NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l d0,app_000C(a6)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.b d1,app_000E(a6)\n") != NULL);
@@ -8989,14 +8990,14 @@ static int test_facts_v2_render_asm_source_renders_typed_app_slot_field_region(v
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_keeps_app_slot_aliases_after_rs_region(void) {
+static int test_facts_v2_render_asm_source_keeps_app_slot_aliases_in_rs_region(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   char *source = NULL;
-  const char *rsset_line, *slot_line, *app_sizeof_line, *alias_line, *section_line;
+  const char *rsset_line, *slot_line, *app_sizeof_line, *alias_rsset_line, *alias_line, *section_line;
   uint8_t bytes[10] = {
     0x20u, 0x2cu, 0x00u, 0x00u,
     0x12u, 0x2cu, 0x00u, 0x01u,
@@ -9028,17 +9029,21 @@ static int test_facts_v2_render_asm_source_keeps_app_slot_aliases_after_rs_regio
   rsset_line = strstr(source, "    RSSET 0\n");
   slot_line = strstr(source, "app_0000 RS.L 1\n");
   app_sizeof_line = strstr(source, "app_SIZEOF EQU __RS\n");
-  alias_line = strstr(source, "app_0001 EQU $0001\n");
+  alias_rsset_line = strstr(source, "    RSSET $0001\n");
+  alias_line = strstr(source, "app_0001 RS.B 1\n");
   section_line = strstr(source, "    SECTION ");
   M68K_C_ASSERT(rsset_line != NULL);
   M68K_C_ASSERT(slot_line != NULL);
   M68K_C_ASSERT(app_sizeof_line != NULL);
+  M68K_C_ASSERT(alias_rsset_line != NULL);
   M68K_C_ASSERT(alias_line != NULL);
   M68K_C_ASSERT(section_line != NULL);
   M68K_C_ASSERT(rsset_line < slot_line);
   M68K_C_ASSERT(slot_line < app_sizeof_line);
-  M68K_C_ASSERT(app_sizeof_line < alias_line);
+  M68K_C_ASSERT(app_sizeof_line < alias_rsset_line);
+  M68K_C_ASSERT(alias_rsset_line < alias_line);
   M68K_C_ASSERT(alias_line < section_line);
+  M68K_C_ASSERT(strstr(source, "app_0001 EQU $0001\n") == NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l app_0000(a4),d0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.b app_0001(a4),d1\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
@@ -13961,8 +13966,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_infers_lvo_from_object_base_symbol},
     {"facts_v2_render_asm_source_infers_global_base_slot_from_lvo_set",
       test_facts_v2_render_asm_source_infers_global_base_slot_from_lvo_set},
-    {"facts_v2_render_asm_source_app_slot_overlap_uses_equ_alias",
-      test_facts_v2_render_asm_source_app_slot_overlap_uses_equ_alias},
+    {"facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias",
+      test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias},
     {"facts_v2_render_asm_source_uses_observed_app_slot_widths",
       test_facts_v2_render_asm_source_uses_observed_app_slot_widths},
     {"facts_v2_analysis_keeps_untyped_app_slot_untyped",
@@ -13987,8 +13992,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_infers_opendevice_base_field_slot},
     {"facts_v2_render_asm_source_renders_typed_app_slot_field_region",
       test_facts_v2_render_asm_source_renders_typed_app_slot_field_region},
-    {"facts_v2_render_asm_source_keeps_app_slot_aliases_after_rs_region",
-      test_facts_v2_render_asm_source_keeps_app_slot_aliases_after_rs_region},
+    {"facts_v2_render_asm_source_keeps_app_slot_aliases_in_rs_region",
+      test_facts_v2_render_asm_source_keeps_app_slot_aliases_in_rs_region},
     {"facts_v2_render_asm_source_propagates_typed_base_through_stack_slot",
       test_facts_v2_render_asm_source_propagates_typed_base_through_stack_slot},
     {"facts_v2_render_asm_source_propagates_typed_base_through_absolute_slot",

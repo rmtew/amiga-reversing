@@ -5488,12 +5488,24 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     ++preview->asm_source_lines;
     {
       size_t alias_index;
-      for (alias_index = index + 1U; alias_index > 0U; --alias_index) {
-        size_t slot_index = alias_index - 1U;
+      for (alias_index = 0U; alias_index <= index; ++alias_index) {
+        size_t slot_index = alias_index;
         if (strcmp(slots[slot_index].layout_name, layout_name) != 0) continue;
         if (slots[slot_index].alias == 0U) continue;
-        snprintf(line, sizeof(line), "%s EQU $%04X\n", slots[slot_index].name,
+        snprintf(line, sizeof(line), "    RSSET $%04X\n",
           (unsigned)((uint32_t)slots[slot_index].displacement & 0xFFFFU));
+        hash_asm_text(preview, line);
+        ++preview->asm_source_lines;
+        if (slots[slot_index].size == 4) {
+          snprintf(line, sizeof(line), "%s RS.L 1\n", slots[slot_index].name);
+        } else if (slots[slot_index].size == 2) {
+          snprintf(line, sizeof(line), "%s RS.W 1\n", slots[slot_index].name);
+        } else if (slots[slot_index].size == 1) {
+          snprintf(line, sizeof(line), "%s RS.B 1\n", slots[slot_index].name);
+        } else {
+          snprintf(line, sizeof(line), "%s RS.B %d\n", slots[slot_index].name,
+            (int)slots[slot_index].size);
+        }
         hash_asm_text(preview, line);
         ++preview->asm_source_lines;
       }

@@ -241,10 +241,14 @@ app_10B0 RS.B 8
 app_timer_device_iorequest RS.B 48
 app_10E8 RS.L 1
 app_SIZEOF EQU __RS
-app_TimerBase EQU $10CC
-app_057F EQU $057F
-app_023F EQU $023F
-app_021D EQU $021D
+    RSSET $021D
+app_021D RS.B 1
+    RSSET $023F
+app_023F RS.B 1
+    RSSET $057F
+app_057F RS.B 1
+    RSSET $10CC
+app_TimerBase RS.L 1
 
 
     SECTION section,code

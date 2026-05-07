@@ -184,10 +184,14 @@ app_0C6C RS.L 1
     RS.B 408
 app_0E08 RS.L 1
 app_SIZEOF EQU __RS
-app_0C6E EQU $0C6E
-app_ConsoleDevice EQU $082C
-app_0567 EQU $0567
-app_0560 EQU $0560
+    RSSET $0560
+app_0560 RS.L 1
+    RSSET $0567
+app_0567 RS.B 1
+    RSSET $082C
+app_ConsoleDevice RS.L 1
+    RSSET $0C6E
+app_0C6E RS.L 1
 
 
     SECTION section_0,code
