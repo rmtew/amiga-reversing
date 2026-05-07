@@ -2390,6 +2390,29 @@ def test_real_dll_epic_bootblock_keeps_copied_runtime_destination_separate_from_
     assert "abs_0_0007008C-" not in source
 
 
+def test_real_dll_ice_bootloader_stage_recovers_copied_runtime_payload_without_bad_addend() -> None:
+    _requires_c_backend_dlls()
+    paths = resolve_project_paths(
+        "amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootloader_stage_1",
+        project_root=PROJECT_ROOT,
+    )
+
+    with effective_metadata_file(paths.target_dir) as metadata_path:
+        source, _profile = listing_artifact_source_text_with_c_backend_profile(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert source.count("    ORG $40000\n") == 1
+    assert "runtime_code_00006000\tEQU\t$6000\n" in source
+    assert "\tlea.l runtime_code_00006000.l,a1\n" in source
+    assert "\tjmp runtime_code_00006000.l\n" in source
+    assert "abs_0_00040046:\n\tlea.l abs_0_000449C2(pc),a0\n" in source
+    assert "dat_0046:" not in source
+    assert "abs_0_00040046-" not in source
+
+
 def test_real_dll_runtime_org_is_visible_in_listing_rows(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "stage.bin"
