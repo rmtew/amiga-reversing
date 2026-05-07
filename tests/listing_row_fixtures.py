@@ -3,13 +3,6 @@ from __future__ import annotations
 from dataclasses import asdict, is_dataclass
 from typing import Any, cast
 
-from amiga_reversing.disasm.api import (
-    SerializedAppSlotRef,
-    SerializedOperand,
-    SerializedRow,
-    SerializedTypedAccess,
-    SerializedUnresolvedTypedAccess,
-)
 from tests.listing_types_fixtures import (
     AddressRowContext,
     AppSlotRef,
@@ -24,6 +17,7 @@ from tests.listing_types_fixtures import (
 )
 
 type _RowSourceContextDataclass = HeaderRowContext | BlockRowContext | AddressRowContext
+type SerializedRow = dict[str, object]
 
 
 def _dataclass_dict(value: object) -> dict[str, object]:
@@ -46,7 +40,7 @@ def _semantic_metadata_dict(metadata: SemanticOperandMetadata | None) -> dict[st
     raise TypeError(f"Unsupported semantic metadata type: {type(metadata)!r}")
 
 
-def serialize_operand(operand: SemanticOperand) -> SerializedOperand:
+def serialize_operand(operand: SemanticOperand) -> dict[str, object]:
     return {
         "kind": operand.kind,
         "text": operand.text,
@@ -59,7 +53,7 @@ def serialize_operand(operand: SemanticOperand) -> SerializedOperand:
     }
 
 
-def serialize_app_slot_ref(ref: AppSlotRef) -> SerializedAppSlotRef:
+def serialize_app_slot_ref(ref: AppSlotRef) -> dict[str, object]:
     return {
         "symbol": ref.symbol,
         "displacement": ref.displacement,
@@ -69,7 +63,7 @@ def serialize_app_slot_ref(ref: AppSlotRef) -> SerializedAppSlotRef:
     }
 
 
-def serialize_typed_access(access: PlatformTypedAccess) -> SerializedTypedAccess:
+def serialize_typed_access(access: PlatformTypedAccess) -> dict[str, object]:
     return {
         "operand_index": access.operand_index,
         "base_register": access.base_register,
@@ -84,7 +78,7 @@ def serialize_typed_access(access: PlatformTypedAccess) -> SerializedTypedAccess
     }
 
 
-def serialize_unresolved_typed_access(access: PlatformUnresolvedTypedAccess) -> SerializedUnresolvedTypedAccess:
+def serialize_unresolved_typed_access(access: PlatformUnresolvedTypedAccess) -> dict[str, object]:
     return {
         "operand_index": access.operand_index,
         "base_register": access.base_register,

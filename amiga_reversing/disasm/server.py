@@ -26,7 +26,6 @@ from amiga_reversing.disasm.annotations import (
 )
 from amiga_reversing.disasm.api import (
     ListingWindowPayload,
-    SerializedRow,
 )
 from amiga_reversing.disasm.binary_source import write_source_descriptor
 from amiga_reversing.disasm.c_backend import (
@@ -236,7 +235,7 @@ def _validate_api_input_struct(
 def _annotate_listing_payload(
     project_name: str, payload: ListingWindowPayload
 ) -> ListingWindowPayload:
-    annotated_rows: list[SerializedRow] = []
+    annotated_rows: list[dict[str, object]] = []
     repro_issues = _active_reproduction_issues_by_row_index(project_name)
     window_start = int(payload.get("start") or 0)
     try:
@@ -265,7 +264,7 @@ def _annotate_listing_payload(
             annotated_row["view_annotations"] = annotations
         if row_issues:
             annotated_row["repro_issues"] = row_issues
-        annotated_rows.append(cast(SerializedRow, annotated_row))
+        annotated_rows.append(annotated_row)
     payload = {
         **payload,
         "rows": annotated_rows,

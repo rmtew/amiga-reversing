@@ -21,7 +21,7 @@ from functools import cache
 from pathlib import Path
 from typing import cast
 
-from amiga_reversing.disasm.api import ListingWindowPayload, SerializedRow
+from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.binary_source import (
     BinarySource,
     DiskEntryBinarySource,
@@ -1492,14 +1492,14 @@ class CListingArtifact:
         self.close()
 
 
-def _c_listing_row_dicts(raw_rows: object) -> list[SerializedRow]:
+def _c_listing_row_dicts(raw_rows: object) -> list[dict[str, object]]:
     if not isinstance(raw_rows, list):
         return []
-    rows: list[SerializedRow] = []
+    rows: list[dict[str, object]] = []
     for raw_row in raw_rows:
         if not isinstance(raw_row, dict):
             continue
-        rows.append(cast(SerializedRow, dict(raw_row)))
+        rows.append(cast(dict[str, object], dict(raw_row)))
     return rows
 
 

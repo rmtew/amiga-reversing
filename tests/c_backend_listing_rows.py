@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import cast
 
 from amiga_reversing.disasm import c_backend
-from amiga_reversing.disasm.api import SerializedRow
 from amiga_reversing.disasm.binary_source import BinarySource
 from amiga_reversing.disasm.c_backend import ApiCallRowKey
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
@@ -15,7 +14,7 @@ def build_project_listing_rows_with_c_artifact(
     project_name: str,
     *,
     project_root: Path = PROJECT_ROOT,
-) -> tuple[list[SerializedRow], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
+) -> tuple[list[dict[str, object]], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
     total_rows, profile, artifact = c_backend.build_project_listing_artifact_generation_profile(
         project_name,
         generation="full",
@@ -41,7 +40,7 @@ def build_project_listing_rows_profile_with_c_artifact(
     project_name: str,
     *,
     project_root: Path = PROJECT_ROOT,
-) -> tuple[list[SerializedRow], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
+) -> tuple[list[dict[str, object]], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
     return build_project_listing_rows_with_c_artifact(project_name, project_root=project_root)
 
 
@@ -50,7 +49,7 @@ def build_project_listing_rows_from_source_with_c_artifact(
     *,
     metadata_text: str,
     project_root: Path,
-) -> tuple[list[SerializedRow], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
+) -> tuple[list[dict[str, object]], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
     with c_backend._source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
         artifact = c_backend.CListingArtifact.create(
             source_file,
@@ -75,7 +74,7 @@ def build_project_listing_rows_from_source_with_c_artifact(
         artifact.close()
 
 
-def _api_calls_from_rows(rows: list[SerializedRow]) -> dict[ApiCallRowKey, dict[str, object]]:
+def _api_calls_from_rows(rows: list[dict[str, object]]) -> dict[ApiCallRowKey, dict[str, object]]:
     api_calls: dict[ApiCallRowKey, dict[str, object]] = {}
     for row in rows:
         api_call = row.get("api_call")
