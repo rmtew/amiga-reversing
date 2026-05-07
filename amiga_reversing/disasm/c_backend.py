@@ -981,11 +981,6 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_summary_json_alloc.restype = c_int
-    dll.platform_file_facts_v2_listing_artifact_profile_json_alloc.argtypes = [
-        c_void_p,
-        POINTER(c_void_p),
-    ]
-    dll.platform_file_facts_v2_listing_artifact_profile_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_analysis_json_alloc.argtypes = [
         c_void_p,
         POINTER(c_void_p),

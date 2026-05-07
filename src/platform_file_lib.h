@@ -87,8 +87,6 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_text_profil
   PlatformFileListingArtifact *artifact, char **out_text, char **out_profile_json);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_summary_json_alloc(
   PlatformFileListingArtifact *artifact, char **out_text);
-PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_profile_json_alloc(
-  PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_analysis_json_alloc(
   PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_navigation_json_alloc(

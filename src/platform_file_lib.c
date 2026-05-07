@@ -4716,34 +4716,6 @@ cleanup:
   return text_result_to_alloc(&result, out_text);
 }
 
-int platform_file_facts_v2_listing_artifact_profile_json_alloc(PlatformFileListingArtifact *artifact,
-    char **out_text) {
-  PlatformFileTextResult result;
-  char *json = NULL;
-  clock_t profile_start;
-  clock_t profile_end;
-  memset(&result, 0, sizeof(result));
-  if (out_text == NULL) return -1;
-  *out_text = NULL;
-  if (artifact == NULL) {
-    platform_file_add_error(&result.diagnostics, "invalid listing artifact");
-    return text_result_to_alloc(&result, out_text);
-  }
-  profile_start = clock();
-  profile_end = clock();
-  json = listing_artifact_profile_json_alloc(artifact, "facts_v2_listing_artifact_summary",
-    "summary_json_seconds", elapsed_seconds(profile_start, profile_end), &result.diagnostics);
-  if (json == NULL) {
-    goto cleanup;
-  }
-  result.text = json;
-  json = NULL;
-
-cleanup:
-  platform_file_free_text(json);
-  return text_result_to_alloc(&result, out_text);
-}
-
 int platform_file_facts_v2_listing_artifact_analysis_json_alloc(PlatformFileListingArtifact *artifact,
     char **out_text) {
   PlatformFileTextResult result;
