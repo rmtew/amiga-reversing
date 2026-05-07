@@ -4368,6 +4368,24 @@ def test_real_dll_carrier_clipboard_relocation_backed_jump_templates_are_code() 
     assert "\tdc.b $4E,$F9\n\tdc.l loc_0_00000088\n" not in source_text
 
 
+def test_real_dll_carrier_ramdrive_relocation_backed_template_seeds_target_code() -> None:
+    _requires_c_backend_dlls()
+
+    target_name = "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__ramdrive.device_2c146d8c"
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert source_text_profile["facts_v2"]["accepted_instructions"] >= 342
+    assert "loc_0_00000718:\n\tmovea.l $0004.w,a0\n" in source_text
+    assert "\tdc.b $20,$78,$00,$04,$52,$28,$01,$27\n" not in source_text
+    assert "    ORG $4\n" not in source_text
+
+
 def test_real_dll_monam_keeps_unrelocated_jump_bytes_as_data() -> None:
     _requires_c_backend_dlls()
 

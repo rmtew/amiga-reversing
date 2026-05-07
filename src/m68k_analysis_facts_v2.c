@@ -4119,12 +4119,15 @@ static int candidate_relocated_jump_template_target(M68kDecodeIR *decode, M68kFa
 
 static int relocation_ref_is_valid_jump_template(M68kDecodeIR *decode, M68kFactIR *facts,
     const M68kFactsV2RelocationLookup *relocation_lookup, uint8_t **accepted_start, uint8_t **accepted_bytes,
-    uint8_t max_cpu, const M68kFact *relocation, const M68kDecodeCandidate **out_candidate) {
+    uint8_t max_cpu, const M68kFact *relocation, const M68kDecodeCandidate **out_candidate,
+    size_t *out_target_section_index, uint32_t *out_target_offset) {
   const M68kDecodeSectionIR *section;
   uint32_t lower;
   uint32_t start;
   uint32_t fixup_end;
   if (out_candidate != NULL) *out_candidate = NULL;
+  if (out_target_section_index != NULL) *out_target_section_index = 0U;
+  if (out_target_offset != NULL) *out_target_offset = 0U;
   if (decode == NULL || facts == NULL || relocation_lookup == NULL || accepted_start == NULL ||
       accepted_bytes == NULL || relocation == NULL || out_candidate == NULL ||
       relocation->kind != M68K_FACT_RELOCATION_REF || relocation->section_index >= decode->section_count ||
@@ -4162,9 +4165,9 @@ static int relocation_ref_is_valid_jump_template(M68kDecodeIR *decode, M68kFactI
       accepted_bytes, max_cpu, relocation->section_index, candidate, &target_section_index, &target_offset);
     if (target_result < 0) return -1;
     if (target_result == 0) continue;
-    (void)target_section_index;
-    (void)target_offset;
     *out_candidate = candidate;
+    if (out_target_section_index != NULL) *out_target_section_index = target_section_index;
+    if (out_target_offset != NULL) *out_target_offset = target_offset;
     return 1;
   }
   return 0;
@@ -4189,7 +4192,7 @@ static int candidate_has_nearby_relocated_jump_template(M68kDecodeIR *decode, M6
       continue;
     }
     valid = relocation_ref_is_valid_jump_template(decode, facts, relocation_lookup, accepted_start,
-      accepted_bytes, max_cpu, relocation, &other);
+      accepted_bytes, max_cpu, relocation, &other, NULL, NULL);
     if (valid < 0) return -1;
     if (valid == 0 || other == NULL || other->offset == candidate->offset) continue;
     return 1;
@@ -4208,9 +4211,11 @@ static int seed_relocation_backed_jump_template_tables(M68kDecodeIR *decode, M68
   for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
     const M68kFact *relocation = &facts->facts[fact_index];
     const M68kDecodeCandidate *candidate = NULL;
+    size_t target_section_index = 0U;
+    uint32_t target_offset = 0U;
     int valid;
     valid = relocation_ref_is_valid_jump_template(decode, facts, relocation_lookup, accepted_start,
-      accepted_bytes, max_cpu, relocation, &candidate);
+      accepted_bytes, max_cpu, relocation, &candidate, &target_section_index, &target_offset);
     if (valid < 0) return -1;
     if (valid == 0 || candidate == NULL) continue;
     if (accepted_start[relocation->section_index][candidate->offset]) continue;
@@ -4221,6 +4226,15 @@ static int seed_relocation_backed_jump_template_tables(M68kDecodeIR *decode, M68
     if (enqueue_code_start(facts, queue, profile, relocation->section_index, candidate->offset,
         M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
         relocation->section_index, candidate->offset) != 0) {
+      return -1;
+    }
+    if (target_section_index < decode->section_count && target_offset < decode->sections[target_section_index].size &&
+        accepted_start[target_section_index] != NULL && !accepted_start[target_section_index][target_offset] &&
+        !accepted_offset_is_interior(&decode->sections[target_section_index], accepted_start[target_section_index],
+          accepted_bytes[target_section_index], target_offset) &&
+        enqueue_code_start(facts, queue, profile, target_section_index, target_offset,
+          M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
+          relocation->section_index, candidate->offset) != 0) {
       return -1;
     }
   }
