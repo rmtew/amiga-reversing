@@ -60,6 +60,17 @@ def test_web_app_initial_listing_load_requests_virtual_window() -> None:
     assert "await loadListingWindow(projectId, null, 0, 240);" not in app_js
 
 
+def test_web_app_typed_navigation_uses_data_class_rows() -> None:
+    app_js = (
+        Path(__file__).resolve().parent.parent
+        / "amiga_reversing" / "web"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+
+    assert "Boolean(row.data_class)" in app_js
+    assert "row.comment_text || row.data_class || item.semantic_role" in app_js
+
+
 def test_web_app_generation_refresh_restores_only_applied_request() -> None:
     app_js = (
         Path(__file__).resolve().parent.parent

@@ -3944,7 +3944,8 @@ function rowHasTypedData(row) {
   if (Array.isArray(row.typed_accesses) && row.typed_accesses.length > 0) {
     return true;
   }
-  return row.kind !== "instruction" && row.kind !== "label" && (Boolean(row.comment_text) || Boolean(row.structured_data));
+  return row.kind !== "instruction" && row.kind !== "label"
+    && (Boolean(row.comment_text) || Boolean(row.data_class) || Boolean(row.structured_data));
 }
 
 function rowHasUnresolvedTypedAccess(row) {
@@ -4007,9 +4008,9 @@ function summarizeNavigationRow(row, jumpClass) {
   if (jumpClass === "typed-gaps" && rowHasUnresolvedTypedAccess(row)) {
     return typedGapSummary(row.unresolved_typed_accesses[0]);
   }
-  if (jumpClass === "typed-data" && (row.comment_text || row.structured_data)) {
+  if (jumpClass === "typed-data" && (row.comment_text || row.data_class || row.structured_data)) {
     const item = row.structured_data || {};
-    return row.comment_text || item.label || item.field_name || row.kind;
+    return row.comment_text || row.data_class || item.semantic_role || item.label || item.field_name || row.kind;
   }
   if (jumpClass === "labels") {
     return renderListingCode(row).trim();

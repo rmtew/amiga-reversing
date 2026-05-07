@@ -3911,6 +3911,46 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
             assert sum(1 for row in rows if row.get("data_class") == data_class) >= expected_count
 
 
+def test_real_dll_render_plan_data_classes_reach_navigation() -> None:
+    _requires_c_backend_dlls()
+
+    for target_name in ("amiga_hunk_bloodwych", "amiga_hunk_genam"):
+        rows, _, profile = build_project_listing_rows_profile_with_c_artifact(
+            target_name,
+            project_root=PROJECT_ROOT,
+        )
+        assert profile["facts_v2"]["asm_source_refused"] is False
+        expected = [
+            (index, row["data_class"])
+            for index, row in enumerate(rows)
+            if row.get("data_class") and not row.get("comment_text") and not row.get("structured_data")
+        ]
+        assert expected
+
+        paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+        metadata_path = paths.target_dir / "target_metadata.json"
+        binary_path = paths.binary_source.path
+        if not binary_path.is_absolute():
+            binary_path = PROJECT_ROOT / binary_path
+        artifact = c_backend.CListingArtifact.create(
+            c_backend._CBackendSourceFile(binary_path, "amiga-hunk"),
+            metadata_text=str(metadata_path) if metadata_path.exists() else "",
+            include_dir=str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
+            project_root=PROJECT_ROOT,
+        )
+        try:
+            navigation, _ = artifact.navigation_payload()
+        finally:
+            artifact.close()
+
+        entries = {
+            (entry.get("row_index"), entry.get("summary"))
+            for entry in navigation["groups"]["typed-data"]
+        }
+        for row_index, data_class in expected:
+            assert (row_index, data_class) in entries
+
+
 def test_real_dll_platform_calls_are_not_unresolved_indirect_sites() -> None:
     _requires_c_backend_dlls()
 

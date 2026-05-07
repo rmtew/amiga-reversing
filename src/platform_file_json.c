@@ -4659,7 +4659,8 @@ typedef struct ListingNavigationJsonContext ListingNavigationJsonContext;
 
 static int listing_navigation_observe_row(ListingNavigationJsonContext *navigation, size_t row_index,
     const char *line_start, size_t line_length, const char *row_kind, const char *stripped, const char *opcode,
-    const char *operand, const char *comment, int section_index, const M68kStatementIR *stmt);
+    const char *operand, const char *comment, int section_index, const M68kStatementIR *stmt,
+    const char *plan_data_class);
 
 static int listing_source_header_rows_init(ListingSourceHeaderRows *rows) {
   if (rows == NULL) return -1;
@@ -4875,7 +4876,8 @@ static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *con
   }
   if (context->navigation != NULL &&
       listing_navigation_observe_row(context->navigation, context->row_index, line_start, line_length, row_kind,
-        stripped, opcode, operand, comment, section_index, stmt) != 0)
+        stripped, opcode, operand, comment, section_index, stmt,
+        context->current_plan_row != NULL ? context->current_plan_row->data_class : NULL) != 0)
     return -1;
   ++context->row_index;
   return 0;
@@ -5435,7 +5437,8 @@ static int listing_navigation_observe_label_refs(ListingNavigationJsonContext *n
 
 static int listing_navigation_observe_row(ListingNavigationJsonContext *navigation, size_t row_index,
     const char *line_start, size_t line_length, const char *row_kind, const char *stripped, const char *opcode,
-    const char *operand, const char *comment, int section_index, const M68kStatementIR *stmt) {
+    const char *operand, const char *comment, int section_index, const M68kStatementIR *stmt,
+    const char *plan_data_class) {
   const M68kSectionAnalysisIR *section = NULL;
   char match_text[512];
   char summary[512];
@@ -5503,11 +5506,14 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
       strcmp(row_kind, "label") != 0) {
     const M68kAnalysisStructuredDataItem *structured_item =
       listing_structured_data_item_at_offset(navigation->analysis_policy, section_index, stmt->offset);
-    if (listing_structured_data_item_has_json(structured_item) || (comment != NULL && comment[0] != '\0')) {
+    const char *data_class = listing_row_data_class(structured_item, plan_data_class);
+    if (listing_structured_data_item_has_json(structured_item) || (comment != NULL && comment[0] != '\0') ||
+        data_class != NULL) {
       const char *field = structured_item != NULL && structured_item->field_name[0] != '\0'
         ? structured_item->field_name
         : NULL;
-      const char *data_summary = comment != NULL && comment[0] != '\0' ? comment : (field != NULL ? field : row_kind);
+      const char *data_summary = comment != NULL && comment[0] != '\0' ? comment :
+        (data_class != NULL ? data_class : (field != NULL ? field : row_kind));
       if (navigation->typed_data_count++ != 0U && json_builder_append(&navigation->typed_data, ",") != 0)
         return -1;
       if (append_listing_navigation_entry(&navigation->typed_data, stmt, row_index, section_index, row_kind,
