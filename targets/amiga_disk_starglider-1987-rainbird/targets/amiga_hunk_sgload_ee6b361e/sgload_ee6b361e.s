@@ -46,12 +46,12 @@ loc_0_00000000:
 	move.l loc_0_00000308.l,d1
 	movea.l h0dl_DOSBase.l,a6
 	jsr _LVOClose(a6)
-	move.l $00000070.l,loc_0_0000030C.l
+	move.l m68k_vector_level_4_interrupt_autovector.l,loc_0_0000030C.l
 	move.l #loc_0_00000196,m68k_vector_level_4_interrupt_autovector.l
 	move.w #INTF_SETCLR|INTF_AUD1,_custom+intena.l
 	clr.b loc_0_00000622.l
 	move.l loc_0_000002FC.l,d0
-	move.l d0,_custom+aud1.l	; sound_sample pointer $00032000
+	move.l d0,_custom+aud1+ac_ptr.l	; sound_sample pointer $00032000
 	move.w #$FFFF,_custom+aud1+ac_len.l	; sound sample length 131070 bytes
 	move.w #$40,_custom+aud1+ac_vol.l	; audio volume 64
 	move.w #$166,_custom+aud1+ac_per.l	; audio period 358
@@ -59,7 +59,7 @@ loc_0_00000000:
 	move.w #INTF_SETCLR|INTF_AUD0,_custom+intena.l
 	clr.b loc_0_00000625.l
 	move.l loc_0_000002FC.l,d0
-	move.l d0,_custom+aud0.l	; sound_sample pointer $00032000
+	move.l d0,_custom+aud0+ac_ptr.l	; sound_sample pointer $00032000
 	move.w #$FFFF,_custom+aud0+ac_len.l	; sound sample length 131070 bytes
 	move.w #$40,_custom+aud0+ac_vol.l	; audio volume 64
 	move.w #$166,_custom+aud0+ac_per.l	; audio period 358
@@ -127,7 +127,7 @@ loc_0_00000224:
 	bne.w loc_0_00000252
 	movea.l loc_0_000002FC.l,a0
 	adda.l #$1FFFE,a0
-	move.l a0,_custom+aud1.l	; sound_sample pointer
+	move.l a0,_custom+aud1+ac_ptr.l	; sound_sample pointer
 	move.w #$5C32,_custom+aud1+ac_len.l	; sound sample length 47204 bytes
 	addq.b #1,loc_0_00000622.l
 	bra.w loc_0_000001B8
@@ -145,7 +145,7 @@ loc_0_00000288:
 	bne.w loc_0_000002B6
 	movea.l loc_0_000002FC.l,a0
 	adda.l #$1FFFE,a0
-	move.l a0,_custom+aud0.l	; sound_sample pointer
+	move.l a0,_custom+aud0+ac_ptr.l	; sound_sample pointer
 	move.w #$5C32,_custom+aud0+ac_len.l	; sound sample length 47204 bytes
 	addq.b #1,loc_0_00000625.l
 	bra.w loc_0_000001C0
