@@ -91,3 +91,47 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
     assert "analysis:lookup_table:word_relative_labels" in features
     assert "analysis:lookup_table:long_label_entries" in features
     assert "analysis:pointer_table:long_label_entries" in features
+
+
+def test_direct_control_stub_table_feature_and_xref() -> None:
+    listing = {
+        "rows": [
+            {"kind": "label", "section_index": 0, "start_offset": 0x16A, "end_offset": 0x16A, "text": "loc:\n"},
+            {
+                "kind": "instruction",
+                "section_index": 0,
+                "start_offset": 0x16A,
+                "end_offset": 0x16E,
+                "stable_key": "stub-a",
+                "text": "\tbra.w loc_0_0000021E\n",
+                "opcode_or_directive": "bra.w",
+                "operand_accesses": ["branch_target"],
+                "operand_parts": [{"kind": "symbol", "text": "loc_0_0000021E"}],
+                "code_start_refs": [{"reason_name": "control_target"}],
+            },
+            {"kind": "label", "section_index": 0, "start_offset": 0x16E, "end_offset": 0x16E, "text": "loc:\n"},
+            {
+                "kind": "instruction",
+                "section_index": 0,
+                "start_offset": 0x16E,
+                "end_offset": 0x172,
+                "stable_key": "stub-b",
+                "text": "\tbra.w loc_0_00000254\n",
+                "opcode_or_directive": "bra.w",
+                "operand_accesses": ["branch_target"],
+                "operand_parts": [{"kind": "symbol", "text": "loc_0_00000254"}],
+                "code_start_refs": [{"reason_name": "control_target"}],
+            },
+        ]
+    }
+    bag = FeatureBag()
+    _add_listing_features(listing, bag)
+    counts, _examples, tags = bag.row_features()
+
+    assert counts["analysis:direct_control_stub_table"] == 2
+    assert "analysis:direct_control_stub_table" in tags
+
+    row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
+    xrefs = _listing_xrefs(row, listing, feature_bag=FeatureBag())
+    direct_xrefs = [xref for xref in xrefs if xref["feature"] == "analysis:direct_control_stub_table"]
+    assert [xref["stable_key"] for xref in direct_xrefs] == ["stub-a", "stub-b"]
