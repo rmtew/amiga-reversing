@@ -7440,6 +7440,55 @@ static int test_facts_v2_render_asm_source_uses_policy_app_slot_region_symbol(vo
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_supports_named_rsset_layouts(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[2] = {0x4eu, 0x75u};
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.app_slot_region_count = 2U;
+  policy.app_slot_regions[0].offset = 0x0004U;
+  policy.app_slot_regions[0].size = 4U;
+  snprintf(policy.app_slot_regions[0].layout_name, sizeof(policy.app_slot_regions[0].layout_name), "app");
+  snprintf(policy.app_slot_regions[0].base_symbol, sizeof(policy.app_slot_regions[0].base_symbol),
+    "__amiga_app_base__");
+  snprintf(policy.app_slot_regions[0].symbol, sizeof(policy.app_slot_regions[0].symbol), "app_Window");
+  snprintf(policy.app_slot_regions[1].layout_name, sizeof(policy.app_slot_regions[1].layout_name), "work");
+  snprintf(policy.app_slot_regions[1].base_symbol, sizeof(policy.app_slot_regions[1].base_symbol),
+    "__game_work_base__");
+  snprintf(policy.app_slot_regions[1].sizeof_symbol, sizeof(policy.app_slot_regions[1].sizeof_symbol),
+    "work_SIZEOF");
+  policy.app_slot_regions[1].offset = 0x0002U;
+  policy.app_slot_regions[1].size = 2U;
+  snprintf(policy.app_slot_regions[1].symbol, sizeof(policy.app_slot_regions[1].symbol), "work_flags");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "app_Window RS.L 1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "app_SIZEOF EQU __RS\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "work_flags RS.W 1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "work_SIZEOF EQU __RS\n") != NULL);
+  M68K_C_ASSERT(source != NULL && strstr(source, "app_Window RS.L 1\n") <
+    strstr(source, "work_flags RS.W 1\n"));
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_infers_lvo_from_base_field_slot(void) {
   M68kObject object;
   M68kSection section;
@@ -12676,6 +12725,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_keeps_untyped_app_slot_untyped},
     {"facts_v2_render_asm_source_uses_policy_app_slot_region_symbol",
       test_facts_v2_render_asm_source_uses_policy_app_slot_region_symbol},
+    {"facts_v2_render_asm_source_supports_named_rsset_layouts",
+      test_facts_v2_render_asm_source_supports_named_rsset_layouts},
     {"facts_v2_render_asm_source_infers_lvo_from_base_field_slot",
       test_facts_v2_render_asm_source_infers_lvo_from_base_field_slot},
     {"facts_v2_render_asm_source_infers_openlibrary_base_field_slot",

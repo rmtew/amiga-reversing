@@ -323,6 +323,9 @@ class _M68kAnalysisAppSlotRegion(ctypes.Structure):
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint8),
         ("reserved", ctypes.c_uint8 * 3),
+        ("layout_name", ctypes.c_char * 32),
+        ("base_symbol", ctypes.c_char * 64),
+        ("sizeof_symbol", ctypes.c_char * 64),
         ("symbol", ctypes.c_char * 64),
         ("struct_name", ctypes.c_char * 64),
         ("pointer_struct", ctypes.c_char * 64),
@@ -3240,6 +3243,20 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
                         "seed_origin": "manual_analysis",
                         "review_status": "seeded",
                         "citation": "test",
+                    },
+                    {
+                        "offset": 0x04,
+                        "layout_name": "work",
+                        "base_symbol": "__game_work_base__",
+                        "sizeof_symbol": "work_SIZEOF",
+                        "symbol": "work_counter",
+                        "struct_name": None,
+                        "pointer_struct": None,
+                        "storage_kind": "scalar",
+                        "semantic_type": "counter",
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "test",
                     }
                 ],
                 "resident": {"name": "icon.library", "version": 40, "offset": 0, "hunk": 0},
@@ -3276,10 +3293,17 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     ) == 0
     assert amiga_policy.register_seed_count == 1
     assert amiga_policy.structured_data_item_count > 0
-    assert amiga_policy.app_slot_region_count == 1
+    assert amiga_policy.app_slot_region_count == 2
     assert amiga_policy.app_slot_regions[0].offset == 0x22C
+    assert amiga_policy.app_slot_regions[0].layout_name == b"app"
+    assert amiga_policy.app_slot_regions[0].base_symbol == b"__amiga_app_base__"
     assert amiga_policy.app_slot_regions[0].symbol == b"app_startup_options_buffer"
     assert amiga_policy.app_slot_regions[0].storage_kind == b"pointer"
+    assert amiga_policy.app_slot_regions[1].offset == 0x04
+    assert amiga_policy.app_slot_regions[1].layout_name == b"work"
+    assert amiga_policy.app_slot_regions[1].base_symbol == b"__game_work_base__"
+    assert amiga_policy.app_slot_regions[1].sizeof_symbol == b"work_SIZEOF"
+    assert amiga_policy.app_slot_regions[1].symbol == b"work_counter"
     assert amiga_policy.named_label_count > 0
 
 

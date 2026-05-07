@@ -3691,6 +3691,9 @@ static int render_lookup_seed_policy_app_slot_regions(M68kRenderLookup *lookup) 
   }
   for (index = 0U; index < policy->app_slot_region_count && index < M68K_ANALYSIS_APP_SLOT_REGION_LIMIT; ++index) {
     const M68kAnalysisAppSlotRegion *slot = &policy->app_slot_regions[index];
+    const char *layout_name = slot->layout_name[0] != '\0' ? slot->layout_name : "app";
+    const char *base_symbol = slot->base_symbol[0] != '\0' ? slot->base_symbol : "__amiga_app_base__";
+    if (strcmp(layout_name, "app") != 0 || strcmp(base_symbol, "__amiga_app_base__") != 0) continue;
     if (slot->symbol[0] == '\0' || slot->offset > 0x7FFFU) continue;
     if (render_lookup_add_named_app_field_slot(lookup, (int16_t)slot->offset, slot->symbol, SIZE_MAX,
         UINT32_MAX) != 0) {

@@ -110,8 +110,8 @@ static int policy_add_runtime_range_local(M68kAnalysisPolicy *policy, uint32_t s
 static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index,
   uint32_t runtime_address);
 static int policy_add_app_slot_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
-  const char *symbol, const char *struct_name, const char *pointer_struct, const char *storage_kind,
-  const char *semantic_type);
+  const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
+  const char *struct_name, const char *pointer_struct, const char *storage_kind, const char *semantic_type);
 static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
   uint32_t runtime_address, uint32_t *out_section_index, uint32_t *out_offset);
 
@@ -471,16 +471,28 @@ static int append_metadata_app_slot_region_local(const char *object_start, const
   uint32_t offset = 0U;
   int has_offset = 0;
   char symbol[64];
+  char layout_name[32];
+  char base_symbol[64];
+  char sizeof_symbol[64];
   char struct_name[64];
   char pointer_struct[64];
   char storage_kind[32];
   char semantic_type[64];
   symbol[0] = '\0';
+  layout_name[0] = '\0';
+  base_symbol[0] = '\0';
+  sizeof_symbol[0] = '\0';
   struct_name[0] = '\0';
   pointer_struct[0] = '\0';
   storage_kind[0] = '\0';
   semantic_type[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "offset", &offset, &has_offset) ||
+      !json_optional_string_field_local(object_start, object_end, "layout_name", layout_name,
+        sizeof(layout_name)) ||
+      !json_optional_string_field_local(object_start, object_end, "base_symbol", base_symbol,
+        sizeof(base_symbol)) ||
+      !json_optional_string_field_local(object_start, object_end, "sizeof_symbol", sizeof_symbol,
+        sizeof(sizeof_symbol)) ||
       !json_optional_string_field_local(object_start, object_end, "symbol", symbol, sizeof(symbol)) ||
       !json_optional_string_field_local(object_start, object_end, "struct_name", struct_name, sizeof(struct_name)) ||
       !json_optional_string_field_local(object_start, object_end, "pointer_struct", pointer_struct,
@@ -493,8 +505,8 @@ static int append_metadata_app_slot_region_local(const char *object_start, const
   }
   if (!has_offset) return 1;
   return policy_add_app_slot_region_local(policy, offset,
-    app_slot_region_size_from_storage_kind_local(storage_kind), symbol, struct_name, pointer_struct, storage_kind,
-    semantic_type);
+    app_slot_region_size_from_storage_kind_local(storage_kind), layout_name, base_symbol, sizeof_symbol, symbol,
+    struct_name, pointer_struct, storage_kind, semantic_type);
 }
 
 static int policy_add_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset) {
@@ -557,23 +569,33 @@ static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint
 }
 
 static int policy_add_app_slot_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
-    const char *symbol, const char *struct_name, const char *pointer_struct, const char *storage_kind,
-    const char *semantic_type) {
+    const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
+    const char *struct_name, const char *pointer_struct, const char *storage_kind, const char *semantic_type) {
   M68kAnalysisAppSlotRegion *slot;
   uint16_t index;
+  const char *effective_layout = layout_name != NULL && layout_name[0] != '\0' ? layout_name : "app";
+  const char *effective_base = base_symbol != NULL && base_symbol[0] != '\0' ? base_symbol : "__amiga_app_base__";
   if (policy == NULL || offset > 0x7FFFU || size == 0U ||
       policy->app_slot_region_count >= M68K_ANALYSIS_APP_SLOT_REGION_LIMIT) {
     return 0;
   }
   for (index = 0U; index < policy->app_slot_region_count; ++index) {
     const M68kAnalysisAppSlotRegion *existing = &policy->app_slot_regions[index];
-    if (existing->offset == offset) return 1;
+    const char *existing_layout = existing->layout_name[0] != '\0' ? existing->layout_name : "app";
+    const char *existing_base = existing->base_symbol[0] != '\0' ? existing->base_symbol : "__amiga_app_base__";
+    if (existing->offset == offset && strcmp(existing_layout, effective_layout) == 0 &&
+        strcmp(existing_base, effective_base) == 0) {
+      return 1;
+    }
   }
   slot = &policy->app_slot_regions[policy->app_slot_region_count];
   memset(slot, 0, sizeof(*slot));
   slot->offset = offset;
   slot->size = size;
-  if (!copy_policy_text(slot->symbol, sizeof(slot->symbol), symbol) ||
+  if (!copy_policy_text(slot->layout_name, sizeof(slot->layout_name), effective_layout) ||
+      !copy_policy_text(slot->base_symbol, sizeof(slot->base_symbol), effective_base) ||
+      !copy_policy_text(slot->sizeof_symbol, sizeof(slot->sizeof_symbol), sizeof_symbol) ||
+      !copy_policy_text(slot->symbol, sizeof(slot->symbol), symbol) ||
       !copy_policy_text(slot->struct_name, sizeof(slot->struct_name), struct_name) ||
       !copy_policy_text(slot->pointer_struct, sizeof(slot->pointer_struct), pointer_struct) ||
       !copy_policy_text(slot->storage_kind, sizeof(slot->storage_kind), storage_kind) ||
@@ -2567,9 +2589,15 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
   for (index = 0U; index < policy->app_slot_region_count && index < M68K_ANALYSIS_APP_SLOT_REGION_LIMIT; ++index) {
     const M68kAnalysisAppSlotRegion *slot = &policy->app_slot_regions[index];
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
-    if (json_builder_appendf(builder, "{\"offset\":%u,\"size\":%u,\"symbol\":",
+    if (json_builder_appendf(builder, "{\"offset\":%u,\"size\":%u,\"layout_name\":",
           (unsigned)slot->offset, (unsigned)slot->size) != 0)
       return -1;
+    if (append_nullable_text_json_local(builder, slot->layout_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"base_symbol\":") != 0) return -1;
+    if (append_nullable_text_json_local(builder, slot->base_symbol) != 0) return -1;
+    if (json_builder_append(builder, ",\"sizeof_symbol\":") != 0) return -1;
+    if (append_nullable_text_json_local(builder, slot->sizeof_symbol) != 0) return -1;
+    if (json_builder_append(builder, ",\"symbol\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, slot->symbol) != 0) return -1;
     if (json_builder_append(builder, ",\"struct_name\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, slot->struct_name) != 0) return -1;

@@ -300,6 +300,9 @@ class AppSlotRegionMetadata:
     seed_origin: str
     review_status: str
     citation: str
+    layout_name: str | None = None
+    base_symbol: str | None = None
+    sizeof_symbol: str | None = None
     symbol: str | None = None
     struct_name: str | None = None
     pointer_struct: str | None = None
@@ -315,6 +318,9 @@ class AppSlotRegionMetadata:
         seed_origin = payload["seed_origin"]
         review_status = payload["review_status"]
         citation = payload["citation"]
+        layout_name = payload.get("layout_name")
+        base_symbol = payload.get("base_symbol")
+        sizeof_symbol = payload.get("sizeof_symbol")
         symbol = payload["symbol"]
         struct_name = payload["struct_name"]
         pointer_struct = payload["pointer_struct"]
@@ -329,6 +335,9 @@ class AppSlotRegionMetadata:
         assert isinstance(review_status, str)
         assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
         assert isinstance(citation, str)
+        assert layout_name is None or isinstance(layout_name, str)
+        assert base_symbol is None or isinstance(base_symbol, str)
+        assert sizeof_symbol is None or isinstance(sizeof_symbol, str)
         assert symbol is None or isinstance(symbol, str)
         assert struct_name is None or isinstance(struct_name, str)
         assert pointer_struct is None or isinstance(pointer_struct, str)
@@ -344,6 +353,9 @@ class AppSlotRegionMetadata:
             seed_origin=seed_origin,
             review_status=review_status,
             citation=citation,
+            layout_name=layout_name,
+            base_symbol=base_symbol,
+            sizeof_symbol=sizeof_symbol,
             symbol=symbol,
             struct_name=struct_name,
             pointer_struct=pointer_struct,
@@ -1047,7 +1059,7 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
         app_slot_regions=_merge_unique_by_key(
             manual.app_slot_regions,
             seeded.app_slot_regions,
-            key=lambda region: region.offset,
+            key=lambda region: (region.layout_name or "app", region.base_symbol or "__amiga_app_base__", region.offset),
             what="app slot region",
         ),
         seeded_entities=_merge_seeded_entities(manual.seeded_entities, seeded.seeded_entities),

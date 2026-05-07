@@ -137,6 +137,9 @@ typedef struct M68kAnalysisAppSlotRegion {
   uint32_t offset;
   uint8_t size;
   uint8_t reserved[3];
+  char layout_name[32];
+  char base_symbol[64];
+  char sizeof_symbol[64];
   char symbol[64];
   char struct_name[64];
   char pointer_struct[64];
