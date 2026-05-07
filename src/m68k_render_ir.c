@@ -218,6 +218,7 @@ static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRende
   if (m68k_render_plan_append_text_row(dest, source->kind, source->region_id, source->text, &row) != 0)
     return 0;
   row->directive_line_mask = source->directive_line_mask;
+  m68k_render_plan_row_set_data_class(row, source->data_class);
   if (source->has_source_range)
     m68k_render_plan_row_set_source_range(row, source->source_section_index, source->source_offset,
       source->source_size);
@@ -1570,6 +1571,13 @@ static int structured_data_item_is_word_relative_lookup_table(const M68kAnalysis
 static int structured_data_item_is_absolute_long_lookup_table(const M68kAnalysisStructuredDataItem *item) {
   return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
     strcmp(item->semantic_role, "lookup_table") == 0;
+}
+
+static const char *structured_data_item_data_class(const M68kAnalysisStructuredDataItem *item) {
+  if (item == NULL) return NULL;
+  if (item->semantic_role[0] != '\0') return item->semantic_role;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING) return "string";
+  return NULL;
 }
 
 static int format_absolute_long_lookup_table_expr(const M68kRenderLookup *lookup,
@@ -7421,6 +7429,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
                 1);
               set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,
                 structured_item->size);
+              m68k_render_plan_row_set_data_class(row, structured_data_item_data_class(structured_item));
               if (!structured_item_updated_pc) asm_logical_pc += structured_item->size;
             }
             offset += structured_item->size;
@@ -7460,6 +7469,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
                 row = finish_asm_source_plan_row(out_preview, section->section_index, offset, string_span->size, 1);
                 set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,
                   string_span->size);
+                m68k_render_plan_row_set_data_class(row, "string");
                 asm_logical_pc += string_span->size;
               }
               offset += string_span->size;

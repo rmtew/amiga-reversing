@@ -287,6 +287,13 @@ void m68k_render_plan_row_set_statement_metadata(M68kRenderPlanRow *row, uint8_t
   }
 }
 
+void m68k_render_plan_row_set_data_class(M68kRenderPlanRow *row, const char *data_class) {
+  if (row == NULL) return;
+  row->data_class[0] = '\0';
+  if (data_class == NULL || data_class[0] == '\0') return;
+  snprintf(row->data_class, sizeof(row->data_class), "%s", data_class);
+}
+
 const M68kRenderPlanRow *m68k_render_plan_row_at(const M68kRenderPlan *plan, size_t row_index) {
   if (plan == NULL || row_index >= plan->row_count) return NULL;
   return &plan->rows[row_index];

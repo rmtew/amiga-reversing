@@ -2281,9 +2281,11 @@ static int listing_data_class_is_known(const char *value) {
     "blitter_source",
     "copper_list",
     "disk_buffer",
+    "lookup_table",
     "pointer_table",
     "sound_sample",
     "sprite",
+    "string",
     "string_control_stream"
   };
   size_t index;
@@ -2298,6 +2300,13 @@ static const char *listing_data_class_for_structured_item(const M68kAnalysisStru
   if (item == NULL) return NULL;
   if (listing_data_class_is_known(item->semantic_role)) return item->semantic_role;
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING) return "string";
+  return NULL;
+}
+
+static const char *listing_row_data_class(const M68kAnalysisStructuredDataItem *item, const char *plan_data_class) {
+  const char *item_class = listing_data_class_for_structured_item(item);
+  if (item_class != NULL) return item_class;
+  if (listing_data_class_is_known(plan_data_class)) return plan_data_class;
   return NULL;
 }
 
@@ -4445,7 +4454,7 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     size_t line_length, const char *row_kind, const char *stripped, const char *opcode, const char *operand,
     const char *comment, int section_index, const M68kStatementIR *stmt,
     const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
-    const char *analysis_generation) {
+    const char *analysis_generation, const char *plan_data_class) {
   char text[1200];
   char label_text[1024];
   const char *label = NULL;
@@ -4610,9 +4619,9 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     if (json_builder_append(builder, ",\"structured_data\":") != 0) return -1;
     if (append_listing_structured_data_json(builder, structured_item) != 0) return -1;
   }
-  if (listing_data_class_for_structured_item(structured_item) != NULL) {
+  if (listing_row_data_class(structured_item, plan_data_class) != NULL) {
     if (json_builder_append(builder, ",\"data_class\":") != 0) return -1;
-    if (json_builder_append_json_string(builder, listing_data_class_for_structured_item(structured_item)) != 0)
+    if (json_builder_append_json_string(builder, listing_row_data_class(structured_item, plan_data_class)) != 0)
       return -1;
   }
   return json_builder_append(builder, "}");
@@ -4628,7 +4637,7 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
   split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
     sizeof(operand), comment, sizeof(comment));
   return append_listing_row_json_parsed(builder, row_index, line_start, line_length, row_kind, stripped, opcode,
-    operand, comment, section_index, stmt, analysis_policy, source_analysis, analysis_generation);
+    operand, comment, section_index, stmt, analysis_policy, source_analysis, analysis_generation, NULL);
 }
 
 typedef struct ListingSourceHeaderRow {
@@ -4852,7 +4861,8 @@ static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *con
     if (stripped != NULL && opcode != NULL && operand != NULL && comment != NULL) {
       if (append_listing_row_json_parsed(context->builder, context->row_index, line_start, line_length, row_kind,
           stripped, opcode, operand, comment, section_index, stmt, context->analysis_policy,
-          context->source_analysis, context->analysis_generation) != 0)
+          context->source_analysis, context->analysis_generation,
+          context->current_plan_row != NULL ? context->current_plan_row->data_class : NULL) != 0)
         return -1;
     } else if (append_listing_row_json(context->builder, context->row_index, line_start, line_length, row_kind,
         section_index, stmt, context->analysis_policy, context->source_analysis, context->analysis_generation) != 0)

@@ -3882,6 +3882,35 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
     assert len(refs_by_source) == 14
 
 
+def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
+    _requires_c_backend_dlls()
+
+    expectations = {
+        "amiga_hunk_bloodwych": {
+            "lookup_table": 231,
+            "pointer_table": 4,
+            "string": 72,
+        },
+        "amiga_hunk_genam": {
+            "lookup_table": 10,
+            "string": 145,
+        },
+        "amiga_hunk_monam302": {
+            "lookup_table": 18,
+            "pointer_table": 1,
+            "string": 128,
+        },
+    }
+    for target_name, expected_counts in expectations.items():
+        rows, _, profile = build_project_listing_rows_profile_with_c_artifact(
+            target_name,
+            project_root=PROJECT_ROOT,
+        )
+        assert profile["facts_v2"]["asm_source_refused"] is False
+        for data_class, expected_count in expected_counts.items():
+            assert sum(1 for row in rows if row.get("data_class") == data_class) >= expected_count
+
+
 def test_real_dll_platform_calls_are_not_unresolved_indirect_sites() -> None:
     _requires_c_backend_dlls()
 
