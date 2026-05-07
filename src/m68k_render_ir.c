@@ -4489,7 +4489,6 @@ static int runtime_address_ref_targets_unmaterialized_discovered_code(const M68k
     return 0;
   }
   if (!lookup_source_offset_is_block_start(lookup, ref->target_section_index, ref->target_offset)) return 0;
-  if (m68k_cpu_exception_vector_address_has_kind(ref->runtime_address, M68K_CPU_VECTOR_KIND_RESET)) return 0;
   if (lookup_source_has_materialized_runtime_address(lookup, ref->target_section_index, ref->target_offset,
       ref->runtime_address)) {
     return 0;

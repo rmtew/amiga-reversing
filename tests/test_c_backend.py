@@ -3887,8 +3887,9 @@ def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
     assert source_text.count("\tmovea.l $00000004.l,a6\n") == 2
     assert "\tlea.l loc_0_00000148.l,a0\n" in source_text
     assert "\tlea.l abs_0_00000004.l,a0\n" not in source_text
-    assert "\tlea.l $00000004.l,a1\n" in source_text
-    assert "\tjmp $00000004.l\n" in source_text
+    assert "runtime_code_00000004\tEQU\t$4\n" in source_text
+    assert "\tlea.l runtime_code_00000004.l,a1\n" in source_text
+    assert "\tjmp runtime_code_00000004.l\n" in source_text
     assert "    ORG $4\n" not in source_text
     assert "\tclr.l spr1+sd_dataa(a6)\n" in source_text
     assert "\tclr.l app_014C(a6)\n" not in source_text

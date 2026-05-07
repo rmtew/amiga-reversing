@@ -4581,6 +4581,15 @@ static int test_facts_v2_runtime_trampoline_copy_does_not_force_low_org(void) {
   M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0x20U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_CODE_START;
+  fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  fact.section_index = 0U;
+  fact.offset = 0x10U;
+  fact.reason = M68K_FACT_CODE_START_REASON_CONTROL_TARGET;
+  fact.has_runtime_address = 1U;
+  fact.runtime_address = 4U;
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_RUNTIME_ADDRESS_RANGE;
   fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
   fact.section_index = 0U;
@@ -4624,6 +4633,8 @@ static int test_facts_v2_runtime_trampoline_copy_does_not_force_low_org(void) {
     accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $4\n") == NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "runtime_code_00000004\tEQU\t$4\n") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tjmp runtime_code_00000004.l\n") != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "loc_0_00000010:\n\tjmp abs_0_00000064.l\n") != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "loc_0_00000020:\n    ORG $64\nabs_0_00000064:\n") != NULL);
   M68K_C_ASSERT_U32(0U, preview.asm_source_instruction_render_failures);
