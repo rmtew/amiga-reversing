@@ -4193,6 +4193,7 @@ function buildNavigationEntries(rows) {
   };
   const appSlots = new Map();
   const labels = new Map();
+  const typedDataSeen = new Set();
   rows.forEach((row, rowIndex) => {
     if (row.addr === null || row.addr === undefined) {
       return;
@@ -4223,16 +4224,22 @@ function buildNavigationEntries(rows) {
       });
     }
     if (rowHasTypedData(row)) {
-      groups["typed-data"].push({
-        addr: row.addr,
-        rowIndex,
-        row_index: rowIndex,
-        stableKey: row.stable_key ?? row.stableKey ?? null,
-        stable_key: row.stable_key ?? row.stableKey ?? null,
-        summary: summarizeNavigationRow(row, "typed-data"),
-        matchText: renderListingCode(row),
-        match_text: renderListingCode(row),
-      });
+      const summary = summarizeNavigationRow(row, "typed-data");
+      const hunkIndex = rowHunkIndex(row);
+      const key = `${hunkIndex ?? ""}:${row.addr}:${summary}`;
+      if (!typedDataSeen.has(key)) {
+        typedDataSeen.add(key);
+        groups["typed-data"].push({
+          addr: row.addr,
+          rowIndex,
+          row_index: rowIndex,
+          stableKey: row.stable_key ?? row.stableKey ?? null,
+          stable_key: row.stable_key ?? row.stableKey ?? null,
+          summary,
+          matchText: renderListingCode(row),
+          match_text: renderListingCode(row),
+        });
+      }
     }
     if (rowHasUnresolvedTypedAccess(row)) {
       const hunkIndex = rowHunkIndex(row);

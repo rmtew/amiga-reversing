@@ -3,6 +3,7 @@ from __future__ import annotations
 import ctypes
 import json
 import subprocess
+from collections import Counter
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -3920,11 +3921,23 @@ def test_real_dll_render_plan_data_classes_reach_navigation() -> None:
             project_root=PROJECT_ROOT,
         )
         assert profile["facts_v2"]["asm_source_refused"] is False
-        expected = [
-            (index, row["data_class"])
-            for index, row in enumerate(rows)
-            if row.get("data_class") and not row.get("comment_text") and not row.get("structured_data")
+        expected = []
+        seen = set()
+        for index, row in enumerate(rows):
+            key = (row.get("section_index"), row.get("addr"), row.get("data_class"))
+            if row.get("data_class") and row.get("kind") not in {"instruction", "label"} and key not in seen:
+                seen.add(key)
+                expected.append((index, row.get("comment_text") or row["data_class"]))
+        duplicate_keys = [
+            key
+            for key, count in Counter(
+                (row.get("section_index"), row.get("addr"), row.get("data_class"))
+                for row in rows
+                if row.get("data_class")
+            ).items()
+            if count > 1
         ]
+        assert duplicate_keys
         assert expected
 
         paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
@@ -3947,6 +3960,11 @@ def test_real_dll_render_plan_data_classes_reach_navigation() -> None:
             (entry.get("row_index"), entry.get("summary"))
             for entry in navigation["groups"]["typed-data"]
         }
+        keys = [
+            (entry.get("hunk_index"), entry.get("addr"), entry.get("summary"))
+            for entry in navigation["groups"]["typed-data"]
+        ]
+        assert len(keys) == len(set(keys))
         for row_index, data_class in expected:
             assert (row_index, data_class) in entries
 

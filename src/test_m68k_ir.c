@@ -7244,6 +7244,7 @@ static int test_listing_navigation_uses_render_plan_data_class(void) {
   M68kRenderPlan render_plan;
   M68kRenderPlanRow *row = NULL;
   char *navigation_json = NULL;
+  const char *first_summary;
   const uint8_t bytes[2] = {0x00U, 0x00U};
 
   m68k_render_plan_init(&render_plan);
@@ -7252,11 +7253,19 @@ static int test_listing_navigation_uses_render_plan_data_class(void) {
   m68k_render_plan_row_set_source_range(row, 0U, 0x20U, sizeof(bytes));
   m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL, bytes, sizeof(bytes));
   m68k_render_plan_row_set_data_class(row, "lookup_table");
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_DATA, 0U,
+    "\tdc.w $0001\n", &row));
+  m68k_render_plan_row_set_source_range(row, 0U, 0x20U, sizeof(bytes));
+  m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL, bytes, sizeof(bytes));
+  m68k_render_plan_row_set_data_class(row, "lookup_table");
 
   M68K_C_ASSERT_INT(0, test_listing_navigation_from_render_plan_to_json(NULL, &render_plan,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &navigation_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(navigation_json != NULL);
   M68K_C_ASSERT(strstr(navigation_json, "\"typed-data\":[{\"addr\":32,\"row_index\":0,\"summary\":\"lookup_table\"") != NULL);
+  first_summary = strstr(navigation_json, "\"summary\":\"lookup_table\"");
+  M68K_C_ASSERT(first_summary != NULL);
+  M68K_C_ASSERT(strstr(first_summary + 1, "\"summary\":\"lookup_table\"") == NULL);
 
   free(navigation_json);
   m68k_render_plan_destroy(&render_plan);

@@ -5077,7 +5077,17 @@ typedef struct ListingNavigationLabelBuilder {
   size_t ref_capacity;
 } ListingNavigationLabelBuilder;
 
+typedef struct ListingNavigationTypedDataKey {
+  char summary[512];
+  uint32_t addr;
+  int section_index;
+} ListingNavigationTypedDataKey;
+
 struct ListingNavigationJsonContext {
+  Arena *arena;
+  ListingNavigationTypedDataKey *typed_data_keys;
+  size_t typed_data_key_count;
+  size_t typed_data_key_capacity;
   JsonBuilder typed_data;
   JsonBuilder typed_gaps;
   JsonBuilder relocations;
@@ -5130,6 +5140,7 @@ static int listing_navigation_group_init(JsonBuilder *builder) {
 
 static void listing_navigation_destroy(ListingNavigationJsonContext *navigation) {
   if (navigation == NULL) return;
+  arena_destroy(navigation->arena);
   json_builder_destroy(&navigation->typed_data);
   json_builder_destroy(&navigation->typed_gaps);
   json_builder_destroy(&navigation->relocations);
@@ -5144,6 +5155,8 @@ static int listing_navigation_init(ListingNavigationJsonContext *navigation, uin
     const M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *analysis_policy) {
   if (navigation == NULL) return -1;
   memset(navigation, 0, sizeof(*navigation));
+  navigation->arena = arena_create(4096U);
+  if (navigation->arena == NULL) return -1;
   navigation->platform_backend_kind = platform_backend_kind;
   navigation->source_analysis = source_analysis;
   navigation->analysis_policy = analysis_policy;
@@ -5203,6 +5216,52 @@ static int append_listing_navigation_entry(JsonBuilder *builder, const M68kState
       json_builder_appendf(builder, ",\"hunk_index\":%d,\"section_index\":%d", section_index, section_index) != 0)
     return -1;
   return json_builder_append(builder, "}");
+}
+
+static int listing_navigation_typed_data_is_duplicate(ListingNavigationJsonContext *navigation,
+    const M68kStatementIR *stmt, int section_index, const char *summary, int *out_duplicate) {
+  ListingNavigationTypedDataKey *grown;
+  ListingNavigationTypedDataKey *key;
+  size_t index;
+  size_t next_capacity;
+  if (out_duplicate != NULL) *out_duplicate = 0;
+  if (navigation == NULL || stmt == NULL || summary == NULL) return -1;
+  for (index = 0U; index < navigation->typed_data_key_count; ++index) {
+    const ListingNavigationTypedDataKey *existing = &navigation->typed_data_keys[index];
+    if (existing->section_index == section_index && existing->addr == stmt->offset &&
+        strcmp(existing->summary, summary) == 0) {
+      if (out_duplicate != NULL) *out_duplicate = 1;
+      return 0;
+    }
+  }
+  if (navigation->typed_data_key_count == navigation->typed_data_key_capacity) {
+    next_capacity = navigation->typed_data_key_capacity == 0U ? 64U :
+      navigation->typed_data_key_capacity * 2U;
+    grown = (ListingNavigationTypedDataKey *)listing_arena_grow_array(navigation->arena,
+      navigation->typed_data_keys, navigation->typed_data_key_count, next_capacity, sizeof(*grown));
+    if (grown == NULL) return -1;
+    navigation->typed_data_keys = grown;
+    navigation->typed_data_key_capacity = next_capacity;
+  }
+  key = &navigation->typed_data_keys[navigation->typed_data_key_count++];
+  memset(key, 0, sizeof(*key));
+  key->section_index = section_index;
+  key->addr = stmt->offset;
+  listing_copy_text(key->summary, sizeof(key->summary), summary);
+  return 0;
+}
+
+static int append_listing_navigation_typed_data_entry(ListingNavigationJsonContext *navigation,
+    const M68kStatementIR *stmt, size_t row_index, int section_index, const char *row_kind, const char *summary,
+    const char *match_text) {
+  int duplicate = 0;
+  if (listing_navigation_typed_data_is_duplicate(navigation, stmt, section_index, summary, &duplicate) != 0)
+    return -1;
+  if (duplicate) return 0;
+  if (navigation->typed_data_count++ != 0U && json_builder_append(&navigation->typed_data, ",") != 0)
+    return -1;
+  return append_listing_navigation_entry(&navigation->typed_data, stmt, row_index, section_index, row_kind,
+    summary, match_text);
 }
 
 static const M68kRecoveredPlatformTypedAccessIR *listing_navigation_typed_access_at(
@@ -5470,9 +5529,7 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
     size_t access_index;
     if (typed_access != NULL) {
       listing_navigation_typed_summary(summary, sizeof(summary), typed_access);
-      if (navigation->typed_data_count++ != 0U && json_builder_append(&navigation->typed_data, ",") != 0)
-        return -1;
-      if (append_listing_navigation_entry(&navigation->typed_data, stmt, row_index, section_index, row_kind,
+      if (append_listing_navigation_typed_data_entry(navigation, stmt, row_index, section_index, row_kind,
           summary[0] != '\0' ? summary : match_text, match_text) != 0)
         return -1;
     }
@@ -5514,9 +5571,7 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
         : NULL;
       const char *data_summary = comment != NULL && comment[0] != '\0' ? comment :
         (data_class != NULL ? data_class : (field != NULL ? field : row_kind));
-      if (navigation->typed_data_count++ != 0U && json_builder_append(&navigation->typed_data, ",") != 0)
-        return -1;
-      if (append_listing_navigation_entry(&navigation->typed_data, stmt, row_index, section_index, row_kind,
+      if (append_listing_navigation_typed_data_entry(navigation, stmt, row_index, section_index, row_kind,
           data_summary, match_text) != 0)
         return -1;
     }

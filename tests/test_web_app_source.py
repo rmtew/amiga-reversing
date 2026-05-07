@@ -69,6 +69,8 @@ def test_web_app_typed_navigation_uses_data_class_rows() -> None:
 
     assert "Boolean(row.data_class)" in app_js
     assert "row.comment_text || row.data_class || item.semantic_role" in app_js
+    assert "const typedDataSeen = new Set();" in app_js
+    assert "if (!typedDataSeen.has(key)) {" in app_js
 
 
 def test_web_app_generation_refresh_restores_only_applied_request() -> None:
