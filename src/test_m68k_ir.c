@@ -6503,6 +6503,11 @@ static int test_listing_json_emits_app_slot_regions_from_platform_api_inputs(voi
   M68K_C_ASSERT(strstr(rows_json, "\"coverage\":\"unknown_app_slot_space\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"coverage\":\"known_struct_field\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"semantic_type\":\"platform_api_buffer\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"app-slot-regions\":[{\"summary\":\"app_input_event: InputEvent $0100-$0116\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"field_paths\":[\"InputEvent.ie_Code\"]") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"app-slot-gaps\":[{\"summary\":\"Gap $0116-$0120 (10 bytes)\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"app-slot-field-gaps\":[{\"summary\":\"Field gap $") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"app-slot-suggestions\":[{\"summary\":\"app_input_event at app+0x100 matches InputEvent") != NULL);
 
   free(rows_json);
   m68k_render_plan_destroy(&render_plan);
@@ -6638,6 +6643,7 @@ static int test_listing_json_reports_untyped_app_slot_api_args(void) {
   M68K_C_ASSERT(strstr(rows_json, "\"reason\":\"missing_struct_metadata\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"stable_key\":\"s0:00000004:instruction:2\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"source_stable_key\":\"s0:00000000:instruction:1\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"app-slot-api-args\":[{\"summary\":\"app_key_buffer -> RawKeyConvert buffer A1 (missing_struct_metadata)\"") != NULL);
 
   free(rows_json);
   m68k_render_plan_destroy(&render_plan);

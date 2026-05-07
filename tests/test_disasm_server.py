@@ -196,6 +196,131 @@ def _test_empty_navigation_groups() -> dict[str, list[dict[str, object]]]:
     }
 
 
+def _test_app_slot_region_navigation_entry(region: dict[str, object]) -> dict[str, object]:
+    offset = cast(int, region.get("offset", 0))
+    end = cast(int, region.get("end", offset))
+    struct_name = cast(str, region.get("struct_name") or "")
+    symbol = cast(str, region.get("symbol") or "")
+    evidence = cast(list[dict[str, object]], region.get("evidence", []))
+    first_evidence = evidence[0] if evidence else {}
+    entry: dict[str, object] = {
+        "summary": f"{symbol}: {struct_name} ${offset:04X}-${end:04X}",
+        "match_text": symbol,
+        "symbol": symbol,
+        "offset": offset,
+        "end": end,
+        "size": region.get("size"),
+        "source": region.get("source"),
+        "confidence": region.get("confidence"),
+        "struct_name": struct_name,
+        "field_ref_count": len(cast(list[dict[str, object]], region.get("field_refs", []))),
+        "field_paths": [
+            ".".join([struct_name, *path])
+            for path in (
+                field_ref.get("field_path")
+                for field_ref in cast(list[dict[str, object]], region.get("field_refs", []))
+                if isinstance(field_ref, dict)
+            )
+            if isinstance(path, list) and all(isinstance(part, str) for part in path)
+        ],
+    }
+    for key in ("row_index", "addr", "hunk_index", "stable_key"):
+        if key in first_evidence:
+            entry[key] = first_evidence[key]
+    return entry
+
+
+def _test_app_slot_gap_navigation_entry(gap: dict[str, object]) -> dict[str, object]:
+    start = cast(int, gap.get("start", 0))
+    end = cast(int, gap.get("end", start))
+    size = max(0, end - start)
+    return {
+        "summary": f"Gap ${start:04X}-${end:04X} ({size} bytes)",
+        "match_text": "",
+        "navigable": False,
+        "start": start,
+        "end": end,
+        "size": size,
+        "after": gap.get("after"),
+        "before": gap.get("before"),
+        "coverage": gap.get("coverage"),
+    }
+
+
+def _test_app_slot_field_gap_navigation_entry(gap: dict[str, object]) -> dict[str, object]:
+    start = cast(int, gap.get("start", 0))
+    end = cast(int, gap.get("end", start))
+    size = max(0, end - start)
+    struct_name = cast(str, gap.get("struct_name") or "")
+    field_path = gap.get("field_path")
+    field_label = ""
+    if isinstance(field_path, list) and all(isinstance(part, str) for part in field_path):
+        field_label = ".".join([struct_name, *field_path])
+    coverage = cast(str, gap.get("coverage") or "unknown")
+    suffix = f" {field_label}" if field_label else f" {coverage}"
+    return {
+        "summary": f"Field gap ${start:04X}-${end:04X} ({size} bytes){suffix}",
+        "match_text": field_label,
+        "navigable": False,
+        "start": start,
+        "end": end,
+        "size": size,
+        "coverage": coverage,
+        "field_path": field_path,
+        "region_id": gap.get("region_id"),
+        "symbol": gap.get("symbol"),
+        "struct_name": struct_name,
+    }
+
+
+def _test_app_slot_suggestion_navigation_entry(suggestion: dict[str, object]) -> dict[str, object]:
+    metadata = suggestion.get("metadata")
+    metadata = metadata if isinstance(metadata, dict) else {}
+    evidence = cast(list[dict[str, object]], suggestion.get("evidence", []))
+    first_evidence = evidence[0] if evidence else {}
+    offset = cast(int, metadata.get("offset", 0))
+    size = cast(int, metadata.get("size", 0))
+    struct_name = cast(str, metadata.get("struct_name") or "")
+    symbol = cast(str, metadata.get("symbol") or "")
+    entry: dict[str, object] = {
+        "summary": cast(str, suggestion.get("summary") or f"Suggest {symbol}: {struct_name} ${offset:04X}"),
+        "match_text": symbol,
+        "symbol": symbol,
+        "offset": offset,
+        "size": size,
+        "struct_name": struct_name,
+        "action": suggestion.get("action"),
+        "confidence": suggestion.get("confidence"),
+        "metadata": metadata,
+    }
+    for key in ("row_index", "addr", "hunk_index", "stable_key"):
+        if key in first_evidence:
+            entry[key] = first_evidence[key]
+    return entry
+
+
+def _test_app_slot_api_arg_navigation_entry(arg: dict[str, object]) -> dict[str, object]:
+    offset = cast(int, arg.get("displacement", 0))
+    symbol = cast(str, arg.get("symbol") or "")
+    function_name = cast(str, arg.get("function") or "")
+    input_name = cast(str, arg.get("input_name") or "")
+    register = cast(str, arg.get("register") or "")
+    reason = cast(str, arg.get("reason") or "untyped")
+    return {
+        "summary": f"{symbol} -> {function_name} {input_name} {register} ({reason})",
+        "match_text": symbol,
+        "symbol": symbol,
+        "offset": offset,
+        "displacement": offset,
+        "function": function_name,
+        "input_name": input_name,
+        "register": register,
+        "reason": reason,
+        "type_name": arg.get("type_name"),
+        **{key: arg[key] for key in ("row_index", "addr", "hunk_index", "source_row_index", "source_flow_row_index", "stable_key", "source_stable_key") if key in arg},
+    }
+
+
 def _test_navigation_entry(row: ListingRow, row_index: int, summary: str | None = None) -> dict[str, object]:
     assert row.addr is not None
     entry: dict[str, object] = {
@@ -404,24 +529,24 @@ def _test_listing_navigation_payload(
                 slot_entry[key] = slot_summary[key]
     groups["labels"] = sorted(label_entries.values(), key=lambda entry: cast(int, entry.get("row_index", -1)))
     groups["app-slot-regions"] = [
-        disasm_server._app_slot_region_navigation_entry(region)
+        _test_app_slot_region_navigation_entry(region)
         for region in cast(list[dict[str, object]], app_slot_analysis.get("regions", []))
         if region.get("source") == "platform_api_arg"
     ]
     groups["app-slot-gaps"] = [
-        disasm_server._app_slot_gap_navigation_entry(gap)
+        _test_app_slot_gap_navigation_entry(gap)
         for gap in cast(list[dict[str, object]], app_slot_analysis.get("gaps", []))
     ]
     groups["app-slot-field-gaps"] = [
-        disasm_server._app_slot_field_gap_navigation_entry(gap)
+        _test_app_slot_field_gap_navigation_entry(gap)
         for gap in cast(list[dict[str, object]], app_slot_analysis.get("field_gaps", []))
     ]
     groups["app-slot-suggestions"] = [
-        disasm_server._app_slot_suggestion_navigation_entry(suggestion)
+        _test_app_slot_suggestion_navigation_entry(suggestion)
         for suggestion in cast(list[dict[str, object]], app_slot_analysis.get("suggestions", []))
     ]
     groups["app-slot-api-args"] = [
-        disasm_server._app_slot_untyped_api_arg_navigation_entry(arg)
+        _test_app_slot_api_arg_navigation_entry(arg)
         for arg in cast(list[dict[str, object]], app_slot_analysis.get("untyped_api_args", []))
     ]
     return {

@@ -5607,18 +5607,380 @@ static int append_listing_navigation_app_slots_json(JsonBuilder *builder,
   return json_builder_append(builder, "]");
 }
 
+static void listing_app_slot_field_path_label(char *out, size_t out_size, const char *struct_name,
+    const AmigaOsResolvedStructFieldInfo *field) {
+  size_t index;
+  if (out == NULL || out_size == 0U) return;
+  listing_copy_text(out, out_size, struct_name != NULL ? struct_name : "");
+  if (field == NULL) return;
+  for (index = 0U; index < field->path_count; ++index) {
+    const char *field_name = amiga_os_name(8U, field->path_field_ids[index]);
+    size_t used;
+    if (field_name == NULL || field_name[0] == '\0') continue;
+    used = strlen(out);
+    if (used + 1U >= out_size) return;
+    snprintf(out + used, out_size - used, ".%s", field_name);
+  }
+}
+
+static int append_listing_app_slot_region_navigation_json(JsonBuilder *builder,
+    const ListingAppSlotAnalysisBuilder *analysis) {
+  size_t index;
+  int emitted = 0;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (analysis == NULL) return json_builder_append(builder, "]");
+  for (index = 0U; index < analysis->region_count; ++index) {
+    const ListingAppSlotTypedRegion *region = &analysis->regions[index];
+    const ListingAppSlotEvidence *evidence = region->evidence_count != 0U ? &region->evidence[0] : NULL;
+    ListingAppSlotFieldRefSummary *fields;
+    ArenaMark mark = arena_mark(analysis->arena);
+    size_t field_count = 0U;
+    size_t field_index;
+    int emitted_field_path = 0;
+    char summary[192];
+    fields = listing_app_slot_build_field_refs(analysis, region, &field_count);
+    snprintf(summary, sizeof(summary), "%s: %s $%04X-$%04X", region->symbol, region->struct_name,
+      (unsigned)(uint16_t)region->offset, (unsigned)(uint16_t)region->end);
+    if (emitted && json_builder_append(builder, ",") != 0) {
+      arena_rewind(analysis->arena, mark);
+      return -1;
+    }
+    if (json_builder_append(builder, "{\"summary\":") != 0 ||
+        json_builder_append_json_string(builder, summary) != 0 ||
+        json_builder_append(builder, ",\"match_text\":") != 0 ||
+        json_builder_append_json_string(builder, region->symbol) != 0 ||
+        json_builder_append(builder, ",\"symbol\":") != 0 ||
+        json_builder_append_json_string(builder, region->symbol) != 0 ||
+        json_builder_appendf(builder,
+          ",\"offset\":%d,\"end\":%d,\"size\":%d,\"source\":\"platform_api_arg\","
+          "\"confidence\":\"tool-inferred\",\"struct_name\":",
+          (int)region->offset, (int)region->end, (int)region->size) != 0 ||
+        json_builder_append_json_string(builder, region->struct_name) != 0 ||
+        json_builder_appendf(builder, ",\"field_ref_count\":%u,\"field_paths\":[", (unsigned)field_count) != 0) {
+      arena_rewind(analysis->arena, mark);
+      return -1;
+    }
+    for (field_index = 0U; field_index < field_count; ++field_index) {
+      const ListingAppSlotFieldRefSummary *field = &fields[field_index];
+      char field_path[256];
+      if (!field->has_field) continue;
+      listing_app_slot_field_path_label(field_path, sizeof(field_path), region->struct_name, &field->field);
+      if (emitted_field_path && json_builder_append(builder, ",") != 0) {
+        arena_rewind(analysis->arena, mark);
+        return -1;
+      }
+      if (json_builder_append_json_string(builder, field_path) != 0) {
+        arena_rewind(analysis->arena, mark);
+        return -1;
+      }
+      emitted_field_path = 1;
+    }
+    if (json_builder_append(builder, "]") != 0) {
+      arena_rewind(analysis->arena, mark);
+      return -1;
+    }
+    if (evidence != NULL &&
+        json_builder_appendf(builder, ",\"row_index\":%u,\"addr\":%u,\"hunk_index\":%d",
+          (unsigned)evidence->row_index, (unsigned)evidence->addr, evidence->section_index) != 0) {
+      arena_rewind(analysis->arena, mark);
+      return -1;
+    }
+    if (evidence != NULL && evidence->stable_key[0] != '\0') {
+      if (json_builder_append(builder, ",\"stable_key\":") != 0 ||
+          json_builder_append_json_string(builder, evidence->stable_key) != 0) {
+        arena_rewind(analysis->arena, mark);
+        return -1;
+      }
+    }
+    if (json_builder_append(builder, "}") != 0) {
+      arena_rewind(analysis->arena, mark);
+      return -1;
+    }
+    arena_rewind(analysis->arena, mark);
+    emitted = 1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_app_slot_gap_navigation_json(JsonBuilder *builder,
+    const ListingAppSlotInterval *intervals, size_t interval_count) {
+  size_t index;
+  int emitted = 0;
+  int16_t current_end;
+  const char *current_id;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (interval_count == 0U) return json_builder_append(builder, "]");
+  current_end = intervals[0].end;
+  current_id = intervals[0].id;
+  for (index = 1U; index < interval_count; ++index) {
+    if (intervals[index].offset > current_end) {
+      char summary[96];
+      snprintf(summary, sizeof(summary), "Gap $%04X-$%04X (%d bytes)",
+        (unsigned)(uint16_t)current_end, (unsigned)(uint16_t)intervals[index].offset,
+        (int)(intervals[index].offset - current_end));
+      if (emitted && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_append(builder, "{\"summary\":") != 0 ||
+          json_builder_append_json_string(builder, summary) != 0 ||
+          json_builder_append(builder, ",\"match_text\":\"\",\"navigable\":false") != 0 ||
+          json_builder_appendf(builder, ",\"start\":%d,\"end\":%d,\"size\":%d,\"after\":",
+            (int)current_end, (int)intervals[index].offset, (int)(intervals[index].offset - current_end)) != 0 ||
+          json_builder_append_json_string(builder, current_id) != 0 ||
+          json_builder_append(builder, ",\"before\":") != 0 ||
+          json_builder_append_json_string(builder, intervals[index].id) != 0 ||
+          json_builder_append(builder, ",\"coverage\":\"unknown_app_slot_space\"}") != 0)
+        return -1;
+      emitted = 1;
+    }
+    if (intervals[index].end > current_end) {
+      current_end = intervals[index].end;
+      current_id = intervals[index].id;
+    }
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_app_slot_field_gap_navigation_entry(JsonBuilder *builder,
+    const ListingAppSlotTypedRegion *region, int16_t start, int16_t end) {
+  AmigaOsResolvedStructFieldInfo resolved;
+  int has_field;
+  char summary[192];
+  char match_text[192];
+  if (region == NULL || start >= end) return -1;
+  has_field = amiga_os_resolve_struct_field_by_struct_id(region->struct_id, start, 1, &resolved);
+  match_text[0] = '\0';
+  if (has_field) {
+    const char *field_name = amiga_os_name(8U, resolved.field_id);
+    snprintf(match_text, sizeof(match_text), "%s.%s", region->struct_name, field_name != NULL ? field_name : "");
+  }
+  snprintf(summary, sizeof(summary), "Field gap $%04X-$%04X (%d bytes) %s",
+    (unsigned)(uint16_t)(region->offset + start), (unsigned)(uint16_t)(region->offset + end),
+    (int)(end - start), match_text[0] != '\0' ? match_text : (has_field ? "known_struct_field" : "unknown_struct_area"));
+  if (json_builder_append(builder, "{\"summary\":") != 0 ||
+      json_builder_append_json_string(builder, summary) != 0 ||
+      json_builder_append(builder, ",\"match_text\":") != 0 ||
+      json_builder_append_json_string(builder, match_text) != 0 ||
+      json_builder_append(builder, ",\"navigable\":false") != 0 ||
+      json_builder_appendf(builder, ",\"start\":%d,\"end\":%d,\"size\":%d,\"coverage\":",
+        (int)(region->offset + start), (int)(region->offset + end), (int)(end - start)) != 0 ||
+      json_builder_append_json_string(builder, has_field ? "known_struct_field" : "unknown_struct_area") != 0 ||
+      json_builder_append(builder, ",\"field_path\":") != 0)
+    return -1;
+  if (has_field) {
+    if (append_listing_resolved_field_path_json(builder, &resolved) != 0) return -1;
+  } else if (json_builder_append(builder, "[]") != 0) return -1;
+  if (json_builder_append(builder, ",\"region_id\":") != 0 ||
+      json_builder_append_json_string(builder, region->id) != 0 ||
+      json_builder_append(builder, ",\"symbol\":") != 0 ||
+      json_builder_append_json_string(builder, region->symbol) != 0 ||
+      json_builder_append(builder, ",\"struct_name\":") != 0 ||
+      json_builder_append_json_string(builder, region->struct_name) != 0 ||
+      json_builder_append(builder, "}") != 0)
+    return -1;
+  return 0;
+}
+
+static int append_listing_app_slot_field_gap_navigation_segments(JsonBuilder *builder,
+    const ListingAppSlotTypedRegion *region, int16_t start, int16_t end, int *io_emitted) {
+  int16_t cursor = start;
+  if (region == NULL || io_emitted == NULL || start > end) return -1;
+  while (cursor < end) {
+    AmigaOsResolvedStructFieldInfo resolved;
+    int16_t segment_end;
+    if (amiga_os_resolve_struct_field_by_struct_id(region->struct_id, cursor, 1, &resolved)) {
+      if (resolved.offset >= cursor && resolved.size != 0U) {
+        segment_end = (int16_t)(resolved.offset + (int16_t)resolved.size);
+        if (segment_end <= cursor) segment_end = (int16_t)(cursor + 1);
+        if (segment_end > end) segment_end = end;
+      } else {
+        segment_end = (int16_t)(cursor + 1);
+      }
+    } else if (!listing_app_slot_next_known_field_offset(region, cursor, end, &segment_end)) {
+      segment_end = end;
+    }
+    if (*io_emitted && json_builder_append(builder, ",") != 0) return -1;
+    if (append_listing_app_slot_field_gap_navigation_entry(builder, region, cursor, segment_end) != 0) return -1;
+    *io_emitted = 1;
+    cursor = segment_end;
+  }
+  return 0;
+}
+
+static int append_listing_app_slot_field_gap_navigation_json(JsonBuilder *builder,
+    const ListingAppSlotAnalysisBuilder *analysis) {
+  size_t region_index;
+  int emitted = 0;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (analysis == NULL) return json_builder_append(builder, "]");
+  for (region_index = 0U; region_index < analysis->region_count; ++region_index) {
+    const ListingAppSlotTypedRegion *region = &analysis->regions[region_index];
+    ListingAppSlotFieldRefSummary *fields;
+    ArenaMark mark = arena_mark(analysis->arena);
+    size_t field_count = 0U;
+    int16_t intervals[128][2];
+    size_t interval_count = 0U;
+    int16_t cursor = 0;
+    size_t field_index, interval_index;
+    fields = listing_app_slot_build_field_refs(analysis, region, &field_count);
+    for (field_index = 0U; field_index < field_count && interval_count < 128U; ++field_index) {
+      ListingAppSlotFieldRefSummary *field = &fields[field_index];
+      int16_t start = field->field_offset;
+      int16_t end;
+      if (field->region_address || start < 0 || start >= region->size) continue;
+      end = (int16_t)(start + listing_app_slot_field_observed_size(field));
+      if (end > region->size) end = region->size;
+      if (end <= start) continue;
+      intervals[interval_count][0] = start;
+      intervals[interval_count][1] = end;
+      ++interval_count;
+    }
+    for (interval_index = 0U; interval_index < interval_count; ++interval_index) {
+      size_t other;
+      for (other = interval_index + 1U; other < interval_count; ++other) {
+        if (intervals[other][0] < intervals[interval_index][0]) {
+          int16_t tmp_start = intervals[interval_index][0], tmp_end = intervals[interval_index][1];
+          intervals[interval_index][0] = intervals[other][0];
+          intervals[interval_index][1] = intervals[other][1];
+          intervals[other][0] = tmp_start;
+          intervals[other][1] = tmp_end;
+        }
+      }
+    }
+    for (interval_index = 0U; interval_index < interval_count; ++interval_index) {
+      int16_t start = intervals[interval_index][0];
+      int16_t end = intervals[interval_index][1];
+      if (start > cursor &&
+          append_listing_app_slot_field_gap_navigation_segments(builder, region, cursor, start, &emitted) != 0) {
+        arena_rewind(analysis->arena, mark);
+        return -1;
+      }
+      if (end > cursor) cursor = end;
+    }
+    if (cursor < region->size && interval_count != 0U &&
+        append_listing_app_slot_field_gap_navigation_segments(builder, region, cursor, region->size,
+          &emitted) != 0) {
+      arena_rewind(analysis->arena, mark);
+      return -1;
+    }
+    arena_rewind(analysis->arena, mark);
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_app_slot_suggestion_navigation_json(JsonBuilder *builder,
+    const ListingAppSlotAnalysisBuilder *analysis) {
+  size_t index;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (analysis == NULL) return json_builder_append(builder, "]");
+  for (index = 0U; index < analysis->region_count; ++index) {
+    const ListingAppSlotTypedRegion *region = &analysis->regions[index];
+    const ListingAppSlotEvidence *evidence = region->evidence_count != 0U ? &region->evidence[0] : NULL;
+    char summary[192];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    snprintf(summary, sizeof(summary), "%s at app+0x%x matches %s from platform API usage",
+      region->symbol, (unsigned)(uint16_t)region->offset, region->struct_name);
+    if (json_builder_append(builder, "{\"summary\":") != 0 ||
+        json_builder_append_json_string(builder, summary) != 0 ||
+        json_builder_append(builder, ",\"match_text\":") != 0 ||
+        json_builder_append_json_string(builder, region->symbol) != 0 ||
+        json_builder_append(builder, ",\"symbol\":") != 0 ||
+        json_builder_append_json_string(builder, region->symbol) != 0 ||
+        json_builder_appendf(builder, ",\"offset\":%d,\"size\":%d,\"struct_name\":",
+          (int)region->offset, (int)region->size) != 0 ||
+        json_builder_append_json_string(builder, region->struct_name) != 0 ||
+        json_builder_append(builder, ",\"action\":\"add_target_metadata\",\"confidence\":\"tool-inferred\","
+          "\"metadata\":{\"offset\":") != 0 ||
+        json_builder_appendf(builder, "%d,\"size\":%d,\"symbol\":", (int)region->offset, (int)region->size) != 0 ||
+        json_builder_append_json_string(builder, region->symbol) != 0 ||
+        json_builder_append(builder, ",\"storage_kind\":\"struct_instance\","
+          "\"semantic_type\":\"platform_api_buffer\",\"struct_name\":") != 0 ||
+        json_builder_append_json_string(builder, region->struct_name) != 0 ||
+        json_builder_append(builder, ",\"pointer_struct\":null,\"seed_origin\":\"auto_analysis\","
+          "\"review_status\":\"suggested\"}") != 0)
+      return -1;
+    if (evidence != NULL &&
+        json_builder_appendf(builder, ",\"row_index\":%u,\"addr\":%u,\"hunk_index\":%d",
+          (unsigned)evidence->row_index, (unsigned)evidence->addr, evidence->section_index) != 0)
+      return -1;
+    if (evidence != NULL && evidence->stable_key[0] != '\0') {
+      if (json_builder_append(builder, ",\"stable_key\":") != 0 ||
+          json_builder_append_json_string(builder, evidence->stable_key) != 0)
+        return -1;
+    }
+    if (json_builder_append(builder, "}") != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_app_slot_api_arg_navigation_json(JsonBuilder *builder,
+    const ListingAppSlotAnalysisBuilder *analysis) {
+  size_t index;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (analysis == NULL) return json_builder_append(builder, "]");
+  for (index = 0U; index < analysis->untyped_api_arg_count; ++index) {
+    const ListingAppSlotApiArgCandidate *candidate = &analysis->untyped_api_args[index];
+    const ListingAppSlotEvidence *evidence = &candidate->evidence;
+    char summary[192];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    snprintf(summary, sizeof(summary), "%s -> %s %s %s (%s)", candidate->symbol, evidence->function,
+      evidence->input_name, evidence->reg, candidate->reason);
+    if (json_builder_append(builder, "{\"summary\":") != 0 ||
+        json_builder_append_json_string(builder, summary) != 0 ||
+        json_builder_append(builder, ",\"match_text\":") != 0 ||
+        json_builder_append_json_string(builder, candidate->symbol) != 0 ||
+        json_builder_append(builder, ",\"symbol\":") != 0 ||
+        json_builder_append_json_string(builder, candidate->symbol) != 0 ||
+        json_builder_appendf(builder, ",\"offset\":%d,\"displacement\":%d,\"function\":",
+          (int)candidate->displacement, (int)candidate->displacement) != 0 ||
+        json_builder_append_json_string(builder, evidence->function) != 0 ||
+        json_builder_append(builder, ",\"input_name\":") != 0 ||
+        json_builder_append_json_string(builder, evidence->input_name) != 0 ||
+        json_builder_append(builder, ",\"register\":") != 0 ||
+        json_builder_append_json_string(builder, evidence->reg) != 0 ||
+        json_builder_append(builder, ",\"reason\":") != 0 ||
+        json_builder_append_json_string(builder, candidate->reason) != 0 ||
+        json_builder_append(builder, ",\"type_name\":") != 0 ||
+        json_builder_append_nullable_string(builder, candidate->type_name[0] != '\0' ? candidate->type_name : NULL) != 0 ||
+        json_builder_appendf(builder,
+          ",\"row_index\":%u,\"addr\":%u,\"hunk_index\":%d,\"source_row_index\":%u,"
+          "\"source_flow_row_index\":%u,\"stable_key\":",
+          (unsigned)evidence->row_index, (unsigned)evidence->addr, evidence->section_index,
+          (unsigned)evidence->source_row_index, (unsigned)evidence->source_flow_row_index) != 0 ||
+        json_builder_append_json_string(builder, evidence->stable_key) != 0 ||
+        json_builder_append(builder, ",\"source_stable_key\":") != 0 ||
+        json_builder_append_json_string(builder, evidence->source_stable_key) != 0 ||
+        json_builder_append(builder, "}") != 0)
+      return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
 static int listing_navigation_finish_group(JsonBuilder *builder) {
   if (json_builder_append(builder, "]") != 0) return -1;
   return 0;
 }
 
 static int append_listing_navigation_groups_json(JsonBuilder *builder, ListingNavigationJsonContext *navigation) {
+  ListingAppSlotSummary *summaries = NULL;
+  ListingAppSlotInterval *intervals = NULL;
+  size_t summary_count = 0U;
+  size_t interval_count = 0U;
+  ListingAppSlotAnalysisBuilder *app_slot_analysis;
+  ArenaMark app_slot_mark;
+  if (navigation == NULL) return -1;
+  app_slot_analysis = &navigation->app_slot_analysis;
+  app_slot_mark = arena_mark(app_slot_analysis->arena);
+  if (app_slot_analysis->enabled) {
+    qsort(app_slot_analysis->regions, app_slot_analysis->region_count, sizeof(*app_slot_analysis->regions),
+      listing_app_slot_region_compare);
+    summaries = listing_app_slot_build_summaries(app_slot_analysis, &summary_count);
+    intervals = listing_app_slot_build_intervals(app_slot_analysis, summaries, summary_count, &interval_count);
+  }
   if (listing_navigation_finish_group(&navigation->typed_data) != 0 ||
       listing_navigation_finish_group(&navigation->typed_gaps) != 0 ||
       listing_navigation_finish_group(&navigation->relocations) != 0 ||
       listing_navigation_finish_group(&navigation->api_calls) != 0 ||
       listing_navigation_finish_group(&navigation->comments) != 0)
-    return -1;
+    goto fail;
   if (json_builder_append(builder, "\"repro-issues\":[],\"typed-data\":") != 0 ||
       json_builder_append_builder(builder, &navigation->typed_data) != 0 ||
       json_builder_append(builder, ",\"typed-gaps\":") != 0 ||
@@ -5629,13 +5991,27 @@ static int append_listing_navigation_groups_json(JsonBuilder *builder, ListingNa
       json_builder_append_builder(builder, &navigation->api_calls) != 0 ||
       json_builder_append(builder, ",\"app-slots\":") != 0 ||
       append_listing_navigation_app_slots_json(builder, &navigation->app_slot_analysis) != 0 ||
-      json_builder_append(builder, ",\"app-slot-regions\":[],\"app-slot-gaps\":[],\"app-slot-field-gaps\":[],"
-        "\"app-slot-suggestions\":[],\"app-slot-api-args\":[],\"labels\":") != 0 ||
+      json_builder_append(builder, ",\"app-slot-regions\":") != 0 ||
+      append_listing_app_slot_region_navigation_json(builder, &navigation->app_slot_analysis) != 0 ||
+      json_builder_append(builder, ",\"app-slot-gaps\":") != 0 ||
+      append_listing_app_slot_gap_navigation_json(builder, intervals, interval_count) != 0 ||
+      json_builder_append(builder, ",\"app-slot-field-gaps\":") != 0 ||
+      append_listing_app_slot_field_gap_navigation_json(builder, &navigation->app_slot_analysis) != 0 ||
+      json_builder_append(builder, ",\"app-slot-suggestions\":") != 0 ||
+      append_listing_app_slot_suggestion_navigation_json(builder, &navigation->app_slot_analysis) != 0 ||
+      json_builder_append(builder, ",\"app-slot-api-args\":") != 0 ||
+      append_listing_app_slot_api_arg_navigation_json(builder, &navigation->app_slot_analysis) != 0 ||
+      json_builder_append(builder, ",\"labels\":") != 0 ||
       append_listing_navigation_labels_json(builder, &navigation->labels) != 0 ||
       json_builder_append(builder, ",\"comments\":") != 0 ||
       json_builder_append_builder(builder, &navigation->comments) != 0)
-    return -1;
+    goto fail;
+  arena_rewind(app_slot_analysis->arena, app_slot_mark);
   return 0;
+
+fail:
+  arena_rewind(app_slot_analysis->arena, app_slot_mark);
+  return -1;
 }
 
 int source_file_listing_navigation_from_render_plan_to_json(const M68kSourceFileIR *source_file,

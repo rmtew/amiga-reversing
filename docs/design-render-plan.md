@@ -157,9 +157,11 @@ navigation routes fail closed if that artifact is missing or stale instead of
 serving a second, weaker Python row model.
 The production Python row-list navigation builder has also been removed.
 Navigation payloads come from the retained C artifact and the server only
-overlays project/session groups such as reproduction issues and app-slot
-metadata already supplied by analysis caches. Tests that need fake artifacts
-construct fixture navigation payloads locally.
+overlays project/session groups such as reproduction issues. App-slot
+reference, region, gap, field-gap, suggestion, and API-argument navigation
+groups are emitted by the retained C artifact from the same render-plan row
+walk. Tests that need fake artifacts construct fixture navigation payloads
+locally.
 The retained artifact now computes the displayed listing row count once during
 artifact creation. Row-index window requests reuse that count and only perform
 the emission pass for the requested window. The artifact also owns a compact
