@@ -1276,7 +1276,7 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
 
 
 def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
-    direct_control_stub_rows = _listing_direct_control_stub_table_row_indices(listing)
+    direct_control_stub_rows = _listing_direct_control_stub_table_row_features(listing)
     for row_index, row in enumerate(_dict_items(listing.get("rows"))):
         text = _string_value(row.get("text")) or ""
         opcode_or_directive = (_string_value(row.get("opcode_or_directive")) or "").upper()
@@ -1292,8 +1292,8 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
             bag.add("memory:absolute_stack_top", example=stack_example)
             bag.add(f"memory:absolute_stack_top:{_safe_part(symbol)}", example=stack_example)
         _add_runtime_table_base_addend_features(bag, text, example)
-        if row_index in direct_control_stub_rows:
-            bag.add("analysis:direct_control_stub_table", example=example)
+        for feature in sorted(direct_control_stub_rows.get(row_index, ())):
+            bag.add(feature, example=example)
         if _listing_row_label_symbol(row):
             bag.add("label:any", example=example)
             bag.add("label:definition", example=example)
@@ -1409,27 +1409,41 @@ def _listing_table_shape_features(text: str, data_class: str | None) -> list[str
 
 
 def _listing_row_is_direct_control_stub(row: dict[str, object]) -> bool:
+    return bool(_listing_row_direct_control_stub_features(row))
+
+
+def _listing_row_direct_control_stub_features(row: dict[str, object]) -> tuple[str, ...]:
     if row.get("kind") != "instruction":
-        return False
+        return ()
     opcode = (_string_value(row.get("opcode_or_directive")) or "").strip().lower()
     mnemonic = opcode.split(".", 1)[0]
-    if mnemonic != "bra":
-        return False
     accesses = row.get("operand_accesses")
     if not isinstance(accesses, list) or "branch_target" not in accesses:
-        return False
-    if not any(_operand_symbol(operand) for operand in _dict_items(row.get("operand_parts"))):
-        return False
+        return ()
+    symbols = [_operand_symbol(operand) for operand in _dict_items(row.get("operand_parts"))]
+    symbols = [symbol for symbol in symbols if symbol]
+    if not symbols:
+        return ()
     refs = row.get("code_start_refs")
     if not isinstance(refs, list):
-        return False
-    return any(isinstance(ref, dict) and ref.get("reason_name") == "control_target" for ref in refs)
+        return ()
+    if not any(isinstance(ref, dict) and ref.get("reason_name") == "control_target" for ref in refs):
+        return ()
+    if mnemonic == "bra":
+        return ("analysis:direct_control_stub_table",)
+    if mnemonic == "jmp":
+        section = _int_value(row.get("section_index"))
+        for symbol in symbols:
+            match = re.match(r"^loc_(\d+)_", symbol)
+            if match is not None and section is not None and int(match.group(1)) != section:
+                return ("analysis:direct_control_stub_table", "analysis:relocated_absolute_jmp_stub_table")
+    return ()
 
 
-def _listing_direct_control_stub_table_row_indices(listing: dict[str, Any]) -> set[int]:
+def _listing_direct_control_stub_table_row_features(listing: dict[str, Any]) -> dict[int, set[str]]:
     rows = _dict_items(listing.get("rows"))
-    result: set[int] = set()
-    run: list[int] = []
+    result: dict[int, set[str]] = {}
+    run: list[tuple[int, tuple[str, ...]]] = []
     previous_section: int | None = None
     previous_end: int | None = None
     previous_width: int | None = None
@@ -1439,23 +1453,29 @@ def _listing_direct_control_stub_table_row_indices(listing: dict[str, Any]) -> s
         end = _int_value(row.get("end_offset"))
         width = end - start if start is not None and end is not None and end >= start else None
         is_zero_width_label = row.get("kind") == "label" and width == 0
-        is_stub = _listing_row_is_direct_control_stub(row)
-        if not is_stub and is_zero_width_label:
+        features = _listing_row_direct_control_stub_features(row)
+        if not features and is_zero_width_label:
             continue
-        if (is_stub and section is not None and start is not None and end is not None and
+        if (features and section is not None and start is not None and end is not None and
             width is not None and width > 0 and previous_section == section and previous_end == start and
-            previous_width == width):
-            run.append(row_index)
+            previous_width == width and run and run[-1][1] == features):
+            run.append((row_index, features))
         else:
             if len(run) >= 2:
-                result.update(run)
-            run = [row_index] if is_stub and width is not None and width > 0 else []
+                for run_index, run_features in run:
+                    result.setdefault(run_index, set()).update(run_features)
+            run = [(row_index, features)] if features and width is not None and width > 0 else []
         previous_section = section
         previous_end = end
         previous_width = width
     if len(run) >= 2:
-        result.update(run)
+        for run_index, run_features in run:
+            result.setdefault(run_index, set()).update(run_features)
     return result
+
+
+def _listing_direct_control_stub_table_row_indices(listing: dict[str, Any]) -> set[int]:
+    return set(_listing_direct_control_stub_table_row_features(listing))
 
 
 def _disk_usage_xrefs(row: dict[str, object], entry: dict[str, Any]) -> list[dict[str, object]]:
@@ -2460,7 +2480,7 @@ def _listing_xrefs(
     feature_bag: FeatureBag | None = None,
 ) -> list[dict[str, object]]:
     xrefs: list[dict[str, object]] = []
-    direct_control_stub_rows = _listing_direct_control_stub_table_row_indices(listing)
+    direct_control_stub_rows = _listing_direct_control_stub_table_row_features(listing)
     for row_index, listing_row in enumerate(_dict_items(listing.get("rows"))):
         text = _string_value(listing_row.get("text")) or ""
         stripped_text = text.strip()
@@ -2480,21 +2500,24 @@ def _listing_xrefs(
             if feature_bag is not None:
                 feature_bag.add("label:any", example=example)
                 feature_bag.add("label:definition", example=example)
-        if row_index in direct_control_stub_rows:
+        direct_control_features = sorted(direct_control_stub_rows.get(row_index, ()))
+        if direct_control_features:
             if feature_bag is not None:
-                feature_bag.add("analysis:direct_control_stub_table", example=example)
-            xrefs.append(
-                _xref(
-                    row,
-                    "analysis:direct_control_stub_table",
-                    "analysis_ref",
-                    section=section_index,
-                    offset=offset,
-                    row_index=row_index,
-                    stable_key=stable_key,
-                    text=stripped_text,
+                for feature in direct_control_features:
+                    feature_bag.add(feature, example=example)
+            for feature in direct_control_features:
+                xrefs.append(
+                    _xref(
+                        row,
+                        feature,
+                        "analysis_ref",
+                        section=section_index,
+                        offset=offset,
+                        row_index=row_index,
+                        stable_key=stable_key,
+                        text=stripped_text,
+                    )
                 )
-            )
         for symbol, addend in _runtime_table_base_addend_matches(text):
             table_example = dict(example)
             table_example["symbol"] = symbol

@@ -11652,6 +11652,64 @@ static int test_facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target(
   return 0;
 }
 
+static int test_facts_v2_relocated_absolute_jmp_stub_table_promotes_sibling_entry(void) {
+  M68kObject object;
+  M68kSection code_section;
+  M68kSection target_section;
+  M68kObjectAddResult added;
+  M68kFixup fixup;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t code_bytes[18] = {
+    0x60u, 0x00u, 0x00u, 0x04u,
+    0x00u, 0x00u,
+    0x4eu, 0xf9u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0xf9u, 0x00u, 0x00u, 0x00u, 0x02u
+  };
+  uint8_t target_bytes[4] = {0x4eu, 0x75u, 0x4eu, 0x75u};
+  memset(&code_section, 0, sizeof(code_section));
+  memset(&target_section, 0, sizeof(target_section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  code_section.kind = M68K_SECTION_CODE;
+  code_section.size = sizeof(code_bytes);
+  code_section.data_size = sizeof(code_bytes);
+  target_section.kind = M68K_SECTION_CODE;
+  target_section.size = sizeof(target_bytes);
+  target_section.data_size = sizeof(target_bytes);
+  M68K_C_ASSERT_INT(0, m68k_object_set_section_data(&object,
+    m68k_object_add_section(&object, &code_section).index, code_bytes, sizeof(code_bytes)));
+  M68K_C_ASSERT_INT(0, m68k_object_set_section_data(&object,
+    m68k_object_add_section(&object, &target_section).index, target_bytes, sizeof(target_bytes)));
+  memset(&fixup, 0, sizeof(fixup));
+  fixup.section_index = 0U;
+  fixup.offset = 8U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.target_section_index = 1U;
+  fixup.has_target_section = 1;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  fixup.offset = 14U;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000000:\n\tbra.w loc_0_00000006\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000006:\n\tjmp loc_1_00000000.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000000C:\n\tjmp loc_1_00000002.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $4E,$F9\n\tdc.l loc_1_00000002\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "loc_1_00000000:\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_1_00000002:\n\trts\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(5U, profile.accepted_instructions);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_renders_structured_data_comment(void) {
   M68kObject object;
   M68kSection section;
@@ -13784,6 +13842,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_annotates_wrapper_stack_args_without_wrapper_comment},
     {"facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target",
       test_facts_v2_relocated_absolute_jsr_seeds_cross_section_code_target},
+    {"facts_v2_relocated_absolute_jmp_stub_table_promotes_sibling_entry",
+      test_facts_v2_relocated_absolute_jmp_stub_table_promotes_sibling_entry},
     {"facts_v2_render_asm_source_renders_structured_data_comment",
       test_facts_v2_render_asm_source_renders_structured_data_comment},
     {"facts_v2_render_asm_source_resident_sizeof_defines_app_sizeof_without_slots",

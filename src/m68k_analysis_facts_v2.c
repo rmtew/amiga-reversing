@@ -4583,7 +4583,7 @@ static int candidate_single_direct_nonfallthrough_control_target(const M68kDecod
   return 1;
 }
 
-static int candidate_matches_branch_stub_table_entry(const M68kDecodeSectionIR *section,
+static int candidate_matches_direct_control_stub_table_entry(const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *anchor, const M68kDecodeCandidate *candidate, uint8_t anchor_target_kind) {
   uint8_t target_kind = 0U;
   if (section == NULL || anchor == NULL || candidate == NULL || candidate->byte_count != anchor->byte_count)
@@ -4592,18 +4592,53 @@ static int candidate_matches_branch_stub_table_entry(const M68kDecodeSectionIR *
   return target_kind == anchor_target_kind;
 }
 
+static int candidate_has_relocated_absolute_control_target(const M68kDecodeIR *decode, const M68kFactIR *facts,
+    const M68kFactsV2RelocationLookup *relocation_lookup, size_t section_index,
+    const M68kDecodeCandidate *candidate, uint8_t **accepted_start) {
+  uint32_t cursor;
+  uint32_t end;
+  if (decode == NULL || facts == NULL || relocation_lookup == NULL || candidate == NULL ||
+      section_index >= decode->section_count || !candidate_is_absolute_control_transfer(candidate) ||
+      candidate->byte_count > UINT32_MAX - candidate->offset) {
+    return 0;
+  }
+  end = candidate->offset + candidate->byte_count;
+  for (cursor = candidate->offset + 2U; cursor < end; ++cursor) {
+    const M68kFact *relocation = relocation_lookup_ref_at(relocation_lookup, facts, section_index, cursor);
+    const M68kDecodeSectionIR *target_section;
+    if (relocation == NULL || relocation->size != 4U ||
+        relocation->target_section_index >= decode->section_count) {
+      continue;
+    }
+    target_section = &decode->sections[relocation->target_section_index];
+    if (target_section->kind != M68K_SECTION_CODE ||
+        relocation->target_offset >= target_section->size || (relocation->target_offset & 1U) != 0U) {
+      continue;
+    }
+    if (relocation->target_section_index == section_index &&
+        (accepted_start == NULL || accepted_start[relocation->target_section_index] == NULL ||
+          !accepted_start[relocation->target_section_index][relocation->target_offset])) {
+      continue;
+    }
+    return 1;
+  }
+  return 0;
+}
+
 static int enqueue_adjacent_direct_control_stub_table_entries(M68kDecodeIR *decode, M68kFactIR *facts,
-    M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
-    M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index, const M68kDecodeSectionIR *section,
-    const M68kDecodeCandidate *anchor, const M68kRuntimeAddressSpace *runtime_addresses) {
+    const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
+    uint8_t **accepted_start, uint8_t **accepted_bytes, M68kFactsV2Profile *profile, uint8_t max_cpu,
+    size_t section_index, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *anchor,
+    const M68kRuntimeAddressSpace *runtime_addresses) {
   const uint32_t scan_limit = 16U;
   uint8_t anchor_target_kind = 0U;
   uint32_t anchor_target_offset = 0U;
+  uint8_t require_relocated_absolute_target = 0U;
   uint32_t stride;
   uint32_t direction;
-  if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
-      profile == NULL || section == NULL || anchor == NULL || runtime_addresses == NULL ||
-      section_index >= decode->section_count) {
+  if (decode == NULL || facts == NULL || relocation_lookup == NULL || queue == NULL ||
+      accepted_start == NULL || accepted_bytes == NULL || profile == NULL || section == NULL ||
+      anchor == NULL || runtime_addresses == NULL || section_index >= decode->section_count) {
     return -1;
   }
   if (!candidate_single_direct_nonfallthrough_control_target(section, anchor, &anchor_target_kind,
@@ -4611,7 +4646,14 @@ static int enqueue_adjacent_direct_control_stub_table_entries(M68kDecodeIR *deco
     return 0;
   }
   (void)anchor_target_offset;
-  if (anchor_target_kind != M68K_DECODE_TARGET_BRANCH) return 0;
+  if (anchor_target_kind != M68K_DECODE_TARGET_BRANCH) {
+    if (anchor_target_kind != M68K_DECODE_TARGET_CALL && anchor_target_kind != M68K_DECODE_TARGET_JUMP) return 0;
+    if (!candidate_has_relocated_absolute_control_target(decode, facts, relocation_lookup, section_index,
+        anchor, accepted_start)) {
+      return 0;
+    }
+    require_relocated_absolute_target = 1U;
+  }
   stride = anchor->byte_count;
   if (stride == 0U) return 0;
   for (direction = 0U; direction < 2U; ++direction) {
@@ -4638,7 +4680,12 @@ static int enqueue_adjacent_direct_control_stub_table_entries(M68kDecodeIR *deco
         return -1;
       }
       if (candidate == NULL ||
-          !candidate_matches_branch_stub_table_entry(section, anchor, candidate, anchor_target_kind)) {
+          !candidate_matches_direct_control_stub_table_entry(section, anchor, candidate, anchor_target_kind)) {
+        break;
+      }
+      if (require_relocated_absolute_target &&
+          !candidate_has_relocated_absolute_control_target(decode, facts, relocation_lookup, section_index,
+            candidate, accepted_start)) {
         break;
       }
       if (accepted_start[section_index][cursor]) continue;
@@ -4904,8 +4951,9 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
     profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_target_seconds,
       phase_start);
     if (item.reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET &&
-        enqueue_adjacent_direct_control_stub_table_entries(decode, facts, queue, accepted_start, accepted_bytes,
-          profile, max_cpu, item.section_index, section, candidate, runtime_addresses) != 0) {
+        enqueue_adjacent_direct_control_stub_table_entries(decode, facts, relocation_lookup, queue,
+          accepted_start, accepted_bytes, profile, max_cpu, item.section_index, section, candidate,
+          runtime_addresses) != 0) {
       return -1;
     }
     phase_start = profile_phase_start_local(profile_reachable_phases);

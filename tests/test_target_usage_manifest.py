@@ -135,3 +135,48 @@ def test_direct_control_stub_table_feature_and_xref() -> None:
     xrefs = _listing_xrefs(row, listing, feature_bag=FeatureBag())
     direct_xrefs = [xref for xref in xrefs if xref["feature"] == "analysis:direct_control_stub_table"]
     assert [xref["stable_key"] for xref in direct_xrefs] == ["stub-a", "stub-b"]
+
+
+def test_relocated_absolute_jmp_stub_table_feature_and_xref() -> None:
+    listing = {
+        "rows": [
+            {"kind": "label", "section_index": 1, "start_offset": 0x1FE8, "end_offset": 0x1FE8, "text": "loc:\n"},
+            {
+                "kind": "instruction",
+                "section_index": 1,
+                "start_offset": 0x1FE8,
+                "end_offset": 0x1FEE,
+                "stable_key": "stub-a",
+                "text": "\tjmp loc_4_0000002C.l\n",
+                "opcode_or_directive": "jmp",
+                "operand_accesses": ["branch_target"],
+                "operand_parts": [{"kind": "symbol", "text": "loc_4_0000002C"}],
+                "code_start_refs": [{"reason_name": "control_target"}],
+            },
+            {"kind": "label", "section_index": 1, "start_offset": 0x1FEE, "end_offset": 0x1FEE, "text": "loc:\n"},
+            {
+                "kind": "instruction",
+                "section_index": 1,
+                "start_offset": 0x1FEE,
+                "end_offset": 0x1FF4,
+                "stable_key": "stub-b",
+                "text": "\tjmp loc_4_00000058.l\n",
+                "opcode_or_directive": "jmp",
+                "operand_accesses": ["branch_target"],
+                "operand_parts": [{"kind": "symbol", "text": "loc_4_00000058"}],
+                "code_start_refs": [{"reason_name": "control_target"}],
+            },
+        ]
+    }
+    bag = FeatureBag()
+    _add_listing_features(listing, bag)
+    counts, _examples, tags = bag.row_features()
+
+    assert counts["analysis:direct_control_stub_table"] == 2
+    assert counts["analysis:relocated_absolute_jmp_stub_table"] == 2
+    assert "analysis:relocated_absolute_jmp_stub_table" in tags
+
+    row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
+    xrefs = _listing_xrefs(row, listing, feature_bag=FeatureBag())
+    jmp_xrefs = [xref for xref in xrefs if xref["feature"] == "analysis:relocated_absolute_jmp_stub_table"]
+    assert [xref["stable_key"] for xref in jmp_xrefs] == ["stub-a", "stub-b"]
