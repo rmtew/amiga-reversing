@@ -633,6 +633,8 @@ static void platform_state_clear_register(M68kRenderPlatformState *state, uint8_
   state->address_hardware_base_known[reg_index] = 0U;
   state->address_hardware_base_symbol[reg_index][0] = '\0';
   state->address_app_base_known[reg_index] = 0U;
+  state->address_layout_base_known[reg_index] = 0U;
+  state->address_layout_base_symbol[reg_index][0] = '\0';
   for (index = 0U; index < sizeof(state->local_base_slots) / sizeof(state->local_base_slots[0]); ++index) {
     if (state->local_base_slots[index].valid && state->local_base_slots[index].base_reg == reg_index)
       state->local_base_slots[index].valid = 0U;
@@ -643,12 +645,16 @@ static void platform_state_clear_data_library(M68kRenderPlatformState *state, ui
   if (state == NULL || reg_index >= 8U) return;
   state->data_base_known[reg_index] = 0U;
   state->data_base_library[reg_index][0] = '\0';
+  state->data_layout_base_known[reg_index] = 0U;
+  state->data_layout_base_symbol[reg_index][0] = '\0';
 }
 
 static void platform_state_clear_all_data_libraries(M68kRenderPlatformState *state) {
   if (state == NULL) return;
   memset(state->data_base_known, 0, sizeof(state->data_base_known));
   memset(state->data_base_library, 0, sizeof(state->data_base_library));
+  memset(state->data_layout_base_known, 0, sizeof(state->data_layout_base_known));
+  memset(state->data_layout_base_symbol, 0, sizeof(state->data_layout_base_symbol));
 }
 
 static void platform_state_clear_all_local_base_slots(M68kRenderPlatformState *state) {
@@ -659,6 +665,12 @@ static void platform_state_clear_all_local_base_slots(M68kRenderPlatformState *s
 static void platform_state_clear_address_app_base(M68kRenderPlatformState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
   state->address_app_base_known[reg_index] = 0U;
+}
+
+static void platform_state_clear_address_layout_base(M68kRenderPlatformState *state, uint8_t reg_index) {
+  if (state == NULL || reg_index >= 8U) return;
+  state->address_layout_base_known[reg_index] = 0U;
+  state->address_layout_base_symbol[reg_index][0] = '\0';
 }
 
 static void platform_state_clear_address_hardware_base(M68kRenderPlatformState *state, uint8_t reg_index) {
@@ -678,10 +690,24 @@ static void platform_state_clear_data_app_base(M68kRenderPlatformState *state, u
   state->data_app_base_known[reg_index] = 0U;
 }
 
+static void platform_state_clear_data_layout_base(M68kRenderPlatformState *state, uint8_t reg_index) {
+  if (state == NULL || reg_index >= 8U) return;
+  state->data_layout_base_known[reg_index] = 0U;
+  state->data_layout_base_symbol[reg_index][0] = '\0';
+}
+
 static void platform_state_clear_all_app_bases(M68kRenderPlatformState *state) {
   if (state == NULL) return;
   memset(state->data_app_base_known, 0, sizeof(state->data_app_base_known));
   memset(state->address_app_base_known, 0, sizeof(state->address_app_base_known));
+}
+
+static void platform_state_clear_all_layout_bases(M68kRenderPlatformState *state) {
+  if (state == NULL) return;
+  memset(state->data_layout_base_known, 0, sizeof(state->data_layout_base_known));
+  memset(state->data_layout_base_symbol, 0, sizeof(state->data_layout_base_symbol));
+  memset(state->address_layout_base_known, 0, sizeof(state->address_layout_base_known));
+  memset(state->address_layout_base_symbol, 0, sizeof(state->address_layout_base_symbol));
 }
 
 void platform_state_clear_d0_lvo(M68kRenderPlatformState *state) {
@@ -701,6 +727,7 @@ static void platform_state_set_register_library(M68kRenderPlatformState *state, 
   }
   state->address_base_known[reg_index] = 1U;
   state->address_app_base_known[reg_index] = 0U;
+  platform_state_clear_address_layout_base(state, reg_index);
   platform_state_clear_address_hardware_base(state, reg_index);
   snprintf(state->address_base_library[reg_index], sizeof(state->address_base_library[reg_index]), "%s",
     library_name);
@@ -797,6 +824,17 @@ int platform_state_name_is_app_base(const char *name) {
   return name != NULL && strcmp(name, "__amiga_app_base__") == 0;
 }
 
+static int policy_has_layout_base_symbol(const M68kAnalysisPolicy *policy, const char *name) {
+  uint16_t index;
+  if (policy == NULL || name == NULL || name[0] == '\0') return 0;
+  for (index = 0U; index < policy->app_slot_region_count && index < M68K_ANALYSIS_APP_SLOT_REGION_LIMIT; ++index) {
+    const M68kAnalysisAppSlotRegion *region = &policy->app_slot_regions[index];
+    const char *base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : "__amiga_app_base__";
+    if (strcmp(base_symbol, name) == 0) return 1;
+  }
+  return 0;
+}
+
 static void platform_state_set_register_app_base(M68kRenderPlatformState *state, uint8_t reg_kind,
     uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
@@ -807,6 +845,24 @@ static void platform_state_set_register_app_base(M68kRenderPlatformState *state,
   } else if (reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
     platform_state_clear_register(state, reg_index);
     state->address_app_base_known[reg_index] = 1U;
+  }
+}
+
+static void platform_state_set_register_layout_base(M68kRenderPlatformState *state, uint8_t reg_kind,
+    uint8_t reg_index, const char *base_symbol) {
+  if (state == NULL || reg_index >= 8U || base_symbol == NULL || base_symbol[0] == '\0') return;
+  if (reg_kind == M68K_ANALYSIS_REGISTER_DATA) {
+    platform_state_clear_data_library(state, reg_index);
+    platform_state_clear_data_app_base(state, reg_index);
+    state->data_layout_base_known[reg_index] = 1U;
+    snprintf(state->data_layout_base_symbol[reg_index], sizeof(state->data_layout_base_symbol[reg_index]), "%s",
+      base_symbol);
+    if (reg_index == 0U) platform_state_clear_d0_lvo(state);
+  } else if (reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
+    platform_state_clear_register(state, reg_index);
+    state->address_layout_base_known[reg_index] = 1U;
+    snprintf(state->address_layout_base_symbol[reg_index], sizeof(state->address_layout_base_symbol[reg_index]),
+      "%s", base_symbol);
   }
 }
 
@@ -908,11 +964,15 @@ void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
       if (seed->entry_offset != offset) continue;
     } else if (!policy->has_entry_offset || section_index != 0U || policy->entry_offset != offset) continue;
     if (seed->kind != M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE &&
-        (seed->kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR || !platform_state_name_is_app_base(seed->name))) {
+        seed->kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) {
       continue;
     }
     if (platform_state_name_is_app_base(seed->name)) {
       platform_state_set_register_app_base(state, seed->reg_kind, seed->reg_index);
+      continue;
+    }
+    if (policy_has_layout_base_symbol(policy, seed->name)) {
+      platform_state_set_register_layout_base(state, seed->reg_kind, seed->reg_index, seed->name);
       continue;
     }
     if (seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS || seed->reg_index >= 8U) continue;
@@ -2477,6 +2537,17 @@ static int platform_state_operand_is_app_base(const M68kRenderPlatformState *sta
   return 0;
 }
 
+static const char *platform_state_operand_layout_base_symbol(const M68kRenderPlatformState *state,
+    const M68kOperandIR *operand) {
+  uint8_t reg = 0U;
+  if (state == NULL || operand == NULL) return NULL;
+  if (operand_is_data_register_local(operand, &reg) && reg < 8U && state->data_layout_base_known[reg])
+    return state->data_layout_base_symbol[reg];
+  if (operand_address_register_index_local(operand, &reg) && reg < 8U && state->address_layout_base_known[reg])
+    return state->address_layout_base_symbol[reg];
+  return NULL;
+}
+
 static const char *platform_state_operand_hardware_base_symbol(const M68kRenderPlatformState *state,
     const M68kOperandIR *operand) {
   uint8_t reg = 0U;
@@ -2575,6 +2646,53 @@ static void platform_state_update_app_base_after_instruction(M68kRenderPlatformS
   }
 }
 
+static void platform_state_update_layout_base_after_instruction(M68kRenderPlatformState *state,
+    const M68kInstructionIR *instruction) {
+  uint8_t dest_reg = 0U;
+  const char *source_layout_base;
+  if (state == NULL || instruction == NULL) return;
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_RTS ||
+      instruction->mnemonic_id == M68K_ASM_MNEMONIC_RTE ||
+      instruction->mnemonic_id == M68K_ASM_MNEMONIC_JMP) {
+    platform_state_clear_all_layout_bases(state);
+    return;
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM) {
+    if (instruction->operand_count >= 2U && instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
+      for (dest_reg = 0U; dest_reg < 8U; ++dest_reg) {
+        if (reglist_contains_data_register_local(&instruction->operands[1], dest_reg))
+          platform_state_clear_data_layout_base(state, dest_reg);
+        if (reglist_contains_address_register_local(&instruction->operands[1], dest_reg))
+          platform_state_clear_address_layout_base(state, dest_reg);
+      }
+    }
+    return;
+  }
+  if (instruction->operand_count < 2U) return;
+  source_layout_base = platform_state_operand_layout_base_symbol(state, &instruction->operands[0]);
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE ||
+      instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) {
+    const M68kOperandIR *dest = &instruction->operands[instruction->operand_count - 1U];
+    if (operand_is_data_register_local(dest, &dest_reg)) {
+      if (source_layout_base != NULL)
+        platform_state_set_register_layout_base(state, M68K_ANALYSIS_REGISTER_DATA, dest_reg, source_layout_base);
+      else
+        platform_state_clear_data_layout_base(state, dest_reg);
+    } else if (operand_address_register_index_local(dest, &dest_reg)) {
+      if (source_layout_base != NULL)
+        platform_state_set_register_layout_base(state, M68K_ANALYSIS_REGISTER_ADDRESS, dest_reg, source_layout_base);
+      else
+        platform_state_clear_address_layout_base(state, dest_reg);
+    }
+  } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA &&
+      operand_address_register_index_local(&instruction->operands[instruction->operand_count - 1U], &dest_reg)) {
+    platform_state_clear_address_layout_base(state, dest_reg);
+  } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ &&
+      operand_is_data_register_local(&instruction->operands[instruction->operand_count - 1U], &dest_reg)) {
+    platform_state_clear_data_layout_base(state, dest_reg);
+  }
+}
+
 static void platform_state_update_library_slots_after_instruction(M68kRenderPlatformState *state,
     const M68kInstructionIR *instruction) {
   const M68kOperandIR *source;
@@ -2632,6 +2750,7 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
     platform_state_clear_all_local_base_slots(state);
     platform_state_update_hardware_base_after_instruction(state, instruction);
     platform_state_update_app_base_after_instruction(state, instruction);
+    platform_state_update_layout_base_after_instruction(state, instruction);
     return;
   }
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM) {
@@ -2648,6 +2767,7 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
     }
     platform_state_update_hardware_base_after_instruction(state, instruction);
     platform_state_update_app_base_after_instruction(state, instruction);
+    platform_state_update_layout_base_after_instruction(state, instruction);
     return;
   }
   platform_state_update_library_slots_after_instruction(state, instruction);
@@ -2700,6 +2820,7 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
   }
   platform_state_update_hardware_base_after_instruction(state, instruction);
   platform_state_update_app_base_after_instruction(state, instruction);
+  platform_state_update_layout_base_after_instruction(state, instruction);
 }
 
 void platform_state_note_call_result_after_instruction(M68kRenderPlatformState *state,
@@ -3336,6 +3457,11 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
             symbol_name, sizeof(symbol_name))) {
           continue;
         }
+      }
+    } else if (state->address_layout_base_known[base_reg]) {
+      if (!lookup_base_field_slot_symbol_name(lookup, state->address_layout_base_symbol[base_reg], displacement,
+          symbol_name, sizeof(symbol_name))) {
+        continue;
       }
     } else if (base_reg == 6U) {
       if (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),

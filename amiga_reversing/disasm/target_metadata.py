@@ -300,6 +300,7 @@ class AppSlotRegionMetadata:
     seed_origin: str
     review_status: str
     citation: str
+    size: int | None = None
     layout_name: str | None = None
     base_symbol: str | None = None
     sizeof_symbol: str | None = None
@@ -318,6 +319,7 @@ class AppSlotRegionMetadata:
         seed_origin = payload["seed_origin"]
         review_status = payload["review_status"]
         citation = payload["citation"]
+        size = payload.get("size")
         layout_name = payload.get("layout_name")
         base_symbol = payload.get("base_symbol")
         sizeof_symbol = payload.get("sizeof_symbol")
@@ -335,6 +337,7 @@ class AppSlotRegionMetadata:
         assert isinstance(review_status, str)
         assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
         assert isinstance(citation, str)
+        assert size is None or (isinstance(size, int) and 0 < size <= 255)
         assert layout_name is None or isinstance(layout_name, str)
         assert base_symbol is None or isinstance(base_symbol, str)
         assert sizeof_symbol is None or isinstance(sizeof_symbol, str)
@@ -353,6 +356,7 @@ class AppSlotRegionMetadata:
             seed_origin=seed_origin,
             review_status=review_status,
             citation=citation,
+            size=size,
             layout_name=layout_name,
             base_symbol=base_symbol,
             sizeof_symbol=sizeof_symbol,

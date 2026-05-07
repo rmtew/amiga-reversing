@@ -3246,6 +3246,7 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
                     },
                     {
                         "offset": 0x04,
+                        "size": 2,
                         "layout_name": "work",
                         "base_symbol": "__game_work_base__",
                         "sizeof_symbol": "work_SIZEOF",
@@ -3300,11 +3301,131 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     assert amiga_policy.app_slot_regions[0].symbol == b"app_startup_options_buffer"
     assert amiga_policy.app_slot_regions[0].storage_kind == b"pointer"
     assert amiga_policy.app_slot_regions[1].offset == 0x04
+    assert amiga_policy.app_slot_regions[1].size == 2
     assert amiga_policy.app_slot_regions[1].layout_name == b"work"
     assert amiga_policy.app_slot_regions[1].base_symbol == b"__game_work_base__"
     assert amiga_policy.app_slot_regions[1].sizeof_symbol == b"work_SIZEOF"
     assert amiga_policy.app_slot_regions[1].symbol == b"work_counter"
     assert amiga_policy.named_label_count > 0
+
+
+def test_real_dll_metadata_named_rsset_layout_preserves_explicit_size(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "stage.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    metadata_path = tmp_path / "target_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "entry_register_seeds": [],
+                "bootblock": None,
+                "resident": None,
+                "library": None,
+                "custom_structs": [],
+                "app_slot_regions": [
+                    {
+                        "offset": 2,
+                        "size": 2,
+                        "layout_name": "work",
+                        "base_symbol": "__game_work_base__",
+                        "sizeof_symbol": "work_SIZEOF",
+                        "symbol": "work_flags",
+                        "struct_name": None,
+                        "pointer_struct": None,
+                        "storage_kind": "scalar",
+                        "semantic_type": None,
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "test",
+                    }
+                ],
+                "execution_views": [],
+                "absolute_code_labels": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    artifact = c_backend.CListingArtifact.create(
+        c_backend._CBackendSourceFile(binary_path, "amiga-raw", 0),
+        metadata_text=str(metadata_path),
+        include_dir="",
+        project_root=PROJECT_ROOT,
+    )
+    try:
+        rendered, _profile = artifact.source_text_with_profile()
+    finally:
+        artifact.close()
+
+    assert "work_flags RS.W 1\n" in rendered
+    assert "work_flags RS.L 1\n" not in rendered
+    assert "work_SIZEOF EQU __RS\n" in rendered
+
+
+def test_real_dll_metadata_named_rsset_layout_symbols_seeded_base_access(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "stage.bin"
+    binary_path.write_bytes(bytes.fromhex("354000044e75"))
+    metadata_path = tmp_path / "target_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "entry_register_seeds": [
+                    {
+                        "entry_offset": 0,
+                        "hunk": 0,
+                        "register": "A2",
+                        "kind": "struct_ptr",
+                        "note": "__game_work_base__",
+                        "library_name": None,
+                        "struct_name": "",
+                        "context_name": None,
+                    }
+                ],
+                "bootblock": None,
+                "resident": None,
+                "library": None,
+                "custom_structs": [],
+                "app_slot_regions": [
+                    {
+                        "offset": 4,
+                        "size": 2,
+                        "layout_name": "work",
+                        "base_symbol": "__game_work_base__",
+                        "sizeof_symbol": "work_SIZEOF",
+                        "symbol": "work_flags",
+                        "struct_name": None,
+                        "pointer_struct": None,
+                        "storage_kind": "scalar",
+                        "semantic_type": None,
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "test",
+                    }
+                ],
+                "execution_views": [],
+                "absolute_code_labels": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    artifact = c_backend.CListingArtifact.create(
+        c_backend._CBackendSourceFile(binary_path, "amiga-raw", 0),
+        metadata_text=str(metadata_path),
+        include_dir="",
+        project_root=PROJECT_ROOT,
+    )
+    try:
+        rendered, _profile = artifact.source_text_with_profile()
+    finally:
+        artifact.close()
+
+    assert "work_flags RS.W 1\n" in rendered
+    assert "\tmove.w d0,work_flags(a2)\n" in rendered
+    assert "\tmove.w d0,$0004(a2)\n" not in rendered
 
 
 def test_real_dll_assembles_source_path_with_profile(tmp_path: Path) -> None:

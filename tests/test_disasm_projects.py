@@ -277,6 +277,7 @@ def test_load_target_metadata_preserves_extended_app_slot_metadata(tmp_path: Pat
                     seed_origin="manual_analysis",
                     review_status="seeded",
                     citation="manual",
+                    size=2,
                     layout_name="work",
                     base_symbol="__game_work_base__",
                     sizeof_symbol="work_SIZEOF",
@@ -294,6 +295,7 @@ def test_load_target_metadata_preserves_extended_app_slot_metadata(tmp_path: Pat
     loaded = load_target_metadata(target_dir)
 
     assert loaded is not None
+    assert loaded.app_slot_regions[0].size == 2
     assert loaded.app_slot_regions[0].layout_name == "work"
     assert loaded.app_slot_regions[0].base_symbol == "__game_work_base__"
     assert loaded.app_slot_regions[0].sizeof_symbol == "work_SIZEOF"

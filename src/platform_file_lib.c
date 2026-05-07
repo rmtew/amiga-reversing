@@ -469,7 +469,8 @@ static uint8_t app_slot_region_size_from_storage_kind_local(const char *storage_
 static int append_metadata_app_slot_region_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
   uint32_t offset = 0U;
-  int has_offset = 0;
+  uint32_t explicit_size = 0U;
+  int has_offset = 0, has_size = 0;
   char symbol[64];
   char layout_name[32];
   char base_symbol[64];
@@ -487,6 +488,7 @@ static int append_metadata_app_slot_region_local(const char *object_start, const
   storage_kind[0] = '\0';
   semantic_type[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "offset", &offset, &has_offset) ||
+      !json_number_field_local(object_start, object_end, "size", &explicit_size, &has_size) ||
       !json_optional_string_field_local(object_start, object_end, "layout_name", layout_name,
         sizeof(layout_name)) ||
       !json_optional_string_field_local(object_start, object_end, "base_symbol", base_symbol,
@@ -504,9 +506,10 @@ static int append_metadata_app_slot_region_local(const char *object_start, const
     return 0;
   }
   if (!has_offset) return 1;
+  if (has_size && (explicit_size == 0U || explicit_size > 255U)) return 0;
   return policy_add_app_slot_region_local(policy, offset,
-    app_slot_region_size_from_storage_kind_local(storage_kind), layout_name, base_symbol, sizeof_symbol, symbol,
-    struct_name, pointer_struct, storage_kind, semantic_type);
+    has_size ? (uint8_t)explicit_size : app_slot_region_size_from_storage_kind_local(storage_kind),
+    layout_name, base_symbol, sizeof_symbol, symbol, struct_name, pointer_struct, storage_kind, semantic_type);
 }
 
 static int policy_add_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset) {

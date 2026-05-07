@@ -40,6 +40,10 @@ typedef struct M68kRenderPlatformState {
   char address_hardware_base_symbol[8][64];
   uint8_t data_app_base_known[8];
   uint8_t address_app_base_known[8];
+  uint8_t data_layout_base_known[8];
+  char data_layout_base_symbol[8][64];
+  uint8_t address_layout_base_known[8];
+  char address_layout_base_symbol[8][64];
   uint8_t d0_lvo_known;
   int16_t d0_lvo;
   M68kRenderPlatformLocalBaseSlot local_base_slots[32];

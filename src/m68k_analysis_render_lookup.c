@@ -2336,6 +2336,12 @@ static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRe
     platform_state_merge_register_name(&dest->address_hardware_base_known[index],
       dest->address_hardware_base_symbol[index], sizeof(dest->address_hardware_base_symbol[index]),
       source->address_hardware_base_known[index], source->address_hardware_base_symbol[index], &changed);
+    platform_state_merge_register_name(&dest->data_layout_base_known[index], dest->data_layout_base_symbol[index],
+      sizeof(dest->data_layout_base_symbol[index]), source->data_layout_base_known[index],
+      source->data_layout_base_symbol[index], &changed);
+    platform_state_merge_register_name(&dest->address_layout_base_known[index],
+      dest->address_layout_base_symbol[index], sizeof(dest->address_layout_base_symbol[index]),
+      source->address_layout_base_known[index], source->address_layout_base_symbol[index], &changed);
     if (dest->data_app_base_known[index] != 0U && source->data_app_base_known[index] == 0U)
       dest->data_app_base_known[index] = 0U;
     if (dest->address_app_base_known[index] != 0U && source->address_app_base_known[index] == 0U)
@@ -3670,9 +3676,9 @@ static int render_lookup_add_device_base_field_slot(M68kRenderLookup *lookup, co
     M68K_RENDER_BASE_FIELD_SLOT_DEVICE_BASE, 4U, source_section_index, source_offset);
 }
 
-static int render_lookup_add_named_app_field_slot(M68kRenderLookup *lookup, int16_t displacement,
-    const char *symbol_name, size_t source_section_index, uint32_t source_offset) {
-  return render_lookup_add_base_field_slot_with_symbol(lookup, "__amiga_app_base__", displacement, "", symbol_name,
+static int render_lookup_add_named_layout_field_slot(M68kRenderLookup *lookup, const char *base_symbol,
+    int16_t displacement, const char *symbol_name, size_t source_section_index, uint32_t source_offset) {
+  return render_lookup_add_base_field_slot_with_symbol(lookup, base_symbol, displacement, "", symbol_name,
     M68K_RENDER_BASE_FIELD_SLOT_NAMED_VALUE, 0U, source_section_index, source_offset);
 }
 
@@ -3691,11 +3697,9 @@ static int render_lookup_seed_policy_app_slot_regions(M68kRenderLookup *lookup) 
   }
   for (index = 0U; index < policy->app_slot_region_count && index < M68K_ANALYSIS_APP_SLOT_REGION_LIMIT; ++index) {
     const M68kAnalysisAppSlotRegion *slot = &policy->app_slot_regions[index];
-    const char *layout_name = slot->layout_name[0] != '\0' ? slot->layout_name : "app";
     const char *base_symbol = slot->base_symbol[0] != '\0' ? slot->base_symbol : "__amiga_app_base__";
-    if (strcmp(layout_name, "app") != 0 || strcmp(base_symbol, "__amiga_app_base__") != 0) continue;
     if (slot->symbol[0] == '\0' || slot->offset > 0x7FFFU) continue;
-    if (render_lookup_add_named_app_field_slot(lookup, (int16_t)slot->offset, slot->symbol, SIZE_MAX,
+    if (render_lookup_add_named_layout_field_slot(lookup, base_symbol, (int16_t)slot->offset, slot->symbol, SIZE_MAX,
         UINT32_MAX) != 0) {
       return -1;
     }
@@ -8298,8 +8302,8 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
       }
       if (candidate_stores_named_value_to_app_slot(&trace_state, candidate, &named_app_slot_displacement,
           named_app_slot_symbol, sizeof(named_app_slot_symbol))) {
-        if (render_lookup_add_named_app_field_slot(lookup, named_app_slot_displacement, named_app_slot_symbol,
-            section->section_index, candidate->offset) != 0) {
+        if (render_lookup_add_named_layout_field_slot(lookup, "__amiga_app_base__", named_app_slot_displacement,
+            named_app_slot_symbol, section->section_index, candidate->offset) != 0) {
           goto cleanup;
         }
       }
