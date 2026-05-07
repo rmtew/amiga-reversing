@@ -1424,35 +1424,59 @@ def test_project_source_benchmark_uses_facts_v2(
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
     )
-    calls: list[tuple[object, ...]] = []
+    calls: list[dict[str, object]] = []
 
-    def fake_file_run(function_name: str, *args: object, project_root: Path) -> tuple[str, dict[str, object]]:
-        calls.append((function_name, *args))
-        return "SECTION code,code\n", {
-            "generation": "facts_v2_asm_source",
-            "backend": "amiga-raw",
-            "analysis_backend": "facts_v2",
-            "path": "demo",
-            "facts_v2": {
-                "platform_base_slot_count": 1,
-                "platform_call_count": 2,
-                "platform_effect_count": 3,
-                "asm_source_symbolic_instructions": 4,
-                "decode_seconds": 0.01,
-                "seed_seconds": 0.02,
-                "fixed_point_seconds": 0.03,
-                "render_ir_seconds": 0.04,
-                "source_render_seconds": 0.05,
-                "render_ir_statements": 6,
-                "render_ir_labels": 7,
-                "render_ir_instructions": 8,
-                "render_ir_data_spans": 9,
-                "asm_source_bytes": 10,
-            },
-            "timing": {"total_seconds": 0.125},
-        }
+    class FakeArtifact:
+        def __init__(self) -> None:
+            self.closed = False
 
-    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_facts_v2_source_text_profile", fake_file_run)
+        def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            return {"total_rows": 1}, {
+                "generation": "facts_v2_listing_artifact_summary",
+                "backend": "amiga-raw",
+                "analysis_backend": "facts_v2",
+                "path": "demo",
+                "facts_v2": {
+                    "platform_base_slot_count": 1,
+                    "platform_call_count": 2,
+                    "platform_effect_count": 3,
+                    "asm_source_symbolic_instructions": 4,
+                    "decode_seconds": 0.01,
+                    "seed_seconds": 0.02,
+                    "fixed_point_seconds": 0.03,
+                    "render_ir_seconds": 0.04,
+                    "source_render_seconds": 0.05,
+                    "render_ir_statements": 6,
+                    "render_ir_labels": 7,
+                    "render_ir_instructions": 8,
+                    "render_ir_data_spans": 9,
+                    "asm_source_bytes": 10,
+                },
+                "timing": {"source_seconds": 0.125, "summary_json_seconds": 0.0, "total_seconds": 0.0},
+            }
+
+        def source_text(self) -> str:
+            return "SECTION code,code\n"
+
+        def close(self) -> None:
+            self.closed = True
+
+    artifact = FakeArtifact()
+
+    def fake_create(cls, source_file, *, metadata_text: str, include_dir: str, project_root: Path):
+        calls.append(
+            {
+                "platform_name": source_file.platform_name,
+                "path": source_file.path,
+                "entry_offset": source_file.entry_offset,
+                "metadata_text": metadata_text,
+                "include_dir": include_dir,
+                "project_root": project_root,
+            }
+        )
+        return artifact
+
+    monkeypatch.setattr(c_backend.CListingArtifact, "create", classmethod(fake_create))
 
     benchmark, text = benchmark_project_source_with_text_from_c_backend(
         source,
@@ -1498,6 +1522,8 @@ def test_project_source_benchmark_uses_facts_v2(
             "text_bytes": 10,
         },
         "timing": {
+            "source_seconds": 0.125,
+            "summary_json_seconds": 0.0,
             "total_seconds": 0.125,
             "decode_seconds": 0.01,
             "seed_seconds": 0.02,
@@ -1511,14 +1537,16 @@ def test_project_source_benchmark_uses_facts_v2(
     }
     assert text == "SECTION code,code\n"
     assert calls == [
-        (
-            "platform_file_facts_v2_asm_source_raw_path_text_profile_alloc",
-            "amiga-raw",
-            str(binary_path),
-            12,
-            "",
-        ),
+        {
+            "platform_name": "amiga-raw",
+            "path": binary_path,
+            "entry_offset": 12,
+            "metadata_text": "",
+            "include_dir": str(tmp_path / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
+            "project_root": tmp_path,
+        }
     ]
+    assert artifact.closed is True
 
 
 def test_project_source_facts_v2_asm_source_uses_dedicated_c_api(monkeypatch, tmp_path: Path) -> None:

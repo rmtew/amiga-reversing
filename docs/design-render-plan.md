@@ -254,6 +254,10 @@ The Python source-render helper API no longer accepts a `syntax` parameter.
 That argument was ignored by the facts_v2 C source path and implied a
 nonexistent alternate render mode. Source syntax selection belongs in the C
 render policy/source path, not in a stale Python wrapper parameter.
+Target benchmarking now builds the retained C listing artifact and emits source
+from that artifact, rather than calling the separate facts_v2 source-text
+helper. The benchmark `.s` file and benchmark profile therefore use the same
+artifact boundary as the web listing path.
 Reproduction mismatch row mapping now uses the retained C artifact as a
 source-offset lookup service. The artifact resolves a `(section_index,
 section_offset)` through the render plan, translates the owning plan row through
