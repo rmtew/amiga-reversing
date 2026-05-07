@@ -204,6 +204,9 @@ the retained artifact path: build the C artifact, then cache the artifact.
 The server also no longer keeps a separate Python total-row cache for full
 listings. Cached ready jobs read the displayed row count from the retained C
 artifact summary, so row count ownership stays with the artifact.
+The server also no longer keeps a separate Python row-generation cache.
+Full-generation readiness is derived from a valid retained C artifact plus its
+current cache key; the artifact is the state, not a parallel generation flag.
 Reproduction jobs no longer pass cached Python rows into source reproduction.
 When a retained C artifact can emit source for the target form, reproduction
 uses that source; otherwise it calls the normal reproduction path by project

@@ -17,7 +17,12 @@ import pytest
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
-from amiga_reversing.disasm.c_backend import build_project_listing_artifact_generation_profile
+from amiga_reversing.disasm.c_backend import (
+    build_project_listing_artifact_generation_profile,
+)
+from amiga_reversing.disasm.projects import ProjectRecord
+from tests.cdp_brave import brave_cdp_requested, brave_cdp_skip_reason, brave_page
+from tests.listing_row_fixtures import serialize_row
 from tests.listing_types_fixtures import (
     AppSlotRef,
     BlockRowContext,
@@ -25,9 +30,6 @@ from tests.listing_types_fixtures import (
     SemanticOperand,
     SymbolOperandMetadata,
 )
-from amiga_reversing.disasm.projects import ProjectRecord
-from tests.cdp_brave import brave_cdp_requested, brave_cdp_skip_reason, brave_page
-from tests.listing_row_fixtures import serialize_row
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 pytestmark = pytest.mark.skipif(not brave_cdp_requested(), reason=brave_cdp_skip_reason())
@@ -70,7 +72,6 @@ def _cache_full_project_rows(
         app_slot_analysis=app_slot_analysis,
         type_flow_analysis=type_flow_analysis,
     )
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project_id] = "full"
     disasm_server._PROJECT_LISTING_CACHE_KEY[project_id] = "test-cache"
 
 
@@ -188,7 +189,7 @@ def _test_navigation_payload(
     groups["app-slots"] = list(app_slots.values())
     groups["labels"] = sorted(labels.values(), key=lambda entry: cast(int, entry.get("row_index", -1)))
     return {
-        "analysis_generation": disasm_server._PROJECT_ROW_GENERATION_CACHE.get(project_name),
+        "analysis_generation": "full" if project_name in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE else None,
         "total_rows": len(rows),
         "groups": groups,
         "app_slot_analysis": app_slot_analysis or {},
@@ -387,13 +388,11 @@ def _clear_disasm_server_listing_state(monkeypatch: pytest.MonkeyPatch) -> Itera
 
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", project_listing_cache_key)
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
     yield
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
@@ -781,7 +780,6 @@ def test_brave_cdp_app_slot_navigation_drills_to_refs(monkeypatch: pytest.Monkey
         ),
     ]
     _cache_full_project_rows(project.id, rows)
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -882,10 +880,8 @@ def test_brave_cdp_virtual_listing_scrolls_and_navigation_uses_global_index(
             analysis_generation="full",
         )
     )
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     _cache_full_project_rows(project.id, rows)
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -965,10 +961,8 @@ def test_brave_cdp_virtual_listing_pagedown_fetches_low_latency(
         )
         for index in range(1000)
     ]
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     _cache_full_project_rows(project.id, rows)
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -1136,10 +1130,8 @@ def test_brave_cdp_stats_overlay_shows_fetch_latency(monkeypatch: pytest.MonkeyP
         )
         for index in range(400)
     ]
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     _cache_full_project_rows(project.id, rows)
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -1237,7 +1229,6 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
         assert release_full.wait(timeout=15.0)
         return len(full_rows), {}, _FakeCListingArtifact(full_rows, project_name=project_name)
 
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
@@ -1336,7 +1327,6 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
         assert release_full.wait(timeout=15.0)
         return len(full_rows), {}, _FakeCListingArtifact(full_rows, project_name=project_name)
 
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
@@ -1656,10 +1646,8 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
         )
     rows.append(ListingRow(row_id="target", kind="label", text="target:\n", addr=400, label="target"))
 
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     _cache_full_project_rows(project.id, rows)
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -1790,10 +1778,8 @@ def test_brave_cdp_listing_layout_aligns_globals_and_shows_bytes(
             opcode_or_directive="rts",
         ),
     ]
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     _cache_full_project_rows(project.id, rows)
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project.id] = "full"
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
@@ -1989,7 +1975,6 @@ def test_brave_cdp_real_c_backend_listing_smoke(monkeypatch: pytest.MonkeyPatch)
     for artifact in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.values():
         artifact.close()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(
@@ -2467,11 +2452,9 @@ def test_brave_cdp_real_annotation_edit_round_trip(
     rows = payload["rows"]
     edit_row_index = next(index for index, row in enumerate(rows) if row["addr"] is not None)
     edit_addr = cast(int, rows[edit_row_index]["addr"])
-    disasm_server._PROJECT_ROW_GENERATION_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE[project_id] = artifact
-    disasm_server._PROJECT_ROW_GENERATION_CACHE[project_id] = "full"
     disasm_server._PROJECT_LISTING_CACHE_KEY[project_id] = disasm_server._project_listing_cache_key(project_id)
 
     with _live_server() as base_url, brave_page() as page:

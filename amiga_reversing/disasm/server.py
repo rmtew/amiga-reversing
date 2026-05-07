@@ -117,7 +117,6 @@ class StaticResponse(TypedDict):
 
 _MISSING = object()
 _PROJECT_C_LISTING_ARTIFACT_CACHE: dict[str, CListingArtifact] = {}
-_PROJECT_ROW_GENERATION_CACHE: dict[str, str] = {}
 _PROJECT_LISTING_CACHE_KEY: dict[str, str] = {}
 _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
@@ -152,12 +151,15 @@ def _valid_c_listing_artifact(project_name: str) -> CListingArtifact | None:
         cache_key = None
     if (
         artifact is not None
-        and _PROJECT_ROW_GENERATION_CACHE.get(project_name) == "full"
         and cache_key is not None
         and _PROJECT_LISTING_CACHE_KEY.get(project_name) == cache_key
     ):
         return artifact
     return None
+
+
+def _project_listing_generation(project_name: str) -> str | None:
+    return "full" if _valid_c_listing_artifact(project_name) is not None else None
 
 
 def _c_listing_artifact_total_rows(project_name: str) -> int | None:
@@ -215,7 +217,6 @@ def _write_api_input_type_override(
     for artifact in _PROJECT_C_LISTING_ARTIFACT_CACHE.values():
         artifact.close()
     _PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    _PROJECT_ROW_GENERATION_CACHE.clear()
     _PROJECT_LISTING_CACHE_KEY.clear()
     _cancel_listing_jobs()
 
@@ -554,7 +555,7 @@ def _overlay_listing_navigation_payload(
             for arg in cast(list[dict[str, object]], app_slot_analysis.get("untyped_api_args", []))
         ]
     if "analysis_generation" not in payload or payload.get("analysis_generation") is None:
-        payload["analysis_generation"] = _PROJECT_ROW_GENERATION_CACHE.get(project_name)
+        payload["analysis_generation"] = _project_listing_generation(project_name)
     if "type_flow_analysis" not in payload or not isinstance(payload.get("type_flow_analysis"), dict):
         payload["type_flow_analysis"] = {}
     payload["groups"] = groups
@@ -565,7 +566,6 @@ def _clear_project_listing_cache(project_name: str) -> None:
     artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.pop(project_name, None)
     if artifact is not None:
         artifact.close()
-    _PROJECT_ROW_GENERATION_CACHE.pop(project_name, None)
     _PROJECT_LISTING_CACHE_KEY.pop(project_name, None)
 
 
@@ -623,9 +623,7 @@ def _job_payload(job_id: str) -> AsyncJobPayload:
         job = dict(_ASYNC_JOBS[job_id])
         project_id = job.get("project_id")
         if isinstance(project_id, str) and job.get("job_kind") == "full_listing":
-            job["visible_generation"] = _PROJECT_ROW_GENERATION_CACHE.get(project_id) or (
-                "full" if project_id in _PROJECT_C_LISTING_ARTIFACT_CACHE else None
-            )
+            job["visible_generation"] = _project_listing_generation(project_id)
     return cast(AsyncJobPayload, job)
 
 
@@ -832,14 +830,10 @@ def _project_listing_cache_key(project_name: str) -> str:
 
 def _cache_satisfies_full_generation(project_name: str, cache_key: str) -> bool:
     if project_name not in _PROJECT_LISTING_CACHE_KEY:
-        return (
-            project_name in _PROJECT_C_LISTING_ARTIFACT_CACHE
-            and _PROJECT_ROW_GENERATION_CACHE.get(project_name) == "full"
-        )
+        return False
     if _PROJECT_LISTING_CACHE_KEY.get(project_name) != cache_key:
         return False
-    cached_generation = _PROJECT_ROW_GENERATION_CACHE.get(project_name)
-    return cached_generation == "full" and project_name in _PROJECT_C_LISTING_ARTIFACT_CACHE
+    return _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name) is not None
 
 
 def _build_rows_job(job_id: str, project_name: str) -> None:
@@ -887,7 +881,6 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                 if listing_artifact is not None:
                     listing_artifact.close()
                 return
-            _PROJECT_ROW_GENERATION_CACHE[project_name] = "full"
             _PROJECT_LISTING_CACHE_KEY[project_name] = cache_key
             old_artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
             if listing_artifact is not None:
@@ -930,7 +923,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             progress_total=phase_count,
             progress_percent=100,
             total_rows=total_rows,
-            visible_generation=_PROJECT_ROW_GENERATION_CACHE.get(project_name),
+            visible_generation=_project_listing_generation(project_name),
             target_generation="full",
             finished_at=time.time(),
         )
@@ -972,7 +965,7 @@ def _start_listing_job(project_name: str) -> AsyncJobPayload:
             "error": None,
             "created_at": time.time(),
             "finished_at": time.time(),
-            "visible_generation": _PROJECT_ROW_GENERATION_CACHE.get(project_name) or "full",
+            "visible_generation": "full",
             "target_generation": "full",
             "cache_key": cache_key,
         }
@@ -1008,7 +1001,7 @@ def _start_listing_job(project_name: str) -> AsyncJobPayload:
             "error": None,
             "created_at": time.time(),
             "finished_at": None,
-            "visible_generation": _PROJECT_ROW_GENERATION_CACHE.get(project_name),
+            "visible_generation": _project_listing_generation(project_name),
             "target_generation": "full",
             "cache_key": cache_key,
         }
@@ -1726,7 +1719,7 @@ def route_request(
                 "ok": True,
                 "data": _current_reproduction_payload(
                     project_name,
-                    auto_start=_PROJECT_ROW_GENERATION_CACHE.get(project_name) == "full",
+                    auto_start=_project_listing_generation(project_name) == "full",
                 ),
             }
         if (
@@ -1798,7 +1791,7 @@ def route_request(
                 ListingWindowPayload,
                 {
                     **payload,
-                    "analysis_generation": _PROJECT_ROW_GENERATION_CACHE.get(project_name),
+                    "analysis_generation": _project_listing_generation(project_name),
                 },
             )
             return {
