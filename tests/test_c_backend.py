@@ -1235,6 +1235,9 @@ class _FakeSourceArtifact:
     def profile_payload(self) -> dict[str, object]:
         return self.profile
 
+    def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
+        return self.source_text_value, self.profile
+
     def source_text(self) -> str:
         return self.source_text_value
 
@@ -1462,7 +1465,7 @@ def test_project_source_benchmark_uses_facts_v2(
 
         def profile_payload(self) -> dict[str, object]:
             return {
-                "generation": "facts_v2_listing_artifact_summary",
+                "generation": "facts_v2_listing_artifact_source_text",
                 "backend": "amiga-raw",
                 "analysis_backend": "facts_v2",
                 "path": "demo",
@@ -1482,11 +1485,11 @@ def test_project_source_benchmark_uses_facts_v2(
                     "render_ir_data_spans": 9,
                     "asm_source_bytes": 10,
                 },
-                "timing": {"source_seconds": 0.125, "summary_json_seconds": 0.0, "total_seconds": 0.0},
+                "timing": {"source_seconds": 0.125, "source_emit_seconds": 0.025, "total_seconds": 0.15},
             }
 
-        def source_text(self) -> str:
-            return "SECTION code,code\n"
+        def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
+            return "SECTION code,code\n", self.profile_payload()
 
         def close(self) -> None:
             self.closed = True
@@ -1553,8 +1556,8 @@ def test_project_source_benchmark_uses_facts_v2(
         },
         "timing": {
             "source_seconds": 0.125,
-            "summary_json_seconds": 0.0,
-            "total_seconds": 0.125,
+            "source_emit_seconds": 0.025,
+            "total_seconds": 0.15,
             "decode_seconds": 0.01,
             "seed_seconds": 0.02,
             "fixed_point_seconds": 0.03,
@@ -1608,7 +1611,8 @@ def test_platform_file_cli_disassemble_uses_artifact_options(tmp_path: Path) -> 
     assert result.returncode == 0, result.stderr
     assert "SECTION" in source_path.read_text(encoding="utf-8")
     profile = json.loads(benchmark_path.read_text(encoding="utf-8"))
-    assert profile["generation"] == "facts_v2_listing_artifact_summary"
+    assert profile["generation"] == "facts_v2_listing_artifact_source_text"
+    assert "source_emit_seconds" in profile["timing"]
     assert profile["timing"]["total_seconds"] >= profile["timing"]["source_seconds"]
 
     rejected = subprocess.run(

@@ -177,9 +177,8 @@ static int disassemble_file_to_stdout(const char *platform_name, const char *pat
     platform_file_free_text(error);
     return 1;
   }
-  result = platform_file_facts_v2_listing_artifact_source_text_alloc(artifact, &source_text);
-  if (result == 0)
-    result = platform_file_facts_v2_listing_artifact_profile_json_alloc(artifact, &profile_json);
+  result = platform_file_facts_v2_listing_artifact_source_text_profile_alloc(artifact, &source_text,
+    &profile_json);
   if (result != 0) {
     fprintf(stderr, "%s\n", source_text != NULL ? source_text : "facts_v2 listing artifact source failed");
     platform_file_free_text(source_text);
@@ -222,9 +221,8 @@ static int disassemble_raw_to_stdout(const char *platform_name, const char *path
     platform_file_free_text(error);
     return 1;
   }
-  result = platform_file_facts_v2_listing_artifact_source_text_alloc(artifact, &source_text);
-  if (result == 0)
-    result = platform_file_facts_v2_listing_artifact_profile_json_alloc(artifact, &profile_json);
+  result = platform_file_facts_v2_listing_artifact_source_text_profile_alloc(artifact, &source_text,
+    &profile_json);
   if (result != 0) {
     fprintf(stderr, "%s\n", source_text != NULL ? source_text : "facts_v2 listing artifact source failed");
     platform_file_free_text(source_text);

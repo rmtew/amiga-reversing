@@ -372,11 +372,12 @@ def _file_library():
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc.restype = ctypes.c_int
-    library.platform_file_facts_v2_listing_artifact_source_text_alloc.argtypes = [
+    library.platform_file_facts_v2_listing_artifact_source_text_profile_alloc.argtypes = [
         ctypes.c_void_p,
         ctypes.POINTER(ctypes.c_void_p),
+        ctypes.POINTER(ctypes.c_void_p),
     ]
-    library.platform_file_facts_v2_listing_artifact_source_text_alloc.restype = ctypes.c_int
+    library.platform_file_facts_v2_listing_artifact_source_text_profile_alloc.restype = ctypes.c_int
     library.platform_file_facts_v2_listing_artifact_summary_json_alloc.argtypes = [
         ctypes.c_void_p,
         ctypes.POINTER(ctypes.c_void_p),
@@ -728,6 +729,7 @@ class IrPolicyDllTests(unittest.TestCase):
                 second_window = ctypes.c_void_p()
                 addr_window = ctypes.c_void_p()
                 source_text = ctypes.c_void_p()
+                source_profile = ctypes.c_void_p()
                 summary = ctypes.c_void_p()
                 profile = ctypes.c_void_p()
                 all_window = ctypes.c_void_p()
@@ -757,9 +759,10 @@ class IrPolicyDllTests(unittest.TestCase):
                         2,
                         ctypes.byref(addr_window),
                     )
-                    source_result = library.platform_file_facts_v2_listing_artifact_source_text_alloc(
+                    source_result = library.platform_file_facts_v2_listing_artifact_source_text_profile_alloc(
                         artifact,
                         ctypes.byref(source_text),
+                        ctypes.byref(source_profile),
                     )
                     summary_result = library.platform_file_facts_v2_listing_artifact_summary_json_alloc(
                         artifact,
@@ -782,6 +785,9 @@ class IrPolicyDllTests(unittest.TestCase):
                     second_text = ctypes.string_at(second_window).decode("utf-8") if second_window.value else ""
                     addr_text = ctypes.string_at(addr_window).decode("utf-8") if addr_window.value else ""
                     artifact_source_text = ctypes.string_at(source_text).decode("utf-8") if source_text.value else ""
+                    source_profile_text = (
+                        ctypes.string_at(source_profile).decode("utf-8") if source_profile.value else ""
+                    )
                     summary_text = ctypes.string_at(summary).decode("utf-8") if summary.value else ""
                     profile_text = ctypes.string_at(profile).decode("utf-8") if profile.value else ""
                     total_rows = json.loads(summary_text)["summary"]["total_rows"] if summary_text else 0
@@ -798,6 +804,7 @@ class IrPolicyDllTests(unittest.TestCase):
                     self.assertEqual(second_result, 0, second_text)
                     self.assertEqual(addr_result, 0, addr_text)
                     self.assertEqual(source_result, 0, artifact_source_text)
+                    self.assertTrue(source_profile_text)
                     self.assertEqual(summary_result, 0, summary_text)
                     self.assertEqual(profile_result, 0, profile_text)
                     self.assertEqual(all_result, 0, all_text)
@@ -813,6 +820,8 @@ class IrPolicyDllTests(unittest.TestCase):
                         library.platform_file_free_text(addr_window)
                     if source_text.value:
                         library.platform_file_free_text(source_text)
+                    if source_profile.value:
+                        library.platform_file_free_text(source_profile)
                     if summary.value:
                         library.platform_file_free_text(summary)
                     if profile.value:
@@ -841,6 +850,7 @@ class IrPolicyDllTests(unittest.TestCase):
         addr_rows = addr_payload["listing"]["rows"]
         summary_payload = json.loads(summary_text)
         profile_payload = json.loads(profile_text)
+        source_profile_payload = json.loads(source_profile_text)
         all_rows_payload = json.loads(all_text)
         full_rows = all_rows_payload["listing"]["rows"]
         addr_anchor = next(
@@ -861,7 +871,10 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(summary_payload["profile"]["generation"], "facts_v2_listing_artifact_summary")
         self.assertEqual(summary_payload["summary"]["total_rows"], len(full_rows))
         self.assertEqual(profile_payload["generation"], "facts_v2_listing_artifact_summary")
+        self.assertEqual(source_profile_payload["generation"], "facts_v2_listing_artifact_source_text")
         self.assertEqual(profile_payload["listing_total_rows"], len(full_rows))
+        self.assertEqual(source_profile_payload["listing_total_rows"], len(full_rows))
+        self.assertIn("source_emit_seconds", source_profile_payload["timing"])
         self.assertIn("total_seconds", profile_payload["timing"])
         navigation_payload = json.loads(navigation_text)
         self.assertEqual(navigation_payload["profile"]["generation"], "facts_v2_listing_artifact_navigation")

@@ -3991,6 +3991,38 @@ static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact
   return 0;
 }
 
+static char *listing_artifact_profile_json_alloc(const PlatformFileListingArtifact *artifact,
+    const char *generation, const char *timing_key, double timing_seconds, M68kDiagList *diagnostics) {
+  JsonBuilder builder = {0};
+  char *json = NULL;
+  if (artifact == NULL || generation == NULL || timing_key == NULL) {
+    platform_file_add_error(diagnostics, "invalid listing artifact profile request");
+    return NULL;
+  }
+  if (json_builder_create(&builder) != 0 ||
+      json_builder_append(&builder, "{\"generation\":") != 0 ||
+      json_builder_append_json_string(&builder, generation) != 0 ||
+      json_builder_append(&builder, ",\"backend\":") != 0 ||
+      json_builder_append_json_string(&builder, artifact->backend_name) != 0 ||
+      json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
+      json_builder_append_json_string(&builder, artifact->path) != 0 ||
+      json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
+      json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
+      json_builder_appendf(&builder, ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,",
+        (unsigned)artifact->listing_total_rows, artifact->source_seconds) != 0 ||
+      json_builder_append_json_string(&builder, timing_key) != 0 ||
+      json_builder_appendf(&builder, ":%.6f,\"total_seconds\":%.6f}}",
+        timing_seconds, artifact->source_seconds + timing_seconds) != 0) {
+    platform_file_add_error(diagnostics, "out of memory");
+    json_builder_destroy(&builder);
+    return NULL;
+  }
+  json = json_builder_build(&builder);
+  json_builder_destroy(&builder);
+  if (json == NULL) platform_file_add_error(diagnostics, "out of memory");
+  return json;
+}
+
 static int facts_v2_direct_write_object_alloc(const char *backend_name, const M68kBackend *backend,
     const M68kObject *object, const char *output_path, uint32_t source_bytes, unsigned char **out_data,
     size_t *out_size, const unsigned char *compare_data, size_t compare_size, char **out_direct_profile_json,
@@ -4600,20 +4632,37 @@ cleanup:
   return text_result_to_alloc(&result, out_text);
 }
 
-int platform_file_facts_v2_listing_artifact_source_text_alloc(PlatformFileListingArtifact *artifact,
-    char **out_text) {
+int platform_file_facts_v2_listing_artifact_source_text_profile_alloc(PlatformFileListingArtifact *artifact,
+    char **out_text, char **out_profile_json) {
   PlatformFileTextResult result;
+  char *profile_json = NULL;
+  clock_t source_start;
+  clock_t source_end;
   memset(&result, 0, sizeof(result));
-  if (out_text == NULL) return -1;
+  if (out_text == NULL || out_profile_json == NULL) return -1;
   *out_text = NULL;
+  *out_profile_json = NULL;
   if (artifact == NULL) {
     platform_file_add_error(&result.diagnostics, "invalid listing artifact");
     return text_result_to_alloc(&result, out_text);
   }
+  source_start = clock();
   if (m68k_render_plan_emit_all_alloc(&artifact->source_plan, &result.text) != 0) {
     platform_file_add_error(&result.diagnostics, "facts_v2 listing artifact source emission failed");
+    return text_result_to_alloc(&result, out_text);
   }
-  return text_result_to_alloc(&result, out_text);
+  source_end = clock();
+  profile_json = listing_artifact_profile_json_alloc(artifact, "facts_v2_listing_artifact_source_text",
+    "source_emit_seconds", elapsed_seconds(source_start, source_end), &result.diagnostics);
+  if (profile_json == NULL) {
+    platform_file_free_text(result.text);
+    result.text = NULL;
+    return text_result_to_alloc(&result, out_text);
+  }
+  *out_text = result.text;
+  *out_profile_json = profile_json;
+  result.text = NULL;
+  return 0;
 }
 
 int platform_file_facts_v2_listing_artifact_summary_json_alloc(PlatformFileListingArtifact *artifact,
@@ -4670,7 +4719,6 @@ cleanup:
 int platform_file_facts_v2_listing_artifact_profile_json_alloc(PlatformFileListingArtifact *artifact,
     char **out_text) {
   PlatformFileTextResult result;
-  JsonBuilder builder = {0};
   char *json = NULL;
   clock_t profile_start;
   clock_t profile_end;
@@ -4682,35 +4730,16 @@ int platform_file_facts_v2_listing_artifact_profile_json_alloc(PlatformFileListi
     return text_result_to_alloc(&result, out_text);
   }
   profile_start = clock();
-  if (json_builder_create(&builder) != 0 ||
-      json_builder_append(&builder, "{\"generation\":\"facts_v2_listing_artifact_summary\",\"backend\":") != 0 ||
-      json_builder_append_json_string(&builder, artifact->backend_name) != 0 ||
-      json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
-      json_builder_append_json_string(&builder, artifact->path) != 0 ||
-      json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
-      json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
-      json_builder_appendf(&builder, ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,",
-        (unsigned)artifact->listing_total_rows, artifact->source_seconds) != 0) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    goto cleanup;
-  }
   profile_end = clock();
-  if (json_builder_appendf(&builder, "\"summary_json_seconds\":%.6f,\"total_seconds\":%.6f}}",
-      elapsed_seconds(profile_start, profile_end),
-      artifact->source_seconds + elapsed_seconds(profile_start, profile_end)) != 0) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    goto cleanup;
-  }
-  json = json_builder_build(&builder);
+  json = listing_artifact_profile_json_alloc(artifact, "facts_v2_listing_artifact_summary",
+    "summary_json_seconds", elapsed_seconds(profile_start, profile_end), &result.diagnostics);
   if (json == NULL) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
     goto cleanup;
   }
   result.text = json;
   json = NULL;
 
 cleanup:
-  json_builder_destroy(&builder);
   platform_file_free_text(json);
   return text_result_to_alloc(&result, out_text);
 }

@@ -243,8 +243,7 @@ def listing_artifact_source_text_with_c_backend_profile(
             project_root=project_root,
         )
     try:
-        profile = artifact.profile_payload()
-        return artifact.source_text(), profile
+        return artifact.source_text_with_profile()
     finally:
         artifact.close()
 
@@ -971,11 +970,12 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_anchor_window_json_alloc.restype = c_int
-    dll.platform_file_facts_v2_listing_artifact_source_text_alloc.argtypes = [
+    dll.platform_file_facts_v2_listing_artifact_source_text_profile_alloc.argtypes = [
         c_void_p,
         POINTER(c_void_p),
+        POINTER(c_void_p),
     ]
-    dll.platform_file_facts_v2_listing_artifact_source_text_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_source_text_profile_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_summary_json_alloc.argtypes = [
         c_void_p,
         POINTER(c_void_p),
@@ -1192,9 +1192,32 @@ class CListingArtifact:
         return analysis, profile
 
     def source_text(self) -> str:
-        return self._text_from_artifact_call(
-            self._dll.platform_file_facts_v2_listing_artifact_source_text_alloc,
+        source_text, _profile = self.source_text_with_profile()
+        return source_text
+
+    def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
+        out_text = c_void_p()
+        out_profile_json = c_void_p()
+        result = self._dll.platform_file_facts_v2_listing_artifact_source_text_profile_alloc(
+            self._handle,
+            byref(out_text),
+            byref(out_profile_json),
         )
+        try:
+            text = string_at(out_text.value).decode("utf-8", errors="replace") if out_text.value else ""
+            profile_text = (
+                string_at(out_profile_json.value).decode("utf-8", errors="replace")
+                if out_profile_json.value
+                else "{}"
+            )
+            if result != 0:
+                raise RuntimeError(f"C backend DLL failed: {text}")
+            return text, cast(dict[str, object], json.loads(profile_text))
+        finally:
+            if out_text.value:
+                self._dll.platform_file_free_text(out_text)
+            if out_profile_json.value:
+                self._dll.platform_file_free_text(out_profile_json)
 
     def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         combined = cast(
@@ -1441,8 +1464,9 @@ def _facts_v2_benchmark_timing(
     if total_seconds == 0.0:
         source_seconds = _profile_float(timing, "source_seconds")
         summary_json_seconds = _profile_float(timing, "summary_json_seconds")
-        if source_seconds != 0.0 or summary_json_seconds != 0.0:
-            timing["total_seconds"] = round(source_seconds + summary_json_seconds, 6)
+        source_emit_seconds = _profile_float(timing, "source_emit_seconds")
+        if source_seconds != 0.0 or summary_json_seconds != 0.0 or source_emit_seconds != 0.0:
+            timing["total_seconds"] = round(source_seconds + summary_json_seconds + source_emit_seconds, 6)
     timing.update(
         {
             "decode_seconds": decode_seconds,

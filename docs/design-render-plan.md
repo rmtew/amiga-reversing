@@ -280,6 +280,10 @@ source.
 The retained artifact now exposes a profile-only JSON call. Python source and
 benchmark helpers use that call instead of requesting the summary payload just
 to recover timing/profile metadata.
+Artifact source emission now has a single source-text-plus-profile C call.
+Python source and benchmark helpers and the CLI use that call, so benchmark
+profiles include `source_emit_seconds` and do not need a second profile request
+after emitting source.
 The platform-file CLI disassembly commands no longer parse ignored render
 syntax/policy options. They expose the artifact source path directly:
 metadata, optional benchmark profile, and optional `.s` output file.
