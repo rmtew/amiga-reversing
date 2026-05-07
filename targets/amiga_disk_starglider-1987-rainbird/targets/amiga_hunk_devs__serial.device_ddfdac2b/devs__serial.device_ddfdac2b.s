@@ -33,7 +33,7 @@ app_01AE RS.L 1
 app_01B2 RS.L 1
 app_01B6 RS.L 1
     RS.B 34
-app_01DC RS.L 1
+app_01DC RS.W 1
 app_SIZEOF EQU __RS
 
 _custom	EQU	$DFF000

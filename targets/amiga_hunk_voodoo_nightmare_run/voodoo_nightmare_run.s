@@ -54,7 +54,6 @@ INTF_CLRALL	EQU	$7FFF
 stack_top_00080000	EQU	$80000
 _ciab	EQU	$BFD000
 _ciaa	EQU	$BFE001
-m68k_vector_initial_pc	EQU	$4
 runtime_code_00000400	EQU	$400
 runtime_code_00078004	EQU	$78004
 
@@ -518,7 +517,7 @@ loc_6_00000000:
 loc_6_00000092:
 	move.b #$FF,_ciab+ciaddrb.l
 	move.b #$3,_ciaa+ciaddra.l
-	move.l #$1,m68k_vector_initial_pc.w
+	move.l #$1,$0004.w
 	st.b _ciab+ciaprb.l
 	nop
 	nop

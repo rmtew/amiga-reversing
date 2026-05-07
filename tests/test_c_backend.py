@@ -3927,6 +3927,44 @@ def test_real_dll_voodoo_trainer_decompression_comparator(
     assert suggestions[0]["source_section_offset"] == 8
 
 
+@pytest.mark.parametrize(
+    "target_name",
+    [
+        "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__serial.device_ddfdac2b",
+        "amiga_disk_starglider-1987-rainbird__amiga_hunk_devs__serial.device_ddfdac2b",
+    ],
+)
+def test_real_dll_serial_device_app_slot_width_uses_observed_word(target_name: str) -> None:
+    _requires_c_backend_dlls()
+
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "app_01DC RS.W 1\n" in source_text
+    assert "app_01DC RS.L 1\n" not in source_text
+
+
+def test_real_dll_voodoo_absolute_four_stays_numeric_not_initial_pc_vector() -> None:
+    _requires_c_backend_dlls()
+
+    paths = resolve_project_paths("amiga_hunk_voodoo_nightmare_run", project_root=PROJECT_ROOT, require_entities=False)
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "m68k_vector_initial_pc\tEQU\t$4\n" not in source_text
+    assert "\tmove.l #$1,$0004.w\n" in source_text
+    assert "\tmove.l #$1,m68k_vector_initial_pc.w\n" not in source_text
+
+
 def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
     _requires_c_backend_dlls()
 
