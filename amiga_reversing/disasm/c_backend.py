@@ -41,16 +41,16 @@ class UnsupportedCBackendProject(ValueError):
     pass
 
 
-class FactsV2RenderAssembleFailed(RuntimeError):
+class FactsV2ProfiledOperationFailed(RuntimeError):
     def __init__(
         self,
         message: str,
         *,
         source_profile: dict[str, object],
-        assembler_profile: dict[str, object],
+        operation_profile: dict[str, object],
     ) -> None:
         self.source_profile = source_profile
-        self.assembler_profile = assembler_profile
+        self.operation_profile = operation_profile
         super().__init__(message)
 
 
@@ -357,46 +357,6 @@ def assemble_platform_source_text_with_c_backend(
             dll.platform_file_free_text(out_profile_json)
         if out_data.value:
             dll.platform_file_free_bytes(out_data)
-
-
-def facts_v2_render_assemble_project_source_with_c_backend_profile(
-    binary_source: BinarySource,
-    *,
-    metadata_path: Path | None = None,
-    include_dir: str | Path | None = None,
-    output_path: str | Path | None = None,
-    target_cpu: str = "any",
-    enable_vasm_compat_rewrites: bool = False,
-    project_root: Path = PROJECT_ROOT,
-) -> tuple[bytes, dict[str, object], dict[str, object]]:
-    metadata_text = _metadata_path_text(metadata_path)
-    include_text = str(include_dir) if include_dir is not None else ""
-    output_text = str(output_path) if output_path is not None else ""
-    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
-        if source_file.entry_offset is None:
-            return _platform_file_facts_v2_render_assemble_profile(
-                "platform_file_facts_v2_render_assemble_path_bytes_profile_alloc",
-                source_file.platform_name,
-                str(source_file.path),
-                metadata_text,
-                include_text,
-                output_text,
-                target_cpu,
-                1 if enable_vasm_compat_rewrites else 0,
-                project_root=project_root,
-            )
-        return _platform_file_facts_v2_render_assemble_profile(
-            "platform_file_facts_v2_render_assemble_raw_path_bytes_profile_alloc",
-            source_file.platform_name,
-            str(source_file.path),
-            source_file.entry_offset,
-            metadata_text,
-            include_text,
-            output_text,
-            target_cpu,
-            1 if enable_vasm_compat_rewrites else 0,
-            project_root=project_root,
-        )
 
 
 def facts_v2_direct_rebuild_project_source_with_c_backend_profile(
@@ -727,61 +687,6 @@ def _platform_file_text(function_name: str, *args: object, project_root: Path) -
             dll.platform_file_free_text(out_text)
 
 
-def _platform_file_facts_v2_render_assemble_profile(
-    function_name: str, *args: object, project_root: Path
-) -> tuple[bytes, dict[str, object], dict[str, object]]:
-    dll = _platform_file_dll(project_root)
-    function = getattr(dll, function_name)
-    out_data = c_void_p()
-    out_size = c_size_t()
-    out_source_profile_json = c_void_p()
-    out_assembler_profile_json = c_void_p()
-    out_error = c_void_p()
-    c_args = [_c_arg(arg) for arg in args[:-1]]
-    c_args.append(c_int(int(args[-1])))
-    result = function(
-        *c_args,
-        byref(out_data),
-        byref(out_size),
-        byref(out_source_profile_json),
-        byref(out_assembler_profile_json),
-        byref(out_error),
-    )
-    try:
-        source_profile_text = (
-            string_at(out_source_profile_json.value).decode("utf-8", errors="replace")
-            if out_source_profile_json.value
-            else "{}"
-        )
-        assembler_profile_text = (
-            string_at(out_assembler_profile_json.value).decode("utf-8", errors="replace")
-            if out_assembler_profile_json.value
-            else "{}"
-        )
-        source_profile = cast(dict[str, object], json.loads(source_profile_text))
-        assembler_profile = cast(dict[str, object], json.loads(assembler_profile_text))
-        if facts_v2_source_refused(source_profile):
-            raise FactsV2SourceRefused(source_profile)
-        if result != 0:
-            detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
-            raise FactsV2RenderAssembleFailed(
-                f"C facts_v2 render+assemble failed: {detail}",
-                source_profile=source_profile,
-                assembler_profile=assembler_profile,
-            )
-        data = bytes(string_at(out_data.value, out_size.value)) if out_data.value else b""
-        return data, source_profile, assembler_profile
-    finally:
-        if out_error.value:
-            dll.platform_file_free_text(out_error)
-        if out_source_profile_json.value:
-            dll.platform_file_free_text(out_source_profile_json)
-        if out_assembler_profile_json.value:
-            dll.platform_file_free_text(out_assembler_profile_json)
-        if out_data.value:
-            dll.platform_file_free_bytes(out_data)
-
-
 def _platform_file_facts_v2_direct_rebuild_profile(
     function_name: str, *args: object, project_root: Path
 ) -> tuple[bytes, dict[str, object], dict[str, object]]:
@@ -820,10 +725,10 @@ def _platform_file_facts_v2_direct_rebuild_profile(
             raise FactsV2DirectRebuildRefused(source_profile, direct_profile)
         if result != 0:
             detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
-            raise FactsV2RenderAssembleFailed(
+            raise FactsV2ProfiledOperationFailed(
                 f"C facts_v2 direct rebuild failed: {detail}",
                 source_profile=source_profile,
-                assembler_profile=direct_profile,
+                operation_profile=direct_profile,
             )
         data = bytes(string_at(out_data.value, out_size.value)) if out_data.value else b""
         return data, source_profile, direct_profile
@@ -888,10 +793,10 @@ def _platform_file_facts_v2_direct_rebuild_buffer_profile(
             raise FactsV2DirectRebuildRefused(source_profile, direct_profile)
         if result != 0:
             detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
-            raise FactsV2RenderAssembleFailed(
+            raise FactsV2ProfiledOperationFailed(
                 f"C facts_v2 direct rebuild failed: {detail}",
                 source_profile=source_profile,
-                assembler_profile=direct_profile,
+                operation_profile=direct_profile,
             )
         rebuilt = bytes(string_at(out_data.value, out_size.value)) if out_data.value else b""
         return rebuilt, source_profile, direct_profile
@@ -964,37 +869,6 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     _configure_text_function(dll, "platform_file_facts_v2_analysis_raw_path_json_alloc", 5)
     _configure_text_function(dll, "platform_file_effective_policy_path_json_alloc", 4)
     _configure_text_function(dll, "platform_file_effective_policy_raw_path_json_alloc", 5)
-    dll.platform_file_facts_v2_render_assemble_path_bytes_profile_alloc.argtypes = [
-        c_char_p,
-        c_char_p,
-        c_char_p,
-        c_char_p,
-        c_char_p,
-        c_char_p,
-        c_int,
-        POINTER(c_void_p),
-        POINTER(c_size_t),
-        POINTER(c_void_p),
-        POINTER(c_void_p),
-        POINTER(c_void_p),
-    ]
-    dll.platform_file_facts_v2_render_assemble_path_bytes_profile_alloc.restype = c_int
-    dll.platform_file_facts_v2_render_assemble_raw_path_bytes_profile_alloc.argtypes = [
-        c_char_p,
-        c_char_p,
-        c_uint32,
-        c_char_p,
-        c_char_p,
-        c_char_p,
-        c_char_p,
-        c_int,
-        POINTER(c_void_p),
-        POINTER(c_size_t),
-        POINTER(c_void_p),
-        POINTER(c_void_p),
-        POINTER(c_void_p),
-    ]
-    dll.platform_file_facts_v2_render_assemble_raw_path_bytes_profile_alloc.restype = c_int
     dll.platform_file_facts_v2_direct_rebuild_path_bytes_profile_alloc.argtypes = [
         c_char_p,
         c_char_p,

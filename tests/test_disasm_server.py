@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import queue
+import signal
 import socket
 import subprocess
+import sys
 import time
 import urllib.request
 from pathlib import Path
@@ -32,6 +35,35 @@ def _free_tcp_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
         return int(sock.getsockname()[1])
+
+
+def _kill_process_tree(process: subprocess.Popen[str]) -> None:
+    if process.poll() is not None:
+        return
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+                check=False,
+            )
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=5)
+            return
+        except (OSError, subprocess.TimeoutExpired):
+            process.kill()
+            return
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+        process.wait(timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        process.kill()
+        process.wait(timeout=5)
 
 
 def _read_http_bytes(url: str) -> tuple[bytes, str]:
@@ -743,9 +775,9 @@ def test_installed_disasm_server_serves_web_static_assets() -> None:
     port = _free_tcp_port()
     process = subprocess.Popen(
         [
-            "uv",
-            "run",
-            "amiga-disasm-server",
+            sys.executable,
+            "-m",
+            "amiga_reversing.tools.disasm_server",
             "--host",
             "127.0.0.1",
             "--port",
@@ -756,6 +788,8 @@ def test_installed_disasm_server_serves_web_static_assets() -> None:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) if os.name == "nt" else 0,
+        start_new_session=os.name != "nt",
     )
     try:
         base_url = f"http://127.0.0.1:{port}"
@@ -785,13 +819,7 @@ def test_installed_disasm_server_serves_web_static_assets() -> None:
         assert b"body {" in styles_css
         assert styles_content_type.startswith("text/css")
     finally:
-        if process.poll() is None:
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait(timeout=5)
+        _kill_process_tree(process)
 
 
 def test_route_create_project(monkeypatch: pytest.MonkeyPatch) -> None:

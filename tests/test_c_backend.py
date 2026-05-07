@@ -29,7 +29,6 @@ from amiga_reversing.disasm.c_backend import (
     extract_disk_entry_with_c_backend,
     listing_artifact_source_text_with_c_backend_profile,
     facts_v2_direct_rebuild_project_source_with_c_backend_profile,
-    facts_v2_render_assemble_project_source_with_c_backend_profile,
     inspect_disk_with_c_backend,
     identify_packed_range_with_c_backend,
     render_binary_source_with_c_backend,
@@ -1612,7 +1611,7 @@ def test_platform_file_cli_disassemble_uses_artifact_options(tmp_path: Path) -> 
     assert profile["generation"] == "facts_v2_listing_artifact_summary"
     assert profile["timing"]["total_seconds"] >= profile["timing"]["source_seconds"]
 
-    legacy = subprocess.run(
+    rejected = subprocess.run(
         [str(cli), "disassemble-file", "--syntax", "genam", "amiga-hunk", str(binary_path)],
         cwd=PROJECT_ROOT,
         stdin=subprocess.DEVNULL,
@@ -1620,65 +1619,11 @@ def test_platform_file_cli_disassemble_uses_artifact_options(tmp_path: Path) -> 
         text=True,
         check=False,
     )
-    assert legacy.returncode == 2
-    assert "unexpected argument: --syntax" in legacy.stderr
+    assert rejected.returncode == 2
+    assert "unexpected argument: --syntax" in rejected.stderr
 
 
-def test_project_source_facts_v2_render_assemble_uses_combined_c_api(monkeypatch, tmp_path: Path) -> None:
-    binary_path = tmp_path / "boot.bin"
-    output_path = tmp_path / "rebuilt.bin"
-    binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
-    source = RawBinarySource(
-        kind="raw_binary",
-        path=binary_path,
-        address_model="local_offset",
-        load_address=0x70000,
-        entrypoint=0x7000C,
-        code_start_offset=0x0C,
-        display_path=str(binary_path),
-        analysis_cache_path=tmp_path / "binary.analysis",
-    )
-    calls: list[tuple[object, ...]] = []
-
-    def fake_file_run(function_name: str, *args: object, project_root):
-        calls.append((function_name, *args))
-        return (
-            b"\x4e\x75",
-            {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}},
-            {"assemble_c_api": True, "total_seconds": 0.01},
-        )
-
-    monkeypatch.setattr(
-        "amiga_reversing.disasm.c_backend._platform_file_facts_v2_render_assemble_profile",
-        fake_file_run,
-    )
-
-    rebuilt, source_profile, assembler_profile = facts_v2_render_assemble_project_source_with_c_backend_profile(
-        source,
-        output_path=output_path,
-        include_dir=tmp_path / "include",
-        project_root=tmp_path,
-    )
-
-    assert rebuilt == b"\x4e\x75"
-    assert source_profile["generation"] == "facts_v2_asm_source"
-    assert assembler_profile["assemble_c_api"] is True
-    assert calls == [
-        (
-            "platform_file_facts_v2_render_assemble_raw_path_bytes_profile_alloc",
-            "amiga-raw",
-            str(binary_path),
-            12,
-            "",
-            str(tmp_path / "include"),
-            str(output_path),
-            "any",
-            0,
-        ),
-    ]
-
-
-def test_real_dll_raw_render_assemble_returns_raw_payload(tmp_path: Path) -> None:
+def test_real_dll_raw_listing_source_assembles_to_raw_payload(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "raw.bin"
     output_path = tmp_path / "rebuilt.bin"
@@ -1694,8 +1639,13 @@ def test_real_dll_raw_render_assemble_returns_raw_payload(tmp_path: Path) -> Non
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    rebuilt, source_profile, assembler_profile = facts_v2_render_assemble_project_source_with_c_backend_profile(
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         source,
+        project_root=PROJECT_ROOT,
+    )
+    rebuilt, assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-raw",
+        source_text,
         output_path=output_path,
         project_root=PROJECT_ROOT,
     )
@@ -3724,9 +3674,14 @@ def test_real_dll_carrier_decompressed_child_raw_reproduction() -> None:
         require_entities=False,
     )
 
-    rebuilt, source_profile, _assembler_profile = facts_v2_render_assemble_project_source_with_c_backend_profile(
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-raw",
+        source_text,
         project_root=PROJECT_ROOT,
     )
 
@@ -3920,9 +3875,9 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         metadata_path=paths.target_dir / "target_metadata.json",
         project_root=PROJECT_ROOT,
     )
-    rebuilt, source_profile, assembler_profile = facts_v2_render_assemble_project_source_with_c_backend_profile(
-        paths.binary_source,
-        metadata_path=paths.target_dir / "target_metadata.json",
+    rebuilt, assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
         include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
         output_path=tmp_path / "bloodwych_generated_source.hunk",
         target_cpu="any",
@@ -4059,12 +4014,12 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "m68k_vector_level_3_interrupt_autovector\tEQU\t$6C" in source_text
     assert "\tmove.l #abs_0_00008C20,m68k_vector_level_3_interrupt_autovector.w\n" in source_text
     assert "$00DFF" not in source_text
-    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
     assert assembler_profile["rebuilt_bytes"] == len(rebuilt)
     assert _amiga_hunk_section_hexes(tmp_path / "bloodwych_generated_source.hunk") == _amiga_hunk_section_hexes(
         paths.binary_source.path
     )
-    assert source_profile["facts_v2"]["asm_source_instruction_byte_mismatches"] == 0
+    assert source_text_profile["facts_v2"]["asm_source_instruction_byte_mismatches"] == 0
 
 
 def test_real_dll_inspects_and_extracts_dos_disk_entry() -> None:

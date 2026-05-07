@@ -52,15 +52,6 @@ PLATFORM_FILE_API int platform_file_effective_policy_path_json_alloc(const char 
   const char *metadata_path, const char *entry_offsets, char **out_text);
 PLATFORM_FILE_API int platform_file_effective_policy_raw_path_json_alloc(const char *platform_name, const char *path,
   uint32_t entry_offset, const char *metadata_path, const char *entry_offsets, char **out_text);
-PLATFORM_FILE_API int platform_file_facts_v2_render_assemble_path_bytes_profile_alloc(const char *backend_name,
-    const char *path, const char *metadata_path, const char *include_dir, const char *output_path,
-    const char *target_cpu_name, int enable_vasm_compat_rewrites, unsigned char **out_data, size_t *out_size,
-    char **out_source_profile_json, char **out_assembler_profile_json, char **out_error);
-PLATFORM_FILE_API int platform_file_facts_v2_render_assemble_raw_path_bytes_profile_alloc(const char *platform_name,
-    const char *path, uint32_t entry_offset, const char *metadata_path,
-    const char *include_dir, const char *output_path, const char *target_cpu_name, int enable_vasm_compat_rewrites,
-    unsigned char **out_data, size_t *out_size, char **out_source_profile_json, char **out_assembler_profile_json,
-    char **out_error);
 PLATFORM_FILE_API int platform_file_facts_v2_direct_rebuild_path_bytes_profile_alloc(const char *backend_name,
     const char *path, const char *metadata_path, const char *output_path, unsigned char **out_data,
     size_t *out_size, char **out_source_profile_json, char **out_direct_profile_json, char **out_error);

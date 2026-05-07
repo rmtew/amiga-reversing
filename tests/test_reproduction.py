@@ -573,24 +573,28 @@ def test_run_reproduction_captures_assembler_failure(monkeypatch: pytest.MonkeyP
     )
     calls: list[dict[str, object]] = []
 
-    def fail_render_assemble(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
+    def render_source(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
         calls.append({"args": args, "kwargs": kwargs})
-        raise reproduction.FactsV2RenderAssembleFailed(
-            "demo.s:1: bad operand",
-            source_profile={"facts_v2": {"asm_source_refused": False}},
-            assembler_profile={"assemble_c_api": True},
-        )
+        return "bad\n", {"facts_v2": {"asm_source_refused": False}}
 
     monkeypatch.setattr(
         reproduction,
-        "facts_v2_render_assemble_project_source_with_c_backend_profile",
-        fail_render_assemble,
+        "listing_artifact_source_text_with_c_backend_profile",
+        render_source,
     )
+    assemble_calls: list[dict[str, object]] = []
+
+    def fail_assemble(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
+        assemble_calls.append({"args": args, "kwargs": kwargs})
+        raise RuntimeError("demo.s:1: bad operand")
+
+    monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", fail_assemble)
 
     report = run_reproduction("demo")
 
     assert report["status"] == "assembler_error"
-    assert calls[0]["kwargs"]["target_cpu"] == "any"
+    assert "target_cpu" not in calls[0]["kwargs"]
+    assert assemble_calls[0]["kwargs"]["target_cpu"] == "any"
     assert cast(list[dict[str, object]], report["assembler_diagnostics"])[0]["message"] == "demo.s:1: bad operand"
     assert cast(list[dict[str, object]], report["assembler_diagnostics"])[0]["row_index"] is None
     assert (target_dir / "reproduction.json").exists()
@@ -619,21 +623,27 @@ def test_run_reproduction_exact_match_skips_file_layout(
             binary_source=source,
         ),
     )
+    render_calls: list[dict[str, object]] = []
     assemble_calls: list[dict[str, object]] = []
 
-    def render_assemble_exact(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
+    def render_exact(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
+        render_calls.append({"args": args, "kwargs": kwargs})
+        return "dc.l $000003F3\n", {"facts_v2": {"asm_source_refused": False}, "source_bytes": len(original)}
+
+    def assemble_exact(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
         assemble_calls.append({"args": args, "kwargs": kwargs})
         output_path = kwargs.get("output_path")
         if isinstance(output_path, Path):
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_bytes(original)
-        return original, {"facts_v2": {"asm_source_refused": False}, "source_bytes": len(original)}, {"assemble_c_api": True}
+        return original, {"assemble_c_api": True}
 
     monkeypatch.setattr(
         reproduction,
-        "facts_v2_render_assemble_project_source_with_c_backend_profile",
-        render_assemble_exact,
+        "listing_artifact_source_text_with_c_backend_profile",
+        render_exact,
     )
+    monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_exact)
 
     def fail_layout(*args: object, **kwargs: object) -> list[dict[str, object]]:
         raise AssertionError("exact reproduction should not need file layout")
@@ -644,13 +654,14 @@ def test_run_reproduction_exact_match_skips_file_layout(
 
     assert report["status"] == "exact"
     assert report["file_layout"] == []
+    assert "output_path" not in render_calls[0]["kwargs"]
     assert assemble_calls[0]["kwargs"]["output_path"] == tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin"
     assert report["canonical_rebuilt_path"] == str(tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin")
     assert (tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin").exists()
     assert cast(dict[str, object], report["profile"])["file_layout_seconds"] == 0.0
 
 
-def test_run_reproduction_uses_facts_v2_render_assemble_fast_path(
+def test_run_reproduction_uses_listing_artifact_source_assembly(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "0")
@@ -673,26 +684,23 @@ def test_run_reproduction_uses_facts_v2_render_assemble_fast_path(
             binary_source=source,
         ),
     )
-    monkeypatch.setattr(
-        reproduction,
-        "assemble_platform_source_text_with_c_backend",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("separate assemble should not run")),
-    )
-    calls: list[dict[str, object]] = []
+    render_calls: list[dict[str, object]] = []
+    assemble_calls: list[dict[str, object]] = []
 
-    def combined(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
-        calls.append({"args": args, "kwargs": kwargs})
+    def render_source(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
+        render_calls.append({"args": args, "kwargs": kwargs})
+        return "dc.l $000003F3\n", {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}}
+
+    def assemble_source(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
+        assemble_calls.append({"args": args, "kwargs": kwargs})
         output_path = kwargs.get("output_path")
         if isinstance(output_path, Path):
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_bytes(original)
-        return (
-            original,
-            {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}},
-            {"assemble_c_api": True, "total_seconds": 0.02},
-        )
+        return original, {"assemble_c_api": True, "total_seconds": 0.02}
 
-    monkeypatch.setattr(reproduction, "facts_v2_render_assemble_project_source_with_c_backend_profile", combined)
+    monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
+    monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
 
     report = run_reproduction("demo", project_root=tmp_path, profile=True)
 
@@ -701,12 +709,13 @@ def test_run_reproduction_uses_facts_v2_render_assemble_fast_path(
         "generation": "facts_v2_asm_source",
         "facts_v2": {"asm_source_refused": False},
     }
-    assert cast(dict[str, object], report["profile"])["render_assemble_c_api"] == 1.0
-    assert calls[0]["kwargs"]["output_path"] == tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin"
+    assert cast(dict[str, object], report["profile"])["listing_artifact_source_assembly"] == 1.0
+    assert "output_path" not in render_calls[0]["kwargs"]
+    assert assemble_calls[0]["kwargs"]["output_path"] == tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin"
     assert not (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
 
 
-def test_run_reproduction_uses_facts_v2_render_assemble_for_raw_binary(
+def test_run_reproduction_uses_listing_artifact_source_assembly_for_raw_binary(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
@@ -738,30 +747,33 @@ def test_run_reproduction_uses_facts_v2_render_assemble_for_raw_binary(
         "facts_v2_direct_rebuild_project_source_with_c_backend_profile",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("raw direct rebuild should not run")),
     )
-    calls: list[dict[str, object]] = []
+    render_calls: list[dict[str, object]] = []
+    assemble_calls: list[dict[str, object]] = []
 
-    def combined(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
-        calls.append({"args": args, "kwargs": kwargs})
+    def render_source(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
+        render_calls.append({"args": args, "kwargs": kwargs})
+        return "\trts\n", {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}}
+
+    def assemble_source(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
+        assemble_calls.append({"args": args, "kwargs": kwargs})
         output_path = kwargs.get("output_path")
         if isinstance(output_path, Path):
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_bytes(original)
-        return (
-            original,
-            {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}},
-            {"assemble_c_api": True, "total_seconds": 0.02},
-        )
+        return original, {"assemble_c_api": True, "total_seconds": 0.02}
 
-    monkeypatch.setattr(reproduction, "facts_v2_render_assemble_project_source_with_c_backend_profile", combined)
+    monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
+    monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
 
     report = run_reproduction("demo", project_root=tmp_path, profile=True)
 
     assert report["status"] == "exact"
     assert report["backend"] == "amiga-raw"
     profile = cast(dict[str, object], report["profile"])
-    assert profile["render_assemble_c_api"] == 1.0
+    assert profile["listing_artifact_source_assembly"] == 1.0
     assert "facts_v2_direct_rebuild_c_api" not in profile
-    assert calls[0]["kwargs"]["output_path"] == tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin"
+    assert "output_path" not in render_calls[0]["kwargs"]
+    assert assemble_calls[0]["kwargs"]["output_path"] == tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin"
 
 
 def test_facts_v2_direct_reproduction_defaults_on(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -797,8 +809,8 @@ def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
     )
     monkeypatch.setattr(
         reproduction,
-        "facts_v2_render_assemble_project_source_with_c_backend_profile",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("source assemble should not run")),
+        "listing_artifact_source_text_with_c_backend_profile",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("source render should not run")),
     )
     monkeypatch.setattr(
         reproduction,
@@ -830,7 +842,7 @@ def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
     }
     profile = cast(dict[str, object], report["profile"])
     assert profile["facts_v2_direct_rebuild_c_api"] == 1.0
-    assert "render_assemble_c_api" not in profile
+    assert "listing_artifact_source_assembly" not in profile
     assert calls[0]["kwargs"]["output_path"] == tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin"
     assert not (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
 
@@ -875,11 +887,12 @@ def test_run_reproduction_accepts_lossy_hunk_reloc32_direct_rebuild_refusal(
     def direct(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
         raise reproduction.FactsV2DirectRebuildRefused(source_profile, direct_profile)
 
-    def combined(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
-        raise AssertionError("direct rebuild refusal must not fall back to render+assemble")
-
     monkeypatch.setattr(reproduction, "facts_v2_direct_rebuild_project_source_with_c_backend_profile", direct)
-    monkeypatch.setattr(reproduction, "facts_v2_render_assemble_project_source_with_c_backend_profile", combined)
+    monkeypatch.setattr(
+        reproduction,
+        "listing_artifact_source_text_with_c_backend_profile",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("direct rebuild refusal must not render source")),
+    )
 
     report = run_reproduction("demo", project_root=tmp_path, profile=True)
 
@@ -889,7 +902,7 @@ def test_run_reproduction_accepts_lossy_hunk_reloc32_direct_rebuild_refusal(
     assert report["tool_error"] is None
     profile = cast(dict[str, object], report["profile"])
     assert profile["facts_v2_direct_rebuild_refusal_reason"] == "lossy_numeric_hunk_relocations"
-    assert "render_assemble_c_api" not in profile
+    assert "listing_artifact_source_assembly" not in profile
 
 
 def test_run_reproduction_direct_source_compare_does_not_override_direct_bytes(
@@ -935,12 +948,16 @@ def test_run_reproduction_direct_source_compare_does_not_override_direct_bytes(
             {"facts_v2_direct_rebuild": True, "direct_rebuild_refused": False, "rebuilt_bytes": len(direct_bytes)},
         )
 
-    def combined(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
+    def render_source(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
+        return "dc.l $000003F3\n", source_profile
+
+    def assemble_source(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
         assert kwargs.get("output_path") is None
-        return original, source_profile, {"assemble_c_api": True, "total_seconds": 0.01}
+        return original, {"assemble_c_api": True, "total_seconds": 0.01}
 
     monkeypatch.setattr(reproduction, "facts_v2_direct_rebuild_project_source_with_c_backend_profile", direct)
-    monkeypatch.setattr(reproduction, "facts_v2_render_assemble_project_source_with_c_backend_profile", combined)
+    monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
+    monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
 
     report = run_reproduction("demo", project_root=tmp_path, profile=True)
 
@@ -1127,24 +1144,18 @@ def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
             binary_source=source,
         ),
     )
-    monkeypatch.setattr(
-        reproduction,
-        "assemble_platform_source_text_with_c_backend",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("separate assemble should not run")),
-    )
+    def render_source(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
+        return "dc.l $000003F3\n", {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}}
 
-    def combined(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
+    def assemble_source(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
         output_path = kwargs.get("output_path")
         if isinstance(output_path, Path):
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_bytes(rebuilt)
-        return (
-            bytes(rebuilt),
-            {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}},
-            {"assemble_c_api": True, "total_seconds": 0.02},
-        )
+        return bytes(rebuilt), {"assemble_c_api": True, "total_seconds": 0.02}
 
-    monkeypatch.setattr(reproduction, "facts_v2_render_assemble_project_source_with_c_backend_profile", combined)
+    monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
+    monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
 
     report = run_reproduction("demo", project_root=tmp_path, profile=True)
 
@@ -1175,7 +1186,7 @@ def test_run_reproduction_captures_renderer_failure_as_render_error(
         ),
     )
 
-    def fail_render(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
+    def fail_render(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
         raise reproduction.FactsV2SourceRefused(
             {
                 "facts_v2": {
@@ -1185,7 +1196,7 @@ def test_run_reproduction_captures_renderer_failure_as_render_error(
             }
         )
 
-    monkeypatch.setattr(reproduction, "facts_v2_render_assemble_project_source_with_c_backend_profile", fail_render)
+    monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", fail_render)
 
     report = run_reproduction("demo")
 
@@ -1224,12 +1235,12 @@ def test_run_reproduction_refuses_facts_v2_source_before_assemble(
             "asm_source_first_failure_offset": 4,
         }
     }
-    def refuse_source(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
+    def refuse_source(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
         raise reproduction.FactsV2SourceRefused(listing_profile)
 
     monkeypatch.setattr(
         reproduction,
-        "facts_v2_render_assemble_project_source_with_c_backend_profile",
+        "listing_artifact_source_text_with_c_backend_profile",
         refuse_source,
     )
 

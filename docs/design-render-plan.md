@@ -33,8 +33,8 @@ and statements. Production facts_v2 rendering now owns include, RS/app-slot,
 equate, and body rows through the captured render plan.
 
 Multi-line rows can now be visited as physical lines while preserving the owner
-row and subline index. This keeps compatibility with the current web listing
-shape without forcing source text reparsing.
+row and subline index. This preserves the current web listing shape without
+forcing source text reparsing.
 
 The production facts_v2 full listing path consumes the captured source render
 plan for row emission instead of walking the full source text as the row stream.
@@ -68,9 +68,9 @@ now capture the source plan without allocating the full `.s` API string.
 Render plans now have a typed header-hoist transform that orders include rows,
 RS rows, and equate rows before body rows without parsing final source text.
 Filtered full-listing header collection now uses render-plan row kinds for
-include/RS/equate rows and first-section stop detection. The legacy emitted
-text classifier has been removed; diagnostic rows are comments, and semantic
-listing rows must carry semantic render-plan kinds/provenance.
+include/RS/equate rows and first-section stop detection. The emitted-text
+classifier has been removed; diagnostic rows are comments, and semantic listing
+rows must carry semantic render-plan kinds/provenance.
 Render plans can now emit physical line windows directly from row ownership
 metadata, including windows that start inside a multi-line row. This is the
 generic primitive the web listing path needs before it can stop requesting a
@@ -248,8 +248,10 @@ late source render on mismatch or assembler failure just to materialize a
 diagnostic artifact.
 The remaining late source-render fallback inside `run_reproduction()` has also
 been removed. With no pre-rendered artifact source, reproduction uses direct C
-rebuild or the combined C render-assemble path; it does not render source and
-then call a separate assemble step as a second production path.
+rebuild where the platform supports direct byte output. Raw binaries and
+direct-rebuild-disabled runs build the retained C listing artifact, emit source
+from that artifact, then call the C assembler. There is no separate combined
+render-assemble export.
 The Python source-render helper API no longer accepts a `syntax` parameter.
 That argument was ignored by the facts_v2 C source path and implied a
 nonexistent alternate render mode. Source syntax selection belongs in the C
@@ -270,9 +272,11 @@ Python source, benchmark, and source-gate callers now share the retained
 artifact helper; tests that need exact source/profile data use that helper too.
 The C platform-file CLI `disassemble-file` and `disassemble-raw` commands now
 build the retained C listing artifact and emit source/benchmark data from that
-artifact. The old exported direct source text/json/profile functions have been
-removed from the platform-file DLL; source rendering through the DLL now enters
-through either a retained listing artifact or the reproduction/rebuild APIs.
+artifact. The exported direct source text/json/profile functions and the
+combined render-assemble functions have been removed from the platform-file
+DLL. Source rendering through the DLL now enters through a retained listing
+artifact; reproduction either uses direct rebuild or assembles artifact-emitted
+source.
 The retained artifact now exposes a profile-only JSON call. Python source and
 benchmark helpers use that call instead of requesting the summary payload just
 to recover timing/profile metadata.
@@ -289,7 +293,7 @@ The remaining internal C full-row dump and non-index window helpers have also
 been removed. C tests that need a whole listing now build the same displayed-row
 index used by the retained artifact and request one bounded window for the
 known row count. App-slot summary tests use the navigation payload, where that
-analysis is owned, instead of a legacy rows-plus-analysis dump.
+analysis is owned, instead of a rows-plus-analysis dump.
 Corpus usage indexing is generated local data, not source. It should consume
 compact analysis/listing evidence and retain row-backed xrefs only for useful
 navigation/report evidence. Aggregate target features such as label counts may
@@ -383,7 +387,7 @@ web API.
 - This is not Python or JavaScript analysis.
 - This is not manual target annotation.
 - This is not a change to assembler semantics.
-- This is not a reason to keep both legacy and new listing paths indefinitely.
+- This is not a reason to keep both old and retained listing paths indefinitely.
 
 ## Core Model
 
@@ -626,14 +630,15 @@ a fresh window around the anchor.
 7. Use Bloodwych as the pressure target after the generic fixture passes.
 8. Replace the web listing source-reparse path with render-plan row emission.
 9. Make full `.s` source output use the same plan where practical.
-10. Remove superseded legacy listing paths after parity tests pass. The
+10. Remove superseded listing paths after parity tests pass. The
     production Python row-window and text-anchor helpers are removed; test-only
     fake artifacts keep local slicing helpers. The production Python full-row
     wrapper, row hydration, C full-row API, C basic-row API, and production
-    Python row-list navigation builder are removed. The legacy C emitted-text
-    row classifier is removed; the internal C non-index full-row/count/window
-    helpers are removed; production serves listing windows and navigation from
-    typed render-plan rows in the retained C artifact.
+    Python row-list navigation builder are removed. The C emitted-text row
+    classifier is removed; the internal C non-index full-row/count/window
+    helpers are removed; the combined C render-assemble API is removed;
+    production serves listing windows and navigation from typed render-plan rows
+    in the retained C artifact.
 
 The first retained step should be small: a synthetic render-plan fixture that
 proves line accounting and window emission. Do not start by rewriting the whole
@@ -734,15 +739,15 @@ C analysis artifact -> C render plan -> .s source
 
 The retained listing artifact can emit `.s` source text from its stored render
 plan without re-running analysis. Artifact-backed web reproduction uses that
-path for every target once the full listing artifact is valid, so the retained
-render plan is the source form being assembled instead of a separate direct
-rebuild path. Standalone reproduction can still use direct rebuild when no
-retained artifact source has been supplied.
+source when the full listing artifact is valid, so the retained render plan is
+the source form being assembled. Standalone reproduction uses direct rebuild
+for platform files when possible; otherwise it builds a retained artifact,
+emits source from it, and assembles that source.
 
 Source artifact materialization is deterministic: if reproduction receives or
 renders source text, it writes that exact text to `bin/rebuilt/<target>/source.s`;
-if reproduction uses a direct byte rebuild or C render-assemble path without
-source text, it does not create `source.s`. There is no `always`, `on_failure`,
-or `never` compatibility policy.
+if reproduction uses a direct byte rebuild without source text, it does not
+create `source.s`. There is no `always`, `on_failure`, or `never`
+materialization policy.
 
 Both outputs must stay byte-for-byte consistent for the rows they share.
