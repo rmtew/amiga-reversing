@@ -2351,6 +2351,25 @@ def test_real_dll_raw_runtime_absolute_entry_uses_execution_view(tmp_path: Path)
     assert "loc_0_00000010:" not in source
 
 
+def test_real_dll_epic_runtime_absolute_raw_source_keeps_single_load_org() -> None:
+    _requires_c_backend_dlls()
+    paths = resolve_project_paths(
+        "amiga_disk_epic-1992-ocean-disk-1__amiga_raw_bootloader_stage_1",
+        project_root=PROJECT_ROOT,
+    )
+
+    with effective_metadata_file(paths.target_dir) as metadata_path:
+        source, _profile = listing_artifact_source_text_with_c_backend_profile(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert source.count("    ORG $40000\n") == 1
+    assert "loc_0_00000000:\n    ORG $40000\nabs_0_00040000:\n" in source
+    assert "    ORG $0\n" not in source
+
+
 def test_real_dll_runtime_org_is_visible_in_listing_rows(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "stage.bin"

@@ -5096,6 +5096,42 @@ static int test_facts_v2_policy_runtime_entrypoint_maps_absolute_load(void) {
   return 0;
 }
 
+static int test_facts_v2_full_policy_load_view_materializes_without_runtime_entrypoint(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[6] = {0x4eu, 0xf9u, 0x00u, 0x04u, 0x00u, 0x00u};
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x40000U;
+  policy.has_entry_offset = 1U;
+  policy.entry_offset = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $40000\nabs_0_00040000:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp abs_0_00040000.l\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_runtime_ref_inside_accepted_instruction_stays_numeric(void) {
   M68kObject object;
   M68kSection section;
@@ -13339,6 +13375,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_runtime_trampoline_copy_does_not_force_low_org},
     {"facts_v2_policy_runtime_entrypoint_maps_absolute_load",
       test_facts_v2_policy_runtime_entrypoint_maps_absolute_load},
+    {"facts_v2_full_policy_load_view_materializes_without_runtime_entrypoint",
+      test_facts_v2_full_policy_load_view_materializes_without_runtime_entrypoint},
     {"facts_v2_runtime_ref_inside_accepted_instruction_stays_numeric",
       test_facts_v2_runtime_ref_inside_accepted_instruction_stays_numeric},
     {"facts_v2_pointer_table_storage_value_stays_numeric_under_runtime_org",

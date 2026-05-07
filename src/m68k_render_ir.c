@@ -4397,6 +4397,19 @@ static int runtime_range_has_storage_continuation(const M68kRenderLookup *lookup
   return range_end < extent;
 }
 
+static int runtime_range_is_full_source_policy_load_view(const M68kRenderLookup *lookup, const M68kFact *range) {
+  const M68kSection *section;
+  uint32_t extent;
+  if (lookup == NULL || lookup->object == NULL || range == NULL ||
+      range->runtime_kind != M68K_FACT_RUNTIME_RANGE_KIND_POLICY || range->section_index >= lookup->object->section_count ||
+      range->offset != 0U || !range->has_runtime_address) {
+    return 0;
+  }
+  section = &lookup->object->sections[range->section_index];
+  extent = section->size != 0U ? section->size : section->data_size;
+  return extent != 0U && range->size == extent && range->runtime_address != 0U;
+}
+
 static int runtime_range_is_materialized(const M68kRenderLookup *lookup, const M68kFact *range) {
   size_t index;
   if (lookup == NULL || range == NULL) return 0;
@@ -4404,6 +4417,7 @@ static int runtime_range_is_materialized(const M68kRenderLookup *lookup, const M
   if (runtime_range_is_crossed_by_storage_xref(lookup, range)) return 0;
   if (runtime_range_is_exited_to_larger_runtime_range(lookup, range)) return 0;
   if (runtime_range_has_storage_continuation(lookup, range)) return 0;
+  if (runtime_range_is_full_source_policy_load_view(lookup, range)) return 1;
   if (runtime_range_contains_policy_entry_point(lookup, range)) return 1;
   for (index = 0U; index < lookup->runtime_address_ref_count; ++index) {
     if (runtime_range_contains_runtime_ref_target(range, lookup->runtime_address_refs[index].fact)) return 1;
