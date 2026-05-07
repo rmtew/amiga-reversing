@@ -101,8 +101,8 @@ class _FakeCListingArtifact:
     def close(self) -> None:
         self.closed = True
 
-    def source_text(self) -> str:
-        return "    SECTION section,code\n    rts\n"
+    def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
+        return "    SECTION section,code\n    rts\n", {"generation": "fake-source"}
 
     def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         return {"total_rows": 1}, {"generation": "fake"}
@@ -3791,7 +3791,7 @@ def test_reproduction_job_fails_closed_when_artifact_source_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class BrokenSourceArtifact(_FakeCListingArtifact):
-        def source_text(self) -> str:
+        def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
             raise RuntimeError("source export failed")
 
     calls: list[object] = []

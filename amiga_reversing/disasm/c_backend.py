@@ -1191,10 +1191,6 @@ class CListingArtifact:
         profile = cast(dict[str, object], combined.get("profile", {}))
         return analysis, profile
 
-    def source_text(self) -> str:
-        source_text, _profile = self.source_text_with_profile()
-        return source_text
-
     def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
         out_text = c_void_p()
         out_profile_json = c_void_p()
@@ -1231,16 +1227,6 @@ class CListingArtifact:
         summary = cast(dict[str, object], combined.get("summary", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))
         return summary, profile
-
-    def profile_payload(self) -> dict[str, object]:
-        return cast(
-            dict[str, object],
-            json.loads(
-                self._text_from_artifact_call(
-                    self._dll.platform_file_facts_v2_listing_artifact_profile_json_alloc,
-                )
-            ),
-        )
 
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         combined = cast(

@@ -876,7 +876,7 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
                     )
                 )
             try:
-                pre_rendered_source_text = listing_artifact.source_text()
+                pre_rendered_source_text, _source_profile = listing_artifact.source_text_with_profile()
             except Exception as exc:
                 message = f"artifact source unavailable: {exc}"
                 _log_event(

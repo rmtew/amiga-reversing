@@ -284,6 +284,9 @@ Artifact source emission now has a single source-text-plus-profile C call.
 Python source and benchmark helpers and the CLI use that call, so benchmark
 profiles include `source_emit_seconds` and do not need a second profile request
 after emitting source.
+The Python retained artifact wrapper no longer exposes source-only or
+profile-only compatibility methods. Callers use summary, navigation, windows,
+analysis, or source text with its profile explicitly.
 The platform-file CLI disassembly commands no longer parse ignored render
 syntax/policy options. They expose the artifact source path directly:
 metadata, optional benchmark profile, and optional `.s` output file.

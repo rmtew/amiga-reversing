@@ -1232,14 +1232,8 @@ class _FakeSourceArtifact:
     def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         return {"total_rows": 1}, self.profile
 
-    def profile_payload(self) -> dict[str, object]:
-        return self.profile
-
     def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
         return self.source_text_value, self.profile
-
-    def source_text(self) -> str:
-        return self.source_text_value
 
     def close(self) -> None:
         self.closed = True
@@ -1461,9 +1455,9 @@ def test_project_source_benchmark_uses_facts_v2(
             self.closed = False
 
         def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
-            return {"total_rows": 1}, self.profile_payload()
+            return {"total_rows": 1}, self._source_profile()
 
-        def profile_payload(self) -> dict[str, object]:
+        def _source_profile(self) -> dict[str, object]:
             return {
                 "generation": "facts_v2_listing_artifact_source_text",
                 "backend": "amiga-raw",
@@ -1489,7 +1483,7 @@ def test_project_source_benchmark_uses_facts_v2(
             }
 
         def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
-            return "SECTION code,code\n", self.profile_payload()
+            return "SECTION code,code\n", self._source_profile()
 
         def close(self) -> None:
             self.closed = True
@@ -2344,7 +2338,7 @@ def test_real_dll_raw_runtime_absolute_entry_uses_execution_view(tmp_path: Path)
         project_root=PROJECT_ROOT,
     )
     try:
-        source = artifact.source_text()
+        source, _profile = artifact.source_text_with_profile()
     finally:
         artifact.close()
 
