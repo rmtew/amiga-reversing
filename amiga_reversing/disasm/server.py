@@ -1045,9 +1045,7 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
                     )
                 )
             try:
-                paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
-                if paths.binary_source.kind == "raw_binary":
-                    pre_rendered_source_text = listing_artifact.source_text()
+                pre_rendered_source_text = listing_artifact.source_text()
             except Exception as exc:
                 _log_event(
                     "reproduction_job artifact_source_unavailable",

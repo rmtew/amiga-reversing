@@ -665,8 +665,10 @@ C analysis artifact -> C render plan -> .s source
 ```
 
 The retained listing artifact can emit `.s` source text from its stored render
-plan without re-running analysis. The web reproduction job uses that path for
-raw-binary targets, where direct C rebuild is not available, while normal hunk
-targets keep the direct rebuild path.
+plan without re-running analysis. Artifact-backed web reproduction uses that
+path for every target once the full listing artifact is valid, so the retained
+render plan is the source form being assembled instead of a separate direct
+rebuild path. Standalone reproduction can still use direct rebuild when no
+retained artifact source has been supplied.
 
 Both outputs must stay byte-for-byte consistent for the rows they share.

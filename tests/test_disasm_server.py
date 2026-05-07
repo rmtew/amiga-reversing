@@ -3584,7 +3584,7 @@ def test_reproduction_job_does_not_use_stale_cached_rows(
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
 
 
-def test_reproduction_job_reuses_raw_artifact_source(
+def test_reproduction_job_reuses_artifact_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured_source: list[str | None] = []
@@ -3596,13 +3596,6 @@ def test_reproduction_job_reuses_raw_artifact_source(
     monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, "carrier-raw", "listing-cache")
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "listing-cache")
     monkeypatch.setattr(disasm_server, "_reproduction_cache_key", lambda project_name: "repro-cache")
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root: SimpleNamespace(
-            binary_source=SimpleNamespace(kind="raw_binary")
-        ),
-    )
 
     def fake_run_reproduction(project_name, project_root, pre_rendered_source_text=None):
         captured_source.append(pre_rendered_source_text)
