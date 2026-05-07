@@ -141,6 +141,19 @@ def _test_navigation_payload(
                     "summary": f"{api_call.get('function', '')} ({api_call.get('library', '')})".strip(),
                 }
             )
+        if row.typed_accesses or (row.kind not in {"instruction", "label"} and (row.comment_text or row.structured_data)):
+            summary = row.comment_text or row.kind
+            if row.typed_accesses:
+                access = row.typed_accesses[0]
+                summary = ".".join(
+                    part
+                    for part in (
+                        access.owner_struct_name or access.root_struct_name,
+                        access.field_expr or access.field_name,
+                    )
+                    if part
+                )
+            groups["typed-data"].append({**base_entry, "summary": summary})
         for ref in row.app_slot_refs:
             slot = app_slots.setdefault(
                 ref.symbol,
@@ -1483,6 +1496,71 @@ def test_brave_cdp_navigation_overlay_list_scrolls_with_many_entries(
         )
         assert page.evaluate(
             "document.querySelectorAll('.navigation-item')[39]?.textContent.includes('label_39')"
+        )
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_navigation_click_preserves_list_scroll_after_jump(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project = _binary_project("amiga_hunk_many_typed_nav_entries")
+    rows = [
+        ListingRow(
+            row_id=f"r{index}",
+            kind="data",
+            text=f"dc.b ${index:02X}\n",
+            addr=index * 4,
+            comment_text="string",
+            stable_key=f"data-{index:02d}",
+        )
+        for index in range(60)
+    ]
+    disasm_server._ASYNC_JOBS.clear()
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length >= 1")
+
+        page.click("#open-navigation")
+        page.wait_for_selector("#navigation-overlay")
+        page.select_value("[data-navigation-class='1']", "typed-data")
+        page.wait_for_expression("document.querySelectorAll('.navigation-item').length === 60")
+        page.evaluate(
+            """
+            (() => {
+              const list = document.querySelector("[data-navigation-list='1']");
+              const item = document.querySelectorAll(".navigation-item")[35];
+              list.scrollTop = Math.max(0, item.offsetTop - list.clientHeight + item.offsetHeight + 12);
+              return true;
+            })()
+            """
+        )
+        page.wait_for_expression("document.querySelector('[data-navigation-list=\"1\"]').scrollTop > 0")
+        page.wait_for_app_event_after_js(
+            "amiga:listing-row-focused",
+            """
+            document.querySelectorAll(".navigation-item")[35].click();
+            """,
+            "detail.rowIndex === 35",
+            timeout=10.0,
+        )
+        page.wait_for_expression(
+            """
+            (() => {
+              const list = document.querySelector("[data-navigation-list='1']");
+              const active = document.querySelector(".navigation-item.active");
+              if (!list || !active || !active.textContent.includes("string")) return false;
+              const listRect = list.getBoundingClientRect();
+              const activeRect = active.getBoundingClientRect();
+              return list.scrollTop > 0 && activeRect.top >= listRect.top && activeRect.bottom <= listRect.bottom;
+            })()
+            """
         )
         page.assert_no_errors()
 

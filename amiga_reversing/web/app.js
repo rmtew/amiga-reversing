@@ -4672,8 +4672,24 @@ function renderNavigationBack() {
   return "";
 }
 
+function captureNavigationListScrollTop() {
+  const list = document.querySelector("#navigation-overlay [data-navigation-list='1']");
+  return list instanceof HTMLElement ? list.scrollTop : null;
+}
+
+function restoreNavigationListScrollTop(scrollTop) {
+  if (scrollTop === null) {
+    return;
+  }
+  const list = document.querySelector("#navigation-overlay [data-navigation-list='1']");
+  if (list instanceof HTMLElement) {
+    list.scrollTop = scrollTop;
+  }
+}
+
 function renderNavigationOverlay() {
   const existing = document.getElementById("navigation-overlay");
+  const listScrollTop = captureNavigationListScrollTop();
   if (!state.navigation.overlayOpen) {
     existing?.remove();
     return;
@@ -4740,6 +4756,7 @@ function renderNavigationOverlay() {
   } else {
     app.insertAdjacentHTML("beforeend", html);
   }
+  restoreNavigationListScrollTop(listScrollTop);
   bindNavigationOverlay();
 }
 
