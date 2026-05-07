@@ -1371,6 +1371,8 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         codec_support = _string_value(event.get("codec_support"))
         if codec_support:
             bag.add(f"decompression:codec_support:{_safe_part(codec_support)}", example=example)
+        if _int_value(event.get("simulated_output_size")) is not None:
+            bag.add("decompression:simulated_output", example=example)
         if _int_value(event.get("load_address")) is not None:
             bag.add("absolute-depack-dest", example=example)
         if _int_value(event.get("entrypoint")) is not None:
@@ -2466,6 +2468,8 @@ def _decompression_analysis_xrefs(
         codec_support = _string_value(event.get("codec_support"))
         if codec_support:
             features.append(f"decompression:codec_support:{_safe_part(codec_support)}")
+        if _int_value(event.get("simulated_output_size")) is not None:
+            features.append("decompression:simulated_output")
         for feature in features:
             xrefs.append(
                 _xref(

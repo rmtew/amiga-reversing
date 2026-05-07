@@ -161,8 +161,8 @@ def test_listing_analysis_reports_unsupported_self_decruncher_without_materialis
     assert event["source_kind"] == "self_decruncher"
     assert event["provider_id"] == "m68k-sim-decrunch"
     assert event["codec_support"] == "simulator_required"
-    assert event["status"] == "needs_simulated_decrunch"
-    assert event["reason"] == "unidentified_self_decruncher"
+    assert event["status"] == "simulated_output_observed"
+    assert event["reason"] == "simulated_pc_range_stop"
     assert event["decompressor_code_section"] == 0
     assert event["decompressor_entry_offset"] == 0
     assert event["transfer_offset"] == 14
@@ -171,6 +171,10 @@ def test_listing_analysis_reports_unsupported_self_decruncher_without_materialis
     assert event["observed_write_start"] == 0x4000
     assert event["observed_write_end"] == 0x4002
     assert event["observed_write_count"] == 2
+    assert event["simulated_stop_reason"] == 1
+    assert event["simulated_output_start"] == 0x4000
+    assert event["simulated_output_end"] == 0x4002
+    assert event["simulated_output_size"] == 2
 
 
 def test_analysis_decompression_skips_candidate_overlapping_accepted_code(tmp_path: Path) -> None:

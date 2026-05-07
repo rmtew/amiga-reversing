@@ -61,12 +61,32 @@ static int test_concrete_run_reports_bad_arguments(void) {
   return 0;
 }
 
+static int test_concrete_run_applies_move_postincrement_update(void) {
+  uint8_t memory[32] = {
+    0x41U, 0xF9U, 0x00U, 0x00U, 0x00U, 0x10U,
+    0x10U, 0xFCU, 0x00U, 0x12U,
+    0x10U, 0xFCU, 0x00U, 0x34U,
+  };
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state, 3U, 0U,
+    0U, &result));
+  M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT, result.stop_reason);
+  M68K_C_ASSERT_U32(3U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(0x12U, state.a[0]);
+  M68K_C_ASSERT_U32(0x12U, memory[0x10]);
+  M68K_C_ASSERT_U32(0x34U, memory[0x11]);
+  return 0;
+}
+
 int m68k_c_simulator_tests(void) {
   static const M68kCTestCase cases[] = {
     {"concrete_run_stops_on_pc_range", test_concrete_run_stops_on_pc_range},
     {"concrete_run_stops_on_instruction_limit", test_concrete_run_stops_on_instruction_limit},
     {"concrete_run_reports_pc_out_of_range", test_concrete_run_reports_pc_out_of_range},
     {"concrete_run_reports_bad_arguments", test_concrete_run_reports_bad_arguments},
+    {"concrete_run_applies_move_postincrement_update", test_concrete_run_applies_move_postincrement_update},
   };
   return m68k_c_test_run_suite("m68k_simulator", cases, sizeof(cases) / sizeof(cases[0]));
 }

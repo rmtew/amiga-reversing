@@ -1977,11 +1977,19 @@ static int sim_apply_concrete_ea_register_update(const M68kInstructionIR *instru
     M68kSimConcreteState *state) {
   uint8_t address_reg;
   uint8_t ea_shape;
+  uint8_t register_update;
   uint8_t width;
   uint32_t delta;
   if (metadata == NULL || operand == NULL || state == NULL || operand_index >= 4U) return 0;
-  if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_POSTINCREMENT) return 1;
   ea_shape = sim_effective_ea_shape(metadata->operand_ea_address_shapes[operand_index], operand);
+  register_update = metadata->operand_ea_register_updates[operand_index];
+  if (register_update == M68K_SIM_EA_UPDATE_NONE &&
+      (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ ||
+       metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE) &&
+      ea_shape == M68K_SIM_EA_SHAPE_POSTINCREMENT) {
+    register_update = M68K_SIM_EA_UPDATE_POSTINCREMENT;
+  }
+  if (register_update != M68K_SIM_EA_UPDATE_POSTINCREMENT) return 1;
   if (!sim_ea_address_register(ea_shape, operand, &address_reg)) return 0;
   width = sim_effective_operand_width(instruction, metadata, operand_index);
   delta = width == 0U ? 0U : width;
@@ -4593,6 +4601,16 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
           io_state, memory, memory_size, io_state->pc, resolved_value)) {
       sim_diag_error(diagnostics, "unsupported concrete move destination");
+      return -1;
+    }
+    if (!sim_apply_concrete_ea_register_update(instruction, metadata, metadata->source_operand_index, source,
+        io_state)) {
+      sim_diag_error(diagnostics, "unsupported concrete move source update");
+      return -1;
+    }
+    if (!sim_apply_concrete_ea_register_update(instruction, metadata, metadata->dest_operand_index, dest,
+        io_state)) {
+      sim_diag_error(diagnostics, "unsupported concrete move destination update");
       return -1;
     }
   } else if (metadata->operation_type == M68K_SIM_OP_CLEAR && dest != NULL) {

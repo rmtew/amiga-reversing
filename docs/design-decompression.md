@@ -166,8 +166,10 @@ Use project-owned decompression:
   decrunchers. It executes generated simulator steps with a max-step limit and
   stop-PC range, and has isolated C unit tests. C also emits unsupported
   self-decrunch event records when analysed code writes to an absolute runtime
-  range and transfers control there. Decompression-specific memory seeding,
-  output capture, and materialisation are still pending.
+  range and transfers control there. Simple self-contained cases can now be
+  probed with the generated simulator and emit `simulated_output_observed` with
+  output range and stop metadata. Wider memory-map seeding, output hashes, and
+  materialisation are still pending.
 
 The boundary is:
 

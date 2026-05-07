@@ -255,6 +255,9 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   the first real proving target for this path. Corpus indexing currently also
   finds Voodoo Nightmare and Magicland Dizzy as Amiga comparators for the same
   unsupported event class.
-- The next implementation step is simulator-backed output capture for those
-  unsupported self-decrunch events: memory map seeding, write-range bounding,
-  stop reason, output hash, and conservative materialisation gates.
+- Simple self-contained self-decrunch events can now be probed with the
+  generated simulator and report `simulated_output_observed` plus output range
+  and stop metadata.
+- The next implementation step is extending simulator-backed output capture for
+  real unsupported events with memory-map seeding, write-range bounding, output
+  hash, and conservative materialisation gates.

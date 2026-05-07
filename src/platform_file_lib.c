@@ -767,6 +767,11 @@ typedef struct PlatformSelfDecrunchEvent {
   uint32_t observed_write_start;
   uint32_t observed_write_end;
   uint32_t observed_write_count;
+  uint32_t simulated_output_start;
+  uint32_t simulated_output_end;
+  uint32_t simulated_step_count;
+  uint8_t simulated_stop_reason;
+  uint8_t has_simulated_output;
   uint8_t parent_remains_active;
 } PlatformSelfDecrunchEvent;
 
@@ -847,8 +852,8 @@ static int self_decrunch_event_duplicate_local(const PlatformSelfDecrunchEvent *
   return 0;
 }
 
-static int self_decrunch_event_matches_materialized_provider_local(
-    const PlatformDecompressionIdentifyResult *results, size_t result_count,
+static int self_decrunch_event_matches_materialized_provider_local(const PlatformDecompressionIdentifyResult *results,
+    size_t result_count,
     const PlatformSelfDecrunchEvent *event) {
   size_t index;
   if (results == NULL || event == NULL) return 0;
@@ -1029,6 +1034,58 @@ static int observed_writes_cover_target_local(const PlatformRuntimeWriteObservat
   return 1;
 }
 
+static int simulate_self_decrunch_output_local(Arena *arena, const M68kDecodeSectionIR *section,
+    const PlatformSelfDecrunchEvent *event, uint8_t max_cpu, PlatformSelfDecrunchEvent *out_event) {
+  ArenaMark mark;
+  uint8_t *memory = NULL;
+  uint8_t *before = NULL;
+  size_t memory_size, index;
+  uint32_t dirty_start = UINT32_MAX, dirty_end = 0U;
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  int ok = 0;
+  if (out_event != NULL && event != NULL) *out_event = *event;
+  if (arena == NULL || section == NULL || event == NULL || out_event == NULL || section->data == NULL ||
+      event->entrypoint > UINT32_MAX - 16U || event->observed_write_end > UINT32_MAX - 16U) {
+    return 0;
+  }
+  memory_size = section->size;
+  if ((size_t)event->entrypoint + 16U > memory_size) memory_size = (size_t)event->entrypoint + 16U;
+  if ((size_t)event->observed_write_end + 16U > memory_size) memory_size = (size_t)event->observed_write_end + 16U;
+  if (memory_size > 2U * 1024U * 1024U || event->decompressor_entry_offset >= section->size) return 0;
+  mark = arena_mark(arena);
+  memory = (uint8_t *)arena_calloc(arena, memory_size, 1U);
+  before = (uint8_t *)arena_calloc(arena, memory_size, 1U);
+  if (memory == NULL || before == NULL) goto cleanup;
+  memcpy(memory, section->data, section->size);
+  memcpy(before, memory, memory_size);
+  memset(&state, 0, sizeof(state));
+  memset(&result, 0, sizeof(result));
+  state.pc = event->decompressor_entry_offset;
+  state.a[7] = (uint32_t)memory_size;
+  if (m68k_simulate_run_concrete(max_cpu, memory, memory_size, &state, 4096U, event->entrypoint,
+      event->entrypoint + 16U, &result) != 0 ||
+      result.stop_reason != M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE) {
+    goto cleanup;
+  }
+  for (index = 0U; index < memory_size; ++index) {
+    if (memory[index] == before[index]) continue;
+    if (index < dirty_start) dirty_start = (uint32_t)index;
+    dirty_end = (uint32_t)index + 1U;
+  }
+  if (dirty_start == UINT32_MAX || dirty_start > event->entrypoint || dirty_end <= event->entrypoint) goto cleanup;
+  out_event->has_simulated_output = 1U;
+  out_event->simulated_stop_reason = (uint8_t)result.stop_reason;
+  out_event->simulated_step_count = (uint32_t)result.step_count;
+  out_event->simulated_output_start = dirty_start;
+  out_event->simulated_output_end = dirty_end;
+  ok = 1;
+
+cleanup:
+  arena_rewind(arena, mark);
+  return ok;
+}
+
 static int collect_self_decrunch_events_for_section(const M68kObject *object, const M68kDecodeIR *decode,
     const M68kSourceAnalysisIR *analysis, size_t section_index, PlatformSelfDecrunchEvent *events,
     size_t event_capacity, size_t *io_event_count) {
@@ -1102,6 +1159,8 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
       event.observed_write_end = observed_write_end;
       event.observed_write_count = observed_write_count;
       event.parent_remains_active = parent_remains_active;
+      (void)simulate_self_decrunch_output_local(analysis->arena, decode_section, &event, analysis->policy.max_cpu,
+        &event);
       if (!self_decrunch_event_duplicate_local(events, *io_event_count, &event)) {
         events[*io_event_count] = event;
         *io_event_count += 1U;
@@ -1140,9 +1199,14 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
   make_self_decrunch_event_id_local(event_id, sizeof(event_id), event);
   if (json_builder_append(builder, "{\"event_kind\":\"decompression\",\"event_id\":") != 0 ||
       json_builder_append_json_string(builder, event_id) != 0 ||
+      json_builder_append(builder, ",\"status\":") != 0 ||
+      json_builder_append_json_string(builder,
+        event->has_simulated_output ? "simulated_output_observed" : "needs_simulated_decrunch") != 0 ||
+      json_builder_append(builder, ",\"reason\":") != 0 ||
+      json_builder_append_json_string(builder,
+        event->has_simulated_output ? "simulated_pc_range_stop" : "unidentified_self_decruncher") != 0 ||
       json_builder_append(builder,
-        ",\"status\":\"needs_simulated_decrunch\",\"reason\":\"unidentified_self_decruncher\","
-        "\"payload_role\":\"primary_program\",\"payload_role_confidence\":\"tool_inferred\","
+        ",\"payload_role\":\"primary_program\",\"payload_role_confidence\":\"tool_inferred\","
         "\"parent_remains_active\":") != 0 ||
       json_builder_append_json_string(builder, event->parent_remains_active ? "true" : "false") != 0 ||
       json_builder_append(builder,
@@ -1151,14 +1215,25 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
         "\"codec_support\":\"simulator_required\"") != 0) {
     return -1;
   }
-  return json_builder_appendf(builder,
+  if (json_builder_appendf(builder,
     ",\"decompressor_code_section\":%u,\"decompressor_entry_offset\":%u,"
     "\"transfer_offset\":%u,\"load_address\":%u,\"entrypoint\":%u,"
-    "\"observed_write_start\":%u,\"observed_write_end\":%u,\"observed_write_count\":%u}",
+    "\"observed_write_start\":%u,\"observed_write_end\":%u,\"observed_write_count\":%u",
     (unsigned)event->source_section_index, (unsigned)event->decompressor_entry_offset,
     (unsigned)event->transfer_offset, (unsigned)event->load_address, (unsigned)event->entrypoint,
     (unsigned)event->observed_write_start, (unsigned)event->observed_write_end,
-    (unsigned)event->observed_write_count);
+    (unsigned)event->observed_write_count) != 0)
+    return -1;
+  if (event->has_simulated_output) {
+    if (json_builder_appendf(builder,
+        ",\"simulated_stop_reason\":%u,\"simulated_step_count\":%u,"
+        "\"simulated_output_start\":%u,\"simulated_output_end\":%u,\"simulated_output_size\":%u",
+        (unsigned)event->simulated_stop_reason, (unsigned)event->simulated_step_count,
+        (unsigned)event->simulated_output_start, (unsigned)event->simulated_output_end,
+        (unsigned)(event->simulated_output_end - event->simulated_output_start)) != 0)
+      return -1;
+  }
+  return json_builder_append(builder, "}");
 }
 
 static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
