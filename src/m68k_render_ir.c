@@ -4814,9 +4814,51 @@ int lookup_offset_is_inside_relocation_payload(const M68kRenderLookup *lookup, s
   return 0;
 }
 
+static int lookup_label_has_explicit_name(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset) {
+  char name[128];
+  if (lookup == NULL) return 0;
+  return format_lookup_asm_label_with_generation(lookup, name, sizeof(name), section_index, offset) == 0U;
+}
+
+static int lookup_label_has_inbound_target_ref(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset) {
+  size_t index;
+  if (lookup == NULL) return 0;
+  for (index = 0U; index < lookup->xref_count; ++index) {
+    const M68kRenderXref *xref = &lookup->xrefs[index];
+    if (xref->target_section_index == section_index && xref->target_offset == offset) return 1;
+  }
+  for (index = 0U; index < lookup->code_start_ref_count; ++index) {
+    const M68kRenderCodeStartRef *ref = &lookup->code_start_refs[index];
+    if (ref->fact != NULL && ref->fact->section_index == section_index && ref->fact->offset == offset) return 1;
+  }
+  for (index = 0U; index < lookup->runtime_address_ref_count; ++index) {
+    const M68kFact *fact = lookup->runtime_address_refs[index].fact;
+    if (fact != NULL && fact->target_section_index == section_index && fact->target_offset == offset) return 1;
+  }
+  for (index = 0U; index < lookup->section_count; ++index) {
+    uint32_t cursor;
+    if (lookup->relocations == NULL || lookup->relocation_extents == NULL ||
+        lookup->relocations[index] == NULL) {
+      continue;
+    }
+    for (cursor = 0U; cursor < lookup->relocation_extents[index]; ++cursor) {
+      const M68kFact *fact = lookup->relocations[index][cursor];
+      if (fact != NULL && fact->target_section_index == section_index && fact->target_offset == offset) return 1;
+    }
+  }
+  return 0;
+}
+
 int lookup_has_renderable_label(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
   const M68kAnalysisStructuredDataItem *covering_item;
   if (!lookup_has_label(lookup, section_index, offset)) return 0;
+  if (lookup_structured_data_item_at_offset(lookup, section_index, offset) != NULL &&
+      !lookup_label_has_explicit_name(lookup, section_index, offset) &&
+      !lookup_label_has_inbound_target_ref(lookup, section_index, offset)) {
+    return 0;
+  }
   covering_item = lookup_structured_data_item_covering_offset(lookup, section_index, offset);
   if (covering_item != NULL && covering_item->offset != offset &&
       lookup_structured_data_item_at_offset(lookup, section_index, offset) == NULL &&

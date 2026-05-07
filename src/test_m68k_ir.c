@@ -11800,6 +11800,99 @@ static int test_facts_v2_render_asm_source_renders_structured_data_comment(void)
   return 0;
 }
 
+static int test_render_ir_suppresses_orphan_structured_field_label(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kFactIR facts;
+  M68kFact fact;
+  M68kAnalysisPolicy policy;
+  M68kRenderIRPreview preview;
+  uint8_t *accepted_start[1];
+  uint8_t *accepted_bytes[1];
+  uint8_t accepted_start_0[64];
+  uint8_t accepted_bytes_0[64];
+  uint8_t bytes[64];
+  memset(&section, 0, sizeof(section));
+  memset(bytes, 0, sizeof(bytes));
+  bytes[18] = 0x00U;
+  bytes[19] = 0x00U;
+  bytes[20] = 0x00U;
+  bytes[21] = 0x1EU;
+  bytes[30] = 'n';
+  bytes[31] = 'a';
+  bytes[32] = 'm';
+  bytes[33] = 'e';
+  bytes[34] = 0U;
+  memset(accepted_start_0, 0, sizeof(accepted_start_0));
+  memset(accepted_bytes_0, 0, sizeof(accepted_bytes_0));
+  accepted_start[0] = accepted_start_0;
+  accepted_bytes[0] = accepted_bytes_0;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_decode_ir_init(&decode);
+  m68k_fact_ir_init(&facts);
+  m68k_analysis_policy_init_default(&policy);
+  m68k_render_ir_preview_init(&preview);
+  policy.named_label_count = 1U;
+  policy.named_labels[0].has_section_index = 1U;
+  policy.named_labels[0].section_index = 0U;
+  policy.named_labels[0].offset = 30U;
+  snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "resident_name");
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 18U;
+  policy.structured_data_items[0].size = 4U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  snprintf(policy.structured_data_items[0].struct_name, sizeof(policy.structured_data_items[0].struct_name), "RT");
+  snprintf(policy.structured_data_items[0].field_name, sizeof(policy.structured_data_items[0].field_name),
+    "RT_NAME");
+  snprintf(policy.structured_data_items[0].field_type, sizeof(policy.structured_data_items[0].field_type),
+    "APTR");
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68000,
+    m68k_diag_sink(NULL)));
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_LABEL_CREATED;
+  fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  fact.section_index = 0U;
+  fact.offset = 18U;
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_LABEL_CREATED;
+  fact.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  fact.section_index = 0U;
+  fact.offset = 30U;
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_RELOCATION_REF;
+  fact.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  fact.section_index = 0U;
+  fact.offset = 18U;
+  fact.target_section_index = 0U;
+  fact.target_offset = 30U;
+  fact.size = 4U;
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, &policy,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  M68K_C_ASSERT(preview.asm_source_text != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "loc_0_00000012:") == NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tdc.l resident_name\t; APTR RT_NAME\n") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "resident_name:\n") != NULL);
+  m68k_render_ir_preview_destroy(&preview);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_resident_sizeof_defines_app_sizeof_without_slots(void) {
   M68kObject object;
   M68kSection section;
@@ -13846,6 +13939,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_relocated_absolute_jmp_stub_table_promotes_sibling_entry},
     {"facts_v2_render_asm_source_renders_structured_data_comment",
       test_facts_v2_render_asm_source_renders_structured_data_comment},
+    {"render_ir_suppresses_orphan_structured_field_label",
+      test_render_ir_suppresses_orphan_structured_field_label},
     {"facts_v2_render_asm_source_resident_sizeof_defines_app_sizeof_without_slots",
       test_facts_v2_render_asm_source_resident_sizeof_defines_app_sizeof_without_slots},
     {"facts_v2_render_asm_source_renders_copper_list_structured_data",
