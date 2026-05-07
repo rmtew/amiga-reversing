@@ -537,6 +537,58 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
     assert runtime_row["runtime_view_id"] == 1
 
 
+def test_full_listing_contained_runtime_view_does_not_emit_second_org(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "raw.bin"
+    metadata_path = tmp_path / "target_metadata.json"
+    path.write_bytes(bytes.fromhex("4ef9000000804ef900000084000000004e714e754e714e75"))
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "seeded_code_entrypoints": [
+                    {
+                        "hunk": 0,
+                        "addr": 6,
+                        "name": "second_runtime_ref",
+                        "source_id": "test",
+                        "source_path": "test",
+                        "source_locator": "test",
+                    }
+                ],
+                "execution_views": [
+                    {"source_start": 0x10, "source_end": 0x18, "base_addr": 0x80},
+                    {"source_start": 0x14, "source_end": 0x18, "base_addr": 0x84},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    binary_source = RawBinarySource(
+        kind="raw_binary",
+        path=path,
+        address_model="local_offset",
+        load_address=0,
+        entrypoint=0,
+        code_start_offset=0,
+        display_path=str(path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
+        binary_source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert source_text.count("    ORG $80\n") == 1
+    assert "    ORG $84\n" not in source_text
+    assert "    ORG $14\n" not in source_text
+    assert "\tjmp abs_0_00000080.l\n" in source_text
+    assert "\tjmp abs_0_00000084.l\n" in source_text
+    assert "abs_0_00000084:\n\tnop\n\trts\n" in source_text
+
+
 def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     source = (

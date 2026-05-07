@@ -4383,6 +4383,35 @@ static int runtime_range_is_exited_to_larger_runtime_range(const M68kRenderLooku
   return 0;
 }
 
+static int runtime_range_is_redundant_contained_view(const M68kRenderLookup *lookup, const M68kFact *range) {
+  size_t index;
+  uint32_t range_end;
+  if (lookup == NULL || range == NULL || range->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE ||
+      !range->has_runtime_address || range->size == 0U || range->offset > UINT32_MAX - range->size) {
+    return 0;
+  }
+  range_end = range->offset + range->size;
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    const M68kFact *other = lookup->runtime_address_ranges[index].fact;
+    uint32_t other_end;
+    uint32_t delta;
+    if (other == NULL || other == range || other->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE ||
+        other->runtime_kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY ||
+        !other->has_runtime_address || other->section_index != range->section_index ||
+        other->size == 0U || other->offset > UINT32_MAX - other->size ||
+        range->offset < other->offset) {
+      continue;
+    }
+    other_end = other->offset + other->size;
+    if (range_end > other_end) continue;
+    delta = range->offset - other->offset;
+    if (delta > UINT32_MAX - other->runtime_address) continue;
+    if (other->runtime_address + delta != range->runtime_address) continue;
+    if (other->offset < range->offset || other->size > range->size) return 1;
+  }
+  return 0;
+}
+
 static int runtime_range_has_storage_continuation(const M68kRenderLookup *lookup, const M68kFact *range) {
   const M68kSection *section;
   uint32_t extent, range_end;
@@ -4416,6 +4445,7 @@ static int runtime_range_is_materialized(const M68kRenderLookup *lookup, const M
   if (range->runtime_kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY) return 0;
   if (runtime_range_is_crossed_by_storage_xref(lookup, range)) return 0;
   if (runtime_range_is_exited_to_larger_runtime_range(lookup, range)) return 0;
+  if (runtime_range_is_redundant_contained_view(lookup, range)) return 0;
   if (runtime_range_has_storage_continuation(lookup, range)) return 0;
   if (runtime_range_is_full_source_policy_load_view(lookup, range)) return 1;
   if (runtime_range_contains_policy_entry_point(lookup, range)) return 1;
