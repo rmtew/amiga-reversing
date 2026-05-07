@@ -92,6 +92,8 @@ intermediate `window_json` buffer before building the response.
 Navigation group assembly now uses a generic builder-to-builder append helper
 instead of building heap strings for each group and then copying them into the
 final navigation payload.
+Artifact window profiles name these timings as emit times, not `window_json`
+materialization times, so profile data matches the retained append path.
 The earlier transitional Python serialized-row cache has been removed from the
 production full-listing route. Indexed, address-anchored, text-anchor, and
 navigation web requests now require the retained C listing artifact once the

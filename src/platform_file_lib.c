@@ -4890,7 +4890,7 @@ int platform_file_facts_v2_listing_artifact_window_json_alloc(PlatformFileListin
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
       json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
       json_builder_appendf(&builder,
-        ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,\"window_json_seconds\":%.6f,"
+        ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,\"window_emit_seconds\":%.6f,"
         "\"total_seconds\":%.6f}}}",
         (unsigned)artifact->listing_total_rows,
         artifact->source_seconds, elapsed_seconds(window_start, window_end),
@@ -4950,7 +4950,7 @@ int platform_file_facts_v2_listing_artifact_addr_window_json_alloc(PlatformFileL
       json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
       json_builder_appendf(&builder,
         ",\"listing_total_rows\":%u,\"listing_addr_block_count\":%u,"
-        "\"timing\":{\"source_seconds\":%.6f,\"window_json_seconds\":%.6f,\"total_seconds\":%.6f}}}",
+        "\"timing\":{\"source_seconds\":%.6f,\"window_emit_seconds\":%.6f,\"total_seconds\":%.6f}}}",
         (unsigned)artifact->listing_total_rows, (unsigned)artifact->listing_row_index.block_count,
         artifact->source_seconds, elapsed_seconds(window_start, window_end),
         elapsed_seconds(window_start, window_end)) != 0) {
@@ -5020,7 +5020,7 @@ int platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc(Platfor
       json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
       json_builder_append_json_string(&builder, artifact->path) != 0 ||
       json_builder_appendf(&builder,
-        ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,\"lookup_json_seconds\":%.6f,"
+        ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,\"lookup_emit_seconds\":%.6f,"
         "\"total_seconds\":%.6f}}}",
         (unsigned)artifact->listing_total_rows, artifact->source_seconds, elapsed_seconds(lookup_start, lookup_end),
         elapsed_seconds(lookup_start, lookup_end)) != 0)
@@ -5086,7 +5086,7 @@ int platform_file_facts_v2_listing_artifact_anchor_window_json_alloc(PlatformFil
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
       json_builder_append_facts_v2_profile(&builder, &artifact->profile) != 0 ||
       json_builder_appendf(&builder,
-        ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,\"window_json_seconds\":%.6f,"
+        ",\"listing_total_rows\":%u,\"timing\":{\"source_seconds\":%.6f,\"window_emit_seconds\":%.6f,"
         "\"total_seconds\":%.6f}}}",
         (unsigned)artifact->listing_total_rows,
         artifact->source_seconds, elapsed_seconds(window_start, window_end),
