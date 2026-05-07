@@ -173,6 +173,8 @@ int m68k_render_plan_row_builder_begin(M68kRenderPlanRowBuilder *builder, M68kRe
   builder->size = 0U;
   builder->current_line = 0U;
   builder->directive_line_mask = 0U;
+  builder->label_line_mask = 0U;
+  memset(builder->label_line_source_offsets, 0, sizeof(builder->label_line_source_offsets));
   builder->active = 1U;
   if (render_plan_row_builder_reserve(builder, 1U) != 0) {
     builder->active = 0U;
@@ -231,17 +233,31 @@ void m68k_render_plan_row_builder_mark_current_line_directive(M68kRenderPlanRowB
   builder->directive_line_mask |= 1U << builder->current_line;
 }
 
+void m68k_render_plan_row_builder_mark_current_line_label(M68kRenderPlanRowBuilder *builder,
+    uint32_t source_offset) {
+  if (builder == NULL || !builder->active || builder->current_line >= 32U) return;
+  builder->label_line_mask |= 1U << builder->current_line;
+  builder->label_line_source_offsets[builder->current_line] = source_offset;
+}
+
 int m68k_render_plan_row_builder_commit(M68kRenderPlanRowBuilder *builder, M68kRenderPlanRow **out_row) {
   int result;
   if (out_row != NULL) *out_row = NULL;
   if (builder == NULL || !builder->active || builder->plan == NULL) return -1;
   result = m68k_render_plan_append_text_row(builder->plan, builder->kind, builder->region_id, builder->text, out_row);
-  if (result == 0 && out_row != NULL && *out_row != NULL) (*out_row)->directive_line_mask = builder->directive_line_mask;
+  if (result == 0 && out_row != NULL && *out_row != NULL) {
+    (*out_row)->directive_line_mask = builder->directive_line_mask;
+    (*out_row)->label_line_mask = builder->label_line_mask;
+    memcpy((*out_row)->label_line_source_offsets, builder->label_line_source_offsets,
+      sizeof((*out_row)->label_line_source_offsets));
+  }
   builder->active = 0U;
   builder->plan = NULL;
   builder->size = 0U;
   builder->current_line = 0U;
   builder->directive_line_mask = 0U;
+  builder->label_line_mask = 0U;
+  memset(builder->label_line_source_offsets, 0, sizeof(builder->label_line_source_offsets));
   if (builder->text != NULL) builder->text[0] = '\0';
   return result;
 }
@@ -253,6 +269,8 @@ void m68k_render_plan_row_builder_cancel(M68kRenderPlanRowBuilder *builder) {
   builder->size = 0U;
   builder->current_line = 0U;
   builder->directive_line_mask = 0U;
+  builder->label_line_mask = 0U;
+  memset(builder->label_line_source_offsets, 0, sizeof(builder->label_line_source_offsets));
   if (builder->text != NULL) builder->text[0] = '\0';
 }
 

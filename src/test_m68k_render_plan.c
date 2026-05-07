@@ -118,6 +118,26 @@ static int test_render_plan_row_builder_marks_directive_subline(void) {
   return 0;
 }
 
+static int test_render_plan_row_builder_marks_label_subline(void) {
+  M68kRenderPlan plan;
+  M68kRenderPlanRowBuilder builder;
+  M68kRenderPlanRow *row = NULL;
+  m68k_render_plan_init(&plan);
+  m68k_render_plan_row_builder_init(&builder);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_begin(&builder, &plan, M68K_RENDER_PLAN_ROW_DATA, 2U));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_append(&builder, "\tdc.w $1234\n"));
+  m68k_render_plan_row_builder_mark_current_line_label(&builder, 0x48U);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_append(&builder, "loc_0_00000048:\n"));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_append(&builder, "\tdc.w $5678\n"));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_commit(&builder, &row));
+  M68K_C_ASSERT(row != NULL);
+  M68K_C_ASSERT_U32(2U, row->label_line_mask);
+  M68K_C_ASSERT_U32(0x48U, row->label_line_source_offsets[1]);
+  m68k_render_plan_row_builder_destroy(&builder);
+  m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
 static int test_render_plan_builds_text_line_rows(void) {
   M68kRenderPlan plan;
   char *full_text = NULL;
@@ -381,6 +401,7 @@ int m68k_c_render_plan_tests(void) {
     {"line_and_address_lookup", test_render_plan_line_and_address_lookup},
     {"row_builder_commits_fragmented_row", test_render_plan_row_builder_commits_fragmented_row},
     {"row_builder_marks_directive_subline", test_render_plan_row_builder_marks_directive_subline},
+    {"row_builder_marks_label_subline", test_render_plan_row_builder_marks_label_subline},
     {"builds_text_line_rows", test_render_plan_builds_text_line_rows},
     {"window_emission_matches_full_slice", test_render_plan_window_emission_matches_full_slice},
     {"visits_physical_lines_with_owner_row", test_render_plan_visits_physical_lines_with_owner_row},

@@ -3908,6 +3908,11 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
             project_root=PROJECT_ROOT,
         )
         assert profile["facts_v2"]["asm_source_refused"] is False
+        assert not [
+            row
+            for row in rows
+            if str(row.get("text", "")).strip().endswith(":") and row.get("kind") not in {"label", "directive"}
+        ]
         assert not [row for row in rows if row.get("data_class") and row.get("kind") != "data"]
         assert not [
             row

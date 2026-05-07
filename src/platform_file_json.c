@@ -4775,6 +4775,14 @@ static int listing_plan_subline_is_directive(const M68kRenderPlanRow *row, uint3
   return (row->directive_line_mask & (1U << subline)) != 0U;
 }
 
+static int listing_plan_subline_is_label(const M68kRenderPlanRow *row, uint32_t subline,
+    uint32_t *out_source_offset) {
+  if (out_source_offset != NULL) *out_source_offset = 0U;
+  if (row == NULL || subline >= 32U || (row->label_line_mask & (1U << subline)) == 0U) return 0;
+  if (out_source_offset != NULL) *out_source_offset = row->label_line_source_offsets[subline];
+  return 1;
+}
+
 static void listing_navigation_row_code(char *out, size_t out_size, const char *row_kind, const char *stripped,
     const char *opcode, const char *operand, const M68kStatementIR *stmt);
 
@@ -5029,6 +5037,8 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
   ListingRenderPlanJsonContext *context = (ListingRenderPlanJsonContext *)user;
   int is_section_directive = 0;
   int is_plan_directive_subline = listing_plan_subline_is_directive(row, subline);
+  uint32_t label_source_offset = 0U;
+  int is_plan_label_subline = listing_plan_subline_is_label(row, subline, &label_source_offset);
   int section_index = -1;
   char stripped[1024];
   char opcode[128];
@@ -5047,12 +5057,19 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
     sizeof(operand), comment, sizeof(comment));
   row_kind = listing_row_kind_for_plan_row(row);
   if (is_plan_directive_subline) row_kind = "directive";
+  else if (is_plan_label_subline) row_kind = "label";
   is_section_directive = row != NULL && row->kind == M68K_RENDER_PLAN_ROW_SECTION;
   section_index = listing_section_index_for_plan_row(row);
   if (is_section_directive) {
     if (section_index >= 0) context->active_section_index = section_index;
     else ++context->active_section_index;
     section_index = context->active_section_index;
+  } else if (is_plan_label_subline) {
+    m68k_ir_statement_init(&plan_stmt);
+    plan_stmt.kind = M68K_STATEMENT_LABEL;
+    plan_stmt.offset = label_source_offset;
+    stmt = &plan_stmt;
+    if (section_index >= 0) context->active_section_index = section_index;
   } else if (!is_plan_directive_subline && row != NULL && (row->has_statement || row->has_source_range)) {
     stmt = listing_statement_for_plan_row(context->source_file, row);
     if (stmt == NULL && listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
@@ -6583,8 +6600,18 @@ static int listing_row_code_matches_anchor(const M68kSourceFileIR *source_file,
   if (line_start == NULL || wanted == NULL) return 0;
   m68k_ir_statement_init(&plan_stmt);
   row_kind = listing_row_kind_for_plan_row(row);
-  if (listing_plan_subline_is_directive(row, subline)) row_kind = "directive";
-  if (row != NULL && (row->has_statement || row->has_source_range)) {
+  if (listing_plan_subline_is_directive(row, subline)) {
+    row_kind = "directive";
+  } else {
+    uint32_t label_source_offset = 0U;
+    if (listing_plan_subline_is_label(row, subline, &label_source_offset)) {
+      row_kind = "label";
+      plan_stmt.kind = M68K_STATEMENT_LABEL;
+      plan_stmt.offset = label_source_offset;
+      stmt = &plan_stmt;
+    }
+  }
+  if (stmt == NULL && row != NULL && (row->has_statement || row->has_source_range)) {
     stmt = listing_statement_for_plan_row(source_file, row);
     if (stmt == NULL && listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
   }
