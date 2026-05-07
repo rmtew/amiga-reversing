@@ -221,6 +221,39 @@ def _make_cross_section_pc_relative_call_hunkexe(second_code: bytes, target_offs
     return bytes(payload)
 
 
+def _make_cross_section_jump_template_table_hunkexe() -> bytes:
+    hunk_header = 1011
+    hunk_code = 1001
+    hunk_data = 1002
+    hunk_reloc32 = 1004
+    hunk_end = 1010
+    code_data = bytes.fromhex("4e754e75")
+    data_data = bytes.fromhex("4ef9000000004ef900000002")
+    payload = bytearray()
+    payload += u32(hunk_header)
+    payload += u32(0)
+    payload += u32(2)
+    payload += u32(0)
+    payload += u32(1)
+    payload += u32((len(code_data) + 3) // 4)
+    payload += u32((len(data_data) + 3) // 4)
+    payload += u32(hunk_code)
+    payload += u32((len(code_data) + 3) // 4)
+    payload += code_data.ljust(((len(code_data) + 3) // 4) * 4, b"\x00")
+    payload += u32(hunk_end)
+    payload += u32(hunk_data)
+    payload += u32((len(data_data) + 3) // 4)
+    payload += data_data.ljust(((len(data_data) + 3) // 4) * 4, b"\x00")
+    payload += u32(hunk_reloc32)
+    payload += u32(2)
+    payload += u32(0)
+    payload += u32(2)
+    payload += u32(8)
+    payload += u32(0)
+    payload += u32(hunk_end)
+    return bytes(payload)
+
+
 class _M68kDiagSink(ctypes.Structure):
     _fields_ = [("list", ctypes.POINTER(M68kDiagList))]
 
@@ -951,6 +984,46 @@ def test_pc_relative_relocation_backed_entry_splits_speculative_decode(tmp_path:
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert rebuilt_path.exists()
+
+
+def test_relocation_backed_jump_template_table_is_discovered_from_data_section(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    assembler = PROJECT_ROOT / "src" / "build" / "m68k_assembler_app.exe"
+    if not assembler.exists():
+        pytest.skip("m68k assembler app is missing; run cmd /c src\\build.bat")
+    path = tmp_path / "jmp_template_table.exe"
+    source_path = tmp_path / "jmp_template_table.s"
+    rebuilt_path = tmp_path / "jmp_template_table.rebuilt"
+    path.write_bytes(_make_cross_section_jump_template_table_hunkexe())
+
+    source = render_binary_source_with_c_backend(path)
+    source_path.write_text(source, encoding="ascii")
+
+    assert "\tjmp loc_0_00000000.l\nloc_1_00000006:\n\tjmp loc_0_00000002.l\n" in source
+    assert "loc_0_00000002:\n\trts\n" in source
+    assert "dc.b $4e,$f9" not in source.lower()
+
+    result = subprocess.run(
+        [
+            str(assembler),
+            "assemble-platform-file",
+            "--cpu",
+            "any",
+            "--backend",
+            "amiga-hunk",
+            "--include-dir",
+            str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
+            str(source_path),
+            str(rebuilt_path),
+        ],
+        cwd=PROJECT_ROOT,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     assert result.returncode == 0, result.stderr
     assert rebuilt_path.exists()
@@ -4271,6 +4344,43 @@ def test_real_dll_voodoo_adjacent_branch_stub_table_recovers_handlers() -> None:
     ) in source_text
     assert "loc_6_0000021E:\n\tmovem.l d1-d7/a0-a6,-(a7)\n" in source_text
     assert "\tdc.b $60,$00,$00,$B2\nloc_6_0000016E:" not in source_text
+
+
+def test_real_dll_carrier_clipboard_relocation_backed_jump_templates_are_code() -> None:
+    _requires_c_backend_dlls()
+
+    target_name = "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__clipboard.device_2e6f0d10"
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert (
+        "loc_2_00000068:\n"
+        "\tjmp loc_0_00000088.l\n"
+        "loc_2_0000006E:\n"
+        "\tjmp loc_0_0000007C.l\n"
+    ) in source_text
+    assert "loc_0_0000005C:\n\tmovem.l d0/a1,-(a7)\n" in source_text
+    assert "\tdc.b $4E,$F9\n\tdc.l loc_0_00000088\n" not in source_text
+
+
+def test_real_dll_monam_keeps_unrelocated_jump_bytes_as_data() -> None:
+    _requires_c_backend_dlls()
+
+    paths = resolve_project_paths("amiga_hunk_monam302", project_root=PROJECT_ROOT, require_entities=False)
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "dc.b $4E,$F9" in source_text
+    assert "    ORG $4\n" not in source_text
 
 
 def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
