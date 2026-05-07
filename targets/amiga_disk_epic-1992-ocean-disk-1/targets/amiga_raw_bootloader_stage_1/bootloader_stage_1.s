@@ -1,7 +1,8 @@
     SECTION code,code
+    ; KNOWN: base A6=exec.library:LIB; type A1=IOStdReq (open trackdisk.device):IO
 loc_0_00000000:
     ORG $40000
-loc_0_00040000:
+abs_0_00040000:
 	ori.b #$77E,d0
 	ori.b #12,(a1)
 	ori.b #3,d3
