@@ -142,6 +142,9 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "storage_address": 0x50,
                                     "runtime_address": 0x400,
                                     "kind": 2,
+                                    "size": 0x20,
+                                    "materialized": False,
+                                    "materialization_reason": 103,
                                 }
                             ],
                             "violation_count": 2,
@@ -370,6 +373,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["runtime:view"], 1)
         self.assertEqual(counts["runtime:copied_code"], 1)
         self.assertEqual(counts["runtime:view_kind:2"], 1)
+        self.assertEqual(counts["runtime:suppressed_org_range"], 1)
+        self.assertEqual(counts["runtime:suppressed_org_reason:exit_to_larger_runtime_range"], 1)
+        self.assertEqual(counts["suppressed-weak-org-range"], 1)
         self.assertEqual(counts["materialized-org-range"], 1)
         self.assertEqual(counts["runtime:materialized_org_range"], 1)
         self.assertEqual(counts["runtime:materialized_org_address:00000400"], 1)
@@ -656,7 +662,15 @@ class TargetUsageManifestTests(unittest.TestCase):
                             {"offset": 0x30, "symbol": "app_0234", "displacement": 0x234, "access": "write"}
                         ],
                         "runtime_views": [
-                            {"storage_offset": 0x40, "storage_address": 0x40, "runtime_address": 0x400, "kind": 2}
+                            {
+                                "storage_offset": 0x40,
+                                "storage_address": 0x40,
+                                "runtime_address": 0x400,
+                                "kind": 2,
+                                "size": 0x20,
+                                "materialized": False,
+                                "materialization_reason": 103,
+                            }
                         ],
                     }
                 ],
@@ -786,6 +800,12 @@ class TargetUsageManifestTests(unittest.TestCase):
             by_feature,
         )
         self.assertIn(("runtime:copied_code", "runtime_view", 0x40, 3), by_feature)
+        self.assertIn(("runtime:suppressed_org_range", "runtime_view", 0x40, 3), by_feature)
+        self.assertIn(
+            ("runtime:suppressed_org_reason:exit_to_larger_runtime_range", "runtime_view", 0x40, 3),
+            by_feature,
+        )
+        self.assertIn(("suppressed-weak-org-range", "runtime_view", 0x40, 3), by_feature)
         self.assertIn(("materialized-org-range", "runtime_org", 0x40, 3), by_feature)
         self.assertIn(("runtime:materialized_org_range", "runtime_org", 0x40, 3), by_feature)
         self.assertIn(("runtime:materialized_org_address:00000400", "runtime_org", 0x40, 3), by_feature)

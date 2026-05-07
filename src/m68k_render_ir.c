@@ -4473,20 +4473,57 @@ static int runtime_range_is_full_source_policy_load_view(const M68kRenderLookup 
   return extent != 0U && range->size == extent && range->runtime_address != 0U;
 }
 
-static int runtime_range_is_materialized(const M68kRenderLookup *lookup, const M68kFact *range) {
+int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M68kFact *range,
+    uint8_t *out_materialized, uint8_t *out_reason) {
   size_t index;
+  if (out_materialized != NULL) *out_materialized = 0U;
+  if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_MATERIALIZATION_REASON_NONE;
   if (lookup == NULL || range == NULL) return 0;
-  if (range->runtime_kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY) return 0;
-  if (runtime_range_is_crossed_by_storage_xref(lookup, range)) return 0;
-  if (runtime_range_is_exited_to_larger_runtime_range(lookup, range)) return 0;
-  if (runtime_range_is_redundant_contained_view(lookup, range)) return 0;
-  if (runtime_range_has_storage_continuation(lookup, range)) return 0;
-  if (runtime_range_is_full_source_policy_load_view(lookup, range)) return 1;
-  if (runtime_range_contains_policy_entry_point(lookup, range)) return 1;
-  for (index = 0U; index < lookup->runtime_address_ref_count; ++index) {
-    if (runtime_range_contains_runtime_ref_target(range, lookup->runtime_address_refs[index].fact)) return 1;
+  if (range->runtime_kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY) {
+    if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_CONFLICTING_DISCOVERED_COPY;
+    return 0;
   }
+  if (runtime_range_is_crossed_by_storage_xref(lookup, range)) {
+    if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_CROSSED_BY_STORAGE_XREF;
+    return 0;
+  }
+  if (runtime_range_is_exited_to_larger_runtime_range(lookup, range)) {
+    if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_EXIT_TO_LARGER_RUNTIME_RANGE;
+    return 0;
+  }
+  if (runtime_range_is_redundant_contained_view(lookup, range)) {
+    if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_REDUNDANT_CONTAINED_VIEW;
+    return 0;
+  }
+  if (runtime_range_has_storage_continuation(lookup, range)) {
+    if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_STORAGE_CONTINUATION;
+    return 0;
+  }
+  if (runtime_range_is_full_source_policy_load_view(lookup, range)) {
+    if (out_materialized != NULL) *out_materialized = 1U;
+    if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_MATERIALIZED_FULL_SOURCE_POLICY_LOAD_VIEW;
+    return 0;
+  }
+  if (runtime_range_contains_policy_entry_point(lookup, range)) {
+    if (out_materialized != NULL) *out_materialized = 1U;
+    if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_MATERIALIZED_POLICY_ENTRY_POINT;
+    return 0;
+  }
+  for (index = 0U; index < lookup->runtime_address_ref_count; ++index) {
+    if (runtime_range_contains_runtime_ref_target(range, lookup->runtime_address_refs[index].fact)) {
+      if (out_materialized != NULL) *out_materialized = 1U;
+      if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_MATERIALIZED_RUNTIME_REF_TARGET;
+      return 0;
+    }
+  }
+  if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_NO_MATERIALIZING_EVIDENCE;
   return 0;
+}
+
+static int runtime_range_is_materialized(const M68kRenderLookup *lookup, const M68kFact *range) {
+  uint8_t materialized = 0U;
+  (void)lookup_runtime_range_materialization(lookup, range, &materialized, NULL);
+  return materialized != 0U;
 }
 
 int lookup_source_runtime_address(const M68kRenderLookup *lookup, size_t section_index,

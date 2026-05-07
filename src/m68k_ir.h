@@ -662,6 +662,19 @@ typedef struct M68kRecoveredDirectSectionCallIR {
   uint32_t target_offset;
 } M68kRecoveredDirectSectionCallIR;
 
+typedef enum M68kRuntimeViewMaterializationReason {
+  M68K_RUNTIME_VIEW_MATERIALIZATION_REASON_NONE = 0,
+  M68K_RUNTIME_VIEW_MATERIALIZED_FULL_SOURCE_POLICY_LOAD_VIEW = 1,
+  M68K_RUNTIME_VIEW_MATERIALIZED_POLICY_ENTRY_POINT = 2,
+  M68K_RUNTIME_VIEW_MATERIALIZED_RUNTIME_REF_TARGET = 3,
+  M68K_RUNTIME_VIEW_SUPPRESSED_CONFLICTING_DISCOVERED_COPY = 101,
+  M68K_RUNTIME_VIEW_SUPPRESSED_CROSSED_BY_STORAGE_XREF = 102,
+  M68K_RUNTIME_VIEW_SUPPRESSED_EXIT_TO_LARGER_RUNTIME_RANGE = 103,
+  M68K_RUNTIME_VIEW_SUPPRESSED_REDUNDANT_CONTAINED_VIEW = 104,
+  M68K_RUNTIME_VIEW_SUPPRESSED_STORAGE_CONTINUATION = 105,
+  M68K_RUNTIME_VIEW_SUPPRESSED_NO_MATERIALIZING_EVIDENCE = 106
+} M68kRuntimeViewMaterializationReason;
+
 typedef struct M68kRuntimeViewIR {
   uint32_t runtime_view_id;
   uint32_t storage_offset;
@@ -669,7 +682,8 @@ typedef struct M68kRuntimeViewIR {
   uint32_t runtime_address;
   uint8_t kind;
   uint8_t confidence;
-  uint8_t reserved[2];
+  uint8_t materialized;
+  uint8_t materialization_reason;
 } M68kRuntimeViewIR;
 
 typedef struct M68kRuntimeAddressRefIR {

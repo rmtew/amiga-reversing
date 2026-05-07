@@ -60,6 +60,17 @@ PLATFORM_EFFECT_NAMES = {
     6: "write_global_base_slot",
     7: "write_typed_global_slot",
 }
+RUNTIME_VIEW_MATERIALIZATION_REASONS = {
+    1: "full_source_policy_load_view",
+    2: "policy_entry_point",
+    3: "runtime_ref_target",
+    101: "conflicting_discovered_copy",
+    102: "crossed_by_storage_xref",
+    103: "exit_to_larger_runtime_range",
+    104: "redundant_contained_view",
+    105: "storage_continuation",
+    106: "no_materializing_evidence",
+}
 TYPED_STORAGE_EFFECT_TARGETS = {
     "set_typed_reg": "register",
     "write_typed_slot": "app_slot",
@@ -1156,9 +1167,35 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             storage = _int_value(runtime_view.get("storage_address"))
             runtime = _int_value(runtime_view.get("runtime_address"))
             kind = _int_value(runtime_view.get("kind"))
-            bag.add("runtime:view", example=_offset_example(section_index, runtime_view.get("storage_offset"), runtime))
+            view_example = _offset_example(section_index, runtime_view.get("storage_offset"), None)
+            size = _int_value(runtime_view.get("size"))
+            if runtime is not None:
+                view_example["runtime_address"] = runtime
+            if size is not None:
+                view_example["size"] = size
+            if storage is not None or runtime is not None:
+                view_example["text"] = f"storage=${_hex_int(storage)} runtime=${_hex_int(runtime)}"
+            bag.add("runtime:view", example=view_example)
             if kind is not None:
                 bag.add(f"runtime:view_kind:{kind}")
+            materialized = runtime_view.get("materialized")
+            reason = _int_value(runtime_view.get("materialization_reason"))
+            reason_name = (
+                _string_value(runtime_view.get("materialization_reason_name"))
+                or RUNTIME_VIEW_MATERIALIZATION_REASONS.get(reason or 0)
+            )
+            if materialized is True:
+                bag.add("runtime:view_materialized", example=view_example)
+                if reason_name:
+                    bag.add(f"runtime:view_materialized_reason:{_safe_part(reason_name)}", example=view_example)
+            elif materialized is False:
+                bag.add("runtime:suppressed_org_range", example=view_example)
+                if reason_name:
+                    bag.add(f"runtime:suppressed_org_reason:{_safe_part(reason_name)}", example=view_example)
+                    if reason_name == "exit_to_larger_runtime_range":
+                        bag.add("suppressed-weak-org-range", example=view_example)
+                        if runtime is not None and runtime < 0x100:
+                            bag.add("low-vector-trampoline", example=view_example)
             if storage is not None and runtime is not None and storage != runtime:
                 bag.add("runtime:copied_code")
                 if storage < 0x200 and runtime < 0x1000:
@@ -2476,6 +2513,24 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, "runtime:view", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or f"storage=${_hex_int(storage)} runtime=${_hex_int(runtime)}"))
             if kind is not None:
                 xrefs.append(_xref(row, f"runtime:view_kind:{kind}", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=kind, text=row_text or f"runtime view kind {kind}"))
+            materialized = runtime_view.get("materialized")
+            reason = _int_value(runtime_view.get("materialization_reason"))
+            reason_name = (
+                _string_value(runtime_view.get("materialization_reason_name"))
+                or RUNTIME_VIEW_MATERIALIZATION_REASONS.get(reason or 0)
+            )
+            if materialized is True:
+                xrefs.append(_xref(row, "runtime:view_materialized", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or "materialized runtime view"))
+                if reason_name:
+                    xrefs.append(_xref(row, f"runtime:view_materialized_reason:{_safe_part(reason_name)}", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or reason_name))
+            elif materialized is False:
+                xrefs.append(_xref(row, "runtime:suppressed_org_range", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or "suppressed ORG range"))
+                if reason_name:
+                    xrefs.append(_xref(row, f"runtime:suppressed_org_reason:{_safe_part(reason_name)}", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or reason_name))
+                    if reason_name == "exit_to_larger_runtime_range":
+                        xrefs.append(_xref(row, "suppressed-weak-org-range", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or reason_name))
+                        if runtime is not None and runtime < 0x100:
+                            xrefs.append(_xref(row, "low-vector-trampoline", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or reason_name))
             if storage is not None and runtime is not None and storage != runtime:
                 xrefs.append(_xref(row, "runtime:copied_code", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or f"copied code ${runtime:04X}"))
                 if storage < 0x200 and runtime < 0x1000:

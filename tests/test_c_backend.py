@@ -509,6 +509,9 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
             "runtime_address": 0x80,
             "kind": 1,
             "confidence": 3,
+            "materialized": False,
+            "materialization_reason": 102,
+            "materialization_reason_name": "crossed_by_storage_xref",
         },
         {
             "runtime_view_id": 1,
@@ -518,6 +521,9 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
             "runtime_address": 0x100,
             "kind": 1,
             "confidence": 3,
+            "materialized": True,
+            "materialization_reason": 3,
+            "materialization_reason_name": "runtime_ref_target",
         },
     ]
 
@@ -2708,7 +2714,11 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
         project_root=PROJECT_ROOT,
     )
     rows = combined["listing"]["rows"]
-    copper_rows = [row for row in rows if row["kind"] == "data" and row["data_class"] == "copper_list"]
+    copper_rows = [row for row in rows if row["kind"] == "data" and row.get("data_class") == "copper_list"]
+    copper_layout_rows = [
+        row for row in rows
+        if row["kind"] == "data" and row.get("structured_data", {}).get("semantic_role") == "copper_list"
+    ]
     pointer_row = next(row for row in rows if row["addr"] == 0 and row["kind"] == "instruction")
 
     assert pointer_row["runtime_address_refs"] == [
@@ -2735,9 +2745,8 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
         }
     ]
     assert all(row["addr"] == 0x0C for row in copper_rows)
-    assert all(row["structured_data"] is not None for row in copper_rows)
-    assert all(row["structured_data"]["semantic_role"] == "copper_list" for row in copper_rows)
-    assert [str(row["text"]).strip() for row in copper_rows] == [
+    assert all(row["addr"] == 0x0C for row in copper_layout_rows)
+    assert [str(row["text"]).strip() for row in copper_layout_rows] == [
         "; display layout 1 bitmap plane $12345678",
         "dc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\t; display 4 bitplanes lores color",
         "dc.w bplpt,bitmap_12345678_hi\t; bitmap pointer $12345678",
@@ -2747,7 +2756,8 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
         "dc.w COPPER_WAIT|$2C06,$FFFE\t; copper wait v=$2C h=$06 mask $FFFE",
         "dc.w $FFFF,$FFFE",
     ]
-    assert copper_rows[2]["runtime_address_refs"] == [
+    bitmap_pointer_row = next(row for row in copper_rows if str(row["text"]).strip().startswith("dc.w bplpt,"))
+    assert bitmap_pointer_row["runtime_address_refs"] == [
         {
             "offset": 0x10,
             "operand_index": None,

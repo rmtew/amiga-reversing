@@ -4918,6 +4918,10 @@ static int append_render_lookup_runtime_views_for_section(const M68kRenderLookup
     view.runtime_address = fact->runtime_address;
     view.kind = fact->runtime_kind;
     view.confidence = fact->confidence;
+    if (lookup_runtime_range_materialization(lookup, fact, &view.materialized,
+        &view.materialization_reason) != 0) {
+      return -1;
+    }
     if (m68k_ir_section_analysis_append_runtime_view(section_analysis, &view) != 0) return -1;
   }
   return 0;
@@ -7097,9 +7101,7 @@ static uint32_t scan_indexed_word_dispatch_table_span(const M68kRenderLookup *lo
   uint32_t cursor;
   uint32_t target_count = 0U;
   uint32_t first_forward_target = UINT32_MAX;
-  uint8_t saw_unaccepted_target = 0U;
-  uint8_t stopped_at_boundary = 0U;
-  uint8_t saw_far_displacement = 0U;
+  uint8_t saw_unaccepted_target = 0U, stopped_at_boundary = 0U, saw_far_displacement = 0U;
   if (lookup == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL ||
       table_section_index >= decode->section_count || base_section_index >= decode->section_count) {
     return 0U;

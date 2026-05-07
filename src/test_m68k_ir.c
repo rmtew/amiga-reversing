@@ -5802,6 +5802,9 @@ static int test_facts_v2_tool_inferred_runtime_copy_conflict_does_not_abort(void
     const M68kRuntimeViewIR *view = &source_analysis.sections[0].runtime_views[runtime_view_index];
     if (view->kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY &&
         view->runtime_address == 0x400U && view->size == 8U) {
+      M68K_C_ASSERT_U32(0U, view->materialized);
+      M68K_C_ASSERT_U32(M68K_RUNTIME_VIEW_SUPPRESSED_CONFLICTING_DISCOVERED_COPY,
+        view->materialization_reason);
       found_conflicting_copy = 1;
     }
   }
@@ -7674,7 +7677,8 @@ static int test_listing_json_reports_untyped_app_slot_api_args(void) {
   M68K_C_ASSERT(strstr(rows_json, "\"reason\":\"missing_struct_metadata\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"stable_key\":\"s0:00000004:instruction:2\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"source_stable_key\":\"s0:00000000:instruction:1\"") != NULL);
-  M68K_C_ASSERT(strstr(rows_json, "\"app-slot-api-args\":[{\"summary\":\"app_key_buffer -> RawKeyConvert buffer A1 (missing_struct_metadata)\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json,
+    "\"app-slot-api-args\":[{\"summary\":\"app_key_buffer -> RawKeyConvert buffer A1 (missing_struct_metadata)\"") != NULL);
 
   free(rows_json);
   m68k_render_plan_destroy(&render_plan);

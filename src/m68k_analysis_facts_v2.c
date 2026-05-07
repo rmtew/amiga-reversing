@@ -4630,12 +4630,9 @@ static int enqueue_adjacent_direct_control_stub_table_entries(M68kDecodeIR *deco
     uint8_t **accepted_start, uint8_t **accepted_bytes, M68kFactsV2Profile *profile, uint8_t max_cpu,
     size_t section_index, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *anchor,
     const M68kRuntimeAddressSpace *runtime_addresses) {
-  const uint32_t scan_limit = 16U;
-  uint8_t anchor_target_kind = 0U;
+  uint8_t anchor_target_kind = 0U, require_relocated_absolute_target = 0U;
   uint32_t anchor_target_offset = 0U;
-  uint8_t require_relocated_absolute_target = 0U;
-  uint32_t stride;
-  uint32_t direction;
+  uint32_t stride, direction;
   if (decode == NULL || facts == NULL || relocation_lookup == NULL || queue == NULL ||
       accepted_start == NULL || accepted_bytes == NULL || profile == NULL || section == NULL ||
       anchor == NULL || runtime_addresses == NULL || section_index >= decode->section_count) {
@@ -4657,6 +4654,7 @@ static int enqueue_adjacent_direct_control_stub_table_entries(M68kDecodeIR *deco
   stride = anchor->byte_count;
   if (stride == 0U) return 0;
   for (direction = 0U; direction < 2U; ++direction) {
+    const uint32_t scan_limit = 16U;
     uint32_t cursor = anchor->offset;
     uint32_t scanned;
     for (scanned = 0U; scanned < scan_limit; ++scanned) {

@@ -10,6 +10,7 @@ static void amiga_struct_catalog_info(uint16_t struct_id, const char **out_sourc
 static const char *app_slot_access_kind_name(uint8_t access_kind);
 static const char *unresolved_typed_access_classification_name(uint8_t classification);
 static const char *type_provenance_kind_name(uint8_t kind);
+static const char *runtime_view_materialization_reason_name(uint8_t reason);
 static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt);
 
 static const char *file_kind_name(M68kPlatformFileKind kind) {
@@ -53,6 +54,32 @@ static const char *type_provenance_kind_name(uint8_t kind) {
   case M68K_PLATFORM_TYPE_PROVENANCE_NONE:
   default:
     return "unknown";
+  }
+}
+
+static const char *runtime_view_materialization_reason_name(uint8_t reason) {
+  switch (reason) {
+  case M68K_RUNTIME_VIEW_MATERIALIZED_FULL_SOURCE_POLICY_LOAD_VIEW:
+    return "full_source_policy_load_view";
+  case M68K_RUNTIME_VIEW_MATERIALIZED_POLICY_ENTRY_POINT:
+    return "policy_entry_point";
+  case M68K_RUNTIME_VIEW_MATERIALIZED_RUNTIME_REF_TARGET:
+    return "runtime_ref_target";
+  case M68K_RUNTIME_VIEW_SUPPRESSED_CONFLICTING_DISCOVERED_COPY:
+    return "conflicting_discovered_copy";
+  case M68K_RUNTIME_VIEW_SUPPRESSED_CROSSED_BY_STORAGE_XREF:
+    return "crossed_by_storage_xref";
+  case M68K_RUNTIME_VIEW_SUPPRESSED_EXIT_TO_LARGER_RUNTIME_RANGE:
+    return "exit_to_larger_runtime_range";
+  case M68K_RUNTIME_VIEW_SUPPRESSED_REDUNDANT_CONTAINED_VIEW:
+    return "redundant_contained_view";
+  case M68K_RUNTIME_VIEW_SUPPRESSED_STORAGE_CONTINUATION:
+    return "storage_continuation";
+  case M68K_RUNTIME_VIEW_SUPPRESSED_NO_MATERIALIZING_EVIDENCE:
+    return "no_materializing_evidence";
+  case M68K_RUNTIME_VIEW_MATERIALIZATION_REASON_NONE:
+  default:
+    return "none";
   }
 }
 
@@ -1576,10 +1603,13 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_appendf(&builder,
           "{\"runtime_view_id\":%u,\"storage_address\":%u,\"storage_offset\":%u,\"size\":%u,"
-          "\"runtime_address\":%u,\"kind\":%u,\"confidence\":%u}",
+          "\"runtime_address\":%u,\"kind\":%u,\"confidence\":%u,"
+          "\"materialized\":%s,\"materialization_reason\":%u,\"materialization_reason_name\":\"%s\"}",
           (unsigned)view->runtime_view_id, (unsigned)view->storage_offset,
           (unsigned)view->storage_offset, (unsigned)view->size, (unsigned)view->runtime_address,
-          (unsigned)view->kind, (unsigned)view->confidence) != 0) {
+          (unsigned)view->kind, (unsigned)view->confidence, view->materialized ? "true" : "false",
+          (unsigned)view->materialization_reason,
+          runtime_view_materialization_reason_name(view->materialization_reason)) != 0) {
         goto oom;
       }
     }
@@ -4467,8 +4497,8 @@ static int listing_stmt_has_unresolved_typed_accesses(const M68kStatementIR *stm
   return 0;
 }
 
-static const M68kRecoveredPlatformCallIR *listing_platform_call_at_offset(
-    const M68kSectionAnalysisIR *section_analysis, uint32_t offset) {
+static const M68kRecoveredPlatformCallIR *listing_platform_call_at_offset(const M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset) {
   size_t index;
   if (section_analysis == NULL) return NULL;
   for (index = 0U; index < section_analysis->recovered_platform_call_count; ++index)
@@ -5338,8 +5368,8 @@ static int append_listing_navigation_typed_data_entry(ListingNavigationJsonConte
     summary, match_text);
 }
 
-static const M68kRecoveredPlatformTypedAccessIR *listing_navigation_typed_access_at(
-    const M68kSectionAnalysisIR *section, uint32_t offset) {
+static const M68kRecoveredPlatformTypedAccessIR *listing_navigation_typed_access_at(const M68kSectionAnalysisIR *section,
+    uint32_t offset) {
   size_t index;
   if (section == NULL) return NULL;
   for (index = 0U; index < section->recovered_platform_typed_access_count; ++index)
