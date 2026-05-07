@@ -589,6 +589,33 @@ def test_full_listing_contained_runtime_view_does_not_emit_second_org(tmp_path: 
     assert "abs_0_00000084:\n\tnop\n\trts\n" in source_text
 
 
+def test_facts_v2_adjacent_control_stub_table_promotes_sibling_entry(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "raw.bin"
+    path.write_bytes(bytes.fromhex("6000000A000000006000000A6000000A4E714E754E714E754E714E75"))
+
+    binary_source = RawBinarySource(
+        kind="raw_binary",
+        path=path,
+        address_model="local_offset",
+        load_address=0,
+        entrypoint=0,
+        code_start_offset=0,
+        display_path=str(path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
+        binary_source,
+        metadata_path=None,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert "\nloc_0_00000008:\n\tbra.w loc_0_00000014\n" in source_text
+    assert "\nloc_0_00000014:\n\tnop\n\trts\n" in source_text
+    assert "\tdc.b $00,$00,$00,$00,$60,$00,$00,$0A\n" not in source_text
+
+
 def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     source = (
@@ -4077,6 +4104,27 @@ def test_real_dll_voodoo_absolute_four_stays_numeric_not_initial_pc_vector() -> 
     assert "m68k_vector_initial_pc\tEQU\t$4\n" not in source_text
     assert "\tmove.l #$1,$0004.w\n" in source_text
     assert "\tmove.l #$1,m68k_vector_initial_pc.w\n" not in source_text
+
+
+def test_real_dll_voodoo_adjacent_branch_stub_table_recovers_handlers() -> None:
+    _requires_c_backend_dlls()
+
+    paths = resolve_project_paths("amiga_hunk_voodoo_nightmare_run", project_root=PROJECT_ROOT, require_entities=False)
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert (
+        "loc_6_0000016A:\n"
+        "\tbra.w loc_6_0000021E\n"
+        "loc_6_0000016E:\n"
+        "\tbra.w loc_6_00000254\n"
+    ) in source_text
+    assert "loc_6_0000021E:\n\tmovem.l d1-d7/a0-a6,-(a7)\n" in source_text
+    assert "\tdc.b $60,$00,$00,$B2\nloc_6_0000016E:" not in source_text
 
 
 def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
