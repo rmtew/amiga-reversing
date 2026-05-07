@@ -1500,11 +1500,6 @@ def _serialized_c_listing_rows(raw_rows: object, *, generation: str) -> list[Ser
         if not isinstance(raw_row, dict):
             continue
         row = dict(raw_row)
-        platform_call = row.pop("platform_call", None)
-        if isinstance(platform_call, dict):
-            converted = api_call_from_c_call(cast(dict[str, object], platform_call))
-            if converted is not None:
-                row.setdefault("api_call", converted[1])
         row.setdefault("stable_key", None)
         row.setdefault("analysis_generation", generation)
         row.setdefault("analysis_phase", generation)
