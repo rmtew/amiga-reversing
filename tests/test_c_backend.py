@@ -3538,6 +3538,8 @@ def test_real_dll_renders_genam() -> None:
     assert "move" in rendered.lower() or "jsr" in rendered.lower()
     assert "app_0234 RS." in rendered
     assert "app_0234(a6)" in rendered
+    assert "$0098(a1)" in rendered
+    assert "m68k_vector_trap_6_instruction_vector(a1)" not in rendered
 
     rows, _api_calls, _profile = build_project_listing_rows_with_c_artifact(
         "amiga_hunk_genam",

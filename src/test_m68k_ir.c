@@ -5790,6 +5790,9 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
     0x33u, 0xC0u, 0x00u, 0xDFu, 0xF1u, 0x9Eu,
     0x31u, 0x40u, 0x00u, 0xE2u,
     0x31u, 0x40u, 0x01u, 0x3Eu,
+    0x43u, 0xF8u, 0x00u, 0x60u,
+    0x41u, 0xF9u, 0x00u, 0x00u, 0x00u, 0x10u,
+    0x22u, 0x39u, 0x00u, 0x00u, 0x00u, 0x10u,
     0x2Cu, 0x78u, 0x00u, 0x04u,
     0x4Eu, 0x75u
   };
@@ -5856,6 +5859,11 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   M68K_C_ASSERT(strstr(source, "\tmove.w (a0),_custom+aud0+ac_dat.l\t; audio data word\n") != NULL);
   M68K_C_ASSERT(strstr(source,
     "\tmove.l #$12345678,m68k_vector_level_3_interrupt_autovector.w\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "m68k_vector_spurious_interrupt\tEQU\t$60") != NULL);
+  M68K_C_ASSERT(strstr(source, "m68k_vector_illegal_instruction\tEQU\t$10") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l m68k_vector_spurious_interrupt.w,a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l $00000010.l,a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l m68k_vector_illegal_instruction.l,d1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,_custom+color+$1E.l\t; palette color 15\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l a0,_custom+color.l\t; palette colors 0-1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w _custom+joy0dat.l,d0\t; joystick/mouse port 0 data\n") != NULL);

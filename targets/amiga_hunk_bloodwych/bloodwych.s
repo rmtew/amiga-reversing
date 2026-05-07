@@ -45,12 +45,14 @@ m68k_vector_trap_0_instruction_vector	EQU	$80
 stack_top_0005FFFC	EQU	$5FFFC
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF1P2	EQU	$4
+m68k_vector_spurious_interrupt	EQU	$60
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 m68k_vector_level_2_interrupt_autovector	EQU	$68
 m68k_vector_level_4_interrupt_autovector	EQU	$70
 _ciaa	EQU	$BFE001
 DMAF_CLRALL	EQU	$7FFF
 disk_buffer_00067D00	EQU	$67D00
+m68k_vector_trap_6_instruction_vector	EQU	$98
 _ciab	EQU	$BFD000
 bitmap_00060000	EQU	$60000
 bitmap_00067D00	EQU	$67D00
@@ -67,6 +69,7 @@ bitmap_00076000	EQU	$76000
 bitmap_00076000_hi	EQU	bitmap_00076000/$10000
 bitmap_00076000_lo	EQU	bitmap_00076000-(bitmap_00076000_hi*$10000)
 m68k_vector_illegal_instruction	EQU	$10
+m68k_vector_bus_error	EQU	$8
 m68k_vector_trace	EQU	$24
 m68k_vector_privilege_violation	EQU	$20
 
@@ -156,7 +159,7 @@ abs_0_0000050E:
 	addq.w #8,a0
 	dbf.w d1,abs_0_0000050E
 	move.l #$8CC8,d0
-	lea.l $0060.w,a0
+	lea.l m68k_vector_spurious_interrupt.w,a0
 	moveq.l #7,d1
 abs_0_00000538:
 	move.l d0,(a0)+
@@ -9195,7 +9198,7 @@ abs_0_00007BE8:
 	movea.l abs_0_00008D36.l,a0
 	adda.w #$DE8,a0
 	adda.w $000A(a5),a0
-	lea.l $0070.w,a3
+	lea.l m68k_vector_level_4_interrupt_autovector.w,a3
 	bra.w abs_0_0000CCB8
 abs_0_00007C0E:
 	dc.b $5F,$3C,$24,$3C,$10,$FF,$11,$FC,$12,$FF,$13,$FC,$14,$FF,$15,$FC
@@ -9379,7 +9382,7 @@ abs_0_00007E4A:
 	move.l #$24,-(a7)
 	moveq.l #0,d3
 abs_0_00007E62:
-	lea.l $0098.w,a3
+	lea.l m68k_vector_trap_6_instruction_vector.w,a3
 	bra.w abs_0_0000CE28
 abs_0_00007E6A:
 	btst.b d7,$003E(a5)
@@ -15547,7 +15550,7 @@ abs_0_0000D1FC:
 	movem.l d0-d7/a0-a7,(a6)
 	lea.l app_0040(a6),a6
 	move.l (a7)+,-$0008(a6)
-	move.l $00000010.l,d1
+	move.l m68k_vector_illegal_instruction.l,d1
 	pea.l abs_0_0000D220(pc)
 	move.l (a7)+,m68k_vector_illegal_instruction.l
 	illegal
@@ -15563,7 +15566,7 @@ abs_0_0000D220:
 abs_0_0000D23E:
 	movea.l a1,a7
 	move.l d1,m68k_vector_illegal_instruction.l
-	movem.l $00000008.l,d0-d7
+	movem.l m68k_vector_bus_error.l,d0-d7
 	movem.l d0-d7,(a6)
 	lea.l abs_0_0000D2D2(pc),a0
 	move.l a0,m68k_vector_illegal_instruction.l

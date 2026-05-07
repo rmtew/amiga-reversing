@@ -2889,10 +2889,12 @@ static void attach_generic_symbol(M68kOperandIR *operand, const char *symbol_nam
   snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
 }
 
-static int attach_m68k_cpu_vector_symbols(M68kInstructionIR *instruction) {
+static int attach_m68k_cpu_vector_symbols(const M68kRenderLookup *lookup, M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   size_t operand_index;
   int attached = 0;
+  uint8_t platform_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
+  if (lookup != NULL && lookup->object != NULL) platform_kind = lookup->object->platform_backend_kind;
   if (instruction == NULL) return 0;
   metadata = m68k_sim_metadata_for_instruction(instruction);
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
@@ -2900,11 +2902,20 @@ static int attach_m68k_cpu_vector_symbols(M68kInstructionIR *instruction) {
     const M68kCpuExceptionVectorInfo *vector;
     uint32_t address = 0U;
     uint8_t access_kind = M68K_SIM_ACCESS_NONE;
+    int uses_vector_slot = 0;
     if (operand->symbol_ref.has_name != 0U) continue;
     if (metadata != NULL && operand_index < 4U)
       access_kind = metadata->operand_access_kinds[operand_index];
-    if (access_kind != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
     if (!operand_absolute_offset_local(operand, &address)) continue;
+    if (!platform_facts_v2_is_callback_vector_slot(platform_kind, address)) continue;
+    if (access_kind == M68K_SIM_ACCESS_MEMORY_READ || access_kind == M68K_SIM_ACCESS_MEMORY_WRITE) {
+      uses_vector_slot = 1;
+    } else if (metadata != NULL && metadata->operation_class == M68K_SIM_CLASS_LOAD_EFFECTIVE_ADDRESS &&
+        metadata->source_operand_index == operand_index && operand->kind == M68K_ASM_OPERAND_EA &&
+        operand->value.ea_mode == 7U && operand->value.ea_reg == 0U) {
+      uses_vector_slot = 1;
+    }
+    if (!uses_vector_slot) continue;
     vector = m68k_cpu_find_exception_vector_by_address(address);
     if (vector == NULL || vector->symbol_name == NULL || vector->symbol_name[0] == '\0') continue;
     m68k_ir_symbol_ref_init(&operand->symbol_ref);
@@ -6838,7 +6849,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   (void)attach_absolute_stack_top_symbol(preview, &instruction);
   (void)attach_amiga_app_base_slot_symbols(lookup, platform_state, &instruction);
   (void)attach_amiga_typed_struct_field_symbols(lookup, section->section_index, candidate->offset, &instruction);
-  (void)attach_m68k_cpu_vector_symbols(&instruction);
+  (void)attach_m68k_cpu_vector_symbols(lookup, &instruction);
   if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return 0;
   attach_amiga_runtime_sink_comment_for_render(platform_state, lookup, section->section_index, candidate->offset,
     &instruction, platform_comment, sizeof(platform_comment));
