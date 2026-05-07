@@ -3542,6 +3542,25 @@ def test_project_source_facts_v2_indexed_pointer_table_comparators_stay_clean(ta
         assert "pointer_table" not in source_text
 
 
+@pytest.mark.parametrize("target_name", ["amiga_hunk_genam", "amiga_hunk_monam302"])
+def test_project_source_facts_v2_wide_word_dispatch_comparators_stay_clean(target_name: str) -> None:
+    _requires_c_backend_dlls()
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    facts_v2 = source_profile["facts_v2"]
+    assert facts_v2["asm_source_refused"] is False
+    assert facts_v2["required_instruction_failures"] == 0
+    assert facts_v2["unsupported_instruction_demotes"] == 0
+    assert facts_v2["interior_conflicts_unresolved"] == 0
+    assert facts_v2["unresolved_labels"] == 0
+    assert "    ORG $4\n" not in source_text
+
+
 def test_real_dll_renders_genam() -> None:
     _requires_c_backend_dlls()
     rendered = render_binary_source_with_c_backend(PROJECT_ROOT / "bin" / "GenAm")
@@ -4118,6 +4137,17 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "\tdc.w abs_0_00002E5C-abs_0_00002E5C,abs_0_00002E82-abs_0_00002E5C,"
         "abs_0_00002EE4-abs_0_00002E5C,abs_0_00002E5C-abs_0_00002E5C\t; lookup_table\n"
     ) in source_text
+    assert (
+        "abs_0_00005B68:\n"
+        "\tdc.w abs_0_00005B66-abs_0_00005B66,abs_0_00005D12-abs_0_00005B66,"
+        "abs_0_00005CFC-abs_0_00005B66,abs_0_00007746-abs_0_00005B66\t; lookup_table\n"
+        "\tdc.w abs_0_000076B4-abs_0_00005B66,abs_0_0000776C-abs_0_00005B66,"
+        "abs_0_00007768-abs_0_00005B66,abs_0_00007758-abs_0_00005B66\t; lookup_table\n"
+    ) in source_text
+    assert "\tdc.w $1B4E,$1C06,$1C02,$1BF2\t; lookup_table\n" not in source_text
+    assert "abs_0_00005C6E:\n" not in source_text
+    assert "abs_0_00007216:\n" not in source_text
+    assert "\tsubi.w #20,d1\n\tbcs.b abs_0_00002E76\n" in source_text
     assert (
         "abs_0_000033A0:\n"
         "\tdc.w abs_0_000033B2-abs_0_000033B2,abs_0_000033EE-abs_0_000033B2,"

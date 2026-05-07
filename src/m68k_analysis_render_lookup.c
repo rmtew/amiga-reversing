@@ -6758,7 +6758,10 @@ static int structured_data_kind_for_candidate_size(const M68kDecodeCandidate *ca
 }
 
 #define M68K_RENDER_LOOKUP_PC_INDEX_TABLE_MAX_SPAN 64U
-#define M68K_RENDER_LOOKUP_WORD_DISPATCH_LOCAL_LIMIT 0x1000
+/* Word-relative dispatches may fan out across a large routine cluster; each
+   entry is still required to map to an even in-section target. */
+#define M68K_RENDER_LOOKUP_WORD_DISPATCH_LOCAL_LIMIT 0x2000
+#define M68K_RENDER_LOOKUP_WORD_DISPATCH_FAR_BOUNDARY_MIN 0x1000
 #define M68K_RENDER_LOOKUP_WORD_DISPATCH_SLOT_LIMIT 32U
 
 static int lookup_range_has_interior_label(const M68kRenderLookup *lookup, size_t section_index,
@@ -6988,6 +6991,7 @@ static uint32_t scan_indexed_word_dispatch_table_span(const M68kRenderLookup *lo
   uint32_t first_forward_target = UINT32_MAX;
   uint8_t saw_unaccepted_target = 0U;
   uint8_t stopped_at_boundary = 0U;
+  uint8_t saw_far_displacement = 0U;
   if (lookup == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL ||
       table_section_index >= decode->section_count || base_section_index >= decode->section_count) {
     return 0U;
@@ -7010,10 +7014,23 @@ static uint32_t scan_indexed_word_dispatch_table_span(const M68kRenderLookup *lo
       break;
     displacement = (int32_t)(int16_t)m68k_read_u16be(table_section->data + cursor);
     target64 = (int64_t)(uint64_t)base_offset + (int64_t)displacement;
+    if (saw_far_displacement && target_count >= 2U && cursor != table_offset && displacement == 0 &&
+        cursor + 4U <= table_section->size && m68k_read_u16be(table_section->data + cursor + 2U) == 0U) {
+      stopped_at_boundary = 1U;
+      break;
+    }
     if (displacement < -M68K_RENDER_LOOKUP_WORD_DISPATCH_LOCAL_LIMIT ||
         displacement > M68K_RENDER_LOOKUP_WORD_DISPATCH_LOCAL_LIMIT) break;
+    if (displacement < -M68K_RENDER_LOOKUP_WORD_DISPATCH_FAR_BOUNDARY_MIN ||
+        displacement > M68K_RENDER_LOOKUP_WORD_DISPATCH_FAR_BOUNDARY_MIN) {
+      saw_far_displacement = 1U;
+    }
     if (target64 < 0 || target64 >= (int64_t)(uint64_t)base_section->size ||
         ((uint32_t)target64 & 1U) != 0U) {
+      break;
+    }
+    if (accepted_range_has_code_byte(accepted_bytes[base_section_index], base_section->size,
+        (uint32_t)target64, 1U) && !accepted_start[base_section_index][(uint32_t)target64]) {
       break;
     }
     if (!accepted_start[base_section_index][(uint32_t)target64]) saw_unaccepted_target = 1U;
