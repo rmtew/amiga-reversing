@@ -162,10 +162,12 @@ row count.
 The older C basic-listing row API and its private pseudo-source builder have
 also been removed. Progress/opening state now uses the job state only; listing
 rows come from the authoritative retained C analysis/render-plan artifact.
-Rows-only Python caches no longer satisfy a full-generation listing cache; a
-valid full cache requires the retained C artifact. Ready-project listing and
-navigation routes fail closed if that artifact is missing or stale instead of
-serving a second, weaker Python row model.
+Rows-only Python caches no longer satisfy listing readiness; a valid listing
+cache requires the retained C artifact. Ready-project listing and navigation
+routes fail closed if that artifact is missing or stale instead of serving a
+second, weaker Python row model. Listing jobs also no longer publish separate
+`visible_generation` or `target_generation` state; the loaded listing payload's
+`analysis_generation` is the web-facing truth.
 The production Python row-list navigation builder has also been removed.
 Navigation payloads come from the retained C artifact and the server only
 overlays project/session groups such as reproduction issues. App-slot
@@ -229,8 +231,8 @@ The server also no longer keeps a separate Python total-row cache for full
 listings. Cached ready jobs read the displayed row count from the retained C
 artifact summary, so row count ownership stays with the artifact.
 The server also no longer keeps a separate Python row-generation cache.
-Full-generation readiness is derived from a valid retained C artifact plus its
-current cache key; the artifact is the state, not a parallel generation flag.
+Readiness is derived from a valid retained C artifact plus its current cache
+key; the artifact is the state, not a parallel generation flag.
 Reproduction jobs no longer pass cached Python rows into source reproduction.
 When a retained C artifact can emit source for the target form, reproduction
 uses that source. If a valid retained artifact exists but cannot emit source,
@@ -684,7 +686,7 @@ from indexed render-plan row/subline provenance. Scroll and anchor requests no
 longer need a second Python row database or a full C anchor/count pass.
 Artifact-backed navigation also avoids reading the Python row cache. The old
 direct DLL/Python API that rebuilt full analysis for a single window has been
-removed; full-generation windows must come through the retained artifact. If
+removed; listing windows must come through the retained artifact. If
 the artifact is missing or stale for a ready project, listing and navigation
 requests report that rather than falling back to cached Python rows.
 Retained artifact row windows now reuse the artifact's displayed-row index as
