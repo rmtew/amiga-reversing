@@ -565,6 +565,7 @@ loc_0_000002E6:
 	beq.w loc_0_000002FE
 	andi.w #1023,d0
 	bne.w loc_0_000001E0
+loc_0_000002FA:
 	bra.w loc_0_000001E0
 loc_0_000002FE:
 	bra.w loc_0_000001E0
@@ -1146,6 +1147,7 @@ loc_0_00000BE4:
 	beq.w loc_0_00000B0C
 	cmp.b #$45,d0
 	beq.b loc_0_00000BFA
+loc_0_00000BF6:
 	bra.w loc_0_00000B3C
 loc_0_00000BFA:
 	bra.w loc_0_00000730
