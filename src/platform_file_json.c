@@ -5607,52 +5607,35 @@ static int append_listing_navigation_app_slots_json(JsonBuilder *builder,
   return json_builder_append(builder, "]");
 }
 
-static int listing_navigation_finish_group(JsonBuilder *builder, char **out_text) {
-  if (out_text == NULL) return -1;
-  *out_text = NULL;
+static int listing_navigation_finish_group(JsonBuilder *builder) {
   if (json_builder_append(builder, "]") != 0) return -1;
-  *out_text = json_builder_build(builder);
-  return *out_text != NULL ? 0 : -1;
+  return 0;
 }
 
 static int append_listing_navigation_groups_json(JsonBuilder *builder, ListingNavigationJsonContext *navigation) {
-  char *typed_data = NULL;
-  char *typed_gaps = NULL;
-  char *relocations = NULL;
-  char *api_calls = NULL;
-  char *comments = NULL;
-  int result = -1;
-  if (listing_navigation_finish_group(&navigation->typed_data, &typed_data) != 0 ||
-      listing_navigation_finish_group(&navigation->typed_gaps, &typed_gaps) != 0 ||
-      listing_navigation_finish_group(&navigation->relocations, &relocations) != 0 ||
-      listing_navigation_finish_group(&navigation->api_calls, &api_calls) != 0 ||
-      listing_navigation_finish_group(&navigation->comments, &comments) != 0)
-    goto cleanup;
+  if (listing_navigation_finish_group(&navigation->typed_data) != 0 ||
+      listing_navigation_finish_group(&navigation->typed_gaps) != 0 ||
+      listing_navigation_finish_group(&navigation->relocations) != 0 ||
+      listing_navigation_finish_group(&navigation->api_calls) != 0 ||
+      listing_navigation_finish_group(&navigation->comments) != 0)
+    return -1;
   if (json_builder_append(builder, "\"repro-issues\":[],\"typed-data\":") != 0 ||
-      json_builder_append(builder, typed_data) != 0 ||
+      json_builder_append_builder(builder, &navigation->typed_data) != 0 ||
       json_builder_append(builder, ",\"typed-gaps\":") != 0 ||
-      json_builder_append(builder, typed_gaps) != 0 ||
+      json_builder_append_builder(builder, &navigation->typed_gaps) != 0 ||
       json_builder_append(builder, ",\"relocations\":") != 0 ||
-      json_builder_append(builder, relocations) != 0 ||
+      json_builder_append_builder(builder, &navigation->relocations) != 0 ||
       json_builder_append(builder, ",\"api-calls\":") != 0 ||
-      json_builder_append(builder, api_calls) != 0 ||
+      json_builder_append_builder(builder, &navigation->api_calls) != 0 ||
       json_builder_append(builder, ",\"app-slots\":") != 0 ||
       append_listing_navigation_app_slots_json(builder, &navigation->app_slot_analysis) != 0 ||
       json_builder_append(builder, ",\"app-slot-regions\":[],\"app-slot-gaps\":[],\"app-slot-field-gaps\":[],"
         "\"app-slot-suggestions\":[],\"app-slot-api-args\":[],\"labels\":") != 0 ||
       append_listing_navigation_labels_json(builder, &navigation->labels) != 0 ||
       json_builder_append(builder, ",\"comments\":") != 0 ||
-      json_builder_append(builder, comments) != 0)
-    goto cleanup;
-  result = 0;
-
-cleanup:
-  free(typed_data);
-  free(typed_gaps);
-  free(relocations);
-  free(api_calls);
-  free(comments);
-  return result;
+      json_builder_append_builder(builder, &navigation->comments) != 0)
+    return -1;
+  return 0;
 }
 
 int source_file_listing_navigation_from_render_plan_to_json(const M68kSourceFileIR *source_file,

@@ -218,6 +218,29 @@ static int test_json_builder_escapes_string_spans(void) {
   return 0;
 }
 
+static int test_json_builder_appends_builder_without_building_source(void) {
+  JsonBuilder outer = {0};
+  JsonBuilder inner = {0};
+  char *text = NULL;
+  M68K_C_ASSERT_INT(0, json_builder_create(&outer));
+  M68K_C_ASSERT_INT(0, json_builder_create(&inner));
+  M68K_C_ASSERT_INT(0, json_builder_append(&outer, "{\"group\":"));
+  M68K_C_ASSERT_INT(0, json_builder_append(&inner, "["));
+  M68K_C_ASSERT_INT(0, json_builder_append_json_string(&inner, "a"));
+  M68K_C_ASSERT_INT(0, json_builder_append(&inner, ","));
+  M68K_C_ASSERT_INT(0, json_builder_append_json_string(&inner, "b"));
+  M68K_C_ASSERT_INT(0, json_builder_append(&inner, "]"));
+  M68K_C_ASSERT_INT(0, json_builder_append_builder(&outer, &inner));
+  M68K_C_ASSERT_INT(0, json_builder_append(&outer, "}"));
+  text = json_builder_build(&outer);
+  M68K_C_ASSERT(text != NULL);
+  M68K_C_ASSERT_STR("{\"group\":[\"a\",\"b\"]}", text);
+  free(text);
+  json_builder_destroy(&inner);
+  json_builder_destroy(&outer);
+  return 0;
+}
+
 int m68k_c_parse_util_tests(void) {
   static const M68kCTestCase cases[] = {
     {"sign_extend32", test_sign_extend32},
@@ -235,6 +258,7 @@ int m68k_c_parse_util_tests(void) {
     {"source_linear_expr_accepts_constant_or", test_source_linear_expr_accepts_constant_or},
     {"source_constant_expr_accepts_division", test_source_constant_expr_accepts_division},
     {"json_builder_escapes_string_spans", test_json_builder_escapes_string_spans},
+    {"json_builder_appends_builder_without_building_source", test_json_builder_appends_builder_without_building_source},
   };
   return m68k_c_test_run_suite("m68k_parse_util", cases, sizeof(cases) / sizeof(cases[0]));
 }

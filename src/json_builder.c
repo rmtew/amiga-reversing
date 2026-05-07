@@ -115,6 +115,15 @@ int json_builder_append(JsonBuilder *builder, const char *text) {
     return append_bytes(builder, text, strlen(text));
 }
 
+int json_builder_append_builder(JsonBuilder *builder, const JsonBuilder *source) {
+    const JsonBuilderChunk *chunk;
+    if (builder == NULL || source == NULL || source->state == NULL) return -1;
+    for (chunk = source->state->head; chunk != NULL; chunk = chunk->next) {
+        if (append_bytes(builder, chunk->data, chunk->used) != 0) return -1;
+    }
+    return 0;
+}
+
 int json_builder_append_char(JsonBuilder *builder, char ch) {
     return append_bytes(builder, &ch, 1U);
 }
