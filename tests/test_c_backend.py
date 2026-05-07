@@ -126,6 +126,53 @@ def test_listing_analysis_json_includes_empty_decompression_fact_arrays(tmp_path
     assert combined["analysis"]["decompression_events"] == []
 
 
+def test_listing_analysis_reports_unsupported_self_decruncher_without_materialising_payload(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "self_decrunch_hunk.bin"
+    source = """    SECTION section,code
+    lea.l $4000.l,a0
+    move.b #$4E,(a0)+
+    move.b #$75,(a0)+
+    jmp $4000.l
+"""
+    assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source,
+        output_path=binary,
+        project_root=PROJECT_ROOT,
+    )
+
+    combined = analyze_source_with_c_artifact(
+        HunkFileBinarySource(
+            kind="hunk_file",
+            path=binary,
+            display_path=str(binary),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert combined["analysis"]["packed_payloads"] == []
+    assert combined["analysis"]["derived_target_suggestions"] == []
+    events = combined["analysis"]["decompression_events"]
+    assert len(events) == 1
+    event = events[0]
+    assert event["source_kind"] == "self_decruncher"
+    assert event["provider_id"] == "m68k-sim-decrunch"
+    assert event["codec_support"] == "simulator_required"
+    assert event["status"] == "needs_simulated_decrunch"
+    assert event["reason"] == "unidentified_self_decruncher"
+    assert event["decompressor_code_section"] == 0
+    assert event["decompressor_entry_offset"] == 0
+    assert event["transfer_offset"] == 14
+    assert event["load_address"] == 0x4000
+    assert event["entrypoint"] == 0x4000
+    assert event["observed_write_start"] == 0x4000
+    assert event["observed_write_end"] == 0x4002
+    assert event["observed_write_count"] == 2
+
+
 def test_analysis_decompression_skips_candidate_overlapping_accepted_code(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary = tmp_path / "overlap_hunk.bin"
@@ -4172,6 +4219,73 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -
         "\tlea.l $000130B6.l,a1\n"
     ) in source_text
     assert "\tdc.b $3D,$7C,$7F,$FF,$00,$9A,$4E,$73,$D1,$FC,$00,$04,$73,$68,$43,$F9\n" not in source_text
+
+
+def test_listing_analysis_reports_extracted_damocles_style_self_decruncher(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "damocles_style_self_decrunch_hunk.bin"
+    source = """    SECTION section,code
+    moveq.l #17,d7
+    lea.l payload(pc),a1
+    lea.l $40000.l,a0
+    lea.l $50000.l,a2
+loop:
+    move.b (a1)+,d0
+    cmp.b d7,d0
+    bne.b literal
+    moveq.l #0,d1
+    move.b (a1)+,d1
+    beq.b literal
+    move.b (a1)+,d0
+    addq.w #1,d1
+repeat:
+    move.b d0,(a0)+
+    dbf.w d1,repeat
+literal:
+    move.w d0,($DFF180).l
+    move.b d0,(a0)+
+    cmpa.l a2,a1
+    blt.b loop
+    jmp $40000.l
+payload:
+    dc.b $12,$E7,$FF,$7F,$C4,$9C,$AD,$19,$7D,$FF,$7F,$92,$D8,$60,$38,$88
+    dc.w 0
+"""
+    assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source,
+        output_path=binary,
+        project_root=PROJECT_ROOT,
+    )
+
+    combined = analyze_source_with_c_artifact(
+        HunkFileBinarySource(
+            kind="hunk_file",
+            path=binary,
+            display_path=str(binary),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
+    )
+    events = [
+        event
+        for event in combined["analysis"]["decompression_events"]
+        if event.get("source_kind") == "self_decruncher"
+    ]
+
+    assert len(events) == 1
+    event = events[0]
+    assert event["status"] == "needs_simulated_decrunch"
+    assert event["reason"] == "unidentified_self_decruncher"
+    assert event["provider_id"] == "m68k-sim-decrunch"
+    assert event["codec_support"] == "simulator_required"
+    assert event["decompressor_code_section"] == 0
+    assert event["decompressor_entry_offset"] == 0
+    assert event["load_address"] == 0x40000
+    assert event["entrypoint"] == 0x40000
+    assert event["observed_write_start"] <= 0x40000
+    assert event["observed_write_end"] > 0x40000
 
 
 def test_real_dll_carrier_predecrement_copied_entry_promotes_loader_code() -> None:

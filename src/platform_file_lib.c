@@ -758,6 +758,23 @@ static const char *decompression_suggestion_payload_role_local(const PlatformDec
   return "unknown_runtime_payload";
 }
 
+typedef struct PlatformSelfDecrunchEvent {
+  uint32_t source_section_index;
+  uint32_t decompressor_entry_offset;
+  uint32_t transfer_offset;
+  uint32_t load_address;
+  uint32_t entrypoint;
+  uint32_t observed_write_start;
+  uint32_t observed_write_end;
+  uint32_t observed_write_count;
+  uint8_t parent_remains_active;
+} PlatformSelfDecrunchEvent;
+
+typedef struct PlatformRuntimeWriteObservation {
+  uint32_t start;
+  uint32_t end;
+} PlatformRuntimeWriteObservation;
+
 static void make_decompression_event_id_local(char *out, size_t out_size,
     const PlatformDecompressionIdentifyResult *result) {
   const char *codec_id = "unknown";
@@ -767,6 +784,381 @@ static void make_decompression_event_id_local(char *out, size_t out_size,
     result != NULL ? (unsigned)result->source_section_index : 0U,
     result != NULL ? (unsigned)result->source_section_offset : 0U,
     codec_id);
+}
+
+static void make_self_decrunch_event_id_local(char *out, size_t out_size,
+    const PlatformSelfDecrunchEvent *event) {
+  if (out == NULL || out_size == 0U) return;
+  snprintf(out, out_size, "decompression:self_decrunch:section:%u:%08X:%08X",
+    event != NULL ? (unsigned)event->source_section_index : 0U,
+    event != NULL ? (unsigned)event->decompressor_entry_offset : 0U,
+    event != NULL ? (unsigned)event->entrypoint : 0U);
+}
+
+static int runtime_transfer_target_from_candidate_local(const M68kDecodeSectionIR *section,
+    const M68kSectionAnalysisIR *section_analysis, const M68kDecodeCandidate *candidate,
+    uint32_t *out_target, uint8_t *out_parent_remains_active) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (out_target != NULL) *out_target = 0U;
+  if (out_parent_remains_active != NULL) *out_parent_remains_active = 1U;
+  if (section == NULL || section_analysis == NULL || candidate == NULL || out_target == NULL ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || metadata->flow_conditional != 0U ||
+      (metadata->flow_kind != M68K_SIM_FLOW_JUMP && metadata->flow_kind != M68K_SIM_FLOW_CALL)) {
+    return 0;
+  }
+  for (operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction.operands[operand_index];
+    uint8_t shape;
+    uint32_t target;
+    if (metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET) continue;
+    shape = m68k_instruction_operand_decoded_ea_shape(operand);
+    if (m68k_instruction_decoded_ea_target_kind(operand, shape, 0) != 1U) continue;
+    target = operand->value.value;
+    if (target < 0x1000U) continue;
+    if (target < section->size && section_analysis->certain_code_byte != NULL &&
+        section_analysis->certain_code_byte[target] != 0U) {
+      continue;
+    }
+    *out_target = target;
+    if (out_parent_remains_active != NULL)
+      *out_parent_remains_active = metadata->flow_kind == M68K_SIM_FLOW_CALL ? 1U : 0U;
+    return 1;
+  }
+  return 0;
+}
+
+static int self_decrunch_event_duplicate_local(const PlatformSelfDecrunchEvent *events, size_t event_count,
+    const PlatformSelfDecrunchEvent *candidate) {
+  size_t index;
+  if (events == NULL || candidate == NULL) return 0;
+  for (index = 0U; index < event_count; ++index) {
+    if (events[index].source_section_index == candidate->source_section_index &&
+        events[index].decompressor_entry_offset == candidate->decompressor_entry_offset &&
+        events[index].entrypoint == candidate->entrypoint) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int self_decrunch_event_matches_materialized_provider_local(
+    const PlatformDecompressionIdentifyResult *results, size_t result_count,
+    const PlatformSelfDecrunchEvent *event) {
+  size_t index;
+  if (results == NULL || event == NULL) return 0;
+  for (index = 0U; index < result_count; ++index) {
+    const PlatformDecompressionIdentifyResult *result = &results[index];
+    if (!result->found || !result->has_decompressed_load_entry) continue;
+    if (result->decompressed_load_address == event->load_address &&
+        result->decompressed_entrypoint == event->entrypoint) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static uint32_t candidate_write_width_local(const M68kDecodeCandidate *candidate) {
+  if (candidate == NULL) return 0U;
+  if (candidate->size_suffix == 'b') return 1U;
+  if (candidate->size_suffix == 'w') return 2U;
+  if (candidate->size_suffix == 'l') return 4U;
+  return 0U;
+}
+
+static int instruction_operand_address_register_local(const M68kOperandIR *operand, uint8_t *out_reg) {
+  uint8_t is_address = 0U, reg = 0U;
+  if (out_reg != NULL) *out_reg = 0U;
+  if (operand == NULL || !m68k_instruction_operand_direct_register(operand, &is_address, &reg) ||
+      !is_address || reg >= 8U) {
+    return 0;
+  }
+  if (out_reg != NULL) *out_reg = reg;
+  return 1;
+}
+
+static int runtime_address_from_operand_local(const M68kOperandIR *operand, const uint8_t a_known[8],
+    const uint32_t a_values[8], uint32_t *out_address) {
+  uint8_t shape, reg;
+  int64_t address;
+  if (out_address != NULL) *out_address = 0U;
+  if (operand == NULL || a_known == NULL || a_values == NULL || out_address == NULL) return 0;
+  shape = m68k_instruction_operand_decoded_ea_shape(operand);
+  if (m68k_instruction_decoded_ea_target_kind(operand, shape, 0) == 1U) {
+    *out_address = operand->value.value;
+    return 1;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_IND || operand->kind == M68K_ASM_OPERAND_POSTINC ||
+      operand->kind == M68K_ASM_OPERAND_PREDEC) {
+    reg = operand->value.reg;
+    if (reg >= 8U || !a_known[reg]) return 0;
+    *out_address = a_values[reg];
+    return 1;
+  }
+  if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 8U) return 0;
+  reg = operand->value.ea_reg;
+  if (!a_known[reg]) return 0;
+  address = (int64_t)(uint64_t)a_values[reg];
+  if (shape == M68K_SIM_EA_SHAPE_DISPLACEMENT || shape == M68K_SIM_EA_SHAPE_INDEX) {
+    address += (int64_t)(int16_t)(operand->value.value & 0xFFFFU);
+  } else if (shape != M68K_SIM_EA_SHAPE_INDIRECT && shape != M68K_SIM_EA_SHAPE_POSTINCREMENT &&
+      shape != M68K_SIM_EA_SHAPE_PREDECREMENT) {
+    return 0;
+  }
+  if (address < 0 || address > (int64_t)(uint64_t)UINT32_MAX) return 0;
+  *out_address = (uint32_t)address;
+  return 1;
+}
+
+static void trace_runtime_writes_from_candidate_local(const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata, uint8_t a_known[8],
+    uint32_t a_values[8], PlatformRuntimeWriteObservation *writes, size_t write_capacity,
+    size_t *io_write_count) {
+  uint8_t invalidated[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+  size_t operand_index;
+  if (candidate == NULL || instruction == NULL || metadata == NULL || a_known == NULL || a_values == NULL ||
+      writes == NULL || io_write_count == NULL) {
+    return;
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    uint8_t reg = 0U;
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
+        instruction_operand_address_register_local(&instruction->operands[operand_index], &reg)) {
+      invalidated[reg] = 1U;
+    }
+  }
+  if (metadata->operation_class == M68K_SIM_CLASS_LOAD_EFFECTIVE_ADDRESS &&
+      metadata->source_operand_index < instruction->operand_count &&
+      metadata->dest_operand_index < instruction->operand_count) {
+    uint8_t reg = 0U;
+    uint32_t address = 0U;
+    if (instruction_operand_address_register_local(&instruction->operands[metadata->dest_operand_index], &reg) &&
+        runtime_address_from_operand_local(&instruction->operands[metadata->source_operand_index], a_known,
+          a_values, &address)) {
+      a_known[reg] = 1U;
+      a_values[reg] = address;
+      invalidated[reg] = 0U;
+    }
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    uint32_t address = 0U;
+    uint32_t width = candidate_write_width_local(candidate);
+    uint8_t reg = 0U;
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE &&
+        width != 0U && runtime_address_from_operand_local(&instruction->operands[operand_index], a_known,
+          a_values, &address) &&
+        address >= 0x1000U && address <= UINT32_MAX - width && *io_write_count < write_capacity) {
+      writes[*io_write_count].start = address;
+      writes[*io_write_count].end = address + width;
+      *io_write_count += 1U;
+    }
+    {
+      uint8_t update = metadata->operand_ea_register_updates[operand_index];
+      uint8_t shape = m68k_instruction_operand_decoded_ea_shape(&instruction->operands[operand_index]);
+      if (update == M68K_SIM_EA_UPDATE_NONE &&
+          (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ ||
+           metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE)) {
+        if (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT) update = M68K_SIM_EA_UPDATE_POSTINCREMENT;
+        else if (shape == M68K_SIM_EA_SHAPE_PREDECREMENT) update = M68K_SIM_EA_UPDATE_PREDECREMENT;
+      }
+      if (update != M68K_SIM_EA_UPDATE_NONE &&
+        ((instruction->operands[operand_index].kind == M68K_ASM_OPERAND_EA &&
+          instruction->operands[operand_index].value.ea_reg < 8U) ||
+         instruction->operands[operand_index].kind == M68K_ASM_OPERAND_POSTINC ||
+         instruction->operands[operand_index].kind == M68K_ASM_OPERAND_PREDEC)) {
+        reg = instruction->operands[operand_index].kind == M68K_ASM_OPERAND_EA ?
+          instruction->operands[operand_index].value.ea_reg : instruction->operands[operand_index].value.reg;
+        if (reg >= 8U) continue;
+        if (a_known[reg] && width != 0U) {
+          if (update == M68K_SIM_EA_UPDATE_POSTINCREMENT && a_values[reg] <= UINT32_MAX - width) {
+            a_values[reg] += width;
+          } else if (update == M68K_SIM_EA_UPDATE_PREDECREMENT && a_values[reg] >= width) {
+            a_values[reg] -= width;
+          } else {
+            a_known[reg] = 0U;
+          }
+        }
+      }
+    }
+  }
+  for (operand_index = 0U; operand_index < 8U; ++operand_index) {
+    if (invalidated[operand_index]) a_known[operand_index] = 0U;
+  }
+}
+
+static int observed_writes_cover_target_local(const PlatformRuntimeWriteObservation *writes, size_t write_count,
+    uint32_t target, uint32_t *out_start, uint32_t *out_end, uint32_t *out_count) {
+  size_t index;
+  uint32_t start = UINT32_MAX;
+  uint32_t end = 0U;
+  uint32_t count = 0U;
+  if (out_start != NULL) *out_start = 0U;
+  if (out_end != NULL) *out_end = 0U;
+  if (out_count != NULL) *out_count = 0U;
+  if (writes == NULL) return 0;
+  for (index = 0U; index < write_count; ++index) {
+    const PlatformRuntimeWriteObservation *write = &writes[index];
+    if (write->start > target || write->end <= target || write->end <= write->start) continue;
+    if (write->start < start) start = write->start;
+    if (write->end > end) end = write->end;
+    ++count;
+  }
+  if (count == 0U) return 0;
+  for (index = 0U; index < write_count; ++index) {
+    const PlatformRuntimeWriteObservation *write = &writes[index];
+    if (write->end <= write->start) continue;
+    if (write->start <= end && write->end >= start) {
+      if (write->start < start) start = write->start;
+      if (write->end > end) end = write->end;
+    }
+  }
+  count = 0U;
+  for (index = 0U; index < write_count; ++index) {
+    const PlatformRuntimeWriteObservation *write = &writes[index];
+    if (write->end <= write->start) continue;
+    if (write->start < end && write->end > start) ++count;
+  }
+  if (out_start != NULL) *out_start = start;
+  if (out_end != NULL) *out_end = end;
+  if (out_count != NULL) *out_count = count;
+  return 1;
+}
+
+static int collect_self_decrunch_events_for_section(const M68kObject *object, const M68kDecodeIR *decode,
+    const M68kSourceAnalysisIR *analysis, size_t section_index, PlatformSelfDecrunchEvent *events,
+    size_t event_capacity, size_t *io_event_count) {
+  const M68kSection *object_section;
+  const M68kDecodeSectionIR *decode_section;
+  const M68kSectionAnalysisIR *section_analysis;
+  uint8_t a_known[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+  uint32_t a_values[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+  PlatformRuntimeWriteObservation writes[64];
+  size_t write_count = 0U;
+  uint32_t offset;
+  uint32_t previous_end = UINT32_MAX;
+  uint32_t run_start = 0U;
+  if (object == NULL || decode == NULL || analysis == NULL || events == NULL || io_event_count == NULL ||
+      section_index >= object->section_count || section_index >= decode->section_count ||
+      section_index >= analysis->section_count) {
+    return 0;
+  }
+  object_section = &object->sections[section_index];
+  decode_section = &decode->sections[section_index];
+  section_analysis = &analysis->sections[section_index];
+  if (object_section->data == NULL || object_section->data_size == 0U ||
+      section_analysis->certain_code_start == NULL || section_analysis->certain_code_byte == NULL) {
+    return 0;
+  }
+  memset(writes, 0, sizeof(writes));
+  for (offset = 0U; offset < decode_section->size && *io_event_count < event_capacity; ++offset) {
+    const M68kDecodeCandidate *candidate = NULL;
+    M68kInstructionIR instruction;
+    const M68kSimFormMetadata *metadata;
+    uint32_t target = 0U;
+    uint32_t observed_write_start = 0U;
+    uint32_t observed_write_end = 0U;
+    uint32_t observed_write_count = 0U;
+    uint8_t parent_remains_active = 1U;
+    if (section_analysis->certain_code_start[offset] == 0U) continue;
+    if (previous_end != UINT32_MAX && offset != previous_end) {
+      memset(a_known, 0, sizeof(a_known));
+      memset(a_values, 0, sizeof(a_values));
+      memset(writes, 0, sizeof(writes));
+      write_count = 0U;
+      run_start = offset;
+    } else if (previous_end == UINT32_MAX) {
+      run_start = offset;
+    }
+    if (m68k_decode_ir_ensure_candidate_at((M68kDecodeIR *)decode, section_index, offset,
+        analysis->policy.max_cpu, &candidate, m68k_diag_sink(NULL)) != 0 ||
+        candidate == NULL || candidate->byte_count == 0U ||
+        m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+      previous_end = UINT32_MAX;
+      continue;
+    }
+    previous_end = offset + candidate->byte_count;
+    metadata = m68k_sim_metadata_for_instruction(&instruction);
+    if (metadata == NULL) continue;
+    trace_runtime_writes_from_candidate_local(candidate, &instruction, metadata, a_known, a_values, writes,
+      sizeof(writes) / sizeof(writes[0]), &write_count);
+    if (runtime_transfer_target_from_candidate_local(decode_section, section_analysis, candidate, &target,
+        &parent_remains_active) &&
+        observed_writes_cover_target_local(writes, write_count, target, &observed_write_start,
+          &observed_write_end, &observed_write_count) &&
+        observed_write_count >= 2U) {
+      PlatformSelfDecrunchEvent event;
+      memset(&event, 0, sizeof(event));
+      event.source_section_index = (uint32_t)section_index;
+      event.decompressor_entry_offset = run_start;
+      event.transfer_offset = offset;
+      event.load_address = target;
+      event.entrypoint = target;
+      event.observed_write_start = observed_write_start;
+      event.observed_write_end = observed_write_end;
+      event.observed_write_count = observed_write_count;
+      event.parent_remains_active = parent_remains_active;
+      if (!self_decrunch_event_duplicate_local(events, *io_event_count, &event)) {
+        events[*io_event_count] = event;
+        *io_event_count += 1U;
+      }
+    }
+  }
+  return 0;
+}
+
+static int collect_self_decrunch_events_local(const M68kObject *object, const M68kSourceAnalysisIR *analysis,
+    PlatformSelfDecrunchEvent *events, size_t event_capacity, size_t *out_event_count) {
+  M68kDecodeIR decode;
+  size_t section_index;
+  int result = 0;
+  if (out_event_count != NULL) *out_event_count = 0U;
+  if (object == NULL || analysis == NULL || events == NULL || out_event_count == NULL || event_capacity == 0U)
+    return 0;
+  if (object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
+  memset(&decode, 0, sizeof(decode));
+  if (m68k_decode_ir_build_object_sections(&decode, object, m68k_diag_sink(NULL)) != 0) return 0;
+  for (section_index = 0U; section_index < object->section_count && *out_event_count < event_capacity;
+      ++section_index) {
+    if (collect_self_decrunch_events_for_section(object, &decode, analysis, section_index, events,
+        event_capacity, out_event_count) != 0) {
+      result = -1;
+      break;
+    }
+  }
+  m68k_decode_ir_destroy(&decode);
+  return result;
+}
+
+static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformSelfDecrunchEvent *event) {
+  char event_id[160];
+  if (builder == NULL || event == NULL) return -1;
+  make_self_decrunch_event_id_local(event_id, sizeof(event_id), event);
+  if (json_builder_append(builder, "{\"event_kind\":\"decompression\",\"event_id\":") != 0 ||
+      json_builder_append_json_string(builder, event_id) != 0 ||
+      json_builder_append(builder,
+        ",\"status\":\"needs_simulated_decrunch\",\"reason\":\"unidentified_self_decruncher\","
+        "\"payload_role\":\"primary_program\",\"payload_role_confidence\":\"tool_inferred\","
+        "\"parent_remains_active\":") != 0 ||
+      json_builder_append_json_string(builder, event->parent_remains_active ? "true" : "false") != 0 ||
+      json_builder_append(builder,
+        ",\"source_kind\":\"self_decruncher\",\"provider_id\":\"m68k-sim-decrunch\","
+        "\"codec_id\":\"unknown-self-decrunch\",\"codec_name\":\"Unidentified target-owned self-decruncher\","
+        "\"codec_support\":\"simulator_required\"") != 0) {
+    return -1;
+  }
+  return json_builder_appendf(builder,
+    ",\"decompressor_code_section\":%u,\"decompressor_entry_offset\":%u,"
+    "\"transfer_offset\":%u,\"load_address\":%u,\"entrypoint\":%u,"
+    "\"observed_write_start\":%u,\"observed_write_end\":%u,\"observed_write_count\":%u}",
+    (unsigned)event->source_section_index, (unsigned)event->decompressor_entry_offset,
+    (unsigned)event->transfer_offset, (unsigned)event->load_address, (unsigned)event->entrypoint,
+    (unsigned)event->observed_write_start, (unsigned)event->observed_write_end,
+    (unsigned)event->observed_write_count);
 }
 
 static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
@@ -880,10 +1272,13 @@ static int append_decompression_event_json(JsonBuilder *builder,
 static int append_object_decompression_analysis_json(JsonBuilder *builder, const M68kObject *object,
     const M68kSourceAnalysisIR *analysis) {
   PlatformDecompressionIdentifyResult results[32];
+  PlatformSelfDecrunchEvent self_decrunch_events[16];
   size_t result_count = 0U;
+  size_t self_decrunch_event_count = 0U;
   size_t section_index;
   if (object == NULL || analysis == NULL) return -1;
   memset(results, 0, sizeof(results));
+  memset(self_decrunch_events, 0, sizeof(self_decrunch_events));
   for (section_index = 0U; section_index < object->section_count; ++section_index) {
     const M68kSection *section = &object->sections[section_index];
     const M68kSectionAnalysisIR *section_analysis;
@@ -939,6 +1334,10 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
       remove(output_path);
     }
   }
+  if (collect_self_decrunch_events_local(object, analysis, self_decrunch_events,
+      sizeof(self_decrunch_events) / sizeof(self_decrunch_events[0]), &self_decrunch_event_count) != 0) {
+    return -1;
+  }
   if (json_builder_append(builder, ",\"packed_payloads\":[") != 0) return -1;
   for (section_index = 0U; section_index < result_count; ++section_index) {
     if (section_index != 0U && json_builder_append(builder, ",") != 0) return -1;
@@ -955,6 +1354,13 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
     if (section_index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (append_decompression_event_json(builder, &results[section_index],
         find_decompression_runtime_copy_view(analysis, &results[section_index])) != 0) return -1;
+  }
+  for (section_index = 0U; section_index < self_decrunch_event_count; ++section_index) {
+    if (self_decrunch_event_matches_materialized_provider_local(results, result_count,
+        &self_decrunch_events[section_index]))
+      continue;
+    if ((result_count != 0U || section_index != 0U) && json_builder_append(builder, ",") != 0) return -1;
+    if (append_self_decrunch_event_json(builder, &self_decrunch_events[section_index]) != 0) return -1;
   }
   return json_builder_append(builder, "]");
 }

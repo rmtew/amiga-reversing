@@ -64,6 +64,11 @@ unsupported/identified record with provenance and corpus tags. Materialization
 through the external tool can remain a transitional feature only when it is
 explicit, provenance-rich, and covered by reproduction tests.
 
+Native implementations for codecs Ancient already identifies and decompresses
+are deferred for now. The current priority is the unsupported class: targets
+such as Damocles where external suites do not identify the packed program and C
+must use target-owned decruncher evidence.
+
 Python must not grow decompression scanning or execution heuristics. Python may
 materialize project files only from C-emitted records.
 
@@ -218,8 +223,9 @@ Failing a gate should produce an indexed work item, not a guessed child target.
 
 1. Record current external-provider behavior and keep Carrier RNC as the first
    proven materialized child.
-2. Add native codec support for recurring high-value codecs, starting with
-   codecs already proven in corpus targets.
+2. Defer native rewrites of codecs Ancient already identifies and decompresses.
+   Keep those as provider-backed evidence while higher-value unsupported cases
+   are addressed.
 3. Add a C event model that separates codec identity, decompressor code,
    produced bytes, role, and target relationship.
 4. Add role classification and UI/corpus tags.
@@ -244,7 +250,11 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   `event_id`. Corpus indexing tags these event fields so event and role work can
   be queried across targets without treating every output as a replacement
   target.
-- The next implementation step is the decompression event model: codec/runtime
-  source evidence, decompressor code range, produced range, and acceptance
-  reason need one C-owned record shape before simulator decrunching can safely
-  materialize bytes.
+- C analysis now emits unsupported self-decrunch events when analysed code
+  writes to an absolute runtime range and transfers control there. Damocles is
+  the first real proving target for this path. Corpus indexing currently also
+  finds Voodoo Nightmare and Magicland Dizzy as Amiga comparators for the same
+  unsupported event class.
+- The next implementation step is simulator-backed output capture for those
+  unsupported self-decrunch events: memory map seeding, write-range bounding,
+  stop reason, output hash, and conservative materialisation gates.

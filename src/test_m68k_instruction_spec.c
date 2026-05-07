@@ -42,10 +42,18 @@ static int test_direct_register_detection(void) {
 static int test_decoded_ea_shape_and_target_kind(void) {
   M68kOperandIR absw = make_ea_operand(7u, 0u, 0x1234u);
   M68kOperandIR absl = make_ea_operand(7u, 1u, 0x12345678u);
+  M68kOperandIR indirect = make_ea_operand(2u, 0u, 0u);
+  M68kOperandIR postinc = make_ea_operand(3u, 1u, 0u);
+  M68kOperandIR predec = make_ea_operand(4u, 2u, 0u);
+  M68kOperandIR disp = make_ea_operand(5u, 3u, 0x10u);
   M68kOperandIR index = make_ea_operand(6u, 0u, 0x10u);
   M68kOperandIR pcdisp = make_ea_operand(7u, 2u, 0xFFFFFFF8u);
   M68kOperandIR pcindex = make_ea_operand(7u, 3u, 0x10u);
 
+  M68K_C_ASSERT_INT(M68K_SIM_EA_SHAPE_INDIRECT, m68k_instruction_operand_decoded_ea_shape(&indirect));
+  M68K_C_ASSERT_INT(M68K_SIM_EA_SHAPE_POSTINCREMENT, m68k_instruction_operand_decoded_ea_shape(&postinc));
+  M68K_C_ASSERT_INT(M68K_SIM_EA_SHAPE_PREDECREMENT, m68k_instruction_operand_decoded_ea_shape(&predec));
+  M68K_C_ASSERT_INT(M68K_SIM_EA_SHAPE_DISPLACEMENT, m68k_instruction_operand_decoded_ea_shape(&disp));
   M68K_C_ASSERT_INT(M68K_SIM_EA_SHAPE_ABSOLUTE_WORD, m68k_instruction_operand_decoded_ea_shape(&absw));
   M68K_C_ASSERT_INT(M68K_SIM_EA_SHAPE_ABSOLUTE_LONG, m68k_instruction_operand_decoded_ea_shape(&absl));
   M68K_C_ASSERT_INT(M68K_SIM_EA_SHAPE_INDEX, m68k_instruction_operand_decoded_ea_shape(&index));

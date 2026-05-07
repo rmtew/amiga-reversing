@@ -71,6 +71,8 @@ def test_decompression_payload_role_features() -> None:
                 "codec_support": "external_provider",
                 "payload_role": "primary_program",
                 "parent_remains_active": "unknown",
+                "source_kind": "provider_identified_payload",
+                "provider_id": "ancient",
                 "source_section": 0,
                 "source_section_offset": 0x4C40,
                 "packed_size": 168391,
@@ -89,8 +91,12 @@ def test_decompression_payload_role_features() -> None:
     assert counts["decompression:event:decompression"] == 1
     assert counts["decompression:has_event_id"] == 1
     assert counts["decompression:codec_support:external_provider"] == 1
+    assert counts["decompression:source_kind:provider_identified_payload"] == 1
+    assert counts["decompression:provider:ancient"] == 1
     assert "decompression:payload_role:primary_program" in tags
     assert examples["decompression:payload_role:primary_program"][0]["payload_role"] == "primary_program"
+    assert examples["decompression:source_kind:provider_identified_payload"][0]["source_kind"] == "provider_identified_payload"
+    assert examples["decompression:provider:ancient"][0]["provider_id"] == "ancient"
     assert examples["decompression:has_event_id"][0]["event_id"] == "decompression:section:0:00004C40:rnc1-old"
 
 

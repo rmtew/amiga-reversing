@@ -1277,6 +1277,12 @@ def _decompression_example(record: dict[str, Any]) -> dict[str, object]:
     parent_remains_active = _string_value(record.get("parent_remains_active"))
     if parent_remains_active:
         example["parent_remains_active"] = parent_remains_active
+    source_kind = _string_value(record.get("source_kind"))
+    if source_kind:
+        example["source_kind"] = source_kind
+    provider_id = _string_value(record.get("provider_id"))
+    if provider_id:
+        example["provider_id"] = provider_id
     return example
 
 
@@ -1353,6 +1359,12 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         payload_role = _string_value(event.get("payload_role"))
         if payload_role:
             bag.add(f"decompression:payload_role:{_safe_part(payload_role)}", example=example)
+        source_kind = _string_value(event.get("source_kind"))
+        if source_kind:
+            bag.add(f"decompression:source_kind:{_safe_part(source_kind)}", example=example)
+        provider_id = _string_value(event.get("provider_id"))
+        if provider_id:
+            bag.add(f"decompression:provider:{_safe_part(provider_id)}", example=example)
         parent_remains_active = _string_value(event.get("parent_remains_active"))
         if parent_remains_active:
             bag.add(f"decompression:parent_remains_active:{_safe_part(parent_remains_active)}", example=example)
@@ -2426,6 +2438,10 @@ def _decompression_analysis_xrefs(
     for event in _dict_items(analysis.get("decompression_events")):
         section_index = _int_value(event.get("source_section"))
         offset = _int_value(event.get("source_section_offset"))
+        if section_index is None:
+            section_index = _int_value(event.get("decompressor_code_section"))
+        if offset is None:
+            offset = _int_value(event.get("decompressor_entry_offset"))
         row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
         event_kind = _string_value(event.get("event_kind")) or "unknown"
         status = _string_value(event.get("status"))
@@ -2441,6 +2457,12 @@ def _decompression_analysis_xrefs(
         payload_role = _string_value(event.get("payload_role"))
         if payload_role:
             features.append(f"decompression:payload_role:{_safe_part(payload_role)}")
+        source_kind = _string_value(event.get("source_kind"))
+        if source_kind:
+            features.append(f"decompression:source_kind:{_safe_part(source_kind)}")
+        provider_id = _string_value(event.get("provider_id"))
+        if provider_id:
+            features.append(f"decompression:provider:{_safe_part(provider_id)}")
         codec_support = _string_value(event.get("codec_support"))
         if codec_support:
             features.append(f"decompression:codec_support:{_safe_part(codec_support)}")

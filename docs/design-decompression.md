@@ -113,9 +113,16 @@ A first C decompression provider layer now exists:
   it is useful decompression evidence, but it is not an ORG/source alias.
 - Damocles shows the next unsupported class: visible self-decrunching code writes
   an absolute runtime image around `$40000` and jumps there, but Ancient
-  `scan-json` does not identify that stream. Current C facts only surface small
-  provider-valid micro-candidates, so the large decrunched program is not yet
-  materialised.
+  `scan-json` does not identify that stream. C analysis now emits an explicit
+  unsupported self-decrunch event for this code path with
+  `provider_id: "m68k-sim-decrunch"` and
+  `codec_support: "simulator_required"`. It is intentionally not materialised
+  until simulator-backed output capture proves bounded bytes, load address,
+  entrypoint, and reproduction.
+- Corpus indexing validates that this is not just a Damocles-local shape:
+  Voodoo Nightmare and Magicland Dizzy also retain unsupported Amiga
+  self-decrunch events after provider-materialised and one-write noise is
+  suppressed.
 
 Discovery, acceptance, extraction, and imported child materialisation are now
 driven by C-emitted records. Corpus indexing remains deliberately non-mutating:
@@ -136,7 +143,9 @@ Use project-owned decompression:
 - C owns scanning ranges, overlap policy, result acceptance, provenance, corpus
   tags, and target relationship records.
 - Native C codec implementations are preferred when a codec is recognized and
-  supported by this project.
+  supported by this project. Native implementations for codecs Ancient already
+  identifies and decompresses are deferred for now; the active priority is
+  unsupported target-owned self-decrunchers such as Damocles.
 - External suites such as Ancient and XFD are useful for identification,
   variant comparison, reference material, and oracle tests. They should not
   remain the production decompressor for codecs we support natively.
@@ -155,8 +164,10 @@ Use project-owned decompression:
   materialisation.
 - A bounded C concrete-run primitive now exists for simulator-backed
   decrunchers. It executes generated simulator steps with a max-step limit and
-  stop-PC range, and has isolated C unit tests. Decompression-specific memory
-  seeding, output range tracking, and event records are still pending.
+  stop-PC range, and has isolated C unit tests. C also emits unsupported
+  self-decrunch event records when analysed code writes to an absolute runtime
+  range and transfers control there. Decompression-specific memory seeding,
+  output capture, and materialisation are still pending.
 
 The boundary is:
 
