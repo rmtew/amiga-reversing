@@ -1047,12 +1047,21 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
             try:
                 pre_rendered_source_text = listing_artifact.source_text()
             except Exception as exc:
+                message = f"artifact source unavailable: {exc}"
                 _log_event(
                     "reproduction_job artifact_source_unavailable",
                     job_id=job_id,
                     project=project_name,
                     error=exc,
                 )
+                _set_job_state(
+                    job_id,
+                    status="failed",
+                    phase_id="error",
+                    error=message,
+                    finished_at=time.time(),
+                )
+                return
         if not _set_job_phase(job_id, phase_id="assemble", phase_index=2, phase_count=phase_count):
             return
         reproduction_kwargs: dict[str, object] = {}

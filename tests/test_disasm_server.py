@@ -3634,6 +3634,57 @@ def test_reproduction_job_reuses_artifact_source(
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
 
 
+def test_reproduction_job_fails_closed_when_artifact_source_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class BrokenSourceArtifact(_FakeCListingArtifact):
+        def source_text(self) -> str:
+            raise RuntimeError("source export failed")
+
+    calls: list[object] = []
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "carrier-raw", BrokenSourceArtifact())
+    monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, "carrier-raw", "listing-cache")
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "listing-cache")
+    monkeypatch.setattr(disasm_server, "_reproduction_cache_key", lambda project_name: "repro-cache")
+    monkeypatch.setattr(disasm_server, "run_reproduction", lambda *args, **kwargs: calls.append((args, kwargs)))
+    disasm_server._ASYNC_JOBS["repro-job"] = cast(
+        disasm_server.AsyncJobPayload,
+        {
+            "job_id": "repro-job",
+            "job_kind": "reproduction",
+            "project_id": "carrier-raw",
+            "result_project_id": "carrier-raw",
+            "status": "queued",
+            "phase_id": "queued",
+            "phase_index": 0,
+            "phase_count": 4,
+            "progress_mode": "determinate",
+            "progress_current": 0,
+            "progress_total": 4,
+            "progress_percent": 0,
+            "total_rows": None,
+            "error": None,
+            "created_at": 1.0,
+            "finished_at": None,
+            "cache_key": "repro-cache",
+        },
+    )
+
+    disasm_server._build_reproduction_job("repro-job", "carrier-raw")
+
+    job = disasm_server._ASYNC_JOBS["repro-job"]
+    assert calls == []
+    assert job["status"] == "failed"
+    assert job["phase_id"] == "error"
+    assert job["error"] == "artifact source unavailable: source export failed"
+    disasm_server._ASYNC_JOBS.clear()
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+
+
 def test_metadata_edit_route_invalidates_listing_and_reproduction(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

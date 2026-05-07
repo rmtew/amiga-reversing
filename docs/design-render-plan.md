@@ -209,8 +209,11 @@ Full-generation readiness is derived from a valid retained C artifact plus its
 current cache key; the artifact is the state, not a parallel generation flag.
 Reproduction jobs no longer pass cached Python rows into source reproduction.
 When a retained C artifact can emit source for the target form, reproduction
-uses that source; otherwise it calls the normal reproduction path by project
-identity and trusts the backend/source renderer there.
+uses that source. If a valid retained artifact exists but cannot emit source,
+the server reproduction job fails closed instead of falling back to a separate
+render path and hiding an artifact/source-plan defect. Projects without a
+retained artifact still call the normal reproduction path by project identity
+and trust the backend/source renderer there.
 The reproduction source artifact policy switch has been removed. Reproduction
 now writes `source.s` only when source text is already the path being assembled
 or has been supplied by the retained artifact. It does not perform a second
