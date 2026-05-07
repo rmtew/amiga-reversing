@@ -1057,6 +1057,102 @@ static int observed_writes_cover_target_local(const PlatformRuntimeWriteObservat
   return 1;
 }
 
+static int block_index_containing_offset_local(const M68kSectionAnalysisIR *section, uint32_t offset,
+    size_t *out_block_index) {
+  size_t block_index;
+  if (out_block_index != NULL) *out_block_index = 0U;
+  if (section == NULL || out_block_index == NULL) return 0;
+  for (block_index = 0U; block_index < section->block_count; ++block_index) {
+    const M68kCfgBlockIR *block = &section->blocks[block_index];
+    if (block->certainty == M68K_CODE_CERTAIN && offset >= block->start_offset && offset < block->end_offset) {
+      *out_block_index = block_index;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int cfg_block_reaches_local(const M68kSectionAnalysisIR *section, size_t source_block_index,
+    size_t target_block_index, Arena *arena) {
+  ArenaMark mark;
+  uint8_t *visited;
+  size_t *queue;
+  size_t read_index = 0U, write_index = 0U;
+  if (section == NULL || arena == NULL || source_block_index >= section->block_count ||
+      target_block_index >= section->block_count) {
+    return 0;
+  }
+  if (source_block_index == target_block_index) return 1;
+  mark = arena_mark(arena);
+  visited = (uint8_t *)arena_calloc(arena, section->block_count, 1U);
+  queue = (size_t *)arena_alloc(arena, section->block_count * sizeof(*queue));
+  if (visited == NULL || queue == NULL) {
+    arena_rewind(arena, mark);
+    return 0;
+  }
+  visited[source_block_index] = 1U;
+  queue[write_index++] = source_block_index;
+  while (read_index < write_index) {
+    const M68kCfgBlockIR *block;
+    size_t edge_cursor, edge_end;
+    size_t current = queue[read_index++];
+    if (current >= section->block_count) continue;
+    block = &section->blocks[current];
+    edge_end = block->edge_start + block->edge_count;
+    if (edge_end > section->edge_count) edge_end = section->edge_count;
+    for (edge_cursor = block->edge_start; edge_cursor < edge_end; ++edge_cursor) {
+      const M68kCfgEdgeIR *edge = &section->edges[edge_cursor];
+      size_t next = edge->target_block_index;
+      if (next >= section->block_count || visited[next]) continue;
+      if (next == target_block_index) {
+        arena_rewind(arena, mark);
+        return 1;
+      }
+      visited[next] = 1U;
+      queue[write_index++] = next;
+    }
+  }
+  arena_rewind(arena, mark);
+  return 0;
+}
+
+static int code_start_ref_is_external_or_entry_root_local(const M68kCodeStartRefIR *ref, size_t section_index) {
+  if (ref == NULL) return 0;
+  if (ref->reason == M68K_FACT_CODE_START_REASON_SECTION_ENTRY ||
+      ref->reason == M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET ||
+      ref->reason == M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT) {
+    return 1;
+  }
+  return ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET &&
+    ref->source_section_index != section_index;
+}
+
+static uint32_t reachable_decrunch_entry_root_local(const M68kSectionAnalysisIR *section, size_t section_index,
+    uint32_t fallback_entry, uint32_t transfer_offset, Arena *arena) {
+  size_t target_block_index, root_block_index, ref_index;
+  uint32_t best = fallback_entry;
+  if (section == NULL || arena == NULL ||
+      !block_index_containing_offset_local(section, transfer_offset, &target_block_index)) {
+    return fallback_entry;
+  }
+  if (section->certain_code_start != NULL && section->certain_code_size != 0U &&
+      section->certain_code_start[0] &&
+      block_index_containing_offset_local(section, 0U, &root_block_index) &&
+      cfg_block_reaches_local(section, root_block_index, target_block_index, arena)) {
+    best = 0U;
+  }
+  for (ref_index = 0U; ref_index < section->code_start_ref_count; ++ref_index) {
+    const M68kCodeStartRefIR *ref = &section->code_start_refs[ref_index];
+    if (!code_start_ref_is_external_or_entry_root_local(ref, section_index) || ref->offset >= best ||
+        !block_index_containing_offset_local(section, ref->offset, &root_block_index) ||
+        !cfg_block_reaches_local(section, root_block_index, target_block_index, arena)) {
+      continue;
+    }
+    best = ref->offset;
+  }
+  return best;
+}
+
 static int platform_self_decrunch_external_write_allowed_local(void *user, uint32_t address, uint8_t width) {
   const M68kObject *object = (const M68kObject *)user;
   const AmigaOsHardwareRegisterRangeInfo *range;
@@ -1237,7 +1333,8 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
       PlatformSelfDecrunchEvent event;
       memset(&event, 0, sizeof(event));
       event.source_section_index = (uint32_t)section_index;
-      event.decompressor_entry_offset = run_start;
+      event.decompressor_entry_offset = reachable_decrunch_entry_root_local(section_analysis, section_index,
+        run_start, offset, analysis->arena);
       event.transfer_offset = offset;
       event.load_address = target;
       event.entrypoint = target;

@@ -180,8 +180,11 @@ Use project-owned decompression:
   bytes. C analysis preserves traced setup state across an explicit
   same-section unconditional branch/jump over embedded data into a later
   decrunch stage, so the simulator can start from the proven setup entry
-  without weak fallthrough guessing. Simulated output records include a SHA-256
-  hash. Wider inferred memory-map seeding and materialisation are still
+  without weak fallthrough guessing. For staged decrunchers, C now prefers a
+  proven same-section CFG root that reaches the transfer site over the local
+  contiguous scan start, so setup code before helper blocks or embedded data is
+  represented as the decruncher entry. Simulated output records include a
+  SHA-256 hash. Wider inferred memory-map seeding and materialisation are still
   pending.
 
 The boundary is:
@@ -213,6 +216,9 @@ Support this with a narrow C runner around the generated concrete simulator:
 - Preserve setup state across explicit same-section unconditional branches or
   jumps over embedded data when the target is already an accepted code start.
   Do not infer continuity from a gap without that control-flow evidence.
+- Derive the simulator entry from proven CFG reachability when a section entry,
+  policy entry, or cross-section control target reaches the transfer site. Keep
+  the local scan start only when no such root is proven.
 - Stop only on a branch into the produced runtime image, unsupported instruction,
   illegal external access, trap/OS call, or instruction budget exhaustion.
 - Accept only when the written output is contiguous or sectionable, the final

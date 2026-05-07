@@ -278,6 +278,11 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   same-section unconditional branch/jump over embedded data into a later
   decrunch stage. This is provenance-first control-flow evidence, not a weak
   fallthrough or target-specific workaround.
+- C self-decrunch events now choose a proven same-section CFG root when that
+  root reaches the transfer site. Damocles now reports the decruncher entry at
+  the actual section-root setup code rather than the later local transfer stage;
+  materialisation is still blocked until the absolute source-memory map is
+  proven.
 - The next implementation step is extending simulator-backed output capture for
   real unsupported events with inferred memory-map seeding where justified and
   conservative materialisation gates.
