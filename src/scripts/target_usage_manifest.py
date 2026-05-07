@@ -1285,6 +1285,15 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
         offset = row.get("start_offset") if isinstance(row.get("start_offset"), int) else row.get("addr")
         example = _offset_example(section_index, offset, text.strip()[:160])
         example["row_index"] = row_index
+        if row.get("kind") == "directive" and opcode_or_directive == "ORG":
+            org_address = _org_directive_address(row, text)
+            org_example = dict(example)
+            if org_address is not None:
+                org_example["runtime_address"] = org_address
+            bag.add("materialized-org-range", example=org_example)
+            bag.add("runtime:materialized_org_range", example=org_example)
+            if org_address is not None:
+                bag.add(f"runtime:materialized_org_address:{org_address:08X}", example=org_example)
         stack_top_symbols = sorted(set(re.findall(r"\bstack_top_[0-9A-Fa-f]{8}\b", text)))
         for symbol in stack_top_symbols:
             stack_example = dict(example)
@@ -1375,6 +1384,24 @@ def _add_runtime_table_base_addend_features(bag: FeatureBag, text: str, example:
         table_example["addend"] = addend
         bag.add("analysis:runtime_table_base_addend", example=table_example)
         bag.add(f"analysis:runtime_table_base_addend:{_safe_part(symbol)}", example=table_example)
+
+
+def _org_directive_address(row: dict[str, Any], text: str) -> int | None:
+    operand = _string_value(row.get("operand_text"))
+    if operand is None:
+        match = re.search(r"\bORG\s+(\$[0-9A-Fa-f]+|0x[0-9A-Fa-f]+|[0-9]+)\b", text)
+        operand = match.group(1) if match else None
+    if operand is None:
+        return None
+    operand = operand.strip()
+    try:
+        if operand.startswith("$"):
+            return int(operand[1:], 16)
+        if operand.lower().startswith("0x"):
+            return int(operand, 16)
+        return int(operand, 10)
+    except ValueError:
+        return None
 
 
 _TABLE_LABEL_RE = re.compile(r"\b(?:abs|loc)_[0-9]+_[0-9A-Fa-f]{8}\b")
@@ -2520,6 +2547,20 @@ def _listing_xrefs(
                         text=stripped_text,
                     )
                 )
+        if listing_row.get("kind") == "directive" and opcode_or_directive == "ORG":
+            org_address = _org_directive_address(listing_row, text)
+            org_example = dict(example)
+            if org_address is not None:
+                org_example["runtime_address"] = org_address
+            for feature in ("materialized-org-range", "runtime:materialized_org_range"):
+                if feature_bag is not None:
+                    feature_bag.add(feature, example=org_example)
+                xrefs.append(_xref(row, feature, "runtime_org", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, value=org_address, text=stripped_text))
+            if org_address is not None:
+                feature = f"runtime:materialized_org_address:{org_address:08X}"
+                if feature_bag is not None:
+                    feature_bag.add(feature, example=org_example)
+                xrefs.append(_xref(row, feature, "runtime_org", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, value=org_address, text=stripped_text))
         for symbol, addend in _runtime_table_base_addend_matches(text):
             table_example = dict(example)
             table_example["symbol"] = symbol

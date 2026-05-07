@@ -159,6 +159,14 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "start_offset": 0x20,
                         },
                         {
+                            "kind": "directive",
+                            "text": "\tORG $400\n",
+                            "section_index": 0,
+                            "start_offset": 0x50,
+                            "opcode_or_directive": "ORG",
+                            "operand_text": "$400",
+                        },
+                        {
                             "kind": "data",
                             "text": "\tdc.w bplcon0,BPU2|BPU1|COLORON\n",
                             "section_index": 0,
@@ -362,6 +370,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["runtime:view"], 1)
         self.assertEqual(counts["runtime:copied_code"], 1)
         self.assertEqual(counts["runtime:view_kind:2"], 1)
+        self.assertEqual(counts["materialized-org-range"], 1)
+        self.assertEqual(counts["runtime:materialized_org_range"], 1)
+        self.assertEqual(counts["runtime:materialized_org_address:00000400"], 1)
         self.assertEqual(counts["memory:absolute_stack_top"], 2)
         self.assertEqual(counts["memory:absolute_stack_top:stack_top_00080000"], 2)
         self.assertEqual(counts["analysis:runtime_table_base_addend"], 1)
@@ -405,6 +416,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertNotIn("coprocessor:fpu_id:3", counts)
         self.assertIn("os:exec.library/AllocMem", tags)
         self.assertIn("compressed:rnc1-old", tags)
+        self.assertIn("materialized-org-range", tags)
         self.assertEqual(examples["os:exec.library/AllocMem"][0]["offset"], 0x20)
         self.assertEqual(examples["compressed-payload"][0]["offset"], 0x4C40)
         self.assertEqual(examples["decompression:runtime_copy"][0]["runtime_copy_address"], 0x4000)
@@ -706,6 +718,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "section_index": 0,
                         "start_offset": 0x40,
                         "stable_key": "row-runtime",
+                        "opcode_or_directive": "ORG",
                     },
                     {
                         "kind": "data",
@@ -773,6 +786,9 @@ class TargetUsageManifestTests(unittest.TestCase):
             by_feature,
         )
         self.assertIn(("runtime:copied_code", "runtime_view", 0x40, 3), by_feature)
+        self.assertIn(("materialized-org-range", "runtime_org", 0x40, 3), by_feature)
+        self.assertIn(("runtime:materialized_org_range", "runtime_org", 0x40, 3), by_feature)
+        self.assertIn(("runtime:materialized_org_address:00000400", "runtime_org", 0x40, 3), by_feature)
         self.assertIn(("compressed-payload", "packed_payload", 0x4C40, 6), by_feature)
         self.assertIn(("compressed:rnc1-old", "packed_payload", 0x4C40, 6), by_feature)
         self.assertIn(
