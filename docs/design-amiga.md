@@ -37,3 +37,27 @@ Rules:
   semantics.
 - Do not use ORG/runtime labels to model hunk headers or segment links.
 - Keep direct source/rebuild verification as the correctness gate.
+
+## ExecBase Absolute Address
+
+The Amiga ExecBase pointer lives at absolute address `$4`. Although the
+platform metadata records this as `AbsExecBase`, rendered source should keep
+direct ExecBase loads literal:
+
+```asm
+    movea.l $00000004.l,a6
+```
+
+This is the familiar Amiga idiom and is more useful to users than introducing a
+symbol for the well-known low-memory vector. The renderer must still distinguish
+this from runtime copied code at address `$4`: copy targets and control
+transfers to discovered runtime code may use generated runtime-code symbols,
+but the ordinary ExecBase load itself stays numeric.
+
+Rules:
+
+- Keep direct `($4)` ExecBase loads literal.
+- Do not render ExecBase as a code/data label, an ORG label, or
+  `runtime_code_00000004`.
+- Use runtime-code symbols at `$4` only when analysis proves copied executable
+  code is materialized there.
