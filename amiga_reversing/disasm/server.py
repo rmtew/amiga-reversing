@@ -476,15 +476,14 @@ def _publish_job_event(job_id: str) -> None:
         _publish_job_event_payload(job_id, payload)
 
 
-def _publish_listing_generation_ready_event(
-    job_id: str, project_name: str, generation: str, total_rows: int
+def _publish_listing_artifact_ready_event(
+    job_id: str, project_name: str, total_rows: int
 ) -> None:
     _publish_job_event_payload(
         job_id,
         {
-            "_event_type": "listing_generation_ready",
+            "_event_type": "listing_artifact_ready",
             "project_id": project_name,
-            "generation": generation,
             "total_rows": total_rows,
             "changed_ranges": [],
         },
@@ -704,13 +703,12 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             if old_artifact is not None and old_artifact is not _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name):
                 old_artifact.close()
         _log_event(
-            "listing_job generation_ready",
+            "listing_job artifact_ready",
             job_id=job_id,
             project=project_name,
-            generation="full",
             total_rows=total_rows,
         )
-        _publish_listing_generation_ready_event(job_id, project_name, "full", total_rows)
+        _publish_listing_artifact_ready_event(job_id, project_name, total_rows)
         if not _set_job_state(
             job_id,
             total_rows=total_rows,

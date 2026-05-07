@@ -3424,12 +3424,11 @@ def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pyt
     events: list[dict[str, object]] = []
     while not subscriber.empty():
         events.append(subscriber.get_nowait())
-    generation_events = [event for event in events if event.get("_event_type") == "listing_generation_ready"]
-    assert generation_events == [
+    artifact_events = [event for event in events if event.get("_event_type") == "listing_artifact_ready"]
+    assert artifact_events == [
         {
-            "_event_type": "listing_generation_ready",
+            "_event_type": "listing_artifact_ready",
             "project_id": "bloodwych",
-            "generation": "full",
             "total_rows": 1,
             "changed_ranges": [],
         }

@@ -105,8 +105,8 @@ navigation web requests now require the retained C listing artifact once the
 project is ready. The old production Python row-window helpers have been
 removed; tests that need fake artifacts keep their row slicing local to the
 test code. The redundant no-argument `build_project_rows_with_c_backend`
-wrapper was also removed; callers that still need full serialized rows for
-tests must state the generation explicitly or use the retained artifact API.
+wrapper was also removed; callers that still need serialized row data use the
+retained artifact API.
 The intended endpoint is still a C-owned analysis/render-plan artifact, keyed
 by the same effective target inputs, that can answer listing-window and
 navigation requests without rebuilding analysis and without Python retaining a
@@ -115,7 +115,7 @@ The first C artifact boundary now exists as an opaque
 `PlatformFileListingArtifact`: path and raw-binary create APIs build and retain
 the loaded object, effective policy, source analysis, facts_v2 profile, and
 render plan, and repeated window calls emit from that retained C state. This is
-now wired into full-listing generation so the server can keep the C artifact
+now wired into listing artifact builds so the server can keep the C artifact
 for later index-window requests after the full listing job completes.
 The retained C artifact now also emits the row-derived listing navigation
 payload. Labels, typed accesses/gaps, relocation-like runtime references,
@@ -166,8 +166,9 @@ Rows-only Python caches no longer satisfy listing readiness; a valid listing
 cache requires the retained C artifact. Ready-project listing and navigation
 routes fail closed if that artifact is missing or stale instead of serving a
 second, weaker Python row model. Listing jobs also no longer publish separate
-`visible_generation` or `target_generation` state; the loaded listing payload's
-`analysis_generation` is the web-facing truth.
+`visible_generation`, `target_generation`, or listing-generation-ready state; the
+retained artifact is the readiness state, and the loaded listing payload's
+`analysis_generation` is the web-facing analysis label.
 The production Python row-list navigation builder has also been removed.
 Navigation payloads come from the retained C artifact and the server only
 overlays project/session groups such as reproduction issues. App-slot
