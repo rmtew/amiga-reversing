@@ -3301,16 +3301,15 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
     }
     monkeypatch.setattr(
         disasm_server,
-        "build_project_listing_artifact_generation_profile",
-        lambda project_name, generation: build_calls.append((project_name, generation))
-        or (1, {}, artifact),
+        "build_project_listing_artifact_profile",
+        lambda project_name: build_calls.append(project_name) or (1, {}, artifact),
     )
 
     disasm_server._build_rows_job("job-1", "bloodwych")
 
     assert disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] is artifact
     assert artifact.closed is False
-    assert build_calls == [("bloodwych", "full")]
+    assert build_calls == ["bloodwych"]
     assert disasm_server._ASYNC_JOBS["job-1"]["status"] == "ready"
 
 
@@ -3337,13 +3336,10 @@ def test_build_rows_job_reports_unsupported_c_backend(
         "finished_at": None,
     }
 
-    def fail(
-        project_name: str,
-        generation: str,
-    ) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
+    def fail(project_name: str) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
         raise UnsupportedCBackendProject("unsupported project")
 
-    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", fail)
+    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_profile", fail)
 
     disasm_server._build_rows_job("job-1", "bloodwych")
 
@@ -3380,14 +3376,11 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
         "finished_at": None,
     }
 
-    def canceled_build(
-        project_name: str,
-        generation: str,
-    ) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
+    def canceled_build(project_name: str) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
         del disasm_server._ASYNC_JOBS["job-full"]
         return 1, {}, _FakeCListingArtifact()
 
-    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", canceled_build)
+    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_profile", canceled_build)
 
     disasm_server._build_rows_job("job-full", "bloodwych")
 
@@ -3404,8 +3397,8 @@ def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pyt
 
     monkeypatch.setattr(
         disasm_server,
-        "build_project_listing_artifact_generation_profile",
-        lambda project_name, generation: (1, {}, artifact),
+        "build_project_listing_artifact_profile",
+        lambda project_name: (1, {}, artifact),
     )
     disasm_server._ASYNC_JOBS["job-full"] = {
         "job_id": "job-full",
@@ -3614,8 +3607,8 @@ def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
     monkeypatch.setattr(
         disasm_server,
-        "build_project_listing_artifact_generation_profile",
-        lambda project_name, generation: (
+        "build_project_listing_artifact_profile",
+        lambda project_name: (
             1,
             {},
             artifact,
@@ -3676,13 +3669,13 @@ def test_cached_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyP
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
 
 
-def test_full_generation_cache_requires_c_artifact(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_listing_cache_requires_c_artifact(monkeypatch: pytest.MonkeyPatch) -> None:
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "cache"
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
 
-    assert not disasm_server._cache_satisfies_full_generation("bloodwych", "cache")
+    assert not disasm_server._cache_satisfies_listing("bloodwych", "cache")
 
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
 

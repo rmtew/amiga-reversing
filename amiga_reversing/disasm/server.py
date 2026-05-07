@@ -30,7 +30,7 @@ from amiga_reversing.disasm.api import (
 from amiga_reversing.disasm.binary_source import write_source_descriptor
 from amiga_reversing.disasm.c_backend import (
     CListingArtifact,
-    build_project_listing_artifact_generation_profile,
+    build_project_listing_artifact_profile,
     extract_disk_entry_with_c_backend,
     type_catalog_from_c_backend,
     validate_amiga_hunk_executable_with_c_backend,
@@ -646,7 +646,7 @@ def _project_listing_cache_key(project_name: str) -> str:
     return "|".join(parts)
 
 
-def _cache_satisfies_full_generation(project_name: str, cache_key: str) -> bool:
+def _cache_satisfies_listing(project_name: str, cache_key: str) -> bool:
     if project_name not in _PROJECT_LISTING_CACHE_KEY:
         return False
     if _PROJECT_LISTING_CACHE_KEY.get(project_name) != cache_key:
@@ -672,10 +672,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             generation="full",
             phase="build_c_artifact",
         )
-        total_rows, _profile, listing_artifact = build_project_listing_artifact_generation_profile(
-            project_name,
-            generation="full",
-        )
+        total_rows, _profile, listing_artifact = build_project_listing_artifact_profile(project_name)
         if not _set_job_phase(job_id, phase_id="cache_artifact", phase_index=2, phase_count=phase_count):
             if listing_artifact is not None:
                 listing_artifact.close()
@@ -759,7 +756,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
 
 def _start_listing_job(project_name: str) -> AsyncJobPayload:
     cache_key = _project_listing_cache_key(project_name)
-    if _cache_satisfies_full_generation(project_name, cache_key):
+    if _cache_satisfies_listing(project_name, cache_key):
         total_rows = _c_listing_artifact_total_rows(project_name)
         job_id = f"cached-full-{project_name}"
         payload: AsyncJobPayload = {

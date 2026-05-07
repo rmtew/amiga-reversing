@@ -474,14 +474,11 @@ def benchmark_project_source_with_text_from_c_backend(
     return _benchmark_from_facts_v2_asm_source_profile(profile), source_text
 
 
-def build_project_listing_artifact_generation_profile(
+def build_project_listing_artifact_profile(
     project_name: str,
     *,
-    generation: str,
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[int, dict[str, object], CListingArtifact]:
-    if generation != "full":
-        raise ValueError(f"Unsupported listing artifact generation: {generation}")
     paths = resolve_project_paths(project_name, project_root=project_root)
     with effective_metadata_file(paths.target_dir) as metadata_path:
         metadata_text = _metadata_path_text(metadata_path)
@@ -1229,19 +1226,18 @@ class CListingArtifact:
         return navigation, profile
 
     def window_payload(
-        self, *, start: int, count: int, generation: str = "full"
+        self, *, start: int, count: int
     ) -> tuple[ListingWindowPayload, dict[str, object]]:
         return self._window_payload_from_text(
             self._text_from_artifact_call(
                 self._dll.platform_file_facts_v2_listing_artifact_window_json_alloc,
                 max(0, start),
                 max(0, count),
-            ),
-            generation=generation,
+            )
         )
 
     def addr_window_payload(
-        self, *, addr: int | None, before: int, after: int, generation: str = "full"
+        self, *, addr: int | None, before: int, after: int
     ) -> tuple[ListingWindowPayload, dict[str, object]]:
         return self._window_payload_from_text(
             self._text_from_artifact_call(
@@ -1250,12 +1246,11 @@ class CListingArtifact:
                 0 if addr is None else max(0, addr),
                 max(0, before),
                 max(0, after),
-            ),
-            generation=generation,
+            )
         )
 
     def row_for_source_offset(
-        self, *, section_index: int | None, offset: int, generation: str = "full"
+        self, *, section_index: int | None, offset: int
     ) -> dict[str, object] | None:
         if section_index is None:
             return None
@@ -1283,20 +1278,17 @@ class CListingArtifact:
         return row
 
     def anchor_window_payload(
-        self, *, anchor_code: str, count: int, generation: str = "full"
+        self, *, anchor_code: str, count: int
     ) -> tuple[ListingWindowPayload, dict[str, object]]:
         return self._window_payload_from_text(
             self._text_from_artifact_call(
                 self._dll.platform_file_facts_v2_listing_artifact_anchor_window_json_alloc,
                 anchor_code,
                 max(0, count),
-            ),
-            generation=generation,
+            )
         )
 
-    def _window_payload_from_text(
-        self, text: str, *, generation: str
-    ) -> tuple[ListingWindowPayload, dict[str, object]]:
+    def _window_payload_from_text(self, text: str) -> tuple[ListingWindowPayload, dict[str, object]]:
         combined = cast(
             dict[str, object],
             json.loads(text),
@@ -1304,6 +1296,7 @@ class CListingArtifact:
         listing_window = cast(dict[str, object], combined.get("listing", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))
         rows = _c_listing_row_dicts(listing_window.get("rows", []))
+        generation = listing_window.get("analysis_generation")
         payload = cast(
             ListingWindowPayload,
             {
@@ -1313,7 +1306,7 @@ class CListingArtifact:
                 "has_more_before": listing_window.get("has_more_before", False),
                 "has_more_after": listing_window.get("has_more_after", False),
                 "total_rows": listing_window.get("total_rows", 0),
-                "analysis_generation": generation,
+                "analysis_generation": generation if isinstance(generation, str) else "full",
                 "rows": rows,
             },
         )

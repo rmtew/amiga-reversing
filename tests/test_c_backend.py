@@ -2201,9 +2201,8 @@ def test_project_listing_artifact_skips_analysis_json_when_no_platform_calls(
         classmethod(lambda cls, source_file, *, metadata_text, include_dir, project_root: artifact),
     )
 
-    total_rows, profile, returned_artifact = c_backend.build_project_listing_artifact_generation_profile(
+    total_rows, profile, returned_artifact = c_backend.build_project_listing_artifact_profile(
         "raw_demo",
-        generation="full",
         project_root=tmp_path,
     )
 
@@ -2264,9 +2263,8 @@ def test_project_listing_artifact_build_uses_summary_only_with_platform_calls(
         classmethod(lambda cls, source_file, *, metadata_text, include_dir, project_root: artifact),
     )
 
-    total_rows, profile, returned_artifact = c_backend.build_project_listing_artifact_generation_profile(
+    total_rows, profile, returned_artifact = c_backend.build_project_listing_artifact_profile(
         "raw_demo",
-        generation="full",
         project_root=tmp_path,
     )
 

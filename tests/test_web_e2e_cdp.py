@@ -18,7 +18,7 @@ from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.c_backend import (
-    build_project_listing_artifact_generation_profile,
+    build_project_listing_artifact_profile,
 )
 from amiga_reversing.disasm.projects import ProjectRecord
 from tests.cdp_brave import brave_cdp_requested, brave_cdp_skip_reason, brave_page
@@ -230,15 +230,13 @@ class _FakeCListingArtifact:
     def close(self) -> None:
         self.closed = True
 
-    def window_payload(
-        self, *, start: int, count: int, generation: str = "full"
-    ) -> tuple[dict[str, object], dict[str, object]]:
+    def window_payload(self, *, start: int, count: int) -> tuple[dict[str, object], dict[str, object]]:
         payload = dict(_test_listing_index_window_payload(self.rows, start, count, self.api_calls_by_row_id))
-        payload["analysis_generation"] = generation
+        payload["analysis_generation"] = "full"
         return payload, {}
 
     def addr_window_payload(
-        self, *, addr: int | None, before: int, after: int, generation: str = "full"
+        self, *, addr: int | None, before: int, after: int
     ) -> tuple[dict[str, object], dict[str, object]]:
         payload = dict(
             _test_listing_addr_window_payload(
@@ -249,12 +247,10 @@ class _FakeCListingArtifact:
                 api_calls_by_row_id=self.api_calls_by_row_id,
             )
         )
-        payload["analysis_generation"] = generation
+        payload["analysis_generation"] = "full"
         return payload, {}
 
-    def anchor_window_payload(
-        self, *, anchor_code: str, count: int, generation: str = "full"
-    ) -> tuple[dict[str, object], dict[str, object]]:
+    def anchor_window_payload(self, *, anchor_code: str, count: int) -> tuple[dict[str, object], dict[str, object]]:
         start = 0
         needle = anchor_code.strip()
         for index, row in enumerate(self.rows):
@@ -262,7 +258,7 @@ class _FakeCListingArtifact:
                 start = index
                 break
         payload = dict(_test_listing_index_window_payload(self.rows, start, count, self.api_calls_by_row_id))
-        payload["analysis_generation"] = generation
+        payload["analysis_generation"] = "full"
         return payload, {}
 
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
@@ -1234,10 +1230,7 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
     full_started = threading.Event()
     release_full = threading.Event()
 
-    def build_artifact(
-        project_name: str, generation: str
-    ) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
-        assert generation == "full"
+    def build_artifact(project_name: str) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
         full_started.set()
         assert release_full.wait(timeout=15.0)
         return len(full_rows), {}, _FakeCListingArtifact(full_rows, project_name=project_name)
@@ -1248,7 +1241,7 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "stable-cache")
-    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", build_artifact)
+    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_profile", build_artifact)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -1332,10 +1325,7 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
     full_started = threading.Event()
     release_full = threading.Event()
 
-    def build_artifact(
-        project_name: str, generation: str
-    ) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
-        assert generation == "full"
+    def build_artifact(project_name: str) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
         full_started.set()
         assert release_full.wait(timeout=15.0)
         return len(full_rows), {}, _FakeCListingArtifact(full_rows, project_name=project_name)
@@ -1346,7 +1336,7 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "stable-cache")
-    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", build_artifact)
+    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_profile", build_artifact)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -2439,10 +2429,7 @@ def test_brave_cdp_api_edit_modal_applies_struct_override(
         },
     )
 
-    def build_updated_artifact(
-        project_name: str, generation: str = "full"
-    ) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
-        assert generation == "full"
+    def build_updated_artifact(project_name: str) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
         artifact = _FakeCListingArtifact(
             updated_rows,
             project_name=project_name,
@@ -2464,7 +2451,7 @@ def test_brave_cdp_api_edit_modal_applies_struct_override(
         )
         return len(updated_rows), {}, artifact
 
-    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_generation_profile", build_updated_artifact)
+    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_profile", build_updated_artifact)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -2582,9 +2569,8 @@ def test_brave_cdp_real_annotation_edit_round_trip(
     for stale in (project_root / "targets" / project_id).glob("overrides.json*"):
         stale.unlink()
     _temp_project_accessors(monkeypatch, project_root)
-    total_rows, _profile, artifact = build_project_listing_artifact_generation_profile(
+    total_rows, _profile, artifact = build_project_listing_artifact_profile(
         project_id,
-        generation="full",
         project_root=PROJECT_ROOT,
     )
     payload, _ = artifact.window_payload(start=0, count=total_rows)

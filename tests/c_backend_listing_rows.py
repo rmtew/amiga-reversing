@@ -15,9 +15,8 @@ def build_project_listing_rows_with_c_artifact(
     *,
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[list[dict[str, object]], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
-    total_rows, profile, artifact = c_backend.build_project_listing_artifact_generation_profile(
+    total_rows, profile, artifact = c_backend.build_project_listing_artifact_profile(
         project_name,
-        generation="full",
         project_root=project_root,
     )
     try:

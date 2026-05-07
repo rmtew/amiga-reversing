@@ -5166,6 +5166,29 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
   if (slot_count == 0U && has_app_sizeof_value == 0) {
     goto cleanup;
   }
+  if (slot_count == 0U) {
+    if (has_resident_context) {
+      if (!render_asm_include_for_amiga_symbol(preview, "LIB_SIZE")) {
+        ++preview->asm_source_instruction_render_failures;
+        record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+        goto cleanup;
+      }
+      hash_asm_text(preview, "    RSSET LIB_SIZE\n");
+      cursor = base_offset;
+    } else {
+      hash_asm_text(preview, "    RSSET 0\n");
+      cursor = 0;
+    }
+    ++preview->asm_source_lines;
+    if (app_sizeof_value > cursor) {
+      snprintf(line, sizeof(line), "    RS.B %d\n", (int)(app_sizeof_value - cursor));
+      hash_asm_text(preview, line);
+      ++preview->asm_source_lines;
+    }
+    hash_asm_text(preview, "app_SIZEOF EQU __RS\n\n");
+    preview->asm_source_lines += 2U;
+    goto cleanup;
+  }
   qsort(slots, slot_count, sizeof(slots[0]), render_app_rs_slot_compare);
   for (index = 0U; index < slot_count; ++index) {
     size_t layout_end = index + 1U;
