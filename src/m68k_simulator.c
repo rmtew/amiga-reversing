@@ -2254,11 +2254,43 @@ static int sim_concrete_write_register_sized(M68kSimConcreteState *state, const 
 }
 
 static void sim_concrete_record_memory_write(M68kSimConcreteWriteTrace *trace, uint32_t address, uint8_t width) {
+  uint32_t end;
+  size_t index;
   if (trace == NULL || width == 0U) return;
+  if (address > UINT32_MAX - width) return;
+  end = address + width;
   if (trace->memory_write_count == 0U || address < trace->memory_write_start) trace->memory_write_start = address;
-  if (address <= UINT32_MAX - width && address + width > trace->memory_write_end)
-    trace->memory_write_end = address + width;
+  if (end > trace->memory_write_end) trace->memory_write_end = end;
   trace->memory_write_count += 1U;
+  for (index = 0U; index < trace->memory_write_range_count; ++index) {
+    M68kSimConcreteWriteRange *range = &trace->memory_write_ranges[index];
+    if (end < range->start || address > range->end) continue;
+    if (address < range->start) range->start = address;
+    if (end > range->end) range->end = end;
+    {
+      size_t merge_index = index + 1U;
+      while (merge_index < trace->memory_write_range_count) {
+        M68kSimConcreteWriteRange *other = &trace->memory_write_ranges[merge_index];
+        if (other->end < range->start || other->start > range->end) {
+          ++merge_index;
+          continue;
+        }
+        if (other->start < range->start) range->start = other->start;
+        if (other->end > range->end) range->end = other->end;
+        trace->memory_write_ranges[merge_index] =
+          trace->memory_write_ranges[trace->memory_write_range_count - 1U];
+        trace->memory_write_range_count -= 1U;
+      }
+    }
+    return;
+  }
+  if (trace->memory_write_range_count >= M68K_SIM_CONCRETE_WRITE_RANGE_LIMIT) {
+    trace->memory_write_range_overflow = 1U;
+    return;
+  }
+  trace->memory_write_ranges[trace->memory_write_range_count].start = address;
+  trace->memory_write_ranges[trace->memory_write_range_count].end = end;
+  trace->memory_write_range_count += 1U;
 }
 
 static int sim_concrete_write_memory_sized(uint8_t *memory, size_t memory_size, uint32_t address,
@@ -4727,6 +4759,17 @@ static int sim_concrete_pc_in_range(uint32_t pc, uint32_t start, uint32_t end) {
   return start < end && pc >= start && pc < end;
 }
 
+static void sim_concrete_run_copy_write_trace(M68kSimConcreteRunTraceResult *result,
+    const M68kSimConcreteWriteTrace *trace) {
+  if (result == NULL || trace == NULL) return;
+  result->memory_write_start = trace->memory_write_start;
+  result->memory_write_end = trace->memory_write_end;
+  result->memory_write_count = trace->memory_write_count;
+  result->memory_write_range_count = trace->memory_write_range_count;
+  result->memory_write_range_overflow = trace->memory_write_range_overflow;
+  memcpy(result->memory_write_ranges, trace->memory_write_ranges, sizeof(result->memory_write_ranges));
+}
+
 int m68k_simulate_run_concrete(uint8_t target_cpu, uint8_t *memory, size_t memory_size,
     M68kSimConcreteState *io_state, size_t max_steps, uint32_t stop_pc_start, uint32_t stop_pc_end,
     M68kSimConcreteRunTraceResult *out_result) {
@@ -4750,17 +4793,13 @@ int m68k_simulate_run_concrete(uint8_t target_cpu, uint8_t *memory, size_t memor
     out_result->stop_pc = pc;
     if ((size_t)pc >= memory_size) {
       out_result->stop_reason = M68K_SIM_CONCRETE_RUN_STOP_PC_OUT_OF_RANGE;
-      out_result->memory_write_start = write_trace.memory_write_start;
-      out_result->memory_write_end = write_trace.memory_write_end;
-      out_result->memory_write_count = write_trace.memory_write_count;
+      sim_concrete_run_copy_write_trace(out_result, &write_trace);
       return 0;
     }
     instruction = m68k_ir_decode_one(memory + pc, memory_size - (size_t)pc, target_cpu, diagnostics);
     if (m68k_diag_has_errors(&out_result->diagnostics) || instruction.byte_count == 0U) {
       out_result->stop_reason = M68K_SIM_CONCRETE_RUN_STOP_DECODE_ERROR;
-      out_result->memory_write_start = write_trace.memory_write_start;
-      out_result->memory_write_end = write_trace.memory_write_end;
-      out_result->memory_write_count = write_trace.memory_write_count;
+      sim_concrete_run_copy_write_trace(out_result, &write_trace);
       return 0;
     }
     if (m68k_simulate_step_concrete(&instruction, target_cpu, memory + pc, memory_size - (size_t)pc, memory,
@@ -4768,25 +4807,19 @@ int m68k_simulate_run_concrete(uint8_t target_cpu, uint8_t *memory, size_t memor
         m68k_diag_has_errors(&out_result->diagnostics)) {
       out_result->stop_reason = M68K_SIM_CONCRETE_RUN_STOP_SIMULATION_ERROR;
       out_result->stop_pc = io_state->pc;
-      out_result->memory_write_start = write_trace.memory_write_start;
-      out_result->memory_write_end = write_trace.memory_write_end;
-      out_result->memory_write_count = write_trace.memory_write_count;
+      sim_concrete_run_copy_write_trace(out_result, &write_trace);
       return 0;
     }
     out_result->step_count += 1U;
     out_result->stop_pc = io_state->pc;
     if (sim_concrete_pc_in_range(io_state->pc, stop_pc_start, stop_pc_end)) {
       out_result->stop_reason = M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE;
-      out_result->memory_write_start = write_trace.memory_write_start;
-      out_result->memory_write_end = write_trace.memory_write_end;
-      out_result->memory_write_count = write_trace.memory_write_count;
+      sim_concrete_run_copy_write_trace(out_result, &write_trace);
       return 0;
     }
   }
   out_result->stop_reason = M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT;
   out_result->stop_pc = io_state->pc;
-  out_result->memory_write_start = write_trace.memory_write_start;
-  out_result->memory_write_end = write_trace.memory_write_end;
-  out_result->memory_write_count = write_trace.memory_write_count;
+  sim_concrete_run_copy_write_trace(out_result, &write_trace);
   return 0;
 }

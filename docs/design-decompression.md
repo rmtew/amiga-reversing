@@ -169,10 +169,13 @@ Use project-owned decompression:
   range and transfers control there. Simple self-contained cases can now be
   probed with the generated simulator and emit `simulated_output_observed` with
   output range, write count, and stop metadata from actual simulator write
-  tracing rather than memory diffs. The simulator seed now also honours C policy
-  runtime ranges/execution views, so absolute source reads are supported when
-  the source mapping is explicit. Simulated output records include a SHA-256
-  hash. Wider inferred memory-map seeding and materialisation are still pending.
+  tracing rather than memory diffs. Concrete writes are tracked as merged ranges,
+  and the accepted output is the range containing the transfer target, so
+  unrelated scratch or hardware writes do not widen the payload hash. The
+  simulator seed now also honours C policy runtime ranges/execution views, so
+  absolute source reads are supported when the source mapping is explicit.
+  Simulated output records include a SHA-256 hash. Wider inferred memory-map
+  seeding and materialisation are still pending.
 
 The boundary is:
 

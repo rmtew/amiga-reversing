@@ -11,6 +11,7 @@
 #define M68K_SIM_TARGET_LIMIT 32U
 #define M68K_SIM_MEMORY_CELL_LIMIT 32U
 #define M68K_SIM_MEMORY_WRITE_LIMIT 8U
+#define M68K_SIM_CONCRETE_WRITE_RANGE_LIMIT 32U
 #define M68K_SIM_CONTROL_REGISTER_LIMIT 32U
 
 typedef enum M68kSimFlowKind {
@@ -477,10 +478,19 @@ typedef struct M68kSimConcreteState {
   uint16_t sr;
 } M68kSimConcreteState;
 
+typedef struct M68kSimConcreteWriteRange {
+  uint32_t start;
+  uint32_t end;
+} M68kSimConcreteWriteRange;
+
 typedef struct M68kSimConcreteWriteTrace {
   uint32_t memory_write_start;
   uint32_t memory_write_end;
   size_t memory_write_count;
+  size_t memory_write_range_count;
+  uint8_t memory_write_range_overflow;
+  uint8_t reserved[7];
+  M68kSimConcreteWriteRange memory_write_ranges[M68K_SIM_CONCRETE_WRITE_RANGE_LIMIT];
 } M68kSimConcreteWriteTrace;
 
 typedef enum M68kSimConcreteRunStopReason {
@@ -500,6 +510,10 @@ typedef struct M68kSimConcreteRunTraceResult {
   uint32_t memory_write_start;
   uint32_t memory_write_end;
   size_t memory_write_count;
+  size_t memory_write_range_count;
+  uint8_t memory_write_range_overflow;
+  uint8_t reserved[7];
+  M68kSimConcreteWriteRange memory_write_ranges[M68K_SIM_CONCRETE_WRITE_RANGE_LIMIT];
   M68kSimConcreteRunStopReason stop_reason;
   M68kDiagList diagnostics;
 } M68kSimConcreteRunTraceResult;

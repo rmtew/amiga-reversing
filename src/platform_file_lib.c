@@ -1041,7 +1041,8 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
     PlatformSelfDecrunchEvent *out_event) {
   ArenaMark mark;
   uint8_t *memory = NULL;
-  size_t memory_size, range_index;
+  size_t memory_size, range_index, write_range_index;
+  uint32_t output_start = 0U, output_end = 0U;
   M68kSimConcreteState state;
   M68kSimConcreteRunTraceResult result;
   int ok = 0;
@@ -1093,18 +1094,27 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
       result.stop_reason != M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE) {
     goto cleanup;
   }
-  if (result.memory_write_count == 0U || result.memory_write_start > event->entrypoint ||
-      result.memory_write_end <= event->entrypoint || result.memory_write_end > memory_size) {
+  if (result.memory_write_count == 0U || result.memory_write_range_overflow ||
+      result.memory_write_range_count == 0U) {
     goto cleanup;
   }
+  for (write_range_index = 0U; write_range_index < result.memory_write_range_count; ++write_range_index) {
+    const M68kSimConcreteWriteRange *write_range = &result.memory_write_ranges[write_range_index];
+    if (write_range->start <= event->entrypoint && write_range->end > event->entrypoint) {
+      output_start = write_range->start;
+      output_end = write_range->end;
+      break;
+    }
+  }
+  if (output_start > event->entrypoint || output_end <= event->entrypoint || output_end > memory_size) goto cleanup;
   out_event->has_simulated_output = 1U;
   out_event->simulated_stop_reason = (uint8_t)result.stop_reason;
   out_event->simulated_step_count = (uint32_t)result.step_count;
   out_event->simulated_write_count = (uint32_t)result.memory_write_count;
-  out_event->simulated_output_start = result.memory_write_start;
-  out_event->simulated_output_end = result.memory_write_end;
-  (void)m68k_platform_sha256_hex(memory + result.memory_write_start,
-    result.memory_write_end - result.memory_write_start, out_event->simulated_output_sha256);
+  out_event->simulated_output_start = output_start;
+  out_event->simulated_output_end = output_end;
+  (void)m68k_platform_sha256_hex(memory + output_start, output_end - output_start,
+    out_event->simulated_output_sha256);
   ok = 1;
 
 cleanup:

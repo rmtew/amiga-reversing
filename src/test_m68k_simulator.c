@@ -83,6 +83,33 @@ static int test_concrete_run_applies_move_postincrement_update(void) {
   return 0;
 }
 
+static int test_concrete_run_records_merged_write_ranges(void) {
+  uint8_t memory[32] = {
+    0x41U, 0xF9U, 0x00U, 0x00U, 0x00U, 0x08U,
+    0x10U, 0xFCU, 0x00U, 0xAAU,
+    0x10U, 0xFCU, 0x00U, 0xBBU,
+    0x41U, 0xF9U, 0x00U, 0x00U, 0x00U, 0x10U,
+    0x10U, 0xFCU, 0x00U, 0x12U,
+    0x10U, 0xFCU, 0x00U, 0x34U,
+  };
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state, 6U, 0U,
+    0U, &result));
+  M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT, result.stop_reason);
+  M68K_C_ASSERT_U32(4U, (uint32_t)result.memory_write_count);
+  M68K_C_ASSERT_U32(0x08U, result.memory_write_start);
+  M68K_C_ASSERT_U32(0x12U, result.memory_write_end);
+  M68K_C_ASSERT_U32(2U, (uint32_t)result.memory_write_range_count);
+  M68K_C_ASSERT_U32(0U, result.memory_write_range_overflow);
+  M68K_C_ASSERT_U32(0x08U, result.memory_write_ranges[0].start);
+  M68K_C_ASSERT_U32(0x0AU, result.memory_write_ranges[0].end);
+  M68K_C_ASSERT_U32(0x10U, result.memory_write_ranges[1].start);
+  M68K_C_ASSERT_U32(0x12U, result.memory_write_ranges[1].end);
+  return 0;
+}
+
 int m68k_c_simulator_tests(void) {
   static const M68kCTestCase cases[] = {
     {"concrete_run_stops_on_pc_range", test_concrete_run_stops_on_pc_range},
@@ -90,6 +117,7 @@ int m68k_c_simulator_tests(void) {
     {"concrete_run_reports_pc_out_of_range", test_concrete_run_reports_pc_out_of_range},
     {"concrete_run_reports_bad_arguments", test_concrete_run_reports_bad_arguments},
     {"concrete_run_applies_move_postincrement_update", test_concrete_run_applies_move_postincrement_update},
+    {"concrete_run_records_merged_write_ranges", test_concrete_run_records_merged_write_ranges},
   };
   return m68k_c_test_run_suite("m68k_simulator", cases, sizeof(cases) / sizeof(cases[0]));
 }

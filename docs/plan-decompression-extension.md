@@ -266,6 +266,10 @@ Failing a gate should produce an indexed work item, not a guessed child target.
 - Simulator output range now comes from concrete write tracing, not post-run
   memory diffs, so writes are retained even when the value equals the prior
   memory byte.
+- Simulator write tracing now retains merged concrete write ranges and accepts
+  the output range containing the transfer target, rather than the broad min/max
+  span. This keeps unrelated scratch or hardware writes out of simulated payload
+  hashes.
 - The next implementation step is extending simulator-backed output capture for
-  real unsupported events with inferred memory-map seeding where justified,
-  write-range bounding and conservative materialisation gates.
+  real unsupported events with inferred memory-map seeding where justified and
+  conservative materialisation gates.
