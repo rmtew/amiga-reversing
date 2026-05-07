@@ -51,6 +51,7 @@ m68k_vector_trap_2_instruction_vector	EQU	$88
 m68k_vector_trap_3_instruction_vector	EQU	$8C
 _custom	EQU	$DFF000
 INTF_CLRALL	EQU	$7FFF
+stack_top_00080000	EQU	$80000
 _ciab	EQU	$BFD000
 _ciaa	EQU	$BFE001
 m68k_vector_initial_pc	EQU	$4
@@ -505,7 +506,7 @@ loc_6_00000000:
 	move.w #INTF_CLRALL,intreq(a5)
 	move #$2000,sr
 	move.w #$4000,dsklen(a5)
-	lea.l $00080000.l,a7
+	lea.l stack_top_00080000.l,a7
 	movea.l a7,a0
 	suba.l #$400,a0
 	move a0,usp

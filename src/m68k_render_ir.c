@@ -6305,6 +6305,45 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
   return 1;
 }
 
+static int attach_absolute_stack_top_symbol(M68kRenderIRPreview *preview, M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  uint8_t source_index;
+  uint8_t dest_index;
+  uint8_t dest_reg = 0U;
+  uint32_t value = 0U;
+  char symbol[80];
+  if (preview == NULL || instruction == NULL) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL || instruction->operand_count == 0U) return 0;
+  if (metadata->operation_type != M68K_SIM_OP_MOVE &&
+      metadata->operation_class != M68K_SIM_CLASS_LOAD_EFFECTIVE_ADDRESS) {
+    return 0;
+  }
+  source_index = metadata->source_operand_index;
+  dest_index = metadata->dest_operand_index;
+  if (source_index >= instruction->operand_count || dest_index >= instruction->operand_count) return 0;
+  if (metadata->operand_access_kinds[dest_index] != M68K_SIM_ACCESS_REGISTER_WRITE ||
+      !operand_address_register_index_local(&instruction->operands[dest_index], &dest_reg) || dest_reg != 7U ||
+      instruction->operands[source_index].symbol_ref.has_name != 0U) {
+    return 0;
+  }
+  if (!operand_is_immediate_value_local(&instruction->operands[source_index], &value) &&
+      !operand_absolute_offset_local(&instruction->operands[source_index], &value)) {
+    return 0;
+  }
+  if (value == 0U || m68k_cpu_find_exception_vector_by_address(value) != NULL ||
+      amiga_os_find_hardware_base_symbol_by_address(value) != NULL ||
+      amiga_os_find_hardware_register_by_cpu_address(value) != NULL ||
+      amiga_os_find_hardware_register_field_by_cpu_address(value) != NULL ||
+      amiga_os_find_hardware_register_range_by_cpu_address(value) != NULL) {
+    return 0;
+  }
+  if (!render_asm_define_runtime_address_symbol_once(preview, "stack_top", value, symbol, sizeof(symbol)))
+    return 0;
+  attach_generic_symbol(&instruction->operands[source_index], symbol);
+  return 1;
+}
+
 static int instruction_relocation_is_proven_operand(const M68kRenderLookup *lookup, size_t source_section_index,
     const M68kDecodeCandidate *candidate, const M68kFact *relocation, M68kInstructionIR *instruction) {
   size_t target_index;
@@ -6780,6 +6819,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
     sizeof(platform_comment));
   (void)attach_amiga_hardware_register_symbols(platform_state, &instruction, &instruction);
   (void)attach_amiga_hardware_register_immediate_symbols(platform_state, &instruction);
+  (void)attach_absolute_stack_top_symbol(preview, &instruction);
   (void)attach_amiga_app_base_slot_symbols(lookup, platform_state, &instruction);
   (void)attach_amiga_typed_struct_field_symbols(lookup, section->section_index, candidate->offset, &instruction);
   (void)attach_m68k_cpu_vector_symbols(&instruction);

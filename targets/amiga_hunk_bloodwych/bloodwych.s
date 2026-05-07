@@ -42,6 +42,7 @@ INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
 runtime_code_00000090	EQU	$90
 m68k_vector_trap_0_instruction_vector	EQU	$80
+stack_top_0005FFFC	EQU	$5FFFC
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF1P2	EQU	$4
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
@@ -98,7 +99,7 @@ loc_0_0000005C:
 abs_0_00000400:
 	move.w #INTF_CLRALL,_custom+intena.l
 	move.w #INTF_CLRALL,_custom+intreq.l
-	lea.l $0005FFFC.l,a7
+	lea.l stack_top_0005FFFC.l,a7
 	clr.b abs_0_00008C1F.l
 	bsr.w abs_0_00000492
 	clr.b abs_0_0000EE2D.l

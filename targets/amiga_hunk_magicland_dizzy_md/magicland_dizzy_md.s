@@ -1,6 +1,7 @@
     INCLUDE "hardware/custom.i"
 
 _custom	EQU	$DFF000
+stack_top_00080000	EQU	$80000
 runtime_code_00000100	EQU	$100
 
     SECTION section,code
@@ -10,7 +11,7 @@ loc_0_00000000:
 	move.l #$B33C,d7
 	lea.l loc_0_0000005C(pc),a4
 	lea.l abs_0_0005BFF0.l,a5
-	lea.l $00080000.l,a7
+	lea.l stack_top_00080000.l,a7
 	pea.l $000000C0.l
 	movem.w loc_0_00000052(pc),d0-d4
 	cmpa.l a5,a4

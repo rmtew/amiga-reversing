@@ -3246,6 +3246,52 @@ static int test_facts_v2_unmaterialized_runtime_copy_code_address_renders_equ_sy
   return 0;
 }
 
+static int test_facts_v2_absolute_stack_top_load_renders_equ_symbol(void) {
+  AsmSourceFile parsed_source;
+  M68kDiagList diagnostics;
+  M68kObject object;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "\tlea $00080000.l,a7\n"
+    "\tmovea.l #$0007FFFC,a7\n"
+    "\tadda.w #$12,a7\n"
+    "\tmovea.l $00000004.l,a6\n"
+    "\trts\n";
+  memset(&parsed_source, 0, sizeof(parsed_source));
+  memset(&object, 0, sizeof(object));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  m68k_diag_list_reset(&diagnostics);
+  parsed_source.target_cpu = M68K_ASM_CPU_68000;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&parsed_source, source_text,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(1, m68k_source_pipeline_emit_object(&parsed_source, &object,
+    m68k_diag_sink(&diagnostics)));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy,
+    &source, &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "stack_top_00080000\tEQU\t$80000\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "stack_top_0007FFFC\tEQU\t$7FFFC\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l stack_top_00080000.l,a7\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l #stack_top_0007FFFC,a7\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tadda.w #$12,a7\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "stack_top_00000012") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l $00000004.l,a6\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "stack_top_00000004") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  m68k_source_model_free(&parsed_source);
+  return 0;
+}
+
 static int test_facts_v2_records_unresolved_indirect_jump_site(void) {
   M68kObject object;
   M68kSection section;
@@ -12684,6 +12730,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_traced_displacement_indirect_jump_promotes_runtime_copy_target},
     {"facts_v2_unmaterialized_runtime_copy_code_address_renders_equ_symbol",
       test_facts_v2_unmaterialized_runtime_copy_code_address_renders_equ_symbol},
+    {"facts_v2_absolute_stack_top_load_renders_equ_symbol",
+      test_facts_v2_absolute_stack_top_load_renders_equ_symbol},
     {"facts_v2_records_unresolved_indirect_jump_site",
       test_facts_v2_records_unresolved_indirect_jump_site},
     {"facts_v2_resolved_platform_call_not_unresolved_indirect_site",

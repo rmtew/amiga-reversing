@@ -53,14 +53,14 @@
       "status": "semantic_container_oddity"
     }
   ],
-  "finished_at": 1778142141.8275948,
+  "finished_at": 1778143036.0475347,
   "first_diff": null,
   "input_stamp": {
     "analysis_backend": "facts_v2",
     "assembler": "our",
     "assembler_cpu": "any",
     "assembler_tool_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\src\\build\\platform_file_lib.dll",
-    "assembler_tool_stamp": "1784320:1778142083943699800",
+    "assembler_tool_stamp": "1784832:1778142988208931300",
     "backend": "amiga-hunk",
     "effective_metadata_sha256": "f76cafbb588c684f432eb24497d4376c3b64963217396392ee83f6ffc1aa513d",
     "original_sha256": "f26cb8133afe589cac0259471a9eb2c94d96817520f91739a609af2f09a6c622",
@@ -91,8 +91,8 @@
     "source_renderer": "c-backend",
     "source_renderer_tool_stamps": {
       "c_backend.py": "55189:1778139706816447700",
-      "platform_disk_lib.dll": "1850880:1778142083737510100",
-      "platform_file_lib.dll": "1784320:1778142083943699800"
+      "platform_disk_lib.dll": "1851904:1778142987999181400",
+      "platform_file_lib.dll": "1784832:1778142988208931300"
     }
   },
   "issues": [],
@@ -222,7 +222,7 @@
       "render_ir_platform_typed_ref_seconds": 0.0,
       "render_ir_seconds": 0.002,
       "render_ir_statements": 28,
-      "render_ir_walk_seconds": 0.0,
+      "render_ir_walk_seconds": 0.001,
       "required_instruction_failures": 0,
       "runtime_address_range_conflicts": 0,
       "runtime_address_ranges": 2,
@@ -245,7 +245,7 @@
   "profile": {
     "assemble_seconds": 0.0,
     "diff_phase_seconds": 0.0,
-    "direct_rebuild_seconds": 0.0088,
+    "direct_rebuild_seconds": 0.0057,
     "facts_v2_direct_backend": "amiga-hunk",
     "facts_v2_direct_compare_container_oddity": 1.0,
     "facts_v2_direct_compare_payload_exact": 1.0,
@@ -266,10 +266,10 @@
     "facts_v2_direct_total_seconds": 0.0,
     "facts_v2_direct_write_buffer_seconds": 0.0,
     "facts_v2_direct_write_file_seconds": 0.0,
-    "prepare_seconds": 0.0022,
+    "prepare_seconds": 0.0016,
     "render_seconds": 0.002,
     "source_file_rewritten": 0.0,
-    "total_seconds": 0.0115,
+    "total_seconds": 0.0077,
     "write_source_seconds": 0.0
   },
   "rebuilt_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\bin\\rebuilt\\amiga_hunk_magicland_dizzy_md\\rebuilt.bin",
@@ -278,7 +278,7 @@
   "row_mappings": [],
   "source_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\bin\\rebuilt\\amiga_hunk_magicland_dizzy_md\\source.s",
   "stale": false,
-  "started_at": 1778142141.8161523,
+  "started_at": 1778143036.0398006,
   "status": "exact",
   "target": "amiga_hunk_magicland_dizzy_md",
   "tool_error": null

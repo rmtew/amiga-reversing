@@ -1284,6 +1284,12 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
         offset = row.get("start_offset") if isinstance(row.get("start_offset"), int) else row.get("addr")
         example = _offset_example(section_index, offset, text.strip()[:160])
         example["row_index"] = row_index
+        stack_top_symbols = sorted(set(re.findall(r"\bstack_top_[0-9A-Fa-f]{8}\b", text)))
+        for symbol in stack_top_symbols:
+            stack_example = dict(example)
+            stack_example["symbol"] = symbol
+            bag.add("memory:absolute_stack_top", example=stack_example)
+            bag.add(f"memory:absolute_stack_top:{_safe_part(symbol)}", example=stack_example)
         if _listing_row_label_symbol(row):
             bag.add("label:any", example=example)
             bag.add("label:definition", example=example)
