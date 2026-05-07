@@ -289,6 +289,19 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   The real Damocles self-decruncher now reaches `$40000` and records a simulated
   output range. The implementation remains evidence-bounded and does not emulate
   a full Amiga machine.
-- The next implementation step is applying the materialised simulated output to
-  child target creation/refresh and corpus indexing, with conservative gates for
-  parent overlap and reproduced child bytes.
+- Simulator-observed self-decrunch output is now deliberately marked
+  `unknown_runtime_payload` until C proves it is a coherent replacement program.
+  Damocles proves the conservative case: writes and a transfer target are
+  indexed, but the tiny data-like output is not retained as a child target.
+- Imported disk refresh removes stale synthetic decompressed children when a
+  parent is reanalysed successfully and no longer emits the accepted child.
+- C analysis now recognises the Tetragon unpacker marker as a native
+  identification event. Damocles reports both hunk-local candidates with source
+  data offset, declared source-end address, output load address, and final
+  entrypoint; hunk 2 also records the copied stub source offset, runtime
+  address `$100`, and `$40` transfer into that copied stub.
+- The next implementation step is conservative Tetragon unpack execution:
+  require complete source consumption to the declared source-end address, write
+  cursor ending at the expected transfer/start boundary for that routine shape,
+  and a final control transfer into the declared output range before any child
+  target can be accepted.

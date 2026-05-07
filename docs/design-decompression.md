@@ -476,6 +476,22 @@ Current retained output:
 25. Done: expose decompressed-child refresh through the import CLI so existing
    disk projects can apply new C materialisation records without deleting the
    project.
+26. Done: expose C simulator-proven self-decrunch output through a narrow C
+   backend API, but do not promote observed bytes to a retained child unless C
+   classifies the output as a replacement program. Damocles currently remains
+   indexed evidence only: it writes a 1744-byte data-like range at `$40000`, but
+   that range does not disassemble as a coherent program.
+27. Done: imported decompressed-child refresh removes stale synthetic children
+   when successful reanalysis no longer accepts the child.
+28. Done: C analysis identifies Tetragon unpacker marker events. Damocles now
+   reports two Tetragon candidates: hunk 1 source data at `$100`, declared
+   source end `$50000`, loading and entering `$40000`, and hunk 2 source data
+   at `$14C`, declared source end `$7FFFF`, output base `$1000`, final entry
+   `$59484`, copied stub storage `$6A`, runtime stub `$100`, and transfer
+   offset `$40`.
+29. Next: native Tetragon unpack execution should retain a payload only when C
+   proves exact source consumption to the declared source end, the expected
+   output cursor boundary, and final transfer into the declared output range.
 
 ## Current Corpus Query Proof
 
@@ -495,6 +511,10 @@ After rebuilding `corpus/target_usage_manifest.jsonl`:
   without provider validation.
 - `decompression:child` finds the retained Carrier decompressed raw child and
   exposes the existing load/entry metadata.
+- `decompression:codec:tetragon` and
+  `decompression:provider:c-tetragon-signature` find Damocles plus the Voodoo
+  Nightmare `ake.c` comparator as recognised native unpacker candidates. These
+  are identification records only, not retained children.
 - `decompression:runtime_copy` finds Carrier parent evidence where C analysis
   associated packed streams with runtime copy ranges, including the conflicting
   `$4C40 -> $4000` copy.

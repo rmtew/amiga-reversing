@@ -42,6 +42,9 @@ static int load_object_from_path(const M68kBackend *backend, const char *path, M
 static int load_raw_object_from_path(const char *platform_name, const char *path, M68kObject *object,
     M68kDiagSink diagnostics);
 static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68kFactsV2Profile *profile);
+static int write_bytes_to_path_local(const char *path, const unsigned char *data, size_t size,
+    M68kDiagList *diagnostics);
+static const char *self_decrunch_sim_stop_reason_name_local(uint8_t stop_reason);
 
 static char *duplicate_text_local(const char *text) {
   size_t length;
@@ -786,6 +789,23 @@ typedef struct PlatformSelfDecrunchEvent {
   uint8_t parent_remains_active;
 } PlatformSelfDecrunchEvent;
 
+typedef struct PlatformRecognizedUnpackerEvent {
+  uint32_t source_section_index;
+  uint32_t marker_offset;
+  uint32_t source_data_offset;
+  uint32_t source_data_end_address;
+  uint32_t load_address;
+  uint32_t entrypoint;
+  uint32_t copied_stub_storage_offset;
+  uint32_t copied_stub_runtime_address;
+  uint32_t copied_stub_transfer_offset;
+  char codec_id[64];
+  char codec_name[160];
+  char provider_id[32];
+  uint8_t has_copied_stub;
+  uint8_t has_copied_stub_transfer;
+} PlatformRecognizedUnpackerEvent;
+
 typedef struct PlatformRuntimeWriteObservation {
   uint32_t start;
   uint32_t end;
@@ -809,6 +829,17 @@ static void make_self_decrunch_event_id_local(char *out, size_t out_size,
     event != NULL ? (unsigned)event->source_section_index : 0U,
     event != NULL ? (unsigned)event->decompressor_entry_offset : 0U,
     event != NULL ? (unsigned)event->entrypoint : 0U);
+}
+
+static void make_recognized_unpacker_event_id_local(char *out, size_t out_size,
+    const PlatformRecognizedUnpackerEvent *event) {
+  const char *codec_id = "unknown";
+  if (out == NULL || out_size == 0U) return;
+  if (event != NULL && event->codec_id[0] != '\0') codec_id = event->codec_id;
+  snprintf(out, out_size, "decompression:recognized_unpacker:section:%u:%08X:%s",
+    event != NULL ? (unsigned)event->source_section_index : 0U,
+    event != NULL ? (unsigned)event->marker_offset : 0U,
+    codec_id);
 }
 
 static int runtime_transfer_target_from_candidate_local(const M68kDecodeSectionIR *section,
@@ -881,6 +912,202 @@ static int self_decrunch_event_duplicate_local(const PlatformSelfDecrunchEvent *
     }
   }
   return 0;
+}
+
+static int recognized_unpacker_event_duplicate_local(const PlatformRecognizedUnpackerEvent *events,
+    size_t event_count, const PlatformRecognizedUnpackerEvent *candidate) {
+  size_t index;
+  if (events == NULL || candidate == NULL) return 0;
+  for (index = 0U; index < event_count; ++index) {
+    if (events[index].source_section_index == candidate->source_section_index &&
+        events[index].marker_offset == candidate->marker_offset &&
+        strcmp(events[index].codec_id, candidate->codec_id) == 0) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static uint32_t recognized_unpacker_code_end_after_marker_local(const M68kSectionAnalysisIR *section_analysis,
+    uint32_t marker_end) {
+  uint32_t code_end = marker_end;
+  uint32_t limit = marker_end > UINT32_MAX - 0x400U ? UINT32_MAX : marker_end + 0x400U;
+  size_t block_index;
+  if (section_analysis == NULL) return marker_end;
+  for (block_index = 0U; block_index < section_analysis->block_count; ++block_index) {
+    const M68kCfgBlockIR *block = &section_analysis->blocks[block_index];
+    if (block->end_offset <= marker_end || block->start_offset >= limit) continue;
+    if (block->end_offset > code_end) code_end = block->end_offset;
+  }
+  return code_end;
+}
+
+static int recognized_unpacker_abs_operand_value_local(const M68kDecodeCandidate *candidate,
+    uint32_t *out_value) {
+  M68kInstructionIR instruction;
+  size_t operand_index;
+  if (candidate == NULL || out_value == NULL) return 0;
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  for (operand_index = 0U; operand_index < candidate->operand_count &&
+      operand_index < M68K_DECODE_IR_MAX_OPERANDS; ++operand_index) {
+    const M68kOperandIR *operand = &instruction.operands[operand_index];
+    uint8_t shape = m68k_instruction_operand_decoded_ea_shape(operand);
+    if (m68k_instruction_decoded_ea_target_kind(operand, shape, 0) == 1U) {
+      *out_value = operand->value.value;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int recognized_unpacker_jump_target_local(const M68kDecodeCandidate *candidate, uint32_t *out_target) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (candidate == NULL || out_target == NULL) return 0;
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || metadata->flow_conditional != 0U || metadata->flow_kind != M68K_SIM_FLOW_JUMP)
+    return 0;
+  for (operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction.operands[operand_index];
+    uint8_t shape;
+    if (metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET) continue;
+    shape = m68k_instruction_operand_decoded_ea_shape(operand);
+    if (m68k_instruction_decoded_ea_target_kind(operand, shape, 0) == 1U) {
+      *out_target = operand->value.value;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static void recognized_unpacker_targets_from_code_window_local(const M68kDecodeSectionIR *decode_section,
+    uint32_t start_offset, uint32_t end_offset, uint32_t *out_load_address,
+    uint32_t *out_source_end_address, uint32_t *out_entrypoint) {
+  size_t candidate_index;
+  uint32_t load_address = 0U;
+  uint32_t source_end_address = 0U;
+  uint32_t entrypoint = 0U;
+  if (out_load_address != NULL) *out_load_address = 0U;
+  if (out_source_end_address != NULL) *out_source_end_address = 0U;
+  if (out_entrypoint != NULL) *out_entrypoint = 0U;
+  if (decode_section == NULL || start_offset >= end_offset) return;
+  for (candidate_index = 0U; candidate_index < decode_section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &decode_section->candidates[candidate_index];
+    uint32_t value;
+    if (candidate->offset < start_offset || candidate->offset >= end_offset) continue;
+    if (load_address == 0U && recognized_unpacker_abs_operand_value_local(candidate, &value)) {
+      load_address = value;
+    } else if (source_end_address == 0U && recognized_unpacker_abs_operand_value_local(candidate, &value)) {
+      source_end_address = value;
+    }
+    if (recognized_unpacker_jump_target_local(candidate, &value)) {
+      entrypoint = value;
+    }
+  }
+  if (out_load_address != NULL) *out_load_address = load_address;
+  if (out_source_end_address != NULL) *out_source_end_address = source_end_address;
+  if (out_entrypoint != NULL) *out_entrypoint = entrypoint;
+}
+
+static void recognized_unpacker_attach_copied_stub_local(const M68kSectionAnalysisIR *section_analysis,
+    uint32_t marker_end, uint32_t code_end, PlatformRecognizedUnpackerEvent *event) {
+  size_t view_index;
+  size_t site_index;
+  if (section_analysis == NULL || event == NULL) return;
+  for (view_index = 0U; view_index < section_analysis->runtime_view_count; ++view_index) {
+    const M68kRuntimeViewIR *view = &section_analysis->runtime_views[view_index];
+    uint32_t view_end;
+    if (view->storage_offset < marker_end || view->storage_offset >= code_end) continue;
+    if (view->size > UINT32_MAX - view->storage_offset) continue;
+    view_end = view->storage_offset + view->size;
+    if (view_end < code_end) continue;
+    event->has_copied_stub = 1U;
+    event->copied_stub_storage_offset = view->storage_offset;
+    event->copied_stub_runtime_address = view->runtime_address;
+    break;
+  }
+  if (!event->has_copied_stub) return;
+  for (site_index = 0U; site_index < section_analysis->recovered_indirect_site_count; ++site_index) {
+    const M68kRecoveredIndirectSiteIR *site = &section_analysis->recovered_indirect_sites[site_index];
+    uint32_t view_end;
+    if (!site->has_target) continue;
+    if (code_end < event->copied_stub_storage_offset) continue;
+    view_end = event->copied_stub_storage_offset + (code_end - event->copied_stub_storage_offset);
+    if (site->target < event->copied_stub_storage_offset || site->target >= view_end) continue;
+    event->copied_stub_transfer_offset = site->target - event->copied_stub_storage_offset;
+    event->has_copied_stub_transfer = 1U;
+    break;
+  }
+}
+
+static int collect_recognized_tetragon_events_for_section_local(const M68kDecodeSectionIR *decode_section,
+    const M68kSectionAnalysisIR *section_analysis, PlatformRecognizedUnpackerEvent *events,
+    size_t event_capacity, size_t *io_event_count) {
+  static const unsigned char marker[] = " TETRAGON ";
+  uint32_t offset;
+  if (decode_section == NULL || section_analysis == NULL || events == NULL || io_event_count == NULL ||
+      decode_section->data == NULL || decode_section->size < sizeof(marker) - 1U) {
+    return 0;
+  }
+  for (offset = 0U; offset + (uint32_t)(sizeof(marker) - 1U) <= decode_section->size &&
+      *io_event_count < event_capacity; ++offset) {
+    PlatformRecognizedUnpackerEvent event;
+    uint32_t marker_end;
+    uint32_t code_end;
+    uint32_t load_address;
+    uint32_t source_end_address;
+    uint32_t entrypoint;
+    if (memcmp(decode_section->data + offset, marker, sizeof(marker) - 1U) != 0) continue;
+    marker_end = offset + (uint32_t)(sizeof(marker) - 1U);
+    code_end = recognized_unpacker_code_end_after_marker_local(section_analysis, marker_end);
+    if (code_end <= marker_end || code_end >= decode_section->size) continue;
+    recognized_unpacker_targets_from_code_window_local(decode_section, marker_end, code_end,
+      &load_address, &source_end_address, &entrypoint);
+    if (load_address == 0U || source_end_address == 0U || entrypoint == 0U) continue;
+    memset(&event, 0, sizeof(event));
+    event.source_section_index = (uint32_t)decode_section->section_index;
+    event.marker_offset = offset;
+    event.source_data_offset = code_end;
+    event.source_data_end_address = source_end_address;
+    event.load_address = load_address;
+    event.entrypoint = entrypoint;
+    recognized_unpacker_attach_copied_stub_local(section_analysis, marker_end, code_end, &event);
+    snprintf(event.codec_id, sizeof(event.codec_id), "tetragon");
+    snprintf(event.codec_name, sizeof(event.codec_name), "Tetragon target-owned unpacker");
+    snprintf(event.provider_id, sizeof(event.provider_id), "c-tetragon-signature");
+    if (!recognized_unpacker_event_duplicate_local(events, *io_event_count, &event)) {
+      events[*io_event_count] = event;
+      *io_event_count += 1U;
+    }
+  }
+  return 0;
+}
+
+static int collect_recognized_unpacker_events_local(const M68kObject *object,
+    const M68kSourceAnalysisIR *analysis, PlatformRecognizedUnpackerEvent *events, size_t event_capacity,
+    size_t *out_event_count) {
+  M68kDecodeIR decode;
+  size_t section_index;
+  int result = 0;
+  if (object == NULL || analysis == NULL || events == NULL || out_event_count == NULL) return -1;
+  *out_event_count = 0U;
+  m68k_decode_ir_init(&decode);
+  if (m68k_decode_ir_build_object(&decode, object, analysis->policy.max_cpu, m68k_diag_sink(NULL)) != 0) {
+    return -1;
+  }
+  for (section_index = 0U; section_index < decode.section_count && *out_event_count < event_capacity;
+      ++section_index) {
+    if (section_index >= analysis->section_count) break;
+    if (collect_recognized_tetragon_events_for_section_local(&decode.sections[section_index],
+        &analysis->sections[section_index], events, event_capacity, out_event_count) != 0) {
+      result = -1;
+      break;
+    }
+  }
+  m68k_decode_ir_destroy(&decode);
+  return result;
 }
 
 static int self_decrunch_event_matches_materialized_provider_local(const PlatformDecompressionIdentifyResult *results,
@@ -1214,7 +1441,7 @@ static void self_decrunch_grow_memory_for_candidate_runtime_literals_local(const
 
 static int simulate_self_decrunch_output_local(const M68kObject *object, const M68kSourceAnalysisIR *analysis,
     const M68kDecodeSectionIR *section, const PlatformSelfDecrunchEvent *event,
-    PlatformSelfDecrunchEvent *out_event) {
+    PlatformSelfDecrunchEvent *out_event, const char *output_path, M68kDiagList *diagnostics) {
   ArenaMark mark;
   uint8_t *memory = NULL;
   size_t memory_size, range_index, write_range_index;
@@ -1280,6 +1507,8 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
   if (m68k_simulate_run_concrete(analysis->policy.max_cpu, memory, memory_size, &state,
       PLATFORM_SELF_DECRUNCH_STEP_LIMIT,
       event->entrypoint, event->entrypoint + 16U, &memory_policy, &result) != 0) {
+    if (diagnostics != NULL && !m68k_diag_has_errors(diagnostics))
+      platform_file_add_error(diagnostics, "self-decrunch simulation failed");
     goto cleanup;
   }
   out_event->simulation_attempted = 1U;
@@ -1295,10 +1524,18 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
     }
   }
   if (result.stop_reason != M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE) {
+    if (diagnostics != NULL && !m68k_diag_has_errors(diagnostics)) {
+      char message[160];
+      snprintf(message, sizeof(message), "self-decrunch simulation stopped at %s pc=$%08X",
+        self_decrunch_sim_stop_reason_name_local((uint8_t)result.stop_reason), (unsigned)result.stop_pc);
+      platform_file_add_error(diagnostics, message);
+    }
     goto cleanup;
   }
   if (result.memory_write_count == 0U || result.memory_write_range_overflow ||
       result.memory_write_range_count == 0U) {
+    if (diagnostics != NULL && !m68k_diag_has_errors(diagnostics))
+      platform_file_add_error(diagnostics, "self-decrunch simulation produced no bounded write range");
     goto cleanup;
   }
   for (write_range_index = 0U; write_range_index < result.memory_write_range_count; ++write_range_index) {
@@ -1309,7 +1546,15 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
       break;
     }
   }
-  if (output_start > event->entrypoint || output_end <= event->entrypoint || output_end > memory_size) goto cleanup;
+  if (output_start > event->entrypoint || output_end <= event->entrypoint || output_end > memory_size) {
+    if (diagnostics != NULL && !m68k_diag_has_errors(diagnostics))
+      platform_file_add_error(diagnostics, "self-decrunch writes do not cover transfer entrypoint");
+    goto cleanup;
+  }
+  if (output_path != NULL && output_path[0] != '\0' &&
+      write_bytes_to_path_local(output_path, memory + output_start, output_end - output_start, diagnostics) != 0) {
+    goto cleanup;
+  }
   out_event->has_simulated_output = 1U;
   out_event->simulated_output_start = output_start;
   out_event->simulated_output_end = output_end;
@@ -1324,7 +1569,9 @@ cleanup:
 
 static int collect_self_decrunch_events_for_section(const M68kObject *object, const M68kDecodeIR *decode,
     const M68kSourceAnalysisIR *analysis, size_t section_index, PlatformSelfDecrunchEvent *events,
-    size_t event_capacity, size_t *io_event_count) {
+    size_t event_capacity, size_t *io_event_count, const char *materialize_event_id,
+    const char *materialize_output_path, PlatformSelfDecrunchEvent *out_materialized_event,
+    M68kDiagList *materialize_diagnostics) {
   const M68kSection *object_section;
   const M68kDecodeSectionIR *decode_section;
   const M68kSectionAnalysisIR *section_analysis;
@@ -1388,6 +1635,8 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
           &observed_write_end, &observed_write_count) &&
         observed_write_count >= 2U) {
       PlatformSelfDecrunchEvent event;
+      char event_id[160];
+      int materialize_this_event;
       memset(&event, 0, sizeof(event));
       event.source_section_index = (uint32_t)section_index;
       event.decompressor_entry_offset = reachable_decrunch_entry_root_local(section_analysis, section_index,
@@ -1399,7 +1648,12 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
       event.observed_write_end = observed_write_end;
       event.observed_write_count = observed_write_count;
       event.parent_remains_active = parent_remains_active;
-      (void)simulate_self_decrunch_output_local(object, analysis, decode_section, &event, &event);
+      make_self_decrunch_event_id_local(event_id, sizeof(event_id), &event);
+      materialize_this_event = materialize_event_id != NULL && strcmp(event_id, materialize_event_id) == 0;
+      (void)simulate_self_decrunch_output_local(object, analysis, decode_section, &event, &event,
+        materialize_this_event ? materialize_output_path : NULL,
+        materialize_this_event ? materialize_diagnostics : NULL);
+      if (materialize_this_event && out_materialized_event != NULL) *out_materialized_event = event;
       if (!self_decrunch_event_duplicate_local(events, *io_event_count, &event)) {
         events[*io_event_count] = event;
         *io_event_count += 1U;
@@ -1410,7 +1664,9 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
 }
 
 static int collect_self_decrunch_events_local(const M68kObject *object, const M68kSourceAnalysisIR *analysis,
-    PlatformSelfDecrunchEvent *events, size_t event_capacity, size_t *out_event_count) {
+    PlatformSelfDecrunchEvent *events, size_t event_capacity, size_t *out_event_count,
+    const char *materialize_event_id, const char *materialize_output_path,
+    PlatformSelfDecrunchEvent *out_materialized_event, M68kDiagList *materialize_diagnostics) {
   M68kDecodeIR decode;
   size_t section_index;
   int result = 0;
@@ -1423,7 +1679,8 @@ static int collect_self_decrunch_events_local(const M68kObject *object, const M6
   for (section_index = 0U; section_index < object->section_count && *out_event_count < event_capacity;
       ++section_index) {
     if (collect_self_decrunch_events_for_section(object, &decode, analysis, section_index, events,
-        event_capacity, out_event_count) != 0) {
+        event_capacity, out_event_count, materialize_event_id, materialize_output_path,
+        out_materialized_event, materialize_diagnostics) != 0) {
       result = -1;
       break;
     }
@@ -1460,6 +1717,47 @@ static const char *self_decrunch_event_reason_local(const PlatformSelfDecrunchEv
   }
 }
 
+static int append_recognized_unpacker_event_json(JsonBuilder *builder,
+    const PlatformRecognizedUnpackerEvent *event) {
+  char event_id[160];
+  if (builder == NULL || event == NULL) return -1;
+  make_recognized_unpacker_event_id_local(event_id, sizeof(event_id), event);
+  if (json_builder_append(builder, "{\"event_kind\":\"decompression\",\"event_id\":") != 0 ||
+      json_builder_append_json_string(builder, event_id) != 0 ||
+      json_builder_append(builder,
+        ",\"status\":\"identified\",\"reason\":\"recognized_unpacker_signature\","
+        "\"payload_role\":\"unknown_runtime_payload\","
+        "\"payload_role_confidence\":\"signature_only\","
+        "\"parent_remains_active\":\"unknown\",\"source_kind\":\"recognized_unpacker\","
+        "\"codec_support\":\"native_identifier\",\"provider_id\":") != 0 ||
+      json_builder_append_json_string(builder, event->provider_id) != 0 ||
+      json_builder_append(builder, ",\"codec_id\":") != 0 ||
+      json_builder_append_json_string(builder, event->codec_id) != 0 ||
+      json_builder_append(builder, ",\"codec_name\":") != 0 ||
+      json_builder_append_json_string(builder, event->codec_name) != 0 ||
+      json_builder_appendf(builder,
+        ",\"source_section\":%u,\"source_section_offset\":%u,"
+        "\"unpacker_marker_offset\":%u,\"source_data_end_address\":%u,"
+        "\"load_address\":%u,\"entrypoint\":%u",
+        (unsigned)event->source_section_index, (unsigned)event->source_data_offset,
+        (unsigned)event->marker_offset, (unsigned)event->source_data_end_address,
+        (unsigned)event->load_address, (unsigned)event->entrypoint) != 0) {
+    return -1;
+  }
+  if (event->has_copied_stub) {
+    if (json_builder_appendf(builder,
+        ",\"copied_stub_storage_offset\":%u,\"copied_stub_runtime_address\":%u",
+        (unsigned)event->copied_stub_storage_offset, (unsigned)event->copied_stub_runtime_address) != 0) {
+      return -1;
+    }
+    if (event->has_copied_stub_transfer &&
+        json_builder_appendf(builder, ",\"copied_stub_transfer_offset\":%u",
+          (unsigned)event->copied_stub_transfer_offset) != 0)
+      return -1;
+  }
+  return json_builder_append(builder, "}");
+}
+
 static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformSelfDecrunchEvent *event) {
   char event_id[160];
   if (builder == NULL || event == NULL) return -1;
@@ -1472,8 +1770,8 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
       json_builder_append(builder, ",\"reason\":") != 0 ||
       json_builder_append_json_string(builder, self_decrunch_event_reason_local(event)) != 0 ||
       json_builder_append(builder,
-        ",\"payload_role\":\"primary_program\",\"payload_role_confidence\":\"tool_inferred\","
-        "\"parent_remains_active\":") != 0 ||
+        ",\"payload_role\":\"unknown_runtime_payload\","
+        "\"payload_role_confidence\":\"observed_output_only\",\"parent_remains_active\":") != 0 ||
       json_builder_append_json_string(builder, event->parent_remains_active ? "true" : "false") != 0 ||
       json_builder_append(builder,
         ",\"source_kind\":\"self_decruncher\",\"provider_id\":\"m68k-sim-decrunch\","
@@ -1636,12 +1934,15 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
     const M68kSourceAnalysisIR *analysis) {
   PlatformDecompressionIdentifyResult results[32];
   PlatformSelfDecrunchEvent self_decrunch_events[16];
+  PlatformRecognizedUnpackerEvent recognized_unpacker_events[16];
   size_t result_count = 0U;
   size_t self_decrunch_event_count = 0U;
+  size_t recognized_unpacker_event_count = 0U;
   size_t section_index;
   if (object == NULL || analysis == NULL) return -1;
   memset(results, 0, sizeof(results));
   memset(self_decrunch_events, 0, sizeof(self_decrunch_events));
+  memset(recognized_unpacker_events, 0, sizeof(recognized_unpacker_events));
   for (section_index = 0U; section_index < object->section_count; ++section_index) {
     const M68kSection *section = &object->sections[section_index];
     const M68kSectionAnalysisIR *section_analysis;
@@ -1698,7 +1999,13 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
     }
   }
   if (collect_self_decrunch_events_local(object, analysis, self_decrunch_events,
-      sizeof(self_decrunch_events) / sizeof(self_decrunch_events[0]), &self_decrunch_event_count) != 0) {
+      sizeof(self_decrunch_events) / sizeof(self_decrunch_events[0]), &self_decrunch_event_count,
+      NULL, NULL, NULL, NULL) != 0) {
+    return -1;
+  }
+  if (collect_recognized_unpacker_events_local(object, analysis, recognized_unpacker_events,
+      sizeof(recognized_unpacker_events) / sizeof(recognized_unpacker_events[0]),
+      &recognized_unpacker_event_count) != 0) {
     return -1;
   }
   if (json_builder_append(builder, ",\"packed_payloads\":[") != 0) return -1;
@@ -1718,11 +2025,17 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
     if (append_decompression_event_json(builder, &results[section_index],
         find_decompression_runtime_copy_view(analysis, &results[section_index])) != 0) return -1;
   }
+  for (section_index = 0U; section_index < recognized_unpacker_event_count; ++section_index) {
+    if ((result_count != 0U || section_index != 0U) && json_builder_append(builder, ",") != 0) return -1;
+    if (append_recognized_unpacker_event_json(builder, &recognized_unpacker_events[section_index]) != 0) return -1;
+  }
   for (section_index = 0U; section_index < self_decrunch_event_count; ++section_index) {
     if (self_decrunch_event_matches_materialized_provider_local(results, result_count,
         &self_decrunch_events[section_index]))
       continue;
-    if ((result_count != 0U || section_index != 0U) && json_builder_append(builder, ",") != 0) return -1;
+    if ((result_count != 0U || recognized_unpacker_event_count != 0U || section_index != 0U) &&
+        json_builder_append(builder, ",") != 0)
+      return -1;
     if (append_self_decrunch_event_json(builder, &self_decrunch_events[section_index]) != 0) return -1;
   }
   return json_builder_append(builder, "]");
@@ -6278,4 +6591,125 @@ PLATFORM_FILE_API int platform_file_decompression_decompress_section_range_json_
   json_builder_destroy(&builder);
   m68k_object_destroy(&object);
   return *out_text == NULL ? -1 : decompress_result;
+}
+
+PLATFORM_FILE_API int platform_file_decompression_materialize_self_decrunch_event_json_alloc(
+    const char *backend_name, const char *path, const char *event_id, const char *output_path, char **out_text) {
+  Arena *scratch_arena = NULL;
+  M68kAnalysisPolicy *analysis_policy = NULL;
+  M68kFactsV2Profile *profile = NULL;
+  M68kSourceAnalysisIR *analysis = NULL;
+  M68kObject object;
+  M68kDiagList diagnostics;
+  JsonBuilder builder = {0};
+  const M68kBackend *backend = m68k_backend_by_name(backend_name);
+  PlatformSelfDecrunchEvent events[16];
+  PlatformSelfDecrunchEvent materialized_event;
+  size_t event_count = 0U;
+  size_t index;
+  int found = 0;
+  int result = -1;
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  memset(&object, 0, sizeof(object));
+  memset(events, 0, sizeof(events));
+  memset(&materialized_event, 0, sizeof(materialized_event));
+  m68k_diag_list_reset(&diagnostics);
+  if (backend == NULL || path == NULL || event_id == NULL || event_id[0] == '\0' ||
+      output_path == NULL || output_path[0] == '\0') {
+    platform_file_add_error(&diagnostics, "invalid self-decrunch materialization request");
+    goto cleanup;
+  }
+  scratch_arena = arena_create(4096U);
+  if (scratch_arena == NULL) {
+    platform_file_add_error(&diagnostics, "out of memory");
+    goto cleanup;
+  }
+  analysis_policy = (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy));
+  profile = (M68kFactsV2Profile *)arena_calloc(scratch_arena, 1U, sizeof(*profile));
+  analysis = (M68kSourceAnalysisIR *)arena_calloc(scratch_arena, 1U, sizeof(*analysis));
+  if (analysis_policy == NULL || profile == NULL || analysis == NULL) {
+    platform_file_add_error(&diagnostics, "out of memory");
+    goto cleanup;
+  }
+  m68k_analysis_policy_init_default(analysis_policy);
+  if (load_object_from_path(backend, path, &object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
+  if (enrich_policy_from_object_target_info_local(analysis_policy, backend, &object, NULL, 0U, &diagnostics) != 0)
+    goto cleanup;
+  enrich_policy_pointer_targets_from_object_local(analysis_policy, &object);
+  if (!validate_effective_policy_against_object_local(&diagnostics, &object, analysis_policy)) goto cleanup;
+  if (m68k_facts_v2_collect_source_analysis_profile(&object, analysis_policy, profile, analysis,
+      m68k_diag_sink(&diagnostics)) != 0) {
+    if (!m68k_diag_has_errors(&diagnostics))
+      platform_file_add_error(&diagnostics, "failed building facts_v2 source analysis");
+    goto cleanup;
+  }
+  if (collect_self_decrunch_events_local(&object, analysis, events, sizeof(events) / sizeof(events[0]),
+      &event_count, event_id, output_path, &materialized_event, &diagnostics) != 0) {
+    platform_file_add_error(&diagnostics, "failed collecting self-decrunch events");
+    goto cleanup;
+  }
+  for (index = 0U; index < event_count; ++index) {
+    char candidate_id[160];
+    make_self_decrunch_event_id_local(candidate_id, sizeof(candidate_id), &events[index]);
+    if (strcmp(candidate_id, event_id) != 0) continue;
+    found = 1;
+    if (!events[index].has_simulated_output) {
+      platform_file_add_error(&diagnostics, "self-decrunch event has no materializable simulated output");
+      goto cleanup;
+    }
+    if (!materialized_event.has_simulated_output) {
+      if (!m68k_diag_has_errors(&diagnostics))
+        platform_file_add_error(&diagnostics, "failed materializing simulated self-decrunch output");
+      goto cleanup;
+    }
+    if (events[index].simulated_output_sha256[0] != '\0' &&
+        strcmp(events[index].simulated_output_sha256, materialized_event.simulated_output_sha256) != 0) {
+      platform_file_add_error(&diagnostics, "self-decrunch materialization hash mismatch");
+      goto cleanup;
+    }
+    break;
+  }
+  if (!found) {
+    platform_file_add_error(&diagnostics, "self-decrunch event not found");
+    goto cleanup;
+  }
+  if (json_builder_create(&builder) != 0 ||
+      json_builder_append(&builder, "{\"status\":\"ok\",\"decompression_events\":[") != 0 ||
+      append_self_decrunch_event_json(&builder, &materialized_event) != 0 ||
+      json_builder_appendf(&builder,
+        "],\"decompressed\":{\"size\":%u,\"sha256\":",
+        (unsigned)(materialized_event.simulated_output_end - materialized_event.simulated_output_start)) != 0 ||
+      json_builder_append_json_string(&builder, materialized_event.simulated_output_sha256) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"load_address\":%u,\"entrypoint\":%u},\"provider_id\":\"m68k-sim-decrunch\"}",
+        (unsigned)materialized_event.simulated_output_start, (unsigned)materialized_event.entrypoint) != 0) {
+    platform_file_add_error(&diagnostics, "failed building self-decrunch materialization json");
+    goto cleanup;
+  }
+  *out_text = json_builder_build(&builder);
+  if (*out_text == NULL) {
+    platform_file_add_error(&diagnostics, "out of memory");
+    goto cleanup;
+  }
+  result = 0;
+
+cleanup:
+  if (result != 0 && out_text != NULL && *out_text == NULL) {
+    const char *message = m68k_diag_first_message(&diagnostics);
+    JsonBuilder error_builder = {0};
+    if (message == NULL || message[0] == '\0') message = "self-decrunch materialization failed";
+    if (json_builder_create(&error_builder) == 0 &&
+        json_builder_append(&error_builder, "{\"status\":\"error\",\"error\":") == 0 &&
+        json_builder_append_json_string(&error_builder, message) == 0 &&
+        json_builder_append(&error_builder, "}") == 0) {
+      *out_text = json_builder_build(&error_builder);
+    }
+    json_builder_destroy(&error_builder);
+  }
+  json_builder_destroy(&builder);
+  if (analysis != NULL) m68k_ir_source_analysis_destroy(analysis);
+  m68k_object_destroy(&object);
+  arena_destroy(scratch_arena);
+  return result;
 }

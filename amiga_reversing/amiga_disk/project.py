@@ -4,6 +4,7 @@ import hashlib
 import json
 import shutil
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 from amiga_reversing.amiga_disk.adf import (
@@ -22,6 +23,7 @@ from amiga_reversing.disasm.c_backend import (
     analyze_binary_source_with_c_backend,
     decompress_packed_section_range_with_c_backend,
     extract_disk_entry_with_c_backend,
+    materialize_self_decrunch_event_with_c_backend,
 )
 from amiga_reversing.disasm.project_ids import (
     disk_child_project_id,
@@ -33,6 +35,14 @@ from amiga_reversing.disasm.project_ids import (
 )
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
+
+
+@dataclass(frozen=True, slots=True)
+class MaterializedPayloadChildren:
+    parent_derived: list[dict[str, object]]
+    child_targets: list[ImportedTarget]
+    created_dirs: list[Path]
+    analysis_completed: bool
 
 
 def _materialized_bootloader_disk_stage_targets(
@@ -118,6 +128,17 @@ def _decompressed_payload_child_local_id(
     return raw_target_id(candidate)
 
 
+def _self_decrunch_payload_child_local_id(parent_local_target_id: str, event: dict[str, object]) -> str:
+    section = _int_field(event, "decompressor_code_section") or 0
+    entry = _int_field(event, "decompressor_entry_offset") or 0
+    load_address = _int_field(event, "load_address") or 0
+    stem = target_output_stem(parent_local_target_id)
+    candidate = f"{stem}_simdecrunch_{section:02x}_{entry:08x}_{load_address:08x}"
+    if len(candidate) > 71:
+        candidate = candidate[:71].rstrip("._-")
+    return raw_target_id(candidate)
+
+
 def _materializable_decompression_suggestions(analysis: dict[str, object]) -> list[dict[str, object]]:
     suggestions = analysis.get("derived_target_suggestions")
     if not isinstance(suggestions, list):
@@ -146,6 +167,38 @@ def _materializable_decompression_suggestions(analysis: dict[str, object]) -> li
     return materializable
 
 
+def _materializable_self_decrunch_events(analysis: dict[str, object]) -> list[dict[str, object]]:
+    events = analysis.get("decompression_events")
+    if not isinstance(events, list):
+        return []
+    materializable: list[dict[str, object]] = []
+    for item in events:
+        if not isinstance(item, dict):
+            continue
+        if item.get("source_kind") != "self_decruncher":
+            continue
+        if item.get("provider_id") != "m68k-sim-decrunch":
+            continue
+        if item.get("status") != "simulated_output_observed":
+            continue
+        if item.get("payload_role") != "primary_program":
+            continue
+        if item.get("parent_remains_active") != "false":
+            continue
+        if _str_field(item, "event_id") is None:
+            continue
+        if _int_field(item, "simulated_output_size") is None:
+            continue
+        if _str_field(item, "simulated_output_sha256") is None:
+            continue
+        if _int_field(item, "load_address") is None:
+            continue
+        if _int_field(item, "entrypoint") is None:
+            continue
+        materializable.append(dict(item))
+    return materializable
+
+
 def _target_type_may_contain_packed_payload(target_type: str) -> bool:
     return target_type in {"program", "library"}
 
@@ -159,13 +212,13 @@ def _materialize_decompressed_payload_children(
     parent_target_name: str,
     parent_entry_path: str,
     project_root: Path,
-) -> tuple[list[dict[str, object]], list[ImportedTarget], list[Path]]:
+) -> MaterializedPayloadChildren:
     from amiga_reversing.disasm.projects import create_project_at_path, mark_project_updated, set_project_origin
 
     try:
         parent_bytes = extract_disk_entry_with_c_backend(adf_file, parent_entry_path, project_root=project_root)
     except Exception:
-        return [], [], []
+        return MaterializedPayloadChildren([], [], [], False)
     parent_temp_path = disk_children_root / f".{parent_local_target_id}.decompression-parent.bin"
     created_dirs: list[Path] = []
     parent_derived: list[dict[str, object]] = []
@@ -175,7 +228,7 @@ def _materialize_decompressed_payload_children(
         try:
             analysis = analyze_binary_source_with_c_backend(parent_temp_path, project_root=project_root)
         except Exception:
-            return [], [], []
+            return MaterializedPayloadChildren([], [], [], False)
         for suggestion in _materializable_decompression_suggestions(analysis):
             source_section = _int_field(suggestion, "source_section")
             source_section_offset = _int_field(suggestion, "source_section_offset")
@@ -328,6 +381,166 @@ def _materialize_decompressed_payload_children(
                     derived_from=relationship,
                 )
             )
+        for event in _materializable_self_decrunch_events(analysis):
+            event_id = _str_field(event, "event_id")
+            output_size = _int_field(event, "simulated_output_size")
+            output_sha256 = _str_field(event, "simulated_output_sha256")
+            load_address = _int_field(event, "load_address")
+            entrypoint = _int_field(event, "entrypoint")
+            code_section = _int_field(event, "decompressor_code_section") or 0
+            code_entry = _int_field(event, "decompressor_entry_offset") or 0
+            transfer_offset = _int_field(event, "transfer_offset")
+            assert event_id is not None
+            assert output_size is not None
+            assert output_sha256 is not None
+            assert load_address is not None
+            assert entrypoint is not None
+            local_target_id = _self_decrunch_payload_child_local_id(parent_local_target_id, event)
+            target_name = disk_child_project_id(disk_id, local_target_id)
+            target_dir = disk_children_root / local_target_id
+            child_entry_path = f"{parent_entry_path}::simdecrunch_{code_section:02x}_{code_entry:08x}"
+            origin = {
+                "kind": "derived_decompressed_payload",
+                "parent_disk_id": disk_id,
+                "parent_target": parent_target_name,
+                "parent_entry_path": parent_entry_path,
+                "child_entry_path": child_entry_path,
+                "target_role": "decompressed_payload",
+                "target_type": "raw_binary",
+                "codec_id": _str_field(event, "codec_id"),
+                "codec_name": _str_field(event, "codec_name"),
+                "provider_id": "m68k-sim-decrunch",
+                "event_id": event_id,
+                "decompressed_size": output_size,
+                "decompressed_sha256": output_sha256,
+                "load_address": load_address,
+                "entrypoint": entrypoint,
+            }
+            if target_dir.exists() and not target_dir.is_dir():
+                continue
+            if not target_dir.exists():
+                create_project_at_path(
+                    disk_child_target_relpath(disk_id, local_target_id).as_posix(),
+                    project_root=project_root,
+                    origin=origin,
+                )
+                created_dirs.append(target_dir)
+            output_path = target_dir / "binary.bin"
+            temp_output_path = target_dir / ".self-decrunch-output.tmp"
+            try:
+                result = materialize_self_decrunch_event_with_c_backend(
+                    "amiga-hunk",
+                    parent_temp_path,
+                    event_id,
+                    temp_output_path,
+                    project_root=project_root,
+                )
+                materialized = result.get("decompressed")
+                if not isinstance(materialized, dict) or result.get("status") != "ok":
+                    raise DiskAnalysisError(f"C self-decrunch did not materialise {child_entry_path}")
+                actual_bytes = temp_output_path.read_bytes()
+                actual_hash = hashlib.sha256(actual_bytes).hexdigest()
+                if len(actual_bytes) != output_size or actual_hash != output_sha256:
+                    raise DiskAnalysisError(f"C self-decrunch output mismatch for {child_entry_path}")
+                temp_output_path.replace(output_path)
+            finally:
+                try:
+                    temp_output_path.unlink()
+                except FileNotFoundError:
+                    pass
+            set_project_origin(target_dir, origin=origin)
+            code_start_offset = entrypoint - load_address if entrypoint >= load_address else 0
+            if code_start_offset >= output_size:
+                code_start_offset = 0
+            write_source_descriptor(
+                target_dir,
+                {
+                    "kind": "raw_binary",
+                    "address_model": "runtime_absolute",
+                    "path": output_path.relative_to(project_root).as_posix(),
+                    "load_address": load_address,
+                    "entrypoint": entrypoint,
+                    "code_start_offset": code_start_offset,
+                    "parent_disk_id": disk_id,
+                },
+            )
+            write_target_metadata(target_dir, TargetMetadata(target_type="raw_binary", entry_register_seeds=()))
+            relationship = {
+                "kind": "decompressed_payload",
+                "parent_target": parent_target_name,
+                "parent_entry_path": parent_entry_path,
+                "child_target": target_name,
+                "child_entry_path": child_entry_path,
+                "decompressed_size": output_size,
+                "load_address": load_address,
+                "entrypoint": entrypoint,
+                "codec_id": _str_field(event, "codec_id"),
+                "codec_name": _str_field(event, "codec_name"),
+                "provider_id": "m68k-sim-decrunch",
+                "event_id": event_id,
+                "source_kind": "self_decruncher",
+                "decompressor_code_section": code_section,
+                "decompressor_entry_offset": code_entry,
+            }
+            if transfer_offset is not None:
+                relationship["transfer_offset"] = transfer_offset
+            decompression_record = {
+                "schema_version": 1,
+                "parent_target_id": parent_target_name,
+                "child_target_id": target_name,
+                "parent_entry_path": parent_entry_path,
+                "child_entry_path": child_entry_path,
+                "compressor": {
+                    "id": _str_field(event, "codec_id"),
+                    "name": _str_field(event, "codec_name"),
+                    "confidence": _str_field(event, "payload_role_confidence") or "tool_inferred",
+                },
+                "source": {
+                    "kind": "self_decruncher",
+                    "provider_id": "m68k-sim-decrunch",
+                    "event_id": event_id,
+                    "decompressor_code_section": code_section,
+                    "decompressor_entry_offset": code_entry,
+                    "transfer_offset": transfer_offset,
+                },
+                "decompressed": {
+                    "size": output_size,
+                    "sha256": output_sha256,
+                    "load_address": load_address,
+                    "entrypoint": entrypoint,
+                },
+                "extraction": {
+                    "method": "m68k-sim-decrunch",
+                    "simulated_stop_reason": _str_field(event, "simulated_stop_reason_name"),
+                    "simulated_step_count": _int_field(event, "simulated_step_count"),
+                    "simulated_write_count": _int_field(event, "simulated_write_count"),
+                },
+                "relationship": relationship,
+            }
+            _write_text(
+                target_dir / "decompression.json",
+                json.dumps(decompression_record, indent=2, sort_keys=True) + "\n",
+            )
+            mark_project_updated(target_dir)
+            parent_derived.append(
+                {
+                    "kind": "decompressed_payload",
+                    "target_name": target_name,
+                    "provider_id": "m68k-sim-decrunch",
+                    "event_id": event_id,
+                    "codec_id": _str_field(event, "codec_id"),
+                }
+            )
+            child_targets.append(
+                ImportedTarget(
+                    target_name=target_name,
+                    target_path=disk_child_target_relpath(disk_id, local_target_id).as_posix(),
+                    entry_path=child_entry_path,
+                    binary_path=output_path.relative_to(project_root).as_posix(),
+                    target_type="raw_binary",
+                    derived_from=relationship,
+                )
+            )
     except Exception:
         for target_dir in reversed(created_dirs):
             shutil.rmtree(target_dir, ignore_errors=True)
@@ -337,7 +550,7 @@ def _materialize_decompressed_payload_children(
             parent_temp_path.unlink()
         except FileNotFoundError:
             pass
-    return parent_derived, child_targets, created_dirs
+    return MaterializedPayloadChildren(parent_derived, child_targets, created_dirs, True)
 
 
 def _has_dos_filesystem(analysis: AdfAnalysis) -> bool:
@@ -577,7 +790,7 @@ def create_disk_project(
                 child_targets: list[ImportedTarget] = []
                 child_dirs: list[Path] = []
                 if _target_type_may_contain_packed_payload(import_target.target_type):
-                    parent_derived, child_targets, child_dirs = _materialize_decompressed_payload_children(
+                    materialized = _materialize_decompressed_payload_children(
                         adf_file=adf_file,
                         disk_id=resolved_disk_id,
                         disk_children_root=disk_children_root,
@@ -586,6 +799,9 @@ def create_disk_project(
                         parent_entry_path=entry_path,
                         project_root=project_root,
                     )
+                    parent_derived = materialized.parent_derived
+                    child_targets = materialized.child_targets
+                    child_dirs = materialized.created_dirs
                 created_target_dirs.extend(child_dirs)
                 imported_targets.append(
                     ImportedTarget(
@@ -643,11 +859,12 @@ def refresh_decompressed_payload_children(
     disk_children_root = disk_project_targets_dir(project_root, disk_id)
     refreshed_by_parent: dict[str, list[dict[str, object]]] = {}
     refreshed_children: dict[str, ImportedTarget] = {}
+    refreshed_parent_names: set[str] = set()
     for target in manifest.imported_targets:
         if target.derived_from is not None or not _target_type_may_contain_packed_payload(target.target_type):
             continue
         local_target_id = Path(target.target_path).name
-        parent_derived, child_targets, _ = _materialize_decompressed_payload_children(
+        materialized = _materialize_decompressed_payload_children(
             adf_file=adf_file,
             disk_id=disk_id,
             disk_children_root=disk_children_root,
@@ -656,12 +873,28 @@ def refresh_decompressed_payload_children(
             parent_entry_path=target.entry_path,
             project_root=project_root,
         )
-        if parent_derived:
-            refreshed_by_parent[target.target_name] = parent_derived
-        for child in child_targets:
+        if not materialized.analysis_completed:
+            continue
+        refreshed_parent_names.add(target.target_name)
+        refreshed_by_parent[target.target_name] = materialized.parent_derived
+        for child in materialized.child_targets:
             refreshed_children[child.target_name] = child
     for child in refreshed_children.values():
         imported_by_name[child.target_name] = child
+    for target in list(imported_by_name.values()):
+        relationship = target.derived_from
+        if not isinstance(relationship, dict) or relationship.get("kind") != "decompressed_payload":
+            continue
+        parent_name = relationship.get("parent_target")
+        if not isinstance(parent_name, str) or parent_name not in refreshed_parent_names:
+            continue
+        if target.target_name in refreshed_children:
+            continue
+        imported_by_name.pop(target.target_name, None)
+        target_dir = (project_root / target.target_path).resolve()
+        children_root = disk_children_root.resolve()
+        if target_dir.parent == children_root and target_dir.exists():
+            shutil.rmtree(target_dir)
     refreshed_targets: list[ImportedTarget] = []
     for target in imported_by_name.values():
         parent_derived = refreshed_by_parent.get(target.target_name)
@@ -674,7 +907,7 @@ def refresh_decompressed_payload_children(
                     binary_path=target.binary_path,
                     target_type=target.target_type,
                     derived_from=target.derived_from,
-                    derived_targets=parent_derived,
+                    derived_targets=parent_derived or None,
                 )
             )
         else:

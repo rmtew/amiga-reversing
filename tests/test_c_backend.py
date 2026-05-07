@@ -33,6 +33,7 @@ from amiga_reversing.disasm.c_backend import (
     facts_v2_direct_rebuild_project_source_with_c_backend_profile,
     inspect_disk_with_c_backend,
     identify_packed_range_with_c_backend,
+    materialize_self_decrunch_event_with_c_backend,
     render_binary_source_with_c_backend,
     render_project_source_with_c_backend,
     validate_amiga_hunk_executable_with_c_backend,
@@ -164,6 +165,8 @@ def test_listing_analysis_reports_unsupported_self_decruncher_without_materialis
     assert event["codec_support"] == "simulator_required"
     assert event["status"] == "simulated_output_observed"
     assert event["reason"] == "simulated_pc_range_stop"
+    assert event["payload_role"] == "unknown_runtime_payload"
+    assert event["payload_role_confidence"] == "observed_output_only"
     assert event["decompressor_code_section"] == 0
     assert event["decompressor_entry_offset"] == 0
     assert event["transfer_offset"] == 14
@@ -178,6 +181,99 @@ def test_listing_analysis_reports_unsupported_self_decruncher_without_materialis
     assert event["simulated_output_end"] == 0x4002
     assert event["simulated_output_size"] == 2
     assert event["simulated_output_sha256"] == hashlib.sha256(bytes.fromhex("4e75")).hexdigest()
+
+
+def test_c_backend_materializes_simulated_self_decrunch_event_output(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "materialize_self_decrunch_hunk.bin"
+    output_path = tmp_path / "materialized.bin"
+    source = """    SECTION section,code
+    lea.l $4000.l,a0
+    move.b #$4E,(a0)+
+    move.b #$75,(a0)+
+    jmp $4000.l
+"""
+    assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source,
+        output_path=binary,
+        project_root=PROJECT_ROOT,
+    )
+
+    analysis = analyze_binary_source_with_c_backend(binary, project_root=PROJECT_ROOT)
+    event = analysis["decompression_events"][0]
+    result = materialize_self_decrunch_event_with_c_backend(
+        "amiga-hunk",
+        binary,
+        event["event_id"],
+        output_path,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert result["status"] == "ok"
+    assert output_path.read_bytes() == bytes.fromhex("4e75")
+    assert result["decompressed"]["sha256"] == hashlib.sha256(bytes.fromhex("4e75")).hexdigest()
+    materialized_event = result["decompression_events"][0]
+    assert materialized_event["event_id"] == event["event_id"]
+    assert materialized_event["status"] == "simulated_output_observed"
+    assert materialized_event["payload_role"] == "unknown_runtime_payload"
+
+
+def test_listing_analysis_identifies_tetragon_unpacker_markers_in_multiple_sections(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "tetragon_markers_hunk.bin"
+    marker = "$20,$54,$45,$54,$52,$41,$47,$4F,$4E,$20"
+    source = f"""    SECTION entry,code
+    jsr first_start.l
+    jsr second_start.l
+    rts
+    dc.w 0
+    SECTION first,code
+    bra.b first_start
+    dc.b {marker}
+first_start:
+    lea.l $40000.l,a0
+    lea.l $50000.l,a2
+    jmp $40000.l
+first_payload:
+    dc.w 0
+    dc.w 0
+    dc.w 0
+    SECTION second,code
+    bra.b second_start
+    dc.b {marker}
+second_start:
+    lea.l $1000.l,a0
+    lea.l $7FFFF.l,a2
+    jmp $59484.l
+second_payload:
+    dc.w 0
+    dc.w 0
+    dc.w 0
+"""
+    assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source,
+        output_path=binary,
+        project_root=PROJECT_ROOT,
+    )
+
+    analysis = analyze_binary_source_with_c_backend(binary, project_root=PROJECT_ROOT)
+    events = [event for event in analysis["decompression_events"] if event.get("codec_id") == "tetragon"]
+
+    assert len(events) == 2
+    by_section = {event["source_section"]: event for event in events}
+    assert by_section[1]["source_kind"] == "recognized_unpacker"
+    assert by_section[1]["provider_id"] == "c-tetragon-signature"
+    assert by_section[1]["status"] == "identified"
+    assert by_section[1]["source_section_offset"] > by_section[1]["unpacker_marker_offset"]
+    assert by_section[1]["load_address"] == 0x40000
+    assert by_section[1]["source_data_end_address"] == 0x50000
+    assert by_section[1]["entrypoint"] == 0x40000
+    assert by_section[2]["source_section_offset"] > by_section[2]["unpacker_marker_offset"]
+    assert by_section[2]["load_address"] == 0x1000
+    assert by_section[2]["source_data_end_address"] == 0x7FFFF
+    assert by_section[2]["entrypoint"] == 0x59484
 
 
 def test_listing_analysis_bounds_simulated_self_decruncher_output_to_transfer_range(tmp_path: Path) -> None:
@@ -4766,6 +4862,30 @@ def test_real_dll_carrier_decompressed_child_raw_reproduction() -> None:
     assert len(rebuilt) == 359600
     assert source_profile["facts_v2"]["asm_source_refused"] is False
     assert rebuilt == paths.binary_source.read_bytes()
+
+
+def test_real_dll_damocles_tetragon_unpacker_candidates() -> None:
+    _requires_c_backend_dlls()
+
+    combined = _facts_v2_listing_analysis_for_project(
+        "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620"
+    )
+    analysis = combined["analysis"]
+    tetragon_events = [event for event in analysis["decompression_events"] if event.get("codec_id") == "tetragon"]
+
+    assert len(tetragon_events) == 2
+    by_section = {event["source_section"]: event for event in tetragon_events}
+    assert by_section[1]["source_section_offset"] == 0x100
+    assert by_section[1]["source_data_end_address"] == 0x50000
+    assert by_section[1]["load_address"] == 0x40000
+    assert by_section[1]["entrypoint"] == 0x40000
+    assert by_section[2]["source_section_offset"] == 0x14C
+    assert by_section[2]["source_data_end_address"] == 0x7FFFF
+    assert by_section[2]["load_address"] == 0x1000
+    assert by_section[2]["entrypoint"] == 0x59484
+    assert by_section[2]["copied_stub_storage_offset"] == 0x6A
+    assert by_section[2]["copied_stub_runtime_address"] == 0x100
+    assert by_section[2]["copied_stub_transfer_offset"] == 0x40
 
 
 def test_real_dll_voodoo_trainer_decompression_comparator(

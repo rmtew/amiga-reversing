@@ -1365,6 +1365,9 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         provider_id = _string_value(event.get("provider_id"))
         if provider_id:
             bag.add(f"decompression:provider:{_safe_part(provider_id)}", example=example)
+        codec_id = _string_value(event.get("codec_id"))
+        if codec_id:
+            bag.add(f"decompression:codec:{_safe_part(codec_id)}", example=example)
         parent_remains_active = _string_value(event.get("parent_remains_active"))
         if parent_remains_active:
             bag.add(f"decompression:parent_remains_active:{_safe_part(parent_remains_active)}", example=example)

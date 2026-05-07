@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import struct
@@ -621,6 +622,114 @@ def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
     assert decompression["decompressed"]["sha256"] == "22" * 32
 
 
+def test_import_adf_materializes_c_simulated_self_decrunch_child(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+    output_bytes = b"\x4E\x75"
+    output_hash = hashlib.sha256(output_bytes).hexdigest()
+    event_id = "decompression:self_decrunch:section:0:00000000:00004000"
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
+        lambda adf_file, entry_path, *, project_root: b"packed-parent",
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
+        lambda source_path, *, project_root: {
+            "decompression_events": [
+                {
+                    "event_kind": "decompression",
+                    "event_id": event_id,
+                    "status": "simulated_output_observed",
+                    "source_kind": "self_decruncher",
+                    "provider_id": "m68k-sim-decrunch",
+                    "codec_id": "unknown-self-decrunch",
+                    "codec_name": "Unidentified target-owned self-decruncher",
+                    "payload_role": "primary_program",
+                    "payload_role_confidence": "tool_inferred",
+                    "parent_remains_active": "false",
+                    "decompressor_code_section": 0,
+                    "decompressor_entry_offset": 0,
+                    "transfer_offset": 14,
+                    "load_address": 0x4000,
+                    "entrypoint": 0x4000,
+                    "simulated_output_size": len(output_bytes),
+                    "simulated_output_sha256": output_hash,
+                    "simulated_stop_reason_name": "pc_range",
+                    "simulated_step_count": 4,
+                    "simulated_write_count": 2,
+                }
+            ]
+        },
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.decompress_packed_section_range_with_c_backend",
+        lambda *args, **kwargs: pytest.fail("provider-backed decompression was used for simulated output"),
+    )
+
+    def fake_materialize(
+        backend_name: str,
+        path: str | Path,
+        requested_event_id: str,
+        output_path: str | Path,
+        *,
+        project_root: Path,
+    ) -> dict[str, object]:
+        assert backend_name == "amiga-hunk"
+        assert requested_event_id == event_id
+        Path(output_path).write_bytes(output_bytes)
+        return {
+            "status": "ok",
+            "decompressed": {
+                "size": len(output_bytes),
+                "sha256": output_hash,
+                "load_address": 0x4000,
+                "entrypoint": 0x4000,
+            },
+        }
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.materialize_self_decrunch_event_with_c_backend",
+        fake_materialize,
+    )
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    parent = next(target for target in manifest.imported_targets if target.entry_path == "c/Run")
+    child = next(target for target in manifest.imported_targets if target.target_type == "raw_binary")
+    assert parent.derived_targets == [
+        {
+            "kind": "decompressed_payload",
+            "target_name": child.target_name,
+            "provider_id": "m68k-sim-decrunch",
+            "event_id": event_id,
+            "codec_id": "unknown-self-decrunch",
+        }
+    ]
+    assert child.derived_from is not None
+    assert child.derived_from["provider_id"] == "m68k-sim-decrunch"
+    assert child.derived_from["event_id"] == event_id
+
+    child_dir = project_root / child.target_path
+    assert (child_dir / "binary.bin").read_bytes() == output_bytes
+    source = json.loads((child_dir / "source_binary.json").read_text(encoding="utf-8"))
+    assert source["kind"] == "raw_binary"
+    assert source["load_address"] == 0x4000
+    decompression = json.loads((child_dir / "decompression.json").read_text(encoding="utf-8"))
+    assert decompression["source"]["kind"] == "self_decruncher"
+    assert decompression["source"]["event_id"] == event_id
+    assert decompression["decompressed"]["sha256"] == output_hash
+
+
 def test_import_adf_refreshes_existing_c_decompressed_child(
     monkeypatch: MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -710,6 +819,89 @@ def test_import_adf_refreshes_existing_c_decompressed_child(
     assert decompression["decompressed"]["sha256"] == "33" * 32
     project = json.loads((child_dir / ".project.json").read_text(encoding="utf-8"))
     assert project["origin"]["packed_size"] == 12
+
+
+def test_import_adf_refresh_removes_stale_decompressed_child_after_clean_reanalysis(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+    output_bytes = b"\x4E\x75"
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
+        lambda adf_file, entry_path, *, project_root: b"packed-parent",
+    )
+    analysis_payload: dict[str, object] = {
+        "derived_target_suggestions": [
+            {
+                "kind": "decompressed_payload",
+                "status": "materializable",
+                "source_section": 0,
+                "source_section_offset": 0x1000,
+                "packed_size": 10,
+                "decompressed_size": len(output_bytes),
+                "load_address": 0x4000,
+                "entrypoint": 0x4000,
+                "codec_id": "rnc1-old",
+                "codec_name": "RNC1: Rob Northen RNC1 Compressor (old)",
+                "source_sha256": "11" * 32,
+                "decompressed_sha256": "22" * 32,
+            }
+        ]
+    }
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
+        lambda source_path, *, project_root: analysis_payload,
+    )
+
+    def fake_decompress(
+        source_kind: str,
+        source_path: str | Path,
+        section_index: int,
+        section_offset: int,
+        packed_size: int,
+        output_path: str | Path,
+        *,
+        project_root: Path,
+    ) -> dict[str, object]:
+        Path(output_path).write_bytes(output_bytes)
+        return {
+            "packed_payloads": [
+                {
+                    "found": True,
+                    "provider_id": "ancient-cli",
+                    "confidence": "provider-identified",
+                    "source_sha256": "11" * 32,
+                    "decompressed_sha256": "22" * 32,
+                }
+            ]
+        }
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.decompress_packed_section_range_with_c_backend",
+        fake_decompress,
+    )
+
+    first_manifest = import_adf(adf_path, project_root=project_root)
+    child = next(target for target in first_manifest.imported_targets if target.target_type == "raw_binary")
+    child_dir = project_root / child.target_path
+    assert child_dir.exists()
+
+    analysis_payload.clear()
+    refreshed = refresh_decompressed_payload_children("demo", project_root=project_root)
+
+    assert all(target.target_name != child.target_name for target in refreshed.imported_targets)
+    assert not child_dir.exists()
+    parent = next(target for target in refreshed.imported_targets if target.entry_path == "c/Run")
+    assert parent.derived_targets is None
 
 
 def test_import_adf_does_not_materialize_decompressed_child_without_runtime_metadata(

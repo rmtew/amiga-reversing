@@ -68,6 +68,7 @@ def test_decompression_payload_role_features() -> None:
                 "event_id": "decompression:section:0:00004C40:rnc1-old",
                 "status": "materializable",
                 "reason": "initial_control_target_validated_runtime_copy",
+                "codec_id": "rnc1-old",
                 "codec_support": "external_provider",
                 "payload_role": "primary_program",
                 "parent_remains_active": "unknown",
@@ -95,6 +96,7 @@ def test_decompression_payload_role_features() -> None:
     assert counts["decompression:codec_support:external_provider"] == 1
     assert counts["decompression:source_kind:provider_identified_payload"] == 1
     assert counts["decompression:provider:ancient"] == 1
+    assert counts["decompression:codec:rnc1-old"] == 1
     assert counts["decompression:simulated_output"] == 1
     assert counts["decompression:simulated_output_hash"] == 1
     assert "decompression:payload_role:primary_program" in tags
