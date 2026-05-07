@@ -4550,6 +4550,56 @@ static const M68kFact *lookup_runtime_address_ref_for_operand(const M68kRenderLo
   return NULL;
 }
 
+static int runtime_address_maps_to_materialized_source(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t runtime_address) {
+  size_t index;
+  if (lookup == NULL) return 0;
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    const M68kFact *range = lookup->runtime_address_ranges[index].fact;
+    uint32_t delta;
+    if (!runtime_range_is_materialized(lookup, range) || range->section_index != section_index ||
+        !range->has_runtime_address || runtime_address < range->runtime_address) {
+      continue;
+    }
+    delta = runtime_address - range->runtime_address;
+    if (delta >= range->size || range->offset > UINT32_MAX - delta) continue;
+    return 1;
+  }
+  return 0;
+}
+
+static int candidate_operand_absolute_value_local(const M68kDecodeCandidate *candidate, size_t operand_index,
+    uint32_t *out_value) {
+  const M68kAsmOperandValue *operand;
+  if (out_value != NULL) *out_value = 0U;
+  if (candidate == NULL || out_value == NULL || operand_index >= candidate->operand_count) return 0;
+  operand = &candidate->operands[operand_index];
+  if (candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_ABSL ||
+      (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 7U &&
+        (operand->ea_reg == 0U || operand->ea_reg == 1U))) {
+    *out_value = operand->value;
+    return 1;
+  }
+  return 0;
+}
+
+static int candidate_has_local_runtime_storage_ref(const M68kRenderLookup *lookup, size_t section_index,
+    const M68kDecodeCandidate *candidate) {
+  size_t operand_index;
+  if (lookup == NULL || candidate == NULL) return 0;
+  for (operand_index = 0U; operand_index < candidate->operand_count; ++operand_index) {
+    const M68kFact *fact = lookup_runtime_address_ref_for_operand(lookup, section_index, candidate->offset,
+      operand_index);
+    uint32_t runtime_address = 0U;
+    if (fact != NULL && fact->target_section_index < lookup->section_count) return 1;
+    if (candidate_operand_absolute_value_local(candidate, operand_index, &runtime_address) &&
+        runtime_address_maps_to_materialized_source(lookup, section_index, runtime_address)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static const M68kFact *lookup_external_runtime_address_ref_for_instruction(const M68kRenderLookup *lookup,
     size_t section_index, uint32_t offset) {
   size_t index;
@@ -4609,6 +4659,23 @@ static const char *external_runtime_address_ref_role(const M68kRenderLookup *loo
   role = platform_facts_v2_runtime_address_storage_sink_data_class(lookup->object->platform_backend_kind,
     section->data, section->data_size, fact->source_offset);
   return role != NULL && role[0] != '\0' ? role : NULL;
+}
+
+static const char *lookup_external_runtime_address_role_by_value(const M68kRenderLookup *lookup,
+    uint32_t runtime_address) {
+  size_t index;
+  if (lookup == NULL || lookup->object == NULL || runtime_address == 0U) return NULL;
+  for (index = 0U; index < lookup->runtime_address_ref_count; ++index) {
+    const M68kFact *fact = lookup->runtime_address_refs[index].fact;
+    const char *role;
+    if (fact == NULL || fact->target_section_index < lookup->section_count ||
+        !fact->has_runtime_address || fact->runtime_address != runtime_address) {
+      continue;
+    }
+    role = external_runtime_address_ref_role(lookup, fact);
+    if (role != NULL && role[0] != '\0') return role;
+  }
+  return NULL;
 }
 
 static int runtime_alias_label_seen_before(const M68kRenderLookup *lookup, size_t current_index,
@@ -6332,6 +6399,27 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
   return 1;
 }
 
+static int attach_known_external_runtime_address_symbols(M68kRenderIRPreview *preview,
+    const M68kRenderLookup *lookup, size_t section_index, const M68kDecodeCandidate *candidate,
+    M68kInstructionIR *instruction) {
+  size_t operand_index;
+  if (preview == NULL || lookup == NULL || candidate == NULL || instruction == NULL) return 0;
+  if (!candidate_has_local_runtime_storage_ref(lookup, section_index, candidate)) return 1;
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint32_t value = 0U;
+    const char *role;
+    char symbol[80];
+    if (operand->symbol_ref.has_name != 0U) continue;
+    if (!operand_is_immediate_value_local(operand, &value)) continue;
+    role = lookup_external_runtime_address_role_by_value(lookup, value);
+    if (role == NULL) continue;
+    if (!render_asm_define_runtime_address_symbol_once(preview, role, value, symbol, sizeof(symbol))) return 0;
+    attach_amiga_platform_symbol(operand, symbol);
+  }
+  return 1;
+}
+
 static int attach_absolute_stack_top_symbol(M68kRenderIRPreview *preview, M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   uint8_t source_index;
@@ -6825,6 +6913,10 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   (void)attach_absolute_word_control_symbols(lookup, section->section_index, candidate, &instruction);
   (void)attach_platform_pc_relative_synthetic_symbols(lookup, section->section_index, candidate, &instruction);
   if (!attach_runtime_address_ref_symbols(preview, lookup, section->section_index, candidate, &instruction)) return 0;
+  if (!attach_known_external_runtime_address_symbols(preview, lookup, section->section_index, candidate,
+      &instruction)) {
+    return 0;
+  }
   platform_vector = attach_amiga_lvo_symbol_if_known(platform_state, &instruction);
   immediate_vector = attach_amiga_lvo_immediate_if_known(lookup, section, accepted_start, candidate, &instruction);
   wrapper_call_vector = resolve_amiga_indexed_wrapper_call_vector(lookup, platform_state, section, candidate);

@@ -45,6 +45,7 @@ m68k_vector_trap_0_instruction_vector	EQU	$80
 stack_top_0005FFFC	EQU	$5FFFC
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF1P2	EQU	$4
+bitmap_00060000	EQU	$60000
 m68k_vector_spurious_interrupt	EQU	$60
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 m68k_vector_level_2_interrupt_autovector	EQU	$68
@@ -54,7 +55,6 @@ DMAF_CLRALL	EQU	$7FFF
 disk_buffer_00067D00	EQU	$67D00
 m68k_vector_trap_6_instruction_vector	EQU	$98
 _ciab	EQU	$BFD000
-bitmap_00060000	EQU	$60000
 bitmap_00067D00	EQU	$67D00
 bitmap_00070000	EQU	$70000
 bitmap_00070000_hi	EQU	bitmap_00070000/$10000
@@ -141,7 +141,7 @@ abs_0_00000492:
 	move.w #$3781,_custom+diwstrt.l	; display window start v=$37 h=$81
 	move.w #$FFC1,_custom+diwstop.l	; display window stop v=$FF h=$C1
 	move.l #abs_0_00008E10,_custom+cop1lc.l	; copper_list pointer
-	move.l #$60000,abs_0_00008D36.l
+	move.l #bitmap_00060000,abs_0_00008D36.l
 	jsr abs_0_00008D00.l
 	lea.l abs_0_00008E30.l,a0
 	lea.l abs_0_000005AA.l,a1
@@ -289,7 +289,7 @@ abs_0_00000790:
 	move.w #$FFFF,abs_0_0000EE30.l
 abs_0_000007C0:
 	move.l #disk_buffer_00067D00,abs_0_00008D36.l
-	move.l #$60000,abs_0_00008D3A.l
+	move.l #bitmap_00060000,abs_0_00008D3A.l
 	jsr abs_0_00008DA8.l
 	movea.l abs_0_00008D36.l,a0
 	adda.w #$E10,a0
@@ -4956,7 +4956,7 @@ abs_0_0000432A:
 	move.l abs_0_0000EE36.l,-(a7)
 	clr.w abs_0_00008C1E.l
 	move.l #disk_buffer_00067D00,abs_0_00008D36.l
-	move.l #$60000,abs_0_00008D3A.l
+	move.l #bitmap_00060000,abs_0_00008D3A.l
 	lea.l abs_0_0000EE7C.l,a5
 	lea.l abs_0_000044C4.l,a6
 	jsr abs_0_0000D08E.l
@@ -10540,14 +10540,14 @@ abs_0_00008CC0:
 abs_0_00008CC8:
 	rte
 abs_0_00008CCA:
-	cmpi.l #393216,abs_0_00008D36.l
+	cmpi.l #bitmap_00060000,abs_0_00008D36.l
 	bne.b abs_0_00008CEC
-	move.l #$67D00,abs_0_00008D36.l
-	move.l #$60000,abs_0_00008D3A.l
+	move.l #bitmap_00067D00,abs_0_00008D36.l
+	move.l #bitmap_00060000,abs_0_00008D3A.l
 	bra.b abs_0_00008D00
 abs_0_00008CEC:
-	move.l #$60000,abs_0_00008D36.l
-	move.l #$67D00,abs_0_00008D3A.l
+	move.l #bitmap_00060000,abs_0_00008D36.l
+	move.l #bitmap_00067D00,abs_0_00008D3A.l
 abs_0_00008D00:
 	lea.l abs_0_00008E10.l,a0
 	move.l #bitmap_00060000,d0
@@ -15013,7 +15013,7 @@ abs_0_0000CAA6:
 	adda.w #$118,a0
 abs_0_0000CACC:
 	lea.l abs_0_0000CAE6.l,a6
-	move.l #$60000,abs_0_0000D92A.l
+	move.l #bitmap_00060000,abs_0_0000D92A.l
 	bsr.w abs_0_0000D0C6
 	movea.l (a7)+,a0
 	addq.w #2,a0

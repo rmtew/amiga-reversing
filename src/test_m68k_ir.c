@@ -12163,13 +12163,16 @@ static int test_facts_v2_copper_storage_sink_origin_renders_bitmap_symbol(void) 
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   char *source = NULL;
-  uint8_t bytes[28] = {
-    0x41u, 0xF9u, 0x00u, 0x00u, 0x00u, 0x14u,
+  uint8_t bytes[52] = {
+    0x41u, 0xF9u, 0x00u, 0x00u, 0x00u, 0x24u,
     0x20u, 0x3Cu, 0x00u, 0x06u, 0x00u, 0x00u,
     0x31u, 0x40u, 0x00u, 0x06u,
+    0x23u, 0xFCu, 0x00u, 0x06u, 0x00u, 0x00u, 0x00u, 0x00u, 0x01u, 0x30u,
     0x4Eu, 0x75u,
-    0x00u, 0x00u,
-    0x00u, 0xE0u, 0x00u, 0x00u, 0x00u, 0xE2u, 0x00u, 0x00u
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0xE0u, 0x00u, 0x00u, 0x00u, 0xE2u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x06u, 0x00u, 0x00u
   };
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
@@ -12181,11 +12184,22 @@ static int test_facts_v2_copper_storage_sink_origin_renders_bitmap_symbol(void) 
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  policy.runtime_entry_point_count = 1U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 0x100U;
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "bitmap_00060000\tEQU\t$60000\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l #bitmap_00060000,d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l #bitmap_00060000,abs_0_00000130.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,$0006(a0)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
