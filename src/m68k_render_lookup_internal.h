@@ -70,6 +70,7 @@ typedef struct M68kRenderBaseFieldSlot {
   char library_name[64];
   char symbol_name[64];
   uint8_t value_kind;
+  uint8_t observed_access_size;
   uint8_t conflicted;
 } M68kRenderBaseFieldSlot;
 

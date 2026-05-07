@@ -3574,14 +3574,19 @@ static int render_lookup_add_global_base_slot(M68kRenderLookup *lookup, size_t s
   return 0;
 }
 
+static uint8_t render_lookup_normalized_app_slot_access_size(uint8_t access_size) {
+  return access_size == 1U || access_size == 2U || access_size == 4U ? access_size : 0U;
+}
+
 static int render_lookup_add_base_field_slot_with_symbol(M68kRenderLookup *lookup, const char *owner_name,
     int16_t displacement, const char *library_name, const char *symbol_name, uint8_t value_kind,
-    size_t source_section_index, uint32_t source_offset) {
+    uint8_t observed_access_size, size_t source_section_index, uint32_t source_offset) {
   size_t index;
   M68kRenderBaseFieldSlot *grown;
   size_t next_capacity;
   uint8_t has_source = source_section_index != SIZE_MAX && source_offset != UINT32_MAX;
   const char *slot_library_name = library_name != NULL ? library_name : "";
+  uint8_t normalized_access_size = render_lookup_normalized_app_slot_access_size(observed_access_size);
   if (lookup == NULL || owner_name == NULL || owner_name[0] == '\0') return 0;
   if (value_kind == M68K_RENDER_BASE_FIELD_SLOT_LIBRARY_BASE ||
       value_kind == M68K_RENDER_BASE_FIELD_SLOT_DEVICE_BASE) {
@@ -3615,6 +3620,7 @@ static int render_lookup_add_base_field_slot_with_symbol(M68kRenderLookup *looku
     } else if (slot->library_name[0] == '\0' && slot_library_name[0] != '\0') {
       snprintf(slot->library_name, sizeof(slot->library_name), "%s", slot_library_name);
     }
+    if (normalized_access_size > slot->observed_access_size) slot->observed_access_size = normalized_access_size;
     if (has_source && slot->has_source == 0U) {
       slot->source_section_index = source_section_index;
       slot->source_offset = source_offset;
@@ -3647,6 +3653,7 @@ static int render_lookup_add_base_field_slot_with_symbol(M68kRenderLookup *looku
       sizeof(lookup->base_field_slots[lookup->base_field_slot_count].symbol_name), "%s", symbol_name);
   }
   lookup->base_field_slots[lookup->base_field_slot_count].value_kind = value_kind;
+  lookup->base_field_slots[lookup->base_field_slot_count].observed_access_size = normalized_access_size;
   ++lookup->base_field_slot_count;
   return 0;
 }
@@ -3654,25 +3661,25 @@ static int render_lookup_add_base_field_slot_with_symbol(M68kRenderLookup *looku
 static int render_lookup_add_base_field_slot(M68kRenderLookup *lookup, const char *owner_name,
     int16_t displacement, const char *library_name, size_t source_section_index, uint32_t source_offset) {
   return render_lookup_add_base_field_slot_with_symbol(lookup, owner_name, displacement, library_name, NULL,
-    M68K_RENDER_BASE_FIELD_SLOT_LIBRARY_BASE, source_section_index, source_offset);
+    M68K_RENDER_BASE_FIELD_SLOT_LIBRARY_BASE, 4U, source_section_index, source_offset);
 }
 
 static int render_lookup_add_device_base_field_slot(M68kRenderLookup *lookup, const char *owner_name,
     int16_t displacement, const char *library_name, size_t source_section_index, uint32_t source_offset) {
   return render_lookup_add_base_field_slot_with_symbol(lookup, owner_name, displacement, library_name, NULL,
-    M68K_RENDER_BASE_FIELD_SLOT_DEVICE_BASE, source_section_index, source_offset);
+    M68K_RENDER_BASE_FIELD_SLOT_DEVICE_BASE, 4U, source_section_index, source_offset);
 }
 
 static int render_lookup_add_named_app_field_slot(M68kRenderLookup *lookup, int16_t displacement,
     const char *symbol_name, size_t source_section_index, uint32_t source_offset) {
   return render_lookup_add_base_field_slot_with_symbol(lookup, "__amiga_app_base__", displacement, "", symbol_name,
-    M68K_RENDER_BASE_FIELD_SLOT_NAMED_VALUE, source_section_index, source_offset);
+    M68K_RENDER_BASE_FIELD_SLOT_NAMED_VALUE, 0U, source_section_index, source_offset);
 }
 
 static int render_lookup_add_app_access_slot(M68kRenderLookup *lookup, int16_t displacement,
-    size_t source_section_index, uint32_t source_offset) {
+    uint8_t observed_access_size, size_t source_section_index, uint32_t source_offset) {
   return render_lookup_add_base_field_slot_with_symbol(lookup, "__amiga_app_base__", displacement, "", NULL,
-    M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS, source_section_index, source_offset);
+    M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS, observed_access_size, source_section_index, source_offset);
 }
 
 static int render_lookup_seed_policy_app_slot_regions(M68kRenderLookup *lookup) {
@@ -3780,7 +3787,8 @@ const char *render_lookup_device_name_for_call(const M68kRenderLookup *lookup, s
 }
 
 static int render_lookup_add_app_access_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
-    uint8_t base_reg, int16_t displacement, uint8_t operand_index, uint8_t access_kind) {
+    uint8_t base_reg, int16_t displacement, uint8_t operand_index, uint8_t access_kind,
+    uint8_t observed_access_size) {
   size_t index;
   M68kRenderAppSlotRef *grown;
   size_t next_capacity;
@@ -3788,7 +3796,8 @@ static int render_lookup_add_app_access_ref(M68kRenderLookup *lookup, size_t sec
       access_kind == M68K_APP_SLOT_ACCESS_NONE) {
     return 0;
   }
-  if (render_lookup_add_app_access_slot(lookup, displacement, section_index, offset) != 0) return -1;
+  if (render_lookup_add_app_access_slot(lookup, displacement, observed_access_size, section_index, offset) != 0)
+    return -1;
   for (index = 0U; index < lookup->app_slot_ref_count; ++index) {
     const M68kRenderAppSlotRef *existing = &lookup->app_slot_refs[index];
     if (existing->section_index == section_index && existing->ref.offset == offset &&
@@ -8102,6 +8111,15 @@ uint8_t app_slot_access_kind_from_instruction(const M68kInstructionIR *instructi
   return M68K_APP_SLOT_ACCESS_NONE;
 }
 
+static uint8_t app_slot_access_size_from_instruction(const M68kInstructionIR *instruction, uint8_t access_kind) {
+  if (access_kind == M68K_APP_SLOT_ACCESS_ADDRESS) return 0U;
+  if (instruction == NULL) return 0U;
+  if (instruction->size_suffix == 'b') return 1U;
+  if (instruction->size_suffix == 'w') return 2U;
+  if (instruction->size_suffix == 'l') return 4U;
+  return 0U;
+}
+
 int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uint8_t base_reg,
     int16_t displacement) {
   if (state == NULL || base_reg >= 8U) return 0;
@@ -8149,7 +8167,8 @@ static int render_lookup_analyze_amiga_app_state_slots(M68kRenderLookup *lookup,
         access_kind = app_slot_access_kind_from_instruction(&instruction, operand_index);
         if (access_kind == M68K_APP_SLOT_ACCESS_NONE) continue;
         if (render_lookup_add_app_access_ref(lookup, section->section_index, candidate->offset, base_reg,
-            displacement, (uint8_t)operand_index, access_kind) != 0) {
+            displacement, (uint8_t)operand_index, access_kind,
+            app_slot_access_size_from_instruction(&instruction, access_kind)) != 0) {
           return -1;
         }
       }
@@ -8243,7 +8262,7 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
             sizeof(iorequest_slot_name))) {
           if (render_lookup_add_base_field_slot_with_symbol(lookup, "__amiga_app_base__",
               trace_state.app_addresses[1].displacement, trace_state.addr_regs[0].name, iorequest_slot_name,
-              M68K_RENDER_BASE_FIELD_SLOT_IOREQUEST, section->section_index, candidate->offset) != 0) {
+              M68K_RENDER_BASE_FIELD_SLOT_IOREQUEST, 4U, section->section_index, candidate->offset) != 0) {
             goto cleanup;
           }
         }

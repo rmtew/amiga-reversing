@@ -4973,7 +4973,9 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     }
     slots[slot_count].displacement = slot->displacement;
     region_size = lookup_typed_app_slot_region_size(lookup, slot->displacement);
-    slots[slot_count].size = region_size > 0 ? region_size : ((slot->displacement & 1) == 0 ? 4 : 1);
+    slots[slot_count].size = region_size > 0
+      ? region_size
+      : (slot->observed_access_size != 0U ? slot->observed_access_size : ((slot->displacement & 1) == 0 ? 4 : 1));
     snprintf(slots[slot_count].name, sizeof(slots[slot_count].name), "%s", symbol_name);
     ++slot_count;
     extent_end = (int32_t)slot->displacement + slots[slot_count - 1U].size;
@@ -5011,6 +5013,9 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     } else if (slots[index].size == 1) {
       snprintf(line, sizeof(line), "%s RS.B 1\n", slots[index].name);
       cursor += 1;
+    } else if (slots[index].size == 2 && (cursor & 1) == 0) {
+      snprintf(line, sizeof(line), "%s RS.W 1\n", slots[index].name);
+      cursor += 2;
     } else {
       snprintf(line, sizeof(line), "%s RS.B %d\n", slots[index].name, (int)slots[index].size);
       cursor += slots[index].size;
