@@ -193,8 +193,7 @@ int m68k_assemble_file_to_binary(const char *input_path, const char *output_path
 }
 
 static int assemble_platform_source_to_object_common(const char *input_path, const char *source_text,
-    const char *include_dir, uint8_t target_cpu, int enable_vasm_compat_rewrites,
-    M68kPlatformBackendKind platform_backend_kind, M68kObject *out_object,
+    const char *include_dir, uint8_t target_cpu, M68kPlatformBackendKind platform_backend_kind, M68kObject *out_object,
     M68kPlatformAssembleProfile *profile, M68kDiagSink diagnostics) {
   AsmSourceFile source;
   clock_t phase_start;
@@ -204,7 +203,6 @@ static int assemble_platform_source_to_object_common(const char *input_path, con
   source.target_cpu = target_cpu;
   source.platform_backend_kind = platform_backend_kind;
   source.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
-  source.enable_vasm_compat_rewrites = enable_vasm_compat_rewrites;
   phase_start = clock();
   if (!((source_text != NULL)
       ? m68k_source_pipeline_parse_text_and_layout(&source, source_text, diagnostics)
@@ -268,21 +266,21 @@ static int assemble_platform_source_to_object_common(const char *input_path, con
 }
 
 static int assemble_platform_source_to_object(const char *input_path, const char *include_dir, uint8_t target_cpu,
-    int enable_vasm_compat_rewrites, M68kPlatformBackendKind platform_backend_kind,
-    M68kObject *out_object, M68kPlatformAssembleProfile *profile, M68kDiagSink diagnostics) {
+    M68kPlatformBackendKind platform_backend_kind, M68kObject *out_object, M68kPlatformAssembleProfile *profile,
+    M68kDiagSink diagnostics) {
   return assemble_platform_source_to_object_common(input_path, NULL, include_dir, target_cpu,
-    enable_vasm_compat_rewrites, platform_backend_kind, out_object, profile, diagnostics);
+    platform_backend_kind, out_object, profile, diagnostics);
 }
 
 static int assemble_platform_source_text_to_object(const char *source_text, const char *include_dir,
-    uint8_t target_cpu, int enable_vasm_compat_rewrites, M68kPlatformBackendKind platform_backend_kind,
-    M68kObject *out_object, M68kPlatformAssembleProfile *profile, M68kDiagSink diagnostics) {
+    uint8_t target_cpu, M68kPlatformBackendKind platform_backend_kind, M68kObject *out_object,
+    M68kPlatformAssembleProfile *profile, M68kDiagSink diagnostics) {
   return assemble_platform_source_to_object_common(NULL, source_text, include_dir, target_cpu,
-    enable_vasm_compat_rewrites, platform_backend_kind, out_object, profile, diagnostics);
+    platform_backend_kind, out_object, profile, diagnostics);
 }
 
 int m68k_assemble_platform_file_to_output(const char *backend_name, const char *include_dir, const char *input_path,
-    const char *output_path, uint8_t target_cpu, int enable_vasm_compat_rewrites) {
+    const char *output_path, uint8_t target_cpu) {
   const M68kBackend *backend = NULL;
   M68kObject object;
   M68kDiagList diagnostics;
@@ -295,7 +293,7 @@ int m68k_assemble_platform_file_to_output(const char *backend_name, const char *
   }
   platform_backend_kind = platform_backend_kind_for_name(backend_name);
   if (!assemble_platform_source_to_object(input_path, include_dir, target_cpu,
-      enable_vasm_compat_rewrites, platform_backend_kind, &object, NULL, m68k_diag_sink(&diagnostics))) {
+      platform_backend_kind, &object, NULL, m68k_diag_sink(&diagnostics))) {
     fprintf(stderr, "%s\n", m68k_diag_first_message(&diagnostics));
     return 1;
   }
@@ -311,7 +309,7 @@ int m68k_assemble_platform_file_to_output(const char *backend_name, const char *
 
 static int assemble_platform_source_to_output_buffer_alloc_impl(const char *backend_name, const char *include_dir,
     const char *input_path, const char *source_text, const char *output_path, int remove_output_after_read,
-    uint8_t target_cpu, int enable_vasm_compat_rewrites, unsigned char **out_data, size_t *out_size,
+    uint8_t target_cpu, unsigned char **out_data, size_t *out_size,
     M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
   const M68kBackend *backend;
   M68kPlatformAssembleProfile profile;
@@ -345,9 +343,9 @@ static int assemble_platform_source_to_output_buffer_alloc_impl(const char *back
   platform_backend_kind = platform_backend_kind_for_name(backend_name);
   if (!(source_text != NULL
       ? assemble_platform_source_text_to_object(source_text, include_dir != NULL ? include_dir : "", target_cpu,
-          enable_vasm_compat_rewrites, platform_backend_kind, &object, &profile, diagnostics)
+          platform_backend_kind, &object, &profile, diagnostics)
       : assemble_platform_source_to_object(input_path, include_dir != NULL ? include_dir : "", target_cpu,
-          enable_vasm_compat_rewrites, platform_backend_kind, &object, &profile, diagnostics))) {
+          platform_backend_kind, &object, &profile, diagnostics))) {
     if (out_profile != NULL) {
       profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
       *out_profile = profile;
@@ -437,47 +435,44 @@ static int assemble_platform_source_to_output_buffer_alloc_impl(const char *back
 }
 
 int m68k_assemble_platform_file_to_buffer_alloc(const char *backend_name, const char *include_dir,
-    const char *input_path, uint8_t target_cpu, int enable_vasm_compat_rewrites, unsigned char **out_data,
-    size_t *out_size, M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
+    const char *input_path, uint8_t target_cpu, unsigned char **out_data, size_t *out_size,
+    M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
   return assemble_platform_source_to_output_buffer_alloc_impl(backend_name, include_dir, input_path, NULL, NULL, 1,
-    target_cpu, enable_vasm_compat_rewrites, out_data, out_size, out_profile, diagnostics);
+    target_cpu, out_data, out_size, out_profile, diagnostics);
 }
 
 int m68k_assemble_platform_file_to_output_buffer_alloc(const char *backend_name, const char *include_dir,
-    const char *input_path, const char *output_path, uint8_t target_cpu, int enable_vasm_compat_rewrites,
-    unsigned char **out_data, size_t *out_size, M68kPlatformAssembleProfile *out_profile,
-    M68kDiagSink diagnostics) {
+    const char *input_path, const char *output_path, uint8_t target_cpu, unsigned char **out_data, size_t *out_size,
+    M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
   if (output_path == NULL || output_path[0] == '\0') {
     assembler_add_error(diagnostics, "bad output path");
     return -1;
   }
   return assemble_platform_source_to_output_buffer_alloc_impl(backend_name, include_dir, input_path, NULL,
-    output_path, 0, target_cpu, enable_vasm_compat_rewrites, out_data, out_size, out_profile, diagnostics);
+    output_path, 0, target_cpu, out_data, out_size, out_profile, diagnostics);
 }
 
 int m68k_assemble_platform_source_text_to_buffer_alloc(const char *backend_name, const char *include_dir,
-    const char *source_text, uint8_t target_cpu, int enable_vasm_compat_rewrites, unsigned char **out_data,
-    size_t *out_size, M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
+    const char *source_text, uint8_t target_cpu, unsigned char **out_data, size_t *out_size,
+    M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
   return assemble_platform_source_to_output_buffer_alloc_impl(backend_name, include_dir, NULL, source_text, NULL, 1,
-    target_cpu, enable_vasm_compat_rewrites, out_data, out_size, out_profile, diagnostics);
+    target_cpu, out_data, out_size, out_profile, diagnostics);
 }
 
 int m68k_assemble_platform_source_text_to_output_buffer_alloc(const char *backend_name, const char *include_dir,
-    const char *source_text, const char *output_path, uint8_t target_cpu, int enable_vasm_compat_rewrites,
-    unsigned char **out_data, size_t *out_size, M68kPlatformAssembleProfile *out_profile,
-    M68kDiagSink diagnostics) {
+    const char *source_text, const char *output_path, uint8_t target_cpu, unsigned char **out_data, size_t *out_size,
+    M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
   if (output_path == NULL || output_path[0] == '\0') {
     assembler_add_error(diagnostics, "bad output path");
     return -1;
   }
   return assemble_platform_source_to_output_buffer_alloc_impl(backend_name, include_dir, NULL, source_text,
-    output_path, 0, target_cpu, enable_vasm_compat_rewrites, out_data, out_size, out_profile, diagnostics);
+    output_path, 0, target_cpu, out_data, out_size, out_profile, diagnostics);
 }
 
 int m68k_assemble_platform_source_text_to_raw_buffer_alloc(const char *backend_name, const char *include_dir,
-    const char *source_text, const char *output_path, uint8_t target_cpu, int enable_vasm_compat_rewrites,
-    unsigned char **out_data, size_t *out_size, M68kPlatformAssembleProfile *out_profile,
-    M68kDiagSink diagnostics) {
+    const char *source_text, const char *output_path, uint8_t target_cpu, unsigned char **out_data, size_t *out_size,
+    M68kPlatformAssembleProfile *out_profile, M68kDiagSink diagnostics) {
   M68kPlatformAssembleProfile profile;
   M68kPlatformBackendKind platform_backend_kind;
   M68kObject object;
@@ -504,7 +499,7 @@ int m68k_assemble_platform_source_text_to_raw_buffer_alloc(const char *backend_n
     return -1;
   }
   if (!assemble_platform_source_text_to_object(source_text, include_dir != NULL ? include_dir : "", target_cpu,
-      enable_vasm_compat_rewrites, platform_backend_kind, &object, &profile, diagnostics)) {
+      platform_backend_kind, &object, &profile, diagnostics)) {
     if (out_profile != NULL) {
       profile.total_seconds = assembler_elapsed_seconds(total_start, clock());
       *out_profile = profile;
@@ -572,11 +567,11 @@ int m68k_assemble_platform_source_text_to_raw_buffer_alloc(const char *backend_n
 }
 
 int m68k_render_source_file_to_stdout(const char *input_path, const char *include_dir, uint8_t target_cpu,
-    int enable_vasm_compat_rewrites, const M68kRenderPolicy *policy) {
+    const M68kRenderPolicy *policy) {
   M68kSourceIrParseResult parsed;
   M68kSourceIrRenderResult rendered;
   M68kSourceFileIR source_file;
-  parsed = m68k_source_ir_parse_file(input_path, include_dir, target_cpu, enable_vasm_compat_rewrites);
+  parsed = m68k_source_ir_parse_file(input_path, include_dir, target_cpu);
   if (m68k_diag_has_errors(&parsed.diagnostics)) {
     fprintf(stderr, "%s\n", m68k_diag_first_message(&parsed.diagnostics));
     return 1;

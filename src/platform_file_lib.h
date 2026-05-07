@@ -106,20 +106,17 @@ PLATFORM_FILE_API int platform_file_decompression_decompress_section_range_json_
     const char *path, uint32_t section_index, uint32_t offset, uint32_t size, const char *output_path,
     char **out_text);
 PLATFORM_FILE_API int platform_file_assemble_source_path_bytes_profile_alloc(const char *backend_name,
-    const char *include_dir, const char *path, const char *target_cpu_name, int enable_vasm_compat_rewrites,
-    unsigned char **out_data, size_t *out_size, char **out_profile_json, char **out_error);
+    const char *include_dir, const char *path, const char *target_cpu_name, unsigned char **out_data,
+    size_t *out_size, char **out_profile_json, char **out_error);
 PLATFORM_FILE_API int platform_file_assemble_source_path_to_output_bytes_profile_alloc(const char *backend_name,
     const char *include_dir, const char *path, const char *output_path, const char *target_cpu_name,
-    int enable_vasm_compat_rewrites, unsigned char **out_data, size_t *out_size, char **out_profile_json,
-    char **out_error);
+    unsigned char **out_data, size_t *out_size, char **out_profile_json, char **out_error);
 PLATFORM_FILE_API int platform_file_assemble_source_text_bytes_profile_alloc(const char *backend_name,
-    const char *include_dir, const char *source_text, const char *target_cpu_name,
-    int enable_vasm_compat_rewrites, unsigned char **out_data, size_t *out_size, char **out_profile_json,
-    char **out_error);
+    const char *include_dir, const char *source_text, const char *target_cpu_name, unsigned char **out_data,
+    size_t *out_size, char **out_profile_json, char **out_error);
 PLATFORM_FILE_API int platform_file_assemble_source_text_to_output_bytes_profile_alloc(const char *backend_name,
     const char *include_dir, const char *source_text, const char *output_path, const char *target_cpu_name,
-    int enable_vasm_compat_rewrites, unsigned char **out_data, size_t *out_size, char **out_profile_json,
-    char **out_error);
+    unsigned char **out_data, size_t *out_size, char **out_profile_json, char **out_error);
 PLATFORM_FILE_API int platform_file_analysis_policy_add_register_seed_arg(M68kAnalysisPolicy *policy,
   const char *text);
 PLATFORM_FILE_API int platform_file_analysis_policy_add_entry_point_arg(M68kAnalysisPolicy *policy, const char *text);

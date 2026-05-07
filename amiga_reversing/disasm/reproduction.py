@@ -42,7 +42,6 @@ from amiga_reversing.disasm.target_metadata import (
 from amiga_reversing.disasm.target_ui_edits import TARGET_UI_EDITS_FILE_NAME
 
 REPRODUCTION_FILE_NAME = "reproduction.json"
-REPRODUCTION_SOURCE_SYNTAX = "genam"
 FACTS_V2_DIRECT_REPRO_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_REPRO"
 FACTS_V2_DIRECT_COMPARE_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_COMPARE"
 FACTS_V2_DIRECT_SOURCE_COMPARE_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_SOURCE_COMPARE"
@@ -51,7 +50,6 @@ MAX_DIAGNOSTICS = 80
 REPRODUCTION_BACKENDS = {"auto", "amiga-hunk", "atari-st", "amiga-raw"}
 REPRODUCTION_ANALYSIS_STAMP = "facts_v2"
 REPRODUCTION_ASSEMBLERS = {"our"}
-REPRODUCTION_SOURCE_SYNTAXES = {REPRODUCTION_SOURCE_SYNTAX}
 REPRODUCTION_ORACLE_MODES = {"vasm", "devpac"}
 REPRODUCTION_CPUS = {"68000", "68010", "68020", "68030", "68040", "68060", "any"}
 REPRODUCTION_MODES = {"exact", "template_preserved", "canonical", "content", "semantic"}
@@ -149,7 +147,6 @@ def run_reproduction(
         backend = cast(str, input_stamp["backend"])
         assembler = cast(str, input_stamp["assembler"])
         assembler_cpu = cast(str, input_stamp["assembler_cpu"])
-        source_syntax = cast(str, input_stamp["source_syntax"])
         base_report = _base_reproduction_report(
             target_name,
             started_at=started_at,
@@ -168,15 +165,6 @@ def run_reproduction(
                 "tool_error": f"unsupported exactness assembler: {assembler}",
                 "finished_at": time.time(),
                 "issues": [_issue("tool", f"unsupported exactness assembler: {assembler}", None)],
-            }
-            return _write_reproduction_report(paths.target_dir, report)
-        if source_syntax not in REPRODUCTION_SOURCE_SYNTAXES:
-            report = {
-                **base_report,
-                "status": "tool_error",
-                "tool_error": f"unsupported reproduction source syntax: {source_syntax}",
-                "finished_at": time.time(),
-                "issues": [_issue("tool", f"unsupported reproduction source syntax: {source_syntax}", None)],
             }
             return _write_reproduction_report(paths.target_dir, report)
         use_facts_v2_native_reproduction = source_text is None
@@ -777,7 +765,6 @@ def reproduction_input_stamp(
     options = reproduction_options_for_target(paths.target_dir)
     backend = _effective_reproduction_backend(backend_for_binary_source(paths.binary_source), options)
     assembler = _effective_reproduction_assembler(assembler, options)
-    source_syntax = _effective_reproduction_source_syntax(options)
     assembler_cpu = _effective_reproduction_cpu(options)
     reproduction_policy = reproduction_policy_for_options(options)
     assembler_path = _platform_file_lib_path(project_root)
@@ -790,7 +777,6 @@ def reproduction_input_stamp(
         "effective_metadata_sha256": effective_metadata_hash(paths.target_dir),
         "source_renderer": "c-backend",
         "analysis_backend": REPRODUCTION_ANALYSIS_STAMP,
-        "source_syntax": source_syntax,
         "source_renderer_tool_stamps": source_renderer_tool_stamps(project_root),
         "assembler": assembler,
         "assembler_cpu": assembler_cpu,
@@ -831,7 +817,6 @@ def unresolved_reproduction_input_stamp(
         else _best_effort_effective_metadata_hash(target_dir),
         "source_renderer": "c-backend",
         "analysis_backend": REPRODUCTION_ANALYSIS_STAMP,
-        "source_syntax": _effective_reproduction_source_syntax(options),
         "source_renderer_tool_stamps": source_renderer_tool_stamps(project_root),
         "assembler": assembler,
         "assembler_cpu": _effective_reproduction_cpu(options),
@@ -1958,7 +1943,6 @@ def _default_reproduction_options() -> dict[str, object]:
         "assembler": "our",
         "cpu": "any",
         "backend": "auto",
-        "source_syntax": REPRODUCTION_SOURCE_SYNTAX,
         "include_dirs": "auto",
         "oracle_modes": [],
         "container_policy": "preserve_original",
@@ -2009,9 +1993,6 @@ def _merge_reproduction_options(options: dict[str, object], payload: dict[str, o
     backend = payload.get("backend")
     if backend in REPRODUCTION_BACKENDS:
         options["backend"] = backend
-    source_syntax = payload.get("source_syntax")
-    if isinstance(source_syntax, str):
-        options["source_syntax"] = source_syntax
     include_dirs = payload.get("include_dirs")
     if include_dirs == "auto":
         options["include_dirs"] = "auto"
@@ -2105,11 +2086,6 @@ def _effective_reproduction_assembler(default_assembler: str, options: dict[str,
 def _effective_reproduction_cpu(options: dict[str, object]) -> str:
     cpu = options.get("cpu")
     return cpu if isinstance(cpu, str) and cpu in REPRODUCTION_CPUS else "any"
-
-
-def _effective_reproduction_source_syntax(options: dict[str, object]) -> str:
-    source_syntax = options.get("source_syntax")
-    return source_syntax if isinstance(source_syntax, str) and source_syntax else REPRODUCTION_SOURCE_SYNTAX
 
 
 def _best_effort_effective_metadata_hash(target_dir: Path) -> str | None:

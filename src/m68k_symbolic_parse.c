@@ -264,7 +264,6 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
   strcpy(line, m68k_trim_in_place(line));
   m68k_normalize_register_alias_tokens_in_place(line);
   m68k_normalize_pc_current_expr_in_place(line);
-  if (context->enable_vasm_compat_rewrites) m68k_normalize_zero_base_displacement_in_place(line);
   space = strchr(line, ' ');
   if (space != NULL) {
     *space = '\0';

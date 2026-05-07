@@ -91,7 +91,6 @@ typedef struct AsmSourceFile {
     uint8_t target_cpu;
     M68kPlatformBackendKind platform_backend_kind;
     M68kPlatformFileKind file_kind;
-    int enable_vasm_compat_rewrites;
     int has_atari_st_program_flags;
     uint32_t atari_st_program_flags;
     int has_atari_st_relocation_flag;

@@ -85,8 +85,6 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_source_file_emit.c ^
     src\m68k_source_file_parse.c ^
     src\m68k_source_include.c ^
-    src\m68k_source_resolve_rewrite.c ^
-    src\m68k_source_rewrite.c ^
     src\m68k_symbolic_parse.c ^
     src\m68k_source_text_util.c ^
     src\platform_common.c ^
@@ -155,8 +153,6 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\m68k_source_file_emit.obj ^
     %OUTDIR%\m68k_source_file_parse.obj ^
     %OUTDIR%\m68k_source_include.obj ^
-    %OUTDIR%\m68k_source_resolve_rewrite.obj ^
-    %OUTDIR%\m68k_source_rewrite.obj ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\platform_common.obj ^
@@ -208,8 +204,6 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\m68k_source_file_emit.obj ^
     %OUTDIR%\m68k_source_file_parse.obj ^
     %OUTDIR%\m68k_source_include.obj ^
-    %OUTDIR%\m68k_source_resolve_rewrite.obj ^
-    %OUTDIR%\m68k_source_rewrite.obj ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
@@ -262,8 +256,6 @@ link %LDFLAGS% /DLL /OUT:%ASM_DLL% /EXPORT:m68k_source_ir_parse_file /EXPORT:m68
     %OUTDIR%\m68k_source_file_emit.obj ^
     %OUTDIR%\m68k_source_file_parse.obj ^
     %OUTDIR%\m68k_source_include.obj ^
-    %OUTDIR%\m68k_source_resolve_rewrite.obj ^
-    %OUTDIR%\m68k_source_rewrite.obj ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\platform_common.obj ^
@@ -344,8 +336,6 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\m68k_source_file_emit.obj ^
     %OUTDIR%\m68k_source_file_parse.obj ^
     %OUTDIR%\m68k_source_include.obj ^
-    %OUTDIR%\m68k_source_resolve_rewrite.obj ^
-    %OUTDIR%\m68k_source_rewrite.obj ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
@@ -411,8 +401,6 @@ link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\m68k_source_file_emit.obj ^
     %OUTDIR%\m68k_source_file_parse.obj ^
     %OUTDIR%\m68k_source_include.obj ^
-    %OUTDIR%\m68k_source_resolve_rewrite.obj ^
-    %OUTDIR%\m68k_source_rewrite.obj ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
@@ -469,8 +457,6 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\m68k_source_file_emit.obj ^
     %OUTDIR%\m68k_source_file_parse.obj ^
     %OUTDIR%\m68k_source_include.obj ^
-    %OUTDIR%\m68k_source_resolve_rewrite.obj ^
-    %OUTDIR%\m68k_source_rewrite.obj ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\platform_common.obj ^
@@ -530,8 +516,6 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
     %OUTDIR%\m68k_source_file_emit.obj ^
     %OUTDIR%\m68k_source_file_parse.obj ^
     %OUTDIR%\m68k_source_include.obj ^
-    %OUTDIR%\m68k_source_resolve_rewrite.obj ^
-    %OUTDIR%\m68k_source_rewrite.obj ^
     %OUTDIR%\m68k_symbolic_parse.obj ^
     %OUTDIR%\m68k_source_text_util.obj ^
     %OUTDIR%\platform_common.obj ^

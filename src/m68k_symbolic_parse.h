@@ -13,7 +13,6 @@ typedef int (*M68kSymbolicIsNameFn)(const char *text, void *user_data);
 
 typedef struct {
     uint8_t target_cpu;
-    int enable_vasm_compat_rewrites;
     void *user_data;
     M68kSymbolicLookupFn lookup_symbol;
     M68kSymbolicIsNameFn is_symbol_name;

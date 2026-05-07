@@ -9,7 +9,7 @@
 #include <string.h>
 
 M68K_ASM_EXPORT M68kSourceIrParseResult m68k_source_ir_parse_file(const char *path, const char *include_dir,
-    uint8_t target_cpu, int enable_vasm_compat_rewrites) {
+    uint8_t target_cpu) {
   M68kSourceIrParseResult result;
   AsmSourceFile source;
   M68kDiagList diagnostics;
@@ -24,7 +24,6 @@ M68K_ASM_EXPORT M68kSourceIrParseResult m68k_source_ir_parse_file(const char *pa
   snprintf(source.include_dir, sizeof(source.include_dir), "%s", include_dir);
   source.target_cpu = target_cpu;
   source.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
-  source.enable_vasm_compat_rewrites = enable_vasm_compat_rewrites;
   if (!m68k_source_pipeline_parse_and_layout(&source, path, m68k_diag_sink(&diagnostics)) ||
       !m68k_source_pipeline_build_ir(&source, &result.source_file, m68k_diag_sink(&diagnostics))) {
     result.diagnostics = diagnostics;

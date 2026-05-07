@@ -283,7 +283,6 @@ def _asm_library():
         ctypes.c_char_p,
         ctypes.c_char_p,
         ctypes.c_uint8,
-        ctypes.c_int,
     ]
     library.m68k_source_ir_parse_file.restype = M68kSourceIrParseResult
     library.m68k_source_ir_render_with_policy.argtypes = [
@@ -472,7 +471,6 @@ class IrPolicyDllTests(unittest.TestCase):
                 str(path).encode("utf-8"),
                 str(AMIGA_INCLUDE_DIR).encode("utf-8"),
                 0,
-                0,
             )
             self.assertFalse(_diag_has_errors(parse_result.diagnostics), _diag_message(parse_result.diagnostics))
             source_file = parse_result.source_file
@@ -507,7 +505,6 @@ class IrPolicyDllTests(unittest.TestCase):
             parse_result = library.m68k_source_ir_parse_file(
                 str(path).encode("utf-8"),
                 str(AMIGA_INCLUDE_DIR).encode("utf-8"),
-                0,
                 0,
             )
             self.assertFalse(_diag_has_errors(parse_result.diagnostics), _diag_message(parse_result.diagnostics))
@@ -545,7 +542,6 @@ class IrPolicyDllTests(unittest.TestCase):
             parse_result = library.m68k_source_ir_parse_file(
                 str(path).encode("utf-8"),
                 str(AMIGA_INCLUDE_DIR).encode("utf-8"),
-                0,
                 0,
             )
             self.assertFalse(_diag_has_errors(parse_result.diagnostics), _diag_message(parse_result.diagnostics))
@@ -987,7 +983,6 @@ class IrPolicyDllTests(unittest.TestCase):
             parse_result = library.m68k_source_ir_parse_file(
                 str(path).encode("utf-8"),
                 str(AMIGA_INCLUDE_DIR).encode("utf-8"),
-                0,
                 0,
             )
             self.assertFalse(_diag_has_errors(parse_result.diagnostics), _diag_message(parse_result.diagnostics))

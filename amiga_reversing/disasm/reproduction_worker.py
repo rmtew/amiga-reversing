@@ -14,7 +14,6 @@ from amiga_reversing.disasm.facts_v2_source_refusal import (
     facts_v2_source_refused_report,
 )
 from amiga_reversing.disasm.reproduction import (
-    REPRODUCTION_SOURCE_SYNTAX,
     rebuilt_target_dir,
     reproduction_input_stamp,
     run_reproduction,
@@ -116,9 +115,6 @@ def _run_one_target(
                 "assembler_cpu": input_stamp.get("assembler_cpu"),
             },
         )
-        source_syntax = input_stamp.get("source_syntax")
-        if not isinstance(source_syntax, str) or not source_syntax:
-            source_syntax = REPRODUCTION_SOURCE_SYNTAX
         source_text: str | None = None
         listing_profile: dict[str, object] = {}
         source_refused = False

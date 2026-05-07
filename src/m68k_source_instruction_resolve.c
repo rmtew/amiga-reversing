@@ -1,7 +1,6 @@
 #include "m68k_source_instruction_resolve.h"
 
 #include "m68k_ir_symbol_resolve.h"
-#include "m68k_source_resolve_rewrite.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -36,23 +35,18 @@ static int normalize_symbolic_zero_address_displacements_local(const M68kSourceI
 }
 
 M68kSourceResolvedInstruction m68k_source_resolve_instruction_operands(const M68kSourceInstructionResolveContext *context,
-    size_t stmt_section_index, size_t line_number, char requested_size_suffix, uint32_t instruction_offset,
-    int allow_undefined, const M68kInstructionIR *parsed_instruction, M68kDiagSink diagnostics) {
+    size_t line_number, char requested_size_suffix, uint32_t instruction_offset, int allow_undefined,
+    const M68kInstructionIR *parsed_instruction, M68kDiagSink diagnostics) {
     M68kSourceResolvedInstruction result;
     M68kIrResolveContext ir_resolve_context;
     M68kIrSymbolApplyResult symbol_result;
-    M68kSourceResolveRewriteContext rewrite_context;
-    InstructionSpec temp_spec;
     M68kAsmOperandValue form_operands[4];
     uint16_t asm_form_index;
     size_t operand_index;
     memset(&result, 0, sizeof(result));
     memset(&ir_resolve_context, 0, sizeof(ir_resolve_context));
-    memset(&rewrite_context, 0, sizeof(rewrite_context));
     ir_resolve_context.user_data = context->user_data;
     ir_resolve_context.lookup_symbol = context->lookup_symbol;
-    rewrite_context.user_data = context->user_data;
-    rewrite_context.lookup_symbol = context->lookup_symbol;
     result.instruction = *parsed_instruction;
     for (operand_index = 0; operand_index < result.instruction.operand_count && operand_index < 4U; ++operand_index) {
         form_operands[operand_index] = result.instruction.operands[operand_index].value;
@@ -91,19 +85,6 @@ M68kSourceResolvedInstruction m68k_source_resolve_instruction_operands(const M68
                 "failed resolving zero displacement instruction form");
             return result;
         }
-    }
-    if (context->enable_vasm_compat_rewrites) {
-        m68k_instruction_ir_to_spec(&result.instruction, &temp_spec);
-        if (m68k_try_rewrite_local_call_to_branch(&rewrite_context, stmt_section_index, requested_size_suffix,
-                &temp_spec, &asm_form_index, instruction_offset, diagnostics)) {
-            m68k_instruction_spec_to_ir(&temp_spec, &result.instruction);
-            result.instruction.asm_form_index = asm_form_index;
-            result.ok = 1;
-            return result;
-        }
-        m68k_try_rewrite_local_ea_symbols_to_pc_relative(&rewrite_context, stmt_section_index, requested_size_suffix,
-            &temp_spec, &asm_form_index, instruction_offset, diagnostics);
-        m68k_instruction_spec_to_ir(&temp_spec, &result.instruction);
     }
     result.instruction.asm_form_index = asm_form_index;
     for (operand_index = 0; operand_index < result.instruction.operand_count; ++operand_index) {

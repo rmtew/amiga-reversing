@@ -1546,7 +1546,6 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
                     "kind": "reproduction_options",
                     "options": {
                         "mode": "content",
-                        "source_syntax": "genam",
                         "cpu": "68060",
                         "container_policy": "preserve-original",
                         "relocation_policy": "preserve-original-encoding",
@@ -1564,7 +1563,6 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
     assert options["mode"] == "content"
     assert options["cpu"] == "68060"
     assert options["backend"] == "amiga-hunk"
-    assert options["source_syntax"] == "genam"
     assert options["include_dirs"] == ["custom/include"]
     assert options["oracle_modes"] == ["vasm"]
     assert options["container_policy"] == "preserve_original"

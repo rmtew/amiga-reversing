@@ -117,7 +117,6 @@ earlier ones.
     "assembler": "our",
     "cpu": "any",
     "backend": "auto",
-    "source_syntax": "genam",
     "include_dirs": "auto",
     "oracle_modes": [],
     "container_policy": "preserve_original",
@@ -144,10 +143,6 @@ ISA forms during reproduction.
 
 `backend` may stay `auto` unless a target needs an explicit `amiga-hunk`,
 `atari-st`, or future raw backend.
-
-`source_syntax` controls the renderer syntax used for reproduction. Today only
-`genam` is supported because it is the syntax our assembler consumes for
-platform files.
 
 `include_dirs` defaults from the backend. List values are stamped for
 target-specific include sets or fixture isolation; backend auto-includes remain

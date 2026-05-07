@@ -11,10 +11,8 @@ static M68kSourceResolvedInstruction resolve_instruction_symbol_operands(const A
   M68kSourceInstructionResolveContext context;
   memset(&context, 0, sizeof(context));
   context.user_data = (void *)source;
-  context.enable_vasm_compat_rewrites = source->enable_vasm_compat_rewrites;
   context.lookup_symbol = m68k_source_model_lookup_symbol;
   return m68k_source_resolve_instruction_operands(&context,
-    stmt->section_index,
     stmt->line_number,
     stmt->u.instruction.requested_size_suffix,
     instruction_offset,

@@ -255,7 +255,6 @@ def assemble_platform_source_path_with_c_backend(
     include_dir: str | Path | None = None,
     output_path: str | Path | None = None,
     target_cpu: str = "any",
-    enable_vasm_compat_rewrites: bool = False,
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[bytes, dict[str, object]]:
     dll = _platform_file_dll(project_root)
@@ -276,7 +275,6 @@ def assemble_platform_source_path_with_c_backend(
     result = function(
         *common_args,
         _c_arg(target_cpu),
-        c_int(1 if enable_vasm_compat_rewrites else 0),
         byref(out_data),
         byref(out_size),
         byref(out_profile_json),
@@ -310,7 +308,6 @@ def assemble_platform_source_text_with_c_backend(
     include_dir: str | Path | None = None,
     output_path: str | Path | None = None,
     target_cpu: str = "any",
-    enable_vasm_compat_rewrites: bool = False,
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[bytes, dict[str, object]]:
     dll = _platform_file_dll(project_root)
@@ -331,7 +328,6 @@ def assemble_platform_source_text_with_c_backend(
     result = function(
         *common_args,
         _c_arg(target_cpu),
-        c_int(1 if enable_vasm_compat_rewrites else 0),
         byref(out_data),
         byref(out_size),
         byref(out_profile_json),
@@ -1031,7 +1027,6 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         c_char_p,
         c_char_p,
         c_char_p,
-        c_int,
         POINTER(c_void_p),
         POINTER(c_size_t),
         POINTER(c_void_p),
@@ -1044,7 +1039,6 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         c_char_p,
         c_char_p,
         c_char_p,
-        c_int,
         POINTER(c_void_p),
         POINTER(c_size_t),
         POINTER(c_void_p),
@@ -1056,7 +1050,6 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         c_char_p,
         c_char_p,
         c_char_p,
-        c_int,
         POINTER(c_void_p),
         POINTER(c_size_t),
         POINTER(c_void_p),
@@ -1069,7 +1062,6 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         c_char_p,
         c_char_p,
         c_char_p,
-        c_int,
         POINTER(c_void_p),
         POINTER(c_size_t),
         POINTER(c_void_p),

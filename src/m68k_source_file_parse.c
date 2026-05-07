@@ -6,7 +6,6 @@
 #include "m68k_source_constant_expr.h"
 #include "m68k_source_data.h"
 #include "m68k_source_include.h"
-#include "m68k_source_rewrite.h"
 #include "m68k_source_text_util.h"
 #include "m68k_symbolic_parse.h"
 
@@ -295,17 +294,6 @@ static int source_is_symbol_name(const char *text, void *user_data) {
   return m68k_is_symbol_name(text);
 }
 
-static int source_rewrite_is_constant_symbol(const char *name,
-                                             void *user_data) {
-  const AsmSourceFile *source = (const AsmSourceFile *)user_data;
-  M68kSourceModelIndexResult symbol_index = m68k_source_model_find_symbol_index(source, name);
-  return symbol_index.ok && source->symbols[symbol_index.index].kind == ASM_SOURCE_SYMBOL_CONSTANT;
-}
-
-static M68kSourceConstantResult source_rewrite_parse_constant(const char *text, void *user_data) {
-  return parse_constant_expression_value((const AsmSourceFile *)user_data, text);
-}
-
 static M68kSourceLookupResult source_include_lookup_callback(const char *name, int require_constant, void *user_data) {
   return lookup_defined_symbol_value((const AsmSourceFile *)user_data, name, require_constant);
 }
@@ -394,12 +382,10 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
   M68kSourceIncludeContext include_context;
   M68kSourceDataParseContext data_parse_context;
   M68kSymbolicParseContext symbolic_parse_context;
-  M68kSourceRewriteContext rewrite_context;
   memset(&include_state, 0, sizeof(include_state));
   memset(&include_context, 0, sizeof(include_context));
   memset(&data_parse_context, 0, sizeof(data_parse_context));
   memset(&symbolic_parse_context, 0, sizeof(symbolic_parse_context));
-  memset(&rewrite_context, 0, sizeof(rewrite_context));
   m68k_source_include_state_init(&include_state, source->include_dir);
   include_context.user_data = source;
   include_context.lookup_defined = source_include_lookup_callback;
@@ -409,15 +395,9 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
   data_parse_context.parse_constant = source_parse_constant_callback;
   data_parse_context.append_item = source_data_append_item_callback;
   symbolic_parse_context.target_cpu = source->target_cpu;
-  symbolic_parse_context.enable_vasm_compat_rewrites =
-      source->enable_vasm_compat_rewrites;
   symbolic_parse_context.user_data = source;
   symbolic_parse_context.lookup_symbol = source_include_lookup_callback;
   symbolic_parse_context.is_symbol_name = source_is_symbol_name;
-  rewrite_context.user_data = source;
-  rewrite_context.is_symbol_name = source_is_symbol_name;
-  rewrite_context.is_constant_symbol = source_rewrite_is_constant_symbol;
-  rewrite_context.parse_constant = source_rewrite_parse_constant;
   last_symbol_fallback_line[0] = '\0';
   if (reader == NULL || reader->next == NULL) {
     source_parse_error(diagnostics, "bad source reader");
@@ -429,8 +409,6 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
     char *token0 = NULL;
     M68kSourceDirectiveToken directive0 = M68K_SOURCE_DIRECTIVE_NONE;
     char statement_text[M68K_SOURCE_PARSE_LINE_CAPACITY];
-    char rewritten_statement_text[M68K_SOURCE_PARSE_LINE_CAPACITY];
-    char optimized_statement_text[M68K_SOURCE_PARSE_LINE_CAPACITY];
     ++line_number;
     m68k_strip_comment_in_place(line);
     rest = m68k_trim_in_place(line);
@@ -471,20 +449,6 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
       }
     }
     snprintf(statement_text, sizeof(statement_text), "%s", rest);
-    if (source->enable_vasm_compat_rewrites) {
-      m68k_rewrite_movea_symbolic_immediate_to_lea( &rewrite_context, statement_text, rewritten_statement_text,
-          sizeof(rewritten_statement_text));
-      snprintf(optimized_statement_text, sizeof(optimized_statement_text), "%s",
-               rewritten_statement_text);
-      m68k_rewrite_move_immediate_to_moveq( &rewrite_context, optimized_statement_text, optimized_statement_text,
-          sizeof(optimized_statement_text));
-      m68k_rewrite_cmp_zero_to_tst(optimized_statement_text,
-                                   optimized_statement_text,
-                                   sizeof(optimized_statement_text));
-    } else {
-      snprintf(optimized_statement_text, sizeof(optimized_statement_text), "%s",
-               statement_text);
-    }
     cursor = rest;
     token0 = m68k_next_token_in_place(&cursor);
     rest = m68k_trim_in_place(cursor);
@@ -832,9 +796,6 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
         continue;
       }
     }
-    if (source->enable_vasm_compat_rewrites &&
-        m68k_is_elided_lea_noop(optimized_statement_text))
-      continue;
     {
       M68kParseDataDirectiveResult data_directive = m68k_parse_data_directive_token(directive0);
       if (data_directive.ok && data_directive.is_repeat == 0U) {
@@ -894,26 +855,26 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
         return 0;
       }
       stmt = &source->statements[stmt_result.index];
-      parse_ok = parse_plain_instruction_for_cpu_ceiling(optimized_statement_text, source->target_cpu,
+      parse_ok = parse_plain_instruction_for_cpu_ceiling(statement_text, source->target_cpu,
         &stmt->u.instruction.parsed_ir, &parse_diagnostics);
       if (!parse_ok && current_fpu_directive_active != 0U && current_fpu_id > 0U &&
-          statement_is_fpu_id_alias_instruction(optimized_statement_text)) {
+          statement_is_fpu_id_alias_instruction(statement_text)) {
         m68k_diag_list_reset(&parse_diagnostics);
-        stmt->u.instruction.parsed_ir = m68k_plain_parse_instruction_to_ir(optimized_statement_text,
+        stmt->u.instruction.parsed_ir = m68k_plain_parse_instruction_to_ir(statement_text,
           M68K_ASM_CPU_68040, m68k_diag_sink(&parse_diagnostics));
         parse_ok = !m68k_diag_has_errors(&parse_diagnostics);
       }
       if (!parse_ok) {
-        parse_ok = parse_symbolic_instruction_for_cpu_ceiling(&symbolic_parse_context, optimized_statement_text,
+        parse_ok = parse_symbolic_instruction_for_cpu_ceiling(&symbolic_parse_context, statement_text,
             &stmt->u.instruction.parsed_ir, last_symbol_fallback_line,
             sizeof(last_symbol_fallback_line));
       }
       if (!parse_ok && current_fpu_directive_active != 0U && current_fpu_id > 0U &&
-          statement_is_fpu_id_alias_instruction(optimized_statement_text)) {
+          statement_is_fpu_id_alias_instruction(statement_text)) {
         M68kSymbolicParseContext fpu_symbolic_parse_context = symbolic_parse_context;
         fpu_symbolic_parse_context.target_cpu = M68K_ASM_CPU_68040;
         parse_ok = m68k_parse_instruction_with_symbol_fallback_ir(&fpu_symbolic_parse_context,
-            optimized_statement_text, &stmt->u.instruction.parsed_ir, last_symbol_fallback_line,
+            statement_text, &stmt->u.instruction.parsed_ir, last_symbol_fallback_line,
             sizeof(last_symbol_fallback_line));
       }
       if (!parse_ok) {

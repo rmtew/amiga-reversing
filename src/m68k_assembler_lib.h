@@ -53,7 +53,7 @@ M68K_ASM_EXPORT M68kVerifyResult m68k_verify_manifest(const char *manifest_path,
 M68K_ASM_EXPORT M68kVerifyResult m68k_verify_corpus(const char *manifest_path, const char *binary_path,
     const M68kAsmVerifyOptions *options);
 M68K_ASM_EXPORT M68kSourceIrParseResult m68k_source_ir_parse_file(const char *path, const char *include_dir,
-    uint8_t target_cpu, int enable_vasm_compat_rewrites);
+    uint8_t target_cpu);
 M68K_ASM_EXPORT M68kSourceIrRenderResult m68k_source_ir_render_with_policy(const M68kSourceFileIR *source_file,
     const M68kRenderPolicy *policy);
 M68K_ASM_EXPORT void m68k_source_ir_free(M68kSourceFileIR *source_file);

@@ -30,7 +30,6 @@ static int simple_source_parse_instruction_callback(const char *line_text, Instr
   if (allow_label_symbols) {
     M68kSymbolicParseContext context;
     context.target_cpu = target_cpu;
-    context.enable_vasm_compat_rewrites = 0;
     context.user_data = NULL;
     context.lookup_symbol = simple_source_lookup_symbol;
     context.is_symbol_name = simple_source_is_symbol_name;

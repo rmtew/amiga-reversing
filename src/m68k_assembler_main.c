@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
   }
   if (argc == 8 && strcmp(argv[1], "assemble-platform-file") == 0 && strcmp(argv[2], "--backend") == 0 &&
       strcmp(argv[4], "--include-dir") == 0) {
-    return m68k_assemble_platform_file_to_output(argv[3], argv[5], argv[6], argv[7], target_cpu, 0);
+    return m68k_assemble_platform_file_to_output(argv[3], argv[5], argv[6], argv[7], target_cpu);
   }
   if (argc == 10 && strcmp(argv[1], "assemble-platform-file") == 0 && strcmp(argv[2], "--cpu") == 0 &&
       strcmp(argv[4], "--backend") == 0 && strcmp(argv[6], "--include-dir") == 0) {
@@ -96,27 +96,11 @@ int main(int argc, char **argv) {
       return 2;
     }
     target_cpu = cpu_result.cpu;
-    return m68k_assemble_platform_file_to_output(argv[5], argv[7], argv[8], argv[9], target_cpu, 0);
-  }
-  if (argc == 10 && strcmp(argv[1], "assemble-platform-file") == 0 && strcmp(argv[2], "--syntax-compat") == 0 &&
-      strcmp(argv[3], "vasm") == 0 && strcmp(argv[4], "--backend") == 0 && strcmp(argv[6], "--include-dir") == 0) {
-    return m68k_assemble_platform_file_to_output(argv[5], argv[7], argv[8], argv[9], target_cpu, 1);
-  }
-  if (argc == 12 && strcmp(argv[1], "assemble-platform-file") == 0 && strcmp(argv[2], "--cpu") == 0 &&
-      strcmp(argv[4], "--syntax-compat") == 0 && strcmp(argv[5], "vasm") == 0 && strcmp(argv[6], "--backend") == 0 &&
-      strcmp(argv[8], "--include-dir") == 0) {
-    cpu_result = m68k_parse_cpu_name(argv[3]);
-    if (!cpu_result.ok) {
-      fprintf(stderr, "unknown cpu: %s\n", argv[3]);
-      return 2;
-    }
-    target_cpu = cpu_result.cpu;
-    return m68k_assemble_platform_file_to_output(argv[7], argv[9], argv[10], argv[11], target_cpu, 1);
+    return m68k_assemble_platform_file_to_output(argv[5], argv[7], argv[8], argv[9], target_cpu);
   }
   if (argc >= 5 && strcmp(argv[1], "render-source-file") == 0) {
     const char *input_path = NULL;
     const char *include_dir = NULL;
-    int enable_vasm_compat_rewrites = 0;
     m68k_render_policy_init_for_syntax(&render_policy, M68K_IR_SYNTAX_CANONICAL);
     for (argi = 2; argi < argc; ++argi) {
       if (strcmp(argv[argi], "--cpu") == 0) {
@@ -135,15 +119,6 @@ int main(int argc, char **argv) {
           return 2;
         }
         include_dir = argv[++argi];
-        continue;
-      }
-      if (strcmp(argv[argi], "--syntax-compat") == 0) {
-        if (argi + 1 >= argc || _stricmp(argv[argi + 1], "vasm") != 0) {
-          fprintf(stderr, "unknown syntax compat: %s\n", (argi + 1 < argc) ? argv[argi + 1] : "");
-          return 2;
-        }
-        enable_vasm_compat_rewrites = 1;
-        ++argi;
         continue;
       }
       {
@@ -168,7 +143,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "render-source-file requires --include-dir <dir> <input.s>\n");
       return 2;
     }
-    return m68k_render_source_file_to_stdout( input_path, include_dir, target_cpu, enable_vasm_compat_rewrites, &render_policy);
+    return m68k_render_source_file_to_stdout(input_path, include_dir, target_cpu, &render_policy);
   }
   fprintf(stderr, "usage: %s verify <all_cases.txt> <all_cases.bin>\n", argv[0]);
   fprintf(stderr, "   or: %s verify --cpu <68000|68010|68020|68030|68040|68060|any> <all_cases.txt> <all_cases.bin>\n",
@@ -189,14 +164,10 @@ int main(int argc, char **argv) {
     argv[0]);
   fprintf(stderr, "   or: %s assemble-platform-file --cpu <68000|68010|68020|68030|68040|68060|any> --backend <amiga-hunk|atari-st> "
     "--include-dir <dir> <input.s> <out>\n", argv[0]);
-  fprintf(stderr, "   or: %s assemble-platform-file --syntax-compat vasm --backend <amiga-hunk|atari-st> --include-dir <dir> "
-    "<input.s> <out>\n", argv[0]);
-  fprintf(stderr, "   or: %s assemble-platform-file --cpu <68000|68010|68020|68030|68040|68060|any> --syntax-compat vasm "
-    "--backend <amiga-hunk|atari-st> --include-dir <dir> <input.s> <out>\n", argv[0]);
   fprintf(stderr, "   or: %s render-source-file --include-dir <dir> <input.s>\n", argv[0]);
   fprintf(stderr, "   or: %s render-source-file [--cpu <68000|68010|68020|68030|68040|68060|any>] [--syntax "
     "canonical|genam|vasm]\n", argv[0]);
-  fprintf(stderr, "          [--syntax-compat vasm] [--no-strings] [--no-longs] [--no-generated-names]\n");
+  fprintf(stderr, "          [--no-strings] [--no-longs] [--no-generated-names]\n");
   fprintf(stderr, "          [--min-os-version <1.3|2.0|3.1|3.5>]\n");
   fprintf(stderr, "          [--code-label-prefix p] [--call-label-prefix p] [--data-label-prefix p] --include-dir "
     "<dir> <input.s>\n");

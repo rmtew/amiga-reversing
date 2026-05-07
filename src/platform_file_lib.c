@@ -3545,8 +3545,7 @@ static char *facts_v2_direct_rebuild_profile_json_alloc(const char *backend_name
 
 static int platform_file_assemble_source_common_alloc(const char *backend_name, const char *include_dir,
     const char *path, const char *source_text, const char *output_path, const char *target_cpu_name,
-    int enable_vasm_compat_rewrites, unsigned char **out_data, size_t *out_size, char **out_profile_json,
-    char **out_error) {
+    unsigned char **out_data, size_t *out_size, char **out_profile_json, char **out_error) {
   M68kParseCpuResult cpu_result;
   M68kDiagList diagnostics;
   M68kPlatformAssembleProfile profile;
@@ -3574,7 +3573,7 @@ static int platform_file_assemble_source_common_alloc(const char *backend_name, 
     }
     result = m68k_assemble_platform_source_text_to_raw_buffer_alloc(backend_name,
       include_dir != NULL ? include_dir : "", source_text, output_path != NULL ? output_path : "",
-      cpu_result.cpu, enable_vasm_compat_rewrites, out_data, out_size, &profile, m68k_diag_sink(&diagnostics));
+      cpu_result.cpu, out_data, out_size, &profile, m68k_diag_sink(&diagnostics));
     *out_profile_json = assembler_profile_json_alloc_local(&profile);
     if (*out_profile_json == NULL) {
       free(*out_data);
@@ -3598,18 +3597,17 @@ static int platform_file_assemble_source_common_alloc(const char *backend_name, 
     if (output_path != NULL && output_path[0] != '\0')
       result = m68k_assemble_platform_source_text_to_output_buffer_alloc(backend_name,
         include_dir != NULL ? include_dir : "", source_text, output_path, cpu_result.cpu,
-        enable_vasm_compat_rewrites, out_data, out_size, &profile, m68k_diag_sink(&diagnostics));
+        out_data, out_size, &profile, m68k_diag_sink(&diagnostics));
     else
       result = m68k_assemble_platform_source_text_to_buffer_alloc(backend_name,
-        include_dir != NULL ? include_dir : "", source_text, cpu_result.cpu, enable_vasm_compat_rewrites,
-        out_data, out_size, &profile, m68k_diag_sink(&diagnostics));
+        include_dir != NULL ? include_dir : "", source_text, cpu_result.cpu, out_data, out_size, &profile,
+        m68k_diag_sink(&diagnostics));
   } else if (output_path != NULL && output_path[0] != '\0') {
     result = m68k_assemble_platform_file_to_output_buffer_alloc(backend_name, include_dir != NULL ? include_dir : "",
-      path, output_path, cpu_result.cpu, enable_vasm_compat_rewrites, out_data, out_size, &profile,
-      m68k_diag_sink(&diagnostics));
+      path, output_path, cpu_result.cpu, out_data, out_size, &profile, m68k_diag_sink(&diagnostics));
   } else {
     result = m68k_assemble_platform_file_to_buffer_alloc(backend_name, include_dir != NULL ? include_dir : "",
-      path, cpu_result.cpu, enable_vasm_compat_rewrites, out_data, out_size, &profile, m68k_diag_sink(&diagnostics));
+      path, cpu_result.cpu, out_data, out_size, &profile, m68k_diag_sink(&diagnostics));
   }
   *out_profile_json = assembler_profile_json_alloc_local(&profile);
   if (*out_profile_json == NULL) {
@@ -3632,33 +3630,31 @@ static int platform_file_assemble_source_common_alloc(const char *backend_name, 
 }
 
 int platform_file_assemble_source_path_bytes_profile_alloc(const char *backend_name, const char *include_dir,
-    const char *path, const char *target_cpu_name, int enable_vasm_compat_rewrites, unsigned char **out_data,
-    size_t *out_size, char **out_profile_json, char **out_error) {
+    const char *path, const char *target_cpu_name, unsigned char **out_data, size_t *out_size,
+    char **out_profile_json, char **out_error) {
   return platform_file_assemble_source_common_alloc(backend_name, include_dir, path, NULL, NULL, target_cpu_name,
-    enable_vasm_compat_rewrites, out_data, out_size, out_profile_json, out_error);
+    out_data, out_size, out_profile_json, out_error);
 }
 
 int platform_file_assemble_source_path_to_output_bytes_profile_alloc(const char *backend_name,
     const char *include_dir, const char *path, const char *output_path, const char *target_cpu_name,
-    int enable_vasm_compat_rewrites, unsigned char **out_data, size_t *out_size, char **out_profile_json,
-    char **out_error) {
+    unsigned char **out_data, size_t *out_size, char **out_profile_json, char **out_error) {
   return platform_file_assemble_source_common_alloc(backend_name, include_dir, path, NULL, output_path,
-    target_cpu_name, enable_vasm_compat_rewrites, out_data, out_size, out_profile_json, out_error);
+    target_cpu_name, out_data, out_size, out_profile_json, out_error);
 }
 
 int platform_file_assemble_source_text_bytes_profile_alloc(const char *backend_name, const char *include_dir,
-    const char *source_text, const char *target_cpu_name, int enable_vasm_compat_rewrites,
-    unsigned char **out_data, size_t *out_size, char **out_profile_json, char **out_error) {
+    const char *source_text, const char *target_cpu_name, unsigned char **out_data, size_t *out_size,
+    char **out_profile_json, char **out_error) {
   return platform_file_assemble_source_common_alloc(backend_name, include_dir, NULL, source_text, NULL,
-    target_cpu_name, enable_vasm_compat_rewrites, out_data, out_size, out_profile_json, out_error);
+    target_cpu_name, out_data, out_size, out_profile_json, out_error);
 }
 
 int platform_file_assemble_source_text_to_output_bytes_profile_alloc(const char *backend_name,
     const char *include_dir, const char *source_text, const char *output_path, const char *target_cpu_name,
-    int enable_vasm_compat_rewrites, unsigned char **out_data, size_t *out_size, char **out_profile_json,
-    char **out_error) {
+    unsigned char **out_data, size_t *out_size, char **out_profile_json, char **out_error) {
   return platform_file_assemble_source_common_alloc(backend_name, include_dir, NULL, source_text, output_path,
-    target_cpu_name, enable_vasm_compat_rewrites, out_data, out_size, out_profile_json, out_error);
+    target_cpu_name, out_data, out_size, out_profile_json, out_error);
 }
 
 void platform_file_free_text(char *text) { free(text); }

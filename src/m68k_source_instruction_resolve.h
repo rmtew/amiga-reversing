@@ -13,7 +13,6 @@ typedef M68kSourceLookupResult (*M68kSourceInstructionResolveLookupFn)(const cha
 
 typedef struct M68kSourceInstructionResolveContext {
     void *user_data;
-    int enable_vasm_compat_rewrites;
     M68kSourceInstructionResolveLookupFn lookup_symbol;
 } M68kSourceInstructionResolveContext;
 
@@ -31,7 +30,7 @@ typedef struct M68kSourceResolvedInstruction {
 } M68kSourceResolvedInstruction;
 
 M68kSourceResolvedInstruction m68k_source_resolve_instruction_operands(const M68kSourceInstructionResolveContext *context,
-    size_t stmt_section_index, size_t line_number, char requested_size_suffix, uint32_t instruction_offset,
-    int allow_undefined, const M68kInstructionIR *parsed_instruction, M68kDiagSink diagnostics);
+    size_t line_number, char requested_size_suffix, uint32_t instruction_offset, int allow_undefined,
+    const M68kInstructionIR *parsed_instruction, M68kDiagSink diagnostics);
 
 #endif

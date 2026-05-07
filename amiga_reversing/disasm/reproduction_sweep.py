@@ -136,7 +136,6 @@ def record_from_reproduction_report(target_name: str, report: JsonObject) -> Jso
         "backend": backend,
         "analysis_backend": analysis_backend,
         "assembler": _str_or_none(report.get("assembler")) or _str_or_none(input_stamp.get("assembler")),
-        "source_syntax": _str_or_none(input_stamp.get("source_syntax")),
         "reproduction_policy": reproduction_policy,
         "original_size": _int_or_none(report.get("original_size") or input_stamp.get("original_size")),
         "rebuilt_size": _int_or_none(report.get("rebuilt_size")),
