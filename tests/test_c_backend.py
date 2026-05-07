@@ -2370,6 +2370,26 @@ def test_real_dll_epic_runtime_absolute_raw_source_keeps_single_load_org() -> No
     assert "    ORG $0\n" not in source
 
 
+def test_real_dll_epic_bootblock_keeps_copied_runtime_destination_separate_from_load_org() -> None:
+    _requires_c_backend_dlls()
+    paths = resolve_project_paths(
+        "amiga_disk_epic-1992-ocean-disk-1__amiga_raw_bootblock",
+        project_root=PROJECT_ROOT,
+    )
+
+    with effective_metadata_file(paths.target_dir) as metadata_path:
+        source, _profile = listing_artifact_source_text_with_c_backend_profile(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert source.count("    ORG $70000\n") == 1
+    assert "runtime_code_00000400\tEQU\t$400\n" in source
+    assert "\tlea.l runtime_code_00000400.l,a1\n" in source
+    assert "abs_0_0007008C-" not in source
+
+
 def test_real_dll_runtime_org_is_visible_in_listing_rows(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "stage.bin"

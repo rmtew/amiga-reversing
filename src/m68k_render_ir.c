@@ -6371,8 +6371,21 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
           lookup_source_runtime_address(lookup, fact->target_section_index, fact->target_offset,
             &target_runtime_address) && target_runtime_address != fact->runtime_address &&
           lookup_has_renderable_label(lookup, fact->target_section_index, fact->target_offset)) {
-        int64_t addend = (int64_t)(uint64_t)fact->runtime_address - (int64_t)(uint64_t)target_runtime_address;
-        if (addend < INT32_MIN || addend > INT32_MAX) {
+        if (runtime_address_maps_to_materialized_source(lookup, fact->target_section_index, fact->runtime_address)) {
+          int64_t addend = (int64_t)(uint64_t)fact->runtime_address - (int64_t)(uint64_t)target_runtime_address;
+          if (addend < INT32_MIN || addend > INT32_MAX) {
+            record_numeric_runtime_ref(preview, fact);
+            continue;
+          }
+        } else {
+          char symbol[80];
+          if (!amiga_abs_exec_base_load_should_stay_absolute(lookup, instruction, operand_index, operand, fact) &&
+              runtime_address_ref_targets_unmaterialized_discovered_code(lookup, fact) &&
+              render_asm_define_runtime_address_symbol_once(preview, "runtime_code", fact->runtime_address, symbol,
+                sizeof(symbol))) {
+            attach_generic_symbol(operand, symbol);
+            continue;
+          }
           record_numeric_runtime_ref(preview, fact);
           continue;
         }
