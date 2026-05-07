@@ -405,7 +405,7 @@ analysis/render-plan session handle or a persisted listing artifact:
 
 ```
 create artifact(binary, metadata, policy, effective cache key)
-artifact summary/profile
+artifact summary with profile
 listing window by row/index/artifact
 listing window by address/artifact
 row lookup by section offset/artifact
@@ -719,8 +719,8 @@ last requested indexed row to bound the body render-plan visit.
   be fixed platform/source style?
 - How should row ids remain stable when analysis splits one unknown/data row
   into several typed rows?
-- How much runtime copied-code and ORG provenance must exist before the web path
-  switches to render-plan rows?
+- What runtime copied-code and ORG provenance gaps remain now that the web path
+  consumes retained render-plan rows?
 
 ## Current Anti-Pattern To Remove
 
