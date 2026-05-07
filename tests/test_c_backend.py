@@ -1225,6 +1225,43 @@ def test_project_source_disk_entry_extracts_with_c_disk_backend(monkeypatch, tmp
     assert not Path(str(file_calls[0][2])).exists()
 
 
+class _FakeSourceArtifact:
+    def __init__(self, source_text: str, profile: dict[str, object]) -> None:
+        self.source_text_value = source_text
+        self.profile = profile
+        self.closed = False
+
+    def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+        return {"total_rows": 1}, self.profile
+
+    def source_text(self) -> str:
+        return self.source_text_value
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def _patch_render_source_artifact(
+    monkeypatch: pytest.MonkeyPatch,
+    calls: list[dict[str, object]],
+    artifact: _FakeSourceArtifact,
+) -> None:
+    def fake_create(cls, source_file, *, metadata_text: str, include_dir: str, project_root: Path):
+        calls.append(
+            {
+                "platform_name": source_file.platform_name,
+                "path": source_file.path,
+                "entry_offset": source_file.entry_offset,
+                "metadata_text": metadata_text,
+                "include_dir": include_dir,
+                "project_root": project_root,
+            }
+        )
+        return artifact
+
+    monkeypatch.setattr(c_backend.CListingArtifact, "create", classmethod(fake_create))
+
+
 def test_render_project_source_disk_entry_uses_atari_platform(monkeypatch, tmp_path: Path) -> None:
     source = DiskEntryBinarySource(
         kind="disk_entry",
@@ -1234,17 +1271,13 @@ def test_render_project_source_disk_entry_uses_atari_platform(monkeypatch, tmp_p
         display_path="demo.st::AUTO/BOOT.PRG",
         analysis_cache_path=tmp_path / "binary.analysis",
     )
-    calls: list[tuple[object, ...]] = []
+    calls: list[dict[str, object]] = []
+    artifact = _FakeSourceArtifact("; atari\n", {"facts_v2": {"asm_source_refused": False}})
 
     monkeypatch.setattr(
         "amiga_reversing.disasm.c_backend._platform_disk_bytes", lambda function_name, *args, project_root: b"\x60\x1a"
     )
-
-    def fake_file_run(function_name: str, *args: object, project_root):
-        calls.append((function_name, *args))
-        return "; atari\n", {"facts_v2": {"asm_source_refused": False}}
-
-    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_facts_v2_source_text_profile", fake_file_run)
+    _patch_render_source_artifact(monkeypatch, calls, artifact)
 
     assert (
         render_project_source_with_c_backend(
@@ -1253,7 +1286,8 @@ def test_render_project_source_disk_entry_uses_atari_platform(monkeypatch, tmp_p
         )
         == "; atari\n"
     )
-    assert calls[0][0:2] == ("platform_file_facts_v2_asm_source_path_text_profile_alloc", "atari-st")
+    assert calls[0]["platform_name"] == "atari-st"
+    assert artifact.closed is True
 
 
 def test_render_project_source_ttp_uses_atari_platform(monkeypatch, tmp_path: Path) -> None:
@@ -1265,13 +1299,9 @@ def test_render_project_source_ttp_uses_atari_platform(monkeypatch, tmp_path: Pa
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
     )
-    calls: list[tuple[object, ...]] = []
-
-    def fake_file_run(function_name: str, *args: object, project_root):
-        calls.append((function_name, *args))
-        return "; atari\n", {"facts_v2": {"asm_source_refused": False}}
-
-    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_facts_v2_source_text_profile", fake_file_run)
+    calls: list[dict[str, object]] = []
+    artifact = _FakeSourceArtifact("; atari\n", {"facts_v2": {"asm_source_refused": False}})
+    _patch_render_source_artifact(monkeypatch, calls, artifact)
 
     assert (
         render_project_source_with_c_backend(
@@ -1280,10 +1310,11 @@ def test_render_project_source_ttp_uses_atari_platform(monkeypatch, tmp_path: Pa
         )
         == "; atari\n"
     )
-    assert calls[0][0:2] == ("platform_file_facts_v2_asm_source_path_text_profile_alloc", "atari-st")
+    assert calls[0]["platform_name"] == "atari-st"
+    assert artifact.closed is True
 
 
-def test_render_project_source_uses_facts_v2(monkeypatch, tmp_path: Path) -> None:
+def test_render_project_source_uses_listing_artifact(monkeypatch, tmp_path: Path) -> None:
     binary_path = tmp_path / "demo"
     binary_path.write_bytes(b"\0\0\x03\xf3")
     source = HunkFileBinarySource(
@@ -1292,16 +1323,9 @@ def test_render_project_source_uses_facts_v2(monkeypatch, tmp_path: Path) -> Non
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
     )
-    calls: list[tuple[object, ...]] = []
-
-    def fake_facts_v2(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
-        calls.append((*args, kwargs))
-        return "SECTION section_0,code\n", {"facts_v2": {"asm_source_refused": False}}
-
-    monkeypatch.setattr(
-        "amiga_reversing.disasm.c_backend.facts_v2_asm_source_project_source_with_c_backend_profile",
-        fake_facts_v2,
-    )
+    calls: list[dict[str, object]] = []
+    artifact = _FakeSourceArtifact("SECTION section_0,code\n", {"facts_v2": {"asm_source_refused": False}})
+    _patch_render_source_artifact(monkeypatch, calls, artifact)
 
     assert (
         render_project_source_with_c_backend(
@@ -1310,10 +1334,12 @@ def test_render_project_source_uses_facts_v2(monkeypatch, tmp_path: Path) -> Non
         )
         == "SECTION section_0,code\n"
     )
-    assert calls[0][0] == source
+    assert calls[0]["path"] == binary_path
+    assert calls[0]["platform_name"] == "amiga-hunk"
+    assert artifact.closed is True
 
 
-def test_render_project_source_refuses_facts_v2_backend(monkeypatch, tmp_path: Path) -> None:
+def test_render_project_source_refuses_artifact_source(monkeypatch, tmp_path: Path) -> None:
     binary_path = tmp_path / "demo"
     binary_path.write_bytes(b"\0\0\x03\xf3")
     source = HunkFileBinarySource(
@@ -1322,27 +1348,26 @@ def test_render_project_source_refuses_facts_v2_backend(monkeypatch, tmp_path: P
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
     )
-
-    monkeypatch.setattr(
-        "amiga_reversing.disasm.c_backend.facts_v2_asm_source_project_source_with_c_backend_profile",
-        lambda *args, **kwargs: (
-            "",
-            {
-                "facts_v2": {
-                    "asm_source_refused": True,
-                    "asm_source_first_failure_kind": "unresolved_label",
-                    "asm_source_first_failure_section": 1,
-                    "asm_source_first_failure_offset": 8,
-                }
-            },
-        ),
+    calls: list[dict[str, object]] = []
+    artifact = _FakeSourceArtifact(
+        "",
+        {
+            "facts_v2": {
+                "asm_source_refused": True,
+                "asm_source_first_failure_kind": "unresolved_label",
+                "asm_source_first_failure_section": 1,
+                "asm_source_first_failure_offset": 8,
+            }
+        },
     )
+    _patch_render_source_artifact(monkeypatch, calls, artifact)
 
     with pytest.raises(FactsV2SourceRefused, match="kind=unresolved_label"):
         render_project_source_with_c_backend(
             source,
             project_root=tmp_path,
         )
+    assert artifact.closed is True
 
 
 def test_project_source_raw_binary_uses_raw_dll_with_local_entrypoint(monkeypatch, tmp_path: Path) -> None:
@@ -1359,23 +1384,24 @@ def test_project_source_raw_binary_uses_raw_dll_with_local_entrypoint(monkeypatc
         analysis_cache_path=tmp_path / "binary.analysis",
     )
     calls: list[tuple[object, ...]] = []
+    artifact_calls: list[dict[str, object]] = []
+    artifact = _FakeSourceArtifact("; raw\n", {"facts_v2": {"asm_source_refused": False}})
 
     def fake_file_run(function_name: str, *args: object, project_root):
         calls.append((function_name, *args))
         return '{"sections":[]}' if function_name == "platform_file_facts_v2_analysis_raw_path_json_alloc" else "; raw\n"
 
     monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
+    _patch_render_source_artifact(monkeypatch, artifact_calls, artifact)
 
     assert analyze_project_source_with_c_backend(source, project_root=tmp_path) == {"sections": []}
-    monkeypatch.setattr(
-        "amiga_reversing.disasm.c_backend._platform_file_facts_v2_source_text_profile",
-        lambda function_name, *args, project_root: ("; raw\n", {"facts_v2": {"asm_source_refused": False}}),
-    )
 
     assert render_project_source_with_c_backend(source, project_root=tmp_path) == "; raw\n"
     assert calls == [
         ("platform_file_facts_v2_analysis_raw_path_json_alloc", "amiga-raw", str(binary_path), 12, "", ""),
     ]
+    assert artifact_calls[0]["platform_name"] == "amiga-raw"
+    assert artifact_calls[0]["entry_offset"] == 12
 
 
 def test_project_source_runtime_absolute_raw_binary_uses_local_entry_offset(
@@ -3247,18 +3273,15 @@ def test_project_source_raw_binary_passes_metadata_register_seeds(monkeypatch, t
         analysis_cache_path=tmp_path / "binary.analysis",
     )
     calls: list[tuple[str, ...]] = []
+    artifact_calls: list[dict[str, object]] = []
+    artifact = _FakeSourceArtifact("; raw\n", {"facts_v2": {"asm_source_refused": False}})
 
     def fake_file_run(function_name: str, *args: object, project_root):
         calls.append((function_name, *args))
         return '{"sections":[]}'
 
     monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
-    monkeypatch.setattr(
-        "amiga_reversing.disasm.c_backend._platform_file_facts_v2_source_text_profile",
-        lambda function_name, *args, project_root: (
-            calls.append((function_name, *args)) or ("; raw\n", {"facts_v2": {"asm_source_refused": False}})
-        ),
-    )
+    _patch_render_source_artifact(monkeypatch, artifact_calls, artifact)
 
     analyze_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=tmp_path)
     render_project_source_with_c_backend(
@@ -3276,13 +3299,16 @@ def test_project_source_raw_binary_passes_metadata_register_seeds(monkeypatch, t
             str(metadata_path),
             "",
         ),
-        (
-            "platform_file_facts_v2_asm_source_raw_path_text_profile_alloc",
-            "amiga-raw",
-            str(binary_path),
-            12,
-            str(metadata_path),
-        ),
+    ]
+    assert artifact_calls == [
+        {
+            "platform_name": "amiga-raw",
+            "path": binary_path,
+            "entry_offset": 12,
+            "metadata_text": str(metadata_path),
+            "include_dir": str(tmp_path / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
+            "project_root": tmp_path,
+        }
     ]
 
 

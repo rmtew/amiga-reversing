@@ -258,6 +258,10 @@ Target benchmarking now builds the retained C listing artifact and emits source
 from that artifact, rather than calling the separate facts_v2 source-text
 helper. The benchmark `.s` file and benchmark profile therefore use the same
 artifact boundary as the web listing path.
+The general Python source-render helper now uses the retained C listing
+artifact as well. It asks the artifact for summary/profile refusal state and
+then emits source from that same artifact, so CLI/source callers no longer
+exercise a separate source-text wrapper path.
 Reproduction mismatch row mapping now uses the retained C artifact as a
 source-offset lookup service. The artifact resolves a `(section_index,
 section_offset)` through the render plan, translates the owning plan row through

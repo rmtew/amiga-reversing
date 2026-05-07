@@ -218,14 +218,21 @@ def render_project_source_with_c_backend(
     metadata_path: Path | None = None,
     project_root: Path = PROJECT_ROOT,
 ) -> str:
-    source_text, profile = facts_v2_asm_source_project_source_with_c_backend_profile(
-        binary_source,
-        metadata_path=metadata_path,
-        project_root=project_root,
-    )
-    if facts_v2_source_refused(profile):
-        raise FactsV2SourceRefused(profile)
-    return source_text
+    metadata_text = _metadata_path_text(metadata_path)
+    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
+        artifact = CListingArtifact.create(
+            source_file,
+            metadata_text=metadata_text,
+            include_dir=str(_platform_include_dir_for_listing(source_file.platform_name, project_root)),
+            project_root=project_root,
+        )
+    try:
+        _summary, profile = artifact.summary_payload()
+        if facts_v2_source_refused(profile):
+            raise FactsV2SourceRefused(profile)
+        return artifact.source_text()
+    finally:
+        artifact.close()
 
 
 def assemble_platform_source_path_with_c_backend(
