@@ -4017,6 +4017,27 @@ def test_real_dll_starglider_loader_file_handle_slot_stays_untyped() -> None:
     assert source_text.count("\tmove.l d0,h0dl_DOSBase.l\n") == 1
 
 
+def test_real_dll_starglider_main_uses_observed_app_slot_widths() -> None:
+    _requires_c_backend_dlls()
+
+    paths = resolve_project_paths(
+        "amiga_disk_starglider-1987-rainbird__amiga_hunk_sg_9832b282",
+        project_root=PROJECT_ROOT,
+        require_entities=False,
+    )
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "app_0050 RS.W 1\n" in source_text
+    assert "app_0050 RS.L 1\n" not in source_text
+    assert "app_016A RS.W 1\napp_016C RS.W 1\napp_016E RS.W 1\n" in source_text
+    assert "app_016A RS.L 1\n" not in source_text
+
+
 def test_real_dll_openlibrary_d0_to_a6_resolves_followup_calls() -> None:
     _requires_c_backend_dlls()
 
