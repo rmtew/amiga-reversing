@@ -4135,10 +4135,13 @@ abs_0_00003510:
 	bsr.w abs_0_000055AC
 	jmp (a0)
 abs_0_00003526:
-	dc.w $0000,$000E,$0016,$001E,$002A,$0032,$003A,$00A8	; lookup_table
-	dc.w $00E2,$00EE,$0194,$01A0,$01C2,$01E8,$0216,$0222	; lookup_table
-	dc.w $022E,$023A,$02D0,$0348,$035A,$0318,$03BC,$03C8	; lookup_table
-	dc.w $04B2,$04F6,$000C	; lookup_table
+	dc.w abs_0_0000355C-abs_0_0000355C,abs_0_0000356A-abs_0_0000355C,abs_0_00003572-abs_0_0000355C,abs_0_0000357A-abs_0_0000355C	; lookup_table
+	dc.w abs_0_00003586-abs_0_0000355C,abs_0_0000358E-abs_0_0000355C,abs_0_00003596-abs_0_0000355C,abs_0_00003604-abs_0_0000355C	; lookup_table
+	dc.w abs_0_0000363E-abs_0_0000355C,abs_0_0000364A-abs_0_0000355C,abs_0_000036F0-abs_0_0000355C,abs_0_000036FC-abs_0_0000355C	; lookup_table
+	dc.w abs_0_0000371E-abs_0_0000355C,abs_0_00003744-abs_0_0000355C,abs_0_00003772-abs_0_0000355C,abs_0_0000377E-abs_0_0000355C	; lookup_table
+	dc.w abs_0_0000378A-abs_0_0000355C,abs_0_00003796-abs_0_0000355C,abs_0_0000382C-abs_0_0000355C,abs_0_000038A4-abs_0_0000355C	; lookup_table
+	dc.w abs_0_000038B6-abs_0_0000355C,abs_0_00003874-abs_0_0000355C,abs_0_00003918-abs_0_0000355C,abs_0_00003924-abs_0_0000355C	; lookup_table
+	dc.w abs_0_00003A0E-abs_0_0000355C,abs_0_00003A52-abs_0_0000355C,abs_0_00003568-abs_0_0000355C	; lookup_table
 abs_0_0000355C:
 	lea.l abs_0_00003E83.l,a6
 	jmp abs_0_0000D03A.l

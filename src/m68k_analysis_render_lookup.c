@@ -6120,22 +6120,6 @@ static uint32_t palette_source_span(const M68kRenderLookup *lookup, const M68kDe
   return cursor - offset;
 }
 
-static int instruction_writes_address_register_local(const M68kInstructionIR *instruction) {
-  size_t operand_index;
-  uint8_t reg = 0U;
-  if (instruction == NULL) return 1;
-  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->operand_count >= 2U &&
-      instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST &&
-      (instruction->operands[1].value.value & 0xFF00U) != 0U) {
-    return 1;
-  }
-  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
-    if (!instruction_operand_writes_register_from_metadata(instruction, operand_index)) continue;
-    if (operand_address_register_index_local(&instruction->operands[operand_index], &reg)) return 1;
-  }
-  return 0;
-}
-
 static int candidate_local_call_target(const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
     uint32_t *out_target_offset) {
   size_t target_index;
@@ -6168,14 +6152,46 @@ static int candidate_first_local_control_target(const M68kDecodeSectionIR *secti
   return 0;
 }
 
-static int local_callee_preserves_address_registers(const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start, uint32_t target_offset) {
+static int instruction_writes_address_register_mask_local(const M68kInstructionIR *instruction, uint8_t mask) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  uint8_t operand_reg = 0U;
+  if (instruction == NULL || mask == 0U) return 1;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 1;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
+        operand_address_register_index_local(&instruction->operands[operand_index], &operand_reg) &&
+        operand_reg < 8U && (mask & (uint8_t)(1U << operand_reg)) != 0U) {
+      return 1;
+    }
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_LIST_WRITE) {
+      uint8_t reg;
+      for (reg = 0U; reg < 8U; ++reg) {
+        if ((mask & (uint8_t)(1U << reg)) != 0U &&
+            reglist_contains_address_register_local(&instruction->operands[operand_index], reg)) {
+          return 1;
+        }
+      }
+    }
+    if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE &&
+        operand_is_address_memory_local(&instruction->operands[operand_index], &operand_reg, NULL) &&
+        operand_reg < 8U && (mask & (uint8_t)(1U << operand_reg)) != 0U) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int local_callee_preserves_address_register_mask_with_depth(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint32_t target_offset, uint8_t mask, uint8_t depth) {
   uint32_t worklist[64];
   uint32_t visited[64];
   uint8_t work_count = 0U;
   uint8_t visited_count = 0U;
   uint8_t visited_any = 0U;
-  if (section == NULL || accepted_start == NULL || target_offset >= section->size) return 0;
+  if (section == NULL || accepted_start == NULL || target_offset >= section->size || mask == 0U || depth > 4U)
+    return 0;
   worklist[work_count++] = target_offset;
   while (work_count != 0U) {
     uint32_t cursor = worklist[--work_count];
@@ -6203,10 +6219,14 @@ static int local_callee_preserves_address_registers(const M68kDecodeSectionIR *s
         return 0;
       }
       metadata = m68k_sim_metadata_for_instruction(&instruction);
-      if (metadata == NULL || instruction_writes_address_register_local(&instruction)) return 0;
-      if (metadata->flow_kind == M68K_SIM_FLOW_CALL) return 0;
-      if (metadata->flow_kind == M68K_SIM_FLOW_RETURN) break;
-      if (candidate_first_local_control_target(section, candidate, &target)) {
+      if (metadata == NULL || instruction_writes_address_register_mask_local(&instruction, mask)) return 0;
+      if (metadata->flow_kind == M68K_SIM_FLOW_CALL) {
+        if (!candidate_local_call_target(section, candidate, &target) ||
+            !local_callee_preserves_address_register_mask_with_depth(section, accepted_start, target, mask,
+              (uint8_t)(depth + 1U))) {
+          return 0;
+        }
+      } else if (candidate_first_local_control_target(section, candidate, &target)) {
         if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
             (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U)) {
           cursor = target;
@@ -6215,6 +6235,7 @@ static int local_callee_preserves_address_registers(const M68kDecodeSectionIR *s
         if (work_count >= (uint8_t)(sizeof(worklist) / sizeof(worklist[0]))) return 0;
         worklist[work_count++] = target;
       }
+      if (metadata->flow_kind == M68K_SIM_FLOW_RETURN) break;
       if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
           (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U) ||
           metadata->flow_kind == M68K_SIM_FLOW_TRAP) {
@@ -6225,6 +6246,18 @@ static int local_callee_preserves_address_registers(const M68kDecodeSectionIR *s
     }
   }
   return visited_any != 0U;
+}
+
+static int local_callee_preserves_address_registers(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint32_t target_offset) {
+  return local_callee_preserves_address_register_mask_with_depth(section, accepted_start, target_offset, 0xFFU, 0U);
+}
+
+static int local_callee_preserves_address_register(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint32_t target_offset, uint8_t reg) {
+  if (reg >= 8U) return 0;
+  return local_callee_preserves_address_register_mask_with_depth(section, accepted_start, target_offset,
+    (uint8_t)(1U << reg), 0U);
 }
 
 static int palette_call_preserves_address_registers(const M68kDecodeSectionIR *section,
@@ -6981,15 +7014,21 @@ static int candidate_next_is_indirect_control_through_addr_reg(const M68kDecodeS
     &displacement) && base_reg == reg && displacement == 0;
 }
 
-static int candidate_preserves_address_reg_before_dispatch(const M68kDecodeCandidate *candidate, uint8_t reg) {
+static int candidate_preserves_address_reg_before_dispatch(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kDecodeCandidate *candidate, uint8_t reg) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
   size_t operand_index;
+  uint32_t target_offset = 0U;
   if (candidate == NULL || reg >= 8U || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0)
     return 0;
   metadata = m68k_sim_metadata_for_instruction(&instruction);
   if (metadata == NULL) return 0;
-  if (metadata->flow_kind == M68K_SIM_FLOW_CALL || metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+  if (metadata->flow_kind == M68K_SIM_FLOW_CALL) {
+    return candidate_local_call_target(section, candidate, &target_offset) &&
+      local_callee_preserves_address_register(section, accepted_start, target_offset, reg);
+  }
+  if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
       metadata->flow_kind == M68K_SIM_FLOW_RETURN || metadata->flow_kind == M68K_SIM_FLOW_TRAP ||
       (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U)) {
     return 0;
@@ -7031,9 +7070,9 @@ static int candidate_later_is_indirect_control_through_addr_reg(const M68kDecode
     gap_candidate = m68k_decode_ir_find_candidate_at_offset(section, cursor);
     if (gap_candidate == NULL) return 0;
     if (candidate_next_is_indirect_control_through_addr_reg(section, accepted_start, gap_candidate, reg)) {
-      return candidate_preserves_address_reg_before_dispatch(gap_candidate, reg);
+      return candidate_preserves_address_reg_before_dispatch(section, accepted_start, gap_candidate, reg);
     }
-    if (!candidate_preserves_address_reg_before_dispatch(gap_candidate, reg)) return 0;
+    if (!candidate_preserves_address_reg_before_dispatch(section, accepted_start, gap_candidate, reg)) return 0;
     if (gap_candidate->offset > UINT32_MAX - gap_candidate->byte_count) return 0;
     cursor = gap_candidate->offset + gap_candidate->byte_count;
   }
