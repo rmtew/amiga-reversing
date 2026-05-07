@@ -261,6 +261,8 @@ Failing a gate should produce an indexed work item, not a guessed child target.
 - Simulator probing now seeds absolute source memory from C policy runtime
   ranges/execution views when those mappings are explicit, covered by an
   isolated regression with an absolute source read.
+- Simulated output events now include `simulated_output_sha256`, and corpus
+  indexing exposes a `decompression:simulated_output_hash` tag.
 - The next implementation step is extending simulator-backed output capture for
   real unsupported events with inferred memory-map seeding where justified,
-  write-range bounding, output hash, and conservative materialisation gates.
+  write-range bounding and conservative materialisation gates.

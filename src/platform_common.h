@@ -17,6 +17,7 @@ static inline uint32_t m68k_read_u32be(const uint8_t *data) {
 
 char *m68k_platform_dup_string(const char *text);
 int m68k_platform_join_path(const char *base, const char *name, char **out_path);
+int m68k_platform_sha256_hex(const unsigned char *data, size_t size, char out_hex[65]);
 int platform_amiga_format_global_base_slot_label(size_t section_index, char width_suffix, const char *base_name,
   char *buf, size_t buf_size);
 int platform_amiga_format_app_base_slot_name(const char *base_name, char *buf, size_t buf_size);

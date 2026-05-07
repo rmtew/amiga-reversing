@@ -170,8 +170,8 @@ Use project-owned decompression:
   probed with the generated simulator and emit `simulated_output_observed` with
   output range and stop metadata. The simulator seed now also honours C policy
   runtime ranges/execution views, so absolute source reads are supported when
-  the source mapping is explicit. Wider inferred memory-map seeding, output
-  hashes, and materialisation are still pending.
+  the source mapping is explicit. Simulated output records include a SHA-256
+  hash. Wider inferred memory-map seeding and materialisation are still pending.
 
 The boundary is:
 

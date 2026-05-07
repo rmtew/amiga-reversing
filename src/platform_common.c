@@ -4,6 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#include <bcrypt.h>
+#pragma comment(lib, "bcrypt.lib")
+#endif
+
 char *m68k_platform_dup_string(const char *text) {
   if (text == NULL) return NULL;
   size_t length = strlen(text) + 1U;
@@ -28,6 +34,46 @@ int m68k_platform_join_path(const char *base, const char *name, char **out_path)
   }
   *out_path = path;
   return 0;
+}
+
+int m68k_platform_sha256_hex(const unsigned char *data, size_t size, char out_hex[65]) {
+#ifdef _WIN32
+  BCRYPT_ALG_HANDLE algorithm = NULL;
+  BCRYPT_HASH_HANDLE hash = NULL;
+  unsigned char digest[32];
+  static const char hex[] = "0123456789abcdef";
+  size_t offset = 0U;
+  size_t i;
+  if (data == NULL || out_hex == NULL) return -1;
+  out_hex[0] = '\0';
+  if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, NULL, 0) != 0) goto fail;
+  if (BCryptCreateHash(algorithm, &hash, NULL, 0, NULL, 0, 0) != 0) goto fail;
+  while (offset < size) {
+    size_t chunk = size - offset;
+    if (chunk > 0x40000000U) chunk = 0x40000000U;
+    if (BCryptHashData(hash, (PUCHAR)(data + offset), (ULONG)chunk, 0) != 0) goto fail;
+    offset += chunk;
+  }
+  if (BCryptFinishHash(hash, digest, sizeof(digest), 0) != 0) goto fail;
+  for (i = 0U; i < sizeof(digest); ++i) {
+    out_hex[i * 2U] = hex[digest[i] >> 4U];
+    out_hex[i * 2U + 1U] = hex[digest[i] & 0x0FU];
+  }
+  out_hex[64] = '\0';
+  BCryptDestroyHash(hash);
+  BCryptCloseAlgorithmProvider(algorithm, 0);
+  return 0;
+fail:
+  if (hash != NULL) BCryptDestroyHash(hash);
+  if (algorithm != NULL) BCryptCloseAlgorithmProvider(algorithm, 0);
+  if (out_hex != NULL) out_hex[0] = '\0';
+  return -1;
+#else
+  (void)data;
+  (void)size;
+  if (out_hex != NULL) out_hex[0] = '\0';
+  return -1;
+#endif
 }
 
 int platform_amiga_format_global_base_slot_label(size_t section_index, char width_suffix, const char *base_name,

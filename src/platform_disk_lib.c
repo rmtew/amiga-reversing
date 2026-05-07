@@ -1,6 +1,7 @@
 #include "json_builder.h"
 #include "platform_amiga_disk.h"
 #include "platform_atari_st_disk.h"
+#include "platform_common.h"
 #include "platform_disk_lib.h"
 #include "platform_file_lib.h"
 #include "generated/amiga_disk_file_runtime.h"
@@ -182,34 +183,6 @@ static int extract_amiga_entry_payload_from_analysis(const unsigned char *image,
     *out_data = data;
     *out_size = pos;
     return 0;
-}
-
-static int sha256_hex(const unsigned char *data, size_t size, char out_hex[65]) {
-    BCRYPT_ALG_HANDLE algorithm = NULL;
-    BCRYPT_HASH_HANDLE hash = NULL;
-    unsigned char digest[32];
-    static const char hex[] = "0123456789abcdef";
-    ULONG result_size = 0;
-    size_t i;
-    if (out_hex == NULL) return -1;
-    out_hex[0] = '\0';
-    if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, NULL, 0) != 0) goto fail;
-    if (BCryptCreateHash(algorithm, &hash, NULL, 0, NULL, 0, 0) != 0) goto fail;
-    if (BCryptHashData(hash, (PUCHAR)data, (ULONG)size, 0) != 0) goto fail;
-    if (BCryptFinishHash(hash, digest, sizeof(digest), 0) != 0) goto fail;
-    for (i = 0; i < sizeof(digest); ++i) {
-        out_hex[i * 2U] = hex[digest[i] >> 4U];
-        out_hex[i * 2U + 1U] = hex[digest[i] & 0x0FU];
-    }
-    out_hex[64] = '\0';
-    BCryptDestroyHash(hash);
-    BCryptCloseAlgorithmProvider(algorithm, 0);
-    return 0;
-fail:
-    if (hash != NULL) BCryptDestroyHash(hash);
-    if (algorithm != NULL) BCryptCloseAlgorithmProvider(algorithm, 0);
-    (void)result_size;
-    return -1;
 }
 
 static int sha1_hex8_text(const char *text, char out_hex[9]) {
@@ -502,7 +475,7 @@ static int append_amiga_entry_content_json(JsonBuilder *builder, const unsigned 
     if (entry == NULL || entry->kind != AMIGA_DISK_ENTRY_FILE) return json_builder_append(builder, "null");
     if (entry->byte_size > AMIGA_DISK_CONTENT_CLASSIFY_MAX_BYTES ||
         extract_amiga_entry_payload_from_analysis(image, image_size, entry, &payload, &payload_size) != 0 ||
-        sha256_hex(payload, payload_size, hash) != 0) {
+        m68k_platform_sha256_hex(payload, payload_size, hash) != 0) {
         if (payload != NULL) free(payload);
         return json_builder_append(builder, "null");
     }

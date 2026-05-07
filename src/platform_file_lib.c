@@ -770,6 +770,7 @@ typedef struct PlatformSelfDecrunchEvent {
   uint32_t simulated_output_start;
   uint32_t simulated_output_end;
   uint32_t simulated_step_count;
+  char simulated_output_sha256[65];
   uint8_t simulated_stop_reason;
   uint8_t has_simulated_output;
   uint8_t parent_remains_active;
@@ -1106,6 +1107,7 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
   out_event->simulated_step_count = (uint32_t)result.step_count;
   out_event->simulated_output_start = dirty_start;
   out_event->simulated_output_end = dirty_end;
+  (void)m68k_platform_sha256_hex(memory + dirty_start, dirty_end - dirty_start, out_event->simulated_output_sha256);
   ok = 1;
 
 cleanup:
@@ -1258,6 +1260,11 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
         (unsigned)event->simulated_output_start, (unsigned)event->simulated_output_end,
         (unsigned)(event->simulated_output_end - event->simulated_output_start)) != 0)
       return -1;
+    if (event->simulated_output_sha256[0] != '\0') {
+      if (json_builder_append(builder, ",\"simulated_output_sha256\":") != 0 ||
+          json_builder_append_json_string(builder, event->simulated_output_sha256) != 0)
+        return -1;
+    }
   }
   return json_builder_append(builder, "}");
 }

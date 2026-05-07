@@ -74,6 +74,7 @@ def test_decompression_payload_role_features() -> None:
                 "source_kind": "provider_identified_payload",
                 "provider_id": "ancient",
                 "simulated_output_size": 128,
+                "simulated_output_sha256": "d37ec7db83012eba179956026b0677cfd46763d585722154f761bd6f6d2b5748",
                 "source_section": 0,
                 "source_section_offset": 0x4C40,
                 "packed_size": 168391,
@@ -95,6 +96,7 @@ def test_decompression_payload_role_features() -> None:
     assert counts["decompression:source_kind:provider_identified_payload"] == 1
     assert counts["decompression:provider:ancient"] == 1
     assert counts["decompression:simulated_output"] == 1
+    assert counts["decompression:simulated_output_hash"] == 1
     assert "decompression:payload_role:primary_program" in tags
     assert examples["decompression:payload_role:primary_program"][0]["payload_role"] == "primary_program"
     assert examples["decompression:source_kind:provider_identified_payload"][0]["source_kind"] == "provider_identified_payload"
