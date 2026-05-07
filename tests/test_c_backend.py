@@ -2333,14 +2333,16 @@ def test_real_dll_raw_runtime_absolute_entry_uses_execution_view(tmp_path: Path)
         encoding="utf-8",
     )
 
-    source = c_backend._platform_file_text(
-        "platform_file_facts_v2_asm_source_raw_path_text_alloc",
-        "amiga-raw",
-        str(binary_path),
-        0x410,
-        str(metadata_path),
+    artifact = c_backend.CListingArtifact.create(
+        c_backend._CBackendSourceFile(binary_path, "amiga-raw", 0x410),
+        metadata_text=str(metadata_path),
+        include_dir="",
         project_root=PROJECT_ROOT,
     )
+    try:
+        source = artifact.source_text()
+    finally:
+        artifact.close()
 
     assert "    ORG $400\nabs_0_00000400:\n\trts\n" in source
     assert "abs_0_00000410:\n\trts\n" in source

@@ -52,19 +52,6 @@ PLATFORM_FILE_API int platform_file_effective_policy_path_json_alloc(const char 
   const char *metadata_path, const char *entry_offsets, char **out_text);
 PLATFORM_FILE_API int platform_file_effective_policy_raw_path_json_alloc(const char *platform_name, const char *path,
   uint32_t entry_offset, const char *metadata_path, const char *entry_offsets, char **out_text);
-PLATFORM_FILE_API int platform_file_facts_v2_asm_source_path_text_alloc(const char *backend_name, const char *path,
-  const char *metadata_path, char **out_text);
-PLATFORM_FILE_API int platform_file_facts_v2_asm_source_raw_path_text_alloc(const char *platform_name,
-  const char *path, uint32_t entry_offset, const char *metadata_path, char **out_text);
-PLATFORM_FILE_API int platform_file_facts_v2_asm_source_path_json_alloc(const char *backend_name, const char *path,
-  const char *metadata_path, char **out_text);
-PLATFORM_FILE_API int platform_file_facts_v2_asm_source_raw_path_json_alloc(const char *platform_name,
-  const char *path, uint32_t entry_offset, const char *metadata_path, char **out_text);
-PLATFORM_FILE_API int platform_file_facts_v2_asm_source_path_text_profile_alloc(const char *backend_name,
-  const char *path, const char *metadata_path, char **out_source_text, char **out_profile_json);
-PLATFORM_FILE_API int platform_file_facts_v2_asm_source_raw_path_text_profile_alloc(const char *platform_name,
-  const char *path, uint32_t entry_offset, const char *metadata_path, char **out_source_text,
-  char **out_profile_json);
 PLATFORM_FILE_API int platform_file_facts_v2_render_assemble_path_bytes_profile_alloc(const char *backend_name,
     const char *path, const char *metadata_path, const char *include_dir, const char *output_path,
     const char *target_cpu_name, int enable_vasm_compat_rewrites, unsigned char **out_data, size_t *out_size,
@@ -108,6 +95,8 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_anchor_window_json
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_text_alloc(
   PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_summary_json_alloc(
+  PlatformFileListingArtifact *artifact, char **out_text);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_profile_json_alloc(
   PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_analysis_json_alloc(
   PlatformFileListingArtifact *artifact, char **out_text);

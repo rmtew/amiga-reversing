@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int write_benchmark_profile_file(const char *benchmark_json_path, const char *profile_json);
+static int write_benchmark_json_file(const char *benchmark_json_path, const char *benchmark_json);
 static int write_text_file(const char *path, const char *text);
 
 static int inspect_file_to_stdout(const char *platform_name, const char *path) {
@@ -168,33 +168,47 @@ static int disassemble_file_to_stdout_with_policy(const char *platform_name, con
     const char *benchmark_json_path, const char *also_syntax, const char *also_output_path) {
   char *source_text = NULL;
   char *profile_json = NULL;
+  char *error = NULL;
+  PlatformFileListingArtifact *artifact = NULL;
   int result;
   (void)policy;
   (void)analysis_policy;
   (void)also_syntax;
-  result = platform_file_facts_v2_asm_source_path_text_profile_alloc(platform_name, path,
-    metadata_path != NULL ? metadata_path : "", &source_text, &profile_json);
+  result = platform_file_facts_v2_listing_artifact_path_create(platform_name, path,
+    metadata_path != NULL ? metadata_path : "", "", &artifact, &error);
   if (result != 0) {
-    fprintf(stderr, "%s\n", source_text != NULL ? source_text : "facts_v2 source render failed");
-    platform_file_free_text(source_text);
-    platform_file_free_text(profile_json);
+    fprintf(stderr, "%s\n", error != NULL ? error : "facts_v2 listing artifact failed");
+    platform_file_free_text(error);
     return 1;
   }
-  if (write_benchmark_profile_file(benchmark_json_path, profile_json) != 0) {
+  result = platform_file_facts_v2_listing_artifact_source_text_alloc(artifact, &source_text);
+  if (result == 0)
+    result = platform_file_facts_v2_listing_artifact_profile_json_alloc(artifact, &profile_json);
+  if (result != 0) {
+    fprintf(stderr, "%s\n", source_text != NULL ? source_text : "facts_v2 listing artifact source failed");
     platform_file_free_text(source_text);
     platform_file_free_text(profile_json);
+    platform_file_facts_v2_listing_artifact_destroy(artifact);
+    return 1;
+  }
+  if (write_benchmark_json_file(benchmark_json_path, profile_json) != 0) {
+    platform_file_free_text(source_text);
+    platform_file_free_text(profile_json);
+    platform_file_facts_v2_listing_artifact_destroy(artifact);
     fprintf(stderr, "failed writing benchmark json: %s\n", benchmark_json_path);
     return 1;
   }
   if (also_output_path != NULL && write_text_file(also_output_path, source_text) != 0) {
     platform_file_free_text(source_text);
     platform_file_free_text(profile_json);
+    platform_file_facts_v2_listing_artifact_destroy(artifact);
     fprintf(stderr, "failed writing syntax output: %s\n", also_output_path);
     return 1;
   }
   puts(source_text);
   platform_file_free_text(source_text);
   platform_file_free_text(profile_json);
+  platform_file_facts_v2_listing_artifact_destroy(artifact);
   return 0;
 }
 
@@ -203,26 +217,39 @@ static int disassemble_raw_to_stdout_with_policy(const char *platform_name, cons
     const char *benchmark_json_path) {
   char *source_text = NULL;
   char *profile_json = NULL;
+  char *error = NULL;
+  PlatformFileListingArtifact *artifact = NULL;
   int result;
   (void)policy;
   (void)analysis_policy;
-  result = platform_file_facts_v2_asm_source_raw_path_text_profile_alloc(platform_name, path, entry_offset,
-    metadata_path != NULL ? metadata_path : "", &source_text, &profile_json);
+  result = platform_file_facts_v2_listing_artifact_raw_path_create(platform_name, path, entry_offset,
+    metadata_path != NULL ? metadata_path : "", "", &artifact, &error);
   if (result != 0) {
-    fprintf(stderr, "%s\n", source_text != NULL ? source_text : "facts_v2 source render failed");
-    platform_file_free_text(source_text);
-    platform_file_free_text(profile_json);
+    fprintf(stderr, "%s\n", error != NULL ? error : "facts_v2 listing artifact failed");
+    platform_file_free_text(error);
     return 1;
   }
-  if (write_benchmark_profile_file(benchmark_json_path, profile_json) != 0) {
+  result = platform_file_facts_v2_listing_artifact_source_text_alloc(artifact, &source_text);
+  if (result == 0)
+    result = platform_file_facts_v2_listing_artifact_profile_json_alloc(artifact, &profile_json);
+  if (result != 0) {
+    fprintf(stderr, "%s\n", source_text != NULL ? source_text : "facts_v2 listing artifact source failed");
     platform_file_free_text(source_text);
     platform_file_free_text(profile_json);
+    platform_file_facts_v2_listing_artifact_destroy(artifact);
+    return 1;
+  }
+  if (write_benchmark_json_file(benchmark_json_path, profile_json) != 0) {
+    platform_file_free_text(source_text);
+    platform_file_free_text(profile_json);
+    platform_file_facts_v2_listing_artifact_destroy(artifact);
     fprintf(stderr, "failed writing benchmark json: %s\n", benchmark_json_path);
     return 1;
   }
   puts(source_text);
   platform_file_free_text(source_text);
   platform_file_free_text(profile_json);
+  platform_file_facts_v2_listing_artifact_destroy(artifact);
   return 0;
 }
 
@@ -289,14 +316,14 @@ static int load_analysis_policy_metadata_option(M68kAnalysisPolicy *policy, cons
   return -1;
 }
 
-static int write_benchmark_profile_file(const char *benchmark_json_path, const char *profile_json) {
+static int write_benchmark_json_file(const char *benchmark_json_path, const char *benchmark_json) {
   FILE *out = NULL;
   size_t size;
-  if (benchmark_json_path == NULL || profile_json == NULL) return 0;
+  if (benchmark_json_path == NULL || benchmark_json == NULL) return 0;
   out = fopen(benchmark_json_path, "wb");
   if (out == NULL) return -1;
-  size = strlen(profile_json);
-  if (fwrite(profile_json, 1, size, out) != size) {
+  size = strlen(benchmark_json);
+  if (fwrite(benchmark_json, 1, size, out) != size) {
     fclose(out);
     return -1;
   }

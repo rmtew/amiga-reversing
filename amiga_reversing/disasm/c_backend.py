@@ -964,10 +964,6 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     _configure_text_function(dll, "platform_file_facts_v2_analysis_raw_path_json_alloc", 5)
     _configure_text_function(dll, "platform_file_effective_policy_path_json_alloc", 4)
     _configure_text_function(dll, "platform_file_effective_policy_raw_path_json_alloc", 5)
-    _configure_text_function(dll, "platform_file_facts_v2_asm_source_path_text_alloc", 3)
-    _configure_text_function(dll, "platform_file_facts_v2_asm_source_raw_path_text_alloc", 4)
-    _configure_text_function(dll, "platform_file_facts_v2_asm_source_path_json_alloc", 3)
-    _configure_text_function(dll, "platform_file_facts_v2_asm_source_raw_path_json_alloc", 4)
     dll.platform_file_facts_v2_render_assemble_path_bytes_profile_alloc.argtypes = [
         c_char_p,
         c_char_p,

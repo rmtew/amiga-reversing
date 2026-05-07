@@ -321,13 +321,6 @@ def _file_library():
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_inspect_path_json_alloc.restype = ctypes.c_int
-    library.platform_file_facts_v2_asm_source_path_text_alloc.argtypes = [
-        ctypes.c_char_p,
-        ctypes.c_char_p,
-        ctypes.c_char_p,
-        ctypes.POINTER(ctypes.c_void_p),
-    ]
-    library.platform_file_facts_v2_asm_source_path_text_alloc.restype = ctypes.c_int
     library.platform_file_facts_v2_analysis_path_json_alloc.argtypes = [
         ctypes.c_char_p,
         ctypes.c_char_p,
@@ -666,13 +659,6 @@ class IrPolicyDllTests(unittest.TestCase):
                 ctypes.byref(error),
             )
             listing_text = ctypes.string_at(error).decode("utf-8") if error.value else ""
-            render_result, render_text = _file_alloc_text(
-                library,
-                "platform_file_facts_v2_asm_source_path_text_alloc",
-                b"amiga-hunk",
-                encoded_path,
-                encoded_metadata_path,
-            )
             if error.value:
                 library.platform_file_free_text(error)
             if artifact.value:
@@ -709,8 +695,7 @@ class IrPolicyDllTests(unittest.TestCase):
         addressed_rows = [row for row in listing_rows if isinstance(row.get("addr"), int)]
         self.assertTrue(addressed_rows)
         self.assertEqual(addressed_rows[0]["entity_addr"], addressed_rows[0]["addr"])
-        self.assertEqual(render_result, 0, render_text)
-        self.assertIn("SECTION", render_text)
+        self.assertIn("SECTION", listing_text)
 
     def test_platform_file_listing_artifact_reuses_c_analysis_for_windows(self) -> None:
         library = _file_library()
