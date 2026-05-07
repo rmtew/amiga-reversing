@@ -3754,6 +3754,10 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -
     )
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "runtime_code_00000100\tEQU\t$100\n" in source_text
+    assert "stack_top_00000800\tEQU\t$800\n" in source_text
+    assert "\tlea.l stack_top_00000800.l,a7\n" in source_text
+    assert "\tlea.l runtime_code_00000100.l,a1\n" in source_text
     assert (
         "loc_2_0000006A:\n"
         "\tmoveq.l #-83,d7\n"
@@ -3761,6 +3765,12 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -
         "\tlea.l $0007FFFF.l,a2\n"
     ) in source_text
     assert "loc_2_0000006A:\n\tdc.b $7E,$AD,$41,$F9" not in source_text
+    assert (
+        "loc_2_000000AA:\n"
+        "\tadda.l #$47368,a0\n"
+        "\tlea.l $000130B6.l,a1\n"
+    ) in source_text
+    assert "\tdc.b $3D,$7C,$7F,$FF,$00,$9A,$4E,$73,$D1,$FC,$00,$04,$73,$68,$43,$F9\n" not in source_text
 
 
 def test_real_dll_carrier_predecrement_copied_entry_promotes_loader_code() -> None:
