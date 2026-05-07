@@ -84,6 +84,11 @@ The C listing-window emitter streams selected rows directly into the final JSON
 builder; it does not allocate a temporary rows JSON string and copy it into the
 payload. An isolated C regression now covers listing-window JSON parity with a
 full render-plan row slice.
+Artifact window endpoints now use that append path directly when wrapping the
+listing payload with profile data. The allocated-string window wrappers remain
+for tests and narrow internal callers, but production artifact window, address
+window, source-offset row, and anchor-window responses no longer materialize an
+intermediate `window_json` buffer before building the response.
 The earlier transitional Python serialized-row cache has been removed from the
 production full-listing route. Indexed, address-anchored, text-anchor, and
 navigation web requests now require the retained C listing artifact once the

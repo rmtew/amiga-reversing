@@ -156,6 +156,11 @@ int source_file_listing_window_from_render_plan_with_index_to_json(const M68kSou
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
     const PlatformListingRowIndex *row_index, size_t start, size_t count, char **out_json,
     M68kDiagSink diagnostics);
+int source_file_listing_window_from_render_plan_with_index_append_json(JsonBuilder *builder,
+    const M68kSourceFileIR *source_file, const M68kRenderPlan *render_plan, uint8_t platform_backend_kind,
+    const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
+    const char *analysis_generation, int include_source_only_rows, const PlatformListingRowIndex *row_index,
+    size_t start, size_t count, M68kDiagSink diagnostics);
 int source_file_listing_row_index_from_render_plan(const M68kSourceFileIR *source_file,
     const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
@@ -165,6 +170,11 @@ int source_file_listing_addr_window_from_render_plan_with_index_to_json(const M6
   const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
   const PlatformListingRowIndex *row_index, int has_addr, uint32_t addr, size_t before, size_t after,
   char **out_json, M68kDiagSink diagnostics);
+int source_file_listing_addr_window_from_render_plan_with_index_append_json(JsonBuilder *builder,
+  const M68kSourceFileIR *source_file, const M68kRenderPlan *render_plan, uint8_t platform_backend_kind,
+  const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
+  const char *analysis_generation, int include_source_only_rows, const PlatformListingRowIndex *row_index,
+  int has_addr, uint32_t addr, size_t before, size_t after, M68kDiagSink diagnostics);
 int source_file_listing_source_offset_row_from_render_plan_with_index(const M68kRenderPlan *render_plan,
   const PlatformListingRowIndex *row_index, uint32_t section_index, uint32_t offset, size_t *out_row,
   int *out_found, M68kDiagSink diagnostics);
