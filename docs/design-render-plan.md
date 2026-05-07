@@ -85,10 +85,11 @@ builder; it does not allocate a temporary rows JSON string and copy it into the
 payload. An isolated C regression now covers listing-window JSON parity with a
 full render-plan row slice.
 Artifact window endpoints now use that append path directly when wrapping the
-listing payload with profile data. The allocated-string window wrappers remain
-for tests and narrow internal callers, but production artifact window, address
-window, source-offset row, and anchor-window responses no longer materialize an
-intermediate `window_json` buffer before building the response.
+listing payload with profile data. The allocated-string window wrappers have
+been removed; tests that need assertion strings build them locally from the same
+append API. Production artifact window, address-window, source-offset row, and
+anchor-window responses no longer materialize an intermediate `window_json`
+buffer before building the response.
 Navigation group assembly now uses a generic builder-to-builder append helper
 instead of building heap strings for each group and then copying them into the
 final navigation payload.
