@@ -4213,6 +4213,7 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     assert set(payloads_by_offset) == {0x05E4, 0x4C40}
     assert payloads_by_offset[0x05E4]["provider_id"] == "ancient-cli"
     assert payloads_by_offset[0x05E4]["codec_id"] == "rnc1-old"
+    assert payloads_by_offset[0x05E4]["codec_support"] == "external_provider"
     assert payloads_by_offset[0x05E4]["source_section"] == 0
     assert payloads_by_offset[0x05E4]["decompressed_size"] == 32032
     assert payloads_by_offset[0x4C40]["provider_id"] == "ancient-cli"
@@ -4225,11 +4226,21 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     assert suggestions_by_offset[0x05E4]["runtime_copy_kind"] == 2
     assert suggestions_by_offset[0x05E4]["runtime_copy_conflicting"] is False
     assert suggestions_by_offset[0x05E4]["reason"] == "runtime_copy_oversize"
+    assert suggestions_by_offset[0x05E4]["event_kind"] == "decompression"
+    assert suggestions_by_offset[0x05E4]["event_id"] == "decompression:section:0:000005E4:rnc1-old"
+    assert suggestions_by_offset[0x05E4]["codec_support"] == "external_provider"
+    assert suggestions_by_offset[0x05E4]["payload_role"] == "unknown_runtime_payload"
+    assert suggestions_by_offset[0x05E4]["parent_remains_active"] == "unknown"
     assert suggestions_by_offset[0x4C40]["runtime_copy_address"] == 0x4000
     assert suggestions_by_offset[0x4C40]["runtime_copy_size"] == 168396
     assert suggestions_by_offset[0x4C40]["runtime_copy_kind"] == 3
     assert suggestions_by_offset[0x4C40]["runtime_copy_conflicting"] is True
     assert suggestions_by_offset[0x4C40]["reason"] == "initial_control_target_validated_runtime_copy"
+    assert suggestions_by_offset[0x4C40]["event_kind"] == "decompression"
+    assert suggestions_by_offset[0x4C40]["event_id"] == "decompression:section:0:00004C40:rnc1-old"
+    assert suggestions_by_offset[0x4C40]["payload_role"] == "primary_program"
+    assert suggestions_by_offset[0x4C40]["payload_role_confidence"] == "tool_inferred"
+    assert suggestions_by_offset[0x4C40]["parent_remains_active"] == "unknown"
     assert suggestions_by_offset[0x4C40]["status"] == "materializable"
     assert suggestions_by_offset[0x4C40]["load_address"] == 0x4000
     assert suggestions_by_offset[0x4C40]["entrypoint"] == 0x4000
@@ -4315,12 +4326,16 @@ def test_real_dll_voodoo_trainer_decompression_comparator(
     assert len(payloads) == 1
     assert payloads[0]["provider_id"] == "ancient-cli"
     assert payloads[0]["codec_id"] == "rnc1"
+    assert payloads[0]["codec_support"] == "external_provider"
     assert payloads[0]["source_section"] == 1
     assert payloads[0]["source_section_offset"] == 8
     assert payloads[0]["packed_size"] == 11406
     assert payloads[0]["decompressed_size"] == 84980
     assert len(suggestions) == 1
     assert suggestions[0]["status"] == "needs_runtime_metadata"
+    assert suggestions[0]["event_kind"] == "decompression"
+    assert suggestions[0]["codec_support"] == "external_provider"
+    assert suggestions[0]["payload_role"] == "unknown_runtime_payload"
     assert suggestions[0]["source_section"] == 1
     assert suggestions[0]["source_section_offset"] == 8
 

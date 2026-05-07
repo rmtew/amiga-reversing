@@ -1,6 +1,7 @@
 #include "m68k_simulator.h"
 
 #include "m68k_instruction_spec.h"
+#include "m68k_ir_codec.h"
 #include "platform_common.h"
 
 #include <stdio.h>
@@ -4689,5 +4690,56 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     return -1;
   }
   io_state->pc += (uint32_t)instruction->byte_count;
+  return 0;
+}
+
+static int sim_concrete_pc_in_range(uint32_t pc, uint32_t start, uint32_t end) {
+  return start < end && pc >= start && pc < end;
+}
+
+int m68k_simulate_run_concrete(uint8_t target_cpu, uint8_t *memory, size_t memory_size,
+    M68kSimConcreteState *io_state, size_t max_steps, uint32_t stop_pc_start, uint32_t stop_pc_end,
+    M68kSimConcreteRunTraceResult *out_result) {
+  M68kDiagSink diagnostics;
+  if (out_result != NULL) memset(out_result, 0, sizeof(*out_result));
+  if (out_result == NULL || memory == NULL || io_state == NULL) {
+    if (out_result != NULL) {
+      out_result->stop_reason = M68K_SIM_CONCRETE_RUN_STOP_BAD_ARGUMENT;
+      sim_diag_error(m68k_diag_sink(&out_result->diagnostics), "bad arguments");
+    }
+    return -1;
+  }
+  diagnostics = m68k_diag_sink(&out_result->diagnostics);
+  out_result->start_pc = io_state->pc;
+  out_result->stop_pc = io_state->pc;
+  while (out_result->step_count < max_steps) {
+    uint32_t pc = io_state->pc;
+    M68kInstructionIR instruction;
+    out_result->stop_pc = pc;
+    if ((size_t)pc >= memory_size) {
+      out_result->stop_reason = M68K_SIM_CONCRETE_RUN_STOP_PC_OUT_OF_RANGE;
+      return 0;
+    }
+    instruction = m68k_ir_decode_one(memory + pc, memory_size - (size_t)pc, target_cpu, diagnostics);
+    if (m68k_diag_has_errors(&out_result->diagnostics) || instruction.byte_count == 0U) {
+      out_result->stop_reason = M68K_SIM_CONCRETE_RUN_STOP_DECODE_ERROR;
+      return 0;
+    }
+    if (m68k_simulate_step_concrete(&instruction, target_cpu, memory + pc, memory_size - (size_t)pc, memory,
+          memory_size, io_state, diagnostics) != 0 ||
+        m68k_diag_has_errors(&out_result->diagnostics)) {
+      out_result->stop_reason = M68K_SIM_CONCRETE_RUN_STOP_SIMULATION_ERROR;
+      out_result->stop_pc = io_state->pc;
+      return 0;
+    }
+    out_result->step_count += 1U;
+    out_result->stop_pc = io_state->pc;
+    if (sim_concrete_pc_in_range(io_state->pc, stop_pc_start, stop_pc_end)) {
+      out_result->stop_reason = M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE;
+      return 0;
+    }
+  }
+  out_result->stop_reason = M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT;
+  out_result->stop_pc = io_state->pc;
   return 0;
 }

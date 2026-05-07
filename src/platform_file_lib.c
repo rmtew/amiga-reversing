@@ -753,15 +753,40 @@ static const char *decompression_suggestion_reason_local(const PlatformDecompres
   return "missing_decompressed_load_entry";
 }
 
+static const char *decompression_suggestion_payload_role_local(const PlatformDecompressionIdentifyResult *result) {
+  if (result != NULL && result->has_decompressed_load_entry) return "primary_program";
+  return "unknown_runtime_payload";
+}
+
+static void make_decompression_event_id_local(char *out, size_t out_size,
+    const PlatformDecompressionIdentifyResult *result) {
+  const char *codec_id = "unknown";
+  if (out == NULL || out_size == 0U) return;
+  if (result != NULL && result->codec_id[0] != '\0') codec_id = result->codec_id;
+  snprintf(out, out_size, "decompression:section:%u:%08X:%s",
+    result != NULL ? (unsigned)result->source_section_index : 0U,
+    result != NULL ? (unsigned)result->source_section_offset : 0U,
+    codec_id);
+}
+
 static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
     const PlatformDecompressionIdentifyResult *result, const M68kRuntimeViewIR *runtime_copy_view) {
+  char event_id[160];
   const char *reason = decompression_suggestion_reason_local(result, runtime_copy_view);
+  const char *payload_role = decompression_suggestion_payload_role_local(result);
   const char *status = result != NULL && result->has_decompressed_load_entry ? "materializable" :
     "needs_runtime_metadata";
+  make_decompression_event_id_local(event_id, sizeof(event_id), result);
   if (json_builder_append(builder, "{\"kind\":\"decompressed_payload\",\"status\":") != 0 ||
       json_builder_append_json_string(builder, status) != 0 ||
+      json_builder_append(builder, ",\"event_kind\":\"decompression\",\"event_id\":") != 0 ||
+      json_builder_append_json_string(builder, event_id) != 0 ||
       json_builder_append(builder, ",\"reason\":") != 0 ||
-      json_builder_append_json_string(builder, reason) != 0)
+      json_builder_append_json_string(builder, reason) != 0 ||
+      json_builder_append(builder, ",\"payload_role\":") != 0 ||
+      json_builder_append_json_string(builder, payload_role) != 0 ||
+      json_builder_append(builder, ",\"payload_role_confidence\":\"tool_inferred\","
+        "\"parent_remains_active\":\"unknown\"") != 0)
     return -1;
   if (json_builder_appendf(builder,
       ",\"source_section\":%u,\"source_section_offset\":%u,\"packed_size\":%u,\"decompressed_size\":%u",
@@ -788,6 +813,7 @@ static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
       json_builder_append_json_string(builder, result->codec_id) != 0 ||
       json_builder_append(builder, ",\"codec_name\":") != 0 ||
       json_builder_append_json_string(builder, result->codec_name) != 0 ||
+      json_builder_append(builder, ",\"codec_support\":\"external_provider\"") != 0 ||
       json_builder_append(builder, ",\"source_sha256\":") != 0 ||
       json_builder_append_json_string(builder, result->source_sha256) != 0 ||
       json_builder_append(builder, ",\"decompressed_sha256\":") != 0 ||

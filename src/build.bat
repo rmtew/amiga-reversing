@@ -71,6 +71,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\test_m68k_parse_util.c ^
     src\test_m68k_instruction_spec.c ^
     src\test_m68k_ir.c ^
+    src\test_m68k_simulator.c ^
     src\test_m68k_render_plan.c ^
     src\test_m68k_diagnostics.c ^
     src\test_platform_decompression.c ^
@@ -175,6 +176,7 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\test_m68k_parse_util.obj ^
     %OUTDIR%\test_m68k_instruction_spec.obj ^
     %OUTDIR%\test_m68k_ir.obj ^
+    %OUTDIR%\test_m68k_simulator.obj ^
     %OUTDIR%\test_m68k_render_plan.obj ^
     %OUTDIR%\test_m68k_diagnostics.obj ^
     %OUTDIR%\test_platform_decompression.obj ^

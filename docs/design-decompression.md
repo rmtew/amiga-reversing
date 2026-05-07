@@ -110,6 +110,11 @@ A first C decompression provider layer now exists:
   record when a discovered copy conflicts with an already accepted runtime
   source view. Carrier uses this for the `$4C40 -> $4000` packed stream copy:
   it is useful decompression evidence, but it is not an ORG/source alias.
+- Damocles shows the next unsupported class: visible self-decrunching code writes
+  an absolute runtime image around `$40000` and jumps there, but Ancient
+  `scan-json` does not identify that stream. Current C facts only surface small
+  provider-valid micro-candidates, so the large decrunched program is not yet
+  materialised.
 
 Discovery, acceptance, extraction, and imported child materialisation are now
 driven by C-emitted records. Corpus indexing remains deliberately non-mutating:
@@ -122,28 +127,75 @@ C remains authoritative for analysis and target relationships.
 
 Python may materialise files and project directories, but only from C-emitted
 facts or records. Python must not grow decompression scanning heuristics.
+Python must not execute decruncher stubs to discover bytes. If execution is
+needed, it belongs in C using the generated project simulator.
 
-Use provider-backed decompression:
+Use project-owned decompression:
 
 - C owns scanning ranges, overlap policy, result acceptance, provenance, corpus
   tags, and target relationship records.
-- Providers own compressor knowledge:
-  identification, header validation, packed/depacked sizes, checksum validation
-  where available, and optional decompression.
-- Ancient is the first provider because it already supports many formats.
-- XFD is useful reference material, but should not be broadly integrated until a
-  real target requires it.
-- Current automatic scanning delegates candidate discovery to Ancient
-  `scan-json`. C still applies source-analysis acceptance gates after provider
-  validation: candidates must not overlap accepted code and must have sane
-  packed/raw sizes with useful expansion before they become `packed_payloads[]`.
-  Explicit range identify/decompress remains available for small or ambiguous
-  payloads that a user selects directly.
+- Native C codec implementations are preferred when a codec is recognized and
+  supported by this project.
+- External suites such as Ancient and XFD are useful for identification,
+  variant comparison, reference material, and oracle tests. They should not
+  remain the production decompressor for codecs we support natively.
+- Current automatic scanning still delegates candidate discovery to Ancient
+  `scan-json` where no native scanner exists. C applies source-analysis
+  acceptance gates after provider validation: candidates must not overlap
+  accepted code and must have sane packed/raw sizes with useful expansion before
+  they become `packed_payloads[]`. Explicit range identify/decompress remains
+  available for small or ambiguous payloads that a user selects directly.
+- For self-decrunching targets that no external provider identifies, add a
+  second provider mode: bounded C execution using `m68k_simulate_step_concrete`.
+  This is still provider-backed discovery, but the provider is our generated
+  simulator plus C-side target evidence, not Python and not `machine68k`.
+- `machine68k` may remain only as an independent oracle in simulator tests. It
+  must not be used by decompression analysis, import, corpus indexing, or UI
+  materialisation.
+- A bounded C concrete-run primitive now exists for simulator-backed
+  decrunchers. It executes generated simulator steps with a max-step limit and
+  stop-PC range, and has isolated C unit tests. Decompression-specific memory
+  seeding, output range tracking, and event records are still pending.
 
 The boundary is:
 
 `C scan` -> `provider identify/decompress` -> `C packed_payload facts` ->
 `Python materialises child target` -> `UI renders provenance`.
+
+For simulated self-decrunchers the provider boundary is:
+
+`C code/runtime-copy analysis` -> `C simulator provider` ->
+`C bounded execution result` -> `C packed_payload facts` ->
+`Python materialises child target` -> `UI renders provenance`.
+
+## Simulated Self-Decrunchers
+
+Some programs do not expose a packed stream that Ancient or XFD-style providers
+can identify directly. They ship executable decruncher code that writes a
+runtime image to absolute memory and branches to it. Damocles is the current
+observed corpus example.
+
+Support this with a narrow C runner around the generated concrete simulator:
+
+- Seed memory from the loaded hunk/raw sections plus explicit runtime load
+  mappings proven by C analysis.
+- Seed registers only from analysed entrypoint state or clearly rendered stub
+  constants. Do not guess game-specific register contracts.
+- Run from an analysed decruncher entrypoint with a strict instruction limit,
+  write-range limit, and memory map guard.
+- Stop only on a branch into the produced runtime image, unsupported instruction,
+  illegal external access, trap/OS call, or instruction budget exhaustion.
+- Accept only when the written output is contiguous or sectionable, the final
+  control target lands inside it, and the source write ranges do not overlap
+  accepted parent code except where C analysis already classifies them as
+  runtime output.
+- Emit provider provenance as `provider_id: "m68k-sim-decrunch"` with simulator
+  build/tool stamps, entrypoint, stop reason, instruction count, written ranges,
+  output hash, load address, and entrypoint.
+
+This provider is not a general emulator. It is a deterministic extractor for
+already-observed decompression stubs. Unsupported results must be indexed as
+work items rather than materialised.
 
 ## C Decompression Interface
 

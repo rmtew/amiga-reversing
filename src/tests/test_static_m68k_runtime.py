@@ -58,6 +58,7 @@ class StaticM68kRuntimeTests(unittest.TestCase):
     def test_simulator_runtime_exposes_expected_api(self) -> None:
         self.assertIn("m68k_simulate_step(", self._simulator_source)
         self.assertIn("m68k_simulate_step_concrete(", self._simulator_source)
+        self.assertIn("m68k_simulate_run_concrete(", self._simulator_source)
         self.assertIn("typedef struct M68kSimCpuState {", self._simulator_header)
         self.assertIn("const M68kSimFormMetadata *m68k_sim_metadata_for_instruction", self._simulator_header)
 
