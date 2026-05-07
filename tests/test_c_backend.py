@@ -656,6 +656,44 @@ def test_facts_v2_adjacent_control_stub_table_promotes_sibling_entry(tmp_path: P
     assert "\tdc.b $00,$00,$00,$00,$60,$00,$00,$0A\n" not in source_text
 
 
+def test_facts_v2_indexed_control_stub_table_promotes_entries(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "raw.bin"
+    path.write_bytes(
+        bytes.fromhex(
+            "7000"
+            "4EBB0010"
+            "4E75"
+            "000000000000000000000000"
+            "6008600A600C60026004"
+            "4E754E714E754E714E75"
+        )
+    )
+
+    binary_source = RawBinarySource(
+        kind="raw_binary",
+        path=path,
+        address_model="local_offset",
+        load_address=0,
+        entrypoint=0,
+        code_start_offset=0,
+        display_path=str(path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
+        binary_source,
+        metadata_path=None,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert "\tjsr loc_0_00000014(pc,d0.w)\n" in source_text
+    assert "loc_0_00000014:\n\tbra.b loc_0_0000001E\n" in source_text
+    assert "loc_0_00000018:\n\tbra.b loc_0_00000026\n" in source_text
+    assert "loc_0_00000026:\n\trts\n" in source_text
+    assert "\tdc.b $60,$08,$60,$0A,$60,$0C" not in source_text
+
+
 def test_facts_v2_adjacent_absolute_jmp_stub_does_not_promote_data_target(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     path = tmp_path / "raw.bin"
@@ -4399,7 +4437,10 @@ def test_real_dll_carrier_ramdrive_relocation_backed_template_seeds_target_code(
     )
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
-    assert source_text_profile["facts_v2"]["accepted_instructions"] >= 342
+    assert source_text_profile["facts_v2"]["accepted_instructions"] >= 436
+    assert "loc_0_0000062C:\n\tbra.b loc_0_0000064C\n" in source_text
+    assert "loc_0_0000068A:\n\tbtst.b #0,$001B(a1)\n" in source_text
+    assert "\tdc.b $60,$1E,$60,$1C,$60,$36,$60,$56\n" not in source_text
     assert "loc_0_00000718:\n\tmovea.l $0004.w,a0\n" in source_text
     assert "\tdc.b $20,$78,$00,$04,$52,$28,$01,$27\n" not in source_text
     assert "    ORG $4\n" not in source_text
