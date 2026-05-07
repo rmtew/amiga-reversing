@@ -1233,6 +1233,9 @@ class _FakeSourceArtifact:
     def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         return {"total_rows": 1}, self.profile
 
+    def profile_payload(self) -> dict[str, object]:
+        return self.profile
+
     def source_text(self) -> str:
         return self.source_text_value
 
@@ -1456,7 +1459,10 @@ def test_project_source_benchmark_uses_facts_v2(
             self.closed = False
 
         def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
-            return {"total_rows": 1}, {
+            return {"total_rows": 1}, self.profile_payload()
+
+        def profile_payload(self) -> dict[str, object]:
+            return {
                 "generation": "facts_v2_listing_artifact_summary",
                 "backend": "amiga-raw",
                 "analysis_backend": "facts_v2",
@@ -1572,6 +1578,50 @@ def test_project_source_benchmark_uses_facts_v2(
         }
     ]
     assert artifact.closed is True
+
+
+def test_platform_file_cli_disassemble_uses_artifact_options(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    cli = PROJECT_ROOT / "src" / "build" / "platform_file_cli.exe"
+    binary_path = tmp_path / "sample.hunk"
+    benchmark_path = tmp_path / "benchmark.json"
+    source_path = tmp_path / "sample.s"
+    binary_path.write_bytes(make_synthetic_hunkexe())
+
+    result = subprocess.run(
+        [
+            str(cli),
+            "disassemble-file",
+            "--benchmark-json-out",
+            str(benchmark_path),
+            "--output",
+            str(source_path),
+            "amiga-hunk",
+            str(binary_path),
+        ],
+        cwd=PROJECT_ROOT,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "SECTION" in source_path.read_text(encoding="utf-8")
+    profile = json.loads(benchmark_path.read_text(encoding="utf-8"))
+    assert profile["generation"] == "facts_v2_listing_artifact_summary"
+    assert profile["timing"]["total_seconds"] >= profile["timing"]["source_seconds"]
+
+    legacy = subprocess.run(
+        [str(cli), "disassemble-file", "--syntax", "genam", "amiga-hunk", str(binary_path)],
+        cwd=PROJECT_ROOT,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert legacy.returncode == 2
+    assert "unexpected argument: --syntax" in legacy.stderr
 
 
 def test_project_source_facts_v2_render_assemble_uses_combined_c_api(monkeypatch, tmp_path: Path) -> None:

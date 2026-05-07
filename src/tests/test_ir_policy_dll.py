@@ -382,6 +382,11 @@ def _file_library():
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_facts_v2_listing_artifact_summary_json_alloc.restype = ctypes.c_int
+    library.platform_file_facts_v2_listing_artifact_profile_json_alloc.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_facts_v2_listing_artifact_profile_json_alloc.restype = ctypes.c_int
     library.platform_file_facts_v2_listing_artifact_analysis_json_alloc.argtypes = [
         ctypes.c_void_p,
         ctypes.POINTER(ctypes.c_void_p),
@@ -724,6 +729,7 @@ class IrPolicyDllTests(unittest.TestCase):
                 addr_window = ctypes.c_void_p()
                 source_text = ctypes.c_void_p()
                 summary = ctypes.c_void_p()
+                profile = ctypes.c_void_p()
                 all_window = ctypes.c_void_p()
                 navigation = ctypes.c_void_p()
                 try:
@@ -759,6 +765,10 @@ class IrPolicyDllTests(unittest.TestCase):
                         artifact,
                         ctypes.byref(summary),
                     )
+                    profile_result = library.platform_file_facts_v2_listing_artifact_profile_json_alloc(
+                        artifact,
+                        ctypes.byref(profile),
+                    )
                     navigation_result = library.platform_file_facts_v2_listing_artifact_navigation_json_alloc(
                         artifact,
                         ctypes.byref(navigation),
@@ -773,6 +783,7 @@ class IrPolicyDllTests(unittest.TestCase):
                     addr_text = ctypes.string_at(addr_window).decode("utf-8") if addr_window.value else ""
                     artifact_source_text = ctypes.string_at(source_text).decode("utf-8") if source_text.value else ""
                     summary_text = ctypes.string_at(summary).decode("utf-8") if summary.value else ""
+                    profile_text = ctypes.string_at(profile).decode("utf-8") if profile.value else ""
                     total_rows = json.loads(summary_text)["summary"]["total_rows"] if summary_text else 0
                     all_result = library.platform_file_facts_v2_listing_artifact_window_json_alloc(
                         artifact,
@@ -788,6 +799,7 @@ class IrPolicyDllTests(unittest.TestCase):
                     self.assertEqual(addr_result, 0, addr_text)
                     self.assertEqual(source_result, 0, artifact_source_text)
                     self.assertEqual(summary_result, 0, summary_text)
+                    self.assertEqual(profile_result, 0, profile_text)
                     self.assertEqual(all_result, 0, all_text)
                     self.assertEqual(navigation_result, 0, navigation_text)
                 finally:
@@ -803,6 +815,8 @@ class IrPolicyDllTests(unittest.TestCase):
                         library.platform_file_free_text(source_text)
                     if summary.value:
                         library.platform_file_free_text(summary)
+                    if profile.value:
+                        library.platform_file_free_text(profile)
                     if all_window.value:
                         library.platform_file_free_text(all_window)
                     if navigation.value:
@@ -826,6 +840,7 @@ class IrPolicyDllTests(unittest.TestCase):
         addr_payload = json.loads(addr_text)
         addr_rows = addr_payload["listing"]["rows"]
         summary_payload = json.loads(summary_text)
+        profile_payload = json.loads(profile_text)
         all_rows_payload = json.loads(all_text)
         full_rows = all_rows_payload["listing"]["rows"]
         addr_anchor = next(
@@ -845,6 +860,9 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(second_payload["profile"]["listing_total_rows"], len(full_rows))
         self.assertEqual(summary_payload["profile"]["generation"], "facts_v2_listing_artifact_summary")
         self.assertEqual(summary_payload["summary"]["total_rows"], len(full_rows))
+        self.assertEqual(profile_payload["generation"], "facts_v2_listing_artifact_summary")
+        self.assertEqual(profile_payload["listing_total_rows"], len(full_rows))
+        self.assertIn("total_seconds", profile_payload["timing"])
         navigation_payload = json.loads(navigation_text)
         self.assertEqual(navigation_payload["profile"]["generation"], "facts_v2_listing_artifact_navigation")
         self.assertEqual(navigation_payload["navigation"]["analysis_generation"], "full")

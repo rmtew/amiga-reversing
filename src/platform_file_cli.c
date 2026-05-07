@@ -163,17 +163,13 @@ static int effective_policy_raw_to_stdout(const char *platform_name, const char 
   return 0;
 }
 
-static int disassemble_file_to_stdout_with_policy(const char *platform_name, const char *path,
-    const M68kRenderPolicy *policy, const M68kAnalysisPolicy *analysis_policy, const char *metadata_path,
-    const char *benchmark_json_path, const char *also_syntax, const char *also_output_path) {
+static int disassemble_file_to_stdout(const char *platform_name, const char *path,
+    const char *metadata_path, const char *benchmark_json_path, const char *output_path) {
   char *source_text = NULL;
   char *profile_json = NULL;
   char *error = NULL;
   PlatformFileListingArtifact *artifact = NULL;
   int result;
-  (void)policy;
-  (void)analysis_policy;
-  (void)also_syntax;
   result = platform_file_facts_v2_listing_artifact_path_create(platform_name, path,
     metadata_path != NULL ? metadata_path : "", "", &artifact, &error);
   if (result != 0) {
@@ -198,11 +194,11 @@ static int disassemble_file_to_stdout_with_policy(const char *platform_name, con
     fprintf(stderr, "failed writing benchmark json: %s\n", benchmark_json_path);
     return 1;
   }
-  if (also_output_path != NULL && write_text_file(also_output_path, source_text) != 0) {
+  if (output_path != NULL && write_text_file(output_path, source_text) != 0) {
     platform_file_free_text(source_text);
     platform_file_free_text(profile_json);
     platform_file_facts_v2_listing_artifact_destroy(artifact);
-    fprintf(stderr, "failed writing syntax output: %s\n", also_output_path);
+    fprintf(stderr, "failed writing source output: %s\n", output_path);
     return 1;
   }
   puts(source_text);
@@ -212,16 +208,13 @@ static int disassemble_file_to_stdout_with_policy(const char *platform_name, con
   return 0;
 }
 
-static int disassemble_raw_to_stdout_with_policy(const char *platform_name, const char *path, uint32_t entry_offset,
-    const M68kRenderPolicy *policy, const M68kAnalysisPolicy *analysis_policy, const char *metadata_path,
-    const char *benchmark_json_path) {
+static int disassemble_raw_to_stdout(const char *platform_name, const char *path, uint32_t entry_offset,
+    const char *metadata_path, const char *benchmark_json_path) {
   char *source_text = NULL;
   char *profile_json = NULL;
   char *error = NULL;
   PlatformFileListingArtifact *artifact = NULL;
   int result;
-  (void)policy;
-  (void)analysis_policy;
   result = platform_file_facts_v2_listing_artifact_raw_path_create(platform_name, path, entry_offset,
     metadata_path != NULL ? metadata_path : "", "", &artifact, &error);
   if (result != 0) {
@@ -304,6 +297,20 @@ static int parse_analysis_policy_option(int argc, char **argv, int *argi, M68kAn
   return 0;
 }
 
+static int parse_target_metadata_option(int argc, char **argv, int *argi, const char **metadata_path) {
+  if (argc <= 0 || argv == NULL || argi == NULL || metadata_path == NULL) return 0;
+  if (strcmp(argv[*argi], "--target-metadata") == 0) {
+    if (*argi + 1 >= argc) {
+      fprintf(stderr, "missing target metadata path\n");
+      return -1;
+    }
+    *argi += 1;
+    *metadata_path = argv[*argi];
+    return 1;
+  }
+  return 0;
+}
+
 static int load_analysis_policy_metadata_option(M68kAnalysisPolicy *policy, const char *metadata_path,
     const char *platform_name) {
   M68kDiagList diagnostics;
@@ -347,9 +354,7 @@ static int write_text_file(const char *path, const char *text) {
 }
 
 int main(int argc, char **argv) {
-  M68kRenderPolicy policy;
   M68kAnalysisPolicy *analysis_policy = NULL;
-  M68kDiagList parse_diagnostics;
   int argi;
   if (argc == 4 && strcmp(argv[1], "inspect-file") == 0) return inspect_file_to_stdout(argv[2], argv[3]);
   if (argc == 3 && strcmp(argv[1], "type-catalog") == 0) return type_catalog_to_stdout(argv[2]);
@@ -561,13 +566,11 @@ int main(int argc, char **argv) {
   }
   if (argc >= 4 && strcmp(argv[1], "disassemble-file") == 0) {
     const char *platform_name = NULL, *path = NULL, *metadata_path = NULL;
-    const char *benchmark_json_path = NULL, *also_syntax = NULL, *also_output_path = NULL;
-    m68k_render_policy_init_for_syntax(&policy, M68K_IR_SYNTAX_CANONICAL);
-    m68k_analysis_policy_init_default(analysis_policy);
+    const char *benchmark_json_path = NULL, *output_path = NULL;
     for (argi = 2; argi < argc; ++argi) {
-      int policy_result = parse_analysis_policy_option(argc, argv, &argi, analysis_policy, &metadata_path);
-      if (policy_result < 0) return 2;
-      if (policy_result > 0) continue;
+      int metadata_result = parse_target_metadata_option(argc, argv, &argi, &metadata_path);
+      if (metadata_result < 0) return 2;
+      if (metadata_result > 0) continue;
       if (strcmp(argv[argi], "--benchmark-json-out") == 0) {
         if (argi + 1 >= argc) {
           fprintf(stderr, "missing benchmark json output path\n");
@@ -576,25 +579,17 @@ int main(int argc, char **argv) {
         benchmark_json_path = argv[++argi];
         continue;
       }
-      if (strcmp(argv[argi], "--also-syntax-output") == 0) {
-        if (argi + 2 >= argc) {
-          fprintf(stderr, "missing syntax output arguments\n");
+      if (strcmp(argv[argi], "--output") == 0) {
+        if (argi + 1 >= argc) {
+          fprintf(stderr, "missing source output path\n");
           return 2;
         }
-        also_syntax = argv[++argi];
-        also_output_path = argv[++argi];
+        output_path = argv[++argi];
         continue;
       }
-      {
-        int parse_result;
-        m68k_diag_list_reset(&parse_diagnostics);
-        parse_result = m68k_parse_render_policy_option(argc, argv, &argi, &policy,
-          m68k_diag_sink(&parse_diagnostics));
-        if (parse_result < 0) {
-          fprintf(stderr, "%s\n", m68k_diag_first_message(&parse_diagnostics));
-          return 2;
-        }
-        if (parse_result > 0) continue;
+      if (strncmp(argv[argi], "--", 2) == 0) {
+        fprintf(stderr, "unexpected argument: %s\n", argv[argi]);
+        return 2;
       }
       if (platform_name == NULL) {
         platform_name = argv[argi];
@@ -611,9 +606,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "missing platform/file\n");
       return 2;
     }
-    if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
-    return disassemble_file_to_stdout_with_policy(platform_name, path, &policy, analysis_policy, metadata_path,
-      benchmark_json_path, also_syntax, also_output_path);
+    return disassemble_file_to_stdout(platform_name, path, metadata_path, benchmark_json_path, output_path);
   }
   if (argc >= 5 && strcmp(argv[1], "disassemble-raw") == 0) {
     const char *platform_name = NULL;
@@ -622,12 +615,10 @@ int main(int argc, char **argv) {
     const char *benchmark_json_path = NULL;
     uint32_t entry_offset = 0U;
     int have_entry_offset = 0;
-    m68k_render_policy_init_for_syntax(&policy, M68K_IR_SYNTAX_CANONICAL);
-    m68k_analysis_policy_init_default(analysis_policy);
     for (argi = 2; argi < argc; ++argi) {
-      int policy_result = parse_analysis_policy_option(argc, argv, &argi, analysis_policy, &metadata_path);
-      if (policy_result < 0) return 2;
-      if (policy_result > 0) continue;
+      int metadata_result = parse_target_metadata_option(argc, argv, &argi, &metadata_path);
+      if (metadata_result < 0) return 2;
+      if (metadata_result > 0) continue;
       if (strcmp(argv[argi], "--benchmark-json-out") == 0) {
         if (argi + 1 >= argc) {
           fprintf(stderr, "missing benchmark json output path\n");
@@ -636,16 +627,9 @@ int main(int argc, char **argv) {
         benchmark_json_path = argv[++argi];
         continue;
       }
-      {
-        int parse_result;
-        m68k_diag_list_reset(&parse_diagnostics);
-        parse_result = m68k_parse_render_policy_option(argc, argv, &argi, &policy,
-          m68k_diag_sink(&parse_diagnostics));
-        if (parse_result < 0) {
-          fprintf(stderr, "%s\n", m68k_diag_first_message(&parse_diagnostics));
-          return 2;
-        }
-        if (parse_result > 0) continue;
+      if (strncmp(argv[argi], "--", 2) == 0) {
+        fprintf(stderr, "unexpected argument: %s\n", argv[argi]);
+        return 2;
       }
       if (platform_name == NULL) {
         platform_name = argv[argi];
@@ -670,10 +654,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "missing platform/file/entry-offset\n");
       return 2;
     }
-    if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
-    return disassemble_raw_to_stdout_with_policy(platform_name, path, entry_offset, &policy, analysis_policy,
-      metadata_path,
-      benchmark_json_path);
+    return disassemble_raw_to_stdout(platform_name, path, entry_offset, metadata_path, benchmark_json_path);
   }
   fprintf(stderr, "usage: %s inspect-file <amiga-hunk|atari-st> <file>\n", argv[0]);
   fprintf(stderr, "   or: %s type-catalog <amiga-hunk|atari-st>\n", argv[0]);
@@ -685,14 +666,11 @@ int main(int argc, char **argv) {
   fprintf(stderr, "   or: %s effective-policy-raw [--target-metadata file] [--entry-offset offset] "
     "<amiga-raw|atari-st-raw> <file> <entry-offset>\n", argv[0]);
   fprintf(stderr, "   or: %s analyze-raw <amiga-raw|atari-st-raw> <file> <entry-offset>\n", argv[0]);
-  fprintf( stderr, "   or: %s analyze-file [--max-cpu " "<68000|68010|68020|68030|68040|68060>] <amiga-hunk|atari-st> "
+  fprintf(stderr, "   or: %s analyze-file [--max-cpu " "<68000|68010|68020|68030|68040|68060>] <amiga-hunk|atari-st> "
     "<file>\n", argv[0]);
-  fprintf(stderr, "   or: %s disassemble-file [--max-cpu <68000|68010|68020|68030|68040|68060>] [--syntax "
-    "canonical|genam|vasm] [--no-strings] [--no-longs]\n", argv[0]);
-  fprintf(stderr, "          [--no-generated-names] [--min-os-version <1.3|2.0|3.1|3.5>] [--benchmark-json-out file]\n");
-  fprintf(stderr, "          [--code-label-prefix p] [--call-label-prefix p] [--data-label-prefix p]\n");
-  fprintf(stderr, "          <amiga-hunk|atari-st> <file>\n");
-  fprintf(stderr, "   or: %s disassemble-raw [--syntax canonical|genam|vasm] <amiga-raw|atari-st-raw> "
+  fprintf(stderr, "   or: %s disassemble-file [--target-metadata file] [--benchmark-json-out file]\n", argv[0]);
+  fprintf(stderr, "          [--output file] <amiga-hunk|atari-st> <file>\n");
+  fprintf(stderr, "   or: %s disassemble-raw [--target-metadata file] [--benchmark-json-out file] <amiga-raw|atari-st-raw> "
     "<file> <entry-offset>\n", argv[0]);
   return 2;
 }

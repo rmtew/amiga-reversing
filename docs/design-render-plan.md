@@ -273,6 +273,12 @@ build the retained C listing artifact and emit source/benchmark data from that
 artifact. The old exported direct source text/json/profile functions have been
 removed from the platform-file DLL; source rendering through the DLL now enters
 through either a retained listing artifact or the reproduction/rebuild APIs.
+The retained artifact now exposes a profile-only JSON call. Python source and
+benchmark helpers use that call instead of requesting the summary payload just
+to recover timing/profile metadata.
+The platform-file CLI disassembly commands no longer parse ignored render
+syntax/policy options. They expose the artifact source path directly:
+metadata, optional benchmark profile, and optional `.s` output file.
 Reproduction mismatch row mapping now uses the retained C artifact as a
 source-offset lookup service. The artifact resolves a `(section_index,
 section_offset)` through the render plan, translates the owning plan row through

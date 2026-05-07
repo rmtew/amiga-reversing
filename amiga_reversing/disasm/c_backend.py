@@ -243,7 +243,7 @@ def listing_artifact_source_text_with_c_backend_profile(
             project_root=project_root,
         )
     try:
-        _summary, profile = artifact.summary_payload()
+        profile = artifact.profile_payload()
         return artifact.source_text(), profile
     finally:
         artifact.close()
@@ -1107,6 +1107,11 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_summary_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_profile_json_alloc.argtypes = [
+        c_void_p,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_profile_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_analysis_json_alloc.argtypes = [
         c_void_p,
         POINTER(c_void_p),
@@ -1329,6 +1334,16 @@ class CListingArtifact:
         summary = cast(dict[str, object], combined.get("summary", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))
         return summary, profile
+
+    def profile_payload(self) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            json.loads(
+                self._text_from_artifact_call(
+                    self._dll.platform_file_facts_v2_listing_artifact_profile_json_alloc,
+                )
+            ),
+        )
 
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         combined = cast(

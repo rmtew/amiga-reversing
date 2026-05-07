@@ -41,8 +41,6 @@ def run_disassembly_with_benchmark(backend: str, cli_binary: str, benchmark_path
         [
             str(CLI),
             "disassemble-file",
-            "--syntax",
-            "genam",
             "--benchmark-json-out",
             str(benchmark_path),
             backend,
