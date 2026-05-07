@@ -72,14 +72,11 @@ include/RS/equate rows and first-section stop detection. The emitted-text
 classifier has been removed; diagnostic rows are comments, and semantic listing
 rows must carry semantic render-plan kinds/provenance.
 Render plans can now emit physical line windows directly from row ownership
-metadata, including windows that start inside a multi-line row. This is the
-generic primitive the web listing path needs before it can stop requesting a
-whole source file for viewport-sized output.
+metadata, including windows that start inside a multi-line row.
 facts_v2 now also exposes direct C listing-window JSON emission from the render
 plan, with a regression proving the window matches the same slice from full
-listing rows. The web route is not switched to call it per request because that
-would redo full analysis on scroll; the route needs a cacheable plan or compact
-row-window artifact lifetime first.
+listing rows. The web route now reaches that through the retained C listing
+artifact instead of rebuilding analysis per scroll request.
 The C listing-window emitter streams selected rows directly into the final JSON
 builder; it does not allocate a temporary rows JSON string and copy it into the
 payload. An isolated C regression now covers listing-window JSON parity with a
@@ -277,9 +274,6 @@ combined render-assemble functions have been removed from the platform-file
 DLL. Source rendering through the DLL now enters through a retained listing
 artifact; reproduction either uses direct rebuild or assembles artifact-emitted
 source.
-The retained artifact now exposes a profile-only JSON call. Python source and
-benchmark helpers use that call instead of requesting the summary payload just
-to recover timing/profile metadata.
 Artifact source emission now has a single source-text-plus-profile C call.
 Python source and benchmark helpers and the CLI use that call, so benchmark
 profiles include `source_emit_seconds` and do not need a second profile request
