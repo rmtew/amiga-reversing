@@ -3909,6 +3909,11 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
         )
         assert profile["facts_v2"]["asm_source_refused"] is False
         assert not [row for row in rows if row.get("data_class") and row.get("kind") != "data"]
+        assert not [
+            row
+            for row in rows
+            if row.get("data_class") and str(row.get("text", "")).strip().endswith(":")
+        ]
         for data_class, expected_count in expected_counts.items():
             assert sum(1 for row in rows if row.get("data_class") == data_class) >= expected_count
 

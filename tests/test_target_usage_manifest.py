@@ -73,6 +73,14 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
                 "text": "\tdc.l abs_0_0000C53C\t; pointer_table\n",
                 "data_class": "pointer_table",
             },
+            {
+                "kind": "label",
+                "section_index": 0,
+                "start_offset": 0xDDBA,
+                "stable_key": "s0:0000DDBA:label:1",
+                "text": "loc_0_0000DDBA:",
+                "data_class": "string",
+            },
         ]
     }
     bag = FeatureBag()
@@ -82,6 +90,7 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
     assert counts["analysis:lookup_table:word_relative_labels"] == 1
     assert counts["analysis:lookup_table:long_label_entries"] == 1
     assert counts["analysis:pointer_table:long_label_entries"] == 1
+    assert "data:string" not in counts
     assert "analysis:lookup_table:word_relative_labels" in tags
 
     row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
@@ -91,6 +100,7 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
     assert "analysis:lookup_table:word_relative_labels" in features
     assert "analysis:lookup_table:long_label_entries" in features
     assert "analysis:pointer_table:long_label_entries" in features
+    assert "data:string" not in features
 
 
 def test_direct_control_stub_table_feature_and_xref() -> None:

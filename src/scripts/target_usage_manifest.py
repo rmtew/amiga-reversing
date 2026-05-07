@@ -1384,6 +1384,8 @@ _TABLE_REL_LABEL_RE = re.compile(
 
 
 def _listing_row_data_class(row: dict[str, object], text: str) -> str | None:
+    if row.get("kind") != "data":
+        return None
     data_class = _string_value(row.get("data_class"))
     if data_class:
         return data_class
