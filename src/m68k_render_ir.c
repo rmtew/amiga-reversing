@@ -2879,6 +2879,16 @@ static void attach_amiga_platform_symbol(M68kOperandIR *operand, const char *sym
   snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
 }
 
+static void attach_generic_symbol(M68kOperandIR *operand, const char *symbol_name) {
+  if (operand == NULL || symbol_name == NULL || symbol_name[0] == '\0') return;
+  m68k_ir_symbol_ref_init(&operand->symbol_ref);
+  operand->symbol_ref.has_name = 1U;
+  operand->symbol_ref.name_is_generated = 0U;
+  operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_NONE;
+  operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
+  snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
+}
+
 static int attach_m68k_cpu_vector_symbols(M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   size_t operand_index;
@@ -4457,6 +4467,42 @@ int lookup_source_offset_is_materialized_runtime_range_start(const M68kRenderLoo
         fact->offset == source_offset) {
       return 1;
     }
+  }
+  return 0;
+}
+
+static int lookup_source_offset_is_block_start(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t source_offset) {
+  if (lookup == NULL || section_index >= lookup->section_count || lookup->block_starts == NULL ||
+      lookup->block_start_extents == NULL || lookup->block_starts[section_index] == NULL ||
+      source_offset >= lookup->block_start_extents[section_index]) {
+    return 0;
+  }
+  return lookup->block_starts[section_index][source_offset] != 0U;
+}
+
+static int runtime_address_ref_targets_unmaterialized_discovered_code(const M68kRenderLookup *lookup,
+    const M68kFact *ref) {
+  size_t index;
+  if (lookup == NULL || ref == NULL || ref->kind != M68K_FACT_RUNTIME_ADDRESS_REF ||
+      !ref->has_runtime_address || ref->target_section_index >= lookup->section_count) {
+    return 0;
+  }
+  if (!lookup_source_offset_is_block_start(lookup, ref->target_section_index, ref->target_offset)) return 0;
+  if (m68k_cpu_exception_vector_address_has_kind(ref->runtime_address, M68K_CPU_VECTOR_KIND_RESET)) return 0;
+  if (lookup_source_has_materialized_runtime_address(lookup, ref->target_section_index, ref->target_offset,
+      ref->runtime_address)) {
+    return 0;
+  }
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    const M68kFact *range = lookup->runtime_address_ranges[index].fact;
+    uint32_t mapped_runtime_address = 0U;
+    if (range == NULL || range->runtime_kind != M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY) continue;
+    if (!runtime_range_contains_source(range, ref->target_section_index, ref->target_offset,
+        &mapped_runtime_address)) {
+      continue;
+    }
+    if (mapped_runtime_address == ref->runtime_address) return 1;
   }
   return 0;
 }
@@ -6213,6 +6259,14 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
     }
     if (!lookup_source_has_materialized_runtime_address(lookup, fact->target_section_index, fact->target_offset,
         fact->runtime_address)) {
+      char symbol[80];
+      if (!amiga_abs_exec_base_load_should_stay_absolute(lookup, instruction, operand_index, operand, fact) &&
+          runtime_address_ref_targets_unmaterialized_discovered_code(lookup, fact) &&
+          render_asm_define_runtime_address_symbol_once(preview, "runtime_code", fact->runtime_address, symbol,
+            sizeof(symbol))) {
+        attach_generic_symbol(operand, symbol);
+        continue;
+      }
       record_numeric_runtime_ref(preview, fact);
       continue;
     }

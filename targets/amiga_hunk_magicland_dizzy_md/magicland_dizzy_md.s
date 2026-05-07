@@ -1,6 +1,7 @@
     INCLUDE "hardware/custom.i"
 
 _custom	EQU	$DFF000
+runtime_code_00000100	EQU	$100
 
     SECTION section,code
 loc_0_00000000:
@@ -18,7 +19,7 @@ loc_0_00000000:
 	adda.l d7,a4
 	adda.l d7,a5
 loc_0_00000040:
-	lea.l $0100.w,a1
+	lea.l runtime_code_00000100.w,a1
 	movem.w d0-d4,(a1)
 	jmp (a1)
 	dc.b $42,$45,$45,$52,$31,$39,$39,$31

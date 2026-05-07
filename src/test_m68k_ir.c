@@ -3174,6 +3174,78 @@ static int test_facts_v2_traced_displacement_indirect_jump_promotes_runtime_copy
   return 0;
 }
 
+static int test_facts_v2_unmaterialized_runtime_copy_code_address_renders_equ_symbol(void) {
+  AsmSourceFile parsed_source;
+  M68kDiagList diagnostics;
+  M68kObject object;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  size_t code_start_index;
+  int saw_handler_entry = 0;
+  int saw_payload_entry = 0;
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "\tlea handler(pc),a0\n"
+    "\tlea $00000090.l,a1\n"
+    "\tmoveq #5,d0\n"
+    "copy_handler:\n"
+    "\tmove.b (a0)+,(a1)+\n"
+    "\tdbf d0,copy_handler\n"
+    "\tlea payload(pc),a0\n"
+    "\tlea $00000400.l,a1\n"
+    "\tmoveq #3,d0\n"
+    "copy_payload:\n"
+    "\tmove.b (a0)+,(a1)+\n"
+    "\tdbf d0,copy_payload\n"
+    "\tmove.l #$00000090,$00000080.l\n"
+    "\ttrap #0\n"
+    "\trts\n"
+    "handler:\n"
+    "\tjmp $00000400.l\n"
+    "payload:\n"
+    "\tnop\n"
+    "\trts\n";
+  memset(&parsed_source, 0, sizeof(parsed_source));
+  memset(&object, 0, sizeof(object));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  m68k_diag_list_reset(&diagnostics);
+  parsed_source.target_cpu = M68K_ASM_CPU_68000;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&parsed_source, source_text,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(1, m68k_source_pipeline_emit_object(&parsed_source, &object,
+    m68k_diag_sink(&diagnostics)));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy,
+    &source, &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "runtime_code_00000090\tEQU\t$90\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l runtime_code_00000090.l,a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tmove.l #runtime_code_00000090,m68k_vector_trap_0_instruction_vector.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $90\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000090:") == NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $400\nabs_0_00000400:\n\tnop\n\trts\n") != NULL);
+  for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
+      ++code_start_index) {
+    const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
+    if (ref->reason != M68K_FACT_CODE_START_REASON_CONTROL_TARGET || !ref->has_runtime_address) continue;
+    if (ref->runtime_address == 0x90U) saw_handler_entry = 1;
+    if (ref->runtime_address == 0x400U) saw_payload_entry = 1;
+  }
+  M68K_C_ASSERT(saw_handler_entry);
+  M68K_C_ASSERT(saw_payload_entry);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  m68k_source_model_free(&parsed_source);
+  return 0;
+}
+
 static int test_facts_v2_records_unresolved_indirect_jump_site(void) {
   M68kObject object;
   M68kSection section;
@@ -12610,6 +12682,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_traced_indirect_call_promotes_known_target},
     {"facts_v2_traced_displacement_indirect_jump_promotes_runtime_copy_target",
       test_facts_v2_traced_displacement_indirect_jump_promotes_runtime_copy_target},
+    {"facts_v2_unmaterialized_runtime_copy_code_address_renders_equ_symbol",
+      test_facts_v2_unmaterialized_runtime_copy_code_address_renders_equ_symbol},
     {"facts_v2_records_unresolved_indirect_jump_site",
       test_facts_v2_records_unresolved_indirect_jump_site},
     {"facts_v2_resolved_platform_call_not_unresolved_indirect_site",

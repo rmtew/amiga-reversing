@@ -4,13 +4,16 @@
     INCLUDE "hardware/dmabits.i"
 
     RSSET 0
-app_0000 RS.L 1
+app_0000 RS.B 1
+app_0001 RS.B 1
+app_0002 RS.B 1
+app_0003 RS.B 1
 app_0004 RS.L 1
 app_0008 RS.L 1
 app_000C RS.L 1
 app_0010 RS.L 1
-app_0014 RS.L 1
-    RS.B 2
+app_0014 RS.W 1
+app_0016 RS.L 1
 app_001A RS.L 1
 app_001E RS.L 1
 app_0022 RS.L 1
@@ -21,29 +24,27 @@ app_0032 RS.L 1
 app_0036 RS.L 1
 app_003A RS.L 1
 app_003E RS.L 1
-app_0042 RS.L 1
-    RS.B 26
-app_0060 RS.L 1
-app_0064 RS.L 1
-app_0068 RS.L 1
-    RS.B 1630
+app_0042 RS.W 1
+app_0044 RS.L 1
+    RS.B 24
+app_0060 RS.W 1
+app_0062 RS.B 1
+app_0063 RS.B 1
+app_0064 RS.B 1
+app_0065 RS.B 1
+app_0066 RS.B 1
+    RS.B 1
+app_0068 RS.B 1
+    RS.B 1
+app_006A RS.L 1
+    RS.B 1628
 app_06CA RS.L 1
     RS.B 14748
 app_406A RS.L 1
     RS.B 6652
 app_5A6A RS.L 1
 app_SIZEOF EQU __RS
-app_0001 EQU $0001
-app_0002 EQU $0002
-app_0003 EQU $0003
-app_0016 EQU $0016
-app_0044 EQU $0044
 app_0061 EQU $0061
-app_0062 EQU $0062
-app_0063 EQU $0063
-app_0065 EQU $0065
-app_0066 EQU $0066
-app_006A EQU $006A
 
 amiga_loadseg_segment_link	EQU	-4
 m68k_vector_trap_2_instruction_vector	EQU	$88
@@ -53,6 +54,8 @@ INTF_CLRALL	EQU	$7FFF
 _ciab	EQU	$BFD000
 _ciaa	EQU	$BFE001
 m68k_vector_initial_pc	EQU	$4
+runtime_code_00000400	EQU	$400
+runtime_code_00078004	EQU	$78004
 
     SECTION section_0,code
 loc_0_00000000:
@@ -532,7 +535,7 @@ loc_6_000000CE:
 	st.b app_0002(a6)
 	st.b app_0003(a6)
 	lea.l loc_6_00000128(pc),a0
-	lea.l $0400.w,a1
+	lea.l runtime_code_00000400.w,a1
 	move.w #$41,d0
 loc_6_000000F2:
 	move.b (a0)+,(a1)+
@@ -553,7 +556,7 @@ loc_6_000000F2:
 	nop
 	lea.l $00078000.l,a1
 	lea.l loc_6_0000016A(pc),a0
-	jmp $0400.w
+	jmp runtime_code_00000400.w
 loc_6_00000128:
 	move.w #$144A,d0
 	addi.w #23546,d0
@@ -573,9 +576,9 @@ loc_6_00000144:
 	dbf.w d0,loc_6_00000142
 loc_6_00000148:
 	lea.l loc_6_00000164(pc),a0
-	lea.l $0400.w,a1
+	lea.l runtime_code_00000400.w,a1
 	move.l a1,d0
-	jsr $00078004.l
+	jsr runtime_code_00078004.l
 	bra.b loc_6_0000015C
 	dc.b $00,$00
 loc_6_0000015C:
@@ -585,7 +588,7 @@ loc_6_0000015C:
 loc_6_00000164:
 	dc.b $30,$3A,$66,$31,$33,$00
 loc_6_0000016A:
-	bra.w loc_6_0000021E
+	dc.b $60,$00,$00,$B2
 loc_6_0000016E:
 	bra.w loc_6_00000254
 	dc.b $60,$00,$00,$1A,$60,$00,$00,$2E,$60,$00,$00,$42,$60,$00,$00,$56
@@ -598,21 +601,11 @@ loc_6_0000016E:
 	dc.b $13,$D2,$61,$00,$0F,$F2,$4C,$DF,$7F,$FE,$4E,$75,$48,$E7,$7F,$FE
 	dc.b $4B,$F9,$00,$DF,$F0,$00,$4D,$FA,$13,$BA,$61,$00,$10,$5E,$4C,$DF
 	dc.b $7F,$FE,$4E,$75,$48,$E7,$7F,$FE,$4B,$F9,$00,$DF,$F0,$00,$4D,$FA
-	dc.b $13,$A2,$61,$00,$11,$C4,$4C,$DF,$7F,$FE,$4E,$75
-loc_6_0000021E:
-	movem.l d1-d7/a0-a6,-(a7)
-	lea.l _custom.l,a5
-	lea.l loc_6_000015B4(pc),a6
-	move.l a1,app_0004(a6)
-	move.l d0,app_0008(a6)
-	bsr.w loc_6_00000CB2
-	bmi.w loc_6_000003B4
-	movea.l app_0004(a6),a0
-	move.l app_0008(a6),d0
-	bsr.w loc_6_00000EEA
-	bmi.w loc_6_000003B4
-	bsr.w loc_6_00000F58
-	bra.w loc_6_000003AC
+	dc.b $13,$A2,$61,$00,$11,$C4,$4C,$DF,$7F,$FE,$4E,$75,$48,$E7,$7F,$FE
+	dc.b $4B,$F9,$00,$DF,$F0,$00,$4D,$FA,$13,$8A,$2D,$49,$00,$04,$2D,$40
+	dc.b $00,$08,$61,$00,$0A,$7C,$6B,$00,$01,$7A,$20,$6E,$00,$04,$20,$2E
+	dc.b $00,$08,$61,$00,$0C,$A4,$6B,$00,$01,$6A,$61,$00,$0D,$0A,$60,$00
+	dc.b $01,$5A
 loc_6_00000254:
 	movem.l d1-d7/a0-a6,-(a7)
 	lea.l _custom.l,a5

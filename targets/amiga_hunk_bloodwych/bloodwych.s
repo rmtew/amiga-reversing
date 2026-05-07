@@ -7,38 +7,40 @@
     INCLUDE "hardware/intbits.i"
 
     RSSET 0
-app_0000 RS.L 1
-app_0004 RS.L 1
-app_0008 RS.L 1
-app_000C RS.L 1
-app_0010 RS.L 1
+app_0000 RS.W 1
+app_0002 RS.W 1
+app_0004 RS.W 1
+app_0006 RS.W 1
+app_0008 RS.B 1
+app_0009 RS.B 1
+app_000A RS.B 1
+app_000B RS.B 1
+app_000C RS.B 1
+app_000D RS.B 1
+app_000E RS.B 1
+    RS.B 1
+app_0010 RS.W 1
+app_0012 RS.W 1
     RS.B 7
 app_001B RS.B 1
     RS.B 36
 app_0040 RS.L 1
     RS.B 5
 app_0049 RS.B 1
-app_004A RS.L 1
-    RS.B 5
+app_004A RS.W 1
+    RS.B 7
 app_0053 RS.B 1
     RS.B 3958
 app_0FCA RS.L 1
 app_SIZEOF EQU __RS
-app_0001 EQU $0001
-app_0002 EQU $0002
-app_0003 EQU $0003
-app_0005 EQU $0005
-app_0006 EQU $0006
 app_0007 EQU $0007
-app_0009 EQU $0009
-app_000A EQU $000A
-app_000B EQU $000B
-app_000D EQU $000D
-app_000E EQU $000E
-app_0012 EQU $0012
+app_0005 EQU $0005
+app_0003 EQU $0003
+app_0001 EQU $0001
 
 INTF_CLRALL	EQU	$7FFF
 _custom	EQU	$DFF000
+runtime_code_00000090	EQU	$90
 m68k_vector_trap_0_instruction_vector	EQU	$80
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF1P2	EQU	$4
@@ -72,13 +74,13 @@ loc_0_00000000:
 	move.w #INTF_CLRALL,_custom+intena.l
 	move.w #INTF_CLRALL,_custom+intreq.l
 	lea.l loc_0_00000032(pc),a0
-	lea.l $00000090.l,a1
+	lea.l runtime_code_00000090.l,a1
 	moveq.l #40,d0
 loc_0_0000001C:
 	move.b (a0)+,(a1)+
 	dbf.w d0,loc_0_0000001C
 	lea.l loc_0_0000005C(pc),a6
-	move.l #$90,m68k_vector_trap_0_instruction_vector.l
+	move.l #runtime_code_00000090,m68k_vector_trap_0_instruction_vector.l
 	trap #0
 loc_0_00000032:
 	move.l #$5909C,d0
@@ -9478,7 +9480,7 @@ abs_0_00007F86:
 	move.w d0,-(a7)
 	lea.l abs_0_00051772.l,a1
 	move.l #$10028,d5
-	movea.l #$90,a3
+	movea.l #runtime_code_00000090,a3
 	bsr.w abs_0_0000CCB8
 	move.w (a7)+,d7
 abs_0_00007FB2:
@@ -14428,7 +14430,7 @@ abs_0_0000C3DE:
 	move.l #$10037,d5
 	move.w #$4,d3
 	swap.w d3
-	movea.l #$90,a3
+	movea.l #runtime_code_00000090,a3
 	move.w #$FFFF,abs_0_0000B4BE.l
 	bsr.w abs_0_0000B5CC
 	clr.w abs_0_0000B4BE.l

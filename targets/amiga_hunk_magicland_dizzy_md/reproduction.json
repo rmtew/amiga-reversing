@@ -53,16 +53,16 @@
       "status": "semantic_container_oddity"
     }
   ],
-  "finished_at": 1777921834.047374,
+  "finished_at": 1778142141.8275948,
   "first_diff": null,
   "input_stamp": {
     "analysis_backend": "facts_v2",
     "assembler": "our",
     "assembler_cpu": "any",
     "assembler_tool_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\src\\build\\platform_file_lib.dll",
-    "assembler_tool_stamp": "1720832:1777921792980801400",
+    "assembler_tool_stamp": "1784320:1778142083943699800",
     "backend": "amiga-hunk",
-    "effective_metadata_sha256": "29ed967852e5d89e2e061247947f741d3487448363a44411572ed3948c83a7b3",
+    "effective_metadata_sha256": "f76cafbb588c684f432eb24497d4376c3b64963217396392ee83f6ffc1aa513d",
     "original_sha256": "f26cb8133afe589cac0259471a9eb2c94d96817520f91739a609af2f09a6c622",
     "original_size": 46016,
     "reproduction_options": {
@@ -80,8 +80,7 @@
       "mode": "exact",
       "oracle_modes": [],
       "raw_output": null,
-      "relocation_policy": "preserve_original_encoding",
-      "source_syntax": "genam"
+      "relocation_policy": "preserve_original_encoding"
     },
     "reproduction_policy": {
       "comparison": "full_file",
@@ -91,11 +90,10 @@
     },
     "source_renderer": "c-backend",
     "source_renderer_tool_stamps": {
-      "c_backend.py": "72418:1777836845413696600",
-      "platform_disk_lib.dll": "1786880:1777921792732098700",
-      "platform_file_lib.dll": "1720832:1777921792980801400"
-    },
-    "source_syntax": "genam"
+      "c_backend.py": "55189:1778139706816447700",
+      "platform_disk_lib.dll": "1850880:1778142083737510100",
+      "platform_file_lib.dll": "1784320:1778142083943699800"
+    }
   },
   "issues": [],
   "listing_profile": {
@@ -121,6 +119,9 @@
       "asm_source_lines": 0,
       "asm_source_lossy_numeric_hunk_relocations": 0,
       "asm_source_numeric_runtime_refs": 0,
+      "asm_source_plan_bytes": 0,
+      "asm_source_plan_lines": 0,
+      "asm_source_plan_rows": 0,
       "asm_source_refused": false,
       "asm_source_relocation_anchor_refusals": 0,
       "asm_source_relocation_exprs": 0,
@@ -176,7 +177,7 @@
       "fixed_point_reachable_decode_seconds": 0.0,
       "fixed_point_reachable_fallthrough_seconds": 0.0,
       "fixed_point_reachable_relocation_seconds": 0.0,
-      "fixed_point_reachable_seconds": 0.001,
+      "fixed_point_reachable_seconds": 0.0,
       "fixed_point_reachable_target_seconds": 0.0,
       "fixed_point_reachable_validate_seconds": 0.0,
       "fixed_point_rebuild_accepted_seconds": 0.0,
@@ -184,7 +185,7 @@
       "fixed_point_required_label_conflict_seconds": 0.0,
       "fixed_point_required_label_materialize_seconds": 0.0,
       "fixed_point_runtime_address_ref_seconds": 0.0,
-      "fixed_point_seconds": 0.001,
+      "fixed_point_seconds": 0.0,
       "interior_conflicts": 0,
       "interior_conflicts_resolved_by_demote": 0,
       "interior_conflicts_unresolved": 0,
@@ -209,7 +210,7 @@
       "render_ir_header_seconds": 0.0,
       "render_ir_instructions": 21,
       "render_ir_labels": 5,
-      "render_ir_lookup_seconds": 0.0,
+      "render_ir_lookup_seconds": 0.001,
       "render_ir_platform_app_slot_seconds": 0.0,
       "render_ir_platform_base_slot_seconds": 0.0,
       "render_ir_platform_call_comment_seconds": 0.0,
@@ -219,9 +220,9 @@
       "render_ir_platform_pass_seconds": 0.0,
       "render_ir_platform_runtime_data_seconds": 0.0,
       "render_ir_platform_typed_ref_seconds": 0.0,
-      "render_ir_seconds": 0.001,
+      "render_ir_seconds": 0.002,
       "render_ir_statements": 28,
-      "render_ir_walk_seconds": 0.001,
+      "render_ir_walk_seconds": 0.0,
       "required_instruction_failures": 0,
       "runtime_address_range_conflicts": 0,
       "runtime_address_ranges": 2,
@@ -244,7 +245,7 @@
   "profile": {
     "assemble_seconds": 0.0,
     "diff_phase_seconds": 0.0,
-    "direct_rebuild_seconds": 0.0057,
+    "direct_rebuild_seconds": 0.0088,
     "facts_v2_direct_backend": "amiga-hunk",
     "facts_v2_direct_compare_container_oddity": 1.0,
     "facts_v2_direct_compare_payload_exact": 1.0,
@@ -262,13 +263,13 @@
     "facts_v2_direct_rebuilt_bytes": 46012,
     "facts_v2_direct_semantic_fast_path": 1.0,
     "facts_v2_direct_source_bytes": 0,
-    "facts_v2_direct_total_seconds": 0.001,
+    "facts_v2_direct_total_seconds": 0.0,
     "facts_v2_direct_write_buffer_seconds": 0.0,
-    "facts_v2_direct_write_file_seconds": 0.001,
-    "prepare_seconds": 0.0019,
+    "facts_v2_direct_write_file_seconds": 0.0,
+    "prepare_seconds": 0.0022,
     "render_seconds": 0.002,
     "source_file_rewritten": 0.0,
-    "total_seconds": 0.0081,
+    "total_seconds": 0.0115,
     "write_source_seconds": 0.0
   },
   "rebuilt_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\bin\\rebuilt\\amiga_hunk_magicland_dizzy_md\\rebuilt.bin",
@@ -277,7 +278,7 @@
   "row_mappings": [],
   "source_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\bin\\rebuilt\\amiga_hunk_magicland_dizzy_md\\source.s",
   "stale": false,
-  "started_at": 1777921834.0392952,
+  "started_at": 1778142141.8161523,
   "status": "exact",
   "target": "amiga_hunk_magicland_dizzy_md",
   "tool_error": null
