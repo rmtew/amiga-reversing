@@ -4437,6 +4437,10 @@ def test_real_dll_carrier_ramdrive_relocation_backed_template_seeds_target_code(
     )
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert source_text_profile["facts_v2"]["asm_source_lossy_numeric_hunk_relocations"] == 0
+    assert "\tdc.l __section_0_base-$00000004\t; facts_v2 HUNK_RELOC32 anchor: base(hunk 0)-$00000004\n" in source_text
+    assert "HUNK_RELOC32 numeric: source hunk 0 offset $0000002E" not in source_text
+    assert "loc_0_00000000-$00000004" not in source_text
     assert source_text_profile["facts_v2"]["accepted_instructions"] >= 436
     assert "loc_0_0000062C:\n\tbra.b loc_0_0000064C\n" in source_text
     assert "loc_0_0000068A:\n\tbtst.b #0,$001B(a1)\n" in source_text

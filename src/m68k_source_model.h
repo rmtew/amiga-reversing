@@ -110,6 +110,7 @@ typedef struct M68kSourceModelIndexResult {
 } M68kSourceModelIndexResult;
 
 M68kSourceModelIndexResult m68k_source_model_find_symbol_index(const AsmSourceFile *source, const char *name);
+int m68k_source_model_format_section_base_symbol(char *buffer, size_t buffer_size, size_t section_index);
 M68kSourceLookupResult m68k_source_model_lookup_symbol(const char *name, void *user_data);
 M68kSourceLookupResult m68k_source_model_expr_lookup_symbol(const char *name, void *user_data);
 M68kSourceModelIndexResult m68k_source_model_append_section(AsmSourceFile *source, const char *name,

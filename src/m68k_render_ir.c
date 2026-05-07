@@ -6,6 +6,7 @@
 #include "m68k_parse_util.h"
 #include "m68k_plain_parse.h"
 #include "m68k_simulator.h"
+#include "m68k_source_model.h"
 #include "m68k_source_pipeline.h"
 #include "m68k_source_text_util.h"
 #include "platform_atari_st.h"
@@ -5632,14 +5633,47 @@ static void format_lossy_hunk_anchor_comment(char *buffer, size_t buffer_size, c
     (unsigned)anchor->target_section_index, expr, reason);
 }
 
-static void render_asm_lossy_hunk_relocation(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+static int format_hunk_anchor_relocation_expr(char *buffer, size_t buffer_size, const M68kRenderLookup *lookup,
+    const M68kFact *anchor) {
+  char base_name[64];
+  uint64_t magnitude;
+  if (buffer == NULL || buffer_size == 0U) return 0;
+  buffer[0] = '\0';
+  if (lookup == NULL || anchor == NULL || anchor->target_section_index >= lookup->section_count ||
+      anchor->platform_record_kind != AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELOC32 ||
+      anchor->size != 4U || anchor->target_addend < INT32_MIN || anchor->target_addend > INT32_MAX ||
+      !m68k_source_model_format_section_base_symbol(base_name, sizeof(base_name), anchor->target_section_index)) {
+    return 0;
+  }
+  if (anchor->target_addend == 0) {
+    snprintf(buffer, buffer_size, "%s", base_name);
+  } else if (anchor->target_addend < 0) {
+    magnitude = (uint64_t)(-anchor->target_addend);
+    snprintf(buffer, buffer_size, "%s-$%08X", base_name, (unsigned)magnitude);
+  } else {
+    snprintf(buffer, buffer_size, "%s+$%08X", base_name, (unsigned)anchor->target_addend);
+  }
+  return 1;
+}
+
+static void render_asm_hunk_anchor_relocation(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     const M68kFact *anchor) {
   char line[512];
+  char expr[128];
   char value[32];
   char comment[384];
   const char *directive;
   if (preview == NULL || lookup == NULL || anchor == NULL) return;
   directive = directive_for_data_size(anchor->size);
+  if (format_hunk_anchor_relocation_expr(expr, sizeof(expr), lookup, anchor)) {
+    format_hunk_anchor_expression(comment, sizeof(comment), anchor);
+    snprintf(line, sizeof(line), "\t%s %s\t; facts_v2 HUNK_RELOC32 anchor: %s\n",
+      directive, expr, comment);
+    hash_asm_text(preview, line);
+    ++preview->asm_source_lines;
+    ++preview->asm_source_relocation_exprs;
+    return;
+  }
   format_numeric_value(value, sizeof(value), anchor->size, anchor->target_offset);
   format_lossy_hunk_anchor_comment(comment, sizeof(comment), lookup, anchor);
   snprintf(line, sizeof(line), "\t%s %s\t; %s\n", directive, value, comment);
@@ -7413,7 +7447,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
             render_asm_sync_logical_pc(out_preview, &lookup, section->section_index, offset, &asm_logical_pc);
             render_asm_comment_line(out_preview,
               lookup_instruction_comment(&lookup, section->section_index, offset));
-            render_asm_lossy_hunk_relocation(out_preview, &lookup, anchor);
+            render_asm_hunk_anchor_relocation(out_preview, &lookup, anchor);
             row = finish_asm_source_plan_row(out_preview, section->section_index, offset, anchor->size, 1);
             set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,
               anchor->size);

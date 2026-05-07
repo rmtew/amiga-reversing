@@ -2453,11 +2453,12 @@ static int test_facts_v2_classifies_hunk_positive_data_relocation_anchor(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "dc.l $00007FFE") != NULL);
-  M68K_C_ASSERT(strstr(source, "HUNK_RELOC32 numeric") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l __section_1_base+$00007FFE") != NULL);
+  M68K_C_ASSERT(strstr(source, "HUNK_RELOC32 numeric") == NULL);
   M68K_C_ASSERT(strstr(source, "base(hunk 1)+$00007FFE") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
-  M68K_C_ASSERT_U32(1U, profile.asm_source_lossy_numeric_hunk_relocations);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_lossy_numeric_hunk_relocations);
+  M68K_C_ASSERT_U32(1U, profile.asm_source_relocation_exprs);
   M68K_C_ASSERT_U32(0U, profile.relocation_failures);
   M68K_C_ASSERT_U32(1U, profile.relocation_anchors);
   M68K_C_ASSERT_U32(0U, profile.asm_source_relocation_anchor_refusals);
@@ -2486,15 +2487,21 @@ static int test_facts_v2_classifies_hunk_positive_data_relocation_anchor(void) {
 
 static int test_facts_v2_classifies_hunk_negative_relocation_anchor(void) {
   M68kObject object;
+  M68kObject rebuilt;
   M68kSection section;
   M68kObjectAddResult added;
   M68kFixup fixup;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  AsmSourceFile parsed_source;
+  M68kDiagList diagnostics;
   char *source = NULL;
   uint8_t bytes[8] = {0x4eu, 0x71u, 0x4eu, 0x75u, 0xffu, 0xffu, 0xffu, 0xfcu};
+  memset(&rebuilt, 0, sizeof(rebuilt));
+  memset(&parsed_source, 0, sizeof(parsed_source));
   memset(&section, 0, sizeof(section));
   memset(&fixup, 0, sizeof(fixup));
+  m68k_diag_list_reset(&diagnostics);
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
@@ -2517,11 +2524,22 @@ static int test_facts_v2_classifies_hunk_negative_relocation_anchor(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "dc.l $FFFFFFFC") != NULL);
-  M68K_C_ASSERT(strstr(source, "HUNK_RELOC32 numeric") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l __section_0_base-$00000004") != NULL);
+  M68K_C_ASSERT(strstr(source, "HUNK_RELOC32 numeric") == NULL);
   M68K_C_ASSERT(strstr(source, "base(hunk 0)-$00000004") != NULL);
+  parsed_source.target_cpu = M68K_ASM_CPU_68000;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&parsed_source, source,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(1, m68k_source_pipeline_emit_object(&parsed_source, &rebuilt,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)rebuilt.fixup_count);
+  M68K_C_ASSERT_U32(0U, rebuilt.fixups[0].target_section_index);
+  M68K_C_ASSERT_INT(-4, rebuilt.fixups[0].addend);
+  M68K_C_ASSERT_U32(0xffU, rebuilt.sections[0].data[4]);
+  M68K_C_ASSERT_U32(0xfcU, rebuilt.sections[0].data[7]);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
-  M68K_C_ASSERT_U32(1U, profile.asm_source_lossy_numeric_hunk_relocations);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_lossy_numeric_hunk_relocations);
+  M68K_C_ASSERT_U32(1U, profile.asm_source_relocation_exprs);
   M68K_C_ASSERT_U32(0U, profile.relocation_failures);
   M68K_C_ASSERT_U32(1U, profile.relocation_anchors);
   M68K_C_ASSERT_U32(0U, profile.asm_source_relocation_anchor_refusals);
@@ -2543,6 +2561,8 @@ static int test_facts_v2_classifies_hunk_negative_relocation_anchor(void) {
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_section);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_offset);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_aux_offset);
+  m68k_object_destroy(&rebuilt);
+  m68k_source_model_free(&parsed_source);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;

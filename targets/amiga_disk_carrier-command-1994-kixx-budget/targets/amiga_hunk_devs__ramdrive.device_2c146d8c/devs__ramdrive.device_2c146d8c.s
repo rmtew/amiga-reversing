@@ -42,7 +42,7 @@ resident:	; STRUCT RT
 	dcb.b $A,$00
 	dc.l resident_name
 	dc.b $00,$01
-	dc.l $FFFFFFFC	; facts_v2 HUNK_RELOC32 numeric: source hunk 0 offset $0000002E, target hunk 0, loader result base(hunk 0)-$00000004; negative addend points before target hunk; left numeric
+	dc.l __section_0_base-$00000004	; facts_v2 HUNK_RELOC32 anchor: base(hunk 0)-$00000004
 	dc.b $00,$00,$02,$70
 	dc.l resident
 	dc.b $00,$00,$00,$00,$4E,$F9

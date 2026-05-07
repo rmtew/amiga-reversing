@@ -107,11 +107,55 @@ M68kSourceModelIndexResult m68k_source_model_find_symbol_index(const AsmSourceFi
   return result;
 }
 
+int m68k_source_model_format_section_base_symbol(char *buffer, size_t buffer_size, size_t section_index) {
+  int written;
+  if (buffer == NULL || buffer_size == 0U || section_index > UINT32_MAX) return 0;
+  written = snprintf(buffer, buffer_size, "__section_%u_base", (unsigned)section_index);
+  return written > 0 && (size_t)written < buffer_size;
+}
+
+static int source_model_parse_section_base_symbol(const char *name, size_t *out_section_index) {
+  const char *prefix = "__section_";
+  const char *suffix = "_base";
+  const char *cursor;
+  size_t value = 0U;
+  size_t suffix_index = 0U;
+  if (out_section_index != NULL) *out_section_index = 0U;
+  if (name == NULL || strncmp(name, prefix, strlen(prefix)) != 0) return 0;
+  cursor = name + strlen(prefix);
+  if (*cursor < '0' || *cursor > '9') return 0;
+  while (*cursor >= '0' && *cursor <= '9') {
+    size_t digit = (size_t)(*cursor - '0');
+    if (value > (SIZE_MAX - digit) / 10U) return 0;
+    value = value * 10U + digit;
+    ++cursor;
+  }
+  while (suffix[suffix_index] != '\0') {
+    if (cursor[suffix_index] != suffix[suffix_index]) return 0;
+    ++suffix_index;
+  }
+  if (cursor[suffix_index] != '\0') return 0;
+  if (out_section_index != NULL) *out_section_index = value;
+  return 1;
+}
+
 M68kSourceLookupResult m68k_source_model_lookup_symbol(const char *name, void *user_data) {
   M68kSourceLookupResult result = {0};
   const AsmSourceFile *source = (const AsmSourceFile *)user_data;
   M68kSourceModelIndexResult symbol_result = m68k_source_model_find_symbol_index(source, name);
-  if (!symbol_result.ok) return result;
+  if (!symbol_result.ok) {
+    size_t section_index = 0U;
+    if (source_model_parse_section_base_symbol(name, &section_index) && section_index < source->section_count) {
+      result.ok = 1U;
+      result.defined = 1U;
+      result.is_absolute = 0U;
+      result.is_constant = 0U;
+      result.value = 0U;
+      result.symbol_id = (size_t)-1;
+      result.section_index = section_index;
+    }
+    return result;
+  }
   result.ok = 1U;
   result.defined = (uint8_t)(source->symbols[symbol_result.index].defined != 0);
   result.is_absolute = source->symbols[symbol_result.index].is_absolute;
