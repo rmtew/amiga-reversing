@@ -841,6 +841,26 @@ static int runtime_transfer_target_from_candidate_local(const M68kDecodeSectionI
   return 0;
 }
 
+static int same_section_unconditional_bridge_target_local(const M68kDecodeCandidate *candidate,
+    const M68kSimFormMetadata *metadata, size_t section_index, uint32_t *out_target) {
+  size_t target_index;
+  if (out_target != NULL) *out_target = 0U;
+  if (candidate == NULL || metadata == NULL || out_target == NULL ||
+      metadata->flow_conditional ||
+      (metadata->flow_kind != M68K_SIM_FLOW_BRANCH && metadata->flow_kind != M68K_SIM_FLOW_JUMP)) {
+    return 0;
+  }
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->kind != M68K_DECODE_TARGET_BRANCH && target->kind != M68K_DECODE_TARGET_JUMP) continue;
+    if (target->has_section && target->section_index != section_index) continue;
+    if (target->offset <= candidate->offset + candidate->byte_count) continue;
+    *out_target = target->offset;
+    return 1;
+  }
+  return 0;
+}
+
 static int self_decrunch_event_duplicate_local(const PlatformSelfDecrunchEvent *events, size_t event_count,
     const PlatformSelfDecrunchEvent *candidate) {
   size_t index;
@@ -1162,6 +1182,7 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
   uint32_t offset;
   uint32_t previous_end = UINT32_MAX;
   uint32_t run_start = 0U;
+  uint32_t bridge_target = UINT32_MAX;
   if (object == NULL || decode == NULL || analysis == NULL || events == NULL || io_event_count == NULL ||
       section_index >= object->section_count || section_index >= decode->section_count ||
       section_index >= analysis->section_count) {
@@ -1185,7 +1206,7 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
     uint32_t observed_write_count = 0U;
     uint8_t parent_remains_active = 1U;
     if (section_analysis->certain_code_start[offset] == 0U) continue;
-    if (previous_end != UINT32_MAX && offset != previous_end) {
+    if (previous_end != UINT32_MAX && offset != previous_end && offset != bridge_target) {
       memset(a_known, 0, sizeof(a_known));
       memset(a_values, 0, sizeof(a_values));
       memset(writes, 0, sizeof(writes));
@@ -1204,6 +1225,8 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
     previous_end = offset + candidate->byte_count;
     metadata = m68k_sim_metadata_for_instruction(&instruction);
     if (metadata == NULL) continue;
+    if (!same_section_unconditional_bridge_target_local(candidate, metadata, section_index, &bridge_target))
+      bridge_target = UINT32_MAX;
     trace_runtime_writes_from_candidate_local(candidate, &instruction, metadata, a_known, a_values, writes,
       sizeof(writes) / sizeof(writes[0]), &write_count);
     if (runtime_transfer_target_from_candidate_local(decode_section, section_analysis, candidate, &target,

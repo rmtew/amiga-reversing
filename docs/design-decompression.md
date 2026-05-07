@@ -177,8 +177,12 @@ Use project-owned decompression:
   Simulated decruncher runs use a generic memory-policy callback for external
   writes; the Amiga platform supplies generated hardware-register metadata so
   progress/color/DMA side-effect writes do not abort extraction or become payload
-  bytes. Simulated output records include a SHA-256 hash. Wider inferred
-  memory-map seeding and materialisation are still pending.
+  bytes. C analysis preserves traced setup state across an explicit
+  same-section unconditional branch/jump over embedded data into a later
+  decrunch stage, so the simulator can start from the proven setup entry
+  without weak fallthrough guessing. Simulated output records include a SHA-256
+  hash. Wider inferred memory-map seeding and materialisation are still
+  pending.
 
 The boundary is:
 
@@ -206,6 +210,9 @@ Support this with a narrow C runner around the generated concrete simulator:
   constants. Do not guess game-specific register contracts.
 - Run from an analysed decruncher entrypoint with a strict instruction limit,
   write-range limit, and memory map guard.
+- Preserve setup state across explicit same-section unconditional branches or
+  jumps over embedded data when the target is already an accepted code start.
+  Do not infer continuity from a gap without that control-flow evidence.
 - Stop only on a branch into the produced runtime image, unsupported instruction,
   illegal external access, trap/OS call, or instruction budget exhaustion.
 - Accept only when the written output is contiguous or sectionable, the final

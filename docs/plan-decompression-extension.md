@@ -274,6 +274,10 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   Amiga platform uses generated hardware-register metadata for that policy, so
   hardware side-effect writes can be allowed without treating them as payload
   memory and without hardcoding Amiga addresses in the simulator.
+- C self-decrunch probing now preserves traced setup state across an explicit
+  same-section unconditional branch/jump over embedded data into a later
+  decrunch stage. This is provenance-first control-flow evidence, not a weak
+  fallthrough or target-specific workaround.
 - The next implementation step is extending simulator-backed output capture for
   real unsupported events with inferred memory-map seeding where justified and
   conservative materialisation gates.
