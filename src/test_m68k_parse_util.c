@@ -241,6 +241,21 @@ static int test_json_builder_appends_builder_without_building_source(void) {
   return 0;
 }
 
+static int test_json_builder_builds_into_caller_arena(void) {
+  JsonBuilder builder = {0};
+  Arena *arena = arena_create(128U);
+  char *text = NULL;
+  M68K_C_ASSERT(arena != NULL);
+  M68K_C_ASSERT_INT(0, json_builder_create(&builder));
+  M68K_C_ASSERT_INT(0, json_builder_append(&builder, "arena text"));
+  text = json_builder_build_arena(&builder, arena);
+  M68K_C_ASSERT(text != NULL);
+  json_builder_destroy(&builder);
+  M68K_C_ASSERT_STR("arena text", text);
+  arena_destroy(arena);
+  return 0;
+}
+
 int m68k_c_parse_util_tests(void) {
   static const M68kCTestCase cases[] = {
     {"sign_extend32", test_sign_extend32},
@@ -259,6 +274,7 @@ int m68k_c_parse_util_tests(void) {
     {"source_constant_expr_accepts_division", test_source_constant_expr_accepts_division},
     {"json_builder_escapes_string_spans", test_json_builder_escapes_string_spans},
     {"json_builder_appends_builder_without_building_source", test_json_builder_appends_builder_without_building_source},
+    {"json_builder_builds_into_caller_arena", test_json_builder_builds_into_caller_arena},
   };
   return m68k_c_test_run_suite("m68k_parse_util", cases, sizeof(cases) / sizeof(cases[0]));
 }

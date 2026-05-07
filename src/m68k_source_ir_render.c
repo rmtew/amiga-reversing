@@ -174,8 +174,8 @@ static int append_statement_comment(JsonBuilder *builder, const M68kStatementIR 
     line_start == builder->size ? "; VIOLATION: %s\n" : " ; VIOLATION: %s\n", stmt->comment);
 }
 
-int m68k_source_ir_render_statement_text_with_policy(const M68kStatementIR *stmt, const M68kRenderPolicy *policy,
-    char **out_text, M68kDiagSink diagnostics) {
+static int render_statement_text_with_policy_build(const M68kStatementIR *stmt, const M68kRenderPolicy *policy,
+    Arena *arena, char **out_text, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
   const M68kRenderPolicy *active_policy = policy;
   M68kRenderPolicy default_policy;
@@ -246,7 +246,7 @@ int m68k_source_ir_render_statement_text_with_policy(const M68kStatementIR *stmt
     json_builder_destroy(&builder);
     return -1;
   }
-  *out_text = json_builder_build(&builder);
+  *out_text = arena != NULL ? json_builder_build_arena(&builder, arena) : json_builder_build(&builder);
   if (*out_text == NULL) goto oom;
   json_builder_destroy(&builder);
   return 0;
@@ -255,6 +255,21 @@ oom:
   json_builder_destroy(&builder);
   render_error(diagnostics, "out of memory rendering source statement");
   return -1;
+}
+
+int m68k_source_ir_render_statement_text_with_policy(const M68kStatementIR *stmt, const M68kRenderPolicy *policy,
+    char **out_text, M68kDiagSink diagnostics) {
+  return render_statement_text_with_policy_build(stmt, policy, NULL, out_text, diagnostics);
+}
+
+int m68k_source_ir_render_statement_text_with_policy_arena(const M68kStatementIR *stmt,
+    const M68kRenderPolicy *policy, Arena *arena, char **out_text, M68kDiagSink diagnostics) {
+  if (arena == NULL) {
+    if (out_text != NULL) *out_text = NULL;
+    render_error(diagnostics, "missing source statement render arena");
+    return -1;
+  }
+  return render_statement_text_with_policy_build(stmt, policy, arena, out_text, diagnostics);
 }
 
 typedef struct RenderLabelIndex {

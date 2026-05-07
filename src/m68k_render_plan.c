@@ -112,20 +112,20 @@ void m68k_render_plan_move(M68kRenderPlan *dest, M68kRenderPlan *src) {
   m68k_render_plan_init(src);
 }
 
-int m68k_render_plan_append_text_row(M68kRenderPlan *plan, uint32_t kind, uint32_t region_id,
-    const char *text, M68kRenderPlanRow **out_row) {
+static int render_plan_append_text_row_impl(M68kRenderPlan *plan, uint32_t kind, uint32_t region_id,
+    const char *text, int copy_text, M68kRenderPlanRow **out_row) {
   M68kRenderPlanRow *row;
   uint32_t line_count = render_plan_count_lines(text);
   size_t byte_count;
-  char *text_copy;
+  char *row_text;
   if (out_row != NULL) *out_row = NULL;
   if (plan == NULL || line_count == 0U || !render_plan_text_has_complete_lines(text)) return -1;
   if (UINT32_MAX - plan->total_lines < line_count) return -1;
   byte_count = strlen(text);
   if (((size_t)-1) - plan->total_bytes < byte_count) return -1;
   if (render_plan_reserve_rows(plan, plan->row_count + 1U) != 0) return -1;
-  text_copy = render_plan_strdup(plan, text);
-  if (text_copy == NULL) return -1;
+  row_text = copy_text ? render_plan_strdup(plan, text) : (char *)text;
+  if (row_text == NULL) return -1;
   row = &plan->rows[plan->row_count++];
   memset(row, 0, sizeof(*row));
   row->id = plan->next_row_id++;
@@ -136,11 +136,21 @@ int m68k_render_plan_append_text_row(M68kRenderPlan *plan, uint32_t kind, uint32
   row->start_byte = plan->total_bytes;
   row->byte_count = byte_count;
   row->source_section_index = M68K_RENDER_PLAN_NO_SECTION;
-  row->text = text_copy;
+  row->text = row_text;
   plan->total_lines += line_count;
   plan->total_bytes += byte_count;
   if (out_row != NULL) *out_row = row;
   return 0;
+}
+
+int m68k_render_plan_append_text_row(M68kRenderPlan *plan, uint32_t kind, uint32_t region_id,
+    const char *text, M68kRenderPlanRow **out_row) {
+  return render_plan_append_text_row_impl(plan, kind, region_id, text, 1, out_row);
+}
+
+static int render_plan_append_arena_text_row(M68kRenderPlan *plan, uint32_t kind, uint32_t region_id,
+    const char *text, M68kRenderPlanRow **out_row) {
+  return render_plan_append_text_row_impl(plan, kind, region_id, text, 0, out_row);
 }
 
 void m68k_render_plan_row_builder_init(M68kRenderPlanRowBuilder *builder) {
@@ -620,6 +630,7 @@ static uint32_t render_plan_statement_source_size(const M68kStatementIR *stmt) {
 
 int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,
     M68kRenderPlan *out_plan, M68kDiagSink diagnostics) {
+  Arena *plan_arena;
   size_t section_index;
   if (source_file == NULL || out_plan == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT,
@@ -627,6 +638,11 @@ int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file,
     return -1;
   }
   m68k_render_plan_init(out_plan);
+  plan_arena = render_plan_arena(out_plan);
+  if (plan_arena == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+    return -1;
+  }
   for (section_index = 0U; section_index < source_file->section_count; ++section_index) {
     const M68kSectionIR *section = &source_file->sections[section_index];
     size_t statement_index;
@@ -659,13 +675,13 @@ int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file,
       const M68kStatementIR *stmt = &section->statements[statement_index];
       char *stmt_text = NULL;
       uint32_t source_size;
-      if (m68k_source_ir_render_statement_text_with_policy(stmt, policy, &stmt_text, diagnostics) != 0) {
+      if (m68k_source_ir_render_statement_text_with_policy_arena(stmt, policy, plan_arena, &stmt_text,
+          diagnostics) != 0) {
         m68k_render_plan_destroy(out_plan);
         return -1;
       }
-      if (m68k_render_plan_append_text_row(out_plan, render_plan_row_kind_for_statement(stmt),
+      if (render_plan_append_arena_text_row(out_plan, render_plan_row_kind_for_statement(stmt),
           (uint32_t)section_index, stmt_text, &row) != 0) {
-        free(stmt_text);
         m68k_render_plan_destroy(out_plan);
         m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
         return -1;
@@ -677,7 +693,6 @@ int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file,
       m68k_render_plan_row_set_statement_metadata(row, stmt->kind,
         stmt->kind == M68K_STATEMENT_INSTRUCTION ? &stmt->u.instruction : NULL,
         stmt->source_bytes, stmt->source_byte_count);
-      free(stmt_text);
     }
   }
   return 0;

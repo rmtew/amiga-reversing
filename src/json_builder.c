@@ -166,12 +166,10 @@ int json_builder_append_json_string(JsonBuilder *builder, const char *text) {
     return json_builder_append(builder, "\"");
 }
 
-char *json_builder_build(JsonBuilder *builder) {
+static char *json_builder_copy_text(JsonBuilder *builder, char *data) {
     JsonBuilderChunk *chunk;
-    char *data;
     size_t offset = 0U;
     if (builder == NULL) return NULL;
-    data = (char *)malloc(builder->size + 1U);
     if (data == NULL) return NULL;
     for (chunk = builder->state != NULL ? builder->state->head : NULL; chunk != NULL; chunk = chunk->next) {
         if (chunk->used != 0U) {
@@ -181,6 +179,16 @@ char *json_builder_build(JsonBuilder *builder) {
     }
     data[offset] = '\0';
     return data;
+}
+
+char *json_builder_build(JsonBuilder *builder) {
+    if (builder == NULL || builder->size == (size_t)-1) return NULL;
+    return json_builder_copy_text(builder, (char *)malloc(builder->size + 1U));
+}
+
+char *json_builder_build_arena(JsonBuilder *builder, Arena *arena) {
+    if (builder == NULL || arena == NULL || builder->size == (size_t)-1) return NULL;
+    return json_builder_copy_text(builder, (char *)arena_alloc(arena, builder->size + 1U));
 }
 
 void json_builder_destroy(JsonBuilder *builder) {
