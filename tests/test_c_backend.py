@@ -27,8 +27,7 @@ from amiga_reversing.disasm.c_backend import (
     decompress_packed_range_with_c_backend,
     decompress_packed_section_range_with_c_backend,
     extract_disk_entry_with_c_backend,
-    facts_v2_asm_source_project_source_with_c_backend,
-    facts_v2_asm_source_project_source_with_c_backend_profile,
+    listing_artifact_source_text_with_c_backend_profile,
     facts_v2_direct_rebuild_project_source_with_c_backend_profile,
     facts_v2_render_assemble_project_source_with_c_backend_profile,
     inspect_disk_with_c_backend,
@@ -478,7 +477,7 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
         display_path=str(path),
         analysis_cache_path=tmp_path / "binary.analysis",
     )
-    source_text, source_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         binary_source,
         metadata_path=metadata_path,
         project_root=PROJECT_ROOT,
@@ -563,7 +562,7 @@ def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
         display_path=str(path),
         analysis_cache_path=tmp_path / "binary.analysis",
     )
-    source_text, source_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         binary_source,
         project_root=PROJECT_ROOT,
     )
@@ -618,7 +617,7 @@ def test_facts_v2_traces_predecrement_copied_entry_source(tmp_path: Path) -> Non
         display_path=str(path),
         analysis_cache_path=tmp_path / "binary.analysis",
     )
-    source_text, _source_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+    source_text, _source_profile = listing_artifact_source_text_with_c_backend_profile(
         binary_source,
         project_root=PROJECT_ROOT,
     )
@@ -1575,100 +1574,6 @@ def test_project_source_benchmark_uses_facts_v2(
     assert artifact.closed is True
 
 
-def test_project_source_facts_v2_asm_source_uses_dedicated_c_api(monkeypatch, tmp_path: Path) -> None:
-    binary_path = tmp_path / "boot.bin"
-    binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
-    source = RawBinarySource(
-        kind="raw_binary",
-        path=binary_path,
-        address_model="local_offset",
-        load_address=0x70000,
-        entrypoint=0x7000C,
-        code_start_offset=0x0C,
-        display_path=str(binary_path),
-        analysis_cache_path=tmp_path / "binary.analysis",
-    )
-    calls: list[tuple[object, ...]] = []
-
-    def fake_file_run(function_name: str, *args: object, project_root):
-        calls.append((function_name, *args))
-        return "    SECTION section,code\nloc_0_0000000C:\n\trts\n"
-
-    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
-
-    text = facts_v2_asm_source_project_source_with_c_backend(source, project_root=tmp_path)
-
-    assert text.startswith("    SECTION ")
-    assert calls == [
-        ("platform_file_facts_v2_asm_source_raw_path_text_alloc", "amiga-raw", str(binary_path), 12, ""),
-    ]
-
-
-def test_project_source_runtime_absolute_raw_binary_passes_local_entry_offset(
-    monkeypatch, tmp_path: Path
-) -> None:
-    binary_path = tmp_path / "stage.bin"
-    binary_path.write_bytes(b"\x4e\x75")
-    source = RawBinarySource(
-        kind="raw_binary",
-        path=binary_path,
-        address_model="runtime_absolute",
-        load_address=0x400,
-        entrypoint=0x400,
-        code_start_offset=0,
-        display_path=str(binary_path),
-        analysis_cache_path=tmp_path / "binary.analysis",
-    )
-    calls: list[tuple[object, ...]] = []
-
-    def fake_file_run(function_name: str, *args: object, project_root):
-        calls.append((function_name, *args))
-        return "    SECTION section,code\nloc_0_00000000:\n\trts\n"
-
-    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_text", fake_file_run)
-
-    facts_v2_asm_source_project_source_with_c_backend(source, project_root=tmp_path)
-
-    assert calls == [
-        ("platform_file_facts_v2_asm_source_raw_path_text_alloc", "amiga-raw", str(binary_path), 0, ""),
-    ]
-
-
-def test_project_source_facts_v2_asm_source_profile_uses_fast_c_api(monkeypatch, tmp_path: Path) -> None:
-    binary_path = tmp_path / "boot.bin"
-    binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
-    source = RawBinarySource(
-        kind="raw_binary",
-        path=binary_path,
-        address_model="local_offset",
-        load_address=0x70000,
-        entrypoint=0x7000C,
-        code_start_offset=0x0C,
-        display_path=str(binary_path),
-        analysis_cache_path=tmp_path / "binary.analysis",
-    )
-    calls: list[tuple[object, ...]] = []
-
-    def fake_file_run(function_name: str, *args: object, project_root):
-        calls.append((function_name, *args))
-        return "    SECTION section,code\nloc_0_0000000C:\n\trts\n", {
-            "generation": "facts_v2_asm_source",
-            "analysis_backend": "facts_v2",
-            "facts_v2": {"asm_source_symbolic_instructions": 1},
-        }
-
-    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_facts_v2_source_text_profile", fake_file_run)
-
-    text, profile = facts_v2_asm_source_project_source_with_c_backend_profile(source, project_root=tmp_path)
-
-    assert text.startswith("    SECTION ")
-    assert profile["generation"] == "facts_v2_asm_source"
-    assert profile["facts_v2"] == {"asm_source_symbolic_instructions": 1}
-    assert calls == [
-        ("platform_file_facts_v2_asm_source_raw_path_text_profile_alloc", "amiga-raw", str(binary_path), 12, ""),
-    ]
-
-
 def test_project_source_facts_v2_render_assemble_uses_combined_c_api(monkeypatch, tmp_path: Path) -> None:
     binary_path = tmp_path / "boot.bin"
     output_path = tmp_path / "rebuilt.bin"
@@ -1970,42 +1875,6 @@ def test_project_source_facts_v2_direct_rebuild_surfaces_refusal(monkeypatch, tm
     assert exc_info.value.direct_profile == direct_profile
 
 
-def test_project_source_facts_v2_asm_source_profile_blanks_refused_source(
-    monkeypatch, tmp_path: Path
-) -> None:
-    binary_path = tmp_path / "boot.bin"
-    binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
-    source = RawBinarySource(
-        kind="raw_binary",
-        path=binary_path,
-        address_model="local_offset",
-        load_address=0x70000,
-        entrypoint=0x7000C,
-        code_start_offset=0x0C,
-        display_path=str(binary_path),
-        analysis_cache_path=tmp_path / "binary.analysis",
-    )
-
-    def fake_file_run(function_name: str, *args: object, project_root):
-        return "    SECTION section,code\n\tbad.partial\n", {
-            "generation": "facts_v2_asm_source",
-            "analysis_backend": "facts_v2",
-            "facts_v2": {
-                "asm_source_refused": True,
-                "asm_source_instruction_relocation_failures": 1,
-            },
-        }
-
-    monkeypatch.setattr("amiga_reversing.disasm.c_backend._platform_file_facts_v2_source_text_profile", fake_file_run)
-
-    text, profile = facts_v2_asm_source_project_source_with_c_backend_profile(source, project_root=tmp_path)
-    facts_v2 = profile["facts_v2"]
-
-    assert text == ""
-    assert isinstance(facts_v2, dict)
-    assert facts_v2["asm_source_refused"] is True
-
-
 def test_project_source_facts_v2_defines_private_exec_lvo_symbol(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "private_lvo.exe"
@@ -2039,7 +1908,7 @@ def test_project_source_facts_v2_defines_private_exec_lvo_symbol(tmp_path: Path)
         analysis_cache_path=tmp_path / "private_lvo.analysis",
     )
 
-    text, profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+    text, profile = listing_artifact_source_text_with_c_backend_profile(
         source,
         metadata_path=metadata_path,
         project_root=PROJECT_ROOT,
@@ -2080,7 +1949,7 @@ def test_project_source_facts_v2_atari_empty_relocation_stream_roundtrips(tmp_pa
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    text, profile = facts_v2_asm_source_project_source_with_c_backend_profile(source, project_root=PROJECT_ROOT)
+    text, profile = listing_artifact_source_text_with_c_backend_profile(source, project_root=PROJECT_ROOT)
 
     assert profile["analysis_backend"] == "facts_v2"
     assert text.startswith(
@@ -2133,7 +2002,7 @@ def test_project_source_facts_v2_atari_large_relocation_stream_is_chunked(tmp_pa
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    text, profile = facts_v2_asm_source_project_source_with_c_backend_profile(source, project_root=PROJECT_ROOT)
+    text, profile = listing_artifact_source_text_with_c_backend_profile(source, project_root=PROJECT_ROOT)
     reloc_lines = [line for line in text.splitlines() if "ATARI_RELOC" in line]
 
     assert profile["analysis_backend"] == "facts_v2"
@@ -2190,7 +2059,7 @@ def test_project_source_facts_v2_atari_symbol_table_roundtrips(tmp_path: Path) -
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    text, profile = facts_v2_asm_source_project_source_with_c_backend_profile(source, project_root=PROJECT_ROOT)
+    text, profile = listing_artifact_source_text_with_c_backend_profile(source, project_root=PROJECT_ROOT)
     symbol_lines = [line for line in text.splitlines() if "ATARI_SYMBOL" in line]
 
     assert profile["analysis_backend"] == "facts_v2"
@@ -2816,7 +2685,7 @@ def test_real_dll_facts_v2_listing_rows_emit_api_calls(tmp_path: Path) -> None:
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    source_text, _source_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+    source_text, _source_profile = listing_artifact_source_text_with_c_backend_profile(
         source,
         metadata_path=metadata_path,
         project_root=PROJECT_ROOT,
@@ -2941,7 +2810,7 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    source_text, _source_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+    source_text, _source_profile = listing_artifact_source_text_with_c_backend_profile(
         source,
         metadata_path=metadata_path,
         project_root=PROJECT_ROOT,
@@ -3484,7 +3353,7 @@ def test_project_source_facts_v2_biased_absolute_long_dispatch_table_roundtrips(
         analysis_cache_path=tmp_path / "biased_dispatch.analysis",
     )
 
-    rendered, profile = facts_v2_asm_source_project_source_with_c_backend_profile(source, project_root=PROJECT_ROOT)
+    rendered, profile = listing_artifact_source_text_with_c_backend_profile(source, project_root=PROJECT_ROOT)
     rebuilt, source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
         source,
         project_root=PROJECT_ROOT,
@@ -3671,7 +3540,7 @@ def test_real_dll_genam_register_copied_code_target_promotes_code() -> None:
         project_root=PROJECT_ROOT,
         require_entities=False,
     )
-    source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
         project_root=PROJECT_ROOT,
@@ -3690,7 +3559,7 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -
         project_root=PROJECT_ROOT,
         require_entities=False,
     )
-    source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
         project_root=PROJECT_ROOT,
@@ -3773,7 +3642,7 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     assert "load_address" not in suggestions_by_offset[0x05E4]
     assert "entrypoint" not in suggestions_by_offset[0x05E4]
 
-    source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
         project_root=PROJECT_ROOT,
@@ -3858,7 +3727,7 @@ def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
         project_root=PROJECT_ROOT,
         require_entities=False,
     )
-    source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
         project_root=PROJECT_ROOT,
@@ -3889,7 +3758,7 @@ def test_real_dll_starglider_loader_file_handle_slot_stays_untyped() -> None:
         project_root=PROJECT_ROOT,
         require_entities=False,
     )
-    source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
         project_root=PROJECT_ROOT,
@@ -3994,7 +3863,7 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         require_entities=False,
     )
 
-    source_text, source_text_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
         project_root=PROJECT_ROOT,

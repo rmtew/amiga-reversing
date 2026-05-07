@@ -727,36 +727,6 @@ def _platform_file_text(function_name: str, *args: object, project_root: Path) -
             dll.platform_file_free_text(out_text)
 
 
-def _platform_file_facts_v2_source_text_profile(
-    function_name: str, *args: object, project_root: Path
-) -> tuple[str, dict[str, object]]:
-    dll = _platform_file_dll(project_root)
-    function = getattr(dll, function_name)
-    out_source_text = c_void_p()
-    out_profile_json = c_void_p()
-    c_args = [_c_arg(arg) for arg in args]
-    result = function(*c_args, byref(out_source_text), byref(out_profile_json))
-    try:
-        source_text = (
-            string_at(out_source_text.value).decode("utf-8", errors="replace")
-            if out_source_text.value
-            else ""
-        )
-        profile_text = (
-            string_at(out_profile_json.value).decode("utf-8", errors="replace")
-            if out_profile_json.value
-            else "{}"
-        )
-        if result != 0:
-            raise RuntimeError(f"C backend DLL failed: {profile_text}")
-        return source_text, cast(dict[str, object], json.loads(profile_text))
-    finally:
-        if out_source_text.value:
-            dll.platform_file_free_text(out_source_text)
-        if out_profile_json.value:
-            dll.platform_file_free_text(out_profile_json)
-
-
 def _platform_file_facts_v2_render_assemble_profile(
     function_name: str, *args: object, project_root: Path
 ) -> tuple[bytes, dict[str, object], dict[str, object]]:
@@ -998,23 +968,6 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     _configure_text_function(dll, "platform_file_facts_v2_asm_source_raw_path_text_alloc", 4)
     _configure_text_function(dll, "platform_file_facts_v2_asm_source_path_json_alloc", 3)
     _configure_text_function(dll, "platform_file_facts_v2_asm_source_raw_path_json_alloc", 4)
-    dll.platform_file_facts_v2_asm_source_path_text_profile_alloc.argtypes = [
-        c_char_p,
-        c_char_p,
-        c_char_p,
-        POINTER(c_void_p),
-        POINTER(c_void_p),
-    ]
-    dll.platform_file_facts_v2_asm_source_path_text_profile_alloc.restype = c_int
-    dll.platform_file_facts_v2_asm_source_raw_path_text_profile_alloc.argtypes = [
-        c_char_p,
-        c_char_p,
-        c_uint32,
-        c_char_p,
-        POINTER(c_void_p),
-        POINTER(c_void_p),
-    ]
-    dll.platform_file_facts_v2_asm_source_raw_path_text_profile_alloc.restype = c_int
     dll.platform_file_facts_v2_render_assemble_path_bytes_profile_alloc.argtypes = [
         c_char_p,
         c_char_p,
@@ -1545,86 +1498,6 @@ def _source_file_for_c_backend(
         yield _CBackendSourceFile(binary_source.path, "amiga-raw", binary_source.local_entrypoint)
         return
     raise UnsupportedCBackendProject(f"C backend does not support binary source: {binary_source.display_path}")
-
-
-def facts_v2_asm_source_project_source_with_c_backend(
-    binary_source: BinarySource,
-    *,
-    metadata_path: Path | None = None,
-    project_root: Path = PROJECT_ROOT,
-) -> str:
-    metadata_text = _metadata_path_text(metadata_path)
-    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
-        if source_file.entry_offset is None:
-            return _platform_file_text(
-                "platform_file_facts_v2_asm_source_path_text_alloc",
-                source_file.platform_name,
-                str(source_file.path),
-                metadata_text,
-                project_root=project_root,
-            )
-        return _platform_file_text(
-            "platform_file_facts_v2_asm_source_raw_path_text_alloc",
-            source_file.platform_name,
-            str(source_file.path),
-            source_file.entry_offset,
-            metadata_text,
-            project_root=project_root,
-        )
-
-
-def facts_v2_asm_source_project_with_c_backend_profile(
-    project_name: str,
-    *,
-    project_root: Path = PROJECT_ROOT,
-) -> tuple[str, dict[str, object]]:
-    paths = resolve_project_paths(project_name, project_root=project_root)
-    with effective_metadata_file(paths.target_dir) as metadata_path:
-        return facts_v2_asm_source_project_source_with_c_backend_profile(
-            paths.binary_source,
-            metadata_path=metadata_path,
-            project_root=project_root,
-        )
-
-
-def facts_v2_asm_source_project_source_with_c_backend_profile(
-    binary_source: BinarySource,
-    *,
-    metadata_path: Path | None = None,
-    project_root: Path = PROJECT_ROOT,
-) -> tuple[str, dict[str, object]]:
-    metadata_text = _metadata_path_text(metadata_path)
-    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
-        if source_file.entry_offset is None:
-            source_text, profile_dict = _platform_file_facts_v2_source_text_profile(
-                "platform_file_facts_v2_asm_source_path_text_profile_alloc",
-                source_file.platform_name,
-                str(source_file.path),
-                metadata_text,
-                project_root=project_root,
-            )
-        else:
-            source_text, profile_dict = _platform_file_facts_v2_source_text_profile(
-                "platform_file_facts_v2_asm_source_raw_path_text_profile_alloc",
-                source_file.platform_name,
-                str(source_file.path),
-                source_file.entry_offset,
-                metadata_text,
-                project_root=project_root,
-            )
-    if facts_v2_source_refused(profile_dict) and not _facts_v2_asm_source_has_lossy_numeric_output(
-        profile_dict
-    ):
-        return "", profile_dict
-    return source_text, profile_dict
-
-
-def _facts_v2_asm_source_has_lossy_numeric_output(profile: dict[str, object]) -> bool:
-    facts_v2 = profile.get("facts_v2")
-    if not isinstance(facts_v2, dict):
-        return False
-    value = facts_v2.get("asm_source_lossy_numeric_hunk_relocations")
-    return isinstance(value, int) and value > 0
 
 
 def _platform_include_dir_for_listing(platform_name: str, project_root: Path) -> Path:

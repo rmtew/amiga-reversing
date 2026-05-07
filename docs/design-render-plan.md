@@ -265,6 +265,9 @@ exercise a separate source-text wrapper path.
 The facts_v2 source-readiness gate also uses the artifact source/profile helper,
 so source fingerprints and refusal counters are checked through the same
 retained render-plan artifact boundary.
+The Python direct facts_v2 source-text wrappers have been removed. Production
+Python source, benchmark, and source-gate callers now share the retained
+artifact helper; tests that need exact source/profile data use that helper too.
 Reproduction mismatch row mapping now uses the retained C artifact as a
 source-offset lookup service. The artifact resolves a `(section_index,
 section_offset)` through the render plan, translates the owning plan row through
