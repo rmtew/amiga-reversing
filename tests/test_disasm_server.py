@@ -3225,7 +3225,6 @@ def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
             "job_id": "job-full",
             "project_id": project_name,
             "status": "queued",
-            "target_generation": "full",
         },
     )
 
@@ -3238,7 +3237,6 @@ def test_route_listing_open_starts_job(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert payload["ok"] is True
     assert data["job_id"] == "job-full"
-    assert data["target_generation"] == "full"
 
 
 def test_start_listing_job_ignores_stale_ready_job_without_rows(
@@ -3380,7 +3378,6 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
         "error": None,
         "created_at": 1.0,
         "finished_at": None,
-        "target_generation": "full",
     }
 
     def canceled_build(
@@ -3427,7 +3424,6 @@ def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pyt
         "error": None,
         "created_at": 1.0,
         "finished_at": None,
-        "target_generation": "full",
     }
     disasm_server._build_rows_job("job-full", "bloodwych")
 

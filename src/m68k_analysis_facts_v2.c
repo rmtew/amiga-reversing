@@ -9,6 +9,7 @@
 #include "m68k_render_ir.h"
 #include "m68k_simulator.h"
 #include "platform_common.h"
+#include "util_arena.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -4908,6 +4909,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   M68kFactsV2LabelLookup label_lookup;
   M68kAcceptedCandidateIndex accepted_index;
   M68kRuntimeAddressSpace runtime_addresses;
+  Arena *scratch_arena = NULL;
   M68kRenderIRPreview *render_preview = NULL;
   int render_text_preview;
   int render_asm_source;
@@ -4923,7 +4925,12 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   m68k_facts_v2_profile_init(out_profile);
   m68k_decode_ir_init(&decode);
   m68k_fact_ir_init(&facts);
-  render_preview = (M68kRenderIRPreview *)calloc(1U, sizeof(*render_preview));
+  scratch_arena = arena_create(4096U);
+  if (scratch_arena == NULL) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+    goto fail;
+  }
+  render_preview = (M68kRenderIRPreview *)arena_calloc(scratch_arena, 1U, sizeof(*render_preview));
   if (render_preview == NULL) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
     goto fail;
@@ -5173,7 +5180,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     m68k_render_plan_move(out_asm_source_plan, &render_preview->asm_source_plan);
   }
   m68k_render_ir_preview_destroy(render_preview);
-  free(render_preview);
+  arena_destroy(scratch_arena);
   accepted_candidate_index_destroy(&accepted_index);
   free_section_maps(&decode, accepted_start, accepted_bytes);
   label_lookup_destroy(&label_lookup);
@@ -5191,8 +5198,8 @@ fail:
   if (out_source_analysis != NULL) m68k_ir_source_analysis_destroy(out_source_analysis);
   if (render_preview != NULL) {
     m68k_render_ir_preview_destroy(render_preview);
-    free(render_preview);
   }
+  arena_destroy(scratch_arena);
   accepted_candidate_index_destroy(&accepted_index);
   free_section_maps(&decode, accepted_start, accepted_bytes);
   label_lookup_destroy(&label_lookup);

@@ -5831,7 +5831,7 @@ async function renderProject(projectId) {
       analysis_generation: state.virtualListing.generation,
     }, true);
     await focusPendingCorpusExample(projectId);
-    if (jobState.visible_generation === "full") {
+    if (state.virtualListing.generation === "full") {
       void pollReproductionReport(projectId, token);
       setAnalysisStatus("Full analysis ready", "ready", 2000);
     }

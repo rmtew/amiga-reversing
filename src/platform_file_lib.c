@@ -2659,6 +2659,7 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
 
 static int effective_policy_json_to_alloc(const char *platform_name, const char *path, const char *metadata_path,
     const char *entry_offsets, uint8_t is_raw, uint32_t raw_entry_offset, char **out_text) {
+  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
   M68kObject object;
@@ -2670,11 +2671,15 @@ static int effective_policy_json_to_alloc(const char *platform_name, const char 
   if (out_text == NULL) return -1;
   *out_text = NULL;
   target_type[0] = '\0';
-  analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*analysis_policy));
+  scratch_arena = arena_create(4096U);
+  analysis_policy = scratch_arena != NULL
+    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
+    : NULL;
   if (analysis_policy == NULL) {
     PlatformFileTextResult error_result;
     memset(&error_result, 0, sizeof(error_result));
     platform_file_add_error(&error_result.diagnostics, "out of memory");
+    arena_destroy(scratch_arena);
     return text_result_to_alloc(&error_result, out_text);
   }
   if (configure_analysis_policy_for_alloc(analysis_policy, platform_name, metadata_path, entry_offsets,
@@ -2687,7 +2692,7 @@ static int effective_policy_json_to_alloc(const char *platform_name, const char 
       platform_file_add_error(&error_result.diagnostics, "failed reading target metadata");
     {
       int rc = text_result_to_alloc(&error_result, out_text);
-      free(analysis_policy);
+      arena_destroy(scratch_arena);
       return rc;
     }
   }
@@ -2698,7 +2703,7 @@ static int effective_policy_json_to_alloc(const char *platform_name, const char 
       error_result.diagnostics = diagnostics;
       {
         int rc = text_result_to_alloc(&error_result, out_text);
-        free(analysis_policy);
+        arena_destroy(scratch_arena);
         return rc;
       }
     }
@@ -2710,7 +2715,7 @@ static int effective_policy_json_to_alloc(const char *platform_name, const char 
       error_result.diagnostics = diagnostics;
       {
         int rc = text_result_to_alloc(&error_result, out_text);
-        free(analysis_policy);
+        arena_destroy(scratch_arena);
         return rc;
       }
     }
@@ -2722,7 +2727,7 @@ static int effective_policy_json_to_alloc(const char *platform_name, const char 
       m68k_object_destroy(&object);
       {
         int rc = text_result_to_alloc(&error_result, out_text);
-        free(analysis_policy);
+        arena_destroy(scratch_arena);
         return rc;
       }
     }
@@ -2736,7 +2741,7 @@ static int effective_policy_json_to_alloc(const char *platform_name, const char 
       m68k_object_destroy(&object);
       {
         int rc = text_result_to_alloc(&error_result, out_text);
-        free(analysis_policy);
+        arena_destroy(scratch_arena);
         return rc;
       }
     }
@@ -2749,7 +2754,7 @@ static int effective_policy_json_to_alloc(const char *platform_name, const char 
     m68k_object_destroy(&object);
     {
       int rc = text_result_to_alloc(&error_result, out_text);
-      free(analysis_policy);
+      arena_destroy(scratch_arena);
       return rc;
     }
   }
@@ -2772,13 +2777,13 @@ static int effective_policy_json_to_alloc(const char *platform_name, const char 
   if (*out_text == NULL) goto oom;
   json_builder_destroy(&builder);
   m68k_object_destroy(&object);
-  free(analysis_policy);
+  arena_destroy(scratch_arena);
   return 0;
 
 oom:
   json_builder_destroy(&builder);
   if (object_loaded) m68k_object_destroy(&object);
-  free(analysis_policy);
+  arena_destroy(scratch_arena);
   *out_text = duplicate_text_local("out of memory");
   return -1;
 }
@@ -3695,6 +3700,7 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *ob
     const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
   JsonBuilder builder = {0};
+  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *local_policy = NULL;
   M68kFactsV2Profile *profile = NULL;
   M68kSourceAnalysisIR *analysis = NULL;
@@ -3705,9 +3711,14 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *ob
     platform_file_add_error(&result.diagnostics, "invalid facts_v2 analysis request");
     return result;
   }
-  local_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*local_policy));
-  profile = (M68kFactsV2Profile *)calloc(1U, sizeof(*profile));
-  analysis = (M68kSourceAnalysisIR *)calloc(1U, sizeof(*analysis));
+  scratch_arena = arena_create(4096U);
+  if (scratch_arena == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    return result;
+  }
+  local_policy = (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*local_policy));
+  profile = (M68kFactsV2Profile *)arena_calloc(scratch_arena, 1U, sizeof(*profile));
+  analysis = (M68kSourceAnalysisIR *)arena_calloc(scratch_arena, 1U, sizeof(*analysis));
   if (local_policy == NULL || profile == NULL || analysis == NULL) {
     platform_file_add_error(&result.diagnostics, "out of memory");
     goto cleanup;
@@ -3736,9 +3747,7 @@ cleanup:
   json_builder_destroy(&builder);
   platform_file_free_text(base_json);
   if (analysis != NULL) m68k_ir_source_analysis_destroy(analysis);
-  free(analysis);
-  free(profile);
-  free(local_policy);
+  arena_destroy(scratch_arena);
   return result;
 }
 
@@ -3747,13 +3756,19 @@ PlatformFileTextResult platform_file_facts_v2_analysis_path_json(const char *bac
   PlatformFileTextResult result;
   M68kObject object;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
+  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *active_analysis_policy = NULL;
   memset(&result, 0, sizeof(result));
   memset(&object, 0, sizeof(object));
-  active_analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*active_analysis_policy));
-  if (active_analysis_policy == NULL) {
+  scratch_arena = arena_create(4096U);
+  if (scratch_arena == NULL) {
     platform_file_add_error(&result.diagnostics, "out of memory");
     return result;
+  }
+  active_analysis_policy = (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*active_analysis_policy));
+  if (active_analysis_policy == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
   }
   if (analysis_policy != NULL) *active_analysis_policy = *analysis_policy;
   else m68k_analysis_policy_init_default(active_analysis_policy);
@@ -3768,7 +3783,7 @@ PlatformFileTextResult platform_file_facts_v2_analysis_path_json(const char *bac
   result = facts_v2_analysis_object_json(&object, active_analysis_policy);
 cleanup:
   m68k_object_destroy(&object);
-  free(active_analysis_policy);
+  arena_destroy(scratch_arena);
   return result;
 }
 
@@ -3776,13 +3791,19 @@ PlatformFileTextResult platform_file_facts_v2_analysis_raw_path_json(const char 
     uint32_t entry_offset, const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
   M68kObject object;
+  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *raw_analysis_policy = NULL;
   memset(&result, 0, sizeof(result));
   memset(&object, 0, sizeof(object));
-  raw_analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*raw_analysis_policy));
-  if (raw_analysis_policy == NULL) {
+  scratch_arena = arena_create(4096U);
+  if (scratch_arena == NULL) {
     platform_file_add_error(&result.diagnostics, "out of memory");
     return result;
+  }
+  raw_analysis_policy = (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*raw_analysis_policy));
+  if (raw_analysis_policy == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
   }
   if (analysis_policy != NULL) *raw_analysis_policy = *analysis_policy;
   else m68k_analysis_policy_init_default(raw_analysis_policy);
@@ -3796,7 +3817,7 @@ PlatformFileTextResult platform_file_facts_v2_analysis_raw_path_json(const char 
   result = facts_v2_analysis_object_json(&object, raw_analysis_policy);
 cleanup:
   m68k_object_destroy(&object);
-  free(raw_analysis_policy);
+  arena_destroy(scratch_arena);
   return result;
 }
 
@@ -3805,13 +3826,19 @@ PlatformFileTextResult platform_file_facts_v2_analysis_buffer_json(const char *b
   PlatformFileTextResult result;
   M68kObject object;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
+  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *active_analysis_policy = NULL;
   memset(&result, 0, sizeof(result));
   memset(&object, 0, sizeof(object));
-  active_analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*active_analysis_policy));
-  if (active_analysis_policy == NULL) {
+  scratch_arena = arena_create(4096U);
+  if (scratch_arena == NULL) {
     platform_file_add_error(&result.diagnostics, "out of memory");
     return result;
+  }
+  active_analysis_policy = (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*active_analysis_policy));
+  if (active_analysis_policy == NULL) {
+    platform_file_add_error(&result.diagnostics, "out of memory");
+    goto cleanup;
   }
   if (analysis_policy != NULL) *active_analysis_policy = *analysis_policy;
   else m68k_analysis_policy_init_default(active_analysis_policy);
@@ -3827,7 +3854,7 @@ PlatformFileTextResult platform_file_facts_v2_analysis_buffer_json(const char *b
   result = facts_v2_analysis_object_json(&object, active_analysis_policy);
 cleanup:
   m68k_object_destroy(&object);
-  free(active_analysis_policy);
+  arena_destroy(scratch_arena);
   return result;
 }
 
@@ -3880,51 +3907,61 @@ int platform_file_inspect_path_json_alloc(const char *backend_name, const char *
 
 int platform_file_facts_v2_analysis_path_json_alloc(const char *backend_name, const char *path,
     const char *metadata_path, const char *entry_offsets, char **out_text) {
+  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
   PlatformFileTextResult result;
   m68k_diag_list_reset(&diagnostics);
-  analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*analysis_policy));
+  scratch_arena = arena_create(4096U);
+  analysis_policy = scratch_arena != NULL
+    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
+    : NULL;
   if (analysis_policy == NULL) {
     result.text = NULL;
     memset(&result.diagnostics, 0, sizeof(result.diagnostics));
     platform_file_add_error(&result.diagnostics, "out of memory");
+    arena_destroy(scratch_arena);
     return text_result_to_alloc(&result, out_text);
   }
   if (configure_analysis_policy_for_alloc(analysis_policy, backend_name, metadata_path, entry_offsets,
         &diagnostics) != 0) {
     result.text = NULL;
     result.diagnostics = diagnostics;
-    free(analysis_policy);
+    arena_destroy(scratch_arena);
     return text_result_to_alloc(&result, out_text);
   }
   result = platform_file_facts_v2_analysis_path_json(backend_name, path, analysis_policy);
-  free(analysis_policy);
+  arena_destroy(scratch_arena);
   return text_result_to_alloc(&result, out_text);
 }
 
 int platform_file_facts_v2_analysis_raw_path_json_alloc(const char *platform_name, const char *path,
     uint32_t entry_offset, const char *metadata_path, const char *entry_offsets, char **out_text) {
+  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
   PlatformFileTextResult result;
   m68k_diag_list_reset(&diagnostics);
-  analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*analysis_policy));
+  scratch_arena = arena_create(4096U);
+  analysis_policy = scratch_arena != NULL
+    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
+    : NULL;
   if (analysis_policy == NULL) {
     result.text = NULL;
     memset(&result.diagnostics, 0, sizeof(result.diagnostics));
     platform_file_add_error(&result.diagnostics, "out of memory");
+    arena_destroy(scratch_arena);
     return text_result_to_alloc(&result, out_text);
   }
   if (configure_analysis_policy_for_alloc(analysis_policy, platform_name, metadata_path, entry_offsets,
         &diagnostics) != 0) {
     result.text = NULL;
     result.diagnostics = diagnostics;
-    free(analysis_policy);
+    arena_destroy(scratch_arena);
     return text_result_to_alloc(&result, out_text);
   }
   result = platform_file_facts_v2_analysis_raw_path_json(platform_name, path, entry_offset, analysis_policy);
-  free(analysis_policy);
+  arena_destroy(scratch_arena);
   return text_result_to_alloc(&result, out_text);
 }
 
@@ -4234,6 +4271,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
 static int platform_file_facts_v2_direct_rebuild_path_common_alloc(const char *backend_name, const char *path,
     const char *metadata_path, const char *output_path, unsigned char **out_data, size_t *out_size,
     char **out_source_profile_json, char **out_direct_profile_json, char **out_error, int compare_original) {
+  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
   M68kObject object;
@@ -4252,9 +4290,13 @@ static int platform_file_facts_v2_direct_rebuild_path_common_alloc(const char *b
   *out_error = NULL;
   m68k_diag_list_reset(&diagnostics);
   memset(&object, 0, sizeof(object));
-  analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*analysis_policy));
+  scratch_arena = arena_create(4096U);
+  analysis_policy = scratch_arena != NULL
+    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
+    : NULL;
   if (analysis_policy == NULL) {
     *out_error = duplicate_text_local("out of memory");
+    arena_destroy(scratch_arena);
     return -1;
   }
   if (configure_analysis_policy_for_alloc(analysis_policy, backend_name, metadata_path, NULL, &diagnostics) != 0)
@@ -4280,7 +4322,7 @@ cleanup:
   }
   free(compare_data);
   m68k_object_destroy(&object);
-  free(analysis_policy);
+  arena_destroy(scratch_arena);
   return result;
 }
 
@@ -4302,6 +4344,7 @@ static int platform_file_facts_v2_direct_rebuild_buffer_common_alloc(const char 
     const unsigned char *data, size_t size, const char *metadata_path, const char *display_path,
     const char *output_path, unsigned char **out_data, size_t *out_size, char **out_source_profile_json,
     char **out_direct_profile_json, char **out_error, int compare_original) {
+  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
   M68kObject object;
@@ -4318,9 +4361,13 @@ static int platform_file_facts_v2_direct_rebuild_buffer_common_alloc(const char 
   *out_error = NULL;
   m68k_diag_list_reset(&diagnostics);
   memset(&object, 0, sizeof(object));
-  analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*analysis_policy));
+  scratch_arena = arena_create(4096U);
+  analysis_policy = scratch_arena != NULL
+    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
+    : NULL;
   if (analysis_policy == NULL) {
     *out_error = duplicate_text_local("out of memory");
+    arena_destroy(scratch_arena);
     return -1;
   }
   if (configure_analysis_policy_for_alloc(analysis_policy, backend_name, metadata_path, NULL, &diagnostics) != 0)
@@ -4343,7 +4390,7 @@ cleanup:
     *out_error = duplicate_text_local(message);
   }
   m68k_object_destroy(&object);
-  free(analysis_policy);
+  arena_destroy(scratch_arena);
   return result;
 }
 

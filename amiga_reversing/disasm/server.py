@@ -91,8 +91,6 @@ class AsyncJobPayload(TypedDict):
     error: str | None
     created_at: float
     finished_at: float | None
-    visible_generation: NotRequired[str | None]
-    target_generation: NotRequired[str | None]
     cache_key: NotRequired[str | None]
     reproduction_status: NotRequired[str | None]
 
@@ -452,9 +450,6 @@ def _phase_progress(phase_index: int, phase_count: int) -> tuple[int, int, int]:
 def _job_payload(job_id: str) -> AsyncJobPayload:
     with _JOB_LOCK:
         job = dict(_ASYNC_JOBS[job_id])
-        project_id = job.get("project_id")
-        if isinstance(project_id, str) and job.get("job_kind") == "full_listing":
-            job["visible_generation"] = _project_listing_generation(project_id)
     return cast(AsyncJobPayload, job)
 
 
@@ -533,8 +528,6 @@ def _set_job_state(
     total_rows: int | None | object = _MISSING,
     error: str | None | object = _MISSING,
     finished_at: float | None | object = _MISSING,
-    visible_generation: str | None | object = _MISSING,
-    target_generation: str | None | object = _MISSING,
     reproduction_status: str | None | object = _MISSING,
 ) -> bool:
     updated = False
@@ -581,12 +574,6 @@ def _set_job_state(
         if finished_at is not _MISSING:
             assert finished_at is None or isinstance(finished_at, float)
             job["finished_at"] = finished_at
-        if visible_generation is not _MISSING:
-            assert visible_generation is None or isinstance(visible_generation, str)
-            job["visible_generation"] = visible_generation
-        if target_generation is not _MISSING:
-            assert target_generation is None or isinstance(target_generation, str)
-            job["target_generation"] = target_generation
         if reproduction_status is not _MISSING:
             assert reproduction_status is None or isinstance(reproduction_status, str)
             job["reproduction_status"] = reproduction_status
@@ -730,8 +717,6 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
         if not _set_job_state(
             job_id,
             total_rows=total_rows,
-            visible_generation="full",
-            target_generation="full",
         ):
             if listing_artifact is not None:
                 listing_artifact.close()
@@ -754,8 +739,6 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             progress_total=phase_count,
             progress_percent=100,
             total_rows=total_rows,
-            visible_generation=_project_listing_generation(project_name),
-            target_generation="full",
             finished_at=time.time(),
         )
         _start_reproduction_job_if_needed(project_name)
@@ -796,8 +779,6 @@ def _start_listing_job(project_name: str) -> AsyncJobPayload:
             "error": None,
             "created_at": time.time(),
             "finished_at": time.time(),
-            "visible_generation": "full",
-            "target_generation": "full",
             "cache_key": cache_key,
         }
         with _JOB_LOCK:
@@ -832,8 +813,6 @@ def _start_listing_job(project_name: str) -> AsyncJobPayload:
             "error": None,
             "created_at": time.time(),
             "finished_at": None,
-            "visible_generation": _project_listing_generation(project_name),
-            "target_generation": "full",
             "cache_key": cache_key,
         }
 

@@ -697,24 +697,31 @@ def _close_brave_session() -> None:
     if session is None:
         return
     session.ws.close()
-    if sys.platform == "win32":
-        subprocess.run(
-            ["taskkill", "/PID", str(session.process.pid), "/T", "/F"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=False,
-        )
-    else:
-        session.process.terminate()
-        try:
-            session.process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            session.process.kill()
-            session.process.wait(timeout=5)
+    _terminate_brave_process(session.process)
     session.profile_dir.cleanup()
 
 
 atexit.register(_close_brave_session)
+
+
+def _terminate_brave_process(process: subprocess.Popen[bytes]) -> None:
+    if sys.platform == "win32":
+        try:
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+            return
+        except OSError:
+            pass
+    process.terminate()
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=5)
 
 
 def _new_target(port: int) -> dict[str, Any]:
