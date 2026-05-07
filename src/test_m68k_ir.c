@@ -4113,6 +4113,75 @@ static int test_facts_v2_word_dispatch_stops_far_table_at_zero_boundary(void) {
   return 0;
 }
 
+static int test_facts_v2_pc_word_dispatch_renders_labels_across_saved_register(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[0x44U];
+  memset(bytes, 0, sizeof(bytes));
+  bytes[0x00] = 0x41u;
+  bytes[0x01] = 0xf9u;
+  bytes[0x05] = 0x30u;
+  bytes[0x06] = 0xd0u;
+  bytes[0x07] = 0xfbu;
+  bytes[0x08] = 0x10u;
+  bytes[0x09] = 0x18u;
+  bytes[0x0a] = 0x2fu;
+  bytes[0x0b] = 0x00u;
+  bytes[0x0c] = 0x4eu;
+  bytes[0x0d] = 0x90u;
+  bytes[0x0e] = 0x4eu;
+  bytes[0x0f] = 0x75u;
+  bytes[0x22] = 0x00u;
+  bytes[0x23] = 0x10u;
+  bytes[0x30] = 0x70u;
+  bytes[0x31] = 0x01u;
+  bytes[0x32] = 0x4eu;
+  bytes[0x33] = 0x75u;
+  bytes[0x40] = 0x70u;
+  bytes[0x41] = 0x02u;
+  bytes[0x42] = 0x4eu;
+  bytes[0x43] = 0x75u;
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.entry_point_count = 3U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 0U;
+  policy.entry_points[0].offset = 0U;
+  policy.entry_points[1].has_section_index = 1U;
+  policy.entry_points[1].section_index = 0U;
+  policy.entry_points[1].offset = 0x30U;
+  policy.entry_points[2].has_section_index = 1U;
+  policy.entry_points[2].section_index = 0U;
+  policy.entry_points[2].offset = 0x40U;
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l d0,-(a7)\n\tjsr (a0)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tadda.w loc_0_00000020(pc,d1.w),a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tdc.w loc_0_00000030-loc_0_00000030,loc_0_00000040-loc_0_00000030") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w $0000,$0010\t; lookup_table\n") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_runtime_mapped_word_dispatch_renders_lookup_table(void) {
   M68kObject object;
   M68kSection section;
@@ -13074,6 +13143,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_word_dispatch_promotes_far_relative_targets},
     {"facts_v2_word_dispatch_stops_far_table_at_zero_boundary",
       test_facts_v2_word_dispatch_stops_far_table_at_zero_boundary},
+    {"facts_v2_pc_word_dispatch_renders_labels_across_saved_register",
+      test_facts_v2_pc_word_dispatch_renders_labels_across_saved_register},
     {"facts_v2_runtime_mapped_word_dispatch_renders_lookup_table",
       test_facts_v2_runtime_mapped_word_dispatch_renders_lookup_table},
     {"facts_v2_amiga_execbase_load_does_not_use_runtime_alias",

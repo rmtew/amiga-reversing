@@ -6981,6 +6981,65 @@ static int candidate_next_is_indirect_control_through_addr_reg(const M68kDecodeS
     &displacement) && base_reg == reg && displacement == 0;
 }
 
+static int candidate_preserves_address_reg_before_dispatch(const M68kDecodeCandidate *candidate, uint8_t reg) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (candidate == NULL || reg >= 8U || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0)
+    return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL) return 0;
+  if (metadata->flow_kind == M68K_SIM_FLOW_CALL || metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+      metadata->flow_kind == M68K_SIM_FLOW_RETURN || metadata->flow_kind == M68K_SIM_FLOW_TRAP ||
+      (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U)) {
+    return 0;
+  }
+  for (operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U; ++operand_index) {
+    uint8_t operand_reg = 0U;
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
+        operand_address_register_index_local(&instruction.operands[operand_index], &operand_reg) &&
+        operand_reg == reg) {
+      return 0;
+    }
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_LIST_WRITE &&
+        reglist_contains_address_register_local(&instruction.operands[operand_index], reg)) {
+      return 0;
+    }
+    if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE &&
+        operand_is_address_memory_local(&instruction.operands[operand_index], &operand_reg, NULL) &&
+        operand_reg == reg) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+static int candidate_later_is_indirect_control_through_addr_reg(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kDecodeCandidate *candidate, uint8_t reg) {
+  const uint32_t max_gap_instructions = 4U;
+  uint32_t cursor;
+  uint32_t gap_count;
+  if (section == NULL || accepted_start == NULL || candidate == NULL || reg >= 8U ||
+      candidate->offset > UINT32_MAX - candidate->byte_count) {
+    return 0;
+  }
+  if (candidate_next_is_indirect_control_through_addr_reg(section, accepted_start, candidate, reg)) return 1;
+  cursor = candidate->offset + candidate->byte_count;
+  for (gap_count = 0U; gap_count < max_gap_instructions && cursor < section->size; ++gap_count) {
+    const M68kDecodeCandidate *gap_candidate;
+    if (!accepted_start[cursor]) return 0;
+    gap_candidate = m68k_decode_ir_find_candidate_at_offset(section, cursor);
+    if (gap_candidate == NULL) return 0;
+    if (candidate_next_is_indirect_control_through_addr_reg(section, accepted_start, gap_candidate, reg)) {
+      return candidate_preserves_address_reg_before_dispatch(gap_candidate, reg);
+    }
+    if (!candidate_preserves_address_reg_before_dispatch(gap_candidate, reg)) return 0;
+    if (gap_candidate->offset > UINT32_MAX - gap_candidate->byte_count) return 0;
+    cursor = gap_candidate->offset + gap_candidate->byte_count;
+  }
+  return 0;
+}
+
 static uint32_t scan_indexed_word_dispatch_table_span(const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes,
     size_t table_section_index, uint32_t table_offset, size_t base_section_index, uint32_t base_offset) {
@@ -7157,7 +7216,7 @@ static int render_lookup_infer_indexed_word_dispatch_tables(M68kRenderLookup *lo
         uint8_t dest_reg = 0U;
         int adds_dispatch = candidate_adds_indexed_word_table_to_address_reg(section, candidate, &instruction, &state,
           &sections[0], &offsets[0], &sections[1], &offsets[1], &dest_reg);
-        int next_dispatch = adds_dispatch ? candidate_next_is_indirect_control_through_addr_reg(section,
+        int next_dispatch = adds_dispatch ? candidate_later_is_indirect_control_through_addr_reg(section,
           accepted_start[section_index], candidate, dest_reg) : 0;
         if (adds_dispatch && next_dispatch) {
           table_size = scan_indexed_word_dispatch_table_span(lookup, decode, accepted_start, accepted_bytes,
@@ -7455,7 +7514,7 @@ static int render_lookup_infer_pc_relative_lookup_scalars(M68kRenderLookup *look
               operand_address_register_index_local(&instruction.operands[instruction.operand_count - 1U],
                 &dest_reg) &&
               dest_reg < 8U && state.addr_regs[dest_reg].known &&
-              candidate_next_is_indirect_control_through_addr_reg(section, accepted_start[section_index],
+              candidate_later_is_indirect_control_through_addr_reg(section, accepted_start[section_index],
                 candidate, dest_reg)) {
             render_lookup_set_auto_structured_data_item_target(lookup, target->section_index, target->offset,
               state.addr_regs[dest_reg].section_index, state.addr_regs[dest_reg].offset);

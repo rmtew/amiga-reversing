@@ -4145,6 +4145,12 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "abs_0_00007768-abs_0_00005B66,abs_0_00007758-abs_0_00005B66\t; lookup_table\n"
     ) in source_text
     assert "\tdc.w $1B4E,$1C06,$1C02,$1BF2\t; lookup_table\n" not in source_text
+    assert (
+        "abs_0_00007018:\n"
+        "\tdc.w abs_0_00007016-abs_0_00007016,abs_0_00007712-abs_0_00007016,"
+        "abs_0_0000771A-abs_0_00007016,abs_0_00007746-abs_0_00007016\t; lookup_table\n"
+    ) in source_text
+    assert "\tdc.w $0000,$06FC,$0704,$0730\t; lookup_table\n" not in source_text
     assert "abs_0_00005C6E:\n" not in source_text
     assert "abs_0_00007216:\n" not in source_text
     assert "\tsubi.w #20,d1\n\tbcs.b abs_0_00002E76\n" in source_text
