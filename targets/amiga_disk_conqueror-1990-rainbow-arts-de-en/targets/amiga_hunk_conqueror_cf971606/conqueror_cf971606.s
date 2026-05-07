@@ -8,6 +8,7 @@ _custom	EQU	$DFF000
 spr0	EQU	spr
 spr1	EQU	spr+sd_SIZEOF
 _ciab	EQU	$BFD000
+runtime_code_00000004	EQU	$4
 
     SECTION section_0,code
 loc_0_00000000:
@@ -64,7 +65,7 @@ loc_0_000000C8:
 	bclr.b #CIAB_DSKSEL1,_ciab+ciaprb.l
 	bset.b #CIAB_DSKSEL1,_ciab+ciaprb.l
 	lea.l loc_0_00000148.l,a0
-	lea.l $00000004.l,a1
+	lea.l runtime_code_00000004.l,a1
 	move.w #$E,d0
 loc_0_0000012A:
 	move.b (a0)+,(a1)+
@@ -72,7 +73,7 @@ loc_0_0000012A:
 	lea.l loc_0_00000154.l,a0
 	lea.l abs_0_00000040.l,a1
 	move.l #$3A9,d0
-	jmp $00000004.l
+	jmp runtime_code_00000004.l
 loc_0_00000148:
 	move.l (a0)+,(a1)+
 	subq.l #1,d0
@@ -81,16 +82,13 @@ loc_0_00000148:
 loc_0_00000154:
     ORG $40
 abs_0_00000040:
-	dc.b $00,$00,$03,$F3
-abs_0_00000044:
-	ori.b #0,d0
-	ori.b #2,d0
-	ori.b #0,d0
-	ori.b #1,d0
-	ori.b #$399,d0
-	ori.b #1,d0
-	ori.b #$3E9,d0
-	ori.b #$399,d0
+	dc.b $00,$00,$03,$F3,$00,$00,$00,$00,$00,$00,$00,$02,$00,$00
+abs_0_0000004E:
+	dc.b $00,$00,$00,$00
+abs_0_00000052:
+	dc.b $00,$01,$00,$00
+abs_0_00000056:
+	dc.b $03,$99,$00,$00,$00,$01,$00,$00,$03,$E9,$00,$00,$03,$99
 abs_0_00000064:
 	lea.l abs_0_0000014C(pc),a0
 	lea.l abs_0_00000400.l,a1
