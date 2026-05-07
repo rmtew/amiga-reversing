@@ -1294,12 +1294,14 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
         if _listing_row_label_symbol(row):
             bag.add("label:any", example=example)
             bag.add("label:definition", example=example)
-        data_class = _string_value(row.get("data_class"))
+        data_class = _listing_row_data_class(row, text)
         copper_row = bool(data_class == "copper_list")
         hardware_symbol_refs: list[tuple[str, str]] = []
         row_hardware_group_features: set[str] = set()
         if data_class:
             bag.add(f"data:{_safe_part(data_class)}", example=example)
+            for feature in _listing_table_shape_features(text, data_class):
+                bag.add(feature, example=example)
             if data_class == "copper_list":
                 bag.add("hardware:custom", example=example)
                 row_hardware_group_features.update(amiga_hardware_usage.group_features("_custom", "copper", copper_row=True))
@@ -1370,6 +1372,37 @@ def _add_runtime_table_base_addend_features(bag: FeatureBag, text: str, example:
         table_example["addend"] = addend
         bag.add("analysis:runtime_table_base_addend", example=table_example)
         bag.add(f"analysis:runtime_table_base_addend:{_safe_part(symbol)}", example=table_example)
+
+
+_TABLE_LABEL_RE = re.compile(r"\b(?:abs|loc)_[0-9]+_[0-9A-Fa-f]{8}\b")
+_TABLE_REL_LABEL_RE = re.compile(
+    r"\b(?:abs|loc)_[0-9]+_[0-9A-Fa-f]{8}-(?:abs|loc)_[0-9]+_[0-9A-Fa-f]{8}\b"
+)
+
+
+def _listing_row_data_class(row: dict[str, object], text: str) -> str | None:
+    data_class = _string_value(row.get("data_class"))
+    if data_class:
+        return data_class
+    if "; lookup_table" in text:
+        return "lookup_table"
+    if "; pointer_table" in text:
+        return "pointer_table"
+    return None
+
+
+def _listing_table_shape_features(text: str, data_class: str | None) -> list[str]:
+    if data_class not in {"lookup_table", "pointer_table"}:
+        return []
+    stripped = text.strip().lower()
+    features: list[str] = []
+    if data_class == "lookup_table" and stripped.startswith("dc.w") and _TABLE_REL_LABEL_RE.search(text):
+        features.append("analysis:lookup_table:word_relative_labels")
+    if data_class == "lookup_table" and stripped.startswith("dc.l") and _TABLE_LABEL_RE.search(text):
+        features.append("analysis:lookup_table:long_label_entries")
+    if data_class == "pointer_table" and stripped.startswith("dc.l") and _TABLE_LABEL_RE.search(text):
+        features.append("analysis:pointer_table:long_label_entries")
+    return features
 
 
 def _disk_usage_xrefs(row: dict[str, object], entry: dict[str, Any]) -> list[dict[str, object]]:
@@ -2382,7 +2415,7 @@ def _listing_xrefs(
         section_index = _int_value(listing_row.get("section_index"), -1)
         offset = listing_row.get("start_offset") if isinstance(listing_row.get("start_offset"), int) else listing_row.get("addr")
         stable_key = _string_value(listing_row.get("stable_key"))
-        data_class = _string_value(listing_row.get("data_class"))
+        data_class = _listing_row_data_class(listing_row, text)
         copper_row = bool(data_class == "copper_list")
         hardware_symbol_refs: list[tuple[str, str]] = []
         seen_group_features: set[str] = set()
@@ -2433,6 +2466,10 @@ def _listing_xrefs(
             if feature_bag is not None:
                 feature_bag.add(data_feature, example=example)
             xrefs.append(_xref(row, data_feature, "data_class", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=data_class, text=stripped_text))
+            for feature in _listing_table_shape_features(text, data_class):
+                if feature_bag is not None:
+                    feature_bag.add(feature, example=example)
+                xrefs.append(_xref(row, feature, "table_shape", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=data_class, text=stripped_text))
             if data_class == "copper_list":
                 if feature_bag is not None:
                     feature_bag.add("hardware:custom", example=example)
