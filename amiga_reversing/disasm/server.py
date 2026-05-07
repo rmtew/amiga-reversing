@@ -119,6 +119,7 @@ _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
 _JOB_LOCK = threading.Lock()
 
+_LISTING_ARTIFACT_JOB_KIND = "listing_artifact"
 _LISTING_PHASE_COUNT = 2
 _REPRODUCTION_PHASE_COUNT = 4
 _PROJECT_CREATE_EXECUTABLE_PHASE_COUNT = 4
@@ -496,7 +497,7 @@ def _cancel_listing_jobs(project_name: str | None = None) -> None:
         stale_job_ids = [
             job_id
             for job_id, job in _ASYNC_JOBS.items()
-            if job["job_kind"] == "full_listing"
+            if job["job_kind"] == _LISTING_ARTIFACT_JOB_KIND
             and (project_name is None or job["project_id"] == project_name)
         ]
         for job_id in stale_job_ids:
@@ -756,10 +757,10 @@ def _start_listing_job(project_name: str) -> AsyncJobPayload:
     cache_key = _project_listing_cache_key(project_name)
     if _cache_satisfies_listing(project_name, cache_key):
         total_rows = _c_listing_artifact_total_rows(project_name)
-        job_id = f"cached-full-{project_name}"
+        job_id = f"cached-listing-artifact-{project_name}"
         payload: AsyncJobPayload = {
             "job_id": job_id,
-            "job_kind": "full_listing",
+            "job_kind": _LISTING_ARTIFACT_JOB_KIND,
             "project_id": project_name,
             "result_project_id": project_name,
             "status": "ready",
@@ -784,7 +785,7 @@ def _start_listing_job(project_name: str) -> AsyncJobPayload:
     with _JOB_LOCK:
         for _existing_id, job in _ASYNC_JOBS.items():
             if (
-                job["job_kind"] == "full_listing"
+                job["job_kind"] == _LISTING_ARTIFACT_JOB_KIND
                 and job["project_id"] == project_name
                 and job.get("cache_key") == cache_key
                 and job["status"] in {"queued", "building"}
@@ -793,7 +794,7 @@ def _start_listing_job(project_name: str) -> AsyncJobPayload:
         job_id = str(uuid.uuid4())
         _ASYNC_JOBS[job_id] = {
             "job_id": job_id,
-            "job_kind": "full_listing",
+            "job_kind": _LISTING_ARTIFACT_JOB_KIND,
             "project_id": project_name,
             "result_project_id": project_name,
             "status": "queued",
@@ -1651,7 +1652,7 @@ def route_request(
                         AsyncJobPayload,
                         {
                             "job_id": f"cached-empty-{project_name}",
-                            "job_kind": "full_listing",
+                            "job_kind": _LISTING_ARTIFACT_JOB_KIND,
                             "project_id": project_name,
                             "result_project_id": project_name,
                             "status": "ready",

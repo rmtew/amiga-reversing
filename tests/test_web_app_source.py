@@ -99,8 +99,9 @@ def test_web_app_shows_non_occluding_analysis_status() -> None:
 
     assert 'id="analysis-status" aria-live="polite"' in app_js
     assert "function updateAnalysisStatusFromJob(job)" in app_js
-    assert 'setAnalysisStatus("Applying full analysis", "running")' in app_js
-    assert 'setAnalysisStatus("Full analysis ready", "ready", 2000)' in app_js
+    assert 'source.addEventListener("listing_artifact_ready"' in app_js
+    assert 'setAnalysisStatus("Applying analysis", "running")' in app_js
+    assert 'setAnalysisStatus("Analysis ready", "ready", 2000)' in app_js
     assert ".analysis-status" in styles_css
     assert ".listing-viewport .analysis-status" not in styles_css
 

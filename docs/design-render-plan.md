@@ -663,8 +663,8 @@ without producing the full-source API buffer; source-producing requests still
 emit the `.s` text from the same plan.
 Direct C listing-window JSON emission now exists and has a raw-binary
 regression proving parity with a full render-plan row slice. The web route uses
-this through the retained artifact once full analysis has completed; it should
-not rebuild analysis per scroll request.
+this through the retained artifact once analysis artifact construction has
+completed; it should not rebuild analysis per scroll request.
 An opaque C listing artifact API now preserves that built state across multiple
 window calls for both normal platform files and raw-binary targets. Real-DLL
 regressions prove that repeated windows from one artifact match full listing row
@@ -686,7 +686,7 @@ rows are matched from collected header metadata and concrete rows are matched
 from indexed render-plan row/subline provenance. Scroll and anchor requests no
 longer need a second Python row database or a full C anchor/count pass.
 Artifact-backed navigation also avoids reading the Python row cache. The old
-direct DLL/Python API that rebuilt full analysis for a single window has been
+direct DLL/Python API that rebuilt analysis for a single window has been
 removed; listing windows must come through the retained artifact. If
 the artifact is missing or stale for a ready project, listing and navigation
 requests report that rather than falling back to cached Python rows.

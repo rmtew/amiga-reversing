@@ -190,7 +190,7 @@ const CORPUS_GROUP_PREFIXES = {
 };
 
 const JOB_PHASE_LABELS = {
-  full_listing: {
+  listing_artifact: {
     queued: "Queued",
     build_c_artifact: "Building analysis",
     cache_artifact: "Caching listing",
@@ -585,15 +585,15 @@ function renderProgressOverlay(job, titleOverride = null) {
 }
 
 function analysisStatusTextForJob(job) {
-  if (!job || job.job_kind !== "full_listing") {
+  if (!job || job.job_kind !== "listing_artifact") {
     return "";
   }
   if (job.status === "failed") {
-    return "Full analysis failed";
+    return "Analysis build failed";
   }
   const labels = JOB_PHASE_LABELS[job.job_kind] || {};
   const phase = labels[job.phase_id] || labels[job.status] || "Analyzing";
-  return `Analyzing full listing: ${phase}`;
+  return `Building analysis: ${phase}`;
 }
 
 function renderAnalysisStatus() {
@@ -1125,7 +1125,7 @@ function renderErrorOverlay(message) {
 
 function loadingRowsOverlay() {
   return renderProgressOverlay({
-    job_kind: "full_listing",
+    job_kind: "listing_artifact",
     phase_id: "cache_artifact",
     progress_mode: "indeterminate",
     progress_current: 0,
@@ -1194,7 +1194,7 @@ function waitForAsyncJobEvents(job, token, renderOverlay) {
         settle(reject, new Error("stale"));
         return;
       }
-      const isListingJob = jobState.job_kind === "full_listing";
+      const isListingJob = jobState.job_kind === "listing_artifact";
       updateAnalysisStatusFromJob(jobState);
       const hasVisibleListingRows = Boolean(
         state.virtualListing.generation
@@ -1220,10 +1220,10 @@ function waitForAsyncJobEvents(job, token, renderOverlay) {
         settle(reject, error);
       }
     });
-    source.addEventListener("listing_generation_ready", (event) => {
+    source.addEventListener("listing_artifact_ready", (event) => {
       try {
         const payload = JSON.parse(event.data);
-        void handleListingGenerationReady(payload, token);
+        void handleListingArtifactReady(payload, token);
       } catch (error) {
         settle(reject, error);
       }
@@ -3785,25 +3785,22 @@ async function refreshListingAtCurrentAddressAnchor(projectId, token = null) {
   return listing;
 }
 
-async function handleListingGenerationReady(payload, token = null) {
+async function handleListingArtifactReady(payload, token = null) {
   if (!state.project || payload.project_id !== state.project) {
     return;
   }
   if (token !== null && token !== state.loadingToken) {
     return;
   }
-  if (payload.generation === state.virtualListing.generation) {
-    return;
-  }
-  setAnalysisStatus("Applying full analysis", "running");
+  setAnalysisStatus("Applying analysis", "running");
   const listing = await refreshListingAtCurrentAddressAnchor(state.project, token);
   if (token !== null && token !== state.loadingToken) {
     return;
   }
-  if (listing?.analysis_generation === payload.generation) {
+  if (listing?.analysis_generation) {
     await loadNavigationEntries(state.project);
     renderNavigationOverlay();
-    setAnalysisStatus("Full analysis ready", "ready", 2000);
+    setAnalysisStatus("Analysis ready", "ready", 2000);
   }
 }
 
@@ -5694,7 +5691,7 @@ async function renderProject(projectId) {
       <div class="project-workspace">
         <div class="listing-viewport" id="listing-viewport" tabindex="0">
           ${renderProgressOverlay({
-            job_kind: "full_listing",
+            job_kind: "listing_artifact",
             phase_id: "build_c_artifact",
             progress_mode: "indeterminate",
             progress_current: 0,
@@ -5833,7 +5830,7 @@ async function renderProject(projectId) {
     await focusPendingCorpusExample(projectId);
     if (state.virtualListing.generation === "full") {
       void pollReproductionReport(projectId, token);
-      setAnalysisStatus("Full analysis ready", "ready", 2000);
+      setAnalysisStatus("Analysis ready", "ready", 2000);
     }
     dispatchAppEvent("amiga:project-rendered", {
       projectId,

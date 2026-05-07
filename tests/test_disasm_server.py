@@ -923,7 +923,7 @@ def test_route_reproduction_read_run_and_status(monkeypatch: pytest.MonkeyPatch)
     disasm_server._ASYNC_JOBS.clear()
 
 
-def test_route_reproduction_stale_full_listing_exposes_background_job(
+def test_route_reproduction_stale_listing_artifact_exposes_background_job(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     started: list[tuple[str, bool]] = []
@@ -3253,7 +3253,7 @@ def test_start_listing_job_ignores_stale_ready_job_without_rows(
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["stale-job"] = {
         "job_id": "stale-job",
-        "job_kind": "full_listing",
+        "job_kind": "listing_artifact",
         "project_id": "bloodwych",
         "result_project_id": "bloodwych",
         "status": "ready",
@@ -3283,7 +3283,7 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["job-1"] = {
         "job_id": "job-1",
-        "job_kind": "full_listing",
+        "job_kind": "listing_artifact",
         "project_id": "bloodwych",
         "result_project_id": "bloodwych",
         "status": "queued",
@@ -3319,7 +3319,7 @@ def test_build_rows_job_reports_unsupported_c_backend(
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["job-1"] = {
         "job_id": "job-1",
-        "job_kind": "full_listing",
+        "job_kind": "listing_artifact",
         "project_id": "bloodwych",
         "result_project_id": "bloodwych",
         "status": "queued",
@@ -3359,7 +3359,7 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["job-full"] = {
         "job_id": "job-full",
-        "job_kind": "full_listing",
+        "job_kind": "listing_artifact",
         "project_id": "bloodwych",
         "result_project_id": "bloodwych",
         "status": "queued",
@@ -3387,7 +3387,7 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
     assert "bloodwych" not in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE
 
 
-def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_listing_artifact_job_keeps_c_artifact_without_full_python_rows(monkeypatch: pytest.MonkeyPatch) -> None:
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
@@ -3402,7 +3402,7 @@ def test_full_listing_keeps_c_artifact_without_full_python_rows(monkeypatch: pyt
     )
     disasm_server._ASYNC_JOBS["job-full"] = {
         "job_id": "job-full",
-        "job_kind": "full_listing",
+        "job_kind": "listing_artifact",
         "project_id": "bloodwych",
         "result_project_id": "bloodwych",
         "status": "queued",
@@ -3460,7 +3460,7 @@ def test_job_state_update_publishes_event() -> None:
     subscriber: queue.Queue[disasm_server.AsyncJobPayload] = queue.Queue()
     disasm_server._ASYNC_JOBS["job-1"] = {
         "job_id": "job-1",
-        "job_kind": "full_listing",
+        "job_kind": "listing_artifact",
         "project_id": "bloodwych",
         "result_project_id": "bloodwych",
         "status": "queued",
@@ -3499,7 +3499,7 @@ def test_cancel_listing_job_publishes_failed_event() -> None:
     subscriber: queue.Queue[disasm_server.AsyncJobPayload] = queue.Queue()
     disasm_server._ASYNC_JOBS["job-1"] = {
         "job_id": "job-1",
-        "job_kind": "full_listing",
+        "job_kind": "listing_artifact",
         "project_id": "bloodwych",
         "result_project_id": "bloodwych",
         "status": "building",
@@ -3597,7 +3597,7 @@ def test_route_patch_entity_updates_annotations(monkeypatch: pytest.MonkeyPatch)
     assert data["name"] == "main"
 
 
-def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_listing_artifact_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -> None:
     queued: list[str] = []
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
@@ -3618,7 +3618,7 @@ def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -
         disasm_server.AsyncJobPayload,
         {
             "job_id": "job-1",
-            "job_kind": "full_listing",
+            "job_kind": "listing_artifact",
             "project_id": "bloodwych",
             "result_project_id": "bloodwych",
             "status": "queued",
@@ -3644,7 +3644,7 @@ def test_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
 
 
-def test_cached_full_listing_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cached_listing_artifact_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -> None:
     queued: list[str] = []
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()

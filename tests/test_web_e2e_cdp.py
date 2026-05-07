@@ -665,7 +665,7 @@ def test_brave_cdp_corpus_filter_snippet_and_import(monkeypatch: pytest.MonkeyPa
         "_start_listing_job",
         lambda project_name: {
             "job_id": "cached-listing",
-            "job_kind": "full_listing",
+            "job_kind": "listing_artifact",
             "project_id": project_name,
             "result_project_id": project_name,
             "status": "ready",
