@@ -173,10 +173,48 @@ def test_listing_analysis_reports_unsupported_self_decruncher_without_materialis
     assert event["observed_write_end"] == 0x4002
     assert event["observed_write_count"] == 2
     assert event["simulated_stop_reason"] == 1
+    assert event["simulated_write_count"] == 2
     assert event["simulated_output_start"] == 0x4000
     assert event["simulated_output_end"] == 0x4002
     assert event["simulated_output_size"] == 2
     assert event["simulated_output_sha256"] == hashlib.sha256(bytes.fromhex("4e75")).hexdigest()
+
+
+def test_listing_analysis_simulates_self_decruncher_when_written_bytes_match_existing_memory(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "same_bytes_self_decrunch_hunk.bin"
+    source = """    SECTION section,code
+    lea.l $4000.l,a0
+    move.b #0,(a0)+
+    move.b #0,(a0)+
+    jmp $4000.l
+"""
+    assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source,
+        output_path=binary,
+        project_root=PROJECT_ROOT,
+    )
+
+    combined = analyze_source_with_c_artifact(
+        HunkFileBinarySource(
+            kind="hunk_file",
+            path=binary,
+            display_path=str(binary),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
+    )
+    events = combined["analysis"]["decompression_events"]
+
+    assert len(events) == 1
+    event = events[0]
+    assert event["status"] == "simulated_output_observed"
+    assert event["simulated_write_count"] == 2
+    assert event["simulated_output_start"] == 0x4000
+    assert event["simulated_output_end"] == 0x4002
+    assert event["simulated_output_sha256"] == hashlib.sha256(bytes(2)).hexdigest()
 
 
 def test_listing_analysis_simulates_self_decruncher_with_runtime_mapped_source(tmp_path: Path) -> None:
@@ -232,6 +270,7 @@ payload:
     assert event["simulated_output_start"] == 0x40000
     assert event["simulated_output_end"] == 0x40002
     assert event["simulated_output_size"] == 2
+    assert event["simulated_write_count"] == 2
     assert event["simulated_output_sha256"] == hashlib.sha256(bytes.fromhex("1234")).hexdigest()
 
 

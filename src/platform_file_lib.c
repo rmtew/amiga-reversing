@@ -770,6 +770,7 @@ typedef struct PlatformSelfDecrunchEvent {
   uint32_t simulated_output_start;
   uint32_t simulated_output_end;
   uint32_t simulated_step_count;
+  uint32_t simulated_write_count;
   char simulated_output_sha256[65];
   uint8_t simulated_stop_reason;
   uint8_t has_simulated_output;
@@ -1040,9 +1041,7 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
     PlatformSelfDecrunchEvent *out_event) {
   ArenaMark mark;
   uint8_t *memory = NULL;
-  uint8_t *before = NULL;
-  size_t memory_size, index, range_index;
-  uint32_t dirty_start = UINT32_MAX, dirty_end = 0U;
+  size_t memory_size, range_index;
   M68kSimConcreteState state;
   M68kSimConcreteRunTraceResult result;
   int ok = 0;
@@ -1067,8 +1066,7 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
   if (memory_size > 2U * 1024U * 1024U || event->decompressor_entry_offset >= section->size) return 0;
   mark = arena_mark(analysis->arena);
   memory = (uint8_t *)arena_calloc(analysis->arena, memory_size, 1U);
-  before = (uint8_t *)arena_calloc(analysis->arena, memory_size, 1U);
-  if (memory == NULL || before == NULL) goto cleanup;
+  if (memory == NULL) goto cleanup;
   memcpy(memory, section->data, section->size);
   for (range_index = 0U; range_index < analysis->policy.runtime_range_count &&
       range_index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++range_index) {
@@ -1086,7 +1084,6 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
     }
     memcpy(memory + range->runtime_address, source_section->data + range->offset, range->size);
   }
-  memcpy(before, memory, memory_size);
   memset(&state, 0, sizeof(state));
   memset(&result, 0, sizeof(result));
   state.pc = event->decompressor_entry_offset;
@@ -1096,18 +1093,18 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
       result.stop_reason != M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE) {
     goto cleanup;
   }
-  for (index = 0U; index < memory_size; ++index) {
-    if (memory[index] == before[index]) continue;
-    if (index < dirty_start) dirty_start = (uint32_t)index;
-    dirty_end = (uint32_t)index + 1U;
+  if (result.memory_write_count == 0U || result.memory_write_start > event->entrypoint ||
+      result.memory_write_end <= event->entrypoint || result.memory_write_end > memory_size) {
+    goto cleanup;
   }
-  if (dirty_start == UINT32_MAX || dirty_start > event->entrypoint || dirty_end <= event->entrypoint) goto cleanup;
   out_event->has_simulated_output = 1U;
   out_event->simulated_stop_reason = (uint8_t)result.stop_reason;
   out_event->simulated_step_count = (uint32_t)result.step_count;
-  out_event->simulated_output_start = dirty_start;
-  out_event->simulated_output_end = dirty_end;
-  (void)m68k_platform_sha256_hex(memory + dirty_start, dirty_end - dirty_start, out_event->simulated_output_sha256);
+  out_event->simulated_write_count = (uint32_t)result.memory_write_count;
+  out_event->simulated_output_start = result.memory_write_start;
+  out_event->simulated_output_end = result.memory_write_end;
+  (void)m68k_platform_sha256_hex(memory + result.memory_write_start,
+    result.memory_write_end - result.memory_write_start, out_event->simulated_output_sha256);
   ok = 1;
 
 cleanup:
@@ -1254,9 +1251,10 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
     return -1;
   if (event->has_simulated_output) {
     if (json_builder_appendf(builder,
-        ",\"simulated_stop_reason\":%u,\"simulated_step_count\":%u,"
+        ",\"simulated_stop_reason\":%u,\"simulated_step_count\":%u,\"simulated_write_count\":%u,"
         "\"simulated_output_start\":%u,\"simulated_output_end\":%u,\"simulated_output_size\":%u",
         (unsigned)event->simulated_stop_reason, (unsigned)event->simulated_step_count,
+        (unsigned)event->simulated_write_count,
         (unsigned)event->simulated_output_start, (unsigned)event->simulated_output_end,
         (unsigned)(event->simulated_output_end - event->simulated_output_start)) != 0)
       return -1;

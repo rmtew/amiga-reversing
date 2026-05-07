@@ -263,6 +263,9 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   isolated regression with an absolute source read.
 - Simulated output events now include `simulated_output_sha256`, and corpus
   indexing exposes a `decompression:simulated_output_hash` tag.
+- Simulator output range now comes from concrete write tracing, not post-run
+  memory diffs, so writes are retained even when the value equals the prior
+  memory byte.
 - The next implementation step is extending simulator-backed output capture for
   real unsupported events with inferred memory-map seeding where justified,
   write-range bounding and conservative materialisation gates.

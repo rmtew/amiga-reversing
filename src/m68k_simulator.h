@@ -477,6 +477,12 @@ typedef struct M68kSimConcreteState {
   uint16_t sr;
 } M68kSimConcreteState;
 
+typedef struct M68kSimConcreteWriteTrace {
+  uint32_t memory_write_start;
+  uint32_t memory_write_end;
+  size_t memory_write_count;
+} M68kSimConcreteWriteTrace;
+
 typedef enum M68kSimConcreteRunStopReason {
   M68K_SIM_CONCRETE_RUN_STOP_NONE = 0,
   M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE = 1,
@@ -491,6 +497,9 @@ typedef struct M68kSimConcreteRunTraceResult {
   size_t step_count;
   uint32_t start_pc;
   uint32_t stop_pc;
+  uint32_t memory_write_start;
+  uint32_t memory_write_end;
+  size_t memory_write_count;
   M68kSimConcreteRunStopReason stop_reason;
   M68kDiagList diagnostics;
 } M68kSimConcreteRunTraceResult;
@@ -514,7 +523,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
   const M68kSimMemoryState *memory_state, M68kSimStepResult *out_result);
 int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t target_cpu,
   const uint8_t *code, size_t code_size, uint8_t *memory, size_t memory_size, M68kSimConcreteState *io_state,
-  M68kDiagSink diagnostics);
+  M68kSimConcreteWriteTrace *write_trace, M68kDiagSink diagnostics);
 int m68k_simulate_run_concrete(uint8_t target_cpu, uint8_t *memory, size_t memory_size,
   M68kSimConcreteState *io_state, size_t max_steps, uint32_t stop_pc_start, uint32_t stop_pc_end,
   M68kSimConcreteRunTraceResult *out_result);

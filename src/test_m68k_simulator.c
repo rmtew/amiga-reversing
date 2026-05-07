@@ -74,6 +74,9 @@ static int test_concrete_run_applies_move_postincrement_update(void) {
     0U, &result));
   M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT, result.stop_reason);
   M68K_C_ASSERT_U32(3U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(2U, (uint32_t)result.memory_write_count);
+  M68K_C_ASSERT_U32(0x10U, result.memory_write_start);
+  M68K_C_ASSERT_U32(0x12U, result.memory_write_end);
   M68K_C_ASSERT_U32(0x12U, state.a[0]);
   M68K_C_ASSERT_U32(0x12U, memory[0x10]);
   M68K_C_ASSERT_U32(0x34U, memory[0x11]);
