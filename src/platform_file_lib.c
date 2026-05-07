@@ -1034,36 +1034,63 @@ static int observed_writes_cover_target_local(const PlatformRuntimeWriteObservat
   return 1;
 }
 
-static int simulate_self_decrunch_output_local(Arena *arena, const M68kDecodeSectionIR *section,
-    const PlatformSelfDecrunchEvent *event, uint8_t max_cpu, PlatformSelfDecrunchEvent *out_event) {
+static int simulate_self_decrunch_output_local(const M68kObject *object, const M68kSourceAnalysisIR *analysis,
+    const M68kDecodeSectionIR *section, const PlatformSelfDecrunchEvent *event,
+    PlatformSelfDecrunchEvent *out_event) {
   ArenaMark mark;
   uint8_t *memory = NULL;
   uint8_t *before = NULL;
-  size_t memory_size, index;
+  size_t memory_size, index, range_index;
   uint32_t dirty_start = UINT32_MAX, dirty_end = 0U;
   M68kSimConcreteState state;
   M68kSimConcreteRunTraceResult result;
   int ok = 0;
   if (out_event != NULL && event != NULL) *out_event = *event;
-  if (arena == NULL || section == NULL || event == NULL || out_event == NULL || section->data == NULL ||
+  if (object == NULL || analysis == NULL || analysis->arena == NULL || section == NULL || event == NULL ||
+      out_event == NULL || section->data == NULL ||
       event->entrypoint > UINT32_MAX - 16U || event->observed_write_end > UINT32_MAX - 16U) {
     return 0;
   }
   memory_size = section->size;
   if ((size_t)event->entrypoint + 16U > memory_size) memory_size = (size_t)event->entrypoint + 16U;
   if ((size_t)event->observed_write_end + 16U > memory_size) memory_size = (size_t)event->observed_write_end + 16U;
+  for (range_index = 0U; range_index < analysis->policy.runtime_range_count &&
+      range_index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++range_index) {
+    const M68kAnalysisRuntimeRange *range = &analysis->policy.runtime_ranges[range_index];
+    size_t range_end;
+    if (!range->has_section_index || range->size == 0U || range->runtime_address > UINT32_MAX - range->size)
+      continue;
+    range_end = (size_t)range->runtime_address + range->size;
+    if (range_end > memory_size) memory_size = range_end;
+  }
   if (memory_size > 2U * 1024U * 1024U || event->decompressor_entry_offset >= section->size) return 0;
-  mark = arena_mark(arena);
-  memory = (uint8_t *)arena_calloc(arena, memory_size, 1U);
-  before = (uint8_t *)arena_calloc(arena, memory_size, 1U);
+  mark = arena_mark(analysis->arena);
+  memory = (uint8_t *)arena_calloc(analysis->arena, memory_size, 1U);
+  before = (uint8_t *)arena_calloc(analysis->arena, memory_size, 1U);
   if (memory == NULL || before == NULL) goto cleanup;
   memcpy(memory, section->data, section->size);
+  for (range_index = 0U; range_index < analysis->policy.runtime_range_count &&
+      range_index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++range_index) {
+    const M68kAnalysisRuntimeRange *range = &analysis->policy.runtime_ranges[range_index];
+    const M68kSection *source_section;
+    if (!range->has_section_index || range->section_index >= object->section_count || range->size == 0U ||
+        range->runtime_address > UINT32_MAX - range->size) {
+      continue;
+    }
+    source_section = &object->sections[range->section_index];
+    if (source_section->data == NULL || range->offset > source_section->data_size ||
+        range->size > source_section->data_size - range->offset ||
+        (size_t)range->runtime_address + range->size > memory_size) {
+      continue;
+    }
+    memcpy(memory + range->runtime_address, source_section->data + range->offset, range->size);
+  }
   memcpy(before, memory, memory_size);
   memset(&state, 0, sizeof(state));
   memset(&result, 0, sizeof(result));
   state.pc = event->decompressor_entry_offset;
   state.a[7] = (uint32_t)memory_size;
-  if (m68k_simulate_run_concrete(max_cpu, memory, memory_size, &state, 4096U, event->entrypoint,
+  if (m68k_simulate_run_concrete(analysis->policy.max_cpu, memory, memory_size, &state, 4096U, event->entrypoint,
       event->entrypoint + 16U, &result) != 0 ||
       result.stop_reason != M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE) {
     goto cleanup;
@@ -1082,7 +1109,7 @@ static int simulate_self_decrunch_output_local(Arena *arena, const M68kDecodeSec
   ok = 1;
 
 cleanup:
-  arena_rewind(arena, mark);
+  arena_rewind(analysis->arena, mark);
   return ok;
 }
 
@@ -1159,8 +1186,7 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
       event.observed_write_end = observed_write_end;
       event.observed_write_count = observed_write_count;
       event.parent_remains_active = parent_remains_active;
-      (void)simulate_self_decrunch_output_local(analysis->arena, decode_section, &event, analysis->policy.max_cpu,
-        &event);
+      (void)simulate_self_decrunch_output_local(object, analysis, decode_section, &event, &event);
       if (!self_decrunch_event_duplicate_local(events, *io_event_count, &event)) {
         events[*io_event_count] = event;
         *io_event_count += 1U;

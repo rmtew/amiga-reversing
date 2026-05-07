@@ -168,8 +168,10 @@ Use project-owned decompression:
   self-decrunch event records when analysed code writes to an absolute runtime
   range and transfers control there. Simple self-contained cases can now be
   probed with the generated simulator and emit `simulated_output_observed` with
-  output range and stop metadata. Wider memory-map seeding, output hashes, and
-  materialisation are still pending.
+  output range and stop metadata. The simulator seed now also honours C policy
+  runtime ranges/execution views, so absolute source reads are supported when
+  the source mapping is explicit. Wider inferred memory-map seeding, output
+  hashes, and materialisation are still pending.
 
 The boundary is:
 

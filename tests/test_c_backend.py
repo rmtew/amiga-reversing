@@ -177,6 +177,61 @@ def test_listing_analysis_reports_unsupported_self_decruncher_without_materialis
     assert event["simulated_output_size"] == 2
 
 
+def test_listing_analysis_simulates_self_decruncher_with_runtime_mapped_source(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "mapped_source_self_decrunch_hunk.bin"
+    metadata_path = tmp_path / "target_metadata.json"
+    source = """    SECTION section,code
+    moveq.l #0,d0
+    lea.l $50000.l,a1
+    lea.l $40000.l,a0
+    move.b (a1)+,(a0)+
+    move.b (a1)+,(a0)+
+    jmp $40000.l
+payload:
+    dc.b $12,$34
+    dc.w 0
+"""
+    assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source,
+        output_path=binary,
+        project_root=PROJECT_ROOT,
+    )
+    metadata_path.write_text(
+        json.dumps({"execution_views": [{"source_start": 0x18, "source_end": 0x1A, "base_addr": 0x50000}]}),
+        encoding="utf-8",
+    )
+
+    combined = analyze_source_with_c_artifact(
+        HunkFileBinarySource(
+            kind="hunk_file",
+            path=binary,
+            display_path=str(binary),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text=str(metadata_path),
+        project_root=PROJECT_ROOT,
+    )
+    events = [
+        event
+        for event in combined["analysis"]["decompression_events"]
+        if event.get("source_kind") == "self_decruncher"
+    ]
+
+    assert len(events) == 1
+    event = events[0]
+    assert event["status"] == "simulated_output_observed"
+    assert event["reason"] == "simulated_pc_range_stop"
+    assert event["decompressor_code_section"] == 0
+    assert event["decompressor_entry_offset"] == 0
+    assert event["load_address"] == 0x40000
+    assert event["entrypoint"] == 0x40000
+    assert event["simulated_output_start"] == 0x40000
+    assert event["simulated_output_end"] == 0x40002
+    assert event["simulated_output_size"] == 2
+
+
 def test_analysis_decompression_skips_candidate_overlapping_accepted_code(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary = tmp_path / "overlap_hunk.bin"
