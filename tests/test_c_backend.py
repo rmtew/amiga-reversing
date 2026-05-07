@@ -616,6 +616,44 @@ def test_facts_v2_adjacent_control_stub_table_promotes_sibling_entry(tmp_path: P
     assert "\tdc.b $00,$00,$00,$00,$60,$00,$00,$0A\n" not in source_text
 
 
+def test_facts_v2_adjacent_absolute_jmp_stub_does_not_promote_data_target(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "raw.bin"
+    path.write_bytes(
+        bytes.fromhex(
+            "6000000A"
+            "0000000000000000"
+            "4EF900000024"
+            "4EF900000030"
+            "000000000000000000000000"
+            "4E75"
+            "00000000000000000000"
+            "202020204A455A2053414E20202000"
+        )
+    )
+
+    binary_source = RawBinarySource(
+        kind="raw_binary",
+        path=path,
+        address_model="local_offset",
+        load_address=0,
+        entrypoint=0,
+        code_start_offset=0,
+        display_path=str(path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
+        binary_source,
+        metadata_path=None,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert "\nloc_0_0000000C:\n\tjmp $00000024.l\n" in source_text
+    assert "\nloc_0_00000012:\n\tjmp loc_0_00000030.l\n" not in source_text
+    assert "\nloc_0_00000030:\n\tmove.l -(a0),d0\n" not in source_text
+
+
 def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     source = (

@@ -1413,7 +1413,7 @@ def _listing_row_is_direct_control_stub(row: dict[str, object]) -> bool:
         return False
     opcode = (_string_value(row.get("opcode_or_directive")) or "").strip().lower()
     mnemonic = opcode.split(".", 1)[0]
-    if mnemonic not in {"bra", "jmp"}:
+    if mnemonic != "bra":
         return False
     accesses = row.get("operand_accesses")
     if not isinstance(accesses, list) or "branch_target" not in accesses:

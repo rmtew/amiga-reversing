@@ -4611,6 +4611,7 @@ static int enqueue_adjacent_direct_control_stub_table_entries(M68kDecodeIR *deco
     return 0;
   }
   (void)anchor_target_offset;
+  if (anchor_target_kind != M68K_DECODE_TARGET_BRANCH) return 0;
   stride = anchor->byte_count;
   if (stride == 0U) return 0;
   for (direction = 0U; direction < 2U; ++direction) {
