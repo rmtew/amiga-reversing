@@ -7221,8 +7221,13 @@ static int test_listing_json_uses_render_plan_data_class(void) {
   M68kRenderPlanRow *row = NULL;
   char *rows_json = NULL;
   const uint8_t bytes[2] = {0x00U, 0x00U};
+  const char *first_data_class;
 
   m68k_render_plan_init(&render_plan);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_LABEL, 0U,
+    "loc_0_00000020:\n", &row));
+  m68k_render_plan_row_set_source_range(row, 0U, 0x20U, 0U);
+  m68k_render_plan_row_set_data_class(row, "lookup_table");
   M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_DATA, 0U,
     "\tdc.w $0000\t; lookup_table\n", &row));
   m68k_render_plan_row_set_source_range(row, 0U, 0x20U, sizeof(bytes));
@@ -7234,6 +7239,9 @@ static int test_listing_json_uses_render_plan_data_class(void) {
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"kind\":\"data\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"data_class\":\"lookup_table\"") != NULL);
+  first_data_class = strstr(rows_json, "\"data_class\":\"lookup_table\"");
+  M68K_C_ASSERT(first_data_class != NULL);
+  M68K_C_ASSERT(strstr(first_data_class + 1, "\"data_class\":\"lookup_table\"") == NULL);
 
   free(rows_json);
   m68k_render_plan_destroy(&render_plan);

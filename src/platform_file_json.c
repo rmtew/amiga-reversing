@@ -2310,6 +2310,10 @@ static const char *listing_row_data_class(const M68kAnalysisStructuredDataItem *
   return NULL;
 }
 
+static int listing_row_kind_allows_data_class(const char *row_kind) {
+  return row_kind != NULL && strcmp(row_kind, "data") == 0;
+}
+
 static const char *app_slot_access_kind_name(uint8_t access_kind) {
   switch (access_kind) {
   case M68K_APP_SLOT_ACCESS_READ: return "read";
@@ -4619,7 +4623,8 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     if (json_builder_append(builder, ",\"structured_data\":") != 0) return -1;
     if (append_listing_structured_data_json(builder, structured_item) != 0) return -1;
   }
-  if (listing_row_data_class(structured_item, plan_data_class) != NULL) {
+  if (listing_row_kind_allows_data_class(row_kind) &&
+      listing_row_data_class(structured_item, plan_data_class) != NULL) {
     if (json_builder_append(builder, ",\"data_class\":") != 0) return -1;
     if (json_builder_append_json_string(builder, listing_row_data_class(structured_item, plan_data_class)) != 0)
       return -1;
