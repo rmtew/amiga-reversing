@@ -1,17 +1,40 @@
     INCLUDE "exec/devices.i"
     INCLUDE "exec/nodes.i"
     INCLUDE "exec/resident.i"
+    INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"
     INCLUDE "hardware/intbits.i"
 
     RSSET LIB_SIZE
-    RS.B 64
+app_0022 RS.L 1
+app_0026 RS.L 1
+app_002A RS.L 1
+app_002E RS.L 1
+app_0032 RS.L 1
+app_0036 RS.L 1
+app_003A RS.L 1
+app_003E RS.L 1
+app_0042 RS.L 1
+app_0046 RS.L 1
+app_004A RS.L 1
+app_004E RS.L 1
+    RS.B 4
+app_0056 RS.L 1
+    RS.B 4
+app_005E RS.L 1
 app_0062 RS.L 1
-    RS.B 16
+app_0066 RS.L 1
+app_006A RS.L 1
+app_006E RS.L 1
+app_0072 RS.L 1
 app_0076 RS.L 1
     RS.B 18
 app_008C RS.L 1
-    RS.B 46
+    RS.B 18
+app_00A2 RS.L 1
+    RS.B 10
+app_00B0 RS.L 1
+    RS.B 10
 app_00BE RS.L 1
     RS.B 18
 app_00D4 RS.L 1
@@ -21,22 +44,60 @@ app_00EA RS.L 1
 app_010C RS.L 1
     RS.B 18
 app_0122 RS.L 1
-    RS.B 36
+app_0126 RS.B 1
+    RS.B 15
+app_0136 RS.L 1
+app_013A RS.L 1
+    RS.B 12
 app_014A RS.L 1
     RS.B 30
 app_016C RS.L 1
     RS.B 18
 app_0182 RS.L 1
-    RS.B 36
+    RS.B 16
+app_0196 RS.L 1
+app_019A RS.L 1
+    RS.B 12
 app_01AA RS.L 1
 app_01AE RS.L 1
 app_01B2 RS.L 1
 app_01B6 RS.L 1
-    RS.B 34
+app_01BA RS.L 1
+    RS.B 4
+app_01C2 RS.L 1
+app_01C6 RS.L 1
+app_01CA RS.L 1
+app_01CE RS.W 1
+app_01D0 RS.W 1
+app_01D2 RS.W 1
+app_01D4 RS.W 1
+app_01D6 RS.B 1
+    RS.B 1
+app_01D8 RS.B 1
+app_01D9 RS.B 1
+app_01DA RS.B 1
+app_01DB RS.B 1
 app_01DC RS.W 1
 app_SIZEOF EQU __RS
+    RSSET $0023
+app_0023 RS.B 1
+    RSSET $0038
+app_0038 RS.W 1
+    RSSET $0043
+app_0043 RS.B 1
+    RSSET $0044
+app_0044 RS.B 1
+    RSSET $0045
+app_0045 RS.B 1
+    RSSET $0048
+app_0048 RS.W 1
+    RSSET $01BD
+app_01BD RS.B 1
+    RSSET $01C4
+app_01C4 RS.W 1
 
 _custom	EQU	$DFF000
+_ciab	EQU	$BFD000
 
     SECTION section_0,code
 	dc.b $20,$3C,$FF,$FF,$FF,$FF,$4E,$75
@@ -56,82 +117,339 @@ resident:	; STRUCT RT
 	dc.l resident_init	; APTR RT_INIT
 resident_name:
 	dc.b "serial.device",$00
-	dc.b $74,$69,$6D,$65,$72,$2E,$64,$65,$76,$69,$63,$65,$00,$00,$69,$6E
-	dc.b $74,$75,$69,$74,$69,$6F,$6E,$2E,$6C,$69,$62,$72,$61,$72,$79,$00
+loc_0_0000004E:
+	dc.b $74,$69,$6D,$65,$72,$2E,$64,$65,$76,$69,$63,$65,$00,$00
+loc_0_0000005C:
+	dc.b $69,$6E,$74,$75,$69,$74,$69,$6F,$6E,$2E,$6C,$69,$62,$72,$61,$72
+	dc.b $79,$00
 loc_0_0000006E:
 	dc.b $6D,$69,$73,$63,$2E,$72,$65,$73,$6F,$75,$72,$63,$65,$00
-loc_0_0000007C:
-	dc.b $FF,$FF,$00,$12,$03,$4C,$05,$A2,$00,$10,$04,$2A,$04,$9C,$FF,$FF
-	dc.b $4E,$75,$42,$29,$00,$1F,$4A,$6E,$00,$20,$67,$1C,$08,$2E,$00,$05
-	dc.b $00,$45,$67,$0A,$08,$29,$00,$05,$00,$4F,$66,$00,$02,$10,$13,$7C
-	dc.b $00,$01,$00,$1F,$60,$00,$03,$F2,$42,$2E,$01,$D8,$42,$2E,$01,$D6
-	dc.b $3D,$7C,$05,$DC,$01,$DC,$41,$EE,$00,$A2,$20,$88,$58,$90,$42,$A8
-	dc.b $00,$04,$21,$48,$00,$08,$41,$EE,$00,$B0,$20,$88,$58,$90,$42,$A8
-	dc.b $00,$04,$21,$48,$00,$08,$48,$E7,$20,$10,$2F,$09,$43,$FA,$FF,$72
-	dc.b $70,$00,$2F,$0E,$2C,$6E,$00,$62,$4E,$AE,$FD,$D8,$2C,$5F,$26,$40
-	dc.b $20,$3C,$00,$00,$01,$00,$72,$01,$2F,$0E,$2C,$6E,$00,$62,$4E,$AE
-	dc.b $FF,$3A,$2C,$5F,$20,$40,$67,$00,$00,$F2,$20,$3C,$00,$00,$00,$C0
-	dc.b $24,$08,$2F,$0E,$2C,$4B,$4E,$AE,$FF,$7C,$2C,$5F,$22,$4B,$2F,$0E
-	dc.b $2C,$6E,$00,$62,$4E,$AE,$FE,$62,$2C,$5F,$22,$5F,$26,$42,$30,$2B
-	dc.b $00,$02,$E3,$48,$41,$FA,$02,$6A,$3D,$70,$00,$00,$01,$C4,$42,$6E
-	dc.b $01,$C2,$1D,$7C,$00,$08,$00,$43,$10,$2B,$00,$B6,$08,$00,$00,$00
-	dc.b $67,$06,$1D,$7C,$00,$07,$00,$43,$12,$3C,$00,$08,$E8,$08,$92,$00
-	dc.b $1D,$41,$00,$42,$1D,$7C,$00,$01,$00,$44,$10,$2B,$00,$B7,$08,$00
-	dc.b $00,$04,$67,$06,$1D,$7C,$00,$02,$00,$44,$13,$6E,$00,$43,$00,$4D
-	dc.b $13,$6E,$00,$42,$00,$4C,$13,$6E,$00,$44,$00,$4E,$61,$00,$0B,$56
-	dc.b $10,$2B,$00,$B7,$02,$40,$00,$0F,$E3,$48,$41,$FA,$02,$14,$42,$AE
-	dc.b $00,$36,$3D,$70,$00,$00,$00,$38,$10,$2B,$00,$B8,$12,$00,$E8,$08
-	dc.b $67,$14,$08,$EE,$00,$00,$00,$45,$0C,$00,$00,$02,$66,$0E,$08,$EE
-	dc.b $00,$01,$00,$45,$60,$0C,$08,$AE,$00,$00,$00,$45,$08,$AE,$00,$01
-	dc.b $00,$45,$02,$01,$00,$0F,$67,$14,$08,$EE,$00,$07,$00,$45,$0C,$01
-	dc.b $00,$01,$66,$0E,$08,$EE,$00,$02,$00,$45,$60,$16,$08,$AE,$00,$07
-	dc.b $00,$45,$08,$AE,$00,$02,$00,$45,$60,$08,$22,$5F,$26,$7C,$00,$00
-	dc.b $00,$00,$08,$2E,$00,$01,$01,$BD,$67,$06,$08,$EE,$00,$00,$00,$45
-	dc.b $61,$00,$0B,$46,$24,$2E,$00,$36,$42,$80,$22,$0B,$67,$06,$20,$3C
-	dc.b $00,$00,$01,$00,$61,$00,$01,$16,$4A,$80,$66,$0E,$13,$7C,$00,$04
-	dc.b $00,$1F,$4C,$DF,$08,$04,$20,$0E,$4E,$75,$2F,$09,$43,$EE,$01,$82
-	dc.b $41,$FA,$FE,$00,$20,$3C,$00,$00,$00,$01,$42,$81,$2F,$0E,$2C,$6E
-	dc.b $00,$62,$4E,$AE,$FE,$44,$2C,$5F,$4A,$80,$67,$0A,$22,$5F,$13,$7C
-	dc.b $00,$0B,$00,$1F,$60,$14,$2D,$69,$00,$14,$00,$66,$2D,$6E,$01,$96
-	dc.b $01,$36,$2D,$6E,$01,$9A,$01,$3A,$22,$5F,$4C,$DF,$08,$04,$4A,$29
-	dc.b $00,$1F,$66,$00,$01,$4E,$33,$FC,$08,$00,$00,$DF,$F0,$9C,$33,$FC
-	dc.b $80,$01,$00,$DF,$F0,$9C,$33,$FC,$88,$00,$00,$DF,$F0,$9A,$08,$29
-	dc.b $00,$05,$00,$4F,$67,$06,$08,$EE,$00,$05,$00,$45,$13,$6E,$00,$45
-	dc.b $00,$4F,$4A,$29,$00,$1F,$66,$4E,$52,$6E,$00,$20,$33,$FC,$40,$00
-	dc.b $00,$DF,$F0,$9A,$52,$2E,$01,$26,$1D,$79,$00,$BF,$D2,$00,$01,$DA
-	dc.b $02,$39,$00,$07,$00,$BF,$D2,$00,$1D,$79,$00,$BF,$D0,$00,$01,$DB
-	dc.b $00,$39,$00,$C0,$00,$BF,$D2,$00,$02,$39,$00,$1F,$00,$BF,$D0,$00
-	dc.b $02,$39,$00,$C7,$00,$BF,$D2,$00,$53,$2E,$01,$26,$6C,$08,$33,$FC
-	dc.b $C0,$00,$00,$DF,$F0,$9A,$23,$6E,$00,$22,$00,$30,$23,$6E,$00,$36
-	dc.b $00,$34,$42,$69,$00,$50,$23,$6E,$00,$42,$00,$4C,$23,$6E,$01,$C2
-	dc.b $00,$3C,$23,$6E,$00,$6A,$00,$40,$23,$6E,$01,$BA,$00,$38,$23,$6E
-	dc.b $00,$6E,$00,$44,$23,$6E,$00,$72,$00,$48,$4E,$75,$48,$E7,$20,$50
-	dc.b $22,$0B,$67,$12,$4A,$80,$67,$0E,$22,$4B,$2F,$0E,$2C,$6E,$00,$62
-	dc.b $4E,$AE,$FF,$2E,$2C,$5F,$20,$02,$67,$16,$72,$01,$2F,$0E,$2C,$6E
-	dc.b $00,$62,$4E,$AE,$FF,$3A,$2C,$5F,$4A,$80,$67,$04,$2D,$42,$00,$36
-	dc.b $2D,$40,$00,$26,$2D,$40,$00,$2E,$2D,$40,$00,$2A,$2D,$40,$00,$32
-	dc.b $D5,$AE,$00,$32,$42,$AE,$00,$3A,$42,$AE,$00,$3E,$E2,$8A,$2D,$42
-	dc.b $01,$C6,$E2,$8A,$2D,$42,$01,$CA,$4C,$DF,$0A,$04,$4A,$80,$4E,$75
+resident_vectors:
+	dc.b $FF,$FF
+	dc.w $0012
+	dc.w $034C
+	dc.w $05A2
+	dc.w $0010
+	dc.w $042A
+	dc.w $049C
+	dc.w $FFFF
+    ; KNOWN: base A6=serial.device:LIB
+serial_device_lib_extfunc:
+	rts
+    ; KNOWN: base A6=serial.device:LIB
+serial_device_lib_open:
+	clr.b $001F(a1)
+	tst.w $0020(a6)
+	beq.b loc_0_000000B4
+	btst.b #5,app_0045(a6)
+	beq.b loc_0_000000AA
+	btst.b #5,$004F(a1)
+	bne.w loc_0_000002B8
+loc_0_000000AA:
+	move.b #$1,$001F(a1)
+	bra.w loc_0_000004A4
+loc_0_000000B4:
+	clr.b app_01D8(a6)
+	clr.b app_01D6(a6)
+	move.w #$5DC,app_01DC(a6)
+	lea.l app_00A2(a6),a0
+	move.l a0,(a0)
+	addq.l #4,(a0)
+	clr.l $0004(a0)
+	move.l a0,$0008(a0)
+	lea.l app_00B0(a6),a0
+	move.l a0,(a0)
+	addq.l #4,(a0)
+	clr.l $0004(a0)
+	move.l a0,$0008(a0)
+	movem.l d2/a3,-(a7)
+	move.l a1,-(a7)
+	lea.l loc_0_0000005C(pc),a1
+	moveq.l #0,d0
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$0228(a6)
+	movea.l (a7)+,a6
+	movea.l d0,a3
+	move.l #$100,d0
+	moveq.l #1,d1
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$00C6(a6)
+	movea.l (a7)+,a6
+	movea.l d0,a0
+	beq.w loc_0_00000206
+	move.l #$C0,d0
+	move.l a0,d2
+	move.l a6,-(a7)
+	movea.l a3,a6
+	jsr -$0084(a6)
+	movea.l (a7)+,a6
+	movea.l a3,a1
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$019E(a6)
+	movea.l (a7)+,a6
+	movea.l (a7)+,a1
+	movea.l d2,a3
+	move.w $0002(a3),d0
+	lsl.w #1,d0
+	lea.l loc_0_000003AC(pc),a0
+	move.w $0(a0,d0.w),app_01C4(a6)
+	clr.w app_01C2(a6)
+	move.b #$8,app_0043(a6)
+	move.b $00B6(a3),d0
+	btst #0,d0
+	beq.b loc_0_00000164
+	move.b #$7,app_0043(a6)
+loc_0_00000164:
+	move.b #$8,d1
+	lsr.b #4,d0
+	sub.b d0,d1
+	move.b d1,app_0042(a6)
+	move.b #$1,app_0044(a6)
+	move.b $00B7(a3),d0
+	btst #4,d0
+	beq.b loc_0_00000186
+	move.b #$2,app_0044(a6)
+loc_0_00000186:
+	move.b app_0043(a6),$004D(a1)
+	move.b app_0042(a6),$004C(a1)
+	move.b app_0044(a6),$004E(a1)
+	bsr.w loc_0_00000CF0
+	move.b $00B7(a3),d0
+	andi.w #15,d0
+	lsl.w #1,d0
+	lea.l loc_0_000003BC(pc),a0
+	clr.l app_0036(a6)
+	move.w $0(a0,d0.w),app_0038(a6)
+	move.b $00B8(a3),d0
+	move.b d0,d1
+	lsr.b #4,d0
+	beq.b loc_0_000001D2
+	bset.b #0,app_0045(a6)
+	cmpi.b #2,d0
+	bne.b loc_0_000001D8
+	bset.b #1,app_0045(a6)
+	bra.b loc_0_000001DE
+loc_0_000001D2:
+	bclr.b #0,app_0045(a6)
+loc_0_000001D8:
+	bclr.b #1,app_0045(a6)
+loc_0_000001DE:
+	andi.b #15,d1
+	beq.b loc_0_000001F8
+	bset.b #7,app_0045(a6)
+	cmpi.b #1,d1
+	bne.b loc_0_000001FE
+	bset.b #2,app_0045(a6)
+	bra.b loc_0_0000020E
+loc_0_000001F8:
+	bclr.b #7,app_0045(a6)
+loc_0_000001FE:
+	bclr.b #2,app_0045(a6)
+	bra.b loc_0_0000020E
+loc_0_00000206:
+	movea.l (a7)+,a1
+	movea.l #$0,a3
+loc_0_0000020E:
+	btst.b #1,app_01BD(a6)
+	beq.b loc_0_0000021C
+	bset.b #0,app_0045(a6)
+loc_0_0000021C:
+	bsr.w loc_0_00000D64
+	move.l app_0036(a6),d2
+	clr.l d0
+	move.l a3,d1
+	beq.b loc_0_00000230
+	move.l #$100,d0
+loc_0_00000230:
+	bsr.w loc_0_00000348
+	tst.l d0
+	bne.b loc_0_00000246
+	move.b #$4,$001F(a1)
+	movem.l (a7)+,d2/a3
+	move.l a6,d0
+	rts
+loc_0_00000246:
+	move.l a1,-(a7)
+	lea.l app_0182(a6),a1
+	lea.l loc_0_0000004E(pc),a0
+	move.l #$1,d0
+	clr.l d1
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$01BC(a6)
+	movea.l (a7)+,a6
+	tst.l d0
+	beq.b loc_0_00000272
+	movea.l (a7)+,a1
+	move.b #$B,$001F(a1)
+	bra.b loc_0_00000286
+loc_0_00000272:
+	move.l $0014(a1),app_0066(a6)
+	move.l app_0196(a6),app_0136(a6)
+	move.l app_019A(a6),app_013A(a6)
+	movea.l (a7)+,a1
+loc_0_00000286:
+	movem.l (a7)+,d2/a3
+	tst.b $001F(a1)
+	bne.w loc_0_000003DE
+	move.w #INTF_RBF,_custom+intreq.l
+	move.w #INTF_SETCLR|INTF_TBE,_custom+intreq.l
+	move.w #INTF_SETCLR|INTF_RBF,_custom+intena.l
+	btst.b #5,$004F(a1)
+	beq.b loc_0_000002B8
+	bset.b #5,app_0045(a6)
+loc_0_000002B8:
+	move.b app_0045(a6),$004F(a1)
+	tst.b $001F(a1)
+	bne.b loc_0_00000312
+	addq.w #1,$0020(a6)
+	move.w #INTF_INTEN,_custom+intena.l
+	addq.b #1,app_0126(a6)
+	move.b _ciab+ciaddra.l,app_01DA(a6)
+	andi.b #7,_ciab+ciaddra.l
+	move.b _ciab+ciapra.l,app_01DB(a6)
+	ori.b #192,_ciab+ciaddra.l
+	andi.b #CIAF_COMCTS|CIAF_COMDSR|CIAF_PRTRSEL|CIAF_PRTRPOUT|CIAF_PRTRBUSY,_ciab+ciapra.l
+	andi.b #199,_ciab+ciaddra.l
+	subq.b #1,app_0126(a6)
+	bge.b loc_0_00000312
+	move.w #INTF_SETCLR|INTF_INTEN,_custom+intena.l
+loc_0_00000312:
+	move.l app_0022(a6),$0030(a1)
+	move.l app_0036(a6),$0034(a1)
+	clr.w $0050(a1)
+	move.l app_0042(a6),$004C(a1)
+	move.l app_01C2(a6),$003C(a1)
+	move.l app_006A(a6),$0040(a1)
+	move.l app_01BA(a6),$0038(a1)
+	move.l app_006E(a6),$0044(a1)
+	move.l app_0072(a6),$0048(a1)
+	rts
+loc_0_00000348:
+	movem.l d2/a1/a3,-(a7)
+	move.l a3,d1
+	beq.b loc_0_00000362
+	tst.l d0
+	beq.b loc_0_00000362
+	movea.l a3,a1
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$00D2(a6)
+	movea.l (a7)+,a6
+loc_0_00000362:
+	move.l d2,d0
+	beq.b loc_0_0000037C
+	moveq.l #1,d1
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$00C6(a6)
+	movea.l (a7)+,a6
+	tst.l d0
+	beq.b loc_0_0000037C
+	move.l d2,app_0036(a6)
+loc_0_0000037C:
+	move.l d0,app_0026(a6)
+	move.l d0,app_002E(a6)
+	move.l d0,app_002A(a6)
+	move.l d0,app_0032(a6)
+	add.l d2,app_0032(a6)
+	clr.l app_003A(a6)
+	clr.l app_003E(a6)
+	lsr.l #1,d2
+	move.l d2,app_01C6(a6)
+	lsr.l #1,d2
+	move.l d2,app_01CA(a6)
+	movem.l (a7)+,d2/a1/a3
+	tst.l d0
+	rts
+loc_0_000003AC:
 	dc.b $00,$70,$01,$2C,$04,$B0,$09,$60,$12,$C0,$25,$80,$4B,$00,$7A,$12
-	dc.b $02,$00,$04,$00,$08,$00,$10,$00,$1F,$40,$3E,$80,$70,$00,$42,$29
-	dc.b $00,$1F,$4A,$6E,$00,$20,$67,$00,$00,$D0,$53,$6E,$00,$20,$66,$00
-	dc.b $00,$C8,$42,$AE,$00,$4E,$42,$AE,$00,$4A,$42,$AE,$00,$46,$33,$FC
-	dc.b $40,$00,$00,$DF,$F0,$9A,$52,$2E,$01,$26,$10,$39,$00,$BF,$D2,$00
-	dc.b $02,$00,$00,$07,$00,$00,$00,$F8,$13,$C0,$00,$BF,$D2,$00,$10,$39
-	dc.b $00,$BF,$D0,$00,$12,$2E,$01,$DB,$02,$01,$00,$F8,$02,$00,$00,$07
-	dc.b $80,$01,$13,$C0,$00,$BF,$D0,$00,$10,$39,$00,$BF,$D2,$00,$02,$00
-	dc.b $00,$07,$12,$2E,$01,$DA,$02,$01,$00,$F8,$80,$01,$13,$C0,$00,$BF
-	dc.b $D2,$00,$53,$2E,$01,$26,$6C,$08,$33,$FC,$C0,$00,$00,$DF,$F0,$9A
-	dc.b $42,$6E,$00,$20,$41,$EE,$01,$22,$61,$00,$01,$B4,$41,$EE,$01,$82
-	dc.b $61,$00,$01,$AC,$2F,$09,$43,$EE,$01,$82,$2F,$0E,$2C,$6E,$00,$62
-	dc.b $4E,$AE,$FE,$3E,$2C,$5F,$22,$5F,$08,$AE,$00,$05,$00,$45,$48,$E7
-	dc.b $20,$50,$20,$2E,$00,$36,$42,$82,$26,$6E,$00,$26,$61,$00,$FE,$BE
-	dc.b $4C,$DF,$0A,$04,$33,$FC,$08,$01,$00,$DF,$F0,$9A,$08,$2E,$00,$06
-	dc.b $01,$D8,$67,$04,$4E,$AE,$FF,$EE,$4E,$75,$13,$7C,$00,$05,$00,$08
-	dc.b $30,$29,$00,$1C,$0C,$40,$00,$0B,$62,$5A,$42,$29,$00,$1F,$E5,$48
-	dc.b $41,$FA,$00,$22,$20,$70,$00,$00,$4E,$D0,$22,$3C,$00,$00,$00,$51
-	dc.b $C2,$29,$00,$1E,$66,$0C,$2F,$0E,$2C,$6E,$00,$62,$4E,$AE,$FE,$86
-	dc.b $2C,$5F,$4E,$75
+loc_0_000003BC:
+	dc.b $02,$00,$04,$00,$08,$00,$10,$00,$1F,$40,$3E,$80
+    ; KNOWN: base A6=serial.device:LIB
+serial_device_lib_close:
+	moveq.l #0,d0
+	clr.b $001F(a1)
+	tst.w $0020(a6)
+	beq.w loc_0_000004A4
+	subq.w #1,$0020(a6)
+	bne.w loc_0_000004A4
+loc_0_000003DE:
+	clr.l app_004E(a6)
+	clr.l app_004A(a6)
+	clr.l app_0046(a6)
+	move.w #INTF_INTEN,_custom+intena.l
+	addq.b #1,app_0126(a6)
+	move.b _ciab+ciaddra.l,d0
+	andi.b #7,d0
+	ori.b #248,d0
+	move.b d0,_ciab+ciaddra.l
+	move.b _ciab+ciapra.l,d0
+	move.b app_01DB(a6),d1
+	andi.b #248,d1
+	andi.b #7,d0
+	or.b d1,d0
+	move.b d0,_ciab+ciapra.l
+	move.b _ciab+ciaddra.l,d0
+	andi.b #7,d0
+	move.b app_01DA(a6),d1
+	andi.b #248,d1
+	or.b d1,d0
+	move.b d0,_ciab+ciaddra.l
+	subq.b #1,app_0126(a6)
+	bge.b loc_0_0000044C
+	move.w #INTF_SETCLR|INTF_INTEN,_custom+intena.l
+loc_0_0000044C:
+	clr.w $0020(a6)
+	lea.l app_0122(a6),a0
+	bsr.w loc_0_0000060A
+	lea.l app_0182(a6),a0
+	bsr.w loc_0_0000060A
+	move.l a1,-(a7)
+	lea.l app_0182(a6),a1
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$01C2(a6)
+	movea.l (a7)+,a6
+	movea.l (a7)+,a1
+	bclr.b #5,app_0045(a6)
+	movem.l d2/a1/a3,-(a7)
+	move.l app_0036(a6),d0
+	clr.l d2
+	movea.l app_0026(a6),a3
+	bsr.w loc_0_00000348
+	movem.l (a7)+,d2/a1/a3
+	move.w #INTF_RBF|INTF_TBE,_custom+intena.l
+	btst.b #6,app_01D8(a6)
+	beq.b loc_0_000004A4
+	jsr -$0012(a6)
+loc_0_000004A4:
+	rts
+    ; KNOWN: base A6=serial.device:LIB
+serial_device_dev_beginio:
+	move.b #$5,$0008(a1)
+	move.w $001C(a1),d0
+	cmpi.w #11,d0
+	bhi.b loc_0_00000510
+	clr.b $001F(a1)
+	lsl.w #2,d0
+	lea.l loc_0_000004E0(pc),a0
+	movea.l $0(a0,d0.w),a0
+	jmp (a0)
+loc_0_000004C6:
+	move.l #$51,d1
+	and.b $001E(a1),d1
+	bne.b loc_0_000004DE
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$017A(a6)
+	movea.l (a7)+,a6
+loc_0_000004DE:
+	rts
+loc_0_000004E0:
 	dc.l loc_0_00000510	; pointer_table
 	dc.l loc_0_00000918
 	dc.l loc_0_00000FE4
@@ -145,46 +463,175 @@ loc_0_0000007C:
 	dc.l loc_0_00000AA4
 	dc.l loc_0_00000B84
 loc_0_00000510:
-	dc.b $13,$7C,$00,$FD,$00,$1F,$60,$AE,$08,$EE,$00,$07,$01,$D8,$33,$FC
-	dc.b $08,$01,$00,$DF,$F0,$9A,$61,$00,$00,$12,$33,$FC,$88,$01,$00,$DF
-	dc.b $F0,$9A,$08,$AE,$00,$07,$01,$D8,$4E,$75,$42,$29,$00,$1F,$0C,$69
-	dc.b $00,$02,$00,$1C,$67,$18,$0C,$69,$00,$03,$00,$1C,$67,$00,$00,$42
-	dc.b $0C,$69,$00,$0A,$00,$1C,$67,$00,$00,$38,$60,$00,$00,$AC,$B3,$EE
-	dc.b $00,$4A,$66,$0C,$08,$AE,$00,$01,$01,$D8,$42,$AE,$00,$4A,$60,$72
-	dc.b $08,$29,$00,$06,$00,$1E,$67,$00,$00,$90,$2F,$09,$20,$51,$22,$69
-	dc.b $00,$04,$22,$88,$21,$49,$00,$04,$22,$5F,$53,$6E,$00,$46,$60,$52
-	dc.b $B3,$EE,$00,$4E,$66,$2E,$0C,$69,$00,$0A,$00,$1C,$66,$12,$08,$AE
-	dc.b $00,$05,$01,$D6,$67,$0A,$20,$7C,$00,$DF,$F0,$9E,$30,$BC,$08,$00
-	dc.b $41,$EE,$01,$22,$61,$54,$42,$AE,$00,$4E,$08,$AE,$00,$04,$01,$D8
-	dc.b $60,$00,$00,$20,$08,$29,$00,$06,$00,$1E,$67,$00,$00,$3C,$2F,$09
-	dc.b $20,$51,$22,$69,$00,$04,$22,$88,$21,$49,$00,$04,$22,$5F,$53,$6E
-	dc.b $00,$48,$08,$E9,$00,$05,$00,$1E,$02,$29,$00,$AF,$00,$1E,$13,$7C
-	dc.b $00,$FE,$00,$1F,$08,$29,$00,$00,$00,$1E,$66,$0C,$2F,$0E,$2C,$6E
-	dc.b $00,$62,$4E,$AE,$FE,$86,$2C,$5F,$4E,$75,$2F,$09,$22,$48,$2F,$0E
-	dc.b $2C,$6E,$00,$62,$4E,$AE,$FE,$20,$2C,$5F,$22,$5F,$4E,$75,$20,$3C
-	dc.b $00,$00,$00,$00,$4A,$6E,$00,$20,$67,$02,$4E,$75,$2F,$0E,$2C,$6E
-	dc.b $01,$B6,$20,$3C,$00,$00,$00,$01,$4E,$AE,$FF,$F4,$20,$3C,$00,$00
-	dc.b $00,$00,$4E,$AE,$FF,$F4,$2C,$5F,$20,$3C,$00,$00,$00,$0B,$22,$6E
-	dc.b $01,$AE,$2F,$0E,$2C,$6E,$00,$62,$4E,$AE,$FF,$5E,$2C,$5F,$20,$3C
-	dc.b $00,$00,$00,$00,$22,$6E,$01,$B2,$2F,$0E,$2C,$6E,$00,$62,$4E,$AE
-	dc.b $FF,$5E,$2C,$5F,$2F,$2E,$01,$AA,$43,$EE,$01,$4A,$2F,$0E,$2C,$6E
-	dc.b $00,$62,$4E,$AE,$FE,$98,$2C,$5F,$43,$EE,$00,$EA,$2F,$0E,$2C,$6E
-	dc.b $00,$62,$4E,$AE,$FE,$98,$2C,$5F,$22,$4E,$42,$80,$30,$2E,$00,$10
-	dc.b $93,$C0,$D0,$6E,$00,$12,$2F,$0E,$2C,$6E,$00,$62,$4E,$AE,$FF,$2E
-	dc.b $2C,$5F,$22,$4E,$20,$51,$22,$69,$00,$04,$22,$88,$21,$49,$00,$04
-	dc.b $20,$1F,$4E,$75
+	move.b #$FD,$001F(a1)
+	bra.b loc_0_000004C6
+    ; KNOWN: base A6=serial.device:LIB
+serial_device_dev_abortio:
+	bset.b #7,app_01D8(a6)
+	move.w #INTF_RBF|INTF_TBE,_custom+intena.l
+	bsr.w loc_0_0000053A
+	move.w #INTF_SETCLR|INTF_RBF|INTF_TBE,_custom+intena.l
+	bclr.b #7,app_01D8(a6)
+	rts
+loc_0_0000053A:
+	clr.b $001F(a1)
+	cmpi.w #2,$001C(a1)
+	beq.b loc_0_0000055E
+	cmpi.w #3,$001C(a1)
+	beq.w loc_0_00000590
+	cmpi.w #10,$001C(a1)
+	beq.w loc_0_00000590
+	bra.w loc_0_00000608
+loc_0_0000055E:
+	cmpa.l app_004A(a6),a1
+	bne.b loc_0_00000570
+	bclr.b #1,app_01D8(a6)
+	clr.l app_004A(a6)
+	bra.b loc_0_000005E2
+loc_0_00000570:
+	btst.b #6,$001E(a1)
+	beq.w loc_0_00000608
+	move.l a1,-(a7)
+	movea.l (a1),a0
+	movea.l $0004(a1),a1
+	move.l a0,(a1)
+	move.l a1,$0004(a0)
+	movea.l (a7)+,a1
+	subq.w #1,app_0046(a6)
+	bra.b loc_0_000005E2
+loc_0_00000590:
+	cmpa.l app_004E(a6),a1
+	bne.b loc_0_000005C4
+	cmpi.w #10,$001C(a1)
+	bne.b loc_0_000005B0
+	bclr.b #5,app_01D6(a6)
+	beq.b loc_0_000005B0
+	movea.l #$DFF09E,a0
+	move.w #$800,(a0)
+loc_0_000005B0:
+	lea.l app_0122(a6),a0
+	bsr.b loc_0_0000060A
+	clr.l app_004E(a6)
+	bclr.b #4,app_01D8(a6)
+	bra.w loc_0_000005E2
+loc_0_000005C4:
+	btst.b #6,$001E(a1)
+	beq.w loc_0_00000608
+	move.l a1,-(a7)
+	movea.l (a1),a0
+	movea.l $0004(a1),a1
+	move.l a0,(a1)
+	move.l a1,$0004(a0)
+	movea.l (a7)+,a1
+	subq.w #1,app_0048(a6)
+loc_0_000005E2:
+	bset.b #5,$001E(a1)
+	andi.b #175,$001E(a1)
+	move.b #$FE,$001F(a1)
+	btst.b #0,$001E(a1)
+	bne.b loc_0_00000608
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$017A(a6)
+	movea.l (a7)+,a6
+loc_0_00000608:
+	rts
+loc_0_0000060A:
+	move.l a1,-(a7)
+	movea.l a0,a1
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$01E0(a6)
+	movea.l (a7)+,a6
+	movea.l (a7)+,a1
+	rts
+    ; KNOWN: base A6=serial.device:LIB
+serial_device_lib_expunge:
+	move.l #$0,d0
+	tst.w $0020(a6)
+	beq.b loc_0_0000062C
+	rts
+loc_0_0000062C:
+	move.l a6,-(a7)
+	movea.l app_01B6(a6),a6
+	move.l #$1,d0
+	jsr -$000C(a6)
+	move.l #$0,d0
+	jsr -$000C(a6)
+	movea.l (a7)+,a6
+	move.l #$B,d0
+	movea.l app_01AE(a6),a1
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$00A2(a6)
+	movea.l (a7)+,a6
+	move.l #$0,d0
+	movea.l app_01B2(a6),a1
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$00A2(a6)
+	movea.l (a7)+,a6
+	move.l app_01AA(a6),-(a7)
+	lea.l app_014A(a6),a1
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$0168(a6)
+	movea.l (a7)+,a6
+	lea.l app_00EA(a6),a1
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$0168(a6)
+	movea.l (a7)+,a6
+	movea.l a6,a1
+	clr.l d0
+	move.w $0010(a6),d0
+	suba.l d0,a1
+	add.w $0012(a6),d0
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$00D2(a6)
+	movea.l (a7)+,a6
+	movea.l a6,a1
+	movea.l (a1),a0
+	movea.l $0004(a1),a1
+	move.l a0,(a1)
+	move.l a1,$0004(a0)
+	move.l (a7)+,d0
+	rts
 loc_0_000006C4:
-	dc.b $42,$A9,$00,$20,$4A,$A9,$00,$24,$67,$00,$FD,$F8,$08,$A9,$00,$00
-	dc.b $00,$1E,$08,$EE,$00,$07,$01,$D8,$33,$FC,$00,$01,$00,$DF,$F0,$9A
-	dc.b $4A,$6E,$00,$48,$66,$32,$4A,$AE,$00,$4E,$66,$2C,$08,$E9,$00,$04
-	dc.b $00,$1E,$42,$AE,$00,$5E,$2D,$69,$00,$28,$00,$56,$2D,$49,$00,$4E
-	dc.b $33,$FC,$80,$01,$00,$DF,$F0,$9C,$33,$FC,$80,$01,$00,$DF,$F0,$9A
-	dc.b $08,$AE,$00,$07,$01,$D8
+	clr.l $0020(a1)
+	tst.l $0024(a1)
+	beq.w loc_0_000004C6
+	bclr.b #0,$001E(a1)
+	bset.b #7,app_01D8(a6)
+	move.w #INTF_TBE,_custom+intena.l
+	tst.w app_0048(a6)
+	bne.b loc_0_0000071C
+	tst.l app_004E(a6)
+	bne.b loc_0_0000071C
+	bset.b #4,$001E(a1)
+	clr.l app_005E(a6)
+	move.l $0028(a1),app_0056(a6)
+	move.l a1,app_004E(a6)
+	move.w #INTF_SETCLR|INTF_TBE,_custom+intreq.l
+	move.w #INTF_SETCLR|INTF_TBE,_custom+intena.l
+	bclr.b #7,app_01D8(a6)
 loc_0_0000071A:
-	dc.b $4E,$75,$08,$E9,$00,$06,$00,$1E,$41,$EE,$00,$B0,$41,$E8,$00,$04
-	dc.b $20,$28,$00,$04,$21,$49,$00,$04,$22,$88,$23,$40,$00,$04,$20,$40
-	dc.b $20,$89,$52,$6E,$00,$48,$33,$FC,$80,$01,$00,$DF,$F0,$9A,$08,$AE
-	dc.b $00,$07,$01,$D8,$4E,$75
+	rts
+loc_0_0000071C:
+	bset.b #6,$001E(a1)
+	lea.l app_00B0(a6),a0
+	lea.l $0004(a0),a0
+	move.l $0004(a0),d0
+	move.l a1,$0004(a0)
+	move.l a0,(a1)
+	move.l d0,$0004(a1)
+	movea.l d0,a0
+	move.l a1,(a0)
+	addq.w #1,app_0048(a6)
+	move.w #INTF_SETCLR|INTF_TBE,_custom+intena.l
+	bclr.b #7,app_01D8(a6)
+	rts
 loc_0_00000750:
 	dc.b $4A,$29,$01,$D9,$66,$00,$01,$8E,$48,$E7,$20,$02,$2C,$49,$08,$2E
 	dc.b $00,$05,$01,$D6,$66,$00,$01,$70,$4A,$AE,$00,$4E,$67,$00,$01,$1E
@@ -217,95 +664,333 @@ loc_0_00000750:
 	dc.b $00,$4E,$66,$0E,$4A,$69,$00,$48,$66,$08,$33,$FC,$00,$01,$00,$DF
 	dc.b $F0,$9A,$4E,$75,$00,$00
 loc_0_00000918:
-	dc.b $33,$FC,$08,$01,$00,$DF,$F0,$9A,$61,$00,$00,$E4,$2F,$09,$20,$2E
-	dc.b $00,$4A,$67,$06,$22,$40,$61,$00,$FC,$0A,$20,$2E,$00,$4E,$67,$06
-	dc.b $22,$40,$61,$00,$FB,$FE,$02,$2E,$00,$20,$00,$45,$42,$2E,$01,$D8
-	dc.b $22,$5F,$23,$7C,$11,$13,$00,$00,$00,$30,$23,$7C,$00,$00,$25,$80
-	dc.b $00,$3C,$23,$7C,$08,$08,$01,$00,$00,$4C,$23,$7C,$00,$03,$D0,$90
-	dc.b $00,$40,$23,$7C,$00,$00,$02,$00,$00,$34,$41,$E9,$00,$44,$20,$FC
-	dc.b $00,$00,$00,$00,$20,$BC,$00,$00,$00,$00,$61,$00,$02,$72,$61,$00
-	dc.b $00,$16,$33,$FC,$88,$01,$00,$DF,$F0,$9A,$60,$00,$FB,$32
+	move.w #INTF_RBF|INTF_TBE,_custom+intena.l
+	bsr.w loc_0_00000A06
+	move.l a1,-(a7)
+	move.l app_004A(a6),d0
+	beq.b loc_0_00000932
+	movea.l d0,a1
+	bsr.w loc_0_0000053A
+loc_0_00000932:
+	move.l app_004E(a6),d0
+	beq.b loc_0_0000093E
+	movea.l d0,a1
+	bsr.w loc_0_0000053A
+loc_0_0000093E:
+	andi.b #32,app_0045(a6)
+	clr.b app_01D8(a6)
+	movea.l (a7)+,a1
+	move.l #$11130000,$0030(a1)
+	move.l #$2580,$003C(a1)
+	move.l #$8080100,$004C(a1)
+	move.l #$3D090,$0040(a1)
+	move.l #$200,$0034(a1)
+	lea.l $0044(a1),a0
+	move.l #$0,(a0)+
+	move.l #$0,(a0)
+	bsr.w loc_0_00000BF6
+	bsr.w loc_0_0000099E
+	move.w #INTF_SETCLR|INTF_RBF|INTF_TBE,_custom+intena.l
+	bra.w loc_0_000004C6
 loc_0_00000996:
-	dc.b $61,$00,$00,$06,$60,$00,$FB,$2A,$2D,$6E,$00,$26,$00,$2A,$2D,$6E
-	dc.b $00,$26,$00,$2E,$42,$AE,$00,$3A,$4E,$75
+	bsr.w loc_0_0000099E
+	bra.w loc_0_000004C6
+loc_0_0000099E:
+	move.l app_0026(a6),app_002A(a6)
+	move.l app_0026(a6),app_002E(a6)
+	clr.l app_003A(a6)
+	rts
 loc_0_000009B0:
-	dc.b $20,$2E,$00,$4E,$67,$06,$08,$EE,$00,$02,$01,$D8,$20,$2E,$00,$4A
-	dc.b $67,$04,$61,$00,$09,$54,$60,$00,$FA,$FE
+	move.l app_004E(a6),d0
+	beq.b loc_0_000009BC
+	bset.b #2,app_01D8(a6)
+loc_0_000009BC:
+	move.l app_004A(a6),d0
+	beq.b loc_0_000009C6
+	bsr.w loc_0_00001318
+loc_0_000009C6:
+	bra.w loc_0_000004C6
 loc_0_000009CA:
-	dc.b $08,$AE,$00,$02,$01,$D8,$20,$2E,$00,$4A,$67,$04,$61,$00,$09,$22
-	dc.b $33,$FC,$80,$01,$00,$DF,$F0,$9C,$33,$FC,$80,$01,$00,$DF,$F0,$9A
-	dc.b $60,$00,$FA,$DA
+	bclr.b #2,app_01D8(a6)
+	move.l app_004A(a6),d0
+	beq.b loc_0_000009DA
+	bsr.w loc_0_000012FA
+loc_0_000009DA:
+	move.w #INTF_SETCLR|INTF_TBE,_custom+intreq.l
+	move.w #INTF_SETCLR|INTF_TBE,_custom+intena.l
+	bra.w loc_0_000004C6
 loc_0_000009EE:
-	dc.b $33,$FC,$08,$01,$00,$DF,$F0,$9A,$61,$00,$00,$0E,$33,$FC,$88,$01
-	dc.b $00,$DF,$F0,$9A,$60,$00,$FA,$C2,$2F,$09,$41,$EE,$00,$A2,$61,$00
-	dc.b $00,$12,$41,$EE,$00,$B0,$61,$00,$00,$0A,$42,$AE,$00,$46,$22,$5F
-	dc.b $4E,$75,$22,$50,$20,$11,$67,$08,$20,$80,$C1,$89,$23,$48,$00,$04
-	dc.b $4A,$80,$67,$00,$00,$0A,$22,$40,$61,$00,$00,$06,$60,$E4,$4E,$75
-	dc.b $08,$E9,$00,$05,$00,$1E,$13,$7C,$00,$FE,$00,$1F,$08,$29,$00,$00
-	dc.b $00,$1E,$66,$0C,$2F,$0E,$2C,$6E,$00,$62,$4E,$AE,$FE,$86,$2C,$5F
-	dc.b $4E,$75
+	move.w #INTF_RBF|INTF_TBE,_custom+intena.l
+	bsr.w loc_0_00000A06
+	move.w #INTF_SETCLR|INTF_RBF|INTF_TBE,_custom+intena.l
+	bra.w loc_0_000004C6
+loc_0_00000A06:
+	move.l a1,-(a7)
+	lea.l app_00A2(a6),a0
+	bsr.w loc_0_00000A20
+	lea.l app_00B0(a6),a0
+	bsr.w loc_0_00000A20
+	clr.l app_0046(a6)
+	movea.l (a7)+,a1
+	rts
+loc_0_00000A20:
+	movea.l (a0),a1
+	move.l (a1),d0
+	beq.b loc_0_00000A2E
+	move.l d0,(a0)
+	exg d0,a1
+	move.l a0,$0004(a1)
+loc_0_00000A2E:
+	tst.l d0
+	beq.w loc_0_00000A3C
+	movea.l d0,a1
+	bsr.w loc_0_00000A3E
+	bra.b loc_0_00000A20
+loc_0_00000A3C:
+	rts
+loc_0_00000A3E:
+	bset.b #5,$001E(a1)
+	move.b #$FE,$001F(a1)
+	btst.b #0,$001E(a1)
+	bne.b loc_0_00000A5E
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$017A(a6)
+	movea.l (a7)+,a6
+loc_0_00000A5E:
+	rts
 loc_0_00000A60:
-	dc.b $20,$7C,$00,$BF,$D0,$FE,$10,$10,$08,$2E,$00,$02,$00,$45,$67,$10
-	dc.b $02,$00,$00,$EF,$08,$2E,$00,$03,$01,$D8,$67,$04,$08,$C0,$00,$04
-	dc.b $02,$00,$00,$FC,$13,$40,$00,$51,$13,$6E,$01,$D6,$00,$50,$02,$29
-	dc.b $00,$1F,$00,$50,$02,$2E,$00,$F9,$01,$D6,$23,$6E,$00,$3A,$00,$20
-	dc.b $60,$00,$FA,$24
+	movea.l #$BFD0FE,a0
+	move.b (a0),d0
+	btst.b #2,app_0045(a6)
+	beq.b loc_0_00000A80
+	andi.b #239,d0
+	btst.b #3,app_01D8(a6)
+	beq.b loc_0_00000A80
+	bset #4,d0
+loc_0_00000A80:
+	andi.b #252,d0
+	move.b d0,$0051(a1)
+	move.b app_01D6(a6),$0050(a1)
+	andi.b #31,$0050(a1)
+	andi.b #249,app_01D6(a6)
+	move.l app_003A(a6),$0020(a1)
+	bra.w loc_0_000004C6
 loc_0_00000AA4:
-	dc.b $08,$A9,$00,$00,$00,$1E,$08,$29,$00,$03,$00,$4F,$67,$10,$4A,$6E
-	dc.b $00,$48,$66,$00,$FC,$64,$4A,$AE,$00,$4E,$66,$00,$FC,$5C,$08,$EE
-	dc.b $00,$05,$01,$D6,$20,$2E,$00,$6A,$61,$00,$00,$64,$2D,$49,$00,$4E
-	dc.b $20,$7C,$00,$DF,$F0,$9E,$30,$BC,$88,$00,$4E,$75
+	bclr.b #0,$001E(a1)
+	btst.b #3,$004F(a1)
+	beq.b loc_0_00000AC2
+	tst.w app_0048(a6)
+	bne.w loc_0_0000071C
+	tst.l app_004E(a6)
+	bne.w loc_0_0000071C
+loc_0_00000AC2:
+	bset.b #5,app_01D6(a6)
+	move.l app_006A(a6),d0
+	bsr.w loc_0_00000B32
+	move.l a1,app_004E(a6)
+	movea.l #$DFF09E,a0
+	move.w #$8800,(a0)
+	rts
 loc_0_00000AE0:
 	dc.b $08,$A9,$00,$05,$01,$D6,$67,$38,$48,$E7,$00,$42,$2C,$49,$22,$6E
 	dc.b $00,$4E,$67,$28,$0C,$69,$00,$0A,$00,$1C,$66,$20,$08,$EE,$00,$01
 	dc.b $01,$D6,$42,$AE,$00,$4E,$20,$7C,$00,$DF,$F0,$9E,$30,$BC,$08,$00
 	dc.b $2F,$0E,$2C,$6E,$00,$62,$4E,$AE,$FE,$86,$2C,$5F,$4C,$DF,$42,$00
 	dc.b $08,$29,$00,$07,$01,$D8,$66,$08,$33,$FC,$80,$01,$00,$DF,$F0,$9A
-	dc.b $4E,$75,$48,$E7,$00,$42,$33,$FC,$00,$01,$00,$DF,$F0,$9A,$43,$EE
-	dc.b $01,$22,$0C,$29,$00,$05,$00,$08,$67,$32,$42,$A9,$00,$20,$0C,$80
-	dc.b $00,$00,$02,$58,$62,$06,$20,$3C,$00,$00,$02,$58,$00,$00,$00,$FF
-	dc.b $23,$40,$00,$24,$33,$7C,$00,$09,$00,$1C,$42,$29,$00,$1E,$2C,$69
-	dc.b $00,$14,$4E,$AE,$FF,$E2,$4C,$DF,$42,$00,$4E,$75,$4C,$DF,$42,$00
-	dc.b $4E,$75,$00,$00
+	dc.b $4E,$75
+loc_0_00000B32:
+	movem.l a1/a6,-(a7)
+	move.w #INTF_TBE,_custom+intena.l
+	lea.l app_0122(a6),a1
+	cmpi.b #5,$0008(a1)
+	beq.b loc_0_00000B7C
+	clr.l $0020(a1)
+	cmpi.l #600,d0
+	bhi.b loc_0_00000B5C
+	move.l #$258,d0
+loc_0_00000B5C:
+	ori.b #255,d0
+	move.l d0,$0024(a1)
+	move.w #$9,$001C(a1)
+	clr.b $001E(a1)
+	movea.l $0014(a1),a6
+	jsr -$001E(a6)
+	movem.l (a7)+,a1/a6
+	rts
+loc_0_00000B7C:
+	movem.l (a7)+,a1/a6
+	rts
+	dc.b $00,$00
 loc_0_00000B84:
-	dc.b $08,$29,$00,$07,$00,$4F,$67,$26,$08,$EE,$00,$07,$00,$45,$08,$AE
-	dc.b $00,$02,$01,$D8,$08,$2E,$00,$03,$01,$D8,$67,$18,$08,$A9,$00,$07
-	dc.b $00,$4F,$61,$00,$07,$52,$08,$E9,$00,$07,$00,$4F,$60,$06,$08,$AE
-	dc.b $00,$07,$00,$45,$08,$2E,$00,$01,$01,$D8,$66,$14,$4A,$AE,$00,$4E
-	dc.b $66,$0E,$08,$29,$00,$04,$00,$1E,$66,$06,$4A,$AE,$00,$46,$67,$0A
-	dc.b $13,$7C,$00,$01,$00,$1F,$60,$00,$00,$16,$33,$FC,$08,$01,$00,$DF
-	dc.b $F0,$9A,$61,$00,$00,$0E,$33,$FC,$88,$01,$00,$DF,$F0,$9A,$60,$00
-	dc.b $F8,$D2,$48,$E7,$20,$10,$4A,$29,$00,$4C,$67,$00,$01,$48,$0C,$29
-	dc.b $00,$08,$00,$4C,$6E,$00,$01,$3E,$4A,$29,$00,$4D,$67,$00,$01,$36
-	dc.b $0C,$29,$00,$08,$00,$4D,$6E,$00,$01,$2C,$0C,$29,$00,$02,$00,$4E
-	dc.b $6E,$00,$01,$22,$20,$29,$00,$3C,$0C,$80,$00,$00,$00,$70,$6D,$00
-	dc.b $01,$14,$0C,$80,$00,$04,$74,$A0,$6E,$00,$01,$0A,$4A,$A9,$00,$30
-	dc.b $67,$00,$01,$02,$1D,$69,$00,$4C,$00,$42,$1D,$69,$00,$4D,$00,$43
-	dc.b $1D,$69,$00,$4E,$00,$44,$2D,$69,$00,$30,$00,$22,$2D,$69,$00,$38
-	dc.b $01,$BA,$08,$29,$00,$04,$00,$4F,$67,$06,$08,$E9,$00,$07,$00,$4F
-	dc.b $08,$29,$00,$01,$00,$3B,$67,$06,$08,$E9,$00,$00,$00,$4F,$10,$2E
-	dc.b $00,$45,$02,$00,$00,$20,$1D,$69,$00,$4F,$00,$45,$81,$2E,$00,$45
-	dc.b $13,$6E,$00,$45,$00,$4F,$2D,$69,$00,$3C,$01,$C2,$61,$00,$00,$C2
-	dc.b $2D,$69,$00,$44,$00,$6E,$2D,$69,$00,$48,$00,$72,$61,$00,$00,$3E
-	dc.b $4A,$A9,$00,$40,$67,$00,$00,$8E,$2D,$69,$00,$40,$00,$6A,$20,$2E
-	dc.b $00,$36,$B0,$A9,$00,$34,$67,$1E,$24,$29,$00,$34,$0C,$82,$00,$00
-	dc.b $00,$40,$6D,$0C,$26,$6E,$00,$26,$61,$00,$F6,$6A,$4A,$80,$66,$06
-	dc.b $13,$7C,$00,$04,$00,$1F,$4C,$DF,$08,$04,$4E,$75,$42,$80,$42,$81
-	dc.b $10,$29,$00,$4D,$4A,$29,$00,$4E,$67,$0E,$01,$C1,$0C,$29,$00,$02
-	dc.b $00,$4E,$66,$04,$E3,$49,$01,$C1,$08,$2E,$00,$00,$00,$45,$67,$02
-	dc.b $E3,$49,$3D,$41,$01,$D4,$61,$00,$00,$16,$3D,$40,$01,$D2,$42,$40
-	dc.b $10,$29,$00,$4C,$61,$00,$00,$08,$3D,$40,$01,$D0,$4E,$75,$08,$2E
-	dc.b $00,$00,$00,$45,$66,$02,$53,$40,$E3,$48,$41,$FA,$00,$10,$30,$30
-	dc.b $00,$00,$4E,$75,$13,$7C,$00,$05,$00,$1F,$60,$9A,$00,$01,$00,$03
-	dc.b $00,$07,$00,$0F,$00,$1F,$00,$3F,$00,$7F,$00,$FF,$01,$FF,$03,$FF
-	dc.b $20,$2E,$01,$C2,$22,$00,$E7,$88,$90,$81,$2F,$09,$22,$6E,$00,$62
-	dc.b $72,$00,$12,$29,$02,$13,$22,$7C,$01,$7D,$78,$40,$0C,$01,$00,$32
-	dc.b $66,$00,$00,$08,$22,$7C,$01,$79,$FF,$40,$22,$09,$22,$5F,$0C,$80
-	dc.b $00,$00,$FF,$FF,$6F,$0E,$EA,$88,$82,$C0,$02,$81,$00,$00,$FF,$FF
-	dc.b $EA,$89,$60,$02,$82,$C0,$3D,$41,$01,$CE,$30,$2E,$01,$CE,$08,$AE
-	dc.b $00,$05,$01,$D8,$0C,$2E,$00,$08,$00,$42,$66,$12,$08,$2E,$00,$00
-	dc.b $00,$45,$67,$0A,$08,$C0,$00,$0F,$08,$EE,$00,$05,$01,$D8,$33,$C0
-	dc.b $00,$DF,$F0,$32,$4E,$75,$00,$00
+	btst.b #7,$004F(a1)
+	beq.b loc_0_00000BB2
+	bset.b #7,app_0045(a6)
+	bclr.b #2,app_01D8(a6)
+	btst.b #3,app_01D8(a6)
+	beq.b loc_0_00000BB8
+	bclr.b #7,$004F(a1)
+	bsr.w loc_0_000012FA
+	bset.b #7,$004F(a1)
+	bra.b loc_0_00000BB8
+loc_0_00000BB2:
+	bclr.b #7,app_0045(a6)
+loc_0_00000BB8:
+	btst.b #1,app_01D8(a6)
+	bne.b loc_0_00000BD4
+	tst.l app_004E(a6)
+	bne.b loc_0_00000BD4
+	btst.b #4,$001E(a1)
+	bne.b loc_0_00000BD4
+	tst.l app_0046(a6)
+	beq.b loc_0_00000BDE
+loc_0_00000BD4:
+	move.b #$1,$001F(a1)
+	bra.w loc_0_00000BF2
+loc_0_00000BDE:
+	move.w #INTF_RBF|INTF_TBE,_custom+intena.l
+	bsr.w loc_0_00000BF6
+	move.w #INTF_SETCLR|INTF_RBF|INTF_TBE,_custom+intena.l
+loc_0_00000BF2:
+	bra.w loc_0_000004C6
+loc_0_00000BF6:
+	movem.l d2/a3,-(a7)
+	tst.b $004C(a1)
+	beq.w loc_0_00000D48
+	cmpi.b #8,$004C(a1)
+	bgt.w loc_0_00000D48
+	tst.b $004D(a1)
+	beq.w loc_0_00000D48
+	cmpi.b #8,$004D(a1)
+	bgt.w loc_0_00000D48
+	cmpi.b #2,$004E(a1)
+	bgt.w loc_0_00000D48
+	move.l $003C(a1),d0
+	cmpi.l #112,d0
+	blt.w loc_0_00000D48
+	cmpi.l #292000,d0
+	bgt.w loc_0_00000D48
+	tst.l $0030(a1)
+	beq.w loc_0_00000D48
+	move.b $004C(a1),app_0042(a6)
+	move.b $004D(a1),app_0043(a6)
+	move.b $004E(a1),app_0044(a6)
+	move.l $0030(a1),app_0022(a6)
+	move.l $0038(a1),app_01BA(a6)
+	btst.b #4,$004F(a1)
+	beq.b loc_0_00000C74
+	bset.b #7,$004F(a1)
+loc_0_00000C74:
+	btst.b #1,$003B(a1)
+	beq.b loc_0_00000C82
+	bset.b #0,$004F(a1)
+loc_0_00000C82:
+	move.b app_0045(a6),d0
+	andi.b #32,d0
+	move.b $004F(a1),app_0045(a6)
+	or.b d0,app_0045(a6)
+	move.b app_0045(a6),$004F(a1)
+	move.l $003C(a1),app_01C2(a6)
+	bsr.w loc_0_00000D64
+	move.l $0044(a1),app_006E(a6)
+	move.l $0048(a1),app_0072(a6)
+	bsr.w loc_0_00000CF0
+	tst.l $0040(a1)
+	beq.w loc_0_00000D48
+	move.l $0040(a1),app_006A(a6)
+	move.l app_0036(a6),d0
+	cmp.l $0034(a1),d0
+	beq.b loc_0_00000CEA
+	move.l $0034(a1),d2
+	cmpi.l #64,d2
+	blt.b loc_0_00000CE4
+	movea.l app_0026(a6),a3
+	bsr.w loc_0_00000348
+	tst.l d0
+	bne.b loc_0_00000CEA
+loc_0_00000CE4:
+	move.b #$4,$001F(a1)
+loc_0_00000CEA:
+	movem.l (a7)+,d2/a3
+	rts
+loc_0_00000CF0:
+	clr.l d0
+	clr.l d1
+	move.b $004D(a1),d0
+	tst.b $004E(a1)
+	beq.b loc_0_00000D0C
+	bset d0,d1
+	cmpi.b #2,$004E(a1)
+	bne.b loc_0_00000D0C
+	lsl.w #1,d1
+	bset d0,d1
+loc_0_00000D0C:
+	btst.b #0,app_0045(a6)
+	beq.b loc_0_00000D16
+	lsl.w #1,d1
+loc_0_00000D16:
+	move.w d1,app_01D4(a6)
+	bsr.w loc_0_00000D32
+	move.w d0,app_01D2(a6)
+	clr.w d0
+	move.b $004C(a1),d0
+	bsr.w loc_0_00000D32
+	move.w d0,app_01D0(a6)
+	rts
+loc_0_00000D32:
+	btst.b #0,app_0045(a6)
+	bne.b loc_0_00000D3C
+	subq.w #1,d0
+loc_0_00000D3C:
+	lsl.w #1,d0
+	lea.l loc_0_00000D50(pc),a0
+	move.w $0(a0,d0.w),d0
+	rts
+loc_0_00000D48:
+	move.b #$5,$001F(a1)
+	bra.b loc_0_00000CEA
+loc_0_00000D50:
+	dc.b $00,$01,$00,$03,$00,$07,$00,$0F,$00,$1F,$00,$3F,$00,$7F,$00,$FF
+	dc.b $01,$FF,$03,$FF
+loc_0_00000D64:
+	move.l app_01C2(a6),d0
+	move.l d0,d1
+	lsl.l #3,d0
+	sub.l d1,d0
+	move.l a1,-(a7)
+	movea.l app_0062(a6),a1
+	moveq.l #0,d1
+	move.b $0213(a1),d1
+	movea.l #$17D7840,a1
+	cmpi.b #50,d1
+	bne.w loc_0_00000D8E
+	movea.l #$179FF40,a1
+loc_0_00000D8E:
+	move.l a1,d1
+	movea.l (a7)+,a1
+	cmpi.l #65535,d0
+	ble.b loc_0_00000DA8
+	lsr.l #5,d0
+	divu.w d0,d1
+	andi.l #65535,d1
+	lsr.l #5,d1
+	bra.b loc_0_00000DAA
+loc_0_00000DA8:
+	divu.w d0,d1
+loc_0_00000DAA:
+	move.w d1,app_01CE(a6)
+	move.w app_01CE(a6),d0
+	bclr.b #5,app_01D8(a6)
+	cmpi.b #8,app_0042(a6)
+	bne.b loc_0_00000DD2
+	btst.b #0,app_0045(a6)
+	beq.b loc_0_00000DD2
+	bset #15,d0
+	bset.b #5,app_01D8(a6)
+loc_0_00000DD2:
+	move.w d0,_custom+serper.l
+	rts
+	dc.b $00,$00
 loc_0_00000DDC:
 	dc.b $E0,$00,$00,$08,$03,$00,$C0,$00,$00,$0A
 	dc.l resident_name
@@ -317,7 +1002,7 @@ loc_0_00000DDC:
 	dc.b $02,$00,$C0,$00,$01,$BE,$69,$96,$69,$96,$00,$00
 resident_init:
 	movem.l a0/a2,-(a7)
-	lea.l loc_0_0000007C(pc),a0
+	lea.l resident_vectors(pc),a0
 	lea.l loc_0_00000DDC(pc),a1
 	suba.l a2,a2
 	move.l #$1DE,d0
@@ -435,12 +1120,34 @@ loc_0_00000FE0:
 	clr.l d0
 	bra.b loc_0_00000FDE
 loc_0_00000FE4:
-	dc.b $42,$A9,$00,$20,$22,$29,$00,$24,$67,$00,$F4,$D8,$4A,$6E,$00,$46
-	dc.b $66,$0C,$4A,$AE,$00,$4A,$66,$06,$B2,$AE,$00,$3A,$63,$06,$08,$A9
-	dc.b $00,$00,$00,$1E,$08,$E9,$00,$06,$00,$1E,$41,$EE,$00,$A2,$41,$E8
-	dc.b $00,$04,$20,$28,$00,$04,$21,$49,$00,$04,$22,$88,$23,$40,$00,$04
-	dc.b $20,$40,$20,$89,$52,$6E,$00,$46,$43,$EE,$00,$D4,$2F,$0E,$2C,$6E
-	dc.b $00,$62,$4E,$AE,$FF,$4C,$2C,$5F,$4E,$75
+	clr.l $0020(a1)
+	move.l $0024(a1),d1
+	beq.w loc_0_000004C6
+	tst.w app_0046(a6)
+	bne.b loc_0_00001002
+	tst.l app_004A(a6)
+	bne.b loc_0_00001002
+	cmp.l app_003A(a6),d1
+	bls.b loc_0_00001008
+loc_0_00001002:
+	bclr.b #0,$001E(a1)
+loc_0_00001008:
+	bset.b #6,$001E(a1)
+	lea.l app_00A2(a6),a0
+	lea.l $0004(a0),a0
+	move.l $0004(a0),d0
+	move.l a1,$0004(a0)
+	move.l a0,(a1)
+	move.l d0,$0004(a1)
+	movea.l d0,a0
+	move.l a1,(a0)
+	addq.w #1,app_0046(a6)
+	lea.l app_00D4(a6),a1
+	move.l a6,-(a7)
+	movea.l app_0062(a6),a6
+	jsr -$00B4(a6)
+	movea.l (a7)+,a6
+	rts
 loc_0_0000103E:
 	dc.b $48,$E7,$20,$02,$2C,$49,$20,$2E,$00,$4A,$66,$46,$4A,$6E,$00,$46
 	dc.b $6F,$00,$01,$36,$41,$EE,$00,$A2,$22,$50,$20,$11,$67,$08,$20,$80
@@ -487,12 +1194,28 @@ loc_0_000011EC:
 	dc.b $00,$2A,$52,$AE,$00,$3A,$B1,$EE,$00,$32,$6D,$06,$2D,$6E,$00,$26
 	dc.b $00,$2A,$92,$AE,$01,$CA,$B2,$AE,$00,$3A,$6C,$10,$60,$0C,$4A,$AE
 	dc.b $00,$3E,$66,$06,$2D,$6E,$00,$2A,$00,$3E,$61,$30,$43,$EE,$00,$D4
-	dc.b $2C,$6E,$00,$62,$4E,$AE,$FF,$4C,$4C,$DF,$40,$04,$4E,$75,$1D,$6E
-	dc.b $00,$22,$01,$D9,$08,$AE,$00,$03,$01,$D8,$08,$2E,$00,$02,$00,$45
-	dc.b $67,$26,$08,$B9,$00,$06,$00,$BF,$D0,$00,$60,$1C,$1D,$6E,$00,$23
-	dc.b $01,$D9,$08,$EE,$00,$03,$01,$D8,$08,$2E,$00,$02,$00,$45,$67,$08
-	dc.b $08,$F9,$00,$06,$00,$BF,$D0,$00,$08,$2E,$00,$07,$00,$45,$66,$0A
-	dc.b $33,$FC,$80,$01,$00,$DF,$F0,$9A,$4E,$75,$42,$2E,$01,$D9,$4E,$75
+	dc.b $2C,$6E,$00,$62,$4E,$AE,$FF,$4C,$4C,$DF,$40,$04,$4E,$75
+loc_0_000012FA:
+	move.b app_0022(a6),app_01D9(a6)
+	bclr.b #3,app_01D8(a6)
+	btst.b #2,app_0045(a6)
+	beq.b loc_0_00001334
+	bclr.b #CIAB_COMRTS,_ciab+ciapra.l
+	bra.b loc_0_00001334
+loc_0_00001318:
+	move.b app_0023(a6),app_01D9(a6)
+	bset.b #3,app_01D8(a6)
+	btst.b #2,app_0045(a6)
+	beq.b loc_0_00001334
+	bset.b #CIAB_COMRTS,_ciab+ciapra.l
+loc_0_00001334:
+	btst.b #7,app_0045(a6)
+	bne.b loc_0_00001346
+	move.w #INTF_SETCLR|INTF_TBE,_custom+intena.l
+	rts
+loc_0_00001346:
+	clr.b app_01D9(a6)
+	rts
 	dc.b $08,$2E,$00,$06,$01,$D6,$66,$A0,$08,$EE,$00,$06,$01,$D6,$2F,$09
 	dc.b $43,$EE,$01,$82,$42,$A9,$00,$20,$20,$2E,$00,$6A,$E2,$88,$66,$02
 	dc.b $70,$7F,$23,$40,$00,$24,$33,$7C,$00,$09,$00,$1C,$2F,$0E,$2C,$69

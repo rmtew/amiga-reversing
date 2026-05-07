@@ -26,28 +26,34 @@ resident_init:
 	jsr loc_1_00000000.l
 	addq.w #8,a7
 	rts
-loc_0_0000005C:
+    ; KNOWN: base A6=clipboard.device:LIB
+clipboard_device_dev_abortio:
 	movem.l d0/a1,-(a7)
 	jsr loc_1_00000AA6.l
 	addq.w #8,a7
 	rts
-loc_0_0000006A:
+    ; KNOWN: base A6=clipboard.device:LIB
+clipboard_device_dev_beginio:
 	move.l a1,-(a7)
 	jsr loc_1_00000D80.l
 	addq.w #4,a7
 	rts
-loc_0_00000076:
+    ; KNOWN: base A6=clipboard.device:LIB
+clipboard_device_lib_extfunc:
 	jmp loc_1_00000EB0.l
-loc_0_0000007C:
+    ; KNOWN: base A6=clipboard.device:LIB
+clipboard_device_lib_close:
 	move.l a1,-(a7)
 	jsr loc_1_00000EEA.l
 	addq.w #4,a7
 	rts
-loc_0_00000088:
+    ; KNOWN: base A6=clipboard.device:LIB
+clipboard_device_lib_open:
 	move.l a1,-(a7)
 	jsr loc_1_00000F32.l
 	addq.w #4,a7
-loc_0_00000092:
+    ; KNOWN: base A6=clipboard.device:LIB
+clipboard_device_lib_expunge:
 	rts
     SECTION section_1,code
 loc_1_00000000:
@@ -412,7 +418,7 @@ loc_1_00000AA6:
 	move.l $0008(a6),d2
 	movea.l $000C(a6),a2
 	move.l #loc_5_00000000,d3
-	move.l #loc_2_00000068,d4
+	move.l #resident_vectors,d4
 	jsr loc_8_00000000.l
 	movea.l d4,a5
 	andi.b #247,$0032(a5)
@@ -744,7 +750,7 @@ loc_1_00000EA4:
 	rts
 loc_1_00000EB0:
 	move.l a2,-(a7)
-	movea.l #loc_2_00000068,a2
+	movea.l #resident_vectors,a2
 	tst.w $0044(a2)
 	bne.b loc_1_00000EDE
 	move.l loc_2_00000112.l,-(a7)
@@ -823,18 +829,18 @@ loc_2_0000004E:
 loc_2_00000058:
 	dc.b "clipboard.unit",$00	; string
 	dc.b $00
-loc_2_00000068:
-	jmp loc_0_00000088.l
+resident_vectors:
+	jmp clipboard_device_lib_open.l
 loc_2_0000006E:
-	jmp loc_0_0000007C.l
+	jmp clipboard_device_lib_close.l
 loc_2_00000074:
-	jmp loc_0_00000092.l
+	jmp clipboard_device_lib_expunge.l
 loc_2_0000007A:
-	jmp loc_0_00000076.l
+	jmp clipboard_device_lib_extfunc.l
 loc_2_00000080:
-	jmp loc_0_0000006A.l
+	jmp clipboard_device_dev_beginio.l
 loc_2_00000086:
-	jmp loc_0_0000005C.l
+	jmp clipboard_device_dev_abortio.l
 loc_2_0000008C:
 	dcb.b $8,$00
 	dc.b $03,$00

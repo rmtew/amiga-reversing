@@ -2421,6 +2421,192 @@ static int policy_decode_target_is_instruction_local(const M68kObject *object, c
   return section_analysis_context_probe_decode(&ctx, offset, &decode);
 }
 
+static uint32_t resident_vector_prefix_count_local(const char *target_type) {
+  size_t prefix_index;
+  uint32_t count = 0U;
+  if (target_type == NULL || target_type[0] == '\0') return 0U;
+  for (prefix_index = 0U; prefix_index < AMIGA_OS_RESIDENT_VECTOR_PREFIX_COUNT; ++prefix_index) {
+    const AmigaOsResidentVectorPrefixInfo *prefix = amiga_os_resident_vector_prefix_at(prefix_index);
+    if (prefix == NULL || strcmp(prefix->target_type, target_type) != 0) continue;
+    if (prefix->slot_index + 1U > count) count = prefix->slot_index + 1U;
+  }
+  return count;
+}
+
+static uint32_t fixup_width_bytes_policy_local(const M68kFixup *fixup) {
+  if (fixup == NULL) return 0U;
+  switch (fixup->width) {
+    case M68K_FIXUP_WIDTH_8: return 1U;
+    case M68K_FIXUP_WIDTH_16: return 2U;
+    case M68K_FIXUP_WIDTH_32: return 4U;
+    default: return 0U;
+  }
+}
+
+static int fixup_target_offset_policy_local(const M68kObject *object, const M68kFixup *fixup,
+    uint32_t *out_offset) {
+  const M68kSection *source_section;
+  const M68kSection *target_section;
+  uint32_t width;
+  uint32_t target_extent;
+  uint32_t raw_value;
+  int64_t computed_target;
+  if (out_offset != NULL) *out_offset = 0U;
+  if (object == NULL || fixup == NULL || out_offset == NULL || !fixup->has_target_section ||
+      fixup->section_index >= object->section_count || fixup->target_section_index >= object->section_count) {
+    return 0;
+  }
+  source_section = &object->sections[fixup->section_index];
+  target_section = &object->sections[fixup->target_section_index];
+  width = fixup_width_bytes_policy_local(fixup);
+  target_extent = target_section->size != 0U ? target_section->size : target_section->data_size;
+  if (width == 0U || fixup->offset > source_section->data_size || width > source_section->data_size - fixup->offset)
+    return 0;
+  if (width == 1U) raw_value = source_section->data[fixup->offset];
+  else if (width == 2U) raw_value = read_be16_local(source_section->data + fixup->offset);
+  else raw_value = read_be32_local(source_section->data + fixup->offset);
+  if (fixup->kind == M68K_FIXUP_PC_REL) {
+    int32_t signed_value = width == 1U ? (int8_t)raw_value : (width == 2U ? (int16_t)raw_value : (int32_t)raw_value);
+    computed_target = (int64_t)fixup->offset + (int64_t)signed_value;
+  } else if (fixup->kind == M68K_FIXUP_ABS || fixup->kind == M68K_FIXUP_SECTION_REL) {
+    computed_target = raw_value;
+  } else {
+    return 0;
+  }
+  if (computed_target < 0 || computed_target > (int64_t)target_extent) return 0;
+  *out_offset = (uint32_t)computed_target;
+  return 1;
+}
+
+static const M68kFixup *find_relocation_fixup_policy_local(const M68kObject *object, uint32_t section_index,
+    uint32_t offset, M68kFixupWidth width) {
+  size_t fixup_index;
+  if (object == NULL) return NULL;
+  for (fixup_index = 0U; fixup_index < object->fixup_count; ++fixup_index) {
+    const M68kFixup *fixup = &object->fixups[fixup_index];
+    if (fixup->section_index == section_index && fixup->offset == offset && fixup->width == width)
+      return fixup;
+  }
+  return NULL;
+}
+
+static int policy_probe_relocated_jump_template_entry_local(const M68kObject *object,
+    const M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset, uint32_t *out_byte_count,
+    ResidentVectorMetadataEntryLocal *out_entry) {
+  SectionAnalysisContext ctx;
+  SectionDecodeResult decode;
+  M68kInstructionIR *instruction;
+  const M68kSimFormMetadata *metadata;
+  uint32_t cursor;
+  uint32_t end;
+  if (out_byte_count != NULL) *out_byte_count = 0U;
+  if (out_entry != NULL) memset(out_entry, 0, sizeof(*out_entry));
+  if (object == NULL || policy == NULL || out_byte_count == NULL || out_entry == NULL ||
+      section_index >= object->section_count || object->sections[section_index].data == NULL) {
+    return 0;
+  }
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.object = object;
+  ctx.section_index = section_index;
+  ctx.section = &object->sections[section_index];
+  ctx.analysis_policy = policy;
+  if (!section_analysis_context_probe_decode(&ctx, offset, &decode)) return 0;
+  instruction = &decode.instruction;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL || metadata->flow_kind != M68K_SIM_FLOW_JUMP || metadata->flow_conditional != 0U ||
+      instruction->byte_count == 0U || instruction->byte_count > UINT32_MAX - offset) {
+    return 0;
+  }
+  end = offset + (uint32_t)instruction->byte_count;
+  for (cursor = offset; cursor < end; ++cursor) {
+    const M68kFixup *fixup = find_relocation_fixup_policy_local(object, section_index, cursor, M68K_FIXUP_WIDTH_32);
+    uint32_t target_offset = 0U;
+    if (fixup == NULL || !fixup->has_target_section || fixup->target_section_index >= object->section_count ||
+        !fixup_target_offset_policy_local(object, fixup, &target_offset)) {
+      continue;
+    }
+    if (object->sections[fixup->target_section_index].kind != M68K_SECTION_CODE ||
+        target_offset >= object->sections[fixup->target_section_index].data_size || (target_offset & 1U) != 0U ||
+        !policy_decode_target_is_instruction_local(object, policy, (uint32_t)fixup->target_section_index,
+          target_offset)) {
+      continue;
+    }
+    *out_byte_count = (uint32_t)instruction->byte_count;
+    out_entry->hunk = (uint32_t)fixup->target_section_index;
+    out_entry->offset = target_offset;
+    return 1;
+  }
+  return 0;
+}
+
+static int infer_resident_jump_template_vector_table_local(M68kAnalysisPolicy *policy, const M68kObject *object,
+    const char *target_type, const char *library_name, uint32_t library_version) {
+  typedef struct ResidentJumpTemplateVectorGroupLocal {
+    uint32_t section_index;
+    uint32_t offset;
+    uint32_t entry_count;
+  } ResidentJumpTemplateVectorGroupLocal;
+  ResidentJumpTemplateVectorGroupLocal selected;
+  uint32_t min_entries = resident_vector_prefix_count_local(target_type);
+  uint32_t group_count = 0U;
+  size_t section_index;
+  if (policy == NULL || object == NULL || min_entries == 0U) return 1;
+  memset(&selected, 0, sizeof(selected));
+  for (section_index = 0U; section_index < object->section_count; ++section_index) {
+    const M68kSection *section = &object->sections[section_index];
+    uint32_t offset;
+    if (section->data == NULL || section->data_size == 0U) continue;
+    for (offset = 0U; offset < section->data_size;) {
+      ResidentVectorMetadataEntryLocal entry;
+      uint32_t byte_count = 0U;
+      uint32_t cursor;
+      uint32_t entry_count = 0U;
+      if (!policy_probe_relocated_jump_template_entry_local(object, policy, (uint32_t)section_index, offset,
+          &byte_count, &entry) || byte_count == 0U) {
+        ++offset;
+        continue;
+      }
+      cursor = offset;
+      do {
+        ++entry_count;
+        if (byte_count > UINT32_MAX - cursor) break;
+        cursor += byte_count;
+      } while (cursor < section->data_size &&
+               policy_probe_relocated_jump_template_entry_local(object, policy, (uint32_t)section_index, cursor,
+                 &byte_count, &entry) && byte_count != 0U);
+      if (entry_count >= min_entries) {
+        ++group_count;
+        selected.section_index = (uint32_t)section_index;
+        selected.offset = offset;
+        selected.entry_count = entry_count;
+      }
+      offset = cursor > offset ? cursor : offset + 1U;
+    }
+  }
+  if (group_count != 1U) return 1;
+  {
+    uint32_t vector_index;
+    uint32_t cursor = selected.offset;
+    uint32_t next_private_ordinal = 1U;
+    uint32_t first_code_offset = UINT32_MAX;
+    if (!policy_add_named_label_local(policy, selected.section_index, selected.offset, "resident_vectors")) return 0;
+    for (vector_index = 0U; vector_index < selected.entry_count; ++vector_index) {
+      ResidentVectorMetadataEntryLocal entry;
+      uint32_t byte_count = 0U;
+      if (!policy_probe_relocated_jump_template_entry_local(object, policy, selected.section_index, cursor,
+          &byte_count, &entry) || byte_count == 0U) {
+        return 0;
+      }
+      if (!policy_add_resident_vector_entrypoint_local(policy, &entry, vector_index, target_type, library_name,
+          library_version, &next_private_ordinal, &first_code_offset, entry.hunk)) {
+        return 0;
+      }
+      cursor += byte_count;
+    }
+  }
+  return 1;
+}
+
 static int policy_add_non_autoinit_vector_table_local(M68kAnalysisPolicy *policy, const M68kObject *object,
     uint32_t hunk, uint32_t vectors_offset, const char *target_type, const char *library_name,
     uint32_t library_version, uint32_t *inout_first_code_offset) {
@@ -2691,6 +2877,11 @@ static int enrich_policy_from_object_target_info_local(M68kAnalysisPolicy *polic
       } else if (has_init_offset) {
         (void)enrich_policy_from_non_autoinit_resident_make_library_local(policy, object, has_hunk ? hunk : 0U,
           init_offset, inspected_target_type, library_name, has_library_version ? library_version : 0U);
+      }
+      if (!infer_resident_jump_template_vector_table_local(policy, object, inspected_target_type, library_name,
+          has_library_version ? library_version : 0U)) {
+        free(inspect_json);
+        return 0;
       }
     } else {
       m68k_diag_list_reset(&ignored_diagnostics);

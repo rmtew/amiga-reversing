@@ -4359,13 +4359,32 @@ def test_real_dll_carrier_clipboard_relocation_backed_jump_templates_are_code() 
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
     assert (
-        "loc_2_00000068:\n"
-        "\tjmp loc_0_00000088.l\n"
+        "resident_vectors:\n"
+        "\tjmp clipboard_device_lib_open.l\n"
         "loc_2_0000006E:\n"
-        "\tjmp loc_0_0000007C.l\n"
+        "\tjmp clipboard_device_lib_close.l\n"
     ) in source_text
-    assert "loc_0_0000005C:\n\tmovem.l d0/a1,-(a7)\n" in source_text
+    assert "clipboard_device_dev_abortio:\n\tmovem.l d0/a1,-(a7)\n" in source_text
+    assert "clipboard_device_dev_beginio:\n\tmove.l a1,-(a7)\n" in source_text
     assert "\tdc.b $4E,$F9\n\tdc.l loc_0_00000088\n" not in source_text
+
+
+def test_real_dll_carrier_serial_device_renders_non_autoinit_vectors() -> None:
+    _requires_c_backend_dlls()
+
+    target_name = "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__serial.device_ddfdac2b"
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "resident_vectors:\n\tdc.b $FF,$FF\n" in source_text
+    assert "serial_device_lib_open:\n\tclr.b $001F(a1)\n" in source_text
+    assert "serial_device_dev_beginio:" in source_text
+    assert "    ; KNOWN: base A6=serial.device:LIB\nserial_device_lib_open:" in source_text
 
 
 def test_real_dll_carrier_ramdrive_relocation_backed_template_seeds_target_code() -> None:
@@ -4398,6 +4417,7 @@ def test_real_dll_monam_keeps_unrelocated_jump_bytes_as_data() -> None:
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
     assert "dc.b $4E,$F9" in source_text
+    assert "resident_vectors" not in source_text
     assert "    ORG $4\n" not in source_text
 
 
