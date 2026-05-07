@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import cast
 
-from amiga_reversing.disasm.c_backend import facts_v2_asm_source_project_source_with_c_backend_profile
+from amiga_reversing.disasm.c_backend import listing_artifact_source_text_with_c_backend_profile
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 
@@ -51,14 +51,14 @@ def facts_v2_source_gate_report_for_target(
     try:
         paths = resolve_project_paths(target, project_root=project_root, require_entities=False)
         with effective_metadata_file(paths.target_dir) as metadata_path:
-            source_text, raw_profile = facts_v2_asm_source_project_source_with_c_backend_profile(
+            source_text, raw_profile = listing_artifact_source_text_with_c_backend_profile(
                 paths.binary_source,
                 metadata_path=metadata_path,
                 project_root=project_root,
             )
             profile = raw_profile
     except OSError as exc:
-        source_errors["facts_v2_asm_source"] = str(exc)
+        source_errors["facts_v2_listing_artifact_source"] = str(exc)
     facts_v2 = _mapping_field(profile, "facts_v2")
     counters = _counter_values(facts_v2)
     gate_failures = _gate_failures(

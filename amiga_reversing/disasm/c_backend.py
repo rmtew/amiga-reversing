@@ -218,6 +218,22 @@ def render_project_source_with_c_backend(
     metadata_path: Path | None = None,
     project_root: Path = PROJECT_ROOT,
 ) -> str:
+    source_text, profile = listing_artifact_source_text_with_c_backend_profile(
+        binary_source,
+        metadata_path=metadata_path,
+        project_root=project_root,
+    )
+    if facts_v2_source_refused(profile):
+        raise FactsV2SourceRefused(profile)
+    return source_text
+
+
+def listing_artifact_source_text_with_c_backend_profile(
+    binary_source: BinarySource,
+    *,
+    metadata_path: Path | None = None,
+    project_root: Path = PROJECT_ROOT,
+) -> tuple[str, dict[str, object]]:
     metadata_text = _metadata_path_text(metadata_path)
     with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
         artifact = CListingArtifact.create(
@@ -228,9 +244,7 @@ def render_project_source_with_c_backend(
         )
     try:
         _summary, profile = artifact.summary_payload()
-        if facts_v2_source_refused(profile):
-            raise FactsV2SourceRefused(profile)
-        return artifact.source_text()
+        return artifact.source_text(), profile
     finally:
         artifact.close()
 
@@ -497,20 +511,12 @@ def benchmark_project_source_with_text_from_c_backend(
     metadata_path: Path | None = None,
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[dict[str, object], str]:
-    metadata_text = _metadata_path_text(metadata_path)
-    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
-        artifact = CListingArtifact.create(
-            source_file,
-            metadata_text=metadata_text,
-            include_dir=str(_platform_include_dir_for_listing(source_file.platform_name, project_root)),
-            project_root=project_root,
-        )
-    try:
-        _summary, profile = artifact.summary_payload()
-        source_text = artifact.source_text()
-        return _benchmark_from_facts_v2_asm_source_profile(profile), source_text
-    finally:
-        artifact.close()
+    source_text, profile = listing_artifact_source_text_with_c_backend_profile(
+        binary_source,
+        metadata_path=metadata_path,
+        project_root=project_root,
+    )
+    return _benchmark_from_facts_v2_asm_source_profile(profile), source_text
 
 
 def build_project_listing_artifact_generation_profile(

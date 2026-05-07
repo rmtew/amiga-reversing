@@ -262,6 +262,9 @@ The general Python source-render helper now uses the retained C listing
 artifact as well. It asks the artifact for summary/profile refusal state and
 then emits source from that same artifact, so CLI/source callers no longer
 exercise a separate source-text wrapper path.
+The facts_v2 source-readiness gate also uses the artifact source/profile helper,
+so source fingerprints and refusal counters are checked through the same
+retained render-plan artifact boundary.
 Reproduction mismatch row mapping now uses the retained C artifact as a
 source-offset lookup service. The artifact resolves a `(section_index,
 section_offset)` through the render plan, translates the owning plan row through
