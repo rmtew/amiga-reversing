@@ -4518,6 +4518,70 @@ static int test_facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage(void
   return 0;
 }
 
+static int test_facts_v2_contained_runtime_range_does_not_emit_second_org(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[24] = {
+    0x4eu, 0xf9u, 0x00u, 0x00u, 0x00u, 0x80u,
+    0x4eu, 0xf9u, 0x00u, 0x00u, 0x00u, 0x84u,
+    0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0x71u, 0x4eu, 0x75u,
+    0x4eu, 0x71u, 0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.entry_point_count = 2U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 0U;
+  policy.entry_points[0].offset = 0U;
+  policy.entry_points[1].has_section_index = 1U;
+  policy.entry_points[1].section_index = 0U;
+  policy.entry_points[1].offset = 6U;
+  policy.runtime_range_count = 2U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0x10U;
+  policy.runtime_ranges[0].size = 8U;
+  policy.runtime_ranges[0].runtime_address = 0x80U;
+  policy.runtime_ranges[1].has_section_index = 1U;
+  policy.runtime_ranges[1].section_index = 0U;
+  policy.runtime_ranges[1].offset = 0x14U;
+  policy.runtime_ranges[1].size = 4U;
+  policy.runtime_ranges[1].runtime_address = 0x84U;
+  policy.runtime_entry_point_count = 2U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 0x80U;
+  policy.runtime_entry_points[1].has_section_index = 1U;
+  policy.runtime_entry_points[1].section_index = 0U;
+  policy.runtime_entry_points[1].runtime_address = 0x84U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp abs_0_00000080.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp abs_0_00000084.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000010:\n    ORG $80\nabs_0_00000080:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000084:\n\tnop\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $84\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $14\n") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_mid_section_runtime_stub_does_not_org_back_to_storage(void) {
   M68kObject object;
   M68kSection section;
@@ -13453,6 +13517,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_word_dispatch_renders_bounded_unaccepted_lookup_table},
     {"facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage",
       test_facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage},
+    {"facts_v2_contained_runtime_range_does_not_emit_second_org",
+      test_facts_v2_contained_runtime_range_does_not_emit_second_org},
     {"facts_v2_mid_section_runtime_stub_does_not_org_back_to_storage",
       test_facts_v2_mid_section_runtime_stub_does_not_org_back_to_storage},
     {"facts_v2_detects_interrupt_vector_store_target",
