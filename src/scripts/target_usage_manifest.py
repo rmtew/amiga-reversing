@@ -1290,6 +1290,7 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
             stack_example["symbol"] = symbol
             bag.add("memory:absolute_stack_top", example=stack_example)
             bag.add(f"memory:absolute_stack_top:{_safe_part(symbol)}", example=stack_example)
+        _add_runtime_table_base_addend_features(bag, text, example)
         if _listing_row_label_symbol(row):
             bag.add("label:any", example=example)
             bag.add("label:definition", example=example)
@@ -1355,6 +1356,20 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
             _add_platform_typed_access_features(bag, access, example=example)
         for access in _dict_items(row.get("unresolved_typed_accesses")):
             _add_platform_unresolved_typed_access_features(bag, access, example=example)
+
+
+def _runtime_table_base_addend_matches(text: str) -> list[tuple[str, int]]:
+    matches = set(re.findall(r"\blea\.l\s+(abs_[0-9]+_[0-9A-Fa-f]{8})-([0-9]+)\.l,a[0-7]\b", text))
+    return sorted((symbol, -int(addend)) for symbol, addend in matches)
+
+
+def _add_runtime_table_base_addend_features(bag: FeatureBag, text: str, example: dict[str, object]) -> None:
+    for symbol, addend in _runtime_table_base_addend_matches(text):
+        table_example = dict(example)
+        table_example["symbol"] = symbol
+        table_example["addend"] = addend
+        bag.add("analysis:runtime_table_base_addend", example=table_example)
+        bag.add(f"analysis:runtime_table_base_addend:{_safe_part(symbol)}", example=table_example)
 
 
 def _disk_usage_xrefs(row: dict[str, object], entry: dict[str, Any]) -> list[dict[str, object]]:
@@ -2378,6 +2393,41 @@ def _listing_xrefs(
             if feature_bag is not None:
                 feature_bag.add("label:any", example=example)
                 feature_bag.add("label:definition", example=example)
+        for symbol, addend in _runtime_table_base_addend_matches(text):
+            table_example = dict(example)
+            table_example["symbol"] = symbol
+            table_example["addend"] = addend
+            if feature_bag is not None:
+                feature_bag.add("analysis:runtime_table_base_addend", example=table_example)
+                feature_bag.add(f"analysis:runtime_table_base_addend:{_safe_part(symbol)}", example=table_example)
+            xrefs.append(
+                _xref(
+                    row,
+                    "analysis:runtime_table_base_addend",
+                    "analysis_ref",
+                    section=section_index,
+                    offset=offset,
+                    row_index=row_index,
+                    stable_key=stable_key,
+                    symbol=symbol,
+                    value=addend,
+                    text=stripped_text,
+                )
+            )
+            xrefs.append(
+                _xref(
+                    row,
+                    f"analysis:runtime_table_base_addend:{_safe_part(symbol)}",
+                    "analysis_ref",
+                    section=section_index,
+                    offset=offset,
+                    row_index=row_index,
+                    stable_key=stable_key,
+                    symbol=symbol,
+                    value=addend,
+                    text=stripped_text,
+                )
+            )
         if data_class:
             data_feature = f"data:{_safe_part(data_class)}"
             if feature_bag is not None:

@@ -114,6 +114,16 @@ typedef struct M68kFactsV2RelocationFailure {
   int64_t computed_target;
 } M68kFactsV2RelocationFailure;
 
+typedef struct M68kFactsV2TableBaseRef {
+  uint8_t valid;
+  uint8_t has_origin;
+  size_t origin_section_index;
+  uint32_t origin_offset;
+  size_t origin_operand_index;
+  uint32_t table_offset;
+  uint32_t base_runtime_address;
+} M68kFactsV2TableBaseRef;
+
 typedef struct M68kFactsV2RelocationLookup {
   size_t section_count;
   size_t **indices;
@@ -203,6 +213,8 @@ static int resolve_runtime_or_section_target(const M68kRuntimeAddressSpace *spac
   uint32_t runtime_address, uint32_t section_size, uint32_t *out_source_offset);
 static int append_xref_fact(M68kFactIR *facts, size_t section_index, uint32_t source_offset,
   uint32_t target_offset, uint8_t confidence);
+static int append_indirect_table_base_runtime_ref(M68kFactIR *facts, size_t section_index,
+  const M68kFactsV2TableBaseRef *base_ref);
 
 static int policy_structured_item_matches_section(const M68kAnalysisStructuredDataItem *item,
     size_t section_index) {
@@ -2376,11 +2388,13 @@ static uint32_t scan_word_relative_control_target_table(const M68kDecodeSectionI
 static int trace_state_candidate_loads_long_target_table(const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
     const M68kRuntimeAddressSpace *runtime_addresses, const uint8_t *accepted_bytes, uint8_t *out_dest_reg,
-    M68kFactsV2TraceValue *out_value) {
+    M68kFactsV2TraceValue *out_value, M68kFactsV2TableBaseRef *out_base_ref) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
   uint8_t dest_reg = 0U;
+  uint8_t base_reg = 0U;
   uint32_t table_offset = 0U;
+  uint32_t scan_offset = 0U;
   uint32_t targets[M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT];
   uint32_t target_count;
   size_t source_index = (size_t)-1;
@@ -2388,6 +2402,7 @@ static int trace_state_candidate_loads_long_target_table(const M68kDecodeSection
   size_t operand_index;
   if (out_dest_reg != NULL) *out_dest_reg = 0U;
   if (out_value != NULL) trace_value_set_unknown(out_value);
+  if (out_base_ref != NULL) memset(out_base_ref, 0, sizeof(*out_base_ref));
   if (section == NULL || candidate == NULL || before == NULL || out_dest_reg == NULL || out_value == NULL ||
       m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
     return 0;
@@ -2430,17 +2445,32 @@ static int trace_state_candidate_loads_long_target_table(const M68kDecodeSection
            candidate->operands[source_index].ea_reg == 3U))))) {
     return 0;
   }
+  if (candidate->operand_kinds[source_index] == M68K_ASM_OPERAND_EA &&
+      candidate->operands[source_index].ea_reg < 8U) {
+    base_reg = candidate->operands[source_index].ea_reg;
+  }
   if (!trace_state_indexed_table_base_offset(section, candidate, source_index, before,
       runtime_addresses, &table_offset))
     return 0;
+  scan_offset = table_offset;
   target_count = scan_long_control_target_table(section, runtime_addresses, accepted_bytes, table_offset, targets,
     M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
   if (target_count == 0U && table_offset <= UINT32_MAX - 4U &&
       accepted_range_has_code_byte_local(accepted_bytes, section->size, table_offset, 4U)) {
-    target_count = scan_long_control_target_table(section, runtime_addresses, accepted_bytes, table_offset + 4U,
+    scan_offset = table_offset + 4U;
+    target_count = scan_long_control_target_table(section, runtime_addresses, accepted_bytes, scan_offset,
       targets, M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
   }
   if (target_count == 0U) return 0;
+  if (out_base_ref != NULL && base_reg < 8U && before->a[base_reg].kind == M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS) {
+    out_base_ref->valid = 1U;
+    out_base_ref->has_origin = before->a[base_reg].has_origin;
+    out_base_ref->origin_section_index = before->a[base_reg].origin_section_index;
+    out_base_ref->origin_offset = before->a[base_reg].origin_offset;
+    out_base_ref->origin_operand_index = before->a[base_reg].origin_operand_index;
+    out_base_ref->table_offset = scan_offset;
+    out_base_ref->base_runtime_address = before->a[base_reg].value;
+  }
   *out_dest_reg = dest_reg;
   trace_value_set_target_set(out_value, section->section_index, targets, target_count);
   return 1;
@@ -2552,7 +2582,7 @@ static void trace_state_apply_known_effects(size_t section_index, const M68kDeco
       &target_section, &target_offset)) {
     trace_value_set_source_offset(&state->a[reg], target_section, target_offset);
   } else if (candidate_lea_absolute_address(candidate, &reg, &value)) {
-    trace_value_set_runtime_address(&state->a[reg], value);
+    trace_value_set_runtime_address_with_origin(&state->a[reg], value, section_index, candidate->offset, 0U);
   }
   if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA && candidate->operand_count == 2U &&
       operand_immediate_value(candidate->operand_kinds[0], &candidate->operands[0], &value) &&
@@ -2634,7 +2664,7 @@ static void trace_state_after_candidate(size_t section_index, const M68kDecodeSe
   if (after == NULL) return;
   trace_value_set_unknown(&table_targets);
   has_table_targets = trace_state_candidate_loads_long_target_table(section, candidate, before, runtime_addresses,
-    accepted_bytes, &table_dest_reg, &table_targets);
+    accepted_bytes, &table_dest_reg, &table_targets, NULL);
   if (!has_table_targets) {
     has_table_targets = trace_state_candidate_adds_word_target_table(section, candidate, before,
       runtime_addresses,
@@ -3885,6 +3915,7 @@ static int enqueue_backward_sliced_indirect_table_targets(M68kDecodeIR *decode, 
   const M68kDecodeCandidate *cursor_candidate;
   M68kFactsV2TraceState state;
   M68kFactsV2TraceValue targets;
+  M68kFactsV2TableBaseRef base_ref;
   uint32_t cursor;
   uint8_t control_reg = 0U;
   uint8_t dest_reg = 0U;
@@ -3913,9 +3944,11 @@ static int enqueue_backward_sliced_indirect_table_targets(M68kDecodeIR *decode, 
     state = next_state;
   }
   trace_value_set_unknown(&targets);
+  memset(&base_ref, 0, sizeof(base_ref));
   cursor_candidate = previous[0];
   if (trace_state_candidate_loads_long_target_table(section, cursor_candidate, &state, runtime_addresses,
-      accepted_bytes[section_index], &dest_reg, &targets) && dest_reg == control_reg) {
+      accepted_bytes[section_index], &dest_reg, &targets, &base_ref) && dest_reg == control_reg) {
+    if (append_indirect_table_base_runtime_ref(facts, section_index, &base_ref) != 0) return -1;
     return enqueue_target_set_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
       profile, max_cpu, section_index, site_candidate, &targets, runtime_addresses);
   }
@@ -3923,6 +3956,29 @@ static int enqueue_backward_sliced_indirect_table_targets(M68kDecodeIR *decode, 
       &dest_reg, &targets) && dest_reg == control_reg) {
     return enqueue_target_set_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
       profile, max_cpu, section_index, site_candidate, &targets, runtime_addresses);
+  }
+  return 0;
+}
+
+static int append_indirect_table_base_runtime_ref(M68kFactIR *facts, size_t section_index,
+    const M68kFactsV2TableBaseRef *base_ref) {
+  int ref_result;
+  if (facts == NULL || base_ref == NULL || !base_ref->valid || !base_ref->has_origin ||
+      base_ref->origin_section_index != section_index) {
+    return 0;
+  }
+  ref_result = append_runtime_address_ref_fact(facts, section_index, base_ref->origin_offset,
+    base_ref->origin_operand_index, base_ref->table_offset, base_ref->base_runtime_address,
+    M68K_FACT_CONFIDENCE_TOOL_INFERRED);
+  if (ref_result < 0) return -1;
+  if (ref_result == 0) return 0;
+  if (append_xref_fact(facts, section_index, base_ref->origin_offset, base_ref->table_offset,
+      M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
+    return -1;
+  }
+  if (m68k_fact_ir_require_label(facts, section_index, base_ref->table_offset,
+      M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
+    return -1;
   }
   return 0;
 }

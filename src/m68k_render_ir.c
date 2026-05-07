@@ -6257,50 +6257,67 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
       attach_amiga_platform_symbol(operand, symbol);
       continue;
     }
-    if (!lookup_source_has_materialized_runtime_address(lookup, fact->target_section_index, fact->target_offset,
-        fact->runtime_address)) {
-      char symbol[80];
-      if (!amiga_abs_exec_base_load_should_stay_absolute(lookup, instruction, operand_index, operand, fact) &&
-          runtime_address_ref_targets_unmaterialized_discovered_code(lookup, fact) &&
-          render_asm_define_runtime_address_symbol_once(preview, "runtime_code", fact->runtime_address, symbol,
-            sizeof(symbol))) {
-        attach_generic_symbol(operand, symbol);
-        continue;
-      }
-      record_numeric_runtime_ref(preview, fact);
-      continue;
-    }
-    if (amiga_abs_exec_base_load_should_stay_absolute(lookup, instruction, operand_index, operand, fact)) {
-      record_numeric_runtime_ref(preview, fact);
-      continue;
-    }
     {
-      uint32_t absolute = 0U;
-      if (operand_absolute_offset_local(operand, &absolute) && absolute == fact->target_offset &&
-          lookup_has_renderable_label(lookup, fact->target_section_index, fact->target_offset) &&
-          lookup_source_offset_is_materialized_runtime_range_start(lookup, fact->target_section_index,
-            fact->target_offset)) {
-        attach_operand_storage_label_symbol(lookup, instruction, operand_index, fact->target_section_index,
-          fact->target_offset);
+      uint32_t target_runtime_address = fact->runtime_address;
+      int has_materialized_target = lookup_source_has_materialized_runtime_address(lookup,
+        fact->target_section_index, fact->target_offset, fact->runtime_address);
+      if (!has_materialized_target &&
+          lookup_source_runtime_address(lookup, fact->target_section_index, fact->target_offset,
+            &target_runtime_address) && target_runtime_address != fact->runtime_address &&
+          lookup_has_renderable_label(lookup, fact->target_section_index, fact->target_offset)) {
+        int64_t addend = (int64_t)(uint64_t)fact->runtime_address - (int64_t)(uint64_t)target_runtime_address;
+        if (addend < INT32_MIN || addend > INT32_MAX) {
+          record_numeric_runtime_ref(preview, fact);
+          continue;
+        }
+      } else if (!has_materialized_target) {
+        char symbol[80];
+        if (!amiga_abs_exec_base_load_should_stay_absolute(lookup, instruction, operand_index, operand, fact) &&
+            runtime_address_ref_targets_unmaterialized_discovered_code(lookup, fact) &&
+            render_asm_define_runtime_address_symbol_once(preview, "runtime_code", fact->runtime_address, symbol,
+              sizeof(symbol))) {
+          attach_generic_symbol(operand, symbol);
+          continue;
+        }
+        record_numeric_runtime_ref(preview, fact);
         continue;
       }
-    }
-    if (!lookup_has_renderable_label(lookup, fact->target_section_index, fact->target_offset)) {
-      if (preview != NULL) {
-        ++preview->asm_source_instruction_render_failures;
-        record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, section_index,
-          candidate->offset, fact->target_offset);
+      if (amiga_abs_exec_base_load_should_stay_absolute(lookup, instruction, operand_index, operand, fact)) {
+        record_numeric_runtime_ref(preview, fact);
+        continue;
       }
-      return 0;
+      {
+        uint32_t absolute = 0U;
+        if (operand_absolute_offset_local(operand, &absolute) && absolute == fact->target_offset &&
+            lookup_has_renderable_label(lookup, fact->target_section_index, fact->target_offset) &&
+            lookup_source_offset_is_materialized_runtime_range_start(lookup, fact->target_section_index,
+              fact->target_offset)) {
+          attach_operand_storage_label_symbol(lookup, instruction, operand_index, fact->target_section_index,
+            fact->target_offset);
+          continue;
+        }
+      }
+      if (!lookup_has_renderable_label(lookup, fact->target_section_index, fact->target_offset)) {
+        if (preview != NULL) {
+          ++preview->asm_source_instruction_render_failures;
+          record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, section_index,
+            candidate->offset, fact->target_offset);
+        }
+        return 0;
+      }
+      m68k_ir_symbol_ref_init(&operand->symbol_ref);
+      operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_ABS;
+      operand->symbol_ref.has_name = 1U;
+      operand->symbol_ref.name_is_generated = 1U;
+      operand->symbol_ref.has_section = 1;
+      operand->symbol_ref.section_index = fact->target_section_index;
+      if (target_runtime_address != fact->runtime_address) {
+        int64_t addend = (int64_t)(uint64_t)fact->runtime_address - (int64_t)(uint64_t)target_runtime_address;
+        if (addend >= INT32_MIN && addend <= INT32_MAX) operand->symbol_ref.addend = (int32_t)addend;
+      }
+      format_runtime_asm_label(lookup, operand->symbol_ref.name, sizeof(operand->symbol_ref.name),
+        fact->target_section_index, fact->target_offset, target_runtime_address);
     }
-    m68k_ir_symbol_ref_init(&operand->symbol_ref);
-    operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_ABS;
-    operand->symbol_ref.has_name = 1U;
-    operand->symbol_ref.name_is_generated = 1U;
-    operand->symbol_ref.has_section = 1;
-    operand->symbol_ref.section_index = fact->target_section_index;
-    format_runtime_asm_label(lookup, operand->symbol_ref.name, sizeof(operand->symbol_ref.name),
-      fact->target_section_index, fact->target_offset, fact->runtime_address);
   }
   return 1;
 }

@@ -4103,9 +4103,10 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "\tdc.w abs_0_000034CC-abs_0_000033B2\t; lookup_table\n"
     ) in source_text
     assert (
-        "\tlea.l $0000C262.l,a0\n"
+        "\tlea.l abs_0_0000C266-4.l,a0\n"
         "\tmovea.l $0(a0,d0.w),a0\n"
         "\tjmp (a0)\n"
+        "abs_0_0000C266:\n"
         "\tdc.l abs_0_0000C53C\t; pointer_table\n"
         "\tdc.l abs_0_0000C436\n"
         "\tdc.l abs_0_0000C490\n"

@@ -14288,9 +14288,10 @@ abs_0_0000C252:
 	move.w $000C(a5),d0
 	beq.b abs_0_0000C1F4
 	asl.w #2,d0
-	lea.l $0000C262.l,a0
+	lea.l abs_0_0000C266-4.l,a0
 	movea.l $0(a0,d0.w),a0
 	jmp (a0)
+abs_0_0000C266:
 	dc.l abs_0_0000C53C	; pointer_table
 	dc.l abs_0_0000C436
 	dc.l abs_0_0000C490

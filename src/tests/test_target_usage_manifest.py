@@ -217,6 +217,12 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "start_offset": 0x78,
                         },
                         {
+                            "kind": "instruction",
+                            "text": "\tlea.l abs_0_0000C266-4.l,a0\n",
+                            "section_index": 0,
+                            "start_offset": 0x7C,
+                        },
+                        {
                             "kind": "directive",
                             "text": "\tFPU     3\n",
                             "section_index": 0,
@@ -358,6 +364,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["runtime:view_kind:2"], 1)
         self.assertEqual(counts["memory:absolute_stack_top"], 2)
         self.assertEqual(counts["memory:absolute_stack_top:stack_top_00080000"], 2)
+        self.assertEqual(counts["analysis:runtime_table_base_addend"], 1)
+        self.assertEqual(counts["analysis:runtime_table_base_addend:abs_0_0000C266"], 1)
         self.assertEqual(counts["analysis:indirect_site"], 3)
         self.assertEqual(counts["data:string_ref"], 4)
         self.assertEqual(counts["compressed-payload"], 1)
@@ -405,6 +413,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["decompressed-entrypoint"][0]["entrypoint"], 0x4000)
         self.assertEqual(examples["decompressed-entrypoint"][0]["initial_control_target"], 0x9B3A)
         self.assertEqual(examples["memory:absolute_stack_top"][0]["symbol"], "stack_top_00080000")
+        self.assertEqual(examples["analysis:runtime_table_base_addend"][0]["addend"], -4)
 
     def test_device_features_use_resolved_device_names_for_all_io_calls(self) -> None:
         bag = usage.FeatureBag()
