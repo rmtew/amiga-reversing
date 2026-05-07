@@ -39,14 +39,14 @@
   "file_layout": [],
   "file_shape_adjustments": [],
   "file_shape_diagnostics": [],
-  "finished_at": 1778160307.25616,
+  "finished_at": 1778161153.5004325,
   "first_diff": null,
   "input_stamp": {
     "analysis_backend": "facts_v2",
     "assembler": "our",
     "assembler_cpu": "any",
     "assembler_tool_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\src\\build\\platform_file_lib.dll",
-    "assembler_tool_stamp": "1795072:1778160037500927200",
+    "assembler_tool_stamp": "1795072:1778161022726065800",
     "backend": "amiga-hunk",
     "effective_metadata_sha256": "f76cafbb588c684f432eb24497d4376c3b64963217396392ee83f6ffc1aa513d",
     "original_sha256": "abcec3459986ecc7e10a2ec4c0bf3a5fe6e922dbf8a5b77fee5fc5bf9f33b3b7",
@@ -77,8 +77,8 @@
     "source_renderer": "c-backend",
     "source_renderer_tool_stamps": {
       "c_backend.py": "55189:1778139706816447700",
-      "platform_disk_lib.dll": "1862144:1778160037281523900",
-      "platform_file_lib.dll": "1795072:1778160037500927200"
+      "platform_disk_lib.dll": "1862144:1778161022526389800",
+      "platform_file_lib.dll": "1795072:1778161022726065800"
     }
   },
   "issues": [],
@@ -155,7 +155,7 @@
       "first_unsupported_instruction_demote_source_offset": 0,
       "first_unsupported_instruction_demote_source_section": 0,
       "fixed_point_data_span_seconds": 0.0,
-      "fixed_point_index_seconds": 0.0,
+      "fixed_point_index_seconds": 0.001,
       "fixed_point_invariant_seconds": 0.0,
       "fixed_point_materialize_labels_seconds": 0.0,
       "fixed_point_opcode_relocation_conflict_seconds": 0.0,
@@ -163,7 +163,7 @@
       "fixed_point_reachable_decode_seconds": 0.0,
       "fixed_point_reachable_fallthrough_seconds": 0.0,
       "fixed_point_reachable_relocation_seconds": 0.0,
-      "fixed_point_reachable_seconds": 0.019,
+      "fixed_point_reachable_seconds": 0.014,
       "fixed_point_reachable_target_seconds": 0.0,
       "fixed_point_reachable_validate_seconds": 0.0,
       "fixed_point_rebuild_accepted_seconds": 0.0,
@@ -171,7 +171,7 @@
       "fixed_point_required_label_conflict_seconds": 0.0,
       "fixed_point_required_label_materialize_seconds": 0.0,
       "fixed_point_runtime_address_ref_seconds": 0.0,
-      "fixed_point_seconds": 0.019,
+      "fixed_point_seconds": 0.015,
       "interior_conflicts": 0,
       "interior_conflicts_resolved_by_demote": 0,
       "interior_conflicts_unresolved": 0,
@@ -196,7 +196,7 @@
       "render_ir_header_seconds": 0.0,
       "render_ir_instructions": 1304,
       "render_ir_labels": 222,
-      "render_ir_lookup_seconds": 0.001,
+      "render_ir_lookup_seconds": 0.0,
       "render_ir_platform_app_slot_seconds": 0.0,
       "render_ir_platform_base_slot_seconds": 0.0,
       "render_ir_platform_call_comment_seconds": 0.0,
@@ -206,7 +206,7 @@
       "render_ir_platform_pass_seconds": 0.0,
       "render_ir_platform_runtime_data_seconds": 0.0,
       "render_ir_platform_typed_ref_seconds": 0.0,
-      "render_ir_seconds": 0.002,
+      "render_ir_seconds": 0.001,
       "render_ir_statements": 1539,
       "render_ir_walk_seconds": 0.001,
       "required_instruction_failures": 0,
@@ -223,7 +223,7 @@
     "generation": "facts_v2_asm_source",
     "path": "bin\\VoodooNightmare_run_df6ad190",
     "timing": {
-      "total_seconds": 0.022
+      "total_seconds": 0.017
     }
   },
   "original_sha256": "abcec3459986ecc7e10a2ec4c0bf3a5fe6e922dbf8a5b77fee5fc5bf9f33b3b7",
@@ -231,7 +231,7 @@
   "profile": {
     "assemble_seconds": 0.0,
     "diff_phase_seconds": 0.0,
-    "direct_rebuild_seconds": 0.0286,
+    "direct_rebuild_seconds": 0.0214,
     "facts_v2_direct_backend": "amiga-hunk",
     "facts_v2_direct_compare_container_oddity": 0.0,
     "facts_v2_direct_compare_payload_exact": 1.0,
@@ -248,13 +248,13 @@
     "facts_v2_direct_rebuild_refused": 0.0,
     "facts_v2_direct_rebuilt_bytes": 12148,
     "facts_v2_direct_source_bytes": 0,
-    "facts_v2_direct_total_seconds": 0.001,
+    "facts_v2_direct_total_seconds": 0.0,
     "facts_v2_direct_write_buffer_seconds": 0.0,
-    "facts_v2_direct_write_file_seconds": 0.001,
+    "facts_v2_direct_write_file_seconds": 0.0,
     "prepare_seconds": 0.002,
-    "render_seconds": 0.022,
+    "render_seconds": 0.017,
     "source_file_rewritten": 0.0,
-    "total_seconds": 0.0313,
+    "total_seconds": 0.0239,
     "write_source_seconds": 0.0
   },
   "rebuilt_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\bin\\rebuilt\\amiga_hunk_voodoo_nightmare_run\\rebuilt.bin",
@@ -263,7 +263,7 @@
   "row_mappings": [],
   "source_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\bin\\rebuilt\\amiga_hunk_voodoo_nightmare_run\\source.s",
   "stale": false,
-  "started_at": 1778160307.2248921,
+  "started_at": 1778161153.4765813,
   "status": "exact",
   "target": "amiga_hunk_voodoo_nightmare_run",
   "tool_error": null
