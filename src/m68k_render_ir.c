@@ -4096,6 +4096,8 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
   lookup->object = object;
   lookup->policy = policy;
   lookup->labels = (uint8_t **)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->labels));
+  lookup->label_target_refs =
+    (uint8_t **)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->label_target_refs));
   lookup->object_symbol_labels =
     (const char ***)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->object_symbol_labels));
   lookup->relocations = (const M68kFact ***)render_lookup_calloc(lookup, decode->section_count,
@@ -4106,6 +4108,8 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
     sizeof(*lookup->block_starts));
   lookup->label_extents = (uint32_t *)render_lookup_calloc(lookup, decode->section_count,
     sizeof(*lookup->label_extents));
+  lookup->label_target_ref_extents =
+    (uint32_t *)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->label_target_ref_extents));
   lookup->object_symbol_label_extents =
     (uint32_t *)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->object_symbol_label_extents));
   lookup->relocation_extents = (uint32_t *)render_lookup_calloc(lookup, decode->section_count,
@@ -4124,8 +4128,9 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
   lookup->runtime_address_ref_index_extents =
     (uint32_t *)render_lookup_calloc(lookup, decode->section_count,
       sizeof(*lookup->runtime_address_ref_index_extents));
-  if (lookup->labels == NULL || lookup->object_symbol_labels == NULL || lookup->relocations == NULL ||
-      lookup->anchors == NULL || lookup->block_starts == NULL || lookup->label_extents == NULL ||
+  if (lookup->labels == NULL || lookup->label_target_refs == NULL || lookup->object_symbol_labels == NULL ||
+      lookup->relocations == NULL || lookup->anchors == NULL || lookup->block_starts == NULL ||
+      lookup->label_extents == NULL || lookup->label_target_ref_extents == NULL ||
       lookup->object_symbol_label_extents == NULL || lookup->relocation_extents == NULL ||
       lookup->anchor_extents == NULL || lookup->block_start_extents == NULL ||
       lookup->instruction_comment_indices == NULL || lookup->instruction_comment_extents == NULL ||
@@ -4138,6 +4143,7 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
     uint32_t anchor_extent = relocation_extent, comment_extent = relocation_extent;
     uint32_t runtime_ref_extent = relocation_extent;
     lookup->label_extents[section_index] = label_extent;
+    lookup->label_target_ref_extents[section_index] = label_extent;
     lookup->object_symbol_label_extents[section_index] = label_extent;
     lookup->relocation_extents[section_index] = relocation_extent;
     lookup->anchor_extents[section_index] = anchor_extent;
@@ -4146,6 +4152,9 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
     lookup->runtime_address_ref_index_extents[section_index] = runtime_ref_extent;
     lookup->labels[section_index] =
       (uint8_t *)render_lookup_calloc(lookup, (size_t)label_extent + 1U, sizeof(*lookup->labels[section_index]));
+    lookup->label_target_refs[section_index] =
+      (uint8_t *)render_lookup_calloc(lookup, (size_t)label_extent + 1U,
+        sizeof(*lookup->label_target_refs[section_index]));
     lookup->object_symbol_labels[section_index] =
       (const char **)render_lookup_calloc(lookup, (size_t)label_extent + 1U,
         sizeof(*lookup->object_symbol_labels[section_index]));
@@ -4172,7 +4181,8 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
         (M68kRenderRuntimeAddressRefIndex *)render_lookup_calloc(lookup, runtime_ref_extent,
           sizeof(*lookup->runtime_address_ref_indices[section_index]));
     }
-    if (lookup->labels[section_index] == NULL || lookup->object_symbol_labels[section_index] == NULL ||
+    if (lookup->labels[section_index] == NULL || lookup->label_target_refs[section_index] == NULL ||
+        lookup->object_symbol_labels[section_index] == NULL ||
         (relocation_extent != 0U && lookup->relocations[section_index] == NULL) ||
         (anchor_extent != 0U && lookup->anchors[section_index] == NULL) ||
         (block_start_extent != 0U && lookup->block_starts[section_index] == NULL) ||
@@ -4204,18 +4214,22 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
         fact->offset < lookup->block_start_extents[fact->section_index]) {
       lookup->block_starts[fact->section_index][fact->offset] = 1U;
       if (render_lookup_add_code_start_ref(lookup, fact) != 0) goto oom;
+      render_lookup_mark_label_target_ref(lookup, fact->section_index, fact->offset);
     } else if (fact->kind == M68K_FACT_RELOCATION_REF &&
         fact->offset < lookup->relocation_extents[fact->section_index] && fact->size != 0U) {
       lookup->relocations[fact->section_index][fact->offset] = fact;
+      render_lookup_mark_label_target_ref(lookup, fact->target_section_index, fact->target_offset);
     } else if (fact->kind == M68K_FACT_RELOCATION_ANCHOR &&
         fact->offset < lookup->anchor_extents[fact->section_index] && fact->size != 0U) {
       lookup->anchors[fact->section_index][fact->offset] = fact;
     } else if (fact->kind == M68K_FACT_RUNTIME_ADDRESS_REF) {
       if (render_lookup_add_runtime_address_ref(lookup, fact) != 0) goto oom;
+      render_lookup_mark_label_target_ref(lookup, fact->target_section_index, fact->target_offset);
     } else if (fact->kind == M68K_FACT_RUNTIME_ADDRESS_RANGE) {
       if (render_lookup_add_runtime_address_range(lookup, fact) != 0) goto oom;
     } else if (fact->kind == M68K_FACT_CODE_ACCEPTED) {
       if (render_lookup_add_code_start_ref(lookup, fact) != 0) goto oom;
+      render_lookup_mark_label_target_ref(lookup, fact->section_index, fact->offset);
     } else if (fact->kind == M68K_FACT_VIOLATION) {
       if (render_lookup_add_violation_ref(lookup, fact) != 0) goto oom;
       const M68kAnalysisStructuredDataItem *item =
@@ -4823,32 +4837,12 @@ static int lookup_label_has_explicit_name(const M68kRenderLookup *lookup, size_t
 
 static int lookup_label_has_inbound_target_ref(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset) {
-  size_t index;
-  if (lookup == NULL) return 0;
-  for (index = 0U; index < lookup->xref_count; ++index) {
-    const M68kRenderXref *xref = &lookup->xrefs[index];
-    if (xref->target_section_index == section_index && xref->target_offset == offset) return 1;
+  if (lookup == NULL || section_index >= lookup->section_count || lookup->label_target_refs == NULL ||
+      lookup->label_target_ref_extents == NULL || offset > lookup->label_target_ref_extents[section_index] ||
+      lookup->label_target_refs[section_index] == NULL) {
+    return 0;
   }
-  for (index = 0U; index < lookup->code_start_ref_count; ++index) {
-    const M68kRenderCodeStartRef *ref = &lookup->code_start_refs[index];
-    if (ref->fact != NULL && ref->fact->section_index == section_index && ref->fact->offset == offset) return 1;
-  }
-  for (index = 0U; index < lookup->runtime_address_ref_count; ++index) {
-    const M68kFact *fact = lookup->runtime_address_refs[index].fact;
-    if (fact != NULL && fact->target_section_index == section_index && fact->target_offset == offset) return 1;
-  }
-  for (index = 0U; index < lookup->section_count; ++index) {
-    uint32_t cursor;
-    if (lookup->relocations == NULL || lookup->relocation_extents == NULL ||
-        lookup->relocations[index] == NULL) {
-      continue;
-    }
-    for (cursor = 0U; cursor < lookup->relocation_extents[index]; ++cursor) {
-      const M68kFact *fact = lookup->relocations[index][cursor];
-      if (fact != NULL && fact->target_section_index == section_index && fact->target_offset == offset) return 1;
-    }
-  }
-  return 0;
+  return lookup->label_target_refs[section_index][offset] != 0U;
 }
 
 int lookup_has_renderable_label(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {

@@ -4061,6 +4061,15 @@ static void render_lookup_set_auto_structured_data_item_target(M68kRenderLookup 
   }
 }
 
+void render_lookup_mark_label_target_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
+  if (lookup == NULL || section_index >= lookup->section_count || lookup->label_target_refs == NULL ||
+      lookup->label_target_ref_extents == NULL || offset > lookup->label_target_ref_extents[section_index] ||
+      lookup->label_target_refs[section_index] == NULL) {
+    return;
+  }
+  lookup->label_target_refs[section_index][offset] = 1U;
+}
+
 int render_lookup_add_storage_xref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     size_t target_section_index, uint32_t target_offset) {
   M68kRenderXref *grown;
@@ -4087,6 +4096,7 @@ int render_lookup_add_storage_xref(M68kRenderLookup *lookup, size_t section_inde
   lookup->xrefs[lookup->xref_count].target_section_index = target_section_index;
   lookup->xrefs[lookup->xref_count].target_offset = target_offset;
   ++lookup->xref_count;
+  render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
   return 0;
 }
 
