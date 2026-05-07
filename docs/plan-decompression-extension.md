@@ -238,10 +238,12 @@ Failing a gate should produce an indexed work item, not a guessed child target.
 - A bounded C simulator run primitive now exists as the first substrate for
   target-owned decruncher execution. It is generic simulator infrastructure,
   not a Damocles-specific workaround.
-- C decompressed-payload suggestions now expose an initial `payload_role`,
+- C analysis now exposes first-class `decompression_events[]` records alongside
+  packed payloads and derived target suggestions. Events carry `payload_role`,
   `payload_role_confidence`, `parent_remains_active`, `event_kind`, and
-  `event_id` record. Corpus indexing tags these fields so event and role work
-  can be queried across targets.
+  `event_id`. Corpus indexing tags these event fields so event and role work can
+  be queried across targets without treating every output as a replacement
+  target.
 - The next implementation step is the decompression event model: codec/runtime
   source evidence, decompressor code range, produced range, and acceptance
   reason need one C-owned record shape before simulator decrunching can safely

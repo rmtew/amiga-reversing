@@ -102,6 +102,7 @@ def test_analysis_json_includes_empty_decompression_fact_arrays(tmp_path: Path) 
 
     assert analysis["packed_payloads"] == []
     assert analysis["derived_target_suggestions"] == []
+    assert analysis["decompression_events"] == []
 
 
 def test_listing_analysis_json_includes_empty_decompression_fact_arrays(tmp_path: Path) -> None:
@@ -122,6 +123,7 @@ def test_listing_analysis_json_includes_empty_decompression_fact_arrays(tmp_path
 
     assert combined["analysis"]["packed_payloads"] == []
     assert combined["analysis"]["derived_target_suggestions"] == []
+    assert combined["analysis"]["decompression_events"] == []
 
 
 def test_analysis_decompression_skips_candidate_overlapping_accepted_code(tmp_path: Path) -> None:
@@ -138,6 +140,7 @@ def test_analysis_decompression_skips_candidate_overlapping_accepted_code(tmp_pa
     assert analysis["sections"][0]["blocks"][0]["end_offset"] == 4
     assert analysis["packed_payloads"] == []
     assert analysis["derived_target_suggestions"] == []
+    assert analysis["decompression_events"] == []
 
 
 def test_decompression_c_backend_section_range_reports_unknown_payload(tmp_path: Path) -> None:
@@ -4207,8 +4210,10 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     )
     payloads = combined["analysis"]["packed_payloads"]
     suggestions = combined["analysis"]["derived_target_suggestions"]
+    events = combined["analysis"]["decompression_events"]
     payloads_by_offset = {payload["source_section_offset"]: payload for payload in payloads}
     suggestions_by_offset = {suggestion["source_section_offset"]: suggestion for suggestion in suggestions}
+    events_by_offset = {event["source_section_offset"]: event for event in events}
 
     assert set(payloads_by_offset) == {0x05E4, 0x4C40}
     assert payloads_by_offset[0x05E4]["provider_id"] == "ancient-cli"
@@ -4221,6 +4226,7 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     assert payloads_by_offset[0x4C40]["source_section"] == 0
     assert payloads_by_offset[0x4C40]["decompressed_size"] == 359600
     assert set(suggestions_by_offset) == {0x05E4, 0x4C40}
+    assert set(events_by_offset) == {0x05E4, 0x4C40}
     assert suggestions_by_offset[0x05E4]["runtime_copy_address"] == 0x77400
     assert suggestions_by_offset[0x05E4]["runtime_copy_size"] == 18016
     assert suggestions_by_offset[0x05E4]["runtime_copy_kind"] == 2
@@ -4245,7 +4251,16 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     assert suggestions_by_offset[0x4C40]["load_address"] == 0x4000
     assert suggestions_by_offset[0x4C40]["entrypoint"] == 0x4000
     assert suggestions_by_offset[0x4C40]["initial_control_target"] == 0x9B3A
+    assert events_by_offset[0x4C40]["event_kind"] == "decompression"
+    assert events_by_offset[0x4C40]["event_id"] == "decompression:section:0:00004C40:rnc1-old"
+    assert events_by_offset[0x4C40]["status"] == "materializable"
+    assert events_by_offset[0x4C40]["payload_role"] == "primary_program"
+    assert events_by_offset[0x4C40]["provider_id"] == "ancient-cli"
+    assert events_by_offset[0x4C40]["codec_support"] == "external_provider"
+    assert events_by_offset[0x4C40]["load_address"] == 0x4000
     assert suggestions_by_offset[0x05E4]["status"] == "needs_runtime_metadata"
+    assert events_by_offset[0x05E4]["status"] == "needs_runtime_metadata"
+    assert events_by_offset[0x05E4]["payload_role"] == "unknown_runtime_payload"
     assert "load_address" not in suggestions_by_offset[0x05E4]
     assert "entrypoint" not in suggestions_by_offset[0x05E4]
 
@@ -4322,6 +4337,7 @@ def test_real_dll_voodoo_trainer_decompression_comparator(
     analysis = analyze_binary_source_with_c_backend(trainer_path, project_root=PROJECT_ROOT)
     payloads = analysis["packed_payloads"]
     suggestions = analysis["derived_target_suggestions"]
+    events = analysis["decompression_events"]
 
     assert len(payloads) == 1
     assert payloads[0]["provider_id"] == "ancient-cli"
@@ -4332,7 +4348,9 @@ def test_real_dll_voodoo_trainer_decompression_comparator(
     assert payloads[0]["packed_size"] == 11406
     assert payloads[0]["decompressed_size"] == 84980
     assert len(suggestions) == 1
+    assert len(events) == 1
     assert suggestions[0]["status"] == "needs_runtime_metadata"
+    assert events[0]["status"] == "needs_runtime_metadata"
     assert suggestions[0]["event_kind"] == "decompression"
     assert suggestions[0]["codec_support"] == "external_provider"
     assert suggestions[0]["payload_role"] == "unknown_runtime_payload"

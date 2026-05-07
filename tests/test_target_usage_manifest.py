@@ -53,8 +53,20 @@ def test_decompression_payload_role_features() -> None:
             {
                 "kind": "decompressed_payload",
                 "status": "materializable",
+                "reason": "initial_control_target_validated_runtime_copy",
+                "source_section": 0,
+                "source_section_offset": 0x4C40,
+                "packed_size": 168391,
+                "decompressed_size": 359600,
+                "load_address": 0x4000,
+                "entrypoint": 0x4000,
+            }
+        ],
+        "decompression_events": [
+            {
                 "event_kind": "decompression",
                 "event_id": "decompression:section:0:00004C40:rnc1-old",
+                "status": "materializable",
                 "reason": "initial_control_target_validated_runtime_copy",
                 "codec_support": "external_provider",
                 "payload_role": "primary_program",
@@ -66,7 +78,7 @@ def test_decompression_payload_role_features() -> None:
                 "load_address": 0x4000,
                 "entrypoint": 0x4000,
             }
-        ]
+        ],
     }
     bag = FeatureBag()
     _add_analysis_features(analysis, bag)

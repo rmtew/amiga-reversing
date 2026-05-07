@@ -1309,26 +1309,12 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         bag.add(f"derived_target_suggestion:{_safe_part(kind)}", example=example)
         if kind == "decompressed_payload":
             bag.add("derived-decompressed-target", example=example)
-        event_kind = _string_value(suggestion.get("event_kind"))
-        if event_kind:
-            bag.add(f"decompression:event:{_safe_part(event_kind)}", example=example)
-        if _string_value(suggestion.get("event_id")):
-            bag.add("decompression:has_event_id", example=example)
-        codec_support = _string_value(suggestion.get("codec_support"))
-        if codec_support:
-            bag.add(f"decompression:codec_support:{_safe_part(codec_support)}", example=example)
         status = _string_value(suggestion.get("status"))
         if status:
             bag.add(f"derived_target_suggestion_status:{_safe_part(status)}", example=example)
         reason = _string_value(suggestion.get("reason"))
         if reason:
             bag.add(f"derived_target_suggestion_reason:{_safe_part(reason)}", example=example)
-        payload_role = _string_value(suggestion.get("payload_role"))
-        if payload_role:
-            bag.add(f"decompression:payload_role:{_safe_part(payload_role)}", example=example)
-        parent_remains_active = _string_value(suggestion.get("parent_remains_active"))
-        if parent_remains_active:
-            bag.add(f"decompression:parent_remains_active:{_safe_part(parent_remains_active)}", example=example)
         if _int_value(suggestion.get("load_address")) is not None:
             bag.add("absolute-depack-dest", example=example)
         if _int_value(suggestion.get("entrypoint")) is not None:
@@ -1352,6 +1338,31 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
                     bag.add("decompression:runtime_copy_short", example=example)
                 else:
                     bag.add("decompression:runtime_copy_oversize", example=example)
+    for event in _dict_items(analysis.get("decompression_events")):
+        example = _decompression_example(event)
+        event_kind = _string_value(event.get("event_kind")) or "unknown"
+        bag.add(f"decompression:event:{_safe_part(event_kind)}", example=example)
+        if _string_value(event.get("event_id")):
+            bag.add("decompression:has_event_id", example=example)
+        status = _string_value(event.get("status"))
+        if status:
+            bag.add(f"decompression:event_status:{_safe_part(status)}", example=example)
+        reason = _string_value(event.get("reason"))
+        if reason:
+            bag.add(f"decompression:event_reason:{_safe_part(reason)}", example=example)
+        payload_role = _string_value(event.get("payload_role"))
+        if payload_role:
+            bag.add(f"decompression:payload_role:{_safe_part(payload_role)}", example=example)
+        parent_remains_active = _string_value(event.get("parent_remains_active"))
+        if parent_remains_active:
+            bag.add(f"decompression:parent_remains_active:{_safe_part(parent_remains_active)}", example=example)
+        codec_support = _string_value(event.get("codec_support"))
+        if codec_support:
+            bag.add(f"decompression:codec_support:{_safe_part(codec_support)}", example=example)
+        if _int_value(event.get("load_address")) is not None:
+            bag.add("absolute-depack-dest", example=example)
+        if _int_value(event.get("entrypoint")) is not None:
+            bag.add("decompressed-entrypoint", example=example)
 
 
 def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
@@ -2369,25 +2380,11 @@ def _decompression_analysis_xrefs(
         features = [f"derived_target_suggestion:{_safe_part(kind)}"]
         if kind == "decompressed_payload":
             features.append("derived-decompressed-target")
-        event_kind = _string_value(suggestion.get("event_kind"))
-        if event_kind:
-            features.append(f"decompression:event:{_safe_part(event_kind)}")
-        if _string_value(suggestion.get("event_id")):
-            features.append("decompression:has_event_id")
-        codec_support = _string_value(suggestion.get("codec_support"))
-        if codec_support:
-            features.append(f"decompression:codec_support:{_safe_part(codec_support)}")
         if status:
             features.append(f"derived_target_suggestion_status:{_safe_part(status)}")
         reason = _string_value(suggestion.get("reason"))
         if reason:
             features.append(f"derived_target_suggestion_reason:{_safe_part(reason)}")
-        payload_role = _string_value(suggestion.get("payload_role"))
-        if payload_role:
-            features.append(f"decompression:payload_role:{_safe_part(payload_role)}")
-        parent_remains_active = _string_value(suggestion.get("parent_remains_active"))
-        if parent_remains_active:
-            features.append(f"decompression:parent_remains_active:{_safe_part(parent_remains_active)}")
         if _int_value(suggestion.get("load_address")) is not None:
             features.append("absolute-depack-dest")
         if _int_value(suggestion.get("entrypoint")) is not None:
@@ -2423,6 +2420,42 @@ def _decompression_analysis_xrefs(
                     stable_key=stable_key,
                     symbol=kind,
                     value=runtime_copy_address if feature.startswith("decompression:runtime_copy") else status,
+                    text=text,
+                )
+            )
+    for event in _dict_items(analysis.get("decompression_events")):
+        section_index = _int_value(event.get("source_section"))
+        offset = _int_value(event.get("source_section_offset"))
+        row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
+        event_kind = _string_value(event.get("event_kind")) or "unknown"
+        status = _string_value(event.get("status"))
+        text = row_text or _string_value(event.get("event_id")) or event_kind
+        features = [f"decompression:event:{_safe_part(event_kind)}"]
+        if _string_value(event.get("event_id")):
+            features.append("decompression:has_event_id")
+        if status:
+            features.append(f"decompression:event_status:{_safe_part(status)}")
+        reason = _string_value(event.get("reason"))
+        if reason:
+            features.append(f"decompression:event_reason:{_safe_part(reason)}")
+        payload_role = _string_value(event.get("payload_role"))
+        if payload_role:
+            features.append(f"decompression:payload_role:{_safe_part(payload_role)}")
+        codec_support = _string_value(event.get("codec_support"))
+        if codec_support:
+            features.append(f"decompression:codec_support:{_safe_part(codec_support)}")
+        for feature in features:
+            xrefs.append(
+                _xref(
+                    row,
+                    feature,
+                    "decompression_event",
+                    section=section_index,
+                    offset=offset,
+                    row_index=row_index,
+                    stable_key=stable_key,
+                    symbol=event_kind,
+                    value=status,
                     text=text,
                 )
             )

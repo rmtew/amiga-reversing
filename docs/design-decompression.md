@@ -62,11 +62,12 @@ A first C decompression provider layer now exists:
   decompression provenance is tied to the exact Ancient binary used.
 - The same identify/decompress records are exported through
   `platform_file_lib.dll` for the Python C backend wrapper.
-- Facts-v2 analysis JSON now includes top-level `packed_payloads[]` and
-  `derived_target_suggestions[]` from C provider scanning of loaded target
-  sections. Non-materialising suggestions include a `reason` field so callers
-  can distinguish missing runtime evidence, conflicting runtime copies, copy
-  size mismatch, and missing decompressed load/entry metadata.
+- Facts-v2 analysis JSON now includes top-level `packed_payloads[]`,
+  `derived_target_suggestions[]`, and `decompression_events[]` from C provider
+  scanning of loaded target sections. Non-materialising suggestions and events
+  include a `reason` field so callers can distinguish missing runtime evidence,
+  conflicting runtime copies, copy size mismatch, and missing decompressed
+  load/entry metadata.
 - C can now promote a suggestion to `status: "materializable"` when a runtime
   copy/load address candidate is validated against the decompressed output's
   first decoded absolute control transfer. This uses generated M68K decode and
@@ -221,6 +222,7 @@ C emits provider-backed records through platform analysis JSON as:
 
 - `packed_payloads[]`
 - `derived_target_suggestions[]`
+- `decompression_events[]`
 - corpus tags and xrefs derived from those records
 
 The C side decides whether a provider result is accepted. Provider confidence

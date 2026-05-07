@@ -822,6 +822,61 @@ static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
   return json_builder_append(builder, "}");
 }
 
+static int append_decompression_event_json(JsonBuilder *builder,
+    const PlatformDecompressionIdentifyResult *result, const M68kRuntimeViewIR *runtime_copy_view) {
+  char event_id[160];
+  const char *reason = decompression_suggestion_reason_local(result, runtime_copy_view);
+  const char *payload_role = decompression_suggestion_payload_role_local(result);
+  const char *status = result != NULL && result->has_decompressed_load_entry ? "materializable" :
+    "needs_runtime_metadata";
+  make_decompression_event_id_local(event_id, sizeof(event_id), result);
+  if (json_builder_append(builder, "{\"event_kind\":\"decompression\",\"event_id\":") != 0 ||
+      json_builder_append_json_string(builder, event_id) != 0 ||
+      json_builder_append(builder, ",\"status\":") != 0 ||
+      json_builder_append_json_string(builder, status) != 0 ||
+      json_builder_append(builder, ",\"reason\":") != 0 ||
+      json_builder_append_json_string(builder, reason) != 0 ||
+      json_builder_append(builder, ",\"payload_role\":") != 0 ||
+      json_builder_append_json_string(builder, payload_role) != 0 ||
+      json_builder_append(builder, ",\"payload_role_confidence\":\"tool_inferred\","
+        "\"parent_remains_active\":\"unknown\"") != 0)
+    return -1;
+  if (json_builder_appendf(builder,
+      ",\"source_kind\":\"section_range\",\"source_section\":%u,\"source_section_offset\":%u,"
+      "\"packed_size\":%u,\"decompressed_size\":%u",
+      (unsigned)result->source_section_index, (unsigned)result->source_section_offset,
+      (unsigned)result->packed_size, (unsigned)result->decompressed_size) != 0)
+    return -1;
+  if (runtime_copy_view != NULL) {
+    if (json_builder_appendf(builder,
+        ",\"runtime_copy_address\":%u,\"runtime_copy_size\":%u,\"runtime_copy_kind\":%u,"
+        "\"runtime_copy_conflicting\":%s",
+        (unsigned)runtime_copy_view->runtime_address, (unsigned)runtime_copy_view->size,
+        (unsigned)runtime_copy_view->kind,
+        runtime_copy_view->kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY ? "true" : "false") != 0)
+      return -1;
+  }
+  if (result->has_decompressed_load_entry) {
+    if (json_builder_appendf(builder,
+        ",\"load_address\":%u,\"entrypoint\":%u,\"initial_control_target\":%u",
+        (unsigned)result->decompressed_load_address, (unsigned)result->decompressed_entrypoint,
+        (unsigned)result->decompressed_initial_control_target) != 0)
+      return -1;
+  }
+  if (json_builder_append(builder, ",\"provider_id\":") != 0 ||
+      json_builder_append_json_string(builder, result->provider_id) != 0 ||
+      json_builder_append(builder, ",\"codec_id\":") != 0 ||
+      json_builder_append_json_string(builder, result->codec_id) != 0 ||
+      json_builder_append(builder, ",\"codec_name\":") != 0 ||
+      json_builder_append_json_string(builder, result->codec_name) != 0 ||
+      json_builder_append(builder, ",\"codec_support\":\"external_provider\",\"source_sha256\":") != 0 ||
+      json_builder_append_json_string(builder, result->source_sha256) != 0 ||
+      json_builder_append(builder, ",\"decompressed_sha256\":") != 0 ||
+      json_builder_append_json_string(builder, result->decompressed_sha256) != 0)
+    return -1;
+  return json_builder_append(builder, "}");
+}
+
 static int append_object_decompression_analysis_json(JsonBuilder *builder, const M68kObject *object,
     const M68kSourceAnalysisIR *analysis) {
   PlatformDecompressionIdentifyResult results[32];
@@ -893,6 +948,12 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
   for (section_index = 0U; section_index < result_count; ++section_index) {
     if (section_index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (append_derived_decompression_suggestion_json(builder, &results[section_index],
+        find_decompression_runtime_copy_view(analysis, &results[section_index])) != 0) return -1;
+  }
+  if (json_builder_append(builder, "],\"decompression_events\":[") != 0) return -1;
+  for (section_index = 0U; section_index < result_count; ++section_index) {
+    if (section_index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (append_decompression_event_json(builder, &results[section_index],
         find_decompression_runtime_copy_view(analysis, &results[section_index])) != 0) return -1;
   }
   return json_builder_append(builder, "]");
