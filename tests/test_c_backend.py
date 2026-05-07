@@ -4188,6 +4188,10 @@ def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
     assert "\tlea.l runtime_code_00000004.l,a1\n" in source_text
     assert "\tjmp runtime_code_00000004.l\n" in source_text
     assert "    ORG $4\n" not in source_text
+    assert source_text.count("    ORG $40\n") == 1
+    assert "loc_0_00000004:" not in source_text
+    assert "abs_0_00000004:" not in source_text
+    assert "loc_0_00000154:\n    ORG $40\nabs_0_00000040:\n" in source_text
     assert "\tclr.l spr1+sd_dataa(a6)\n" in source_text
     assert "\tclr.l app_014C(a6)\n" not in source_text
     assert "app_014C" not in source_text.split("    SECTION section_0,code\n", 1)[0]
@@ -4195,6 +4199,15 @@ def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
     assert "\tmove.l d0,loc_0_00000052.l\n" in source_text
     assert "\tmove.l loc_0_0000004E.l,d1\n" in source_text
     assert source_text.count("h0dl_DOSBase:") == 1
+    rebuilt, direct_source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        compare_original=True,
+        project_root=PROJECT_ROOT,
+    )
+    assert len(rebuilt) == len(paths.binary_source.read_bytes())
+    assert direct_source_profile["facts_v2"]["asm_source_refused"] is False
+    assert direct_profile["direct_rebuild_exact"] is True
 
 
 def test_real_dll_starglider_loader_file_handle_slot_stays_untyped() -> None:
