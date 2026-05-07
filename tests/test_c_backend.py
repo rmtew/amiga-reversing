@@ -3521,6 +3521,12 @@ def test_project_source_facts_v2_indexed_pointer_table_comparators_stay_clean(ta
         target_name,
         project_root=PROJECT_ROOT,
     )
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
 
     facts_v2 = profile["facts_v2"]
     assert facts_v2["asm_source_refused"] is False
@@ -3528,6 +3534,12 @@ def test_project_source_facts_v2_indexed_pointer_table_comparators_stay_clean(ta
     assert facts_v2["unsupported_instruction_demotes"] == 0
     assert facts_v2["interior_conflicts_unresolved"] == 0
     assert facts_v2["unresolved_labels"] == 0
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert "    ORG $4\n" not in source_text
+    if target_name == "amiga_hunk_monam302":
+        assert "\tdc.l loc_0_0000850A\t; pointer_table\n" in source_text
+    else:
+        assert "pointer_table" not in source_text
 
 
 def test_real_dll_renders_genam() -> None:
