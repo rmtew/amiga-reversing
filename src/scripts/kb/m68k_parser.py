@@ -7694,7 +7694,7 @@ def _build_execution_metadata(inst: JsonDict) -> JsonDict | None:
                 "expected_kind": "ea",
                 "ea_address_shape": None,
                 "access": {
-                    "kind": "register_read",
+                    "kind": "memory_read",
                     "width": width,
                     "width_source": None,
                     "result_kind": "scalar",

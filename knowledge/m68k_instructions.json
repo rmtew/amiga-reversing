@@ -21398,7 +21398,7 @@
             "expected_kind": "ea",
             "ea_address_shape": null,
             "access": {
-              "kind": "register_read",
+              "kind": "memory_read",
               "width": 2,
               "width_source": null,
               "result_kind": "scalar"
@@ -34720,7 +34720,7 @@
             "expected_kind": "ea",
             "ea_address_shape": null,
             "access": {
-              "kind": "register_read",
+              "kind": "memory_read",
               "width": 2,
               "width_source": null,
               "result_kind": "scalar"

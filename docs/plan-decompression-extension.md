@@ -280,9 +280,15 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   fallthrough or target-specific workaround.
 - C self-decrunch events now choose a proven same-section CFG root when that
   root reaches the transfer site. Damocles now reports the decruncher entry at
-  the actual section-root setup code rather than the later local transfer stage;
-  materialisation is still blocked until the absolute source-memory map is
-  proven.
-- The next implementation step is extending simulator-backed output capture for
-  real unsupported events with inferred memory-map seeding where justified and
-  conservative materialisation gates.
+  the actual section-root setup code rather than the later local transfer stage.
+- Failed C simulator-backed decrunch attempts now emit their concrete stop
+  reason, start PC, stop PC, step count, write count, and first diagnostic.
+  This keeps unsupported events actionable without materialising unproven bytes.
+- Simulator-backed output capture now mirrors the loaded section at its inferred
+  runtime address and sizes bounded RAM from decoded absolute runtime literals.
+  The real Damocles self-decruncher now reaches `$40000` and records a simulated
+  output range. The implementation remains evidence-bounded and does not emulate
+  a full Amiga machine.
+- The next implementation step is applying the materialised simulated output to
+  child target creation/refresh and corpus indexing, with conservative gates for
+  parent overlap and reproduced child bytes.

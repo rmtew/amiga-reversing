@@ -29,6 +29,10 @@
 #include <string.h>
 #include <time.h>
 
+#define PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT (2U * 1024U * 1024U)
+#define PLATFORM_SELF_DECRUNCH_RUNTIME_LITERAL_SLOP 65536U
+#define PLATFORM_SELF_DECRUNCH_STEP_LIMIT 262144U
+
 static void platform_file_add_error(M68kDiagList *diagnostics, const char *message);
 static void platform_file_add_warning(M68kDiagList *diagnostics, const char *message);
 static int read_file_to_buffer(const char *path, unsigned char **out_data, size_t *out_size,
@@ -770,11 +774,15 @@ typedef struct PlatformSelfDecrunchEvent {
   uint32_t observed_write_count;
   uint32_t simulated_output_start;
   uint32_t simulated_output_end;
+  uint32_t simulated_start_pc;
+  uint32_t simulated_stop_pc;
   uint32_t simulated_step_count;
   uint32_t simulated_write_count;
   char simulated_output_sha256[65];
+  char simulated_diagnostic[M68K_DIAG_MESSAGE_SIZE];
   uint8_t simulated_stop_reason;
   uint8_t has_simulated_output;
+  uint8_t simulation_attempted;
   uint8_t parent_remains_active;
 } PlatformSelfDecrunchEvent;
 
@@ -1175,6 +1183,35 @@ static int platform_self_decrunch_external_write_allowed_local(void *user, uint3
   return address >= range_start && address + width <= range_end;
 }
 
+static void self_decrunch_grow_memory_for_runtime_address_local(size_t *io_memory_size, uint32_t address) {
+  size_t end;
+  if (io_memory_size == NULL || address > UINT32_MAX - PLATFORM_SELF_DECRUNCH_RUNTIME_LITERAL_SLOP) return;
+  end = (size_t)address + PLATFORM_SELF_DECRUNCH_RUNTIME_LITERAL_SLOP;
+  if (end > *io_memory_size && end <= PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT) *io_memory_size = end;
+}
+
+static void self_decrunch_grow_memory_for_candidate_runtime_literals_local(const M68kDecodeSectionIR *section,
+    const PlatformSelfDecrunchEvent *event, size_t *io_memory_size) {
+  size_t candidate_index;
+  if (section == NULL || event == NULL || io_memory_size == NULL) return;
+  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+    size_t operand_index;
+    for (operand_index = 0U; operand_index < candidate->operand_count &&
+        operand_index < M68K_DECODE_IR_MAX_OPERANDS; ++operand_index) {
+      const M68kAsmOperandValue *operand = &candidate->operands[operand_index];
+      uint32_t address;
+      if (operand->kind != M68K_ASM_OPERAND_ABSL &&
+          !(operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 7U && operand->ea_reg == 1U)) {
+        continue;
+      }
+      address = operand->value;
+      if (address < event->entrypoint) continue;
+      self_decrunch_grow_memory_for_runtime_address_local(io_memory_size, address);
+    }
+  }
+}
+
 static int simulate_self_decrunch_output_local(const M68kObject *object, const M68kSourceAnalysisIR *analysis,
     const M68kDecodeSectionIR *section, const PlatformSelfDecrunchEvent *event,
     PlatformSelfDecrunchEvent *out_event) {
@@ -1195,6 +1232,11 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
   memory_size = section->size;
   if ((size_t)event->entrypoint + 16U > memory_size) memory_size = (size_t)event->entrypoint + 16U;
   if ((size_t)event->observed_write_end + 16U > memory_size) memory_size = (size_t)event->observed_write_end + 16U;
+  if (section->size > (size_t)(UINT32_MAX - event->load_address)) return 0;
+  if ((size_t)event->load_address + section->size > memory_size) {
+    memory_size = (size_t)event->load_address + section->size;
+  }
+  self_decrunch_grow_memory_for_candidate_runtime_literals_local(section, event, &memory_size);
   for (range_index = 0U; range_index < analysis->policy.runtime_range_count &&
       range_index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++range_index) {
     const M68kAnalysisRuntimeRange *range = &analysis->policy.runtime_ranges[range_index];
@@ -1204,11 +1246,14 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
     range_end = (size_t)range->runtime_address + range->size;
     if (range_end > memory_size) memory_size = range_end;
   }
-  if (memory_size > 2U * 1024U * 1024U || event->decompressor_entry_offset >= section->size) return 0;
+  if (memory_size > PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT || event->decompressor_entry_offset >= section->size) return 0;
   mark = arena_mark(analysis->arena);
   memory = (uint8_t *)arena_calloc(analysis->arena, memory_size, 1U);
   if (memory == NULL) goto cleanup;
   memcpy(memory, section->data, section->size);
+  if ((size_t)event->load_address + section->size <= memory_size) {
+    memcpy(memory + event->load_address, section->data, section->size);
+  }
   for (range_index = 0U; range_index < analysis->policy.runtime_range_count &&
       range_index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++range_index) {
     const M68kAnalysisRuntimeRange *range = &analysis->policy.runtime_ranges[range_index];
@@ -1232,9 +1277,24 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
   memory_policy.user = (void *)object;
   state.pc = event->decompressor_entry_offset;
   state.a[7] = (uint32_t)memory_size;
-  if (m68k_simulate_run_concrete(analysis->policy.max_cpu, memory, memory_size, &state, 4096U, event->entrypoint,
-      event->entrypoint + 16U, &memory_policy, &result) != 0 ||
-      result.stop_reason != M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE) {
+  if (m68k_simulate_run_concrete(analysis->policy.max_cpu, memory, memory_size, &state,
+      PLATFORM_SELF_DECRUNCH_STEP_LIMIT,
+      event->entrypoint, event->entrypoint + 16U, &memory_policy, &result) != 0) {
+    goto cleanup;
+  }
+  out_event->simulation_attempted = 1U;
+  out_event->simulated_stop_reason = (uint8_t)result.stop_reason;
+  out_event->simulated_start_pc = result.start_pc;
+  out_event->simulated_stop_pc = result.stop_pc;
+  out_event->simulated_step_count = (uint32_t)result.step_count;
+  out_event->simulated_write_count = (uint32_t)result.memory_write_count;
+  {
+    const char *message = m68k_diag_first_message(&result.diagnostics);
+    if (message != NULL) {
+      snprintf(out_event->simulated_diagnostic, sizeof(out_event->simulated_diagnostic), "%s", message);
+    }
+  }
+  if (result.stop_reason != M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE) {
     goto cleanup;
   }
   if (result.memory_write_count == 0U || result.memory_write_range_overflow ||
@@ -1251,9 +1311,6 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
   }
   if (output_start > event->entrypoint || output_end <= event->entrypoint || output_end > memory_size) goto cleanup;
   out_event->has_simulated_output = 1U;
-  out_event->simulated_stop_reason = (uint8_t)result.stop_reason;
-  out_event->simulated_step_count = (uint32_t)result.step_count;
-  out_event->simulated_write_count = (uint32_t)result.memory_write_count;
   out_event->simulated_output_start = output_start;
   out_event->simulated_output_end = output_end;
   (void)m68k_platform_sha256_hex(memory + output_start, output_end - output_start,
@@ -1375,6 +1432,34 @@ static int collect_self_decrunch_events_local(const M68kObject *object, const M6
   return result;
 }
 
+static const char *self_decrunch_sim_stop_reason_name_local(uint8_t stop_reason) {
+  switch (stop_reason) {
+    case M68K_SIM_CONCRETE_RUN_STOP_NONE: return "none";
+    case M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE: return "pc_range";
+    case M68K_SIM_CONCRETE_RUN_STOP_PC_OUT_OF_RANGE: return "pc_out_of_range";
+    case M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT: return "instruction_limit";
+    case M68K_SIM_CONCRETE_RUN_STOP_DECODE_ERROR: return "decode_error";
+    case M68K_SIM_CONCRETE_RUN_STOP_SIMULATION_ERROR: return "simulation_error";
+    case M68K_SIM_CONCRETE_RUN_STOP_BAD_ARGUMENT: return "bad_argument";
+    default: return "unknown";
+  }
+}
+
+static const char *self_decrunch_event_reason_local(const PlatformSelfDecrunchEvent *event) {
+  if (event == NULL) return "unidentified_self_decruncher";
+  if (event->has_simulated_output) return "simulated_pc_range_stop";
+  if (!event->simulation_attempted) return "unidentified_self_decruncher";
+  switch (event->simulated_stop_reason) {
+    case M68K_SIM_CONCRETE_RUN_STOP_PC_OUT_OF_RANGE: return "simulated_pc_out_of_range";
+    case M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT: return "simulated_instruction_limit";
+    case M68K_SIM_CONCRETE_RUN_STOP_DECODE_ERROR: return "simulated_decode_error";
+    case M68K_SIM_CONCRETE_RUN_STOP_SIMULATION_ERROR: return "simulated_error";
+    case M68K_SIM_CONCRETE_RUN_STOP_BAD_ARGUMENT: return "simulated_bad_argument";
+    case M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE: return "simulated_no_output_range";
+    default: return "simulated_unknown_stop";
+  }
+}
+
 static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformSelfDecrunchEvent *event) {
   char event_id[160];
   if (builder == NULL || event == NULL) return -1;
@@ -1385,8 +1470,7 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
       json_builder_append_json_string(builder,
         event->has_simulated_output ? "simulated_output_observed" : "needs_simulated_decrunch") != 0 ||
       json_builder_append(builder, ",\"reason\":") != 0 ||
-      json_builder_append_json_string(builder,
-        event->has_simulated_output ? "simulated_pc_range_stop" : "unidentified_self_decruncher") != 0 ||
+      json_builder_append_json_string(builder, self_decrunch_event_reason_local(event)) != 0 ||
       json_builder_append(builder,
         ",\"payload_role\":\"primary_program\",\"payload_role_confidence\":\"tool_inferred\","
         "\"parent_remains_active\":") != 0 ||
@@ -1406,12 +1490,28 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
     (unsigned)event->observed_write_start, (unsigned)event->observed_write_end,
     (unsigned)event->observed_write_count) != 0)
     return -1;
+  if (event->simulation_attempted) {
+    if (json_builder_appendf(builder,
+        ",\"simulated_stop_reason\":%u,\"simulated_start_pc\":%u,\"simulated_stop_pc\":%u,"
+        "\"simulated_step_count\":%u,\"simulated_write_count\":%u,"
+        "\"simulated_stop_reason_name\":",
+        (unsigned)event->simulated_stop_reason, (unsigned)event->simulated_start_pc,
+        (unsigned)event->simulated_stop_pc, (unsigned)event->simulated_step_count,
+        (unsigned)event->simulated_write_count) != 0 ||
+        json_builder_append_json_string(builder,
+          self_decrunch_sim_stop_reason_name_local(event->simulated_stop_reason)) != 0) {
+      return -1;
+    }
+    if (event->simulated_diagnostic[0] != '\0') {
+      if (json_builder_append(builder, ",\"simulated_diagnostic\":") != 0 ||
+          json_builder_append_json_string(builder, event->simulated_diagnostic) != 0) {
+        return -1;
+      }
+    }
+  }
   if (event->has_simulated_output) {
     if (json_builder_appendf(builder,
-        ",\"simulated_stop_reason\":%u,\"simulated_step_count\":%u,\"simulated_write_count\":%u,"
-        "\"simulated_output_start\":%u,\"simulated_output_end\":%u,\"simulated_output_size\":%u",
-        (unsigned)event->simulated_stop_reason, (unsigned)event->simulated_step_count,
-        (unsigned)event->simulated_write_count,
+        ",\"simulated_output_start\":%u,\"simulated_output_end\":%u,\"simulated_output_size\":%u",
         (unsigned)event->simulated_output_start, (unsigned)event->simulated_output_end,
         (unsigned)(event->simulated_output_end - event->simulated_output_start)) != 0)
       return -1;

@@ -459,6 +459,55 @@ payload:
     assert event["simulated_output_sha256"] == hashlib.sha256(bytes.fromhex("1234")).hexdigest()
 
 
+def test_listing_analysis_simulates_self_decruncher_with_absolute_source_mirror(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "absolute_source_mirror_self_decrunch_hunk.bin"
+    source = """    SECTION section,code
+    lea.l $00040016.l,a1
+    lea.l $00040000.l,a0
+    move.b (a1)+,(a0)+
+    move.b (a1)+,(a0)+
+    jmp $40000.l
+payload:
+    dc.b $12,$34
+    dc.w 0
+    dc.w 0
+"""
+    assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source,
+        output_path=binary,
+        project_root=PROJECT_ROOT,
+    )
+
+    combined = analyze_source_with_c_artifact(
+        HunkFileBinarySource(
+            kind="hunk_file",
+            path=binary,
+            display_path=str(binary),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
+    )
+    events = [
+        event
+        for event in combined["analysis"]["decompression_events"]
+        if event.get("source_kind") == "self_decruncher"
+    ]
+
+    assert len(events) == 1
+    event = events[0]
+    assert event["status"] == "simulated_output_observed"
+    assert event["reason"] == "simulated_pc_range_stop"
+    assert event["decompressor_entry_offset"] == 0
+    assert event["load_address"] == 0x40000
+    assert event["entrypoint"] == 0x40000
+    assert event["simulated_output_start"] == 0x40000
+    assert event["simulated_output_end"] == 0x40002
+    assert event["simulated_output_sha256"] == hashlib.sha256(bytes.fromhex("1234")).hexdigest()
+
+
 def test_analysis_decompression_skips_candidate_overlapping_accepted_code(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary = tmp_path / "overlap_hunk.bin"
@@ -4563,11 +4612,15 @@ payload:
     assert len(events) == 1
     event = events[0]
     assert event["status"] == "needs_simulated_decrunch"
-    assert event["reason"] == "unidentified_self_decruncher"
+    assert event["reason"].startswith("simulated_")
     assert event["provider_id"] == "m68k-sim-decrunch"
     assert event["codec_support"] == "simulator_required"
     assert event["decompressor_code_section"] == 0
     assert event["decompressor_entry_offset"] == 0
+    assert event["simulated_start_pc"] == 0
+    assert event["simulated_stop_pc"] >= event["simulated_start_pc"]
+    assert event["simulated_step_count"] > 0
+    assert isinstance(event["simulated_stop_reason_name"], str)
     assert event["load_address"] == 0x40000
     assert event["entrypoint"] == 0x40000
     assert event["observed_write_start"] <= 0x40000

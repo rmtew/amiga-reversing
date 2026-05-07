@@ -138,6 +138,98 @@ static int test_concrete_run_allows_policy_external_write(void) {
   return 0;
 }
 
+static int test_concrete_run_moves_immediate_to_ccr_from_metadata(void) {
+  uint8_t memory[4] = {0x44U, 0xFCU, 0x00U, 0x10U};
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  state.sr = 0x2700U;
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state, 1U, 0U,
+    0U, NULL, &result));
+  M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT, result.stop_reason);
+  M68K_C_ASSERT_U32(1U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(4U, state.pc);
+  M68K_C_ASSERT_U32(0x2710U, state.sr);
+  return 0;
+}
+
+static int test_concrete_run_takes_metadata_only_conditional_branch(void) {
+  uint8_t memory[8] = {
+    0xB3U, 0xCCU,
+    0x6EU, 0x02U,
+    0x70U, 0x01U,
+    0x70U, 0x02U,
+  };
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  state.a[1] = 0x20U;
+  state.a[4] = 0x10U;
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state, 3U, 0U,
+    0U, NULL, &result));
+  M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT, result.stop_reason);
+  M68K_C_ASSERT_U32(3U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(8U, state.pc);
+  M68K_C_ASSERT_U32(2U, state.d[0]);
+  return 0;
+}
+
+static int test_concrete_run_applies_move_source_predecrement_update(void) {
+  uint8_t memory[32] = {0x14U, 0x22U};
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  state.a[2] = 0x10U;
+  state.d[2] = 0x12345678U;
+  memory[0x0F] = 0x5AU;
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state, 1U, 0U,
+    0U, NULL, &result));
+  M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT, result.stop_reason);
+  M68K_C_ASSERT_U32(1U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(2U, state.pc);
+  M68K_C_ASSERT_U32(0x0FU, state.a[2]);
+  M68K_C_ASSERT_U32(0x1234565AU, state.d[2]);
+  return 0;
+}
+
+static int test_concrete_run_applies_move_dest_predecrement_update(void) {
+  uint8_t memory[32] = {0x15U, 0x02U};
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  state.a[2] = 0x10U;
+  state.d[2] = 0xAAU;
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state, 1U, 0U,
+    0U, NULL, &result));
+  M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT, result.stop_reason);
+  M68K_C_ASSERT_U32(1U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)result.memory_write_count);
+  M68K_C_ASSERT_U32(0x0FU, result.memory_write_start);
+  M68K_C_ASSERT_U32(0x10U, result.memory_write_end);
+  M68K_C_ASSERT_U32(2U, state.pc);
+  M68K_C_ASSERT_U32(0x0FU, state.a[2]);
+  M68K_C_ASSERT_U32(0xAAU, memory[0x0F]);
+  return 0;
+}
+
+static int test_concrete_run_sign_extends_index_word_address(void) {
+  uint8_t memory[32] = {0x10U, 0x32U, 0x20U, 0xFFU};
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  state.a[2] = 0x10U;
+  state.d[2] = 0xFFFFU;
+  state.d[0] = 0x12345678U;
+  memory[0x0E] = 0x5AU;
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state, 1U, 0U,
+    0U, NULL, &result));
+  M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT, result.stop_reason);
+  M68K_C_ASSERT_U32(1U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(4U, state.pc);
+  M68K_C_ASSERT_U32(0x1234565AU, state.d[0]);
+  return 0;
+}
+
 int m68k_c_simulator_tests(void) {
   static const M68kCTestCase cases[] = {
     {"concrete_run_stops_on_pc_range", test_concrete_run_stops_on_pc_range},
@@ -147,6 +239,16 @@ int m68k_c_simulator_tests(void) {
     {"concrete_run_applies_move_postincrement_update", test_concrete_run_applies_move_postincrement_update},
     {"concrete_run_records_merged_write_ranges", test_concrete_run_records_merged_write_ranges},
     {"concrete_run_allows_policy_external_write", test_concrete_run_allows_policy_external_write},
+    {"concrete_run_moves_immediate_to_ccr_from_metadata",
+      test_concrete_run_moves_immediate_to_ccr_from_metadata},
+    {"concrete_run_takes_metadata_only_conditional_branch",
+      test_concrete_run_takes_metadata_only_conditional_branch},
+    {"concrete_run_applies_move_source_predecrement_update",
+      test_concrete_run_applies_move_source_predecrement_update},
+    {"concrete_run_applies_move_dest_predecrement_update",
+      test_concrete_run_applies_move_dest_predecrement_update},
+    {"concrete_run_sign_extends_index_word_address",
+      test_concrete_run_sign_extends_index_word_address},
   };
   return m68k_c_test_run_suite("m68k_simulator", cases, sizeof(cases) / sizeof(cases[0]));
 }

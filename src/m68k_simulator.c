@@ -1834,6 +1834,24 @@ static int sim_apply_predecrement_operand(const M68kInstructionIR *instruction, 
   return 1;
 }
 
+static uint32_t sim_ea_register_update_delta(uint8_t width, uint8_t address_reg) {
+  uint32_t delta = width == 0U ? 0U : width;
+  if (delta == 1U && address_reg == 7U) delta = 2U;
+  return delta;
+}
+
+static int sim_concrete_operand_uses_predecrement_access(const M68kSimFormMetadata *metadata,
+    uint8_t operand_index, const M68kOperandIR *operand) {
+  uint8_t ea_shape;
+  uint8_t access_kind;
+  if (metadata == NULL || operand == NULL || operand_index >= 4U) return 0;
+  if (metadata->operand_ea_register_updates[operand_index] == M68K_SIM_EA_UPDATE_PREDECREMENT) return 1;
+  access_kind = metadata->operand_access_kinds[operand_index];
+  if (access_kind != M68K_SIM_ACCESS_MEMORY_READ && access_kind != M68K_SIM_ACCESS_MEMORY_WRITE) return 0;
+  ea_shape = sim_effective_ea_shape(metadata->operand_ea_address_shapes[operand_index], operand);
+  return ea_shape == M68K_SIM_EA_SHAPE_PREDECREMENT;
+}
+
 static int sim_concrete_apply_predecrement_operand(const M68kInstructionIR *instruction,
     const M68kSimFormMetadata *metadata, uint8_t operand_index, const M68kOperandIR *operand,
     M68kSimConcreteState *state, uint32_t *out_address) {
@@ -1843,14 +1861,22 @@ static int sim_concrete_apply_predecrement_operand(const M68kInstructionIR *inst
   uint32_t delta;
   if (metadata == NULL || operand == NULL || state == NULL || out_address == NULL ||
       operand_index >= 4U) return 0;
-  if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_PREDECREMENT) return 0;
+  if (!sim_concrete_operand_uses_predecrement_access(metadata, operand_index, operand)) return 0;
   ea_shape = sim_effective_ea_shape(metadata->operand_ea_address_shapes[operand_index], operand);
   if (!sim_ea_address_register(ea_shape, operand, &address_reg)) return 0;
   width = sim_effective_operand_width(instruction, metadata, operand_index);
-  delta = width == 0U ? 0U : width;
+  delta = sim_ea_register_update_delta(width, address_reg);
   state->a[address_reg] -= delta;
   *out_address = state->a[address_reg];
   return 1;
+}
+
+static int sim_concrete_prepare_predecrement_access(const M68kInstructionIR *instruction,
+    const M68kSimFormMetadata *metadata, uint8_t operand_index, const M68kOperandIR *operand,
+    M68kSimConcreteState *state) {
+  uint32_t address;
+  if (!sim_concrete_operand_uses_predecrement_access(metadata, operand_index, operand)) return 1;
+  return sim_concrete_apply_predecrement_operand(instruction, metadata, operand_index, operand, state, &address);
 }
 
 static int sim_operand_is_immediate_value(const M68kOperandIR *operand, uint32_t *out_value) {
@@ -1992,8 +2018,7 @@ static int sim_apply_concrete_ea_register_update(const M68kInstructionIR *instru
   if (register_update != M68K_SIM_EA_UPDATE_POSTINCREMENT) return 1;
   if (!sim_ea_address_register(ea_shape, operand, &address_reg)) return 0;
   width = sim_effective_operand_width(instruction, metadata, operand_index);
-  delta = width == 0U ? 0U : width;
-  if (delta == 1U && address_reg == 7U) delta = 2U;
+  delta = sim_ea_register_update_delta(width, address_reg);
   state->a[address_reg] += delta;
   return 1;
 }
@@ -2045,8 +2070,12 @@ static int sim_ea_index_value_by_metadata(const M68kSimCpuState *state, const M6
   }
   if (!sim_ea_index_value(state, operand, &raw_value) || raw_value.kind != M68K_SIM_VALUE_CONSTANT) return 0;
   normalized = raw_value.value;
-  if (index_value_width_source == M68K_SIM_EA_INDEX_WIDTH_EXTENSION_WORD) normalized &= 0xFFFFU;
-  if (index_sign_source == M68K_SIM_EA_INDEX_SIGN_EXTENSION_WORD) normalized = sim_sign_extend_value(normalized, 16U);
+  if (index_value_width_source == M68K_SIM_EA_INDEX_WIDTH_EXTENSION_WORD || !operand->value.index_long) {
+    normalized &= 0xFFFFU;
+  }
+  if (index_sign_source == M68K_SIM_EA_INDEX_SIGN_EXTENSION_WORD || !operand->value.index_long) {
+    normalized = sim_sign_extend_value(normalized, 16U);
+  }
   if (index_scale_source == M68K_SIM_EA_INDEX_SCALE_EXTENSION_WORD) {
     scale = operand->value.scale == 0U ? 1U : operand->value.scale;
     normalized = (uint32_t)((int32_t)normalized * (int32_t)scale);
@@ -2097,11 +2126,18 @@ static int sim_concrete_ea_index_value_by_metadata(const M68kSimConcreteState *s
   if (state == NULL || operand == NULL || out_value == NULL) return 0;
   if (index_extension_format != M68K_SIM_EA_INDEX_EXT_BRIEF ||
       index_register_class != M68K_SIM_EA_INDEX_REG_DATA_OR_ADDRESS) {
-    return sim_concrete_ea_index_value(state, operand, out_value);
+    if (!sim_concrete_ea_index_value(state, operand, &normalized)) return 0;
+    if (!operand->value.index_long) normalized = sim_sign_extend_value(normalized & 0xFFFFU, 16U);
+    *out_value = normalized;
+    return 1;
   }
   if (!sim_concrete_ea_index_value(state, operand, &normalized)) return 0;
-  if (index_value_width_source == M68K_SIM_EA_INDEX_WIDTH_EXTENSION_WORD) normalized &= 0xFFFFU;
-  if (index_sign_source == M68K_SIM_EA_INDEX_SIGN_EXTENSION_WORD) normalized = sim_sign_extend_value(normalized, 16U);
+  if (index_value_width_source == M68K_SIM_EA_INDEX_WIDTH_EXTENSION_WORD || !operand->value.index_long) {
+    normalized &= 0xFFFFU;
+  }
+  if (index_sign_source == M68K_SIM_EA_INDEX_SIGN_EXTENSION_WORD || !operand->value.index_long) {
+    normalized = sim_sign_extend_value(normalized, 16U);
+  }
   if (index_scale_source == M68K_SIM_EA_INDEX_SCALE_EXTENSION_WORD) {
     scale = operand->value.scale == 0U ? 1U : operand->value.scale;
     normalized = (uint32_t)((int32_t)normalized * (int32_t)scale);
@@ -2596,10 +2632,6 @@ static int sim_is_explicit_concrete_noop(const M68kInstructionIR *instruction, c
     instruction->mnemonic_id == M68K_ASM_MNEMONIC_NOP;
 }
 
-static void sim_set_unsupported_concrete_exception_error(M68kDiagSink diagnostics) {
-  sim_diag_error(diagnostics, "unsupported concrete exception/trap");
-}
-
 static int sim_exception_frame_kind_for(uint8_t target_cpu, uint8_t vector, uint8_t *out_frame_kind) {
   size_t index;
   uint32_t cpu_mask;
@@ -2852,16 +2884,13 @@ static int sim_concrete_enter_exception(const M68kInstructionIR *instruction, co
 static int sim_set_unsupported_concrete_operation_error(const M68kInstructionIR *instruction,
     const M68kSimFormMetadata *metadata, M68kDiagSink diagnostics) {
   if (metadata == NULL) return 0;
-  if (metadata->flow_kind == M68K_SIM_FLOW_TRAP) {
-    sim_set_unsupported_concrete_exception_error(diagnostics);
-    return 1;
-  }
   if (metadata->operation_type == M68K_SIM_OP_NONE &&
       metadata->flow_kind == M68K_SIM_FLOW_CALL) {
     sim_diag_error(diagnostics, "unsupported concrete admin instruction");
     return 1;
   }
   if (metadata->operation_type == M68K_SIM_OP_NONE &&
+      metadata->operation_class == M68K_SIM_CLASS_NONE &&
       metadata->flow_kind == M68K_SIM_FLOW_SEQUENTIAL &&
       !sim_is_explicit_concrete_noop(instruction, metadata)) {
     sim_diag_error(diagnostics, "unsupported concrete admin instruction");
@@ -3887,13 +3916,8 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     return sim_concrete_enter_exception(instruction, metadata, NULL, target_cpu, memory, memory_size, io_state,
       diagnostics) ? 0 : -1;
   }
-  if (metadata->operation_type == M68K_SIM_OP_MOVE && instruction->operand_count == 2U &&
-      source != NULL && dest != NULL &&
-      sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
-        memory, memory_size, io_state->pc, &immediate_value) &&
-      sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index, dest, &is_address, &lhs_reg) && !is_address) {
-    io_state->d[lhs_reg] = immediate_value;
-  } else if (metadata->operation_class == M68K_SIM_CLASS_LOAD_EFFECTIVE_ADDRESS &&
+  if (sim_set_unsupported_concrete_operation_error(instruction, metadata, diagnostics)) return -1;
+  if (metadata->operation_class == M68K_SIM_CLASS_LOAD_EFFECTIVE_ADDRESS &&
       source != NULL && dest != NULL &&
       sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index, dest, &is_address, &lhs_reg) && is_address) {
     if (!sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
@@ -4644,14 +4668,67 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     io_state->a[lhs_reg] = m68k_read_u32be(memory + io_state->a[7]);
     io_state->a[7] += 4U;
   } else if (metadata->operation_type == M68K_SIM_OP_MOVE && source != NULL && dest != NULL) {
+    if (!sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->source_operand_index, source,
+        io_state)) {
+      sim_diag_error(diagnostics, "unsupported concrete move source update");
+      return -1;
+    }
     if (!sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
           memory, memory_size, io_state->pc, &resolved_value)) {
-      sim_diag_error(diagnostics, "unsupported concrete move source");
+      if (sim_concrete_compute_ea_address(source,
+          metadata->operand_ea_address_formulas[metadata->source_operand_index],
+          metadata->operand_ea_address_shapes[metadata->source_operand_index],
+          metadata->operand_ea_base_kinds[metadata->source_operand_index],
+          metadata->operand_ea_displacement_sources[metadata->source_operand_index],
+          metadata->operand_ea_uses_displacement[metadata->source_operand_index],
+          metadata->operand_ea_uses_index[metadata->source_operand_index],
+          metadata->operand_ea_pc_base_bias_bytes[metadata->source_operand_index],
+          metadata->operand_ea_address_literal_width_bytes[metadata->source_operand_index],
+          metadata->operand_ea_index_extension_formats[metadata->source_operand_index],
+          metadata->operand_ea_index_register_classes[metadata->source_operand_index],
+          metadata->operand_ea_index_value_width_sources[metadata->source_operand_index],
+          metadata->operand_ea_index_scale_sources[metadata->source_operand_index],
+          metadata->operand_ea_index_sign_sources[metadata->source_operand_index],
+          io_state, io_state->pc, &resolved_address)) {
+        m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SIMULATION_FAILED,
+          "unsupported concrete move source: address $%08X width %u memory_size %u",
+          (unsigned)resolved_address,
+          (unsigned)sim_effective_operand_width(instruction, metadata, metadata->source_operand_index),
+          (unsigned)memory_size);
+      } else {
+        sim_diag_error(diagnostics, "unsupported concrete move source");
+      }
+      return -1;
+    }
+    if (!sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->dest_operand_index, dest,
+        io_state)) {
+      sim_diag_error(diagnostics, "unsupported concrete move destination update");
       return -1;
     }
     if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
           io_state, memory, memory_size, io_state->pc, resolved_value, write_trace, memory_policy)) {
-      sim_diag_error(diagnostics, "unsupported concrete move destination");
+      if (sim_concrete_compute_ea_address(dest, metadata->operand_ea_address_formulas[metadata->dest_operand_index],
+          metadata->operand_ea_address_shapes[metadata->dest_operand_index],
+          metadata->operand_ea_base_kinds[metadata->dest_operand_index],
+          metadata->operand_ea_displacement_sources[metadata->dest_operand_index],
+          metadata->operand_ea_uses_displacement[metadata->dest_operand_index],
+          metadata->operand_ea_uses_index[metadata->dest_operand_index],
+          metadata->operand_ea_pc_base_bias_bytes[metadata->dest_operand_index],
+          metadata->operand_ea_address_literal_width_bytes[metadata->dest_operand_index],
+          metadata->operand_ea_index_extension_formats[metadata->dest_operand_index],
+          metadata->operand_ea_index_register_classes[metadata->dest_operand_index],
+          metadata->operand_ea_index_value_width_sources[metadata->dest_operand_index],
+          metadata->operand_ea_index_scale_sources[metadata->dest_operand_index],
+          metadata->operand_ea_index_sign_sources[metadata->dest_operand_index],
+          io_state, io_state->pc, &resolved_address)) {
+        m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SIMULATION_FAILED,
+          "unsupported concrete move destination: address $%08X width %u memory_size %u",
+          (unsigned)resolved_address,
+          (unsigned)sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index),
+          (unsigned)memory_size);
+      } else {
+        sim_diag_error(diagnostics, "unsupported concrete move destination");
+      }
       return -1;
     }
     if (!sim_apply_concrete_ea_register_update(instruction, metadata, metadata->source_operand_index, source,
@@ -4712,8 +4789,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       sim_diag_error(diagnostics, "unsupported concrete register swap");
       return -1;
     }
-  } else if (metadata->operation_type != M68K_SIM_OP_NONE &&
-      (metadata->flow_kind == M68K_SIM_FLOW_JUMP || metadata->flow_kind == M68K_SIM_FLOW_CALL ||
+  } else if ((metadata->flow_kind == M68K_SIM_FLOW_JUMP || metadata->flow_kind == M68K_SIM_FLOW_CALL ||
           metadata->flow_kind == M68K_SIM_FLOW_BRANCH) &&
       target != NULL) {
     if (sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->target_operand_index, target, io_state,

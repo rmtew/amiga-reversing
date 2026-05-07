@@ -184,8 +184,14 @@ Use project-owned decompression:
   proven same-section CFG root that reaches the transfer site over the local
   contiguous scan start, so setup code before helper blocks or embedded data is
   represented as the decruncher entry. Simulated output records include a
-  SHA-256 hash. Wider inferred memory-map seeding and materialisation are still
-  pending.
+  SHA-256 hash. Failed simulator attempts now keep the concrete stop reason,
+  start PC, stop PC, step count, write count, and first diagnostic, so
+  unsupported events point at the next missing simulator or memory-map
+  capability. Simulator probing mirrors the loaded section at its inferred
+  runtime load address and sizes bounded RAM from decoded absolute runtime
+  literals. Damocles now reaches the transferred `$40000` image and records a
+  simulated output range; this remains a bounded extraction run, not a general
+  Amiga emulator.
 
 The boundary is:
 
@@ -228,6 +234,14 @@ Support this with a narrow C runner around the generated concrete simulator:
 - Emit provider provenance as `provider_id: "m68k-sim-decrunch"` with simulator
   build/tool stamps, entrypoint, stop reason, instruction count, written ranges,
   output hash, load address, and entrypoint.
+- For non-materialised events where simulation was attempted, still emit the
+  simulator stop reason, stop PC, write count, and first diagnostic. Do not
+  collapse all failures into an unidentified bucket.
+- Runtime memory used by the simulator must come from analysis evidence:
+  explicit policy runtime ranges, inferred event load address, and decoded
+  absolute runtime literals. It may reserve bounded RAM around those discovered
+  literals for target-owned workspaces, but must not allocate an unbounded
+  machine image.
 
 This provider is not a general emulator. It is a deterministic extractor for
 already-observed decompression stubs. Unsupported results must be indexed as
