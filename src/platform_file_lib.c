@@ -1634,6 +1634,76 @@ static int parse_next_resident_vector_metadata_entry_local(const char **inout_cu
   return parse_resident_vector_offset_local(inout_cursor, array_end, fallback_hunk, out_entry, out_present);
 }
 
+static int policy_add_resident_vector_entrypoint_local(M68kAnalysisPolicy *policy,
+    const ResidentVectorMetadataEntryLocal *entry, uint32_t vector_index, const char *target_type,
+    const char *library_name, uint32_t library_version, uint32_t *inout_next_private_ordinal,
+    uint32_t *inout_first_code_offset, uint32_t first_code_hunk) {
+  char label_name[64];
+  label_name[0] = '\0';
+  if (policy == NULL || entry == NULL) return 0;
+  if (inout_first_code_offset != NULL && entry->hunk == first_code_hunk &&
+      (*inout_first_code_offset == UINT32_MAX || entry->offset < *inout_first_code_offset)) {
+    *inout_first_code_offset = entry->offset;
+  }
+  if (!policy_add_entry_point_local(policy, entry->hunk, entry->offset)) return 0;
+  if (library_name != NULL && library_name[0] != '\0') {
+    const char *base_struct_name = amiga_os_find_library_base_struct_name(library_name);
+    if (base_struct_name == NULL || base_struct_name[0] == '\0') base_struct_name = "LIB";
+    if (!policy_add_register_seed_local(policy, entry->hunk, entry->offset, "A6", "library_base", library_name,
+          base_struct_name, ""))
+      return 0;
+  }
+  {
+    size_t prefix_index;
+    for (prefix_index = 0U; prefix_index < AMIGA_OS_RESIDENT_VECTOR_PREFIX_COUNT; ++prefix_index) {
+      const AmigaOsResidentVectorPrefixInfo *prefix = amiga_os_resident_vector_prefix_at(prefix_index);
+      const char *symbol;
+      if (prefix == NULL || prefix->slot_index != vector_index || target_type == NULL ||
+          strcmp(prefix->target_type, target_type) != 0)
+        continue;
+      {
+        char base_label[64];
+        char library_label[32];
+        symbol = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, prefix->symbol_id);
+        make_policy_symbol_label_local(base_label, sizeof(base_label), symbol);
+        make_library_stem_label_local(library_label, sizeof(library_label), library_name);
+        if (base_label[0] != '\0' && library_label[0] != '\0') {
+          snprintf(label_name, sizeof(label_name), "%s_%s", library_label, base_label);
+        } else {
+          snprintf(label_name, sizeof(label_name), "%s", base_label);
+        }
+      }
+      break;
+    }
+  }
+  if (label_name[0] == '\0' && library_name != NULL && library_name[0] != '\0') {
+    const char *base_name = amiga_os_find_library_base_name(library_name);
+    int16_t lvo = (int16_t)(-(int32_t)((vector_index + 1U) * (uint32_t)amiga_os_lvo_slot_size()));
+    const AmigaOsLibraryVectorInfo *vector = base_name != NULL ? amiga_os_find_library_vector(base_name, lvo) : NULL;
+    const char *function_name = vector != NULL ? amiga_os_name(M68K_PLATFORM_NAME_FUNCTION, vector->function_id) : NULL;
+    if (function_name != NULL && function_name[0] != '\0' &&
+        (vector->available_since_version == 0U || vector->available_since_version <= library_version)) {
+      char declaration[192];
+      make_policy_symbol_label_local(label_name, sizeof(label_name), function_name);
+      if (format_amiga_lvo_declaration_local(vector, declaration, sizeof(declaration)) &&
+          !policy_add_entry_comment_local(policy, entry->hunk, entry->offset, declaration)) {
+        return 0;
+      }
+      if (!policy_add_amiga_lvo_argument_seeds_local(policy, entry->hunk, entry->offset, vector)) return 0;
+    } else {
+      char private_stem[48];
+      uint32_t ordinal = inout_next_private_ordinal != NULL ? *inout_next_private_ordinal : 1U;
+      make_library_stem_label_local(private_stem, sizeof(private_stem), library_name);
+      snprintf(label_name, sizeof(label_name), "%s_private_%u", private_stem[0] != '\0' ? private_stem : "resident",
+        (unsigned)ordinal);
+      if (inout_next_private_ordinal != NULL) *inout_next_private_ordinal = ordinal + 1U;
+    }
+  }
+  if (label_name[0] != '\0' && !policy_add_named_label_local(policy, entry->hunk, entry->offset, label_name))
+    return 0;
+  return 1;
+}
+
 static int append_metadata_resident_vector_entrypoints_local(const char *autoinit_start, const char *autoinit_end,
     M68kAnalysisPolicy *policy, uint32_t hunk, const char *target_type, const char *library_name,
     uint32_t library_version, uint32_t *inout_first_code_offset) {
@@ -1646,70 +1716,13 @@ static int append_metadata_resident_vector_entrypoints_local(const char *autoini
   while (cursor < array_end) {
     ResidentVectorMetadataEntryLocal entry;
     int has_entry = 0;
-    char label_name[64];
-    label_name[0] = '\0';
     if (!parse_next_resident_vector_metadata_entry_local(&cursor, array_end, entries_are_objects, hunk, &entry,
           &has_entry))
       return 0;
     if (!has_entry) break;
-    if (inout_first_code_offset != NULL && entry.hunk == hunk &&
-        (*inout_first_code_offset == UINT32_MAX || entry.offset < *inout_first_code_offset)) {
-      *inout_first_code_offset = entry.offset;
-    }
-    if (!policy_add_entry_point_local(policy, entry.hunk, entry.offset)) return 0;
-    if (library_name != NULL && library_name[0] != '\0') {
-      const char *base_struct_name = amiga_os_find_library_base_struct_name(library_name);
-      if (base_struct_name == NULL || base_struct_name[0] == '\0') base_struct_name = "LIB";
-      if (!policy_add_register_seed_local(policy, entry.hunk, entry.offset, "A6", "library_base", library_name,
-            base_struct_name, ""))
-        return 0;
-    }
-    {
-      size_t prefix_index;
-      for (prefix_index = 0U; prefix_index < AMIGA_OS_RESIDENT_VECTOR_PREFIX_COUNT; ++prefix_index) {
-        const AmigaOsResidentVectorPrefixInfo *prefix = amiga_os_resident_vector_prefix_at(prefix_index);
-        const char *symbol;
-        if (prefix == NULL || prefix->slot_index != vector_index || target_type == NULL ||
-            strcmp(prefix->target_type, target_type) != 0)
-          continue;
-        {
-          char base_label[64];
-          char library_label[32];
-          symbol = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, prefix->symbol_id);
-          make_policy_symbol_label_local(base_label, sizeof(base_label), symbol);
-          make_library_stem_label_local(library_label, sizeof(library_label), library_name);
-          if (base_label[0] != '\0' && library_label[0] != '\0') {
-            snprintf(label_name, sizeof(label_name), "%s_%s", library_label, base_label);
-          } else {
-            snprintf(label_name, sizeof(label_name), "%s", base_label);
-          }
-        }
-        break;
-      }
-      if (label_name[0] == '\0' && library_name != NULL && library_name[0] != '\0') {
-        const char *base_name = amiga_os_find_library_base_name(library_name);
-        int16_t lvo = (int16_t)(-(int32_t)((vector_index + 1U) * (uint32_t)amiga_os_lvo_slot_size()));
-        const AmigaOsLibraryVectorInfo *vector = base_name != NULL ? amiga_os_find_library_vector(base_name, lvo) : NULL;
-        const char *function_name = vector != NULL ? amiga_os_name(M68K_PLATFORM_NAME_FUNCTION, vector->function_id) : NULL;
-        if (function_name != NULL && function_name[0] != '\0' &&
-            (vector->available_since_version == 0U || vector->available_since_version <= library_version)) {
-          char declaration[192];
-          make_policy_symbol_label_local(label_name, sizeof(label_name), function_name);
-          if (format_amiga_lvo_declaration_local(vector, declaration, sizeof(declaration)) &&
-              !policy_add_entry_comment_local(policy, entry.hunk, entry.offset, declaration)) {
-            return 0;
-          }
-          if (!policy_add_amiga_lvo_argument_seeds_local(policy, entry.hunk, entry.offset, vector)) return 0;
-        } else {
-          char private_stem[48];
-          make_library_stem_label_local(private_stem, sizeof(private_stem), library_name);
-          snprintf(label_name, sizeof(label_name), "%s_private_%u", private_stem[0] != '\0' ? private_stem : "resident",
-            (unsigned)next_private_ordinal++);
-        }
-      }
-      if (label_name[0] != '\0' && !policy_add_named_label_local(policy, entry.hunk, entry.offset, label_name))
-        return 0;
-    }
+    if (!policy_add_resident_vector_entrypoint_local(policy, &entry, vector_index, target_type, library_name,
+        library_version, &next_private_ordinal, inout_first_code_offset, hunk))
+      return 0;
     ++vector_index;
   }
   return 1;
@@ -2365,6 +2378,185 @@ static uint32_t read_be32_local(const uint8_t *data) {
   return ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) | ((uint32_t)data[2] << 8) | (uint32_t)data[3];
 }
 
+static uint16_t read_be16_local(const uint8_t *data) {
+  return (uint16_t)(((uint16_t)data[0] << 8) | (uint16_t)data[1]);
+}
+
+static int operand_address_reg_index_policy_local(const M68kOperandIR *operand, uint8_t *out_reg) {
+  if (out_reg != NULL) *out_reg = 0U;
+  if (operand == NULL || out_reg == NULL) return 0;
+  if (operand->kind == M68K_ASM_OPERAND_AN) {
+    *out_reg = operand->value.reg;
+    return 1;
+  }
+  if ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
+      operand->value.ea_mode == 1U) {
+    *out_reg = operand->value.ea_reg;
+    return 1;
+  }
+  return 0;
+}
+
+static int instruction_calls_exec_makelibrary_policy_local(const M68kInstructionIR *instruction) {
+  const AmigaOsLibraryVectorInfo *make_library = amiga_os_find_library_vector_by_symbol_name("_LVOMakeLibrary");
+  const M68kOperandIR *target_operand = NULL;
+  uint8_t base_reg = 0U;
+  int16_t displacement = 0;
+  if (make_library == NULL || instruction == NULL || !instruction_is_call_transfer(instruction)) return 0;
+  if (!instruction_target_operand_local(instruction, &target_operand) || target_operand == NULL) return 0;
+  return operand_is_indirect_or_disp_an(target_operand, &base_reg, &displacement) && base_reg == 6U &&
+    displacement == make_library->lvo;
+}
+
+static int policy_decode_target_is_instruction_local(const M68kObject *object, const M68kAnalysisPolicy *policy,
+    uint32_t hunk, uint32_t offset) {
+  SectionAnalysisContext ctx;
+  SectionDecodeResult decode;
+  if (object == NULL || hunk >= object->section_count) return 0;
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.object = object;
+  ctx.section_index = hunk;
+  ctx.section = &object->sections[hunk];
+  ctx.analysis_policy = policy;
+  return section_analysis_context_probe_decode(&ctx, offset, &decode);
+}
+
+static int policy_add_non_autoinit_vector_table_local(M68kAnalysisPolicy *policy, const M68kObject *object,
+    uint32_t hunk, uint32_t vectors_offset, const char *target_type, const char *library_name,
+    uint32_t library_version, uint32_t *inout_first_code_offset) {
+  typedef struct ResidentVectorTableEntryLocal {
+    uint32_t item_offset;
+    uint32_t target;
+  } ResidentVectorTableEntryLocal;
+  ResidentVectorTableEntryLocal entries[M68K_ANALYSIS_ENTRY_POINT_LIMIT];
+  const M68kSection *section;
+  uint32_t cursor;
+  uint32_t entry_count = 0U;
+  uint32_t vector_index = 0U;
+  uint32_t next_private_ordinal = 1U;
+  uint8_t entry_size;
+  if (policy == NULL || object == NULL || hunk >= object->section_count) return 0;
+  section = &object->sections[hunk];
+  if (section->data == NULL || vectors_offset >= section->data_size) return 0;
+  if (vectors_offset + 2U <= section->data_size && read_be16_local(section->data + vectors_offset) == 0xFFFFU) {
+    entry_size = 2U;
+    cursor = vectors_offset + 2U;
+  } else {
+    entry_size = 4U;
+    cursor = vectors_offset;
+  }
+  while (cursor + entry_size <= section->data_size) {
+    uint32_t target;
+    if (entry_size == 2U) {
+      int16_t displacement = (int16_t)read_be16_local(section->data + cursor);
+      if (displacement == -1) break;
+      target = (uint32_t)((int32_t)vectors_offset + (int32_t)displacement);
+    } else {
+      target = read_be32_local(section->data + cursor);
+      if (target == 0xFFFFFFFFU) break;
+    }
+    if (entry_count >= M68K_ANALYSIS_ENTRY_POINT_LIMIT) return 0;
+    if (target >= section->data_size || !policy_decode_target_is_instruction_local(object, policy, hunk, target))
+      return 0;
+    entries[entry_count].item_offset = cursor;
+    entries[entry_count].target = target;
+    ++entry_count;
+    cursor += entry_size;
+  }
+  if (cursor + entry_size > section->data_size || entry_count == 0U) return 0;
+  if (!policy_add_named_label_local(policy, hunk, vectors_offset, "resident_vectors")) return 0;
+  for (vector_index = 0U; vector_index < entry_count; ++vector_index) {
+    ResidentVectorMetadataEntryLocal entry;
+    uint16_t item_index;
+    item_index = policy->structured_data_item_count;
+    if (!policy_add_structured_data_item_section_local(policy, 1U, hunk, entries[vector_index].item_offset,
+        entry_size, entry_size == 2U ? M68K_ANALYSIS_STRUCTURED_DATA_WORDS : M68K_ANALYSIS_STRUCTURED_DATA_LONGS,
+        NULL))
+      return 0;
+    if (entry_size == 4U &&
+        !policy_set_structured_data_item_target_local(policy, item_index, hunk, entries[vector_index].target))
+      return 0;
+    memset(&entry, 0, sizeof(entry));
+    entry.hunk = hunk;
+    entry.offset = entries[vector_index].target;
+    if (!policy_add_resident_vector_entrypoint_local(policy, &entry, vector_index, target_type, library_name,
+        library_version, &next_private_ordinal, inout_first_code_offset, hunk))
+      return 0;
+  }
+  if (!policy_add_structured_data_item_section_local(policy, 1U, hunk, cursor, entry_size,
+      entry_size == 2U ? M68K_ANALYSIS_STRUCTURED_DATA_WORDS : M68K_ANALYSIS_STRUCTURED_DATA_LONGS, NULL))
+    return 0;
+  return 1;
+}
+
+static int policy_source_operand_target_local(const SectionAnalysisContext *ctx, const M68kInstructionIR *instruction,
+    uint32_t instruction_offset, size_t operand_index, uint32_t *out_target) {
+  const M68kSimFormMetadata *metadata;
+  size_t target_section = SIZE_MAX;
+  uint32_t target_offset = UINT32_MAX;
+  if (out_target != NULL) *out_target = 0U;
+  if (ctx == NULL || instruction == NULL || out_target == NULL || operand_index >= instruction->operand_count)
+    return 0;
+  if (instruction_operand_absolute_target_ref(ctx, instruction, operand_index, instruction_offset, &target_section,
+      &target_offset) && target_section == ctx->section_index) {
+    *out_target = target_offset;
+    return 1;
+  }
+  metadata = instruction_sim_metadata(instruction);
+  return instruction_render_operand_target(instruction, metadata, (uint8_t)operand_index, instruction_offset,
+    ctx->section != NULL ? ctx->section->data_size : 0U, out_target);
+}
+
+static int enrich_policy_from_non_autoinit_resident_make_library_local(M68kAnalysisPolicy *policy,
+    const M68kObject *object, uint32_t hunk, uint32_t init_offset, const char *target_type,
+    const char *library_name, uint32_t library_version) {
+  SectionAnalysisContext ctx;
+  uint32_t addr_reg_targets[8];
+  uint8_t addr_reg_known[8];
+  uint32_t cursor;
+  uint32_t scan_count;
+  uint32_t first_code_offset = UINT32_MAX;
+  if (policy == NULL || object == NULL || hunk >= object->section_count) return 0;
+  if (object->sections[hunk].data == NULL || init_offset >= object->sections[hunk].data_size) return 0;
+  memset(addr_reg_targets, 0, sizeof(addr_reg_targets));
+  memset(addr_reg_known, 0, sizeof(addr_reg_known));
+  memset(&ctx, 0, sizeof(ctx));
+  ctx.object = object;
+  ctx.section_index = hunk;
+  ctx.section = &object->sections[hunk];
+  ctx.analysis_policy = policy;
+  cursor = init_offset;
+  for (scan_count = 0U; scan_count < 256U && cursor < ctx.section->data_size; ++scan_count) {
+    SectionDecodeResult decode;
+    M68kInstructionIR *instruction;
+    uint8_t reg;
+    if (!section_analysis_context_probe_decode(&ctx, cursor, &decode)) break;
+    instruction = &decode.instruction;
+    if (instruction_calls_exec_makelibrary_policy_local(instruction) && addr_reg_known[0]) {
+      return policy_add_non_autoinit_vector_table_local(policy, object, hunk, addr_reg_targets[0], target_type,
+        library_name, library_version, &first_code_offset);
+    }
+    for (reg = 0U; reg < 8U; ++reg) {
+      if (instruction_writes_address_reg_approx(instruction, reg)) addr_reg_known[reg] = 0U;
+    }
+    if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction->operand_count == 2U &&
+        operand_address_reg_index_policy_local(&instruction->operands[1], &reg) && reg < 8U &&
+        policy_source_operand_target_local(&ctx, instruction, cursor, 0U, &addr_reg_targets[reg])) {
+      addr_reg_known[reg] = 1U;
+    } else {
+      const M68kOperandIR *source = NULL;
+      if (instruction_is_address_move(instruction, &reg, &source) && reg < 8U && source != NULL &&
+          policy_source_operand_target_local(&ctx, instruction, cursor, 0U, &addr_reg_targets[reg])) {
+        addr_reg_known[reg] = 1U;
+      }
+    }
+    if (decode.is_call) memset(addr_reg_known, 0, sizeof(addr_reg_known));
+    if (decode.stops_fallthrough) break;
+    cursor += (uint32_t)instruction->byte_count;
+  }
+  return 1;
+}
+
 static const char *resident_pointer_target_label_local(const M68kAnalysisStructuredDataItem *item) {
   if (item == NULL || strcmp(item->struct_name, "RT") != 0) return NULL;
   if (strcmp(item->field_name, "RT_NAME") == 0) return "resident_name";
@@ -2467,22 +2659,38 @@ static int enrich_policy_from_object_target_info_local(M68kAnalysisPolicy *polic
     M68kDiagList ignored_diagnostics;
     const char *resident_end = NULL;
     const char *resident_start = json_find_object_field_local(inspect_json, "resident", &resident_end);
-    if (resident_start != NULL && policy_has_resident_struct_policy_local(policy)) {
+    if (resident_start != NULL) {
       const char *autoinit_end = NULL;
       const char *autoinit_start = json_find_nested_object_field_local(resident_start, resident_end, "autoinit",
         &autoinit_end);
       char library_name[64];
       uint32_t hunk = 0U;
+      uint32_t init_offset = 0U;
       uint32_t library_version = 0U;
       int has_hunk = 0;
+      int has_init_offset = 0;
       int has_library_version = 0;
       library_name[0] = '\0';
-      if (autoinit_start != NULL &&
-          json_number_field_local(resident_start, resident_end, "hunk", &hunk, &has_hunk) &&
-          json_optional_string_field_local(resident_start, resident_end, "name", library_name, sizeof(library_name)) &&
-          json_number_field_local(resident_start, resident_end, "version", &library_version, &has_library_version)) {
+      if (!policy_has_resident_struct_policy_local(policy)) {
+        m68k_diag_list_reset(&ignored_diagnostics);
+        if (append_metadata_amiga_policy_text_local(inspect_json, policy, m68k_diag_sink(&ignored_diagnostics)) != 0) {
+          free(inspect_json);
+          return 0;
+        }
+      }
+      if (!json_number_field_local(resident_start, resident_end, "hunk", &hunk, &has_hunk) ||
+          !json_number_field_local(resident_start, resident_end, "init_offset", &init_offset, &has_init_offset) ||
+          !json_optional_string_field_local(resident_start, resident_end, "name", library_name, sizeof(library_name)) ||
+          !json_number_field_local(resident_start, resident_end, "version", &library_version, &has_library_version)) {
+        free(inspect_json);
+        return 0;
+      }
+      if (autoinit_start != NULL) {
         (void)repair_metadata_resident_vector_sections_local(autoinit_start, autoinit_end, policy,
           has_hunk ? hunk : 0U, inspected_target_type, library_name, has_library_version ? library_version : 0U);
+      } else if (has_init_offset) {
+        (void)enrich_policy_from_non_autoinit_resident_make_library_local(policy, object, has_hunk ? hunk : 0U,
+          init_offset, inspected_target_type, library_name, has_library_version ? library_version : 0U);
       }
     } else {
       m68k_diag_list_reset(&ignored_diagnostics);

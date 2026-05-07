@@ -859,7 +859,18 @@ def _add_file_manifest_features(entry: dict[str, Any], bag: FeatureBag) -> None:
         value = inspect.get(name)
         if isinstance(value, int) and value > 0:
             bag.add(feature, value)
-    if inspect.get("resident") is not None:
+    resident = inspect.get("resident")
+    if isinstance(resident, dict):
+        bag.add("amiga:resident")
+        auto_init = resident.get("auto_init")
+        if auto_init is True:
+            bag.add("amiga:resident:autoinit")
+        elif auto_init is False:
+            bag.add("amiga:resident:non_autoinit")
+        node_type_name = _string_value(resident.get("node_type_name"))
+        if node_type_name:
+            bag.add(f"amiga:resident_node:{_safe_part(node_type_name)}")
+    elif resident is not None:
         bag.add("amiga:resident")
     if inspect.get("library") is not None:
         bag.add("amiga:library")
@@ -1776,7 +1787,18 @@ def _file_manifest_xrefs(row: dict[str, object], entry: dict[str, Any]) -> list[
         value = inspect.get(name)
         if isinstance(value, int) and value > 0:
             xrefs.append(_xref(row, feature, "format_count", value=value, text=name))
-    if inspect.get("resident") is not None:
+    resident = inspect.get("resident")
+    if isinstance(resident, dict):
+        xrefs.append(_xref(row, "amiga:resident", "format", text="resident"))
+        auto_init = resident.get("auto_init")
+        if auto_init is True:
+            xrefs.append(_xref(row, "amiga:resident:autoinit", "format", text="resident.autoinit"))
+        elif auto_init is False:
+            xrefs.append(_xref(row, "amiga:resident:non_autoinit", "format", text="resident.non_autoinit"))
+        node_type_name = _string_value(resident.get("node_type_name"))
+        if node_type_name:
+            xrefs.append(_xref(row, f"amiga:resident_node:{_safe_part(node_type_name)}", "format", text=node_type_name))
+    elif resident is not None:
         xrefs.append(_xref(row, "amiga:resident", "format", text="resident"))
     if inspect.get("library") is not None:
         xrefs.append(_xref(row, "amiga:library", "format", text="library"))

@@ -4961,7 +4961,7 @@ def test_non_autoinit_resident_init_offset_seeds_entrypoint(tmp_path: Path) -> N
         bytes([0x4A, 0xFC])
         + (0).to_bytes(4, "big")
         + (0x22).to_bytes(4, "big")
-        + bytes([0x00, 1, 0, 0])
+        + bytes([0x00, 1, 3, 0])
         + (0).to_bytes(4, "big")
         + (0).to_bytes(4, "big")
         + (0x1C).to_bytes(4, "big")
@@ -4999,6 +4999,96 @@ def test_non_autoinit_resident_init_offset_seeds_entrypoint(tmp_path: Path) -> N
     assert "\tdc.l $0000001C\t; APTR RT_INIT" in rendered
     assert "resident_init:\n\tmovea.l $0004.w,a6\n\trts" in rendered
     assert "\tdc.b $2C,$78,$00,$04,$4E,$75" not in rendered
+
+
+def test_non_autoinit_resident_make_library_vectors_seed_device_entrypoints(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    resident = (
+        bytes([0x4A, 0xFC])
+        + (0).to_bytes(4, "big")
+        + (0x68).to_bytes(4, "big")
+        + bytes([0x00, 1, 3, 0])
+        + (0x5C).to_bytes(4, "big")
+        + (0).to_bytes(4, "big")
+        + (0x40).to_bytes(4, "big")
+    )
+    code = bytearray(resident)
+    code += b"\x00" * (0x30 - len(code))
+    code += bytes.fromhex("ffff00200022002400260028002affff")
+    code += bytes.fromhex("41faffee2c7800044eaeffac4e75")
+    code += b"\x00" * (0x50 - len(code))
+    code += bytes.fromhex("4e754e754e754e754e754e75")
+    code += b"test.device\x00"
+    binary_path = tmp_path / "resident_non_autoinit_vectors.exe"
+    metadata_path = tmp_path / "target_metadata.json"
+    binary_path.write_bytes(make_synthetic_hunkexe(code_data=bytes(code)))
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "device",
+                "resident": {
+                    "name": "test.device",
+                    "version": 1,
+                    "offset": 0,
+                    "hunk": 0,
+                    "init_offset": 0x40,
+                    "autoinit": None,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "analysis.json",
+    )
+
+    rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
+
+    assert "resident_vectors:\n\tdc.b $FF,$FF\n\tdc.w $0020" in rendered
+    assert "test_device_lib_open:\n\trts" in rendered
+    assert "test_device_lib_close:\n\trts" in rendered
+    assert "test_device_lib_expunge:\n\trts" in rendered
+    assert "test_device_lib_extfunc:\n\trts" in rendered
+    assert "test_device_dev_beginio:\n\trts" in rendered
+    assert "test_device_dev_abortio:\n\trts" in rendered
+    assert "\tdc.b $4E,$75,$4E,$75,$4E,$75" not in rendered
+    assert "    ORG $" not in rendered
+
+
+@pytest.mark.parametrize(
+    ("target_name", "prefix"),
+    [
+        (
+            "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_devs__parallel.device_0b71ffaa",
+            "parallel_device",
+        ),
+        (
+            "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_devs__printer.device_1aada1d4",
+            "printer_device",
+        ),
+    ],
+)
+def test_real_dll_non_autoinit_resident_vectors_seed_device_entrypoints(target_name: str, prefix: str) -> None:
+    _requires_c_backend_dlls()
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+
+    rendered = render_project_source_with_c_backend(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert "resident_vectors:" in rendered
+    assert f"{prefix}_lib_open:" in rendered
+    assert f"{prefix}_lib_close:" in rendered
+    assert f"{prefix}_lib_expunge:" in rendered
+    assert f"{prefix}_lib_extfunc:" in rendered
+    assert f"{prefix}_dev_beginio:" in rendered
+    assert f"{prefix}_dev_abortio:" in rendered
+    assert "    ORG $4\n" not in rendered
 
 
 def test_symbolic_zero_address_displacement_preserves_instruction_width(tmp_path: Path) -> None:
