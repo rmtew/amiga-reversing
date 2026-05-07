@@ -580,8 +580,10 @@ def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
     assert facts_v2["asm_source_refused"] is False
     assert facts_v2["runtime_address_ranges"] >= 1
     assert "\tdc.b $73,$6B,$69,$70\n" in source_text
-    assert "    ORG $100\nabs_0_00000100:\n\trts\n" in source_text
-    assert "    ORG $18\n\tdc.b $74,$61,$69,$6C\n" in source_text
+    assert "runtime_code_00000100\tEQU\t$100\n" in source_text
+    assert "    ORG $100\n" not in source_text
+    assert "    ORG $18\n" not in source_text
+    assert "loc_0_00000016:\n\trts\n\tdc.b $74,$61,$69,$6C\n" in source_text
     assert any(
         ref.get("reason_name") == "control_target" and ref.get("runtime_address") == 0x100
         for row in stub_rows
@@ -3834,6 +3836,11 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
         project_root=PROJECT_ROOT,
     )
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "    ORG $5000\n" not in source_text
+    assert "    ORG $328\n" not in source_text
+    assert "runtime_code_00005000\tEQU\t$5000\n" in source_text
+    assert "\tjmp runtime_code_00005000.w\n" in source_text
+    assert "loc_0_00000324:\n\tmove #$2700,sr\n\tmove.w #DMAF_CLRALL,_custom+dmacon.l\n" in source_text
     assert "\tjmp $00004000.l\n" in source_text
     assert "loc_0_00004000:" not in source_text
     assert "loc_0_00004004:" not in source_text
