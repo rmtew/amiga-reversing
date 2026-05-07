@@ -44,11 +44,9 @@ from amiga_reversing.disasm.target_ui_edits import TARGET_UI_EDITS_FILE_NAME
 
 REPRODUCTION_FILE_NAME = "reproduction.json"
 REPRODUCTION_SOURCE_SYNTAX = "genam"
-REPRODUCTION_SOURCE_ARTIFACT_ENV = "AMIGA_REVERSING_REPRO_SOURCE_ARTIFACT"
 FACTS_V2_DIRECT_REPRO_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_REPRO"
 FACTS_V2_DIRECT_COMPARE_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_COMPARE"
 FACTS_V2_DIRECT_SOURCE_COMPARE_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_SOURCE_COMPARE"
-REPRODUCTION_SOURCE_ARTIFACT_POLICIES = {"always", "on_failure", "never"}
 MAX_DIFF_RANGES = 128
 MAX_DIAGNOSTICS = 80
 REPRODUCTION_BACKENDS = {"auto", "amiga-hunk", "atari-st", "amiga-raw"}
@@ -117,8 +115,6 @@ def run_reproduction(
     assembler_stdout = ""
     assembler_stderr = ""
     listing_profile: dict[str, object] | None = None
-    source_artifact_error: str | None = None
-    source_artifact_policy = _source_artifact_policy()
     input_stamp = unresolved_reproduction_input_stamp(
         target_name,
         project_root=project_root,
@@ -312,7 +308,6 @@ def run_reproduction(
                     profile_timings["render_seconds"] = _profile_timing_total(exc.listing_profile)
                     profile_timings["assemble_seconds"] = 0.0
                     profile_timings["facts_v2_direct_rebuild_c_api"] = 1.0
-                    profile_timings["source_artifact_policy"] = source_artifact_policy
                     report = {
                         **base_report,
                         "status": "render_error",
@@ -329,7 +324,6 @@ def run_reproduction(
                     _merge_direct_rebuild_profile(profile_timings, exc.direct_profile)
                     _record_profile_timing(profile_timings, "direct_rebuild_seconds", phase_started_at)
                     profile_timings["facts_v2_direct_rebuild_c_api"] = 1.0
-                    profile_timings["source_artifact_policy"] = source_artifact_policy
                     message = f"facts_v2 direct rebuild refused: {exc}"
                     accepted_kind = _accepted_direct_rebuild_refusal_kind(
                         backend,
@@ -367,7 +361,6 @@ def run_reproduction(
                     _merge_direct_rebuild_profile(profile_timings, exc.assembler_profile)
                     _record_profile_timing(profile_timings, "direct_rebuild_seconds", phase_started_at)
                     profile_timings["facts_v2_direct_rebuild_c_api"] = 1.0
-                    profile_timings["source_artifact_policy"] = source_artifact_policy
                     message = str(exc)
                     report = {
                         **base_report,
@@ -381,92 +374,78 @@ def run_reproduction(
                     if profile:
                         report["profile"] = _profile_payload(profile_timings, profile_started_at)
                     return _write_reproduction_report(paths.target_dir, report)
-        if use_facts_v2_render_assemble:
-            if rebuilt_bytes is not None:
-                profile_timings["source_artifact_policy"] = source_artifact_policy
-            else:
-                phase = "render_assemble"
-                phase_started_at = time.perf_counter()
-                include_dir = _include_dir_for_backend(backend, project_root)
-                _emit_progress(
-                    progress_callback,
-                    target_name=target_name,
-                    phase=phase,
-                    started_at=profile_started_at,
-                    backend=backend,
-                    assembler_tool_path=str(_platform_file_lib_path(project_root)),
-                )
-                with effective_metadata_file(paths.target_dir) as metadata_path:
-                    try:
-                        rebuilt_bytes, listing_profile, assembler_profile = (
-                            facts_v2_render_assemble_project_source_with_c_backend_profile(
-                                paths.binary_source,
-                                metadata_path=metadata_path,
-                                include_dir=include_dir if include_dir is not None and include_dir.exists() else None,
-                                output_path=rebuilt_path,
-                                target_cpu=assembler_cpu,
-                                project_root=project_root,
-                            )
+        if use_facts_v2_render_assemble and rebuilt_bytes is None:
+            phase = "render_assemble"
+            phase_started_at = time.perf_counter()
+            include_dir = _include_dir_for_backend(backend, project_root)
+            _emit_progress(
+                progress_callback,
+                target_name=target_name,
+                phase=phase,
+                started_at=profile_started_at,
+                backend=backend,
+                assembler_tool_path=str(_platform_file_lib_path(project_root)),
+            )
+            with effective_metadata_file(paths.target_dir) as metadata_path:
+                try:
+                    rebuilt_bytes, listing_profile, assembler_profile = (
+                        facts_v2_render_assemble_project_source_with_c_backend_profile(
+                            paths.binary_source,
+                            metadata_path=metadata_path,
+                            include_dir=include_dir if include_dir is not None and include_dir.exists() else None,
+                            output_path=rebuilt_path,
+                            target_cpu=assembler_cpu,
+                            project_root=project_root,
                         )
-                        _merge_assembler_profile(profile_timings, assembler_profile)
-                        assembled_source_for_reproduction = True
-                    except FactsV2SourceRefused as exc:
-                        message = str(exc)
-                        _record_profile_timing(profile_timings, "render_assemble_seconds", phase_started_at)
-                        profile_timings["render_seconds"] = _profile_timing_total(exc.listing_profile)
-                        profile_timings["assemble_seconds"] = 0.0
-                        profile_timings["render_assemble_c_api"] = 1.0
-                        profile_timings["source_artifact_policy"] = source_artifact_policy
-                        report = {
-                            **base_report,
-                            "status": "render_error",
-                            "finished_at": time.time(),
-                            "tool_error": message,
-                            "issues": [_issue("renderer", message, None)],
-                            "listing_profile": exc.listing_profile,
-                        }
-                        if profile:
-                            report["profile"] = _profile_payload(profile_timings, profile_started_at)
-                        return _write_reproduction_report(paths.target_dir, report)
-                    except FactsV2RenderAssembleFailed as exc:
-                        assembler_stderr = str(exc)
-                        listing_profile = exc.source_profile
-                        _merge_assembler_profile(profile_timings, exc.assembler_profile)
-                        _record_profile_timing(profile_timings, "render_assemble_seconds", phase_started_at)
-                        profile_timings["render_seconds"] = _profile_timing_total(exc.source_profile)
-                        profile_timings["assemble_seconds"] = _flat_profile_total(exc.assembler_profile)
-                        profile_timings["render_assemble_c_api"] = 1.0
-                        profile_timings["source_artifact_policy"] = source_artifact_policy
-                        if source_artifact_policy == "on_failure":
-                            source_text = _render_reproduction_source(
-                                paths.binary_source,
-                                paths.target_dir,
-                                source_syntax=source_syntax,
-                                project_root=project_root,
-                            )
-                            source_size = _write_source_artifact(source_path, source_text, profile_timings)
-                        diagnostics = parse_assembler_diagnostics(assembler_stderr)
-                        report = {
-                            **base_report,
-                            "status": "assembler_error",
-                            "finished_at": time.time(),
-                            "assembler_diagnostics": diagnostics,
-                            "assembler_stdout": assembler_stdout,
-                            "assembler_stderr": assembler_stderr,
-                            "issues": diagnostics or [_issue("assembler", "Assembler failed", None)],
-                            "listing_profile": listing_profile,
-                        }
-                        if profile:
-                            report["profile"] = _profile_payload(profile_timings, profile_started_at)
-                        return _write_reproduction_report(paths.target_dir, report)
-                _record_profile_timing(profile_timings, "render_assemble_seconds", phase_started_at)
-                profile_timings["render_seconds"] = _profile_timing_total(listing_profile)
-                profile_timings["assemble_seconds"] = _flat_profile_total(assembler_profile)
-                profile_timings["render_assemble_c_api"] = 1.0
-                profile_timings["source_artifact_policy"] = source_artifact_policy
-                source_size = _facts_v2_profile_source_bytes(listing_profile)
-                profile_timings["source_file_rewritten"] = 0.0
-                profile_timings["write_source_seconds"] = 0.0
+                    )
+                    _merge_assembler_profile(profile_timings, assembler_profile)
+                    assembled_source_for_reproduction = True
+                except FactsV2SourceRefused as exc:
+                    message = str(exc)
+                    _record_profile_timing(profile_timings, "render_assemble_seconds", phase_started_at)
+                    profile_timings["render_seconds"] = _profile_timing_total(exc.listing_profile)
+                    profile_timings["assemble_seconds"] = 0.0
+                    profile_timings["render_assemble_c_api"] = 1.0
+                    report = {
+                        **base_report,
+                        "status": "render_error",
+                        "finished_at": time.time(),
+                        "tool_error": message,
+                        "issues": [_issue("renderer", message, None)],
+                        "listing_profile": exc.listing_profile,
+                    }
+                    if profile:
+                        report["profile"] = _profile_payload(profile_timings, profile_started_at)
+                    return _write_reproduction_report(paths.target_dir, report)
+                except FactsV2RenderAssembleFailed as exc:
+                    assembler_stderr = str(exc)
+                    listing_profile = exc.source_profile
+                    _merge_assembler_profile(profile_timings, exc.assembler_profile)
+                    _record_profile_timing(profile_timings, "render_assemble_seconds", phase_started_at)
+                    profile_timings["render_seconds"] = _profile_timing_total(exc.source_profile)
+                    profile_timings["assemble_seconds"] = _flat_profile_total(exc.assembler_profile)
+                    profile_timings["render_assemble_c_api"] = 1.0
+                    diagnostics = parse_assembler_diagnostics(assembler_stderr)
+                    report = {
+                        **base_report,
+                        "status": "assembler_error",
+                        "finished_at": time.time(),
+                        "assembler_diagnostics": diagnostics,
+                        "assembler_stdout": assembler_stdout,
+                        "assembler_stderr": assembler_stderr,
+                        "issues": diagnostics or [_issue("assembler", "Assembler failed", None)],
+                        "listing_profile": listing_profile,
+                    }
+                    if profile:
+                        report["profile"] = _profile_payload(profile_timings, profile_started_at)
+                    return _write_reproduction_report(paths.target_dir, report)
+            _record_profile_timing(profile_timings, "render_assemble_seconds", phase_started_at)
+            profile_timings["render_seconds"] = _profile_timing_total(listing_profile)
+            profile_timings["assemble_seconds"] = _flat_profile_total(assembler_profile)
+            profile_timings["render_assemble_c_api"] = 1.0
+            source_size = _facts_v2_profile_source_bytes(listing_profile)
+            profile_timings["source_file_rewritten"] = 0.0
+            profile_timings["write_source_seconds"] = 0.0
         elif source_text is None and rebuilt_bytes is None:
             phase = "render"
             phase_started_at = time.perf_counter()
@@ -505,8 +484,7 @@ def run_reproduction(
             profile_timings["reused_source_text"] = 1.0
         if source_text is not None:
             source_size = len(source_text.encode("utf-8"))
-        profile_timings["source_artifact_policy"] = source_artifact_policy
-        if source_artifact_policy == "always" and source_text is not None:
+        if source_text is not None:
             phase = "write_source"
             _emit_progress(
                 progress_callback,
@@ -550,8 +528,6 @@ def run_reproduction(
             except RuntimeError as exc:
                 assembler_stderr = str(exc)
                 _record_profile_timing(profile_timings, "assemble_seconds", phase_started_at)
-                if source_artifact_policy == "on_failure":
-                    source_size = _write_source_artifact(source_path, source_text, profile_timings)
                 diagnostics = parse_assembler_diagnostics(assembler_stderr)
                 report = {
                     **base_report,
@@ -672,20 +648,6 @@ def run_reproduction(
             and reproduction_policy.get("comparison") in {"content", "semantic"}
         ):
             report_status = str(comparison_status)
-        if source_artifact_policy == "on_failure" and report_status != "exact":
-            try:
-                if source_text is None:
-                    source_text = _render_reproduction_source(
-                        paths.binary_source,
-                        paths.target_dir,
-                        source_syntax=source_syntax,
-                        project_root=project_root,
-                    )
-                source_size = _write_source_artifact(source_path, source_text, profile_timings)
-            except FactsV2SourceRefused as exc:
-                source_artifact_error = str(exc)
-                profile_timings["source_artifact_render_refused"] = 1.0
-                profile_timings["source_artifact_error"] = source_artifact_error
         if rebuilt != canonical_rebuilt:
             canonical_rebuilt_path.write_bytes(canonical_rebuilt)
             rebuilt_path.write_bytes(rebuilt)
@@ -719,8 +681,6 @@ def run_reproduction(
             report.update(direct_source_report)
         if listing_profile is not None:
             report["listing_profile"] = listing_profile
-        if source_artifact_error is not None:
-            report["source_artifact_error"] = source_artifact_error
         if profile:
             report["profile"] = _profile_payload(profile_timings, profile_started_at)
         _emit_progress(
@@ -736,8 +696,6 @@ def run_reproduction(
         )
         return _write_reproduction_report(paths.target_dir, report)
     except Exception as exc:
-        if source_artifact_policy == "on_failure" and source_text is not None:
-            _write_source_artifact(source_path, source_text, profile_timings)
         if target_dir is None:
             target_dir = _best_effort_target_dir(target_name, project_root=project_root)
         if "stamp_error" not in input_stamp or input_stamp.get("stamp_error") == "not prepared":
@@ -1642,15 +1600,6 @@ def _write_text_if_changed(path: Path, text: str) -> tuple[int, bool]:
         pass
     path.write_bytes(data)
     return len(data), True
-
-
-def _source_artifact_policy() -> str:
-    return reproduction_source_artifact_policy()
-
-
-def reproduction_source_artifact_policy() -> str:
-    policy = os.environ.get(REPRODUCTION_SOURCE_ARTIFACT_ENV, "always")
-    return policy if policy in REPRODUCTION_SOURCE_ARTIFACT_POLICIES else "always"
 
 
 def facts_v2_direct_reproduction_enabled() -> bool:

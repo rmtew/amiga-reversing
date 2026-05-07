@@ -653,7 +653,6 @@ def test_run_reproduction_exact_match_skips_file_layout(
 def test_run_reproduction_uses_facts_v2_render_assemble_fast_path(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.REPRODUCTION_SOURCE_ARTIFACT_ENV, "never")
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "0")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
@@ -715,7 +714,6 @@ def test_run_reproduction_uses_facts_v2_render_assemble_fast_path(
 def test_run_reproduction_uses_facts_v2_render_assemble_for_raw_binary(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.REPRODUCTION_SOURCE_ARTIFACT_ENV, "never")
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
@@ -782,7 +780,6 @@ def test_facts_v2_direct_reproduction_defaults_on(monkeypatch: pytest.MonkeyPatc
 def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.REPRODUCTION_SOURCE_ARTIFACT_ENV, "never")
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
@@ -846,7 +843,6 @@ def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
 def test_run_reproduction_accepts_lossy_hunk_reloc32_direct_rebuild_refusal(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.REPRODUCTION_SOURCE_ARTIFACT_ENV, "on_failure")
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
@@ -904,7 +900,6 @@ def test_run_reproduction_accepts_lossy_hunk_reloc32_direct_rebuild_refusal(
 def test_run_reproduction_direct_source_compare_does_not_override_direct_bytes(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.REPRODUCTION_SOURCE_ARTIFACT_ENV, "never")
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_SOURCE_COMPARE_ENV, "1")
     target_dir = tmp_path / "targets" / "demo"
@@ -973,7 +968,6 @@ def test_run_reproduction_direct_source_compare_does_not_override_direct_bytes(
 def test_run_reproduction_direct_compare_exact_skips_python_diff(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.REPRODUCTION_SOURCE_ARTIFACT_ENV, "never")
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_COMPARE_ENV, "1")
     target_dir = tmp_path / "targets" / "demo"
@@ -1041,7 +1035,6 @@ def test_run_reproduction_direct_compare_exact_skips_python_diff(
 def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_diff(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.REPRODUCTION_SOURCE_ARTIFACT_ENV, "never")
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_COMPARE_ENV, "1")
     target_dir = tmp_path / "targets" / "demo"
@@ -1114,10 +1107,9 @@ def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_
     assert profile["facts_v2_direct_compare_semantic_exact"] == 1.0
 
 
-def test_run_reproduction_fast_path_renders_source_artifact_on_mismatch(
+def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.REPRODUCTION_SOURCE_ARTIFACT_ENV, "on_failure")
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "0")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
@@ -1140,7 +1132,11 @@ def test_run_reproduction_fast_path_renders_source_artifact_on_mismatch(
             binary_source=source,
         ),
     )
-    monkeypatch.setattr(reproduction, "render_project_source_with_c_backend", lambda *args, **kwargs: "fallback\n")
+    monkeypatch.setattr(
+        reproduction,
+        "render_project_source_with_c_backend",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("late source render should not run")),
+    )
     monkeypatch.setattr(
         reproduction,
         "assemble_platform_source_text_with_c_backend",
@@ -1163,7 +1159,7 @@ def test_run_reproduction_fast_path_renders_source_artifact_on_mismatch(
     report = run_reproduction("demo", project_root=tmp_path, profile=True)
 
     assert report["status"] == "binary_mismatch"
-    assert (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").read_text(encoding="utf-8") == "fallback\n"
+    assert not (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
 
 
 def test_run_reproduction_captures_renderer_failure_as_render_error(

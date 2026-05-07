@@ -211,6 +211,11 @@ Reproduction jobs no longer pass cached Python rows into source reproduction.
 When a retained C artifact can emit source for the target form, reproduction
 uses that source; otherwise it calls the normal reproduction path by project
 identity and trusts the backend/source renderer there.
+The reproduction source artifact policy switch has been removed. Reproduction
+now writes `source.s` only when source text is already the path being assembled
+or has been supplied by the retained artifact. It does not perform a second
+late source render on mismatch or assembler failure just to materialize a
+diagnostic artifact.
 Reproduction mismatch row mapping now uses the retained C artifact as a
 source-offset lookup service. The artifact resolves a `(section_index,
 section_offset)` through the render plan, translates the owning plan row through
@@ -670,5 +675,11 @@ path for every target once the full listing artifact is valid, so the retained
 render plan is the source form being assembled instead of a separate direct
 rebuild path. Standalone reproduction can still use direct rebuild when no
 retained artifact source has been supplied.
+
+Source artifact materialization is deterministic: if reproduction receives or
+renders source text, it writes that exact text to `bin/rebuilt/<target>/source.s`;
+if reproduction uses a direct byte rebuild or C render-assemble path without
+source text, it does not create `source.s`. There is no `always`, `on_failure`,
+or `never` compatibility policy.
 
 Both outputs must stay byte-for-byte consistent for the rows they share.
