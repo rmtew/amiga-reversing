@@ -422,15 +422,6 @@ static int source_file_has_label_name(const M68kSourceFileIR *source_file, const
   return 0;
 }
 
-static int source_file_has_amiga_resident_library_context(const M68kSourceFileIR *source_file,
-    const RenderLabelIndexes *label_indexes) {
-  return source_file != NULL &&
-    source_file->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
-    (source_file_has_label_name(source_file, label_indexes, "resident") ||
-      source_file_has_label_name(source_file, label_indexes, "resident_autoinit") ||
-      source_file_has_label_name(source_file, label_indexes, "resident_vectors"));
-}
-
 typedef struct RenderEquate {
   char name[64];
   int32_t value;
@@ -870,106 +861,10 @@ static int append_or_update_render_equate(RenderEquate *equates, size_t *inout_e
   return append_or_update_render_equate_with_extent(equates, inout_equate_count, equate_capacity, name, value, 0);
 }
 
-static int render_equate_compare_by_value_then_name(const void *left, const void *right) {
-  const RenderEquate *left_equate = (const RenderEquate *)left;
-  const RenderEquate *right_equate = (const RenderEquate *)right;
-  if (left_equate->value < right_equate->value) return -1;
-  if (left_equate->value > right_equate->value) return 1;
-  return strcmp(left_equate->name, right_equate->name);
-}
-
-static int render_equate_is_app_extension_symbol(const RenderEquate *equate, int32_t base_offset) {
-  if (equate == NULL || base_offset < 0) return 0;
-  if (strncmp(equate->name, "app_", 4U) != 0) return 0;
-  if (strcmp(equate->name, "app_SIZEOF") == 0) return 0;
-  if (equate->value < base_offset) return 0;
-  return 1;
-}
-
 static void format_render_equate_value(int32_t value, char *out_text, size_t out_text_size) {
   if (out_text == NULL || out_text_size == 0U) return;
   if (value >= 0) snprintf(out_text, out_text_size, "$%X", (unsigned)value);
   else snprintf(out_text, out_text_size, "%d", (int)value);
-}
-
-static int append_exact_rs_byte_gap(JsonBuilder *builder, int32_t gap, const char *directive_prefix) {
-  if (gap <= 0) return 0;
-  return json_builder_appendf(builder, "%sRS.B %d\n", directive_prefix, (int)gap);
-}
-
-static int append_needed_amiga_app_extension_rs(JsonBuilder *builder, RenderEquate *equates, size_t equate_count,
-    const M68kSourceFileIR *source_file, const RenderLabelIndexes *label_indexes, uint8_t has_app_sizeof_value,
-    int32_t app_sizeof_value, uint8_t syntax_mode) {
-  RenderEquate slots[64];
-  size_t slot_count = 0U;
-  size_t index;
-  int32_t lib_size = 0;
-  int32_t base_offset = 0;
-  int has_resident_library_context;
-  int32_t cursor;
-  int32_t inferred_sizeof = 0;
-  const char *directive_prefix = syntax_mode == M68K_IR_SYNTAX_VASM ? "    " : "";
-  if (builder == NULL) return 0;
-  has_resident_library_context = source_file_has_amiga_resident_library_context(source_file, label_indexes);
-  if (has_resident_library_context) {
-    if (!amiga_os_find_constant_value("LIB_SIZE", &lib_size) || lib_size <= 0) return 0;
-    base_offset = lib_size;
-  }
-  for (index = 0U; index < equate_count; ++index) {
-    int32_t extent_end;
-    if (!render_equate_is_app_extension_symbol(&equates[index], base_offset)) continue;
-    if (slot_count >= sizeof(slots) / sizeof(slots[0])) return -1;
-    slots[slot_count++] = equates[index];
-    equates[index].consumed = 1U;
-    extent_end = equates[index].value + equates[index].min_extent;
-    if (extent_end > inferred_sizeof) inferred_sizeof = extent_end;
-  }
-  if (slot_count == 0U && has_app_sizeof_value == 0U) return 0;
-  qsort(slots, slot_count, sizeof(slots[0]), render_equate_compare_by_value_then_name);
-  if (has_resident_library_context) {
-    if (json_builder_appendf(builder, "%sRSSET LIB_SIZE\n", directive_prefix) != 0) return -1;
-  } else {
-    if (json_builder_appendf(builder, "%sRSSET 0\n", directive_prefix) != 0) return -1;
-  }
-  cursor = base_offset;
-  for (index = 0U; index < slot_count; ++index) {
-    int32_t natural_size = (slots[index].value & 1) == 0 ? 4 : 1;
-    int32_t slot_size = slots[index].min_extent > natural_size ? slots[index].min_extent : natural_size;
-    if (slots[index].value > cursor) {
-      int32_t gap = slots[index].value - cursor;
-      if (append_exact_rs_byte_gap(builder, gap, directive_prefix) != 0) return -1;
-      cursor = slots[index].value;
-    }
-    if (slots[index].value < cursor) {
-      slots[index].consumed = 2U;
-    } else if (slot_size == 4 && (cursor & 1) == 0) {
-      if (json_builder_appendf(builder, "%s RS.L 1\n", slots[index].name) != 0) return -1;
-      cursor += slot_size;
-    } else if (slot_size == 1) {
-      if (json_builder_appendf(builder, "%s RS.B 1\n", slots[index].name) != 0) return -1;
-      cursor += slot_size;
-    } else {
-      if (json_builder_appendf(builder, "%s RS.B %d\n", slots[index].name, (int)slot_size) != 0) return -1;
-      cursor += slot_size;
-    }
-  }
-  {
-    int32_t target_sizeof = has_app_sizeof_value != 0U ? app_sizeof_value : inferred_sizeof;
-    if (inferred_sizeof > target_sizeof) target_sizeof = inferred_sizeof;
-    if (target_sizeof > cursor) {
-      int32_t gap = target_sizeof - cursor;
-      if (append_exact_rs_byte_gap(builder, gap, directive_prefix) != 0) return -1;
-    }
-  }
-  if (json_builder_append(builder, "app_SIZEOF EQU __RS\n") != 0) return -1;
-  for (index = 0U; index < slot_count; ++index) {
-    char value_text[32];
-    if (slots[index].consumed != 2U) continue;
-    format_render_equate_value(slots[index].value, value_text, sizeof(value_text));
-    if (json_builder_appendf(builder, "%s EQU %s\n", slots[index].name, value_text) != 0) return -1;
-  }
-  if (json_builder_append(builder, "\n") != 0) return -1;
-  return 0;
 }
 
 typedef struct RenderEquateCollectorContext {
@@ -995,8 +890,6 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
   RenderEquate equates[128];
   size_t equate_count = 0U;
   size_t section_index;
-  uint8_t has_app_sizeof_value = 0U;
-  int32_t app_sizeof_value = 0;
   RenderEquateCollectorContext context;
   context.equates = equates;
   context.equate_count = &equate_count;
@@ -1011,13 +904,6 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
       const M68kStatementIR *stmt = &section->statements[stmt_index];
       size_t operand_index;
         if (stmt->kind == M68K_STATEMENT_DATA) {
-          if (stmt->u.data.expr_text != NULL && strcmp(stmt->u.data.expr_text, "app_SIZEOF") == 0 &&
-              stmt->u.data.data != NULL && stmt->u.data.size == 4U) {
-            uint32_t raw_value = ((uint32_t)stmt->u.data.data[0] << 24) | ((uint32_t)stmt->u.data.data[1] << 16) |
-              ((uint32_t)stmt->u.data.data[2] << 8) | (uint32_t)stmt->u.data.data[3];
-            has_app_sizeof_value = 1U;
-            app_sizeof_value = (int32_t)raw_value;
-          }
           if (visit_expr_text_symbols(stmt->u.data.expr_text, collect_data_expr_equate_symbol, &context) != 0) return -1;
           continue;
         }
@@ -1084,8 +970,7 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
       }
     }
   }
-  if (append_needed_amiga_app_extension_rs(builder, equates, equate_count, source_file, label_indexes, has_app_sizeof_value,
-        app_sizeof_value, syntax_mode) != 0) return -1;
+  (void)syntax_mode;
   for (section_index = 0; section_index < equate_count; ++section_index) {
     char value_text[32];
     if (equates[section_index].consumed != 0U) continue;
