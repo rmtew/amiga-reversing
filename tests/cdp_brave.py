@@ -460,11 +460,12 @@ class CdpWebSocket:
             },
         )
 
-    def press_key(self, key: str) -> None:
+    def press_key(self, key: str, *, modifiers: int = 0) -> None:
         key_code = _virtual_key_code(key)
         params = {
             "key": key,
             "code": key,
+            "modifiers": modifiers,
             "windowsVirtualKeyCode": key_code,
             "nativeVirtualKeyCode": key_code,
         }

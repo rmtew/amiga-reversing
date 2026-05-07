@@ -3903,6 +3903,35 @@ function isEditableTarget(target) {
   return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
 }
 
+function modalOrPanelHasKeyboardFocus() {
+  return Boolean(
+    state.navigation.overlayOpen ||
+    document.getElementById("navigation-overlay") ||
+    state.stats.overlayOpen ||
+    document.getElementById("stats-overlay") ||
+    state.reproduction.panelOpen ||
+    document.getElementById("corpus-variant-diff-overlay") ||
+    document.getElementById("corpus-disk-browser-overlay") ||
+    document.getElementById("corpus-snippet-overlay")
+  );
+}
+
+function listingScrollDirectionForKey(event) {
+  if (event.altKey || event.metaKey || event.shiftKey) {
+    return null;
+  }
+  if (event.ctrlKey) {
+    if (event.key === "PageDown" || event.key === "End") return "end";
+    if (event.key === "PageUp" || event.key === "Home") return "home";
+    return null;
+  }
+  if (event.key === "PageDown") return "down";
+  if (event.key === "PageUp") return "up";
+  if (event.key === "Home") return "home";
+  if (event.key === "End") return "end";
+  return null;
+}
+
 function isLabelRow(row) {
   return Boolean(row.label) || renderListingCode(row).trim().endsWith(":");
 }
@@ -5992,7 +6021,13 @@ document.addEventListener("keydown", (event) => {
   if (isEditableTarget(event.target)) {
     return;
   }
-  if (!state.navigation.overlayOpen) {
+  const listingScrollDirection = listingScrollDirectionForKey(event);
+  if (listingScrollDirection && !modalOrPanelHasKeyboardFocus()) {
+    event.preventDefault();
+    scrollListingViewport(state.project, listingScrollDirection);
+    return;
+  }
+  if (!modalOrPanelHasKeyboardFocus()) {
     if (!event.altKey && !event.ctrlKey && !event.metaKey && (event.key === "n" || event.key === "N")) {
       event.preventDefault();
       void openNavigationOverlay();
@@ -6003,25 +6038,9 @@ document.addEventListener("keydown", (event) => {
       openStatsOverlay();
       return;
     }
-    if (!event.altKey && !event.ctrlKey && !event.metaKey && event.key === "PageDown") {
-      event.preventDefault();
-      scrollListingViewport(state.project, "down");
-      return;
-    }
-    if (!event.altKey && !event.ctrlKey && !event.metaKey && event.key === "PageUp") {
-      event.preventDefault();
-      scrollListingViewport(state.project, "up");
-      return;
-    }
-    if (!event.altKey && !event.ctrlKey && !event.metaKey && event.key === "Home") {
-      event.preventDefault();
-      scrollListingViewport(state.project, "home");
-      return;
-    }
-    if (!event.altKey && !event.ctrlKey && !event.metaKey && event.key === "End") {
-      event.preventDefault();
-      scrollListingViewport(state.project, "end");
-    }
+    return;
+  }
+  if (!state.navigation.overlayOpen) {
     return;
   }
   if (event.key === "Enter") {

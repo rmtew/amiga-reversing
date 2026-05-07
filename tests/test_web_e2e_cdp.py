@@ -1501,6 +1501,67 @@ def test_brave_cdp_navigation_overlay_list_scrolls_with_many_entries(
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_page_level_listing_keys_route_to_listing_viewport(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project = _binary_project("amiga_hunk_page_level_listing_keys")
+    rows = [
+        ListingRow(
+            row_id=f"r{index}",
+            kind="label",
+            text=f"label_{index:03d}:\n",
+            addr=index * 4,
+            label=f"label_{index:03d}:",
+        )
+        for index in range(120)
+    ]
+    disasm_server._ASYNC_JOBS.clear()
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelector('#listing-viewport')?.scrollHeight > document.querySelector('#listing-viewport')?.clientHeight")
+        page.evaluate(
+            """
+            (() => {
+              const viewport = document.querySelector("#listing-viewport");
+              viewport.scrollTop = 0;
+              viewport.blur();
+              document.body.tabIndex = -1;
+              document.body.focus();
+              return document.activeElement === document.body;
+            })()
+            """
+        )
+
+        page.press_key("PageDown")
+        page.wait_for_expression("document.querySelector('#listing-viewport').scrollTop > 0")
+        page.press_key("PageDown", modifiers=2)
+        page.wait_for_expression(
+            """
+            (() => {
+              const viewport = document.querySelector("#listing-viewport");
+              return viewport.scrollTop >= viewport.scrollHeight - viewport.clientHeight - 4;
+            })()
+            """
+        )
+        page.press_key("PageUp", modifiers=2)
+        page.wait_for_expression("document.querySelector('#listing-viewport').scrollTop === 0")
+
+        page.click("#open-navigation")
+        page.wait_for_selector("#navigation-overlay")
+        page.select_value("[data-navigation-class='1']", "labels")
+        page.wait_for_expression("document.querySelectorAll('.navigation-item').length === 120")
+        page.press_key("PageDown")
+        page.wait_for_expression("document.querySelector('.navigation-item.active')?.textContent.includes('label_010')")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_navigation_click_preserves_list_scroll_after_jump(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
