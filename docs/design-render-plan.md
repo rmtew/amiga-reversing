@@ -137,6 +137,8 @@ longer keeps a separate API-call overlay cache.
 The retained C artifact now emits the web-facing `api_call` row object
 directly. Python no longer converts an internal `platform_call` row payload into
 UI metadata during artifact row normalization.
+Core null row fields such as address and source-offset fields are emitted by C,
+so the Python artifact wrapper only validates and copies row dictionaries.
 Artifact window payloads now keep the C JSON row dictionaries as the web
 payload rows instead of converting them to Python `ListingRow` objects and
 serializing them back.

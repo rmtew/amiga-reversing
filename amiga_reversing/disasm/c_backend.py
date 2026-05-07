@@ -1422,7 +1422,7 @@ class CListingArtifact:
         if combined.get("found") is not True:
             return None
         listing_window = cast(dict[str, object], combined.get("listing", {}))
-        rows = _serialized_c_listing_rows(listing_window.get("rows", []), generation=generation)
+        rows = _c_listing_row_dicts(listing_window.get("rows", []))
         if not rows:
             return None
         row = dict(rows[0])
@@ -1452,7 +1452,7 @@ class CListingArtifact:
         )
         listing_window = cast(dict[str, object], combined.get("listing", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))
-        rows = _serialized_c_listing_rows(listing_window.get("rows", []), generation=generation)
+        rows = _c_listing_row_dicts(listing_window.get("rows", []))
         payload = cast(
             ListingWindowPayload,
             {
@@ -1492,27 +1492,14 @@ class CListingArtifact:
         self.close()
 
 
-def _serialized_c_listing_rows(raw_rows: object, *, generation: str) -> list[SerializedRow]:
+def _c_listing_row_dicts(raw_rows: object) -> list[SerializedRow]:
     if not isinstance(raw_rows, list):
         return []
     rows: list[SerializedRow] = []
     for raw_row in raw_rows:
         if not isinstance(raw_row, dict):
             continue
-        row = dict(raw_row)
-        row.setdefault("stable_key", None)
-        row.setdefault("analysis_generation", generation)
-        row.setdefault("analysis_phase", generation)
-        row.setdefault("section_index", None)
-        row.setdefault("start_offset", None)
-        row.setdefault("end_offset", None)
-        row.setdefault("storage_address", None)
-        row.setdefault("runtime_address", None)
-        row.setdefault("runtime_view_id", None)
-        row.setdefault("addr", None)
-        row.setdefault("entity_addr", None)
-        row.setdefault("source_context", {})
-        rows.append(cast(SerializedRow, row))
+        rows.append(cast(SerializedRow, dict(raw_row)))
     return rows
 
 

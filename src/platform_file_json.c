@@ -4508,12 +4508,17 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     if (json_builder_appendf(builder, "%u", (unsigned)end_offset) != 0) return -1;
     if (json_builder_append(builder, ",\"storage_address\":") != 0) return -1;
     if (json_builder_appendf(builder, "%u", (unsigned)addr) != 0) return -1;
+  } else {
+    if (json_builder_append(builder, ",\"start_offset\":null,\"end_offset\":null,\"storage_address\":null") != 0)
+      return -1;
   }
   if (runtime_view != NULL) {
     if (json_builder_append(builder, ",\"runtime_address\":") != 0) return -1;
     if (json_builder_appendf(builder, "%u", (unsigned)runtime_address) != 0) return -1;
     if (json_builder_append(builder, ",\"runtime_view_id\":") != 0) return -1;
     if (json_builder_appendf(builder, "%u", (unsigned)runtime_view->runtime_view_id) != 0) return -1;
+  } else {
+    if (json_builder_append(builder, ",\"runtime_address\":null,\"runtime_view_id\":null") != 0) return -1;
   }
   if (json_builder_append(builder, ",\"text\":") != 0) return -1;
   if (json_builder_append_json_string(builder, text) != 0) return -1;
@@ -4528,6 +4533,8 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     if (json_builder_appendf(builder, "%u", (unsigned)addr) != 0) return -1;
     if (json_builder_append(builder, ",\"entity_addr\":") != 0) return -1;
     if (json_builder_appendf(builder, "%u", (unsigned)addr) != 0) return -1;
+  } else {
+    if (json_builder_append(builder, ",\"addr\":null,\"entity_addr\":null") != 0) return -1;
   }
   if (label != NULL) {
     if (json_builder_append(builder, ",\"label\":") != 0) return -1;
