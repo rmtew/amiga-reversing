@@ -263,7 +263,7 @@ def test_load_target_metadata_allows_manual_seeded_entity_override(tmp_path: Pat
     )
 
 
-def test_load_target_metadata_preserves_extended_app_slot_metadata(tmp_path: Path) -> None:
+def test_load_target_metadata_preserves_extended_rsset_layout_metadata(tmp_path: Path) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     write_target_metadata(

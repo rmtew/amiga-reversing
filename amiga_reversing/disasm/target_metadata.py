@@ -21,7 +21,7 @@ TARGET_METADATA_REVIEW_STATUS_VALUES = frozenset({
     "seeded",
     "validated",
 })
-APP_SLOT_STORAGE_KIND_VALUES = frozenset({
+RSSET_LAYOUT_STORAGE_KIND_VALUES = frozenset({
     "struct_instance",
     "struct_pointer",
     "pointer",
@@ -345,7 +345,7 @@ class RssetLayoutRegionMetadata:
         assert struct_name is None or isinstance(struct_name, str)
         assert pointer_struct is None or isinstance(pointer_struct, str)
         assert storage_kind is None or (
-            isinstance(storage_kind, str) and storage_kind in APP_SLOT_STORAGE_KIND_VALUES
+            isinstance(storage_kind, str) and storage_kind in RSSET_LAYOUT_STORAGE_KIND_VALUES
         )
         assert semantic_type is None or isinstance(semantic_type, str)
         assert parser_role is None or isinstance(parser_role, str)
