@@ -6065,36 +6065,6 @@ oom:
   return -1;
 }
 
-int source_file_listing_navigation_from_render_plan_to_json(const M68kSourceFileIR *source_file,
-    const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
-    const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
-    char **out_json, M68kDiagSink diagnostics) {
-  JsonBuilder builder = {0};
-  int result;
-  if (out_json != NULL) *out_json = NULL;
-  if (out_json == NULL) {
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, "bad arguments");
-    return -1;
-  }
-  if (json_builder_create(&builder) != 0) {
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
-    return -1;
-  }
-  result = source_file_listing_navigation_from_render_plan_append_json(&builder, source_file, render_plan,
-    platform_backend_kind, analysis_policy, source_analysis, analysis_generation, include_source_only_rows,
-    diagnostics);
-  if (result == 0) {
-    *out_json = json_builder_build(&builder);
-    if (*out_json == NULL) {
-      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY,
-        "listing navigation payload build failed");
-      result = -1;
-    }
-  }
-  json_builder_destroy(&builder);
-  return result;
-}
-
 int source_file_listing_row_index_from_render_plan(const M68kSourceFileIR *source_file,
     const M68kRenderPlan *render_plan, uint8_t platform_backend_kind, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation, int include_source_only_rows,
