@@ -7124,6 +7124,98 @@ static int test_listing_json_classifies_org_subline_as_directive(void) {
   return 0;
 }
 
+static int test_render_plan_marks_emitted_org_subline_as_directive(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kFactIR facts;
+  M68kRenderIRPreview preview;
+  M68kFact fact;
+  uint8_t *accepted_start[1];
+  uint8_t *accepted_bytes[1];
+  uint8_t start_map[24];
+  uint8_t byte_map[24];
+  const M68kRenderPlanRow *org_row = NULL;
+  size_t row_index;
+  uint8_t bytes[20] = {
+    0x4eu, 0xf9u, 0x00u, 0x00u, 0x00u, 0x80u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0x71u, 0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(start_map, 0, sizeof(start_map));
+  memset(byte_map, 0, sizeof(byte_map));
+  accepted_start[0] = start_map;
+  accepted_bytes[0] = byte_map;
+  start_map[0] = 1U;
+  memset(&byte_map[0], 1, 6U);
+  start_map[0x10] = 1U;
+  memset(&byte_map[0x10], 1, 4U);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_decode_ir_init(&decode);
+  m68k_fact_ir_init(&facts);
+  m68k_render_ir_preview_init(&preview);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_CODE_START;
+  fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  fact.section_index = 0U;
+  fact.offset = 0x10U;
+  fact.reason = M68K_FACT_CODE_START_REASON_CONTROL_TARGET;
+  fact.has_runtime_address = 1U;
+  fact.runtime_address = 0x80U;
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_RUNTIME_ADDRESS_RANGE;
+  fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  fact.section_index = 0U;
+  fact.offset = 0x10U;
+  fact.has_runtime_address = 1U;
+  fact.runtime_kind = M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY;
+  fact.runtime_address = 0x80U;
+  fact.size = 4U;
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_RUNTIME_ADDRESS_REF;
+  fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  fact.section_index = 0U;
+  fact.offset = 0U;
+  fact.target_section_index = 0U;
+  fact.target_offset = 0x10U;
+  fact.has_runtime_address = 1U;
+  fact.runtime_address = 0x80U;
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, NULL,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  for (row_index = 0U; row_index < preview.asm_source_plan.row_count; ++row_index) {
+    const M68kRenderPlanRow *row = &preview.asm_source_plan.rows[row_index];
+    if (row->text != NULL && strstr(row->text, "    ORG $80\n") != NULL) {
+      org_row = row;
+      break;
+    }
+  }
+  M68K_C_ASSERT(org_row != NULL);
+  M68K_C_ASSERT(strstr(org_row->text, "loc_0_00000010:\n    ORG $80\nabs_0_00000080:\n") != NULL);
+  M68K_C_ASSERT_U32(2U, org_row->directive_line_mask);
+  M68K_C_ASSERT_U32(M68K_RENDER_PLAN_ROW_LABEL, org_row->kind);
+  M68K_C_ASSERT_U32(0U, preview.asm_source_instruction_render_failures);
+  m68k_render_ir_preview_destroy(&preview);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_listing_json_window_matches_full_render_plan_slice(void) {
   M68kRenderPlan render_plan;
   M68kRenderPlanRow *row = NULL;
@@ -13769,6 +13861,8 @@ int m68k_c_ir_tests(void) {
     {"listing_json_uses_plan_statement_metadata_without_source_file",
       test_listing_json_uses_plan_statement_metadata_without_source_file},
     {"listing_json_classifies_org_subline_as_directive", test_listing_json_classifies_org_subline_as_directive},
+    {"render_plan_marks_emitted_org_subline_as_directive",
+      test_render_plan_marks_emitted_org_subline_as_directive},
     {"listing_json_window_matches_full_render_plan_slice",
       test_listing_json_window_matches_full_render_plan_slice},
     {"listing_json_indexed_window_does_not_reemit_headers",
