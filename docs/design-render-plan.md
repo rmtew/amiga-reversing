@@ -217,6 +217,11 @@ section_offset)` through the render plan, translates the owning plan row through
 the displayed-row index, and emits the single C row needed for diagnostics.
 Production no longer exposes a Python row-list diff mapping path; tests that
 need fixture rows keep that conversion in test code only.
+The remaining internal C full-row dump and non-index window helpers have also
+been removed. C tests that need a whole listing now build the same displayed-row
+index used by the retained artifact and request one bounded window for the
+known row count. App-slot summary tests use the navigation payload, where that
+analysis is owned, instead of a legacy rows-plus-analysis dump.
 Corpus usage indexing is generated local data, not source. It should consume
 compact analysis/listing evidence and retain row-backed xrefs only for useful
 navigation/report evidence. Aggregate target features such as label counts may
@@ -558,8 +563,9 @@ a fresh window around the anchor.
     fake artifacts keep local slicing helpers. The production Python full-row
     wrapper, row hydration, C full-row API, C basic-row API, and production
     Python row-list navigation builder are removed. The legacy C emitted-text
-    row classifier is removed; production serves listing windows and navigation
-    from typed render-plan rows in the retained C artifact.
+    row classifier is removed; the internal C non-index full-row/count/window
+    helpers are removed; production serves listing windows and navigation from
+    typed render-plan rows in the retained C artifact.
 
 The first retained step should be small: a synthetic render-plan fixture that
 proves line accounting and window emission. Do not start by rewriting the whole
