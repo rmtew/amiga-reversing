@@ -297,6 +297,10 @@ section_offset)` through the render plan, translates the owning plan row through
 the displayed-row index, and emits the single C row needed for diagnostics.
 Production no longer exposes a Python row-list diff mapping path; tests that
 need fixture rows keep that conversion in test code only.
+Web-triggered reproduction now passes both retained-artifact source text and
+its source profile into `run_reproduction()`. Reproduction reports therefore
+preserve the C artifact source profile instead of treating the already-emitted
+source as unprofiled text.
 The remaining internal C full-row dump and non-index window helpers have also
 been removed. C tests that need a whole listing now build the same displayed-row
 index used by the retained artifact and request one bounded window for the

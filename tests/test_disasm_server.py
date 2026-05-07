@@ -3741,6 +3741,7 @@ def test_reproduction_job_reuses_artifact_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured_source: list[str | None] = []
+    captured_profile: list[object] = []
     artifact = _FakeCListingArtifact()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
@@ -3750,8 +3751,14 @@ def test_reproduction_job_reuses_artifact_source(
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "listing-cache")
     monkeypatch.setattr(disasm_server, "_reproduction_cache_key", lambda project_name: "repro-cache")
 
-    def fake_run_reproduction(project_name, project_root, pre_rendered_source_text=None):
+    def fake_run_reproduction(
+        project_name,
+        project_root,
+        pre_rendered_source_text=None,
+        pre_rendered_source_profile=None,
+    ):
         captured_source.append(pre_rendered_source_text)
+        captured_profile.append(pre_rendered_source_profile)
         return {"status": "exact"}
 
     monkeypatch.setattr(disasm_server, "run_reproduction", fake_run_reproduction)
@@ -3781,6 +3788,7 @@ def test_reproduction_job_reuses_artifact_source(
     disasm_server._build_reproduction_job("repro-job", "carrier-raw")
 
     assert captured_source == ["    SECTION section,code\n    rts\n"]
+    assert captured_profile == [{"generation": "fake-source"}]
     assert disasm_server._ASYNC_JOBS["repro-job"]["status"] == "ready"
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()

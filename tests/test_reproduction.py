@@ -715,6 +715,64 @@ def test_run_reproduction_uses_listing_artifact_source_assembly(
     assert not (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
 
 
+def test_run_reproduction_preserves_pre_rendered_source_profile(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_path = tmp_path / "demo.bin"
+    original = b"\x00\x00\x03\xf3"
+    binary_path.write_bytes(original)
+    source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=binary_path,
+        display_path="demo.bin",
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    monkeypatch.setattr(
+        reproduction,
+        "resolve_project_paths",
+        lambda target, project_root, require_entities=False: SimpleNamespace(
+            target_dir=target_dir,
+            binary_source=source,
+        ),
+    )
+    monkeypatch.setattr(
+        reproduction,
+        "listing_artifact_source_text_with_c_backend_profile",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("source should already be rendered")),
+    )
+    source_profile = {
+        "generation": "facts_v2_listing_artifact_source_text",
+        "facts_v2": {"asm_source_refused": False, "asm_source_bytes": 16},
+        "timing": {"total_seconds": 0.125},
+    }
+
+    def assemble_source(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
+        output_path = kwargs.get("output_path")
+        if isinstance(output_path, Path):
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(original)
+        return original, {"assemble_c_api": True, "total_seconds": 0.02}
+
+    monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
+
+    report = run_reproduction(
+        "demo",
+        project_root=tmp_path,
+        profile=True,
+        pre_rendered_source_text="dc.l $000003F3\n",
+        pre_rendered_source_profile=source_profile,
+    )
+
+    assert report["status"] == "exact"
+    assert report["listing_profile"] == source_profile
+    profile = cast(dict[str, object], report["profile"])
+    assert profile["render_seconds"] == 0.125
+    assert profile["reused_source_text"] == 1.0
+    assert (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
+
+
 def test_run_reproduction_uses_listing_artifact_source_assembly_for_raw_binary(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

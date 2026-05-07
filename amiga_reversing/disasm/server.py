@@ -858,6 +858,7 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
     phase_count = _REPRODUCTION_PHASE_COUNT
     try:
         cache_key = _reproduction_cache_key(project_name)
+        pre_rendered_source_profile: dict[str, object] | None = None
         pre_rendered_source_text: str | None = None
         row_for_section_offset = None
         _log_event("reproduction_job start", job_id=job_id, project=project_name)
@@ -876,7 +877,7 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
                     )
                 )
             try:
-                pre_rendered_source_text, _source_profile = listing_artifact.source_text_with_profile()
+                pre_rendered_source_text, pre_rendered_source_profile = listing_artifact.source_text_with_profile()
             except Exception as exc:
                 message = f"artifact source unavailable: {exc}"
                 _log_event(
@@ -903,6 +904,7 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
                 project_name,
                 project_root=PROJECT_ROOT,
                 pre_rendered_source_text=pre_rendered_source_text,
+                pre_rendered_source_profile=pre_rendered_source_profile,
                 **reproduction_kwargs,
             )
         else:

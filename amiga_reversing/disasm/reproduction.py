@@ -96,6 +96,7 @@ def run_reproduction(
     progress_callback: Callable[[dict[str, object]], None] | None = None,
     profile: bool = False,
     pre_rendered_source_text: str | None = None,
+    pre_rendered_source_profile: Mapping[str, object] | None = None,
     row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
 ) -> dict[str, object]:
     started_at = time.time()
@@ -113,7 +114,9 @@ def run_reproduction(
     direct_source_report: dict[str, object] | None = None
     assembler_stdout = ""
     assembler_stderr = ""
-    listing_profile: dict[str, object] | None = None
+    listing_profile: dict[str, object] | None = (
+        dict(pre_rendered_source_profile) if pre_rendered_source_profile is not None else None
+    )
     input_stamp = unresolved_reproduction_input_stamp(
         target_name,
         project_root=project_root,
@@ -454,7 +457,9 @@ def run_reproduction(
             profile_timings["source_file_rewritten"] = 0.0
             profile_timings["write_source_seconds"] = 0.0
         elif source_text is not None:
-            profile_timings["render_seconds"] = 0.0
+            profile_timings["render_seconds"] = (
+                _profile_timing_total(listing_profile) if listing_profile is not None else 0.0
+            )
             profile_timings["reused_source_text"] = 1.0
         if source_text is not None:
             source_size = len(source_text.encode("utf-8"))
