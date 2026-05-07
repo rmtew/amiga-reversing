@@ -175,6 +175,8 @@ int m68k_render_plan_row_builder_begin(M68kRenderPlanRowBuilder *builder, M68kRe
   builder->directive_line_mask = 0U;
   builder->label_line_mask = 0U;
   memset(builder->label_line_source_offsets, 0, sizeof(builder->label_line_source_offsets));
+  builder->label_line_runtime_mask = 0U;
+  memset(builder->label_line_runtime_addresses, 0, sizeof(builder->label_line_runtime_addresses));
   builder->active = 1U;
   if (render_plan_row_builder_reserve(builder, 1U) != 0) {
     builder->active = 0U;
@@ -234,10 +236,14 @@ void m68k_render_plan_row_builder_mark_current_line_directive(M68kRenderPlanRowB
 }
 
 void m68k_render_plan_row_builder_mark_current_line_label(M68kRenderPlanRowBuilder *builder,
-    uint32_t source_offset) {
+    uint32_t source_offset, uint8_t has_runtime_address, uint32_t runtime_address) {
   if (builder == NULL || !builder->active || builder->current_line >= 32U) return;
   builder->label_line_mask |= 1U << builder->current_line;
   builder->label_line_source_offsets[builder->current_line] = source_offset;
+  if (has_runtime_address) {
+    builder->label_line_runtime_mask |= 1U << builder->current_line;
+    builder->label_line_runtime_addresses[builder->current_line] = runtime_address;
+  }
 }
 
 int m68k_render_plan_row_builder_commit(M68kRenderPlanRowBuilder *builder, M68kRenderPlanRow **out_row) {
@@ -250,6 +256,9 @@ int m68k_render_plan_row_builder_commit(M68kRenderPlanRowBuilder *builder, M68kR
     (*out_row)->label_line_mask = builder->label_line_mask;
     memcpy((*out_row)->label_line_source_offsets, builder->label_line_source_offsets,
       sizeof((*out_row)->label_line_source_offsets));
+    (*out_row)->label_line_runtime_mask = builder->label_line_runtime_mask;
+    memcpy((*out_row)->label_line_runtime_addresses, builder->label_line_runtime_addresses,
+      sizeof((*out_row)->label_line_runtime_addresses));
   }
   builder->active = 0U;
   builder->plan = NULL;
@@ -258,6 +267,8 @@ int m68k_render_plan_row_builder_commit(M68kRenderPlanRowBuilder *builder, M68kR
   builder->directive_line_mask = 0U;
   builder->label_line_mask = 0U;
   memset(builder->label_line_source_offsets, 0, sizeof(builder->label_line_source_offsets));
+  builder->label_line_runtime_mask = 0U;
+  memset(builder->label_line_runtime_addresses, 0, sizeof(builder->label_line_runtime_addresses));
   if (builder->text != NULL) builder->text[0] = '\0';
   return result;
 }
@@ -271,6 +282,8 @@ void m68k_render_plan_row_builder_cancel(M68kRenderPlanRowBuilder *builder) {
   builder->directive_line_mask = 0U;
   builder->label_line_mask = 0U;
   memset(builder->label_line_source_offsets, 0, sizeof(builder->label_line_source_offsets));
+  builder->label_line_runtime_mask = 0U;
+  memset(builder->label_line_runtime_addresses, 0, sizeof(builder->label_line_runtime_addresses));
   if (builder->text != NULL) builder->text[0] = '\0';
 }
 

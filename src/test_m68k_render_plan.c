@@ -126,13 +126,15 @@ static int test_render_plan_row_builder_marks_label_subline(void) {
   m68k_render_plan_row_builder_init(&builder);
   M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_begin(&builder, &plan, M68K_RENDER_PLAN_ROW_DATA, 2U));
   M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_append(&builder, "\tdc.w $1234\n"));
-  m68k_render_plan_row_builder_mark_current_line_label(&builder, 0x48U);
+  m68k_render_plan_row_builder_mark_current_line_label(&builder, 0x48U, 1U, 0x40048U);
   M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_append(&builder, "loc_0_00000048:\n"));
   M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_append(&builder, "\tdc.w $5678\n"));
   M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_commit(&builder, &row));
   M68K_C_ASSERT(row != NULL);
   M68K_C_ASSERT_U32(2U, row->label_line_mask);
   M68K_C_ASSERT_U32(0x48U, row->label_line_source_offsets[1]);
+  M68K_C_ASSERT_U32(2U, row->label_line_runtime_mask);
+  M68K_C_ASSERT_U32(0x40048U, row->label_line_runtime_addresses[1]);
   m68k_render_plan_row_builder_destroy(&builder);
   m68k_render_plan_destroy(&plan);
   return 0;

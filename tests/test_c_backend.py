@@ -4266,8 +4266,9 @@ def test_real_dll_voodoo_adjacent_branch_stub_table_recovers_handlers() -> None:
 def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
     _requires_c_backend_dlls()
 
+    target_name = "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606"
     paths = resolve_project_paths(
-        "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
+        target_name,
         project_root=PROJECT_ROOT,
         require_entities=False,
     )
@@ -4297,6 +4298,23 @@ def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
     assert "\tmove.l d0,loc_0_00000052.l\n" in source_text
     assert "\tmove.l loc_0_0000004E.l,d1\n" in source_text
     assert source_text.count("h0dl_DOSBase:") == 1
+    rows, _, listing_profile = build_project_listing_rows_profile_with_c_artifact(
+        target_name,
+        project_root=PROJECT_ROOT,
+    )
+    assert listing_profile["facts_v2"]["asm_source_refused"] is False
+    row_texts = [str(row["text"]).rstrip("\n") for row in rows]
+    assert row_texts.count("    ORG $4") == 0
+    assert row_texts.count("    ORG $40") == 1
+    assert "loc_0_00000004:" not in row_texts
+    assert "abs_0_00000004:" not in row_texts
+    assert "runtime_code_00000004\tEQU\t$4" in row_texts
+    storage_label_row = next(row for row in rows if row.get("label") == "loc_0_00000154")
+    runtime_label_row = next(row for row in rows if row.get("label") == "abs_0_00000040")
+    assert storage_label_row["runtime_address"] == 0x40
+    assert runtime_label_row["runtime_address"] == 0x40
+    assert row_texts.index("loc_0_00000154:") < row_texts.index("    ORG $40")
+    assert row_texts.index("    ORG $40") < row_texts.index("abs_0_00000040:")
     rebuilt, direct_source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",

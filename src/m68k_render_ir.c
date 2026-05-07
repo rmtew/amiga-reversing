@@ -221,6 +221,9 @@ static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRende
   row->label_line_mask = source->label_line_mask;
   memcpy(row->label_line_source_offsets, source->label_line_source_offsets,
     sizeof(row->label_line_source_offsets));
+  row->label_line_runtime_mask = source->label_line_runtime_mask;
+  memcpy(row->label_line_runtime_addresses, source->label_line_runtime_addresses,
+    sizeof(row->label_line_runtime_addresses));
   m68k_render_plan_row_set_data_class(row, source->data_class);
   if (source->has_source_range)
     m68k_render_plan_row_set_source_range(row, source->source_section_index, source->source_offset,
@@ -607,6 +610,9 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
       *io_logical_pc = offset;
     }
     snprintf(line, sizeof(line), "%s:\n", storage_name);
+    if (preview->asm_source_row_builder.active)
+      m68k_render_plan_row_builder_mark_current_line_label(&preview->asm_source_row_builder, offset, 1U,
+        runtime_address);
     hash_asm_text(preview, line);
     ++preview->asm_source_lines;
     render_asm_org(preview, runtime_address);
@@ -621,7 +627,8 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
   }
   (void)format_rendered_asm_label_with_generation(lookup, name, sizeof(name), section_index, offset);
   if (preview->asm_source_row_builder.active)
-    m68k_render_plan_row_builder_mark_current_line_label(&preview->asm_source_row_builder, offset);
+    m68k_render_plan_row_builder_mark_current_line_label(&preview->asm_source_row_builder, offset,
+      has_runtime_address ? 1U : 0U, runtime_address);
   if (item != NULL && item->struct_name[0] != '\0') {
     snprintf(line, sizeof(line), "%s:\t; STRUCT %s\n", name, item->struct_name);
   } else {
