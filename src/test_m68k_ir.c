@@ -7653,6 +7653,7 @@ static int test_listing_json_emits_rsset_layout_regions_from_platform_api_inputs
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
   M68kAppSlotRefIR ref;
+  M68kBaseLayoutFieldIR layout_field;
   M68kRenderPlan render_plan;
   char *rows_json = NULL;
 
@@ -7698,6 +7699,23 @@ static int test_listing_json_emits_rsset_layout_regions_from_platform_api_inputs
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, 4U, PLATFORM_RESOLVED_INDIRECT_AMIGA_LIBRARY_VECTOR_CALL,
     "_LVORawKeyConvert", M68K_PLATFORM_CALL_NOTE_NONE, NULL, NULL, 0U, INT16_MIN, INT16_MIN, 0U, 0U, 0U,
     NULL, NULL));
+  memset(&layout_field, 0, sizeof(layout_field));
+  layout_field.layout_name = "app";
+  layout_field.base_symbol = "__amiga_app_base__";
+  layout_field.sizeof_symbol = "app_SIZEOF";
+  layout_field.symbol = "app_input_event";
+  layout_field.offset = 0x0100U;
+  layout_field.size = 0x16U;
+  layout_field.source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_base_layout_field(&source_analysis, &layout_field));
+  layout_field.symbol = "app_input_event_code";
+  layout_field.offset = 0x0106U;
+  layout_field.size = 2U;
+  layout_field.alias = 1U;
+  layout_field.has_alias_of = 1U;
+  layout_field.alias_of_symbol = "app_input_event";
+  layout_field.alias_of_offset = 0x0100U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_base_layout_field(&source_analysis, &layout_field));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
   M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_SECTION, 0U,
@@ -7714,6 +7732,12 @@ static int test_listing_json_emits_rsset_layout_regions_from_platform_api_inputs
     source_file.platform_backend_kind, NULL, &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"slot_count\":3") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"layout_field_count\":2") != NULL);
+  M68K_C_ASSERT(strstr(rows_json,
+    "\"layout_fields\":[{\"layout_name\":\"app\",\"base_symbol\":\"__amiga_app_base__\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json,
+    "\"symbol\":\"app_input_event_code\",\"offset\":262,\"size\":2,\"alias\":true") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"alias_of_symbol\":\"app_input_event\",\"alias_of_offset\":256") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"typed_region_count\":1") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"gap_count\":1") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"suggestion_count\":1") != NULL);

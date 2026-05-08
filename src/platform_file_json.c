@@ -3010,6 +3010,7 @@ typedef struct ListingAppSlotTypedRegion {
 
 typedef struct ListingAppSlotAnalysisBuilder {
   Arena *arena;
+  const M68kSourceAnalysisIR *source_analysis;
   uint8_t enabled;
   ListingAppSlotRefRecord *refs;
   size_t ref_count;
@@ -3123,6 +3124,7 @@ static int listing_app_slot_analysis_init(ListingAppSlotAnalysisBuilder *analysi
   memset(analysis, 0, sizeof(*analysis));
   analysis->arena = arena_create(4096U);
   if (analysis->arena == NULL) return -1;
+  analysis->source_analysis = source_analysis;
   if (source_analysis == NULL || platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK ||
       source_analysis->section_count == 0U) {
     return 0;
@@ -3738,6 +3740,44 @@ static int append_listing_app_slot_base_registers(JsonBuilder *builder, const ui
     listing_register_name(reg_name, sizeof(reg_name), reg);
     if (json_builder_append_json_string(builder, reg_name) != 0) return -1;
     emitted = 1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_base_layout_fields_json(JsonBuilder *builder,
+    const ListingAppSlotAnalysisBuilder *analysis) {
+  const M68kSourceAnalysisIR *source_analysis;
+  size_t index;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  source_analysis = analysis != NULL ? analysis->source_analysis : NULL;
+  if (source_analysis == NULL) return json_builder_append(builder, "]");
+  for (index = 0U; index < source_analysis->base_layout_field_count; ++index) {
+    const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"layout_name\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, field->layout_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"base_symbol\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, field->base_symbol) != 0) return -1;
+    if (json_builder_append(builder, ",\"sizeof_symbol\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, field->sizeof_symbol) != 0) return -1;
+    if (json_builder_append(builder, ",\"symbol\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, field->symbol) != 0) return -1;
+    if (json_builder_appendf(builder,
+          ",\"offset\":%u,\"size\":%u,\"alias\":%s,\"source_kind\":%u,\"source_kind_name\":",
+          (unsigned)field->offset, (unsigned)field->size, field->alias ? "true" : "false",
+          (unsigned)field->source_kind) != 0)
+      return -1;
+    if (json_builder_append_json_string(builder, base_layout_field_source_kind_name(field->source_kind)) != 0)
+      return -1;
+    if (json_builder_append(builder, ",\"alias_of_symbol\":") != 0) return -1;
+    if (field->has_alias_of) {
+      if (json_builder_append_nullable_string(builder, field->alias_of_symbol) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+    if (json_builder_append(builder, ",\"alias_of_offset\":") != 0) return -1;
+    if (field->has_alias_of) {
+      if (json_builder_appendf(builder, "%u", (unsigned)field->alias_of_offset) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
   }
   return json_builder_append(builder, "]");
 }
@@ -4449,8 +4489,9 @@ static int append_listing_app_slot_analysis_json(JsonBuilder *builder,
   int result = -1;
   if (analysis == NULL || !analysis->enabled) {
     return json_builder_append(builder,
-      "{\"slot_count\":0,\"ref_count\":0,\"typed_region_count\":0,\"gap_count\":0,\"field_gap_count\":0,"
-      "\"suggestion_count\":0,\"untyped_api_arg_count\":0,\"slots\":[],\"regions\":[],\"gaps\":[],"
+      "{\"slot_count\":0,\"ref_count\":0,\"typed_region_count\":0,\"layout_field_count\":0,\"gap_count\":0,"
+      "\"field_gap_count\":0,\"suggestion_count\":0,\"untyped_api_arg_count\":0,\"slots\":[],"
+      "\"layout_fields\":[],\"regions\":[],\"gaps\":[],"
       "\"field_gaps\":[],\"suggestions\":[],\"untyped_api_args\":[]}");
   }
   qsort(analysis->regions, analysis->region_count, sizeof(*analysis->regions), listing_app_slot_region_compare);
@@ -4459,13 +4500,16 @@ static int append_listing_app_slot_analysis_json(JsonBuilder *builder,
   gap_count = listing_app_slot_gap_count(intervals, interval_count);
   field_gap_count = listing_app_slot_field_gap_count(analysis);
   if (json_builder_appendf(builder,
-        "{\"slot_count\":%u,\"ref_count\":%u,\"typed_region_count\":%u,\"gap_count\":%u,"
+        "{\"slot_count\":%u,\"ref_count\":%u,\"typed_region_count\":%u,\"layout_field_count\":%u,\"gap_count\":%u,"
         "\"field_gap_count\":%u,\"suggestion_count\":%u,\"untyped_api_arg_count\":%u,\"slots\":",
         (unsigned)summary_count, (unsigned)analysis->ref_count, (unsigned)analysis->region_count,
+        (unsigned)(analysis->source_analysis != NULL ? analysis->source_analysis->base_layout_field_count : 0U),
         (unsigned)gap_count, (unsigned)field_gap_count, (unsigned)analysis->region_count,
         (unsigned)analysis->untyped_api_arg_count) != 0)
     goto cleanup;
   if (append_listing_app_slot_slots_json(builder, summaries, summary_count) != 0) goto cleanup;
+  if (json_builder_append(builder, ",\"layout_fields\":") != 0) goto cleanup;
+  if (append_listing_base_layout_fields_json(builder, analysis) != 0) goto cleanup;
   if (json_builder_append(builder, ",\"regions\":") != 0) goto cleanup;
   if (append_listing_rsset_layout_regions_json(builder, analysis, summaries, summary_count) != 0) goto cleanup;
   if (json_builder_append(builder, ",\"gaps\":") != 0) goto cleanup;
