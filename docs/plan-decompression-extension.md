@@ -334,3 +334,8 @@ Failing a gate should produce an indexed work item, not a guessed child target.
 - The web target list now renders decompression relationship roles from manifest
   data for both parent targets with derived payloads and child decompressed
   targets. It does not reclassify payloads in JavaScript.
+- Corpus indexing now records packed source section, source offset, packed
+  source range, compressed-source range where C exposes one, and packed-size
+  tags for decompression events, derived target suggestions, packed payloads,
+  and materialized decompressed child metadata. Carrier RNC and Damocles/Voodoo
+  Tetragon ranges are queryable as real corpus examples.

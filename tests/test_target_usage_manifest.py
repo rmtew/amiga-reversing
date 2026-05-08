@@ -102,6 +102,13 @@ def test_decompression_payload_role_features() -> None:
     assert counts["decompression:codec:rnc1-old"] == 1
     assert counts["decompression:simulated_output"] == 1
     assert counts["decompression:simulated_output_hash"] == 1
+    assert counts["decompression:source_section"] == 2
+    assert counts["decompression:source_section:0"] == 2
+    assert counts["decompression:source_offset"] == 2
+    assert counts["decompression:source_offset:0:00004C40"] == 2
+    assert counts["decompression:source_range"] == 2
+    assert counts["decompression:source_range:0:00004C40-0002DE07"] == 2
+    assert counts["decompression:packed_size"] == 2
     assert counts["decompression:output_load_address"] == 2
     assert counts["decompression:output_load_address:00004000"] == 2
     assert counts["decompression:entrypoint"] == 2
@@ -112,6 +119,7 @@ def test_decompression_payload_role_features() -> None:
     assert examples["decompression:source_kind:provider_identified_payload"][0]["source_kind"] == "provider_identified_payload"
     assert examples["decompression:provider:ancient"][0]["provider_id"] == "ancient"
     assert examples["decompression:has_event_id"][0]["event_id"] == "decompression:section:0:00004C40:rnc1-old"
+    assert examples["decompression:source_range"][0]["source_section_end_offset"] == 0x2DE07
 
 
 def test_recognized_unpacker_target_start_indexes_absolute_depack_destination() -> None:
@@ -130,6 +138,8 @@ def test_recognized_unpacker_target_start_indexes_absolute_depack_destination() 
                 "provider_id": "c-tetragon-signature",
                 "source_section": 1,
                 "source_section_offset": 0x100,
+                "compressed_source_section_offset": 0x100,
+                "compressed_source_section_end_offset": 0x428,
                 "target_start_address": 0x40000,
                 "target_end_address": 0x50000,
                 "entrypoint": 0x40000,
@@ -147,6 +157,8 @@ def test_recognized_unpacker_target_start_indexes_absolute_depack_destination() 
     assert counts["decompression:pattern:recognized_unpacker"] == 1
     assert counts["decompression:pattern:recognized_unpacker:tetragon"] == 1
     assert counts["decompression:codec:tetragon"] == 1
+    assert counts["decompression:source_range:1:00000100-00000428"] == 1
+    assert counts["decompression:compressed_source_range:1:00000100-00000428"] == 1
     assert "absolute-depack-dest" in tags
 
     row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
@@ -154,6 +166,7 @@ def test_recognized_unpacker_target_start_indexes_absolute_depack_destination() 
     xrefs = _analysis_xrefs(row, analysis, row_locations)
     assert any(xref["feature"] == "absolute-depack-dest" and xref["row_index"] == 12 for xref in xrefs)
     assert any(xref["feature"] == "decompression:codec:tetragon" and xref["row_index"] == 12 for xref in xrefs)
+    assert any(xref["feature"] == "decompression:source_range:1:00000100-00000428" for xref in xrefs)
 
 
 def test_self_decrunch_event_indexes_output_and_pattern_work_item() -> None:
