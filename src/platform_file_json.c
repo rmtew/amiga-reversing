@@ -1612,10 +1612,82 @@ static int append_source_analysis_policy_structured_items_json(JsonBuilder *buil
   return 0;
 }
 
+static uint32_t structured_data_item_entry_size(const M68kAnalysisStructuredDataItem *item) {
+  if (item == NULL) return 0U;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES) return 1U;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS) return 2U;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS) return 4U;
+  return 0U;
+}
+
+static const char *structured_data_item_table_kind(const M68kAnalysisStructuredDataItem *item) {
+  if (item == NULL || item->semantic_role[0] == '\0') return NULL;
+  if (strcmp(item->semantic_role, "pointer_table") == 0) return "pointer";
+  if (strcmp(item->semantic_role, "lookup_table") == 0) {
+    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && item->has_target) return "relative_code_dispatch";
+    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS) return "absolute_code_dispatch";
+    return "scalar";
+  }
+  return NULL;
+}
+
+static size_t source_analysis_table_record_count(const M68kAnalysisPolicy *policy) {
+  uint16_t index;
+  size_t count = 0U;
+  if (policy == NULL) return 0U;
+  for (index = 0U; index < policy->structured_data_item_count &&
+       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+    if (structured_data_item_table_kind(&policy->structured_data_items[index]) != NULL) ++count;
+  }
+  return count;
+}
+
+static int append_source_analysis_table_records_json(JsonBuilder *builder, const M68kAnalysisPolicy *policy) {
+  uint16_t index;
+  size_t emitted = 0U;
+  if (builder == NULL || policy == NULL) return -1;
+  for (index = 0U; index < policy->structured_data_item_count &&
+       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
+    const char *table_kind = structured_data_item_table_kind(item);
+    uint32_t entry_size = structured_data_item_entry_size(item);
+    uint32_t entry_count = entry_size != 0U ? item->size / entry_size : 0U;
+    if (table_kind == NULL) continue;
+    if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"section_index\":") != 0) return -1;
+    if (item->has_section_index) {
+      if (json_builder_appendf(builder, "%u", (unsigned)item->section_index) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+    if (json_builder_appendf(builder,
+        ",\"offset\":%u,\"size\":%u,\"entry_size\":%u,\"entry_count\":%u,\"role\":",
+        (unsigned)item->offset, (unsigned)item->size, (unsigned)entry_size, (unsigned)entry_count) != 0)
+      return -1;
+    if (json_builder_append_json_string(builder, item->semantic_role) != 0) return -1;
+    if (json_builder_append(builder, ",\"table_kind\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, table_kind) != 0) return -1;
+    if (json_builder_append(builder, ",\"base_expression\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, item->has_target ? "target_label" : "table_label") != 0)
+      return -1;
+    if (json_builder_append(builder, ",\"target_section\":") != 0) return -1;
+    if (item->has_target) {
+      if (json_builder_appendf(builder, "%u", (unsigned)item->target_section) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+    if (json_builder_append(builder, ",\"target_offset\":") != 0) return -1;
+    if (item->has_target) {
+      if (json_builder_appendf(builder, "%u", (unsigned)item->target_offset) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+    if (json_builder_append(builder,
+        ",\"confidence\":\"tool_inferred\",\"conflict_state\":\"clean\"}") != 0)
+      return -1;
+  }
+  return 0;
+}
+
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
   size_t field_index, section_index;
   size_t orphan_code_signal_count = 0U;
+  size_t table_record_count = source_analysis_table_record_count(source_analysis != NULL ? &source_analysis->policy : NULL);
   for (section_index = 0U; source_analysis != NULL && section_index < source_analysis->section_count; ++section_index) {
     orphan_code_signal_count += source_analysis->sections[section_index].orphan_code_signal_count;
   }
@@ -1633,10 +1705,15 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     goto oom;
   if (json_builder_appendf(&builder,
       "]},\"findings\":{\"required_cpu\":%u,\"cpu_violation_count\":%u},"
-      "\"orphan_code_signal_count\":%u,\"base_layout_field_count\":%u,\"base_layout_fields\":[",
+      "\"orphan_code_signal_count\":%u,\"table_record_count\":%u,\"table_records\":[",
       (unsigned)source_analysis->findings.required_cpu,
       (unsigned)source_analysis->findings.cpu_violation_count,
       (unsigned)orphan_code_signal_count,
+      (unsigned)table_record_count) != 0)
+    goto oom;
+  if (append_source_analysis_table_records_json(&builder, &source_analysis->policy) != 0)
+    goto oom;
+  if (json_builder_appendf(&builder, "],\"base_layout_field_count\":%u,\"base_layout_fields\":[",
       (unsigned)source_analysis->base_layout_field_count) != 0)
     goto oom;
   for (field_index = 0U; field_index < source_analysis->base_layout_field_count; ++field_index) {

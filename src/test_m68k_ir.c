@@ -4258,6 +4258,10 @@ static int test_facts_v2_word_dispatch_promotes_far_relative_targets(void) {
     "\"offset\":18,\"size\":4,\"kind\":2,\"semantic_role\":\"lookup_table\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"has_target\":true,\"target_section\":0,\"target_offset\":22") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"table_record_count\":1,\"table_records\":[{\"section_index\":0,"
+    "\"offset\":18,\"size\":4,\"entry_size\":2,\"entry_count\":2,\"role\":\"lookup_table\","
+    "\"table_kind\":\"relative_code_dispatch\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"base_expression\":\"target_label\"") != NULL);
   for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
       ++code_start_index) {
     const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
