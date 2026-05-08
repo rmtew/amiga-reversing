@@ -166,6 +166,11 @@ runtime_payload:
 The label `storage_payload` names file bytes. The label `runtime_payload` names
 the copied runtime view. They are related, but they are not interchangeable.
 
+The runtime range base and the first runtime entrypoint are also separate facts.
+A copied range can start at `$400` while the first proven instruction entered is
+`$45C`. Use the range base for mapping bytes and the entrypoint list for code
+discovery.
+
 Strong ORG evidence usually has:
 
 - a source range
@@ -248,12 +253,14 @@ Required bootstrap facts:
 ```
 source storage range
 runtime destination range
+runtime base and runtime extent
 copy/decrunch/relocation mechanism
 entrypoint list
 trampoline/vector relationship
 source-to-runtime address map
 confidence and conflict state
 reproduction status
+corpus tags and rejected-candidate reason
 ```
 
 Runtime copied code should be discovered from value-flow and control-flow facts:
@@ -427,6 +434,8 @@ conflicts, but should not classify memory itself.
   provenance.
 - Do not overlap accepted code unless the range is explicitly a copied/runtime
   view with source/runtime mapping.
+- Do not emit duplicate visible labels for storage and runtime namespaces unless
+  they truly name the same logical source location.
 - Do not add an `ORG` for a weak trampoline when a stronger larger runtime view
   explains the same control flow.
 - Do not let a wrapper load address suppress later copied-image entrypoint
@@ -437,5 +446,6 @@ conflicts, but should not classify memory itself.
   entry interpretation are proven.
 - Do not use target metadata except for fixture-backed local facts.
 - Preserve direct source correctness and exact reproduction.
+- Treat comment-only output as a side effect, not a real analysis gain.
 - Keep M68K instruction behavior in generated decode/effect data, not hand-coded
   renderer heuristics.

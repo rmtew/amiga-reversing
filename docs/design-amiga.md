@@ -85,5 +85,38 @@ Rules:
   analysis.
 - Do not use ORG rendering to hide a real packer that produces bytes not present
   as a source range.
-- Keep `docs/design-org-code-ranges.md` as the detailed implementation guide
-  for ORG range evidence and rendering.
+- Keep `docs/design-m68k-analysis.md` and `docs/plan-m68k-analysis.md` as the
+  canonical ORG range evidence and rendering guide.
+
+## Hardware Block Aliases
+
+Some custom-chip register blocks are easier to read as block aliases plus field
+offsets. These aliases belong in Amiga platform metadata or generated includes,
+not in target metadata.
+
+Useful aliases include:
+
+```asm
+aud   EQU $0A0
+aud0  EQU $0A0
+aud1  EQU $0B0
+aud2  EQU $0C0
+aud3  EQU $0D0
+
+sprpt EQU $120
+spr   EQU $140
+
+sd_pos    EQU $00
+sd_ctl    EQU $02
+sd_dataa  EQU $04
+sd_dataB  EQU $06
+sd_SIZEOF EQU $08
+```
+
+Rules:
+
+- Render audio, sprite, copper, display, CIA, and custom-chip accesses through
+  platform metadata when the base is known.
+- Do not infer app slots from offsets that belong to known hardware bases.
+- Prefer block aliases only when they match the hardware layout and keep source
+  editable without fragile addends.

@@ -49,10 +49,6 @@ Existing tests show partial lookup/absolute coverage:
 These behaviors need one unified design model so new cases do not become
 one-off heuristics.
 
-`docs/design-org-code-ranges.md` is now treated as the detailed case notebook for
-ORG work. The canonical tutorial and plan live in `docs/design-m68k-analysis.md`
-and this document.
-
 ## Survey Method
 
 Surveyed all rendered `.s` files currently under `targets/` and parsed top-level
@@ -137,11 +133,13 @@ proves a distinct base id.
 3. Add ORG/runtime-view records:
    - storage source range and runtime destination range
    - rendered logical PC base
+   - separate runtime range base, extent, and entrypoint list
    - source-to-runtime address map
    - copy, decrunch, relocation, vector, trap, or trampoline provenance
    - entrypoint list with reason and confidence
    - classification: materialized ORG, weak trampoline, absolute symbol,
      suppressed candidate, unresolved problem
+   - corpus tags and rejected-candidate reason
    - exact reproduction/source reassembly status
 
 4. Add lookup-table records:
@@ -196,6 +194,7 @@ Required data analysis:
 
 - track source, destination, and length through registers, stack slots, app/global
   slots, and known helper calls
+- keep range base, runtime extent, and entrypoint addresses as separate facts
 - backtrack vector stores and interrupt/trap installs by value, not fixed adjacent
   instruction shapes
 - union C-discovered entrypoints with explicit policy/metadata/fallback seeds
@@ -207,6 +206,26 @@ Required data analysis:
   image
 - preserve separate storage/runtime label namespaces
 - verify direct reproduction and source reassembly where supported
+
+Required annotations for accepted ranges:
+
+- `runtime-copied-code`
+- `trap-vector-bootstrap` when applicable
+- `multi-runtime-range` when applicable
+- `materialized-org-range`
+- source storage section, offset, and range
+- runtime base, extent, entrypoints, and provenance
+- copy-loop, vector, decrunch, relocation, or jump-table evidence
+- conflict/overlap result and reproduction result
+
+Required annotations for rejected or suppressed candidates:
+
+- `suppressed-weak-org-range`
+- `low-vector-trampoline`
+- `overlaps-accepted-code`
+- `conflicts-with-runtime-range`
+- `source-bytes-not-accepted-code`
+- `packed-or-transformed-payload`
 
 Real proving examples:
 
@@ -295,9 +314,6 @@ undocumented renderer heuristics.
   overlap checks against accepted code and typed structs.
 - Absolute raw/decompressed targets need load address, source extent, and entry
   range recorded in the same C analysis data used by rendering and the web UI.
-- ORG support from `docs/design-org-code-ranges.md` should be migrated into this
-  general design as work proceeds; the old file should not become a competing
-  source of truth.
 - Runtime-copy facts should explicitly model wrapper load views, helper
   trampolines, and final copied images so one does not incorrectly suppress the
   others.
@@ -310,3 +326,23 @@ undocumented renderer heuristics.
 - Bloodwych contains many already-rendered relative lookup tables; those are a
   useful proving target, but GenAm/MonAm and imported disk targets should remain
   comparators so Bloodwych does not become the hidden spec.
+
+## Regression and Acceptance Checklist
+
+- Includes stay in the include region, before RSSET and EQU/symbol regions.
+- Conqueror-style weak `ORG $4` remains suppressed.
+- Storage `loc_` labels and runtime `abs_` labels do not collide.
+- Address `$4` is not rendered as an ordinary code location when it is ExecBase
+  or a low vector/address.
+- `_custom` offsets are not rendered as app slots.
+- Installed interrupt/vector handlers are queued as code when their targets are
+  proven.
+- Copy/vector store recognition uses value backtracking, not fixed adjacent
+  instruction pairs.
+- Jump tables render symbolic target-base expressions when the calculation is
+  proven.
+- Data/table classification does not overlap accepted code unless a
+  source/runtime mapping proves it.
+- Each generalized heuristic has an isolated test and at least one non-Bloodwych
+  comparator where possible.
+- Direct reproduction and source reassembly pass where supported.
