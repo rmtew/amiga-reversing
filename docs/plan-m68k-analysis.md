@@ -191,7 +191,8 @@ proves a distinct base id.
    - plausibility score, CPU requirement, and decode conflicts
    - nearby data/table/string context
    - possible missing inbound evidence class: jump table, callback, vector,
-     runtime copy, API, metadata, or policy seed
+     runtime copy, API, metadata, or policy seed: implemented for current
+     signal context as unknown, metadata-label, or runtime-copy evidence
    - status: unresolved signal implemented; linked and promoted, rejected, and
      suppressed remain planned
    - UI/navigation surfacing: implemented as an `orphan-code` listing group

@@ -155,6 +155,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "terminal_flow": "return",
                                     "reason": "terminal_decode",
                                     "status": "unresolved",
+                                    "context": "accepted_code_boundary",
+                                    "missing_inbound": "unknown",
                                     "confidence": 60,
                                     "detail": "terminal decode after data label",
                                 }
@@ -393,6 +395,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["orphan-code:status:unresolved"], 1)
         self.assertEqual(counts["orphan-code:terminal_decode:unresolved"], 1)
         self.assertEqual(counts["orphan-code:terminal_flow:return"], 1)
+        self.assertEqual(counts["orphan-code:context:accepted_code_boundary"], 1)
+        self.assertEqual(counts["orphan-code:missing_inbound:unknown"], 1)
         self.assertEqual(counts["materialized-org-range"], 1)
         self.assertEqual(counts["runtime:materialized_org_range"], 1)
         self.assertEqual(counts["runtime:materialized_org_address:00000400"], 1)
@@ -458,6 +462,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["analysis:runtime_table_base_addend"][0]["addend"], -4)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
+        self.assertEqual(examples["orphan-code:signal"][0]["context"], "accepted_code_boundary")
+        self.assertEqual(examples["orphan-code:signal"][0]["missing_inbound"], "unknown")
 
     def test_self_decrunch_event_indexes_pattern_and_work_item(self) -> None:
         analysis = {
@@ -784,6 +790,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "terminal_flow": "return",
                                 "reason": "terminal_decode",
                                 "status": "unresolved",
+                                "context": "accepted_code_boundary",
+                                "missing_inbound": "unknown",
                                 "confidence": 60,
                             }
                         ],
@@ -936,6 +944,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("orphan-code:status:unresolved", "orphan_code_signal", 0x84, 7), by_feature)
         self.assertIn(("orphan-code:terminal_decode:unresolved", "orphan_code_signal", 0x84, 7), by_feature)
         self.assertIn(("orphan-code:terminal_flow:return", "orphan_code_signal", 0x84, 7), by_feature)
+        self.assertIn(("orphan-code:context:accepted_code_boundary", "orphan_code_signal", 0x84, 7), by_feature)
+        self.assertIn(("orphan-code:missing_inbound:unknown", "orphan_code_signal", 0x84, 7), by_feature)
         self.assertIn(("compressed-payload", "packed_payload", 0x4C40, 6), by_feature)
         self.assertIn(("compressed:rnc1-old", "packed_payload", 0x4C40, 6), by_feature)
         self.assertIn(

@@ -57,8 +57,8 @@ Examples from current implementation:
   alias fragments when fields overlap.
 - Runtime views and lookup tables already have tests for conflict suppression,
   runtime mapped dispatch, vector targets, and relative table rendering.
-- Orphaned code signals are a planned fact type; until implemented they should
-  be treated as a design requirement, not assumed available.
+- Orphaned code signals are first-class analysis facts; they remain conservative
+  diagnostics until a real inbound edge links them into accepted flow.
 
 This distinction matters because "the bytes decode" is not the same as "the
 program reaches this code".

@@ -896,6 +896,25 @@ static const char *orphan_code_signal_status_name(uint8_t status) {
   return "unknown";
 }
 
+static const char *orphan_code_signal_context_name(uint8_t context) {
+  if (context == M68K_ORPHAN_CODE_SIGNAL_CONTEXT_ACCEPTED_CODE_BOUNDARY) return "accepted_code_boundary";
+  if (context == M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL) return "renderable_label";
+  if (context == M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RUNTIME_VIEW) return "runtime_view";
+  return "unknown";
+}
+
+static const char *orphan_code_signal_inbound_name(uint8_t inbound) {
+  if (inbound == M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN) return "unknown";
+  if (inbound == M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE) return "jump_table";
+  if (inbound == M68K_ORPHAN_CODE_SIGNAL_INBOUND_CALLBACK) return "callback";
+  if (inbound == M68K_ORPHAN_CODE_SIGNAL_INBOUND_VECTOR) return "vector";
+  if (inbound == M68K_ORPHAN_CODE_SIGNAL_INBOUND_RUNTIME_COPY) return "runtime_copy";
+  if (inbound == M68K_ORPHAN_CODE_SIGNAL_INBOUND_API) return "api";
+  if (inbound == M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA) return "metadata";
+  if (inbound == M68K_ORPHAN_CODE_SIGNAL_INBOUND_POLICY_SEED) return "policy_seed";
+  return "unknown";
+}
+
 static const char *base_layout_field_source_kind_name(uint8_t source_kind) {
   if (source_kind == M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS) return "app_slot_access";
   if (source_kind == M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION) return "policy_rsset_region";
@@ -2214,6 +2233,14 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_append(&builder, ",\"status\":") != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, orphan_code_signal_status_name(signal->status)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"context\":") != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, orphan_code_signal_context_name(signal->context)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"missing_inbound\":") != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, orphan_code_signal_inbound_name(signal->missing_inbound)) != 0)
         goto oom;
       if (json_builder_appendf(&builder, ",\"confidence\":%u,\"detail\":",
           (unsigned)signal->confidence) != 0)

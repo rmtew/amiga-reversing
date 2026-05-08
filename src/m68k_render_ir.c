@@ -6105,8 +6105,12 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
     uint32_t instruction_count = 0U;
     uint8_t terminal_flow_kind = 0U;
     uint32_t terminal_offset = 0U;
-    if (!((offset > 0U && accepted_byte_at(section, accepted_bytes, offset - 1U)) ||
-          lookup_has_renderable_label(lookup, section->section_index, offset)) ||
+    int has_accepted_code_boundary = offset > 0U && accepted_byte_at(section, accepted_bytes, offset - 1U);
+    int has_renderable_label = lookup_has_renderable_label(lookup, section->section_index, offset);
+    uint32_t runtime_address = 0U;
+    int has_runtime_view = lookup_source_runtime_address(lookup, section->section_index, offset,
+      &runtime_address);
+    if (!(has_accepted_code_boundary || has_renderable_label) ||
         accepted_start_at(section, accepted_start, offset) ||
         accepted_byte_at(section, accepted_bytes, offset) ||
         lookup_structured_data_item_covering_offset(lookup, section->section_index, offset) != NULL) {
@@ -6149,6 +6153,16 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
       signal.reason = M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE;
       signal.status = M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED;
       signal.confidence = instruction_count >= 4U ? 90U : 70U;
+      if (has_runtime_view) {
+        signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RUNTIME_VIEW;
+        signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_RUNTIME_COPY;
+      } else if (has_renderable_label) {
+        signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL;
+        signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA;
+      } else {
+        signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_ACCEPTED_CODE_BOUNDARY;
+        signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN;
+      }
       signal.detail = "decoded instruction island ends in generated terminal flow";
       if (m68k_ir_section_analysis_append_orphan_code_signal(section_analysis, &signal) != 0) return -1;
       offset = start + signal.size;

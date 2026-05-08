@@ -1181,6 +1181,12 @@ def _orphan_code_signal_example(section_index: int, signal: dict[str, Any]) -> d
     terminal_flow = _string_value(signal.get("terminal_flow"))
     if terminal_flow:
         example["terminal_flow"] = terminal_flow
+    context = _string_value(signal.get("context"))
+    if context:
+        example["context"] = context
+    missing_inbound = _string_value(signal.get("missing_inbound"))
+    if missing_inbound:
+        example["missing_inbound"] = missing_inbound
     detail = _string_value(signal.get("detail"))
     if detail:
         example["detail"] = detail
@@ -1191,6 +1197,8 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
     reason = _string_value(signal.get("reason")) or "unknown"
     status = _string_value(signal.get("status")) or "unknown"
     terminal_flow = _string_value(signal.get("terminal_flow"))
+    context = _string_value(signal.get("context"))
+    missing_inbound = _string_value(signal.get("missing_inbound"))
     example = _orphan_code_signal_example(section_index, signal)
     bag.add("orphan-code:signal", example=example)
     bag.add(f"orphan-code:reason:{_safe_part(reason)}", example=example)
@@ -1198,6 +1206,10 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
     bag.add(f"orphan-code:{_safe_part(reason)}:{_safe_part(status)}", example=example)
     if terminal_flow:
         bag.add(f"orphan-code:terminal_flow:{_safe_part(terminal_flow)}", example=example)
+    if context:
+        bag.add(f"orphan-code:context:{_safe_part(context)}", example=example)
+    if missing_inbound:
+        bag.add(f"orphan-code:missing_inbound:{_safe_part(missing_inbound)}", example=example)
 
 
 def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
@@ -3053,6 +3065,8 @@ def _analysis_xrefs(
             reason = _string_value(signal.get("reason")) or "unknown"
             status = _string_value(signal.get("status")) or "unknown"
             terminal_flow = _string_value(signal.get("terminal_flow"))
+            context = _string_value(signal.get("context"))
+            missing_inbound = _string_value(signal.get("missing_inbound"))
             size = _int_value(signal.get("size"))
             text = row_text or _string_value(signal.get("detail")) or f"orphan code {reason}:{status}"
             features = [
@@ -3063,6 +3077,10 @@ def _analysis_xrefs(
             ]
             if terminal_flow:
                 features.append(f"orphan-code:terminal_flow:{_safe_part(terminal_flow)}")
+            if context:
+                features.append(f"orphan-code:context:{_safe_part(context)}")
+            if missing_inbound:
+                features.append(f"orphan-code:missing_inbound:{_safe_part(missing_inbound)}")
             for feature in features:
                 xrefs.append(
                     _xref(

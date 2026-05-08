@@ -471,6 +471,23 @@ typedef enum M68kOrphanCodeSignalStatus {
   M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED = 1
 } M68kOrphanCodeSignalStatus;
 
+typedef enum M68kOrphanCodeSignalContext {
+  M68K_ORPHAN_CODE_SIGNAL_CONTEXT_ACCEPTED_CODE_BOUNDARY = 1,
+  M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL = 2,
+  M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RUNTIME_VIEW = 3
+} M68kOrphanCodeSignalContext;
+
+typedef enum M68kOrphanCodeSignalInboundEvidence {
+  M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN = 1,
+  M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE = 2,
+  M68K_ORPHAN_CODE_SIGNAL_INBOUND_CALLBACK = 3,
+  M68K_ORPHAN_CODE_SIGNAL_INBOUND_VECTOR = 4,
+  M68K_ORPHAN_CODE_SIGNAL_INBOUND_RUNTIME_COPY = 5,
+  M68K_ORPHAN_CODE_SIGNAL_INBOUND_API = 6,
+  M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA = 7,
+  M68K_ORPHAN_CODE_SIGNAL_INBOUND_POLICY_SEED = 8
+} M68kOrphanCodeSignalInboundEvidence;
+
 typedef struct M68kOrphanCodeSignalIR {
   uint32_t offset;
   uint32_t size;
@@ -479,6 +496,9 @@ typedef struct M68kOrphanCodeSignalIR {
   uint8_t reason;
   uint8_t status;
   uint8_t confidence;
+  uint8_t context;
+  uint8_t missing_inbound;
+  uint8_t reserved[3];
   char *detail;
 } M68kOrphanCodeSignalIR;
 
