@@ -577,6 +577,15 @@ def collect_project_usage_catalog_entry(
         except Exception as exc:
             analysis_error = _stable_analysis_error_message(str(exc))
             bag.add("diagnostic:analysis_error", example={"message": analysis_error})
+    reproduction = entry.get("reproduction")
+    if isinstance(reproduction, dict) and combined is not None:
+        analysis = combined.get("analysis")
+        if isinstance(analysis, dict) and _analysis_has_decompression_relationship(analysis):
+            status = _string_value(reproduction.get("status"))
+            if status:
+                bag.add(f"decompression:parent_reproduction_status:{_safe_part(status)}", example=reproduction)
+            if reproduction.get("exact") is True:
+                bag.add("decompression:parent_reproduction_exact", example=reproduction)
     row = _base_row("project_target", entry, bag)
     xrefs = _project_target_xrefs(row, entry, combined, analysis_error, listing_feature_bag=bag)
     _finalize_row_features(row, bag)
@@ -629,6 +638,9 @@ def _project_target_manifest_entry(target_dir: Path, *, root: Path = ROOT) -> tu
     decompression = _read_json_object(target_dir / "decompression.json")
     if decompression:
         entry["decompression"] = decompression
+    reproduction = _project_reproduction_summary(_read_json_object(target_dir / "reproduction.json"))
+    if reproduction:
+        entry["reproduction"] = reproduction
     if source_error:
         entry["expect"] = {"status": "error", "error": source_error}
     sha_value = _string_value(project_origin.get("sha256"))
@@ -657,6 +669,32 @@ def _read_json_object(path: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _project_reproduction_summary(report: dict[str, Any]) -> dict[str, object]:
+    if not report:
+        return {}
+    comparison = report.get("comparison")
+    status = _string_value(report.get("status"))
+    if isinstance(comparison, dict):
+        status = _string_value(comparison.get("status")) or status
+    exact = report.get("exact")
+    if not isinstance(exact, bool) and isinstance(comparison, dict):
+        exact = comparison.get("selected_exact")
+    summary: dict[str, object] = {}
+    if status:
+        summary["status"] = status
+    if isinstance(exact, bool):
+        summary["exact"] = exact
+    return summary
+
+
+def _analysis_has_decompression_relationship(analysis: dict[str, Any]) -> bool:
+    for key in ("decompression_events", "derived_target_suggestions", "packed_payloads"):
+        items = analysis.get(key)
+        if isinstance(items, list) and items:
+            return True
+    return False
 
 
 def analyze_project_hunk_file(platform: str, path: Path, target_dir: Path, *, root: Path = ROOT) -> dict[str, Any]:
@@ -790,6 +828,8 @@ def _add_project_target_metadata_features(entry: dict[str, Any], bag: FeatureBag
     payload_role_confidence = _string_value(entry.get("payload_role_confidence"))
     parent_remains_active = _string_value(entry.get("parent_remains_active"))
     target_type = _string_value(entry.get("target_type"))
+    reproduction = entry.get("reproduction")
+    reproduction_status = _string_value(reproduction.get("status")) if isinstance(reproduction, dict) else None
     if origin_kind:
         bag.add(f"project_origin:{_safe_part(origin_kind)}")
     if target_role:
@@ -802,11 +842,23 @@ def _add_project_target_metadata_features(entry: dict[str, Any], bag: FeatureBag
         bag.add(f"decompression:parent_remains_active:{_safe_part(parent_remains_active)}")
     if target_type:
         bag.add(f"project_target_type:{_safe_part(target_type)}")
+    if reproduction_status:
+        bag.add(f"reproduction:status:{_safe_part(reproduction_status)}")
+    if isinstance(reproduction, dict) and reproduction.get("exact") is True:
+        bag.add("reproduction:exact")
     if origin_kind == "derived_decompressed_payload" or target_role == "decompressed_payload":
         example = _project_decompression_example(entry)
+        if reproduction_status:
+            example["reproduction_status"] = reproduction_status
+        if isinstance(reproduction, dict) and reproduction.get("exact") is True:
+            example["reproduction_exact"] = True
         bag.add("derived-decompressed-target", example=example)
         bag.add("derived_target:decompressed_payload", example=example)
         bag.add("decompression:child", example=example)
+        if reproduction_status:
+            bag.add(f"decompression:child_reproduction_status:{_safe_part(reproduction_status)}", example=example)
+        if isinstance(reproduction, dict) and reproduction.get("exact") is True:
+            bag.add("decompression:child_reproduction_exact", example=example)
         codec = _project_decompression_codec(entry)
         if codec:
             bag.add(f"decompression:codec:{_safe_part(codec)}", example=example)
@@ -1831,6 +1883,8 @@ def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]
     payload_role_confidence = _string_value(entry.get("payload_role_confidence"))
     parent_remains_active = _string_value(entry.get("parent_remains_active"))
     target_type = _string_value(entry.get("target_type"))
+    reproduction = entry.get("reproduction")
+    reproduction_status = _string_value(reproduction.get("status")) if isinstance(reproduction, dict) else None
     for value, prefix, kind in (
         (origin_kind, "project_origin", "project_target_metadata"),
         (target_role, "project_target_role", "project_target_metadata"),
@@ -1838,6 +1892,18 @@ def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]
     ):
         if value:
             xrefs.append(_xref(row, f"{prefix}:{_safe_part(value)}", kind, symbol=value, text=value))
+    if reproduction_status:
+        xrefs.append(
+            _xref(
+                row,
+                f"reproduction:status:{_safe_part(reproduction_status)}",
+                "project_reproduction",
+                symbol=reproduction_status,
+                text=reproduction_status,
+            )
+        )
+    if isinstance(reproduction, dict) and reproduction.get("exact") is True:
+        xrefs.append(_xref(row, "reproduction:exact", "project_reproduction", text=reproduction_status or "exact"))
     if origin_kind == "derived_decompressed_payload" or target_role == "decompressed_payload":
         codec = _project_decompression_codec(entry)
         example = _project_decompression_example(entry)
@@ -1845,6 +1911,19 @@ def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]
         text = _string_value(example.get("text")) or "decompressed payload"
         for feature in ("derived-decompressed-target", "derived_target:decompressed_payload", "decompression:child"):
             xrefs.append(_xref(row, feature, "derived_target", offset=offset, symbol=codec, text=text))
+        if reproduction_status:
+            xrefs.append(
+                _xref(
+                    row,
+                    f"decompression:child_reproduction_status:{_safe_part(reproduction_status)}",
+                    "derived_target",
+                    offset=offset,
+                    symbol=reproduction_status,
+                    text=text,
+                )
+            )
+        if isinstance(reproduction, dict) and reproduction.get("exact") is True:
+            xrefs.append(_xref(row, "decompression:child_reproduction_exact", "derived_target", offset=offset, symbol=codec, text=text))
         if _int_value(example.get("load_address")) is not None:
             xrefs.append(_xref(row, "absolute-depack-dest", "derived_target", offset=offset, symbol=codec, text=text))
         if _int_value(example.get("entrypoint")) is not None:
@@ -1913,6 +1992,30 @@ def _project_target_xrefs(
         *_project_target_metadata_xrefs(row, entry),
         *_file_usage_xrefs(row, entry, combined, analysis_error, listing_feature_bag=listing_feature_bag),
     ]
+    reproduction = entry.get("reproduction")
+    analysis = combined.get("analysis") if isinstance(combined, dict) else None
+    if isinstance(reproduction, dict) and isinstance(analysis, dict) and _analysis_has_decompression_relationship(analysis):
+        status = _string_value(reproduction.get("status"))
+        if status:
+            xrefs.append(
+                _xref(
+                    row,
+                    f"decompression:parent_reproduction_status:{_safe_part(status)}",
+                    "decompression_parent_reproduction",
+                    symbol=status,
+                    text=status,
+                )
+            )
+        if reproduction.get("exact") is True:
+            xrefs.append(
+                _xref(
+                    row,
+                    "decompression:parent_reproduction_exact",
+                    "decompression_parent_reproduction",
+                    symbol=status,
+                    text=status or "exact",
+                )
+            )
     return _dedupe_xrefs(xrefs)
 
 

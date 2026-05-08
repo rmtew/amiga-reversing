@@ -569,6 +569,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             "payload_role_confidence": "tool_inferred",
             "parent_remains_active": "unknown",
             "target_type": "raw_binary",
+            "reproduction": {"status": "exact_file", "exact": True},
             "decompression": {
                 "compressor": {"id": "rnc1-old", "name": "RNC1"},
                 "payload_role": "primary_program",
@@ -598,9 +599,13 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["decompression:payload_role_confidence:tool_inferred"], 1)
         self.assertEqual(counts["decompression:parent_remains_active:unknown"], 1)
         self.assertEqual(counts["project_target_type:raw_binary"], 1)
+        self.assertEqual(counts["reproduction:status:exact_file"], 1)
+        self.assertEqual(counts["reproduction:exact"], 1)
         self.assertEqual(counts["derived-decompressed-target"], 1)
         self.assertEqual(counts["derived_target:decompressed_payload"], 1)
         self.assertEqual(counts["decompression:child"], 1)
+        self.assertEqual(counts["decompression:child_reproduction_status:exact_file"], 1)
+        self.assertEqual(counts["decompression:child_reproduction_exact"], 1)
         self.assertEqual(counts["decompression:codec:rnc1-old"], 1)
         self.assertEqual(counts["decompression:source_offset"], 1)
         self.assertEqual(counts["decompression:source_offset:0:00004C40"], 1)
@@ -611,8 +616,11 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["derived-decompressed-target"][0]["source_section_end_offset"], 0x2DE07)
         self.assertEqual(examples["derived-decompressed-target"][0]["load_address"], 0x4000)
         self.assertEqual(examples["derived-decompressed-target"][0]["payload_role"], "primary_program")
+        self.assertEqual(examples["derived-decompressed-target"][0]["reproduction_status"], "exact_file")
+        self.assertTrue(examples["derived-decompressed-target"][0]["reproduction_exact"])
         self.assertIn("decompression:codec:rnc1-old", {xref["feature"] for xref in xrefs})
         self.assertIn("decompression:source_range:0:00004C40-0002DE07", {xref["feature"] for xref in xrefs})
+        self.assertIn("decompression:child_reproduction_exact", {xref["feature"] for xref in xrefs})
         self.assertIn("decompression:payload_role:primary_program", {xref["feature"] for xref in xrefs})
 
     def test_numeric_copper_register_rows_use_hardware_metadata(self) -> None:

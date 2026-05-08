@@ -339,3 +339,8 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   tags for decompression events, derived target suggestions, packed payloads,
   and materialized decompressed child metadata. Carrier RNC and Damocles/Voodoo
   Tetragon ranges are queryable as real corpus examples.
+- Corpus indexing now reads project `reproduction.json` files and tags exact
+  reproduction status. Decompression parent targets with decompression
+  relationships and materialized decompressed children now expose separate
+  parent/child reproduction status tags, proving Carrier and Damocles retained
+  exact rebuilds for both sides of the relationship.
