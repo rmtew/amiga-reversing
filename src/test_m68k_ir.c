@@ -6004,6 +6004,7 @@ static int test_facts_v2_tool_inferred_runtime_copy_conflict_does_not_abort(void
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   size_t runtime_view_index;
   int found_conflicting_copy = 0;
   const char *source_text =
@@ -6054,6 +6055,13 @@ static int test_facts_v2_tool_inferred_runtime_copy_conflict_does_not_abort(void
     }
   }
   M68K_C_ASSERT(found_conflicting_copy);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"record_kind\":\"runtime_view\",\"memory_kind\":\"runtime_view_candidate\",\"section_index\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"runtime_address\":1024,\"runtime_size\":8") != NULL);
+  free(analysis_json);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
@@ -12820,6 +12828,10 @@ static int test_facts_v2_register_runtime_sink_auto_classifies_copper_list(void)
   M68K_C_ASSERT(strstr(analysis_json,
     "\"offset\":6,\"operand_index\":null,\"target_section_index\":0,\"target_offset\":14,"
     "\"runtime_address\":14,\"confidence\":2,\"data_class\":\"copper_list\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"record_kind\":\"runtime_address_ref\",\"memory_kind\":\"copper_list\",\"section_index\":0,"
+    "\"source_offset\":6") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   free(analysis_json);

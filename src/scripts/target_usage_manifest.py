@@ -88,6 +88,7 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     "copper": ("data:copper_list", "hardware:custom/copper", "value_domain:amiga.custom.copper", "copper_register:"),
     "display": ("display:", "hardware:custom/display", "value_domain:amiga.custom.display_config"),
     "runtime": ("runtime:",),
+    "memory": ("memory:", "memory-layout:"),
     "analysis": ("analysis:", "orphan-code:"),
     "tables": ("table:",),
     "app_slots": (
@@ -1266,6 +1267,19 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         entry_size = _int_value(table.get("entry_size"))
         if entry_size is not None:
             bag.add(f"table:entry_size:{entry_size}", example=example)
+    for record in _dict_items(analysis.get("memory_layout_records")):
+        record_kind = _string_value(record.get("record_kind")) or "unknown"
+        memory_kind = _string_value(record.get("memory_kind")) or "unknown"
+        section_index = _int_value(record.get("section_index"), 0)
+        source_offset = _int_value(record.get("source_offset"))
+        example = _offset_example(section_index, source_offset, memory_kind)
+        for key in ("source_size", "runtime_address", "runtime_size", "target_offset"):
+            value = _int_value(record.get(key))
+            if value is not None:
+                example[key] = value
+        bag.add("memory-layout:any", example=example)
+        bag.add(f"memory-layout:record:{_safe_part(record_kind)}", example=example)
+        bag.add(f"memory-layout:kind:{_safe_part(memory_kind)}", example=example)
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):
@@ -2979,6 +2993,21 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, "table:consumer", "table_consumer", section=consumer_section,
                 offset=consumer_offset, row_index=consumer_row_index, stable_key=consumer_stable_key,
                 symbol=role, value=entry_count, text=consumer_row_text or table_kind))
+    for record in _dict_items(analysis.get("memory_layout_records")):
+        record_kind = _string_value(record.get("record_kind")) or "unknown"
+        memory_kind = _string_value(record.get("memory_kind")) or "unknown"
+        section_index = _int_value(record.get("section_index"), 0)
+        source_offset = _int_value(record.get("source_offset"))
+        row_index, stable_key, row_text = _row_location(row_locations, section_index, source_offset)
+        runtime_address = _int_value(record.get("runtime_address"))
+        for feature in (
+            "memory-layout:any",
+            f"memory-layout:record:{_safe_part(record_kind)}",
+            f"memory-layout:kind:{_safe_part(memory_kind)}",
+        ):
+            xrefs.append(_xref(row, feature, "memory_layout", section=section_index, offset=source_offset,
+                row_index=row_index, stable_key=stable_key, symbol=memory_kind, value=runtime_address,
+                text=row_text or memory_kind))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):

@@ -1691,11 +1691,94 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder, const
   return 0;
 }
 
+static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  size_t count = 0U;
+  if (source_analysis == NULL) return 0U;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t ref_index;
+    count += section->runtime_view_count;
+    for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
+      const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
+      if (ref->has_runtime_address || ref->has_target || (ref->data_class != NULL && ref->data_class[0] != '\0')) {
+        ++count;
+      }
+    }
+  }
+  return count;
+}
+
+static int append_source_analysis_memory_layout_records_json(JsonBuilder *builder,
+    const M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  size_t emitted = 0U;
+  if (builder == NULL || source_analysis == NULL) return -1;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t view_index;
+    size_t ref_index;
+    for (view_index = 0U; view_index < section->runtime_view_count; ++view_index) {
+      const M68kRuntimeViewIR *view = &section->runtime_views[view_index];
+      const char *memory_kind = view->materialized ? "runtime_code" : "runtime_view_candidate";
+      if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_appendf(builder,
+          "{\"record_kind\":\"runtime_view\",\"memory_kind\":\"%s\",\"section_index\":%u,"
+          "\"source_offset\":%u,\"source_size\":%u,\"runtime_address\":%u,\"runtime_size\":%u,"
+          "\"runtime_view_id\":%u,\"view_kind\":%u,\"confidence\":%u,\"materialized\":%s,"
+          "\"materialization_reason\":%u,\"materialization_reason_name\":\"%s\"}",
+          memory_kind, (unsigned)section->section_index, (unsigned)view->storage_offset,
+          (unsigned)view->size, (unsigned)view->runtime_address, (unsigned)view->size,
+          (unsigned)view->runtime_view_id, (unsigned)view->kind, (unsigned)view->confidence,
+          view->materialized ? "true" : "false", (unsigned)view->materialization_reason,
+          runtime_view_materialization_reason_name(view->materialization_reason)) != 0) {
+        return -1;
+      }
+    }
+    for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
+      const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
+      const char *memory_kind = (ref->data_class != NULL && ref->data_class[0] != '\0') ?
+        ref->data_class : "runtime_address";
+      if (!ref->has_runtime_address && !ref->has_target && (ref->data_class == NULL || ref->data_class[0] == '\0')) {
+        continue;
+      }
+      if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_append(builder, "{\"record_kind\":\"runtime_address_ref\",\"memory_kind\":") != 0)
+        return -1;
+      if (json_builder_append_json_string(builder, memory_kind) != 0) return -1;
+      if (json_builder_appendf(builder, ",\"section_index\":%u,\"source_offset\":%u,\"source_size\":%u,"
+          "\"runtime_address\":", (unsigned)section->section_index, (unsigned)ref->offset,
+          (unsigned)ref->size) != 0) return -1;
+      if (ref->has_runtime_address) {
+        if (json_builder_appendf(builder, "%u", (unsigned)ref->runtime_address) != 0) return -1;
+      } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_append(builder, ",\"runtime_size\":") != 0) return -1;
+      if (ref->size != 0U) {
+        if (json_builder_appendf(builder, "%u", (unsigned)ref->size) != 0) return -1;
+      } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_append(builder, ",\"target_section_index\":") != 0) return -1;
+      if (ref->has_target) {
+        if (json_builder_appendf(builder, "%u", (unsigned)ref->target_section_index) != 0) return -1;
+      } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_append(builder, ",\"target_offset\":") != 0) return -1;
+      if (ref->has_target) {
+        if (json_builder_appendf(builder, "%u", (unsigned)ref->target_offset) != 0) return -1;
+      } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_appendf(builder, ",\"confidence\":%u,\"data_class\":",
+          (unsigned)ref->confidence) != 0) return -1;
+      if (json_builder_append_nullable_string(builder, ref->data_class) != 0) return -1;
+      if (json_builder_append(builder, "}") != 0) return -1;
+    }
+  }
+  return 0;
+}
+
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
   size_t field_index, section_index;
   size_t orphan_code_signal_count = 0U;
   size_t table_record_count = source_analysis_table_record_count(source_analysis != NULL ? &source_analysis->policy : NULL);
+  size_t memory_layout_record_count = source_analysis_memory_layout_record_count(source_analysis);
   for (section_index = 0U; source_analysis != NULL && section_index < source_analysis->section_count; ++section_index) {
     orphan_code_signal_count += source_analysis->sections[section_index].orphan_code_signal_count;
   }
@@ -1720,6 +1803,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       (unsigned)table_record_count) != 0)
     goto oom;
   if (append_source_analysis_table_records_json(&builder, &source_analysis->policy) != 0)
+    goto oom;
+  if (json_builder_appendf(&builder, "],\"memory_layout_record_count\":%u,\"memory_layout_records\":[",
+      (unsigned)memory_layout_record_count) != 0)
+    goto oom;
+  if (append_source_analysis_memory_layout_records_json(&builder, source_analysis) != 0)
     goto oom;
   if (json_builder_appendf(&builder, "],\"base_layout_field_count\":%u,\"base_layout_fields\":[",
       (unsigned)source_analysis->base_layout_field_count) != 0)

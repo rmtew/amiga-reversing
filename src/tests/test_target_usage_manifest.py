@@ -71,6 +71,27 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "conflict_state": "clean",
                         }
                     ],
+                    "memory_layout_records": [
+                        {
+                            "record_kind": "runtime_view",
+                            "memory_kind": "runtime_view_candidate",
+                            "section_index": 0,
+                            "source_offset": 0x40,
+                            "source_size": 0x20,
+                            "runtime_address": 0x400,
+                            "runtime_size": 0x20,
+                        },
+                        {
+                            "record_kind": "runtime_address_ref",
+                            "memory_kind": "copper_list",
+                            "section_index": 0,
+                            "source_offset": 0x60,
+                            "source_size": 12,
+                            "runtime_address": 0x0E,
+                            "runtime_size": 12,
+                            "target_offset": 0x0E,
+                        },
+                    ],
                     "sections": [
                         {
                             "section_index": 0,
@@ -454,6 +475,11 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["table:base:target_label"], 1)
         self.assertEqual(counts["table:consumer"], 1)
         self.assertEqual(counts["table:entry_size:2"], 1)
+        self.assertEqual(counts["memory-layout:any"], 2)
+        self.assertEqual(counts["memory-layout:record:runtime_view"], 1)
+        self.assertEqual(counts["memory-layout:record:runtime_address_ref"], 1)
+        self.assertEqual(counts["memory-layout:kind:runtime_view_candidate"], 1)
+        self.assertEqual(counts["memory-layout:kind:copper_list"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
         self.assertEqual(counts["hardware:custom"], 2)
         self.assertEqual(counts["hardware:custom/audio"], 1)
@@ -491,6 +517,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["analysis:runtime_table_base_addend"][0]["addend"], -4)
         self.assertEqual(examples["table:any"][0]["entry_count"], 2)
         self.assertEqual(examples["table:any"][0]["consumer_offset"], 0x20)
+        self.assertEqual(examples["memory-layout:kind:copper_list"][0]["runtime_address"], 0x0E)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
         self.assertEqual(examples["orphan-code:signal"][0]["context"], "accepted_code_boundary")
@@ -763,6 +790,27 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "consumer_offset": 0x20,
                     }
                 ],
+                "memory_layout_records": [
+                    {
+                        "record_kind": "runtime_view",
+                        "memory_kind": "runtime_view_candidate",
+                        "section_index": 0,
+                        "source_offset": 0x40,
+                        "source_size": 0x20,
+                        "runtime_address": 0x400,
+                        "runtime_size": 0x20,
+                    },
+                    {
+                        "record_kind": "runtime_address_ref",
+                        "memory_kind": "copper_list",
+                        "section_index": 0,
+                        "source_offset": 0x60,
+                        "source_size": 12,
+                        "runtime_address": 0x0E,
+                        "runtime_size": 12,
+                        "target_offset": 0x0E,
+                    },
+                ],
                 "sections": [
                     {
                         "section_index": 0,
@@ -1000,6 +1048,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("table:kind:relative_code_dispatch", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:consumer", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:consumer", "table_consumer", 0x20, 1), by_feature)
+        self.assertIn(("memory-layout:kind:runtime_view_candidate", "memory_layout", 0x40, 3), by_feature)
+        self.assertIn(("memory-layout:kind:copper_list", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("orphan-code:signal", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:reason:terminal_decode", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:status:unresolved", "orphan_code_signal", 0x84, 8), by_feature)
@@ -3319,6 +3369,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                     "os_call:any": 1,
                     "table:kind:relative_code_dispatch": 1,
                     "table:consumer": 1,
+                    "memory-layout:kind:bitmap": 1,
                     "platform_field:IO_COMMAND": 1,
                 },
                 "feature_examples": {
@@ -3327,6 +3378,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                     "orphan-code:signal": [{"offset": 10}],
                     "table:kind:relative_code_dispatch": [{"offset": 12}],
                     "table:consumer": [{"offset": 12, "consumer_offset": 4}],
+                    "memory-layout:kind:bitmap": [{"offset": 14, "runtime_address": 0x10000}],
                     "platform_field:IO_COMMAND": [{"offset": 8}],
                 },
             },
@@ -3344,6 +3396,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             {"target_id": "a", "feature": "platform_field:IO_COMMAND", "row_index": 4, "platform": "amiga-hunk"},
             {"target_id": "a", "feature": "orphan-code:signal", "row_index": 5, "platform": "amiga-hunk"},
             {"target_id": "a", "feature": "table:kind:relative_code_dispatch", "row_index": 6, "platform": "amiga-hunk"},
+            {"target_id": "a", "feature": "memory-layout:kind:bitmap", "row_index": 7, "platform": "amiga-hunk"},
             {"target_id": "b", "feature": "runtime:copied_code", "row_index": 7, "platform": "amiga-hunk"},
         ]
 
@@ -3351,10 +3404,12 @@ class TargetUsageManifestTests(unittest.TestCase):
         display_query = usage.query_usage_manifest(rows, "", group="display")
         analysis_query = usage.query_usage_manifest(rows, "", group="analysis")
         table_query = usage.query_usage_manifest(rows, "", group="tables")
+        memory_query = usage.query_usage_manifest(rows, "", group="memory")
         typed_query = usage.query_usage_manifest(rows, "", group="platform_types")
         xref_query = usage.query_usage_xrefs(xrefs, group="hardware")
         analysis_xref_query = usage.query_usage_xrefs(xrefs, group="analysis")
         table_xref_query = usage.query_usage_xrefs(xrefs, group="tables")
+        memory_xref_query = usage.query_usage_xrefs(xrefs, group="memory")
         typed_xref_query = usage.query_usage_xrefs(xrefs, group="platform_types")
 
         self.assertEqual([item["id"] for item in query], ["a"])
@@ -3366,11 +3421,14 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(analysis_query[0]["count"], 1)
         self.assertEqual([item["id"] for item in table_query], ["a"])
         self.assertEqual(table_query[0]["count"], 2)
+        self.assertEqual([item["id"] for item in memory_query], ["a"])
+        self.assertEqual(memory_query[0]["count"], 1)
         self.assertEqual([item["id"] for item in typed_query], ["a"])
         self.assertEqual(typed_query[0]["count"], 1)
         self.assertEqual([item["target_id"] for item in xref_query], ["a"])
         self.assertEqual([item["target_id"] for item in analysis_xref_query], ["a"])
         self.assertEqual([item["target_id"] for item in table_xref_query], ["a"])
+        self.assertEqual([item["target_id"] for item in memory_xref_query], ["a"])
         self.assertEqual([item["target_id"] for item in typed_xref_query], ["a"])
 
     def test_builds_variant_index_for_same_named_file_different_hashes(self) -> None:

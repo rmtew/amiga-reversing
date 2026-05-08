@@ -62,7 +62,7 @@ Reviewed implementation and tests before updating this plan. Current state:
 | Typed structs vs app slots | Typed app-slot field regions are skipped from flat RSSET output; `_custom` offset false positives have an isolated test. | Need wider "known base owns this displacement" facts for all platform structs, not only `_custom` fallback protection. |
 | ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, policy-vs-inferred precedence, corpus tags, and listing navigation for materialized/suppressed runtime views. | Runtime-copy facts still need explicit wrapper-load/helper/final-image relationships. |
 | Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, relative `target-base` rendering, C JSON `table_records` derived from accepted structured table data, and consumer instruction provenance for auto-classified table records. | Table facts still need conflict state beyond structured-data acceptance and fuller source-pattern details. |
-| Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks. | Need one memory-layout view that merges absolute globals, hardware, runtime code, display/audio, and unresolved candidates. |
+| Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks; C JSON now exposes `memory_layout_records` for runtime views and runtime-address references. | Memory-layout records still need absolute globals, hardware register ranges, app storage, and unresolved/conflict candidates merged into the same view. |
 | Orphaned code | C analysis now records unresolved terminal-decode islands at accepted-code boundaries or data labels as orphan signals without promoting them to accepted code. | Extend the signal with inbound-evidence classes, nearby context, target metrics, and reconciliation after table/callback/vector improvements. |
 | Targets | Bloodwych has many relative lookup tables; Pandora demonstrates wrapper load vs final copied image; Conqueror demonstrates weak low ORG risk; Carrier stresses packed/runtime-copy ambiguity; GenAm/MonAm remain comparator targets. | Corpus tags should preserve these pattern roles so later changes can be validated across comparable targets. |
 
@@ -157,6 +157,8 @@ proves a distinct base id.
 2. Add absolute memory-layout records:
    - source section/file range
    - runtime destination base and extent
+   - C JSON `memory_layout_records` implemented for runtime views and
+     runtime-address references
    - copied-code entrypoints
    - stack, bitplane, copper, audio, and app-storage ranges when detected
    - ownership conflicts and accepted-code overlap gates
