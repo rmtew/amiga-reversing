@@ -215,7 +215,26 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 }
                             ],
                             "violation_count": 2,
-                            "recovered_indirect_site_count": 3,
+                            "recovered_indirect_site_count": 2,
+                            "recovered_indirect_sites": [
+                                {
+                                    "offset": 0x120,
+                                    "flow": "jump",
+                                    "shape": "pcindex.brief",
+                                    "status": "unresolved",
+                                    "detail": "indexed dispatch candidate",
+                                    "target": None,
+                                    "target_count": None,
+                                },
+                                {
+                                    "offset": 0x140,
+                                    "flow": "jump",
+                                    "shape": "index.brief",
+                                    "status": "jump_table",
+                                    "target": 0x180,
+                                    "target_count": 3,
+                                },
+                            ],
                             "recovered_string_ref_count": 4,
                         }
                     ],
@@ -459,7 +478,14 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory:absolute_stack_top:stack_top_00080000"], 2)
         self.assertEqual(counts["analysis:runtime_table_base_addend"], 1)
         self.assertEqual(counts["analysis:runtime_table_base_addend:abs_0_0000C266"], 1)
-        self.assertEqual(counts["analysis:indirect_site"], 3)
+        self.assertEqual(counts["analysis:indirect_site"], 2)
+        self.assertEqual(counts["analysis:indirect_site:status:unresolved"], 1)
+        self.assertEqual(counts["analysis:indirect_site:status:jump_table"], 1)
+        self.assertEqual(counts["analysis:indirect_site:shape:pcindex.brief"], 1)
+        self.assertEqual(counts["analysis:indirect_site:source_pattern:pc_indexed_indirect"], 1)
+        self.assertEqual(counts["table:candidate_unresolved"], 1)
+        self.assertEqual(counts["table:candidate_unresolved:source_pattern:pc_indexed_indirect"], 1)
+        self.assertEqual(counts["table:candidate_unresolved:status:unresolved"], 1)
         self.assertEqual(counts["data:string_ref"], 4)
         self.assertEqual(counts["compressed-payload"], 1)
         self.assertEqual(counts["compressed:rnc1-old"], 1)
@@ -522,6 +548,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn("orphan-code:terminal_decode:unresolved", tags)
         self.assertIn("table:kind:relative_code_dispatch", tags)
         self.assertIn("table:source_pattern:indexed_word_dispatch", tags)
+        self.assertIn("table:candidate_unresolved", tags)
+        self.assertIn("table:candidate_unresolved:source_pattern:pc_indexed_indirect", tags)
         self.assertEqual(examples["os:exec.library/AllocMem"][0]["offset"], 0x20)
         self.assertEqual(examples["compressed-payload"][0]["offset"], 0x4C40)
         self.assertEqual(examples["decompression:runtime_copy"][0]["runtime_copy_address"], 0x4000)
@@ -925,6 +953,26 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "confidence": 60,
                             }
                         ],
+                        "recovered_indirect_site_count": 2,
+                        "recovered_indirect_sites": [
+                            {
+                                "offset": 0x120,
+                                "flow": "jump",
+                                "shape": "pcindex.brief",
+                                "status": "unresolved",
+                                "detail": "indexed dispatch candidate",
+                                "target": None,
+                                "target_count": None,
+                            },
+                            {
+                                "offset": 0x140,
+                                "flow": "jump",
+                                "shape": "index.brief",
+                                "status": "jump_table",
+                                "target": 0x180,
+                                "target_count": 3,
+                            },
+                        ],
                     }
                 ],
             },
@@ -1095,6 +1143,13 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("orphan-code:missing_inbound:unknown", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:nearby_data:lookup_table", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:nearby_data:after:lookup_table", "orphan_code_signal", 0x84, 8), by_feature)
+        self.assertIn(("analysis:indirect_site:status:unresolved", "indirect_site", 0x120, None), by_feature)
+        self.assertIn(("analysis:indirect_site:shape:pcindex.brief", "indirect_site", 0x120, None), by_feature)
+        self.assertIn(("table:candidate_unresolved", "indirect_site", 0x120, None), by_feature)
+        self.assertIn(
+            ("table:candidate_unresolved:source_pattern:pc_indexed_indirect", "indirect_site", 0x120, None),
+            by_feature,
+        )
         self.assertIn(("compressed-payload", "packed_payload", 0x4C40, 6), by_feature)
         self.assertIn(("compressed:rnc1-old", "packed_payload", 0x4C40, 6), by_feature)
         self.assertIn(

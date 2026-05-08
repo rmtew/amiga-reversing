@@ -1229,6 +1229,53 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
             )
 
 
+def _indirect_site_example(section_index: int, site: dict[str, Any]) -> dict[str, object]:
+    offset = _int_value(site.get("offset"))
+    status = _string_value(site.get("status")) or "unknown"
+    shape = _string_value(site.get("shape")) or "unknown"
+    flow = _string_value(site.get("flow")) or "unknown"
+    example = _offset_example(section_index, offset, f"{flow} {shape} {status}")
+    example["status"] = status
+    example["shape"] = shape
+    example["flow"] = flow
+    target = _int_value(site.get("target"))
+    if target is not None:
+        example["target"] = target
+    target_count = _int_value(site.get("target_count"))
+    if target_count is not None:
+        example["target_count"] = target_count
+    detail = _string_value(site.get("detail"))
+    if detail:
+        example["detail"] = detail
+    return example
+
+
+def _indirect_site_source_pattern(shape: str) -> str:
+    if shape.startswith("pcindex."):
+        return "pc_indexed_indirect"
+    if shape.startswith("index."):
+        return "indexed_indirect"
+    return "indirect"
+
+
+def _add_indirect_site_features(bag: FeatureBag, section_index: int, site: dict[str, Any]) -> None:
+    status = _string_value(site.get("status")) or "unknown"
+    shape = _string_value(site.get("shape")) or "unknown"
+    flow = _string_value(site.get("flow")) or "unknown"
+    source_pattern = _indirect_site_source_pattern(shape)
+    example = _indirect_site_example(section_index, site)
+    example["source_pattern"] = source_pattern
+    bag.add("analysis:indirect_site", example=example)
+    bag.add(f"analysis:indirect_site:status:{_safe_part(status)}", example=example)
+    bag.add(f"analysis:indirect_site:shape:{_safe_part(shape)}", example=example)
+    bag.add(f"analysis:indirect_site:flow:{_safe_part(flow)}", example=example)
+    bag.add(f"analysis:indirect_site:source_pattern:{_safe_part(source_pattern)}", example=example)
+    if status not in {"jump_table", "resolved_runtime", "runtime", "external"}:
+        bag.add("table:candidate_unresolved", example=example)
+        bag.add(f"table:candidate_unresolved:source_pattern:{_safe_part(source_pattern)}", example=example)
+        bag.add(f"table:candidate_unresolved:status:{_safe_part(status)}", example=example)
+
+
 def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
     findings = analysis.get("findings")
     if isinstance(findings, dict):
@@ -1416,9 +1463,14 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         violation_count = _int_value(section.get("violation_count"), 0)
         if violation_count > 0:
             bag.add("diagnostic:analysis_violation", violation_count)
-        indirect_count = _int_value(section.get("recovered_indirect_site_count"), 0)
-        if indirect_count > 0:
-            bag.add("analysis:indirect_site", indirect_count)
+        indirect_sites = list(_dict_items(section.get("recovered_indirect_sites")))
+        if indirect_sites:
+            for site in indirect_sites:
+                _add_indirect_site_features(bag, section_index, site)
+        else:
+            indirect_count = _int_value(section.get("recovered_indirect_site_count"), 0)
+            if indirect_count > 0:
+                bag.add("analysis:indirect_site", indirect_count)
         string_ref_count = _int_value(section.get("recovered_string_ref_count"), 0)
         if string_ref_count > 0:
             bag.add("data:string_ref", string_ref_count)
@@ -3231,6 +3283,45 @@ def _analysis_xrefs(
                         text=text,
                     )
                 )
+        recovered_indirect_sites = list(_dict_items(section.get("recovered_indirect_sites")))
+        for site in recovered_indirect_sites:
+            offset = _int_value(site.get("offset"))
+            row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
+            status = _string_value(site.get("status")) or "unknown"
+            shape = _string_value(site.get("shape")) or "unknown"
+            flow = _string_value(site.get("flow")) or "unknown"
+            source_pattern = _indirect_site_source_pattern(shape)
+            target_count = _int_value(site.get("target_count"))
+            text = row_text or _string_value(site.get("detail")) or f"{flow} {shape} {status}"
+            features = [
+                "analysis:indirect_site",
+                f"analysis:indirect_site:status:{_safe_part(status)}",
+                f"analysis:indirect_site:shape:{_safe_part(shape)}",
+                f"analysis:indirect_site:flow:{_safe_part(flow)}",
+                f"analysis:indirect_site:source_pattern:{_safe_part(source_pattern)}",
+            ]
+            if status not in {"jump_table", "resolved_runtime", "runtime", "external"}:
+                features.extend(
+                    [
+                        "table:candidate_unresolved",
+                        f"table:candidate_unresolved:source_pattern:{_safe_part(source_pattern)}",
+                        f"table:candidate_unresolved:status:{_safe_part(status)}",
+                    ]
+                )
+            for feature in features:
+                xrefs.append(
+                    _xref(
+                        row,
+                        feature,
+                        "indirect_site",
+                        section=section_index,
+                        offset=offset,
+                        row_index=row_index,
+                        stable_key=stable_key,
+                        value=target_count,
+                        text=text,
+                    )
+                )
         violations = _dict_items(section.get("violations"))
         if violations:
             for index, violation in enumerate(violations):
@@ -3243,13 +3334,17 @@ def _analysis_xrefs(
             violation_count = _int_value(section.get("violation_count"), 0) or 0
             for index in range(violation_count):
                 xrefs.append(_xref(row, "diagnostic:analysis_violation", "diagnostic", section=section_index, value=index, text="analysis violation"))
-        for name, feature in (
-            ("recovered_indirect_site_count", "analysis:indirect_site"),
-            ("recovered_string_ref_count", "data:string_ref"),
-        ):
+        for name, feature in (("recovered_string_ref_count", "data:string_ref"),):
             count = _int_value(section.get(name), 0) or 0
             for index in range(count):
                 xrefs.append(_xref(row, feature, "analysis_count", section=section_index, value=index, text=name))
+        if not recovered_indirect_sites:
+            count = _int_value(section.get("recovered_indirect_site_count"), 0) or 0
+            for index in range(count):
+                xrefs.append(
+                    _xref(row, "analysis:indirect_site", "analysis_count", section=section_index, value=index,
+                        text="recovered_indirect_site_count")
+                )
     return xrefs
 
 
