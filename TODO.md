@@ -1,5 +1,60 @@
 # TODO
 
+## Unsorted
+
+- Web server should check origin to prevent exposing local machine state to random code within user's
+  browser from other origins than `localhost`/`127.0.0.1`.\
+- Observed "damocles_53b24620.s" flaws:
+  - Failed string conversion. This is the tetragon signature presumably. It meets ascii/real word type
+    heuristics. There is an implication here that we can detect these and not just decide all values
+    fit ascii ranges but also do a "does this look like a actual text someone would read or say"
+    heuristic pass over it and catch all of these:
+    ```
+    ...
+      bra.b loc_1_00000086
+      dc.b $20,$54,$45,$54,$52,$41,$47,$4F,$4E,$20
+    loc_1_000000CE:
+    ...
+    ```
+  - RS false positive. Needs to be tied to non-hardware memory or register:
+    ```
+    ... skipped header
+        RSSET 0
+        RS.B 158
+    app_009E RS.W 1
+    app_SIZEOF EQU __RS
+    ... removed first segment ...
+        SECTION section_2,code
+    loc_2_00000000:
+      lea.l _custom.l,a6
+    ... blocks follow before ...
+      move.w #$7FFF,app_009E(a6)
+    ... skipped remainder
+    ```
+  - Using numeric values for PC offset should be a fail case. Currently this can be observed in segment
+    2 as	`adda.l -$C(pc),a0` within the first block (before "loc_1_00000024").
+- Observed "magicland_dizzy_md.s" flaws:
+  - RS false positives, two sets. All seem like custom hardware offsets to $DFF000.
+    ```
+    ...
+        RSSET 0
+        RS.B 2
+    app_0002 RS.L 1
+    ...
+    abs_0_0005C754:
+      lea.l _custom.l,a6
+    ...
+    abs_0_0005CA1C:
+      btst.b #6,app_0002(a6)
+      bne.b abs_0_0005CA1C
+    ```
+  - If a constant is an obvious hex value like $ffffffff we should show it as hex.
+    ```
+    abs_0_0005CD0C:
+      cmpi.l #4294967295,(a5)
+    ```
+- Devices seem to not get the full Amiga platform resident analysis/disassembly.
+
 ## Phase 6: Beyond Static Analysis
 
 Static analysis has reached its limits for GenAm at 28.5% core coverage.
