@@ -189,7 +189,8 @@ proves a distinct base id.
      islands at accepted-code boundaries or data labels
    - terminal instruction and candidate extent: implemented
    - plausibility score, CPU requirement, and decode conflicts
-   - nearby data/table/string context
+   - nearby data/table/string context: implemented for immediately adjacent
+     structured data classes
    - possible missing inbound evidence class: jump table, callback, vector,
      runtime copy, API, metadata, or policy seed: implemented for current
      signal context as unknown, metadata-label, or runtime-copy evidence

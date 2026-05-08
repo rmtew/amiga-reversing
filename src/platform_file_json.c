@@ -2242,6 +2242,14 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_json_string(&builder, orphan_code_signal_inbound_name(signal->missing_inbound)) != 0)
         goto oom;
+      if (json_builder_append(&builder, ",\"nearby_data_class\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, signal->nearby_data_class) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"nearby_data_relation\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, signal->nearby_data_relation) != 0)
+        goto oom;
       if (json_builder_appendf(&builder, ",\"confidence\":%u,\"detail\":",
           (unsigned)signal->confidence) != 0)
         goto oom;

@@ -6088,6 +6088,34 @@ static const M68kDecodeCandidate *render_orphan_decode_candidate_at_offset(const
   return decoded_candidate;
 }
 
+static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, M68kOrphanCodeSignalIR *signal) {
+  const M68kAnalysisStructuredDataItem *item = NULL;
+  const char *data_class = NULL;
+  if (lookup == NULL || section == NULL || signal == NULL) return;
+  if (signal->size <= section->size - signal->offset) {
+    uint32_t after_offset = signal->offset + signal->size;
+    if (after_offset < section->size)
+      item = lookup_structured_data_item_at_offset(lookup, section->section_index, after_offset);
+    if (item != NULL) {
+      data_class = structured_data_item_data_class(item);
+      if (data_class != NULL && data_class[0] != '\0') {
+        signal->nearby_data_class = (char *)data_class;
+        signal->nearby_data_relation = "after";
+        return;
+      }
+    }
+  }
+  if (signal->offset > 0U) {
+    item = lookup_structured_data_item_covering_offset(lookup, section->section_index, signal->offset - 1U);
+    data_class = structured_data_item_data_class(item);
+    if (data_class != NULL && data_class[0] != '\0') {
+      signal->nearby_data_class = (char *)data_class;
+      signal->nearby_data_relation = "before";
+    }
+  }
+}
+
 static int render_analysis_append_orphan_code_signals_for_section(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
     M68kSectionAnalysisIR *section_analysis) {
@@ -6163,6 +6191,7 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
         signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_ACCEPTED_CODE_BOUNDARY;
         signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN;
       }
+      render_orphan_signal_attach_nearby_data_context(lookup, section, &signal);
       signal.detail = "decoded instruction island ends in generated terminal flow";
       if (m68k_ir_section_analysis_append_orphan_code_signal(section_analysis, &signal) != 0) return -1;
       offset = start + signal.size;

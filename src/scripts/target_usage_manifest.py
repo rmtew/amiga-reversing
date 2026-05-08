@@ -1187,6 +1187,12 @@ def _orphan_code_signal_example(section_index: int, signal: dict[str, Any]) -> d
     missing_inbound = _string_value(signal.get("missing_inbound"))
     if missing_inbound:
         example["missing_inbound"] = missing_inbound
+    nearby_data_class = _string_value(signal.get("nearby_data_class"))
+    if nearby_data_class:
+        example["nearby_data_class"] = nearby_data_class
+    nearby_data_relation = _string_value(signal.get("nearby_data_relation"))
+    if nearby_data_relation:
+        example["nearby_data_relation"] = nearby_data_relation
     detail = _string_value(signal.get("detail"))
     if detail:
         example["detail"] = detail
@@ -1199,6 +1205,8 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
     terminal_flow = _string_value(signal.get("terminal_flow"))
     context = _string_value(signal.get("context"))
     missing_inbound = _string_value(signal.get("missing_inbound"))
+    nearby_data_class = _string_value(signal.get("nearby_data_class"))
+    nearby_data_relation = _string_value(signal.get("nearby_data_relation"))
     example = _orphan_code_signal_example(section_index, signal)
     bag.add("orphan-code:signal", example=example)
     bag.add(f"orphan-code:reason:{_safe_part(reason)}", example=example)
@@ -1210,6 +1218,13 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
         bag.add(f"orphan-code:context:{_safe_part(context)}", example=example)
     if missing_inbound:
         bag.add(f"orphan-code:missing_inbound:{_safe_part(missing_inbound)}", example=example)
+    if nearby_data_class:
+        bag.add(f"orphan-code:nearby_data:{_safe_part(nearby_data_class)}", example=example)
+        if nearby_data_relation:
+            bag.add(
+                f"orphan-code:nearby_data:{_safe_part(nearby_data_relation)}:{_safe_part(nearby_data_class)}",
+                example=example,
+            )
 
 
 def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
@@ -3067,6 +3082,8 @@ def _analysis_xrefs(
             terminal_flow = _string_value(signal.get("terminal_flow"))
             context = _string_value(signal.get("context"))
             missing_inbound = _string_value(signal.get("missing_inbound"))
+            nearby_data_class = _string_value(signal.get("nearby_data_class"))
+            nearby_data_relation = _string_value(signal.get("nearby_data_relation"))
             size = _int_value(signal.get("size"))
             text = row_text or _string_value(signal.get("detail")) or f"orphan code {reason}:{status}"
             features = [
@@ -3081,6 +3098,13 @@ def _analysis_xrefs(
                 features.append(f"orphan-code:context:{_safe_part(context)}")
             if missing_inbound:
                 features.append(f"orphan-code:missing_inbound:{_safe_part(missing_inbound)}")
+            if nearby_data_class:
+                features.append(f"orphan-code:nearby_data:{_safe_part(nearby_data_class)}")
+                if nearby_data_relation:
+                    features.append(
+                        f"orphan-code:nearby_data:{_safe_part(nearby_data_relation)}:"
+                        f"{_safe_part(nearby_data_class)}"
+                    )
             for feature in features:
                 xrefs.append(
                     _xref(

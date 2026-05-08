@@ -3455,10 +3455,11 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
   char *analysis_json = NULL;
-  uint8_t bytes[6] = {
+  uint8_t bytes[8] = {
     0x4eu, 0x75u,
     0x70u, 0x01u,
-    0x4eu, 0x75u
+    0x4eu, 0x75u,
+    0x12u, 0x34u
   };
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
@@ -3469,6 +3470,14 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 6U;
+  policy.structured_data_items[0].size = 2U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+  snprintf(policy.structured_data_items[0].semantic_role,
+    sizeof(policy.structured_data_items[0].semantic_role), "lookup_table");
   memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
@@ -3490,6 +3499,8 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
     source_analysis.sections[0].orphan_code_signals[0].context);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN,
     source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
+  M68K_C_ASSERT_STR("lookup_table", source_analysis.sections[0].orphan_code_signals[0].nearby_data_class);
+  M68K_C_ASSERT_STR("after", source_analysis.sections[0].orphan_code_signals[0].nearby_data_relation);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"findings\":{\"required_cpu\":0,\"cpu_violation_count\":0},"
@@ -3500,6 +3511,8 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   M68K_C_ASSERT(strstr(analysis_json, "\"status\":\"unresolved\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"context\":\"accepted_code_boundary\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound\":\"unknown\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_class\":\"lookup_table\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_relation\":\"after\"") != NULL);
   free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);

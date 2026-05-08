@@ -499,6 +499,8 @@ typedef struct M68kOrphanCodeSignalIR {
   uint8_t context;
   uint8_t missing_inbound;
   uint8_t reserved[3];
+  char *nearby_data_class;
+  char *nearby_data_relation;
   char *detail;
 } M68kOrphanCodeSignalIR;
 

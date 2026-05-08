@@ -704,6 +704,8 @@ int m68k_ir_section_analysis_append_recovered_indirect_site(M68kSectionAnalysisI
 int m68k_ir_section_analysis_append_orphan_code_signal(M68kSectionAnalysisIR *section_analysis,
     const M68kOrphanCodeSignalIR *signal) {
   M68kOrphanCodeSignalIR copy;
+  char *copy_nearby_data_class = NULL;
+  char *copy_nearby_data_relation = NULL;
   size_t index;
   if (section_analysis == NULL || signal == NULL) return -1;
   if (section_analysis->arena == NULL || signal->size == 0U || signal->reason == 0U || signal->status == 0U)
@@ -718,7 +720,17 @@ int m68k_ir_section_analysis_append_orphan_code_signal(M68kSectionAnalysisIR *se
       return 0;
     }
   }
+  if (signal->nearby_data_class != NULL) {
+    copy_nearby_data_class = arena_strdup(section_analysis->arena, signal->nearby_data_class);
+    if (copy_nearby_data_class == NULL) return -1;
+  }
+  if (signal->nearby_data_relation != NULL) {
+    copy_nearby_data_relation = arena_strdup(section_analysis->arena, signal->nearby_data_relation);
+    if (copy_nearby_data_relation == NULL) return -1;
+  }
   copy = *signal;
+  copy.nearby_data_class = copy_nearby_data_class;
+  copy.nearby_data_relation = copy_nearby_data_relation;
   copy.detail = NULL;
   if (signal->detail != NULL) {
     copy.detail = arena_strdup(section_analysis->arena, signal->detail);

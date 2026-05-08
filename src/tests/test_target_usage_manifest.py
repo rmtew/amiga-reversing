@@ -157,6 +157,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "status": "unresolved",
                                     "context": "accepted_code_boundary",
                                     "missing_inbound": "unknown",
+                                    "nearby_data_class": "lookup_table",
+                                    "nearby_data_relation": "after",
                                     "confidence": 60,
                                     "detail": "terminal decode after data label",
                                 }
@@ -397,6 +399,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["orphan-code:terminal_flow:return"], 1)
         self.assertEqual(counts["orphan-code:context:accepted_code_boundary"], 1)
         self.assertEqual(counts["orphan-code:missing_inbound:unknown"], 1)
+        self.assertEqual(counts["orphan-code:nearby_data:lookup_table"], 1)
+        self.assertEqual(counts["orphan-code:nearby_data:after:lookup_table"], 1)
         self.assertEqual(counts["materialized-org-range"], 1)
         self.assertEqual(counts["runtime:materialized_org_range"], 1)
         self.assertEqual(counts["runtime:materialized_org_address:00000400"], 1)
@@ -464,6 +468,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
         self.assertEqual(examples["orphan-code:signal"][0]["context"], "accepted_code_boundary")
         self.assertEqual(examples["orphan-code:signal"][0]["missing_inbound"], "unknown")
+        self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_class"], "lookup_table")
+        self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_relation"], "after")
 
     def test_self_decrunch_event_indexes_pattern_and_work_item(self) -> None:
         analysis = {
@@ -792,6 +798,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "status": "unresolved",
                                 "context": "accepted_code_boundary",
                                 "missing_inbound": "unknown",
+                                "nearby_data_class": "lookup_table",
+                                "nearby_data_relation": "after",
                                 "confidence": 60,
                             }
                         ],
@@ -946,6 +954,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("orphan-code:terminal_flow:return", "orphan_code_signal", 0x84, 7), by_feature)
         self.assertIn(("orphan-code:context:accepted_code_boundary", "orphan_code_signal", 0x84, 7), by_feature)
         self.assertIn(("orphan-code:missing_inbound:unknown", "orphan_code_signal", 0x84, 7), by_feature)
+        self.assertIn(("orphan-code:nearby_data:lookup_table", "orphan_code_signal", 0x84, 7), by_feature)
+        self.assertIn(("orphan-code:nearby_data:after:lookup_table", "orphan_code_signal", 0x84, 7), by_feature)
         self.assertIn(("compressed-payload", "packed_payload", 0x4C40, 6), by_feature)
         self.assertIn(("compressed:rnc1-old", "packed_payload", 0x4C40, 6), by_feature)
         self.assertIn(
