@@ -507,6 +507,14 @@ Current retained output:
    candidates as work items only while they are the best available evidence,
    and prevents Damocles/Voodoo native Tetragon coverage from being duplicated
    as stale unknown-decrunch work.
+31. Done: the unknown self-decrunch simulator path is backed by a real
+   Magicland Dizzy `TRAINER` fixture,
+   `tests/fixtures/hunk/magicland_trsi_trainer_self_decrunch.bin`, instead of
+   relying on optional corpus resources. The fixture exposed missing generated
+   simulator coverage for extend arithmetic (`ADDX`/`SUBX`) and a too-small
+   self-decrunch step bound. C simulation now reaches the transfer to `$20000`
+   and materializes a 44220-byte payload with SHA-256
+   `21ea11a46f008c69cca2795347eca093967191bf535b33c5ff3777619161999d`.
 
 ## Current Corpus Query Proof
 
@@ -532,6 +540,11 @@ After rebuilding `corpus/target_usage_manifest.jsonl`:
   validated records now supersede exact same-target generic self-decrunch
   candidates; retained project children are produced only when imported project
   refresh materializes the accepted payload.
+- `decompression:codec:unknown-self-decrunch` remains for target-owned
+  decrunchers that are not yet recognized by a named native unpacker. Magicland
+  Dizzy `TRAINER` is now fixture-backed and proves the C simulator can
+  materialize a real unknown self-decrunch payload when execution reaches the
+  transferred PC.
 - `decompression:runtime_copy` finds Carrier parent evidence where C analysis
   associated packed streams with runtime copy ranges, including the conflicting
   `$4C40 -> $4000` copy.

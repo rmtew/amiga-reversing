@@ -489,7 +489,7 @@ static int sim_operand_matches_expected_kind(uint8_t expected_kind, const M68kOp
     return operand->kind == M68K_ASM_OPERAND_DN || operand->kind == M68K_ASM_OPERAND_AN ||
            operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_IND ||
            operand->kind == M68K_ASM_OPERAND_POSTINC || operand->kind == M68K_ASM_OPERAND_ABSL ||
-           operand->kind == M68K_ASM_OPERAND_BF_EA;
+           operand->kind == M68K_ASM_OPERAND_BF_EA || operand->kind == M68K_ASM_OPERAND_IMM;
   }
   if (expected_kind == M68K_SIM_EXPECT_IMM) return operand->kind == M68K_ASM_OPERAND_IMM;
   if (expected_kind == M68K_SIM_EXPECT_LABEL) return operand->kind == M68K_ASM_OPERAND_LABEL;
@@ -1337,6 +1337,22 @@ static int sim_apply_add_sub(uint8_t is_sub, const M68kSimValue *lhs, const M68k
   return 0;
 }
 
+static int sim_apply_add_sub_extend(uint8_t is_sub, const M68kSimValue *lhs, const M68kSimValue *rhs,
+    uint8_t extend, uint8_t width, M68kSimValue *out_value) {
+  uint8_t provenance;
+  uint32_t mask;
+  if (lhs == NULL || rhs == NULL || out_value == NULL || width == 0U) return 0;
+  if (lhs->kind != M68K_SIM_VALUE_CONSTANT || rhs->kind != M68K_SIM_VALUE_CONSTANT) return 0;
+  mask = sim_mask_for_width(width);
+  provenance = sim_result_provenance(lhs->provenance, rhs->provenance, M68K_SIM_PROV_REGISTER_COPY);
+  if (is_sub) {
+    *out_value = sim_value_constant((lhs->value - rhs->value - (uint32_t)extend) & mask, provenance);
+  } else {
+    *out_value = sim_value_constant((lhs->value + rhs->value + (uint32_t)extend) & mask, provenance);
+  }
+  return 1;
+}
+
 static void sim_clobber_operand_by_metadata(const M68kSection *section, const M68kInstructionIR *instruction,
     uint32_t offset, size_t section_index, M68kSimStepResult *result, const M68kSimFormMetadata *metadata,
     uint8_t operand_index, const M68kOperandIR *operand, M68kSimCpuState *state) {
@@ -1538,6 +1554,37 @@ static int sim_apply_abstract_add_sub_flags(uint16_t sr, uint32_t lhs, uint32_t 
   return 1;
 }
 
+static int sim_apply_abstract_add_sub_extend_flags(uint16_t sr, uint32_t lhs, uint32_t rhs, uint8_t width,
+    uint8_t is_sub, uint8_t extend, uint16_t *out_sr) {
+  uint32_t mask, result, lhs_masked, rhs_masked, rhs_with_extend, sign_bit;
+  uint8_t n, z, v, c;
+  uint64_t wide_result;
+  if (out_sr == NULL || width == 0U) return 0;
+  mask = sim_mask_for_width(width);
+  lhs_masked = lhs & mask;
+  rhs_masked = rhs & mask;
+  rhs_with_extend = (rhs_masked + (uint32_t)extend) & mask;
+  if (is_sub) {
+    result = (lhs_masked - rhs_masked - (uint32_t)extend) & mask;
+    c = ((uint64_t)lhs_masked < (uint64_t)rhs_masked + (uint64_t)extend) ? 1U : 0U;
+  } else {
+    wide_result = (uint64_t)lhs_masked + (uint64_t)rhs_masked + (uint64_t)extend;
+    result = (uint32_t)wide_result & mask;
+    c = (wide_result & ~((uint64_t)mask)) != 0U ? 1U : 0U;
+  }
+  sign_bit = (uint32_t)1U << ((uint32_t)width * 8U - 1U);
+  n = (result & sign_bit) != 0U ? 1U : 0U;
+  z = result == 0U ? (uint8_t)((sr >> g_m68k_sim_ccr_bit_z) & 1U) : 0U;
+  if (is_sub) {
+    v = (((lhs_masked ^ rhs_with_extend) & (lhs_masked ^ result) & sign_bit) != 0U) ? 1U : 0U;
+  } else {
+    v = ((~(lhs_masked ^ rhs_with_extend) & (lhs_masked ^ result) & sign_bit) != 0U) ? 1U : 0U;
+  }
+  if (!sim_update_sr_nzvc(sr, n, z, v, c, out_sr)) return 0;
+  sim_sync_extend_with_carry(out_sr);
+  return 1;
+}
+
 static int sim_apply_abstract_nz_flags(uint16_t sr, uint32_t value, uint8_t width, uint16_t *out_sr) {
   uint32_t masked_value;
   uint32_t sign_bit;
@@ -1573,7 +1620,9 @@ static int sim_operation_may_define_condition_codes(const M68kSimFormMetadata *m
   switch (metadata->operation_type) {
     case M68K_SIM_OP_MOVE:
     case M68K_SIM_OP_ADD:
+    case M68K_SIM_OP_ADD_EXTEND:
     case M68K_SIM_OP_SUB:
+    case M68K_SIM_OP_SUB_EXTEND:
     case M68K_SIM_OP_LOGIC_AND:
     case M68K_SIM_OP_LOGIC_OR:
     case M68K_SIM_OP_LOGIC_XOR:
@@ -3059,6 +3108,35 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
     }
     sim_write_register(&out_result->next_state, &instruction->operands[metadata->dest_operand_index], &value);
     if (value.kind == M68K_SIM_VALUE_SECTION_PTR) m68k_sim_target_set_add(&out_result->discovered_labels, value.value);
+  } else if ((metadata->operation_type == M68K_SIM_OP_ADD_EXTEND || metadata->operation_type == M68K_SIM_OP_SUB_EXTEND) &&
+      metadata->source_operand_index < instruction->operand_count &&
+      metadata->dest_operand_index < instruction->operand_count &&
+      sim_eval_operand_by_metadata(object, section_index, section, instruction, offset, metadata,
+        metadata->source_operand_index,
+        &instruction->operands[metadata->source_operand_index], state, memory_state, out_result, &src) &&
+      sim_eval_operand_by_metadata(object, section_index, section, instruction, offset, metadata,
+        metadata->dest_operand_index,
+        &instruction->operands[metadata->dest_operand_index], state, memory_state, out_result, &dst) &&
+      sim_apply_add_sub_extend(metadata->operation_type == M68K_SIM_OP_SUB_EXTEND, &dst, &src,
+        (uint8_t)((state->sr & 0x0010U) != 0U),
+        sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index), &value)) {
+    if (src.kind == M68K_SIM_VALUE_CONSTANT && dst.kind == M68K_SIM_VALUE_CONSTANT &&
+        sim_value_is_path_stable_for_flags(&src) && sim_value_is_path_stable_for_flags(&dst) &&
+        sim_apply_abstract_add_sub_extend_flags(state->sr, dst.value, src.value,
+          sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index),
+          metadata->operation_type == M68K_SIM_OP_SUB_EXTEND,
+          (uint8_t)((state->sr & 0x0010U) != 0U), &out_result->next_state.sr)) {
+      sim_mark_condition_codes_defined(out_result);
+    } else {
+      sim_invalidate_defined_condition_codes(out_result);
+    }
+    sim_write_operand_by_metadata(section, instruction, offset, section_index, out_result, metadata,
+      metadata->dest_operand_index, &instruction->operands[metadata->dest_operand_index], &out_result->next_state, &value);
+  } else if ((metadata->operation_type == M68K_SIM_OP_ADD_EXTEND || metadata->operation_type == M68K_SIM_OP_SUB_EXTEND) &&
+      metadata->dest_operand_index < instruction->operand_count) {
+    sim_clobber_operand_by_metadata(section, instruction, offset, section_index, out_result, metadata,
+      metadata->dest_operand_index, &instruction->operands[metadata->dest_operand_index], &out_result->next_state);
+    sim_invalidate_defined_condition_codes(out_result);
   } else if ((metadata->operation_type == M68K_SIM_OP_ADD || metadata->operation_type == M68K_SIM_OP_SUB) &&
       metadata->dest_operand_index < instruction->operand_count) {
     sim_clobber_operand_by_metadata(section, instruction, offset, section_index, out_result, metadata,
@@ -3934,6 +4012,49 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     uint32_t delta = immediate_value == 0U ? 8U : immediate_value;
     if (metadata->operation_type == M68K_SIM_OP_SUB) delta = (uint32_t)(0U - delta);
     if (is_address) io_state->a[lhs_reg] += delta; else io_state->d[lhs_reg] += delta;
+  } else if ((metadata->operation_type == M68K_SIM_OP_ADD_EXTEND ||
+          metadata->operation_type == M68K_SIM_OP_SUB_EXTEND) &&
+      source != NULL && dest != NULL) {
+    M68kSimValue lhs_value;
+    M68kSimValue rhs_value;
+    M68kSimValue output_value;
+    uint8_t write_width = sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index);
+    if (!sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->source_operand_index, source,
+        io_state) ||
+        !sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->dest_operand_index, dest,
+        io_state)) {
+      sim_diag_error(diagnostics, "unsupported concrete extend arithmetic update");
+      return -1;
+    }
+    if (!sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source,
+          io_state, memory, memory_size, io_state->pc, &immediate_value) ||
+        !sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
+          io_state, memory, memory_size, io_state->pc, &resolved_value)) {
+      sim_diag_error(diagnostics, "unsupported concrete extend arithmetic operand");
+      return -1;
+    }
+    lhs_value = sim_value_constant(resolved_value, M68K_SIM_PROV_REGISTER_COPY);
+    rhs_value = sim_value_constant(immediate_value, M68K_SIM_PROV_REGISTER_COPY);
+    if (!sim_apply_add_sub_extend(metadata->operation_type == M68K_SIM_OP_SUB_EXTEND, &lhs_value, &rhs_value,
+          (uint8_t)((io_state->sr & 0x0010U) != 0U), write_width, &output_value)) {
+      sim_diag_error(diagnostics, "unsupported concrete extend arithmetic");
+      return -1;
+    }
+    sim_apply_abstract_add_sub_extend_flags(io_state->sr, resolved_value, immediate_value, write_width,
+      metadata->operation_type == M68K_SIM_OP_SUB_EXTEND, (uint8_t)((io_state->sr & 0x0010U) != 0U),
+      &io_state->sr);
+    if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
+          io_state, memory, memory_size, io_state->pc, output_value.value, write_trace, memory_policy)) {
+      sim_diag_error(diagnostics, "unsupported concrete extend arithmetic destination");
+      return -1;
+    }
+    if (!sim_apply_concrete_ea_register_update(instruction, metadata, metadata->source_operand_index, source,
+        io_state) ||
+        !sim_apply_concrete_ea_register_update(instruction, metadata, metadata->dest_operand_index, dest,
+        io_state)) {
+      sim_diag_error(diagnostics, "unsupported concrete extend arithmetic update");
+      return -1;
+    }
   } else if ((metadata->operation_type == M68K_SIM_OP_LOGIC_AND || metadata->operation_type == M68K_SIM_OP_LOGIC_OR ||
           metadata->operation_type == M68K_SIM_OP_LOGIC_XOR) &&
       source != NULL && dest != NULL &&

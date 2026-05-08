@@ -31,7 +31,7 @@
 
 #define PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT (2U * 1024U * 1024U)
 #define PLATFORM_SELF_DECRUNCH_RUNTIME_LITERAL_SLOP 65536U
-#define PLATFORM_SELF_DECRUNCH_STEP_LIMIT 262144U
+#define PLATFORM_SELF_DECRUNCH_STEP_LIMIT (2U * 1024U * 1024U)
 
 static void platform_file_add_error(M68kDiagList *diagnostics, const char *message);
 static void platform_file_add_warning(M68kDiagList *diagnostics, const char *message);

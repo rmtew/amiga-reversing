@@ -257,6 +257,11 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   the first real proving target for this path. Corpus indexing currently also
   finds Voodoo Nightmare and Magicland Dizzy as Amiga comparators for the same
   unsupported event class.
+- Magicland Dizzy `TRAINER` is now a committed real-data fixture for the
+  simulator-required path. It proved generated simulator support for extend
+  arithmetic (`ADDX`/`SUBX`) and materializes a 44220-byte unknown
+  self-decrunch payload at `$20000` without relying on optional corpus
+  resources.
 - Simple self-contained self-decrunch events can now be probed with the
   generated simulator and report `simulated_output_observed` plus output range
   and stop metadata.
