@@ -7,7 +7,7 @@ layouts and absolute runtime memory as the first worked example.
 The source renderer should be deterministic output from C analysis facts. Python
 or web code may display those facts, but must not invent them.
 
-The same rule covers three related topics:
+The same rule covers these related topics:
 
 - RSSET layouts: base-relative storage such as app slots and resident extension
   fields.
@@ -15,6 +15,10 @@ The same rule covers three related topics:
   memory, audio memory, stack, and absolute globals.
 - Lookup tables: indexed data that should render as editable symbolic values,
   not fragile raw addends.
+- ORG/runtime views: source bytes copied or relocated to absolute addresses and
+  then executed.
+- Bootstraps: small in-memory trampolines, vector handlers, decrunch wrappers,
+  and loaders that prepare the useful runtime program.
 
 ## Core rule
 
@@ -135,6 +139,127 @@ For an absolute addressed file, the base address and extent are part of the
 target model. Labels inside absolute runtime code must be tied to the runtime
 range that owns them, while source-copy labels stay tied to source storage.
 
+## ORG and Runtime Views
+
+`ORG` changes the assembler's logical PC. It is useful only when it represents a
+real source-level runtime view, not when it hides missing analysis.
+
+Keep three addresses separate:
+
+```
+storage address       where bytes live in the hunk/file
+runtime address       where the program copies or relocates those bytes
+rendered logical PC   where the assembler thinks it is after ORG
+```
+
+Example:
+
+```asm
+storage_payload:
+    dc.b ...
+
+    ORG $400
+runtime_payload:
+    move.w #INTF_CLRALL,_custom+intena
+```
+
+The label `storage_payload` names file bytes. The label `runtime_payload` names
+the copied runtime view. They are related, but they are not interchangeable.
+
+Strong ORG evidence usually has:
+
+- a source range
+- a destination runtime range
+- a size or terminating copy condition
+- an entrypoint into the destination
+- accepted code at the mapped source bytes
+- no incompatible overlap with stronger accepted code
+
+Weak evidence should not produce an `ORG`. A low-memory trampoline, vector stub,
+or temporary copy helper can stay numeric or become an absolute symbol until it
+is proven to be an independent source-level runtime range.
+
+Multiple ORGs are valid only when analysis proves independent runtime ranges and
+the assembler's `ORG` semantics keep cross-references correct.
+
+## Bootstraps and In-Memory Relocation
+
+Many Amiga programs do not execute the main program where it appears in the file.
+They bootstrap it.
+
+Common patterns:
+
+```
+loader hunk -> copy loop -> runtime code -> jump runtime entry
+loader hunk -> vector install -> trap/interrupt -> copy main payload
+packed data -> decrunch -> copied payload -> jump entry
+raw extracted payload -> second-stage copy -> final absolute image
+low trampoline -> larger runtime range
+```
+
+Bloodwych-style shape:
+
+```asm
+    lea.l payload_source(pc),a6
+    lea.l $400.l,a0
+copy_loop:
+    move.b (a6)+,(a0)+
+    dbf d0,copy_loop
+    jmp $400.l
+
+payload_source:
+    ; bytes that execute at $400
+```
+
+Rendered shape when proven:
+
+```asm
+payload_source:
+    ORG $400
+runtime_entry:
+    move.w #INTF_CLRALL,_custom+intena
+```
+
+Pandora-style shape:
+
+```
+wrapper load address:   $20000
+small copied helper:    $00300
+final runtime image:    $10000..$10xxx
+entrypoint:             $1046A
+```
+
+The useful ORG is the final `$10000` image, not the wrapper load address and not
+the weak `$300` helper unless later evidence proves that helper is independently
+important source.
+
+Conqueror-style warning:
+
+```
+absolute $4 reference        weak low address
+larger copied range $40/$64  useful runtime range
+```
+
+Do not emit an `ORG $4` simply because control briefly reaches `$4`. That can
+create duplicate labels and broken cross-range references.
+
+Required bootstrap facts:
+
+```
+source storage range
+runtime destination range
+copy/decrunch/relocation mechanism
+entrypoint list
+trampoline/vector relationship
+source-to-runtime address map
+confidence and conflict state
+reproduction status
+```
+
+Runtime copied code should be discovered from value-flow and control-flow facts:
+copy source, destination, and length; vector stores; trap/interrupt dispatch;
+indirect jumps; and explicit metadata/policy seeds. Rendering should not guess.
+
 ## Absolute Memory Access
 
 Absolute memory is not one thing. Analysis should classify the ownership before
@@ -144,6 +269,7 @@ rendering a symbol.
 $00000004              ExecBase address, normally keep literal $4
 $00000080              CPU vector table slot
 $00000400..$0012FF     copied runtime code
+$00010000..$00010FFF   final bootstrap runtime image
 $00070000..$00075FFF   bitmap/display memory
 $00076000..$00076FFF   audio/sample/data buffer
 $00DFF000..$00DFFFFF   Amiga custom chip registers
@@ -288,6 +414,7 @@ _custom+$00E0.._custom+$00EE display regs    hardware metadata
 a6+$0000..a6+$0FCF          app layout       app-slot refs
 a6+$0001                    app alias        overlay field
 table $505C..$507A          jump offsets     indexed dispatch consumer
+$00010000..$00010FFF        ORG runtime      second-stage copy + jump
 ```
 
 This should be data from C analysis. The UI can filter, navigate, and show
@@ -300,6 +427,10 @@ conflicts, but should not classify memory itself.
   provenance.
 - Do not overlap accepted code unless the range is explicitly a copied/runtime
   view with source/runtime mapping.
+- Do not add an `ORG` for a weak trampoline when a stronger larger runtime view
+  explains the same control flow.
+- Do not let a wrapper load address suppress later copied-image entrypoint
+  evidence.
 - Do not render raw absolute or addend-based table values when analysis can prove
   a stable symbolic target-base expression.
 - Do not render symbolic table entries unless the table base, target range, and

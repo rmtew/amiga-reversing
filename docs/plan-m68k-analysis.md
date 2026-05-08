@@ -1,16 +1,16 @@
 # M68K analysis plan: RSSET, absolute memory, and lookup tables
 
 This plan records the current RSSET survey and expands the design target to
-absolute memory and lookup-table rendering. It should be reviewed before more
-renderer changes are made.
+absolute memory, ORG/runtime views, bootstrapping, and lookup-table rendering.
+It should be reviewed before more renderer changes are made.
 
 ## Objective
 
 Build a C-owned model for persistent base-relative storage, absolute runtime
-memory, and lookup tables. Rendering should consume that model to emit `RSSET`,
-labels, platform fields, relative table expressions, and web UI navigation
-without confusing app storage, Amiga hardware, runtime-copied code, scalar data,
-and dispatch tables.
+memory, ORG/runtime views, bootstraps, and lookup tables. Rendering should
+consume that model to emit `RSSET`, labels, platform fields, ORG ranges, relative
+table expressions, and web UI navigation without confusing app storage, Amiga
+hardware, runtime-copied code, scalar data, and dispatch tables.
 
 ## Current Implementation Notes
 
@@ -43,9 +43,15 @@ Existing tests show partial lookup/absolute coverage:
 - absolute long lookup tables with labels and nulls
 - pointer-table runtime data targets
 - hardware/display/audio runtime sink classification
+- runtime copy and ORG conflict suppression
+- low trampoline suppression where a larger runtime range is stronger
 
 These behaviors need one unified design model so new cases do not become
 one-off heuristics.
+
+`docs/design-org-code-ranges.md` is now treated as the detailed case notebook for
+ORG work. The canonical tutorial and plan live in `docs/design-m68k-analysis.md`
+and this document.
 
 ## Survey Method
 
@@ -128,7 +134,17 @@ proves a distinct base id.
    - stack, bitplane, copper, audio, and app-storage ranges when detected
    - ownership conflicts and accepted-code overlap gates
 
-3. Add lookup-table records:
+3. Add ORG/runtime-view records:
+   - storage source range and runtime destination range
+   - rendered logical PC base
+   - source-to-runtime address map
+   - copy, decrunch, relocation, vector, trap, or trampoline provenance
+   - entrypoint list with reason and confidence
+   - classification: materialized ORG, weak trampoline, absolute symbol,
+     suppressed candidate, unresolved problem
+   - exact reproduction/source reassembly status
+
+4. Add lookup-table records:
    - table base label and source range
    - consumer instruction/source provenance
    - entry size, signedness, stride, count, and bounds
@@ -139,11 +155,14 @@ proves a distinct base id.
    - entry target range and null/sentinel rules
    - confidence and conflict state
 
-4. Rendering rules:
+5. Rendering rules:
    - emit one RSSET block per proven base layout
    - emit alias fragments only as overlays of that layout
    - never use RSSET for known hardware or platform struct fields
    - never use absolute label/addend tricks over code/data ranges
+   - emit `ORG` only for proven source-level runtime views
+   - keep weak low trampolines numeric or explicit absolute symbols
+   - use storage labels before an ORG and runtime labels inside an ORG
    - render relative table entries as `target_label-base_label`
    - render absolute pointer entries as labels only when the target owner is
      proven
@@ -151,12 +170,52 @@ proves a distinct base id.
      domain-specific symbolic form
    - keep include region, RSSET region, then EQU/symbol region ordering
 
-5. Web UI rules:
+6. Web UI rules:
    - show memory layout ranges and conflicts from C analysis
    - navigate to source evidence for each range
    - distinguish app layout fields, aliases, hardware fields, copied runtime
      code, display memory, audio memory, stack, pointer tables, jump tables,
      scalar tables, and unresolved table candidates
+
+## ORG and Bootstrap Plan
+
+ORG rendering is for proven runtime views. It is not a workaround for unknown
+absolute addresses.
+
+| Pattern | Evidence to collect | Render goal |
+| --- | --- | --- |
+| Direct copy then jump | source, destination, length, jump target | one `ORG` at destination when source bytes map cleanly |
+| Vector/trap bootstrap | vector store, handler target, copy evidence, final jump | vector symbols plus materialized final runtime range |
+| Low trampoline | small copied helper, jump into larger range | usually suppress ORG; keep numeric/symbolic absolute helper |
+| Decrunch wrapper | compressed source, output range, output entry | extracted target or materialized runtime range, not wrapper labels |
+| Raw extracted payload bootstrap | load address plus second-stage copy | prefer final copied image over wrapper load view |
+| Multiple independent ORGs | distinct source/destination ranges and cross-ref semantics | multiple ORGs only when independently proven |
+| Runtime table target | indirect jump through table into runtime range | table entries use runtime labels and source/runtime map |
+
+Required data analysis:
+
+- track source, destination, and length through registers, stack slots, app/global
+  slots, and known helper calls
+- backtrack vector stores and interrupt/trap installs by value, not fixed adjacent
+  instruction shapes
+- union C-discovered entrypoints with explicit policy/metadata/fallback seeds
+- keep entrypoint provenance and confidence so weak fallthrough noise is not
+  materialized
+- reject or suppress ranges that overlap accepted code unless they are a proven
+  copied/runtime view
+- detect when a wrapper load address is less useful than a later copied runtime
+  image
+- preserve separate storage/runtime label namespaces
+- verify direct reproduction and source reassembly where supported
+
+Real proving examples:
+
+- Bloodwych: trap/vector bootstrap into the useful `$400` runtime payload.
+- Conqueror: weak `$4` trampoline must not become a disruptive `ORG $4`.
+- Pandora BK extracted payload: wrapper load around `$20000`, helper at `$300`,
+  final copied image at `$10000` with entry around `$1046A`.
+- Carrier Command: low-address helpers and packed/transformed payloads make it a
+  stress target rather than a simple policy template.
 
 ## Lookup Table Plan
 
@@ -201,6 +260,7 @@ All absolute memory access should be classified by ownership before rendering:
 | Audio memory | AUDx pointer/length/sample source | sound sample labels and length evidence |
 | Runtime copied code | ORG/runtime payload ranges | runtime labels with source/runtime mapping |
 | Decompressed payload | RNC/BK/Tetragon outputs loaded at absolute addresses | extracted target load range and entrypoint |
+| Bootstrap helper | low copied trampoline/helper code | symbol or suppressed weak range unless independently proven |
 | Absolute globals | fixed RAM buffers, stacks, app state | named memory ranges when ownership is proven |
 | Absolute lookup tables | tables whose entries target absolute ranges | symbolic labels or relative expressions by table kind |
 
@@ -235,6 +295,12 @@ undocumented renderer heuristics.
   overlap checks against accepted code and typed structs.
 - Absolute raw/decompressed targets need load address, source extent, and entry
   range recorded in the same C analysis data used by rendering and the web UI.
+- ORG support from `docs/design-org-code-ranges.md` should be migrated into this
+  general design as work proceeds; the old file should not become a competing
+  source of truth.
+- Runtime-copy facts should explicitly model wrapper load views, helper
+  trampolines, and final copied images so one does not incorrectly suppress the
+  others.
 - Existing alias emission should be backed by explicit alias facts rather than
   produced as a side effect of sorted slot overlap.
 - Lookup-table rendering still needs a single table fact model instead of

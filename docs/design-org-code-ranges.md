@@ -1,5 +1,13 @@
 # ORG code ranges
 
+Canonical planning and tutorial material for ORG/runtime views now lives in:
+
+- `docs/design-m68k-analysis.md`
+- `docs/plan-m68k-analysis.md`
+
+This file remains as a detailed ORG case notebook until its remaining examples
+are fully migrated.
+
 This document is for implementers, including junior programmers learning this
 part of the project. It describes how analysis should discover runtime-copied
 absolute code ranges and how rendering should decide whether an `ORG` view is
