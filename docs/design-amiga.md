@@ -61,3 +61,29 @@ Rules:
   `runtime_code_00000004`.
 - Use runtime-code symbols at `$4` only when analysis proves copied executable
   code is materialized there.
+
+## Runtime-Copied ORG Code vs Decompression
+
+Some Amiga programs copy bytes from their loaded hunk into absolute memory and
+then execute them. This is not automatically decompression. If the copied bytes
+are already present as source bytes and analysis proves the runtime destination,
+the source model is an ORG/runtime view, not a decompressed child target.
+
+Magicland Dizzy `MD` is the current proving example: C analysis records a
+runtime view at `$5BFF0`, a runtime-address reference proves the copied range
+start, and facts-v2 queues that address as a `runtime_view_entry`. The rendered
+source should therefore decode the ORG payload in the same target. It should
+not create a decompressed child unless later analysis proves a produced
+replacement program that is not just an ORG view of shipped bytes.
+
+Rules:
+
+- Treat ORG/runtime views as source mappings of bytes already in the target.
+- Treat decompressed children as produced bytes with their own provenance,
+  output range, entrypoint, role, and reproduction status.
+- Do not use decompression machinery to paper over missing ORG/runtime-copy
+  analysis.
+- Do not use ORG rendering to hide a real packer that produces bytes not present
+  as a source range.
+- Keep `docs/design-org-code-ranges.md` as the detailed implementation guide
+  for ORG range evidence and rendering.

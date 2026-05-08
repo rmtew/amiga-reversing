@@ -344,3 +344,6 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   relationships and materialized decompressed children now expose separate
   parent/child reproduction status tags, proving Carrier and Damocles retained
   exact rebuilds for both sides of the relationship.
+- `docs/design-amiga.md` now records the Amiga-specific distinction between
+  runtime-copied ORG views and decompressed child targets, using Magicland Dizzy
+  `MD` as the concrete example.
