@@ -59,6 +59,10 @@ static int sim_concrete_return_from_metadata(const M68kInstructionIR *instructio
     uint8_t target_cpu, uint8_t *memory, size_t memory_size, M68kSimConcreteState *io_state,
     M68kDiagSink diagnostics);
 
+static int sim_u32_range_fits_size(uint32_t start, uint32_t size, size_t limit) {
+  return (uint64_t)start + (uint64_t)size <= (uint64_t)limit;
+}
+
 void m68k_sim_target_set_init(M68kSimTargetSet *set) {
   if (set == NULL) return;
   memset(set, 0, sizeof(*set));
@@ -1208,7 +1212,7 @@ static int sim_read_same_section_memory_value(const M68kObject *object, size_t s
       }
     }
   }
-  if (address + 4U <= section->data_size) {
+  if (sim_u32_range_fits_size(address, 4U, section->data_size)) {
     fixup = find_same_section_fixup(object, section_index, address);
     raw_value = m68k_read_u32be(section->data + address);
     if (fixup != NULL && raw_value < section->data_size) {
@@ -1226,7 +1230,7 @@ static int sim_read_same_section_memory_value(const M68kObject *object, size_t s
     *out_value = sim_value_constant(raw_value, M68K_SIM_PROV_MEMORY_LOAD);
     return 1;
   }
-  if (address + 2U <= section->data_size) {
+  if (sim_u32_range_fits_size(address, 2U, section->data_size)) {
     *out_value = sim_value_constant((uint32_t)m68k_read_u16be(section->data + address), M68K_SIM_PROV_MEMORY_LOAD);
     return 1;
   }
@@ -1698,16 +1702,16 @@ static int sim_apply_abstract_bit_test_flags(uint16_t sr, const M68kSimFormMetad
 static int sim_abstract_read_memory_bitfield(const M68kObject *object, size_t section_index, const M68kSection *section,
     const M68kSimMemoryState *memory_state, uint32_t base_address, uint32_t offset_bits, uint32_t width,
     M68kSimStepResult *result, uint32_t *out_value) {
-  uint8_t byte_count;
-  uint8_t byte_index;
-  uint32_t start_address;
+  uint8_t byte_count, byte_index;
+  uint32_t start_address, byte_offset, shift;
   uint32_t aggregate = 0U;
-  uint32_t shift;
   M68kSimValue byte_value;
   if (section == NULL || out_value == NULL || width == 0U) return 0;
-  start_address = base_address + (offset_bits / 8U);
+  byte_offset = offset_bits / 8U;
+  if (base_address > UINT32_MAX - byte_offset) return 0;
+  start_address = base_address + byte_offset;
   byte_count = sim_bitfield_memory_byte_count(offset_bits, width);
-  if (start_address + byte_count > section->data_size) return 0;
+  if (!sim_u32_range_fits_size(start_address, byte_count, section->data_size)) return 0;
   for (byte_index = 0U; byte_index < byte_count; ++byte_index) {
     if (!sim_read_same_section_memory_value_sized(object, section_index, section, memory_state,
           start_address + byte_index, 1U, &byte_value) || byte_value.kind != M68K_SIM_VALUE_CONSTANT) return 0;
@@ -1723,13 +1727,15 @@ static int sim_abstract_write_memory_bitfield(const M68kObject *object, size_t s
     const M68kSimMemoryState *memory_state, uint32_t base_address, uint32_t offset_bits, uint32_t width,
     uint32_t field_value, M68kSimStepResult *result) {
   uint8_t byte_count, byte_index;
-  uint32_t start_address, shift;
+  uint32_t start_address, byte_offset, shift;
   uint64_t aggregate = 0U;
   uint64_t mask;
   if (section == NULL || result == NULL || width == 0U) return 0;
-  start_address = base_address + (offset_bits / 8U);
+  byte_offset = offset_bits / 8U;
+  if (base_address > UINT32_MAX - byte_offset) return 0;
+  start_address = base_address + byte_offset;
   byte_count = sim_bitfield_memory_byte_count(offset_bits, width);
-  if (start_address + byte_count > section->data_size) return 0;
+  if (!sim_u32_range_fits_size(start_address, byte_count, section->data_size)) return 0;
   for (byte_index = 0U; byte_index < byte_count; ++byte_index) {
     M68kSimValue byte_value;
     if (!sim_read_same_section_memory_value_sized(object, section_index, section, memory_state,
@@ -1752,15 +1758,15 @@ static int sim_abstract_write_memory_bitfield(const M68kObject *object, size_t s
 
 static int sim_concrete_read_memory_bitfield(const uint8_t *memory, size_t memory_size, uint32_t base_address,
     uint32_t offset_bits, uint32_t width, uint32_t *out_value) {
-  uint8_t byte_count;
-  uint8_t byte_index;
-  uint32_t start_address;
+  uint8_t byte_count, byte_index;
+  uint32_t start_address, byte_offset, shift;
   uint64_t aggregate = 0U;
-  uint32_t shift;
   if (memory == NULL || out_value == NULL || width == 0U) return 0;
-  start_address = base_address + (offset_bits / 8U);
+  byte_offset = offset_bits / 8U;
+  if (base_address > UINT32_MAX - byte_offset) return 0;
+  start_address = base_address + byte_offset;
   byte_count = sim_bitfield_memory_byte_count(offset_bits, width);
-  if (start_address + byte_count > memory_size) return 0;
+  if (!sim_u32_range_fits_size(start_address, byte_count, memory_size)) return 0;
   for (byte_index = 0U; byte_index < byte_count; ++byte_index) {
     aggregate = (aggregate << 8U) | memory[start_address + byte_index];
   }
@@ -1772,13 +1778,15 @@ static int sim_concrete_read_memory_bitfield(const uint8_t *memory, size_t memor
 static int sim_concrete_write_memory_bitfield(uint8_t *memory, size_t memory_size, uint32_t base_address,
     uint32_t offset_bits, uint32_t width, uint32_t field_value) {
   uint8_t byte_count, byte_index;
-  uint32_t start_address, shift;
+  uint32_t start_address, byte_offset, shift;
   uint64_t aggregate = 0U;
   uint64_t mask;
   if (memory == NULL || width == 0U) return 0;
-  start_address = base_address + (offset_bits / 8U);
+  byte_offset = offset_bits / 8U;
+  if (base_address > UINT32_MAX - byte_offset) return 0;
+  start_address = base_address + byte_offset;
   byte_count = sim_bitfield_memory_byte_count(offset_bits, width);
-  if (start_address + byte_count > memory_size) return 0;
+  if (!sim_u32_range_fits_size(start_address, byte_count, memory_size)) return 0;
   for (byte_index = 0U; byte_index < byte_count; ++byte_index) {
     aggregate = (aggregate << 8U) | memory[start_address + byte_index];
   }
@@ -2208,7 +2216,8 @@ static uint32_t sim_striped_transfer_byte_address(uint32_t base, uint8_t stride,
 static int sim_read_same_section_memory_value_sized(const M68kObject *object, size_t section_index, const M68kSection *section,
     const M68kSimMemoryState *memory_state, uint32_t address, uint8_t width, M68kSimValue *out_value) {
   size_t index;
-  if (section == NULL || out_value == NULL || width == 0U || address + width > section->data_size) return 0;
+  if (section == NULL || out_value == NULL || width == 0U ||
+      !sim_u32_range_fits_size(address, width, section->data_size)) return 0;
   if (memory_state != NULL) {
     for (index = 0; index < memory_state->cell_count; ++index) {
       const M68kSimMemoryCell *cell = &memory_state->cells[index];
@@ -2548,14 +2557,15 @@ static int sim_concrete_compute_ea_address(const M68kOperandIR *operand, uint8_t
 
 static int sim_concrete_read_memory_u32(const uint8_t *memory, size_t memory_size, uint32_t address,
     uint32_t *out_value) {
-  if (memory == NULL || out_value == NULL || address + 4U > memory_size) return 0;
+  if (memory == NULL || out_value == NULL || !sim_u32_range_fits_size(address, 4U, memory_size)) return 0;
   *out_value = m68k_read_u32be(memory + address);
   return 1;
 }
 
 static int sim_concrete_read_memory_sized(const uint8_t *memory, size_t memory_size, uint32_t address,
     uint8_t width, uint32_t *out_value) {
-  if (memory == NULL || out_value == NULL || width == 0U || address + width > memory_size) return 0;
+  if (memory == NULL || out_value == NULL || width == 0U ||
+      !sim_u32_range_fits_size(address, width, memory_size)) return 0;
   if (width == 1U) {
     *out_value = memory[address];
     return 1;
@@ -2723,7 +2733,7 @@ static int sim_exception_frame_def_for_format_code(uint8_t format_code, const M6
 static int sim_concrete_push_frame_word(uint8_t *memory, size_t memory_size, uint32_t *io_sp, uint16_t value) {
   if (memory == NULL || io_sp == NULL || *io_sp < 2U) return 0;
   *io_sp -= 2U;
-  if (*io_sp + 2U > memory_size) return 0;
+  if (!sim_u32_range_fits_size(*io_sp, 2U, memory_size)) return 0;
   memory[*io_sp] = (uint8_t)((value >> 8) & 0xFFU);
   memory[*io_sp + 1U] = (uint8_t)(value & 0xFFU);
   return 1;
@@ -2732,7 +2742,7 @@ static int sim_concrete_push_frame_word(uint8_t *memory, size_t memory_size, uin
 static int sim_concrete_push_frame_long(uint8_t *memory, size_t memory_size, uint32_t *io_sp, uint32_t value) {
   if (memory == NULL || io_sp == NULL || *io_sp < 4U) return 0;
   *io_sp -= 4U;
-  if (*io_sp + 4U > memory_size) return 0;
+  if (!sim_u32_range_fits_size(*io_sp, 4U, memory_size)) return 0;
   memory[*io_sp] = (uint8_t)((value >> 24) & 0xFFU);
   memory[*io_sp + 1U] = (uint8_t)((value >> 16) & 0xFFU);
   memory[*io_sp + 2U] = (uint8_t)((value >> 8) & 0xFFU);
@@ -2759,7 +2769,7 @@ static int sim_concrete_return_from_metadata(const M68kInstructionIR *instructio
   }
   stack_pointer = io_state->a[7];
   if (metadata->return_restore_kind == M68K_SIM_RETURN_RESTORE_PC_ONLY) {
-    if (stack_pointer + 4U > memory_size) {
+    if (!sim_u32_range_fits_size(stack_pointer, 4U, memory_size)) {
       sim_diag_error(diagnostics, "stack out of range");
       return -1;
     }
@@ -2780,7 +2790,7 @@ static int sim_concrete_return_from_metadata(const M68kInstructionIR *instructio
     return 0;
   }
   if (metadata->return_restore_kind == M68K_SIM_RETURN_RESTORE_CCR_THEN_PC) {
-    if (stack_pointer + 6U > memory_size) {
+    if (!sim_u32_range_fits_size(stack_pointer, 6U, memory_size)) {
       sim_diag_error(diagnostics, "stack out of range");
       return -1;
     }
@@ -2801,7 +2811,7 @@ static int sim_concrete_return_from_metadata(const M68kInstructionIR *instructio
       return -1;
     }
   } else {
-    if (stack_pointer + 8U > memory_size) {
+    if (!sim_u32_range_fits_size(stack_pointer, 8U, memory_size)) {
       sim_diag_error(diagnostics, "stack out of range");
       return -1;
     }
@@ -2816,7 +2826,7 @@ static int sim_concrete_return_from_metadata(const M68kInstructionIR *instructio
       return -1;
     }
   }
-  if (frame_def == NULL || stack_pointer + frame_def->frame_size_bytes > memory_size) {
+  if (frame_def == NULL || !sim_u32_range_fits_size(stack_pointer, frame_def->frame_size_bytes, memory_size)) {
     sim_diag_error(diagnostics, "stack out of range");
     return -1;
   }
@@ -2919,7 +2929,7 @@ static int sim_concrete_enter_exception(const M68kInstructionIR *instruction, co
   io_state->a[7] = stack_pointer;
   if (sim_known_control_register_index(M68K_ASM_CONTROL_REGISTER_ISP, &isp_reg)) io_state->c[isp_reg] = stack_pointer;
   vector_address = vector_base + ((uint32_t)vector * 4U);
-  if (vector_address + 4U > memory_size) {
+  if (!sim_u32_range_fits_size(vector_address, 4U, memory_size)) {
     sim_diag_error(diagnostics, "vector out of range");
     return 0;
   }
@@ -4724,7 +4734,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         }
         if (width == 2U) {
           uint16_t word_value;
-          if (memory == NULL || cursor + 2U > memory_size) {
+          if (memory == NULL || !sim_u32_range_fits_size(cursor, 2U, memory_size)) {
             sim_diag_error(diagnostics, "movem read out of range");
             return -1;
           }
@@ -4782,7 +4792,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
   } else if (metadata->operation_type == M68K_SIM_OP_UNLK && source != NULL &&
       sim_direct_register_slot_by_metadata(metadata, metadata->source_operand_index, source, &is_address, &lhs_reg) && is_address) {
     io_state->a[7] = io_state->a[lhs_reg];
-    if (memory == NULL || io_state->a[7] + 4U > memory_size) {
+    if (memory == NULL || !sim_u32_range_fits_size(io_state->a[7], 4U, memory_size)) {
       sim_diag_error(diagnostics, "stack out of range");
       return -1;
     }
@@ -4925,7 +4935,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
           return -1;
         }
         io_state->a[7] -= 4U;
-        if (io_state->a[7] + 4U > memory_size) {
+        if (!sim_u32_range_fits_size(io_state->a[7], 4U, memory_size)) {
           sim_diag_error(diagnostics, "stack out of range");
           return -1;
         }

@@ -4870,28 +4870,13 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     suggestions_by_offset = {suggestion["source_section_offset"]: suggestion for suggestion in suggestions}
     events_by_offset = {event["source_section_offset"]: event for event in events}
 
-    assert set(payloads_by_offset) == {0x05E4, 0x4C40}
-    assert payloads_by_offset[0x05E4]["provider_id"] == "ancient-cli"
-    assert payloads_by_offset[0x05E4]["codec_id"] == "rnc1-old"
-    assert payloads_by_offset[0x05E4]["codec_support"] == "external_provider"
-    assert payloads_by_offset[0x05E4]["source_section"] == 0
-    assert payloads_by_offset[0x05E4]["decompressed_size"] == 32032
+    assert set(payloads_by_offset) == {0x4C40}
     assert payloads_by_offset[0x4C40]["provider_id"] == "ancient-cli"
     assert payloads_by_offset[0x4C40]["codec_id"] == "rnc1-old"
     assert payloads_by_offset[0x4C40]["source_section"] == 0
     assert payloads_by_offset[0x4C40]["decompressed_size"] == 359600
-    assert set(suggestions_by_offset) == {0x05E4, 0x4C40}
-    assert set(events_by_offset) == {0x05E4, 0x4C40}
-    assert suggestions_by_offset[0x05E4]["runtime_copy_address"] == 0x77400
-    assert suggestions_by_offset[0x05E4]["runtime_copy_size"] == 18016
-    assert suggestions_by_offset[0x05E4]["runtime_copy_kind"] == 2
-    assert suggestions_by_offset[0x05E4]["runtime_copy_conflicting"] is False
-    assert suggestions_by_offset[0x05E4]["reason"] == "runtime_copy_oversize"
-    assert suggestions_by_offset[0x05E4]["event_kind"] == "decompression"
-    assert suggestions_by_offset[0x05E4]["event_id"] == "decompression:section:0:000005E4:rnc1-old"
-    assert suggestions_by_offset[0x05E4]["codec_support"] == "external_provider"
-    assert suggestions_by_offset[0x05E4]["payload_role"] == "unknown_runtime_payload"
-    assert suggestions_by_offset[0x05E4]["parent_remains_active"] == "unknown"
+    assert set(suggestions_by_offset) == {0x4C40}
+    assert set(events_by_offset) == {0x4C40}
     assert suggestions_by_offset[0x4C40]["runtime_copy_address"] == 0x4000
     assert suggestions_by_offset[0x4C40]["runtime_copy_size"] == 168396
     assert suggestions_by_offset[0x4C40]["runtime_copy_kind"] == 3
@@ -4913,11 +4898,9 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     assert events_by_offset[0x4C40]["provider_id"] == "ancient-cli"
     assert events_by_offset[0x4C40]["codec_support"] == "external_provider"
     assert events_by_offset[0x4C40]["load_address"] == 0x4000
-    assert suggestions_by_offset[0x05E4]["status"] == "needs_runtime_metadata"
-    assert events_by_offset[0x05E4]["status"] == "needs_runtime_metadata"
-    assert events_by_offset[0x05E4]["payload_role"] == "unknown_runtime_payload"
-    assert "load_address" not in suggestions_by_offset[0x05E4]
-    assert "entrypoint" not in suggestions_by_offset[0x05E4]
+    assert 0x05E4 not in payloads_by_offset
+    assert 0x05E4 not in suggestions_by_offset
+    assert 0x05E4 not in events_by_offset
 
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
