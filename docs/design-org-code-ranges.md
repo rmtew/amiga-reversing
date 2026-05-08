@@ -189,6 +189,39 @@ Rendering implication:
 - Packed-data awareness and reproduction checks are required before using it as
   a clean ORG policy comparator.
 
+### Pandora
+
+Target:
+`targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/pandora_3e1ee0f1_bk_00_000000e8.s`
+
+Observed pattern:
+
+- The extracted ByteKiller payload is already decompressed bytes.
+- It still starts with a bootstrap: initial code copies a small second-stage
+  routine to `$300` and jumps there.
+- The second-stage routine copies the runtime image to `$10000` and jumps into
+  the copied image, for example to `$1046A`.
+- The wrapper loaded the extracted bytes at `$20000`, but the useful program
+  addresses are the copied `$10000` runtime view.
+
+Rendering implication:
+
+- This is an ORG/bootstrap problem, not another compressed-payload problem.
+- `$300` is a weak trampoline and should not become its own ORG.
+- The `$10000` copied image must still seed copied-image entrypoints as code.
+- A full `$20000` load ORG can suppress the more useful copied-image entrypoint
+  evidence, so load-address facts must not blindly override later runtime-copy
+  evidence.
+- Weak inferred indirect targets into the copied image must still pass basic data
+  plausibility gates. In this target a traced call temporarily promoted storage
+  offset `$78`, which is inside a long zero run before the real `$1046A` entry;
+  that must stay padding, not storage-linear code.
+- If the copied image starts at storage offset zero and has storage continuation,
+  it can still materialize when there is real copied-entry code evidence. Pandora
+  now renders the copied image under `ORG $10000`, so `a2` and `a3` resolve to
+  `abs_0_00010000` and `abs_0_0001046A`. The renderer must still avoid letting
+  the overlaid `$20000` load view suppress this copied-image ORG.
+
 ## Analysis requirements
 
 Runtime range discovery should come from C analysis:

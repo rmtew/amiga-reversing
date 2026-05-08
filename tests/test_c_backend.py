@@ -1218,6 +1218,46 @@ def test_facts_v2_indexed_control_stub_table_promotes_entries(tmp_path: Path) ->
     assert "\tdc.b $60,$08,$60,$0A,$60,$0C" not in source_text
 
 
+def test_facts_v2_indexed_indirect_target_rejects_zero_padding(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "raw.bin"
+    path.write_bytes(
+        bytes.fromhex(
+            "7000"
+            "41F90000000E"
+            "20700000"
+            "4ED0"
+            "4E75"
+            "00000020"
+            "00000024"
+        )
+        + (b"\x00" * 64)
+    )
+
+    binary_source = RawBinarySource(
+        kind="raw_binary",
+        path=path,
+        address_model="local_offset",
+        load_address=0,
+        entrypoint=0,
+        code_start_offset=0,
+        display_path=str(path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
+        binary_source,
+        metadata_path=None,
+        project_root=PROJECT_ROOT,
+    )
+    combined = analyze_source_with_c_artifact(binary_source, metadata_text="", project_root=PROJECT_ROOT)
+    section = combined["analysis"]["sections"][0]
+
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert "\tjmp (a0)\n" in source_text
+    assert "loc_0_00000020:\n\tori.b #0,d0\n" not in source_text
+    assert not any(ref.get("offset") in {0x20, 0x24} for ref in section["code_start_refs"])
+
+
 def test_facts_v2_adjacent_absolute_jmp_stub_does_not_promote_data_target(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     path = tmp_path / "raw.bin"
@@ -3209,6 +3249,136 @@ def test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code(tmp_pat
         )["sections"][0]["code_start_refs"]
     )
     assert "\tdc.b $4E,$75" not in source_text
+
+
+def test_real_dll_bootstrap_copied_image_jump_target_decodes_without_compression(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    source = (
+        "    SECTION section,code\n"
+        "start:\n"
+        "    lea.l stage2(pc),a0\n"
+        "    lea.l start(pc),a1\n"
+        "    lea.l $300.w,a2\n"
+        "    moveq.l #47,d0\n"
+        "copy_stage2:\n"
+        "    move.b (a0)+,(a2)+\n"
+        "    dbf.w d0,copy_stage2\n"
+        "    jmp $300.w\n"
+        "stage2:\n"
+        "    lea.l $10000.l,a2\n"
+        "    lea.l $10050.l,a3\n"
+        "    move.l #$53,d0\n"
+        "    cmpa.l a2,a1\n"
+        "    bcs.b copy_forward\n"
+        "    adda.l d0,a1\n"
+        "    adda.l d0,a2\n"
+        "copy_back_loop:\n"
+        "    move.b -(a1),-(a2)\n"
+        "    subq.l #1,d0\n"
+        "    bne.b copy_back_loop\n"
+        "    jmp (a3)\n"
+        "copy_forward:\n"
+        "    move.b (a1)+,(a2)+\n"
+        "    subq.l #1,d0\n"
+        "    bne.b copy_forward\n"
+        "    jmp (a3)\n"
+        "stage2_end:\n"
+        "    dcb.b 14,0\n"
+        "runtime_entry:\n"
+        "    moveq.l #7,d0\n"
+        "    rts\n"
+        "image_end:\n"
+        "    dcb.b 44,0\n"
+    )
+    binary_path = tmp_path / "bootstrap_copied_image.hunk"
+    metadata_path = tmp_path / "target_metadata.json"
+    rebuilt, _ = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "execution_views": [
+                    {
+                        "source_start": 0,
+                        "source_end": 0x80,
+                        "base_addr": 0x20000,
+                        "name": "loaded_wrapper_payload",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    binary_source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "bootstrap_copied_image.analysis",
+    )
+
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
+        binary_source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )
+    analysis = analyze_project_source_with_c_backend(
+        binary_source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )
+    section = analysis["sections"][0]
+    views_by_runtime = {view["runtime_address"]: view for view in section["runtime_views"]}
+    rebuilt_from_rendered, _ = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert views_by_runtime[0x20000]["materialization_reason_name"] == "overlaid_by_runtime_copy"
+    assert views_by_runtime[0x300]["materialization_reason_name"] == "exit_to_larger_runtime_range"
+    assert views_by_runtime[0x10000]["materialization_reason_name"] == "discovered_copy_entry"
+    assert any(
+        ref.get("reason_name") == "control_target"
+        and ref.get("runtime_address") == 0x10050
+        and ref.get("offset") == 0x50
+        for ref in section["code_start_refs"]
+    )
+    assert "    ORG $10000\nabs_0_00010000:\n" in source_text
+    assert "abs_0_00010050:\n\tmoveq.l #7,d0\n\trts\n" in source_text
+    assert "runtime_code_00010050\tEQU\t$10050\n" not in source_text
+    assert "\tdc.b $70,$07,$4E,$75" not in source_text
+    assert "    ORG $20000\n" not in source_text
+    assert "    ORG $300\n" not in source_text
+    assert rebuilt_from_rendered == rebuilt
+
+
+def test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code() -> None:
+    _requires_c_backend_dlls()
+    target_name = "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    combined = _facts_v2_listing_analysis_for_project(target_name)
+    section = combined["analysis"]["sections"][0]
+
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert "    ORG $10000\nabs_0_00010000:\n" in source_text
+    assert "\tlea.l abs_0_00010000.l,a2\n" in source_text
+    assert "\tlea.l abs_0_0001046A.l,a3\n" in source_text
+    assert "abs_0_0001046A:\n\tlea.l $000039FC.l,a0\n" in source_text
+    assert "runtime_code_0001046A\tEQU\t$1046A\n" not in source_text
+    assert "loc_0_00000078:\n\tori.b #0,d0\n" not in source_text
+    assert not any(ref.get("offset") == 0x78 for ref in section["code_start_refs"])
+    assert not any(site.get("target") == 0x78 for site in section["recovered_indirect_sites"])
 
 
 def test_real_dll_magicland_org_bootstrap_decodes_copied_runtime_entry() -> None:

@@ -65,6 +65,8 @@ static const char *runtime_view_materialization_reason_name(uint8_t reason) {
     return "policy_entry_point";
   case M68K_RUNTIME_VIEW_MATERIALIZED_RUNTIME_REF_TARGET:
     return "runtime_ref_target";
+  case M68K_RUNTIME_VIEW_MATERIALIZED_DISCOVERED_COPY_ENTRY:
+    return "discovered_copy_entry";
   case M68K_RUNTIME_VIEW_SUPPRESSED_CONFLICTING_DISCOVERED_COPY:
     return "conflicting_discovered_copy";
   case M68K_RUNTIME_VIEW_SUPPRESSED_CROSSED_BY_STORAGE_XREF:
@@ -77,6 +79,8 @@ static const char *runtime_view_materialization_reason_name(uint8_t reason) {
     return "storage_continuation";
   case M68K_RUNTIME_VIEW_SUPPRESSED_NO_MATERIALIZING_EVIDENCE:
     return "no_materializing_evidence";
+  case M68K_RUNTIME_VIEW_SUPPRESSED_OVERLAID_BY_RUNTIME_COPY:
+    return "overlaid_by_runtime_copy";
   case M68K_RUNTIME_VIEW_MATERIALIZATION_REASON_NONE:
   default:
     return "none";

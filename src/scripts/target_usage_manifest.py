@@ -64,12 +64,14 @@ RUNTIME_VIEW_MATERIALIZATION_REASONS = {
     1: "full_source_policy_load_view",
     2: "policy_entry_point",
     3: "runtime_ref_target",
+    4: "discovered_copy_entry",
     101: "conflicting_discovered_copy",
     102: "crossed_by_storage_xref",
     103: "exit_to_larger_runtime_range",
     104: "redundant_contained_view",
     105: "storage_continuation",
     106: "no_materializing_evidence",
+    107: "overlaid_by_runtime_copy",
 }
 TYPED_STORAGE_EFFECT_TARGETS = {
     "set_typed_reg": "register",

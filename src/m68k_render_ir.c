@@ -4409,6 +4409,11 @@ static int runtime_range_is_exited_to_larger_runtime_range(const M68kRenderLooku
           other->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE || other->size <= range->size) {
         continue;
       }
+      if (other->runtime_kind == M68K_FACT_RUNTIME_RANGE_KIND_POLICY && other->offset == range->offset &&
+          other->offset == 0U && other->has_runtime_address && range->has_runtime_address &&
+          range->runtime_address < other->runtime_address) {
+        continue;
+      }
       if (runtime_range_contains_source(other, ref->target_section_index, ref->target_offset,
           &other_runtime) && other_runtime == ref->runtime_address) {
         return 1;
@@ -4474,6 +4479,53 @@ static int runtime_range_is_full_source_policy_load_view(const M68kRenderLookup 
   return extent != 0U && range->size == extent && range->runtime_address != 0U;
 }
 
+static int runtime_range_has_code_start_ref(const M68kRenderLookup *lookup, const M68kFact *range) {
+  size_t index;
+  uint64_t range_start, range_end;
+  if (lookup == NULL || range == NULL || range->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE ||
+      !range->has_runtime_address || range->size == 0U) {
+    return 0;
+  }
+  range_start = range->runtime_address;
+  range_end = range_start + range->size;
+  for (index = 0U; index < lookup->code_start_ref_count; ++index) {
+    const M68kFact *ref = lookup->code_start_refs[index].fact;
+    if (ref == NULL || ref->kind != M68K_FACT_CODE_START || ref->section_index != range->section_index ||
+        ref->confidence < M68K_FACT_CONFIDENCE_TOOL_INFERRED || !ref->has_runtime_address) {
+      continue;
+    }
+    if (ref->runtime_address >= range_start && (uint64_t)ref->runtime_address < range_end) return 1;
+  }
+  return 0;
+}
+
+static int runtime_range_is_overlaid_by_runtime_copy(const M68kRenderLookup *lookup, const M68kFact *range) {
+  size_t index;
+  uint64_t range_source_start, range_source_end;
+  if (lookup == NULL || range == NULL || range->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE ||
+      range->runtime_kind != M68K_FACT_RUNTIME_RANGE_KIND_POLICY || !range->has_runtime_address ||
+      range->offset != 0U || range->size == 0U) {
+    return 0;
+  }
+  range_source_start = range->offset;
+  range_source_end = range_source_start + range->size;
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    const M68kFact *other = lookup->runtime_address_ranges[index].fact;
+    uint64_t other_source_start, other_source_end;
+    if (other == NULL || other == range || other->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE ||
+        other->runtime_kind != M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY ||
+        other->section_index != range->section_index || other->offset != 0U ||
+        !other->has_runtime_address || other->runtime_address >= range->runtime_address ||
+        other->size == 0U || !runtime_range_has_code_start_ref(lookup, other)) {
+      continue;
+    }
+    other_source_start = other->offset;
+    other_source_end = other_source_start + other->size;
+    if (range_source_start < other_source_end && other_source_start < range_source_end) return 1;
+  }
+  return 0;
+}
+
 int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M68kFact *range,
     uint8_t *out_materialized, uint8_t *out_reason) {
   size_t index;
@@ -4496,8 +4548,18 @@ int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M
     if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_REDUNDANT_CONTAINED_VIEW;
     return 0;
   }
+  if (range->runtime_kind == M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY && range->offset == 0U &&
+      runtime_range_has_code_start_ref(lookup, range)) {
+    if (out_materialized != NULL) *out_materialized = 1U;
+    if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_MATERIALIZED_DISCOVERED_COPY_ENTRY;
+    return 0;
+  }
   if (runtime_range_has_storage_continuation(lookup, range)) {
     if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_STORAGE_CONTINUATION;
+    return 0;
+  }
+  if (runtime_range_is_overlaid_by_runtime_copy(lookup, range)) {
+    if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_OVERLAID_BY_RUNTIME_COPY;
     return 0;
   }
   if (runtime_range_is_full_source_policy_load_view(lookup, range)) {
