@@ -463,6 +463,8 @@ typedef struct M68kRecoveredIndirectSiteIR {
   uint8_t status;
   uint8_t has_target;
   uint8_t has_target_count;
+  uint8_t operand_index;
+  uint8_t source_size;
   uint32_t target;
   uint32_t target_count;
   char *detail;

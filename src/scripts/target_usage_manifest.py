@@ -1238,6 +1238,10 @@ def _indirect_site_example(section_index: int, site: dict[str, Any]) -> dict[str
     example["status"] = status
     example["shape"] = shape
     example["flow"] = flow
+    for key in ("source_offset", "source_size", "operand_index"):
+        value = _int_value(site.get(key))
+        if value is not None:
+            example[key] = value
     target = _int_value(site.get("target"))
     if target is not None:
         example["target"] = target
@@ -1286,6 +1290,10 @@ def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]
     example["flow"] = flow
     example["source_pattern"] = source_pattern
     example["conflict_state"] = conflict_state
+    for key in ("source_offset", "source_size", "operand_index"):
+        value = _int_value(record.get(key))
+        if value is not None:
+            example[key] = value
     target = _int_value(record.get("target"))
     if target is not None:
         example["target"] = target
@@ -1301,6 +1309,8 @@ def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]
     bag.add(f"table:candidate_unresolved:shape:{_safe_part(shape)}", example=example)
     bag.add(f"table:candidate_unresolved:flow:{_safe_part(flow)}", example=example)
     bag.add(f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}", example=example)
+    if _int_value(record.get("source_size")) is not None:
+        bag.add("table:candidate_unresolved:source_range", example=example)
 
 
 def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
@@ -3105,6 +3115,7 @@ def _analysis_xrefs(
         source_pattern = _string_value(record.get("source_pattern")) or _indirect_site_source_pattern(shape)
         conflict_state = _string_value(record.get("conflict_state")) or "unresolved"
         target_count = _int_value(record.get("target_count"))
+        source_size = _int_value(record.get("source_size"))
         text = row_text or _string_value(record.get("detail")) or f"{flow} {shape} {status}"
         features = [
             "table:candidate_unresolved",
@@ -3114,6 +3125,8 @@ def _analysis_xrefs(
             f"table:candidate_unresolved:flow:{_safe_part(flow)}",
             f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}",
         ]
+        if source_size is not None:
+            features.append("table:candidate_unresolved:source_range")
         for feature in features:
             xrefs.append(
                 _xref(

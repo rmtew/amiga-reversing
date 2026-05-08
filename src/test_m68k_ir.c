@@ -3439,6 +3439,7 @@ static int test_facts_v2_records_unresolved_indirect_jump_site(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"flow\":\"jump\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"shape\":\"ind\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"status\":\"unresolved\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_offset\":0,\"source_size\":2,\"operand_index\":0") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_candidate_record_count\":1,\"table_candidate_records\":[{\"section_index\":0,\"offset\":0") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern\":\"indirect\"") != NULL);

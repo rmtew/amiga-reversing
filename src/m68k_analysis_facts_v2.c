@@ -3901,6 +3901,8 @@ static int append_recovered_indirect_sites_for_accepted(const M68kDecodeIR *deco
         site.flow_kind = flow_kind;
         site.shape = shape;
         site.status = M68K_RECOVERED_INDIRECT_STATUS_UNRESOLVED;
+        site.operand_index = (uint8_t)operand_index;
+        site.source_size = candidate->byte_count;
         site.detail = "accepted indirect control target";
         recovered_indirect_site_apply_code_start_refs(&site, &source_analysis->sections[section_index]);
         if (m68k_ir_section_analysis_append_recovered_indirect_site(&source_analysis->sections[section_index],

@@ -1714,8 +1714,11 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
       if (!recovered_indirect_site_is_unresolved_table_candidate(site)) continue;
       source_pattern = recovered_indirect_table_candidate_source_pattern(site->shape);
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
-      if (json_builder_appendf(builder, "{\"section_index\":%u,\"offset\":%u,\"flow\":",
-          (unsigned)section->section_index, (unsigned)site->offset) != 0)
+      if (json_builder_appendf(builder,
+          "{\"section_index\":%u,\"offset\":%u,\"source_offset\":%u,\"source_size\":%u,"
+          "\"operand_index\":%u,\"flow\":",
+          (unsigned)section->section_index, (unsigned)site->offset, (unsigned)site->offset,
+          (unsigned)site->source_size, (unsigned)site->operand_index) != 0)
         return -1;
       if (json_builder_append_json_string(builder, recovered_indirect_flow_name(site->flow_kind)) != 0)
         return -1;
@@ -2498,7 +2501,10 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       const M68kRecoveredIndirectSiteIR *site = &section->recovered_indirect_sites[indirect_site_index];
       if (indirect_site_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
-      if (json_builder_appendf(&builder, "{\"offset\":%u,\"flow\":", (unsigned)site->offset) != 0)
+      if (json_builder_appendf(&builder,
+          "{\"offset\":%u,\"source_offset\":%u,\"source_size\":%u,\"operand_index\":%u,\"flow\":",
+          (unsigned)site->offset, (unsigned)site->offset, (unsigned)site->source_size,
+          (unsigned)site->operand_index) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, recovered_indirect_flow_name(site->flow_kind)) != 0)
         goto oom;

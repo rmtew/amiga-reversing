@@ -685,6 +685,8 @@ int m68k_ir_section_analysis_append_recovered_indirect_site(M68kSectionAnalysisI
     existing->status = site->status;
     existing->has_target = site->has_target;
     existing->has_target_count = site->has_target_count;
+    existing->operand_index = site->operand_index;
+    existing->source_size = site->source_size;
     existing->target = site->target;
     existing->target_count = site->target_count;
     existing->detail = copy_detail;

@@ -61,7 +61,7 @@ Reviewed implementation and tests before updating this plan. Current state:
 | RSSET/app slots | `render_state_operand_uses_app_base()` rejects known hardware bases and `_custom` offsets; `render_asm_app_extension_rs()` emits app/resident RSSET layouts from field slots and metadata; C source analysis now records rendered base-layout fields and alias overlays as first-class facts; listing JSON exposes those layout fields directly. | Need wider "known base owns this displacement" facts for platform-owned layouts beyond app/metadata RSSET emission. |
 | Typed structs vs app slots | Typed app-slot field regions are skipped from flat RSSET output; `_custom` offset false positives have an isolated test. | Need wider "known base owns this displacement" facts for all platform structs, not only `_custom` fallback protection. |
 | ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, policy-vs-inferred precedence, corpus tags, and listing navigation for materialized/suppressed runtime views. | Runtime-copy facts still need explicit wrapper-load/helper/final-image relationships. |
-| Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, relative `target-base` rendering, C JSON `table_records` derived from accepted structured table data, consumer instruction provenance, source-pattern provenance, code-overlap conflict state, and C JSON `table_candidate_records` plus corpus tags/xrefs for unresolved indirect/table candidate sites by status, shape, and source pattern. | Table candidate facts still need source ranges and rejected table bounds. |
+| Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, relative `target-base` rendering, C JSON `table_records` derived from accepted structured table data, consumer instruction provenance, source-pattern provenance, code-overlap conflict state, and C JSON `table_candidate_records` plus corpus tags/xrefs for unresolved indirect/table candidate sites by status, shape, source instruction range, operand index, and source pattern. | Table candidate facts still need rejected table data bounds where value-flow can prove a candidate span. |
 | Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks; C JSON now exposes `memory_layout_records` for base-layout fields, runtime views, and runtime-address references. | Memory-layout records still need absolute globals, hardware register ranges, and unresolved/conflict candidates merged into the same view. |
 | Orphaned code | C analysis now records unresolved terminal-decode islands at accepted-code boundaries or data labels as orphan signals without promoting them to accepted code. | Extend the signal with inbound-evidence classes, nearby context, target metrics, and reconciliation after table/callback/vector improvements. |
 | Targets | Bloodwych has many relative lookup tables; Pandora demonstrates wrapper load vs final copied image; Conqueror demonstrates weak low ORG risk; Carrier stresses packed/runtime-copy ambiguity; GenAm/MonAm remain comparator targets. | Corpus tags should preserve these pattern roles so later changes can be validated across comparable targets. |
@@ -325,7 +325,8 @@ Required data analysis:
   copied/runtime view
    - record unresolved candidate sites so corpus indexing can find similar
      patterns: implemented as C JSON `table_candidate_records` from unresolved
-     recovered indirect sites, with status, shape, and source pattern
+     recovered indirect sites, with status, shape, source instruction range,
+     operand index, and source pattern
 
 ## Orphaned Code Signal Plan
 
@@ -426,8 +427,8 @@ undocumented renderer heuristics.
 - The signal should be reconciled after jump/lookup table work: a good table
   improvement should turn some orphan candidates into reached code, not just hide
   them.
-- Table candidate records need candidate source ranges and rejected table bounds
-  once backtracking can recover them safely.
+- Table candidate records need rejected table bounds once backtracking can
+  recover them safely.
 - Bloodwych contains many already-rendered relative lookup tables; those are a
   useful proving target, but GenAm/MonAm and imported disk targets should remain
   comparators so Bloodwych does not become the hidden spec.
