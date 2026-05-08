@@ -36,6 +36,33 @@ does that ownership conflict with accepted code, hardware, or a typed struct?
 
 If those answers are unknown, keep the source conservative.
 
+## Reading Existing Evidence
+
+When reviewing a target, separate accepted facts from signals:
+
+```
+accepted fact      renderer may use it directly
+analysis signal    renderer keeps source conservative; UI/corpus can surface it
+policy seed        explicit root or range; must carry reason/confidence
+metadata seed      fixture-backed target/platform fact
+fallback seed      last-resort root; must not suppress stronger evidence
+```
+
+Examples from current implementation:
+
+- App-slot references are gathered only from accepted instruction starts.
+- Unknown `a6` app-base fallback is blocked for generated `_custom` hardware
+  offsets.
+- RSSET rendering uses app-base field slots and metadata layout regions, with
+  alias fragments when fields overlap.
+- Runtime views and lookup tables already have tests for conflict suppression,
+  runtime mapped dispatch, vector targets, and relative table rendering.
+- Orphaned code signals are a planned fact type; until implemented they should
+  be treated as a design requirement, not assumed available.
+
+This distinction matters because "the bytes decode" is not the same as "the
+program reaches this code".
+
 ## RSSET
 
 `RSSET` is an assembler cursor for defining offsets inside a layout. It is not a

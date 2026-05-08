@@ -52,6 +52,34 @@ Existing tests show partial lookup/absolute coverage:
 These behaviors need one unified design model so new cases do not become
 one-off heuristics.
 
+## Current Code And Target Review
+
+Reviewed implementation and tests before updating this plan. Current state:
+
+| Topic | Current evidence | Gap to address |
+| --- | --- | --- |
+| RSSET/app slots | `render_state_operand_uses_app_base()` rejects known hardware bases and `_custom` offsets; `render_asm_app_extension_rs()` emits app/resident RSSET layouts from field slots and metadata. | Alias fragments are still produced as render-side overlap handling; they need first-class alias facts. |
+| Typed structs vs app slots | Typed app-slot field regions are skipped from flat RSSET output; `_custom` offset false positives have an isolated test. | Need wider "known base owns this displacement" facts for all platform structs, not only `_custom` fallback protection. |
+| ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, and policy-vs-inferred precedence. | Runtime-copy facts need explicit wrapper-load/helper/final-image relationships and UI-visible rejected reasons. |
+| Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, and relative `target-base` rendering. | Existing behavior is still spread across recovered indirect sites, structured data, and rendering; needs one table fact model. |
+| Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks. | Need one memory-layout view that merges absolute globals, hardware, runtime code, display/audio, and unresolved candidates. |
+| Orphaned code | No first-class orphan fact model was found in the current code review. | Implement diagnostic scan/facts/metrics without auto-promoting code-like data. |
+| Targets | Bloodwych has many relative lookup tables; Pandora demonstrates wrapper load vs final copied image; Conqueror demonstrates weak low ORG risk; Carrier stresses packed/runtime-copy ambiguity; GenAm/MonAm remain comparator targets. | Corpus tags should preserve these pattern roles so later changes can be validated across comparable targets. |
+
+Past decisions to preserve:
+
+- C analysis is authoritative; Python/UI consume facts only.
+- Do not hardcode M68K instruction knowledge; use generated decode/effect data.
+- Do not emit `ORG` or labels merely to make output prettier.
+- Keep `$4` ExecBase loads literal unless copied executable code at `$4` is
+  actually proven.
+- Weak low trampolines become numeric/EQU symbols, not disruptive ORGs.
+- `code_start_refs` stay provenance-first but must be unioned with explicit
+  policy/metadata/fallback seeds.
+- Data/table/string classification must not overlap accepted code unless a
+  source/runtime view explains the overlap.
+- Comment-only output is not a retained improvement.
+
 ## Survey Method
 
 Surveyed all rendered `.s` files currently under `targets/` and parsed top-level
