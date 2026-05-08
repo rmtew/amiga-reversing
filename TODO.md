@@ -2,8 +2,6 @@
 
 ## Unsorted
 
-- Web server should check origin to prevent exposing local machine state to random code within user's
-  browser from other origins than `localhost`/`127.0.0.1`.\
 - Observed "damocles_53b24620.s" flaws:
   - Failed string conversion. This is the tetragon signature presumably. It meets ascii/real word type
     heuristics. There is an implication here that we can detect these and not just decide all values

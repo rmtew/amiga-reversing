@@ -8,6 +8,7 @@ import socket
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from types import SimpleNamespace
@@ -68,6 +69,12 @@ def _kill_process_tree(process: subprocess.Popen[str]) -> None:
 
 def _read_http_bytes(url: str) -> tuple[bytes, str]:
     with urllib.request.urlopen(url, timeout=2) as response:
+        return response.read(), response.headers.get("Content-Type", "")
+
+
+def _read_http_bytes_with_headers(url: str, headers: dict[str, str]) -> tuple[bytes, str]:
+    request = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(request, timeout=2) as response:
         return response.read(), response.headers.get("Content-Type", "")
 
 
@@ -818,6 +825,20 @@ def test_installed_disasm_server_serves_web_static_assets() -> None:
         assert app_content_type.startswith("application/javascript")
         assert b"body {" in styles_css
         assert styles_content_type.startswith("text/css")
+
+        api_body, api_content_type = _read_http_bytes_with_headers(
+            f"{base_url}/api/projects",
+            {"Origin": f"http://localhost:{port}"},
+        )
+        assert b'"ok":true' in api_body.replace(b" ", b"")
+        assert api_content_type.startswith("application/json")
+
+        with pytest.raises(urllib.error.HTTPError) as exc_info:
+            _read_http_bytes_with_headers(
+                f"{base_url}/api/projects",
+                {"Origin": "https://example.invalid"},
+            )
+        assert exc_info.value.code == 403
     finally:
         _kill_process_tree(process)
 

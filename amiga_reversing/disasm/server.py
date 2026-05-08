@@ -9,7 +9,7 @@ import queue
 import threading
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import NotRequired, TypedDict, cast
@@ -128,6 +128,25 @@ _PROJECT_CREATE_DISK_PHASE_COUNT = 5
 _OS_CORRECTIONS_PATH = (
     Path(__file__).resolve().parents[2] / "knowledge" / "amiga_ndk_corrections.json"
 )
+_ALLOWED_BROWSER_ORIGIN_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def _is_allowed_browser_origin(value: str) -> bool:
+    parsed = urlparse(value)
+    return parsed.scheme in {"http", "https"} and (
+        parsed.hostname or ""
+    ).lower() in _ALLOWED_BROWSER_ORIGIN_HOSTS
+
+
+def _has_allowed_browser_origin(headers: Mapping[str, str]) -> bool:
+    origin = headers.get("Origin")
+    if origin:
+        return _is_allowed_browser_origin(origin)
+    referer = headers.get("Referer")
+    if referer:
+        return _is_allowed_browser_origin(referer)
+    return True
+
 
 def _os_corrections_payload() -> dict[str, object]:
     with open(_OS_CORRECTIONS_PATH, encoding="utf-8") as handle:
@@ -1207,6 +1226,19 @@ def resolve_static_response(path: str) -> StaticResponse:
 class DisasmApiHandler(BaseHTTPRequestHandler):
     server_version = "DisasmApi/0.1"
 
+    def _reject_forbidden_api_origin(self, path: str) -> bool:
+        if not path.startswith("/api/") or _has_allowed_browser_origin(
+            cast(Mapping[str, str], self.headers)
+        ):
+            return False
+        body = _json_bytes({"ok": False, "error": "Forbidden browser origin"})
+        self.send_response(403)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+        return True
+
     def _handle_request(
         self,
         method: str,
@@ -1316,6 +1348,8 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if self._reject_forbidden_api_origin(parsed.path):
+            return
         if parsed.path == "/api/jobs/events":
             try:
                 self._handle_job_events(parse_qs(parsed.query))
@@ -1340,8 +1374,11 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
         self._handle_request("GET", handler)
 
     def do_PATCH(self) -> None:
+        parsed = urlparse(self.path)
+        if self._reject_forbidden_api_origin(parsed.path):
+            return
+
         def handler() -> tuple[bytes, str, int, dict[str, str] | None]:
-            parsed = urlparse(self.path)
             content_length = int(self.headers.get("Content-Length", "0"))
             payload = json.loads(self.rfile.read(content_length) or b"{}")
             assert isinstance(payload, dict), "PATCH body must be a JSON object"
@@ -1358,8 +1395,11 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
         self._handle_request("PATCH", handler)
 
     def do_POST(self) -> None:
+        parsed = urlparse(self.path)
+        if self._reject_forbidden_api_origin(parsed.path):
+            return
+
         def handler() -> tuple[bytes, str, int, dict[str, str] | None]:
-            parsed = urlparse(self.path)
             content_length = int(self.headers.get("Content-Length", "0"))
             payload = json.loads(self.rfile.read(content_length) or b"{}")
             assert isinstance(payload, dict), "POST body must be a JSON object"
