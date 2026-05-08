@@ -1273,9 +1273,13 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         section_index = _int_value(record.get("section_index"), 0)
         source_offset = _int_value(record.get("source_offset"))
         example = _offset_example(section_index, source_offset, memory_kind)
-        for key in ("source_size", "runtime_address", "runtime_size", "target_offset"):
+        for key in ("source_size", "runtime_address", "runtime_size", "target_offset", "field_offset", "field_size"):
             value = _int_value(record.get(key))
             if value is not None:
+                example[key] = value
+        for key in ("layout_name", "base_symbol", "symbol"):
+            value = _string_value(record.get(key))
+            if value:
                 example[key] = value
         bag.add("memory-layout:any", example=example)
         bag.add(f"memory-layout:record:{_safe_part(record_kind)}", example=example)

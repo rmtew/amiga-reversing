@@ -73,6 +73,17 @@ class TargetUsageManifestTests(unittest.TestCase):
                     ],
                     "memory_layout_records": [
                         {
+                            "record_kind": "base_layout_field",
+                            "memory_kind": "base_layout_field",
+                            "layout_name": "app",
+                            "base_symbol": "app",
+                            "symbol": "app_0234",
+                            "section_index": 0,
+                            "source_offset": 0x30,
+                            "field_offset": 0x234,
+                            "field_size": 4,
+                        },
+                        {
                             "record_kind": "runtime_view",
                             "memory_kind": "runtime_view_candidate",
                             "section_index": 0,
@@ -475,9 +486,11 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["table:base:target_label"], 1)
         self.assertEqual(counts["table:consumer"], 1)
         self.assertEqual(counts["table:entry_size:2"], 1)
-        self.assertEqual(counts["memory-layout:any"], 2)
+        self.assertEqual(counts["memory-layout:any"], 3)
+        self.assertEqual(counts["memory-layout:record:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_view"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_address_ref"], 1)
+        self.assertEqual(counts["memory-layout:kind:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:kind:runtime_view_candidate"], 1)
         self.assertEqual(counts["memory-layout:kind:copper_list"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
@@ -517,6 +530,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["analysis:runtime_table_base_addend"][0]["addend"], -4)
         self.assertEqual(examples["table:any"][0]["entry_count"], 2)
         self.assertEqual(examples["table:any"][0]["consumer_offset"], 0x20)
+        self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["symbol"], "app_0234")
         self.assertEqual(examples["memory-layout:kind:copper_list"][0]["runtime_address"], 0x0E)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
@@ -792,6 +806,17 @@ class TargetUsageManifestTests(unittest.TestCase):
                 ],
                 "memory_layout_records": [
                     {
+                        "record_kind": "base_layout_field",
+                        "memory_kind": "base_layout_field",
+                        "layout_name": "app",
+                        "base_symbol": "app",
+                        "symbol": "app_0234",
+                        "section_index": 0,
+                        "source_offset": 0x30,
+                        "field_offset": 0x234,
+                        "field_size": 4,
+                    },
+                    {
                         "record_kind": "runtime_view",
                         "memory_kind": "runtime_view_candidate",
                         "section_index": 0,
@@ -1048,6 +1073,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("table:kind:relative_code_dispatch", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:consumer", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:consumer", "table_consumer", 0x20, 1), by_feature)
+        self.assertIn(("memory-layout:kind:base_layout_field", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:kind:runtime_view_candidate", "memory_layout", 0x40, 3), by_feature)
         self.assertIn(("memory-layout:kind:copper_list", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("orphan-code:signal", "orphan_code_signal", 0x84, 8), by_feature)

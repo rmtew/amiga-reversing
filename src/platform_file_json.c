@@ -1695,6 +1695,7 @@ static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysi
   size_t section_index;
   size_t count = 0U;
   if (source_analysis == NULL) return 0U;
+  count += source_analysis->base_layout_field_count;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     size_t ref_index;
@@ -1711,9 +1712,35 @@ static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysi
 
 static int append_source_analysis_memory_layout_records_json(JsonBuilder *builder,
     const M68kSourceAnalysisIR *source_analysis) {
+  size_t field_index;
   size_t section_index;
   size_t emitted = 0U;
   if (builder == NULL || source_analysis == NULL) return -1;
+  for (field_index = 0U; field_index < source_analysis->base_layout_field_count; ++field_index) {
+    const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[field_index];
+    const char *memory_kind = field->alias ? "base_layout_alias" : "base_layout_field";
+    if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_appendf(builder,
+        "{\"record_kind\":\"base_layout_field\",\"memory_kind\":\"%s\",\"layout_name\":",
+        memory_kind) != 0) return -1;
+    if (json_builder_append_nullable_string(builder, field->layout_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"base_symbol\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, field->base_symbol) != 0) return -1;
+    if (json_builder_append(builder, ",\"symbol\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, field->symbol) != 0) return -1;
+    if (json_builder_append(builder, ",\"section_index\":") != 0) return -1;
+    if (field->has_source) {
+      if (json_builder_appendf(builder, "%u", (unsigned)field->source_section_index) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+    if (json_builder_append(builder, ",\"source_offset\":") != 0) return -1;
+    if (field->has_source) {
+      if (json_builder_appendf(builder, "%u", (unsigned)field->source_offset) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+    if (json_builder_appendf(builder,
+        ",\"field_offset\":%u,\"field_size\":%u,\"confidence\":%u,\"conflicted\":%s}",
+        (unsigned)field->offset, (unsigned)field->size, (unsigned)field->confidence,
+        field->conflicted ? "true" : "false") != 0) return -1;
+  }
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     size_t view_index;
