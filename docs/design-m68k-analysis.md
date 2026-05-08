@@ -7,6 +7,15 @@ layouts and absolute runtime memory as the first worked example.
 The source renderer should be deterministic output from C analysis facts. Python
 or web code may display those facts, but must not invent them.
 
+The same rule covers three related topics:
+
+- RSSET layouts: base-relative storage such as app slots and resident extension
+  fields.
+- Absolute memory: runtime addresses, hardware addresses, vectors, display
+  memory, audio memory, stack, and absolute globals.
+- Lookup tables: indexed data that should render as editable symbolic values,
+  not fragile raw addends.
+
 ## Core rule
 
 Analysis must answer this before rendering invents a symbol:
@@ -126,6 +135,147 @@ For an absolute addressed file, the base address and extent are part of the
 target model. Labels inside absolute runtime code must be tied to the runtime
 range that owns them, while source-copy labels stay tied to source storage.
 
+## Absolute Memory Access
+
+Absolute memory is not one thing. Analysis should classify the ownership before
+rendering a symbol.
+
+```
+$00000004              ExecBase address, normally keep literal $4
+$00000080              CPU vector table slot
+$00000400..$0012FF     copied runtime code
+$00070000..$00075FFF   bitmap/display memory
+$00076000..$00076FFF   audio/sample/data buffer
+$00DFF000..$00DFFFFF   Amiga custom chip registers
+a6+$0000..a6+$0FCF     app base-relative storage
+```
+
+Examples:
+
+```asm
+    movea.l $4.w,a6                  ; ExecBase literal, not ExecBase symbol
+    move.l  #trap_handler,$80.w      ; vector slot with code target
+    move.w  #$0200,_custom+dmacon    ; hardware register
+    move.l  #bitmap_00070000,bpl1pt  ; display memory pointer
+```
+
+Required analysis facts:
+
+- address expression and width
+- read, write, address-taken, call, or jump use
+- owner range if known
+- target range if the value is a pointer
+- source instruction and data provenance
+- whether the value is relocatable, absolute hardware, runtime absolute, or raw
+  scalar data
+- whether symbolic rendering would remain editable and reproduce exactly
+
+The renderer should prefer stable symbols for owned memory and keep raw numeric
+values when no owner is proven.
+
+## Lookup Tables
+
+Lookup tables must be modelled by the consumer expression, not only by the bytes.
+A table is useful when analysis knows how entries are indexed and interpreted.
+
+Common table classes:
+
+```
+absolute pointer table      dc.l target_a,target_b,0
+relative word jump table    dc.w target_a-table_base,target_b-table_base
+pc-relative dispatch table  move.w table(pc,d0.w),d1 ; jmp table(pc,d1.w)
+scalar lookup table         dc.b 0,1,4,9,16
+offset lookup table         dc.w row0-map_base,row1-map_base
+hardware setup table        dc.w bplcon0_value,diwstrt_value,...
+mixed table                 labels, nulls, raw sentinels, scalar entries
+```
+
+Jump table example:
+
+```asm
+dispatch:
+    move.w  jump_offsets(pc,d0.w),d0
+    jmp     jump_offsets(pc,d0.w)
+
+jump_offsets:
+    dc.w case_0-jump_offsets
+    dc.w case_1-jump_offsets
+    dc.w case_2-jump_offsets
+```
+
+The important part is the relative expression. Raw values such as `$0012` are
+fragile: if a user edits code between the table base and target, the rebuilt
+source can silently point at the wrong target. `case_1-jump_offsets` remains
+editable.
+
+Absolute pointer table example:
+
+```asm
+ptr_table:
+    dc.l handler_0
+    dc.l handler_1
+    dc.l 0
+```
+
+Offset table example:
+
+```asm
+room_offsets:
+    dc.w room_0-room_base
+    dc.w room_1-room_base
+```
+
+Required table facts:
+
+```
+table base label
+table source range
+entry size and signedness
+entry count and stride
+entry kind: scalar, pointer, relative pointer, code target, data target
+base expression: table base, section base, runtime base, PC, or explicit label
+consumer instruction and value-flow provenance
+accepted target ranges
+sentinel/null rules
+mixed-entry policy
+confidence and conflict state
+```
+
+Table detection should start from consumers:
+
+```
+indexed read -> value transform -> jump/call/address use
+                       |
+                       +-> table base, entry size, signedness, bounds
+```
+
+Then analysis can safely back-fill the data range and render entries using
+labels. Bytes alone may classify a span as a scalar table, but jump-table or
+pointer-table rendering needs consumer evidence or relocation evidence.
+
+## Relative Target-Base Substitution
+
+When a table entry is calculated as `target - base`, render that relationship
+directly:
+
+```
+raw word:       $012C
+base:           abs_0_0000505C
+target:         abs_0_00005188
+rendered:       dc.w abs_0_00005188-abs_0_0000505C
+```
+
+Acceptable bases include:
+
+- the table label
+- a nearby explicit base label used by code
+- the current runtime range base
+- a section base when relocation evidence proves it
+- a data structure base when typed-flow proves it
+
+Do not choose a convenient base just to make numbers look symbolic. The base must
+come from analysis evidence.
+
 ## Web UI Requirement
 
 The UI should be able to show an analysed memory layout view:
@@ -137,6 +287,7 @@ $070000..$076000            bitmap           bitplane pointer writes
 _custom+$00E0.._custom+$00EE display regs    hardware metadata
 a6+$0000..a6+$0FCF          app layout       app-slot refs
 a6+$0001                    app alias        overlay field
+table $505C..$507A          jump offsets     indexed dispatch consumer
 ```
 
 This should be data from C analysis. The UI can filter, navigate, and show
@@ -149,8 +300,11 @@ conflicts, but should not classify memory itself.
   provenance.
 - Do not overlap accepted code unless the range is explicitly a copied/runtime
   view with source/runtime mapping.
+- Do not render raw absolute or addend-based table values when analysis can prove
+  a stable symbolic target-base expression.
+- Do not render symbolic table entries unless the table base, target range, and
+  entry interpretation are proven.
 - Do not use target metadata except for fixture-backed local facts.
 - Preserve direct source correctness and exact reproduction.
 - Keep M68K instruction behavior in generated decode/effect data, not hand-coded
   renderer heuristics.
-

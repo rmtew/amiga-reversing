@@ -1,14 +1,16 @@
-# M68K analysis plan: RSSET and absolute memory layout
+# M68K analysis plan: RSSET, absolute memory, and lookup tables
 
-This plan records the current RSSET survey and the next implementation rules.
-It should be reviewed before more renderer changes are made.
+This plan records the current RSSET survey and expands the design target to
+absolute memory and lookup-table rendering. It should be reviewed before more
+renderer changes are made.
 
 ## Objective
 
-Build a C-owned model for persistent base-relative storage and absolute runtime
-memory. Rendering should consume that model to emit `RSSET`, labels, platform
-fields, and web UI navigation without confusing app storage, Amiga hardware, and
-runtime-copied code.
+Build a C-owned model for persistent base-relative storage, absolute runtime
+memory, and lookup tables. Rendering should consume that model to emit `RSSET`,
+labels, platform fields, relative table expressions, and web UI navigation
+without confusing app storage, Amiga hardware, runtime-copied code, scalar data,
+and dispatch tables.
 
 ## Current Implementation Notes
 
@@ -29,6 +31,21 @@ Relevant current behavior:
 
 The test covering the hardware false-positive class is
 `test_facts_v2_render_asm_source_does_not_infer_app_slot_from_unknown_a6_custom_offset`.
+
+Existing tests show partial lookup/absolute coverage:
+
+- runtime copy and absolute entrypoint mapping
+- interrupt/vector target discovery
+- long jump-table target promotion
+- word-relative dispatch target promotion
+- runtime-mapped word dispatch rendering
+- relocation-backed pointer-table classification
+- absolute long lookup tables with labels and nulls
+- pointer-table runtime data targets
+- hardware/display/audio runtime sink classification
+
+These behaviors need one unified design model so new cases do not become
+one-off heuristics.
 
 ## Survey Method
 
@@ -111,18 +128,104 @@ proves a distinct base id.
    - stack, bitplane, copper, audio, and app-storage ranges when detected
    - ownership conflicts and accepted-code overlap gates
 
-3. Rendering rules:
+3. Add lookup-table records:
+   - table base label and source range
+   - consumer instruction/source provenance
+   - entry size, signedness, stride, count, and bounds
+   - table kind: scalar, pointer, relative pointer, code dispatch, data offset,
+     hardware setup, mixed
+   - base expression: table label, section base, runtime base, PC, or explicit
+     data label
+   - entry target range and null/sentinel rules
+   - confidence and conflict state
+
+4. Rendering rules:
    - emit one RSSET block per proven base layout
    - emit alias fragments only as overlays of that layout
    - never use RSSET for known hardware or platform struct fields
    - never use absolute label/addend tricks over code/data ranges
+   - render relative table entries as `target_label-base_label`
+   - render absolute pointer entries as labels only when the target owner is
+     proven
+   - keep scalar entries numeric unless typed evidence gives them a better
+     domain-specific symbolic form
    - keep include region, RSSET region, then EQU/symbol region ordering
 
-4. Web UI rules:
+5. Web UI rules:
    - show memory layout ranges and conflicts from C analysis
    - navigate to source evidence for each range
    - distinguish app layout fields, aliases, hardware fields, copied runtime
-     code, display memory, audio memory, and stack
+     code, display memory, audio memory, stack, pointer tables, jump tables,
+     scalar tables, and unresolved table candidates
+
+## Lookup Table Plan
+
+All table types should be discovered from consumer evidence where possible, then
+validated against the data span.
+
+| Table class | Evidence to collect | Render goal |
+| --- | --- | --- |
+| Absolute pointer table | relocation, absolute target range, indexed load, pointer use | `dc.l target_label` or `dc.l 0` |
+| Long jump table | indexed long load followed by `jmp/jsr` or equivalent traced control transfer | `dc.l case_label` |
+| Word-relative jump table | indexed word load, sign/zero extension, base add, control transfer | `dc.w case_label-table_base` |
+| PC-relative dispatch | PC-relative table base plus indexed word/long dispatch | `dc.w case_label-table_label` or `dc.l case_label` |
+| Runtime-mapped dispatch | table stored in source bytes but consumed through runtime view | runtime labels with source/runtime mapping preserved |
+| Data offset table | indexed word/long added to a data base and then read | `dc.w data_label-data_base` |
+| Scalar lookup table | indexed read used as arithmetic, mask, coordinate, state, or value | keep numeric or type by domain when proven |
+| Hardware setup table | values copied to custom/CIA/display/audio registers | symbolic hardware-domain values where platform metadata supports it |
+| Mixed table | labels plus nulls/sentinels/raw scalar entries | symbolic entries only where each entry is proven |
+
+Required data analysis:
+
+- identify the indexed read and preserve the base register/value
+- backtrack table base through `lea`, `movea`, PC-relative addressing, stack/app
+  reloads, and runtime-copy maps
+- track entry size and signedness through extension, scaling, add/sub, and branch
+  target use
+- infer table bounds from compares, masks, DBF loops, sentinel values, adjacent
+  accepted code, and target validity
+- reject table spans that overlap accepted code unless explicitly modelled as a
+  copied/runtime view
+- record unresolved candidate sites so corpus indexing can find similar patterns
+
+## Absolute Memory Plan
+
+All absolute memory access should be classified by ownership before rendering:
+
+| Class | Examples | Render goal |
+| --- | --- | --- |
+| ExecBase literal | `$4.w`, `$00000004` | usually keep `$4`; document as Amiga rule |
+| CPU/vector table | `$10,$20,$68,$70,$80` | vector symbols plus discovered code target where proven |
+| Hardware registers | `_custom`, `_ciaa`, `_ciab` ranges | generated platform field names |
+| Display memory | bitplanes, sprite pointers, copper pointers | bitmap/copper labels tied to runtime memory ranges |
+| Audio memory | AUDx pointer/length/sample source | sound sample labels and length evidence |
+| Runtime copied code | ORG/runtime payload ranges | runtime labels with source/runtime mapping |
+| Decompressed payload | RNC/BK/Tetragon outputs loaded at absolute addresses | extracted target load range and entrypoint |
+| Absolute globals | fixed RAM buffers, stacks, app state | named memory ranges when ownership is proven |
+| Absolute lookup tables | tables whose entries target absolute ranges | symbolic labels or relative expressions by table kind |
+
+Required data analysis:
+
+- track absolute writes, reads, address loads, calls, and jumps
+- attach each absolute address to a memory owner or leave it numeric
+- merge copy/decompression outputs with runtime entrypoint discovery
+- propagate hardware/display/audio sink types back to source data
+- preserve exact reproduction while avoiding fragile addends
+- expose all accepted and rejected absolute-memory candidates in the web UI
+
+## Design Update Rule
+
+`docs/design-m68k-analysis.md` is the tutorial companion to this plan. Each time
+implementation starts on a planned item, update the design with:
+
+- the user-facing problem
+- the analysis fact shape
+- a short assembly example
+- a text diagram if address spaces or ownership are involved
+- correctness gates and rejection cases
+
+Do this before or during implementation, not after the behavior has drifted into
+undocumented renderer heuristics.
 
 ## Open Checks Before Implementation
 
@@ -134,4 +237,10 @@ proves a distinct base id.
   range recorded in the same C analysis data used by rendering and the web UI.
 - Existing alias emission should be backed by explicit alias facts rather than
   produced as a side effect of sorted slot overlap.
-
+- Lookup-table rendering still needs a single table fact model instead of
+  scattered case-specific render behavior.
+- Corpus indexing should tag unresolved dispatch/table candidate sites by
+  pattern so future heuristic changes can be validated across targets.
+- Bloodwych contains many already-rendered relative lookup tables; those are a
+  useful proving target, but GenAm/MonAm and imported disk targets should remain
+  comparators so Bloodwych does not become the hidden spec.
