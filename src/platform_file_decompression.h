@@ -27,6 +27,9 @@ typedef struct PlatformDecompressionIdentifyResult {
   uint32_t decompressed_initial_control_target;
   uint8_t has_source_section;
   uint8_t has_decompressed_load_entry;
+  uint8_t has_decompressed_load_entry_from_wrapper;
+  uint8_t parent_remains_active_known;
+  uint8_t parent_remains_active;
   int decompressed;
 } PlatformDecompressionIdentifyResult;
 

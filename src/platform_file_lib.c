@@ -32,6 +32,7 @@
 #define PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT (2U * 1024U * 1024U)
 #define PLATFORM_SELF_DECRUNCH_RUNTIME_LITERAL_SLOP 65536U
 #define PLATFORM_SELF_DECRUNCH_STEP_LIMIT (2U * 1024U * 1024U)
+#define PLATFORM_PROVIDER_WRAPPER_STEP_LIMIT (32U * 1024U * 1024U)
 
 static void platform_file_add_error(M68kDiagList *diagnostics, const char *message);
 static void platform_file_add_warning(M68kDiagList *diagnostics, const char *message);
@@ -683,6 +684,45 @@ static size_t read_file_prefix_local(const char *path, uint8_t *buffer, size_t b
   return read_count;
 }
 
+static int read_file_to_arena_local(Arena *arena, const char *path, uint8_t **out_data, size_t *out_size) {
+  FILE *file;
+  long file_size_long;
+  size_t file_size;
+  uint8_t *data;
+  if (out_data != NULL) *out_data = NULL;
+  if (out_size != NULL) *out_size = 0U;
+  if (arena == NULL || path == NULL || out_data == NULL || out_size == NULL) return -1;
+  file = fopen(path, "rb");
+  if (file == NULL) return -1;
+  if (fseek(file, 0L, SEEK_END) != 0) {
+    fclose(file);
+    return -1;
+  }
+  file_size_long = ftell(file);
+  if (file_size_long < 0L) {
+    fclose(file);
+    return -1;
+  }
+  if (fseek(file, 0L, SEEK_SET) != 0) {
+    fclose(file);
+    return -1;
+  }
+  file_size = (size_t)file_size_long;
+  data = (uint8_t *)arena_alloc(arena, file_size != 0U ? file_size : 1U);
+  if (data == NULL) {
+    fclose(file);
+    return -1;
+  }
+  if (file_size != 0U && fread(data, 1U, file_size, file) != file_size) {
+    fclose(file);
+    return -1;
+  }
+  fclose(file);
+  *out_data = data;
+  *out_size = file_size;
+  return 0;
+}
+
 static int infer_decompressed_load_entry_from_initial_control_local(const char *path, uint8_t max_cpu,
     uint32_t load_address, uint32_t decompressed_size, uint32_t *out_entrypoint,
     uint32_t *out_initial_control_target) {
@@ -753,7 +793,10 @@ static int automatic_decompression_candidate_is_useful(const PlatformDecompressi
 static const char *decompression_suggestion_reason_local(const PlatformDecompressionIdentifyResult *result,
     const M68kRuntimeViewIR *runtime_copy_view) {
   if (result == NULL) return "invalid_record";
-  if (result->has_decompressed_load_entry) return "initial_control_target_validated_runtime_copy";
+  if (result->has_decompressed_load_entry)
+    return result->has_decompressed_load_entry_from_wrapper ?
+      "initial_control_target_validated_provider_wrapper" :
+      "initial_control_target_validated_runtime_copy";
   if (runtime_copy_view == NULL) return "missing_runtime_copy_evidence";
   if (runtime_copy_view->kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY)
     return "runtime_copy_conflicting";
@@ -765,6 +808,11 @@ static const char *decompression_suggestion_reason_local(const PlatformDecompres
 static const char *decompression_suggestion_payload_role_local(const PlatformDecompressionIdentifyResult *result) {
   if (result != NULL && result->has_decompressed_load_entry) return "primary_program";
   return "unknown_runtime_payload";
+}
+
+static const char *decompression_parent_remains_active_local(const PlatformDecompressionIdentifyResult *result) {
+  if (result == NULL || !result->parent_remains_active_known) return "unknown";
+  return result->parent_remains_active ? "true" : "false";
 }
 
 typedef struct PlatformSelfDecrunchEvent {
@@ -1827,6 +1875,177 @@ static void self_decrunch_grow_memory_for_candidate_runtime_literals_local(const
   }
 }
 
+static int concrete_write_ranges_cover_span_local(const M68kSimConcreteRunTraceResult *result,
+    uint32_t start, uint32_t size) {
+  uint32_t cursor, end;
+  size_t range_index;
+  if (result == NULL || size == 0U || start > UINT32_MAX - size ||
+      result->memory_write_range_overflow) {
+    return 0;
+  }
+  cursor = start;
+  end = start + size;
+  while (cursor < end) {
+    uint32_t next = cursor;
+    for (range_index = 0U; range_index < result->memory_write_range_count; ++range_index) {
+      const M68kSimConcreteWriteRange *range = &result->memory_write_ranges[range_index];
+      if (range->start <= cursor && range->end > next) next = range->end;
+    }
+    if (next == cursor) return 0;
+    cursor = next < end ? next : end;
+  }
+  return 1;
+}
+
+static int simulate_provider_wrapper_candidate_local(const M68kObject *object,
+    const M68kSourceAnalysisIR *analysis, const M68kSection *section, uint32_t entry_offset,
+    uint32_t transfer_target, const char *output_path, const PlatformDecompressionIdentifyResult *result) {
+  ArenaMark mark;
+  uint8_t *expected = NULL;
+  size_t expected_size = 0U;
+  uint8_t *memory = NULL;
+  size_t memory_size, range_index;
+  M68kSimConcreteState state;
+  M68kSimConcreteMemoryPolicy memory_policy;
+  M68kSimConcreteRunTraceResult run_result;
+  size_t step_limit;
+  int ok = 0;
+  if (object == NULL || analysis == NULL || analysis->arena == NULL || section == NULL || section->data == NULL ||
+      output_path == NULL || result == NULL || result->decompressed_size == 0U ||
+      transfer_target > UINT32_MAX - result->decompressed_size) {
+    return 0;
+  }
+  mark = arena_mark(analysis->arena);
+  if (read_file_to_arena_local(analysis->arena, output_path, &expected, &expected_size) != 0 ||
+      expected_size != result->decompressed_size) {
+    goto cleanup;
+  }
+  memory_size = section->size;
+  if ((size_t)entry_offset + 16U > memory_size) memory_size = (size_t)entry_offset + 16U;
+  if ((size_t)transfer_target + expected_size + 16U > memory_size)
+    memory_size = (size_t)transfer_target + expected_size + 16U;
+  for (range_index = 0U; range_index < analysis->policy.runtime_range_count &&
+      range_index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++range_index) {
+    const M68kAnalysisRuntimeRange *range = &analysis->policy.runtime_ranges[range_index];
+    size_t range_end;
+    if (!range->has_section_index || range->size == 0U || range->runtime_address > UINT32_MAX - range->size)
+      continue;
+    range_end = (size_t)range->runtime_address + range->size;
+    if (range_end > memory_size) memory_size = range_end;
+  }
+  if (memory_size > PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT || entry_offset >= section->size) goto cleanup;
+  memory = (uint8_t *)arena_calloc(analysis->arena, memory_size, 1U);
+  if (memory == NULL) goto cleanup;
+  memcpy(memory, section->data, section->size);
+  for (range_index = 0U; range_index < analysis->policy.runtime_range_count &&
+      range_index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++range_index) {
+    const M68kAnalysisRuntimeRange *range = &analysis->policy.runtime_ranges[range_index];
+    const M68kSection *source_section;
+    if (!range->has_section_index || range->section_index >= object->section_count || range->size == 0U ||
+        range->runtime_address > UINT32_MAX - range->size) {
+      continue;
+    }
+    source_section = &object->sections[range->section_index];
+    if (source_section->data == NULL || range->offset > source_section->data_size ||
+        range->size > source_section->data_size - range->offset ||
+        (size_t)range->runtime_address + range->size > memory_size) {
+      continue;
+    }
+    memcpy(memory + range->runtime_address, source_section->data + range->offset, range->size);
+  }
+  memset(&state, 0, sizeof(state));
+  memset(&memory_policy, 0, sizeof(memory_policy));
+  memset(&run_result, 0, sizeof(run_result));
+  memory_policy.external_write_allowed = platform_self_decrunch_external_write_allowed_local;
+  memory_policy.user = (void *)object;
+  state.pc = entry_offset;
+  state.a[7] = (uint32_t)memory_size;
+  step_limit = result->decompressed_size > PLATFORM_PROVIDER_WRAPPER_STEP_LIMIT / 64U ?
+    PLATFORM_PROVIDER_WRAPPER_STEP_LIMIT : result->decompressed_size * 64U;
+  if (step_limit < PLATFORM_SELF_DECRUNCH_STEP_LIMIT) step_limit = PLATFORM_SELF_DECRUNCH_STEP_LIMIT;
+  if (m68k_simulate_run_concrete(analysis->policy.max_cpu, memory, memory_size, &state,
+      step_limit, transfer_target, transfer_target + 16U,
+      &memory_policy, &run_result) != 0) {
+    goto cleanup;
+  }
+  if (run_result.stop_reason != M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE ||
+      !concrete_write_ranges_cover_span_local(&run_result, transfer_target, result->decompressed_size) ||
+      memcmp(memory + transfer_target, expected, expected_size) != 0) {
+    goto cleanup;
+  }
+  ok = 1;
+
+cleanup:
+  arena_rewind(analysis->arena, mark);
+  return ok;
+}
+
+static int promote_provider_payload_from_wrapper_simulation_local(const M68kObject *object,
+    const M68kSourceAnalysisIR *analysis, const char *output_path, PlatformDecompressionIdentifyResult *result) {
+  M68kDecodeIR decode;
+  const M68kDecodeSectionIR *decode_section;
+  const M68kSectionAnalysisIR *section_analysis;
+  const M68kSection *section;
+  uint32_t offset;
+  uint32_t source_start, source_end;
+  int promoted = 0;
+  memset(&decode, 0, sizeof(decode));
+  if (object == NULL || analysis == NULL || output_path == NULL || result == NULL ||
+      !result->has_source_section || result->source_section_index >= object->section_count ||
+      result->source_section_index >= analysis->section_count ||
+      result->source_section_offset > UINT32_MAX - result->packed_size) {
+    return 0;
+  }
+  if (m68k_decode_ir_build_object_sections(&decode, object, m68k_diag_sink(NULL)) != 0) return 0;
+  if (result->source_section_index >= decode.section_count) {
+    m68k_decode_ir_destroy(&decode);
+    return 0;
+  }
+  decode_section = &decode.sections[result->source_section_index];
+  section_analysis = &analysis->sections[result->source_section_index];
+  section = &object->sections[result->source_section_index];
+  source_start = result->source_section_offset;
+  source_end = source_start + result->packed_size;
+  for (offset = 0U; offset < section_analysis->certain_code_size; ++offset) {
+    const M68kDecodeCandidate *candidate = NULL;
+    uint32_t transfer_target = 0U;
+    uint32_t entry_offset;
+    uint8_t parent_remains_active;
+    if (section_analysis->certain_code_start == NULL || !section_analysis->certain_code_start[offset]) {
+      continue;
+    }
+    if (m68k_decode_ir_ensure_candidate_at(&decode, result->source_section_index, offset,
+        analysis->policy.max_cpu, &candidate, m68k_diag_sink(NULL)) != 0 ||
+        candidate == NULL || candidate->byte_count == 0U) {
+      continue;
+    }
+    if (candidate->offset > UINT32_MAX - candidate->byte_count) continue;
+    if (candidate->offset < source_end && candidate->offset + candidate->byte_count > source_start) continue;
+    if (!runtime_transfer_target_from_candidate_local(decode_section, section_analysis, candidate,
+        &transfer_target, &parent_remains_active)) {
+      continue;
+    }
+    if (parent_remains_active || transfer_target > UINT32_MAX - result->decompressed_size) continue;
+    entry_offset = reachable_decrunch_entry_root_local(section_analysis, result->source_section_index,
+      0U, candidate->offset, analysis->arena);
+    if (!simulate_provider_wrapper_candidate_local(object, analysis, section, entry_offset, transfer_target,
+        output_path, result)) {
+      continue;
+    }
+    result->has_decompressed_load_entry = 1U;
+    result->has_decompressed_load_entry_from_wrapper = 1U;
+    result->parent_remains_active_known = 1U;
+    result->parent_remains_active = 0U;
+    result->decompressed_load_address = transfer_target;
+    result->decompressed_entrypoint = transfer_target;
+    result->decompressed_initial_control_target = transfer_target;
+    promoted = 1;
+    break;
+  }
+  m68k_decode_ir_destroy(&decode);
+  return promoted;
+}
+
 static int simulate_self_decrunch_output_local(const M68kObject *object, const M68kSourceAnalysisIR *analysis,
     const M68kDecodeSectionIR *section, const PlatformSelfDecrunchEvent *event,
     PlatformSelfDecrunchEvent *out_event, const char *output_path, M68kDiagList *diagnostics) {
@@ -2250,6 +2469,7 @@ static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
   char event_id[160];
   const char *reason = decompression_suggestion_reason_local(result, runtime_copy_view);
   const char *payload_role = decompression_suggestion_payload_role_local(result);
+  const char *parent_remains_active = decompression_parent_remains_active_local(result);
   const char *status = result != NULL && result->has_decompressed_load_entry ? "materializable" :
     "needs_runtime_metadata";
   make_decompression_event_id_local(event_id, sizeof(event_id), result);
@@ -2262,7 +2482,8 @@ static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
       json_builder_append(builder, ",\"payload_role\":") != 0 ||
       json_builder_append_json_string(builder, payload_role) != 0 ||
       json_builder_append(builder, ",\"payload_role_confidence\":\"tool_inferred\","
-        "\"parent_remains_active\":\"unknown\"") != 0)
+        "\"parent_remains_active\":") != 0 ||
+      json_builder_append_json_string(builder, parent_remains_active) != 0)
     return -1;
   if (json_builder_appendf(builder,
       ",\"source_section\":%u,\"source_section_offset\":%u,\"packed_size\":%u,\"decompressed_size\":%u",
@@ -2303,6 +2524,7 @@ static int append_decompression_event_json(JsonBuilder *builder,
   char event_id[160];
   const char *reason = decompression_suggestion_reason_local(result, runtime_copy_view);
   const char *payload_role = decompression_suggestion_payload_role_local(result);
+  const char *parent_remains_active = decompression_parent_remains_active_local(result);
   const char *status = result != NULL && result->has_decompressed_load_entry ? "materializable" :
     "needs_runtime_metadata";
   make_decompression_event_id_local(event_id, sizeof(event_id), result);
@@ -2315,7 +2537,8 @@ static int append_decompression_event_json(JsonBuilder *builder,
       json_builder_append(builder, ",\"payload_role\":") != 0 ||
       json_builder_append_json_string(builder, payload_role) != 0 ||
       json_builder_append(builder, ",\"payload_role_confidence\":\"tool_inferred\","
-        "\"parent_remains_active\":\"unknown\"") != 0)
+        "\"parent_remains_active\":") != 0 ||
+      json_builder_append_json_string(builder, parent_remains_active) != 0)
     return -1;
   if (json_builder_appendf(builder,
       ",\"source_kind\":\"section_range\",\"source_section\":%u,\"source_section_offset\":%u,"
@@ -2415,6 +2638,9 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
           result.decompressed_load_address = runtime_copy_view->runtime_address;
           result.decompressed_entrypoint = entrypoint;
           result.decompressed_initial_control_target = initial_control_target;
+        }
+        if (!result.has_decompressed_load_entry) {
+          (void)promote_provider_payload_from_wrapper_simulation_local(object, analysis, output_path, &result);
         }
       }
       result.decompressed_path[0] = '\0';

@@ -4928,6 +4928,41 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     assert direct_profile["direct_rebuild_exact"] is True
 
 
+def test_real_dll_pandora_bk_provider_wrapper_promotes_absolute_payload() -> None:
+    _requires_c_backend_dlls()
+
+    fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "pandora_bk_wrapper.bin"
+    analysis = analyze_binary_source_with_c_backend(fixture, project_root=PROJECT_ROOT)
+    payloads = analysis["packed_payloads"]
+    suggestions = analysis["derived_target_suggestions"]
+    events = analysis["decompression_events"]
+
+    assert len(payloads) == 1
+    assert len(suggestions) == 1
+    assert len(events) == 1
+    assert payloads[0]["provider_id"] == "ancient-cli"
+    assert payloads[0]["codec_id"] == "bk"
+    assert payloads[0]["source_section"] == 0
+    assert payloads[0]["source_section_offset"] == 0xE8
+    assert payloads[0]["packed_size"] == 189000
+    assert payloads[0]["decompressed_size"] == 0x5C000
+    assert payloads[0]["decompressed_sha256"] == (
+        "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    )
+    assert suggestions[0]["status"] == "materializable"
+    assert suggestions[0]["reason"] == "initial_control_target_validated_provider_wrapper"
+    assert suggestions[0]["payload_role"] == "primary_program"
+    assert suggestions[0]["parent_remains_active"] == "false"
+    assert suggestions[0]["load_address"] == 0x20000
+    assert suggestions[0]["entrypoint"] == 0x20000
+    assert suggestions[0]["initial_control_target"] == 0x20000
+    assert events[0]["status"] == "materializable"
+    assert events[0]["reason"] == "initial_control_target_validated_provider_wrapper"
+    assert events[0]["parent_remains_active"] == "false"
+    assert events[0]["load_address"] == 0x20000
+    assert events[0]["entrypoint"] == 0x20000
+
+
 def test_real_dll_carrier_decompressed_child_raw_reproduction() -> None:
     _requires_c_backend_dlls()
 
@@ -5112,12 +5147,12 @@ def test_real_dll_magicland_self_decrunch_materialization(tmp_path: Path) -> Non
     assert event["status"] == "simulated_output_observed"
     assert event["reason"] == "simulated_pc_range_stop"
     assert event["simulated_step_count"] > 262144
-    assert event["simulated_output_size"] == 44220
+    assert event["simulated_output_size"] == 43695
     assert event["load_address"] == 0x20000
     assert event["entrypoint"] == 0x20000
-    assert event["simulated_output_sha256"] == "21ea11a46f008c69cca2795347eca093967191bf535b33c5ff3777619161999d"
+    assert event["simulated_output_sha256"] == "f867bec7c8a062b9d086ea170cd297d620c0a5e32fd90caf14a979f4fe13fce4"
     assert result["status"] == "ok"
-    assert len(output) == 44220
+    assert len(output) == 43695
     assert hashlib.sha256(output).hexdigest() == event["simulated_output_sha256"]
 
 

@@ -1,0 +1,47 @@
+{
+  "child_entry_path": "pandora::bk_000000e8",
+  "child_target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "compressor": {
+    "confidence": "provider-identified",
+    "id": "bk",
+    "name": "BK: ByteKiller"
+  },
+  "decompressed": {
+    "entrypoint": 131072,
+    "load_address": 131072,
+    "sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "size": 376832
+  },
+  "extraction": {
+    "method": "ancient-cli",
+    "tool": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\ext\\tools\\ancient\\Ancient.exe"
+  },
+  "packed": {
+    "section_offset": 232,
+    "sha256": "67ed99d005ca8e01fe863335949e3cf511a649b14819abd90b91e24f9c7da824",
+    "size": 189000
+  },
+  "parent_entry_path": "pandora",
+  "parent_remains_active": "false",
+  "parent_target_id": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
+  "payload_role": "primary_program",
+  "payload_role_confidence": "tool_inferred",
+  "relationship": {
+    "child_entry_path": "pandora::bk_000000e8",
+    "child_target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+    "codec_id": "bk",
+    "codec_name": "BK: ByteKiller",
+    "decompressed_size": 376832,
+    "entrypoint": 131072,
+    "kind": "decompressed_payload",
+    "load_address": 131072,
+    "packed_section_offset": 232,
+    "packed_size": 189000,
+    "parent_entry_path": "pandora",
+    "parent_remains_active": "false",
+    "parent_target": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
+    "payload_role": "primary_program",
+    "payload_role_confidence": "tool_inferred"
+  },
+  "schema_version": 1
+}

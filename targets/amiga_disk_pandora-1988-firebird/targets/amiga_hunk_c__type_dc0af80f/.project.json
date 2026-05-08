@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-08T03:04:34.048935+00:00",
+  "origin": {
+    "entry_path": "c/type",
+    "kind": "disk_child",
+    "parent_disk_id": "pandora-1988-firebird",
+    "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf",
+    "target_role": "disk_entry",
+    "target_type": "program"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-08T03:04:34.057201+00:00"
+}

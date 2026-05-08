@@ -107,6 +107,13 @@ A first C decompression provider layer now exists:
   the decompressed image under that load base. Source rendering still keeps the
   parent stub jump numeric and does not create false source labels at
   `$4000`/`$4004`.
+- Pandora proves the complementary provider-wrapper path for ByteKiller:
+  Ancient identifies and decompresses the BK stream, then C simulates the
+  analysed wrapper and promotes the payload only when the wrapper's absolute
+  transfer target `$20000` is reached and the bytes written at `$20000` exactly
+  match the provider output. This records
+  `initial_control_target_validated_provider_wrapper`, not runtime-copy
+  evidence.
 - Facts-v2 now preserves a separate non-materialising runtime-copy evidence
   record when a discovered copy conflicts with an already accepted runtime
   source view. Carrier uses this for the `$4C40 -> $4000` packed stream copy:
@@ -517,8 +524,8 @@ Current retained output:
    relying on optional corpus resources. The fixture exposed missing generated
    simulator coverage for extend arithmetic (`ADDX`/`SUBX`) and a too-small
    self-decrunch step bound. C simulation now reaches the transfer to `$20000`
-   and materializes a 44220-byte payload with SHA-256
-   `21ea11a46f008c69cca2795347eca093967191bf535b33c5ff3777619161999d`.
+   and materializes a 43695-byte payload with SHA-256
+   `f867bec7c8a062b9d086ea170cd297d620c0a5e32fd90caf14a979f4fe13fce4`.
 32. Done: materialized decompressed child metadata preserves C payload role
    fields. Imported/refresh-created children now write `payload_role`,
    `payload_role_confidence`, and `parent_remains_active` into the child project

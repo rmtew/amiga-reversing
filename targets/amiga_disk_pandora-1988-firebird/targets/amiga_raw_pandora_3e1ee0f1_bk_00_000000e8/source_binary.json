@@ -1,0 +1,9 @@
+{
+  "address_model": "runtime_absolute",
+  "code_start_offset": 0,
+  "entrypoint": 131072,
+  "kind": "raw_binary",
+  "load_address": 131072,
+  "parent_disk_id": "pandora-1988-firebird",
+  "path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/binary.bin"
+}

@@ -64,6 +64,14 @@ unsupported/identified record with provenance and corpus tags. Materialization
 through the external tool can remain a transitional feature only when it is
 explicit, provenance-rich, and covered by reproduction tests.
 
+Provider-identified streams may be promoted without a runtime-copy record when
+analysed wrapper code proves an absolute output and entrypoint. The proof must
+come from C: simulate the wrapper with bounded memory/steps, require an
+unconditional transfer into the produced range, require concrete write coverage
+of the full provider output span, and byte-compare the written memory against
+the provider output. Pandora ByteKiller is the current real-data proving target
+for this path.
+
 Native implementations for codecs Ancient already identifies and decompresses
 are deferred for now. The current priority is the unsupported class: targets
 such as Damocles where external suites do not identify the packed program and C
@@ -259,7 +267,7 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   class.
 - Magicland Dizzy `TRAINER` is now a committed real-data fixture for the
   simulator-required path. It proved generated simulator support for extend
-  arithmetic (`ADDX`/`SUBX`) and materializes a 44220-byte unknown
+  arithmetic (`ADDX`/`SUBX`) and materializes a 43695-byte unknown
   self-decrunch payload at `$20000` without relying on optional corpus
   resources.
 - Magicland Dizzy proper is an ORG/bootstrap runtime-copy case, not visible

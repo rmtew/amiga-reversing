@@ -4019,7 +4019,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
         memory, memory_size, io_state->pc, &immediate_value) &&
       sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index, dest, &is_address, &lhs_reg)) {
-    uint32_t delta = immediate_value == 0U ? 8U : immediate_value;
+    uint32_t delta = immediate_value;
     if (metadata->operation_type == M68K_SIM_OP_SUB) delta = (uint32_t)(0U - delta);
     if (is_address) io_state->a[lhs_reg] += delta; else io_state->d[lhs_reg] += delta;
   } else if ((metadata->operation_type == M68K_SIM_OP_ADD_EXTEND ||
