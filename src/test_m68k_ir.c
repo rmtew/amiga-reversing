@@ -4300,6 +4300,37 @@ static int test_facts_v2_word_dispatch_promotes_far_relative_targets(void) {
   return 0;
 }
 
+static int test_source_analysis_table_record_marks_code_overlap_conflict(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  uint8_t certain_code[4] = {1U, 1U, 0U, 0U};
+  char *analysis_json = NULL;
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  memset(&section_analysis, 0, sizeof(section_analysis));
+  m68k_analysis_policy_init_default(&source_analysis.policy);
+  source_analysis.section_count = 1U;
+  source_analysis.sections = &section_analysis;
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = sizeof(certain_code);
+  section_analysis.certain_code_byte = certain_code;
+  section_analysis.certain_code_size = sizeof(certain_code);
+  source_analysis.policy.structured_data_item_count = 1U;
+  source_analysis.policy.structured_data_items[0].has_section_index = 1U;
+  source_analysis.policy.structured_data_items[0].section_index = 0U;
+  source_analysis.policy.structured_data_items[0].offset = 0U;
+  source_analysis.policy.structured_data_items[0].size = 2U;
+  source_analysis.policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+  snprintf(source_analysis.policy.structured_data_items[0].semantic_role,
+    sizeof(source_analysis.policy.structured_data_items[0].semantic_role), "lookup_table");
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"table_record_count\":1,\"table_records\":[{\"section_index\":0,\"offset\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state\":\"code_overlap\"") != NULL);
+  free(analysis_json);
+  return 0;
+}
+
 static int test_facts_v2_word_dispatch_stops_far_table_at_zero_boundary(void) {
   M68kObject object;
   M68kSection section;
@@ -14334,6 +14365,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_traced_indirect_jump_promotes_word_relative_table_targets},
     {"facts_v2_word_dispatch_promotes_far_relative_targets",
       test_facts_v2_word_dispatch_promotes_far_relative_targets},
+    {"source_analysis_table_record_marks_code_overlap_conflict",
+      test_source_analysis_table_record_marks_code_overlap_conflict},
     {"facts_v2_word_dispatch_stops_far_table_at_zero_boundary",
       test_facts_v2_word_dispatch_stops_far_table_at_zero_boundary},
     {"facts_v2_pc_word_dispatch_renders_labels_across_saved_register",

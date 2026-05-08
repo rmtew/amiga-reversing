@@ -1642,14 +1642,34 @@ static size_t source_analysis_table_record_count(const M68kAnalysisPolicy *polic
   return count;
 }
 
-static int append_source_analysis_table_records_json(JsonBuilder *builder, const M68kAnalysisPolicy *policy) {
+static int source_analysis_range_overlaps_accepted_code(const M68kSourceAnalysisIR *source_analysis,
+    const M68kAnalysisStructuredDataItem *item) {
+  uint32_t cursor;
+  const M68kSectionAnalysisIR *section;
+  if (source_analysis == NULL || item == NULL || !item->has_section_index ||
+      item->section_index >= source_analysis->section_count || item->size == 0U) {
+    return 0;
+  }
+  section = &source_analysis->sections[item->section_index];
+  if (section->certain_code_byte == NULL || item->offset >= section->certain_code_size) return 0;
+  for (cursor = 0U; cursor < item->size && cursor < section->certain_code_size - item->offset; ++cursor) {
+    if (section->certain_code_byte[item->offset + cursor] != 0U) return 1;
+  }
+  return 0;
+}
+
+static int append_source_analysis_table_records_json(JsonBuilder *builder,
+    const M68kSourceAnalysisIR *source_analysis) {
   uint16_t index;
   size_t emitted = 0U;
-  if (builder == NULL || policy == NULL) return -1;
+  const M68kAnalysisPolicy *policy;
+  if (builder == NULL || source_analysis == NULL) return -1;
+  policy = &source_analysis->policy;
   for (index = 0U; index < policy->structured_data_item_count &&
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
     const char *table_kind = structured_data_item_table_kind(item);
+    int code_overlap = source_analysis_range_overlaps_accepted_code(source_analysis, item);
     uint32_t entry_size = structured_data_item_entry_size(item);
     uint32_t entry_count = entry_size != 0U ? item->size / entry_size : 0U;
     if (table_kind == NULL) continue;
@@ -1684,8 +1704,9 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder, const
     if (item->has_consumer) {
       if (json_builder_appendf(builder, "%u", (unsigned)item->consumer_offset) != 0) return -1;
     } else if (json_builder_append(builder, "null") != 0) return -1;
-    if (json_builder_append(builder,
-        ",\"confidence\":\"tool_inferred\",\"conflict_state\":\"clean\"}") != 0)
+    if (json_builder_appendf(builder,
+        ",\"confidence\":\"tool_inferred\",\"conflict_state\":\"%s\"}",
+        code_overlap ? "code_overlap" : "clean") != 0)
       return -1;
   }
   return 0;
@@ -1829,7 +1850,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       (unsigned)orphan_code_signal_count,
       (unsigned)table_record_count) != 0)
     goto oom;
-  if (append_source_analysis_table_records_json(&builder, &source_analysis->policy) != 0)
+  if (append_source_analysis_table_records_json(&builder, source_analysis) != 0)
     goto oom;
   if (json_builder_appendf(&builder, "],\"memory_layout_record_count\":%u,\"memory_layout_records\":[",
       (unsigned)memory_layout_record_count) != 0)

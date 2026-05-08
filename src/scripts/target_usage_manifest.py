@@ -1252,6 +1252,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         base_expression = _string_value(table.get("base_expression"))
         if base_expression:
             example["base_expression"] = base_expression
+        conflict_state = _string_value(table.get("conflict_state")) or "clean"
+        example["conflict_state"] = conflict_state
         consumer_section = _int_value(table.get("consumer_section"))
         consumer_offset = _int_value(table.get("consumer_offset"))
         if consumer_section is not None and consumer_offset is not None:
@@ -1260,6 +1262,9 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         bag.add("table:any", example=example)
         bag.add(f"table:role:{_safe_part(role)}", example=example)
         bag.add(f"table:kind:{_safe_part(table_kind)}", example=example)
+        bag.add(f"table:conflict_state:{_safe_part(conflict_state)}", example=example)
+        if conflict_state != "clean":
+            bag.add("table:conflict", example=example)
         if base_expression:
             bag.add(f"table:base:{_safe_part(base_expression)}", example=example)
         if consumer_section is not None and consumer_offset is not None:
@@ -2971,6 +2976,7 @@ def _analysis_xrefs(
         offset = _int_value(table.get("offset"))
         row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
         base_expression = _string_value(table.get("base_expression"))
+        conflict_state = _string_value(table.get("conflict_state")) or "clean"
         entry_count = _int_value(table.get("entry_count"))
         consumer_section = _int_value(table.get("consumer_section"))
         consumer_offset = _int_value(table.get("consumer_offset"))
@@ -2978,7 +2984,10 @@ def _analysis_xrefs(
             "table:any",
             f"table:role:{_safe_part(role)}",
             f"table:kind:{_safe_part(table_kind)}",
+            f"table:conflict_state:{_safe_part(conflict_state)}",
         ]
+        if conflict_state != "clean":
+            features.append("table:conflict")
         if base_expression:
             features.append(f"table:base:{_safe_part(base_expression)}")
         if consumer_section is not None and consumer_offset is not None:
