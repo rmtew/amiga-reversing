@@ -501,6 +501,12 @@ Current retained output:
    `$40000..$50000`; hunk 2 materializes `$1000..$7C14A`. A second real-data
    comparator, `tests/fixtures/hunk/voodoo_ake_tetragon.bin`, proves the same
    native path on Voodoo Nightmare `ake.c` and materializes `$5C000..$65BA7`.
+30. Done: C event emission suppresses a generic unknown self-decrunch event
+   when a native recognized unpacker has already validated the same source
+   section, load address, and entrypoint. This keeps broad simulator-required
+   candidates as work items only while they are the best available evidence,
+   and prevents Damocles/Voodoo native Tetragon coverage from being duplicated
+   as stale unknown-decrunch work.
 
 ## Current Corpus Query Proof
 
@@ -522,8 +528,10 @@ After rebuilding `corpus/target_usage_manifest.jsonl`:
   exposes the existing load/entry metadata.
 - `decompression:codec:tetragon` and
   `decompression:provider:c-tetragon-signature` find Damocles plus the Voodoo
-  Nightmare `ake.c` comparator as recognised native unpacker candidates. These
-  are identification records only, not retained children.
+  Nightmare `ake.c` comparator as recognised native unpacker candidates. Native
+  validated records now supersede exact same-target generic self-decrunch
+  candidates; retained project children are produced only when imported project
+  refresh materializes the accepted payload.
 - `decompression:runtime_copy` finds Carrier parent evidence where C analysis
   associated packed streams with runtime copy ranges, including the conflicting
   `$4C40 -> $4000` copy.

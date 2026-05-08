@@ -310,3 +310,7 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   the output range. Damocles has a committed real-data fixture covering both
   materialized hunk payloads without depending on mutable target inventory, and
   Voodoo Nightmare `ake.c` is the comparator fixture for the same native path.
+- Native recognized unpacker events supersede exact generic self-decrunch
+  candidates for the same source section, load address, and entrypoint. The
+  simulator-required path remains visible only where no stronger native
+  decompressor evidence covers the transfer target.

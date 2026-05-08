@@ -1497,6 +1497,23 @@ static int self_decrunch_event_matches_materialized_provider_local(const Platfor
   return 0;
 }
 
+static int self_decrunch_event_matches_native_recognized_unpacker_local(
+    const PlatformRecognizedUnpackerEvent *events, size_t event_count,
+    const PlatformSelfDecrunchEvent *event) {
+  size_t index;
+  if (events == NULL || event == NULL) return 0;
+  for (index = 0U; index < event_count; ++index) {
+    const PlatformRecognizedUnpackerEvent *recognized = &events[index];
+    if (!recognized->native_unpack_validated) continue;
+    if (recognized->source_section_index == event->source_section_index &&
+        recognized->target_start_address == event->load_address &&
+        recognized->entrypoint == event->entrypoint) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static uint32_t candidate_write_width_local(const M68kDecodeCandidate *candidate) {
   if (candidate == NULL) return 0U;
   if (candidate->size_suffix == 'b') return 1U;
@@ -2345,6 +2362,7 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
   size_t self_decrunch_event_count = 0U;
   size_t recognized_unpacker_event_count = 0U;
   size_t section_index;
+  size_t emitted_event_count = 0U;
   if (object == NULL || analysis == NULL) return -1;
   memset(results, 0, sizeof(results));
   memset(self_decrunch_events, 0, sizeof(self_decrunch_events));
@@ -2427,22 +2445,26 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
   }
   if (json_builder_append(builder, "],\"decompression_events\":[") != 0) return -1;
   for (section_index = 0U; section_index < result_count; ++section_index) {
-    if (section_index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (emitted_event_count != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (append_decompression_event_json(builder, &results[section_index],
         find_decompression_runtime_copy_view(analysis, &results[section_index])) != 0) return -1;
+    ++emitted_event_count;
   }
   for (section_index = 0U; section_index < recognized_unpacker_event_count; ++section_index) {
-    if ((result_count != 0U || section_index != 0U) && json_builder_append(builder, ",") != 0) return -1;
+    if (emitted_event_count != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (append_recognized_unpacker_event_json(builder, &recognized_unpacker_events[section_index]) != 0) return -1;
+    ++emitted_event_count;
   }
   for (section_index = 0U; section_index < self_decrunch_event_count; ++section_index) {
     if (self_decrunch_event_matches_materialized_provider_local(results, result_count,
         &self_decrunch_events[section_index]))
       continue;
-    if ((result_count != 0U || recognized_unpacker_event_count != 0U || section_index != 0U) &&
-        json_builder_append(builder, ",") != 0)
-      return -1;
+    if (self_decrunch_event_matches_native_recognized_unpacker_local(recognized_unpacker_events,
+        recognized_unpacker_event_count, &self_decrunch_events[section_index]))
+      continue;
+    if (emitted_event_count != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (append_self_decrunch_event_json(builder, &self_decrunch_events[section_index]) != 0) return -1;
+    ++emitted_event_count;
   }
   return json_builder_append(builder, "]");
 }

@@ -4887,8 +4887,12 @@ def test_real_dll_damocles_tetragon_unpacker_candidates() -> None:
     fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "damocles_tetragon_53b24620.bin"
     analysis = analyze_binary_source_with_c_backend(fixture, project_root=PROJECT_ROOT)
     tetragon_events = [event for event in analysis["decompression_events"] if event.get("codec_id") == "tetragon"]
+    self_decrunch_events = [
+        event for event in analysis["decompression_events"] if event.get("source_kind") == "self_decruncher"
+    ]
 
     assert len(tetragon_events) == 2
+    assert self_decrunch_events == []
     by_section = {event["source_section"]: event for event in tetragon_events}
     assert by_section[1]["source_section_offset"] == 0x100
     assert by_section[1]["compressed_source_section_offset"] == 0x100
@@ -4986,6 +4990,9 @@ def test_real_dll_voodoo_tetragon_unpacker_comparator(tmp_path: Path) -> None:
     fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "voodoo_ake_tetragon.bin"
     analysis = analyze_binary_source_with_c_backend(fixture, project_root=PROJECT_ROOT)
     event = next(event for event in analysis["decompression_events"] if event.get("codec_id") == "tetragon")
+    self_decrunch_events = [
+        item for item in analysis["decompression_events"] if item.get("source_kind") == "self_decruncher"
+    ]
     output_path = tmp_path / "voodoo_ake_tetragon.bin"
 
     result = materialize_recognized_unpacker_event_with_c_backend(
@@ -5007,6 +5014,7 @@ def test_real_dll_voodoo_tetragon_unpacker_comparator(tmp_path: Path) -> None:
     assert event["target_start_address"] == 0x5C000
     assert event["target_end_address"] == 0x65BA7
     assert event["entrypoint"] == 0x5C000
+    assert self_decrunch_events == []
     assert result["status"] == "ok"
     assert len(output) == 39847
     assert hashlib.sha256(output).hexdigest() == "7ec283de794a7ddc64d8f2c3a4aa8545aee9e782476ebe75e48da8a117dd404e"
