@@ -463,6 +463,25 @@ typedef struct M68kRecoveredIndirectSiteIR {
   char *detail;
 } M68kRecoveredIndirectSiteIR;
 
+typedef enum M68kOrphanCodeSignalReason {
+  M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE = 1
+} M68kOrphanCodeSignalReason;
+
+typedef enum M68kOrphanCodeSignalStatus {
+  M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED = 1
+} M68kOrphanCodeSignalStatus;
+
+typedef struct M68kOrphanCodeSignalIR {
+  uint32_t offset;
+  uint32_t size;
+  uint32_t terminal_offset;
+  uint8_t terminal_flow_kind;
+  uint8_t reason;
+  uint8_t status;
+  uint8_t confidence;
+  char *detail;
+} M68kOrphanCodeSignalIR;
+
 typedef struct M68kRecoveredPlatformBaseSlotIR {
   int16_t displacement;
   char *base_name;
@@ -780,6 +799,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kRecoveredIndirectSiteIR *recovered_indirect_sites;
   size_t recovered_indirect_site_count;
   size_t recovered_indirect_site_capacity;
+  M68kOrphanCodeSignalIR *orphan_code_signals;
+  size_t orphan_code_signal_count;
+  size_t orphan_code_signal_capacity;
   M68kAppSlotRefIR *app_slot_refs;
   size_t app_slot_ref_count;
   size_t app_slot_ref_capacity;
@@ -880,6 +902,8 @@ int m68k_ir_section_analysis_append_recovered_string_ref(M68kSectionAnalysisIR *
     const M68kRecoveredStringRefIR *ref);
 int m68k_ir_section_analysis_append_recovered_indirect_site(M68kSectionAnalysisIR *section_analysis,
     const M68kRecoveredIndirectSiteIR *site);
+int m68k_ir_section_analysis_append_orphan_code_signal(M68kSectionAnalysisIR *section_analysis,
+    const M68kOrphanCodeSignalIR *signal);
 int m68k_ir_section_analysis_append_app_slot_ref(M68kSectionAnalysisIR *section_analysis,
     const M68kAppSlotRefIR *ref);
 int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionAnalysisIR *section_analysis,

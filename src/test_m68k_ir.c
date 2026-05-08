@@ -3446,6 +3446,96 @@ static int test_facts_v2_records_unresolved_indirect_jump_site(void) {
   return 0;
 }
 
+static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t bytes[6] = {
+    0x4eu, 0x75u,
+    0x70u, 0x01u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmoveq.l #1,d0\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $70,$01,$4E,$75\n") != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
+  M68K_C_ASSERT_U32(2U, source_analysis.sections[0].orphan_code_signals[0].offset);
+  M68K_C_ASSERT_U32(4U, source_analysis.sections[0].orphan_code_signals[0].size);
+  M68K_C_ASSERT_U32(4U, source_analysis.sections[0].orphan_code_signals[0].terminal_offset);
+  M68K_C_ASSERT_U32(M68K_SIM_FLOW_RETURN, source_analysis.sections[0].orphan_code_signals[0].terminal_flow_kind);
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE,
+    source_analysis.sections[0].orphan_code_signals[0].reason);
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED,
+    source_analysis.sections[0].orphan_code_signals[0].status);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"orphan_code_signal_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"terminal_flow\":\"return\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"reason\":\"terminal_decode\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"status\":\"unresolved\"") != NULL);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_reached_terminal_island_is_not_orphan_signal(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[8] = {
+    0x61u, 0x02u,
+    0x4eu, 0x75u,
+    0x70u, 0x01u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tbsr.b loc_0_00000004\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmoveq.l #1,d0\n") != NULL);
+  M68K_C_ASSERT_U32(0U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_resolved_platform_call_not_unresolved_indirect_site(void) {
   M68kObject object;
   M68kSection section;
@@ -14235,6 +14325,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_infers_lvo_immediate_for_indexed_wrapper},
     {"facts_v2_render_asm_source_ignores_ambiguous_wrapper_stack_arg",
       test_facts_v2_render_asm_source_ignores_ambiguous_wrapper_stack_arg},
+    {"facts_v2_reports_orphan_terminal_code_signal_without_promoting",
+      test_facts_v2_reports_orphan_terminal_code_signal_without_promoting},
+    {"facts_v2_reached_terminal_island_is_not_orphan_signal",
+      test_facts_v2_reached_terminal_island_is_not_orphan_signal},
     {"facts_v2_render_asm_source_tracks_cross_section_local_wrapper_without_inline_comment",
       test_facts_v2_render_asm_source_tracks_cross_section_local_wrapper_without_inline_comment},
     {"facts_v2_render_asm_source_tracks_non_wrapper_local_helper_without_inline_comment",

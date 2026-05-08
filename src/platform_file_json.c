@@ -886,6 +886,27 @@ static const char *recovered_indirect_status_name(uint8_t status) {
   return "unknown";
 }
 
+static const char *orphan_code_signal_reason_name(uint8_t reason) {
+  if (reason == M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE) return "terminal_decode";
+  return "unknown";
+}
+
+static const char *orphan_code_signal_status_name(uint8_t status) {
+  if (status == M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED) return "unresolved";
+  return "unknown";
+}
+
+static const char *sim_flow_kind_name(uint8_t flow_kind) {
+  if (flow_kind == M68K_SIM_FLOW_NONE) return "none";
+  if (flow_kind == M68K_SIM_FLOW_SEQUENTIAL) return "sequential";
+  if (flow_kind == M68K_SIM_FLOW_BRANCH) return "branch";
+  if (flow_kind == M68K_SIM_FLOW_JUMP) return "jump";
+  if (flow_kind == M68K_SIM_FLOW_CALL) return "call";
+  if (flow_kind == M68K_SIM_FLOW_RETURN) return "return";
+  if (flow_kind == M68K_SIM_FLOW_TRAP) return "trap";
+  return "unknown";
+}
+
 static int text_ends_with(const char *text, const char *suffix) {
   size_t text_len;
   size_t suffix_len;
@@ -1591,7 +1612,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, code_start_ref_index;
     size_t string_ref_index;
-    size_t effect_index, call_index, indirect_site_index;
+    size_t effect_index, call_index, indirect_site_index, orphan_signal_index;
     if (section_index != 0U && json_builder_append(&builder, ",") != 0)
       goto oom;
     if (json_builder_appendf(&builder,
@@ -2115,6 +2136,35 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       } else if (json_builder_append(&builder, "null") != 0) {
         goto oom;
       }
+      if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"orphan_code_signal_count\":%u,\"orphan_code_signals\":[",
+          (unsigned)section->orphan_code_signal_count) != 0)
+      goto oom;
+    for (orphan_signal_index = 0; orphan_signal_index < section->orphan_code_signal_count; ++orphan_signal_index) {
+      const M68kOrphanCodeSignalIR *signal = &section->orphan_code_signals[orphan_signal_index];
+      if (orphan_signal_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"offset\":%u,\"size\":%u,\"terminal_offset\":%u,\"terminal_flow\":",
+          (unsigned)signal->offset, (unsigned)signal->size, (unsigned)signal->terminal_offset) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, sim_flow_kind_name(signal->terminal_flow_kind)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"reason\":") != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, orphan_code_signal_reason_name(signal->reason)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"status\":") != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, orphan_code_signal_status_name(signal->status)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"confidence\":%u,\"detail\":",
+          (unsigned)signal->confidence) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, signal->detail) != 0)
+        goto oom;
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }

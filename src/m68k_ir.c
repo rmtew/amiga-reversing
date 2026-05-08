@@ -701,6 +701,38 @@ int m68k_ir_section_analysis_append_recovered_indirect_site(M68kSectionAnalysisI
   return 0;
 }
 
+int m68k_ir_section_analysis_append_orphan_code_signal(M68kSectionAnalysisIR *section_analysis,
+    const M68kOrphanCodeSignalIR *signal) {
+  M68kOrphanCodeSignalIR copy;
+  size_t index;
+  if (section_analysis == NULL || signal == NULL) return -1;
+  if (section_analysis->arena == NULL || signal->size == 0U || signal->reason == 0U || signal->status == 0U)
+    return -1;
+  for (index = 0; index < section_analysis->orphan_code_signal_count; ++index) {
+    const M68kOrphanCodeSignalIR *existing = &section_analysis->orphan_code_signals[index];
+    if (existing->offset == signal->offset &&
+        existing->size == signal->size &&
+        existing->terminal_offset == signal->terminal_offset &&
+        existing->reason == signal->reason &&
+        existing->status == signal->status) {
+      return 0;
+    }
+  }
+  copy = *signal;
+  copy.detail = NULL;
+  if (signal->detail != NULL) {
+    copy.detail = arena_strdup(section_analysis->arena, signal->detail);
+    if (copy.detail == NULL) return -1;
+  }
+  section_analysis->orphan_code_signals = (M68kOrphanCodeSignalIR *)arena_grow_array(section_analysis->arena,
+    section_analysis->orphan_code_signals, section_analysis->orphan_code_signal_count,
+    &section_analysis->orphan_code_signal_capacity, 8U, sizeof(*section_analysis->orphan_code_signals));
+  if (section_analysis->orphan_code_signals == NULL) return -1;
+  section_analysis->orphan_code_signals[section_analysis->orphan_code_signal_count] = copy;
+  section_analysis->orphan_code_signal_count += 1U;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_app_slot_ref(M68kSectionAnalysisIR *section_analysis,
     const M68kAppSlotRefIR *ref) {
   size_t index;
@@ -1782,6 +1814,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->recovered_indirect_site_count; ++index) {
     if (m68k_ir_section_analysis_append_recovered_indirect_site(&copy,
           &section_analysis->recovered_indirect_sites[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->orphan_code_signal_count; ++index) {
+    if (m68k_ir_section_analysis_append_orphan_code_signal(&copy,
+          &section_analysis->orphan_code_signals[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

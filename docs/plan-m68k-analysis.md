@@ -63,7 +63,7 @@ Reviewed implementation and tests before updating this plan. Current state:
 | ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, and policy-vs-inferred precedence. | Runtime-copy facts need explicit wrapper-load/helper/final-image relationships and UI-visible rejected reasons. |
 | Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, and relative `target-base` rendering. | Existing behavior is still spread across recovered indirect sites, structured data, and rendering; needs one table fact model. |
 | Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks. | Need one memory-layout view that merges absolute globals, hardware, runtime code, display/audio, and unresolved candidates. |
-| Orphaned code | No first-class orphan fact model was found in the current code review. | Implement diagnostic scan/facts/metrics without auto-promoting code-like data. |
+| Orphaned code | C analysis now records unresolved terminal-decode islands at accepted-code boundaries or data labels as orphan signals without promoting them to accepted code. | Extend the signal with inbound-evidence classes, nearby context, target metrics, and reconciliation after table/callback/vector improvements. |
 | Targets | Bloodwych has many relative lookup tables; Pandora demonstrates wrapper load vs final copied image; Conqueror demonstrates weak low ORG risk; Carrier stresses packed/runtime-copy ambiguity; GenAm/MonAm remain comparator targets. | Corpus tags should preserve these pattern roles so later changes can be validated across comparable targets. |
 
 Past decisions to preserve:
@@ -185,13 +185,15 @@ proves a distinct base id.
    - confidence and conflict state
 
 5. Add orphaned-code signal records:
-   - candidate source range and decode start
-   - terminal instruction and candidate extent
+   - candidate source range and decode start: implemented for terminal-decode
+     islands at accepted-code boundaries or data labels
+   - terminal instruction and candidate extent: implemented
    - plausibility score, CPU requirement, and decode conflicts
    - nearby data/table/string context
    - possible missing inbound evidence class: jump table, callback, vector,
      runtime copy, API, metadata, or policy seed
-   - status: unresolved signal, linked and promoted, rejected, suppressed
+   - status: unresolved signal implemented; linked and promoted, rejected, and
+     suppressed remain planned
    - corpus tag and target-level signal count
 
 6. Rendering rules:
@@ -402,7 +404,9 @@ undocumented renderer heuristics.
   produced as a side effect of sorted slot overlap.
 - Lookup-table rendering still needs a single table fact model instead of
   scattered case-specific render behavior.
-- Orphaned code signals need a first-class fact model and target-level metrics.
+- Orphaned code signals have a first-class fact model for unresolved
+  terminal-decode islands at accepted-code boundaries or data labels;
+  target-level metrics and richer cause classification remain.
 - The signal should be reconciled after jump/lookup table work: a good table
   improvement should turn some orphan candidates into reached code, not just hide
   them.
