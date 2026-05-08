@@ -53,6 +53,20 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "runtime_copy_conflicting": True,
                         }
                     ],
+                    "table_candidate_records": [
+                        {
+                            "section_index": 0,
+                            "offset": 0x120,
+                            "flow": "jump",
+                            "shape": "pcindex.brief",
+                            "status": "unresolved",
+                            "source_pattern": "pc_indexed_indirect",
+                            "conflict_state": "unresolved",
+                            "detail": "indexed dispatch candidate",
+                            "target": None,
+                            "target_count": None,
+                        }
+                    ],
                     "table_records": [
                         {
                             "section_index": 0,
@@ -824,6 +838,20 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "runtime_copy_conflicting": True,
                     }
                 ],
+                "table_candidate_records": [
+                    {
+                        "section_index": 0,
+                        "offset": 0x120,
+                        "flow": "jump",
+                        "shape": "pcindex.brief",
+                        "status": "unresolved",
+                        "source_pattern": "pc_indexed_indirect",
+                        "conflict_state": "unresolved",
+                        "detail": "indexed dispatch candidate",
+                        "target": None,
+                        "target_count": None,
+                    }
+                ],
                 "table_records": [
                     {
                         "section_index": 0,
@@ -1145,9 +1173,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("orphan-code:nearby_data:after:lookup_table", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("analysis:indirect_site:status:unresolved", "indirect_site", 0x120, None), by_feature)
         self.assertIn(("analysis:indirect_site:shape:pcindex.brief", "indirect_site", 0x120, None), by_feature)
-        self.assertIn(("table:candidate_unresolved", "indirect_site", 0x120, None), by_feature)
+        self.assertIn(("table:candidate_unresolved", "table_candidate", 0x120, None), by_feature)
         self.assertIn(
-            ("table:candidate_unresolved:source_pattern:pc_indexed_indirect", "indirect_site", 0x120, None),
+            ("table:candidate_unresolved:source_pattern:pc_indexed_indirect", "table_candidate", 0x120, None),
             by_feature,
         )
         self.assertIn(("compressed-payload", "packed_payload", 0x4C40, 6), by_feature)

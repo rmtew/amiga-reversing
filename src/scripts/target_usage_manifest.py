@@ -1270,10 +1270,37 @@ def _add_indirect_site_features(bag: FeatureBag, section_index: int, site: dict[
     bag.add(f"analysis:indirect_site:shape:{_safe_part(shape)}", example=example)
     bag.add(f"analysis:indirect_site:flow:{_safe_part(flow)}", example=example)
     bag.add(f"analysis:indirect_site:source_pattern:{_safe_part(source_pattern)}", example=example)
-    if status not in {"jump_table", "resolved_runtime", "runtime", "external"}:
-        bag.add("table:candidate_unresolved", example=example)
-        bag.add(f"table:candidate_unresolved:source_pattern:{_safe_part(source_pattern)}", example=example)
-        bag.add(f"table:candidate_unresolved:status:{_safe_part(status)}", example=example)
+
+
+def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]) -> None:
+    section_index = _int_value(record.get("section_index"), 0)
+    offset = _int_value(record.get("offset"))
+    status = _string_value(record.get("status")) or "unknown"
+    shape = _string_value(record.get("shape")) or "unknown"
+    flow = _string_value(record.get("flow")) or "unknown"
+    source_pattern = _string_value(record.get("source_pattern")) or _indirect_site_source_pattern(shape)
+    conflict_state = _string_value(record.get("conflict_state")) or "unresolved"
+    example = _offset_example(section_index, offset, f"{flow} {shape} {status}")
+    example["status"] = status
+    example["shape"] = shape
+    example["flow"] = flow
+    example["source_pattern"] = source_pattern
+    example["conflict_state"] = conflict_state
+    target = _int_value(record.get("target"))
+    if target is not None:
+        example["target"] = target
+    target_count = _int_value(record.get("target_count"))
+    if target_count is not None:
+        example["target_count"] = target_count
+    detail = _string_value(record.get("detail"))
+    if detail:
+        example["detail"] = detail
+    bag.add("table:candidate_unresolved", example=example)
+    bag.add(f"table:candidate_unresolved:source_pattern:{_safe_part(source_pattern)}", example=example)
+    bag.add(f"table:candidate_unresolved:status:{_safe_part(status)}", example=example)
+    bag.add(f"table:candidate_unresolved:shape:{_safe_part(shape)}", example=example)
+    bag.add(f"table:candidate_unresolved:flow:{_safe_part(flow)}", example=example)
+    bag.add(f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}", example=example)
 
 
 def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
@@ -1324,6 +1351,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         entry_size = _int_value(table.get("entry_size"))
         if entry_size is not None:
             bag.add(f"table:entry_size:{entry_size}", example=example)
+    for record in _dict_items(analysis.get("table_candidate_records")):
+        _add_table_candidate_record_features(bag, record)
     for record in _dict_items(analysis.get("memory_layout_records")):
         record_kind = _string_value(record.get("record_kind")) or "unknown"
         memory_kind = _string_value(record.get("memory_kind")) or "unknown"
@@ -3066,6 +3095,39 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, "table:consumer", "table_consumer", section=consumer_section,
                 offset=consumer_offset, row_index=consumer_row_index, stable_key=consumer_stable_key,
                 symbol=role, value=entry_count, text=consumer_row_text or table_kind))
+    for record in _dict_items(analysis.get("table_candidate_records")):
+        section_index = _int_value(record.get("section_index"), 0)
+        offset = _int_value(record.get("offset"))
+        row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
+        status = _string_value(record.get("status")) or "unknown"
+        shape = _string_value(record.get("shape")) or "unknown"
+        flow = _string_value(record.get("flow")) or "unknown"
+        source_pattern = _string_value(record.get("source_pattern")) or _indirect_site_source_pattern(shape)
+        conflict_state = _string_value(record.get("conflict_state")) or "unresolved"
+        target_count = _int_value(record.get("target_count"))
+        text = row_text or _string_value(record.get("detail")) or f"{flow} {shape} {status}"
+        features = [
+            "table:candidate_unresolved",
+            f"table:candidate_unresolved:source_pattern:{_safe_part(source_pattern)}",
+            f"table:candidate_unresolved:status:{_safe_part(status)}",
+            f"table:candidate_unresolved:shape:{_safe_part(shape)}",
+            f"table:candidate_unresolved:flow:{_safe_part(flow)}",
+            f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}",
+        ]
+        for feature in features:
+            xrefs.append(
+                _xref(
+                    row,
+                    feature,
+                    "table_candidate",
+                    section=section_index,
+                    offset=offset,
+                    row_index=row_index,
+                    stable_key=stable_key,
+                    value=target_count,
+                    text=text,
+                )
+            )
     for record in _dict_items(analysis.get("memory_layout_records")):
         record_kind = _string_value(record.get("record_kind")) or "unknown"
         memory_kind = _string_value(record.get("memory_kind")) or "unknown"
@@ -3300,14 +3362,6 @@ def _analysis_xrefs(
                 f"analysis:indirect_site:flow:{_safe_part(flow)}",
                 f"analysis:indirect_site:source_pattern:{_safe_part(source_pattern)}",
             ]
-            if status not in {"jump_table", "resolved_runtime", "runtime", "external"}:
-                features.extend(
-                    [
-                        "table:candidate_unresolved",
-                        f"table:candidate_unresolved:source_pattern:{_safe_part(source_pattern)}",
-                        f"table:candidate_unresolved:status:{_safe_part(status)}",
-                    ]
-                )
             for feature in features:
                 xrefs.append(
                     _xref(
