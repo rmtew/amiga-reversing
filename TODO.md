@@ -1,9 +1,5 @@
 # TODO
 
-## Unsorted
-
-- Devices seem to not get the full Amiga platform resident analysis/disassembly.
-
 ## Phase 6: Beyond Static Analysis
 
 Static analysis has reached its limits for GenAm at 28.5% core coverage.
@@ -87,6 +83,7 @@ The remaining code is reachable only through runtime-dependent dispatch
 - [ ] If we import seeded target-local facts from external reverse-engineering sources, keep them in an optional import workflow and never make tests, normal target rendering, or precommit depend on the external source being present
 - [ ] Add Add Project UI flow for manual raw-binary targets that requires user-supplied load address and entrypoint, using the new strict `source_binary.json` raw-binary source kind
 - [ ] Auto-create non-DOS loader stage targets only when bootloader analysis can materialize concrete stage bytes plus load address and entrypoint, so inferred-only regions stay honest
+- [ ] Extend runtime-built Amiga resident/device analysis for targets such as `amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__ramdrive.device_2c146d8c`, where resident/device structures and dispatch code are copied and relocated before `AddDevice`; keep any source refresh gated on clean direct rebuild or explicitly classified relocation semantics.
 - [ ] Keep the mojibake check in `amiga_reversing.tools.check_mojibake` tight and data-oriented; if more broken encodings appear, extend the explicit pattern list with focused regression tests rather than broad punctuation bans
 - [ ] Continue the remaining M68K/disasm audit slices beyond the assembler coverage work:
   - decoder/disassembler generated-form consistency in the C disassembler/IR metadata

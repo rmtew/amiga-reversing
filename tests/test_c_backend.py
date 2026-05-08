@@ -6306,6 +6306,10 @@ def test_non_autoinit_resident_make_library_vectors_seed_device_entrypoints(tmp_
             "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_devs__printer.device_1aada1d4",
             "printer_device",
         ),
+        (
+            "amiga_disk_starglider-1987-rainbird__amiga_hunk_devs__serial.device_ddfdac2b",
+            "serial_device",
+        ),
     ],
 )
 def test_real_dll_non_autoinit_resident_vectors_seed_device_entrypoints(target_name: str, prefix: str) -> None:
