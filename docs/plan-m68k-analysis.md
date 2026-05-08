@@ -7,10 +7,11 @@ It should be reviewed before more renderer changes are made.
 ## Objective
 
 Build a C-owned model for persistent base-relative storage, absolute runtime
-memory, ORG/runtime views, bootstraps, and lookup tables. Rendering should
-consume that model to emit `RSSET`, labels, platform fields, ORG ranges, relative
-table expressions, and web UI navigation without confusing app storage, Amiga
-hardware, runtime-copied code, scalar data, and dispatch tables.
+memory, ORG/runtime views, bootstraps, lookup tables, and orphaned code signals.
+Rendering should consume that model to emit `RSSET`, labels, platform fields,
+ORG ranges, relative table expressions, and web UI navigation without confusing
+app storage, Amiga hardware, runtime-copied code, scalar data, orphan candidates,
+and dispatch tables.
 
 ## Current Implementation Notes
 
@@ -45,6 +46,8 @@ Existing tests show partial lookup/absolute coverage:
 - hardware/display/audio runtime sink classification
 - runtime copy and ORG conflict suppression
 - low trampoline suppression where a larger runtime range is stronger
+- likely code islands can be detected, but are not accepted unless linked to
+  real flow
 
 These behaviors need one unified design model so new cases do not become
 one-off heuristics.
@@ -153,13 +156,25 @@ proves a distinct base id.
    - entry target range and null/sentinel rules
    - confidence and conflict state
 
-5. Rendering rules:
+5. Add orphaned-code signal records:
+   - candidate source range and decode start
+   - terminal instruction and candidate extent
+   - plausibility score, CPU requirement, and decode conflicts
+   - nearby data/table/string context
+   - possible missing inbound evidence class: jump table, callback, vector,
+     runtime copy, API, metadata, or policy seed
+   - status: unresolved signal, linked and promoted, rejected, suppressed
+   - corpus tag and target-level signal count
+
+6. Rendering rules:
    - emit one RSSET block per proven base layout
    - emit alias fragments only as overlays of that layout
    - never use RSSET for known hardware or platform struct fields
    - never use absolute label/addend tricks over code/data ranges
    - emit `ORG` only for proven source-level runtime views
    - keep weak low trampolines numeric or explicit absolute symbols
+   - keep orphan candidates rendered as data until a real inbound edge or
+     explicit seed proves code ownership
    - use storage labels before an ORG and runtime labels inside an ORG
    - render relative table entries as `target_label-base_label`
    - render absolute pointer entries as labels only when the target owner is
@@ -168,12 +183,12 @@ proves a distinct base id.
      domain-specific symbolic form
    - keep include region, RSSET region, then EQU/symbol region ordering
 
-6. Web UI rules:
+7. Web UI rules:
    - show memory layout ranges and conflicts from C analysis
    - navigate to source evidence for each range
    - distinguish app layout fields, aliases, hardware fields, copied runtime
      code, display memory, audio memory, stack, pointer tables, jump tables,
-     scalar tables, and unresolved table candidates
+     scalar tables, unresolved table candidates, and orphaned code signals
 
 ## ORG and Bootstrap Plan
 
@@ -266,6 +281,44 @@ Required data analysis:
   copied/runtime view
 - record unresolved candidate sites so corpus indexing can find similar patterns
 
+## Orphaned Code Signal Plan
+
+Orphaned code detection is a diagnostic tool. It should reveal gaps in program
+flow analysis, not paper over them.
+
+| Signal | Evidence to collect | Use |
+| --- | --- | --- |
+| Terminal decode island | plausible instructions ending in `rts/rte/jmp/bra` | flag as unresolved code candidate |
+| Post-table code island | code-like range near unresolved indexed dispatch data | drive jump/lookup table analysis |
+| Vector-like target | absolute/vector store candidate not connected to accepted flow | drive vector backtracking |
+| Runtime-copy-adjacent island | code-like bytes inside or near copied runtime source | drive ORG/runtime mapping |
+| Callback-like island | code-like range near API inputs, app slots, or function tables | drive typed-flow/callback inference |
+
+Required data analysis:
+
+- scan unaccepted data ranges for plausible decode spans and terminal
+  instructions using generated decode/effect metadata
+- reject spans that overlap accepted code, known tables, strings, structured
+  data, or platform-owned data unless a source/runtime map explains the overlap
+- record why each candidate is not accepted yet
+- correlate candidates with unresolved indirect jumps, lookup tables, vectors,
+  callbacks, runtime copies, and absolute memory references
+- promote candidates only after a real inbound edge or explicit seed is found
+- measure target signal counts before/after table/vector/ORG improvements
+
+The intended improvement loop is:
+
+```
+find orphan signal
+  -> identify likely missing inbound evidence
+  -> improve generic/platform analysis
+  -> accepted flow reaches the code
+  -> orphan signal count decreases
+```
+
+This means a lower orphan count is only a gain when the candidate became reached
+code through real analysis. Blind auto-conversion is not progress.
+
 ## Absolute Memory Plan
 
 All absolute memory access should be classified by ownership before rendering:
@@ -321,6 +374,10 @@ undocumented renderer heuristics.
   produced as a side effect of sorted slot overlap.
 - Lookup-table rendering still needs a single table fact model instead of
   scattered case-specific render behavior.
+- Orphaned code signals need a first-class fact model and target-level metrics.
+- The signal should be reconciled after jump/lookup table work: a good table
+  improvement should turn some orphan candidates into reached code, not just hide
+  them.
 - Corpus indexing should tag unresolved dispatch/table candidate sites by
   pattern so future heuristic changes can be validated across targets.
 - Bloodwych contains many already-rendered relative lookup tables; those are a
@@ -341,6 +398,10 @@ undocumented renderer heuristics.
   instruction pairs.
 - Jump tables render symbolic target-base expressions when the calculation is
   proven.
+- Orphaned code-like data is reported as a signal, not accepted as code, until an
+  inbound edge or explicit seed proves it.
+- Orphan signal counts are tracked before/after jump/table/vector/ORG analysis
+  changes.
 - Data/table classification does not overlap accepted code unless a
   source/runtime mapping proves it.
 - Each generalized heuristic has an isolated test and at least one non-Bloodwych

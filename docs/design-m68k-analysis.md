@@ -19,6 +19,8 @@ The same rule covers these related topics:
   then executed.
 - Bootstraps: small in-memory trampolines, vector handlers, decrunch wrappers,
   and loaders that prepare the useful runtime program.
+- Orphaned code signals: code-like islands that are not yet linked into accepted
+  program flow from the real entrypoints.
 
 ## Core rule
 
@@ -267,6 +269,56 @@ Runtime copied code should be discovered from value-flow and control-flow facts:
 copy source, destination, and length; vector stores; trap/interrupt dispatch;
 indirect jumps; and explicit metadata/policy seeds. Rendering should not guess.
 
+## Orphaned Code Signals
+
+Sometimes bytes left as data decode cleanly as code and contain terminal
+instructions such as `rts`, `rte`, `jmp`, or unconditional branches. That is a
+signal, not proof that the source renderer should silently promote the bytes to
+accepted code.
+
+Why this matters:
+
+```
+entrypoint -> normal flow -> unresolved indirect jump
+                              |
+                              v
+                      orphan-like code island
+                      ... rts
+```
+
+Auto-converting the island can make the listing prettier, but it hides the real
+bug: analysis failed to connect the island to the program through a jump table,
+callback, vector, copied runtime entry, or API-discovered entrypoint.
+
+The right model is:
+
+```
+accepted code       reached from known roots
+orphan candidate    decodes as plausible terminal code, not reached yet
+resolved orphan     later linked by stronger analysis evidence
+rejected orphan     overlaps data/table/strings or fails plausibility
+```
+
+Required orphan facts:
+
+```
+candidate source range
+decode start and terminal instruction
+plausibility score and CPU requirement
+nearby data/table/string context
+possible inbound evidence: jump table, vector, callback, runtime copy, API
+why it is not accepted yet
+what analysis would need to connect it
+```
+
+Only promote an orphan candidate to accepted code when a real inbound edge or
+explicit policy/metadata seed proves it. Until then, expose it as an analysis
+problem and corpus tag.
+
+The success metric is not "more auto-converted code". The success metric is that
+orphan signals decrease because better jump/lookup table, callback, vector, ORG,
+or absolute-memory analysis found real links.
+
 ## Absolute Memory Access
 
 Absolute memory is not one thing. Analysis should classify the ownership before
@@ -422,6 +474,7 @@ a6+$0000..a6+$0FCF          app layout       app-slot refs
 a6+$0001                    app alias        overlay field
 table $505C..$507A          jump offsets     indexed dispatch consumer
 $00010000..$00010FFF        ORG runtime      second-stage copy + jump
+orphan h0:$D3EE..$D42A      code signal      terminal decode, no inbound edge
 ```
 
 This should be data from C analysis. The UI can filter, navigate, and show
@@ -440,6 +493,8 @@ conflicts, but should not classify memory itself.
   explains the same control flow.
 - Do not let a wrapper load address suppress later copied-image entrypoint
   evidence.
+- Do not promote orphaned code-like data to accepted code merely because it
+  decodes and terminates.
 - Do not render raw absolute or addend-based table values when analysis can prove
   a stable symbolic target-base expression.
 - Do not render symbolic table entries unless the table base, target range, and
