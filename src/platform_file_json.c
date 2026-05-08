@@ -1596,6 +1596,10 @@ static int append_source_analysis_policy_structured_items_json(JsonBuilder *buil
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
   size_t field_index, section_index;
+  size_t orphan_code_signal_count = 0U;
+  for (section_index = 0U; source_analysis != NULL && section_index < source_analysis->section_count; ++section_index) {
+    orphan_code_signal_count += source_analysis->sections[section_index].orphan_code_signal_count;
+  }
   if (json_builder_create(&builder) != 0)
     goto oom;
   if (json_builder_appendf(&builder,
@@ -1610,9 +1614,10 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     goto oom;
   if (json_builder_appendf(&builder,
       "]},\"findings\":{\"required_cpu\":%u,\"cpu_violation_count\":%u},"
-      "\"base_layout_field_count\":%u,\"base_layout_fields\":[",
+      "\"orphan_code_signal_count\":%u,\"base_layout_field_count\":%u,\"base_layout_fields\":[",
       (unsigned)source_analysis->findings.required_cpu,
       (unsigned)source_analysis->findings.cpu_violation_count,
+      (unsigned)orphan_code_signal_count,
       (unsigned)source_analysis->base_layout_field_count) != 0)
     goto oom;
   for (field_index = 0U; field_index < source_analysis->base_layout_field_count; ++field_index) {

@@ -195,7 +195,8 @@ proves a distinct base id.
    - status: unresolved signal implemented; linked and promoted, rejected, and
      suppressed remain planned
    - UI/navigation surfacing: implemented as an `orphan-code` listing group
-   - corpus tag and target-level signal count
+   - target-level signal count: implemented in source-analysis JSON
+   - corpus tag remains planned
 
 6. Rendering rules:
    - emit one RSSET block per proven base layout

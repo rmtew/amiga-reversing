@@ -3488,6 +3488,8 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
     source_analysis.sections[0].orphan_code_signals[0].status);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"findings\":{\"required_cpu\":0,\"cpu_violation_count\":0},"
+    "\"orphan_code_signal_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"orphan_code_signal_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"terminal_flow\":\"return\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"reason\":\"terminal_decode\"") != NULL);
