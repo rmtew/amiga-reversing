@@ -255,13 +255,19 @@ Failing a gate should produce an indexed work item, not a guessed child target.
 - C analysis now emits unsupported self-decrunch events when analysed code
   writes to an absolute runtime range and transfers control there. Damocles is
   the first real proving target for this path. Corpus indexing currently also
-  finds Voodoo Nightmare and Magicland Dizzy as Amiga comparators for the same
-  unsupported event class.
+  finds Voodoo Nightmare as an Amiga comparator for the same unsupported event
+  class.
 - Magicland Dizzy `TRAINER` is now a committed real-data fixture for the
   simulator-required path. It proved generated simulator support for extend
   arithmetic (`ADDX`/`SUBX`) and materializes a 44220-byte unknown
   self-decrunch payload at `$20000` without relying on optional corpus
   resources.
+- Magicland Dizzy proper is an ORG/bootstrap runtime-copy case, not visible
+  decompression. C records a copied runtime view at `$5BFF0`; a
+  runtime-address reference proves the copied range start, and facts-v2 now
+  queues that range as a `runtime_view_entry` so the ORG payload is decoded as
+  source code. Do not promote this target to a decompressed child unless a
+  later analysis proves a produced replacement program.
 - Simple self-contained self-decrunch events can now be probed with the
   generated simulator and report `simulated_output_observed` plus output range
   and stop metadata.

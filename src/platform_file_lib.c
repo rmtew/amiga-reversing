@@ -5004,6 +5004,7 @@ static const char *facts_v2_code_start_reason_name(uint32_t reason) {
     case M68K_FACTS_V2_CODE_START_REASON_CONTROL_TARGET: return "control_target";
     case M68K_FACTS_V2_CODE_START_REASON_FALLTHROUGH: return "fallthrough";
     case M68K_FACTS_V2_CODE_START_REASON_INLINE_RESUME: return "inline_resume";
+    case M68K_FACTS_V2_CODE_START_REASON_RUNTIME_VIEW_ENTRY: return "runtime_view_entry";
     default: return "";
   }
 }

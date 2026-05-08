@@ -3172,6 +3172,69 @@ def test_real_dll_ice_bootloader_stage_recovers_copied_runtime_payload_without_b
     assert "abs_0_00040046-" not in source
 
 
+def test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "runtime_ref_copied_entry.bin"
+    code = bytes.fromhex(
+        "41fa000e"      # lea.l payload(pc),a0
+        "43f900000400"  # lea.l $400.l,a1
+        "7000"          # moveq.l #0,d0
+        "32d8"          # move.w (a0)+,(a1)+
+        "4e75"          # rts
+        "4e75"          # payload: rts
+        "0000"
+    )
+    binary_path.write_bytes(make_synthetic_hunkexe(code_data=code))
+    source = HunkFileBinarySource(
+        kind="amiga_hunk",
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "runtime_ref_copied_entry.analysis",
+    )
+
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
+        source,
+        metadata_path=None,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "loc_0_00000010:\n\trts\n" in source_text
+    assert any(
+        ref.get("reason_name") == "runtime_view_entry" and ref.get("offset") == 0x10
+        for ref in analyze_project_source_with_c_backend(
+            source,
+            metadata_path=None,
+            project_root=PROJECT_ROOT,
+        )["sections"][0]["code_start_refs"]
+    )
+    assert "\tdc.b $4E,$75" not in source_text
+
+
+def test_real_dll_magicland_org_bootstrap_decodes_copied_runtime_entry() -> None:
+    _requires_c_backend_dlls()
+    paths = resolve_project_paths("amiga_hunk_magicland_dizzy_md", project_root=PROJECT_ROOT, require_entities=False)
+
+    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert "abs_0_0005BFF0:\n\tlea.l abs_0_0005C004(pc),a0\n" in source_text
+    assert "\tdc.b $41,$FA,$00,$12,$21,$C8,$00,$80,$4E,$40" not in source_text
+    _rebuilt, _direct_source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        compare_original=True,
+        project_root=PROJECT_ROOT,
+    )
+    assert direct_profile["direct_compare_payload_exact"] is True
+    assert direct_profile["direct_compare_relocation_semantics_exact"] is True
+    assert direct_profile["direct_compare_semantic_exact"] is True
+
+
 def test_real_dll_runtime_org_is_visible_in_listing_rows(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "stage.bin"

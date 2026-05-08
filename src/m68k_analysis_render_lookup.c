@@ -4994,6 +4994,8 @@ static const char *render_lookup_code_start_reason_name(uint32_t reason) {
     return "fallthrough";
   case M68K_FACT_CODE_START_REASON_INLINE_RESUME:
     return "inline_resume";
+  case M68K_FACT_CODE_START_REASON_RUNTIME_VIEW_ENTRY:
+    return "runtime_view_entry";
   default:
     return "unknown";
   }

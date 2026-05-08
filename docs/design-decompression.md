@@ -120,9 +120,13 @@ A first C decompression provider layer now exists:
   until simulator-backed output capture proves bounded bytes, load address,
   entrypoint, and reproduction.
 - Corpus indexing validates that this is not just a Damocles-local shape:
-  Voodoo Nightmare and Magicland Dizzy also retain unsupported Amiga
-  self-decrunch events after provider-materialised and one-write noise is
-  suppressed.
+  Voodoo Nightmare retains comparable unsupported Amiga self-decrunch evidence
+  after provider-materialised and one-write noise is suppressed.
+- Magicland Dizzy proper is currently an ORG/bootstrap runtime-copy case, not
+  visible decompression. C records the copied runtime view at `$5BFF0`, uses a
+  runtime-address reference to prove the copied range start, and seeds that
+  range as `runtime_view_entry` so the rendered ORG payload becomes decoded
+  source code rather than a decompressed child target.
 
 Discovery, acceptance, extraction, and imported child materialisation are now
 driven by C-emitted records. Corpus indexing remains deliberately non-mutating:
@@ -541,10 +545,11 @@ After rebuilding `corpus/target_usage_manifest.jsonl`:
   candidates; retained project children are produced only when imported project
   refresh materializes the accepted payload.
 - `decompression:codec:unknown-self-decrunch` remains for target-owned
-  decrunchers that are not yet recognized by a named native unpacker. Magicland
-  Dizzy `TRAINER` is now fixture-backed and proves the C simulator can
-  materialize a real unknown self-decrunch payload when execution reaches the
-  transferred PC.
+  decrunchers that are not yet recognized by a named native unpacker. The
+  Magicland Dizzy `TRAINER` fixture proves the C simulator can materialize a
+  large unknown runtime payload when execution reaches the transferred PC, but
+  its role remains `unknown_runtime_payload`; Magicland Dizzy proper is tracked
+  under ORG/runtime-view analysis, not decompression.
 - `decompression:runtime_copy` finds Carrier parent evidence where C analysis
   associated packed streams with runtime copy ranges, including the conflicting
   `$4C40 -> $4000` copy.

@@ -3472,6 +3472,79 @@ static int enqueue_interrupt_vector_store_target(M68kDecodeIR *decode, M68kFactI
   return 0;
 }
 
+static int facts_runtime_ref_targets_range_start(const M68kFactIR *facts,
+    const M68kRuntimeAddressRange *range, size_t *out_source_section_index, uint32_t *out_source_offset) {
+  size_t fact_index;
+  if (facts == NULL || range == NULL) return 0;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    if (fact->kind != M68K_FACT_RUNTIME_ADDRESS_REF ||
+        fact->confidence < M68K_FACT_CONFIDENCE_TOOL_INFERRED ||
+        fact->target_section_index != range->section_index ||
+        fact->target_offset != range->source_offset ||
+        !fact->has_runtime_address ||
+        fact->runtime_address != range->runtime_address) {
+      continue;
+    }
+    if (out_source_section_index != NULL) *out_source_section_index = fact->section_index;
+    if (out_source_offset != NULL) *out_source_offset = fact->offset;
+    return 1;
+  }
+  return 0;
+}
+
+static int seed_runtime_ref_target_discovered_copy_entries(M68kDecodeIR *decode, M68kFactIR *facts,
+    M68kFactsV2WorkQueue *queue, const M68kRuntimeAddressSpace *runtime_addresses,
+    uint8_t **accepted_start, uint8_t **accepted_bytes, M68kFactsV2Profile *profile,
+    uint8_t max_cpu, uint32_t *out_seed_count) {
+  size_t range_index;
+  uint32_t seed_count = 0U;
+  if (out_seed_count != NULL) *out_seed_count = 0U;
+  if (decode == NULL || facts == NULL || queue == NULL || runtime_addresses == NULL ||
+      accepted_start == NULL || accepted_bytes == NULL || profile == NULL) {
+    return -1;
+  }
+  for (range_index = 0U; range_index < runtime_addresses->count; ++range_index) {
+    const M68kRuntimeAddressRange *range = &runtime_addresses->ranges[range_index];
+    const M68kDecodeSectionIR *section;
+    const M68kDecodeCandidate *candidate = NULL;
+    M68kFactsV2TraceState trace_state;
+    size_t source_section_index = range->section_index;
+    uint32_t source_offset = range->source_offset;
+    if (range->kind != M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY ||
+        range->confidence < M68K_FACT_CONFIDENCE_TOOL_INFERRED ||
+        range->section_index >= decode->section_count || (range->source_offset & 1U) != 0U) {
+      continue;
+    }
+    section = &decode->sections[range->section_index];
+    if (range->source_offset >= section->size ||
+        accepted_start[range->section_index][range->source_offset] ||
+        accepted_offset_is_interior(section, accepted_start[range->section_index],
+          accepted_bytes[range->section_index], range->source_offset) ||
+        !facts_runtime_ref_targets_range_start(facts, range, &source_section_index, &source_offset)) {
+      continue;
+    }
+    if (m68k_decode_ir_ensure_candidate_at(decode, range->section_index, range->source_offset, max_cpu,
+        &candidate, m68k_diag_sink(NULL)) != 0) {
+      return -1;
+    }
+    if (candidate == NULL) continue;
+    trace_state_init_unknown(&trace_state);
+    if (m68k_fact_ir_require_label(facts, range->section_index, range->source_offset,
+        M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
+      return -1;
+    }
+    if (enqueue_code_start_runtime(facts, queue, profile, range->section_index, range->source_offset,
+        M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_RUNTIME_VIEW_ENTRY,
+        source_section_index, source_offset, 1U, range->runtime_address, &trace_state) != 0) {
+      return -1;
+    }
+    ++seed_count;
+  }
+  if (out_seed_count != NULL) *out_seed_count = seed_count;
+  return 0;
+}
+
 static int enqueue_runtime_alias_absolute_control_target(M68kDecodeIR *decode, M68kFactIR *facts,
     M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
     M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
@@ -5521,6 +5594,34 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (append_runtime_address_refs_for_accepted(&decode, object->platform_backend_kind, &runtime_addresses,
       accepted_start, accepted_bytes, &facts) != 0) {
     goto fail;
+  }
+  {
+    uint32_t runtime_view_entry_seeds = 0U;
+    uint32_t runtime_view_accepted = 0U;
+    fail_stage = "runtime view entry seeding";
+    if (seed_runtime_ref_target_discovered_copy_entries(&decode, &facts, &queue, &runtime_addresses,
+        accepted_start, accepted_bytes, out_profile, max_cpu, &runtime_view_entry_seeds) != 0) {
+      goto fail;
+    }
+    if (runtime_view_entry_seeds != 0U) {
+      fail_stage = "runtime view entry reachable fixed point";
+      if (run_reachable_fixed_point(object, &decode, &facts, policy, &relocation_lookup, &queue,
+          &runtime_addresses, accepted_start, accepted_bytes, &runtime_view_accepted, out_profile, max_cpu,
+          diagnostics) != 0) {
+        goto fail;
+      }
+      out_profile->accepted_instructions += runtime_view_accepted;
+      fail_stage = "runtime view entry accepted byte rebuild";
+      if (rebuild_accepted_bytes_from_starts(&decode, accepted_start, accepted_bytes,
+          &out_profile->accepted_instructions) != 0) {
+        goto fail;
+      }
+      fail_stage = "runtime view entry runtime address reference append";
+      if (append_runtime_address_refs_for_accepted(&decode, object->platform_backend_kind, &runtime_addresses,
+          accepted_start, accepted_bytes, &facts) != 0) {
+        goto fail;
+      }
+    }
   }
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_runtime_address_ref_seconds, start, end);
