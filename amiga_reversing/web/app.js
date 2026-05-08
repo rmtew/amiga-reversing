@@ -493,13 +493,15 @@ function dispatchAppEvent(name, detail = {}) {
 }
 
 function getJobPhaseLabel(job) {
-  const labels = JOB_PHASE_LABELS[job.job_kind];
+  const jobKind = String(job.job_kind || "").trim();
+  const phaseId = String(job.phase_id || "").trim();
+  const labels = JOB_PHASE_LABELS[jobKind];
   if (!labels) {
-    throw new Error(`Unknown job kind: ${job.job_kind}`);
+    return jobKind ? jobKind.replaceAll("_", " ") : "Working";
   }
-  const label = labels[job.phase_id];
+  const label = labels[phaseId];
   if (!label) {
-    throw new Error(`Unknown ${job.job_kind} phase id: ${job.phase_id}`);
+    return phaseId ? phaseId.replaceAll("_", " ") : "Working";
   }
   return label;
 }

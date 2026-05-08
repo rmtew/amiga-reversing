@@ -137,6 +137,21 @@ def test_web_app_shows_non_occluding_analysis_status() -> None:
     assert ".listing-viewport .analysis-status" not in styles_css
 
 
+def test_web_app_progress_labels_do_not_fail_unknown_job_shapes() -> None:
+    app_js = (
+        Path(__file__).resolve().parent.parent
+        / "amiga_reversing" / "web"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+
+    assert 'const jobKind = String(job.job_kind || "").trim();' in app_js
+    assert 'const phaseId = String(job.phase_id || "").trim();' in app_js
+    assert 'return jobKind ? jobKind.replaceAll("_", " ") : "Working";' in app_js
+    assert 'return phaseId ? phaseId.replaceAll("_", " ") : "Working";' in app_js
+    assert "throw new Error(`Unknown job kind:" not in app_js
+    assert "throw new Error(`Unknown ${job.job_kind} phase id:" not in app_js
+
+
 def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None:
     web_dir = Path(__file__).resolve().parent.parent / "amiga_reversing" / "web"
     app_js = (web_dir / "app.js").read_text(encoding="utf-8")
