@@ -2,18 +2,6 @@
 
 ## Unsorted
 
-- Observed "damocles_53b24620.s" flaws:
-  - Failed string conversion. This is the tetragon signature presumably. It meets ascii/real word type
-    heuristics. There is an implication here that we can detect these and not just decide all values
-    fit ascii ranges but also do a "does this look like a actual text someone would read or say"
-    heuristic pass over it and catch all of these:
-    ```
-    ...
-      bra.b loc_1_00000086
-      dc.b $20,$54,$45,$54,$52,$41,$47,$4F,$4E,$20
-    loc_1_000000CE:
-    ...
-    ```
 - Devices seem to not get the full Amiga platform resident analysis/disassembly.
 
 ## Phase 6: Beyond Static Analysis

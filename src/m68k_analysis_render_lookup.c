@@ -6707,6 +6707,57 @@ static uint32_t auto_renderable_string_span(const M68kRenderLookup *lookup,
   return auto_renderable_string_span_with_options(lookup, section, accepted_bytes, offset, 8U, 1);
 }
 
+static int auto_bounded_string_has_text_shape(const M68kDecodeSectionIR *section, uint32_t offset,
+    uint32_t size) {
+  uint32_t cursor;
+  uint32_t text_size = size;
+  uint32_t alpha_count = 0U;
+  int has_space = 0;
+  int has_dot = 0;
+  if (section == NULL || section->data == NULL || size < 6U || size > 64U ||
+      offset > section->size || size > section->size - offset) {
+    return 0;
+  }
+  if (auto_string_terminator_byte(section->data[offset + size - 1U])) --text_size;
+  if (text_size < 6U) return 0;
+  for (cursor = 0U; cursor < text_size; ++cursor) {
+    uint8_t value = section->data[offset + cursor];
+    if (!byte_is_quoted_string_safe(value)) return 0;
+    if ((value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z')) ++alpha_count;
+    if (value == ' ') has_space = 1;
+    if (value == '.') has_dot = 1;
+  }
+  return alpha_count >= 4U && (has_space || has_dot || alpha_count == text_size);
+}
+
+static uint32_t auto_renderable_bounded_string_span(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset) {
+  uint32_t cursor;
+  uint32_t span;
+  if (lookup == NULL || section == NULL || section->data == NULL || offset >= section->size ||
+      !(lookup_has_label(lookup, section->section_index, offset) ||
+        lookup_has_anchor_local(lookup, section->section_index, offset))) {
+    return 0U;
+  }
+  cursor = offset;
+  while (cursor < section->size && byte_is_quoted_string_safe(section->data[cursor]) &&
+      accepted_range_has_code_byte(accepted_bytes, section->size, cursor, 1U) == 0 &&
+      lookup_relocation_at(lookup, section->section_index, cursor) == NULL &&
+      lookup_structured_data_item_covering_offset(lookup, section->section_index, cursor) == NULL &&
+      (cursor == offset || !lookup_has_label(lookup, section->section_index, cursor)) &&
+      (cursor == offset || !lookup_has_anchor_local(lookup, section->section_index, cursor))) {
+    ++cursor;
+  }
+  span = cursor - offset;
+  if (cursor < section->size && auto_string_terminator_byte(section->data[cursor]) &&
+      auto_string_interior_clear(lookup, section->section_index, cursor) &&
+      accepted_range_has_code_byte(accepted_bytes, section->size, cursor, 1U) == 0) {
+    ++span;
+  }
+  if (!auto_bounded_string_has_text_shape(section, offset, span)) return 0U;
+  return span;
+}
+
 static int render_lookup_maybe_add_string_sequence(M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
     const uint8_t *accepted_bytes, uint32_t offset, uint32_t *out_size) {
   uint32_t offsets[32];
@@ -6751,8 +6802,12 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
     if (section->data == NULL) continue;
     while (offset < section->size) {
       uint32_t span;
+      int candidate_start = auto_string_candidate_start(section, offset) ||
+        (byte_is_quoted_string_safe(section->data[offset]) &&
+          (lookup_has_label(lookup, section_index, offset) ||
+           lookup_has_anchor_local(lookup, section_index, offset)));
       if ((accepted_bytes[section_index] != NULL && accepted_bytes[section_index][offset] != 0U) ||
-          !auto_string_candidate_start(section, offset) ||
+          !candidate_start ||
           lookup_structured_data_item_covering_offset(lookup, section_index, offset) != NULL) {
         ++offset;
         continue;
@@ -6764,6 +6819,13 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
       if (span != 0U) {
         offset += span;
       } else if ((span = auto_renderable_string_span(lookup, section, accepted_bytes[section_index], offset)) != 0U) {
+        if (render_lookup_add_auto_structured_data_item(lookup, section_index, offset, span,
+            "string", M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
+          return -1;
+        }
+        offset += span;
+      } else if ((span = auto_renderable_bounded_string_span(lookup, section, accepted_bytes[section_index],
+          offset)) != 0U) {
         if (render_lookup_add_auto_structured_data_item(lookup, section_index, offset, span,
             "string", M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
           return -1;

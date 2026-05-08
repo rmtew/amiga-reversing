@@ -1610,6 +1610,57 @@ static int test_facts_v2_two_short_ascii_spans_remain_raw_data(void) {
   return 0;
 }
 
+static int test_facts_v2_label_bounded_ascii_span_auto_classifies_string(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  char *source = NULL;
+  uint16_t index;
+  uint8_t bytes[] = {
+    0x60u, 0x0au,
+    ' ', 'T', 'E', 'T', 'R', 'A', 'G', 'O', 'N', ' ',
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.named_label_count = 1U;
+  policy.named_labels[0].has_section_index = 1U;
+  policy.named_labels[0].section_index = 0U;
+  policy.named_labels[0].offset = 2U;
+  snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "title");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "dc.b \" TETRAGON \"\t; string\n") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U && strcmp(item->semantic_role, "string") == 0) {
+      auto_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32(10U, auto_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_STRING, auto_item->kind);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_decode_ir_keeps_odd_branch_target_for_analysis(void) {
   M68kObject object;
   M68kSection section;
@@ -14172,6 +14223,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequence},
     {"facts_v2_two_short_ascii_spans_remain_raw_data",
       test_facts_v2_two_short_ascii_spans_remain_raw_data},
+    {"facts_v2_label_bounded_ascii_span_auto_classifies_string",
+      test_facts_v2_label_bounded_ascii_span_auto_classifies_string},
     {"facts_v2_length_prefixed_ascii_sequence_renders_strings",
       test_facts_v2_length_prefixed_ascii_sequence_renders_strings},
     {"facts_v2_length_prefixed_ascii_sequence_respects_code_overlap",

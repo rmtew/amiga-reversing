@@ -23,16 +23,13 @@ abs_0_00040000:
 	moveq.l #0,d0
 	rts
 abs_0_00040024:
-	dc.b "dos.library",$00
+	dc.b "dos.library",$00	; string
 abs_0_00040030:
-	dcb.b $8,$20
-	dc.b $50,$52,$45,$53,$45,$4E,$54,$53,$20,$4E,$45,$57,$20,$53,$54,$55
-	dc.b $46,$46,$20,$20,$20,$20
+	dc.b "        PRESENTS NEW STUFF    "	; string
 abs_0_0004004E:
 	dc.b $4D,$4C
 abs_0_00040050:
-	dcb.b $8,$20
-	dc.b $4B,$52,$41,$59,$5A,$49,$20,$20
+	dc.b "        KRAYZI  "	; string
 abs_0_00040060:
 	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER|DMAF_COPPER,_custom+dmacon.l
 	move.w #INTF_INTEN,_custom+intena.l
@@ -181,7 +178,7 @@ abs_0_00040246:
 	move.w #$FFEC,_custom+dmacon.l
 	rts
 abs_0_00040264:
-	dc.b $67,$72,$61,$70,$68,$69,$63,$73,$2E,$6C,$69,$62,$72,$61,$72,$79
+	dc.b "graphics.library"	; string
 abs_0_00040274:
 	dc.l $00000000	; lookup_table
 abs_0_00040278:
