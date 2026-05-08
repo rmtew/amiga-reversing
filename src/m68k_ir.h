@@ -118,6 +118,7 @@ typedef struct M68kAnalysisStructuredDataItem {
   char value_domain[64];
   char constant_name[64];
   char semantic_role[64];
+  char source_pattern[64];
   char comment[64];
 } M68kAnalysisStructuredDataItem;
 

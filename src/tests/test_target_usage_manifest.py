@@ -62,6 +62,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "entry_count": 2,
                             "role": "lookup_table",
                             "table_kind": "relative_code_dispatch",
+                            "source_pattern": "indexed_word_dispatch",
                             "base_expression": "target_label",
                             "target_section": 0,
                             "target_offset": 0x94,
@@ -483,6 +484,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["table:any"], 1)
         self.assertEqual(counts["table:role:lookup_table"], 1)
         self.assertEqual(counts["table:kind:relative_code_dispatch"], 1)
+        self.assertEqual(counts["table:source_pattern:indexed_word_dispatch"], 1)
         self.assertEqual(counts["table:base:target_label"], 1)
         self.assertEqual(counts["table:consumer"], 1)
         self.assertEqual(counts["table:entry_size:2"], 1)
@@ -519,6 +521,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn("materialized-org-range", tags)
         self.assertIn("orphan-code:terminal_decode:unresolved", tags)
         self.assertIn("table:kind:relative_code_dispatch", tags)
+        self.assertIn("table:source_pattern:indexed_word_dispatch", tags)
         self.assertEqual(examples["os:exec.library/AllocMem"][0]["offset"], 0x20)
         self.assertEqual(examples["compressed-payload"][0]["offset"], 0x4C40)
         self.assertEqual(examples["decompression:runtime_copy"][0]["runtime_copy_address"], 0x4000)
@@ -532,6 +535,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["table:any"][0]["entry_count"], 2)
         self.assertEqual(examples["table:any"][0]["consumer_offset"], 0x20)
         self.assertEqual(examples["table:any"][0]["conflict_state"], "clean")
+        self.assertEqual(examples["table:any"][0]["source_pattern"], "indexed_word_dispatch")
         self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["symbol"], "app_0234")
         self.assertEqual(examples["memory-layout:kind:copper_list"][0]["runtime_address"], 0x0E)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
@@ -801,6 +805,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "entry_count": 2,
                         "role": "lookup_table",
                         "table_kind": "relative_code_dispatch",
+                        "source_pattern": "indexed_word_dispatch",
                         "base_expression": "target_label",
                         "consumer_section": 0,
                         "consumer_offset": 0x20,
@@ -1074,6 +1079,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("table:any", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:role:lookup_table", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:kind:relative_code_dispatch", "table_record", 0x90, 7), by_feature)
+        self.assertIn(("table:source_pattern:indexed_word_dispatch", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:conflict_state:clean", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:consumer", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:consumer", "table_consumer", 0x20, 1), by_feature)

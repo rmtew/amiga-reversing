@@ -4076,6 +4076,19 @@ static void render_lookup_set_auto_structured_data_item_consumer(M68kRenderLooku
   }
 }
 
+static void render_lookup_set_auto_structured_data_item_source_pattern(M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset, const char *source_pattern) {
+  size_t index;
+  if (lookup == NULL || source_pattern == NULL || source_pattern[0] == '\0') return;
+  for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
+    M68kAnalysisStructuredDataItem *item = &lookup->auto_structured_data_items[index];
+    if (item->has_section_index && item->section_index == (uint32_t)section_index &&
+        item->offset == offset) {
+      snprintf(item->source_pattern, sizeof(item->source_pattern), "%s", source_pattern);
+    }
+  }
+}
+
 void render_lookup_mark_label_target_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
   if (lookup == NULL || section_index >= lookup->section_count || lookup->label_target_refs == NULL ||
       lookup->label_target_ref_extents == NULL || offset > lookup->label_target_ref_extents[section_index] ||
@@ -6426,6 +6439,8 @@ static int render_lookup_infer_relocation_pointer_tables(M68kRenderLookup *looku
             "pointer_table", M68K_ANALYSIS_STRUCTURED_DATA_LONGS) != 0) {
           return -1;
         }
+        render_lookup_set_auto_structured_data_item_source_pattern(lookup, section_index, start,
+          "relocation_pointer_table");
         offset = cursor;
       } else {
         offset += 2U;
@@ -7361,6 +7376,8 @@ static int render_lookup_infer_indexed_word_dispatch_tables(M68kRenderLookup *lo
               section_index, candidate->offset);
             render_lookup_set_auto_structured_data_item_target(lookup, sections[0], offsets[0],
               sections[1], offsets[1]);
+            render_lookup_set_auto_structured_data_item_source_pattern(lookup, sections[0], offsets[0],
+              "indexed_word_dispatch");
           }
         }
       }
@@ -7430,6 +7447,8 @@ static int render_lookup_infer_indexed_local_pointer_tables(M68kRenderLookup *lo
         if (span != 0U) {
           render_lookup_set_auto_structured_data_item_consumer(lookup, target_section_index, table_offset,
             section_index, candidate->offset);
+          render_lookup_set_auto_structured_data_item_source_pattern(lookup, target_section_index, table_offset,
+            "indexed_local_pointer_read");
         }
       }
       dispatch_pointer_state_update_after_instruction(&state, lookup, section, candidate, &instruction);
@@ -7481,6 +7500,8 @@ static int render_lookup_infer_indexed_local_scalar_tables(M68kRenderLookup *loo
         if (span != 0U) {
           render_lookup_set_auto_structured_data_item_consumer(lookup, target_section_index, target_offset,
             section_index, candidate->offset);
+          render_lookup_set_auto_structured_data_item_source_pattern(lookup, target_section_index, target_offset,
+            "indexed_local_scalar_read");
         }
         if (span != 0U && instruction.operand_count >= 2U) {
           uint8_t target_base_reg = 0U;
@@ -7596,6 +7617,8 @@ static int render_lookup_infer_indexed_postincrement_data_tables(M68kRenderLooku
             }
             render_lookup_set_auto_structured_data_item_consumer(lookup, target_section_index, target_offset,
               section_index, candidate->offset);
+            render_lookup_set_auto_structured_data_item_source_pattern(lookup, target_section_index, target_offset,
+              "postincrement_read_sequence");
           }
         }
       }
@@ -7654,6 +7677,8 @@ static int render_lookup_infer_pc_relative_lookup_scalars(M68kRenderLookup *look
           if (span != 0U) {
             render_lookup_set_auto_structured_data_item_consumer(lookup, target->section_index, target->offset,
               section_index, candidate->offset);
+            render_lookup_set_auto_structured_data_item_source_pattern(lookup, target->section_index,
+              target->offset, "pc_relative_indexed_read");
           }
           if (span != 0U && item_kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS &&
               instruction.operand_count >= 2U &&

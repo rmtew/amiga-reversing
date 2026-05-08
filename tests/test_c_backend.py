@@ -822,6 +822,10 @@ class _M68kAnalysisStructuredDataItem(ctypes.Structure):
         ("has_constant_value", ctypes.c_uint8),
         ("reserved", ctypes.c_uint8 * 3),
         ("constant_value", ctypes.c_int32),
+        ("has_consumer", ctypes.c_uint8),
+        ("reserved2", ctypes.c_uint8 * 3),
+        ("consumer_section", ctypes.c_uint32),
+        ("consumer_offset", ctypes.c_uint32),
         ("label", ctypes.c_char * 64),
         ("struct_name", ctypes.c_char * 64),
         ("field_name", ctypes.c_char * 64),
@@ -831,6 +835,7 @@ class _M68kAnalysisStructuredDataItem(ctypes.Structure):
         ("value_domain", ctypes.c_char * 64),
         ("constant_name", ctypes.c_char * 64),
         ("semantic_role", ctypes.c_char * 64),
+        ("source_pattern", ctypes.c_char * 64),
         ("comment", ctypes.c_char * 64),
     ]
 

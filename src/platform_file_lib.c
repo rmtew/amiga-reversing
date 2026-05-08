@@ -4802,6 +4802,8 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     } else if (json_builder_append(builder, "null") != 0) return -1;
     if (json_builder_append(builder, ",\"semantic_role\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, item->semantic_role) != 0) return -1;
+    if (json_builder_append(builder, ",\"source_pattern\":") != 0) return -1;
+    if (append_nullable_text_json_local(builder, item->source_pattern) != 0) return -1;
     if (json_builder_appendf(builder, ",\"is_pointer\":%s,\"target_section\":",
           item->is_pointer ? "true" : "false") != 0)
       return -1;

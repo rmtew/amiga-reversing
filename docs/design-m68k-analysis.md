@@ -447,6 +447,7 @@ entry count and stride
 entry kind: scalar, pointer, relative pointer, code target, data target
 base expression: table base, section base, runtime base, PC, or explicit label
 consumer instruction and value-flow provenance
+source pattern that identified the table
 accepted target ranges
 sentinel/null rules
 mixed-entry policy
@@ -458,12 +459,15 @@ Table detection should start from consumers:
 ```
 indexed read -> value transform -> jump/call/address use
                        |
-                       +-> table base, entry size, signedness, bounds
+                       +-> source pattern, table base, entry size, signedness, bounds
 ```
 
 Then analysis can safely back-fill the data range and render entries using
 labels. Bytes alone may classify a span as a scalar table, but jump-table or
 pointer-table rendering needs consumer evidence or relocation evidence.
+Current source-pattern examples include relocation pointer tables, indexed word
+dispatch, indexed local pointer reads, indexed local scalar reads,
+postincrement read sequences, and PC-relative indexed reads.
 
 ## Relative Target-Base Substitution
 

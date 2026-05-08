@@ -158,6 +158,7 @@ class M68kAnalysisStructuredDataItem(ctypes.Structure):
         ("value_domain", ctypes.c_char * 64),
         ("constant_name", ctypes.c_char * 64),
         ("semantic_role", ctypes.c_char * 64),
+        ("source_pattern", ctypes.c_char * 64),
         ("comment", ctypes.c_char * 64),
     ]
 

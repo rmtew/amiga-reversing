@@ -61,7 +61,7 @@ Reviewed implementation and tests before updating this plan. Current state:
 | RSSET/app slots | `render_state_operand_uses_app_base()` rejects known hardware bases and `_custom` offsets; `render_asm_app_extension_rs()` emits app/resident RSSET layouts from field slots and metadata; C source analysis now records rendered base-layout fields and alias overlays as first-class facts; listing JSON exposes those layout fields directly. | Need wider "known base owns this displacement" facts for platform-owned layouts beyond app/metadata RSSET emission. |
 | Typed structs vs app slots | Typed app-slot field regions are skipped from flat RSSET output; `_custom` offset false positives have an isolated test. | Need wider "known base owns this displacement" facts for all platform structs, not only `_custom` fallback protection. |
 | ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, policy-vs-inferred precedence, corpus tags, and listing navigation for materialized/suppressed runtime views. | Runtime-copy facts still need explicit wrapper-load/helper/final-image relationships. |
-| Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, relative `target-base` rendering, C JSON `table_records` derived from accepted structured table data, consumer instruction provenance for auto-classified table records, and code-overlap conflict state. | Table facts still need fuller source-pattern details. |
+| Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, relative `target-base` rendering, C JSON `table_records` derived from accepted structured table data, consumer instruction provenance, source-pattern provenance, and code-overlap conflict state. | Table facts still need unresolved candidate records for rejected/unsupported source patterns. |
 | Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks; C JSON now exposes `memory_layout_records` for base-layout fields, runtime views, and runtime-address references. | Memory-layout records still need absolute globals, hardware register ranges, and unresolved/conflict candidates merged into the same view. |
 | Orphaned code | C analysis now records unresolved terminal-decode islands at accepted-code boundaries or data labels as orphan signals without promoting them to accepted code. | Extend the signal with inbound-evidence classes, nearby context, target metrics, and reconciliation after table/callback/vector improvements. |
 | Targets | Bloodwych has many relative lookup tables; Pandora demonstrates wrapper load vs final copied image; Conqueror demonstrates weak low ORG risk; Carrier stresses packed/runtime-copy ambiguity; GenAm/MonAm remain comparator targets. | Corpus tags should preserve these pattern roles so later changes can be validated across comparable targets. |
@@ -181,6 +181,8 @@ proves a distinct base id.
      `table_records` for accepted structured lookup/pointer tables
    - consumer instruction/source provenance: implemented for auto-classified
      structured table data as `consumer_section`/`consumer_offset`
+   - source-pattern provenance: implemented as `source_pattern` on
+     structured table facts and corpus tags
    - entry size, signedness, stride, count, and bounds
    - table kind: scalar, pointer, relative pointer, code dispatch, data offset,
      hardware setup, mixed: implemented for scalar, pointer,
@@ -415,7 +417,7 @@ undocumented renderer heuristics.
 - Existing alias emission should be backed by explicit alias facts rather than
   produced as a side effect of sorted slot overlap.
 - Lookup-table rendering still needs a single table fact model instead of
-  scattered case-specific render behavior.
+  scattered case-specific render behavior for unresolved/rejected candidates.
 - Orphaned code signals have a first-class fact model for unresolved
   terminal-decode islands at accepted-code boundaries or data labels;
   target-level metrics and richer cause classification remain.
