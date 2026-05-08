@@ -8337,6 +8337,39 @@ static int test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias(voi
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_does_not_infer_app_slot_from_unknown_a6_custom_offset(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[6] = {0x2du, 0x40u, 0x00u, 0x44u, 0x4eu, 0x75u};
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "app_0044") == NULL);
+  M68K_C_ASSERT(strstr(source, "app_SIZEOF") == NULL);
+  M68K_C_ASSERT(strstr(source, "RSSET") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l d0,$0044(a6)\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_uses_observed_app_slot_widths(void) {
   M68kObject object;
   M68kSection section;
@@ -14023,6 +14056,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_infers_global_base_slot_from_lvo_set},
     {"facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias",
       test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias},
+    {"facts_v2_render_asm_source_does_not_infer_app_slot_from_unknown_a6_custom_offset",
+      test_facts_v2_render_asm_source_does_not_infer_app_slot_from_unknown_a6_custom_offset},
     {"facts_v2_render_asm_source_uses_observed_app_slot_widths",
       test_facts_v2_render_asm_source_uses_observed_app_slot_widths},
     {"facts_v2_analysis_keeps_untyped_app_slot_untyped",

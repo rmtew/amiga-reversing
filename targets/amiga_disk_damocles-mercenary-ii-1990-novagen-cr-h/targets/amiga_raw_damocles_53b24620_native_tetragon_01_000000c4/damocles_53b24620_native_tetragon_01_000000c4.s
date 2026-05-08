@@ -5,11 +5,6 @@
     INCLUDE "hardware/dmabits.i"
     INCLUDE "hardware/intbits.i"
 
-    RSSET 0
-    RS.B 38
-app_0026 RS.L 1
-app_SIZEOF EQU __RS
-
 _custom	EQU	$DFF000
 _ciaa	EQU	$BFE001
 
@@ -182,7 +177,7 @@ abs_0_0004022A:
 abs_0_00040246:
 	move.w #INTF_SETCLR|INTF_INTEN,_custom+intena.l
 	movea.l abs_0_00040274(pc),a6
-	move.l app_0026(a6),_custom+cop1lc.l	; copper_list pointer
+	move.l $0026(a6),_custom+cop1lc.l	; copper_list pointer
 	move.w #$FFEC,_custom+dmacon.l
 	rts
 abs_0_00040264:

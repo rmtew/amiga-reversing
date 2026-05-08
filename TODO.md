@@ -14,38 +14,6 @@
     loc_1_000000CE:
     ...
     ```
-  - RS false positive. Needs to be tied to non-hardware memory or register:
-    ```
-    ... skipped header
-        RSSET 0
-        RS.B 158
-    app_009E RS.W 1
-    app_SIZEOF EQU __RS
-    ... removed first segment ...
-        SECTION section_2,code
-    loc_2_00000000:
-      lea.l _custom.l,a6
-    ... blocks follow before ...
-      move.w #$7FFF,app_009E(a6)
-    ... skipped remainder
-    ```
-  - Using numeric values for PC offset should be a fail case. Currently this can be observed in segment
-    2 as	`adda.l -$C(pc),a0` within the first block (before "loc_1_00000024").
-- Observed "magicland_dizzy_md.s" flaws:
-  - RS false positives, two sets. All seem like custom hardware offsets to $DFF000.
-    ```
-    ...
-        RSSET 0
-        RS.B 2
-    app_0002 RS.L 1
-    ...
-    abs_0_0005C754:
-      lea.l _custom.l,a6
-    ...
-    abs_0_0005CA1C:
-      btst.b #6,app_0002(a6)
-      bne.b abs_0_0005CA1C
-    ```
 - Devices seem to not get the full Amiga platform resident analysis/disassembly.
 
 ## Phase 6: Beyond Static Analysis

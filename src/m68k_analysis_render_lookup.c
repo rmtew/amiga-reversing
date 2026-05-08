@@ -1077,8 +1077,7 @@ static uint16_t typed_struct_id_for_base_slot_operand(const M68kRenderLookup *lo
     return AMIGA_OS_STRUCT_ID_NONE;
   }
   if (platform_state != NULL) {
-    if (platform_state->address_app_base_known[base_reg] ||
-        (base_reg == 6U && !platform_state->address_base_known[6U])) {
+    if (platform_state->address_app_base_known[base_reg]) {
       uint16_t output_struct_id = lookup_typed_output_slot_struct_id(lookup, displacement);
       if (output_struct_id != AMIGA_OS_STRUCT_ID_NONE) return output_struct_id;
       return lookup_app_base_field_slot_struct_id(lookup, displacement);
@@ -1086,6 +1085,7 @@ static uint16_t typed_struct_id_for_base_slot_operand(const M68kRenderLookup *lo
     if (platform_state->address_base_known[base_reg]) {
       return lookup_base_field_slot_struct_id(lookup, platform_state->address_base_library[base_reg], displacement);
     }
+    if (base_reg == 6U) return lookup_app_base_field_slot_struct_id(lookup, displacement);
   } else if (base_reg == 6U) {
     return lookup_app_base_field_slot_struct_id(lookup, displacement);
   }
@@ -8370,6 +8370,15 @@ static uint8_t app_slot_access_size_from_instruction(const M68kInstructionIR *in
   return 0U;
 }
 
+static int displacement_is_custom_hardware_offset(int16_t displacement) {
+  uint32_t offset;
+  if (displacement < 0) return 0;
+  offset = (uint32_t)(uint16_t)displacement;
+  return amiga_os_find_hardware_register_by_base_offset("_custom", offset) != NULL ||
+    amiga_os_find_hardware_register_field_by_base_offset("_custom", offset) != NULL ||
+    amiga_os_find_hardware_register_range_by_base_offset("_custom", offset) != NULL;
+}
+
 int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uint8_t base_reg,
     int16_t displacement) {
   if (state == NULL || base_reg >= 8U) return 0;
@@ -8377,7 +8386,7 @@ int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uin
   if (state->address_app_base_known[base_reg]) return 1;
   if (state->address_base_known[base_reg])
     return library_base_can_use_app_extension_slot(state->address_base_library[base_reg], displacement);
-  return base_reg == 6U && !state->address_base_known[6U];
+  return base_reg == 6U && !displacement_is_custom_hardware_offset(displacement);
 }
 
 static int render_lookup_analyze_amiga_app_state_slots(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
@@ -8500,12 +8509,19 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
       if (candidate_is_exec_open_device_call(&trace_state, candidate) &&
           trace_state.addr_regs[0].known && trace_state.app_addresses[1].known) {
         char iorequest_slot_name[64];
+        const AmigaOsCallInputInfo *iorequest_input = open_device_iorequest_input_info();
+        int typed_slot_added = 0;
         int32_t device_base_displacement = (int32_t)trace_state.app_addresses[1].displacement +
           (int32_t)AMIGA_OS_STRUCT_IO_FIELD_IO_DEVICE_OFFSET;
         if (render_lookup_add_device_instance(lookup, trace_state.app_addresses[1].displacement,
             trace_state.addr_regs[0].name) != 0 ||
             render_lookup_add_device_call(lookup, section->section_index, candidate->offset,
             trace_state.addr_regs[0].name) != 0) {
+          goto cleanup;
+        }
+        if (iorequest_input != NULL && iorequest_input->struct_id != AMIGA_OS_STRUCT_ID_NONE &&
+            render_lookup_add_typed_app_slot_region(lookup, trace_state.app_addresses[1].displacement,
+              iorequest_input->struct_id, section->section_index, candidate->offset, &typed_slot_added) != 0) {
           goto cleanup;
         }
         if (format_open_device_app_iorequest_slot_name(trace_state.addr_regs[0].name, iorequest_slot_name,
