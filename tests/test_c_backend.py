@@ -33,6 +33,7 @@ from amiga_reversing.disasm.c_backend import (
     facts_v2_direct_rebuild_project_source_with_c_backend_profile,
     inspect_disk_with_c_backend,
     identify_packed_range_with_c_backend,
+    materialize_recognized_unpacker_event_with_c_backend,
     materialize_self_decrunch_event_with_c_backend,
     render_binary_source_with_c_backend,
     render_project_source_with_c_backend,
@@ -232,10 +233,14 @@ def test_listing_analysis_identifies_tetragon_unpacker_markers_in_multiple_secti
     bra.b first_start
     dc.b {marker}
 first_start:
+    moveq.l #$11,d7
     lea.l $40000.l,a0
     lea.l $50000.l,a2
+    lea.l $4F92B.l,a1
     jmp $40000.l
 first_payload:
+    dc.w 0
+    dc.w 0
     dc.w 0
     dc.w 0
     dc.w 0
@@ -243,10 +248,14 @@ first_payload:
     bra.b second_start
     dc.b {marker}
 second_start:
+    moveq.l #-83,d7
     lea.l $1000.l,a0
     lea.l $7FFFF.l,a2
+    lea.l $130B6.l,a1
     jmp $59484.l
 second_payload:
+    dc.w 0
+    dc.w 0
     dc.w 0
     dc.w 0
     dc.w 0
@@ -267,12 +276,20 @@ second_payload:
     assert by_section[1]["provider_id"] == "c-tetragon-signature"
     assert by_section[1]["status"] == "identified"
     assert by_section[1]["source_section_offset"] > by_section[1]["unpacker_marker_offset"]
-    assert by_section[1]["load_address"] == 0x40000
-    assert by_section[1]["source_data_end_address"] == 0x50000
+    assert by_section[1]["compressed_source_section_offset"] == by_section[1]["source_section_offset"]
+    assert by_section[1]["compressed_source_section_end_offset"] > by_section[1]["compressed_source_section_offset"]
+    assert by_section[1]["target_start_address"] == 0x40000
+    assert by_section[1]["postpass_source_start_address"] > by_section[1]["target_start_address"]
+    assert by_section[1]["postpass_source_end_address"] == 0x50000
+    assert by_section[1]["postpass_escape_byte"] == 0x11
     assert by_section[1]["entrypoint"] == 0x40000
     assert by_section[2]["source_section_offset"] > by_section[2]["unpacker_marker_offset"]
-    assert by_section[2]["load_address"] == 0x1000
-    assert by_section[2]["source_data_end_address"] == 0x7FFFF
+    assert by_section[2]["compressed_source_section_offset"] == by_section[2]["source_section_offset"]
+    assert by_section[2]["compressed_source_section_end_offset"] > by_section[2]["compressed_source_section_offset"]
+    assert by_section[2]["target_start_address"] == 0x1000
+    assert by_section[2]["postpass_source_start_address"] > by_section[2]["target_start_address"]
+    assert by_section[2]["postpass_source_end_address"] == 0x7FFFF
+    assert by_section[2]["postpass_escape_byte"] == 0xAD
     assert by_section[2]["entrypoint"] == 0x59484
 
 
@@ -4867,25 +4884,132 @@ def test_real_dll_carrier_decompressed_child_raw_reproduction() -> None:
 def test_real_dll_damocles_tetragon_unpacker_candidates() -> None:
     _requires_c_backend_dlls()
 
-    combined = _facts_v2_listing_analysis_for_project(
-        "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620"
-    )
-    analysis = combined["analysis"]
+    fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "damocles_tetragon_53b24620.bin"
+    analysis = analyze_binary_source_with_c_backend(fixture, project_root=PROJECT_ROOT)
     tetragon_events = [event for event in analysis["decompression_events"] if event.get("codec_id") == "tetragon"]
 
     assert len(tetragon_events) == 2
     by_section = {event["source_section"]: event for event in tetragon_events}
     assert by_section[1]["source_section_offset"] == 0x100
-    assert by_section[1]["source_data_end_address"] == 0x50000
-    assert by_section[1]["load_address"] == 0x40000
+    assert by_section[1]["compressed_source_section_offset"] == 0x100
+    assert by_section[1]["compressed_source_section_end_offset"] == 0x428
+    assert by_section[1]["postpass_source_start_address"] == 0x4F92B
+    assert by_section[1]["postpass_source_end_address"] == 0x50000
+    assert by_section[1]["postpass_escape_byte"] == 0x11
+    assert by_section[1]["target_start_address"] == 0x40000
+    assert by_section[1]["target_end_address"] == 0x50000
+    assert by_section[1]["compressed_source_consumed_section_offset"] == 0x100
+    assert by_section[1]["postpass_source_consumed_address"] == 0x50000
+    assert by_section[1]["decompressed_size"] == 0x10000
+    assert by_section[1]["decompressed_sha256"] == (
+        "6fa11625a70f82fc4df5f318ccb149ceeb2687f4af36643c5089090d37a2c0b9"
+    )
     assert by_section[1]["entrypoint"] == 0x40000
+    assert by_section[1]["status"] == "materializable"
+    assert by_section[1]["payload_role"] == "primary_program"
     assert by_section[2]["source_section_offset"] == 0x14C
-    assert by_section[2]["source_data_end_address"] == 0x7FFFF
-    assert by_section[2]["load_address"] == 0x1000
+    assert by_section[2]["compressed_source_section_offset"] == 0x14C
+    assert by_section[2]["compressed_source_section_end_offset"] == 0x474B4
+    assert by_section[2]["postpass_source_start_address"] == 0x130B6
+    assert by_section[2]["postpass_source_end_address"] == 0x7FFFF
+    assert by_section[2]["postpass_escape_byte"] == 0xAD
+    assert by_section[2]["target_start_address"] == 0x1000
+    assert by_section[2]["target_end_address"] == 0x7C14A
+    assert by_section[2]["compressed_source_consumed_section_offset"] == 0x13C4C
+    assert by_section[2]["postpass_source_consumed_address"] == 0x7FFFF
+    assert by_section[2]["decompressed_size"] == 0x7B14A
+    assert by_section[2]["decompressed_sha256"] == (
+        "241eff126d46113217bbdb5646cb228aec80d65ff7d9b852359fa5d752b508e8"
+    )
     assert by_section[2]["entrypoint"] == 0x59484
+    assert by_section[2]["status"] == "materializable"
+    assert by_section[2]["payload_role"] == "primary_program"
     assert by_section[2]["copied_stub_storage_offset"] == 0x6A
     assert by_section[2]["copied_stub_runtime_address"] == 0x100
     assert by_section[2]["copied_stub_transfer_offset"] == 0x40
+
+
+def test_real_dll_damocles_tetragon_native_materialization(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+
+    parent_path = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "damocles_tetragon_53b24620.bin"
+    analysis = analyze_binary_source_with_c_backend(parent_path, project_root=PROJECT_ROOT)
+    event = next(
+        item
+        for item in analysis["decompression_events"]
+        if item.get("codec_id") == "tetragon" and item.get("source_section") == 1
+    )
+    output_path = tmp_path / "damocles_hunk1_tetragon.bin"
+
+    result = materialize_recognized_unpacker_event_with_c_backend(
+        "amiga-hunk",
+        parent_path,
+        event["event_id"],
+        output_path,
+        project_root=PROJECT_ROOT,
+    )
+
+    output = output_path.read_bytes()
+    assert result["status"] == "ok"
+    assert result["provider_id"] == "c-tetragon-native"
+    assert len(output) == 0x10000
+    assert hashlib.sha256(output).hexdigest() == event["decompressed_sha256"]
+    assert result["decompressed"]["load_address"] == 0x40000
+    assert result["decompressed"]["entrypoint"] == 0x40000
+    binary_source = RawBinarySource(
+        kind="raw_binary",
+        path=output_path,
+        address_model="runtime_absolute",
+        load_address=0x40000,
+        entrypoint=0x40000,
+        code_start_offset=0,
+        display_path=str(output_path),
+        analysis_cache_path=output_path.with_suffix(output_path.suffix + ".analysis"),
+    )
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
+        binary_source,
+        project_root=PROJECT_ROOT,
+    )
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-raw",
+        source_text,
+        include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
+        project_root=PROJECT_ROOT,
+    )
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert rebuilt == output
+
+
+def test_real_dll_voodoo_tetragon_unpacker_comparator(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+
+    fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "voodoo_ake_tetragon.bin"
+    analysis = analyze_binary_source_with_c_backend(fixture, project_root=PROJECT_ROOT)
+    event = next(event for event in analysis["decompression_events"] if event.get("codec_id") == "tetragon")
+    output_path = tmp_path / "voodoo_ake_tetragon.bin"
+
+    result = materialize_recognized_unpacker_event_with_c_backend(
+        "amiga-hunk",
+        fixture,
+        event["event_id"],
+        output_path,
+        project_root=PROJECT_ROOT,
+    )
+
+    output = output_path.read_bytes()
+    assert event["status"] == "materializable"
+    assert event["payload_role"] == "primary_program"
+    assert event["source_section_offset"] == 0xE8
+    assert event["compressed_source_section_end_offset"] == 0x62F0
+    assert event["postpass_source_start_address"] == 0x5F68D
+    assert event["postpass_source_end_address"] == 0x67000
+    assert event["postpass_escape_byte"] == 0x9B
+    assert event["target_start_address"] == 0x5C000
+    assert event["target_end_address"] == 0x65BA7
+    assert event["entrypoint"] == 0x5C000
+    assert result["status"] == "ok"
+    assert len(output) == 39847
+    assert hashlib.sha256(output).hexdigest() == "7ec283de794a7ddc64d8f2c3a4aa8545aee9e782476ebe75e48da8a117dd404e"
 
 
 def test_real_dll_voodoo_trainer_decompression_comparator(

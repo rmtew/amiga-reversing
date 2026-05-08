@@ -84,6 +84,8 @@ Each codec needs:
 - Checksums or internal validation where the format supports it.
 - Corpus tags for codec id, variant, confidence, and source range.
 - Isolated tests from synthetic streams or known tiny fixtures.
+- Real-data fixtures for first-class unsupported cases where isolated streams
+  would not protect the analyzer against wrong source/target reconstruction.
 - Comparator tests against external tools where available.
 - At least one real corpus target validation before enabling automatic
   materialization.
@@ -297,11 +299,14 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   parent is reanalysed successfully and no longer emits the accepted child.
 - C analysis now recognises the Tetragon unpacker marker as a native
   identification event. Damocles reports both hunk-local candidates with source
-  data offset, declared source-end address, output load address, and final
-  entrypoint; hunk 2 also records the copied stub source offset, runtime
-  address `$100`, and `$40` transfer into that copied stub.
-- The next implementation step is conservative Tetragon unpack execution:
-  require complete source consumption to the declared source-end address, write
-  cursor ending at the expected transfer/start boundary for that routine shape,
-  and a final control transfer into the declared output range before any child
-  target can be accepted.
+  offset, compressed-source section end offset, post-pass source start/end
+  addresses, post-pass escape byte, target start address, and final entrypoint;
+  hunk 2 also records the copied stub source offset, runtime address `$100`,
+  and `$40` transfer into that copied stub. Target end is not emitted until
+  unpack execution proves the final output cursor.
+- Native Tetragon unpack execution now accepts child payloads only when C proves
+  the packed trailer matches the post-pass range, the post-pass source is fully
+  consumed, the output cursor is bounded, and the final transfer lands inside
+  the output range. Damocles has a committed real-data fixture covering both
+  materialized hunk payloads without depending on mutable target inventory, and
+  Voodoo Nightmare `ake.c` is the comparator fixture for the same native path.

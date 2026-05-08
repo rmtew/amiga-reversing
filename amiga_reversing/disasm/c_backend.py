@@ -231,6 +231,25 @@ def materialize_self_decrunch_event_with_c_backend(
     return cast(dict[str, object], json.loads(text))
 
 
+def materialize_recognized_unpacker_event_with_c_backend(
+    backend_name: str,
+    path: str | Path,
+    event_id: str,
+    output_path: str | Path,
+    *,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    text = _platform_file_text(
+        "platform_file_decompression_materialize_recognized_unpacker_event_json_alloc",
+        backend_name,
+        str(path),
+        event_id,
+        str(output_path),
+        project_root=project_root,
+    )
+    return cast(dict[str, object], json.loads(text))
+
+
 def render_project_source_with_c_backend(
     binary_source: BinarySource,
     *,
@@ -1046,6 +1065,14 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_decompression_materialize_self_decrunch_event_json_alloc.restype = c_int
+    dll.platform_file_decompression_materialize_recognized_unpacker_event_json_alloc.argtypes = [
+        c_char_p,
+        c_char_p,
+        c_char_p,
+        c_char_p,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_decompression_materialize_recognized_unpacker_event_json_alloc.restype = c_int
     dll.platform_file_assemble_source_path_bytes_profile_alloc.argtypes = [
         c_char_p,
         c_char_p,

@@ -107,6 +107,8 @@ PLATFORM_FILE_API int platform_file_decompression_decompress_section_range_json_
     char **out_text);
 PLATFORM_FILE_API int platform_file_decompression_materialize_self_decrunch_event_json_alloc(const char *backend_name,
     const char *path, const char *event_id, const char *output_path, char **out_text);
+PLATFORM_FILE_API int platform_file_decompression_materialize_recognized_unpacker_event_json_alloc(
+    const char *backend_name, const char *path, const char *event_id, const char *output_path, char **out_text);
 PLATFORM_FILE_API int platform_file_assemble_source_path_bytes_profile_alloc(const char *backend_name,
     const char *include_dir, const char *path, const char *target_cpu_name, unsigned char **out_data,
     size_t *out_size, char **out_profile_json, char **out_error);

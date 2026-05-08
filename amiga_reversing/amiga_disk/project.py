@@ -23,6 +23,7 @@ from amiga_reversing.disasm.c_backend import (
     analyze_binary_source_with_c_backend,
     decompress_packed_section_range_with_c_backend,
     extract_disk_entry_with_c_backend,
+    materialize_recognized_unpacker_event_with_c_backend,
     materialize_self_decrunch_event_with_c_backend,
 )
 from amiga_reversing.disasm.project_ids import (
@@ -112,13 +113,22 @@ def _str_field(payload: dict[str, object], key: str) -> str | None:
     return value if isinstance(value, str) and value else None
 
 
+def _safe_id_part(value: str, fallback: str) -> str:
+    safe = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in value)
+    return safe.strip("._-").replace("-", "_") or fallback
+
+
+def _native_unpacker_provider_id(event: dict[str, object]) -> str:
+    codec = _safe_id_part(_str_field(event, "codec_id") or "unpacker", "unpacker")
+    return f"c-{codec}-native"
+
+
 def _decompressed_payload_child_local_id(
     parent_local_target_id: str,
     suggestion: dict[str, object],
 ) -> str:
     codec_raw = _str_field(suggestion, "codec_id") or "packed"
-    codec = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in codec_raw)
-    codec = codec.strip("._-").replace("-", "_") or "packed"
+    codec = _safe_id_part(codec_raw, "packed")
     section = _int_field(suggestion, "source_section") or 0
     offset = _int_field(suggestion, "source_section_offset") or 0
     stem = target_output_stem(parent_local_target_id)
@@ -134,6 +144,18 @@ def _self_decrunch_payload_child_local_id(parent_local_target_id: str, event: di
     load_address = _int_field(event, "load_address") or 0
     stem = target_output_stem(parent_local_target_id)
     candidate = f"{stem}_simdecrunch_{section:02x}_{entry:08x}_{load_address:08x}"
+    if len(candidate) > 71:
+        candidate = candidate[:71].rstrip("._-")
+    return raw_target_id(candidate)
+
+
+def _recognized_unpacker_payload_child_local_id(parent_local_target_id: str, event: dict[str, object]) -> str:
+    section = _int_field(event, "source_section") or 0
+    offset = _int_field(event, "unpacker_marker_offset") or 0
+    codec_raw = _str_field(event, "codec_id") or "native"
+    codec = _safe_id_part(codec_raw, "native")
+    stem = target_output_stem(parent_local_target_id)
+    candidate = f"{stem}_native_{codec}_{section:02x}_{offset:08x}"
     if len(candidate) > 71:
         candidate = candidate[:71].rstrip("._-")
     return raw_target_id(candidate)
@@ -160,6 +182,36 @@ def _materializable_decompression_suggestions(analysis: dict[str, object]) -> li
         if _int_field(item, "decompressed_size") is None:
             continue
         if _int_field(item, "load_address") is None:
+            continue
+        if _int_field(item, "entrypoint") is None:
+            continue
+        materializable.append(dict(item))
+    return materializable
+
+
+def _materializable_recognized_unpacker_events(analysis: dict[str, object]) -> list[dict[str, object]]:
+    events = analysis.get("decompression_events")
+    if not isinstance(events, list):
+        return []
+    materializable: list[dict[str, object]] = []
+    for item in events:
+        if not isinstance(item, dict):
+            continue
+        if item.get("source_kind") != "recognized_unpacker":
+            continue
+        if item.get("status") != "materializable":
+            continue
+        if item.get("payload_role") != "primary_program":
+            continue
+        if item.get("parent_remains_active") != "false":
+            continue
+        if _str_field(item, "event_id") is None:
+            continue
+        if _int_field(item, "decompressed_size") is None:
+            continue
+        if _str_field(item, "decompressed_sha256") is None:
+            continue
+        if _int_field(item, "target_start_address") is None:
             continue
         if _int_field(item, "entrypoint") is None:
             continue
@@ -369,6 +421,172 @@ def _materialize_decompressed_payload_children(
                     "packed_section_offset": source_section_offset,
                     "packed_size": packed_size,
                     "codec_id": _str_field(suggestion, "codec_id"),
+                }
+            )
+            child_targets.append(
+                ImportedTarget(
+                    target_name=target_name,
+                    target_path=disk_child_target_relpath(disk_id, local_target_id).as_posix(),
+                    entry_path=child_entry_path,
+                    binary_path=output_path.relative_to(project_root).as_posix(),
+                    target_type="raw_binary",
+                    derived_from=relationship,
+                )
+            )
+        for event in _materializable_recognized_unpacker_events(analysis):
+            event_id = _str_field(event, "event_id")
+            output_size = _int_field(event, "decompressed_size")
+            output_sha256 = _str_field(event, "decompressed_sha256")
+            load_address = _int_field(event, "target_start_address")
+            entrypoint = _int_field(event, "entrypoint")
+            source_section = _int_field(event, "source_section") or 0
+            marker_offset = _int_field(event, "unpacker_marker_offset") or 0
+            native_provider_id = _native_unpacker_provider_id(event)
+            assert event_id is not None
+            assert output_size is not None
+            assert output_sha256 is not None
+            assert load_address is not None
+            assert entrypoint is not None
+            local_target_id = _recognized_unpacker_payload_child_local_id(parent_local_target_id, event)
+            target_name = disk_child_project_id(disk_id, local_target_id)
+            target_dir = disk_children_root / local_target_id
+            child_entry_path = (
+                f"{parent_entry_path}::{_str_field(event, 'codec_id') or 'native'}_"
+                f"{source_section:02x}_{marker_offset:08x}"
+            )
+            origin = {
+                "kind": "derived_decompressed_payload",
+                "parent_disk_id": disk_id,
+                "parent_target": parent_target_name,
+                "parent_entry_path": parent_entry_path,
+                "child_entry_path": child_entry_path,
+                "target_role": "decompressed_payload",
+                "target_type": "raw_binary",
+                "codec_id": _str_field(event, "codec_id"),
+                "codec_name": _str_field(event, "codec_name"),
+                "provider_id": native_provider_id,
+                "event_id": event_id,
+                "decompressed_size": output_size,
+                "decompressed_sha256": output_sha256,
+                "load_address": load_address,
+                "entrypoint": entrypoint,
+            }
+            if target_dir.exists() and not target_dir.is_dir():
+                continue
+            if not target_dir.exists():
+                create_project_at_path(
+                    disk_child_target_relpath(disk_id, local_target_id).as_posix(),
+                    project_root=project_root,
+                    origin=origin,
+                )
+                created_dirs.append(target_dir)
+            output_path = target_dir / "binary.bin"
+            temp_output_path = target_dir / ".recognized-unpacker-output.tmp"
+            try:
+                result = materialize_recognized_unpacker_event_with_c_backend(
+                    "amiga-hunk",
+                    parent_temp_path,
+                    event_id,
+                    temp_output_path,
+                    project_root=project_root,
+                )
+                materialized = result.get("decompressed")
+                if not isinstance(materialized, dict) or result.get("status") != "ok":
+                    raise DiskAnalysisError(f"C recognized unpacker did not materialise {child_entry_path}")
+                actual_bytes = temp_output_path.read_bytes()
+                actual_hash = hashlib.sha256(actual_bytes).hexdigest()
+                if len(actual_bytes) != output_size or actual_hash != output_sha256:
+                    raise DiskAnalysisError(f"C recognized unpacker output mismatch for {child_entry_path}")
+                temp_output_path.replace(output_path)
+            finally:
+                try:
+                    temp_output_path.unlink()
+                except FileNotFoundError:
+                    pass
+            set_project_origin(target_dir, origin=origin)
+            code_start_offset = entrypoint - load_address if entrypoint >= load_address else 0
+            if code_start_offset >= output_size:
+                code_start_offset = 0
+            write_source_descriptor(
+                target_dir,
+                {
+                    "kind": "raw_binary",
+                    "address_model": "runtime_absolute",
+                    "path": output_path.relative_to(project_root).as_posix(),
+                    "load_address": load_address,
+                    "entrypoint": entrypoint,
+                    "code_start_offset": code_start_offset,
+                    "parent_disk_id": disk_id,
+                },
+            )
+            write_target_metadata(target_dir, TargetMetadata(target_type="raw_binary", entry_register_seeds=()))
+            relationship = {
+                "kind": "decompressed_payload",
+                "parent_target": parent_target_name,
+                "parent_entry_path": parent_entry_path,
+                "child_target": target_name,
+                "child_entry_path": child_entry_path,
+                "decompressed_size": output_size,
+                "load_address": load_address,
+                "entrypoint": entrypoint,
+                "codec_id": _str_field(event, "codec_id"),
+                "codec_name": _str_field(event, "codec_name"),
+                "provider_id": native_provider_id,
+                "event_id": event_id,
+                "source_kind": "recognized_unpacker",
+                "source_section": source_section,
+                "unpacker_marker_offset": marker_offset,
+            }
+            decompression_record = {
+                "schema_version": 1,
+                "parent_target_id": parent_target_name,
+                "child_target_id": target_name,
+                "parent_entry_path": parent_entry_path,
+                "child_entry_path": child_entry_path,
+                "compressor": {
+                    "id": _str_field(event, "codec_id"),
+                    "name": _str_field(event, "codec_name"),
+                    "confidence": _str_field(event, "payload_role_confidence") or "tool_inferred",
+                },
+                "source": {
+                    "kind": "recognized_unpacker",
+                    "provider_id": _str_field(event, "provider_id"),
+                    "event_id": event_id,
+                    "source_section": source_section,
+                    "unpacker_marker_offset": marker_offset,
+                    "compressed_source_section_offset": _int_field(event, "compressed_source_section_offset"),
+                    "compressed_source_section_end_offset": _int_field(
+                        event, "compressed_source_section_end_offset"
+                    ),
+                    "compressed_source_consumed_section_offset": _int_field(
+                        event, "compressed_source_consumed_section_offset"
+                    ),
+                    "postpass_source_start_address": _int_field(event, "postpass_source_start_address"),
+                    "postpass_source_end_address": _int_field(event, "postpass_source_end_address"),
+                    "postpass_source_consumed_address": _int_field(event, "postpass_source_consumed_address"),
+                    "postpass_escape_byte": _int_field(event, "postpass_escape_byte"),
+                },
+                "decompressed": {
+                    "size": output_size,
+                    "sha256": output_sha256,
+                    "load_address": load_address,
+                    "entrypoint": entrypoint,
+                },
+                "extraction": {"method": native_provider_id},
+                "relationship": relationship,
+            }
+            _write_text(
+                target_dir / "decompression.json",
+                json.dumps(decompression_record, indent=2, sort_keys=True) + "\n",
+            )
+            mark_project_updated(target_dir)
+            parent_derived.append(
+                {
+                    "kind": "decompressed_payload",
+                    "target_name": target_name,
+                    "provider_id": native_provider_id,
+                    "event_id": event_id,
+                    "codec_id": _str_field(event, "codec_id"),
                 }
             )
             child_targets.append(

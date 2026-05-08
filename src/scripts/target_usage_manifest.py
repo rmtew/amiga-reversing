@@ -1378,7 +1378,7 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
             bag.add("decompression:simulated_output", example=example)
         if _string_value(event.get("simulated_output_sha256")):
             bag.add("decompression:simulated_output_hash", example=example)
-        if _int_value(event.get("load_address")) is not None:
+        if _int_value(event.get("load_address")) is not None or _int_value(event.get("target_start_address")) is not None:
             bag.add("absolute-depack-dest", example=example)
         if _int_value(event.get("entrypoint")) is not None:
             bag.add("decompressed-entrypoint", example=example)
@@ -2470,6 +2470,9 @@ def _decompression_analysis_xrefs(
         provider_id = _string_value(event.get("provider_id"))
         if provider_id:
             features.append(f"decompression:provider:{_safe_part(provider_id)}")
+        codec_id = _string_value(event.get("codec_id"))
+        if codec_id:
+            features.append(f"decompression:codec:{_safe_part(codec_id)}")
         codec_support = _string_value(event.get("codec_support"))
         if codec_support:
             features.append(f"decompression:codec_support:{_safe_part(codec_support)}")
@@ -2477,6 +2480,10 @@ def _decompression_analysis_xrefs(
             features.append("decompression:simulated_output")
         if _string_value(event.get("simulated_output_sha256")):
             features.append("decompression:simulated_output_hash")
+        if _int_value(event.get("load_address")) is not None or _int_value(event.get("target_start_address")) is not None:
+            features.append("absolute-depack-dest")
+        if _int_value(event.get("entrypoint")) is not None:
+            features.append("decompressed-entrypoint")
         for feature in features:
             xrefs.append(
                 _xref(

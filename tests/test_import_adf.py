@@ -47,6 +47,11 @@ from amiga_reversing.amiga_disk.project import (
     import_adf,
     refresh_decompressed_payload_children,
 )
+from amiga_reversing.disasm.c_backend import (
+    analyze_binary_source_with_c_backend,
+    materialize_recognized_unpacker_event_with_c_backend,
+)
+from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.target_metadata import TargetMetadata
 from amiga_reversing.tools.analyze_disk import print_summary
 from src.tests.test_platform_amiga_disk import (
@@ -58,6 +63,12 @@ from src.tests.test_platform_amiga_disk import (
     _make_root_block,
     _put_u32,
 )
+
+
+def _requires_c_backend_dlls() -> None:
+    build_dir = PROJECT_ROOT / "src" / "build"
+    if not (build_dir / "platform_file_lib.dll").exists() or not (build_dir / "platform_disk_lib.dll").exists():
+        pytest.skip("C backend DLLs are missing; run cmd /c src\\build.bat")
 
 
 def _hunk_executable(code: bytes) -> bytes:
@@ -728,6 +739,92 @@ def test_import_adf_materializes_c_simulated_self_decrunch_child(
     assert decompression["source"]["kind"] == "self_decruncher"
     assert decompression["source"]["event_id"] == event_id
     assert decompression["decompressed"]["sha256"] == output_hash
+
+
+def test_import_adf_materializes_c_recognized_unpacker_children_from_real_fixture(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    _requires_c_backend_dlls()
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+    fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "damocles_tetragon_53b24620.bin"
+    parent_bytes = fixture.read_bytes()
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
+        lambda adf_file, entry_path, *, project_root: parent_bytes,
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
+        lambda source_path, *, project_root: analyze_binary_source_with_c_backend(
+            source_path, project_root=PROJECT_ROOT
+        ),
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.materialize_recognized_unpacker_event_with_c_backend",
+        lambda backend_name, path, event_id, output_path, *, project_root: (
+            materialize_recognized_unpacker_event_with_c_backend(
+                backend_name, path, event_id, output_path, project_root=PROJECT_ROOT
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.decompress_packed_section_range_with_c_backend",
+        lambda *args, **kwargs: pytest.fail("provider-backed decompression was used for native unpacker output"),
+    )
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    parent = next(target for target in manifest.imported_targets if target.entry_path == "c/Run")
+    children = sorted(
+        (target for target in manifest.imported_targets if target.target_type == "raw_binary"),
+        key=lambda target: target.derived_from["source_section"] if target.derived_from is not None else -1,
+    )
+    assert len(children) == 2
+    assert parent.derived_targets == [
+        {
+            "kind": "decompressed_payload",
+            "target_name": children[0].target_name,
+            "provider_id": "c-tetragon-native",
+            "event_id": children[0].derived_from["event_id"],
+            "codec_id": "tetragon",
+        },
+        {
+            "kind": "decompressed_payload",
+            "target_name": children[1].target_name,
+            "provider_id": "c-tetragon-native",
+            "event_id": children[1].derived_from["event_id"],
+            "codec_id": "tetragon",
+        },
+    ]
+    expected = {
+        1: (0x40000, 0x40000, 0x10000, "6fa11625a70f82fc4df5f318ccb149ceeb2687f4af36643c5089090d37a2c0b9"),
+        2: (0x1000, 0x59484, 0x7B14A, "241eff126d46113217bbdb5646cb228aec80d65ff7d9b852359fa5d752b508e8"),
+    }
+    for child in children:
+        assert child.derived_from is not None
+        section = child.derived_from["source_section"]
+        load_address, entrypoint, size, sha256 = expected[section]
+        child_dir = project_root / child.target_path
+        output = (child_dir / "binary.bin").read_bytes()
+        assert len(output) == size
+        assert hashlib.sha256(output).hexdigest() == sha256
+        source = json.loads((child_dir / "source_binary.json").read_text(encoding="utf-8"))
+        assert source["kind"] == "raw_binary"
+        assert source["address_model"] == "runtime_absolute"
+        assert source["load_address"] == load_address
+        assert source["entrypoint"] == entrypoint
+        decompression = json.loads((child_dir / "decompression.json").read_text(encoding="utf-8"))
+        assert decompression["source"]["kind"] == "recognized_unpacker"
+        assert decompression["extraction"]["method"] == "c-tetragon-native"
+        assert decompression["decompressed"]["sha256"] == sha256
 
 
 def test_import_adf_refreshes_existing_c_decompressed_child(

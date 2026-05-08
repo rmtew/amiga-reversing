@@ -106,6 +106,44 @@ def test_decompression_payload_role_features() -> None:
     assert examples["decompression:has_event_id"][0]["event_id"] == "decompression:section:0:00004C40:rnc1-old"
 
 
+def test_recognized_unpacker_target_start_indexes_absolute_depack_destination() -> None:
+    analysis = {
+        "decompression_events": [
+            {
+                "event_kind": "decompression",
+                "event_id": "decompression:recognized_unpacker:section:1:000000C4:tetragon",
+                "status": "materializable",
+                "reason": "native_tetragon_unpack_validated",
+                "codec_id": "tetragon",
+                "codec_support": "native_decompressor",
+                "payload_role": "primary_program",
+                "parent_remains_active": "false",
+                "source_kind": "recognized_unpacker",
+                "provider_id": "c-tetragon-signature",
+                "source_section": 1,
+                "source_section_offset": 0x100,
+                "target_start_address": 0x40000,
+                "target_end_address": 0x50000,
+                "entrypoint": 0x40000,
+            }
+        ]
+    }
+    bag = FeatureBag()
+    _add_analysis_features(analysis, bag)
+    counts, _examples, tags = bag.row_features()
+
+    assert counts["absolute-depack-dest"] == 1
+    assert counts["decompressed-entrypoint"] == 1
+    assert counts["decompression:codec:tetragon"] == 1
+    assert "absolute-depack-dest" in tags
+
+    row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
+    row_locations = {(1, 0x100): (12, "s1:00000100:data:12", "dc.b $00")}
+    xrefs = _analysis_xrefs(row, analysis, row_locations)
+    assert any(xref["feature"] == "absolute-depack-dest" and xref["row_index"] == 12 for xref in xrefs)
+    assert any(xref["feature"] == "decompression:codec:tetragon" and xref["row_index"] == 12 for xref in xrefs)
+
+
 def test_labelized_table_shape_features_and_xrefs() -> None:
     listing = {
         "rows": [

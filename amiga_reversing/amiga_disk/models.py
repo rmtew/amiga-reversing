@@ -1380,7 +1380,18 @@ class ImportedTarget:
         )
 
     def to_dict(self) -> dict[str, object]:
-        return _as_json_dict(self)
+        payload: dict[str, object] = {
+            "target_name": self.target_name,
+            "target_path": self.target_path,
+            "entry_path": self.entry_path,
+            "binary_path": self.binary_path,
+            "target_type": self.target_type,
+        }
+        if self.derived_from is not None:
+            payload["derived_from"] = self.derived_from
+        if self.derived_targets is not None:
+            payload["derived_targets"] = self.derived_targets
+        return payload
 
 
 @dataclass(frozen=True, slots=True)
@@ -1472,7 +1483,16 @@ class DiskManifest:
         return cls.from_dict(_json_object(payload))
 
     def to_dict(self) -> dict[str, object]:
-        return _as_json_dict(self)
+        return {
+            "schema_version": self.schema_version,
+            "disk_id": self.disk_id,
+            "source_path": self.source_path,
+            "source_sha256": self.source_sha256,
+            "analysis": self.analysis.to_dict(),
+            "imported_targets": [target.to_dict() for target in self.imported_targets],
+            "bootblock_target_name": self.bootblock_target_name,
+            "bootblock_target_path": self.bootblock_target_path,
+        }
 
 
 type JsonDataclass = (

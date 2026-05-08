@@ -484,14 +484,23 @@ Current retained output:
 27. Done: imported decompressed-child refresh removes stale synthetic children
    when successful reanalysis no longer accepts the child.
 28. Done: C analysis identifies Tetragon unpacker marker events. Damocles now
-   reports two Tetragon candidates: hunk 1 source data at `$100`, declared
-   source end `$50000`, loading and entering `$40000`, and hunk 2 source data
-   at `$14C`, declared source end `$7FFFF`, output base `$1000`, final entry
-   `$59484`, copied stub storage `$6A`, runtime stub `$100`, and transfer
-   offset `$40`.
-29. Next: native Tetragon unpack execution should retain a payload only when C
-   proves exact source consumption to the declared source end, the expected
-   output cursor boundary, and final transfer into the declared output range.
+   reports two Tetragon candidates: hunk 1 compressed source at section offset
+   `$100`, compressed-source section end offset `$428`, post-pass source
+   `$4F92B..$50000`, escape `$11`, target start and entry `$40000`, and hunk 2
+   compressed source at section offset `$14C`, compressed-source section end
+   offset `$474B4`, post-pass source `$130B6..$7FFFF`, escape `$AD`, target
+   start `$1000`, final entry `$59484`, copied stub storage `$6A`, runtime stub
+   `$100`, and transfer offset `$40`. Target end remains unknown until unpack
+   execution proves the output cursor.
+29. Done: native Tetragon unpack execution retains a payload only when C proves
+   the packed trailer matches the post-pass range, post-pass consumption reaches
+   the post-pass source end, the output cursor produces a bounded target range,
+   and the final transfer lands inside that target. The Damocles real-data
+   regression uses `tests/fixtures/hunk/damocles_tetragon_53b24620.bin` so it
+   does not depend on mutable target inventory. Hunk 1 materializes
+   `$40000..$50000`; hunk 2 materializes `$1000..$7C14A`. A second real-data
+   comparator, `tests/fixtures/hunk/voodoo_ake_tetragon.bin`, proves the same
+   native path on Voodoo Nightmare `ake.c` and materializes `$5C000..$65BA7`.
 
 ## Current Corpus Query Proof
 
