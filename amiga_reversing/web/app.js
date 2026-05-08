@@ -5399,11 +5399,59 @@ function formatTargetTypeLabel(targetType) {
   return targetType.replaceAll("_", " ");
 }
 
+function formatRelationshipValue(value) {
+  return String(value).replaceAll("_", " ");
+}
+
 function renderInlineBadges(labels) {
   return labels
     .filter((label) => label)
     .map((label) => `<span class="project-badge">${escapeHtml(label)}</span>`)
     .join("");
+}
+
+function appendPayloadRelationshipDetails(details, relationship) {
+  if (!relationship) {
+    return;
+  }
+  if (relationship.payload_role) {
+    details.push(`role: ${formatRelationshipValue(relationship.payload_role)}`);
+  }
+  if (relationship.payload_role_confidence) {
+    details.push(`confidence: ${formatRelationshipValue(relationship.payload_role_confidence)}`);
+  }
+  if (relationship.parent_remains_active !== null && relationship.parent_remains_active !== undefined) {
+    const active = String(relationship.parent_remains_active).toLowerCase();
+    if (active === "true") {
+      details.push("parent remains active");
+    } else if (active === "false") {
+      details.push("parent replaced");
+    } else {
+      details.push(`parent active: ${formatRelationshipValue(relationship.parent_remains_active)}`);
+    }
+  }
+}
+
+function appendDerivedTargetSummary(details, target) {
+  const derivedTargets = target.derived_targets;
+  if (!Array.isArray(derivedTargets) || !derivedTargets.length) {
+    return;
+  }
+  const decompressedTargets = derivedTargets.filter((item) => item && item.kind === "decompressed_payload");
+  if (!decompressedTargets.length) {
+    details.push(`${derivedTargets.length} derived targets`);
+    return;
+  }
+  const roles = Array.from(new Set(
+    decompressedTargets
+      .map((item) => item.payload_role)
+      .filter((role) => role)
+      .map(formatRelationshipValue),
+  ));
+  details.push(`${decompressedTargets.length} decompressed payload${decompressedTargets.length === 1 ? "" : "s"}`);
+  if (roles.length) {
+    details.push(`roles: ${roles.join(", ")}`);
+  }
 }
 
 function renderBootBlockTarget(bootBlock, filesystem, bootblockTargetName) {
@@ -5442,10 +5490,13 @@ function renderDiskTargetMetadata(target, entry) {
     if (origin.load_address !== null && origin.load_address !== undefined) {
       details.push(`loads @ $${Number(origin.load_address).toString(16).toUpperCase()}`);
     }
+    appendPayloadRelationshipDetails(details, origin);
     return `${renderInlineBadges(["decompressed", formatTargetTypeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`;
   }
   if (!entry && String(target.entry_path || "").startsWith("bootloader/")) {
-    return `${renderInlineBadges([formatTargetTypeLabel(target.target_type)])} ${escapeHtml(target.binary_path || target.entry_path)}`;
+    const details = [target.binary_path || target.entry_path];
+    appendDerivedTargetSummary(details, target);
+    return `${renderInlineBadges([formatTargetTypeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`;
   }
   if (!entry) {
     throw new Error(`Missing indexed file entry for imported target: ${target.entry_path}`);
@@ -5468,6 +5519,7 @@ function renderDiskTargetMetadata(target, entry) {
     details.push(`resident v${content.resident.version}`);
     details.push(content.resident.node_type_name);
   }
+  appendDerivedTargetSummary(details, target);
   return `${renderInlineBadges([formatTargetTypeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`;
 }
 

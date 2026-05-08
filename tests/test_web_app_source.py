@@ -35,6 +35,24 @@ def test_web_app_allows_non_dos_disk_targets_without_indexed_files() -> None:
     assert '${files ? \'<button class="disk-tab-button" type="button" data-tab="contents" role="tab" aria-selected="false">Disk Contents</button>\' : ""}' in app_js
 
 
+def test_web_app_surfaces_decompression_relationship_roles() -> None:
+    app_js = (
+        Path(__file__).resolve().parent.parent
+        / "amiga_reversing" / "web"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+
+    assert "function appendPayloadRelationshipDetails(details, relationship)" in app_js
+    assert "function appendDerivedTargetSummary(details, target)" in app_js
+    assert "relationship.payload_role" in app_js
+    assert "relationship.payload_role_confidence" in app_js
+    assert "relationship.parent_remains_active" in app_js
+    assert "target.derived_targets" in app_js
+    assert "decompressed payload" in app_js
+    assert "appendPayloadRelationshipDetails(details, origin);" in app_js
+    assert "appendDerivedTargetSummary(details, target);" in app_js
+
+
 def test_web_app_annotation_button_is_hover_only_and_has_fallback_entity() -> None:
     web_dir = Path(__file__).resolve().parent.parent / "amiga_reversing" / "web"
     app_js = (web_dir / "app.js").read_text(encoding="utf-8")

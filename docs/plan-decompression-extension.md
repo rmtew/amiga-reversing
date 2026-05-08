@@ -331,3 +331,6 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   project-target tags. Damocles Tetragon children now surface
   `primary_program` / `native_unpack_entry_validated` / `false` instead of only
   the generic `decompressed_payload` target role.
+- The web target list now renders decompression relationship roles from manifest
+  data for both parent targets with derived payloads and child decompressed
+  targets. It does not reclassify payloads in JavaScript.
