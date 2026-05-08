@@ -63,6 +63,32 @@ def _requires_c_backend_dlls() -> None:
         pytest.skip("C backend DLLs are missing; run cmd /c src\\build.bat")
 
 
+def test_load_dll_resolves_relative_project_root_for_windows_dll_directory(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    build_dir = tmp_path / "src" / "build"
+    build_dir.mkdir(parents=True)
+    dll_path = build_dir / "platform_file_lib.dll"
+    dll_path.write_bytes(b"")
+    added_dirs: list[str] = []
+    loaded_paths: list[str] = []
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        c_backend.os,
+        "add_dll_directory",
+        lambda path: added_dirs.append(path) or object(),
+        raising=False,
+    )
+    monkeypatch.setattr(c_backend, "CDLL", lambda path: loaded_paths.append(path) or object())
+
+    c_backend._load_dll(Path("."), dll_path.name)
+
+    assert added_dirs == [str(build_dir.resolve())]
+    assert loaded_paths == [str(dll_path.resolve())]
+
+
 def _amiga_hunk_section_hexes(path: Path) -> list[str]:
     inspector = PROJECT_ROOT / "src" / "build" / "platform_file_cli.exe"
     result = subprocess.run(

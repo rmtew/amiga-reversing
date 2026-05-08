@@ -1259,6 +1259,14 @@ def _decompression_example(record: dict[str, Any]) -> dict[str, object]:
     load_address = _int_value(record.get("load_address"))
     if load_address is not None:
         example["load_address"] = load_address
+    target_start_address = _int_value(record.get("target_start_address"))
+    if target_start_address is not None:
+        example["target_start_address"] = target_start_address
+        if load_address is None:
+            example["load_address"] = target_start_address
+    target_end_address = _int_value(record.get("target_end_address"))
+    if target_end_address is not None:
+        example["target_end_address"] = target_end_address
     entrypoint = _int_value(record.get("entrypoint"))
     if entrypoint is not None:
         example["entrypoint"] = entrypoint
@@ -1286,6 +1294,50 @@ def _decompression_example(record: dict[str, Any]) -> dict[str, object]:
     return example
 
 
+def _decompression_output_address_features(record: dict[str, Any]) -> list[str]:
+    features: list[str] = []
+    load_address = _int_value(record.get("load_address"))
+    if load_address is None:
+        load_address = _int_value(record.get("target_start_address"))
+    if load_address is not None:
+        features.append("decompression:output_load_address")
+        features.append(f"decompression:output_load_address:{load_address:08X}")
+        features.append("absolute-depack-dest")
+    entrypoint = _int_value(record.get("entrypoint"))
+    if entrypoint is not None:
+        features.append("decompression:entrypoint")
+        features.append(f"decompression:entrypoint:{entrypoint:08X}")
+        features.append("decompressed-entrypoint")
+    return features
+
+
+def _decompression_pattern_features(record: dict[str, Any]) -> list[str]:
+    features: list[str] = []
+    source_kind = _string_value(record.get("source_kind"))
+    provider_id = _string_value(record.get("provider_id"))
+    codec_id = _string_value(record.get("codec_id"))
+    if source_kind == "self_decruncher" or provider_id == "m68k-sim-decrunch":
+        features.append("decompression:pattern:absolute_self_decrunch_transfer")
+        if _int_value(record.get("simulated_output_size")) is not None:
+            features.append("decompression:pattern:simulated_self_decrunch_output")
+    if source_kind == "recognized_unpacker":
+        features.append("decompression:pattern:recognized_unpacker")
+        if codec_id:
+            features.append(f"decompression:pattern:recognized_unpacker:{_safe_part(codec_id)}")
+    if _int_value(record.get("runtime_copy_address")) is not None:
+        features.append("decompression:pattern:runtime_copy_to_absolute")
+    return features
+
+
+def _decompression_unmaterialized_features(status: str | None, reason: str | None) -> list[str]:
+    if status in (None, "", "materializable", "simulated_output_observed"):
+        return []
+    features = ["decompression:unmaterialized_work_item"]
+    if reason:
+        features.append(f"decompression:work_item_reason:{_safe_part(reason)}")
+    return features
+
+
 def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
     for payload in _dict_items(analysis.get("packed_payloads")):
         example = _decompression_example(payload)
@@ -1309,6 +1361,8 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
             bag.add("decompression:has_output_hash", example=example)
         if _string_value(payload.get("diagnostic")):
             bag.add("decompression:diagnostic", example=example)
+        for feature in _decompression_output_address_features(payload):
+            bag.add(feature, example=example)
     for suggestion in _dict_items(analysis.get("derived_target_suggestions")):
         example = _decompression_example(suggestion)
         kind = _string_value(suggestion.get("kind")) or "unknown"
@@ -1321,10 +1375,10 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         reason = _string_value(suggestion.get("reason"))
         if reason:
             bag.add(f"derived_target_suggestion_reason:{_safe_part(reason)}", example=example)
-        if _int_value(suggestion.get("load_address")) is not None:
-            bag.add("absolute-depack-dest", example=example)
-        if _int_value(suggestion.get("entrypoint")) is not None:
-            bag.add("decompressed-entrypoint", example=example)
+        for feature in _decompression_unmaterialized_features(status, reason):
+            bag.add(feature, example=example)
+        for feature in _decompression_output_address_features(suggestion):
+            bag.add(feature, example=example)
         runtime_copy_address = _int_value(suggestion.get("runtime_copy_address"))
         if runtime_copy_address is not None:
             bag.add("decompression:runtime_copy", example=example)
@@ -1344,6 +1398,8 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
                     bag.add("decompression:runtime_copy_short", example=example)
                 else:
                     bag.add("decompression:runtime_copy_oversize", example=example)
+        for feature in _decompression_pattern_features(suggestion):
+            bag.add(feature, example=example)
     for event in _dict_items(analysis.get("decompression_events")):
         example = _decompression_example(event)
         event_kind = _string_value(event.get("event_kind")) or "unknown"
@@ -1356,6 +1412,8 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         reason = _string_value(event.get("reason"))
         if reason:
             bag.add(f"decompression:event_reason:{_safe_part(reason)}", example=example)
+        for feature in _decompression_unmaterialized_features(status, reason):
+            bag.add(feature, example=example)
         payload_role = _string_value(event.get("payload_role"))
         if payload_role:
             bag.add(f"decompression:payload_role:{_safe_part(payload_role)}", example=example)
@@ -1378,10 +1436,10 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
             bag.add("decompression:simulated_output", example=example)
         if _string_value(event.get("simulated_output_sha256")):
             bag.add("decompression:simulated_output_hash", example=example)
-        if _int_value(event.get("load_address")) is not None or _int_value(event.get("target_start_address")) is not None:
-            bag.add("absolute-depack-dest", example=example)
-        if _int_value(event.get("entrypoint")) is not None:
-            bag.add("decompressed-entrypoint", example=example)
+        for feature in _decompression_output_address_features(event):
+            bag.add(feature, example=example)
+        for feature in _decompression_pattern_features(event):
+            bag.add(feature, example=example)
 
 
 def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
@@ -2367,6 +2425,7 @@ def _decompression_analysis_xrefs(
             features.append("decompression:has_output_hash")
         if _string_value(payload.get("diagnostic")):
             features.append("decompression:diagnostic")
+        features.extend(_decompression_output_address_features(payload))
         if payload.get("found") is False or payload.get("found") == 0:
             features = ["unsupported-compressor"]
         for feature in features:
@@ -2404,10 +2463,8 @@ def _decompression_analysis_xrefs(
         reason = _string_value(suggestion.get("reason"))
         if reason:
             features.append(f"derived_target_suggestion_reason:{_safe_part(reason)}")
-        if _int_value(suggestion.get("load_address")) is not None:
-            features.append("absolute-depack-dest")
-        if _int_value(suggestion.get("entrypoint")) is not None:
-            features.append("decompressed-entrypoint")
+        features.extend(_decompression_unmaterialized_features(status, reason))
+        features.extend(_decompression_output_address_features(suggestion))
         runtime_copy_address = _int_value(suggestion.get("runtime_copy_address"))
         runtime_copy_size = _int_value(suggestion.get("runtime_copy_size"))
         packed_size = _int_value(suggestion.get("packed_size"))
@@ -2427,6 +2484,7 @@ def _decompression_analysis_xrefs(
                     features.append("decompression:runtime_copy_short")
                 else:
                     features.append("decompression:runtime_copy_oversize")
+        features.extend(_decompression_pattern_features(suggestion))
         for feature in features:
             xrefs.append(
                 _xref(
@@ -2461,6 +2519,7 @@ def _decompression_analysis_xrefs(
         reason = _string_value(event.get("reason"))
         if reason:
             features.append(f"decompression:event_reason:{_safe_part(reason)}")
+        features.extend(_decompression_unmaterialized_features(status, reason))
         payload_role = _string_value(event.get("payload_role"))
         if payload_role:
             features.append(f"decompression:payload_role:{_safe_part(payload_role)}")
@@ -2480,10 +2539,8 @@ def _decompression_analysis_xrefs(
             features.append("decompression:simulated_output")
         if _string_value(event.get("simulated_output_sha256")):
             features.append("decompression:simulated_output_hash")
-        if _int_value(event.get("load_address")) is not None or _int_value(event.get("target_start_address")) is not None:
-            features.append("absolute-depack-dest")
-        if _int_value(event.get("entrypoint")) is not None:
-            features.append("decompressed-entrypoint")
+        features.extend(_decompression_output_address_features(event))
+        features.extend(_decompression_pattern_features(event))
         for feature in features:
             xrefs.append(
                 _xref(

@@ -60,6 +60,9 @@ def test_decompression_payload_role_features() -> None:
                 "decompressed_size": 359600,
                 "load_address": 0x4000,
                 "entrypoint": 0x4000,
+                "runtime_copy_address": 0x4000,
+                "runtime_copy_size": 168396,
+                "runtime_copy_kind": 3,
             }
         ],
         "decompression_events": [
@@ -99,6 +102,11 @@ def test_decompression_payload_role_features() -> None:
     assert counts["decompression:codec:rnc1-old"] == 1
     assert counts["decompression:simulated_output"] == 1
     assert counts["decompression:simulated_output_hash"] == 1
+    assert counts["decompression:output_load_address"] == 2
+    assert counts["decompression:output_load_address:00004000"] == 2
+    assert counts["decompression:entrypoint"] == 2
+    assert counts["decompression:entrypoint:00004000"] == 2
+    assert counts["decompression:pattern:runtime_copy_to_absolute"] == 1
     assert "decompression:payload_role:primary_program" in tags
     assert examples["decompression:payload_role:primary_program"][0]["payload_role"] == "primary_program"
     assert examples["decompression:source_kind:provider_identified_payload"][0]["source_kind"] == "provider_identified_payload"
@@ -134,6 +142,10 @@ def test_recognized_unpacker_target_start_indexes_absolute_depack_destination() 
 
     assert counts["absolute-depack-dest"] == 1
     assert counts["decompressed-entrypoint"] == 1
+    assert counts["decompression:output_load_address:00040000"] == 1
+    assert counts["decompression:entrypoint:00040000"] == 1
+    assert counts["decompression:pattern:recognized_unpacker"] == 1
+    assert counts["decompression:pattern:recognized_unpacker:tetragon"] == 1
     assert counts["decompression:codec:tetragon"] == 1
     assert "absolute-depack-dest" in tags
 
@@ -142,6 +154,52 @@ def test_recognized_unpacker_target_start_indexes_absolute_depack_destination() 
     xrefs = _analysis_xrefs(row, analysis, row_locations)
     assert any(xref["feature"] == "absolute-depack-dest" and xref["row_index"] == 12 for xref in xrefs)
     assert any(xref["feature"] == "decompression:codec:tetragon" and xref["row_index"] == 12 for xref in xrefs)
+
+
+def test_self_decrunch_event_indexes_output_and_pattern_work_item() -> None:
+    analysis = {
+        "decompression_events": [
+            {
+                "event_kind": "decompression",
+                "event_id": "decompression:self_decrunch:section:0:00000000:00020000",
+                "status": "needs_simulated_decrunch",
+                "reason": "simulated_instruction_limit",
+                "codec_id": "unknown-self-decrunch",
+                "codec_support": "simulator_required",
+                "payload_role": "unknown_runtime_payload",
+                "parent_remains_active": "false",
+                "source_kind": "self_decruncher",
+                "provider_id": "m68k-sim-decrunch",
+                "decompressor_code_section": 0,
+                "decompressor_entry_offset": 0,
+                "load_address": 0x20000,
+                "entrypoint": 0x20000,
+                "simulated_output_size": 44220,
+                "simulated_output_sha256": "21ea11a46f008c69cca2795347eca093967191bf535b33c5ff3777619161999d",
+            }
+        ]
+    }
+    bag = FeatureBag()
+    _add_analysis_features(analysis, bag)
+    counts, examples, tags = bag.row_features()
+
+    assert counts["decompression:pattern:absolute_self_decrunch_transfer"] == 1
+    assert counts["decompression:pattern:simulated_self_decrunch_output"] == 1
+    assert counts["decompression:output_load_address:00020000"] == 1
+    assert counts["decompression:entrypoint:00020000"] == 1
+    assert counts["decompression:unmaterialized_work_item"] == 1
+    assert counts["decompression:work_item_reason:simulated_instruction_limit"] == 1
+    assert "decompression:pattern:absolute_self_decrunch_transfer" in tags
+    assert examples["decompression:output_load_address:00020000"][0]["load_address"] == 0x20000
+
+    row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
+    row_locations = {(0, 0): (2, "s0:00000000:instruction:2", "lea.l $20000,a0")}
+    xrefs = _analysis_xrefs(row, analysis, row_locations)
+    assert any(
+        xref["feature"] == "decompression:pattern:absolute_self_decrunch_transfer" and xref["row_index"] == 2
+        for xref in xrefs
+    )
+    assert any(xref["feature"] == "decompression:output_load_address:00020000" for xref in xrefs)
 
 
 def test_labelized_table_shape_features_and_xrefs() -> None:

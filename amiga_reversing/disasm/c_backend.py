@@ -1143,7 +1143,7 @@ def _platform_disk_dll(project_root: Path) -> CDLL:
 
 
 def _load_dll(project_root: Path, name: str) -> CDLL:
-    build_dir = project_root / "src" / "build"
+    build_dir = project_root.resolve() / "src" / "build"
     dll_path = build_dir / name
     if not dll_path.exists():
         raise FileNotFoundError(f"Missing C backend DLL: {dll_path}")

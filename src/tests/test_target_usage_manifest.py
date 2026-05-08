@@ -396,10 +396,15 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["derived-decompressed-target"], 1)
         self.assertEqual(counts["absolute-depack-dest"], 1)
         self.assertEqual(counts["decompressed-entrypoint"], 1)
+        self.assertEqual(counts["decompression:output_load_address"], 1)
+        self.assertEqual(counts["decompression:output_load_address:00004000"], 1)
+        self.assertEqual(counts["decompression:entrypoint"], 1)
+        self.assertEqual(counts["decompression:entrypoint:00004000"], 1)
         self.assertEqual(counts["decompression:runtime_copy"], 1)
         self.assertEqual(counts["decompression:runtime_copy_kind:3"], 1)
         self.assertEqual(counts["decompression:runtime_copy_conflicting"], 1)
         self.assertEqual(counts["decompression:runtime_copy_oversize"], 1)
+        self.assertEqual(counts["decompression:pattern:runtime_copy_to_absolute"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
         self.assertEqual(counts["hardware:custom"], 2)
         self.assertEqual(counts["hardware:custom/audio"], 1)
@@ -430,8 +435,57 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["absolute-depack-dest"][0]["load_address"], 0x4000)
         self.assertEqual(examples["decompressed-entrypoint"][0]["entrypoint"], 0x4000)
         self.assertEqual(examples["decompressed-entrypoint"][0]["initial_control_target"], 0x9B3A)
+        self.assertEqual(examples["decompression:output_load_address:00004000"][0]["load_address"], 0x4000)
         self.assertEqual(examples["memory:absolute_stack_top"][0]["symbol"], "stack_top_00080000")
         self.assertEqual(examples["analysis:runtime_table_base_addend"][0]["addend"], -4)
+
+    def test_self_decrunch_event_indexes_pattern_and_work_item(self) -> None:
+        analysis = {
+            "decompression_events": [
+                {
+                    "event_kind": "decompression",
+                    "event_id": "decompression:self_decrunch:section:0:00000000:00020000",
+                    "status": "needs_simulated_decrunch",
+                    "reason": "simulated_instruction_limit",
+                    "codec_id": "unknown-self-decrunch",
+                    "codec_support": "simulator_required",
+                    "payload_role": "unknown_runtime_payload",
+                    "parent_remains_active": "false",
+                    "source_kind": "self_decruncher",
+                    "provider_id": "m68k-sim-decrunch",
+                    "decompressor_code_section": 0,
+                    "decompressor_entry_offset": 0,
+                    "load_address": 0x20000,
+                    "entrypoint": 0x20000,
+                    "simulated_output_size": 44220,
+                    "simulated_output_sha256": "21ea11a46f008c69cca2795347eca093967191bf535b33c5ff3777619161999d",
+                }
+            ]
+        }
+        bag = usage.FeatureBag()
+        usage._add_analysis_features(analysis, bag)
+        counts, examples, tags = bag.row_features()
+
+        self.assertEqual(counts["decompression:pattern:absolute_self_decrunch_transfer"], 1)
+        self.assertEqual(counts["decompression:pattern:simulated_self_decrunch_output"], 1)
+        self.assertEqual(counts["decompression:output_load_address:00020000"], 1)
+        self.assertEqual(counts["decompression:entrypoint:00020000"], 1)
+        self.assertEqual(counts["decompression:unmaterialized_work_item"], 1)
+        self.assertEqual(counts["decompression:work_item_reason:simulated_instruction_limit"], 1)
+        self.assertIn("decompression:pattern:absolute_self_decrunch_transfer", tags)
+        self.assertEqual(examples["decompression:output_load_address:00020000"][0]["load_address"], 0x20000)
+
+        row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
+        row_locations = {(0, 0): (2, "s0:00000000:instruction:2", "lea.l $20000,a0")}
+        xrefs = usage._analysis_xrefs(row, analysis, row_locations)
+        self.assertTrue(
+            any(
+                xref["feature"] == "decompression:pattern:absolute_self_decrunch_transfer"
+                and xref["row_index"] == 2
+                for xref in xrefs
+            )
+        )
+        self.assertTrue(any(xref["feature"] == "decompression:output_load_address:00020000" for xref in xrefs))
 
     def test_device_features_use_resolved_device_names_for_all_io_calls(self) -> None:
         bag = usage.FeatureBag()
