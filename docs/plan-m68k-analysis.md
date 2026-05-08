@@ -58,7 +58,7 @@ Reviewed implementation and tests before updating this plan. Current state:
 
 | Topic | Current evidence | Gap to address |
 | --- | --- | --- |
-| RSSET/app slots | `render_state_operand_uses_app_base()` rejects known hardware bases and `_custom` offsets; `render_asm_app_extension_rs()` emits app/resident RSSET layouts from field slots and metadata. | Alias fragments are still produced as render-side overlap handling; they need first-class alias facts. |
+| RSSET/app slots | `render_state_operand_uses_app_base()` rejects known hardware bases and `_custom` offsets; `render_asm_app_extension_rs()` emits app/resident RSSET layouts from field slots and metadata; C source analysis now records rendered base-layout fields and alias overlays as first-class facts. | Need wider "known base owns this displacement" facts for platform-owned layouts beyond app/metadata RSSET emission. |
 | Typed structs vs app slots | Typed app-slot field regions are skipped from flat RSSET output; `_custom` offset false positives have an isolated test. | Need wider "known base owns this displacement" facts for all platform structs, not only `_custom` fallback protection. |
 | ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, and policy-vs-inferred precedence. | Runtime-copy facts need explicit wrapper-load/helper/final-image relationships and UI-visible rejected reasons. |
 | Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, and relative `target-base` rendering. | Existing behavior is still spread across recovered indirect sites, structured data, and rendering; needs one table fact model. |
@@ -150,8 +150,8 @@ proves a distinct base id.
    - base kind: app, resident extension, IORequest, metadata, absolute
    - base address if known
    - field offset, size, access width, read/write/address evidence
-   - alias/overlay relationship
-   - source instruction provenance
+   - alias/overlay relationship: implemented for app/metadata RSSET layout fields
+   - source instruction provenance: implemented for app-slot access layout fields
    - confidence and conflict state
 
 2. Add absolute memory-layout records:

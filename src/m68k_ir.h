@@ -733,6 +733,31 @@ typedef struct M68kCodeStartRefIR {
   uint32_t size;
 } M68kCodeStartRefIR;
 
+typedef enum M68kBaseLayoutFieldSourceKind {
+  M68K_BASE_LAYOUT_FIELD_SOURCE_NONE = 0,
+  M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS = 1,
+  M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION = 2
+} M68kBaseLayoutFieldSourceKind;
+
+typedef struct M68kBaseLayoutFieldIR {
+  char *layout_name;
+  char *base_symbol;
+  char *sizeof_symbol;
+  char *symbol;
+  uint32_t offset;
+  uint32_t size;
+  uint8_t alias;
+  uint8_t has_alias_of;
+  uint8_t source_kind;
+  uint8_t value_kind;
+  char *alias_of_symbol;
+  uint32_t alias_of_offset;
+  uint8_t has_source;
+  uint8_t reserved[3];
+  size_t source_section_index;
+  uint32_t source_offset;
+} M68kBaseLayoutFieldIR;
+
 typedef struct M68kSectionAnalysisIR {
   size_t section_index;
   char *section_name;
@@ -847,6 +872,9 @@ typedef struct M68kSourceAnalysisIR {
   M68kPlatformFileKind file_kind;
   M68kAnalysisPolicy policy;
   M68kAnalysisFindings findings;
+  M68kBaseLayoutFieldIR *base_layout_fields;
+  size_t base_layout_field_count;
+  size_t base_layout_field_capacity;
   M68kSectionAnalysisIR *sections;
   size_t section_count;
   size_t section_capacity;
@@ -956,6 +984,8 @@ int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *sectio
     const M68kCodeStartRefIR *code_start_ref);
 int m68k_ir_source_analysis_create(M68kSourceAnalysisIR *source_analysis);
 void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis);
+int m68k_ir_source_analysis_append_base_layout_field(M68kSourceAnalysisIR *source_analysis,
+  const M68kBaseLayoutFieldIR *field);
 int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis);
 
 #endif

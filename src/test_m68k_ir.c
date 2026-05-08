@@ -8437,7 +8437,9 @@ static int test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias(voi
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint8_t bytes[10] = {
     0x2du, 0x40u, 0x00u, 0x0cu,
     0x1du, 0x41u, 0x00u, 0x0eu,
@@ -8463,9 +8465,21 @@ static int test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias(voi
   policy.register_seeds[0].entry_offset = 0U;
   policy.register_seeds[0].section_index = 0U;
   snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "__amiga_app_base__");
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(2U, (uint32_t)source_analysis.base_layout_field_count);
+  M68K_C_ASSERT_STR("app_000C", source_analysis.base_layout_fields[0].symbol);
+  M68K_C_ASSERT_U32(0U, source_analysis.base_layout_fields[0].alias);
+  M68K_C_ASSERT_STR("app_000E", source_analysis.base_layout_fields[1].symbol);
+  M68K_C_ASSERT_U32(1U, source_analysis.base_layout_fields[1].alias);
+  M68K_C_ASSERT_U32(1U, source_analysis.base_layout_fields[1].has_alias_of);
+  M68K_C_ASSERT_STR("app_000C", source_analysis.base_layout_fields[1].alias_of_symbol);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"base_layout_field_count\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol\":\"app_000E\",\"offset\":14,\"size\":1,\"alias\":true") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"alias_of_symbol\":\"app_000C\",\"alias_of_offset\":12") != NULL);
   M68K_C_ASSERT(strstr(source, "app_000C RS.L 1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "    RSSET $000E\napp_000E RS.B 1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "app_000E EQU $000E\n") == NULL);
@@ -8473,7 +8487,9 @@ static int test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias(voi
   M68K_C_ASSERT(strstr(source, "\tmove.l d0,app_000C(a6)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.b d1,app_000E(a6)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -9223,6 +9239,7 @@ static int test_facts_v2_render_asm_source_keeps_app_slot_aliases_in_rs_region(v
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
   const char *rsset_line, *slot_line, *app_sizeof_line, *alias_rsset_line, *alias_line, *section_line;
   uint8_t bytes[10] = {
@@ -9250,9 +9267,16 @@ static int test_facts_v2_render_asm_source_keeps_app_slot_aliases_in_rs_region(v
   policy.register_seeds[0].entry_offset = 0U;
   policy.register_seeds[0].section_index = 0U;
   snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "__amiga_app_base__");
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(2U, (uint32_t)source_analysis.base_layout_field_count);
+  M68K_C_ASSERT_STR("app", source_analysis.base_layout_fields[0].layout_name);
+  M68K_C_ASSERT_STR("__amiga_app_base__", source_analysis.base_layout_fields[0].base_symbol);
+  M68K_C_ASSERT_U32(M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS,
+    source_analysis.base_layout_fields[0].source_kind);
+  M68K_C_ASSERT_U32(1U, source_analysis.base_layout_fields[1].alias);
+  M68K_C_ASSERT_STR("app_0000", source_analysis.base_layout_fields[1].alias_of_symbol);
   rsset_line = strstr(source, "    RSSET 0\n");
   slot_line = strstr(source, "app_0000 RS.L 1\n");
   app_sizeof_line = strstr(source, "app_SIZEOF EQU __RS\n");
@@ -9275,6 +9299,7 @@ static int test_facts_v2_render_asm_source_keeps_app_slot_aliases_in_rs_region(v
   M68K_C_ASSERT(strstr(source, "\tmove.b app_0001(a4),d1\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }

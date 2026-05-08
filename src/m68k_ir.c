@@ -1739,6 +1739,66 @@ void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis) {
   memset(source_analysis, 0, sizeof(*source_analysis));
 }
 
+static int m68k_base_layout_field_matches(const M68kBaseLayoutFieldIR *left,
+    const M68kBaseLayoutFieldIR *right) {
+  if (left == NULL || right == NULL) return 0;
+  return text_equal_nullable(left->layout_name, right->layout_name) &&
+    text_equal_nullable(left->base_symbol, right->base_symbol) &&
+    text_equal_nullable(left->sizeof_symbol, right->sizeof_symbol) &&
+    text_equal_nullable(left->symbol, right->symbol) &&
+    left->offset == right->offset &&
+    left->size == right->size &&
+    left->alias == right->alias &&
+    left->has_alias_of == right->has_alias_of &&
+    text_equal_nullable(left->alias_of_symbol, right->alias_of_symbol) &&
+    left->alias_of_offset == right->alias_of_offset &&
+    left->source_kind == right->source_kind &&
+    left->value_kind == right->value_kind &&
+    left->has_source == right->has_source &&
+    left->source_section_index == right->source_section_index &&
+    left->source_offset == right->source_offset;
+}
+
+int m68k_ir_source_analysis_append_base_layout_field(M68kSourceAnalysisIR *source_analysis,
+    const M68kBaseLayoutFieldIR *field) {
+  M68kBaseLayoutFieldIR copy;
+  size_t index;
+  Arena *arena;
+  if (source_analysis == NULL || field == NULL) return -1;
+  arena = source_analysis->arena;
+  if (arena == NULL || field->symbol == NULL || field->symbol[0] == '\0' || field->size == 0U) return -1;
+  for (index = 0U; index < source_analysis->base_layout_field_count; ++index) {
+    if (m68k_base_layout_field_matches(&source_analysis->base_layout_fields[index], field)) return 0;
+  }
+  source_analysis->base_layout_fields = (M68kBaseLayoutFieldIR *)arena_grow_array(arena,
+      source_analysis->base_layout_fields, source_analysis->base_layout_field_count,
+      &source_analysis->base_layout_field_capacity, 16U, sizeof(*source_analysis->base_layout_fields));
+  if (source_analysis->base_layout_fields == NULL) return -1;
+  memset(&copy, 0, sizeof(copy));
+  copy.layout_name = arena_strdup(arena, field->layout_name != NULL ? field->layout_name : "");
+  copy.base_symbol = arena_strdup(arena, field->base_symbol != NULL ? field->base_symbol : "");
+  copy.sizeof_symbol = arena_strdup(arena, field->sizeof_symbol != NULL ? field->sizeof_symbol : "");
+  copy.symbol = arena_strdup(arena, field->symbol);
+  copy.alias_of_symbol = field->alias_of_symbol != NULL ? arena_strdup(arena, field->alias_of_symbol) : NULL;
+  if (copy.layout_name == NULL || copy.base_symbol == NULL || copy.sizeof_symbol == NULL ||
+      copy.symbol == NULL || (field->alias_of_symbol != NULL && copy.alias_of_symbol == NULL)) {
+    return -1;
+  }
+  copy.offset = field->offset;
+  copy.size = field->size;
+  copy.alias = field->alias;
+  copy.has_alias_of = field->has_alias_of;
+  copy.source_kind = field->source_kind;
+  copy.value_kind = field->value_kind;
+  copy.alias_of_offset = field->alias_of_offset;
+  copy.has_source = field->has_source;
+  copy.source_section_index = field->source_section_index;
+  copy.source_offset = field->source_offset;
+  source_analysis->base_layout_fields[source_analysis->base_layout_field_count] = copy;
+  source_analysis->base_layout_field_count += 1U;
+  return 0;
+}
+
 int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis,
                                            const M68kSectionAnalysisIR *section_analysis) {
   M68kSectionAnalysisIR copy;

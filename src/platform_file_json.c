@@ -896,6 +896,12 @@ static const char *orphan_code_signal_status_name(uint8_t status) {
   return "unknown";
 }
 
+static const char *base_layout_field_source_kind_name(uint8_t source_kind) {
+  if (source_kind == M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS) return "app_slot_access";
+  if (source_kind == M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION) return "policy_rsset_region";
+  return "none";
+}
+
 static const char *sim_flow_kind_name(uint8_t flow_kind) {
   if (flow_kind == M68K_SIM_FLOW_NONE) return "none";
   if (flow_kind == M68K_SIM_FLOW_SEQUENTIAL) return "sequential";
@@ -1589,7 +1595,7 @@ static int append_source_analysis_policy_structured_items_json(JsonBuilder *buil
 
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
-  size_t section_index;
+  size_t field_index, section_index;
   if (json_builder_create(&builder) != 0)
     goto oom;
   if (json_builder_appendf(&builder,
@@ -1603,10 +1609,50 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
   if (append_source_analysis_policy_structured_items_json(&builder, &source_analysis->policy) != 0)
     goto oom;
   if (json_builder_appendf(&builder,
-      "]},\"findings\":{\"required_cpu\":%u,\"cpu_violation_count\":%u},\"section_count\":%u,\"sections\":[",
+      "]},\"findings\":{\"required_cpu\":%u,\"cpu_violation_count\":%u},"
+      "\"base_layout_field_count\":%u,\"base_layout_fields\":[",
       (unsigned)source_analysis->findings.required_cpu,
-      (unsigned)source_analysis->findings.cpu_violation_count, (unsigned)source_analysis->section_count) != 0)
+      (unsigned)source_analysis->findings.cpu_violation_count,
+      (unsigned)source_analysis->base_layout_field_count) != 0)
     goto oom;
+  for (field_index = 0U; field_index < source_analysis->base_layout_field_count; ++field_index) {
+    const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[field_index];
+    if (field_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+    if (json_builder_append(&builder, "{\"layout_name\":") != 0) goto oom;
+    if (json_builder_append_nullable_string(&builder, field->layout_name) != 0) goto oom;
+    if (json_builder_append(&builder, ",\"base_symbol\":") != 0) goto oom;
+    if (json_builder_append_nullable_string(&builder, field->base_symbol) != 0) goto oom;
+    if (json_builder_append(&builder, ",\"sizeof_symbol\":") != 0) goto oom;
+    if (json_builder_append_nullable_string(&builder, field->sizeof_symbol) != 0) goto oom;
+    if (json_builder_append(&builder, ",\"symbol\":") != 0) goto oom;
+    if (json_builder_append_nullable_string(&builder, field->symbol) != 0) goto oom;
+    if (json_builder_appendf(&builder,
+        ",\"offset\":%u,\"size\":%u,\"alias\":%s,\"source_kind\":%u,\"source_kind_name\":",
+        (unsigned)field->offset, (unsigned)field->size, field->alias ? "true" : "false",
+        (unsigned)field->source_kind) != 0) goto oom;
+    if (json_builder_append_json_string(&builder, base_layout_field_source_kind_name(field->source_kind)) != 0)
+      goto oom;
+    if (json_builder_appendf(&builder, ",\"value_kind\":%u,\"alias_of_symbol\":",
+        (unsigned)field->value_kind) != 0) goto oom;
+    if (field->has_alias_of) {
+      if (json_builder_append_nullable_string(&builder, field->alias_of_symbol) != 0) goto oom;
+    } else if (json_builder_append(&builder, "null") != 0) goto oom;
+    if (json_builder_append(&builder, ",\"alias_of_offset\":") != 0) goto oom;
+    if (field->has_alias_of) {
+      if (json_builder_appendf(&builder, "%u", (unsigned)field->alias_of_offset) != 0) goto oom;
+    } else if (json_builder_append(&builder, "null") != 0) goto oom;
+    if (json_builder_append(&builder, ",\"source_section_index\":") != 0) goto oom;
+    if (field->has_source) {
+      if (json_builder_appendf(&builder, "%u", (unsigned)field->source_section_index) != 0) goto oom;
+    } else if (json_builder_append(&builder, "null") != 0) goto oom;
+    if (json_builder_append(&builder, ",\"source_offset\":") != 0) goto oom;
+    if (field->has_source) {
+      if (json_builder_appendf(&builder, "%u", (unsigned)field->source_offset) != 0) goto oom;
+    } else if (json_builder_append(&builder, "null") != 0) goto oom;
+    if (json_builder_append(&builder, "}") != 0) goto oom;
+  }
+  if (json_builder_appendf(&builder, "],\"section_count\":%u,\"sections\":[",
+      (unsigned)source_analysis->section_count) != 0) goto oom;
   for (section_index = 0; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index;

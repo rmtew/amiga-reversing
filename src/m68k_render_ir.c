@@ -5290,10 +5290,19 @@ int lookup_app_base_field_slot_symbol_name(const M68kRenderLookup *lookup, int16
 typedef struct M68kRenderAppRsSlot {
   int32_t displacement;
   int32_t size;
+  int32_t alias_of_displacement;
   uint8_t alias;
+  uint8_t has_alias_of;
+  uint8_t has_source;
+  uint8_t value_kind;
+  uint8_t source_kind;
+  size_t source_section_index;
+  uint32_t source_offset;
   char layout_name[32];
+  char base_symbol[64];
   char sizeof_symbol[64];
   char name[64];
+  char alias_of_name[64];
 } M68kRenderAppRsSlot;
 
 static int render_app_rs_slot_compare(const void *left, const void *right) {
@@ -5369,6 +5378,51 @@ static void render_app_rs_effective_sizeof_symbol(const char *layout_name, const
   }
 }
 
+static void render_app_rs_mark_alias_target(M68kRenderAppRsSlot *slots, size_t layout_start, size_t slot_index) {
+  size_t probe;
+  if (slots == NULL || slot_index <= layout_start) return;
+  for (probe = layout_start; probe < slot_index; ++probe) {
+    int32_t probe_end;
+    if (slots[probe].alias != 0U) continue;
+    probe_end = slots[probe].displacement + slots[probe].size;
+    if (slots[probe].displacement <= slots[slot_index].displacement &&
+        slots[slot_index].displacement < probe_end) {
+      slots[slot_index].has_alias_of = 1U;
+      slots[slot_index].alias_of_displacement = slots[probe].displacement;
+      snprintf(slots[slot_index].alias_of_name, sizeof(slots[slot_index].alias_of_name), "%s",
+        slots[probe].name);
+      return;
+    }
+  }
+}
+
+static int render_app_rs_append_layout_facts(M68kSourceAnalysisIR *source_analysis,
+    const M68kRenderAppRsSlot *slots, size_t slot_count) {
+  size_t index;
+  if (source_analysis == NULL || slots == NULL) return 0;
+  for (index = 0U; index < slot_count; ++index) {
+    M68kBaseLayoutFieldIR field;
+    memset(&field, 0, sizeof(field));
+    field.layout_name = (char *)slots[index].layout_name;
+    field.base_symbol = (char *)slots[index].base_symbol;
+    field.sizeof_symbol = (char *)slots[index].sizeof_symbol;
+    field.symbol = (char *)slots[index].name;
+    field.offset = (uint32_t)slots[index].displacement;
+    field.size = (uint32_t)slots[index].size;
+    field.alias = slots[index].alias;
+    field.has_alias_of = slots[index].has_alias_of;
+    field.alias_of_symbol = slots[index].has_alias_of ? (char *)slots[index].alias_of_name : NULL;
+    field.alias_of_offset = (uint32_t)slots[index].alias_of_displacement;
+    field.source_kind = slots[index].source_kind;
+    field.value_kind = slots[index].value_kind;
+    field.has_source = slots[index].has_source;
+    field.source_section_index = slots[index].source_section_index;
+    field.source_offset = slots[index].source_offset;
+    if (m68k_ir_source_analysis_append_base_layout_field(source_analysis, &field) != 0) return -1;
+  }
+  return 0;
+}
+
 static int render_app_rs_resident_sizeof_value(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     int32_t *out_value) {
   const M68kAnalysisPolicy *policy;
@@ -5396,7 +5450,7 @@ static int render_app_rs_resident_sizeof_value(const M68kRenderLookup *lookup, c
 }
 
 void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode) {
+    const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis) {
   Arena *scratch_arena;
   ArenaMark scratch_mark;
   M68kRenderAppRsSlot *slots = NULL;
@@ -5468,9 +5522,15 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       ? region_size
       : (slot->observed_access_size != 0U ? slot->observed_access_size : ((slot->displacement & 1) == 0 ? 4 : 1));
     snprintf(slots[slot_count].layout_name, sizeof(slots[slot_count].layout_name), "app");
+    snprintf(slots[slot_count].base_symbol, sizeof(slots[slot_count].base_symbol), "__amiga_app_base__");
     render_app_rs_default_sizeof_symbol("app", slots[slot_count].sizeof_symbol,
       sizeof(slots[slot_count].sizeof_symbol));
     snprintf(slots[slot_count].name, sizeof(slots[slot_count].name), "%s", symbol_name);
+    slots[slot_count].has_source = slot->has_source;
+    slots[slot_count].source_section_index = slot->source_section_index;
+    slots[slot_count].source_offset = slot->source_offset;
+    slots[slot_count].value_kind = slot->value_kind;
+    slots[slot_count].source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS;
     ++slot_count;
     extent_end = (int32_t)slot->displacement + slots[slot_count - 1U].size;
     if (extent_end > inferred_sizeof) inferred_sizeof = extent_end;
@@ -5494,11 +5554,13 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
         continue;
       }
       snprintf(slots[slot_count].layout_name, sizeof(slots[slot_count].layout_name), "%s", layout_name);
+      snprintf(slots[slot_count].base_symbol, sizeof(slots[slot_count].base_symbol), "%s", base_symbol);
       render_app_rs_effective_sizeof_symbol(layout_name, region->sizeof_symbol, slots[slot_count].sizeof_symbol,
         sizeof(slots[slot_count].sizeof_symbol));
       snprintf(slots[slot_count].name, sizeof(slots[slot_count].name), "%s", region->symbol);
       slots[slot_count].displacement = (int32_t)region->offset;
       slots[slot_count].size = region->size;
+      slots[slot_count].source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION;
       ++slot_count;
     }
   }
@@ -5531,6 +5593,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
   qsort(slots, slot_count, sizeof(slots[0]), render_app_rs_slot_compare);
   for (index = 0U; index < slot_count; ++index) {
     size_t layout_end = index + 1U;
+    size_t layout_start = index;
     const char *layout_name = slots[index].layout_name;
     const char *sizeof_symbol = slots[index].sizeof_symbol;
     int32_t layout_base_offset = strcmp(layout_name, "app") == 0 ? base_offset : 0;
@@ -5557,6 +5620,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       }
       if (slots[index].displacement < cursor) {
         slots[index].alias = 1U;
+        render_app_rs_mark_alias_target(slots, layout_start, index);
         continue;
       } else if (slots[index].size == 4) {
         snprintf(line, sizeof(line), "%s RS.L 1\n", slots[index].name);
@@ -5612,6 +5676,9 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       }
     }
     hash_asm_text(preview, "\n");
+  }
+  if (render_app_rs_append_layout_facts(source_analysis, slots, slot_count) != 0) {
+    preview->asm_source_allocation_failed = 1U;
   }
 
 cleanup:
@@ -7514,7 +7581,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
     render_asm_platform_header(out_preview, object);
     finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);
     begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_RSSET, 0U);
-    render_asm_app_extension_rs(out_preview, &lookup, decode);
+    render_asm_app_extension_rs(out_preview, &lookup, decode, out_source_analysis);
     finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);
     out_preview->asm_source_body_start_byte = out_preview->asm_source_bytes;
   }
