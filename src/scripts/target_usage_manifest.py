@@ -88,6 +88,7 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     "copper": ("data:copper_list", "hardware:custom/copper", "value_domain:amiga.custom.copper", "copper_register:"),
     "display": ("display:", "hardware:custom/display", "value_domain:amiga.custom.display_config"),
     "runtime": ("runtime:",),
+    "analysis": ("analysis:", "orphan-code:"),
     "app_slots": (
         "app_slot:",
         "app_slot_region:",
@@ -1168,6 +1169,37 @@ def _add_platform_unresolved_typed_access_features(
             bag.add(f"platform_type_refinement_to:{_safe_part(refined_struct)}", example=example)
 
 
+def _orphan_code_signal_example(section_index: int, signal: dict[str, Any]) -> dict[str, object]:
+    offset = _int_value(signal.get("offset"))
+    reason = _string_value(signal.get("reason")) or "unknown"
+    status = _string_value(signal.get("status")) or "unknown"
+    example = _offset_example(section_index, offset, f"{reason}:{status}")
+    for key in ("size", "terminal_offset", "confidence"):
+        value = _int_value(signal.get(key))
+        if value is not None:
+            example[key] = value
+    terminal_flow = _string_value(signal.get("terminal_flow"))
+    if terminal_flow:
+        example["terminal_flow"] = terminal_flow
+    detail = _string_value(signal.get("detail"))
+    if detail:
+        example["detail"] = detail
+    return example
+
+
+def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal: dict[str, Any]) -> None:
+    reason = _string_value(signal.get("reason")) or "unknown"
+    status = _string_value(signal.get("status")) or "unknown"
+    terminal_flow = _string_value(signal.get("terminal_flow"))
+    example = _orphan_code_signal_example(section_index, signal)
+    bag.add("orphan-code:signal", example=example)
+    bag.add(f"orphan-code:reason:{_safe_part(reason)}", example=example)
+    bag.add(f"orphan-code:status:{_safe_part(status)}", example=example)
+    bag.add(f"orphan-code:{_safe_part(reason)}:{_safe_part(status)}", example=example)
+    if terminal_flow:
+        bag.add(f"orphan-code:terminal_flow:{_safe_part(terminal_flow)}", example=example)
+
+
 def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
     findings = analysis.get("findings")
     if isinstance(findings, dict):
@@ -1295,6 +1327,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
                 bag.add("runtime:copied_code")
                 if storage < 0x200 and runtime < 0x1000:
                     bag.add("runtime:copied_entry_stub")
+        for signal in _dict_items(section.get("orphan_code_signals")):
+            _add_orphan_code_signal_features(bag, section_index, signal)
         violation_count = _int_value(section.get("violation_count"), 0)
         if violation_count > 0:
             bag.add("diagnostic:analysis_violation", violation_count)
@@ -3013,6 +3047,36 @@ def _analysis_xrefs(
                 xrefs.append(_xref(row, "runtime:copied_code", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or f"copied code ${runtime:04X}"))
                 if storage < 0x200 and runtime < 0x1000:
                     xrefs.append(_xref(row, "runtime:copied_entry_stub", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or f"copied entry stub ${runtime:04X}"))
+        for signal in _dict_items(section.get("orphan_code_signals")):
+            offset = _int_value(signal.get("offset"))
+            row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
+            reason = _string_value(signal.get("reason")) or "unknown"
+            status = _string_value(signal.get("status")) or "unknown"
+            terminal_flow = _string_value(signal.get("terminal_flow"))
+            size = _int_value(signal.get("size"))
+            text = row_text or _string_value(signal.get("detail")) or f"orphan code {reason}:{status}"
+            features = [
+                "orphan-code:signal",
+                f"orphan-code:reason:{_safe_part(reason)}",
+                f"orphan-code:status:{_safe_part(status)}",
+                f"orphan-code:{_safe_part(reason)}:{_safe_part(status)}",
+            ]
+            if terminal_flow:
+                features.append(f"orphan-code:terminal_flow:{_safe_part(terminal_flow)}")
+            for feature in features:
+                xrefs.append(
+                    _xref(
+                        row,
+                        feature,
+                        "orphan_code_signal",
+                        section=section_index,
+                        offset=offset,
+                        row_index=row_index,
+                        stable_key=stable_key,
+                        value=size,
+                        text=text,
+                    )
+                )
         violations = _dict_items(section.get("violations"))
         if violations:
             for index, violation in enumerate(violations):

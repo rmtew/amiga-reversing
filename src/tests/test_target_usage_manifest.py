@@ -147,6 +147,18 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "materialization_reason": 103,
                                 }
                             ],
+                            "orphan_code_signals": [
+                                {
+                                    "offset": 0x84,
+                                    "size": 4,
+                                    "terminal_offset": 0x86,
+                                    "terminal_flow": "return",
+                                    "reason": "terminal_decode",
+                                    "status": "unresolved",
+                                    "confidence": 60,
+                                    "detail": "terminal decode after data label",
+                                }
+                            ],
                             "violation_count": 2,
                             "recovered_indirect_site_count": 3,
                             "recovered_string_ref_count": 4,
@@ -376,6 +388,11 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["runtime:suppressed_org_range"], 1)
         self.assertEqual(counts["runtime:suppressed_org_reason:exit_to_larger_runtime_range"], 1)
         self.assertEqual(counts["suppressed-weak-org-range"], 1)
+        self.assertEqual(counts["orphan-code:signal"], 1)
+        self.assertEqual(counts["orphan-code:reason:terminal_decode"], 1)
+        self.assertEqual(counts["orphan-code:status:unresolved"], 1)
+        self.assertEqual(counts["orphan-code:terminal_decode:unresolved"], 1)
+        self.assertEqual(counts["orphan-code:terminal_flow:return"], 1)
         self.assertEqual(counts["materialized-org-range"], 1)
         self.assertEqual(counts["runtime:materialized_org_range"], 1)
         self.assertEqual(counts["runtime:materialized_org_address:00000400"], 1)
@@ -428,6 +445,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn("os:exec.library/AllocMem", tags)
         self.assertIn("compressed:rnc1-old", tags)
         self.assertIn("materialized-org-range", tags)
+        self.assertIn("orphan-code:terminal_decode:unresolved", tags)
         self.assertEqual(examples["os:exec.library/AllocMem"][0]["offset"], 0x20)
         self.assertEqual(examples["compressed-payload"][0]["offset"], 0x4C40)
         self.assertEqual(examples["decompression:runtime_copy"][0]["runtime_copy_address"], 0x4000)
@@ -438,6 +456,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["decompression:output_load_address:00004000"][0]["load_address"], 0x4000)
         self.assertEqual(examples["memory:absolute_stack_top"][0]["symbol"], "stack_top_00080000")
         self.assertEqual(examples["analysis:runtime_table_base_addend"][0]["addend"], -4)
+        self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
+        self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
 
     def test_self_decrunch_event_indexes_pattern_and_work_item(self) -> None:
         analysis = {
@@ -756,6 +776,17 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "materialization_reason": 103,
                             }
                         ],
+                        "orphan_code_signals": [
+                            {
+                                "offset": 0x84,
+                                "size": 4,
+                                "terminal_offset": 0x86,
+                                "terminal_flow": "return",
+                                "reason": "terminal_decode",
+                                "status": "unresolved",
+                                "confidence": 60,
+                            }
+                        ],
                     }
                 ],
             },
@@ -840,6 +871,13 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "start_offset": 0x4C40,
                         "stable_key": "row-rnc",
                     },
+                    {
+                        "kind": "data",
+                        "text": "\t4e75\n",
+                        "section_index": 0,
+                        "start_offset": 0x84,
+                        "stable_key": "row-orphan",
+                    },
                 ],
             },
         }
@@ -893,6 +931,11 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("materialized-org-range", "runtime_org", 0x40, 3), by_feature)
         self.assertIn(("runtime:materialized_org_range", "runtime_org", 0x40, 3), by_feature)
         self.assertIn(("runtime:materialized_org_address:00000400", "runtime_org", 0x40, 3), by_feature)
+        self.assertIn(("orphan-code:signal", "orphan_code_signal", 0x84, 7), by_feature)
+        self.assertIn(("orphan-code:reason:terminal_decode", "orphan_code_signal", 0x84, 7), by_feature)
+        self.assertIn(("orphan-code:status:unresolved", "orphan_code_signal", 0x84, 7), by_feature)
+        self.assertIn(("orphan-code:terminal_decode:unresolved", "orphan_code_signal", 0x84, 7), by_feature)
+        self.assertIn(("orphan-code:terminal_flow:return", "orphan_code_signal", 0x84, 7), by_feature)
         self.assertIn(("compressed-payload", "packed_payload", 0x4C40, 6), by_feature)
         self.assertIn(("compressed:rnc1-old", "packed_payload", 0x4C40, 6), by_feature)
         self.assertIn(
@@ -931,7 +974,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(copy_xref["value"], 0x4000)
         ids = [xref["id"] for xref in xrefs]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual([row["row_index"] for row in snippets], [0, 1, 2, 3, 4, 5, 6])
+        self.assertEqual([row["row_index"] for row in snippets], [0, 1, 2, 3, 4, 5, 6, 7])
         self.assertEqual(snippets[1]["row"]["stable_key"], "row-os")
         self.assertEqual(snippets[2]["row"]["typed_accesses"][0]["field_name"], "LIB_VERSION")
         self.assertEqual(snippets[5]["row"]["stable_key"], "row-hw")
@@ -3199,12 +3242,14 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "feature_counts": {
                     "hardware:custom/display": 2,
                     "display:bitplanes:5": 1,
+                    "orphan-code:signal": 1,
                     "os_call:any": 1,
                     "platform_field:IO_COMMAND": 1,
                 },
                 "feature_examples": {
                     "hardware:custom/display": [{"offset": 4}],
                     "display:bitplanes:5": [{"offset": 6}],
+                    "orphan-code:signal": [{"offset": 10}],
                     "platform_field:IO_COMMAND": [{"offset": 8}],
                 },
             },
@@ -3220,13 +3265,16 @@ class TargetUsageManifestTests(unittest.TestCase):
         xrefs = [
             {"target_id": "a", "feature": "hardware:custom/display", "row_index": 3, "platform": "amiga-hunk"},
             {"target_id": "a", "feature": "platform_field:IO_COMMAND", "row_index": 4, "platform": "amiga-hunk"},
+            {"target_id": "a", "feature": "orphan-code:signal", "row_index": 5, "platform": "amiga-hunk"},
             {"target_id": "b", "feature": "runtime:copied_code", "row_index": 7, "platform": "amiga-hunk"},
         ]
 
         query = usage.query_usage_manifest(rows, "", group="hardware")
         display_query = usage.query_usage_manifest(rows, "", group="display")
+        analysis_query = usage.query_usage_manifest(rows, "", group="analysis")
         typed_query = usage.query_usage_manifest(rows, "", group="platform_types")
         xref_query = usage.query_usage_xrefs(xrefs, group="hardware")
+        analysis_xref_query = usage.query_usage_xrefs(xrefs, group="analysis")
         typed_xref_query = usage.query_usage_xrefs(xrefs, group="platform_types")
 
         self.assertEqual([item["id"] for item in query], ["a"])
@@ -3234,9 +3282,12 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(query[0]["examples"], [{"offset": 4}])
         self.assertEqual([item["id"] for item in display_query], ["a"])
         self.assertEqual(display_query[0]["count"], 3)
+        self.assertEqual([item["id"] for item in analysis_query], ["a"])
+        self.assertEqual(analysis_query[0]["count"], 1)
         self.assertEqual([item["id"] for item in typed_query], ["a"])
         self.assertEqual(typed_query[0]["count"], 1)
         self.assertEqual([item["target_id"] for item in xref_query], ["a"])
+        self.assertEqual([item["target_id"] for item in analysis_xref_query], ["a"])
         self.assertEqual([item["target_id"] for item in typed_xref_query], ["a"])
 
     def test_builds_variant_index_for_same_named_file_different_hashes(self) -> None:
