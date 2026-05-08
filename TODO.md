@@ -48,11 +48,6 @@
       btst.b #6,app_0002(a6)
       bne.b abs_0_0005CA1C
     ```
-  - If a constant is an obvious hex value like $ffffffff we should show it as hex.
-    ```
-    abs_0_0005CD0C:
-      cmpi.l #4294967295,(a5)
-    ```
 - Devices seem to not get the full Amiga platform resident analysis/disassembly.
 
 ## Phase 6: Beyond Static Analysis

@@ -201,10 +201,14 @@ static int append_signed_hex_width(char *out_text, size_t out_text_size, size_t 
 
 static int append_immediate_text(char *out_text, size_t out_text_size, size_t *inout_used, uint32_t value,
     char size_suffix, uint8_t has_exact_render_value, uint32_t exact_render_value, uint8_t syntax_mode) {
+  uint32_t mask = 0xFFFFFFFFU;
   if (has_exact_render_value != 0U && syntax_mode != M68K_IR_SYNTAX_VASM)
     return append_format(out_text, out_text_size, inout_used, "#$%X", (unsigned)exact_render_value);
-  if (size_suffix == 'b') value &= 0xFFU;
-  else if (size_suffix == 'w') value &= 0xFFFFU;
+  if (size_suffix == 'b') mask = 0xFFU;
+  else if (size_suffix == 'w') mask = 0xFFFFU;
+  value &= mask;
+  if (value == mask && mask >= 0xFFFFU)
+    return append_format(out_text, out_text_size, inout_used, "#$%X", (unsigned)value);
   return append_format(out_text, out_text_size, inout_used, "#%u", (unsigned)value);
 }
 

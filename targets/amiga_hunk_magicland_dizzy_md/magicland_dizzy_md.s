@@ -1024,7 +1024,7 @@ abs_0_0005CB28:
 	suba.l #$4B470,a3
 	rts
 abs_0_0005CB8E:
-	cmpi.w #65535,(a0)
+	cmpi.w #$FFFF,(a0)
 	beq.w abs_0_0005CC58
 	move.l a2,$0000(a4)
 	move.l a3,$0004(a4)
@@ -1169,7 +1169,7 @@ abs_0_0005CCF4:
 	adda.w d1,a2
 	movea.l $0132.w,a5
 abs_0_0005CD0C:
-	cmpi.l #4294967295,(a5)
+	cmpi.l #$FFFFFFFF,(a5)
 	beq.b abs_0_0005CD18
 	addq.w #8,a5
 	bra.b abs_0_0005CD0C
@@ -3043,7 +3043,7 @@ abs_0_0005E5CA:
 	move.w $018E.w,d1
 	subi.w #22,d1
 abs_0_0005E5DE:
-	cmpi.w #65535,(a0)
+	cmpi.w #$FFFF,(a0)
 	beq.b abs_0_0005E610
 	move.w $0002(a0),d2
 	sub.w d0,d2
@@ -3343,7 +3343,7 @@ abs_0_0005E94A:
 	bge.b abs_0_0005E966
 	cmpi.w #140,$018E.w
 	bge.b abs_0_0005E966
-	cmpi.w #65535,$0196.w
+	cmpi.w #$FFFF,$0196.w
 	bne.b abs_0_0005E966
 	addq.w #1,$018C.w
 abs_0_0005E966:
@@ -4231,7 +4231,7 @@ abs_0_0005F436:
 	lea.l $0610.w,a0
 	moveq.l #7,d6
 abs_0_0005F44A:
-	cmpi.w #65535,(a0)
+	cmpi.w #$FFFF,(a0)
 	beq.b abs_0_0005F47A
 	move.w (a0)+,d0
 	move.w (a0)+,d1
@@ -4290,7 +4290,7 @@ abs_0_0005F508:
 	moveq.l #0,d0
 	move.w $01DE.w,d1
 abs_0_0005F526:
-	cmpi.w #65535,(a0)
+	cmpi.w #$FFFF,(a0)
 	beq.b abs_0_0005F54E
 	cmp.w (a0),d1
 	bne.b abs_0_0005F548
@@ -4345,7 +4345,7 @@ abs_0_0005F59A:
 	move.w (a0),d0
 	lea.l abs_0_0005F62E(pc),a0
 abs_0_0005F5BC:
-	cmpi.w #65535,(a0)
+	cmpi.w #$FFFF,(a0)
 	beq.b abs_0_0005F5DC
 	cmp.w (a0),d0
 	bne.b abs_0_0005F5D8
@@ -4399,7 +4399,7 @@ abs_0_0005F664:
 	move.w $01D4.w,d0
 	move.w $01D6.w,d1
 abs_0_0005F670:
-	cmpi.w #65535,(a0)
+	cmpi.w #$FFFF,(a0)
 	beq.b abs_0_0005F688
 	move.w d0,$000E(a0)
 	move.w d1,$0010(a0)
@@ -4410,7 +4410,7 @@ abs_0_0005F688:
 	lea.l abs_0_0005F856(pc),a0
 	lea.l abs_0_000623A4(pc),a1
 abs_0_0005F690:
-	cmpi.w #65535,(a0)
+	cmpi.w #$FFFF,(a0)
 	beq.b abs_0_0005F6D4
 	move.w $000A(a0),d0
 	add.w d0,$0006(a0)
@@ -4508,7 +4508,7 @@ abs_0_0005F7EA:
 	lea.l abs_0_0005F856(pc),a0
 	lea.l abs_0_0005F8D6(pc),a1
 abs_0_0005F7F2:
-	cmpi.w #65535,(a0)
+	cmpi.w #$FFFF,(a0)
 	beq.b abs_0_0005F840
 	subq.w #1,(a1)
 	bne.b abs_0_0005F810
@@ -6919,13 +6919,13 @@ abs_0_00061724:
 	move.w #$3FF,d7
 	moveq.l #0,d6
 abs_0_0006172A:
-	cmpi.l #4294967295,(a0)
+	cmpi.l #$FFFFFFFF,(a0)
 	bne.b abs_0_0006175E
-	cmpi.l #4294967295,$0004(a0)
+	cmpi.l #$FFFFFFFF,$0004(a0)
 	bne.b abs_0_0006175E
-	cmpi.l #4294967295,$0008(a0)
+	cmpi.l #$FFFFFFFF,$0008(a0)
 	bne.b abs_0_0006175E
-	cmpi.l #4294967295,$000C(a0)
+	cmpi.l #$FFFFFFFF,$000C(a0)
 	bne.b abs_0_0006175E
 	move.w #$FFFF,(a1)+
 abs_0_00061754:
@@ -7459,7 +7459,7 @@ abs_0_00061DD4:
 	bsr.w abs_0_0005D8A2
 	addq.w #8,a0
 abs_0_00061DE2:
-	cmpi.w #65535,(a0)+
+	cmpi.w #$FFFF,(a0)+
 	bne.b abs_0_00061DE2
 	bra.b abs_0_00061DD4
 abs_0_00061DEA:

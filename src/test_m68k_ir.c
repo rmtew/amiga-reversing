@@ -5938,6 +5938,35 @@ static int test_facts_v2_render_asm_source_preserves_move_byte_immediate_high_wo
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_formats_all_bits_set_long_immediate_as_hex(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[8] = {0x0cu, 0x95u, 0xffu, 0xffu, 0xffu, 0xffu, 0x4eu, 0x75u};
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "cmpi.l #$FFFFFFFF,(a5)") != NULL);
+  M68K_C_ASSERT(strstr(source, "#4294967295") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_refuses_unmapped_code_relocation(void) {
   M68kObject object;
   M68kSection section;
@@ -13907,6 +13936,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_preserves_exact_byte_immediate_word},
     {"facts_v2_render_asm_source_preserves_move_byte_immediate_high_word",
       test_facts_v2_render_asm_source_preserves_move_byte_immediate_high_word},
+    {"facts_v2_render_asm_source_formats_all_bits_set_long_immediate_as_hex",
+      test_facts_v2_render_asm_source_formats_all_bits_set_long_immediate_as_hex},
     {"facts_v2_render_asm_source_refuses_unmapped_code_relocation",
       test_facts_v2_render_asm_source_refuses_unmapped_code_relocation},
     {"facts_v2_render_asm_source_maps_immediate_code_relocation",
