@@ -152,7 +152,7 @@ proves a distinct base id.
    - field offset, size, access width, read/write/address evidence
    - alias/overlay relationship: implemented for app/metadata RSSET layout fields
    - source instruction provenance: implemented for app-slot access layout fields
-   - confidence and conflict state
+   - confidence and conflict state: implemented for app/metadata RSSET layout fields
 
 2. Add absolute memory-layout records:
    - source section/file range

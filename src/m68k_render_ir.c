@@ -5415,6 +5415,8 @@ static int render_app_rs_append_layout_facts(M68kSourceAnalysisIR *source_analys
     field.alias_of_offset = (uint32_t)slots[index].alias_of_displacement;
     field.source_kind = slots[index].source_kind;
     field.value_kind = slots[index].value_kind;
+    field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+    field.conflicted = 0U;
     field.has_source = slots[index].has_source;
     field.source_section_index = slots[index].source_section_index;
     field.source_offset = slots[index].source_offset;

@@ -750,7 +750,11 @@ typedef struct M68kBaseLayoutFieldIR {
   uint8_t has_alias_of;
   uint8_t source_kind;
   uint8_t value_kind;
+  uint8_t confidence;
+  uint8_t conflicted;
+  uint8_t reserved0[2];
   char *alias_of_symbol;
+  char *conflict_reason;
   uint32_t alias_of_offset;
   uint8_t has_source;
   uint8_t reserved[3];

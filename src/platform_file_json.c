@@ -1632,8 +1632,12 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         (unsigned)field->source_kind) != 0) goto oom;
     if (json_builder_append_json_string(&builder, base_layout_field_source_kind_name(field->source_kind)) != 0)
       goto oom;
-    if (json_builder_appendf(&builder, ",\"value_kind\":%u,\"alias_of_symbol\":",
-        (unsigned)field->value_kind) != 0) goto oom;
+    if (json_builder_appendf(&builder,
+        ",\"value_kind\":%u,\"confidence\":%u,\"conflicted\":%s,\"conflict_reason\":",
+        (unsigned)field->value_kind, (unsigned)field->confidence, field->conflicted ? "true" : "false") != 0)
+      goto oom;
+    if (json_builder_append_nullable_string(&builder, field->conflict_reason) != 0) goto oom;
+    if (json_builder_append(&builder, ",\"alias_of_symbol\":") != 0) goto oom;
     if (field->has_alias_of) {
       if (json_builder_append_nullable_string(&builder, field->alias_of_symbol) != 0) goto oom;
     } else if (json_builder_append(&builder, "null") != 0) goto oom;
@@ -3769,6 +3773,10 @@ static int append_listing_base_layout_fields_json(JsonBuilder *builder,
       return -1;
     if (json_builder_append_json_string(builder, base_layout_field_source_kind_name(field->source_kind)) != 0)
       return -1;
+    if (json_builder_appendf(builder, ",\"confidence\":%u,\"conflicted\":%s,\"conflict_reason\":",
+          (unsigned)field->confidence, field->conflicted ? "true" : "false") != 0)
+      return -1;
+    if (json_builder_append_nullable_string(builder, field->conflict_reason) != 0) return -1;
     if (json_builder_append(builder, ",\"alias_of_symbol\":") != 0) return -1;
     if (field->has_alias_of) {
       if (json_builder_append_nullable_string(builder, field->alias_of_symbol) != 0) return -1;
