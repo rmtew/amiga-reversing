@@ -65,6 +65,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "base_expression": "target_label",
                             "target_section": 0,
                             "target_offset": 0x94,
+                            "consumer_section": 0,
+                            "consumer_offset": 0x20,
                             "confidence": "tool_inferred",
                             "conflict_state": "clean",
                         }
@@ -450,6 +452,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["table:role:lookup_table"], 1)
         self.assertEqual(counts["table:kind:relative_code_dispatch"], 1)
         self.assertEqual(counts["table:base:target_label"], 1)
+        self.assertEqual(counts["table:consumer"], 1)
         self.assertEqual(counts["table:entry_size:2"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
         self.assertEqual(counts["hardware:custom"], 2)
@@ -487,6 +490,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["memory:absolute_stack_top"][0]["symbol"], "stack_top_00080000")
         self.assertEqual(examples["analysis:runtime_table_base_addend"][0]["addend"], -4)
         self.assertEqual(examples["table:any"][0]["entry_count"], 2)
+        self.assertEqual(examples["table:any"][0]["consumer_offset"], 0x20)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
         self.assertEqual(examples["orphan-code:signal"][0]["context"], "accepted_code_boundary")
@@ -755,6 +759,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "role": "lookup_table",
                         "table_kind": "relative_code_dispatch",
                         "base_expression": "target_label",
+                        "consumer_section": 0,
+                        "consumer_offset": 0x20,
                     }
                 ],
                 "sections": [
@@ -992,6 +998,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("table:any", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:role:lookup_table", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:kind:relative_code_dispatch", "table_record", 0x90, 7), by_feature)
+        self.assertIn(("table:consumer", "table_record", 0x90, 7), by_feature)
+        self.assertIn(("table:consumer", "table_consumer", 0x20, 1), by_feature)
         self.assertIn(("orphan-code:signal", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:reason:terminal_decode", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:status:unresolved", "orphan_code_signal", 0x84, 8), by_feature)
@@ -3310,6 +3318,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                     "orphan-code:signal": 1,
                     "os_call:any": 1,
                     "table:kind:relative_code_dispatch": 1,
+                    "table:consumer": 1,
                     "platform_field:IO_COMMAND": 1,
                 },
                 "feature_examples": {
@@ -3317,6 +3326,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                     "display:bitplanes:5": [{"offset": 6}],
                     "orphan-code:signal": [{"offset": 10}],
                     "table:kind:relative_code_dispatch": [{"offset": 12}],
+                    "table:consumer": [{"offset": 12, "consumer_offset": 4}],
                     "platform_field:IO_COMMAND": [{"offset": 8}],
                 },
             },
@@ -3355,7 +3365,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual([item["id"] for item in analysis_query], ["a"])
         self.assertEqual(analysis_query[0]["count"], 1)
         self.assertEqual([item["id"] for item in table_query], ["a"])
-        self.assertEqual(table_query[0]["count"], 1)
+        self.assertEqual(table_query[0]["count"], 2)
         self.assertEqual([item["id"] for item in typed_query], ["a"])
         self.assertEqual(typed_query[0]["count"], 1)
         self.assertEqual([item["target_id"] for item in xref_query], ["a"])

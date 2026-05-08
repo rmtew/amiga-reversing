@@ -105,6 +105,10 @@ typedef struct M68kAnalysisStructuredDataItem {
   uint8_t has_constant_value;
   uint8_t reserved[3];
   int32_t constant_value;
+  uint8_t has_consumer;
+  uint8_t reserved2[3];
+  uint32_t consumer_section;
+  uint32_t consumer_offset;
   char label[64];
   char struct_name[64];
   char field_name[64];

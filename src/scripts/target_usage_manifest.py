@@ -1251,11 +1251,18 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         base_expression = _string_value(table.get("base_expression"))
         if base_expression:
             example["base_expression"] = base_expression
+        consumer_section = _int_value(table.get("consumer_section"))
+        consumer_offset = _int_value(table.get("consumer_offset"))
+        if consumer_section is not None and consumer_offset is not None:
+            example["consumer_section"] = consumer_section
+            example["consumer_offset"] = consumer_offset
         bag.add("table:any", example=example)
         bag.add(f"table:role:{_safe_part(role)}", example=example)
         bag.add(f"table:kind:{_safe_part(table_kind)}", example=example)
         if base_expression:
             bag.add(f"table:base:{_safe_part(base_expression)}", example=example)
+        if consumer_section is not None and consumer_offset is not None:
+            bag.add("table:consumer", example=example)
         entry_size = _int_value(table.get("entry_size"))
         if entry_size is not None:
             bag.add(f"table:entry_size:{entry_size}", example=example)
@@ -2947,6 +2954,8 @@ def _analysis_xrefs(
         row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
         base_expression = _string_value(table.get("base_expression"))
         entry_count = _int_value(table.get("entry_count"))
+        consumer_section = _int_value(table.get("consumer_section"))
+        consumer_offset = _int_value(table.get("consumer_offset"))
         features = [
             "table:any",
             f"table:role:{_safe_part(role)}",
@@ -2954,6 +2963,8 @@ def _analysis_xrefs(
         ]
         if base_expression:
             features.append(f"table:base:{_safe_part(base_expression)}")
+        if consumer_section is not None and consumer_offset is not None:
+            features.append("table:consumer")
         entry_size = _int_value(table.get("entry_size"))
         if entry_size is not None:
             features.append(f"table:entry_size:{entry_size}")
@@ -2961,6 +2972,13 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, feature, "table_record", section=section_index, offset=offset,
                 row_index=row_index, stable_key=stable_key, symbol=role, value=entry_count,
                 text=row_text or table_kind))
+        if consumer_section is not None and consumer_offset is not None:
+            consumer_row_index, consumer_stable_key, consumer_row_text = _row_location(
+                row_locations, consumer_section, consumer_offset
+            )
+            xrefs.append(_xref(row, "table:consumer", "table_consumer", section=consumer_section,
+                offset=consumer_offset, row_index=consumer_row_index, stable_key=consumer_stable_key,
+                symbol=role, value=entry_count, text=consumer_row_text or table_kind))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):

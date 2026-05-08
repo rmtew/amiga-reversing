@@ -4211,7 +4211,9 @@ static int test_facts_v2_word_dispatch_promotes_far_relative_targets(void) {
   char *source = NULL;
   char *analysis_json = NULL;
   uint32_t saw_far_target = 0U;
+  uint32_t saw_table_consumer = 0U;
   size_t code_start_index;
+  uint16_t item_index;
   uint8_t bytes[0x101EU];
   memset(bytes, 0, sizeof(bytes));
   bytes[0x00] = 0x43u;
@@ -4262,6 +4264,18 @@ static int test_facts_v2_word_dispatch_promotes_far_relative_targets(void) {
     "\"offset\":18,\"size\":4,\"entry_size\":2,\"entry_count\":2,\"role\":\"lookup_table\","
     "\"table_kind\":\"relative_code_dispatch\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"base_expression\":\"target_label\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"consumer_section\":0,\"consumer_offset\":12") != NULL);
+  for (item_index = 0U; item_index < source_analysis.policy.structured_data_item_count; ++item_index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[item_index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 18U &&
+        strcmp(item->semantic_role, "lookup_table") == 0) {
+      M68K_C_ASSERT_U32(1U, item->has_consumer);
+      M68K_C_ASSERT_U32(0U, item->consumer_section);
+      M68K_C_ASSERT_U32(0x0CU, item->consumer_offset);
+      saw_table_consumer = 1U;
+    }
+  }
+  M68K_C_ASSERT_U32(1U, saw_table_consumer);
   for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
       ++code_start_index) {
     const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];

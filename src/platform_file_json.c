@@ -1676,6 +1676,14 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder, const
     if (item->has_target) {
       if (json_builder_appendf(builder, "%u", (unsigned)item->target_offset) != 0) return -1;
     } else if (json_builder_append(builder, "null") != 0) return -1;
+    if (json_builder_append(builder, ",\"consumer_section\":") != 0) return -1;
+    if (item->has_consumer) {
+      if (json_builder_appendf(builder, "%u", (unsigned)item->consumer_section) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+    if (json_builder_append(builder, ",\"consumer_offset\":") != 0) return -1;
+    if (item->has_consumer) {
+      if (json_builder_appendf(builder, "%u", (unsigned)item->consumer_offset) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
     if (json_builder_append(builder,
         ",\"confidence\":\"tool_inferred\",\"conflict_state\":\"clean\"}") != 0)
       return -1;
