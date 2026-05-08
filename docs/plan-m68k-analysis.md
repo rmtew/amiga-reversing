@@ -194,6 +194,7 @@ proves a distinct base id.
      runtime copy, API, metadata, or policy seed
    - status: unresolved signal implemented; linked and promoted, rejected, and
      suppressed remain planned
+   - UI/navigation surfacing: implemented as an `orphan-code` listing group
    - corpus tag and target-level signal count
 
 6. Rendering rules:

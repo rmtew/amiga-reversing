@@ -7182,6 +7182,74 @@ static int test_listing_json_typed_plan_emits_expected_rows(void) {
   return 0;
 }
 
+static int test_listing_navigation_reports_orphan_code_signals(void) {
+  M68kSourceFileIR source_file;
+  M68kSectionIR section;
+  M68kStatementIR data_stmt;
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kOrphanCodeSignalIR signal;
+  M68kRenderPlan render_plan;
+  char *rows_json = NULL;
+  uint8_t data_bytes[4] = {0x70U, 0x01U, 0x4EU, 0x75U};
+
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_create(&source_file));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_create(&section));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis));
+  m68k_render_plan_init(&render_plan);
+  source_file.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  source_file.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  source_analysis.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = 6U;
+  section_analysis.section_index = 0U;
+  section_analysis.section_kind = M68K_SECTION_CODE;
+  section_analysis.section_size = 6U;
+  M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 0U, "rts", 0U, NULL));
+  m68k_ir_statement_init(&data_stmt);
+  data_stmt.kind = M68K_STATEMENT_DATA;
+  data_stmt.offset = 2U;
+  data_stmt.u.data.kind = M68K_DATA_ITEM_BYTES;
+  data_stmt.u.data.data = data_bytes;
+  data_stmt.u.data.size = sizeof(data_bytes);
+  M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &data_stmt));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
+
+  memset(&signal, 0, sizeof(signal));
+  signal.offset = 2U;
+  signal.size = 4U;
+  signal.terminal_offset = 4U;
+  signal.terminal_flow_kind = M68K_SIM_FLOW_RETURN;
+  signal.reason = M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE;
+  signal.status = M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED;
+  signal.confidence = 70U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_orphan_code_signal(&section_analysis, &signal));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_SECTION, 0U,
+    "    SECTION section_0,code\n", NULL));
+  M68K_C_ASSERT_INT(0, test_append_typed_plan_source_row(&render_plan, M68K_RENDER_PLAN_ROW_INSTRUCTION,
+    "\trts\n", 0U, 0U, 2U));
+  M68K_C_ASSERT_INT(0, test_append_typed_plan_source_row(&render_plan, M68K_RENDER_PLAN_ROW_DATA,
+    "\tdc.b $70,$01,$4E,$75\n", 0U, 2U, 4U));
+  M68K_C_ASSERT_INT(0, test_listing_navigation_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(rows_json != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"orphan-code\":[{\"addr\":2") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"summary\":\"Orphan code signal $0002-$0006") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "terminal_decode/unresolved") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"match_text\":\"dc.b $70,$01,$4E,$75\"") != NULL);
+
+  free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_ir_section_destroy(&section);
+  m68k_ir_source_file_destroy(&source_file);
+  return 0;
+}
+
 static int test_listing_json_uses_render_plan_statement_provenance(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
@@ -14208,6 +14276,8 @@ int m68k_c_ir_tests(void) {
       test_listing_json_header_collection_uses_typed_plan_rows},
     {"listing_json_typed_plan_emits_expected_rows",
       test_listing_json_typed_plan_emits_expected_rows},
+    {"listing_navigation_reports_orphan_code_signals",
+      test_listing_navigation_reports_orphan_code_signals},
     {"listing_json_uses_render_plan_statement_provenance",
       test_listing_json_uses_render_plan_statement_provenance},
     {"listing_json_uses_render_plan_source_range_provenance",

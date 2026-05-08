@@ -5349,6 +5349,7 @@ struct ListingNavigationJsonContext {
   JsonBuilder typed_gaps;
   JsonBuilder relocations;
   JsonBuilder api_calls;
+  JsonBuilder orphan_code;
   JsonBuilder comments;
   ListingNavigationLabelBuilder labels;
   ListingAppSlotAnalysisBuilder app_slot_analysis;
@@ -5359,6 +5360,7 @@ struct ListingNavigationJsonContext {
   size_t typed_gaps_count;
   size_t relocations_count;
   size_t api_calls_count;
+  size_t orphan_code_count;
   size_t comments_count;
 };
 
@@ -5402,6 +5404,7 @@ static void listing_navigation_destroy(ListingNavigationJsonContext *navigation)
   json_builder_destroy(&navigation->typed_gaps);
   json_builder_destroy(&navigation->relocations);
   json_builder_destroy(&navigation->api_calls);
+  json_builder_destroy(&navigation->orphan_code);
   json_builder_destroy(&navigation->comments);
   listing_navigation_label_builder_destroy(&navigation->labels);
   listing_app_slot_analysis_destroy(&navigation->app_slot_analysis);
@@ -5421,6 +5424,7 @@ static int listing_navigation_init(ListingNavigationJsonContext *navigation, uin
       listing_navigation_group_init(&navigation->typed_gaps) != 0 ||
       listing_navigation_group_init(&navigation->relocations) != 0 ||
       listing_navigation_group_init(&navigation->api_calls) != 0 ||
+      listing_navigation_group_init(&navigation->orphan_code) != 0 ||
       listing_navigation_group_init(&navigation->comments) != 0 ||
       listing_navigation_label_builder_init(&navigation->labels) != 0 ||
       listing_app_slot_analysis_init(&navigation->app_slot_analysis, platform_backend_kind, source_analysis) != 0) {
@@ -5709,6 +5713,28 @@ static int append_listing_navigation_api_call_entry(JsonBuilder *builder, const 
   return append_listing_navigation_entry(builder, stmt, row_index, section_index, row_kind, summary, match_text);
 }
 
+static const M68kOrphanCodeSignalIR *listing_navigation_orphan_signal_at(const M68kSectionAnalysisIR *section,
+    uint32_t offset) {
+  size_t index;
+  if (section == NULL) return NULL;
+  for (index = 0U; index < section->orphan_code_signal_count; ++index) {
+    const M68kOrphanCodeSignalIR *signal = &section->orphan_code_signals[index];
+    if (signal->offset == offset) return signal;
+  }
+  return NULL;
+}
+
+static int append_listing_navigation_orphan_code_entry(JsonBuilder *builder, const M68kStatementIR *stmt,
+    size_t row_index, int section_index, const char *row_kind, const char *match_text,
+    const M68kOrphanCodeSignalIR *signal) {
+  char summary[192];
+  if (signal == NULL) return -1;
+  snprintf(summary, sizeof(summary), "Orphan code signal $%04X-$%04X %s/%s",
+    (unsigned)signal->offset, (unsigned)(signal->offset + signal->size),
+    orphan_code_signal_reason_name(signal->reason), orphan_code_signal_status_name(signal->status));
+  return append_listing_navigation_entry(builder, stmt, row_index, section_index, row_kind, summary, match_text);
+}
+
 static int listing_navigation_append_label_ref(ListingNavigationJsonContext *navigation, const char *symbol,
     const char *access, const char *summary, const char *match_text, const M68kStatementIR *stmt, size_t row_index,
     int section_index, const char *row_kind) {
@@ -5818,6 +5844,9 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
     }
   } else if (stmt != NULL && stmt->kind != M68K_STATEMENT_INSTRUCTION && row_kind != NULL &&
       strcmp(row_kind, "label") != 0) {
+    const M68kOrphanCodeSignalIR *orphan_signal = section != NULL
+      ? listing_navigation_orphan_signal_at(section, stmt->offset)
+      : NULL;
     const M68kAnalysisStructuredDataItem *structured_item =
       listing_structured_data_item_at_offset(navigation->analysis_policy, section_index, stmt->offset);
     const char *data_class = listing_row_allows_data_class(row_kind, opcode)
@@ -5832,6 +5861,13 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
         (data_class != NULL ? data_class : (field != NULL ? field : row_kind));
       if (append_listing_navigation_typed_data_entry(navigation, stmt, row_index, section_index, row_kind,
           data_summary, match_text) != 0)
+        return -1;
+    }
+    if (orphan_signal != NULL) {
+      if (navigation->orphan_code_count++ != 0U && json_builder_append(&navigation->orphan_code, ",") != 0)
+        return -1;
+      if (append_listing_navigation_orphan_code_entry(&navigation->orphan_code, stmt, row_index, section_index,
+          row_kind, match_text, orphan_signal) != 0)
         return -1;
     }
   }
@@ -6371,6 +6407,7 @@ static int append_listing_navigation_groups_json(JsonBuilder *builder, ListingNa
       listing_navigation_finish_group(&navigation->typed_gaps) != 0 ||
       listing_navigation_finish_group(&navigation->relocations) != 0 ||
       listing_navigation_finish_group(&navigation->api_calls) != 0 ||
+      listing_navigation_finish_group(&navigation->orphan_code) != 0 ||
       listing_navigation_finish_group(&navigation->comments) != 0)
     goto fail;
   if (json_builder_append(builder, "\"repro-issues\":[],\"typed-data\":") != 0 ||
@@ -6381,6 +6418,8 @@ static int append_listing_navigation_groups_json(JsonBuilder *builder, ListingNa
       json_builder_append_builder(builder, &navigation->relocations) != 0 ||
       json_builder_append(builder, ",\"api-calls\":") != 0 ||
       json_builder_append_builder(builder, &navigation->api_calls) != 0 ||
+      json_builder_append(builder, ",\"orphan-code\":") != 0 ||
+      json_builder_append_builder(builder, &navigation->orphan_code) != 0 ||
       json_builder_append(builder, ",\"app-slots\":") != 0 ||
       append_listing_navigation_app_slots_json(builder, &navigation->app_slot_analysis) != 0 ||
       json_builder_append(builder, ",\"app-slot-regions\":") != 0 ||
