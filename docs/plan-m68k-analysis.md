@@ -60,7 +60,7 @@ Reviewed implementation and tests before updating this plan. Current state:
 | --- | --- | --- |
 | RSSET/app slots | `render_state_operand_uses_app_base()` rejects known hardware bases and `_custom` offsets; `render_asm_app_extension_rs()` emits app/resident RSSET layouts from field slots and metadata; C source analysis now records rendered base-layout fields and alias overlays as first-class facts; listing JSON exposes those layout fields directly. | Need wider "known base owns this displacement" facts for platform-owned layouts beyond app/metadata RSSET emission. |
 | Typed structs vs app slots | Typed app-slot field regions are skipped from flat RSSET output; `_custom` offset false positives have an isolated test. | Need wider "known base owns this displacement" facts for all platform structs, not only `_custom` fallback protection. |
-| ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, and policy-vs-inferred precedence. | Runtime-copy facts need explicit wrapper-load/helper/final-image relationships and UI-visible rejected reasons. |
+| ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, policy-vs-inferred precedence, corpus tags, and listing navigation for materialized/suppressed runtime views. | Runtime-copy facts still need explicit wrapper-load/helper/final-image relationships. |
 | Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, and relative `target-base` rendering. | Existing behavior is still spread across recovered indirect sites, structured data, and rendering; needs one table fact model. |
 | Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks. | Need one memory-layout view that merges absolute globals, hardware, runtime code, display/audio, and unresolved candidates. |
 | Orphaned code | C analysis now records unresolved terminal-decode islands at accepted-code boundaries or data labels as orphan signals without promoting them to accepted code. | Extend the signal with inbound-evidence classes, nearby context, target metrics, and reconciliation after table/callback/vector improvements. |
@@ -170,7 +170,8 @@ proves a distinct base id.
    - entrypoint list with reason and confidence
    - classification: materialized ORG, weak trampoline, absolute symbol,
      suppressed candidate, unresolved problem
-   - corpus tags and rejected-candidate reason
+   - corpus tags and rejected-candidate reason: implemented for runtime-view
+     materialization/suppression reasons and listing navigation
    - exact reproduction/source reassembly status
 
 4. Add lookup-table records:

@@ -4596,6 +4596,20 @@ static const M68kRuntimeViewIR *listing_runtime_view_for_storage_offset(
   return NULL;
 }
 
+static const M68kRuntimeViewIR *listing_runtime_view_at_storage_offset(
+    const M68kSourceAnalysisIR *source_analysis, int section_index, uint32_t storage_offset) {
+  const M68kSectionAnalysisIR *section;
+  size_t index;
+  if (source_analysis == NULL || section_index < 0 || (size_t)section_index >= source_analysis->section_count)
+    return NULL;
+  section = &source_analysis->sections[section_index];
+  for (index = 0U; index < section->runtime_view_count; ++index) {
+    const M68kRuntimeViewIR *view = &section->runtime_views[index];
+    if (view->storage_offset == storage_offset) return view;
+  }
+  return NULL;
+}
+
 static const M68kRuntimeViewIR *listing_runtime_view_for_storage_runtime_offset(
     const M68kSourceAnalysisIR *source_analysis, int section_index, uint32_t storage_offset,
     uint32_t runtime_address) {
@@ -5389,6 +5403,7 @@ struct ListingNavigationJsonContext {
   JsonBuilder typed_gaps;
   JsonBuilder relocations;
   JsonBuilder api_calls;
+  JsonBuilder runtime_views;
   JsonBuilder orphan_code;
   JsonBuilder comments;
   ListingNavigationLabelBuilder labels;
@@ -5400,6 +5415,7 @@ struct ListingNavigationJsonContext {
   size_t typed_gaps_count;
   size_t relocations_count;
   size_t api_calls_count;
+  size_t runtime_views_count;
   size_t orphan_code_count;
   size_t comments_count;
 };
@@ -5444,6 +5460,7 @@ static void listing_navigation_destroy(ListingNavigationJsonContext *navigation)
   json_builder_destroy(&navigation->typed_gaps);
   json_builder_destroy(&navigation->relocations);
   json_builder_destroy(&navigation->api_calls);
+  json_builder_destroy(&navigation->runtime_views);
   json_builder_destroy(&navigation->orphan_code);
   json_builder_destroy(&navigation->comments);
   listing_navigation_label_builder_destroy(&navigation->labels);
@@ -5464,6 +5481,7 @@ static int listing_navigation_init(ListingNavigationJsonContext *navigation, uin
       listing_navigation_group_init(&navigation->typed_gaps) != 0 ||
       listing_navigation_group_init(&navigation->relocations) != 0 ||
       listing_navigation_group_init(&navigation->api_calls) != 0 ||
+      listing_navigation_group_init(&navigation->runtime_views) != 0 ||
       listing_navigation_group_init(&navigation->orphan_code) != 0 ||
       listing_navigation_group_init(&navigation->comments) != 0 ||
       listing_navigation_label_builder_init(&navigation->labels) != 0 ||
@@ -5753,6 +5771,21 @@ static int append_listing_navigation_api_call_entry(JsonBuilder *builder, const 
   return append_listing_navigation_entry(builder, stmt, row_index, section_index, row_kind, summary, match_text);
 }
 
+static int append_listing_navigation_runtime_view_entry(JsonBuilder *builder, const M68kStatementIR *stmt,
+    size_t row_index, int section_index, const char *row_kind, const char *match_text,
+    const M68kRuntimeViewIR *view) {
+  char summary[256];
+  const char *state;
+  const char *reason;
+  if (view == NULL) return -1;
+  state = view->materialized ? "materialized" : "suppressed";
+  reason = runtime_view_materialization_reason_name(view->materialization_reason);
+  snprintf(summary, sizeof(summary), "Runtime view $%04X-$%04X -> $%04X %s/%s",
+    (unsigned)view->storage_offset, (unsigned)(view->storage_offset + view->size),
+    (unsigned)view->runtime_address, state, reason);
+  return append_listing_navigation_entry(builder, stmt, row_index, section_index, row_kind, summary, match_text);
+}
+
 static const M68kOrphanCodeSignalIR *listing_navigation_orphan_signal_at(const M68kSectionAnalysisIR *section,
     uint32_t offset) {
   size_t index;
@@ -5845,6 +5878,17 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
   }
   if (listing_navigation_observe_label_refs(navigation, stmt, row_index, section_index, row_kind, match_text) != 0)
     return -1;
+  if (stmt != NULL && row_kind != NULL && strcmp(row_kind, "label") != 0) {
+    const M68kRuntimeViewIR *runtime_view = listing_runtime_view_at_storage_offset(navigation->source_analysis,
+      section_index, stmt->offset);
+    if (runtime_view != NULL) {
+      if (navigation->runtime_views_count++ != 0U && json_builder_append(&navigation->runtime_views, ",") != 0)
+        return -1;
+      if (append_listing_navigation_runtime_view_entry(&navigation->runtime_views, stmt, row_index, section_index,
+          row_kind, match_text, runtime_view) != 0)
+        return -1;
+    }
+  }
   if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION && section != NULL) {
     const M68kRecoveredPlatformTypedAccessIR *typed_access =
       listing_navigation_typed_access_at(section, stmt->offset);
@@ -6447,6 +6491,7 @@ static int append_listing_navigation_groups_json(JsonBuilder *builder, ListingNa
       listing_navigation_finish_group(&navigation->typed_gaps) != 0 ||
       listing_navigation_finish_group(&navigation->relocations) != 0 ||
       listing_navigation_finish_group(&navigation->api_calls) != 0 ||
+      listing_navigation_finish_group(&navigation->runtime_views) != 0 ||
       listing_navigation_finish_group(&navigation->orphan_code) != 0 ||
       listing_navigation_finish_group(&navigation->comments) != 0)
     goto fail;
@@ -6458,6 +6503,8 @@ static int append_listing_navigation_groups_json(JsonBuilder *builder, ListingNa
       json_builder_append_builder(builder, &navigation->relocations) != 0 ||
       json_builder_append(builder, ",\"api-calls\":") != 0 ||
       json_builder_append_builder(builder, &navigation->api_calls) != 0 ||
+      json_builder_append(builder, ",\"runtime-views\":") != 0 ||
+      json_builder_append_builder(builder, &navigation->runtime_views) != 0 ||
       json_builder_append(builder, ",\"orphan-code\":") != 0 ||
       json_builder_append_builder(builder, &navigation->orphan_code) != 0 ||
       json_builder_append(builder, ",\"app-slots\":") != 0 ||
