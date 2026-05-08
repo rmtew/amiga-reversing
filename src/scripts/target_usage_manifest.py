@@ -1383,7 +1383,54 @@ def _decompression_example(record: dict[str, Any]) -> dict[str, object]:
     provider_id = _string_value(record.get("provider_id"))
     if provider_id:
         example["provider_id"] = provider_id
+    decompressor_section = _int_value(record.get("decompressor_code_section"))
+    if decompressor_section is not None:
+        example["decompressor_code_section"] = decompressor_section
+    decompressor_entry = _int_value(record.get("decompressor_entry_offset"))
+    if decompressor_entry is not None:
+        example["decompressor_entry_offset"] = decompressor_entry
+    unpacker_marker = _int_value(record.get("unpacker_marker_offset"))
+    if unpacker_marker is not None:
+        example["unpacker_marker_offset"] = unpacker_marker
+    copied_stub_storage = _int_value(record.get("copied_stub_storage_offset"))
+    if copied_stub_storage is not None:
+        example["copied_stub_storage_offset"] = copied_stub_storage
+    copied_stub_runtime = _int_value(record.get("copied_stub_runtime_address"))
+    if copied_stub_runtime is not None:
+        example["copied_stub_runtime_address"] = copied_stub_runtime
+    copied_stub_transfer = _int_value(record.get("copied_stub_transfer_offset"))
+    if copied_stub_transfer is not None:
+        example["copied_stub_transfer_offset"] = copied_stub_transfer
     return example
+
+
+def _decompression_decompressor_features(record: dict[str, Any]) -> list[str]:
+    features: list[str] = []
+    source_section = _int_value(record.get("source_section"))
+    if source_section is None:
+        source_section = _int_value(record.get("source_section_index"))
+    decompressor_section = _int_value(record.get("decompressor_code_section"))
+    decompressor_entry = _int_value(record.get("decompressor_entry_offset"))
+    if decompressor_section is not None and decompressor_entry is not None:
+        features.append("decompression:decompressor_code")
+        features.append(f"decompression:decompressor_entry:{decompressor_section}:{decompressor_entry:08X}")
+    unpacker_marker = _int_value(record.get("unpacker_marker_offset"))
+    if source_section is not None and unpacker_marker is not None:
+        features.append("decompression:unpacker_marker")
+        features.append(f"decompression:unpacker_marker:{source_section}:{unpacker_marker:08X}")
+    copied_stub_storage = _int_value(record.get("copied_stub_storage_offset"))
+    if source_section is not None and copied_stub_storage is not None:
+        features.append("decompression:copied_stub")
+        features.append(f"decompression:copied_stub_storage:{source_section}:{copied_stub_storage:08X}")
+    copied_stub_runtime = _int_value(record.get("copied_stub_runtime_address"))
+    if copied_stub_runtime is not None:
+        features.append("decompression:copied_stub_runtime")
+        features.append(f"decompression:copied_stub_runtime:{copied_stub_runtime:08X}")
+    copied_stub_transfer = _int_value(record.get("copied_stub_transfer_offset"))
+    if copied_stub_transfer is not None:
+        features.append("decompression:copied_stub_transfer")
+        features.append(f"decompression:copied_stub_transfer:{copied_stub_transfer:08X}")
+    return features
 
 
 def _decompression_source_range_features(record: dict[str, Any]) -> list[str]:
@@ -1569,6 +1616,8 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
             bag.add("decompression:simulated_output", example=example)
         if _string_value(event.get("simulated_output_sha256")):
             bag.add("decompression:simulated_output_hash", example=example)
+        for feature in _decompression_decompressor_features(event):
+            bag.add(feature, example=example)
         for feature in _decompression_source_range_features(event):
             bag.add(feature, example=example)
         for feature in _decompression_output_address_features(event):
@@ -2767,6 +2816,7 @@ def _decompression_analysis_xrefs(
             features.append("decompression:simulated_output")
         if _string_value(event.get("simulated_output_sha256")):
             features.append("decompression:simulated_output_hash")
+        features.extend(_decompression_decompressor_features(event))
         features.extend(_decompression_source_range_features(event))
         features.extend(_decompression_output_address_features(event))
         features.extend(_decompression_pattern_features(event))

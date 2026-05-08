@@ -140,6 +140,7 @@ def test_recognized_unpacker_target_start_indexes_absolute_depack_destination() 
                 "source_section_offset": 0x100,
                 "compressed_source_section_offset": 0x100,
                 "compressed_source_section_end_offset": 0x428,
+                "unpacker_marker_offset": 0xC4,
                 "target_start_address": 0x40000,
                 "target_end_address": 0x50000,
                 "entrypoint": 0x40000,
@@ -159,6 +160,7 @@ def test_recognized_unpacker_target_start_indexes_absolute_depack_destination() 
     assert counts["decompression:codec:tetragon"] == 1
     assert counts["decompression:source_range:1:00000100-00000428"] == 1
     assert counts["decompression:compressed_source_range:1:00000100-00000428"] == 1
+    assert counts["decompression:unpacker_marker:1:000000C4"] == 1
     assert "absolute-depack-dest" in tags
 
     row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
@@ -167,6 +169,7 @@ def test_recognized_unpacker_target_start_indexes_absolute_depack_destination() 
     assert any(xref["feature"] == "absolute-depack-dest" and xref["row_index"] == 12 for xref in xrefs)
     assert any(xref["feature"] == "decompression:codec:tetragon" and xref["row_index"] == 12 for xref in xrefs)
     assert any(xref["feature"] == "decompression:source_range:1:00000100-00000428" for xref in xrefs)
+    assert any(xref["feature"] == "decompression:unpacker_marker:1:000000C4" for xref in xrefs)
 
 
 def test_self_decrunch_event_indexes_output_and_pattern_work_item() -> None:
@@ -200,10 +203,13 @@ def test_self_decrunch_event_indexes_output_and_pattern_work_item() -> None:
     assert counts["decompression:pattern:simulated_self_decrunch_output"] == 1
     assert counts["decompression:output_load_address:00020000"] == 1
     assert counts["decompression:entrypoint:00020000"] == 1
+    assert counts["decompression:decompressor_code"] == 1
+    assert counts["decompression:decompressor_entry:0:00000000"] == 1
     assert counts["decompression:unmaterialized_work_item"] == 1
     assert counts["decompression:work_item_reason:simulated_instruction_limit"] == 1
     assert "decompression:pattern:absolute_self_decrunch_transfer" in tags
     assert examples["decompression:output_load_address:00020000"][0]["load_address"] == 0x20000
+    assert examples["decompression:decompressor_code"][0]["decompressor_entry_offset"] == 0
 
     row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
     row_locations = {(0, 0): (2, "s0:00000000:instruction:2", "lea.l $20000,a0")}
@@ -213,6 +219,7 @@ def test_self_decrunch_event_indexes_output_and_pattern_work_item() -> None:
         for xref in xrefs
     )
     assert any(xref["feature"] == "decompression:output_load_address:00020000" for xref in xrefs)
+    assert any(xref["feature"] == "decompression:decompressor_entry:0:00000000" for xref in xrefs)
 
 
 def test_labelized_table_shape_features_and_xrefs() -> None:

@@ -470,10 +470,13 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["decompression:pattern:simulated_self_decrunch_output"], 1)
         self.assertEqual(counts["decompression:output_load_address:00020000"], 1)
         self.assertEqual(counts["decompression:entrypoint:00020000"], 1)
+        self.assertEqual(counts["decompression:decompressor_code"], 1)
+        self.assertEqual(counts["decompression:decompressor_entry:0:00000000"], 1)
         self.assertEqual(counts["decompression:unmaterialized_work_item"], 1)
         self.assertEqual(counts["decompression:work_item_reason:simulated_instruction_limit"], 1)
         self.assertIn("decompression:pattern:absolute_self_decrunch_transfer", tags)
         self.assertEqual(examples["decompression:output_load_address:00020000"][0]["load_address"], 0x20000)
+        self.assertEqual(examples["decompression:decompressor_code"][0]["decompressor_entry_offset"], 0)
 
         row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
         row_locations = {(0, 0): (2, "s0:00000000:instruction:2", "lea.l $20000,a0")}
@@ -486,6 +489,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             )
         )
         self.assertTrue(any(xref["feature"] == "decompression:output_load_address:00020000" for xref in xrefs))
+        self.assertTrue(any(xref["feature"] == "decompression:decompressor_entry:0:00000000" for xref in xrefs))
 
     def test_device_features_use_resolved_device_names_for_all_io_calls(self) -> None:
         bag = usage.FeatureBag()

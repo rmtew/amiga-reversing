@@ -347,3 +347,7 @@ Failing a gate should produce an indexed work item, not a guessed child target.
 - `docs/design-amiga.md` now records the Amiga-specific distinction between
   runtime-copied ORG views and decompressed child targets, using Magicland Dizzy
   `MD` as the concrete example.
+- Corpus indexing now records decompressor provenance tags from C events:
+  simulator decruncher entrypoints, recognized unpacker marker offsets, and
+  copied-stub storage/runtime/transfer evidence. Damocles Tetragon hunk 2 and
+  Magicland Dizzy `TRAINER` are queryable examples.
