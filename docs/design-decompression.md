@@ -519,6 +519,12 @@ Current retained output:
    self-decrunch step bound. C simulation now reaches the transfer to `$20000`
    and materializes a 44220-byte payload with SHA-256
    `21ea11a46f008c69cca2795347eca093967191bf535b33c5ff3777619161999d`.
+32. Done: materialized decompressed child metadata preserves C payload role
+   fields. Imported/refresh-created children now write `payload_role`,
+   `payload_role_confidence`, and `parent_remains_active` into the child project
+   origin, manifest relationship, `decompression.json`, and corpus
+   project-target tags. The retained Damocles Tetragon children now expose
+   `primary_program`, `native_unpack_entry_validated`, and `false`.
 
 ## Current Corpus Query Proof
 

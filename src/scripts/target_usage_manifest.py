@@ -616,6 +616,9 @@ def _project_target_manifest_entry(target_dir: Path, *, root: Path = ROOT) -> tu
     for source_key, entry_key in (
         ("kind", "project_origin_kind"),
         ("target_role", "target_role"),
+        ("payload_role", "payload_role"),
+        ("payload_role_confidence", "payload_role_confidence"),
+        ("parent_remains_active", "parent_remains_active"),
         ("target_type", "target_type"),
         ("compressor", "compressor"),
         ("parent_target", "parent_target"),
@@ -771,17 +774,30 @@ def _project_decompression_example(entry: dict[str, Any]) -> dict[str, object]:
     codec = _project_decompression_codec(entry)
     if codec:
         example["text"] = codec
+    for key in ("payload_role", "payload_role_confidence", "parent_remains_active"):
+        value = _string_value(decompression.get(key)) or _string_value(entry.get(key))
+        if value:
+            example[key] = value
     return example
 
 
 def _add_project_target_metadata_features(entry: dict[str, Any], bag: FeatureBag) -> None:
     origin_kind = _string_value(entry.get("project_origin_kind"))
     target_role = _string_value(entry.get("target_role"))
+    payload_role = _string_value(entry.get("payload_role"))
+    payload_role_confidence = _string_value(entry.get("payload_role_confidence"))
+    parent_remains_active = _string_value(entry.get("parent_remains_active"))
     target_type = _string_value(entry.get("target_type"))
     if origin_kind:
         bag.add(f"project_origin:{_safe_part(origin_kind)}")
     if target_role:
         bag.add(f"project_target_role:{_safe_part(target_role)}")
+    if payload_role:
+        bag.add(f"decompression:payload_role:{_safe_part(payload_role)}")
+    if payload_role_confidence:
+        bag.add(f"decompression:payload_role_confidence:{_safe_part(payload_role_confidence)}")
+    if parent_remains_active:
+        bag.add(f"decompression:parent_remains_active:{_safe_part(parent_remains_active)}")
     if target_type:
         bag.add(f"project_target_type:{_safe_part(target_type)}")
     if origin_kind == "derived_decompressed_payload" or target_role == "decompressed_payload":
@@ -1744,6 +1760,9 @@ def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]
     xrefs: list[dict[str, object]] = []
     origin_kind = _string_value(entry.get("project_origin_kind"))
     target_role = _string_value(entry.get("target_role"))
+    payload_role = _string_value(entry.get("payload_role"))
+    payload_role_confidence = _string_value(entry.get("payload_role_confidence"))
+    parent_remains_active = _string_value(entry.get("parent_remains_active"))
     target_type = _string_value(entry.get("target_type"))
     for value, prefix, kind in (
         (origin_kind, "project_origin", "project_target_metadata"),
@@ -1774,6 +1793,22 @@ def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]
                     text=text,
                 )
             )
+        for value, feature_prefix in (
+            (payload_role, "decompression:payload_role"),
+            (payload_role_confidence, "decompression:payload_role_confidence"),
+            (parent_remains_active, "decompression:parent_remains_active"),
+        ):
+            if value:
+                xrefs.append(
+                    _xref(
+                        row,
+                        f"{feature_prefix}:{_safe_part(value)}",
+                        "derived_target",
+                        offset=offset,
+                        symbol=value,
+                        text=text,
+                    )
+                )
     return xrefs
 
 

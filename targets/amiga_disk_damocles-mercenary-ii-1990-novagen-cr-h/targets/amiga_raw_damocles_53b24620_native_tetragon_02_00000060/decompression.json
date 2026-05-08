@@ -16,7 +16,10 @@
     "method": "c-tetragon-native"
   },
   "parent_entry_path": "Damocles",
+  "parent_remains_active": "false",
   "parent_target_id": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620",
+  "payload_role": "primary_program",
+  "payload_role_confidence": "native_unpack_entry_validated",
   "relationship": {
     "child_entry_path": "Damocles::tetragon_02_00000060",
     "child_target": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_raw_damocles_53b24620_native_tetragon_02_00000060",
@@ -28,7 +31,10 @@
     "kind": "decompressed_payload",
     "load_address": 4096,
     "parent_entry_path": "Damocles",
+    "parent_remains_active": "false",
     "parent_target": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620",
+    "payload_role": "primary_program",
+    "payload_role_confidence": "native_unpack_entry_validated",
     "provider_id": "c-tetragon-native",
     "source_kind": "recognized_unpacker",
     "source_section": 2,

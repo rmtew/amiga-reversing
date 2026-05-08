@@ -561,6 +561,9 @@ def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
                     "entrypoint": 0x4000,
                     "codec_id": "rnc1-old",
                     "codec_name": "RNC1: Rob Northen RNC1 Compressor (old)",
+                    "payload_role": "primary_program",
+                    "payload_role_confidence": "tool_inferred",
+                    "parent_remains_active": "unknown",
                     "source_sha256": "11" * 32,
                     "decompressed_sha256": "22" * 32,
                 }
@@ -612,13 +615,19 @@ def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
             "packed_section_offset": 0x1000,
             "packed_size": 10,
             "codec_id": "rnc1-old",
+            "payload_role": "primary_program",
+            "payload_role_confidence": "tool_inferred",
+            "parent_remains_active": "unknown",
         }
     ]
     assert child.derived_from is not None
     assert child.derived_from["parent_target"] == parent.target_name
     assert child.derived_from["load_address"] == 0x4000
+    assert child.derived_from["payload_role"] == "primary_program"
 
     child_dir = project_root / child.target_path
+    project = json.loads((child_dir / ".project.json").read_text(encoding="utf-8"))
+    assert project["origin"]["payload_role"] == "primary_program"
     assert (child_dir / "binary.bin").read_bytes() == b"\x4E\x75\x4E\x75"
     source = json.loads((child_dir / "source_binary.json").read_text(encoding="utf-8"))
     assert source["kind"] == "raw_binary"
@@ -629,6 +638,7 @@ def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
     assert metadata["target_type"] == "raw_binary"
     decompression = json.loads((child_dir / "decompression.json").read_text(encoding="utf-8"))
     assert decompression["compressor"]["id"] == "rnc1-old"
+    assert decompression["payload_role"] == "primary_program"
     assert decompression["packed"]["section_offset"] == 0x1000
     assert decompression["decompressed"]["sha256"] == "22" * 32
 
@@ -724,11 +734,15 @@ def test_import_adf_materializes_c_simulated_self_decrunch_child(
             "provider_id": "m68k-sim-decrunch",
             "event_id": event_id,
             "codec_id": "unknown-self-decrunch",
+            "payload_role": "primary_program",
+            "payload_role_confidence": "tool_inferred",
+            "parent_remains_active": "false",
         }
     ]
     assert child.derived_from is not None
     assert child.derived_from["provider_id"] == "m68k-sim-decrunch"
     assert child.derived_from["event_id"] == event_id
+    assert child.derived_from["payload_role"] == "primary_program"
 
     child_dir = project_root / child.target_path
     assert (child_dir / "binary.bin").read_bytes() == output_bytes
@@ -738,6 +752,8 @@ def test_import_adf_materializes_c_simulated_self_decrunch_child(
     decompression = json.loads((child_dir / "decompression.json").read_text(encoding="utf-8"))
     assert decompression["source"]["kind"] == "self_decruncher"
     assert decompression["source"]["event_id"] == event_id
+    assert decompression["payload_role"] == "primary_program"
+    assert decompression["parent_remains_active"] == "false"
     assert decompression["decompressed"]["sha256"] == output_hash
 
 
@@ -795,6 +811,9 @@ def test_import_adf_materializes_c_recognized_unpacker_children_from_real_fixtur
             "provider_id": "c-tetragon-native",
             "event_id": children[0].derived_from["event_id"],
             "codec_id": "tetragon",
+            "payload_role": "primary_program",
+            "payload_role_confidence": "native_unpack_entry_validated",
+            "parent_remains_active": "false",
         },
         {
             "kind": "decompressed_payload",
@@ -802,6 +821,9 @@ def test_import_adf_materializes_c_recognized_unpacker_children_from_real_fixtur
             "provider_id": "c-tetragon-native",
             "event_id": children[1].derived_from["event_id"],
             "codec_id": "tetragon",
+            "payload_role": "primary_program",
+            "payload_role_confidence": "native_unpack_entry_validated",
+            "parent_remains_active": "false",
         },
     ]
     expected = {
@@ -823,6 +845,8 @@ def test_import_adf_materializes_c_recognized_unpacker_children_from_real_fixtur
         assert source["entrypoint"] == entrypoint
         decompression = json.loads((child_dir / "decompression.json").read_text(encoding="utf-8"))
         assert decompression["source"]["kind"] == "recognized_unpacker"
+        assert decompression["payload_role"] == "primary_program"
+        assert child.derived_from["payload_role"] == "primary_program"
         assert decompression["extraction"]["method"] == "c-tetragon-native"
         assert decompression["decompressed"]["sha256"] == sha256
 

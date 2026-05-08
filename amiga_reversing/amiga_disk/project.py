@@ -113,6 +113,20 @@ def _str_field(payload: dict[str, object], key: str) -> str | None:
     return value if isinstance(value, str) and value else None
 
 
+def _decompression_role_fields(payload: dict[str, object]) -> dict[str, object]:
+    fields: dict[str, object] = {}
+    payload_role = _str_field(payload, "payload_role")
+    payload_role_confidence = _str_field(payload, "payload_role_confidence")
+    parent_remains_active = payload.get("parent_remains_active")
+    if payload_role is not None:
+        fields["payload_role"] = payload_role
+    if payload_role_confidence is not None:
+        fields["payload_role_confidence"] = payload_role_confidence
+    if isinstance(parent_remains_active, (bool, str)):
+        fields["parent_remains_active"] = parent_remains_active
+    return fields
+
+
 def _safe_id_part(value: str, fallback: str) -> str:
     safe = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in value)
     return safe.strip("._-").replace("-", "_") or fallback
@@ -294,6 +308,7 @@ def _materialize_decompressed_payload_children(
             assert decompressed_size is not None
             assert load_address is not None
             assert entrypoint is not None
+            role_fields = _decompression_role_fields(suggestion)
             local_target_id = _decompressed_payload_child_local_id(parent_local_target_id, suggestion)
             target_name = disk_child_project_id(disk_id, local_target_id)
             target_dir = disk_children_root / local_target_id
@@ -309,6 +324,7 @@ def _materialize_decompressed_payload_children(
                 "child_entry_path": child_entry_path,
                 "target_role": "decompressed_payload",
                 "target_type": "raw_binary",
+                **role_fields,
                 "codec_id": _str_field(suggestion, "codec_id"),
                 "codec_name": _str_field(suggestion, "codec_name"),
                 "packed_section_offset": source_section_offset,
@@ -380,6 +396,7 @@ def _materialize_decompressed_payload_children(
                 "entrypoint": entrypoint,
                 "codec_id": _str_field(suggestion, "codec_id"),
                 "codec_name": _str_field(suggestion, "codec_name"),
+                **role_fields,
             }
             decompression_record = {
                 "schema_version": 1,
@@ -387,6 +404,7 @@ def _materialize_decompressed_payload_children(
                 "child_target_id": target_name,
                 "parent_entry_path": parent_entry_path,
                 "child_entry_path": child_entry_path,
+                **role_fields,
                 "compressor": {
                     "id": _str_field(suggestion, "codec_id"),
                     "name": _str_field(suggestion, "codec_name"),
@@ -421,6 +439,7 @@ def _materialize_decompressed_payload_children(
                     "packed_section_offset": source_section_offset,
                     "packed_size": packed_size,
                     "codec_id": _str_field(suggestion, "codec_id"),
+                    **role_fields,
                 }
             )
             child_targets.append(
@@ -447,6 +466,7 @@ def _materialize_decompressed_payload_children(
             assert output_sha256 is not None
             assert load_address is not None
             assert entrypoint is not None
+            role_fields = _decompression_role_fields(event)
             local_target_id = _recognized_unpacker_payload_child_local_id(parent_local_target_id, event)
             target_name = disk_child_project_id(disk_id, local_target_id)
             target_dir = disk_children_root / local_target_id
@@ -462,6 +482,7 @@ def _materialize_decompressed_payload_children(
                 "child_entry_path": child_entry_path,
                 "target_role": "decompressed_payload",
                 "target_type": "raw_binary",
+                **role_fields,
                 "codec_id": _str_field(event, "codec_id"),
                 "codec_name": _str_field(event, "codec_name"),
                 "provider_id": native_provider_id,
@@ -536,6 +557,7 @@ def _materialize_decompressed_payload_children(
                 "source_kind": "recognized_unpacker",
                 "source_section": source_section,
                 "unpacker_marker_offset": marker_offset,
+                **role_fields,
             }
             decompression_record = {
                 "schema_version": 1,
@@ -543,6 +565,7 @@ def _materialize_decompressed_payload_children(
                 "child_target_id": target_name,
                 "parent_entry_path": parent_entry_path,
                 "child_entry_path": child_entry_path,
+                **role_fields,
                 "compressor": {
                     "id": _str_field(event, "codec_id"),
                     "name": _str_field(event, "codec_name"),
@@ -587,6 +610,7 @@ def _materialize_decompressed_payload_children(
                     "provider_id": native_provider_id,
                     "event_id": event_id,
                     "codec_id": _str_field(event, "codec_id"),
+                    **role_fields,
                 }
             )
             child_targets.append(
@@ -613,6 +637,7 @@ def _materialize_decompressed_payload_children(
             assert output_sha256 is not None
             assert load_address is not None
             assert entrypoint is not None
+            role_fields = _decompression_role_fields(event)
             local_target_id = _self_decrunch_payload_child_local_id(parent_local_target_id, event)
             target_name = disk_child_project_id(disk_id, local_target_id)
             target_dir = disk_children_root / local_target_id
@@ -625,6 +650,7 @@ def _materialize_decompressed_payload_children(
                 "child_entry_path": child_entry_path,
                 "target_role": "decompressed_payload",
                 "target_type": "raw_binary",
+                **role_fields,
                 "codec_id": _str_field(event, "codec_id"),
                 "codec_name": _str_field(event, "codec_name"),
                 "provider_id": "m68k-sim-decrunch",
@@ -699,6 +725,7 @@ def _materialize_decompressed_payload_children(
                 "source_kind": "self_decruncher",
                 "decompressor_code_section": code_section,
                 "decompressor_entry_offset": code_entry,
+                **role_fields,
             }
             if transfer_offset is not None:
                 relationship["transfer_offset"] = transfer_offset
@@ -708,6 +735,7 @@ def _materialize_decompressed_payload_children(
                 "child_target_id": target_name,
                 "parent_entry_path": parent_entry_path,
                 "child_entry_path": child_entry_path,
+                **role_fields,
                 "compressor": {
                     "id": _str_field(event, "codec_id"),
                     "name": _str_field(event, "codec_name"),
@@ -747,6 +775,7 @@ def _materialize_decompressed_payload_children(
                     "provider_id": "m68k-sim-decrunch",
                     "event_id": event_id,
                     "codec_id": _str_field(event, "codec_id"),
+                    **role_fields,
                 }
             )
             child_targets.append(

@@ -565,9 +565,15 @@ class TargetUsageManifestTests(unittest.TestCase):
             "origin": {},
             "project_origin_kind": "derived_decompressed_payload",
             "target_role": "decompressed_payload",
+            "payload_role": "primary_program",
+            "payload_role_confidence": "tool_inferred",
+            "parent_remains_active": "unknown",
             "target_type": "raw_binary",
             "decompression": {
                 "compressor": {"id": "rnc1-old", "name": "RNC1"},
+                "payload_role": "primary_program",
+                "payload_role_confidence": "tool_inferred",
+                "parent_remains_active": "unknown",
                 "packed": {"section_offset": 0x4C40, "file_offset": 0x4C60, "size": 168391},
                 "decompressed": {"size": 359600, "load_address": 0x4000, "entrypoint": 0x4000},
             },
@@ -588,6 +594,9 @@ class TargetUsageManifestTests(unittest.TestCase):
 
         self.assertEqual(counts["project_origin:derived_decompressed_payload"], 1)
         self.assertEqual(counts["project_target_role:decompressed_payload"], 1)
+        self.assertEqual(counts["decompression:payload_role:primary_program"], 1)
+        self.assertEqual(counts["decompression:payload_role_confidence:tool_inferred"], 1)
+        self.assertEqual(counts["decompression:parent_remains_active:unknown"], 1)
         self.assertEqual(counts["project_target_type:raw_binary"], 1)
         self.assertEqual(counts["derived-decompressed-target"], 1)
         self.assertEqual(counts["derived_target:decompressed_payload"], 1)
@@ -595,7 +604,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["decompression:codec:rnc1-old"], 1)
         self.assertEqual(examples["derived-decompressed-target"][0]["offset"], 0x4C40)
         self.assertEqual(examples["derived-decompressed-target"][0]["load_address"], 0x4000)
+        self.assertEqual(examples["derived-decompressed-target"][0]["payload_role"], "primary_program")
         self.assertIn("decompression:codec:rnc1-old", {xref["feature"] for xref in xrefs})
+        self.assertIn("decompression:payload_role:primary_program", {xref["feature"] for xref in xrefs})
 
     def test_numeric_copper_register_rows_use_hardware_metadata(self) -> None:
         bag = usage.FeatureBag()

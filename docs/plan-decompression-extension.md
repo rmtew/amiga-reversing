@@ -325,3 +325,9 @@ Failing a gate should produce an indexed work item, not a guessed child target.
   candidates for the same source section, load address, and entrypoint. The
   simulator-required path remains visible only where no stronger native
   decompressor evidence covers the transfer target.
+- Materialized decompressed child metadata now preserves the C event
+  `payload_role`, `payload_role_confidence`, and `parent_remains_active` in the
+  child project origin, manifest relationship, `decompression.json`, and corpus
+  project-target tags. Damocles Tetragon children now surface
+  `primary_program` / `native_unpack_entry_validated` / `false` instead of only
+  the generic `decompressed_payload` target role.
