@@ -132,6 +132,36 @@ RUNTIME_VIEW_RELATIONSHIP_NAMES = {
     2: "contained_by_runtime_range",
     3: "overlaid_by_runtime_copy",
 }
+SIM_FLOW_NAMES = {
+    0: "none",
+    1: "sequential",
+    2: "branch",
+    3: "jump",
+    4: "call",
+    5: "return",
+    6: "trap",
+}
+ORPHAN_CODE_SIGNAL_REASON_NAMES = {
+    1: "terminal_decode",
+}
+ORPHAN_CODE_SIGNAL_STATUS_NAMES = {
+    1: "unresolved",
+}
+ORPHAN_CODE_SIGNAL_CONTEXT_NAMES = {
+    1: "accepted_code_boundary",
+    2: "renderable_label",
+    3: "runtime_view",
+}
+ORPHAN_CODE_SIGNAL_INBOUND_NAMES = {
+    1: "unknown",
+    2: "jump_table",
+    3: "callback",
+    4: "vector",
+    5: "runtime_copy",
+    6: "api",
+    7: "metadata",
+    8: "policy_seed",
+}
 TYPED_STORAGE_EFFECT_TARGETS = {
     PLATFORM_EFFECT_SET_TYPED_REG: "register",
     PLATFORM_EFFECT_WRITE_TYPED_SLOT: "app_slot",
@@ -1244,23 +1274,23 @@ def _add_platform_unresolved_typed_access_features(
 
 def _orphan_code_signal_example(section_index: int, signal: dict[str, Any]) -> dict[str, object]:
     offset = _int_value(signal.get("offset"))
-    reason = _string_value(signal.get("reason")) or "unknown"
-    status = _string_value(signal.get("status")) or "unknown"
+    reason = _orphan_code_signal_reason_name(signal)
+    status = _orphan_code_signal_status_name(signal)
     example = _offset_example(section_index, offset, f"{reason}:{status}")
     for key in ("size", "terminal_offset", "confidence", "required_cpu", "instruction_count", "decode_conflict_count"):
         value = _int_value(signal.get(key))
         if value is not None:
             example[key] = value
-    terminal_flow = _string_value(signal.get("terminal_flow"))
+    terminal_flow = _orphan_code_signal_terminal_flow_name(signal)
     if terminal_flow:
         example["terminal_flow"] = terminal_flow
-    context = _string_value(signal.get("context"))
+    context = _orphan_code_signal_context_name(signal)
     if context:
         example["context"] = context
-    missing_inbound = _string_value(signal.get("missing_inbound"))
+    missing_inbound = _orphan_code_signal_inbound_name(signal)
     if missing_inbound:
         example["missing_inbound"] = missing_inbound
-    nearby_data_class = _string_value(signal.get("nearby_data_class"))
+    nearby_data_class = _orphan_code_signal_nearby_data_name(signal)
     if nearby_data_class:
         example["nearby_data_class"] = nearby_data_class
     nearby_data_relation = _string_value(signal.get("nearby_data_relation"))
@@ -1273,15 +1303,15 @@ def _orphan_code_signal_example(section_index: int, signal: dict[str, Any]) -> d
 
 
 def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal: dict[str, Any]) -> None:
-    reason = _string_value(signal.get("reason")) or "unknown"
-    status = _string_value(signal.get("status")) or "unknown"
-    terminal_flow = _string_value(signal.get("terminal_flow"))
+    reason = _orphan_code_signal_reason_name(signal)
+    status = _orphan_code_signal_status_name(signal)
+    terminal_flow = _orphan_code_signal_terminal_flow_name(signal)
     required_cpu = _int_value(signal.get("required_cpu"))
     instruction_count = _int_value(signal.get("instruction_count"))
     decode_conflict_count = _int_value(signal.get("decode_conflict_count"))
-    context = _string_value(signal.get("context"))
-    missing_inbound = _string_value(signal.get("missing_inbound"))
-    nearby_data_class = _string_value(signal.get("nearby_data_class"))
+    context = _orphan_code_signal_context_name(signal)
+    missing_inbound = _orphan_code_signal_inbound_name(signal)
+    nearby_data_class = _orphan_code_signal_nearby_data_name(signal)
     nearby_data_relation = _string_value(signal.get("nearby_data_relation"))
     example = _orphan_code_signal_example(section_index, signal)
     bag.add("orphan-code:signal", example=example)
@@ -1308,6 +1338,30 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
                 f"orphan-code:nearby_data:{_safe_part(nearby_data_relation)}:{_safe_part(nearby_data_class)}",
                 example=example,
             )
+
+
+def _orphan_code_signal_reason_name(signal: dict[str, Any]) -> str:
+    return ORPHAN_CODE_SIGNAL_REASON_NAMES.get(_int_value(signal.get("reason_id"), 0) or 0, "unknown")
+
+
+def _orphan_code_signal_status_name(signal: dict[str, Any]) -> str:
+    return ORPHAN_CODE_SIGNAL_STATUS_NAMES.get(_int_value(signal.get("status_id"), 0) or 0, "unknown")
+
+
+def _orphan_code_signal_terminal_flow_name(signal: dict[str, Any]) -> str | None:
+    return SIM_FLOW_NAMES.get(_int_value(signal.get("terminal_flow_kind"), 0) or 0)
+
+
+def _orphan_code_signal_context_name(signal: dict[str, Any]) -> str | None:
+    return ORPHAN_CODE_SIGNAL_CONTEXT_NAMES.get(_int_value(signal.get("context_id"), 0) or 0)
+
+
+def _orphan_code_signal_inbound_name(signal: dict[str, Any]) -> str | None:
+    return ORPHAN_CODE_SIGNAL_INBOUND_NAMES.get(_int_value(signal.get("missing_inbound_id"), 0) or 0)
+
+
+def _orphan_code_signal_nearby_data_name(signal: dict[str, Any]) -> str | None:
+    return _data_role_name(_int_value(signal.get("nearby_data_flags"), 0) or 0)
 
 
 def _indirect_site_example(section_index: int, site: dict[str, Any]) -> dict[str, object]:
@@ -3558,15 +3612,15 @@ def _analysis_xrefs(
         for signal in _dict_items(section.get("orphan_code_signals")):
             offset = _int_value(signal.get("offset"))
             row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
-            reason = _string_value(signal.get("reason")) or "unknown"
-            status = _string_value(signal.get("status")) or "unknown"
-            terminal_flow = _string_value(signal.get("terminal_flow"))
+            reason = _orphan_code_signal_reason_name(signal)
+            status = _orphan_code_signal_status_name(signal)
+            terminal_flow = _orphan_code_signal_terminal_flow_name(signal)
             required_cpu = _int_value(signal.get("required_cpu"))
             instruction_count = _int_value(signal.get("instruction_count"))
             decode_conflict_count = _int_value(signal.get("decode_conflict_count"))
-            context = _string_value(signal.get("context"))
-            missing_inbound = _string_value(signal.get("missing_inbound"))
-            nearby_data_class = _string_value(signal.get("nearby_data_class"))
+            context = _orphan_code_signal_context_name(signal)
+            missing_inbound = _orphan_code_signal_inbound_name(signal)
+            nearby_data_class = _orphan_code_signal_nearby_data_name(signal)
             nearby_data_relation = _string_value(signal.get("nearby_data_relation"))
             size = _int_value(signal.get("size"))
             text = row_text or _string_value(signal.get("detail")) or f"orphan code {reason}:{status}"

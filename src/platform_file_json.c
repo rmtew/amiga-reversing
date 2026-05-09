@@ -3135,8 +3135,9 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (orphan_signal_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
       if (json_builder_appendf(&builder,
-          "{\"offset\":%u,\"size\":%u,\"terminal_offset\":%u,\"terminal_flow\":",
-          (unsigned)signal->offset, (unsigned)signal->size, (unsigned)signal->terminal_offset) != 0)
+          "{\"offset\":%u,\"size\":%u,\"terminal_offset\":%u,\"terminal_flow_kind\":%u,\"terminal_flow\":",
+          (unsigned)signal->offset, (unsigned)signal->size, (unsigned)signal->terminal_offset,
+          (unsigned)signal->terminal_flow_kind) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, sim_flow_kind_name(signal->terminal_flow_kind)) != 0)
         goto oom;
@@ -3145,19 +3146,23 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
           (unsigned)signal->required_cpu, (unsigned)signal->instruction_count,
           (unsigned)signal->decode_conflict_count) != 0)
         goto oom;
-      if (json_builder_append(&builder, ",\"reason\":") != 0)
+      if (json_builder_appendf(&builder, ",\"reason_id\":%u,\"reason\":",
+          (unsigned)signal->reason) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, orphan_code_signal_reason_name(signal->reason)) != 0)
         goto oom;
-      if (json_builder_append(&builder, ",\"status\":") != 0)
+      if (json_builder_appendf(&builder, ",\"status_id\":%u,\"status\":",
+          (unsigned)signal->status) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, orphan_code_signal_status_name(signal->status)) != 0)
         goto oom;
-      if (json_builder_append(&builder, ",\"context\":") != 0)
+      if (json_builder_appendf(&builder, ",\"context_id\":%u,\"context\":",
+          (unsigned)signal->context) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, orphan_code_signal_context_name(signal->context)) != 0)
         goto oom;
-      if (json_builder_append(&builder, ",\"missing_inbound\":") != 0)
+      if (json_builder_appendf(&builder, ",\"missing_inbound_id\":%u,\"missing_inbound\":",
+          (unsigned)signal->missing_inbound) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, orphan_code_signal_inbound_name(signal->missing_inbound)) != 0)
         goto oom;

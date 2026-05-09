@@ -241,7 +241,9 @@ proves a distinct base id.
    - UI/navigation surfacing: implemented as an `orphan-code` listing group
    - target-level signal count: implemented in source-analysis JSON
    - corpus tags/xrefs: implemented as `orphan-code:*` target usage features,
-     including missing inbound, nearby data, required CPU, and instruction count
+     including missing inbound, nearby data, required CPU, and instruction
+     count; manifest decisions consume C enum IDs and structured-data role
+     flags rather than display strings
 
 6. Rendering rules:
    - emit one RSSET block per proven base layout
