@@ -602,6 +602,13 @@ typedef enum M68kOrphanCodeSignalInboundEvidence {
   M68K_ORPHAN_CODE_SIGNAL_INBOUND_POLICY_SEED = 8
 } M68kOrphanCodeSignalInboundEvidence;
 
+typedef enum M68kOrphanCodeSignalNearbyDataRelation {
+  M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_NONE = 0,
+  M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP = 1,
+  M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_AFTER = 2,
+  M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_BEFORE = 3
+} M68kOrphanCodeSignalNearbyDataRelation;
+
 typedef struct M68kOrphanCodeSignalIR {
   uint32_t offset;
   uint32_t size;
@@ -615,12 +622,10 @@ typedef struct M68kOrphanCodeSignalIR {
   uint8_t decode_conflict_count;
   uint8_t context;
   uint8_t missing_inbound;
-  uint8_t reserved[1];
+  uint8_t nearby_data_relation;
   uint32_t nearby_data_flags;
   uint32_t nearby_data_offset;
   uint32_t nearby_data_distance;
-  char *nearby_data_class;
-  char *nearby_data_relation;
   char *detail;
 } M68kOrphanCodeSignalIR;
 

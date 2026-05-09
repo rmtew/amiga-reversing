@@ -1630,15 +1630,6 @@ static int structured_data_item_is_absolute_long_lookup_table(const M68kAnalysis
     (structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U;
 }
 
-static const char *structured_data_item_data_class(const M68kAnalysisStructuredDataItem *item) {
-  const char *role_name;
-  if (item == NULL) return NULL;
-  role_name = m68k_analysis_structured_data_role_name_for_flags(structured_data_item_role_flags(item));
-  if (role_name != NULL) return role_name;
-  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING) return "string";
-  return NULL;
-}
-
 static int format_absolute_long_lookup_table_expr(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, uint32_t raw_long, char *expr, size_t expr_size) {
   uint32_t target_offset = 0U;
@@ -6414,16 +6405,15 @@ static int render_analysis_append_orphan_absolute_memory_refs_for_signal(const M
 static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, M68kOrphanCodeSignalIR *signal) {
   const M68kAnalysisStructuredDataItem *item = NULL;
-  const char *data_class = NULL;
+  uint32_t role_flags = 0U;
   if (lookup == NULL || section == NULL || signal == NULL) return;
   item = lookup_structured_data_item_covering_offset(lookup, section->section_index, signal->offset);
-  data_class = structured_data_item_data_class(item);
-  if (data_class != NULL && data_class[0] != '\0') {
-    signal->nearby_data_flags = structured_data_item_role_flags(item);
+  role_flags = structured_data_item_role_flags(item);
+  if (role_flags != 0U) {
+    signal->nearby_data_flags = role_flags;
     signal->nearby_data_offset = item->offset;
     signal->nearby_data_distance = 0U;
-    signal->nearby_data_class = (char *)data_class;
-    signal->nearby_data_relation = "overlap";
+    signal->nearby_data_relation = M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP;
     return;
   }
   if (signal->size <= section->size - signal->offset) {
@@ -6431,29 +6421,27 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
     if (after_offset < section->size)
       item = lookup_structured_data_item_at_offset(lookup, section->section_index, after_offset);
     if (item != NULL) {
-      data_class = structured_data_item_data_class(item);
-      if (data_class != NULL && data_class[0] != '\0') {
-        signal->nearby_data_flags = structured_data_item_role_flags(item);
+      role_flags = structured_data_item_role_flags(item);
+      if (role_flags != 0U) {
+        signal->nearby_data_flags = role_flags;
         signal->nearby_data_offset = item->offset;
         signal->nearby_data_distance = item->offset > after_offset ? item->offset - after_offset : 0U;
-        signal->nearby_data_class = (char *)data_class;
-        signal->nearby_data_relation = "after";
+        signal->nearby_data_relation = M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_AFTER;
         return;
       }
     }
   }
   if (signal->offset > 0U) {
     item = lookup_structured_data_item_covering_offset(lookup, section->section_index, signal->offset - 1U);
-    data_class = structured_data_item_data_class(item);
-    if (data_class != NULL && data_class[0] != '\0') {
-      signal->nearby_data_flags = structured_data_item_role_flags(item);
+    role_flags = structured_data_item_role_flags(item);
+    if (role_flags != 0U) {
+      signal->nearby_data_flags = role_flags;
       signal->nearby_data_offset = item->offset;
       signal->nearby_data_distance = signal->offset > item->offset &&
         signal->offset - item->offset > item->size
         ? signal->offset - item->offset - item->size
         : 0U;
-      signal->nearby_data_class = (char *)data_class;
-      signal->nearby_data_relation = "before";
+      signal->nearby_data_relation = M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_BEFORE;
     }
   }
 }

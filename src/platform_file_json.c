@@ -1027,6 +1027,13 @@ static const char *orphan_code_signal_inbound_name(uint8_t inbound) {
   return "unknown";
 }
 
+static const char *orphan_code_signal_nearby_data_relation_name(uint8_t relation) {
+  if (relation == M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP) return "overlap";
+  if (relation == M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_AFTER) return "after";
+  if (relation == M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_BEFORE) return "before";
+  return NULL;
+}
+
 static const char *base_layout_field_source_kind_name(uint8_t source_kind) {
   if (source_kind == M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS) return "app_slot_access";
   if (source_kind == M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION) return "policy_rsset_region";
@@ -3250,7 +3257,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append(&builder, ",\"nearby_data_class\":") != 0)
         goto oom;
-      if (json_builder_append_nullable_string(&builder, signal->nearby_data_class) != 0)
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_structured_data_role_name_for_flags(signal->nearby_data_flags)) != 0)
         goto oom;
       if (json_builder_appendf(&builder, ",\"nearby_data_flags\":%u",
           (unsigned)signal->nearby_data_flags) != 0)
@@ -3260,7 +3268,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append(&builder, ",\"nearby_data_relation\":") != 0)
         goto oom;
-      if (json_builder_append_nullable_string(&builder, signal->nearby_data_relation) != 0)
+      if (json_builder_append_nullable_string(&builder,
+          orphan_code_signal_nearby_data_relation_name(signal->nearby_data_relation)) != 0)
         goto oom;
       if (json_builder_appendf(&builder, ",\"confidence\":%u,\"detail\":",
           (unsigned)signal->confidence) != 0)
