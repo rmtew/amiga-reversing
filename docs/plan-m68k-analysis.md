@@ -115,8 +115,8 @@ were found in the surveyed files.
 | `starglider/.../devs__serial.device_ddfdac2b.s` | 1 | `RSSET LIB_SIZE`; resident device extension. |
 | `starglider/.../libs__icon.library_8bc90c0c.s` | 1 | `RSSET LIB_SIZE`; resident library extension. |
 | `starglider/.../libs__info.library_3fb9d33a.s` | 1 | `RSSET LIB_SIZE`; resident library extension. |
-| `starglider/.../libs__mathieeedoubbas.library_3d4e4903.s` | 1 | Empty `LIB_SIZE` context; should be checked before retaining. |
-| `starglider/.../libs__mathtrans.library_30d0f132.s` | 1 | Empty `LIB_SIZE` context; should be checked before retaining. |
+| `starglider/.../libs__mathieeedoubbas.library_3d4e4903.s` | 0 | Confirmed empty resident autoinit size: `resident_base_size == LIB_SIZE`; render `LIB_SIZE` directly, no empty app layout. |
+| `starglider/.../libs__mathtrans.library_30d0f132.s` | 0 | Confirmed empty resident autoinit size: `resident_base_size == LIB_SIZE`; render `LIB_SIZE` directly, no empty app layout. |
 | `starglider/.../libs__version.library_5059c1a5.s` | 1 | `RSSET LIB_SIZE`; resident library extension. |
 | `starglider/.../sg_9832b282.s` | 1 | Large `RSSET 0`; app-base storage. |
 | `starglider/.../system__diskcopy_c5715319.s` | 1 | `RSSET 0`; small app-base layout. |
@@ -476,8 +476,9 @@ undocumented renderer heuristics.
 
 ## Open Checks Before Implementation
 
-- Empty `LIB_SIZE` contexts in Starglider math libraries should be confirmed as
-  intentional or removed from rendering.
+- Empty `LIB_SIZE` contexts in Starglider math libraries are resolved:
+  resident autoinit sizes equal to `LIB_SIZE` render directly as `LIB_SIZE`,
+  and no empty app layout is emitted.
 - Large app layouts such as Carrier RNC, Starglider, and Voodoo need stricter
   overlap checks against accepted code and typed structs.
 - Absolute raw/decompressed targets have accepted operand memory-layout records;

@@ -4071,6 +4071,7 @@ int amiga_value_domain_symbolic_expr(const char *domain_name, uint32_t value, ch
 
 int structured_data_item_symbolic_operand_expr(const M68kDecodeSectionIR *section,
     const M68kAnalysisStructuredDataItem *item, char *expr, size_t expr_size) {
+  int32_t lib_size = 0;
   if (expr == NULL || expr_size == 0U || item == NULL) return 0;
   expr[0] = '\0';
   if (!((item->size == 1U && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES) ||
@@ -4080,6 +4081,13 @@ int structured_data_item_symbolic_operand_expr(const M68kDecodeSectionIR *sectio
   }
   if (item->size == 4U && strcmp(item->struct_name, "resident_autoinit") == 0 &&
       strcmp(item->field_name, "resident_base_size") == 0) {
+    if (section != NULL && section->data != NULL && item->offset <= section->size &&
+        section->size - item->offset >= 4U &&
+        amiga_os_find_constant_value("LIB_SIZE", &lib_size) &&
+        lib_size > 0 && (int32_t)m68k_read_u32be(section->data + item->offset) == lib_size) {
+      snprintf(expr, expr_size, "LIB_SIZE");
+      return 1;
+    }
     snprintf(expr, expr_size, "app_SIZEOF");
     return 1;
   }
@@ -5609,7 +5617,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       ++slot_count;
     }
   }
-  if (slot_count == 0U && has_app_sizeof_value == 0) {
+  if (slot_count == 0U && (has_app_sizeof_value == 0 || app_sizeof_value <= base_offset)) {
     goto cleanup;
   }
   if (slot_count == 0U) {

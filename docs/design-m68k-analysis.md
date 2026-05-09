@@ -96,6 +96,20 @@ app_SIZEOF EQU __RS
 That means "fields after the Amiga Library/Device header", not a generic app
 scratch block.
 
+If a resident autoinit size is exactly `LIB_SIZE` and no extension slots are
+proven, render the size as `LIB_SIZE` and do not emit an empty `RSSET LIB_SIZE`
+region:
+
+```asm
+resident_autoinit:
+    dc.l LIB_SIZE    ; ULONG resident_base_size
+```
+
+Only render `app_SIZEOF` when the autoinit size is greater than `LIB_SIZE` or
+when actual extension fields have been proved. An empty `app_SIZEOF EQU __RS`
+does not improve source reconstruction and incorrectly suggests an app-specific
+layout exists.
+
 ## Not RSSET
 
 Known platform structures must render as platform fields, not app slots:
