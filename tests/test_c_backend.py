@@ -826,6 +826,7 @@ class _M68kAnalysisStructuredDataItem(ctypes.Structure):
         ("reserved2", ctypes.c_uint8 * 3),
         ("consumer_section", ctypes.c_uint32),
         ("consumer_offset", ctypes.c_uint32),
+        ("semantic_role_flags", ctypes.c_uint32),
         ("label", ctypes.c_char * 64),
         ("struct_name", ctypes.c_char * 64),
         ("field_name", ctypes.c_char * 64),
@@ -885,7 +886,8 @@ class _M68kAnalysisRssetLayoutRegion(ctypes.Structure):
     _fields_ = [
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 3),
+        ("flags", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 2),
         ("layout_name", ctypes.c_char * 32),
         ("base_symbol", ctypes.c_char * 64),
         ("sizeof_symbol", ctypes.c_char * 64),
@@ -1401,17 +1403,21 @@ def test_facts_v2_traces_predecrement_copied_entry_source(tmp_path: Path) -> Non
 
     assert "\tdc.b $73,$6B,$69,$70\nloc_0_00000018:\n\tmoveq.l #2,d0\n\trts\n" in source_text
     assert not any(site["status"] == "unresolved" for site in sites)
-    assert sites == [
-        {
-            "offset": 0x12,
-            "flow": "jump",
-            "shape": "ind",
-            "status": "backward_slice",
-            "detail": "accepted traced indirect control target",
-            "target": 0x18,
-            "target_count": 1,
-        }
-    ]
+    assert len(sites) == 1
+    expected_site = {
+        "offset": 0x12,
+        "flow": "jump",
+        "shape": "ind",
+        "status": "backward_slice",
+        "detail": "accepted traced indirect control target",
+        "target": 0x18,
+        "target_count": 1,
+    }
+    assert expected_site.items() <= sites[0].items()
+    assert sites[0]["source_offset"] == 0x12
+    assert sites[0]["source_size"] == 2
+    assert sites[0]["operand_index"] == 0
+    assert sites[0]["table_bounds_status"] == "none"
     assert any(
         ref.get("reason_name") == "control_target" and ref.get("source_offset") == 0x12
         for row in payload_rows
@@ -3600,6 +3606,7 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
             "operand_index": 0,
             "target_section_index": 0,
             "target_offset": 0x0C,
+            "sink_address": 0xDFF080,
             "runtime_address": 0x0C,
             "confidence": 2,
             "data_class": "copper_list",
@@ -3636,6 +3643,7 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
             "operand_index": None,
             "target_section_index": None,
             "target_offset": None,
+            "sink_address": None,
             "runtime_address": 0x12345678,
             "confidence": 2,
             "data_class": "bitmap",
@@ -3900,7 +3908,7 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
     assert "\tmovea.l RT_INIT(a0),a0\n" in source_text
     assert 'INCLUDE "exec/resident.i"' in source_text
     assert "abs_0_00070026:" in source_text
-    assert '\tdc.b "dos.library",$00\n' in source_text
+    assert '\tdc.b "dos.library",$00\t; string\n' in source_text
     assert "facts_v2 data bytes" not in source_text
     assert any(row["kind"] == "instruction" and "abs_0_00070026(pc)" in str(row["text"]) for row in rows)
     assert any(
@@ -4771,7 +4779,7 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
 
     expectations = {
         "amiga_hunk_bloodwych": {
-            "lookup_table": 231,
+            "lookup_table": 230,
             "pointer_table": 4,
             "string": 72,
         },
@@ -5019,7 +5027,7 @@ def test_real_dll_carrier_predecrement_copied_entry_promotes_loader_code() -> No
     assert any(
         row.get("kind") == "instruction"
         and row.get("start_offset") == 0x362
-        and row.get("text") == "\tlea.l $00077400.l,a1\n"
+        and row.get("text") == "\tlea.l runtime_code_00077400.l,a1\n"
         for row in rows
     )
     assert not any(
@@ -5381,7 +5389,7 @@ def test_real_dll_voodoo_trainer_decompression_comparator(
         "amiga_disk_starglider-1987-rainbird__amiga_hunk_devs__serial.device_ddfdac2b",
     ],
 )
-def test_real_dll_serial_device_app_slot_width_uses_observed_word(target_name: str) -> None:
+def test_real_dll_serial_device_app_slot_widths_stay_evidence_backed(target_name: str) -> None:
     _requires_c_backend_dlls()
 
     paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
@@ -5392,7 +5400,8 @@ def test_real_dll_serial_device_app_slot_width_uses_observed_word(target_name: s
     )
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
-    assert "app_01DC RS.W 1\n" in source_text
+    assert "app_01D9 RS.B 1\n" in source_text
+    assert "app_01DB RS.B 1\n" in source_text
     assert "app_01DC RS.L 1\n" not in source_text
 
 
@@ -5598,7 +5607,7 @@ def test_real_dll_starglider_loader_file_handle_slot_stays_untyped() -> None:
     assert source_text.count("\tmove.l d0,h0dl_DOSBase.l\n") == 1
 
 
-def test_real_dll_starglider_main_uses_observed_app_slot_widths() -> None:
+def test_real_dll_starglider_main_app_slot_widths_stay_evidence_backed() -> None:
     _requires_c_backend_dlls()
 
     paths = resolve_project_paths(
@@ -5613,9 +5622,9 @@ def test_real_dll_starglider_main_uses_observed_app_slot_widths() -> None:
     )
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
-    assert "app_0050 RS.W 1\n" in source_text
     assert "app_0050 RS.L 1\n" not in source_text
-    assert "app_016A RS.W 1\napp_016C RS.W 1\napp_016E RS.W 1\n" in source_text
+    assert "app_005D RS.B 1\n" in source_text
+    assert "app_005F RS.B 1\n" in source_text
     assert "app_016A RS.L 1\n" not in source_text
 
 

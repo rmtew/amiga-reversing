@@ -1631,6 +1631,8 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     char container_struct_name[64], container_field_expr[96], field_expr[96];
     int refinement_applied = 0;
     AmigaOsResolvedStructFieldInfo field;
+    M68kRenderTypedProvenance app_slot_provenance;
+    const M68kRenderTypedProvenance *provenance = NULL;
     container_struct_name[0] = '\0';
     container_field_expr[0] = '\0';
     /*
@@ -1640,8 +1642,18 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     if (metadata != NULL && metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_BRANCH_TARGET)
       continue;
     if (!operand_is_address_displacement_local(operand, &base_reg, &displacement) || base_reg >= 8U) continue;
-    if (!state->addr_regs[base_reg].known) continue;
-    struct_id = state->addr_regs[base_reg].struct_id;
+    if (state->addr_regs[base_reg].known) {
+      struct_id = state->addr_regs[base_reg].struct_id;
+      provenance = &state->addr_regs[base_reg].provenance;
+    } else if (state->app_addr_regs[base_reg].known) {
+      struct_id = lookup_typed_app_slot_struct_id(lookup, state->app_addr_regs[base_reg].displacement);
+      if (struct_id == AMIGA_OS_STRUCT_ID_NONE)
+        struct_id = lookup_app_base_field_slot_struct_id(lookup, state->app_addr_regs[base_reg].displacement);
+      app_slot_provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_APP_SLOT, section_index, offset);
+      provenance = &app_slot_provenance;
+    } else {
+      continue;
+    }
     if (struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
     struct_size = amiga_struct_size_for_struct_id(struct_id);
     if (!amiga_os_resolve_struct_field_by_struct_id(struct_id, displacement, 0, &field)) {
@@ -1661,7 +1673,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
         if (render_lookup_add_unresolved_typed_access(lookup, section_index, offset, (uint8_t)operand_index,
             base_reg, displacement, struct_id, struct_size, (uint8_t)(refinement_applied ? 1U : 0U),
             refinement_applied ? container_struct_id : AMIGA_OS_STRUCT_ID_NONE,
-            &state->addr_regs[base_reg].provenance) != 0) {
+            provenance) != 0) {
           return -1;
         }
       }
@@ -1672,7 +1684,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
       if (record_accesses) {
         if (render_lookup_add_unresolved_typed_access(lookup, section_index, offset, (uint8_t)operand_index,
             base_reg, displacement, struct_id, struct_size, 0U, AMIGA_OS_STRUCT_ID_NONE,
-            &state->addr_regs[base_reg].provenance) != 0) {
+            provenance) != 0) {
           return -1;
         }
       }
@@ -1680,7 +1692,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     }
     if (record_accesses) {
       if (render_lookup_add_typed_access(lookup, section_index, offset, (uint8_t)operand_index, base_reg,
-          displacement, struct_id, &field, field_expr, &state->addr_regs[base_reg].provenance) != 0) {
+          displacement, struct_id, &field, field_expr, provenance) != 0) {
         return -1;
       }
     }
@@ -3038,6 +3050,120 @@ cleanup:
   return result;
 }
 
+static int candidate_lea_app_base_address_to_address_reg(const M68kDecodeCandidate *candidate, uint8_t *out_reg,
+  int16_t *out_displacement);
+
+static int render_lookup_record_typed_app_slot_pointer_accesses(M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start) {
+  size_t section_index;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL ||
+      lookup->object == NULL || lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    return 0;
+  }
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    M68kRenderTypedAppAddressValue app_regs[8];
+    M68kRenderPlatformState empty_platform_state;
+    size_t candidate_index;
+    memset(app_regs, 0, sizeof(app_regs));
+    memset(&empty_platform_state, 0, sizeof(empty_platform_state));
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      M68kInstructionIR instruction;
+      size_t operand_index;
+      if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
+      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+      for (operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U; ++operand_index) {
+        uint8_t base_reg = 0U;
+        int16_t displacement = 0;
+        uint16_t struct_id;
+        AmigaOsResolvedStructFieldInfo field;
+        char field_expr[96];
+        M68kRenderTypedProvenance provenance;
+        if (!operand_is_address_displacement_local(&instruction.operands[operand_index], &base_reg,
+            &displacement) || base_reg >= 8U || !app_regs[base_reg].known) {
+          continue;
+        }
+        struct_id = lookup_typed_app_slot_struct_id(lookup, app_regs[base_reg].displacement);
+        if (struct_id == AMIGA_OS_STRUCT_ID_NONE)
+          struct_id = lookup_app_base_field_slot_struct_id(lookup, app_regs[base_reg].displacement);
+        if (struct_id == AMIGA_OS_STRUCT_ID_NONE ||
+            !amiga_os_resolve_struct_field_by_struct_id(struct_id, displacement, 0, &field) ||
+            !amiga_os_resolve_struct_field_symbol_expr_by_struct_id(struct_id, displacement, 0,
+              field_expr, sizeof(field_expr))) {
+          continue;
+        }
+        provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_APP_SLOT, section->section_index,
+          candidate->offset);
+        if (render_lookup_add_typed_access(lookup, section->section_index, candidate->offset,
+            (uint8_t)operand_index, base_reg, displacement, struct_id, &field, field_expr, &provenance) != 0) {
+          return -1;
+        }
+      }
+      if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_RTS ||
+          instruction.mnemonic_id == M68K_ASM_MNEMONIC_RTE ||
+          instruction.mnemonic_id == M68K_ASM_MNEMONIC_JMP) {
+        memset(app_regs, 0, sizeof(app_regs));
+        continue;
+      }
+      if (instruction.operand_count >= 2U) {
+        const M68kOperandIR *source = &instruction.operands[0];
+        const M68kOperandIR *dest = &instruction.operands[instruction.operand_count - 1U];
+        uint8_t dest_reg = 0U;
+        uint8_t app_address_reg = 0U;
+        int16_t app_address_displacement = 0;
+        if (operand_address_register_index_local(dest, &dest_reg) && dest_reg < 8U) {
+          uint8_t source_reg = 0U;
+          uint8_t source_base_reg = 0U;
+          int16_t source_displacement = 0;
+          int32_t next_displacement = 0;
+          size_t app_ref_index;
+          int found_app_ref = 0;
+          app_regs[dest_reg].known = 0U;
+          app_regs[dest_reg].displacement = 0;
+          if (candidate_lea_app_base_address_to_address_reg(candidate, &app_address_reg,
+              &app_address_displacement) && app_address_reg == dest_reg) {
+            app_regs[dest_reg].known = 1U;
+            app_regs[dest_reg].displacement = app_address_displacement;
+          } else if ((instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVE ||
+              instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) &&
+              operand_address_register_index_local(source, &source_reg) && source_reg < 8U &&
+              app_regs[source_reg].known) {
+            app_regs[dest_reg] = app_regs[source_reg];
+          } else if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_LEA) {
+            for (app_ref_index = 0U; app_ref_index < lookup->app_slot_ref_count; ++app_ref_index) {
+              const M68kRenderAppSlotRef *ref = &lookup->app_slot_refs[app_ref_index];
+              if (ref->section_index == section->section_index && ref->ref.offset == candidate->offset &&
+                  ref->ref.operand_index == 0U) {
+                next_displacement = ref->ref.displacement;
+                found_app_ref = 1;
+                break;
+              }
+            }
+            if (!found_app_ref && (!operand_is_address_memory_local(source, &source_base_reg,
+                &source_displacement) || source_base_reg >= 8U)) {
+              continue;
+            }
+            if (!found_app_ref && app_regs[source_base_reg].known) {
+              next_displacement = (int32_t)app_regs[source_base_reg].displacement + (int32_t)source_displacement;
+            } else if (!found_app_ref && render_state_operand_uses_app_base(&empty_platform_state, source_base_reg,
+                source_displacement)) {
+              next_displacement = source_displacement;
+            } else if (!found_app_ref) {
+              continue;
+            }
+            if (next_displacement >= INT16_MIN && next_displacement <= INT16_MAX) {
+              app_regs[dest_reg].known = 1U;
+              app_regs[dest_reg].displacement = (int16_t)next_displacement;
+            }
+          }
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 static void data_pointer_state_clear_all(M68kRenderDataPointerState *state) {
   if (state == NULL) return;
   memset(state, 0, sizeof(*state));
@@ -3907,15 +4033,17 @@ static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *look
   size_t next_capacity;
   size_t index;
   uint32_t role_flags;
+  const char *role_name;
   if (lookup == NULL || data_class == NULL || data_class[0] == '\0') return 0;
   role_flags = data_class_flags != 0U ? data_class_flags : m68k_analysis_structured_data_role_flags_for_text(data_class);
+  if (role_flags == 0U) return 0;
+  role_name = m68k_analysis_structured_data_role_name_for_flags(role_flags);
+  if (role_name == NULL) return 0;
   for (index = 0U; index < lookup->inferred_runtime_address_ref_count; ++index) {
     const M68kRenderInferredRuntimeAddressRef *existing = &lookup->inferred_runtime_address_refs[index];
     if (existing->section_index == section_index && existing->ref.offset == offset &&
         existing->ref.has_runtime_address && existing->ref.runtime_address == runtime_address &&
-        existing->ref.size == size &&
-        ((role_flags != 0U && existing->data_class_flags == role_flags) ||
-          (role_flags == 0U && strcmp(existing->data_class, data_class) == 0))) {
+        existing->ref.size == size && existing->data_class_flags == role_flags) {
       return 0;
     }
   }
@@ -3940,7 +4068,7 @@ static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *look
   entry->ref.runtime_address = runtime_address;
   entry->ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
   entry->data_class_flags = role_flags;
-  snprintf(entry->data_class, sizeof(entry->data_class), "%s", data_class);
+  snprintf(entry->data_class, sizeof(entry->data_class), "%s", role_name);
   entry->ref.data_class = entry->data_class;
   ++lookup->inferred_runtime_address_ref_count;
   return 0;
@@ -4037,23 +4165,22 @@ int render_lookup_add_violation_ref(M68kRenderLookup *lookup, const M68kFact *fa
 }
 
 static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset, uint32_t size, const char *semantic_role, uint8_t kind) {
+    uint32_t offset, uint32_t size, uint32_t semantic_role_flags, uint8_t kind) {
   M68kAnalysisStructuredDataItem *grown;
   M68kAnalysisStructuredDataItem *item;
+  const char *semantic_role;
   size_t next_capacity;
   size_t index;
-  uint32_t role_flags;
-  if (lookup == NULL || semantic_role == NULL || semantic_role[0] == '\0' || size == 0U) return 0;
+  if (lookup == NULL || semantic_role_flags == 0U || size == 0U) return 0;
   if (lookup_structured_data_item_at_offset(lookup, section_index, offset) != NULL) return 0;
-  role_flags = m68k_analysis_structured_data_role_flags_for_text(semantic_role);
+  semantic_role = m68k_analysis_structured_data_role_name_for_flags(semantic_role_flags);
+  if (semantic_role == NULL || semantic_role[0] == '\0') return 0;
   for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *existing = &lookup->auto_structured_data_items[index];
     uint32_t existing_role_flags = existing->semantic_role_flags != 0U ? existing->semantic_role_flags :
       m68k_analysis_structured_data_role_flags_for_text(existing->semantic_role);
     if (existing->section_index == (uint32_t)section_index && existing->offset == offset &&
-        existing->size == size &&
-        ((role_flags != 0U && existing_role_flags == role_flags) ||
-          (role_flags == 0U && strcmp(existing->semantic_role, semantic_role) == 0))) {
+        existing->size == size && existing_role_flags == semantic_role_flags) {
       return 0;
     }
   }
@@ -4075,7 +4202,7 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
   item->size = size;
   item->kind = kind;
   m68k_analysis_structured_data_item_set_semantic_role(item, semantic_role);
-  if (item->semantic_role_flags == 0U) item->semantic_role_flags = role_flags;
+  if (item->semantic_role_flags == 0U) item->semantic_role_flags = semantic_role_flags;
   ++lookup->auto_structured_data_item_count;
   return 0;
 }
@@ -6001,13 +6128,14 @@ static int render_lookup_infer_platform_runtime_structured_data(M68kRenderLookup
   if (lookup == NULL || decode == NULL) return 0;
   for (index = 0U; index < lookup->runtime_address_ref_count; ++index) {
     const M68kFact *fact = lookup->runtime_address_refs[index].fact;
-    const char *data_class = runtime_address_ref_data_class(lookup, decode, fact);
     uint16_t sink_kind = runtime_address_ref_sink_kind(lookup, decode, fact);
+    uint32_t role_flags = 0U;
     uint32_t sink_address = 0U;
     uint32_t size = 0U;
     uint8_t kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
-    if (fact == NULL || data_class == NULL || fact->target_section_index >= decode->section_count) continue;
+    if (fact == NULL || fact->target_section_index >= decode->section_count) continue;
     if (sink_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_COPPER_LIST) {
+      role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST;
       size = copper_list_size_at(&decode->sections[fact->target_section_index], fact->target_offset);
       if (size != 0U) {
         char layout_comment[128];
@@ -6034,12 +6162,13 @@ static int render_lookup_infer_platform_runtime_structured_data(M68kRenderLookup
       }
     } else if (accepted_start != NULL && sink_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE &&
         runtime_address_ref_sink_address(decode, fact, &sink_address)) {
+      role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE;
       size = sound_sample_size_from_nearby_audio_length_write(decode, accepted_start, fact, sink_address);
       kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
     }
-    if (size == 0U) continue;
+    if (size == 0U || role_flags == 0U) continue;
     if (render_lookup_add_auto_structured_data_item(lookup, fact->target_section_index, fact->target_offset,
-        size, data_class, kind) != 0) {
+        size, role_flags, kind) != 0) {
       return -1;
     }
   }
@@ -6405,7 +6534,7 @@ static int render_lookup_maybe_classify_palette_upload(M68kRenderLookup *lookup,
     accepted_bytes[source_value->section_index], source_value->offset, available_register_bytes);
   if (size < 4U || size != available_register_bytes) return 0;
   if (render_lookup_add_auto_structured_data_item(lookup, source_value->section_index, source_value->offset,
-      size, "palette", M68K_ANALYSIS_STRUCTURED_DATA_WORDS) != 0) {
+      size, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE, M68K_ANALYSIS_STRUCTURED_DATA_WORDS) != 0) {
     return -1;
   }
   snprintf(comment, sizeof(comment), "palette upload %u colors", (unsigned)(size / 2U));
@@ -6486,7 +6615,7 @@ static int render_lookup_infer_relocation_pointer_tables(M68kRenderLookup *looku
       }
       if (cursor - start >= 8U) {
         if (render_lookup_add_auto_structured_data_item(lookup, section_index, start, cursor - start,
-            "pointer_table", M68K_ANALYSIS_STRUCTURED_DATA_LONGS) != 0) {
+            M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE, M68K_ANALYSIS_STRUCTURED_DATA_LONGS) != 0) {
           return -1;
         }
         render_lookup_set_auto_structured_data_item_source_pattern(lookup, section_index, start,
@@ -6718,7 +6847,8 @@ static int render_lookup_maybe_add_length_prefixed_string_sequence(M68kRenderLoo
   if (count < 3U) return 0;
   for (index = 0U; index < count; ++index) {
     if (render_lookup_add_auto_structured_data_item(lookup, section->section_index, offsets[index], spans[index],
-        "length_prefixed_string", M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
+        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING,
+        M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
       return -1;
     }
   }
@@ -6871,7 +7001,7 @@ static int render_lookup_maybe_add_string_sequence(M68kRenderLookup *lookup, con
   if (count < 3U) return 0;
   for (index = 0U; index < count; ++index) {
     if (render_lookup_add_auto_structured_data_item(lookup, section->section_index, offsets[index], spans[index],
-        "string", M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
+        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING, M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
       return -1;
     }
   }
@@ -6907,14 +7037,14 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
         offset += span;
       } else if ((span = auto_renderable_string_span(lookup, section, accepted_bytes[section_index], offset)) != 0U) {
         if (render_lookup_add_auto_structured_data_item(lookup, section_index, offset, span,
-            "string", M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
+            M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING, M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
           return -1;
         }
         offset += span;
       } else if ((span = auto_renderable_bounded_string_span(lookup, section, accepted_bytes[section_index],
           offset)) != 0U) {
         if (render_lookup_add_auto_structured_data_item(lookup, section_index, offset, span,
-            "string", M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
+            M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING, M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
           return -1;
         }
         offset += span;
@@ -7425,7 +7555,7 @@ static int render_lookup_infer_indexed_word_dispatch_tables(M68kRenderLookup *lo
             sections[0], offsets[0], sections[1], offsets[1]);
           if (table_size != 0U &&
               render_lookup_add_auto_structured_data_item(lookup, sections[0], offsets[0], table_size,
-                "lookup_table", M68K_ANALYSIS_STRUCTURED_DATA_WORDS) != 0) {
+                M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE, M68K_ANALYSIS_STRUCTURED_DATA_WORDS) != 0) {
             return -1;
           }
           if (table_size != 0U) {
@@ -7498,7 +7628,7 @@ static int render_lookup_infer_indexed_local_pointer_tables(M68kRenderLookup *lo
         }
         if (span != 0U &&
             render_lookup_add_auto_structured_data_item(lookup, target_section_index, table_offset, span,
-              "pointer_table", M68K_ANALYSIS_STRUCTURED_DATA_LONGS) != 0) {
+              M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE, M68K_ANALYSIS_STRUCTURED_DATA_LONGS) != 0) {
           return -1;
         }
         if (span != 0U) {
@@ -7551,7 +7681,7 @@ static int render_lookup_infer_indexed_local_scalar_tables(M68kRenderLookup *loo
           accepted_bytes[target_section_index], target_offset, item_size);
         if (span != 0U &&
             render_lookup_add_auto_structured_data_item(lookup, target_section_index, target_offset, span,
-              "lookup_table", item_kind) != 0) {
+              M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE, item_kind) != 0) {
           return -1;
         }
         if (span != 0U) {
@@ -7669,7 +7799,7 @@ static int render_lookup_infer_indexed_postincrement_data_tables(M68kRenderLooku
               accepted_bytes[target_section_index], target_offset, item_size);
             if (span < read_count * item_size) continue;
             if (render_lookup_add_auto_structured_data_item(lookup, target_section_index, target_offset,
-                span, "lookup_table", item_kind) != 0) {
+                span, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE, item_kind) != 0) {
               return -1;
             }
             render_lookup_set_auto_structured_data_item_consumer(lookup, target_section_index, target_offset,
@@ -7728,7 +7858,7 @@ static int render_lookup_infer_pc_relative_lookup_scalars(M68kRenderLookup *look
           span = pc_relative_lookup_table_span(lookup, &decode->sections[target->section_index],
             accepted_bytes[target->section_index], target->offset, item_size);
           if (render_lookup_add_auto_structured_data_item(lookup, target->section_index, target->offset,
-              span, "lookup_table", item_kind) != 0) {
+              span, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE, item_kind) != 0) {
             return -1;
           }
           if (span != 0U) {
@@ -9103,17 +9233,18 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   end = clock();
   if (preview != NULL) preview->platform_pass_call_summary_seconds = elapsed_seconds_local(start, end);
   start = clock();
+  if (render_lookup_analyze_amiga_app_state_slots(lookup, decode, accepted_start) != 0) return -1;
+  end = clock();
+  if (preview != NULL) preview->platform_pass_app_slot_seconds = elapsed_seconds_local(start, end);
+  start = clock();
   if (render_lookup_analyze_amiga_typed_refs(lookup, decode, accepted_start) != 0) return -1;
+  if (render_lookup_record_typed_app_slot_pointer_accesses(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
   if (preview != NULL) preview->platform_pass_typed_ref_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_infer_amiga_call_input_comments(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
   if (preview != NULL) preview->platform_pass_call_comment_seconds = elapsed_seconds_local(start, end);
-  start = clock();
-  if (render_lookup_analyze_amiga_app_state_slots(lookup, decode, accepted_start) != 0) return -1;
-  end = clock();
-  if (preview != NULL) preview->platform_pass_app_slot_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_infer_platform_runtime_structured_data(lookup, decode, accepted_start) != 0) return -1;
   end = clock();

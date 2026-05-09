@@ -3361,19 +3361,8 @@ static const char *listing_row_data_class(const M68kAnalysisStructuredDataItem *
   return NULL;
 }
 
-static int listing_row_kind_allows_data_class(const char *row_kind) {
-  return row_kind != NULL && strcmp(row_kind, "data") == 0;
-}
-
-static int listing_opcode_allows_data_class(const char *opcode) {
-  if (opcode == NULL) return 0;
-  return strcmp(opcode, "dc.b") == 0 || strcmp(opcode, "dc.w") == 0 || strcmp(opcode, "dc.l") == 0 ||
-    strcmp(opcode, "dcb.b") == 0 || strcmp(opcode, "dcb.w") == 0 || strcmp(opcode, "dcb.l") == 0 ||
-    strcmp(opcode, "ds.b") == 0 || strcmp(opcode, "ds.w") == 0 || strcmp(opcode, "ds.l") == 0;
-}
-
-static int listing_row_allows_data_class(const char *row_kind, const char *opcode) {
-  return listing_row_kind_allows_data_class(row_kind) && listing_opcode_allows_data_class(opcode);
+static int listing_statement_allows_data_class(const M68kStatementIR *stmt) {
+  return stmt != NULL && (stmt->kind == M68K_STATEMENT_DATA || stmt->kind == M68K_STATEMENT_RESERVE);
 }
 
 static const char *app_slot_access_kind_name(uint8_t access_kind) {
@@ -5801,7 +5790,7 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     if (json_builder_append(builder, ",\"structured_data\":") != 0) return -1;
     if (append_listing_structured_data_json(builder, structured_item) != 0) return -1;
   }
-  if (listing_row_allows_data_class(row_kind, opcode) &&
+  if (listing_statement_allows_data_class(stmt) &&
       listing_row_data_class(structured_item, plan_data_class, plan_data_class_flags) != NULL) {
     if (json_builder_append(builder, ",\"data_class\":") != 0) return -1;
     if (json_builder_append_json_string(builder,
@@ -6837,7 +6826,7 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
       : NULL;
     const M68kAnalysisStructuredDataItem *structured_item =
       listing_structured_data_item_at_offset(navigation->analysis_policy, section_index, stmt->offset);
-    const char *data_class = listing_row_allows_data_class(row_kind, opcode)
+    const char *data_class = listing_statement_allows_data_class(stmt)
       ? listing_row_data_class(structured_item, plan_data_class, plan_data_class_flags)
       : NULL;
     if (listing_structured_data_item_has_json(structured_item) || (comment != NULL && comment[0] != '\0') ||

@@ -231,6 +231,7 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
                 "start_offset": 0x3526,
                 "stable_key": "s0:00003526:data:1",
                 "text": "\tdc.w abs_0_0000355C-abs_0_0000355C,abs_0_0000356A-abs_0_0000355C\t; lookup_table\n",
+                "data_class": "lookup_table",
             },
             {
                 "kind": "data",

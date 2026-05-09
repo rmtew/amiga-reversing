@@ -9661,9 +9661,10 @@ static int test_facts_v2_render_asm_source_infers_opendevice_base_field_slot(voi
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   char *source = NULL;
-  uint8_t bytes[63] = {
-    0x41u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x32u,
+  uint8_t bytes[69] = {
+    0x41u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x38u,
     0x43u, 0xeeu, 0x00u, 0x40u,
+    0x33u, 0x7cu, 0x00u, 0x09u, 0x00u, 0x1cu,
     0x2fu, 0x0eu,
     0x2cu, 0x78u, 0x00u, 0x04u,
     0x4eu, 0xaeu, 0xfeu, 0x44u,
@@ -9696,6 +9697,7 @@ static int test_facts_v2_render_asm_source_infers_opendevice_base_field_slot(voi
   M68K_C_ASSERT(strstr(source, "app_timer_device_iorequest RS.B ") != NULL);
   M68K_C_ASSERT(strstr(source, "app_TimerBase ") != NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l app_timer_device_iorequest(a6),a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #$9,IO_COMMAND(a1)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l app_TimerBase(a6),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tcmpi.w #36,LIB_VERSION(a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l app_TimerBase(a6),a6\n") != NULL);

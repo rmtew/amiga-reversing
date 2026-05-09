@@ -229,7 +229,11 @@ static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRende
   row->label_line_runtime_mask = source->label_line_runtime_mask;
   memcpy(row->label_line_runtime_addresses, source->label_line_runtime_addresses,
     sizeof(row->label_line_runtime_addresses));
-  m68k_render_plan_row_set_data_class(row, source->data_class);
+  if (source->data_class_flags != 0U) {
+    m68k_render_plan_row_set_data_class_flags(row, source->data_class_flags);
+  } else {
+    m68k_render_plan_row_set_data_class(row, source->data_class);
+  }
   if (source->has_source_range)
     m68k_render_plan_row_set_source_range(row, source->source_section_index, source->source_offset,
       source->source_size);
@@ -1632,7 +1636,10 @@ static int structured_data_item_is_absolute_long_lookup_table(const M68kAnalysis
 }
 
 static const char *structured_data_item_data_class(const M68kAnalysisStructuredDataItem *item) {
+  const char *role_name;
   if (item == NULL) return NULL;
+  role_name = m68k_analysis_structured_data_role_name_for_flags(structured_data_item_role_flags(item));
+  if (role_name != NULL) return role_name;
   if (item->semantic_role[0] != '\0') return item->semantic_role;
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING) return "string";
   return NULL;
@@ -8079,7 +8086,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
                 1);
               set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,
                 structured_item->size);
-              m68k_render_plan_row_set_data_class(row, structured_data_item_data_class(structured_item));
+              m68k_render_plan_row_set_data_class_flags(row, structured_data_item_role_flags(structured_item));
               if (!structured_item_updated_pc) asm_logical_pc += structured_item->size;
             }
             offset += structured_item->size;
@@ -8119,7 +8126,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
                 row = finish_asm_source_plan_row(out_preview, section->section_index, offset, string_span->size, 1);
                 set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,
                   string_span->size);
-                m68k_render_plan_row_set_data_class(row, "string");
+                m68k_render_plan_row_set_data_class_flags(row, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
                 asm_logical_pc += string_span->size;
               }
               offset += string_span->size;
