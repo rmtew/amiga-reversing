@@ -5992,8 +5992,8 @@ const char *lookup_indexed_vector_wrapper_library(const M68kRenderLookup *lookup
   if (lookup == NULL) return NULL;
   for (index = 0U; index < lookup->indexed_vector_wrapper_count; ++index) {
     const M68kRenderIndexedVectorWrapper *wrapper = &lookup->indexed_vector_wrappers[index];
-    if (wrapper->section_index == section_index && wrapper->offset == offset && wrapper->library_name[0] != '\0')
-      return wrapper->library_name;
+    if (wrapper->section_index == section_index && wrapper->offset == offset && wrapper->has_library_id)
+      return amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, wrapper->library_id);
   }
   return NULL;
 }

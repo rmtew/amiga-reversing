@@ -4354,12 +4354,17 @@ int render_lookup_add_indexed_vector_wrapper(M68kRenderLookup *lookup, size_t se
   size_t index;
   M68kRenderIndexedVectorWrapper *grown;
   size_t next_capacity;
+  uint16_t library_id;
   if (lookup == NULL || library_name == NULL || library_name[0] == '\0') return 0;
   if (amiga_os_find_library_base_name(library_name) == NULL) return 0;
+  library_id = amiga_os_name_id(M68K_PLATFORM_NAME_LIBRARY, library_name);
   for (index = 0U; index < lookup->indexed_vector_wrapper_count; ++index) {
     M68kRenderIndexedVectorWrapper *wrapper = &lookup->indexed_vector_wrappers[index];
     if (wrapper->section_index != section_index || wrapper->offset != offset) continue;
-    if (strcmp(wrapper->library_name, library_name) != 0) wrapper->library_name[0] = '\0';
+    if (!wrapper->has_library_id || wrapper->library_id != library_id) {
+      wrapper->has_library_id = 0U;
+      wrapper->library_name[0] = '\0';
+    }
     return 0;
   }
   if (lookup->indexed_vector_wrapper_count == lookup->indexed_vector_wrapper_capacity) {
@@ -4375,6 +4380,8 @@ int render_lookup_add_indexed_vector_wrapper(M68kRenderLookup *lookup, size_t se
     sizeof(lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count]));
   lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count].section_index = section_index;
   lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count].offset = offset;
+  lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count].has_library_id = 1U;
+  lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count].library_id = library_id;
   snprintf(lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count].library_name,
     sizeof(lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count].library_name), "%s", library_name);
   ++lookup->indexed_vector_wrapper_count;

@@ -106,6 +106,8 @@ static inline int render_amiga_constant_value_by_symbol_id(uint16_t symbol_id, i
 typedef struct M68kRenderIndexedVectorWrapper {
   size_t section_index;
   uint32_t offset;
+  uint8_t has_library_id;
+  uint16_t library_id;
   char library_name[64];
 } M68kRenderIndexedVectorWrapper;
 
