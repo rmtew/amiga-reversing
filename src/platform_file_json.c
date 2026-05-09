@@ -1942,6 +1942,31 @@ static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysi
   return count;
 }
 
+enum {
+  MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE = 1,
+  MEMORY_LAYOUT_RANGE_SPACE_RUNTIME_ABSOLUTE = 2,
+  MEMORY_LAYOUT_RANGE_SPACE_ABSOLUTE = 3
+};
+
+static const char *memory_layout_range_space_name(uint8_t range_space_kind) {
+  switch (range_space_kind) {
+  case MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE: return "base_relative";
+  case MEMORY_LAYOUT_RANGE_SPACE_RUNTIME_ABSOLUTE: return "runtime_absolute";
+  case MEMORY_LAYOUT_RANGE_SPACE_ABSOLUTE: return "absolute";
+  default: return "unknown";
+  }
+}
+
+static int append_memory_layout_range_json(JsonBuilder *builder, uint8_t range_space_kind, int64_t start,
+    uint32_t size) {
+  int64_t end = start + (int64_t)size;
+  if (builder == NULL || range_space_kind == 0U) return -1;
+  return json_builder_appendf(builder,
+    ",\"range_space_kind\":%u,\"range_space\":\"%s\",\"range_start\":%lld,\"range_size\":%u,\"range_end\":%lld",
+    (unsigned)range_space_kind, memory_layout_range_space_name(range_space_kind), (long long)start,
+    (unsigned)size, (long long)end);
+}
+
 static int append_source_analysis_memory_layout_records_json(JsonBuilder *builder,
     const M68kSourceAnalysisIR *source_analysis) {
   size_t field_index;
@@ -1969,10 +1994,12 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_appendf(builder, "%u", (unsigned)field->source_offset) != 0) return -1;
     } else if (json_builder_append(builder, "null") != 0) return -1;
     if (json_builder_appendf(builder,
-        ",\"field_offset\":%u,\"field_size\":%u,\"confidence\":%u,\"conflicted\":%s,"
-        "\"conflict_state\":\"%s\"}",
-        (unsigned)field->offset, (unsigned)field->size, (unsigned)field->confidence,
-        field->conflicted ? "true" : "false",
+        ",\"field_offset\":%u,\"field_size\":%u",
+        (unsigned)field->offset, (unsigned)field->size) != 0) return -1;
+    if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
+        (int64_t)field->offset, field->size) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"confidence\":%u,\"conflicted\":%s,\"conflict_state\":\"%s\"}",
+        (unsigned)field->confidence, field->conflicted ? "true" : "false",
         field->conflicted ? (field->conflict_reason != NULL && field->conflict_reason[0] != '\0' ?
           field->conflict_reason : "conflicted") : "clean") != 0) return -1;
   }
@@ -2015,6 +2042,8 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_append(builder, ",\"type_provenance_kind\":") != 0) return -1;
       if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
         return -1;
+      if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
+          (int64_t)access->displacement, access->field_size) != 0) return -1;
       if (json_builder_append(builder, "}") != 0) return -1;
     }
     for (unresolved_typed_access_index = 0U;
@@ -2051,6 +2080,8 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_append(builder, ",\"type_provenance_kind\":") != 0) return -1;
       if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
         return -1;
+      if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
+          (int64_t)access->displacement, access->struct_size) != 0) return -1;
       if (json_builder_append(builder, "}") != 0) return -1;
     }
     for (view_index = 0U; view_index < section->runtime_view_count; ++view_index) {
@@ -2069,6 +2100,8 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
           runtime_view_materialization_reason_name(view->materialization_reason)) != 0) {
         return -1;
       }
+      if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_RUNTIME_ABSOLUTE,
+          (int64_t)view->runtime_address, view->size) != 0) return -1;
       if (append_runtime_view_relationship_json(builder, &view->relationship) != 0) return -1;
       if (json_builder_append(builder, "}") != 0) return -1;
     }
@@ -2093,6 +2126,10 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (ref->size != 0U) {
         if (json_builder_appendf(builder, "%u", (unsigned)ref->size) != 0) return -1;
       } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (ref->has_runtime_address &&
+          append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_RUNTIME_ABSOLUTE,
+            (int64_t)ref->runtime_address, ref->size) != 0)
+        return -1;
       if (json_builder_append(builder, ",\"target_section_index\":") != 0) return -1;
       if (ref->has_target) {
         if (json_builder_appendf(builder, "%u", (unsigned)ref->target_section_index) != 0) return -1;
@@ -2135,6 +2172,8 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
           (unsigned)ref->access_width, (unsigned)ref->address) != 0) {
         return -1;
       }
+      if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_ABSOLUTE,
+          (int64_t)ref->address, ref->access_width) != 0) return -1;
       if (json_builder_append_json_string(builder, absolute_memory_owner_kind_name(ref->owner_kind)) != 0)
         return -1;
       if (json_builder_append(builder, ",\"owner_symbol\":") != 0) return -1;

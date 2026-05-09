@@ -1397,6 +1397,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         for key in (
             "source_size", "runtime_address", "runtime_size", "target_offset", "sink_address",
             "field_offset", "field_size", "address", "access_width", "owner_offset",
+            "range_space_kind", "range_start", "range_size", "range_end",
         ):
             value = _int_value(record.get(key))
             if value is not None:
@@ -1420,6 +1421,13 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             bag.add(f"memory-layout:platform_field:{_safe_part(field_expr)}", example=example)
         if _int_value(record.get("sink_address")) is not None:
             bag.add("memory-layout:sink_address", example=example)
+        range_space_kind = _int_value(record.get("range_space_kind"))
+        if range_space_kind is not None:
+            bag.add("memory-layout:range", example=example)
+            bag.add(f"memory-layout:range_space:{range_space_kind}", example=example)
+        range_size = _int_value(record.get("range_size"))
+        if range_size is not None:
+            bag.add(f"memory-layout:range_size:{range_size}", example=example)
         conflict_state = _string_value(record.get("conflict_state"))
         if _bool_value(record.get("conflicted")):
             bag.add("memory-layout:conflict", example=example)
@@ -3216,6 +3224,8 @@ def _analysis_xrefs(
         record_address = _int_value(record.get("address"))
         record_value = runtime_address if runtime_address is not None else record_address
         sink_address = _int_value(record.get("sink_address"))
+        range_space_kind = _int_value(record.get("range_space_kind"))
+        range_size = _int_value(record.get("range_size"))
         root_struct = _string_value(record.get("root_struct_name"))
         field_expr = _string_value(record.get("field_expr")) or _string_value(record.get("field_name"))
         for feature in (
@@ -3230,6 +3240,17 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, "memory-layout:sink_address", "memory_layout", section=section_index,
                 offset=source_offset, row_index=row_index, stable_key=stable_key, symbol=memory_kind,
                 value=sink_address, text=row_text or memory_kind))
+        if range_space_kind is not None:
+            xrefs.append(_xref(row, "memory-layout:range", "memory_layout", section=section_index,
+                offset=source_offset, row_index=row_index, stable_key=stable_key, symbol=memory_kind,
+                value=record_value, text=row_text or memory_kind))
+            xrefs.append(_xref(row, f"memory-layout:range_space:{range_space_kind}", "memory_layout",
+                section=section_index, offset=source_offset, row_index=row_index, stable_key=stable_key,
+                symbol=memory_kind, value=record_value, text=row_text or memory_kind))
+        if range_size is not None:
+            xrefs.append(_xref(row, f"memory-layout:range_size:{range_size}", "memory_layout",
+                section=section_index, offset=source_offset, row_index=row_index, stable_key=stable_key,
+                symbol=memory_kind, value=range_size, text=row_text or memory_kind))
         if root_struct:
             xrefs.append(_xref(row, f"memory-layout:platform_struct:{_safe_part(root_struct)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,

@@ -8971,6 +8971,9 @@ static int test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias(voi
   M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":2") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"record_kind\":\"base_layout_field\",\"memory_kind\":\"base_layout_alias\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"range_space_kind\":1,\"range_space\":\"base_relative\",\"range_start\":14,\"range_size\":1,"
+    "\"range_end\":15") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"symbol\":\"app_000E\",\"offset\":14,\"size\":1,\"alias\":true") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"confidence\":2,\"conflicted\":false,\"conflict_reason\":null") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"alias_of_symbol\":\"app_000C\",\"alias_of_offset\":12") != NULL);
@@ -13189,8 +13192,10 @@ static int test_facts_v2_register_runtime_sink_auto_classifies_copper_list(void)
   M68K_C_ASSERT(strstr(analysis_json,
     "\"offset\":6,\"operand_index\":null,\"target_section_index\":0,\"target_offset\":14") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"sink_address\":14676096") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address\":14,\"confidence\":2,\"data_class\":\"copper_list\"")
-    != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address\":14") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"range_space_kind\":2,\"range_space\":\"runtime_absolute\",\"range_start\":14") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"confidence\":2,\"data_class\":\"copper_list\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"record_kind\":\"runtime_address_ref\",\"memory_kind\":\"copper_list\",\"section_index\":0,"
@@ -13271,7 +13276,13 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
     "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"hardware_register\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_symbol\":\"intena\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
+    "\"range_space_kind\":3,\"range_space\":\"absolute\",\"range_start\":14676122,\"range_size\":2,"
+    "\"range_end\":14676124") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
     "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"absolute_memory\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"range_space_kind\":3,\"range_space\":\"absolute\",\"range_start\":458752,\"range_size\":0,"
+    "\"range_end\":458752") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state\":\"clean\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state\":\"code_overlap\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);

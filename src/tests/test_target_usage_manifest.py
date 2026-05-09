@@ -106,6 +106,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "source_offset": 0x30,
                             "field_offset": 0x234,
                             "field_size": 4,
+                            "range_space_kind": 1,
+                            "range_start": 0x234,
+                            "range_size": 4,
+                            "range_end": 0x238,
                         },
                         {
                             "record_kind": "runtime_view",
@@ -115,6 +119,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "source_size": 0x20,
                             "runtime_address": 0x400,
                             "runtime_size": 0x20,
+                            "range_space_kind": 2,
+                            "range_start": 0x400,
+                            "range_size": 0x20,
+                            "range_end": 0x420,
                         },
                         {
                             "record_kind": "runtime_address_ref",
@@ -126,6 +134,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "runtime_size": 12,
                             "target_offset": 0x0E,
                             "sink_address": 0xDFF080,
+                            "range_space_kind": 2,
+                            "range_start": 0x0E,
+                            "range_size": 12,
+                            "range_end": 0x1A,
                         },
                         {
                             "record_kind": "absolute_memory_ref",
@@ -141,6 +153,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "owner_symbol": "intena",
                             "owner_base_symbol": "_custom",
                             "owner_offset": 0x9A,
+                            "range_space_kind": 3,
+                            "range_start": 0xDFF09A,
+                            "range_size": 2,
+                            "range_end": 0xDFF09C,
                             "confidence": 2,
                             "conflicted": True,
                             "conflict_state": "code_overlap",
@@ -159,6 +175,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "field_name": "LIB_VERSION",
                             "field_expr": "LIB_VERSION",
                             "type_provenance_kind": "api_output",
+                            "range_space_kind": 1,
+                            "range_start": 20,
+                            "range_size": 2,
+                            "range_end": 22,
                         },
                         {
                             "record_kind": "platform_unresolved_typed_access",
@@ -172,6 +192,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "classification": "field_gap",
                             "root_struct_name": "InputEvent",
                             "type_provenance_kind": "unknown",
+                            "range_space_kind": 1,
+                            "range_start": 36,
+                            "range_size": 22,
+                            "range_end": 58,
                         },
                     ],
                     "sections": [
@@ -618,6 +642,11 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout:platform_struct:InputEvent"], 1)
         self.assertEqual(counts["memory-layout:platform_field:LIB_VERSION"], 1)
         self.assertEqual(counts["memory-layout:sink_address"], 1)
+        self.assertEqual(counts["memory-layout:range"], 6)
+        self.assertEqual(counts["memory-layout:range_space:1"], 3)
+        self.assertEqual(counts["memory-layout:range_space:2"], 2)
+        self.assertEqual(counts["memory-layout:range_space:3"], 1)
+        self.assertEqual(counts["memory-layout:range_size:4"], 1)
         self.assertEqual(counts["memory-layout:conflict"], 1)
         self.assertEqual(counts["memory-layout:conflict:code_overlap"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
@@ -663,6 +692,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["table:any"][0]["conflict_state"], "clean")
         self.assertEqual(examples["table:any"][0]["source_pattern"], "indexed_word_dispatch")
         self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["symbol"], "app_0234")
+        self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["range_start"], 0x234)
+        self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["range_end"], 0x238)
         self.assertEqual(examples["memory-layout:kind:copper_list"][0]["runtime_address"], 0x0E)
         self.assertEqual(examples["memory-layout:kind:copper_list"][0]["sink_address"], 0xDFF080)
         self.assertEqual(examples["memory-layout:kind:hardware_register"][0]["owner_symbol"], "intena")
@@ -978,6 +1009,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "source_offset": 0x30,
                         "field_offset": 0x234,
                         "field_size": 4,
+                        "range_space_kind": 1,
+                        "range_start": 0x234,
+                        "range_size": 4,
+                        "range_end": 0x238,
                     },
                     {
                         "record_kind": "runtime_view",
@@ -987,6 +1022,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "source_size": 0x20,
                         "runtime_address": 0x400,
                         "runtime_size": 0x20,
+                        "range_space_kind": 2,
+                        "range_start": 0x400,
+                        "range_size": 0x20,
+                        "range_end": 0x420,
                     },
                         {
                             "record_kind": "runtime_address_ref",
@@ -998,6 +1037,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "runtime_size": 12,
                             "target_offset": 0x0E,
                             "sink_address": 0xDFF080,
+                            "range_space_kind": 2,
+                            "range_start": 0x0E,
+                            "range_size": 12,
+                            "range_end": 0x1A,
                         },
                         {
                             "record_kind": "absolute_memory_ref",
@@ -1013,6 +1056,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "owner_symbol": "intena",
                             "owner_base_symbol": "_custom",
                             "owner_offset": 0x9A,
+                            "range_space_kind": 3,
+                            "range_start": 0xDFF09A,
+                            "range_size": 2,
+                            "range_end": 0xDFF09C,
                             "confidence": 2,
                             "conflicted": True,
                             "conflict_state": "code_overlap",
@@ -1031,6 +1078,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "field_name": "LIB_VERSION",
                             "field_expr": "LIB_VERSION",
                             "type_provenance_kind": "api_output",
+                            "range_space_kind": 1,
+                            "range_start": 20,
+                            "range_size": 2,
+                            "range_end": 22,
                         },
                         {
                             "record_kind": "platform_unresolved_typed_access",
@@ -1044,6 +1095,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "classification": "field_gap",
                             "root_struct_name": "Library",
                             "type_provenance_kind": "unknown",
+                            "range_space_kind": 1,
+                            "range_start": 64,
+                            "range_size": 34,
+                            "range_end": 98,
                         },
                 ],
                 "sections": [
@@ -1324,6 +1379,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("memory-layout:record:absolute_memory_ref", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("memory-layout:kind:hardware_register", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("memory-layout:sink_address", "memory_layout", 0x60, 5), by_feature)
+        self.assertIn(("memory-layout:range", "memory_layout", 0x60, 5), by_feature)
+        self.assertIn(("memory-layout:range_space:3", "memory_layout", 0x60, 5), by_feature)
+        self.assertIn(("memory-layout:range_size:2", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("memory-layout:conflict", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("memory-layout:conflict:code_overlap", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("orphan-code:signal", "orphan_code_signal", 0x84, 8), by_feature)
