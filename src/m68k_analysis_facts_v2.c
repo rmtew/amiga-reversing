@@ -197,6 +197,10 @@ static int trace_state_operand_storage_offset(const M68kRuntimeAddressSpace *run
   const M68kFactsV2TraceState *state, size_t operand_index, uint32_t *out_offset);
 static int candidate_operand_data_target_offset(const M68kDecodeCandidate *candidate, size_t operand_index,
   size_t section_index, uint32_t *out_offset);
+static int scan_interleaved_indexed_key_stub_table(M68kDecodeIR *decode, uint8_t max_cpu, size_t section_index,
+  const M68kDecodeSectionIR *section, const M68kDecodeCandidate *site_candidate, uint8_t **accepted_start,
+  uint8_t **accepted_bytes, uint32_t *out_entries, uint32_t entry_limit, uint32_t *out_entry_count,
+  uint32_t *out_stub_table_offset, uint32_t *out_stride);
 static int enqueue_code_start_runtime(M68kFactIR *facts, M68kFactsV2WorkQueue *queue,
   M68kFactsV2Profile *profile, size_t section_index, uint32_t offset, uint8_t confidence,
   uint32_t reason, size_t source_section_index, uint32_t source_offset, uint8_t has_runtime_address,
@@ -4267,6 +4271,24 @@ static void recovered_indirect_site_apply_direct_stub_table_bounds(M68kDecodeIR 
       break;
   }
   if (entry_count == 0U || entry_count >= 2U || stride == 0U) return;
+  {
+    uint32_t entries[64];
+    uint32_t interleaved_count = 0U;
+    uint32_t interleaved_table = 0U;
+    uint32_t interleaved_stride = 0U;
+    if (scan_interleaved_indexed_key_stub_table(decode, max_cpu, section_index, section, site_candidate,
+        accepted_start, accepted_bytes, entries, 64U, &interleaved_count, &interleaved_table,
+        &interleaved_stride)) {
+      site->has_table_base = 1U;
+      site->has_table_bounds = 1U;
+      site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE;
+      site->table_offset = interleaved_table;
+      site->table_entry_size = interleaved_stride;
+      site->table_entry_count = interleaved_count;
+      site->table_size = interleaved_stride * interleaved_count;
+      return;
+    }
+  }
   site->has_table_base = 1U;
   site->has_table_bounds = 1U;
   site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_INSUFFICIENT_ENTRIES;
@@ -4331,6 +4353,189 @@ static int candidate_indexed_control_table_offset(const M68kDecodeCandidate *can
   return 0;
 }
 
+static int candidate_indexed_control_table_offset_and_index_reg(const M68kDecodeCandidate *candidate,
+    size_t section_index, uint32_t *out_table_offset, uint8_t *out_index_reg) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (out_table_offset != NULL) *out_table_offset = 0U;
+  if (out_index_reg != NULL) *out_index_reg = 0U;
+  if (candidate == NULL || out_table_offset == NULL || out_index_reg == NULL ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL ||
+      (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_JUMP)) {
+    return 0;
+  }
+  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
+       operand_index < instruction.operand_count; ++operand_index) {
+    const M68kAsmOperandValue *operand = &candidate->operands[operand_index];
+    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_BRANCH_TARGET ||
+        metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET ||
+        !facts_v2_instruction_operand_is_indexed_or_pc_indexed(&instruction, operand_index) ||
+        candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA ||
+        operand->index_is_address || operand->index_reg >= 8U) {
+      continue;
+    }
+    if (candidate_operand_data_target_offset(candidate, operand_index, section_index, out_table_offset)) {
+      *out_index_reg = operand->index_reg;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int candidate_indexed_data_read_table_offset_and_width(const M68kDecodeCandidate *candidate,
+    size_t section_index, uint8_t index_reg, uint32_t *out_table_offset, uint32_t *out_width) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (out_table_offset != NULL) *out_table_offset = 0U;
+  if (out_width != NULL) *out_width = 0U;
+  if (candidate == NULL || out_table_offset == NULL || out_width == NULL ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL) return 0;
+  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
+       operand_index < instruction.operand_count; ++operand_index) {
+    const M68kAsmOperandValue *operand = &candidate->operands[operand_index];
+    uint32_t table_offset = 0U;
+    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_READ ||
+        !facts_v2_instruction_operand_is_indexed_or_pc_indexed(&instruction, operand_index) ||
+        candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA ||
+        operand->index_is_address || operand->index_reg != index_reg) {
+      continue;
+    }
+    if (!candidate_operand_data_target_offset(candidate, operand_index, section_index, &table_offset))
+      continue;
+    *out_table_offset = table_offset;
+    *out_width = facts_v2_instruction_access_width(&instruction, M68K_SIM_ACCESS_MEMORY_READ);
+    return *out_width != 0U;
+  }
+  return 0;
+}
+
+static int find_nearby_indexed_key_table_for_control(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *site_candidate, const uint8_t *accepted_start, uint8_t index_reg,
+    uint32_t stub_table_offset, uint32_t *out_key_table_offset, uint32_t *out_key_width) {
+  const uint32_t lookback_limit = 12U;
+  size_t candidate_index;
+  uint32_t best_offset = 0U;
+  uint32_t best_table_offset = 0U;
+  uint32_t best_width = 0U;
+  if (out_key_table_offset != NULL) *out_key_table_offset = 0U;
+  if (out_key_width != NULL) *out_key_width = 0U;
+  if (section == NULL || site_candidate == NULL || accepted_start == NULL ||
+      out_key_table_offset == NULL || out_key_width == NULL) {
+    return 0;
+  }
+  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+    uint32_t key_table_offset = 0U;
+    uint32_t key_width = 0U;
+    if (candidate->offset >= site_candidate->offset || accepted_start[candidate->offset] == 0U ||
+        candidate->byte_count > site_candidate->offset - candidate->offset ||
+        site_candidate->offset - (candidate->offset + candidate->byte_count) > lookback_limit) {
+      continue;
+    }
+    if (!candidate_indexed_data_read_table_offset_and_width(candidate, section->section_index, index_reg,
+        &key_table_offset, &key_width)) {
+      continue;
+    }
+    if (key_width == 0U || key_table_offset > UINT32_MAX - key_width ||
+        key_table_offset + key_width != stub_table_offset) {
+      continue;
+    }
+    if (best_width == 0U || candidate->offset > best_offset) {
+      best_offset = candidate->offset;
+      best_table_offset = key_table_offset;
+      best_width = key_width;
+    }
+  }
+  if (best_width == 0U) return 0;
+  *out_key_table_offset = best_table_offset;
+  *out_key_width = best_width;
+  return 1;
+}
+
+static int scan_interleaved_indexed_key_stub_table(M68kDecodeIR *decode, uint8_t max_cpu, size_t section_index,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *site_candidate, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, uint32_t *out_entries, uint32_t entry_limit, uint32_t *out_entry_count,
+    uint32_t *out_stub_table_offset, uint32_t *out_stride) {
+  uint32_t stub_table_offset = 0U;
+  uint32_t key_table_offset = 0U;
+  uint32_t key_width = 0U;
+  uint32_t cursor;
+  uint32_t stride = 0U;
+  uint32_t entry_count = 0U;
+  uint32_t stub_width = 0U;
+  uint32_t first_forward_target = UINT32_MAX;
+  uint8_t index_reg = 0U;
+  if (out_entry_count != NULL) *out_entry_count = 0U;
+  if (out_stub_table_offset != NULL) *out_stub_table_offset = 0U;
+  if (out_stride != NULL) *out_stride = 0U;
+  if (decode == NULL || section == NULL || site_candidate == NULL || accepted_start == NULL ||
+      accepted_bytes == NULL || out_entries == NULL || out_entry_count == NULL ||
+      out_stub_table_offset == NULL || out_stride == NULL || entry_limit == 0U ||
+      section_index >= decode->section_count ||
+      !candidate_indexed_control_table_offset_and_index_reg(site_candidate, section->section_index,
+        &stub_table_offset, &index_reg) ||
+      !find_nearby_indexed_key_table_for_control(section, site_candidate, accepted_start[section_index],
+        index_reg, stub_table_offset, &key_table_offset, &key_width)) {
+    return 0;
+  }
+  cursor = stub_table_offset;
+  while (cursor < section->size && entry_count < entry_limit) {
+    const M68kDecodeCandidate *candidate = NULL;
+    uint8_t target_kind = 0U;
+    uint32_t target_offset = 0U;
+    uint32_t key_offset = key_table_offset;
+    if (entry_count != 0U) {
+      uint32_t key_delta;
+      if (stride == 0U || entry_count > UINT32_MAX / stride) break;
+      key_delta = entry_count * stride;
+      if (key_table_offset > UINT32_MAX - key_delta) break;
+      key_offset = key_table_offset + key_delta;
+    }
+    if (key_offset > UINT32_MAX - key_width) break;
+    if (accepted_range_has_code_byte_local(accepted_bytes[section_index], section->size, key_offset, key_width))
+      break;
+    if (accepted_offset_is_interior(section, accepted_start[section_index], accepted_bytes[section_index], cursor))
+      break;
+    if (m68k_decode_ir_ensure_candidate_at(decode, section_index, cursor, max_cpu, &candidate,
+        m68k_diag_sink(NULL)) != 0) {
+      return -1;
+    }
+    if (candidate == NULL || !candidate_single_direct_nonfallthrough_control_target(section, candidate,
+        &target_kind, &target_offset) || target_kind != M68K_DECODE_TARGET_BRANCH) {
+      break;
+    }
+    if (stub_width == 0U) {
+      stub_width = candidate->byte_count;
+      if (stub_width == 0U || key_width > UINT32_MAX - stub_width) break;
+      stride = key_width + stub_width;
+    } else if (candidate->byte_count != stub_width) {
+      break;
+    }
+    if (target_offset > stub_table_offset && target_offset < first_forward_target)
+      first_forward_target = target_offset;
+    out_entries[entry_count++] = cursor;
+    if (cursor > UINT32_MAX - stride) break;
+    cursor += stride;
+    if (entry_count >= 2U && first_forward_target != UINT32_MAX && cursor >= first_forward_target)
+      break;
+  }
+  if (entry_count < 2U || stride == 0U) return 0;
+  *out_entry_count = entry_count;
+  *out_stub_table_offset = stub_table_offset;
+  *out_stride = stride;
+  return 1;
+}
+
 static int enqueue_direct_indexed_stub_entries(M68kDecodeIR *decode, M68kFactIR *facts,
     M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
     M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
@@ -4370,7 +4575,12 @@ static int enqueue_direct_indexed_stub_entries(M68kDecodeIR *decode, M68kFactIR 
     if (cursor > UINT32_MAX - stride) break;
     cursor += stride;
   }
-  if (entry_count < 2U) return 0;
+  if (entry_count < 2U) {
+    if (!scan_interleaved_indexed_key_stub_table(decode, max_cpu, section_index, section, site_candidate,
+        accepted_start, accepted_bytes, entries, STUB_ENTRY_LIMIT, &entry_count, &table_offset, &stride)) {
+      return 0;
+    }
+  }
   trace_state_init_unknown(&unknown_state);
   for (index = 0U; index < entry_count; ++index) {
     if (enqueue_same_section_control_target_from_offset(decode, facts, queue, accepted_start, accepted_bytes,
@@ -4437,9 +4647,11 @@ static int append_recovered_indirect_sites_for_accepted(M68kDecodeIR *decode,
         site.operand_index = (uint8_t)operand_index;
         site.source_size = candidate->byte_count;
         site.detail = "accepted indirect control target";
-        recovered_indirect_site_apply_direct_stub_table_bounds(decode, section_index, section, candidate,
-          max_cpu, accepted_start, accepted_bytes, &site);
         recovered_indirect_site_apply_code_start_refs(&site, &source_analysis->sections[section_index]);
+        if (site.status == M68K_RECOVERED_INDIRECT_STATUS_UNRESOLVED) {
+          recovered_indirect_site_apply_direct_stub_table_bounds(decode, section_index, section, candidate,
+            max_cpu, accepted_start, accepted_bytes, &site);
+        }
         if (m68k_ir_section_analysis_append_recovered_indirect_site(&source_analysis->sections[section_index],
             &site) != 0) {
           return -1;
