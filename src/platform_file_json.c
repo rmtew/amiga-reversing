@@ -3410,7 +3410,8 @@ static int append_listing_structured_data_json(JsonBuilder *builder, const M68kA
   if (item == NULL || (item->label[0] == '\0' && item->struct_name[0] == '\0' && item->field_name[0] == '\0' &&
         item->field_type[0] == '\0' && item->c_type[0] == '\0' && item->pointer_struct[0] == '\0' &&
         item->value_domain[0] == '\0' && item->constant_name[0] == '\0' && semantic_role_flags == 0U &&
-        item->source_pattern[0] == '\0' && !item->has_constant_value && !item->is_pointer && !item->has_target)) {
+        item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_UNKNOWN &&
+        !item->has_constant_value && !item->is_pointer && !item->has_target)) {
     return json_builder_append(builder, "null");
   }
   if (json_builder_appendf(builder, "{\"section_index\":%u,\"offset\":%u,\"size\":%u,\"kind\":%u,\"label\":",

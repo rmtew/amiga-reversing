@@ -4679,6 +4679,8 @@ static int test_table_records_use_role_flags_not_text(void) {
   item->size = 4U;
   item->kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
   item->semantic_role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE;
+  item->source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH;
+  snprintf(item->source_pattern, sizeof(item->source_pattern), "%s", "stale_source_pattern");
 
   item = &source_analysis.policy.structured_data_items[1];
   item->has_section_index = 1U;
@@ -4693,6 +4695,8 @@ static int test_table_records_use_role_flags_not_text(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"table_record_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"semantic_role\":\"lookup_table\",\"semantic_role_flags\":8") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"semantic_role\":\"pointer_table\"") == NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern_id\":2,\"source_pattern\":\"indexed_word_dispatch\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "stale_source_pattern") == NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"role_flags\":8,\"role\":\"lookup_table\",\"table_kind_id\":1,\"table_kind\":\"scalar\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"role\":\"pointer_table\"") == NULL);
