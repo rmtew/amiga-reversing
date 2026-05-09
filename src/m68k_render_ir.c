@@ -6280,12 +6280,16 @@ cleanup:
 }
 
 static int render_orphan_candidate_range_is_blocked(const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset, uint32_t size) {
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset, uint32_t size,
+    int allow_structured_data_overlap) {
   uint32_t cursor;
   if (section == NULL || size == 0U || size > section->size - offset) return 1;
   for (cursor = offset; cursor < offset + size; ++cursor) {
     if (accepted_byte_at(section, accepted_bytes, cursor)) return 1;
-    if (lookup_structured_data_item_covering_offset(lookup, section->section_index, cursor) != NULL) return 1;
+    if (!allow_structured_data_overlap &&
+        lookup_structured_data_item_covering_offset(lookup, section->section_index, cursor) != NULL) {
+      return 1;
+    }
   }
   return 0;
 }
@@ -6345,6 +6349,14 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
   const M68kAnalysisStructuredDataItem *item = NULL;
   const char *data_class = NULL;
   if (lookup == NULL || section == NULL || signal == NULL) return;
+  item = lookup_structured_data_item_covering_offset(lookup, section->section_index, signal->offset);
+  data_class = structured_data_item_data_class(item);
+  if (data_class != NULL && data_class[0] != '\0') {
+    signal->nearby_data_flags = structured_data_item_role_flags(item);
+    signal->nearby_data_class = (char *)data_class;
+    signal->nearby_data_relation = "overlap";
+    return;
+  }
   if (signal->size <= section->size - signal->offset) {
     uint32_t after_offset = signal->offset + signal->size;
     if (after_offset < section->size)
@@ -6404,16 +6416,17 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
     uint32_t terminal_offset = 0U;
     int has_accepted_code_boundary = offset > 0U && accepted_byte_at(section, accepted_bytes, offset - 1U);
     int has_renderable_label = lookup_has_renderable_label(lookup, section->section_index, offset);
+    const M68kAnalysisStructuredDataItem *structured_item_at_start = NULL;
     uint32_t runtime_address = 0U;
     int has_runtime_view = lookup_source_runtime_address(lookup, section->section_index, offset,
       &runtime_address);
     if (!(has_accepted_code_boundary || has_renderable_label) ||
         accepted_start_at(section, accepted_start, offset) ||
-        accepted_byte_at(section, accepted_bytes, offset) ||
-        lookup_structured_data_item_covering_offset(lookup, section->section_index, offset) != NULL) {
+        accepted_byte_at(section, accepted_bytes, offset)) {
       ++offset;
       continue;
     }
+    structured_item_at_start = lookup_structured_data_item_covering_offset(lookup, section->section_index, offset);
     while (cursor < render_extent && instruction_count < 8U) {
       M68kDecodeCandidate decoded_candidate;
       uint32_t next_offset;
@@ -6421,8 +6434,8 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
       if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > render_extent - cursor)
         break;
       next_offset = cursor + candidate->byte_count;
-      if (render_orphan_candidate_range_is_blocked(lookup, section, accepted_bytes, cursor,
-          candidate->byte_count)) {
+      if (render_orphan_candidate_range_is_blocked(lookup, section, accepted_bytes, cursor, candidate->byte_count,
+          structured_item_at_start != NULL)) {
         break;
       }
       ++instruction_count;
@@ -6449,7 +6462,9 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
       signal.terminal_offset = terminal_offset;
       signal.terminal_flow_kind = terminal_flow_kind;
       signal.reason = M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE;
-      signal.status = M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED;
+      signal.status = structured_item_at_start != NULL
+        ? M68K_ORPHAN_CODE_SIGNAL_SUPPRESSED
+        : M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED;
       signal.confidence = instruction_count >= 4U ? 90U : 70U;
       signal.required_cpu = required_cpu;
       signal.instruction_count = instruction_count > UINT8_MAX ? UINT8_MAX : (uint8_t)instruction_count;
@@ -6465,7 +6480,9 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
       }
       render_orphan_signal_attach_nearby_data_context(lookup, section, &signal);
       render_orphan_signal_refine_missing_inbound(&signal);
-      signal.detail = "decoded instruction island ends in generated terminal flow";
+      signal.detail = structured_item_at_start != NULL
+        ? "decoded terminal island suppressed by accepted structured data"
+        : "decoded instruction island ends in generated terminal flow";
       if (m68k_ir_section_analysis_append_orphan_code_signal(section_analysis, &signal) != 0) return -1;
       offset = start + signal.size;
       continue;

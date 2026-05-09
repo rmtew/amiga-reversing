@@ -510,7 +510,11 @@ typedef enum M68kOrphanCodeSignalReason {
 } M68kOrphanCodeSignalReason;
 
 typedef enum M68kOrphanCodeSignalStatus {
-  M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED = 1
+  M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED = 1,
+  M68K_ORPHAN_CODE_SIGNAL_REJECTED = 2,
+  M68K_ORPHAN_CODE_SIGNAL_SUPPRESSED = 3,
+  M68K_ORPHAN_CODE_SIGNAL_LINKED = 4,
+  M68K_ORPHAN_CODE_SIGNAL_PROMOTED = 5
 } M68kOrphanCodeSignalStatus;
 
 typedef enum M68kOrphanCodeSignalContext {

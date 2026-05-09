@@ -1001,6 +1001,10 @@ static const char *orphan_code_signal_reason_name(uint8_t reason) {
 
 static const char *orphan_code_signal_status_name(uint8_t status) {
   if (status == M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED) return "unresolved";
+  if (status == M68K_ORPHAN_CODE_SIGNAL_REJECTED) return "rejected";
+  if (status == M68K_ORPHAN_CODE_SIGNAL_SUPPRESSED) return "suppressed";
+  if (status == M68K_ORPHAN_CODE_SIGNAL_LINKED) return "linked";
+  if (status == M68K_ORPHAN_CODE_SIGNAL_PROMOTED) return "promoted";
   return "unknown";
 }
 

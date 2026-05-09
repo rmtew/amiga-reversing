@@ -238,8 +238,9 @@ proves a distinct base id.
      runtime copy, API, metadata, or policy seed: implemented for current
      signal context as unknown, metadata-label, runtime-copy evidence,
      lookup-table-adjacent jump tables, and pointer-table-adjacent callbacks
-   - status: unresolved signal implemented; linked and promoted, rejected, and
-     suppressed remain planned
+   - status: unresolved signal implemented; suppressed implemented for
+     terminal-decode islands that overlap accepted structured data; linked,
+     promoted, and broader rejected classes remain planned
    - UI/navigation surfacing: implemented as an `orphan-code` listing group
    - target-level signal count: implemented in source-analysis JSON
    - corpus tags/xrefs: implemented as `orphan-code:*` target usage features,
@@ -522,8 +523,9 @@ undocumented renderer heuristics.
 - Lookup-table rendering still needs a single table fact model instead of
   scattered case-specific render behavior for unresolved/rejected candidates.
 - Orphaned code signals have a first-class fact model for unresolved
-  terminal-decode islands at accepted-code boundaries or data labels;
-  target-level metrics and broader cause classification remain.
+  terminal-decode islands at accepted-code boundaries or data labels, plus
+  suppressed structured-data overlap signals; target-level metrics and broader
+  cause classification remain.
 - The signal should be reconciled after jump/lookup table work: a good table
   improvement should turn some orphan candidates into reached code, not just hide
   them.

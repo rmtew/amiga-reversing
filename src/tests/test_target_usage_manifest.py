@@ -17,6 +17,38 @@ def _write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
 
 
 class TargetUsageManifestTests(unittest.TestCase):
+    def test_orphan_signal_features_use_status_id_for_suppressed_signal(self) -> None:
+        bag = usage.FeatureBag()
+        usage._add_orphan_code_signal_features(
+            bag,
+            0,
+            {
+                "offset": 0x20,
+                "size": 4,
+                "terminal_offset": 0x22,
+                "terminal_flow_kind": 5,
+                "terminal_flow": "stale_display_name",
+                "reason_id": 1,
+                "reason": "stale_display_name",
+                "status_id": 3,
+                "status": "stale_display_name",
+                "context_id": 1,
+                "context": "stale_display_name",
+                "missing_inbound_id": 2,
+                "missing_inbound": "stale_display_name",
+                "nearby_data_flags": 8,
+                "nearby_data_class": "stale_display_name",
+                "nearby_data_relation": "overlap",
+            },
+        )
+        counts, examples, _tags = bag.row_features()
+        self.assertEqual(counts["orphan-code:status:suppressed"], 1)
+        self.assertEqual(counts["orphan-code:terminal_decode:suppressed"], 1)
+        self.assertEqual(counts["orphan-code:terminal_flow:return"], 1)
+        self.assertEqual(counts["orphan-code:nearby_data:lookup_table"], 1)
+        self.assertEqual(counts["orphan-code:nearby_data:overlap:lookup_table"], 1)
+        self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_class"], "lookup_table")
+
     def test_extracts_structured_analysis_and_listing_features(self) -> None:
         bag = usage.FeatureBag()
         usage._add_executable_analysis_features(

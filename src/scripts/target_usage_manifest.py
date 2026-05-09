@@ -146,6 +146,10 @@ ORPHAN_CODE_SIGNAL_REASON_NAMES = {
 }
 ORPHAN_CODE_SIGNAL_STATUS_NAMES = {
     1: "unresolved",
+    2: "rejected",
+    3: "suppressed",
+    4: "linked",
+    5: "promoted",
 }
 ORPHAN_CODE_SIGNAL_CONTEXT_NAMES = {
     1: "accepted_code_boundary",
