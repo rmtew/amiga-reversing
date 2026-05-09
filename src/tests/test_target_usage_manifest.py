@@ -3231,6 +3231,56 @@ class TargetUsageManifestTests(unittest.TestCase):
             report["examples"]["numeric_address_reg_access_without_type:post_call_register_copy"][0]["trace"],
         )
 
+    def test_type_flow_nearby_os_call_uses_kind_ids(self) -> None:
+        xrefs = _with_generated_xref_ids([
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "os:exec.library/WaitPort",
+                "kind": "os_call",
+                "row_index": 4,
+                "stable_key": "call",
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "os_call_output_reg:D0",
+                "kind": "os_call_output",
+                "row_index": 4,
+                "value": "D0",
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
+                "feature": "os_call_output_struct:MP",
+                "kind": "os_call_output_struct",
+                "row_index": 4,
+                "access": "D0",
+                "value": "MP",
+            },
+        ])
+        for xref in xrefs:
+            xref["kind"] = "stale_display_name"
+        by_row = {("platform_file_manifest:demo", 4): xrefs}
+
+        nearby = usage._type_flow_nearby_os_call(
+            "platform_file_manifest:demo",
+            0,
+            4,
+            by_row,
+            {4: {"stable_key": "call", "text": "\tjsr _LVOWaitPort(a6)\n"}},
+        )
+        storage_nearby = usage._type_flow_storage_nearby_api_call(
+            "platform_file_manifest:demo",
+            4,
+            by_row,
+        )
+
+        self.assertIsNotNone(nearby)
+        assert nearby is not None
+        self.assertEqual(nearby["output_regs"], ["D0"])
+        self.assertEqual(nearby["output_structs_by_reg"], {"D0": "MP"})
+        self.assertIsNotNone(storage_nearby)
+        assert storage_nearby is not None
+        self.assertEqual(storage_nearby["feature"], "os:exec.library/WaitPort")
+
     def test_type_flow_numeric_trace_follows_pointer_chain_to_app_slot_root(self) -> None:
         snippets = [
             {

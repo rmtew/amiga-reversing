@@ -183,6 +183,8 @@ XREF_KIND_APP_SLOT_SUGGESTION = 8
 XREF_KIND_OS_CALL = 9
 XREF_KIND_STRUCT = 10
 XREF_KIND_TYPE = 11
+XREF_KIND_OS_CALL_OUTPUT = 12
+XREF_KIND_OS_CALL_OUTPUT_STRUCT = 13
 XREF_KIND_IDS = {
     "platform_typed_access": XREF_KIND_PLATFORM_TYPED_ACCESS,
     "typed_storage": XREF_KIND_TYPED_STORAGE,
@@ -195,6 +197,8 @@ XREF_KIND_IDS = {
     "os_call": XREF_KIND_OS_CALL,
     "struct": XREF_KIND_STRUCT,
     "type": XREF_KIND_TYPE,
+    "os_call_output": XREF_KIND_OS_CALL_OUTPUT,
+    "os_call_output_struct": XREF_KIND_OS_CALL_OUTPUT_STRUCT,
 }
 XREF_FEATURE_PLATFORM_TYPED_ACCESS_ANY = 1
 XREF_FEATURE_TYPED_STORAGE_ANY = 2
@@ -221,6 +225,7 @@ XREF_FEATURE_CLASS_PLATFORM_UNRESOLVED_TYPED_ACCESS_STRUCT = 4
 XREF_FEATURE_CLASS_PLATFORM_STRUCT_FIELD = 5
 XREF_FEATURE_CLASS_APP_SLOT_API_ARG = 6
 XREF_FEATURE_CLASS_APP_SLOT_API_ARG_REASON = 7
+XREF_FEATURE_CLASS_OS_CALL = 8
 XREF_FEATURE_CLASS_DYNAMIC_PREFIXES = (
     ("struct:", XREF_FEATURE_CLASS_STRUCT),
     ("platform_typed_access_struct:", XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT),
@@ -229,6 +234,7 @@ XREF_FEATURE_CLASS_DYNAMIC_PREFIXES = (
     ("platform_struct_field:", XREF_FEATURE_CLASS_PLATFORM_STRUCT_FIELD),
     ("app_slot_api_arg:", XREF_FEATURE_CLASS_APP_SLOT_API_ARG),
     ("app_slot_api_arg_reason:", XREF_FEATURE_CLASS_APP_SLOT_API_ARG_REASON),
+    ("os:", XREF_FEATURE_CLASS_OS_CALL),
 )
 UNRESOLVED_TYPED_FIELD_REPORT_CONTROL_TRANSFER = 1
 UNRESOLVED_TYPED_FIELD_REPORT_PREFIX_EXTENSION = 2
@@ -5827,20 +5833,20 @@ def _type_flow_nearby_os_call(
     for row_index in range(end_row, max(0, start_row) - 1, -1):
         row_xrefs = xrefs_by_row.get((target_id, row_index), [])
         for xref in row_xrefs:
-            if _string_value(xref.get("kind")) == "os_call":
+            if _xref_kind_id(xref) == XREF_KIND_OS_CALL:
                 row = rows_by_index.get(row_index, {})
                 output_regs = sorted(
                     {
                         str(output.get("value")).upper()
                         for output in row_xrefs
-                        if _string_value(output.get("kind")) == "os_call_output"
+                        if _xref_kind_id(output) == XREF_KIND_OS_CALL_OUTPUT
                         and _string_value(output.get("value"))
                     }
                 )
                 output_structs_by_reg = {
                     str(output.get("access")).upper(): str(output.get("value"))
                     for output in row_xrefs
-                    if _string_value(output.get("kind")) == "os_call_output_struct"
+                    if _xref_kind_id(output) == XREF_KIND_OS_CALL_OUTPUT_STRUCT
                     and _string_value(output.get("access"))
                     and _string_value(output.get("value"))
                 }
@@ -7501,14 +7507,17 @@ def _type_flow_storage_nearby_api_call(
     for candidate_row in range(row_index, max(0, row_index - lookbehind) - 1, -1):
         row_xrefs = xrefs_by_row.get((target_id, candidate_row), [])
         row_has_output = any(
-            _string_value(item.get("kind")) in {"os_call_output", "os_call_output_struct"}
+            _xref_kind_id(item) in {XREF_KIND_OS_CALL_OUTPUT, XREF_KIND_OS_CALL_OUTPUT_STRUCT}
             for item in row_xrefs
         )
         if candidate_row != row_index and not row_has_output:
             continue
         for xref in row_xrefs:
             feature = _string_value(xref.get("feature")) or ""
-            if _xref_kind_id(xref) != XREF_KIND_OS_CALL or not feature.startswith("os:"):
+            if (
+                _xref_kind_id(xref) != XREF_KIND_OS_CALL
+                or _xref_feature_class_id(xref) != XREF_FEATURE_CLASS_OS_CALL
+            ):
                 continue
             return _compact_example(
                 {

@@ -68,7 +68,10 @@ display/export text only. Render lookup base-field slots now carry an explicit
 owner-kind byte, so app-base slot decisions use compact state rather than
 comparing the `__amiga_app_base__` display symbol. Static `LIB_SIZE` decisions
 use the generated `AMIGA_OS_SYMBOL_ID_LIB_SIZE`; name-based constant lookup is
-kept only for arbitrary source-symbol output.
+kept only for arbitrary source-symbol output. Type-flow nearby OS-call lookups
+now use xref kind ids for OS calls and call outputs plus feature-class ids for
+concrete OS API features, so stale kind display text does not affect API-output
+provenance.
 
 | Topic | Current evidence | Gap to address |
 | --- | --- | --- |
