@@ -2352,6 +2352,16 @@ static void platform_state_merge_register_base(uint8_t *dest_known, uint16_t *de
   platform_state_merge_register_name(dest_known, dest_name, dest_name_size, source_known, source_name, io_changed);
 }
 
+static void platform_state_merge_register_id(uint8_t *dest_known, uint16_t *dest_id, uint8_t source_known,
+    uint16_t source_id, int *io_changed) {
+  if (dest_known == NULL || dest_id == NULL || io_changed == NULL) return;
+  if (*dest_known == 0U || source_known == 0U || *dest_id != source_id) {
+    if (*dest_known != 0U || *dest_id != 0U) *io_changed = 1;
+    *dest_known = 0U;
+    *dest_id = 0U;
+  }
+}
+
 static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRenderPlatformState *source) {
   M68kRenderPlatformState old_state;
   size_t index;
@@ -2366,9 +2376,9 @@ static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRe
       dest->address_base_library[index], sizeof(dest->address_base_library[index]),
       source->address_base_known[index], source->address_base_id[index], source->address_base_library[index],
       &changed);
-    platform_state_merge_register_name(&dest->address_hardware_base_known[index],
-      dest->address_hardware_base_symbol[index], sizeof(dest->address_hardware_base_symbol[index]),
-      source->address_hardware_base_known[index], source->address_hardware_base_symbol[index], &changed);
+    platform_state_merge_register_id(&dest->address_hardware_base_known[index],
+      &dest->address_hardware_base_id[index], source->address_hardware_base_known[index],
+      source->address_hardware_base_id[index], &changed);
     platform_state_merge_register_name(&dest->data_layout_base_known[index], dest->data_layout_base_symbol[index],
       sizeof(dest->data_layout_base_symbol[index]), source->data_layout_base_known[index],
       source->data_layout_base_symbol[index], &changed);

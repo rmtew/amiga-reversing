@@ -7807,6 +7807,44 @@ static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_merges_hardware_base_by_id(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[24] = {
+    0x41u, 0xF9u, 0x00u, 0xDFu, 0xF0u, 0x00u,
+    0x67u, 0x06u,
+    0x41u, 0xF9u, 0x00u, 0xDFu, 0xF0u, 0x00u,
+    0x31u, 0x7Cu, 0x7Fu, 0xFFu, 0x00u, 0x9Au,
+    0x4Eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l _custom.l,a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tbeq.b loc_0_0000000E\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #INTF_CLRALL,intena(a0)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #INTF_CLRALL,$009A(a0)\n") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata(void) {
   char symbol_expr[64];
   const AmigaOsHardwareRegisterInfo *cop1lc =
@@ -15992,6 +16030,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_renders_seeded_lvo_symbol},
     {"facts_v2_render_asm_source_symbols_amiga_hardware_registers",
       test_facts_v2_render_asm_source_symbols_amiga_hardware_registers},
+    {"facts_v2_render_asm_source_merges_hardware_base_by_id",
+      test_facts_v2_render_asm_source_merges_hardware_base_by_id},
     {"facts_v2_analysis_records_absolute_memory_refs",
       test_facts_v2_analysis_records_absolute_memory_refs},
     {"facts_v2_orphan_absolute_operand_records_unresolved_memory_layout",

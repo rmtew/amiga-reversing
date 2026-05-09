@@ -647,7 +647,7 @@ static void platform_state_clear_register(M68kRenderPlatformState *state, uint8_
   state->address_base_id[reg_index] = 0U;
   state->address_base_library[reg_index][0] = '\0';
   state->address_hardware_base_known[reg_index] = 0U;
-  state->address_hardware_base_symbol[reg_index][0] = '\0';
+  state->address_hardware_base_id[reg_index] = AMIGA_OS_HARDWARE_BASE_ID_NONE;
   state->address_app_base_known[reg_index] = 0U;
   state->address_layout_base_known[reg_index] = 0U;
   state->address_layout_base_symbol[reg_index][0] = '\0';
@@ -694,13 +694,13 @@ static void platform_state_clear_address_layout_base(M68kRenderPlatformState *st
 static void platform_state_clear_address_hardware_base(M68kRenderPlatformState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
   state->address_hardware_base_known[reg_index] = 0U;
-  state->address_hardware_base_symbol[reg_index][0] = '\0';
+  state->address_hardware_base_id[reg_index] = AMIGA_OS_HARDWARE_BASE_ID_NONE;
 }
 
 static void platform_state_clear_all_hardware_bases(M68kRenderPlatformState *state) {
   if (state == NULL) return;
   memset(state->address_hardware_base_known, 0, sizeof(state->address_hardware_base_known));
-  memset(state->address_hardware_base_symbol, 0, sizeof(state->address_hardware_base_symbol));
+  memset(state->address_hardware_base_id, 0, sizeof(state->address_hardware_base_id));
 }
 
 static void platform_state_clear_data_app_base(M68kRenderPlatformState *state, uint8_t reg_index) {
@@ -918,14 +918,13 @@ static void platform_state_set_register_layout_base(M68kRenderPlatformState *sta
 
 static void platform_state_set_register_hardware_base(M68kRenderPlatformState *state, uint8_t reg_index,
     const char *base_symbol) {
-  uint32_t base_address;
+  uint16_t base_id;
   if (state == NULL || reg_index >= 8U || base_symbol == NULL || base_symbol[0] == '\0') return;
-  if (!amiga_os_find_hardware_base_address(base_symbol, &base_address)) return;
-  (void)base_address;
+  base_id = amiga_os_hardware_base_id(base_symbol);
+  if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return;
   platform_state_clear_register(state, reg_index);
   state->address_hardware_base_known[reg_index] = 1U;
-  snprintf(state->address_hardware_base_symbol[reg_index], sizeof(state->address_hardware_base_symbol[reg_index]),
-    "%s", base_symbol);
+  state->address_hardware_base_id[reg_index] = base_id;
 }
 
 static void preview_record_platform_vector(M68kRenderIRPreview *preview, const AmigaOsLibraryVectorInfo *vector) {
@@ -2611,7 +2610,7 @@ static const char *platform_state_operand_hardware_base_symbol(const M68kRenderP
   if (operand == NULL) return NULL;
   if (operand_address_register_index_local(operand, &reg) && reg < 8U &&
       state != NULL && state->address_hardware_base_known[reg]) {
-    return state->address_hardware_base_symbol[reg];
+    return amiga_os_hardware_base_symbol(state->address_hardware_base_id[reg]);
   }
   if (operand->symbol_ref.has_name != 0U) {
     uint32_t base_address;
@@ -3126,10 +3125,10 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
     if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
         state != NULL && base_reg < 8U && state->address_hardware_base_known[base_reg] &&
         displacement >= 0) {
-      hardware_register = amiga_os_find_hardware_register_by_base_offset(
-        state->address_hardware_base_symbol[base_reg], (uint32_t)(uint16_t)displacement);
-      hardware_field = amiga_os_find_hardware_register_field_by_base_offset(
-        state->address_hardware_base_symbol[base_reg], (uint32_t)(uint16_t)displacement);
+      hardware_register = amiga_os_find_hardware_register_by_base_id_offset(
+        state->address_hardware_base_id[base_reg], (uint32_t)(uint16_t)displacement);
+      hardware_field = amiga_os_find_hardware_register_field_by_base_id_offset(
+        state->address_hardware_base_id[base_reg], (uint32_t)(uint16_t)displacement);
       if (hardware_field != NULL &&
           format_amiga_hardware_register_field_symbol(hardware_field, 0, symbol_name, sizeof(symbol_name))) {
         attach_amiga_platform_symbol(operand, symbol_name);
@@ -3142,8 +3141,8 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
         continue;
       }
       {
-        hardware_range = amiga_os_find_hardware_register_range_by_base_offset(
-          state->address_hardware_base_symbol[base_reg], (uint32_t)(uint16_t)displacement);
+        hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(
+          state->address_hardware_base_id[base_reg], (uint32_t)(uint16_t)displacement);
         if (hardware_range == NULL ||
             !format_amiga_hardware_register_range_symbol(hardware_range, (uint32_t)(uint16_t)displacement,
               0, symbol_name, sizeof(symbol_name))) {
@@ -3210,8 +3209,8 @@ static const AmigaOsHardwareRegisterInfo *resolve_amiga_hardware_register_operan
   if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
       state != NULL && base_reg < 8U && state->address_hardware_base_known[base_reg] &&
       displacement >= 0) {
-    const char *base_symbol = state->address_hardware_base_symbol[base_reg];
-    return amiga_os_find_hardware_register_by_base_offset(base_symbol, (uint32_t)(uint16_t)displacement);
+    return amiga_os_find_hardware_register_by_base_id_offset(state->address_hardware_base_id[base_reg],
+      (uint32_t)(uint16_t)displacement);
   }
   if (operand_absolute_offset_local(operand, &value)) return amiga_os_find_hardware_register_by_cpu_address(value);
   return NULL;
@@ -3226,8 +3225,8 @@ static const AmigaOsHardwareRegisterFieldInfo *resolve_amiga_hardware_register_f
   if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
       state != NULL && base_reg < 8U && state->address_hardware_base_known[base_reg] &&
       displacement >= 0) {
-    const char *base_symbol = state->address_hardware_base_symbol[base_reg];
-    return amiga_os_find_hardware_register_field_by_base_offset(base_symbol, (uint32_t)(uint16_t)displacement);
+    return amiga_os_find_hardware_register_field_by_base_id_offset(state->address_hardware_base_id[base_reg],
+      (uint32_t)(uint16_t)displacement);
   }
   if (operand_absolute_offset_local(operand, &value)) return amiga_os_find_hardware_register_field_by_cpu_address(value);
   return NULL;
@@ -3243,9 +3242,9 @@ static const AmigaOsHardwareRegisterRangeInfo *resolve_amiga_hardware_register_r
   if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
       state != NULL && base_reg < 8U && state->address_hardware_base_known[base_reg] &&
       displacement >= 0) {
-    const char *base_symbol = state->address_hardware_base_symbol[base_reg];
     if (out_offset != NULL) *out_offset = (uint32_t)(uint16_t)displacement;
-    return amiga_os_find_hardware_register_range_by_base_offset(base_symbol, (uint32_t)(uint16_t)displacement);
+    return amiga_os_find_hardware_register_range_by_base_id_offset(state->address_hardware_base_id[base_reg],
+      (uint32_t)(uint16_t)displacement);
   }
   if (operand_absolute_offset_local(operand, &value)) {
     const AmigaOsHardwareRegisterRangeInfo *range = amiga_os_find_hardware_register_range_by_cpu_address(value);
