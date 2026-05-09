@@ -732,6 +732,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["table:any"][0]["conflict_state"], "clean")
         self.assertEqual(examples["table:any"][0]["source_pattern"], "indexed_word_dispatch")
         self.assertEqual(examples["memory-layout:kind:base_layout"][0]["range_start"], 0x234)
+        self.assertEqual(examples["memory-layout:kind:base_layout"][0]["field_count"], 1)
+        self.assertEqual(examples["memory-layout:kind:base_layout"][0]["sizeof_symbol"], "app_SIZEOF")
         self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["symbol"], "app_0234")
         self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["range_start"], 0x234)
         self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["range_end"], 0x238)

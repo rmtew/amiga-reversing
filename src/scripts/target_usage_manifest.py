@@ -1398,7 +1398,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             "source_size", "runtime_address", "runtime_size", "target_offset", "sink_address",
             "field_offset", "field_size", "address", "access_width", "owner_offset",
             "range_space_kind", "range_start", "range_size", "range_end", "effect_kind",
-            "target_section_index", "displacement", "field_disp",
+            "target_section_index", "displacement", "field_disp", "field_count",
         ):
             value = _int_value(record.get(key))
             if value is not None:
@@ -1407,7 +1407,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             "layout_name", "base_symbol", "symbol", "root_struct_name", "owner_struct_name",
             "field_name", "field_expr", "classification", "type_provenance_kind",
             "access", "owner_kind", "owner_symbol", "owner_base_symbol", "conflict_state",
-            "effect_kind_name", "base_name", "symbol_name", "type_name",
+            "effect_kind_name", "base_name", "symbol_name", "type_name", "sizeof_symbol",
         ):
             value = _string_value(record.get(key))
             if value:
