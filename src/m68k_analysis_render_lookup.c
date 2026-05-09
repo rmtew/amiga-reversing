@@ -7335,7 +7335,8 @@ static int ea_shape_is_indexed_or_pc_indexed(uint8_t shape) {
 
 static int candidate_next_is_indexed_control_through_data_reg(const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, const M68kDecodeCandidate *candidate, uint8_t reg,
-    size_t table_section_index, uint32_t table_offset, uint32_t *out_next_offset) {
+    size_t table_section_index, uint32_t table_offset, uint32_t *out_next_offset,
+    uint32_t *out_target_base_offset) {
   const M68kDecodeCandidate *next_candidate;
   M68kInstructionIR next_instruction;
   const M68kSimFormMetadata *metadata;
@@ -7345,6 +7346,7 @@ static int candidate_next_is_indexed_control_through_data_reg(const M68kDecodeSe
   uint32_t next_offset;
   const M68kOperandIR *operand;
   if (out_next_offset != NULL) *out_next_offset = 0U;
+  if (out_target_base_offset != NULL) *out_target_base_offset = 0U;
   if (section == NULL || accepted_start == NULL || candidate == NULL || reg >= 8U ||
       candidate->byte_count > section->size || candidate->offset > section->size - candidate->byte_count) {
     return 0;
@@ -7372,8 +7374,12 @@ static int candidate_next_is_indexed_control_through_data_reg(const M68kDecodeSe
       &target_offset)) {
     return 0;
   }
-  if (target_section_index != table_section_index || target_offset != table_offset) return 0;
+  if (target_section_index != table_section_index || target_offset < table_offset ||
+      ((target_offset - table_offset) & 1U) != 0U) {
+    return 0;
+  }
   if (out_next_offset != NULL) *out_next_offset = next_offset;
+  if (out_target_base_offset != NULL) *out_target_base_offset = target_offset;
   return 1;
 }
 
@@ -7649,30 +7655,31 @@ static int render_lookup_infer_indexed_word_dispatch_tables(M68kRenderLookup *lo
         uint32_t add_offsets[2] = {0U, 0U};
         uint32_t table_size = 0U;
         uint32_t consumer_offset = 0U;
+        uint32_t target_base_offset = 0U;
         uint8_t dest_reg = 0U;
         int loads_dispatch = candidate_loads_indexed_word_table_to_data_reg(candidate, &instruction,
           &load_table_section, &load_table_offset, &dest_reg);
         int next_indexed_dispatch = loads_dispatch ? candidate_next_is_indexed_control_through_data_reg(section,
           accepted_start[section_index], candidate, dest_reg, load_table_section, load_table_offset,
-          &consumer_offset) : 0;
+          &consumer_offset, &target_base_offset) : 0;
         int adds_dispatch = candidate_adds_indexed_word_table_to_address_reg(section, candidate, &instruction, &state,
           &add_sections[0], &add_offsets[0], &add_sections[1], &add_offsets[1], &dest_reg);
         int next_dispatch = adds_dispatch ? candidate_later_is_indirect_control_through_addr_reg(section,
           accepted_start[section_index], candidate, dest_reg) : 0;
         if (loads_dispatch && next_indexed_dispatch) {
           table_size = scan_indexed_word_dispatch_table_span(lookup, decode, accepted_start, accepted_bytes,
-            load_table_section, load_table_offset, load_table_section, load_table_offset);
+            load_table_section, target_base_offset, load_table_section, target_base_offset);
           if (table_size != 0U &&
-              render_lookup_add_auto_structured_data_item(lookup, load_table_section, load_table_offset, table_size,
+              render_lookup_add_auto_structured_data_item(lookup, load_table_section, target_base_offset, table_size,
                 M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE, M68K_ANALYSIS_STRUCTURED_DATA_WORDS) != 0) {
             return -1;
           }
           if (table_size != 0U) {
-            render_lookup_set_auto_structured_data_item_consumer(lookup, load_table_section, load_table_offset,
+            render_lookup_set_auto_structured_data_item_consumer(lookup, load_table_section, target_base_offset,
               section_index, consumer_offset);
-            render_lookup_set_auto_structured_data_item_target(lookup, load_table_section, load_table_offset,
-              load_table_section, load_table_offset);
-            render_lookup_set_auto_structured_data_item_source_pattern(lookup, load_table_section, load_table_offset,
+            render_lookup_set_auto_structured_data_item_target(lookup, load_table_section, target_base_offset,
+              load_table_section, target_base_offset);
+            render_lookup_set_auto_structured_data_item_source_pattern(lookup, load_table_section, target_base_offset,
               M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH);
           }
         }
