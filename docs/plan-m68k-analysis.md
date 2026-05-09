@@ -281,6 +281,9 @@ proves a distinct base id.
      access strings are exported display text only
    - listing API-call duplicate suppression compares generated Amiga library
      and function ids, not resolved display names
+   - source-IR comment rendering uses compact `comment_kind` metadata for
+     structural decisions such as inline struct labels and metadata comments;
+     comment text is display text only
 
 6. Rendering rules:
    - emit one RSSET block per proven base layout

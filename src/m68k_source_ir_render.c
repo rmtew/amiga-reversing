@@ -160,16 +160,10 @@ static int append_comment_at_column(JsonBuilder *builder, size_t line_start, con
 
 static int append_statement_comment(JsonBuilder *builder, const M68kStatementIR *stmt, size_t line_start) {
   if (stmt == NULL || stmt->comment == NULL || stmt->comment[0] == '\0') return json_builder_append(builder, "\n");
-  if (strncmp(stmt->comment, "FIELD:", 6) == 0) {
-    const char *field_comment = stmt->comment + 6;
-    while (*field_comment == ' ' || *field_comment == '\t') ++field_comment;
-    return append_comment_at_column(builder, line_start, field_comment);
-  }
-  if (strstr(stmt->comment, "CANDIDATE:") != NULL || strncmp(stmt->comment, "NOTE:", 5) == 0 ||
-      strncmp(stmt->comment, "KNOWN:", 6) == 0 || strncmp(stmt->comment, "DECL:", 5) == 0 ||
-      strncmp(stmt->comment, "STRUCT ", 7) == 0) {
+  if (stmt->comment_kind == M68K_STATEMENT_COMMENT_METADATA ||
+      stmt->comment_kind == M68K_STATEMENT_COMMENT_FIELD ||
+      stmt->comment_kind == M68K_STATEMENT_COMMENT_STRUCT_LABEL)
     return append_comment_at_column(builder, line_start, stmt->comment);
-  }
   return json_builder_appendf(builder,
     line_start == builder->size ? "; VIOLATION: %s\n" : " ; VIOLATION: %s\n", stmt->comment);
 }
@@ -192,13 +186,14 @@ static int render_statement_text_with_policy_build(const M68kStatementIR *stmt, 
   }
   if (json_builder_create(&builder) != 0) goto oom;
   if (stmt->kind == M68K_STATEMENT_LABEL) {
-    if (stmt->comment != NULL && stmt->comment[0] != '\0' && strncmp(stmt->comment, "STRUCT ", 7) != 0 &&
+    if (stmt->comment != NULL && stmt->comment[0] != '\0' &&
+        stmt->comment_kind != M68K_STATEMENT_COMMENT_STRUCT_LABEL &&
         json_builder_appendf(&builder, "    ; %s\n", stmt->comment) != 0)
       goto oom;
     line_start = builder.size;
     if (json_builder_appendf(&builder, "%s:", stmt->label_name != NULL ? stmt->label_name : "label") != 0)
       goto oom;
-    if (stmt->comment != NULL && strncmp(stmt->comment, "STRUCT ", 7) == 0) {
+    if (stmt->comment != NULL && stmt->comment_kind == M68K_STATEMENT_COMMENT_STRUCT_LABEL) {
       if (append_statement_comment(&builder, stmt, line_start) != 0) goto oom;
     } else if (json_builder_append(&builder, "\n") != 0) goto oom;
   } else if (stmt->kind == M68K_STATEMENT_ALIGN) {
@@ -1077,12 +1072,13 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
       const M68kStatementIR *stmt = &section->statements[stmt_index];
       if (stmt->kind == M68K_STATEMENT_LABEL) {
         size_t line_start;
-        if (stmt->comment != NULL && stmt->comment[0] != '\0' && strncmp(stmt->comment, "STRUCT ", 7) != 0 &&
+        if (stmt->comment != NULL && stmt->comment[0] != '\0' &&
+            stmt->comment_kind != M68K_STATEMENT_COMMENT_STRUCT_LABEL &&
             json_builder_appendf(&builder, "    ; %s\n", stmt->comment) != 0)
           goto oom;
         line_start = builder.size;
         if (json_builder_appendf(&builder, "%s:", stmt->label_name != NULL ? stmt->label_name : "label") != 0) goto oom;
-        if (stmt->comment != NULL && strncmp(stmt->comment, "STRUCT ", 7) == 0) {
+        if (stmt->comment != NULL && stmt->comment_kind == M68K_STATEMENT_COMMENT_STRUCT_LABEL) {
           if (append_statement_comment(&builder, stmt, line_start) != 0) goto oom;
         } else if (json_builder_append(&builder, "\n") != 0) goto oom;
       } else if (stmt->kind == M68K_STATEMENT_ALIGN) {

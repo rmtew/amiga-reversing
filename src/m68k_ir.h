@@ -356,10 +356,19 @@ typedef enum M68kStatementKind {
   M68K_STATEMENT_RESERVE = 5
 } M68kStatementKind;
 
+typedef enum M68kStatementCommentKind {
+  M68K_STATEMENT_COMMENT_NONE = 0,
+  M68K_STATEMENT_COMMENT_VIOLATION = 1,
+  M68K_STATEMENT_COMMENT_METADATA = 2,
+  M68K_STATEMENT_COMMENT_FIELD = 3,
+  M68K_STATEMENT_COMMENT_STRUCT_LABEL = 4
+} M68kStatementCommentKind;
+
 #define M68K_STATEMENT_SOURCE_BYTES_MAX 16U
 
 typedef struct M68kStatementIR {
   uint8_t kind;
+  uint8_t comment_kind;
   uint32_t offset;
   char *label_name;
   char *comment;

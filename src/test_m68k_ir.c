@@ -56,6 +56,53 @@ static int test_source_statement_renderer_renders_single_statement(void) {
   return 0;
 }
 
+static int test_source_statement_renderer_uses_comment_kind_for_struct_label(void) {
+  M68kStatementIR stmt;
+  char *text = NULL;
+  m68k_ir_statement_init(&stmt);
+  stmt.kind = M68K_STATEMENT_LABEL;
+  stmt.label_name = "resident";
+  stmt.comment = "STRUCT RT";
+  M68K_C_ASSERT_INT(0, m68k_source_ir_render_statement_text_with_policy(&stmt, NULL, &text,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_STR("    ; STRUCT RT\nresident:\n", text);
+  free(text);
+
+  text = NULL;
+  stmt.comment_kind = M68K_STATEMENT_COMMENT_STRUCT_LABEL;
+  M68K_C_ASSERT_INT(0, m68k_source_ir_render_statement_text_with_policy(&stmt, NULL, &text,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(strstr(text, "resident:") == text);
+  M68K_C_ASSERT(strstr(text, "; STRUCT RT") != NULL);
+  free(text);
+  return 0;
+}
+
+static int test_source_statement_renderer_uses_comment_kind_for_metadata(void) {
+  M68kStatementIR stmt;
+  uint8_t bytes[2] = {0x12u, 0x34u};
+  char *text = NULL;
+  m68k_ir_statement_init(&stmt);
+  stmt.kind = M68K_STATEMENT_DATA;
+  stmt.u.data.kind = M68K_DATA_ITEM_BYTES;
+  stmt.u.data.data = bytes;
+  stmt.u.data.size = sizeof(bytes);
+  stmt.comment = "KNOWN: display text only";
+  M68K_C_ASSERT_INT(0, m68k_source_ir_render_statement_text_with_policy(&stmt, NULL, &text,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(strstr(text, "VIOLATION: KNOWN: display text only") != NULL);
+  free(text);
+
+  text = NULL;
+  stmt.comment_kind = M68K_STATEMENT_COMMENT_METADATA;
+  M68K_C_ASSERT_INT(0, m68k_source_ir_render_statement_text_with_policy(&stmt, NULL, &text,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(strstr(text, "VIOLATION:") == NULL);
+  M68K_C_ASSERT(strstr(text, "; KNOWN: display text only") != NULL);
+  free(text);
+  return 0;
+}
+
 static int test_parse_syntax_mode_name(void) {
   uint8_t mode = 0xFFu;
   M68K_C_ASSERT(m68k_ir_parse_syntax_mode_name("canonical", &mode));
@@ -215,6 +262,7 @@ static int test_section_append_statement_copies_data(void) {
   M68K_C_ASSERT_INT(0, m68k_ir_section_create(&section));
   m68k_ir_statement_init(&statement);
   statement.kind = M68K_STATEMENT_DATA;
+  statement.comment_kind = M68K_STATEMENT_COMMENT_METADATA;
   statement.label_name = "lbl";
   statement.comment = "comment";
   statement.u.data.kind = M68K_DATA_ITEM_BYTES;
@@ -228,6 +276,7 @@ static int test_section_append_statement_copies_data(void) {
   M68K_C_ASSERT(section.statements[0].comment != statement.comment);
   M68K_C_ASSERT(section.statements[0].u.data.data != statement.u.data.data);
   M68K_C_ASSERT(section.statements[0].u.data.expr_text != statement.u.data.expr_text);
+  M68K_C_ASSERT_U32(M68K_STATEMENT_COMMENT_METADATA, section.statements[0].comment_kind);
   M68K_C_ASSERT_STR("lbl", section.statements[0].label_name);
   M68K_C_ASSERT_STR("comment", section.statements[0].comment);
   M68K_C_ASSERT_STR("expr", section.statements[0].u.data.expr_text);
@@ -14901,6 +14950,10 @@ int m68k_c_ir_tests(void) {
   static const M68kCTestCase cases[] = {
     {"render_policy_defaults", test_render_policy_defaults},
     {"source_statement_renderer_renders_single_statement", test_source_statement_renderer_renders_single_statement},
+    {"source_statement_renderer_uses_comment_kind_for_struct_label",
+      test_source_statement_renderer_uses_comment_kind_for_struct_label},
+    {"source_statement_renderer_uses_comment_kind_for_metadata",
+      test_source_statement_renderer_uses_comment_kind_for_metadata},
     {"parse_syntax_mode_name", test_parse_syntax_mode_name},
     {"generated_cpu_vector_metadata_marks_interrupt_autovectors",
       test_generated_cpu_vector_metadata_marks_interrupt_autovectors},
