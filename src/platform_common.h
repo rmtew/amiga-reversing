@@ -50,7 +50,10 @@ int platform_facts_v2_resolve_stack_cleanup_call(uint8_t platform_kind,
   PlatformFactsV2ResolvedCall *out_info);
 int platform_facts_v2_is_callback_vector_slot(uint8_t platform_kind, uint32_t address);
 int platform_facts_v2_is_runtime_address_sink(uint8_t platform_kind, uint32_t address);
+uint16_t platform_facts_v2_runtime_address_sink_kind(uint8_t platform_kind, uint32_t address);
 const char *platform_facts_v2_runtime_address_sink_data_class(uint8_t platform_kind, uint32_t address);
+uint16_t platform_facts_v2_runtime_address_storage_sink_kind(uint8_t platform_kind,
+  const uint8_t *data, uint32_t size, uint32_t value_offset);
 const char *platform_facts_v2_runtime_address_storage_sink_data_class(uint8_t platform_kind,
   const uint8_t *data, uint32_t size, uint32_t value_offset);
 int platform_facts_v2_pc_relative_symbol_for_target(uint8_t platform_kind, int64_t target,

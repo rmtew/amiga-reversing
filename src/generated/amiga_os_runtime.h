@@ -46,6 +46,17 @@ typedef enum AmigaOsHardwareRegisterFlags {
   AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK = 1
 } AmigaOsHardwareRegisterFlags;
 
+typedef enum AmigaOsHardwareRuntimeTargetKind {
+  AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE = 0,
+  AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_COPPER_LIST = 1,
+  AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_DISK_BUFFER = 2,
+  AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BLITTER_SOURCE = 3,
+  AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BLITTER_DESTINATION = 4,
+  AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BITMAP = 5,
+  AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SPRITE = 6,
+  AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE = 7,
+} AmigaOsHardwareRuntimeTargetKind;
+
 typedef enum AmigaOsLibraryId {
   AMIGA_OS_LIBRARY_ID_AMIGAGUIDE_LIBRARY = 0,
   AMIGA_OS_LIBRARY_ID_ASL_LIBRARY = 1,
@@ -14732,11 +14743,13 @@ typedef struct AmigaOsHardwareRegisterInfo {
   const char *base_symbol;
   uint32_t base_address;
   uint32_t offset;
+  uint16_t symbol_id;
   const char *symbol_name;
   const char *include_path;
   uint16_t value_domain_id;
   uint16_t bit_domain_id;
   uint16_t flags;
+  uint16_t runtime_target_kind;
   const char *runtime_target_role;
 } AmigaOsHardwareRegisterInfo;
 
@@ -14744,8 +14757,10 @@ typedef struct AmigaOsHardwareRegisterFieldInfo {
   const char *base_symbol;
   uint32_t base_address;
   uint32_t register_offset;
+  uint16_t register_symbol_id;
   const char *register_symbol;
   uint32_t field_offset;
+  uint16_t field_symbol_id;
   const char *field_symbol;
   const char *include_path;
   const char *repeat_stride_symbol;
@@ -14834,6 +14849,7 @@ const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by
 const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_base_offset(const char *base_symbol, uint32_t offset);
 const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_cpu_address(uint32_t cpu_address);
 const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_base_offset(const char *base_symbol, uint32_t offset);
+const char *amiga_os_hardware_runtime_target_kind_name(uint16_t kind);
 const char *amiga_os_find_hardware_base_symbol_by_address(uint32_t base_address);
 int amiga_os_find_hardware_base_address(const char *base_symbol, uint32_t *out_address);
 const char *amiga_os_exec_base_library_name(void);

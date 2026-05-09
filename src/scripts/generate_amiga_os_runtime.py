@@ -48,6 +48,21 @@ AMIGA_VALUE_DOMAIN_REMAINDER_ERROR = 1
 
 AMIGA_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK = 1
 
+AMIGA_HARDWARE_RUNTIME_TARGET_KIND_NAMES: tuple[str, ...] = (
+    "none",
+    "copper_list",
+    "disk_buffer",
+    "blitter_source",
+    "blitter_destination",
+    "bitmap",
+    "sprite",
+    "sound_sample",
+)
+
+AMIGA_HARDWARE_RUNTIME_TARGET_KIND_BY_ROLE = {
+    name: index for index, name in enumerate(AMIGA_HARDWARE_RUNTIME_TARGET_KIND_NAMES)
+}
+
 CUSTOM_HARDWARE_REGISTER_FIELD_GROUPS: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
     (("aud",), ("ac_ptr", "ac_len", "ac_per", "ac_vol", "ac_dat")),
     (("spr",), ("sd_pos", "sd_ctl", "sd_dataa", "sd_dataB")),
@@ -959,10 +974,17 @@ def hardware_register_runtime_target_role(manual_row: dict | None) -> str | None
     return None
 
 
+def hardware_register_runtime_target_kind(runtime_target_role: str | None) -> int:
+    if runtime_target_role is None:
+        return AMIGA_HARDWARE_RUNTIME_TARGET_KIND_BY_ROLE["none"]
+    return AMIGA_HARDWARE_RUNTIME_TARGET_KIND_BY_ROLE.get(
+        runtime_target_role, AMIGA_HARDWARE_RUNTIME_TARGET_KIND_BY_ROLE["none"])
+
+
 def hardware_register_rows(payload: dict, merged_domains: dict[str, dict],
                            manual_payload: dict
-                           ) -> list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]]:
-    rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]] = []
+                           ) -> list[tuple[str, int, int, str, str, str | None, str | None, int, int, str | None]]:
+    rows: list[tuple[str, int, int, str, str, str | None, str | None, int, int, str | None]] = []
     manual_rows = hardware_register_manual_rows(manual_payload)
     for item in payload.get("registers", []):
         if not isinstance(item, dict):
@@ -988,13 +1010,14 @@ def hardware_register_rows(payload: dict, merged_domains: dict[str, dict],
         manual_row = manual_rows.get(cpu_address)
         flags = hardware_register_semantic_flags(manual_row)
         runtime_target_role = hardware_register_runtime_target_role(manual_row)
+        runtime_target_kind = hardware_register_runtime_target_kind(runtime_target_role)
         rows.append((base_symbol, base_address, offset, symbols[0], include_path, value_domain, bit_domain, flags,
-                     runtime_target_role))
+                     runtime_target_kind, runtime_target_role))
     return sorted(set(rows), key=lambda row: (row[1], row[2], row[3]))
 
 
 def hardware_register_field_rows(
-    hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
+    hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, int, str | None]],
                                  includes_payload: dict) -> tuple[
     list[tuple[str, int, int, str, int, str, str, str | None, int, str | None]],
     list[tuple[str, str]],
@@ -1013,7 +1036,7 @@ def hardware_register_field_rows(
             constant_values[symbol_name] = (value, include_path)
     registers_by_symbol = {
         symbol_name: (base_symbol, base_address, offset, include_path)
-        for base_symbol, base_address, offset, symbol_name, include_path, _, _, _, _ in hardware_rows
+        for base_symbol, base_address, offset, symbol_name, include_path, _, _, _, _, _ in hardware_rows
     }
     hardware_start_offsets = sorted({row[2] for row in hardware_rows})
     rows: list[tuple[str, int, int, str, int, str, str, str | None, int, str | None]] = []
@@ -1026,7 +1049,7 @@ def hardware_register_field_rows(
                 if register_constant is not None:
                     register_offset, register_include_path = register_constant
                     register = next(((base_symbol, base_address, offset, include_path)
-                                     for base_symbol, base_address, offset, _, include_path, _, _, _, _ in hardware_rows
+                                     for base_symbol, base_address, offset, _, include_path, _, _, _, _, _ in hardware_rows
                                      if offset == register_offset and include_path == register_include_path), None)
             if register is None:
                 continue
@@ -1070,7 +1093,7 @@ def hardware_register_field_rows(
                 continue
             if stride <= 0:
                 continue
-            numbered_offsets = [offset for _, _, offset, symbol_name, _, _, _, _, _ in hardware_rows
+            numbered_offsets = [offset for _, _, offset, symbol_name, _, _, _, _, _, _ in hardware_rows
                                 if symbol_name.upper().startswith(register_symbol.upper()) and
                                 len(symbol_name) > len(register_symbol) and
                                 symbol_name[len(register_symbol):len(register_symbol) + 1].isdigit()]
@@ -1100,7 +1123,7 @@ def hardware_register_field_rows(
 
 
 def hardware_register_range_rows(
-    hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
+    hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, int, str | None]],
     manual_payload: dict,
     includes_payload: dict,
 ) -> list[tuple[str, int, int, int, str, str]]:
@@ -1127,7 +1150,7 @@ def hardware_register_range_rows(
             continue
         manual_by_offset[manual_offset] = item
     hardware_start_offsets = sorted({row[2] for row in hardware_rows})
-    for base_symbol, base_address, offset, symbol_name, include_path, _, _, _, _ in hardware_rows:
+    for base_symbol, base_address, offset, symbol_name, include_path, _, _, _, _, _ in hardware_rows:
         numbered_offsets: list[int] = []
         next_hardware_offset = next((candidate for candidate in hardware_start_offsets if candidate > offset), None)
         prefix = symbol_name.upper()
@@ -1522,7 +1545,7 @@ def symbol_include_rows(includes_payload: dict,
                         field_rows: list[tuple[str, int, str, str | None, int, str | None, str | None, str | None]],
                         domain_constant_rows: list[tuple[str, int, str | None]],
                         assembler_include_symbols_by_path: dict[str, set[str]] | None = None,
-                        hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]] | None = None,
+                        hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, int, str | None]] | None = None,
                         available_include_paths: set[str] | None = None) -> list[tuple[str, str]]:
     entries: dict[str, str] = {}
     libraries = includes_payload.get("libraries", {})
@@ -1571,7 +1594,7 @@ def symbol_include_rows(includes_payload: dict,
         if include_path is not None:
             add(symbol_name, include_path)
 
-    for _, _, _, symbol_name, include_path, _, _, _, _ in hardware_rows or []:
+    for _, _, _, symbol_name, include_path, _, _, _, _, _ in hardware_rows or []:
         add(symbol_name, include_path)
 
     return sorted(entries.items(), key=lambda row: (row[1], row[0]))
@@ -1586,7 +1609,7 @@ def build_name_domains(rows: list[tuple[str, str, int, str, dict]],
                        domain_constant_rows: list[tuple[str, int, str | None]],
                        include_min_versions_data: list[tuple[str, str]],
                        symbol_include_rows_data: list[tuple[str, str]],
-                       hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
+                       hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, int, str | None]],
                        includes_payload: dict, other_payload: dict,
                        api_input_value_domains: dict[tuple[str, str, str], str],
                        api_input_semantic_kinds: dict[tuple[str, str, str], str],
@@ -1691,7 +1714,7 @@ def build_name_domains(rows: list[tuple[str, str, int, str, dict]],
     for symbol_name, include_path in symbol_include_rows_data:
         symbol_names.add(symbol_name)
         include_paths.add(include_path)
-    for _, _, _, symbol_name, include_path, value_domain_name, bit_domain_name, _, _ in hardware_rows:
+    for _, _, _, symbol_name, include_path, value_domain_name, bit_domain_name, _, _, _ in hardware_rows:
         symbol_names.add(symbol_name)
         include_paths.add(include_path)
         if value_domain_name is not None:
@@ -1737,7 +1760,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
                  api_input_binding_rows: list[tuple[str, str, str, str]],
                  struct_field_binding_rows: list[tuple[str, str, str | None, str]],
                  domain_constant_rows: list[tuple[str, int, str | None]],
-                 hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
+                 hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, int, str | None]],
                  hardware_field_rows: list[tuple[str, int, int, str, int, str, str, str | None, int, str | None]],
                  hardware_instance_alias_rows: list[tuple[str, str]],
                  hardware_range_rows: list[tuple[str, int, int, int, str, str]],
@@ -1821,6 +1844,13 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "  AMIGA_OS_HARDWARE_REGISTER_FLAG_NONE = 0,",
         "  AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK = 1",
         "} AmigaOsHardwareRegisterFlags;",
+        "",
+    ])
+    lines.append("typedef enum AmigaOsHardwareRuntimeTargetKind {")
+    for index, name in enumerate(AMIGA_HARDWARE_RUNTIME_TARGET_KIND_NAMES):
+        lines.append(f"  AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_{enum_token(name)} = {index},")
+    lines.extend([
+        "} AmigaOsHardwareRuntimeTargetKind;",
         "",
     ])
     for item in name_domain_meta:
@@ -1976,11 +2006,13 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "  const char *base_symbol;",
         "  uint32_t base_address;",
         "  uint32_t offset;",
+        "  uint16_t symbol_id;",
         "  const char *symbol_name;",
         "  const char *include_path;",
         "  uint16_t value_domain_id;",
         "  uint16_t bit_domain_id;",
         "  uint16_t flags;",
+        "  uint16_t runtime_target_kind;",
         "  const char *runtime_target_role;",
         "} AmigaOsHardwareRegisterInfo;",
         "",
@@ -1988,8 +2020,10 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "  const char *base_symbol;",
         "  uint32_t base_address;",
         "  uint32_t register_offset;",
+        "  uint16_t register_symbol_id;",
         "  const char *register_symbol;",
         "  uint32_t field_offset;",
+        "  uint16_t field_symbol_id;",
         "  const char *field_symbol;",
         "  const char *include_path;",
         "  const char *repeat_stride_symbol;",
@@ -2078,6 +2112,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_base_offset(const char *base_symbol, uint32_t offset);",
         "const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_cpu_address(uint32_t cpu_address);",
         "const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_base_offset(const char *base_symbol, uint32_t offset);",
+        "const char *amiga_os_hardware_runtime_target_kind_name(uint16_t kind);",
         "const char *amiga_os_find_hardware_base_symbol_by_address(uint32_t base_address);",
         "int amiga_os_find_hardware_base_address(const char *base_symbol, uint32_t *out_address);",
         "const char *amiga_os_exec_base_library_name(void);",
@@ -2121,7 +2156,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
                  api_input_binding_rows: list[tuple[str, str, str, str]],
                  struct_field_binding_rows: list[tuple[str, str, str | None, str]],
                  domain_constant_rows: list[tuple[str, int, str | None]],
-                 hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, str | None]],
+                 hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, int, str | None]],
                  hardware_field_rows: list[tuple[str, int, int, str, int, str, str, str | None, int, str | None]],
                  hardware_instance_alias_rows: list[tuple[str, str]],
                  hardware_range_rows: list[tuple[str, int, int, int, str, str]],
@@ -2550,16 +2585,19 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "static const AmigaOsHardwareRegisterInfo g_amiga_os_hardware_registers[] = {",
         ]
     )
-    for base_symbol, base_address, offset, symbol_name, include_path, value_domain_name, bit_domain_name, flags, runtime_target_role in hardware_rows:
-        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, \"%s\", \"%s\", %s, %s, %du, %s }," % (
+    for (base_symbol, base_address, offset, symbol_name, include_path, value_domain_name, bit_domain_name, flags,
+         runtime_target_kind, runtime_target_role) in hardware_rows:
+        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, %s, \"%s\", \"%s\", %s, %s, %du, %du, %s }," % (
             c_string(base_symbol),
             base_address,
             offset,
+            name_id_literal(name_domain_meta, "symbol", symbol_name),
             c_string(symbol_name),
             c_string(include_path),
             name_id_literal(name_domain_meta, "value_domain", value_domain_name),
             name_id_literal(name_domain_meta, "value_domain", bit_domain_name),
             flags,
+            runtime_target_kind,
             "NULL" if runtime_target_role is None else "\"%s\"" % c_string(runtime_target_role)))
     lines.extend(
         [
@@ -2569,13 +2607,15 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
         ]
     )
     for (base_symbol, base_address, register_offset, register_symbol, field_offset, field_symbol, include_path,
-         repeat_stride_symbol, repeat_stride, instance_symbol) in hardware_field_rows:
-        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, \"%s\", 0x%04Xu, \"%s\", \"%s\", %s, 0x%04Xu, %s }," % (
+        repeat_stride_symbol, repeat_stride, instance_symbol) in hardware_field_rows:
+        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, %s, \"%s\", 0x%04Xu, %s, \"%s\", \"%s\", %s, 0x%04Xu, %s }," % (
             c_string(base_symbol),
             base_address,
             register_offset,
+            name_id_literal(name_domain_meta, "symbol", register_symbol),
             c_string(register_symbol),
             field_offset,
+            name_id_literal(name_domain_meta, "symbol", field_symbol),
             c_string(field_symbol),
             c_string(include_path),
             "NULL" if repeat_stride_symbol is None else "\"%s\"" % c_string(repeat_stride_symbol),
@@ -2757,6 +2797,20 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "    if (strcmp(entry->base_symbol, base_symbol) == 0 && offset >= entry->offset && offset < entry->offset + entry->size) return entry;",
             "  }",
             "  return NULL;",
+            "}",
+            "",
+            "const char *amiga_os_hardware_runtime_target_kind_name(uint16_t kind) {",
+            "  switch (kind) {",
+        ]
+    )
+    for index, name in enumerate(AMIGA_HARDWARE_RUNTIME_TARGET_KIND_NAMES):
+        literal = "NULL" if name == "none" else "\"%s\"" % c_string(name)
+        lines.append(
+            f"  case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_{enum_token(name)}: return {literal};")
+    lines.extend(
+        [
+            "  default: return NULL;",
+            "  }",
             "}",
             "",
             "const char *amiga_os_find_hardware_base_symbol_by_address(uint32_t base_address) {",

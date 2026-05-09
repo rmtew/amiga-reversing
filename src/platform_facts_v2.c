@@ -347,25 +347,34 @@ int platform_facts_v2_is_runtime_address_sink(uint8_t platform_kind, uint32_t ad
   }
 }
 
-const char *platform_facts_v2_runtime_address_sink_data_class(uint8_t platform_kind, uint32_t address) {
+uint16_t platform_facts_v2_runtime_address_sink_kind(uint8_t platform_kind, uint32_t address) {
   switch (platform_kind) {
   case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
   {
     const AmigaOsHardwareRegisterInfo *hardware_register =
       amiga_os_find_hardware_register_by_cpu_address(address);
     if (hardware_register == NULL ||
-        (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
-        hardware_register->runtime_target_role == NULL || hardware_register->runtime_target_role[0] == '\0') {
-      return NULL;
+        (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U) {
+      return AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE;
     }
-    return hardware_register->runtime_target_role;
+    return hardware_register->runtime_target_kind;
   }
+  default:
+    return 0U;
+  }
+}
+
+const char *platform_facts_v2_runtime_address_sink_data_class(uint8_t platform_kind, uint32_t address) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_os_hardware_runtime_target_kind_name(
+      platform_facts_v2_runtime_address_sink_kind(platform_kind, address));
   default:
     return NULL;
   }
 }
 
-const char *platform_facts_v2_runtime_address_storage_sink_data_class(uint8_t platform_kind,
+uint16_t platform_facts_v2_runtime_address_storage_sink_kind(uint8_t platform_kind,
     const uint8_t *data, uint32_t size, uint32_t value_offset) {
   switch (platform_kind) {
   case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
@@ -374,9 +383,10 @@ const char *platform_facts_v2_runtime_address_storage_sink_data_class(uint8_t pl
     const AmigaOsHardwareRegisterRangeInfo *hardware_range;
     uint16_t register_word;
     uint32_t register_offset;
-    if (data == NULL || value_offset < 2U || value_offset > size - 2U) return NULL;
+    if (data == NULL || value_offset < 2U || value_offset > size - 2U)
+      return AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE;
     register_word = m68k_read_u16be(data + value_offset - 2U);
-    if ((register_word & 1U) != 0U) return NULL;
+    if ((register_word & 1U) != 0U) return AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE;
     register_offset = (uint32_t)(register_word & 0x01FEU);
     hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", register_offset);
     if (hardware_register == NULL) {
@@ -386,12 +396,22 @@ const char *platform_facts_v2_runtime_address_storage_sink_data_class(uint8_t pl
       }
     }
     if (hardware_register == NULL ||
-        (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
-        hardware_register->runtime_target_role == NULL || hardware_register->runtime_target_role[0] == '\0') {
-      return NULL;
+        (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U) {
+      return AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE;
     }
-    return hardware_register->runtime_target_role;
+    return hardware_register->runtime_target_kind;
   }
+  default:
+    return 0U;
+  }
+}
+
+const char *platform_facts_v2_runtime_address_storage_sink_data_class(uint8_t platform_kind,
+    const uint8_t *data, uint32_t size, uint32_t value_offset) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_os_hardware_runtime_target_kind_name(
+      platform_facts_v2_runtime_address_storage_sink_kind(platform_kind, data, size, value_offset));
   default:
     return NULL;
   }

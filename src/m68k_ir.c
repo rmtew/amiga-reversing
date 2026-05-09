@@ -52,6 +52,8 @@ uint32_t m68k_analysis_structured_data_role_flags_for_text(const char *semantic_
   if (strcmp(semantic_role, "lookup_table") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE;
   if (strcmp(semantic_role, "length_prefixed_string") == 0)
     return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING;
+  if (strcmp(semantic_role, "bitmap") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP;
+  if (strcmp(semantic_role, "sound_sample") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE;
   return 0U;
 }
 

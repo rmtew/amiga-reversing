@@ -1760,7 +1760,7 @@ static const AmigaOsHardwareRegisterInfo *copper_runtime_pointer_register(uint16
   }
   if (hardware_register == NULL ||
       (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
-      hardware_register->runtime_target_role == NULL || hardware_register->runtime_target_role[0] == '\0') {
+      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE) {
     return NULL;
   }
   return hardware_register;
@@ -1900,8 +1900,8 @@ static int format_amiga_display_register_comment(const AmigaOsHardwareRegisterIn
   uint32_t word = value & 0xFFFFU;
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
-  if (hardware_register == NULL || hardware_register->symbol_name == NULL) return 0;
-  if (strcmp(hardware_register->symbol_name, "bplcon0") == 0) {
+  if (hardware_register == NULL) return 0;
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0) {
     uint32_t plane_count = (word >> 12) & 7U;
     const char *resolution = (word & 0x8000U) != 0U ? "hires" : "lores";
     const char *color = (word & 0x0200U) != 0U ? " color" : "";
@@ -1909,36 +1909,36 @@ static int format_amiga_display_register_comment(const AmigaOsHardwareRegisterIn
     snprintf(buf, buf_size, "display %u bitplanes %s%s", (unsigned)plane_count, resolution, color);
     return strlen(buf) + 1U < buf_size;
   }
-  if (strcmp(hardware_register->symbol_name, "bplcon1") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON1) {
     snprintf(buf, buf_size, "display scroll pf1=%u pf2=%u",
       (unsigned)(word & 0xFU), (unsigned)((word >> 4) & 0xFU));
     return strlen(buf) + 1U < buf_size;
   }
-  if (strcmp(hardware_register->symbol_name, "diwstrt") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DIWSTRT) {
     snprintf(buf, buf_size, "display window start v=$%02X h=$%02X",
       (unsigned)((word >> 8) & 0xFFU), (unsigned)(word & 0xFFU));
     return strlen(buf) + 1U < buf_size;
   }
-  if (strcmp(hardware_register->symbol_name, "diwstop") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DIWSTOP) {
     snprintf(buf, buf_size, "display window stop v=$%02X h=$%02X",
       (unsigned)((word >> 8) & 0xFFU), (unsigned)(word & 0xFFU));
     return strlen(buf) + 1U < buf_size;
   }
-  if (strcmp(hardware_register->symbol_name, "ddfstrt") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DDFSTRT) {
     snprintf(buf, buf_size, "display fetch start $%02X", (unsigned)(word & 0xFFU));
     return strlen(buf) + 1U < buf_size;
   }
-  if (strcmp(hardware_register->symbol_name, "ddfstop") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DDFSTOP) {
     snprintf(buf, buf_size, "display fetch stop $%02X", (unsigned)(word & 0xFFU));
     return strlen(buf) + 1U < buf_size;
   }
-  if (strcmp(hardware_register->symbol_name, "bpl1mod") == 0 ||
-      strcmp(hardware_register->symbol_name, "bpl2mod") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPL1MOD ||
+      hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPL2MOD) {
     int16_t modulo = (int16_t)word;
     snprintf(buf, buf_size, "bitplane modulo %d bytes", (int)modulo);
     return strlen(buf) + 1U < buf_size;
   }
-  if (strcmp(hardware_register->symbol_name, "bltsize") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BLTSIZE) {
     uint32_t height = (word >> 6) & 0x3FFU;
     uint32_t width_words = word & 0x3FU;
     if (height == 0U) height = 1024U;
@@ -1957,12 +1957,12 @@ static int format_amiga_disk_dma_register_comment(const AmigaOsHardwareRegisterI
   const char *direction;
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
-  if (hardware_register == NULL || hardware_register->symbol_name == NULL ||
-      (strcmp(hardware_register->symbol_name, "dsklen") != 0 &&
-       strcmp(hardware_register->symbol_name, "dsksync") != 0)) {
+  if (hardware_register == NULL ||
+      (hardware_register->symbol_id != AMIGA_OS_SYMBOL_ID_DSKLEN &&
+       hardware_register->symbol_id != AMIGA_OS_SYMBOL_ID_DSKSYNC)) {
     return 0;
   }
-  if (strcmp(hardware_register->symbol_name, "dsksync") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DSKSYNC) {
     snprintf(buf, buf_size, "disk sync word $%04X", (unsigned)word);
     return strlen(buf) + 1U < buf_size;
   }
@@ -1979,19 +1979,18 @@ static int format_amiga_audio_register_comment(const AmigaOsHardwareRegisterFiel
   uint32_t word = value & 0xFFFFU;
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
-  if (hardware_field == NULL || hardware_field->register_symbol == NULL || hardware_field->field_symbol == NULL ||
-      strncmp(hardware_field->register_symbol, "aud", 3U) != 0) {
+  if (hardware_field == NULL) {
     return 0;
   }
-  if (strcmp(hardware_field->field_symbol, "ac_len") == 0) {
+  if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_LEN) {
     snprintf(buf, buf_size, "sound sample length %u bytes", (unsigned)(word * 2U));
     return strlen(buf) + 1U < buf_size;
   }
-  if (strcmp(hardware_field->field_symbol, "ac_per") == 0) {
+  if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_PER) {
     snprintf(buf, buf_size, "audio period %u", (unsigned)word);
     return strlen(buf) + 1U < buf_size;
   }
-  if (strcmp(hardware_field->field_symbol, "ac_vol") == 0) {
+  if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_VOL) {
     snprintf(buf, buf_size, "audio volume %u", (unsigned)word);
     return strlen(buf) + 1U < buf_size;
   }
@@ -2002,15 +2001,14 @@ static int format_amiga_audio_register_access_comment(const AmigaOsHardwareRegis
     char *buf, size_t buf_size) {
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
-  if (hardware_field == NULL || hardware_field->register_symbol == NULL || hardware_field->field_symbol == NULL ||
-      strncmp(hardware_field->register_symbol, "aud", 3U) != 0) {
+  if (hardware_field == NULL) {
     return 0;
   }
-  if (strcmp(hardware_field->field_symbol, "ac_per") == 0) {
+  if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_PER) {
     snprintf(buf, buf_size, "audio period");
     return strlen(buf) + 1U < buf_size;
   }
-  if (strcmp(hardware_field->field_symbol, "ac_dat") == 0) {
+  if (hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_DAT) {
     snprintf(buf, buf_size, "audio data word");
     return strlen(buf) + 1U < buf_size;
   }
@@ -2021,17 +2019,17 @@ static int format_amiga_hardware_register_access_comment(const AmigaOsHardwareRe
     uint8_t access_kind, char *buf, size_t buf_size) {
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
-  if (hardware_register == NULL || hardware_register->symbol_name == NULL) return 0;
+  if (hardware_register == NULL) return 0;
   if (access_kind == M68K_SIM_ACCESS_MEMORY_READ) {
-    if (strcmp(hardware_register->symbol_name, "joy0dat") == 0) {
+    if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_JOY0DAT) {
       snprintf(buf, buf_size, "joystick/mouse port 0 data");
       return strlen(buf) + 1U < buf_size;
     }
-    if (strcmp(hardware_register->symbol_name, "joy1dat") == 0) {
+    if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_JOY1DAT) {
       snprintf(buf, buf_size, "joystick/mouse port 1 data");
       return strlen(buf) + 1U < buf_size;
     }
-    if (strcmp(hardware_register->symbol_name, "intreqr") == 0) {
+    if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_INTREQR) {
       snprintf(buf, buf_size, "interrupt request state");
       return strlen(buf) + 1U < buf_size;
     }
@@ -3312,15 +3310,17 @@ static int amiga_hardware_register_uses_custom_immediate_expr(const AmigaOsHardw
     int use_bit_domain) {
   if (hardware_register == NULL || use_bit_domain) return 0;
   if (strcmp(hardware_register->base_symbol, "_custom") != 0) return 0;
-  return strcmp(hardware_register->symbol_name, "bplcon0") == 0 ||
-    strcmp(hardware_register->symbol_name, "bltsize") == 0;
+  return hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0 ||
+    hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BLTSIZE;
 }
 
 int amiga_hardware_register_custom_immediate_expr(const AmigaOsHardwareRegisterInfo *hardware_register,
     uint32_t value, int use_bit_domain, char *expr, size_t expr_size) {
   if (amiga_hardware_register_uses_custom_immediate_expr(hardware_register, use_bit_domain)) {
-    if (strcmp(hardware_register->symbol_name, "bplcon0") == 0) return amiga_bplcon0_symbolic_expr(value, expr, expr_size);
-    if (strcmp(hardware_register->symbol_name, "bltsize") == 0) return amiga_bltsize_symbolic_expr(value, expr, expr_size);
+    if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0)
+      return amiga_bplcon0_symbolic_expr(value, expr, expr_size);
+    if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BLTSIZE)
+      return amiga_bltsize_symbolic_expr(value, expr, expr_size);
   }
   return 0;
 }
@@ -4926,7 +4926,7 @@ static const AmigaOsHardwareRegisterInfo *external_runtime_address_ref_sink_regi
   }
   if (hardware_register == NULL ||
       (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
-      hardware_register->runtime_target_role == NULL || hardware_register->runtime_target_role[0] == '\0') {
+      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE) {
     return NULL;
   }
   return hardware_register;
@@ -7589,7 +7589,7 @@ static void attach_amiga_runtime_sink_comment_for_render(const M68kRenderPlatfor
   hardware_register = resolve_amiga_hardware_register_operand(state, &instruction->operands[dest_index]);
   if (hardware_register == NULL ||
       (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
-      hardware_register->runtime_target_role == NULL || hardware_register->runtime_target_role[0] == '\0') {
+      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE) {
     return;
   }
   external_ref = lookup_external_runtime_address_ref_for_instruction(lookup, section_index, offset);

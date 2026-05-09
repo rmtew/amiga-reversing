@@ -3880,7 +3880,7 @@ int render_lookup_add_runtime_address_ref(M68kRenderLookup *lookup, const M68kFa
 }
 
 static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset, uint32_t runtime_address, uint32_t size, const char *data_class) {
+    uint32_t offset, uint32_t runtime_address, uint32_t size, const char *data_class, uint32_t data_class_flags) {
   M68kRenderInferredRuntimeAddressRef *grown;
   M68kRenderInferredRuntimeAddressRef *entry;
   size_t next_capacity;
@@ -3890,7 +3890,8 @@ static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *look
     const M68kRenderInferredRuntimeAddressRef *existing = &lookup->inferred_runtime_address_refs[index];
     if (existing->section_index == section_index && existing->ref.offset == offset &&
         existing->ref.has_runtime_address && existing->ref.runtime_address == runtime_address &&
-        existing->ref.size == size && strcmp(existing->data_class, data_class) == 0) {
+        existing->ref.size == size && existing->data_class_flags == data_class_flags &&
+        strcmp(existing->data_class, data_class) == 0) {
       return 0;
     }
   }
@@ -3914,6 +3915,8 @@ static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *look
   entry->ref.has_runtime_address = 1U;
   entry->ref.runtime_address = runtime_address;
   entry->ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  entry->data_class_flags = data_class_flags != 0U ? data_class_flags :
+    m68k_analysis_structured_data_role_flags_for_text(data_class);
   snprintf(entry->data_class, sizeof(entry->data_class), "%s", data_class);
   entry->ref.data_class = entry->data_class;
   ++lookup->inferred_runtime_address_ref_count;
@@ -5131,6 +5134,16 @@ static int runtime_address_ref_sink_address(const M68kDecodeIR *decode, const M6
   return asm_candidate_operand_absolute_value(candidate, 1U, out_sink_address);
 }
 
+static uint16_t runtime_address_ref_sink_kind(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    const M68kFact *fact) {
+  uint32_t sink_address = 0U;
+  if (lookup == NULL || lookup->object == NULL ||
+      !runtime_address_ref_sink_address(decode, fact, &sink_address)) {
+    return 0U;
+  }
+  return platform_facts_v2_runtime_address_sink_kind(lookup->object->platform_backend_kind, sink_address);
+}
+
 static uint32_t copper_list_size_at(const M68kDecodeSectionIR *section, uint32_t offset) {
   uint32_t cursor;
   if (section == NULL || section->data == NULL || offset >= section->size || ((section->size - offset) < 4U))
@@ -5156,7 +5169,7 @@ static const AmigaOsHardwareRegisterInfo *copper_runtime_pointer_register_local(
   }
   if (hardware_register == NULL ||
       (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
-      hardware_register->runtime_target_role == NULL || hardware_register->runtime_target_role[0] == '\0') {
+      hardware_register->runtime_target_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE) {
     return NULL;
   }
   return hardware_register;
@@ -5179,8 +5192,8 @@ static int copper_list_bitmap_pointer_at(const uint8_t *data, uint32_t offset, u
   if ((first & 1U) != 0U || (next_first & 1U) != 0U) return 0;
   register_offset = (uint32_t)(first & 0x01FEU);
   hardware_register = copper_runtime_pointer_register_local(first);
-  if (hardware_register == NULL || hardware_register->runtime_target_role == NULL ||
-      strcmp(hardware_register->runtime_target_role, "bitmap") != 0) {
+  if (hardware_register == NULL ||
+      hardware_register->runtime_target_kind != AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BITMAP) {
     return 0;
   }
   if (register_offset < hardware_register->offset ||
@@ -5259,7 +5272,7 @@ static int render_lookup_add_copper_bitmap_runtime_refs(M68kRenderLookup *lookup
   step = copper_bitmap_pointer_even_step(pointers, pointer_count);
   for (index = 0U; index < pointer_count; ++index) {
     if (render_lookup_add_inferred_runtime_address_ref(lookup, section->section_index, row_offsets[index],
-        pointers[index], step, "bitmap") != 0) {
+        pointers[index], step, "bitmap", M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) != 0) {
       return -1;
     }
   }
@@ -5288,7 +5301,7 @@ static int bitmap_runtime_address_for_value(const M68kRenderLookup *lookup, uint
     const M68kRenderInferredRuntimeAddressRef *entry = &lookup->inferred_runtime_address_refs[index];
     uint32_t base;
     uint32_t size;
-    if (entry->ref.data_class == NULL || strcmp(entry->ref.data_class, "bitmap") != 0 ||
+    if ((entry->data_class_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) == 0U ||
         !entry->ref.has_runtime_address) {
       continue;
     }
@@ -5332,7 +5345,7 @@ static int render_lookup_add_bitmap_memory_comment(M68kRenderLookup *lookup, siz
   result = render_lookup_add_instruction_comment(lookup, section_index, offset, comment);
   if (result != 0) return result;
   return render_lookup_add_inferred_runtime_address_ref(lookup, section_index, offset,
-    address->base + address->delta, 0U, "bitmap");
+    address->base + address->delta, 0U, "bitmap", M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP);
 }
 
 static int operand_runtime_address_from_bitmap_base(const M68kRenderBitmapBaseState *state,
@@ -5474,38 +5487,38 @@ typedef struct M68kRenderDisplaySetup {
 static int display_setup_record_register_write(M68kRenderDisplaySetup *setup,
     const AmigaOsHardwareRegisterInfo *hardware_register, uint32_t value) {
   uint16_t word = (uint16_t)value;
-  if (setup == NULL || hardware_register == NULL || hardware_register->symbol_name == NULL) return 0;
-  if (strcmp(hardware_register->symbol_name, "bplcon0") == 0) {
+  if (setup == NULL || hardware_register == NULL) return 0;
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0) {
     setup->has_bplcon0 = 1U;
     setup->bplcon0 = word;
     return 1;
   }
-  if (strcmp(hardware_register->symbol_name, "diwstrt") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DIWSTRT) {
     setup->has_diwstrt = 1U;
     setup->diwstrt = word;
     return 1;
   }
-  if (strcmp(hardware_register->symbol_name, "diwstop") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DIWSTOP) {
     setup->has_diwstop = 1U;
     setup->diwstop = word;
     return 1;
   }
-  if (strcmp(hardware_register->symbol_name, "ddfstrt") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DDFSTRT) {
     setup->has_ddfstrt = 1U;
     setup->ddfstrt = word;
     return 1;
   }
-  if (strcmp(hardware_register->symbol_name, "ddfstop") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_DDFSTOP) {
     setup->has_ddfstop = 1U;
     setup->ddfstop = word;
     return 1;
   }
-  if (strcmp(hardware_register->symbol_name, "bpl1mod") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPL1MOD) {
     setup->has_bpl1mod = 1U;
     setup->bpl1mod = (int16_t)word;
     return 1;
   }
-  if (strcmp(hardware_register->symbol_name, "bpl2mod") == 0) {
+  if (hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPL2MOD) {
     setup->has_bpl2mod = 1U;
     setup->bpl2mod = (int16_t)word;
     return 1;
@@ -5662,8 +5675,7 @@ static int audio_length_write_source_reg(const M68kDecodeCandidate *candidate,
     return 0;
   }
   hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(dest_address);
-  return hardware_field != NULL && hardware_field->field_symbol != NULL &&
-    strcmp(hardware_field->field_symbol, "ac_len") == 0;
+  return hardware_field != NULL && hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_LEN;
 }
 
 static int audio_period_write_source_reg(const M68kDecodeCandidate *candidate,
@@ -5682,8 +5694,7 @@ static int audio_period_write_source_reg(const M68kDecodeCandidate *candidate,
     return 0;
   }
   hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(dest_address);
-  return hardware_field != NULL && hardware_field->field_symbol != NULL &&
-    strcmp(hardware_field->field_symbol, "ac_per") == 0;
+  return hardware_field != NULL && hardware_field->field_symbol_id == AMIGA_OS_SYMBOL_ID_AC_PER;
 }
 
 static int render_lookup_add_audio_length_source_comment(M68kRenderLookup *lookup, size_t section_index,
@@ -5728,10 +5739,10 @@ static int render_lookup_add_audio_pointer_source_comment(M68kRenderLookup *look
     const M68kInstructionIR *instruction, const M68kRenderDataPointerState *state) {
   const M68kSimFormMetadata *metadata;
   const M68kRenderDataPointerValue *value;
-  const char *data_class;
   size_t source_index = 0U, dest_index = 0U;
   uint8_t source_reg = 0U;
   uint8_t platform_kind;
+  uint16_t sink_kind;
   uint32_t dest_address = 0U;
   char label[64];
   char table_label[64];
@@ -5747,8 +5758,8 @@ static int render_lookup_add_audio_pointer_source_comment(M68kRenderLookup *look
   }
   platform_kind = (uint8_t)(lookup->object != NULL ?
     lookup->object->platform_backend_kind : M68K_PLATFORM_BACKEND_UNKNOWN);
-  data_class = platform_facts_v2_runtime_address_sink_data_class(platform_kind, dest_address);
-  if (data_class == NULL || strcmp(data_class, "sound_sample") != 0 ||
+  sink_kind = platform_facts_v2_runtime_address_sink_kind(platform_kind, dest_address);
+  if (sink_kind != AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE ||
       source_reg >= 8U || !state->addr_regs[source_reg].known) {
     return 0;
   }
@@ -5916,9 +5927,9 @@ static int candidate_immediate_audio_length_bytes(const M68kDecodeCandidate *can
     return 0;
   }
   hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(dest_address);
-  if (hardware_field == NULL || hardware_field->field_symbol == NULL ||
+  if (hardware_field == NULL ||
       hardware_field->register_offset != audio_register_offset ||
-      strcmp(hardware_field->field_symbol, "ac_len") != 0) {
+      hardware_field->field_symbol_id != AMIGA_OS_SYMBOL_ID_AC_LEN) {
     return 0;
   }
   *out_size = (immediate & 0xFFFFU) * 2U;
@@ -5935,9 +5946,8 @@ static uint32_t sound_sample_size_from_nearby_audio_length_write(const M68kDecod
   if (decode == NULL || accepted_start == NULL || fact == NULL || fact->section_index >= decode->section_count)
     return 0U;
   hardware_register = amiga_os_find_hardware_register_by_cpu_address(sink_address);
-  if (hardware_register == NULL || hardware_register->symbol_name == NULL ||
-      hardware_register->runtime_target_role == NULL ||
-      strcmp(hardware_register->runtime_target_role, "sound_sample") != 0) {
+  if (hardware_register == NULL ||
+      hardware_register->runtime_target_kind != AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE) {
     return 0U;
   }
   section = &decode->sections[fact->section_index];
@@ -5962,11 +5972,12 @@ static int render_lookup_infer_platform_runtime_structured_data(M68kRenderLookup
   for (index = 0U; index < lookup->runtime_address_ref_count; ++index) {
     const M68kFact *fact = lookup->runtime_address_refs[index].fact;
     const char *data_class = runtime_address_ref_data_class(lookup, decode, fact);
+    uint16_t sink_kind = runtime_address_ref_sink_kind(lookup, decode, fact);
     uint32_t sink_address = 0U;
     uint32_t size = 0U;
     uint8_t kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
     if (fact == NULL || data_class == NULL || fact->target_section_index >= decode->section_count) continue;
-    if (strcmp(data_class, "copper_list") == 0) {
+    if (sink_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_COPPER_LIST) {
       size = copper_list_size_at(&decode->sections[fact->target_section_index], fact->target_offset);
       if (size != 0U) {
         char layout_comment[128];
@@ -5991,7 +6002,7 @@ static int render_lookup_infer_platform_runtime_structured_data(M68kRenderLookup
           return -1;
         }
       }
-    } else if (accepted_start != NULL && strcmp(data_class, "sound_sample") == 0 &&
+    } else if (accepted_start != NULL && sink_kind == AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE &&
         runtime_address_ref_sink_address(decode, fact, &sink_address)) {
       size = sound_sample_size_from_nearby_audio_length_write(decode, accepted_start, fact, sink_address);
       kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;

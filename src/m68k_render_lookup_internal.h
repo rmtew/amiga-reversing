@@ -141,6 +141,7 @@ typedef struct M68kRenderRuntimeAddressRefIndex {
 typedef struct M68kRenderInferredRuntimeAddressRef {
   size_t section_index;
   M68kRuntimeAddressRefIR ref;
+  uint32_t data_class_flags;
   char data_class[64];
 } M68kRenderInferredRuntimeAddressRef;
 

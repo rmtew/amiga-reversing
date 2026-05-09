@@ -7112,6 +7112,8 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
   M68K_C_ASSERT(aud0_len_by_base == aud0_len);
   M68K_C_ASSERT_STR("aud", aud0_len->register_symbol);
   M68K_C_ASSERT_STR("ac_len", aud0_len->field_symbol);
+  M68K_C_ASSERT_U32(AMIGA_OS_SYMBOL_ID_AUD, aud0_len->register_symbol_id);
+  M68K_C_ASSERT_U32(AMIGA_OS_SYMBOL_ID_AC_LEN, aud0_len->field_symbol_id);
   M68K_C_ASSERT(spr1_dataa != NULL);
   M68K_C_ASSERT_STR("spr", spr1_dataa->register_symbol);
   M68K_C_ASSERT_STR("sd_dataa", spr1_dataa->field_symbol);
@@ -7128,12 +7130,20 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
   M68K_C_ASSERT_STR("spr", sprpt_past_end->symbol_name);
   M68K_C_ASSERT(aud0_len_as_range == NULL);
   M68K_C_ASSERT_STR("copper_list", cop1lc->runtime_target_role);
+  M68K_C_ASSERT_U32(AMIGA_OS_SYMBOL_ID_COP1LC, cop1lc->symbol_id);
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_COPPER_LIST, cop1lc->runtime_target_kind);
   M68K_C_ASSERT_STR("disk_buffer", dskpt->runtime_target_role);
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_DISK_BUFFER, dskpt->runtime_target_kind);
   M68K_C_ASSERT_STR("blitter_source", bltcpt->runtime_target_role);
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BLITTER_SOURCE, bltcpt->runtime_target_kind);
   M68K_C_ASSERT_STR("blitter_destination", bltdpt->runtime_target_role);
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BLITTER_DESTINATION, bltdpt->runtime_target_kind);
   M68K_C_ASSERT_STR("sound_sample", aud0->runtime_target_role);
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE, aud0->runtime_target_kind);
   M68K_C_ASSERT_STR("bitmap", bplpt->runtime_target_role);
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BITMAP, bplpt->runtime_target_kind);
   M68K_C_ASSERT_STR("sprite", sprpt->runtime_target_role);
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SPRITE, sprpt->runtime_target_kind);
   M68K_C_ASSERT((cop1lc->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U);
   M68K_C_ASSERT((dskpt->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U);
   M68K_C_ASSERT((bltcpt->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U);
@@ -7156,6 +7166,10 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0E0U));
   M68K_C_ASSERT_STR("sprite",
     platform_facts_v2_runtime_address_sink_data_class(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF120U));
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BITMAP,
+    platform_facts_v2_runtime_address_sink_kind(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0E0U));
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE,
+    platform_facts_v2_runtime_address_sink_kind(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF09AU));
   M68K_C_ASSERT(platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF080U));
   M68K_C_ASSERT(platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF020U));
   M68K_C_ASSERT(!platform_facts_v2_is_runtime_address_sink(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF09AU));
