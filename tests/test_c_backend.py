@@ -4590,6 +4590,35 @@ def test_project_source_facts_v2_biased_absolute_long_dispatch_table_roundtrips(
     assert rebuilt == binary_path.read_bytes()
 
 
+def test_project_source_facts_v2_pc_indexed_absolute_long_dispatch_table_roundtrips(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "pc_indexed_long_dispatch.hunk"
+    code = bytes.fromhex("7800227B40044ED100000010000000124E754E75")
+    binary_path.write_bytes(make_synthetic_hunkexe(code_data=code))
+    source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "pc_indexed_long_dispatch.analysis",
+    )
+
+    rendered, profile = listing_artifact_source_text_with_c_backend_profile(source, project_root=PROJECT_ROOT)
+    rebuilt, source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+        source,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert "\tmovea.l loc_0_00000008(pc,d4.w),a1\n\tjmp (a1)\n" in rendered
+    assert "\tdc.l loc_0_00000010,loc_0_00000012\t; lookup_table\n" in rendered
+    assert "loc_0_00000010:\n\trts\nloc_0_00000012:\n\trts\n" in rendered
+    assert "dc.b $00,$00,$00,$10,$00,$00,$00,$12" not in rendered
+    assert profile["facts_v2"]["asm_source_refused"] is False
+    assert profile["facts_v2"]["code_start_control_targets"] >= 2
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert direct_profile["direct_rebuild_refused"] is False
+    assert rebuilt == binary_path.read_bytes()
+
+
 @pytest.mark.parametrize("target_name", ["amiga_hunk_genam", "amiga_hunk_monam302"])
 def test_project_source_facts_v2_indexed_pointer_table_comparators_stay_clean(target_name: str) -> None:
     _requires_c_backend_dlls()
