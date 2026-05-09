@@ -4201,7 +4201,7 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
   item->offset = offset;
   item->size = size;
   item->kind = kind;
-  m68k_analysis_structured_data_item_set_semantic_role(item, semantic_role);
+  m68k_analysis_structured_data_item_set_semantic_role_flags(item, semantic_role_flags);
   ++lookup->auto_structured_data_item_count;
   return 0;
 }

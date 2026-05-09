@@ -254,6 +254,22 @@ static int test_instruction_mnemonic_helpers_use_id(void) {
   return 0;
 }
 
+static int test_structured_data_role_flags_setter_owns_display_text(void) {
+  M68kAnalysisStructuredDataItem item;
+  memset(&item, 0, sizeof(item));
+  snprintf(item.semantic_role, sizeof(item.semantic_role), "%s", "stale");
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING);
+  M68K_C_ASSERT_U32(
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING,
+    item.semantic_role_flags);
+  M68K_C_ASSERT_STR("length_prefixed_string", item.semantic_role);
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item, 0U);
+  M68K_C_ASSERT_U32(0U, item.semantic_role_flags);
+  M68K_C_ASSERT_STR("", item.semantic_role);
+  return 0;
+}
+
 static int test_section_append_statement_copies_data(void) {
   M68kSectionIR section;
   M68kStatementIR statement;
@@ -14984,6 +15000,8 @@ int m68k_c_ir_tests(void) {
     {"coprocessor_id_roundtrips_from_kb_id_field", test_coprocessor_id_roundtrips_from_kb_id_field},
     {"analysis_defaults_and_inits", test_analysis_defaults_and_inits},
     {"instruction_mnemonic_helpers_use_id", test_instruction_mnemonic_helpers_use_id},
+    {"structured_data_role_flags_setter_owns_display_text",
+      test_structured_data_role_flags_setter_owns_display_text},
     {"section_append_statement_copies_data", test_section_append_statement_copies_data},
     {"section_analysis_label_dedupes", test_section_analysis_label_dedupes},
     {"source_analysis_append_section_copies_recovered_dispatches",

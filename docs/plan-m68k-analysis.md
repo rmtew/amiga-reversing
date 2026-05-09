@@ -233,7 +233,8 @@ proves a distinct base id.
      structured table facts; JSON derives `source_pattern` as display text,
      ignores stale source-pattern strings, and corpus tags consume the id
    - semantic role provenance: implemented as C `semantic_role_flags`; JSON
-     `semantic_role` is derived display text and stale role strings are ignored
+     `semantic_role` is derived display text, C auto-analysis sets roles by
+     flags, and stale role strings are ignored
    - runtime-address data class provenance: implemented as C
      `data_class_flags`; JSON `data_class` is derived display text and stale
      class strings are ignored

@@ -143,6 +143,15 @@ void m68k_analysis_structured_data_item_set_semantic_role(M68kAnalysisStructured
   item->semantic_role_flags = m68k_analysis_structured_data_role_flags_for_text(item->semantic_role);
 }
 
+void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStructuredDataItem *item,
+    uint32_t semantic_role_flags) {
+  const char *semantic_role;
+  if (item == NULL) return;
+  item->semantic_role_flags = semantic_role_flags;
+  semantic_role = m68k_analysis_structured_data_role_name_for_flags(semantic_role_flags);
+  snprintf(item->semantic_role, sizeof(item->semantic_role), "%s", semantic_role != NULL ? semantic_role : "");
+}
+
 static void m68k_ir_section_init_shared(M68kSectionIR *section, Arena *arena) {
   memset(section, 0, sizeof(*section));
   section->arena = arena;
