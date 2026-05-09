@@ -1694,10 +1694,13 @@ static int format_amiga_named_typed_slot_symbol_name(const M68kSectionAnalysisIR
 static int resolve_amiga_struct_field_symbol_name(const char *type_name, int16_t displacement, char *buf,
     size_t buf_size) {
   const AmigaOsStructFieldInfo *field;
+  uint16_t struct_id;
   if (type_name == NULL || buf == NULL || buf_size == 0U) return 0;
   field = amiga_os_find_struct_field(type_name, displacement);
-  if (field == NULL && strcmp(type_name, "LIB") == 0) {
-    field = amiga_os_find_struct_field("LN", displacement);
+  struct_id = amiga_os_name_id(M68K_PLATFORM_NAME_STRUCT, type_name);
+  if (field == NULL && struct_id == AMIGA_OS_STRUCT_ID_LIB) {
+    field = amiga_os_find_struct_field(amiga_os_name(M68K_PLATFORM_NAME_STRUCT, AMIGA_OS_STRUCT_ID_LN),
+      displacement);
   }
   if (field != NULL && amiga_struct_field_name(field) != NULL && amiga_struct_field_name(field)[0] != '\0') {
     snprintf(buf, buf_size, "%s", amiga_struct_field_name(field));
@@ -1708,10 +1711,13 @@ static int resolve_amiga_struct_field_symbol_name(const char *type_name, int16_t
 
 static const char *resolve_amiga_struct_field_nested_type_name(const char *type_name, int16_t displacement) {
   const AmigaOsStructFieldInfo *field;
+  uint16_t struct_id;
   if (type_name == NULL) return NULL;
   field = amiga_os_find_struct_field(type_name, displacement);
-  if (field == NULL && strcmp(type_name, "LIB") == 0) {
-    field = amiga_os_find_struct_field("LN", displacement);
+  struct_id = amiga_os_name_id(M68K_PLATFORM_NAME_STRUCT, type_name);
+  if (field == NULL && struct_id == AMIGA_OS_STRUCT_ID_LIB) {
+    field = amiga_os_find_struct_field(amiga_os_name(M68K_PLATFORM_NAME_STRUCT, AMIGA_OS_STRUCT_ID_LN),
+      displacement);
   }
   if (field == NULL || amiga_struct_field_nested_type_name(field) == NULL ||
       amiga_struct_field_nested_type_name(field)[0] == '\0') {
@@ -3401,7 +3407,7 @@ static int format_amiga_local_wrapper_label(size_t section_index, const AmigaOsL
   if (base_name == NULL || base_name[0] == '\0' || symbol_name == NULL || symbol_name[0] == '\0') return 0;
   written = snprintf(buf, buf_size, "h%u_", (unsigned)section_index);
   if (written < 0 || (size_t)written >= buf_size) return 0;
-  if (strcmp(base_name, "SysBase") == 0) {
+  if (entry->base_id == AMIGA_OS_BASE_ID_SYSBASE) {
     append_amiga_identifier_tail(buf, buf_size, "Exec", 0, 0);
   } else {
     append_amiga_identifier_tail(buf, buf_size, base_name, 0, 1);
