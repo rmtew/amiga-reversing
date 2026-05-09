@@ -3088,6 +3088,21 @@ static int policy_set_structured_data_item_metadata_local(M68kAnalysisPolicy *po
       item_index >= M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) return 0;
   item = &policy->structured_data_items[item_index];
   item->is_pointer = is_pointer;
+  item->struct_id = amiga_os_name_id(M68K_PLATFORM_NAME_STRUCT, struct_name);
+  if (amiga_os_name(M68K_PLATFORM_NAME_STRUCT, item->struct_id) == NULL) item->struct_id = AMIGA_OS_STRUCT_ID_NONE;
+  item->field_id = amiga_os_name_id(M68K_PLATFORM_NAME_FIELD, field_name);
+  if (amiga_os_name(M68K_PLATFORM_NAME_FIELD, item->field_id) == NULL) item->field_id = AMIGA_OS_FIELD_ID_NONE;
+  if (struct_name != NULL && strcmp(struct_name, "resident_autoinit") == 0) {
+    item->platform_kind_id = M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT;
+    if (field_name != NULL && strcmp(field_name, "resident_base_size") == 0)
+      item->platform_field_id = M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_BASE_SIZE;
+    else if (field_name != NULL && strcmp(field_name, "resident_vectors") == 0)
+      item->platform_field_id = M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_VECTORS;
+    else if (field_name != NULL && strcmp(field_name, "resident_init_struct") == 0)
+      item->platform_field_id = M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_INIT_STRUCT;
+    else if (field_name != NULL && strcmp(field_name, "resident_init_function") == 0)
+      item->platform_field_id = M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_INIT_FUNCTION;
+  }
   m68k_analysis_structured_data_item_set_semantic_role_flags(item, semantic_role_flags);
   return copy_policy_text(item->label, sizeof(item->label), label) &&
     copy_policy_text(item->struct_name, sizeof(item->struct_name), struct_name) &&
@@ -3103,6 +3118,9 @@ static int policy_set_structured_data_item_kb_metadata_local(M68kAnalysisPolicy 
   item = &policy->structured_data_items[item_index];
   item->has_constant_value = has_constant_value;
   item->constant_value = constant_value;
+  item->pointer_struct_id = amiga_os_name_id(M68K_PLATFORM_NAME_STRUCT, pointer_struct);
+  if (amiga_os_name(M68K_PLATFORM_NAME_STRUCT, item->pointer_struct_id) == NULL)
+    item->pointer_struct_id = AMIGA_OS_STRUCT_ID_NONE;
   return copy_policy_text(item->field_type, sizeof(item->field_type), field_type) &&
     copy_policy_text(item->c_type, sizeof(item->c_type), c_type) &&
     copy_policy_text(item->pointer_struct, sizeof(item->pointer_struct), pointer_struct) &&
@@ -3313,12 +3331,18 @@ static int append_metadata_resident_rt_structure_local(const char *resident_star
 static int policy_set_structured_field_target_local(M68kAnalysisPolicy *policy, uint32_t hunk,
     const char *struct_name, const char *field_name, uint32_t target_hunk, uint32_t target_offset) {
   uint16_t index;
+  uint16_t struct_id;
+  uint16_t field_id;
   if (policy == NULL || struct_name == NULL || field_name == NULL) return 0;
+  struct_id = amiga_os_name_id(M68K_PLATFORM_NAME_STRUCT, struct_name);
+  if (amiga_os_name(M68K_PLATFORM_NAME_STRUCT, struct_id) == NULL) return 1;
+  field_id = amiga_os_name_id(M68K_PLATFORM_NAME_FIELD, field_name);
+  if (amiga_os_name(M68K_PLATFORM_NAME_FIELD, field_id) == NULL) return 1;
   for (index = 0U; index < policy->structured_data_item_count &&
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
     if (!item->has_section_index || item->section_index != hunk) continue;
-    if (strcmp(item->struct_name, struct_name) != 0 || strcmp(item->field_name, field_name) != 0) continue;
+    if (item->struct_id != struct_id || item->field_id != field_id) continue;
     return policy_set_structured_data_item_target_local(policy, index, target_hunk, target_offset);
   }
   return 1;
@@ -4598,9 +4622,9 @@ static int enrich_policy_from_non_autoinit_resident_make_library_local(M68kAnaly
 }
 
 static const char *resident_pointer_target_label_local(const M68kAnalysisStructuredDataItem *item) {
-  if (item == NULL || strcmp(item->struct_name, "RT") != 0) return NULL;
-  if (strcmp(item->field_name, "RT_NAME") == 0) return "resident_name";
-  if (strcmp(item->field_name, "RT_IDSTRING") == 0) return "resident_idstring";
+  if (item == NULL || item->struct_id != AMIGA_OS_STRUCT_ID_RT) return NULL;
+  if (item->field_id == AMIGA_OS_FIELD_ID_RT_NAME) return "resident_name";
+  if (item->field_id == AMIGA_OS_FIELD_ID_RT_IDSTRING) return "resident_idstring";
   return NULL;
 }
 
@@ -4666,7 +4690,9 @@ static int policy_has_resident_struct_policy_local(const M68kAnalysisPolicy *pol
   for (index = 0U; index < policy->structured_data_item_count && index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT;
        ++index) {
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
-    if (strcmp(item->struct_name, "RT") == 0) return 1;
+    if (item->struct_id == AMIGA_OS_STRUCT_ID_RT ||
+        item->platform_kind_id == M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT)
+      return 1;
   }
   for (index = 0U; index < policy->named_label_count && index < M68K_ANALYSIS_NAMED_LABEL_LIMIT; ++index) {
     const M68kAnalysisNamedLabel *label = &policy->named_labels[index];
@@ -4815,12 +4841,19 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (append_nullable_text_json_local(builder, item->struct_name) != 0) return -1;
     if (json_builder_append(builder, ",\"field_name\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, item->field_name) != 0) return -1;
+    if (json_builder_appendf(builder,
+          ",\"platform_kind_id\":%u,\"platform_field_id\":%u,\"struct_id\":%u,\"field_id\":%u",
+          (unsigned)item->platform_kind_id, (unsigned)item->platform_field_id, (unsigned)item->struct_id,
+          (unsigned)item->field_id) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"field_type\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, item->field_type) != 0) return -1;
     if (json_builder_append(builder, ",\"c_type\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, item->c_type) != 0) return -1;
     if (json_builder_append(builder, ",\"pointer_struct\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, item->pointer_struct) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"pointer_struct_id\":%u", (unsigned)item->pointer_struct_id) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"value_domain\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, item->value_domain) != 0) return -1;
     if (json_builder_append(builder, ",\"constant_name\":") != 0) return -1;

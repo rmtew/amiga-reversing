@@ -148,7 +148,12 @@ typedef struct M68kAnalysisStructuredDataItem {
   int32_t constant_value;
   uint8_t has_consumer;
   uint8_t source_pattern_id;
-  uint8_t reserved2[2];
+  uint16_t platform_kind_id;
+  uint16_t platform_field_id;
+  uint16_t struct_id;
+  uint16_t field_id;
+  uint16_t pointer_struct_id;
+  uint16_t reserved2;
   uint32_t consumer_section;
   uint32_t consumer_offset;
   uint32_t semantic_role_flags;
@@ -164,6 +169,19 @@ typedef struct M68kAnalysisStructuredDataItem {
   char source_pattern[64];
   char comment[64];
 } M68kAnalysisStructuredDataItem;
+
+typedef enum M68kAnalysisStructuredDataPlatformKind {
+  M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_NONE = 0U,
+  M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT = 1U
+} M68kAnalysisStructuredDataPlatformKind;
+
+typedef enum M68kAnalysisStructuredDataPlatformField {
+  M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_NONE = 0U,
+  M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_BASE_SIZE = 1U,
+  M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_VECTORS = 2U,
+  M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_INIT_STRUCT = 3U,
+  M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_INIT_FUNCTION = 4U
+} M68kAnalysisStructuredDataPlatformField;
 
 typedef struct M68kAnalysisNamedLabel {
   uint8_t has_section_index;

@@ -1719,6 +1719,11 @@ static int append_source_analysis_policy_structured_items_json(JsonBuilder *buil
         item->struct_name : NULL) != 0) {
       return -1;
     }
+    if (json_builder_appendf(builder,
+          ",\"platform_kind_id\":%u,\"platform_field_id\":%u,\"struct_id\":%u,\"field_id\":%u,\"pointer_struct_id\":%u",
+          (unsigned)item->platform_kind_id, (unsigned)item->platform_field_id, (unsigned)item->struct_id,
+          (unsigned)item->field_id, (unsigned)item->pointer_struct_id) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"comment\":") != 0) return -1;
     if (json_builder_append_nullable_string(builder, item->comment[0] != '\0' ? item->comment : NULL) != 0)
       return -1;
@@ -3407,6 +3412,10 @@ static int append_listing_structured_data_json(JsonBuilder *builder, const M68kA
         item->field_type[0] == '\0' && item->c_type[0] == '\0' && item->pointer_struct[0] == '\0' &&
         item->value_domain[0] == '\0' && item->constant_name[0] == '\0' && semantic_role_flags == 0U &&
         item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_UNKNOWN &&
+        item->platform_kind_id == M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_NONE &&
+        item->platform_field_id == M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_NONE &&
+        item->struct_id == AMIGA_OS_STRUCT_ID_NONE && item->field_id == 0U &&
+        item->pointer_struct_id == AMIGA_OS_STRUCT_ID_NONE &&
         !item->has_constant_value && !item->is_pointer && !item->has_target)) {
     return json_builder_append(builder, "null");
   }
@@ -3420,6 +3429,11 @@ static int append_listing_structured_data_json(JsonBuilder *builder, const M68kA
   if (json_builder_append(builder, ",\"field_name\":") != 0) return -1;
   if (json_builder_append_nullable_string(builder, item->field_name[0] != '\0' ? item->field_name : NULL) != 0)
     return -1;
+  if (json_builder_appendf(builder,
+        ",\"platform_kind_id\":%u,\"platform_field_id\":%u,\"struct_id\":%u,\"field_id\":%u",
+        (unsigned)item->platform_kind_id, (unsigned)item->platform_field_id, (unsigned)item->struct_id,
+        (unsigned)item->field_id) != 0)
+    return -1;
   if (json_builder_append(builder, ",\"field_type\":") != 0) return -1;
   if (json_builder_append_nullable_string(builder, item->field_type[0] != '\0' ? item->field_type : NULL) != 0)
     return -1;
@@ -3428,6 +3442,8 @@ static int append_listing_structured_data_json(JsonBuilder *builder, const M68kA
     return -1;
   if (json_builder_append(builder, ",\"pointer_struct\":") != 0) return -1;
   if (json_builder_append_nullable_string(builder, item->pointer_struct[0] != '\0' ? item->pointer_struct : NULL) != 0)
+    return -1;
+  if (json_builder_appendf(builder, ",\"pointer_struct_id\":%u", (unsigned)item->pointer_struct_id) != 0)
     return -1;
   if (json_builder_append(builder, ",\"value_domain\":") != 0) return -1;
   if (json_builder_append_nullable_string(builder, item->value_domain[0] != '\0' ? item->value_domain : NULL) != 0)
@@ -5761,7 +5777,11 @@ static int listing_structured_data_item_has_json(const M68kAnalysisStructuredDat
   return item != NULL && !(item->label[0] == '\0' && item->struct_name[0] == '\0' &&
     item->field_name[0] == '\0' && item->field_type[0] == '\0' && item->c_type[0] == '\0' &&
     item->pointer_struct[0] == '\0' && item->value_domain[0] == '\0' && item->constant_name[0] == '\0' &&
-    semantic_role_flags == 0U && !item->has_constant_value && !item->is_pointer && !item->has_target);
+    item->platform_kind_id == M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_NONE &&
+    item->platform_field_id == M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_NONE &&
+    item->struct_id == AMIGA_OS_STRUCT_ID_NONE && item->field_id == 0U &&
+    item->pointer_struct_id == AMIGA_OS_STRUCT_ID_NONE && semantic_role_flags == 0U && !item->has_constant_value &&
+    !item->is_pointer && !item->has_target);
 }
 
 static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index, const char *line_start,

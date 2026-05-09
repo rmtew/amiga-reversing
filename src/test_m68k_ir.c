@@ -13133,6 +13133,8 @@ static int test_facts_v2_render_asm_source_renders_structured_data_comment(void)
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
   policy.structured_data_items[0].has_constant_value = 1U;
   policy.structured_data_items[0].constant_value = 0x4AFC;
+  policy.structured_data_items[0].struct_id = AMIGA_OS_STRUCT_ID_RT;
+  policy.structured_data_items[0].field_id = AMIGA_OS_FIELD_ID_RT_MATCHWORD;
   snprintf(policy.structured_data_items[0].constant_name,
     sizeof(policy.structured_data_items[0].constant_name), "RTC_MATCHWORD");
   snprintf(policy.structured_data_items[0].struct_name, sizeof(policy.structured_data_items[0].struct_name),
@@ -13148,6 +13150,8 @@ static int test_facts_v2_render_asm_source_renders_structured_data_comment(void)
   policy.structured_data_items[1].offset = 2U;
   policy.structured_data_items[1].size = 1U;
   policy.structured_data_items[1].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+  policy.structured_data_items[1].struct_id = AMIGA_OS_STRUCT_ID_RT;
+  policy.structured_data_items[1].field_id = AMIGA_OS_FIELD_ID_RT_FLAGS;
   snprintf(policy.structured_data_items[1].struct_name, sizeof(policy.structured_data_items[1].struct_name),
     "RT");
   snprintf(policy.structured_data_items[1].field_name, sizeof(policy.structured_data_items[1].field_name),
@@ -13163,6 +13167,8 @@ static int test_facts_v2_render_asm_source_renders_structured_data_comment(void)
   policy.structured_data_items[2].offset = 3U;
   policy.structured_data_items[2].size = 1U;
   policy.structured_data_items[2].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+  policy.structured_data_items[2].struct_id = AMIGA_OS_STRUCT_ID_RT;
+  policy.structured_data_items[2].field_id = AMIGA_OS_FIELD_ID_RT_TYPE;
   snprintf(policy.structured_data_items[2].struct_name, sizeof(policy.structured_data_items[2].struct_name),
     "RT");
   snprintf(policy.structured_data_items[2].field_name, sizeof(policy.structured_data_items[2].field_name),
@@ -13242,6 +13248,8 @@ static int test_render_ir_suppresses_orphan_structured_field_label(void) {
   policy.structured_data_items[0].offset = 18U;
   policy.structured_data_items[0].size = 4U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  policy.structured_data_items[0].struct_id = AMIGA_OS_STRUCT_ID_RT;
+  policy.structured_data_items[0].field_id = AMIGA_OS_FIELD_ID_RT_NAME;
   snprintf(policy.structured_data_items[0].struct_name, sizeof(policy.structured_data_items[0].struct_name), "RT");
   snprintf(policy.structured_data_items[0].field_name, sizeof(policy.structured_data_items[0].field_name),
     "RT_NAME");
@@ -13307,6 +13315,10 @@ static int test_facts_v2_render_asm_source_resident_sizeof_defines_app_sizeof_wi
   policy.structured_data_items[0].offset = 0U;
   policy.structured_data_items[0].size = 4U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  policy.structured_data_items[0].platform_kind_id =
+    M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT;
+  policy.structured_data_items[0].platform_field_id =
+    M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_BASE_SIZE;
   snprintf(policy.structured_data_items[0].struct_name, sizeof(policy.structured_data_items[0].struct_name),
     "resident_autoinit");
   snprintf(policy.structured_data_items[0].field_name, sizeof(policy.structured_data_items[0].field_name),
@@ -13358,6 +13370,10 @@ static int test_facts_v2_render_asm_source_resident_lib_size_omits_empty_app_siz
   policy.structured_data_items[0].offset = 0U;
   policy.structured_data_items[0].size = 4U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  policy.structured_data_items[0].platform_kind_id =
+    M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT;
+  policy.structured_data_items[0].platform_field_id =
+    M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_BASE_SIZE;
   snprintf(policy.structured_data_items[0].struct_name, sizeof(policy.structured_data_items[0].struct_name),
     "resident_autoinit");
   snprintf(policy.structured_data_items[0].field_name, sizeof(policy.structured_data_items[0].field_name),

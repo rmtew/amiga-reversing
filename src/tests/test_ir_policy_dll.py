@@ -146,9 +146,16 @@ class M68kAnalysisStructuredDataItem(ctypes.Structure):
         ("reserved", ctypes.c_uint8 * 3),
         ("constant_value", ctypes.c_int32),
         ("has_consumer", ctypes.c_uint8),
-        ("reserved2", ctypes.c_uint8 * 3),
+        ("source_pattern_id", ctypes.c_uint8),
+        ("platform_kind_id", ctypes.c_uint16),
+        ("platform_field_id", ctypes.c_uint16),
+        ("struct_id", ctypes.c_uint16),
+        ("field_id", ctypes.c_uint16),
+        ("pointer_struct_id", ctypes.c_uint16),
+        ("reserved2", ctypes.c_uint16),
         ("consumer_section", ctypes.c_uint32),
         ("consumer_offset", ctypes.c_uint32),
+        ("semantic_role_flags", ctypes.c_uint32),
         ("label", ctypes.c_char * 64),
         ("struct_name", ctypes.c_char * 64),
         ("field_name", ctypes.c_char * 64),
@@ -717,7 +724,7 @@ class IrPolicyDllTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
             path = Path(tmp) / "sample.hunk"
             metadata_path = Path(tmp) / "target_metadata.json"
-            path.write_bytes(make_synthetic_hunkexe())
+            path.write_bytes(make_synthetic_hunkexe(code_data=b"\x00" * 64))
             metadata_path.write_text(
                 json.dumps(
                     {
@@ -759,6 +766,52 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(regions[0]["flags"], 1)
         self.assertEqual(regions[1]["storage_kind_id"], 4)
         self.assertEqual(regions[1]["flags"], 0)
+
+    def test_effective_policy_exports_structured_data_ids(self) -> None:
+        library = _file_library()
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.hunk"
+            metadata_path = Path(tmp) / "target_metadata.json"
+            path.write_bytes(make_synthetic_hunkexe(code_data=b"\x00" * 64))
+            metadata_path.write_text(
+                json.dumps(
+                    {
+                        "target_type": "library",
+                        "resident": {
+                            "hunk": 0,
+                            "offset": 0,
+                            "init_offset": 0,
+                            "name": "sample.library",
+                            "version": 1,
+                            "autoinit": {
+                                "payload_offset": 0,
+                                "vectors_offset": 4,
+                                "init_struct_offset": 8,
+                                "init_func_offset": 12,
+                            },
+                        },
+                    },
+                ),
+                encoding="utf-8",
+            )
+
+            result, text = _file_alloc_text(
+                library,
+                "platform_file_effective_policy_path_json_alloc",
+                b"amiga-hunk",
+                str(path).encode("utf-8"),
+                str(metadata_path).encode("utf-8"),
+                b"",
+            )
+
+        self.assertEqual(result, 0, text)
+        items = json.loads(text)["analysis_policy"]["structured_data_items"]
+        resident_match = next(item for item in items if item["field_name"] == "RT_MATCHWORD")
+        autoinit_size = next(item for item in items if item["field_name"] == "resident_base_size")
+        self.assertGreater(resident_match["struct_id"], 0)
+        self.assertGreater(resident_match["field_id"], 0)
+        self.assertEqual(autoinit_size["platform_kind_id"], 1)
+        self.assertEqual(autoinit_size["platform_field_id"], 1)
 
     def test_platform_file_listing_artifact_reuses_c_analysis_for_windows(self) -> None:
         library = _file_library()

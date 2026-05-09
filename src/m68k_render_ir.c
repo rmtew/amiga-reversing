@@ -4160,8 +4160,9 @@ int structured_data_item_symbolic_operand_expr(const M68kDecodeSectionIR *sectio
         (item->size == 4U && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS))) {
     return 0;
   }
-  if (item->size == 4U && strcmp(item->struct_name, "resident_autoinit") == 0 &&
-      strcmp(item->field_name, "resident_base_size") == 0) {
+  if (item->size == 4U &&
+      item->platform_kind_id == M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT &&
+      item->platform_field_id == M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_BASE_SIZE) {
     if (section != NULL && section->data != NULL && item->offset <= section->size &&
         section->size - item->offset >= 4U &&
         amiga_os_find_constant_value("LIB_SIZE", &lib_size) &&
@@ -5494,22 +5495,11 @@ int lookup_has_amiga_resident_library_context(const M68kRenderLookup *lookup) {
   }
   policy = lookup->policy;
   if (policy == NULL) return 0;
-  for (index = 0U; index < policy->named_label_count && index < M68K_ANALYSIS_NAMED_LABEL_LIMIT; ++index) {
-    const char *name = policy->named_labels[index].name;
-    if (strcmp(name, "resident") == 0 || strcmp(name, "resident_autoinit") == 0 ||
-        strcmp(name, "resident_vectors") == 0) {
-      return 1;
-    }
-  }
   for (index = 0U; index < policy->structured_data_item_count &&
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
-    if (strcmp(item->struct_name, "resident") == 0 || strcmp(item->struct_name, "resident_autoinit") == 0 ||
-        strcmp(item->struct_name, "resident_vectors") == 0) {
-      return 1;
-    }
-    if (strcmp(item->label, "resident") == 0 || strcmp(item->label, "resident_autoinit") == 0 ||
-        strcmp(item->label, "resident_vectors") == 0) {
+    if (item->struct_id == AMIGA_OS_STRUCT_ID_RT ||
+        item->platform_kind_id == M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT) {
       return 1;
     }
   }
@@ -5670,8 +5660,9 @@ static int render_app_rs_resident_sizeof_value(const M68kRenderLookup *lookup, c
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
     const M68kDecodeSectionIR *section;
     size_t section_index;
-    if (item->size != 4U || strcmp(item->struct_name, "resident_autoinit") != 0 ||
-        strcmp(item->field_name, "resident_base_size") != 0) {
+    if (item->size != 4U ||
+        item->platform_kind_id != M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT ||
+        item->platform_field_id != M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_BASE_SIZE) {
       continue;
     }
     section_index = item->has_section_index ? (size_t)item->section_index : 0U;
