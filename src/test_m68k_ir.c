@@ -4678,6 +4678,8 @@ static int test_table_records_use_role_flags_not_text(void) {
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"table_record_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"semantic_role\":\"lookup_table\",\"semantic_role_flags\":8") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"semantic_role\":\"pointer_table\"") == NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"role_flags\":8,\"role\":\"lookup_table\",\"table_kind_id\":1,\"table_kind\":\"scalar\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"role\":\"pointer_table\"") == NULL);

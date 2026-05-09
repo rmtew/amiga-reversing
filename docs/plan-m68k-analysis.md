@@ -232,6 +232,8 @@ proves a distinct base id.
    - source-pattern provenance: implemented as C `source_pattern_id` on
      structured table facts; JSON keeps `source_pattern` as display text and
      corpus tags consume the id
+   - semantic role provenance: implemented as C `semantic_role_flags`; JSON
+     `semantic_role` is derived display text and stale role strings are ignored
    - entry size, signedness, stride, count, and bounds
    - table kind: scalar, pointer, relative pointer, code dispatch, data offset,
      hardware setup, mixed: implemented as C `table_kind_id` for scalar,

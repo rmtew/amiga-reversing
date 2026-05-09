@@ -1694,8 +1694,8 @@ static int append_source_analysis_policy_structured_items_json(JsonBuilder *buil
         (unsigned)item->offset, (unsigned)item->size, (unsigned)item->kind) != 0) {
       return -1;
     }
-    if (json_builder_append_nullable_string(builder, item->semantic_role[0] != '\0' ?
-        item->semantic_role : NULL) != 0) {
+    if (json_builder_append_nullable_string(builder,
+        m68k_analysis_structured_data_role_name_for_flags(structured_data_item_role_flags_json(item))) != 0) {
       return -1;
     }
     if (json_builder_appendf(builder, ",\"semantic_role_flags\":%u",
@@ -3402,9 +3402,10 @@ static const M68kAnalysisStructuredDataItem *listing_structured_data_item_at_off
 }
 
 static int append_listing_structured_data_json(JsonBuilder *builder, const M68kAnalysisStructuredDataItem *item) {
+  uint32_t semantic_role_flags = structured_data_item_role_flags_json(item);
   if (item == NULL || (item->label[0] == '\0' && item->struct_name[0] == '\0' && item->field_name[0] == '\0' &&
         item->field_type[0] == '\0' && item->c_type[0] == '\0' && item->pointer_struct[0] == '\0' &&
-        item->value_domain[0] == '\0' && item->constant_name[0] == '\0' && item->semantic_role[0] == '\0' &&
+        item->value_domain[0] == '\0' && item->constant_name[0] == '\0' && semantic_role_flags == 0U &&
         item->source_pattern[0] == '\0' && !item->has_constant_value && !item->is_pointer && !item->has_target)) {
     return json_builder_append(builder, "null");
   }
@@ -3440,10 +3441,10 @@ static int append_listing_structured_data_json(JsonBuilder *builder, const M68kA
     if (json_builder_appendf(builder, "%d", (int)item->constant_value) != 0) return -1;
   } else if (json_builder_append(builder, "null") != 0) return -1;
   if (json_builder_append(builder, ",\"semantic_role\":") != 0) return -1;
-  if (json_builder_append_nullable_string(builder, item->semantic_role[0] != '\0' ? item->semantic_role : NULL) != 0)
+  if (json_builder_append_nullable_string(builder,
+      m68k_analysis_structured_data_role_name_for_flags(semantic_role_flags)) != 0)
     return -1;
-  if (json_builder_appendf(builder, ",\"semantic_role_flags\":%u",
-        (unsigned)structured_data_item_role_flags_json(item)) != 0)
+  if (json_builder_appendf(builder, ",\"semantic_role_flags\":%u", (unsigned)semantic_role_flags) != 0)
     return -1;
   {
     const char *source_pattern = m68k_analysis_structured_data_source_pattern_name(item->source_pattern_id);
@@ -5754,10 +5755,11 @@ static const M68kRecoveredPlatformCallIR *listing_platform_call_at_offset(const 
 }
 
 static int listing_structured_data_item_has_json(const M68kAnalysisStructuredDataItem *item) {
+  uint32_t semantic_role_flags = structured_data_item_role_flags_json(item);
   return item != NULL && !(item->label[0] == '\0' && item->struct_name[0] == '\0' &&
     item->field_name[0] == '\0' && item->field_type[0] == '\0' && item->c_type[0] == '\0' &&
     item->pointer_struct[0] == '\0' && item->value_domain[0] == '\0' && item->constant_name[0] == '\0' &&
-    item->semantic_role[0] == '\0' && !item->has_constant_value && !item->is_pointer && !item->has_target);
+    semantic_role_flags == 0U && !item->has_constant_value && !item->is_pointer && !item->has_target);
 }
 
 static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index, const char *line_start,
