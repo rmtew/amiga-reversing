@@ -6372,6 +6372,7 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
       signal.reason = M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE;
       signal.status = M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED;
       signal.confidence = instruction_count >= 4U ? 90U : 70U;
+      signal.instruction_count = instruction_count > UINT8_MAX ? UINT8_MAX : (uint8_t)instruction_count;
       if (has_runtime_view) {
         signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RUNTIME_VIEW;
         signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_RUNTIME_COPY;

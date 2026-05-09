@@ -3556,6 +3556,8 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   M68K_C_ASSERT_U32(4U, source_analysis.sections[0].orphan_code_signals[0].size);
   M68K_C_ASSERT_U32(4U, source_analysis.sections[0].orphan_code_signals[0].terminal_offset);
   M68K_C_ASSERT_U32(M68K_SIM_FLOW_RETURN, source_analysis.sections[0].orphan_code_signals[0].terminal_flow_kind);
+  M68K_C_ASSERT_U32(2U, source_analysis.sections[0].orphan_code_signals[0].instruction_count);
+  M68K_C_ASSERT_U32(0U, source_analysis.sections[0].orphan_code_signals[0].decode_conflict_count);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE,
     source_analysis.sections[0].orphan_code_signals[0].reason);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED,
@@ -3572,6 +3574,7 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
     "\"orphan_code_signal_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"orphan_code_signal_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"terminal_flow\":\"return\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"instruction_count\":2,\"decode_conflict_count\":0") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"reason\":\"terminal_decode\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"status\":\"unresolved\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"context\":\"accepted_code_boundary\"") != NULL);

@@ -376,7 +376,7 @@ Required orphan facts:
 ```
 candidate source range
 decode start and terminal instruction
-plausibility score and CPU requirement
+plausibility score, instruction count, decode conflict count, and true minimum CPU when known
 nearby data/table/string context
 possible inbound evidence: jump table, vector, callback, runtime copy, API
 why it is not accepted yet

@@ -212,7 +212,9 @@ proves a distinct base id.
    - candidate source range and decode start: implemented for terminal-decode
      islands at accepted-code boundaries or data labels
    - terminal instruction and candidate extent: implemented
-   - plausibility score, CPU requirement, and decode conflicts
+   - plausibility score, instruction count, and decode conflict count:
+     implemented as compact signal fields; true minimum CPU requirement remains
+     open because current candidate CPU can be a decode ceiling
    - nearby data/table/string context: implemented for immediately adjacent
      structured data classes
    - possible missing inbound evidence class: jump table, callback, vector,

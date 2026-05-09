@@ -2834,6 +2834,10 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_json_string(&builder, sim_flow_kind_name(signal->terminal_flow_kind)) != 0)
         goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"instruction_count\":%u,\"decode_conflict_count\":%u",
+          (unsigned)signal->instruction_count, (unsigned)signal->decode_conflict_count) != 0)
+        goto oom;
       if (json_builder_append(&builder, ",\"reason\":") != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, orphan_code_signal_reason_name(signal->reason)) != 0)
