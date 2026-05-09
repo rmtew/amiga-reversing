@@ -91,6 +91,25 @@ static int test_decompression_candidate_scan_requires_provider_validation(void) 
   return 0;
 }
 
+static int test_decompression_result_json_exports_codec_support_id(void) {
+  PlatformDecompressionIdentifyResult result;
+  JsonBuilder builder = {0};
+  char *json;
+  platform_decompression_identify_result_init(&result);
+  result.found = 1;
+  snprintf(result.provider_id, sizeof(result.provider_id), "ancient-cli");
+  snprintf(result.codec_id, sizeof(result.codec_id), "rnc1-old");
+  snprintf(result.codec_name, sizeof(result.codec_name), "RNC1");
+  snprintf(result.confidence, sizeof(result.confidence), "tool");
+  M68K_C_ASSERT_INT(0, json_builder_create(&builder));
+  M68K_C_ASSERT_INT(0, platform_decompression_append_result_json(&builder, &result));
+  json = json_builder_build(&builder);
+  M68K_C_ASSERT(json != NULL);
+  M68K_C_ASSERT(strstr(json, "\"codec_support_id\":1,\"codec_support\":\"external_provider\"") != NULL);
+  free(json);
+  return 0;
+}
+
 int m68k_c_platform_decompression_tests(void) {
   static const M68kCTestCase cases[] = {
     {"decompression_identify_rejects_unknown_provider", test_decompression_identify_rejects_unknown_provider},
@@ -101,6 +120,8 @@ int m68k_c_platform_decompression_tests(void) {
       test_decompression_candidate_scan_rejects_header_guess},
     {"decompression_candidate_scan_requires_provider_validation",
       test_decompression_candidate_scan_requires_provider_validation},
+    {"decompression_result_json_exports_codec_support_id",
+      test_decompression_result_json_exports_codec_support_id},
   };
   return m68k_c_test_run_suite("platform_decompression", cases, sizeof(cases) / sizeof(cases[0]));
 }

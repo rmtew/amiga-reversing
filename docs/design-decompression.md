@@ -65,9 +65,10 @@ A first C decompression provider layer now exists:
 - Facts-v2 analysis JSON now includes top-level `packed_payloads[]`,
   `derived_target_suggestions[]`, and `decompression_events[]` from C provider
   scanning of loaded target sections. Non-materialising suggestions and events
-  include a `reason` field so callers can distinguish missing runtime evidence,
-  conflicting runtime copies, copy size mismatch, and missing decompressed
-  load/entry metadata.
+  include C-owned status/reason/source-kind ids plus display strings so callers
+  can distinguish missing runtime evidence, conflicting runtime copies, copy
+  size mismatch, and missing decompressed load/entry metadata without parsing
+  display text.
 - C can now promote a suggestion to `status: "materializable"` when a runtime
   copy/load address candidate is validated against the decompressed output's
   first decoded absolute control transfer. This uses generated M68K decode and
@@ -76,7 +77,8 @@ A first C decompression provider layer now exists:
   so corpus indexing no longer loses decompression facts when it asks C for
   listing rows.
 - Corpus usage indexing now turns those C-emitted records into searchable
-  compression and derived-target feature tags/xrefs.
+  compression and derived-target feature tags/xrefs. Decisions consume the
+  numeric ids; strings are retained only for labels and examples.
 - Corpus usage indexing also walks nested disk project targets, so retained
   parent/child outputs under `targets/<disk>/targets/` are visible to corpus
   searches.

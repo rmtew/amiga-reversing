@@ -132,6 +132,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "found": True,
                             "provider_id": "ancient-cli",
                             "codec_id": "rnc1-old",
+                            "codec_support_id": 1,
+                            "codec_support": "stale_display_name",
                             "source_section": 0,
                             "source_section_offset": 0x4C40,
                             "packed_size": 168391,
@@ -141,9 +143,12 @@ class TargetUsageManifestTests(unittest.TestCase):
                     ],
                     "derived_target_suggestions": [
                         {
-                            "kind": "decompressed_payload",
-                            "status": "materializable",
-                            "reason": "initial_control_target_validated_runtime_copy",
+                            "kind_id": 1,
+                            "kind": "stale_display_name",
+                            "status_id": 2,
+                            "status": "stale_display_name",
+                            "reason_id": 3,
+                            "reason": "stale_display_name",
                             "source_section": 0,
                             "source_section_offset": 0x4C40,
                             "packed_size": 168391,
@@ -814,6 +819,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["compressed-payload"], 1)
         self.assertEqual(counts["compressed:rnc1-old"], 1)
         self.assertEqual(counts["decompression:provider:ancient-cli"], 1)
+        self.assertEqual(counts["decompression:codec_support:external_provider"], 1)
         self.assertEqual(counts["decompression:has_output_size"], 1)
         self.assertEqual(counts["decompression:has_output_hash"], 1)
         self.assertEqual(counts["derived_target_suggestion:decompressed_payload"], 1)
@@ -971,15 +977,22 @@ class TargetUsageManifestTests(unittest.TestCase):
         analysis = {
             "decompression_events": [
                 {
-                    "event_kind": "decompression",
+                    "event_kind_id": 1,
+                    "event_kind": "stale_display_name",
                     "event_id": "decompression:self_decrunch:section:0:00000000:00020000",
-                    "status": "needs_simulated_decrunch",
-                    "reason": "simulated_instruction_limit",
+                    "status_id": 4,
+                    "status": "stale_display_name",
+                    "reason_id": 14,
+                    "reason": "stale_display_name",
                     "codec_id": "unknown-self-decrunch",
-                    "codec_support": "simulator_required",
-                    "payload_role": "unknown_runtime_payload",
-                    "parent_remains_active": "false",
-                    "source_kind": "self_decruncher",
+                    "codec_support_id": 3,
+                    "codec_support": "stale_display_name",
+                    "payload_role_id": 1,
+                    "payload_role": "stale_display_name",
+                    "parent_remains_active_id": 1,
+                    "parent_remains_active": "stale_display_name",
+                    "source_kind_id": 3,
+                    "source_kind": "stale_display_name",
                     "provider_id": "m68k-sim-decrunch",
                     "decompressor_code_section": 0,
                     "decompressor_entry_offset": 0,
@@ -1220,6 +1233,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "found": True,
                         "provider_id": "ancient-cli",
                         "codec_id": "rnc1-old",
+                        "codec_support_id": 1,
+                        "codec_support": "stale_display_name",
                         "source_section": 0,
                         "source_section_offset": 0x4C40,
                         "packed_size": 168391,
@@ -1229,9 +1244,12 @@ class TargetUsageManifestTests(unittest.TestCase):
                 ],
                 "derived_target_suggestions": [
                     {
-                        "kind": "decompressed_payload",
-                        "status": "materializable",
-                        "reason": "initial_control_target_validated_runtime_copy",
+                        "kind_id": 1,
+                        "kind": "stale_display_name",
+                        "status_id": 2,
+                        "status": "stale_display_name",
+                        "reason_id": 3,
+                        "reason": "stale_display_name",
                         "source_section": 0,
                         "source_section_offset": 0x4C40,
                         "packed_size": 168391,

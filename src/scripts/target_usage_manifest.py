@@ -297,6 +297,75 @@ TABLE_BASE_EXPRESSION_NAMES = {
     1: "table_label",
     2: "target_label",
 }
+DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD = 1
+DERIVED_TARGET_SUGGESTION_KIND_NAMES = {
+    DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD: "decompressed_payload",
+}
+DECOMPRESSION_EVENT_KIND_DECOMPRESSION = 1
+DECOMPRESSION_EVENT_KIND_NAMES = {
+    DECOMPRESSION_EVENT_KIND_DECOMPRESSION: "decompression",
+}
+DECOMPRESSION_SOURCE_SECTION_RANGE = 1
+DECOMPRESSION_SOURCE_RECOGNIZED_UNPACKER = 2
+DECOMPRESSION_SOURCE_SELF_DECRUNCHER = 3
+DECOMPRESSION_SOURCE_KIND_NAMES = {
+    DECOMPRESSION_SOURCE_SECTION_RANGE: "section_range",
+    DECOMPRESSION_SOURCE_RECOGNIZED_UNPACKER: "recognized_unpacker",
+    DECOMPRESSION_SOURCE_SELF_DECRUNCHER: "self_decruncher",
+}
+DECOMPRESSION_STATUS_IDENTIFIED = 1
+DECOMPRESSION_STATUS_MATERIALIZABLE = 2
+DECOMPRESSION_STATUS_NEEDS_RUNTIME_METADATA = 3
+DECOMPRESSION_STATUS_NEEDS_SIMULATED_DECRUNCH = 4
+DECOMPRESSION_STATUS_SIMULATED_OUTPUT_OBSERVED = 5
+DECOMPRESSION_STATUS_NAMES = {
+    DECOMPRESSION_STATUS_IDENTIFIED: "identified",
+    DECOMPRESSION_STATUS_MATERIALIZABLE: "materializable",
+    DECOMPRESSION_STATUS_NEEDS_RUNTIME_METADATA: "needs_runtime_metadata",
+    DECOMPRESSION_STATUS_NEEDS_SIMULATED_DECRUNCH: "needs_simulated_decrunch",
+    DECOMPRESSION_STATUS_SIMULATED_OUTPUT_OBSERVED: "simulated_output_observed",
+}
+DECOMPRESSION_REASON_NAMES = {
+    1: "invalid_record",
+    2: "initial_control_target_validated_provider_wrapper",
+    3: "initial_control_target_validated_runtime_copy",
+    4: "missing_runtime_copy_evidence",
+    5: "runtime_copy_conflicting",
+    6: "runtime_copy_short",
+    7: "runtime_copy_oversize",
+    8: "missing_decompressed_load_entry",
+    9: "native_tetragon_unpack_validated",
+    10: "recognized_unpacker_signature",
+    11: "unidentified_self_decruncher",
+    12: "simulated_pc_range_stop",
+    13: "simulated_pc_out_of_range",
+    14: "simulated_instruction_limit",
+    15: "simulated_decode_error",
+    16: "simulated_error",
+    17: "simulated_bad_argument",
+    18: "simulated_no_output_range",
+    19: "simulated_unknown_stop",
+}
+DECOMPRESSION_PAYLOAD_ROLE_NAMES = {
+    1: "unknown_runtime_payload",
+    2: "primary_program",
+}
+DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_NAMES = {
+    1: "tool_inferred",
+    2: "native_unpack_entry_validated",
+    3: "signature_only",
+    4: "observed_output_only",
+}
+DECOMPRESSION_PARENT_REMAINS_ACTIVE_NAMES = {
+    0: "unknown",
+    1: "false",
+    2: "true",
+}
+DECOMPRESSION_CODEC_SUPPORT_NAMES = {
+    1: "external_provider",
+    2: "native_decompressor",
+    3: "simulator_required",
+}
 TYPED_STORAGE_EFFECT_TARGETS = {
     PLATFORM_EFFECT_SET_TYPED_REG: "register",
     PLATFORM_EFFECT_WRITE_TYPED_SLOT: "app_slot",
@@ -2214,14 +2283,13 @@ def _decompression_source_load_entry_features(record: dict[str, Any]) -> list[st
 
 def _decompression_pattern_features(record: dict[str, Any]) -> list[str]:
     features: list[str] = []
-    source_kind = _string_value(record.get("source_kind"))
-    provider_id = _string_value(record.get("provider_id"))
+    source_kind_id = _int_value(record.get("source_kind_id"), 0) or 0
     codec_id = _string_value(record.get("codec_id"))
-    if source_kind == "self_decruncher" or provider_id == "m68k-sim-decrunch":
+    if source_kind_id == DECOMPRESSION_SOURCE_SELF_DECRUNCHER:
         features.append("decompression:pattern:absolute_self_decrunch_transfer")
         if _int_value(record.get("simulated_output_size")) is not None:
             features.append("decompression:pattern:simulated_self_decrunch_output")
-    if source_kind == "recognized_unpacker":
+    if source_kind_id == DECOMPRESSION_SOURCE_RECOGNIZED_UNPACKER:
         features.append("decompression:pattern:recognized_unpacker")
         if codec_id:
             features.append(f"decompression:pattern:recognized_unpacker:{_safe_part(codec_id)}")
@@ -2230,10 +2298,11 @@ def _decompression_pattern_features(record: dict[str, Any]) -> list[str]:
     return features
 
 
-def _decompression_unmaterialized_features(status: str | None, reason: str | None) -> list[str]:
-    if status in (None, "", "materializable", "simulated_output_observed"):
+def _decompression_unmaterialized_features(status_id: int | None, reason_id: int | None) -> list[str]:
+    if status_id in (None, 0, DECOMPRESSION_STATUS_MATERIALIZABLE, DECOMPRESSION_STATUS_SIMULATED_OUTPUT_OBSERVED):
         return []
     features = ["decompression:unmaterialized_work_item"]
+    reason = DECOMPRESSION_REASON_NAMES.get(reason_id or 0)
     if reason:
         features.append(f"decompression:work_item_reason:{_safe_part(reason)}")
     return features
@@ -2253,7 +2322,7 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         provider_id = _string_value(payload.get("provider_id"))
         if provider_id:
             bag.add(f"decompression:provider:{_safe_part(provider_id)}", example=example)
-        codec_support = _string_value(payload.get("codec_support"))
+        codec_support = DECOMPRESSION_CODEC_SUPPORT_NAMES.get(_int_value(payload.get("codec_support_id"), 0) or 0)
         if codec_support:
             bag.add(f"decompression:codec_support:{_safe_part(codec_support)}", example=example)
         if _int_value(payload.get("decompressed_size")) is not None:
@@ -2270,17 +2339,20 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
             bag.add(feature, example=example)
     for suggestion in _dict_items(analysis.get("derived_target_suggestions")):
         example = _decompression_example(suggestion)
-        kind = _string_value(suggestion.get("kind")) or "unknown"
+        kind_id = _int_value(suggestion.get("kind_id"), 0) or 0
+        kind = DERIVED_TARGET_SUGGESTION_KIND_NAMES.get(kind_id, "unknown")
         bag.add(f"derived_target_suggestion:{_safe_part(kind)}", example=example)
-        if kind == "decompressed_payload":
+        if kind_id == DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD:
             bag.add("derived-decompressed-target", example=example)
-        status = _string_value(suggestion.get("status"))
+        status_id = _int_value(suggestion.get("status_id"), 0) or 0
+        status = DECOMPRESSION_STATUS_NAMES.get(status_id)
         if status:
             bag.add(f"derived_target_suggestion_status:{_safe_part(status)}", example=example)
-        reason = _string_value(suggestion.get("reason"))
+        reason_id = _int_value(suggestion.get("reason_id"), 0) or 0
+        reason = DECOMPRESSION_REASON_NAMES.get(reason_id)
         if reason:
             bag.add(f"derived_target_suggestion_reason:{_safe_part(reason)}", example=example)
-        for feature in _decompression_unmaterialized_features(status, reason):
+        for feature in _decompression_unmaterialized_features(status_id, reason_id):
             bag.add(feature, example=example)
         for feature in _decompression_source_range_features(suggestion):
             bag.add(feature, example=example)
@@ -2311,22 +2383,25 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
             bag.add(feature, example=example)
     for event in _dict_items(analysis.get("decompression_events")):
         example = _decompression_example(event)
-        event_kind = _string_value(event.get("event_kind")) or "unknown"
+        event_kind_id = _int_value(event.get("event_kind_id"), 0) or 0
+        event_kind = DECOMPRESSION_EVENT_KIND_NAMES.get(event_kind_id, "unknown")
         bag.add(f"decompression:event:{_safe_part(event_kind)}", example=example)
         if _string_value(event.get("event_id")):
             bag.add("decompression:has_event_id", example=example)
-        status = _string_value(event.get("status"))
+        status_id = _int_value(event.get("status_id"), 0) or 0
+        status = DECOMPRESSION_STATUS_NAMES.get(status_id)
         if status:
             bag.add(f"decompression:event_status:{_safe_part(status)}", example=example)
-        reason = _string_value(event.get("reason"))
+        reason_id = _int_value(event.get("reason_id"), 0) or 0
+        reason = DECOMPRESSION_REASON_NAMES.get(reason_id)
         if reason:
             bag.add(f"decompression:event_reason:{_safe_part(reason)}", example=example)
-        for feature in _decompression_unmaterialized_features(status, reason):
+        for feature in _decompression_unmaterialized_features(status_id, reason_id):
             bag.add(feature, example=example)
-        payload_role = _string_value(event.get("payload_role"))
+        payload_role = DECOMPRESSION_PAYLOAD_ROLE_NAMES.get(_int_value(event.get("payload_role_id"), 0) or 0)
         if payload_role:
             bag.add(f"decompression:payload_role:{_safe_part(payload_role)}", example=example)
-        source_kind = _string_value(event.get("source_kind"))
+        source_kind = DECOMPRESSION_SOURCE_KIND_NAMES.get(_int_value(event.get("source_kind_id"), 0) or 0)
         if source_kind:
             bag.add(f"decompression:source_kind:{_safe_part(source_kind)}", example=example)
         provider_id = _string_value(event.get("provider_id"))
@@ -2335,10 +2410,12 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         codec_id = _string_value(event.get("codec_id"))
         if codec_id:
             bag.add(f"decompression:codec:{_safe_part(codec_id)}", example=example)
-        parent_remains_active = _string_value(event.get("parent_remains_active"))
+        parent_remains_active = DECOMPRESSION_PARENT_REMAINS_ACTIVE_NAMES.get(
+            _int_value(event.get("parent_remains_active_id"), 0) or 0
+        )
         if parent_remains_active:
             bag.add(f"decompression:parent_remains_active:{_safe_part(parent_remains_active)}", example=example)
-        codec_support = _string_value(event.get("codec_support"))
+        codec_support = DECOMPRESSION_CODEC_SUPPORT_NAMES.get(_int_value(event.get("codec_support_id"), 0) or 0)
         if codec_support:
             bag.add(f"decompression:codec_support:{_safe_part(codec_support)}", example=example)
         if _int_value(event.get("simulated_output_size")) is not None:
@@ -3619,18 +3696,21 @@ def _decompression_analysis_xrefs(
         if offset is None:
             offset = _int_value(suggestion.get("source_offset"))
         row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
-        kind = _string_value(suggestion.get("kind")) or "unknown"
-        status = _string_value(suggestion.get("status"))
+        kind_id = _int_value(suggestion.get("kind_id"), 0) or 0
+        kind = DERIVED_TARGET_SUGGESTION_KIND_NAMES.get(kind_id, "unknown")
+        status_id = _int_value(suggestion.get("status_id"), 0) or 0
+        status = DECOMPRESSION_STATUS_NAMES.get(status_id)
         text = row_text or kind
         features = [f"derived_target_suggestion:{_safe_part(kind)}"]
-        if kind == "decompressed_payload":
+        if kind_id == DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD:
             features.append("derived-decompressed-target")
         if status:
             features.append(f"derived_target_suggestion_status:{_safe_part(status)}")
-        reason = _string_value(suggestion.get("reason"))
+        reason_id = _int_value(suggestion.get("reason_id"), 0) or 0
+        reason = DECOMPRESSION_REASON_NAMES.get(reason_id)
         if reason:
             features.append(f"derived_target_suggestion_reason:{_safe_part(reason)}")
-        features.extend(_decompression_unmaterialized_features(status, reason))
+        features.extend(_decompression_unmaterialized_features(status_id, reason_id))
         features.extend(_decompression_source_range_features(suggestion))
         features.extend(_decompression_output_address_features(suggestion))
         features.extend(_decompression_source_load_entry_features(suggestion))
@@ -3665,7 +3745,7 @@ def _decompression_analysis_xrefs(
                     row_index=row_index,
                     stable_key=stable_key,
                     symbol=kind,
-                    value=runtime_copy_address if feature.startswith("decompression:runtime_copy") else status,
+                    value=runtime_copy_address if feature.startswith("decompression:runtime_copy") else status_id,
                     text=text,
                 )
             )
@@ -3677,22 +3757,25 @@ def _decompression_analysis_xrefs(
         if offset is None:
             offset = _int_value(event.get("decompressor_entry_offset"))
         row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
-        event_kind = _string_value(event.get("event_kind")) or "unknown"
-        status = _string_value(event.get("status"))
+        event_kind_id = _int_value(event.get("event_kind_id"), 0) or 0
+        event_kind = DECOMPRESSION_EVENT_KIND_NAMES.get(event_kind_id, "unknown")
+        status_id = _int_value(event.get("status_id"), 0) or 0
+        status = DECOMPRESSION_STATUS_NAMES.get(status_id)
         text = row_text or _string_value(event.get("event_id")) or event_kind
         features = [f"decompression:event:{_safe_part(event_kind)}"]
         if _string_value(event.get("event_id")):
             features.append("decompression:has_event_id")
         if status:
             features.append(f"decompression:event_status:{_safe_part(status)}")
-        reason = _string_value(event.get("reason"))
+        reason_id = _int_value(event.get("reason_id"), 0) or 0
+        reason = DECOMPRESSION_REASON_NAMES.get(reason_id)
         if reason:
             features.append(f"decompression:event_reason:{_safe_part(reason)}")
-        features.extend(_decompression_unmaterialized_features(status, reason))
-        payload_role = _string_value(event.get("payload_role"))
+        features.extend(_decompression_unmaterialized_features(status_id, reason_id))
+        payload_role = DECOMPRESSION_PAYLOAD_ROLE_NAMES.get(_int_value(event.get("payload_role_id"), 0) or 0)
         if payload_role:
             features.append(f"decompression:payload_role:{_safe_part(payload_role)}")
-        source_kind = _string_value(event.get("source_kind"))
+        source_kind = DECOMPRESSION_SOURCE_KIND_NAMES.get(_int_value(event.get("source_kind_id"), 0) or 0)
         if source_kind:
             features.append(f"decompression:source_kind:{_safe_part(source_kind)}")
         provider_id = _string_value(event.get("provider_id"))
@@ -3701,7 +3784,7 @@ def _decompression_analysis_xrefs(
         codec_id = _string_value(event.get("codec_id"))
         if codec_id:
             features.append(f"decompression:codec:{_safe_part(codec_id)}")
-        codec_support = _string_value(event.get("codec_support"))
+        codec_support = DECOMPRESSION_CODEC_SUPPORT_NAMES.get(_int_value(event.get("codec_support_id"), 0) or 0)
         if codec_support:
             features.append(f"decompression:codec_support:{_safe_part(codec_support)}")
         if _int_value(event.get("simulated_output_size")) is not None:
@@ -3724,7 +3807,7 @@ def _decompression_analysis_xrefs(
                     row_index=row_index,
                     stable_key=stable_key,
                     symbol=event_kind,
-                    value=status,
+                    value=status_id,
                     text=text,
                 )
             )

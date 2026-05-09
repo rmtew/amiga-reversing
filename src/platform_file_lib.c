@@ -816,29 +816,129 @@ static int automatic_decompression_candidate_is_useful(const PlatformDecompressi
   return 1;
 }
 
-static const char *decompression_suggestion_reason_local(const PlatformDecompressionIdentifyResult *result,
+static const char *decompression_event_kind_name_local(uint8_t event_kind) {
+  switch (event_kind) {
+    case PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION: return "decompression";
+    default: return "unknown";
+  }
+}
+
+static const char *derived_target_suggestion_kind_name_local(uint8_t kind) {
+  switch (kind) {
+    case PLATFORM_DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD: return "decompressed_payload";
+    default: return "unknown";
+  }
+}
+
+static const char *decompression_source_kind_name_local(uint8_t source_kind) {
+  switch (source_kind) {
+    case PLATFORM_DECOMPRESSION_SOURCE_SECTION_RANGE: return "section_range";
+    case PLATFORM_DECOMPRESSION_SOURCE_RECOGNIZED_UNPACKER: return "recognized_unpacker";
+    case PLATFORM_DECOMPRESSION_SOURCE_SELF_DECRUNCHER: return "self_decruncher";
+    default: return "unknown";
+  }
+}
+
+static const char *decompression_status_name_local(uint8_t status) {
+  switch (status) {
+    case PLATFORM_DECOMPRESSION_STATUS_IDENTIFIED: return "identified";
+    case PLATFORM_DECOMPRESSION_STATUS_MATERIALIZABLE: return "materializable";
+    case PLATFORM_DECOMPRESSION_STATUS_NEEDS_RUNTIME_METADATA: return "needs_runtime_metadata";
+    case PLATFORM_DECOMPRESSION_STATUS_NEEDS_SIMULATED_DECRUNCH: return "needs_simulated_decrunch";
+    case PLATFORM_DECOMPRESSION_STATUS_SIMULATED_OUTPUT_OBSERVED: return "simulated_output_observed";
+    default: return "unknown";
+  }
+}
+
+static const char *decompression_reason_name_local(uint8_t reason) {
+  switch (reason) {
+    case PLATFORM_DECOMPRESSION_REASON_INVALID_RECORD: return "invalid_record";
+    case PLATFORM_DECOMPRESSION_REASON_INITIAL_CONTROL_TARGET_VALIDATED_PROVIDER_WRAPPER:
+      return "initial_control_target_validated_provider_wrapper";
+    case PLATFORM_DECOMPRESSION_REASON_INITIAL_CONTROL_TARGET_VALIDATED_RUNTIME_COPY:
+      return "initial_control_target_validated_runtime_copy";
+    case PLATFORM_DECOMPRESSION_REASON_MISSING_RUNTIME_COPY_EVIDENCE: return "missing_runtime_copy_evidence";
+    case PLATFORM_DECOMPRESSION_REASON_RUNTIME_COPY_CONFLICTING: return "runtime_copy_conflicting";
+    case PLATFORM_DECOMPRESSION_REASON_RUNTIME_COPY_SHORT: return "runtime_copy_short";
+    case PLATFORM_DECOMPRESSION_REASON_RUNTIME_COPY_OVERSIZE: return "runtime_copy_oversize";
+    case PLATFORM_DECOMPRESSION_REASON_MISSING_DECOMPRESSED_LOAD_ENTRY: return "missing_decompressed_load_entry";
+    case PLATFORM_DECOMPRESSION_REASON_NATIVE_TETRAGON_UNPACK_VALIDATED: return "native_tetragon_unpack_validated";
+    case PLATFORM_DECOMPRESSION_REASON_RECOGNIZED_UNPACKER_SIGNATURE: return "recognized_unpacker_signature";
+    case PLATFORM_DECOMPRESSION_REASON_UNIDENTIFIED_SELF_DECRUNCHER: return "unidentified_self_decruncher";
+    case PLATFORM_DECOMPRESSION_REASON_SIMULATED_PC_RANGE_STOP: return "simulated_pc_range_stop";
+    case PLATFORM_DECOMPRESSION_REASON_SIMULATED_PC_OUT_OF_RANGE: return "simulated_pc_out_of_range";
+    case PLATFORM_DECOMPRESSION_REASON_SIMULATED_INSTRUCTION_LIMIT: return "simulated_instruction_limit";
+    case PLATFORM_DECOMPRESSION_REASON_SIMULATED_DECODE_ERROR: return "simulated_decode_error";
+    case PLATFORM_DECOMPRESSION_REASON_SIMULATED_ERROR: return "simulated_error";
+    case PLATFORM_DECOMPRESSION_REASON_SIMULATED_BAD_ARGUMENT: return "simulated_bad_argument";
+    case PLATFORM_DECOMPRESSION_REASON_SIMULATED_NO_OUTPUT_RANGE: return "simulated_no_output_range";
+    case PLATFORM_DECOMPRESSION_REASON_SIMULATED_UNKNOWN_STOP: return "simulated_unknown_stop";
+    default: return "unknown";
+  }
+}
+
+static const char *decompression_payload_role_name_local(uint8_t payload_role) {
+  switch (payload_role) {
+    case PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_UNKNOWN_RUNTIME_PAYLOAD: return "unknown_runtime_payload";
+    case PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_PRIMARY_PROGRAM: return "primary_program";
+    default: return "unknown";
+  }
+}
+
+static const char *decompression_payload_role_confidence_name_local(uint8_t confidence) {
+  switch (confidence) {
+    case PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_TOOL_INFERRED: return "tool_inferred";
+    case PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_NATIVE_UNPACK_ENTRY_VALIDATED:
+      return "native_unpack_entry_validated";
+    case PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_SIGNATURE_ONLY: return "signature_only";
+    case PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_OBSERVED_OUTPUT_ONLY: return "observed_output_only";
+    default: return "unknown";
+  }
+}
+
+static const char *decompression_parent_remains_active_name_local(uint8_t parent_remains_active) {
+  switch (parent_remains_active) {
+    case PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_FALSE: return "false";
+    case PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_TRUE: return "true";
+    default: return "unknown";
+  }
+}
+
+static const char *decompression_codec_support_name_local(uint8_t codec_support) {
+  switch (codec_support) {
+    case PLATFORM_DECOMPRESSION_CODEC_SUPPORT_EXTERNAL_PROVIDER: return "external_provider";
+    case PLATFORM_DECOMPRESSION_CODEC_SUPPORT_NATIVE_DECOMPRESSOR: return "native_decompressor";
+    case PLATFORM_DECOMPRESSION_CODEC_SUPPORT_SIMULATOR_REQUIRED: return "simulator_required";
+    default: return "unknown";
+  }
+}
+
+static uint8_t decompression_suggestion_reason_local(const PlatformDecompressionIdentifyResult *result,
     const M68kRuntimeViewIR *runtime_copy_view) {
-  if (result == NULL) return "invalid_record";
+  if (result == NULL) return PLATFORM_DECOMPRESSION_REASON_INVALID_RECORD;
   if (result->has_decompressed_load_entry)
     return result->has_decompressed_load_entry_from_wrapper ?
-      "initial_control_target_validated_provider_wrapper" :
-      "initial_control_target_validated_runtime_copy";
-  if (runtime_copy_view == NULL) return "missing_runtime_copy_evidence";
+      PLATFORM_DECOMPRESSION_REASON_INITIAL_CONTROL_TARGET_VALIDATED_PROVIDER_WRAPPER :
+      PLATFORM_DECOMPRESSION_REASON_INITIAL_CONTROL_TARGET_VALIDATED_RUNTIME_COPY;
+  if (runtime_copy_view == NULL) return PLATFORM_DECOMPRESSION_REASON_MISSING_RUNTIME_COPY_EVIDENCE;
   if (runtime_copy_view->kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY)
-    return "runtime_copy_conflicting";
-  if (runtime_copy_view->size < result->packed_size) return "runtime_copy_short";
-  if (runtime_copy_view->size > result->packed_size) return "runtime_copy_oversize";
-  return "missing_decompressed_load_entry";
+    return PLATFORM_DECOMPRESSION_REASON_RUNTIME_COPY_CONFLICTING;
+  if (runtime_copy_view->size < result->packed_size) return PLATFORM_DECOMPRESSION_REASON_RUNTIME_COPY_SHORT;
+  if (runtime_copy_view->size > result->packed_size) return PLATFORM_DECOMPRESSION_REASON_RUNTIME_COPY_OVERSIZE;
+  return PLATFORM_DECOMPRESSION_REASON_MISSING_DECOMPRESSED_LOAD_ENTRY;
 }
 
-static const char *decompression_suggestion_payload_role_local(const PlatformDecompressionIdentifyResult *result) {
-  if (result != NULL && result->has_decompressed_load_entry) return "primary_program";
-  return "unknown_runtime_payload";
+static uint8_t decompression_suggestion_payload_role_local(const PlatformDecompressionIdentifyResult *result) {
+  if (result != NULL && result->has_decompressed_load_entry)
+    return PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_PRIMARY_PROGRAM;
+  return PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_UNKNOWN_RUNTIME_PAYLOAD;
 }
 
-static const char *decompression_parent_remains_active_local(const PlatformDecompressionIdentifyResult *result) {
-  if (result == NULL || !result->parent_remains_active_known) return "unknown";
-  return result->parent_remains_active ? "true" : "false";
+static uint8_t decompression_parent_remains_active_local(const PlatformDecompressionIdentifyResult *result) {
+  if (result == NULL || !result->parent_remains_active_known)
+    return PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_UNKNOWN;
+  return result->parent_remains_active ? PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_TRUE :
+    PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_FALSE;
 }
 
 typedef struct PlatformSelfDecrunchEvent {
@@ -2335,51 +2435,78 @@ static const char *self_decrunch_sim_stop_reason_name_local(uint8_t stop_reason)
   }
 }
 
-static const char *self_decrunch_event_reason_local(const PlatformSelfDecrunchEvent *event) {
-  if (event == NULL) return "unidentified_self_decruncher";
-  if (event->has_simulated_output) return "simulated_pc_range_stop";
-  if (!event->simulation_attempted) return "unidentified_self_decruncher";
+static uint8_t self_decrunch_event_reason_id_local(const PlatformSelfDecrunchEvent *event) {
+  if (event == NULL) return PLATFORM_DECOMPRESSION_REASON_UNIDENTIFIED_SELF_DECRUNCHER;
+  if (event->has_simulated_output) return PLATFORM_DECOMPRESSION_REASON_SIMULATED_PC_RANGE_STOP;
+  if (!event->simulation_attempted) return PLATFORM_DECOMPRESSION_REASON_UNIDENTIFIED_SELF_DECRUNCHER;
   switch (event->simulated_stop_reason) {
-    case M68K_SIM_CONCRETE_RUN_STOP_PC_OUT_OF_RANGE: return "simulated_pc_out_of_range";
-    case M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT: return "simulated_instruction_limit";
-    case M68K_SIM_CONCRETE_RUN_STOP_DECODE_ERROR: return "simulated_decode_error";
-    case M68K_SIM_CONCRETE_RUN_STOP_SIMULATION_ERROR: return "simulated_error";
-    case M68K_SIM_CONCRETE_RUN_STOP_BAD_ARGUMENT: return "simulated_bad_argument";
-    case M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE: return "simulated_no_output_range";
-    default: return "simulated_unknown_stop";
+    case M68K_SIM_CONCRETE_RUN_STOP_PC_OUT_OF_RANGE:
+      return PLATFORM_DECOMPRESSION_REASON_SIMULATED_PC_OUT_OF_RANGE;
+    case M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT:
+      return PLATFORM_DECOMPRESSION_REASON_SIMULATED_INSTRUCTION_LIMIT;
+    case M68K_SIM_CONCRETE_RUN_STOP_DECODE_ERROR:
+      return PLATFORM_DECOMPRESSION_REASON_SIMULATED_DECODE_ERROR;
+    case M68K_SIM_CONCRETE_RUN_STOP_SIMULATION_ERROR:
+      return PLATFORM_DECOMPRESSION_REASON_SIMULATED_ERROR;
+    case M68K_SIM_CONCRETE_RUN_STOP_BAD_ARGUMENT:
+      return PLATFORM_DECOMPRESSION_REASON_SIMULATED_BAD_ARGUMENT;
+    case M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE:
+      return PLATFORM_DECOMPRESSION_REASON_SIMULATED_NO_OUTPUT_RANGE;
+    default:
+      return PLATFORM_DECOMPRESSION_REASON_SIMULATED_UNKNOWN_STOP;
   }
 }
 
 static int append_recognized_unpacker_event_json(JsonBuilder *builder,
     const PlatformRecognizedUnpackerEvent *event) {
   char event_id[160];
-  const char *status;
-  const char *reason;
-  const char *payload_role;
-  const char *payload_confidence;
-  const char *parent_remains_active;
+  uint8_t status;
+  uint8_t reason;
+  uint8_t payload_role;
+  uint8_t payload_confidence;
+  uint8_t parent_remains_active;
   if (builder == NULL || event == NULL) return -1;
   make_recognized_unpacker_event_id_local(event_id, sizeof(event_id), event);
-  status = event->native_unpack_validated ? "materializable" : "identified";
-  reason = event->native_unpack_validated ? "native_tetragon_unpack_validated" : "recognized_unpacker_signature";
-  payload_role = event->native_unpack_validated ? "primary_program" : "unknown_runtime_payload";
-  payload_confidence = event->native_unpack_validated ? "native_unpack_entry_validated" : "signature_only";
-  parent_remains_active = event->native_unpack_validated ? "false" : "unknown";
-  if (json_builder_append(builder, "{\"event_kind\":\"decompression\",\"event_id\":") != 0 ||
+  status = event->native_unpack_validated ? PLATFORM_DECOMPRESSION_STATUS_MATERIALIZABLE :
+    PLATFORM_DECOMPRESSION_STATUS_IDENTIFIED;
+  reason = event->native_unpack_validated ? PLATFORM_DECOMPRESSION_REASON_NATIVE_TETRAGON_UNPACK_VALIDATED :
+    PLATFORM_DECOMPRESSION_REASON_RECOGNIZED_UNPACKER_SIGNATURE;
+  payload_role = event->native_unpack_validated ? PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_PRIMARY_PROGRAM :
+    PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_UNKNOWN_RUNTIME_PAYLOAD;
+  payload_confidence = event->native_unpack_validated ?
+    PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_NATIVE_UNPACK_ENTRY_VALIDATED :
+    PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_SIGNATURE_ONLY;
+  parent_remains_active = event->native_unpack_validated ? PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_FALSE :
+    PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_UNKNOWN;
+  if (json_builder_appendf(builder, "{\"event_kind_id\":%u,\"event_kind\":",
+      (unsigned)PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_event_kind_name_local(PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION)) != 0 ||
+      json_builder_append(builder, ",\"event_id\":") != 0 ||
       json_builder_append_json_string(builder, event_id) != 0 ||
-      json_builder_append(builder, ",\"status\":") != 0 ||
-      json_builder_append_json_string(builder, status) != 0 ||
-      json_builder_append(builder, ",\"reason\":") != 0 ||
-      json_builder_append_json_string(builder, reason) != 0 ||
-      json_builder_append(builder, ",\"payload_role\":") != 0 ||
-      json_builder_append_json_string(builder, payload_role) != 0 ||
-      json_builder_append(builder, ",\"payload_role_confidence\":") != 0 ||
-      json_builder_append_json_string(builder, payload_confidence) != 0 ||
-      json_builder_append(builder, ",\"parent_remains_active\":") != 0 ||
-      json_builder_append_json_string(builder, parent_remains_active) != 0 ||
-      json_builder_append(builder,
-        ",\"source_kind\":\"recognized_unpacker\","
-        "\"codec_support\":\"native_decompressor\",\"provider_id\":") != 0 ||
+      json_builder_appendf(builder, ",\"status_id\":%u,\"status\":", (unsigned)status) != 0 ||
+      json_builder_append_json_string(builder, decompression_status_name_local(status)) != 0 ||
+      json_builder_appendf(builder, ",\"reason_id\":%u,\"reason\":", (unsigned)reason) != 0 ||
+      json_builder_append_json_string(builder, decompression_reason_name_local(reason)) != 0 ||
+      json_builder_appendf(builder, ",\"payload_role_id\":%u,\"payload_role\":", (unsigned)payload_role) != 0 ||
+      json_builder_append_json_string(builder, decompression_payload_role_name_local(payload_role)) != 0 ||
+      json_builder_appendf(builder, ",\"payload_role_confidence_id\":%u,\"payload_role_confidence\":",
+        (unsigned)payload_confidence) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_payload_role_confidence_name_local(payload_confidence)) != 0 ||
+      json_builder_appendf(builder, ",\"parent_remains_active_id\":%u,\"parent_remains_active\":",
+        (unsigned)parent_remains_active) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_parent_remains_active_name_local(parent_remains_active)) != 0 ||
+      json_builder_appendf(builder, ",\"source_kind_id\":%u,\"source_kind\":",
+        (unsigned)PLATFORM_DECOMPRESSION_SOURCE_RECOGNIZED_UNPACKER) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_source_kind_name_local(PLATFORM_DECOMPRESSION_SOURCE_RECOGNIZED_UNPACKER)) != 0 ||
+      json_builder_appendf(builder, ",\"codec_support_id\":%u,\"codec_support\":",
+        (unsigned)PLATFORM_DECOMPRESSION_CODEC_SUPPORT_NATIVE_DECOMPRESSOR) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_codec_support_name_local(PLATFORM_DECOMPRESSION_CODEC_SUPPORT_NATIVE_DECOMPRESSOR)) != 0 ||
+      json_builder_append(builder, ",\"provider_id\":") != 0 ||
       json_builder_append_json_string(builder, event->provider_id) != 0 ||
       json_builder_append(builder, ",\"codec_id\":") != 0 ||
       json_builder_append_json_string(builder, event->codec_id) != 0 ||
@@ -2428,23 +2555,51 @@ static int append_recognized_unpacker_event_json(JsonBuilder *builder,
 
 static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformSelfDecrunchEvent *event) {
   char event_id[160];
+  uint8_t status;
+  uint8_t reason;
+  uint8_t parent_remains_active;
   if (builder == NULL || event == NULL) return -1;
   make_self_decrunch_event_id_local(event_id, sizeof(event_id), event);
-  if (json_builder_append(builder, "{\"event_kind\":\"decompression\",\"event_id\":") != 0 ||
-      json_builder_append_json_string(builder, event_id) != 0 ||
-      json_builder_append(builder, ",\"status\":") != 0 ||
+  status = event->has_simulated_output ? PLATFORM_DECOMPRESSION_STATUS_SIMULATED_OUTPUT_OBSERVED :
+    PLATFORM_DECOMPRESSION_STATUS_NEEDS_SIMULATED_DECRUNCH;
+  reason = self_decrunch_event_reason_id_local(event);
+  parent_remains_active = event->parent_remains_active ? PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_TRUE :
+    PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_FALSE;
+  if (json_builder_appendf(builder, "{\"event_kind_id\":%u,\"event_kind\":",
+      (unsigned)PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION) != 0 ||
       json_builder_append_json_string(builder,
-        event->has_simulated_output ? "simulated_output_observed" : "needs_simulated_decrunch") != 0 ||
-      json_builder_append(builder, ",\"reason\":") != 0 ||
-      json_builder_append_json_string(builder, self_decrunch_event_reason_local(event)) != 0 ||
-      json_builder_append(builder,
-        ",\"payload_role\":\"unknown_runtime_payload\","
-        "\"payload_role_confidence\":\"observed_output_only\",\"parent_remains_active\":") != 0 ||
-      json_builder_append_json_string(builder, event->parent_remains_active ? "true" : "false") != 0 ||
-      json_builder_append(builder,
-        ",\"source_kind\":\"self_decruncher\",\"provider_id\":\"m68k-sim-decrunch\","
-        "\"codec_id\":\"unknown-self-decrunch\",\"codec_name\":\"Unidentified target-owned self-decruncher\","
-        "\"codec_support\":\"simulator_required\"") != 0) {
+        decompression_event_kind_name_local(PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION)) != 0 ||
+      json_builder_append(builder, ",\"event_id\":") != 0 ||
+      json_builder_append_json_string(builder, event_id) != 0 ||
+      json_builder_appendf(builder, ",\"status_id\":%u,\"status\":", (unsigned)status) != 0 ||
+      json_builder_append_json_string(builder, decompression_status_name_local(status)) != 0 ||
+      json_builder_appendf(builder, ",\"reason_id\":%u,\"reason\":", (unsigned)reason) != 0 ||
+      json_builder_append_json_string(builder, decompression_reason_name_local(reason)) != 0 ||
+      json_builder_appendf(builder,
+        ",\"payload_role_id\":%u,\"payload_role\":",
+        (unsigned)PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_UNKNOWN_RUNTIME_PAYLOAD) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_payload_role_name_local(PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_UNKNOWN_RUNTIME_PAYLOAD)) != 0 ||
+      json_builder_appendf(builder,
+        ",\"payload_role_confidence_id\":%u,\"payload_role_confidence\":",
+        (unsigned)PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_OBSERVED_OUTPUT_ONLY) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_payload_role_confidence_name_local(
+          PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_OBSERVED_OUTPUT_ONLY)) != 0 ||
+      json_builder_appendf(builder, ",\"parent_remains_active_id\":%u,\"parent_remains_active\":",
+        (unsigned)parent_remains_active) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_parent_remains_active_name_local(parent_remains_active)) != 0 ||
+      json_builder_appendf(builder, ",\"source_kind_id\":%u,\"source_kind\":",
+        (unsigned)PLATFORM_DECOMPRESSION_SOURCE_SELF_DECRUNCHER) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_source_kind_name_local(PLATFORM_DECOMPRESSION_SOURCE_SELF_DECRUNCHER)) != 0 ||
+      json_builder_append(builder, ",\"provider_id\":\"m68k-sim-decrunch\","
+        "\"codec_id\":\"unknown-self-decrunch\",\"codec_name\":\"Unidentified target-owned self-decruncher\",") != 0 ||
+      json_builder_appendf(builder, "\"codec_support_id\":%u,\"codec_support\":",
+        (unsigned)PLATFORM_DECOMPRESSION_CODEC_SUPPORT_SIMULATOR_REQUIRED) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_codec_support_name_local(PLATFORM_DECOMPRESSION_CODEC_SUPPORT_SIMULATOR_REQUIRED)) != 0) {
     return -1;
   }
   if (json_builder_appendf(builder,
@@ -2493,23 +2648,37 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
 static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
     const PlatformDecompressionIdentifyResult *result, const M68kRuntimeViewIR *runtime_copy_view) {
   char event_id[160];
-  const char *reason = decompression_suggestion_reason_local(result, runtime_copy_view);
-  const char *payload_role = decompression_suggestion_payload_role_local(result);
-  const char *parent_remains_active = decompression_parent_remains_active_local(result);
-  const char *status = result != NULL && result->has_decompressed_load_entry ? "materializable" :
-    "needs_runtime_metadata";
+  uint8_t reason = decompression_suggestion_reason_local(result, runtime_copy_view);
+  uint8_t payload_role = decompression_suggestion_payload_role_local(result);
+  uint8_t parent_remains_active = decompression_parent_remains_active_local(result);
+  uint8_t status = result != NULL && result->has_decompressed_load_entry ?
+    PLATFORM_DECOMPRESSION_STATUS_MATERIALIZABLE : PLATFORM_DECOMPRESSION_STATUS_NEEDS_RUNTIME_METADATA;
   make_decompression_event_id_local(event_id, sizeof(event_id), result);
-  if (json_builder_append(builder, "{\"kind\":\"decompressed_payload\",\"status\":") != 0 ||
-      json_builder_append_json_string(builder, status) != 0 ||
-      json_builder_append(builder, ",\"event_kind\":\"decompression\",\"event_id\":") != 0 ||
+  if (json_builder_appendf(builder, "{\"kind_id\":%u,\"kind\":",
+      (unsigned)PLATFORM_DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD) != 0 ||
+      json_builder_append_json_string(builder,
+        derived_target_suggestion_kind_name_local(PLATFORM_DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD)) != 0 ||
+      json_builder_appendf(builder, ",\"status_id\":%u,\"status\":", (unsigned)status) != 0 ||
+      json_builder_append_json_string(builder, decompression_status_name_local(status)) != 0 ||
+      json_builder_appendf(builder, ",\"event_kind_id\":%u,\"event_kind\":",
+        (unsigned)PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_event_kind_name_local(PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION)) != 0 ||
+      json_builder_append(builder, ",\"event_id\":") != 0 ||
       json_builder_append_json_string(builder, event_id) != 0 ||
-      json_builder_append(builder, ",\"reason\":") != 0 ||
-      json_builder_append_json_string(builder, reason) != 0 ||
-      json_builder_append(builder, ",\"payload_role\":") != 0 ||
-      json_builder_append_json_string(builder, payload_role) != 0 ||
-      json_builder_append(builder, ",\"payload_role_confidence\":\"tool_inferred\","
-        "\"parent_remains_active\":") != 0 ||
-      json_builder_append_json_string(builder, parent_remains_active) != 0)
+      json_builder_appendf(builder, ",\"reason_id\":%u,\"reason\":", (unsigned)reason) != 0 ||
+      json_builder_append_json_string(builder, decompression_reason_name_local(reason)) != 0 ||
+      json_builder_appendf(builder, ",\"payload_role_id\":%u,\"payload_role\":", (unsigned)payload_role) != 0 ||
+      json_builder_append_json_string(builder, decompression_payload_role_name_local(payload_role)) != 0 ||
+      json_builder_appendf(builder, ",\"payload_role_confidence_id\":%u,\"payload_role_confidence\":",
+        (unsigned)PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_TOOL_INFERRED) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_payload_role_confidence_name_local(
+          PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_TOOL_INFERRED)) != 0 ||
+      json_builder_appendf(builder, ",\"parent_remains_active_id\":%u,\"parent_remains_active\":",
+        (unsigned)parent_remains_active) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_parent_remains_active_name_local(parent_remains_active)) != 0)
     return -1;
   if (json_builder_appendf(builder,
       ",\"source_section\":%u,\"source_section_offset\":%u,\"packed_size\":%u,\"decompressed_size\":%u",
@@ -2536,7 +2705,10 @@ static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
       json_builder_append_json_string(builder, result->codec_id) != 0 ||
       json_builder_append(builder, ",\"codec_name\":") != 0 ||
       json_builder_append_json_string(builder, result->codec_name) != 0 ||
-      json_builder_append(builder, ",\"codec_support\":\"external_provider\"") != 0 ||
+      json_builder_appendf(builder, ",\"codec_support_id\":%u,\"codec_support\":",
+        (unsigned)PLATFORM_DECOMPRESSION_CODEC_SUPPORT_EXTERNAL_PROVIDER) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_codec_support_name_local(PLATFORM_DECOMPRESSION_CODEC_SUPPORT_EXTERNAL_PROVIDER)) != 0 ||
       json_builder_append(builder, ",\"source_sha256\":") != 0 ||
       json_builder_append_json_string(builder, result->source_sha256) != 0 ||
       json_builder_append(builder, ",\"decompressed_sha256\":") != 0 ||
@@ -2548,26 +2720,41 @@ static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
 static int append_decompression_event_json(JsonBuilder *builder,
     const PlatformDecompressionIdentifyResult *result, const M68kRuntimeViewIR *runtime_copy_view) {
   char event_id[160];
-  const char *reason = decompression_suggestion_reason_local(result, runtime_copy_view);
-  const char *payload_role = decompression_suggestion_payload_role_local(result);
-  const char *parent_remains_active = decompression_parent_remains_active_local(result);
-  const char *status = result != NULL && result->has_decompressed_load_entry ? "materializable" :
-    "needs_runtime_metadata";
+  uint8_t reason = decompression_suggestion_reason_local(result, runtime_copy_view);
+  uint8_t payload_role = decompression_suggestion_payload_role_local(result);
+  uint8_t parent_remains_active = decompression_parent_remains_active_local(result);
+  uint8_t status = result != NULL && result->has_decompressed_load_entry ?
+    PLATFORM_DECOMPRESSION_STATUS_MATERIALIZABLE : PLATFORM_DECOMPRESSION_STATUS_NEEDS_RUNTIME_METADATA;
   make_decompression_event_id_local(event_id, sizeof(event_id), result);
-  if (json_builder_append(builder, "{\"event_kind\":\"decompression\",\"event_id\":") != 0 ||
+  if (json_builder_appendf(builder, "{\"event_kind_id\":%u,\"event_kind\":",
+      (unsigned)PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_event_kind_name_local(PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION)) != 0 ||
+      json_builder_append(builder, ",\"event_id\":") != 0 ||
       json_builder_append_json_string(builder, event_id) != 0 ||
-      json_builder_append(builder, ",\"status\":") != 0 ||
-      json_builder_append_json_string(builder, status) != 0 ||
-      json_builder_append(builder, ",\"reason\":") != 0 ||
-      json_builder_append_json_string(builder, reason) != 0 ||
-      json_builder_append(builder, ",\"payload_role\":") != 0 ||
-      json_builder_append_json_string(builder, payload_role) != 0 ||
-      json_builder_append(builder, ",\"payload_role_confidence\":\"tool_inferred\","
-        "\"parent_remains_active\":") != 0 ||
-      json_builder_append_json_string(builder, parent_remains_active) != 0)
+      json_builder_appendf(builder, ",\"status_id\":%u,\"status\":", (unsigned)status) != 0 ||
+      json_builder_append_json_string(builder, decompression_status_name_local(status)) != 0 ||
+      json_builder_appendf(builder, ",\"reason_id\":%u,\"reason\":", (unsigned)reason) != 0 ||
+      json_builder_append_json_string(builder, decompression_reason_name_local(reason)) != 0 ||
+      json_builder_appendf(builder, ",\"payload_role_id\":%u,\"payload_role\":", (unsigned)payload_role) != 0 ||
+      json_builder_append_json_string(builder, decompression_payload_role_name_local(payload_role)) != 0 ||
+      json_builder_appendf(builder, ",\"payload_role_confidence_id\":%u,\"payload_role_confidence\":",
+        (unsigned)PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_TOOL_INFERRED) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_payload_role_confidence_name_local(
+          PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_TOOL_INFERRED)) != 0 ||
+      json_builder_appendf(builder, ",\"parent_remains_active_id\":%u,\"parent_remains_active\":",
+        (unsigned)parent_remains_active) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_parent_remains_active_name_local(parent_remains_active)) != 0)
     return -1;
   if (json_builder_appendf(builder,
-      ",\"source_kind\":\"section_range\",\"source_section\":%u,\"source_section_offset\":%u,"
+      ",\"source_kind_id\":%u,\"source_kind\":",
+      (unsigned)PLATFORM_DECOMPRESSION_SOURCE_SECTION_RANGE) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_source_kind_name_local(PLATFORM_DECOMPRESSION_SOURCE_SECTION_RANGE)) != 0 ||
+      json_builder_appendf(builder,
+      ",\"source_section\":%u,\"source_section_offset\":%u,"
       "\"packed_size\":%u,\"decompressed_size\":%u",
       (unsigned)result->source_section_index, (unsigned)result->source_section_offset,
       (unsigned)result->packed_size, (unsigned)result->decompressed_size) != 0)
@@ -2594,7 +2781,11 @@ static int append_decompression_event_json(JsonBuilder *builder,
       json_builder_append_json_string(builder, result->codec_id) != 0 ||
       json_builder_append(builder, ",\"codec_name\":") != 0 ||
       json_builder_append_json_string(builder, result->codec_name) != 0 ||
-      json_builder_append(builder, ",\"codec_support\":\"external_provider\",\"source_sha256\":") != 0 ||
+      json_builder_appendf(builder, ",\"codec_support_id\":%u,\"codec_support\":",
+        (unsigned)PLATFORM_DECOMPRESSION_CODEC_SUPPORT_EXTERNAL_PROVIDER) != 0 ||
+      json_builder_append_json_string(builder,
+        decompression_codec_support_name_local(PLATFORM_DECOMPRESSION_CODEC_SUPPORT_EXTERNAL_PROVIDER)) != 0 ||
+      json_builder_append(builder, ",\"source_sha256\":") != 0 ||
       json_builder_append_json_string(builder, result->source_sha256) != 0 ||
       json_builder_append(builder, ",\"decompressed_sha256\":") != 0 ||
       json_builder_append_json_string(builder, result->decompressed_sha256) != 0)

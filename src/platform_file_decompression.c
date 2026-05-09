@@ -756,7 +756,8 @@ int platform_decompression_append_result_json(JsonBuilder *builder,
     if (json_builder_append_json_string(builder, result->codec_id) != 0) return -1;
     if (json_builder_append(builder, ",\"codec_name\":") != 0) return -1;
     if (json_builder_append_json_string(builder, result->codec_name) != 0) return -1;
-    if (json_builder_append(builder, ",\"codec_support\":\"external_provider\"") != 0) return -1;
+    if (json_builder_appendf(builder, ",\"codec_support_id\":%u,\"codec_support\":\"external_provider\"",
+        (unsigned)PLATFORM_DECOMPRESSION_CODEC_SUPPORT_EXTERNAL_PROVIDER) != 0) return -1;
     if (json_builder_append(builder, ",\"confidence\":") != 0) return -1;
     if (json_builder_append_json_string(builder, result->confidence) != 0) return -1;
     if (result->decompressed) {
