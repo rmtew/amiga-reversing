@@ -5119,6 +5119,11 @@ int lookup_has_renderable_label(const M68kRenderLookup *lookup, size_t section_i
   return !lookup_offset_is_inside_relocation_payload(lookup, section_index, offset);
 }
 
+static int lookup_has_policy_label(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
+  const char *name = lookup_policy_label_name(lookup, section_index, offset);
+  return name != NULL && name[0] != '\0';
+}
+
 const char *lookup_global_base_slot_library(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset) {
   size_t index;
@@ -6537,7 +6542,9 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
         signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_RUNTIME_COPY;
       } else if (has_renderable_label) {
         signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL;
-        signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA;
+        signal.missing_inbound = lookup_has_policy_label(lookup, section->section_index, offset)
+          ? M68K_ORPHAN_CODE_SIGNAL_INBOUND_POLICY_SEED
+          : M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA;
       } else {
         signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_ACCEPTED_CODE_BOUNDARY;
         signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN;

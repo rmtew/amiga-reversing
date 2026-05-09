@@ -3709,7 +3709,7 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   return 0;
 }
 
-static int test_facts_v2_orphan_signal_records_label_context(void) {
+static int test_facts_v2_orphan_signal_records_policy_seed_context(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -3744,6 +3744,54 @@ static int test_facts_v2_orphan_signal_records_label_context(void) {
   M68K_C_ASSERT(strstr(source, "maybe_callback:") != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
   M68K_C_ASSERT_U32(2U, source_analysis.sections[0].orphan_code_signals[0].offset);
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL,
+    source_analysis.sections[0].orphan_code_signals[0].context);
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_POLICY_SEED,
+    source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_orphan_signal_records_metadata_label_context(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kSymbol symbol;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[8] = {
+    0x60u, 0x04u,
+    0x70u, 0x01u,
+    0x4eu, 0x75u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&symbol, 0, sizeof(symbol));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  symbol.name = "object_callback";
+  symbol.binding = M68K_SYMBOL_LOCAL;
+  symbol.defined = 1;
+  symbol.section_index = 0U;
+  symbol.value = 2U;
+  added = m68k_object_add_symbol(&object, &symbol);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "object_callback:") != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL,
     source_analysis.sections[0].orphan_code_signals[0].context);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA,
@@ -15584,8 +15632,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_ignores_ambiguous_wrapper_stack_arg},
     {"facts_v2_reports_orphan_terminal_code_signal_without_promoting",
       test_facts_v2_reports_orphan_terminal_code_signal_without_promoting},
-    {"facts_v2_orphan_signal_records_label_context",
-      test_facts_v2_orphan_signal_records_label_context},
+    {"facts_v2_orphan_signal_records_policy_seed_context",
+      test_facts_v2_orphan_signal_records_policy_seed_context},
+    {"facts_v2_orphan_signal_records_metadata_label_context",
+      test_facts_v2_orphan_signal_records_metadata_label_context},
     {"facts_v2_orphan_signal_suppresses_structured_data_overlap",
       test_facts_v2_orphan_signal_suppresses_structured_data_overlap},
     {"facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_callback",
