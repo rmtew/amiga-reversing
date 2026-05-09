@@ -3220,6 +3220,9 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_appendf(&builder, ",\"nearby_data_flags\":%u",
           (unsigned)signal->nearby_data_flags) != 0)
         goto oom;
+      if (json_builder_appendf(&builder, ",\"nearby_data_offset\":%u,\"nearby_data_distance\":%u",
+          (unsigned)signal->nearby_data_offset, (unsigned)signal->nearby_data_distance) != 0)
+        goto oom;
       if (json_builder_append(&builder, ",\"nearby_data_relation\":") != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder, signal->nearby_data_relation) != 0)

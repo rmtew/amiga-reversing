@@ -6355,6 +6355,8 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
   data_class = structured_data_item_data_class(item);
   if (data_class != NULL && data_class[0] != '\0') {
     signal->nearby_data_flags = structured_data_item_role_flags(item);
+    signal->nearby_data_offset = item->offset;
+    signal->nearby_data_distance = 0U;
     signal->nearby_data_class = (char *)data_class;
     signal->nearby_data_relation = "overlap";
     return;
@@ -6367,6 +6369,8 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
       data_class = structured_data_item_data_class(item);
       if (data_class != NULL && data_class[0] != '\0') {
         signal->nearby_data_flags = structured_data_item_role_flags(item);
+        signal->nearby_data_offset = item->offset;
+        signal->nearby_data_distance = item->offset > after_offset ? item->offset - after_offset : 0U;
         signal->nearby_data_class = (char *)data_class;
         signal->nearby_data_relation = "after";
         return;
@@ -6378,6 +6382,11 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
     data_class = structured_data_item_data_class(item);
     if (data_class != NULL && data_class[0] != '\0') {
       signal->nearby_data_flags = structured_data_item_role_flags(item);
+      signal->nearby_data_offset = item->offset;
+      signal->nearby_data_distance = signal->offset > item->offset &&
+        signal->offset - item->offset > item->size
+        ? signal->offset - item->offset - item->size
+        : 0U;
       signal->nearby_data_class = (char *)data_class;
       signal->nearby_data_relation = "before";
     }

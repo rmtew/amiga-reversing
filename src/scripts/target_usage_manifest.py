@@ -1422,6 +1422,10 @@ def _orphan_code_signal_example(section_index: int, signal: dict[str, Any]) -> d
     nearby_data_relation = _string_value(signal.get("nearby_data_relation"))
     if nearby_data_relation:
         example["nearby_data_relation"] = nearby_data_relation
+    for key in ("nearby_data_offset", "nearby_data_distance"):
+        value = _int_value(signal.get(key))
+        if value is not None:
+            example[key] = value
     detail = _string_value(signal.get("detail"))
     if detail:
         example["detail"] = detail
@@ -1439,6 +1443,8 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
     missing_inbound = _orphan_code_signal_inbound_name(signal)
     nearby_data_class = _orphan_code_signal_nearby_data_name(signal)
     nearby_data_relation = _string_value(signal.get("nearby_data_relation"))
+    nearby_data_offset = _int_value(signal.get("nearby_data_offset"))
+    nearby_data_distance = _int_value(signal.get("nearby_data_distance"))
     example = _orphan_code_signal_example(section_index, signal)
     bag.add("orphan-code:signal", example=example)
     bag.add(f"orphan-code:reason:{_safe_part(reason)}", example=example)
@@ -1459,6 +1465,10 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
         bag.add(f"orphan-code:missing_inbound:{_safe_part(missing_inbound)}", example=example)
     if nearby_data_class:
         bag.add(f"orphan-code:nearby_data:{_safe_part(nearby_data_class)}", example=example)
+        if nearby_data_offset is not None:
+            bag.add("orphan-code:nearby_data:located", example=example)
+        if nearby_data_distance is not None:
+            bag.add(f"orphan-code:nearby_data_distance:{nearby_data_distance}", example=example)
         if nearby_data_relation:
             bag.add(
                 f"orphan-code:nearby_data:{_safe_part(nearby_data_relation)}:{_safe_part(nearby_data_class)}",
@@ -3900,6 +3910,8 @@ def _analysis_xrefs(
             missing_inbound = _orphan_code_signal_inbound_name(signal)
             nearby_data_class = _orphan_code_signal_nearby_data_name(signal)
             nearby_data_relation = _string_value(signal.get("nearby_data_relation"))
+            nearby_data_offset = _int_value(signal.get("nearby_data_offset"))
+            nearby_data_distance = _int_value(signal.get("nearby_data_distance"))
             size = _int_value(signal.get("size"))
             text = row_text or _string_value(signal.get("detail")) or f"orphan code {reason}:{status}"
             features = [
@@ -3923,6 +3935,10 @@ def _analysis_xrefs(
                 features.append(f"orphan-code:missing_inbound:{_safe_part(missing_inbound)}")
             if nearby_data_class:
                 features.append(f"orphan-code:nearby_data:{_safe_part(nearby_data_class)}")
+                if nearby_data_offset is not None:
+                    features.append("orphan-code:nearby_data:located")
+                if nearby_data_distance is not None:
+                    features.append(f"orphan-code:nearby_data_distance:{nearby_data_distance}")
                 if nearby_data_relation:
                     features.append(
                         f"orphan-code:nearby_data:{_safe_part(nearby_data_relation)}:"

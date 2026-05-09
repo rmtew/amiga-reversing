@@ -448,6 +448,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "missing_inbound": "stale_display_name",
                                     "nearby_data_flags": 8,
                                     "nearby_data_class": "stale_display_name",
+                                    "nearby_data_offset": 0x88,
+                                    "nearby_data_distance": 0,
                                     "nearby_data_relation": "after",
                                     "confidence": 60,
                                     "detail": "terminal decode after data label",
@@ -886,6 +888,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["orphan-code:signal"][0]["context"], "accepted_code_boundary")
         self.assertEqual(examples["orphan-code:signal"][0]["missing_inbound"], "jump_table")
         self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_class"], "lookup_table")
+        self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_offset"], 0x88)
+        self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_distance"], 0)
         self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_relation"], "after")
 
     def test_self_decrunch_event_indexes_pattern_and_work_item(self) -> None:
@@ -1449,6 +1453,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "missing_inbound": "stale_display_name",
                                 "nearby_data_flags": 8,
                                 "nearby_data_class": "stale_display_name",
+                                "nearby_data_offset": 0x88,
+                                "nearby_data_distance": 0,
                                 "nearby_data_relation": "after",
                                 "confidence": 60,
                             }
