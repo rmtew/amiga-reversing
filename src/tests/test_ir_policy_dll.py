@@ -724,8 +724,18 @@ class IrPolicyDllTests(unittest.TestCase):
                         "rsset_layout_regions": [
                             {
                                 "offset": 0x20,
+                                "flags": 1,
+                                "layout_name": "state",
+                                "base_symbol": "state_base",
                                 "symbol": "app_Buffer",
                                 "storage_kind": "pointer",
+                            },
+                            {
+                                "offset": 0x24,
+                                "layout_name": "app",
+                                "base_symbol": "__amiga_app_base__",
+                                "symbol": "app_NameOnly",
+                                "storage_kind": "scalar",
                             },
                         ],
                     },
@@ -746,6 +756,9 @@ class IrPolicyDllTests(unittest.TestCase):
         regions = json.loads(text)["analysis_policy"]["rsset_layout_regions"]
         self.assertEqual(regions[0]["storage_kind_id"], 3)
         self.assertEqual(regions[0]["storage_kind"], "pointer")
+        self.assertEqual(regions[0]["flags"], 1)
+        self.assertEqual(regions[1]["storage_kind_id"], 4)
+        self.assertEqual(regions[1]["flags"], 0)
 
     def test_platform_file_listing_artifact_reuses_c_analysis_for_windows(self) -> None:
         library = _file_library()

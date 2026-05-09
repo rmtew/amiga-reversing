@@ -121,8 +121,8 @@ static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint
   uint32_t runtime_address);
 static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
-  const char *struct_name, const char *pointer_struct, uint8_t storage_kind_id, const char *storage_kind,
-  const char *semantic_type);
+  const char *struct_name, const char *pointer_struct, uint8_t flags, uint8_t storage_kind_id,
+  const char *storage_kind, const char *semantic_type);
 static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
   uint32_t runtime_address, uint32_t *out_section_index, uint32_t *out_offset);
 
@@ -491,18 +491,13 @@ static uint8_t rsset_layout_region_size_from_storage_kind_id_local(uint8_t stora
   return 4U;
 }
 
-static uint8_t rsset_layout_region_flags_from_identity_local(const char *layout_name, const char *base_symbol) {
-  if (strcmp(layout_name, "app") == 0 && strcmp(base_symbol, "__amiga_app_base__") == 0) {
-    return (uint8_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT;
-  }
-  return 0U;
-}
-
 static int append_metadata_rsset_layout_region_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
   uint32_t offset = 0U;
   uint32_t explicit_size = 0U;
+  uint32_t flags = 0U;
   int has_offset = 0, has_size = 0;
+  int has_flags = 0;
   char symbol[64];
   char layout_name[32];
   char base_symbol[64];
@@ -521,6 +516,7 @@ static int append_metadata_rsset_layout_region_local(const char *object_start, c
   semantic_type[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "offset", &offset, &has_offset) ||
       !json_number_field_local(object_start, object_end, "size", &explicit_size, &has_size) ||
+      !json_number_field_local(object_start, object_end, "flags", &flags, &has_flags) ||
       !json_optional_string_field_local(object_start, object_end, "layout_name", layout_name,
         sizeof(layout_name)) ||
       !json_optional_string_field_local(object_start, object_end, "base_symbol", base_symbol,
@@ -539,12 +535,13 @@ static int append_metadata_rsset_layout_region_local(const char *object_start, c
   }
   if (!has_offset) return 1;
   if (has_size && (explicit_size == 0U || explicit_size > 255U)) return 0;
+  if (has_flags && (flags & ~(uint32_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT) != 0U) return 0;
   {
     uint8_t storage_kind_id = rsset_layout_region_storage_kind_id_from_text_local(storage_kind);
     return policy_add_rsset_layout_region_local(policy, offset,
       has_size ? (uint8_t)explicit_size : rsset_layout_region_size_from_storage_kind_id_local(storage_kind_id),
-      layout_name, base_symbol, sizeof_symbol, symbol, struct_name, pointer_struct, storage_kind_id, storage_kind,
-      semantic_type);
+      layout_name, base_symbol, sizeof_symbol, symbol, struct_name, pointer_struct, has_flags ? (uint8_t)flags : 0U,
+      storage_kind_id, storage_kind, semantic_type);
   }
 }
 
@@ -609,8 +606,8 @@ static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint
 
 static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
-  const char *struct_name, const char *pointer_struct, uint8_t storage_kind_id, const char *storage_kind,
-  const char *semantic_type) {
+  const char *struct_name, const char *pointer_struct, uint8_t flags, uint8_t storage_kind_id,
+  const char *storage_kind, const char *semantic_type) {
   M68kAnalysisRssetLayoutRegion *slot;
   uint16_t index;
   const char *effective_layout = layout_name != NULL && layout_name[0] != '\0' ? layout_name : "app";
@@ -632,7 +629,7 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   memset(slot, 0, sizeof(*slot));
   slot->offset = offset;
   slot->size = size;
-  slot->flags = rsset_layout_region_flags_from_identity_local(effective_layout, effective_base);
+  slot->flags = flags;
   slot->storage_kind_id = storage_kind_id;
   if (!copy_policy_text(slot->layout_name, sizeof(slot->layout_name), effective_layout) ||
       !copy_policy_text(slot->base_symbol, sizeof(slot->base_symbol), effective_base) ||
