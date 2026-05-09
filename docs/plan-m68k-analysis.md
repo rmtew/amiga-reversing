@@ -61,7 +61,7 @@ Reviewed implementation and tests before updating this plan. Current state:
 | RSSET/app slots | `render_state_operand_uses_app_base()` rejects known hardware bases and `_custom` offsets; `render_asm_app_extension_rs()` emits app/resident RSSET layouts from field slots and metadata; C source analysis now records rendered base-layout fields and alias overlays as first-class facts; listing JSON exposes those layout fields directly. | Need stronger conflict/ownership checks between large app layouts and accepted code/typed structs. |
 | Typed structs vs app slots | Typed app-slot field regions are skipped from flat RSSET output; `_custom` offset false positives have an isolated test; C JSON now includes resolved and unresolved platform typed accesses in `memory_layout_records`. | Need richer ownership ranges for whole platform structs, not only observed field accesses. |
 | ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, policy-vs-inferred precedence, corpus tags, listing navigation for materialized/suppressed runtime views, and compact C runtime-view relationships for larger-range exits, contained views, and runtime-copy overlays. | Need broader wrapper-load/helper/final-image target metrics and examples across imported disks. |
-| Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, relative `target-base` rendering, C JSON `table_records` derived from accepted structured table data, consumer instruction provenance, source-pattern provenance, code-overlap conflict state, and C JSON `table_candidate_records` plus corpus tags/xrefs for unresolved indirect/table candidate sites by status, shape, source instruction range, operand index, and source pattern. | Table candidate facts still need rejected table data bounds where value-flow can prove a candidate span. |
+| Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, relative `target-base` rendering, C JSON `table_records` derived from accepted structured table data, consumer instruction provenance, source-pattern provenance, code-overlap conflict state, and C JSON `table_candidate_records` plus corpus tags/xrefs for unresolved indirect/table candidate sites by status, shape, source instruction range, operand index, source pattern, and rejected direct-stub bounds. | Need more rejected-bound classes beyond direct-stub tables where value-flow can prove candidate spans. |
 | Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks; C JSON now exposes `memory_layout_records` for base-layout fields, runtime views, runtime-address references with external hardware sink addresses, and accepted absolute operands classified as ExecBase, CPU vector, hardware register/range, runtime range, section storage, or absolute memory with conflict state. | Memory-layout records still need higher-level absolute globals and unresolved candidates merged into the same view. |
 | Orphaned code | C analysis now records unresolved terminal-decode islands at accepted-code boundaries or data labels as orphan signals without promoting them to accepted code; lookup-table-adjacent islands are classified with missing inbound `jump_table`. | Extend the signal with more inbound-evidence classes, nearby context, target metrics, and reconciliation after table/callback/vector improvements. |
 | Targets | Bloodwych has many relative lookup tables; Pandora demonstrates wrapper load vs final copied image; Conqueror demonstrates weak low ORG risk; Carrier stresses packed/runtime-copy ambiguity; GenAm/MonAm remain comparator targets. | Corpus tags should preserve these pattern roles so later changes can be validated across comparable targets. |
@@ -205,6 +205,8 @@ proves a distinct base id.
      known
    - confidence and conflict state: implemented for clean/code-overlap table
      records
+   - rejected table bounds on unresolved candidates: implemented for proven
+     direct-stub spans rejected for insufficient entries
 
 5. Add orphaned-code signal records:
    - candidate source range and decode start: implemented for terminal-decode
@@ -448,6 +450,16 @@ fields:
 Observed comparators include Bloodwych/Bloodwych disk variants for contained
 runtime views and Conqueror for exits into a stronger copied range.
 
+Rejected table-bound corpus evidence:
+
+| Feature | Corpus xrefs |
+| --- | ---: |
+| `table:candidate_unresolved:table_bounds` | 6 |
+| `table:candidate_unresolved:table_bounds_status:rejected_insufficient_entries` | 6 |
+
+Observed comparator: Damocles `c/ed` has three unresolved indexed direct-stub
+candidate sites in both resource-manifest and promoted project-target views.
+
 ## Design Update Rule
 
 `docs/design-m68k-analysis.md` is the tutorial companion to this plan. Each time
@@ -484,8 +496,9 @@ undocumented renderer heuristics.
 - The signal should be reconciled after jump/lookup table work: a good table
   improvement should turn some orphan candidates into reached code, not just hide
   them.
-- Table candidate records need rejected table bounds once backtracking can
-  recover them safely.
+- Table candidate records now include rejected direct-stub bounds when the
+  control operand proves the table base and the bounded scan is too weak to
+  promote. Broader rejected-bound classes remain open.
 - Bloodwych contains many already-rendered relative lookup tables; those are a
   useful proving target, but GenAm/MonAm and imported disk targets should remain
   comparators so Bloodwych does not become the hidden spec.

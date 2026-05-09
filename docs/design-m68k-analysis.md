@@ -519,6 +519,32 @@ Current source-pattern examples include relocation pointer tables, indexed word
 dispatch, indexed local pointer reads, indexed local scalar reads,
 postincrement read sequences, and PC-relative indexed reads.
 
+Rejected candidate bounds are still useful when analysis can prove the table
+base and a bounded candidate span, but cannot accept the table yet:
+
+```asm
+    jmp     table(pc,d1.w)
+    nop
+table:
+    bra.b   possible_handler
+    nop
+possible_handler:
+    rts
+```
+
+If this scan finds only one uniform direct-stub entry, the site remains an
+unresolved indirect jump. C analysis should still record:
+
+```
+table_offset, table_size
+table_entry_size, table_entry_count
+table_bounds_status = rejected_insufficient_entries
+```
+
+This gives corpus/UI navigation a precise work item without hiding the missing
+inbound analysis. It must not promote bytes to code or classify data unless a
+real inbound edge, relocation, runtime mapping, or policy seed proves ownership.
+
 ## Relative Target-Base Substitution
 
 When a table entry is calculated as `target - base`, render that relationship

@@ -1294,6 +1294,12 @@ def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]
         value = _int_value(record.get(key))
         if value is not None:
             example[key] = value
+    table_bounds_status = _string_value(record.get("table_bounds_status")) or "none"
+    for key in ("table_offset", "table_size", "table_entry_size", "table_entry_count"):
+        value = _int_value(record.get(key))
+        if value is not None:
+            example[key] = value
+    example["table_bounds_status"] = table_bounds_status
     target = _int_value(record.get("target"))
     if target is not None:
         example["target"] = target
@@ -1311,6 +1317,13 @@ def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]
     bag.add(f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}", example=example)
     if _int_value(record.get("source_size")) is not None:
         bag.add("table:candidate_unresolved:source_range", example=example)
+    if _int_value(record.get("table_size")) is not None:
+        bag.add("table:candidate_unresolved:table_bounds", example=example)
+        bag.add(f"table:candidate_unresolved:table_bounds_status:{_safe_part(table_bounds_status)}",
+            example=example)
+    table_entry_size = _int_value(record.get("table_entry_size"))
+    if table_entry_size is not None:
+        bag.add(f"table:candidate_unresolved:entry_size:{table_entry_size}", example=example)
 
 
 def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
@@ -3146,6 +3159,9 @@ def _analysis_xrefs(
         conflict_state = _string_value(record.get("conflict_state")) or "unresolved"
         target_count = _int_value(record.get("target_count"))
         source_size = _int_value(record.get("source_size"))
+        table_size = _int_value(record.get("table_size"))
+        table_bounds_status = _string_value(record.get("table_bounds_status")) or "none"
+        table_entry_size = _int_value(record.get("table_entry_size"))
         text = row_text or _string_value(record.get("detail")) or f"{flow} {shape} {status}"
         features = [
             "table:candidate_unresolved",
@@ -3157,6 +3173,11 @@ def _analysis_xrefs(
         ]
         if source_size is not None:
             features.append("table:candidate_unresolved:source_range")
+        if table_size is not None:
+            features.append("table:candidate_unresolved:table_bounds")
+            features.append(f"table:candidate_unresolved:table_bounds_status:{_safe_part(table_bounds_status)}")
+        if table_entry_size is not None:
+            features.append(f"table:candidate_unresolved:entry_size:{table_entry_size}")
         for feature in features:
             xrefs.append(
                 _xref(

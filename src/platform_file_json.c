@@ -972,6 +972,12 @@ static const char *recovered_indirect_status_name(uint8_t status) {
   return "unknown";
 }
 
+static const char *recovered_indirect_table_bounds_status_name(uint8_t status) {
+  if (status == M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_INSUFFICIENT_ENTRIES)
+    return "rejected_insufficient_entries";
+  return "none";
+}
+
 static const char *orphan_code_signal_reason_name(uint8_t reason) {
   if (reason == M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE) return "terminal_decode";
   return "unknown";
@@ -1824,6 +1830,27 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
       if (site->has_target_count != 0U) {
         if (json_builder_appendf(builder, "%u", (unsigned)site->target_count) != 0) return -1;
       } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_append(builder, ",\"table_offset\":") != 0) return -1;
+      if (site->has_table_bounds != 0U) {
+        if (json_builder_appendf(builder, "%u", (unsigned)site->table_offset) != 0) return -1;
+      } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_append(builder, ",\"table_size\":") != 0) return -1;
+      if (site->has_table_bounds != 0U) {
+        if (json_builder_appendf(builder, "%u", (unsigned)site->table_size) != 0) return -1;
+      } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_append(builder, ",\"table_entry_size\":") != 0) return -1;
+      if (site->has_table_bounds != 0U) {
+        if (json_builder_appendf(builder, "%u", (unsigned)site->table_entry_size) != 0) return -1;
+      } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_append(builder, ",\"table_entry_count\":") != 0) return -1;
+      if (site->has_table_bounds != 0U) {
+        if (json_builder_appendf(builder, "%u", (unsigned)site->table_entry_count) != 0) return -1;
+      } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_append(builder, ",\"table_bounds_status\":") != 0) return -1;
+      if (json_builder_append_json_string(builder,
+          recovered_indirect_table_bounds_status_name(site->table_bounds_status)) != 0) {
+        return -1;
+      }
       if (json_builder_append(builder, ",\"detail\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, site->detail) != 0) return -1;
       if (json_builder_append(builder,
@@ -2748,6 +2775,44 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         if (json_builder_appendf(&builder, "%u", (unsigned)site->target_count) != 0)
           goto oom;
       } else if (json_builder_append(&builder, "null") != 0) {
+        goto oom;
+      }
+      if (json_builder_append(&builder, ",\"table_offset\":") != 0)
+        goto oom;
+      if (site->has_table_bounds != 0U) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)site->table_offset) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) {
+        goto oom;
+      }
+      if (json_builder_append(&builder, ",\"table_size\":") != 0)
+        goto oom;
+      if (site->has_table_bounds != 0U) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)site->table_size) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) {
+        goto oom;
+      }
+      if (json_builder_append(&builder, ",\"table_entry_size\":") != 0)
+        goto oom;
+      if (site->has_table_bounds != 0U) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)site->table_entry_size) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) {
+        goto oom;
+      }
+      if (json_builder_append(&builder, ",\"table_entry_count\":") != 0)
+        goto oom;
+      if (site->has_table_bounds != 0U) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)site->table_entry_count) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) {
+        goto oom;
+      }
+      if (json_builder_append(&builder, ",\"table_bounds_status\":") != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          recovered_indirect_table_bounds_status_name(site->table_bounds_status)) != 0) {
         goto oom;
       }
       if (json_builder_append(&builder, "}") != 0)

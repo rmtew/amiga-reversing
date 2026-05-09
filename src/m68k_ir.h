@@ -456,6 +456,11 @@ typedef enum M68kRecoveredIndirectStatus {
   M68K_RECOVERED_INDIRECT_STATUS_EXTERNAL = 7
 } M68kRecoveredIndirectStatus;
 
+typedef enum M68kRecoveredIndirectTableBoundsStatus {
+  M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE = 0,
+  M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_INSUFFICIENT_ENTRIES = 1
+} M68kRecoveredIndirectTableBoundsStatus;
+
 typedef struct M68kRecoveredIndirectSiteIR {
   uint32_t offset;
   uint8_t flow_kind;
@@ -465,8 +470,15 @@ typedef struct M68kRecoveredIndirectSiteIR {
   uint8_t has_target_count;
   uint8_t operand_index;
   uint8_t source_size;
+  uint8_t has_table_bounds;
+  uint8_t table_bounds_status;
+  uint8_t reserved[2];
   uint32_t target;
   uint32_t target_count;
+  uint32_t table_offset;
+  uint32_t table_size;
+  uint32_t table_entry_size;
+  uint32_t table_entry_count;
   char *detail;
 } M68kRecoveredIndirectSiteIR;
 

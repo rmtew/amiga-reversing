@@ -3953,6 +3953,7 @@ static uint8_t recovered_indirect_shape_for_operand(const M68kDecodeCandidate *c
   const M68kAsmOperandValue *operand;
   int uses_index;
   int uses_displacement;
+  int decoded_index_form;
   if (candidate == NULL || metadata == NULL || operand_index >= candidate->operand_count ||
       operand_index >= 4U) {
     return 0U;
@@ -3965,8 +3966,9 @@ static uint8_t recovered_indirect_shape_for_operand(const M68kDecodeCandidate *c
   }
   if (operand->kind != M68K_ASM_OPERAND_EA || operand->ea_reg >= 8U) return 0U;
   if (operand->ea_mode == 7U && (operand->ea_reg == 0U || operand->ea_reg == 1U)) return 0U;
-  uses_index = metadata->operand_ea_uses_index[operand_index] != 0U;
-  uses_displacement = metadata->operand_ea_uses_displacement[operand_index] != 0U;
+  decoded_index_form = operand->ea_mode == 6U || (operand->ea_mode == 7U && operand->ea_reg == 3U);
+  uses_index = metadata->operand_ea_uses_index[operand_index] != 0U || decoded_index_form;
+  uses_displacement = metadata->operand_ea_uses_displacement[operand_index] != 0U || decoded_index_form;
   if (!uses_index && !uses_displacement) return M68K_RECOVERED_INDIRECT_SHAPE_IND;
   if (!uses_index && uses_displacement) return M68K_RECOVERED_INDIRECT_SHAPE_DISP;
   if (operand->full_ext_iis != 0U) return M68K_RECOVERED_INDIRECT_SHAPE_INDEX_MEMIND;
@@ -3976,6 +3978,68 @@ static uint8_t recovered_indirect_shape_for_operand(const M68kDecodeCandidate *c
     return M68K_RECOVERED_INDIRECT_SHAPE_INDEX_FULL;
   }
   return M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF;
+}
+
+static int candidate_single_direct_nonfallthrough_control_target(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, uint8_t *out_target_kind, uint32_t *out_target_offset);
+
+static void recovered_indirect_site_apply_direct_stub_table_bounds(M68kDecodeIR *decode,
+    size_t section_index, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *site_candidate,
+    uint8_t max_cpu, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kRecoveredIndirectSiteIR *site) {
+  const uint32_t scan_limit = 64U;
+  uint32_t table_offset = 0U;
+  uint32_t cursor;
+  uint32_t stride = 0U;
+  uint32_t entry_count = 0U;
+  uint32_t first_forward_target = UINT32_MAX;
+  if (decode == NULL || section == NULL || site_candidate == NULL || accepted_start == NULL ||
+      accepted_bytes == NULL || site == NULL || section_index >= decode->section_count ||
+      site->operand_index >= site_candidate->operand_count ||
+      !candidate_operand_data_target_offset(site_candidate, site->operand_index, section->section_index,
+        &table_offset)) {
+    return;
+  }
+  cursor = table_offset;
+  while (cursor < section->size && entry_count < scan_limit) {
+    const M68kDecodeCandidate *candidate = NULL;
+    uint8_t target_kind = 0U;
+    uint32_t target_offset = 0U;
+    if (accepted_offset_is_interior(section, accepted_start[section_index], accepted_bytes[section_index], cursor))
+      break;
+    if (m68k_decode_ir_ensure_candidate_at(decode, section_index, cursor, max_cpu, &candidate,
+        m68k_diag_sink(NULL)) != 0) {
+      break;
+    }
+    if (candidate == NULL || !candidate_single_direct_nonfallthrough_control_target(section, candidate,
+        &target_kind, &target_offset) || target_kind != M68K_DECODE_TARGET_BRANCH) {
+      break;
+    }
+    if (accepted_range_has_code_byte_local(accepted_bytes[section_index], section->size, cursor,
+        candidate->byte_count)) {
+      break;
+    }
+    if (stride == 0U) {
+      stride = candidate->byte_count;
+      if (stride == 0U) break;
+    } else if (candidate->byte_count != stride) {
+      break;
+    }
+    if (target_offset > table_offset && target_offset < first_forward_target)
+      first_forward_target = target_offset;
+    ++entry_count;
+    if (cursor > UINT32_MAX - stride) break;
+    cursor += stride;
+    if (entry_count >= 2U && first_forward_target != UINT32_MAX && cursor >= first_forward_target)
+      break;
+  }
+  if (entry_count == 0U || entry_count >= 2U || stride == 0U) return;
+  site->has_table_bounds = 1U;
+  site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_INSUFFICIENT_ENTRIES;
+  site->table_offset = table_offset;
+  site->table_entry_size = stride;
+  site->table_entry_count = entry_count;
+  site->table_size = stride * entry_count;
 }
 
 static void recovered_indirect_site_apply_code_start_refs(M68kRecoveredIndirectSiteIR *site,
@@ -4015,10 +4079,10 @@ static int section_analysis_has_platform_call_at_offset(const M68kSectionAnalysi
   return 0;
 }
 
-static int append_recovered_indirect_sites_for_accepted(const M68kDecodeIR *decode,
-    uint8_t **accepted_start, M68kSourceAnalysisIR *source_analysis) {
+static int append_recovered_indirect_sites_for_accepted(M68kDecodeIR *decode,
+    uint8_t **accepted_start, uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis, uint8_t max_cpu) {
   size_t section_index;
-  if (decode == NULL || accepted_start == NULL || source_analysis == NULL ||
+  if (decode == NULL || accepted_start == NULL || accepted_bytes == NULL || source_analysis == NULL ||
       source_analysis->section_count < decode->section_count) {
     return 0;
   }
@@ -4060,6 +4124,8 @@ static int append_recovered_indirect_sites_for_accepted(const M68kDecodeIR *deco
         site.operand_index = (uint8_t)operand_index;
         site.source_size = candidate->byte_count;
         site.detail = "accepted indirect control target";
+        recovered_indirect_site_apply_direct_stub_table_bounds(decode, section_index, section, candidate,
+          max_cpu, accepted_start, accepted_bytes, &site);
         recovered_indirect_site_apply_code_start_refs(&site, &source_analysis->sections[section_index]);
         if (m68k_ir_section_analysis_append_recovered_indirect_site(&source_analysis->sections[section_index],
             &site) != 0) {
@@ -5912,7 +5978,8 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     goto fail;
   }
   if (out_source_analysis != NULL &&
-      append_recovered_indirect_sites_for_accepted(&decode, accepted_start, out_source_analysis) != 0) {
+      append_recovered_indirect_sites_for_accepted(&decode, accepted_start, accepted_bytes, out_source_analysis,
+        max_cpu) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 accepted indirect site append failed");
     goto fail;

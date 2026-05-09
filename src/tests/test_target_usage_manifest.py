@@ -65,6 +65,11 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "status": "unresolved",
                             "source_pattern": "pc_indexed_indirect",
                             "conflict_state": "unresolved",
+                            "table_offset": 0x160,
+                            "table_size": 2,
+                            "table_entry_size": 2,
+                            "table_entry_count": 1,
+                            "table_bounds_status": "rejected_insufficient_entries",
                             "detail": "indexed dispatch candidate",
                             "target": None,
                             "target_count": None,
@@ -555,6 +560,11 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["table:candidate_unresolved:source_pattern:pc_indexed_indirect"], 1)
         self.assertEqual(counts["table:candidate_unresolved:status:unresolved"], 1)
         self.assertEqual(counts["table:candidate_unresolved:source_range"], 1)
+        self.assertEqual(counts["table:candidate_unresolved:table_bounds"], 1)
+        self.assertEqual(
+            counts["table:candidate_unresolved:table_bounds_status:rejected_insufficient_entries"], 1
+        )
+        self.assertEqual(counts["table:candidate_unresolved:entry_size:2"], 1)
         self.assertEqual(counts["data:string_ref"], 4)
         self.assertEqual(counts["compressed-payload"], 1)
         self.assertEqual(counts["compressed:rnc1-old"], 1)
@@ -920,6 +930,11 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "status": "unresolved",
                         "source_pattern": "pc_indexed_indirect",
                         "conflict_state": "unresolved",
+                        "table_offset": 0x160,
+                        "table_size": 2,
+                        "table_entry_size": 2,
+                        "table_entry_count": 1,
+                        "table_bounds_status": "rejected_insufficient_entries",
                         "detail": "indexed dispatch candidate",
                         "target": None,
                         "target_count": None,
@@ -1310,6 +1325,17 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("analysis:indirect_site:shape:pcindex.brief", "indirect_site", 0x120, None), by_feature)
         self.assertIn(("table:candidate_unresolved", "table_candidate", 0x120, None), by_feature)
         self.assertIn(("table:candidate_unresolved:source_range", "table_candidate", 0x120, None), by_feature)
+        self.assertIn(("table:candidate_unresolved:table_bounds", "table_candidate", 0x120, None), by_feature)
+        self.assertIn(
+            (
+                "table:candidate_unresolved:table_bounds_status:rejected_insufficient_entries",
+                "table_candidate",
+                0x120,
+                None,
+            ),
+            by_feature,
+        )
+        self.assertIn(("table:candidate_unresolved:entry_size:2", "table_candidate", 0x120, None), by_feature)
         self.assertIn(
             ("table:candidate_unresolved:source_pattern:pc_indexed_indirect", "table_candidate", 0x120, None),
             by_feature,
