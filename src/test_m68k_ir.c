@@ -3578,6 +3578,9 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"findings\":{\"required_cpu\":0,\"cpu_violation_count\":0},"
     "\"orphan_code_signal_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"orphan_code_signal_summary\":{\"status\":{\"unresolved\":1,"
+    "\"rejected\":0,\"suppressed\":0,\"linked\":0,\"promoted\":0},\"missing_inbound\":{\"unknown\":0,"
+    "\"jump_table\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"orphan_code_signal_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"terminal_flow_kind\":5,\"terminal_flow\":\"return\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"required_cpu\":0,\"instruction_count\":2,"

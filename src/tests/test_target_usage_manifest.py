@@ -100,6 +100,11 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "profile": {"generation": "facts_v2_full_listing"},
                 "analysis": {
                     "findings": {"required_cpu": 2, "cpu_violation_count": 1},
+                    "orphan_code_signal_count": 1,
+                    "orphan_code_signal_summary": {
+                        "status": {"unresolved": 1, "suppressed": 0},
+                        "missing_inbound": {"jump_table": 1, "callback": 0},
+                    },
                     "packed_payloads": [
                         {
                             "found": True,
@@ -712,6 +717,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["runtime:view_relationship:exits_to_larger_runtime_range"], 1)
         self.assertEqual(counts["runtime:view_related_range"], 1)
         self.assertEqual(counts["suppressed-weak-org-range"], 1)
+        self.assertEqual(counts["orphan-code:summary"], 1)
+        self.assertEqual(counts["orphan-code:summary:status:unresolved"], 1)
+        self.assertEqual(counts["orphan-code:summary:missing_inbound:jump_table"], 1)
         self.assertEqual(counts["orphan-code:signal"], 1)
         self.assertEqual(counts["orphan-code:reason:terminal_decode"], 1)
         self.assertEqual(counts["orphan-code:status:unresolved"], 1)

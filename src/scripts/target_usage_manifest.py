@@ -1476,6 +1476,32 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
             )
 
 
+def _add_orphan_code_signal_summary_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
+    summary = analysis.get("orphan_code_signal_summary")
+    if not isinstance(summary, dict):
+        return
+    total = _int_value(analysis.get("orphan_code_signal_count"), 0) or 0
+    if total <= 0:
+        return
+    example: dict[str, Any] = {"signal_count": total}
+    bag.add("orphan-code:summary", total, example=example)
+    for group_name, feature_prefix in (
+        ("status", "orphan-code:summary:status"),
+        ("missing_inbound", "orphan-code:summary:missing_inbound"),
+    ):
+        group = summary.get(group_name)
+        if not isinstance(group, dict):
+            continue
+        for name, value in sorted(group.items()):
+            count = _int_value(value, 0) or 0
+            if count <= 0:
+                continue
+            group_example = dict(example)
+            group_example[group_name] = name
+            group_example["count"] = count
+            bag.add(f"{feature_prefix}:{_safe_part(str(name))}", count, example=group_example)
+
+
 def _orphan_code_signal_reason_name(signal: dict[str, Any]) -> str:
     return ORPHAN_CODE_SIGNAL_REASON_NAMES.get(_int_value(signal.get("reason_id"), 0) or 0, "unknown")
 
@@ -1649,6 +1675,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         if isinstance(violation_count, int) and violation_count > 0:
             bag.add("diagnostic:cpu_violation", violation_count)
     _add_decompression_analysis_features(analysis, bag)
+    _add_orphan_code_signal_summary_features(analysis, bag)
     for table in _dict_items(analysis.get("table_records")):
         role = _table_role_name(table)
         table_kind = _table_kind_name(table)

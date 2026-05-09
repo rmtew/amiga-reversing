@@ -2503,11 +2503,24 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
   JsonBuilder builder = {0};
   size_t field_index, section_index;
   size_t orphan_code_signal_count = 0U;
+  uint32_t orphan_status_counts[8] = {0U};
+  uint32_t orphan_missing_inbound_counts[9] = {0U};
   size_t table_record_count = source_analysis_table_record_count(source_analysis != NULL ? &source_analysis->policy : NULL);
   size_t table_candidate_record_count = source_analysis_table_candidate_record_count(source_analysis);
   size_t memory_layout_record_count = source_analysis_memory_layout_record_count(source_analysis);
   for (section_index = 0U; source_analysis != NULL && section_index < source_analysis->section_count; ++section_index) {
-    orphan_code_signal_count += source_analysis->sections[section_index].orphan_code_signal_count;
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t signal_index;
+    orphan_code_signal_count += section->orphan_code_signal_count;
+    for (signal_index = 0U; signal_index < section->orphan_code_signal_count; ++signal_index) {
+      const M68kOrphanCodeSignalIR *signal = &section->orphan_code_signals[signal_index];
+      if (signal->status < (sizeof(orphan_status_counts) / sizeof(orphan_status_counts[0])))
+        ++orphan_status_counts[signal->status];
+      if (signal->missing_inbound < (sizeof(orphan_missing_inbound_counts) /
+          sizeof(orphan_missing_inbound_counts[0]))) {
+        ++orphan_missing_inbound_counts[signal->missing_inbound];
+      }
+    }
   }
   if (json_builder_create(&builder) != 0)
     goto oom;
@@ -2523,10 +2536,27 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     goto oom;
   if (json_builder_appendf(&builder,
       "]},\"findings\":{\"required_cpu\":%u,\"cpu_violation_count\":%u},"
-      "\"orphan_code_signal_count\":%u,\"table_record_count\":%u,\"table_records\":[",
+      "\"orphan_code_signal_count\":%u,\"orphan_code_signal_summary\":{"
+      "\"status\":{\"unresolved\":%u,\"rejected\":%u,\"suppressed\":%u,\"linked\":%u,\"promoted\":%u},"
+      "\"missing_inbound\":{\"unknown\":%u,\"jump_table\":%u,\"callback\":%u,\"vector\":%u,"
+      "\"runtime_copy\":%u,\"api\":%u,\"metadata\":%u,\"policy_seed\":%u}},"
+      "\"table_record_count\":%u,\"table_records\":[",
       (unsigned)source_analysis->findings.required_cpu,
       (unsigned)source_analysis->findings.cpu_violation_count,
       (unsigned)orphan_code_signal_count,
+      (unsigned)orphan_status_counts[M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED],
+      (unsigned)orphan_status_counts[M68K_ORPHAN_CODE_SIGNAL_REJECTED],
+      (unsigned)orphan_status_counts[M68K_ORPHAN_CODE_SIGNAL_SUPPRESSED],
+      (unsigned)orphan_status_counts[M68K_ORPHAN_CODE_SIGNAL_LINKED],
+      (unsigned)orphan_status_counts[M68K_ORPHAN_CODE_SIGNAL_PROMOTED],
+      (unsigned)orphan_missing_inbound_counts[M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN],
+      (unsigned)orphan_missing_inbound_counts[M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE],
+      (unsigned)orphan_missing_inbound_counts[M68K_ORPHAN_CODE_SIGNAL_INBOUND_CALLBACK],
+      (unsigned)orphan_missing_inbound_counts[M68K_ORPHAN_CODE_SIGNAL_INBOUND_VECTOR],
+      (unsigned)orphan_missing_inbound_counts[M68K_ORPHAN_CODE_SIGNAL_INBOUND_RUNTIME_COPY],
+      (unsigned)orphan_missing_inbound_counts[M68K_ORPHAN_CODE_SIGNAL_INBOUND_API],
+      (unsigned)orphan_missing_inbound_counts[M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA],
+      (unsigned)orphan_missing_inbound_counts[M68K_ORPHAN_CODE_SIGNAL_INBOUND_POLICY_SEED],
       (unsigned)table_record_count) != 0)
     goto oom;
   if (append_source_analysis_table_records_json(&builder, source_analysis) != 0)
