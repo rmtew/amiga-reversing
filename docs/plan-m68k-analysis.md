@@ -173,7 +173,8 @@ proves a distinct base id.
      into compact C enum ids; strings remain display/export text
    - rendered base-layout fields carry compact layout-kind ids so range
      consumers can distinguish app layouts from named layouts without parsing
-     layout/base names
+     layout/base names; corpus indexing exposes those ids as layout-kind
+     features/xrefs
 
 2. Add absolute memory-layout records:
    - source section/file range

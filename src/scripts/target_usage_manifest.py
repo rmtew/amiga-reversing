@@ -131,6 +131,10 @@ MEMORY_LAYOUT_RECORD_KIND_NAMES = {
     7: "runtime_address_ref",
     8: "absolute_memory_ref",
 }
+BASE_LAYOUT_KIND_NAMES = {
+    1: "app",
+    2: "named",
+}
 UNRESOLVED_TYPED_ACCESS_FIELD_GAP = 0
 UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION = 1
 UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE = 2
@@ -1642,7 +1646,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             "record_kind_id", "source_size", "runtime_address", "runtime_size", "target_offset", "sink_address",
             "field_offset", "field_size", "address", "access_width", "owner_offset",
             "range_space_kind", "range_start", "range_size", "range_end", "effect_kind",
-            "target_section_index", "displacement", "field_disp", "field_count",
+            "target_section_index", "displacement", "field_disp", "field_count", "layout_kind",
         ):
             value = _int_value(record.get(key))
             if value is not None:
@@ -1659,6 +1663,10 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         bag.add("memory-layout:any", example=example)
         bag.add(f"memory-layout:record:{_safe_part(record_kind)}", example=example)
         bag.add(f"memory-layout:kind:{_safe_part(memory_kind)}", example=example)
+        layout_kind = _int_value(record.get("layout_kind"))
+        layout_kind_name = BASE_LAYOUT_KIND_NAMES.get(layout_kind) if layout_kind is not None else None
+        if layout_kind_name:
+            bag.add(f"memory-layout:layout_kind:{_safe_part(layout_kind_name)}", example=example)
         root_struct = _string_value(record.get("root_struct_name")) or _string_value(record.get("owner_struct_name"))
         field_expr = _string_value(record.get("field_expr")) or _string_value(record.get("field_name"))
         if root_struct:
@@ -3604,6 +3612,8 @@ def _analysis_xrefs(
         sink_address = _int_value(record.get("sink_address"))
         range_space_kind = _int_value(record.get("range_space_kind"))
         range_size = _int_value(record.get("range_size"))
+        layout_kind = _int_value(record.get("layout_kind"))
+        layout_kind_name = BASE_LAYOUT_KIND_NAMES.get(layout_kind) if layout_kind is not None else None
         root_struct = _string_value(record.get("root_struct_name")) or _string_value(record.get("owner_struct_name"))
         field_expr = _string_value(record.get("field_expr")) or _string_value(record.get("field_name"))
         for feature in (
@@ -3629,6 +3639,10 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, f"memory-layout:range_size:{range_size}", "memory_layout",
                 section=section_index, offset=source_offset, row_index=row_index, stable_key=stable_key,
                 symbol=memory_kind, value=range_size, text=row_text or memory_kind))
+        if layout_kind_name:
+            xrefs.append(_xref(row, f"memory-layout:layout_kind:{_safe_part(layout_kind_name)}",
+                "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
+                stable_key=stable_key, symbol=layout_kind_name, value=record_value, text=row_text or memory_kind))
         if root_struct:
             xrefs.append(_xref(row, f"memory-layout:platform_struct:{_safe_part(root_struct)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,

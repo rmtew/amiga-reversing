@@ -160,6 +160,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "record_kind_id": 1,
                             "record_kind": "stale_display_name",
                             "memory_kind": "stale_display_name",
+                            "layout_kind": 1,
                             "layout_name": "app",
                             "base_symbol": "app",
                             "sizeof_symbol": "app_SIZEOF",
@@ -173,6 +174,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "record_kind_id": 2,
                             "record_kind": "base_layout_field",
                             "memory_kind": "stale_display_name",
+                            "layout_kind": 1,
                             "layout_name": "app",
                             "base_symbol": "app",
                             "symbol": "app_0234",
@@ -755,6 +757,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout:record:platform_unresolved_typed_access"], 1)
         self.assertEqual(counts["memory-layout:kind:base_layout"], 1)
         self.assertEqual(counts["memory-layout:kind:base_layout_field"], 1)
+        self.assertEqual(counts["memory-layout:layout_kind:app"], 2)
         self.assertEqual(counts["memory-layout:kind:runtime_view_candidate"], 1)
         self.assertEqual(counts["memory-layout:kind:copper_list"], 1)
         self.assertEqual(counts["memory-layout:kind:hardware_register"], 1)
@@ -829,6 +832,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["table:any"][0]["source_pattern"], "indexed_word_dispatch")
         self.assertEqual(examples["memory-layout:record:base_layout"][0]["record_kind_id"], 1)
         self.assertEqual(examples["memory-layout:kind:base_layout"][0]["range_start"], 0x234)
+        self.assertEqual(examples["memory-layout:layout_kind:app"][0]["layout_kind"], 1)
         self.assertEqual(examples["memory-layout:kind:base_layout"][0]["field_count"], 1)
         self.assertEqual(examples["memory-layout:kind:base_layout"][0]["sizeof_symbol"], "app_SIZEOF")
         self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["symbol"], "app_0234")
@@ -1181,6 +1185,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "record_kind_id": 1,
                         "record_kind": "base_layout",
                         "memory_kind": "base_layout",
+                        "layout_kind": 1,
                         "layout_name": "app",
                         "base_symbol": "app",
                         "sizeof_symbol": "app_SIZEOF",
@@ -1194,6 +1199,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "record_kind_id": 2,
                         "record_kind": "base_layout_field",
                         "memory_kind": "base_layout_field",
+                        "layout_kind": 1,
                         "layout_name": "app",
                         "base_symbol": "app",
                         "symbol": "app_0234",
@@ -1609,7 +1615,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("table:consumer", "table_consumer", 0x20, 1), by_feature)
         self.assertIn(("memory-layout:record:base_layout", "memory_layout", None, None), by_feature)
         self.assertIn(("memory-layout:kind:base_layout", "memory_layout", None, None), by_feature)
+        self.assertIn(("memory-layout:layout_kind:app", "memory_layout", None, None), by_feature)
         self.assertIn(("memory-layout:kind:base_layout_field", "memory_layout", 0x30, 2), by_feature)
+        self.assertIn(("memory-layout:layout_kind:app", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:platform_struct:AppState", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:kind:platform_struct_field", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:platform_struct:Library", "memory_layout", 0x30, 2), by_feature)
