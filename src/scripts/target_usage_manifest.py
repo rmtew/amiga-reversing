@@ -1733,7 +1733,7 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
         bag.add("orphan-code:decode_conflict", example=example)
     if context:
         bag.add(f"orphan-code:context:{_safe_part(context)}", example=example)
-    if missing_inbound:
+    if missing_inbound and _orphan_code_signal_has_actionable_missing_inbound(status):
         bag.add(f"orphan-code:missing_inbound:{_safe_part(missing_inbound)}", example=example)
     if nearby_data_class:
         bag.add(f"orphan-code:nearby_data:{_safe_part(nearby_data_class)}", example=example)
@@ -1757,10 +1757,7 @@ def _add_orphan_code_signal_summary_features(analysis: dict[str, Any], bag: Feat
         return
     example: dict[str, Any] = {"signal_count": total}
     bag.add("orphan-code:summary", total, example=example)
-    for group_name, feature_prefix in (
-        ("status", "orphan-code:summary:status"),
-        ("missing_inbound", "orphan-code:summary:missing_inbound"),
-    ):
+    for group_name, feature_prefix in (("status", "orphan-code:summary:status"),):
         group = summary.get(group_name)
         if not isinstance(group, dict):
             continue
@@ -1780,6 +1777,10 @@ def _orphan_code_signal_reason_name(signal: dict[str, Any]) -> str:
 
 def _orphan_code_signal_status_name(signal: dict[str, Any]) -> str:
     return ORPHAN_CODE_SIGNAL_STATUS_NAMES.get(_int_value(signal.get("status_id"), 0) or 0, "unknown")
+
+
+def _orphan_code_signal_has_actionable_missing_inbound(status: str) -> bool:
+    return status == "unresolved"
 
 
 def _orphan_code_signal_terminal_flow_name(signal: dict[str, Any]) -> str | None:
@@ -4367,7 +4368,7 @@ def _analysis_xrefs(
                 features.append("orphan-code:decode_conflict")
             if context:
                 features.append(f"orphan-code:context:{_safe_part(context)}")
-            if missing_inbound:
+            if missing_inbound and _orphan_code_signal_has_actionable_missing_inbound(status):
                 features.append(f"orphan-code:missing_inbound:{_safe_part(missing_inbound)}")
             if nearby_data_class:
                 features.append(f"orphan-code:nearby_data:{_safe_part(nearby_data_class)}")

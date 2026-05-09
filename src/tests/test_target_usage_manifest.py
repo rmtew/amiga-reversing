@@ -121,6 +121,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["orphan-code:terminal_flow:return"], 1)
         self.assertEqual(counts["orphan-code:nearby_data:lookup_table"], 1)
         self.assertEqual(counts["orphan-code:nearby_data:overlap:lookup_table"], 1)
+        self.assertNotIn("orphan-code:missing_inbound:jump_table", counts)
+        self.assertNotIn("target-pattern:orphan_missing_jump_table", counts)
         self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_class"], "lookup_table")
         self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_relation"], "overlap")
 
@@ -936,7 +938,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["suppressed-weak-org-range"], 1)
         self.assertEqual(counts["orphan-code:summary"], 1)
         self.assertEqual(counts["orphan-code:summary:status:unresolved"], 1)
-        self.assertEqual(counts["orphan-code:summary:missing_inbound:jump_table"], 1)
+        self.assertNotIn("orphan-code:summary:missing_inbound:jump_table", counts)
         self.assertEqual(counts["target-pattern:orphan_missing_jump_table"], 1)
         self.assertEqual(counts["orphan-code:signal"], 1)
         self.assertEqual(counts["orphan-code:reason:terminal_decode"], 1)
