@@ -802,6 +802,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["decompression:output_load_address:00004000"], 1)
         self.assertEqual(counts["decompression:entrypoint"], 1)
         self.assertEqual(counts["decompression:entrypoint:00004000"], 1)
+        self.assertEqual(counts["decompression:source_load_entry"], 1)
+        self.assertEqual(counts["decompression:source_load_entry:0:00004C40-0002DE07:00004000:00004000"], 1)
         self.assertEqual(counts["decompression:runtime_copy"], 1)
         self.assertEqual(counts["decompression:runtime_copy_kind:3"], 1)
         self.assertEqual(counts["decompression:runtime_copy_conflicting"], 1)
@@ -1118,6 +1120,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["decompression:source_range"], 1)
         self.assertEqual(counts["decompression:source_range:0:00004C40-0002DE07"], 1)
         self.assertEqual(counts["decompression:packed_size"], 1)
+        self.assertEqual(counts["decompression:source_load_entry"], 1)
+        self.assertEqual(counts["decompression:source_load_entry:0:00004C40-0002DE07:00004000:00004000"], 1)
         self.assertEqual(examples["derived-decompressed-target"][0]["offset"], 0x4C40)
         self.assertEqual(examples["derived-decompressed-target"][0]["source_section_end_offset"], 0x2DE07)
         self.assertEqual(examples["derived-decompressed-target"][0]["load_address"], 0x4000)
@@ -1126,6 +1130,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertTrue(examples["derived-decompressed-target"][0]["reproduction_exact"])
         self.assertIn("decompression:codec:rnc1-old", {xref["feature"] for xref in xrefs})
         self.assertIn("decompression:source_range:0:00004C40-0002DE07", {xref["feature"] for xref in xrefs})
+        self.assertIn("decompression:source_load_entry:0:00004C40-0002DE07:00004000:00004000",
+            {xref["feature"] for xref in xrefs})
         self.assertIn("decompression:child_reproduction_exact", {xref["feature"] for xref in xrefs})
         self.assertIn("decompression:payload_role:primary_program", {xref["feature"] for xref in xrefs})
 
@@ -1810,6 +1816,12 @@ class TargetUsageManifestTests(unittest.TestCase):
         )
         self.assertIn(("absolute-depack-dest", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("decompressed-entrypoint", "derived_target_suggestion", 0x4C40, 6), by_feature)
+        self.assertIn(("decompression:source_load_entry", "derived_target_suggestion", 0x4C40, 6), by_feature)
+        self.assertIn(
+            ("decompression:source_load_entry:0:00004C40-0002DE07:00004000:00004000",
+             "derived_target_suggestion", 0x4C40, 6),
+            by_feature,
+        )
         self.assertIn(("decompression:runtime_copy", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("decompression:runtime_copy_kind:3", "derived_target_suggestion", 0x4C40, 6), by_feature)
         self.assertIn(("decompression:runtime_copy_conflicting", "derived_target_suggestion", 0x4C40, 6), by_feature)

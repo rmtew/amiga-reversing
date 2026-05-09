@@ -455,6 +455,12 @@ Required analysis facts:
 The renderer should prefer stable symbols for owned memory and keep raw numeric
 values when no owner is proven.
 
+Packed or transformed payloads need a grouped relationship fact in corpus/UI
+views: source section range, absolute load address, and entrypoint must be
+queryable together. Separate `source_range`, `output_load_address`, and
+`entrypoint` features remain useful, but the grouped relationship is the proof
+that a raw/decompressed child has a coherent runtime image.
+
 Current C source analysis records accepted absolute operands as
 `absolute_memory_ref` memory-layout records. The operand is accepted only from a
 decoded instruction already reached by flow analysis, and the use kind comes from

@@ -1108,6 +1108,15 @@ def _add_project_target_metadata_features(entry: dict[str, Any], bag: FeatureBag
             bag.add("absolute-depack-dest", example=example)
         if _int_value(example.get("entrypoint")) is not None:
             bag.add("decompressed-entrypoint", example=example)
+        source_load_entry = {
+            "source_section": 0,
+            "source_section_offset": section_offset,
+            "source_section_end_offset": _int_value(example.get("source_section_end_offset")),
+            "load_address": _int_value(example.get("load_address")),
+            "entrypoint": _int_value(example.get("entrypoint")),
+        }
+        for feature in _decompression_source_load_entry_features(source_load_entry):
+            bag.add(feature, example=example)
 
 
 def _collect_disk_usage_row(entry: dict[str, Any]) -> dict[str, object]:
@@ -2118,6 +2127,38 @@ def _decompression_output_address_features(record: dict[str, Any]) -> list[str]:
     return features
 
 
+def _decompression_source_load_entry_features(record: dict[str, Any]) -> list[str]:
+    section_index = _int_value(record.get("source_section"))
+    if section_index is None:
+        section_index = _int_value(record.get("source_section_index"))
+    offset = _int_value(record.get("source_section_offset"))
+    if offset is None:
+        offset = _int_value(record.get("source_offset"))
+    end_offset = _int_value(record.get("source_section_end_offset"))
+    compressed_source_offset = _int_value(record.get("compressed_source_section_offset"))
+    compressed_source_end = _int_value(record.get("compressed_source_section_end_offset"))
+    if offset is None:
+        offset = compressed_source_offset
+    if end_offset is None:
+        end_offset = compressed_source_end
+    packed_size = _int_value(record.get("packed_size"))
+    if end_offset is None and offset is not None and packed_size is not None:
+        end_offset = offset + packed_size
+    load_address = _int_value(record.get("load_address"))
+    if load_address is None:
+        load_address = _int_value(record.get("target_start_address"))
+    entrypoint = _int_value(record.get("entrypoint"))
+    if section_index is None or offset is None or end_offset is None or load_address is None or entrypoint is None:
+        return []
+    return [
+        "decompression:source_load_entry",
+        (
+            f"decompression:source_load_entry:{section_index}:{offset:08X}-{end_offset:08X}:"
+            f"{load_address:08X}:{entrypoint:08X}"
+        ),
+    ]
+
+
 def _decompression_pattern_features(record: dict[str, Any]) -> list[str]:
     features: list[str] = []
     source_kind = _string_value(record.get("source_kind"))
@@ -2172,6 +2213,8 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
             bag.add(feature, example=example)
         for feature in _decompression_output_address_features(payload):
             bag.add(feature, example=example)
+        for feature in _decompression_source_load_entry_features(payload):
+            bag.add(feature, example=example)
     for suggestion in _dict_items(analysis.get("derived_target_suggestions")):
         example = _decompression_example(suggestion)
         kind = _string_value(suggestion.get("kind")) or "unknown"
@@ -2189,6 +2232,8 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         for feature in _decompression_source_range_features(suggestion):
             bag.add(feature, example=example)
         for feature in _decompression_output_address_features(suggestion):
+            bag.add(feature, example=example)
+        for feature in _decompression_source_load_entry_features(suggestion):
             bag.add(feature, example=example)
         runtime_copy_address = _int_value(suggestion.get("runtime_copy_address"))
         if runtime_copy_address is not None:
@@ -2252,6 +2297,8 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
         for feature in _decompression_source_range_features(event):
             bag.add(feature, example=example)
         for feature in _decompression_output_address_features(event):
+            bag.add(feature, example=example)
+        for feature in _decompression_source_load_entry_features(event):
             bag.add(feature, example=example)
         for feature in _decompression_pattern_features(event):
             bag.add(feature, example=example)
@@ -2767,6 +2814,15 @@ def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]
                 "decompression:packed_size",
             ):
                 xrefs.append(_xref(row, feature, "derived_target", offset=offset, symbol=codec, value=packed_size, text=text))
+        source_load_entry = {
+            "source_section": 0,
+            "source_section_offset": offset,
+            "source_section_end_offset": _int_value(example.get("source_section_end_offset")),
+            "load_address": _int_value(example.get("load_address")),
+            "entrypoint": _int_value(example.get("entrypoint")),
+        }
+        for feature in _decompression_source_load_entry_features(source_load_entry):
+            xrefs.append(_xref(row, feature, "derived_target", offset=offset, symbol=codec, text=text))
         for value, feature_prefix in (
             (payload_role, "decompression:payload_role"),
             (payload_role_confidence, "decompression:payload_role_confidence"),
@@ -3470,6 +3526,7 @@ def _decompression_analysis_xrefs(
             features.append("decompression:diagnostic")
         features.extend(_decompression_source_range_features(payload))
         features.extend(_decompression_output_address_features(payload))
+        features.extend(_decompression_source_load_entry_features(payload))
         if payload.get("found") is False or payload.get("found") == 0:
             features = ["unsupported-compressor"]
         for feature in features:
@@ -3510,6 +3567,7 @@ def _decompression_analysis_xrefs(
         features.extend(_decompression_unmaterialized_features(status, reason))
         features.extend(_decompression_source_range_features(suggestion))
         features.extend(_decompression_output_address_features(suggestion))
+        features.extend(_decompression_source_load_entry_features(suggestion))
         runtime_copy_address = _int_value(suggestion.get("runtime_copy_address"))
         runtime_copy_size = _int_value(suggestion.get("runtime_copy_size"))
         packed_size = _int_value(suggestion.get("packed_size"))
@@ -3587,6 +3645,7 @@ def _decompression_analysis_xrefs(
         features.extend(_decompression_decompressor_features(event))
         features.extend(_decompression_source_range_features(event))
         features.extend(_decompression_output_address_features(event))
+        features.extend(_decompression_source_load_entry_features(event))
         features.extend(_decompression_pattern_features(event))
         for feature in features:
             xrefs.append(
