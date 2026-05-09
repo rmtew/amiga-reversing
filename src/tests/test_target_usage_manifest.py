@@ -47,6 +47,11 @@ def _with_generated_xref_ids(value: object) -> object:
             feature_id = usage.XREF_FEATURE_IDS.get(feature)
             if feature_id is not None:
                 result["feature_id"] = feature_id
+        if isinstance(feature, str) and "feature_class_id" not in result:
+            feature_class_id, feature_value = usage._xref_feature_class(feature)
+            if feature_class_id is not None:
+                result["feature_class_id"] = feature_class_id
+                result["feature_value"] = feature_value
         return result
     if isinstance(value, list):
         return [_with_generated_xref_ids(item) for item in value]
@@ -1882,6 +1887,14 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertTrue(any(xref.get("type_provenance_kind_id") == 1 for xref in typed_any))
         self.assertIn(("platform_typed_access_provenance:api_output", "platform_typed_access", 0x30, 2), by_feature)
         self.assertIn(("platform_typed_access_struct:Library", "platform_typed_access", 0x30, 2), by_feature)
+        typed_struct_xref = next(
+            xref for xref in xrefs if xref["feature"] == "platform_typed_access_struct:Library"
+        )
+        self.assertEqual(
+            typed_struct_xref.get("feature_class_id"),
+            usage.XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT,
+        )
+        self.assertEqual(typed_struct_xref.get("feature_value"), "Library")
         self.assertIn(("platform_field:LIB_VERSION", "platform_typed_access", 0x30, 2), by_feature)
         self.assertIn(("platform_struct_field:Library.LIB_VERSION", "platform_typed_access", 0x30, 2), by_feature)
         self.assertIn(("typed_base_unresolved_field", "platform_unresolved_typed_access", 0x30, 2), by_feature)
@@ -3921,7 +3934,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         gate = usage.build_type_flow_gate_report(
             [],
             [],
-            [
+            _with_generated_xref_ids([
                 {
                     "target_id": "demo",
                     "feature": "platform_typed_access_struct:AmigaGuideMsg",
@@ -3929,7 +3942,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                     "row_index": 4,
                     "text": "move.l agm_Reserved(a0),d0",
                 }
-            ],
+            ]),
         )
 
         self.assertEqual(gate["ok"], False)

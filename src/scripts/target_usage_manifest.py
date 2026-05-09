@@ -214,6 +214,22 @@ XREF_FEATURE_IDS = {
     "app_slot:field_gap": XREF_FEATURE_APP_SLOT_FIELD_GAP,
     "app_slot:suggested_region": XREF_FEATURE_APP_SLOT_SUGGESTED_REGION,
 }
+XREF_FEATURE_CLASS_STRUCT = 1
+XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT = 2
+XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_OWNER = 3
+XREF_FEATURE_CLASS_PLATFORM_UNRESOLVED_TYPED_ACCESS_STRUCT = 4
+XREF_FEATURE_CLASS_PLATFORM_STRUCT_FIELD = 5
+XREF_FEATURE_CLASS_APP_SLOT_API_ARG = 6
+XREF_FEATURE_CLASS_APP_SLOT_API_ARG_REASON = 7
+XREF_FEATURE_CLASS_DYNAMIC_PREFIXES = (
+    ("struct:", XREF_FEATURE_CLASS_STRUCT),
+    ("platform_typed_access_struct:", XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT),
+    ("platform_typed_access_owner:", XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_OWNER),
+    ("platform_unresolved_typed_access_struct:", XREF_FEATURE_CLASS_PLATFORM_UNRESOLVED_TYPED_ACCESS_STRUCT),
+    ("platform_struct_field:", XREF_FEATURE_CLASS_PLATFORM_STRUCT_FIELD),
+    ("app_slot_api_arg:", XREF_FEATURE_CLASS_APP_SLOT_API_ARG),
+    ("app_slot_api_arg_reason:", XREF_FEATURE_CLASS_APP_SLOT_API_ARG_REASON),
+)
 UNRESOLVED_TYPED_FIELD_REPORT_CONTROL_TRANSFER = 1
 UNRESOLVED_TYPED_FIELD_REPORT_PREFIX_EXTENSION = 2
 UNRESOLVED_TYPED_FIELD_REPORT_CUSTOM_TAIL_OR_MISTYPED_BASE = 3
@@ -4841,6 +4857,7 @@ def _xref(
     target_id = str(target_row.get("id"))
     kind_id = XREF_KIND_IDS.get(kind)
     feature_id = XREF_FEATURE_IDS.get(feature)
+    feature_class_id, feature_value = _xref_feature_class(feature)
     payload: dict[str, object] = {
         "schema_version": 1,
         "target_id": target_id,
@@ -4863,6 +4880,9 @@ def _xref(
         payload["kind_id"] = kind_id
     if feature_id is not None:
         payload["feature_id"] = feature_id
+    if feature_class_id is not None:
+        payload["feature_class_id"] = feature_class_id
+        payload["feature_value"] = feature_value
     if isinstance(struct_size, int):
         payload["struct_size"] = struct_size
     if isinstance(classification_id, int):
@@ -4897,6 +4917,13 @@ def _xref(
         payload["source_stable_key"] = source_stable_key
     payload["id"] = _stable_xref_id(payload)
     return payload
+
+
+def _xref_feature_class(feature: str) -> tuple[int | None, str | None]:
+    for prefix, class_id in XREF_FEATURE_CLASS_DYNAMIC_PREFIXES:
+        if feature.startswith(prefix):
+            return class_id, feature.removeprefix(prefix)
+    return None, None
 
 
 def _stable_xref_id(payload: dict[str, object]) -> str:
@@ -5093,6 +5120,14 @@ def _xref_kind_id(xref: dict[str, Any]) -> int:
 
 def _xref_feature_id(xref: dict[str, Any]) -> int:
     return _int_value(xref.get("feature_id"), 0) or 0
+
+
+def _xref_feature_class_id(xref: dict[str, Any]) -> int:
+    return _int_value(xref.get("feature_class_id"), 0) or 0
+
+
+def _xref_feature_value(xref: dict[str, Any]) -> str | None:
+    return _string_value(xref.get("feature_value"))
 
 
 def _bool_value(value: object) -> bool:
@@ -6338,11 +6373,12 @@ def build_unresolved_typed_field_report(
     struct_features_by_target: dict[str, set[str]] = {}
     for xref in xrefs:
         target_id = _string_value(xref.get("target_id"))
-        feature = _string_value(xref.get("feature"))
-        if target_id is None or feature is None:
+        feature_class_id = _xref_feature_class_id(xref)
+        feature_value = _xref_feature_value(xref)
+        if target_id is None or feature_value is None:
             continue
-        if feature.startswith("struct:") or feature.startswith("platform_typed_access_struct:"):
-            struct_features_by_target.setdefault(target_id, set()).add(feature.split(":", 1)[1])
+        if feature_class_id in {XREF_FEATURE_CLASS_STRUCT, XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT}:
+            struct_features_by_target.setdefault(target_id, set()).add(feature_value)
     rows_by_index_cache: dict[str, dict[int, dict[str, Any]]] = {}
     groups: dict[tuple[str, int, str], dict[str, Any]] = {}
 
@@ -6712,20 +6748,21 @@ def build_type_flow_report(
         ):
             bump(report, "app_slot_suggested_region")
             add_example(report, "app_slot_suggested_region", example)
-        if feature.startswith("platform_typed_access_struct:"):
-            bump_map(report, "struct_counts", feature.removeprefix("platform_typed_access_struct:"))
-        elif feature.startswith("platform_unresolved_typed_access_struct:"):
-            bump_map(report, "struct_counts", feature.removeprefix("platform_unresolved_typed_access_struct:"))
-        elif feature.startswith("platform_struct_field:"):
-            bump_map(report, "field_counts", feature.removeprefix("platform_struct_field:"))
-        elif feature.startswith("app_slot_api_arg_reason:"):
-            bump(report, f"untyped_reason:{feature.removeprefix('app_slot_api_arg_reason:')}")
+        feature_class_id = _xref_feature_class_id(xref)
+        feature_value = _xref_feature_value(xref)
+        if feature_class_id == XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT and feature_value is not None:
+            bump_map(report, "struct_counts", feature_value)
+        elif feature_class_id == XREF_FEATURE_CLASS_PLATFORM_UNRESOLVED_TYPED_ACCESS_STRUCT and feature_value is not None:
+            bump_map(report, "struct_counts", feature_value)
+        elif feature_class_id == XREF_FEATURE_CLASS_PLATFORM_STRUCT_FIELD and feature_value is not None:
+            bump_map(report, "field_counts", feature_value)
+        elif feature_class_id == XREF_FEATURE_CLASS_APP_SLOT_API_ARG_REASON and feature_value is not None:
+            bump(report, f"untyped_reason:{feature_value}")
 
     refinements_by_target: dict[str, list[dict[str, object]]] = {}
     typed_structs_by_target: dict[str, list[dict[str, object]]] = {}
     for xref in xrefs:
         target_id = _string_value(xref.get("target_id"))
-        feature = _string_value(xref.get("feature")) or ""
         row_index = _int_value(xref.get("row_index"))
         if target_id is None or row_index is None:
             continue
@@ -6734,7 +6771,7 @@ def build_type_flow_report(
             and _xref_feature_id(xref) == XREF_FEATURE_PLATFORM_TYPE_REFINEMENT_APPLIED
         ):
             refinements_by_target.setdefault(target_id, []).append(xref)
-        elif feature.startswith("platform_typed_access_struct:"):
+        elif _xref_feature_class_id(xref) == XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT:
             typed_structs_by_target.setdefault(target_id, []).append(xref)
     for target_id, refinements in refinements_by_target.items():
         typed_structs = typed_structs_by_target.get(target_id, [])
@@ -6746,10 +6783,9 @@ def build_type_flow_report(
             refinement_row = _int_value(refinement.get("row_index"))
             if refined_struct is None or refinement_row is None:
                 continue
-            feature_name = f"platform_typed_access_struct:{_safe_part(refined_struct)}"
             for access in typed_structs:
                 access_row = _int_value(access.get("row_index"))
-                if access_row is None or access_row <= refinement_row or _string_value(access.get("feature")) != feature_name:
+                if access_row is None or access_row <= refinement_row or _string_value(access.get("symbol")) != refined_struct:
                     continue
                 bump(report, "resolved_after_type_refinement")
                 add_example(
@@ -7431,13 +7467,12 @@ def _type_flow_access_structs_by_target_row(xrefs: list[dict[str, Any]]) -> dict
             continue
         target_id = _string_value(xref.get("target_id"))
         row_index = _int_value(xref.get("row_index"))
-        feature = _string_value(xref.get("feature")) or ""
         if target_id is None or row_index is None:
             continue
-        if not (
-            feature.startswith("platform_typed_access_struct:")
-            or feature.startswith("platform_typed_access_owner:")
-        ):
+        if _xref_feature_class_id(xref) not in {
+            XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT,
+            XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_OWNER,
+        }:
             continue
         symbol = _string_value(xref.get("symbol"))
         if symbol:
@@ -8210,8 +8245,13 @@ def build_type_flow_suspicious_first_struct_report(
             continue
         kind = _string_value(xref.get("kind")) or ""
         feature = _string_value(xref.get("feature")) or ""
-        if _xref_kind_id(xref) not in interesting_kind_ids and not feature.startswith(
-            ("struct:", "type:", "platform_typed_access_")
+        if (
+            _xref_kind_id(xref) not in interesting_kind_ids
+            and _xref_feature_class_id(xref) not in {
+                XREF_FEATURE_CLASS_STRUCT,
+                XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT,
+                XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_OWNER,
+            }
         ):
             continue
         haystack = " ".join(
@@ -8311,8 +8351,6 @@ def build_type_flow_correctness_report(
                 }
             )
     for xref in xrefs:
-        kind = _string_value(xref.get("kind")) or ""
-        feature = _string_value(xref.get("feature")) or ""
         kind_id = _xref_kind_id(xref)
         feature_id = _xref_feature_id(xref)
         if (
@@ -8347,7 +8385,14 @@ def build_type_flow_correctness_report(
                         "text": xref.get("text"),
                     }
                 )
-        if kind_id in suspicious_kind_ids or feature.startswith(("struct:", "type:", "platform_typed_access_")):
+        if (
+            kind_id in suspicious_kind_ids
+            or _xref_feature_class_id(xref) in {
+                XREF_FEATURE_CLASS_STRUCT,
+                XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT,
+                XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_OWNER,
+            }
+        ):
             haystack = " ".join(
                 str(value)
                 for value in (
@@ -8362,15 +8407,15 @@ def build_type_flow_correctness_report(
             suspicious_match = _suspicious_first_struct_match(haystack)
             if suspicious_match is not None:
                 violations.append(
-                    {
-                        "kind": "suspicious_first_struct_type_flow",
-                        "target_id": xref.get("target_id"),
-                        "match": suspicious_match,
-                        "feature": feature,
-                        "xref_kind": kind,
-                        "row_index": xref.get("row_index"),
-                        "text": xref.get("text"),
-                    }
+                        {
+                            "kind": "suspicious_first_struct_type_flow",
+                            "target_id": xref.get("target_id"),
+                            "match": suspicious_match,
+                            "feature": xref.get("feature"),
+                            "xref_kind": xref.get("kind"),
+                            "row_index": xref.get("row_index"),
+                            "text": xref.get("text"),
+                        }
                 )
     for row in type_flow_rows:
         counts = row.get("counts") if isinstance(row.get("counts"), dict) else {}
