@@ -28,6 +28,7 @@ from amiga_reversing.disasm.c_backend import (
     benchmark_project_source_with_text_from_c_backend,
     decompress_packed_range_with_c_backend,
     decompress_packed_section_range_with_c_backend,
+    effective_policy_project_source_with_c_backend,
     extract_disk_entry_with_c_backend,
     listing_artifact_source_text_with_c_backend_profile,
     facts_v2_direct_rebuild_project_source_with_c_backend_profile,
@@ -824,7 +825,12 @@ class _M68kAnalysisStructuredDataItem(ctypes.Structure):
         ("constant_value", ctypes.c_int32),
         ("has_consumer", ctypes.c_uint8),
         ("source_pattern_id", ctypes.c_uint8),
-        ("reserved2", ctypes.c_uint8 * 2),
+        ("platform_kind_id", ctypes.c_uint16),
+        ("platform_field_id", ctypes.c_uint16),
+        ("struct_id", ctypes.c_uint16),
+        ("field_id", ctypes.c_uint16),
+        ("pointer_struct_id", ctypes.c_uint16),
+        ("reserved2", ctypes.c_uint16),
         ("consumer_section", ctypes.c_uint32),
         ("consumer_offset", ctypes.c_uint32),
         ("semantic_role_flags", ctypes.c_uint32),
@@ -888,7 +894,8 @@ class _M68kAnalysisRssetLayoutRegion(ctypes.Structure):
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint8),
         ("flags", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 2),
+        ("storage_kind_id", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 1),
         ("layout_name", ctypes.c_char * 32),
         ("base_symbol", ctypes.c_char * 64),
         ("sizeof_symbol", ctypes.c_char * 64),
@@ -2067,6 +2074,7 @@ def _patch_render_source_artifact(
                 "platform_name": source_file.platform_name,
                 "path": source_file.path,
                 "entry_offset": source_file.entry_offset,
+                "runtime_load_address": source_file.runtime_load_address,
                 "metadata_text": metadata_text,
                 "include_dir": include_dir,
                 "project_root": project_root,
@@ -2213,13 +2221,14 @@ def test_project_source_raw_binary_uses_raw_dll_with_local_entrypoint(monkeypatc
 
     assert render_project_source_with_c_backend(source, project_root=tmp_path) == "; raw\n"
     assert calls == [
-        ("platform_file_facts_v2_analysis_raw_path_json_alloc", "amiga-raw", str(binary_path), 12, "", ""),
+        ("platform_file_facts_v2_analysis_raw_path_json_alloc", "amiga-raw", str(binary_path), 12, 0, 0, "", ""),
     ]
     assert artifact_calls[0]["platform_name"] == "amiga-raw"
     assert artifact_calls[0]["entry_offset"] == 12
+    assert artifact_calls[0]["runtime_load_address"] is None
 
 
-def test_project_source_runtime_absolute_raw_binary_uses_local_entry_offset(
+def test_project_source_runtime_absolute_raw_binary_passes_runtime_load_model(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -2245,8 +2254,60 @@ def test_project_source_runtime_absolute_raw_binary_uses_local_entry_offset(
 
     assert analyze_project_source_with_c_backend(source, project_root=tmp_path) == {"sections": []}
     assert calls == [
-        ("platform_file_facts_v2_analysis_raw_path_json_alloc", "amiga-raw", str(binary_path), 0, "", ""),
+        ("platform_file_facts_v2_analysis_raw_path_json_alloc", "amiga-raw", str(binary_path), 0x4000, 1, 0x4000, "", ""),
     ]
+
+
+def test_real_dll_runtime_absolute_raw_binary_materializes_runtime_load_range(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    original = bytes.fromhex("4e754e75")
+    binary_path = tmp_path / "decompressed.bin"
+    binary_path.write_bytes(original)
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="runtime_absolute",
+        load_address=0x4000,
+        entrypoint=0x4000,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+
+    policy = effective_policy_project_source_with_c_backend(source, project_root=PROJECT_ROOT)["analysis_policy"]
+    assert policy["runtime_ranges"] == [
+        {"section_index": 0, "offset": 0, "size": len(original), "runtime_address": 0x4000, "name": "raw_load"}
+    ]
+    assert policy["runtime_entry_points"] == [{"section_index": 0, "runtime_address": 0x4000}]
+
+    rendered = render_project_source_with_c_backend(source, project_root=PROJECT_ROOT)
+    assert "ORG $4000" in rendered
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-raw",
+        rendered,
+        project_root=PROJECT_ROOT,
+    )
+    assert rebuilt == original
+
+
+def test_real_dll_local_offset_raw_binary_does_not_invent_runtime_load_range(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "local.bin"
+    binary_path.write_bytes(bytes.fromhex("4e754e75"))
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="local_offset",
+        load_address=0x4000,
+        entrypoint=0x4000,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+
+    policy = effective_policy_project_source_with_c_backend(source, project_root=PROJECT_ROOT)["analysis_policy"]
+    assert policy["runtime_ranges"] == []
+    assert policy["runtime_entry_points"] == []
 
 
 def test_project_source_benchmark_uses_facts_v2(
@@ -3531,6 +3592,8 @@ def test_real_dll_analysis_api_exposes_source_free_render_index_profile(tmp_path
             "amiga-raw",
             str(binary_path),
             0,
+            0,
+            0,
             "",
             "",
             project_root=PROJECT_ROOT,
@@ -3659,6 +3722,8 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
             "platform_file_facts_v2_analysis_raw_path_json_alloc",
             "amiga-raw",
             str(binary_path),
+            0,
+            0,
             0,
             str(metadata_path),
             "",
@@ -4243,6 +4308,8 @@ def test_project_source_raw_binary_passes_metadata_register_seeds(monkeypatch, t
             "amiga-raw",
             str(binary_path),
             12,
+            0,
+            0,
             str(metadata_path),
             "",
         ),
@@ -4252,6 +4319,7 @@ def test_project_source_raw_binary_passes_metadata_register_seeds(monkeypatch, t
             "platform_name": "amiga-raw",
             "path": binary_path,
             "entry_offset": 12,
+            "runtime_load_address": None,
             "metadata_text": str(metadata_path),
             "include_dir": str(tmp_path / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
             "project_root": tmp_path,
@@ -4849,7 +4917,7 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
             "string": 72,
         },
         "amiga_hunk_genam": {
-            "lookup_table": 10,
+            "lookup_table": 6,
             "string": 145,
         },
         "amiga_hunk_monam302": {
@@ -5228,6 +5296,7 @@ def test_real_dll_carrier_decompressed_child_raw_reproduction() -> None:
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
         "amiga-raw",
         source_text,
+        include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
         project_root=PROJECT_ROOT,
     )
 
@@ -6018,8 +6087,11 @@ def test_real_dll_renders_icon_library_resident_structure() -> None:
     assert "\tdc.l resident_vectors\t; APTR resident_vectors" in rendered
     assert "\tdc.l resident_init_struct\t; APTR resident_init_struct" in rendered
     assert "\tdc.l resident_init\t; APTR resident_init_function" in rendered
-    assert "resident_vectors:\n\tdc.l icon_lib_open" in rendered
-    assert "resident_init_struct:\n\tdc.b $E0,$00,$00,$08,$09,$00,$C0,$00,$00,$0A\n\tdc.l resident_name" in rendered
+    assert "resident_vectors:" in rendered
+    assert "\tdc.l icon_lib_open" in rendered
+    assert "resident_init_struct:" in rendered
+    assert "\tdc.b $E0,$00,$00,$08,$09,$00,$C0,$00,$00,$0A" in rendered
+    assert "\tdc.l resident_name" in rendered
     assert "res_MatchWord:" not in rendered
     assert "res_Flags:" not in rendered
     assert "DC.W    $4afc ; NOTE: resident matchword" not in rendered

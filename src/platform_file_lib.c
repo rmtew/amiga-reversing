@@ -4424,12 +4424,17 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
 }
 
 static int policy_set_raw_entry_address_local(M68kAnalysisPolicy *policy, const M68kObject *object,
-    uint32_t entry_address, M68kDiagList *diagnostics) {
+    uint32_t entry_address, uint8_t prefer_runtime_address, M68kDiagList *diagnostics) {
   uint32_t section_size = 0U;
   uint32_t section_index = 0U;
   uint32_t offset = 0U;
   if (policy == NULL || object == NULL) return 0;
   policy_section_size_local(object, 1U, 0U, &section_size);
+  if (prefer_runtime_address &&
+      policy_runtime_address_to_source_offset_local(policy, entry_address, &section_index, &offset)) {
+    policy->has_entry_offset = 0U;
+    return policy_add_runtime_entry_point_local(policy, section_index, entry_address);
+  }
   if (entry_address < section_size) {
     policy->has_entry_offset = 1U;
     policy->entry_offset = entry_address;
@@ -4440,6 +4445,20 @@ static int policy_set_raw_entry_address_local(M68kAnalysisPolicy *policy, const 
     return policy_add_runtime_entry_point_local(policy, section_index, entry_address);
   }
   platform_file_add_error(diagnostics, "raw entrypoint is outside source bytes and execution views");
+  return 0;
+}
+
+static int policy_add_raw_runtime_load_range_local(M68kAnalysisPolicy *policy, const M68kObject *object,
+    uint8_t has_runtime_load_address, uint32_t runtime_load_address, M68kDiagList *diagnostics) {
+  uint32_t section_size = 0U;
+  if (policy == NULL || object == NULL || !has_runtime_load_address) return 1;
+  if (!policy_section_size_local(object, 1U, 0U, &section_size)) {
+    platform_file_add_error(diagnostics, "raw source section is missing");
+    return 0;
+  }
+  if (section_size == 0U) return 1;
+  if (policy_add_runtime_range_local(policy, 0U, 0U, section_size, runtime_load_address, "raw_load")) return 1;
+  platform_file_add_error(diagnostics, "failed adding raw runtime load range");
   return 0;
 }
 
@@ -5148,7 +5167,8 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
 }
 
 static int effective_policy_json_to_alloc(const char *platform_name, const char *path, const char *metadata_path,
-    const char *entry_offsets, uint8_t is_raw, uint32_t raw_entry_offset, char **out_text) {
+    const char *entry_offsets, uint8_t is_raw, uint32_t raw_entry_address, uint8_t raw_has_runtime_load_address,
+    uint32_t raw_runtime_load_address, char **out_text) {
   Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
@@ -5224,7 +5244,10 @@ static int effective_policy_json_to_alloc(const char *platform_name, const char 
   }
   object_loaded = 1;
   if (is_raw) {
-    if (!policy_set_raw_entry_address_local(analysis_policy, &object, raw_entry_offset, &diagnostics)) {
+    if (!policy_add_raw_runtime_load_range_local(analysis_policy, &object, raw_has_runtime_load_address,
+          raw_runtime_load_address, &diagnostics) ||
+        !policy_set_raw_entry_address_local(analysis_policy, &object, raw_entry_address,
+          raw_has_runtime_load_address, &diagnostics)) {
       PlatformFileTextResult error_result;
       memset(&error_result, 0, sizeof(error_result));
       error_result.diagnostics = diagnostics;
@@ -5248,7 +5271,7 @@ static int effective_policy_json_to_alloc(const char *platform_name, const char 
       return rc;
     }
   }
-  analysis_start = effective_policy_analysis_start_local(analysis_policy, is_raw ? raw_entry_offset : 0U);
+  analysis_start = effective_policy_analysis_start_local(analysis_policy, is_raw ? raw_entry_address : 0U);
   if (json_builder_create(&builder) != 0) goto oom;
   if (json_builder_append(&builder, "{\"platform\":") != 0) goto oom;
   if (json_builder_append_json_string(&builder, platform_name != NULL ? platform_name : "") != 0) goto oom;
@@ -6279,7 +6302,8 @@ cleanup:
 }
 
 PlatformFileTextResult platform_file_facts_v2_analysis_raw_path_json(const char *platform_name, const char *path,
-    uint32_t entry_offset, const M68kAnalysisPolicy *analysis_policy) {
+    uint32_t entry_address, uint8_t has_runtime_load_address, uint32_t runtime_load_address,
+    const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
   M68kObject object;
   Arena *scratch_arena = NULL;
@@ -6300,7 +6324,10 @@ PlatformFileTextResult platform_file_facts_v2_analysis_raw_path_json(const char 
   else m68k_analysis_policy_init_default(raw_analysis_policy);
   if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&result.diagnostics)) != 0)
     goto cleanup;
-  if (!policy_set_raw_entry_address_local(raw_analysis_policy, &object, entry_offset, &result.diagnostics))
+  if (!policy_add_raw_runtime_load_range_local(raw_analysis_policy, &object, has_runtime_load_address,
+        runtime_load_address, &result.diagnostics) ||
+      !policy_set_raw_entry_address_local(raw_analysis_policy, &object, entry_address,
+        has_runtime_load_address, &result.diagnostics))
     goto cleanup;
   enrich_policy_pointer_targets_from_object_local(raw_analysis_policy, &object);
   if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, raw_analysis_policy))
@@ -6427,7 +6454,8 @@ int platform_file_facts_v2_analysis_path_json_alloc(const char *backend_name, co
 }
 
 int platform_file_facts_v2_analysis_raw_path_json_alloc(const char *platform_name, const char *path,
-    uint32_t entry_offset, const char *metadata_path, const char *entry_offsets, char **out_text) {
+    uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
+    const char *metadata_path, const char *entry_offsets, char **out_text) {
   Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
@@ -6451,19 +6479,22 @@ int platform_file_facts_v2_analysis_raw_path_json_alloc(const char *platform_nam
     arena_destroy(scratch_arena);
     return text_result_to_alloc(&result, out_text);
   }
-  result = platform_file_facts_v2_analysis_raw_path_json(platform_name, path, entry_offset, analysis_policy);
+  result = platform_file_facts_v2_analysis_raw_path_json(platform_name, path, entry_address,
+    (uint8_t)(has_runtime_load_address != 0U), runtime_load_address, analysis_policy);
   arena_destroy(scratch_arena);
   return text_result_to_alloc(&result, out_text);
 }
 
 int platform_file_effective_policy_path_json_alloc(const char *backend_name, const char *path,
     const char *metadata_path, const char *entry_offsets, char **out_text) {
-  return effective_policy_json_to_alloc(backend_name, path, metadata_path, entry_offsets, 0U, 0U, out_text);
+  return effective_policy_json_to_alloc(backend_name, path, metadata_path, entry_offsets, 0U, 0U, 0U, 0U, out_text);
 }
 
 int platform_file_effective_policy_raw_path_json_alloc(const char *platform_name, const char *path,
-    uint32_t entry_offset, const char *metadata_path, const char *entry_offsets, char **out_text) {
-  return effective_policy_json_to_alloc(platform_name, path, metadata_path, entry_offsets, 1U, entry_offset, out_text);
+    uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
+    const char *metadata_path, const char *entry_offsets, char **out_text) {
+  return effective_policy_json_to_alloc(platform_name, path, metadata_path, entry_offsets, 1U, entry_address,
+    (uint8_t)(has_runtime_load_address != 0U), runtime_load_address, out_text);
 }
 
 static char *facts_v2_asm_source_profile_json_alloc(const char *backend_name, const char *path,
@@ -6935,8 +6966,9 @@ fail:
 }
 
 int platform_file_facts_v2_listing_artifact_raw_path_create(const char *platform_name, const char *path,
-    uint32_t entry_offset, const char *metadata_path, const char *include_dir,
-    PlatformFileListingArtifact **out_artifact, char **out_error) {
+    uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
+    const char *metadata_path, const char *include_dir, PlatformFileListingArtifact **out_artifact,
+    char **out_error) {
   M68kDiagList diagnostics = {0};
   PlatformFileListingArtifact *artifact = NULL;
   (void)include_dir;
@@ -6952,7 +6984,10 @@ int platform_file_facts_v2_listing_artifact_raw_path_create(const char *platform
     goto fail;
   if (load_raw_object_from_path(platform_name, path, &artifact->object, m68k_diag_sink(&diagnostics)) != 0)
     goto fail;
-  if (!policy_set_raw_entry_address_local(&artifact->policy, &artifact->object, entry_offset, &diagnostics))
+  if (!policy_add_raw_runtime_load_range_local(&artifact->policy, &artifact->object,
+        (uint8_t)(has_runtime_load_address != 0U), runtime_load_address, &diagnostics) ||
+      !policy_set_raw_entry_address_local(&artifact->policy, &artifact->object, entry_address,
+        (uint8_t)(has_runtime_load_address != 0U), &diagnostics))
     goto fail;
   enrich_policy_pointer_targets_from_object_local(&artifact->policy, &artifact->object);
   if (!validate_effective_policy_against_object_local(&diagnostics, &artifact->object, &artifact->policy)) goto fail;

@@ -7,39 +7,7 @@
     INCLUDE "hardware/intbits.i"
 
     RSSET 0
-    RS.B 160
-app_00A0 RS.L 1
-app_00A4 RS.W 1
-app_00A6 RS.W 1
-app_00A8 RS.W 1
-    RS.B 230
-app_0190 RS.L 1
-    RS.B 1
-app_0195 RS.B 1
-app_0196 RS.L 1
-app_019A RS.L 1
-app_019E RS.L 1
-app_01A2 RS.L 1
-    RS.B 4
-app_01AA RS.L 1
-    RS.B 4
-app_01B2 RS.W 1
-    RS.B 2
-app_01B6 RS.W 1
-app_01B8 RS.W 1
-app_01BA RS.W 1
-app_01BC RS.W 1
-app_01BE RS.L 1
-app_01C2 RS.W 1
-app_01C4 RS.W 1
-app_01C6 RS.W 1
-app_01C8 RS.W 1
-    RS.B 10
-app_01D4 RS.L 1
-app_01D8 RS.L 1
-app_01DC RS.L 1
-app_01E0 RS.L 1
-app_01E4 RS.L 1
+    RS.B 488
 app_01E8 RS.L 1
 app_01EC RS.L 1
 app_01F0 RS.L 1
@@ -149,8 +117,6 @@ app_0368 RS.L 1
     RS.B 1154
 app_07EE RS.W 1
 app_SIZEOF EQU __RS
-    RSSET $01AD
-app_01AD RS.B 1
     RSSET $0287
 app_0287 RS.B 1
     RSSET $07EF
@@ -230,7 +196,7 @@ abs_0_00010498:
 	move.w d0,intena(a5)
 	move.w d0,intreq(a5)
 	move.l a0,app_0364(a6)
-	move.l a0,app_0190(a6)
+	move.l a0,$0190(a6)
 	lea.l abs_0_00010452(pc),a7
 	moveq.l #-1,d0
 	move.w d0,bltafwm(a5)
@@ -263,12 +229,12 @@ abs_0_00010498:
 	lea.l abs_0_0001076E(pc),a0
 	move.l a0,app_027C(a6)
 	bsr.w abs_0_000166D6
-	move.l #$78000,app_01DC(a6)
-	move.l #$78000,app_01D8(a6)
+	move.l #$78000,$01DC(a6)
+	move.l #$78000,$01D8(a6)
 	bsr.w abs_0_00016728
-	move.l #$70000,app_01D8(a6)
+	move.l #$70000,$01D8(a6)
 	bsr.w abs_0_00016728
-	move.l #$78000,app_01D4(a6)
+	move.l #$78000,$01D4(a6)
 	bsr.w abs_0_0001079E
 	jsr abs_0_0005AFFA.l
 	bsr.w abs_0_0001253C
@@ -282,11 +248,11 @@ abs_0_00010498:
 	move.b #$19,app_0284(a6)
 	bra.b abs_0_000105C2
 abs_0_000105A8:
-	move.l app_01D4(a6),d1
-	move.l app_01D8(a6),d0
-	move.l d0,app_01D4(a6)
-	move.l d1,app_01D8(a6)
-	move.l d0,app_01DC(a6)
+	move.l $01D4(a6),d1
+	move.l $01D8(a6),d0
+	move.l d0,$01D4(a6)
+	move.l d1,$01D8(a6)
+	move.l d0,$01DC(a6)
 	bclr.b #5,app_027B(a6)
 abs_0_000105C2:
 	btst.b #5,app_027B(a6)
@@ -399,9 +365,9 @@ abs_0_00010772:
 	dc.b $0E,$C0,$0E,$A6,$0A,$60,$06,$20,$00,$00,$0E,$EE
 abs_0_0001078E:
 	move.l d0,-(a7)
-	move.l app_01AA(a6),d0
+	move.l $01AA(a6),d0
 abs_0_00010794:
-	cmp.l app_01AA(a6),d0
+	cmp.l $01AA(a6),d0
 	beq.b abs_0_00010794
 	move.l (a7)+,d0
 	rts
@@ -449,7 +415,7 @@ abs_0_00010816:
 	bset #2,d0
 	moveq.l #-1,d2
 abs_0_00010822:
-	move.w d2,app_01C6(a6)
+	move.w d2,$01C6(a6)
 	moveq.l #0,d2
 	andi.b #3,d1
 	beq.b abs_0_0001083A
@@ -466,8 +432,8 @@ abs_0_0001083A:
 	bset #0,d0
 	moveq.l #-1,d2
 abs_0_0001084E:
-	move.w d2,app_01C8(a6)
-	move.w d0,app_01B2(a6)
+	move.w d2,$01C8(a6)
+	move.w d0,$01B2(a6)
 	rts
 	dc.b $30,$2D,$00,$1E,$08,$00,$00,$03,$67,$24,$41,$F9,$00,$BF,$E0,$01
 	dc.b $70,$00,$43,$F9,$00,$00,$39,$7C,$10,$28,$0C,$00,$E2,$18,$46,$00
@@ -631,7 +597,7 @@ abs_0_00010C6A:
 	andi.w #7,d1
 	moveq.l #0,d0
 	move.w d3,d0
-	movea.l app_01D4(a6),a0
+	movea.l $01D4(a6),a0
 	add.w d2,d2
 	add.w d2,d2
 	movea.l abs_0_00010CA0(pc,d2.w),a1
@@ -745,7 +711,7 @@ abs_0_00010F54:
 	dc.b $FF,$44,$70,$0E,$22,$48,$54,$89,$3F,$10,$30,$D9,$51,$C8,$FF,$FC
 	dc.b $30,$9F,$4E,$75
 abs_0_00010F88:
-	move.l #$70000,app_01D4(a6)
+	move.l #$70000,$01D4(a6)
 	bsr.w abs_0_000166D6
 	move.w #$4000,$009A(a5)
 	move.w #$200,$0096(a5)
@@ -756,7 +722,7 @@ abs_0_00010F88:
 	move.l a0,$0080(a5)
 	lea.l abs_0_00010F54(pc),a0
 	move.l a0,app_0364(a6)
-	move.l app_01AA(a6),d5
+	move.l $01AA(a6),d5
 	addi.l #150,d5
 	move.w #$C000,$009A(a5)
 	move.w #$8300,$0096(a5)
@@ -768,7 +734,7 @@ abs_0_00010FD2:
 	jsr abs_0_0005D8FC.l
 	movem.l (a7)+,d5/a6
 abs_0_00010FEC:
-	cmp.l app_01AA(a6),d5
+	cmp.l $01AA(a6),d5
 	bne.b abs_0_00011052
 	move.l d5,-(a7)
 	moveq.l #6,d0
@@ -782,7 +748,7 @@ abs_0_00010FEC:
 	bsr.w abs_0_00016108
 	lea.l abs_0_0001109E(pc),a3
 	bsr.w abs_0_00016056
-	move.b #$20,app_0195(a6)
+	move.b #$20,$0195(a6)
 	lea.l abs_0_00010B28(pc),a0
 	move.l a0,app_0280(a6)
 	move.l a6,-(a7)
@@ -817,8 +783,8 @@ abs_0_00011070:
 	rts
 	dc.b $33,$EE,$01,$AC,$00,$DF,$F1,$80,$60,$F6
 abs_0_0001109E:
-	dc.b $20,$20,$20,$43,$52,$45,$41,$54,$45,$44,$20,$42,$59,$3A,$20,$53
-	dc.b $48,$41,$48,$49,$44,$20,$41,$48,$4D,$41,$44,$0D
+	dc.b "   CREATED BY: SHAHID AHMAD"	; string
+	dc.b $0D
 	dcb.b $F,$20
 	dc.b $44,$41,$56,$49,$44,$20,$45,$41,$53,$54,$4D,$41,$4E,$0D
 	dcb.b $F,$20
@@ -1615,9 +1581,9 @@ abs_0_00012714:
 	bset.b #2,app_022E(a6)
 	bne.w abs_0_00012778
 	bclr.b #4,app_022E(a6)
-	tst.l app_019E(a6)
+	tst.l $019E(a6)
 	beq.b abs_0_00012754
-	movea.l app_019E(a6),a5
+	movea.l $019E(a6),a5
 	move.l a5,app_0358(a6)
 	bsr.w abs_0_0001268E
 	bcc.b abs_0_00012754
@@ -1638,8 +1604,8 @@ abs_0_00012778:
 	bsr.w abs_0_000194C0
 	bclr.b #1,app_033C(a6)
 	move.b #$6C,d0
-	lea.l app_0196(a6),a0
-	lea.l app_019A(a6),a1
+	lea.l $0196(a6),a0
+	lea.l $019A(a6),a1
 	moveq.l #3,d7
 abs_0_00012794:
 	cmp.b (a0)+,d0
@@ -1760,11 +1726,11 @@ abs_0_00012918:
 	rts
 abs_0_0001291A:
 	clr.b app_022C(a6)
-	move.w app_01B2(a6),d0
+	move.w $01B2(a6),d0
 	beq.b abs_0_00012918
 	clr.w app_0226(a6)
 	clr.w app_0228(a6)
-	move.w app_01C6(a6),d0
+	move.w $01C6(a6),d0
 	add.w app_0214(a6),d0
 	cmp.w #$C0,d0
 	bcc.b abs_0_0001296A
@@ -1775,7 +1741,7 @@ abs_0_0001291A:
 abs_0_00012948:
 	cmp.w #$0,d0
 	bcs.b abs_0_0001296A
-	move.w app_01C6(a6),d0
+	move.w $01C6(a6),d0
 	beq.b abs_0_0001296A
 	add.w d0,d0
 	move.w d0,d1
@@ -1786,7 +1752,7 @@ abs_0_00012948:
 	move.w #$8,app_022A(a6)
 	rts
 abs_0_0001296A:
-	move.w app_01C8(a6),d0
+	move.w $01C8(a6),d0
 	beq.b abs_0_0001298E
 	add.w d0,d0
 	move.w d0,d1
@@ -1832,8 +1798,8 @@ abs_0_000129E8:
 abs_0_000129EA:
 	movem.l d7/a2-a5,-(a7)
 	moveq.l #3,d7
-	lea.l app_0196(a6),a0
-	lea.l app_019A(a6),a1
+	lea.l $0196(a6),a0
+	lea.l $019A(a6),a1
 	lea.l abs_0_00013416(pc),a2
 	lea.l abs_0_00013442(pc),a3
 	lea.l abs_0_0001A6DC.l,a4
@@ -1886,7 +1852,7 @@ abs_0_00012A9E:
 	bsr.w abs_0_0001283E
 	move.l (a7)+,d0
 	lea.l abs_0_000133DE(pc),a5
-	move.l #$70000,app_01E0(a6)
+	move.l #$70000,$01E0(a6)
 	bsr.w abs_0_00016632
 abs_0_00012AB6:
 	rts
@@ -1894,14 +1860,14 @@ abs_0_00012AB8:
 	cmp.w #$60,d2
 	beq.b abs_0_00012AE8
 	move.b $0046(a4),d2
-	lea.l app_0196(a6),a0
+	lea.l $0196(a6),a0
 	move.b $0(a0,d0.w),$0046(a4)
 	move.b d2,$0(a0,d0.w)
 	move.w d0,-(a7)
 	bsr.w abs_0_000129EA
 	move.w (a7)+,d0
 	lea.l abs_0_0001340A(pc),a5
-	move.l #$70000,app_01E0(a6)
+	move.l #$70000,$01E0(a6)
 	bra.w abs_0_00016632
 abs_0_00012AE8:
 	movem.l d0/a0,-(a7)
@@ -1927,18 +1893,18 @@ abs_0_00012B32:
 	rts
 abs_0_00012B34:
 	move.b $0046(a4),d2
-	lea.l app_019A(a6),a0
+	lea.l $019A(a6),a0
 	move.b $0(a0,d0.w),$0046(a4)
 	move.b d2,$0(a0,d0.w)
 	move.w d0,-(a7)
 	bsr.w abs_0_000129EA
 	move.w (a7)+,d0
 	lea.l abs_0_00013436(pc),a5
-	move.l #$70000,app_01E0(a6)
+	move.l #$70000,$01E0(a6)
 	bra.w abs_0_00016632
 abs_0_00012B5E:
-	dc.b $20,$49,$53,$20,$54,$4F,$4F,$20,$4C,$41,$52,$47,$45,$20,$46,$4F
-	dc.b $52,$20,$59,$4F,$55,$52,$20,$50,$4F,$43,$4B,$45,$54,$53,$00,$00
+	dc.b " IS TOO LARGE FOR YOUR POCKETS",$00	; string
+	dc.b $00
 abs_0_00012B7E:
 	andi.w #127,d0
 	add.w d0,d0
@@ -2039,7 +2005,7 @@ abs_0_00012D5A:
 	move.b $0005(a0),app_022D(a6)
 	tst.b app_0287(a6)
 	bne.b abs_0_00012DAE
-	move.b app_01AD(a6),app_022D(a6)
+	move.b $01AD(a6),app_022D(a6)
 abs_0_00012DAE:
 	move.b $0000(a0),d0
 	move.b $0001(a0),d1
@@ -2120,10 +2086,10 @@ abs_0_00012EE6:
 	bne.b abs_0_00012F16
 	btst.b #1,app_022E(a6)
 	bne.w abs_0_000178CC
-	move.l app_019E(a6),d0
+	move.l $019E(a6),d0
 	beq.b abs_0_00012F16
 	movea.l d0,a5
-	move.l d0,app_01A2(a6)
+	move.l d0,$01A2(a6)
 	move.b $0048(a5),d0
 	andi.b #18,d0
 	bne.b abs_0_00012F16
@@ -3000,9 +2966,9 @@ abs_0_00015FFE:
 	dc.b $32,$00,$E6,$49,$0A,$00,$00,$07,$01,$F0,$10,$00,$4C,$DF,$00,$03
 	dc.b $4E,$75
 abs_0_00016056:
-	move.l app_01E4(a6),-(a7)
+	move.l $01E4(a6),-(a7)
 abs_0_0001605A:
-	movea.l app_01E4(a6),a1
+	movea.l $01E4(a6),a1
 abs_0_0001605E:
 	moveq.l #0,d0
 	move.b (a3)+,d0
@@ -3016,7 +2982,7 @@ abs_0_00016070:
 	bne.b abs_0_00016082
 	movea.l (a7)+,a1
 	lea.l $0500(a1),a1
-	move.l a1,app_01E4(a6)
+	move.l a1,$01E4(a6)
 	bra.b abs_0_00016056
 abs_0_00016082:
 	cmp.b #$61,d0
@@ -3030,7 +2996,7 @@ abs_0_0001608C:
 	addq.l #1,a1
 	bra.b abs_0_0001605E
 abs_0_0001609A:
-	move.l a1,app_01E4(a6)
+	move.l a1,$01E4(a6)
 	addq.l #4,a7
 	rts
 abs_0_000160A2:
@@ -3089,8 +3055,8 @@ abs_0_00016108:
 	move.w $0(a6,d1.w),d1
 	add.w d1,d0
 	ext.l d0
-	add.l app_01D4(a6),d0
-	move.l d0,app_01E4(a6)
+	add.l $01D4(a6),d0
+	move.l d0,$01E4(a6)
 	movea.l d0,a0
 	rts
 abs_0_00016126:
@@ -3101,7 +3067,7 @@ abs_0_00016126:
 	add.w d1,d0
 	ext.l d0
 	addi.l #458752,d0
-	move.l d0,app_01E4(a6)
+	move.l d0,$01E4(a6)
 	movea.l d0,a0
 	rts
 abs_0_00016146:
@@ -3178,7 +3144,7 @@ abs_0_00016204:
 	rts
 abs_0_0001620E:
 	movem.l d0/a0-a1,-(a7)
-	movea.l app_01E4(a6),a1
+	movea.l $01E4(a6),a1
 	moveq.l #40,d0
 	move.b (a0)+,(a1)
 	adda.l d0,a1
@@ -3246,12 +3212,12 @@ abs_0_0001620E:
 	movem.l (a7)+,d0/a0-a1
 	rts
 abs_0_0001629C:
-	move.l app_01E4(a6),d0
+	move.l $01E4(a6),d0
 	addq.l #1,d0
-	move.l d0,app_01E4(a6)
+	move.l d0,$01E4(a6)
 	rts
 abs_0_000162A8:
-	movea.l app_01E4(a6),a1
+	movea.l $01E4(a6),a1
 	lea.l $0140(a1),a1
 abs_0_000162B0:
 	clr.w d0
@@ -3314,7 +3280,7 @@ abs_0_000162B0:
 	addq.l #1,a1
 	bra.b abs_0_000162B0
 abs_0_0001632C:
-	move.l a1,app_01E4(a6)
+	move.l a1,$01E4(a6)
 	rts
 abs_0_00016332:
 	move.b $0000(a5),d0
@@ -3504,7 +3470,7 @@ abs_0_0001655E:
 	subq.b #3,d7
 abs_0_00016584:
 	bsr.w abs_0_0001620E
-	addi.l #1280,app_01E4(a6)
+	addi.l #1280,$01E4(a6)
 	dbf.w d7,abs_0_00016584
 	move.b $0002(a5),d0
 	subq.b #1,d0
@@ -3518,7 +3484,7 @@ abs_0_00016584:
 	subq.b #3,d7
 abs_0_000165B4:
 	bsr.w abs_0_0001620E
-	addi.l #1280,app_01E4(a6)
+	addi.l #1280,$01E4(a6)
 	dbf.w d7,abs_0_000165B4
 	move.b $0004(a5),d0
 	add.b $0000(a5),d0
@@ -3541,7 +3507,7 @@ abs_0_000165F0:
 	bsr.w abs_0_00016126
 	move.l a0,app_01EC(a6)
 	move.b #$8,app_020B(a6)
-	addq.l #1,app_01E4(a6)
+	addq.l #1,$01E4(a6)
 	tst.l (a4)
 	beq.b abs_0_00016624
 	movea.l (a4)+,a3
@@ -3571,7 +3537,7 @@ abs_0_00016632:
 	bsr.w abs_0_00016126
 	move.l a0,app_01EC(a6)
 	move.b #$8,app_020B(a6)
-	addq.l #1,app_01E4(a6)
+	addq.l #1,$01E4(a6)
 	bra.w abs_0_00016146
 abs_0_00016668:
 	lea.l abs_0_0001A862(pc),a0
@@ -3606,7 +3572,7 @@ abs_0_000166C2:
 	rts
 abs_0_000166D6:
 	movea.l #$70000,a0
-	move.l a0,app_01D4(a6)
+	move.l a0,$01D4(a6)
 	lea.l _custom.l,a5
 abs_0_000166E6:
 	move.w intreqr(a5),d0	; interrupt request state
@@ -3637,20 +3603,20 @@ abs_0_00016728:
 	clr.w bltamod(a5)
 	move.w #$26,bltdmod(a5)
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
-	move.w app_01C2(a6),d3
-	mulu.w app_01C4(a6),d3
+	move.w $01C2(a6),d3
+	mulu.w $01C4(a6),d3
 	lsl.l #2,d3
-	movea.l app_01BE(a6),a4
+	movea.l $01BE(a6),a4
 	adda.l d3,a4
-	move.w app_01C2(a6),d0
+	move.w $01C2(a6),d0
 	move.w d0,d2
-	mulu.w app_01BC(a6),d0
-	add.w app_01BA(a6),d0
+	mulu.w $01BC(a6),d0
+	add.w $01BA(a6),d0
 	add.w d0,d0
 	add.w d0,d0
-	add.l app_01BE(a6),d0
+	add.l $01BE(a6),d0
 	movea.l d0,a2
-	movea.l app_01D8(a6),a1
+	movea.l $01D8(a6),a1
 	add.w d2,d2
 	add.w d2,d2
 	moveq.l #7,d1
@@ -3682,14 +3648,14 @@ abs_0_000167AC:
 	dc.b $E8,$49,$C2,$EE,$01,$C2,$D2,$40,$D2,$81,$D2,$81,$20,$6E,$01,$BE
 	dc.b $D1,$C1,$4C,$DF,$00,$03,$4E,$75
 abs_0_0001680A:
-	move.w app_01B6(a6),d0
+	move.w $01B6(a6),d0
 	addi.w #320,d0
 	swap.w d0
-	move.w app_01B6(a6),d0
-	move.w app_01B8(a6),d1
+	move.w $01B6(a6),d0
+	move.w $01B8(a6),d1
 	addi.w #128,d1
 	swap.w d1
-	move.w app_01B8(a6),d1
+	move.w $01B8(a6),d1
 	rts
 	dc.b $38,$3C,$FF,$FF,$61,$DC,$B4,$40,$65,$16,$48,$40,$B4,$40,$48,$40
 	dc.b $64,$0E,$B6,$41,$65,$0A,$48,$41,$B6,$41,$48,$41,$64,$02,$78,$00
@@ -4208,7 +4174,7 @@ abs_0_0001702E:
 	add.w d1,d1
 	move.w $0(a6,d1.w),d1
 	clr.w d6
-	movea.l app_01D8(a6),a2
+	movea.l $01D8(a6),a2
 	adda.w d1,a2
 	subq.w #1,d4
 	bmi.w abs_0_00017166
@@ -4229,7 +4195,7 @@ abs_0_00017068:
 	move.w $0(a6,d1.w),d1
 	move.w d0,d6
 	andi.w #15,d6
-	movea.l app_01D8(a6),a2
+	movea.l $01D8(a6),a2
 	adda.w d1,a2
 	subq.l #8,a0
 	subq.l #2,a1
@@ -4274,7 +4240,7 @@ abs_0_000170DC:
 	move.w $0(a6,d1.w),d1
 	move.w d0,d6
 	andi.w #15,d6
-	movea.l app_01D8(a6),a2
+	movea.l $01D8(a6),a2
 	andi.b #240,d0
 	lsr.w #3,d0
 	add.w d0,d1
@@ -4313,7 +4279,7 @@ abs_0_0001711E:
 	andi.b #240,d0
 	lsr.w #3,d0
 	add.w d1,d0
-	movea.l app_01D8(a6),a2
+	movea.l $01D8(a6),a2
 	adda.w d0,a2
 abs_0_00017158:
 	bsr.w abs_0_00016A1E
@@ -4682,7 +4648,7 @@ abs_0_00017762:
 	movea.l #abs_0_0001C3A8,a0
 	adda.l d0,a0
 	moveq.l #31,d7
-	movea.l app_01E4(a6),a1
+	movea.l $01E4(a6),a1
 	lea.l $0078(a1),a1
 abs_0_0001777A:
 	move.b (a0)+,(a1)+
@@ -4692,7 +4658,7 @@ abs_0_0001777A:
 	lea.l $009C(a1),a1
 	dbf.w d7,abs_0_0001777A
 abs_0_0001778A:
-	addq.l #4,app_01E4(a6)
+	addq.l #4,$01E4(a6)
 	move.l (a7)+,d7
 	rts
 abs_0_00017792:
@@ -4708,7 +4674,7 @@ abs_0_0001779E:
 	clr.w app_02AE(a6)
 	clr.w app_02B0(a6)
 	move.w #$2710,d2
-	movea.l app_01A2(a6),a5
+	movea.l $01A2(a6),a5
 	bset.b #6,$0048(a5)
 	move.l $0030(a5),-(a7)
 	add.w d2,$0030(a5)
@@ -4727,7 +4693,7 @@ abs_0_000177EC:
 	move.b d0,app_02B2(a6)
 	move.b d0,app_02B3(a6)
 	move.b d1,app_02B7(a6)
-	movea.l app_01A2(a6),a5
+	movea.l $01A2(a6),a5
 	lea.l abs_0_0005C322.l,a4
 	move.b $004A(a5),d0
 	cmp.b #$42,d0
@@ -4785,7 +4751,7 @@ abs_0_000178CC:
 	tst.b abs_0_0005C35F.l
 	bmi.w abs_0_000179A8
 	beq.w abs_0_000179A8
-	movea.l app_01A2(a6),a5
+	movea.l $01A2(a6),a5
 	subq.b #1,app_02B4(a6)
 	bne.b abs_0_00017938
 	move.b app_02B5(a6),d0
@@ -4840,7 +4806,7 @@ abs_0_0001796C:
 	bsr.w abs_0_00017AE8
 abs_0_00017980:
 	lea.l abs_0_00013302.l,a4
-	movea.l app_01A2(a6),a5
+	movea.l $01A2(a6),a5
 	bsr.w abs_0_00018544
 	lea.l abs_0_000132D6.l,a4
 	lea.l abs_0_0005C322.l,a5
@@ -4864,7 +4830,7 @@ abs_0_000179A8:
 	bra.b abs_0_000179EC
 abs_0_000179E4:
 	addq.b #1,app_0327(a6)
-	movea.l app_01A2(a6),a5
+	movea.l $01A2(a6),a5
 abs_0_000179EC:
 	move.l $0008(a5),d0
 	beq.b abs_0_00017A06
@@ -4888,7 +4854,7 @@ abs_0_00017A06:
 	lea.l abs_0_0005C322.l,a5
 	btst.b #1,$0048(a5)
 	beq.b abs_0_00017A4E
-	movea.l app_01A2(a6),a5
+	movea.l $01A2(a6),a5
 	bclr.b #6,$0048(a5)
 abs_0_00017A4E:
 	sub.w d2,$0030(a5)
@@ -4940,7 +4906,7 @@ abs_0_00017AE8:
 	movea.l $0010(a2),a3
 	move.l a1,$0000(a2)
 	move.l a1,$0004(a2)
-	movea.l app_01A2(a6),a5
+	movea.l $01A2(a6),a5
 	move.w $0030(a5),d0
 	subi.w #10000,d0
 	move.w d0,$0004(a3)
@@ -5118,10 +5084,10 @@ abs_0_00017D48:
 	bra.w abs_0_00017D9C
 abs_0_00017D60:
 	lea.l abs_0_0005C322.l,a5
-	move.w app_01C4(a6),d1
+	move.w $01C4(a6),d1
 	subq.w #8,d1
 	lsl.w #4,d1
-	move.w app_01B8(a6),d0
+	move.w $01B8(a6),d0
 	add.w app_0298(a6),d0
 	bpl.b abs_0_00017D7A
 	moveq.l #0,d0
@@ -5130,14 +5096,14 @@ abs_0_00017D7A:
 	bcs.b abs_0_00017D80
 	move.w d1,d0
 abs_0_00017D80:
-	move.w d0,app_01B8(a6)
+	move.w d0,$01B8(a6)
 	lsr.w #4,d0
-	move.w d0,app_01BC(a6)
-	move.w app_01B6(a6),d0
+	move.w d0,$01BC(a6)
+	move.w $01B6(a6),d0
 	add.w app_0296(a6),d0
-	move.w d0,app_01B6(a6)
+	move.w d0,$01B6(a6)
 	lsr.w #4,d0
-	move.w d0,app_01BA(a6)
+	move.w d0,$01BA(a6)
 abs_0_00017D9C:
 	bsr.w abs_0_00016728
 	bsr.w abs_0_0001A152
@@ -5515,7 +5481,7 @@ abs_0_00018216:
 	tst.b d6
 	beq.w abs_0_000182D2
 abs_0_0001823A:
-	movea.l app_01E4(a6),a2
+	movea.l $01E4(a6),a2
 	moveq.l #40,d0
 	lea.l $00A0(a2),a2
 	rol.l #8,d1
@@ -5631,9 +5597,9 @@ abs_0_0001833A:
 	move.w d3,d0
 	move.w d0,app_0356(a6)
 	bset.b #5,$0048(a5)
-	cmpa.l app_019E(a6),a5
+	cmpa.l $019E(a6),a5
 	beq.b abs_0_000183AA
-	move.l a5,app_019E(a6)
+	move.l a5,$019E(a6)
 	move.l a5,app_02D4(a6)
 	move.w $0052(a5),d0
 	beq.b abs_0_00018376
@@ -5663,7 +5629,7 @@ abs_0_000183AE:
 	bne.w abs_0_0001844C
 	btst.b #2,app_02A6(a6)
 	bne.b abs_0_00018416
-	movea.l app_019E(a6),a5
+	movea.l $019E(a6),a5
 	btst.b #1,abs_0_0005C36A.l
 	bne.b abs_0_0001840E
 	btst.b #1,$0048(a5)
@@ -5699,7 +5665,7 @@ abs_0_00018416:
 	bsr.b abs_0_00018494
 	lea.l abs_0_00013386.l,a5
 	bsr.b abs_0_00018494
-	clr.l app_019E(a6)
+	clr.l $019E(a6)
 	clr.b app_02A7(a6)
 	bra.b abs_0_00018492
 abs_0_0001844C:
@@ -5709,7 +5675,7 @@ abs_0_0001844C:
 	moveq.l #-11,d0
 	and.b d0,app_02A6(a6)
 	lea.l abs_0_00013386.l,a0
-	movea.l app_019E(a6),a5
+	movea.l $019E(a6),a5
 	move.l $0000(a5),$000C(a0)
 	lea.l abs_0_000133B2.l,a1
 	moveq.l #0,d0
@@ -5984,7 +5950,7 @@ abs_0_00018814:
 	bne.b abs_0_00018896
 	btst.b #1,app_022E(a6)
 	bne.b abs_0_0001884E
-	move.l app_019E(a6),d0
+	move.l $019E(a6),d0
 	beq.b abs_0_00018848
 	movea.l d0,a5
 	movea.l $002C(a5),a0
@@ -6315,7 +6281,7 @@ abs_0_000192DE:
 	swap.w d0
 	clr.w d0
 	swap.w d0
-	movea.l app_01BE(a6),a0
+	movea.l $01BE(a6),a0
 	move.l $0(a0,d0.l),d0
 	subi.l #118952,d0
 	lsr.l #7,d0
@@ -6787,9 +6753,9 @@ abs_0_00019EC6:
 	addi.w #160,d0
 	addq.l #2,d1
 	dbf.w d7,abs_0_00019EC6
-	move.w #$5A,app_01C2(a6)
-	move.w #$81,app_01C4(a6)
-	move.l #$4000,app_01BE(a6)
+	move.w #$5A,$01C2(a6)
+	move.w #$81,$01C4(a6)
+	move.l #$4000,$01BE(a6)
 	bsr.w abs_0_0001A198
 	move.w #$1,app_02CA(a6)
 	moveq.l #15,d7
@@ -6805,7 +6771,7 @@ abs_0_00019F06:
 	addq.l #8,a0
 	dbf.w d7,abs_0_00019F06
 	bsr.w abs_0_00017244
-	move.l #$70000,app_01E0(a6)
+	move.l #$70000,$01E0(a6)
 	rts
 abs_0_00019F26:
 	move.l a5,-(a7)
@@ -6843,7 +6809,7 @@ abs_0_00019F82:
 	clr.b app_0327(a6)
 	clr.b app_02D9(a6)
 	clr.b app_031B(a6)
-	clr.l app_019E(a6)
+	clr.l $019E(a6)
 	clr.l app_02D4(a6)
 	clr.l app_020C(a6)
 	clr.l app_0210(a6)
@@ -6861,11 +6827,11 @@ abs_0_00019FC4:
 	move.l #$1AAFE,app_01F0(a6)
 	clr.b app_020B(a6)
 	moveq.l #51,d0
-	move.w d0,app_01BC(a6)
+	move.w d0,$01BC(a6)
 	lsl.w #4,d0
-	move.w d0,app_01B8(a6)
-	clr.w app_01BA(a6)
-	clr.w app_01B6(a6)
+	move.w d0,$01B8(a6)
+	clr.w $01BA(a6)
+	clr.w $01B6(a6)
 	lea.l abs_0_0005C322.l,a4
 	addi.w #50,d0
 	move.w d0,$0032(a4)
@@ -6877,8 +6843,8 @@ abs_0_00019FC4:
 	moveq.l #15,d7
 	bsr.w abs_0_00012640
 	moveq.l #0,d0
-	move.l d0,app_0196(a6)
-	move.l d0,app_019A(a6)
+	move.l d0,$0196(a6)
+	move.l d0,$019A(a6)
 	clr.b abs_0_0005C368.l
 	lea.l abs_0_00013416.l,a0
 	lea.l abs_0_00013442.l,a1
@@ -6962,14 +6928,14 @@ abs_0_0001A152:
 	move.w (a0)+,app_02C8(a6)
 	move.w (a0)+,d2
 	move.w (a0)+,d3
-	move.w app_01B6(a6),d0
+	move.w $01B6(a6),d0
 	add.w d2,d0
 	add.w d2,d2
 	move.w d0,app_028E(a6)
 	addi.w #320,d0
 	sub.w d2,d0
 	move.w d0,app_0290(a6)
-	move.w app_01B8(a6),d0
+	move.w $01B8(a6),d0
 	add.w d3,d0
 	add.w d3,d3
 	move.w d0,app_0292(a6)
@@ -7032,13 +6998,13 @@ abs_0_0001A1B4:
 	dbf.w d6,abs_0_0001A1B4
 	lea.l $0438(a4),a4
 	dbf.w d7,abs_0_0001A1B0
-	movea.l app_01BE(a6),a0
+	movea.l $01BE(a6),a0
 	moveq.l #0,d0
-	move.w app_01C2(a6),d0
+	move.w $01C2(a6),d0
 	add.w d0,d0
 	add.w d0,d0
 	move.l d0,app_02A2(a6)
-	mulu.w app_01C4(a6),d0
+	mulu.w $01C4(a6),d0
 	move.l d0,app_029A(a6)
 	adda.l d0,a0
 	move.l a0,app_029E(a6)
@@ -7164,12 +7130,12 @@ abs_0_0001A6DC:
 	dc.b $04,$06,$04,$13,$04,$1F,$04,$2A,$04,$34,$04,$3F,$04,$4B,$04,$57
 	dc.b $04,$64,$04,$71
 abs_0_0001A7C0:
-	dc.b $20,$49,$54,$45,$4D,$20,$44,$45,$50,$4F,$53,$49,$54,$45,$44,$00
+	dc.b " ITEM DEPOSITED",$00	; string
 abs_0_0001A7D0:
-	dc.b $50,$41,$4E,$44,$4F,$52,$41,$00,$63,$3A,$5C,$64,$65,$76,$70,$61
-	dc.b $63,$5C,$68,$61,$72,$64,$61,$5C,$00,$00,$00,$01,$B3,$A8,$00,$03
-	dc.b $E1,$FA,$67,$72,$61,$70,$68,$69,$63,$73,$2E,$64,$61,$74,$00,$00
-	dc.b $00,$00,$00,$00
+	dc.b "PANDORA",$00	; string
+	dc.b $63,$3A,$5C,$64,$65,$76,$70,$61,$63,$5C,$68,$61,$72,$64,$61,$5C
+	dc.b $00,$00,$00,$01,$B3,$A8,$00,$03,$E1,$FA,$67,$72,$61,$70,$68,$69
+	dc.b $63,$73,$2E,$64,$61,$74,$00,$00,$00,$00,$00,$00
 abs_0_0001A804:
 	dc.b $2B,$F8,$31,$DD,$01,$3E,$00,$FF,$FF,$FF,$FF,$FF,$F4,$B0,$80
 abs_0_0001A813:
@@ -25705,7 +25671,7 @@ abs_0_0005C9CC:
 	lea.l abs_0_0005CB92(pc),a0
 abs_0_0005C9DC:
 	jsr abs_0_000199DE.l
-	lea.l app_0196(a6),a1
+	lea.l $0196(a6),a1
 	moveq.l #3,d7
 	moveq.l #0,d0
 	lea.l abs_0_0001A813.l,a0
@@ -25781,13 +25747,12 @@ abs_0_0005CABC:
 abs_0_0005CAE5:
 	dc.b "CONGRATULATIONS:  PANDORA  IS  DESTROYED,  EARTH  IS  SAVED.",$00	; string
 abs_0_0005CB22:
-	dc.b $50,$41,$4E,$44,$4F,$52,$41,$20,$20,$49,$53,$20,$20,$44,$45,$53
-	dc.b $54,$52,$4F,$59,$45,$44,$2C,$20,$42,$55,$54,$20,$20,$45,$41,$52
-	dc.b $54,$48,$22
+	dc.b "PANDORA  IS  DESTROYED, BUT  EARTH"	; string
+	dc.b $22
 	dc.b "S  FATE  IS  UNCERTAIN.",$00	; string
 abs_0_0005CB5D:
-	dc.b $59,$4F,$55,$20,$20,$48,$41,$56,$45,$20,$20,$45,$53,$43,$41,$50
-	dc.b $45,$44,$2C,$20,$42,$55,$54,$20,$20,$45,$41,$52,$54,$48,$22
+	dc.b "YOU  HAVE  ESCAPED, BUT  EARTH"	; string
+	dc.b $22
 	dc.b "S  FUTURE  IS  BLEAK.",$00	; string
 abs_0_0005CB92:
 	dc.b "YOU  HAVE  FAILED  TO  SOLVE  THE  MYSTERY  OF  PANDORA.",$00	; string
@@ -26109,8 +26074,8 @@ abs_0_0005D968:
 	move.w d1,$0004(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005D9CC
-	move.l a2,app_00A0(a6)
-	move.w d1,app_00A4(a6)
+	move.l a2,$00A0(a6)
+	move.w d1,$00A4(a6)
 abs_0_0005D9CC:
 	bra.b abs_0_0005D9EC
 abs_0_0005D9CE:
@@ -26118,8 +26083,8 @@ abs_0_0005D9CE:
 	move.w #$20,$0004(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005D9EC
-	move.l abs_0_0005DD0C(pc),app_00A0(a6)
-	move.w #$20,app_00A4(a6)
+	move.l abs_0_0005DD0C(pc),$00A0(a6)
+	move.w #$20,$00A4(a6)
 abs_0_0005D9EC:
 	subq.w #1,$001E(a0)
 	beq.b abs_0_0005DA16
@@ -26156,9 +26121,9 @@ abs_0_0005DA1A:
 	move.w d1,$0008(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005DA6E
-	move.l $0000(a5),app_00A0(a6)
-	move.w $0008(a5),app_00A4(a6)
-	move.w d1,app_00A8(a6)
+	move.l $0000(a5),$00A0(a6)
+	move.w $0008(a5),$00A4(a6)
+	move.w d1,$00A8(a6)
 abs_0_0005DA6E:
 	andi.w #255,d0
 	lea.l abs_0_0005DDD4(pc),a2
@@ -26171,7 +26136,7 @@ abs_0_0005DA6E:
 	move.w d0,$0006(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005DA94
-	move.w d0,app_00A6(a6)
+	move.w d0,$00A6(a6)
 abs_0_0005DA94:
 	sf.b $0016(a0)
 	move.l a1,$0004(a0)
@@ -26246,7 +26211,7 @@ abs_0_0005DB64:
 	move.w d0,$0006(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005DB72
-	move.w d0,app_00A6(a6)
+	move.w d0,$00A6(a6)
 abs_0_0005DB72:
 	subq.b #1,$002B(a0)
 	bcc.b abs_0_0005DBA4
@@ -26263,7 +26228,7 @@ abs_0_0005DB8A:
 	move.w d1,$0008(a4)
 	tst.b $000B(a4)
 	bne.b abs_0_0005DBA4
-	move.w d1,app_00A8(a6)
+	move.w d1,$00A8(a6)
 abs_0_0005DBA4:
 	bra.w abs_0_0005DAAE
 abs_0_0005DBA8:

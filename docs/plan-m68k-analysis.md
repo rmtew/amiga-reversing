@@ -83,6 +83,12 @@ and propagation-chain kind ids; report branching for app-slot substructure and
 API-output storage gaps uses those ids, while cause/chain strings remain display
 and grouping names.
 
+Round-trip source reproduction is a quality gate for retained rendered-source
+updates. When regenerated target `.s` files are committed as evidence, the same
+target must be reassembled and compared to the source binary; source-quality
+changes without exact reproduction are regressions unless explicitly recorded as
+unsupported container/format oddities.
+
 | Topic | Status | Next gap |
 | --- | --- | --- |
 | RSSET/app slots | Implemented and tested | Track only new real ownership conflicts. |
@@ -137,6 +143,10 @@ measurements and test names here, not in the index table.
 - Tests cover runtime-copy jump targets, low trampoline suppression, policy
   runtime ranges, conflict failure, policy-vs-inferred precedence, corpus tags,
   and listing navigation for materialized/suppressed runtime views.
+- Runtime-absolute raw targets now pass load address, payload extent, and
+  transfer entrypoint into C policy. C materializes the raw load range and
+  runtime entrypoint before analysis, so extracted Pandora-style payloads render
+  at their loaded address without target-local ORG metadata.
 - Runtime-view materialization reason, relationship, and role decisions are
   numeric ids; names remain display text.
 - Relationship ids derive target-pattern tags for entry wrappers, contained

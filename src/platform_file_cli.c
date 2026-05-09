@@ -35,7 +35,7 @@ static int facts_v2_analysis_file_to_stdout(const char *platform_name, const cha
 static int facts_v2_analysis_raw_to_stdout(const char *platform_name, const char *path, uint32_t entry_offset,
     const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result = platform_file_facts_v2_analysis_raw_path_json(platform_name, path, entry_offset,
-    analysis_policy);
+    0U, 0U, analysis_policy);
   if (m68k_diag_has_errors(&result.diagnostics)) {
     fprintf(stderr, "%s\n", m68k_diag_first_message(&result.diagnostics));
     return 1;
@@ -152,7 +152,7 @@ static int effective_policy_raw_to_stdout(const char *platform_name, const char 
     const char *metadata_path, const char *entry_offsets) {
   char *text = NULL;
   int result = platform_file_effective_policy_raw_path_json_alloc(platform_name, path, entry_offset,
-    metadata_path != NULL ? metadata_path : "", entry_offsets != NULL ? entry_offsets : "", &text);
+    0U, 0U, metadata_path != NULL ? metadata_path : "", entry_offsets != NULL ? entry_offsets : "", &text);
   if (result != 0) {
     fprintf(stderr, "%s\n", text != NULL ? text : "failed building effective policy");
     platform_file_free_text(text);
@@ -215,7 +215,7 @@ static int disassemble_raw_to_stdout(const char *platform_name, const char *path
   PlatformFileListingArtifact *artifact = NULL;
   int result;
   result = platform_file_facts_v2_listing_artifact_raw_path_create(platform_name, path, entry_offset,
-    metadata_path != NULL ? metadata_path : "", "", &artifact, &error);
+    0U, 0U, metadata_path != NULL ? metadata_path : "", "", &artifact, &error);
   if (result != 0) {
     fprintf(stderr, "%s\n", error != NULL ? error : "facts_v2 listing artifact failed");
     platform_file_free_text(error);

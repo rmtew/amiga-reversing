@@ -295,6 +295,23 @@ is proven to be an independent source-level runtime range.
 Multiple ORGs are valid only when analysis proves independent runtime ranges and
 the assembler's `ORG` semantics keep cross-references correct.
 
+Raw extracted targets with absolute load metadata are runtime views too. The
+load address, payload extent, and transfer entrypoint come from the target source
+descriptor, but the authoritative model is still C analysis policy:
+
+```text
+raw payload bytes     source offset 0..size
+load address          runtime base where those bytes execute
+entrypoint            runtime address transferred to after load/decrunch
+```
+
+For `runtime_absolute` raw targets, C must create one runtime range covering the
+whole source payload and a runtime entrypoint at the recorded transfer address.
+For `local_offset` raw targets, C keeps the entry as a local source offset and
+does not invent an absolute runtime range. This makes extracted Carrier,
+Pandora, bootloader, and decrunched payloads navigable as loaded code without
+target-specific ORG metadata.
+
 Runtime-view analysis state should stay compact. Each runtime view row records
 the storage range, runtime range, materialization decision, reason, and only
 when proven a related runtime view. Relationship kinds are enum facts such as

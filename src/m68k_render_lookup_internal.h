@@ -173,6 +173,11 @@ typedef struct M68kRenderInferredRuntimeAddressRef {
 
 typedef struct M68kRenderRuntimeAddressRange {
   const M68kFact *fact;
+  uint8_t materialization_cached;
+  uint8_t materialized;
+  uint8_t materialization_reason;
+  uint8_t reserved0;
+  M68kRuntimeViewRelationshipIR relationship;
 } M68kRenderRuntimeAddressRange;
 
 typedef struct M68kRenderCodeStartRef {
@@ -425,6 +430,8 @@ struct M68kRenderLookup {
   size_t section_count;
   const M68kObject *object;
   const M68kAnalysisPolicy *policy;
+  uint8_t build_complete;
+  uint8_t reserved0[7];
   M68kRenderGlobalBaseSlot *global_base_slots;
   size_t global_base_slot_count;
   size_t global_base_slot_capacity;

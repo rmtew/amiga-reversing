@@ -4159,6 +4159,8 @@ int render_lookup_add_runtime_address_range(M68kRenderLookup *lookup, const M68k
     lookup->runtime_address_ranges = grown;
     lookup->runtime_address_range_capacity = next_capacity;
   }
+  memset(&lookup->runtime_address_ranges[lookup->runtime_address_range_count], 0,
+    sizeof(lookup->runtime_address_ranges[lookup->runtime_address_range_count]));
   lookup->runtime_address_ranges[lookup->runtime_address_range_count].fact = fact;
   ++lookup->runtime_address_range_count;
   return 0;

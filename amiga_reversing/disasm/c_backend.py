@@ -459,6 +459,8 @@ def analyze_project_source_with_c_backend(
                 source_file.platform_name,
                 str(source_file.path),
                 source_file.entry_offset,
+                1 if source_file.runtime_load_address is not None else 0,
+                source_file.runtime_load_address or 0,
                 metadata_text,
                 entry_offsets_text,
                 project_root=project_root,
@@ -491,6 +493,8 @@ def effective_policy_project_source_with_c_backend(
                 source_file.platform_name,
                 str(source_file.path),
                 source_file.entry_offset,
+                1 if source_file.runtime_load_address is not None else 0,
+                source_file.runtime_load_address or 0,
                 metadata_text,
                 entry_offsets_text,
                 project_root=project_root,
@@ -896,9 +900,9 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     dll.platform_file_free_bytes.restype = None
     _configure_text_function(dll, "platform_file_inspect_path_json_alloc", 2)
     _configure_text_function(dll, "platform_file_facts_v2_analysis_path_json_alloc", 4)
-    _configure_text_function(dll, "platform_file_facts_v2_analysis_raw_path_json_alloc", 5)
+    _configure_text_function(dll, "platform_file_facts_v2_analysis_raw_path_json_alloc", 7)
     _configure_text_function(dll, "platform_file_effective_policy_path_json_alloc", 4)
-    _configure_text_function(dll, "platform_file_effective_policy_raw_path_json_alloc", 5)
+    _configure_text_function(dll, "platform_file_effective_policy_raw_path_json_alloc", 7)
     dll.platform_file_facts_v2_direct_rebuild_path_bytes_profile_alloc.argtypes = [
         c_char_p,
         c_char_p,
@@ -963,6 +967,8 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     dll.platform_file_facts_v2_listing_artifact_raw_path_create.argtypes = [
         c_char_p,
         c_char_p,
+        c_uint32,
+        c_uint32,
         c_uint32,
         c_char_p,
         c_char_p,
@@ -1156,7 +1162,15 @@ def _configure_text_function(dll: CDLL, function_name: str, input_arg_count: int
     function = getattr(dll, function_name)
     argtypes: list[object] = [c_char_p] * input_arg_count + [POINTER(c_void_p)]
     if "raw_path" in function_name:
-        argtypes = [c_char_p, c_char_p, c_uint32, *([c_char_p] * (input_arg_count - 3)), POINTER(c_void_p)]
+        argtypes = [
+            c_char_p,
+            c_char_p,
+            c_uint32,
+            c_uint32,
+            c_uint32,
+            *([c_char_p] * (input_arg_count - 5)),
+            POINTER(c_void_p),
+        ]
     function.argtypes = argtypes
     function.restype = c_int
 
@@ -1165,10 +1179,17 @@ _dll_directory_handles: list[object] = []
 
 
 class _CBackendSourceFile:
-    def __init__(self, path: Path, platform_name: str, entry_offset: int | None = None) -> None:
+    def __init__(
+        self,
+        path: Path,
+        platform_name: str,
+        entry_offset: int | None = None,
+        runtime_load_address: int | None = None,
+    ) -> None:
         self.path = path
         self.platform_name = platform_name
         self.entry_offset = entry_offset
+        self.runtime_load_address = runtime_load_address
 
 
 class CListingArtifact:
@@ -1202,6 +1223,8 @@ class CListingArtifact:
                 _c_arg(source_file.platform_name),
                 _c_arg(str(source_file.path)),
                 _c_arg(source_file.entry_offset),
+                _c_arg(1 if source_file.runtime_load_address is not None else 0),
+                _c_arg(source_file.runtime_load_address or 0),
                 _c_arg(metadata_text),
                 _c_arg(include_dir),
                 byref(artifact),
@@ -1423,7 +1446,12 @@ def _source_file_for_c_backend(
                 temp_path.unlink(missing_ok=True)
         return
     if isinstance(binary_source, RawBinarySource):
-        yield _CBackendSourceFile(binary_source.path, "amiga-raw", binary_source.local_entrypoint)
+        yield _CBackendSourceFile(
+            binary_source.path,
+            "amiga-raw",
+            binary_source.analysis_entrypoint,
+            binary_source.load_address if binary_source.address_model == "runtime_absolute" else None,
+        )
         return
     raise UnsupportedCBackendProject(f"C backend does not support binary source: {binary_source.display_path}")
 

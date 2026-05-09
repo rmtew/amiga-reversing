@@ -4424,6 +4424,7 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
     }
   }
   if (render_lookup_add_pc_relative_xrefs(lookup, decode) != 0) goto oom;
+  lookup->build_complete = 1U;
   return 0;
 oom:
   render_lookup_destroy(lookup);
@@ -4703,7 +4704,19 @@ static int runtime_range_is_overlaid_by_runtime_copy(const M68kRenderLookup *loo
   return 0;
 }
 
-int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M68kFact *range,
+static M68kRenderRuntimeAddressRange *lookup_runtime_range_slot_for_fact(const M68kRenderLookup *lookup,
+    const M68kFact *range) {
+  size_t index;
+  if (lookup == NULL || range == NULL || lookup->runtime_address_ranges == NULL) return NULL;
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    if (lookup->runtime_address_ranges[index].fact == range) {
+      return (M68kRenderRuntimeAddressRange *)&lookup->runtime_address_ranges[index];
+    }
+  }
+  return NULL;
+}
+
+static int lookup_runtime_range_materialization_uncached(const M68kRenderLookup *lookup, const M68kFact *range,
     uint8_t *out_materialized, uint8_t *out_reason, M68kRuntimeViewRelationshipIR *out_relationship) {
   size_t index;
   const M68kFact *related = NULL;
@@ -4765,6 +4778,39 @@ int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M
     }
   }
   if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_NO_MATERIALIZING_EVIDENCE;
+  return 0;
+}
+
+int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M68kFact *range,
+    uint8_t *out_materialized, uint8_t *out_reason, M68kRuntimeViewRelationshipIR *out_relationship) {
+  M68kRenderRuntimeAddressRange *slot = lookup_runtime_range_slot_for_fact(lookup, range);
+  if (out_materialized != NULL) *out_materialized = 0U;
+  if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_MATERIALIZATION_REASON_NONE;
+  runtime_view_relationship_clear(out_relationship);
+  if (slot != NULL && lookup != NULL && lookup->build_complete && slot->materialization_cached) {
+    if (out_materialized != NULL) *out_materialized = slot->materialized;
+    if (out_reason != NULL) *out_reason = slot->materialization_reason;
+    if (out_relationship != NULL) *out_relationship = slot->relationship;
+    return 0;
+  }
+  {
+    uint8_t materialized = 0U;
+    uint8_t reason = M68K_RUNTIME_VIEW_MATERIALIZATION_REASON_NONE;
+    M68kRuntimeViewRelationshipIR relationship;
+    int result;
+    runtime_view_relationship_clear(&relationship);
+    result = lookup_runtime_range_materialization_uncached(lookup, range, &materialized, &reason, &relationship);
+    if (result != 0) return result;
+    if (slot != NULL && lookup != NULL && lookup->build_complete) {
+      slot->materialization_cached = 1U;
+      slot->materialized = materialized;
+      slot->materialization_reason = reason;
+      slot->relationship = relationship;
+    }
+    if (out_materialized != NULL) *out_materialized = materialized;
+    if (out_reason != NULL) *out_reason = reason;
+    if (out_relationship != NULL) *out_relationship = relationship;
+  }
   return 0;
 }
 

@@ -36,7 +36,8 @@ PLATFORM_FILE_API PlatformFileTextResult platform_file_facts_v2_analysis_buffer_
 PLATFORM_FILE_API PlatformFileTextResult platform_file_facts_v2_analysis_path_json(const char *backend_name,
   const char *path, const M68kAnalysisPolicy *analysis_policy);
 PLATFORM_FILE_API PlatformFileTextResult platform_file_facts_v2_analysis_raw_path_json(const char *platform_name,
-  const char *path, uint32_t entry_offset, const M68kAnalysisPolicy *analysis_policy);
+  const char *path, uint32_t entry_address, uint8_t has_runtime_load_address, uint32_t runtime_load_address,
+  const M68kAnalysisPolicy *analysis_policy);
 PLATFORM_FILE_API PlatformFileTextResult platform_file_type_catalog_json(const char *backend_name);
 PLATFORM_FILE_API PlatformFileTextResult platform_file_naming_catalog_json(const char *backend_name);
 PLATFORM_FILE_API PlatformFileTextResult platform_file_os_metadata_catalog_json(const char *backend_name);
@@ -47,11 +48,13 @@ PLATFORM_FILE_API int platform_file_inspect_path_json_alloc(const char *backend_
 PLATFORM_FILE_API int platform_file_facts_v2_analysis_path_json_alloc(const char *backend_name, const char *path,
   const char *metadata_path, const char *entry_offsets, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_analysis_raw_path_json_alloc(const char *platform_name,
-  const char *path, uint32_t entry_offset, const char *metadata_path, const char *entry_offsets, char **out_text);
+  const char *path, uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
+  const char *metadata_path, const char *entry_offsets, char **out_text);
 PLATFORM_FILE_API int platform_file_effective_policy_path_json_alloc(const char *backend_name, const char *path,
   const char *metadata_path, const char *entry_offsets, char **out_text);
 PLATFORM_FILE_API int platform_file_effective_policy_raw_path_json_alloc(const char *platform_name, const char *path,
-  uint32_t entry_offset, const char *metadata_path, const char *entry_offsets, char **out_text);
+  uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
+  const char *metadata_path, const char *entry_offsets, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_direct_rebuild_path_bytes_profile_alloc(const char *backend_name,
     const char *path, const char *metadata_path, const char *output_path, unsigned char **out_data,
     size_t *out_size, char **out_source_profile_json, char **out_direct_profile_json, char **out_error);
@@ -71,8 +74,9 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_path_create(const 
     const char *path, const char *metadata_path, const char *include_dir,
     PlatformFileListingArtifact **out_artifact, char **out_error);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_raw_path_create(const char *platform_name,
-    const char *path, uint32_t entry_offset, const char *metadata_path, const char *include_dir,
-    PlatformFileListingArtifact **out_artifact, char **out_error);
+    const char *path, uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
+    const char *metadata_path, const char *include_dir, PlatformFileListingArtifact **out_artifact,
+    char **out_error);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_window_json_alloc(
     PlatformFileListingArtifact *artifact, uint32_t start, uint32_t count, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_addr_window_json_alloc(
