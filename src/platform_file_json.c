@@ -2049,6 +2049,17 @@ static int source_analysis_base_layout_fields_overlap(const M68kBaseLayoutFieldI
   return left->offset < right_end && right->offset < left_end;
 }
 
+static int memory_layout_ranges_overlap(int64_t left_start, uint32_t left_size, uint32_t right_start,
+    uint32_t right_size) {
+  int64_t left_end;
+  uint64_t right_end;
+  if (left_size == 0U || right_size == 0U || left_start < 0) return 0;
+  left_end = left_start + (int64_t)left_size;
+  right_end = (uint64_t)right_start + (uint64_t)right_size;
+  if (right_end > (uint64_t)INT64_MAX) return 0;
+  return left_start < (int64_t)right_end && (int64_t)right_start < left_end;
+}
+
 static int source_analysis_base_layout_field_conflicts_with_other_layout(
     const M68kSourceAnalysisIR *source_analysis, const M68kBaseLayoutFieldIR *field) {
   size_t index;
@@ -2058,6 +2069,26 @@ static int source_analysis_base_layout_field_conflicts_with_other_layout(
     if (source_analysis_base_layout_field_same_layout(field, other)) continue;
     if (!source_analysis_base_layout_field_same_base(field, other)) continue;
     if (source_analysis_base_layout_fields_overlap(field, other)) return 1;
+  }
+  return 0;
+}
+
+static int source_analysis_app_slot_range_conflicts_with_non_app_layout(
+    const M68kSourceAnalysisIR *source_analysis, int64_t range_start, uint32_t range_size) {
+  size_t app_index;
+  if (source_analysis == NULL || range_size == 0U || range_start < 0) return 0;
+  for (app_index = 0U; app_index < source_analysis->base_layout_field_count; ++app_index) {
+    const M68kBaseLayoutFieldIR *app_field = &source_analysis->base_layout_fields[app_index];
+    const char *app_base = app_field->base_symbol != NULL ? app_field->base_symbol : "";
+    size_t other_index;
+    if (app_field->layout_kind != M68K_BASE_LAYOUT_KIND_APP || app_base[0] == '\0') continue;
+    for (other_index = 0U; other_index < source_analysis->base_layout_field_count; ++other_index) {
+      const M68kBaseLayoutFieldIR *other = &source_analysis->base_layout_fields[other_index];
+      const char *other_base = other->base_symbol != NULL ? other->base_symbol : "";
+      if (other->layout_kind == M68K_BASE_LAYOUT_KIND_APP) continue;
+      if (strcmp(app_base, other_base) != 0) continue;
+      if (memory_layout_ranges_overlap(range_start, range_size, other->offset, other->size)) return 1;
+    }
   }
   return 0;
 }
@@ -2396,6 +2427,18 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         access->owner_struct_name);
       const char *field_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->field_ref,
         access->field_name);
+      int64_t owner_range_start = (int64_t)access->displacement;
+      uint32_t owner_range_size = access->field_size;
+      uint8_t conflicted;
+      uint8_t conflict_state;
+      if (access->struct_size != 0U && access->field_offset >= 0 && access->displacement >= access->field_offset) {
+        owner_range_start = (int64_t)access->displacement - (int64_t)access->field_offset;
+        owner_range_size = access->struct_size;
+      }
+      conflicted = access->type_provenance_kind == M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT &&
+        source_analysis_app_slot_range_conflicts_with_non_app_layout(source_analysis, owner_range_start,
+          owner_range_size);
+      conflict_state = conflicted ? M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED : M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
       if (json_builder_appendf(builder,
           "{\"record_kind_id\":%u,\"record_kind\":\"platform_typed_access\",\"memory_kind\":\"platform_struct_field\","
@@ -2421,9 +2464,19 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         return -1;
       if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
         return -1;
+      if (json_builder_appendf(builder,
+          ",\"owner_range_start\":%lld,\"owner_range_size\":%u,\"owner_range_end\":%lld",
+          (long long)owner_range_start, (unsigned)owner_range_size,
+          (long long)(owner_range_start + (int64_t)owner_range_size)) != 0) {
+        return -1;
+      }
       if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
           (int64_t)access->displacement, access->field_size) != 0) return -1;
-      if (json_builder_append(builder, "}") != 0) return -1;
+      if (json_builder_appendf(builder,
+          ",\"conflicted\":%s,\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
+          conflicted ? "true" : "false", (unsigned)conflict_state,
+          analysis_conflict_state_name(conflict_state)) != 0)
+        return -1;
     }
     for (unresolved_typed_access_index = 0U;
         unresolved_typed_access_index < section->recovered_platform_unresolved_typed_access_count;
@@ -2436,6 +2489,13 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         &access->container_struct_ref, access->container_struct_name);
       const char *refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(
         &access->refined_struct_ref, access->refined_struct_name);
+      int64_t owner_range_start = (int64_t)access->displacement;
+      uint32_t owner_range_size = access->struct_size;
+      uint8_t conflicted = access->type_provenance_kind == M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT &&
+        source_analysis_app_slot_range_conflicts_with_non_app_layout(source_analysis, owner_range_start,
+          owner_range_size);
+      uint8_t conflict_state = conflicted ? M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED :
+        M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
       if (json_builder_appendf(builder,
           "{\"record_kind_id\":%u,\"record_kind\":\"platform_unresolved_typed_access\","
@@ -2463,9 +2523,19 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         return -1;
       if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
         return -1;
+      if (json_builder_appendf(builder,
+          ",\"owner_range_start\":%lld,\"owner_range_size\":%u,\"owner_range_end\":%lld",
+          (long long)owner_range_start, (unsigned)owner_range_size,
+          (long long)(owner_range_start + (int64_t)owner_range_size)) != 0) {
+        return -1;
+      }
       if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
           (int64_t)access->displacement, access->struct_size) != 0) return -1;
-      if (json_builder_append(builder, "}") != 0) return -1;
+      if (json_builder_appendf(builder,
+          ",\"conflicted\":%s,\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
+          conflicted ? "true" : "false", (unsigned)conflict_state,
+          analysis_conflict_state_name(conflict_state)) != 0)
+        return -1;
     }
     for (view_index = 0U; view_index < section->runtime_view_count; ++view_index) {
       const M68kRuntimeViewIR *view = &section->runtime_views[view_index];

@@ -9684,6 +9684,66 @@ static int test_source_analysis_memory_layout_marks_same_base_layout_overlap_con
   return 0;
 }
 
+static int test_source_analysis_platform_typed_access_conflicts_with_non_app_layout(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kBaseLayoutFieldIR layout_field;
+  char *analysis_json = NULL;
+  const char *typed_record;
+
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 0x20U;
+
+  memset(&layout_field, 0, sizeof(layout_field));
+  layout_field.layout_name = "app";
+  layout_field.base_symbol = "__amiga_app_base__";
+  layout_field.sizeof_symbol = "app_SIZEOF";
+  layout_field.symbol = "app_timeval";
+  layout_field.offset = 0x0100U;
+  layout_field.size = 8U;
+  layout_field.layout_kind = M68K_BASE_LAYOUT_KIND_APP;
+  layout_field.source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS;
+  layout_field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_base_layout_field(&source_analysis, &layout_field));
+
+  memset(&layout_field, 0, sizeof(layout_field));
+  layout_field.layout_name = "debug";
+  layout_field.base_symbol = "__amiga_app_base__";
+  layout_field.sizeof_symbol = "debug_SIZEOF";
+  layout_field.symbol = "debug_overlay";
+  layout_field.offset = 0x0104U;
+  layout_field.size = 2U;
+  layout_field.layout_kind = M68K_BASE_LAYOUT_KIND_NAMED;
+  layout_field.source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION;
+  layout_field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_base_layout_field(&source_analysis, &layout_field));
+
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_typed_access(
+    &section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x10U, 0U, 4U, 0x0106, 6, 8U, 2U,
+    "TIMEVAL", "TIMEVAL", "TV_MICRO", "TV_MICRO+2", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT,
+    0U, 0x0100U));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  typed_record = strstr(analysis_json, "\"record_kind\":\"platform_typed_access\"");
+  M68K_C_ASSERT(typed_record != NULL);
+  M68K_C_ASSERT(strstr(typed_record, "\"owner_range_start\":256,\"owner_range_size\":8,"
+    "\"owner_range_end\":264") != NULL);
+  M68K_C_ASSERT(strstr(typed_record,
+    "\"range_space_kind\":1,\"range_space\":\"base_relative\",\"range_start\":262,"
+    "\"range_size\":2,\"range_end\":264") != NULL);
+  M68K_C_ASSERT(strstr(typed_record, "\"conflicted\":true,\"conflict_state_id\":3,"
+    "\"conflict_state\":\"conflicted\"") != NULL);
+
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_does_not_infer_app_slot_from_unknown_a6_custom_offset(void) {
   M68kObject object;
   M68kSection section;
@@ -15772,6 +15832,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias},
     {"source_analysis_memory_layout_marks_same_base_layout_overlap_conflicted",
       test_source_analysis_memory_layout_marks_same_base_layout_overlap_conflicted},
+    {"source_analysis_platform_typed_access_conflicts_with_non_app_layout",
+      test_source_analysis_platform_typed_access_conflicts_with_non_app_layout},
     {"facts_v2_render_asm_source_does_not_infer_app_slot_from_unknown_a6_custom_offset",
       test_facts_v2_render_asm_source_does_not_infer_app_slot_from_unknown_a6_custom_offset},
     {"facts_v2_render_asm_source_uses_observed_app_slot_widths",

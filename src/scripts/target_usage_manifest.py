@@ -1938,6 +1938,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         for key in (
             "record_kind_id", "source_size", "runtime_address", "runtime_size", "target_offset", "sink_address",
             "field_offset", "field_size", "address", "access_width", "owner_offset",
+            "owner_range_start", "owner_range_size", "owner_range_end",
             "range_space_kind", "range_start", "range_size", "range_end", "effect_kind",
             "target_section_index", "displacement", "field_disp", "field_count", "layout_kind",
             "type_provenance_kind_id",
@@ -4016,6 +4017,18 @@ def _analysis_xrefs(
         sink_address = _int_value(record.get("sink_address"))
         range_space_kind = _int_value(record.get("range_space_kind"))
         range_size = _int_value(record.get("range_size"))
+        owner_range_start = _int_value(record.get("owner_range_start"))
+        owner_range_size = _int_value(record.get("owner_range_size"))
+        owner_range_end = _int_value(record.get("owner_range_end"))
+        owner_range_xref = (
+            {
+                "owner_range_start": owner_range_start,
+                "owner_range_size": owner_range_size,
+                "owner_range_end": owner_range_end,
+            }
+            if owner_range_start is not None and owner_range_size is not None and owner_range_end is not None
+            else {}
+        )
         layout_kind = _int_value(record.get("layout_kind"))
         layout_kind_name = BASE_LAYOUT_KIND_NAMES.get(layout_kind) if layout_kind is not None else None
         root_struct = _string_value(record.get("root_struct_name")) or _string_value(record.get("owner_struct_name"))
@@ -4027,53 +4040,59 @@ def _analysis_xrefs(
         ):
             xrefs.append(_xref(row, feature, "memory_layout", section=section_index, offset=source_offset,
                 row_index=row_index, stable_key=stable_key, symbol=memory_kind, value=record_value,
-                text=row_text or memory_kind))
+                text=row_text or memory_kind, **owner_range_xref))
         if sink_address is not None:
             xrefs.append(_xref(row, "memory-layout:sink_address", "memory_layout", section=section_index,
                 offset=source_offset, row_index=row_index, stable_key=stable_key, symbol=memory_kind,
-                value=sink_address, text=row_text or memory_kind))
+                value=sink_address, text=row_text or memory_kind, **owner_range_xref))
         if range_space_kind is not None:
             xrefs.append(_xref(row, "memory-layout:range", "memory_layout", section=section_index,
                 offset=source_offset, row_index=row_index, stable_key=stable_key, symbol=memory_kind,
-                value=record_value, text=row_text or memory_kind))
+                value=record_value, text=row_text or memory_kind, **owner_range_xref))
             xrefs.append(_xref(row, f"memory-layout:range_space:{range_space_kind}", "memory_layout",
                 section=section_index, offset=source_offset, row_index=row_index, stable_key=stable_key,
-                symbol=memory_kind, value=record_value, text=row_text or memory_kind))
+                symbol=memory_kind, value=record_value, text=row_text or memory_kind, **owner_range_xref))
         if range_size is not None:
             xrefs.append(_xref(row, f"memory-layout:range_size:{range_size}", "memory_layout",
                 section=section_index, offset=source_offset, row_index=row_index, stable_key=stable_key,
-                symbol=memory_kind, value=range_size, text=row_text or memory_kind))
+                symbol=memory_kind, value=range_size, text=row_text or memory_kind, **owner_range_xref))
         if layout_kind_name:
             xrefs.append(_xref(row, f"memory-layout:layout_kind:{_safe_part(layout_kind_name)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
-                stable_key=stable_key, symbol=layout_kind_name, value=record_value, text=row_text or memory_kind))
+                stable_key=stable_key, symbol=layout_kind_name, value=record_value, text=row_text or memory_kind,
+                **owner_range_xref))
         if root_struct:
             xrefs.append(_xref(row, f"memory-layout:platform_struct:{_safe_part(root_struct)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
-                stable_key=stable_key, symbol=root_struct, value=record_value, text=row_text or memory_kind))
+                stable_key=stable_key, symbol=root_struct, value=record_value, text=row_text or memory_kind,
+                **owner_range_xref))
         if field_expr:
             xrefs.append(_xref(row, f"memory-layout:platform_field:{_safe_part(field_expr)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
-                stable_key=stable_key, symbol=field_expr, value=record_value, text=row_text or memory_kind))
+                stable_key=stable_key, symbol=field_expr, value=record_value, text=row_text or memory_kind,
+                **owner_range_xref))
         effect_kind = _int_value(record.get("effect_kind"))
         effect_kind_name = PLATFORM_EFFECT_NAMES.get(effect_kind) if effect_kind is not None else None
         if effect_kind_name:
             xrefs.append(_xref(row, "memory-layout:storage_effect",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
-                stable_key=stable_key, symbol=effect_kind_name, value=record_value, text=row_text or memory_kind))
+                stable_key=stable_key, symbol=effect_kind_name, value=record_value, text=row_text or memory_kind,
+                **owner_range_xref))
             xrefs.append(_xref(row, f"memory-layout:storage_effect:{_safe_part(effect_kind_name)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
-                stable_key=stable_key, symbol=effect_kind_name, value=record_value, text=row_text or memory_kind))
+                stable_key=stable_key, symbol=effect_kind_name, value=record_value, text=row_text or memory_kind,
+                **owner_range_xref))
         conflict_state = _conflict_state_name(record)
         conflict_state_id = _conflict_state_id(record)
         if conflict_state_id is not None and conflict_state_id != CONFLICT_STATE_CLEAN:
             xrefs.append(_xref(row, f"memory-layout:conflict_state:{_safe_part(conflict_state)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
-                stable_key=stable_key, symbol=memory_kind, value=record_value, text=row_text or conflict_state))
+                stable_key=stable_key, symbol=memory_kind, value=record_value, text=row_text or conflict_state,
+                **owner_range_xref))
         if _bool_value(record.get("conflicted")):
             xrefs.append(_xref(row, "memory-layout:conflict", "memory_layout", section=section_index,
                 offset=source_offset, row_index=row_index, stable_key=stable_key, symbol=memory_kind,
-                value=record_value, text=row_text or conflict_state))
+                value=record_value, text=row_text or conflict_state, **owner_range_xref))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):
@@ -4773,6 +4792,9 @@ def _xref(
     type_provenance_kind: str | None = None,
     type_provenance_section: object = None,
     type_provenance_offset: object = None,
+    owner_range_start: object = None,
+    owner_range_size: object = None,
+    owner_range_end: object = None,
 ) -> dict[str, object]:
     target_id = str(target_row.get("id"))
     payload: dict[str, object] = {
@@ -4817,6 +4839,12 @@ def _xref(
         payload["type_provenance_section"] = type_provenance_section
     if isinstance(type_provenance_offset, int):
         payload["type_provenance_offset"] = type_provenance_offset
+    if isinstance(owner_range_start, int):
+        payload["owner_range_start"] = owner_range_start
+    if isinstance(owner_range_size, int):
+        payload["owner_range_size"] = owner_range_size
+    if isinstance(owner_range_end, int):
+        payload["owner_range_end"] = owner_range_end
     if source_stable_key is not None:
         payload["source_stable_key"] = source_stable_key
     payload["id"] = _stable_xref_id(payload)
@@ -4846,6 +4874,8 @@ def _stable_xref_id(payload: dict[str, object]) -> str:
         keys = (*keys, "classification_id")
     if payload.get("type_provenance_kind_id") is not None:
         keys = (*keys, "type_provenance_kind_id", "type_provenance_section", "type_provenance_offset")
+    if payload.get("owner_range_start") is not None:
+        keys = (*keys, "owner_range_start", "owner_range_size", "owner_range_end")
     raw = json.dumps({key: payload.get(key) for key in keys}, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]
 
