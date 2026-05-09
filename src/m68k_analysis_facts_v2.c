@@ -4524,6 +4524,13 @@ static void recovered_indirect_site_apply_direct_stub_table_bounds(M68kDecodeIR 
   }
   recovered_indirect_site_set_table_base_status(site, table_offset,
     M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE);
+  if (table_offset < site_candidate->offset ||
+      table_offset - site_candidate->offset < site_candidate->byte_count) {
+    site->has_table_base = 0U;
+    site->table_offset = 0U;
+    site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE;
+    return;
+  }
   cursor = table_offset;
   while (cursor < section->size && entry_count < scan_limit) {
     const M68kDecodeCandidate *candidate = NULL;

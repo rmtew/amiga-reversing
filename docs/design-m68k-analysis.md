@@ -715,6 +715,13 @@ table-bound status. Plain unresolved `jsr (aN)` or `jmp (aN)` stays an indirect
 site until value-flow proves table evidence. This keeps library vectors, object
 method calls, and other dynamic calls out of lookup-table work queues.
 
+A PC-indexed or indexed control operand can point at bytes inside the consuming
+instruction, such as its extension word. That is still useful indirect-control
+evidence, but it is not a table base. Table base/bounds facts must refer to
+bytes outside the instruction that consumes them. Otherwise the UI presents the
+instruction's own operand encoding as an editable lookup table, and the rendered
+source implies a user-visible table that never existed.
+
 Rejected candidate bounds are still useful when analysis can prove the table
 base and a bounded candidate span, but cannot accept the table yet:
 

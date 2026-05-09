@@ -802,6 +802,18 @@ from table-shaped work items:
   `info.library`, `printer.device`, `Preferences`, and other library/vector
   style call sites that were not proven lookup tables.
 
+Table-base gate evidence after rejecting bases inside the consuming instruction:
+
+- Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_table_base_gate.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_table_base_gate.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_table_base_gate.jsonl --variants-output src\build\tmp_target_variant_index_after_table_base_gate.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_table_base_gate.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_table_base_gate.jsonl --workers 8`
+- Scope: 493 entries, 515988 xrefs, 476716 snippet rows, 322 type-flow rows.
+- `analysis:indirect_site` stayed 4936 -> 4936 and
+  `table:candidate_unresolved` stayed 32 -> 32, so indexed-control candidates
+  remain visible.
+- `table:candidate_unresolved:table_base` dropped 8 -> 0. The removed bases
+  were the control instruction's own extension word, not real external table
+  starts, in Atari Devpac `GEN/MON/AMON` variants and project GenAm/MonAm
+  targets.
+
 Actionable unresolved orphan missing-inbound corpus evidence after gating
 suppressed signals out of work-item tags:
 
