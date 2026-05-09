@@ -5937,6 +5937,10 @@ static int scan_indexed_backward_inline_tail_entries(M68kDecodeIR *decode, uint8
 static int scan_indexed_forward_inline_tail_entries(M68kDecodeIR *decode, uint8_t max_cpu, size_t section_index,
   const M68kDecodeSectionIR *section, const M68kDecodeCandidate *site_candidate, uint8_t **accepted_start,
   uint8_t **accepted_bytes, uint32_t *out_entries, uint32_t entry_limit, uint32_t *out_entry_count);
+static int scan_indexed_forward_branch_terminated_stub_entries(M68kDecodeIR *decode, uint8_t max_cpu,
+  size_t section_index, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *site_candidate,
+  uint8_t **accepted_start, uint8_t **accepted_bytes, uint32_t *out_entries, uint32_t entry_limit,
+  uint32_t *out_entry_count);
 
 static int enqueue_indexed_direct_control_stub_table_entries(M68kDecodeIR *decode, M68kFactIR *facts,
     M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
@@ -5989,6 +5993,11 @@ static int enqueue_indexed_direct_control_stub_table_entries(M68kDecodeIR *decod
     if (scan_result == 0) {
       scan_result = scan_indexed_forward_inline_tail_entries(decode, max_cpu, section_index, section,
         site_candidate, accepted_start, accepted_bytes, entries, scan_limit, &entry_count);
+      if (scan_result < 0) return -1;
+    }
+    if (scan_result == 0) {
+      scan_result = scan_indexed_forward_branch_terminated_stub_entries(decode, max_cpu, section_index,
+        section, site_candidate, accepted_start, accepted_bytes, entries, scan_limit, &entry_count);
       if (scan_result < 0) return -1;
     }
     if (scan_result == 0) {
@@ -6156,6 +6165,101 @@ static int scan_indexed_forward_inline_tail_entries(M68kDecodeIR *decode, uint8_
     cursor += candidate->byte_count;
   }
   return 0;
+}
+
+static int scan_forward_branch_terminated_stub_entry(M68kDecodeIR *decode, uint8_t max_cpu,
+    size_t section_index, const M68kDecodeSectionIR *section, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, uint32_t entry_start, uint32_t entry_limit, uint32_t *out_entry_end,
+    uint32_t *out_branch_relative_offset, uint32_t *out_target_offset) {
+  uint32_t cursor;
+  if (out_entry_end != NULL) *out_entry_end = 0U;
+  if (out_branch_relative_offset != NULL) *out_branch_relative_offset = 0U;
+  if (out_target_offset != NULL) *out_target_offset = 0U;
+  if (decode == NULL || section == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      out_entry_end == NULL || out_branch_relative_offset == NULL || out_target_offset == NULL ||
+      section_index >= decode->section_count || entry_start >= section->size || entry_limit == 0U) {
+    return 0;
+  }
+  cursor = entry_start;
+  while (cursor < section->size && cursor - entry_start <= entry_limit) {
+    const M68kDecodeCandidate *candidate = NULL;
+    uint8_t target_kind = 0U;
+    uint32_t target_offset = 0U;
+    if (accepted_offset_is_interior(section, accepted_start[section_index], accepted_bytes[section_index], cursor))
+      return 0;
+    if (m68k_decode_ir_ensure_candidate_at(decode, section_index, cursor, max_cpu, &candidate,
+        m68k_diag_sink(NULL)) != 0) {
+      return -1;
+    }
+    if (candidate == NULL || candidate->byte_count == 0U || cursor > UINT32_MAX - candidate->byte_count)
+      return 0;
+    if (accepted_range_has_code_byte_local(accepted_bytes[section_index], section->size, cursor,
+        candidate->byte_count)) {
+      return 0;
+    }
+    if (candidate_single_direct_nonfallthrough_control_target(section, candidate, &target_kind,
+        &target_offset)) {
+      if (target_kind != M68K_DECODE_TARGET_BRANCH || target_offset <= cursor + candidate->byte_count)
+        return 0;
+      *out_entry_end = cursor + candidate->byte_count;
+      *out_branch_relative_offset = cursor - entry_start;
+      *out_target_offset = target_offset;
+      return 1;
+    }
+    if (candidate_has_decoded_control_target(candidate) || !candidate_has_normal_fallthrough(candidate))
+      return 0;
+    cursor += candidate->byte_count;
+  }
+  return 0;
+}
+
+static int scan_indexed_forward_branch_terminated_stub_entries(M68kDecodeIR *decode, uint8_t max_cpu,
+    size_t section_index, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *site_candidate,
+    uint8_t **accepted_start, uint8_t **accepted_bytes, uint32_t *out_entries, uint32_t entry_limit,
+    uint32_t *out_entry_count) {
+  const uint32_t max_entry_size = 32U;
+  uint32_t table_offset = 0U;
+  uint32_t first_end = 0U;
+  uint32_t branch_relative_offset = 0U;
+  uint32_t common_target = 0U;
+  uint32_t stride;
+  uint32_t cursor;
+  if (out_entry_count != NULL) *out_entry_count = 0U;
+  if (decode == NULL || section == NULL || site_candidate == NULL || accepted_start == NULL ||
+      accepted_bytes == NULL || out_entries == NULL || out_entry_count == NULL || entry_limit == 0U ||
+      section_index >= decode->section_count || site_candidate->byte_count == 0U ||
+      site_candidate->offset > UINT32_MAX - site_candidate->byte_count ||
+      !candidate_indexed_control_table_base_offset(section, site_candidate, &table_offset)) {
+    return 0;
+  }
+  if (table_offset != site_candidate->offset + site_candidate->byte_count || table_offset >= section->size)
+    return 0;
+  if (scan_forward_branch_terminated_stub_entry(decode, max_cpu, section_index, section, accepted_start,
+      accepted_bytes, table_offset, max_entry_size, &first_end, &branch_relative_offset, &common_target) < 1) {
+    return 0;
+  }
+  if (first_end <= table_offset || first_end > common_target) return 0;
+  stride = first_end - table_offset;
+  if (stride == 0U || stride > max_entry_size) return 0;
+  cursor = table_offset;
+  *out_entry_count = 0U;
+  while (cursor < common_target && *out_entry_count < entry_limit) {
+    uint32_t entry_end = 0U;
+    uint32_t entry_branch_relative_offset = 0U;
+    uint32_t target_offset = 0U;
+    int scan_result = scan_forward_branch_terminated_stub_entry(decode, max_cpu, section_index, section,
+      accepted_start, accepted_bytes, cursor, max_entry_size, &entry_end, &entry_branch_relative_offset,
+      &target_offset);
+    if (scan_result < 0) return -1;
+    if (scan_result == 0 || entry_end != cursor + stride ||
+        entry_branch_relative_offset != branch_relative_offset || target_offset != common_target) {
+      break;
+    }
+    out_entries[(*out_entry_count)++] = cursor;
+    if (cursor > UINT32_MAX - stride) break;
+    cursor += stride;
+  }
+  return *out_entry_count >= 2U;
 }
 
 static int replay_runtime_sink_provenance_fallthrough(const M68kObject *object, M68kDecodeIR *decode,
