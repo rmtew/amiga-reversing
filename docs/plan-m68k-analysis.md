@@ -487,8 +487,9 @@ undocumented renderer heuristics.
 - Runtime-copy facts now record compact relationships when suppression is caused
   by a larger range, contained range, or runtime-copy overlay. Remaining work is
   target-level wrapper/helper/final-image grouping across imported disk targets.
-- Existing alias emission should be backed by explicit alias facts rather than
-  produced as a side effect of sorted slot overlap.
+- Existing alias emission is backed by explicit pre-render layout alias facts:
+  sorted slot overlap is classified before emission, exported through
+  `base_layout_field` records, and covered by the RSSET alias C tests.
 - Lookup-table rendering still needs a single table fact model instead of
   scattered case-specific render behavior for unresolved/rejected candidates.
 - Orphaned code signals have a first-class fact model for unresolved
