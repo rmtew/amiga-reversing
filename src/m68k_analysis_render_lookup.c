@@ -7525,6 +7525,19 @@ static uint32_t scan_indexed_word_dispatch_table_span(const M68kRenderLookup *lo
   return 0U;
 }
 
+static uint32_t skip_leading_zero_word_dispatch_entries(const M68kDecodeIR *decode,
+    size_t section_index, uint32_t table_offset, uint32_t base_offset) {
+  const M68kDecodeSectionIR *section;
+  if (decode == NULL || section_index >= decode->section_count || table_offset >= base_offset) return table_offset;
+  section = &decode->sections[section_index];
+  if (section->data == NULL) return table_offset;
+  while (table_offset < base_offset && table_offset + 2U <= section->size &&
+      m68k_read_u16be(section->data + table_offset) == 0U) {
+    table_offset += 2U;
+  }
+  return table_offset;
+}
+
 static uint32_t scan_keyed_long_relative_dispatch_table_span(const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes,
     size_t table_section_index, uint32_t table_offset, size_t base_section_index, uint32_t base_offset) {
@@ -7958,11 +7971,31 @@ static int render_lookup_infer_indexed_word_dispatch_tables(M68kRenderLookup *lo
         next_dispatch = adds_dispatch ? candidate_later_is_indirect_control_through_addr_reg(section,
           accepted_start[section_index], candidate, dest_reg) : 0;
         if (loads_dispatch && next_indexed_dispatch) {
+          uint32_t dispatch_table_offset = skip_leading_zero_word_dispatch_entries(decode, load_table_section,
+            load_table_offset, target_base_offset);
+          if (dispatch_table_offset < target_base_offset &&
+              !accepted_range_has_code_byte(accepted_bytes[load_table_section],
+                decode->sections[load_table_section].size, dispatch_table_offset,
+                target_base_offset - dispatch_table_offset)) {
+            uint32_t leading_size = target_base_offset - dispatch_table_offset;
+            if (render_lookup_add_auto_structured_data_item(lookup, load_table_section, dispatch_table_offset,
+                leading_size, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE,
+                M68K_ANALYSIS_STRUCTURED_DATA_WORDS) != 0) {
+              return -1;
+            }
+            render_lookup_set_auto_structured_data_item_consumer(lookup, load_table_section, dispatch_table_offset,
+              section_index, consumer_offset);
+            render_lookup_set_auto_structured_data_item_target(lookup, load_table_section, dispatch_table_offset,
+              load_table_section, target_base_offset);
+            render_lookup_set_auto_structured_data_item_source_pattern(lookup, load_table_section,
+              dispatch_table_offset, M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH);
+          }
           table_size = scan_indexed_word_dispatch_table_span(lookup, decode, accepted_start, accepted_bytes,
             load_table_section, target_base_offset, load_table_section, target_base_offset);
           if (table_size != 0U &&
-              render_lookup_add_auto_structured_data_item(lookup, load_table_section, target_base_offset, table_size,
-                M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE, M68K_ANALYSIS_STRUCTURED_DATA_WORDS) != 0) {
+              render_lookup_add_auto_structured_data_item(lookup, load_table_section, target_base_offset,
+                table_size, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE,
+                M68K_ANALYSIS_STRUCTURED_DATA_WORDS) != 0) {
             return -1;
           }
           if (table_size != 0U) {
@@ -7970,8 +8003,8 @@ static int render_lookup_infer_indexed_word_dispatch_tables(M68kRenderLookup *lo
               section_index, consumer_offset);
             render_lookup_set_auto_structured_data_item_target(lookup, load_table_section, target_base_offset,
               load_table_section, target_base_offset);
-            render_lookup_set_auto_structured_data_item_source_pattern(lookup, load_table_section, target_base_offset,
-              M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH);
+            render_lookup_set_auto_structured_data_item_source_pattern(lookup, load_table_section,
+              target_base_offset, M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH);
           }
         }
         if (adds_dispatch && next_dispatch) {

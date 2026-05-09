@@ -2441,6 +2441,7 @@ static uint32_t scan_word_relative_control_target_table(const M68kDecodeSectionI
     int64_t target64 = (int64_t)(uint64_t)base_address + (int64_t)displacement;
     uint32_t target_address;
     uint32_t target_offset = 0U;
+    if (accepted_range_has_code_byte_local(accepted_bytes, section->size, cursor, 2U)) break;
     if (saw_far_displacement && target_count >= 2U && cursor != table_offset && displacement == 0 &&
         cursor + 4U <= section->size && m68k_read_u16be(section->data + cursor + 2U) == 0U) {
       break;
@@ -4081,6 +4082,7 @@ static int scan_biased_word_relative_control_targets_for_indexed_operand(const M
     M68kFactsV2TraceValue *out_targets) {
   uint32_t target_base_offset = 0U;
   uint32_t target_base_address = 0U;
+  uint32_t table_offset;
   uint32_t targets[M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT];
   uint32_t target_count;
   if (out_targets != NULL) trace_value_set_unknown(out_targets);
@@ -4096,8 +4098,17 @@ static int scan_biased_word_relative_control_targets_for_indexed_operand(const M
   target_base_address = target_base_offset;
   (void)runtime_address_space_source_to_runtime_near(runtime_addresses, section->section_index,
     target_base_offset, 0U, 0U, &target_base_address);
+  table_offset = table_value->value;
+  while (table_offset < target_base_offset && table_offset + 2U <= section->size &&
+      m68k_read_u16be(section->data + table_offset) == 0U) {
+    table_offset += 2U;
+  }
   target_count = scan_word_relative_control_target_table(section, runtime_addresses, accepted_start,
-    accepted_bytes, target_base_offset, target_base_address, targets, M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
+    accepted_bytes, table_offset, target_base_address, targets, M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
+  if (target_count == 0U && table_offset < target_base_offset) {
+    target_count = scan_word_relative_control_target_table(section, runtime_addresses, accepted_start,
+      accepted_bytes, target_base_offset, target_base_address, targets, M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
+  }
   if (target_count == 0U) return 0;
   trace_value_set_target_set(out_targets, section->section_index, targets, target_count);
   return 1;

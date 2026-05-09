@@ -4924,6 +4924,73 @@ static int test_facts_v2_biased_pc_indexed_word_load_promotes_relative_jump_targ
   return 0;
 }
 
+static int test_facts_v2_biased_pc_indexed_word_load_keeps_leading_table_entry(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint32_t saw_targets = 0U;
+  size_t code_start_index;
+  uint8_t bytes[60] = {
+    0xd0u, 0x40u,
+    0x30u, 0x3bu, 0x00u, 0x06u,
+    0x4eu, 0xfbu, 0x00u, 0x04u,
+    0x00u, 0x0au, 0x00u, 0x22u, 0x00u, 0x10u, 0x00u, 0x2eu,
+    0x00u, 0x28u, 0x00u, 0x22u,
+    0x4eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "loc_0_0000000A:\n\tdc.w loc_0_00000016-loc_0_0000000C\t; lookup_table\n"
+    "loc_0_0000000C:\n\tdc.w loc_0_0000002E-loc_0_0000000C,"
+    "loc_0_0000001C-loc_0_0000000C,loc_0_0000003A-loc_0_0000000C,"
+    "loc_0_00000034-loc_0_0000000C\t; lookup_table\n"
+    "\tdc.w loc_0_0000002E-loc_0_0000000C\t; lookup_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w $000A\t; lookup_table\n") == NULL);
+  for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
+      ++code_start_index) {
+    const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
+    if (ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET && ref->source_offset == 0x06U) {
+      if (ref->offset == 0x16U) saw_targets |= 1U;
+      if (ref->offset == 0x1CU) saw_targets |= 2U;
+      if (ref->offset == 0x2EU) saw_targets |= 4U;
+      if (ref->offset == 0x34U) saw_targets |= 8U;
+      if (ref->offset == 0x3AU) saw_targets |= 16U;
+    }
+  }
+  M68K_C_ASSERT_U32(31U, saw_targets);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_direct_indexed_stub_table_promotes_entries(void) {
   M68kObject object;
   M68kSection section;
@@ -16268,6 +16335,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_pc_indexed_word_load_promotes_relative_jump_targets},
     {"facts_v2_biased_pc_indexed_word_load_promotes_relative_jump_targets",
       test_facts_v2_biased_pc_indexed_word_load_promotes_relative_jump_targets},
+    {"facts_v2_biased_pc_indexed_word_load_keeps_leading_table_entry",
+      test_facts_v2_biased_pc_indexed_word_load_keeps_leading_table_entry},
     {"facts_v2_direct_indexed_stub_table_promotes_entries",
       test_facts_v2_direct_indexed_stub_table_promotes_entries},
     {"facts_v2_indexed_backward_inline_tail_promotes_entries",

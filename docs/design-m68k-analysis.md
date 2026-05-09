@@ -560,6 +560,26 @@ fragile: if a user edits code between the table base and target, the rebuilt
 source can silently point at the wrong target. `case_1-jump_offsets` remains
 editable.
 
+The table storage start and the control operand base are not always the same
+address. Some indexed dispatches load the first word from just before the PC
+base used by the following `jmp/jsr`. When proven, render the leading entry
+relative to the real control base and keep the base label defined at its own
+offset:
+
+```asm
+    move.w  table_start(pc,d0.w),d0
+    jmp     table_base(pc,d0.w)
+
+table_start:
+    dc.w    case_0-table_base
+table_base:
+    dc.w    case_1-table_base,case_2-table_base
+```
+
+Do not scan table bytes that overlap accepted code. If leading candidate words
+before the control base overlap accepted code, ignore them and fall back to the
+proven table at the control base.
+
 Keyed relative dispatch is the same source-restoration problem with a wider
 entry. One observed shape loads a longword from `(aN)+`, swaps the words, then
 uses the new low word as a PC-relative control offset. The high word should
