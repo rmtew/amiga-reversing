@@ -6346,6 +6346,75 @@ static const M68kDecodeCandidate *render_orphan_decode_candidate_at_offset(const
   return decoded_candidate;
 }
 
+static int render_absolute_ref_access_kind(uint8_t access_kind) {
+  return access_kind == M68K_SIM_ACCESS_MEMORY_READ ||
+    access_kind == M68K_SIM_ACCESS_MEMORY_WRITE ||
+    access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS ||
+    access_kind == M68K_SIM_ACCESS_BRANCH_TARGET;
+}
+
+static uint32_t render_instruction_access_width(const M68kInstructionIR *instruction, uint8_t access_kind) {
+  if (instruction == NULL || access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS ||
+      access_kind == M68K_SIM_ACCESS_BRANCH_TARGET) {
+    return 0U;
+  }
+  if (instruction->size_suffix == 'b') return 1U;
+  if (instruction->size_suffix == 'w') return 2U;
+  if (instruction->size_suffix == 'l') return 4U;
+  return 0U;
+}
+
+static int render_analysis_append_orphan_absolute_memory_refs_for_signal(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kOrphanCodeSignalIR *signal,
+    M68kSectionAnalysisIR *section_analysis) {
+  uint32_t cursor;
+  if (section == NULL || signal == NULL || section_analysis == NULL || signal->size == 0U ||
+      signal->offset > section->size || signal->size > section->size - signal->offset) {
+    return -1;
+  }
+  cursor = signal->offset;
+  while (cursor < signal->offset + signal->size) {
+    M68kDecodeCandidate decoded_candidate;
+    const M68kDecodeCandidate *candidate;
+    M68kInstructionIR instruction;
+    const M68kSimFormMetadata *metadata;
+    size_t operand_index;
+    candidate = render_orphan_decode_candidate_at_offset(lookup, section, cursor, &decoded_candidate);
+    if (candidate == NULL || candidate->byte_count == 0U ||
+        candidate->byte_count > signal->offset + signal->size - cursor) {
+      return -1;
+    }
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return -1;
+    metadata = m68k_sim_metadata_for_instruction(&instruction);
+    if (metadata == NULL) return -1;
+    for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
+         operand_index < instruction.operand_count; ++operand_index) {
+      uint32_t address = 0U;
+      uint8_t access_kind = metadata->operand_access_kinds[operand_index];
+      M68kAbsoluteMemoryRefIR ref;
+      if (!render_absolute_ref_access_kind(access_kind)) continue;
+      if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index],
+          &candidate->operands[operand_index], &address)) {
+        continue;
+      }
+      memset(&ref, 0, sizeof(ref));
+      ref.offset = candidate->offset;
+      ref.operand_index = (uint32_t)operand_index;
+      ref.source_size = candidate->byte_count;
+      ref.access_width = render_instruction_access_width(&instruction, access_kind);
+      ref.address = address;
+      ref.owner_offset = address;
+      ref.access_kind = access_kind;
+      ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
+      ref.confidence = signal->confidence;
+      ref.conflict_state = M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED;
+      if (m68k_ir_section_analysis_append_absolute_memory_ref(section_analysis, &ref) != 0) return -1;
+    }
+    cursor += candidate->byte_count;
+  }
+  return 0;
+}
+
 static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, M68kOrphanCodeSignalIR *signal) {
   const M68kAnalysisStructuredDataItem *item = NULL;
@@ -6495,6 +6564,10 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
         ? "decoded terminal island suppressed by accepted structured data"
         : "decoded instruction island ends in generated terminal flow";
       if (m68k_ir_section_analysis_append_orphan_code_signal(section_analysis, &signal) != 0) return -1;
+      if (render_analysis_append_orphan_absolute_memory_refs_for_signal(lookup, section, &signal,
+          section_analysis) != 0) {
+        return -1;
+      }
       offset = start + signal.size;
       continue;
     }

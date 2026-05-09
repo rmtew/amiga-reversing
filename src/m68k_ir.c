@@ -118,6 +118,17 @@ const char *m68k_recovered_indirect_source_pattern_name(uint8_t source_pattern_i
   }
 }
 
+int m68k_asm_operand_absolute_value(uint8_t kind, const M68kAsmOperandValue *operand, uint32_t *out_value) {
+  if (operand == NULL || out_value == NULL) return 0;
+  if (kind == M68K_ASM_OPERAND_ABSL ||
+      (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 7U &&
+        (operand->ea_reg == 0U || operand->ea_reg == 1U))) {
+    *out_value = operand->value;
+    return 1;
+  }
+  return 0;
+}
+
 const char *m68k_analysis_table_kind_name(uint8_t table_kind_id) {
   switch (table_kind_id) {
     case M68K_ANALYSIS_TABLE_KIND_SCALAR:
@@ -1172,7 +1183,8 @@ int m68k_ir_section_analysis_append_absolute_memory_ref(M68kSectionAnalysisIR *s
         existing->operand_index == absolute_memory_ref->operand_index &&
         existing->address == absolute_memory_ref->address &&
         existing->access_kind == absolute_memory_ref->access_kind &&
-        existing->owner_kind == absolute_memory_ref->owner_kind) {
+        existing->owner_kind == absolute_memory_ref->owner_kind &&
+        existing->conflict_state == absolute_memory_ref->conflict_state) {
       return 0;
     }
   }

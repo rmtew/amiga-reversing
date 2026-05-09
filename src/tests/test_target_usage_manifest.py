@@ -278,6 +278,31 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "conflict_state": "code_overlap",
                         },
                         {
+                            "record_kind_id": 8,
+                            "record_kind": "absolute_memory_ref",
+                            "memory_kind": "unknown",
+                            "section_index": 0,
+                            "source_offset": 0x84,
+                            "source_size": 6,
+                            "operand_index": 0,
+                            "access": "compute_address",
+                            "access_width": 0,
+                            "address": 0x70000,
+                            "owner_kind_id": 0,
+                            "owner_kind": "unknown",
+                            "owner_symbol": None,
+                            "owner_base_symbol": None,
+                            "owner_offset": 0x70000,
+                            "range_space_kind": 3,
+                            "range_start": 0x70000,
+                            "range_size": 0,
+                            "range_end": 0x70000,
+                            "confidence": 70,
+                            "conflicted": False,
+                            "conflict_state_id": 2,
+                            "conflict_state": "unresolved",
+                        },
+                        {
                             "record_kind_id": 4,
                             "record_kind": "platform_typed_access",
                             "memory_kind": "platform_struct_field",
@@ -787,12 +812,12 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["table:consumer"], 1)
         self.assertEqual(counts["table:entry_size:2"], 1)
         self.assertNotIn("table:conflict_state:clean", counts)
-        self.assertEqual(counts["memory-layout:any"], 8)
+        self.assertEqual(counts["memory-layout:any"], 9)
         self.assertEqual(counts["memory-layout:record:base_layout"], 1)
         self.assertEqual(counts["memory-layout:record:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_view"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_address_ref"], 1)
-        self.assertEqual(counts["memory-layout:record:absolute_memory_ref"], 1)
+        self.assertEqual(counts["memory-layout:record:absolute_memory_ref"], 2)
         self.assertEqual(counts["memory-layout:record:platform_typed_access"], 1)
         self.assertEqual(counts["memory-layout:record:platform_storage_effect"], 1)
         self.assertEqual(counts["memory-layout:record:platform_unresolved_typed_access"], 1)
@@ -802,6 +827,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout:kind:runtime_view_candidate"], 1)
         self.assertEqual(counts["memory-layout:kind:copper_list"], 1)
         self.assertEqual(counts["memory-layout:kind:hardware_register"], 1)
+        self.assertEqual(counts["memory-layout:kind:unknown"], 1)
         self.assertEqual(counts["memory-layout:kind:platform_struct_field"], 1)
         self.assertEqual(counts["memory-layout:kind:typed_global_slot"], 1)
         self.assertEqual(counts["memory-layout:kind:platform_struct_unresolved"], 1)
@@ -812,12 +838,13 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout:storage_effect"], 1)
         self.assertEqual(counts["memory-layout:storage_effect:write_typed_global_slot"], 1)
         self.assertEqual(counts["memory-layout:sink_address"], 1)
-        self.assertEqual(counts["memory-layout:range"], 8)
+        self.assertEqual(counts["memory-layout:range"], 9)
         self.assertEqual(counts["memory-layout:range_space:1"], 4)
         self.assertEqual(counts["memory-layout:range_space:2"], 2)
-        self.assertEqual(counts["memory-layout:range_space:3"], 1)
+        self.assertEqual(counts["memory-layout:range_space:3"], 2)
         self.assertEqual(counts["memory-layout:range_space:4"], 1)
         self.assertEqual(counts["memory-layout:range_size:4"], 3)
+        self.assertEqual(counts["memory-layout:range_size:0"], 1)
         self.assertEqual(counts["memory-layout:conflict"], 1)
         self.assertEqual(counts["memory-layout:conflict:code_overlap"], 1)
         self.assertEqual(counts["memory-layout-view:any"], 1)
@@ -827,8 +854,10 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout-view:range_space:4"], 1)
         self.assertEqual(counts["memory-layout-view:has_conflict"], 1)
         self.assertEqual(counts["memory-layout-view:conflict_state:code_overlap"], 1)
+        self.assertEqual(counts["memory-layout-view:conflict_state:unresolved"], 1)
         self.assertEqual(counts["memory-layout-view:absolute_refs"], 1)
         self.assertEqual(counts["memory-layout-view:absolute_owner:hardware_register"], 1)
+        self.assertEqual(counts["memory-layout-view:absolute_owner:unknown"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
         self.assertEqual(counts["hardware:custom"], 2)
         self.assertEqual(counts["hardware:custom/audio"], 1)
@@ -885,14 +914,16 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["memory-layout:kind:typed_global_slot"][0]["target_offset"], 0x100)
         self.assertEqual(examples["memory-layout:storage_effect"][0]["effect_kind_name"], "write_typed_global_slot")
         self.assertEqual(examples["memory-layout:platform_struct:Library"][0]["field_expr"], "LIB_VERSION")
-        self.assertEqual(examples["memory-layout-view:any"][0]["record_count"], 8)
-        self.assertEqual(examples["memory-layout-view:any"][0]["absolute_ref_count"], 1)
-        self.assertEqual(examples["memory-layout-view:any"][0]["conflict_count"], 1)
+        self.assertEqual(examples["memory-layout-view:any"][0]["record_count"], 9)
+        self.assertEqual(examples["memory-layout-view:any"][0]["absolute_ref_count"], 2)
+        self.assertEqual(examples["memory-layout-view:any"][0]["conflict_count"], 2)
         self.assertEqual(examples["memory-layout-view:any"][0]["range_spaces"]["1"], 4)
+        self.assertEqual(examples["memory-layout-view:any"][0]["range_spaces"]["3"], 2)
         self.assertEqual(
             examples["memory-layout-view:absolute_owner:hardware_register"][0]["owner_kind_id"],
             3,
         )
+        self.assertEqual(examples["memory-layout-view:absolute_owner:unknown"][0]["owner_kind_id"], 0)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
         self.assertEqual(examples["orphan-code:signal"][0]["required_cpu"], 0)
@@ -1319,6 +1350,31 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "conflict_state": "code_overlap",
                         },
                         {
+                            "record_kind_id": 8,
+                            "record_kind": "absolute_memory_ref",
+                            "memory_kind": "unknown",
+                            "section_index": 0,
+                            "source_offset": 0x84,
+                            "source_size": 6,
+                            "operand_index": 0,
+                            "access": "compute_address",
+                            "access_width": 0,
+                            "address": 0x70000,
+                            "owner_kind_id": 0,
+                            "owner_kind": "unknown",
+                            "owner_symbol": None,
+                            "owner_base_symbol": None,
+                            "owner_offset": 0x70000,
+                            "range_space_kind": 3,
+                            "range_start": 0x70000,
+                            "range_size": 0,
+                            "range_end": 0x70000,
+                            "confidence": 70,
+                            "conflicted": False,
+                            "conflict_state_id": 2,
+                            "conflict_state": "unresolved",
+                        },
+                        {
                             "record_kind_id": 4,
                             "record_kind": "platform_typed_access",
                             "memory_kind": "platform_struct_field",
@@ -1694,6 +1750,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("memory-layout:range_size:2", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("memory-layout:conflict", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("memory-layout:conflict:code_overlap", "memory_layout", 0x60, 5), by_feature)
+        self.assertIn(("memory-layout:record:absolute_memory_ref", "memory_layout", 0x84, 8), by_feature)
+        self.assertIn(("memory-layout:kind:unknown", "memory_layout", 0x84, 8), by_feature)
+        self.assertIn(("memory-layout:range_size:0", "memory_layout", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:signal", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:reason:terminal_decode", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:status:unresolved", "orphan_code_signal", 0x84, 8), by_feature)

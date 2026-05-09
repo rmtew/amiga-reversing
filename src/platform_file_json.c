@@ -2474,8 +2474,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_append(builder, ",\"owner_base_symbol\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, owner_base_symbol) != 0) return -1;
       {
-        uint8_t conflict_state = ref->conflicted ? M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP :
-          M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
+        uint8_t conflict_state = ref->conflict_state;
         if (json_builder_appendf(builder,
             ",\"owner_offset\":%u,\"confidence\":%u,\"conflicted\":%s,"
             "\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",

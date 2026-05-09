@@ -205,6 +205,13 @@ address does not overlap accepted code in the current source view.
 treat that as a free data region unless another source/runtime mapping proves
 the overlap is intentional.
 
+An absolute operand decoded only inside an orphan-code signal is not an accepted
+memory fact. It should still be exported in the same memory-layout view with
+`conflict_state_id = unresolved`, unknown ownership unless platform evidence
+proves more, and the orphan instruction as source provenance. This lets the UI
+surface "code-like bytes refer to absolute memory" without promoting the bytes
+to code or inventing labels.
+
 ## ORG and Runtime Views
 
 `ORG` changes the assembler's logical PC. It is useful only when it represents a

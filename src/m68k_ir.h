@@ -907,6 +907,8 @@ typedef struct M68kAbsoluteMemoryRefIR {
   uint8_t owner_kind;
   uint8_t confidence;
   uint8_t conflicted;
+  uint8_t conflict_state;
+  uint8_t reserved[3];
 } M68kAbsoluteMemoryRefIR;
 
 typedef struct M68kCodeStartRefIR {
@@ -1096,6 +1098,7 @@ const char *m68k_analysis_table_kind_name(uint8_t table_kind_id);
 const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id);
 uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);
 const char *m68k_recovered_indirect_source_pattern_name(uint8_t source_pattern_id);
+int m68k_asm_operand_absolute_value(uint8_t kind, const M68kAsmOperandValue *operand, uint32_t *out_value);
 void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStructuredDataItem *item,
   uint32_t semantic_role_flags);
 void m68k_analysis_findings_init(M68kAnalysisFindings *findings);

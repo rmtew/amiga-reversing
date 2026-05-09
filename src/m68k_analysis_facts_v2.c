@@ -1342,17 +1342,6 @@ static int operand_is_control_address_register_indirect(uint8_t kind, const M68k
   return operand_is_plain_address_register_indirect(kind, operand, out_reg);
 }
 
-static int operand_absolute_value(uint8_t kind, const M68kAsmOperandValue *operand, uint32_t *out_value) {
-  if (operand == NULL || out_value == NULL) return 0;
-  if (kind == M68K_ASM_OPERAND_ABSL ||
-      (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 7U &&
-        (operand->ea_reg == 0U || operand->ea_reg == 1U))) {
-    *out_value = operand->value;
-    return 1;
-  }
-  return 0;
-}
-
 static int operand_immediate_value(uint8_t kind, const M68kAsmOperandValue *operand, uint32_t *out_value) {
   if (operand == NULL || out_value == NULL) return 0;
   if (kind == M68K_ASM_OPERAND_IMM || operand->kind == M68K_ASM_OPERAND_IMM ||
@@ -1367,7 +1356,7 @@ static int candidate_operand_runtime_address_value(const M68kDecodeCandidate *ca
     uint8_t platform_kind, uint32_t *out_value) {
   uint32_t value = 0U;
   if (candidate == NULL || operand_index >= candidate->operand_count || out_value == NULL) return 0;
-  if (operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+  if (m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
       &value)) {
     *out_value = value;
     return 1;
@@ -1387,7 +1376,7 @@ static int candidate_operand_runtime_address_value(const M68kDecodeCandidate *ca
   if (operand_index == 0U && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
       candidate->size_suffix == 'l' && candidate->operand_count == 2U) {
     uint32_t dest_address = 0U;
-    if (operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &dest_address) &&
+    if (m68k_asm_operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &dest_address) &&
         (platform_facts_v2_is_callback_vector_slot(platform_kind, dest_address) ||
          platform_facts_v2_is_runtime_address_sink(platform_kind, dest_address))) {
       *out_value = value;
@@ -1404,7 +1393,7 @@ static int candidate_operand_feeds_runtime_address_sink(const M68kDecodeCandidat
   if (candidate == NULL || operand_index >= candidate->operand_count) return 0;
   if (operand_index == 0U && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
       candidate->size_suffix == 'l' && candidate->operand_count == 2U &&
-      operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &dest_address)) {
+      m68k_asm_operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &dest_address)) {
     return platform_facts_v2_is_runtime_address_sink(platform_kind, dest_address);
   }
   return 0;
@@ -1754,7 +1743,7 @@ static int trace_state_operand_runtime_address(const M68kFactsV2TraceState *stat
   if (out_address != NULL) *out_address = 0U;
   if (state == NULL || candidate == NULL || out_address == NULL || operand_index >= candidate->operand_count)
     return 0;
-  if (operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+  if (m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
       &absolute)) {
     *out_address = absolute;
     return 1;
@@ -1902,7 +1891,7 @@ static int trace_state_move_copy_source_is_tracked_value(const M68kDecodeCandida
       &value)) {
     return 1;
   }
-  return operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+  return m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
       &value) && trace_state_find_absolute_slot_const(state, value) != NULL;
 }
 
@@ -2066,7 +2055,7 @@ static int trace_state_record_runtime_sink_ref(const M68kRuntimeAddressSpace *ru
       candidate->operand_count != 2U) {
     return 0;
   }
-  if (!operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &sink_address) ||
+  if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &sink_address) ||
       !platform_facts_v2_is_runtime_address_sink(platform_kind, sink_address)) {
     return 0;
   }
@@ -2192,7 +2181,7 @@ static int trace_value_from_candidate_source(size_t section_index, const M68kDec
     *out_value = state->a[reg];
     return out_value->kind != M68K_FACTS_V2_TRACE_UNKNOWN;
   }
-  if (operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+  if (m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
       &value)) {
     slot = trace_state_find_absolute_slot_const(state, value);
     if (slot != NULL) {
@@ -2230,7 +2219,7 @@ static int trace_value_from_candidate_address_operand(size_t section_index, cons
     trace_value_set_source_offset(out_value, section_index, value);
     return 1;
   }
-  if (operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+  if (m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
       &value)) {
     trace_value_set_runtime_address(out_value, value);
     return 1;
@@ -2637,7 +2626,7 @@ static void trace_state_apply_known_effects(size_t section_index, const M68kDeco
     trace_value_set_runtime_address(&state->a[reg], value);
   } else if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA && candidate->size_suffix == 'l' &&
       candidate->operand_count == 2U &&
-      operand_absolute_value(candidate->operand_kinds[0], &candidate->operands[0], &value) &&
+      m68k_asm_operand_absolute_value(candidate->operand_kinds[0], &candidate->operands[0], &value) &&
       operand_is_address_register_direct(&candidate->operands[1], &reg)) {
     const M68kFactsV2AbsoluteSlot *slot = trace_state_find_absolute_slot_const(state, value);
     if (slot != NULL) state->a[reg] = slot->value;
@@ -2658,7 +2647,7 @@ static void trace_state_apply_known_effects(size_t section_index, const M68kDeco
       trace_value_advance(&state->a[source_reg], width);
       trace_value_advance(&state->a[dest_reg], width);
     }
-    if (operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &dest_address)) {
+    if (m68k_asm_operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &dest_address)) {
       M68kFactsV2TraceValue stored_value;
       if (width == 4U && trace_value_from_candidate_source(section_index, section, candidate, 0U, state,
           &stored_value)) {
@@ -3016,7 +3005,7 @@ static int candidate_absolute_control_address(const M68kDecodeCandidate *candida
       candidate->mnemonic_id != M68K_ASM_MNEMONIC_JSR) || candidate->operand_count != 1U ||
       out_address == NULL)
     return 0;
-  return operand_absolute_value(candidate->operand_kinds[0], &candidate->operands[0], out_address);
+  return m68k_asm_operand_absolute_value(candidate->operand_kinds[0], &candidate->operands[0], out_address);
 }
 
 static void runtime_address_space_destroy(M68kRuntimeAddressSpace *space) {
@@ -3199,7 +3188,7 @@ static int append_runtime_address_refs_for_accepted(const M68kDecodeIR *decode, 
             &target_offset)) {
           if (candidate_operand_feeds_runtime_address_sink(candidate, operand_index, platform_kind)) {
             uint32_t sink_address = 0U;
-            (void)operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &sink_address);
+            (void)m68k_asm_operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &sink_address);
             ref_result = append_external_runtime_address_ref_fact(facts, section_index, candidate->offset,
               operand_index, runtime_address, sink_address, (size_t)-1, 0U,
               M68K_FACT_CONFIDENCE_TOOL_INFERRED);
@@ -3214,7 +3203,7 @@ static int append_runtime_address_refs_for_accepted(const M68kDecodeIR *decode, 
         {
           uint32_t sink_address = 0U;
           if (candidate_operand_feeds_runtime_address_sink(candidate, operand_index, platform_kind)) {
-            (void)operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &sink_address);
+            (void)m68k_asm_operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &sink_address);
           }
           ref_result = append_runtime_address_ref_fact_with_sink(facts, section_index, candidate->offset,
             operand_index, target_offset, runtime_address, sink_address, M68K_FACT_CONFIDENCE_TOOL_INFERRED);
@@ -3341,7 +3330,7 @@ static int append_absolute_memory_refs_for_accepted(const M68kDecodeIR *decode, 
         uint8_t access_kind = metadata->operand_access_kinds[operand_index];
         M68kAbsoluteMemoryRefIR ref;
         if (!facts_v2_absolute_ref_access_kind(access_kind)) continue;
-        if (!operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+        if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
             &address)) {
           continue;
         }
@@ -3357,6 +3346,8 @@ static int append_absolute_memory_refs_for_accepted(const M68kDecodeIR *decode, 
           address, &ref);
         ref.conflicted = (uint8_t)facts_v2_access_overlaps_accepted_code(accepted_bytes[section_index],
           section->size, ref.owner_offset, ref.access_width, access_kind);
+        ref.conflict_state = ref.conflicted ? M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP :
+          M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
         if (m68k_ir_section_analysis_append_absolute_memory_ref(section_analysis, &ref) != 0) return -1;
       }
     }
@@ -3372,7 +3363,7 @@ static int candidate_lea_absolute_address(const M68kDecodeCandidate *candidate, 
   if (candidate == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_LEA ||
       candidate->operand_count != 2U)
     return 0;
-  if (!operand_absolute_value(candidate->operand_kinds[0], &candidate->operands[0], &address)) return 0;
+  if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[0], &candidate->operands[0], &address)) return 0;
   dest_operand = candidate->operands[1];
   dest_operand.kind = candidate->operand_kinds[1];
   if (!operand_is_address_register_direct(&dest_operand, &dest_reg)) return 0;
@@ -3395,7 +3386,7 @@ static int candidate_lea_relocated_address(const M68kFactsV2RelocationLookup *re
   if (relocation_lookup == NULL || facts == NULL || candidate == NULL || out_reg == NULL ||
       out_target_section == NULL || out_target_offset == NULL ||
       candidate->mnemonic_id != M68K_ASM_MNEMONIC_LEA || candidate->operand_count != 2U ||
-      !operand_absolute_value(candidate->operand_kinds[0], &candidate->operands[0], &ignored_address) ||
+      !m68k_asm_operand_absolute_value(candidate->operand_kinds[0], &candidate->operands[0], &ignored_address) ||
       candidate->byte_count > UINT32_MAX - candidate->offset) {
     return 0;
   }
@@ -3504,7 +3495,7 @@ static int candidate_stores_immediate_to_interrupt_vector(const M68kDecodeCandid
       candidate->size_suffix != 'l' || candidate->operand_count != 2U || out_target_address == NULL)
     return 0;
   if (!operand_immediate_value(candidate->operand_kinds[0], &candidate->operands[0], &target_address)) return 0;
-  if (!operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &vector_address)) return 0;
+  if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &vector_address)) return 0;
   if (!platform_facts_v2_is_callback_vector_slot(platform_kind, vector_address)) return 0;
   *out_target_address = target_address;
   return 1;
@@ -3528,7 +3519,7 @@ static int candidate_stores_trace_to_callback_vector(size_t section_index, const
   if (store_candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVE && store_candidate->size_suffix == 'l' &&
       store_candidate->operand_count == 2U) {
     uint32_t vector_address = 0U;
-    if (operand_absolute_value(store_candidate->operand_kinds[1], &store_candidate->operands[1],
+    if (m68k_asm_operand_absolute_value(store_candidate->operand_kinds[1], &store_candidate->operands[1],
         &vector_address)) {
       int is_vector = platform_facts_v2_is_callback_vector_slot(platform_kind, vector_address);
       int has_source = trace_value_from_candidate_source(section_index, section, store_candidate, 0U, trace_state,
