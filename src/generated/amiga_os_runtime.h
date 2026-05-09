@@ -14778,6 +14778,7 @@ typedef struct AmigaOsHardwareRegisterRangeInfo {
   uint32_t base_address;
   uint32_t offset;
   uint32_t size;
+  uint16_t symbol_id;
   const char *symbol_name;
   const char *include_path;
 } AmigaOsHardwareRegisterRangeInfo;

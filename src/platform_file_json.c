@@ -2396,10 +2396,10 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
           (unsigned)ref->access_width, (unsigned)ref->address) != 0) {
         return -1;
       }
-      if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_ABSOLUTE,
-          (int64_t)ref->address, ref->access_width) != 0) return -1;
       if (json_builder_append_json_string(builder, absolute_memory_owner_kind_name(ref->owner_kind)) != 0)
         return -1;
+      if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_ABSOLUTE,
+          (int64_t)ref->address, ref->access_width) != 0) return -1;
       if (json_builder_append(builder, ",\"owner_symbol\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, owner_symbol) != 0) return -1;
       if (json_builder_append(builder, ",\"owner_base_symbol\":") != 0) return -1;

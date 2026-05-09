@@ -1,4 +1,5 @@
 #include "platform_amiga_bootloader_analysis.h"
+#include "generated/amiga_os_runtime.h"
 #include "m68k_ir_codec.h"
 
 #include <string.h>
@@ -17,39 +18,29 @@ static void *bootloader_grow_array(AmigaDiskAnalysis *analysis, void *items, siz
     return grown;
 }
 
-typedef struct BootloaderHardwareSymbol {
-    uint32_t address;
-    const char *name;
-} BootloaderHardwareSymbol;
+static const AmigaOsHardwareRegisterInfo *bootloader_hardware_register_for_address(uint32_t address) {
+    const AmigaOsHardwareRegisterInfo *hardware_register = amiga_os_find_hardware_register_by_cpu_address(address);
+    const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+    if (hardware_register != NULL) return hardware_register;
+    hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(address);
+    if (hardware_range == NULL) return NULL;
+    return amiga_os_find_hardware_register_by_cpu_address(hardware_range->base_address + hardware_range->offset);
+}
 
-static const BootloaderHardwareSymbol g_bootloader_hardware_symbols[] = {
-    { AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_CUSTOM_BASE_ADDRESS + AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_DSKPT_OFFSET, "dskpt" },
-    { AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_CUSTOM_BASE_ADDRESS + AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_DSKPT_OFFSET + 2U, "dskpt" },
-    { AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_CUSTOM_BASE_ADDRESS + AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_DSKLEN_OFFSET, "dsklen" },
-    { AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_CUSTOM_BASE_ADDRESS + AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_DSKDAT_OFFSET, "dskdat" },
-    { AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_CUSTOM_BASE_ADDRESS + AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_DSKBYTR_OFFSET, "dskbytr" },
-    { AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_CUSTOM_BASE_ADDRESS + AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_DSKSYNC_OFFSET, "dsksync" },
-    { AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_CUSTOM_BASE_ADDRESS + AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_DMACON_OFFSET, "dmacon" },
-    { AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_CUSTOM_BASE_ADDRESS + AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_INTREQ_OFFSET, "intreq" },
-    { AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_CUSTOM_BASE_ADDRESS + AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_ADKCON_OFFSET, "adkcon" },
-    { AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_CIA_B_BASE_ADDRESS + AMIGA_DISK_FILE_CONSTRAINTS_AMIGA_CIAPRB_OFFSET, "ciaprb" },
-};
-
-static const char *bootloader_hardware_symbol_name(uint32_t address) {
-    size_t i;
-    for (i = 0; i < sizeof(g_bootloader_hardware_symbols) / sizeof(g_bootloader_hardware_symbols[0]); ++i) {
-        if (g_bootloader_hardware_symbols[i].address == address) return g_bootloader_hardware_symbols[i].name;
-    }
+static const char *bootloader_hardware_access_kind_name(uint8_t access_kind) {
+    if (access_kind == AMIGA_DISK_BOOTLOADER_HARDWARE_ACCESS_WRITE) return "write";
+    if (access_kind == AMIGA_DISK_BOOTLOADER_HARDWARE_ACCESS_READ) return "read";
     return NULL;
 }
 
 static int append_bootloader_hardware_access(AmigaDiskAnalysis *analysis, AmigaDiskBootloaderStage *stage,
-    uint32_t instruction_addr, const char *access, uint32_t width_bits, uint32_t address, uint8_t has_value,
+    uint32_t instruction_addr, uint8_t access_kind, uint32_t width_bits, uint32_t address, uint8_t has_value,
     uint32_t value) {
     AmigaDiskBootloaderHardwareAccess *grown;
     AmigaDiskBootloaderHardwareAccess *item;
-    const char *symbol = bootloader_hardware_symbol_name(address);
-    if (symbol == NULL) return 0;
+    const AmigaOsHardwareRegisterInfo *hardware_register = bootloader_hardware_register_for_address(address);
+    const char *access = bootloader_hardware_access_kind_name(access_kind);
+    if (hardware_register == NULL || hardware_register->symbol_name == NULL || access == NULL) return 0;
     grown = (AmigaDiskBootloaderHardwareAccess *)bootloader_grow_array(analysis, stage->hardware_accesses,
         stage->hardware_access_count, &stage->hardware_access_capacity, sizeof(*stage->hardware_accesses));
     if (grown == NULL) return -1;
@@ -57,10 +48,12 @@ static int append_bootloader_hardware_access(AmigaDiskAnalysis *analysis, AmigaD
     item = &stage->hardware_accesses[stage->hardware_access_count];
     memset(item, 0, sizeof(*item));
     item->instruction_addr = instruction_addr;
+    item->access_kind = access_kind;
     item->access = arena_strdup(analysis->arena, access);
     item->width_bits = width_bits;
     item->address = address;
-    item->symbol = arena_strdup(analysis->arena, symbol);
+    item->symbol_id = hardware_register->symbol_id;
+    item->symbol = arena_strdup(analysis->arena, hardware_register->symbol_name);
     item->has_value = has_value;
     item->value = value;
     if (item->access == NULL || item->symbol == NULL) return -1;
@@ -96,18 +89,18 @@ int amiga_disk_append_bootloader_read_setup(AmigaDiskAnalysis *analysis, AmigaDi
     setup->dma_byte_length = stage->byte_length;
     for (i = 0; i < stage->hardware_access_count; ++i) {
         const AmigaDiskBootloaderHardwareAccess *access = &stage->hardware_accesses[i];
-        if (!access->has_value || strcmp(access->access, "write") != 0) continue;
-        if (strcmp(access->symbol, "dmacon") == 0) {
+        if (!access->has_value || access->access_kind != AMIGA_DISK_BOOTLOADER_HARDWARE_ACCESS_WRITE) continue;
+        if (access->symbol_id == AMIGA_OS_SYMBOL_ID_DMACON) {
             if (append_bootloader_setup_value(analysis, &setup->dmacon_values, &setup->dmacon_value_count,
                     &setup->dmacon_value_capacity, access->value) != 0) return -1;
             setup->instruction_addr = access->instruction_addr;
-        } else if (strcmp(access->symbol, "adkcon") == 0) {
+        } else if (access->symbol_id == AMIGA_OS_SYMBOL_ID_ADKCON) {
             if (append_bootloader_setup_value(analysis, &setup->adkcon_values, &setup->adkcon_value_count,
                     &setup->adkcon_value_capacity, access->value) != 0) return -1;
-        } else if (strcmp(access->symbol, "dsksync") == 0) {
+        } else if (access->symbol_id == AMIGA_OS_SYMBOL_ID_DSKSYNC) {
             setup->has_sync_word = 1U;
             setup->sync_word = access->value;
-        } else if (strcmp(access->symbol, "dsklen") == 0) {
+        } else if (access->symbol_id == AMIGA_OS_SYMBOL_ID_DSKLEN) {
             setup->has_dsklen_value = 1U;
             setup->dsklen_value = access->value;
             setup->dsklen_dma_enabled =
@@ -118,10 +111,10 @@ int amiga_disk_append_bootloader_read_setup(AmigaDiskAnalysis *analysis, AmigaDi
             setup->dsklen_dma_byte_length =
                 (access->value & AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_DSKLEN_LENGTH_MASK) *
                 AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_DSKLEN_LENGTH_UNIT_BYTES;
-        } else if (strcmp(access->symbol, "dskpt") == 0) {
+        } else if (access->symbol_id == AMIGA_OS_SYMBOL_ID_DSKPT) {
             setup->has_buffer_addr = 1U;
             setup->buffer_addr = access->value;
-        } else if (strcmp(access->symbol, "ciaprb") == 0) {
+        } else if (access->symbol_id == AMIGA_OS_SYMBOL_ID_CIAPRB) {
             if ((access->value & AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_CIAPRB_DRIVE0_SELECT_MASK) == 0U) {
                 setup->has_drive = 1U;
                 setup->drive = 0U;
@@ -497,12 +490,12 @@ static int analyze_bootloader_instruction_accesses(AmigaDiskAnalysis *analysis, 
     for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
         const M68kOperandIR *operand = &instruction->operands[operand_index];
         uint32_t address;
-        const char *access = "read";
+        uint8_t access_kind = AMIGA_DISK_BOOTLOADER_HARDWARE_ACCESS_READ;
         uint8_t has_value = 0U;
         uint32_t value = 0U;
         if (!bootloader_operand_absolute_address(operand, address_regs, &address)) continue;
         if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE && operand_index + 1U == instruction->operand_count) {
-            access = "write";
+            access_kind = AMIGA_DISK_BOOTLOADER_HARDWARE_ACCESS_WRITE;
             if (instruction->operands[0].kind == M68K_ASM_OPERAND_IMM) {
                 has_value = 1U;
                 value = instruction->operands[0].value.value;
@@ -516,7 +509,7 @@ static int analyze_bootloader_instruction_accesses(AmigaDiskAnalysis *analysis, 
             if (instruction->size_suffix == 'b' && has_value) value &= 0xFFU;
             else if (instruction->size_suffix != 'l' && has_value) value &= 0xFFFFU;
         }
-        if (append_bootloader_hardware_access(analysis, stage, instruction_addr, access,
+        if (append_bootloader_hardware_access(analysis, stage, instruction_addr, access_kind,
                 bootloader_instruction_width_bits(instruction), address, has_value, value) != 0) {
             return -1;
         }

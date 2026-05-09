@@ -2043,8 +2043,7 @@ static int format_amiga_hardware_range_access_comment(const AmigaOsHardwareRegis
   uint32_t color_count;
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
-  if (hardware_range == NULL || hardware_range->symbol_name == NULL ||
-      strcmp(hardware_range->symbol_name, "color") != 0 ||
+  if (hardware_range == NULL || hardware_range->symbol_id != AMIGA_OS_SYMBOL_ID_COLOR ||
       access_kind != M68K_SIM_ACCESS_MEMORY_WRITE || offset < hardware_range->offset) {
     return 0;
   }

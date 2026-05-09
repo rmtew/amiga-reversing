@@ -36427,21 +36427,21 @@ static const AmigaOsHardwareRegisterInstanceAliasInfo g_amiga_os_hardware_regist
 };
 
 static const AmigaOsHardwareRegisterRangeInfo g_amiga_os_hardware_register_ranges[] = {
-  { "_custom", 0x00DFF000u, 0x0020u, 0x0004u, "dskpt", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0048u, 0x0004u, "bltcpt", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x004Cu, 0x0004u, "bltbpt", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0050u, 0x0004u, "bltapt", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0054u, 0x0004u, "bltdpt", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0080u, 0x0004u, "cop1lc", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0084u, 0x0004u, "cop2lc", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00A0u, 0x0004u, "aud0", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00B0u, 0x0004u, "aud1", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00C0u, 0x0004u, "aud2", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00D0u, 0x0004u, "aud3", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x00E0u, 0x0018u, "bplpt", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0120u, 0x0020u, "sprpt", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0140u, 0x0040u, "spr", "hardware/custom.i" },
-  { "_custom", 0x00DFF000u, 0x0180u, 0x0040u, "color", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0020u, 0x0004u, AMIGA_OS_SYMBOL_ID_DSKPT, "dskpt", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0048u, 0x0004u, AMIGA_OS_SYMBOL_ID_BLTCPT, "bltcpt", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x004Cu, 0x0004u, AMIGA_OS_SYMBOL_ID_BLTBPT, "bltbpt", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0050u, 0x0004u, AMIGA_OS_SYMBOL_ID_BLTAPT, "bltapt", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0054u, 0x0004u, AMIGA_OS_SYMBOL_ID_BLTDPT, "bltdpt", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0080u, 0x0004u, AMIGA_OS_SYMBOL_ID_COP1LC, "cop1lc", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0084u, 0x0004u, AMIGA_OS_SYMBOL_ID_COP2LC, "cop2lc", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00A0u, 0x0004u, AMIGA_OS_SYMBOL_ID_AUD0, "aud0", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00B0u, 0x0004u, AMIGA_OS_SYMBOL_ID_AUD1, "aud1", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00C0u, 0x0004u, AMIGA_OS_SYMBOL_ID_AUD2, "aud2", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00D0u, 0x0004u, AMIGA_OS_SYMBOL_ID_AUD3, "aud3", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x00E0u, 0x0018u, AMIGA_OS_SYMBOL_ID_BPLPT, "bplpt", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0120u, 0x0020u, AMIGA_OS_SYMBOL_ID_SPRPT, "sprpt", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0140u, 0x0040u, AMIGA_OS_SYMBOL_ID_SPR, "spr", "hardware/custom.i" },
+  { "_custom", 0x00DFF000u, 0x0180u, 0x0040u, AMIGA_OS_SYMBOL_ID_COLOR, "color", "hardware/custom.i" },
 };
 
 const char *amiga_os_find_library_base_name_by_id(uint16_t library_id) {

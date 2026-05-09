@@ -2041,6 +2041,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "  uint32_t base_address;",
         "  uint32_t offset;",
         "  uint32_t size;",
+        "  uint16_t symbol_id;",
         "  const char *symbol_name;",
         "  const char *include_path;",
         "} AmigaOsHardwareRegisterRangeInfo;",
@@ -2638,11 +2639,12 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
         ]
     )
     for base_symbol, base_address, offset, size, symbol_name, include_path in hardware_range_rows:
-        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, 0x%04Xu, \"%s\", \"%s\" }," % (
+        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, 0x%04Xu, %s, \"%s\", \"%s\" }," % (
             c_string(base_symbol),
             base_address,
             offset,
             size,
+            name_id_literal(name_domain_meta, "symbol", symbol_name),
             c_string(symbol_name),
             c_string(include_path)))
     lines.extend(

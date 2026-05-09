@@ -124,11 +124,18 @@ typedef struct AmigaDiskRawTrackSourceSpan {
     uint32_t byte_length;
 } AmigaDiskRawTrackSourceSpan;
 
+typedef enum AmigaDiskBootloaderHardwareAccessKind {
+    AMIGA_DISK_BOOTLOADER_HARDWARE_ACCESS_READ = 1,
+    AMIGA_DISK_BOOTLOADER_HARDWARE_ACCESS_WRITE = 2
+} AmigaDiskBootloaderHardwareAccessKind;
+
 typedef struct AmigaDiskBootloaderHardwareAccess {
     uint32_t instruction_addr;
+    uint8_t access_kind;
     char *access;
     uint32_t width_bits;
     uint32_t address;
+    uint16_t symbol_id;
     char *symbol;
     uint8_t has_value;
     uint32_t value;

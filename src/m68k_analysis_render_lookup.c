@@ -6363,7 +6363,7 @@ static int render_lookup_maybe_classify_palette_upload(M68kRenderLookup *lookup,
   source_value = &data_state->addr_regs[source_reg];
   dest_value = &hardware_state->addr_regs[dest_reg];
   if (!source_value->known || !source_value->exact || !dest_value->known || dest_value->range == NULL ||
-      dest_value->range->symbol_name == NULL || strcmp(dest_value->range->symbol_name, "color") != 0 ||
+      dest_value->range->symbol_id != AMIGA_OS_SYMBOL_ID_COLOR ||
       source_value->section_index >= decode->section_count ||
       accepted_bytes[source_value->section_index] == NULL ||
       source_value->offset >= decode->sections[source_value->section_index].size ||
