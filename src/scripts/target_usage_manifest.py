@@ -1793,8 +1793,6 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             bag.add(f"memory-layout:conflict_state:{_safe_part(conflict_state)}", example=example)
         if _bool_value(record.get("conflicted")):
             bag.add("memory-layout:conflict", example=example)
-            if conflict_state:
-                bag.add(f"memory-layout:conflict:{_safe_part(conflict_state)}", example=example)
     _add_memory_layout_view_features(bag, memory_layout_records)
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
@@ -3781,10 +3779,6 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, "memory-layout:conflict", "memory_layout", section=section_index,
                 offset=source_offset, row_index=row_index, stable_key=stable_key, symbol=memory_kind,
                 value=record_value, text=row_text or conflict_state))
-            if conflict_state:
-                xrefs.append(_xref(row, f"memory-layout:conflict:{_safe_part(conflict_state)}",
-                    "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
-                    stable_key=stable_key, symbol=memory_kind, value=record_value, text=row_text or conflict_state))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):

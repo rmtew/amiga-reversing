@@ -512,7 +512,7 @@ Conflict corpus evidence:
 | Feature | Corpus xrefs |
 | --- | ---: |
 | `memory-layout:conflict` | 12,153 |
-| `memory-layout:conflict:code_overlap` | 12,153 |
+| `memory-layout:conflict_state:code_overlap` | 12,153 |
 
 Comparator target evidence:
 

@@ -406,6 +406,14 @@ recovery rather than treating it as an unknown island. A similar island adjacent
 to a `pointer_table` should be classified as callback/function-table evidence,
 not promoted until an actual inbound edge is found.
 
+Internal orphan facts are ids and flags, not display strings. Nearby data context
+stores semantic role flags plus a compact relation id (`overlap`, `after`,
+`before`). Missing inbound evidence stores a compact id (`unknown`, `jump_table`,
+`callback`, `vector`, `runtime_copy`, `api`, `metadata`, `policy_seed`). JSON
+may include text names for UI output, but corpus and analysis consumers must use
+the ids/flags. A policy-named label is explicit seed evidence
+(`policy_seed`); an object or metadata label is only `metadata` evidence.
+
 ## Absolute Memory Access
 
 Absolute memory is not one thing. Analysis should classify the ownership before
@@ -666,6 +674,10 @@ metadata only at output boundaries.
 Policy RSSET layout storage kinds follow the same rule: decode metadata text
 once into compact C enum ids, consume the ids internally, and keep strings only
 for source/debug/export text.
+Memory-layout conflict features follow the same split: `memory-layout:conflict`
+is the boolean bucket and `memory-layout:conflict_state:<state>` is the stateful
+bucket derived from `conflict_state_id`. Do not emit duplicate state spellings
+such as `memory-layout:conflict:<state>`.
 Base-layout fields also carry a compact layout-kind id. Range and conflict
 consumers must use that id before comparing base-relative ranges; layout/base
 names remain labels, not classifiers.

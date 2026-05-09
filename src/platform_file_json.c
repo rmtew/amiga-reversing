@@ -777,9 +777,11 @@ static int append_entity_platform_call_hint_json(JsonBuilder *builder, const M68
   const char *resolved_lvo_symbol_name = NULL;
   const AmigaOsLibraryVectorInfo *amiga_vector;
   const char *library_name;
+  uint8_t is_callback_field = 0U;
   if (call == NULL) return 0;
   if (call->kind == PLATFORM_RESOLVED_INDIRECT_AMIGA_CALLBACK_FIELD_CALL ||
       call->note_kind == M68K_PLATFORM_CALL_NOTE_CALLBACK_FIELD) {
+    is_callback_field = 1U;
     shape = "callback_field";
     status = "per_caller";
   } else if (call->kind == PLATFORM_RESOLVED_INDIRECT_AMIGA_INDEXED_LIBRARY_DISPATCH &&
@@ -813,8 +815,7 @@ static int append_entity_platform_call_hint_json(JsonBuilder *builder, const M68
     if (json_builder_append(builder, ",\"detail\":") != 0) return -1;
     if (base_name != NULL && symbol_name != NULL) {
       char detail[256];
-      snprintf(detail, sizeof(detail), strcmp(shape, "callback_field") == 0 ? "%s.%s" : "%s/%s", base_name,
-        symbol_name);
+      snprintf(detail, sizeof(detail), is_callback_field ? "%s.%s" : "%s/%s", base_name, symbol_name);
       if (json_builder_append_json_string(builder, detail) != 0) return -1;
     } else if (json_builder_append_json_string(builder, base_name != NULL ? base_name : symbol_name) != 0) {
       return -1;
