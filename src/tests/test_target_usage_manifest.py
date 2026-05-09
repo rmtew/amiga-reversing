@@ -95,6 +95,69 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_class"], "lookup_table")
         self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_relation"], "overlap")
 
+    def test_runtime_view_role_features_use_relationship_ids(self) -> None:
+        bag = usage.FeatureBag()
+        usage._add_analysis_features(
+            {
+                "sections": [
+                    {
+                        "section_index": 0,
+                        "runtime_views": [
+                            {
+                                "storage_offset": 0x20,
+                                "storage_address": 0x20,
+                                "runtime_address": 0x4000,
+                                "kind": 2,
+                                "size": 0x20,
+                                "materialized": False,
+                                "materialization_reason": 103,
+                                "relationship_kind": 1,
+                                "relationship_kind_name": "stale_display_name",
+                                "related_runtime_address": 0x5000,
+                            },
+                            {
+                                "storage_offset": 0x40,
+                                "storage_address": 0x40,
+                                "runtime_address": 0x4100,
+                                "kind": 2,
+                                "size": 0x20,
+                                "materialized": False,
+                                "relationship_kind": 2,
+                                "relationship_kind_name": "stale_display_name",
+                                "related_runtime_address": 0x5000,
+                            },
+                            {
+                                "storage_offset": 0x60,
+                                "storage_address": 0x60,
+                                "runtime_address": 0x4200,
+                                "kind": 2,
+                                "size": 0x20,
+                                "materialized": False,
+                                "relationship_kind": 3,
+                                "relationship_kind_name": "stale_display_name",
+                                "related_runtime_address": 0x5000,
+                            },
+                        ],
+                    }
+                ]
+            },
+            bag,
+        )
+
+        counts, examples, _tags = bag.row_features()
+
+        self.assertEqual(counts["runtime:view_role:entry_wrapper"], 1)
+        self.assertEqual(counts["runtime:view_role:contained_helper"], 1)
+        self.assertEqual(counts["runtime:view_role:overlaid_helper"], 1)
+        self.assertEqual(counts["runtime:view_role:final_image_related"], 3)
+        self.assertEqual(counts["target-pattern:runtime_entry_wrapper"], 1)
+        self.assertEqual(counts["target-pattern:runtime_contained_helper"], 1)
+        self.assertEqual(counts["target-pattern:runtime_overlaid_helper"], 1)
+        self.assertEqual(
+            examples["runtime:view_relationship:exits_to_larger_runtime_range"][0]["related_runtime_address"],
+            0x5000,
+        )
+
     def test_orphan_signal_features_use_inbound_id_for_vector_signal(self) -> None:
         bag = usage.FeatureBag()
         usage._add_orphan_code_signal_features(
@@ -807,6 +870,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["runtime:suppressed_org_reason:exit_to_larger_runtime_range"], 1)
         self.assertEqual(counts["runtime:view_relationship:exits_to_larger_runtime_range"], 1)
         self.assertEqual(counts["runtime:view_related_range"], 1)
+        self.assertEqual(counts["runtime:view_role:entry_wrapper"], 1)
+        self.assertEqual(counts["runtime:view_role:final_image_related"], 1)
+        self.assertEqual(counts["target-pattern:runtime_entry_wrapper"], 1)
         self.assertEqual(counts["suppressed-weak-org-range"], 1)
         self.assertEqual(counts["orphan-code:summary"], 1)
         self.assertEqual(counts["orphan-code:summary:status:unresolved"], 1)
@@ -1809,6 +1875,8 @@ class TargetUsageManifestTests(unittest.TestCase):
             by_feature,
         )
         self.assertIn(("runtime:view_related_range", "runtime_view", 0x40, 3), by_feature)
+        self.assertIn(("runtime:view_role:entry_wrapper", "runtime_view", 0x40, 3), by_feature)
+        self.assertIn(("runtime:view_role:final_image_related", "runtime_view", 0x40, 3), by_feature)
         self.assertIn(("suppressed-weak-org-range", "runtime_view", 0x40, 3), by_feature)
         self.assertIn(("materialized-org-range", "runtime_org", 0x40, 3), by_feature)
         self.assertIn(("runtime:materialized_org_range", "runtime_org", 0x40, 3), by_feature)

@@ -203,10 +203,27 @@ RUNTIME_VIEW_MATERIALIZATION_REASONS = {
 }
 RUNTIME_VIEW_SUPPRESSED_EXIT_TO_LARGER_RUNTIME_RANGE = 103
 RUNTIME_VIEW_RELATIONSHIP_NONE = 0
+RUNTIME_VIEW_RELATIONSHIP_EXITS_TO_LARGER_RUNTIME_RANGE = 1
+RUNTIME_VIEW_RELATIONSHIP_CONTAINED_BY_RUNTIME_RANGE = 2
+RUNTIME_VIEW_RELATIONSHIP_OVERLAID_BY_RUNTIME_COPY = 3
 RUNTIME_VIEW_RELATIONSHIP_NAMES = {
-    1: "exits_to_larger_runtime_range",
-    2: "contained_by_runtime_range",
-    3: "overlaid_by_runtime_copy",
+    RUNTIME_VIEW_RELATIONSHIP_EXITS_TO_LARGER_RUNTIME_RANGE: "exits_to_larger_runtime_range",
+    RUNTIME_VIEW_RELATIONSHIP_CONTAINED_BY_RUNTIME_RANGE: "contained_by_runtime_range",
+    RUNTIME_VIEW_RELATIONSHIP_OVERLAID_BY_RUNTIME_COPY: "overlaid_by_runtime_copy",
+}
+RUNTIME_VIEW_RELATIONSHIP_ROLE_FEATURES = {
+    RUNTIME_VIEW_RELATIONSHIP_EXITS_TO_LARGER_RUNTIME_RANGE: (
+        "runtime:view_role:entry_wrapper",
+        "runtime:view_role:final_image_related",
+    ),
+    RUNTIME_VIEW_RELATIONSHIP_CONTAINED_BY_RUNTIME_RANGE: (
+        "runtime:view_role:contained_helper",
+        "runtime:view_role:final_image_related",
+    ),
+    RUNTIME_VIEW_RELATIONSHIP_OVERLAID_BY_RUNTIME_COPY: (
+        "runtime:view_role:overlaid_helper",
+        "runtime:view_role:final_image_related",
+    ),
 }
 SIM_FLOW_NAMES = {
     0: "none",
@@ -448,6 +465,9 @@ TARGET_PATTERN_FEATURE_RULES: tuple[tuple[tuple[str, ...], str], ...] = (
     ),
     (("decompression:runtime_copy_conflicting",), "target-pattern:packed_runtime_copy_conflict"),
     (("orphan-code:signal",), "target-pattern:orphan_code_signal"),
+    (("runtime:view_role:entry_wrapper",), "target-pattern:runtime_entry_wrapper"),
+    (("runtime:view_role:contained_helper",), "target-pattern:runtime_contained_helper"),
+    (("runtime:view_role:overlaid_helper",), "target-pattern:runtime_overlaid_helper"),
 )
 
 
@@ -1188,9 +1208,9 @@ def _project_decompression_example(entry: dict[str, Any]) -> dict[str, object]:
 
 def _add_project_target_metadata_features(entry: dict[str, Any], bag: FeatureBag) -> None:
     origin_kind_id = _int_value(entry.get("project_origin_kind_id"))
-    origin_kind = PROJECT_ORIGIN_KIND_NAMES.get(origin_kind_id) if origin_kind_id is not None else _string_value(entry.get("project_origin_kind"))
+    origin_kind = PROJECT_ORIGIN_KIND_NAMES.get(origin_kind_id) if origin_kind_id is not None else None
     target_role_id = _int_value(entry.get("target_role_id"))
-    target_role = PROJECT_TARGET_ROLE_NAMES.get(target_role_id) if target_role_id is not None else _string_value(entry.get("target_role"))
+    target_role = PROJECT_TARGET_ROLE_NAMES.get(target_role_id) if target_role_id is not None else None
     payload_role_id = _int_value(entry.get("payload_role_id"))
     payload_role = DECOMPRESSION_PAYLOAD_ROLE_NAMES.get(payload_role_id) if payload_role_id is not None else None
     payload_role_confidence_id = _int_value(entry.get("payload_role_confidence_id"))
@@ -2077,12 +2097,16 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             relationship_kind = _int_value(runtime_view.get("relationship_kind"))
             relationship_name = RUNTIME_VIEW_RELATIONSHIP_NAMES.get(relationship_kind or RUNTIME_VIEW_RELATIONSHIP_NONE)
             if relationship_kind is not None and relationship_kind != RUNTIME_VIEW_RELATIONSHIP_NONE and relationship_name:
-                bag.add(f"runtime:view_relationship:{_safe_part(relationship_name)}", example=view_example)
                 related_runtime = _int_value(runtime_view.get("related_runtime_address"))
+                relationship_example = view_example
                 if related_runtime is not None:
-                    related_example = dict(view_example)
-                    related_example["related_runtime_address"] = related_runtime
-                    bag.add("runtime:view_related_range", example=related_example)
+                    relationship_example = dict(view_example)
+                    relationship_example["related_runtime_address"] = related_runtime
+                bag.add(f"runtime:view_relationship:{_safe_part(relationship_name)}", example=relationship_example)
+                if related_runtime is not None:
+                    bag.add("runtime:view_related_range", example=relationship_example)
+                for role_feature in RUNTIME_VIEW_RELATIONSHIP_ROLE_FEATURES.get(relationship_kind, ()):
+                    bag.add(role_feature, example=relationship_example)
             if storage is not None and runtime is not None and storage != runtime:
                 bag.add("runtime:copied_code")
                 if storage < 0x200 and runtime < 0x1000:
@@ -2169,14 +2193,20 @@ def _decompression_example(record: dict[str, Any]) -> dict[str, object]:
     event_id = _string_value(record.get("event_id"))
     if event_id:
         example["event_id"] = event_id
-    event_kind = _string_value(record.get("event_kind"))
+    event_kind_id = _int_value(record.get("event_kind_id"), 0) or 0
+    event_kind = DECOMPRESSION_EVENT_KIND_NAMES.get(event_kind_id)
     if event_kind:
+        example["event_kind_id"] = event_kind_id
         example["event_kind"] = event_kind
-    payload_role = _string_value(record.get("payload_role"))
+    payload_role_id = _int_value(record.get("payload_role_id"), 0) or 0
+    payload_role = DECOMPRESSION_PAYLOAD_ROLE_NAMES.get(payload_role_id)
     if payload_role:
+        example["payload_role_id"] = payload_role_id
         example["payload_role"] = payload_role
-    parent_remains_active = _string_value(record.get("parent_remains_active"))
+    parent_remains_active_id = _int_value(record.get("parent_remains_active_id"), 0)
+    parent_remains_active = DECOMPRESSION_PARENT_REMAINS_ACTIVE_NAMES.get(parent_remains_active_id or 0)
     if parent_remains_active:
+        example["parent_remains_active_id"] = parent_remains_active_id or 0
         example["parent_remains_active"] = parent_remains_active
     source_kind_id = _int_value(record.get("source_kind_id"), 0) or 0
     source_kind = DECOMPRESSION_SOURCE_KIND_NAMES.get(source_kind_id)
@@ -2902,9 +2932,9 @@ def _file_usage_xrefs(
 def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]) -> list[dict[str, object]]:
     xrefs: list[dict[str, object]] = []
     origin_kind_id = _int_value(entry.get("project_origin_kind_id"))
-    origin_kind = PROJECT_ORIGIN_KIND_NAMES.get(origin_kind_id) if origin_kind_id is not None else _string_value(entry.get("project_origin_kind"))
+    origin_kind = PROJECT_ORIGIN_KIND_NAMES.get(origin_kind_id) if origin_kind_id is not None else None
     target_role_id = _int_value(entry.get("target_role_id"))
-    target_role = PROJECT_TARGET_ROLE_NAMES.get(target_role_id) if target_role_id is not None else _string_value(entry.get("target_role"))
+    target_role = PROJECT_TARGET_ROLE_NAMES.get(target_role_id) if target_role_id is not None else None
     payload_role_id = _int_value(entry.get("payload_role_id"))
     payload_role = DECOMPRESSION_PAYLOAD_ROLE_NAMES.get(payload_role_id) if payload_role_id is not None else None
     payload_role_confidence_id = _int_value(entry.get("payload_role_confidence_id"))
@@ -4194,6 +4224,10 @@ def _analysis_xrefs(
                 related_runtime = _int_value(runtime_view.get("related_runtime_address"))
                 xrefs.append(_xref(row, f"runtime:view_relationship:{_safe_part(relationship_name)}", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=related_runtime, text=row_text or relationship_name))
                 xrefs.append(_xref(row, "runtime:view_related_range", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=related_runtime, text=row_text or relationship_name))
+                for role_feature in RUNTIME_VIEW_RELATIONSHIP_ROLE_FEATURES.get(relationship_kind, ()):
+                    xrefs.append(_xref(row, role_feature, "runtime_view", section=section_index,
+                        offset=storage_offset, row_index=row_index, stable_key=stable_key, value=related_runtime,
+                        text=row_text or relationship_name))
             if storage is not None and runtime is not None and storage != runtime:
                 xrefs.append(_xref(row, "runtime:copied_code", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or f"copied code ${runtime:04X}"))
                 if storage < 0x200 and runtime < 0x1000:
