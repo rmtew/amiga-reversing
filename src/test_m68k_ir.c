@@ -10744,6 +10744,13 @@ static int test_facts_v2_analysis_propagates_api_output_type_through_global_slot
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"record_kind\":\"platform_typed_access\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"memory_kind\":\"platform_struct_field\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"record_kind\":\"platform_storage_effect\",\"memory_kind\":\"typed_global_slot\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"effect_kind_name\":\"write_typed_global_slot\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"target_section_index\":0,\"target_offset\":256") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"range_space_kind\":4,\"range_space\":\"section_relative\",\"range_start\":256,"
+    "\"range_size\":4,\"range_end\":260") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"struct_size\":") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"field_size\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"field_expr\":\"MP_SIGBIT\"") != NULL);

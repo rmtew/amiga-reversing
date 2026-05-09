@@ -1920,6 +1920,8 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
   return 0;
 }
 
+static int platform_effect_is_storage_kind(uint8_t kind);
+
 static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysisIR *source_analysis) {
   size_t section_index;
   size_t count = 0U;
@@ -1932,6 +1934,10 @@ static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysi
     count += section->recovered_platform_unresolved_typed_access_count;
     count += section->runtime_view_count;
     count += section->absolute_memory_ref_count;
+    for (ref_index = 0U; ref_index < section->recovered_platform_effect_count; ++ref_index) {
+      if (platform_effect_is_storage_kind(section->recovered_platform_effects[ref_index].kind))
+        ++count;
+    }
     for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
       const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
       if (ref->has_runtime_address || ref->has_target || (ref->data_class != NULL && ref->data_class[0] != '\0')) {
@@ -1945,7 +1951,8 @@ static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysi
 enum {
   MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE = 1,
   MEMORY_LAYOUT_RANGE_SPACE_RUNTIME_ABSOLUTE = 2,
-  MEMORY_LAYOUT_RANGE_SPACE_ABSOLUTE = 3
+  MEMORY_LAYOUT_RANGE_SPACE_ABSOLUTE = 3,
+  MEMORY_LAYOUT_RANGE_SPACE_SECTION_RELATIVE = 4
 };
 
 static const char *memory_layout_range_space_name(uint8_t range_space_kind) {
@@ -1953,6 +1960,7 @@ static const char *memory_layout_range_space_name(uint8_t range_space_kind) {
   case MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE: return "base_relative";
   case MEMORY_LAYOUT_RANGE_SPACE_RUNTIME_ABSOLUTE: return "runtime_absolute";
   case MEMORY_LAYOUT_RANGE_SPACE_ABSOLUTE: return "absolute";
+  case MEMORY_LAYOUT_RANGE_SPACE_SECTION_RELATIVE: return "section_relative";
   default: return "unknown";
   }
 }
@@ -1965,6 +1973,62 @@ static int append_memory_layout_range_json(JsonBuilder *builder, uint8_t range_s
     ",\"range_space_kind\":%u,\"range_space\":\"%s\",\"range_start\":%lld,\"range_size\":%u,\"range_end\":%lld",
     (unsigned)range_space_kind, memory_layout_range_space_name(range_space_kind), (long long)start,
     (unsigned)size, (long long)end);
+}
+
+static const char *platform_effect_kind_name(uint8_t kind) {
+  switch (kind) {
+  case M68K_PLATFORM_EFFECT_SET_BASE_REG: return "set_base_reg";
+  case M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT: return "write_base_slot";
+  case M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG: return "set_code_ptr_reg";
+  case M68K_PLATFORM_EFFECT_SET_TYPED_REG: return "set_typed_reg";
+  case M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT: return "write_typed_slot";
+  case M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT: return "write_global_base_slot";
+  case M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT: return "write_typed_global_slot";
+  default: return "unknown";
+  }
+}
+
+static int platform_effect_is_storage_kind(uint8_t kind) {
+  switch (kind) {
+  case M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT:
+  case M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT:
+  case M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT:
+  case M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+static const char *platform_storage_effect_memory_kind(uint8_t kind) {
+  switch (kind) {
+  case M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT: return "base_slot";
+  case M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT: return "typed_slot";
+  case M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT: return "global_base_slot";
+  case M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT: return "typed_global_slot";
+  default: return "unknown";
+  }
+}
+
+static int platform_effect_has_storage_range(const M68kRecoveredPlatformEffectIR *effect,
+    uint8_t *out_range_space_kind, int64_t *out_range_start, uint32_t *out_range_size) {
+  if (out_range_space_kind != NULL) *out_range_space_kind = 0U;
+  if (out_range_start != NULL) *out_range_start = 0;
+  if (out_range_size != NULL) *out_range_size = 0U;
+  if (effect == NULL || !platform_effect_is_storage_kind(effect->kind)) return 0;
+  if (effect->kind == M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT ||
+      effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT) {
+    if (effect->displacement == INT16_MIN) return 0;
+    if (out_range_space_kind != NULL) *out_range_space_kind = MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE;
+    if (out_range_start != NULL) *out_range_start = (int64_t)effect->displacement;
+    if (out_range_size != NULL) *out_range_size = 4U;
+    return 1;
+  }
+  if (effect->target_section_index == SIZE_MAX || effect->target_offset == UINT32_MAX) return 0;
+  if (out_range_space_kind != NULL) *out_range_space_kind = MEMORY_LAYOUT_RANGE_SPACE_SECTION_RELATIVE;
+  if (out_range_start != NULL) *out_range_start = (int64_t)effect->target_offset;
+  if (out_range_size != NULL) *out_range_size = 4U;
+  return 1;
 }
 
 static int append_source_analysis_memory_layout_records_json(JsonBuilder *builder,
@@ -2007,9 +2071,62 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     size_t typed_access_index;
     size_t unresolved_typed_access_index;
+    size_t effect_index;
     size_t view_index;
     size_t ref_index;
     size_t absolute_ref_index;
+    for (effect_index = 0U; effect_index < section->recovered_platform_effect_count; ++effect_index) {
+      const M68kRecoveredPlatformEffectIR *effect = &section->recovered_platform_effects[effect_index];
+      const char *memory_kind;
+      const char *base_name = NULL;
+      const char *symbol_name = NULL;
+      const char *type_name = NULL;
+      uint8_t range_space_kind = 0U;
+      int64_t range_start = 0;
+      uint32_t range_size = 0U;
+      if (!platform_effect_is_storage_kind(effect->kind)) continue;
+      memory_kind = platform_storage_effect_memory_kind(effect->kind);
+      if (effect->kind == M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT ||
+          effect->kind == M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT) {
+        base_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.named_base.base_ref,
+          effect->payload.named_base.base_name);
+      } else {
+        symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.symbol_ref,
+          effect->payload.typed.symbol_name);
+        type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+          effect->payload.typed.type_name);
+        base_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.context_ref,
+          effect->payload.typed.context_name);
+      }
+      if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_append(builder,
+          "{\"record_kind\":\"platform_storage_effect\",\"memory_kind\":") != 0) return -1;
+      if (json_builder_append_json_string(builder, memory_kind) != 0) return -1;
+      if (json_builder_appendf(builder,
+          ",\"section_index\":%u,\"source_offset\":%u,\"effect_kind\":%u,\"effect_kind_name\":",
+          (unsigned)section->section_index, (unsigned)effect->offset, (unsigned)effect->kind) != 0)
+        return -1;
+      if (json_builder_append_json_string(builder, platform_effect_kind_name(effect->kind)) != 0) return -1;
+      if (json_builder_appendf(builder, ",\"displacement\":%d,\"field_disp\":%d,\"base_name\":",
+          (int)effect->displacement, (int)effect->field_disp) != 0) return -1;
+      if (json_builder_append_nullable_string(builder, base_name) != 0) return -1;
+      if (json_builder_append(builder, ",\"symbol_name\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, symbol_name) != 0) return -1;
+      if (json_builder_append(builder, ",\"type_name\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, type_name) != 0) return -1;
+      if (json_builder_append(builder, ",\"target_section_index\":") != 0) return -1;
+      if (effect->target_section_index != SIZE_MAX) {
+        if (json_builder_appendf(builder, "%u", (unsigned)effect->target_section_index) != 0) return -1;
+      } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_append(builder, ",\"target_offset\":") != 0) return -1;
+      if (effect->target_offset != UINT32_MAX) {
+        if (json_builder_appendf(builder, "%u", (unsigned)effect->target_offset) != 0) return -1;
+      } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (platform_effect_has_storage_range(effect, &range_space_kind, &range_start, &range_size) &&
+          append_memory_layout_range_json(builder, range_space_kind, range_start, range_size) != 0)
+        return -1;
+      if (json_builder_append(builder, "}") != 0) return -1;
+    }
     for (typed_access_index = 0U; typed_access_index < section->recovered_platform_typed_access_count;
         ++typed_access_index) {
       const M68kRecoveredPlatformTypedAccessIR *access =

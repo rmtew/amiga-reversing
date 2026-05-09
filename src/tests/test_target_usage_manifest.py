@@ -181,6 +181,25 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 22,
                         },
                         {
+                            "record_kind": "platform_storage_effect",
+                            "memory_kind": "typed_global_slot",
+                            "section_index": 0,
+                            "source_offset": 0x34,
+                            "effect_kind": 7,
+                            "effect_kind_name": "write_typed_global_slot",
+                            "displacement": -32768,
+                            "field_disp": -32768,
+                            "base_name": "exec.library",
+                            "symbol_name": "MP_SIGBIT",
+                            "type_name": "MP",
+                            "target_section_index": 0,
+                            "target_offset": 0x100,
+                            "range_space_kind": 4,
+                            "range_start": 0x100,
+                            "range_size": 4,
+                            "range_end": 0x104,
+                        },
+                        {
                             "record_kind": "platform_unresolved_typed_access",
                             "memory_kind": "platform_struct_unresolved",
                             "section_index": 0,
@@ -625,28 +644,33 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["table:consumer"], 1)
         self.assertEqual(counts["table:entry_size:2"], 1)
         self.assertNotIn("table:conflict_state:clean", counts)
-        self.assertEqual(counts["memory-layout:any"], 6)
+        self.assertEqual(counts["memory-layout:any"], 7)
         self.assertEqual(counts["memory-layout:record:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_view"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_address_ref"], 1)
         self.assertEqual(counts["memory-layout:record:absolute_memory_ref"], 1)
         self.assertEqual(counts["memory-layout:record:platform_typed_access"], 1)
+        self.assertEqual(counts["memory-layout:record:platform_storage_effect"], 1)
         self.assertEqual(counts["memory-layout:record:platform_unresolved_typed_access"], 1)
         self.assertEqual(counts["memory-layout:kind:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:kind:runtime_view_candidate"], 1)
         self.assertEqual(counts["memory-layout:kind:copper_list"], 1)
         self.assertEqual(counts["memory-layout:kind:hardware_register"], 1)
         self.assertEqual(counts["memory-layout:kind:platform_struct_field"], 1)
+        self.assertEqual(counts["memory-layout:kind:typed_global_slot"], 1)
         self.assertEqual(counts["memory-layout:kind:platform_struct_unresolved"], 1)
         self.assertEqual(counts["memory-layout:platform_struct:Library"], 1)
         self.assertEqual(counts["memory-layout:platform_struct:InputEvent"], 1)
         self.assertEqual(counts["memory-layout:platform_field:LIB_VERSION"], 1)
+        self.assertEqual(counts["memory-layout:storage_effect"], 1)
+        self.assertEqual(counts["memory-layout:storage_effect:write_typed_global_slot"], 1)
         self.assertEqual(counts["memory-layout:sink_address"], 1)
-        self.assertEqual(counts["memory-layout:range"], 6)
+        self.assertEqual(counts["memory-layout:range"], 7)
         self.assertEqual(counts["memory-layout:range_space:1"], 3)
         self.assertEqual(counts["memory-layout:range_space:2"], 2)
         self.assertEqual(counts["memory-layout:range_space:3"], 1)
-        self.assertEqual(counts["memory-layout:range_size:4"], 1)
+        self.assertEqual(counts["memory-layout:range_space:4"], 1)
+        self.assertEqual(counts["memory-layout:range_size:4"], 2)
         self.assertEqual(counts["memory-layout:conflict"], 1)
         self.assertEqual(counts["memory-layout:conflict:code_overlap"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
@@ -697,6 +721,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["memory-layout:kind:copper_list"][0]["runtime_address"], 0x0E)
         self.assertEqual(examples["memory-layout:kind:copper_list"][0]["sink_address"], 0xDFF080)
         self.assertEqual(examples["memory-layout:kind:hardware_register"][0]["owner_symbol"], "intena")
+        self.assertEqual(examples["memory-layout:kind:typed_global_slot"][0]["target_offset"], 0x100)
+        self.assertEqual(examples["memory-layout:storage_effect"][0]["effect_kind_name"], "write_typed_global_slot")
         self.assertEqual(examples["memory-layout:platform_struct:Library"][0]["field_expr"], "LIB_VERSION")
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
@@ -1084,6 +1110,25 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 22,
                         },
                         {
+                            "record_kind": "platform_storage_effect",
+                            "memory_kind": "typed_global_slot",
+                            "section_index": 0,
+                            "source_offset": 0x30,
+                            "effect_kind": 7,
+                            "effect_kind_name": "write_typed_global_slot",
+                            "displacement": -32768,
+                            "field_disp": -32768,
+                            "base_name": "exec.library",
+                            "symbol_name": "MP_SIGBIT",
+                            "type_name": "MP",
+                            "target_section_index": 0,
+                            "target_offset": 0x100,
+                            "range_space_kind": 4,
+                            "range_start": 0x100,
+                            "range_size": 4,
+                            "range_end": 0x104,
+                        },
+                        {
                             "record_kind": "platform_unresolved_typed_access",
                             "memory_kind": "platform_struct_unresolved",
                             "section_index": 0,
@@ -1374,6 +1419,12 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("memory-layout:kind:platform_struct_field", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:platform_struct:Library", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:platform_field:LIB_VERSION", "memory_layout", 0x30, 2), by_feature)
+        self.assertIn(("memory-layout:record:platform_storage_effect", "memory_layout", 0x30, 2), by_feature)
+        self.assertIn(("memory-layout:kind:typed_global_slot", "memory_layout", 0x30, 2), by_feature)
+        self.assertIn(("memory-layout:storage_effect", "memory_layout", 0x30, 2), by_feature)
+        self.assertIn(("memory-layout:storage_effect:write_typed_global_slot", "memory_layout", 0x30, 2), by_feature)
+        self.assertIn(("memory-layout:range_space:4", "memory_layout", 0x30, 2), by_feature)
+        self.assertIn(("memory-layout:range_size:4", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:kind:runtime_view_candidate", "memory_layout", 0x40, 3), by_feature)
         self.assertIn(("memory-layout:kind:copper_list", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("memory-layout:record:absolute_memory_ref", "memory_layout", 0x60, 5), by_feature)

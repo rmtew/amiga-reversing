@@ -1397,7 +1397,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         for key in (
             "source_size", "runtime_address", "runtime_size", "target_offset", "sink_address",
             "field_offset", "field_size", "address", "access_width", "owner_offset",
-            "range_space_kind", "range_start", "range_size", "range_end",
+            "range_space_kind", "range_start", "range_size", "range_end", "effect_kind",
+            "target_section_index", "displacement", "field_disp",
         ):
             value = _int_value(record.get(key))
             if value is not None:
@@ -1406,6 +1407,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             "layout_name", "base_symbol", "symbol", "root_struct_name", "owner_struct_name",
             "field_name", "field_expr", "classification", "type_provenance_kind",
             "access", "owner_kind", "owner_symbol", "owner_base_symbol", "conflict_state",
+            "effect_kind_name", "base_name", "symbol_name", "type_name",
         ):
             value = _string_value(record.get(key))
             if value:
@@ -1419,6 +1421,10 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             bag.add(f"memory-layout:platform_struct:{_safe_part(root_struct)}", example=example)
         if field_expr:
             bag.add(f"memory-layout:platform_field:{_safe_part(field_expr)}", example=example)
+        effect_kind_name = _string_value(record.get("effect_kind_name"))
+        if effect_kind_name:
+            bag.add("memory-layout:storage_effect", example=example)
+            bag.add(f"memory-layout:storage_effect:{_safe_part(effect_kind_name)}", example=example)
         if _int_value(record.get("sink_address")) is not None:
             bag.add("memory-layout:sink_address", example=example)
         range_space_kind = _int_value(record.get("range_space_kind"))
@@ -3259,6 +3265,14 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, f"memory-layout:platform_field:{_safe_part(field_expr)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
                 stable_key=stable_key, symbol=field_expr, value=record_value, text=row_text or memory_kind))
+        effect_kind_name = _string_value(record.get("effect_kind_name"))
+        if effect_kind_name:
+            xrefs.append(_xref(row, "memory-layout:storage_effect",
+                "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
+                stable_key=stable_key, symbol=effect_kind_name, value=record_value, text=row_text or memory_kind))
+            xrefs.append(_xref(row, f"memory-layout:storage_effect:{_safe_part(effect_kind_name)}",
+                "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
+                stable_key=stable_key, symbol=effect_kind_name, value=record_value, text=row_text or memory_kind))
         conflict_state = _string_value(record.get("conflict_state"))
         if _bool_value(record.get("conflicted")):
             xrefs.append(_xref(row, "memory-layout:conflict", "memory_layout", section=section_index,
