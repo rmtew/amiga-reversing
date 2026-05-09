@@ -9,6 +9,8 @@
 #include "m68k_render_ir.h"
 #include "m68k_simulator.h"
 #include "platform_common.h"
+#include "generated/amiga_os_runtime.h"
+#include "generated/m68k_cpu_runtime.h"
 #include "util_arena.h"
 
 #include <stdlib.h>
@@ -3233,6 +3235,135 @@ static int append_runtime_address_refs_for_accepted(const M68kDecodeIR *decode, 
   return 0;
 }
 
+static int facts_v2_absolute_ref_access_kind(uint8_t access_kind) {
+  return access_kind == M68K_SIM_ACCESS_MEMORY_READ ||
+    access_kind == M68K_SIM_ACCESS_MEMORY_WRITE ||
+    access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS ||
+    access_kind == M68K_SIM_ACCESS_BRANCH_TARGET;
+}
+
+static uint32_t facts_v2_instruction_access_width(const M68kInstructionIR *instruction, uint8_t access_kind) {
+  if (instruction == NULL || access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS ||
+      access_kind == M68K_SIM_ACCESS_BRANCH_TARGET) {
+    return 0U;
+  }
+  if (instruction->size_suffix == 'b') return 1U;
+  if (instruction->size_suffix == 'w') return 2U;
+  if (instruction->size_suffix == 'l') return 4U;
+  return 0U;
+}
+
+static int facts_v2_access_overlaps_accepted_code(const uint8_t *accepted_bytes, uint32_t section_size,
+    uint32_t offset, uint32_t width, uint8_t access_kind) {
+  uint32_t cursor;
+  uint32_t end;
+  if (accepted_bytes == NULL || offset >= section_size ||
+      (access_kind != M68K_SIM_ACCESS_MEMORY_READ && access_kind != M68K_SIM_ACCESS_MEMORY_WRITE)) {
+    return 0;
+  }
+  if (width == 0U) width = 1U;
+  end = section_size - offset < width ? section_size : offset + width;
+  for (cursor = offset; cursor < end; ++cursor) {
+    if (accepted_bytes[cursor] != 0U) return 1;
+  }
+  return 0;
+}
+
+static void facts_v2_classify_absolute_memory_ref(uint8_t platform_kind,
+    const M68kRuntimeAddressSpace *runtime_addresses, size_t section_index, uint32_t section_size,
+    uint32_t address, M68kAbsoluteMemoryRefIR *ref) {
+  const M68kCpuExceptionVectorInfo *vector = m68k_cpu_find_exception_vector_by_address(address);
+  if (ref == NULL) return;
+  ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY;
+  ref->owner_offset = address;
+  if (platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK && address == 4U) {
+    ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL;
+    ref->owner_offset = 0U;
+    return;
+  }
+  if (vector != NULL) {
+    ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
+    ref->owner_offset = 0U;
+    return;
+  }
+  if (platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    const AmigaOsHardwareRegisterInfo *hardware_register =
+      amiga_os_find_hardware_register_by_cpu_address(address);
+    const AmigaOsHardwareRegisterRangeInfo *hardware_range =
+      amiga_os_find_hardware_register_range_by_cpu_address(address);
+    if (hardware_register != NULL) {
+      ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER;
+      ref->owner_offset = hardware_register->offset;
+      return;
+    }
+    if (hardware_range != NULL) {
+      ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE;
+      ref->owner_offset = address - hardware_range->base_address;
+      return;
+    }
+  }
+  if (runtime_address_space_translate(runtime_addresses, section_index, address, section_size,
+      &ref->owner_offset)) {
+    ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE;
+    return;
+  }
+  if (address < section_size) {
+    ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE;
+    ref->owner_offset = address;
+  }
+}
+
+static int append_absolute_memory_refs_for_accepted(const M68kDecodeIR *decode, uint8_t platform_kind,
+    const M68kRuntimeAddressSpace *runtime_addresses, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (decode == NULL || runtime_addresses == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      source_analysis == NULL || source_analysis->section_count < decode->section_count) {
+    return -1;
+  }
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t candidate_index;
+    if (accepted_start[section_index] == NULL || accepted_bytes[section_index] == NULL) return -1;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      M68kInstructionIR instruction;
+      const M68kSimFormMetadata *metadata;
+      size_t operand_index;
+      if (!accepted_start[section_index][candidate->offset]) continue;
+      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+      metadata = m68k_sim_metadata_for_instruction(&instruction);
+      if (metadata == NULL) continue;
+      for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
+           operand_index < instruction.operand_count; ++operand_index) {
+        uint32_t address = 0U;
+        uint8_t access_kind = metadata->operand_access_kinds[operand_index];
+        M68kAbsoluteMemoryRefIR ref;
+        if (!facts_v2_absolute_ref_access_kind(access_kind)) continue;
+        if (!operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+            &address)) {
+          continue;
+        }
+        memset(&ref, 0, sizeof(ref));
+        ref.offset = candidate->offset;
+        ref.operand_index = (uint32_t)operand_index;
+        ref.source_size = candidate->byte_count;
+        ref.access_width = facts_v2_instruction_access_width(&instruction, access_kind);
+        ref.address = address;
+        ref.access_kind = access_kind;
+        ref.confidence = (uint8_t)M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+        facts_v2_classify_absolute_memory_ref(platform_kind, runtime_addresses, section_index, section->size,
+          address, &ref);
+        ref.conflicted = (uint8_t)facts_v2_access_overlaps_accepted_code(accepted_bytes[section_index],
+          section->size, ref.owner_offset, ref.access_width, access_kind);
+        if (m68k_ir_section_analysis_append_absolute_memory_ref(section_analysis, &ref) != 0) return -1;
+      }
+    }
+  }
+  return 0;
+}
+
 static int candidate_lea_absolute_address(const M68kDecodeCandidate *candidate, uint8_t *out_reg,
     uint32_t *out_address) {
   uint8_t dest_reg = 0U;
@@ -5784,6 +5915,13 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       append_recovered_indirect_sites_for_accepted(&decode, accepted_start, out_source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 accepted indirect site append failed");
+    goto fail;
+  }
+  if (out_source_analysis != NULL &&
+      append_absolute_memory_refs_for_accepted(&decode, object->platform_backend_kind, &runtime_addresses,
+        accepted_start, accepted_bytes, out_source_analysis) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "facts_v2 absolute memory ref append failed");
     goto fail;
   }
   end = clock();

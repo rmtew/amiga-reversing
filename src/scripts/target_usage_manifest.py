@@ -1371,7 +1371,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         example = _offset_example(section_index, source_offset, memory_kind)
         for key in (
             "source_size", "runtime_address", "runtime_size", "target_offset", "sink_address",
-            "field_offset", "field_size",
+            "field_offset", "field_size", "address", "access_width", "owner_offset",
         ):
             value = _int_value(record.get(key))
             if value is not None:
@@ -1379,6 +1379,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         for key in (
             "layout_name", "base_symbol", "symbol", "root_struct_name", "owner_struct_name",
             "field_name", "field_expr", "classification", "type_provenance_kind",
+            "access", "owner_kind", "owner_symbol", "owner_base_symbol",
         ):
             value = _string_value(record.get(key))
             if value:
@@ -3165,6 +3166,8 @@ def _analysis_xrefs(
         source_offset = _int_value(record.get("source_offset"))
         row_index, stable_key, row_text = _row_location(row_locations, section_index, source_offset)
         runtime_address = _int_value(record.get("runtime_address"))
+        record_address = _int_value(record.get("address"))
+        record_value = runtime_address if runtime_address is not None else record_address
         sink_address = _int_value(record.get("sink_address"))
         root_struct = _string_value(record.get("root_struct_name"))
         field_expr = _string_value(record.get("field_expr")) or _string_value(record.get("field_name"))
@@ -3174,7 +3177,7 @@ def _analysis_xrefs(
             f"memory-layout:kind:{_safe_part(memory_kind)}",
         ):
             xrefs.append(_xref(row, feature, "memory_layout", section=section_index, offset=source_offset,
-                row_index=row_index, stable_key=stable_key, symbol=memory_kind, value=runtime_address,
+                row_index=row_index, stable_key=stable_key, symbol=memory_kind, value=record_value,
                 text=row_text or memory_kind))
         if sink_address is not None:
             xrefs.append(_xref(row, "memory-layout:sink_address", "memory_layout", section=section_index,
@@ -3183,11 +3186,11 @@ def _analysis_xrefs(
         if root_struct:
             xrefs.append(_xref(row, f"memory-layout:platform_struct:{_safe_part(root_struct)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
-                stable_key=stable_key, symbol=root_struct, value=runtime_address, text=row_text or memory_kind))
+                stable_key=stable_key, symbol=root_struct, value=record_value, text=row_text or memory_kind))
         if field_expr:
             xrefs.append(_xref(row, f"memory-layout:platform_field:{_safe_part(field_expr)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
-                stable_key=stable_key, symbol=field_expr, value=runtime_address, text=row_text or memory_kind))
+                stable_key=stable_key, symbol=field_expr, value=record_value, text=row_text or memory_kind))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):

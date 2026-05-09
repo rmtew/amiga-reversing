@@ -12895,6 +12895,76 @@ static int test_facts_v2_register_runtime_sink_auto_classifies_copper_list(void)
   return 0;
 }
 
+static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAbsoluteMemoryRefIR *exec_ref = NULL;
+  const M68kAbsoluteMemoryRefIR *custom_ref = NULL;
+  const M68kAbsoluteMemoryRefIR *absolute_ref = NULL;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  size_t index;
+  uint8_t bytes[20] = {
+    0x2Cu, 0x78u, 0x00u, 0x04u,
+    0x33u, 0xFCu, 0x12u, 0x34u, 0x00u, 0xDFu, 0xF0u, 0x9Au,
+    0x41u, 0xF9u, 0x00u, 0x07u, 0x00u, 0x00u,
+    0x4Eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(3U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
+  for (index = 0U; index < source_analysis.sections[0].absolute_memory_ref_count; ++index) {
+    const M68kAbsoluteMemoryRefIR *ref = &source_analysis.sections[0].absolute_memory_refs[index];
+    if (ref->address == 4U) exec_ref = ref;
+    else if (ref->address == 0x00DFF09AU) custom_ref = ref;
+    else if (ref->address == 0x00070000U) absolute_ref = ref;
+  }
+  M68K_C_ASSERT(exec_ref != NULL);
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL, exec_ref->owner_kind);
+  M68K_C_ASSERT_U32(M68K_SIM_ACCESS_MEMORY_READ, exec_ref->access_kind);
+  M68K_C_ASSERT_U32(4U, exec_ref->access_width);
+  M68K_C_ASSERT(custom_ref != NULL);
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER, custom_ref->owner_kind);
+  M68K_C_ASSERT_U32(M68K_SIM_ACCESS_MEMORY_WRITE, custom_ref->access_kind);
+  M68K_C_ASSERT_U32(2U, custom_ref->access_width);
+  M68K_C_ASSERT(absolute_ref != NULL);
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY, absolute_ref->owner_kind);
+  M68K_C_ASSERT_U32(M68K_SIM_ACCESS_COMPUTE_ADDRESS, absolute_ref->access_kind);
+  M68K_C_ASSERT_U32(0U, absolute_ref->access_width);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":3") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"execbase_literal\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"hardware_register\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_symbol\":\"intena\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"absolute_memory\"") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_copper_bitmap_pointers_render_display_layout_comment(void) {
   M68kObject object;
   M68kSection section;
@@ -14485,6 +14555,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_renders_seeded_lvo_symbol},
     {"facts_v2_render_asm_source_symbols_amiga_hardware_registers",
       test_facts_v2_render_asm_source_symbols_amiga_hardware_registers},
+    {"facts_v2_analysis_records_absolute_memory_refs",
+      test_facts_v2_analysis_records_absolute_memory_refs},
     {"amiga_runtime_address_sinks_are_generated_from_hardware_metadata",
       test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata},
     {"amiga_runtime_struct_id_none_is_zero_safe",

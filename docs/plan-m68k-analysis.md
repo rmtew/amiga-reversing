@@ -62,7 +62,7 @@ Reviewed implementation and tests before updating this plan. Current state:
 | Typed structs vs app slots | Typed app-slot field regions are skipped from flat RSSET output; `_custom` offset false positives have an isolated test; C JSON now includes resolved and unresolved platform typed accesses in `memory_layout_records`. | Need richer ownership ranges for whole platform structs, not only observed field accesses. |
 | ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, policy-vs-inferred precedence, corpus tags, and listing navigation for materialized/suppressed runtime views. | Runtime-copy facts still need explicit wrapper-load/helper/final-image relationships. |
 | Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, relative `target-base` rendering, C JSON `table_records` derived from accepted structured table data, consumer instruction provenance, source-pattern provenance, code-overlap conflict state, and C JSON `table_candidate_records` plus corpus tags/xrefs for unresolved indirect/table candidate sites by status, shape, source instruction range, operand index, and source pattern. | Table candidate facts still need rejected table data bounds where value-flow can prove a candidate span. |
-| Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks; C JSON now exposes `memory_layout_records` for base-layout fields, runtime views, and runtime-address references with external hardware sink addresses. | Memory-layout records still need absolute globals, broader hardware register ranges, and unresolved/conflict candidates merged into the same view. |
+| Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks; C JSON now exposes `memory_layout_records` for base-layout fields, runtime views, runtime-address references with external hardware sink addresses, and accepted absolute operands classified as ExecBase, CPU vector, hardware register/range, runtime range, section storage, or absolute memory. | Memory-layout records still need higher-level absolute globals and unresolved/conflict candidates merged into the same view. |
 | Orphaned code | C analysis now records unresolved terminal-decode islands at accepted-code boundaries or data labels as orphan signals without promoting them to accepted code; lookup-table-adjacent islands are classified with missing inbound `jump_table`. | Extend the signal with more inbound-evidence classes, nearby context, target metrics, and reconciliation after table/callback/vector improvements. |
 | Targets | Bloodwych has many relative lookup tables; Pandora demonstrates wrapper load vs final copied image; Conqueror demonstrates weak low ORG risk; Carrier stresses packed/runtime-copy ambiguity; GenAm/MonAm remain comparator targets. | Corpus tags should preserve these pattern roles so later changes can be validated across comparable targets. |
 
@@ -163,6 +163,9 @@ proves a distinct base id.
      runtime views, and runtime-address references
    - runtime-address references expose external hardware sink addresses when
      generated platform sink metadata proves the consumer
+   - accepted absolute operands are recorded as `absolute_memory_ref` records
+     with generated access kind, owner classification, owner symbol where known,
+     and accepted-code conflict state
    - copied-code entrypoints
    - stack, bitplane, copper, audio, and app-storage ranges when detected
    - ownership conflicts and accepted-code overlap gates
@@ -390,12 +393,36 @@ All absolute memory access should be classified by ownership before rendering:
 
 Required data analysis:
 
-- track absolute writes, reads, address loads, calls, and jumps
+- track absolute writes, reads, address loads, calls, and jumps; accepted
+  absolute operands are now exposed as C `absolute_memory_ref` records
 - attach each absolute address to a memory owner or leave it numeric
 - merge copy/decompression outputs with runtime entrypoint discovery
 - propagate hardware/display/audio sink types back to source data
 - preserve exact reproduction while avoiding fragile addends
 - expose all accepted and rejected absolute-memory candidates in the web UI
+
+Current corpus measurement after adding accepted absolute operand records:
+
+| Feature | Xrefs |
+| --- | ---: |
+| `memory-layout:record:absolute_memory_ref` | 40,698 |
+| `memory-layout:kind:section_storage` | 25,925 |
+| `memory-layout:kind:runtime_range` | 4,690 |
+| `memory-layout:kind:cpu_vector` | 4,578 |
+| `memory-layout:kind:absolute_memory` | 2,989 |
+| `memory-layout:kind:hardware_register` | 1,343 |
+| `memory-layout:kind:execbase_literal` | 1,159 |
+| `memory-layout:kind:hardware_register_range` | 14 |
+
+Comparator target evidence:
+
+| Target | Absolute operand records |
+| --- | ---: |
+| Bloodwych | 1,232 |
+| GenAm | 115 |
+| MonAm | 84 |
+| Magicland Dizzy | 1,595 |
+| Conqueror main executable | 26 |
 
 ## Design Update Rule
 
@@ -417,8 +444,9 @@ undocumented renderer heuristics.
   intentional or removed from rendering.
 - Large app layouts such as Carrier RNC, Starglider, and Voodoo need stricter
   overlap checks against accepted code and typed structs.
-- Absolute raw/decompressed targets need load address, source extent, and entry
-  range recorded in the same C analysis data used by rendering and the web UI.
+- Absolute raw/decompressed targets have accepted operand memory-layout records;
+  they still need load address, source extent, and entry range merged into the
+  same higher-level target/load relationship model.
 - Runtime-copy facts should explicitly model wrapper load views, helper
   trampolines, and final copied images so one does not incorrectly suppress the
   others.

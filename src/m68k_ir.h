@@ -751,6 +751,30 @@ typedef struct M68kRuntimeAddressRefIR {
   char *data_class;
 } M68kRuntimeAddressRefIR;
 
+typedef enum M68kAbsoluteMemoryOwnerKind {
+  M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN = 0,
+  M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL = 1,
+  M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR = 2,
+  M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER = 3,
+  M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE = 4,
+  M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE = 5,
+  M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE = 6,
+  M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY = 7
+} M68kAbsoluteMemoryOwnerKind;
+
+typedef struct M68kAbsoluteMemoryRefIR {
+  uint32_t offset;
+  uint32_t operand_index;
+  uint32_t source_size;
+  uint32_t access_width;
+  uint32_t address;
+  uint32_t owner_offset;
+  uint8_t access_kind;
+  uint8_t owner_kind;
+  uint8_t confidence;
+  uint8_t conflicted;
+} M68kAbsoluteMemoryRefIR;
+
 typedef struct M68kCodeStartRefIR {
   uint32_t offset;
   uint32_t reason;
@@ -894,6 +918,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kRuntimeAddressRefIR *runtime_address_refs;
   size_t runtime_address_ref_count;
   size_t runtime_address_ref_capacity;
+  M68kAbsoluteMemoryRefIR *absolute_memory_refs;
+  size_t absolute_memory_ref_count;
+  size_t absolute_memory_ref_capacity;
   M68kCodeStartRefIR *code_start_refs;
   size_t code_start_ref_count;
   size_t code_start_ref_capacity;
@@ -1014,6 +1041,8 @@ int m68k_ir_section_analysis_append_runtime_view(M68kSectionAnalysisIR *section_
     const M68kRuntimeViewIR *runtime_view);
 int m68k_ir_section_analysis_append_runtime_address_ref(M68kSectionAnalysisIR *section_analysis,
     const M68kRuntimeAddressRefIR *runtime_address_ref);
+int m68k_ir_section_analysis_append_absolute_memory_ref(M68kSectionAnalysisIR *section_analysis,
+    const M68kAbsoluteMemoryRefIR *absolute_memory_ref);
 int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *section_analysis,
     const M68kCodeStartRefIR *code_start_ref);
 int m68k_ir_source_analysis_create(M68kSourceAnalysisIR *source_analysis);

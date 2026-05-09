@@ -393,6 +393,34 @@ Required analysis facts:
 The renderer should prefer stable symbols for owned memory and keep raw numeric
 values when no owner is proven.
 
+Current C source analysis records accepted absolute operands as
+`absolute_memory_ref` memory-layout records. The operand is accepted only from a
+decoded instruction already reached by flow analysis, and the use kind comes from
+generated simulator metadata:
+
+```
+source instruction       move.w #$1234,$00DFF09A.l
+address                  $00DFF09A
+access                   memory_write
+owner                    hardware_register
+owner symbol             _custom+intena
+conflict gate            mark if a memory read/write overlaps accepted code
+```
+
+Owner classification is provenance-first:
+
+```
+$4 on Amiga        execbase_literal
+CPU vector slot    cpu_vector
+Amiga hardware     hardware_register or hardware_register_range
+runtime map hit    runtime_range
+in-section hit     section_storage
+otherwise          absolute_memory
+```
+
+This fact is diagnostic and navigational. It does not by itself authorize new
+labels or source rewriting.
+
 ## Lookup Tables
 
 Lookup tables must be modelled by the consumer expression, not only by the bytes.

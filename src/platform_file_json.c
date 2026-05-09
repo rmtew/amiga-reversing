@@ -3,6 +3,8 @@
 #include "m68k_fact_ir.h"
 #include "m68k_render_plan.h"
 #include "m68k_source_text_util.h"
+#include "generated/amiga_os_runtime.h"
+#include "generated/m68k_cpu_runtime.h"
 #include "util_arena.h"
 
 static int json_builder_append_nullable_string(JsonBuilder *builder, const char *text);
@@ -11,6 +13,10 @@ static const char *app_slot_access_kind_name(uint8_t access_kind);
 static const char *unresolved_typed_access_classification_name(uint8_t classification);
 static const char *type_provenance_kind_name(uint8_t kind);
 static const char *runtime_view_materialization_reason_name(uint8_t reason);
+static const char *absolute_memory_owner_kind_name(uint8_t owner_kind);
+static void absolute_memory_ref_owner_symbols(const M68kAbsoluteMemoryRefIR *ref,
+  const char **out_symbol, const char **out_base_symbol);
+static const char *listing_operand_access_name(uint8_t access_kind);
 static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt);
 
 static const char *file_kind_name(M68kPlatformFileKind kind) {
@@ -85,6 +91,54 @@ static const char *runtime_view_materialization_reason_name(uint8_t reason) {
   default:
     return "none";
   }
+}
+
+static const char *absolute_memory_owner_kind_name(uint8_t owner_kind) {
+  switch (owner_kind) {
+  case M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL:
+    return "execbase_literal";
+  case M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR:
+    return "cpu_vector";
+  case M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER:
+    return "hardware_register";
+  case M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE:
+    return "hardware_register_range";
+  case M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE:
+    return "runtime_range";
+  case M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE:
+    return "section_storage";
+  case M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY:
+    return "absolute_memory";
+  case M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN:
+  default:
+    return "unknown";
+  }
+}
+
+static void absolute_memory_ref_owner_symbols(const M68kAbsoluteMemoryRefIR *ref,
+    const char **out_symbol, const char **out_base_symbol) {
+  const char *symbol = NULL;
+  const char *base_symbol = NULL;
+  if (ref != NULL) {
+    if (ref->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL) {
+      symbol = "ExecBase";
+    } else if (ref->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR) {
+      const M68kCpuExceptionVectorInfo *vector = m68k_cpu_find_exception_vector_by_address(ref->address);
+      symbol = vector != NULL ? vector->symbol_name : NULL;
+    } else if (ref->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER) {
+      const AmigaOsHardwareRegisterInfo *hardware_register =
+        amiga_os_find_hardware_register_by_cpu_address(ref->address);
+      symbol = hardware_register != NULL ? hardware_register->symbol_name : NULL;
+      base_symbol = hardware_register != NULL ? hardware_register->base_symbol : NULL;
+    } else if (ref->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE) {
+      const AmigaOsHardwareRegisterRangeInfo *hardware_range =
+        amiga_os_find_hardware_register_range_by_cpu_address(ref->address);
+      symbol = hardware_range != NULL ? hardware_range->symbol_name : NULL;
+      base_symbol = hardware_range != NULL ? hardware_range->base_symbol : NULL;
+    }
+  }
+  if (out_symbol != NULL) *out_symbol = symbol;
+  if (out_base_symbol != NULL) *out_base_symbol = base_symbol;
 }
 
 static uint16_t read_u16be_local(const uint8_t *data, size_t size, uint32_t offset, int *ok) {
@@ -1818,6 +1872,7 @@ static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysi
     count += section->recovered_platform_typed_access_count;
     count += section->recovered_platform_unresolved_typed_access_count;
     count += section->runtime_view_count;
+    count += section->absolute_memory_ref_count;
     for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
       const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
       if (ref->has_runtime_address || ref->has_target || (ref->data_class != NULL && ref->data_class[0] != '\0')) {
@@ -1865,6 +1920,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
     size_t unresolved_typed_access_index;
     size_t view_index;
     size_t ref_index;
+    size_t absolute_ref_index;
     for (typed_access_index = 0U; typed_access_index < section->recovered_platform_typed_access_count;
         ++typed_access_index) {
       const M68kRecoveredPlatformTypedAccessIR *access =
@@ -1987,6 +2043,43 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
           (unsigned)ref->confidence) != 0) return -1;
       if (json_builder_append_nullable_string(builder, ref->data_class) != 0) return -1;
       if (json_builder_append(builder, "}") != 0) return -1;
+    }
+    for (absolute_ref_index = 0U; absolute_ref_index < section->absolute_memory_ref_count;
+        ++absolute_ref_index) {
+      const M68kAbsoluteMemoryRefIR *ref = &section->absolute_memory_refs[absolute_ref_index];
+      const char *memory_kind = absolute_memory_owner_kind_name(ref->owner_kind);
+      const char *owner_symbol = NULL;
+      const char *owner_base_symbol = NULL;
+      absolute_memory_ref_owner_symbols(ref, &owner_symbol, &owner_base_symbol);
+      if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_append(builder, "{\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":") != 0)
+        return -1;
+      if (json_builder_append_json_string(builder, memory_kind) != 0) return -1;
+      if (json_builder_appendf(builder,
+          ",\"section_index\":%u,\"source_offset\":%u,\"source_size\":%u,"
+          "\"operand_index\":%u,\"access\":",
+          (unsigned)section->section_index, (unsigned)ref->offset, (unsigned)ref->source_size,
+          (unsigned)ref->operand_index) != 0) {
+        return -1;
+      }
+      if (json_builder_append_json_string(builder, listing_operand_access_name(ref->access_kind)) != 0)
+        return -1;
+      if (json_builder_appendf(builder,
+          ",\"access_width\":%u,\"address\":%u,\"owner_kind\":",
+          (unsigned)ref->access_width, (unsigned)ref->address) != 0) {
+        return -1;
+      }
+      if (json_builder_append_json_string(builder, absolute_memory_owner_kind_name(ref->owner_kind)) != 0)
+        return -1;
+      if (json_builder_append(builder, ",\"owner_symbol\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, owner_symbol) != 0) return -1;
+      if (json_builder_append(builder, ",\"owner_base_symbol\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, owner_base_symbol) != 0) return -1;
+      if (json_builder_appendf(builder,
+          ",\"owner_offset\":%u,\"confidence\":%u,\"conflicted\":%s}",
+          (unsigned)ref->owner_offset, (unsigned)ref->confidence, ref->conflicted ? "true" : "false") != 0) {
+        return -1;
+      }
     }
   }
   return 0;

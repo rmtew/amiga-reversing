@@ -122,6 +122,23 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "sink_address": 0xDFF080,
                         },
                         {
+                            "record_kind": "absolute_memory_ref",
+                            "memory_kind": "hardware_register",
+                            "section_index": 0,
+                            "source_offset": 0x60,
+                            "source_size": 8,
+                            "operand_index": 1,
+                            "access": "memory_write",
+                            "access_width": 2,
+                            "address": 0xDFF09A,
+                            "owner_kind": "hardware_register",
+                            "owner_symbol": "intena",
+                            "owner_base_symbol": "_custom",
+                            "owner_offset": 0x9A,
+                            "confidence": 2,
+                            "conflicted": False,
+                        },
+                        {
                             "record_kind": "platform_typed_access",
                             "memory_kind": "platform_struct_field",
                             "section_index": 0,
@@ -562,15 +579,17 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["table:consumer"], 1)
         self.assertEqual(counts["table:entry_size:2"], 1)
         self.assertEqual(counts["table:conflict_state:clean"], 1)
-        self.assertEqual(counts["memory-layout:any"], 5)
+        self.assertEqual(counts["memory-layout:any"], 6)
         self.assertEqual(counts["memory-layout:record:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_view"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_address_ref"], 1)
+        self.assertEqual(counts["memory-layout:record:absolute_memory_ref"], 1)
         self.assertEqual(counts["memory-layout:record:platform_typed_access"], 1)
         self.assertEqual(counts["memory-layout:record:platform_unresolved_typed_access"], 1)
         self.assertEqual(counts["memory-layout:kind:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:kind:runtime_view_candidate"], 1)
         self.assertEqual(counts["memory-layout:kind:copper_list"], 1)
+        self.assertEqual(counts["memory-layout:kind:hardware_register"], 1)
         self.assertEqual(counts["memory-layout:kind:platform_struct_field"], 1)
         self.assertEqual(counts["memory-layout:kind:platform_struct_unresolved"], 1)
         self.assertEqual(counts["memory-layout:platform_struct:Library"], 1)
@@ -622,6 +641,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["symbol"], "app_0234")
         self.assertEqual(examples["memory-layout:kind:copper_list"][0]["runtime_address"], 0x0E)
         self.assertEqual(examples["memory-layout:kind:copper_list"][0]["sink_address"], 0xDFF080)
+        self.assertEqual(examples["memory-layout:kind:hardware_register"][0]["owner_symbol"], "intena")
         self.assertEqual(examples["memory-layout:platform_struct:Library"][0]["field_expr"], "LIB_VERSION")
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
@@ -947,6 +967,23 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "sink_address": 0xDFF080,
                         },
                         {
+                            "record_kind": "absolute_memory_ref",
+                            "memory_kind": "hardware_register",
+                            "section_index": 0,
+                            "source_offset": 0x60,
+                            "source_size": 8,
+                            "operand_index": 1,
+                            "access": "memory_write",
+                            "access_width": 2,
+                            "address": 0xDFF09A,
+                            "owner_kind": "hardware_register",
+                            "owner_symbol": "intena",
+                            "owner_base_symbol": "_custom",
+                            "owner_offset": 0x9A,
+                            "confidence": 2,
+                            "conflicted": False,
+                        },
+                        {
                             "record_kind": "platform_typed_access",
                             "memory_kind": "platform_struct_field",
                             "section_index": 0,
@@ -1240,6 +1277,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("memory-layout:platform_field:LIB_VERSION", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:kind:runtime_view_candidate", "memory_layout", 0x40, 3), by_feature)
         self.assertIn(("memory-layout:kind:copper_list", "memory_layout", 0x60, 5), by_feature)
+        self.assertIn(("memory-layout:record:absolute_memory_ref", "memory_layout", 0x60, 5), by_feature)
+        self.assertIn(("memory-layout:kind:hardware_register", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("memory-layout:sink_address", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("orphan-code:signal", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:reason:terminal_decode", "orphan_code_signal", 0x84, 8), by_feature)
