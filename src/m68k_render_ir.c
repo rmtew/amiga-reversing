@@ -6231,6 +6231,23 @@ static int render_orphan_candidate_range_is_blocked(const M68kRenderLookup *look
   return 0;
 }
 
+static uint8_t render_orphan_cpu_ceiling(uint8_t max_cpu) {
+  return max_cpu <= M68K_ASM_CPU_68060 ? max_cpu : M68K_ASM_CPU_68060;
+}
+
+static M68kDisasmResult render_orphan_disassemble_for_cpu_ceiling(const uint8_t *data, size_t size,
+    uint8_t max_cpu) {
+  M68kDisasmResult decoded;
+  uint8_t cpu;
+  memset(&decoded, 0, sizeof(decoded));
+  for (cpu = M68K_ASM_CPU_68000; cpu <= render_orphan_cpu_ceiling(max_cpu); ++cpu) {
+    decoded = m68k_disassemble_one_for_cpu(data, size, cpu, m68k_diag_sink(NULL));
+    if (decoded.byte_count != 0U) return decoded;
+    if (cpu == M68K_ASM_CPU_68060) break;
+  }
+  return decoded;
+}
+
 static const M68kDecodeCandidate *render_orphan_decode_candidate_at_offset(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, uint32_t offset, M68kDecodeCandidate *decoded_candidate) {
   const M68kDecodeCandidate *candidate;
@@ -6243,8 +6260,7 @@ static const M68kDecodeCandidate *render_orphan_decode_candidate_at_offset(const
   if (section->data == NULL || offset >= section->size) return NULL;
   if (lookup != NULL && lookup->policy != NULL && lookup->policy->max_cpu != 0U)
     max_cpu = lookup->policy->max_cpu;
-  decoded = m68k_disassemble_one_for_cpu(section->data + offset, section->size - offset, max_cpu,
-    m68k_diag_sink(NULL));
+  decoded = render_orphan_disassemble_for_cpu_ceiling(section->data + offset, section->size - offset, max_cpu);
   if (decoded.byte_count == 0U || decoded.byte_count > UINT8_MAX) return NULL;
   memset(decoded_candidate, 0, sizeof(*decoded_candidate));
   decoded_candidate->offset = offset;
@@ -6323,6 +6339,7 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
     uint32_t cursor = offset;
     uint32_t instruction_count = 0U;
     uint8_t terminal_flow_kind = 0U;
+    uint8_t required_cpu = M68K_ASM_CPU_68000;
     uint32_t terminal_offset = 0U;
     int has_accepted_code_boundary = offset > 0U && accepted_byte_at(section, accepted_bytes, offset - 1U);
     int has_renderable_label = lookup_has_renderable_label(lookup, section->section_index, offset);
@@ -6348,6 +6365,7 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
         break;
       }
       ++instruction_count;
+      if (candidate->target_cpu > required_cpu) required_cpu = candidate->target_cpu;
       metadata = render_cfg_candidate_metadata(candidate, &instruction);
       if (metadata == NULL) break;
       if (!render_cfg_candidate_has_fallthrough(candidate)) {
@@ -6372,6 +6390,7 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
       signal.reason = M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE;
       signal.status = M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED;
       signal.confidence = instruction_count >= 4U ? 90U : 70U;
+      signal.required_cpu = required_cpu;
       signal.instruction_count = instruction_count > UINT8_MAX ? UINT8_MAX : (uint8_t)instruction_count;
       if (has_runtime_view) {
         signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RUNTIME_VIEW;

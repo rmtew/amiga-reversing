@@ -3556,6 +3556,7 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   M68K_C_ASSERT_U32(4U, source_analysis.sections[0].orphan_code_signals[0].size);
   M68K_C_ASSERT_U32(4U, source_analysis.sections[0].orphan_code_signals[0].terminal_offset);
   M68K_C_ASSERT_U32(M68K_SIM_FLOW_RETURN, source_analysis.sections[0].orphan_code_signals[0].terminal_flow_kind);
+  M68K_C_ASSERT_U32(M68K_ASM_CPU_68000, source_analysis.sections[0].orphan_code_signals[0].required_cpu);
   M68K_C_ASSERT_U32(2U, source_analysis.sections[0].orphan_code_signals[0].instruction_count);
   M68K_C_ASSERT_U32(0U, source_analysis.sections[0].orphan_code_signals[0].decode_conflict_count);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE,
@@ -3574,7 +3575,8 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
     "\"orphan_code_signal_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"orphan_code_signal_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"terminal_flow\":\"return\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"instruction_count\":2,\"decode_conflict_count\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"required_cpu\":0,\"instruction_count\":2,"
+    "\"decode_conflict_count\":0") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"reason\":\"terminal_decode\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"status\":\"unresolved\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"context\":\"accepted_code_boundary\"") != NULL);
@@ -3679,6 +3681,51 @@ static int test_facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_call
   M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound\":\"callback\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_class\":\"pointer_table\"") != NULL);
   free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_orphan_signal_records_minimum_decode_cpu(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[10] = {
+    0x4eu, 0x75u,
+    0xf0u, 0x12u, 0x9eu, 0x15u,
+    0x4eu, 0x75u,
+    0x12u, 0x34u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 8U;
+  policy.structured_data_items[0].size = 2U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+  snprintf(policy.structured_data_items[0].semantic_role,
+    sizeof(policy.structured_data_items[0].semantic_role), "lookup_table");
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tptestr #5,(a2),#7\n") == NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
+  M68K_C_ASSERT_U32(M68K_ASM_CPU_68030, source_analysis.sections[0].orphan_code_signals[0].required_cpu);
+  M68K_C_ASSERT_U32(2U, source_analysis.sections[0].orphan_code_signals[0].instruction_count);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -15026,6 +15073,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_orphan_signal_records_label_context},
     {"facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_callback",
       test_facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_callback},
+    {"facts_v2_orphan_signal_records_minimum_decode_cpu",
+      test_facts_v2_orphan_signal_records_minimum_decode_cpu},
     {"facts_v2_reached_terminal_island_is_not_orphan_signal",
       test_facts_v2_reached_terminal_island_is_not_orphan_signal},
     {"facts_v2_render_asm_source_tracks_cross_section_local_wrapper_without_inline_comment",

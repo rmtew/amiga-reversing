@@ -520,11 +520,12 @@ typedef struct M68kOrphanCodeSignalIR {
   uint8_t reason;
   uint8_t status;
   uint8_t confidence;
+  uint8_t required_cpu;
   uint8_t instruction_count;
   uint8_t decode_conflict_count;
   uint8_t context;
   uint8_t missing_inbound;
-  uint8_t reserved[2];
+  uint8_t reserved[1];
   char *nearby_data_class;
   char *nearby_data_relation;
   char *detail;
