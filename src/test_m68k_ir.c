@@ -4808,7 +4808,11 @@ static int test_facts_v2_contained_runtime_range_does_not_emit_second_org(void) 
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
+  size_t runtime_view_index;
+  int found_contained_view = 0;
   uint8_t bytes[24] = {
     0x4eu, 0xf9u, 0x00u, 0x00u, 0x00u, 0x80u,
     0x4eu, 0xf9u, 0x00u, 0x00u, 0x00u, 0x84u,
@@ -4822,6 +4826,7 @@ static int test_facts_v2_contained_runtime_range_does_not_emit_second_org(void) 
   section.size = sizeof(bytes);
   section.data_size = sizeof(bytes);
   section.data = bytes;
+  memset(&source_analysis, 0, sizeof(source_analysis));
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
@@ -4861,6 +4866,32 @@ static int test_facts_v2_contained_runtime_range_does_not_emit_second_org(void) 
   M68K_C_ASSERT(strstr(source, "    ORG $14\n") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source_analysis.section_count == 1U);
+  for (runtime_view_index = 0U; runtime_view_index < source_analysis.sections[0].runtime_view_count;
+       ++runtime_view_index) {
+    const M68kRuntimeViewIR *view = &source_analysis.sections[0].runtime_views[runtime_view_index];
+    if (view->storage_offset == 0x14U && view->runtime_address == 0x84U) {
+      M68K_C_ASSERT_U32(0U, view->materialized);
+      M68K_C_ASSERT_U32(M68K_RUNTIME_VIEW_SUPPRESSED_REDUNDANT_CONTAINED_VIEW,
+        view->materialization_reason);
+      M68K_C_ASSERT_U32(M68K_RUNTIME_VIEW_RELATIONSHIP_CONTAINED_BY_RUNTIME_RANGE,
+        view->relationship.kind);
+      M68K_C_ASSERT_U32(0U, view->relationship.runtime_view_id);
+      M68K_C_ASSERT_U32(0x10U, view->relationship.storage_offset);
+      M68K_C_ASSERT_U32(0x80U, view->relationship.runtime_address);
+      M68K_C_ASSERT_U32(8U, view->relationship.size);
+      found_contained_view = 1;
+    }
+  }
+  M68K_C_ASSERT(found_contained_view);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"relationship_kind_name\":\"contained_by_runtime_range\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"related_runtime_address\":128") != NULL);
+  free(analysis_json);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;

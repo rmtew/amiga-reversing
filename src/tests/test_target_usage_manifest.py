@@ -259,6 +259,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "size": 0x20,
                                     "materialized": False,
                                     "materialization_reason": 103,
+                                    "relationship_kind_name": "exits_to_larger_runtime_range",
+                                    "related_runtime_address": 0x800,
                                 }
                             ],
                             "orphan_code_signals": [
@@ -524,6 +526,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["runtime:view_kind:2"], 1)
         self.assertEqual(counts["runtime:suppressed_org_range"], 1)
         self.assertEqual(counts["runtime:suppressed_org_reason:exit_to_larger_runtime_range"], 1)
+        self.assertEqual(counts["runtime:view_relationship:exits_to_larger_runtime_range"], 1)
+        self.assertEqual(counts["runtime:view_related_range"], 1)
         self.assertEqual(counts["suppressed-weak-org-range"], 1)
         self.assertEqual(counts["orphan-code:signal"], 1)
         self.assertEqual(counts["orphan-code:reason:terminal_decode"], 1)
@@ -1076,6 +1080,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "size": 0x20,
                                 "materialized": False,
                                 "materialization_reason": 103,
+                                "relationship_kind_name": "exits_to_larger_runtime_range",
+                                "related_runtime_address": 0x800,
                             }
                         ],
                         "orphan_code_signals": [
@@ -1260,6 +1266,11 @@ class TargetUsageManifestTests(unittest.TestCase):
             ("runtime:suppressed_org_reason:exit_to_larger_runtime_range", "runtime_view", 0x40, 3),
             by_feature,
         )
+        self.assertIn(
+            ("runtime:view_relationship:exits_to_larger_runtime_range", "runtime_view", 0x40, 3),
+            by_feature,
+        )
+        self.assertIn(("runtime:view_related_range", "runtime_view", 0x40, 3), by_feature)
         self.assertIn(("suppressed-weak-org-range", "runtime_view", 0x40, 3), by_feature)
         self.assertIn(("materialized-org-range", "runtime_org", 0x40, 3), by_feature)
         self.assertIn(("runtime:materialized_org_range", "runtime_org", 0x40, 3), by_feature)

@@ -4947,7 +4947,7 @@ static int append_render_lookup_runtime_views_for_section(const M68kRenderLookup
     view.kind = fact->runtime_kind;
     view.confidence = fact->confidence;
     if (lookup_runtime_range_materialization(lookup, fact, &view.materialized,
-        &view.materialization_reason) != 0) {
+        &view.materialization_reason, &view.relationship) != 0) {
       return -1;
     }
     if (m68k_ir_section_analysis_append_runtime_view(section_analysis, &view) != 0) return -1;

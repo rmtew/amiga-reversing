@@ -725,6 +725,23 @@ typedef enum M68kRuntimeViewMaterializationReason {
   M68K_RUNTIME_VIEW_SUPPRESSED_OVERLAID_BY_RUNTIME_COPY = 107
 } M68kRuntimeViewMaterializationReason;
 
+typedef enum M68kRuntimeViewRelationshipKind {
+  M68K_RUNTIME_VIEW_RELATIONSHIP_NONE = 0,
+  M68K_RUNTIME_VIEW_RELATIONSHIP_EXITS_TO_LARGER_RUNTIME_RANGE = 1,
+  M68K_RUNTIME_VIEW_RELATIONSHIP_CONTAINED_BY_RUNTIME_RANGE = 2,
+  M68K_RUNTIME_VIEW_RELATIONSHIP_OVERLAID_BY_RUNTIME_COPY = 3
+} M68kRuntimeViewRelationshipKind;
+
+typedef struct M68kRuntimeViewRelationshipIR {
+  uint8_t kind;
+  uint8_t reserved0;
+  uint16_t reserved1;
+  uint32_t runtime_view_id;
+  uint32_t storage_offset;
+  uint32_t runtime_address;
+  uint32_t size;
+} M68kRuntimeViewRelationshipIR;
+
 typedef struct M68kRuntimeViewIR {
   uint32_t runtime_view_id;
   uint32_t storage_offset;
@@ -734,6 +751,7 @@ typedef struct M68kRuntimeViewIR {
   uint8_t confidence;
   uint8_t materialized;
   uint8_t materialization_reason;
+  M68kRuntimeViewRelationshipIR relationship;
 } M68kRuntimeViewIR;
 
 typedef struct M68kRuntimeAddressRefIR {

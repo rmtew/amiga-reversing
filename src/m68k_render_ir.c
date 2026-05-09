@@ -4357,6 +4357,29 @@ static int runtime_range_contains_policy_entry_point(const M68kRenderLookup *loo
   return 0;
 }
 
+static void runtime_view_relationship_clear(M68kRuntimeViewRelationshipIR *relationship) {
+  if (relationship != NULL) memset(relationship, 0, sizeof(*relationship));
+}
+
+static void runtime_view_relationship_set_range(const M68kRenderLookup *lookup, const M68kFact *related,
+    uint8_t kind, M68kRuntimeViewRelationshipIR *relationship) {
+  size_t index;
+  if (relationship == NULL) return;
+  runtime_view_relationship_clear(relationship);
+  if (lookup == NULL || related == NULL || kind == M68K_RUNTIME_VIEW_RELATIONSHIP_NONE) return;
+  relationship->kind = kind;
+  relationship->runtime_view_id = UINT32_MAX;
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    if (lookup->runtime_address_ranges[index].fact == related) {
+      relationship->runtime_view_id = (uint32_t)index;
+      break;
+    }
+  }
+  relationship->storage_offset = related->offset;
+  relationship->runtime_address = related->runtime_address;
+  relationship->size = related->size;
+}
+
 static int runtime_range_is_crossed_by_storage_xref(const M68kRenderLookup *lookup, const M68kFact *range) {
   size_t index;
   uint32_t range_end;
@@ -4384,9 +4407,10 @@ static int runtime_range_is_crossed_by_storage_xref(const M68kRenderLookup *look
 }
 
 static int runtime_range_is_exited_to_larger_runtime_range(const M68kRenderLookup *lookup,
-    const M68kFact *range) {
+    const M68kFact *range, const M68kFact **out_related) {
   size_t ref_index;
   uint32_t range_end;
+  if (out_related != NULL) *out_related = NULL;
   if (lookup == NULL || range == NULL || range->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE ||
       range->runtime_kind != M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY ||
       range->confidence >= M68K_FACT_CONFIDENCE_REQUIRED || range->size == 0U ||
@@ -4417,6 +4441,7 @@ static int runtime_range_is_exited_to_larger_runtime_range(const M68kRenderLooku
       }
       if (runtime_range_contains_source(other, ref->target_section_index, ref->target_offset,
           &other_runtime) && other_runtime == ref->runtime_address) {
+        if (out_related != NULL) *out_related = other;
         return 1;
       }
     }
@@ -4424,9 +4449,11 @@ static int runtime_range_is_exited_to_larger_runtime_range(const M68kRenderLooku
   return 0;
 }
 
-static int runtime_range_is_redundant_contained_view(const M68kRenderLookup *lookup, const M68kFact *range) {
+static int runtime_range_is_redundant_contained_view(const M68kRenderLookup *lookup, const M68kFact *range,
+    const M68kFact **out_related) {
   size_t index;
   uint32_t range_end;
+  if (out_related != NULL) *out_related = NULL;
   if (lookup == NULL || range == NULL || range->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE ||
       !range->has_runtime_address || range->size == 0U || range->offset > UINT32_MAX - range->size) {
     return 0;
@@ -4448,7 +4475,10 @@ static int runtime_range_is_redundant_contained_view(const M68kRenderLookup *loo
     delta = range->offset - other->offset;
     if (delta > UINT32_MAX - other->runtime_address) continue;
     if (other->runtime_address + delta != range->runtime_address) continue;
-    if (other->offset < range->offset || other->size > range->size) return 1;
+    if (other->offset < range->offset || other->size > range->size) {
+      if (out_related != NULL) *out_related = other;
+      return 1;
+    }
   }
   return 0;
 }
@@ -4500,9 +4530,11 @@ static int runtime_range_has_code_start_ref(const M68kRenderLookup *lookup, cons
   return 0;
 }
 
-static int runtime_range_is_overlaid_by_runtime_copy(const M68kRenderLookup *lookup, const M68kFact *range) {
+static int runtime_range_is_overlaid_by_runtime_copy(const M68kRenderLookup *lookup, const M68kFact *range,
+    const M68kFact **out_related) {
   size_t index;
   uint64_t range_source_start, range_source_end;
+  if (out_related != NULL) *out_related = NULL;
   if (lookup == NULL || range == NULL || range->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE ||
       range->runtime_kind != M68K_FACT_RUNTIME_RANGE_KIND_POLICY || !range->has_runtime_address ||
       range->offset != 0U || range->size == 0U) {
@@ -4522,16 +4554,21 @@ static int runtime_range_is_overlaid_by_runtime_copy(const M68kRenderLookup *loo
     }
     other_source_start = other->offset;
     other_source_end = other_source_start + other->size;
-    if (range_source_start < other_source_end && other_source_start < range_source_end) return 1;
+    if (range_source_start < other_source_end && other_source_start < range_source_end) {
+      if (out_related != NULL) *out_related = other;
+      return 1;
+    }
   }
   return 0;
 }
 
 int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M68kFact *range,
-    uint8_t *out_materialized, uint8_t *out_reason) {
+    uint8_t *out_materialized, uint8_t *out_reason, M68kRuntimeViewRelationshipIR *out_relationship) {
   size_t index;
+  const M68kFact *related = NULL;
   if (out_materialized != NULL) *out_materialized = 0U;
   if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_MATERIALIZATION_REASON_NONE;
+  runtime_view_relationship_clear(out_relationship);
   if (lookup == NULL || range == NULL) return 0;
   if (range->runtime_kind == M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY) {
     if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_CONFLICTING_DISCOVERED_COPY;
@@ -4541,12 +4578,16 @@ int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M
     if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_CROSSED_BY_STORAGE_XREF;
     return 0;
   }
-  if (runtime_range_is_exited_to_larger_runtime_range(lookup, range)) {
+  if (runtime_range_is_exited_to_larger_runtime_range(lookup, range, &related)) {
     if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_EXIT_TO_LARGER_RUNTIME_RANGE;
+    runtime_view_relationship_set_range(lookup, related,
+      M68K_RUNTIME_VIEW_RELATIONSHIP_EXITS_TO_LARGER_RUNTIME_RANGE, out_relationship);
     return 0;
   }
-  if (runtime_range_is_redundant_contained_view(lookup, range)) {
+  if (runtime_range_is_redundant_contained_view(lookup, range, &related)) {
     if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_REDUNDANT_CONTAINED_VIEW;
+    runtime_view_relationship_set_range(lookup, related,
+      M68K_RUNTIME_VIEW_RELATIONSHIP_CONTAINED_BY_RUNTIME_RANGE, out_relationship);
     return 0;
   }
   if (range->runtime_kind == M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY && range->offset == 0U &&
@@ -4559,8 +4600,10 @@ int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M
     if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_STORAGE_CONTINUATION;
     return 0;
   }
-  if (runtime_range_is_overlaid_by_runtime_copy(lookup, range)) {
+  if (runtime_range_is_overlaid_by_runtime_copy(lookup, range, &related)) {
     if (out_reason != NULL) *out_reason = M68K_RUNTIME_VIEW_SUPPRESSED_OVERLAID_BY_RUNTIME_COPY;
+    runtime_view_relationship_set_range(lookup, related,
+      M68K_RUNTIME_VIEW_RELATIONSHIP_OVERLAID_BY_RUNTIME_COPY, out_relationship);
     return 0;
   }
   if (runtime_range_is_full_source_policy_load_view(lookup, range)) {
@@ -4586,7 +4629,7 @@ int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M
 
 static int runtime_range_is_materialized(const M68kRenderLookup *lookup, const M68kFact *range) {
   uint8_t materialized = 0U;
-  (void)lookup_runtime_range_materialization(lookup, range, &materialized, NULL);
+  (void)lookup_runtime_range_materialization(lookup, range, &materialized, NULL, NULL);
   return materialized != 0U;
 }
 

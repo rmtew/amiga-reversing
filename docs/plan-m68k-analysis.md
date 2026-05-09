@@ -60,7 +60,7 @@ Reviewed implementation and tests before updating this plan. Current state:
 | --- | --- | --- |
 | RSSET/app slots | `render_state_operand_uses_app_base()` rejects known hardware bases and `_custom` offsets; `render_asm_app_extension_rs()` emits app/resident RSSET layouts from field slots and metadata; C source analysis now records rendered base-layout fields and alias overlays as first-class facts; listing JSON exposes those layout fields directly. | Need stronger conflict/ownership checks between large app layouts and accepted code/typed structs. |
 | Typed structs vs app slots | Typed app-slot field regions are skipped from flat RSSET output; `_custom` offset false positives have an isolated test; C JSON now includes resolved and unresolved platform typed accesses in `memory_layout_records`. | Need richer ownership ranges for whole platform structs, not only observed field accesses. |
-| ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, policy-vs-inferred precedence, corpus tags, and listing navigation for materialized/suppressed runtime views. | Runtime-copy facts still need explicit wrapper-load/helper/final-image relationships. |
+| ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, policy-vs-inferred precedence, corpus tags, listing navigation for materialized/suppressed runtime views, and compact C runtime-view relationships for larger-range exits, contained views, and runtime-copy overlays. | Need broader wrapper-load/helper/final-image target metrics and examples across imported disks. |
 | Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, relative `target-base` rendering, C JSON `table_records` derived from accepted structured table data, consumer instruction provenance, source-pattern provenance, code-overlap conflict state, and C JSON `table_candidate_records` plus corpus tags/xrefs for unresolved indirect/table candidate sites by status, shape, source instruction range, operand index, and source pattern. | Table candidate facts still need rejected table data bounds where value-flow can prove a candidate span. |
 | Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks; C JSON now exposes `memory_layout_records` for base-layout fields, runtime views, runtime-address references with external hardware sink addresses, and accepted absolute operands classified as ExecBase, CPU vector, hardware register/range, runtime range, section storage, or absolute memory. | Memory-layout records still need higher-level absolute globals and unresolved/conflict candidates merged into the same view. |
 | Orphaned code | C analysis now records unresolved terminal-decode islands at accepted-code boundaries or data labels as orphan signals without promoting them to accepted code; lookup-table-adjacent islands are classified with missing inbound `jump_table`. | Extend the signal with more inbound-evidence classes, nearby context, target metrics, and reconciliation after table/callback/vector improvements. |
@@ -179,8 +179,11 @@ proves a distinct base id.
    - entrypoint list with reason and confidence
    - classification: materialized ORG, weak trampoline, absolute symbol,
      suppressed candidate, unresolved problem
+   - compact relationship to a stronger runtime view when suppression is caused
+     by larger-range exit, contained view, or runtime-copy overlay: implemented
    - corpus tags and rejected-candidate reason: implemented for runtime-view
-     materialization/suppression reasons and listing navigation
+     materialization/suppression reasons, runtime-view relationships, and
+     listing navigation
    - exact reproduction/source reassembly status
 
 4. Add lookup-table records:
@@ -424,6 +427,18 @@ Comparator target evidence:
 | Magicland Dizzy | 1,595 |
 | Conqueror main executable | 26 |
 
+Runtime-view relationship corpus evidence after adding compact C relationship
+fields:
+
+| Feature | Corpus xrefs |
+| --- | ---: |
+| `runtime:view_related_range` | 6 |
+| `runtime:view_relationship:contained_by_runtime_range` | 4 |
+| `runtime:view_relationship:exits_to_larger_runtime_range` | 2 |
+
+Observed comparators include Bloodwych/Bloodwych disk variants for contained
+runtime views and Conqueror for exits into a stronger copied range.
+
 ## Design Update Rule
 
 `docs/design-m68k-analysis.md` is the tutorial companion to this plan. Each time
@@ -447,9 +462,9 @@ undocumented renderer heuristics.
 - Absolute raw/decompressed targets have accepted operand memory-layout records;
   they still need load address, source extent, and entry range merged into the
   same higher-level target/load relationship model.
-- Runtime-copy facts should explicitly model wrapper load views, helper
-  trampolines, and final copied images so one does not incorrectly suppress the
-  others.
+- Runtime-copy facts now record compact relationships when suppression is caused
+  by a larger range, contained range, or runtime-copy overlay. Remaining work is
+  target-level wrapper/helper/final-image grouping across imported disk targets.
 - Existing alias emission should be backed by explicit alias facts rather than
   produced as a side effect of sorted slot overlap.
 - Lookup-table rendering still needs a single table fact model instead of

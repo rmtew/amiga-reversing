@@ -503,7 +503,7 @@ int lookup_has_renderable_label(const M68kRenderLookup *lookup, size_t section_i
 int lookup_source_runtime_address(const M68kRenderLookup *lookup, size_t section_index,
   uint32_t source_offset, uint32_t *out_runtime_address);
 int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M68kFact *range,
-  uint8_t *out_materialized, uint8_t *out_reason);
+  uint8_t *out_materialized, uint8_t *out_reason, M68kRuntimeViewRelationshipIR *out_relationship);
 int lookup_source_has_materialized_runtime_address(const M68kRenderLookup *lookup, size_t section_index,
   uint32_t source_offset, uint32_t runtime_address);
 int lookup_source_should_render_runtime_label(const M68kRenderLookup *lookup, size_t section_index,

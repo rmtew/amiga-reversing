@@ -216,6 +216,14 @@ is proven to be an independent source-level runtime range.
 Multiple ORGs are valid only when analysis proves independent runtime ranges and
 the assembler's `ORG` semantics keep cross-references correct.
 
+Runtime-view analysis state should stay compact. Each runtime view row records
+the storage range, runtime range, materialization decision, reason, and only
+when proven a related runtime view. Relationship kinds are enum facts such as
+`exits_to_larger_runtime_range`, `contained_by_runtime_range`, and
+`overlaid_by_runtime_copy`. The C row does not store narrative annotations; UI
+and corpus tooling extrapolate those row-level facts into wrapper/helper/final
+image navigation.
+
 ## Bootstraps and In-Memory Relocation
 
 Many Amiga programs do not execute the main program where it appears in the file.

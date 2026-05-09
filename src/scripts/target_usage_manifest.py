@@ -1508,6 +1508,14 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
                         bag.add("suppressed-weak-org-range", example=view_example)
                         if runtime is not None and runtime < 0x100:
                             bag.add("low-vector-trampoline", example=view_example)
+            relationship_name = _string_value(runtime_view.get("relationship_kind_name"))
+            if relationship_name and relationship_name != "none":
+                bag.add(f"runtime:view_relationship:{_safe_part(relationship_name)}", example=view_example)
+                related_runtime = _int_value(runtime_view.get("related_runtime_address"))
+                if related_runtime is not None:
+                    related_example = dict(view_example)
+                    related_example["related_runtime_address"] = related_runtime
+                    bag.add("runtime:view_related_range", example=related_example)
             if storage is not None and runtime is not None and storage != runtime:
                 bag.add("runtime:copied_code")
                 if storage < 0x200 and runtime < 0x1000:
@@ -3344,6 +3352,11 @@ def _analysis_xrefs(
                         xrefs.append(_xref(row, "suppressed-weak-org-range", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or reason_name))
                         if runtime is not None and runtime < 0x100:
                             xrefs.append(_xref(row, "low-vector-trampoline", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or reason_name))
+            relationship_name = _string_value(runtime_view.get("relationship_kind_name"))
+            if relationship_name and relationship_name != "none":
+                related_runtime = _int_value(runtime_view.get("related_runtime_address"))
+                xrefs.append(_xref(row, f"runtime:view_relationship:{_safe_part(relationship_name)}", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=related_runtime, text=row_text or relationship_name))
+                xrefs.append(_xref(row, "runtime:view_related_range", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=related_runtime, text=row_text or relationship_name))
             if storage is not None and runtime is not None and storage != runtime:
                 xrefs.append(_xref(row, "runtime:copied_code", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or f"copied code ${runtime:04X}"))
                 if storage < 0x200 and runtime < 0x1000:

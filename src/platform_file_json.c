@@ -13,6 +13,9 @@ static const char *app_slot_access_kind_name(uint8_t access_kind);
 static const char *unresolved_typed_access_classification_name(uint8_t classification);
 static const char *type_provenance_kind_name(uint8_t kind);
 static const char *runtime_view_materialization_reason_name(uint8_t reason);
+static const char *runtime_view_relationship_kind_name(uint8_t kind);
+static int append_runtime_view_relationship_json(JsonBuilder *builder,
+  const M68kRuntimeViewRelationshipIR *relationship);
 static const char *absolute_memory_owner_kind_name(uint8_t owner_kind);
 static void absolute_memory_ref_owner_symbols(const M68kAbsoluteMemoryRefIR *ref,
   const char **out_symbol, const char **out_base_symbol);
@@ -91,6 +94,35 @@ static const char *runtime_view_materialization_reason_name(uint8_t reason) {
   default:
     return "none";
   }
+}
+
+static const char *runtime_view_relationship_kind_name(uint8_t kind) {
+  switch (kind) {
+  case M68K_RUNTIME_VIEW_RELATIONSHIP_EXITS_TO_LARGER_RUNTIME_RANGE:
+    return "exits_to_larger_runtime_range";
+  case M68K_RUNTIME_VIEW_RELATIONSHIP_CONTAINED_BY_RUNTIME_RANGE:
+    return "contained_by_runtime_range";
+  case M68K_RUNTIME_VIEW_RELATIONSHIP_OVERLAID_BY_RUNTIME_COPY:
+    return "overlaid_by_runtime_copy";
+  case M68K_RUNTIME_VIEW_RELATIONSHIP_NONE:
+  default:
+    return "none";
+  }
+}
+
+static int append_runtime_view_relationship_json(JsonBuilder *builder,
+    const M68kRuntimeViewRelationshipIR *relationship) {
+  if (builder == NULL || relationship == NULL ||
+      relationship->kind == M68K_RUNTIME_VIEW_RELATIONSHIP_NONE) {
+    return 0;
+  }
+  return json_builder_appendf(builder,
+    ",\"relationship_kind\":%u,\"relationship_kind_name\":\"%s\","
+    "\"related_runtime_view_id\":%u,\"related_storage_offset\":%u,"
+    "\"related_runtime_address\":%u,\"related_runtime_size\":%u",
+    (unsigned)relationship->kind, runtime_view_relationship_kind_name(relationship->kind),
+    (unsigned)relationship->runtime_view_id, (unsigned)relationship->storage_offset,
+    (unsigned)relationship->runtime_address, (unsigned)relationship->size);
 }
 
 static const char *absolute_memory_owner_kind_name(uint8_t owner_kind) {
@@ -1997,7 +2029,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
           "{\"record_kind\":\"runtime_view\",\"memory_kind\":\"%s\",\"section_index\":%u,"
           "\"source_offset\":%u,\"source_size\":%u,\"runtime_address\":%u,\"runtime_size\":%u,"
           "\"runtime_view_id\":%u,\"view_kind\":%u,\"confidence\":%u,\"materialized\":%s,"
-          "\"materialization_reason\":%u,\"materialization_reason_name\":\"%s\"}",
+          "\"materialization_reason\":%u,\"materialization_reason_name\":\"%s\"",
           memory_kind, (unsigned)section->section_index, (unsigned)view->storage_offset,
           (unsigned)view->size, (unsigned)view->runtime_address, (unsigned)view->size,
           (unsigned)view->runtime_view_id, (unsigned)view->kind, (unsigned)view->confidence,
@@ -2005,6 +2037,8 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
           runtime_view_materialization_reason_name(view->materialization_reason)) != 0) {
         return -1;
       }
+      if (append_runtime_view_relationship_json(builder, &view->relationship) != 0) return -1;
+      if (json_builder_append(builder, "}") != 0) return -1;
     }
     for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
       const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
@@ -2196,7 +2230,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_appendf(&builder,
           "{\"runtime_view_id\":%u,\"storage_address\":%u,\"storage_offset\":%u,\"size\":%u,"
           "\"runtime_address\":%u,\"kind\":%u,\"confidence\":%u,"
-          "\"materialized\":%s,\"materialization_reason\":%u,\"materialization_reason_name\":\"%s\"}",
+          "\"materialized\":%s,\"materialization_reason\":%u,\"materialization_reason_name\":\"%s\"",
           (unsigned)view->runtime_view_id, (unsigned)view->storage_offset,
           (unsigned)view->storage_offset, (unsigned)view->size, (unsigned)view->runtime_address,
           (unsigned)view->kind, (unsigned)view->confidence, view->materialized ? "true" : "false",
@@ -2204,6 +2238,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
           runtime_view_materialization_reason_name(view->materialization_reason)) != 0) {
         goto oom;
       }
+      if (append_runtime_view_relationship_json(&builder, &view->relationship) != 0) goto oom;
+      if (json_builder_append(&builder, "}") != 0) goto oom;
     }
     if (json_builder_appendf(&builder, "],\"runtime_address_ref_count\":%u,\"runtime_address_refs\":[",
           (unsigned)section->runtime_address_ref_count) != 0)
