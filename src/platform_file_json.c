@@ -2331,9 +2331,9 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
     }
     for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
       const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
-      const char *memory_kind = (ref->data_class != NULL && ref->data_class[0] != '\0') ?
-        ref->data_class : "runtime_address";
-      if (!ref->has_runtime_address && !ref->has_target && (ref->data_class == NULL || ref->data_class[0] == '\0')) {
+      const char *data_class = m68k_analysis_structured_data_role_name_for_flags(ref->data_class_flags);
+      const char *memory_kind = data_class != NULL ? data_class : "runtime_address";
+      if (!ref->has_runtime_address && !ref->has_target && ref->data_class_flags == 0U) {
         continue;
       }
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
@@ -2368,7 +2368,10 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       } else if (json_builder_append(builder, "null") != 0) return -1;
       if (json_builder_appendf(builder, ",\"confidence\":%u,\"data_class\":",
           (unsigned)ref->confidence) != 0) return -1;
-      if (json_builder_append_nullable_string(builder, ref->data_class) != 0) return -1;
+      if (json_builder_append_nullable_string(builder, data_class) != 0) return -1;
+      if (ref->data_class_flags != 0U &&
+          json_builder_appendf(builder, ",\"data_class_flags\":%u", (unsigned)ref->data_class_flags) != 0)
+        return -1;
       if (json_builder_append(builder, "}") != 0) return -1;
     }
     for (absolute_ref_index = 0U; absolute_ref_index < section->absolute_memory_ref_count;
@@ -3341,24 +3344,24 @@ static int listing_data_class_is_known(const char *value) {
   return m68k_analysis_structured_data_role_flags_for_text(value) != 0U;
 }
 
-static const char *listing_data_class_for_structured_item(const M68kAnalysisStructuredDataItem *item) {
-  const char *role_name;
-  if (item == NULL) return NULL;
-  role_name = m68k_analysis_structured_data_role_name_for_flags(item->semantic_role_flags);
-  if (role_name != NULL) return role_name;
-  if (listing_data_class_is_known(item->semantic_role)) return item->semantic_role;
-  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING) return "string";
-  return NULL;
+static uint32_t listing_row_data_class_flags(const M68kAnalysisStructuredDataItem *item, const char *plan_data_class,
+    uint32_t plan_data_class_flags) {
+  uint32_t item_flags;
+  if (item != NULL) {
+    item_flags = structured_data_item_role_flags_json(item);
+    if (item_flags != 0U) return item_flags;
+    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING;
+  }
+  if (plan_data_class_flags != 0U) return plan_data_class_flags;
+  if (listing_data_class_is_known(plan_data_class))
+    return m68k_analysis_structured_data_role_flags_for_text(plan_data_class);
+  return 0U;
 }
 
 static const char *listing_row_data_class(const M68kAnalysisStructuredDataItem *item, const char *plan_data_class,
     uint32_t plan_data_class_flags) {
-  const char *item_class = listing_data_class_for_structured_item(item);
-  const char *plan_class = m68k_analysis_structured_data_role_name_for_flags(plan_data_class_flags);
-  if (item_class != NULL) return item_class;
-  if (plan_class != NULL) return plan_class;
-  if (listing_data_class_is_known(plan_data_class)) return plan_data_class;
-  return NULL;
+  return m68k_analysis_structured_data_role_name_for_flags(
+    listing_row_data_class_flags(item, plan_data_class, plan_data_class_flags));
 }
 
 static int listing_statement_allows_data_class(const M68kStatementIR *stmt) {
@@ -3552,6 +3555,9 @@ static int append_listing_runtime_address_ref_json(JsonBuilder *builder, const M
       (unsigned)ref->confidence) != 0)
     return -1;
   if (json_builder_append_nullable_string(builder, ref->data_class) != 0) return -1;
+  if (ref->data_class_flags != 0U &&
+      json_builder_appendf(builder, ",\"data_class_flags\":%u", (unsigned)ref->data_class_flags) != 0)
+    return -1;
   return json_builder_append(builder, "}");
 }
 
@@ -3569,7 +3575,7 @@ static int append_listing_runtime_address_refs_json(JsonBuilder *builder, const 
     for (index = 0U; index < section_analysis->runtime_address_ref_count; ++index) {
       const M68kRuntimeAddressRefIR *ref = &section_analysis->runtime_address_refs[index];
       if (!ref->has_runtime_address || ref->runtime_address != comment_runtime_address ||
-          ref->data_class == NULL || strstr(comment, ref->data_class) == NULL)
+          ref->data_class_flags == 0U)
         continue;
       if (emitted && json_builder_append(builder, ",") != 0) return -1;
       if (append_listing_runtime_address_ref_json(builder, ref) != 0) return -1;
@@ -5557,7 +5563,7 @@ static int listing_stmt_has_runtime_address_refs(const M68kStatementIR *stmt,
     for (index = 0U; index < section_analysis->runtime_address_ref_count; ++index) {
       const M68kRuntimeAddressRefIR *ref = &section_analysis->runtime_address_refs[index];
       if (ref->has_runtime_address && ref->runtime_address == comment_runtime_address &&
-          ref->data_class != NULL && comment != NULL && strstr(comment, ref->data_class) != NULL)
+          ref->data_class_flags != 0U)
         return 1;
     }
   }
@@ -5628,6 +5634,8 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
   const M68kRuntimeViewIR *runtime_view = NULL;
   uint32_t runtime_address = 0U;
   int suppress_offset_runtime_refs = 0;
+  const char *row_data_class = NULL;
+  uint32_t row_data_class_flags = 0U;
   if (line_length + 1U < sizeof(text)) {
     memcpy(text, line_start, line_length);
     text[line_length] = '\0';
@@ -5659,6 +5667,10 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     stripped_length = strlen(label_text);
     if (stripped_length != 0U && label_text[stripped_length - 1U] == ':') label_text[stripped_length - 1U] = '\0';
     label = label_text;
+  }
+  if (listing_statement_allows_data_class(stmt)) {
+    row_data_class_flags = listing_row_data_class_flags(structured_item, plan_data_class, plan_data_class_flags);
+    row_data_class = m68k_analysis_structured_data_role_name_for_flags(row_data_class_flags);
   }
   if (json_builder_appendf(builder, "{\"row_id\":\"c:%u\",\"kind\":", (unsigned)row_index) != 0) return -1;
   if (json_builder_append_json_string(builder, row_kind) != 0) return -1;
@@ -5790,11 +5802,11 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     if (json_builder_append(builder, ",\"structured_data\":") != 0) return -1;
     if (append_listing_structured_data_json(builder, structured_item) != 0) return -1;
   }
-  if (listing_statement_allows_data_class(stmt) &&
-      listing_row_data_class(structured_item, plan_data_class, plan_data_class_flags) != NULL) {
+  if (row_data_class != NULL) {
     if (json_builder_append(builder, ",\"data_class\":") != 0) return -1;
-    if (json_builder_append_json_string(builder,
-        listing_row_data_class(structured_item, plan_data_class, plan_data_class_flags)) != 0)
+    if (json_builder_append_json_string(builder, row_data_class) != 0)
+      return -1;
+    if (json_builder_appendf(builder, ",\"data_class_flags\":%u", (unsigned)row_data_class_flags) != 0)
       return -1;
   }
   return json_builder_append(builder, "}");
@@ -6412,7 +6424,8 @@ static void listing_navigation_row_code(char *out, size_t out_size, const char *
 }
 
 static int append_listing_navigation_entry(JsonBuilder *builder, const M68kStatementIR *stmt, size_t row_index,
-    int section_index, const char *row_kind, const char *summary, const char *match_text) {
+    int section_index, const char *row_kind, const char *summary, const char *match_text,
+    uint32_t data_class_flags) {
   char stable_key[128];
   if (builder == NULL || stmt == NULL || summary == NULL || match_text == NULL) return -1;
   listing_row_stable_key(stable_key, sizeof(stable_key), section_index, stmt->offset, row_kind, row_index);
@@ -6426,6 +6439,9 @@ static int append_listing_navigation_entry(JsonBuilder *builder, const M68kState
   if (json_builder_append_json_string(builder, stable_key) != 0) return -1;
   if (section_index >= 0 &&
       json_builder_appendf(builder, ",\"hunk_index\":%d,\"section_index\":%d", section_index, section_index) != 0)
+    return -1;
+  if (data_class_flags != 0U &&
+      json_builder_appendf(builder, ",\"data_class_flags\":%u", (unsigned)data_class_flags) != 0)
     return -1;
   return json_builder_append(builder, "}");
 }
@@ -6465,7 +6481,7 @@ static int listing_navigation_typed_data_is_duplicate(ListingNavigationJsonConte
 
 static int append_listing_navigation_typed_data_entry(ListingNavigationJsonContext *navigation,
     const M68kStatementIR *stmt, size_t row_index, int section_index, const char *row_kind, const char *summary,
-    const char *match_text) {
+    const char *match_text, uint32_t data_class_flags) {
   int duplicate = 0;
   if (listing_navigation_typed_data_is_duplicate(navigation, stmt, section_index, summary, &duplicate) != 0)
     return -1;
@@ -6473,7 +6489,7 @@ static int append_listing_navigation_typed_data_entry(ListingNavigationJsonConte
   if (navigation->typed_data_count++ != 0U && json_builder_append(&navigation->typed_data, ",") != 0)
     return -1;
   return append_listing_navigation_entry(&navigation->typed_data, stmt, row_index, section_index, row_kind,
-    summary, match_text);
+    summary, match_text, data_class_flags);
 }
 
 static const M68kRecoveredPlatformTypedAccessIR *listing_navigation_typed_access_at(const M68kSectionAnalysisIR *section,
@@ -6661,7 +6677,7 @@ static int append_listing_navigation_api_call_entry(JsonBuilder *builder, const 
   if (library_name == NULL) library_name = "";
   snprintf(summary, sizeof(summary), call->note_kind == M68K_PLATFORM_CALL_NOTE_INDEXED_VECTOR ?
     "%s dispatch (%s)" : "%s (%s)", function_name, library_name);
-  return append_listing_navigation_entry(builder, stmt, row_index, section_index, row_kind, summary, match_text);
+  return append_listing_navigation_entry(builder, stmt, row_index, section_index, row_kind, summary, match_text, 0U);
 }
 
 static int append_listing_navigation_runtime_view_entry(JsonBuilder *builder, const M68kStatementIR *stmt,
@@ -6676,7 +6692,7 @@ static int append_listing_navigation_runtime_view_entry(JsonBuilder *builder, co
   snprintf(summary, sizeof(summary), "Runtime view $%04X-$%04X -> $%04X %s/%s",
     (unsigned)view->storage_offset, (unsigned)(view->storage_offset + view->size),
     (unsigned)view->runtime_address, state, reason);
-  return append_listing_navigation_entry(builder, stmt, row_index, section_index, row_kind, summary, match_text);
+  return append_listing_navigation_entry(builder, stmt, row_index, section_index, row_kind, summary, match_text, 0U);
 }
 
 static const M68kOrphanCodeSignalIR *listing_navigation_orphan_signal_at(const M68kSectionAnalysisIR *section,
@@ -6698,7 +6714,7 @@ static int append_listing_navigation_orphan_code_entry(JsonBuilder *builder, con
   snprintf(summary, sizeof(summary), "Orphan code signal $%04X-$%04X %s/%s",
     (unsigned)signal->offset, (unsigned)(signal->offset + signal->size),
     orphan_code_signal_reason_name(signal->reason), orphan_code_signal_status_name(signal->status));
-  return append_listing_navigation_entry(builder, stmt, row_index, section_index, row_kind, summary, match_text);
+  return append_listing_navigation_entry(builder, stmt, row_index, section_index, row_kind, summary, match_text, 0U);
 }
 
 static int listing_navigation_append_label_ref(ListingNavigationJsonContext *navigation, const char *symbol,
@@ -6790,7 +6806,7 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
     if (typed_access != NULL) {
       listing_navigation_typed_summary(summary, sizeof(summary), typed_access);
       if (append_listing_navigation_typed_data_entry(navigation, stmt, row_index, section_index, row_kind,
-          summary[0] != '\0' ? summary : match_text, match_text) != 0)
+          summary[0] != '\0' ? summary : match_text, match_text, 0U) != 0)
         return -1;
     }
     for (access_index = 0U; access_index < section->recovered_platform_unresolved_typed_access_count;
@@ -6809,7 +6825,7 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
       if (navigation->relocations_count++ != 0U && json_builder_append(&navigation->relocations, ",") != 0)
         return -1;
       if (append_listing_navigation_entry(&navigation->relocations, stmt, row_index, section_index, row_kind,
-          match_text, match_text) != 0)
+          match_text, match_text, 0U) != 0)
         return -1;
     }
     if (listing_navigation_call_is_target(section, stmt->offset, call)) {
@@ -6829,6 +6845,9 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
     const char *data_class = listing_statement_allows_data_class(stmt)
       ? listing_row_data_class(structured_item, plan_data_class, plan_data_class_flags)
       : NULL;
+    uint32_t data_class_flags = listing_statement_allows_data_class(stmt)
+      ? listing_row_data_class_flags(structured_item, plan_data_class, plan_data_class_flags)
+      : 0U;
     if (listing_structured_data_item_has_json(structured_item) || (comment != NULL && comment[0] != '\0') ||
         data_class != NULL) {
       const char *field = structured_item != NULL && structured_item->field_name[0] != '\0'
@@ -6837,7 +6856,7 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
       const char *data_summary = comment != NULL && comment[0] != '\0' ? comment :
         (data_class != NULL ? data_class : (field != NULL ? field : row_kind));
       if (append_listing_navigation_typed_data_entry(navigation, stmt, row_index, section_index, row_kind,
-          data_summary, match_text) != 0)
+          data_summary, match_text, data_class_flags) != 0)
         return -1;
     }
     if (orphan_signal != NULL) {
@@ -6851,7 +6870,7 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
   if (stmt != NULL && comment != NULL && comment[0] != '\0') {
     if (navigation->comments_count++ != 0U && json_builder_append(&navigation->comments, ",") != 0) return -1;
     if (append_listing_navigation_entry(&navigation->comments, stmt, row_index, section_index, row_kind, comment,
-        match_text) != 0)
+        match_text, 0U) != 0)
       return -1;
   }
   return 0;

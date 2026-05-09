@@ -392,6 +392,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "section_index": 0,
                             "start_offset": 0x60,
                             "data_class": "copper_list",
+                            "data_class_flags": 1,
                         },
                         {
                             "kind": "instruction",
@@ -952,6 +953,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "section_index": 0,
                         "start_offset": 0x10,
                         "data_class": "copper_list",
+                        "data_class_flags": 1,
                     }
                 ]
             },
@@ -1374,6 +1376,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "start_offset": 0x50,
                         "stable_key": "row-copper",
                         "data_class": "copper_list",
+                        "data_class_flags": 1,
                     },
                     {
                         "kind": "instruction",

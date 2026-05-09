@@ -232,6 +232,7 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
                 "stable_key": "s0:00003526:data:1",
                 "text": "\tdc.w abs_0_0000355C-abs_0_0000355C,abs_0_0000356A-abs_0_0000355C\t; lookup_table\n",
                 "data_class": "lookup_table",
+                "data_class_flags": 8,
             },
             {
                 "kind": "data",
@@ -240,6 +241,7 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
                 "stable_key": "s0:00007D44:data:1",
                 "text": "\tdc.l abs_0_00007CA0,abs_0_00007CA6,$00000000,abs_0_00007CD6\t; lookup_table\n",
                 "data_class": "lookup_table",
+                "data_class_flags": 8,
             },
             {
                 "kind": "data",
@@ -248,6 +250,7 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
                 "stable_key": "s0:0000C266:data:1",
                 "text": "\tdc.l abs_0_0000C53C\t; pointer_table\n",
                 "data_class": "pointer_table",
+                "data_class_flags": 4,
             },
             {
                 "kind": "label",
@@ -256,6 +259,7 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
                 "stable_key": "s0:0000DDBA:label:1",
                 "text": "loc_0_0000DDBA:",
                 "data_class": "string",
+                "data_class_flags": 128,
             },
         ]
     }

@@ -4068,6 +4068,7 @@ static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *look
   entry->ref.runtime_address = runtime_address;
   entry->ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
   entry->data_class_flags = role_flags;
+  entry->ref.data_class_flags = role_flags;
   snprintf(entry->data_class, sizeof(entry->data_class), "%s", role_name);
   entry->ref.data_class = entry->data_class;
   ++lookup->inferred_runtime_address_ref_count;
@@ -5145,6 +5146,7 @@ static int append_render_lookup_runtime_address_refs_for_section(const M68kRende
     ref.runtime_address = fact->runtime_address;
     ref.confidence = fact->confidence;
     ref.data_class = (char *)runtime_address_ref_data_class(lookup, decode, fact);
+    ref.data_class_flags = m68k_analysis_structured_data_role_flags_for_text(ref.data_class);
     if (m68k_ir_section_analysis_append_runtime_address_ref(section_analysis, &ref) != 0) return -1;
   }
   for (index = 0U; index < lookup->inferred_runtime_address_ref_count; ++index) {

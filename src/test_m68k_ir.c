@@ -7916,6 +7916,7 @@ static int test_listing_json_uses_render_plan_data_class(void) {
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"kind\":\"data\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"data_class\":\"lookup_table\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"data_class_flags\":8") != NULL);
   first_data_class = strstr(rows_json, "\"data_class\":\"lookup_table\"");
   M68K_C_ASSERT(first_data_class != NULL);
   M68K_C_ASSERT(strstr(first_data_class + 1, "\"data_class\":\"lookup_table\"") == NULL);
@@ -7943,6 +7944,7 @@ static int test_listing_json_uses_render_plan_data_class_flags(void) {
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"data_class\":\"sprite\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"data_class_flags\":4096") != NULL);
 
   free(rows_json);
   m68k_render_plan_destroy(&render_plan);
@@ -7972,6 +7974,7 @@ static int test_listing_navigation_uses_render_plan_data_class(void) {
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &navigation_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(navigation_json != NULL);
   M68K_C_ASSERT(strstr(navigation_json, "\"typed-data\":[{\"addr\":32,\"row_index\":0,\"summary\":\"lookup_table\"") != NULL);
+  M68K_C_ASSERT(strstr(navigation_json, "\"data_class_flags\":8") != NULL);
   first_summary = strstr(navigation_json, "\"summary\":\"lookup_table\"");
   M68K_C_ASSERT(first_summary != NULL);
   M68K_C_ASSERT(strstr(first_summary + 1, "\"summary\":\"lookup_table\"") == NULL);
@@ -13263,6 +13266,8 @@ static int test_facts_v2_register_runtime_sink_auto_classifies_copper_list(void)
   M68K_C_ASSERT_U32(1U, source_analysis.sections[0].runtime_address_refs[0].has_sink_address);
   M68K_C_ASSERT_U32(0xDFF080U, source_analysis.sections[0].runtime_address_refs[0].sink_address);
   M68K_C_ASSERT_STR("copper_list", source_analysis.sections[0].runtime_address_refs[0].data_class);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST,
+    source_analysis.sections[0].runtime_address_refs[0].data_class_flags);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address_ref_count\":1") != NULL);

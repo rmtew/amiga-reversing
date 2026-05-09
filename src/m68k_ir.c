@@ -1086,12 +1086,15 @@ int m68k_ir_section_analysis_append_runtime_address_ref(M68kSectionAnalysisIR *s
         existing->runtime_address == runtime_address_ref->runtime_address &&
         existing->has_sink_address == runtime_address_ref->has_sink_address &&
         existing->sink_address == runtime_address_ref->sink_address &&
-        existing->size == runtime_address_ref->size) {
+        existing->size == runtime_address_ref->size &&
+        existing->data_class_flags == runtime_address_ref->data_class_flags) {
       return 0;
     }
   }
   copy = *runtime_address_ref;
   copy.data_class = NULL;
+  if (copy.data_class_flags == 0U)
+    copy.data_class_flags = m68k_analysis_structured_data_role_flags_for_text(runtime_address_ref->data_class);
   if (runtime_address_ref->data_class != NULL) {
     copy.data_class = arena_strdup(section_analysis->arena, runtime_address_ref->data_class);
     if (copy.data_class == NULL) return -1;

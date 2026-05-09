@@ -807,6 +807,7 @@ typedef struct M68kRuntimeAddressRefIR {
   uint32_t target_offset;
   uint32_t runtime_address;
   uint32_t sink_address;
+  uint32_t data_class_flags;
   char *data_class;
 } M68kRuntimeAddressRefIR;
 

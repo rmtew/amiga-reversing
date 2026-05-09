@@ -60,6 +60,36 @@ PLATFORM_EFFECT_NAMES = {
     6: "write_global_base_slot",
     7: "write_typed_global_slot",
 }
+DATA_ROLE_COPPER_LIST = 1 << 0
+DATA_ROLE_PALETTE = 1 << 1
+DATA_ROLE_POINTER_TABLE = 1 << 2
+DATA_ROLE_LOOKUP_TABLE = 1 << 3
+DATA_ROLE_LENGTH_PREFIXED_STRING = 1 << 4
+DATA_ROLE_BITMAP = 1 << 5
+DATA_ROLE_SOUND_SAMPLE = 1 << 6
+DATA_ROLE_STRING = 1 << 7
+DATA_ROLE_AUDIO_TABLE = 1 << 8
+DATA_ROLE_BLITTER_DESTINATION = 1 << 9
+DATA_ROLE_BLITTER_SOURCE = 1 << 10
+DATA_ROLE_DISK_BUFFER = 1 << 11
+DATA_ROLE_SPRITE = 1 << 12
+DATA_ROLE_STRING_CONTROL_STREAM = 1 << 13
+DATA_ROLE_NAMES = (
+    (DATA_ROLE_STRING | DATA_ROLE_LENGTH_PREFIXED_STRING, "length_prefixed_string"),
+    (DATA_ROLE_COPPER_LIST, "copper_list"),
+    (DATA_ROLE_PALETTE, "palette"),
+    (DATA_ROLE_POINTER_TABLE, "pointer_table"),
+    (DATA_ROLE_LOOKUP_TABLE, "lookup_table"),
+    (DATA_ROLE_BITMAP, "bitmap"),
+    (DATA_ROLE_SOUND_SAMPLE, "sound_sample"),
+    (DATA_ROLE_STRING, "string"),
+    (DATA_ROLE_AUDIO_TABLE, "audio_table"),
+    (DATA_ROLE_BLITTER_DESTINATION, "blitter_destination"),
+    (DATA_ROLE_BLITTER_SOURCE, "blitter_source"),
+    (DATA_ROLE_DISK_BUFFER, "disk_buffer"),
+    (DATA_ROLE_SPRITE, "sprite"),
+    (DATA_ROLE_STRING_CONTROL_STREAM, "string_control_stream"),
+)
 RUNTIME_VIEW_MATERIALIZATION_REASONS = {
     1: "full_source_policy_load_view",
     2: "policy_entry_point",
@@ -1935,15 +1965,16 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
         if _listing_row_label_symbol(row):
             bag.add("label:any", example=example)
             bag.add("label:definition", example=example)
-        data_class = _listing_row_data_class(row)
-        copper_row = bool(data_class == "copper_list")
+        data_class_flags = _listing_row_data_class_flags(row)
+        data_class = _data_role_name(data_class_flags)
+        copper_row = _data_role_has(data_class_flags, DATA_ROLE_COPPER_LIST)
         hardware_symbol_refs: list[tuple[str, str]] = []
         row_hardware_group_features: set[str] = set()
         if data_class:
             bag.add(f"data:{_safe_part(data_class)}", example=example)
-            for feature in _listing_table_shape_features(text, data_class):
+            for feature in _listing_table_shape_features(text, data_class_flags):
                 bag.add(feature, example=example)
-            if data_class == "copper_list":
+            if _data_role_has(data_class_flags, DATA_ROLE_COPPER_LIST):
                 bag.add("hardware:custom", example=example)
                 row_hardware_group_features.update(amiga_hardware_usage.group_features("_custom", "copper", copper_row=True))
         if not is_equate:
@@ -1985,7 +2016,8 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
             bag.add("app_slot:any", example=example)
             bag.add(f"app_slot:{_safe_part(access)}", example=example)
         for runtime_ref in _dict_items(row.get("runtime_address_refs")):
-            runtime_class = _string_value(runtime_ref.get("data_class"))
+            runtime_class_flags = _int_value(runtime_ref.get("data_class_flags"), 0) or 0
+            runtime_class = _data_role_name(runtime_class_flags)
             runtime_address = _int_value(runtime_ref.get("runtime_address"))
             sink_address = _int_value(runtime_ref.get("sink_address"))
             runtime_example = dict(example)
@@ -1996,7 +2028,7 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
             if runtime_class:
                 bag.add(f"data:{_safe_part(runtime_class)}", example=runtime_example)
                 bag.add("runtime:external_data_ref", example=runtime_example)
-                if runtime_class == "bitmap":
+                if _data_role_has(runtime_class_flags, DATA_ROLE_BITMAP):
                     bag.add("display:bitmap_memory", example=runtime_example)
         for access in _dict_items(row.get("typed_accesses")):
             _add_platform_typed_access_features(bag, access, example=example)
@@ -2045,19 +2077,38 @@ _TABLE_REL_LABEL_RE = re.compile(
 def _listing_row_data_class(row: dict[str, object]) -> str | None:
     if row.get("kind") != "data":
         return None
-    return _string_value(row.get("data_class"))
+    return _data_role_name(_listing_row_data_class_flags(row))
 
 
-def _listing_table_shape_features(text: str, data_class: str | None) -> list[str]:
-    if data_class not in {"lookup_table", "pointer_table"}:
+def _listing_row_data_class_flags(row: dict[str, object]) -> int:
+    if row.get("kind") != "data":
+        return 0
+    return _int_value(row.get("data_class_flags"), 0) or 0
+
+
+def _data_role_name(flags: int) -> str | None:
+    for role_flags, name in DATA_ROLE_NAMES:
+        if flags & role_flags == role_flags:
+            return name
+    return None
+
+
+def _data_role_has(flags: int, role_flag: int) -> bool:
+    return (flags & role_flag) != 0
+
+
+def _listing_table_shape_features(text: str, data_class_flags: int) -> list[str]:
+    lookup_table = _data_role_has(data_class_flags, DATA_ROLE_LOOKUP_TABLE)
+    pointer_table = _data_role_has(data_class_flags, DATA_ROLE_POINTER_TABLE)
+    if not lookup_table and not pointer_table:
         return []
     stripped = text.strip().lower()
     features: list[str] = []
-    if data_class == "lookup_table" and stripped.startswith("dc.w") and _TABLE_REL_LABEL_RE.search(text):
+    if lookup_table and stripped.startswith("dc.w") and _TABLE_REL_LABEL_RE.search(text):
         features.append("analysis:lookup_table:word_relative_labels")
-    if data_class == "lookup_table" and stripped.startswith("dc.l") and _TABLE_LABEL_RE.search(text):
+    if lookup_table and stripped.startswith("dc.l") and _TABLE_LABEL_RE.search(text):
         features.append("analysis:lookup_table:long_label_entries")
-    if data_class == "pointer_table" and stripped.startswith("dc.l") and _TABLE_LABEL_RE.search(text):
+    if pointer_table and stripped.startswith("dc.l") and _TABLE_LABEL_RE.search(text):
         features.append("analysis:pointer_table:long_label_entries")
     return features
 
@@ -3565,8 +3616,9 @@ def _listing_xrefs(
         section_index = _int_value(listing_row.get("section_index"), -1)
         offset = listing_row.get("start_offset") if isinstance(listing_row.get("start_offset"), int) else listing_row.get("addr")
         stable_key = _string_value(listing_row.get("stable_key"))
-        data_class = _listing_row_data_class(listing_row)
-        copper_row = bool(data_class == "copper_list")
+        data_class_flags = _listing_row_data_class_flags(listing_row)
+        data_class = _data_role_name(data_class_flags)
+        copper_row = _data_role_has(data_class_flags, DATA_ROLE_COPPER_LIST)
         hardware_symbol_refs: list[tuple[str, str]] = []
         seen_group_features: set[str] = set()
         example = _offset_example(section_index, offset, stripped_text[:160])
@@ -3648,11 +3700,11 @@ def _listing_xrefs(
             if feature_bag is not None:
                 feature_bag.add(data_feature, example=example)
             xrefs.append(_xref(row, data_feature, "data_class", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=data_class, text=stripped_text))
-            for feature in _listing_table_shape_features(text, data_class):
+            for feature in _listing_table_shape_features(text, data_class_flags):
                 if feature_bag is not None:
                     feature_bag.add(feature, example=example)
                 xrefs.append(_xref(row, feature, "table_shape", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=data_class, text=stripped_text))
-            if data_class == "copper_list":
+            if _data_role_has(data_class_flags, DATA_ROLE_COPPER_LIST):
                 if feature_bag is not None:
                     feature_bag.add("hardware:custom", example=example)
                 xrefs.append(_xref(row, "hardware:custom", "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol="_custom", text=stripped_text))
@@ -3675,7 +3727,7 @@ def _listing_xrefs(
                 if feature_bag is not None:
                     feature_bag.add(feature, example=example)
                 xrefs.append(_xref(row, feature, "hardware_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=stripped_text))
-                if data_class == "copper_list":
+                if _data_role_has(data_class_flags, DATA_ROLE_COPPER_LIST):
                     feature = f"copper_register:{_safe_part(symbol)}"
                     xrefs.append(_xref(row, feature, "copper_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, text=stripped_text))
                 for feature in amiga_hardware_usage.group_features(base, symbol, copper_row=copper_row):
@@ -3731,7 +3783,8 @@ def _listing_xrefs(
             xrefs.append(_xref(row, "app_slot:any", "app_slot_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, access=access, value=displacement, text=stripped_text))
             xrefs.append(_xref(row, access_feature, "app_slot_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=symbol, access=access, value=displacement, text=stripped_text))
         for runtime_ref in _dict_items(listing_row.get("runtime_address_refs")):
-            runtime_class = _string_value(runtime_ref.get("data_class"))
+            runtime_class_flags = _int_value(runtime_ref.get("data_class_flags"), 0) or 0
+            runtime_class = _data_role_name(runtime_class_flags)
             runtime_address = _int_value(runtime_ref.get("runtime_address"))
             sink_address = _int_value(runtime_ref.get("sink_address"))
             runtime_example = dict(example)
@@ -3746,7 +3799,7 @@ def _listing_xrefs(
                     feature_bag.add("runtime:external_data_ref", example=runtime_example)
                 xrefs.append(_xref(row, data_feature, "runtime_data_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=runtime_class, value=runtime_address, text=stripped_text))
                 xrefs.append(_xref(row, "runtime:external_data_ref", "runtime_data_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=runtime_class, value=runtime_address, text=stripped_text))
-                if runtime_class == "bitmap":
+                if _data_role_has(runtime_class_flags, DATA_ROLE_BITMAP):
                     if feature_bag is not None:
                         feature_bag.add("display:bitmap_memory", example=runtime_example)
                     xrefs.append(_xref(row, "display:bitmap_memory", "display_ref", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=runtime_class, value=runtime_address, text=stripped_text))

@@ -3610,6 +3610,7 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
             "runtime_address": 0x0C,
             "confidence": 2,
             "data_class": "copper_list",
+            "data_class_flags": 1,
         }
     ]
     assert pointer_row["code_start_refs"] == [
@@ -3647,6 +3648,7 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
             "runtime_address": 0x12345678,
             "confidence": 2,
             "data_class": "bitmap",
+            "data_class_flags": 32,
         }
     ]
     assert all(not row.get("runtime_address_refs") for row in copper_rows[3:])
