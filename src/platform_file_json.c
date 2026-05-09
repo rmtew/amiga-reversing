@@ -2384,7 +2384,9 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_append(builder, ",\"field_expr\":") != 0) return -1;
       if (json_builder_append_json_string(builder, access->field_expr != NULL ? access->field_expr : "") != 0)
         return -1;
-      if (json_builder_append(builder, ",\"type_provenance_kind\":") != 0) return -1;
+      if (json_builder_appendf(builder, ",\"type_provenance_kind_id\":%u,\"type_provenance_kind\":",
+          (unsigned)access->type_provenance_kind) != 0)
+        return -1;
       if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
         return -1;
       if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
@@ -2424,7 +2426,9 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_append_nullable_string(builder, access->container_field_expr) != 0) return -1;
       if (json_builder_append(builder, ",\"refined_struct_name\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, refined_struct_name) != 0) return -1;
-      if (json_builder_append(builder, ",\"type_provenance_kind\":") != 0) return -1;
+      if (json_builder_appendf(builder, ",\"type_provenance_kind_id\":%u,\"type_provenance_kind\":",
+          (unsigned)access->type_provenance_kind) != 0)
+        return -1;
       if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
         return -1;
       if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
@@ -2877,8 +2881,9 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_json_string(&builder, access->field_expr != NULL ? access->field_expr : "") != 0)
         goto oom;
-      if (json_builder_appendf(&builder, ",\"inherited\":%u,\"nested\":%u,\"type_provenance_kind\":",
-          (unsigned)access->inherited, (unsigned)access->nested) != 0)
+      if (json_builder_appendf(&builder,
+          ",\"inherited\":%u,\"nested\":%u,\"type_provenance_kind_id\":%u,\"type_provenance_kind\":",
+          (unsigned)access->inherited, (unsigned)access->nested, (unsigned)access->type_provenance_kind) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder,
           type_provenance_kind_name(access->type_provenance_kind)) != 0)
@@ -2937,7 +2942,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_nullable_string(&builder, refined_struct_name) != 0)
         goto oom;
-      if (json_builder_append(&builder, ",\"type_provenance_kind\":") != 0)
+      if (json_builder_appendf(&builder, ",\"type_provenance_kind_id\":%u,\"type_provenance_kind\":",
+          (unsigned)access->type_provenance_kind) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
         goto oom;
@@ -3795,8 +3801,9 @@ static int append_listing_typed_accesses_json(JsonBuilder *builder, const M68kSt
     if (json_builder_append(builder, ",\"field_expr\":") != 0) return -1;
     if (json_builder_append_json_string(builder, access->field_expr != NULL ? access->field_expr : "") != 0)
       return -1;
-    if (json_builder_appendf(builder, ",\"inherited\":%u,\"nested\":%u,\"type_provenance_kind\":",
-        (unsigned)access->inherited, (unsigned)access->nested) != 0)
+    if (json_builder_appendf(builder,
+        ",\"inherited\":%u,\"nested\":%u,\"type_provenance_kind_id\":%u,\"type_provenance_kind\":",
+        (unsigned)access->inherited, (unsigned)access->nested, (unsigned)access->type_provenance_kind) != 0)
       return -1;
     if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
       return -1;
@@ -3850,7 +3857,9 @@ static int append_listing_unresolved_typed_accesses_json(JsonBuilder *builder, c
     if (json_builder_appendf(builder, ",\"refinement_applied\":%u,\"refined_struct_name\":",
         (unsigned)access->refinement_applied) != 0) return -1;
     if (json_builder_append_nullable_string(builder, refined_struct_name) != 0) return -1;
-    if (json_builder_append(builder, ",\"type_provenance_kind\":") != 0) return -1;
+    if (json_builder_appendf(builder, ",\"type_provenance_kind_id\":%u,\"type_provenance_kind\":",
+        (unsigned)access->type_provenance_kind) != 0)
+      return -1;
     if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
       return -1;
     if (access->type_provenance_kind != M68K_PLATFORM_TYPE_PROVENANCE_NONE &&
@@ -6787,7 +6796,9 @@ static int append_listing_navigation_unresolved_entry(JsonBuilder *builder, cons
       m68k_platform_name_ref_resolve_text_or_fallback(&access->refined_struct_ref,
         access->refined_struct_name)) != 0)
     return -1;
-  if (json_builder_append(builder, ",\"type_provenance_kind\":") != 0) return -1;
+  if (json_builder_appendf(builder, ",\"type_provenance_kind_id\":%u,\"type_provenance_kind\":",
+      (unsigned)access->type_provenance_kind) != 0)
+    return -1;
   if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
     return -1;
   if (access->type_provenance_kind != M68K_PLATFORM_TYPE_PROVENANCE_NONE &&

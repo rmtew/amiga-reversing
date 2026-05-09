@@ -150,6 +150,28 @@ UNRESOLVED_TYPED_ACCESS_CLASSIFICATION_NAMES = {
     UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION: "prefix_extension",
     UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE: "custom_tail_or_mistyped_base",
 }
+TYPE_PROVENANCE_NONE = 0
+TYPE_PROVENANCE_API_OUTPUT = 1
+TYPE_PROVENANCE_REGISTER_COPY = 2
+TYPE_PROVENANCE_STACK_SLOT = 3
+TYPE_PROVENANCE_BASE_SLOT = 4
+TYPE_PROVENANCE_LOOKUP_STORAGE = 5
+TYPE_PROVENANCE_APP_SLOT = 6
+TYPE_PROVENANCE_FIELD_POINTER = 7
+TYPE_PROVENANCE_PREFIX_REFINEMENT = 8
+TYPE_PROVENANCE_FIELD_ADDRESS = 9
+TYPE_PROVENANCE_NAMES = {
+    TYPE_PROVENANCE_NONE: "unknown",
+    TYPE_PROVENANCE_API_OUTPUT: "api_output",
+    TYPE_PROVENANCE_REGISTER_COPY: "register_copy",
+    TYPE_PROVENANCE_STACK_SLOT: "stack_slot",
+    TYPE_PROVENANCE_BASE_SLOT: "base_slot",
+    TYPE_PROVENANCE_LOOKUP_STORAGE: "lookup_storage",
+    TYPE_PROVENANCE_APP_SLOT: "app_slot",
+    TYPE_PROVENANCE_FIELD_POINTER: "field_pointer",
+    TYPE_PROVENANCE_PREFIX_REFINEMENT: "prefix_refinement",
+    TYPE_PROVENANCE_FIELD_ADDRESS: "field_address",
+}
 RUNTIME_VIEW_MATERIALIZATION_REASONS = {
     1: "full_source_policy_load_view",
     2: "policy_entry_point",
@@ -1336,9 +1358,21 @@ def _platform_typed_access_parts(access: dict[str, Any]) -> tuple[str | None, st
     return root_struct, owner_struct, field_name, field_expr
 
 
-def _typed_access_provenance(access: dict[str, Any]) -> tuple[str | None, int | None, int | None]:
+def _typed_access_provenance_id(access: dict[str, Any]) -> int | None:
+    return _int_value(access.get("type_provenance_kind_id"))
+
+
+def _typed_access_provenance_name(kind_id: int | None) -> str | None:
+    if kind_id is None:
+        return None
+    return TYPE_PROVENANCE_NAMES.get(kind_id, "unknown")
+
+
+def _typed_access_provenance(access: dict[str, Any]) -> tuple[int | None, str | None, int | None, int | None]:
+    kind_id = _typed_access_provenance_id(access)
     return (
-        _string_value(access.get("type_provenance_kind")),
+        kind_id,
+        _typed_access_provenance_name(kind_id),
         _int_value(access.get("type_provenance_section")),
         _int_value(access.get("type_provenance_offset")),
     )
@@ -1363,9 +1397,11 @@ def _add_platform_typed_access_features(
 ) -> None:
     root_struct, owner_struct, field_name, field_expr = _platform_typed_access_parts(access)
     owner_for_feature = owner_struct or root_struct
-    type_provenance_kind, _type_provenance_section, _type_provenance_offset = _typed_access_provenance(access)
+    type_provenance_kind_id, type_provenance_kind, _type_provenance_section, _type_provenance_offset = (
+        _typed_access_provenance(access)
+    )
     bag.add("platform_typed_access:any", example=example)
-    if type_provenance_kind:
+    if type_provenance_kind_id is not None:
         bag.add(f"platform_typed_access_provenance:{_safe_part(type_provenance_kind)}", example=example)
     if root_struct:
         bag.add(f"platform_typed_access_struct:{_safe_part(root_struct)}", example=example)
@@ -1754,6 +1790,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             "field_offset", "field_size", "address", "access_width", "owner_offset",
             "range_space_kind", "range_start", "range_size", "range_end", "effect_kind",
             "target_section_index", "displacement", "field_disp", "field_count", "layout_kind",
+            "type_provenance_kind_id",
         ):
             value = _int_value(record.get(key))
             if value is not None:
@@ -3078,7 +3115,9 @@ def _platform_typed_access_xrefs(
     owner_for_feature = owner_struct or root_struct
     text = row_text or field_expr or field_name or owner_for_feature or "typed platform access"
     field_offset = _int_value(access.get("field_offset"))
-    type_provenance_kind, type_provenance_section, type_provenance_offset = _typed_access_provenance(access)
+    type_provenance_kind_id, type_provenance_kind, type_provenance_section, type_provenance_offset = (
+        _typed_access_provenance(access)
+    )
     xrefs = [
         _xref(
             target_row,
@@ -3212,7 +3251,7 @@ def _platform_typed_access_xrefs(
                 text=text,
             )
         )
-    if type_provenance_kind:
+    if type_provenance_kind_id is not None:
         xrefs.append(
             _xref(
                 target_row,
@@ -3225,13 +3264,15 @@ def _platform_typed_access_xrefs(
                 symbol=field_name,
                 value=field_offset,
                 text=text,
+                type_provenance_kind_id=type_provenance_kind_id,
                 type_provenance_kind=type_provenance_kind,
                 type_provenance_section=type_provenance_section,
                 type_provenance_offset=type_provenance_offset,
             )
         )
-    if type_provenance_kind:
+    if type_provenance_kind_id is not None:
         for xref in xrefs:
+            xref["type_provenance_kind_id"] = type_provenance_kind_id
             xref["type_provenance_kind"] = type_provenance_kind
             if type_provenance_section is not None:
                 xref["type_provenance_section"] = type_provenance_section
@@ -3260,7 +3301,8 @@ def _platform_unresolved_typed_access_xrefs(
     container_field_expr = _string_value(access.get("container_field_expr"))
     refinement_applied = access.get("refinement_applied") is True or access.get("refinement_applied") == 1
     refined_struct_name = _string_value(access.get("refined_struct_name"))
-    type_provenance_kind = _string_value(access.get("type_provenance_kind"))
+    type_provenance_kind_id = _typed_access_provenance_id(access)
+    type_provenance_kind = _typed_access_provenance_name(type_provenance_kind_id)
     type_provenance_section = _int_value(access.get("type_provenance_section"))
     type_provenance_offset = _int_value(access.get("type_provenance_offset"))
     text = row_text or root_struct or "unresolved typed platform access"
@@ -3284,6 +3326,7 @@ def _platform_unresolved_typed_access_xrefs(
             container_field_expr=container_field_expr,
             refinement_applied=refinement_applied,
             refined_struct_name=refined_struct_name,
+            type_provenance_kind_id=type_provenance_kind_id,
             type_provenance_kind=type_provenance_kind,
             type_provenance_section=type_provenance_section,
             type_provenance_offset=type_provenance_offset,
@@ -3307,6 +3350,7 @@ def _platform_unresolved_typed_access_xrefs(
             container_field_expr=container_field_expr,
             refinement_applied=refinement_applied,
             refined_struct_name=refined_struct_name,
+            type_provenance_kind_id=type_provenance_kind_id,
             type_provenance_kind=type_provenance_kind,
             type_provenance_section=type_provenance_section,
             type_provenance_offset=type_provenance_offset,
@@ -3333,6 +3377,7 @@ def _platform_unresolved_typed_access_xrefs(
                 container_field_expr=container_field_expr,
                 refinement_applied=True,
                 refined_struct_name=refined_struct_name,
+                type_provenance_kind_id=type_provenance_kind_id,
                 type_provenance_kind=type_provenance_kind,
                 type_provenance_section=type_provenance_section,
                 type_provenance_offset=type_provenance_offset,
@@ -3353,6 +3398,7 @@ def _platform_unresolved_typed_access_xrefs(
                     text=text,
                     refinement_applied=True,
                     refined_struct_name=refined_struct_name,
+                    type_provenance_kind_id=type_provenance_kind_id,
                     type_provenance_kind=type_provenance_kind,
                     type_provenance_section=type_provenance_section,
                     type_provenance_offset=type_provenance_offset,
@@ -3373,6 +3419,7 @@ def _platform_unresolved_typed_access_xrefs(
                     text=text,
                     refinement_applied=True,
                     refined_struct_name=refined_struct_name,
+                    type_provenance_kind_id=type_provenance_kind_id,
                     type_provenance_kind=type_provenance_kind,
                     type_provenance_section=type_provenance_section,
                     type_provenance_offset=type_provenance_offset,
@@ -3397,6 +3444,7 @@ def _platform_unresolved_typed_access_xrefs(
                 container_candidate_count=container_candidate_count,
                 container_struct_name=container_struct_name,
                 container_field_expr=container_field_expr,
+                type_provenance_kind_id=type_provenance_kind_id,
                 type_provenance_kind=type_provenance_kind,
                 type_provenance_section=type_provenance_section,
                 type_provenance_offset=type_provenance_offset,
@@ -3421,6 +3469,7 @@ def _platform_unresolved_typed_access_xrefs(
                 container_candidate_count=container_candidate_count,
                 container_struct_name=container_struct_name,
                 container_field_expr=container_field_expr,
+                type_provenance_kind_id=type_provenance_kind_id,
                 type_provenance_kind=type_provenance_kind,
                 type_provenance_section=type_provenance_section,
                 type_provenance_offset=type_provenance_offset,
@@ -3444,6 +3493,7 @@ def _platform_unresolved_typed_access_xrefs(
                 container_candidate_count=container_candidate_count,
                 container_struct_name=container_struct_name,
                 container_field_expr=container_field_expr,
+                type_provenance_kind_id=type_provenance_kind_id,
                 type_provenance_kind=type_provenance_kind,
                 type_provenance_section=type_provenance_section,
                 type_provenance_offset=type_provenance_offset,
@@ -4529,6 +4579,7 @@ def _xref(
     container_field_expr: str | None = None,
     refinement_applied: object = None,
     refined_struct_name: str | None = None,
+    type_provenance_kind_id: object = None,
     type_provenance_kind: str | None = None,
     type_provenance_section: object = None,
     type_provenance_offset: object = None,
@@ -4568,6 +4619,8 @@ def _xref(
         payload["refinement_applied"] = refinement_applied
     if refined_struct_name is not None:
         payload["refined_struct_name"] = refined_struct_name
+    if isinstance(type_provenance_kind_id, int):
+        payload["type_provenance_kind_id"] = type_provenance_kind_id
     if type_provenance_kind is not None:
         payload["type_provenance_kind"] = type_provenance_kind
     if isinstance(type_provenance_section, int):
@@ -4601,8 +4654,8 @@ def _stable_xref_id(payload: dict[str, object]) -> str:
         keys = (*keys, "struct_size")
     if payload.get("classification_id") is not None:
         keys = (*keys, "classification_id")
-    if payload.get("type_provenance_kind") is not None:
-        keys = (*keys, "type_provenance_kind", "type_provenance_section", "type_provenance_offset")
+    if payload.get("type_provenance_kind_id") is not None:
+        keys = (*keys, "type_provenance_kind_id", "type_provenance_section", "type_provenance_offset")
     raw = json.dumps({key: payload.get(key) for key in keys}, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]
 
@@ -6129,8 +6182,10 @@ def build_unresolved_typed_field_report(
                 example["refinement_applied"] = True
             if refined_struct_name:
                 example["refined_struct_name"] = refined_struct_name
-            type_provenance_kind = _string_value(xref.get("type_provenance_kind"))
-            if type_provenance_kind:
+            type_provenance_kind_id = _int_value(xref.get("type_provenance_kind_id"))
+            type_provenance_kind = _typed_access_provenance_name(type_provenance_kind_id)
+            if type_provenance_kind_id is not None:
+                example["type_provenance_kind_id"] = type_provenance_kind_id
                 example["type_provenance_kind"] = type_provenance_kind
                 type_provenance_offset = _int_value(xref.get("type_provenance_offset"))
                 if type_provenance_offset is not None:
@@ -6301,14 +6356,16 @@ def build_type_flow_report(
             example["refinement_applied"] = True
         if _string_value(xref.get("refined_struct_name")):
             example["refined_struct_name"] = xref.get("refined_struct_name")
-        type_provenance_kind = _string_value(xref.get("type_provenance_kind"))
-        if type_provenance_kind:
+        type_provenance_kind_id = _int_value(xref.get("type_provenance_kind_id"))
+        type_provenance_kind = _typed_access_provenance_name(type_provenance_kind_id)
+        if type_provenance_kind_id is not None:
+            example["type_provenance_kind_id"] = type_provenance_kind_id
             example["type_provenance_kind"] = type_provenance_kind
             if _int_value(xref.get("type_provenance_offset")) is not None:
                 example["type_provenance_offset"] = xref.get("type_provenance_offset")
         if kind == "platform_typed_access" and feature == "platform_typed_access:any":
             bump(report, "resolved_typed_access")
-            if type_provenance_kind:
+            if type_provenance_kind_id is not None:
                 bump_map(report, "typed_access_provenance_counts", type_provenance_kind)
                 bump(report, f"typed_access_provenance:{_safe_part(type_provenance_kind)}")
             add_example(report, "resolved_typed_access", example)
@@ -6320,7 +6377,7 @@ def build_type_flow_report(
             add_example(report, "typed_storage", example)
         elif kind == "platform_unresolved_typed_access" and feature == "typed_base_unresolved_field":
             bump(report, "typed_base_unresolved_field")
-            if type_provenance_kind:
+            if type_provenance_kind_id is not None:
                 bump(report, f"type_provenance:{_safe_part(type_provenance_kind)}")
             if classification_id == UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION:
                 bump(report, "prefix_extension_evidence")
@@ -6335,7 +6392,7 @@ def build_type_flow_report(
             add_example(report, "typed_base_unresolved_field", example)
         elif kind == "platform_type_refinement" and feature == "platform_type_refinement:applied":
             bump(report, "type_refinement_applied")
-            if type_provenance_kind:
+            if type_provenance_kind_id is not None:
                 bump(report, f"type_refinement_provenance:{_safe_part(type_provenance_kind)}")
             add_example(report, "type_refinement_applied", example)
         elif kind == "app_slot_api_arg" and feature == "app_slot:untyped_api_arg":

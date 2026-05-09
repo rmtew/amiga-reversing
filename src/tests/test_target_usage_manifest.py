@@ -338,6 +338,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "owner_struct_name": "Library",
                             "field_name": "LIB_VERSION",
                             "field_expr": "LIB_VERSION",
+                            "type_provenance_kind_id": 1,
                             "type_provenance_kind": "api_output",
                             "range_space_kind": 1,
                             "range_start": 20,
@@ -377,6 +378,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "classification_id": 0,
                             "classification": "field_gap",
                             "root_struct_name": "InputEvent",
+                            "type_provenance_kind_id": 0,
                             "type_provenance_kind": "unknown",
                             "range_space_kind": 1,
                             "range_start": 36,
@@ -449,6 +451,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "field_expr": "LIB_VERSION",
                                     "inherited": False,
                                     "nested": False,
+                                    "type_provenance_kind_id": 1,
                                     "type_provenance_kind": "api_output",
                                     "type_provenance_section": 0,
                                     "type_provenance_offset": 0x20,
@@ -588,6 +591,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "field_expr": "IO_COMMAND",
                                     "inherited": False,
                                     "nested": False,
+                                    "type_provenance_kind_id": 5,
                                     "type_provenance_kind": "lookup_storage",
                                     "type_provenance_section": 0,
                                     "type_provenance_offset": 0x30,
@@ -1419,6 +1423,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "owner_struct_name": "Library",
                             "field_name": "LIB_VERSION",
                             "field_expr": "LIB_VERSION",
+                            "type_provenance_kind_id": 1,
                             "type_provenance_kind": "api_output",
                             "range_space_kind": 1,
                             "range_start": 20,
@@ -1458,6 +1463,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "classification_id": 0,
                             "classification": "field_gap",
                             "root_struct_name": "Library",
+                            "type_provenance_kind_id": 0,
                             "type_provenance_kind": "unknown",
                             "range_space_kind": 1,
                             "range_start": 64,
@@ -1502,6 +1508,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "field_expr": "LIB_VERSION",
                                 "inherited": False,
                                 "nested": False,
+                                "type_provenance_kind_id": 1,
                                 "type_provenance_kind": "api_output",
                                 "type_provenance_section": 0,
                                 "type_provenance_offset": 0x20,
@@ -1639,6 +1646,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "field_expr": "LIB_VERSION",
                                 "inherited": False,
                                 "nested": False,
+                                "type_provenance_kind_id": 1,
                                 "type_provenance_kind": "api_output",
                                 "type_provenance_section": 0,
                                 "type_provenance_offset": 0x20,
@@ -1724,7 +1732,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("typed_storage:any", "typed_storage", 0x30, 2), by_feature)
         self.assertIn(("typed_storage_kind:write_typed_slot", "typed_storage", 0x30, 2), by_feature)
         self.assertIn(("platform_typed_access:any", "platform_typed_access", 0x30, 2), by_feature)
-        self.assertTrue(any(xref.get("type_provenance_kind") == "api_output" for xref in typed_any))
+        self.assertTrue(any(xref.get("type_provenance_kind_id") == 1 for xref in typed_any))
         self.assertIn(("platform_typed_access_provenance:api_output", "platform_typed_access", 0x30, 2), by_feature)
         self.assertIn(("platform_typed_access_struct:Library", "platform_typed_access", 0x30, 2), by_feature)
         self.assertIn(("platform_field:LIB_VERSION", "platform_typed_access", 0x30, 2), by_feature)
@@ -1963,6 +1971,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "symbol": "LIB_VERSION",
                 "value": 20,
                 "text": "cmpi.w #36,LIB_VERSION(a0)",
+                "type_provenance_kind_id": 1,
                 "type_provenance_kind": "api_output",
                 "type_provenance_section": 0,
                 "type_provenance_offset": 0x20,
