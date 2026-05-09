@@ -274,6 +274,8 @@ proves a distinct base id.
      ids rather than falling back to display strings
    - listing label references carry compact access ids internally and in JSON;
      access strings are exported display text only
+   - listing API-call duplicate suppression compares generated Amiga library
+     and function ids, not resolved display names
 
 6. Rendering rules:
    - emit one RSSET block per proven base layout

@@ -6728,19 +6728,11 @@ static int listing_navigation_call_same_function(const M68kRecoveredPlatformCall
     const M68kRecoveredPlatformCallIR *right) {
   const AmigaOsLibraryVectorInfo *left_vector;
   const AmigaOsLibraryVectorInfo *right_vector;
-  const char *left_library;
-  const char *right_library;
-  const char *left_function;
-  const char *right_function;
   if (left == NULL || right == NULL) return 0;
   left_vector = resolve_amiga_call_vector_for_json(left, NULL);
   right_vector = resolve_amiga_call_vector_for_json(right, NULL);
-  left_library = resolve_amiga_call_library_name_for_json(left, left_vector);
-  right_library = resolve_amiga_call_library_name_for_json(right, right_vector);
-  left_function = left_vector != NULL ? amiga_os_name(3U, left_vector->function_id) : NULL;
-  right_function = right_vector != NULL ? amiga_os_name(3U, right_vector->function_id) : NULL;
-  return left_library != NULL && right_library != NULL && left_function != NULL && right_function != NULL &&
-    strcmp(left_library, right_library) == 0 && strcmp(left_function, right_function) == 0;
+  if (left_vector == NULL || right_vector == NULL) return 0;
+  return left_vector->library_id == right_vector->library_id && left_vector->function_id == right_vector->function_id;
 }
 
 static int listing_navigation_call_has_near_lvo_reference(const M68kSectionAnalysisIR *section, uint32_t offset,
