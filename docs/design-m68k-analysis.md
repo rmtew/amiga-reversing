@@ -456,6 +456,31 @@ Without the table edge, `callback_a` and `callback_b` remain orphan-like data.
 With the relocation-backed table edge, they become accepted code and the visible
 source renders the target labels as real instructions, not `dc.w $4E75`.
 
+Another valid inbound edge is a relocated immediate code address moved into an
+address register and then used by indirect control flow. This remains C
+analysis, not renderer guesswork. The trace state may preserve a relocated
+source offset only when generated MOVE metadata identifies an immediate source
+operand, the destination is an address register other than A7, and the immediate
+bytes carry a 32-bit relocation to an even offset in a code section. When a later
+`jsr (aN)` or `jmp (aN)` uses that register, the target is queued as a normal
+control target if it decodes and is not inside already accepted code.
+
+Example:
+
+```asm
+    movea.l #helper,a2
+    jsr (a2)
+    rts
+
+helper:
+    rts
+```
+
+Without the relocated-immediate trace, `helper` can stay as an orphan-like data
+island even though the object relocation proves the address. With the trace,
+the visible source renders `helper` as code and orphan/vector/API signal counts
+fall for the affected target.
+
 The success metric is not "more auto-converted code". The success metric is that
 orphan signals decrease because better jump/lookup table, callback, vector, ORG,
 or absolute-memory analysis found real links.

@@ -215,6 +215,10 @@ static int candidate_lea_absolute_address(const M68kDecodeCandidate *candidate, 
 static int candidate_lea_relocated_address(const M68kFactsV2RelocationLookup *relocation_lookup,
   const M68kFactIR *facts, size_t section_index, const M68kDecodeCandidate *candidate, uint8_t *out_reg,
   size_t *out_target_section, uint32_t *out_target_offset);
+static int candidate_moves_relocated_address_to_address_register(
+  const M68kFactsV2RelocationLookup *relocation_lookup, const M68kFactIR *facts, size_t section_index,
+  const M68kDecodeCandidate *candidate, uint8_t *out_reg, size_t *out_target_section,
+  uint32_t *out_target_offset);
 static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t section_index,
   uint32_t source_offset, uint32_t runtime_address, uint32_t size, uint8_t kind, uint8_t confidence,
   M68kFactIR *facts, M68kFactsV2Profile *profile);
@@ -2799,6 +2803,7 @@ static void trace_state_apply_known_effects(size_t section_index, const M68kDeco
   size_t target_section = 0U;
   uint32_t target_offset = 0U;
   int handled_stack_update = 0;
+  int handled_relocated_address = 0;
   if (candidate == NULL || state == NULL) return;
   if (m68k_decode_candidate_to_instruction(candidate, &instruction) == 0)
     metadata = m68k_sim_metadata_for_instruction(&instruction);
@@ -2830,10 +2835,16 @@ static void trace_state_apply_known_effects(size_t section_index, const M68kDeco
   } else if (candidate_lea_relocated_address(relocation_lookup, facts, section_index, candidate, &reg,
       &target_section, &target_offset)) {
     trace_value_set_source_offset(&state->a[reg], target_section, target_offset);
+    handled_relocated_address = 1;
+  } else if (candidate_moves_relocated_address_to_address_register(relocation_lookup, facts, section_index,
+      candidate, &reg, &target_section, &target_offset)) {
+    trace_value_set_source_offset(&state->a[reg], target_section, target_offset);
+    handled_relocated_address = 1;
   } else if (candidate_lea_absolute_address(candidate, &reg, &value)) {
     trace_value_set_runtime_address_with_origin(&state->a[reg], value, section_index, candidate->offset, 0U);
   }
-  if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA && candidate->operand_count == 2U &&
+  if (!handled_relocated_address && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA &&
+      candidate->operand_count == 2U &&
       operand_immediate_value(candidate->operand_kinds[0], &candidate->operands[0], &value) &&
       operand_is_address_register_direct(&candidate->operands[1], &reg)) {
     trace_value_set_runtime_address(&state->a[reg], value);
@@ -3641,6 +3652,49 @@ static int candidate_lea_relocated_address(const M68kFactsV2RelocationLookup *re
   return 0;
 }
 
+static int candidate_moves_relocated_address_to_address_register(
+    const M68kFactsV2RelocationLookup *relocation_lookup, const M68kFactIR *facts, size_t section_index,
+    const M68kDecodeCandidate *candidate, uint8_t *out_reg, size_t *out_target_section,
+    uint32_t *out_target_offset) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  uint8_t dest_reg = 0U;
+  uint32_t ignored_value = 0U;
+  uint32_t cursor;
+  uint32_t end;
+  M68kAsmOperandValue dest_operand;
+  if (out_reg != NULL) *out_reg = 0U;
+  if (out_target_section != NULL) *out_target_section = 0U;
+  if (out_target_offset != NULL) *out_target_offset = 0U;
+  if (relocation_lookup == NULL || facts == NULL || candidate == NULL || out_reg == NULL ||
+      out_target_section == NULL || out_target_offset == NULL ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      candidate->byte_count > UINT32_MAX - candidate->offset) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || metadata->operation_type != M68K_SIM_OP_MOVE ||
+      metadata->source_operand_index >= candidate->operand_count ||
+      metadata->dest_operand_index >= candidate->operand_count ||
+      !operand_immediate_value(candidate->operand_kinds[metadata->source_operand_index],
+        &candidate->operands[metadata->source_operand_index], &ignored_value)) {
+    return 0;
+  }
+  dest_operand = candidate->operands[metadata->dest_operand_index];
+  dest_operand.kind = candidate->operand_kinds[metadata->dest_operand_index];
+  if (!operand_is_address_register_direct(&dest_operand, &dest_reg) || dest_reg == 7U) return 0;
+  end = candidate->offset + candidate->byte_count;
+  for (cursor = candidate->offset + 2U; cursor < end; ++cursor) {
+    const M68kFact *relocation = relocation_lookup_ref_at(relocation_lookup, facts, section_index, cursor);
+    if (relocation == NULL || relocation->size != 4U) continue;
+    *out_reg = dest_reg;
+    *out_target_section = relocation->target_section_index;
+    *out_target_offset = relocation->target_offset;
+    return 1;
+  }
+  return 0;
+}
+
 static int candidate_lea_pc_relative_data_target(const M68kDecodeCandidate *candidate, size_t section_index,
     uint32_t section_size, uint8_t *out_reg, uint32_t *out_offset) {
   size_t target_index;
@@ -3855,6 +3909,46 @@ static int enqueue_same_section_control_target(M68kDecodeIR *decode, M68kFactIR 
     trace_state);
 }
 
+static int enqueue_cross_section_control_resolved_target_from_offset(M68kDecodeIR *decode, M68kFactIR *facts,
+    M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kFactsV2Profile *profile, uint8_t max_cpu, size_t source_section_index, uint32_t source_offset,
+    size_t target_section_index, uint32_t target_offset, uint8_t confidence) {
+  const M68kDecodeSectionIR *target_section;
+  const M68kDecodeCandidate *target_candidate = NULL;
+  if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      profile == NULL || source_section_index >= decode->section_count ||
+      target_section_index >= decode->section_count || accepted_start[target_section_index] == NULL ||
+      accepted_bytes[target_section_index] == NULL) {
+    return 0;
+  }
+  target_section = &decode->sections[target_section_index];
+  if (target_section->kind != M68K_SECTION_CODE || target_offset >= target_section->size ||
+      (target_offset & 1U) != 0U) {
+    return 0;
+  }
+  if (accepted_offset_is_interior(target_section, accepted_start[target_section_index],
+      accepted_bytes[target_section_index], target_offset)) {
+    if (append_violation_fact_with_reason(facts, target_section_index, target_offset, target_offset,
+        M68K_FACT_CODE_START_REASON_CONTROL_TARGET, source_section_index, source_offset) != 0) {
+      return -1;
+    }
+    return 0;
+  }
+  if (m68k_decode_ir_ensure_candidate_at(decode, target_section_index, target_offset, max_cpu,
+      &target_candidate, m68k_diag_sink(NULL)) != 0) {
+    return -1;
+  }
+  if (target_candidate == NULL) return 0;
+  if (append_cross_section_xref_fact(facts, source_section_index, source_offset, target_section_index,
+      target_offset, confidence) != 0) {
+    return -1;
+  }
+  if (m68k_fact_ir_require_label(facts, target_section_index, target_offset, confidence) != 0) return -1;
+  if (accepted_start[target_section_index][target_offset]) return 0;
+  return enqueue_code_start(facts, queue, profile, target_section_index, target_offset, confidence,
+    M68K_FACT_CODE_START_REASON_CONTROL_TARGET, source_section_index, source_offset);
+}
+
 static int enqueue_same_section_control_trace_target(M68kDecodeIR *decode, M68kFactIR *facts,
     M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
     M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
@@ -3864,7 +3958,13 @@ static int enqueue_same_section_control_trace_target(M68kDecodeIR *decode, M68kF
   if (decode == NULL || target_value == NULL || section_index >= decode->section_count) return 0;
   section = &decode->sections[section_index];
   if (target_value->kind == M68K_FACTS_V2_TRACE_SOURCE_OFFSET) {
-    if (target_value->section_index != section_index || target_value->value >= section->size) return 0;
+    if (target_value->section_index != section_index) {
+      if (candidate == NULL) return 0;
+      return enqueue_cross_section_control_resolved_target_from_offset(decode, facts, queue, accepted_start,
+        accepted_bytes, profile, max_cpu, section_index, candidate->offset, target_value->section_index,
+        target_value->value, confidence);
+    }
+    if (target_value->value >= section->size) return 0;
     return enqueue_same_section_control_resolved_target(decode, facts, queue, accepted_start, accepted_bytes,
       profile, max_cpu, section_index, candidate, target_value->value, 0U, 0U, confidence, trace_state);
   }
@@ -4196,6 +4296,15 @@ static int enqueue_traced_indirect_control_target(M68kDecodeIR *decode, M68kFact
         if (!operand_is_control_address_register_indirect(candidate->operand_kinds[operand_index], operand, &reg))
           continue;
         value = &trace_state->a[reg];
+      }
+      if (value != NULL && value->kind == M68K_FACTS_V2_TRACE_SOURCE_OFFSET) {
+        if (enqueue_same_section_control_trace_target(decode, facts, queue, accepted_start, accepted_bytes,
+            profile, max_cpu, section_index, candidate, value, M68K_FACT_CONFIDENCE_TOOL_INFERRED,
+            runtime_addresses, trace_state) != 0) {
+          return -1;
+        }
+        enqueued = 1;
+        continue;
       }
       {
         int target_set_enqueued = 0;
@@ -4875,10 +4984,18 @@ static int enqueue_immediate_indirect_target_set(M68kDecodeIR *decode, M68kFactI
   for (reg = 0U; reg < 8U; ++reg) {
     uint32_t target_index;
     const M68kFactsV2TraceValue *value = &trace_state->a[reg];
-    if (!trace_value_is_target_set(value) || value->section_index != section_index ||
-        !candidate_indirect_control_uses_address_reg(next_candidate, reg)) {
+    if (!candidate_indirect_control_uses_address_reg(next_candidate, reg)) {
       continue;
     }
+    if (value->kind == M68K_FACTS_V2_TRACE_SOURCE_OFFSET) {
+      if (enqueue_same_section_control_trace_target(decode, facts, queue, accepted_start, accepted_bytes,
+          profile, max_cpu, section_index, next_candidate, value, M68K_FACT_CONFIDENCE_TOOL_INFERRED,
+          runtime_addresses, trace_state) != 0) {
+        return -1;
+      }
+      continue;
+    }
+    if (!trace_value_is_target_set(value) || value->section_index != section_index) continue;
     for (target_index = 0U; target_index < value->target_count; ++target_index) {
       if (enqueue_same_section_control_target_from_offset(decode, facts, queue, accepted_start, accepted_bytes,
           profile, max_cpu, section_index, next_candidate->offset, value->targets[target_index],

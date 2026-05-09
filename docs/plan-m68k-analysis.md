@@ -237,6 +237,13 @@ measurements and test names here, not in the index table.
   to 0, Midwinter II dropped from 3 to 1, vector rows dropped from 31 to 22,
   API rows from 10 to 8, and metadata rows from 219 to 204. Reproduction status
   counts did not change.
+- Orphan/code discovery: relocated immediate code addresses loaded into address
+  registers now retain relocation provenance through trace state, so later
+  `jsr (aN)` / `jmp (aN)` can queue the cross-section target as accepted code.
+  This is gated by generated MOVE metadata, a relocated immediate source,
+  address-register destination, even code-section target, decodability, and no
+  accepted-code interior overlap. The isolated regression is
+  `facts_v2_relocated_indirect_call_promotes_cross_section_target`.
 - Targets: `resources/clone_amiga/Bloodwych-68k/asm/BLOODWYCH439_relabel.asm`
   is available as comparison material for Bloodwych data/source-reference
   investigation only. It must not drive target-specific logic.
@@ -745,6 +752,19 @@ Observed comparator: Damocles `c/ed` has three unresolved indexed direct-stub
 candidate sites in both resource-manifest and promoted project-target views;
 Conqueror/Bloodwych-style code-overlap spans are rejected rather than hidden.
 
+Relocated immediate indirect-control corpus evidence after adding cross-section
+trace provenance:
+
+- Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_relocated_indirect_cross_section.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_relocated_indirect_cross_section.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_relocated_indirect_cross_section.jsonl --variants-output src\build\tmp_target_variant_index_after_relocated_indirect_cross_section.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_relocated_indirect_cross_section.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_relocated_indirect_cross_section.jsonl --workers 8`
+- Scope: 493 entries, 566166 xrefs, 476716 snippet rows, 322 type-flow rows.
+- Carrier `info.library_3fb9d33a`: orphan signals 3 -> 1, vector-missing
+  orphan signals 2 -> 0, OS call xrefs 38 -> 41.
+- Starglider `info.library_3fb9d33a`: orphan signals 3 -> 1,
+  vector-missing orphan signals 2 -> 0, OS call xrefs 38 -> 41.
+- Damocles `printer.device_1aada1d4`: orphan signals 2 -> 1,
+  vector-missing orphan signals 1 -> 0, label definitions 928 -> 944.
+- Direct rebuild exactness passed for all three affected promoted targets.
+
 Actionable unresolved orphan missing-inbound corpus evidence after gating
 suppressed signals out of work-item tags:
 
@@ -825,6 +845,9 @@ undocumented renderer heuristics.
   proven.
 - Copy/vector store recognition uses value backtracking, not fixed adjacent
   instruction pairs.
+- Relocated immediate code addresses loaded into address registers can promote
+  indirect call/jump targets only through relocation provenance and generated
+  MOVE metadata.
 - Jump tables render symbolic target-base expressions when the calculation is
   proven.
 - Orphaned code-like data is reported as a signal, not accepted as code, until an
