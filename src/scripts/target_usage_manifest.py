@@ -231,6 +231,11 @@ RECOVERED_INDIRECT_TABLE_BOUNDS_STATUS_NAMES = {
     0: "none",
     1: "rejected_insufficient_entries",
 }
+RECOVERED_INDIRECT_SOURCE_PATTERN_NAMES = {
+    1: "indirect",
+    2: "indexed_indirect",
+    3: "pc_indexed_indirect",
+}
 STRUCTURED_DATA_SOURCE_PATTERN_NAMES = {
     1: "relocation_pointer_table",
     2: "indexed_word_dispatch",
@@ -1551,12 +1556,9 @@ def _indirect_site_example(section_index: int, site: dict[str, Any]) -> dict[str
     return example
 
 
-def _indirect_site_source_pattern(shape_id: int | None) -> str:
-    if shape_id in {4, 6, 8}:
-        return "pc_indexed_indirect"
-    if shape_id in {3, 5, 7}:
-        return "indexed_indirect"
-    return "indirect"
+def _indirect_site_source_pattern(record: dict[str, Any]) -> str:
+    source_pattern_id = _int_value(record.get("source_pattern_id"), 0) or 0
+    return RECOVERED_INDIRECT_SOURCE_PATTERN_NAMES.get(source_pattern_id, "unknown")
 
 
 def _structured_table_source_pattern(record: dict[str, Any]) -> str | None:
@@ -1586,7 +1588,7 @@ def _add_indirect_site_features(bag: FeatureBag, section_index: int, site: dict[
     status = _recovered_indirect_status_name(site)
     shape = _recovered_indirect_shape_name(site)
     flow = _recovered_indirect_flow_name(site)
-    source_pattern = _indirect_site_source_pattern(_int_value(site.get("shape_id")))
+    source_pattern = _indirect_site_source_pattern(site)
     example = _indirect_site_example(section_index, site)
     example["source_pattern"] = source_pattern
     bag.add("analysis:indirect_site", example=example)
@@ -1602,7 +1604,7 @@ def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]
     status = _recovered_indirect_status_name(record)
     shape = _recovered_indirect_shape_name(record)
     flow = _recovered_indirect_flow_name(record)
-    source_pattern = _indirect_site_source_pattern(_int_value(record.get("shape_id")))
+    source_pattern = _indirect_site_source_pattern(record)
     conflict_state = _conflict_state_name(record)
     example = _offset_example(section_index, offset, f"{flow} {shape} {status}")
     example["status"] = status
@@ -3657,7 +3659,7 @@ def _analysis_xrefs(
         status = _recovered_indirect_status_name(record)
         shape = _recovered_indirect_shape_name(record)
         flow = _recovered_indirect_flow_name(record)
-        source_pattern = _indirect_site_source_pattern(_int_value(record.get("shape_id")))
+        source_pattern = _indirect_site_source_pattern(record)
         conflict_state = _conflict_state_name(record)
         target_count = _int_value(record.get("target_count"))
         source_size = _int_value(record.get("source_size"))
@@ -3992,7 +3994,7 @@ def _analysis_xrefs(
             status = _recovered_indirect_status_name(site)
             shape = _recovered_indirect_shape_name(site)
             flow = _recovered_indirect_flow_name(site)
-            source_pattern = _indirect_site_source_pattern(_int_value(site.get("shape_id")))
+            source_pattern = _indirect_site_source_pattern(site)
             target_count = _int_value(site.get("target_count"))
             text = row_text or _string_value(site.get("detail")) or f"{flow} {shape} {status}"
             features = [

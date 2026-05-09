@@ -1766,20 +1766,6 @@ static uint8_t structured_data_item_table_kind_id(const M68kAnalysisStructuredDa
   return M68K_ANALYSIS_TABLE_KIND_UNKNOWN;
 }
 
-static const char *recovered_indirect_table_candidate_source_pattern(uint8_t shape) {
-  if (shape == M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_BRIEF ||
-      shape == M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_FULL ||
-      shape == M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_MEMIND) {
-    return "pc_indexed_indirect";
-  }
-  if (shape == M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF ||
-      shape == M68K_RECOVERED_INDIRECT_SHAPE_INDEX_FULL ||
-      shape == M68K_RECOVERED_INDIRECT_SHAPE_INDEX_MEMIND) {
-    return "indexed_indirect";
-  }
-  return "indirect";
-}
-
 static int recovered_indirect_site_is_unresolved_table_candidate(const M68kRecoveredIndirectSiteIR *site) {
   if (site == NULL) return 0;
   return site->status != M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE &&
@@ -1843,9 +1829,11 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
     size_t site_index;
     for (site_index = 0U; site_index < section->recovered_indirect_site_count; ++site_index) {
       const M68kRecoveredIndirectSiteIR *site = &section->recovered_indirect_sites[site_index];
+      uint8_t source_pattern_id;
       const char *source_pattern;
       if (!recovered_indirect_site_is_unresolved_table_candidate(site)) continue;
-      source_pattern = recovered_indirect_table_candidate_source_pattern(site->shape);
+      source_pattern_id = m68k_recovered_indirect_source_pattern_id(site->shape);
+      source_pattern = m68k_recovered_indirect_source_pattern_name(source_pattern_id);
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
       if (json_builder_appendf(builder,
           "{\"section_index\":%u,\"offset\":%u,\"source_offset\":%u,\"source_size\":%u,"
@@ -1863,8 +1851,10 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
         return -1;
       if (json_builder_append_json_string(builder, recovered_indirect_status_name(site->status)) != 0)
         return -1;
-      if (json_builder_append(builder, ",\"source_pattern\":") != 0) return -1;
-      if (json_builder_append_json_string(builder, source_pattern) != 0) return -1;
+      if (json_builder_appendf(builder, ",\"source_pattern_id\":%u,\"source_pattern\":",
+          (unsigned)source_pattern_id) != 0)
+        return -1;
+      if (json_builder_append_nullable_string(builder, source_pattern) != 0) return -1;
       if (json_builder_append(builder, ",\"target\":") != 0) return -1;
       if (site->has_target != 0U) {
         if (json_builder_appendf(builder, "%u", (unsigned)site->target) != 0) return -1;
@@ -3129,6 +3119,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       goto oom;
     for (indirect_site_index = 0; indirect_site_index < section->recovered_indirect_site_count; ++indirect_site_index) {
       const M68kRecoveredIndirectSiteIR *site = &section->recovered_indirect_sites[indirect_site_index];
+      uint8_t source_pattern_id = m68k_recovered_indirect_source_pattern_id(site->shape);
+      const char *source_pattern = m68k_recovered_indirect_source_pattern_name(source_pattern_id);
       if (indirect_site_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
       if (json_builder_appendf(&builder,
@@ -3145,6 +3137,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_appendf(&builder, ",\"status_id\":%u,\"status\":", (unsigned)site->status) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, recovered_indirect_status_name(site->status)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"source_pattern_id\":%u,\"source_pattern\":",
+          (unsigned)source_pattern_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, source_pattern) != 0)
         goto oom;
       if (json_builder_append(&builder, ",\"detail\":") != 0)
         goto oom;

@@ -87,6 +87,37 @@ const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pat
   }
 }
 
+uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape) {
+  switch (shape) {
+    case M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_BRIEF:
+    case M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_FULL:
+    case M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_MEMIND:
+      return M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_PC_INDEXED_INDIRECT;
+    case M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF:
+    case M68K_RECOVERED_INDIRECT_SHAPE_INDEX_FULL:
+    case M68K_RECOVERED_INDIRECT_SHAPE_INDEX_MEMIND:
+      return M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDEXED_INDIRECT;
+    case M68K_RECOVERED_INDIRECT_SHAPE_IND:
+    case M68K_RECOVERED_INDIRECT_SHAPE_DISP:
+      return M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDIRECT;
+    default:
+      return M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_UNKNOWN;
+  }
+}
+
+const char *m68k_recovered_indirect_source_pattern_name(uint8_t source_pattern_id) {
+  switch (source_pattern_id) {
+    case M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDIRECT:
+      return "indirect";
+    case M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDEXED_INDIRECT:
+      return "indexed_indirect";
+    case M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_PC_INDEXED_INDIRECT:
+      return "pc_indexed_indirect";
+    default:
+      return NULL;
+  }
+}
+
 const char *m68k_analysis_table_kind_name(uint8_t table_kind_id) {
   switch (table_kind_id) {
     case M68K_ANALYSIS_TABLE_KIND_SCALAR:

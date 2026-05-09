@@ -512,6 +512,13 @@ typedef enum M68kRecoveredIndirectShape {
   M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_MEMIND = 8
 } M68kRecoveredIndirectShape;
 
+typedef enum M68kRecoveredIndirectSourcePattern {
+  M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_UNKNOWN = 0,
+  M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDIRECT = 1,
+  M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDEXED_INDIRECT = 2,
+  M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_PC_INDEXED_INDIRECT = 3
+} M68kRecoveredIndirectSourcePattern;
+
 typedef enum M68kRecoveredIndirectStatus {
   M68K_RECOVERED_INDIRECT_STATUS_UNRESOLVED = 1,
   M68K_RECOVERED_INDIRECT_STATUS_RESOLVED_RUNTIME = 2,
@@ -1087,6 +1094,8 @@ const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_
 const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pattern_id);
 const char *m68k_analysis_table_kind_name(uint8_t table_kind_id);
 const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id);
+uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);
+const char *m68k_recovered_indirect_source_pattern_name(uint8_t source_pattern_id);
 void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStructuredDataItem *item,
   uint32_t semantic_role_flags);
 void m68k_analysis_findings_init(M68kAnalysisFindings *findings);

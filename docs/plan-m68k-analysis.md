@@ -229,9 +229,10 @@ proves a distinct base id.
      table role represented by C `role_flags`
    - consumer instruction/source provenance: implemented for auto-classified
      structured table data as `consumer_section`/`consumer_offset`
-   - source-pattern provenance: implemented as C `source_pattern_id` on
-     structured table facts; JSON derives `source_pattern` as display text,
-     ignores stale source-pattern strings, and corpus tags consume the id
+   - source-pattern provenance: implemented as C enum ids on structured table
+     facts and recovered indirect/table-candidate facts; JSON derives
+     `source_pattern` as display text, ignores stale source-pattern strings,
+     and corpus tags consume the ids
    - semantic role provenance: implemented as C `semantic_role_flags`; JSON
      `semantic_role` is derived display text, C auto-analysis sets roles by
      flags, stale role strings are ignored, and C regression tests assert
@@ -409,7 +410,7 @@ Required data analysis:
    - record unresolved candidate sites so corpus indexing can find similar
      patterns: implemented as C JSON `table_candidate_records` from unresolved
      recovered indirect sites, with status, shape, source instruction range,
-     operand index, and source pattern
+     operand index, and C source-pattern id
 
 ## Orphaned Code Signal Plan
 

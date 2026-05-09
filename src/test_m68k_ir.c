@@ -278,6 +278,34 @@ static int test_structured_data_role_flags_setter_owns_display_text(void) {
   return 0;
 }
 
+static int test_recovered_indirect_source_pattern_ids(void) {
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDIRECT,
+    m68k_recovered_indirect_source_pattern_id(M68K_RECOVERED_INDIRECT_SHAPE_IND));
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDIRECT,
+    m68k_recovered_indirect_source_pattern_id(M68K_RECOVERED_INDIRECT_SHAPE_DISP));
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDEXED_INDIRECT,
+    m68k_recovered_indirect_source_pattern_id(M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF));
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDEXED_INDIRECT,
+    m68k_recovered_indirect_source_pattern_id(M68K_RECOVERED_INDIRECT_SHAPE_INDEX_FULL));
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDEXED_INDIRECT,
+    m68k_recovered_indirect_source_pattern_id(M68K_RECOVERED_INDIRECT_SHAPE_INDEX_MEMIND));
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_PC_INDEXED_INDIRECT,
+    m68k_recovered_indirect_source_pattern_id(M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_BRIEF));
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_PC_INDEXED_INDIRECT,
+    m68k_recovered_indirect_source_pattern_id(M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_FULL));
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_PC_INDEXED_INDIRECT,
+    m68k_recovered_indirect_source_pattern_id(M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_MEMIND));
+  M68K_C_ASSERT_STR("indirect",
+    m68k_recovered_indirect_source_pattern_name(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDIRECT));
+  M68K_C_ASSERT_STR("indexed_indirect",
+    m68k_recovered_indirect_source_pattern_name(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDEXED_INDIRECT));
+  M68K_C_ASSERT_STR("pc_indexed_indirect",
+    m68k_recovered_indirect_source_pattern_name(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_PC_INDEXED_INDIRECT));
+  M68K_C_ASSERT(m68k_recovered_indirect_source_pattern_name(
+    M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_UNKNOWN) == NULL);
+  return 0;
+}
+
 static int test_section_append_statement_copies_data(void) {
   M68kSectionIR section;
   M68kStatementIR statement;
@@ -3520,9 +3548,9 @@ static int test_facts_v2_records_unresolved_indirect_jump_site(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"shape_id\":1,\"shape\":\"ind\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"status_id\":1,\"status\":\"unresolved\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"source_offset\":0,\"source_size\":2,\"operand_index\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern_id\":1,\"source_pattern\":\"indirect\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_candidate_record_count\":1,\"table_candidate_records\":[{\"section_index\":0,\"offset\":0") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern\":\"indirect\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state_id\":2,\"conflict_state\":\"unresolved\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state\":\"unresolved\"") != NULL);
   free(analysis_json);
@@ -3578,7 +3606,7 @@ static int test_facts_v2_records_rejected_indirect_table_bounds(void) {
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"table_candidate_record_count\":1") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern\":\"indexed_indirect\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern_id\":2,\"source_pattern\":\"indexed_indirect\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_offset\":6,\"table_size\":2,\"table_entry_size\":2,\"table_entry_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
@@ -15026,6 +15054,7 @@ int m68k_c_ir_tests(void) {
     {"instruction_mnemonic_helpers_use_id", test_instruction_mnemonic_helpers_use_id},
     {"structured_data_role_flags_setter_owns_display_text",
       test_structured_data_role_flags_setter_owns_display_text},
+    {"recovered_indirect_source_pattern_ids", test_recovered_indirect_source_pattern_ids},
     {"section_append_statement_copies_data", test_section_append_statement_copies_data},
     {"section_analysis_label_dedupes", test_section_analysis_label_dedupes},
     {"source_analysis_append_section_copies_recovered_dispatches",
