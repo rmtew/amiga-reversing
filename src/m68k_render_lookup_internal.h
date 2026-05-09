@@ -77,15 +77,26 @@ typedef struct M68kRenderBaseFieldSlot {
   char library_name[64];
   char symbol_name[64];
   uint8_t value_kind;
+  uint8_t owner_kind;
   uint8_t observed_access_size;
   uint8_t conflicted;
 } M68kRenderBaseFieldSlot;
+
+#define M68K_RENDER_APP_BASE_SYMBOL "__amiga_app_base__"
+#define M68K_RENDER_APP_LAYOUT_NAME "app"
 
 #define M68K_RENDER_BASE_FIELD_SLOT_LIBRARY_BASE 0U
 #define M68K_RENDER_BASE_FIELD_SLOT_IOREQUEST 1U
 #define M68K_RENDER_BASE_FIELD_SLOT_NAMED_VALUE 2U
 #define M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS 3U
 #define M68K_RENDER_BASE_FIELD_SLOT_DEVICE_BASE 4U
+
+#define M68K_RENDER_BASE_FIELD_SLOT_OWNER_NAMED 0U
+#define M68K_RENDER_BASE_FIELD_SLOT_OWNER_APP_BASE 1U
+
+static inline int render_base_field_slot_owner_is_app_base(const M68kRenderBaseFieldSlot *slot) {
+  return slot != NULL && slot->owner_kind == M68K_RENDER_BASE_FIELD_SLOT_OWNER_APP_BASE;
+}
 
 typedef struct M68kRenderIndexedVectorWrapper {
   size_t section_index;

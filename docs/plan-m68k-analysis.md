@@ -64,7 +64,9 @@ sink checks now consume numeric role flags directly. Orphan nearby-data relation
 state is now a compact C enum and corpus indexing consumes the exported relation
 id, not the display string. Resident node-type decisions now use generated Amiga
 symbol ids for `NT_LIBRARY`, `NT_DEVICE`, and `NT_RESOURCE`; node-type names are
-display/export text only.
+display/export text only. Render lookup base-field slots now carry an explicit
+owner-kind byte, so app-base slot decisions use compact state rather than
+comparing the `__amiga_app_base__` display symbol.
 
 | Topic | Current evidence | Gap to address |
 | --- | --- | --- |

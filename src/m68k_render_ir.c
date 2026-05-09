@@ -23,9 +23,6 @@
 #include <string.h>
 #include <time.h>
 
-#define M68K_RENDER_APP_BASE_SYMBOL "__amiga_app_base__"
-#define M68K_RENDER_APP_LAYOUT_NAME "app"
-
 static double elapsed_seconds_local(clock_t start, clock_t end) {
   return (double)(end - start) / (double)CLOCKS_PER_SEC;
 }
@@ -3443,7 +3440,7 @@ static int lookup_typed_app_slot_field_symbol_name(const M68kRenderLookup *looku
   if (lookup == NULL) return 0;
   for (index = 0U; index < lookup->base_field_slot_count; ++index) {
     const M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[index];
-    if (slot->conflicted == 0U && platform_state_name_is_app_base(slot->owner_name) &&
+    if (slot->conflicted == 0U && render_base_field_slot_owner_is_app_base(slot) &&
         slot->displacement == displacement && slot->value_kind != M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS) {
       return 0;
     }
@@ -5136,10 +5133,12 @@ const char *lookup_global_base_slot_library(const M68kRenderLookup *lookup, size
   return NULL;
 }
 
-static int base_field_owner_matches(const char *slot_owner, const char *owner_name) {
-  if (slot_owner == NULL || owner_name == NULL || slot_owner[0] == '\0' || owner_name[0] == '\0') return 0;
-  if (strcmp(slot_owner, owner_name) == 0) return 1;
-  return platform_state_name_is_app_base(slot_owner) && amiga_os_find_library_base_name(owner_name) != NULL;
+static int base_field_owner_matches(const M68kRenderBaseFieldSlot *slot, const char *owner_name) {
+  if (slot == NULL || owner_name == NULL || owner_name[0] == '\0') return 0;
+  if (render_base_field_slot_owner_is_app_base(slot)) {
+    return platform_state_name_is_app_base(owner_name) || amiga_os_find_library_base_name(owner_name) != NULL;
+  }
+  return slot->owner_name[0] != '\0' && strcmp(slot->owner_name, owner_name) == 0;
 }
 
 static int app_base_slot_symbol_name_from_library(const char *library_name, char *symbol_name,
@@ -5172,7 +5171,7 @@ static int app_base_slot_symbol_name_from_slot(const M68kRenderBaseFieldSlot *sl
     return strlen(slot->symbol_name) < symbol_name_size;
   }
   if (slot->library_name[0] == '\0') {
-    if (platform_state_name_is_app_base(slot->owner_name)) {
+    if (render_base_field_slot_owner_is_app_base(slot)) {
       return format_app_base_fallback_slot_symbol_name(slot->displacement, symbol_name, symbol_name_size);
     }
     return 0;
@@ -5273,7 +5272,7 @@ static int lookup_app_base_field_slot_symbol_has_other_displacement(const M68kRe
   for (index = 0U; index < lookup->base_field_slot_count; ++index) {
     const M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[index];
     char other_symbol_name[64];
-    if (slot->conflicted != 0U || !platform_state_name_is_app_base(slot->owner_name)) continue;
+    if (slot->conflicted != 0U || !render_base_field_slot_owner_is_app_base(slot)) continue;
     if (!app_base_slot_symbol_name_from_slot(slot, other_symbol_name, sizeof(other_symbol_name))) continue;
     if (strcmp(symbol_name, other_symbol_name) == 0 && slot->displacement != displacement) return 1;
   }
@@ -5292,8 +5291,8 @@ const char *lookup_base_field_slot_library(const M68kRenderLookup *lookup, const
         !base_field_slot_is_base_pointer(slot)) {
       continue;
     }
-    if (!base_field_owner_matches(slot->owner_name, owner_name)) continue;
-    if (platform_state_name_is_app_base(slot->owner_name) &&
+    if (!base_field_owner_matches(slot, owner_name)) continue;
+    if (render_base_field_slot_owner_is_app_base(slot) &&
         (!app_base_slot_symbol_name_from_slot(slot, symbol_name, sizeof(symbol_name)) ||
           lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, displacement))) {
       continue;
@@ -5315,7 +5314,7 @@ const char *lookup_app_base_field_slot_library(const M68kRenderLookup *lookup, i
         !base_field_slot_is_base_pointer(slot)) {
       continue;
     }
-    if (!platform_state_name_is_app_base(slot->owner_name)) continue;
+    if (!render_base_field_slot_owner_is_app_base(slot)) continue;
     if (!app_base_slot_symbol_name_from_slot(slot, symbol_name, sizeof(symbol_name)) ||
         lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, displacement)) {
       continue;
@@ -5337,8 +5336,8 @@ uint16_t lookup_base_field_slot_struct_id(const M68kRenderLookup *lookup, const 
     char symbol_name[64];
     if (slot->displacement != displacement || slot->conflicted || !base_field_slot_is_base_pointer(slot))
       continue;
-    if (!base_field_owner_matches(slot->owner_name, owner_name)) continue;
-    if (platform_state_name_is_app_base(slot->owner_name) &&
+    if (!base_field_owner_matches(slot, owner_name)) continue;
+    if (render_base_field_slot_owner_is_app_base(slot) &&
         (!app_base_slot_symbol_name_from_slot(slot, symbol_name, sizeof(symbol_name)) ||
           lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, displacement))) {
       continue;
@@ -5361,7 +5360,7 @@ uint16_t lookup_app_base_field_slot_struct_id(const M68kRenderLookup *lookup, in
     char symbol_name[64];
     if (slot->displacement != displacement || slot->conflicted || !base_field_slot_is_base_pointer(slot))
       continue;
-    if (!platform_state_name_is_app_base(slot->owner_name)) continue;
+    if (!render_base_field_slot_owner_is_app_base(slot)) continue;
     if (!app_base_slot_symbol_name_from_slot(slot, symbol_name, sizeof(symbol_name)) ||
         lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, displacement)) {
       continue;
@@ -5380,6 +5379,7 @@ int lookup_base_field_slot_symbol_name(const M68kRenderLookup *lookup, const cha
   int blocked = 0;
   char matched_symbol[64];
   size_t index;
+  int owner_is_app_base = platform_state_name_is_app_base(owner_name);
   if (symbol_name != NULL && symbol_name_size != 0U) symbol_name[0] = '\0';
   if (lookup == NULL || owner_name == NULL || owner_name[0] == '\0' ||
       symbol_name == NULL || symbol_name_size == 0U) {
@@ -5390,21 +5390,26 @@ int lookup_base_field_slot_symbol_name(const M68kRenderLookup *lookup, const cha
     const M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[index];
     char slot_symbol[64];
     if (slot->displacement != displacement) continue;
-    if (strcmp(slot->owner_name, owner_name) != 0) continue;
+    if (owner_is_app_base) {
+      if (!render_base_field_slot_owner_is_app_base(slot)) continue;
+    } else if (render_base_field_slot_owner_is_app_base(slot) ||
+        strcmp(slot->owner_name, owner_name) != 0) {
+      continue;
+    }
     if (slot->conflicted != 0U) {
       blocked = 1;
       continue;
     }
     if (slot->library_name[0] == '\0' && slot->symbol_name[0] == '\0' &&
-        !platform_state_name_is_app_base(slot->owner_name)) {
+        !render_base_field_slot_owner_is_app_base(slot)) {
       continue;
     }
-    if (platform_state_name_is_app_base(slot->owner_name) &&
+    if (render_base_field_slot_owner_is_app_base(slot) &&
         slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS &&
         lookup_typed_app_slot_region_contains_auto_offset(lookup, displacement)) {
       continue;
     }
-    if (platform_state_name_is_app_base(slot->owner_name) &&
+    if (render_base_field_slot_owner_is_app_base(slot) &&
         (!app_base_slot_symbol_name_from_slot(slot, slot_symbol, sizeof(slot_symbol)) ||
           lookup_app_base_field_slot_symbol_has_other_displacement(lookup, slot_symbol, displacement))) {
       continue;
@@ -5726,7 +5731,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     int conflict = 0;
     int32_t extent_end;
     int32_t region_size;
-    if (slot->conflicted != 0U || !platform_state_name_is_app_base(slot->owner_name)) continue;
+    if (slot->conflicted != 0U || !render_base_field_slot_owner_is_app_base(slot)) continue;
     if ((int32_t)slot->displacement < base_offset) continue;
     if (slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS &&
         lookup_typed_app_slot_region_contains_auto_offset(lookup, slot->displacement)) {
