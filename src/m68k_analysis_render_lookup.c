@@ -3885,13 +3885,16 @@ static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *look
   M68kRenderInferredRuntimeAddressRef *entry;
   size_t next_capacity;
   size_t index;
+  uint32_t role_flags;
   if (lookup == NULL || data_class == NULL || data_class[0] == '\0') return 0;
+  role_flags = data_class_flags != 0U ? data_class_flags : m68k_analysis_structured_data_role_flags_for_text(data_class);
   for (index = 0U; index < lookup->inferred_runtime_address_ref_count; ++index) {
     const M68kRenderInferredRuntimeAddressRef *existing = &lookup->inferred_runtime_address_refs[index];
     if (existing->section_index == section_index && existing->ref.offset == offset &&
         existing->ref.has_runtime_address && existing->ref.runtime_address == runtime_address &&
-        existing->ref.size == size && existing->data_class_flags == data_class_flags &&
-        strcmp(existing->data_class, data_class) == 0) {
+        existing->ref.size == size &&
+        ((role_flags != 0U && existing->data_class_flags == role_flags) ||
+          (role_flags == 0U && strcmp(existing->data_class, data_class) == 0))) {
       return 0;
     }
   }
@@ -3915,8 +3918,7 @@ static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *look
   entry->ref.has_runtime_address = 1U;
   entry->ref.runtime_address = runtime_address;
   entry->ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
-  entry->data_class_flags = data_class_flags != 0U ? data_class_flags :
-    m68k_analysis_structured_data_role_flags_for_text(data_class);
+  entry->data_class_flags = role_flags;
   snprintf(entry->data_class, sizeof(entry->data_class), "%s", data_class);
   entry->ref.data_class = entry->data_class;
   ++lookup->inferred_runtime_address_ref_count;
@@ -4019,12 +4021,18 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
   M68kAnalysisStructuredDataItem *item;
   size_t next_capacity;
   size_t index;
+  uint32_t role_flags;
   if (lookup == NULL || semantic_role == NULL || semantic_role[0] == '\0' || size == 0U) return 0;
   if (lookup_structured_data_item_at_offset(lookup, section_index, offset) != NULL) return 0;
+  role_flags = m68k_analysis_structured_data_role_flags_for_text(semantic_role);
   for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *existing = &lookup->auto_structured_data_items[index];
+    uint32_t existing_role_flags = existing->semantic_role_flags != 0U ? existing->semantic_role_flags :
+      m68k_analysis_structured_data_role_flags_for_text(existing->semantic_role);
     if (existing->section_index == (uint32_t)section_index && existing->offset == offset &&
-        existing->size == size && strcmp(existing->semantic_role, semantic_role) == 0) {
+        existing->size == size &&
+        ((role_flags != 0U && existing_role_flags == role_flags) ||
+          (role_flags == 0U && strcmp(existing->semantic_role, semantic_role) == 0))) {
       return 0;
     }
   }
@@ -4046,6 +4054,7 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
   item->size = size;
   item->kind = kind;
   m68k_analysis_structured_data_item_set_semantic_role(item, semantic_role);
+  if (item->semantic_role_flags == 0U) item->semantic_role_flags = role_flags;
   ++lookup->auto_structured_data_item_count;
   return 0;
 }

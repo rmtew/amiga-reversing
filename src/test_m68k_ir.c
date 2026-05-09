@@ -1399,6 +1399,7 @@ static int test_facts_v2_data_ascii_span_auto_classifies_ff_string(void) {
   M68K_C_ASSERT(auto_item != NULL);
   M68K_C_ASSERT_U32(11U, auto_item->size);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_STRING, auto_item->kind);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING, auto_item->semantic_role_flags);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -12173,8 +12174,12 @@ static int test_facts_v2_length_prefixed_ascii_sequence_renders_strings(void) {
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
-        strcmp(item->semantic_role, "length_prefixed_string") == 0)
+        strcmp(item->semantic_role, "length_prefixed_string") == 0) {
+      M68K_C_ASSERT_U32(
+        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING,
+        item->semantic_role_flags);
       ++string_items;
+    }
   }
   M68K_C_ASSERT_U32(3U, string_items);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
