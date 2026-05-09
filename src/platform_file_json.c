@@ -4073,6 +4073,28 @@ static void listing_copy_text(char *dst, size_t dst_size, const char *src) {
   snprintf(dst, dst_size, "%s", src != NULL ? src : "");
 }
 
+enum {
+  LISTING_ROW_KIND_UNKNOWN = 0,
+  LISTING_ROW_KIND_DIRECTIVE = 1,
+  LISTING_ROW_KIND_LABEL = 2,
+  LISTING_ROW_KIND_INSTRUCTION = 3,
+  LISTING_ROW_KIND_DATA = 4,
+  LISTING_ROW_KIND_BLANK = 5,
+  LISTING_ROW_KIND_COMMENT = 6
+};
+
+static const char *listing_row_kind_name(uint8_t row_kind_id) {
+  switch (row_kind_id) {
+    case LISTING_ROW_KIND_DIRECTIVE: return "directive";
+    case LISTING_ROW_KIND_LABEL: return "label";
+    case LISTING_ROW_KIND_INSTRUCTION: return "instruction";
+    case LISTING_ROW_KIND_DATA: return "data";
+    case LISTING_ROW_KIND_BLANK: return "blank";
+    case LISTING_ROW_KIND_COMMENT: return "comment";
+    default: return "unknown";
+  }
+}
+
 static void listing_row_stable_key(char *buf, size_t buf_size, int section_index, uint32_t addr,
     const char *row_kind, size_t row_index) {
   if (buf == NULL || buf_size == 0U) return;
@@ -5679,13 +5701,14 @@ static int listing_structured_data_item_has_json(const M68kAnalysisStructuredDat
 }
 
 static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index, const char *line_start,
-    size_t line_length, const char *row_kind, const char *stripped, const char *opcode, const char *operand,
+    size_t line_length, uint8_t row_kind_id, const char *stripped, const char *opcode, const char *operand,
     const char *comment, int section_index, const M68kStatementIR *stmt,
     const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
     const char *analysis_generation, const char *plan_data_class, uint32_t plan_data_class_flags,
     int has_plan_runtime_address, uint32_t plan_runtime_address) {
   char text[1200];
   char label_text[1024];
+  const char *row_kind = listing_row_kind_name(row_kind_id);
   const char *label = NULL;
   const M68kAnalysisStructuredDataItem *structured_item = NULL;
   int has_addr = 0;
@@ -5722,7 +5745,7 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
         &runtime_address);
     }
   }
-  if (label == NULL && strcmp(row_kind, "label") == 0) {
+  if (label == NULL && row_kind_id == LISTING_ROW_KIND_LABEL) {
     size_t stripped_length;
     snprintf(label_text, sizeof(label_text), "%s", stripped != NULL ? stripped : "");
     stripped_length = strlen(label_text);
@@ -5733,7 +5756,8 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     row_data_class_flags = listing_row_data_class_flags(structured_item, plan_data_class, plan_data_class_flags);
     row_data_class = m68k_analysis_structured_data_role_name_for_flags(row_data_class_flags);
   }
-  if (json_builder_appendf(builder, "{\"row_id\":\"c:%u\",\"kind\":", (unsigned)row_index) != 0) return -1;
+  if (json_builder_appendf(builder, "{\"row_id\":\"c:%u\",\"kind_id\":%u,\"kind\":",
+      (unsigned)row_index, (unsigned)row_kind_id) != 0) return -1;
   if (json_builder_append_json_string(builder, row_kind) != 0) return -1;
   if (json_builder_append(builder, ",\"stable_key\":") != 0) return -1;
   if (has_addr) {
@@ -5793,8 +5817,8 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     if (json_builder_append(builder, ",\"label\":") != 0) return -1;
     if (json_builder_append_json_string(builder, label) != 0) return -1;
   }
-  if (opcode != NULL && opcode[0] != '\0' && strcmp(row_kind, "label") != 0 && strcmp(row_kind, "blank") != 0 &&
-      strcmp(row_kind, "comment") != 0) {
+  if (opcode != NULL && opcode[0] != '\0' && row_kind_id != LISTING_ROW_KIND_LABEL &&
+      row_kind_id != LISTING_ROW_KIND_BLANK && row_kind_id != LISTING_ROW_KIND_COMMENT) {
     if (json_builder_append(builder, ",\"opcode_or_directive\":") != 0) return -1;
     if (json_builder_append_json_string(builder, opcode) != 0) return -1;
   }
@@ -5874,7 +5898,7 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
 }
 
 static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const char *line_start, size_t line_length,
-    const char *row_kind, int section_index, const M68kStatementIR *stmt, const M68kAnalysisPolicy *analysis_policy,
+    uint8_t row_kind_id, int section_index, const M68kStatementIR *stmt, const M68kAnalysisPolicy *analysis_policy,
     const M68kSourceAnalysisIR *source_analysis, const char *analysis_generation) {
   char stripped[1024];
   char opcode[128];
@@ -5882,14 +5906,14 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
   char comment[512];
   split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
     sizeof(operand), comment, sizeof(comment));
-  return append_listing_row_json_parsed(builder, row_index, line_start, line_length, row_kind, stripped, opcode,
+  return append_listing_row_json_parsed(builder, row_index, line_start, line_length, row_kind_id, stripped, opcode,
     operand, comment, section_index, stmt, analysis_policy, source_analysis, analysis_generation, NULL, 0U, 0, 0U);
 }
 
 typedef struct ListingSourceHeaderRow {
   const char *line_start;
   size_t line_length;
-  const char *row_kind;
+  uint8_t row_kind_id;
   int section_index;
   int group;
 } ListingSourceHeaderRow;
@@ -5904,7 +5928,7 @@ typedef struct ListingSourceHeaderRows {
 typedef struct ListingNavigationJsonContext ListingNavigationJsonContext;
 
 static int listing_navigation_observe_row(ListingNavigationJsonContext *navigation, size_t row_index,
-    const char *line_start, size_t line_length, const char *row_kind, const char *stripped, const char *opcode,
+    const char *line_start, size_t line_length, uint8_t row_kind_id, const char *stripped, const char *opcode,
     const char *operand, const char *comment, int section_index, const M68kStatementIR *stmt,
     const char *plan_data_class, uint32_t plan_data_class_flags);
 
@@ -5922,10 +5946,10 @@ static void listing_source_header_rows_destroy(ListingSourceHeaderRows *rows) {
 }
 
 static int listing_source_header_rows_append(ListingSourceHeaderRows *rows, const char *line_start, size_t line_length,
-    const char *row_kind, int section_index, int group) {
+    uint8_t row_kind_id, int section_index, int group) {
   ListingSourceHeaderRow *new_items;
   size_t new_capacity;
-  if (rows == NULL || line_start == NULL || row_kind == NULL) return -1;
+  if (rows == NULL || line_start == NULL) return -1;
   if (rows->count == rows->capacity) {
     new_capacity = rows->capacity == 0U ? 16U : rows->capacity * 2U;
     new_items = (ListingSourceHeaderRow *)listing_arena_grow_array(rows->arena, rows->items, rows->count,
@@ -5936,17 +5960,17 @@ static int listing_source_header_rows_append(ListingSourceHeaderRows *rows, cons
   }
   rows->items[rows->count].line_start = line_start;
   rows->items[rows->count].line_length = line_length;
-  rows->items[rows->count].row_kind = row_kind;
+  rows->items[rows->count].row_kind_id = row_kind_id;
   rows->items[rows->count].section_index = section_index;
   rows->items[rows->count].group = group;
   ++rows->count;
   return 0;
 }
 
-static int listing_should_keep_source_only_body_row(const M68kRenderPlanRow *row, const char *row_kind,
+static int listing_should_keep_source_only_body_row(const M68kRenderPlanRow *row, uint8_t row_kind_id,
     int active_section_index, int is_plan_directive_subline) {
-  if (active_section_index < 0 || row_kind == NULL || row == NULL) return 0;
-  if (strcmp(row_kind, "comment") == 0) return 1;
+  if (active_section_index < 0 || row == NULL) return 0;
+  if (row_kind_id == LISTING_ROW_KIND_COMMENT) return 1;
   if (is_plan_directive_subline) return 1;
   return row->kind == M68K_RENDER_PLAN_ROW_ORG || row->kind == M68K_RENDER_PLAN_ROW_PLATFORM_DIRECTIVE;
 }
@@ -5982,22 +6006,22 @@ typedef struct ListingRenderPlanJsonContext {
   int has_anchor_code_row;
 } ListingRenderPlanJsonContext;
 
-static const char *listing_row_kind_for_plan_row(const M68kRenderPlanRow *row) {
-  if (row == NULL) return "unknown";
-  if (row->kind == M68K_RENDER_PLAN_ROW_INCLUDE) return "directive";
-  if (row->kind == M68K_RENDER_PLAN_ROW_RSSET) return "directive";
-  if (row->kind == M68K_RENDER_PLAN_ROW_RS_FIELD) return "directive";
-  if (row->kind == M68K_RENDER_PLAN_ROW_EQUATE) return "directive";
-  if (row->kind == M68K_RENDER_PLAN_ROW_SECTION) return "directive";
-  if (row->kind == M68K_RENDER_PLAN_ROW_ORG) return "directive";
-  if (row->kind == M68K_RENDER_PLAN_ROW_LABEL) return "label";
-  if (row->kind == M68K_RENDER_PLAN_ROW_INSTRUCTION) return "instruction";
-  if (row->kind == M68K_RENDER_PLAN_ROW_DATA) return "data";
-  if (row->kind == M68K_RENDER_PLAN_ROW_RESERVE) return "data";
-  if (row->kind == M68K_RENDER_PLAN_ROW_BLANK) return "blank";
-  if (row->kind == M68K_RENDER_PLAN_ROW_PLATFORM_DIRECTIVE) return "directive";
-  if (row->kind == M68K_RENDER_PLAN_ROW_DIAGNOSTIC) return "comment";
-  return "unknown";
+static uint8_t listing_row_kind_id_for_plan_row(const M68kRenderPlanRow *row) {
+  if (row == NULL) return LISTING_ROW_KIND_UNKNOWN;
+  if (row->kind == M68K_RENDER_PLAN_ROW_INCLUDE) return LISTING_ROW_KIND_DIRECTIVE;
+  if (row->kind == M68K_RENDER_PLAN_ROW_RSSET) return LISTING_ROW_KIND_DIRECTIVE;
+  if (row->kind == M68K_RENDER_PLAN_ROW_RS_FIELD) return LISTING_ROW_KIND_DIRECTIVE;
+  if (row->kind == M68K_RENDER_PLAN_ROW_EQUATE) return LISTING_ROW_KIND_DIRECTIVE;
+  if (row->kind == M68K_RENDER_PLAN_ROW_SECTION) return LISTING_ROW_KIND_DIRECTIVE;
+  if (row->kind == M68K_RENDER_PLAN_ROW_ORG) return LISTING_ROW_KIND_DIRECTIVE;
+  if (row->kind == M68K_RENDER_PLAN_ROW_LABEL) return LISTING_ROW_KIND_LABEL;
+  if (row->kind == M68K_RENDER_PLAN_ROW_INSTRUCTION) return LISTING_ROW_KIND_INSTRUCTION;
+  if (row->kind == M68K_RENDER_PLAN_ROW_DATA) return LISTING_ROW_KIND_DATA;
+  if (row->kind == M68K_RENDER_PLAN_ROW_RESERVE) return LISTING_ROW_KIND_DATA;
+  if (row->kind == M68K_RENDER_PLAN_ROW_BLANK) return LISTING_ROW_KIND_BLANK;
+  if (row->kind == M68K_RENDER_PLAN_ROW_PLATFORM_DIRECTIVE) return LISTING_ROW_KIND_DIRECTIVE;
+  if (row->kind == M68K_RENDER_PLAN_ROW_DIAGNOSTIC) return LISTING_ROW_KIND_COMMENT;
+  return LISTING_ROW_KIND_UNKNOWN;
 }
 
 static int listing_plan_subline_is_directive(const M68kRenderPlanRow *row, uint32_t subline) {
@@ -6019,7 +6043,7 @@ static int listing_plan_subline_is_label(const M68kRenderPlanRow *row, uint32_t 
   return 1;
 }
 
-static void listing_navigation_row_code(char *out, size_t out_size, const char *row_kind, const char *stripped,
+static void listing_navigation_row_code(char *out, size_t out_size, uint8_t row_kind_id, const char *stripped,
     const char *opcode, const char *operand, const M68kStatementIR *stmt);
 
 static int listing_section_index_for_plan_row(const M68kRenderPlanRow *row) {
@@ -6076,15 +6100,16 @@ static int listing_statement_from_plan_row_metadata(const M68kRenderPlanRow *row
 }
 
 static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *context, const char *line_start,
-    size_t line_length, const char *row_kind, const char *stripped, const char *opcode, const char *operand,
+    size_t line_length, uint8_t row_kind_id, const char *stripped, const char *opcode, const char *operand,
     const char *comment, int section_index, const M68kStatementIR *stmt, int has_plan_runtime_address,
     uint32_t plan_runtime_address) {
   int emit_row;
+  const char *row_kind = listing_row_kind_name(row_kind_id);
   if (context == NULL) return -1;
   if (context->anchor_code != NULL && !context->has_anchor_code_row && stripped != NULL &&
       opcode != NULL && operand != NULL) {
     char row_code[1024];
-    listing_navigation_row_code(row_code, sizeof(row_code), row_kind, stripped, opcode, operand, stmt);
+    listing_navigation_row_code(row_code, sizeof(row_code), row_kind_id, stripped, opcode, operand, stmt);
     if (strcmp(row_code, context->anchor_code) == 0) {
       context->anchor_code_row_index = context->row_index;
       context->has_anchor_code_row = 1;
@@ -6121,14 +6146,14 @@ static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *con
     if (context->builder == NULL) return -1;
     if (context->emitted_count != 0U && json_builder_append(context->builder, ",") != 0) return -1;
     if (stripped != NULL && opcode != NULL && operand != NULL && comment != NULL) {
-      if (append_listing_row_json_parsed(context->builder, context->row_index, line_start, line_length, row_kind,
+      if (append_listing_row_json_parsed(context->builder, context->row_index, line_start, line_length, row_kind_id,
           stripped, opcode, operand, comment, section_index, stmt, context->analysis_policy,
           context->source_analysis, context->analysis_generation,
           context->current_plan_row != NULL ? context->current_plan_row->data_class : NULL,
           context->current_plan_row != NULL ? context->current_plan_row->data_class_flags : 0U,
           has_plan_runtime_address, plan_runtime_address) != 0)
         return -1;
-    } else if (append_listing_row_json(context->builder, context->row_index, line_start, line_length, row_kind,
+    } else if (append_listing_row_json(context->builder, context->row_index, line_start, line_length, row_kind_id,
         section_index, stmt, context->analysis_policy, context->source_analysis, context->analysis_generation) != 0)
       return -1;
     if (context->app_slot_analysis != NULL &&
@@ -6138,7 +6163,7 @@ static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *con
     ++context->emitted_count;
   }
   if (context->navigation != NULL &&
-      listing_navigation_observe_row(context->navigation, context->row_index, line_start, line_length, row_kind,
+      listing_navigation_observe_row(context->navigation, context->row_index, line_start, line_length, row_kind_id,
         stripped, opcode, operand, comment, section_index, stmt,
         context->current_plan_row != NULL ? context->current_plan_row->data_class : NULL,
         context->current_plan_row != NULL ? context->current_plan_row->data_class_flags : 0U) != 0)
@@ -6153,8 +6178,8 @@ static int append_listing_render_plan_blank_row(ListingRenderPlanJsonContext *co
     context->current_plan_row = NULL;
     context->current_subline = 0U;
   }
-  return append_listing_render_plan_json_row(context, blank_line, 1U, "blank", NULL, NULL, NULL, NULL, -1, NULL,
-    0, 0U);
+  return append_listing_render_plan_json_row(context, blank_line, 1U, LISTING_ROW_KIND_BLANK, NULL, NULL, NULL, NULL,
+    -1, NULL, 0, 0U);
 }
 
 static int append_listing_source_header_rows(ListingRenderPlanJsonContext *context) {
@@ -6177,7 +6202,7 @@ static int append_listing_source_header_rows(ListingRenderPlanJsonContext *conte
       }
       context->current_plan_row = NULL;
       context->current_subline = 0U;
-      if (append_listing_render_plan_json_row(context, row->line_start, row->line_length, row->row_kind,
+      if (append_listing_render_plan_json_row(context, row->line_start, row->line_length, row->row_kind_id,
           NULL, NULL, NULL, NULL, row->section_index, NULL, 0, 0U) != 0)
         goto done;
       emitted_group = 1;
@@ -6225,7 +6250,7 @@ static int listing_source_header_group_for_plan_row(const M68kRenderPlanRow *row
 static int collect_listing_source_header_plan_line(const M68kRenderPlanRow *row, uint32_t subline, uint32_t line,
     const char *line_start, size_t line_length, void *user) {
   ListingRenderPlanHeaderContext *context = (ListingRenderPlanHeaderContext *)user;
-  const char *row_kind;
+  uint8_t row_kind_id;
   (void)subline;
   (void)line;
   if (context == NULL || context->header_rows == NULL || context->stopped) return 0;
@@ -6235,9 +6260,9 @@ static int collect_listing_source_header_plan_line(const M68kRenderPlanRow *row,
   }
   if (row != NULL) {
     int group = listing_source_header_group_for_plan_row(row);
-    row_kind = listing_row_kind_for_plan_row(row);
+    row_kind_id = listing_row_kind_id_for_plan_row(row);
     if (group >= 0) {
-      if (listing_source_header_rows_append(context->header_rows, line_start, line_length, row_kind, -1,
+      if (listing_source_header_rows_append(context->header_rows, line_start, line_length, row_kind_id, -1,
           group) != 0)
         return -1;
     }
@@ -6288,7 +6313,7 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
   char opcode[128];
   char operand[1024];
   char comment[512];
-  const char *row_kind;
+  uint8_t row_kind_id;
   const M68kStatementIR *stmt = NULL;
   M68kStatementIR plan_stmt;
   (void)subline;
@@ -6299,9 +6324,9 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
   context->current_subline = subline;
   split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
     sizeof(operand), comment, sizeof(comment));
-  row_kind = listing_row_kind_for_plan_row(row);
-  if (is_plan_directive_subline) row_kind = "directive";
-  else if (is_plan_label_subline) row_kind = "label";
+  row_kind_id = listing_row_kind_id_for_plan_row(row);
+  if (is_plan_directive_subline) row_kind_id = LISTING_ROW_KIND_DIRECTIVE;
+  else if (is_plan_label_subline) row_kind_id = LISTING_ROW_KIND_LABEL;
   is_section_directive = row != NULL && row->kind == M68K_RENDER_PLAN_ROW_SECTION;
   section_index = listing_section_index_for_plan_row(row);
   if (is_section_directive) {
@@ -6326,11 +6351,11 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
     context->preamble_emitted = 1;
   }
   if (!context->include_source_only_rows && stmt == NULL && !is_section_directive &&
-      !listing_should_keep_source_only_body_row(row, row_kind, context->active_section_index,
+      !listing_should_keep_source_only_body_row(row, row_kind_id, context->active_section_index,
         is_plan_directive_subline)) {
     return 0;
   }
-  if (append_listing_render_plan_json_row(context, line_start, line_length, row_kind, stripped, opcode, operand,
+  if (append_listing_render_plan_json_row(context, line_start, line_length, row_kind_id, stripped, opcode, operand,
       comment, section_index, stmt, label_has_runtime_address ? 1 : 0, label_runtime_address) != 0)
     return -1;
   return 0;
@@ -6458,13 +6483,13 @@ static int listing_navigation_init(ListingNavigationJsonContext *navigation, uin
   return 0;
 }
 
-static void listing_navigation_row_code(char *out, size_t out_size, const char *row_kind, const char *stripped,
+static void listing_navigation_row_code(char *out, size_t out_size, uint8_t row_kind_id, const char *stripped,
     const char *opcode, const char *operand, const M68kStatementIR *stmt) {
   const char *label = NULL;
   if (out == NULL || out_size == 0U) return;
   out[0] = '\0';
   if (stmt != NULL && stmt->label_name != NULL && stmt->label_name[0] != '\0') label = stmt->label_name;
-  if (label == NULL && row_kind != NULL && strcmp(row_kind, "label") == 0 && stripped != NULL) {
+  if (label == NULL && row_kind_id == LISTING_ROW_KIND_LABEL && stripped != NULL) {
     listing_copy_text(out, out_size, stripped);
     {
       size_t length = strlen(out);
@@ -6821,23 +6846,24 @@ static int listing_navigation_observe_label_refs(ListingNavigationJsonContext *n
 }
 
 static int listing_navigation_observe_row(ListingNavigationJsonContext *navigation, size_t row_index,
-    const char *line_start, size_t line_length, const char *row_kind, const char *stripped, const char *opcode,
+    const char *line_start, size_t line_length, uint8_t row_kind_id, const char *stripped, const char *opcode,
     const char *operand, const char *comment, int section_index, const M68kStatementIR *stmt,
     const char *plan_data_class, uint32_t plan_data_class_flags) {
   const M68kSectionAnalysisIR *section = NULL;
   char match_text[512];
   char summary[512];
+  const char *row_kind = listing_row_kind_name(row_kind_id);
   (void)line_start;
   (void)line_length;
   if (navigation == NULL) return 0;
-  listing_navigation_row_code(match_text, sizeof(match_text), row_kind, stripped, opcode, operand, stmt);
+  listing_navigation_row_code(match_text, sizeof(match_text), row_kind_id, stripped, opcode, operand, stmt);
   if (stmt != NULL && section_index >= 0 && navigation->source_analysis != NULL &&
       (size_t)section_index < navigation->source_analysis->section_count)
     section = &navigation->source_analysis->sections[section_index];
   if (listing_app_slot_analysis_observe_row(&navigation->app_slot_analysis, row_index, row_kind, section_index,
       stmt, navigation->source_analysis) != 0)
     return -1;
-  if (stmt != NULL && row_kind != NULL && strcmp(row_kind, "label") == 0) {
+  if (stmt != NULL && row_kind_id == LISTING_ROW_KIND_LABEL) {
     char symbol[128];
     char label_summary[160];
     listing_copy_text(symbol, sizeof(symbol), match_text);
@@ -6848,7 +6874,7 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
   }
   if (listing_navigation_observe_label_refs(navigation, stmt, row_index, section_index, row_kind, match_text) != 0)
     return -1;
-  if (stmt != NULL && row_kind != NULL && strcmp(row_kind, "label") != 0) {
+  if (stmt != NULL && row_kind_id != LISTING_ROW_KIND_LABEL) {
     const M68kRuntimeViewIR *runtime_view = listing_runtime_view_at_storage_offset(navigation->source_analysis,
       section_index, stmt->offset);
     if (runtime_view != NULL) {
@@ -6896,8 +6922,7 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
           match_text, call) != 0)
         return -1;
     }
-  } else if (stmt != NULL && stmt->kind != M68K_STATEMENT_INSTRUCTION && row_kind != NULL &&
-      strcmp(row_kind, "label") != 0) {
+  } else if (stmt != NULL && stmt->kind != M68K_STATEMENT_INSTRUCTION && row_kind_id != LISTING_ROW_KIND_LABEL) {
     const M68kOrphanCodeSignalIR *orphan_signal = section != NULL
       ? listing_navigation_orphan_signal_at(section, stmt->offset)
       : NULL;
@@ -7896,17 +7921,17 @@ static int listing_plan_row_subline_span(const M68kRenderPlanRow *row, uint32_t 
   return 0;
 }
 
-static int listing_row_code_matches_anchor_with_kind(const M68kStatementIR *stmt, const char *row_kind,
+static int listing_row_code_matches_anchor_with_kind(const M68kStatementIR *stmt, uint8_t row_kind_id,
     const char *line_start, size_t line_length, const char *wanted) {
   char stripped[1024];
   char opcode[128];
   char operand[1024];
   char comment[512];
   char row_code[1024];
-  if (line_start == NULL || wanted == NULL || row_kind == NULL) return 0;
+  if (line_start == NULL || wanted == NULL) return 0;
   split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
     sizeof(operand), comment, sizeof(comment));
-  listing_navigation_row_code(row_code, sizeof(row_code), row_kind, stripped, opcode, operand, stmt);
+  listing_navigation_row_code(row_code, sizeof(row_code), row_kind_id, stripped, opcode, operand, stmt);
   return strcmp(row_code, wanted) == 0;
 }
 
@@ -7914,7 +7939,7 @@ static int listing_row_code_matches_anchor(const M68kSourceFileIR *source_file,
     const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
     const char *analysis_generation, int active_section_index, const M68kRenderPlanRow *row, uint32_t subline,
     const char *line_start, size_t line_length, const char *wanted) {
-  const char *row_kind;
+  uint8_t row_kind_id;
   const M68kStatementIR *stmt = NULL;
   M68kStatementIR plan_stmt;
   (void)analysis_generation;
@@ -7922,13 +7947,13 @@ static int listing_row_code_matches_anchor(const M68kSourceFileIR *source_file,
   (void)active_section_index;
   if (line_start == NULL || wanted == NULL) return 0;
   m68k_ir_statement_init(&plan_stmt);
-  row_kind = listing_row_kind_for_plan_row(row);
+  row_kind_id = listing_row_kind_id_for_plan_row(row);
   if (listing_plan_subline_is_directive(row, subline)) {
-    row_kind = "directive";
+    row_kind_id = LISTING_ROW_KIND_DIRECTIVE;
   } else {
     uint32_t label_source_offset = 0U;
     if (listing_plan_subline_is_label(row, subline, &label_source_offset, NULL, NULL)) {
-      row_kind = "label";
+      row_kind_id = LISTING_ROW_KIND_LABEL;
       plan_stmt.kind = M68K_STATEMENT_LABEL;
       plan_stmt.offset = label_source_offset;
       stmt = &plan_stmt;
@@ -7939,7 +7964,7 @@ static int listing_row_code_matches_anchor(const M68kSourceFileIR *source_file,
     if (stmt == NULL && listing_statement_from_plan_row_metadata(row, &plan_stmt)) stmt = &plan_stmt;
   }
   (void)source_analysis;
-  return listing_row_code_matches_anchor_with_kind(stmt, row_kind, line_start, line_length, wanted);
+  return listing_row_code_matches_anchor_with_kind(stmt, row_kind_id, line_start, line_length, wanted);
 }
 
 static int listing_header_anchor_row(const ListingSourceHeaderRows *header_rows, const char *wanted,
@@ -7957,7 +7982,7 @@ static int listing_header_anchor_row(const ListingSourceHeaderRows *header_rows,
       if (emitted_any && !emitted_group) {
         ++*row_index;
       }
-      if (listing_row_code_matches_anchor_with_kind(NULL, row->row_kind, row->line_start, row->line_length,
+      if (listing_row_code_matches_anchor_with_kind(NULL, row->row_kind_id, row->line_start, row->line_length,
           wanted)) {
         *out_row = *row_index;
         return 1;

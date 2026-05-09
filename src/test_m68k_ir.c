@@ -7902,8 +7902,8 @@ static int test_listing_json_classifies_org_subline_as_directive(void) {
   M68K_C_ASSERT_INT(0, test_listing_full_window_from_render_plan_to_json(NULL, &render_plan,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
-  M68K_C_ASSERT(strstr(rows_json, "\"row_id\":\"c:0\",\"kind\":\"directive\"") != NULL);
-  M68K_C_ASSERT(strstr(rows_json, "\"row_id\":\"c:1\",\"kind\":\"label\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"row_id\":\"c:0\",\"kind_id\":1,\"kind\":\"directive\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"row_id\":\"c:1\",\"kind_id\":2,\"kind\":\"label\"") != NULL);
 
   free(rows_json);
   m68k_render_plan_destroy(&render_plan);

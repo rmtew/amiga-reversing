@@ -266,6 +266,9 @@ proves a distinct base id.
      including missing inbound, nearby data, required CPU, and instruction
      count; manifest decisions consume C enum IDs and structured-data role
      flags rather than display strings
+   - listing row classification: generated C listing rows carry compact
+     `kind_id` values; C listing/window/navigation logic consumes those ids
+     and keeps `kind` strings as exported display text
 
 6. Rendering rules:
    - emit one RSSET block per proven base layout

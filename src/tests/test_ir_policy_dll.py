@@ -887,6 +887,18 @@ class IrPolicyDllTests(unittest.TestCase):
         source_profile_payload = json.loads(source_profile_text)
         all_rows_payload = json.loads(all_text)
         full_rows = all_rows_payload["listing"]["rows"]
+        row_kind_ids = {
+            "directive": 1,
+            "label": 2,
+            "instruction": 3,
+            "data": 4,
+            "blank": 5,
+            "comment": 6,
+        }
+        self.assertTrue(full_rows)
+        for row in full_rows:
+            if row["kind"] in row_kind_ids:
+                self.assertEqual(row["kind_id"], row_kind_ids[row["kind"]])
         addr_anchor = next(
             (index for index, row in enumerate(full_rows) if isinstance(row.get("addr"), int) and row["addr"] >= 0),
             max(0, len(full_rows) - 1),
