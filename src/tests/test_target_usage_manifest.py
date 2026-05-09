@@ -326,6 +326,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "size": 0x20,
                                     "materialized": False,
                                     "materialization_reason": 103,
+                                    "relationship_kind": 1,
                                     "relationship_kind_name": "exits_to_larger_runtime_range",
                                     "related_runtime_address": 0x800,
                                 }
@@ -1273,6 +1274,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "size": 0x20,
                                 "materialized": False,
                                 "materialization_reason": 103,
+                                "relationship_kind": 1,
                                 "relationship_kind_name": "exits_to_larger_runtime_range",
                                 "related_runtime_address": 0x800,
                             }

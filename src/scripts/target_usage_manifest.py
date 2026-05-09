@@ -121,6 +121,13 @@ RUNTIME_VIEW_MATERIALIZATION_REASONS = {
     106: "no_materializing_evidence",
     107: "overlaid_by_runtime_copy",
 }
+RUNTIME_VIEW_SUPPRESSED_EXIT_TO_LARGER_RUNTIME_RANGE = 103
+RUNTIME_VIEW_RELATIONSHIP_NONE = 0
+RUNTIME_VIEW_RELATIONSHIP_NAMES = {
+    1: "exits_to_larger_runtime_range",
+    2: "contained_by_runtime_range",
+    3: "overlaid_by_runtime_copy",
+}
 TYPED_STORAGE_EFFECT_TARGETS = {
     "set_typed_reg": "register",
     "write_typed_slot": "app_slot",
@@ -1602,10 +1609,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
                 bag.add(f"runtime:view_kind:{kind}")
             materialized = runtime_view.get("materialized")
             reason = _int_value(runtime_view.get("materialization_reason"))
-            reason_name = (
-                _string_value(runtime_view.get("materialization_reason_name"))
-                or RUNTIME_VIEW_MATERIALIZATION_REASONS.get(reason or 0)
-            )
+            reason_name = RUNTIME_VIEW_MATERIALIZATION_REASONS.get(reason or 0)
             if materialized is True:
                 bag.add("runtime:view_materialized", example=view_example)
                 if reason_name:
@@ -1614,12 +1618,13 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
                 bag.add("runtime:suppressed_org_range", example=view_example)
                 if reason_name:
                     bag.add(f"runtime:suppressed_org_reason:{_safe_part(reason_name)}", example=view_example)
-                    if reason_name == "exit_to_larger_runtime_range":
+                    if reason == RUNTIME_VIEW_SUPPRESSED_EXIT_TO_LARGER_RUNTIME_RANGE:
                         bag.add("suppressed-weak-org-range", example=view_example)
                         if runtime is not None and runtime < 0x100:
                             bag.add("low-vector-trampoline", example=view_example)
-            relationship_name = _string_value(runtime_view.get("relationship_kind_name"))
-            if relationship_name and relationship_name != "none":
+            relationship_kind = _int_value(runtime_view.get("relationship_kind"))
+            relationship_name = RUNTIME_VIEW_RELATIONSHIP_NAMES.get(relationship_kind or RUNTIME_VIEW_RELATIONSHIP_NONE)
+            if relationship_kind is not None and relationship_kind != RUNTIME_VIEW_RELATIONSHIP_NONE and relationship_name:
                 bag.add(f"runtime:view_relationship:{_safe_part(relationship_name)}", example=view_example)
                 related_runtime = _int_value(runtime_view.get("related_runtime_address"))
                 if related_runtime is not None:
@@ -3521,10 +3526,7 @@ def _analysis_xrefs(
                 xrefs.append(_xref(row, f"runtime:view_kind:{kind}", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=kind, text=row_text or f"runtime view kind {kind}"))
             materialized = runtime_view.get("materialized")
             reason = _int_value(runtime_view.get("materialization_reason"))
-            reason_name = (
-                _string_value(runtime_view.get("materialization_reason_name"))
-                or RUNTIME_VIEW_MATERIALIZATION_REASONS.get(reason or 0)
-            )
+            reason_name = RUNTIME_VIEW_MATERIALIZATION_REASONS.get(reason or 0)
             if materialized is True:
                 xrefs.append(_xref(row, "runtime:view_materialized", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or "materialized runtime view"))
                 if reason_name:
@@ -3533,12 +3535,13 @@ def _analysis_xrefs(
                 xrefs.append(_xref(row, "runtime:suppressed_org_range", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or "suppressed ORG range"))
                 if reason_name:
                     xrefs.append(_xref(row, f"runtime:suppressed_org_reason:{_safe_part(reason_name)}", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or reason_name))
-                    if reason_name == "exit_to_larger_runtime_range":
+                    if reason == RUNTIME_VIEW_SUPPRESSED_EXIT_TO_LARGER_RUNTIME_RANGE:
                         xrefs.append(_xref(row, "suppressed-weak-org-range", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or reason_name))
                         if runtime is not None and runtime < 0x100:
                             xrefs.append(_xref(row, "low-vector-trampoline", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=runtime, text=row_text or reason_name))
-            relationship_name = _string_value(runtime_view.get("relationship_kind_name"))
-            if relationship_name and relationship_name != "none":
+            relationship_kind = _int_value(runtime_view.get("relationship_kind"))
+            relationship_name = RUNTIME_VIEW_RELATIONSHIP_NAMES.get(relationship_kind or RUNTIME_VIEW_RELATIONSHIP_NONE)
+            if relationship_kind is not None and relationship_kind != RUNTIME_VIEW_RELATIONSHIP_NONE and relationship_name:
                 related_runtime = _int_value(runtime_view.get("related_runtime_address"))
                 xrefs.append(_xref(row, f"runtime:view_relationship:{_safe_part(relationship_name)}", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=related_runtime, text=row_text or relationship_name))
                 xrefs.append(_xref(row, "runtime:view_related_range", "runtime_view", section=section_index, offset=storage_offset, row_index=row_index, stable_key=stable_key, value=related_runtime, text=row_text or relationship_name))
