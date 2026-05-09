@@ -7602,11 +7602,9 @@ static void attach_amiga_runtime_sink_comment_for_render(const M68kRenderPlatfor
 }
 
 static int amiga_vector_is_open_library_result(const AmigaOsLibraryVectorInfo *vector) {
-  const char *symbol_name;
   if (vector == NULL) return 0;
-  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
-  return symbol_name != NULL &&
-    (strcmp(symbol_name, "_LVOOpenLibrary") == 0 || strcmp(symbol_name, "_LVOOldOpenLibrary") == 0);
+  return vector->function_id == AMIGA_OS_FUNCTION_ID_OPENLIBRARY ||
+    vector->function_id == AMIGA_OS_FUNCTION_ID_OLDOPENLIBRARY;
 }
 
 static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,

@@ -8062,7 +8062,8 @@ static int format_app_named_value_slot_symbol(const char *source_name, char *sym
 }
 
 static const AmigaOsCallInputInfo *open_device_iorequest_input_info(void) {
-  const AmigaOsLibraryVectorInfo *open_device = amiga_os_find_library_vector_by_symbol_name("_LVOOpenDevice");
+  const AmigaOsLibraryVectorInfo *open_device =
+    amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOPENDEVICE);
   const AmigaOsCallInputInfo *inputs;
   size_t count = 0U;
   size_t index;
@@ -8174,18 +8175,16 @@ static int candidate_is_exec_open_library_call(const M68kRenderBaseTraceState *s
   if (state == NULL || !state->addr_regs[6].known) return 0;
   if (strcmp(state->addr_regs[6].name, amiga_os_exec_base_library_name()) != 0) return 0;
   if (!candidate_calls_a6_lvo(candidate, &lvo)) return 0;
-  open_library = amiga_os_find_library_vector_by_symbol_name("_LVOOpenLibrary");
-  old_open_library = amiga_os_find_library_vector_by_symbol_name("_LVOOldOpenLibrary");
+  open_library = amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOPENLIBRARY);
+  old_open_library = amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOLDOPENLIBRARY);
   return (open_library != NULL && open_library->lvo == lvo) ||
     (old_open_library != NULL && old_open_library->lvo == lvo);
 }
 
 static int amiga_vector_is_open_library(const AmigaOsLibraryVectorInfo *vector) {
-  const char *symbol_name;
   if (vector == NULL) return 0;
-  symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
-  return symbol_name != NULL &&
-    (strcmp(symbol_name, "_LVOOpenLibrary") == 0 || strcmp(symbol_name, "_LVOOldOpenLibrary") == 0);
+  return vector->function_id == AMIGA_OS_FUNCTION_ID_OPENLIBRARY ||
+    vector->function_id == AMIGA_OS_FUNCTION_ID_OLDOPENLIBRARY;
 }
 
 static int candidate_is_exec_open_device_call(const M68kRenderBaseTraceState *state,
@@ -8195,7 +8194,7 @@ static int candidate_is_exec_open_device_call(const M68kRenderBaseTraceState *st
   if (state == NULL || !state->addr_regs[6].known) return 0;
   if (strcmp(state->addr_regs[6].name, amiga_os_exec_base_library_name()) != 0) return 0;
   if (!candidate_calls_a6_lvo(candidate, &lvo)) return 0;
-  open_device = amiga_os_find_library_vector_by_symbol_name("_LVOOpenDevice");
+  open_device = amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOPENDEVICE);
   return open_device != NULL && open_device->lvo == lvo;
 }
 
