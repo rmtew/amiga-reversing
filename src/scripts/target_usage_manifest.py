@@ -273,6 +273,7 @@ RECOVERED_INDIRECT_STATUS_NAMES = {
 RECOVERED_INDIRECT_TABLE_BOUNDS_STATUS_NAMES = {
     0: "none",
     1: "rejected_insufficient_entries",
+    2: "rejected_code_overlap",
 }
 RECOVERED_INDIRECT_SOURCE_PATTERN_NAMES = {
     1: "indirect",

@@ -115,6 +115,35 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["orphan-code:missing_inbound:vector"], 1)
         self.assertEqual(examples["orphan-code:signal"][0]["missing_inbound"], "vector")
 
+    def test_table_candidate_features_use_bounds_status_id(self) -> None:
+        bag = usage.FeatureBag()
+        usage._add_table_candidate_record_features(
+            bag,
+            {
+                "section_index": 0,
+                "offset": 0x20,
+                "flow_kind": 2,
+                "flow": "stale_display_name",
+                "shape_id": 3,
+                "shape": "stale_display_name",
+                "status_id": 1,
+                "status": "stale_display_name",
+                "source_pattern_id": 2,
+                "source_pattern": "stale_display_name",
+                "table_offset": 0x40,
+                "table_size": 2,
+                "table_entry_size": 2,
+                "table_entry_count": 1,
+                "table_bounds_status_id": 2,
+                "table_bounds_status": "stale_display_name",
+            },
+        )
+
+        counts, examples, _tags = bag.row_features()
+
+        self.assertEqual(counts["table:candidate_unresolved:table_bounds_status:rejected_code_overlap"], 1)
+        self.assertEqual(examples["table:candidate_unresolved"][0]["table_bounds_status"], "rejected_code_overlap")
+
     def test_extracts_structured_analysis_and_listing_features(self) -> None:
         bag = usage.FeatureBag()
         usage._add_executable_analysis_features(

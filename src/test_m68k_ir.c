@@ -3620,6 +3620,67 @@ static int test_facts_v2_records_rejected_indirect_table_bounds(void) {
   return 0;
 }
 
+static int test_facts_v2_records_code_overlap_indirect_table_bounds(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kRecoveredIndirectSiteIR *site;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t bytes[14] = {
+    0x4eu, 0xfbu, 0x10u, 0x04u,
+    0x4eu, 0x71u,
+    0x60u, 0x04u,
+    0x4eu, 0x71u,
+    0x4eu, 0x71u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.entry_point_count = 2U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 0U;
+  policy.entry_points[0].offset = 0U;
+  policy.entry_points[1].has_section_index = 1U;
+  policy.entry_points[1].section_index = 0U;
+  policy.entry_points[1].offset = 6U;
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_indirect_site_count);
+  site = &source_analysis.sections[0].recovered_indirect_sites[0];
+  M68K_C_ASSERT_U32(0U, site->offset);
+  M68K_C_ASSERT_U32(1U, site->has_table_bounds);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_CODE_OVERLAP,
+    site->table_bounds_status);
+  M68K_C_ASSERT_U32(6U, site->table_offset);
+  M68K_C_ASSERT_U32(2U, site->table_size);
+  M68K_C_ASSERT_U32(2U, site->table_entry_size);
+  M68K_C_ASSERT_U32(1U, site->table_entry_count);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"table_bounds_status_id\":2,\"table_bounds_status\":\"rejected_code_overlap\"") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(void) {
   M68kObject object;
   M68kSection section;
@@ -15511,6 +15572,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_records_unresolved_indirect_jump_site},
     {"facts_v2_records_rejected_indirect_table_bounds",
       test_facts_v2_records_rejected_indirect_table_bounds},
+    {"facts_v2_records_code_overlap_indirect_table_bounds",
+      test_facts_v2_records_code_overlap_indirect_table_bounds},
     {"facts_v2_resolved_platform_call_not_unresolved_indirect_site",
       test_facts_v2_resolved_platform_call_not_unresolved_indirect_site},
     {"facts_v2_open_library_d0_movea_promotes_a6_base",

@@ -1001,6 +1001,8 @@ static const char *recovered_indirect_status_name(uint8_t status) {
 static const char *recovered_indirect_table_bounds_status_name(uint8_t status) {
   if (status == M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_INSUFFICIENT_ENTRIES)
     return "rejected_insufficient_entries";
+  if (status == M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_CODE_OVERLAP)
+    return "rejected_code_overlap";
   return "none";
 }
 

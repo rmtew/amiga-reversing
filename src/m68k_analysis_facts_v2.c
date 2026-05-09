@@ -4008,7 +4008,13 @@ static void recovered_indirect_site_apply_direct_stub_table_bounds(M68kDecodeIR 
     }
     if (accepted_range_has_code_byte_local(accepted_bytes[section_index], section->size, cursor,
         candidate->byte_count)) {
-      break;
+      site->has_table_bounds = 1U;
+      site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_CODE_OVERLAP;
+      site->table_offset = table_offset;
+      site->table_entry_size = candidate->byte_count;
+      site->table_entry_count = 1U;
+      site->table_size = candidate->byte_count;
+      return;
     }
     if (stride == 0U) {
       stride = candidate->byte_count;
