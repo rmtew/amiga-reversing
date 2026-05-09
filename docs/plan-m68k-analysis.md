@@ -222,7 +222,9 @@ proves a distinct base id.
    - confidence and conflict state: implemented for clean/code-overlap table
      records with numeric C enum ids
    - rejected table bounds on unresolved candidates: implemented for proven
-     direct-stub spans rejected for insufficient entries
+     direct-stub spans rejected for insufficient entries; corpus consumers use
+     C enum ids for recovered indirect flow, shape, status, source pattern, and
+     table-bounds status rather than display strings
 
 5. Add orphaned-code signal records:
    - candidate source range and decode start: implemented for terminal-decode

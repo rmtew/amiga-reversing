@@ -1836,16 +1836,18 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
       if (json_builder_appendf(builder,
           "{\"section_index\":%u,\"offset\":%u,\"source_offset\":%u,\"source_size\":%u,"
-          "\"operand_index\":%u,\"flow\":",
+          "\"operand_index\":%u,\"flow_kind\":%u,\"flow\":",
           (unsigned)section->section_index, (unsigned)site->offset, (unsigned)site->offset,
-          (unsigned)site->source_size, (unsigned)site->operand_index) != 0)
+          (unsigned)site->source_size, (unsigned)site->operand_index, (unsigned)site->flow_kind) != 0)
         return -1;
       if (json_builder_append_json_string(builder, recovered_indirect_flow_name(site->flow_kind)) != 0)
         return -1;
-      if (json_builder_append(builder, ",\"shape\":") != 0) return -1;
+      if (json_builder_appendf(builder, ",\"shape_id\":%u,\"shape\":", (unsigned)site->shape) != 0)
+        return -1;
       if (json_builder_append_json_string(builder, recovered_indirect_shape_name(site->shape)) != 0)
         return -1;
-      if (json_builder_append(builder, ",\"status\":") != 0) return -1;
+      if (json_builder_appendf(builder, ",\"status_id\":%u,\"status\":", (unsigned)site->status) != 0)
+        return -1;
       if (json_builder_append_json_string(builder, recovered_indirect_status_name(site->status)) != 0)
         return -1;
       if (json_builder_append(builder, ",\"source_pattern\":") != 0) return -1;
@@ -1874,7 +1876,9 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
       if (site->has_table_bounds != 0U) {
         if (json_builder_appendf(builder, "%u", (unsigned)site->table_entry_count) != 0) return -1;
       } else if (json_builder_append(builder, "null") != 0) return -1;
-      if (json_builder_append(builder, ",\"table_bounds_status\":") != 0) return -1;
+      if (json_builder_appendf(builder, ",\"table_bounds_status_id\":%u,\"table_bounds_status\":",
+          (unsigned)site->table_bounds_status) != 0)
+        return -1;
       if (json_builder_append_json_string(builder,
           recovered_indirect_table_bounds_status_name(site->table_bounds_status)) != 0) {
         return -1;
@@ -3052,17 +3056,17 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (indirect_site_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
       if (json_builder_appendf(&builder,
-          "{\"offset\":%u,\"source_offset\":%u,\"source_size\":%u,\"operand_index\":%u,\"flow\":",
+          "{\"offset\":%u,\"source_offset\":%u,\"source_size\":%u,\"operand_index\":%u,\"flow_kind\":%u,\"flow\":",
           (unsigned)site->offset, (unsigned)site->offset, (unsigned)site->source_size,
-          (unsigned)site->operand_index) != 0)
+          (unsigned)site->operand_index, (unsigned)site->flow_kind) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, recovered_indirect_flow_name(site->flow_kind)) != 0)
         goto oom;
-      if (json_builder_append(&builder, ",\"shape\":") != 0)
+      if (json_builder_appendf(&builder, ",\"shape_id\":%u,\"shape\":", (unsigned)site->shape) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, recovered_indirect_shape_name(site->shape)) != 0)
         goto oom;
-      if (json_builder_append(&builder, ",\"status\":") != 0)
+      if (json_builder_appendf(&builder, ",\"status_id\":%u,\"status\":", (unsigned)site->status) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, recovered_indirect_status_name(site->status)) != 0)
         goto oom;
@@ -3118,7 +3122,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       } else if (json_builder_append(&builder, "null") != 0) {
         goto oom;
       }
-      if (json_builder_append(&builder, ",\"table_bounds_status\":") != 0)
+      if (json_builder_appendf(&builder, ",\"table_bounds_status_id\":%u,\"table_bounds_status\":",
+          (unsigned)site->table_bounds_status) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder,
           recovered_indirect_table_bounds_status_name(site->table_bounds_status)) != 0) {

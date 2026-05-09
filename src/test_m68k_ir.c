@@ -3437,9 +3437,9 @@ static int test_facts_v2_records_unresolved_indirect_jump_site(void) {
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"recovered_indirect_site_count\":1") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"flow\":\"jump\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"shape\":\"ind\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"status\":\"unresolved\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"flow_kind\":2,\"flow\":\"jump\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"shape_id\":1,\"shape\":\"ind\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"status_id\":1,\"status\":\"unresolved\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"source_offset\":0,\"source_size\":2,\"operand_index\":0") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_candidate_record_count\":1,\"table_candidate_records\":[{\"section_index\":0,\"offset\":0") != NULL);
@@ -3503,7 +3503,7 @@ static int test_facts_v2_records_rejected_indirect_table_bounds(void) {
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_offset\":6,\"table_size\":2,\"table_entry_size\":2,\"table_entry_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"table_bounds_status\":\"rejected_insufficient_entries\"") != NULL);
+    "\"table_bounds_status_id\":1,\"table_bounds_status\":\"rejected_insufficient_entries\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   free(analysis_json);

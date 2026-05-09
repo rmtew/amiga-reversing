@@ -162,6 +162,33 @@ ORPHAN_CODE_SIGNAL_INBOUND_NAMES = {
     7: "metadata",
     8: "policy_seed",
 }
+RECOVERED_INDIRECT_FLOW_NAMES = {
+    1: "call",
+    2: "jump",
+}
+RECOVERED_INDIRECT_SHAPE_NAMES = {
+    1: "ind",
+    2: "disp",
+    3: "index.brief",
+    4: "pcindex.brief",
+    5: "index.full",
+    6: "pcindex.full",
+    7: "index.memind",
+    8: "pcindex.memind",
+}
+RECOVERED_INDIRECT_STATUS_NAMES = {
+    1: "unresolved",
+    2: "resolved_runtime",
+    3: "runtime",
+    4: "per_caller",
+    5: "backward_slice",
+    6: "jump_table",
+    7: "external",
+}
+RECOVERED_INDIRECT_TABLE_BOUNDS_STATUS_NAMES = {
+    0: "none",
+    1: "rejected_insufficient_entries",
+}
 TYPED_STORAGE_EFFECT_TARGETS = {
     PLATFORM_EFFECT_SET_TYPED_REG: "register",
     PLATFORM_EFFECT_WRITE_TYPED_SLOT: "app_slot",
@@ -1366,9 +1393,9 @@ def _orphan_code_signal_nearby_data_name(signal: dict[str, Any]) -> str | None:
 
 def _indirect_site_example(section_index: int, site: dict[str, Any]) -> dict[str, object]:
     offset = _int_value(site.get("offset"))
-    status = _string_value(site.get("status")) or "unknown"
-    shape = _string_value(site.get("shape")) or "unknown"
-    flow = _string_value(site.get("flow")) or "unknown"
+    status = _recovered_indirect_status_name(site)
+    shape = _recovered_indirect_shape_name(site)
+    flow = _recovered_indirect_flow_name(site)
     example = _offset_example(section_index, offset, f"{flow} {shape} {status}")
     example["status"] = status
     example["shape"] = shape
@@ -1389,19 +1416,19 @@ def _indirect_site_example(section_index: int, site: dict[str, Any]) -> dict[str
     return example
 
 
-def _indirect_site_source_pattern(shape: str) -> str:
-    if shape.startswith("pcindex."):
+def _indirect_site_source_pattern(shape_id: int | None) -> str:
+    if shape_id in {4, 6, 8}:
         return "pc_indexed_indirect"
-    if shape.startswith("index."):
+    if shape_id in {3, 5, 7}:
         return "indexed_indirect"
     return "indirect"
 
 
 def _add_indirect_site_features(bag: FeatureBag, section_index: int, site: dict[str, Any]) -> None:
-    status = _string_value(site.get("status")) or "unknown"
-    shape = _string_value(site.get("shape")) or "unknown"
-    flow = _string_value(site.get("flow")) or "unknown"
-    source_pattern = _indirect_site_source_pattern(shape)
+    status = _recovered_indirect_status_name(site)
+    shape = _recovered_indirect_shape_name(site)
+    flow = _recovered_indirect_flow_name(site)
+    source_pattern = _indirect_site_source_pattern(_int_value(site.get("shape_id")))
     example = _indirect_site_example(section_index, site)
     example["source_pattern"] = source_pattern
     bag.add("analysis:indirect_site", example=example)
@@ -1414,10 +1441,10 @@ def _add_indirect_site_features(bag: FeatureBag, section_index: int, site: dict[
 def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]) -> None:
     section_index = _int_value(record.get("section_index"), 0)
     offset = _int_value(record.get("offset"))
-    status = _string_value(record.get("status")) or "unknown"
-    shape = _string_value(record.get("shape")) or "unknown"
-    flow = _string_value(record.get("flow")) or "unknown"
-    source_pattern = _string_value(record.get("source_pattern")) or _indirect_site_source_pattern(shape)
+    status = _recovered_indirect_status_name(record)
+    shape = _recovered_indirect_shape_name(record)
+    flow = _recovered_indirect_flow_name(record)
+    source_pattern = _indirect_site_source_pattern(_int_value(record.get("shape_id")))
     conflict_state = _conflict_state_name(record)
     example = _offset_example(section_index, offset, f"{flow} {shape} {status}")
     example["status"] = status
@@ -1430,7 +1457,7 @@ def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]
         value = _int_value(record.get(key))
         if value is not None:
             example[key] = value
-    table_bounds_status = _string_value(record.get("table_bounds_status")) or "none"
+    table_bounds_status = _recovered_indirect_table_bounds_status_name(record)
     for key in ("table_offset", "table_size", "table_entry_size", "table_entry_count"):
         value = _int_value(record.get(key))
         if value is not None:
@@ -1461,6 +1488,23 @@ def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]
     table_entry_size = _int_value(record.get("table_entry_size"))
     if table_entry_size is not None:
         bag.add(f"table:candidate_unresolved:entry_size:{table_entry_size}", example=example)
+
+
+def _recovered_indirect_flow_name(record: dict[str, Any]) -> str:
+    return RECOVERED_INDIRECT_FLOW_NAMES.get(_int_value(record.get("flow_kind"), 0) or 0, "unknown")
+
+
+def _recovered_indirect_shape_name(record: dict[str, Any]) -> str:
+    return RECOVERED_INDIRECT_SHAPE_NAMES.get(_int_value(record.get("shape_id"), 0) or 0, "unknown")
+
+
+def _recovered_indirect_status_name(record: dict[str, Any]) -> str:
+    return RECOVERED_INDIRECT_STATUS_NAMES.get(_int_value(record.get("status_id"), 0) or 0, "unknown")
+
+
+def _recovered_indirect_table_bounds_status_name(record: dict[str, Any]) -> str:
+    status_id = _int_value(record.get("table_bounds_status_id"), 0)
+    return RECOVERED_INDIRECT_TABLE_BOUNDS_STATUS_NAMES.get(status_id or 0, "unknown")
 
 
 def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
@@ -3345,15 +3389,15 @@ def _analysis_xrefs(
         section_index = _int_value(record.get("section_index"), 0)
         offset = _int_value(record.get("offset"))
         row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
-        status = _string_value(record.get("status")) or "unknown"
-        shape = _string_value(record.get("shape")) or "unknown"
-        flow = _string_value(record.get("flow")) or "unknown"
-        source_pattern = _string_value(record.get("source_pattern")) or _indirect_site_source_pattern(shape)
+        status = _recovered_indirect_status_name(record)
+        shape = _recovered_indirect_shape_name(record)
+        flow = _recovered_indirect_flow_name(record)
+        source_pattern = _indirect_site_source_pattern(_int_value(record.get("shape_id")))
         conflict_state = _conflict_state_name(record)
         target_count = _int_value(record.get("target_count"))
         source_size = _int_value(record.get("source_size"))
         table_size = _int_value(record.get("table_size"))
-        table_bounds_status = _string_value(record.get("table_bounds_status")) or "none"
+        table_bounds_status = _recovered_indirect_table_bounds_status_name(record)
         table_entry_size = _int_value(record.get("table_entry_size"))
         text = row_text or _string_value(record.get("detail")) or f"{flow} {shape} {status}"
         features = [
@@ -3668,10 +3712,10 @@ def _analysis_xrefs(
         for site in recovered_indirect_sites:
             offset = _int_value(site.get("offset"))
             row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
-            status = _string_value(site.get("status")) or "unknown"
-            shape = _string_value(site.get("shape")) or "unknown"
-            flow = _string_value(site.get("flow")) or "unknown"
-            source_pattern = _indirect_site_source_pattern(shape)
+            status = _recovered_indirect_status_name(site)
+            shape = _recovered_indirect_shape_name(site)
+            flow = _recovered_indirect_flow_name(site)
+            source_pattern = _indirect_site_source_pattern(_int_value(site.get("shape_id")))
             target_count = _int_value(site.get("target_count"))
             text = row_text or _string_value(site.get("detail")) or f"{flow} {shape} {status}"
             features = [
