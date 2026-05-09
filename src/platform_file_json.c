@@ -2152,8 +2152,9 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
     }
     if (range_end <= range_start || field_count == 0U) continue;
     if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
-    if (json_builder_append(builder,
-        "{\"record_kind\":\"base_layout\",\"memory_kind\":\"base_layout\",\"layout_name\":") != 0) {
+    if (json_builder_appendf(builder,
+        "{\"record_kind_id\":%u,\"record_kind\":\"base_layout\",\"memory_kind\":\"base_layout\",\"layout_name\":",
+        (unsigned)M68K_MEMORY_LAYOUT_RECORD_BASE_LAYOUT) != 0) {
       return -1;
     }
     if (json_builder_append_nullable_string(builder, first->layout_name) != 0) return -1;
@@ -2177,8 +2178,8 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       field->owner_struct_name);
     if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder,
-        "{\"record_kind\":\"base_layout_field\",\"memory_kind\":\"%s\",\"layout_name\":",
-        memory_kind) != 0) return -1;
+        "{\"record_kind_id\":%u,\"record_kind\":\"base_layout_field\",\"memory_kind\":\"%s\",\"layout_name\":",
+        (unsigned)M68K_MEMORY_LAYOUT_RECORD_BASE_LAYOUT_FIELD, memory_kind) != 0) return -1;
     if (json_builder_append_nullable_string(builder, field->layout_name) != 0) return -1;
     if (json_builder_append(builder, ",\"base_symbol\":") != 0) return -1;
     if (json_builder_append_nullable_string(builder, field->base_symbol) != 0) return -1;
@@ -2243,8 +2244,9 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
           effect->payload.typed.context_name);
       }
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
-      if (json_builder_append(builder,
-          "{\"record_kind\":\"platform_storage_effect\",\"memory_kind\":") != 0) return -1;
+      if (json_builder_appendf(builder,
+          "{\"record_kind_id\":%u,\"record_kind\":\"platform_storage_effect\",\"memory_kind\":",
+          (unsigned)M68K_MEMORY_LAYOUT_RECORD_PLATFORM_STORAGE_EFFECT) != 0) return -1;
       if (json_builder_append_json_string(builder, memory_kind) != 0) return -1;
       if (json_builder_appendf(builder,
           ",\"section_index\":%u,\"source_offset\":%u,\"effect_kind\":%u,\"effect_kind_name\":",
@@ -2283,10 +2285,11 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         access->field_name);
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
       if (json_builder_appendf(builder,
-          "{\"record_kind\":\"platform_typed_access\",\"memory_kind\":\"platform_struct_field\","
+          "{\"record_kind_id\":%u,\"record_kind\":\"platform_typed_access\",\"memory_kind\":\"platform_struct_field\","
           "\"section_index\":%u,\"source_offset\":%u,\"operand_index\":%u,\"base_register\":\"A%u\","
           "\"displacement\":%d,\"field_offset\":%d,\"struct_size\":%u,\"field_size\":%u,"
           "\"root_struct_name\":",
+          (unsigned)M68K_MEMORY_LAYOUT_RECORD_PLATFORM_TYPED_ACCESS,
           (unsigned)section->section_index, (unsigned)access->offset, (unsigned)access->operand_index,
           (unsigned)access->base_reg, (int)access->displacement, (int)access->field_offset,
           (unsigned)access->struct_size, (unsigned)access->field_size) != 0) {
@@ -2320,10 +2323,11 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         &access->refined_struct_ref, access->refined_struct_name);
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
       if (json_builder_appendf(builder,
-          "{\"record_kind\":\"platform_unresolved_typed_access\","
+          "{\"record_kind_id\":%u,\"record_kind\":\"platform_unresolved_typed_access\","
           "\"memory_kind\":\"platform_struct_unresolved\",\"section_index\":%u,\"source_offset\":%u,"
           "\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"struct_size\":%u,"
           "\"classification_id\":%u,\"classification\":",
+          (unsigned)M68K_MEMORY_LAYOUT_RECORD_PLATFORM_UNRESOLVED_TYPED_ACCESS,
           (unsigned)section->section_index, (unsigned)access->offset, (unsigned)access->operand_index,
           (unsigned)access->base_reg, (int)access->displacement, (unsigned)access->struct_size,
           (unsigned)access->classification) != 0) {
@@ -2351,10 +2355,11 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       const char *memory_kind = view->materialized ? "runtime_code" : "runtime_view_candidate";
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
       if (json_builder_appendf(builder,
-          "{\"record_kind\":\"runtime_view\",\"memory_kind\":\"%s\",\"section_index\":%u,"
+          "{\"record_kind_id\":%u,\"record_kind\":\"runtime_view\",\"memory_kind\":\"%s\",\"section_index\":%u,"
           "\"source_offset\":%u,\"source_size\":%u,\"runtime_address\":%u,\"runtime_size\":%u,"
           "\"runtime_view_id\":%u,\"view_kind\":%u,\"confidence\":%u,\"materialized\":%s,"
           "\"materialization_reason\":%u,\"materialization_reason_name\":\"%s\"",
+          (unsigned)M68K_MEMORY_LAYOUT_RECORD_RUNTIME_VIEW,
           memory_kind, (unsigned)section->section_index, (unsigned)view->storage_offset,
           (unsigned)view->size, (unsigned)view->runtime_address, (unsigned)view->size,
           (unsigned)view->runtime_view_id, (unsigned)view->kind, (unsigned)view->confidence,
@@ -2375,7 +2380,9 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         continue;
       }
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
-      if (json_builder_append(builder, "{\"record_kind\":\"runtime_address_ref\",\"memory_kind\":") != 0)
+      if (json_builder_appendf(builder,
+          "{\"record_kind_id\":%u,\"record_kind\":\"runtime_address_ref\",\"memory_kind\":",
+          (unsigned)M68K_MEMORY_LAYOUT_RECORD_RUNTIME_ADDRESS_REF) != 0)
         return -1;
       if (json_builder_append_json_string(builder, memory_kind) != 0) return -1;
       if (json_builder_appendf(builder, ",\"section_index\":%u,\"source_offset\":%u,\"source_size\":%u,"
@@ -2420,7 +2427,9 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       const char *owner_base_symbol = NULL;
       absolute_memory_ref_owner_symbols(ref, &owner_symbol, &owner_base_symbol);
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
-      if (json_builder_append(builder, "{\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":") != 0)
+      if (json_builder_appendf(builder,
+          "{\"record_kind_id\":%u,\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":",
+          (unsigned)M68K_MEMORY_LAYOUT_RECORD_ABSOLUTE_MEMORY_REF) != 0)
         return -1;
       if (json_builder_append_json_string(builder, memory_kind) != 0) return -1;
       if (json_builder_appendf(builder,

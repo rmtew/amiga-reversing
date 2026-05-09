@@ -157,7 +157,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                     ],
                     "memory_layout_records": [
                         {
-                            "record_kind": "base_layout",
+                            "record_kind_id": 1,
+                            "record_kind": "stale_display_name",
                             "memory_kind": "base_layout",
                             "layout_name": "app",
                             "base_symbol": "app",
@@ -169,6 +170,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 0x238,
                         },
                         {
+                            "record_kind_id": 2,
                             "record_kind": "base_layout_field",
                             "memory_kind": "base_layout_field",
                             "layout_name": "app",
@@ -185,6 +187,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 0x238,
                         },
                         {
+                            "record_kind_id": 6,
                             "record_kind": "runtime_view",
                             "memory_kind": "runtime_view_candidate",
                             "section_index": 0,
@@ -198,6 +201,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 0x420,
                         },
                         {
+                            "record_kind_id": 7,
                             "record_kind": "runtime_address_ref",
                             "memory_kind": "copper_list",
                             "section_index": 0,
@@ -213,6 +217,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 0x1A,
                         },
                         {
+                            "record_kind_id": 8,
                             "record_kind": "absolute_memory_ref",
                             "memory_kind": "hardware_register",
                             "section_index": 0,
@@ -237,6 +242,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "conflict_state": "code_overlap",
                         },
                         {
+                            "record_kind_id": 4,
                             "record_kind": "platform_typed_access",
                             "memory_kind": "platform_struct_field",
                             "section_index": 0,
@@ -256,6 +262,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 22,
                         },
                         {
+                            "record_kind_id": 3,
                             "record_kind": "platform_storage_effect",
                             "memory_kind": "typed_global_slot",
                             "section_index": 0,
@@ -275,6 +282,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 0x104,
                         },
                         {
+                            "record_kind_id": 5,
                             "record_kind": "platform_unresolved_typed_access",
                             "memory_kind": "platform_struct_unresolved",
                             "section_index": 0,
@@ -817,6 +825,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["table:any"][0]["consumer_offset"], 0x20)
         self.assertEqual(examples["table:any"][0]["conflict_state"], "clean")
         self.assertEqual(examples["table:any"][0]["source_pattern"], "indexed_word_dispatch")
+        self.assertEqual(examples["memory-layout:record:base_layout"][0]["record_kind_id"], 1)
         self.assertEqual(examples["memory-layout:kind:base_layout"][0]["range_start"], 0x234)
         self.assertEqual(examples["memory-layout:kind:base_layout"][0]["field_count"], 1)
         self.assertEqual(examples["memory-layout:kind:base_layout"][0]["sizeof_symbol"], "app_SIZEOF")
@@ -1167,6 +1176,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                 ],
                 "memory_layout_records": [
                     {
+                        "record_kind_id": 1,
                         "record_kind": "base_layout",
                         "memory_kind": "base_layout",
                         "layout_name": "app",
@@ -1179,6 +1189,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "range_end": 0x238,
                     },
                     {
+                        "record_kind_id": 2,
                         "record_kind": "base_layout_field",
                         "memory_kind": "base_layout_field",
                         "layout_name": "app",
@@ -1195,6 +1206,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "range_end": 0x238,
                     },
                     {
+                        "record_kind_id": 6,
                         "record_kind": "runtime_view",
                         "memory_kind": "runtime_view_candidate",
                         "section_index": 0,
@@ -1208,6 +1220,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "range_end": 0x420,
                     },
                         {
+                            "record_kind_id": 7,
                             "record_kind": "runtime_address_ref",
                             "memory_kind": "copper_list",
                         "section_index": 0,
@@ -1223,6 +1236,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 0x1A,
                         },
                         {
+                            "record_kind_id": 8,
                             "record_kind": "absolute_memory_ref",
                             "memory_kind": "hardware_register",
                             "section_index": 0,
@@ -1247,6 +1261,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "conflict_state": "code_overlap",
                         },
                         {
+                            "record_kind_id": 4,
                             "record_kind": "platform_typed_access",
                             "memory_kind": "platform_struct_field",
                             "section_index": 0,
@@ -1266,6 +1281,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 22,
                         },
                         {
+                            "record_kind_id": 3,
                             "record_kind": "platform_storage_effect",
                             "memory_kind": "typed_global_slot",
                             "section_index": 0,
@@ -1285,6 +1301,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 0x104,
                         },
                         {
+                            "record_kind_id": 5,
                             "record_kind": "platform_unresolved_typed_access",
                             "memory_kind": "platform_struct_unresolved",
                             "section_index": 0,

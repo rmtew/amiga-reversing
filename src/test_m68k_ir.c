@@ -13468,7 +13468,7 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":4") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"execbase_literal\"") != NULL);
+    "\"record_kind_id\":8,\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"execbase_literal\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"hardware_register\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_id\":3,\"owner_kind\":\"hardware_register\"") != NULL);

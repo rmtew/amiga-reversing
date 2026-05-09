@@ -114,6 +114,16 @@ ABSOLUTE_MEMORY_OWNER_NAMES = {
     6: "section_storage",
     7: "absolute_memory",
 }
+MEMORY_LAYOUT_RECORD_KIND_NAMES = {
+    1: "base_layout",
+    2: "base_layout_field",
+    3: "platform_storage_effect",
+    4: "platform_typed_access",
+    5: "platform_unresolved_typed_access",
+    6: "runtime_view",
+    7: "runtime_address_ref",
+    8: "absolute_memory_ref",
+}
 UNRESOLVED_TYPED_ACCESS_FIELD_GAP = 0
 UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION = 1
 UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE = 2
@@ -1616,13 +1626,13 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         _add_table_candidate_record_features(bag, record)
     memory_layout_records = list(_dict_items(analysis.get("memory_layout_records")))
     for record in memory_layout_records:
-        record_kind = _string_value(record.get("record_kind")) or "unknown"
+        record_kind = _memory_layout_record_kind_name(record)
         memory_kind = _string_value(record.get("memory_kind")) or "unknown"
         section_index = _int_value(record.get("section_index"), 0)
         source_offset = _int_value(record.get("source_offset"))
         example = _offset_example(section_index, source_offset, memory_kind)
         for key in (
-            "source_size", "runtime_address", "runtime_size", "target_offset", "sink_address",
+            "record_kind_id", "source_size", "runtime_address", "runtime_size", "target_offset", "sink_address",
             "field_offset", "field_size", "address", "access_width", "owner_offset",
             "range_space_kind", "range_start", "range_size", "range_end", "effect_kind",
             "target_section_index", "displacement", "field_disp", "field_count",
@@ -2313,6 +2323,17 @@ def _absolute_memory_owner_kind_id(record: dict[str, Any]) -> int | None:
 
 def _absolute_memory_owner_kind_name(owner_id: int) -> str:
     return ABSOLUTE_MEMORY_OWNER_NAMES.get(owner_id, "unknown")
+
+
+def _memory_layout_record_kind_id(record: dict[str, Any]) -> int | None:
+    return _int_value(record.get("record_kind_id"))
+
+
+def _memory_layout_record_kind_name(record: dict[str, Any]) -> str:
+    record_kind_id = _memory_layout_record_kind_id(record)
+    if record_kind_id is None:
+        return "unknown"
+    return MEMORY_LAYOUT_RECORD_KIND_NAMES.get(record_kind_id, "unknown")
 
 
 def _add_memory_layout_view_features(bag: FeatureBag, records: list[dict[str, Any]]) -> None:
@@ -3541,7 +3562,7 @@ def _analysis_xrefs(
                 )
             )
     for record in _dict_items(analysis.get("memory_layout_records")):
-        record_kind = _string_value(record.get("record_kind")) or "unknown"
+        record_kind = _memory_layout_record_kind_name(record)
         memory_kind = _string_value(record.get("memory_kind")) or "unknown"
         section_index = _int_value(record.get("section_index"), 0)
         source_offset = _int_value(record.get("source_offset"))
