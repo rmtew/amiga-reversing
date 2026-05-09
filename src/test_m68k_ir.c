@@ -7909,6 +7909,7 @@ static int test_listing_json_uses_render_plan_data_class(void) {
   m68k_render_plan_row_set_source_range(row, 0U, 0x20U, sizeof(bytes));
   m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL, bytes, sizeof(bytes));
   m68k_render_plan_row_set_data_class(row, "lookup_table");
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE, row->data_class_flags);
 
   M68K_C_ASSERT_INT(0, test_listing_full_window_from_render_plan_to_json(NULL, &render_plan,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &rows_json, m68k_diag_sink(NULL)));
@@ -7918,6 +7919,30 @@ static int test_listing_json_uses_render_plan_data_class(void) {
   first_data_class = strstr(rows_json, "\"data_class\":\"lookup_table\"");
   M68K_C_ASSERT(first_data_class != NULL);
   M68K_C_ASSERT(strstr(first_data_class + 1, "\"data_class\":\"lookup_table\"") == NULL);
+
+  free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
+  return 0;
+}
+
+static int test_listing_json_uses_render_plan_data_class_flags(void) {
+  M68kRenderPlan render_plan;
+  M68kRenderPlanRow *row = NULL;
+  char *rows_json = NULL;
+  const uint8_t bytes[2] = {0x00U, 0x00U};
+
+  m68k_render_plan_init(&render_plan);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_DATA, 0U,
+    "\tdc.w $0000\t; sprite\n", &row));
+  m68k_render_plan_row_set_source_range(row, 0U, 0x20U, sizeof(bytes));
+  m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL, bytes, sizeof(bytes));
+  m68k_render_plan_row_set_data_class(row, "sprite");
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE, row->data_class_flags);
+
+  M68K_C_ASSERT_INT(0, test_listing_full_window_from_render_plan_to_json(NULL, &render_plan,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, NULL, NULL, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(rows_json != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"data_class\":\"sprite\"") != NULL);
 
   free(rows_json);
   m68k_render_plan_destroy(&render_plan);
@@ -14964,6 +14989,7 @@ int m68k_c_ir_tests(void) {
     {"render_plan_marks_emitted_org_subline_as_directive",
       test_render_plan_marks_emitted_org_subline_as_directive},
     {"listing_json_uses_render_plan_data_class", test_listing_json_uses_render_plan_data_class},
+    {"listing_json_uses_render_plan_data_class_flags", test_listing_json_uses_render_plan_data_class_flags},
     {"listing_navigation_uses_render_plan_data_class", test_listing_navigation_uses_render_plan_data_class},
     {"listing_json_window_matches_full_render_plan_slice",
       test_listing_json_window_matches_full_render_plan_slice},

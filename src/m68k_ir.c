@@ -55,7 +55,39 @@ uint32_t m68k_analysis_structured_data_role_flags_for_text(const char *semantic_
     return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING;
   if (strcmp(semantic_role, "bitmap") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP;
   if (strcmp(semantic_role, "sound_sample") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE;
+  if (strcmp(semantic_role, "audio_table") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_AUDIO_TABLE;
+  if (strcmp(semantic_role, "blitter_destination") == 0)
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_DESTINATION;
+  if (strcmp(semantic_role, "blitter_source") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_SOURCE;
+  if (strcmp(semantic_role, "disk_buffer") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_DISK_BUFFER;
+  if (strcmp(semantic_role, "sprite") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE;
+  if (strcmp(semantic_role, "string_control_stream") == 0)
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM;
   return 0U;
+}
+
+const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_role_flags) {
+  if ((semantic_role_flags &
+      (M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING)) ==
+      (M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING)) {
+    return "length_prefixed_string";
+  }
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST) != 0U) return "copper_list";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE) != 0U) return "palette";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U) return "pointer_table";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U) return "lookup_table";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) != 0U) return "bitmap";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE) != 0U) return "sound_sample";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U) return "string";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_AUDIO_TABLE) != 0U) return "audio_table";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_DESTINATION) != 0U)
+    return "blitter_destination";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_SOURCE) != 0U) return "blitter_source";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_DISK_BUFFER) != 0U) return "disk_buffer";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE) != 0U) return "sprite";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM) != 0U)
+    return "string_control_stream";
+  return NULL;
 }
 
 void m68k_analysis_structured_data_item_set_semantic_role(M68kAnalysisStructuredDataItem *item,

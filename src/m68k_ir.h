@@ -100,7 +100,13 @@ typedef enum M68kAnalysisStructuredDataRoleFlag {
   M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING = 1U << 4,
   M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP = 1U << 5,
   M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE = 1U << 6,
-  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING = 1U << 7
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING = 1U << 7,
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_AUDIO_TABLE = 1U << 8,
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_DESTINATION = 1U << 9,
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_SOURCE = 1U << 10,
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_DISK_BUFFER = 1U << 11,
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE = 1U << 12,
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM = 1U << 13
 } M68kAnalysisStructuredDataRoleFlag;
 
 typedef struct M68kAnalysisStructuredDataItem {
@@ -1003,6 +1009,7 @@ void m68k_render_policy_init_for_syntax(M68kRenderPolicy *policy, uint8_t syntax
 int m68k_ir_parse_syntax_mode_name(const char *text, uint8_t *out_syntax_mode);
 void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy);
 uint32_t m68k_analysis_structured_data_role_flags_for_text(const char *semantic_role);
+const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_role_flags);
 void m68k_analysis_structured_data_item_set_semantic_role(M68kAnalysisStructuredDataItem *item,
   const char *semantic_role);
 void m68k_analysis_findings_init(M68kAnalysisFindings *findings);

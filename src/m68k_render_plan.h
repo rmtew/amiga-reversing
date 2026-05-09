@@ -54,6 +54,8 @@ typedef struct M68kRenderPlanRow {
   uint8_t has_statement;
   uint8_t has_statement_metadata;
   uint8_t has_runtime_range;
+  uint8_t reserved[3];
+  uint32_t data_class_flags;
   char data_class[32];
   char *text;
 } M68kRenderPlanRow;
