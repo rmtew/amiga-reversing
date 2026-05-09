@@ -178,6 +178,41 @@ app_low_byte RS.B 1
 That is one layout with an alias overlay. A second independent layout requires a
 different proven base id.
 
+## Comparable Ranges
+
+Conflict checks must compare addresses in the same address space. A base-relative
+app slot offset is not a source-code offset:
+
+```asm
+    move.l d0,app_0100(a6)
+```
+
+The range is `a6+$0100..a6+$0103`. Without a proven mapping for `a6`, this must
+not be compared to source bytes `$0100..$0103`.
+
+Section-relative storage is different:
+
+```asm
+    move.l d0,loc_0_00000100.l
+```
+
+If analysis records this as a platform storage effect with
+`range_space_kind = section_relative`, `target_section_index = 0`, and
+`target_offset = $0100`, then it is comparable to accepted-code bytes in section
+0. If any byte in the target range is accepted code, the memory-layout record is
+`conflicted = true` and `conflict_state_id = code_overlap`.
+
+Correctness gates:
+
+- base-relative app, resident, or typed-slot ranges are only compared against
+  other ranges proven to use the same base
+- section-relative ranges may be compared to accepted source-code bytes in the
+  target section
+- runtime-absolute ranges may be compared only through a proven runtime/source
+  view
+- display strings such as `app_0100` or `loc_0_00000100` are not proof that two
+  ranges share an address space
+
 ## Absolute Runtime Memory
 
 Absolute relocated targets need memory-range tracking, not ad hoc labels.
