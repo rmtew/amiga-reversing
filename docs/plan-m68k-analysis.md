@@ -235,7 +235,8 @@ proves a distinct base id.
    - semantic role provenance: implemented as C `semantic_role_flags`; JSON
      `semantic_role` is derived display text, C auto-analysis sets roles by
      flags, stale role strings are ignored, and C regression tests assert
-     semantic roles/data classes through flags rather than display strings
+     semantic roles/data classes through flags rather than display strings;
+     legacy role-name parsing has been removed from the C analysis path
    - runtime-address data class provenance: implemented as C
      `data_class_flags`; JSON `data_class` is derived display text and stale
      class strings are ignored

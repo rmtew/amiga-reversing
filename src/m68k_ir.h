@@ -1083,13 +1083,10 @@ void m68k_render_policy_init_default(M68kRenderPolicy *policy);
 void m68k_render_policy_init_for_syntax(M68kRenderPolicy *policy, uint8_t syntax_mode);
 int m68k_ir_parse_syntax_mode_name(const char *text, uint8_t *out_syntax_mode);
 void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy);
-uint32_t m68k_analysis_structured_data_role_flags_for_text(const char *semantic_role);
 const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_role_flags);
 const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pattern_id);
 const char *m68k_analysis_table_kind_name(uint8_t table_kind_id);
 const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id);
-void m68k_analysis_structured_data_item_set_semantic_role(M68kAnalysisStructuredDataItem *item,
-  const char *semantic_role);
 void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStructuredDataItem *item,
   uint32_t semantic_role_flags);
 void m68k_analysis_findings_init(M68kAnalysisFindings *findings);

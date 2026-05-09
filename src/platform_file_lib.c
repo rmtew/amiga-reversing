@@ -3084,14 +3084,14 @@ static int policy_add_structured_data_item_section_local(M68kAnalysisPolicy *pol
 }
 
 static int policy_set_structured_data_item_metadata_local(M68kAnalysisPolicy *policy, uint16_t item_index,
-    const char *label, const char *struct_name, const char *field_name, const char *semantic_role,
+    const char *label, const char *struct_name, const char *field_name, uint32_t semantic_role_flags,
     uint8_t is_pointer) {
   M68kAnalysisStructuredDataItem *item;
   if (policy == NULL || item_index >= policy->structured_data_item_count ||
       item_index >= M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) return 0;
   item = &policy->structured_data_items[item_index];
   item->is_pointer = is_pointer;
-  m68k_analysis_structured_data_item_set_semantic_role(item, semantic_role);
+  m68k_analysis_structured_data_item_set_semantic_role_flags(item, semantic_role_flags);
   return copy_policy_text(item->label, sizeof(item->label), label) &&
     copy_policy_text(item->struct_name, sizeof(item->struct_name), struct_name) &&
     copy_policy_text(item->field_name, sizeof(item->field_name), field_name);
@@ -3296,7 +3296,7 @@ static int append_metadata_kb_struct_instance_local(M68kAnalysisPolicy *policy, 
     item_index = policy->structured_data_item_count;
     if (!policy_add_structured_data_item_section_local(policy, 1U, hunk, offset + (uint32_t)field->offset,
           (uint32_t)field->size, resident_field_kind_local((uint32_t)field->size), comment) ||
-        !policy_set_structured_data_item_metadata_local(policy, item_index, label, struct_name, field_symbol, label,
+        !policy_set_structured_data_item_metadata_local(policy, item_index, label, struct_name, field_symbol, 0U,
           kb_struct_field_is_pointer_local(field)) ||
         !policy_set_structured_data_item_kb_metadata_local(policy, item_index, field_type, c_type, pointer_struct,
           value_domain, constant_name, has_constant_value, constant_value)) {
@@ -3337,7 +3337,7 @@ static int policy_add_autoinit_structured_item_local(M68kAnalysisPolicy *policy,
   if (!policy_add_structured_data_item_section_local(policy, 1U, hunk, offset, 4U,
         M68K_ANALYSIS_STRUCTURED_DATA_LONGS, comment) ||
       !policy_set_structured_data_item_metadata_local(policy, item_index, label, "resident_autoinit",
-        label, label, is_pointer) ||
+        label, 0U, is_pointer) ||
       !policy_set_structured_data_item_kb_metadata_local(policy, item_index, is_pointer ? "APTR" : "ULONG",
         is_pointer ? "APTR" : "ULONG",
         NULL, NULL, NULL, 0U, 0)) {
