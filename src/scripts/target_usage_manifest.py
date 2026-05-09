@@ -4990,7 +4990,6 @@ def read_type_flow_baseline(path: Path = DEFAULT_TYPE_FLOW_BASELINE) -> dict[str
 
 _TYPE_FLOW_NUMERIC_ADDRESS_BASE_RE = re.compile(r"\$[0-9A-Fa-f]{2,8}(?:\.[wlWL])?\([aA]([0-7])\)")
 _TYPE_FLOW_NUMERIC_ADDRESS_DISPLACEMENT_RE = re.compile(r"(-?)\$([0-9A-Fa-f]{2,8})(?:\.[wlWL])?\([aA][0-7]\)")
-_TYPE_FLOW_APP_SLOT_RE = re.compile(r"\b(app_[0-9A-Fa-f]+|app_[A-Za-z0-9_]+)\s*\([aA]6\)")
 _TYPE_FLOW_ASSIGNMENT_RE = re.compile(r"^\s*(?:movea?|lea)\.[bwlBWL]\s+(.+?),\s*([dDaA][0-7])\b", re.IGNORECASE)
 _TYPE_FLOW_STORE_RE = re.compile(r"^\s*move\.([bwlBWL])\s+([dDaA][0-7]),\s*(.+?)(?:\s*;.*)?$")
 _TYPE_FLOW_REGISTER_RE = re.compile(r"([dDaA][0-7])")
@@ -5019,18 +5018,21 @@ def _type_flow_app_slot_subaccess(trace: dict[str, object]) -> dict[str, object]
     assignment = trace.get("assignment")
     if not isinstance(assignment, dict):
         return None
-    source = _string_value(assignment.get("source"))
+    app_refs = assignment.get("app_slot_refs")
     text = _string_value(trace.get("text"))
-    if source is None or text is None:
+    if text is None:
         return None
-    slot_match = _TYPE_FLOW_APP_SLOT_RE.search(source)
-    if slot_match is None:
+    refs = _dict_items(app_refs)
+    if not refs:
+        return None
+    slot_symbol = _string_value(refs[0].get("symbol")) or _app_slot_symbol(refs[0].get("displacement"))
+    if slot_symbol is None:
         return None
     displacement = _type_flow_numeric_address_displacement(text)
     if displacement is None:
         return None
     return {
-        "slot": slot_match.group(1),
+        "slot": slot_symbol,
         "slot_access_displacement": displacement,
         "slot_access_displacement_hex": _signed_hex_string(displacement),
     }
@@ -5093,7 +5095,7 @@ def _type_flow_row_is_call_like(row: dict[str, Any]) -> bool:
 def _type_flow_storage_kind(assignment_source: str, assignment_row: dict[str, Any] | None) -> str:
     source_lower = assignment_source.lower()
     app_refs = assignment_row.get("app_slot_refs") if isinstance(assignment_row, dict) else None
-    if "app_" in source_lower or _dict_items(app_refs):
+    if _dict_items(app_refs):
         return "app_slot"
     if "(a7)" in source_lower or "(sp)" in source_lower:
         return "stack_slot"
@@ -5295,7 +5297,7 @@ def _type_flow_pointer_chain_source_kind(
     source_lower = assignment_source.lower()
     source_reg = _type_flow_register_name(assignment_source)
     app_refs = assignment_row.get("app_slot_refs") if isinstance(assignment_row, dict) else None
-    if "app_" in source_lower or _dict_items(app_refs):
+    if _dict_items(app_refs):
         return "app_slot"
     if "(a7)" in source_lower or "(sp)" in source_lower:
         return "stack_slot"
@@ -5518,7 +5520,7 @@ def _type_flow_numeric_source_kind(
 ) -> str:
     source_lower = assignment_source.lower()
     app_refs = assignment_row.get("app_slot_refs") if isinstance(assignment_row, dict) else None
-    if "app_" in source_lower or _dict_items(app_refs):
+    if _dict_items(app_refs):
         return "app_slot_load"
     if "(a7)" in source_lower or "(sp)" in source_lower:
         return "stack_slot_load"
@@ -5629,6 +5631,7 @@ def _type_flow_numeric_access_trace(
         "stable_key": assignment_row.get("stable_key") if isinstance(assignment_row, dict) else None,
         "source": assignment_source,
         "text": (_string_value(assignment_row.get("text")) or "").strip() if isinstance(assignment_row, dict) else None,
+        "app_slot_refs": assignment_row.get("app_slot_refs") if isinstance(assignment_row, dict) else None,
     }
     if storage_chain is not None:
         trace["propagation_chain"] = storage_chain

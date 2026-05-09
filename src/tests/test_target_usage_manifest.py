@@ -3057,6 +3057,38 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(trace["pointer_chain"]["hops"][0]["source"], "$0004(a4)")
         self.assertEqual(trace["pointer_chain"]["hops"][1]["source"], "app_Window(a6)")
 
+    def test_type_flow_does_not_infer_app_slot_from_rendered_symbol_text(self) -> None:
+        snippets = [
+            {
+                "target_id": "platform_file_manifest:demo",
+                "row_index": 1,
+                "row": {"kind": "instruction", "text": "\tmovea.l app_Window(a6),a4\n"},
+            },
+            {
+                "target_id": "platform_file_manifest:demo",
+                "row_index": 2,
+                "row": {"kind": "instruction", "text": "\ttst.w $0004(a4)\n"},
+            },
+        ]
+        snippets = _with_generated_listing_row_kind_ids(snippets)
+        rows_by_target = usage._type_flow_rows_for_target(snippets)
+        rows_by_index = {
+            "platform_file_manifest:demo": usage._type_flow_rows_by_index(
+                rows_by_target, "platform_file_manifest:demo"
+            )
+        }
+
+        trace = usage._type_flow_numeric_access_trace(
+            "platform_file_manifest:demo",
+            snippets[1],
+            rows_by_target,
+            {},
+            rows_by_index,
+        )
+
+        self.assertEqual(trace["cause"], "unknown_pointer_chain")
+        self.assertEqual(trace["pointer_chain"]["root_kind"], "unknown")
+
     def test_type_flow_delta_summarizes_totals_and_target_changes(self) -> None:
         before = [
             {

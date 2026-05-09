@@ -3576,47 +3576,11 @@ static const char *app_slot_access_kind_name(uint8_t access_kind) {
   }
 }
 
-static int listing_symbol_name_is_app_slot_ref(const char *symbol_name) {
-  return symbol_name != NULL && strncmp(symbol_name, "app_", 4U) == 0 && strcmp(symbol_name, "app_SIZEOF") != 0;
-}
-
 static int listing_app_slot_fallback_symbol_name(int16_t displacement, char *symbol_name, size_t symbol_name_size) {
   int written;
   if (symbol_name == NULL || symbol_name_size == 0U) return 0;
   written = snprintf(symbol_name, symbol_name_size, "app_%04X", (unsigned)(uint16_t)displacement);
   return written > 0 && (size_t)written < symbol_name_size;
-}
-
-static int listing_app_slot_memory_write_is_readwrite(const M68kSimFormMetadata *metadata) {
-  if (metadata == NULL) return 0;
-  switch (metadata->operation_type) {
-  case M68K_SIM_OP_MOVE:
-  case M68K_SIM_OP_CLEAR:
-  case M68K_SIM_OP_SET_COND:
-  case M68K_SIM_OP_MOVE_MULTIPLE:
-  case M68K_SIM_OP_MOVE_PERIPHERAL:
-    return 0;
-  default:
-    return 1;
-  }
-}
-
-static const char *listing_app_slot_access_kind(const M68kSimFormMetadata *metadata, size_t operand_index,
-    const M68kOperandIR *operand) {
-  uint8_t access_kind;
-  uint8_t base_reg = 0U;
-  int16_t displacement = 0;
-  if (metadata == NULL || operand == NULL || operand_index >= 4U) return NULL;
-  if (!operand_is_indirect_or_disp_an(operand, &base_reg, &displacement)) return NULL;
-  access_kind = metadata->operand_access_kinds[operand_index];
-  if (access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS || access_kind == M68K_SIM_ACCESS_BRANCH_TARGET)
-    return "address";
-  if (access_kind == M68K_SIM_ACCESS_MEMORY_READ || access_kind == M68K_SIM_ACCESS_REGISTER_READ)
-    return "read";
-  if (access_kind == M68K_SIM_ACCESS_MEMORY_WRITE || access_kind == M68K_SIM_ACCESS_REGISTER_WRITE) {
-    return listing_app_slot_memory_write_is_readwrite(metadata) ? "read-write" : "write";
-  }
-  return NULL;
 }
 
 static const char *listing_app_slot_ref_symbol_name(const M68kStatementIR *stmt, const M68kAppSlotRefIR *ref,
@@ -3625,7 +3589,7 @@ static const char *listing_app_slot_ref_symbol_name(const M68kStatementIR *stmt,
   if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION && ref != NULL &&
       ref->operand_index < stmt->u.instruction.operand_count) {
     operand = &stmt->u.instruction.operands[ref->operand_index];
-    if (operand->symbol_ref.has_name != 0U && listing_symbol_name_is_app_slot_ref(operand->symbol_ref.name))
+    if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name[0] != '\0')
       return operand->symbol_ref.name;
   }
   if (ref == NULL || !listing_app_slot_fallback_symbol_name(ref->displacement, fallback, fallback_size)) return NULL;
@@ -3650,13 +3614,11 @@ static int append_listing_app_slot_ref_json(JsonBuilder *builder, const char *sy
 
 static int append_listing_app_slot_refs_json(JsonBuilder *builder, const M68kStatementIR *stmt,
     const M68kSectionAnalysisIR *section_analysis) {
-  size_t operand_index;
   int emitted = 0;
-  const M68kInstructionIR *instruction;
-  const M68kSimFormMetadata *metadata;
   if (json_builder_append(builder, "[") != 0) return -1;
-  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return json_builder_append(builder, "]");
-  if (section_analysis != NULL) {
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION || section_analysis == NULL)
+    return json_builder_append(builder, "]");
+  {
     size_t ref_index;
     for (ref_index = 0U; ref_index < section_analysis->app_slot_ref_count; ++ref_index) {
       const M68kAppSlotRefIR *ref = &section_analysis->app_slot_refs[ref_index];
@@ -3673,27 +3635,6 @@ static int append_listing_app_slot_refs_json(JsonBuilder *builder, const M68kSta
         return -1;
       emitted = 1;
     }
-    return json_builder_append(builder, "]");
-  }
-  instruction = &stmt->u.instruction;
-  metadata = instruction_sim_metadata(instruction);
-  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
-    const M68kOperandIR *operand_ir = &instruction->operands[operand_index];
-    uint8_t base_reg = 0U;
-    int16_t displacement = 0;
-    const char *access_kind;
-    if (operand_ir->symbol_ref.has_name == 0U ||
-        !listing_symbol_name_is_app_slot_ref(operand_ir->symbol_ref.name)) {
-      continue;
-    }
-    if (!operand_is_indirect_or_disp_an(operand_ir, &base_reg, &displacement)) continue;
-    access_kind = listing_app_slot_access_kind(metadata, operand_index, operand_ir);
-    if (access_kind == NULL) continue;
-    if (emitted && json_builder_append(builder, ",") != 0) return -1;
-    if (append_listing_app_slot_ref_json(builder, operand_ir->symbol_ref.name, displacement, base_reg,
-        (uint8_t)operand_index, access_kind) != 0)
-      return -1;
-    emitted = 1;
   }
   return json_builder_append(builder, "]");
 }
@@ -5764,13 +5705,10 @@ static int listing_stmt_has_operand_metadata(const M68kStatementIR *stmt) {
 static int listing_stmt_has_app_slot_refs(const M68kStatementIR *stmt,
     const M68kSectionAnalysisIR *section_analysis) {
   size_t index;
-  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return 0;
-  if (section_analysis != NULL) {
-    for (index = 0U; index < section_analysis->app_slot_ref_count; ++index)
-      if (section_analysis->app_slot_refs[index].offset == stmt->offset) return 1;
-    return 0;
-  }
-  return listing_stmt_has_symbol_operand_parts(stmt);
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION || section_analysis == NULL) return 0;
+  for (index = 0U; index < section_analysis->app_slot_ref_count; ++index)
+    if (section_analysis->app_slot_refs[index].offset == stmt->offset) return 1;
+  return 0;
 }
 
 static int listing_stmt_has_runtime_address_refs(const M68kStatementIR *stmt,
