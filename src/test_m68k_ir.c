@@ -10072,6 +10072,56 @@ static int test_facts_v2_relocation_backed_data_longs_auto_classify_pointer_tabl
   return 0;
 }
 
+static int test_facts_v2_relocation_pointer_table_promotes_callback_targets(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kFixup fixup;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[14] = {
+    0x4Eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x0Au,
+    0x00u, 0x00u, 0x00u, 0x0Cu,
+    0x4Eu, 0x75u,
+    0x4Eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&fixup, 0, sizeof(fixup));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  fixup.section_index = 0U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.target_section_index = 0U;
+  fixup.has_target_section = 1;
+  fixup.offset = 2U;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  fixup.offset = 6U;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_0000000A\t; pointer_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_0000000C\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000000A:\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000000C:\n\trts\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_uses_object_symbol_label(void) {
   M68kObject object;
   M68kSection section;
@@ -16539,6 +16589,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_uses_policy_label_for_data_relocation},
     {"facts_v2_relocation_backed_data_longs_auto_classify_pointer_table",
       test_facts_v2_relocation_backed_data_longs_auto_classify_pointer_table},
+    {"facts_v2_relocation_pointer_table_promotes_callback_targets",
+      test_facts_v2_relocation_pointer_table_promotes_callback_targets},
     {"facts_v2_render_asm_source_uses_object_symbol_label",
       test_facts_v2_render_asm_source_uses_object_symbol_label},
     {"facts_v2_render_asm_source_infers_lvo_from_object_base_symbol",

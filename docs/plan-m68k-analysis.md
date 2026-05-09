@@ -203,6 +203,11 @@ measurements and test names here, not in the index table.
 - Current target-pattern queues remain callback, vector, API, runtime-copy, and
   metadata. Jump-table examples are suppressed structured-data overlaps and are
   no longer work items.
+- Relocation-backed function pointer tables now seed callback/function targets
+  in C after the first reachable pass, gated by accepted-code overlap, code
+  target validity, contiguous long relocations, and at least two entries. This
+  turns proven table targets into rendered code instead of orphan/data islands.
+  Coverage: `test_facts_v2_relocation_pointer_table_promotes_callback_targets`.
 
 #### Targets
 
@@ -225,6 +230,13 @@ measurements and test names here, not in the index table.
   slots, and global base slots now store generated Amiga library/base ids for
   semantic decisions. Library/base names remain source/export text, not the
   semantic key.
+- Orphan/code discovery: relocation-backed function pointer tables now promote
+  valid callback/function targets in C. Full target-usage rebuild against the
+  previous orphan-summary baseline reduced callback orphan signals from 5 to 1
+  and target rows from 3 to 1; Starglider project/corpus callback rows dropped
+  to 0, Midwinter II dropped from 3 to 1, vector rows dropped from 31 to 22,
+  API rows from 10 to 8, and metadata rows from 219 to 204. Reproduction status
+  counts did not change.
 - Targets: `resources/clone_amiga/Bloodwych-68k/asm/BLOODWYCH439_relabel.asm`
   is available as comparison material for Bloodwych data/source-reference
   investigation only. It must not drive target-specific logic.

@@ -429,6 +429,33 @@ Only promote an orphan candidate to accepted code when a real inbound edge or
 explicit policy/metadata seed proves it. Until then, expose it as an analysis
 problem and corpus tag.
 
+One valid inbound edge is a relocation-backed function pointer table. This is a
+code discovery fact, not a renderer label trick. The C fixed point first accepts
+ordinary flow, then scans contiguous long relocation entries whose table bytes
+do not overlap accepted code. Each entry must target an even offset in a code
+section, must decode as an instruction start, and must not be inside already
+accepted code. A table must contain at least two valid entries and at least one
+new target before it seeds callback/function targets and reruns reachability.
+
+Example:
+
+```asm
+entry:
+    rts
+
+    dc.l callback_a
+    dc.l callback_b
+
+callback_a:
+    rts
+callback_b:
+    rts
+```
+
+Without the table edge, `callback_a` and `callback_b` remain orphan-like data.
+With the relocation-backed table edge, they become accepted code and the visible
+source renders the target labels as real instructions, not `dc.w $4E75`.
+
 The success metric is not "more auto-converted code". The success metric is that
 orphan signals decrease because better jump/lookup table, callback, vector, ORG,
 or absolute-memory analysis found real links.
