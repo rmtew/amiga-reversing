@@ -3502,7 +3502,7 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
     source_analysis.sections[0].orphan_code_signals[0].status);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_CONTEXT_ACCEPTED_CODE_BOUNDARY,
     source_analysis.sections[0].orphan_code_signals[0].context);
-  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN,
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE,
     source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
   M68K_C_ASSERT_STR("lookup_table", source_analysis.sections[0].orphan_code_signals[0].nearby_data_class);
   M68K_C_ASSERT_STR("after", source_analysis.sections[0].orphan_code_signals[0].nearby_data_relation);
@@ -3515,7 +3515,7 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   M68K_C_ASSERT(strstr(analysis_json, "\"reason\":\"terminal_decode\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"status\":\"unresolved\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"context\":\"accepted_code_boundary\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound\":\"unknown\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound\":\"jump_table\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_class\":\"lookup_table\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_relation\":\"after\"") != NULL);
   free(analysis_json);

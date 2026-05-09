@@ -63,7 +63,7 @@ Reviewed implementation and tests before updating this plan. Current state:
 | ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, policy-vs-inferred precedence, corpus tags, and listing navigation for materialized/suppressed runtime views. | Runtime-copy facts still need explicit wrapper-load/helper/final-image relationships. |
 | Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, relative `target-base` rendering, C JSON `table_records` derived from accepted structured table data, consumer instruction provenance, source-pattern provenance, code-overlap conflict state, and C JSON `table_candidate_records` plus corpus tags/xrefs for unresolved indirect/table candidate sites by status, shape, source instruction range, operand index, and source pattern. | Table candidate facts still need rejected table data bounds where value-flow can prove a candidate span. |
 | Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks; C JSON now exposes `memory_layout_records` for base-layout fields, runtime views, and runtime-address references with external hardware sink addresses. | Memory-layout records still need absolute globals, broader hardware register ranges, and unresolved/conflict candidates merged into the same view. |
-| Orphaned code | C analysis now records unresolved terminal-decode islands at accepted-code boundaries or data labels as orphan signals without promoting them to accepted code. | Extend the signal with inbound-evidence classes, nearby context, target metrics, and reconciliation after table/callback/vector improvements. |
+| Orphaned code | C analysis now records unresolved terminal-decode islands at accepted-code boundaries or data labels as orphan signals without promoting them to accepted code; lookup-table-adjacent islands are classified with missing inbound `jump_table`. | Extend the signal with more inbound-evidence classes, nearby context, target metrics, and reconciliation after table/callback/vector improvements. |
 | Targets | Bloodwych has many relative lookup tables; Pandora demonstrates wrapper load vs final copied image; Conqueror demonstrates weak low ORG risk; Carrier stresses packed/runtime-copy ambiguity; GenAm/MonAm remain comparator targets. | Corpus tags should preserve these pattern roles so later changes can be validated across comparable targets. |
 
 Past decisions to preserve:
@@ -353,7 +353,8 @@ Required data analysis:
   data, or platform-owned data unless a source/runtime map explains the overlap
 - record why each candidate is not accepted yet
 - correlate candidates with unresolved indirect jumps, lookup tables, vectors,
-  callbacks, runtime copies, and absolute memory references
+  callbacks, runtime copies, and absolute memory references; implemented for
+  lookup-table-adjacent terminal islands as `jump_table` missing inbound
 - promote candidates only after a real inbound edge or explicit seed is found
 - measure target signal counts before/after table/vector/ORG improvements
 
@@ -427,7 +428,7 @@ undocumented renderer heuristics.
   scattered case-specific render behavior for unresolved/rejected candidates.
 - Orphaned code signals have a first-class fact model for unresolved
   terminal-decode islands at accepted-code boundaries or data labels;
-  target-level metrics and richer cause classification remain.
+  target-level metrics and broader cause classification remain.
 - The signal should be reconciled after jump/lookup table work: a good table
   improvement should turn some orphan candidates into reached code, not just hide
   them.

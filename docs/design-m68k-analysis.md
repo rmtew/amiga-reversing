@@ -346,6 +346,12 @@ The success metric is not "more auto-converted code". The success metric is that
 orphan signals decrease because better jump/lookup table, callback, vector, ORG,
 or absolute-memory analysis found real links.
 
+Cause classification should be evidence-based even when the signal stays
+unresolved. For example, an orphan terminal island immediately adjacent to a
+`lookup_table` remains data in the rendered source, but its missing inbound class
+should be `jump_table` so the next implementation pass can focus on dispatch
+recovery rather than treating it as an unknown island.
+
 ## Absolute Memory Access
 
 Absolute memory is not one thing. Analysis should classify the ownership before

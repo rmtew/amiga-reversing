@@ -6116,6 +6116,18 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
   }
 }
 
+static void render_orphan_signal_refine_missing_inbound(M68kOrphanCodeSignalIR *signal) {
+  if (signal == NULL || signal->nearby_data_class == NULL) {
+    return;
+  }
+  if (signal->missing_inbound != M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN &&
+      signal->missing_inbound != M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA)
+    return;
+  if (strcmp(signal->nearby_data_class, "lookup_table") == 0) {
+    signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE;
+  }
+}
+
 static int render_analysis_append_orphan_code_signals_for_section(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
     M68kSectionAnalysisIR *section_analysis) {
@@ -6192,6 +6204,7 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
         signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN;
       }
       render_orphan_signal_attach_nearby_data_context(lookup, section, &signal);
+      render_orphan_signal_refine_missing_inbound(&signal);
       signal.detail = "decoded instruction island ends in generated terminal flow";
       if (m68k_ir_section_analysis_append_orphan_code_signal(section_analysis, &signal) != 0) return -1;
       offset = start + signal.size;
