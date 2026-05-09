@@ -6428,6 +6428,33 @@ static uint32_t render_instruction_access_width(const M68kInstructionIR *instruc
   return 0U;
 }
 
+static const M68kFact *render_operand_relocation_ref(const M68kRenderLookup *lookup, size_t section_index,
+    const M68kDecodeCandidate *candidate, size_t operand_index) {
+  M68kAsmOperandValue operands[M68K_DECODE_IR_MAX_OPERANDS];
+  size_t index;
+  size_t begin;
+  size_t end;
+  uint32_t cursor;
+  if (lookup == NULL || candidate == NULL || operand_index >= candidate->operand_count ||
+      candidate->operand_count > M68K_DECODE_IR_MAX_OPERANDS) {
+    return NULL;
+  }
+  for (index = 0U; index < candidate->operand_count; ++index) {
+    operands[index] = candidate->operands[index];
+    operands[index].kind = candidate->operand_kinds[index];
+  }
+  begin = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, operands, candidate->operand_count,
+    candidate->size_suffix, operand_index, 0);
+  end = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, operands, candidate->operand_count,
+    candidate->size_suffix, operand_index, 1);
+  if (begin > end || begin > UINT32_MAX - candidate->offset || end > UINT32_MAX - candidate->offset) return NULL;
+  for (cursor = candidate->offset + (uint32_t)begin; cursor < candidate->offset + (uint32_t)end; ++cursor) {
+    const M68kFact *relocation = lookup_relocation_at(lookup, section_index, cursor);
+    if (relocation != NULL) return relocation;
+  }
+  return NULL;
+}
+
 static int render_analysis_append_orphan_absolute_memory_refs_for_signal(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const M68kOrphanCodeSignalIR *signal,
     M68kSectionAnalysisIR *section_analysis) {
@@ -6457,6 +6484,7 @@ static int render_analysis_append_orphan_absolute_memory_refs_for_signal(const M
          operand_index < instruction.operand_count; ++operand_index) {
       uint32_t address = 0U;
       uint8_t access_kind = metadata->operand_access_kinds[operand_index];
+      const M68kFact *relocation;
       M68kAbsoluteMemoryRefIR ref;
       if (!render_absolute_ref_access_kind(access_kind)) continue;
       if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index],
@@ -6474,7 +6502,11 @@ static int render_analysis_append_orphan_absolute_memory_refs_for_signal(const M
       ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
       ref.confidence = signal->confidence;
       ref.conflict_state = M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED;
-      if (m68k_cpu_find_exception_vector_by_address(address) != NULL ||
+      relocation = render_operand_relocation_ref(lookup, section->section_index, candidate, operand_index);
+      if (relocation != NULL) {
+        ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE;
+        ref.owner_offset = relocation->target_offset;
+      } else if (m68k_cpu_find_exception_vector_by_address(address) != NULL ||
           platform_facts_v2_is_callback_vector_slot(platform_kind, address)) {
         ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
         ref.owner_offset = 0U;
@@ -6518,6 +6550,8 @@ static int render_orphan_signal_has_vector_evidence(const M68kRenderLookup *look
           &candidate->operands[operand_index], &address)) {
         continue;
       }
+      if (render_operand_relocation_ref(lookup, section->section_index, candidate, operand_index) != NULL)
+        continue;
       if (m68k_cpu_find_exception_vector_by_address(address) != NULL ||
           platform_facts_v2_is_callback_vector_slot(platform_kind, address)) {
         return 1;

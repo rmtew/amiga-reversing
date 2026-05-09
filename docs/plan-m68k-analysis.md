@@ -244,6 +244,12 @@ measurements and test names here, not in the index table.
   address-register destination, even code-section target, decodability, and no
   accepted-code interior overlap. The isolated regression is
   `facts_v2_relocated_indirect_call_promotes_cross_section_target`.
+- Memory ownership/orphan diagnostics: relocated absolute operands no longer
+  become CPU-vector evidence solely because their relocation addend is a low
+  number such as `$10` or `$14`. The C/render analysis keeps relocation
+  provenance and classifies those operands as section storage; unrelocated
+  vector-slot writes still classify as vectors. The isolated regression is
+  `facts_v2_orphan_signal_does_not_treat_relocated_low_offset_as_vector`.
 - Targets: `resources/clone_amiga/Bloodwych-68k/asm/BLOODWYCH439_relabel.asm`
   is available as comparison material for Bloodwych data/source-reference
   investigation only. It must not drive target-specific logic.
@@ -765,6 +771,18 @@ trace provenance:
   vector-missing orphan signals 1 -> 0, label definitions 928 -> 944.
 - Direct rebuild exactness passed for all three affected promoted targets.
 
+Relocated operand memory-owner corpus evidence after preventing low relocation
+addends from becoming vector ownership:
+
+- Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_relocated_memory_owner.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_relocated_memory_owner.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_relocated_memory_owner.jsonl --variants-output src\build\tmp_target_variant_index_after_relocated_memory_owner.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_relocated_memory_owner.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_relocated_memory_owner.jsonl --workers 8`
+- Scope: 493 entries, 546467 xrefs, 476716 snippet rows, 322 type-flow rows.
+- False vector-missing orphan signals dropped 17 -> 0 across Workbench
+  `Pipe-Handler`, `NoFastMem`, `CMD`, `Preferences`, `mathieeedoubtrans.library`,
+  and Starglider `mathtrans.library`.
+- CPU-vector memory-owner xrefs dropped 6028 -> 825 while absolute-memory-ref
+  records stayed at 52136; section-storage xrefs rose 34846 -> 43616. This is
+  ownership reclassification, not hidden data removal.
+
 Actionable unresolved orphan missing-inbound corpus evidence after gating
 suppressed signals out of work-item tags:
 
@@ -848,6 +866,8 @@ undocumented renderer heuristics.
 - Relocated immediate code addresses loaded into address registers can promote
   indirect call/jump targets only through relocation provenance and generated
   MOVE metadata.
+- Relocated low-offset operands are section-storage references, not vector
+  evidence; unrelocated vector-slot operands remain vector evidence.
 - Jump tables render symbolic target-base expressions when the calculation is
   proven.
 - Orphaned code-like data is reported as a signal, not accepted as code, until an

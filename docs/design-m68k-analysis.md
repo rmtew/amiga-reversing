@@ -501,6 +501,14 @@ may include text names for UI output, but corpus and analysis consumers must use
 the ids/flags. A policy-named label is explicit seed evidence
 (`policy_seed`); an object or metadata label is only `metadata` evidence.
 
+Relocation provenance also applies to orphan diagnostics. A relocated operand
+whose encoded value is `$10`, `$14`, `$20`, or another low offset is not a CPU
+vector merely because its addend is numerically in the vector table. If the
+operand carries hunk relocation provenance, the memory owner is section storage
+for the relocation target. Only unrelocated absolute operands to vector slots, or
+platform callback-vector slots, may classify the orphan as `vector` missing
+inbound evidence.
+
 ## Absolute Memory Access
 
 Absolute memory is not one thing. Analysis should classify the ownership before

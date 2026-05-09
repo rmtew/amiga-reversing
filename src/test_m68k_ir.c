@@ -4149,6 +4149,79 @@ static int test_facts_v2_orphan_signal_classifies_vector_operand_as_vector_inbou
   return 0;
 }
 
+static int test_facts_v2_orphan_signal_does_not_treat_relocated_low_offset_as_vector(void) {
+  M68kObject object;
+  M68kSection source_section;
+  M68kSection target_section;
+  M68kObjectAddResult added;
+  M68kFixup fixup;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAbsoluteMemoryRefIR *ref;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t source_bytes[10] = {
+    0x4eu, 0x75u,
+    0x4eu, 0xb9u, 0x00u, 0x00u, 0x00u, 0x10u,
+    0x4eu, 0x75u
+  };
+  uint8_t target_bytes[18] = {
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0x75u
+  };
+  memset(&source_section, 0, sizeof(source_section));
+  memset(&target_section, 0, sizeof(target_section));
+  memset(&fixup, 0, sizeof(fixup));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  source_section.kind = M68K_SECTION_CODE;
+  source_section.size = sizeof(source_bytes);
+  source_section.data_size = sizeof(source_bytes);
+  target_section.kind = M68K_SECTION_CODE;
+  target_section.size = sizeof(target_bytes);
+  target_section.data_size = sizeof(target_bytes);
+  M68K_C_ASSERT_INT(0, m68k_object_set_section_data(&object,
+    m68k_object_add_section(&object, &source_section).index, source_bytes, sizeof(source_bytes)));
+  M68K_C_ASSERT_INT(0, m68k_object_set_section_data(&object,
+    m68k_object_add_section(&object, &target_section).index, target_bytes, sizeof(target_bytes)));
+  fixup.section_index = 0U;
+  fixup.offset = 4U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.addend = 0x10;
+  fixup.target_section_index = 1U;
+  fixup.has_target_section = 1;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr loc_1_00000010.l\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l loc_1_00000010\n") != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
+  M68K_C_ASSERT(source_analysis.sections[0].orphan_code_signals[0].missing_inbound !=
+    M68K_ORPHAN_CODE_SIGNAL_INBOUND_VECTOR);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
+  ref = &source_analysis.sections[0].absolute_memory_refs[0];
+  M68K_C_ASSERT_U32(2U, ref->offset);
+  M68K_C_ASSERT_U32(0x10U, ref->address);
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE, ref->owner_kind);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound_id\":4,\"missing_inbound\":\"vector\"") == NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_id\":2,\"owner_kind\":\"cpu_vector\"") == NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_id\":6,\"owner_kind\":\"section_storage\"") != NULL);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_orphan_signal_classifies_lvo_call_as_api_inbound(void) {
   M68kObject object;
   M68kSection section;
@@ -16812,6 +16885,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_callback},
     {"facts_v2_orphan_signal_classifies_vector_operand_as_vector_inbound",
       test_facts_v2_orphan_signal_classifies_vector_operand_as_vector_inbound},
+    {"facts_v2_orphan_signal_does_not_treat_relocated_low_offset_as_vector",
+      test_facts_v2_orphan_signal_does_not_treat_relocated_low_offset_as_vector},
     {"facts_v2_orphan_signal_classifies_lvo_call_as_api_inbound",
       test_facts_v2_orphan_signal_classifies_lvo_call_as_api_inbound},
     {"facts_v2_orphan_signal_records_minimum_decode_cpu",
