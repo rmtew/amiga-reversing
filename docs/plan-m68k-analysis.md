@@ -71,7 +71,10 @@ use the generated `AMIGA_OS_SYMBOL_ID_LIB_SIZE`; name-based constant lookup is
 kept only for arbitrary source-symbol output. Type-flow nearby OS-call lookups
 now use xref kind ids for OS calls and call outputs plus feature-class ids for
 concrete OS API features, so stale kind display text does not affect API-output
-provenance.
+provenance. Type-flow numeric-access reports now also carry compact cause ids
+and propagation-chain kind ids; report branching for app-slot substructure and
+API-output storage gaps uses those ids, while cause/chain strings remain display
+and grouping names.
 
 | Topic | Current evidence | Gap to address |
 | --- | --- | --- |

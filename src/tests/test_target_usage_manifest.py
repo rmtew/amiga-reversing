@@ -3165,10 +3165,20 @@ class TargetUsageManifestTests(unittest.TestCase):
             "app",
         )
         self.assertEqual(
+            report["examples"]["numeric_address_reg_access_without_type:app_slot_load"][0]["trace"]["cause_id"],
+            usage.TYPE_FLOW_CAUSE_APP_SLOT_LOAD,
+        )
+        self.assertEqual(
             report["examples"]["propagation_chain:api_output_to_global_or_base_slot_reload"][0]["trace"][
                 "propagation_chain"
             ]["store_stable_key"],
             "global-store",
+        )
+        self.assertEqual(
+            report["examples"]["propagation_chain:api_output_to_global_or_base_slot_reload"][0]["trace"][
+                "propagation_chain"
+            ]["kind_id"],
+            usage.TYPE_FLOW_PROPAGATION_CHAIN_API_OUTPUT,
         )
         self.assertEqual(
             report["examples"]["propagation_chain:api_output_copy_to_global_or_base_slot_reload"][0]["trace"][

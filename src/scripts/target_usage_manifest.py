@@ -5379,6 +5379,48 @@ _TYPE_FLOW_CALL_LIKE_RE = re.compile(r"^\s*(?:jsr|bsr|jmp|trap)\b", re.IGNORECAS
 _TYPE_FLOW_ADDRESS_EXPR_RE = re.compile(r"\([aA][0-7]\)")
 _TYPE_FLOW_GLOBAL_OR_BASE_RE = re.compile(r"\$[0-9a-f]{4,8}(?:\.[wl])?$")
 
+TYPE_FLOW_CAUSE_UNKNOWN_POINTER_CHAIN = 1
+TYPE_FLOW_CAUSE_API_OUTPUT_NEARBY = 2
+TYPE_FLOW_CAUSE_API_OUTPUT_NEARBY_UNKNOWN_OUTPUT = 3
+TYPE_FLOW_CAUSE_POST_CALL_REGISTER_COPY = 4
+TYPE_FLOW_CAUSE_APP_SLOT_LOAD = 5
+TYPE_FLOW_CAUSE_STACK_SLOT_LOAD = 6
+TYPE_FLOW_CAUSE_GLOBAL_OR_BASE_SLOT_LOAD = 7
+TYPE_FLOW_CAUSE_POST_CALL_EXISTING_BASE = 8
+
+TYPE_FLOW_CAUSE_NAMES = {
+    TYPE_FLOW_CAUSE_UNKNOWN_POINTER_CHAIN: "unknown_pointer_chain",
+    TYPE_FLOW_CAUSE_API_OUTPUT_NEARBY: "api_output_nearby",
+    TYPE_FLOW_CAUSE_API_OUTPUT_NEARBY_UNKNOWN_OUTPUT: "api_output_nearby_unknown_output",
+    TYPE_FLOW_CAUSE_POST_CALL_REGISTER_COPY: "post_call_register_copy",
+    TYPE_FLOW_CAUSE_APP_SLOT_LOAD: "app_slot_load",
+    TYPE_FLOW_CAUSE_STACK_SLOT_LOAD: "stack_slot_load",
+    TYPE_FLOW_CAUSE_GLOBAL_OR_BASE_SLOT_LOAD: "global_or_base_slot_load",
+    TYPE_FLOW_CAUSE_POST_CALL_EXISTING_BASE: "post_call_existing_base",
+}
+
+TYPE_FLOW_CAUSE_STOP_REASONS = {
+    TYPE_FLOW_CAUSE_UNKNOWN_POINTER_CHAIN: "assignment_source_is_address_register_memory_chain",
+    TYPE_FLOW_CAUSE_API_OUTPUT_NEARBY: "assignment_source_is_register_after_nearby_os_call",
+    TYPE_FLOW_CAUSE_API_OUTPUT_NEARBY_UNKNOWN_OUTPUT: "assignment_source_is_register_after_call_without_output_metadata",
+    TYPE_FLOW_CAUSE_POST_CALL_REGISTER_COPY: "assignment_source_is_not_nearest_call_output_register",
+    TYPE_FLOW_CAUSE_APP_SLOT_LOAD: "assignment_source_is_app_slot",
+    TYPE_FLOW_CAUSE_STACK_SLOT_LOAD: "assignment_source_is_stack_slot",
+    TYPE_FLOW_CAUSE_GLOBAL_OR_BASE_SLOT_LOAD: "assignment_source_is_global_or_base_slot",
+}
+
+TYPE_FLOW_PROPAGATION_CHAIN_API_OUTPUT = 1
+TYPE_FLOW_PROPAGATION_CHAIN_API_UNSTRUCTURED_OUTPUT = 2
+TYPE_FLOW_PROPAGATION_CHAIN_API_OUTPUT_COPY = 3
+TYPE_FLOW_PROPAGATION_CHAIN_API_UNSTRUCTURED_OUTPUT_COPY = 4
+TYPE_FLOW_PROPAGATION_CHAIN_API_CALL_UNKNOWN_OUTPUT = 5
+TYPE_FLOW_PROPAGATION_CHAIN_REGISTER = 6
+
+TYPE_FLOW_PROPAGATION_CHAIN_API_OUTPUT_IDS = {
+    TYPE_FLOW_PROPAGATION_CHAIN_API_OUTPUT,
+    TYPE_FLOW_PROPAGATION_CHAIN_API_OUTPUT_COPY,
+}
+
 
 def _type_flow_numeric_address_base_reg(text: str) -> int | None:
     match = _TYPE_FLOW_NUMERIC_ADDRESS_BASE_RE.search(text)
@@ -5562,6 +5604,11 @@ def _type_flow_storage_reload_chain(
             chain = f"{chain_prefix}_to_{storage_kind}_reload"
             return {
                 "kind": chain,
+                "kind_id": (
+                    TYPE_FLOW_PROPAGATION_CHAIN_API_OUTPUT
+                    if chain_prefix == "api_output"
+                    else TYPE_FLOW_PROPAGATION_CHAIN_API_UNSTRUCTURED_OUTPUT
+                ),
                 "storage_kind": storage_kind,
                 "storage": assignment_source,
                 "store_row_index": candidate_index,
@@ -5584,6 +5631,11 @@ def _type_flow_storage_reload_chain(
             chain = f"{chain_prefix}_to_{storage_kind}_reload"
             return {
                 "kind": chain,
+                "kind_id": (
+                    TYPE_FLOW_PROPAGATION_CHAIN_API_OUTPUT_COPY
+                    if chain_prefix == "api_output_copy"
+                    else TYPE_FLOW_PROPAGATION_CHAIN_API_UNSTRUCTURED_OUTPUT_COPY
+                ),
                 "storage_kind": storage_kind,
                 "storage": assignment_source,
                 "store_row_index": candidate_index,
@@ -5596,6 +5648,7 @@ def _type_flow_storage_reload_chain(
             chain = f"api_call_to_{storage_kind}_reload_unknown_output"
             return {
                 "kind": chain,
+                "kind_id": TYPE_FLOW_PROPAGATION_CHAIN_API_CALL_UNKNOWN_OUTPUT,
                 "storage_kind": storage_kind,
                 "storage": assignment_source,
                 "store_row_index": candidate_index,
@@ -5606,6 +5659,7 @@ def _type_flow_storage_reload_chain(
             }
         return {
             "kind": f"register_to_{storage_kind}_reload",
+            "kind_id": TYPE_FLOW_PROPAGATION_CHAIN_REGISTER,
             "storage_kind": storage_kind,
             "storage": assignment_source,
             "store_row_index": candidate_index,
@@ -5899,12 +5953,27 @@ def _type_flow_numeric_source_kind(
     xrefs_by_row: dict[tuple[str, int], list[dict[str, Any]]],
     rows_by_index: dict[int, dict[str, Any]],
 ) -> str:
+    return TYPE_FLOW_CAUSE_NAMES[
+        _type_flow_numeric_source_kind_id(
+            assignment_source, assignment_row, target_id, assignment_row_index, xrefs_by_row, rows_by_index
+        )
+    ]
+
+
+def _type_flow_numeric_source_kind_id(
+    assignment_source: str,
+    assignment_row: dict[str, Any] | None,
+    target_id: str,
+    assignment_row_index: int,
+    xrefs_by_row: dict[tuple[str, int], list[dict[str, Any]]],
+    rows_by_index: dict[int, dict[str, Any]],
+) -> int:
     source_lower = assignment_source.lower()
     app_refs = assignment_row.get("app_slot_refs") if isinstance(assignment_row, dict) else None
     if _dict_items(app_refs):
-        return "app_slot_load"
+        return TYPE_FLOW_CAUSE_APP_SLOT_LOAD
     if "(a7)" in source_lower or "(sp)" in source_lower:
-        return "stack_slot_load"
+        return TYPE_FLOW_CAUSE_STACK_SLOT_LOAD
     if _TYPE_FLOW_REGISTER_RE.fullmatch(source_lower):
         os_call = _type_flow_nearby_os_call(
             target_id, assignment_row_index - 8, assignment_row_index, xrefs_by_row, rows_by_index
@@ -5912,15 +5981,15 @@ def _type_flow_numeric_source_kind(
         if os_call is not None:
             output_regs = os_call.get("output_regs")
             if isinstance(output_regs, list) and source_lower.upper() in output_regs:
-                return "api_output_nearby"
+                return TYPE_FLOW_CAUSE_API_OUTPUT_NEARBY
             if isinstance(output_regs, list) and output_regs:
-                return "post_call_register_copy"
-            return "api_output_nearby_unknown_output"
+                return TYPE_FLOW_CAUSE_POST_CALL_REGISTER_COPY
+            return TYPE_FLOW_CAUSE_API_OUTPUT_NEARBY_UNKNOWN_OUTPUT
     if _TYPE_FLOW_ADDRESS_EXPR_RE.search(assignment_source):
-        return "unknown_pointer_chain"
+        return TYPE_FLOW_CAUSE_UNKNOWN_POINTER_CHAIN
     if source_lower.startswith("$") or _TYPE_FLOW_GLOBAL_OR_BASE_RE.search(source_lower):
-        return "global_or_base_slot_load"
-    return "global_or_base_slot_load"
+        return TYPE_FLOW_CAUSE_GLOBAL_OR_BASE_SLOT_LOAD
+    return TYPE_FLOW_CAUSE_GLOBAL_OR_BASE_SLOT_LOAD
 
 
 def _type_flow_numeric_access_trace(
@@ -5939,19 +6008,22 @@ def _type_flow_numeric_access_trace(
     row_index = snippet.get("row_index")
     trace: dict[str, object] = {}
     if text is None or not isinstance(row_index, int):
-        trace["cause"] = "unknown_pointer_chain"
+        trace["cause_id"] = TYPE_FLOW_CAUSE_UNKNOWN_POINTER_CHAIN
+        trace["cause"] = TYPE_FLOW_CAUSE_NAMES[TYPE_FLOW_CAUSE_UNKNOWN_POINTER_CHAIN]
         trace["stop_reason"] = "missing_instruction_text"
         return trace
     base_reg = _type_flow_numeric_address_base_reg(text)
     trace["row_index"] = row_index
     trace["text"] = text.strip()
     if base_reg is None:
-        trace["cause"] = "unknown_pointer_chain"
+        trace["cause_id"] = TYPE_FLOW_CAUSE_UNKNOWN_POINTER_CHAIN
+        trace["cause"] = TYPE_FLOW_CAUSE_NAMES[TYPE_FLOW_CAUSE_UNKNOWN_POINTER_CHAIN]
         trace["stop_reason"] = "no_numeric_address_base"
         return trace
     trace["base_register"] = f"A{base_reg}"
     if base_reg == 7:
-        trace["cause"] = "stack_slot_load"
+        trace["cause_id"] = TYPE_FLOW_CAUSE_STACK_SLOT_LOAD
+        trace["cause"] = TYPE_FLOW_CAUSE_NAMES[TYPE_FLOW_CAUSE_STACK_SLOT_LOAD]
         trace["stop_reason"] = "stack_pointer_base"
         return trace
     rows = rows_by_target.get(target_id, [])
@@ -5991,21 +6063,25 @@ def _type_flow_numeric_access_trace(
     if assignment_source is None:
         os_call = _type_flow_nearby_os_call(target_id, row_index - 8, row_index, xrefs_by_row, rows_by_index)
         if os_call is not None:
-            trace["cause"] = "post_call_existing_base"
+            trace["cause_id"] = TYPE_FLOW_CAUSE_POST_CALL_EXISTING_BASE
+            trace["cause"] = TYPE_FLOW_CAUSE_NAMES[TYPE_FLOW_CAUSE_POST_CALL_EXISTING_BASE]
             trace["nearest_os_call"] = os_call
             trace["stop_reason"] = "existing_base_access_after_nearby_os_call"
             trace["pointer_chain"] = pointer_chain
             return trace
-        trace["cause"] = "unknown_pointer_chain"
+        trace["cause_id"] = TYPE_FLOW_CAUSE_UNKNOWN_POINTER_CHAIN
+        trace["cause"] = TYPE_FLOW_CAUSE_NAMES[TYPE_FLOW_CAUSE_UNKNOWN_POINTER_CHAIN]
         trace["stop_reason"] = "no_assignment_to_base_register"
         trace["pointer_chain"] = pointer_chain
         return trace
-    cause = _type_flow_numeric_source_kind(
+    cause_id = _type_flow_numeric_source_kind_id(
         assignment_source, assignment_row, target_id, assignment_row_index, xrefs_by_row, rows_by_index
     )
+    cause = TYPE_FLOW_CAUSE_NAMES[cause_id]
     storage_chain = _type_flow_storage_reload_chain(
         target_id, assignment_source, assignment_row, assignment_row_index, rows, rows_by_index, xrefs_by_row
     )
+    trace["cause_id"] = cause_id
     trace["cause"] = cause
     trace["assignment"] = {
         "row_index": assignment_row_index,
@@ -6019,20 +6095,9 @@ def _type_flow_numeric_access_trace(
     os_call = _type_flow_nearby_os_call(target_id, assignment_row_index - 8, assignment_row_index, xrefs_by_row, rows_by_index)
     if os_call is not None:
         trace["nearest_os_call"] = os_call
-    if cause == "unknown_pointer_chain":
-        trace["stop_reason"] = "assignment_source_is_address_register_memory_chain"
-    elif cause == "api_output_nearby":
-        trace["stop_reason"] = "assignment_source_is_register_after_nearby_os_call"
-    elif cause == "api_output_nearby_unknown_output":
-        trace["stop_reason"] = "assignment_source_is_register_after_call_without_output_metadata"
-    elif cause == "post_call_register_copy":
-        trace["stop_reason"] = "assignment_source_is_not_nearest_call_output_register"
-    elif cause == "app_slot_load":
-        trace["stop_reason"] = "assignment_source_is_app_slot"
-    elif cause == "stack_slot_load":
-        trace["stop_reason"] = "assignment_source_is_stack_slot"
-    else:
-        trace["stop_reason"] = "assignment_source_is_global_or_base_slot"
+    trace["stop_reason"] = TYPE_FLOW_CAUSE_STOP_REASONS.get(
+        cause_id, "assignment_source_is_global_or_base_slot"
+    )
     return trace
 
 
@@ -6847,13 +6912,17 @@ def build_type_flow_report(
             rows_by_index_by_target,
             assignment_cache_by_target,
         )
-        cause = str(trace.get("cause", "unknown_pointer_chain"))
+        cause_id = _int_value(trace.get("cause_id")) or TYPE_FLOW_CAUSE_UNKNOWN_POINTER_CHAIN
+        cause = TYPE_FLOW_CAUSE_NAMES.get(cause_id, TYPE_FLOW_CAUSE_NAMES[TYPE_FLOW_CAUSE_UNKNOWN_POINTER_CHAIN])
         propagation_chain = trace.get("propagation_chain")
         pointer_chain = trace.get("pointer_chain")
         propagation_chain_kind = (
             str(propagation_chain.get("kind"))
             if isinstance(propagation_chain, dict) and isinstance(propagation_chain.get("kind"), str)
             else None
+        )
+        propagation_chain_kind_id = (
+            _int_value(propagation_chain.get("kind_id")) if isinstance(propagation_chain, dict) else None
         )
         bump(report, "numeric_address_reg_access_without_type")
         bump(report, f"numeric_cause:{cause}")
@@ -6878,7 +6947,9 @@ def build_type_flow_report(
                 pointer_chain_example["first_source_kind"] = hops[0].get("source_kind")
             if isinstance(hops, list) and len(hops) > 1 and isinstance(hops[1], dict):
                 pointer_chain_example["root_source"] = hops[-1].get("source") if isinstance(hops[-1], dict) else None
-        app_slot_subaccess = _type_flow_app_slot_subaccess(trace) if cause == "app_slot_load" else None
+        app_slot_subaccess = (
+            _type_flow_app_slot_subaccess(trace) if cause_id == TYPE_FLOW_CAUSE_APP_SLOT_LOAD else None
+        )
         if app_slot_subaccess is not None:
             slot_name = str(app_slot_subaccess["slot"])
             slot_disp = str(app_slot_subaccess["slot_access_displacement_hex"])
@@ -6922,7 +6993,7 @@ def build_type_flow_report(
         if propagation_chain_kind:
             bump(report, f"propagation_chain:{propagation_chain_kind}")
             bump_map(report, "propagation_chain_counts", propagation_chain_kind)
-            if propagation_chain_kind.startswith("api_output"):
+            if propagation_chain_kind_id in TYPE_FLOW_PROPAGATION_CHAIN_API_OUTPUT_IDS:
                 bump(report, "propagation_gap:api_output_storage_reload_untyped_access")
                 bump(report, f"propagation_gap:{propagation_chain_kind}")
                 if _string_value(propagation_chain.get("api_output_struct")) == "LIB" and _type_flow_row_is_call_like(row):
@@ -6985,7 +7056,7 @@ def build_type_flow_report(
                     "trace": trace,
                 },
             )
-            if propagation_chain_kind.startswith("api_output"):
+            if propagation_chain_kind_id in TYPE_FLOW_PROPAGATION_CHAIN_API_OUTPUT_IDS:
                 if (
                     isinstance(propagation_chain, dict)
                     and _string_value(propagation_chain.get("api_output_struct")) == "LIB"
