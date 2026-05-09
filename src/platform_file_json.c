@@ -2040,6 +2040,8 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
   for (field_index = 0U; field_index < source_analysis->base_layout_field_count; ++field_index) {
     const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[field_index];
     const char *memory_kind = field->alias ? "base_layout_alias" : "base_layout_field";
+    const char *owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&field->owner_struct_ref,
+      field->owner_struct_name);
     if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder,
         "{\"record_kind\":\"base_layout_field\",\"memory_kind\":\"%s\",\"layout_name\":",
@@ -2049,6 +2051,10 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
     if (json_builder_append_nullable_string(builder, field->base_symbol) != 0) return -1;
     if (json_builder_append(builder, ",\"symbol\":") != 0) return -1;
     if (json_builder_append_nullable_string(builder, field->symbol) != 0) return -1;
+    if (json_builder_append(builder, ",\"owner_struct_name\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, owner_struct_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"root_struct_name\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, owner_struct_name) != 0) return -1;
     if (json_builder_append(builder, ",\"section_index\":") != 0) return -1;
     if (field->has_source) {
       if (json_builder_appendf(builder, "%u", (unsigned)field->source_section_index) != 0) return -1;
@@ -2356,6 +2362,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     goto oom;
   for (field_index = 0U; field_index < source_analysis->base_layout_field_count; ++field_index) {
     const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[field_index];
+    const char *owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&field->owner_struct_ref,
+      field->owner_struct_name);
     if (field_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
     if (json_builder_append(&builder, "{\"layout_name\":") != 0) goto oom;
     if (json_builder_append_nullable_string(&builder, field->layout_name) != 0) goto oom;
@@ -2365,6 +2373,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     if (json_builder_append_nullable_string(&builder, field->sizeof_symbol) != 0) goto oom;
     if (json_builder_append(&builder, ",\"symbol\":") != 0) goto oom;
     if (json_builder_append_nullable_string(&builder, field->symbol) != 0) goto oom;
+    if (json_builder_append(&builder, ",\"owner_struct_name\":") != 0) goto oom;
+    if (json_builder_append_nullable_string(&builder, owner_struct_name) != 0) goto oom;
     if (json_builder_appendf(&builder,
         ",\"offset\":%u,\"size\":%u,\"alias\":%s,\"source_kind\":%u,\"source_kind_name\":",
         (unsigned)field->offset, (unsigned)field->size, field->alias ? "true" : "false",
@@ -4585,6 +4595,8 @@ static int append_listing_base_layout_fields_json(JsonBuilder *builder,
   if (source_analysis == NULL) return json_builder_append(builder, "]");
   for (index = 0U; index < source_analysis->base_layout_field_count; ++index) {
     const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[index];
+    const char *owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&field->owner_struct_ref,
+      field->owner_struct_name);
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"layout_name\":") != 0) return -1;
     if (json_builder_append_nullable_string(builder, field->layout_name) != 0) return -1;
@@ -4594,6 +4606,8 @@ static int append_listing_base_layout_fields_json(JsonBuilder *builder,
     if (json_builder_append_nullable_string(builder, field->sizeof_symbol) != 0) return -1;
     if (json_builder_append(builder, ",\"symbol\":") != 0) return -1;
     if (json_builder_append_nullable_string(builder, field->symbol) != 0) return -1;
+    if (json_builder_append(builder, ",\"owner_struct_name\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, owner_struct_name) != 0) return -1;
     if (json_builder_appendf(builder,
           ",\"offset\":%u,\"size\":%u,\"alias\":%s,\"source_kind\":%u,\"source_kind_name\":",
           (unsigned)field->offset, (unsigned)field->size, field->alias ? "true" : "false",

@@ -838,6 +838,8 @@ typedef struct M68kBaseLayoutFieldIR {
   char *base_symbol;
   char *sizeof_symbol;
   char *symbol;
+  char *owner_struct_name;
+  M68kPlatformNameRef owner_struct_ref;
   uint32_t offset;
   uint32_t size;
   uint8_t alias;

@@ -1790,6 +1790,8 @@ static int m68k_base_layout_field_matches(const M68kBaseLayoutFieldIR *left,
     text_equal_nullable(left->base_symbol, right->base_symbol) &&
     text_equal_nullable(left->sizeof_symbol, right->sizeof_symbol) &&
     text_equal_nullable(left->symbol, right->symbol) &&
+    m68k_platform_name_matches(&left->owner_struct_ref, left->owner_struct_name, &right->owner_struct_ref,
+      right->owner_struct_name) &&
     left->offset == right->offset &&
     left->size == right->size &&
     left->alias == right->alias &&
@@ -1826,13 +1828,19 @@ int m68k_ir_source_analysis_append_base_layout_field(M68kSourceAnalysisIR *sourc
   copy.base_symbol = arena_strdup(arena, field->base_symbol != NULL ? field->base_symbol : "");
   copy.sizeof_symbol = arena_strdup(arena, field->sizeof_symbol != NULL ? field->sizeof_symbol : "");
   copy.symbol = arena_strdup(arena, field->symbol);
+  copy.owner_struct_name = arena_strdup_if_unresolved_name(arena, &field->owner_struct_ref,
+    field->owner_struct_name);
   copy.alias_of_symbol = field->alias_of_symbol != NULL ? arena_strdup(arena, field->alias_of_symbol) : NULL;
   copy.conflict_reason = field->conflict_reason != NULL ? arena_strdup(arena, field->conflict_reason) : NULL;
   if (copy.layout_name == NULL || copy.base_symbol == NULL || copy.sizeof_symbol == NULL ||
-      copy.symbol == NULL || (field->alias_of_symbol != NULL && copy.alias_of_symbol == NULL) ||
+      copy.symbol == NULL ||
+      (field->owner_struct_name != NULL && !m68k_platform_name_ref_is_set(&field->owner_struct_ref) &&
+        copy.owner_struct_name == NULL) ||
+      (field->alias_of_symbol != NULL && copy.alias_of_symbol == NULL) ||
       (field->conflict_reason != NULL && copy.conflict_reason == NULL)) {
     return -1;
   }
+  copy.owner_struct_ref = field->owner_struct_ref;
   copy.offset = field->offset;
   copy.size = field->size;
   copy.alias = field->alias;

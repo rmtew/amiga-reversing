@@ -3477,9 +3477,12 @@ static uint16_t render_amiga_struct_size_for_struct_id(uint16_t struct_id) {
   return max_end > UINT16_MAX ? UINT16_MAX : (uint16_t)max_end;
 }
 
-static int32_t lookup_typed_app_slot_region_size(const M68kRenderLookup *lookup, int16_t displacement) {
+static int32_t lookup_typed_app_slot_region_size(const M68kRenderLookup *lookup, int16_t displacement,
+    char *owner_struct_name, size_t owner_struct_name_size) {
   size_t index;
   int32_t found_size = 0;
+  uint16_t found_struct_id = AMIGA_OS_STRUCT_ID_NONE;
+  if (owner_struct_name != NULL && owner_struct_name_size > 0U) owner_struct_name[0] = '\0';
   if (lookup == NULL) return 0;
   for (index = 0U; index < lookup->typed_app_slot_count; ++index) {
     const M68kRenderTypedAppSlot *slot = &lookup->typed_app_slots[index];
@@ -3491,7 +3494,13 @@ static int32_t lookup_typed_app_slot_region_size(const M68kRenderLookup *lookup,
     struct_size = render_amiga_struct_size_for_struct_id(slot->struct_id);
     if (struct_size == 0U) continue;
     if (found_size != 0 && found_size != (int32_t)struct_size) return 0;
+    if (found_struct_id != AMIGA_OS_STRUCT_ID_NONE && found_struct_id != slot->struct_id) return 0;
     found_size = (int32_t)struct_size;
+    found_struct_id = slot->struct_id;
+  }
+  if (found_struct_id != AMIGA_OS_STRUCT_ID_NONE && owner_struct_name != NULL && owner_struct_name_size > 0U) {
+    const char *struct_name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, found_struct_id);
+    if (struct_name != NULL) snprintf(owner_struct_name, owner_struct_name_size, "%s", struct_name);
   }
   return found_size;
 }
@@ -5384,6 +5393,7 @@ typedef struct M68kRenderAppRsSlot {
   char base_symbol[64];
   char sizeof_symbol[64];
   char name[64];
+  char owner_struct_name[64];
   char alias_of_name[64];
 } M68kRenderAppRsSlot;
 
@@ -5580,6 +5590,8 @@ static int render_app_rs_append_layout_facts(M68kSourceAnalysisIR *source_analys
     field.base_symbol = (char *)slots[index].base_symbol;
     field.sizeof_symbol = (char *)slots[index].sizeof_symbol;
     field.symbol = (char *)slots[index].name;
+    field.owner_struct_name = slots[index].owner_struct_name[0] != '\0' ?
+      (char *)slots[index].owner_struct_name : NULL;
     field.offset = (uint32_t)slots[index].displacement;
     field.size = (uint32_t)slots[index].size;
     field.alias = slots[index].alias;
@@ -5704,7 +5716,8 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       continue;
     }
     slots[slot_count].displacement = slot->displacement;
-    region_size = lookup_typed_app_slot_region_size(lookup, slot->displacement);
+    region_size = lookup_typed_app_slot_region_size(lookup, slot->displacement,
+      slots[slot_count].owner_struct_name, sizeof(slots[slot_count].owner_struct_name));
     slots[slot_count].size = region_size > 0
       ? region_size
       : (slot->observed_access_size != 0U ? slot->observed_access_size : ((slot->displacement & 1) == 0 ? 4 : 1));

@@ -102,6 +102,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "layout_name": "app",
                             "base_symbol": "app",
                             "symbol": "app_0234",
+                            "owner_struct_name": "AppState",
                             "section_index": 0,
                             "source_offset": 0x30,
                             "field_offset": 0x234,
@@ -660,6 +661,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout:kind:typed_global_slot"], 1)
         self.assertEqual(counts["memory-layout:kind:platform_struct_unresolved"], 1)
         self.assertEqual(counts["memory-layout:platform_struct:Library"], 1)
+        self.assertEqual(counts["memory-layout:platform_struct:AppState"], 1)
         self.assertEqual(counts["memory-layout:platform_struct:InputEvent"], 1)
         self.assertEqual(counts["memory-layout:platform_field:LIB_VERSION"], 1)
         self.assertEqual(counts["memory-layout:storage_effect"], 1)
@@ -1031,6 +1033,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "layout_name": "app",
                         "base_symbol": "app",
                         "symbol": "app_0234",
+                        "owner_struct_name": "AppState",
                         "section_index": 0,
                         "source_offset": 0x30,
                         "field_offset": 0x234,
@@ -1416,6 +1419,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("table:consumer", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:consumer", "table_consumer", 0x20, 1), by_feature)
         self.assertIn(("memory-layout:kind:base_layout_field", "memory_layout", 0x30, 2), by_feature)
+        self.assertIn(("memory-layout:platform_struct:AppState", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:kind:platform_struct_field", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:platform_struct:Library", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:platform_field:LIB_VERSION", "memory_layout", 0x30, 2), by_feature)

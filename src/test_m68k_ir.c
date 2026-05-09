@@ -8199,7 +8199,7 @@ static int test_listing_json_emits_rsset_layout_regions_from_platform_api_inputs
   M68K_C_ASSERT(strstr(rows_json,
     "\"layout_fields\":[{\"layout_name\":\"app\",\"base_symbol\":\"__amiga_app_base__\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json,
-    "\"symbol\":\"app_input_event_code\",\"offset\":262,\"size\":2,\"alias\":true") != NULL);
+    "\"symbol\":\"app_input_event_code\",\"owner_struct_name\":null,\"offset\":262,\"size\":2,\"alias\":true") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"confidence\":2,\"conflicted\":false,\"conflict_reason\":null") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"alias_of_symbol\":\"app_input_event\",\"alias_of_offset\":256") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"typed_region_count\":1") != NULL);
@@ -8974,7 +8974,8 @@ static int test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias(voi
   M68K_C_ASSERT(strstr(analysis_json,
     "\"range_space_kind\":1,\"range_space\":\"base_relative\",\"range_start\":14,\"range_size\":1,"
     "\"range_end\":15") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"symbol\":\"app_000E\",\"offset\":14,\"size\":1,\"alias\":true") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"symbol\":\"app_000E\",\"owner_struct_name\":null,\"offset\":14,\"size\":1,\"alias\":true") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"confidence\":2,\"conflicted\":false,\"conflict_reason\":null") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"alias_of_symbol\":\"app_000C\",\"alias_of_offset\":12") != NULL);
   M68K_C_ASSERT(strstr(source, "app_000C RS.L 1\n") != NULL);
@@ -9740,6 +9741,7 @@ static int test_facts_v2_render_asm_source_keeps_typed_app_slot_interior_out_of_
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint8_t bytes[14] = {
     0x41u, 0xecu, 0x01u, 0x00u,
     0x4eu, 0xaeu, 0xffu, 0xbeu,
@@ -9779,12 +9781,22 @@ static int test_facts_v2_render_asm_source_keeps_typed_app_slot_interior_out_of_
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.base_layout_field_count);
   M68K_C_ASSERT_STR("app_0100", source_analysis.base_layout_fields[0].symbol);
+  M68K_C_ASSERT_STR("TIMEVAL", m68k_platform_name_ref_resolve_text_or_fallback(
+    &source_analysis.base_layout_fields[0].owner_struct_ref,
+    source_analysis.base_layout_fields[0].owner_struct_name));
   M68K_C_ASSERT_U32(0x0100U, source_analysis.base_layout_fields[0].offset);
   M68K_C_ASSERT_U32(8U, source_analysis.base_layout_fields[0].size);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"record_kind\":\"base_layout_field\",\"memory_kind\":\"base_layout_field\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_struct_name\":\"TIMEVAL\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"root_struct_name\":\"TIMEVAL\"") != NULL);
   M68K_C_ASSERT(strstr(source, "app_0100 RS.B 8\n") != NULL);
   M68K_C_ASSERT(strstr(source, "app_0102") == NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w app_0100+TV_SECS+2(a4),d0\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  free(analysis_json);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);

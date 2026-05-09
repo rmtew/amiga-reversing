@@ -1415,7 +1415,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         bag.add("memory-layout:any", example=example)
         bag.add(f"memory-layout:record:{_safe_part(record_kind)}", example=example)
         bag.add(f"memory-layout:kind:{_safe_part(memory_kind)}", example=example)
-        root_struct = _string_value(record.get("root_struct_name"))
+        root_struct = _string_value(record.get("root_struct_name")) or _string_value(record.get("owner_struct_name"))
         field_expr = _string_value(record.get("field_expr")) or _string_value(record.get("field_name"))
         if root_struct:
             bag.add(f"memory-layout:platform_struct:{_safe_part(root_struct)}", example=example)
@@ -3232,7 +3232,7 @@ def _analysis_xrefs(
         sink_address = _int_value(record.get("sink_address"))
         range_space_kind = _int_value(record.get("range_space_kind"))
         range_size = _int_value(record.get("range_size"))
-        root_struct = _string_value(record.get("root_struct_name"))
+        root_struct = _string_value(record.get("root_struct_name")) or _string_value(record.get("owner_struct_name"))
         field_expr = _string_value(record.get("field_expr")) or _string_value(record.get("field_name"))
         for feature in (
             "memory-layout:any",
