@@ -155,9 +155,10 @@ measurements and test names here, not in the index table.
   indexing does not infer table classes from rendered comments or display text.
 - Implemented recovery patterns include PC-indexed word dispatch, biased
   PC-indexed word dispatch, direct indexed stub tables, interleaved key/stub
-  tables, backward and forward inline-tail dispatch, keyed long relative
-  dispatch, branch-terminated inline stubs, and PC-indexed absolute long
-  dispatch rendering.
+  tables, post-instruction variable branch stubs from intra-instruction
+  expression bases, backward and forward inline-tail dispatch, keyed long
+  relative dispatch, branch-terminated inline stubs, and PC-indexed absolute
+  long dispatch rendering.
 - `table_candidate_records` are now a strict subset of recovered indirect sites.
   Generic unresolved `jsr (aN)` / `jmp (aN)` remains in
   `recovered_indirect_sites` and `analysis:indirect_site` tags, but no longer
@@ -167,6 +168,7 @@ measurements and test names here, not in the index table.
   `test_facts_v2_pc_indexed_word_load_promotes_relative_jump_targets`,
   `test_facts_v2_biased_pc_indexed_word_load_promotes_relative_jump_targets`,
   `test_facts_v2_direct_indexed_stub_table_promotes_entries`,
+  `test_facts_v2_intra_instruction_index_base_promotes_post_instruction_variable_stubs`,
   `test_facts_v2_indexed_backward_inline_tail_promotes_entries`,
   `test_facts_v2_indexed_forward_inline_tail_promotes_entries`,
   `test_facts_v2_swapped_keyed_long_table_promotes_relative_targets`,
@@ -264,6 +266,10 @@ Past decisions to preserve:
 - C analysis is authoritative; Python/UI consume facts only.
 - Do not hardcode M68K instruction knowledge; use generated decode/effect data.
 - Do not emit `ORG` or labels merely to make output prettier.
+- Any regenerated checked-in `.s` file must reassemble as a standalone source
+  file with exact payload and relocation semantics. Full-file exactness is
+  required when the container encoding has no known hunk-structure oddity; when
+  the only mismatch is relocation encoding shape, record it explicitly.
 - Keep `$4` ExecBase loads literal unless copied executable code at `$4` is
   actually proven.
 - Weak low trampolines become numeric/EQU symbols, not disruptive ORGs.
@@ -820,6 +826,23 @@ Table-base gate evidence after rejecting bases inside the consuming instruction:
   0 -> 8, `table:candidate_unresolved:table_base` stayed 0 -> 0,
   `table:candidate_unresolved` stayed 32 -> 32, and accepted lookup-table
   label rendering stayed unchanged.
+- Post-instruction variable branch-stub recovery now consumes those eight
+  expression-base candidates when the bytes after the indexed control
+  instruction decode as at least two nonfallthrough branch stubs. Corpus after
+  this change: `analysis:indirect_site:status:jump_table` 551 -> 559,
+  `table:candidate_unresolved` 32 -> 24,
+  `table:candidate_unresolved:expression_base` 8 -> 0, orphan-code signals
+  924 -> 911, reproduction-exact targets stayed 38 -> 38, and status-ok targets
+  stayed 486 -> 486.
+- Affected real targets include project GenAm and MonAm plus six Atari Devpac
+  `GEN/MON/AMON` variants. Regenerated checked-in source demonstrates the
+  visible gain: GenAm and MonAm render the post-instruction branch stubs as
+  labels and `bra.*` instructions instead of opaque `dc.b` data after
+  `jmp $0(pc,d0.w)`.
+- Source-refresh reproduction gate: `targets/amiga_hunk_genam/genam.s`
+  reassembles full-file exact; `targets/amiga_hunk_monam302/monam302.s`
+  reassembles payload-exact and relocation-semantics exact, with only hunk
+  relocation encoding shape differing.
 
 Actionable unresolved orphan missing-inbound corpus evidence after gating
 suppressed signals out of work-item tags:

@@ -728,6 +728,14 @@ explains where external table bytes begin. They are allowed to be equal for
 normal tables, but they must be separate fields so non-ideal indexed forms do
 not lose provenance or create fake data tables.
 
+If the expression base is inside the consuming instruction, analysis may still
+scan the bytes immediately after that instruction as a direct branch-stub table.
+This is accepted only when decoded nonfallthrough branch stubs prove at least
+two entries. Stub sizes may vary, because the proof comes from decoded control
+targets, not a guessed fixed stride. The result promotes real stub entrypoints
+to code and records the expression base, but it must not fabricate a data table
+base for the instruction extension word.
+
 Rejected candidate bounds are still useful when analysis can prove the table
 base and a bounded candidate span, but cannot accept the table yet:
 
