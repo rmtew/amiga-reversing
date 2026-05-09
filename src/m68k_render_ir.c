@@ -6463,6 +6463,40 @@ static int render_orphan_signal_has_vector_evidence(const M68kRenderLookup *look
   return 0;
 }
 
+static int render_orphan_lvo_matches_amiga_api(int16_t lvo) {
+  size_t index;
+  for (index = 0U;; ++index) {
+    const AmigaOsLibraryVectorInfo *vector = amiga_os_library_vector_at(index);
+    if (vector == NULL) return 0;
+    if (vector->lvo == lvo) return 1;
+  }
+}
+
+static int render_orphan_signal_has_api_evidence(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kOrphanCodeSignalIR *signal) {
+  uint32_t cursor;
+  if (lookup == NULL || lookup->object == NULL ||
+      lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK ||
+      section == NULL || signal == NULL || signal->size == 0U ||
+      signal->offset > section->size || signal->size > section->size - signal->offset) {
+    return 0;
+  }
+  cursor = signal->offset;
+  while (cursor < signal->offset + signal->size) {
+    M68kDecodeCandidate decoded_candidate;
+    const M68kDecodeCandidate *candidate;
+    int16_t lvo = 0;
+    candidate = render_orphan_decode_candidate_at_offset(lookup, section, cursor, &decoded_candidate);
+    if (candidate == NULL || candidate->byte_count == 0U ||
+        candidate->byte_count > signal->offset + signal->size - cursor) {
+      return 0;
+    }
+    if (candidate_calls_a6_lvo(candidate, &lvo) && render_orphan_lvo_matches_amiga_api(lvo)) return 1;
+    cursor += candidate->byte_count;
+  }
+  return 0;
+}
+
 static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, M68kOrphanCodeSignalIR *signal) {
   const M68kAnalysisStructuredDataItem *item = NULL;
@@ -6517,6 +6551,8 @@ static void render_orphan_signal_refine_missing_inbound(const M68kRenderLookup *
     return;
   if (render_orphan_signal_has_vector_evidence(lookup, section, signal)) {
     signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_VECTOR;
+  } else if (render_orphan_signal_has_api_evidence(lookup, section, signal)) {
+    signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_API;
   } else if ((signal->nearby_data_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U) {
     signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE;
   } else if ((signal->nearby_data_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U) {
