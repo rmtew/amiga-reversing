@@ -23,6 +23,9 @@
 #include <string.h>
 #include <time.h>
 
+#define M68K_RENDER_APP_BASE_SYMBOL "__amiga_app_base__"
+#define M68K_RENDER_APP_LAYOUT_NAME "app"
+
 static double elapsed_seconds_local(clock_t start, clock_t end) {
   return (double)(end - start) / (double)CLOCKS_PER_SEC;
 }
@@ -836,7 +839,7 @@ static const char *platform_state_operand_library(const M68kRenderPlatformState 
 }
 
 int platform_state_name_is_app_base(const char *name) {
-  return name != NULL && strcmp(name, "__amiga_app_base__") == 0;
+  return name != NULL && strcmp(name, M68K_RENDER_APP_BASE_SYMBOL) == 0;
 }
 
 static int policy_has_layout_base_symbol(const M68kAnalysisPolicy *policy, const char *name) {
@@ -844,7 +847,7 @@ static int policy_has_layout_base_symbol(const M68kAnalysisPolicy *policy, const
   if (policy == NULL || name == NULL || name[0] == '\0') return 0;
   for (index = 0U; index < policy->rsset_layout_region_count && index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
     const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[index];
-    const char *base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : "__amiga_app_base__";
+    const char *base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : M68K_RENDER_APP_BASE_SYMBOL;
     if (strcmp(base_symbol, name) == 0) return 1;
   }
   return 0;
@@ -3372,6 +3375,28 @@ static int attach_amiga_hardware_register_immediate_symbols(const M68kRenderPlat
 
 static uint16_t render_amiga_struct_size_for_struct_id(uint16_t struct_id);
 
+static int lookup_typed_app_slot_region_contains_auto_offset(const M68kRenderLookup *lookup,
+    int16_t displacement) {
+  size_t index;
+  if (lookup == NULL) return 0;
+  for (index = 0U; index < lookup->typed_app_slot_count; ++index) {
+    const M68kRenderTypedAppSlot *slot = &lookup->typed_app_slots[index];
+    uint16_t struct_size;
+    int32_t region_start;
+    int32_t region_end;
+    if (slot->conflicted != 0U || slot->inline_region == 0U ||
+        slot->struct_id == AMIGA_OS_STRUCT_ID_NONE) {
+      continue;
+    }
+    struct_size = render_amiga_struct_size_for_struct_id(slot->struct_id);
+    if (struct_size == 0U) continue;
+    region_start = (int32_t)slot->displacement;
+    region_end = region_start + (int32_t)struct_size;
+    if ((int32_t)displacement > region_start && (int32_t)displacement < region_end) return 1;
+  }
+  return 0;
+}
+
 static int lookup_typed_app_slot_field_symbol_name(const M68kRenderLookup *lookup, int16_t displacement,
     char *base_symbol, size_t base_symbol_size, char *field_expr, size_t field_expr_size,
     int32_t *out_field_offset) {
@@ -3386,7 +3411,7 @@ static int lookup_typed_app_slot_field_symbol_name(const M68kRenderLookup *looku
   if (lookup == NULL) return 0;
   for (index = 0U; index < lookup->base_field_slot_count; ++index) {
     const M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[index];
-    if (slot->conflicted == 0U && strcmp(slot->owner_name, "__amiga_app_base__") == 0 &&
+    if (slot->conflicted == 0U && platform_state_name_is_app_base(slot->owner_name) &&
         slot->displacement == displacement && slot->value_kind != M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS) {
       return 0;
     }
@@ -5056,7 +5081,7 @@ const char *lookup_global_base_slot_library(const M68kRenderLookup *lookup, size
 static int base_field_owner_matches(const char *slot_owner, const char *owner_name) {
   if (slot_owner == NULL || owner_name == NULL || slot_owner[0] == '\0' || owner_name[0] == '\0') return 0;
   if (strcmp(slot_owner, owner_name) == 0) return 1;
-  return strcmp(slot_owner, "__amiga_app_base__") == 0 && amiga_os_find_library_base_name(owner_name) != NULL;
+  return platform_state_name_is_app_base(slot_owner) && amiga_os_find_library_base_name(owner_name) != NULL;
 }
 
 static int app_base_slot_symbol_name_from_library(const char *library_name, char *symbol_name,
@@ -5089,7 +5114,7 @@ static int app_base_slot_symbol_name_from_slot(const M68kRenderBaseFieldSlot *sl
     return strlen(slot->symbol_name) < symbol_name_size;
   }
   if (slot->library_name[0] == '\0') {
-    if (strcmp(slot->owner_name, "__amiga_app_base__") == 0) {
+    if (platform_state_name_is_app_base(slot->owner_name)) {
       return format_app_base_fallback_slot_symbol_name(slot->displacement, symbol_name, symbol_name_size);
     }
     return 0;
@@ -5190,7 +5215,7 @@ static int lookup_app_base_field_slot_symbol_has_other_displacement(const M68kRe
   for (index = 0U; index < lookup->base_field_slot_count; ++index) {
     const M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[index];
     char other_symbol_name[64];
-    if (slot->conflicted != 0U || strcmp(slot->owner_name, "__amiga_app_base__") != 0) continue;
+    if (slot->conflicted != 0U || !platform_state_name_is_app_base(slot->owner_name)) continue;
     if (!app_base_slot_symbol_name_from_slot(slot, other_symbol_name, sizeof(other_symbol_name))) continue;
     if (strcmp(symbol_name, other_symbol_name) == 0 && slot->displacement != displacement) return 1;
   }
@@ -5210,7 +5235,7 @@ const char *lookup_base_field_slot_library(const M68kRenderLookup *lookup, const
       continue;
     }
     if (!base_field_owner_matches(slot->owner_name, owner_name)) continue;
-    if (strcmp(slot->owner_name, "__amiga_app_base__") == 0 &&
+    if (platform_state_name_is_app_base(slot->owner_name) &&
         (!app_base_slot_symbol_name_from_slot(slot, symbol_name, sizeof(symbol_name)) ||
           lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, displacement))) {
       continue;
@@ -5232,7 +5257,7 @@ const char *lookup_app_base_field_slot_library(const M68kRenderLookup *lookup, i
         !base_field_slot_is_base_pointer(slot)) {
       continue;
     }
-    if (strcmp(slot->owner_name, "__amiga_app_base__") != 0) continue;
+    if (!platform_state_name_is_app_base(slot->owner_name)) continue;
     if (!app_base_slot_symbol_name_from_slot(slot, symbol_name, sizeof(symbol_name)) ||
         lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, displacement)) {
       continue;
@@ -5255,7 +5280,7 @@ uint16_t lookup_base_field_slot_struct_id(const M68kRenderLookup *lookup, const 
     if (slot->displacement != displacement || slot->conflicted || !base_field_slot_is_base_pointer(slot))
       continue;
     if (!base_field_owner_matches(slot->owner_name, owner_name)) continue;
-    if (strcmp(slot->owner_name, "__amiga_app_base__") == 0 &&
+    if (platform_state_name_is_app_base(slot->owner_name) &&
         (!app_base_slot_symbol_name_from_slot(slot, symbol_name, sizeof(symbol_name)) ||
           lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, displacement))) {
       continue;
@@ -5278,7 +5303,7 @@ uint16_t lookup_app_base_field_slot_struct_id(const M68kRenderLookup *lookup, in
     char symbol_name[64];
     if (slot->displacement != displacement || slot->conflicted || !base_field_slot_is_base_pointer(slot))
       continue;
-    if (strcmp(slot->owner_name, "__amiga_app_base__") != 0) continue;
+    if (!platform_state_name_is_app_base(slot->owner_name)) continue;
     if (!app_base_slot_symbol_name_from_slot(slot, symbol_name, sizeof(symbol_name)) ||
         lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, displacement)) {
       continue;
@@ -5313,10 +5338,15 @@ int lookup_base_field_slot_symbol_name(const M68kRenderLookup *lookup, const cha
       continue;
     }
     if (slot->library_name[0] == '\0' && slot->symbol_name[0] == '\0' &&
-        strcmp(slot->owner_name, "__amiga_app_base__") != 0) {
+        !platform_state_name_is_app_base(slot->owner_name)) {
       continue;
     }
-    if (strcmp(slot->owner_name, "__amiga_app_base__") == 0 &&
+    if (platform_state_name_is_app_base(slot->owner_name) &&
+        slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS &&
+        lookup_typed_app_slot_region_contains_auto_offset(lookup, displacement)) {
+      continue;
+    }
+    if (platform_state_name_is_app_base(slot->owner_name) &&
         (!app_base_slot_symbol_name_from_slot(slot, slot_symbol, sizeof(slot_symbol)) ||
           lookup_app_base_field_slot_symbol_has_other_displacement(lookup, slot_symbol, displacement))) {
       continue;
@@ -5334,7 +5364,7 @@ int lookup_base_field_slot_symbol_name(const M68kRenderLookup *lookup, const cha
 
 int lookup_app_base_field_slot_symbol_name(const M68kRenderLookup *lookup, int16_t displacement,
     char *symbol_name, size_t symbol_name_size) {
-  return lookup_base_field_slot_symbol_name(lookup, "__amiga_app_base__", displacement, symbol_name,
+  return lookup_base_field_slot_symbol_name(lookup, M68K_RENDER_APP_BASE_SYMBOL, displacement, symbol_name,
     symbol_name_size);
 }
 
@@ -5347,6 +5377,7 @@ typedef struct M68kRenderAppRsSlot {
   uint8_t has_source;
   uint8_t value_kind;
   uint8_t source_kind;
+  uint8_t layout_kind;
   size_t source_section_index;
   uint32_t source_offset;
   char layout_name[32];
@@ -5361,14 +5392,36 @@ typedef struct M68kRenderAppRsLayout {
   size_t end_index;
   int32_t base_offset;
   int32_t sizeof_value;
+  uint8_t layout_kind;
   uint8_t uses_lib_size;
   char sizeof_symbol[64];
 } M68kRenderAppRsLayout;
 
+enum {
+  M68K_RENDER_APP_RS_LAYOUT_NONE = 0,
+  M68K_RENDER_APP_RS_LAYOUT_APP = 1,
+  M68K_RENDER_APP_RS_LAYOUT_NAMED = 2
+};
+
+static int render_app_rs_layout_kind_is_app(uint8_t layout_kind) {
+  return layout_kind == (uint8_t)M68K_RENDER_APP_RS_LAYOUT_APP;
+}
+
+static uint8_t render_app_rs_policy_layout_kind(const char *layout_name, const char *base_symbol) {
+  if ((layout_name == NULL || layout_name[0] == '\0' || strcmp(layout_name, M68K_RENDER_APP_LAYOUT_NAME) == 0) &&
+      (base_symbol == NULL || base_symbol[0] == '\0' || platform_state_name_is_app_base(base_symbol))) {
+    return (uint8_t)M68K_RENDER_APP_RS_LAYOUT_APP;
+  }
+  return (uint8_t)M68K_RENDER_APP_RS_LAYOUT_NAMED;
+}
+
 static int render_app_rs_slot_compare(const void *left, const void *right) {
   const M68kRenderAppRsSlot *left_slot = (const M68kRenderAppRsSlot *)left;
   const M68kRenderAppRsSlot *right_slot = (const M68kRenderAppRsSlot *)right;
-  int layout_cmp = strcmp(left_slot->layout_name, right_slot->layout_name);
+  int layout_cmp;
+  if (left_slot->layout_kind < right_slot->layout_kind) return -1;
+  if (left_slot->layout_kind > right_slot->layout_kind) return 1;
+  layout_cmp = strcmp(left_slot->layout_name, right_slot->layout_name);
   if (layout_cmp != 0) return layout_cmp;
   if (left_slot->displacement < right_slot->displacement) return -1;
   if (left_slot->displacement > right_slot->displacement) return 1;
@@ -5419,22 +5472,23 @@ static int render_app_rs_slot_exists(const M68kRenderAppRsSlot *slots, size_t sl
   return 0;
 }
 
-static void render_app_rs_default_sizeof_symbol(const char *layout_name, char *symbol_name, size_t symbol_name_size) {
+static void render_app_rs_default_sizeof_symbol(uint8_t layout_kind, const char *layout_name,
+    char *symbol_name, size_t symbol_name_size) {
   if (symbol_name == NULL || symbol_name_size == 0U) return;
-  if (layout_name == NULL || layout_name[0] == '\0' || strcmp(layout_name, "app") == 0) {
+  if (render_app_rs_layout_kind_is_app(layout_kind)) {
     snprintf(symbol_name, symbol_name_size, "app_SIZEOF");
   } else {
     snprintf(symbol_name, symbol_name_size, "%s_SIZEOF", layout_name);
   }
 }
 
-static void render_app_rs_effective_sizeof_symbol(const char *layout_name, const char *metadata_symbol,
-    char *symbol_name, size_t symbol_name_size) {
+static void render_app_rs_effective_sizeof_symbol(uint8_t layout_kind, const char *layout_name,
+    const char *metadata_symbol, char *symbol_name, size_t symbol_name_size) {
   if (symbol_name == NULL || symbol_name_size == 0U) return;
   if (metadata_symbol != NULL && metadata_symbol[0] != '\0') {
     snprintf(symbol_name, symbol_name_size, "%s", metadata_symbol);
   } else {
-    render_app_rs_default_sizeof_symbol(layout_name, symbol_name, symbol_name_size);
+    render_app_rs_default_sizeof_symbol(layout_kind, layout_name, symbol_name, symbol_name_size);
   }
 }
 
@@ -5487,20 +5541,26 @@ static size_t render_app_rs_prepare_layouts(M68kRenderAppRsSlot *slots, size_t s
   qsort(slots, slot_count, sizeof(slots[0]), render_app_rs_slot_compare);
   for (index = 0U; index < slot_count; ++index) {
     size_t layout_end = index + 1U;
-    const char *layout_name = slots[index].layout_name;
-    int32_t layout_base_offset = strcmp(layout_name, "app") == 0 ? app_base_offset : 0;
+    uint8_t layout_kind = slots[index].layout_kind;
+    int32_t layout_base_offset = render_app_rs_layout_kind_is_app(layout_kind) ? app_base_offset : 0;
     int32_t layout_sizeof;
-    while (layout_end < slot_count && strcmp(slots[layout_end].layout_name, layout_name) == 0) ++layout_end;
+    while (layout_end < slot_count && slots[layout_end].layout_kind == layout_kind &&
+        strcmp(slots[layout_end].layout_name, slots[index].layout_name) == 0) {
+      ++layout_end;
+    }
     if (layout_count >= layout_capacity) return SIZE_MAX;
     layout_sizeof = render_app_rs_mark_layout_aliases(slots, index, layout_end, layout_base_offset);
-    if (strcmp(layout_name, "app") == 0 && has_app_sizeof_value != 0 && app_sizeof_value > layout_sizeof) {
+    if (render_app_rs_layout_kind_is_app(layout_kind) && has_app_sizeof_value != 0 &&
+        app_sizeof_value > layout_sizeof) {
       layout_sizeof = app_sizeof_value;
     }
     layouts[layout_count].start_index = index;
     layouts[layout_count].end_index = layout_end;
     layouts[layout_count].base_offset = layout_base_offset;
     layouts[layout_count].sizeof_value = layout_sizeof;
-    layouts[layout_count].uses_lib_size = (uint8_t)(strcmp(layout_name, "app") == 0 && has_resident_context);
+    layouts[layout_count].layout_kind = layout_kind;
+    layouts[layout_count].uses_lib_size = (uint8_t)(render_app_rs_layout_kind_is_app(layout_kind) &&
+      has_resident_context);
     snprintf(layouts[layout_count].sizeof_symbol, sizeof(layouts[layout_count].sizeof_symbol), "%s",
       slots[index].sizeof_symbol);
     ++layout_count;
@@ -5614,8 +5674,12 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     int conflict = 0;
     int32_t extent_end;
     int32_t region_size;
-    if (slot->conflicted != 0U || strcmp(slot->owner_name, "__amiga_app_base__") != 0) continue;
+    if (slot->conflicted != 0U || !platform_state_name_is_app_base(slot->owner_name)) continue;
     if ((int32_t)slot->displacement < base_offset) continue;
+    if (slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS &&
+        lookup_typed_app_slot_region_contains_auto_offset(lookup, slot->displacement)) {
+      continue;
+    }
     if (lookup_typed_app_slot_field_symbol_name(lookup, slot->displacement, region_symbol_name,
         sizeof(region_symbol_name), field_expr, sizeof(field_expr), NULL)) {
       continue;
@@ -5624,7 +5688,8 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
         lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, slot->displacement)) {
       continue;
     }
-    if (render_app_rs_slot_exists(slots, slot_count, symbol_name, "app", slot->displacement, &conflict)) {
+    if (render_app_rs_slot_exists(slots, slot_count, symbol_name, M68K_RENDER_APP_LAYOUT_NAME,
+        slot->displacement, &conflict)) {
       if (conflict) {
         ++preview->asm_source_instruction_render_failures;
         record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER,
@@ -5643,10 +5708,11 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     slots[slot_count].size = region_size > 0
       ? region_size
       : (slot->observed_access_size != 0U ? slot->observed_access_size : ((slot->displacement & 1) == 0 ? 4 : 1));
-    snprintf(slots[slot_count].layout_name, sizeof(slots[slot_count].layout_name), "app");
-    snprintf(slots[slot_count].base_symbol, sizeof(slots[slot_count].base_symbol), "__amiga_app_base__");
-    render_app_rs_default_sizeof_symbol("app", slots[slot_count].sizeof_symbol,
-      sizeof(slots[slot_count].sizeof_symbol));
+    snprintf(slots[slot_count].layout_name, sizeof(slots[slot_count].layout_name), M68K_RENDER_APP_LAYOUT_NAME);
+    slots[slot_count].layout_kind = (uint8_t)M68K_RENDER_APP_RS_LAYOUT_APP;
+    snprintf(slots[slot_count].base_symbol, sizeof(slots[slot_count].base_symbol), M68K_RENDER_APP_BASE_SYMBOL);
+    render_app_rs_default_sizeof_symbol(slots[slot_count].layout_kind, M68K_RENDER_APP_LAYOUT_NAME,
+      slots[slot_count].sizeof_symbol, sizeof(slots[slot_count].sizeof_symbol));
     snprintf(slots[slot_count].name, sizeof(slots[slot_count].name), "%s", symbol_name);
     slots[slot_count].has_source = slot->has_source;
     slots[slot_count].source_section_index = slot->source_section_index;
@@ -5661,10 +5727,11 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     const M68kAnalysisPolicy *policy = lookup->policy;
     for (index = 0U; index < policy->rsset_layout_region_count && index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
       const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[index];
-      const char *layout_name = region->layout_name[0] != '\0' ? region->layout_name : "app";
-      const char *base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : "__amiga_app_base__";
+      const char *layout_name = region->layout_name[0] != '\0' ? region->layout_name : M68K_RENDER_APP_LAYOUT_NAME;
+      const char *base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : M68K_RENDER_APP_BASE_SYMBOL;
+      uint8_t layout_kind = render_app_rs_policy_layout_kind(region->layout_name, region->base_symbol);
       int conflict = 0;
-      if (strcmp(layout_name, "app") == 0 && strcmp(base_symbol, "__amiga_app_base__") == 0) continue;
+      if (render_app_rs_layout_kind_is_app(layout_kind)) continue;
       if (region->symbol[0] == '\0' || region->offset > 0x7FFFU || region->size == 0U) continue;
       if (render_app_rs_slot_exists(slots, slot_count, region->symbol, layout_name, (int32_t)region->offset,
           &conflict)) {
@@ -5676,9 +5743,10 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
         continue;
       }
       snprintf(slots[slot_count].layout_name, sizeof(slots[slot_count].layout_name), "%s", layout_name);
+      slots[slot_count].layout_kind = layout_kind;
       snprintf(slots[slot_count].base_symbol, sizeof(slots[slot_count].base_symbol), "%s", base_symbol);
-      render_app_rs_effective_sizeof_symbol(layout_name, region->sizeof_symbol, slots[slot_count].sizeof_symbol,
-        sizeof(slots[slot_count].sizeof_symbol));
+      render_app_rs_effective_sizeof_symbol(layout_kind, layout_name, region->sizeof_symbol,
+        slots[slot_count].sizeof_symbol, sizeof(slots[slot_count].sizeof_symbol));
       snprintf(slots[slot_count].name, sizeof(slots[slot_count].name), "%s", region->symbol);
       slots[slot_count].displacement = (int32_t)region->offset;
       slots[slot_count].size = region->size;

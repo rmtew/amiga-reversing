@@ -130,6 +130,14 @@ The same applies to `_ciaa`, `_ciab`, library bases, device bases, IO requests,
 audio channels, sprite definitions, copper/display structures, and any other
 known generated Amiga platform struct.
 
+Typed app-slot structs own their whole proven extent. If analysis proves an app
+slot contains a `TimerVal`, IO request, library/device base, or other generated
+platform struct, interior offsets inside that struct must not create new flat
+`app_NNNN` RSSET fields. They should render through the typed field expression
+when the field is known, or remain unresolved/numeric when it is not. This keeps
+the app layout from inventing duplicate storage for bytes that belong to a typed
+substructure.
+
 ## Base Provenance
 
 Every RSSET field needs a base provenance record:
@@ -622,6 +630,8 @@ audio memory without reparsing rendered source text.
 ## Correctness Gates
 
 - Do not emit app RSSET fields for known hardware or platform structs.
+- Do not emit flat app RSSET fields for offsets inside a proven typed app-slot
+  struct range.
 - Do not treat alias RSSET fragments as independent ranges without distinct base
   provenance.
 - Do not overlap accepted code unless the range is explicitly a copied/runtime

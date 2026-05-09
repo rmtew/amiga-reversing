@@ -59,7 +59,7 @@ Reviewed implementation and tests before updating this plan. Current state:
 | Topic | Current evidence | Gap to address |
 | --- | --- | --- |
 | RSSET/app slots | `render_state_operand_uses_app_base()` rejects known hardware bases and `_custom` offsets; `render_asm_app_extension_rs()` emits app/resident RSSET layouts from field slots and metadata; C source analysis now records rendered base-layout fields and alias overlays as first-class facts; listing JSON exposes those layout fields directly. | Need stronger conflict/ownership checks between large app layouts and accepted code/typed structs. |
-| Typed structs vs app slots | Typed app-slot field regions are skipped from flat RSSET output; `_custom` offset false positives have an isolated test; C JSON now includes resolved and unresolved platform typed accesses in `memory_layout_records`. | Need richer ownership ranges for whole platform structs, not only observed field accesses. |
+| Typed structs vs app slots | Typed app-slot struct regions own their full generated struct extent; interior offsets are blocked from flat RSSET output and render through typed fields where known. `_custom` offset false positives have an isolated test; C JSON now includes resolved and unresolved platform typed accesses in `memory_layout_records`. | Need richer ownership ranges for non-app platform structs and target-level memory-layout views, not only observed field accesses. |
 | ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, policy-vs-inferred precedence, corpus tags, listing navigation for materialized/suppressed runtime views, and compact C runtime-view relationships for larger-range exits, contained views, and runtime-copy overlays. | Need broader wrapper-load/helper/final-image target metrics and examples across imported disks. |
 | Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, relative `target-base` rendering, C JSON `table_records` derived from accepted structured table data, consumer instruction provenance, source-pattern provenance, code-overlap conflict state, and C JSON `table_candidate_records` plus corpus tags/xrefs for unresolved indirect/table candidate sites by status, shape, source instruction range, operand index, source pattern, and rejected direct-stub bounds. | Need more rejected-bound classes beyond direct-stub tables where value-flow can prove candidate spans. |
 | Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks; C JSON now exposes `memory_layout_records` for base-layout fields, runtime views, runtime-address references with external hardware sink addresses, and accepted absolute operands classified as ExecBase, CPU vector, hardware register/range, runtime range, section storage, or absolute memory with conflict state. | Memory-layout records still need higher-level absolute globals and unresolved candidates merged into the same view. |
@@ -479,8 +479,10 @@ undocumented renderer heuristics.
 - Empty `LIB_SIZE` contexts in Starglider math libraries are resolved:
   resident autoinit sizes equal to `LIB_SIZE` render directly as `LIB_SIZE`,
   and no empty app layout is emitted.
-- Large app layouts such as Carrier RNC, Starglider, and Voodoo need stricter
-  overlap checks against accepted code and typed structs.
+- Large app layouts such as Carrier RNC, Starglider, and Voodoo still need
+  stricter overlap checks against accepted code and non-app typed/platform
+  struct ranges. Typed app-slot struct interiors no longer produce flat
+  duplicate app fields.
 - Absolute raw/decompressed targets have accepted operand memory-layout records;
   they still need load address, source extent, and entry range merged into the
   same higher-level target/load relationship model.
