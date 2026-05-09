@@ -274,6 +274,8 @@ typedef struct M68kRenderTypedAccess {
   uint8_t base_reg;
   int16_t displacement;
   int16_t field_offset;
+  uint16_t struct_size;
+  uint16_t field_size;
   uint8_t inherited;
   uint8_t nested;
   M68kRenderTypedProvenance provenance;

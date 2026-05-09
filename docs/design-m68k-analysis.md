@@ -138,6 +138,11 @@ when the field is known, or remain unresolved/numeric when it is not. This keeps
 the app layout from inventing duplicate storage for bytes that belong to a typed
 substructure.
 
+Resolved platform typed-access records carry both `struct_size` and
+`field_size`. The observed field access remains the rendering fact, while the
+struct size gives memory-layout consumers a compact ownership range for the
+typed base.
+
 ## Base Provenance
 
 Every RSSET field needs a base provenance record:

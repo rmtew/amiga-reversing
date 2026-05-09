@@ -775,9 +775,10 @@ int m68k_ir_section_analysis_append_app_slot_ref(M68kSectionAnalysisIR *section_
 
 int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
-    int16_t field_offset, const char *root_struct_name, const char *owner_struct_name, const char *field_name,
-    const char *field_expr, uint8_t inherited, uint8_t nested, uint8_t type_provenance_kind,
-    size_t type_provenance_section_index, uint32_t type_provenance_offset) {
+    int16_t field_offset, uint16_t struct_size, uint16_t field_size, const char *root_struct_name,
+    const char *owner_struct_name, const char *field_name, const char *field_expr, uint8_t inherited,
+    uint8_t nested, uint8_t type_provenance_kind, size_t type_provenance_section_index,
+    uint32_t type_provenance_offset) {
   size_t index;
   char *copy_root_struct_name, *copy_owner_struct_name, *copy_field_name, *copy_field_expr;
   M68kRecoveredPlatformTypedAccessIR *new_access;
@@ -799,7 +800,8 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
     M68kRecoveredPlatformTypedAccessIR *existing = &section_analysis->recovered_platform_typed_accesses[index];
     if (existing->offset == offset && existing->operand_index == operand_index &&
         existing->base_reg == base_reg && existing->displacement == displacement &&
-        existing->field_offset == field_offset && existing->inherited == (uint8_t)(inherited != 0U) &&
+        existing->field_offset == field_offset && existing->struct_size == struct_size &&
+        existing->field_size == field_size && existing->inherited == (uint8_t)(inherited != 0U) &&
         existing->nested == (uint8_t)(nested != 0U) &&
         existing->type_provenance_kind == type_provenance_kind &&
         existing->type_provenance_section_index == type_provenance_section_index &&
@@ -841,6 +843,8 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
   new_access->nested = (uint8_t)(nested != 0U);
   new_access->displacement = displacement;
   new_access->field_offset = field_offset;
+  new_access->struct_size = struct_size;
+  new_access->field_size = field_size;
   new_access->type_provenance_kind = type_provenance_kind;
   new_access->type_provenance_section_index = type_provenance_section_index;
   new_access->type_provenance_offset = type_provenance_offset;
@@ -1960,8 +1964,8 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
     }
     if (m68k_ir_section_analysis_append_recovered_platform_typed_access(&copy, platform_kind,
           access->offset, access->operand_index, access->base_reg, access->displacement,
-          access->field_offset, root_struct_name, owner_struct_name, field_name, access->field_expr,
-          access->inherited, access->nested, access->type_provenance_kind,
+          access->field_offset, access->struct_size, access->field_size, root_struct_name, owner_struct_name,
+          field_name, access->field_expr, access->inherited, access->nested, access->type_provenance_kind,
           access->type_provenance_section_index, access->type_provenance_offset) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;

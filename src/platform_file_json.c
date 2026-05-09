@@ -1997,9 +1997,11 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_appendf(builder,
           "{\"record_kind\":\"platform_typed_access\",\"memory_kind\":\"platform_struct_field\","
           "\"section_index\":%u,\"source_offset\":%u,\"operand_index\":%u,\"base_register\":\"A%u\","
-          "\"displacement\":%d,\"field_offset\":%d,\"root_struct_name\":",
+          "\"displacement\":%d,\"field_offset\":%d,\"struct_size\":%u,\"field_size\":%u,"
+          "\"root_struct_name\":",
           (unsigned)section->section_index, (unsigned)access->offset, (unsigned)access->operand_index,
-          (unsigned)access->base_reg, (int)access->displacement, (int)access->field_offset) != 0) {
+          (unsigned)access->base_reg, (int)access->displacement, (int)access->field_offset,
+          (unsigned)access->struct_size, (unsigned)access->field_size) != 0) {
         return -1;
       }
       if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
@@ -2420,9 +2422,10 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_appendf(&builder,
             "{\"offset\":%u,\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,"
-            "\"field_offset\":%d,\"root_struct_name\":",
+            "\"field_offset\":%d,\"struct_size\":%u,\"field_size\":%u,\"root_struct_name\":",
             (unsigned)access->offset, (unsigned)access->operand_index, (unsigned)access->base_reg,
-            (int)access->displacement, (int)access->field_offset) != 0)
+            (int)access->displacement, (int)access->field_offset, (unsigned)access->struct_size,
+            (unsigned)access->field_size) != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder, root_struct_name) != 0)
         goto oom;
@@ -3380,9 +3383,9 @@ static int append_listing_typed_accesses_json(JsonBuilder *builder, const M68kSt
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder,
         "{\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"field_offset\":%d,"
-        "\"root_struct_name\":",
+        "\"struct_size\":%u,\"field_size\":%u,\"root_struct_name\":",
         (unsigned)access->operand_index, (unsigned)access->base_reg, (int)access->displacement,
-        (int)access->field_offset) != 0)
+        (int)access->field_offset, (unsigned)access->struct_size, (unsigned)access->field_size) != 0)
       return -1;
     if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
     if (json_builder_append(builder, ",\"owner_struct_name\":") != 0) return -1;

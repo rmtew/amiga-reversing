@@ -10623,6 +10623,8 @@ static int test_facts_v2_analysis_propagates_api_output_type_through_global_slot
       &analysis_section->recovered_platform_typed_accesses[index];
     if (access->offset == 16U && access->operand_index == 0U &&
         access->field_expr != NULL && strcmp(access->field_expr, "MP_SIGBIT") == 0) {
+      M68K_C_ASSERT(access->struct_size > 0U);
+      M68K_C_ASSERT_U32(1U, (uint32_t)access->field_size);
       M68K_C_ASSERT_U32((uint32_t)M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT,
         (uint32_t)access->type_provenance_kind);
       M68K_C_ASSERT_U32(0U, (uint32_t)access->type_provenance_section_index);
@@ -10636,6 +10638,8 @@ static int test_facts_v2_analysis_propagates_api_output_type_through_global_slot
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"record_kind\":\"platform_typed_access\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"memory_kind\":\"platform_struct_field\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"struct_size\":") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"field_size\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"field_expr\":\"MP_SIGBIT\"") != NULL);
   free(analysis_json);
   m68k_ir_source_analysis_destroy(&analysis);

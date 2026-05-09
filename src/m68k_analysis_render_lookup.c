@@ -3439,9 +3439,10 @@ static int append_render_lookup_typed_accesses_for_section(const M68kRenderLooku
     if (access->section_index != section_analysis->section_index) continue;
     if (m68k_ir_section_analysis_append_recovered_platform_typed_access(section_analysis,
         M68K_PLATFORM_BACKEND_AMIGA_HUNK, access->offset, access->operand_index, access->base_reg,
-        access->displacement, access->field_offset, access->root_struct_name, access->owner_struct_name,
-        access->field_name, access->field_expr, access->inherited, access->nested, access->provenance.kind,
-        access->provenance.section_index, access->provenance.offset) != 0) {
+        access->displacement, access->field_offset, access->struct_size, access->field_size,
+        access->root_struct_name, access->owner_struct_name, access->field_name, access->field_expr,
+        access->inherited, access->nested, access->provenance.kind, access->provenance.section_index,
+        access->provenance.offset) != 0) {
       return -1;
     }
   }
@@ -4598,6 +4599,7 @@ int render_lookup_add_typed_access(M68kRenderLookup *lookup, size_t section_inde
     uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t root_struct_id,
     const AmigaOsResolvedStructFieldInfo *field, const char *field_expr,
     const M68kRenderTypedProvenance *provenance) {
+  uint16_t struct_size;
   const char *root_struct_name;
   const char *owner_struct_name;
   const char *field_name;
@@ -4611,6 +4613,7 @@ int render_lookup_add_typed_access(M68kRenderLookup *lookup, size_t section_inde
   root_struct_name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, root_struct_id);
   owner_struct_name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, field->owner_struct_id);
   field_name = amiga_os_name(M68K_PLATFORM_NAME_FIELD, field->field_id);
+  struct_size = amiga_struct_size_for_struct_id(root_struct_id);
   if (root_struct_name == NULL || owner_struct_name == NULL || field_name == NULL) return 0;
   for (index = 0U; index < lookup->typed_access_count; ++index) {
     const M68kRenderTypedAccess *entry = &lookup->typed_accesses[index];
@@ -4635,6 +4638,8 @@ int render_lookup_add_typed_access(M68kRenderLookup *lookup, size_t section_inde
   lookup->typed_accesses[lookup->typed_access_count].base_reg = base_reg;
   lookup->typed_accesses[lookup->typed_access_count].displacement = displacement;
   lookup->typed_accesses[lookup->typed_access_count].field_offset = field->offset;
+  lookup->typed_accesses[lookup->typed_access_count].struct_size = struct_size;
+  lookup->typed_accesses[lookup->typed_access_count].field_size = field->size;
   lookup->typed_accesses[lookup->typed_access_count].inherited = field->inherited;
   lookup->typed_accesses[lookup->typed_access_count].nested = field->nested;
   if (provenance != NULL) {

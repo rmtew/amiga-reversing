@@ -558,6 +558,8 @@ typedef struct M68kRecoveredPlatformTypedAccessIR {
   uint8_t nested;
   int16_t displacement;
   int16_t field_offset;
+  uint16_t struct_size;
+  uint16_t field_size;
   uint8_t type_provenance_kind;
   size_t type_provenance_section_index;
   uint32_t type_provenance_offset;
@@ -1032,9 +1034,10 @@ int m68k_ir_section_analysis_append_app_slot_ref(M68kSectionAnalysisIR *section_
     const M68kAppSlotRefIR *ref);
 int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
-    int16_t field_offset, const char *root_struct_name, const char *owner_struct_name, const char *field_name,
-    const char *field_expr, uint8_t inherited, uint8_t nested, uint8_t type_provenance_kind,
-    size_t type_provenance_section_index, uint32_t type_provenance_offset);
+    int16_t field_offset, uint16_t struct_size, uint16_t field_size, const char *root_struct_name,
+    const char *owner_struct_name, const char *field_name, const char *field_expr, uint8_t inherited,
+    uint8_t nested, uint8_t type_provenance_kind, size_t type_provenance_section_index,
+    uint32_t type_provenance_offset);
 int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
     M68kSectionAnalysisIR *section_analysis, uint8_t platform_kind, uint32_t offset, uint8_t operand_index,
     uint8_t base_reg, int16_t displacement, uint16_t struct_size, const char *root_struct_name,
