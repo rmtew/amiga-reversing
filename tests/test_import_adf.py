@@ -551,7 +551,9 @@ def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
         lambda source_path, *, project_root: {
             "derived_target_suggestions": [
                 {
+                    "kind_id": 1,
                     "kind": "decompressed_payload",
+                    "status_id": 2,
                     "status": "materializable",
                     "source_section": 0,
                     "source_section_offset": 0x1000,
@@ -562,8 +564,11 @@ def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
                     "codec_id": "rnc1-old",
                     "codec_name": "RNC1: Rob Northen RNC1 Compressor (old)",
                     "payload_role": "primary_program",
+                    "payload_role_id": 2,
                     "payload_role_confidence": "tool_inferred",
+                    "payload_role_confidence_id": 1,
                     "parent_remains_active": "unknown",
+                    "parent_remains_active_id": 0,
                     "source_sha256": "11" * 32,
                     "decompressed_sha256": "22" * 32,
                 }
@@ -611,23 +616,31 @@ def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
     assert parent.derived_targets == [
         {
             "kind": "decompressed_payload",
+            "kind_id": 1,
             "target_name": child.target_name,
             "packed_section_offset": 0x1000,
             "packed_size": 10,
             "codec_id": "rnc1-old",
             "payload_role": "primary_program",
+            "payload_role_id": 2,
             "payload_role_confidence": "tool_inferred",
+            "payload_role_confidence_id": 1,
             "parent_remains_active": "unknown",
+            "parent_remains_active_id": 0,
         }
     ]
     assert child.derived_from is not None
     assert child.derived_from["parent_target"] == parent.target_name
     assert child.derived_from["load_address"] == 0x4000
     assert child.derived_from["payload_role"] == "primary_program"
+    assert child.derived_from["payload_role_id"] == 2
 
     child_dir = project_root / child.target_path
     project = json.loads((child_dir / ".project.json").read_text(encoding="utf-8"))
+    assert project["origin"]["project_origin_kind_id"] == 1
+    assert project["origin"]["target_role_id"] == 1
     assert project["origin"]["payload_role"] == "primary_program"
+    assert project["origin"]["payload_role_id"] == 2
     assert (child_dir / "binary.bin").read_bytes() == b"\x4E\x75\x4E\x75"
     source = json.loads((child_dir / "source_binary.json").read_text(encoding="utf-8"))
     assert source["kind"] == "raw_binary"
@@ -639,6 +652,7 @@ def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
     decompression = json.loads((child_dir / "decompression.json").read_text(encoding="utf-8"))
     assert decompression["compressor"]["id"] == "rnc1-old"
     assert decompression["payload_role"] == "primary_program"
+    assert decompression["payload_role_id"] == 2
     assert decompression["packed"]["section_offset"] == 0x1000
     assert decompression["decompressed"]["sha256"] == "22" * 32
 
@@ -668,15 +682,21 @@ def test_import_adf_materializes_c_simulated_self_decrunch_child(
         lambda source_path, *, project_root: {
             "decompression_events": [
                 {
+                    "event_kind_id": 1,
                     "event_kind": "decompression",
                     "event_id": event_id,
+                    "status_id": 5,
                     "status": "simulated_output_observed",
+                    "source_kind_id": 3,
                     "source_kind": "self_decruncher",
                     "provider_id": "m68k-sim-decrunch",
                     "codec_id": "unknown-self-decrunch",
                     "codec_name": "Unidentified target-owned self-decruncher",
+                    "payload_role_id": 2,
                     "payload_role": "primary_program",
+                    "payload_role_confidence_id": 1,
                     "payload_role_confidence": "tool_inferred",
+                    "parent_remains_active_id": 1,
                     "parent_remains_active": "false",
                     "decompressor_code_section": 0,
                     "decompressor_entry_offset": 0,
@@ -730,19 +750,24 @@ def test_import_adf_materializes_c_simulated_self_decrunch_child(
     assert parent.derived_targets == [
         {
             "kind": "decompressed_payload",
+            "kind_id": 1,
             "target_name": child.target_name,
             "provider_id": "m68k-sim-decrunch",
             "event_id": event_id,
             "codec_id": "unknown-self-decrunch",
             "payload_role": "primary_program",
+            "payload_role_id": 2,
             "payload_role_confidence": "tool_inferred",
+            "payload_role_confidence_id": 1,
             "parent_remains_active": "false",
+            "parent_remains_active_id": 1,
         }
     ]
     assert child.derived_from is not None
     assert child.derived_from["provider_id"] == "m68k-sim-decrunch"
     assert child.derived_from["event_id"] == event_id
     assert child.derived_from["payload_role"] == "primary_program"
+    assert child.derived_from["payload_role_id"] == 2
 
     child_dir = project_root / child.target_path
     assert (child_dir / "binary.bin").read_bytes() == output_bytes
@@ -751,9 +776,12 @@ def test_import_adf_materializes_c_simulated_self_decrunch_child(
     assert source["load_address"] == 0x4000
     decompression = json.loads((child_dir / "decompression.json").read_text(encoding="utf-8"))
     assert decompression["source"]["kind"] == "self_decruncher"
+    assert decompression["source"]["kind_id"] == 3
     assert decompression["source"]["event_id"] == event_id
     assert decompression["payload_role"] == "primary_program"
+    assert decompression["payload_role_id"] == 2
     assert decompression["parent_remains_active"] == "false"
+    assert decompression["parent_remains_active_id"] == 1
     assert decompression["decompressed"]["sha256"] == output_hash
 
 
@@ -807,23 +835,31 @@ def test_import_adf_materializes_c_recognized_unpacker_children_from_real_fixtur
     assert parent.derived_targets == [
         {
             "kind": "decompressed_payload",
+            "kind_id": 1,
             "target_name": children[0].target_name,
             "provider_id": "c-tetragon-native",
             "event_id": children[0].derived_from["event_id"],
             "codec_id": "tetragon",
             "payload_role": "primary_program",
+            "payload_role_id": 2,
             "payload_role_confidence": "native_unpack_entry_validated",
+            "payload_role_confidence_id": 2,
             "parent_remains_active": "false",
+            "parent_remains_active_id": 1,
         },
         {
             "kind": "decompressed_payload",
+            "kind_id": 1,
             "target_name": children[1].target_name,
             "provider_id": "c-tetragon-native",
             "event_id": children[1].derived_from["event_id"],
             "codec_id": "tetragon",
             "payload_role": "primary_program",
+            "payload_role_id": 2,
             "payload_role_confidence": "native_unpack_entry_validated",
+            "payload_role_confidence_id": 2,
             "parent_remains_active": "false",
+            "parent_remains_active_id": 1,
         },
     ]
     expected = {
@@ -845,8 +881,11 @@ def test_import_adf_materializes_c_recognized_unpacker_children_from_real_fixtur
         assert source["entrypoint"] == entrypoint
         decompression = json.loads((child_dir / "decompression.json").read_text(encoding="utf-8"))
         assert decompression["source"]["kind"] == "recognized_unpacker"
+        assert decompression["source"]["kind_id"] == 2
         assert decompression["payload_role"] == "primary_program"
+        assert decompression["payload_role_id"] == 2
         assert child.derived_from["payload_role"] == "primary_program"
+        assert child.derived_from["payload_role_id"] == 2
         assert decompression["extraction"]["method"] == "c-tetragon-native"
         assert decompression["decompressed"]["sha256"] == sha256
 
@@ -876,7 +915,9 @@ def test_import_adf_refreshes_existing_c_decompressed_child(
         return {
             "derived_target_suggestions": [
                 {
+                    "kind_id": 1,
                     "kind": "decompressed_payload",
+                    "status_id": 2,
                     "status": "materializable",
                     "source_section": 0,
                     "source_section_offset": 0x1000,
@@ -963,7 +1004,9 @@ def test_import_adf_refresh_removes_stale_decompressed_child_after_clean_reanaly
     analysis_payload: dict[str, object] = {
         "derived_target_suggestions": [
             {
+                "kind_id": 1,
                 "kind": "decompressed_payload",
+                "status_id": 2,
                 "status": "materializable",
                 "source_section": 0,
                 "source_section_offset": 0x1000,
@@ -1047,7 +1090,9 @@ def test_import_adf_does_not_materialize_decompressed_child_without_runtime_meta
         lambda source_path, *, project_root: {
             "derived_target_suggestions": [
                 {
+                    "kind_id": 1,
                     "kind": "decompressed_payload",
+                    "status_id": 3,
                     "status": "needs_runtime_metadata",
                     "source_section": 0,
                     "source_section_offset": 0x1000,
@@ -1091,7 +1136,9 @@ def test_import_adf_does_not_materialize_non_materializable_decompressed_status(
         lambda source_path, *, project_root: {
             "derived_target_suggestions": [
                 {
+                    "kind_id": 1,
                     "kind": "decompressed_payload",
+                    "status_id": 0,
                     "status": "ambiguous",
                     "source_section": 0,
                     "source_section_offset": 0x1000,

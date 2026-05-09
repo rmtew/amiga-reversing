@@ -46,6 +46,17 @@ class MaterializedPayloadChildren:
     analysis_completed: bool
 
 
+PROJECT_ORIGIN_KIND_DERIVED_DECOMPRESSED_PAYLOAD = 1
+TARGET_ROLE_DECOMPRESSED_PAYLOAD = 1
+DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD = 1
+DECOMPRESSION_SOURCE_RECOGNIZED_UNPACKER = 2
+DECOMPRESSION_SOURCE_SELF_DECRUNCHER = 3
+DECOMPRESSION_STATUS_MATERIALIZABLE = 2
+DECOMPRESSION_STATUS_SIMULATED_OUTPUT_OBSERVED = 5
+DECOMPRESSION_PAYLOAD_ROLE_PRIMARY_PROGRAM = 2
+DECOMPRESSION_PARENT_REMAINS_ACTIVE_FALSE = 1
+
+
 def _materialized_bootloader_disk_stage_targets(
     analysis: AdfAnalysis,
     disk_bytes: bytes,
@@ -118,10 +129,19 @@ def _decompression_role_fields(payload: dict[str, object]) -> dict[str, object]:
     payload_role = _str_field(payload, "payload_role")
     payload_role_confidence = _str_field(payload, "payload_role_confidence")
     parent_remains_active = payload.get("parent_remains_active")
+    payload_role_id = _int_field(payload, "payload_role_id")
+    payload_role_confidence_id = _int_field(payload, "payload_role_confidence_id")
+    parent_remains_active_id = _int_field(payload, "parent_remains_active_id")
+    if payload_role_id is not None:
+        fields["payload_role_id"] = payload_role_id
     if payload_role is not None:
         fields["payload_role"] = payload_role
+    if payload_role_confidence_id is not None:
+        fields["payload_role_confidence_id"] = payload_role_confidence_id
     if payload_role_confidence is not None:
         fields["payload_role_confidence"] = payload_role_confidence
+    if parent_remains_active_id is not None:
+        fields["parent_remains_active_id"] = parent_remains_active_id
     if isinstance(parent_remains_active, (bool, str)):
         fields["parent_remains_active"] = parent_remains_active
     return fields
@@ -183,9 +203,9 @@ def _materializable_decompression_suggestions(analysis: dict[str, object]) -> li
     for item in suggestions:
         if not isinstance(item, dict):
             continue
-        if item.get("kind") != "decompressed_payload":
+        if _int_field(item, "kind_id") != DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD:
             continue
-        if item.get("status") != "materializable":
+        if _int_field(item, "status_id") != DECOMPRESSION_STATUS_MATERIALIZABLE:
             continue
         if _int_field(item, "source_section") is None:
             continue
@@ -211,13 +231,13 @@ def _materializable_recognized_unpacker_events(analysis: dict[str, object]) -> l
     for item in events:
         if not isinstance(item, dict):
             continue
-        if item.get("source_kind") != "recognized_unpacker":
+        if _int_field(item, "source_kind_id") != DECOMPRESSION_SOURCE_RECOGNIZED_UNPACKER:
             continue
-        if item.get("status") != "materializable":
+        if _int_field(item, "status_id") != DECOMPRESSION_STATUS_MATERIALIZABLE:
             continue
-        if item.get("payload_role") != "primary_program":
+        if _int_field(item, "payload_role_id") != DECOMPRESSION_PAYLOAD_ROLE_PRIMARY_PROGRAM:
             continue
-        if item.get("parent_remains_active") != "false":
+        if _int_field(item, "parent_remains_active_id") != DECOMPRESSION_PARENT_REMAINS_ACTIVE_FALSE:
             continue
         if _str_field(item, "event_id") is None:
             continue
@@ -241,15 +261,15 @@ def _materializable_self_decrunch_events(analysis: dict[str, object]) -> list[di
     for item in events:
         if not isinstance(item, dict):
             continue
-        if item.get("source_kind") != "self_decruncher":
+        if _int_field(item, "source_kind_id") != DECOMPRESSION_SOURCE_SELF_DECRUNCHER:
             continue
         if item.get("provider_id") != "m68k-sim-decrunch":
             continue
-        if item.get("status") != "simulated_output_observed":
+        if _int_field(item, "status_id") != DECOMPRESSION_STATUS_SIMULATED_OUTPUT_OBSERVED:
             continue
-        if item.get("payload_role") != "primary_program":
+        if _int_field(item, "payload_role_id") != DECOMPRESSION_PAYLOAD_ROLE_PRIMARY_PROGRAM:
             continue
-        if item.get("parent_remains_active") != "false":
+        if _int_field(item, "parent_remains_active_id") != DECOMPRESSION_PARENT_REMAINS_ACTIVE_FALSE:
             continue
         if _str_field(item, "event_id") is None:
             continue
@@ -317,11 +337,13 @@ def _materialize_decompressed_payload_children(
                 f"{source_section_offset:08x}"
             )
             origin = {
+                "project_origin_kind_id": PROJECT_ORIGIN_KIND_DERIVED_DECOMPRESSED_PAYLOAD,
                 "kind": "derived_decompressed_payload",
                 "parent_disk_id": disk_id,
                 "parent_target": parent_target_name,
                 "parent_entry_path": parent_entry_path,
                 "child_entry_path": child_entry_path,
+                "target_role_id": TARGET_ROLE_DECOMPRESSED_PAYLOAD,
                 "target_role": "decompressed_payload",
                 "target_type": "raw_binary",
                 **role_fields,
@@ -384,6 +406,7 @@ def _materialize_decompressed_payload_children(
             )
             write_target_metadata(target_dir, TargetMetadata(target_type="raw_binary", entry_register_seeds=()))
             relationship = {
+                "kind_id": DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD,
                 "kind": "decompressed_payload",
                 "parent_target": parent_target_name,
                 "parent_entry_path": parent_entry_path,
@@ -434,6 +457,7 @@ def _materialize_decompressed_payload_children(
             mark_project_updated(target_dir)
             parent_derived.append(
                 {
+                    "kind_id": DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD,
                     "kind": "decompressed_payload",
                     "target_name": target_name,
                     "packed_section_offset": source_section_offset,
@@ -475,11 +499,13 @@ def _materialize_decompressed_payload_children(
                 f"{source_section:02x}_{marker_offset:08x}"
             )
             origin = {
+                "project_origin_kind_id": PROJECT_ORIGIN_KIND_DERIVED_DECOMPRESSED_PAYLOAD,
                 "kind": "derived_decompressed_payload",
                 "parent_disk_id": disk_id,
                 "parent_target": parent_target_name,
                 "parent_entry_path": parent_entry_path,
                 "child_entry_path": child_entry_path,
+                "target_role_id": TARGET_ROLE_DECOMPRESSED_PAYLOAD,
                 "target_role": "decompressed_payload",
                 "target_type": "raw_binary",
                 **role_fields,
@@ -542,6 +568,7 @@ def _materialize_decompressed_payload_children(
             )
             write_target_metadata(target_dir, TargetMetadata(target_type="raw_binary", entry_register_seeds=()))
             relationship = {
+                "kind_id": DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD,
                 "kind": "decompressed_payload",
                 "parent_target": parent_target_name,
                 "parent_entry_path": parent_entry_path,
@@ -554,6 +581,7 @@ def _materialize_decompressed_payload_children(
                 "codec_name": _str_field(event, "codec_name"),
                 "provider_id": native_provider_id,
                 "event_id": event_id,
+                "source_kind_id": DECOMPRESSION_SOURCE_RECOGNIZED_UNPACKER,
                 "source_kind": "recognized_unpacker",
                 "source_section": source_section,
                 "unpacker_marker_offset": marker_offset,
@@ -572,6 +600,7 @@ def _materialize_decompressed_payload_children(
                     "confidence": _str_field(event, "payload_role_confidence") or "tool_inferred",
                 },
                 "source": {
+                    "kind_id": DECOMPRESSION_SOURCE_RECOGNIZED_UNPACKER,
                     "kind": "recognized_unpacker",
                     "provider_id": _str_field(event, "provider_id"),
                     "event_id": event_id,
@@ -605,6 +634,7 @@ def _materialize_decompressed_payload_children(
             mark_project_updated(target_dir)
             parent_derived.append(
                 {
+                    "kind_id": DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD,
                     "kind": "decompressed_payload",
                     "target_name": target_name,
                     "provider_id": native_provider_id,
@@ -643,11 +673,13 @@ def _materialize_decompressed_payload_children(
             target_dir = disk_children_root / local_target_id
             child_entry_path = f"{parent_entry_path}::simdecrunch_{code_section:02x}_{code_entry:08x}"
             origin = {
+                "project_origin_kind_id": PROJECT_ORIGIN_KIND_DERIVED_DECOMPRESSED_PAYLOAD,
                 "kind": "derived_decompressed_payload",
                 "parent_disk_id": disk_id,
                 "parent_target": parent_target_name,
                 "parent_entry_path": parent_entry_path,
                 "child_entry_path": child_entry_path,
+                "target_role_id": TARGET_ROLE_DECOMPRESSED_PAYLOAD,
                 "target_role": "decompressed_payload",
                 "target_type": "raw_binary",
                 **role_fields,
@@ -710,6 +742,7 @@ def _materialize_decompressed_payload_children(
             )
             write_target_metadata(target_dir, TargetMetadata(target_type="raw_binary", entry_register_seeds=()))
             relationship = {
+                "kind_id": DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD,
                 "kind": "decompressed_payload",
                 "parent_target": parent_target_name,
                 "parent_entry_path": parent_entry_path,
@@ -722,6 +755,7 @@ def _materialize_decompressed_payload_children(
                 "codec_name": _str_field(event, "codec_name"),
                 "provider_id": "m68k-sim-decrunch",
                 "event_id": event_id,
+                "source_kind_id": DECOMPRESSION_SOURCE_SELF_DECRUNCHER,
                 "source_kind": "self_decruncher",
                 "decompressor_code_section": code_section,
                 "decompressor_entry_offset": code_entry,
@@ -742,6 +776,7 @@ def _materialize_decompressed_payload_children(
                     "confidence": _str_field(event, "payload_role_confidence") or "tool_inferred",
                 },
                 "source": {
+                    "kind_id": DECOMPRESSION_SOURCE_SELF_DECRUNCHER,
                     "kind": "self_decruncher",
                     "provider_id": "m68k-sim-decrunch",
                     "event_id": event_id,
@@ -770,6 +805,7 @@ def _materialize_decompressed_payload_children(
             mark_project_updated(target_dir)
             parent_derived.append(
                 {
+                    "kind_id": DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD,
                     "kind": "decompressed_payload",
                     "target_name": target_name,
                     "provider_id": "m68k-sim-decrunch",

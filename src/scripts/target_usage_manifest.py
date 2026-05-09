@@ -302,6 +302,14 @@ DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD = 1
 DERIVED_TARGET_SUGGESTION_KIND_NAMES = {
     DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD: "decompressed_payload",
 }
+PROJECT_ORIGIN_KIND_DERIVED_DECOMPRESSED_PAYLOAD = 1
+PROJECT_ORIGIN_KIND_NAMES = {
+    PROJECT_ORIGIN_KIND_DERIVED_DECOMPRESSED_PAYLOAD: "derived_decompressed_payload",
+}
+PROJECT_TARGET_ROLE_DECOMPRESSED_PAYLOAD = 1
+PROJECT_TARGET_ROLE_NAMES = {
+    PROJECT_TARGET_ROLE_DECOMPRESSED_PAYLOAD: "decompressed_payload",
+}
 DECOMPRESSION_EVENT_KIND_DECOMPRESSION = 1
 DECOMPRESSION_EVENT_KIND_NAMES = {
     DECOMPRESSION_EVENT_KIND_DECOMPRESSION: "decompression",
@@ -973,6 +981,16 @@ def _project_target_manifest_entry(target_dir: Path, *, root: Path = ROOT) -> tu
         value = project_origin.get(source_key)
         if isinstance(value, (str, int, bool)):
             entry[entry_key] = value
+    for source_key, entry_key in (
+        ("project_origin_kind_id", "project_origin_kind_id"),
+        ("target_role_id", "target_role_id"),
+        ("payload_role_id", "payload_role_id"),
+        ("payload_role_confidence_id", "payload_role_confidence_id"),
+        ("parent_remains_active_id", "parent_remains_active_id"),
+    ):
+        value = project_origin.get(source_key)
+        if isinstance(value, int):
+            entry[entry_key] = value
     decompression = _read_json_object(target_dir / "decompression.json")
     if decompression:
         entry["decompression"] = decompression
@@ -1152,19 +1170,39 @@ def _project_decompression_example(entry: dict[str, Any]) -> dict[str, object]:
     codec = _project_decompression_codec(entry)
     if codec:
         example["text"] = codec
-    for key in ("payload_role", "payload_role_confidence", "parent_remains_active"):
-        value = _string_value(decompression.get(key)) or _string_value(entry.get(key))
-        if value:
-            example[key] = value
+    for id_key, text_key, names in (
+        ("payload_role_id", "payload_role", DECOMPRESSION_PAYLOAD_ROLE_NAMES),
+        ("payload_role_confidence_id", "payload_role_confidence", DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_NAMES),
+        ("parent_remains_active_id", "parent_remains_active", DECOMPRESSION_PARENT_REMAINS_ACTIVE_NAMES),
+    ):
+        value_id = _int_value(decompression.get(id_key))
+        if value_id is None:
+            value_id = _int_value(entry.get(id_key))
+        if value_id is not None:
+            example[id_key] = value_id
+            value = names.get(value_id)
+            if value:
+                example[text_key] = value
     return example
 
 
 def _add_project_target_metadata_features(entry: dict[str, Any], bag: FeatureBag) -> None:
-    origin_kind = _string_value(entry.get("project_origin_kind"))
-    target_role = _string_value(entry.get("target_role"))
-    payload_role = _string_value(entry.get("payload_role"))
-    payload_role_confidence = _string_value(entry.get("payload_role_confidence"))
-    parent_remains_active = _string_value(entry.get("parent_remains_active"))
+    origin_kind_id = _int_value(entry.get("project_origin_kind_id"))
+    origin_kind = PROJECT_ORIGIN_KIND_NAMES.get(origin_kind_id) if origin_kind_id is not None else _string_value(entry.get("project_origin_kind"))
+    target_role_id = _int_value(entry.get("target_role_id"))
+    target_role = PROJECT_TARGET_ROLE_NAMES.get(target_role_id) if target_role_id is not None else _string_value(entry.get("target_role"))
+    payload_role_id = _int_value(entry.get("payload_role_id"))
+    payload_role = DECOMPRESSION_PAYLOAD_ROLE_NAMES.get(payload_role_id) if payload_role_id is not None else None
+    payload_role_confidence_id = _int_value(entry.get("payload_role_confidence_id"))
+    payload_role_confidence = (
+        DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_NAMES.get(payload_role_confidence_id)
+        if payload_role_confidence_id is not None else None
+    )
+    parent_remains_active_id = _int_value(entry.get("parent_remains_active_id"))
+    parent_remains_active = (
+        DECOMPRESSION_PARENT_REMAINS_ACTIVE_NAMES.get(parent_remains_active_id)
+        if parent_remains_active_id is not None else None
+    )
     target_type = _string_value(entry.get("target_type"))
     reproduction = entry.get("reproduction")
     reproduction_status = _string_value(reproduction.get("status")) if isinstance(reproduction, dict) else None
@@ -1184,7 +1222,7 @@ def _add_project_target_metadata_features(entry: dict[str, Any], bag: FeatureBag
         bag.add(f"reproduction:status:{_safe_part(reproduction_status)}")
     if isinstance(reproduction, dict) and reproduction.get("exact") is True:
         bag.add("reproduction:exact")
-    if origin_kind == "derived_decompressed_payload" or target_role == "decompressed_payload":
+    if origin_kind_id == PROJECT_ORIGIN_KIND_DERIVED_DECOMPRESSED_PAYLOAD or target_role_id == PROJECT_TARGET_ROLE_DECOMPRESSED_PAYLOAD:
         example = _project_decompression_example(entry)
         if reproduction_status:
             example["reproduction_status"] = reproduction_status
@@ -2140,7 +2178,8 @@ def _decompression_example(record: dict[str, Any]) -> dict[str, object]:
     parent_remains_active = _string_value(record.get("parent_remains_active"))
     if parent_remains_active:
         example["parent_remains_active"] = parent_remains_active
-    source_kind = _string_value(record.get("source_kind"))
+    source_kind_id = _int_value(record.get("source_kind_id"), 0) or 0
+    source_kind = DECOMPRESSION_SOURCE_KIND_NAMES.get(source_kind_id)
     if source_kind:
         example["source_kind"] = source_kind
     provider_id = _string_value(record.get("provider_id"))
@@ -2862,11 +2901,22 @@ def _file_usage_xrefs(
 
 def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]) -> list[dict[str, object]]:
     xrefs: list[dict[str, object]] = []
-    origin_kind = _string_value(entry.get("project_origin_kind"))
-    target_role = _string_value(entry.get("target_role"))
-    payload_role = _string_value(entry.get("payload_role"))
-    payload_role_confidence = _string_value(entry.get("payload_role_confidence"))
-    parent_remains_active = _string_value(entry.get("parent_remains_active"))
+    origin_kind_id = _int_value(entry.get("project_origin_kind_id"))
+    origin_kind = PROJECT_ORIGIN_KIND_NAMES.get(origin_kind_id) if origin_kind_id is not None else _string_value(entry.get("project_origin_kind"))
+    target_role_id = _int_value(entry.get("target_role_id"))
+    target_role = PROJECT_TARGET_ROLE_NAMES.get(target_role_id) if target_role_id is not None else _string_value(entry.get("target_role"))
+    payload_role_id = _int_value(entry.get("payload_role_id"))
+    payload_role = DECOMPRESSION_PAYLOAD_ROLE_NAMES.get(payload_role_id) if payload_role_id is not None else None
+    payload_role_confidence_id = _int_value(entry.get("payload_role_confidence_id"))
+    payload_role_confidence = (
+        DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_NAMES.get(payload_role_confidence_id)
+        if payload_role_confidence_id is not None else None
+    )
+    parent_remains_active_id = _int_value(entry.get("parent_remains_active_id"))
+    parent_remains_active = (
+        DECOMPRESSION_PARENT_REMAINS_ACTIVE_NAMES.get(parent_remains_active_id)
+        if parent_remains_active_id is not None else None
+    )
     target_type = _string_value(entry.get("target_type"))
     reproduction = entry.get("reproduction")
     reproduction_status = _string_value(reproduction.get("status")) if isinstance(reproduction, dict) else None
@@ -2889,7 +2939,7 @@ def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]
         )
     if isinstance(reproduction, dict) and reproduction.get("exact") is True:
         xrefs.append(_xref(row, "reproduction:exact", "project_reproduction", text=reproduction_status or "exact"))
-    if origin_kind == "derived_decompressed_payload" or target_role == "decompressed_payload":
+    if origin_kind_id == PROJECT_ORIGIN_KIND_DERIVED_DECOMPRESSED_PAYLOAD or target_role_id == PROJECT_TARGET_ROLE_DECOMPRESSED_PAYLOAD:
         codec = _project_decompression_codec(entry)
         example = _project_decompression_example(entry)
         offset = _int_value(example.get("offset"))

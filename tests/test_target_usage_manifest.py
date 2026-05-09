@@ -51,8 +51,11 @@ def test_decompression_payload_role_features() -> None:
     analysis = {
         "derived_target_suggestions": [
             {
+                "kind_id": 1,
                 "kind": "decompressed_payload",
+                "status_id": 2,
                 "status": "materializable",
+                "reason_id": 3,
                 "reason": "initial_control_target_validated_runtime_copy",
                 "source_section": 0,
                 "source_section_offset": 0x4C40,
@@ -67,15 +70,22 @@ def test_decompression_payload_role_features() -> None:
         ],
         "decompression_events": [
             {
+                "event_kind_id": 1,
                 "event_kind": "decompression",
                 "event_id": "decompression:section:0:00004C40:rnc1-old",
+                "status_id": 2,
                 "status": "materializable",
+                "reason_id": 3,
                 "reason": "initial_control_target_validated_runtime_copy",
                 "codec_id": "rnc1-old",
+                "codec_support_id": 1,
                 "codec_support": "external_provider",
+                "payload_role_id": 2,
                 "payload_role": "primary_program",
+                "parent_remains_active_id": 0,
                 "parent_remains_active": "unknown",
-                "source_kind": "provider_identified_payload",
+                "source_kind_id": 1,
+                "source_kind": "stale_display_name",
                 "provider_id": "ancient",
                 "simulated_output_size": 128,
                 "simulated_output_sha256": "d37ec7db83012eba179956026b0677cfd46763d585722154f761bd6f6d2b5748",
@@ -97,7 +107,7 @@ def test_decompression_payload_role_features() -> None:
     assert counts["decompression:event:decompression"] == 1
     assert counts["decompression:has_event_id"] == 1
     assert counts["decompression:codec_support:external_provider"] == 1
-    assert counts["decompression:source_kind:provider_identified_payload"] == 1
+    assert counts["decompression:source_kind:section_range"] == 1
     assert counts["decompression:provider:ancient"] == 1
     assert counts["decompression:codec:rnc1-old"] == 1
     assert counts["decompression:simulated_output"] == 1
@@ -116,7 +126,7 @@ def test_decompression_payload_role_features() -> None:
     assert counts["decompression:pattern:runtime_copy_to_absolute"] == 1
     assert "decompression:payload_role:primary_program" in tags
     assert examples["decompression:payload_role:primary_program"][0]["payload_role"] == "primary_program"
-    assert examples["decompression:source_kind:provider_identified_payload"][0]["source_kind"] == "provider_identified_payload"
+    assert examples["decompression:source_kind:section_range"][0]["source_kind"] == "section_range"
     assert examples["decompression:provider:ancient"][0]["provider_id"] == "ancient"
     assert examples["decompression:has_event_id"][0]["event_id"] == "decompression:section:0:00004C40:rnc1-old"
     assert examples["decompression:source_range"][0]["source_section_end_offset"] == 0x2DE07
@@ -126,14 +136,21 @@ def test_recognized_unpacker_target_start_indexes_absolute_depack_destination() 
     analysis = {
         "decompression_events": [
             {
+                "event_kind_id": 1,
                 "event_kind": "decompression",
                 "event_id": "decompression:recognized_unpacker:section:1:000000C4:tetragon",
+                "status_id": 2,
                 "status": "materializable",
+                "reason_id": 9,
                 "reason": "native_tetragon_unpack_validated",
                 "codec_id": "tetragon",
+                "codec_support_id": 2,
                 "codec_support": "native_decompressor",
+                "payload_role_id": 2,
                 "payload_role": "primary_program",
+                "parent_remains_active_id": 1,
                 "parent_remains_active": "false",
+                "source_kind_id": 2,
                 "source_kind": "recognized_unpacker",
                 "provider_id": "c-tetragon-signature",
                 "source_section": 1,
@@ -176,14 +193,21 @@ def test_self_decrunch_event_indexes_output_and_pattern_work_item() -> None:
     analysis = {
         "decompression_events": [
             {
+                "event_kind_id": 1,
                 "event_kind": "decompression",
                 "event_id": "decompression:self_decrunch:section:0:00000000:00020000",
+                "status_id": 4,
                 "status": "needs_simulated_decrunch",
+                "reason_id": 14,
                 "reason": "simulated_instruction_limit",
                 "codec_id": "unknown-self-decrunch",
+                "codec_support_id": 3,
                 "codec_support": "simulator_required",
+                "payload_role_id": 1,
                 "payload_role": "unknown_runtime_payload",
+                "parent_remains_active_id": 1,
                 "parent_remains_active": "false",
+                "source_kind_id": 3,
                 "source_kind": "self_decruncher",
                 "provider_id": "m68k-sim-decrunch",
                 "decompressor_code_section": 0,
@@ -227,6 +251,7 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
         "rows": [
             {
                 "kind": "data",
+                "kind_id": 4,
                 "section_index": 0,
                 "start_offset": 0x3526,
                 "stable_key": "s0:00003526:data:1",
@@ -236,6 +261,7 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
             },
             {
                 "kind": "data",
+                "kind_id": 4,
                 "section_index": 0,
                 "start_offset": 0x7D44,
                 "stable_key": "s0:00007D44:data:1",
@@ -245,6 +271,7 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
             },
             {
                 "kind": "data",
+                "kind_id": 4,
                 "section_index": 0,
                 "start_offset": 0xC266,
                 "stable_key": "s0:0000C266:data:1",
@@ -254,6 +281,7 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
             },
             {
                 "kind": "label",
+                "kind_id": 2,
                 "section_index": 0,
                 "start_offset": 0xDDBA,
                 "stable_key": "s0:0000DDBA:label:1",
@@ -286,9 +314,10 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
 def test_direct_control_stub_table_feature_and_xref() -> None:
     listing = {
         "rows": [
-            {"kind": "label", "section_index": 0, "start_offset": 0x16A, "end_offset": 0x16A, "text": "loc:\n"},
+            {"kind": "label", "kind_id": 2, "section_index": 0, "start_offset": 0x16A, "end_offset": 0x16A, "text": "loc:\n"},
             {
                 "kind": "instruction",
+                "kind_id": 3,
                 "section_index": 0,
                 "start_offset": 0x16A,
                 "end_offset": 0x16E,
@@ -299,9 +328,10 @@ def test_direct_control_stub_table_feature_and_xref() -> None:
                 "operand_parts": [{"kind": "symbol", "text": "loc_0_0000021E"}],
                 "code_start_refs": [{"reason_name": "control_target"}],
             },
-            {"kind": "label", "section_index": 0, "start_offset": 0x16E, "end_offset": 0x16E, "text": "loc:\n"},
+            {"kind": "label", "kind_id": 2, "section_index": 0, "start_offset": 0x16E, "end_offset": 0x16E, "text": "loc:\n"},
             {
                 "kind": "instruction",
+                "kind_id": 3,
                 "section_index": 0,
                 "start_offset": 0x16E,
                 "end_offset": 0x172,
@@ -330,9 +360,10 @@ def test_direct_control_stub_table_feature_and_xref() -> None:
 def test_relocated_absolute_jmp_stub_table_feature_and_xref() -> None:
     listing = {
         "rows": [
-            {"kind": "label", "section_index": 1, "start_offset": 0x1FE8, "end_offset": 0x1FE8, "text": "loc:\n"},
+            {"kind": "label", "kind_id": 2, "section_index": 1, "start_offset": 0x1FE8, "end_offset": 0x1FE8, "text": "loc:\n"},
             {
                 "kind": "instruction",
+                "kind_id": 3,
                 "section_index": 1,
                 "start_offset": 0x1FE8,
                 "end_offset": 0x1FEE,
@@ -343,9 +374,10 @@ def test_relocated_absolute_jmp_stub_table_feature_and_xref() -> None:
                 "operand_parts": [{"kind": "symbol", "text": "loc_4_0000002C"}],
                 "code_start_refs": [{"reason_name": "control_target"}],
             },
-            {"kind": "label", "section_index": 1, "start_offset": 0x1FEE, "end_offset": 0x1FEE, "text": "loc:\n"},
+            {"kind": "label", "kind_id": 2, "section_index": 1, "start_offset": 0x1FEE, "end_offset": 0x1FEE, "text": "loc:\n"},
             {
                 "kind": "instruction",
+                "kind_id": 3,
                 "section_index": 1,
                 "start_offset": 0x1FEE,
                 "end_offset": 0x1FF4,
