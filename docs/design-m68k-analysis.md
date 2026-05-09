@@ -707,6 +707,14 @@ dispatch, indexed local pointer reads, indexed local scalar reads,
 postincrement read sequences, PC-relative indexed reads, and keyed long relative
 dispatch.
 
+`recovered_indirect_sites` and `table_candidate_records` are related but not the
+same queue. Every accepted indirect control site should remain navigable as an
+indirect-site diagnostic. A table candidate is stricter: it needs indexed
+control shape, a proven table base or bounds, or an explicit rejected
+table-bound status. Plain unresolved `jsr (aN)` or `jmp (aN)` stays an indirect
+site until value-flow proves table evidence. This keeps library vectors, object
+method calls, and other dynamic calls out of lookup-table work queues.
+
 Rejected candidate bounds are still useful when analysis can prove the table
 base and a bounded candidate span, but cannot accept the table yet:
 

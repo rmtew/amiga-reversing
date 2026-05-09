@@ -158,6 +158,11 @@ measurements and test names here, not in the index table.
   tables, backward and forward inline-tail dispatch, keyed long relative
   dispatch, branch-terminated inline stubs, and PC-indexed absolute long
   dispatch rendering.
+- `table_candidate_records` are now a strict subset of recovered indirect sites.
+  Generic unresolved `jsr (aN)` / `jmp (aN)` remains in
+  `recovered_indirect_sites` and `analysis:indirect_site` tags, but no longer
+  pollutes table-candidate navigation unless indexed/table-base/table-bound
+  evidence exists.
 - Isolated coverage includes:
   `test_facts_v2_pc_indexed_word_load_promotes_relative_jump_targets`,
   `test_facts_v2_biased_pc_indexed_word_load_promotes_relative_jump_targets`,
@@ -782,6 +787,20 @@ addends from becoming vector ownership:
 - CPU-vector memory-owner xrefs dropped 6028 -> 825 while absolute-memory-ref
   records stayed at 52136; section-storage xrefs rose 34846 -> 43616. This is
   ownership reclassification, not hidden data removal.
+
+Strict table-candidate corpus evidence after separating generic indirect sites
+from table-shaped work items:
+
+- Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_strict_table_candidates.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_strict_table_candidates.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_strict_table_candidates.jsonl --variants-output src\build\tmp_target_variant_index_after_strict_table_candidates.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_strict_table_candidates.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_strict_table_candidates.jsonl --workers 8`
+- Scope: 493 entries, 515996 xrefs, 476716 snippet rows, 322 type-flow rows.
+- `analysis:indirect_site` stayed 4936 -> 4936, preserving the generic indirect
+  control queue.
+- `table:candidate_unresolved` dropped 4385 -> 32; remaining table candidates
+  are indexed/table-shaped (`table:candidate_unresolved:shape:index.brief`
+  stayed 32 -> 32), while plain indirect-shaped table tags dropped 4353 -> 0.
+- The largest visible queue reductions are in Workbench/Carrier/Starglider
+  `info.library`, `printer.device`, `Preferences`, and other library/vector
+  style call sites that were not proven lookup tables.
 
 Actionable unresolved orphan missing-inbound corpus evidence after gating
 suppressed signals out of work-item tags:

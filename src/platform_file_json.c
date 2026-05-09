@@ -1799,10 +1799,22 @@ static uint8_t structured_data_item_table_kind_id(const M68kAnalysisStructuredDa
 
 static int recovered_indirect_site_is_unresolved_table_candidate(const M68kRecoveredIndirectSiteIR *site) {
   if (site == NULL) return 0;
-  return site->status != M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE &&
-    site->status != M68K_RECOVERED_INDIRECT_STATUS_RESOLVED_RUNTIME &&
-    site->status != M68K_RECOVERED_INDIRECT_STATUS_RUNTIME &&
-    site->status != M68K_RECOVERED_INDIRECT_STATUS_EXTERNAL;
+  if (site->status == M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE ||
+      site->status == M68K_RECOVERED_INDIRECT_STATUS_RESOLVED_RUNTIME ||
+      site->status == M68K_RECOVERED_INDIRECT_STATUS_RUNTIME ||
+      site->status == M68K_RECOVERED_INDIRECT_STATUS_EXTERNAL) {
+    return 0;
+  }
+  if (site->has_table_base != 0U || site->has_table_bounds != 0U ||
+      site->table_bounds_status != M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE) {
+    return 1;
+  }
+  return site->shape == M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF ||
+    site->shape == M68K_RECOVERED_INDIRECT_SHAPE_INDEX_FULL ||
+    site->shape == M68K_RECOVERED_INDIRECT_SHAPE_INDEX_MEMIND ||
+    site->shape == M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_BRIEF ||
+    site->shape == M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_FULL ||
+    site->shape == M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_MEMIND;
 }
 
 static size_t source_analysis_table_record_count(const M68kAnalysisPolicy *policy) {

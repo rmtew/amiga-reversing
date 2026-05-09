@@ -3615,9 +3615,7 @@ static int test_facts_v2_records_unresolved_indirect_jump_site(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"source_offset\":0,\"source_size\":2,\"operand_index\":0") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern_id\":1,\"source_pattern\":\"indirect\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"table_candidate_record_count\":1,\"table_candidate_records\":[{\"section_index\":0,\"offset\":0") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state_id\":2,\"conflict_state\":\"unresolved\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state\":\"unresolved\"") != NULL);
+    "\"table_candidate_record_count\":0,\"table_candidate_records\":[]") != NULL);
   free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
