@@ -6367,10 +6367,12 @@ static int render_analysis_append_orphan_absolute_memory_refs_for_signal(const M
     const M68kDecodeSectionIR *section, const M68kOrphanCodeSignalIR *signal,
     M68kSectionAnalysisIR *section_analysis) {
   uint32_t cursor;
+  uint8_t platform_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
   if (section == NULL || signal == NULL || section_analysis == NULL || signal->size == 0U ||
       signal->offset > section->size || signal->size > section->size - signal->offset) {
     return -1;
   }
+  if (lookup != NULL && lookup->object != NULL) platform_kind = lookup->object->platform_backend_kind;
   cursor = signal->offset;
   while (cursor < signal->offset + signal->size) {
     M68kDecodeCandidate decoded_candidate;
@@ -6407,7 +6409,54 @@ static int render_analysis_append_orphan_absolute_memory_refs_for_signal(const M
       ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
       ref.confidence = signal->confidence;
       ref.conflict_state = M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED;
+      if (m68k_cpu_find_exception_vector_by_address(address) != NULL ||
+          platform_facts_v2_is_callback_vector_slot(platform_kind, address)) {
+        ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
+        ref.owner_offset = 0U;
+      }
       if (m68k_ir_section_analysis_append_absolute_memory_ref(section_analysis, &ref) != 0) return -1;
+    }
+    cursor += candidate->byte_count;
+  }
+  return 0;
+}
+
+static int render_orphan_signal_has_vector_evidence(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kOrphanCodeSignalIR *signal) {
+  uint32_t cursor;
+  uint8_t platform_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
+  if (section == NULL || signal == NULL || signal->size == 0U ||
+      signal->offset > section->size || signal->size > section->size - signal->offset) {
+    return 0;
+  }
+  if (lookup != NULL && lookup->object != NULL) platform_kind = lookup->object->platform_backend_kind;
+  cursor = signal->offset;
+  while (cursor < signal->offset + signal->size) {
+    M68kDecodeCandidate decoded_candidate;
+    const M68kDecodeCandidate *candidate;
+    M68kInstructionIR instruction;
+    const M68kSimFormMetadata *metadata;
+    size_t operand_index;
+    candidate = render_orphan_decode_candidate_at_offset(lookup, section, cursor, &decoded_candidate);
+    if (candidate == NULL || candidate->byte_count == 0U ||
+        candidate->byte_count > signal->offset + signal->size - cursor) {
+      return 0;
+    }
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+    metadata = m68k_sim_metadata_for_instruction(&instruction);
+    if (metadata == NULL) return 0;
+    for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U; ++operand_index) {
+      uint32_t address = 0U;
+      uint8_t access_kind = metadata->operand_access_kinds[operand_index];
+      if (!render_absolute_ref_access_kind(access_kind)) continue;
+      if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index],
+          &candidate->operands[operand_index], &address)) {
+        continue;
+      }
+      if (m68k_cpu_find_exception_vector_by_address(address) != NULL ||
+          platform_facts_v2_is_callback_vector_slot(platform_kind, address)) {
+        return 1;
+      }
     }
     cursor += candidate->byte_count;
   }
@@ -6458,14 +6507,17 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
   }
 }
 
-static void render_orphan_signal_refine_missing_inbound(M68kOrphanCodeSignalIR *signal) {
+static void render_orphan_signal_refine_missing_inbound(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, M68kOrphanCodeSignalIR *signal) {
   if (signal == NULL) {
     return;
   }
   if (signal->missing_inbound != M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN &&
       signal->missing_inbound != M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA)
     return;
-  if ((signal->nearby_data_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U) {
+  if (render_orphan_signal_has_vector_evidence(lookup, section, signal)) {
+    signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_VECTOR;
+  } else if ((signal->nearby_data_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U) {
     signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE;
   } else if ((signal->nearby_data_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U) {
     signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_CALLBACK;
@@ -6557,7 +6609,7 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
         signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN;
       }
       render_orphan_signal_attach_nearby_data_context(lookup, section, &signal);
-      render_orphan_signal_refine_missing_inbound(&signal);
+      render_orphan_signal_refine_missing_inbound(lookup, section, &signal);
       signal.detail = structured_item_at_start != NULL
         ? "decoded terminal island suppressed by accepted structured data"
         : "decoded instruction island ends in generated terminal flow";

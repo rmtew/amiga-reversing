@@ -95,6 +95,26 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_class"], "lookup_table")
         self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_relation"], "overlap")
 
+    def test_orphan_signal_features_use_inbound_id_for_vector_signal(self) -> None:
+        bag = usage.FeatureBag()
+        usage._add_orphan_code_signal_features(
+            bag,
+            0,
+            {
+                "offset": 0x20,
+                "size": 8,
+                "reason_id": 1,
+                "reason": "stale_display_name",
+                "status_id": 1,
+                "status": "stale_display_name",
+                "missing_inbound_id": 4,
+                "missing_inbound": "stale_display_name",
+            },
+        )
+        counts, examples, _tags = bag.row_features()
+        self.assertEqual(counts["orphan-code:missing_inbound:vector"], 1)
+        self.assertEqual(examples["orphan-code:signal"][0]["missing_inbound"], "vector")
+
     def test_extracts_structured_analysis_and_listing_features(self) -> None:
         bag = usage.FeatureBag()
         usage._add_executable_analysis_features(

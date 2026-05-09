@@ -3919,6 +3919,58 @@ static int test_facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_call
   return 0;
 }
 
+static int test_facts_v2_orphan_signal_classifies_vector_operand_as_vector_inbound(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAbsoluteMemoryRefIR *ref;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t bytes[10] = {
+    0x4eu, 0x75u,
+    0x23u, 0xc0u, 0x00u, 0x00u, 0x00u, 0x10u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l d0,m68k_vector_illegal_instruction.l\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $23,$C0,$00,$00,$00,$10,$4E,$75\n") != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_VECTOR,
+    source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
+  ref = &source_analysis.sections[0].absolute_memory_refs[0];
+  M68K_C_ASSERT_U32(2U, ref->offset);
+  M68K_C_ASSERT_U32(0x10U, ref->address);
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR, ref->owner_kind);
+  M68K_C_ASSERT_U32(M68K_SIM_ACCESS_MEMORY_WRITE, ref->access_kind);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound_id\":4,\"missing_inbound\":\"vector\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_id\":2,\"owner_kind\":\"cpu_vector\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_symbol\":\"m68k_vector_illegal_instruction\"") != NULL);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_orphan_signal_records_minimum_decode_cpu(void) {
   M68kObject object;
   M68kSection section;
@@ -15694,6 +15746,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_orphan_signal_suppresses_structured_data_overlap},
     {"facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_callback",
       test_facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_callback},
+    {"facts_v2_orphan_signal_classifies_vector_operand_as_vector_inbound",
+      test_facts_v2_orphan_signal_classifies_vector_operand_as_vector_inbound},
     {"facts_v2_orphan_signal_records_minimum_decode_cpu",
       test_facts_v2_orphan_signal_records_minimum_decode_cpu},
     {"facts_v2_reached_terminal_island_is_not_orphan_signal",
