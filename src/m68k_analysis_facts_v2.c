@@ -23,6 +23,7 @@
 #define M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS 3U
 #define M68K_FACTS_V2_TRACE_TARGET_SET 4U
 #define M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE 5U
+#define M68K_FACTS_V2_TRACE_KEYED_LONG_RELATIVE_TABLE 6U
 #define M68K_FACT_RUNTIME_ADDRESS_REF_NO_OPERAND UINT32_MAX
 #define M68K_FACTS_V2_TRACE_ABSOLUTE_SLOT_LIMIT 16U
 #define M68K_FACTS_V2_TRACE_STACK_SLOT_LIMIT 8U
@@ -1508,10 +1509,20 @@ static void trace_value_set_word_relative_table(M68kFactsV2TraceValue *value, si
   value->value = table_offset;
 }
 
+static void trace_value_set_keyed_long_relative_table(M68kFactsV2TraceValue *value, size_t section_index,
+    uint32_t table_offset) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  value->kind = M68K_FACTS_V2_TRACE_KEYED_LONG_RELATIVE_TABLE;
+  value->section_index = section_index;
+  value->value = table_offset;
+}
+
 static int trace_value_advance(M68kFactsV2TraceValue *value, uint32_t delta) {
   if (value == NULL || value->kind == M68K_FACTS_V2_TRACE_UNKNOWN) return 0;
   if (value->kind == M68K_FACTS_V2_TRACE_TARGET_SET ||
-      value->kind == M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE) {
+      value->kind == M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE ||
+      value->kind == M68K_FACTS_V2_TRACE_KEYED_LONG_RELATIVE_TABLE) {
     trace_value_set_unknown(value);
     return 0;
   }
@@ -2456,6 +2467,46 @@ static uint32_t scan_word_relative_control_target_table(const M68kDecodeSectionI
   return target_count >= 2U ? target_count : 0U;
 }
 
+static uint32_t scan_keyed_long_relative_control_target_table(const M68kDecodeSectionIR *section,
+    const M68kRuntimeAddressSpace *runtime_addresses, const uint8_t *accepted_start,
+    const uint8_t *accepted_bytes, uint32_t table_offset, uint32_t base_address, uint32_t *targets,
+    uint32_t target_limit) {
+  uint32_t cursor;
+  uint32_t target_count = 0U;
+  uint32_t first_forward_target = UINT32_MAX;
+  if (section == NULL || section->data == NULL || runtime_addresses == NULL || accepted_start == NULL ||
+      accepted_bytes == NULL || targets == NULL || target_limit == 0U || table_offset >= section->size) {
+    return 0U;
+  }
+  for (cursor = table_offset; cursor + 4U <= section->size && target_count < target_limit; cursor += 4U) {
+    uint32_t entry = m68k_read_u32be(section->data + cursor);
+    int32_t displacement;
+    int64_t target64;
+    uint32_t target_address;
+    uint32_t target_offset = 0U;
+    if (accepted_range_has_code_byte_local(accepted_bytes, section->size, cursor, 4U)) break;
+    if (entry == 0U) break;
+    displacement = (int32_t)(int16_t)((entry >> 16U) & 0xFFFFU);
+    if (displacement < -M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT ||
+        displacement > M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT) break;
+    target64 = (int64_t)(uint64_t)base_address + (int64_t)displacement;
+    if (target64 < 0 || target64 > (int64_t)(uint64_t)UINT32_MAX) break;
+    target_address = (uint32_t)target64;
+    if ((target_address & 1U) != 0U || !control_address_to_section_offset(runtime_addresses,
+        section->section_index, section->size, target_address, &target_offset)) {
+      break;
+    }
+    if (control_target_starts_in_zero_padding(section, target_offset)) break;
+    if (accepted_offset_is_interior(section, accepted_start, accepted_bytes, target_offset)) break;
+    targets[target_count++] = target_address;
+    if (target_offset > table_offset && target_offset < first_forward_target)
+      first_forward_target = target_offset;
+    if (target_count >= 2U && first_forward_target != UINT32_MAX && cursor + 4U >= first_forward_target)
+      break;
+  }
+  return target_count >= 2U ? target_count : 0U;
+}
+
 static int trace_state_candidate_loads_long_target_table(const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
     const M68kRuntimeAddressSpace *runtime_addresses, const uint8_t *accepted_bytes, uint8_t *out_dest_reg,
@@ -2660,6 +2711,83 @@ static int trace_state_candidate_loads_word_relative_target_table(const M68kDeco
   return 1;
 }
 
+static int trace_state_candidate_loads_keyed_long_relative_table_entry(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
+    const M68kRuntimeAddressSpace *runtime_addresses, uint8_t *out_dest_reg,
+    M68kFactsV2TraceValue *out_value) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  uint8_t source_reg = 0U;
+  uint8_t dest_reg = 0U;
+  uint32_t table_offset = 0U;
+  size_t source_index = (size_t)-1;
+  size_t dest_index = (size_t)-1;
+  if (out_dest_reg != NULL) *out_dest_reg = 0U;
+  if (out_value != NULL) trace_value_set_unknown(out_value);
+  if (section == NULL || candidate == NULL || before == NULL || runtime_addresses == NULL ||
+      out_dest_reg == NULL || out_value == NULL || candidate->size_suffix != 'l' ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || metadata->operation_type != M68K_SIM_OP_MOVE) return 0;
+  if (metadata->source_operand_index < candidate->operand_count)
+    source_index = metadata->source_operand_index;
+  if (metadata->dest_operand_index < candidate->operand_count)
+    dest_index = metadata->dest_operand_index;
+  if (source_index >= candidate->operand_count || dest_index >= candidate->operand_count ||
+      source_index >= instruction.operand_count || dest_index >= instruction.operand_count) {
+    return 0;
+  }
+  if (!operand_is_postincrement_address_register(candidate->operand_kinds[source_index],
+      &candidate->operands[source_index], &source_reg) ||
+      !operand_is_data_register_direct(&candidate->operands[dest_index], &dest_reg) ||
+      !trace_value_to_table_storage_offset(&before->a[source_reg], runtime_addresses,
+        section->section_index, section->size, &table_offset)) {
+    return 0;
+  }
+  *out_dest_reg = dest_reg;
+  trace_value_set_keyed_long_relative_table(out_value, section->section_index, table_offset);
+  return 1;
+}
+
+static int trace_state_candidate_swaps_keyed_long_relative_table_entry(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
+    const M68kRuntimeAddressSpace *runtime_addresses, const uint8_t *accepted_start,
+    const uint8_t *accepted_bytes, uint8_t *out_dest_reg, M68kFactsV2TraceValue *out_value) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  uint8_t reg = 0U;
+  uint32_t table_offset = 0U;
+  uint32_t base_address = 0U;
+  uint32_t targets[M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT];
+  uint32_t target_count;
+  if (out_dest_reg != NULL) *out_dest_reg = 0U;
+  if (out_value != NULL) trace_value_set_unknown(out_value);
+  if (section == NULL || candidate == NULL || before == NULL || runtime_addresses == NULL ||
+      accepted_start == NULL || accepted_bytes == NULL || out_dest_reg == NULL || out_value == NULL ||
+      candidate->operand_count != 1U || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || metadata->operation_type != M68K_SIM_OP_SWAP_WORDS ||
+      !operand_is_data_register_direct(&candidate->operands[0], &reg) ||
+      before->d[reg].kind != M68K_FACTS_V2_TRACE_KEYED_LONG_RELATIVE_TABLE ||
+      before->d[reg].section_index != section->section_index) {
+    return 0;
+  }
+  table_offset = before->d[reg].value;
+  base_address = table_offset;
+  (void)runtime_address_space_source_to_runtime_near(runtime_addresses, section->section_index, table_offset,
+    0U, 0U, &base_address);
+  target_count = scan_keyed_long_relative_control_target_table(section, runtime_addresses, accepted_start,
+    accepted_bytes, table_offset, base_address, targets, M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
+  if (target_count == 0U) return 0;
+  *out_dest_reg = reg;
+  trace_value_set_target_set(out_value, section->section_index, targets, target_count);
+  return 1;
+}
+
 static void trace_state_apply_known_effects(size_t section_index, const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, const M68kFactsV2RelocationLookup *relocation_lookup,
     const M68kFactIR *facts, M68kFactsV2TraceState *state) {
@@ -2781,9 +2909,13 @@ static void trace_state_after_candidate(size_t section_index, const M68kDecodeSe
   uint8_t table_dest_reg = 0U;
   uint8_t table_targets_are_data = 0U;
   M68kFactsV2TraceValue table_targets;
+  uint8_t keyed_table_dest_reg = 0U;
+  M68kFactsV2TraceValue keyed_table_value;
   int has_table_targets = 0;
+  int has_keyed_table_value = 0;
   if (after == NULL) return;
   trace_value_set_unknown(&table_targets);
+  trace_value_set_unknown(&keyed_table_value);
   has_table_targets = trace_state_candidate_loads_long_target_table(section, candidate, before, runtime_addresses,
     accepted_bytes, &table_dest_reg, &table_targets, NULL);
   if (!has_table_targets) {
@@ -2795,6 +2927,13 @@ static void trace_state_after_candidate(size_t section_index, const M68kDecodeSe
       runtime_addresses, accepted_start, accepted_bytes, &table_dest_reg, &table_targets);
     table_targets_are_data = has_table_targets ? 1U : 0U;
   }
+  if (!has_table_targets) {
+    has_table_targets = trace_state_candidate_swaps_keyed_long_relative_table_entry(section, candidate, before,
+      runtime_addresses, accepted_start, accepted_bytes, &table_dest_reg, &table_targets);
+    table_targets_are_data = has_table_targets ? 1U : table_targets_are_data;
+  }
+  has_keyed_table_value = trace_state_candidate_loads_keyed_long_relative_table_entry(section, candidate, before,
+    runtime_addresses, &keyed_table_dest_reg, &keyed_table_value);
   if (before != NULL) *after = *before;
   else trace_state_init_unknown(after);
   trace_state_kill_register_writes(candidate, after);
@@ -2805,6 +2944,9 @@ static void trace_state_after_candidate(size_t section_index, const M68kDecodeSe
   if (has_table_targets && table_dest_reg < 8U) {
     if (table_targets_are_data) after->d[table_dest_reg] = table_targets;
     else after->a[table_dest_reg] = table_targets;
+  }
+  if (has_keyed_table_value && keyed_table_dest_reg < 8U) {
+    after->d[keyed_table_dest_reg] = keyed_table_value;
   }
 }
 
