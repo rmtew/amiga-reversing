@@ -82,7 +82,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "missing_inbound": "stale_display_name",
                 "nearby_data_flags": 8,
                 "nearby_data_class": "stale_display_name",
-                "nearby_data_relation": "overlap",
+                "nearby_data_relation_id": 1,
+                "nearby_data_relation": "stale_display_name",
             },
         )
         counts, examples, _tags = bag.row_features()
@@ -92,6 +93,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["orphan-code:nearby_data:lookup_table"], 1)
         self.assertEqual(counts["orphan-code:nearby_data:overlap:lookup_table"], 1)
         self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_class"], "lookup_table")
+        self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_relation"], "overlap")
 
     def test_extracts_structured_analysis_and_listing_features(self) -> None:
         bag = usage.FeatureBag()
@@ -481,7 +483,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "nearby_data_class": "stale_display_name",
                                     "nearby_data_offset": 0x88,
                                     "nearby_data_distance": 0,
-                                    "nearby_data_relation": "after",
+                                    "nearby_data_relation_id": 2,
+                                    "nearby_data_relation": "stale_display_name",
                                     "confidence": 60,
                                     "detail": "terminal decode after data label",
                                 }
@@ -1527,7 +1530,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "nearby_data_class": "stale_display_name",
                                 "nearby_data_offset": 0x88,
                                 "nearby_data_distance": 0,
-                                "nearby_data_relation": "after",
+                                "nearby_data_relation_id": 2,
+                                "nearby_data_relation": "stale_display_name",
                                 "confidence": 60,
                             }
                         ],

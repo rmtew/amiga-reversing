@@ -204,6 +204,11 @@ ORPHAN_CODE_SIGNAL_INBOUND_NAMES = {
     7: "metadata",
     8: "policy_seed",
 }
+ORPHAN_CODE_SIGNAL_NEARBY_DATA_RELATION_NAMES = {
+    1: "overlap",
+    2: "after",
+    3: "before",
+}
 RECOVERED_INDIRECT_FLOW_NAMES = {
     1: "call",
     2: "jump",
@@ -1424,7 +1429,7 @@ def _orphan_code_signal_example(section_index: int, signal: dict[str, Any]) -> d
     nearby_data_class = _orphan_code_signal_nearby_data_name(signal)
     if nearby_data_class:
         example["nearby_data_class"] = nearby_data_class
-    nearby_data_relation = _string_value(signal.get("nearby_data_relation"))
+    nearby_data_relation = _orphan_code_signal_nearby_data_relation_name(signal)
     if nearby_data_relation:
         example["nearby_data_relation"] = nearby_data_relation
     for key in ("nearby_data_offset", "nearby_data_distance"):
@@ -1447,7 +1452,7 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
     context = _orphan_code_signal_context_name(signal)
     missing_inbound = _orphan_code_signal_inbound_name(signal)
     nearby_data_class = _orphan_code_signal_nearby_data_name(signal)
-    nearby_data_relation = _string_value(signal.get("nearby_data_relation"))
+    nearby_data_relation = _orphan_code_signal_nearby_data_relation_name(signal)
     nearby_data_offset = _int_value(signal.get("nearby_data_offset"))
     nearby_data_distance = _int_value(signal.get("nearby_data_distance"))
     example = _orphan_code_signal_example(section_index, signal)
@@ -1529,6 +1534,12 @@ def _orphan_code_signal_inbound_name(signal: dict[str, Any]) -> str | None:
 
 def _orphan_code_signal_nearby_data_name(signal: dict[str, Any]) -> str | None:
     return _data_role_name(_int_value(signal.get("nearby_data_flags"), 0) or 0)
+
+
+def _orphan_code_signal_nearby_data_relation_name(signal: dict[str, Any]) -> str | None:
+    return ORPHAN_CODE_SIGNAL_NEARBY_DATA_RELATION_NAMES.get(
+        _int_value(signal.get("nearby_data_relation_id"), 0) or 0
+    )
 
 
 def _indirect_site_example(section_index: int, site: dict[str, Any]) -> dict[str, object]:
@@ -3946,7 +3957,7 @@ def _analysis_xrefs(
             context = _orphan_code_signal_context_name(signal)
             missing_inbound = _orphan_code_signal_inbound_name(signal)
             nearby_data_class = _orphan_code_signal_nearby_data_name(signal)
-            nearby_data_relation = _string_value(signal.get("nearby_data_relation"))
+            nearby_data_relation = _orphan_code_signal_nearby_data_relation_name(signal)
             nearby_data_offset = _int_value(signal.get("nearby_data_offset"))
             nearby_data_distance = _int_value(signal.get("nearby_data_distance"))
             size = _int_value(signal.get("size"))

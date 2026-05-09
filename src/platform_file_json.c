@@ -3266,7 +3266,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_appendf(&builder, ",\"nearby_data_offset\":%u,\"nearby_data_distance\":%u",
           (unsigned)signal->nearby_data_offset, (unsigned)signal->nearby_data_distance) != 0)
         goto oom;
-      if (json_builder_append(&builder, ",\"nearby_data_relation\":") != 0)
+      if (json_builder_appendf(&builder, ",\"nearby_data_relation_id\":%u,\"nearby_data_relation\":",
+          (unsigned)signal->nearby_data_relation) != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder,
           orphan_code_signal_nearby_data_relation_name(signal->nearby_data_relation)) != 0)
