@@ -3070,10 +3070,10 @@ static int policy_set_structured_data_item_metadata_local(M68kAnalysisPolicy *po
       item_index >= M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) return 0;
   item = &policy->structured_data_items[item_index];
   item->is_pointer = is_pointer;
+  m68k_analysis_structured_data_item_set_semantic_role(item, semantic_role);
   return copy_policy_text(item->label, sizeof(item->label), label) &&
     copy_policy_text(item->struct_name, sizeof(item->struct_name), struct_name) &&
-    copy_policy_text(item->field_name, sizeof(item->field_name), field_name) &&
-    copy_policy_text(item->semantic_role, sizeof(item->semantic_role), semantic_role);
+    copy_policy_text(item->field_name, sizeof(item->field_name), field_name);
 }
 
 static int policy_set_structured_data_item_kb_metadata_local(M68kAnalysisPolicy *policy, uint16_t item_index,
@@ -4029,6 +4029,12 @@ static const char *structured_data_kind_name_local(uint8_t kind) {
   return "unknown";
 }
 
+static uint32_t structured_data_item_role_flags_local(const M68kAnalysisStructuredDataItem *item) {
+  if (item == NULL) return 0U;
+  if (item->semantic_role_flags != 0U) return item->semantic_role_flags;
+  return m68k_analysis_structured_data_role_flags_for_text(item->semantic_role);
+}
+
 static int append_nullable_u32_json_local(JsonBuilder *builder, uint8_t has_value, uint32_t value) {
   if (!has_value) return json_builder_append(builder, "null");
   return json_builder_appendf(builder, "%u", (unsigned)value);
@@ -4810,6 +4816,9 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     } else if (json_builder_append(builder, "null") != 0) return -1;
     if (json_builder_append(builder, ",\"semantic_role\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, item->semantic_role) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"semantic_role_flags\":%u",
+          (unsigned)structured_data_item_role_flags_local(item)) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"source_pattern\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, item->source_pattern) != 0) return -1;
     if (json_builder_appendf(builder, ",\"is_pointer\":%s,\"target_section\":",

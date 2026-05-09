@@ -1651,6 +1651,12 @@ fail:
   return -1;
 }
 
+static uint32_t structured_data_item_role_flags_json(const M68kAnalysisStructuredDataItem *item) {
+  if (item == NULL) return 0U;
+  if (item->semantic_role_flags != 0U) return item->semantic_role_flags;
+  return m68k_analysis_structured_data_role_flags_for_text(item->semantic_role);
+}
+
 static int append_source_analysis_policy_structured_items_json(JsonBuilder *builder,
     const M68kAnalysisPolicy *policy) {
   uint16_t index;
@@ -1671,6 +1677,10 @@ static int append_source_analysis_policy_structured_items_json(JsonBuilder *buil
     }
     if (json_builder_append_nullable_string(builder, item->semantic_role[0] != '\0' ?
         item->semantic_role : NULL) != 0) {
+      return -1;
+    }
+    if (json_builder_appendf(builder, ",\"semantic_role_flags\":%u",
+        (unsigned)structured_data_item_role_flags_json(item)) != 0) {
       return -1;
     }
     if (json_builder_append(builder, ",\"source_pattern\":") != 0) return -1;
@@ -1718,9 +1728,11 @@ static uint32_t structured_data_item_entry_size(const M68kAnalysisStructuredData
 }
 
 static const char *structured_data_item_table_kind(const M68kAnalysisStructuredDataItem *item) {
+  uint32_t role_flags;
   if (item == NULL || item->semantic_role[0] == '\0') return NULL;
-  if (strcmp(item->semantic_role, "pointer_table") == 0) return "pointer";
-  if (strcmp(item->semantic_role, "lookup_table") == 0) {
+  role_flags = structured_data_item_role_flags_json(item);
+  if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U) return "pointer";
+  if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U) {
     if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && item->has_target) return "relative_code_dispatch";
     if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS) return "absolute_code_dispatch";
     return "scalar";
@@ -3025,6 +3037,9 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_nullable_string(&builder, signal->nearby_data_class) != 0)
         goto oom;
+      if (json_builder_appendf(&builder, ",\"nearby_data_flags\":%u",
+          (unsigned)signal->nearby_data_flags) != 0)
+        goto oom;
       if (json_builder_append(&builder, ",\"nearby_data_relation\":") != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder, signal->nearby_data_relation) != 0)
@@ -3213,6 +3228,9 @@ static int append_listing_structured_data_json(JsonBuilder *builder, const M68kA
   } else if (json_builder_append(builder, "null") != 0) return -1;
   if (json_builder_append(builder, ",\"semantic_role\":") != 0) return -1;
   if (json_builder_append_nullable_string(builder, item->semantic_role[0] != '\0' ? item->semantic_role : NULL) != 0)
+    return -1;
+  if (json_builder_appendf(builder, ",\"semantic_role_flags\":%u",
+        (unsigned)structured_data_item_role_flags_json(item)) != 0)
     return -1;
   if (json_builder_append(builder, ",\"source_pattern\":") != 0) return -1;
   if (json_builder_append_nullable_string(builder, item->source_pattern[0] != '\0' ? item->source_pattern : NULL) != 0)

@@ -4042,7 +4042,7 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
   item->offset = offset;
   item->size = size;
   item->kind = kind;
-  snprintf(item->semantic_role, sizeof(item->semantic_role), "%s", semantic_role);
+  m68k_analysis_structured_data_item_set_semantic_role(item, semantic_role);
   ++lookup->auto_structured_data_item_count;
   return 0;
 }
@@ -6459,9 +6459,16 @@ static int render_lookup_infer_relocation_pointer_tables(M68kRenderLookup *looku
   return 0;
 }
 
+static uint32_t render_lookup_structured_item_role_flags_local(const M68kAnalysisStructuredDataItem *item) {
+  if (item == NULL) return 0U;
+  if (item->semantic_role_flags != 0U) return item->semantic_role_flags;
+  return m68k_analysis_structured_data_role_flags_for_text(item->semantic_role);
+}
+
 static int render_lookup_structured_item_is_pointer_table_local(const M68kAnalysisStructuredDataItem *item) {
   return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
-    strcmp(item->semantic_role, "pointer_table") == 0;
+    (render_lookup_structured_item_role_flags_local(item) &
+      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U;
 }
 
 static int render_lookup_mark_label(M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {

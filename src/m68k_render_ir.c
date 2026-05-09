@@ -1565,29 +1565,35 @@ static void render_asm_ds_best_fit(M68kRenderIRPreview *preview, uint32_t offset
   ++preview->asm_source_lines;
 }
 
+static uint32_t structured_data_item_role_flags(const M68kAnalysisStructuredDataItem *item) {
+  if (item == NULL) return 0U;
+  if (item->semantic_role_flags != 0U) return item->semantic_role_flags;
+  return m68k_analysis_structured_data_role_flags_for_text(item->semantic_role);
+}
+
 static int structured_data_item_is_copper_list(const M68kAnalysisStructuredDataItem *item) {
   return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS &&
-    strcmp(item->semantic_role, "copper_list") == 0;
+    (structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST) != 0U;
 }
 
 static int structured_data_item_is_palette(const M68kAnalysisStructuredDataItem *item) {
   return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS &&
-    strcmp(item->semantic_role, "palette") == 0;
+    (structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE) != 0U;
 }
 
 static int structured_data_item_is_pointer_table(const M68kAnalysisStructuredDataItem *item) {
   return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
-    strcmp(item->semantic_role, "pointer_table") == 0;
+    (structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U;
 }
 
 static int structured_data_item_is_word_relative_lookup_table(const M68kAnalysisStructuredDataItem *item) {
   return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && item->has_target &&
-    strcmp(item->semantic_role, "lookup_table") == 0;
+    (structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U;
 }
 
 static int structured_data_item_is_absolute_long_lookup_table(const M68kAnalysisStructuredDataItem *item) {
   return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
-    strcmp(item->semantic_role, "lookup_table") == 0;
+    (structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U;
 }
 
 static const char *structured_data_item_data_class(const M68kAnalysisStructuredDataItem *item) {
@@ -2193,7 +2199,8 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   available = section->size - item->offset;
   if (available > item->size) available = item->size;
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING && available == item->size &&
-      strcmp(item->semantic_role, "length_prefixed_string") == 0) {
+      (structured_data_item_role_flags(item) &
+        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING) != 0U) {
     render_asm_dc_b_length_prefixed_string(preview, section->data, item->offset, available, comment_text);
     return;
   }
@@ -6306,6 +6313,7 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
     if (item != NULL) {
       data_class = structured_data_item_data_class(item);
       if (data_class != NULL && data_class[0] != '\0') {
+        signal->nearby_data_flags = structured_data_item_role_flags(item);
         signal->nearby_data_class = (char *)data_class;
         signal->nearby_data_relation = "after";
         return;
@@ -6316,6 +6324,7 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
     item = lookup_structured_data_item_covering_offset(lookup, section->section_index, signal->offset - 1U);
     data_class = structured_data_item_data_class(item);
     if (data_class != NULL && data_class[0] != '\0') {
+      signal->nearby_data_flags = structured_data_item_role_flags(item);
       signal->nearby_data_class = (char *)data_class;
       signal->nearby_data_relation = "before";
     }
@@ -6323,15 +6332,15 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
 }
 
 static void render_orphan_signal_refine_missing_inbound(M68kOrphanCodeSignalIR *signal) {
-  if (signal == NULL || signal->nearby_data_class == NULL) {
+  if (signal == NULL) {
     return;
   }
   if (signal->missing_inbound != M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN &&
       signal->missing_inbound != M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA)
     return;
-  if (strcmp(signal->nearby_data_class, "lookup_table") == 0) {
+  if ((signal->nearby_data_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U) {
     signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE;
-  } else if (strcmp(signal->nearby_data_class, "pointer_table") == 0) {
+  } else if ((signal->nearby_data_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U) {
     signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_CALLBACK;
   }
 }

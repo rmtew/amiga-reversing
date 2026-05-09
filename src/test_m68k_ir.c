@@ -3567,6 +3567,8 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
     source_analysis.sections[0].orphan_code_signals[0].context);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE,
     source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE,
+    source_analysis.sections[0].orphan_code_signals[0].nearby_data_flags);
   M68K_C_ASSERT_STR("lookup_table", source_analysis.sections[0].orphan_code_signals[0].nearby_data_class);
   M68K_C_ASSERT_STR("after", source_analysis.sections[0].orphan_code_signals[0].nearby_data_relation);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
@@ -3582,6 +3584,7 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   M68K_C_ASSERT(strstr(analysis_json, "\"context\":\"accepted_code_boundary\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound\":\"jump_table\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_class\":\"lookup_table\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_flags\":8") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_relation\":\"after\"") != NULL);
   free(analysis_json);
   m68k_facts_v2_free_text(source);
@@ -3675,11 +3678,14 @@ static int test_facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_call
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_CALLBACK,
     source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE,
+    source_analysis.sections[0].orphan_code_signals[0].nearby_data_flags);
   M68K_C_ASSERT_STR("pointer_table", source_analysis.sections[0].orphan_code_signals[0].nearby_data_class);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound\":\"callback\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_class\":\"pointer_table\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_flags\":4") != NULL);
   free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);

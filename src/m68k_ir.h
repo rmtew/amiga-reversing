@@ -92,6 +92,14 @@ typedef enum M68kAnalysisStructuredDataKind {
   M68K_ANALYSIS_STRUCTURED_DATA_STRING = 4
 } M68kAnalysisStructuredDataKind;
 
+typedef enum M68kAnalysisStructuredDataRoleFlag {
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST = 1U << 0,
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE = 1U << 1,
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE = 1U << 2,
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE = 1U << 3,
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING = 1U << 4
+} M68kAnalysisStructuredDataRoleFlag;
+
 typedef struct M68kAnalysisStructuredDataItem {
   uint8_t has_section_index;
   uint8_t kind;
@@ -109,6 +117,7 @@ typedef struct M68kAnalysisStructuredDataItem {
   uint8_t reserved2[3];
   uint32_t consumer_section;
   uint32_t consumer_offset;
+  uint32_t semantic_role_flags;
   char label[64];
   char struct_name[64];
   char field_name[64];
@@ -526,6 +535,7 @@ typedef struct M68kOrphanCodeSignalIR {
   uint8_t context;
   uint8_t missing_inbound;
   uint8_t reserved[1];
+  uint32_t nearby_data_flags;
   char *nearby_data_class;
   char *nearby_data_relation;
   char *detail;
@@ -989,6 +999,9 @@ void m68k_render_policy_init_default(M68kRenderPolicy *policy);
 void m68k_render_policy_init_for_syntax(M68kRenderPolicy *policy, uint8_t syntax_mode);
 int m68k_ir_parse_syntax_mode_name(const char *text, uint8_t *out_syntax_mode);
 void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy);
+uint32_t m68k_analysis_structured_data_role_flags_for_text(const char *semantic_role);
+void m68k_analysis_structured_data_item_set_semantic_role(M68kAnalysisStructuredDataItem *item,
+  const char *semantic_role);
 void m68k_analysis_findings_init(M68kAnalysisFindings *findings);
 void m68k_platform_name_ref_init(M68kPlatformNameRef *ref);
 int m68k_platform_name_ref_is_set(const M68kPlatformNameRef *ref);

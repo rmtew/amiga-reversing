@@ -5,6 +5,7 @@
 #include "m68k_assembler.h"
 #include "platform_common.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #define M68K_IR_SECTION_ARENA_SIZE 4096U
@@ -41,6 +42,25 @@ static int text_equal_nullable(const char *left, const char *right) {
   if (right == NULL || right[0] == '\0') right = NULL;
   if (left == NULL || right == NULL) return left == right;
   return strcmp(left, right) == 0;
+}
+
+uint32_t m68k_analysis_structured_data_role_flags_for_text(const char *semantic_role) {
+  if (semantic_role == NULL || semantic_role[0] == '\0') return 0U;
+  if (strcmp(semantic_role, "copper_list") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST;
+  if (strcmp(semantic_role, "palette") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE;
+  if (strcmp(semantic_role, "pointer_table") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE;
+  if (strcmp(semantic_role, "lookup_table") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE;
+  if (strcmp(semantic_role, "length_prefixed_string") == 0)
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING;
+  return 0U;
+}
+
+void m68k_analysis_structured_data_item_set_semantic_role(M68kAnalysisStructuredDataItem *item,
+    const char *semantic_role) {
+  if (item == NULL) return;
+  if (semantic_role == NULL) semantic_role = "";
+  snprintf(item->semantic_role, sizeof(item->semantic_role), "%s", semantic_role);
+  item->semantic_role_flags = m68k_analysis_structured_data_role_flags_for_text(item->semantic_role);
 }
 
 static void m68k_ir_section_init_shared(M68kSectionIR *section, Arena *arena) {
