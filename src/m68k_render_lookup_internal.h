@@ -74,6 +74,8 @@ typedef struct M68kRenderBaseFieldSlot {
   size_t source_section_index;
   uint32_t source_offset;
   uint8_t has_source;
+  uint8_t has_library_id;
+  uint16_t library_id;
   char library_name[64];
   char symbol_name[64];
   uint8_t value_kind;

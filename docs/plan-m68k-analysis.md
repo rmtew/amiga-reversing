@@ -99,9 +99,9 @@ and grouping names.
   absolute long dispatch tables with `movea.l table(pc,dN.w),aN` feeding
   `jmp (aN)`. This protects the general C heuristic seen near the Starglider
   callback queue without making Starglider the hidden spec.
-- OS/API analysis: indexed vector wrapper lookup now stores generated Amiga
-  library ids for conflict decisions. Library names remain source/export text,
-  not the semantic key.
+- OS/API analysis: indexed vector wrapper lookup and base-field library/device
+  slots now store generated Amiga library ids for conflict decisions. Library
+  names remain source/export text, not the semantic key.
 - Targets: `resources/clone_amiga/Bloodwych-68k/asm/BLOODWYCH439_relabel.asm`
   is available as comparison material for Bloodwych data/source-reference
   investigation only. It must not drive target-specific logic.

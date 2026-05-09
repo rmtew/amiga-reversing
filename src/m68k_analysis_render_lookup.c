@@ -3764,11 +3764,15 @@ static int render_lookup_add_base_field_slot_with_symbol(M68kRenderLookup *looku
   uint8_t owner_kind = render_lookup_base_field_slot_owner_kind(owner_name);
   uint8_t has_source = source_section_index != SIZE_MAX && source_offset != UINT32_MAX;
   const char *slot_library_name = library_name != NULL ? library_name : "";
+  uint8_t has_slot_library_id = 0U;
+  uint16_t slot_library_id = 0U;
   uint8_t normalized_access_size = render_lookup_normalized_app_slot_access_size(observed_access_size);
   if (lookup == NULL || owner_name == NULL || owner_name[0] == '\0') return 0;
   if (value_kind == M68K_RENDER_BASE_FIELD_SLOT_LIBRARY_BASE ||
       value_kind == M68K_RENDER_BASE_FIELD_SLOT_DEVICE_BASE) {
     if (slot_library_name[0] == '\0' || amiga_os_find_library_base_name(slot_library_name) == NULL) return 0;
+    has_slot_library_id = 1U;
+    slot_library_id = amiga_os_name_id(M68K_PLATFORM_NAME_LIBRARY, slot_library_name);
   } else if (value_kind == M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS) {
     if (owner_kind != M68K_RENDER_BASE_FIELD_SLOT_OWNER_APP_BASE) return 0;
   } else if (symbol_name == NULL || symbol_name[0] == '\0') {
@@ -3783,6 +3787,8 @@ static int render_lookup_add_base_field_slot_with_symbol(M68kRenderLookup *looku
     if (slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS && value_kind != M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS) {
       slot->value_kind = value_kind;
       if (slot_library_name[0] != '\0') {
+        slot->has_library_id = has_slot_library_id;
+        slot->library_id = slot_library_id;
         snprintf(slot->library_name, sizeof(slot->library_name), "%s", slot_library_name);
       }
       if (symbol_name != NULL && symbol_name[0] != '\0') {
@@ -3791,13 +3797,16 @@ static int render_lookup_add_base_field_slot_with_symbol(M68kRenderLookup *looku
     } else if (value_kind == M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS) {
       /* The generic app-state access confirms the slot exists but must not erase a better name. */
     } else if (slot->value_kind != value_kind ||
-        (slot->library_name[0] != '\0' && strcmp(slot->library_name, slot_library_name) != 0) ||
+        (slot->has_library_id && (!has_slot_library_id || slot->library_id != slot_library_id)) ||
         (slot->symbol_name[0] != '\0' && (symbol_name == NULL || strcmp(slot->symbol_name, symbol_name) != 0)) ||
         (slot->symbol_name[0] == '\0' && symbol_name != NULL && symbol_name[0] != '\0')) {
+      slot->has_library_id = 0U;
       slot->library_name[0] = '\0';
       slot->symbol_name[0] = '\0';
       slot->conflicted = 1U;
     } else if (slot->library_name[0] == '\0' && slot_library_name[0] != '\0') {
+      slot->has_library_id = has_slot_library_id;
+      slot->library_id = slot_library_id;
       snprintf(slot->library_name, sizeof(slot->library_name), "%s", slot_library_name);
     }
     if (normalized_access_size > slot->observed_access_size) slot->observed_access_size = normalized_access_size;
@@ -3825,6 +3834,8 @@ static int render_lookup_add_base_field_slot_with_symbol(M68kRenderLookup *looku
   lookup->base_field_slots[lookup->base_field_slot_count].source_offset = source_offset;
   lookup->base_field_slots[lookup->base_field_slot_count].has_source = has_source;
   if (slot_library_name[0] != '\0') {
+    lookup->base_field_slots[lookup->base_field_slot_count].has_library_id = has_slot_library_id;
+    lookup->base_field_slots[lookup->base_field_slot_count].library_id = slot_library_id;
     snprintf(lookup->base_field_slots[lookup->base_field_slot_count].library_name,
       sizeof(lookup->base_field_slots[lookup->base_field_slot_count].library_name), "%s", slot_library_name);
   }

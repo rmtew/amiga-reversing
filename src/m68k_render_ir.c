@@ -5345,13 +5345,14 @@ static int lookup_app_base_field_slot_symbol_has_other_displacement(const M68kRe
 
 const char *lookup_base_field_slot_library(const M68kRenderLookup *lookup, const char *owner_name,
     int16_t displacement) {
-  const char *matched_library = NULL;
+  uint8_t has_matched_library = 0U;
+  uint16_t matched_library_id = 0U;
   size_t index;
   if (lookup == NULL || owner_name == NULL || owner_name[0] == '\0') return NULL;
   for (index = 0U; index < lookup->base_field_slot_count; ++index) {
     const M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[index];
     char symbol_name[64];
-    if (slot->displacement != displacement || slot->conflicted || slot->library_name[0] == '\0' ||
+    if (slot->displacement != displacement || slot->conflicted || !slot->has_library_id ||
         !base_field_slot_is_base_pointer(slot)) {
       continue;
     }
@@ -5361,20 +5362,22 @@ const char *lookup_base_field_slot_library(const M68kRenderLookup *lookup, const
           lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, displacement))) {
       continue;
     }
-    if (matched_library != NULL && strcmp(matched_library, slot->library_name) != 0) return NULL;
-    matched_library = slot->library_name;
+    if (has_matched_library && matched_library_id != slot->library_id) return NULL;
+    has_matched_library = 1U;
+    matched_library_id = slot->library_id;
   }
-  return matched_library;
+  return has_matched_library ? amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, matched_library_id) : NULL;
 }
 
 const char *lookup_app_base_field_slot_library(const M68kRenderLookup *lookup, int16_t displacement) {
-  const char *matched_library = NULL;
+  uint8_t has_matched_library = 0U;
+  uint16_t matched_library_id = 0U;
   size_t index;
   if (lookup == NULL) return NULL;
   for (index = 0U; index < lookup->base_field_slot_count; ++index) {
     const M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[index];
     char symbol_name[64];
-    if (slot->displacement != displacement || slot->conflicted || slot->library_name[0] == '\0' ||
+    if (slot->displacement != displacement || slot->conflicted || !slot->has_library_id ||
         !base_field_slot_is_base_pointer(slot)) {
       continue;
     }
@@ -5383,10 +5386,11 @@ const char *lookup_app_base_field_slot_library(const M68kRenderLookup *lookup, i
         lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, displacement)) {
       continue;
     }
-    if (matched_library != NULL && strcmp(matched_library, slot->library_name) != 0) return NULL;
-    matched_library = slot->library_name;
+    if (has_matched_library && matched_library_id != slot->library_id) return NULL;
+    has_matched_library = 1U;
+    matched_library_id = slot->library_id;
   }
-  return matched_library;
+  return has_matched_library ? amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, matched_library_id) : NULL;
 }
 
 uint16_t lookup_base_field_slot_struct_id(const M68kRenderLookup *lookup, const char *owner_name,
