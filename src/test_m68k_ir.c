@@ -3620,6 +3620,58 @@ static int test_facts_v2_records_rejected_indirect_table_bounds(void) {
   return 0;
 }
 
+static int test_facts_v2_records_unsupported_indirect_table_entry_shape(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kRecoveredIndirectSiteIR *site;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t bytes[10] = {
+    0x4eu, 0xfbu, 0x10u, 0x04u,
+    0x4eu, 0x71u,
+    0x4eu, 0x71u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_indirect_site_count);
+  site = &source_analysis.sections[0].recovered_indirect_sites[0];
+  M68K_C_ASSERT_U32(0U, site->offset);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF, site->shape);
+  M68K_C_ASSERT_U32(1U, site->has_table_base);
+  M68K_C_ASSERT_U32(0U, site->has_table_bounds);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_UNSUPPORTED_ENTRY_SHAPE,
+    site->table_bounds_status);
+  M68K_C_ASSERT_U32(6U, site->table_offset);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"has_table_base\":true,\"table_offset\":6,\"table_size\":null") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"table_bounds_status_id\":4,\"table_bounds_status\":\"rejected_unsupported_entry_shape\"") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_records_code_overlap_indirect_table_bounds(void) {
   M68kObject object;
   M68kSection section;
@@ -15632,6 +15684,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_records_unresolved_indirect_jump_site},
     {"facts_v2_records_rejected_indirect_table_bounds",
       test_facts_v2_records_rejected_indirect_table_bounds},
+    {"facts_v2_records_unsupported_indirect_table_entry_shape",
+      test_facts_v2_records_unsupported_indirect_table_entry_shape},
     {"facts_v2_records_code_overlap_indirect_table_bounds",
       test_facts_v2_records_code_overlap_indirect_table_bounds},
     {"facts_v2_resolved_platform_call_not_unresolved_indirect_site",

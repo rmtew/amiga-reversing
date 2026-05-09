@@ -237,6 +237,36 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["table:candidate_unresolved:table_bounds_status:rejected_code_overlap"], 1)
         self.assertEqual(examples["table:candidate_unresolved"][0]["table_bounds_status"], "rejected_code_overlap")
 
+    def test_table_candidate_features_keep_base_without_bounds(self) -> None:
+        bag = usage.FeatureBag()
+        usage._add_table_candidate_record_features(
+            bag,
+            {
+                "section_index": 0,
+                "offset": 0x20,
+                "flow_kind": 2,
+                "shape_id": 3,
+                "status_id": 1,
+                "source_pattern_id": 2,
+                "table_offset": 0x40,
+                "table_size": None,
+                "table_bounds_status_id": 4,
+            },
+        )
+
+        counts, examples, _tags = bag.row_features()
+
+        self.assertEqual(counts["table:candidate_unresolved:table_base"], 1)
+        self.assertNotIn("table:candidate_unresolved:table_bounds", counts)
+        self.assertEqual(
+            counts["table:candidate_unresolved:table_bounds_status:rejected_unsupported_entry_shape"], 1
+        )
+        self.assertEqual(examples["table:candidate_unresolved"][0]["table_offset"], 0x40)
+        self.assertEqual(
+            examples["table:candidate_unresolved"][0]["table_bounds_status"],
+            "rejected_unsupported_entry_shape",
+        )
+
     def test_extracts_structured_analysis_and_listing_features(self) -> None:
         bag = usage.FeatureBag()
         usage._add_executable_analysis_features(
@@ -1973,6 +2003,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("analysis:indirect_site:shape:pcindex.brief", "indirect_site", 0x120, None), by_feature)
         self.assertIn(("table:candidate_unresolved", "table_candidate", 0x120, None), by_feature)
         self.assertIn(("table:candidate_unresolved:source_range", "table_candidate", 0x120, None), by_feature)
+        self.assertIn(("table:candidate_unresolved:table_base", "table_candidate", 0x120, None), by_feature)
         self.assertIn(("table:candidate_unresolved:table_bounds", "table_candidate", 0x120, None), by_feature)
         self.assertIn(
             (

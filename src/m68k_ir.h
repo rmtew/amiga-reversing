@@ -550,7 +550,9 @@ typedef enum M68kRecoveredIndirectStatus {
 typedef enum M68kRecoveredIndirectTableBoundsStatus {
   M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE = 0,
   M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_INSUFFICIENT_ENTRIES = 1,
-  M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_CODE_OVERLAP = 2
+  M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_CODE_OVERLAP = 2,
+  M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_UNDECODED_ENTRY = 3,
+  M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_UNSUPPORTED_ENTRY_SHAPE = 4
 } M68kRecoveredIndirectTableBoundsStatus;
 
 typedef struct M68kRecoveredIndirectSiteIR {
@@ -562,9 +564,10 @@ typedef struct M68kRecoveredIndirectSiteIR {
   uint8_t has_target_count;
   uint8_t operand_index;
   uint8_t source_size;
+  uint8_t has_table_base;
   uint8_t has_table_bounds;
   uint8_t table_bounds_status;
-  uint8_t reserved[2];
+  uint8_t reserved[1];
   uint32_t target;
   uint32_t target_count;
   uint32_t table_offset;

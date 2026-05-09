@@ -349,6 +349,8 @@ RECOVERED_INDIRECT_TABLE_BOUNDS_STATUS_NAMES = {
     0: "none",
     1: "rejected_insufficient_entries",
     2: "rejected_code_overlap",
+    3: "rejected_undecoded_entry",
+    4: "rejected_unsupported_entry_shape",
 }
 RECOVERED_INDIRECT_SOURCE_PATTERN_NAMES = {
     1: "indirect",
@@ -1905,8 +1907,12 @@ def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]
         bag.add(f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}", example=example)
     if _int_value(record.get("source_size")) is not None:
         bag.add("table:candidate_unresolved:source_range", example=example)
+    if _int_value(record.get("table_offset")) is not None:
+        bag.add("table:candidate_unresolved:table_base", example=example)
+    table_bounds_status_id = _int_value(record.get("table_bounds_status_id"), 0) or 0
     if _int_value(record.get("table_size")) is not None:
         bag.add("table:candidate_unresolved:table_bounds", example=example)
+    if table_bounds_status_id != 0:
         bag.add(f"table:candidate_unresolved:table_bounds_status:{_safe_part(table_bounds_status)}",
             example=example)
     table_entry_size = _int_value(record.get("table_entry_size"))
@@ -4029,7 +4035,9 @@ def _analysis_xrefs(
         conflict_state = _conflict_state_name(record)
         target_count = _int_value(record.get("target_count"))
         source_size = _int_value(record.get("source_size"))
+        table_offset = _int_value(record.get("table_offset"))
         table_size = _int_value(record.get("table_size"))
+        table_bounds_status_id = _int_value(record.get("table_bounds_status_id"), 0) or 0
         table_bounds_status = _recovered_indirect_table_bounds_status_name(record)
         table_entry_size = _int_value(record.get("table_entry_size"))
         text = row_text or _string_value(record.get("detail")) or f"{flow} {shape} {status}"
@@ -4044,8 +4052,11 @@ def _analysis_xrefs(
             features.append(f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}")
         if source_size is not None:
             features.append("table:candidate_unresolved:source_range")
+        if table_offset is not None:
+            features.append("table:candidate_unresolved:table_base")
         if table_size is not None:
             features.append("table:candidate_unresolved:table_bounds")
+        if table_bounds_status_id != 0:
             features.append(f"table:candidate_unresolved:table_bounds_status:{_safe_part(table_bounds_status)}")
         if table_entry_size is not None:
             features.append(f"table:candidate_unresolved:entry_size:{table_entry_size}")

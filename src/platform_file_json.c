@@ -1003,6 +1003,10 @@ static const char *recovered_indirect_table_bounds_status_name(uint8_t status) {
     return "rejected_insufficient_entries";
   if (status == M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_CODE_OVERLAP)
     return "rejected_code_overlap";
+  if (status == M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_UNDECODED_ENTRY)
+    return "rejected_undecoded_entry";
+  if (status == M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_UNSUPPORTED_ENTRY_SHAPE)
+    return "rejected_unsupported_entry_shape";
   return "none";
 }
 
@@ -1893,8 +1897,11 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
       if (site->has_target_count != 0U) {
         if (json_builder_appendf(builder, "%u", (unsigned)site->target_count) != 0) return -1;
       } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_appendf(builder, ",\"has_table_base\":%s",
+          site->has_table_base != 0U ? "true" : "false") != 0)
+        return -1;
       if (json_builder_append(builder, ",\"table_offset\":") != 0) return -1;
-      if (site->has_table_bounds != 0U) {
+      if (site->has_table_base != 0U || site->has_table_bounds != 0U) {
         if (json_builder_appendf(builder, "%u", (unsigned)site->table_offset) != 0) return -1;
       } else if (json_builder_append(builder, "null") != 0) return -1;
       if (json_builder_append(builder, ",\"table_size\":") != 0) return -1;
@@ -3332,9 +3339,12 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       } else if (json_builder_append(&builder, "null") != 0) {
         goto oom;
       }
+      if (json_builder_appendf(&builder, ",\"has_table_base\":%s",
+          site->has_table_base != 0U ? "true" : "false") != 0)
+        goto oom;
       if (json_builder_append(&builder, ",\"table_offset\":") != 0)
         goto oom;
-      if (site->has_table_bounds != 0U) {
+      if (site->has_table_base != 0U || site->has_table_bounds != 0U) {
         if (json_builder_appendf(&builder, "%u", (unsigned)site->table_offset) != 0)
           goto oom;
       } else if (json_builder_append(&builder, "null") != 0) {

@@ -3974,6 +3974,14 @@ static uint8_t recovered_indirect_shape_for_operand(const M68kDecodeCandidate *c
 static int candidate_single_direct_nonfallthrough_control_target(const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, uint8_t *out_target_kind, uint32_t *out_target_offset);
 
+static void recovered_indirect_site_set_table_base_status(M68kRecoveredIndirectSiteIR *site,
+    uint32_t table_offset, uint8_t status) {
+  if (site == NULL) return;
+  site->has_table_base = 1U;
+  site->table_offset = table_offset;
+  site->table_bounds_status = status;
+}
+
 static void recovered_indirect_site_apply_direct_stub_table_bounds(M68kDecodeIR *decode,
     size_t section_index, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *site_candidate,
     uint8_t max_cpu, uint8_t **accepted_start, uint8_t **accepted_bytes,
@@ -3991,6 +3999,8 @@ static void recovered_indirect_site_apply_direct_stub_table_bounds(M68kDecodeIR 
         &table_offset)) {
     return;
   }
+  recovered_indirect_site_set_table_base_status(site, table_offset,
+    M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE);
   cursor = table_offset;
   while (cursor < section->size && entry_count < scan_limit) {
     const M68kDecodeCandidate *candidate = NULL;
@@ -4002,12 +4012,22 @@ static void recovered_indirect_site_apply_direct_stub_table_bounds(M68kDecodeIR 
         m68k_diag_sink(NULL)) != 0) {
       break;
     }
-    if (candidate == NULL || !candidate_single_direct_nonfallthrough_control_target(section, candidate,
-        &target_kind, &target_offset) || target_kind != M68K_DECODE_TARGET_BRANCH) {
+    if (candidate == NULL) {
+      if (entry_count == 0U) {
+        site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_UNDECODED_ENTRY;
+      }
+      break;
+    }
+    if (!candidate_single_direct_nonfallthrough_control_target(section, candidate, &target_kind, &target_offset) ||
+        target_kind != M68K_DECODE_TARGET_BRANCH) {
+      if (entry_count == 0U) {
+        site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_UNSUPPORTED_ENTRY_SHAPE;
+      }
       break;
     }
     if (accepted_range_has_code_byte_local(accepted_bytes[section_index], section->size, cursor,
         candidate->byte_count)) {
+      site->has_table_base = 1U;
       site->has_table_bounds = 1U;
       site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_CODE_OVERLAP;
       site->table_offset = table_offset;
@@ -4031,6 +4051,7 @@ static void recovered_indirect_site_apply_direct_stub_table_bounds(M68kDecodeIR 
       break;
   }
   if (entry_count == 0U || entry_count >= 2U || stride == 0U) return;
+  site->has_table_base = 1U;
   site->has_table_bounds = 1U;
   site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_INSUFFICIENT_ENTRIES;
   site->table_offset = table_offset;
