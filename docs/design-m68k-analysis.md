@@ -535,6 +535,7 @@ Common table classes:
 absolute pointer table      dc.l target_a,target_b,0
 relative word jump table    dc.w target_a-table_base,target_b-table_base
 pc-relative dispatch table  move.w table(pc,d0.w),d1 ; jmp table(pc,d1.w)
+keyed relative dispatch     dc.w target_a-table_base,key_a
 scalar lookup table         dc.b 0,1,4,9,16
 offset lookup table         dc.w row0-map_base,row1-map_base
 hardware setup table        dc.w bplcon0_value,diwstrt_value,...
@@ -558,6 +559,23 @@ The important part is the relative expression. Raw values such as `$0012` are
 fragile: if a user edits code between the table base and target, the rebuilt
 source can silently point at the wrong target. `case_1-jump_offsets` remains
 editable.
+
+Keyed relative dispatch is the same source-restoration problem with a wider
+entry. One observed shape loads a longword from `(aN)+`, swaps the words, then
+uses the new low word as a PC-relative control offset. The high word should
+render as `case-table_base`; the low word stays numeric unless later domain
+analysis proves it is symbolic:
+
+```asm
+dispatch:
+    move.l  (a1)+,d2
+    swap.w  d2
+    jsr     keyed_table(pc,d2.w)
+
+keyed_table:
+    dc.w    case_a-keyed_table,$001e
+    dc.w    case_b-keyed_table,$0020
+```
 
 Absolute pointer table example:
 
@@ -606,7 +624,8 @@ labels. Bytes alone may classify a span as a scalar table, but jump-table or
 pointer-table rendering needs consumer evidence or relocation evidence.
 Current source-pattern examples include relocation pointer tables, indexed word
 dispatch, indexed local pointer reads, indexed local scalar reads,
-postincrement read sequences, and PC-relative indexed reads.
+postincrement read sequences, PC-relative indexed reads, and keyed long relative
+dispatch.
 
 Rejected candidate bounds are still useful when analysis can prove the table
 base and a bounded candidate span, but cannot accept the table yet:

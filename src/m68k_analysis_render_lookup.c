@@ -7525,6 +7525,277 @@ static uint32_t scan_indexed_word_dispatch_table_span(const M68kRenderLookup *lo
   return 0U;
 }
 
+static uint32_t scan_keyed_long_relative_dispatch_table_span(const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    size_t table_section_index, uint32_t table_offset, size_t base_section_index, uint32_t base_offset) {
+  const M68kDecodeSectionIR *table_section;
+  const M68kDecodeSectionIR *base_section;
+  uint32_t cursor;
+  uint32_t target_count = 0U;
+  uint32_t first_forward_target = UINT32_MAX;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      table_section_index >= decode->section_count || base_section_index >= decode->section_count) {
+    return 0U;
+  }
+  table_section = &decode->sections[table_section_index];
+  base_section = &decode->sections[base_section_index];
+  if (table_section->data == NULL || table_offset >= table_section->size ||
+      base_offset >= base_section->size || accepted_start[base_section_index] == NULL ||
+      accepted_bytes[table_section_index] == NULL) {
+    return 0U;
+  }
+  for (cursor = table_offset; cursor + 4U <= table_section->size; cursor += 4U) {
+    uint32_t entry;
+    int32_t displacement;
+    int64_t target64;
+    if (cursor != table_offset && lookup_has_label(lookup, table_section_index, cursor)) break;
+    if (accepted_range_has_code_byte(accepted_bytes[table_section_index], table_section->size, cursor, 4U))
+      break;
+    entry = m68k_read_u32be(table_section->data + cursor);
+    if (entry == 0U) break;
+    displacement = (int32_t)(int16_t)((entry >> 16U) & 0xFFFFU);
+    if (displacement < -M68K_RENDER_LOOKUP_WORD_DISPATCH_LOCAL_LIMIT ||
+        displacement > M68K_RENDER_LOOKUP_WORD_DISPATCH_LOCAL_LIMIT) {
+      break;
+    }
+    target64 = (int64_t)(uint64_t)base_offset + (int64_t)displacement;
+    if (target64 < 0 || target64 >= (int64_t)(uint64_t)base_section->size ||
+        ((uint32_t)target64 & 1U) != 0U) {
+      break;
+    }
+    if (accepted_range_has_code_byte(accepted_bytes[base_section_index], base_section->size,
+        (uint32_t)target64, 1U) && !accepted_start[base_section_index][(uint32_t)target64]) {
+      break;
+    }
+    if (!accepted_start[base_section_index][(uint32_t)target64] ||
+        !lookup_has_label(lookup, base_section_index, (uint32_t)target64)) {
+      break;
+    }
+    ++target_count;
+    if (table_section_index == base_section_index && (uint32_t)target64 > table_offset &&
+        (uint32_t)target64 < first_forward_target) {
+      first_forward_target = (uint32_t)target64;
+    }
+    if (target_count >= 2U && first_forward_target != UINT32_MAX && cursor + 4U >= first_forward_target) break;
+    if (target_count >= M68K_RENDER_LOOKUP_WORD_DISPATCH_SLOT_LIMIT) break;
+  }
+  return target_count >= 2U ? target_count * 4U : 0U;
+}
+
+static int candidate_loads_postincrement_long_table_to_data_reg(const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, const M68kRenderDataPointerState *state,
+    size_t *out_table_section_index, uint32_t *out_table_offset, uint8_t *out_dest_reg) {
+  const M68kSimFormMetadata *metadata = NULL;
+  size_t source_index = 0U;
+  size_t dest_index = 0U;
+  uint8_t source_reg = 0U;
+  uint8_t dest_reg = 0U;
+  if (out_table_section_index != NULL) *out_table_section_index = 0U;
+  if (out_table_offset != NULL) *out_table_offset = 0U;
+  if (out_dest_reg != NULL) *out_dest_reg = 0U;
+  if (candidate == NULL || instruction == NULL || state == NULL || out_table_section_index == NULL ||
+      out_table_offset == NULL || out_dest_reg == NULL || instruction->size_suffix != 'l' ||
+      !instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index, &metadata) ||
+      metadata == NULL || source_index >= instruction->operand_count || dest_index >= instruction->operand_count) {
+    return 0;
+  }
+  if (source_index >= 4U ||
+      metadata->operand_access_kinds[source_index] != M68K_SIM_ACCESS_MEMORY_READ ||
+      !operand_is_address_postincrement_local(&instruction->operands[source_index], &source_reg) ||
+      !operand_is_data_register_local(&instruction->operands[dest_index], &dest_reg) ||
+      source_reg >= 8U || !state->addr_regs[source_reg].known) {
+    return 0;
+  }
+  *out_table_section_index = state->addr_regs[source_reg].section_index;
+  *out_table_offset = state->addr_regs[source_reg].offset;
+  *out_dest_reg = dest_reg;
+  return 1;
+}
+
+static int candidate_is_swap_data_reg_local(const M68kDecodeCandidate *candidate, uint8_t reg) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  uint8_t operand_reg = 0U;
+  if (candidate == NULL || reg >= 8U || candidate->operand_count != 1U ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  return metadata != NULL && metadata->operation_type == M68K_SIM_OP_SWAP_WORDS &&
+    operand_is_data_register_local(&instruction.operands[0], &operand_reg) && operand_reg == reg;
+}
+
+static int candidate_is_indexed_control_through_data_reg_base(const M68kDecodeCandidate *candidate,
+    uint8_t reg, size_t table_section_index, uint32_t table_offset) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index = 0U;
+  size_t target_section_index = 0U;
+  uint32_t target_offset = 0U;
+  const M68kOperandIR *operand;
+  if (candidate == NULL || reg >= 8U ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL ||
+      (metadata->flow_kind != M68K_SIM_FLOW_JUMP && metadata->flow_kind != M68K_SIM_FLOW_CALL)) {
+    return 0;
+  }
+  if (metadata->target_operand_index < instruction.operand_count)
+    operand_index = metadata->target_operand_index;
+  if (operand_index >= instruction.operand_count) return 0;
+  operand = &instruction.operands[operand_index];
+  if (operand->kind != M68K_ASM_OPERAND_EA ||
+      !ea_shape_is_indexed_or_pc_indexed(m68k_instruction_operand_decoded_ea_shape(operand)) ||
+      operand->value.index_is_address || operand->value.index_reg != reg) {
+    return 0;
+  }
+  if (!candidate_data_target_for_operand(candidate, (uint32_t)operand_index, &target_section_index,
+      &target_offset)) {
+    return 0;
+  }
+  return target_section_index == table_section_index && target_offset == table_offset;
+}
+
+typedef struct M68kRenderKeyedLongDispatchValue {
+  uint8_t known;
+  uint8_t swapped;
+  size_t table_section_index;
+  uint32_t table_offset;
+} M68kRenderKeyedLongDispatchValue;
+
+typedef struct M68kRenderKeyedLongDispatchState {
+  M68kRenderKeyedLongDispatchValue data_regs[8];
+} M68kRenderKeyedLongDispatchState;
+
+static void keyed_long_dispatch_state_clear(M68kRenderKeyedLongDispatchState *state) {
+  if (state == NULL) return;
+  memset(state, 0, sizeof(*state));
+}
+
+static void keyed_long_dispatch_state_clear_reg(M68kRenderKeyedLongDispatchState *state, uint8_t reg) {
+  if (state == NULL || reg >= 8U) return;
+  memset(&state->data_regs[reg], 0, sizeof(state->data_regs[reg]));
+}
+
+static void keyed_long_dispatch_state_set_loaded(M68kRenderKeyedLongDispatchState *state, uint8_t reg,
+    size_t table_section_index, uint32_t table_offset) {
+  M68kRenderKeyedLongDispatchValue *value;
+  if (state == NULL || reg >= 8U) return;
+  value = &state->data_regs[reg];
+  memset(value, 0, sizeof(*value));
+  value->known = 1U;
+  value->table_section_index = table_section_index;
+  value->table_offset = table_offset;
+}
+
+static void keyed_long_dispatch_state_mark_swapped(M68kRenderKeyedLongDispatchState *state, uint8_t reg) {
+  if (state == NULL || reg >= 8U || !state->data_regs[reg].known) return;
+  state->data_regs[reg].swapped = 1U;
+}
+
+static void keyed_long_dispatch_state_kill_data_writes(M68kRenderKeyedLongDispatchState *state,
+    const M68kInstructionIR *instruction, uint8_t preserve_reg) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (state == NULL || instruction == NULL) return;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) {
+    keyed_long_dispatch_state_clear(state);
+    return;
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint8_t reg = 0U;
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_LIST_WRITE &&
+        operand->kind == M68K_ASM_OPERAND_REGLIST) {
+      uint8_t bit;
+      for (bit = 0U; bit < 8U; ++bit) {
+        if ((operand->value.value & (1UL << bit)) != 0U && bit != preserve_reg)
+          keyed_long_dispatch_state_clear_reg(state, bit);
+      }
+      continue;
+    }
+    if (!instruction_operand_writes_register_from_metadata(instruction, operand_index)) continue;
+    if (operand_is_data_register_local(operand, &reg) && reg < 8U && reg != preserve_reg)
+      keyed_long_dispatch_state_clear_reg(state, reg);
+  }
+}
+
+static void keyed_long_dispatch_state_update_after_instruction(M68kRenderKeyedLongDispatchState *state,
+    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
+    const M68kRenderDataPointerState *pointer_state) {
+  const M68kSimFormMetadata *metadata;
+  size_t table_section_index = 0U;
+  uint32_t table_offset = 0U;
+  uint8_t reg = 0U;
+  uint8_t preserve_reg = UINT8_MAX;
+  int loaded = 0;
+  int swapped = 0;
+  if (state == NULL || candidate == NULL || instruction == NULL) return;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) {
+    keyed_long_dispatch_state_clear(state);
+    return;
+  }
+  if (candidate_loads_postincrement_long_table_to_data_reg(candidate, instruction, pointer_state,
+      &table_section_index, &table_offset, &reg)) {
+    preserve_reg = reg;
+    loaded = 1;
+  } else {
+    uint8_t scan_reg;
+    for (scan_reg = 0U; scan_reg < 8U; ++scan_reg) {
+      if (state->data_regs[scan_reg].known && candidate_is_swap_data_reg_local(candidate, scan_reg)) {
+        preserve_reg = scan_reg;
+        reg = scan_reg;
+        swapped = 1;
+        break;
+      }
+    }
+  }
+  keyed_long_dispatch_state_kill_data_writes(state, instruction, preserve_reg);
+  if (loaded) keyed_long_dispatch_state_set_loaded(state, reg, table_section_index, table_offset);
+  else if (swapped) keyed_long_dispatch_state_mark_swapped(state, reg);
+  if (metadata->flow_kind == M68K_SIM_FLOW_CALL || metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+      metadata->flow_kind == M68K_SIM_FLOW_RETURN || metadata->flow_kind == M68K_SIM_FLOW_TRAP) {
+    keyed_long_dispatch_state_clear(state);
+  }
+}
+
+static int render_lookup_maybe_add_keyed_long_dispatch_table(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    uint8_t **accepted_start, uint8_t **accepted_bytes, const M68kRenderKeyedLongDispatchState *state,
+    size_t section_index, const M68kDecodeCandidate *candidate) {
+  uint8_t reg;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL || state == NULL ||
+      candidate == NULL) {
+    return 0;
+  }
+  for (reg = 0U; reg < 8U; ++reg) {
+    const M68kRenderKeyedLongDispatchValue *value = &state->data_regs[reg];
+    uint32_t span;
+    if (!value->known || !value->swapped) continue;
+    if (!candidate_is_indexed_control_through_data_reg_base(candidate, reg, value->table_section_index,
+        value->table_offset)) {
+      continue;
+    }
+    span = scan_keyed_long_relative_dispatch_table_span(lookup, decode, accepted_start, accepted_bytes,
+      value->table_section_index, value->table_offset, value->table_section_index, value->table_offset);
+    if (span == 0U) continue;
+    if (render_lookup_add_auto_structured_data_item(lookup, value->table_section_index, value->table_offset,
+        span, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE, M68K_ANALYSIS_STRUCTURED_DATA_LONGS) != 0) {
+      return -1;
+    }
+    render_lookup_set_auto_structured_data_item_consumer(lookup, value->table_section_index,
+      value->table_offset, section_index, candidate->offset);
+    render_lookup_set_auto_structured_data_item_target(lookup, value->table_section_index, value->table_offset,
+      value->table_section_index, value->table_offset);
+    render_lookup_set_auto_structured_data_item_source_pattern(lookup, value->table_section_index,
+      value->table_offset, M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_KEYED_LONG_RELATIVE_DISPATCH);
+  }
+  return 0;
+}
+
 static int candidate_adds_indexed_word_table_to_address_reg(const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
     const M68kRenderDataPointerState *state, size_t *out_table_section_index, uint32_t *out_table_offset,
@@ -7650,14 +7921,20 @@ static int render_lookup_infer_indexed_word_dispatch_tables(M68kRenderLookup *lo
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     M68kRenderDataPointerState state;
+    M68kRenderKeyedLongDispatchState keyed_state;
     size_t candidate_index;
     data_pointer_state_clear_all(&state);
+    keyed_long_dispatch_state_clear(&keyed_state);
     if (accepted_start[section_index] == NULL) return -1;
     for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
       const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
       M68kInstructionIR instruction;
       if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+      if (render_lookup_maybe_add_keyed_long_dispatch_table(lookup, decode, accepted_start, accepted_bytes,
+          &keyed_state, section_index, candidate) != 0) {
+        return -1;
+      }
       {
         size_t load_table_section = 0U;
         uint32_t load_table_offset = 0U;
@@ -7667,14 +7944,18 @@ static int render_lookup_infer_indexed_word_dispatch_tables(M68kRenderLookup *lo
         uint32_t consumer_offset = 0U;
         uint32_t target_base_offset = 0U;
         uint8_t dest_reg = 0U;
-        int loads_dispatch = candidate_loads_indexed_word_table_to_data_reg(candidate, &instruction,
+        int loads_dispatch;
+        int next_indexed_dispatch;
+        int adds_dispatch;
+        int next_dispatch;
+        loads_dispatch = candidate_loads_indexed_word_table_to_data_reg(candidate, &instruction,
           &load_table_section, &load_table_offset, &dest_reg);
-        int next_indexed_dispatch = loads_dispatch ? candidate_next_is_indexed_control_through_data_reg(section,
+        next_indexed_dispatch = loads_dispatch ? candidate_next_is_indexed_control_through_data_reg(section,
           accepted_start[section_index], candidate, dest_reg, load_table_section, load_table_offset,
           &consumer_offset, &target_base_offset) : 0;
-        int adds_dispatch = candidate_adds_indexed_word_table_to_address_reg(section, candidate, &instruction, &state,
+        adds_dispatch = candidate_adds_indexed_word_table_to_address_reg(section, candidate, &instruction, &state,
           &add_sections[0], &add_offsets[0], &add_sections[1], &add_offsets[1], &dest_reg);
-        int next_dispatch = adds_dispatch ? candidate_later_is_indirect_control_through_addr_reg(section,
+        next_dispatch = adds_dispatch ? candidate_later_is_indirect_control_through_addr_reg(section,
           accepted_start[section_index], candidate, dest_reg) : 0;
         if (loads_dispatch && next_indexed_dispatch) {
           table_size = scan_indexed_word_dispatch_table_span(lookup, decode, accepted_start, accepted_bytes,
@@ -7711,6 +7992,7 @@ static int render_lookup_infer_indexed_word_dispatch_tables(M68kRenderLookup *lo
           }
         }
       }
+      keyed_long_dispatch_state_update_after_instruction(&keyed_state, candidate, &instruction, &state);
       dispatch_pointer_state_update_after_instruction(&state, lookup, section, candidate, &instruction);
     }
   }

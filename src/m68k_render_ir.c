@@ -1621,6 +1621,12 @@ static int structured_data_item_is_word_relative_lookup_table(const M68kAnalysis
     (structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U;
 }
 
+static int structured_data_item_is_keyed_long_relative_lookup_table(const M68kAnalysisStructuredDataItem *item) {
+  return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS && item->has_target &&
+    item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_KEYED_LONG_RELATIVE_DISPATCH &&
+    (structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U;
+}
+
 static int structured_data_item_is_absolute_long_lookup_table(const M68kAnalysisStructuredDataItem *item) {
   return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
     (structured_data_item_role_flags(item) & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U;
@@ -1671,6 +1677,59 @@ static int render_asm_absolute_long_lookup_table(M68kRenderIRPreview *preview,
     hash_asm_text(preview, "\n");
     ++preview->asm_source_lines;
     cursor += line_count * 4U;
+  }
+  return cursor == available;
+}
+
+static int format_keyed_long_relative_lookup_table_entry(const M68kRenderLookup *lookup,
+    const M68kAnalysisStructuredDataItem *item, uint32_t raw_long, char *expr, size_t expr_size) {
+  int32_t displacement = (int32_t)(int16_t)((raw_long >> 16U) & 0xFFFFU);
+  uint16_t key = (uint16_t)(raw_long & 0xFFFFU);
+  int64_t target_offset = (int64_t)item->target_offset + displacement;
+  char target_name[96];
+  char base_name[96];
+  if (lookup == NULL || item == NULL || expr == NULL || expr_size == 0U ||
+      item->target_section >= lookup->section_count || target_offset < 0 ||
+      target_offset > UINT32_MAX) {
+    return 0;
+  }
+  expr[0] = '\0';
+  if (!lookup_has_renderable_label(lookup, item->target_section, item->target_offset) ||
+      !lookup_has_renderable_label(lookup, item->target_section, (uint32_t)target_offset)) {
+    return 0;
+  }
+  (void)format_rendered_asm_label_with_generation(lookup, base_name, sizeof(base_name),
+    item->target_section, item->target_offset);
+  (void)format_rendered_asm_label_with_generation(lookup, target_name, sizeof(target_name),
+    item->target_section, (uint32_t)target_offset);
+  snprintf(expr, expr_size, "%s-%s,$%04X", target_name, base_name, (unsigned)key);
+  return strlen(expr) + 1U < expr_size;
+}
+
+static int render_asm_keyed_long_relative_lookup_table(M68kRenderIRPreview *preview,
+    const M68kDecodeSectionIR *section, const M68kRenderLookup *lookup,
+    const M68kAnalysisStructuredDataItem *item, uint32_t available, const char *comment) {
+  uint32_t cursor = 0U;
+  if (preview == NULL || section == NULL || lookup == NULL || item == NULL || section->data == NULL ||
+      item->offset >= section->size || (available & 3U) != 0U) {
+    return 0;
+  }
+  while (cursor + 4U <= available) {
+    char expr[224];
+    uint32_t raw_long = m68k_read_u32be(section->data + item->offset + cursor);
+    hash_asm_text(preview, "\tdc.w ");
+    if (!format_keyed_long_relative_lookup_table_entry(lookup, item, raw_long, expr, sizeof(expr))) {
+      snprintf(expr, sizeof(expr), "$%04X,$%04X", (unsigned)((raw_long >> 16U) & 0xFFFFU),
+        (unsigned)(raw_long & 0xFFFFU));
+    }
+    hash_asm_text(preview, expr);
+    if (comment != NULL && comment[0] != '\0') {
+      hash_asm_text(preview, "\t; ");
+      hash_asm_text(preview, comment);
+    }
+    hash_asm_text(preview, "\n");
+    ++preview->asm_source_lines;
+    cursor += 4U;
   }
   return cursor == available;
 }
@@ -2262,6 +2321,10 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   }
   if (available == item->size && structured_data_item_is_word_relative_lookup_table(item) &&
       render_asm_word_relative_lookup_table(preview, section, lookup, item, available, comment_text)) {
+    return;
+  }
+  if (available == item->size && structured_data_item_is_keyed_long_relative_lookup_table(item) &&
+      render_asm_keyed_long_relative_lookup_table(preview, section, lookup, item, available, comment_text)) {
     return;
   }
   if (available == item->size && structured_data_item_is_absolute_long_lookup_table(item) &&

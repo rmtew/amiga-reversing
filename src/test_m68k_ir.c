@@ -5118,8 +5118,11 @@ static int test_facts_v2_swapped_keyed_long_table_promotes_relative_targets(void
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  char *analysis_json = NULL;
   uint32_t saw_targets = 0U;
+  uint32_t saw_table_item = 0U;
   size_t code_start_index;
+  uint16_t item_index;
   uint8_t bytes[34] = {
     0x43u, 0xfau, 0x00u, 0x0cu,
     0x24u, 0x19u,
@@ -5150,8 +5153,23 @@ static int test_facts_v2_swapped_keyed_long_table_promotes_relative_targets(void
   M68K_C_ASSERT(strstr(source, "\tmove.l (a1)+,d2\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tswap.w d2\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr loc_0_0000000E(pc,d2.w)\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "loc_0_0000000E:\n\tdc.w loc_0_0000001E-loc_0_0000000E,$0001\t; lookup_table\n"
+    "\tdc.w loc_0_00000020-loc_0_0000000E,$0002\t; lookup_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $00,$10,$00,$01") == NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_0000001E:\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000020:\n\trts\n") != NULL);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"offset\":14,\"size\":8,\"kind\":3,\"semantic_role\":\"lookup_table\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern_id\":7") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern\":\"keyed_long_relative_dispatch\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"table_record_count\":1,\"table_records\":[{\"section_index\":0,"
+    "\"offset\":14,\"size\":8,\"entry_size\":4,\"entry_count\":2,\"role_flags\":8,\"role\":\"lookup_table\","
+    "\"table_kind_id\":3,\"table_kind\":\"relative_code_dispatch\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"base_expression_id\":2,\"base_expression\":\"target_label\"") != NULL);
   for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
       ++code_start_index) {
     const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
@@ -5165,8 +5183,24 @@ static int test_facts_v2_swapped_keyed_long_table_promotes_relative_targets(void
   M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE,
     source_analysis.sections[0].recovered_indirect_sites[0].status);
   M68K_C_ASSERT_U32(2U, source_analysis.sections[0].recovered_indirect_sites[0].target_count);
+  for (item_index = 0U; item_index < source_analysis.policy.structured_data_item_count; ++item_index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[item_index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 14U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) {
+      M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_LONGS, item->kind);
+      M68K_C_ASSERT_U32(1U, item->has_target);
+      M68K_C_ASSERT_U32(14U, item->target_offset);
+      M68K_C_ASSERT_U32(1U, item->has_consumer);
+      M68K_C_ASSERT_U32(8U, item->consumer_offset);
+      M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_KEYED_LONG_RELATIVE_DISPATCH,
+        item->source_pattern_id);
+      saw_table_item = 1U;
+    }
+  }
+  M68K_C_ASSERT_U32(1U, saw_table_item);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);

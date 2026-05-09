@@ -1787,6 +1787,9 @@ static uint8_t structured_data_item_table_kind_id(const M68kAnalysisStructuredDa
   if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U) {
     if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && item->has_target)
       return M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH;
+    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS && item->has_target &&
+        item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_KEYED_LONG_RELATIVE_DISPATCH)
+      return M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH;
     if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS)
       return M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH;
     return M68K_ANALYSIS_TABLE_KIND_SCALAR;

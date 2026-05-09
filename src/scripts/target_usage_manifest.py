@@ -370,6 +370,7 @@ STRUCTURED_DATA_SOURCE_PATTERN_NAMES = {
     4: "indexed_local_scalar_read",
     5: "postincrement_read_sequence",
     6: "pc_relative_indexed_read",
+    7: "keyed_long_relative_dispatch",
 }
 TABLE_KIND_NAMES = {
     1: "scalar",
