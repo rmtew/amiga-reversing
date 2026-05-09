@@ -9064,6 +9064,7 @@ static int test_facts_v2_render_asm_source_uses_policy_rsset_layout_region_symbo
   policy.rsset_layout_region_count = 1U;
   policy.rsset_layout_regions[0].offset = 0x022CU;
   policy.rsset_layout_regions[0].size = 4U;
+  policy.rsset_layout_regions[0].flags = M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT;
   snprintf(policy.rsset_layout_regions[0].symbol, sizeof(policy.rsset_layout_regions[0].symbol),
     "app_startup_options_buffer");
   snprintf(policy.rsset_layout_regions[0].storage_kind, sizeof(policy.rsset_layout_regions[0].storage_kind), "pointer");
@@ -9102,6 +9103,7 @@ static int test_facts_v2_render_asm_source_supports_named_rsset_layouts(void) {
   policy.rsset_layout_region_count = 2U;
   policy.rsset_layout_regions[0].offset = 0x0004U;
   policy.rsset_layout_regions[0].size = 4U;
+  policy.rsset_layout_regions[0].flags = M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT;
   snprintf(policy.rsset_layout_regions[0].layout_name, sizeof(policy.rsset_layout_regions[0].layout_name), "app");
   snprintf(policy.rsset_layout_regions[0].base_symbol, sizeof(policy.rsset_layout_regions[0].base_symbol),
     "__amiga_app_base__");

@@ -5407,9 +5407,9 @@ static int render_app_rs_layout_kind_is_app(uint8_t layout_kind) {
   return layout_kind == (uint8_t)M68K_RENDER_APP_RS_LAYOUT_APP;
 }
 
-static uint8_t render_app_rs_policy_layout_kind(const char *layout_name, const char *base_symbol) {
-  if ((layout_name == NULL || layout_name[0] == '\0' || strcmp(layout_name, M68K_RENDER_APP_LAYOUT_NAME) == 0) &&
-      (base_symbol == NULL || base_symbol[0] == '\0' || platform_state_name_is_app_base(base_symbol))) {
+static uint8_t render_app_rs_policy_layout_kind(const M68kAnalysisRssetLayoutRegion *region) {
+  if (region != NULL &&
+      (region->flags & (uint8_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT) != 0U) {
     return (uint8_t)M68K_RENDER_APP_RS_LAYOUT_APP;
   }
   return (uint8_t)M68K_RENDER_APP_RS_LAYOUT_NAMED;
@@ -5729,7 +5729,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[index];
       const char *layout_name = region->layout_name[0] != '\0' ? region->layout_name : M68K_RENDER_APP_LAYOUT_NAME;
       const char *base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : M68K_RENDER_APP_BASE_SYMBOL;
-      uint8_t layout_kind = render_app_rs_policy_layout_kind(region->layout_name, region->base_symbol);
+      uint8_t layout_kind = render_app_rs_policy_layout_kind(region);
       int conflict = 0;
       if (render_app_rs_layout_kind_is_app(layout_kind)) continue;
       if (region->symbol[0] == '\0' || region->offset > 0x7FFFU || region->size == 0U) continue;

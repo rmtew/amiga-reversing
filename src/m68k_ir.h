@@ -141,7 +141,8 @@ typedef struct M68kAnalysisEntryComment {
 typedef struct M68kAnalysisRssetLayoutRegion {
   uint32_t offset;
   uint8_t size;
-  uint8_t reserved[3];
+  uint8_t flags;
+  uint8_t reserved[2];
   char layout_name[32];
   char base_symbol[64];
   char sizeof_symbol[64];
@@ -151,6 +152,10 @@ typedef struct M68kAnalysisRssetLayoutRegion {
   char storage_kind[32];
   char semantic_type[64];
 } M68kAnalysisRssetLayoutRegion;
+
+typedef enum M68kAnalysisRssetLayoutRegionFlag {
+  M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT = 1U
+} M68kAnalysisRssetLayoutRegionFlag;
 
 #define M68K_ANALYSIS_RUNTIME_RANGE_LIMIT 64U
 #define M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT 64U

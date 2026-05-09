@@ -208,7 +208,8 @@ class M68kAnalysisRssetLayoutRegion(ctypes.Structure):
     _fields_ = [
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 3),
+        ("flags", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 2),
         ("layout_name", ctypes.c_char * 32),
         ("base_symbol", ctypes.c_char * 64),
         ("sizeof_symbol", ctypes.c_char * 64),

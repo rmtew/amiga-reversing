@@ -152,6 +152,10 @@ confidence:       strong, medium, weak
 conflict state:   clean, overlaps accepted code, overlaps struct, overlaps hw
 ```
 
+The app-layout property is an analysis flag on the RSSET layout region, not a
+renderer-side comparison of names such as `app` or `__amiga_app_base__`.
+Names remain display/provenance data; control flow decisions consume the flag.
+
 Multiple `RSSET` stanzas in the rendered source are not automatically multiple
 memory ranges. They can be overlay aliases at offsets inside the same base.
 

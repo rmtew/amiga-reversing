@@ -476,6 +476,13 @@ static uint8_t rsset_layout_region_size_from_storage_kind_local(const char *stor
   return 4U;
 }
 
+static uint8_t rsset_layout_region_flags_from_identity_local(const char *layout_name, const char *base_symbol) {
+  if (strcmp(layout_name, "app") == 0 && strcmp(base_symbol, "__amiga_app_base__") == 0) {
+    return (uint8_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT;
+  }
+  return 0U;
+}
+
 static int append_metadata_rsset_layout_region_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
   uint32_t offset = 0U;
@@ -605,6 +612,7 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   memset(slot, 0, sizeof(*slot));
   slot->offset = offset;
   slot->size = size;
+  slot->flags = rsset_layout_region_flags_from_identity_local(effective_layout, effective_base);
   if (!copy_policy_text(slot->layout_name, sizeof(slot->layout_name), effective_layout) ||
       !copy_policy_text(slot->base_symbol, sizeof(slot->base_symbol), effective_base) ||
       !copy_policy_text(slot->sizeof_symbol, sizeof(slot->sizeof_symbol), sizeof_symbol) ||
@@ -4816,8 +4824,8 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
   for (index = 0U; index < policy->rsset_layout_region_count && index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
     const M68kAnalysisRssetLayoutRegion *slot = &policy->rsset_layout_regions[index];
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
-    if (json_builder_appendf(builder, "{\"offset\":%u,\"size\":%u,\"layout_name\":",
-          (unsigned)slot->offset, (unsigned)slot->size) != 0)
+    if (json_builder_appendf(builder, "{\"offset\":%u,\"size\":%u,\"flags\":%u,\"layout_name\":",
+          (unsigned)slot->offset, (unsigned)slot->size, (unsigned)slot->flags) != 0)
       return -1;
     if (append_nullable_text_json_local(builder, slot->layout_name) != 0) return -1;
     if (json_builder_append(builder, ",\"base_symbol\":") != 0) return -1;
