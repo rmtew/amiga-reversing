@@ -4170,6 +4170,27 @@ static uint8_t recovered_indirect_shape_for_operand(const M68kDecodeCandidate *c
 static int candidate_single_direct_nonfallthrough_control_target(const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, uint8_t *out_target_kind, uint32_t *out_target_offset);
 
+static int candidate_is_nonfallthrough_stub_entry(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, uint8_t *out_target_kind, uint32_t *out_target_offset) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  uint8_t target_kind = 0U;
+  uint32_t target_offset = 0U;
+  if (out_target_kind != NULL) *out_target_kind = 0U;
+  if (out_target_offset != NULL) *out_target_offset = 0U;
+  if (candidate == NULL) return 0;
+  if (candidate_single_direct_nonfallthrough_control_target(section, candidate, &target_kind, &target_offset) &&
+      (target_kind == M68K_DECODE_TARGET_BRANCH || target_kind == M68K_DECODE_TARGET_JUMP)) {
+    if (out_target_kind != NULL) *out_target_kind = target_kind;
+    if (out_target_offset != NULL) *out_target_offset = target_offset;
+    return 1;
+  }
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || candidate_has_normal_fallthrough(candidate)) return 0;
+  return metadata->flow_kind == M68K_SIM_FLOW_RETURN || metadata->flow_kind == M68K_SIM_FLOW_TRAP;
+}
+
 static void recovered_indirect_site_set_table_base_status(M68kRecoveredIndirectSiteIR *site,
     uint32_t table_offset, uint8_t status) {
   if (site == NULL) return;
@@ -4214,8 +4235,7 @@ static void recovered_indirect_site_apply_direct_stub_table_bounds(M68kDecodeIR 
       }
       break;
     }
-    if (!candidate_single_direct_nonfallthrough_control_target(section, candidate, &target_kind, &target_offset) ||
-        target_kind != M68K_DECODE_TARGET_BRANCH) {
+    if (!candidate_is_nonfallthrough_stub_entry(section, candidate, &target_kind, &target_offset)) {
       if (entry_count == 0U) {
         site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_UNSUPPORTED_ENTRY_SHAPE;
       }
@@ -4281,6 +4301,85 @@ static void recovered_indirect_site_apply_code_start_refs(M68kRecoveredIndirectS
     M68K_RECOVERED_INDIRECT_STATUS_BACKWARD_SLICE;
   site->detail = count > 1U ? "accepted indirect jump table targets" :
     "accepted traced indirect control target";
+}
+
+static int candidate_indexed_control_table_offset(const M68kDecodeCandidate *candidate, size_t section_index,
+    uint32_t *out_table_offset) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (out_table_offset != NULL) *out_table_offset = 0U;
+  if (candidate == NULL || out_table_offset == NULL ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL ||
+      (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_JUMP)) {
+    return 0;
+  }
+  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
+       operand_index < instruction.operand_count; ++operand_index) {
+    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_BRANCH_TARGET ||
+        metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET ||
+        !facts_v2_instruction_operand_is_indexed_or_pc_indexed(&instruction, operand_index)) {
+      continue;
+    }
+    if (candidate_operand_data_target_offset(candidate, operand_index, section_index, out_table_offset))
+      return 1;
+  }
+  return 0;
+}
+
+static int enqueue_direct_indexed_stub_entries(M68kDecodeIR *decode, M68kFactIR *facts,
+    M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *site_candidate,
+    const M68kRuntimeAddressSpace *runtime_addresses) {
+  enum { STUB_ENTRY_LIMIT = 64 };
+  uint32_t entries[STUB_ENTRY_LIMIT];
+  uint32_t table_offset = 0U;
+  uint32_t cursor;
+  uint32_t stride = 0U;
+  uint32_t entry_count = 0U;
+  uint32_t index;
+  M68kFactsV2TraceState unknown_state;
+  if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      profile == NULL || section == NULL || site_candidate == NULL || runtime_addresses == NULL ||
+      section_index >= decode->section_count ||
+      !candidate_indexed_control_table_offset(site_candidate, section->section_index, &table_offset)) {
+    return 0;
+  }
+  cursor = table_offset;
+  while (cursor < section->size && entry_count < STUB_ENTRY_LIMIT) {
+    const M68kDecodeCandidate *candidate = NULL;
+    if (accepted_offset_is_interior(section, accepted_start[section_index], accepted_bytes[section_index], cursor))
+      break;
+    if (m68k_decode_ir_ensure_candidate_at(decode, section_index, cursor, max_cpu, &candidate,
+        m68k_diag_sink(NULL)) != 0)
+      return -1;
+    if (candidate == NULL || !candidate_is_nonfallthrough_stub_entry(section, candidate, NULL, NULL))
+      break;
+    if (stride == 0U) {
+      stride = candidate->byte_count;
+      if (stride == 0U) break;
+    } else if (candidate->byte_count != stride) {
+      break;
+    }
+    entries[entry_count++] = cursor;
+    if (cursor > UINT32_MAX - stride) break;
+    cursor += stride;
+  }
+  if (entry_count < 2U) return 0;
+  trace_state_init_unknown(&unknown_state);
+  for (index = 0U; index < entry_count; ++index) {
+    if (enqueue_same_section_control_target_from_offset(decode, facts, queue, accepted_start, accepted_bytes,
+        profile, max_cpu, section_index, site_candidate->offset, entries[index],
+        M68K_FACT_CONFIDENCE_TOOL_INFERRED, runtime_addresses, &unknown_state) != 0) {
+      return -1;
+    }
+  }
+  return 0;
 }
 
 static int section_analysis_has_platform_call_at_offset(const M68kSectionAnalysisIR *section_analysis,
@@ -5808,6 +5907,10 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
         profile, max_cpu, item.section_index, candidate, runtime_addresses, &item.trace_state) != 0) return -1;
     if (enqueue_traced_copied_entry_control_target(decode, facts, queue, accepted_start, accepted_bytes,
         profile, max_cpu, item.section_index, candidate, &item.trace_state) != 0) return -1;
+    if (enqueue_direct_indexed_stub_entries(decode, facts, queue, accepted_start, accepted_bytes,
+        profile, max_cpu, item.section_index, section, candidate, runtime_addresses) != 0) {
+      return -1;
+    }
     if (enqueue_backward_sliced_indirect_table_targets(decode, facts, relocation_lookup, queue, accepted_start,
         accepted_bytes, profile, max_cpu, item.section_index, section, candidate, runtime_addresses) != 0) {
       return -1;
