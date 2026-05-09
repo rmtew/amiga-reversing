@@ -104,6 +104,16 @@ CONFLICT_STATE_NAMES = {
     CONFLICT_STATE_UNRESOLVED: "unresolved",
     CONFLICT_STATE_CONFLICTED: "conflicted",
 }
+ABSOLUTE_MEMORY_OWNER_NAMES = {
+    0: "unknown",
+    1: "execbase_literal",
+    2: "cpu_vector",
+    3: "hardware_register",
+    4: "hardware_register_range",
+    5: "runtime_range",
+    6: "section_storage",
+    7: "absolute_memory",
+}
 UNRESOLVED_TYPED_ACCESS_FIELD_GAP = 0
 UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION = 1
 UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE = 2
@@ -208,7 +218,7 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     "copper": ("data:copper_list", "hardware:custom/copper", "value_domain:amiga.custom.copper", "copper_register:"),
     "display": ("display:", "hardware:custom/display", "value_domain:amiga.custom.display_config"),
     "runtime": ("runtime:",),
-    "memory": ("memory:", "memory-layout:"),
+    "memory": ("memory:", "memory-layout:", "memory-layout-view:"),
     "analysis": ("analysis:", "orphan-code:"),
     "tables": ("table:",),
     "app_slots": (
@@ -1604,7 +1614,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             bag.add(f"table:entry_size:{entry_size}", example=example)
     for record in _dict_items(analysis.get("table_candidate_records")):
         _add_table_candidate_record_features(bag, record)
-    for record in _dict_items(analysis.get("memory_layout_records")):
+    memory_layout_records = list(_dict_items(analysis.get("memory_layout_records")))
+    for record in memory_layout_records:
         record_kind = _string_value(record.get("record_kind")) or "unknown"
         memory_kind = _string_value(record.get("memory_kind")) or "unknown"
         section_index = _int_value(record.get("section_index"), 0)
@@ -1658,6 +1669,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             bag.add("memory-layout:conflict", example=example)
             if conflict_state:
                 bag.add(f"memory-layout:conflict:{_safe_part(conflict_state)}", example=example)
+    _add_memory_layout_view_features(bag, memory_layout_records)
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):
@@ -2293,6 +2305,61 @@ def _conflict_state_name(record: dict[str, Any]) -> str | None:
     if state_id is None:
         return None
     return CONFLICT_STATE_NAMES.get(state_id, "unknown")
+
+
+def _absolute_memory_owner_kind_id(record: dict[str, Any]) -> int | None:
+    return _int_value(record.get("owner_kind_id"))
+
+
+def _absolute_memory_owner_kind_name(owner_id: int) -> str:
+    return ABSOLUTE_MEMORY_OWNER_NAMES.get(owner_id, "unknown")
+
+
+def _add_memory_layout_view_features(bag: FeatureBag, records: list[dict[str, Any]]) -> None:
+    if not records:
+        return
+    range_space_counts: dict[int, int] = {}
+    conflict_state_counts: dict[int, int] = {}
+    absolute_owner_counts: dict[int, int] = {}
+    for record in records:
+        range_space_kind = _int_value(record.get("range_space_kind"))
+        if range_space_kind is not None:
+            range_space_counts[range_space_kind] = range_space_counts.get(range_space_kind, 0) + 1
+        conflict_state_id = _conflict_state_id(record)
+        if conflict_state_id is not None and conflict_state_id != CONFLICT_STATE_CLEAN:
+            conflict_state_counts[conflict_state_id] = conflict_state_counts.get(conflict_state_id, 0) + 1
+        owner_kind_id = _absolute_memory_owner_kind_id(record)
+        if owner_kind_id is not None:
+            absolute_owner_counts[owner_kind_id] = absolute_owner_counts.get(owner_kind_id, 0) + 1
+    summary: dict[str, object] = {"record_count": len(records)}
+    if range_space_counts:
+        summary["range_spaces"] = {str(key): range_space_counts[key] for key in sorted(range_space_counts)}
+    if conflict_state_counts:
+        summary["conflict_count"] = sum(conflict_state_counts.values())
+    if absolute_owner_counts:
+        summary["absolute_ref_count"] = sum(absolute_owner_counts.values())
+    bag.add("memory-layout-view:any", example=summary)
+    for range_space_kind, count in sorted(range_space_counts.items()):
+        bag.add(
+            f"memory-layout-view:range_space:{range_space_kind}",
+            example={"range_space_kind": range_space_kind, "record_count": count},
+        )
+    if conflict_state_counts:
+        bag.add("memory-layout-view:has_conflict", example=summary)
+        for conflict_state_id, count in sorted(conflict_state_counts.items()):
+            state_name = CONFLICT_STATE_NAMES.get(conflict_state_id, "unknown")
+            bag.add(
+                f"memory-layout-view:conflict_state:{_safe_part(state_name)}",
+                example={"conflict_state_id": conflict_state_id, "conflict_count": count},
+            )
+    if absolute_owner_counts:
+        bag.add("memory-layout-view:absolute_refs", example=summary)
+        for owner_kind_id, count in sorted(absolute_owner_counts.items()):
+            owner_name = _absolute_memory_owner_kind_name(owner_kind_id)
+            bag.add(
+                f"memory-layout-view:absolute_owner:{_safe_part(owner_name)}",
+                example={"owner_kind_id": owner_kind_id, "absolute_ref_count": count},
+            )
 
 
 def _listing_table_shape_features(text: str, data_class_flags: int) -> list[str]:

@@ -638,6 +638,13 @@ sink address             $00DFF0E0 BPL1PTH/BPL1PTL owner range
 This lets rendering and the web UI explain why an absolute buffer is display or
 audio memory without reparsing rendered source text.
 
+Target-level memory-layout views are summaries over these C records, not a
+second classifier. They use numeric `range_space_kind`, `conflict_state_id`, and
+absolute `owner_kind_id` fields to answer broad questions such as "does this
+target have absolute hardware refs?", "which address spaces are present?", and
+"are any layout ranges conflicted?". String names in the view are display labels
+resolved from those ids.
+
 ## Platform Base Identity
 
 Amiga library/device base identity in C analysis state is a generated base id.

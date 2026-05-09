@@ -2433,8 +2433,8 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_append_json_string(builder, listing_operand_access_name(ref->access_kind)) != 0)
         return -1;
       if (json_builder_appendf(builder,
-          ",\"access_width\":%u,\"address\":%u,\"owner_kind\":",
-          (unsigned)ref->access_width, (unsigned)ref->address) != 0) {
+          ",\"access_width\":%u,\"address\":%u,\"owner_kind_id\":%u,\"owner_kind\":",
+          (unsigned)ref->access_width, (unsigned)ref->address, (unsigned)ref->owner_kind) != 0) {
         return -1;
       }
       if (json_builder_append_json_string(builder, absolute_memory_owner_kind_name(ref->owner_kind)) != 0)

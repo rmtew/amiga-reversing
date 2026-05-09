@@ -222,6 +222,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "access": "memory_write",
                             "access_width": 2,
                             "address": 0xDFF09A,
+                            "owner_kind_id": 3,
                             "owner_kind": "hardware_register",
                             "owner_symbol": "intena",
                             "owner_base_symbol": "_custom",
@@ -765,6 +766,15 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout:range_size:4"], 3)
         self.assertEqual(counts["memory-layout:conflict"], 1)
         self.assertEqual(counts["memory-layout:conflict:code_overlap"], 1)
+        self.assertEqual(counts["memory-layout-view:any"], 1)
+        self.assertEqual(counts["memory-layout-view:range_space:1"], 1)
+        self.assertEqual(counts["memory-layout-view:range_space:2"], 1)
+        self.assertEqual(counts["memory-layout-view:range_space:3"], 1)
+        self.assertEqual(counts["memory-layout-view:range_space:4"], 1)
+        self.assertEqual(counts["memory-layout-view:has_conflict"], 1)
+        self.assertEqual(counts["memory-layout-view:conflict_state:code_overlap"], 1)
+        self.assertEqual(counts["memory-layout-view:absolute_refs"], 1)
+        self.assertEqual(counts["memory-layout-view:absolute_owner:hardware_register"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
         self.assertEqual(counts["hardware:custom"], 2)
         self.assertEqual(counts["hardware:custom/audio"], 1)
@@ -819,6 +829,14 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["memory-layout:kind:typed_global_slot"][0]["target_offset"], 0x100)
         self.assertEqual(examples["memory-layout:storage_effect"][0]["effect_kind_name"], "write_typed_global_slot")
         self.assertEqual(examples["memory-layout:platform_struct:Library"][0]["field_expr"], "LIB_VERSION")
+        self.assertEqual(examples["memory-layout-view:any"][0]["record_count"], 8)
+        self.assertEqual(examples["memory-layout-view:any"][0]["absolute_ref_count"], 1)
+        self.assertEqual(examples["memory-layout-view:any"][0]["conflict_count"], 1)
+        self.assertEqual(examples["memory-layout-view:any"][0]["range_spaces"]["1"], 4)
+        self.assertEqual(
+            examples["memory-layout-view:absolute_owner:hardware_register"][0]["owner_kind_id"],
+            3,
+        )
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
         self.assertEqual(examples["orphan-code:signal"][0]["required_cpu"], 0)
@@ -1214,6 +1232,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "access": "memory_write",
                             "access_width": 2,
                             "address": 0xDFF09A,
+                            "owner_kind_id": 3,
                             "owner_kind": "hardware_register",
                             "owner_symbol": "intena",
                             "owner_base_symbol": "_custom",
