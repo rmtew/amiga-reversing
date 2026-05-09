@@ -119,6 +119,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "runtime_address": 0x0E,
                             "runtime_size": 12,
                             "target_offset": 0x0E,
+                            "sink_address": 0xDFF080,
                         },
                     ],
                     "sections": [
@@ -540,6 +541,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout:kind:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:kind:runtime_view_candidate"], 1)
         self.assertEqual(counts["memory-layout:kind:copper_list"], 1)
+        self.assertEqual(counts["memory-layout:sink_address"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
         self.assertEqual(counts["hardware:custom"], 2)
         self.assertEqual(counts["hardware:custom/audio"], 1)
@@ -584,6 +586,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["table:any"][0]["source_pattern"], "indexed_word_dispatch")
         self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["symbol"], "app_0234")
         self.assertEqual(examples["memory-layout:kind:copper_list"][0]["runtime_address"], 0x0E)
+        self.assertEqual(examples["memory-layout:kind:copper_list"][0]["sink_address"], 0xDFF080)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
         self.assertEqual(examples["orphan-code:signal"][0]["context"], "accepted_code_boundary")
@@ -902,9 +905,10 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "section_index": 0,
                         "source_offset": 0x60,
                         "source_size": 12,
-                        "runtime_address": 0x0E,
-                        "runtime_size": 12,
-                        "target_offset": 0x0E,
+                            "runtime_address": 0x0E,
+                            "runtime_size": 12,
+                            "target_offset": 0x0E,
+                            "sink_address": 0xDFF080,
                     },
                 ],
                 "sections": [
@@ -1169,6 +1173,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("memory-layout:kind:base_layout_field", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:kind:runtime_view_candidate", "memory_layout", 0x40, 3), by_feature)
         self.assertIn(("memory-layout:kind:copper_list", "memory_layout", 0x60, 5), by_feature)
+        self.assertIn(("memory-layout:sink_address", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("orphan-code:signal", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:reason:terminal_decode", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:status:unresolved", "orphan_code_signal", 0x84, 8), by_feature)

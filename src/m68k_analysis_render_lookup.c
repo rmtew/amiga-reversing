@@ -4972,6 +4972,10 @@ static int append_render_lookup_runtime_address_refs_for_section(const M68kRende
     ref.has_target = fact->target_section_index < lookup->section_count;
     ref.target_section_index = fact->target_section_index;
     ref.target_offset = fact->target_offset;
+    if (fact->has_sink_address) {
+      ref.has_sink_address = 1U;
+      ref.sink_address = fact->sink_address;
+    }
     ref.has_runtime_address = fact->has_runtime_address;
     ref.runtime_address = fact->runtime_address;
     ref.confidence = fact->confidence;

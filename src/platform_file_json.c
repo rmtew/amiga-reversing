@@ -1907,6 +1907,10 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (ref->has_target) {
         if (json_builder_appendf(builder, "%u", (unsigned)ref->target_offset) != 0) return -1;
       } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_append(builder, ",\"sink_address\":") != 0) return -1;
+      if (ref->has_sink_address) {
+        if (json_builder_appendf(builder, "%u", (unsigned)ref->sink_address) != 0) return -1;
+      } else if (json_builder_append(builder, "null") != 0) return -1;
       if (json_builder_appendf(builder, ",\"confidence\":%u,\"data_class\":",
           (unsigned)ref->confidence) != 0) return -1;
       if (json_builder_append_nullable_string(builder, ref->data_class) != 0) return -1;
@@ -2062,6 +2066,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (ref->has_target) {
         if (json_builder_appendf(&builder, "%u", (unsigned)ref->target_offset) != 0) goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_append(&builder, ",\"sink_address\":") != 0)
+        goto oom;
+      if (ref->has_sink_address) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)ref->sink_address) != 0) goto oom;
       } else if (json_builder_append(&builder, "null") != 0) goto oom;
       if (json_builder_append(&builder, ",\"runtime_address\":") != 0)
         goto oom;
@@ -3000,6 +3009,10 @@ static int append_listing_runtime_address_ref_json(JsonBuilder *builder, const M
   if (json_builder_append(builder, ",\"target_offset\":") != 0) return -1;
   if (ref->has_target) {
     if (json_builder_appendf(builder, "%u", (unsigned)ref->target_offset) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"sink_address\":") != 0) return -1;
+  if (ref->has_sink_address) {
+    if (json_builder_appendf(builder, "%u", (unsigned)ref->sink_address) != 0) return -1;
   } else if (json_builder_append(builder, "null") != 0) return -1;
   if (json_builder_append(builder, ",\"runtime_address\":") != 0) return -1;
   if (ref->has_runtime_address) {

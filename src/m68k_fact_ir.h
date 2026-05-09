@@ -48,9 +48,11 @@ typedef struct M68kFact {
   uint32_t offset;
   uint32_t reason;
   uint8_t has_runtime_address;
+  uint8_t has_sink_address;
   uint8_t runtime_kind;
-  uint8_t reserved[2];
+  uint8_t reserved;
   uint32_t runtime_address;
+  uint32_t sink_address;
   size_t source_section_index;
   uint32_t source_offset;
   size_t target_section_index;

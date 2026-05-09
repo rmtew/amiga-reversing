@@ -1025,6 +1025,8 @@ int m68k_ir_section_analysis_append_runtime_address_ref(M68kSectionAnalysisIR *s
         existing->target_offset == runtime_address_ref->target_offset &&
         existing->has_runtime_address == runtime_address_ref->has_runtime_address &&
         existing->runtime_address == runtime_address_ref->runtime_address &&
+        existing->has_sink_address == runtime_address_ref->has_sink_address &&
+        existing->sink_address == runtime_address_ref->sink_address &&
         existing->size == runtime_address_ref->size) {
       return 0;
     }

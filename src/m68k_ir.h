@@ -742,11 +742,12 @@ typedef struct M68kRuntimeAddressRefIR {
   uint32_t size;
   uint8_t has_target;
   uint8_t has_runtime_address;
+  uint8_t has_sink_address;
   uint8_t confidence;
-  uint8_t reserved;
   size_t target_section_index;
   uint32_t target_offset;
   uint32_t runtime_address;
+  uint32_t sink_address;
   char *data_class;
 } M68kRuntimeAddressRefIR;
 

@@ -171,6 +171,9 @@ static int append_violation_fact_with_reason(M68kFactIR *facts, size_t section_i
   uint32_t target_offset, uint32_t reason, size_t reason_source_section_index, uint32_t reason_source_offset);
 static int append_runtime_address_ref_fact(M68kFactIR *facts, size_t section_index, uint32_t source_offset,
   size_t operand_index, uint32_t target_offset, uint32_t runtime_address, uint8_t confidence);
+static int append_runtime_address_ref_fact_with_sink(M68kFactIR *facts, size_t section_index,
+  uint32_t source_offset, size_t operand_index, uint32_t target_offset, uint32_t runtime_address,
+  uint32_t sink_address, uint8_t confidence);
 static int append_external_runtime_address_ref_fact(M68kFactIR *facts, size_t section_index,
   uint32_t source_offset, size_t operand_index, uint32_t runtime_address, uint32_t sink_address,
   size_t sink_source_section_index, uint32_t sink_source_offset, uint8_t confidence);
@@ -2090,8 +2093,8 @@ static int trace_state_record_runtime_sink_ref(const M68kRuntimeAddressSpace *ru
     return 0;
   }
   if (accepted_offset_is_interior(section, accepted_start, accepted_bytes, target_offset)) return 0;
-  ref_result = append_runtime_address_ref_fact(facts, section_index, candidate->offset,
-    M68K_FACT_RUNTIME_ADDRESS_REF_NO_OPERAND, target_offset, runtime_address,
+  ref_result = append_runtime_address_ref_fact_with_sink(facts, section_index, candidate->offset,
+    M68K_FACT_RUNTIME_ADDRESS_REF_NO_OPERAND, target_offset, runtime_address, sink_address,
     M68K_FACT_CONFIDENCE_TOOL_INFERRED);
   if (ref_result < 0) return -1;
   if (ref_result == 0) return 0;
@@ -2856,6 +2859,13 @@ static int append_xref_fact(M68kFactIR *facts, size_t section_index, uint32_t so
 
 static int append_runtime_address_ref_fact(M68kFactIR *facts, size_t section_index, uint32_t source_offset,
     size_t operand_index, uint32_t target_offset, uint32_t runtime_address, uint8_t confidence) {
+  return append_runtime_address_ref_fact_with_sink(facts, section_index, source_offset, operand_index,
+    target_offset, runtime_address, 0U, confidence);
+}
+
+static int append_runtime_address_ref_fact_with_sink(M68kFactIR *facts, size_t section_index,
+    uint32_t source_offset, size_t operand_index, uint32_t target_offset, uint32_t runtime_address,
+    uint32_t sink_address, uint8_t confidence) {
   M68kFact fact;
   size_t fact_index;
   if (facts == NULL || operand_index > UINT32_MAX) return -1;
@@ -2864,7 +2874,9 @@ static int append_runtime_address_ref_fact(M68kFactIR *facts, size_t section_ind
     if (existing->kind == M68K_FACT_RUNTIME_ADDRESS_REF && existing->section_index == section_index &&
         existing->offset == source_offset && existing->reason == (uint32_t)operand_index &&
         existing->target_section_index == section_index && existing->target_offset == target_offset &&
-        existing->has_runtime_address && existing->runtime_address == runtime_address) {
+        existing->has_runtime_address && existing->runtime_address == runtime_address &&
+        existing->has_sink_address == (sink_address != 0U ? 1U : 0U) &&
+        existing->sink_address == sink_address) {
       return 0;
     }
   }
@@ -2876,6 +2888,10 @@ static int append_runtime_address_ref_fact(M68kFactIR *facts, size_t section_ind
   fact.reason = (uint32_t)operand_index;
   fact.has_runtime_address = 1U;
   fact.runtime_address = runtime_address;
+  if (sink_address != 0U) {
+    fact.has_sink_address = 1U;
+    fact.sink_address = sink_address;
+  }
   fact.target_section_index = section_index;
   fact.target_offset = target_offset;
   return m68k_fact_ir_append(facts, &fact) == 0 ? 1 : -1;
@@ -2893,6 +2909,7 @@ static int append_external_runtime_address_ref_fact(M68kFactIR *facts, size_t se
         existing->offset == source_offset && existing->reason == (uint32_t)operand_index &&
         existing->target_section_index == (size_t)-1 && existing->has_runtime_address &&
         existing->runtime_address == runtime_address && existing->target_offset == sink_address &&
+        existing->has_sink_address && existing->sink_address == sink_address &&
         existing->source_section_index == sink_source_section_index &&
         existing->source_offset == sink_source_offset) {
       return 0;
@@ -2906,6 +2923,8 @@ static int append_external_runtime_address_ref_fact(M68kFactIR *facts, size_t se
   fact.reason = (uint32_t)operand_index;
   fact.has_runtime_address = 1U;
   fact.runtime_address = runtime_address;
+  fact.has_sink_address = 1U;
+  fact.sink_address = sink_address;
   fact.target_section_index = (size_t)-1;
   fact.target_offset = sink_address;
   fact.source_section_index = sink_source_section_index;
@@ -3190,8 +3209,14 @@ static int append_runtime_address_refs_for_accepted(const M68kDecodeIR *decode, 
             target_offset)) {
           continue;
         }
-        ref_result = append_runtime_address_ref_fact(facts, section_index, candidate->offset, operand_index,
-          target_offset, runtime_address, M68K_FACT_CONFIDENCE_TOOL_INFERRED);
+        {
+          uint32_t sink_address = 0U;
+          if (candidate_operand_feeds_runtime_address_sink(candidate, operand_index, platform_kind)) {
+            (void)operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &sink_address);
+          }
+          ref_result = append_runtime_address_ref_fact_with_sink(facts, section_index, candidate->offset,
+            operand_index, target_offset, runtime_address, sink_address, M68K_FACT_CONFIDENCE_TOOL_INFERRED);
+        }
         if (ref_result < 0) return -1;
         if (ref_result == 0) continue;
         if (append_xref_fact(facts, section_index, candidate->offset, target_offset,

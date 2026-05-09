@@ -377,6 +377,8 @@ Required analysis facts:
 - read, write, address-taken, call, or jump use
 - owner range if known
 - target range if the value is a pointer
+- sink address when a pointer is written to an external owner such as `_custom`
+  display, copper, disk, sprite, or audio registers
 - source instruction and data provenance
 - whether the value is relocatable, absolute hardware, runtime absolute, or raw
   scalar data
@@ -510,6 +512,17 @@ orphan h0:$D3EE..$D42A      code signal      terminal decode, no inbound edge
 
 This should be data from C analysis. The UI can filter, navigate, and show
 conflicts, but should not classify memory itself.
+
+Runtime address references should preserve both sides of a hardware sink:
+
+```
+source instruction       move.l #bitmap_00070000,_custom+bpl1pt
+runtime/data target      $00070000 bitmap/display memory
+sink address             $00DFF0E0 BPL1PTH/BPL1PTL owner range
+```
+
+This lets rendering and the web UI explain why an absolute buffer is display or
+audio memory without reparsing rendered source text.
 
 ## Correctness Gates
 

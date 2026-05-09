@@ -12863,17 +12863,22 @@ static int test_facts_v2_register_runtime_sink_auto_classifies_copper_list(void)
   M68K_C_ASSERT_U32(UINT32_MAX, source_analysis.sections[0].runtime_address_refs[0].operand_index);
   M68K_C_ASSERT_U32(14U, source_analysis.sections[0].runtime_address_refs[0].target_offset);
   M68K_C_ASSERT_U32(14U, source_analysis.sections[0].runtime_address_refs[0].runtime_address);
+  M68K_C_ASSERT_U32(1U, source_analysis.sections[0].runtime_address_refs[0].has_sink_address);
+  M68K_C_ASSERT_U32(0xDFF080U, source_analysis.sections[0].runtime_address_refs[0].sink_address);
   M68K_C_ASSERT_STR("copper_list", source_analysis.sections[0].runtime_address_refs[0].data_class);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address_ref_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"offset\":6,\"operand_index\":null,\"target_section_index\":0,\"target_offset\":14,"
-    "\"runtime_address\":14,\"confidence\":2,\"data_class\":\"copper_list\"") != NULL);
+    "\"offset\":6,\"operand_index\":null,\"target_section_index\":0,\"target_offset\":14") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"sink_address\":14676096") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"runtime_address\":14,\"confidence\":2,\"data_class\":\"copper_list\"")
+    != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"record_kind\":\"runtime_address_ref\",\"memory_kind\":\"copper_list\",\"section_index\":0,"
     "\"source_offset\":6") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"sink_address\":14676096") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   free(analysis_json);

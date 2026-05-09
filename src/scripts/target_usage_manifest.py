@@ -1369,7 +1369,10 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         section_index = _int_value(record.get("section_index"), 0)
         source_offset = _int_value(record.get("source_offset"))
         example = _offset_example(section_index, source_offset, memory_kind)
-        for key in ("source_size", "runtime_address", "runtime_size", "target_offset", "field_offset", "field_size"):
+        for key in (
+            "source_size", "runtime_address", "runtime_size", "target_offset", "sink_address",
+            "field_offset", "field_size",
+        ):
             value = _int_value(record.get(key))
             if value is not None:
                 example[key] = value
@@ -1380,6 +1383,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         bag.add("memory-layout:any", example=example)
         bag.add(f"memory-layout:record:{_safe_part(record_kind)}", example=example)
         bag.add(f"memory-layout:kind:{_safe_part(memory_kind)}", example=example)
+        if _int_value(record.get("sink_address")) is not None:
+            bag.add("memory-layout:sink_address", example=example)
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):
@@ -1920,9 +1925,12 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
         for runtime_ref in _dict_items(row.get("runtime_address_refs")):
             runtime_class = _string_value(runtime_ref.get("data_class"))
             runtime_address = _int_value(runtime_ref.get("runtime_address"))
+            sink_address = _int_value(runtime_ref.get("sink_address"))
             runtime_example = dict(example)
             if runtime_address is not None:
                 runtime_example["runtime_address"] = runtime_address
+            if sink_address is not None:
+                runtime_example["sink_address"] = sink_address
             if runtime_class:
                 bag.add(f"data:{_safe_part(runtime_class)}", example=runtime_example)
                 bag.add("runtime:external_data_ref", example=runtime_example)
@@ -3148,6 +3156,7 @@ def _analysis_xrefs(
         source_offset = _int_value(record.get("source_offset"))
         row_index, stable_key, row_text = _row_location(row_locations, section_index, source_offset)
         runtime_address = _int_value(record.get("runtime_address"))
+        sink_address = _int_value(record.get("sink_address"))
         for feature in (
             "memory-layout:any",
             f"memory-layout:record:{_safe_part(record_kind)}",
@@ -3156,6 +3165,10 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, feature, "memory_layout", section=section_index, offset=source_offset,
                 row_index=row_index, stable_key=stable_key, symbol=memory_kind, value=runtime_address,
                 text=row_text or memory_kind))
+        if sink_address is not None:
+            xrefs.append(_xref(row, "memory-layout:sink_address", "memory_layout", section=section_index,
+                offset=source_offset, row_index=row_index, stable_key=stable_key, symbol=memory_kind,
+                value=sink_address, text=row_text or memory_kind))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):
@@ -3599,9 +3612,12 @@ def _listing_xrefs(
         for runtime_ref in _dict_items(listing_row.get("runtime_address_refs")):
             runtime_class = _string_value(runtime_ref.get("data_class"))
             runtime_address = _int_value(runtime_ref.get("runtime_address"))
+            sink_address = _int_value(runtime_ref.get("sink_address"))
             runtime_example = dict(example)
             if runtime_address is not None:
                 runtime_example["runtime_address"] = runtime_address
+            if sink_address is not None:
+                runtime_example["sink_address"] = sink_address
             if runtime_class:
                 data_feature = f"data:{_safe_part(runtime_class)}"
                 if feature_bag is not None:
