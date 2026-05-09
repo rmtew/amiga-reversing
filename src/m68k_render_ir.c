@@ -5189,8 +5189,10 @@ const char *lookup_global_base_slot_library(const M68kRenderLookup *lookup, size
   if (lookup == NULL) return NULL;
   for (index = 0U; index < lookup->global_base_slot_count; ++index) {
     const M68kRenderGlobalBaseSlot *slot = &lookup->global_base_slots[index];
-    if (slot->section_index == section_index && slot->offset == offset && slot->library_name[0] != '\0')
-      return slot->library_name;
+    if (slot->section_index == section_index && slot->offset == offset &&
+        slot->has_library_id != 0U && slot->conflicted == 0U) {
+      return amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, slot->library_id);
+    }
   }
   return NULL;
 }

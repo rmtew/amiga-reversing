@@ -3007,7 +3007,8 @@ static int render_lookup_has_typed_flow_sources(const M68kRenderLookup *lookup, 
     return 1;
   }
   for (index = 0U; index < lookup->global_base_slot_count; ++index) {
-    if (lookup->global_base_slots[index].library_name[0] != '\0') return 1;
+    if (lookup->global_base_slots[index].has_library_id != 0U &&
+        lookup->global_base_slots[index].conflicted == 0U) return 1;
   }
   for (index = 0U; index < lookup->recovered_local_call_summary_count; ++index) {
     if (amiga_vector_has_typed_flow_info(lookup->recovered_local_call_summaries[index].vector)) return 1;
@@ -3678,7 +3679,7 @@ static int library_id_seen_local(const uint16_t *ids, size_t count, uint16_t id)
 static const char *unique_library_for_observed_lvos(const M68kRenderGlobalBaseObservation *observation) {
   uint16_t seen_ids[AMIGA_OS_LIBRARY_VECTOR_COUNT];
   size_t seen_count = 0U;
-  const char *matched_library = NULL;
+  uint16_t matched_library_id = 0U;
   size_t index;
   if (observation == NULL || observation->lvo_count == 0U) return NULL;
   for (index = 0U; index < AMIGA_OS_LIBRARY_VECTOR_COUNT; ++index) {
@@ -3692,10 +3693,10 @@ static const char *unique_library_for_observed_lvos(const M68kRenderGlobalBaseOb
     base_name = amiga_os_find_library_base_name(library_name);
     if (library_name == NULL || base_name == NULL) continue;
     if (!library_has_all_observed_lvos(base_name, observation)) continue;
-    if (matched_library != NULL && strcmp(matched_library, library_name) != 0) return NULL;
-    matched_library = library_name;
+    if (matched_library_id != 0U && matched_library_id != vector->library_id) return NULL;
+    matched_library_id = vector->library_id;
   }
-  return matched_library;
+  return matched_library_id != 0U ? amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, matched_library_id) : NULL;
 }
 
 static int render_lookup_add_global_base_slot(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
@@ -3703,12 +3704,30 @@ static int render_lookup_add_global_base_slot(M68kRenderLookup *lookup, size_t s
   size_t index;
   M68kRenderGlobalBaseSlot *grown;
   size_t next_capacity;
+  uint16_t library_id;
+  const char *canonical_library_name;
   uint8_t has_source = source_section_index != SIZE_MAX && source_offset != UINT32_MAX;
   if (lookup == NULL || library_name == NULL || library_name[0] == '\0') return 0;
+  library_id = amiga_os_name_id(M68K_PLATFORM_NAME_LIBRARY, library_name);
+  canonical_library_name = library_id != 0U ? amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, library_id) : NULL;
+  if (canonical_library_name == NULL || canonical_library_name[0] == '\0' ||
+      amiga_os_find_library_base_name(canonical_library_name) == NULL) {
+    return 0;
+  }
   for (index = 0U; index < lookup->global_base_slot_count; ++index) {
     M68kRenderGlobalBaseSlot *slot = &lookup->global_base_slots[index];
     if (slot->section_index == section_index && slot->offset == offset) {
-      snprintf(slot->library_name, sizeof(slot->library_name), "%s", library_name);
+      if (slot->has_library_id != 0U && slot->library_id != library_id) {
+        slot->has_library_id = 0U;
+        slot->library_id = 0U;
+        slot->library_name[0] = '\0';
+        slot->conflicted = 1U;
+        return 0;
+      }
+      if (slot->conflicted != 0U) return 0;
+      slot->has_library_id = 1U;
+      slot->library_id = library_id;
+      snprintf(slot->library_name, sizeof(slot->library_name), "%s", canonical_library_name);
       if (has_source && slot->has_source == 0U) {
         slot->source_section_index = source_section_index;
         slot->source_offset = source_offset;
@@ -3732,8 +3751,10 @@ static int render_lookup_add_global_base_slot(M68kRenderLookup *lookup, size_t s
   lookup->global_base_slots[lookup->global_base_slot_count].source_section_index = source_section_index;
   lookup->global_base_slots[lookup->global_base_slot_count].source_offset = source_offset;
   lookup->global_base_slots[lookup->global_base_slot_count].has_source = has_source;
+  lookup->global_base_slots[lookup->global_base_slot_count].has_library_id = 1U;
+  lookup->global_base_slots[lookup->global_base_slot_count].library_id = library_id;
   snprintf(lookup->global_base_slots[lookup->global_base_slot_count].library_name,
-    sizeof(lookup->global_base_slots[lookup->global_base_slot_count].library_name), "%s", library_name);
+    sizeof(lookup->global_base_slots[lookup->global_base_slot_count].library_name), "%s", canonical_library_name);
   ++lookup->global_base_slot_count;
   return 0;
 }
@@ -5006,6 +5027,11 @@ static const char *amiga_library_base_name_for_render_effect(const char *library
   return base_name != NULL && base_name[0] != '\0' ? base_name : NULL;
 }
 
+static const char *amiga_library_base_name_for_render_effect_id(uint16_t library_id) {
+  const char *library_name = library_id != 0U ? amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, library_id) : NULL;
+  return amiga_library_base_name_for_render_effect(library_name);
+}
+
 static int append_render_lookup_platform_effects_for_section(const M68kRenderLookup *lookup,
     M68kSectionAnalysisIR *section_analysis) {
   size_t index;
@@ -5015,9 +5041,9 @@ static int append_render_lookup_platform_effects_for_section(const M68kRenderLoo
   }
   for (index = 0U; index < lookup->global_base_slot_count; ++index) {
     const M68kRenderGlobalBaseSlot *slot = &lookup->global_base_slots[index];
-    const char *base_name = amiga_library_base_name_for_render_effect(slot->library_name);
+    const char *base_name = amiga_library_base_name_for_render_effect_id(slot->library_id);
     if (slot->has_source == 0U || slot->source_section_index != section_analysis->section_index ||
-        base_name == NULL) {
+        slot->has_library_id == 0U || slot->conflicted != 0U || base_name == NULL) {
       continue;
     }
     if (m68k_ir_section_analysis_append_recovered_platform_global_base_slot_effect(section_analysis,

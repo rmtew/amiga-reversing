@@ -10878,6 +10878,10 @@ static int test_facts_v2_render_asm_source_infers_openlibrary_global_base_slot(v
   M68kSymbol symbol;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kSectionAnalysisIR *analysis_section;
+  const M68kRecoveredPlatformEffectIR *effect = NULL;
+  size_t effect_index;
   char *source = NULL;
   uint8_t code_bytes[49] = {
     0x2cu, 0x78u, 0x00u, 0x04u,
@@ -10933,15 +10937,31 @@ static int test_facts_v2_render_asm_source_infers_openlibrary_global_base_slot(v
   fixup.has_target_section = 1;
   M68K_C_ASSERT(m68k_object_add_fixup(&object, &fixup).ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOOpenLibrary(a6)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l d0,GfxBase.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l GfxBase.l,a6\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOWaitTOF(a6)\n") != NULL);
+  M68K_C_ASSERT_U32(2U, (uint32_t)source_analysis.section_count);
+  analysis_section = &source_analysis.sections[0];
+  for (effect_index = 0U; effect_index < analysis_section->recovered_platform_effect_count; ++effect_index) {
+    const M68kRecoveredPlatformEffectIR *candidate = &analysis_section->recovered_platform_effects[effect_index];
+    if (candidate->kind == M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT && candidate->offset == 0x0EU) {
+      effect = candidate;
+      break;
+    }
+  }
+  M68K_C_ASSERT(effect != NULL);
+  M68K_C_ASSERT_U32(0x0EU, effect->offset);
+  M68K_C_ASSERT_U32(1U, (uint32_t)effect->target_section_index);
+  M68K_C_ASSERT_U32(0U, effect->target_offset);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_NAME_BASE, effect->payload.named_base.base_ref.domain_kind);
+  M68K_C_ASSERT(effect->payload.named_base.base_ref.id != 0U);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }
