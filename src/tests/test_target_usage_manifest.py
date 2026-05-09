@@ -2181,6 +2181,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
 
         self.assertEqual(len(report), 1)
+        self.assertEqual(report[0]["classification_id"], 1)
         self.assertEqual(report[0]["classification"], "control_transfer_operand")
         self.assertIn("control-transfer", report[0]["classification_reason"])
 
@@ -2224,6 +2225,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
 
         self.assertEqual(len(report), 1)
+        self.assertEqual(report[0]["classification_id"], 2)
         self.assertEqual(report[0]["classification"], "prefix_extension")
         self.assertEqual(report[0]["container_candidate_count"], 1)
         self.assertEqual(report[0]["container_struct_name"], "ConUnit")
@@ -2346,6 +2348,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
 
         self.assertEqual(report[0]["classification"], "custom_tail_or_mistyped_base")
+        self.assertEqual(report[0]["classification_id"], 3)
         self.assertEqual(report[0]["tail_offset_from_struct_end"], 2)
         self.assertEqual(report[0]["tail_offset_from_struct_end_hex"], "$0002")
 

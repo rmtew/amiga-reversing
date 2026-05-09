@@ -172,6 +172,22 @@ TYPE_PROVENANCE_NAMES = {
     TYPE_PROVENANCE_PREFIX_REFINEMENT: "prefix_refinement",
     TYPE_PROVENANCE_FIELD_ADDRESS: "field_address",
 }
+UNRESOLVED_TYPED_FIELD_REPORT_CONTROL_TRANSFER = 1
+UNRESOLVED_TYPED_FIELD_REPORT_PREFIX_EXTENSION = 2
+UNRESOLVED_TYPED_FIELD_REPORT_CUSTOM_TAIL_OR_MISTYPED_BASE = 3
+UNRESOLVED_TYPED_FIELD_REPORT_FIELD_GAP = 4
+UNRESOLVED_TYPED_FIELD_REPORT_OUT_OF_STRUCT_BOUNDS = 5
+UNRESOLVED_TYPED_FIELD_REPORT_NEARBY_API_UNKNOWN_FIELD = 6
+UNRESOLVED_TYPED_FIELD_REPORT_UNKNOWN_STRUCT_FIELD = 7
+UNRESOLVED_TYPED_FIELD_REPORT_NAMES = {
+    UNRESOLVED_TYPED_FIELD_REPORT_CONTROL_TRANSFER: "control_transfer_operand",
+    UNRESOLVED_TYPED_FIELD_REPORT_PREFIX_EXTENSION: "prefix_extension",
+    UNRESOLVED_TYPED_FIELD_REPORT_CUSTOM_TAIL_OR_MISTYPED_BASE: "custom_tail_or_mistyped_base",
+    UNRESOLVED_TYPED_FIELD_REPORT_FIELD_GAP: "field_gap",
+    UNRESOLVED_TYPED_FIELD_REPORT_OUT_OF_STRUCT_BOUNDS: "out_of_struct_bounds",
+    UNRESOLVED_TYPED_FIELD_REPORT_NEARBY_API_UNKNOWN_FIELD: "nearby_api_unknown_field",
+    UNRESOLVED_TYPED_FIELD_REPORT_UNKNOWN_STRUCT_FIELD: "unknown_struct_field",
+}
 RUNTIME_VIEW_MATERIALIZATION_REASONS = {
     1: "full_source_policy_load_view",
     2: "policy_entry_point",
@@ -5874,7 +5890,7 @@ def _serialise_access_size_counts(access_size_counts: dict[int, int]) -> dict[st
 def _attach_custom_tail_cluster_summaries(rows: list[dict[str, object]]) -> None:
     clusters: dict[str, dict[str, Any]] = {}
     for row in rows:
-        if _string_value(row.get("classification")) != "custom_tail_or_mistyped_base":
+        if _int_value(row.get("classification_id")) != UNRESOLVED_TYPED_FIELD_REPORT_CUSTOM_TAIL_OR_MISTYPED_BASE:
             continue
         root_struct = _string_value(row.get("root_struct_name")) or "unknown"
         displacement = _int_value(row.get("displacement"))
@@ -5952,7 +5968,7 @@ def _attach_custom_tail_cluster_summaries(rows: list[dict[str, object]]) -> None
             summary["tail_offset_max_hex"] = _signed_hex_string(max(tail_offset_values))
         summaries[root_struct] = summary
     for row in rows:
-        if _string_value(row.get("classification")) != "custom_tail_or_mistyped_base":
+        if _int_value(row.get("classification_id")) != UNRESOLVED_TYPED_FIELD_REPORT_CUSTOM_TAIL_OR_MISTYPED_BASE:
             continue
         root_struct = _string_value(row.get("root_struct_name")) or "unknown"
         if root_struct in summaries:
@@ -5986,7 +6002,11 @@ def _unresolved_typed_field_text_is_control_transfer(text: object) -> bool:
     return stripped.startswith("jsr ") or stripped.startswith("jmp ")
 
 
-def _classify_unresolved_typed_field_group(group: dict[str, Any]) -> tuple[str, str]:
+def _unresolved_typed_field_report_classification_name(classification_id: int) -> str:
+    return UNRESOLVED_TYPED_FIELD_REPORT_NAMES.get(classification_id, "unknown_struct_field")
+
+
+def _classify_unresolved_typed_field_group(group: dict[str, Any]) -> tuple[int, str, str]:
     examples = group.get("examples")
     displacement = _int_value(group.get("displacement"))
     struct_size = _int_value(group.get("struct_size"))
@@ -5996,36 +6016,49 @@ def _classify_unresolved_typed_field_group(group: dict[str, Any]) -> tuple[str, 
         for example in examples
     ):
         return (
-            "control_transfer_operand",
+            UNRESOLVED_TYPED_FIELD_REPORT_CONTROL_TRANSFER,
+            _unresolved_typed_field_report_classification_name(
+                UNRESOLVED_TYPED_FIELD_REPORT_CONTROL_TRANSFER
+            ),
             "example operand is a control-transfer target, not a data field access",
         )
     if source_classification_id == UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION:
         return (
-            "prefix_extension",
+            UNRESOLVED_TYPED_FIELD_REPORT_PREFIX_EXTENSION,
+            _unresolved_typed_field_report_classification_name(UNRESOLVED_TYPED_FIELD_REPORT_PREFIX_EXTENSION),
             "displacement is outside the prefix type and inside one or more generated container types",
         )
     if source_classification_id == UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE:
         return (
-            "custom_tail_or_mistyped_base",
+            UNRESOLVED_TYPED_FIELD_REPORT_CUSTOM_TAIL_OR_MISTYPED_BASE,
+            _unresolved_typed_field_report_classification_name(
+                UNRESOLVED_TYPED_FIELD_REPORT_CUSTOM_TAIL_OR_MISTYPED_BASE
+            ),
             "displacement is outside the known structure and no generated container type matched",
         )
     if source_classification_id == UNRESOLVED_TYPED_ACCESS_FIELD_GAP:
         return (
-            "field_gap",
+            UNRESOLVED_TYPED_FIELD_REPORT_FIELD_GAP,
+            _unresolved_typed_field_report_classification_name(UNRESOLVED_TYPED_FIELD_REPORT_FIELD_GAP),
             "field metadata did not resolve inside the known structure bounds",
         )
     if displacement is not None and struct_size is not None and not 0 <= displacement < struct_size:
         return (
-            "out_of_struct_bounds",
+            UNRESOLVED_TYPED_FIELD_REPORT_OUT_OF_STRUCT_BOUNDS,
+            _unresolved_typed_field_report_classification_name(UNRESOLVED_TYPED_FIELD_REPORT_OUT_OF_STRUCT_BOUNDS),
             "displacement is outside the known structure size",
         )
     if group.get("nearby_api_feature") is not None:
         return (
-            "nearby_api_unknown_field",
+            UNRESOLVED_TYPED_FIELD_REPORT_NEARBY_API_UNKNOWN_FIELD,
+            _unresolved_typed_field_report_classification_name(
+                UNRESOLVED_TYPED_FIELD_REPORT_NEARBY_API_UNKNOWN_FIELD
+            ),
             "field access is near a platform API call but the field metadata did not resolve",
         )
     return (
-        "unknown_struct_field",
+        UNRESOLVED_TYPED_FIELD_REPORT_UNKNOWN_STRUCT_FIELD,
+        _unresolved_typed_field_report_classification_name(UNRESOLVED_TYPED_FIELD_REPORT_UNKNOWN_STRUCT_FIELD),
         "field metadata did not resolve for this typed base access",
     )
 
@@ -6196,20 +6229,21 @@ def build_unresolved_typed_field_report(
     for group in groups.values():
         target_ids = group.get("target_ids")
         sorted_targets = sorted(str(target_id) for target_id in target_ids) if isinstance(target_ids, set) else []
-        classification, classification_reason = _classify_unresolved_typed_field_group(group)
+        classification_id, classification, classification_reason = _classify_unresolved_typed_field_group(group)
+        group["classification_id"] = classification_id
         group["classification"] = classification
         group["classification_reason"] = classification_reason
         access_size_counts = _access_size_counts_from_group(group)
         if access_size_counts:
             group["access_size_counts"] = _serialise_access_size_counts(access_size_counts)
-        if classification == "custom_tail_or_mistyped_base":
+        if classification_id == UNRESOLVED_TYPED_FIELD_REPORT_CUSTOM_TAIL_OR_MISTYPED_BASE:
             displacement = _int_value(group.get("displacement"))
             struct_size = _int_value(group.get("struct_size"))
             if displacement is not None and struct_size is not None:
                 tail_offset = displacement - struct_size
                 group["tail_offset_from_struct_end"] = tail_offset
                 group["tail_offset_from_struct_end_hex"] = _signed_hex_string(tail_offset)
-        if classification == "prefix_extension":
+        if classification_id == UNRESOLVED_TYPED_FIELD_REPORT_PREFIX_EXTENSION:
             root_struct = _string_value(group.get("root_struct_name"))
             displacement = _int_value(group.get("displacement"))
             if root_struct is not None and displacement is not None:
