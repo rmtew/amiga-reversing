@@ -269,6 +269,9 @@ proves a distinct base id.
    - listing row classification: generated C listing rows carry compact
      `kind_id` values; C listing/window/navigation logic consumes those ids
      and keeps `kind` strings as exported display text
+   - corpus listing and type-flow consumers treat `kind_id` as authoritative
+     for row-class decisions; tests build generated-row fixtures with explicit
+     ids rather than falling back to display strings
    - listing label references carry compact access ids internally and in JSON;
      access strings are exported display text only
 

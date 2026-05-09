@@ -12,6 +12,28 @@ from src.scripts import target_usage_manifest as usage
 from src.scripts.platform_manifest_io import sha256
 
 
+_LISTING_ROW_KIND_IDS = {
+    "directive": 1,
+    "label": 2,
+    "instruction": 3,
+    "data": 4,
+    "blank": 5,
+    "comment": 6,
+}
+
+
+def _with_generated_listing_row_kind_ids(value: object) -> object:
+    if isinstance(value, dict):
+        result = {key: _with_generated_listing_row_kind_ids(item) for key, item in value.items()}
+        kind = result.get("kind")
+        if isinstance(kind, str) and kind in _LISTING_ROW_KIND_IDS and "kind_id" not in result:
+            result["kind_id"] = _LISTING_ROW_KIND_IDS[kind]
+        return result
+    if isinstance(value, list):
+        return [_with_generated_listing_row_kind_ids(item) for item in value]
+    return value
+
+
 def _write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
     path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
 
@@ -74,7 +96,7 @@ class TargetUsageManifestTests(unittest.TestCase):
     def test_extracts_structured_analysis_and_listing_features(self) -> None:
         bag = usage.FeatureBag()
         usage._add_executable_analysis_features(
-            {
+            _with_generated_listing_row_kind_ids({
                 "profile": {"generation": "facts_v2_full_listing"},
                 "analysis": {
                     "findings": {"required_cpu": 2, "cpu_violation_count": 1},
@@ -610,7 +632,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         ],
                     },
                 },
-            },
+            }),
             bag,
             platform="amiga-hunk",
             root=usage.ROOT,
@@ -1053,7 +1075,7 @@ class TargetUsageManifestTests(unittest.TestCase):
     def test_numeric_copper_register_rows_use_hardware_metadata(self) -> None:
         bag = usage.FeatureBag()
         usage._add_listing_features(
-            {
+            _with_generated_listing_row_kind_ids({
                 "rows": [
                     {
                         "kind": "data",
@@ -1064,7 +1086,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "data_class_flags": 1,
                     }
                 ]
-            },
+            }),
             bag,
         )
 
@@ -1078,7 +1100,7 @@ class TargetUsageManifestTests(unittest.TestCase):
     def test_listing_data_class_does_not_parse_comments_as_analysis(self) -> None:
         bag = usage.FeatureBag()
         usage._add_listing_features(
-            {
+            _with_generated_listing_row_kind_ids({
                 "rows": [
                     {
                         "kind": "data",
@@ -1087,7 +1109,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "start_offset": 0x10,
                     }
                 ]
-            },
+            }),
             bag,
         )
 
@@ -1551,6 +1573,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                 ],
             },
         }
+        combined = _with_generated_listing_row_kind_ids(combined)
 
         xrefs = usage._file_usage_xrefs(target_row, {}, combined, None)
         by_feature = {(xref["feature"], xref["kind"], xref["offset"], xref["row_index"]) for xref in xrefs}
@@ -1562,6 +1585,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             if xref["feature"] == "platform_typed_access:any" and xref["kind"] == "platform_typed_access"
         ]
         snippets = usage._snippet_rows_for_xrefs(target_row, combined, xrefs, before=1, after=0)
+        self.assertTrue(all("kind_id" in snippet["row"] for snippet in snippets))
 
         self.assertIn(("os:exec.library/AllocMem", "os_call", 0x20, 1), by_feature)
         self.assertIn(("os_call:any", "os_call", 0x20, 1), by_feature)
@@ -1874,6 +1898,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                 },
             }
         ]
+        snippets = _with_generated_listing_row_kind_ids(snippets)
 
         report = usage.build_type_flow_report(manifest_rows, xrefs, snippets)
 
@@ -2740,6 +2765,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "row": {"kind": "instruction", "text": "\tjsr $FEF2(a6)\n", "stable_key": "lib-lvo"},
             },
         ]
+        snippets = _with_generated_listing_row_kind_ids(snippets)
 
         report = usage.build_type_flow_report(manifest_rows, xrefs, snippets)[0]
 
@@ -2879,6 +2905,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "row": {"kind": "instruction", "text": "\ttst.w $0008(a5)\n"},
             },
         ]
+        snippets = _with_generated_listing_row_kind_ids(snippets)
         rows_by_target = usage._type_flow_rows_for_target(snippets)
         rows_by_index = {
             "platform_file_manifest:demo": usage._type_flow_rows_by_index(
@@ -3298,6 +3325,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                 },
             }
         ]
+        snippets = _with_generated_listing_row_kind_ids(snippets)
 
         report = usage.build_type_flow_storage_access_gap_report(rows, xrefs, snippets)
 

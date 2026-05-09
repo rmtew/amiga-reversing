@@ -101,6 +101,13 @@ DATA_ROLE_NAMES = (
     (DATA_ROLE_SPRITE, "sprite"),
     (DATA_ROLE_STRING_CONTROL_STREAM, "string_control_stream"),
 )
+LISTING_ROW_KIND_UNKNOWN = 0
+LISTING_ROW_KIND_DIRECTIVE = 1
+LISTING_ROW_KIND_LABEL = 2
+LISTING_ROW_KIND_INSTRUCTION = 3
+LISTING_ROW_KIND_DATA = 4
+LISTING_ROW_KIND_BLANK = 5
+LISTING_ROW_KIND_COMMENT = 6
 CONFLICT_STATE_CLEAN = 0
 CONFLICT_STATE_CODE_OVERLAP = 1
 CONFLICT_STATE_UNRESOLVED = 2
@@ -2168,7 +2175,7 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
         offset = row.get("start_offset") if isinstance(row.get("start_offset"), int) else row.get("addr")
         example = _offset_example(section_index, offset, text.strip()[:160])
         example["row_index"] = row_index
-        if row.get("kind") == "directive" and opcode_or_directive == "ORG":
+        if _listing_row_is_kind(row, LISTING_ROW_KIND_DIRECTIVE) and opcode_or_directive == "ORG":
             org_address = _org_directive_address(row, text)
             org_example = dict(example)
             if org_address is not None:
@@ -2220,7 +2227,8 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
             segment_addr = _int_value(operand.get("segment_addr"))
             if segment_addr is not None:
                 bag.add("xref:segment_ref", example=example)
-                bag.add("xref:data_ref" if row.get("kind") == "data" else "xref:code_ref", example=example)
+                ref_feature = "xref:data_ref" if _listing_row_is_kind(row, LISTING_ROW_KIND_DATA) else "xref:code_ref"
+                bag.add(ref_feature, example=example)
             symbol = _operand_symbol(operand)
             if symbol:
                 bag.add("label:reference", example=example)
@@ -2299,15 +2307,23 @@ _TABLE_REL_LABEL_RE = re.compile(
 
 
 def _listing_row_data_class(row: dict[str, object]) -> str | None:
-    if row.get("kind") != "data":
+    if not _listing_row_is_kind(row, LISTING_ROW_KIND_DATA):
         return None
     return _data_role_name(_listing_row_data_class_flags(row))
 
 
 def _listing_row_data_class_flags(row: dict[str, object]) -> int:
-    if row.get("kind") != "data":
+    if not _listing_row_is_kind(row, LISTING_ROW_KIND_DATA):
         return 0
     return _int_value(row.get("data_class_flags"), 0) or 0
+
+
+def _listing_row_kind_id(row: dict[str, object]) -> int:
+    return _int_value(row.get("kind_id"), LISTING_ROW_KIND_UNKNOWN) or LISTING_ROW_KIND_UNKNOWN
+
+
+def _listing_row_is_kind(row: dict[str, object], kind_id: int) -> bool:
+    return _listing_row_kind_id(row) == kind_id
 
 
 def _data_role_name(flags: int) -> str | None:
@@ -2443,7 +2459,7 @@ def _listing_row_is_direct_control_stub(row: dict[str, object]) -> bool:
 
 
 def _listing_row_direct_control_stub_features(row: dict[str, object]) -> tuple[str, ...]:
-    if row.get("kind") != "instruction":
+    if not _listing_row_is_kind(row, LISTING_ROW_KIND_INSTRUCTION):
         return ()
     opcode = (_string_value(row.get("opcode_or_directive")) or "").strip().lower()
     mnemonic = opcode.split(".", 1)[0]
@@ -2482,7 +2498,7 @@ def _listing_direct_control_stub_table_row_features(listing: dict[str, Any]) -> 
         start = _int_value(row.get("start_offset"))
         end = _int_value(row.get("end_offset"))
         width = end - start if start is not None and end is not None and end >= start else None
-        is_zero_width_label = row.get("kind") == "label" and width == 0
+        is_zero_width_label = _listing_row_is_kind(row, LISTING_ROW_KIND_LABEL) and width == 0
         features = _listing_row_direct_control_stub_features(row)
         if not features and is_zero_width_label:
             continue
@@ -2760,6 +2776,7 @@ def _snippet_rows_for_xrefs(
 def _compact_listing_row(row: dict[str, Any]) -> dict[str, object]:
     keys = (
         "row_id",
+        "kind_id",
         "kind",
         "text",
         "stable_key",
@@ -2877,14 +2894,14 @@ def _listing_row_locations(listing: dict[str, Any] | None) -> dict[tuple[int, in
 
 
 def _listing_row_location_rank(row: dict[str, Any]) -> int:
-    kind = _string_value(row.get("kind"))
-    if kind == "instruction":
+    kind = _listing_row_kind_id(row)
+    if kind == LISTING_ROW_KIND_INSTRUCTION:
         return 0
-    if kind == "data":
+    if kind == LISTING_ROW_KIND_DATA:
         return 1
-    if kind == "directive":
+    if kind == LISTING_ROW_KIND_DIRECTIVE:
         return 2
-    if kind == "label":
+    if kind == LISTING_ROW_KIND_LABEL:
         return 3
     return 4
 
@@ -3987,7 +4004,7 @@ def _listing_xrefs(
                         text=stripped_text,
                     )
                 )
-        if listing_row.get("kind") == "directive" and opcode_or_directive == "ORG":
+        if _listing_row_is_kind(listing_row, LISTING_ROW_KIND_DIRECTIVE) and opcode_or_directive == "ORG":
             org_address = _org_directive_address(listing_row, text)
             org_example = dict(example)
             if org_address is not None:
@@ -4094,7 +4111,9 @@ def _listing_xrefs(
                 if feature_bag is not None:
                     feature_bag.add("label:reference", example=example)
             if segment_addr is not None:
-                ref_feature = "xref:data_ref" if listing_row.get("kind") == "data" else "xref:code_ref"
+                ref_feature = (
+                    "xref:data_ref" if _listing_row_is_kind(listing_row, LISTING_ROW_KIND_DATA) else "xref:code_ref"
+                )
                 if feature_bag is not None:
                     feature_bag.add("xref:segment_ref", example=example)
                     feature_bag.add(ref_feature, example=example)
@@ -4941,7 +4960,7 @@ def _type_flow_register_copy_from_call_output(
     source_reg = source_reg.upper()
     for row_index in range(store_row_index - 1, max(0, store_row_index - 8) - 1, -1):
         row = rows_by_index.get(row_index)
-        if not isinstance(row, dict) or row.get("kind") != "instruction":
+        if not isinstance(row, dict) or not _listing_row_is_kind(row, LISTING_ROW_KIND_INSTRUCTION):
             continue
         row_text = _string_value(row.get("text")) or ""
         if re.search(r"^\s*(?:movea?|lea)\.l\b", row_text, re.IGNORECASE) is None:
@@ -4985,7 +5004,7 @@ def _type_flow_storage_reload_chain(
     del rows
     for candidate_index in range(assignment_row_index - 1, max(0, assignment_row_index - 48) - 1, -1):
         candidate_row = rows_by_index.get(candidate_index)
-        if not isinstance(candidate_row, dict) or candidate_row.get("kind") != "instruction":
+        if not isinstance(candidate_row, dict) or not _listing_row_is_kind(candidate_row, LISTING_ROW_KIND_INSTRUCTION):
             continue
         store = _type_flow_store_to_memory(_string_value(candidate_row.get("text")) or "")
         if store is None:
@@ -5072,7 +5091,10 @@ def _type_flow_find_assignment_to_reg(
             return assignment_cache[cache_key]
         for candidate_index in range(row_index - 1, max(0, row_index - window) - 1, -1):
             candidate_row = rows_by_index.get(candidate_index)
-            if not isinstance(candidate_row, dict) or candidate_row.get("kind") != "instruction":
+            if (
+                not isinstance(candidate_row, dict)
+                or not _listing_row_is_kind(candidate_row, LISTING_ROW_KIND_INSTRUCTION)
+            ):
                 continue
             source = _type_flow_assignment_source_for_named_reg(_string_value(candidate_row.get("text")) or "", reg_name)
             if source is not None:
@@ -5092,7 +5114,10 @@ def _type_flow_find_assignment_to_reg(
         ):
             continue
         candidate_row = candidate.get("row")
-        if not isinstance(candidate_row, dict) or candidate_row.get("kind") != "instruction":
+        if (
+            not isinstance(candidate_row, dict)
+            or not _listing_row_is_kind(candidate_row, LISTING_ROW_KIND_INSTRUCTION)
+        ):
             continue
         source = _type_flow_assignment_source_for_named_reg(_string_value(candidate_row.get("text")) or "", reg_name)
         if source is None:
@@ -6227,7 +6252,7 @@ def build_type_flow_report(
         row = snippet.get("row")
         if target_id is None or not isinstance(row, dict):
             continue
-        if row.get("kind") != "instruction":
+        if not _listing_row_is_kind(row, LISTING_ROW_KIND_INSTRUCTION):
             continue
         if _dict_items(row.get("typed_accesses")) or _dict_items(row.get("unresolved_typed_accesses")):
             continue
@@ -6990,7 +7015,7 @@ def _type_flow_first_later_numeric_access(
             continue
         if storage_section is not None and _int_value(row.get("section_index")) not in (None, storage_section):
             continue
-        if row.get("kind") != "instruction":
+        if not _listing_row_is_kind(row, LISTING_ROW_KIND_INSTRUCTION):
             continue
         if _dict_items(row.get("typed_accesses")) or _dict_items(row.get("unresolved_typed_accesses")):
             continue
