@@ -1376,13 +1376,22 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             value = _int_value(record.get(key))
             if value is not None:
                 example[key] = value
-        for key in ("layout_name", "base_symbol", "symbol"):
+        for key in (
+            "layout_name", "base_symbol", "symbol", "root_struct_name", "owner_struct_name",
+            "field_name", "field_expr", "classification", "type_provenance_kind",
+        ):
             value = _string_value(record.get(key))
             if value:
                 example[key] = value
         bag.add("memory-layout:any", example=example)
         bag.add(f"memory-layout:record:{_safe_part(record_kind)}", example=example)
         bag.add(f"memory-layout:kind:{_safe_part(memory_kind)}", example=example)
+        root_struct = _string_value(record.get("root_struct_name"))
+        field_expr = _string_value(record.get("field_expr")) or _string_value(record.get("field_name"))
+        if root_struct:
+            bag.add(f"memory-layout:platform_struct:{_safe_part(root_struct)}", example=example)
+        if field_expr:
+            bag.add(f"memory-layout:platform_field:{_safe_part(field_expr)}", example=example)
         if _int_value(record.get("sink_address")) is not None:
             bag.add("memory-layout:sink_address", example=example)
     for section in _dict_items(analysis.get("sections")):
@@ -3157,6 +3166,8 @@ def _analysis_xrefs(
         row_index, stable_key, row_text = _row_location(row_locations, section_index, source_offset)
         runtime_address = _int_value(record.get("runtime_address"))
         sink_address = _int_value(record.get("sink_address"))
+        root_struct = _string_value(record.get("root_struct_name"))
+        field_expr = _string_value(record.get("field_expr")) or _string_value(record.get("field_name"))
         for feature in (
             "memory-layout:any",
             f"memory-layout:record:{_safe_part(record_kind)}",
@@ -3169,6 +3180,14 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, "memory-layout:sink_address", "memory_layout", section=section_index,
                 offset=source_offset, row_index=row_index, stable_key=stable_key, symbol=memory_kind,
                 value=sink_address, text=row_text or memory_kind))
+        if root_struct:
+            xrefs.append(_xref(row, f"memory-layout:platform_struct:{_safe_part(root_struct)}",
+                "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
+                stable_key=stable_key, symbol=root_struct, value=runtime_address, text=row_text or memory_kind))
+        if field_expr:
+            xrefs.append(_xref(row, f"memory-layout:platform_field:{_safe_part(field_expr)}",
+                "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
+                stable_key=stable_key, symbol=field_expr, value=runtime_address, text=row_text or memory_kind))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):

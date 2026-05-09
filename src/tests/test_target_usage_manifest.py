@@ -121,6 +121,34 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "target_offset": 0x0E,
                             "sink_address": 0xDFF080,
                         },
+                        {
+                            "record_kind": "platform_typed_access",
+                            "memory_kind": "platform_struct_field",
+                            "section_index": 0,
+                            "source_offset": 0x34,
+                            "operand_index": 1,
+                            "base_register": "A0",
+                            "displacement": 20,
+                            "field_offset": 20,
+                            "root_struct_name": "Library",
+                            "owner_struct_name": "Library",
+                            "field_name": "LIB_VERSION",
+                            "field_expr": "LIB_VERSION",
+                            "type_provenance_kind": "api_output",
+                        },
+                        {
+                            "record_kind": "platform_unresolved_typed_access",
+                            "memory_kind": "platform_struct_unresolved",
+                            "section_index": 0,
+                            "source_offset": 0x38,
+                            "operand_index": 0,
+                            "base_register": "A1",
+                            "displacement": 36,
+                            "struct_size": 22,
+                            "classification": "field_gap",
+                            "root_struct_name": "InputEvent",
+                            "type_provenance_kind": "unknown",
+                        },
                     ],
                     "sections": [
                         {
@@ -534,13 +562,20 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["table:consumer"], 1)
         self.assertEqual(counts["table:entry_size:2"], 1)
         self.assertEqual(counts["table:conflict_state:clean"], 1)
-        self.assertEqual(counts["memory-layout:any"], 3)
+        self.assertEqual(counts["memory-layout:any"], 5)
         self.assertEqual(counts["memory-layout:record:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_view"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_address_ref"], 1)
+        self.assertEqual(counts["memory-layout:record:platform_typed_access"], 1)
+        self.assertEqual(counts["memory-layout:record:platform_unresolved_typed_access"], 1)
         self.assertEqual(counts["memory-layout:kind:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:kind:runtime_view_candidate"], 1)
         self.assertEqual(counts["memory-layout:kind:copper_list"], 1)
+        self.assertEqual(counts["memory-layout:kind:platform_struct_field"], 1)
+        self.assertEqual(counts["memory-layout:kind:platform_struct_unresolved"], 1)
+        self.assertEqual(counts["memory-layout:platform_struct:Library"], 1)
+        self.assertEqual(counts["memory-layout:platform_struct:InputEvent"], 1)
+        self.assertEqual(counts["memory-layout:platform_field:LIB_VERSION"], 1)
         self.assertEqual(counts["memory-layout:sink_address"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
         self.assertEqual(counts["hardware:custom"], 2)
@@ -587,6 +622,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["symbol"], "app_0234")
         self.assertEqual(examples["memory-layout:kind:copper_list"][0]["runtime_address"], 0x0E)
         self.assertEqual(examples["memory-layout:kind:copper_list"][0]["sink_address"], 0xDFF080)
+        self.assertEqual(examples["memory-layout:platform_struct:Library"][0]["field_expr"], "LIB_VERSION")
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
         self.assertEqual(examples["orphan-code:signal"][0]["context"], "accepted_code_boundary")
@@ -899,9 +935,9 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "runtime_address": 0x400,
                         "runtime_size": 0x20,
                     },
-                    {
-                        "record_kind": "runtime_address_ref",
-                        "memory_kind": "copper_list",
+                        {
+                            "record_kind": "runtime_address_ref",
+                            "memory_kind": "copper_list",
                         "section_index": 0,
                         "source_offset": 0x60,
                         "source_size": 12,
@@ -909,7 +945,35 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "runtime_size": 12,
                             "target_offset": 0x0E,
                             "sink_address": 0xDFF080,
-                    },
+                        },
+                        {
+                            "record_kind": "platform_typed_access",
+                            "memory_kind": "platform_struct_field",
+                            "section_index": 0,
+                            "source_offset": 0x30,
+                            "operand_index": 1,
+                            "base_register": "A0",
+                            "displacement": 20,
+                            "field_offset": 20,
+                            "root_struct_name": "Library",
+                            "owner_struct_name": "Library",
+                            "field_name": "LIB_VERSION",
+                            "field_expr": "LIB_VERSION",
+                            "type_provenance_kind": "api_output",
+                        },
+                        {
+                            "record_kind": "platform_unresolved_typed_access",
+                            "memory_kind": "platform_struct_unresolved",
+                            "section_index": 0,
+                            "source_offset": 0x30,
+                            "operand_index": 0,
+                            "base_register": "A0",
+                            "displacement": 64,
+                            "struct_size": 34,
+                            "classification": "field_gap",
+                            "root_struct_name": "Library",
+                            "type_provenance_kind": "unknown",
+                        },
                 ],
                 "sections": [
                     {
@@ -1171,6 +1235,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("table:consumer", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:consumer", "table_consumer", 0x20, 1), by_feature)
         self.assertIn(("memory-layout:kind:base_layout_field", "memory_layout", 0x30, 2), by_feature)
+        self.assertIn(("memory-layout:kind:platform_struct_field", "memory_layout", 0x30, 2), by_feature)
+        self.assertIn(("memory-layout:platform_struct:Library", "memory_layout", 0x30, 2), by_feature)
+        self.assertIn(("memory-layout:platform_field:LIB_VERSION", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:kind:runtime_view_candidate", "memory_layout", 0x40, 3), by_feature)
         self.assertIn(("memory-layout:kind:copper_list", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("memory-layout:sink_address", "memory_layout", 0x60, 5), by_feature)

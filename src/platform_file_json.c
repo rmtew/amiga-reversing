@@ -1815,6 +1815,8 @@ static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysi
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     size_t ref_index;
+    count += section->recovered_platform_typed_access_count;
+    count += section->recovered_platform_unresolved_typed_access_count;
     count += section->runtime_view_count;
     for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
       const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
@@ -1859,8 +1861,78 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
   }
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t typed_access_index;
+    size_t unresolved_typed_access_index;
     size_t view_index;
     size_t ref_index;
+    for (typed_access_index = 0U; typed_access_index < section->recovered_platform_typed_access_count;
+        ++typed_access_index) {
+      const M68kRecoveredPlatformTypedAccessIR *access =
+        &section->recovered_platform_typed_accesses[typed_access_index];
+      const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+        access->root_struct_name);
+      const char *owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->owner_struct_ref,
+        access->owner_struct_name);
+      const char *field_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->field_ref,
+        access->field_name);
+      if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_appendf(builder,
+          "{\"record_kind\":\"platform_typed_access\",\"memory_kind\":\"platform_struct_field\","
+          "\"section_index\":%u,\"source_offset\":%u,\"operand_index\":%u,\"base_register\":\"A%u\","
+          "\"displacement\":%d,\"field_offset\":%d,\"root_struct_name\":",
+          (unsigned)section->section_index, (unsigned)access->offset, (unsigned)access->operand_index,
+          (unsigned)access->base_reg, (int)access->displacement, (int)access->field_offset) != 0) {
+        return -1;
+      }
+      if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
+      if (json_builder_append(builder, ",\"owner_struct_name\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, owner_struct_name) != 0) return -1;
+      if (json_builder_append(builder, ",\"field_name\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, field_name) != 0) return -1;
+      if (json_builder_append(builder, ",\"field_expr\":") != 0) return -1;
+      if (json_builder_append_json_string(builder, access->field_expr != NULL ? access->field_expr : "") != 0)
+        return -1;
+      if (json_builder_append(builder, ",\"type_provenance_kind\":") != 0) return -1;
+      if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
+        return -1;
+      if (json_builder_append(builder, "}") != 0) return -1;
+    }
+    for (unresolved_typed_access_index = 0U;
+        unresolved_typed_access_index < section->recovered_platform_unresolved_typed_access_count;
+        ++unresolved_typed_access_index) {
+      const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
+        &section->recovered_platform_unresolved_typed_accesses[unresolved_typed_access_index];
+      const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+        access->root_struct_name);
+      const char *container_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(
+        &access->container_struct_ref, access->container_struct_name);
+      const char *refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(
+        &access->refined_struct_ref, access->refined_struct_name);
+      if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_appendf(builder,
+          "{\"record_kind\":\"platform_unresolved_typed_access\","
+          "\"memory_kind\":\"platform_struct_unresolved\",\"section_index\":%u,\"source_offset\":%u,"
+          "\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"struct_size\":%u,"
+          "\"classification\":",
+          (unsigned)section->section_index, (unsigned)access->offset, (unsigned)access->operand_index,
+          (unsigned)access->base_reg, (int)access->displacement, (unsigned)access->struct_size) != 0) {
+        return -1;
+      }
+      if (json_builder_append_json_string(builder,
+          unresolved_typed_access_classification_name(access->classification)) != 0) return -1;
+      if (json_builder_append(builder, ",\"root_struct_name\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
+      if (json_builder_append(builder, ",\"container_struct_name\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, container_struct_name) != 0) return -1;
+      if (json_builder_append(builder, ",\"container_field_expr\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, access->container_field_expr) != 0) return -1;
+      if (json_builder_append(builder, ",\"refined_struct_name\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, refined_struct_name) != 0) return -1;
+      if (json_builder_append(builder, ",\"type_provenance_kind\":") != 0) return -1;
+      if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
+        return -1;
+      if (json_builder_append(builder, "}") != 0) return -1;
+    }
     for (view_index = 0U; view_index < section->runtime_view_count; ++view_index) {
       const M68kRuntimeViewIR *view = &section->runtime_views[view_index];
       const char *memory_kind = view->materialized ? "runtime_code" : "runtime_view_candidate";

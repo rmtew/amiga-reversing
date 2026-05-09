@@ -58,8 +58,8 @@ Reviewed implementation and tests before updating this plan. Current state:
 
 | Topic | Current evidence | Gap to address |
 | --- | --- | --- |
-| RSSET/app slots | `render_state_operand_uses_app_base()` rejects known hardware bases and `_custom` offsets; `render_asm_app_extension_rs()` emits app/resident RSSET layouts from field slots and metadata; C source analysis now records rendered base-layout fields and alias overlays as first-class facts; listing JSON exposes those layout fields directly. | Need wider "known base owns this displacement" facts for platform-owned layouts beyond app/metadata RSSET emission. |
-| Typed structs vs app slots | Typed app-slot field regions are skipped from flat RSSET output; `_custom` offset false positives have an isolated test. | Need wider "known base owns this displacement" facts for all platform structs, not only `_custom` fallback protection. |
+| RSSET/app slots | `render_state_operand_uses_app_base()` rejects known hardware bases and `_custom` offsets; `render_asm_app_extension_rs()` emits app/resident RSSET layouts from field slots and metadata; C source analysis now records rendered base-layout fields and alias overlays as first-class facts; listing JSON exposes those layout fields directly. | Need stronger conflict/ownership checks between large app layouts and accepted code/typed structs. |
+| Typed structs vs app slots | Typed app-slot field regions are skipped from flat RSSET output; `_custom` offset false positives have an isolated test; C JSON now includes resolved and unresolved platform typed accesses in `memory_layout_records`. | Need richer ownership ranges for whole platform structs, not only observed field accesses. |
 | ORG/runtime views | Tests cover runtime-copy jump targets, low trampoline suppression, policy runtime ranges, conflict failure, policy-vs-inferred precedence, corpus tags, and listing navigation for materialized/suppressed runtime views. | Runtime-copy facts still need explicit wrapper-load/helper/final-image relationships. |
 | Lookup/jump tables | Tests cover long dispatch, word-relative dispatch, far targets, runtime-mapped dispatch, mixed labels/raw entries, pointer tables, relative `target-base` rendering, C JSON `table_records` derived from accepted structured table data, consumer instruction provenance, source-pattern provenance, code-overlap conflict state, and C JSON `table_candidate_records` plus corpus tags/xrefs for unresolved indirect/table candidate sites by status, shape, source instruction range, operand index, and source pattern. | Table candidate facts still need rejected table data bounds where value-flow can prove a candidate span. |
 | Absolute memory | Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target stores, runtime aliases, relocation anchors, hardware sinks, display/copper/audio sinks; C JSON now exposes `memory_layout_records` for base-layout fields, runtime views, and runtime-address references with external hardware sink addresses. | Memory-layout records still need absolute globals, broader hardware register ranges, and unresolved/conflict candidates merged into the same view. |
@@ -153,6 +153,8 @@ proves a distinct base id.
    - alias/overlay relationship: implemented for app/metadata RSSET layout fields
    - source instruction provenance: implemented for app-slot access layout fields
    - confidence and conflict state: implemented for app/metadata RSSET layout fields
+   - platform-owned field evidence: implemented as resolved/unresolved typed
+     access memory-layout records
 
 2. Add absolute memory-layout records:
    - source section/file range

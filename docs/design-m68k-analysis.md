@@ -505,6 +505,7 @@ $070000..$076000            bitmap           bitplane pointer writes
 _custom+$00E0.._custom+$00EE display regs    hardware metadata
 a6+$0000..a6+$0FCF          app layout       app-slot refs
 a6+$0001                    app alias        overlay field
+typed field                 platform struct  root/owner/field provenance
 table $505C..$507A          jump offsets     indexed dispatch consumer
 $00010000..$00010FFF        ORG runtime      second-stage copy + jump
 orphan h0:$D3EE..$D42A      code signal      terminal decode, no inbound edge
@@ -512,6 +513,12 @@ orphan h0:$D3EE..$D42A      code signal      terminal decode, no inbound edge
 
 This should be data from C analysis. The UI can filter, navigate, and show
 conflicts, but should not classify memory itself.
+
+Resolved platform typed accesses are memory-layout evidence too. They prove that
+a base and displacement are owned by a platform struct field, so they should be
+visible beside app slots and runtime ranges rather than only in type-flow reports.
+Unresolved typed accesses should remain unresolved records with classification
+such as field gap, prefix extension, or mistyped base.
 
 Runtime address references should preserve both sides of a hardware sink:
 

@@ -10417,6 +10417,7 @@ static int test_facts_v2_analysis_propagates_api_output_type_through_global_slot
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR analysis;
+  char *analysis_json = NULL;
   char *source = NULL;
   const M68kSectionAnalysisIR *analysis_section;
   size_t index;
@@ -10479,6 +10480,12 @@ static int test_facts_v2_analysis_propagates_api_output_type_through_global_slot
   }
   M68K_C_ASSERT(saw_global_slot);
   M68K_C_ASSERT(saw_typed_access);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"record_kind\":\"platform_typed_access\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"memory_kind\":\"platform_struct_field\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"field_expr\":\"MP_SIGBIT\"") != NULL);
+  free(analysis_json);
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
