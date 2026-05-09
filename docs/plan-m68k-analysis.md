@@ -228,8 +228,9 @@ proves a distinct base id.
      `table_records` for accepted structured lookup/pointer tables
    - consumer instruction/source provenance: implemented for auto-classified
      structured table data as `consumer_section`/`consumer_offset`
-   - source-pattern provenance: implemented as `source_pattern` on
-     structured table facts and corpus tags
+   - source-pattern provenance: implemented as C `source_pattern_id` on
+     structured table facts; JSON keeps `source_pattern` as display text and
+     corpus tags consume the id
    - entry size, signedness, stride, count, and bounds
    - table kind: scalar, pointer, relative pointer, code dispatch, data offset,
      hardware setup, mixed: implemented for scalar, pointer,

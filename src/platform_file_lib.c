@@ -4839,8 +4839,13 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (json_builder_appendf(builder, ",\"semantic_role_flags\":%u",
           (unsigned)structured_data_item_role_flags_local(item)) != 0)
       return -1;
-    if (json_builder_append(builder, ",\"source_pattern\":") != 0) return -1;
-    if (append_nullable_text_json_local(builder, item->source_pattern) != 0) return -1;
+    {
+      const char *source_pattern = m68k_analysis_structured_data_source_pattern_name(item->source_pattern_id);
+      if (json_builder_appendf(builder, ",\"source_pattern_id\":%u,\"source_pattern\":",
+            (unsigned)item->source_pattern_id) != 0)
+        return -1;
+      if (append_nullable_text_json_local(builder, source_pattern) != 0) return -1;
+    }
     if (json_builder_appendf(builder, ",\"is_pointer\":%s,\"target_section\":",
           item->is_pointer ? "true" : "false") != 0)
       return -1;

@@ -90,6 +90,25 @@ const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_
   return NULL;
 }
 
+const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pattern_id) {
+  switch (source_pattern_id) {
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE:
+      return "relocation_pointer_table";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH:
+      return "indexed_word_dispatch";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ:
+      return "indexed_local_pointer_read";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_SCALAR_READ:
+      return "indexed_local_scalar_read";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POSTINCREMENT_READ_SEQUENCE:
+      return "postincrement_read_sequence";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_READ:
+      return "pc_relative_indexed_read";
+    default:
+      return NULL;
+  }
+}
+
 void m68k_analysis_structured_data_item_set_semantic_role(M68kAnalysisStructuredDataItem *item,
     const char *semantic_role) {
   if (item == NULL) return;

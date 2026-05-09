@@ -1702,10 +1702,14 @@ static int append_source_analysis_policy_structured_items_json(JsonBuilder *buil
         (unsigned)structured_data_item_role_flags_json(item)) != 0) {
       return -1;
     }
-    if (json_builder_append(builder, ",\"source_pattern\":") != 0) return -1;
-    if (json_builder_append_nullable_string(builder, item->source_pattern[0] != '\0' ?
-        item->source_pattern : NULL) != 0) {
-      return -1;
+    {
+      const char *source_pattern = m68k_analysis_structured_data_source_pattern_name(item->source_pattern_id);
+      if (json_builder_appendf(builder, ",\"source_pattern_id\":%u,\"source_pattern\":",
+            (unsigned)item->source_pattern_id) != 0)
+        return -1;
+      if (json_builder_append_nullable_string(builder, source_pattern) != 0) {
+        return -1;
+      }
     }
     if (json_builder_append(builder, ",\"label\":") != 0) return -1;
     if (json_builder_append_nullable_string(builder, item->label[0] != '\0' ? item->label : NULL) != 0)
@@ -1926,10 +1930,14 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
     if (json_builder_append_json_string(builder, role_name) != 0) return -1;
     if (json_builder_append(builder, ",\"table_kind\":") != 0) return -1;
     if (json_builder_append_json_string(builder, table_kind) != 0) return -1;
-    if (json_builder_append(builder, ",\"source_pattern\":") != 0) return -1;
-    if (json_builder_append_nullable_string(builder, item->source_pattern[0] != '\0' ?
-        item->source_pattern : NULL) != 0) {
-      return -1;
+    {
+      const char *source_pattern = m68k_analysis_structured_data_source_pattern_name(item->source_pattern_id);
+      if (json_builder_appendf(builder, ",\"source_pattern_id\":%u,\"source_pattern\":",
+            (unsigned)item->source_pattern_id) != 0)
+        return -1;
+      if (json_builder_append_nullable_string(builder, source_pattern) != 0) {
+        return -1;
+      }
     }
     if (json_builder_append(builder, ",\"base_expression\":") != 0) return -1;
     if (json_builder_append_json_string(builder, item->has_target ? "target_label" : "table_label") != 0)
@@ -3389,9 +3397,13 @@ static int append_listing_structured_data_json(JsonBuilder *builder, const M68kA
   if (json_builder_appendf(builder, ",\"semantic_role_flags\":%u",
         (unsigned)structured_data_item_role_flags_json(item)) != 0)
     return -1;
-  if (json_builder_append(builder, ",\"source_pattern\":") != 0) return -1;
-  if (json_builder_append_nullable_string(builder, item->source_pattern[0] != '\0' ? item->source_pattern : NULL) != 0)
-    return -1;
+  {
+    const char *source_pattern = m68k_analysis_structured_data_source_pattern_name(item->source_pattern_id);
+    if (json_builder_appendf(builder, ",\"source_pattern_id\":%u,\"source_pattern\":",
+          (unsigned)item->source_pattern_id) != 0)
+      return -1;
+    if (json_builder_append_nullable_string(builder, source_pattern) != 0) return -1;
+  }
   if (json_builder_appendf(builder, ",\"is_pointer\":%s,\"target_section\":",
         item->is_pointer ? "true" : "false") != 0)
     return -1;

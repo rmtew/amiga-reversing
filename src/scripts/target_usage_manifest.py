@@ -231,6 +231,14 @@ RECOVERED_INDIRECT_TABLE_BOUNDS_STATUS_NAMES = {
     0: "none",
     1: "rejected_insufficient_entries",
 }
+STRUCTURED_DATA_SOURCE_PATTERN_NAMES = {
+    1: "relocation_pointer_table",
+    2: "indexed_word_dispatch",
+    3: "indexed_local_pointer_read",
+    4: "indexed_local_scalar_read",
+    5: "postincrement_read_sequence",
+    6: "pc_relative_indexed_read",
+}
 TYPED_STORAGE_EFFECT_TARGETS = {
     PLATFORM_EFFECT_SET_TYPED_REG: "register",
     PLATFORM_EFFECT_WRITE_TYPED_SLOT: "app_slot",
@@ -1505,6 +1513,13 @@ def _indirect_site_source_pattern(shape_id: int | None) -> str:
     return "indirect"
 
 
+def _structured_table_source_pattern(record: dict[str, Any]) -> str | None:
+    source_pattern_id = _int_value(record.get("source_pattern_id"), 0) or 0
+    if source_pattern_id != 0:
+        return STRUCTURED_DATA_SOURCE_PATTERN_NAMES.get(source_pattern_id, "unknown")
+    return None
+
+
 def _add_indirect_site_features(bag: FeatureBag, section_index: int, site: dict[str, Any]) -> None:
     status = _recovered_indirect_status_name(site)
     shape = _recovered_indirect_shape_name(site)
@@ -1608,7 +1623,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             value = _int_value(table.get(key))
             if value is not None:
                 example[key] = value
-        source_pattern = _string_value(table.get("source_pattern"))
+        source_pattern = _structured_table_source_pattern(table)
         if source_pattern:
             example["source_pattern"] = source_pattern
         base_expression = _string_value(table.get("base_expression"))
@@ -3539,7 +3554,7 @@ def _analysis_xrefs(
         base_expression = _string_value(table.get("base_expression"))
         conflict_state = _conflict_state_name(table)
         conflicted = _bool_value(table.get("conflicted"))
-        source_pattern = _string_value(table.get("source_pattern"))
+        source_pattern = _structured_table_source_pattern(table)
         entry_count = _int_value(table.get("entry_count"))
         consumer_section = _int_value(table.get("consumer_section"))
         consumer_offset = _int_value(table.get("consumer_offset"))

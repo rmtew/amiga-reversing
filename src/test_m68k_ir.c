@@ -4488,6 +4488,7 @@ static int test_facts_v2_word_dispatch_promotes_far_relative_targets(void) {
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"offset\":18,\"size\":4,\"kind\":2,\"semantic_role\":\"lookup_table\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern_id\":2") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern\":\"indexed_word_dispatch\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"has_target\":true,\"target_section\":0,\"target_offset\":22") != NULL);
@@ -4496,6 +4497,7 @@ static int test_facts_v2_word_dispatch_promotes_far_relative_targets(void) {
     "\"table_kind\":\"relative_code_dispatch\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"base_expression\":\"target_label\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"consumer_section\":0,\"consumer_offset\":12") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern_id\":2") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern\":\"indexed_word_dispatch\"") != NULL);
   for (item_index = 0U; item_index < source_analysis.policy.structured_data_item_count; ++item_index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[item_index];
@@ -4504,6 +4506,8 @@ static int test_facts_v2_word_dispatch_promotes_far_relative_targets(void) {
       M68K_C_ASSERT_U32(1U, item->has_consumer);
       M68K_C_ASSERT_U32(0U, item->consumer_section);
       M68K_C_ASSERT_U32(0x0CU, item->consumer_offset);
+      M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH,
+        item->source_pattern_id);
       M68K_C_ASSERT(strcmp(item->source_pattern, "indexed_word_dispatch") == 0);
       saw_table_consumer = 1U;
     }

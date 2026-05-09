@@ -109,6 +109,16 @@ typedef enum M68kAnalysisStructuredDataRoleFlag {
   M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM = 1U << 13
 } M68kAnalysisStructuredDataRoleFlag;
 
+typedef enum M68kAnalysisStructuredDataSourcePattern {
+  M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_UNKNOWN = 0,
+  M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE = 1,
+  M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH = 2,
+  M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ = 3,
+  M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_SCALAR_READ = 4,
+  M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POSTINCREMENT_READ_SEQUENCE = 5,
+  M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_READ = 6
+} M68kAnalysisStructuredDataSourcePattern;
+
 typedef struct M68kAnalysisStructuredDataItem {
   uint8_t has_section_index;
   uint8_t kind;
@@ -123,7 +133,8 @@ typedef struct M68kAnalysisStructuredDataItem {
   uint8_t reserved[3];
   int32_t constant_value;
   uint8_t has_consumer;
-  uint8_t reserved2[3];
+  uint8_t source_pattern_id;
+  uint8_t reserved2[2];
   uint32_t consumer_section;
   uint32_t consumer_offset;
   uint32_t semantic_role_flags;
@@ -1049,6 +1060,7 @@ int m68k_ir_parse_syntax_mode_name(const char *text, uint8_t *out_syntax_mode);
 void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy);
 uint32_t m68k_analysis_structured_data_role_flags_for_text(const char *semantic_role);
 const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_role_flags);
+const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pattern_id);
 void m68k_analysis_structured_data_item_set_semantic_role(M68kAnalysisStructuredDataItem *item,
   const char *semantic_role);
 void m68k_analysis_findings_init(M68kAnalysisFindings *findings);
