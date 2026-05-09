@@ -2046,7 +2046,7 @@ static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysi
     }
     for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
       const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
-      if (ref->has_runtime_address || ref->has_target || (ref->data_class != NULL && ref->data_class[0] != '\0')) {
+      if (ref->has_runtime_address || ref->has_target || ref->data_class_flags != 0U) {
         ++count;
       }
     }
@@ -2698,7 +2698,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_appendf(&builder, ",\"confidence\":%u,\"data_class\":",
           (unsigned)ref->confidence) != 0)
         goto oom;
-      if (json_builder_append_nullable_string(&builder, ref->data_class) != 0)
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_structured_data_role_name_for_flags(ref->data_class_flags)) != 0)
+        goto oom;
+      if (ref->data_class_flags != 0U &&
+          json_builder_appendf(&builder, ",\"data_class_flags\":%u", (unsigned)ref->data_class_flags) != 0)
         goto oom;
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
@@ -3675,7 +3679,8 @@ static int append_listing_runtime_address_ref_json(JsonBuilder *builder, const M
   if (json_builder_appendf(builder, ",\"confidence\":%u,\"data_class\":",
       (unsigned)ref->confidence) != 0)
     return -1;
-  if (json_builder_append_nullable_string(builder, ref->data_class) != 0) return -1;
+  if (json_builder_append_nullable_string(builder,
+      m68k_analysis_structured_data_role_name_for_flags(ref->data_class_flags)) != 0) return -1;
   if (ref->data_class_flags != 0U &&
       json_builder_appendf(builder, ",\"data_class_flags\":%u", (unsigned)ref->data_class_flags) != 0)
     return -1;

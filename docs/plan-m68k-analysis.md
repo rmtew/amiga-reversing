@@ -234,6 +234,9 @@ proves a distinct base id.
      corpus tags consume the id
    - semantic role provenance: implemented as C `semantic_role_flags`; JSON
      `semantic_role` is derived display text and stale role strings are ignored
+   - runtime-address data class provenance: implemented as C
+     `data_class_flags`; JSON `data_class` is derived display text and stale
+     class strings are ignored
    - entry size, signedness, stride, count, and bounds
    - table kind: scalar, pointer, relative pointer, code dispatch, data offset,
      hardware setup, mixed: implemented as C `table_kind_id` for scalar,

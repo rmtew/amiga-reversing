@@ -4628,9 +4628,14 @@ static int test_source_analysis_table_record_marks_code_overlap_conflict(void) {
 }
 
 static int test_runtime_address_ref_does_not_infer_flags_from_text(void) {
+  M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
   M68kRuntimeAddressRefIR ref;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 8U;
   memset(&ref, 0, sizeof(ref));
   ref.offset = 4U;
   ref.operand_index = 0U;
@@ -4641,7 +4646,15 @@ static int test_runtime_address_ref_does_not_infer_flags_from_text(void) {
   M68K_C_ASSERT_U32(1U, section_analysis.runtime_address_ref_count);
   M68K_C_ASSERT_STR("bitmap", section_analysis.runtime_address_refs[0].data_class);
   M68K_C_ASSERT_U32(0U, section_analysis.runtime_address_refs[0].data_class_flags);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"data_class\":null") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"data_class\":\"bitmap\"") == NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"data_class_flags\"") == NULL);
+  free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   return 0;
 }
 
