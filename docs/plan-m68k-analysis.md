@@ -233,10 +233,12 @@ proves a distinct base id.
      corpus tags consume the id
    - entry size, signedness, stride, count, and bounds
    - table kind: scalar, pointer, relative pointer, code dispatch, data offset,
-     hardware setup, mixed: implemented for scalar, pointer,
-     relative-code-dispatch, and absolute-code-dispatch structured tables
+     hardware setup, mixed: implemented as C `table_kind_id` for scalar,
+     pointer, relative-code-dispatch, and absolute-code-dispatch structured
+     tables
    - base expression: table label, section base, runtime base, PC, or explicit
-     data label: implemented as target-label/table-label classification
+     data label: implemented as C `base_expression_id` target-label/table-label
+     classification
    - entry target range and null/sentinel rules: target base recorded when
      known
    - confidence and conflict state: implemented for clean/code-overlap table

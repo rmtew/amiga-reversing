@@ -1750,17 +1750,20 @@ static uint32_t structured_data_item_entry_size(const M68kAnalysisStructuredData
   return 0U;
 }
 
-static const char *structured_data_item_table_kind(const M68kAnalysisStructuredDataItem *item) {
+static uint8_t structured_data_item_table_kind_id(const M68kAnalysisStructuredDataItem *item) {
   uint32_t role_flags;
-  if (item == NULL) return NULL;
+  if (item == NULL) return M68K_ANALYSIS_TABLE_KIND_UNKNOWN;
   role_flags = structured_data_item_role_flags_json(item);
-  if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U) return "pointer";
+  if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U)
+    return M68K_ANALYSIS_TABLE_KIND_POINTER;
   if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U) {
-    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && item->has_target) return "relative_code_dispatch";
-    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS) return "absolute_code_dispatch";
-    return "scalar";
+    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && item->has_target)
+      return M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH;
+    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS)
+      return M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH;
+    return M68K_ANALYSIS_TABLE_KIND_SCALAR;
   }
-  return NULL;
+  return M68K_ANALYSIS_TABLE_KIND_UNKNOWN;
 }
 
 static const char *recovered_indirect_table_candidate_source_pattern(uint8_t shape) {
@@ -1791,7 +1794,10 @@ static size_t source_analysis_table_record_count(const M68kAnalysisPolicy *polic
   if (policy == NULL) return 0U;
   for (index = 0U; index < policy->structured_data_item_count &&
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    if (structured_data_item_table_kind(&policy->structured_data_items[index]) != NULL) ++count;
+    if (structured_data_item_table_kind_id(&policy->structured_data_items[index]) !=
+        M68K_ANALYSIS_TABLE_KIND_UNKNOWN) {
+      ++count;
+    }
   }
   return count;
 }
@@ -1912,12 +1918,16 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
   for (index = 0U; index < policy->structured_data_item_count &&
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
-    const char *table_kind = structured_data_item_table_kind(item);
+    uint8_t table_kind_id = structured_data_item_table_kind_id(item);
+    uint8_t base_expression_id = item->has_target ? M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TARGET_LABEL :
+      M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TABLE_LABEL;
+    const char *table_kind = m68k_analysis_table_kind_name(table_kind_id);
+    const char *base_expression = m68k_analysis_table_base_expression_name(base_expression_id);
     const char *role_name = m68k_analysis_structured_data_role_name_for_flags(structured_data_item_role_flags_json(item));
     int code_overlap = source_analysis_range_overlaps_accepted_code(source_analysis, item);
     uint32_t entry_size = structured_data_item_entry_size(item);
     uint32_t entry_count = entry_size != 0U ? item->size / entry_size : 0U;
-    if (table_kind == NULL || role_name == NULL) continue;
+    if (table_kind == NULL || base_expression == NULL || role_name == NULL) continue;
     if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"section_index\":") != 0) return -1;
     if (item->has_section_index) {
@@ -1928,7 +1938,8 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
         (unsigned)item->offset, (unsigned)item->size, (unsigned)entry_size, (unsigned)entry_count) != 0)
       return -1;
     if (json_builder_append_json_string(builder, role_name) != 0) return -1;
-    if (json_builder_append(builder, ",\"table_kind\":") != 0) return -1;
+    if (json_builder_appendf(builder, ",\"table_kind_id\":%u,\"table_kind\":", (unsigned)table_kind_id) != 0)
+      return -1;
     if (json_builder_append_json_string(builder, table_kind) != 0) return -1;
     {
       const char *source_pattern = m68k_analysis_structured_data_source_pattern_name(item->source_pattern_id);
@@ -1939,8 +1950,10 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
         return -1;
       }
     }
-    if (json_builder_append(builder, ",\"base_expression\":") != 0) return -1;
-    if (json_builder_append_json_string(builder, item->has_target ? "target_label" : "table_label") != 0)
+    if (json_builder_appendf(builder, ",\"base_expression_id\":%u,\"base_expression\":",
+          (unsigned)base_expression_id) != 0)
+      return -1;
+    if (json_builder_append_json_string(builder, base_expression) != 0)
       return -1;
     if (json_builder_append(builder, ",\"target_section\":") != 0) return -1;
     if (item->has_target) {

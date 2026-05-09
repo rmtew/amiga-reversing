@@ -239,6 +239,16 @@ STRUCTURED_DATA_SOURCE_PATTERN_NAMES = {
     5: "postincrement_read_sequence",
     6: "pc_relative_indexed_read",
 }
+TABLE_KIND_NAMES = {
+    1: "scalar",
+    2: "pointer",
+    3: "relative_code_dispatch",
+    4: "absolute_code_dispatch",
+}
+TABLE_BASE_EXPRESSION_NAMES = {
+    1: "table_label",
+    2: "target_label",
+}
 TYPED_STORAGE_EFFECT_TARGETS = {
     PLATFORM_EFFECT_SET_TYPED_REG: "register",
     PLATFORM_EFFECT_WRITE_TYPED_SLOT: "app_slot",
@@ -1520,6 +1530,17 @@ def _structured_table_source_pattern(record: dict[str, Any]) -> str | None:
     return None
 
 
+def _table_kind_name(record: dict[str, Any]) -> str:
+    return TABLE_KIND_NAMES.get(_int_value(record.get("table_kind_id"), 0) or 0, "unknown")
+
+
+def _table_base_expression_name(record: dict[str, Any]) -> str | None:
+    base_expression_id = _int_value(record.get("base_expression_id"), 0) or 0
+    if base_expression_id != 0:
+        return TABLE_BASE_EXPRESSION_NAMES.get(base_expression_id, "unknown")
+    return None
+
+
 def _add_indirect_site_features(bag: FeatureBag, section_index: int, site: dict[str, Any]) -> None:
     status = _recovered_indirect_status_name(site)
     shape = _recovered_indirect_shape_name(site)
@@ -1615,7 +1636,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
     _add_decompression_analysis_features(analysis, bag)
     for table in _dict_items(analysis.get("table_records")):
         role = _string_value(table.get("role")) or "unknown"
-        table_kind = _string_value(table.get("table_kind")) or "unknown"
+        table_kind = _table_kind_name(table)
         section_index = _int_value(table.get("section_index"), 0)
         offset = _int_value(table.get("offset"))
         example = _offset_example(section_index, offset, table_kind)
@@ -1626,7 +1647,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         source_pattern = _structured_table_source_pattern(table)
         if source_pattern:
             example["source_pattern"] = source_pattern
-        base_expression = _string_value(table.get("base_expression"))
+        base_expression = _table_base_expression_name(table)
         if base_expression:
             example["base_expression"] = base_expression
         conflict_state = _conflict_state_name(table)
@@ -3547,11 +3568,11 @@ def _analysis_xrefs(
     xrefs.extend(_decompression_analysis_xrefs(row, analysis, row_locations))
     for table in _dict_items(analysis.get("table_records")):
         role = _string_value(table.get("role")) or "unknown"
-        table_kind = _string_value(table.get("table_kind")) or "unknown"
+        table_kind = _table_kind_name(table)
         section_index = _int_value(table.get("section_index"), 0)
         offset = _int_value(table.get("offset"))
         row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
-        base_expression = _string_value(table.get("base_expression"))
+        base_expression = _table_base_expression_name(table)
         conflict_state = _conflict_state_name(table)
         conflicted = _bool_value(table.get("conflicted"))
         source_pattern = _structured_table_source_pattern(table)

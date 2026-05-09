@@ -109,6 +109,32 @@ const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pat
   }
 }
 
+const char *m68k_analysis_table_kind_name(uint8_t table_kind_id) {
+  switch (table_kind_id) {
+    case M68K_ANALYSIS_TABLE_KIND_SCALAR:
+      return "scalar";
+    case M68K_ANALYSIS_TABLE_KIND_POINTER:
+      return "pointer";
+    case M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH:
+      return "relative_code_dispatch";
+    case M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH:
+      return "absolute_code_dispatch";
+    default:
+      return NULL;
+  }
+}
+
+const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id) {
+  switch (base_expression_id) {
+    case M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TABLE_LABEL:
+      return "table_label";
+    case M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TARGET_LABEL:
+      return "target_label";
+    default:
+      return NULL;
+  }
+}
+
 void m68k_analysis_structured_data_item_set_semantic_role(M68kAnalysisStructuredDataItem *item,
     const char *semantic_role) {
   if (item == NULL) return;

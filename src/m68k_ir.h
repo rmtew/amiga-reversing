@@ -119,6 +119,20 @@ typedef enum M68kAnalysisStructuredDataSourcePattern {
   M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_READ = 6
 } M68kAnalysisStructuredDataSourcePattern;
 
+typedef enum M68kAnalysisTableKind {
+  M68K_ANALYSIS_TABLE_KIND_UNKNOWN = 0,
+  M68K_ANALYSIS_TABLE_KIND_SCALAR = 1,
+  M68K_ANALYSIS_TABLE_KIND_POINTER = 2,
+  M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH = 3,
+  M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH = 4
+} M68kAnalysisTableKind;
+
+typedef enum M68kAnalysisTableBaseExpression {
+  M68K_ANALYSIS_TABLE_BASE_EXPRESSION_UNKNOWN = 0,
+  M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TABLE_LABEL = 1,
+  M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TARGET_LABEL = 2
+} M68kAnalysisTableBaseExpression;
+
 typedef struct M68kAnalysisStructuredDataItem {
   uint8_t has_section_index;
   uint8_t kind;
@@ -1061,6 +1075,8 @@ void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy);
 uint32_t m68k_analysis_structured_data_role_flags_for_text(const char *semantic_role);
 const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_role_flags);
 const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pattern_id);
+const char *m68k_analysis_table_kind_name(uint8_t table_kind_id);
+const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id);
 void m68k_analysis_structured_data_item_set_semantic_role(M68kAnalysisStructuredDataItem *item,
   const char *semantic_role);
 void m68k_analysis_findings_init(M68kAnalysisFindings *findings);
