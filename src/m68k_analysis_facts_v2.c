@@ -5789,13 +5789,18 @@ static int candidate_indexed_control_table_base_offset(const M68kDecodeSectionIR
   return 0;
 }
 
+static int scan_indexed_backward_inline_tail_entries(M68kDecodeIR *decode, uint8_t max_cpu, size_t section_index,
+  const M68kDecodeSectionIR *section, const M68kDecodeCandidate *site_candidate, uint8_t **accepted_start,
+  uint8_t **accepted_bytes, uint32_t *out_entries, uint32_t entry_limit, uint32_t *out_entry_count);
+
 static int enqueue_indexed_direct_control_stub_table_entries(M68kDecodeIR *decode, M68kFactIR *facts,
     M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
     M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index, const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *site_candidate, const M68kRuntimeAddressSpace *runtime_addresses) {
   const uint32_t scan_limit = 64U;
+  uint32_t entries[64];
   uint32_t table_offset = 0U, cursor, stride = 0U;
-  uint32_t entry_count = 0U, first_forward_target = UINT32_MAX;
+  uint32_t entry_count = 0U, first_forward_target = UINT32_MAX, entry_index;
   if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
       profile == NULL || section == NULL || site_candidate == NULL || runtime_addresses == NULL ||
       section_index >= decode->section_count ||
@@ -5825,16 +5830,25 @@ static int enqueue_indexed_direct_control_stub_table_entries(M68kDecodeIR *decod
     }
     if (target_offset > table_offset && target_offset < first_forward_target)
       first_forward_target = target_offset;
+    entries[entry_count] = cursor;
     ++entry_count;
     if (cursor > UINT32_MAX - stride) break;
     cursor += stride;
     if (entry_count >= 2U && first_forward_target != UINT32_MAX && cursor >= first_forward_target)
       break;
   }
-  if (entry_count < 2U || stride == 0U) return 0;
-  for (cursor = table_offset; entry_count != 0U; cursor += stride, --entry_count) {
+  if (entry_count < 2U || stride == 0U) {
+    int scan_result = scan_indexed_backward_inline_tail_entries(decode, max_cpu, section_index, section,
+      site_candidate, accepted_start, accepted_bytes, entries, scan_limit, &entry_count);
+    if (scan_result < 0) return -1;
+    if (scan_result == 0) {
+      return 0;
+    }
+  }
+  for (entry_index = 0U; entry_index < entry_count; ++entry_index) {
     uint32_t entry_runtime = 0U;
     uint8_t has_entry_runtime = 0U;
+    cursor = entries[entry_index];
     if (accepted_start[section_index][cursor]) continue;
     if (runtime_address_space_source_to_runtime_near(runtime_addresses, section_index, cursor, 0U, 0U,
         &entry_runtime)) {
@@ -5853,6 +5867,90 @@ static int enqueue_indexed_direct_control_stub_table_entries(M68kDecodeIR *decod
     }
   }
   return 0;
+}
+
+static int candidate_has_branch_target_in_range(const M68kDecodeCandidate *candidate, size_t section_index,
+    uint32_t start, uint32_t end) {
+  size_t target_index;
+  if (candidate == NULL) return 0;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->kind == M68K_DECODE_TARGET_BRANCH && target->has_section &&
+        target->section_index == section_index &&
+        target->offset >= start && target->offset < end) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int scan_indexed_backward_inline_tail_entries(M68kDecodeIR *decode, uint8_t max_cpu, size_t section_index,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *site_candidate, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, uint32_t *out_entries, uint32_t entry_limit, uint32_t *out_entry_count) {
+  const uint32_t scan_limit = 64U;
+  uint32_t table_offset = 0U;
+  uint32_t run_start;
+  uint32_t cursor;
+  uint32_t stride = 0U;
+  uint32_t run_count = 0U;
+  const M68kDecodeCandidate *first = NULL;
+  const M68kDecodeCandidate *base = NULL;
+  if (out_entry_count != NULL) *out_entry_count = 0U;
+  if (decode == NULL || section == NULL || site_candidate == NULL || accepted_start == NULL ||
+      accepted_bytes == NULL || out_entries == NULL || out_entry_count == NULL || entry_limit == 0U ||
+      section_index >= decode->section_count || site_candidate->byte_count == 0U ||
+      site_candidate->offset > UINT32_MAX - site_candidate->byte_count ||
+      !candidate_indexed_control_table_base_offset(section, site_candidate, &table_offset)) {
+    return 0;
+  }
+  run_start = site_candidate->offset + site_candidate->byte_count;
+  if (table_offset <= run_start || table_offset - run_start > scan_limit) return 0;
+  if (m68k_decode_ir_ensure_candidate_at(decode, section_index, table_offset, max_cpu, &base,
+      m68k_diag_sink(NULL)) != 0) {
+    return -1;
+  }
+  if (base == NULL || !candidate_has_branch_target_in_range(base, section->section_index, run_start,
+      table_offset)) {
+    return 0;
+  }
+  if (accepted_range_has_code_byte_local(accepted_bytes[section_index], section->size, table_offset,
+      base->byte_count)) {
+    return 0;
+  }
+  cursor = run_start;
+  while (cursor < table_offset && run_count < entry_limit) {
+    const M68kDecodeCandidate *candidate = NULL;
+    if (accepted_offset_is_interior(section, accepted_start[section_index], accepted_bytes[section_index], cursor))
+      return 0;
+    if (m68k_decode_ir_ensure_candidate_at(decode, section_index, cursor, max_cpu, &candidate,
+        m68k_diag_sink(NULL)) != 0) {
+      return -1;
+    }
+    if (candidate == NULL || candidate->byte_count == 0U || cursor > UINT32_MAX - candidate->byte_count)
+      return 0;
+    if (accepted_range_has_code_byte_local(accepted_bytes[section_index], section->size, cursor,
+        candidate->byte_count)) {
+      return 0;
+    }
+    if (first == NULL) {
+      first = candidate;
+      stride = candidate->byte_count;
+    } else if (candidate->byte_count != stride || candidate->asm_form_index != first->asm_form_index ||
+        candidate->disasm_form_index != first->disasm_form_index) {
+      return 0;
+    }
+    ++run_count;
+    cursor += candidate->byte_count;
+  }
+  if (cursor != table_offset || run_count < 2U || stride == 0U || run_count > entry_limit) return 0;
+  cursor = run_start + stride;
+  *out_entry_count = 0U;
+  while (cursor <= table_offset && *out_entry_count < entry_limit) {
+    out_entries[(*out_entry_count)++] = cursor;
+    if (cursor > UINT32_MAX - stride) break;
+    cursor += stride;
+  }
+  return *out_entry_count >= 2U;
 }
 
 static int replay_runtime_sink_provenance_fallthrough(const M68kObject *object, M68kDecodeIR *decode,

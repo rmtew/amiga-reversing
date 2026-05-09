@@ -4637,6 +4637,39 @@ def test_project_source_facts_v2_wide_word_dispatch_comparators_stay_clean(targe
     assert "    ORG $4\n" not in source_text
 
 
+def test_project_source_facts_v2_inline_tail_dispatch_voodoo_and_comparators_stay_clean() -> None:
+    _requires_c_backend_dlls()
+    paths = resolve_project_paths("amiga_hunk_voodoo_nightmare_run", project_root=PROJECT_ROOT, require_entities=False)
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    facts_v2 = source_profile["facts_v2"]
+    assert facts_v2["asm_source_refused"] is False
+    assert facts_v2["required_instruction_failures"] == 0
+    assert facts_v2["unsupported_instruction_demotes"] == 0
+    assert facts_v2["interior_conflicts_unresolved"] == 0
+    assert facts_v2["unresolved_labels"] == 0
+    assert "\tjmp loc_6_00000F3A(pc,d1.w)\n" in source_text
+    assert "loc_6_00000F2C:\n\tmove.b (a1)+,(a0)+\n" in source_text
+    assert "loc_6_00000F3A:\n\tdbf.w d0,loc_6_00000F2A\n" in source_text
+    assert "\tjmp loc_6_0000130E(pc,d1.w)\n" in source_text
+    assert "loc_6_00001300:\n\tmove.b (a1)+,(a0)+\n" in source_text
+    assert "loc_6_0000130E:\n\tdbf.w d0,loc_6_000012FE\n" in source_text
+
+    for target_name in ["amiga_hunk_genam", "amiga_hunk_monam302"]:
+        paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+        rebuilt, direct_source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            paths.binary_source,
+            metadata_path=paths.target_dir / "target_metadata.json",
+            project_root=PROJECT_ROOT,
+        )
+        assert direct_source_profile["facts_v2"]["asm_source_refused"] is False
+        assert direct_profile["direct_rebuild_refused"] is False
+        assert rebuilt == paths.binary_source.path.read_bytes()
+
+
 def test_real_dll_renders_genam() -> None:
     _requires_c_backend_dlls()
     rendered = render_binary_source_with_c_backend(PROJECT_ROOT / "bin" / "GenAm")
