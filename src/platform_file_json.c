@@ -1748,7 +1748,7 @@ static uint32_t structured_data_item_entry_size(const M68kAnalysisStructuredData
 
 static const char *structured_data_item_table_kind(const M68kAnalysisStructuredDataItem *item) {
   uint32_t role_flags;
-  if (item == NULL || item->semantic_role[0] == '\0') return NULL;
+  if (item == NULL) return NULL;
   role_flags = structured_data_item_role_flags_json(item);
   if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U) return "pointer";
   if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U) {
@@ -1909,10 +1909,11 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
     const char *table_kind = structured_data_item_table_kind(item);
+    const char *role_name = m68k_analysis_structured_data_role_name_for_flags(structured_data_item_role_flags_json(item));
     int code_overlap = source_analysis_range_overlaps_accepted_code(source_analysis, item);
     uint32_t entry_size = structured_data_item_entry_size(item);
     uint32_t entry_count = entry_size != 0U ? item->size / entry_size : 0U;
-    if (table_kind == NULL) continue;
+    if (table_kind == NULL || role_name == NULL) continue;
     if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"section_index\":") != 0) return -1;
     if (item->has_section_index) {
@@ -1922,7 +1923,7 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
         ",\"offset\":%u,\"size\":%u,\"entry_size\":%u,\"entry_count\":%u,\"role\":",
         (unsigned)item->offset, (unsigned)item->size, (unsigned)entry_size, (unsigned)entry_count) != 0)
       return -1;
-    if (json_builder_append_json_string(builder, item->semantic_role) != 0) return -1;
+    if (json_builder_append_json_string(builder, role_name) != 0) return -1;
     if (json_builder_append(builder, ",\"table_kind\":") != 0) return -1;
     if (json_builder_append_json_string(builder, table_kind) != 0) return -1;
     if (json_builder_append(builder, ",\"source_pattern\":") != 0) return -1;

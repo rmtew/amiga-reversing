@@ -4584,6 +4584,45 @@ static int test_runtime_address_ref_does_not_infer_flags_from_text(void) {
   return 0;
 }
 
+static int test_table_records_use_role_flags_not_text(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kAnalysisStructuredDataItem *item;
+  char *analysis_json = NULL;
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  memset(&section_analysis, 0, sizeof(section_analysis));
+  m68k_analysis_policy_init_default(&source_analysis.policy);
+  source_analysis.section_count = 1U;
+  source_analysis.sections = &section_analysis;
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 8U;
+  source_analysis.policy.structured_data_item_count = 2U;
+
+  item = &source_analysis.policy.structured_data_items[0];
+  item->has_section_index = 1U;
+  item->section_index = 0U;
+  item->offset = 0U;
+  item->size = 4U;
+  item->kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+  item->semantic_role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE;
+
+  item = &source_analysis.policy.structured_data_items[1];
+  item->has_section_index = 1U;
+  item->section_index = 0U;
+  item->offset = 4U;
+  item->size = 4U;
+  item->kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  snprintf(item->semantic_role, sizeof(item->semantic_role), "%s", "pointer_table");
+
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"table_record_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"role\":\"lookup_table\",\"table_kind\":\"scalar\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"role\":\"pointer_table\"") == NULL);
+  free(analysis_json);
+  return 0;
+}
+
 static int test_facts_v2_word_dispatch_stops_far_table_at_zero_boundary(void) {
   M68kObject object;
   M68kSection section;
@@ -14949,6 +14988,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_table_record_marks_code_overlap_conflict},
     {"runtime_address_ref_does_not_infer_flags_from_text",
       test_runtime_address_ref_does_not_infer_flags_from_text},
+    {"table_records_use_role_flags_not_text",
+      test_table_records_use_role_flags_not_text},
     {"facts_v2_word_dispatch_stops_far_table_at_zero_boundary",
       test_facts_v2_word_dispatch_stops_far_table_at_zero_boundary},
     {"facts_v2_pc_word_dispatch_renders_labels_across_saved_register",
