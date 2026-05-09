@@ -1935,7 +1935,7 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
         if _listing_row_label_symbol(row):
             bag.add("label:any", example=example)
             bag.add("label:definition", example=example)
-        data_class = _listing_row_data_class(row, text)
+        data_class = _listing_row_data_class(row)
         copper_row = bool(data_class == "copper_list")
         hardware_symbol_refs: list[tuple[str, str]] = []
         row_hardware_group_features: set[str] = set()
@@ -2042,17 +2042,10 @@ _TABLE_REL_LABEL_RE = re.compile(
 )
 
 
-def _listing_row_data_class(row: dict[str, object], text: str) -> str | None:
+def _listing_row_data_class(row: dict[str, object]) -> str | None:
     if row.get("kind") != "data":
         return None
-    data_class = _string_value(row.get("data_class"))
-    if data_class:
-        return data_class
-    if "; lookup_table" in text:
-        return "lookup_table"
-    if "; pointer_table" in text:
-        return "pointer_table"
-    return None
+    return _string_value(row.get("data_class"))
 
 
 def _listing_table_shape_features(text: str, data_class: str | None) -> list[str]:
@@ -3572,7 +3565,7 @@ def _listing_xrefs(
         section_index = _int_value(listing_row.get("section_index"), -1)
         offset = listing_row.get("start_offset") if isinstance(listing_row.get("start_offset"), int) else listing_row.get("addr")
         stable_key = _string_value(listing_row.get("stable_key"))
-        data_class = _listing_row_data_class(listing_row, text)
+        data_class = _listing_row_data_class(listing_row)
         copper_row = bool(data_class == "copper_list")
         hardware_symbol_refs: list[tuple[str, str]] = []
         seen_group_features: set[str] = set()

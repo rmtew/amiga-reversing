@@ -948,6 +948,27 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["display:bplcon0"], 1)
         self.assertEqual(counts["display:bitplanes:4"], 1)
 
+    def test_listing_data_class_does_not_parse_comments_as_analysis(self) -> None:
+        bag = usage.FeatureBag()
+        usage._add_listing_features(
+            {
+                "rows": [
+                    {
+                        "kind": "data",
+                        "text": "\tdc.w loc_0_00000010-loc_0_00000008\t; lookup_table\n",
+                        "section_index": 0,
+                        "start_offset": 0x10,
+                    }
+                ]
+            },
+            bag,
+        )
+
+        counts, _examples, _tags = bag.row_features()
+
+        self.assertNotIn("data:lookup_table", counts)
+        self.assertNotIn("analysis:lookup_table:word_relative_labels", counts)
+
     def test_builds_xrefs_from_structured_analysis_and_listing_metadata(self) -> None:
         target_row = {
             "id": "platform_file_manifest:demo",
