@@ -121,7 +121,8 @@ static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint
   uint32_t runtime_address);
 static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
-  const char *struct_name, const char *pointer_struct, const char *storage_kind, const char *semantic_type);
+  const char *struct_name, const char *pointer_struct, uint8_t storage_kind_id, const char *storage_kind,
+  const char *semantic_type);
 static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
   uint32_t runtime_address, uint32_t *out_section_index, uint32_t *out_offset);
 
@@ -465,14 +466,28 @@ static int append_metadata_absolute_code_label_local(const char *object_start, c
   return 1;
 }
 
-static uint8_t rsset_layout_region_size_from_storage_kind_local(const char *storage_kind) {
-  if (storage_kind == NULL || storage_kind[0] == '\0') return 4U;
+static uint8_t rsset_layout_region_storage_kind_id_from_text_local(const char *storage_kind) {
+  if (storage_kind == NULL || storage_kind[0] == '\0') return M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_UNKNOWN;
   if (strcmp(storage_kind, "struct_instance") == 0 ||
-      strcmp(storage_kind, "struct_pointer") == 0 ||
-      strcmp(storage_kind, "pointer") == 0 ||
-      strcmp(storage_kind, "scalar") == 0) {
-    return 4U;
+      strcmp(storage_kind, "struct") == 0) return M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_INSTANCE;
+  if (strcmp(storage_kind, "struct_pointer") == 0) return M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER;
+  if (strcmp(storage_kind, "pointer") == 0) return M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER;
+  if (strcmp(storage_kind, "scalar") == 0) return M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_SCALAR;
+  return M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_UNKNOWN;
+}
+
+static const char *rsset_layout_region_storage_kind_name_local(uint8_t storage_kind_id) {
+  switch (storage_kind_id) {
+    case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_INSTANCE: return "struct_instance";
+    case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER: return "struct_pointer";
+    case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER: return "pointer";
+    case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_SCALAR: return "scalar";
+    default: return NULL;
   }
+}
+
+static uint8_t rsset_layout_region_size_from_storage_kind_id_local(uint8_t storage_kind_id) {
+  (void)storage_kind_id;
   return 4U;
 }
 
@@ -524,9 +539,13 @@ static int append_metadata_rsset_layout_region_local(const char *object_start, c
   }
   if (!has_offset) return 1;
   if (has_size && (explicit_size == 0U || explicit_size > 255U)) return 0;
-  return policy_add_rsset_layout_region_local(policy, offset,
-    has_size ? (uint8_t)explicit_size : rsset_layout_region_size_from_storage_kind_local(storage_kind),
-    layout_name, base_symbol, sizeof_symbol, symbol, struct_name, pointer_struct, storage_kind, semantic_type);
+  {
+    uint8_t storage_kind_id = rsset_layout_region_storage_kind_id_from_text_local(storage_kind);
+    return policy_add_rsset_layout_region_local(policy, offset,
+      has_size ? (uint8_t)explicit_size : rsset_layout_region_size_from_storage_kind_id_local(storage_kind_id),
+      layout_name, base_symbol, sizeof_symbol, symbol, struct_name, pointer_struct, storage_kind_id, storage_kind,
+      semantic_type);
+  }
 }
 
 static int policy_add_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset) {
@@ -590,7 +609,8 @@ static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint
 
 static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
-  const char *struct_name, const char *pointer_struct, const char *storage_kind, const char *semantic_type) {
+  const char *struct_name, const char *pointer_struct, uint8_t storage_kind_id, const char *storage_kind,
+  const char *semantic_type) {
   M68kAnalysisRssetLayoutRegion *slot;
   uint16_t index;
   const char *effective_layout = layout_name != NULL && layout_name[0] != '\0' ? layout_name : "app";
@@ -613,6 +633,7 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   slot->offset = offset;
   slot->size = size;
   slot->flags = rsset_layout_region_flags_from_identity_local(effective_layout, effective_base);
+  slot->storage_kind_id = storage_kind_id;
   if (!copy_policy_text(slot->layout_name, sizeof(slot->layout_name), effective_layout) ||
       !copy_policy_text(slot->base_symbol, sizeof(slot->base_symbol), effective_base) ||
       !copy_policy_text(slot->sizeof_symbol, sizeof(slot->sizeof_symbol), sizeof_symbol) ||
@@ -4831,9 +4852,12 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
   if (json_builder_append(builder, "],\"rsset_layout_regions\":[") != 0) return -1;
   for (index = 0U; index < policy->rsset_layout_region_count && index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
     const M68kAnalysisRssetLayoutRegion *slot = &policy->rsset_layout_regions[index];
+    const char *storage_kind = slot->storage_kind[0] != '\0'
+      ? slot->storage_kind
+      : rsset_layout_region_storage_kind_name_local(slot->storage_kind_id);
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
-    if (json_builder_appendf(builder, "{\"offset\":%u,\"size\":%u,\"flags\":%u,\"layout_name\":",
-          (unsigned)slot->offset, (unsigned)slot->size, (unsigned)slot->flags) != 0)
+    if (json_builder_appendf(builder, "{\"offset\":%u,\"size\":%u,\"flags\":%u,\"storage_kind_id\":%u,\"layout_name\":",
+          (unsigned)slot->offset, (unsigned)slot->size, (unsigned)slot->flags, (unsigned)slot->storage_kind_id) != 0)
       return -1;
     if (append_nullable_text_json_local(builder, slot->layout_name) != 0) return -1;
     if (json_builder_append(builder, ",\"base_symbol\":") != 0) return -1;
@@ -4847,7 +4871,7 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (json_builder_append(builder, ",\"pointer_struct\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, slot->pointer_struct) != 0) return -1;
     if (json_builder_append(builder, ",\"storage_kind\":") != 0) return -1;
-    if (append_nullable_text_json_local(builder, slot->storage_kind) != 0) return -1;
+    if (append_nullable_text_json_local(builder, storage_kind) != 0) return -1;
     if (json_builder_append(builder, ",\"semantic_type\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, slot->semantic_type) != 0) return -1;
     if (json_builder_append(builder, "}") != 0) return -1;

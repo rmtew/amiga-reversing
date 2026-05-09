@@ -160,7 +160,8 @@ typedef struct M68kAnalysisRssetLayoutRegion {
   uint32_t offset;
   uint8_t size;
   uint8_t flags;
-  uint8_t reserved[2];
+  uint8_t storage_kind_id;
+  uint8_t reserved[1];
   char layout_name[32];
   char base_symbol[64];
   char sizeof_symbol[64];
@@ -174,6 +175,14 @@ typedef struct M68kAnalysisRssetLayoutRegion {
 typedef enum M68kAnalysisRssetLayoutRegionFlag {
   M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT = 1U
 } M68kAnalysisRssetLayoutRegionFlag;
+
+typedef enum M68kAnalysisRssetLayoutStorageKind {
+  M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_UNKNOWN = 0U,
+  M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_INSTANCE = 1U,
+  M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER = 2U,
+  M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER = 3U,
+  M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_SCALAR = 4U
+} M68kAnalysisRssetLayoutStorageKind;
 
 #define M68K_ANALYSIS_RUNTIME_RANGE_LIMIT 64U
 #define M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT 64U

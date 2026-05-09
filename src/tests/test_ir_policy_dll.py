@@ -209,7 +209,8 @@ class M68kAnalysisRssetLayoutRegion(ctypes.Structure):
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint8),
         ("flags", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 2),
+        ("storage_kind_id", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 1),
         ("layout_name", ctypes.c_char * 32),
         ("base_symbol", ctypes.c_char * 64),
         ("sizeof_symbol", ctypes.c_char * 64),
@@ -337,6 +338,14 @@ def _file_library():
         ctypes.POINTER(ctypes.c_void_p),
     ]
     library.platform_file_facts_v2_analysis_path_json_alloc.restype = ctypes.c_int
+    library.platform_file_effective_policy_path_json_alloc.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_void_p),
+    ]
+    library.platform_file_effective_policy_path_json_alloc.restype = ctypes.c_int
     library.platform_file_facts_v2_listing_artifact_path_create.argtypes = [
         ctypes.c_char_p,
         ctypes.c_char_p,
@@ -702,6 +711,41 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertTrue(addressed_rows)
         self.assertEqual(addressed_rows[0]["entity_addr"], addressed_rows[0]["addr"])
         self.assertIn("SECTION", listing_text)
+
+    def test_effective_policy_exports_rsset_storage_kind_id(self) -> None:
+        library = _file_library()
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.hunk"
+            metadata_path = Path(tmp) / "target_metadata.json"
+            path.write_bytes(make_synthetic_hunkexe())
+            metadata_path.write_text(
+                json.dumps(
+                    {
+                        "rsset_layout_regions": [
+                            {
+                                "offset": 0x20,
+                                "symbol": "app_Buffer",
+                                "storage_kind": "pointer",
+                            },
+                        ],
+                    },
+                ),
+                encoding="utf-8",
+            )
+
+            result, text = _file_alloc_text(
+                library,
+                "platform_file_effective_policy_path_json_alloc",
+                b"amiga-hunk",
+                str(path).encode("utf-8"),
+                str(metadata_path).encode("utf-8"),
+                b"",
+            )
+
+        self.assertEqual(result, 0, text)
+        regions = json.loads(text)["analysis_policy"]["rsset_layout_regions"]
+        self.assertEqual(regions[0]["storage_kind_id"], 3)
+        self.assertEqual(regions[0]["storage_kind"], "pointer")
 
     def test_platform_file_listing_artifact_reuses_c_analysis_for_windows(self) -> None:
         library = _file_library()

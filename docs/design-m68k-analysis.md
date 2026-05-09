@@ -656,6 +656,9 @@ lookup, OpenLibrary/OpenDevice recognition, or local/base-slot propagation.
 Do not compare static strings to decide whether a register is ExecBase, DOSBase,
 or another platform base. Use generated ids for decisions and resolve text from
 metadata only at output boundaries.
+Policy RSSET layout storage kinds follow the same rule: decode metadata text
+once into compact C enum ids, consume the ids internally, and keep strings only
+for source/debug/export text.
 
 ## Correctness Gates
 

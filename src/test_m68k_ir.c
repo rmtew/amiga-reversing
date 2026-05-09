@@ -9337,9 +9337,9 @@ static int test_facts_v2_render_asm_source_uses_policy_rsset_layout_region_symbo
   policy.rsset_layout_regions[0].offset = 0x022CU;
   policy.rsset_layout_regions[0].size = 4U;
   policy.rsset_layout_regions[0].flags = M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT;
+  policy.rsset_layout_regions[0].storage_kind_id = M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER;
   snprintf(policy.rsset_layout_regions[0].symbol, sizeof(policy.rsset_layout_regions[0].symbol),
     "app_startup_options_buffer");
-  snprintf(policy.rsset_layout_regions[0].storage_kind, sizeof(policy.rsset_layout_regions[0].storage_kind), "pointer");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
