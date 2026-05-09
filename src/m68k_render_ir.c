@@ -6302,6 +6302,8 @@ static void render_orphan_signal_refine_missing_inbound(M68kOrphanCodeSignalIR *
     return;
   if (strcmp(signal->nearby_data_class, "lookup_table") == 0) {
     signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE;
+  } else if (strcmp(signal->nearby_data_class, "pointer_table") == 0) {
+    signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_CALLBACK;
   }
 }
 

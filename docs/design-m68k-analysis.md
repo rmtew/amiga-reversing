@@ -395,7 +395,9 @@ Cause classification should be evidence-based even when the signal stays
 unresolved. For example, an orphan terminal island immediately adjacent to a
 `lookup_table` remains data in the rendered source, but its missing inbound class
 should be `jump_table` so the next implementation pass can focus on dispatch
-recovery rather than treating it as an unknown island.
+recovery rather than treating it as an unknown island. A similar island adjacent
+to a `pointer_table` should be classified as callback/function-table evidence,
+not promoted until an actual inbound edge is found.
 
 ## Absolute Memory Access
 
