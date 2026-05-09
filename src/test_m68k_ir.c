@@ -8327,6 +8327,7 @@ static int test_listing_json_emits_rsset_layout_regions_from_platform_api_inputs
   layout_field.symbol = "app_input_event";
   layout_field.offset = 0x0100U;
   layout_field.size = 0x16U;
+  layout_field.layout_kind = M68K_BASE_LAYOUT_KIND_APP;
   layout_field.source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS;
   layout_field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_base_layout_field(&source_analysis, &layout_field));
@@ -8358,7 +8359,8 @@ static int test_listing_json_emits_rsset_layout_regions_from_platform_api_inputs
   M68K_C_ASSERT(strstr(rows_json,
     "\"layout_fields\":[{\"layout_name\":\"app\",\"base_symbol\":\"__amiga_app_base__\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json,
-    "\"symbol\":\"app_input_event_code\",\"owner_struct_name\":null,\"offset\":262,\"size\":2,\"alias\":true") != NULL);
+    "\"symbol\":\"app_input_event_code\",\"owner_struct_name\":null,\"offset\":262,\"size\":2,\"alias\":true,"
+    "\"layout_kind\":1") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"confidence\":2,\"conflicted\":false,\"conflict_reason\":null") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"alias_of_symbol\":\"app_input_event\",\"alias_of_offset\":256") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"typed_region_count\":1") != NULL);
@@ -9121,6 +9123,7 @@ static int test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias(voi
   M68K_C_ASSERT_STR("app_000E", source_analysis.base_layout_fields[1].symbol);
   M68K_C_ASSERT_U32(1U, source_analysis.base_layout_fields[1].alias);
   M68K_C_ASSERT_U32(1U, source_analysis.base_layout_fields[1].has_alias_of);
+  M68K_C_ASSERT_U32(M68K_BASE_LAYOUT_KIND_APP, source_analysis.base_layout_fields[1].layout_kind);
   M68K_C_ASSERT_U32(M68K_FACT_CONFIDENCE_TOOL_INFERRED, source_analysis.base_layout_fields[1].confidence);
   M68K_C_ASSERT_U32(0U, source_analysis.base_layout_fields[1].conflicted);
   M68K_C_ASSERT_STR("app_000C", source_analysis.base_layout_fields[1].alias_of_symbol);
@@ -9129,7 +9132,7 @@ static int test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias(voi
   M68K_C_ASSERT(strstr(analysis_json, "\"base_layout_field_count\":2") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":3") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"record_kind\":\"base_layout\",\"memory_kind\":\"base_layout\",\"layout_name\":\"app\"") != NULL);
+    "\"record_kind\":\"base_layout\",\"memory_kind\":\"base_layout\",\"layout_kind\":1,\"layout_name\":\"app\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"field_count\":2") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"range_space_kind\":1,\"range_space\":\"base_relative\",\"range_start\":12,\"range_size\":4,"
@@ -9953,6 +9956,7 @@ static int test_facts_v2_render_asm_source_keeps_typed_app_slot_interior_out_of_
     source_analysis.base_layout_fields[0].owner_struct_name));
   M68K_C_ASSERT_U32(0x0100U, source_analysis.base_layout_fields[0].offset);
   M68K_C_ASSERT_U32(8U, source_analysis.base_layout_fields[0].size);
+  M68K_C_ASSERT_U32(M68K_BASE_LAYOUT_KIND_APP, source_analysis.base_layout_fields[0].layout_kind);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
@@ -10010,6 +10014,7 @@ static int test_facts_v2_render_asm_source_keeps_app_slot_aliases_in_rs_region(v
   M68K_C_ASSERT_U32(2U, (uint32_t)source_analysis.base_layout_field_count);
   M68K_C_ASSERT_STR("app", source_analysis.base_layout_fields[0].layout_name);
   M68K_C_ASSERT_STR("__amiga_app_base__", source_analysis.base_layout_fields[0].base_symbol);
+  M68K_C_ASSERT_U32(M68K_BASE_LAYOUT_KIND_APP, source_analysis.base_layout_fields[0].layout_kind);
   M68K_C_ASSERT_U32(M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS,
     source_analysis.base_layout_fields[0].source_kind);
   M68K_C_ASSERT_U32(M68K_FACT_CONFIDENCE_TOOL_INFERRED, source_analysis.base_layout_fields[0].confidence);

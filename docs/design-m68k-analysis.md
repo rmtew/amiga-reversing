@@ -659,6 +659,9 @@ metadata only at output boundaries.
 Policy RSSET layout storage kinds follow the same rule: decode metadata text
 once into compact C enum ids, consume the ids internally, and keep strings only
 for source/debug/export text.
+Base-layout fields also carry a compact layout-kind id. Range and conflict
+consumers must use that id before comparing base-relative ranges; layout/base
+names remain labels, not classifiers.
 
 ## Correctness Gates
 

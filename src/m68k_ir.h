@@ -884,6 +884,12 @@ typedef enum M68kBaseLayoutFieldSourceKind {
   M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION = 2
 } M68kBaseLayoutFieldSourceKind;
 
+typedef enum M68kBaseLayoutKind {
+  M68K_BASE_LAYOUT_KIND_UNKNOWN = 0,
+  M68K_BASE_LAYOUT_KIND_APP = 1,
+  M68K_BASE_LAYOUT_KIND_NAMED = 2
+} M68kBaseLayoutKind;
+
 typedef struct M68kBaseLayoutFieldIR {
   char *layout_name;
   char *base_symbol;
@@ -899,7 +905,8 @@ typedef struct M68kBaseLayoutFieldIR {
   uint8_t value_kind;
   uint8_t confidence;
   uint8_t conflicted;
-  uint8_t reserved0[2];
+  uint8_t layout_kind;
+  uint8_t reserved0[1];
   char *alias_of_symbol;
   char *conflict_reason;
   uint32_t alias_of_offset;

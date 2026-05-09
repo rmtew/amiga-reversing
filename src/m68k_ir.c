@@ -1859,6 +1859,7 @@ static int m68k_base_layout_field_matches(const M68kBaseLayoutFieldIR *left,
     left->value_kind == right->value_kind &&
     left->confidence == right->confidence &&
     left->conflicted == right->conflicted &&
+    left->layout_kind == right->layout_kind &&
     left->has_source == right->has_source &&
     left->source_section_index == right->source_section_index &&
     left->source_offset == right->source_offset;
@@ -1905,6 +1906,7 @@ int m68k_ir_source_analysis_append_base_layout_field(M68kSourceAnalysisIR *sourc
   copy.value_kind = field->value_kind;
   copy.confidence = field->confidence;
   copy.conflicted = field->conflicted;
+  copy.layout_kind = field->layout_kind;
   copy.alias_of_offset = field->alias_of_offset;
   copy.has_source = field->has_source;
   copy.source_section_index = field->source_section_index;

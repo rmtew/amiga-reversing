@@ -5455,9 +5455,9 @@ typedef struct M68kRenderAppRsLayout {
 } M68kRenderAppRsLayout;
 
 enum {
-  M68K_RENDER_APP_RS_LAYOUT_NONE = 0,
-  M68K_RENDER_APP_RS_LAYOUT_APP = 1,
-  M68K_RENDER_APP_RS_LAYOUT_NAMED = 2
+  M68K_RENDER_APP_RS_LAYOUT_NONE = M68K_BASE_LAYOUT_KIND_UNKNOWN,
+  M68K_RENDER_APP_RS_LAYOUT_APP = M68K_BASE_LAYOUT_KIND_APP,
+  M68K_RENDER_APP_RS_LAYOUT_NAMED = M68K_BASE_LAYOUT_KIND_NAMED
 };
 
 static int render_app_rs_layout_kind_is_app(uint8_t layout_kind) {
@@ -5649,6 +5649,7 @@ static int render_app_rs_append_layout_facts(M68kSourceAnalysisIR *source_analys
     field.value_kind = slots[index].value_kind;
     field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
     field.conflicted = 0U;
+    field.layout_kind = slots[index].layout_kind;
     field.has_source = slots[index].has_source;
     field.source_section_index = slots[index].source_section_index;
     field.source_offset = slots[index].source_offset;
