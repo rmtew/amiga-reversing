@@ -3444,6 +3444,7 @@ static int test_facts_v2_records_unresolved_indirect_jump_site(void) {
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_candidate_record_count\":1,\"table_candidate_records\":[{\"section_index\":0,\"offset\":0") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern\":\"indirect\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state_id\":2,\"conflict_state\":\"unresolved\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state\":\"unresolved\"") != NULL);
   free(analysis_json);
   m68k_facts_v2_free_text(source);
@@ -4504,6 +4505,7 @@ static int test_source_analysis_table_record_marks_code_overlap_conflict(void) {
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_record_count\":1,\"table_records\":[{\"section_index\":0,\"offset\":0") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"conflicted\":true") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state_id\":1,\"conflict_state\":\"code_overlap\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state\":\"code_overlap\"") != NULL);
   free(analysis_json);
   return 0;
@@ -13366,6 +13368,7 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
     "\"range_space_kind\":3,\"range_space\":\"absolute\",\"range_start\":458752,\"range_size\":0,"
     "\"range_end\":458752") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state\":\"clean\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state_id\":1,\"conflict_state\":\"code_overlap\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state\":\"code_overlap\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);

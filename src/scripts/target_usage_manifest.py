@@ -90,6 +90,16 @@ DATA_ROLE_NAMES = (
     (DATA_ROLE_SPRITE, "sprite"),
     (DATA_ROLE_STRING_CONTROL_STREAM, "string_control_stream"),
 )
+CONFLICT_STATE_CLEAN = 0
+CONFLICT_STATE_CODE_OVERLAP = 1
+CONFLICT_STATE_UNRESOLVED = 2
+CONFLICT_STATE_CONFLICTED = 3
+CONFLICT_STATE_NAMES = {
+    CONFLICT_STATE_CLEAN: "clean",
+    CONFLICT_STATE_CODE_OVERLAP: "code_overlap",
+    CONFLICT_STATE_UNRESOLVED: "unresolved",
+    CONFLICT_STATE_CONFLICTED: "conflicted",
+}
 RUNTIME_VIEW_MATERIALIZATION_REASONS = {
     1: "full_source_policy_load_view",
     2: "policy_entry_point",
@@ -1323,13 +1333,14 @@ def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]
     shape = _string_value(record.get("shape")) or "unknown"
     flow = _string_value(record.get("flow")) or "unknown"
     source_pattern = _string_value(record.get("source_pattern")) or _indirect_site_source_pattern(shape)
-    conflict_state = _string_value(record.get("conflict_state")) or "unresolved"
+    conflict_state = _conflict_state_name(record)
     example = _offset_example(section_index, offset, f"{flow} {shape} {status}")
     example["status"] = status
     example["shape"] = shape
     example["flow"] = flow
     example["source_pattern"] = source_pattern
-    example["conflict_state"] = conflict_state
+    if conflict_state:
+        example["conflict_state"] = conflict_state
     for key in ("source_offset", "source_size", "operand_index"):
         value = _int_value(record.get(key))
         if value is not None:
@@ -1354,7 +1365,8 @@ def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]
     bag.add(f"table:candidate_unresolved:status:{_safe_part(status)}", example=example)
     bag.add(f"table:candidate_unresolved:shape:{_safe_part(shape)}", example=example)
     bag.add(f"table:candidate_unresolved:flow:{_safe_part(flow)}", example=example)
-    bag.add(f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}", example=example)
+    if conflict_state:
+        bag.add(f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}", example=example)
     if _int_value(record.get("source_size")) is not None:
         bag.add("table:candidate_unresolved:source_range", example=example)
     if _int_value(record.get("table_size")) is not None:
@@ -1392,9 +1404,10 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         base_expression = _string_value(table.get("base_expression"))
         if base_expression:
             example["base_expression"] = base_expression
-        conflict_state = _string_value(table.get("conflict_state")) or "clean"
+        conflict_state = _conflict_state_name(table)
         conflicted = _bool_value(table.get("conflicted"))
-        example["conflict_state"] = conflict_state
+        if conflict_state:
+            example["conflict_state"] = conflict_state
         example["conflicted"] = conflicted
         consumer_section = _int_value(table.get("consumer_section"))
         consumer_offset = _int_value(table.get("consumer_offset"))
@@ -1408,7 +1421,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             bag.add(f"table:source_pattern:{_safe_part(source_pattern)}", example=example)
         if conflicted:
             bag.add("table:conflict", example=example)
-            bag.add(f"table:conflict_state:{_safe_part(conflict_state)}", example=example)
+            if conflict_state:
+                bag.add(f"table:conflict_state:{_safe_part(conflict_state)}", example=example)
         if base_expression:
             bag.add(f"table:base:{_safe_part(base_expression)}", example=example)
         if consumer_section is not None and consumer_offset is not None:
@@ -1436,7 +1450,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         for key in (
             "layout_name", "base_symbol", "symbol", "root_struct_name", "owner_struct_name",
             "field_name", "field_expr", "classification", "type_provenance_kind",
-            "access", "owner_kind", "owner_symbol", "owner_base_symbol", "conflict_state",
+            "access", "owner_kind", "owner_symbol", "owner_base_symbol",
             "effect_kind_name", "base_name", "symbol_name", "type_name", "sizeof_symbol",
         ):
             value = _string_value(record.get(key))
@@ -1464,7 +1478,9 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         range_size = _int_value(record.get("range_size"))
         if range_size is not None:
             bag.add(f"memory-layout:range_size:{range_size}", example=example)
-        conflict_state = _string_value(record.get("conflict_state"))
+        conflict_state = _conflict_state_name(record)
+        if conflict_state:
+            example["conflict_state"] = conflict_state
         if _bool_value(record.get("conflicted")):
             bag.add("memory-layout:conflict", example=example)
             if conflict_state:
@@ -2095,6 +2111,17 @@ def _data_role_name(flags: int) -> str | None:
 
 def _data_role_has(flags: int, role_flag: int) -> bool:
     return (flags & role_flag) != 0
+
+
+def _conflict_state_id(record: dict[str, Any]) -> int | None:
+    return _int_value(record.get("conflict_state_id"))
+
+
+def _conflict_state_name(record: dict[str, Any]) -> str | None:
+    state_id = _conflict_state_id(record)
+    if state_id is None:
+        return None
+    return CONFLICT_STATE_NAMES.get(state_id, "unknown")
 
 
 def _listing_table_shape_features(text: str, data_class_flags: int) -> list[str]:
@@ -3186,7 +3213,7 @@ def _analysis_xrefs(
         offset = _int_value(table.get("offset"))
         row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
         base_expression = _string_value(table.get("base_expression"))
-        conflict_state = _string_value(table.get("conflict_state")) or "clean"
+        conflict_state = _conflict_state_name(table)
         conflicted = _bool_value(table.get("conflicted"))
         source_pattern = _string_value(table.get("source_pattern"))
         entry_count = _int_value(table.get("entry_count"))
@@ -3199,7 +3226,8 @@ def _analysis_xrefs(
         ]
         if conflicted:
             features.append("table:conflict")
-            features.append(f"table:conflict_state:{_safe_part(conflict_state)}")
+            if conflict_state:
+                features.append(f"table:conflict_state:{_safe_part(conflict_state)}")
         if source_pattern:
             features.append(f"table:source_pattern:{_safe_part(source_pattern)}")
         if base_expression:
@@ -3228,7 +3256,7 @@ def _analysis_xrefs(
         shape = _string_value(record.get("shape")) or "unknown"
         flow = _string_value(record.get("flow")) or "unknown"
         source_pattern = _string_value(record.get("source_pattern")) or _indirect_site_source_pattern(shape)
-        conflict_state = _string_value(record.get("conflict_state")) or "unresolved"
+        conflict_state = _conflict_state_name(record)
         target_count = _int_value(record.get("target_count"))
         source_size = _int_value(record.get("source_size"))
         table_size = _int_value(record.get("table_size"))
@@ -3241,8 +3269,9 @@ def _analysis_xrefs(
             f"table:candidate_unresolved:status:{_safe_part(status)}",
             f"table:candidate_unresolved:shape:{_safe_part(shape)}",
             f"table:candidate_unresolved:flow:{_safe_part(flow)}",
-            f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}",
         ]
+        if conflict_state:
+            features.append(f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}")
         if source_size is not None:
             features.append("table:candidate_unresolved:source_range")
         if table_size is not None:
@@ -3317,7 +3346,7 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, f"memory-layout:storage_effect:{_safe_part(effect_kind_name)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
                 stable_key=stable_key, symbol=effect_kind_name, value=record_value, text=row_text or memory_kind))
-        conflict_state = _string_value(record.get("conflict_state"))
+        conflict_state = _conflict_state_name(record)
         if _bool_value(record.get("conflicted")):
             xrefs.append(_xref(row, "memory-layout:conflict", "memory_layout", section=section_index,
                 offset=source_offset, row_index=row_index, stable_key=stable_key, symbol=memory_kind,

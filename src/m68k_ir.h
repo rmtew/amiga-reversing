@@ -822,6 +822,13 @@ typedef enum M68kAbsoluteMemoryOwnerKind {
   M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY = 7
 } M68kAbsoluteMemoryOwnerKind;
 
+typedef enum M68kAnalysisConflictState {
+  M68K_ANALYSIS_CONFLICT_STATE_CLEAN = 0,
+  M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP = 1,
+  M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED = 2,
+  M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED = 3
+} M68kAnalysisConflictState;
+
 typedef struct M68kAbsoluteMemoryRefIR {
   uint32_t offset;
   uint32_t operand_index;

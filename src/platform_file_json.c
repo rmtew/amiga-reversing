@@ -17,6 +17,7 @@ static const char *runtime_view_relationship_kind_name(uint8_t kind);
 static int append_runtime_view_relationship_json(JsonBuilder *builder,
   const M68kRuntimeViewRelationshipIR *relationship);
 static const char *absolute_memory_owner_kind_name(uint8_t owner_kind);
+static const char *analysis_conflict_state_name(uint8_t conflict_state);
 static void absolute_memory_ref_owner_symbols(const M68kAbsoluteMemoryRefIR *ref,
   const char **out_symbol, const char **out_base_symbol);
 static const char *listing_operand_access_name(uint8_t access_kind);
@@ -142,6 +143,21 @@ static const char *absolute_memory_owner_kind_name(uint8_t owner_kind) {
   case M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY:
     return "absolute_memory";
   case M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN:
+  default:
+    return "unknown";
+  }
+}
+
+static const char *analysis_conflict_state_name(uint8_t conflict_state) {
+  switch (conflict_state) {
+  case M68K_ANALYSIS_CONFLICT_STATE_CLEAN:
+    return "clean";
+  case M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP:
+    return "code_overlap";
+  case M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED:
+    return "unresolved";
+  case M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED:
+    return "conflicted";
   default:
     return "unknown";
   }
@@ -1865,8 +1881,10 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
       }
       if (json_builder_append(builder, ",\"detail\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, site->detail) != 0) return -1;
-      if (json_builder_append(builder,
-          ",\"confidence\":\"diagnostic\",\"conflict_state\":\"unresolved\"}") != 0)
+      if (json_builder_appendf(builder,
+          ",\"confidence\":\"diagnostic\",\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
+          (unsigned)M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED,
+          analysis_conflict_state_name(M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED)) != 0)
         return -1;
     }
   }
@@ -1924,10 +1942,15 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
     if (item->has_consumer) {
       if (json_builder_appendf(builder, "%u", (unsigned)item->consumer_offset) != 0) return -1;
     } else if (json_builder_append(builder, "null") != 0) return -1;
-    if (json_builder_appendf(builder,
-        ",\"confidence\":\"tool_inferred\",\"conflicted\":%s,\"conflict_state\":\"%s\"}",
-        code_overlap ? "true" : "false", code_overlap ? "code_overlap" : "clean") != 0)
-      return -1;
+    {
+      uint8_t conflict_state = code_overlap ? M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP :
+        M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
+      if (json_builder_appendf(builder,
+          ",\"confidence\":\"tool_inferred\",\"conflicted\":%s,\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
+          code_overlap ? "true" : "false", (unsigned)conflict_state,
+          analysis_conflict_state_name(conflict_state)) != 0)
+        return -1;
+    }
   }
   return 0;
 }
@@ -2094,7 +2117,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
     uint32_t range_end = first->offset + first->size;
     uint32_t field_count = 0U;
     uint8_t conflicted = 0U;
-    const char *conflict_state = "clean";
+    uint8_t conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
     size_t probe;
     int seen = 0;
     if (UINT32_MAX - first->offset < first->size) continue;
@@ -2115,8 +2138,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (field_end > range_end) range_end = field_end;
       if (field->conflicted) {
         conflicted = 1U;
-        if (field->conflict_reason != NULL && field->conflict_reason[0] != '\0')
-          conflict_state = field->conflict_reason;
+        conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED;
       }
       ++field_count;
     }
@@ -2134,8 +2156,10 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
     if (json_builder_appendf(builder, ",\"field_count\":%u", (unsigned)field_count) != 0) return -1;
     if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
         (int64_t)range_start, range_end - range_start) != 0) return -1;
-    if (json_builder_appendf(builder, ",\"confidence\":%u,\"conflicted\":%s,\"conflict_state\":\"%s\"}",
-        (unsigned)M68K_FACT_CONFIDENCE_TOOL_INFERRED, conflicted ? "true" : "false", conflict_state) != 0)
+    if (json_builder_appendf(builder,
+        ",\"confidence\":%u,\"conflicted\":%s,\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
+        (unsigned)M68K_FACT_CONFIDENCE_TOOL_INFERRED, conflicted ? "true" : "false",
+        (unsigned)conflict_state, analysis_conflict_state_name(conflict_state)) != 0)
       return -1;
   }
   for (field_index = 0U; field_index < source_analysis->base_layout_field_count; ++field_index) {
@@ -2169,10 +2193,15 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         (unsigned)field->offset, (unsigned)field->size) != 0) return -1;
     if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
         (int64_t)field->offset, field->size) != 0) return -1;
-    if (json_builder_appendf(builder, ",\"confidence\":%u,\"conflicted\":%s,\"conflict_state\":\"%s\"}",
-        (unsigned)field->confidence, field->conflicted ? "true" : "false",
-        field->conflicted ? (field->conflict_reason != NULL && field->conflict_reason[0] != '\0' ?
-          field->conflict_reason : "conflicted") : "clean") != 0) return -1;
+    {
+      uint8_t conflict_state = field->conflicted ? M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED :
+        M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
+      if (json_builder_appendf(builder,
+          ",\"confidence\":%u,\"conflicted\":%s,\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
+          (unsigned)field->confidence, field->conflicted ? "true" : "false",
+          (unsigned)conflict_state, analysis_conflict_state_name(conflict_state)) != 0)
+        return -1;
+    }
   }
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
@@ -2407,11 +2436,16 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_append_nullable_string(builder, owner_symbol) != 0) return -1;
       if (json_builder_append(builder, ",\"owner_base_symbol\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, owner_base_symbol) != 0) return -1;
-      if (json_builder_appendf(builder,
-          ",\"owner_offset\":%u,\"confidence\":%u,\"conflicted\":%s,\"conflict_state\":\"%s\"}",
-          (unsigned)ref->owner_offset, (unsigned)ref->confidence, ref->conflicted ? "true" : "false",
-          ref->conflicted ? "code_overlap" : "clean") != 0) {
-        return -1;
+      {
+        uint8_t conflict_state = ref->conflicted ? M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP :
+          M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
+        if (json_builder_appendf(builder,
+            ",\"owner_offset\":%u,\"confidence\":%u,\"conflicted\":%s,"
+            "\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
+            (unsigned)ref->owner_offset, (unsigned)ref->confidence, ref->conflicted ? "true" : "false",
+            (unsigned)conflict_state, analysis_conflict_state_name(conflict_state)) != 0) {
+          return -1;
+        }
       }
     }
   }

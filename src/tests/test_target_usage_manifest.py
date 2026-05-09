@@ -64,6 +64,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "shape": "pcindex.brief",
                             "status": "unresolved",
                             "source_pattern": "pc_indexed_indirect",
+                            "conflict_state_id": 2,
                             "conflict_state": "unresolved",
                             "table_offset": 0x160,
                             "table_size": 2,
@@ -92,6 +93,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "consumer_offset": 0x20,
                             "confidence": "tool_inferred",
                             "conflicted": False,
+                            "conflict_state_id": 0,
                             "conflict_state": "clean",
                         }
                     ],
@@ -172,6 +174,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 0xDFF09C,
                             "confidence": 2,
                             "conflicted": True,
+                            "conflict_state_id": 1,
                             "conflict_state": "code_overlap",
                         },
                         {
@@ -1038,6 +1041,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "shape": "pcindex.brief",
                         "status": "unresolved",
                         "source_pattern": "pc_indexed_indirect",
+                        "conflict_state_id": 2,
                         "conflict_state": "unresolved",
                         "table_offset": 0x160,
                         "table_size": 2,
@@ -1063,6 +1067,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "consumer_section": 0,
                         "consumer_offset": 0x20,
                         "conflicted": False,
+                        "conflict_state_id": 0,
                         "conflict_state": "clean",
                     }
                 ],
@@ -1143,6 +1148,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "range_end": 0xDFF09C,
                             "confidence": 2,
                             "conflicted": True,
+                            "conflict_state_id": 1,
                             "conflict_state": "code_overlap",
                         },
                         {
