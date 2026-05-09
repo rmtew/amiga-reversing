@@ -1934,10 +1934,49 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
 
 static int platform_effect_is_storage_kind(uint8_t kind);
 
+static int source_analysis_base_layout_field_same_layout(const M68kBaseLayoutFieldIR *left,
+    const M68kBaseLayoutFieldIR *right) {
+  const char *left_layout;
+  const char *right_layout;
+  const char *left_base;
+  const char *right_base;
+  const char *left_sizeof;
+  const char *right_sizeof;
+  if (left == NULL || right == NULL) return 0;
+  left_layout = left->layout_name != NULL ? left->layout_name : "";
+  right_layout = right->layout_name != NULL ? right->layout_name : "";
+  left_base = left->base_symbol != NULL ? left->base_symbol : "";
+  right_base = right->base_symbol != NULL ? right->base_symbol : "";
+  left_sizeof = left->sizeof_symbol != NULL ? left->sizeof_symbol : "";
+  right_sizeof = right->sizeof_symbol != NULL ? right->sizeof_symbol : "";
+  return strcmp(left_layout, right_layout) == 0 && strcmp(left_base, right_base) == 0 &&
+    strcmp(left_sizeof, right_sizeof) == 0;
+}
+
+static size_t source_analysis_base_layout_record_count(const M68kSourceAnalysisIR *source_analysis) {
+  size_t index;
+  size_t count = 0U;
+  if (source_analysis == NULL) return 0U;
+  for (index = 0U; index < source_analysis->base_layout_field_count; ++index) {
+    size_t probe;
+    int seen = 0;
+    for (probe = 0U; probe < index; ++probe) {
+      if (source_analysis_base_layout_field_same_layout(&source_analysis->base_layout_fields[probe],
+          &source_analysis->base_layout_fields[index])) {
+        seen = 1;
+        break;
+      }
+    }
+    if (!seen) ++count;
+  }
+  return count;
+}
+
 static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysisIR *source_analysis) {
   size_t section_index;
   size_t count = 0U;
   if (source_analysis == NULL) return 0U;
+  count += source_analysis_base_layout_record_count(source_analysis);
   count += source_analysis->base_layout_field_count;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
@@ -2049,6 +2088,56 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
   size_t section_index;
   size_t emitted = 0U;
   if (builder == NULL || source_analysis == NULL) return -1;
+  for (field_index = 0U; field_index < source_analysis->base_layout_field_count; ++field_index) {
+    const M68kBaseLayoutFieldIR *first = &source_analysis->base_layout_fields[field_index];
+    uint32_t range_start = first->offset;
+    uint32_t range_end = first->offset + first->size;
+    uint32_t field_count = 0U;
+    uint8_t conflicted = 0U;
+    const char *conflict_state = "clean";
+    size_t probe;
+    int seen = 0;
+    if (UINT32_MAX - first->offset < first->size) continue;
+    for (probe = 0U; probe < field_index; ++probe) {
+      if (source_analysis_base_layout_field_same_layout(&source_analysis->base_layout_fields[probe], first)) {
+        seen = 1;
+        break;
+      }
+    }
+    if (seen) continue;
+    for (probe = field_index; probe < source_analysis->base_layout_field_count; ++probe) {
+      const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[probe];
+      uint32_t field_end;
+      if (!source_analysis_base_layout_field_same_layout(first, field)) continue;
+      if (UINT32_MAX - field->offset < field->size) continue;
+      field_end = field->offset + field->size;
+      if (field->offset < range_start) range_start = field->offset;
+      if (field_end > range_end) range_end = field_end;
+      if (field->conflicted) {
+        conflicted = 1U;
+        if (field->conflict_reason != NULL && field->conflict_reason[0] != '\0')
+          conflict_state = field->conflict_reason;
+      }
+      ++field_count;
+    }
+    if (range_end <= range_start || field_count == 0U) continue;
+    if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder,
+        "{\"record_kind\":\"base_layout\",\"memory_kind\":\"base_layout\",\"layout_name\":") != 0) {
+      return -1;
+    }
+    if (json_builder_append_nullable_string(builder, first->layout_name) != 0) return -1;
+    if (json_builder_append(builder, ",\"base_symbol\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, first->base_symbol) != 0) return -1;
+    if (json_builder_append(builder, ",\"sizeof_symbol\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, first->sizeof_symbol) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"field_count\":%u", (unsigned)field_count) != 0) return -1;
+    if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
+        (int64_t)range_start, range_end - range_start) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"confidence\":%u,\"conflicted\":%s,\"conflict_state\":\"%s\"}",
+        (unsigned)M68K_FACT_CONFIDENCE_TOOL_INFERRED, conflicted ? "true" : "false", conflict_state) != 0)
+      return -1;
+  }
   for (field_index = 0U; field_index < source_analysis->base_layout_field_count; ++field_index) {
     const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[field_index];
     const char *memory_kind = field->alias ? "base_layout_alias" : "base_layout_field";

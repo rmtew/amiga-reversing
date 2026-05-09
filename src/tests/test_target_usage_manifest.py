@@ -97,6 +97,18 @@ class TargetUsageManifestTests(unittest.TestCase):
                     ],
                     "memory_layout_records": [
                         {
+                            "record_kind": "base_layout",
+                            "memory_kind": "base_layout",
+                            "layout_name": "app",
+                            "base_symbol": "app",
+                            "sizeof_symbol": "app_SIZEOF",
+                            "field_count": 1,
+                            "range_space_kind": 1,
+                            "range_start": 0x234,
+                            "range_size": 4,
+                            "range_end": 0x238,
+                        },
+                        {
                             "record_kind": "base_layout_field",
                             "memory_kind": "base_layout_field",
                             "layout_name": "app",
@@ -645,7 +657,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["table:consumer"], 1)
         self.assertEqual(counts["table:entry_size:2"], 1)
         self.assertNotIn("table:conflict_state:clean", counts)
-        self.assertEqual(counts["memory-layout:any"], 7)
+        self.assertEqual(counts["memory-layout:any"], 8)
+        self.assertEqual(counts["memory-layout:record:base_layout"], 1)
         self.assertEqual(counts["memory-layout:record:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_view"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_address_ref"], 1)
@@ -653,6 +666,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout:record:platform_typed_access"], 1)
         self.assertEqual(counts["memory-layout:record:platform_storage_effect"], 1)
         self.assertEqual(counts["memory-layout:record:platform_unresolved_typed_access"], 1)
+        self.assertEqual(counts["memory-layout:kind:base_layout"], 1)
         self.assertEqual(counts["memory-layout:kind:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:kind:runtime_view_candidate"], 1)
         self.assertEqual(counts["memory-layout:kind:copper_list"], 1)
@@ -667,12 +681,12 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout:storage_effect"], 1)
         self.assertEqual(counts["memory-layout:storage_effect:write_typed_global_slot"], 1)
         self.assertEqual(counts["memory-layout:sink_address"], 1)
-        self.assertEqual(counts["memory-layout:range"], 7)
-        self.assertEqual(counts["memory-layout:range_space:1"], 3)
+        self.assertEqual(counts["memory-layout:range"], 8)
+        self.assertEqual(counts["memory-layout:range_space:1"], 4)
         self.assertEqual(counts["memory-layout:range_space:2"], 2)
         self.assertEqual(counts["memory-layout:range_space:3"], 1)
         self.assertEqual(counts["memory-layout:range_space:4"], 1)
-        self.assertEqual(counts["memory-layout:range_size:4"], 2)
+        self.assertEqual(counts["memory-layout:range_size:4"], 3)
         self.assertEqual(counts["memory-layout:conflict"], 1)
         self.assertEqual(counts["memory-layout:conflict:code_overlap"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
@@ -717,6 +731,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["table:any"][0]["consumer_offset"], 0x20)
         self.assertEqual(examples["table:any"][0]["conflict_state"], "clean")
         self.assertEqual(examples["table:any"][0]["source_pattern"], "indexed_word_dispatch")
+        self.assertEqual(examples["memory-layout:kind:base_layout"][0]["range_start"], 0x234)
         self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["symbol"], "app_0234")
         self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["range_start"], 0x234)
         self.assertEqual(examples["memory-layout:kind:base_layout_field"][0]["range_end"], 0x238)
@@ -1048,6 +1063,18 @@ class TargetUsageManifestTests(unittest.TestCase):
                     }
                 ],
                 "memory_layout_records": [
+                    {
+                        "record_kind": "base_layout",
+                        "memory_kind": "base_layout",
+                        "layout_name": "app",
+                        "base_symbol": "app",
+                        "sizeof_symbol": "app_SIZEOF",
+                        "field_count": 1,
+                        "range_space_kind": 1,
+                        "range_start": 0x234,
+                        "range_size": 4,
+                        "range_end": 0x238,
+                    },
                     {
                         "record_kind": "base_layout_field",
                         "memory_kind": "base_layout_field",
@@ -1439,6 +1466,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertNotIn(("table:conflict_state:clean", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:consumer", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:consumer", "table_consumer", 0x20, 1), by_feature)
+        self.assertIn(("memory-layout:record:base_layout", "memory_layout", None, None), by_feature)
+        self.assertIn(("memory-layout:kind:base_layout", "memory_layout", None, None), by_feature)
         self.assertIn(("memory-layout:kind:base_layout_field", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:platform_struct:AppState", "memory_layout", 0x30, 2), by_feature)
         self.assertIn(("memory-layout:kind:platform_struct_field", "memory_layout", 0x30, 2), by_feature)

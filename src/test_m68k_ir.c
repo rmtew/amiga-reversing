@@ -8974,7 +8974,13 @@ static int test_facts_v2_render_asm_source_app_slot_overlap_uses_rsset_alias(voi
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"base_layout_field_count\":2") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":3") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"record_kind\":\"base_layout\",\"memory_kind\":\"base_layout\",\"layout_name\":\"app\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"field_count\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"range_space_kind\":1,\"range_space\":\"base_relative\",\"range_start\":12,\"range_size\":4,"
+    "\"range_end\":16") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"record_kind\":\"base_layout_field\",\"memory_kind\":\"base_layout_alias\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
