@@ -60,6 +60,10 @@ PLATFORM_EFFECT_NAMES = {
     6: "write_global_base_slot",
     7: "write_typed_global_slot",
 }
+PLATFORM_EFFECT_WRITE_BASE_SLOT = 2
+PLATFORM_EFFECT_SET_TYPED_REG = 4
+PLATFORM_EFFECT_WRITE_TYPED_SLOT = 5
+PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT = 7
 DATA_ROLE_COPPER_LIST = 1 << 0
 DATA_ROLE_PALETTE = 1 << 1
 DATA_ROLE_POINTER_TABLE = 1 << 2
@@ -129,9 +133,9 @@ RUNTIME_VIEW_RELATIONSHIP_NAMES = {
     3: "overlaid_by_runtime_copy",
 }
 TYPED_STORAGE_EFFECT_TARGETS = {
-    "set_typed_reg": "register",
-    "write_typed_slot": "app_slot",
-    "write_typed_global_slot": "global_slot",
+    PLATFORM_EFFECT_SET_TYPED_REG: "register",
+    PLATFORM_EFFECT_WRITE_TYPED_SLOT: "app_slot",
+    PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT: "global_slot",
 }
 NUMERIC_ADDRESS_REG_ACCESS_RE = re.compile(r"\$[0-9A-Fa-f]{2,8}(?:\.[wlWL])?\([aA][0-7]\)")
 SUSPICIOUS_FIRST_STRUCT_NAMES = ("AmigaGuideMsg",)
@@ -1492,7 +1496,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             bag.add(f"memory-layout:platform_struct:{_safe_part(root_struct)}", example=example)
         if field_expr:
             bag.add(f"memory-layout:platform_field:{_safe_part(field_expr)}", example=example)
-        effect_kind_name = _string_value(record.get("effect_kind_name"))
+        effect_kind = _int_value(record.get("effect_kind"))
+        effect_kind_name = PLATFORM_EFFECT_NAMES.get(effect_kind) if effect_kind is not None else None
         if effect_kind_name:
             bag.add("memory-layout:storage_effect", example=example)
             bag.add(f"memory-layout:storage_effect:{_safe_part(effect_kind_name)}", example=example)
@@ -1557,7 +1562,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
                 bag.add(f"platform_effect:{effect_kind_name}", example=effect_example)
             if base_name:
                 bag.add(f"platform_base:{_safe_part(base_name)}", example=effect_example)
-                if effect_kind_name == "write_base_slot":
+                if effect_kind == PLATFORM_EFFECT_WRITE_BASE_SLOT:
                     bag.add("app_slot:base_slot", example=effect_example)
                     bag.add(f"app_slot_base:{_safe_part(base_name)}", example=effect_example)
             semantic_kind = _string_value(effect.get("semantic_kind"))
@@ -1569,7 +1574,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             type_name = _string_value(effect.get("type_name"))
             if type_name:
                 bag.add(f"type:{_safe_part(type_name)}")
-                storage_target = TYPED_STORAGE_EFFECT_TARGETS.get(effect_kind_name or "")
+                storage_target = TYPED_STORAGE_EFFECT_TARGETS.get(effect_kind)
                 if storage_target:
                     bag.add("typed_storage:any", example=effect_example)
                     bag.add(f"typed_storage_kind:{_safe_part(effect_kind_name or 'unknown')}", example=effect_example)
@@ -3372,7 +3377,8 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, f"memory-layout:platform_field:{_safe_part(field_expr)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
                 stable_key=stable_key, symbol=field_expr, value=record_value, text=row_text or memory_kind))
-        effect_kind_name = _string_value(record.get("effect_kind_name"))
+        effect_kind = _int_value(record.get("effect_kind"))
+        effect_kind_name = PLATFORM_EFFECT_NAMES.get(effect_kind) if effect_kind is not None else None
         if effect_kind_name:
             xrefs.append(_xref(row, "memory-layout:storage_effect",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
@@ -3440,7 +3446,7 @@ def _analysis_xrefs(
                 xrefs.append(_xref(row, f"platform_effect:{effect_kind_name}", "platform_effect", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, value=effect_kind_name, text=row_text or effect_kind_name))
             if base_name:
                 xrefs.append(_xref(row, f"platform_base:{_safe_part(base_name)}", "platform_effect", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=base_name, text=row_text or base_name))
-                if effect_kind_name == "write_base_slot":
+                if effect_kind == PLATFORM_EFFECT_WRITE_BASE_SLOT:
                     xrefs.append(_xref(row, "app_slot:base_slot", "app_slot_base_slot", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=base_name, value=_int_value(effect.get("displacement")), text=row_text or base_name))
                     xrefs.append(_xref(row, f"app_slot_base:{_safe_part(base_name)}", "app_slot_base_slot", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, symbol=base_name, value=_int_value(effect.get("displacement")), text=row_text or base_name))
             semantic_kind = _string_value(effect.get("semantic_kind"))
@@ -3452,7 +3458,7 @@ def _analysis_xrefs(
             type_name = _string_value(effect.get("type_name"))
             if type_name:
                 xrefs.append(_xref(row, f"type:{_safe_part(type_name)}", "type", section=section_index, offset=offset, row_index=row_index, stable_key=stable_key, value=type_name, text=row_text or base_name or type_name))
-                storage_target = TYPED_STORAGE_EFFECT_TARGETS.get(effect_kind_name or "")
+                storage_target = TYPED_STORAGE_EFFECT_TARGETS.get(effect_kind)
                 if storage_target:
                     storage_text = row_text or base_name or type_name
                     storage_value = _int_value(effect.get("target_offset"))
