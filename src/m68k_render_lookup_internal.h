@@ -98,6 +98,11 @@ static inline int render_base_field_slot_owner_is_app_base(const M68kRenderBaseF
   return slot != NULL && slot->owner_kind == M68K_RENDER_BASE_FIELD_SLOT_OWNER_APP_BASE;
 }
 
+static inline int render_amiga_constant_value_by_symbol_id(uint16_t symbol_id, int32_t *out_value) {
+  if (out_value == NULL) return 0;
+  return amiga_os_find_constant_value_by_id(symbol_id, out_value);
+}
+
 typedef struct M68kRenderIndexedVectorWrapper {
   size_t section_index;
   uint32_t offset;

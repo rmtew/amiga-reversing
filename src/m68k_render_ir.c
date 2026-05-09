@@ -4154,7 +4154,7 @@ int structured_data_item_symbolic_operand_expr(const M68kDecodeSectionIR *sectio
       item->platform_field_id == M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_BASE_SIZE) {
     if (section != NULL && section->data != NULL && item->offset <= section->size &&
         section->size - item->offset >= 4U &&
-        amiga_os_find_constant_value("LIB_SIZE", &lib_size) &&
+        render_amiga_constant_value_by_symbol_id(AMIGA_OS_SYMBOL_ID_LIB_SIZE, &lib_size) &&
         lib_size > 0 && (int32_t)m68k_read_u32be(section->data + item->offset) == lib_size) {
       snprintf(expr, expr_size, "LIB_SIZE");
       return 1;
@@ -5257,7 +5257,9 @@ int library_base_can_use_app_extension_slot(const char *owner_name, int16_t disp
   int32_t lib_size = 0;
   char kb_symbol[64];
   if (owner_name == NULL || owner_name[0] == '\0') return 0;
-  if (!amiga_os_find_constant_value("LIB_SIZE", &lib_size) || displacement < lib_size) return 0;
+  if (!render_amiga_constant_value_by_symbol_id(AMIGA_OS_SYMBOL_ID_LIB_SIZE, &lib_size) ||
+      displacement < lib_size)
+    return 0;
   if (library_base_has_specific_struct_name(owner_name) &&
       kb_library_base_field_symbol_name(owner_name, displacement, kb_symbol, sizeof(kb_symbol))) {
     return 0;
@@ -5719,7 +5721,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
   has_resident_context = lookup_has_amiga_resident_library_context(lookup);
   has_app_sizeof_value = render_app_rs_resident_sizeof_value(lookup, decode, &app_sizeof_value);
   if (has_resident_context) {
-    if (!amiga_os_find_constant_value("LIB_SIZE", &lib_size) || lib_size <= 0) {
+    if (!render_amiga_constant_value_by_symbol_id(AMIGA_OS_SYMBOL_ID_LIB_SIZE, &lib_size) || lib_size <= 0) {
       goto cleanup;
     }
     base_offset = lib_size;

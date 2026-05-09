@@ -8753,7 +8753,7 @@ static int render_lookup_analyze_amiga_app_state_slots(M68kRenderLookup *lookup,
   if (lookup->object == NULL || lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK)
     return 0;
   if (lookup_has_amiga_resident_library_context(lookup) &&
-      !amiga_os_find_constant_value("LIB_SIZE", &min_app_displacement)) {
+      !render_amiga_constant_value_by_symbol_id(AMIGA_OS_SYMBOL_ID_LIB_SIZE, &min_app_displacement)) {
     return 0;
   }
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {

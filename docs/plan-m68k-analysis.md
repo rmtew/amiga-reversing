@@ -66,7 +66,9 @@ id, not the display string. Resident node-type decisions now use generated Amiga
 symbol ids for `NT_LIBRARY`, `NT_DEVICE`, and `NT_RESOURCE`; node-type names are
 display/export text only. Render lookup base-field slots now carry an explicit
 owner-kind byte, so app-base slot decisions use compact state rather than
-comparing the `__amiga_app_base__` display symbol.
+comparing the `__amiga_app_base__` display symbol. Static `LIB_SIZE` decisions
+use the generated `AMIGA_OS_SYMBOL_ID_LIB_SIZE`; name-based constant lookup is
+kept only for arbitrary source-symbol output.
 
 | Topic | Current evidence | Gap to address |
 | --- | --- | --- |
