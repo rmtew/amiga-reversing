@@ -1379,7 +1379,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         for key in (
             "layout_name", "base_symbol", "symbol", "root_struct_name", "owner_struct_name",
             "field_name", "field_expr", "classification", "type_provenance_kind",
-            "access", "owner_kind", "owner_symbol", "owner_base_symbol",
+            "access", "owner_kind", "owner_symbol", "owner_base_symbol", "conflict_state",
         ):
             value = _string_value(record.get(key))
             if value:
@@ -1395,6 +1395,10 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             bag.add(f"memory-layout:platform_field:{_safe_part(field_expr)}", example=example)
         if _int_value(record.get("sink_address")) is not None:
             bag.add("memory-layout:sink_address", example=example)
+        conflict_state = _string_value(record.get("conflict_state"))
+        if conflict_state and conflict_state != "clean":
+            bag.add("memory-layout:conflict", example=example)
+            bag.add(f"memory-layout:conflict:{_safe_part(conflict_state)}", example=example)
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):
@@ -3199,6 +3203,14 @@ def _analysis_xrefs(
             xrefs.append(_xref(row, f"memory-layout:platform_field:{_safe_part(field_expr)}",
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
                 stable_key=stable_key, symbol=field_expr, value=record_value, text=row_text or memory_kind))
+        conflict_state = _string_value(record.get("conflict_state"))
+        if conflict_state and conflict_state != "clean":
+            xrefs.append(_xref(row, "memory-layout:conflict", "memory_layout", section=section_index,
+                offset=source_offset, row_index=row_index, stable_key=stable_key, symbol=memory_kind,
+                value=record_value, text=row_text or conflict_state))
+            xrefs.append(_xref(row, f"memory-layout:conflict:{_safe_part(conflict_state)}",
+                "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
+                stable_key=stable_key, symbol=memory_kind, value=record_value, text=row_text or conflict_state))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):

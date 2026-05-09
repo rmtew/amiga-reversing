@@ -136,7 +136,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "owner_base_symbol": "_custom",
                             "owner_offset": 0x9A,
                             "confidence": 2,
-                            "conflicted": False,
+                            "conflicted": True,
+                            "conflict_state": "code_overlap",
                         },
                         {
                             "record_kind": "platform_typed_access",
@@ -600,6 +601,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout:platform_struct:InputEvent"], 1)
         self.assertEqual(counts["memory-layout:platform_field:LIB_VERSION"], 1)
         self.assertEqual(counts["memory-layout:sink_address"], 1)
+        self.assertEqual(counts["memory-layout:conflict"], 1)
+        self.assertEqual(counts["memory-layout:conflict:code_overlap"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
         self.assertEqual(counts["hardware:custom"], 2)
         self.assertEqual(counts["hardware:custom/audio"], 1)
@@ -985,7 +988,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "owner_base_symbol": "_custom",
                             "owner_offset": 0x9A,
                             "confidence": 2,
-                            "conflicted": False,
+                            "conflicted": True,
+                            "conflict_state": "code_overlap",
                         },
                         {
                             "record_kind": "platform_typed_access",
@@ -1291,6 +1295,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("memory-layout:record:absolute_memory_ref", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("memory-layout:kind:hardware_register", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("memory-layout:sink_address", "memory_layout", 0x60, 5), by_feature)
+        self.assertIn(("memory-layout:conflict", "memory_layout", 0x60, 5), by_feature)
+        self.assertIn(("memory-layout:conflict:code_overlap", "memory_layout", 0x60, 5), by_feature)
         self.assertIn(("orphan-code:signal", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:reason:terminal_decode", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:status:unresolved", "orphan_code_signal", 0x84, 8), by_feature)

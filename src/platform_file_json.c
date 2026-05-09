@@ -1942,9 +1942,12 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_appendf(builder, "%u", (unsigned)field->source_offset) != 0) return -1;
     } else if (json_builder_append(builder, "null") != 0) return -1;
     if (json_builder_appendf(builder,
-        ",\"field_offset\":%u,\"field_size\":%u,\"confidence\":%u,\"conflicted\":%s}",
+        ",\"field_offset\":%u,\"field_size\":%u,\"confidence\":%u,\"conflicted\":%s,"
+        "\"conflict_state\":\"%s\"}",
         (unsigned)field->offset, (unsigned)field->size, (unsigned)field->confidence,
-        field->conflicted ? "true" : "false") != 0) return -1;
+        field->conflicted ? "true" : "false",
+        field->conflicted ? (field->conflict_reason != NULL && field->conflict_reason[0] != '\0' ?
+          field->conflict_reason : "conflicted") : "clean") != 0) return -1;
   }
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
@@ -2110,8 +2113,9 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_append(builder, ",\"owner_base_symbol\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, owner_base_symbol) != 0) return -1;
       if (json_builder_appendf(builder,
-          ",\"owner_offset\":%u,\"confidence\":%u,\"conflicted\":%s}",
-          (unsigned)ref->owner_offset, (unsigned)ref->confidence, ref->conflicted ? "true" : "false") != 0) {
+          ",\"owner_offset\":%u,\"confidence\":%u,\"conflicted\":%s,\"conflict_state\":\"%s\"}",
+          (unsigned)ref->owner_offset, (unsigned)ref->confidence, ref->conflicted ? "true" : "false",
+          ref->conflicted ? "code_overlap" : "clean") != 0) {
         return -1;
       }
     }

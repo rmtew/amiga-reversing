@@ -168,6 +168,12 @@ For an absolute addressed file, the base address and extent are part of the
 target model. Labels inside absolute runtime code must be tied to the runtime
 range that owns them, while source-copy labels stay tied to source storage.
 
+Absolute memory rows carry a compact conflict state. `clean` means the resolved
+address does not overlap accepted code in the current source view.
+`code_overlap` means the address does overlap accepted code; renderers must not
+treat that as a free data region unless another source/runtime mapping proves
+the overlap is intentional.
+
 ## ORG and Runtime Views
 
 `ORG` changes the assembler's logical PC. It is useful only when it represents a

@@ -12936,13 +12936,15 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   const M68kAbsoluteMemoryRefIR *exec_ref = NULL;
   const M68kAbsoluteMemoryRefIR *custom_ref = NULL;
   const M68kAbsoluteMemoryRefIR *absolute_ref = NULL;
+  const M68kAbsoluteMemoryRefIR *code_ref = NULL;
   char *source = NULL;
   char *analysis_json = NULL;
   size_t index;
-  uint8_t bytes[20] = {
+  uint8_t bytes[28] = {
     0x2Cu, 0x78u, 0x00u, 0x04u,
     0x33u, 0xFCu, 0x12u, 0x34u, 0x00u, 0xDFu, 0xF0u, 0x9Au,
     0x41u, 0xF9u, 0x00u, 0x07u, 0x00u, 0x00u,
+    0x33u, 0xFCu, 0x12u, 0x34u, 0x00u, 0x00u, 0x00u, 0x00u,
     0x4Eu, 0x75u
   };
   memset(&section, 0, sizeof(section));
@@ -12958,12 +12960,13 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT_U32(3U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
+  M68K_C_ASSERT_U32(4U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
   for (index = 0U; index < source_analysis.sections[0].absolute_memory_ref_count; ++index) {
     const M68kAbsoluteMemoryRefIR *ref = &source_analysis.sections[0].absolute_memory_refs[index];
     if (ref->address == 4U) exec_ref = ref;
     else if (ref->address == 0x00DFF09AU) custom_ref = ref;
     else if (ref->address == 0x00070000U) absolute_ref = ref;
+    else if (ref->address == 0U) code_ref = ref;
   }
   M68K_C_ASSERT(exec_ref != NULL);
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL, exec_ref->owner_kind);
@@ -12977,9 +12980,12 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY, absolute_ref->owner_kind);
   M68K_C_ASSERT_U32(M68K_SIM_ACCESS_COMPUTE_ADDRESS, absolute_ref->access_kind);
   M68K_C_ASSERT_U32(0U, absolute_ref->access_width);
+  M68K_C_ASSERT(code_ref != NULL);
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR, code_ref->owner_kind);
+  M68K_C_ASSERT_U32(1U, code_ref->conflicted);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":3") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":4") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"execbase_literal\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
@@ -12987,6 +12993,8 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_symbol\":\"intena\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"absolute_memory\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state\":\"clean\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state\":\"code_overlap\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   free(analysis_json);
