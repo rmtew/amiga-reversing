@@ -1541,6 +1541,11 @@ def _table_base_expression_name(record: dict[str, Any]) -> str | None:
     return None
 
 
+def _table_role_name(record: dict[str, Any]) -> str:
+    role_flags = _int_value(record.get("role_flags"), 0) or 0
+    return _data_role_name(role_flags) or "unknown"
+
+
 def _add_indirect_site_features(bag: FeatureBag, section_index: int, site: dict[str, Any]) -> None:
     status = _recovered_indirect_status_name(site)
     shape = _recovered_indirect_shape_name(site)
@@ -1635,7 +1640,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             bag.add("diagnostic:cpu_violation", violation_count)
     _add_decompression_analysis_features(analysis, bag)
     for table in _dict_items(analysis.get("table_records")):
-        role = _string_value(table.get("role")) or "unknown"
+        role = _table_role_name(table)
         table_kind = _table_kind_name(table)
         section_index = _int_value(table.get("section_index"), 0)
         offset = _int_value(table.get("offset"))
@@ -3567,7 +3572,7 @@ def _analysis_xrefs(
                 xrefs.append(_xref(row, "diagnostic:cpu_violation", "diagnostic", value=index, text="CPU violation"))
     xrefs.extend(_decompression_analysis_xrefs(row, analysis, row_locations))
     for table in _dict_items(analysis.get("table_records")):
-        role = _string_value(table.get("role")) or "unknown"
+        role = _table_role_name(table)
         table_kind = _table_kind_name(table)
         section_index = _int_value(table.get("section_index"), 0)
         offset = _int_value(table.get("offset"))

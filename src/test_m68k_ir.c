@@ -4493,7 +4493,7 @@ static int test_facts_v2_word_dispatch_promotes_far_relative_targets(void) {
   M68K_C_ASSERT(strstr(analysis_json,
     "\"has_target\":true,\"target_section\":0,\"target_offset\":22") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"table_record_count\":1,\"table_records\":[{\"section_index\":0,"
-    "\"offset\":18,\"size\":4,\"entry_size\":2,\"entry_count\":2,\"role\":\"lookup_table\","
+    "\"offset\":18,\"size\":4,\"entry_size\":2,\"entry_count\":2,\"role_flags\":8,\"role\":\"lookup_table\","
     "\"table_kind_id\":3,\"table_kind\":\"relative_code_dispatch\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"base_expression_id\":2,\"base_expression\":\"target_label\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"consumer_section\":0,\"consumer_offset\":12") != NULL);
@@ -4621,7 +4621,8 @@ static int test_table_records_use_role_flags_not_text(void) {
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"table_record_count\":1") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"role\":\"lookup_table\",\"table_kind_id\":1,\"table_kind\":\"scalar\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"role_flags\":8,\"role\":\"lookup_table\",\"table_kind_id\":1,\"table_kind\":\"scalar\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"role\":\"pointer_table\"") == NULL);
   free(analysis_json);
   return 0;

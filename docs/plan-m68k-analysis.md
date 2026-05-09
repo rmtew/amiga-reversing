@@ -225,7 +225,8 @@ proves a distinct base id.
 
 4. Add lookup-table records:
    - table base label and source range: implemented as C JSON
-     `table_records` for accepted structured lookup/pointer tables
+     `table_records` for accepted structured lookup/pointer tables, with
+     table role represented by C `role_flags`
    - consumer instruction/source provenance: implemented for auto-classified
      structured table data as `consumer_section`/`consumer_offset`
    - source-pattern provenance: implemented as C `source_pattern_id` on

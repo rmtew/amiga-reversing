@@ -1918,12 +1918,13 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
   for (index = 0U; index < policy->structured_data_item_count &&
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
+    uint32_t role_flags = structured_data_item_role_flags_json(item);
     uint8_t table_kind_id = structured_data_item_table_kind_id(item);
     uint8_t base_expression_id = item->has_target ? M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TARGET_LABEL :
       M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TABLE_LABEL;
     const char *table_kind = m68k_analysis_table_kind_name(table_kind_id);
     const char *base_expression = m68k_analysis_table_base_expression_name(base_expression_id);
-    const char *role_name = m68k_analysis_structured_data_role_name_for_flags(structured_data_item_role_flags_json(item));
+    const char *role_name = m68k_analysis_structured_data_role_name_for_flags(role_flags);
     int code_overlap = source_analysis_range_overlaps_accepted_code(source_analysis, item);
     uint32_t entry_size = structured_data_item_entry_size(item);
     uint32_t entry_count = entry_size != 0U ? item->size / entry_size : 0U;
@@ -1934,9 +1935,10 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
       if (json_builder_appendf(builder, "%u", (unsigned)item->section_index) != 0) return -1;
     } else if (json_builder_append(builder, "null") != 0) return -1;
     if (json_builder_appendf(builder,
-        ",\"offset\":%u,\"size\":%u,\"entry_size\":%u,\"entry_count\":%u,\"role\":",
+        ",\"offset\":%u,\"size\":%u,\"entry_size\":%u,\"entry_count\":%u",
         (unsigned)item->offset, (unsigned)item->size, (unsigned)entry_size, (unsigned)entry_count) != 0)
       return -1;
+    if (json_builder_appendf(builder, ",\"role_flags\":%u,\"role\":", (unsigned)role_flags) != 0) return -1;
     if (json_builder_append_json_string(builder, role_name) != 0) return -1;
     if (json_builder_appendf(builder, ",\"table_kind_id\":%u,\"table_kind\":", (unsigned)table_kind_id) != 0)
       return -1;
