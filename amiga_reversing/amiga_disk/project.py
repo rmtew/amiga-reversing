@@ -55,6 +55,21 @@ DECOMPRESSION_STATUS_MATERIALIZABLE = 2
 DECOMPRESSION_STATUS_SIMULATED_OUTPUT_OBSERVED = 5
 DECOMPRESSION_PAYLOAD_ROLE_PRIMARY_PROGRAM = 2
 DECOMPRESSION_PARENT_REMAINS_ACTIVE_FALSE = 1
+DECOMPRESSION_PAYLOAD_ROLE_NAMES = {
+    1: "unknown_runtime_payload",
+    2: "primary_program",
+}
+DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_NAMES = {
+    1: "tool_inferred",
+    2: "native_unpack_entry_validated",
+    3: "signature_only",
+    4: "observed_output_only",
+}
+DECOMPRESSION_PARENT_REMAINS_ACTIVE_NAMES = {
+    0: "unknown",
+    1: "false",
+    2: "true",
+}
 
 
 def _materialized_bootloader_disk_stage_targets(
@@ -126,24 +141,24 @@ def _str_field(payload: dict[str, object], key: str) -> str | None:
 
 def _decompression_role_fields(payload: dict[str, object]) -> dict[str, object]:
     fields: dict[str, object] = {}
-    payload_role = _str_field(payload, "payload_role")
-    payload_role_confidence = _str_field(payload, "payload_role_confidence")
-    parent_remains_active = payload.get("parent_remains_active")
     payload_role_id = _int_field(payload, "payload_role_id")
     payload_role_confidence_id = _int_field(payload, "payload_role_confidence_id")
     parent_remains_active_id = _int_field(payload, "parent_remains_active_id")
     if payload_role_id is not None:
         fields["payload_role_id"] = payload_role_id
-    if payload_role is not None:
-        fields["payload_role"] = payload_role
+        payload_role = DECOMPRESSION_PAYLOAD_ROLE_NAMES.get(payload_role_id)
+        if payload_role is not None:
+            fields["payload_role"] = payload_role
     if payload_role_confidence_id is not None:
         fields["payload_role_confidence_id"] = payload_role_confidence_id
-    if payload_role_confidence is not None:
-        fields["payload_role_confidence"] = payload_role_confidence
+        payload_role_confidence = DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_NAMES.get(payload_role_confidence_id)
+        if payload_role_confidence is not None:
+            fields["payload_role_confidence"] = payload_role_confidence
     if parent_remains_active_id is not None:
         fields["parent_remains_active_id"] = parent_remains_active_id
-    if isinstance(parent_remains_active, (bool, str)):
-        fields["parent_remains_active"] = parent_remains_active
+        parent_remains_active = DECOMPRESSION_PARENT_REMAINS_ACTIVE_NAMES.get(parent_remains_active_id)
+        if parent_remains_active is not None:
+            fields["parent_remains_active"] = parent_remains_active
     return fields
 
 
