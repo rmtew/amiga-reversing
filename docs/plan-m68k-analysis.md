@@ -203,8 +203,9 @@ proves a distinct base id.
      do not promote the orphan bytes to accepted code or invent ownership
    - absolute memory records export numeric owner-kind ids; corpus target rows
      summarize absolute-owner, range-space, and conflict views from numeric ids
-   - non-clean memory-layout conflicts are indexed from numeric C conflict-state
-     ids for corpus navigation: implemented for `code_overlap`
+   - non-clean memory-layout conflict states are indexed from numeric C
+     conflict-state ids for corpus navigation, including `code_overlap` and
+     unresolved candidates
    - copied-code entrypoints
    - stack, bitplane, copper, audio, and app-storage ranges when detected
    - ownership conflicts and accepted-code overlap gates

@@ -1775,8 +1775,11 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         if range_size is not None:
             bag.add(f"memory-layout:range_size:{range_size}", example=example)
         conflict_state = _conflict_state_name(record)
+        conflict_state_id = _conflict_state_id(record)
         if conflict_state:
             example["conflict_state"] = conflict_state
+        if conflict_state_id is not None and conflict_state_id != CONFLICT_STATE_CLEAN:
+            bag.add(f"memory-layout:conflict_state:{_safe_part(conflict_state)}", example=example)
         if _bool_value(record.get("conflicted")):
             bag.add("memory-layout:conflict", example=example)
             if conflict_state:
@@ -3758,6 +3761,11 @@ def _analysis_xrefs(
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
                 stable_key=stable_key, symbol=effect_kind_name, value=record_value, text=row_text or memory_kind))
         conflict_state = _conflict_state_name(record)
+        conflict_state_id = _conflict_state_id(record)
+        if conflict_state_id is not None and conflict_state_id != CONFLICT_STATE_CLEAN:
+            xrefs.append(_xref(row, f"memory-layout:conflict_state:{_safe_part(conflict_state)}",
+                "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
+                stable_key=stable_key, symbol=memory_kind, value=record_value, text=row_text or conflict_state))
         if _bool_value(record.get("conflicted")):
             xrefs.append(_xref(row, "memory-layout:conflict", "memory_layout", section=section_index,
                 offset=source_offset, row_index=row_index, stable_key=stable_key, symbol=memory_kind,
