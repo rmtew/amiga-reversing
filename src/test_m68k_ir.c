@@ -4496,6 +4496,7 @@ static int test_source_analysis_table_record_marks_code_overlap_conflict(void) {
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_record_count\":1,\"table_records\":[{\"section_index\":0,\"offset\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"conflicted\":true") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state\":\"code_overlap\"") != NULL);
   free(analysis_json);
   return 0;

@@ -91,6 +91,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "consumer_section": 0,
                             "consumer_offset": 0x20,
                             "confidence": "tool_inferred",
+                            "conflicted": False,
                             "conflict_state": "clean",
                         }
                     ],
@@ -599,7 +600,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["table:base:target_label"], 1)
         self.assertEqual(counts["table:consumer"], 1)
         self.assertEqual(counts["table:entry_size:2"], 1)
-        self.assertEqual(counts["table:conflict_state:clean"], 1)
+        self.assertNotIn("table:conflict_state:clean", counts)
         self.assertEqual(counts["memory-layout:any"], 6)
         self.assertEqual(counts["memory-layout:record:base_layout_field"], 1)
         self.assertEqual(counts["memory-layout:record:runtime_view"], 1)
@@ -962,6 +963,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "base_expression": "target_label",
                         "consumer_section": 0,
                         "consumer_offset": 0x20,
+                        "conflicted": False,
                         "conflict_state": "clean",
                     }
                 ],
@@ -1310,7 +1312,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("table:role:lookup_table", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:kind:relative_code_dispatch", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:source_pattern:indexed_word_dispatch", "table_record", 0x90, 7), by_feature)
-        self.assertIn(("table:conflict_state:clean", "table_record", 0x90, 7), by_feature)
+        self.assertNotIn(("table:conflict_state:clean", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:consumer", "table_record", 0x90, 7), by_feature)
         self.assertIn(("table:consumer", "table_consumer", 0x20, 1), by_feature)
         self.assertIn(("memory-layout:kind:base_layout_field", "memory_layout", 0x30, 2), by_feature)

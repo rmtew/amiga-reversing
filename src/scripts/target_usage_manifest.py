@@ -1363,7 +1363,9 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         if base_expression:
             example["base_expression"] = base_expression
         conflict_state = _string_value(table.get("conflict_state")) or "clean"
+        conflicted = _bool_value(table.get("conflicted"))
         example["conflict_state"] = conflict_state
+        example["conflicted"] = conflicted
         consumer_section = _int_value(table.get("consumer_section"))
         consumer_offset = _int_value(table.get("consumer_offset"))
         if consumer_section is not None and consumer_offset is not None:
@@ -1374,9 +1376,9 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         bag.add(f"table:kind:{_safe_part(table_kind)}", example=example)
         if source_pattern:
             bag.add(f"table:source_pattern:{_safe_part(source_pattern)}", example=example)
-        bag.add(f"table:conflict_state:{_safe_part(conflict_state)}", example=example)
-        if conflict_state != "clean":
+        if conflicted:
             bag.add("table:conflict", example=example)
+            bag.add(f"table:conflict_state:{_safe_part(conflict_state)}", example=example)
         if base_expression:
             bag.add(f"table:base:{_safe_part(base_expression)}", example=example)
         if consumer_section is not None and consumer_offset is not None:
@@ -1419,9 +1421,10 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         if _int_value(record.get("sink_address")) is not None:
             bag.add("memory-layout:sink_address", example=example)
         conflict_state = _string_value(record.get("conflict_state"))
-        if conflict_state and conflict_state != "clean":
+        if _bool_value(record.get("conflicted")):
             bag.add("memory-layout:conflict", example=example)
-            bag.add(f"memory-layout:conflict:{_safe_part(conflict_state)}", example=example)
+            if conflict_state:
+                bag.add(f"memory-layout:conflict:{_safe_part(conflict_state)}", example=example)
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):
@@ -3126,6 +3129,7 @@ def _analysis_xrefs(
         row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
         base_expression = _string_value(table.get("base_expression"))
         conflict_state = _string_value(table.get("conflict_state")) or "clean"
+        conflicted = _bool_value(table.get("conflicted"))
         source_pattern = _string_value(table.get("source_pattern"))
         entry_count = _int_value(table.get("entry_count"))
         consumer_section = _int_value(table.get("consumer_section"))
@@ -3134,10 +3138,10 @@ def _analysis_xrefs(
             "table:any",
             f"table:role:{_safe_part(role)}",
             f"table:kind:{_safe_part(table_kind)}",
-            f"table:conflict_state:{_safe_part(conflict_state)}",
         ]
-        if conflict_state != "clean":
+        if conflicted:
             features.append("table:conflict")
+            features.append(f"table:conflict_state:{_safe_part(conflict_state)}")
         if source_pattern:
             features.append(f"table:source_pattern:{_safe_part(source_pattern)}")
         if base_expression:
@@ -3235,13 +3239,14 @@ def _analysis_xrefs(
                 "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
                 stable_key=stable_key, symbol=field_expr, value=record_value, text=row_text or memory_kind))
         conflict_state = _string_value(record.get("conflict_state"))
-        if conflict_state and conflict_state != "clean":
+        if _bool_value(record.get("conflicted")):
             xrefs.append(_xref(row, "memory-layout:conflict", "memory_layout", section=section_index,
                 offset=source_offset, row_index=row_index, stable_key=stable_key, symbol=memory_kind,
                 value=record_value, text=row_text or conflict_state))
-            xrefs.append(_xref(row, f"memory-layout:conflict:{_safe_part(conflict_state)}",
-                "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
-                stable_key=stable_key, symbol=memory_kind, value=record_value, text=row_text or conflict_state))
+            if conflict_state:
+                xrefs.append(_xref(row, f"memory-layout:conflict:{_safe_part(conflict_state)}",
+                    "memory_layout", section=section_index, offset=source_offset, row_index=row_index,
+                    stable_key=stable_key, symbol=memory_kind, value=record_value, text=row_text or conflict_state))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
         for call in _dict_items(section.get("recovered_platform_calls")):
@@ -4155,6 +4160,10 @@ def _string_value(value: object) -> str | None:
 
 def _int_value(value: object, default: int | None = None) -> int | None:
     return value if isinstance(value, int) else default
+
+
+def _bool_value(value: object) -> bool:
+    return value if isinstance(value, bool) else False
 
 
 def _sort_int(value: object) -> int:

@@ -1913,8 +1913,8 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
       if (json_builder_appendf(builder, "%u", (unsigned)item->consumer_offset) != 0) return -1;
     } else if (json_builder_append(builder, "null") != 0) return -1;
     if (json_builder_appendf(builder,
-        ",\"confidence\":\"tool_inferred\",\"conflict_state\":\"%s\"}",
-        code_overlap ? "code_overlap" : "clean") != 0)
+        ",\"confidence\":\"tool_inferred\",\"conflicted\":%s,\"conflict_state\":\"%s\"}",
+        code_overlap ? "true" : "false", code_overlap ? "code_overlap" : "clean") != 0)
       return -1;
   }
   return 0;
@@ -3604,14 +3604,21 @@ typedef struct ListingAppSlotRefRecord {
   int16_t displacement;
   uint8_t base_reg;
   uint8_t operand_index;
+  uint8_t access_kind;
+  uint8_t width_kind;
   uint8_t width_size;
-  char width_name[16];
-  char access[16];
   size_t row_index;
   uint32_t addr;
   int section_index;
   char stable_key[128];
 } ListingAppSlotRefRecord;
+
+enum {
+  LISTING_APP_SLOT_WIDTH_UNKNOWN = 0,
+  LISTING_APP_SLOT_WIDTH_BYTE = 1,
+  LISTING_APP_SLOT_WIDTH_WORD = 2,
+  LISTING_APP_SLOT_WIDTH_LONG = 3
+};
 
 typedef struct ListingAppSlotSource {
   uint8_t valid;
@@ -3762,24 +3769,23 @@ static void listing_register_name(char *buf, size_t buf_size, uint8_t reg) {
   snprintf(buf, buf_size, "A%u", (unsigned)reg);
 }
 
-static void listing_app_slot_ref_width(const M68kStatementIR *stmt, char *width_name, size_t width_name_size,
-    uint8_t *out_width_size) {
+static uint8_t listing_app_slot_ref_width_kind(const M68kStatementIR *stmt, uint8_t *out_width_size) {
   uint8_t width_size = 1U;
-  const char *name = "unknown";
+  uint8_t width_kind = LISTING_APP_SLOT_WIDTH_UNKNOWN;
   if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION) {
     if (stmt->u.instruction.size_suffix == 'b') {
-      name = "byte";
+      width_kind = LISTING_APP_SLOT_WIDTH_BYTE;
       width_size = 1U;
     } else if (stmt->u.instruction.size_suffix == 'w') {
-      name = "word";
+      width_kind = LISTING_APP_SLOT_WIDTH_WORD;
       width_size = 2U;
     } else if (stmt->u.instruction.size_suffix == 'l') {
-      name = "long";
+      width_kind = LISTING_APP_SLOT_WIDTH_LONG;
       width_size = 4U;
     }
   }
-  listing_copy_text(width_name, width_name_size, name);
   if (out_width_size != NULL) *out_width_size = width_size;
+  return width_kind;
 }
 
 static int listing_app_slot_analysis_init(ListingAppSlotAnalysisBuilder *analysis,
@@ -4184,28 +4190,29 @@ static int listing_app_slot_analysis_observe_row(ListingAppSlotAnalysisBuilder *
     const M68kAppSlotRefIR *ref = &section->app_slot_refs[ref_index];
     char fallback_symbol[64];
     const char *symbol_name;
-    const char *access_kind;
     ListingAppSlotRefRecord record;
     if (ref->offset != stmt->offset) continue;
     symbol_name = listing_app_slot_ref_symbol_name(stmt, ref, fallback_symbol, sizeof(fallback_symbol));
-    access_kind = app_slot_access_kind_name(ref->access_kind);
-    if (symbol_name == NULL || access_kind == NULL) continue;
+    if (symbol_name == NULL || app_slot_access_kind_name(ref->access_kind) == NULL) continue;
     memset(&record, 0, sizeof(record));
     listing_copy_text(record.symbol, sizeof(record.symbol), symbol_name);
     record.displacement = ref->displacement;
     record.base_reg = ref->base_reg;
     record.operand_index = ref->operand_index;
-    listing_copy_text(record.access, sizeof(record.access), access_kind);
-    listing_app_slot_ref_width(strcmp(access_kind, "address") == 0 ? NULL : stmt, record.width_name,
-      sizeof(record.width_name), &record.width_size);
-    if (strcmp(access_kind, "address") == 0) record.width_size = 0U;
+    record.access_kind = ref->access_kind;
+    if (record.access_kind == M68K_APP_SLOT_ACCESS_ADDRESS) {
+      record.width_kind = LISTING_APP_SLOT_WIDTH_UNKNOWN;
+      record.width_size = 0U;
+    } else {
+      record.width_kind = listing_app_slot_ref_width_kind(stmt, &record.width_size);
+    }
     record.row_index = row_index;
     record.addr = stmt->offset;
     record.section_index = section_index;
     listing_row_stable_key(record.stable_key, sizeof(record.stable_key), section_index, stmt->offset, row_kind,
       row_index);
     if (listing_app_slot_analysis_append_ref(analysis, &record) != 0) return -1;
-    if (strcmp(access_kind, "address") == 0) {
+    if (record.access_kind == M68K_APP_SLOT_ACCESS_ADDRESS) {
       uint8_t target_reg = 0U;
       if (listing_app_slot_address_target_register(stmt, ref->operand_index, &target_reg)) {
         ListingAppSlotSource *source = listing_app_slot_source_for(analysis, section_index, target_reg);
@@ -4301,15 +4308,20 @@ static void listing_app_slot_summary_add_counts(ListingAppSlotSummary *summary, 
   if (summary == NULL || ref == NULL) return;
   ++summary->ref_count;
   if (ref->base_reg < 8U) summary->base_regs[ref->base_reg] = 1U;
-  if (strcmp(ref->access, "read") == 0) ++summary->access_read;
-  else if (strcmp(ref->access, "write") == 0) ++summary->access_write;
-  else if (strcmp(ref->access, "read-write") == 0) ++summary->access_read_write;
-  else if (strcmp(ref->access, "address") == 0) ++summary->access_address;
+  switch (ref->access_kind) {
+  case M68K_APP_SLOT_ACCESS_READ: ++summary->access_read; break;
+  case M68K_APP_SLOT_ACCESS_WRITE: ++summary->access_write; break;
+  case M68K_APP_SLOT_ACCESS_READ_WRITE: ++summary->access_read_write; break;
+  case M68K_APP_SLOT_ACCESS_ADDRESS: ++summary->access_address; break;
+  default: break;
+  }
   if (ref->width_size != 0U) {
-    if (strcmp(ref->width_name, "byte") == 0) ++summary->width_byte;
-    else if (strcmp(ref->width_name, "word") == 0) ++summary->width_word;
-    else if (strcmp(ref->width_name, "long") == 0) ++summary->width_long;
-    else ++summary->width_unknown;
+    switch (ref->width_kind) {
+    case LISTING_APP_SLOT_WIDTH_BYTE: ++summary->width_byte; break;
+    case LISTING_APP_SLOT_WIDTH_WORD: ++summary->width_word; break;
+    case LISTING_APP_SLOT_WIDTH_LONG: ++summary->width_long; break;
+    default: ++summary->width_unknown; break;
+    }
     if (ref->width_size > summary->observed_size) summary->observed_size = ref->width_size;
   }
   if (ref->row_index < summary->first_row_index) summary->first_row_index = ref->row_index;
@@ -4485,15 +4497,20 @@ static void listing_app_slot_field_ref_add_counts(ListingAppSlotFieldRefSummary 
     const ListingAppSlotRefRecord *ref) {
   if (summary == NULL || ref == NULL) return;
   ++summary->ref_count;
-  if (strcmp(ref->access, "read") == 0) ++summary->access_read;
-  else if (strcmp(ref->access, "write") == 0) ++summary->access_write;
-  else if (strcmp(ref->access, "read-write") == 0) ++summary->access_read_write;
-  else if (strcmp(ref->access, "address") == 0) ++summary->access_address;
+  switch (ref->access_kind) {
+  case M68K_APP_SLOT_ACCESS_READ: ++summary->access_read; break;
+  case M68K_APP_SLOT_ACCESS_WRITE: ++summary->access_write; break;
+  case M68K_APP_SLOT_ACCESS_READ_WRITE: ++summary->access_read_write; break;
+  case M68K_APP_SLOT_ACCESS_ADDRESS: ++summary->access_address; break;
+  default: break;
+  }
   if (ref->width_size != 0U) {
-    if (strcmp(ref->width_name, "byte") == 0) ++summary->width_byte;
-    else if (strcmp(ref->width_name, "word") == 0) ++summary->width_word;
-    else if (strcmp(ref->width_name, "long") == 0) ++summary->width_long;
-    else ++summary->width_unknown;
+    switch (ref->width_kind) {
+    case LISTING_APP_SLOT_WIDTH_BYTE: ++summary->width_byte; break;
+    case LISTING_APP_SLOT_WIDTH_WORD: ++summary->width_word; break;
+    case LISTING_APP_SLOT_WIDTH_LONG: ++summary->width_long; break;
+    default: ++summary->width_unknown; break;
+    }
   }
 }
 
@@ -4534,13 +4551,13 @@ static ListingAppSlotFieldRefSummary *listing_app_slot_build_field_refs(
       listing_copy_text(field->symbol, sizeof(field->symbol), ref->symbol);
       field->displacement = ref->displacement;
       field->field_offset = field_offset;
-      field->region_address = strcmp(ref->access, "address") == 0 && field_offset == 0 &&
+      field->region_address = ref->access_kind == M68K_APP_SLOT_ACCESS_ADDRESS && field_offset == 0 &&
         strcmp(ref->symbol, region->symbol) == 0;
       if (!field->region_address &&
           amiga_os_resolve_struct_field_by_struct_id(region->struct_id, field_offset, 0, &field->field)) {
         field->has_field = 1U;
       }
-    } else if (!(strcmp(ref->access, "address") == 0 && field_offset == 0 &&
+    } else if (!(ref->access_kind == M68K_APP_SLOT_ACCESS_ADDRESS && field_offset == 0 &&
         strcmp(ref->symbol, region->symbol) == 0)) {
       field->region_address = 0U;
       if (!field->has_field &&
@@ -4642,7 +4659,7 @@ static int append_listing_field_refs_json(JsonBuilder *builder, const ListingApp
       if (json_builder_appendf(builder, "{\"row_index\":%u,\"addr\":%u,\"access\":",
             (unsigned)ref->row_index, (unsigned)ref->addr) != 0)
         return -1;
-      if (json_builder_append_json_string(builder, ref->access) != 0) return -1;
+      if (json_builder_append_json_string(builder, app_slot_access_kind_name(ref->access_kind)) != 0) return -1;
       if (json_builder_append(builder, ",\"stable_key\":") != 0) return -1;
       if (json_builder_append_json_string(builder, ref->stable_key) != 0) return -1;
       if (json_builder_append(builder, "}") != 0) return -1;
@@ -6686,7 +6703,7 @@ static int append_listing_navigation_app_slot_ref_json(JsonBuilder *builder, con
   if (json_builder_append_json_string(builder, base_reg) != 0) return -1;
   if (json_builder_appendf(builder, ",\"operand_index\":%u,\"access\":", (unsigned)ref->operand_index) != 0)
     return -1;
-  if (json_builder_append_json_string(builder, ref->access) != 0) return -1;
+  if (json_builder_append_json_string(builder, app_slot_access_kind_name(ref->access_kind)) != 0) return -1;
   return json_builder_append(builder, "}");
 }
 
