@@ -62,7 +62,9 @@ text; render-plan rows, runtime-address refs, inferred runtime refs, listing
 JSON/navigation, table records, orphan nearby-data context, and platform runtime
 sink checks now consume numeric role flags directly. Orphan nearby-data relation
 state is now a compact C enum and corpus indexing consumes the exported relation
-id, not the display string.
+id, not the display string. Resident node-type decisions now use generated Amiga
+symbol ids for `NT_LIBRARY`, `NT_DEVICE`, and `NT_RESOURCE`; node-type names are
+display/export text only.
 
 | Topic | Current evidence | Gap to address |
 | --- | --- | --- |

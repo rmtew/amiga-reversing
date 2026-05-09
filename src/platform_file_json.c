@@ -253,9 +253,18 @@ typedef struct AmigaResidentInfo {
   AmigaResidentAutoinitInfo autoinit;
 } AmigaResidentInfo;
 
-static int amiga_constant_value(const char *name, int32_t *out_value) {
+static int amiga_constant_value_by_symbol_id(uint16_t symbol_id, int32_t *out_value) {
   if (out_value == NULL) return 0;
-  return amiga_os_find_constant_value(name, out_value);
+  return amiga_os_find_constant_value_by_id(symbol_id, out_value);
+}
+
+static int amiga_resident_node_type_is(uint8_t node_type, uint16_t symbol_id) {
+  int32_t value = 0;
+  return amiga_constant_value_by_symbol_id(symbol_id, &value) && node_type == (uint8_t)value;
+}
+
+static int amiga_resident_node_type_is_library(uint8_t node_type) {
+  return amiga_resident_node_type_is(node_type, AMIGA_OS_SYMBOL_ID_NT_LIBRARY);
 }
 
 static int first_code_section_index(const M68kObject *object, size_t *out_index) {
@@ -272,10 +281,9 @@ static int first_code_section_index(const M68kObject *object, size_t *out_index)
 }
 
 static const char *resident_node_type_name(uint8_t node_type) {
-  int32_t value = 0;
-  if (amiga_constant_value("NT_LIBRARY", &value) && node_type == (uint8_t)value) return "library";
-  if (amiga_constant_value("NT_DEVICE", &value) && node_type == (uint8_t)value) return "device";
-  if (amiga_constant_value("NT_RESOURCE", &value) && node_type == (uint8_t)value) return "resource";
+  if (amiga_resident_node_type_is_library(node_type)) return "library";
+  if (amiga_resident_node_type_is(node_type, AMIGA_OS_SYMBOL_ID_NT_DEVICE)) return "device";
+  if (amiga_resident_node_type_is(node_type, AMIGA_OS_SYMBOL_ID_NT_RESOURCE)) return "resource";
   return NULL;
 }
 
@@ -392,7 +400,8 @@ static int find_amiga_resident_info(const M68kObject *object, AmigaResidentInfo 
   memset(out_resident, 0, sizeof(*out_resident));
   if (first_code_section_index(object, &code_section_index)) code_section = &object->sections[code_section_index];
   if (code_section == NULL || code_section->data == NULL) return 0;
-  if (!amiga_constant_value("RTC_MATCHWORD", &matchword) || !amiga_constant_value("RTF_AUTOINIT", &autoinit_flag))
+  if (!amiga_constant_value_by_symbol_id(AMIGA_OS_SYMBOL_ID_RTC_MATCHWORD, &matchword) ||
+      !amiga_constant_value_by_symbol_id(AMIGA_OS_SYMBOL_ID_RTF_AUTOINIT, &autoinit_flag))
     return 0;
   if (field_matchword == NULL || field_matchtag == NULL || field_flags == NULL || field_version == NULL
       || field_type == NULL || field_pri == NULL || field_name == NULL || field_idstring == NULL
@@ -467,8 +476,8 @@ static int append_library_info_json(JsonBuilder *builder, const AmigaResidentInf
   size_t index;
   uint32_t public_count = 0U;
   uint32_t total_count = 0U;
-  if (resident == NULL || !resident->present || resident->name == NULL
-      || strcmp(resident->node_type_name != NULL ? resident->node_type_name : "", "library") != 0)
+  if (resident == NULL || !resident->present || resident->name == NULL ||
+      !amiga_resident_node_type_is_library(resident->node_type))
     return json_builder_append(builder, "null");
   library_id = amiga_os_name_id(1U, resident->name);
   if (amiga_os_name(1U, library_id) != NULL) {
