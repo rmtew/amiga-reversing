@@ -5054,9 +5054,9 @@ static int append_render_lookup_platform_effects_for_section(const M68kRenderLoo
   }
   for (index = 0U; index < lookup->base_field_slot_count; ++index) {
     const M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[index];
-    const char *base_name = amiga_library_base_name_for_render_effect(slot->library_name);
+    const char *base_name = amiga_library_base_name_for_render_effect_id(slot->library_id);
     if (slot->has_source == 0U || slot->source_section_index != section_analysis->section_index ||
-        slot->conflicted != 0U || !base_field_slot_is_base_pointer(slot) ||
+        slot->has_library_id == 0U || slot->conflicted != 0U || !base_field_slot_is_base_pointer(slot) ||
         base_name == NULL) {
       continue;
     }

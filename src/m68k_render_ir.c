@@ -5251,21 +5251,18 @@ int base_field_slot_is_base_pointer(const M68kRenderBaseFieldSlot *slot) {
     slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_DEVICE_BASE);
 }
 
-static uint16_t library_base_struct_id_for_library(const char *library_name) {
-  uint16_t library_id;
+static uint16_t library_base_struct_id_for_library_id(uint16_t library_id) {
   uint16_t struct_id;
-  if (library_name == NULL || library_name[0] == '\0') return AMIGA_OS_STRUCT_ID_NONE;
-  library_id = amiga_os_name_id(M68K_PLATFORM_NAME_LIBRARY, library_name);
   if (library_id == 0U) return AMIGA_OS_STRUCT_ID_NONE;
   struct_id = amiga_os_find_library_base_struct_id(library_id);
   return struct_id != AMIGA_OS_STRUCT_ID_NONE ? struct_id : AMIGA_OS_STRUCT_ID_LIB;
 }
 
 static uint16_t base_field_slot_struct_id(const M68kRenderBaseFieldSlot *slot) {
-  if (slot == NULL || slot->conflicted != 0U || slot->library_name[0] == '\0') return AMIGA_OS_STRUCT_ID_NONE;
+  if (slot == NULL || slot->conflicted != 0U || slot->has_library_id == 0U) return AMIGA_OS_STRUCT_ID_NONE;
   if (slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_DEVICE_BASE) return AMIGA_OS_STRUCT_ID_DD;
   if (slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_LIBRARY_BASE)
-    return library_base_struct_id_for_library(slot->library_name);
+    return library_base_struct_id_for_library_id(slot->library_id);
   return AMIGA_OS_STRUCT_ID_NONE;
 }
 
