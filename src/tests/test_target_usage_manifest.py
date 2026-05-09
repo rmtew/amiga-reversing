@@ -34,8 +34,30 @@ def _with_generated_listing_row_kind_ids(value: object) -> object:
     return value
 
 
+def _with_generated_xref_ids(value: object) -> object:
+    if isinstance(value, dict):
+        result = {key: _with_generated_xref_ids(item) for key, item in value.items()}
+        kind = result.get("kind")
+        feature = result.get("feature")
+        if isinstance(kind, str) and "kind_id" not in result:
+            kind_id = usage.XREF_KIND_IDS.get(kind)
+            if kind_id is not None:
+                result["kind_id"] = kind_id
+        if isinstance(feature, str) and "feature_id" not in result:
+            feature_id = usage.XREF_FEATURE_IDS.get(feature)
+            if feature_id is not None:
+                result["feature_id"] = feature_id
+        return result
+    if isinstance(value, list):
+        return [_with_generated_xref_ids(item) for item in value]
+    return value
+
+
 def _write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
-    path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
+    enriched_rows = _with_generated_xref_ids(rows)
+    if not isinstance(enriched_rows, list):
+        raise AssertionError("xref fixture helper must preserve list shape")
+    path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in enriched_rows), encoding="utf-8")
 
 
 class TargetUsageManifestTests(unittest.TestCase):
@@ -2167,6 +2189,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         ]
         snippets = _with_generated_listing_row_kind_ids(snippets)
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_type_flow_report(manifest_rows, xrefs, snippets)
 
         self.assertEqual(len(report), 1)
@@ -2266,6 +2289,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             },
         ]
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
 
         self.assertEqual(len(report), 1)
@@ -2305,6 +2329,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             }
         ]
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
 
         self.assertEqual(len(report), 1)
@@ -2349,6 +2374,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             }
         ]
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
 
         self.assertEqual(len(report), 1)
@@ -2396,6 +2422,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             }
         ]
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
 
         self.assertEqual(report[0]["access_size_counts"], {"2": 1})
@@ -2440,6 +2467,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             }
         ]
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
 
         self.assertEqual(report[0]["candidate_rankings"][0]["struct_name"], "IO")
@@ -2472,6 +2500,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             }
         ]
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, snippets)
 
         self.assertEqual(report[0]["classification"], "custom_tail_or_mistyped_base")
@@ -2518,6 +2547,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             },
         ]
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_unresolved_typed_field_report(manifest_rows, xrefs, [])
 
         first = next(row for row in report if row["displacement"] == 0x36)
@@ -2639,6 +2669,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         ]
         snippets: list[dict[str, object]] = []
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_type_flow_report(manifest_rows, xrefs, snippets)[0]
 
         self.assertEqual(report["counts"]["typed_base_unresolved_field"], 1)
@@ -2671,6 +2702,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             }
         ]
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_type_flow_report(manifest_rows, xrefs, [])[0]
 
         self.assertEqual(report["counts"]["custom_tail_or_mistyped_base"], 1)
@@ -2697,6 +2729,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             }
         ]
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_type_flow_suspicious_first_struct_report(manifest_rows, xrefs, snippets)
 
         self.assertEqual(report["total"], 2)
@@ -3037,6 +3070,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         ]
         snippets = _with_generated_listing_row_kind_ids(snippets)
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_type_flow_report(manifest_rows, xrefs, snippets)[0]
 
         self.assertEqual(
@@ -3629,6 +3663,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         ]
         snippets = _with_generated_listing_row_kind_ids(snippets)
 
+        xrefs = _with_generated_xref_ids(xrefs)
         report = usage.build_type_flow_storage_access_gap_report(rows, xrefs, snippets)
 
         self.assertEqual(report["total_storage_count"], 2)
@@ -3954,6 +3989,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             },
         ]
 
+        xrefs = _with_generated_xref_ids(xrefs)
         gate = usage.build_type_flow_gate_report(type_flow_rows, unresolved_rows, xrefs)
 
         self.assertEqual(gate["ok"], True)

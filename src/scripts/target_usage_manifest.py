@@ -172,6 +172,48 @@ TYPE_PROVENANCE_NAMES = {
     TYPE_PROVENANCE_PREFIX_REFINEMENT: "prefix_refinement",
     TYPE_PROVENANCE_FIELD_ADDRESS: "field_address",
 }
+XREF_KIND_PLATFORM_TYPED_ACCESS = 1
+XREF_KIND_TYPED_STORAGE = 2
+XREF_KIND_PLATFORM_UNRESOLVED_TYPED_ACCESS = 3
+XREF_KIND_PLATFORM_TYPE_REFINEMENT = 4
+XREF_KIND_APP_SLOT_API_ARG = 5
+XREF_KIND_APP_SLOT_GAP = 6
+XREF_KIND_APP_SLOT_FIELD_GAP = 7
+XREF_KIND_APP_SLOT_SUGGESTION = 8
+XREF_KIND_OS_CALL = 9
+XREF_KIND_STRUCT = 10
+XREF_KIND_TYPE = 11
+XREF_KIND_IDS = {
+    "platform_typed_access": XREF_KIND_PLATFORM_TYPED_ACCESS,
+    "typed_storage": XREF_KIND_TYPED_STORAGE,
+    "platform_unresolved_typed_access": XREF_KIND_PLATFORM_UNRESOLVED_TYPED_ACCESS,
+    "platform_type_refinement": XREF_KIND_PLATFORM_TYPE_REFINEMENT,
+    "app_slot_api_arg": XREF_KIND_APP_SLOT_API_ARG,
+    "app_slot_gap": XREF_KIND_APP_SLOT_GAP,
+    "app_slot_field_gap": XREF_KIND_APP_SLOT_FIELD_GAP,
+    "app_slot_suggestion": XREF_KIND_APP_SLOT_SUGGESTION,
+    "os_call": XREF_KIND_OS_CALL,
+    "struct": XREF_KIND_STRUCT,
+    "type": XREF_KIND_TYPE,
+}
+XREF_FEATURE_PLATFORM_TYPED_ACCESS_ANY = 1
+XREF_FEATURE_TYPED_STORAGE_ANY = 2
+XREF_FEATURE_TYPED_BASE_UNRESOLVED_FIELD = 3
+XREF_FEATURE_PLATFORM_TYPE_REFINEMENT_APPLIED = 4
+XREF_FEATURE_APP_SLOT_UNTYPED_API_ARG = 5
+XREF_FEATURE_APP_SLOT_GAP = 6
+XREF_FEATURE_APP_SLOT_FIELD_GAP = 7
+XREF_FEATURE_APP_SLOT_SUGGESTED_REGION = 8
+XREF_FEATURE_IDS = {
+    "platform_typed_access:any": XREF_FEATURE_PLATFORM_TYPED_ACCESS_ANY,
+    "typed_storage:any": XREF_FEATURE_TYPED_STORAGE_ANY,
+    "typed_base_unresolved_field": XREF_FEATURE_TYPED_BASE_UNRESOLVED_FIELD,
+    "platform_type_refinement:applied": XREF_FEATURE_PLATFORM_TYPE_REFINEMENT_APPLIED,
+    "app_slot:untyped_api_arg": XREF_FEATURE_APP_SLOT_UNTYPED_API_ARG,
+    "app_slot:gap": XREF_FEATURE_APP_SLOT_GAP,
+    "app_slot:field_gap": XREF_FEATURE_APP_SLOT_FIELD_GAP,
+    "app_slot:suggested_region": XREF_FEATURE_APP_SLOT_SUGGESTED_REGION,
+}
 UNRESOLVED_TYPED_FIELD_REPORT_CONTROL_TRANSFER = 1
 UNRESOLVED_TYPED_FIELD_REPORT_PREFIX_EXTENSION = 2
 UNRESOLVED_TYPED_FIELD_REPORT_CUSTOM_TAIL_OR_MISTYPED_BASE = 3
@@ -4797,6 +4839,8 @@ def _xref(
     owner_range_end: object = None,
 ) -> dict[str, object]:
     target_id = str(target_row.get("id"))
+    kind_id = XREF_KIND_IDS.get(kind)
+    feature_id = XREF_FEATURE_IDS.get(feature)
     payload: dict[str, object] = {
         "schema_version": 1,
         "target_id": target_id,
@@ -4815,6 +4859,10 @@ def _xref(
         "value": value if isinstance(value, (str, int, float, bool)) or value is None else str(value),
         "text": text or "",
     }
+    if kind_id is not None:
+        payload["kind_id"] = kind_id
+    if feature_id is not None:
+        payload["feature_id"] = feature_id
     if isinstance(struct_size, int):
         payload["struct_size"] = struct_size
     if isinstance(classification_id, int):
@@ -5037,6 +5085,14 @@ def _string_value(value: object) -> str | None:
 
 def _int_value(value: object, default: int | None = None) -> int | None:
     return value if isinstance(value, int) else default
+
+
+def _xref_kind_id(xref: dict[str, Any]) -> int:
+    return _int_value(xref.get("kind_id"), 0) or 0
+
+
+def _xref_feature_id(xref: dict[str, Any]) -> int:
+    return _int_value(xref.get("feature_id"), 0) or 0
 
 
 def _bool_value(value: object) -> bool:
@@ -6292,8 +6348,8 @@ def build_unresolved_typed_field_report(
 
     for xref in xrefs:
         if (
-            _string_value(xref.get("kind")) != "platform_unresolved_typed_access"
-            or _string_value(xref.get("feature")) != "typed_base_unresolved_field"
+            _xref_kind_id(xref) != XREF_KIND_PLATFORM_UNRESOLVED_TYPED_ACCESS
+            or _xref_feature_id(xref) != XREF_FEATURE_TYPED_BASE_UNRESOLVED_FIELD
         ):
             continue
         target_id = _string_value(xref.get("target_id"))
@@ -6563,6 +6619,8 @@ def build_type_flow_report(
         target_id = _string_value(xref.get("target_id"))
         feature = _string_value(xref.get("feature")) or ""
         kind = _string_value(xref.get("kind")) or ""
+        kind_id = _xref_kind_id(xref)
+        feature_id = _xref_feature_id(xref)
         if target_id is None:
             continue
         report = report_for(target_id)
@@ -6601,19 +6659,22 @@ def build_type_flow_report(
             example["type_provenance_kind"] = type_provenance_kind
             if _int_value(xref.get("type_provenance_offset")) is not None:
                 example["type_provenance_offset"] = xref.get("type_provenance_offset")
-        if kind == "platform_typed_access" and feature == "platform_typed_access:any":
+        if kind_id == XREF_KIND_PLATFORM_TYPED_ACCESS and feature_id == XREF_FEATURE_PLATFORM_TYPED_ACCESS_ANY:
             bump(report, "resolved_typed_access")
             if type_provenance_kind_id is not None:
                 bump_map(report, "typed_access_provenance_counts", type_provenance_kind)
                 bump(report, f"typed_access_provenance:{_safe_part(type_provenance_kind)}")
             add_example(report, "resolved_typed_access", example)
-        elif kind == "typed_storage" and feature == "typed_storage:any":
+        elif kind_id == XREF_KIND_TYPED_STORAGE and feature_id == XREF_FEATURE_TYPED_STORAGE_ANY:
             storage_target = _string_value(xref.get("access")) or "unknown"
             bump(report, "typed_storage")
             bump_map(report, "typed_storage_provenance_counts", storage_target)
             bump(report, f"typed_storage_provenance:{_safe_part(storage_target)}")
             add_example(report, "typed_storage", example)
-        elif kind == "platform_unresolved_typed_access" and feature == "typed_base_unresolved_field":
+        elif (
+            kind_id == XREF_KIND_PLATFORM_UNRESOLVED_TYPED_ACCESS
+            and feature_id == XREF_FEATURE_TYPED_BASE_UNRESOLVED_FIELD
+        ):
             bump(report, "typed_base_unresolved_field")
             if type_provenance_kind_id is not None:
                 bump(report, f"type_provenance:{_safe_part(type_provenance_kind)}")
@@ -6628,21 +6689,27 @@ def build_type_flow_report(
                 if _string_value(xref.get("symbol")):
                     bump(report, f"custom_tail_struct:{_safe_part(str(xref.get('symbol')))}")
             add_example(report, "typed_base_unresolved_field", example)
-        elif kind == "platform_type_refinement" and feature == "platform_type_refinement:applied":
+        elif (
+            kind_id == XREF_KIND_PLATFORM_TYPE_REFINEMENT
+            and feature_id == XREF_FEATURE_PLATFORM_TYPE_REFINEMENT_APPLIED
+        ):
             bump(report, "type_refinement_applied")
             if type_provenance_kind_id is not None:
                 bump(report, f"type_refinement_provenance:{_safe_part(type_provenance_kind)}")
             add_example(report, "type_refinement_applied", example)
-        elif kind == "app_slot_api_arg" and feature == "app_slot:untyped_api_arg":
+        elif kind_id == XREF_KIND_APP_SLOT_API_ARG and feature_id == XREF_FEATURE_APP_SLOT_UNTYPED_API_ARG:
             bump(report, "untyped_app_slot_api_arg")
             add_example(report, "untyped_app_slot_api_arg", example)
-        elif kind == "app_slot_gap" and feature == "app_slot:gap":
+        elif kind_id == XREF_KIND_APP_SLOT_GAP and feature_id == XREF_FEATURE_APP_SLOT_GAP:
             bump(report, "app_slot_gap")
             add_example(report, "app_slot_gap", example)
-        elif kind == "app_slot_field_gap" and feature == "app_slot:field_gap":
+        elif kind_id == XREF_KIND_APP_SLOT_FIELD_GAP and feature_id == XREF_FEATURE_APP_SLOT_FIELD_GAP:
             bump(report, "app_slot_field_gap")
             add_example(report, "app_slot_field_gap", example)
-        elif kind == "app_slot_suggestion" and feature == "app_slot:suggested_region":
+        elif (
+            kind_id == XREF_KIND_APP_SLOT_SUGGESTION
+            and feature_id == XREF_FEATURE_APP_SLOT_SUGGESTED_REGION
+        ):
             bump(report, "app_slot_suggested_region")
             add_example(report, "app_slot_suggested_region", example)
         if feature.startswith("platform_typed_access_struct:"):
@@ -6662,7 +6729,10 @@ def build_type_flow_report(
         row_index = _int_value(xref.get("row_index"))
         if target_id is None or row_index is None:
             continue
-        if _string_value(xref.get("kind")) == "platform_type_refinement" and feature == "platform_type_refinement:applied":
+        if (
+            _xref_kind_id(xref) == XREF_KIND_PLATFORM_TYPE_REFINEMENT
+            and _xref_feature_id(xref) == XREF_FEATURE_PLATFORM_TYPE_REFINEMENT_APPLIED
+        ):
             refinements_by_target.setdefault(target_id, []).append(xref)
         elif feature.startswith("platform_typed_access_struct:"):
             typed_structs_by_target.setdefault(target_id, []).append(xref)
@@ -7357,7 +7427,7 @@ def _type_flow_row_context(row: dict[str, Any]) -> dict[str, object]:
 def _type_flow_access_structs_by_target_row(xrefs: list[dict[str, Any]]) -> dict[tuple[str, int], set[str]]:
     structs_by_row: dict[tuple[str, int], set[str]] = {}
     for xref in xrefs:
-        if _string_value(xref.get("kind")) != "platform_typed_access":
+        if _xref_kind_id(xref) != XREF_KIND_PLATFORM_TYPED_ACCESS:
             continue
         target_id = _string_value(xref.get("target_id"))
         row_index = _int_value(xref.get("row_index"))
@@ -7392,7 +7462,7 @@ def _type_flow_storage_nearby_api_call(
             continue
         for xref in row_xrefs:
             feature = _string_value(xref.get("feature")) or ""
-            if _string_value(xref.get("kind")) != "os_call" or not feature.startswith("os:"):
+            if _xref_kind_id(xref) != XREF_KIND_OS_CALL or not feature.startswith("os:"):
                 continue
             return _compact_example(
                 {
@@ -7515,18 +7585,21 @@ def build_type_flow_storage_access_gap_report(
     storage_xrefs: list[dict[str, Any]] = []
     for xref in xrefs:
         target_id = _string_value(xref.get("target_id"))
-        kind = _string_value(xref.get("kind"))
-        feature = _string_value(xref.get("feature")) or ""
+        kind_id = _xref_kind_id(xref)
+        feature_id = _xref_feature_id(xref)
         if target_id is None:
             continue
-        if kind == "typed_storage" and feature == "typed_storage:any":
+        if kind_id == XREF_KIND_TYPED_STORAGE and feature_id == XREF_FEATURE_TYPED_STORAGE_ANY:
             storage_xrefs.append(xref)
-        elif kind == "platform_typed_access" and feature == "platform_typed_access:any":
+        elif kind_id == XREF_KIND_PLATFORM_TYPED_ACCESS and feature_id == XREF_FEATURE_PLATFORM_TYPED_ACCESS_ANY:
             entry = dict(xref)
             row_index = _int_value(xref.get("row_index"))
             entry["structs"] = set(structs_by_row.get((target_id, row_index if row_index is not None else -1), set()))
             access_xrefs_by_target.setdefault(target_id, []).append(entry)
-        elif kind == "platform_unresolved_typed_access" and feature == "typed_base_unresolved_field":
+        elif (
+            kind_id == XREF_KIND_PLATFORM_UNRESOLVED_TYPED_ACCESS
+            and feature_id == XREF_FEATURE_TYPED_BASE_UNRESOLVED_FIELD
+        ):
             unresolved_xrefs_by_target.setdefault(target_id, []).append(xref)
     for values in access_xrefs_by_target.values():
         values.sort(key=lambda item: _sort_int(item.get("row_index")))
@@ -8123,13 +8196,13 @@ def build_type_flow_suspicious_first_struct_report(
         payload.update(example)
         examples.append(_compact_example(payload))
 
-    interesting_kinds = {
-        "platform_typed_access",
-        "platform_unresolved_typed_access",
-        "platform_type_refinement",
-        "typed_storage",
-        "struct",
-        "type",
+    interesting_kind_ids = {
+        XREF_KIND_PLATFORM_TYPED_ACCESS,
+        XREF_KIND_PLATFORM_UNRESOLVED_TYPED_ACCESS,
+        XREF_KIND_PLATFORM_TYPE_REFINEMENT,
+        XREF_KIND_TYPED_STORAGE,
+        XREF_KIND_STRUCT,
+        XREF_KIND_TYPE,
     }
     for xref in xrefs:
         target_id = _string_value(xref.get("target_id"))
@@ -8137,7 +8210,9 @@ def build_type_flow_suspicious_first_struct_report(
             continue
         kind = _string_value(xref.get("kind")) or ""
         feature = _string_value(xref.get("feature")) or ""
-        if kind not in interesting_kinds and not feature.startswith(("struct:", "type:", "platform_typed_access_")):
+        if _xref_kind_id(xref) not in interesting_kind_ids and not feature.startswith(
+            ("struct:", "type:", "platform_typed_access_")
+        ):
             continue
         haystack = " ".join(
             str(value)
@@ -8205,13 +8280,13 @@ def build_type_flow_correctness_report(
     xrefs: list[dict[str, Any]],
 ) -> dict[str, object]:
     violations: list[dict[str, object]] = []
-    suspicious_kinds = {
-        "platform_typed_access",
-        "platform_unresolved_typed_access",
-        "platform_type_refinement",
-        "typed_storage",
-        "struct",
-        "type",
+    suspicious_kind_ids = {
+        XREF_KIND_PLATFORM_TYPED_ACCESS,
+        XREF_KIND_PLATFORM_UNRESOLVED_TYPED_ACCESS,
+        XREF_KIND_PLATFORM_TYPE_REFINEMENT,
+        XREF_KIND_TYPED_STORAGE,
+        XREF_KIND_STRUCT,
+        XREF_KIND_TYPE,
     }
     for row in unresolved_typed_field_rows:
         dominant = row.get("dominant_candidate")
@@ -8238,7 +8313,12 @@ def build_type_flow_correctness_report(
     for xref in xrefs:
         kind = _string_value(xref.get("kind")) or ""
         feature = _string_value(xref.get("feature")) or ""
-        if kind == "platform_type_refinement" and feature == "platform_type_refinement:applied":
+        kind_id = _xref_kind_id(xref)
+        feature_id = _xref_feature_id(xref)
+        if (
+            kind_id == XREF_KIND_PLATFORM_TYPE_REFINEMENT
+            and feature_id == XREF_FEATURE_PLATFORM_TYPE_REFINEMENT_APPLIED
+        ):
             if _int_value(xref.get("classification_id")) != UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION:
                 violations.append(
                     {
@@ -8267,7 +8347,7 @@ def build_type_flow_correctness_report(
                         "text": xref.get("text"),
                     }
                 )
-        if kind in suspicious_kinds or feature.startswith(("struct:", "type:", "platform_typed_access_")):
+        if kind_id in suspicious_kind_ids or feature.startswith(("struct:", "type:", "platform_typed_access_")):
             haystack = " ".join(
                 str(value)
                 for value in (
@@ -8313,8 +8393,8 @@ def build_type_flow_correctness_report(
         "applied_refinement_count": sum(
             1
             for xref in xrefs
-            if _string_value(xref.get("kind")) == "platform_type_refinement"
-            and _string_value(xref.get("feature")) == "platform_type_refinement:applied"
+            if _xref_kind_id(xref) == XREF_KIND_PLATFORM_TYPE_REFINEMENT
+            and _xref_feature_id(xref) == XREF_FEATURE_PLATFORM_TYPE_REFINEMENT_APPLIED
         ),
         "dominant_candidate_count": sum(
             1 for row in unresolved_typed_field_rows if isinstance(row.get("dominant_candidate"), dict)
