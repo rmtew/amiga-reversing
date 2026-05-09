@@ -2157,8 +2157,8 @@ static int trace_state_record_runtime_storage_sink_ref(const M68kRuntimeAddressS
       dest_index, &sink_offset)) {
     return 0;
   }
-  if (platform_facts_v2_runtime_address_storage_sink_data_class(platform_kind, section->data, section->size,
-      sink_offset) == NULL) {
+  if (platform_facts_v2_runtime_address_storage_sink_data_class_flags(platform_kind, section->data, section->size,
+      sink_offset) == 0U) {
     return 0;
   }
   if (!trace_value_from_candidate_source(section_index, section, candidate, source_index, state, &value)) return 0;

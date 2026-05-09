@@ -1,6 +1,7 @@
 #include "platform_common.h"
 
 #include "m68k_decode_ir.h"
+#include "m68k_ir.h"
 #include "m68k_parse_util.h"
 #include "generated/m68k_cpu_runtime.h"
 #include "generated/amiga_os_runtime.h"
@@ -364,6 +365,27 @@ uint16_t platform_facts_v2_runtime_address_sink_kind(uint8_t platform_kind, uint
   }
 }
 
+static uint32_t amiga_runtime_target_kind_data_class_flags(uint16_t kind) {
+  switch (kind) {
+  case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_COPPER_LIST:
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST;
+  case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_DISK_BUFFER:
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_DISK_BUFFER;
+  case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BLITTER_SOURCE:
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_SOURCE;
+  case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BLITTER_DESTINATION:
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_DESTINATION;
+  case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_BITMAP:
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP;
+  case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SPRITE:
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE;
+  case AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE:
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE;
+  default:
+    return 0U;
+  }
+}
+
 const char *platform_facts_v2_runtime_address_sink_data_class(uint8_t platform_kind, uint32_t address) {
   switch (platform_kind) {
   case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
@@ -371,6 +393,16 @@ const char *platform_facts_v2_runtime_address_sink_data_class(uint8_t platform_k
       platform_facts_v2_runtime_address_sink_kind(platform_kind, address));
   default:
     return NULL;
+  }
+}
+
+uint32_t platform_facts_v2_runtime_address_sink_data_class_flags(uint8_t platform_kind, uint32_t address) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_runtime_target_kind_data_class_flags(
+      platform_facts_v2_runtime_address_sink_kind(platform_kind, address));
+  default:
+    return 0U;
   }
 }
 
@@ -414,6 +446,17 @@ const char *platform_facts_v2_runtime_address_storage_sink_data_class(uint8_t pl
       platform_facts_v2_runtime_address_storage_sink_kind(platform_kind, data, size, value_offset));
   default:
     return NULL;
+  }
+}
+
+uint32_t platform_facts_v2_runtime_address_storage_sink_data_class_flags(uint8_t platform_kind,
+    const uint8_t *data, uint32_t size, uint32_t value_offset) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    return amiga_runtime_target_kind_data_class_flags(
+      platform_facts_v2_runtime_address_storage_sink_kind(platform_kind, data, size, value_offset));
+  default:
+    return 0U;
   }
 }
 

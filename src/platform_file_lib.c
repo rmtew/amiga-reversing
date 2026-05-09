@@ -4031,8 +4031,7 @@ static const char *structured_data_kind_name_local(uint8_t kind) {
 
 static uint32_t structured_data_item_role_flags_local(const M68kAnalysisStructuredDataItem *item) {
   if (item == NULL) return 0U;
-  if (item->semantic_role_flags != 0U) return item->semantic_role_flags;
-  return m68k_analysis_structured_data_role_flags_for_text(item->semantic_role);
+  return item->semantic_role_flags;
 }
 
 static int append_nullable_u32_json_local(JsonBuilder *builder, uint8_t has_value, uint32_t value) {

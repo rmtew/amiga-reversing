@@ -111,7 +111,6 @@ void m68k_render_plan_row_set_source_range(M68kRenderPlanRow *row, uint32_t sect
 void m68k_render_plan_row_set_runtime_range(M68kRenderPlanRow *row, uint32_t address, uint32_t size);
 void m68k_render_plan_row_set_statement_metadata(M68kRenderPlanRow *row, uint8_t statement_kind,
   const M68kInstructionIR *instruction, const uint8_t *source_bytes, size_t source_byte_count);
-void m68k_render_plan_row_set_data_class(M68kRenderPlanRow *row, const char *data_class);
 void m68k_render_plan_row_set_data_class_flags(M68kRenderPlanRow *row, uint32_t data_class_flags);
 const M68kRenderPlanRow *m68k_render_plan_row_at(const M68kRenderPlan *plan, size_t row_index);
 const M68kRenderPlanRow *m68k_render_plan_find_row_for_line(const M68kRenderPlan *plan, uint32_t line,

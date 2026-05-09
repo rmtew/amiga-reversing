@@ -1673,8 +1673,7 @@ fail:
 
 static uint32_t structured_data_item_role_flags_json(const M68kAnalysisStructuredDataItem *item) {
   if (item == NULL) return 0U;
-  if (item->semantic_role_flags != 0U) return item->semantic_role_flags;
-  return m68k_analysis_structured_data_role_flags_for_text(item->semantic_role);
+  return item->semantic_role_flags;
 }
 
 static int append_source_analysis_policy_structured_items_json(JsonBuilder *builder,
@@ -3390,10 +3389,6 @@ static int append_listing_structured_data_json(JsonBuilder *builder, const M68kA
   return json_builder_append(builder, "}");
 }
 
-static int listing_data_class_is_known(const char *value) {
-  return m68k_analysis_structured_data_role_flags_for_text(value) != 0U;
-}
-
 static uint32_t listing_row_data_class_flags(const M68kAnalysisStructuredDataItem *item, const char *plan_data_class,
     uint32_t plan_data_class_flags) {
   uint32_t item_flags;
@@ -3403,8 +3398,7 @@ static uint32_t listing_row_data_class_flags(const M68kAnalysisStructuredDataIte
     if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING;
   }
   if (plan_data_class_flags != 0U) return plan_data_class_flags;
-  if (listing_data_class_is_known(plan_data_class))
-    return m68k_analysis_structured_data_role_flags_for_text(plan_data_class);
+  (void)plan_data_class;
   return 0U;
 }
 

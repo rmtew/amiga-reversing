@@ -229,11 +229,7 @@ static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRende
   row->label_line_runtime_mask = source->label_line_runtime_mask;
   memcpy(row->label_line_runtime_addresses, source->label_line_runtime_addresses,
     sizeof(row->label_line_runtime_addresses));
-  if (source->data_class_flags != 0U) {
-    m68k_render_plan_row_set_data_class_flags(row, source->data_class_flags);
-  } else {
-    m68k_render_plan_row_set_data_class(row, source->data_class);
-  }
+  if (source->data_class_flags != 0U) m68k_render_plan_row_set_data_class_flags(row, source->data_class_flags);
   if (source->has_source_range)
     m68k_render_plan_row_set_source_range(row, source->source_section_index, source->source_offset,
       source->source_size);
@@ -1606,8 +1602,7 @@ static void render_asm_ds_best_fit(M68kRenderIRPreview *preview, uint32_t offset
 
 static uint32_t structured_data_item_role_flags(const M68kAnalysisStructuredDataItem *item) {
   if (item == NULL) return 0U;
-  if (item->semantic_role_flags != 0U) return item->semantic_role_flags;
-  return m68k_analysis_structured_data_role_flags_for_text(item->semantic_role);
+  return item->semantic_role_flags;
 }
 
 static int structured_data_item_is_copper_list(const M68kAnalysisStructuredDataItem *item) {

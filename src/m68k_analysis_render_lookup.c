@@ -4027,15 +4027,15 @@ int render_lookup_add_runtime_address_ref(M68kRenderLookup *lookup, const M68kFa
 }
 
 static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset, uint32_t runtime_address, uint32_t size, const char *data_class, uint32_t data_class_flags) {
+    uint32_t offset, uint32_t runtime_address, uint32_t size, uint32_t data_class_flags) {
   M68kRenderInferredRuntimeAddressRef *grown;
   M68kRenderInferredRuntimeAddressRef *entry;
   size_t next_capacity;
   size_t index;
   uint32_t role_flags;
   const char *role_name;
-  if (lookup == NULL || data_class == NULL || data_class[0] == '\0') return 0;
-  role_flags = data_class_flags != 0U ? data_class_flags : m68k_analysis_structured_data_role_flags_for_text(data_class);
+  if (lookup == NULL) return 0;
+  role_flags = data_class_flags;
   if (role_flags == 0U) return 0;
   role_name = m68k_analysis_structured_data_role_name_for_flags(role_flags);
   if (role_name == NULL) return 0;
@@ -4178,8 +4178,7 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
   if (semantic_role == NULL || semantic_role[0] == '\0') return 0;
   for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *existing = &lookup->auto_structured_data_items[index];
-    uint32_t existing_role_flags = existing->semantic_role_flags != 0U ? existing->semantic_role_flags :
-      m68k_analysis_structured_data_role_flags_for_text(existing->semantic_role);
+    uint32_t existing_role_flags = existing->semantic_role_flags;
     if (existing->section_index == (uint32_t)section_index && existing->offset == offset &&
         existing->size == size && existing_role_flags == semantic_role_flags) {
       return 0;
@@ -4203,7 +4202,6 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
   item->size = size;
   item->kind = kind;
   m68k_analysis_structured_data_item_set_semantic_role(item, semantic_role);
-  if (item->semantic_role_flags == 0U) item->semantic_role_flags = semantic_role_flags;
   ++lookup->auto_structured_data_item_count;
   return 0;
 }
@@ -5121,7 +5119,7 @@ static int append_render_lookup_runtime_views_for_section(const M68kRenderLookup
   return 0;
 }
 
-static const char *runtime_address_ref_data_class(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+static uint32_t runtime_address_ref_data_class_flags(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     const M68kFact *fact);
 
 static int append_render_lookup_runtime_address_refs_for_section(const M68kRenderLookup *lookup,
@@ -5145,8 +5143,8 @@ static int append_render_lookup_runtime_address_refs_for_section(const M68kRende
     ref.has_runtime_address = fact->has_runtime_address;
     ref.runtime_address = fact->runtime_address;
     ref.confidence = fact->confidence;
-    ref.data_class = (char *)runtime_address_ref_data_class(lookup, decode, fact);
-    ref.data_class_flags = m68k_analysis_structured_data_role_flags_for_text(ref.data_class);
+    ref.data_class_flags = runtime_address_ref_data_class_flags(lookup, decode, fact);
+    ref.data_class = (char *)m68k_analysis_structured_data_role_name_for_flags(ref.data_class_flags);
     if (m68k_ir_section_analysis_append_runtime_address_ref(section_analysis, &ref) != 0) return -1;
   }
   for (index = 0U; index < lookup->inferred_runtime_address_ref_count; ++index) {
@@ -5249,28 +5247,28 @@ static int asm_candidate_operand_absolute_value(const M68kDecodeCandidate *candi
   return 0;
 }
 
-static const char *runtime_address_ref_data_class(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+static uint32_t runtime_address_ref_data_class_flags(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     const M68kFact *fact) {
   const M68kDecodeSectionIR *section;
   const M68kDecodeCandidate *candidate;
   uint32_t sink_address = 0U;
   if (lookup == NULL || lookup->object == NULL || decode == NULL || fact == NULL ||
       fact->kind != M68K_FACT_RUNTIME_ADDRESS_REF || fact->section_index >= decode->section_count) {
-    return NULL;
+    return 0U;
   }
   section = &decode->sections[fact->section_index];
   candidate = find_candidate_at_offset_local(section, fact->offset);
   if (candidate == NULL ||
       (fact->reason != UINT32_MAX && fact->reason >= candidate->operand_count)) {
-    return NULL;
+    return 0U;
   }
   if (!((fact->reason == 0U || fact->reason == UINT32_MAX) &&
         candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
         candidate->size_suffix == 'l' && candidate->operand_count == 2U)) {
-    return NULL;
+    return 0U;
   }
-  if (!asm_candidate_operand_absolute_value(candidate, 1U, &sink_address)) return NULL;
-  return platform_facts_v2_runtime_address_sink_data_class(lookup->object->platform_backend_kind, sink_address);
+  if (!asm_candidate_operand_absolute_value(candidate, 1U, &sink_address)) return 0U;
+  return platform_facts_v2_runtime_address_sink_data_class_flags(lookup->object->platform_backend_kind, sink_address);
 }
 
 static int runtime_address_ref_sink_address(const M68kDecodeIR *decode, const M68kFact *fact,
@@ -5431,7 +5429,7 @@ static int render_lookup_add_copper_bitmap_runtime_refs(M68kRenderLookup *lookup
   step = copper_bitmap_pointer_even_step(pointers, pointer_count);
   for (index = 0U; index < pointer_count; ++index) {
     if (render_lookup_add_inferred_runtime_address_ref(lookup, section->section_index, row_offsets[index],
-        pointers[index], step, "bitmap", M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) != 0) {
+        pointers[index], step, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) != 0) {
       return -1;
     }
   }
@@ -5504,7 +5502,7 @@ static int render_lookup_add_bitmap_memory_comment(M68kRenderLookup *lookup, siz
   result = render_lookup_add_instruction_comment(lookup, section_index, offset, comment);
   if (result != 0) return result;
   return render_lookup_add_inferred_runtime_address_ref(lookup, section_index, offset,
-    address->base + address->delta, 0U, "bitmap", M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP);
+    address->base + address->delta, 0U, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP);
 }
 
 static int operand_runtime_address_from_bitmap_base(const M68kRenderBitmapBaseState *state,
@@ -6633,8 +6631,7 @@ static int render_lookup_infer_relocation_pointer_tables(M68kRenderLookup *looku
 
 static uint32_t render_lookup_structured_item_role_flags_local(const M68kAnalysisStructuredDataItem *item) {
   if (item == NULL) return 0U;
-  if (item->semantic_role_flags != 0U) return item->semantic_role_flags;
-  return m68k_analysis_structured_data_role_flags_for_text(item->semantic_role);
+  return item->semantic_role_flags;
 }
 
 static int render_lookup_structured_item_is_pointer_table_local(const M68kAnalysisStructuredDataItem *item) {

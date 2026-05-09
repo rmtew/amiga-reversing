@@ -318,15 +318,6 @@ void m68k_render_plan_row_set_statement_metadata(M68kRenderPlanRow *row, uint8_t
   }
 }
 
-void m68k_render_plan_row_set_data_class(M68kRenderPlanRow *row, const char *data_class) {
-  if (row == NULL) return;
-  row->data_class[0] = '\0';
-  row->data_class_flags = 0U;
-  if (data_class == NULL || data_class[0] == '\0') return;
-  snprintf(row->data_class, sizeof(row->data_class), "%s", data_class);
-  row->data_class_flags = m68k_analysis_structured_data_role_flags_for_text(row->data_class);
-}
-
 void m68k_render_plan_row_set_data_class_flags(M68kRenderPlanRow *row, uint32_t data_class_flags) {
   const char *data_class;
   if (row == NULL) return;

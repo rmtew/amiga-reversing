@@ -56,6 +56,11 @@ one-off heuristics.
 
 Reviewed implementation and tests before updating this plan. Current state:
 
+Latest update: internal structured-data role consumers are flags-first only. Role
+text is parsed only when setting policy/import metadata; render-plan rows,
+runtime-address refs, inferred runtime refs, listing JSON/navigation, and
+platform runtime sink checks now consume numeric role flags directly.
+
 | Topic | Current evidence | Gap to address |
 | --- | --- | --- |
 | RSSET/app slots | `render_state_operand_uses_app_base()` rejects known hardware bases and `_custom` offsets; `render_asm_app_extension_rs()` emits app/resident RSSET layouts from field slots and metadata; policy RSSET regions carry an explicit app-layout flag so rendering does not classify static names; listing app-slot aggregation stores access/width properties as compact typed values rather than copied strings; C source analysis now records rendered base-layout fields and alias overlays as first-class facts; typed app-slot region fields carry generated owner-struct metadata; listing JSON exposes those layout fields directly. | Need stronger conflict checks between large app layouts and accepted code. |
