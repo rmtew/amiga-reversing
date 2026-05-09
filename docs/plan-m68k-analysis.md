@@ -100,6 +100,16 @@ Surveyed all rendered `.s` files currently under `targets/` and parsed top-level
 `RSSET`, `app_* RS.*`, and unnamed `RS.*` rows. No duplicate RSSET symbol names
 were found in the surveyed files.
 
+Latest temporary target-usage rebuild after API orphan evidence:
+
+- Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage.jsonl --xrefs-output src\build\tmp_target_usage_xrefs.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets.jsonl --variants-output src\build\tmp_target_variant_index.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields.jsonl --workers 8`
+- Scope: 493 entries, 489129 xrefs, 420647 snippet rows, 316 type-flow rows.
+- Orphan inbound evidence found: `api` in 18 targets / 47 signals, `vector`
+  in 33 targets / 187 signals, `jump_table` in 7 targets / 16 signals, and
+  `callback` in 3 targets / 5 signals.
+- Real API examples include Workbench `c/SetPatch`, MonAm302, and Starglider
+  extracted libraries, so the classifier is not Bloodwych-specific.
+
 ## RSSET Survey
 
 | Target source | Ranges | Origin and review |
