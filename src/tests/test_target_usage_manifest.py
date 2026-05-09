@@ -275,6 +275,9 @@ class TargetUsageManifestTests(unittest.TestCase):
                                     "size": 4,
                                     "terminal_offset": 0x86,
                                     "terminal_flow": "return",
+                                    "required_cpu": 0,
+                                    "instruction_count": 2,
+                                    "decode_conflict_count": 0,
                                     "reason": "terminal_decode",
                                     "status": "unresolved",
                                     "context": "accepted_code_boundary",
@@ -540,6 +543,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["orphan-code:status:unresolved"], 1)
         self.assertEqual(counts["orphan-code:terminal_decode:unresolved"], 1)
         self.assertEqual(counts["orphan-code:terminal_flow:return"], 1)
+        self.assertEqual(counts["orphan-code:required_cpu:0"], 1)
+        self.assertEqual(counts["orphan-code:has_instruction_count"], 1)
+        self.assertEqual(counts["orphan-code:instruction_count:2"], 1)
         self.assertEqual(counts["orphan-code:context:accepted_code_boundary"], 1)
         self.assertEqual(counts["orphan-code:missing_inbound:jump_table"], 1)
         self.assertEqual(counts["orphan-code:nearby_data:lookup_table"], 1)
@@ -662,6 +668,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["memory-layout:platform_struct:Library"][0]["field_expr"], "LIB_VERSION")
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
+        self.assertEqual(examples["orphan-code:signal"][0]["required_cpu"], 0)
+        self.assertEqual(examples["orphan-code:signal"][0]["instruction_count"], 2)
+        self.assertEqual(examples["orphan-code:signal"][0]["decode_conflict_count"], 0)
         self.assertEqual(examples["orphan-code:signal"][0]["context"], "accepted_code_boundary")
         self.assertEqual(examples["orphan-code:signal"][0]["missing_inbound"], "jump_table")
         self.assertEqual(examples["orphan-code:signal"][0]["nearby_data_class"], "lookup_table")
@@ -1109,6 +1118,9 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "size": 4,
                                 "terminal_offset": 0x86,
                                 "terminal_flow": "return",
+                                "required_cpu": 0,
+                                "instruction_count": 2,
+                                "decode_conflict_count": 0,
                                 "reason": "terminal_decode",
                                 "status": "unresolved",
                                 "context": "accepted_code_boundary",
@@ -1317,6 +1329,9 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn(("orphan-code:status:unresolved", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:terminal_decode:unresolved", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:terminal_flow:return", "orphan_code_signal", 0x84, 8), by_feature)
+        self.assertIn(("orphan-code:required_cpu:0", "orphan_code_signal", 0x84, 8), by_feature)
+        self.assertIn(("orphan-code:has_instruction_count", "orphan_code_signal", 0x84, 8), by_feature)
+        self.assertIn(("orphan-code:instruction_count:2", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:context:accepted_code_boundary", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:missing_inbound:jump_table", "orphan_code_signal", 0x84, 8), by_feature)
         self.assertIn(("orphan-code:nearby_data:lookup_table", "orphan_code_signal", 0x84, 8), by_feature)

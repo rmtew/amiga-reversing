@@ -1176,7 +1176,7 @@ def _orphan_code_signal_example(section_index: int, signal: dict[str, Any]) -> d
     reason = _string_value(signal.get("reason")) or "unknown"
     status = _string_value(signal.get("status")) or "unknown"
     example = _offset_example(section_index, offset, f"{reason}:{status}")
-    for key in ("size", "terminal_offset", "confidence"):
+    for key in ("size", "terminal_offset", "confidence", "required_cpu", "instruction_count", "decode_conflict_count"):
         value = _int_value(signal.get(key))
         if value is not None:
             example[key] = value
@@ -1205,6 +1205,9 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
     reason = _string_value(signal.get("reason")) or "unknown"
     status = _string_value(signal.get("status")) or "unknown"
     terminal_flow = _string_value(signal.get("terminal_flow"))
+    required_cpu = _int_value(signal.get("required_cpu"))
+    instruction_count = _int_value(signal.get("instruction_count"))
+    decode_conflict_count = _int_value(signal.get("decode_conflict_count"))
     context = _string_value(signal.get("context"))
     missing_inbound = _string_value(signal.get("missing_inbound"))
     nearby_data_class = _string_value(signal.get("nearby_data_class"))
@@ -1216,6 +1219,13 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
     bag.add(f"orphan-code:{_safe_part(reason)}:{_safe_part(status)}", example=example)
     if terminal_flow:
         bag.add(f"orphan-code:terminal_flow:{_safe_part(terminal_flow)}", example=example)
+    if required_cpu is not None:
+        bag.add(f"orphan-code:required_cpu:{required_cpu}", example=example)
+    if instruction_count is not None:
+        bag.add("orphan-code:has_instruction_count", example=example)
+        bag.add(f"orphan-code:instruction_count:{instruction_count}", example=example)
+    if decode_conflict_count is not None and decode_conflict_count > 0:
+        bag.add("orphan-code:decode_conflict", example=example)
     if context:
         bag.add(f"orphan-code:context:{_safe_part(context)}", example=example)
     if missing_inbound:
@@ -3400,6 +3410,9 @@ def _analysis_xrefs(
             reason = _string_value(signal.get("reason")) or "unknown"
             status = _string_value(signal.get("status")) or "unknown"
             terminal_flow = _string_value(signal.get("terminal_flow"))
+            required_cpu = _int_value(signal.get("required_cpu"))
+            instruction_count = _int_value(signal.get("instruction_count"))
+            decode_conflict_count = _int_value(signal.get("decode_conflict_count"))
             context = _string_value(signal.get("context"))
             missing_inbound = _string_value(signal.get("missing_inbound"))
             nearby_data_class = _string_value(signal.get("nearby_data_class"))
@@ -3414,6 +3427,13 @@ def _analysis_xrefs(
             ]
             if terminal_flow:
                 features.append(f"orphan-code:terminal_flow:{_safe_part(terminal_flow)}")
+            if required_cpu is not None:
+                features.append(f"orphan-code:required_cpu:{required_cpu}")
+            if instruction_count is not None:
+                features.append("orphan-code:has_instruction_count")
+                features.append(f"orphan-code:instruction_count:{instruction_count}")
+            if decode_conflict_count is not None and decode_conflict_count > 0:
+                features.append("orphan-code:decode_conflict")
             if context:
                 features.append(f"orphan-code:context:{_safe_part(context)}")
             if missing_inbound:
