@@ -17,6 +17,28 @@ def _write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
 
 
 class TargetUsageManifestTests(unittest.TestCase):
+    def test_feature_bag_derives_target_pattern_tags_from_evidence(self) -> None:
+        bag = usage.FeatureBag()
+        bag.add("table:kind:relative_code_dispatch", example={"offset": 0x20})
+        bag.add("runtime:copied_code")
+        bag.add("low-vector-trampoline", example={"runtime_address": 4})
+        bag.add("decompression:runtime_copy_conflicting", example={"runtime_copy_address": 0x4000})
+        bag.add("orphan-code:signal", example={"offset": 0x80})
+
+        counts, examples, tags = bag.row_features()
+
+        self.assertEqual(counts["target-pattern:relative_lookup_dispatch"], 1)
+        self.assertEqual(counts["target-pattern:runtime_copied_code"], 1)
+        self.assertEqual(counts["target-pattern:weak_low_trampoline"], 1)
+        self.assertEqual(counts["target-pattern:packed_runtime_copy"], 1)
+        self.assertEqual(counts["target-pattern:packed_runtime_copy_conflict"], 1)
+        self.assertEqual(counts["target-pattern:orphan_code_signal"], 1)
+        self.assertIn("target-pattern:relative_lookup_dispatch", tags)
+        self.assertEqual(
+            examples["target-pattern:relative_lookup_dispatch"][0]["evidence_feature"],
+            "table:kind:relative_code_dispatch",
+        )
+
     def test_orphan_signal_features_use_status_id_for_suppressed_signal(self) -> None:
         bag = usage.FeatureBag()
         usage._add_orphan_code_signal_features(
@@ -3922,6 +3944,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                     "table:consumer": 1,
                     "memory-layout:kind:bitmap": 1,
                     "platform_field:IO_COMMAND": 1,
+                    "target-pattern:relative_lookup_dispatch": 1,
                 },
                 "feature_examples": {
                     "hardware:custom/display": [{"offset": 4}],
@@ -3957,6 +3980,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         table_query = usage.query_usage_manifest(rows, "", group="tables")
         memory_query = usage.query_usage_manifest(rows, "", group="memory")
         typed_query = usage.query_usage_manifest(rows, "", group="platform_types")
+        pattern_query = usage.query_usage_manifest(rows, "", group="patterns")
         xref_query = usage.query_usage_xrefs(xrefs, group="hardware")
         analysis_xref_query = usage.query_usage_xrefs(xrefs, group="analysis")
         table_xref_query = usage.query_usage_xrefs(xrefs, group="tables")
@@ -3976,6 +4000,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(memory_query[0]["count"], 1)
         self.assertEqual([item["id"] for item in typed_query], ["a"])
         self.assertEqual(typed_query[0]["count"], 1)
+        self.assertEqual([item["id"] for item in pattern_query], ["a"])
+        self.assertEqual(pattern_query[0]["count"], 1)
         self.assertEqual([item["target_id"] for item in xref_query], ["a"])
         self.assertEqual([item["target_id"] for item in analysis_xref_query], ["a"])
         self.assertEqual([item["target_id"] for item in table_xref_query], ["a"])

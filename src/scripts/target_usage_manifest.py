@@ -249,7 +249,24 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
         "unsupported-compressor",
     ),
     "diagnostics": ("diagnostic:",),
+    "patterns": ("target-pattern:",),
 }
+
+TARGET_PATTERN_FEATURE_RULES: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("table:kind:relative_code_dispatch",), "target-pattern:relative_lookup_dispatch"),
+    (("runtime:copied_code",), "target-pattern:runtime_copied_code"),
+    (("low-vector-trampoline",), "target-pattern:weak_low_trampoline"),
+    (
+        (
+            "decompression:runtime_copy",
+            "decompression:runtime_copy_conflicting",
+            "decompression:pattern:runtime_copy_to_absolute",
+        ),
+        "target-pattern:packed_runtime_copy",
+    ),
+    (("decompression:runtime_copy_conflicting",), "target-pattern:packed_runtime_copy_conflict"),
+    (("orphan-code:signal",), "target-pattern:orphan_code_signal"),
+)
 
 
 class FeatureBag:
@@ -267,10 +284,32 @@ class FeatureBag:
                 items.append(_compact_example(example))
 
     def row_features(self) -> tuple[dict[str, int], dict[str, list[dict[str, object]]], list[str]]:
-        counts = dict(sorted(self.counts.items()))
-        examples = {key: self.examples[key] for key in sorted(self.examples) if key in counts}
+        counts = dict(self.counts)
+        examples = {key: list(self.examples[key]) for key in self.examples if key in counts}
+        _add_target_pattern_features(counts, examples)
+        counts = dict(sorted(counts.items()))
+        examples = {key: examples[key] for key in sorted(examples) if key in counts}
         tags = sorted(counts)
         return counts, examples, tags
+
+
+def _add_target_pattern_features(
+    counts: dict[str, int], examples: dict[str, list[dict[str, object]]]
+) -> None:
+    for evidence_features, pattern_feature in TARGET_PATTERN_FEATURE_RULES:
+        if pattern_feature in counts:
+            continue
+        evidence_feature = next((feature for feature in evidence_features if counts.get(feature, 0) > 0), None)
+        if evidence_feature is None:
+            continue
+        counts[pattern_feature] = 1
+        evidence_examples = examples.get(evidence_feature, [])
+        if evidence_examples:
+            examples[pattern_feature] = [
+                {"evidence_feature": evidence_feature, **_compact_example(evidence_examples[0])}
+            ]
+        else:
+            examples[pattern_feature] = [{"evidence_feature": evidence_feature}]
 
 
 class DiskFileResolver:
