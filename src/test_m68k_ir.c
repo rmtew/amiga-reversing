@@ -4842,6 +4842,55 @@ static int test_source_analysis_table_record_marks_code_overlap_conflict(void) {
   return 0;
 }
 
+static int test_source_analysis_platform_storage_effect_conflicts_only_mapped_section_storage(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  char *analysis_json = NULL;
+  const char *base_record;
+  const char *global_record;
+  uint8_t certain_code[0x110];
+  memset(certain_code, 0, sizeof(certain_code));
+  certain_code[0x100] = 1U;
+  certain_code[0x101] = 1U;
+  certain_code[0x102] = 1U;
+  certain_code[0x103] = 1U;
+
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = sizeof(certain_code);
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_set_code_map(&section_analysis, NULL, certain_code,
+    sizeof(certain_code)));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_effect(&section_analysis,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x20U, M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT, 0U, 0U, 0x100,
+    0, NULL, "MP_SIGBIT", "MP", NULL, NULL, 0U, 0));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_typed_global_slot_effect(
+    &section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x24U, 0U, 0x100U, "MP_SIGBIT", "MP", NULL, NULL));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+
+  base_record = strstr(analysis_json, "\"record_kind\":\"platform_storage_effect\",\"memory_kind\":\"typed_slot\"");
+  global_record = strstr(analysis_json,
+    "\"record_kind\":\"platform_storage_effect\",\"memory_kind\":\"typed_global_slot\"");
+  M68K_C_ASSERT(base_record != NULL);
+  M68K_C_ASSERT(global_record != NULL);
+  M68K_C_ASSERT(strstr(base_record,
+    "\"range_space_kind\":1,\"range_space\":\"base_relative\",\"range_start\":256,"
+    "\"range_size\":4,\"range_end\":260") != NULL);
+  M68K_C_ASSERT(strstr(base_record, "\"conflicted\":false,\"conflict_state_id\":0") != NULL);
+  M68K_C_ASSERT(strstr(global_record,
+    "\"range_space_kind\":4,\"range_space\":\"section_relative\",\"range_start\":256,"
+    "\"range_size\":4,\"range_end\":260") != NULL);
+  M68K_C_ASSERT(strstr(global_record, "\"conflicted\":true,\"conflict_state_id\":1") != NULL);
+  M68K_C_ASSERT(strstr(global_record, "\"conflict_state\":\"code_overlap\"") != NULL);
+
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_runtime_address_ref_does_not_infer_flags_from_text(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -15486,6 +15535,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_word_dispatch_promotes_far_relative_targets},
     {"source_analysis_table_record_marks_code_overlap_conflict",
       test_source_analysis_table_record_marks_code_overlap_conflict},
+    {"source_analysis_platform_storage_effect_conflicts_only_mapped_section_storage",
+      test_source_analysis_platform_storage_effect_conflicts_only_mapped_section_storage},
     {"runtime_address_ref_does_not_infer_flags_from_text",
       test_runtime_address_ref_does_not_infer_flags_from_text},
     {"table_records_use_role_flags_not_text",

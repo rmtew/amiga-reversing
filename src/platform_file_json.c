@@ -1825,20 +1825,26 @@ static size_t source_analysis_table_candidate_record_count(const M68kSourceAnaly
   return count;
 }
 
-static int source_analysis_range_overlaps_accepted_code(const M68kSourceAnalysisIR *source_analysis,
-    const M68kAnalysisStructuredDataItem *item) {
+static int source_analysis_section_range_overlaps_accepted_code(const M68kSourceAnalysisIR *source_analysis,
+    size_t section_index, uint32_t offset, uint32_t size) {
   uint32_t cursor;
   const M68kSectionAnalysisIR *section;
-  if (source_analysis == NULL || item == NULL || !item->has_section_index ||
-      item->section_index >= source_analysis->section_count || item->size == 0U) {
+  if (source_analysis == NULL || section_index >= source_analysis->section_count || size == 0U) {
     return 0;
   }
-  section = &source_analysis->sections[item->section_index];
-  if (section->certain_code_byte == NULL || item->offset >= section->certain_code_size) return 0;
-  for (cursor = 0U; cursor < item->size && cursor < section->certain_code_size - item->offset; ++cursor) {
-    if (section->certain_code_byte[item->offset + cursor] != 0U) return 1;
+  section = &source_analysis->sections[section_index];
+  if (section->certain_code_byte == NULL || offset >= section->certain_code_size) return 0;
+  for (cursor = 0U; cursor < size && cursor < section->certain_code_size - offset; ++cursor) {
+    if (section->certain_code_byte[offset + cursor] != 0U) return 1;
   }
   return 0;
+}
+
+static int source_analysis_range_overlaps_accepted_code(const M68kSourceAnalysisIR *source_analysis,
+    const M68kAnalysisStructuredDataItem *item) {
+  if (item == NULL || !item->has_section_index) return 0;
+  return source_analysis_section_range_overlaps_accepted_code(source_analysis, item->section_index,
+    item->offset, item->size);
 }
 
 static int append_source_analysis_table_candidate_records_json(JsonBuilder *builder,
@@ -2183,6 +2189,21 @@ static int platform_effect_has_storage_range(const M68kRecoveredPlatformEffectIR
   return 1;
 }
 
+static int platform_effect_storage_range_overlaps_accepted_code(const M68kSourceAnalysisIR *source_analysis,
+    const M68kRecoveredPlatformEffectIR *effect) {
+  uint8_t range_space_kind = 0U;
+  int64_t range_start = 0;
+  uint32_t range_size = 0U;
+  if (!platform_effect_has_storage_range(effect, &range_space_kind, &range_start, &range_size)) return 0;
+  if (range_space_kind != MEMORY_LAYOUT_RANGE_SPACE_SECTION_RELATIVE) return 0;
+  if (effect == NULL || effect->target_section_index == SIZE_MAX || range_start < 0 ||
+      range_start > (int64_t)UINT32_MAX) {
+    return 0;
+  }
+  return source_analysis_section_range_overlaps_accepted_code(source_analysis, effect->target_section_index,
+    (uint32_t)range_start, range_size);
+}
+
 static int append_source_analysis_memory_layout_records_json(JsonBuilder *builder,
     const M68kSourceAnalysisIR *source_analysis) {
   size_t field_index;
@@ -2310,7 +2331,12 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       uint8_t range_space_kind = 0U;
       int64_t range_start = 0;
       uint32_t range_size = 0U;
+      uint8_t conflicted;
+      uint8_t conflict_state;
       if (!platform_effect_is_storage_kind(effect->kind)) continue;
+      conflicted = (uint8_t)platform_effect_storage_range_overlaps_accepted_code(source_analysis, effect);
+      conflict_state = conflicted ? M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP :
+        M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
       memory_kind = platform_storage_effect_memory_kind(effect->kind);
       if (effect->kind == M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT ||
           effect->kind == M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT) {
@@ -2352,7 +2378,11 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (platform_effect_has_storage_range(effect, &range_space_kind, &range_start, &range_size) &&
           append_memory_layout_range_json(builder, range_space_kind, range_start, range_size) != 0)
         return -1;
-      if (json_builder_append(builder, "}") != 0) return -1;
+      if (json_builder_appendf(builder,
+          ",\"confidence\":%u,\"conflicted\":%s,\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
+          (unsigned)M68K_FACT_CONFIDENCE_TOOL_INFERRED, conflicted ? "true" : "false",
+          (unsigned)conflict_state, analysis_conflict_state_name(conflict_state)) != 0)
+        return -1;
     }
     for (typed_access_index = 0U; typed_access_index < section->recovered_platform_typed_access_count;
         ++typed_access_index) {
