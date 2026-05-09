@@ -2011,6 +2011,40 @@ static int source_analysis_base_layout_field_same_layout(const M68kBaseLayoutFie
     strcmp(left_sizeof, right_sizeof) == 0;
 }
 
+static int source_analysis_base_layout_field_same_base(const M68kBaseLayoutFieldIR *left,
+    const M68kBaseLayoutFieldIR *right) {
+  const char *left_base;
+  const char *right_base;
+  if (left == NULL || right == NULL) return 0;
+  left_base = left->base_symbol != NULL ? left->base_symbol : "";
+  right_base = right->base_symbol != NULL ? right->base_symbol : "";
+  return left_base[0] != '\0' && strcmp(left_base, right_base) == 0;
+}
+
+static int source_analysis_base_layout_fields_overlap(const M68kBaseLayoutFieldIR *left,
+    const M68kBaseLayoutFieldIR *right) {
+  uint32_t left_end;
+  uint32_t right_end;
+  if (left == NULL || right == NULL || left->size == 0U || right->size == 0U) return 0;
+  if (UINT32_MAX - left->offset < left->size || UINT32_MAX - right->offset < right->size) return 0;
+  left_end = left->offset + left->size;
+  right_end = right->offset + right->size;
+  return left->offset < right_end && right->offset < left_end;
+}
+
+static int source_analysis_base_layout_field_conflicts_with_other_layout(
+    const M68kSourceAnalysisIR *source_analysis, const M68kBaseLayoutFieldIR *field) {
+  size_t index;
+  if (source_analysis == NULL || field == NULL) return 0;
+  for (index = 0U; index < source_analysis->base_layout_field_count; ++index) {
+    const M68kBaseLayoutFieldIR *other = &source_analysis->base_layout_fields[index];
+    if (source_analysis_base_layout_field_same_layout(field, other)) continue;
+    if (!source_analysis_base_layout_field_same_base(field, other)) continue;
+    if (source_analysis_base_layout_fields_overlap(field, other)) return 1;
+  }
+  return 0;
+}
+
 static size_t source_analysis_base_layout_record_count(const M68kSourceAnalysisIR *source_analysis) {
   size_t index;
   size_t count = 0U;
@@ -2175,6 +2209,10 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         conflicted = 1U;
         conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED;
       }
+      if (source_analysis_base_layout_field_conflicts_with_other_layout(source_analysis, field)) {
+        conflicted = 1U;
+        conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED;
+      }
       ++field_count;
     }
     if (range_end <= range_start || field_count == 0U) continue;
@@ -2235,11 +2273,13 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
     if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
         (int64_t)field->offset, field->size) != 0) return -1;
     {
-      uint8_t conflict_state = field->conflicted ? M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED :
+      uint8_t conflicted = field->conflicted ||
+        source_analysis_base_layout_field_conflicts_with_other_layout(source_analysis, field);
+      uint8_t conflict_state = conflicted ? M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED :
         M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
       if (json_builder_appendf(builder,
           ",\"confidence\":%u,\"conflicted\":%s,\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
-          (unsigned)field->confidence, field->conflicted ? "true" : "false",
+          (unsigned)field->confidence, conflicted ? "true" : "false",
           (unsigned)conflict_state, analysis_conflict_state_name(conflict_state)) != 0)
         return -1;
     }

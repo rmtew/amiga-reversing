@@ -687,6 +687,9 @@ such as `memory-layout:conflict:<state>`.
 Base-layout fields also carry a compact layout-kind id. Range and conflict
 consumers must use that id before comparing base-relative ranges; layout/base
 names remain labels, not classifiers.
+Base-relative conflicts are only valid inside the same proven base. App offsets
+must not be compared directly to source-code offsets; accepted-code conflicts
+need an explicit source/runtime mapping before the ranges are comparable.
 
 ## Correctness Gates
 
