@@ -46,6 +46,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         bag.add("low-vector-trampoline", example={"runtime_address": 4})
         bag.add("decompression:runtime_copy_conflicting", example={"runtime_copy_address": 0x4000})
         bag.add("orphan-code:signal", example={"offset": 0x80})
+        bag.add("orphan-code:missing_inbound:jump_table", example={"offset": 0x84})
 
         counts, examples, tags = bag.row_features()
 
@@ -55,6 +56,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["target-pattern:packed_runtime_copy"], 1)
         self.assertEqual(counts["target-pattern:packed_runtime_copy_conflict"], 1)
         self.assertEqual(counts["target-pattern:orphan_code_signal"], 1)
+        self.assertEqual(counts["target-pattern:orphan_missing_jump_table"], 1)
         self.assertIn("target-pattern:relative_lookup_dispatch", tags)
         self.assertEqual(
             examples["target-pattern:relative_lookup_dispatch"][0]["evidence_feature"],
@@ -176,6 +178,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         )
         counts, examples, _tags = bag.row_features()
         self.assertEqual(counts["orphan-code:missing_inbound:vector"], 1)
+        self.assertEqual(counts["target-pattern:orphan_missing_vector"], 1)
         self.assertEqual(examples["orphan-code:signal"][0]["missing_inbound"], "vector")
 
     def test_table_candidate_features_use_bounds_status_id(self) -> None:
@@ -877,6 +880,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["orphan-code:summary"], 1)
         self.assertEqual(counts["orphan-code:summary:status:unresolved"], 1)
         self.assertEqual(counts["orphan-code:summary:missing_inbound:jump_table"], 1)
+        self.assertEqual(counts["target-pattern:orphan_missing_jump_table"], 1)
         self.assertEqual(counts["orphan-code:signal"], 1)
         self.assertEqual(counts["orphan-code:reason:terminal_decode"], 1)
         self.assertEqual(counts["orphan-code:status:unresolved"], 1)
