@@ -8591,7 +8591,7 @@ static int test_facts_v2_render_asm_source_defines_private_lvo_symbol(void) {
   policy.register_seeds[0].has_section_index = 1U;
   policy.register_seeds[0].entry_offset = 0U;
   policy.register_seeds[0].section_index = 0U;
-  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "exec.library");
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "SysBase");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);

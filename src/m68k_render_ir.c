@@ -647,6 +647,7 @@ static void platform_state_clear_register(M68kRenderPlatformState *state, uint8_
   size_t index;
   if (state == NULL || reg_index >= 8U) return;
   state->address_base_known[reg_index] = 0U;
+  state->address_base_id[reg_index] = 0U;
   state->address_base_library[reg_index][0] = '\0';
   state->address_hardware_base_known[reg_index] = 0U;
   state->address_hardware_base_symbol[reg_index][0] = '\0';
@@ -662,6 +663,7 @@ static void platform_state_clear_register(M68kRenderPlatformState *state, uint8_
 static void platform_state_clear_data_library(M68kRenderPlatformState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
   state->data_base_known[reg_index] = 0U;
+  state->data_base_id[reg_index] = 0U;
   state->data_base_library[reg_index][0] = '\0';
   state->data_layout_base_known[reg_index] = 0U;
   state->data_layout_base_symbol[reg_index][0] = '\0';
@@ -670,6 +672,7 @@ static void platform_state_clear_data_library(M68kRenderPlatformState *state, ui
 static void platform_state_clear_all_data_libraries(M68kRenderPlatformState *state) {
   if (state == NULL) return;
   memset(state->data_base_known, 0, sizeof(state->data_base_known));
+  memset(state->data_base_id, 0, sizeof(state->data_base_id));
   memset(state->data_base_library, 0, sizeof(state->data_base_library));
   memset(state->data_layout_base_known, 0, sizeof(state->data_layout_base_known));
   memset(state->data_layout_base_symbol, 0, sizeof(state->data_layout_base_symbol));
@@ -734,30 +737,58 @@ void platform_state_clear_d0_lvo(M68kRenderPlatformState *state) {
   state->d0_lvo = 0;
 }
 
+static uint16_t platform_base_id_from_name(const char *name) {
+  uint16_t base_id;
+  const char *library_name;
+  const char *base_name;
+  if (name == NULL || name[0] == '\0') return AMIGA_OS_BASE_ID_NONE;
+  base_id = amiga_os_name_id(M68K_PLATFORM_NAME_BASE, name);
+  if (base_id != AMIGA_OS_BASE_ID_NONE) return base_id;
+  base_name = amiga_os_find_library_base_name(name);
+  if (base_name != NULL && base_name[0] != '\0') {
+    base_id = amiga_os_name_id(M68K_PLATFORM_NAME_BASE, base_name);
+    if (base_id != AMIGA_OS_BASE_ID_NONE) return base_id;
+  }
+  library_name = amiga_library_name_from_base_symbol_name(name);
+  if (library_name == NULL || library_name[0] == '\0') return AMIGA_OS_BASE_ID_NONE;
+  base_name = amiga_os_find_library_base_name(library_name);
+  return base_name != NULL ? amiga_os_name_id(M68K_PLATFORM_NAME_BASE, base_name) : AMIGA_OS_BASE_ID_NONE;
+}
+
+static const char *platform_library_name_from_base_id(uint16_t base_id) {
+  return base_id != AMIGA_OS_BASE_ID_NONE ? amiga_os_find_library_name_by_base_id(base_id) : NULL;
+}
+
 static void platform_state_set_register_library(M68kRenderPlatformState *state, uint8_t reg_index,
     const char *library_name) {
   size_t index;
+  uint16_t base_id = platform_base_id_from_name(library_name);
+  const char *canonical_library_name = platform_library_name_from_base_id(base_id);
   if (state == NULL || reg_index >= 8U || library_name == NULL || library_name[0] == '\0') return;
-  if (amiga_os_find_library_base_name(library_name) == NULL) return;
+  if (canonical_library_name == NULL || canonical_library_name[0] == '\0') return;
   for (index = 0U; index < sizeof(state->local_base_slots) / sizeof(state->local_base_slots[0]); ++index) {
     if (state->local_base_slots[index].valid && state->local_base_slots[index].base_reg == reg_index)
       state->local_base_slots[index].valid = 0U;
   }
   state->address_base_known[reg_index] = 1U;
+  state->address_base_id[reg_index] = base_id;
   state->address_app_base_known[reg_index] = 0U;
   platform_state_clear_address_layout_base(state, reg_index);
   platform_state_clear_address_hardware_base(state, reg_index);
   snprintf(state->address_base_library[reg_index], sizeof(state->address_base_library[reg_index]), "%s",
-    library_name);
+    canonical_library_name);
 }
 
 static void platform_state_set_data_library(M68kRenderPlatformState *state, uint8_t reg_index,
     const char *library_name) {
+  uint16_t base_id = platform_base_id_from_name(library_name);
+  const char *canonical_library_name = platform_library_name_from_base_id(base_id);
   if (state == NULL || reg_index >= 8U || library_name == NULL || library_name[0] == '\0') return;
-  if (amiga_os_find_library_base_name(library_name) == NULL) return;
+  if (canonical_library_name == NULL || canonical_library_name[0] == '\0') return;
   state->data_base_known[reg_index] = 1U;
+  state->data_base_id[reg_index] = base_id;
   snprintf(state->data_base_library[reg_index], sizeof(state->data_base_library[reg_index]), "%s",
-    library_name);
+    canonical_library_name);
 }
 
 int amiga_unknown_base_register_owner_name(uint8_t base_reg, char *buf, size_t buf_size) {
@@ -788,7 +819,7 @@ static const char *platform_state_local_base_slot_library(const M68kRenderPlatfo
   for (index = 0U; index < sizeof(state->local_base_slots) / sizeof(state->local_base_slots[0]); ++index) {
     const M68kRenderPlatformLocalBaseSlot *slot = &state->local_base_slots[index];
     if (slot->valid && slot->base_reg == base_reg && slot->displacement == displacement)
-      return slot->library_name;
+      return platform_library_name_from_base_id(slot->base_id);
   }
   return NULL;
 }
@@ -796,12 +827,15 @@ static const char *platform_state_local_base_slot_library(const M68kRenderPlatfo
 static void platform_state_set_local_base_slot(M68kRenderPlatformState *state, uint8_t base_reg,
     int16_t displacement, const char *library_name) {
   size_t index;
+  uint16_t base_id = platform_base_id_from_name(library_name);
+  const char *canonical_library_name = platform_library_name_from_base_id(base_id);
   if (state == NULL || base_reg >= 8U || library_name == NULL || library_name[0] == '\0') return;
-  if (amiga_os_find_library_base_name(library_name) == NULL) return;
+  if (canonical_library_name == NULL || canonical_library_name[0] == '\0') return;
   for (index = 0U; index < sizeof(state->local_base_slots) / sizeof(state->local_base_slots[0]); ++index) {
     M68kRenderPlatformLocalBaseSlot *slot = &state->local_base_slots[index];
     if (slot->valid && slot->base_reg == base_reg && slot->displacement == displacement) {
-      snprintf(slot->library_name, sizeof(slot->library_name), "%s", library_name);
+      slot->base_id = base_id;
+      snprintf(slot->library_name, sizeof(slot->library_name), "%s", canonical_library_name);
       return;
     }
   }
@@ -810,8 +844,9 @@ static void platform_state_set_local_base_slot(M68kRenderPlatformState *state, u
     if (slot->valid) continue;
     slot->valid = 1U;
     slot->base_reg = base_reg;
+    slot->base_id = base_id;
     slot->displacement = displacement;
-    snprintf(slot->library_name, sizeof(slot->library_name), "%s", library_name);
+    snprintf(slot->library_name, sizeof(slot->library_name), "%s", canonical_library_name);
     return;
   }
 }
@@ -832,9 +867,9 @@ static const char *platform_state_operand_library(const M68kRenderPlatformState 
   uint8_t reg = 0U;
   if (state == NULL || operand == NULL) return NULL;
   if (operand_is_data_register_local(operand, &reg) && state->data_base_known[reg])
-    return state->data_base_library[reg];
+    return platform_library_name_from_base_id(state->data_base_id[reg]);
   if (operand_address_register_index_local(operand, &reg) && state->address_base_known[reg])
-    return state->address_base_library[reg];
+    return platform_library_name_from_base_id(state->address_base_id[reg]);
   return NULL;
 }
 
@@ -2868,7 +2903,6 @@ void platform_state_note_call_result_after_instruction(M68kRenderPlatformState *
 const AmigaOsLibraryVectorInfo *attach_amiga_lvo_symbol_if_known(const M68kRenderPlatformState *state,
     M68kInstructionIR *instruction) {
   M68kOperandIR *operand;
-  const char *base_name;
   const AmigaOsLibraryVectorInfo *vector;
   const char *symbol_name;
   int16_t displacement;
@@ -2883,9 +2917,8 @@ const AmigaOsLibraryVectorInfo *attach_amiga_lvo_symbol_if_known(const M68kRende
     return NULL;
   displacement = (int16_t)(operand->value.value & 0xFFFFU);
   if (displacement >= 0) return NULL;
-  base_name = amiga_os_find_library_base_name(state->address_base_library[6]);
-  if (base_name == NULL) return NULL;
-  vector = amiga_os_find_library_vector(base_name, displacement);
+  if (state->address_base_id[6] == AMIGA_OS_BASE_ID_NONE) return NULL;
+  vector = amiga_os_find_library_vector_by_base_id(state->address_base_id[6], displacement);
   if (vector == NULL) return NULL;
   symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
   if (symbol_name == NULL || symbol_name[0] == '\0') return NULL;

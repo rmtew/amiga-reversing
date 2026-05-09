@@ -2323,6 +2323,23 @@ static void platform_state_merge_register_name(uint8_t *dest_known, char *dest_n
   }
 }
 
+static void platform_state_merge_register_base(uint8_t *dest_known, uint16_t *dest_base_id, char *dest_name,
+    size_t dest_name_size, uint8_t source_known, uint16_t source_base_id, const char *source_name,
+    int *io_changed) {
+  if (dest_known == NULL || dest_base_id == NULL || dest_name == NULL || source_name == NULL ||
+      io_changed == NULL) {
+    return;
+  }
+  if (*dest_known == 0U || source_known == 0U || *dest_base_id != source_base_id) {
+    if (*dest_known != 0U || *dest_base_id != 0U || dest_name[0] != '\0') *io_changed = 1;
+    *dest_known = 0U;
+    *dest_base_id = 0U;
+    if (dest_name_size != 0U) dest_name[0] = '\0';
+    return;
+  }
+  platform_state_merge_register_name(dest_known, dest_name, dest_name_size, source_known, source_name, io_changed);
+}
+
 static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRenderPlatformState *source) {
   M68kRenderPlatformState old_state;
   size_t index;
@@ -2330,9 +2347,13 @@ static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRe
   if (dest == NULL || source == NULL) return 0;
   old_state = *dest;
   for (index = 0U; index < 8U; ++index) {
-    platform_state_merge_register_name(&dest->address_base_known[index], dest->address_base_library[index],
-      sizeof(dest->address_base_library[index]), source->address_base_known[index],
-      source->address_base_library[index], &changed);
+    platform_state_merge_register_base(&dest->data_base_known[index], &dest->data_base_id[index],
+      dest->data_base_library[index], sizeof(dest->data_base_library[index]), source->data_base_known[index],
+      source->data_base_id[index], source->data_base_library[index], &changed);
+    platform_state_merge_register_base(&dest->address_base_known[index], &dest->address_base_id[index],
+      dest->address_base_library[index], sizeof(dest->address_base_library[index]),
+      source->address_base_known[index], source->address_base_id[index], source->address_base_library[index],
+      &changed);
     platform_state_merge_register_name(&dest->address_hardware_base_known[index],
       dest->address_hardware_base_symbol[index], sizeof(dest->address_hardware_base_symbol[index]),
       source->address_hardware_base_known[index], source->address_hardware_base_symbol[index], &changed);
@@ -7747,15 +7768,35 @@ static int source_analysis_append_auto_structured_data_policy(M68kSourceAnalysis
   return 0;
 }
 
+static uint16_t trace_base_id_from_name(const char *name) {
+  uint16_t base_id;
+  const char *library_name;
+  const char *base_name;
+  if (name == NULL || name[0] == '\0') return AMIGA_OS_BASE_ID_NONE;
+  base_id = amiga_os_name_id(M68K_PLATFORM_NAME_BASE, name);
+  if (base_id != AMIGA_OS_BASE_ID_NONE) return base_id;
+  base_name = amiga_os_find_library_base_name(name);
+  if (base_name != NULL && base_name[0] != '\0') {
+    base_id = amiga_os_name_id(M68K_PLATFORM_NAME_BASE, base_name);
+    if (base_id != AMIGA_OS_BASE_ID_NONE) return base_id;
+  }
+  library_name = amiga_library_name_from_base_symbol_name(name);
+  if (library_name == NULL || library_name[0] == '\0') return AMIGA_OS_BASE_ID_NONE;
+  base_name = amiga_os_find_library_base_name(library_name);
+  return base_name != NULL ? amiga_os_name_id(M68K_PLATFORM_NAME_BASE, base_name) : AMIGA_OS_BASE_ID_NONE;
+}
+
 static void trace_reg_set(M68kRenderTraceRegName *reg, const char *name) {
   if (reg == NULL || name == NULL || name[0] == '\0') return;
   reg->known = 1U;
+  reg->base_id = trace_base_id_from_name(name);
   snprintf(reg->name, sizeof(reg->name), "%s", name);
 }
 
 static void trace_reg_clear(M68kRenderTraceRegName *reg) {
   if (reg == NULL) return;
   reg->known = 0U;
+  reg->base_id = AMIGA_OS_BASE_ID_NONE;
   reg->name[0] = '\0';
 }
 
@@ -7866,24 +7907,27 @@ int operand_is_address_memory_local(const M68kOperandIR *operand, uint8_t *out_r
   return operand_is_address_displacement_local(operand, out_reg, out_displacement);
 }
 
-static const char *trace_name_from_operand(const M68kRenderBaseTraceState *state,
+static const M68kRenderTraceRegName *trace_reg_from_operand(const M68kRenderBaseTraceState *state,
     const M68kOperandIR *operand) {
   uint8_t reg = 0U;
   if (state == NULL || operand == NULL) return NULL;
-  if (operand_is_data_register_local(operand, &reg) && state->data_regs[reg].known) return state->data_regs[reg].name;
+  if (operand_is_data_register_local(operand, &reg) && state->data_regs[reg].known) return &state->data_regs[reg];
   if (operand_address_register_index_local(operand, &reg) && state->addr_regs[reg].known)
-    return state->addr_regs[reg].name;
+    return &state->addr_regs[reg];
   return NULL;
+}
+
+static const char *trace_name_from_operand(const M68kRenderBaseTraceState *state,
+    const M68kOperandIR *operand) {
+  const M68kRenderTraceRegName *reg = trace_reg_from_operand(state, operand);
+  return reg != NULL ? reg->name : NULL;
 }
 
 static const char *trace_library_from_operand(const M68kRenderBaseTraceState *state,
     const M68kOperandIR *operand) {
-  const char *name = trace_name_from_operand(state, operand);
-  const char *library_name;
-  if (name == NULL || name[0] == '\0') return NULL;
-  if (amiga_os_find_library_base_name(name) != NULL) return name;
-  library_name = amiga_library_name_from_base_symbol_name(name);
-  return library_name != NULL && amiga_os_find_library_base_name(library_name) != NULL ? library_name : NULL;
+  const M68kRenderTraceRegName *reg = trace_reg_from_operand(state, operand);
+  if (reg == NULL || reg->base_id == AMIGA_OS_BASE_ID_NONE) return NULL;
+  return amiga_os_find_library_name_by_base_id(reg->base_id);
 }
 
 static const char *trace_local_slot_library(const M68kRenderBaseTraceState *state, uint8_t base_reg,
@@ -7947,10 +7991,13 @@ static void trace_state_update_register_names_after_candidate(M68kRenderBaseTrac
 static void trace_local_slot_set(M68kRenderBaseTraceState *state, uint8_t base_reg, int16_t displacement,
     const char *library_name) {
   size_t index;
+  uint16_t base_id = trace_base_id_from_name(library_name);
   if (state == NULL || base_reg >= 8U || library_name == NULL || library_name[0] == '\0') return;
+  if (base_id == AMIGA_OS_BASE_ID_NONE) return;
   for (index = 0U; index < sizeof(state->local_slots) / sizeof(state->local_slots[0]); ++index) {
     M68kRenderTraceLocalSlot *slot = &state->local_slots[index];
     if (slot->valid && slot->base_reg == base_reg && slot->displacement == displacement) {
+      slot->base_id = base_id;
       snprintf(slot->library_name, sizeof(slot->library_name), "%s", library_name);
       return;
     }
@@ -7960,6 +8007,7 @@ static void trace_local_slot_set(M68kRenderBaseTraceState *state, uint8_t base_r
     if (slot->valid) continue;
     slot->valid = 1U;
     slot->base_reg = base_reg;
+    slot->base_id = base_id;
     slot->displacement = displacement;
     snprintf(slot->library_name, sizeof(slot->library_name), "%s", library_name);
     return;
@@ -7973,7 +8021,7 @@ static const char *trace_local_slot_library(const M68kRenderBaseTraceState *stat
   for (index = 0U; index < sizeof(state->local_slots) / sizeof(state->local_slots[0]); ++index) {
     const M68kRenderTraceLocalSlot *slot = &state->local_slots[index];
     if (slot->valid && slot->base_reg == base_reg && slot->displacement == displacement)
-      return slot->library_name;
+      return slot->base_id != AMIGA_OS_BASE_ID_NONE ? amiga_os_find_library_name_by_base_id(slot->base_id) : NULL;
   }
   return NULL;
 }
@@ -8181,8 +8229,10 @@ static int candidate_is_exec_open_library_call(const M68kRenderBaseTraceState *s
   int16_t lvo = 0;
   const AmigaOsLibraryVectorInfo *open_library;
   const AmigaOsLibraryVectorInfo *old_open_library;
-  if (state == NULL || !state->addr_regs[6].known) return 0;
-  if (strcmp(state->addr_regs[6].name, amiga_os_exec_base_library_name()) != 0) return 0;
+  if (state == NULL || !state->addr_regs[6].known ||
+      state->addr_regs[6].base_id != AMIGA_OS_BASE_ID_SYSBASE) {
+    return 0;
+  }
   if (!candidate_calls_a6_lvo(candidate, &lvo)) return 0;
   open_library = amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOPENLIBRARY);
   old_open_library = amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOLDOPENLIBRARY);
@@ -8200,8 +8250,10 @@ static int candidate_is_exec_open_device_call(const M68kRenderBaseTraceState *st
     const M68kDecodeCandidate *candidate) {
   int16_t lvo = 0;
   const AmigaOsLibraryVectorInfo *open_device;
-  if (state == NULL || !state->addr_regs[6].known) return 0;
-  if (strcmp(state->addr_regs[6].name, amiga_os_exec_base_library_name()) != 0) return 0;
+  if (state == NULL || !state->addr_regs[6].known ||
+      state->addr_regs[6].base_id != AMIGA_OS_BASE_ID_SYSBASE) {
+    return 0;
+  }
   if (!candidate_calls_a6_lvo(candidate, &lvo)) return 0;
   open_device = amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOPENDEVICE);
   return open_device != NULL && open_device->lvo == lvo;
@@ -8212,13 +8264,14 @@ static int render_lookup_record_device_call_from_iorequest(M68kRenderLookup *loo
     const M68kDecodeCandidate *candidate) {
   int16_t lvo = 0;
   const AmigaOsLibraryVectorInfo *vector;
-  const char *base_name;
   uint8_t iorequest_reg = 0U;
   const char *device_name;
   if (lookup == NULL || state == NULL || section == NULL || candidate == NULL) return 0;
-  if (!state->addr_regs[6].known || !candidate_calls_a6_lvo(candidate, &lvo)) return 0;
-  base_name = amiga_os_find_library_base_name(state->addr_regs[6].name);
-  vector = amiga_os_find_library_vector(base_name != NULL ? base_name : state->addr_regs[6].name, lvo);
+  if (!state->addr_regs[6].known || state->addr_regs[6].base_id == AMIGA_OS_BASE_ID_NONE ||
+      !candidate_calls_a6_lvo(candidate, &lvo)) {
+    return 0;
+  }
+  vector = amiga_os_find_library_vector_by_base_id(state->addr_regs[6].base_id, lvo);
   if (!amiga_vector_iorequest_address_register(vector, &iorequest_reg)) return 0;
   if (!state->app_addresses[iorequest_reg].known) return 0;
   device_name = render_lookup_device_name_for_iorequest(lookup, state->app_addresses[iorequest_reg].displacement);

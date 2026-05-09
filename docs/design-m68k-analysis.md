@@ -638,6 +638,18 @@ sink address             $00DFF0E0 BPL1PTH/BPL1PTL owner range
 This lets rendering and the web UI explain why an absolute buffer is display or
 audio memory without reparsing rendered source text.
 
+## Platform Base Identity
+
+Amiga library/device base identity in C analysis state is a generated base id.
+Names are retained only for emitted source, JSON text, and user-facing labels.
+The analysis must canonicalize equivalent evidence such as `exec.library`,
+`SysBase`, and safe base-symbol aliases to the same generated base id before LVO
+lookup, OpenLibrary/OpenDevice recognition, or local/base-slot propagation.
+
+Do not compare static strings to decide whether a register is ExecBase, DOSBase,
+or another platform base. Use generated ids for decisions and resolve text from
+metadata only at output boundaries.
+
 ## Correctness Gates
 
 - Do not emit app RSSET fields for known hardware or platform structs.

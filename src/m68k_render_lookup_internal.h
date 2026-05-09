@@ -27,14 +27,17 @@ typedef struct M68kRenderLookup M68kRenderLookup;
 typedef struct M68kRenderPlatformLocalBaseSlot {
   uint8_t valid;
   uint8_t base_reg;
+  uint16_t base_id;
   int16_t displacement;
   char library_name[64];
 } M68kRenderPlatformLocalBaseSlot;
 
 typedef struct M68kRenderPlatformState {
   uint8_t data_base_known[8];
+  uint16_t data_base_id[8];
   char data_base_library[8][64];
   uint8_t address_base_known[8];
+  uint16_t address_base_id[8];
   char address_base_library[8][64];
   uint8_t address_hardware_base_known[8];
   char address_hardware_base_symbol[8][64];
@@ -358,12 +361,14 @@ typedef struct M68kRenderInstructionComment {
 
 typedef struct M68kRenderTraceRegName {
   uint8_t known;
+  uint16_t base_id;
   char name[64];
 } M68kRenderTraceRegName;
 
 typedef struct M68kRenderTraceLocalSlot {
   uint8_t valid;
   uint8_t base_reg;
+  uint16_t base_id;
   int16_t displacement;
   char library_name[64];
 } M68kRenderTraceLocalSlot;
