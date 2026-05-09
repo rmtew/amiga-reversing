@@ -7342,21 +7342,26 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
   const AmigaOsHardwareRegisterFieldInfo *aud0_len =
     amiga_os_find_hardware_register_field_by_cpu_address(0x00DFF0A4U);
   const AmigaOsHardwareRegisterFieldInfo *aud0_len_by_base =
-    amiga_os_find_hardware_register_field_by_base_offset("_custom", 0x00A4U);
+    amiga_os_find_hardware_register_field_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x00A4U);
   const AmigaOsHardwareRegisterFieldInfo *spr1_dataa =
-    amiga_os_find_hardware_register_field_by_base_offset("_custom", 0x014CU);
+    amiga_os_find_hardware_register_field_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x014CU);
   const AmigaOsHardwareRegisterRangeInfo *spr_range =
-    amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x014CU);
+    amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x014CU);
   const AmigaOsHardwareRegisterRangeInfo *bplpt_tail =
-    amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x00E2U);
+    amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x00E2U);
   const AmigaOsHardwareRegisterRangeInfo *bplpt_past_end =
-    amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x00F8U);
+    amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x00F8U);
   const AmigaOsHardwareRegisterRangeInfo *sprpt_tail =
-    amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x013EU);
+    amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x013EU);
   const AmigaOsHardwareRegisterRangeInfo *sprpt_past_end =
-    amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x0140U);
+    amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x0140U);
   const AmigaOsHardwareRegisterRangeInfo *aud0_len_as_range =
-    amiga_os_find_hardware_register_range_by_base_offset("_custom", 0x00A4U);
+    amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, 0x00A4U);
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, cop1lc->base_id);
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+    amiga_os_find_hardware_base_id_by_address(0x00DFF000U));
+  M68K_C_ASSERT_STR("_custom", amiga_os_hardware_base_symbol(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM));
+  M68K_C_ASSERT_U32(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, amiga_os_hardware_base_id("_custom"));
   M68K_C_ASSERT(cop1lc != NULL);
   M68K_C_ASSERT(dskpt != NULL);
   M68K_C_ASSERT(bltcpt != NULL);

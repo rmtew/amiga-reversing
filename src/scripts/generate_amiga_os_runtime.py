@@ -102,6 +102,12 @@ def enum_token(text: str) -> str:
     return token
 
 
+def hardware_base_id_map(
+        hardware_rows: list[tuple[str, int, int, str, str, str | None, str | None, int, int, str | None]]
+        ) -> dict[str, int]:
+    return {base_symbol: index + 1 for index, base_symbol in enumerate(sorted({row[0] for row in hardware_rows}))}
+
+
 def build_name_domain_meta(name_domains: list[tuple[int, str, list[str]]], prefix: str) -> list[dict]:
     items: list[dict] = []
     for domain_kind, label, values in name_domains:
@@ -1793,6 +1799,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
                                        includes_payload, other_payload, api_input_value_domains, api_input_semantic_kinds,
                                        api_input_type_overrides, api_output_type_overrides)
     name_domain_meta = build_name_domain_meta(name_domains, "AMIGA_OS")
+    hardware_base_ids = hardware_base_id_map(hardware_rows)
     input_row_count = sum(len(input_rows(library_name, function_name, other_info, includes_payload, other_payload,
                                          api_input_value_domains, api_input_semantic_kinds, api_input_type_overrides))
                           for library_name, _, _, function_name, other_info in rows)
@@ -1851,6 +1858,15 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         lines.append(f"  AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_{enum_token(name)} = {index},")
     lines.extend([
         "} AmigaOsHardwareRuntimeTargetKind;",
+        "",
+    ])
+    lines.append("typedef enum AmigaOsHardwareBaseId {")
+    lines.append("  AMIGA_OS_HARDWARE_BASE_ID_NONE = 0,")
+    for base_symbol, base_id in hardware_base_ids.items():
+        lines.append(f"  AMIGA_OS_HARDWARE_BASE_ID_{enum_token(base_symbol)} = {base_id},")
+    lines.extend([
+        f"  AMIGA_OS_HARDWARE_BASE_ID_COUNT = {len(hardware_base_ids) + 1}",
+        "} AmigaOsHardwareBaseId;",
         "",
     ])
     for item in name_domain_meta:
@@ -2004,6 +2020,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "",
         "typedef struct AmigaOsHardwareRegisterInfo {",
         "  const char *base_symbol;",
+        "  uint16_t base_id;",
         "  uint32_t base_address;",
         "  uint32_t offset;",
         "  uint16_t symbol_id;",
@@ -2018,6 +2035,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "",
         "typedef struct AmigaOsHardwareRegisterFieldInfo {",
         "  const char *base_symbol;",
+        "  uint16_t base_id;",
         "  uint32_t base_address;",
         "  uint32_t register_offset;",
         "  uint16_t register_symbol_id;",
@@ -2038,6 +2056,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "",
         "typedef struct AmigaOsHardwareRegisterRangeInfo {",
         "  const char *base_symbol;",
+        "  uint16_t base_id;",
         "  uint32_t base_address;",
         "  uint32_t offset;",
         "  uint32_t size;",
@@ -2107,14 +2126,20 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "const AmigaOsHardwareRegisterInstanceAliasInfo *amiga_os_hardware_register_instance_alias_at(size_t index);",
         "const char *amiga_os_find_hardware_register_instance_alias_expr(const char *symbol_name);",
         "const AmigaOsHardwareRegisterRangeInfo *amiga_os_hardware_register_range_at(size_t index);",
+        "const char *amiga_os_hardware_base_symbol(uint16_t base_id);",
+        "uint16_t amiga_os_hardware_base_id(const char *base_symbol);",
         "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_cpu_address(uint32_t cpu_address);",
+        "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_id_offset(uint16_t base_id, uint32_t offset);",
         "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_offset(const char *base_symbol, uint32_t offset);",
         "const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_cpu_address(uint32_t cpu_address);",
+        "const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_base_id_offset(uint16_t base_id, uint32_t offset);",
         "const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_base_offset(const char *base_symbol, uint32_t offset);",
         "const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_cpu_address(uint32_t cpu_address);",
+        "const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_base_id_offset(uint16_t base_id, uint32_t offset);",
         "const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_base_offset(const char *base_symbol, uint32_t offset);",
         "const char *amiga_os_hardware_runtime_target_kind_name(uint16_t kind);",
         "const char *amiga_os_find_hardware_base_symbol_by_address(uint32_t base_address);",
+        "uint16_t amiga_os_find_hardware_base_id_by_address(uint32_t base_address);",
         "int amiga_os_find_hardware_base_address(const char *base_symbol, uint32_t *out_address);",
         "const char *amiga_os_exec_base_library_name(void);",
         "uint8_t amiga_os_lvo_slot_size(void);",
@@ -2178,6 +2203,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
                                        includes_payload, other_payload, api_input_value_domains, api_input_semantic_kinds,
                                        api_input_type_overrides, api_output_type_overrides)
     name_domain_meta = build_name_domain_meta(name_domains, "AMIGA_OS")
+    hardware_base_ids = hardware_base_id_map(hardware_rows)
     named_base_struct_rows = sorted(includes_payload.get("_meta", {}).get("named_base_structs", {}).items())
     struct_base_rows_data = struct_base_rows(includes_payload)
     naming_pattern_rows = naming_patterns(naming_rules_payload)
@@ -2267,6 +2293,27 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
         "  if (reg_kind == AMIGA_OS_REGISTER_DATA) return data_regs[reg_index];",
         "  if (reg_kind == AMIGA_OS_REGISTER_ADDRESS) return addr_regs[reg_index];",
         "  return NULL;",
+        "}",
+        "",
+        "const char *amiga_os_hardware_base_symbol(uint16_t base_id) {",
+        "  switch (base_id) {",
+        "  case AMIGA_OS_HARDWARE_BASE_ID_NONE: return NULL;",
+    ])
+    for base_symbol, base_id in hardware_base_ids.items():
+        lines.append(f"  case AMIGA_OS_HARDWARE_BASE_ID_{enum_token(base_symbol)}: return \"{c_string(base_symbol)}\";")
+    lines.extend([
+        "  default: return NULL;",
+        "  }",
+        "}",
+        "",
+        "uint16_t amiga_os_hardware_base_id(const char *base_symbol) {",
+        "  if (base_symbol == NULL || base_symbol[0] == '\\0') return AMIGA_OS_HARDWARE_BASE_ID_NONE;",
+    ])
+    for base_symbol in hardware_base_ids:
+        lines.append(
+            f"  if (strcmp(base_symbol, \"{c_string(base_symbol)}\") == 0) return AMIGA_OS_HARDWARE_BASE_ID_{enum_token(base_symbol)};")
+    lines.extend([
+        "  return AMIGA_OS_HARDWARE_BASE_ID_NONE;",
         "}",
         "",
         "static const AmigaOsCallInputInfo g_amiga_os_call_inputs[] = {",
@@ -2588,8 +2635,9 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
     )
     for (base_symbol, base_address, offset, symbol_name, include_path, value_domain_name, bit_domain_name, flags,
          runtime_target_kind, runtime_target_role) in hardware_rows:
-        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, %s, \"%s\", \"%s\", %s, %s, %du, %du, %s }," % (
+        lines.append("  { \"%s\", %du, 0x%08Xu, 0x%04Xu, %s, \"%s\", \"%s\", %s, %s, %du, %du, %s }," % (
             c_string(base_symbol),
+            hardware_base_ids[base_symbol],
             base_address,
             offset,
             name_id_literal(name_domain_meta, "symbol", symbol_name),
@@ -2609,8 +2657,9 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
     )
     for (base_symbol, base_address, register_offset, register_symbol, field_offset, field_symbol, include_path,
         repeat_stride_symbol, repeat_stride, instance_symbol) in hardware_field_rows:
-        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, %s, \"%s\", 0x%04Xu, %s, \"%s\", \"%s\", %s, 0x%04Xu, %s }," % (
+        lines.append("  { \"%s\", %du, 0x%08Xu, 0x%04Xu, %s, \"%s\", 0x%04Xu, %s, \"%s\", \"%s\", %s, 0x%04Xu, %s }," % (
             c_string(base_symbol),
+            hardware_base_ids[base_symbol],
             base_address,
             register_offset,
             name_id_literal(name_domain_meta, "symbol", register_symbol),
@@ -2639,8 +2688,9 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
         ]
     )
     for base_symbol, base_address, offset, size, symbol_name, include_path in hardware_range_rows:
-        lines.append("  { \"%s\", 0x%08Xu, 0x%04Xu, 0x%04Xu, %s, \"%s\", \"%s\" }," % (
+        lines.append("  { \"%s\", %du, 0x%08Xu, 0x%04Xu, 0x%04Xu, %s, \"%s\", \"%s\" }," % (
             c_string(base_symbol),
+            hardware_base_ids[base_symbol],
             base_address,
             offset,
             size,
@@ -2753,11 +2803,15 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "}",
             "",
             "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_offset(const char *base_symbol, uint32_t offset) {",
+            "  return amiga_os_find_hardware_register_by_base_id_offset(amiga_os_hardware_base_id(base_symbol), offset);",
+            "}",
+            "",
+            "const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_id_offset(uint16_t base_id, uint32_t offset) {",
             "  size_t index;",
-            "  if (base_symbol == NULL || base_symbol[0] == '\\0') return NULL;",
+            "  if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return NULL;",
             "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_COUNT; ++index) {",
             "    const AmigaOsHardwareRegisterInfo *entry = &g_amiga_os_hardware_registers[index];",
-            "    if (entry->offset == offset && strcmp(entry->base_symbol, base_symbol) == 0) return entry;",
+            "    if (entry->offset == offset && entry->base_id == base_id) return entry;",
             "  }",
             "  return NULL;",
             "}",
@@ -2772,11 +2826,15 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "}",
             "",
             "const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_base_offset(const char *base_symbol, uint32_t offset) {",
+            "  return amiga_os_find_hardware_register_field_by_base_id_offset(amiga_os_hardware_base_id(base_symbol), offset);",
+            "}",
+            "",
+            "const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_base_id_offset(uint16_t base_id, uint32_t offset) {",
             "  size_t index;",
-            "  if (base_symbol == NULL || base_symbol[0] == '\\0') return NULL;",
+            "  if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return NULL;",
             "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_FIELD_COUNT; ++index) {",
             "    const AmigaOsHardwareRegisterFieldInfo *entry = &g_amiga_os_hardware_register_fields[index];",
-            "    if (entry->register_offset + entry->field_offset == offset && strcmp(entry->base_symbol, base_symbol) == 0) return entry;",
+            "    if (entry->register_offset + entry->field_offset == offset && entry->base_id == base_id) return entry;",
             "  }",
             "  return NULL;",
             "}",
@@ -2792,11 +2850,15 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "}",
             "",
             "const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_base_offset(const char *base_symbol, uint32_t offset) {",
+            "  return amiga_os_find_hardware_register_range_by_base_id_offset(amiga_os_hardware_base_id(base_symbol), offset);",
+            "}",
+            "",
+            "const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_base_id_offset(uint16_t base_id, uint32_t offset) {",
             "  size_t index;",
-            "  if (base_symbol == NULL || base_symbol[0] == '\\0') return NULL;",
+            "  if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return NULL;",
             "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_RANGE_COUNT; ++index) {",
             "    const AmigaOsHardwareRegisterRangeInfo *entry = &g_amiga_os_hardware_register_ranges[index];",
-            "    if (strcmp(entry->base_symbol, base_symbol) == 0 && offset >= entry->offset && offset < entry->offset + entry->size) return entry;",
+            "    if (entry->base_id == base_id && offset >= entry->offset && offset < entry->offset + entry->size) return entry;",
             "  }",
             "  return NULL;",
             "}",
@@ -2816,21 +2878,28 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "}",
             "",
             "const char *amiga_os_find_hardware_base_symbol_by_address(uint32_t base_address) {",
+            "  return amiga_os_hardware_base_symbol(amiga_os_find_hardware_base_id_by_address(base_address));",
+            "}",
+            "",
+            "uint16_t amiga_os_find_hardware_base_id_by_address(uint32_t base_address) {",
             "  size_t index;",
             "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_COUNT; ++index) {",
             "    const AmigaOsHardwareRegisterInfo *entry = &g_amiga_os_hardware_registers[index];",
-            "    if (entry->base_address == base_address) return entry->base_symbol;",
+            "    if (entry->base_address == base_address) return entry->base_id;",
             "  }",
-            "  return NULL;",
+            "  return AMIGA_OS_HARDWARE_BASE_ID_NONE;",
             "}",
             "",
             "int amiga_os_find_hardware_base_address(const char *base_symbol, uint32_t *out_address) {",
             "  size_t index;",
+            "  uint16_t base_id;",
             "  if (out_address != NULL) *out_address = 0U;",
             "  if (base_symbol == NULL || base_symbol[0] == '\\0' || out_address == NULL) return 0;",
+            "  base_id = amiga_os_hardware_base_id(base_symbol);",
+            "  if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return 0;",
             "  for (index = 0U; index < AMIGA_OS_HARDWARE_REGISTER_COUNT; ++index) {",
             "    const AmigaOsHardwareRegisterInfo *entry = &g_amiga_os_hardware_registers[index];",
-            "    if (strcmp(entry->base_symbol, base_symbol) == 0) {",
+            "    if (entry->base_id == base_id) {",
             "      *out_address = entry->base_address;",
             "      return 1;",
             "    }",

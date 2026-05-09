@@ -57,6 +57,14 @@ typedef enum AmigaOsHardwareRuntimeTargetKind {
   AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_SOUND_SAMPLE = 7,
 } AmigaOsHardwareRuntimeTargetKind;
 
+typedef enum AmigaOsHardwareBaseId {
+  AMIGA_OS_HARDWARE_BASE_ID_NONE = 0,
+  AMIGA_OS_HARDWARE_BASE_ID_CIAA = 1,
+  AMIGA_OS_HARDWARE_BASE_ID_CIAB = 2,
+  AMIGA_OS_HARDWARE_BASE_ID_CUSTOM = 3,
+  AMIGA_OS_HARDWARE_BASE_ID_COUNT = 4
+} AmigaOsHardwareBaseId;
+
 typedef enum AmigaOsLibraryId {
   AMIGA_OS_LIBRARY_ID_AMIGAGUIDE_LIBRARY = 0,
   AMIGA_OS_LIBRARY_ID_ASL_LIBRARY = 1,
@@ -14741,6 +14749,7 @@ typedef struct AmigaOsResidentEntrySeedInfo {
 
 typedef struct AmigaOsHardwareRegisterInfo {
   const char *base_symbol;
+  uint16_t base_id;
   uint32_t base_address;
   uint32_t offset;
   uint16_t symbol_id;
@@ -14755,6 +14764,7 @@ typedef struct AmigaOsHardwareRegisterInfo {
 
 typedef struct AmigaOsHardwareRegisterFieldInfo {
   const char *base_symbol;
+  uint16_t base_id;
   uint32_t base_address;
   uint32_t register_offset;
   uint16_t register_symbol_id;
@@ -14775,6 +14785,7 @@ typedef struct AmigaOsHardwareRegisterInstanceAliasInfo {
 
 typedef struct AmigaOsHardwareRegisterRangeInfo {
   const char *base_symbol;
+  uint16_t base_id;
   uint32_t base_address;
   uint32_t offset;
   uint32_t size;
@@ -14844,14 +14855,20 @@ const AmigaOsHardwareRegisterFieldInfo *amiga_os_hardware_register_field_at(size
 const AmigaOsHardwareRegisterInstanceAliasInfo *amiga_os_hardware_register_instance_alias_at(size_t index);
 const char *amiga_os_find_hardware_register_instance_alias_expr(const char *symbol_name);
 const AmigaOsHardwareRegisterRangeInfo *amiga_os_hardware_register_range_at(size_t index);
+const char *amiga_os_hardware_base_symbol(uint16_t base_id);
+uint16_t amiga_os_hardware_base_id(const char *base_symbol);
 const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_cpu_address(uint32_t cpu_address);
+const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_id_offset(uint16_t base_id, uint32_t offset);
 const AmigaOsHardwareRegisterInfo *amiga_os_find_hardware_register_by_base_offset(const char *base_symbol, uint32_t offset);
 const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_cpu_address(uint32_t cpu_address);
+const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_base_id_offset(uint16_t base_id, uint32_t offset);
 const AmigaOsHardwareRegisterFieldInfo *amiga_os_find_hardware_register_field_by_base_offset(const char *base_symbol, uint32_t offset);
 const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_cpu_address(uint32_t cpu_address);
+const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_base_id_offset(uint16_t base_id, uint32_t offset);
 const AmigaOsHardwareRegisterRangeInfo *amiga_os_find_hardware_register_range_by_base_offset(const char *base_symbol, uint32_t offset);
 const char *amiga_os_hardware_runtime_target_kind_name(uint16_t kind);
 const char *amiga_os_find_hardware_base_symbol_by_address(uint32_t base_address);
+uint16_t amiga_os_find_hardware_base_id_by_address(uint32_t base_address);
 int amiga_os_find_hardware_base_address(const char *base_symbol, uint32_t *out_address);
 const char *amiga_os_exec_base_library_name(void);
 uint8_t amiga_os_lvo_slot_size(void);

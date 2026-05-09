@@ -420,11 +420,14 @@ uint16_t platform_facts_v2_runtime_address_storage_sink_kind(uint8_t platform_ki
     register_word = m68k_read_u16be(data + value_offset - 2U);
     if ((register_word & 1U) != 0U) return AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE;
     register_offset = (uint32_t)(register_word & 0x01FEU);
-    hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", register_offset);
+    hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+      register_offset);
     if (hardware_register == NULL) {
-      hardware_range = amiga_os_find_hardware_register_range_by_base_offset("_custom", register_offset);
+      hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+        register_offset);
       if (hardware_range != NULL) {
-        hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", hardware_range->offset);
+        hardware_register =
+          amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, hardware_range->offset);
       }
     }
     if (hardware_register == NULL ||

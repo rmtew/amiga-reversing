@@ -5320,11 +5320,13 @@ static const AmigaOsHardwareRegisterInfo *copper_runtime_pointer_register_local(
   const AmigaOsHardwareRegisterRangeInfo *hardware_range;
   uint32_t offset = (uint32_t)(copper_register_word & 0x01FEU);
   if ((copper_register_word & 1U) != 0U) return NULL;
-  hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", offset);
+  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
   if (hardware_register == NULL) {
-    hardware_range = amiga_os_find_hardware_register_range_by_base_offset("_custom", offset);
+    hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+      offset);
     if (hardware_range != NULL)
-      hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", hardware_range->offset);
+      hardware_register =
+        amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, hardware_range->offset);
   }
   if (hardware_register == NULL ||
       (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
@@ -8711,9 +8713,9 @@ static int displacement_is_custom_hardware_offset(int16_t displacement) {
   uint32_t offset;
   if (displacement < 0) return 0;
   offset = (uint32_t)(uint16_t)displacement;
-  return amiga_os_find_hardware_register_by_base_offset("_custom", offset) != NULL ||
-    amiga_os_find_hardware_register_field_by_base_offset("_custom", offset) != NULL ||
-    amiga_os_find_hardware_register_range_by_base_offset("_custom", offset) != NULL;
+  return amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset) != NULL ||
+    amiga_os_find_hardware_register_field_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset) != NULL ||
+    amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset) != NULL;
 }
 
 int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uint8_t base_reg,

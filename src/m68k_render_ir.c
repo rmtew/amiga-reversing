@@ -1752,16 +1752,16 @@ static int format_copper_register_symbol(uint16_t copper_register_word, char *bu
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
   if ((copper_register_word & 1U) != 0U) return 0;
-  hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", offset);
+  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
   if (hardware_register != NULL && hardware_register->symbol_name != NULL &&
       hardware_register->symbol_name[0] != '\0') {
     snprintf(buf, buf_size, "%s", hardware_register->symbol_name);
     return strlen(buf) + 1U < buf_size;
   }
-  hardware_field = amiga_os_find_hardware_register_field_by_base_offset("_custom", offset);
+  hardware_field = amiga_os_find_hardware_register_field_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
   if (hardware_field != NULL && format_amiga_hardware_register_field_symbol(hardware_field, 0, buf, buf_size))
     return 1;
-  hardware_range = amiga_os_find_hardware_register_range_by_base_offset("_custom", offset);
+  hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
   if (hardware_range != NULL && format_amiga_hardware_register_range_symbol(hardware_range, offset, 0, buf, buf_size))
     return 1;
   return 0;
@@ -1775,7 +1775,7 @@ static int format_copper_register_value_expr(uint16_t copper_register_word, uint
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
   if ((copper_register_word & 1U) != 0U) return 0;
-  hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", offset);
+  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
   if (hardware_register == NULL) return 0;
   if (amiga_hardware_register_custom_immediate_expr(hardware_register, value, 0, buf, buf_size)) return 1;
   if (hardware_register->value_domain_id == AMIGA_OS_VALUE_DOMAIN_ID_NONE) return 0;
@@ -1788,11 +1788,12 @@ static const AmigaOsHardwareRegisterInfo *copper_runtime_pointer_register(uint16
   const AmigaOsHardwareRegisterRangeInfo *hardware_range;
   uint32_t offset = (uint32_t)(copper_register_word & 0x01FEU);
   if ((copper_register_word & 1U) != 0U) return NULL;
-  hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", offset);
+  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
   if (hardware_register == NULL) {
-    hardware_range = amiga_os_find_hardware_register_range_by_base_offset("_custom", offset);
+    hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
     if (hardware_range != NULL)
-      hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", hardware_range->offset);
+      hardware_register =
+        amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, hardware_range->offset);
   }
   if (hardware_register == NULL ||
       (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
@@ -2098,7 +2099,8 @@ static int format_copper_display_register_comment(uint16_t first, uint16_t secon
   uint32_t register_offset = (uint32_t)(first & 0x01FEU);
   if (buf == NULL || buf_size == 0U || (first & 1U) != 0U) return 0;
   buf[0] = '\0';
-  hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", register_offset);
+  hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+    register_offset);
   return format_amiga_display_register_comment(hardware_register, (uint32_t)second, buf, buf_size);
 }
 
@@ -3004,9 +3006,8 @@ static int amiga_hardware_register_field_instance_delta(const AmigaOsHardwareReg
   for (index = 0U;; ++index) {
     const AmigaOsHardwareRegisterInfo *register_info = amiga_os_hardware_register_at(index);
     if (register_info == NULL) break;
-    if (register_info->base_symbol == NULL || register_info->symbol_name == NULL) continue;
-    if (strcmp(register_info->base_symbol, hardware_field->base_symbol) != 0 ||
-        strcmp(register_info->symbol_name, hardware_field->register_symbol) != 0) {
+    if (register_info->base_id != hardware_field->base_id ||
+        register_info->symbol_id != hardware_field->register_symbol_id) {
       continue;
     }
     if (canonical_offset == UINT32_MAX || register_info->offset < canonical_offset)
@@ -3342,7 +3343,7 @@ static int amiga_bltsize_symbolic_expr(uint32_t value, char *expr, size_t expr_s
 static int amiga_hardware_register_uses_custom_immediate_expr(const AmigaOsHardwareRegisterInfo *hardware_register,
     int use_bit_domain) {
   if (hardware_register == NULL || use_bit_domain) return 0;
-  if (strcmp(hardware_register->base_symbol, "_custom") != 0) return 0;
+  if (hardware_register->base_id != AMIGA_OS_HARDWARE_BASE_ID_CUSTOM) return 0;
   return hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BPLCON0 ||
     hardware_register->symbol_id == AMIGA_OS_SYMBOL_ID_BLTSIZE;
 }
@@ -4956,14 +4957,18 @@ static const AmigaOsHardwareRegisterInfo *external_runtime_address_ref_sink_regi
   if (hardware_register == NULL) {
     hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(fact->target_offset);
     if (hardware_range != NULL)
-      hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", hardware_range->offset);
+      hardware_register =
+        amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, hardware_range->offset);
   }
   if (hardware_register == NULL)
-    hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", fact->target_offset);
+    hardware_register = amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+      fact->target_offset);
   if (hardware_register == NULL) {
-    hardware_range = amiga_os_find_hardware_register_range_by_base_offset("_custom", fact->target_offset);
+    hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM,
+      fact->target_offset);
     if (hardware_range != NULL)
-      hardware_register = amiga_os_find_hardware_register_by_base_offset("_custom", hardware_range->offset);
+      hardware_register =
+        amiga_os_find_hardware_register_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, hardware_range->offset);
   }
   if (hardware_register == NULL ||
       (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) == 0U ||
