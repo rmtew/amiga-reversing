@@ -2200,6 +2200,8 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
     if (json_builder_appendf(builder,
         ",\"field_offset\":%u,\"field_size\":%u",
         (unsigned)field->offset, (unsigned)field->size) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"alias\":%s", field->alias ? "true" : "false") != 0)
+      return -1;
     if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
         (int64_t)field->offset, field->size) != 0) return -1;
     {

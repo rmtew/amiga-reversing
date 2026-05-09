@@ -63,7 +63,14 @@ PLATFORM_EFFECT_NAMES = {
 PLATFORM_EFFECT_WRITE_BASE_SLOT = 2
 PLATFORM_EFFECT_SET_TYPED_REG = 4
 PLATFORM_EFFECT_WRITE_TYPED_SLOT = 5
+PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT = 6
 PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT = 7
+PLATFORM_STORAGE_EFFECT_MEMORY_KIND_NAMES = {
+    PLATFORM_EFFECT_WRITE_BASE_SLOT: "base_slot",
+    PLATFORM_EFFECT_WRITE_TYPED_SLOT: "typed_slot",
+    PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT: "global_base_slot",
+    PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT: "typed_global_slot",
+}
 DATA_ROLE_COPPER_LIST = 1 << 0
 DATA_ROLE_PALETTE = 1 << 1
 DATA_ROLE_POINTER_TABLE = 1 << 2
@@ -1627,7 +1634,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
     memory_layout_records = list(_dict_items(analysis.get("memory_layout_records")))
     for record in memory_layout_records:
         record_kind = _memory_layout_record_kind_name(record)
-        memory_kind = _string_value(record.get("memory_kind")) or "unknown"
+        memory_kind = _memory_layout_memory_kind_name(record)
         section_index = _int_value(record.get("section_index"), 0)
         source_offset = _int_value(record.get("source_offset"))
         example = _offset_example(section_index, source_offset, memory_kind)
@@ -2334,6 +2341,30 @@ def _memory_layout_record_kind_name(record: dict[str, Any]) -> str:
     if record_kind_id is None:
         return "unknown"
     return MEMORY_LAYOUT_RECORD_KIND_NAMES.get(record_kind_id, "unknown")
+
+
+def _memory_layout_memory_kind_name(record: dict[str, Any]) -> str:
+    record_kind_id = _memory_layout_record_kind_id(record)
+    if record_kind_id == 1:
+        return "base_layout"
+    if record_kind_id == 2:
+        return "base_layout_alias" if _bool_value(record.get("alias")) else "base_layout_field"
+    if record_kind_id == 3:
+        effect_kind = _int_value(record.get("effect_kind"))
+        return PLATFORM_STORAGE_EFFECT_MEMORY_KIND_NAMES.get(effect_kind, "unknown")
+    if record_kind_id == 4:
+        return "platform_struct_field"
+    if record_kind_id == 5:
+        return "platform_struct_unresolved"
+    if record_kind_id == 6:
+        return "runtime_code" if _bool_value(record.get("materialized")) else "runtime_view_candidate"
+    if record_kind_id == 7:
+        data_class = _data_role_name(_int_value(record.get("data_class_flags"), 0) or 0)
+        return data_class or "runtime_address"
+    if record_kind_id == 8:
+        owner_kind_id = _absolute_memory_owner_kind_id(record)
+        return _absolute_memory_owner_kind_name(owner_kind_id) if owner_kind_id is not None else "unknown"
+    return "unknown"
 
 
 def _add_memory_layout_view_features(bag: FeatureBag, records: list[dict[str, Any]]) -> None:
@@ -3563,7 +3594,7 @@ def _analysis_xrefs(
             )
     for record in _dict_items(analysis.get("memory_layout_records")):
         record_kind = _memory_layout_record_kind_name(record)
-        memory_kind = _string_value(record.get("memory_kind")) or "unknown"
+        memory_kind = _memory_layout_memory_kind_name(record)
         section_index = _int_value(record.get("section_index"), 0)
         source_offset = _int_value(record.get("source_offset"))
         row_index, stable_key, row_text = _row_location(row_locations, section_index, source_offset)
