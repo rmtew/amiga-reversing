@@ -21,6 +21,24 @@
 #define PLATFORM_PCLOSE pclose
 #endif
 
+typedef enum PlatformDecompressionProviderLocal {
+  PLATFORM_DECOMPRESSION_PROVIDER_UNKNOWN_LOCAL = 0,
+  PLATFORM_DECOMPRESSION_PROVIDER_ANCIENT_CLI_LOCAL = 1
+} PlatformDecompressionProviderLocal;
+
+static PlatformDecompressionProviderLocal provider_from_id_local(const char *provider_id) {
+  const char *effective = (provider_id != NULL && provider_id[0] != '\0') ? provider_id : "ancient-cli";
+  if (strcmp(effective, "ancient-cli") == 0) return PLATFORM_DECOMPRESSION_PROVIDER_ANCIENT_CLI_LOCAL;
+  return PLATFORM_DECOMPRESSION_PROVIDER_UNKNOWN_LOCAL;
+}
+
+static const char *provider_id_name_local(PlatformDecompressionProviderLocal provider) {
+  switch (provider) {
+    case PLATFORM_DECOMPRESSION_PROVIDER_ANCIENT_CLI_LOCAL: return "ancient-cli";
+    default: return "";
+  }
+}
+
 static void set_error_local(char *error, size_t error_size, const char *message) {
   if (error == NULL || error_size == 0U) return;
   if (message == NULL) message = "";
@@ -389,11 +407,11 @@ static int ancient_scan_temp_file_local(const char *ancient_path, const char *te
 
 size_t platform_decompression_find_candidates_in_buffer(const char *provider_id, const uint8_t *data,
     uint32_t data_size, PlatformDecompressionCandidate *out_candidates, size_t candidate_capacity) {
-  const char *actual_provider_id = (provider_id != NULL && provider_id[0] != '\0') ? provider_id : "ancient-cli";
+  PlatformDecompressionProviderLocal provider = provider_from_id_local(provider_id);
   const char *actual_provider_path = default_ancient_path_local();
   char temp_path[512];
   size_t scanned_count = 0U;
-  if (strcmp(actual_provider_id, "ancient-cli") != 0 || data == NULL) return 0U;
+  if (provider != PLATFORM_DECOMPRESSION_PROVIDER_ANCIENT_CLI_LOCAL || data == NULL) return 0U;
   temp_path[0] = '\0';
   if (data_size != 0U &&
       write_buffer_range_local(data, data_size, 0U, data_size, temp_path, sizeof(temp_path), NULL, 0U) == 0) {
@@ -585,7 +603,7 @@ int platform_decompression_identify_path_range(const char *provider_id, const ch
     const char *path, uint32_t offset, uint32_t size, PlatformDecompressionIdentifyResult *out_result,
     char *error, size_t error_size) {
   char temp_path[512];
-  const char *actual_provider_id;
+  PlatformDecompressionProviderLocal provider;
   const char *actual_provider_path;
   int result;
   if (out_result == NULL) return -1;
@@ -594,13 +612,13 @@ int platform_decompression_identify_path_range(const char *provider_id, const ch
     set_error_local(error, error_size, "invalid decompression identify range");
     return -1;
   }
-  actual_provider_id = (provider_id != NULL && provider_id[0] != '\0') ? provider_id : "ancient-cli";
+  provider = provider_from_id_local(provider_id);
   actual_provider_path = (provider_path != NULL && provider_path[0] != '\0') ? provider_path : default_ancient_path_local();
-  if (strcmp(actual_provider_id, "ancient-cli") != 0) {
+  if (provider != PLATFORM_DECOMPRESSION_PROVIDER_ANCIENT_CLI_LOCAL) {
     set_error_local(error, error_size, "unsupported decompression provider");
     return -1;
   }
-  snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", actual_provider_id);
+  snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", provider_id_name_local(provider));
   fill_provider_metadata_local(out_result, actual_provider_path);
   out_result->source_offset = offset;
   out_result->packed_size = size;
@@ -616,18 +634,18 @@ int platform_decompression_identify_buffer_range(const char *provider_id, const 
     const uint8_t *data, uint32_t data_size, uint32_t offset, uint32_t size,
     PlatformDecompressionIdentifyResult *out_result, char *error, size_t error_size) {
   char temp_path[512];
-  const char *actual_provider_id;
+  PlatformDecompressionProviderLocal provider;
   const char *actual_provider_path;
   int result;
   if (out_result == NULL) return -1;
   platform_decompression_identify_result_init(out_result);
-  actual_provider_id = (provider_id != NULL && provider_id[0] != '\0') ? provider_id : "ancient-cli";
+  provider = provider_from_id_local(provider_id);
   actual_provider_path = (provider_path != NULL && provider_path[0] != '\0') ? provider_path : default_ancient_path_local();
-  if (strcmp(actual_provider_id, "ancient-cli") != 0) {
+  if (provider != PLATFORM_DECOMPRESSION_PROVIDER_ANCIENT_CLI_LOCAL) {
     set_error_local(error, error_size, "unsupported decompression provider");
     return -1;
   }
-  snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", actual_provider_id);
+  snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", provider_id_name_local(provider));
   fill_provider_metadata_local(out_result, actual_provider_path);
   out_result->source_offset = offset;
   out_result->packed_size = size;
@@ -644,7 +662,7 @@ int platform_decompression_decompress_path_range(const char *provider_id, const 
     const char *path, uint32_t offset, uint32_t size, const char *output_path,
     PlatformDecompressionIdentifyResult *out_result, char *error, size_t error_size) {
   char temp_path[512];
-  const char *actual_provider_id;
+  PlatformDecompressionProviderLocal provider;
   const char *actual_provider_path;
   int result;
   if (out_result == NULL) return -1;
@@ -653,13 +671,13 @@ int platform_decompression_decompress_path_range(const char *provider_id, const 
     set_error_local(error, error_size, "invalid decompression range");
     return -1;
   }
-  actual_provider_id = (provider_id != NULL && provider_id[0] != '\0') ? provider_id : "ancient-cli";
+  provider = provider_from_id_local(provider_id);
   actual_provider_path = (provider_path != NULL && provider_path[0] != '\0') ? provider_path : default_ancient_path_local();
-  if (strcmp(actual_provider_id, "ancient-cli") != 0) {
+  if (provider != PLATFORM_DECOMPRESSION_PROVIDER_ANCIENT_CLI_LOCAL) {
     set_error_local(error, error_size, "unsupported decompression provider");
     return -1;
   }
-  snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", actual_provider_id);
+  snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", provider_id_name_local(provider));
   fill_provider_metadata_local(out_result, actual_provider_path);
   snprintf(out_result->decompressed_path, sizeof(out_result->decompressed_path), "%s", output_path);
   out_result->source_offset = offset;
@@ -688,7 +706,7 @@ int platform_decompression_decompress_buffer_range(const char *provider_id, cons
     const uint8_t *data, uint32_t data_size, uint32_t offset, uint32_t size, const char *output_path,
     PlatformDecompressionIdentifyResult *out_result, char *error, size_t error_size) {
   char temp_path[512];
-  const char *actual_provider_id;
+  PlatformDecompressionProviderLocal provider;
   const char *actual_provider_path;
   int result;
   if (out_result == NULL) return -1;
@@ -697,13 +715,13 @@ int platform_decompression_decompress_buffer_range(const char *provider_id, cons
     set_error_local(error, error_size, "invalid decompression output path");
     return -1;
   }
-  actual_provider_id = (provider_id != NULL && provider_id[0] != '\0') ? provider_id : "ancient-cli";
+  provider = provider_from_id_local(provider_id);
   actual_provider_path = (provider_path != NULL && provider_path[0] != '\0') ? provider_path : default_ancient_path_local();
-  if (strcmp(actual_provider_id, "ancient-cli") != 0) {
+  if (provider != PLATFORM_DECOMPRESSION_PROVIDER_ANCIENT_CLI_LOCAL) {
     set_error_local(error, error_size, "unsupported decompression provider");
     return -1;
   }
-  snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", actual_provider_id);
+  snprintf(out_result->provider_id, sizeof(out_result->provider_id), "%s", provider_id_name_local(provider));
   fill_provider_metadata_local(out_result, actual_provider_path);
   snprintf(out_result->decompressed_path, sizeof(out_result->decompressed_path), "%s", output_path);
   out_result->source_offset = offset;

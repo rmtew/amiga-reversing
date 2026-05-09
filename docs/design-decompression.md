@@ -60,6 +60,9 @@ A first C decompression provider layer now exists:
   and report packed/decompressed SHA-256 and decompressed size.
 - Provider records include the staged provider path and executable SHA-256, so
   decompression provenance is tied to the exact Ancient binary used.
+- Provider ids are external API/provenance strings only. C resolves them once
+  to provider enum ids before dispatch, so decompression logic does not branch
+  repeatedly on display strings.
 - The same identify/decompress records are exported through
   `platform_file_lib.dll` for the Python C backend wrapper.
 - Facts-v2 analysis JSON now includes top-level `packed_payloads[]`,
@@ -486,17 +489,20 @@ Current retained output:
 24. Done: refresh an existing imported decompressed child target from the C
    materialisation record instead of leaving stale generated provenance in
    place.
-25. Done: expose decompressed-child refresh through the import CLI so existing
+25. Done: resolve provider id strings to C provider enum ids at the provider
+   boundary; internal identify/decompress dispatch now uses the enum while JSON
+   and provenance keep the string name.
+26. Done: expose decompressed-child refresh through the import CLI so existing
    disk projects can apply new C materialisation records without deleting the
    project.
-26. Done: expose C simulator-proven self-decrunch output through a narrow C
+27. Done: expose C simulator-proven self-decrunch output through a narrow C
    backend API, but do not promote observed bytes to a retained child unless C
    classifies the output as a replacement program. Damocles currently remains
    indexed evidence only: it writes a 1744-byte data-like range at `$40000`, but
    that range does not disassemble as a coherent program.
-27. Done: imported decompressed-child refresh removes stale synthetic children
+28. Done: imported decompressed-child refresh removes stale synthetic children
    when successful reanalysis no longer accepts the child.
-28. Done: C analysis identifies Tetragon unpacker marker events. Damocles now
+29. Done: C analysis identifies Tetragon unpacker marker events. Damocles now
    reports two Tetragon candidates: hunk 1 compressed source at section offset
    `$100`, compressed-source section end offset `$428`, post-pass source
    `$4F92B..$50000`, escape `$11`, target start and entry `$40000`, and hunk 2
@@ -505,7 +511,7 @@ Current retained output:
    start `$1000`, final entry `$59484`, copied stub storage `$6A`, runtime stub
    `$100`, and transfer offset `$40`. Target end remains unknown until unpack
    execution proves the output cursor.
-29. Done: native Tetragon unpack execution retains a payload only when C proves
+30. Done: native Tetragon unpack execution retains a payload only when C proves
    the packed trailer matches the post-pass range, post-pass consumption reaches
    the post-pass source end, the output cursor produces a bounded target range,
    and the final transfer lands inside that target. The Damocles real-data
@@ -514,13 +520,13 @@ Current retained output:
    `$40000..$50000`; hunk 2 materializes `$1000..$7C14A`. A second real-data
    comparator, `tests/fixtures/hunk/voodoo_ake_tetragon.bin`, proves the same
    native path on Voodoo Nightmare `ake.c` and materializes `$5C000..$65BA7`.
-30. Done: C event emission suppresses a generic unknown self-decrunch event
+31. Done: C event emission suppresses a generic unknown self-decrunch event
    when a native recognized unpacker has already validated the same source
    section, load address, and entrypoint. This keeps broad simulator-required
    candidates as work items only while they are the best available evidence,
    and prevents Damocles/Voodoo native Tetragon coverage from being duplicated
    as stale unknown-decrunch work.
-31. Done: the unknown self-decrunch simulator path is backed by a real
+32. Done: the unknown self-decrunch simulator path is backed by a real
    Magicland Dizzy `TRAINER` fixture,
    `tests/fixtures/hunk/magicland_trsi_trainer_self_decrunch.bin`, instead of
    relying on optional corpus resources. The fixture exposed missing generated
@@ -528,7 +534,7 @@ Current retained output:
    self-decrunch step bound. C simulation now reaches the transfer to `$20000`
    and materializes a 43695-byte payload with SHA-256
    `f867bec7c8a062b9d086ea170cd297d620c0a5e32fd90caf14a979f4fe13fce4`.
-32. Done: materialized decompressed child metadata preserves C payload role
+33. Done: materialized decompressed child metadata preserves C payload role
    fields. Imported/refresh-created children now write `payload_role`,
    `payload_role_confidence`, and `parent_remains_active` into the child project
    origin, manifest relationship, `decompression.json`, and corpus
