@@ -37,6 +37,14 @@ static int test_render_policy_defaults(void) {
   return 0;
 }
 
+static int structured_data_item_has_role(const M68kAnalysisStructuredDataItem *item, uint32_t role_flags) {
+  return item != NULL && (item->semantic_role_flags & role_flags) == role_flags;
+}
+
+static int runtime_address_ref_has_data_class(const M68kRuntimeAddressRefIR *ref, uint32_t data_class_flags) {
+  return ref != NULL && (ref->data_class_flags & data_class_flags) == data_class_flags;
+}
+
 static int test_source_statement_renderer_renders_single_statement(void) {
   M68kStatementIR stmt;
   uint8_t bytes[3] = {0x41u, 0x42u, 0x00u};
@@ -1088,7 +1096,7 @@ static int test_facts_v2_pc_index_data_target_auto_classifies_lookup_scalar(void
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 8U &&
-        strcmp(item->semantic_role, "lookup_table") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) {
       auto_item = item;
       break;
     }
@@ -1139,7 +1147,7 @@ static int test_facts_v2_pc_index_data_target_auto_classifies_lookup_span(void) 
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 8U &&
-        strcmp(item->semantic_role, "lookup_table") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) {
       auto_item = item;
       break;
     }
@@ -1191,7 +1199,7 @@ static int test_facts_v2_indexed_postincrement_reads_auto_classify_word_table(vo
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 10U &&
-        strcmp(item->semantic_role, "lookup_table") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) {
       auto_item = item;
       break;
     }
@@ -1245,7 +1253,7 @@ static int test_facts_v2_genam_byte_postincrement_table_stays_byte_data(void) {
   M68K_C_ASSERT(strstr(source, "loc_0_00000010:\n\tdc.b $30,$31,$32,$33,$34,$35\n") != NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
-    M68K_C_ASSERT(strcmp(item->semantic_role, "lookup_table") != 0 ||
+    M68K_C_ASSERT(!structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) ||
       item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES);
   }
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
@@ -1303,7 +1311,7 @@ static int test_facts_v2_indexed_local_base_auto_classifies_scalar_table(void) {
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 20U &&
-        strcmp(item->semantic_role, "lookup_table") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) {
       auto_item = item;
       break;
     }
@@ -1355,7 +1363,7 @@ static int test_facts_v2_genam_indexed_word_read_stays_unclassified_data(void) {
   M68K_C_ASSERT(strstr(source, "; lookup_table") == NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
-    M68K_C_ASSERT(strcmp(item->semantic_role, "lookup_table") != 0);
+    M68K_C_ASSERT(!structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE));
   }
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
@@ -1408,7 +1416,8 @@ static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) 
   M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_00000012\n") != NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
-    if (item->has_section_index && strcmp(item->semantic_role, "pointer_table") == 0) {
+    if (item->has_section_index &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE)) {
       auto_item = item;
       break;
     }
@@ -1456,7 +1465,7 @@ static int test_facts_v2_data_ascii_span_auto_classifies_ff_string(void) {
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 2U &&
-        strcmp(item->semantic_role, "string") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
       auto_item = item;
       break;
     }
@@ -1536,7 +1545,8 @@ static int test_facts_v2_data_ascii_span_rejects_length_prefixed_text(void) {
   M68K_C_ASSERT(strstr(source, "dc.b \"PRESS FIRE\",$00") == NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
-    if (item->has_section_index && item->section_index == 0U && strcmp(item->semantic_role, "string") == 0)
+    if (item->has_section_index && item->section_index == 0U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING))
       ++string_items;
   }
   M68K_C_ASSERT_U32(0U, string_items);
@@ -1579,7 +1589,8 @@ static int test_facts_v2_data_ascii_span_rejects_printable_length_sequence(void)
   M68K_C_ASSERT(strstr(source, "dc.b \"FOUR!THIS IS A THIRTY TWO BYTE MESSAGE\",$00") == NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
-    if (item->has_section_index && item->section_index == 0U && strcmp(item->semantic_role, "string") == 0)
+    if (item->has_section_index && item->section_index == 0U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING))
       ++string_items;
   }
   M68K_C_ASSERT_U32(0U, string_items);
@@ -1623,7 +1634,8 @@ static int test_facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequenc
   M68K_C_ASSERT(strstr(source, "dc.b \"RUNS\",$FF") != NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
-    if (item->has_section_index && item->section_index == 0U && strcmp(item->semantic_role, "string") == 0)
+    if (item->has_section_index && item->section_index == 0U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING))
       ++string_items;
   }
   M68K_C_ASSERT_U32(3U, string_items);
@@ -1664,7 +1676,8 @@ static int test_facts_v2_two_short_ascii_spans_remain_raw_data(void) {
   M68K_C_ASSERT(strstr(source, "dc.b \"MISS\",$FF") == NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
-    if (item->has_section_index && item->section_index == 0U && strcmp(item->semantic_role, "string") == 0)
+    if (item->has_section_index && item->section_index == 0U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING))
       ++string_items;
   }
   M68K_C_ASSERT_U32(0U, string_items);
@@ -1711,7 +1724,8 @@ static int test_facts_v2_label_bounded_ascii_span_auto_classifies_string(void) {
   M68K_C_ASSERT(strstr(source, "dc.b \" TETRAGON \"\t; string\n") != NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
-    if (item->has_section_index && item->section_index == 0U && strcmp(item->semantic_role, "string") == 0) {
+    if (item->has_section_index && item->section_index == 0U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
       auto_item = item;
       break;
     }
@@ -3608,7 +3622,8 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   policy.structured_data_items[0].offset = 6U;
   policy.structured_data_items[0].size = 2U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
-  m68k_analysis_structured_data_item_set_semantic_role(&policy.structured_data_items[0], "lookup_table");
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
   memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
@@ -3740,7 +3755,8 @@ static int test_facts_v2_orphan_signal_suppresses_structured_data_overlap(void) 
   policy.structured_data_items[0].offset = 2U;
   policy.structured_data_items[0].size = 4U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
-  m68k_analysis_structured_data_item_set_semantic_role(&policy.structured_data_items[0], "lookup_table");
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
   memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
@@ -3800,7 +3816,8 @@ static int test_facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_call
   policy.structured_data_items[0].offset = 6U;
   policy.structured_data_items[0].size = 4U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
-  m68k_analysis_structured_data_item_set_semantic_role(&policy.structured_data_items[0], "pointer_table");
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE);
   memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
@@ -3853,7 +3870,8 @@ static int test_facts_v2_orphan_signal_records_minimum_decode_cpu(void) {
   policy.structured_data_items[0].offset = 8U;
   policy.structured_data_items[0].size = 2U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
-  m68k_analysis_structured_data_item_set_semantic_role(&policy.structured_data_items[0], "lookup_table");
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
   memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
@@ -4575,13 +4593,12 @@ static int test_facts_v2_word_dispatch_promotes_far_relative_targets(void) {
   for (item_index = 0U; item_index < source_analysis.policy.structured_data_item_count; ++item_index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[item_index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 18U &&
-        strcmp(item->semantic_role, "lookup_table") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) {
       M68K_C_ASSERT_U32(1U, item->has_consumer);
       M68K_C_ASSERT_U32(0U, item->consumer_section);
       M68K_C_ASSERT_U32(0x0CU, item->consumer_offset);
       M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH,
         item->source_pattern_id);
-      M68K_C_ASSERT(strcmp(item->source_pattern, "indexed_word_dispatch") == 0);
       saw_table_consumer = 1U;
     }
   }
@@ -4630,8 +4647,8 @@ static int test_source_analysis_table_record_marks_code_overlap_conflict(void) {
   source_analysis.policy.structured_data_items[0].offset = 0U;
   source_analysis.policy.structured_data_items[0].size = 2U;
   source_analysis.policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
-  m68k_analysis_structured_data_item_set_semantic_role(&source_analysis.policy.structured_data_items[0],
-    "lookup_table");
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&source_analysis.policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
@@ -6074,7 +6091,8 @@ static int test_facts_v2_pointer_table_storage_value_stays_numeric_under_runtime
   policy.structured_data_items[0].offset = 0U;
   policy.structured_data_items[0].size = 4U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
-  m68k_analysis_structured_data_item_set_semantic_role(&policy.structured_data_items[0], "pointer_table");
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE);
   policy.runtime_range_count = 1U;
   policy.runtime_ranges[0].has_section_index = 1U;
   policy.runtime_ranges[0].section_index = 0U;
@@ -6129,7 +6147,8 @@ static int test_facts_v2_pointer_table_runtime_data_targets_get_labels(void) {
   policy.structured_data_items[0].offset = 0U;
   policy.structured_data_items[0].size = 4U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
-  m68k_analysis_structured_data_item_set_semantic_role(&policy.structured_data_items[0], "pointer_table");
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE);
   policy.runtime_range_count = 1U;
   policy.runtime_ranges[0].has_section_index = 1U;
   policy.runtime_ranges[0].section_index = 0U;
@@ -6183,7 +6202,8 @@ static int test_facts_v2_absolute_long_lookup_table_renders_labels_and_nulls(voi
   policy.structured_data_items[0].offset = 0U;
   policy.structured_data_items[0].size = 12U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
-  m68k_analysis_structured_data_item_set_semantic_role(&policy.structured_data_items[0], "lookup_table");
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
   policy.entry_point_count = 2U;
   policy.entry_points[0].has_section_index = 1U;
   policy.entry_points[0].section_index = 0U;
@@ -6235,7 +6255,8 @@ static int test_facts_v2_word_lookup_table_mixes_labels_and_raw_without_duplicat
   policy.structured_data_items[0].has_target = 1U;
   policy.structured_data_items[0].target_section = 0U;
   policy.structured_data_items[0].target_offset = 8U;
-  m68k_analysis_structured_data_item_set_semantic_role(&policy.structured_data_items[0], "lookup_table");
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
   policy.entry_point_count = 2U;
   policy.entry_points[0].has_section_index = 1U;
   policy.entry_points[0].section_index = 0U;
@@ -9063,7 +9084,7 @@ static int test_facts_v2_relocation_backed_data_longs_auto_classify_pointer_tabl
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 0U &&
-        strcmp(item->semantic_role, "pointer_table") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE)) {
       auto_item = item;
       break;
     }
@@ -12479,7 +12500,8 @@ static int test_facts_v2_length_prefixed_ascii_sequence_renders_strings(void) {
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
-        strcmp(item->semantic_role, "length_prefixed_string") == 0) {
+        structured_data_item_has_role(item,
+          M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING)) {
       M68K_C_ASSERT_U32(
         M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING,
         item->semantic_role_flags);
@@ -12563,7 +12585,8 @@ static int test_facts_v2_source_analysis_caps_many_auto_structured_strings(void)
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
-        strcmp(item->semantic_role, "length_prefixed_string") == 0)
+        structured_data_item_has_role(item,
+          M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING))
       ++string_items;
   }
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT, string_items);
@@ -13376,7 +13399,8 @@ static int test_facts_v2_render_asm_source_renders_copper_list_structured_data(v
   policy.structured_data_items[0].offset = 0U;
   policy.structured_data_items[0].size = (uint32_t)sizeof(bytes);
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
-  m68k_analysis_structured_data_item_set_semantic_role(&policy.structured_data_items[0], "copper_list");
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
@@ -13464,7 +13488,7 @@ static int test_facts_v2_runtime_copper_pointer_auto_classifies_copper_list(void
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 0x0CU &&
-        strcmp(item->semantic_role, "copper_list") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST)) {
       auto_item = item;
       break;
     }
@@ -13525,7 +13549,7 @@ static int test_facts_v2_register_runtime_sink_auto_classifies_copper_list(void)
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 0x0EU &&
-        strcmp(item->semantic_role, "copper_list") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST)) {
       auto_item = item;
       break;
     }
@@ -13702,7 +13726,7 @@ static int test_facts_v2_copper_bitmap_pointers_render_display_layout_comment(vo
     "\tdc.w bplpt+$06,bitmap_00012000_lo\n") != NULL);
   for (index = 0U; index < source_analysis.sections[0].runtime_address_ref_count; ++index) {
     const M68kRuntimeAddressRefIR *ref = &source_analysis.sections[0].runtime_address_refs[index];
-    if (ref->data_class == NULL || strcmp(ref->data_class, "bitmap") != 0) continue;
+    if (!runtime_address_ref_has_data_class(ref, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP)) continue;
     if (ref->offset == 0x0CU) first_bitmap = ref;
     if (ref->offset == 0x14U) second_bitmap = ref;
   }
@@ -13768,7 +13792,7 @@ static int test_facts_v2_copper_bitmap_memory_uses_are_commented(void) {
     "\tmove.w (a0),d0\t; bitmap memory plane 0 +$10 ($00010010)\n") != NULL);
   for (index = 0U; index < source_analysis.sections[0].runtime_address_ref_count; ++index) {
     const M68kRuntimeAddressRefIR *ref = &source_analysis.sections[0].runtime_address_refs[index];
-    if (ref->data_class != NULL && strcmp(ref->data_class, "bitmap") == 0 &&
+    if (runtime_address_ref_has_data_class(ref, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) &&
         ref->has_runtime_address && ref->runtime_address == 0x10010U) {
       ++bitmap_use_refs;
       M68K_C_ASSERT_U32(0U, ref->size);
@@ -13826,7 +13850,7 @@ static int test_facts_v2_palette_upload_auto_classifies_source_table(void) {
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 16U &&
-        strcmp(item->semantic_role, "palette") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE)) {
       auto_item = item;
       break;
     }
@@ -13890,7 +13914,7 @@ static int test_facts_v2_palette_upload_allows_internal_word_label(void) {
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 16U &&
-        strcmp(item->semantic_role, "palette") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE)) {
       auto_item = item;
       break;
     }
@@ -13953,7 +13977,7 @@ static int test_facts_v2_palette_upload_survives_movem_saved_call(void) {
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 30U &&
-        strcmp(item->semantic_role, "palette") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE)) {
       auto_item = item;
       break;
     }
@@ -14014,7 +14038,7 @@ static int test_facts_v2_palette_upload_survives_address_preserving_local_call(v
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 24U &&
-        strcmp(item->semantic_role, "palette") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE)) {
       auto_item = item;
       break;
     }
@@ -14077,7 +14101,7 @@ static int test_facts_v2_genam_palette_upload_uses_runtime_translated_source_tab
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 16U &&
-        strcmp(item->semantic_role, "palette") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE)) {
       auto_item = item;
       break;
     }
@@ -14156,7 +14180,7 @@ static int test_facts_v2_palette_upload_uses_source_section_accepted_bytes(void)
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 1U && item->offset == 0U &&
-        strcmp(item->semantic_role, "palette") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE)) {
       auto_item = item;
       break;
     }
@@ -14268,7 +14292,7 @@ static int test_facts_v2_audio_pointer_and_length_auto_classifies_sound_sample(v
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U && item->offset == 0x14U &&
-        strcmp(item->semantic_role, "sound_sample") == 0) {
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE)) {
       auto_item = item;
       break;
     }
