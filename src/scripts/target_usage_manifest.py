@@ -1892,7 +1892,7 @@ def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]
         if value is not None:
             example[key] = value
     table_bounds_status = _recovered_indirect_table_bounds_status_name(record)
-    for key in ("table_offset", "table_size", "table_entry_size", "table_entry_count"):
+    for key in ("expression_base_offset", "table_offset", "table_size", "table_entry_size", "table_entry_count"):
         value = _int_value(record.get(key))
         if value is not None:
             example[key] = value
@@ -1915,6 +1915,8 @@ def _add_table_candidate_record_features(bag: FeatureBag, record: dict[str, Any]
         bag.add(f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}", example=example)
     if _int_value(record.get("source_size")) is not None:
         bag.add("table:candidate_unresolved:source_range", example=example)
+    if _int_value(record.get("expression_base_offset")) is not None:
+        bag.add("table:candidate_unresolved:expression_base", example=example)
     if _int_value(record.get("table_offset")) is not None:
         bag.add("table:candidate_unresolved:table_base", example=example)
     table_bounds_status_id = _int_value(record.get("table_bounds_status_id"), 0) or 0
@@ -4043,6 +4045,7 @@ def _analysis_xrefs(
         conflict_state = _conflict_state_name(record)
         target_count = _int_value(record.get("target_count"))
         source_size = _int_value(record.get("source_size"))
+        expression_base_offset = _int_value(record.get("expression_base_offset"))
         table_offset = _int_value(record.get("table_offset"))
         table_size = _int_value(record.get("table_size"))
         table_bounds_status_id = _int_value(record.get("table_bounds_status_id"), 0) or 0
@@ -4060,6 +4063,8 @@ def _analysis_xrefs(
             features.append(f"table:candidate_unresolved:conflict_state:{_safe_part(conflict_state)}")
         if source_size is not None:
             features.append("table:candidate_unresolved:source_range")
+        if expression_base_offset is not None:
+            features.append("table:candidate_unresolved:expression_base")
         if table_offset is not None:
             features.append("table:candidate_unresolved:table_base")
         if table_size is not None:

@@ -565,12 +565,13 @@ typedef struct M68kRecoveredIndirectSiteIR {
   uint8_t has_target_count;
   uint8_t operand_index;
   uint8_t source_size;
+  uint8_t has_expression_base;
   uint8_t has_table_base;
   uint8_t has_table_bounds;
   uint8_t table_bounds_status;
-  uint8_t reserved[1];
   uint32_t target;
   uint32_t target_count;
+  uint32_t expression_base_offset;
   uint32_t table_offset;
   uint32_t table_size;
   uint32_t table_entry_size;

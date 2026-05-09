@@ -3659,6 +3659,8 @@ static int test_facts_v2_records_rejected_indirect_table_bounds(void) {
   M68K_C_ASSERT_U32(0U, site->offset);
   M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF, site->shape);
   M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_STATUS_UNRESOLVED, site->status);
+  M68K_C_ASSERT_U32(1U, site->has_expression_base);
+  M68K_C_ASSERT_U32(6U, site->expression_base_offset);
   M68K_C_ASSERT_U32(1U, site->has_table_bounds);
   M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_INSUFFICIENT_ENTRIES,
     site->table_bounds_status);
@@ -3670,6 +3672,8 @@ static int test_facts_v2_records_rejected_indirect_table_bounds(void) {
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"table_candidate_record_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern_id\":2,\"source_pattern\":\"indexed_indirect\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"has_expression_base\":true,\"expression_base_offset\":6") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_offset\":6,\"table_size\":2,\"table_entry_size\":2,\"table_entry_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
@@ -3716,6 +3720,8 @@ static int test_facts_v2_records_unsupported_indirect_table_entry_shape(void) {
   site = &source_analysis.sections[0].recovered_indirect_sites[0];
   M68K_C_ASSERT_U32(0U, site->offset);
   M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF, site->shape);
+  M68K_C_ASSERT_U32(1U, site->has_expression_base);
+  M68K_C_ASSERT_U32(6U, site->expression_base_offset);
   M68K_C_ASSERT_U32(1U, site->has_table_base);
   M68K_C_ASSERT_U32(0U, site->has_table_bounds);
   M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_UNSUPPORTED_ENTRY_SHAPE,
@@ -3766,11 +3772,15 @@ static int test_facts_v2_indexed_indirect_candidate_does_not_use_instruction_ext
   site = &source_analysis.sections[0].recovered_indirect_sites[0];
   M68K_C_ASSERT_U32(0U, site->offset);
   M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF, site->shape);
+  M68K_C_ASSERT_U32(1U, site->has_expression_base);
+  M68K_C_ASSERT_U32(2U, site->expression_base_offset);
   M68K_C_ASSERT_U32(0U, site->has_table_base);
   M68K_C_ASSERT_U32(0U, site->has_table_bounds);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"table_candidate_record_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"has_expression_base\":true,\"expression_base_offset\":2") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"has_table_base\":false,\"table_offset\":null") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);

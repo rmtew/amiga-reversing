@@ -1912,6 +1912,13 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
       if (site->has_target_count != 0U) {
         if (json_builder_appendf(builder, "%u", (unsigned)site->target_count) != 0) return -1;
       } else if (json_builder_append(builder, "null") != 0) return -1;
+      if (json_builder_appendf(builder, ",\"has_expression_base\":%s",
+          site->has_expression_base != 0U ? "true" : "false") != 0)
+        return -1;
+      if (json_builder_append(builder, ",\"expression_base_offset\":") != 0) return -1;
+      if (site->has_expression_base != 0U) {
+        if (json_builder_appendf(builder, "%u", (unsigned)site->expression_base_offset) != 0) return -1;
+      } else if (json_builder_append(builder, "null") != 0) return -1;
       if (json_builder_appendf(builder, ",\"has_table_base\":%s",
           site->has_table_base != 0U ? "true" : "false") != 0)
         return -1;
@@ -3350,6 +3357,17 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (site->has_target_count != 0U) {
         if (json_builder_appendf(&builder, "%u", (unsigned)site->target_count) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) {
+        goto oom;
+      }
+      if (json_builder_appendf(&builder, ",\"has_expression_base\":%s",
+          site->has_expression_base != 0U ? "true" : "false") != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"expression_base_offset\":") != 0)
+        goto oom;
+      if (site->has_expression_base != 0U) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)site->expression_base_offset) != 0)
           goto oom;
       } else if (json_builder_append(&builder, "null") != 0) {
         goto oom;

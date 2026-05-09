@@ -225,6 +225,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                 "status": "stale_display_name",
                 "source_pattern_id": 2,
                 "source_pattern": "stale_display_name",
+                "expression_base_offset": 0x22,
                 "table_offset": 0x40,
                 "table_size": 2,
                 "table_entry_size": 2,
@@ -237,6 +238,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         counts, examples, _tags = bag.row_features()
 
         self.assertEqual(counts["table:candidate_unresolved:table_bounds_status:rejected_code_overlap"], 1)
+        self.assertEqual(counts["table:candidate_unresolved:expression_base"], 1)
+        self.assertEqual(examples["table:candidate_unresolved"][0]["expression_base_offset"], 0x22)
         self.assertEqual(examples["table:candidate_unresolved"][0]["table_bounds_status"], "rejected_code_overlap")
 
     def test_table_candidate_features_keep_base_without_bounds(self) -> None:

@@ -722,6 +722,12 @@ bytes outside the instruction that consumes them. Otherwise the UI presents the
 instruction's own operand encoding as an editable lookup table, and the rendered
 source implies a user-visible table that never existed.
 
+Record that case as an expression base on the recovered indirect site. The
+expression base explains how the control operand is calculated. The table base
+explains where external table bytes begin. They are allowed to be equal for
+normal tables, but they must be separate fields so non-ideal indexed forms do
+not lose provenance or create fake data tables.
+
 Rejected candidate bounds are still useful when analysis can prove the table
 base and a bounded candidate span, but cannot accept the table yet:
 

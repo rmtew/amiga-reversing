@@ -4505,6 +4505,19 @@ static void recovered_indirect_site_set_table_base_status(M68kRecoveredIndirectS
   site->table_bounds_status = status;
 }
 
+static void recovered_indirect_site_apply_expression_base(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, M68kRecoveredIndirectSiteIR *site) {
+  uint32_t expression_base_offset = 0U;
+  if (section == NULL || candidate == NULL || site == NULL ||
+      site->operand_index >= candidate->operand_count ||
+      !candidate_operand_data_target_offset(candidate, site->operand_index, section->section_index,
+        &expression_base_offset)) {
+    return;
+  }
+  site->has_expression_base = 1U;
+  site->expression_base_offset = expression_base_offset;
+}
+
 static void recovered_indirect_site_apply_direct_stub_table_bounds(M68kDecodeIR *decode,
     size_t section_index, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *site_candidate,
     uint8_t max_cpu, uint8_t **accepted_start, uint8_t **accepted_bytes,
@@ -4522,15 +4535,12 @@ static void recovered_indirect_site_apply_direct_stub_table_bounds(M68kDecodeIR 
         &table_offset)) {
     return;
   }
-  recovered_indirect_site_set_table_base_status(site, table_offset,
-    M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE);
   if (table_offset < site_candidate->offset ||
       table_offset - site_candidate->offset < site_candidate->byte_count) {
-    site->has_table_base = 0U;
-    site->table_offset = 0U;
-    site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE;
     return;
   }
+  recovered_indirect_site_set_table_base_status(site, table_offset,
+    M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE);
   cursor = table_offset;
   while (cursor < section->size && entry_count < scan_limit) {
     const M68kDecodeCandidate *candidate = NULL;
@@ -4956,6 +4966,7 @@ static int append_recovered_indirect_sites_for_accepted(M68kDecodeIR *decode,
         site.operand_index = (uint8_t)operand_index;
         site.source_size = candidate->byte_count;
         site.detail = "accepted indirect control target";
+        recovered_indirect_site_apply_expression_base(section, candidate, &site);
         recovered_indirect_site_apply_code_start_refs(&site, &source_analysis->sections[section_index]);
         if (site.status == M68K_RECOVERED_INDIRECT_STATUS_UNRESOLVED) {
           recovered_indirect_site_apply_direct_stub_table_bounds(decode, section_index, section, candidate,

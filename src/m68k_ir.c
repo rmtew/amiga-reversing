@@ -810,8 +810,17 @@ int m68k_ir_section_analysis_append_recovered_indirect_site(M68kSectionAnalysisI
     existing->has_target_count = site->has_target_count;
     existing->operand_index = site->operand_index;
     existing->source_size = site->source_size;
+    existing->has_expression_base = site->has_expression_base;
+    existing->has_table_base = site->has_table_base;
+    existing->has_table_bounds = site->has_table_bounds;
+    existing->table_bounds_status = site->table_bounds_status;
     existing->target = site->target;
     existing->target_count = site->target_count;
+    existing->expression_base_offset = site->expression_base_offset;
+    existing->table_offset = site->table_offset;
+    existing->table_size = site->table_size;
+    existing->table_entry_size = site->table_entry_size;
+    existing->table_entry_count = site->table_entry_count;
     existing->detail = copy_detail;
     return 0;
   }

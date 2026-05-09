@@ -813,6 +813,13 @@ Table-base gate evidence after rejecting bases inside the consuming instruction:
   were the control instruction's own extension word, not real external table
   starts, in Atari Devpac `GEN/MON/AMON` variants and project GenAm/MonAm
   targets.
+- Follow-up implementation keeps that provenance as
+  `expression_base_offset` on recovered indirect sites and table-candidate JSON,
+  while `table_offset` remains reserved for real external table data.
+- Corpus after the split: `table:candidate_unresolved:expression_base`
+  0 -> 8, `table:candidate_unresolved:table_base` stayed 0 -> 0,
+  `table:candidate_unresolved` stayed 32 -> 32, and accepted lookup-table
+  label rendering stayed unchanged.
 
 Actionable unresolved orphan missing-inbound corpus evidence after gating
 suppressed signals out of work-item tags:
