@@ -923,6 +923,14 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(navigation_payload["profile"]["generation"], "facts_v2_listing_artifact_navigation")
         self.assertEqual(navigation_payload["navigation"]["analysis_generation"], "full")
         self.assertIn("labels", navigation_payload["navigation"]["groups"])
+        label_refs = [
+            ref
+            for label in navigation_payload["navigation"]["groups"]["labels"]
+            for ref in label.get("refs", [])
+        ]
+        self.assertTrue(label_refs)
+        for ref in label_refs:
+            self.assertIn(ref["access_kind"], (1, 2))
 
     def test_platform_file_listing_artifact_maps_source_offset_to_c_row(self) -> None:
         library = _file_library()

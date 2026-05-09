@@ -269,6 +269,8 @@ proves a distinct base id.
    - listing row classification: generated C listing rows carry compact
      `kind_id` values; C listing/window/navigation logic consumes those ids
      and keeps `kind` strings as exported display text
+   - listing label references carry compact access ids internally and in JSON;
+     access strings are exported display text only
 
 6. Rendering rules:
    - emit one RSSET block per proven base layout

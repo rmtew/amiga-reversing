@@ -6363,7 +6363,7 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
 
 typedef struct ListingNavigationLabelRef {
   char symbol[128];
-  char access[16];
+  uint8_t access_kind;
   char summary[512];
   char match_text[512];
   char stable_key[128];
@@ -6371,6 +6371,20 @@ typedef struct ListingNavigationLabelRef {
   uint32_t addr;
   int section_index;
 } ListingNavigationLabelRef;
+
+enum {
+  LISTING_LABEL_ACCESS_NONE = 0,
+  LISTING_LABEL_ACCESS_DEFINITION = 1,
+  LISTING_LABEL_ACCESS_REFERENCE = 2
+};
+
+static const char *listing_label_access_name(uint8_t access_kind) {
+  switch (access_kind) {
+    case LISTING_LABEL_ACCESS_DEFINITION: return "definition";
+    case LISTING_LABEL_ACCESS_REFERENCE: return "reference";
+    default: return "unknown";
+  }
+}
 
 typedef struct ListingNavigationLabelBuilder {
   Arena *arena;
@@ -6804,14 +6818,16 @@ static int append_listing_navigation_orphan_code_entry(JsonBuilder *builder, con
 }
 
 static int listing_navigation_append_label_ref(ListingNavigationJsonContext *navigation, const char *symbol,
-    const char *access, const char *summary, const char *match_text, const M68kStatementIR *stmt, size_t row_index,
+    uint8_t access_kind, const char *summary, const char *match_text, const M68kStatementIR *stmt, size_t row_index,
     int section_index, const char *row_kind) {
   ListingNavigationLabelRef *ref;
-  if (navigation == NULL || symbol == NULL || symbol[0] == '\0' || stmt == NULL) return 0;
+  if (navigation == NULL || symbol == NULL || symbol[0] == '\0' || stmt == NULL ||
+      access_kind == LISTING_LABEL_ACCESS_NONE)
+    return 0;
   ref = listing_navigation_label_append(&navigation->labels);
   if (ref == NULL) return -1;
   listing_copy_text(ref->symbol, sizeof(ref->symbol), symbol);
-  listing_copy_text(ref->access, sizeof(ref->access), access);
+  ref->access_kind = access_kind;
   listing_copy_text(ref->summary, sizeof(ref->summary), summary != NULL ? summary : "");
   listing_copy_text(ref->match_text, sizeof(ref->match_text), match_text != NULL ? match_text : "");
   listing_row_stable_key(ref->stable_key, sizeof(ref->stable_key), section_index, stmt->offset, row_kind, row_index);
@@ -6825,7 +6841,8 @@ static int listing_navigation_has_label_definition(const ListingNavigationLabelB
   size_t index;
   if (labels == NULL || symbol == NULL) return 0;
   for (index = 0U; index < labels->ref_count; ++index)
-    if (strcmp(labels->refs[index].symbol, symbol) == 0 && strcmp(labels->refs[index].access, "definition") == 0)
+    if (strcmp(labels->refs[index].symbol, symbol) == 0 &&
+        labels->refs[index].access_kind == LISTING_LABEL_ACCESS_DEFINITION)
       return 1;
   return 0;
 }
@@ -6838,8 +6855,8 @@ static int listing_navigation_observe_label_refs(ListingNavigationJsonContext *n
   for (operand_index = 0U; operand_index < stmt->u.instruction.operand_count && operand_index < 4U; ++operand_index) {
     const M68kOperandIR *operand = &stmt->u.instruction.operands[operand_index];
     if (operand->symbol_ref.has_name == 0U || operand->symbol_ref.name[0] == '\0') continue;
-    if (listing_navigation_append_label_ref(navigation, operand->symbol_ref.name, "reference", match_text,
-        match_text, stmt, row_index, section_index, row_kind) != 0)
+    if (listing_navigation_append_label_ref(navigation, operand->symbol_ref.name, LISTING_LABEL_ACCESS_REFERENCE,
+        match_text, match_text, stmt, row_index, section_index, row_kind) != 0)
       return -1;
   }
   return 0;
@@ -6868,8 +6885,8 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
     char label_summary[160];
     listing_copy_text(symbol, sizeof(symbol), match_text);
     snprintf(label_summary, sizeof(label_summary), "%s:", symbol);
-    if (listing_navigation_append_label_ref(navigation, symbol, "definition", label_summary, symbol, stmt,
-        row_index, section_index, row_kind) != 0)
+    if (listing_navigation_append_label_ref(navigation, symbol, LISTING_LABEL_ACCESS_DEFINITION, label_summary,
+        symbol, stmt, row_index, section_index, row_kind) != 0)
       return -1;
   }
   if (listing_navigation_observe_label_refs(navigation, stmt, row_index, section_index, row_kind, match_text) != 0)
@@ -6977,8 +6994,9 @@ static int append_listing_navigation_label_ref_json(JsonBuilder *builder, const 
     return -1;
   if (json_builder_append(builder, ",\"symbol\":") != 0) return -1;
   if (json_builder_append_json_string(builder, ref->symbol) != 0) return -1;
-  if (json_builder_append(builder, ",\"access\":") != 0) return -1;
-  if (json_builder_append_json_string(builder, ref->access) != 0) return -1;
+  if (json_builder_appendf(builder, ",\"access_kind\":%u,\"access\":", (unsigned)ref->access_kind) != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, listing_label_access_name(ref->access_kind)) != 0) return -1;
   return json_builder_append(builder, "}");
 }
 
@@ -6992,13 +7010,13 @@ static int append_listing_navigation_labels_json(JsonBuilder *builder, const Lis
     size_t ref_index;
     size_t ref_count = 0U;
     size_t reference_count = 0U;
-    if (strcmp(def->access, "definition") != 0) continue;
+    if (def->access_kind != LISTING_LABEL_ACCESS_DEFINITION) continue;
     for (ref_index = 0U; ref_index < labels->ref_count; ++ref_index)
       if (strcmp(labels->refs[ref_index].symbol, def->symbol) == 0 &&
-          (strcmp(labels->refs[ref_index].access, "definition") == 0 ||
-            strcmp(labels->refs[ref_index].access, "reference") == 0)) {
+          (labels->refs[ref_index].access_kind == LISTING_LABEL_ACCESS_DEFINITION ||
+            labels->refs[ref_index].access_kind == LISTING_LABEL_ACCESS_REFERENCE)) {
         ++ref_count;
-        if (strcmp(labels->refs[ref_index].access, "reference") == 0) ++reference_count;
+        if (labels->refs[ref_index].access_kind == LISTING_LABEL_ACCESS_REFERENCE) ++reference_count;
       }
     if (emitted_def && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder, "{\"addr\":%u,\"row_index\":%u,\"summary\":",
@@ -7027,9 +7045,12 @@ static int append_listing_navigation_labels_json(JsonBuilder *builder, const Lis
       for (ref_index = 0U; ref_index < labels->ref_count; ++ref_index) {
         const ListingNavigationLabelRef *ref = &labels->refs[ref_index];
         if (strcmp(ref->symbol, def->symbol) != 0) continue;
-        if (strcmp(ref->access, "reference") == 0 && !listing_navigation_has_label_definition(labels, ref->symbol))
+        if (ref->access_kind == LISTING_LABEL_ACCESS_REFERENCE &&
+            !listing_navigation_has_label_definition(labels, ref->symbol))
           continue;
-        if (strcmp(ref->access, "definition") != 0 && strcmp(ref->access, "reference") != 0) continue;
+        if (ref->access_kind != LISTING_LABEL_ACCESS_DEFINITION &&
+            ref->access_kind != LISTING_LABEL_ACCESS_REFERENCE)
+          continue;
         if (emitted_ref && json_builder_append(builder, ",") != 0) return -1;
         if (append_listing_navigation_label_ref_json(builder, ref) != 0) return -1;
         emitted_ref = 1;
