@@ -100,6 +100,14 @@ CONFLICT_STATE_NAMES = {
     CONFLICT_STATE_UNRESOLVED: "unresolved",
     CONFLICT_STATE_CONFLICTED: "conflicted",
 }
+UNRESOLVED_TYPED_ACCESS_FIELD_GAP = 0
+UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION = 1
+UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE = 2
+UNRESOLVED_TYPED_ACCESS_CLASSIFICATION_NAMES = {
+    UNRESOLVED_TYPED_ACCESS_FIELD_GAP: "field_gap",
+    UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION: "prefix_extension",
+    UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE: "custom_tail_or_mistyped_base",
+}
 RUNTIME_VIEW_MATERIALIZATION_REASONS = {
     1: "full_source_policy_load_view",
     2: "policy_entry_point",
@@ -1150,6 +1158,17 @@ def _typed_access_provenance(access: dict[str, Any]) -> tuple[str | None, int | 
     )
 
 
+def _unresolved_typed_access_classification_id(access: dict[str, Any]) -> int | None:
+    return _int_value(access.get("classification_id"))
+
+
+def _unresolved_typed_access_classification_name(access: dict[str, Any]) -> str | None:
+    classification_id = _unresolved_typed_access_classification_id(access)
+    if classification_id is None:
+        return None
+    return UNRESOLVED_TYPED_ACCESS_CLASSIFICATION_NAMES.get(classification_id, "unknown")
+
+
 def _add_platform_typed_access_features(
     bag: FeatureBag,
     access: dict[str, Any],
@@ -1186,7 +1205,8 @@ def _add_platform_unresolved_typed_access_features(
     example: dict[str, object],
 ) -> None:
     root_struct = _string_value(access.get("root_struct_name"))
-    classification = _string_value(access.get("classification"))
+    classification_id = _unresolved_typed_access_classification_id(access)
+    classification = _unresolved_typed_access_classification_name(access)
     container_struct = _string_value(access.get("container_struct_name"))
     refined_struct = _string_value(access.get("refined_struct_name"))
     refinement_applied = access.get("refinement_applied") is True or access.get("refinement_applied") == 1
@@ -1197,11 +1217,11 @@ def _add_platform_unresolved_typed_access_features(
     if root_struct:
         bag.add(f"platform_unresolved_typed_access_struct:{_safe_part(root_struct)}", example=example)
         bag.add(f"struct:{_safe_part(root_struct)}", example=example)
-        if classification == "prefix_extension":
+        if classification_id == UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION:
             bag.add(f"platform_prefix_extension_struct:{_safe_part(root_struct)}", example=example)
-    if classification == "prefix_extension" and container_struct:
+    if classification_id == UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION and container_struct:
         bag.add(f"platform_prefix_extension_candidate:{_safe_part(container_struct)}", example=example)
-    if classification == "custom_tail_or_mistyped_base" and root_struct:
+    if classification_id == UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE and root_struct:
         bag.add(f"platform_custom_tail_struct:{_safe_part(root_struct)}", example=example)
     if refinement_applied:
         bag.add("platform_type_refinement:applied", example=example)
@@ -2790,7 +2810,8 @@ def _platform_unresolved_typed_access_xrefs(
     root_struct = _string_value(access.get("root_struct_name"))
     displacement = _int_value(access.get("displacement"))
     struct_size = _int_value(access.get("struct_size"))
-    classification = _string_value(access.get("classification"))
+    classification_id = _unresolved_typed_access_classification_id(access)
+    classification = _unresolved_typed_access_classification_name(access)
     container_candidate_count = _int_value(access.get("container_candidate_count"))
     container_struct_name = _string_value(access.get("container_struct_name"))
     container_field_expr = _string_value(access.get("container_field_expr"))
@@ -2813,6 +2834,7 @@ def _platform_unresolved_typed_access_xrefs(
             value=displacement,
             text=text,
             struct_size=struct_size,
+            classification_id=classification_id,
             classification=classification,
             container_candidate_count=container_candidate_count,
             container_struct_name=container_struct_name,
@@ -2835,6 +2857,7 @@ def _platform_unresolved_typed_access_xrefs(
             value=displacement,
             text=text,
             struct_size=struct_size,
+            classification_id=classification_id,
             classification=classification,
             container_candidate_count=container_candidate_count,
             container_struct_name=container_struct_name,
@@ -2860,6 +2883,7 @@ def _platform_unresolved_typed_access_xrefs(
                 value=displacement,
                 text=text,
                 struct_size=struct_size,
+                classification_id=classification_id,
                 classification=classification,
                 container_candidate_count=container_candidate_count,
                 container_struct_name=container_struct_name,
@@ -2925,6 +2949,7 @@ def _platform_unresolved_typed_access_xrefs(
                 value=displacement,
                 text=text,
                 struct_size=struct_size,
+                classification_id=classification_id,
                 classification=classification,
                 container_candidate_count=container_candidate_count,
                 container_struct_name=container_struct_name,
@@ -2948,6 +2973,7 @@ def _platform_unresolved_typed_access_xrefs(
                 value=displacement,
                 text=text,
                 struct_size=struct_size,
+                classification_id=classification_id,
                 classification=classification,
                 container_candidate_count=container_candidate_count,
                 container_struct_name=container_struct_name,
@@ -2970,6 +2996,7 @@ def _platform_unresolved_typed_access_xrefs(
                 value=displacement,
                 text=text,
                 struct_size=struct_size,
+                classification_id=classification_id,
                 classification=classification,
                 container_candidate_count=container_candidate_count,
                 container_struct_name=container_struct_name,
@@ -2979,7 +3006,7 @@ def _platform_unresolved_typed_access_xrefs(
                 type_provenance_offset=type_provenance_offset,
             )
         )
-        if classification == "prefix_extension":
+        if classification_id == UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION:
             xrefs.append(
                 _xref(
                     target_row,
@@ -2993,13 +3020,14 @@ def _platform_unresolved_typed_access_xrefs(
                     value=displacement,
                     text=text,
                     struct_size=struct_size,
+                    classification_id=classification_id,
                     classification=classification,
                     container_candidate_count=container_candidate_count,
                     container_struct_name=container_struct_name,
                     container_field_expr=container_field_expr,
                 )
             )
-    if classification == "prefix_extension" and container_struct_name:
+    if classification_id == UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION and container_struct_name:
         xrefs.append(
             _xref(
                 target_row,
@@ -3013,6 +3041,7 @@ def _platform_unresolved_typed_access_xrefs(
                 value=displacement,
                 text=text,
                 struct_size=struct_size,
+                classification_id=classification_id,
                 classification=classification,
                 container_candidate_count=container_candidate_count,
                 container_struct_name=container_struct_name,
@@ -4033,6 +4062,7 @@ def _xref(
     resolution: str | None = None,
     source_stable_key: str | None = None,
     struct_size: object = None,
+    classification_id: object = None,
     classification: str | None = None,
     container_candidate_count: object = None,
     container_struct_name: str | None = None,
@@ -4064,6 +4094,8 @@ def _xref(
     }
     if isinstance(struct_size, int):
         payload["struct_size"] = struct_size
+    if isinstance(classification_id, int):
+        payload["classification_id"] = classification_id
     if classification is not None:
         payload["classification"] = classification
     if isinstance(container_candidate_count, int):
@@ -4107,6 +4139,8 @@ def _stable_xref_id(payload: dict[str, object]) -> str:
         keys = (*keys[:7], "source_stable_key", *keys[7:])
     if payload.get("struct_size") is not None:
         keys = (*keys, "struct_size")
+    if payload.get("classification_id") is not None:
+        keys = (*keys, "classification_id")
     if payload.get("type_provenance_kind") is not None:
         keys = (*keys, "type_provenance_kind", "type_provenance_section", "type_provenance_offset")
     raw = json.dumps({key: payload.get(key) for key in keys}, sort_keys=True, separators=(",", ":"))
@@ -5434,7 +5468,7 @@ def _classify_unresolved_typed_field_group(group: dict[str, Any]) -> tuple[str, 
     examples = group.get("examples")
     displacement = _int_value(group.get("displacement"))
     struct_size = _int_value(group.get("struct_size"))
-    source_classification = _string_value(group.get("source_classification"))
+    source_classification_id = _int_value(group.get("source_classification_id"))
     if isinstance(examples, list) and any(
         isinstance(example, dict) and _unresolved_typed_field_text_is_control_transfer(example.get("text"))
         for example in examples
@@ -5443,17 +5477,17 @@ def _classify_unresolved_typed_field_group(group: dict[str, Any]) -> tuple[str, 
             "control_transfer_operand",
             "example operand is a control-transfer target, not a data field access",
         )
-    if source_classification == "prefix_extension":
+    if source_classification_id == UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION:
         return (
             "prefix_extension",
             "displacement is outside the prefix type and inside one or more generated container types",
         )
-    if source_classification == "custom_tail_or_mistyped_base":
+    if source_classification_id == UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE:
         return (
             "custom_tail_or_mistyped_base",
             "displacement is outside the known structure and no generated container type matched",
         )
-    if source_classification == "field_gap":
+    if source_classification_id == UNRESOLVED_TYPED_ACCESS_FIELD_GAP:
         return (
             "field_gap",
             "field metadata did not resolve inside the known structure bounds",
@@ -5509,6 +5543,7 @@ def build_unresolved_typed_field_report(
             continue
         root_struct = _string_value(xref.get("symbol")) or "unknown"
         struct_size = _int_value(xref.get("struct_size"))
+        source_classification_id = _int_value(xref.get("classification_id"))
         source_classification = _string_value(xref.get("classification"))
         container_candidate_count = _int_value(xref.get("container_candidate_count"))
         container_struct_name = _string_value(xref.get("container_struct_name"))
@@ -5541,6 +5576,7 @@ def build_unresolved_typed_field_report(
                 "struct_size": struct_size,
                 "in_struct_bounds": None if struct_size is None else 0 <= displacement < struct_size,
                 "nearby_api_feature": nearby_feature,
+                "source_classification_id": source_classification_id,
                 "source_classification": source_classification,
                 "container_candidate_count": container_candidate_count,
                 "container_struct_name": container_struct_name,
@@ -5556,11 +5592,13 @@ def build_unresolved_typed_field_report(
         if group.get("struct_size") is None and struct_size is not None:
             group["struct_size"] = struct_size
             group["in_struct_bounds"] = 0 <= displacement < struct_size
-        if source_classification:
-            existing_classification = _string_value(group.get("source_classification"))
-            if existing_classification is None:
+        if source_classification_id is not None:
+            existing_classification_id = _int_value(group.get("source_classification_id"))
+            if existing_classification_id is None:
+                group["source_classification_id"] = source_classification_id
                 group["source_classification"] = source_classification
-            elif existing_classification != source_classification:
+            elif existing_classification_id != source_classification_id:
+                group["source_classification_id"] = None
                 group["source_classification"] = "mixed"
         if container_candidate_count is not None:
             existing_count = _int_value(group.get("container_candidate_count"))
@@ -5610,6 +5648,7 @@ def build_unresolved_typed_field_report(
             if isinstance(nearby_api, dict):
                 example["nearby_api"] = nearby_api
             if source_classification:
+                example["classification_id"] = source_classification_id
                 example["classification"] = source_classification
             if container_candidate_count is not None:
                 example["container_candidate_count"] = container_candidate_count
@@ -5778,9 +5817,12 @@ def build_type_flow_report(
         }
         if _string_value(xref.get("access")):
             example["access"] = xref.get("access")
-        classification = _string_value(xref.get("classification"))
+        classification_id = _int_value(xref.get("classification_id"))
+        classification = UNRESOLVED_TYPED_ACCESS_CLASSIFICATION_NAMES.get(classification_id) \
+            if classification_id is not None else None
         candidate_count = _int_value(xref.get("container_candidate_count"))
         if classification:
+            example["classification_id"] = classification_id
             example["classification"] = classification
         if candidate_count is not None:
             example["container_candidate_count"] = candidate_count
@@ -5811,13 +5853,13 @@ def build_type_flow_report(
             bump(report, "typed_base_unresolved_field")
             if type_provenance_kind:
                 bump(report, f"type_provenance:{_safe_part(type_provenance_kind)}")
-            if classification == "prefix_extension":
+            if classification_id == UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION:
                 bump(report, "prefix_extension_evidence")
                 if candidate_count == 1:
                     bump(report, "prefix_extension_unique")
                 elif candidate_count is not None and candidate_count > 1:
                     bump(report, "prefix_extension_ambiguous")
-            elif classification == "custom_tail_or_mistyped_base":
+            elif classification_id == UNRESOLVED_TYPED_ACCESS_CUSTOM_TAIL_OR_MISTYPED_BASE:
                 bump(report, "custom_tail_or_mistyped_base")
                 if _string_value(xref.get("symbol")):
                     bump(report, f"custom_tail_struct:{_safe_part(str(xref.get('symbol')))}")
@@ -7433,7 +7475,7 @@ def build_type_flow_correctness_report(
         kind = _string_value(xref.get("kind")) or ""
         feature = _string_value(xref.get("feature")) or ""
         if kind == "platform_type_refinement" and feature == "platform_type_refinement:applied":
-            if _string_value(xref.get("classification")) != "prefix_extension":
+            if _int_value(xref.get("classification_id")) != UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION:
                 violations.append(
                     {
                         "kind": "refinement_without_prefix_extension_classification",

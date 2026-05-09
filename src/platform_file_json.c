@@ -2315,9 +2315,10 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
           "{\"record_kind\":\"platform_unresolved_typed_access\","
           "\"memory_kind\":\"platform_struct_unresolved\",\"section_index\":%u,\"source_offset\":%u,"
           "\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"struct_size\":%u,"
-          "\"classification\":",
+          "\"classification_id\":%u,\"classification\":",
           (unsigned)section->section_index, (unsigned)access->offset, (unsigned)access->operand_index,
-          (unsigned)access->base_reg, (int)access->displacement, (unsigned)access->struct_size) != 0) {
+          (unsigned)access->base_reg, (int)access->displacement, (unsigned)access->struct_size,
+          (unsigned)access->classification) != 0) {
         return -1;
       }
       if (json_builder_append_json_string(builder,
@@ -2785,7 +2786,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_nullable_string(&builder, root_struct_name) != 0)
         goto oom;
-      if (json_builder_append(&builder, ",\"classification\":") != 0)
+      if (json_builder_appendf(&builder, ",\"classification_id\":%u,\"classification\":",
+          (unsigned)access->classification) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder,
           unresolved_typed_access_classification_name(access->classification)) != 0)
@@ -3732,7 +3734,8 @@ static int append_listing_unresolved_typed_accesses_json(JsonBuilder *builder, c
         (unsigned)access->struct_size) != 0)
       return -1;
     if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
-    if (json_builder_append(builder, ",\"classification\":") != 0) return -1;
+    if (json_builder_appendf(builder, ",\"classification_id\":%u,\"classification\":",
+        (unsigned)access->classification) != 0) return -1;
     if (json_builder_append_json_string(builder,
         unresolved_typed_access_classification_name(access->classification)) != 0) return -1;
     if (json_builder_appendf(builder, ",\"container_candidate_count\":%u,\"container_struct_name\":",
@@ -6618,9 +6621,9 @@ static int append_listing_navigation_unresolved_entry(JsonBuilder *builder, cons
       m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref, access->root_struct_name)) != 0)
     return -1;
   if (json_builder_appendf(builder, ",\"base_register\":\"A%u\",\"operand_index\":%u,\"displacement\":%d,"
-        "\"struct_size\":%u,\"classification\":",
+        "\"struct_size\":%u,\"classification_id\":%u,\"classification\":",
         (unsigned)access->base_reg, (unsigned)access->operand_index, (int)access->displacement,
-        (unsigned)access->struct_size) != 0)
+        (unsigned)access->struct_size, (unsigned)access->classification) != 0)
     return -1;
   if (json_builder_append_json_string(builder,
       unresolved_typed_access_classification_name(access->classification)) != 0) return -1;

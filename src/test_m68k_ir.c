@@ -10124,6 +10124,7 @@ static int test_facts_v2_analysis_records_unresolved_typed_field_without_renderi
   M68kSourceAnalysisIR analysis;
   const M68kSectionAnalysisIR *analysis_section;
   const M68kRecoveredPlatformUnresolvedTypedAccessIR *unresolved = NULL;
+  char *analysis_json = NULL;
   char *source = NULL;
   size_t index;
   uint8_t bytes[12] = {
@@ -10175,6 +10176,11 @@ static int test_facts_v2_analysis_records_unresolved_typed_field_without_renderi
   M68K_C_ASSERT_U32(0U, unresolved->container_candidate_count);
   M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, unresolved->type_provenance_kind);
   M68K_C_ASSERT_U32(0U, unresolved->type_provenance_offset);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"classification_id\":2,\"classification\":\"custom_tail_or_mistyped_base\"") != NULL);
+  free(analysis_json);
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
