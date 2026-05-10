@@ -7380,6 +7380,76 @@ static int test_facts_v2_contained_runtime_range_does_not_emit_second_org(void) 
   return 0;
 }
 
+static int test_facts_v2_source_zero_runtime_copy_continues_without_storage_org(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kFactIR facts;
+  M68kRenderIRPreview preview;
+  M68kFact fact;
+  uint8_t *accepted_start[1];
+  uint8_t *accepted_bytes[1];
+  uint8_t start_map[8];
+  uint8_t byte_map[8];
+  uint8_t bytes[8] = {
+    0x4eu, 0x71u, 0x4eu, 0x75u,
+    0x00u, 0x01u, 0x02u, 0x03u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(start_map, 0, sizeof(start_map));
+  memset(byte_map, 0, sizeof(byte_map));
+  accepted_start[0] = start_map;
+  accepted_bytes[0] = byte_map;
+  start_map[0] = 1U;
+  memset(&byte_map[0], 1, 4U);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_decode_ir_init(&decode);
+  m68k_fact_ir_init(&facts);
+  m68k_render_ir_preview_init(&preview);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 4U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_CODE_START;
+  fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  fact.section_index = 0U;
+  fact.offset = 0U;
+  fact.reason = M68K_FACT_CODE_START_REASON_RUNTIME_VIEW_ENTRY;
+  fact.has_runtime_address = 1U;
+  fact.runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_RUNTIME_ADDRESS_RANGE;
+  fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  fact.section_index = 0U;
+  fact.offset = 0U;
+  fact.has_runtime_address = 1U;
+  fact.runtime_kind = M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY;
+  fact.runtime_address = 0x100U;
+  fact.size = 4U;
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, NULL,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  M68K_C_ASSERT(preview.asm_source_text != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $100\nabs_0_00000100:\n") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $4\n") == NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "abs_0_00000104:\n\tdc.b $00,$01,$02,$03\n") != NULL);
+  M68K_C_ASSERT_U32(0U, preview.asm_source_instruction_render_failures);
+  m68k_render_ir_preview_destroy(&preview);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_mid_section_runtime_stub_does_not_org_back_to_storage(void) {
   M68kObject object;
   M68kSection section;
@@ -18033,6 +18103,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage},
     {"facts_v2_contained_runtime_range_does_not_emit_second_org",
       test_facts_v2_contained_runtime_range_does_not_emit_second_org},
+    {"facts_v2_source_zero_runtime_copy_continues_without_storage_org",
+      test_facts_v2_source_zero_runtime_copy_continues_without_storage_org},
     {"facts_v2_mid_section_runtime_stub_does_not_org_back_to_storage",
       test_facts_v2_mid_section_runtime_stub_does_not_org_back_to_storage},
     {"facts_v2_detects_interrupt_vector_store_target",

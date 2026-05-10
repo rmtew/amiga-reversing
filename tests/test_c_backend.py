@@ -3454,6 +3454,7 @@ def test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code() -> N
     assert "runtime_code_0001046A\tEQU\t$1046A\n" not in source_text
     assert "\tmove.l #abs_0_0005D5DE,bltapt(a5)" in source_text
     assert "\tmovea.l #abs_0_0001C3A8,a0\n" in source_text
+    assert "    ORG $55370\n" not in source_text
     assert "    ORG $5548F\n" not in source_text
     assert "loc_0_00057800:\n" not in source_text
     assert "loc_0_00057D00:\n" not in source_text

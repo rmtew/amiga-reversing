@@ -1054,8 +1054,8 @@ Runtime-copy decrement/branch and runtime-address label evidence:
   `facts_v2_runtime_copy_size_uses_decrement_branch_counter` and
   `facts_v2_runtime_movea_pointer_use_labels_materialized_target`.
 - Real target coverage: Pandora extracted BK payload now keeps only the final
-  `ORG $10000` image plus the bounded post-copy `ORG $55370`, removes the
-  spurious `ORG $5548F`, removes false raw-load labels
+  `ORG $10000` image, no longer resets to the source-length `ORG $55370`,
+  removes the spurious `ORG $5548F`, removes false raw-load labels
   `loc_0_00057800`/`loc_0_00057D00`, renders
   `movea.l #abs_0_0001C3A8,a0` for a copied-image table base, and renders
   `move.l #abs_0_0005D5DE,bltapt(a5)` for a blitter source pointer.
@@ -1101,6 +1101,24 @@ Runtime-copy base versus entrypoint evidence:
   source, but its checked-in `.s` was not updated in this increment because the
   fresh whole-file diff also includes unrelated absolute constant relabeling
   that needs a separate quality pass.
+- Source-zero copied runtime ranges now continue their logical PC after the
+  copied prefix instead of resetting to a storage-offset `ORG`. This keeps
+  Pandora's final image as a single `ORG $10000`: `movea.l #abs_0_0001C3A8,a0`
+  remains a high-quality copied-image table base, `move.l #$55370,d0` remains
+  the scalar copy length, and the rendered source no longer emits `ORG $55370`.
+- Isolated C coverage:
+  `facts_v2_source_zero_runtime_copy_continues_without_storage_org`. Real
+  target coverage extends
+  `test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code`.
+  The regenerated Pandora extracted `.s` reassembles byte-exact to the raw
+  child payload.
+- Corpus manifest after this render-boundary change:
+  `src\build\tmp_target_usage_after_source_zero_runtime_org_continuation.jsonl`
+  (493 entries, 519388 xrefs, 481556 snippet rows, 3 variants, 322 type-flow
+  rows, 42 unresolved typed-field rows). Feature counts are unchanged from
+  `tmp_target_usage_after_callback_field_targets_strict.jsonl`, as expected for
+  a source-rendering ORG boundary fix. Type-flow check passed with 145 applied
+  refinements and 0 violations.
 - Verification: `cmd /c src\build.bat`, `src\build\m68k_c_unit_tests.exe`,
   `uv run pytest tests\test_c_backend.py -q`, corpus manifest build to
   `src\build\tmp_target_usage_after_runtime_copy_base_entry.jsonl` (493

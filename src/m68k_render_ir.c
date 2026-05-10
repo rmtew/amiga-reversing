@@ -4964,6 +4964,39 @@ static int runtime_range_is_materialized(const M68kRenderLookup *lookup, const M
   return materialized != 0U;
 }
 
+static int lookup_source_runtime_continuation_address(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t source_offset, uint32_t *out_runtime_address) {
+  size_t index;
+  uint32_t best_end = 0U;
+  uint32_t best_runtime_address = 0U;
+  int found = 0;
+  if (lookup == NULL || lookup->runtime_address_ranges == NULL) return 0;
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    const M68kFact *fact = lookup->runtime_address_ranges[index].fact;
+    uint32_t end;
+    uint32_t delta;
+    uint32_t runtime_address;
+    if (fact == NULL || fact->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE ||
+        fact->runtime_kind != M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY ||
+        fact->section_index != section_index || fact->offset != 0U || fact->size == 0U ||
+        !fact->has_runtime_address || !runtime_range_is_materialized(lookup, fact)) {
+      continue;
+    }
+    if (fact->size > UINT32_MAX - fact->offset) continue;
+    end = fact->offset + fact->size;
+    if (source_offset < end || end < best_end) continue;
+    delta = source_offset - fact->offset;
+    if (delta > UINT32_MAX - fact->runtime_address) continue;
+    runtime_address = fact->runtime_address + delta;
+    best_end = end;
+    best_runtime_address = runtime_address;
+    found = 1;
+  }
+  if (!found) return 0;
+  if (out_runtime_address != NULL) *out_runtime_address = best_runtime_address;
+  return 1;
+}
+
 int lookup_source_runtime_address(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t source_offset, uint32_t *out_runtime_address) {
   size_t index;
@@ -4991,6 +5024,9 @@ int lookup_source_runtime_address(const M68kRenderLookup *lookup, size_t section
     const M68kFact *fact = lookup->runtime_address_ranges[index].fact;
     if (!runtime_range_is_materialized(lookup, fact)) continue;
     if (runtime_range_contains_source(fact, section_index, source_offset, out_runtime_address)) return 1;
+  }
+  if (lookup_source_runtime_continuation_address(lookup, section_index, source_offset, out_runtime_address)) {
+    return 1;
   }
   return 0;
 }
