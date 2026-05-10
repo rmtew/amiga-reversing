@@ -191,3 +191,15 @@ Render audio, sprite, copper, display, CIA, and custom-chip accesses through
 generated platform metadata when the base is known. Prefer block aliases only
 when they match the hardware layout and keep source editable without fragile
 addends.
+
+## Linkage API Wrapper Labels
+
+Some imported Amiga objects contain required labels on short terminal wrapper
+code that calls a library vector through `a6` and returns or tail-jumps. When
+the label is fixture-backed and the LVO is present in generated Amiga OS
+metadata, C analysis may promote that label as a code entrypoint. Unlabelled
+API-looking byte islands stay orphan signals.
+
+Generic M68K analysis must not know which LVOs are Amiga APIs. It should ask the
+platform facts layer whether linkage API entry labels are supported and whether
+an observed LVO belongs to the platform API set.

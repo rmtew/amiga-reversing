@@ -864,6 +864,10 @@ static int test_facts_v2_linkage_label_api_wrapper_promotes_code(void) {
     0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
     0x00u, 0x00u, 0x00u, 0x00u
   };
+  M68K_C_ASSERT(platform_facts_v2_supports_linkage_api_entry_labels(M68K_PLATFORM_BACKEND_AMIGA_HUNK));
+  M68K_C_ASSERT(!platform_facts_v2_supports_linkage_api_entry_labels(M68K_PLATFORM_BACKEND_ATARI_ST));
+  M68K_C_ASSERT(platform_facts_v2_lvo_is_api(M68K_PLATFORM_BACKEND_AMIGA_HUNK, -552));
+  M68K_C_ASSERT(!platform_facts_v2_lvo_is_api(M68K_PLATFORM_BACKEND_ATARI_ST, -552));
   memset(&section, 0, sizeof(section));
   memset(&source_analysis, 0, sizeof(source_analysis));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));

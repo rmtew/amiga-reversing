@@ -283,9 +283,11 @@ measurements and test names here, not in the index table.
   `facts_v2_relocated_indirect_call_promotes_cross_section_target`.
 - Orphan/code discovery: required linkage labels that start short terminal
   Amiga API wrapper sequences now seed code with `linkage_api_entry`
-  provenance. This is gated by required label provenance, generated Amiga LVO
-  metadata, terminal decode, and no accepted-code overlap; unlabelled
-  API-looking islands remain orphan signals. Coverage:
+  provenance. Generic analysis asks platform facts whether linkage API entry
+  labels and LVO API matching are supported; Amiga owns the generated LVO
+  metadata. This is gated by required label provenance, terminal decode, and no
+  accepted-code overlap; unlabelled API-looking islands remain orphan signals.
+  Coverage:
   `facts_v2_linkage_label_api_wrapper_promotes_code` and
   `test_real_dll_starglider_mathtrans_linkage_api_labels_promote_wrappers`.
 - Memory ownership/orphan diagnostics: relocated absolute operands no longer

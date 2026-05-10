@@ -73,6 +73,8 @@ uint32_t platform_facts_v2_relocation_anchor_kind(uint8_t platform_kind, uint8_t
 int platform_facts_v2_fixup_addend_is_normalized_target(uint8_t platform_kind, uint8_t platform_file_kind,
   uint8_t fixup_kind, uint8_t has_target_section, int64_t addend, uint32_t width, uint32_t target_extent,
   uint32_t *out_offset);
+int platform_facts_v2_supports_linkage_api_entry_labels(uint8_t platform_kind);
+int platform_facts_v2_lvo_is_api(uint8_t platform_kind, int16_t lvo);
 int platform_facts_v2_pc_relative_section_anchor_for_target(uint8_t platform_kind, int64_t target,
   uint32_t *out_base_offset, int32_t *out_addend, uint8_t *out_symbol_provenance);
 int platform_facts_v2_supports_loadseg_segment_chain(uint8_t platform_kind);

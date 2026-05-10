@@ -533,6 +533,25 @@ int platform_facts_v2_fixup_addend_is_normalized_target(uint8_t platform_kind, u
   }
 }
 
+int platform_facts_v2_supports_linkage_api_entry_labels(uint8_t platform_kind) {
+  return platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+}
+
+int platform_facts_v2_lvo_is_api(uint8_t platform_kind, int16_t lvo) {
+  size_t index;
+  if (!platform_facts_v2_supports_linkage_api_entry_labels(platform_kind)) return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    for (index = 0U;; ++index) {
+      const AmigaOsLibraryVectorInfo *vector = amiga_os_library_vector_at(index);
+      if (vector == NULL) return 0;
+      if (vector->lvo == lvo) return 1;
+    }
+  default:
+    return 0;
+  }
+}
+
 int platform_facts_v2_pc_relative_section_anchor_for_target(uint8_t platform_kind, int64_t target,
     uint32_t *out_base_offset, int32_t *out_addend, uint8_t *out_symbol_provenance) {
   if (out_base_offset != NULL) *out_base_offset = 0U;
