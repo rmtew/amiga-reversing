@@ -392,6 +392,21 @@ measurements and test names here, not in the index table.
   Coverage:
   `facts_v2_linkage_label_api_wrapper_promotes_code` and
   `test_real_dll_starglider_mathtrans_linkage_api_labels_promote_wrappers`.
+- Amiga indexed LVO wrapper rendering now tracks the LVO immediate register
+  instead of assuming `d0`, and local wrapper entry tracing follows branch and
+  fallthrough edges before accepting `jsr 0(a6,dN.w)`. This covers the real
+  Damocles `MenuEd` helper that loads LVOs into `d6`, copies `a6`/`a5` through
+  `a3`, and branches into a shared indexed dispatch. Immediate symbolization is
+  gated by the recorded wrapper index register so unrelated negative immediates
+  do not borrow a wrapper label. Coverage:
+  `facts_v2_render_asm_source_infers_lvo_immediate_for_indexed_wrapper` and
+  `facts_v2_render_asm_source_infers_lvo_immediate_for_d6_indexed_wrapper`.
+  Real target coverage: regenerated
+  `targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_hunk_menued_2c2c9e6a/menued_2c2c9e6a.s`
+  now renders `_LVOFindTask`, `_LVOAllocMem`, `_LVOWaitPort`, `_LVOGetMsg`,
+  `_LVOOpenLibrary`, `_LVOFreeMem`, and `MEMF_ANY` for the wrapper-driven
+  calls; source reproduction remains exact. Comparator refreshes for
+  `amiga_hunk_genam` and `amiga_hunk_monam302` completed successfully.
 - Memory ownership/orphan diagnostics: relocated absolute operands no longer
   become CPU-vector evidence solely because their relocation addend is a low
   number such as `$10` or `$14`. The C/render analysis keeps relocation

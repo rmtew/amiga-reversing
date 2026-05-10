@@ -477,7 +477,7 @@ static int render_lookup_collect_recovered_function_args_from_wrapper(M68kRender
     if (delta < 0 && (uint32_t)(-delta) > (uint32_t)stack_frame_depth) break;
     if (delta > 0 && (uint32_t)delta > UINT16_MAX - (uint32_t)stack_frame_depth) break;
     stack_frame_depth = (uint16_t)((int32_t)stack_frame_depth + delta);
-    platform_state_update_d0_lvo_after_instruction(&state, &instruction);
+    platform_state_update_data_lvo_after_instruction(&state, &instruction);
     platform_state_update_after_instruction(&state, lookup, &instruction);
     if (!candidate_has_local_helper_summary_fallthrough(candidate)) break;
     cursor += candidate->byte_count;
@@ -525,7 +525,7 @@ static int render_lookup_infer_amiga_recovered_local_call_summaries(M68kRenderLo
           render_lookup_add_recovered_local_call_summary(lookup, target_section_index, target_offset, vector) != 0) {
         return -1;
       }
-      platform_state_update_d0_lvo_after_instruction(&platform_state, &instruction);
+      platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
       platform_state_update_after_instruction(&platform_state, lookup, &instruction);
     }
   }
@@ -568,7 +568,7 @@ static int render_lookup_infer_amiga_recovered_function_args(M68kRenderLookup *l
             target_section_index, target_offset, vector) != 0) {
         return -1;
       }
-      platform_state_update_d0_lvo_after_instruction(&platform_state, &instruction);
+      platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
       platform_state_update_after_instruction(&platform_state, lookup, &instruction);
     }
   }
@@ -2567,9 +2567,12 @@ static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRe
     if (dest->address_app_base_known[index] != 0U && source->address_app_base_known[index] == 0U)
       dest->address_app_base_known[index] = 0U;
   }
-  if (dest->d0_lvo_known == 0U || source->d0_lvo_known == 0U || dest->d0_lvo != source->d0_lvo) {
-    dest->d0_lvo_known = 0U;
-    dest->d0_lvo = 0;
+  for (index = 0U; index < 8U; ++index) {
+    if (dest->data_lvo_known[index] == 0U || source->data_lvo_known[index] == 0U ||
+        dest->data_lvo[index] != source->data_lvo[index]) {
+      dest->data_lvo_known[index] = 0U;
+      dest->data_lvo[index] = 0;
+    }
   }
   return changed || !platform_states_equal(dest, &old_state);
 }
@@ -2735,7 +2738,7 @@ static int typed_flow_infer_local_helper_output_reg_at(const M68kRenderLookup *l
       typed_state_set_reg(&typed_state, nested_resolution.output_reg_kind, nested_resolution.output_reg_index,
         &nested_resolution.vector->output, &api_provenance);
     }
-    platform_state_update_d0_lvo_after_instruction(&platform_state, &instruction);
+    platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
     platform_state_update_after_instruction(&platform_state, lookup, &instruction);
     platform_state_note_call_result_after_instruction(&platform_state, &instruction, vector);
     if (!candidate_has_local_helper_summary_fallthrough(candidate))
@@ -2846,7 +2849,7 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     typed_state_set_reg(out_typed_state, call_resolution.output_reg_kind, call_resolution.output_reg_index,
       &call_resolution.vector->output, &api_provenance);
   }
-  platform_state_update_d0_lvo_after_instruction(out_platform_state, &instruction);
+  platform_state_update_data_lvo_after_instruction(out_platform_state, &instruction);
   platform_state_update_after_instruction(out_platform_state, lookup, &instruction);
   platform_state_note_call_result_after_instruction(out_platform_state, &instruction, chosen_vector);
   if (candidate_terminates_a6_state(node->candidate)) typed_state_clear_all(out_typed_state);
@@ -3163,7 +3166,7 @@ static int decode_has_library_base_operand_use(const M68kRenderLookup *lookup, c
           return 1;
         }
       }
-      platform_state_update_d0_lvo_after_instruction(&state, &instruction);
+      platform_state_update_data_lvo_after_instruction(&state, &instruction);
       platform_state_update_after_instruction(&state, lookup, &instruction);
       for (operand_index = 0U; operand_index < 8U; ++operand_index)
         if (state.address_base_known[operand_index]) seen_library_base[operand_index] = 1U;
@@ -3820,13 +3823,16 @@ static int append_render_lookup_unresolved_typed_accesses_for_section(const M68k
 }
 
 static int global_base_observation_add(M68kRenderGlobalBaseObservation **observations, size_t *count,
-    size_t *capacity, size_t section_index, uint32_t offset, int16_t lvo) {
+    size_t *capacity, size_t section_index, uint32_t offset, uint8_t index_reg, int16_t lvo) {
   size_t index;
   if (observations == NULL || count == NULL || capacity == NULL) return -1;
   for (index = 0U; index < *count; ++index) {
     M68kRenderGlobalBaseObservation *observation = &(*observations)[index];
     size_t lvo_index;
-    if (observation->section_index != section_index || observation->offset != offset) continue;
+    if (observation->section_index != section_index || observation->offset != offset ||
+        observation->index_reg != index_reg) {
+      continue;
+    }
     for (lvo_index = 0U; lvo_index < observation->lvo_count; ++lvo_index)
       if (observation->lvos[lvo_index] == lvo) return 0;
     if (observation->lvo_count < sizeof(observation->lvos) / sizeof(observation->lvos[0]))
@@ -3844,6 +3850,7 @@ static int global_base_observation_add(M68kRenderGlobalBaseObservation **observa
   memset(&(*observations)[*count], 0, sizeof((*observations)[*count]));
   (*observations)[*count].section_index = section_index;
   (*observations)[*count].offset = offset;
+  (*observations)[*count].index_reg = index_reg;
   (*observations)[*count].lvos[0] = lvo;
   (*observations)[*count].lvo_count = 1U;
   ++(*count);
@@ -4577,17 +4584,22 @@ int render_lookup_add_pc_relative_xrefs(M68kRenderLookup *lookup, const M68kDeco
 }
 
 int render_lookup_add_indexed_vector_wrapper(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
-    const char *library_name) {
+    uint8_t index_reg, const char *library_name) {
   size_t index;
   M68kRenderIndexedVectorWrapper *grown;
   size_t next_capacity;
   uint16_t library_id;
-  if (lookup == NULL || library_name == NULL || library_name[0] == '\0') return 0;
+  if (lookup == NULL || index_reg >= 8U || library_name == NULL || library_name[0] == '\0') return 0;
   if (amiga_os_find_library_base_name(library_name) == NULL) return 0;
   library_id = amiga_os_name_id(M68K_PLATFORM_NAME_LIBRARY, library_name);
   for (index = 0U; index < lookup->indexed_vector_wrapper_count; ++index) {
     M68kRenderIndexedVectorWrapper *wrapper = &lookup->indexed_vector_wrappers[index];
     if (wrapper->section_index != section_index || wrapper->offset != offset) continue;
+    if (wrapper->index_reg != index_reg) {
+      wrapper->has_library_id = 0U;
+      wrapper->library_name[0] = '\0';
+      return 0;
+    }
     if (!wrapper->has_library_id || wrapper->library_id != library_id) {
       wrapper->has_library_id = 0U;
       wrapper->library_name[0] = '\0';
@@ -4607,6 +4619,7 @@ int render_lookup_add_indexed_vector_wrapper(M68kRenderLookup *lookup, size_t se
     sizeof(lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count]));
   lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count].section_index = section_index;
   lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count].offset = offset;
+  lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count].index_reg = index_reg;
   lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count].has_library_id = 1U;
   lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count].library_id = library_id;
   snprintf(lookup->indexed_vector_wrappers[lookup->indexed_vector_wrapper_count].library_name,
@@ -8831,6 +8844,70 @@ static void trace_state_update_register_names_after_candidate(M68kRenderBaseTrac
   }
 }
 
+typedef struct M68kRenderWrapperTraceQueueEntry {
+  uint32_t offset;
+  M68kRenderBaseTraceState state;
+} M68kRenderWrapperTraceQueueEntry;
+
+static int wrapper_trace_enqueue(M68kRenderWrapperTraceQueueEntry *queue, size_t *queue_count, uint32_t offset,
+    const M68kRenderBaseTraceState *state) {
+  size_t index;
+  if (queue == NULL || queue_count == NULL || state == NULL || *queue_count >= 32U) return 0;
+  for (index = 0U; index < *queue_count; ++index) {
+    if (queue[index].offset == offset &&
+        memcmp(&queue[index].state, state, sizeof(queue[index].state)) == 0) {
+      return 1;
+    }
+  }
+  queue[*queue_count].offset = offset;
+  queue[*queue_count].state = *state;
+  ++(*queue_count);
+  return 1;
+}
+
+static int trace_indexed_vector_wrapper_from_entry(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t entry_offset,
+    const M68kRenderBaseTraceState *entry_state, uint8_t *out_index_reg, char *out_library_name,
+    size_t out_library_name_size) {
+  M68kRenderWrapperTraceQueueEntry queue[32];
+  size_t queue_count = 0U;
+  size_t queue_index = 0U;
+  if (out_index_reg != NULL) *out_index_reg = 0U;
+  if (out_library_name != NULL && out_library_name_size > 0U) out_library_name[0] = '\0';
+  if (lookup == NULL || section == NULL || accepted_start == NULL || entry_state == NULL ||
+      out_index_reg == NULL || out_library_name == NULL || out_library_name_size == 0U ||
+      entry_offset >= section->size) {
+    return 0;
+  }
+  if (!wrapper_trace_enqueue(queue, &queue_count, entry_offset, entry_state)) return 0;
+  while (queue_index < queue_count) {
+    M68kRenderWrapperTraceQueueEntry entry = queue[queue_index++];
+    M68kRenderBaseTraceState state = entry.state;
+    const M68kDecodeCandidate *candidate;
+    uint8_t index_reg = 0U;
+    uint32_t target_offset = 0U;
+    uint32_t next_offset;
+    if (!accepted_start_at(section, accepted_start, entry.offset)) continue;
+    candidate = find_candidate_at_offset_local(section, entry.offset);
+    if (candidate == NULL || candidate->byte_count == 0U) continue;
+    if (candidate_calls_a6_data_indexed_vector(candidate, &index_reg) && state.addr_regs[6].known) {
+      *out_index_reg = index_reg;
+      snprintf(out_library_name, out_library_name_size, "%s", state.addr_regs[6].name);
+      return 1;
+    }
+    trace_state_update_register_names_after_candidate(&state, lookup, candidate);
+    if (candidate_first_local_control_target(section, candidate, &target_offset)) {
+      if (!wrapper_trace_enqueue(queue, &queue_count, target_offset, &state)) return 0;
+    }
+    next_offset = candidate->offset + candidate->byte_count;
+    if (render_cfg_candidate_has_fallthrough(candidate) && next_offset < section->size &&
+        accepted_start_at(section, accepted_start, next_offset)) {
+      if (!wrapper_trace_enqueue(queue, &queue_count, next_offset, &state)) return 0;
+    }
+  }
+  return 0;
+}
+
 static void trace_local_slot_set(M68kRenderBaseTraceState *state, uint8_t base_reg, int16_t displacement,
     const char *library_name) {
   size_t index;
@@ -9635,28 +9712,46 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
       }
       if (current_slot_valid && candidate_calls_a6_lvo(candidate, &lvo)) {
         if (global_base_observation_add(&observations, &observation_count, &observation_capacity,
-          current_slot_section, current_slot_offset, lvo) != 0) goto cleanup;
+          current_slot_section, current_slot_offset, 0U, lvo) != 0) goto cleanup;
       }
-      if (candidate_loads_d0_lvo_immediate(candidate, &wrapper_lvo)) {
+      {
+        uint8_t wrapper_reg = 0U;
         uint32_t next_offset = candidate->offset + candidate->byte_count;
         const M68kDecodeCandidate *next_candidate = NULL;
         uint32_t wrapper_offset = 0U;
-        if (accepted_start_at(section, accepted_start[section_index], next_offset))
+        if (candidate_loads_data_lvo_immediate(candidate, &wrapper_reg, &wrapper_lvo) &&
+            accepted_start_at(section, accepted_start[section_index], next_offset))
           next_candidate = find_candidate_at_offset_local(section, next_offset);
-        if (candidate_direct_same_section_target(next_candidate, section->section_index, &wrapper_offset)) {
+        if (next_candidate != NULL &&
+            candidate_direct_same_section_target(next_candidate, section->section_index, &wrapper_offset)) {
           if (global_base_observation_add(&wrapper_observations, &wrapper_observation_count,
-              &wrapper_observation_capacity, section->section_index, wrapper_offset, wrapper_lvo) != 0) {
+              &wrapper_observation_capacity, section->section_index, wrapper_offset, wrapper_reg,
+              wrapper_lvo) != 0) {
             goto cleanup;
           }
         }
       }
-      if (trace_state.addr_regs[6].known && candidate_calls_a6_d0_indexed_vector(candidate)) {
-        if (render_lookup_add_indexed_vector_wrapper(lookup, section->section_index, current_segment_entry,
-            trace_state.addr_regs[6].name) != 0 ||
+      {
+        uint8_t index_reg = 0U;
+        if (trace_state.addr_regs[6].known && candidate_calls_a6_data_indexed_vector(candidate, &index_reg) &&
+            (render_lookup_add_indexed_vector_wrapper(lookup, section->section_index, current_segment_entry,
+            index_reg, trace_state.addr_regs[6].name) != 0 ||
             render_lookup_add_indexed_vector_wrapper(lookup, section->section_index, candidate->offset,
-            trace_state.addr_regs[6].name) != 0 ||
+            index_reg, trace_state.addr_regs[6].name) != 0 ||
             render_lookup_add_indexed_vector_wrapper_branch_aliases(lookup, section, accepted_start[section_index],
-            current_segment_entry, trace_state.addr_regs[6].name) != 0) {
+            current_segment_entry, index_reg, trace_state.addr_regs[6].name) != 0)) {
+          goto cleanup;
+        }
+      }
+      {
+        uint32_t wrapper_entry = 0U;
+        uint8_t index_reg = 0U;
+        char wrapper_library_name[64];
+        if (candidate_direct_same_section_target(candidate, section->section_index, &wrapper_entry) &&
+            trace_indexed_vector_wrapper_from_entry(lookup, section, accepted_start[section_index],
+              wrapper_entry, &trace_state, &index_reg, wrapper_library_name, sizeof(wrapper_library_name)) &&
+            render_lookup_add_indexed_vector_wrapper(lookup, section->section_index, wrapper_entry,
+              index_reg, wrapper_library_name) != 0) {
           goto cleanup;
         }
       }
@@ -9685,7 +9780,7 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
     const char *library_name = unique_library_for_observed_lvos(observation);
     if (library_name == NULL) continue;
     if (render_lookup_add_indexed_vector_wrapper(lookup, observation->section_index, observation->offset,
-        library_name) != 0) goto cleanup;
+        observation->index_reg, library_name) != 0) goto cleanup;
   }
   result = 0;
 cleanup:
@@ -9845,7 +9940,7 @@ static const AmigaOsLibraryVectorInfo *resolve_amiga_local_helper_primary_vector
         candidate->mnemonic_id == M68K_ASM_MNEMONIC_JSR) {
       return NULL;
     }
-    platform_state_update_d0_lvo_after_instruction(&state, &instruction);
+    platform_state_update_data_lvo_after_instruction(&state, &instruction);
     platform_state_update_after_instruction(&state, lookup, &instruction);
     if (!candidate_has_local_helper_summary_fallthrough(candidate)) break;
     cursor += candidate->byte_count;
@@ -9924,7 +10019,7 @@ int render_lookup_infer_amiga_call_input_comments(M68kRenderLookup *lookup, cons
         return -1;
       }
       data_pointer_state_update_after_instruction(&data_pointer_state, lookup, section, candidate, &instruction);
-      platform_state_update_d0_lvo_after_instruction(&platform_state, &instruction);
+      platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
       platform_state_update_after_instruction(&platform_state, lookup, &instruction);
     }
   }

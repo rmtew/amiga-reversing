@@ -1,4 +1,5 @@
     INCLUDE "exec/exec_lib.i"
+    INCLUDE "exec/memory.i"
 
 
     SECTION section,code
@@ -28,7 +29,7 @@ loc_0_00000046:
 	movea.l d0,a5
 	move.l d0,-(a7)
 	suba.l a1,a1
-	move.w #$FEDA,d6
+	move.w #_LVOFindTask,d6
 	bsr.b loc_0_000000B0
 	movea.l d0,a4
 	move.l d0,-(a7)
@@ -41,8 +42,8 @@ loc_0_00000060:
 	lea.l loc_0_0000001C(pc),a1
 	move.l (a1),d0
 	move.l d0,-(a7)
-	moveq.l #0,d1
-	move.w #$FF3A,d6
+	moveq.l #MEMF_ANY,d1
+	move.w #_LVOAllocMem,d6
 	bsr.b loc_0_000000B0
 	beq.b loc_0_000000DE
 	move.l d0,-(a7)
@@ -61,13 +62,13 @@ loc_0_00000060:
 	jmp (a1)
 loc_0_0000009A:
 	lea.l $005C(a4),a0
-	move.w #$FE80,d6
+	move.w #_LVOWaitPort,d6
 	bsr.b loc_0_000000B0
-	move.w #$FE8C,d6
+	move.w #_LVOGetMsg,d6
 	bra.b loc_0_000000B0
 loc_0_000000AA:
 	moveq.l #0,d0
-	move.w #$FDD8,d6
+	move.w #_LVOOpenLibrary,d6
 loc_0_000000B0:
 	movea.l a6,a3
 	bra.b loc_0_000000B6
@@ -91,7 +92,7 @@ loc_0_000000CE:
 loc_0_000000D2:
 	movea.l (a7)+,a1
 	move.l (a7)+,d0
-	move.w #$FF2E,d6
+	move.w #_LVOFreeMem,d6
 	bsr.b loc_0_000000B0
 	bra.b loc_0_000000E4
 loc_0_000000DE:
